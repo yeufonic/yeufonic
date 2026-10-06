@@ -9253,9 +9253,12 @@ async function startFresh() {
   setChart('');
   showPlanLength('');
   if (cover) {
-    paintSource();   // loads the recording's transcription back into the box, if it has one
-    // And its words, if they were heard: the recording stays selected, so choosing it again never happens.
-    if (currentSource()) { await takeRecordingWords(currentSource().id); }
+    // A new cover starts with no recording, like any new take: its score, words and sections go with it.
+    if ($('source-select')) { $('source-select').value = ''; }
+    State.sourceByMode = State.sourceByMode || {};
+    State.sourceByMode.cover = '';
+    paintSource();
+    paintStructure();
   } else {
     $('score-badge').textContent = 'no plan yet';
     $('score-badge').className = 'badge';
@@ -9288,7 +9291,7 @@ async function startFresh() {
   saveForm();
   paintTakes();
   statusLine(cover
-    ? 'New cover. The recording stays selected: add a title and lyrics, then Create cover.'
+    ? 'New cover. Choose a recording, then add a title and lyrics.'
     : State.mode === 'inst' ? (instFromRecording()
       ? 'New instrumental. The recording stays selected: choose a style, then Create instrumental.'
       : 'New instrumental. Choose a style and a structure, then Write score plan.')

@@ -40,6 +40,7 @@ cannot creep back in.
 ## Unreleased
 
 ### Changed
+- **New cover starts with no recording.** It kept the last cover's recording selected, with its score, words and sections still showing. Choosing a recording fills them in again.
 - **Writing a plan closes the editor.** It used to stay open on the Score page, which looked as if nothing had happened and invited a second click. The take's card shows the plan being written.
 - **A planned instrumental lists its sections to rearrange, as one from a recording does.** The list used to appear only with a source recording, though
   an instrumental written from a structure has a score with sections once it is planned. Rearranging them and pressing **Render this score** renders
