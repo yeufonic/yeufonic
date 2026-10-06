@@ -619,10 +619,11 @@ When training finishes, the LoRA appears in the **Style LoRA** list with its tri
 it shows a chip for each song it learned from, and clicking one puts that song's style in the box.
 Past a dozen songs, a filter box and a row of the tags that recur across the corpus (its genres,
 moods and instruments) narrow them; click two tags to find songs with both. The list shows its
-first dozen until **Show all**. See **Balancing Planner and Sound** below for starting strengths. To share it, press **Download** under
+first dozen until **Show all**. See **Balancing Planner and Sound** below for starting strengths. To share it, press **Download LoRA** on the corpus's page, or **Download** under
 the picker; see **Sharing a LoRA** below.
 
-To use a LoRA trained elsewhere from the exported set, press **Install a LoRA** and choose the
+To add a LoRA someone shared, press **Import LoRA** beside **New corpus** and choose their zip. To use a
+LoRA trained elsewhere from the exported set, press **Install a LoRA** and choose the
 file. It is added to the Style LoRA list with this corpus's trigger word.
 
 **Deleting a corpus** removes the app's copies of its songs, the separated vocals, the lyrics and

@@ -7970,7 +7970,10 @@ async function showIdentityList() {
     '<p class="identity-intro persona-intro">A corpus is a folder of recordings, prepared as a training set. ' +
     'Point at a folder: the app separates each vocal, finds its key and tempo, and drafts its lyrics for you ' +
     'to check. Then export the set and train it' + (trainingAvailable() ? ' — here, or anywhere else' : ' with the trainer of your choice') + '.</p>' +
-    '<button id="identity-new" class="ghost">New corpus</button>' +
+    '<div class="row"><button id="identity-new" class="ghost">New corpus</button>' +
+    '<button id="identity-import" class="ghost" title="Add a LoRA someone shared: the zip from their Download LoRA, or a .safetensors file">Import LoRA</button>' +
+    '<input id="identity-import-file" type="file" accept=".zip,.safetensors" class="hidden">' +
+    '<span id="identity-import-status" class="status"></span></div>' +
     '<div class="identity-cards persona-cards">' + list.map(function (item) {
       // The dot and the word are always here and shown by the card's class: the poll marks
       // a card rather than redrawing the list, which would move it out from under a click.
@@ -8229,6 +8232,7 @@ function renderIdentityActions(data) {
     '<div class="identity-utils">' +
       '<button id="identity-edit-open" class="ghost small">Edit</button>' +
       '<button id="identity-install" class="ghost small" title="Install an external LoRA safetensors file">Install a LoRA</button>' +
+      (data.lora ? '<button id="identity-download" class="ghost small" title="This corpus\u2019s LoRA and its note, learned styles included, in one zip to give to someone else">Download LoRA</button>' : '') +
       '<button id="identity-delete" class="ghost small danger">Delete corpus</button>' +
     '</div>' +
     '<input id="identity-lora-file" type="file" accept=".safetensors" class="hidden">' +
@@ -8636,6 +8640,7 @@ async function identityClick(event) {
   var card = target.closest('[data-identity]') || target.closest('[data-persona]');
   if (card) { showIdentity(card.dataset.identity || card.dataset.persona); return; }
   if (target.closest('#identity-new') || target.closest('#persona-new')) { showIdentityNew(); return; }
+  if (target.closest('#identity-import')) { $('identity-import-file').click(); return; }
   var folder = target.closest('[data-folder]');
   if (folder) { browseFolder(folder.dataset.folder); return; }
   if (target.closest('#pn-scan')) { scanNewIdentity(); return; }
@@ -8881,6 +8886,10 @@ async function identityClick(event) {
     $('identity-lora-file').click();
     return;
   }
+  if (target.closest('#identity-download')) {
+    if (IDENTITY.data && IDENTITY.data.lora) { window.location.href = '/api/loras/' + encodeURIComponent(IDENTITY.data.lora) + '/download'; }
+    return;
+  }
   if (target.closest('#identity-delete') || target.closest('#persona-delete')) {
     // The corpus and the copies the app made go; a trained LoRA is a model file, and
     // nothing here deletes those. So say which ones look like they came from it.
@@ -8976,6 +8985,26 @@ async function installSharedLora(event) {
 
 async function identityChange(event) {
   var target = event.target;
+  if (target.id === 'identity-import-file') {
+    var chosen = target.files && target.files[0];
+    target.value = '';
+    if (!chosen) { return; }
+    var said = $('identity-import-status');
+    said.textContent = 'Installing ' + chosen.name + '\u2026';
+    said.className = 'status';
+    try {
+      var data = new FormData();
+      data.append('file', chosen);
+      var made = await api('/api/loras/install', { method: 'POST', body: data });
+      await pollState();
+      said.textContent = 'Installed ' + made.name + (made.styles ? ', with ' + made.styles + ' learned styles' : '') + '. It is in the Style LoRA list.';
+      said.className = 'status good';
+    } catch (err) {
+      said.textContent = err.message;
+      said.className = 'status bad';
+    }
+    return;
+  }
   if (target.id === 'identity-lora-file') {
     var picked = target.files && target.files[0];
     target.value = '';

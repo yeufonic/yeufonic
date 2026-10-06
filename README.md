@@ -216,7 +216,7 @@ installation, and running it again is also how you change the model size (below)
   [Choosing a model size](#choosing-a-model-size)). Training a LoRA needs more: about 12.5 GB free
   while it prepares the songs, so 16 GB is the practical minimum, and an 8 GB card can't train
   (it can still use LoRAs trained elsewhere). AMD and Intel graphics are not supported.
-- 16 GB of RAM and about 40 GB of free disk.
+- 16 GB of RAM and about 30 GB of free disk, more as your library grows.
 - An internet connection for about 24 GB of downloads (20 GB with the smaller low-memory model, see
   [Choosing a model size](#choosing-a-model-size)), most of it the models. The score preview
   fetches its own note samples as they are played, about 7 MB for each instrument.
@@ -300,7 +300,7 @@ are not downloaded again. Deleting that folder removes it.
   more: about 12.5 GB of VRAM free while it prepares the songs, so 16 GB is the practical minimum.
   An 8 GB card can't train, though it can still use LoRAs trained elsewhere.
 - Docker with the NVIDIA container toolkit, so containers can see the GPU.
-- About 35 GB of disk: 15 GB of images, 17 GB of models, and room for your songs.
+- About 30 GB of disk, more as your library grows.
 - Linux, or Windows with WSL2 or Docker Desktop. WSL2 is what this was built on; Windows with
   Docker Desktop needs a few settings, below.  Alternatively, on Windows, [the installer](#on-windows-without-docker) needs none of this.
 
