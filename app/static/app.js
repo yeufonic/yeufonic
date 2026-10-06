@@ -3622,6 +3622,13 @@ function clearRecordingScore() {
 
 function instFromRecording() { return State.mode === 'inst' && Boolean(currentSource()); }
 
+/* A planned instrumental open in the editor: its score has sections, so they are listed to rearrange,
+   as a recording's are. Without a plan, the structure is still only the brief for one. */
+function instPlanned() {
+  return State.mode === 'inst' && !currentSource() && Boolean(takeIdInEditor()) &&
+    typeof scoreSectionSpans === 'function' && scoreSectionSpans($('abc').value).length > 0;
+}
+
 function scoreSections(abc) {
   var names = [];
   String(abc || '').replace(/^%[ \t]*([A-Za-z][\w -]*?)[ \t]*$/gm, function (whole, name) { names.push(name.trim().toLowerCase()); return whole; });
@@ -3680,7 +3687,7 @@ function paintInstSource() {
     if ($(id)) { $(id).style.display = fromRecording ? 'none' : ''; }
   });
   if ($('auto-wrap')) { $('auto-wrap').style.display = fromRecording ? 'none' : ''; }
-  if ($('create-inst')) { $('create-inst').textContent = fromRecording ? 'Create instrumental' : 'Write score plan'; }
+  if ($('create-inst')) { $('create-inst').textContent = fromRecording ? 'Create instrumental' : (instPlanned() ? 'Render this score' : 'Write score plan'); }
   // The hint the mode switch left says to write a plan, which a recording does without.
   var hint = 'Write a score plan to start a song from scratch.';
   var played = 'Create instrumental plays the recording\'s score, with no vocal and no plan to write.';
@@ -5519,7 +5526,7 @@ function setMode(mode) {
   refreshTitleHint();
   paintPresets();
   if (inst) {
-    paintStructure();
+    if (typeof paintInstSource === 'function') { paintInstSource(); } else { paintStructure(); }
     paintFeel();
     if ($('style-lora') && $('style-lora').value && $('style-lora-clip') && $('style-lora-clip').value === '1') {
       $('style-lora-clip').value = 0.6;
@@ -5584,6 +5591,7 @@ function scoreBaseline(text) {
   State.savedAbc = text || '';
   State.sectionsOriginal = '';
   if (State.mode === 'cover' && $('structure-body')) { paintStructure(); }
+  if (State.mode === 'inst' && $('structure-body')) { paintInstSource(); }
   paintStructureNotice();
   paintScoreDirty();
 }
@@ -6900,6 +6908,7 @@ function instBody(seed) {
 
 async function doInstrumental() {
   if (instFromRecording()) { await doInstrumentalFromRecording(); return; }
+  if (instPlanned()) { await doRenderTake(); return; }
   var problem = instProblem();
   if (problem) { statusLine(problem, 'bad'); return; }
   var seed = pickSeed();
@@ -6940,7 +6949,7 @@ async function doInstrumentalFromRecording() {
    recording, and for a cover. They come from the "% name" lines of the score in the box, and each row can
    be moved, copied or taken out, which rewrites the score (the Score window shows it). */
 function sectionsFromScore() {
-  if (State.mode === 'inst') { return instFromRecording(); }
+  if (State.mode === 'inst') { return instFromRecording() || instPlanned(); }
   return State.mode === 'cover' && scoreSectionSpans($('abc').value).length > 0;
 }
 
@@ -6961,7 +6970,7 @@ function paintStructure() {
   }
   var sent = $('structure-preview') ? $('structure-preview').parentNode : null;
   if (sent) { sent.style.display = cover ? 'none' : ''; }
-  if ($('structure-kind')) { $('structure-kind').style.display = (cover || instFromRecording()) ? 'none' : ''; }
+  if ($('structure-kind')) { $('structure-kind').style.display = (cover || sectionsFromScore()) ? 'none' : ''; }
   if (cover && !sectionsFromScore()) { return; }
   if (sectionsFromScore()) {
     var spans = scoreSectionSpans($('abc').value);

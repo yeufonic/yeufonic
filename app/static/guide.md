@@ -508,6 +508,11 @@ While the take plays in the editor, the section it is at is lit, and double-clic
 change them to suit: the list says what they need after you add, remove or rearrange sections. It also shows the total against the
 length cap, and offers to raise the cap when a longer song would be cut short. Press **Create instrumental** to render.
 
+An instrumental you wrote from a structure has a score too, and once it is planned its sections are listed in the same way. The
+structure builder is the brief for a plan not yet written, so it gives way to the list. Rearrange the sections and press
+**Render this score**: the render's section tags follow the edited score. **Write a new plan** (under the score) still asks
+for a different melody from the structure the take was written with.
+
 **A song with vocals works too.** Its score has the sung melody in the vocal part, which would come
 out sung, so the tune is given to an instrument: wherever no instrument is playing, the sung notes
 move to one, and the vocal part keeps only its chords. The editor says so under the recording. It

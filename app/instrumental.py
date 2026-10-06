@@ -130,6 +130,20 @@ def structure_of(abc: str | None) -> str:
     return "\n".join(f"[{tag}]" for tag in tags) or BARE
 
 
+_TAG_NAME = re.compile(r"\[([a-z-]+)")
+
+
+def structure_following(lyrics: str | None, abc: str | None) -> str | None:
+    """The structure for a planned instrumental whose score has had its sections changed,
+    or None when the tags already match the score's sections (a timed structure keeps its
+    times) or are the bare '[instrumental]', which the planner's own sections suit."""
+    tags = _TAG_NAME.findall(lyrics or "")
+    if not tags or tags == ["instrumental"]:
+        return None
+    wanted = structure_of(abc)
+    return None if _TAG_NAME.findall(wanted) == tags else wanted
+
+
 # ------------------------------------------------ the tune played by an instrument
 # A recording with a voice transcribes with the sung melody in the Vocal voice, and
 # a render of that sings.  Emptying the voice is not enough: where the Ins voice rests

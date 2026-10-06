@@ -239,3 +239,26 @@ def test_a_take_from_a_recording_is_not_replanned_and_rerenders_from_its_score(c
     assert client.post(f"/api/takes/{take['id']}/render", json={}).status_code == 200
     assert instrumental.sings(one("SELECT abc FROM takes WHERE id = ?", (take["id"],))["abc"]) == 0
     drain()
+
+
+def test_a_planned_instrumental_renders_with_tags_that_follow_its_edited_score(client, monkeypatch):
+    """A plan written from a brief can have its sections rearranged in the editor. The
+    render then takes its tags from the score; an untouched plan keeps the brief it was
+    written from, times included."""
+    engine_ready(monkeypatch)
+    timed = "[intro 0:00-0:10]\n[verse 0:10-0:30]\n[bridge 0:30-0:50]\n[outro 0:50-1:10]"
+    untouched = make_take(kind="instrumental", lyrics=timed, abc=RECORDED.replace("% interlude", "% bridge"))
+    assert client.post(f"/api/takes/{untouched['id']}/render", json={}).status_code == 200
+    assert one("SELECT lyrics FROM takes WHERE id = ?", (untouched["id"],))["lyrics"] == timed
+    drain()
+    edited = make_take(kind="instrumental", lyrics="[intro]\n[verse]\n[bridge]\n[outro]",
+                       abc=RECORDED.replace("% interlude", "% chorus"))
+    assert client.post(f"/api/takes/{edited['id']}/render", json={}).status_code == 200
+    assert one("SELECT lyrics FROM takes WHERE id = ?", (edited["id"],))["lyrics"] == "[intro]\n[verse]\n[chorus]\n[outro]"
+    drain()
+
+
+def test_a_bare_structure_is_left_for_the_planners_own_sections():
+    assert instrumental.structure_following("[instrumental]", RECORDED) is None
+    assert instrumental.structure_following("", RECORDED) is None
+    assert instrumental.structure_following("[intro]\n[verse]", RECORDED) == "[intro]\n[verse]\n[bridge]\n[outro]"

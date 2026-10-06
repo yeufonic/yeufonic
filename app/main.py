@@ -2136,6 +2136,11 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
         # An edit to the score may have given it a sung melody, or changed its sections.
         abc = _unsung(take["abc"])
         execute("UPDATE takes SET abc = ?, lyrics = ? WHERE id = ?", (abc, instrumental.structure_of(abc), take_id))
+    elif take["kind"] == "instrumental":
+        # A planned instrumental whose sections were rearranged in the editor: the tags follow the score.
+        following = instrumental.structure_following(take["lyrics"], take["abc"])
+        if following:
+            execute("UPDATE takes SET lyrics = ? WHERE id = ?", (following, take_id))
     _checkpoint()
     interpretation = take["interpretation"] if body is None or body.interpretation is None else _interpretation(body.interpretation)
     realaudio = take["realaudio"] if body is None or body.realaudio is None else (1 if body.realaudio else 0)
