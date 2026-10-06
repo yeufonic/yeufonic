@@ -43,7 +43,7 @@ cannot creep back in.
 - **Writing a plan closes the editor.** It used to stay open on the Score page, which looked as if nothing had happened and invited a second click. The take's card shows the plan being written.
 - **A planned instrumental lists its sections to rearrange, as one from a recording does.** The list used to appear only with a source recording, though
   an instrumental written from a structure has a score with sections once it is planned. Rearranging them and pressing **Render this score** renders
-  with section tags that follow the edited score; an untouched plan keeps the structure it was written with, times included.
+  with section tags that follow the edited score, as a new take beside the original when that has audio; an untouched plan keeps the structure it was written with, times included.
 - **A take that ends before its score's last section is flagged, and retried once.** The card used to say "stopped early" only when a render fell under 60% of its score,
   which missed most renders that stopped partway through a long score. It now says "Stopped before the last section" whenever the render ends before the last section of
   its score begins (a cap set below the score still counts as the end). A score of a single section keeps the share rule.

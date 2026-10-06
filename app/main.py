@@ -789,6 +789,12 @@ class WordsIn(RenderIn):
     title: str | None = Field(None, max_length=200)
 
 
+class RearrangeIn(RenderIn):
+    # The score as the editor holds it, with its sections changed.
+    abc: str = Field(max_length=200_000)
+    title: str | None = Field(None, max_length=200)
+
+
 class VariationsIn(BaseModel):
     interpretations: list[str] = Field(min_length=1, max_length=len(INTERPRETATIONS))
     # For these takes only; omitted, each keeps the original's.
@@ -2319,6 +2325,50 @@ async def new_words(take_id: str, body: WordsIn) -> dict:
     execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)
     await QUEUE.put({"kind": "render", "id": record["id"]})
     log.info("Queued new words for take '%s' (%s -> %s, seed %d)", take.get("title") or take_id,
+             take_id, record["id"], seed)
+    return {"id": record["id"], "title": record["title"], "seed": seed}
+
+
+@app.post("/api/takes/{take_id}/rearrange")
+async def rearrange(take_id: str, body: RearrangeIn) -> dict:
+    """A planned instrumental with its sections changed: a new take beside the original,
+    which keeps its own score and audio.  Its section tags follow the score."""
+    _gpu_free_for_rendering()
+    take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
+    if not take:
+        raise HTTPException(404, "no such take")
+    if take["kind"] != "instrumental" or take.get("source_id"):
+        raise HTTPException(400, "only an instrumental written from a structure is rearranged this way")
+    if not (body.abc or "").strip():
+        raise HTTPException(400, "this take has no score to render. Write a plan first.")
+    _check_score(body.abc, take["kind"])
+    _checkpoint()
+    record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
+    title = " ".join((body.title or "").split())
+    if not title or title == take["title"]:
+        title = f"{_base_title(take['title'])} \u00b7 rearranged"
+    if body.seed is not None:
+        seed = body.seed
+    elif body.reseed:
+        seed = int.from_bytes(os.urandom(4), "big")
+    else:
+        seed = take["seed"]
+    record.update(id=uuid.uuid4().hex[:12], title=title, abc=body.abc, status="queued", created_at=time.time(),
+                  lyrics=instrumental.structure_following(take["lyrics"], body.abc) or take["lyrics"],
+                  checkpoint=config.CHECKPOINT, seed=seed,
+                  sound_seed=take.get("sound_seed") if seed == take["seed"] else None)
+    record.update(_render_settings(take, body))
+    record.update(_advanced_of(body, fallback=take))
+    if body.interpretation is not None:
+        record["interpretation"] = _interpretation(body.interpretation)
+    if body.realaudio is not None:
+        record["realaudio"] = 1 if body.realaudio else 0
+    if body.normalise is not None:
+        record["normalise"] = 1 if body.normalise else 0
+    columns = list(record)
+    execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)
+    await QUEUE.put({"kind": "render", "id": record["id"]})
+    log.info("Queued a rearranged score for take '%s' (%s -> %s, seed %d)", take.get("title") or take_id,
              take_id, record["id"], seed)
     return {"id": record["id"], "title": record["title"], "seed": seed}
 

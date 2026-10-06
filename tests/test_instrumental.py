@@ -262,3 +262,22 @@ def test_a_bare_structure_is_left_for_the_planners_own_sections():
     assert instrumental.structure_following("[instrumental]", RECORDED) is None
     assert instrumental.structure_following("", RECORDED) is None
     assert instrumental.structure_following("[intro]\n[verse]", RECORDED) == "[intro]\n[verse]\n[bridge]\n[outro]"
+
+
+def test_a_rearranged_planned_instrumental_is_a_new_take_beside_the_original(client, monkeypatch):
+    engine_ready(monkeypatch)
+    original = make_take(kind="instrumental", title="Plan", lyrics="[intro]\n[verse]\n[bridge]\n[outro]",
+                         abc=RECORDED.replace("% interlude", "% bridge"))
+    edited = RECORDED.replace("% interlude", "% chorus")
+    made = client.post(f"/api/takes/{original['id']}/rearrange", json={"abc": edited})
+    assert made.status_code == 200, made.text
+    new = one("SELECT * FROM takes WHERE id = ?", (made.json()["id"],))
+    assert new["id"] != original["id"] and new["status"] == "queued"
+    assert new["abc"] == edited and new["lyrics"] == "[intro]\n[verse]\n[chorus]\n[outro]"
+    assert new["title"] == "Plan · rearranged" and new["style"] == original["style"]
+    kept = one("SELECT abc, lyrics, title FROM takes WHERE id = ?", (original["id"],))
+    assert kept["abc"] == original["abc"] and kept["lyrics"] == original["lyrics"] and kept["title"] == "Plan"
+    drain()
+    from_recording = make_take(kind="instrumental", source_id="rec1")
+    assert client.post(f"/api/takes/{from_recording['id']}/rearrange", json={"abc": edited}).status_code == 400
+    assert client.post(f"/api/takes/{original['id']}/rearrange", json={"abc": ""}).status_code == 400

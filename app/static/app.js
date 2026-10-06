@@ -6908,7 +6908,7 @@ function instBody(seed) {
 
 async function doInstrumental() {
   if (instFromRecording()) { await doInstrumentalFromRecording(); return; }
-  if (instPlanned()) { await doRenderTake(); return; }
+  if (instPlanned()) { await doRenderPlanned(); return; }
   var problem = instProblem();
   if (problem) { statusLine(problem, 'bad'); return; }
   var seed = pickSeed();
@@ -6924,6 +6924,30 @@ async function doInstrumental() {
     editorAfterPlan();
   } catch (err) {
     statusLine('Could not start: ' + err.message, 'bad');
+  }
+}
+
+/* A planned instrumental's main button. A take that already has audio and a score changed since it was
+   loaded is rendered as a new take beside it, as a recording's is, so the original keeps its audio;
+   otherwise the take itself is rendered. */
+async function doRenderPlanned() {
+  var take = scoreOwner();
+  var changed = scoreIsDirty() || (Boolean(State.sectionsOriginal) && State.sectionsOriginal !== $('abc').value);
+  if (!take || take.status !== 'done' || !changed) { await doRenderTake(); return; }
+  var payload = editorRenderSettings();
+  payload.abc = $('abc').value;
+  payload.title = $('title').value.trim();
+  try {
+    var made = await api('/api/takes/' + take.id + '/rearrange', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    setSelection({ formTakeId: made.id, boxKind: 'take', boxId: made.id });
+    statusLine('Rendering\u2026');
+    loadTakes();
+    closeEditor();
+  } catch (err) {
+    statusLine('Could not render: ' + err.message, 'bad');
   }
 }
 
