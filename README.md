@@ -157,8 +157,8 @@ the app's job is to make them usable without knowing how they are put together:
   own gets the same by writing a `.txt` beside it: first line the name, a `Trigger:` line, then the
   description.
 
-The [user guide](app/static/guide.md#style-loras) has the detail, including what to do when a song
-will not end.
+The [user guide](app/static/guide.md#style-loras) has the detail, including links to third-party LoRAs
+that you can import to Yeufonic.
 
 ## Training a LoRA
 

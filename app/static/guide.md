@@ -643,8 +643,8 @@ Two facts are worth knowing:
   is the one that usually needs permission: from whoever holds the rights in the recordings, and for
   a recognisable voice, from the singer.
 
-LoRAs you did not train yourself carry their own licences. `models/loras/SOURCES.md` records them
-for the collection installed here.
+LoRAs you did not train yourself carry their own licences: read them on the page each one comes from
+(see **Where to find style LoRAs** under Style LoRAs).
 
 ## Style LoRAs
 
@@ -659,6 +659,28 @@ A style LoRA can hold two halves, and the picker shows which ones a file holds:
 
 A strength the file cannot use is greyed out, and a file this engine cannot load at all is named as
 such rather than failing quietly inside a render.
+
+### Where to find style LoRAs
+
+Other people publish style LoRAs, mostly on Hugging Face. These sets are made for YuE2 and load here;
+each repository holds several LoRAs, one per style:
+
+- [Militant reggae](https://huggingface.co/becausereasons/yue2-mltnt-militant-reggae)
+- [Chanson française](https://huggingface.co/becausereasons/yue2-chnsn-chanson-francaise)
+- [Canzone italiana](https://huggingface.co/becausereasons/yue2-cnzn-canzone-italiana)
+- [Bulgarian voices](https://huggingface.co/becausereasons/yue2-blgr-bulgarian-voices)
+- [Qawwali, sufi and tabla](https://huggingface.co/becausereasons/yue2-qwwl-qawwali-sufi-tabla)
+- [J-pop](https://huggingface.co/storagejuju/yue2-jpop-t4-lora), a single LoRA with a Sound half only
+
+To add one, download its `.safetensors` file from the repository's **Files** tab, put it in `models/loras/`
+and press **Rescan**, or press **Install** and choose the file. The repository's page gives each LoRA's
+trigger word and suggested strengths: write them in a `.txt` beside the file (see **Descriptions** below) and
+the picker shows them, and puts the trigger word at the front of the Style for you. A LoRA from elsewhere
+may be saved in a layout this engine cannot load: the picker names it as such, and it does no harm.
+
+Each LoRA carries its author's licence, which these sets give as CC BY-NC 4.0: personal and non-commercial
+use, the same as YuE2's own weights. Read the licence on a LoRA's page before using it, or sharing what it
+makes.
 
 ### Balancing Planner and Sound
 
