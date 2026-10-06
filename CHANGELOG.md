@@ -37,9 +37,10 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.31 (2026-10-06)
 
 ### Changed
+- **The guide says where to find style LoRAs.** It links published sets that load here, with their licence, and says how to add one; the README points to it.
 - **The Corpora pages share LoRAs.** A trained corpus's page has **Download LoRA**, the zip the Style LoRA picker's **Download** gives, and the list of corpora has **Import LoRA** beside **New corpus**, which installs such a zip (or a `.safetensors` file) as the picker's **Install** does.
 - **New cover starts with no recording.** It kept the last cover's recording selected, with its score, words and sections still showing. Choosing a recording fills them in again.
 - **Writing a plan closes the editor.** It used to stay open on the Score page, which looked as if nothing had happened and invited a second click. The take's card shows the plan being written.
