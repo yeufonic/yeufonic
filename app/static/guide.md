@@ -662,8 +662,8 @@ such rather than failing quietly inside a render.
 
 ### Where to find style LoRAs
 
-Other people publish style LoRAs, mostly on Hugging Face. These sets are made for YuE2 and load here;
-each repository holds several LoRAs, one per style:
+There are free Style LoRAs available, mostly found on Hugging Face. Here are a few examples of LoRAs that
+Yeufonic can import and use with your own creations:
 
 - [Militant reggae](https://huggingface.co/becausereasons/yue2-mltnt-militant-reggae)
 - [Chanson française](https://huggingface.co/becausereasons/yue2-chnsn-chanson-francaise)
