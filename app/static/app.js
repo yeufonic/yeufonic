@@ -12228,11 +12228,10 @@ function paintEditorReview() {
 
 /* After the main button: a render is queued, so the window closes and the card shows
    its progress. A plan arrives on the Score page to read, unless it renders by itself. */
+/* Writing a plan closes the editor, as every other start does: the take's card shows it being written,
+   and a window left open looks as if nothing happened and invites a second click. */
 function editorAfterPlan() {
-  if ($('auto-render') && $('auto-render').checked) { closeEditor(); return; }
-  Editor.page = 'score';
-  Editor.step = 3;
-  paintEditor();
+  closeEditor();
 }
 
 async function newTake(kind) {
