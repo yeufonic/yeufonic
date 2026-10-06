@@ -40,6 +40,9 @@ cannot creep back in.
 ## Unreleased
 
 ### Changed
+- **A take that ends before its score's last section is flagged, and retried once.** The card used to say "stopped early" only when a render fell under 60% of its score,
+  which missed most renders that stopped partway through a long score. It now says "Stopped before the last section" whenever the render ends before the last section of
+  its score begins (a cap set below the score still counts as the end). A score of a single section keeps the share rule.
 - **The section list shows the length cap and warns when the score outgrows it.** Copying a section can make a song longer than its cap, and the render
   then stops before the end. The list now shows the total against the cap, says by how much the render would fall short, and offers to raise the cap. For a
   recording being covered, the cap follows the edited score as it did when the recording was chosen.

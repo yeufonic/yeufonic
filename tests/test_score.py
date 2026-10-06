@@ -270,3 +270,32 @@ def test_an_unreadable_plan_with_a_style_lora_suggests_another_checkpoint(client
         asyncio.run(jobs.run_job("plan", take["id"]))
         row = one("SELECT status, error FROM takes WHERE id = ?", (take["id"],))
         assert row["status"] == "failed" and expected in row["error"], row["error"]
+
+
+def sectioned(*bars):
+    """Four-bar sections of 4/4 at 120 BPM: eight seconds each."""
+    out = "X:1\nM:4/4\nL:1/4\nQ:1/4=120\nV: Vocal\nK:C\n"
+    for name in bars:
+        out += f"% {name}\n" + "c4|" * 4 + "\n"
+    return out
+
+
+def test_a_render_that_ends_before_the_last_section_stopped_early():
+    abc = sectioned(*["verse"] * 6)                 # 48 s, last section from 40 s
+    assert score.last_section_start(abc) == 40.0
+    assert score.stopped_early(35.0, abc, 360)
+    assert not score.stopped_early(41.0, abc, 360), "ended inside the last section"
+    assert not score.stopped_early(48.0, abc, 360)
+
+
+def test_a_cap_below_the_last_section_is_the_end():
+    abc = sectioned(*["verse"] * 6)
+    assert not score.stopped_early(36.0, abc, 36), "ran to a cap set short on purpose"
+    assert score.stopped_early(20.0, abc, 36)
+
+
+def test_a_score_of_one_section_keeps_the_share_rule():
+    abc = "X:1\nM:4/4\nL:1/4\nQ:1/4=120\nV: Vocal\nK:C\n% verse\n" + "c4|" * 24 + "\n"
+    assert score.last_section_start(abc) is None
+    assert score.stopped_early(10.0, abc, 360)
+    assert not score.stopped_early(30.0, abc, 360)

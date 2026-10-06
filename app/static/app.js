@@ -9449,10 +9449,10 @@ function paintTakes() {
         : '<button class="take-status weak" data-act="normalise"' + ' data-id="' + take.id + '" title="Came out at ' + take.loudness.toFixed(1) +
           ' dB, far below the usual level. Takes like this often sound thin or distorted, and some are only quiet. If it still sounds wrong once normalised, try another seed.">Weak render: click here to normalise, or try another seed</button>';
     } else if (take.stopped_early) {
-      // The model wrote the song's end long before its score ran out, twice: the app
+      // The model wrote the song's end before its score's last section, twice: the app
       // had already tried once more with a new seed.
       live = '<div class="take-status weak" title="The render ended at ' + clock(take.duration || 0) +
-        ', long before the end of its score, and did again when the app tried once more with a new seed. Render again for another try.">Stopped early: render again for the full song</div>';
+        ', before the last section of its score began, and did again when the app tried once more with a new seed. Render again for another try.">Stopped before the last section: render again for the full song</div>';
     } else if (take.ran_to_cap) {
       // The model never wrote the song's end, so it ran on until the Length cap, and was faded out there.
       live = '<div class="take-status weak" title="The score ends well before the ' + Math.round(take.max_duration) +

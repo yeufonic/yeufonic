@@ -72,19 +72,36 @@ def estimate(abc: str) -> dict | None:
     return {"bars": bars[longest], "bpm": bpm, "seconds": round(quarters[longest] * 60 / bpm, 1)}
 
 
-EARLY_SHARE = 0.6    # a render shorter than this share of its score stopped early
+EARLY_SHARE = 0.6    # a score of one section: a render shorter than this share of it stopped early
 EARLY_MIN = 30.0     # seconds: a score shorter than this is not judged
+SECTION_MARK = re.compile(r"^% *\S", re.M)
+
+
+def last_section_start(abc: str) -> float | None:
+    """Seconds into the score where its last section begins, or None for a score of
+    fewer than two sections."""
+    marks = [m.start() for m in SECTION_MARK.finditer(abc or "")]
+    if len(marks) < 2:
+        return None
+    before = estimate((abc or "")[:marks[-1]])
+    return before["seconds"] if before else None
 
 
 def stopped_early(duration: float | None, abc: str | None, cap: float | None) -> bool:
-    """A render that ended well before its score did: the model wrote its end long
-    before the music it was given ran out.  Measured against the score, or the cap
-    when that is the shorter."""
+    """A render that ended before its score's last section began: the model wrote its
+    end long before the music it was given ran out.  A score of one section is judged
+    by the share of it that was played.  The cap counts as the end when it is the
+    shorter, so a take capped on purpose is not this."""
     planned = estimate(abc or "")
     if not duration or not planned:
         return False
     expected = min(planned["seconds"], cap or planned["seconds"])
-    return expected >= EARLY_MIN and duration < EARLY_SHARE * expected
+    if expected < EARLY_MIN:
+        return False
+    start = last_section_start(abc or "")
+    if start is None:
+        return duration < EARLY_SHARE * expected
+    return duration < min(start, (cap - 2) if cap else start)
 
 
 # A plan the model wrote with its thread lost can still be readable ABC: a vocal line

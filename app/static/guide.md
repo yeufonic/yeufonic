@@ -376,8 +376,9 @@ cover or an instrumental, it follows the recording's score instead, rounded up w
 to spare, so a long song is not cut short. A cap you type yourself stays as you set it. Now and then
 a render doesn't stop at the end of its score and plays on until the cap; such a take is faded out
 over its last few seconds rather than cut off, and its card says it ran to the cap. Rarer still, a
-render ends long before its score. The app then renders it once more with a new seed before calling
-it finished, and if that one ends early too, the card says so: **Render** again for another try.
+render ends before the last section of its score begins. The app then renders it once more with a new
+seed before calling it finished, and if that one stops short too, the card says it stopped before the
+last section: **Render** again for another try.
 
 ---
 
