@@ -504,7 +504,8 @@ which is why the builder gives way to them. To rearrange the song, drag a sectio
 **copy** of it after itself, or take it out with the **✕**: each change rewrites the score (the Score
 window shows it), and **Restore the original sections** puts it back until another score is loaded.
 While the take plays in the editor, the section it is at is lit, and double-clicking a section jumps to it. A cover shows the same list under its words, and its words are matched to the sections in order, so
-change them to suit. Press **Create instrumental** to render.
+change them to suit: the list says what they need after you add, remove or rearrange sections. It also shows the total against the
+length cap, and offers to raise the cap when a longer song would be cut short. Press **Create instrumental** to render.
 
 **A song with vocals works too.** Its score has the sung melody in the vocal part, which would come
 out sung, so the tune is given to an instrument: wherever no instrument is playing, the sung notes

@@ -6944,6 +6944,16 @@ function sectionsFromScore() {
   return State.mode === 'cover' && scoreSectionSpans($('abc').value).length > 0;
 }
 
+/* What a cover's words need after its sections changed (see ScoreSections.wordsNote). */
+function sectionWordsNote(spans) {
+  if (typeof ScoreSections === 'undefined' || !State.sectionsOriginal) { return ''; }
+  var before = scoreSectionSpans(State.sectionsOriginal).map(function (span) { return span.was; });
+  var after = spans.map(function (span) { return span.was; });
+  var reordered = before.length === after.length && before.join('|') !== after.join('|');
+  var text = ScoreSections.wordsNote(before.length, after.length, reordered);
+  return text ? '<p class="struct-note over">' + esc(text) + '</p>' : '';
+}
+
 function paintStructure() {
   var cover = State.mode === 'cover';
   if ($('structure-field') && (cover || State.mode === 'inst')) {
@@ -6956,8 +6966,10 @@ function paintStructure() {
   if (sectionsFromScore()) {
     var spans = scoreSectionSpans($('abc').value);
     var total = spans.length ? spans[spans.length - 1].end : 0;
-    $('structure-total').textContent = total ? clock(total) + ' in all' : '';
-    $('structure-total').classList.remove('over');
+    var cap = parseFloat($('max-duration').value) || 0;
+    var fit = typeof ScoreSections !== 'undefined' ? ScoreSections.capCheck(total, cap) : { over: false };
+    $('structure-total').textContent = total ? clock(total) + ' in all' + (cap ? ' \u00b7 cap ' + clock(cap) : '') : '';
+    $('structure-total').classList.toggle('over', fit.over);
     var changed = Boolean(State.sectionsOriginal) && State.sectionsOriginal !== $('abc').value;
     var button = function (act, index, label, title, off) {
       return '<button type="button" class="struct-btn" data-sec-act="' + act + '" data-i="' + index + '" title="' + title + '"' +
@@ -6977,6 +6989,9 @@ function paintStructure() {
         }).join('') + '</ol><p class="struct-note">The sections of the recording\'s score' +
           (cover ? '. The words are matched to them in order, so change those to suit.' : '.') +
           ' Moving, copying or removing one rewrites the score.</p>' +
+          (fit.over ? '<p class="struct-note over">The cap is ' + clock(cap) + ', so the render would stop ' + clock(fit.short) +
+            ' before the end of the score. <button type="button" class="chip action" data-sec-act="cap">Raise the cap to ' + clock(fit.raiseTo) + '</button></p>' : '') +
+          (cover && changed ? sectionWordsNote(spans) : '') +
           (changed ? '<p class="struct-note"><button type="button" class="chip action" data-sec-act="restore">Restore the original sections</button></p>' : '')
       : '<p class="struct-note">The sections come from the recording\'s score once it is transcribed.</p>';
     if (!cover) { $('structure-preview').textContent = spans.length ? spans.map(function (span) { return '[' + span.name + ']'; }).join(' ') : '[instrumental]'; }
@@ -7085,6 +7100,15 @@ function jumpToSection(index) {
    before the first change is kept, so the original sections can be put back until another score is loaded. */
 function changeSections(act, index, to) {
   var box = $('abc');
+  if (act === 'cap') {
+    var need = ScoreSections.capCheck(planLength(box.value) ? planLength(box.value).seconds : 0, parseFloat($('max-duration').value) || 0);
+    if (need.over) {
+      $('max-duration').value = need.raiseTo;
+      $('max-duration').dispatchEvent(new Event('input'));      // typed by hand from here on, as if the person had
+    }
+    paintStructure();
+    return;
+  }
   if (act === 'restore') {
     if (!State.sectionsOriginal) { return; }
     box.value = State.sectionsOriginal;
@@ -7096,6 +7120,7 @@ function changeSections(act, index, to) {
     box.value = next;
   }
   box.dispatchEvent(new Event('input'));
+  followRecordingCap();               // a cap the score set follows the score, as it does when the recording is chosen
   setChart(chordChart(box.value));
   showPlanLength(box.value);
   paintStructure();
@@ -7184,7 +7209,7 @@ function wireStructure() {
     // Typed by hand: a recording's score no longer sets it.
     State.capTyped = true;
     State.capFromScore = false;
-    if (State.mode === 'inst') { paintStructure(); }
+    if (State.mode === 'inst' || State.mode === 'cover') { paintStructure(); }
   });
   $('create-inst').addEventListener('click', doInstrumental);
 }

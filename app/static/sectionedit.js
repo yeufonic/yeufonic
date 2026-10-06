@@ -60,7 +60,36 @@
     return build(score.head, parts, score.endsWithNewline);
   }
 
-  global.ScoreSections = { parse: parse, change: change };
+  /**
+   * Whether a score of `total` seconds fits under a cap of `cap` seconds. When it does not, by how much it falls short and
+   * the cap that would hold it with a little to spare (the same rule the page uses for a recording: ten seconds, rounded up
+   * to ten, and never over the 900 the engine allows).
+   */
+  function capCheck(total, cap) {
+    total = Number(total); cap = Number(cap);
+    if (!(total > 0) || !(cap > 0) || total <= cap) { return { over: false }; }
+    return { over: true, short: Math.round(total - cap), raiseTo: Math.min(900, Math.ceil((total + 10) / 10) * 10) };
+  }
+
+  /**
+   * What to tell the person about a cover's words after the sections changed: the words are matched to the sections in
+   * order, so an added section needs words, a removed one should lose its, and a moved one should have its words moved.
+   * `before` and `after` are how many sections there were. Returns null when nothing changed.
+   */
+  function wordsNote(before, after, reordered) {
+    before = Number(before); after = Number(after);
+    var plural = function (n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); };
+    if (after > before) {
+      return 'You added ' + plural(after - before, 'section') + ', and the words are matched to the sections in order, so the Words box needs ' +
+        plural(after - before, 'more block') + ' of words. Repeating the words of the section you copied works.';
+    }
+    if (after < before) {
+      return 'You took out ' + plural(before - after, 'section') + ', and the words are matched to the sections in order, so take their words out of the Words box too.';
+    }
+    return reordered ? 'You rearranged the sections, and the words are matched to the sections in order, so rearrange their words in the Words box to match.' : null;
+  }
+
+  global.ScoreSections = { parse: parse, change: change, capCheck: capCheck, wordsNote: wordsNote };
   if (typeof module !== 'undefined' && module.exports) { module.exports = global.ScoreSections; }
 
 })(typeof window !== 'undefined' ? window : this);

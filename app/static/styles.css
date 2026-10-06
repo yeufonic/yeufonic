@@ -1923,6 +1923,7 @@ label .lora-value:disabled { opacity: 0.6; }
 .structure-total { font-size: 12px; }
 .structure-total.over { color: var(--bad); }
 .struct-note { font-size: 12.5px; color: var(--muted); margin: 10px 2px 2px; }
+.struct-note.over { color: var(--bad); }
 .struct-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; counter-reset: s; }
 .struct-row { display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 9px; border: 1px solid var(--line);
   border-radius: 10px; background: var(--card); counter-increment: s; }

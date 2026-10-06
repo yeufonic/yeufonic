@@ -92,3 +92,25 @@ def test_the_page_loads_the_helper_before_the_script_that_uses_it():
     root = MODULE.parent
     html = (root / "index.html").read_text(encoding="utf-8")
     assert html.index("sectionedit.js") < html.index("/static/app.js")
+
+
+def lib(expression):
+    script = ("const S = require(%s); console.log(JSON.stringify(%s));" % (json.dumps(str(MODULE)), expression))
+    return json.loads(subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout)
+
+
+def test_a_score_that_fits_the_cap_is_left_alone_and_one_that_does_not_says_by_how_much_and_what_would_hold_it():
+    assert lib("S.capCheck(180, 240)") == {"over": False}
+    assert lib("S.capCheck(240, 240)") == {"over": False}                     # exactly the cap fits
+    assert lib("S.capCheck(218, 180)") == {"over": True, "short": 38, "raiseTo": 230}
+    assert lib("S.capCheck(181, 180)")["raiseTo"] == 200                      # ten seconds to spare, rounded up to ten
+    assert lib("S.capCheck(895, 360)")["raiseTo"] == 900                      # never past what the engine allows
+    assert lib("S.capCheck(0, 180)") == {"over": False} and lib("S.capCheck(100, 0)") == {"over": False}   # nothing to compare
+
+
+def test_the_words_note_says_what_the_words_need_after_each_kind_of_change():
+    assert "added 1 section" in lib("S.wordsNote(7, 8, false)") and "1 more block of words" in lib("S.wordsNote(7, 8, false)")
+    assert "added 2 sections" in lib("S.wordsNote(7, 9, false)") and "2 more blocks of words" in lib("S.wordsNote(7, 9, false)")
+    assert "took out 1 section" in lib("S.wordsNote(7, 6, false)") and "take their words out" in lib("S.wordsNote(7, 6, false)")
+    assert "rearranged the sections" in lib("S.wordsNote(7, 7, true)")
+    assert lib("S.wordsNote(7, 7, false)") is None                              # nothing changed, nothing to say

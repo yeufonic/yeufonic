@@ -37,6 +37,15 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+### Changed
+- **The section list shows the length cap and warns when the score outgrows it.** Copying a section can make a song longer than its cap, and the render
+  then stops before the end. The list now shows the total against the cap, says by how much the render would fall short, and offers to raise the cap. For a
+  recording being covered, the cap follows the edited score as it did when the recording was chosen.
+- **A cover's section list says what its words need.** The words are matched to the sections in order, so after you add, remove or rearrange sections it says
+  whether the Words box needs more blocks, fewer, or a different order.
+
 ## 0.0.30 (2026-10-06)
 
 ### Added
