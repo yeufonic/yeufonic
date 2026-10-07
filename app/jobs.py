@@ -1058,8 +1058,13 @@ def remember_words(song: dict, source: str, text: str) -> None:
     """Keep a version's finished words (its sections marked, and any edits), so choosing it again is a swap, not a new
     draft and another call to the model."""
     path = _text_file(song, source)
-    if path is not None:
+    if path is None:
+        return
+    try:
         path.write_text(text or "", encoding="utf-8")
+    except OSError as exc:
+        # An optimisation, not the job: a folder that cannot be written costs the next switch a draft, nothing more.
+        log.warning("Could not keep the words of '%s' (%s): %s", song.get("title") or song.get("id"), source, exc)
 
 
 def remembered_words(song: dict, source: str) -> str | None:

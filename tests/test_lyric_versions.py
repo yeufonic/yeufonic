@@ -132,3 +132,22 @@ def test_a_song_analysed_before_words_were_kept_still_remembers_what_it_leaves(c
     url = "/api/identities/c1/songs/s1/lyrics/source"
     assert client.post(url, json={"source": "whisper"}).json()["restored"] is False
     assert client.post(url, json={"source": "llm"}).json()["lyrics"] == "drafted long ago"
+
+
+def test_a_folder_that_cannot_be_written_costs_a_draft_not_the_switch(client, tmp_path, monkeypatch):
+    from pathlib import Path
+    monkeypatch.setattr(llm, "is_external_enabled", lambda: False)
+    folder = a_song(tmp_path)
+    (folder / "whisper.json").write_text(json.dumps(MODEL))
+    jobs.keep_lyric_versions("s1", folder, {"lines": MODEL, "whisper": WHISPER, "llm": MODEL, "model": "gemini-3.8-flash"})
+    execute("UPDATE identity_songs SET lyrics = 'words' WHERE id = 's1'")
+    real = Path.write_text
+
+    def refuse(self, *args, **kwargs):
+        if self.name.startswith("lyrics-text-"):
+            raise OSError(30, "Read-only file system")
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", refuse)
+    reply = client.post("/api/identities/c1/songs/s1/lyrics/source", json={"source": "whisper"})
+    assert reply.status_code == 200 and "fire eating the larder" in one("SELECT lyrics FROM identity_songs WHERE id = 's1'")["lyrics"]
