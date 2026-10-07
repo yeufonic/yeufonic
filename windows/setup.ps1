@@ -244,7 +244,7 @@ if ($ramGB -lt 15) { [void]$warnings.Add("This PC has $ramGB GB of memory; 16 GB
 # Room for what is still to come: the missing models, plus about 12 GB for the engine,
 # the app and the downloads while they unpack.
 # Sizes are shown in thousands, as the installer's own pages and download sites count.
-$needBytes = 14e9   # the engine, the app, Whisper and demucs, and room to unpack
+$needBytes = 16e9   # the engine, the app, Whisper and demucs, and room to unpack
 foreach ($m in $ModelFiles) { if (-not (Test-Path (Join-Path (Join-Path $Models $m.Dir) $m.File))) { $needBytes += $m.Size } }
 if ($SkipModels) { $needBytes = 12e9 }
 $drive = (Get-Item $InstallDir).PSDrive
@@ -409,6 +409,16 @@ if (-not (IsDone 'engine-demucs')) {
     Invoke-Checked "Demucs for the engine" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', 'demucs==4.1.0')
     Done 'engine-demucs'
 }
+# Whisper on the GPU, for the words of a separated vocal: faster-whisper with CTranslate2. CTranslate2's Windows build
+# wants the CUDA 12 cuBLAS and cuDNN, which the engine's CUDA 13 PyTorch does not carry, so they come as their own
+# packages (a little over a gigabyte); the node puts their folders on PATH. faster-whisper goes in without its
+# dependencies, which would hold PyAV to a version of their choosing. Without all this the node is not there and the app
+# hears words on the CPU as before.
+if (-not (IsDone 'engine-whisper')) {
+    Invoke-Checked 'Whisper for the engine' $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', '--no-deps', 'faster-whisper==1.2.1')
+    Invoke-Checked "Whisper's GPU libraries" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', 'ctranslate2>=4.5,<5', 'tokenizers', 'nvidia-cublas-cu12', 'nvidia-cudnn-cu12')
+    Done 'engine-whisper'
+}
 # Our own node, carried by the installer.
 $harmony = Join-Path $nodes 'yue2_harmony'
 if (Test-Path $harmony) { Remove-Item -Recurse -Force $harmony }
@@ -504,6 +514,19 @@ if (-not $SkipModels -and -not (IsDone 'app-models')) {
     Say 'demucs htdemucs (about 80 MB)'
     Invoke-Checked 'demucs' $appPy @('-c', "from demucs.pretrained import get_model; get_model('htdemucs')")
     Done 'app-models'
+}
+
+# The engine's own copy of the Whisper model (the app keeps its own, for the CPU), fetched now so the first lyric hearing
+# does not wait on 1.6 GB; if this fails the node fetches it when it first runs.
+if (-not $SkipModels -and -not (IsDone 'engine-whisper-model')) {
+    Say 'Whisper large-v3-turbo for the engine (about 1.6 GB)'
+    $engineWhisper = Join-Path $Models 'whisper'
+    try {
+        Invoke-Checked 'The engine Whisper model' $py @('-s', '-c', "from faster_whisper import download_model; download_model('large-v3-turbo', cache_dir=r'$engineWhisper')")
+        Done 'engine-whisper-model'
+    } catch {
+        Say "Could not fetch it now ($($_.Exception.Message)); the engine will when it first hears a vocal."
+    }
 }
 
 # The engine's own copy of the Demucs model (it keeps it with its models, found again after an update). Fetched now so

@@ -23,8 +23,10 @@ _RATE = 16000
 
 
 def add_cuda_libraries() -> None:
-    """CTranslate2 loads cuBLAS and cuDNN itself.  Where PyTorch carries them (Linux), importing torch first is
-    enough; on Windows they are DLLs in the nvidia packages, which Python must be told to look in."""
+    """CTranslate2 loads cuBLAS and cuDNN itself, by name, from native code.  Where PyTorch carries them (Linux),
+    importing torch first is enough.  On Windows they are the CUDA 12 DLLs of the nvidia packages (PyTorch there
+    carries CUDA 13's), and native code looks only along PATH, so their folders go on PATH, as well as on Python's
+    own list for the extension itself."""
     if sys.platform != "win32":
         return
     for root in sys.path:
@@ -35,6 +37,8 @@ def add_cuda_libraries() -> None:
                     os.add_dll_directory(str(lib))
                 except OSError:
                     pass
+                if str(lib) not in os.environ.get("PATH", "").split(os.pathsep):
+                    os.environ["PATH"] = str(lib) + os.pathsep + os.environ.get("PATH", "")
 
 
 def usable() -> bool:

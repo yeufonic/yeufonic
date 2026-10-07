@@ -90,3 +90,13 @@ def test_the_windows_engine_gets_demucs_so_stems_can_run_on_the_gpu():
     assert "$py @('-s', '-m', 'pip', 'install'" in block and "demucs==4.1.0" in block
     assert setup.index("Done 'engine-demucs'") < setup.index("# Our own node, carried by the installer.") + len("# Our own node, carried by the installer.")
     assert "Join-Path $Models 'demucs'" in setup and "HF_HUB_CACHE" in setup
+
+
+def test_the_windows_engine_gets_whisper_with_the_cuda_12_libraries_ctranslate2_wants():
+    """PyTorch there carries CUDA 13, CTranslate2 wants 12: the cuBLAS and cuDNN packages come with it, and faster-whisper
+    goes in without its dependencies so PyAV is left alone."""
+    setup = (Path(__file__).resolve().parent.parent / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    block = setup.split("IsDone 'engine-whisper')")[1].split("Done 'engine-whisper'")[0]
+    assert "'--no-deps', 'faster-whisper==1.2.1'" in block
+    assert "nvidia-cublas-cu12" in block and "nvidia-cudnn-cu12" in block and "ctranslate2>=4.5,<5" in block
+    assert "Join-Path $Models 'whisper'" in setup and "download_model('large-v3-turbo'" in setup
