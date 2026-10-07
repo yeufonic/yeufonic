@@ -327,3 +327,16 @@ def test_an_instrumental_cannot_be_made_of_an_instrumental_or_of_nothing(client,
     refused = client.post(f"/api/takes/{empty['id']}/instrumental", json={})
     assert refused.status_code == 400 and "no score" in refused.json()["detail"]
     assert client.post("/api/takes/nothere/instrumental", json={}).status_code == 404
+
+
+def test_an_instrumental_is_made_from_a_covers_score_too(client, monkeypatch):
+    engine_ready(monkeypatch)
+    a_recording(SUNG)
+    cover = make_take(kind="cover", source_id="rec1", title="Their song", style="pop, female vocal, piano", lyrics="[Verse]\nla la", abc=SUNG)
+    made = client.post(f"/api/takes/{cover['id']}/instrumental", json={})
+    assert made.status_code == 200, made.text
+    new = one("SELECT * FROM takes WHERE id = ?", (made.json()["id"],))
+    assert new["kind"] == "instrumental" and new["source_id"] == "rec1" and new["title"] == "Their song · instrumental"
+    assert new["style"] == "pop, piano" and instrumental.sings(new["abc"]) == 0 and "la la" not in new["lyrics"]
+    assert one("SELECT kind FROM takes WHERE id = ?", (cover["id"],))["kind"] == "cover"
+    drain()

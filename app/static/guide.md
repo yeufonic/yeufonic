@@ -540,7 +540,8 @@ plan, a new seed, or rendering anyway. A finished take is not checked for singin
 
 ### An instrumental from a song's score
 
-**Make an instrumental**, beside **Render this score** under a song's or cover's score, makes the
+**Make an instrumental**, under a song's or cover's score on the editor's Score page (beside **Render this score**
+for a song), makes the
 same score as an instrumental, in a new take: the original is left as it was. The sung melody moves
 to an instrument, only the score's section tags are sent to the model in place of the words, the
 instrumental LoRA is used, and the style loses the tags that describe a voice ("soft male vocal").
