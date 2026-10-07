@@ -37,11 +37,11 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.33 (2026-10-07)
 
-### Fixed
-- **Make an instrumental is offered on a cover's Score page, every time.** It was only on a song's page, and on a cover it showed or not depending on what the editor had held before, since the row holding it is hidden for a
-  cover. A cover's page now shows just this button (a cover has no plan to render again or write anew), with a line saying what it does.
+### Changed
+- **Make an instrumental is now available for covers as well as for songs from a prompt.** It was only on a song's Score page, and on a cover it showed or not depending on what the editor had held before. A cover's page now always
+  shows it (a cover has no plan to render again or write anew, so it is the only button there), with a line saying what it does.
 
 ## 0.0.32 (2026-10-07)
 
