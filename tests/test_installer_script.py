@@ -99,4 +99,7 @@ def test_the_windows_engine_gets_whisper_with_the_cuda_12_libraries_ctranslate2_
     block = setup.split("IsDone 'engine-whisper')")[1].split("Done 'engine-whisper'")[0]
     assert "'--no-deps', 'faster-whisper==1.2.1'" in block
     assert "nvidia-cublas-cu12" in block and "nvidia-cudnn-cu12" in block and "ctranslate2>=4.5,<5" in block
-    assert "Join-Path $Models 'whisper'" in setup and "download_model('large-v3-turbo'" in setup
+    # the model comes down with the installer's own download, so it shows progress, resumes and is checked
+    block = setup.split("IsDone 'engine-whisper-model')")[1].split("Done 'engine-whisper-model'")[0]
+    assert "Get-Verified" in block and "whisper\\large-v3-turbo" in block and "model.bin" in block
+    assert "e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da" in block and "download_model" not in block

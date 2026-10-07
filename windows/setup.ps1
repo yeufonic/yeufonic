@@ -516,18 +516,25 @@ if (-not $SkipModels -and -not (IsDone 'app-models')) {
     Done 'app-models'
 }
 
-# The engine's own copy of the Whisper model (the app keeps its own, for the CPU), fetched now so the first lyric hearing
-# does not wait on 1.6 GB; if this fails the node fetches it when it first runs.
+# The engine's own copy of the Whisper model (the app keeps its own, for the CPU), as a plain folder the node uses as it
+# stands. Fetched with the same download as the other models, so it shows its progress, resumes if it breaks off and is
+# checked, and the first lyric hearing does not wait on 1.6 GB.
 if (-not $SkipModels -and -not (IsDone 'engine-whisper-model')) {
-    Say 'Whisper large-v3-turbo for the engine (about 1.6 GB: it can take several minutes, and nothing is shown while it downloads)'
-    $engineWhisper = Join-Path $Models 'whisper'
-    $env:HF_HUB_DISABLE_SYMLINKS_WARNING = '1'   # Windows without Developer Mode cannot make links; the copy it makes instead is fine
-    try {
-        Invoke-Checked 'The engine Whisper model' $py @('-s', '-c', "from faster_whisper import download_model; download_model('large-v3-turbo', cache_dir=r'$engineWhisper')")
-        Done 'engine-whisper-model'
-    } catch {
-        Say "Could not fetch it now ($($_.Exception.Message)); the engine will when it first hears a vocal."
+    Step 'Whisper for the engine (about 1.6 GB)'
+    $whisperUrl = 'https://huggingface.co/mobiuslabsgmbh/faster-whisper-large-v3-turbo/resolve/main'
+    $engineWhisper = Join-Path $Models 'whisper\large-v3-turbo'
+    New-Item -ItemType Directory -Force -Path $engineWhisper | Out-Null
+    $whisperFiles = @(
+        @{ File = 'config.json'; Size = 2263 },
+        @{ File = 'preprocessor_config.json'; Size = 340 },
+        @{ File = 'tokenizer.json'; Size = 2710337 },
+        @{ File = 'vocabulary.json'; Size = 1068114 },
+        @{ File = 'model.bin'; Size = 1617884929; Sha = 'e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da' }
+    )
+    foreach ($f in $whisperFiles) {
+        Get-Verified @{ Url = "$whisperUrl/$($f.File)"; Size = $f.Size; Sha = $f.Sha } (Join-Path $engineWhisper $f.File)
     }
+    Done 'engine-whisper-model'
 }
 
 # The engine's own copy of the Demucs model (it keeps it with its models, found again after an update). Fetched now so
