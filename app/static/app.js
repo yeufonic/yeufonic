@@ -2845,19 +2845,25 @@ function lockGpuControls() {
     ? 'LoRA \u201c' + loraName + '\u201d is currently training and holds the GPU. Planning and rendering are paused until training finishes or is stopped.'
     : '';
 
+  // The buttons' own tooltips are put back when training ends, not blanked: a button that says what it does
+  // keeps saying it, and only while the GPU is held does the reason replace it.
+  var hold = function (button) {
+    button.disabled = training;
+    if (training) {
+      if (button.dataset.idleTitle === undefined) { button.dataset.idleTitle = button.title || ''; }
+      button.title = title;
+    } else if (button.dataset.idleTitle !== undefined) {
+      button.title = button.dataset.idleTitle;
+      delete button.dataset.idleTitle;
+    }
+  };
   ['create-song', 'create-cover', 'create-inst', 'render-take', 'steps-go'].forEach(function (id) {
     var button = $(id);
-    if (button) {
-      button.disabled = training;
-      button.title = title;
-    }
+    if (button) { hold(button); }
   });
   Array.prototype.forEach.call(document.querySelectorAll('.takes [data-act]'), function (button) {
     var act = button.dataset.act || '';
-    if (['render', 'again', 'variations', 'tries', 'revoice', 'replan', 'reroll'].indexOf(act) >= 0) {
-      button.disabled = training;
-      button.title = title;
-    }
+    if (['render', 'again', 'variations', 'tries', 'revoice', 'replan', 'reroll'].indexOf(act) >= 0) { hold(button); }
   });
 
   paintEditorTrainingNotice(training);
