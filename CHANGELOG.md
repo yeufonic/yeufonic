@@ -37,13 +37,15 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.34 (2026-10-08)
 
 - **A corpus without vocals.** The corpus **Voice** menu has a **none** entry for instrumental songs (#40): the
   vocal is not separated and Whisper does not run, a song's lyrics are the section tags from its score
   (`[instrumental]` without one), the caption leaves out the vocal clause, and the lyrics review and its tick
   do not apply. Style descriptions use the local model when it is installed, as the external one would have only a
   title. Changing a corpus's Voice to or from **none** updates the songs already analysed.
+- **Play after switching spaces.** A take paused in one space can be resumed after switching to another; Play
+  did nothing because the player had lost the take.
 
 ## 0.0.33 (2026-10-07)
 
