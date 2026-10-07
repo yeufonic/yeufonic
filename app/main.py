@@ -2237,7 +2237,7 @@ TRY_TAIL = re.compile(r"try \d+|planner \d+\.\d\d")
 def _base_title(title: str) -> str:
     """'Night drive · Tight' -> 'Night drive', so a variation of a variation is not 'X · Tight · Loose'."""
     head, sep, tail = title.rpartition(" \u00b7 ")
-    known = tail in INTERPRETATION_NAMES.values() or tail in ("new voice", "sung again", "new words")
+    known = tail in INTERPRETATION_NAMES.values() or tail in ("new voice", "sung again", "new words", "instrumental")
     return head if sep and (known or TRY_TAIL.fullmatch(tail)) else title
 
 
@@ -2272,6 +2272,48 @@ async def revoice(take_id: str) -> dict:
     log.info("Queued Sing again for take '%s' (%s -> %s, seed %d)", take.get("title") or take_id,
              take_id, record["id"], seed)
     return {"id": record["id"], "title": record["title"], "seed": seed}
+
+
+class InstrumentalOfIn(BaseModel):
+    title: str | None = Field(None, max_length=200)
+    # The score as the editor holds it, so an edit goes into the instrumental and the original keeps its own.
+    abc: str | None = Field(None, max_length=200_000)
+
+
+@app.post("/api/takes/{take_id}/instrumental")
+async def instrumental_of_take(take_id: str, body: InstrumentalOfIn | None = None) -> dict:
+    """The same score as an instrumental: a new take beside the original, which is left as it was.
+
+    Emptying a song's Vocal voice by hand is not enough, because the render still sings the words it is given.  What
+    works is the instrumental path: the sung melody moved to an instrument (as for a recording), the score's section
+    tags in place of words, the instrumental LoRA, and a style without its vocal descriptions."""
+    _gpu_free_for_rendering()
+    if ENGINE.options_loaded and not ENGINE.options.get("instrumental"):
+        raise HTTPException(400, f"The engine cannot make instrumentals: it needs {config.INSTRUMENTAL_LORA} "
+                                 "in models/loras. Run scripts/fetch-models.sh.")
+    take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
+    if not take:
+        raise HTTPException(404, "no such take")
+    if take["kind"] == "instrumental":
+        raise HTTPException(400, "this take is an instrumental already")
+    given = body.abc if body is not None and (body.abc or "").strip() else None
+    abc = given or take["abc"] or ""
+    if not abc.strip():
+        raise HTTPException(400, "this take has no score yet. Write a plan first.")
+    abc = _unsung(abc)
+    _check_score(abc, "instrumental")
+    _checkpoint()
+    record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
+    title = " ".join(((body.title if body else "") or "").split()) or f"{_base_title(take['title'])} \u00b7 instrumental"
+    record.update(id=uuid.uuid4().hex[:12], kind="instrumental", title=title, abc=abc, lyrics=instrumental.structure_of(abc),
+                  style=instrumental.without_vocal_tags(take["style"]) or take["style"], status="queued", created_at=time.time(),
+                  checkpoint=config.CHECKPOINT, sound_seed=None, auto_render=0, mode="full",
+                  identity_id=None, persona_id=None, voice_lora=None, voice_lora_strength=1.0, voice_lora_clip=0.0)
+    columns = list(record)
+    execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)
+    await QUEUE.put({"kind": "render", "id": record["id"]})
+    log.info("Queued an instrumental of take '%s' (%s -> %s)", take.get("title") or take_id, take_id, record["id"])
+    return {"id": record["id"], "title": title, "seed": record["seed"]}
 
 
 @app.post("/api/takes/{take_id}/words")

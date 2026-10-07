@@ -39,7 +39,13 @@ cannot creep back in.
 
 ## Unreleased
 
+### Added
+- **Make an instrumental from a song's or cover's score.** A button beside **Render this score** makes the same score as an instrumental in a new take, leaving the original as it was: the sung melody is
+  given to an instrument, only the score's section tags are sent in place of the words, and the style loses its vocal descriptions. Emptying a song's Vocal part by hand did not stop it singing,
+  since the render sings the words it is given.
+
 ### Fixed
+- The guide no longer says a finished instrumental is checked for singing; that check was removed.
 - **The take card's Sing again, Variations and Try more icons have their tooltips back.** While no LoRA was training, the check that disables GPU buttons during training replaced
   each button's tooltip with an empty one. It now puts the button's own tooltip back when training ends, and leaves it alone otherwise.
 

@@ -281,3 +281,49 @@ def test_a_rearranged_planned_instrumental_is_a_new_take_beside_the_original(cli
     from_recording = make_take(kind="instrumental", source_id="rec1")
     assert client.post(f"/api/takes/{from_recording['id']}/rearrange", json={"abc": edited}).status_code == 400
     assert client.post(f"/api/takes/{original['id']}/rearrange", json={"abc": ""}).status_code == 400
+
+
+def test_the_style_loses_only_the_tags_that_describe_a_voice():
+    assert instrumental.without_vocal_tags("rock, soft male vocal, electric guitar, female voices, 120 BPM") == \
+        "rock, electric guitar, 120 BPM"
+    assert instrumental.without_vocal_tags("jazz trio, brushed swing") == "jazz trio, brushed swing"
+    assert instrumental.without_vocal_tags("") == "" and instrumental.without_vocal_tags(None) == ""
+
+
+def test_an_instrumental_is_made_from_a_sung_takes_score_beside_it(client, monkeypatch):
+    """The words are what make a render sing, so the new take sends only the score's section tags; the original is left alone."""
+    engine_ready(monkeypatch)
+    song = make_take(kind="song", title="Night drive", style="rock, soft male vocal, electric guitar",
+                     lyrics="[Verse]\nla la la\n[Chorus]\nsing it back", abc=SUNG)
+    made = client.post(f"/api/takes/{song['id']}/instrumental", json={})
+    assert made.status_code == 200, made.text
+    new = one("SELECT * FROM takes WHERE id = ?", (made.json()["id"],))
+    assert new["id"] != song["id"] and new["kind"] == "instrumental" and new["status"] == "queued"
+    assert new["title"] == "Night drive · instrumental" and new["style"] == "rock, electric guitar"
+    assert instrumental.sings(new["abc"]) == 0 and new["abc"] == instrumental.tune_on_instrument(SUNG), "the tune is on an instrument"
+    assert new["lyrics"] == instrumental.structure_of(new["abc"]) and "la la" not in new["lyrics"], "section tags, no words"
+    assert new["voice_lora"] is None and new["identity_id"] is None
+    kept = one("SELECT kind, abc, lyrics, style, title FROM takes WHERE id = ?", (song["id"],))
+    assert kept["kind"] == "song" and kept["abc"] == SUNG and "la la la" in kept["lyrics"] and kept["title"] == "Night drive"
+    assert QUEUE.get_nowait() == {"kind": "render", "id": new["id"]}
+
+
+def test_the_score_in_the_editor_is_used_without_being_saved_over_the_originals(client, monkeypatch):
+    engine_ready(monkeypatch)
+    song = make_take(kind="song", style="pop", lyrics="[Verse]\nhello", abc=SUNG)
+    edited = SUNG.replace("% verse", "% chorus")
+    made = client.post(f"/api/takes/{song['id']}/instrumental", json={"abc": edited, "title": "No voice"})
+    new = one("SELECT abc, lyrics, title FROM takes WHERE id = ?", (made.json()["id"],))
+    assert new["title"] == "No voice" and "% chorus" in new["abc"] and "[chorus]" in new["lyrics"]
+    assert one("SELECT abc FROM takes WHERE id = ?", (song["id"],))["abc"] == SUNG
+    drain()
+
+
+def test_an_instrumental_cannot_be_made_of_an_instrumental_or_of_nothing(client, monkeypatch):
+    engine_ready(monkeypatch)
+    already = make_take(kind="instrumental", abc=RECORDED)
+    assert client.post(f"/api/takes/{already['id']}/instrumental", json={}).status_code == 400
+    empty = make_take(kind="song", abc="")
+    refused = client.post(f"/api/takes/{empty['id']}/instrumental", json={})
+    assert refused.status_code == 400 and "no score" in refused.json()["detail"]
+    assert client.post("/api/takes/nothere/instrumental", json={}).status_code == 404
