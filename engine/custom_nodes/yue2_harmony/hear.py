@@ -71,7 +71,11 @@ def load(name: str):
     try:
         return WhisperModel(target, device="cuda", compute_type="float16", download_root=root, local_files_only=True)
     except Exception:  # noqa: BLE001
-        return WhisperModel(target, device="cuda", compute_type="float16", download_root=root, local_files_only=False)
+        model = WhisperModel(target, device="cuda", compute_type="float16", download_root=root, local_files_only=False)
+        from .perms import open_up
+
+        open_up(root)    # fetched here, as root: leave it deletable by whoever owns the models folder
+        return model
 
 
 def mono_16k(wave: torch.Tensor, rate: int):

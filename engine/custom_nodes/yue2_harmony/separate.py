@@ -62,6 +62,9 @@ def load(name: str):
 
         with _hub_in(_weights_dir()):
             model = get_model(name)
+        from .perms import open_up
+
+        open_up(_weights_dir())    # fetched here, as root: leave it deletable by whoever owns the models folder
         model.eval()
         _CACHE.clear()
         _CACHE[name] = model

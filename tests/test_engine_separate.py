@@ -150,3 +150,24 @@ def test_the_node_uses_a_plain_folder_of_the_model_when_there_is_one(monkeypatch
     (plain / "model.bin").write_bytes(b"x")
     hearing.load("large-v3-turbo")
     assert asked[-1] == (str(plain), True)
+
+
+def test_what_the_engine_fetches_is_left_deletable_by_whoever_owns_the_folder(tmp_path):
+    """The engine runs as root: a folder it makes is root's, and a user without root could not tidy it."""
+    import os
+
+    perms_spec = importlib.util.spec_from_file_location("yue2_perms", NODE.with_name("perms.py"))
+    perms = importlib.util.module_from_spec(perms_spec)
+    perms_spec.loader.exec_module(perms)
+    root = tmp_path / "whisper"
+    (root / "models--x" / "blobs").mkdir(parents=True)
+    blob = root / "models--x" / "blobs" / "abc"
+    blob.write_bytes(b"x")
+    os.chmod(blob, 0o600)
+    os.chmod(root, 0o700)
+    link = root / "models--x" / "link"
+    link.symlink_to("blobs/abc")
+    perms.open_up(str(root))
+    assert (root.stat().st_mode & 0o777) == 0o777 and ((root / "models--x" / "blobs").stat().st_mode & 0o777) == 0o777
+    assert (blob.stat().st_mode & 0o666) == 0o666
+    perms.open_up(str(tmp_path / "missing"))     # nothing there: nothing to do
