@@ -9871,7 +9871,10 @@ function playTake(id) {
     window.PianoRoll.stop();
   }
   var take = State.takes.filter(function (t) { return t.id === id; })[0];
+  // The take loaded in the player may belong to a space no longer on screen.
+  if (!take && State.loadedTake && State.loadedTake.id === id) { take = State.loadedTake; }
   if (!take) { return; }
+  State.loadedTake = take;
   State.playing = id;
   State.audition = null;
   State.playRequestedAt = Date.now();
@@ -9921,7 +9924,7 @@ function currentTake() {
   for (var i = 0; i < State.takes.length; i++) {
     if (State.takes[i].id === id) { return State.takes[i]; }
   }
-  return null;
+  return State.loadedTake && State.loadedTake.id === id ? State.loadedTake : null;
 }
 
 function takePosition(id) {
