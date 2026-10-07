@@ -229,4 +229,26 @@ def test_stopping_while_the_engine_listens_stops_the_analysis(monkeypatch, tmp_p
 def test_hearing_progress_waits_for_the_node_to_start():
     step = jobs._gpu_hearing_progress
     assert step({}) is None and step({"stage": "LoadAudio"}) is None
-    assert step({"stage": "Yue2Hear", "value": None}) == 0.0 and step({"stage": "Yue2Hear", "value": 5, "frac": 0.4}) == 0.4
+    assert step({"stage": "Yue2Hear", "value": None}) is None, "loading the model says nothing, so a label set for the wait stays"
+    assert step({"stage": "Yue2Hear", "value": 5, "frac": 0.4}) == 0.4
+
+
+def test_the_wait_for_the_whisper_model_is_labelled_the_first_time(monkeypatch, tmp_path):
+    vocal = tone(tmp_path / "vocals.flac", 1.0)
+    engine = HearEngine(vocal)
+    engine.options = {"hear": True}
+    monkeypatch.setattr(jobs, "ENGINE", engine)
+    monkeypatch.setattr(config, "MODELS_DIR", tmp_path / "models")
+    (tmp_path / "models").mkdir()
+    said = []
+    asyncio.run(jobs.hear_lines(vocal, None, 10.0, None, said.append))
+    assert said == ["Downloading the Whisper model, first time only"]
+    # with the model there, as a plain folder or in the Hugging Face cache, nothing is said
+    for place in ("whisper/large-v3-turbo", "whisper/models--x--faster-whisper-large-v3-turbo/snapshots/abc"):
+        folder = tmp_path / "models" / place
+        folder.mkdir(parents=True)
+        (folder / "model.bin").write_bytes(b"x")
+        said.clear()
+        asyncio.run(jobs.hear_lines(vocal, None, 10.0, None, said.append))
+        assert said == [], place
+        shutil.rmtree(tmp_path / "models" / "whisper")

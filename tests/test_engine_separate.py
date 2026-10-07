@@ -130,3 +130,23 @@ def test_the_node_can_be_stopped_between_segments():
 
     with pytest.raises(Stop):
         hearing.hear(torch.zeros(1, 16000), 16000, "large-v3-turbo", "", check=check, model=Heard((0.0, 1.0, "x")))
+
+
+def test_the_node_uses_a_plain_folder_of_the_model_when_there_is_one(monkeypatch, tmp_path):
+    """What scripts/fetch-models.sh writes, used as it stands; otherwise the model's name, for the Hugging Face cache."""
+    import sys
+    import types
+    import faster_whisper
+
+    folder_paths = types.ModuleType("folder_paths")
+    folder_paths.models_dir = str(tmp_path)
+    monkeypatch.setitem(sys.modules, "folder_paths", folder_paths)
+    asked = []
+    monkeypatch.setattr(faster_whisper, "WhisperModel", lambda target, **kw: asked.append((target, kw["local_files_only"])) or object())
+    hearing.load("large-v3-turbo")
+    assert asked[-1][0] == "large-v3-turbo"
+    plain = tmp_path / "whisper" / "large-v3-turbo"
+    plain.mkdir(parents=True)
+    (plain / "model.bin").write_bytes(b"x")
+    hearing.load("large-v3-turbo")
+    assert asked[-1] == (str(plain), True)

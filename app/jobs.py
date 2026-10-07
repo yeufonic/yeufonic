@@ -1020,6 +1020,7 @@ async def prepare_song(song_id: str) -> None:
         try:
             found = await hear_all(identities.vocals_file(folder) or folder / "vocals.flac", seconds=song["duration"] or 0.0, title=song_title,
                                    on_progress=lambda frac: stage("Hearing the lyrics (Whisper)", frac),
+                                   on_download=lambda text: stage(text, 0.0),
                                    should_stop=stop.is_set if stop else None)
             lines, method = found["lines"], found["method"]
             log.info("Corpus song '%s': lyrics heard by %s", song_title, method)
@@ -1338,12 +1339,23 @@ def _can_separate_on_engine() -> bool:
     return _engine_can("separate")
 
 
-async def hear_lines(vocal: Path, on_progress=None, duration: float = 0.0, should_stop=None) -> list[dict]:
+def _engine_has_whisper() -> bool:
+    """The engine's copy of the Whisper model is on disk, so a hearing starts at once.  Where this machine cannot see the
+    engine's models it is assumed to be (nothing to say)."""
+    root = Path(config.MODELS_DIR) / "whisper"
+    if not (Path(config.MODELS_DIR)).is_dir():
+        return True
+    return (root / identities.WHISPER_MODEL / "model.bin").is_file() or any(root.glob("models--*/snapshots/*/model.bin"))
+
+
+async def hear_lines(vocal: Path, on_progress=None, duration: float = 0.0, should_stop=None, on_stage=None) -> list[dict]:
     """The sung lines of a separated vocal, with their times: Whisper on the engine's GPU when it can, as a job in the
     engine's queue, and Whisper on the CPU here otherwise or when the engine fails it.  Either way the segments
     become lines the same way (identities.lines_from_segments)."""
     if _engine_can("hear"):
         try:
+            if on_stage and not _engine_has_whisper():
+                on_stage("Downloading the Whisper model, first time only")
             segments = await _hear_on_engine(vocal, on_progress, should_stop)
             return identities.lines_from_segments(segments, on_progress, duration, should_stop)
         except (asyncio.CancelledError, identities.Stopped):
@@ -1354,9 +1366,10 @@ async def hear_lines(vocal: Path, on_progress=None, duration: float = 0.0, shoul
 
 
 def _gpu_hearing_progress(rec: dict) -> float | None:
-    """How far Whisper is, from the engine's last word: the model loads before it says anything."""
-    if rec.get("stage") == "Yue2Hear":
-        return 0.0 if rec.get("value") is None else (rec.get("frac") or 0.0)
+    """How far Whisper is, from the engine's last word.  None until it starts on the audio: the model loads first, and
+    saying 0% over and over would overwrite whatever the page was told about that wait."""
+    if rec.get("stage") == "Yue2Hear" and rec.get("value") is not None:
+        return rec.get("frac") or 0.0
     return None
 
 
@@ -2036,7 +2049,7 @@ MIN_HEARD_WORDS = 8
 
 
 async def hear_all(vocal: Path, seconds: float = 0.0, on_progress=None, on_stage=None,
-                   title: str = "", should_stop=None) -> dict:
+                   title: str = "", should_stop=None, on_download=None) -> dict:
     """What was heard in a separated vocal, by each method that ran, and which one is in use.
 
     Whisper always runs: it times the lines.  When Settings asks for the external LLM to
@@ -2067,7 +2080,7 @@ async def hear_all(vocal: Path, seconds: float = 0.0, on_progress=None, on_stage
     else:
         log.info("Lyrics for '%s': Whisper, as set in Settings", name)
 
-    lines = await hear_lines(vocal, on_progress, seconds, should_stop)
+    lines = await hear_lines(vocal, on_progress, seconds, should_stop, on_download)
     only_whisper = {"lines": lines, "method": "Whisper", "whisper": lines, "llm": None, "model": model}
     if not (wanted and external):
         return only_whisper

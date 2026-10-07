@@ -60,14 +60,18 @@ def _weights_dir() -> str:
 
 
 def load(name: str):
+    """A folder of the model's files under the engine's models (what scripts/fetch-models.sh writes) is used as it
+    stands; otherwise the Hugging Face cache there, fetching the model the first time it is needed."""
     from faster_whisper import WhisperModel
 
     root = _weights_dir()
     os.makedirs(root, exist_ok=True)
+    plain = Path(root) / name
+    target = str(plain) if (plain / "model.bin").is_file() else name
     try:
-        return WhisperModel(name, device="cuda", compute_type="float16", download_root=root, local_files_only=True)
+        return WhisperModel(target, device="cuda", compute_type="float16", download_root=root, local_files_only=True)
     except Exception:  # noqa: BLE001
-        return WhisperModel(name, device="cuda", compute_type="float16", download_root=root, local_files_only=False)
+        return WhisperModel(target, device="cuda", compute_type="float16", download_root=root, local_files_only=False)
 
 
 def mono_16k(wave: torch.Tensor, rate: int):

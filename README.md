@@ -218,7 +218,7 @@ installation, and running it again is also how you change the model size (below)
   while it prepares the songs, so 16 GB is the practical minimum, and an 8 GB card can't train
   (it can still use LoRAs trained elsewhere). AMD and Intel graphics are not supported.
 - 16 GB of RAM and about 30 GB of free disk, more as your library grows.
-- An internet connection for about 24 GB of downloads (20 GB with the smaller low-memory model, see
+- An internet connection for about 27 GB of downloads (23 GB with the smaller low-memory model, see
   [Choosing a model size](#choosing-a-model-size)), most of it the models. The score preview
   fetches its own note samples as they are played, about 7 MB for each instrument.
 
@@ -354,7 +354,7 @@ run out of memory.
 ```sh
 git clone https://github.com/yeufonic/yeufonic.git
 cd yeufonic
-sh scripts/fetch-models.sh          # about 17 GB, and creates the folders below
+sh scripts/fetch-models.sh          # about 19 GB, and creates the folders below
 # sh scripts/fetch-models.sh --int8   # the smaller low-memory model instead: see Choosing a model size
 docker compose up -d --build
 ```
@@ -436,7 +436,7 @@ the same way. The setup around it needs care:
 
    Set it to your RAM less 2 GB, then run `wsl --shutdown` and start Docker Desktop again.
 5. **Clone inside WSL, not on C:.** Open a WSL terminal (Ubuntu from the Store is the usual one)
-   and run the quick start there. A clone on `C:\` works, but the 17 GB of models and the library
+   and run the quick start there. A clone on `C:\` works, but the 19 GB of models and the library
    then cross a slow bridge into Linux, and SQLite's locking is less dependable across it.
 6. **Run the fetch script in that WSL terminal**, or in Git Bash. PowerShell and Command Prompt
    cannot run `sh`.

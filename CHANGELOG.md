@@ -43,8 +43,8 @@ cannot creep back in.
 - **Stems, vocal separation and lyric hearing run on the GPU.** The engine has a Demucs node and a Whisper node, and the app separates a recording's vocal, a take's stems and each corpus
   song's vocal, and hears the words of a separated vocal, there, as jobs in the engine's queue beside plans and renders, instead of on the CPU. **Use the GPU for stems and lyrics** in Settings
   (on by default) turns it off; an engine without the nodes, a LoRA being trained, or `STEMS_ON_GPU=0` keeps the CPU, and a job the engine fails falls back to the CPU. The Docker engine image
-  adds both, so an existing Docker install needs the engine rebuilt (`docker compose build engine`); the first lyric hearing fetches the Whisper model (about 1.6 GB) into the engine's models
-  folder. The Windows installer adds Demucs and Whisper (with the CUDA 12 libraries Whisper needs, a little over a gigabyte more) and fetches the Whisper model for the engine.
+  adds both, so an existing Docker install needs the engine rebuilt (`docker compose build engine`); `scripts/fetch-models.sh` now fetches the Whisper model for the engine (about 1.6 GB, into `models/whisper`), so run it again before the first lyric hearing; if it has not been, the first hearing
+  fetches it and the song's line says so. The Windows installer adds Demucs and Whisper (with the CUDA 12 libraries Whisper needs, a little over a gigabyte more) and fetches the Whisper model for the engine.
   **Updating to this takes longer than usual**: a Docker install rebuilds the engine, and a Windows install downloads about 3 GB more (the libraries and the model).
 
 ### Fixed
