@@ -244,7 +244,7 @@ if ($ramGB -lt 15) { [void]$warnings.Add("This PC has $ramGB GB of memory; 16 GB
 # Room for what is still to come: the missing models, plus about 12 GB for the engine,
 # the app and the downloads while they unpack.
 # Sizes are shown in thousands, as the installer's own pages and download sites count.
-$needBytes = 14e9   # the engine, the app, Whisper and demucs, and room to unpack
+$needBytes = 16e9   # the engine, the app, Whisper and demucs, and room to unpack
 foreach ($m in $ModelFiles) { if (-not (Test-Path (Join-Path (Join-Path $Models $m.Dir) $m.File))) { $needBytes += $m.Size } }
 if ($SkipModels) { $needBytes = 12e9 }
 $drive = (Get-Item $InstallDir).PSDrive
@@ -402,6 +402,23 @@ foreach ($edit in $attention) {
         throw "The trainer's attention call in $($edit.File) is not what this installer expects, so it was left alone."
     }
 }
+# Stem separation on the GPU: the engine's CUDA torch runs Demucs, so a vocal is separated in the engine's queue
+# beside plans and renders. It adds demucs and a few small packages and leaves torch alone. Without it the node is
+# not there and the app separates on the CPU as before. A step of its own, so an update does it without more.
+if (-not (IsDone 'engine-demucs')) {
+    Invoke-Checked "Demucs for the engine" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', 'demucs==4.1.0')
+    Done 'engine-demucs'
+}
+# Whisper on the GPU, for the words of a separated vocal: faster-whisper with CTranslate2. CTranslate2's Windows build
+# wants the CUDA 12 cuBLAS and cuDNN, which the engine's CUDA 13 PyTorch does not carry, so they come as their own
+# packages (a little over a gigabyte); the node puts their folders on PATH. faster-whisper goes in without its
+# dependencies, which would hold PyAV to a version of their choosing. Without all this the node is not there and the app
+# hears words on the CPU as before.
+if (-not (IsDone 'engine-whisper')) {
+    Invoke-Checked 'Whisper for the engine' $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', '--no-deps', 'faster-whisper==1.2.1')
+    Invoke-Checked "Whisper's GPU libraries" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', 'ctranslate2>=4.5,<5', 'tokenizers', 'nvidia-cublas-cu12', 'nvidia-cudnn-cu12')
+    Done 'engine-whisper'
+}
 # Our own node, carried by the installer.
 $harmony = Join-Path $nodes 'yue2_harmony'
 if (Test-Path $harmony) { Remove-Item -Recurse -Force $harmony }
@@ -497,6 +514,40 @@ if (-not $SkipModels -and -not (IsDone 'app-models')) {
     Say 'demucs htdemucs (about 80 MB)'
     Invoke-Checked 'demucs' $appPy @('-c', "from demucs.pretrained import get_model; get_model('htdemucs')")
     Done 'app-models'
+}
+
+# The engine's own copy of the Whisper model (the app keeps its own, for the CPU), as a plain folder the node uses as it
+# stands. Fetched with the same download as the other models, so it shows its progress, resumes if it breaks off and is
+# checked, and the first lyric hearing does not wait on 1.6 GB.
+if (-not $SkipModels -and -not (IsDone 'engine-whisper-model')) {
+    Step 'Whisper for the engine (about 1.6 GB)'
+    $whisperUrl = 'https://huggingface.co/mobiuslabsgmbh/faster-whisper-large-v3-turbo/resolve/main'
+    $engineWhisper = Join-Path $Models 'whisper\large-v3-turbo'
+    New-Item -ItemType Directory -Force -Path $engineWhisper | Out-Null
+    $whisperFiles = @(
+        @{ File = 'config.json'; Size = 2263 },
+        @{ File = 'preprocessor_config.json'; Size = 340 },
+        @{ File = 'tokenizer.json'; Size = 2710337 },
+        @{ File = 'vocabulary.json'; Size = 1068114 },
+        @{ File = 'model.bin'; Size = 1617884929; Sha = 'e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da' }
+    )
+    foreach ($f in $whisperFiles) {
+        Get-Verified @{ Url = "$whisperUrl/$($f.File)"; Size = $f.Size; Sha = $f.Sha } (Join-Path $engineWhisper $f.File)
+    }
+    Done 'engine-whisper-model'
+}
+
+# The engine's own copy of the Demucs model (it keeps it with its models, found again after an update). Fetched now so
+# the first separation does not wait on it; if this fails the node fetches it when it first runs.
+if (-not $SkipModels -and -not (IsDone 'engine-demucs-model')) {
+    Say 'demucs htdemucs for the engine (about 80 MB)'
+    $demucsDir = Join-Path $Models 'demucs'
+    try {
+        Invoke-Checked 'The engine demucs model' $py @('-s', '-c', "import torch; torch.hub.set_dir(r'$demucsDir'); from huggingface_hub import constants; constants.HF_HUB_CACHE = r'$demucsDir\hub'; from demucs.pretrained import get_model; get_model('htdemucs')")
+        Done 'engine-demucs-model'
+    } catch {
+        Say "Could not fetch it now ($($_.Exception.Message)); the engine will when it first separates a vocal."
+    }
 }
 
 # ---------------------------------------------------------------- soundfonts

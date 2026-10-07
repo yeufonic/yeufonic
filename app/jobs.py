@@ -1007,7 +1007,7 @@ async def prepare_song(song_id: str) -> None:
     if not identities.vocals_file(folder):
         stage("Separating the vocal (demucs)", 0.0)
         # FLAC: the same audio exactly, in about half the room of the WAV it used to be written as.
-        await stems.separate(stored, folder, "htdemucs", ["vocals"], "flac", work_root=config.WORK_DIR,
+        await separate_stems(stored, folder, "htdemucs", ["vocals"], "flac", work_root=config.WORK_DIR,
                              on_progress=lambda frac, _: stage("Separating the vocal (demucs)", frac))
     set_song(song_id, vocals_state="done")
     if identity_song(song_id)["style_state"] in ("none", "failed"):
@@ -1020,6 +1020,7 @@ async def prepare_song(song_id: str) -> None:
         try:
             found = await hear_all(identities.vocals_file(folder) or folder / "vocals.flac", seconds=song["duration"] or 0.0, title=song_title,
                                    on_progress=lambda frac: stage("Hearing the lyrics (Whisper)", frac),
+                                   on_download=lambda text: stage(text, 0.0),
                                    should_stop=stop.is_set if stop else None)
             lines, method = found["lines"], found["method"]
             log.info("Corpus song '%s': lyrics heard by %s", song_title, method)
@@ -1359,6 +1360,220 @@ async def _upload(path: Path, name: str) -> str:
     if not result.get("name"):
         raise RuntimeError("the engine did not accept the audio")
     return result["name"]
+
+
+# ------------------------------------------------------------ stems on the GPU
+# The engine's node orders its outputs like this; the app's names for them are the same.
+SEPARATE_OUTPUTS = ("vocals", "drums", "bass", "other", "guitar", "piano", "instruments")
+
+
+def gpu_wanted() -> bool:
+    """Stems and lyric hearing on the GPU: Settings says so (on unless turned off), and STEMS_ON_GPU=0 overrides it."""
+    return bool(config.STEMS_ON_GPU and get_setting("processing.gpu", "on") != "off")
+
+
+def _engine_can(node: str) -> bool:
+    """Asked for, the engine is up and has the node, and it is not held by training: a job would wait in its
+    queue for the whole run."""
+    return bool(gpu_wanted() and ENGINE.online and ENGINE.options.get(node) and CURRENT.get("kind") != "train")
+
+
+def _can_separate_on_engine() -> bool:
+    return _engine_can("separate")
+
+
+def _engine_has_whisper() -> bool:
+    """The engine's copy of the Whisper model is on disk, so a hearing starts at once.  Where this machine cannot see the
+    engine's models it is assumed to be (nothing to say)."""
+    root = Path(config.MODELS_DIR) / "whisper"
+    if not (Path(config.MODELS_DIR)).is_dir():
+        return True
+    return (root / identities.WHISPER_MODEL / "model.bin").is_file() or any(root.glob("models--*/snapshots/*/model.bin"))
+
+
+async def hear_lines(vocal: Path, on_progress=None, duration: float = 0.0, should_stop=None, on_stage=None) -> list[dict]:
+    """The sung lines of a separated vocal, with their times: Whisper on the engine's GPU when it can, as a job in the
+    engine's queue, and Whisper on the CPU here otherwise or when the engine fails it.  Either way the segments
+    become lines the same way (identities.lines_from_segments)."""
+    if _engine_can("hear"):
+        try:
+            if on_stage and not _engine_has_whisper():
+                on_stage("Downloading the Whisper model, first time only")
+            segments = await _hear_on_engine(vocal, on_progress, should_stop)
+            return identities.lines_from_segments(segments, on_progress, duration, should_stop)
+        except (asyncio.CancelledError, identities.Stopped):
+            raise
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Hearing '%s' on the GPU failed, using the CPU: %s", vocal.name, exc)
+    return await asyncio.to_thread(identities.transcribe, vocal, on_progress, duration, should_stop)
+
+
+def _gpu_hearing_progress(rec: dict) -> float | None:
+    """How far Whisper is, from the engine's last word.  None until it starts on the audio: the model loads first, and
+    saying 0% over and over would overwrite whatever the page was told about that wait."""
+    if rec.get("stage") == "Yue2Hear" and rec.get("value") is not None:
+        return rec.get("frac") or 0.0
+    return None
+
+
+async def _hear_on_engine(vocal: Path, on_progress, should_stop) -> list[identities.Segment]:
+    token = os.urandom(4).hex()
+    started = time.time()
+    name = await _upload(vocal, f"hear-{token}{vocal.suffix}")
+    graph = {"1": {"class_type": "LoadAudio", "inputs": {"audio": name}},
+             "2": {"class_type": "Yue2Hear", "inputs": {"audio": ["1", 0], "model": identities.WHISPER_MODEL, "language": "en"}},
+             "3": {"class_type": "PreviewAny", "inputs": {"source": ["2", 0]}}}
+    prompt_id = await ENGINE.submit(graph)
+    stopped = False
+
+    async def watch() -> None:
+        nonlocal stopped
+        while True:
+            await asyncio.sleep(0.7)
+            if should_stop and should_stop() and not stopped:
+                stopped = True
+                CANCELLED.add(token)           # _wait_for returns "cancelled"
+            frac = _gpu_hearing_progress(ENGINE.progress.get(prompt_id) or {})
+            if frac is not None and on_progress:
+                on_progress(max(0.0, min(1.0, frac)))
+
+    watcher = asyncio.create_task(watch())
+    try:
+        outcome, job = await _wait_for("hear", token, prompt_id)
+    except asyncio.CancelledError:
+        with contextlib.suppress(Exception):
+            await ENGINE.cancel(prompt_id)
+        raise
+    finally:
+        watcher.cancel()
+        CANCELLED.discard(token)
+        ENGINE.forget(prompt_id)
+    if stopped:
+        with contextlib.suppress(Exception):
+            await ENGINE.cancel(prompt_id)
+        raise identities.Stopped()
+    if outcome != "done":
+        raise RuntimeError(outcome)
+    if job.get("status", {}).get("status_str") != "success":
+        raise RuntimeError(_engine_error(job))
+    texts = _texts_in_order(job)
+    if not texts:
+        raise RuntimeError("the engine returned no words")
+    log.info("Heard '%s' on the GPU in %.1fs", vocal.name, time.time() - started)
+    return [identities.Segment(float(s["start"]), float(s["end"]), s["text"]) for s in json.loads(texts[0])]
+
+
+def _gpu_separation_progress(rec: dict) -> tuple[float, str] | None:
+    """Where an engine separation is, from what the engine last said: reading the recording, loading the model (the
+    node says nothing until it starts on the audio), separating, then saving.  The separating itself is the quick part."""
+    stage = rec.get("stage")
+    if stage == "LoadAudio":
+        return 0.05, "Reading the recording (GPU)"
+    if stage == "Yue2Separate":
+        if rec.get("value") is None:
+            return 0.10, "Loading the model (GPU)"
+        return 0.15 + 0.55 * (rec.get("frac") or 0.0), "Separating (GPU)"
+    if stage == "SaveAudio":
+        return 0.75, "Saving the stems (GPU)"
+    return None
+
+
+async def separate_stems(src: Path, dest_dir: Path, model: str, wanted: list[str], fmt: str,
+                         on_progress=None, work_root: Path | None = None) -> dict:
+    """stems.separate, on the engine's GPU when it can, as a job in the engine's own queue beside the plans and
+    renders; on the CPU when it cannot, or when the engine fails it."""
+    if _can_separate_on_engine():
+        try:
+            done = await _separate_on_engine(src, dest_dir, model, wanted, fmt, on_progress, work_root)
+            log.info("Separated '%s' on the GPU in %.1fs (%s)", src.name, done["seconds"], model)
+            return done
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Separating on the GPU failed, using the CPU: %s", exc)
+            if on_progress:
+                on_progress(0.02, "Using the CPU")
+    return await stems.separate(src, dest_dir, model, wanted, fmt, on_progress, work_root=work_root)
+
+
+async def _separate_on_engine(src: Path, dest_dir: Path, model: str, wanted: list[str], fmt: str,
+                              on_progress, work_root: Path | None) -> dict:
+    spec = stems.MODELS[model]
+    keep = [s for s in wanted if s in spec["stems"]] or list(spec["stems"])
+    fmt = fmt if fmt in stems.FORMATS else "wav"
+    started = time.time()
+    token = os.urandom(4).hex()
+
+    def report(frac: float, stage: str) -> None:
+        if on_progress:
+            on_progress(max(0.0, min(1.0, frac)), stage)
+
+    if work_root:
+        work_root.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix="stems-gpu-", dir=work_root))
+    prompt_id = None
+    try:
+        report(0.02, "Sending it to the engine")
+        # The engine reads audio with PyAV, which can stumble on tags: a lossless copy without them.
+        staged = work / "engine-copy.flac"
+        await asyncio.to_thread(subprocess.run, ["ffmpeg", "-v", "error", "-y", "-i", str(src), "-vn", "-map_metadata", "-1",
+                                                 "-c:a", "flac", str(staged)], check=True, capture_output=True, timeout=600)
+        name = await _upload(staged, f"stems-{token}.flac")
+        graph = {"1": {"class_type": "LoadAudio", "inputs": {"audio": name}},
+                 "2": {"class_type": "Yue2Separate",
+                       "inputs": {"audio": ["1", 0], "model": spec.get("demucs", model), "shifts": 1, "overlap": 0.25}}}
+        saves = {}
+        for index, stem in enumerate(keep):
+            node = str(3 + index)
+            saves[node] = stem
+            graph[node] = {"class_type": "SaveAudio",
+                           "inputs": {"audio": ["2", SEPARATE_OUTPUTS.index(stem)], "filename_prefix": f"yeufonic/stems-{token}/{stem}"}}
+        prompt_id = await ENGINE.submit(graph)
+
+        async def watch() -> None:
+            while True:
+                await asyncio.sleep(0.7)
+                step = _gpu_separation_progress(ENGINE.progress.get(prompt_id) or {})
+                if step:
+                    report(*step)
+
+        watcher = asyncio.create_task(watch())
+        try:
+            outcome, job = await _wait_for("separate", token, prompt_id)
+        finally:
+            watcher.cancel()
+        if outcome != "done":
+            raise RuntimeError(outcome)
+        if job.get("status", {}).get("status_str") != "success":
+            raise RuntimeError(_engine_error(job))
+
+        report(0.92, "Collecting the stems")
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        out: dict[str, str] = {}
+        for node, stem in saves.items():
+            item = ((job.get("outputs") or {}).get(node) or {}).get("audio", [None])[0]
+            if not item:
+                raise RuntimeError(f"the engine returned no {stem}")
+            got = await ENGINE.download(item, work / f"{stem}.flac")
+            target = dest_dir / f"{stem}.{fmt}"
+            if fmt == "flac":
+                shutil.move(str(got), str(target))
+            else:
+                codec = ["-c:a", "pcm_s16le"] if fmt == "wav" else ["-c:a", "libmp3lame", "-b:a", "320k"]
+                await asyncio.to_thread(subprocess.run, ["ffmpeg", "-v", "error", "-y", "-i", str(got), *codec, str(target)],
+                                        check=True, capture_output=True, timeout=600)
+            out[stem] = str(target)
+        report(1.0, "Done")
+        return {"stems": out, "model": model, "format": fmt, "seconds": round(time.time() - started, 1), "device": "gpu"}
+    except asyncio.CancelledError:
+        if prompt_id:
+            with contextlib.suppress(Exception):
+                await ENGINE.cancel(prompt_id)
+        raise
+    finally:
+        if prompt_id:
+            ENGINE.forget(prompt_id)
+        shutil.rmtree(work, ignore_errors=True)
 
 
 async def run_identity_job(kind: str, song_id: str) -> None:
@@ -1846,7 +2061,7 @@ async def run_stems_job(set_id: str) -> None:
     target_type = "take" if job.get("take_id") else "source"
     target_id = job.get("take_id") or job.get("source_id") or set_id
     log.info("Starting stem separation for %s %s (model=%s, wanted=%s)", target_type, target_id, job["model"], job["wanted"])
-    await stems.separate(Path(input_path), dest, job["model"], wanted, job["fmt"], progress, work_root=config.WORK_DIR)
+    await separate_stems(Path(input_path), dest, job["model"], wanted, job["fmt"], progress, work_root=config.WORK_DIR)
 
     elapsed = time.time() - started
     changed = execute(
@@ -1877,7 +2092,7 @@ MIN_HEARD_WORDS = 8
 
 
 async def hear_all(vocal: Path, seconds: float = 0.0, on_progress=None, on_stage=None,
-                   title: str = "", should_stop=None) -> dict:
+                   title: str = "", should_stop=None, on_download=None) -> dict:
     """What was heard in a separated vocal, by each method that ran, and which one is in use.
 
     Whisper always runs: it times the lines.  When Settings asks for the external LLM to
@@ -1908,7 +2123,7 @@ async def hear_all(vocal: Path, seconds: float = 0.0, on_progress=None, on_stage
     else:
         log.info("Lyrics for '%s': Whisper, as set in Settings", name)
 
-    lines = await asyncio.to_thread(identities.transcribe, vocal, on_progress, seconds, should_stop)
+    lines = await hear_lines(vocal, on_progress, seconds, should_stop, on_download)
     only_whisper = {"lines": lines, "method": "Whisper", "whisper": lines, "llm": None, "model": model}
     if not (wanted and external):
         return only_whisper
@@ -1986,7 +2201,7 @@ async def run_cover_lyrics(source_id: str) -> None:
         progress(0.60, "Using the vocal separated earlier")
     else:
         # Separation is most of the wait, so it owns most of the bar.
-        await stems.separate(path, work, "htdemucs", ["vocals"], "flac",
+        await separate_stems(path, work, "htdemucs", ["vocals"], "flac",
                              lambda frac, stage: progress(0.02 + 0.58 * frac, "Separating the vocal"),
                              work_root=config.WORK_DIR)
         separated = next(iter(work.glob("vocals.*")), None)

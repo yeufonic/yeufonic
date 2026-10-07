@@ -81,3 +81,25 @@ def test_the_installers_port_check_uses_the_ports_in_settings_ini():
     block = setup[setup.index("$ports = @(8090, 8188)"):setup.index("foreach ($site in")]
     assert "app_port" in block and "engine_port" in block and "settings.ini" in block
     assert "foreach ($port in $ports)" in block and "foreach ($port in @(8090, 8188))" not in setup
+
+
+def test_the_windows_engine_gets_demucs_so_stems_can_run_on_the_gpu():
+    """Installed with the engine's own Python, before our node is copied in, and its weights kept with the engine's models."""
+    setup = (Path(__file__).resolve().parent.parent / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    block = setup.split("IsDone 'engine-demucs')")[1].split("Done 'engine-demucs'")[0]
+    assert "$py @('-s', '-m', 'pip', 'install'" in block and "demucs==4.1.0" in block
+    assert setup.index("Done 'engine-demucs'") < setup.index("# Our own node, carried by the installer.") + len("# Our own node, carried by the installer.")
+    assert "Join-Path $Models 'demucs'" in setup and "HF_HUB_CACHE" in setup
+
+
+def test_the_windows_engine_gets_whisper_with_the_cuda_12_libraries_ctranslate2_wants():
+    """PyTorch there carries CUDA 13, CTranslate2 wants 12: the cuBLAS and cuDNN packages come with it, and faster-whisper
+    goes in without its dependencies so PyAV is left alone."""
+    setup = (Path(__file__).resolve().parent.parent / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    block = setup.split("IsDone 'engine-whisper')")[1].split("Done 'engine-whisper'")[0]
+    assert "'--no-deps', 'faster-whisper==1.2.1'" in block
+    assert "nvidia-cublas-cu12" in block and "nvidia-cudnn-cu12" in block and "ctranslate2>=4.5,<5" in block
+    # the model comes down with the installer's own download, so it shows progress, resumes and is checked
+    block = setup.split("IsDone 'engine-whisper-model')")[1].split("Done 'engine-whisper-model'")[0]
+    assert "Get-Verified" in block and "whisper\\large-v3-turbo" in block and "model.bin" in block
+    assert "e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da" in block and "download_model" not in block

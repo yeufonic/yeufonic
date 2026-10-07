@@ -70,7 +70,7 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   The transcription is cached per recording, so re-rendering skips straight to the music.
 - **Hear what the recording sings.** A cover needs lyrics. **Extract lyrics** separates the vocal,
   listens to it and lays the lines under the sections of the score. It is asked for rather than
-  done every time, and it runs on the CPU, so a render is never held up by it. 
+  done every time. The vocal is separated, and its words heard, on the GPU when the engine has Demucs and Whisper, otherwise on the CPU.
   Configure Yeufonic to use an external LLM for even greater accuracy.
 - **Song from a prompt.** Write a score plan from style and lyrics, read it, repair it, render it.
   A new plan costs seconds, so a bad melody is cheap to discard.
@@ -115,8 +115,9 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   mode to generate different, often off-the-wall takes of original tunes. The app parses tracks into
   vocal melody, accompaniment, and chords, extracts embedded lyrics, and provides high-fidelity audio
   audition via FluidSynth and bundled General MIDI SoundFonts (`.sf2`).
-- **Stems.** Extract vocals, drums, bass, other, and optionally guitar and piano, on CPU, while
-  the GPU stays free. Or split into just the vocals and the instruments, for a backing track.
+- **Stems.** Extract vocals, drums, bass, other, and optionally guitar and piano, on the GPU in the
+  engine's queue when it has Demucs, otherwise on the CPU. Or split into just the vocals and the
+  instruments, for a backing track.
   Download them singly or as a zip.
 - **Spaces.** Keep takes apart by project: a space per song, per album, or for sketches. Create,
   rename and delete spaces, and move a take from one to another.
@@ -217,7 +218,7 @@ installation, and running it again is also how you change the model size (below)
   while it prepares the songs, so 16 GB is the practical minimum, and an 8 GB card can't train
   (it can still use LoRAs trained elsewhere). AMD and Intel graphics are not supported.
 - 16 GB of RAM and about 30 GB of free disk, more as your library grows.
-- An internet connection for about 24 GB of downloads (20 GB with the smaller low-memory model, see
+- An internet connection for about 27 GB of downloads (23 GB with the smaller low-memory model, see
   [Choosing a model size](#choosing-a-model-size)), most of it the models. The score preview
   fetches its own note samples as they are played, about 7 MB for each instrument.
 
@@ -353,7 +354,7 @@ run out of memory.
 ```sh
 git clone https://github.com/yeufonic/yeufonic.git
 cd yeufonic
-sh scripts/fetch-models.sh          # about 17 GB, and creates the folders below
+sh scripts/fetch-models.sh          # about 19 GB, and creates the folders below
 # sh scripts/fetch-models.sh --int8   # the smaller low-memory model instead: see Choosing a model size
 docker compose up -d --build
 ```
@@ -435,7 +436,7 @@ the same way. The setup around it needs care:
 
    Set it to your RAM less 2 GB, then run `wsl --shutdown` and start Docker Desktop again.
 5. **Clone inside WSL, not on C:.** Open a WSL terminal (Ubuntu from the Store is the usual one)
-   and run the quick start there. A clone on `C:\` works, but the 17 GB of models and the library
+   and run the quick start there. A clone on `C:\` works, but the 19 GB of models and the library
    then cross a slow bridge into Linux, and SQLite's locking is less dependable across it.
 6. **Run the fetch script in that WSL terminal**, or in Git Bash. PowerShell and Command Prompt
    cannot run `sh`.
@@ -510,6 +511,7 @@ any browser and survive a rebuild.
 | Normalise to | How loud a normalised take is made: −16, −14 (the default) or −11 LUFS |
 | MCP server | Off by default. Turn it on to let an AI agent on this computer use Yeufonic: see [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp) |
 | Stem separation model | Which model a run starts with |
+| Use the GPU for stems and lyrics | On by default. Separating a vocal and hearing its words run on the engine's GPU when it has Demucs and Whisper, in its queue beside renders; off, or while a LoRA trains, the CPU does them |
 | Stem save folder | Where stems are written. It must sit inside the data folder |
 | Storage | Opens the Storage window (below). It also holds three settings: **Training checkpoints**, kept by default or deleted when training ends; **Working copies of corpus songs**, removed when a song's analysis ends by default; and **Training sets**, kept by default or removed when training ends |
 
@@ -716,7 +718,8 @@ built from, and the ports itself: change those in its `settings.ini` instead (se
 | `ENGINE_URL` | `http://127.0.0.1:8188` | where ComfyUI answers. Change it when the engine runs on another machine |
 | `ENGINE_OUTPUT_DIR` | unset | the engine's output folder, mounted into the app. Renders are removed from it once the app has its copy |
 | `MAX_UPLOAD_MB` | `2048` | the largest recording you can upload, in megabytes. The engine has its own ceiling, `ENGINE_MAX_UPLOAD_MB` on the engine service, set to the same figure: raise both together |
-| `STEMS_THREADS` | half the CPUs | torch threads for the separation |
+| `STEMS_ON_GPU` | `1` | `0` keeps stems, vocal separation and lyric hearing on the CPU whatever Settings says |
+| `STEMS_THREADS` | half the CPUs | torch threads for the separation on the CPU |
 | `STEMS_JOBS` | 4, or a quarter of the CPUs | demucs segments applied at once. One uses about 1.8 GB and 2.5x realtime, four uses 3.7 GB and 3.6x. The split setup's 2 GB cap needs this at 1, or the cap raised |
 | `WEAK_RENDER_DB` | `-24` | the average level, in dB, below which a take is marked *Weak render* |
 | `PEAK_GUARD` | `1` | with an engine that has the peak guard, a render whose peaks would clip is turned down around them before it is saved. `0` leaves it out |

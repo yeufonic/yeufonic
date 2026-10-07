@@ -106,7 +106,7 @@ DEFAULT_STYLE = "English, warm indie rock, expressive lead vocal, drums, bass, g
 
 # How long a job may run once the engine has started it.  Time spent waiting in the
 # engine's queue does not count.
-TIMEOUTS = {"transcribe": 12 * 60, "plan": 10 * 60, "render": 25 * 60, "lyrics": 15 * 60,
+TIMEOUTS = {"transcribe": 12 * 60, "plan": 10 * 60, "render": 25 * 60, "lyrics": 15 * 60, "separate": 20 * 60, "hear": 40 * 60,
             "identity_score": 12 * 60, "identity_style": 10 * 60,
             "persona_score": 12 * 60, "persona_style": 10 * 60,
             # None: no limit.  A clock blind to progress stopped a run at step 1325 of
@@ -114,6 +114,11 @@ TIMEOUTS = {"transcribe": 12 * 60, "plan": 10 * 60, "render": 25 * 60, "lyrics":
             # progress and has Stop; an engine that goes away, or loses the job, or
             # whose job thread dies, is caught without one.
             "train": None}
+
+# Vocals and stems are separated on the engine's GPU when it has the node for it (an engine built with
+# Demucs), as a job in the engine's own queue, and on the CPU here otherwise.  STEMS_ON_GPU=0 keeps it on
+# the CPU always.
+STEMS_ON_GPU = os.environ.get("STEMS_ON_GPU", "1") != "0"
 
 # ---------------------------------------------------------------- LoRA training
 #

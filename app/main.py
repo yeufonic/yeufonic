@@ -158,6 +158,19 @@ SETTINGS_SPEC: list[dict] = [
         "help": f"Where stems are written. It must sit inside {config.DATA_DIR}.",
     },
     {
+        "key": "processing.gpu",
+        "label": "Use the GPU for stems and lyrics",
+        "type": "select",
+        "default": "on",
+        "options": [
+            {"value": "on", "label": "On"},
+            {"value": "off", "label": "Off"},
+        ],
+        "help": "Separating a vocal and hearing its words run on the engine's GPU when it has what they need, as jobs in its "
+                "queue beside plans and renders. Off, or while a LoRA is training, the CPU does them: slower, and never in a "
+                "render's way.",
+    },
+    {
         "key": "training.checkpoints",
         "section": "storage",
         "label": "Training checkpoints",

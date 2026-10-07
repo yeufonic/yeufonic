@@ -1,5 +1,5 @@
 #!/bin/sh
-# Fetch the models into ./models, about 17 GB:
+# Fetch the models into ./models, about 19 GB:
 #
 #   checkpoints/yue2_3b_bf16.safetensors                 YuE2, plans and renders       7.8 GB
 #   audio_encoders/sheetsage2_bf16.safetensors           SheetSage2, transcription      1.4 GB
@@ -7,6 +7,7 @@
 #   loras/ar_lora_inst_v3abc_comfyui.safetensors         instrumental LoRA              0.2 GB
 #   loras/nar_lora_joint_v9_comfyui.safetensors          Realaudio decoder LoRA         0.1 GB
 #   audio_encoders/tokenizer_head_joint_v9.safetensors   Realaudio tokenizer head       0.2 GB
+#   whisper/large-v3-turbo/                              Whisper, the engine hears lyrics 1.6 GB
 #   data/models/soundfonts/sf2/github_Jnsgm2.sf2         Jnsgm2 SoundFont                33 MB
 #   data/models/soundfonts/sf2/Arachno_SoundFont...sf2   Arachno SoundFont 1.0          149 MB
 #
@@ -35,8 +36,13 @@ GEMMA=https://huggingface.co/Comfy-Org/gemma-4/resolve/main
 INSTRUMENTAL=https://huggingface.co/Mothersuperior/YuE2-instrumental-cot-full-loras/resolve/main
 REAL_AUDIO=https://huggingface.co/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main
 REGULARIZER=https://huggingface.co/Mothersuperior/YuE2-hum-to-song/resolve/main
+WHISPER=https://huggingface.co/mobiuslabsgmbh/faster-whisper-large-v3-turbo/resolve/main
 
 mkdir -p "$ROOT/models/checkpoints" "$ROOT/models/audio_encoders" "$ROOT/models/text_encoders" "$ROOT/models/loras" "$ROOT/models/fs_audio"
+# The engine writes under these when it fetches a model for itself, and as root: a folder it makes first is root's, and
+# this script, run as you, cannot write in it.  Made here first, as you, they are yours; where they are already root's
+# the failure is ignored, and the Whisper step below says what to do.
+mkdir -p "$ROOT/models/whisper" "$ROOT/models/demucs" 2>/dev/null || true
 # The folders compose.yml mounts into the app.  Created here, as you, because a
 # folder Docker creates for a mount belongs to root, and the app cannot write to it.
 mkdir -p "$ROOT/data" "$ROOT/data/models/soundfonts/sf2" "$ROOT/engine-state/output"
@@ -90,6 +96,17 @@ fetch "$REAL_AUDIO/tokenizer_head_joint_v9.safetensors" \
 
 fetch "$REGULARIZER/minted_regularizer_pack_v2.pt" \
       "$ROOT/models/fs_audio/minted_regularizer_pack_v2.pt"
+
+# Whisper for the engine, which hears the words of a separated vocal on the GPU.  The engine would fetch it the first
+# time it is needed, and a lyric hearing would wait on 1.6 GB; here it is a plain folder the engine uses as it stands.
+if mkdir -p "$ROOT/models/whisper/large-v3-turbo" 2>/dev/null && [ -w "$ROOT/models/whisper/large-v3-turbo" ]; then
+  for f in config.json preprocessor_config.json tokenizer.json vocabulary.json model.bin; do
+    fetch "$WHISPER/$f" "$ROOT/models/whisper/large-v3-turbo/$f"
+  done
+else
+  echo "skip  Whisper: models/whisper is not yours to write in. The engine made it, as root, when it fetched the model" >&2
+  echo "      itself, so it has Whisper already. To fetch it here instead: sudo chown -R $(id -u):$(id -g) models/whisper" >&2
+fi
 
 # The trainer lists the tokenizer head from models/fs_audio; the rest of the app reads it from audio_encoders.
 # It has to be in both, or training is refused ("tokenizer_head ... not in ['(run FS_Audio Training Assets first)']").
