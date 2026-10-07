@@ -16,6 +16,7 @@ import logging
 import re
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 
@@ -253,6 +254,19 @@ def transcribe(vocals: Path, on_progress=None, duration: float = 0.0, should_sto
     segments, _ = _whisper.transcribe(str(vocals), language="en", vad_filter=False, beam_size=5,
                                       condition_on_previous_text=False, word_timestamps=True,
                                       hallucination_silence_threshold=2.0)
+    return lines_from_segments(segments, on_progress, duration, should_stop)
+
+
+class Segment(NamedTuple):
+    """What Whisper heard between two times: the same three things whichever machine heard it."""
+    start: float
+    end: float
+    text: str
+
+
+def lines_from_segments(segments, on_progress=None, duration: float = 0.0, should_stop=None) -> list[dict]:
+    """Whisper's segments as the app's lines: split at sentence ends, its stock inventions dropped,
+    runs of one word cut.  The same whether the CPU or the engine's GPU heard them."""
     lines = []
     for seg in segments:
         # Checked between lines: a thread cannot be cancelled, so Stop asks it to end.

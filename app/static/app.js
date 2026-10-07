@@ -2832,7 +2832,7 @@ function refreshTitleHint() {
   $('title').placeholder = guess ? 'Leave blank to use: ' + guess : 'Leave blank and the first lyric line is used';
 }
 
-var JOB_KINDS = { render: 'Render', plan: 'Score plan', transcribe: 'Transcription', separate: 'Stem separation', lyrics: 'Lyrics', text: 'Text generation', train: 'LoRA training', other: 'Engine job',
+var JOB_KINDS = { render: 'Render', plan: 'Score plan', transcribe: 'Transcription', separate: 'Stem separation', hear: 'Lyric hearing', lyrics: 'Lyrics', text: 'Text generation', train: 'LoRA training', other: 'Engine job',
   identity_score: 'Corpus analysis', identity_style: 'Corpus analysis', persona_score: 'Corpus analysis', persona_style: 'Corpus analysis' };
 
 /* While a LoRA trains it holds the GPU — 12.5 GB of 16, measured — so everything

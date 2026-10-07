@@ -106,7 +106,7 @@ DEFAULT_STYLE = "English, warm indie rock, expressive lead vocal, drums, bass, g
 
 # How long a job may run once the engine has started it.  Time spent waiting in the
 # engine's queue does not count.
-TIMEOUTS = {"transcribe": 12 * 60, "plan": 10 * 60, "render": 25 * 60, "lyrics": 15 * 60, "separate": 20 * 60,
+TIMEOUTS = {"transcribe": 12 * 60, "plan": 10 * 60, "render": 25 * 60, "lyrics": 15 * 60, "separate": 20 * 60, "hear": 40 * 60,
             "identity_score": 12 * 60, "identity_style": 10 * 60,
             "persona_score": 12 * 60, "persona_style": 10 * 60,
             # None: no limit.  A clock blind to progress stopped a run at step 1325 of

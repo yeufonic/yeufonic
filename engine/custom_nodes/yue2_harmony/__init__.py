@@ -337,3 +337,14 @@ try:
     NODE_DISPLAY_NAME_MAPPINGS["Yue2Separate"] = "Yeufonic stem separation (Demucs)"
 except Exception:  # noqa: BLE001
     pass
+
+# Hearing a vocal's words on the GPU needs faster-whisper and CTranslate2 with a CUDA device; without them the node
+# is not there and the app's own CPU Whisper does it.
+try:
+    from . import hear as _hear
+
+    if _hear.usable():
+        NODE_CLASS_MAPPINGS["Yue2Hear"] = _hear.Yue2Hear
+        NODE_DISPLAY_NAME_MAPPINGS["Yue2Hear"] = "Yeufonic lyric hearing (Whisper)"
+except Exception:  # noqa: BLE001
+    pass

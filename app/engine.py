@@ -110,6 +110,7 @@ JOB_KINDS = [
     ("YuE2GenerateABC", "plan"),
     ("SheetSage2AudioToABC", "transcribe"),
     ("Yue2Separate", "separate"),
+    ("Yue2Hear", "hear"),
     ("TextGenerate", "text"),
 ]
 APP_CLIENT_PREFIX = "yeufonic-"
@@ -360,6 +361,7 @@ class Engine:
                         "peak_guard": "Yue2PeakGuard" in info,
                         # And this one: an engine built without Demucs leaves separation to the app's CPU.
                         "separate": "Yue2Separate" in info,
+                        "hear": "Yue2Hear" in info,
                         # Lyrics are optional: without Gemma or the node, the button is greyed out.
                         "lyrics": "TextGenerate" in info and config.LYRICS_MODEL in text_models,
                         "instrumental": config.INSTRUMENTAL_LORA in loras,

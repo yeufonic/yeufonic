@@ -91,3 +91,42 @@ def test_progress_is_reported_as_a_share_of_the_work(fake, monkeypatch):
 def test_the_node_lists_a_stem_for_every_output():
     assert separate.OUTPUTS[-1] == "instruments" and len(separate.Yue2Separate.RETURN_TYPES) == len(separate.OUTPUTS)
     assert separate.silence(44100)["waveform"].shape[-1] == 1
+
+
+# ------------------------------------------------------------------ the Whisper node
+HEAR = Path(__file__).resolve().parent.parent / "engine" / "custom_nodes" / "yue2_harmony" / "hear.py"
+hear_spec = importlib.util.spec_from_file_location("yue2_hear", HEAR)
+hearing = importlib.util.module_from_spec(hear_spec)
+hear_spec.loader.exec_module(hearing)
+
+
+class Heard:
+    def __init__(self, *rows):
+        self.rows = rows
+        self.options = None
+
+    def transcribe(self, audio, **options):
+        self.audio, self.options = audio, options
+        return iter([type("Seg", (), {"start": a, "end": b, "text": t}) for a, b, t in self.rows]), None
+
+
+def test_the_node_hears_with_the_options_the_cpu_uses():
+    model = Heard((0.0, 2.0, " one"), (2.0, 4.0, " two"))
+    seen = []
+    out = hearing.hear(torch.zeros(2, 44100 * 4), 44100, "large-v3-turbo", "en", on_progress=seen.append, model=model)
+    assert out == [{"start": 0.0, "end": 2.0, "text": " one"}, {"start": 2.0, "end": 4.0, "text": " two"}]
+    assert seen == [0.5, 1.0]
+    assert model.audio.shape == (64000,) and model.audio.dtype.name == "float32", "mono, 16 kHz"
+    assert model.options == {"language": "en", "vad_filter": False, "beam_size": 5, "condition_on_previous_text": False,
+                             "word_timestamps": True, "hallucination_silence_threshold": 2.0}
+
+
+def test_the_node_can_be_stopped_between_segments():
+    class Stop(Exception):
+        pass
+
+    def check():
+        raise Stop()
+
+    with pytest.raises(Stop):
+        hearing.hear(torch.zeros(1, 16000), 16000, "large-v3-turbo", "", check=check, model=Heard((0.0, 1.0, "x")))

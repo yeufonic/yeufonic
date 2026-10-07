@@ -1323,11 +1323,88 @@ async def _upload(path: Path, name: str) -> str:
 SEPARATE_OUTPUTS = ("vocals", "drums", "bass", "other", "guitar", "piano", "instruments")
 
 
-def _can_separate_on_engine() -> bool:
-    """The engine has the Demucs node, is up, and is not held by training: a separation would wait in its
+def gpu_wanted() -> bool:
+    """Stems and lyric hearing on the GPU: Settings says so (on unless turned off), and STEMS_ON_GPU=0 overrides it."""
+    return bool(config.STEMS_ON_GPU and get_setting("processing.gpu", "on") != "off")
+
+
+def _engine_can(node: str) -> bool:
+    """Asked for, the engine is up and has the node, and it is not held by training: a job would wait in its
     queue for the whole run."""
-    return bool(config.STEMS_ON_GPU and ENGINE.online and ENGINE.options.get("separate")
-                and CURRENT.get("kind") != "train")
+    return bool(gpu_wanted() and ENGINE.online and ENGINE.options.get(node) and CURRENT.get("kind") != "train")
+
+
+def _can_separate_on_engine() -> bool:
+    return _engine_can("separate")
+
+
+async def hear_lines(vocal: Path, on_progress=None, duration: float = 0.0, should_stop=None) -> list[dict]:
+    """The sung lines of a separated vocal, with their times: Whisper on the engine's GPU when it can, as a job in the
+    engine's queue, and Whisper on the CPU here otherwise or when the engine fails it.  Either way the segments
+    become lines the same way (identities.lines_from_segments)."""
+    if _engine_can("hear"):
+        try:
+            segments = await _hear_on_engine(vocal, on_progress, should_stop)
+            return identities.lines_from_segments(segments, on_progress, duration, should_stop)
+        except (asyncio.CancelledError, identities.Stopped):
+            raise
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Hearing '%s' on the GPU failed, using the CPU: %s", vocal.name, exc)
+    return await asyncio.to_thread(identities.transcribe, vocal, on_progress, duration, should_stop)
+
+
+def _gpu_hearing_progress(rec: dict) -> float | None:
+    """How far Whisper is, from the engine's last word: the model loads before it says anything."""
+    if rec.get("stage") == "Yue2Hear":
+        return 0.0 if rec.get("value") is None else (rec.get("frac") or 0.0)
+    return None
+
+
+async def _hear_on_engine(vocal: Path, on_progress, should_stop) -> list[identities.Segment]:
+    token = os.urandom(4).hex()
+    started = time.time()
+    name = await _upload(vocal, f"hear-{token}{vocal.suffix}")
+    graph = {"1": {"class_type": "LoadAudio", "inputs": {"audio": name}},
+             "2": {"class_type": "Yue2Hear", "inputs": {"audio": ["1", 0], "model": identities.WHISPER_MODEL, "language": "en"}},
+             "3": {"class_type": "PreviewAny", "inputs": {"source": ["2", 0]}}}
+    prompt_id = await ENGINE.submit(graph)
+    stopped = False
+
+    async def watch() -> None:
+        nonlocal stopped
+        while True:
+            await asyncio.sleep(0.7)
+            if should_stop and should_stop() and not stopped:
+                stopped = True
+                CANCELLED.add(token)           # _wait_for returns "cancelled"
+            frac = _gpu_hearing_progress(ENGINE.progress.get(prompt_id) or {})
+            if frac is not None and on_progress:
+                on_progress(max(0.0, min(1.0, frac)))
+
+    watcher = asyncio.create_task(watch())
+    try:
+        outcome, job = await _wait_for("hear", token, prompt_id)
+    except asyncio.CancelledError:
+        with contextlib.suppress(Exception):
+            await ENGINE.cancel(prompt_id)
+        raise
+    finally:
+        watcher.cancel()
+        CANCELLED.discard(token)
+        ENGINE.forget(prompt_id)
+    if stopped:
+        with contextlib.suppress(Exception):
+            await ENGINE.cancel(prompt_id)
+        raise identities.Stopped()
+    if outcome != "done":
+        raise RuntimeError(outcome)
+    if job.get("status", {}).get("status_str") != "success":
+        raise RuntimeError(_engine_error(job))
+    texts = _texts_in_order(job)
+    if not texts:
+        raise RuntimeError("the engine returned no words")
+    log.info("Heard '%s' on the GPU in %.1fs", vocal.name, time.time() - started)
+    return [identities.Segment(float(s["start"]), float(s["end"]), s["text"]) for s in json.loads(texts[0])]
 
 
 def _gpu_separation_progress(rec: dict) -> tuple[float, str] | None:
@@ -1990,7 +2067,7 @@ async def hear_all(vocal: Path, seconds: float = 0.0, on_progress=None, on_stage
     else:
         log.info("Lyrics for '%s': Whisper, as set in Settings", name)
 
-    lines = await asyncio.to_thread(identities.transcribe, vocal, on_progress, seconds, should_stop)
+    lines = await hear_lines(vocal, on_progress, seconds, should_stop)
     only_whisper = {"lines": lines, "method": "Whisper", "whisper": lines, "llm": None, "model": model}
     if not (wanted and external):
         return only_whisper

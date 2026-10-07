@@ -445,8 +445,10 @@ work, or from different ones.
 **Extract lyrics**, beside *Transcribe*, writes down what the recording sings: it separates the
 vocal, listens to it, and lays the lines under the sections of the score. It is asked for rather
 than done with every transcription, because it takes a couple of minutes where transcribing a score
-takes seconds. The vocal is separated on the GPU when the engine has Demucs and on the CPU otherwise, and the bar
-says which of the two stages it is on. The separated vocal is kept, so extracting the same recording again skips
+takes seconds. The vocal is separated, and its words heard, on the GPU when the engine has Demucs and Whisper and on the CPU
+otherwise (Settings, **Use the GPU for stems and lyrics**), and the bar says which of the two stages it is on. Whisper on the GPU
+and on the CPU do not always write the same words for the same vocal, as neither is exact: a hard vocal, such as backing singers
+over a lead, can differ by a fifth of its words either way. The separated vocal is kept, so extracting the same recording again skips
 straight to the listening, which is most of the wait saved.
 
 The words are kept with the recording. Press **Extract lyrics** again and they go straight back in
@@ -777,7 +779,7 @@ and guitar and piano on some models — and run.
 
 Separation runs on the **GPU** when the engine has Demucs, as a job in the engine's queue: it waits for a
 render that is running, then goes quickly, and a render queued behind it waits in turn. An engine built before
-this, a LoRA being trained (which holds the GPU), or `STEMS_ON_GPU=0` leaves it on the **CPU**, which is slower
+this, a LoRA being trained (which holds the GPU), **Use the GPU for stems and lyrics** set to Off in Settings, or `STEMS_ON_GPU=0` leaves it on the **CPU**, which is slower
 and never holds up a render. *Fine tuned* runs four models in turn for a better split and takes about four times
 as long.
 

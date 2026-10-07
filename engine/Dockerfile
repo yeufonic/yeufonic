@@ -59,6 +59,12 @@ RUN if [ "${WITH_TRAINER}" = "1" ]; then \
 # and sphn and leaves torch alone.  The node is simply absent from an engine built without it.
 RUN pip install "demucs==4.1.0"
 
+# Whisper on the GPU, for the words of a separated vocal: faster-whisper with CTranslate2, which uses the cuBLAS and
+# cuDNN that the CUDA torch above carries.  faster-whisper goes in without its dependencies, because they would hold
+# av to a version of their choosing, and the engine has the one ComfyUI wants; the audio reaches it as an array, so
+# it never opens a file.  The node is simply absent from an engine built without it.
+RUN pip install --no-deps "faster-whisper==1.2.1" && pip install "ctranslate2>=4.5,<5" tokenizers
+
 # Yeufonic's own node: the Harmony control for score plans.  Copied after the
 # slow installs, so a change to it rebuilds in seconds.
 COPY custom_nodes/yue2_harmony /app/custom_nodes/yue2_harmony
