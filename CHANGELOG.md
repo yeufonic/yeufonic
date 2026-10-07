@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.32 (2026-10-07)
 
 ### Added
 - **A Details button on a take** lists what it was made with, in words (model, mode, seed, interpretation, production polish, whether the volume was normalised, style LoRA and strengths, length cap, the Advanced
