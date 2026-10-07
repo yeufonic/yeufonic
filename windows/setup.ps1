@@ -519,8 +519,9 @@ if (-not $SkipModels -and -not (IsDone 'app-models')) {
 # The engine's own copy of the Whisper model (the app keeps its own, for the CPU), fetched now so the first lyric hearing
 # does not wait on 1.6 GB; if this fails the node fetches it when it first runs.
 if (-not $SkipModels -and -not (IsDone 'engine-whisper-model')) {
-    Say 'Whisper large-v3-turbo for the engine (about 1.6 GB)'
+    Say 'Whisper large-v3-turbo for the engine (about 1.6 GB: it can take several minutes, and nothing is shown while it downloads)'
     $engineWhisper = Join-Path $Models 'whisper'
+    $env:HF_HUB_DISABLE_SYMLINKS_WARNING = '1'   # Windows without Developer Mode cannot make links; the copy it makes instead is fine
     try {
         Invoke-Checked 'The engine Whisper model' $py @('-s', '-c', "from faster_whisper import download_model; download_model('large-v3-turbo', cache_dir=r'$engineWhisper')")
         Done 'engine-whisper-model'
