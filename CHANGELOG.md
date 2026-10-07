@@ -37,6 +37,12 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+### Fixed
+- **The take card's Sing again, Variations and Try more icons have their tooltips back.** While no LoRA was training, the check that disables GPU buttons during training replaced
+  each button's tooltip with an empty one. It now puts the button's own tooltip back when training ends, and leaves it alone otherwise.
+
 ## 0.0.31 (2026-10-06)
 
 ### Changed
