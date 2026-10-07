@@ -1047,6 +1047,42 @@ def keep_lyric_versions(song_id: str, folder: Path, found: dict) -> None:
     set_song(song_id, lyrics_versions=json.dumps(versions))
 
 
+def _text_file(song: dict, source: str) -> Path | None:
+    """Where a version's finished words are kept, beside the lines they were drafted from."""
+    if not song.get("stored_path") or source not in ("llm", "whisper"):
+        return None
+    return Path(song["stored_path"]).parent / f"lyrics-text-{source}.txt"
+
+
+def remember_words(song: dict, source: str, text: str) -> None:
+    """Keep a version's finished words (its sections marked, and any edits), so choosing it again is a swap, not a new
+    draft and another call to the model."""
+    path = _text_file(song, source)
+    if path is not None:
+        path.write_text(text or "", encoding="utf-8")
+
+
+def remembered_words(song: dict, source: str) -> str | None:
+    path = _text_file(song, source)
+    if path is None or not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8")
+    return text if text.strip() else None
+
+
+def remember_in_use(song_id: str, text: str) -> None:
+    """The words just drafted or saved belong to the version in use."""
+    song = identity_song(song_id)
+    if not song:
+        return
+    try:
+        active = (json.loads(song.get("lyrics_versions") or "null") or {}).get("active")
+    except ValueError:
+        return
+    if active:
+        remember_words(song, active, text)
+
+
 def maybe_draft(song_id: str) -> None:
     """Tag Whisper's lines with the score's sections once both are in.  A score that
     failed still gets a draft, under one verse."""
@@ -1088,6 +1124,7 @@ def maybe_draft(song_id: str) -> None:
             task.add_done_callback(_DRAFTING.discard)
             return
     set_song(song_id, lyrics=draft, lyrics_state="done")
+    remember_in_use(song_id, draft)
 
 
 _DRAFTING: set = set()     # held, so a running task is not collected
@@ -1111,6 +1148,7 @@ async def _llm_sections(song_id: str, lines: list[dict], fallback: str) -> None:
     now = identity_song(song_id)
     if now and now["lyrics_state"] == "running" and not now["lyrics_checked"]:
         set_song(song_id, lyrics=draft, lyrics_state="done")
+        remember_in_use(song_id, draft)
 
 
 def _gemma_graph(prompt: str, audio_files: list[str], max_length: int) -> dict:

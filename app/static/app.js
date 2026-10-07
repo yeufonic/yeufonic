@@ -8682,22 +8682,30 @@ async function identityClick(event) {
     if (held && held.lyrics_versions && held.lyrics_versions.active === wanted) { return; }
     var pickedBox = document.querySelector('[data-lyrics="' + pickedId + '"]');
     var pickedSaid = document.querySelector('[data-saved="' + pickedId + '"]');
-    if (((held && held.lyrics_checked) || (pickedBox && pickedBox.dataset.edited)) &&
+    // What was saved comes back when this version does; only changes not yet saved would be lost.
+    if (pickedBox && pickedBox.dataset.edited &&
         !await confirmModal({
-          title: 'Replace lyrics',
-          message: 'Replace the lyrics in the box with the other version?',
-          confirmText: 'Replace',
+          title: 'Unsaved changes',
+          message: 'The box has changes that are not saved. Switch and lose them?',
+          confirmText: 'Switch',
           danger: true
         })) { return; }
     picked.disabled = true;
     try {
-      await api('/api/identities/' + IDENTITY.id + '/songs/' + pickedId + '/lyrics/source', {
+      var reply = await api('/api/identities/' + IDENTITY.id + '/songs/' + pickedId + '/lyrics/source', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source: wanted })
       });
       if (pickedBox) { delete pickedBox.dataset.edited; }
       var pickedTick = document.querySelector('[data-checked="' + pickedId + '"]');
-      if (pickedTick) { pickedTick.checked = false; }
-      if (pickedSaid) { pickedSaid.textContent = 'Drafting\u2026'; pickedSaid.className = 'status'; }
+      if (reply && reply.restored) {
+        // Drafted before: its words are back as they were left, with nothing to wait for.
+        if (pickedBox) { pickedBox.value = reply.lyrics; }
+        if (pickedTick) { pickedTick.checked = Boolean(reply.checked); }
+        if (pickedSaid) { pickedSaid.textContent = 'Words restored.'; pickedSaid.className = 'status good'; }
+      } else {
+        if (pickedTick) { pickedTick.checked = false; }
+        if (pickedSaid) { pickedSaid.textContent = 'Drafting\u2026'; pickedSaid.className = 'status'; }
+      }
       pollIdentity();
     } catch (err) {
       if (pickedSaid) { pickedSaid.textContent = err.message; pickedSaid.className = 'status bad'; }
