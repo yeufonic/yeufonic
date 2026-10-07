@@ -563,9 +563,18 @@ engine built with `WITH_TRAINER=0`, takes it out.
 
 Training is the most demanding thing the app does: a 16 GB card is the practical minimum.
 
-1. **New corpus.** Give it a name and a **trigger word**, say whether the voice is male or female,
-   describe the sound shared by every song, and open the folder that holds the songs. Confirm you
+1. **New corpus.** Give it a name and a **trigger word**, say whether the voice is male or female
+   (**none** for songs without vocals: see below), describe the sound shared by every song, and open the folder that holds the songs. Confirm you
    have the right to train on them, then press **Scan the folder**. The folder is only read.
+   **A corpus without vocals.** Choose **none** for **Voice** when the songs are instrumental, such as
+   dance and electronic music. The app then does not separate a vocal or listen for words, so nothing
+   invents words over synths. Each song's lyrics are the section tags found in its score (or
+   `[instrumental]` when it has none), the caption leaves out the vocal clause, and there is no lyrics
+   review: the **Sections** box can be edited, and an edit is kept. The sound of each song is described
+   by the local model when it is installed, since the external one would only have a title to go on.
+   A LoRA trained this way may write notes in the Vocal part of a plan, which makes a render sing or hum;
+   a plan's "may sing" warning shows it. Changing the Voice of a corpus already analysed changes its
+   lyrics to match.
 2. **Choose the songs.** Untick any you want left out. A recording longer than 10 minutes is
    left out, since it is most likely a whole album in one file. If a `.cue` sheet sits beside it,
    **Split into tracks** cuts it into its songs, which take its place in the corpus. The tracks go

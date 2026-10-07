@@ -1004,6 +1004,15 @@ async def prepare_song(song_id: str) -> None:
         if CURRENT_IDENTITY.get("id") == song_id:
             CURRENT_IDENTITY.update(stage=name, progress=progress)
 
+    if identities.vocalless(identity["voice"]):
+        # No vocals to separate and no words to hear: the lyrics are the score's section tags.
+        set_song(song_id, vocals_state="done")
+        if identity_song(song_id)["style_state"] in ("none", "failed"):
+            set_song(song_id, style_state="queued")
+            await QUEUE.put({"kind": "identity_style", "id": song_id})
+        log.info("Finished preparing corpus song '%s' (no vocals)", song_title)
+        maybe_draft(song_id)
+        return
     if not identities.vocals_file(folder):
         stage("Separating the vocal (demucs)", 0.0)
         # FLAC: the same audio exactly, in about half the room of the WAV it used to be written as.
@@ -1096,14 +1105,15 @@ def maybe_draft(song_id: str) -> None:
     if not song or not song["stored_path"]:
         return
     folder = Path(song["stored_path"]).parent
+    vocalless = identities.vocalless((one("SELECT voice FROM identities WHERE id = ?", (song.get("identity_id") or song.get("persona_id"),)) or {}).get("voice"))
     # Whisper not finished: the CPU lane owns the lyrics step until it is, and a
-    # stopped song must not be left looking busy.
-    if not (folder / "whisper.json").exists():
+    # stopped song must not be left looking busy.  A corpus without vocals has no words to wait for.
+    if not vocalless and not (folder / "whisper.json").exists():
         return
     if song["score_state"] not in ("done", "failed"):
         set_song(song_id, lyrics_state="running")   # heard; waiting for the sections
         return
-    lines = json.loads((folder / "whisper.json").read_text(encoding="utf-8"))
+    lines = [] if vocalless else json.loads((folder / "whisper.json").read_text(encoding="utf-8"))
     abc = (folder / "score.abc").read_text(encoding="utf-8") if (folder / "score.abc").exists() else ""
     sections = identities.score_sections(abc)
     draft = identities.tag_lyrics(lines, sections, song["duration"] or 0)
@@ -1112,6 +1122,14 @@ def maybe_draft(song_id: str) -> None:
             draft = "\n\n".join(f"[{identities.SECTION_TAGS[name]}]" for name, _ in sections)
         else:
             draft = "[instrumental]"
+    if vocalless:
+        # Section tags are all there is: nothing to review, so the song counts as checked and a
+        # later analysis does not replace tags edited by hand.
+        if not (song["lyrics_checked"] and (song["lyrics"] or "").strip()):
+            set_song(song_id, lyrics=draft, lyrics_state="done", lyrics_checked=1)
+        else:
+            set_song(song_id, lyrics_state="done")
+        return
     # Words the user has already checked are theirs: a new draft never replaces them.
     if song["lyrics_checked"]:
         set_song(song_id, lyrics_state="done")
@@ -1600,7 +1618,10 @@ async def run_identity_job(kind: str, song_id: str) -> None:
                      tempo or "unknown", f"; transcribed {how}, after the full transcription failed" if how else "")
             maybe_draft(song_id)
         elif kind in ("identity_style", "persona_style"):
-            if llm.is_external_enabled():
+            # With no words, the external model has only a title; the local one listens to the music.
+            owner = one("SELECT voice FROM identities WHERE id = ?", (song.get("identity_id") or song.get("persona_id"),)) or {}
+            listens = identities.vocalless(owner.get("voice")) and bool(ENGINE.options.get("lyrics"))
+            if llm.is_external_enabled() and not listens:
                 # The title and the words only.  No artist: the corpus's name is whatever
                 # the user called the folder, and a model can read it as an unrelated band
                 # and describe the songs in that band's genre.  A file's artist tag can be

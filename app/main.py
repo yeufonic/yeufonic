@@ -2763,7 +2763,7 @@ def _identity_view(identity: dict) -> dict:
             song["cue"] = {"file": found["cue"], "tracks": len(found["tracks"])} if found else None
     chosen = [s for s in songs if s["include"]]
     busy = any(s[f] in ("queued", "running") for s in songs for f in IDENTITY_STEPS)
-    return {**identity, "songs": songs, "busy": busy,
+    return {**identity, "vocalless": identities.vocalless(identity["voice"]), "songs": songs, "busy": busy,
             "working": jobs.identity_working({s["id"] for s in songs}) if busy else None,
             "exporting": EXPORTING.get(identity["id"]),
             "run_all": _run_all_view(identity["id"]),
@@ -2989,9 +2989,29 @@ def edit_identity(identity_id: str, body: IdentityEdit) -> dict:
         changes["trigger_word"] = _clean_trigger(changes["trigger_word"])
     if "voice" in changes:
         changes["voice"] = changes["voice"].lower()
+    was = identities.vocalless(_identity(identity_id)["voice"])
     if changes:
         execute(f"UPDATE identities SET {', '.join(f'{k} = ?' for k in changes)} WHERE id = ?", (*changes.values(), identity_id))
+    if "voice" in changes and identities.vocalless(changes["voice"]) != was:
+        _voice_kind_changed(identity_id, now_vocalless=not was)
     return _identity_view(_identity(identity_id))
+
+
+def _voice_kind_changed(identity_id: str, now_vocalless: bool) -> None:
+    """Songs analysed under the other kind of corpus: to no vocals, their lyrics become the score's
+    section tags; from it, they have no words yet and the next analysis hears them."""
+    for song in rows("SELECT * FROM identity_songs WHERE identity_id = ?", (identity_id,)):
+        if song["lyrics_state"] in ("queued", "running"):
+            continue
+        if now_vocalless:
+            if song["stored_path"] and song["score_state"] in ("done", "failed"):
+                jobs.set_song(song["id"], lyrics_checked=0)
+                jobs.maybe_draft(song["id"])
+        else:
+            folder = Path(song["stored_path"]).parent if song["stored_path"] else None
+            if not folder or not (folder / "whisper.json").exists():
+                jobs.set_song(song["id"], lyrics="", lyrics_checked=0, lyrics_state="none",
+                              **({"vocals_state": "none"} if not (folder and identities.vocals_file(folder)) else {}))
 
 
 edit_persona = edit_identity
@@ -3580,7 +3600,7 @@ async def _export(identity: dict, view: dict, chosen: list[dict]) -> dict:
         (dest / f"{name}.lyrics.txt").write_text(lyrics_content + "\n", encoding="utf-8")
         (dest / f"{name}.txt").write_text(song["caption"] + "\n", encoding="utf-8")
         written.append(song["title"])
-        if not song["lyrics_checked"]:
+        if not song["lyrics_checked"] and not identities.vocalless(identity["voice"]):
             unchecked.append(song["title"])
     manifest = {"identity": identity["name"], "trigger_word": identity["trigger_word"], "consent": True,
                 "songs": written, "unchecked_lyrics": unchecked, "cut_for_training": cut_short, "train_minutes": sizing["minutes"],

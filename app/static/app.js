@@ -8056,7 +8056,8 @@ async function stopWrite() {
    the app keeps its own copies, and the review happens here, song by song. */
 var IDENTITY = { view: 'list', id: null, data: null, open: {}, timer: null, browse: null };
 var PERSONA = IDENTITY;
-var STEP_NAMES = [['vocals_state', 'Vocal'], ['score_state', 'Key & tempo'], ['lyrics_state', 'Lyrics'], ['style_state', 'Style']];
+var STEP_NAMES_ALL = [['vocals_state', 'Vocal'], ['score_state', 'Key & tempo'], ['lyrics_state', 'Lyrics'], ['style_state', 'Style']];
+var STEP_NAMES = STEP_NAMES_ALL;
 var STEP_MARKS = { none: '', queued: '· queued', running: '…', done: '✓', failed: '✕' };
 
 function getIdentityModal() { return $('identities-modal') || $('personas-modal'); }
@@ -8159,7 +8160,8 @@ async function showIdentityNew() {
       '<div class="field"><label for="pn-trigger">Trigger word</label><input id="pn-trigger" type="text" maxlength="40" placeholder="paulshields">' +
         '<div class="hint">Starts every style caption, so a trained LoRA knows when to act. Letters and digits only.</div></div>' +
       '<div class="field"><label for="pn-voice">Voice</label><select id="pn-voice"><option value="male">male</option>' +
-        '<option value="female">female</option><option value="">not stated</option></select></div>' +
+        '<option value="female">female</option><option value="">not stated</option><option value="none">none</option></select>' +
+        '<div class="hint">None is for songs without vocals: they are not separated or listened to for words.</div></div>' +
       '<div class="field"><label for="pn-desc">The sound, for every song</label><input id="pn-desc" type="text" maxlength="400" ' +
         'placeholder="pop rock, electric guitars, bass, drums">' +
         '<div class="hint">Goes into each caption, with each song’s own key and tempo.</div></div>' +
@@ -8228,7 +8230,10 @@ async function scanNewIdentity() {
 var scanNewPersona = scanNewIdentity;
 
 function stepChips(song) {
-  return STEP_NAMES.map(function (step) {
+  // A corpus without vocals has no vocal to separate, and its lyrics are section tags.
+  var names = IDENTITY.data && IDENTITY.data.vocalless
+    ? [['score_state', 'Key & tempo'], ['lyrics_state', 'Sections'], ['style_state', 'Style']] : STEP_NAMES_ALL;
+  return names.map(function (step) {
     var state = song[step[0]] || 'none';
     return '<span class="step ' + state + '">' + step[1] + (STEP_MARKS[state] ? ' ' + STEP_MARKS[state] : '') + '</span>';
   }).join('');
@@ -8237,8 +8242,8 @@ function stepChips(song) {
 function identitySummary(data) {
   var sum = data.summary;
   return '<span><strong>' + sum.included + '</strong> of ' + sum.songs + ' songs included · ' + sum.minutes + ' min</span>' +
-    '<span>' + sum.analysed + ' analysed · ' + sum.checked + ' lyrics checked</span>' +
-    '<span class="muted">trigger <code>' + esc(data.trigger_word) + '</code> · ' + esc(data.voice || 'voice not stated') +
+    '<span>' + sum.analysed + ' analysed' + (data.vocalless ? '' : ' · ' + sum.checked + ' lyrics checked') + '</span>' +
+    '<span class="muted">trigger <code>' + esc(data.trigger_word) + '</code> · ' + esc(data.vocalless ? 'no vocals' : (data.voice || 'voice not stated')) +
     ' · ' + esc(data.description || 'no description') + '</span>';
 }
 var personaSummary = identitySummary;
@@ -8278,18 +8283,21 @@ function lyricsSourceRow(song) {
 }
 
 function songDetail(song) {
+  var vocalless = Boolean(IDENTITY.data && IDENTITY.data.vocalless);
   var base = '/api/identities/' + IDENTITY.id + '/songs/' + song.id + '/audio';
   var players = song.stored_path
     ? '<div class="muted">Your recording</div><audio controls preload="none" src="' + base + '?which=original"></audio>' +
-      (song.vocals_state === 'done' ? '<div class="muted">The separated vocal</div><audio controls preload="none" src="' + base + '?which=vocals"></audio>' : '')
+      (song.vocals_state === 'done' && !vocalless ? '<div class="muted">The separated vocal</div><audio controls preload="none" src="' + base + '?which=vocals"></audio>' : '')
     : '<p class="muted">Press Analyse to copy this song in.</p>';
   return '<div class="grid"><div>' +
-      '<div class="label-row"><label>Lyrics' + (song.lyrics_state === 'done' && !song.lyrics_checked ? ' <span class="muted">(a draft)</span>' : '') +
-      '</label><label class="check"><input type="checkbox" data-checked="' + song.id + '"' + (song.lyrics_checked ? ' checked' : '') + '> checked</label></div>' +
-      lyricsSourceRow(song) +
+      (vocalless
+        ? '<div class="label-row"><label>Sections</label></div>'
+        : '<div class="label-row"><label>Lyrics' + (song.lyrics_state === 'done' && !song.lyrics_checked ? ' <span class="muted">(a draft)</span>' : '') +
+          '</label><label class="check"><input type="checkbox" data-checked="' + song.id + '"' + (song.lyrics_checked ? ' checked' : '') + '> checked</label></div>' +
+          lyricsSourceRow(song)) +
       '<textarea data-lyrics="' + song.id + '" spellcheck="false" placeholder="[Verse]&#10;...">' + esc(song.lyrics || '') + '</textarea>' +
       '<div class="row" style="margin-top:6px"><button class="ghost" data-save="' + song.id + '">Save</button>' +
-      (song.lyrics_state === 'done' && IDENTITY.data && IDENTITY.data.external_llm
+      (song.lyrics_state === 'done' && !vocalless && IDENTITY.data && IDENTITY.data.external_llm
         ? '<button class="ghost" data-redraft="' + song.id + '" title="Draft the lyrics again from what was heard: the same words, with the sections marked afresh. Replaces what is in the box">Redraft</button>'
         : '') +
       '<span class="status" data-saved="' + song.id + '"></span></div>' +
@@ -8436,7 +8444,7 @@ function openTrain(all) {
   State.trainAll = Boolean(all);
   $('train-heading').textContent = (all ? 'Run all for ' : 'Train a LoRA from ') + (data.name || 'this corpus');
   if (all) {
-    var unchecked = included - ((data.summary && data.summary.checked) || 0);
+    var unchecked = data.vocalless ? 0 : included - ((data.summary && data.summary.checked) || 0);
     $('train-about').textContent = 'Analyses the ' + included + ' included song' + (included === 1 ? '' : 's') +
       ' where they still need it, writes the training set, then trains a LoRA from it, one after the other. It carries on ' +
       'with this page closed. A song whose analysis fails is left out, and named.' +
@@ -8641,7 +8649,7 @@ function openIdentityEdit() {
     '<div class="field"><label for="pe-name">Name</label><input id="pe-name" type="text" maxlength="80" value="' + esc(data.name) + '"></div>' +
     '<div class="field"><label for="pe-trigger">Trigger word</label><input id="pe-trigger" type="text" maxlength="40" value="' + esc(data.trigger_word) + '"></div>' +
     '<div class="field"><label for="pe-voice">Voice</label><select id="pe-voice"><option value="male">male</option>' +
-      '<option value="female">female</option><option value="">not stated</option></select></div>' +
+      '<option value="female">female</option><option value="">not stated</option><option value="none">none</option></select></div>' +
     '<div class="field"><label for="pe-desc">The sound, for every song</label><input id="pe-desc" type="text" maxlength="400" ' +
       'value="' + esc(data.description || '') + '" placeholder="pop rock, electric guitars, bass, drums"></div>' +
     '<div class="wide row"><button id="pe-save" class="ghost">Save</button><button id="pe-cancel" class="ghost">Cancel</button>' +
