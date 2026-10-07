@@ -2978,6 +2978,8 @@ def edit_identity_song(identity_id: str, song_id: str, body: IdentitySongEdit) -
         changes["style_hint"] = " ".join(body.style_hint.split())[:300]
     if changes:
         jobs.set_song(song_id, **changes)
+        if "lyrics" in changes:
+            jobs.remember_in_use(song_id, changes["lyrics"])
     return one("SELECT * FROM identity_songs WHERE id = ?", (song_id,))
 
 
@@ -3070,13 +3072,26 @@ async def choose_lyrics_source(identity_id: str, song_id: str, body: LyricsSourc
         versions = json.loads(song.get("lyrics_versions") or "null") or {}
     except ValueError:
         versions = {}
+    # What is in the box belongs to the version being left, with its checked tick: coming back to it restores both.
+    leaving = versions.get("active")
+    if leaving in ("llm", "whisper") and isinstance(versions.get(leaving), dict) and (song["lyrics"] or "").strip():
+        jobs.remember_words(song, leaving, song["lyrics"])
+        versions[leaving]["checked"] = 1 if song["lyrics_checked"] else 0
+    kept = jobs.remembered_words(song, body.source)
     versions["active"] = body.source
     await asyncio.to_thread(shutil.copyfile, chosen, folder / "whisper.json")
+    name = "external model's" if body.source == "llm" else "Whisper"
+    if kept is not None:
+        # Drafted before: its words come straight back, with no new draft and no call to the model.
+        checked = 1 if (versions.get(body.source) or {}).get("checked") else 0
+        jobs.set_song(song_id, lyrics_versions=json.dumps(versions), lyrics=kept, lyrics_state="done",
+                      lyrics_checked=checked, error=None)
+        log.info("Corpus song '%s': the %s version of the words is back in use, as it was left", song.get("title") or song_id, name)
+        return {"active": body.source, "lyrics_state": "done", "restored": True, "lyrics": kept, "checked": bool(checked)}
     jobs.set_song(song_id, lyrics_versions=json.dumps(versions), lyrics_checked=0, error=None)
     jobs.maybe_draft(song_id)
-    log.info("Corpus song '%s': the %s version of the words is in use", song.get("title") or song_id,
-             "external model's" if body.source == "llm" else "Whisper")
-    return {"active": body.source,
+    log.info("Corpus song '%s': the %s version of the words is in use", song.get("title") or song_id, name)
+    return {"active": body.source, "restored": False,
             "lyrics_state": one("SELECT lyrics_state FROM identity_songs WHERE id = ?", (song_id,))["lyrics_state"]}
 
 

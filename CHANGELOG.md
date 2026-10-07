@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+### Changed
+- **Switching a corpus song's words between versions no longer drafts them again.** Each version keeps its own finished words, edits and checked tick: the first choice of a version drafts it (and calls the
+  external model to mark its sections), and every switch after that puts its words back at once. Before, each switch drafted again and threw away what was in the box, even for a version drafted before.
+
 ### Fixed
 - **The take card's Sing again, Variations and Try more icons have their tooltips back.** While no LoRA was training, the check that disables GPU buttons during training replaced
   each button's tooltip with an empty one. It now puts the button's own tooltip back when training ends, and leaves it alone otherwise.

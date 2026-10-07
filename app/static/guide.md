@@ -473,7 +473,9 @@ heard the words. The vocal leaves your machine for this; Whisper keeps it here.
 
 For a corpus song, **both versions are kept**. When both exist, the song's Review panel shows
 **Words from** with each version and its word count, the external model's in use by default. Pick
-the other and its words go in the box, replacing what is there. Whisper's own lines have any word
+the other and its words go in the box. The first time a version is chosen its words are drafted, which
+marks their sections with the external model; after that each version keeps its own words, edits and
+**checked** tick, so switching between them is instant and makes no call to the model. Whisper's own lines have any word
 it repeated more than eight times in a row, such as a held "la" it wrote hundreds of times, cut
 back to eight.
 
