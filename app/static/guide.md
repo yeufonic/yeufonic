@@ -343,6 +343,11 @@ shows them in the take panel, and opening it in the editor loads all of it back.
 editor with exactly that, seed included, so a take you liked can be reproduced, and a take you nearly
 liked can be nudged one setting at a time.
 
+The **Details** button (the circled *i*, among the small icons at the card's top right) opens a window listing everything the
+take was made with in words: its model, mode, seed, interpretation, production polish, whether the volume was normalised, its
+style LoRA and strengths, the length cap and the Advanced settings. **Copy** puts it on the clipboard as text, to compare two
+takes or to describe one to someone else. In the editor's menus, hovering an interpretation shows what it does.
+
 Tick **keep this seed** to keep the same seed across renders; leave it off and each render rolls a
 new one.
 

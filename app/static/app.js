@@ -439,6 +439,11 @@ var INTERPRETATIONS = {
 function paintInterpretation() {
   var item = INTERPRETATIONS[$('interpretation').value] || INTERPRETATIONS.standard;
   $('interpretation-hint').textContent = item.hint;
+  // What each option does, on the option itself, so it can be read before choosing it.
+  Array.prototype.forEach.call($('interpretation').options, function (option) {
+    var each = INTERPRETATIONS[option.value];
+    if (each) { option.title = each.name + ': ' + each.hint; }
+  });
 }
 
 function paintOptions() {
@@ -4777,6 +4782,104 @@ function openBrandMenu() {
 
 /* About: who made it, how it is licensed, and which build this is.  The same version number can
    be rebuilt, so the build (a commit and a date) is what pins a copy down. */
+/* ------------------------------------------------------------ what a take was made with
+   Everything the take stores about how it was made, in words, for reading, comparing two takes or pasting into a message. */
+var MODE_WORDS = { full: 'full: keeps the chords', melody: 'melody: free accompaniment' };
+
+function detailGroups(take) {
+  var yes = function (flag) { return flag ? 'yes' : 'no'; };
+  var kind = take.kind === 'song' ? 'Song from a prompt' : (take.kind === 'instrumental' ? 'Instrumental' : 'Cover');
+  var made = [['Kind', kind]];
+  if (take.created_at) { made.push(['Made', new Date(take.created_at * 1000).toLocaleString()]); }
+  if (take.duration) { made.push(['Length', secs(take.duration)]); }
+  if (take.max_duration) { made.push(['Length cap', secs(take.max_duration)]); }
+  if (take.checkpoint) { made.push(['Model', take.checkpoint.replace(/\.safetensors$/, '')]); }
+  if (take.kind !== 'cover' || take.mode) { made.push(['Mode', MODE_WORDS[take.mode] || take.mode || 'full']); }
+  if (take.seed != null) { made.push(['Seed', String(take.seed)]); }
+  if (take.sound_seed) { made.push(['Sound seed', String(take.sound_seed)]); }
+
+  var sound = [['Interpretation', (INTERPRETATIONS[take.interpretation] || INTERPRETATIONS.standard).name]];
+  if (take.kind !== 'cover') {
+    sound.push(['Harmony', HARMONY_WORDS[take.harmony || 0] || HARMONY_WORDS[0]]);
+    sound.push(['Plan variety', take.variety || 'normal']);
+  }
+  sound.push(['Production polish', yes(take.realaudio)]);
+  sound.push(['Normalise volume', yes(take.normalise)]);
+  if (take.normalised) {
+    var level = take.normalised_to == null ? -14 : take.normalised_to;
+    sound.push(['Normalised to', (level < 0 ? '\u2212' : '') + Math.abs(level) + ' LUFS']);
+  }
+  if (take.style_lora) {
+    sound.push(['Style LoRA', take.style_lora.replace(/\.safetensors$/, '') + ' (planner ' + Number(take.style_lora_clip || 0).toFixed(2) +
+      ', sound ' + Number(take.style_lora_model || 0).toFixed(2) + ')']);
+  }
+  if (take.voice_lora) {
+    sound.push(['Voice LoRA', take.voice_lora.replace(/\.safetensors$/, '') + ' (' + Number(take.voice_lora_strength || 0).toFixed(2) + ')']);
+  }
+  var groups = [['Made', made], ['Sound', sound]];
+
+  var advanced = [];
+  var set = function (label, value, shown) { if (value != null && value !== '' && value !== false) { advanced.push([label, shown || String(value)]); } };
+  set('Sampler steps', take.sampler_steps);
+  set('Avoid', take.avoid);
+  set('Key lock', take.target_key);
+  set('Tempo lock', take.target_bpm, take.target_bpm ? take.target_bpm + ' BPM' : '');
+  set('Longest score', take.max_abc_tokens, take.max_abc_tokens ? take.max_abc_tokens + ' tokens' : '');
+  set('Chord hold limit', take.chord_hold_limit);
+  set('Out-of-key chord bonus', take.chord_outside_bonus);
+  set('Loudness target', take.target_lufs, take.target_lufs != null ? take.target_lufs + ' LUFS' : '');
+  set('Fade out', take.fade_out_seconds, take.fade_out_seconds != null ? take.fade_out_seconds + ' s' : '');
+  groups.push(['Advanced', advanced.length ? advanced : [['', 'none changed']]]);
+  if (take.style) { groups.push(['Style', [['', take.style]]]); }
+  return groups;
+}
+
+function detailsText(take) {
+  return [take.title].concat(detailGroups(take).map(function (group) {
+    return group[0] + '\n' + group[1].map(function (pair) { return pair[0] ? '  ' + pair[0] + ': ' + pair[1] : '  ' + pair[1]; }).join('\n');
+  })).join('\n\n');
+}
+
+function openDetails(take) {
+  if (!take || !$('details-modal')) { return; }
+  State.detailsTake = take;
+  $('details-title').textContent = take.title || 'Take';
+  $('details-body').innerHTML = detailGroups(take).map(function (group) {
+    return '<div class="sheet-blk"><h3>' + esc(group[0]) + '</h3><dl class="sheet-pairs">' + group[1].map(function (pair) {
+      return pair[0] ? '<dt>' + esc(pair[0]) + '</dt><dd>' + esc(pair[1]) + '</dd>' : '<dd class="wide">' + esc(pair[1]) + '</dd>';
+    }).join('') + '</dl></div>';
+  }).join('');
+  $('details-copied').textContent = '';
+  $('details-modal').classList.remove('hidden');
+}
+
+function closeDetails() {
+  $('details-modal').classList.add('hidden');
+}
+
+async function copyDetails() {
+  var text = State.detailsTake ? detailsText(State.detailsTake) : '';
+  try {
+    await navigator.clipboard.writeText(text);
+    $('details-copied').textContent = 'Copied';
+  } catch (err) {
+    // No clipboard here: select the text so Ctrl+C takes it.
+    var range = document.createRange();
+    range.selectNodeContents($('details-body'));
+    var picked = window.getSelection();
+    picked.removeAllRanges();
+    picked.addRange(range);
+    $('details-copied').textContent = 'Selected: press Ctrl+C';
+  }
+}
+
+function wireDetails() {
+  if (!$('details-modal')) { return; }
+  $('details-close').addEventListener('click', closeDetails);
+  $('details-copy').addEventListener('click', copyDetails);
+  $('details-modal').addEventListener('click', function (event) { if (event.target === $('details-modal')) { closeDetails(); } });
+}
+
 function openAbout() {
   var about = State.about || {};
   var line = about.version ? 'Version ' + about.version : '';
@@ -9069,6 +9172,7 @@ var ICONS = {
   variations: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.2l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>',
   stop: '<rect x="6.5" y="6.5" width="11" height="11" rx="1.6"/>',
   dice: '<path d="M12 2.8l7.8 4.5v9.4L12 21.2l-7.8-4.5V7.3z"/><path d="M4.2 7.3L12 12l7.8-4.7M12 12v9.2"/><circle cx="12" cy="7.55" r="1.05" fill="currentColor" stroke="none"/><circle cx="7.4" cy="12.9" r="1.05" fill="currentColor" stroke="none"/><circle cx="9.5" cy="16.3" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.6" cy="13" r="1.05" fill="currentColor" stroke="none"/><circle cx="16.6" cy="15.4" r="1.05" fill="currentColor" stroke="none"/>',
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2"/><circle cx="12" cy="7.9" r="0.6" fill="currentColor"/>',
   level: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>'
 };
 
@@ -9614,6 +9718,8 @@ function paintTakes() {
             ? '<button class="take-move" data-act="normalise"' + id + ' title="Normalise: bring this take to the usual loudness. The file as rendered is kept"' +
               ' aria-label="Normalise">' + icon('level') + '</button>'
             : '') +
+          '<button class="take-move" data-act="details"' + id + ' title="Details: what this take was made with" aria-label="Details">' +
+            icon('info') + '</button>' +
           '<button class="take-move" data-act="move"' + id + ' title="Move to another space" aria-label="Move to another space">' +
             icon('move') + '</button>' +
         '</div>' +
@@ -11490,6 +11596,10 @@ function wire() {
       }
       loadTakes();
     }
+    if (act === 'details') {
+      openDetails(takeById(id));
+      return;
+    }
     if (act === 'replan') {
       selectTake(takeById(id));
       await api('/api/takes/' + id + '/replan', { method: 'POST' });
@@ -11658,6 +11768,7 @@ function wire() {
     });
   }
   wireAbout();
+  wireDetails();
   var menuSettings = $('menu-settings');
   if (menuSettings) {
     menuSettings.addEventListener('click', function (event) {
@@ -11872,6 +11983,7 @@ function wire() {
     if (event.key === 'Escape' && $('lora-picker-menu') && !$('lora-picker-menu').classList.contains('hidden')) { closeLoraPicker(); return; }
     if (event.key === 'Escape' && $('style-picker-menu') && !$('style-picker-menu').classList.contains('hidden')) { closeStylePicker(); return; }
     if (event.key === 'Escape' && $('brand-menu') && !$('brand-menu').classList.contains('hidden')) { closeBrandMenu(); return; }
+    if (event.key === 'Escape' && $('details-modal') && !$('details-modal').classList.contains('hidden')) { closeDetails(); return; }
     if (event.key === 'Escape' && $('about-modal') && !$('about-modal').classList.contains('hidden')) { closeAbout(); return; }
     if (event.key === 'Escape' && !$('sung-modal').classList.contains('hidden')) { closeSungWarning(); return; }
     if (event.key === 'Escape' && !$('move-modal').classList.contains('hidden')) { closeMoveModal(); return; }

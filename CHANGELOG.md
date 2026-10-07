@@ -39,6 +39,13 @@ cannot creep back in.
 
 ## Unreleased
 
+### Added
+- **A Details button on a take** lists what it was made with, in words (model, mode, seed, interpretation, production polish, whether the volume was normalised, style LoRA and strengths, length cap, the Advanced
+  settings and the style), with a button to copy it as text.
+
+### Changed
+- **Each interpretation shows what it does as a tooltip in the menu**, so it can be read before choosing it, not only for the one already chosen.
+
 ### Fixed
 - **The take card's Sing again, Variations and Try more icons have their tooltips back.** While no LoRA was training, the check that disables GPU buttons during training replaced
   each button's tooltip with an empty one. It now puts the button's own tooltip back when training ends, and leaves it alone otherwise.
