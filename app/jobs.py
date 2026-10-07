@@ -1330,6 +1330,21 @@ def _can_separate_on_engine() -> bool:
                 and CURRENT.get("kind") != "train")
 
 
+def _gpu_separation_progress(rec: dict) -> tuple[float, str] | None:
+    """Where an engine separation is, from what the engine last said: reading the recording, loading the model (the
+    node says nothing until it starts on the audio), separating, then saving.  The separating itself is the quick part."""
+    stage = rec.get("stage")
+    if stage == "LoadAudio":
+        return 0.05, "Reading the recording (GPU)"
+    if stage == "Yue2Separate":
+        if rec.get("value") is None:
+            return 0.10, "Loading the model (GPU)"
+        return 0.15 + 0.55 * (rec.get("frac") or 0.0), "Separating (GPU)"
+    if stage == "SaveAudio":
+        return 0.75, "Saving the stems (GPU)"
+    return None
+
+
 async def separate_stems(src: Path, dest_dir: Path, model: str, wanted: list[str], fmt: str,
                          on_progress=None, work_root: Path | None = None) -> dict:
     """stems.separate, on the engine's GPU when it can, as a job in the engine's own queue beside the plans and
@@ -1385,9 +1400,9 @@ async def _separate_on_engine(src: Path, dest_dir: Path, model: str, wanted: lis
         async def watch() -> None:
             while True:
                 await asyncio.sleep(0.7)
-                rec = ENGINE.progress.get(prompt_id) or {}
-                frac = rec.get("frac") or 0.0 if rec.get("stage") == "Yue2Separate" else 0.0
-                report(0.05 + 0.85 * frac, "Separating (GPU)")
+                step = _gpu_separation_progress(ENGINE.progress.get(prompt_id) or {})
+                if step:
+                    report(*step)
 
         watcher = asyncio.create_task(watch())
         try:

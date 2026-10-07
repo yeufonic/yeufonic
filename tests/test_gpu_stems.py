@@ -130,3 +130,17 @@ def test_a_failed_engine_job_falls_back_to_the_cpu(monkeypatch, tmp_path, cpu):
     src, sample = tone(tmp_path / "in.flac", 1.0), tone(tmp_path / "stem.flac", 0.5)
     monkeypatch.setattr(jobs, "ENGINE", GpuEngine(sample, outcome="error"))
     assert run(src, tmp_path / "out")["device"] == "cpu" and len(cpu) == 1
+
+
+def test_progress_follows_the_engines_stages_and_does_not_sit_still():
+    step = jobs._gpu_separation_progress
+    assert step({}) is None and step({"stage": "PreviewAny"}) is None
+    steps = [step({"stage": "LoadAudio"}),
+             step({"stage": "Yue2Separate", "value": None}),
+             step({"stage": "Yue2Separate", "value": 10, "max": 100, "frac": 0.1}),
+             step({"stage": "Yue2Separate", "value": 100, "max": 100, "frac": 1.0}),
+             step({"stage": "SaveAudio"})]
+    fracs = [s[0] for s in steps]
+    assert fracs == sorted(fracs) and len(set(fracs)) == len(fracs), "each stage is further along than the last"
+    assert steps[1][1].startswith("Loading the model") and steps[2][1] == "Separating (GPU)" and steps[-1][1].startswith("Saving")
+    assert fracs[-1] < 0.92, "collecting the files comes after"
