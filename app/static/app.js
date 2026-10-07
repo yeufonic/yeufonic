@@ -5612,7 +5612,9 @@ function setMode(mode) {
   // Both steer the score writer, which a cover never uses: its score is the transcription.
   show('harmony-field', !cover);
   show('variety-field', !cover);
-  show('plan-actions', !cover);
+  // A cover has no plan to write or render again, but its score can still be played as an instrumental.
+  show('plan-actions', true);
+  ['render-take', 'reroll'].forEach(function (id) { if ($(id)) { $(id).style.display = cover ? 'none' : ''; } });
   // An instrumental has no words and no voice; its structure takes the lyrics' place.
   show('lyrics-field', !inst);
   show('vocal-field', !inst);
@@ -5753,9 +5755,11 @@ function setScoreActions() {
   if ($('auto-wrap')) { $('auto-wrap').style.visibility = keep ? 'hidden' : ''; }
   $('score-note').textContent = !enabled
     ? 'Nothing to render yet. Write a score plan, or press Score on a take in the library.'
-    : (fresh
-      ? 'The words have changed. Sing with new words keeps this score\'s tune and makes a new take; the original stays as it is.'
-      : 'Render this score makes audio from the score above, keeping its melody and chords. Write a new plan asks YuE2 for a different melody, same words.');
+    : (State.mode === 'cover'
+      ? 'Make an instrumental plays this score on an instrument, with no voice, in a new take; the cover stays as it is.'
+      : (fresh
+        ? 'The words have changed. Sing with new words keeps this score\'s tune and makes a new take; the original stays as it is.'
+        : 'Render this score makes audio from the score above, keeping its melody and chords. Write a new plan asks YuE2 for a different melody, same words.'));
 }
 
 /* Changed words on a song with a score, and Keep this tune ticked: the main button
