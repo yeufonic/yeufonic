@@ -13,7 +13,11 @@ from __future__ import annotations
 
 import json
 import os
+import queue
+import subprocess
 import sys
+import tempfile
+import threading
 from pathlib import Path
 
 import torch
@@ -22,28 +26,40 @@ MODELS = ("large-v3-turbo",)
 _RATE = 16000
 
 
-def add_cuda_libraries() -> None:
-    """CTranslate2 loads cuBLAS and cuDNN itself, by name, from native code.  Where PyTorch carries them (Linux),
-    importing torch first is enough.  On Windows they are the CUDA 12 DLLs of the nvidia packages (PyTorch there
-    carries CUDA 13's), and native code looks only along PATH, so their folders go on PATH, as well as on Python's
-    own list for the extension itself."""
-    if sys.platform != "win32":
-        return
+# Where PyTorch and CTranslate2 want different cuDNN under one name (Windows), Whisper runs in a process of its own: see
+# hear_worker.py.  On Linux the CUDA 12 libraries are the ones PyTorch carries too, and it runs here.
+ISOLATE = sys.platform == "win32"
+WORKER = Path(__file__).with_name("hear_worker.py")
+
+
+def cuda_12_folders() -> list[str]:
+    """The folders of the CUDA 12 cuBLAS and cuDNN DLLs that the nvidia packages carry (Windows)."""
+    found = []
     for root in sys.path:
         base = Path(root) / "nvidia"
         if base.is_dir():
-            for lib in base.glob("*/bin"):
-                try:
-                    os.add_dll_directory(str(lib))
-                except OSError:
-                    pass
-                if str(lib) not in os.environ.get("PATH", "").split(os.pathsep):
-                    os.environ["PATH"] = str(lib) + os.pathsep + os.environ.get("PATH", "")
+            found.extend(str(lib) for lib in base.glob("*/bin"))
+    return found
+
+
+def worker_env() -> dict:
+    """The environment for the worker: those folders first on PATH, where CTranslate2's native code looks.  Only the
+    worker's: the engine's own PATH is left alone, or its cuDNN would be the wrong one."""
+    env = dict(os.environ)
+    env["PATH"] = os.pathsep.join(cuda_12_folders() + [env.get("PATH", "")])
+    return env
 
 
 def usable() -> bool:
     """CTranslate2 is there and sees a CUDA device."""
-    add_cuda_libraries()
+    probe = "import ctranslate2, faster_whisper; print(ctranslate2.get_cuda_device_count())"
+    if ISOLATE:
+        try:
+            done = subprocess.run([sys.executable, "-s", "-c", probe], capture_output=True, text=True, timeout=120,
+                                  env=worker_env())
+            return done.returncode == 0 and int((done.stdout.strip().splitlines() or ["0"])[-1]) > 0
+        except Exception:  # noqa: BLE001
+            return False
     try:
         import ctranslate2
         import faster_whisper  # noqa: F401
@@ -57,6 +73,15 @@ def _weights_dir() -> str:
     import folder_paths
 
     return str(Path(folder_paths.models_dir) / "whisper")
+
+
+def model_target(name: str) -> tuple[str, str]:
+    """What to hand WhisperModel, and where its downloads go: a plain folder of the model's files under the engine's
+    models (what scripts/fetch-models.sh writes) as it stands, otherwise the model's name, for the Hugging Face cache."""
+    root = _weights_dir()
+    os.makedirs(root, exist_ok=True)
+    plain = Path(root) / name
+    return (str(plain) if (plain / "model.bin").is_file() else name), root
 
 
 def load(name: str):
@@ -88,10 +113,63 @@ def mono_16k(wave: torch.Tensor, rate: int):
     return mono[0].cpu().numpy()
 
 
+def hear_isolated(audio, name: str, language: str, on_progress=None, check=None) -> list[dict]:
+    """The same, from a worker process (see hear_worker.py).  `check` is asked every moment it runs, so a stop is not
+    kept waiting on a model load or a download; it raises to stop, and the worker is ended."""
+    import numpy as np
+
+    target, root = model_target(name)
+    handle, path = tempfile.mkstemp(suffix=".npy")
+    os.close(handle)
+    np.save(path, audio)
+    lines: "queue.Queue[str | None]" = queue.Queue()
+    proc = subprocess.Popen([sys.executable, "-s", str(WORKER), path, target, root, language or ""], env=worker_env(),
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+
+    def read() -> None:
+        for line in proc.stdout:
+            lines.put(line.rstrip("\n"))
+        lines.put(None)
+
+    threading.Thread(target=read, daemon=True).start()
+    result, tail, finished = None, [], False
+    try:
+        while not finished:
+            if check:
+                check()
+            try:
+                line = lines.get(timeout=0.3)
+            except queue.Empty:
+                continue
+            if line is None:
+                finished = True
+            elif line.startswith("P "):
+                if on_progress:
+                    on_progress(max(0.0, min(1.0, float(line[2:]))))
+            elif line.startswith("R "):
+                result = json.loads(line[2:])
+            else:
+                tail = (tail + [line])[-6:]
+        proc.wait(timeout=30)
+    except BaseException:
+        proc.kill()
+        raise
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+    if result is None:
+        raise RuntimeError("Whisper's worker ended without a result: " + " / ".join(t for t in tail if t.strip())[-300:])
+    return result
+
+
 def hear(wave: torch.Tensor, rate: int, name: str, language: str, on_progress=None, check=None, model=None) -> list[dict]:
     """The segments Whisper wrote, as {"start", "end", "text"}.  The options are the ones the app uses on the CPU."""
     audio = mono_16k(wave, rate)
     seconds = len(audio) / _RATE
+    if ISOLATE and model is None:
+        return hear_isolated(audio, name, language, on_progress, check)
     own = model is None
     model = model or load(name)
     try:

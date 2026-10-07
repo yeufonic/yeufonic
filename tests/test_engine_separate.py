@@ -171,3 +171,58 @@ def test_what_the_engine_fetches_is_left_deletable_by_whoever_owns_the_folder(tm
     assert (root.stat().st_mode & 0o777) == 0o777 and ((root / "models--x" / "blobs").stat().st_mode & 0o777) == 0o777
     assert (blob.stat().st_mode & 0o666) == 0o666
     perms.open_up(str(tmp_path / "missing"))     # nothing there: nothing to do
+
+
+def test_on_windows_whisper_runs_in_a_process_of_its_own(monkeypatch, tmp_path):
+    """Its CUDA 12 cuDNN and PyTorch's CUDA 13 one share a name, so the engine's own first use of cuDNN broke when
+    Whisper's libraries were put where it could see them.  The worker has its own process and its own PATH."""
+    import sys
+    import types
+
+    folder_paths = types.ModuleType("folder_paths")
+    folder_paths.models_dir = str(tmp_path)
+    monkeypatch.setitem(sys.modules, "folder_paths", folder_paths)
+    stub = tmp_path / "worker.py"
+    stub.write_text("import sys, json\nprint('P 0.5', flush=True)\nprint('noise', flush=True)\n"
+                    "print('R', json.dumps([{'start': 0.0, 'end': 1.0, 'text': ' hi'}]), flush=True)\n")
+    monkeypatch.setattr(hearing, "ISOLATE", True)
+    monkeypatch.setattr(hearing, "WORKER", stub)
+    seen = []
+    out = hearing.hear(torch.zeros(1, 16000), 16000, "large-v3-turbo", "en", on_progress=seen.append)
+    assert out == [{"start": 0.0, "end": 1.0, "text": " hi"}] and seen == [0.5]
+    # the engine's own PATH is not touched, only the worker's
+    import os
+    before = os.environ["PATH"]
+    hearing.worker_env()
+    assert os.environ["PATH"] == before
+
+
+def test_the_worker_is_ended_when_the_job_is_stopped_and_a_failure_says_why(monkeypatch, tmp_path):
+    import sys
+    import types
+
+    folder_paths = types.ModuleType("folder_paths")
+    folder_paths.models_dir = str(tmp_path)
+    monkeypatch.setitem(sys.modules, "folder_paths", folder_paths)
+    slow = tmp_path / "slow.py"
+    slow.write_text("import time\nprint('loading', flush=True)\ntime.sleep(60)\n")
+    broken = tmp_path / "broken.py"
+    broken.write_text("print('cublas64_12.dll is not found', flush=True)\nraise SystemExit(1)\n")
+    monkeypatch.setattr(hearing, "ISOLATE", True)
+
+    class Stop(Exception):
+        pass
+
+    calls = []
+
+    def check():
+        calls.append(1)
+        if len(calls) > 2:
+            raise Stop()
+
+    monkeypatch.setattr(hearing, "WORKER", slow)
+    with pytest.raises(Stop):
+        hearing.hear(torch.zeros(1, 16000), 16000, "large-v3-turbo", "", check=check)
+    monkeypatch.setattr(hearing, "WORKER", broken)
+    with pytest.raises(RuntimeError, match="cublas64_12.dll is not found"):
+        hearing.hear(torch.zeros(1, 16000), 16000, "large-v3-turbo", "")
