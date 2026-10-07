@@ -325,3 +325,15 @@ except Exception:  # noqa: BLE001
 NODE_CLASS_MAPPINGS = {"YuE2GenerateABCHarmony": YuE2GenerateABCHarmony, "Yue2PeakGuard": Yue2PeakGuard}
 NODE_DISPLAY_NAME_MAPPINGS = {"YuE2GenerateABCHarmony": "YuE2 Generate ABC (harmony)",
                               "Yue2PeakGuard": "Yeufonic peak guard"}
+
+# Stem separation needs demucs, which an engine built before it was added does not have: the node
+# is simply not there then, and the app uses its own CPU separation.
+try:
+    import demucs  # noqa: F401
+
+    from .separate import Yue2Separate
+
+    NODE_CLASS_MAPPINGS["Yue2Separate"] = Yue2Separate
+    NODE_DISPLAY_NAME_MAPPINGS["Yue2Separate"] = "Yeufonic stem separation (Demucs)"
+except Exception:  # noqa: BLE001
+    pass

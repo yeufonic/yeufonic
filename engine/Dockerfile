@@ -54,6 +54,11 @@ RUN if [ "${WITH_TRAINER}" = "1" ]; then \
         echo "trainer left out (WITH_TRAINER=0)"; \
     fi
 
+# Stem separation on the GPU: the engine's CUDA PyTorch runs Demucs, so a vocal is separated in
+# the queue beside plans and renders instead of on the app's CPU.  Adds demucs, julius, lameenc
+# and sphn and leaves torch alone.  The node is simply absent from an engine built without it.
+RUN pip install "demucs==4.1.0"
+
 # Yeufonic's own node: the Harmony control for score plans.  Copied after the
 # slow installs, so a change to it rebuilds in seconds.
 COPY custom_nodes/yue2_harmony /app/custom_nodes/yue2_harmony
