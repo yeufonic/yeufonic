@@ -39,6 +39,11 @@ cannot creep back in.
 
 ## Unreleased
 
+### Changed
+- **Stems and vocal separation run on the GPU.** The engine has a Demucs node, and the app separates a recording's vocal, a take's stems and each corpus song's vocal there, as a job in the
+  engine's queue beside plans and renders, instead of on the CPU. An engine without it, a LoRA being trained, or `STEMS_ON_GPU=0` keeps the CPU, and a job the engine fails falls back to
+  the CPU. The Docker engine image and the Windows installer add Demucs; an existing Docker install needs the engine rebuilt (`docker compose build engine`).
+
 ### Fixed
 - **The take card's Sing again, Variations and Try more icons have their tooltips back.** While no LoRA was training, the check that disables GPU buttons during training replaced
   each button's tooltip with an empty one. It now puts the button's own tooltip back when training ends, and leaves it alone otherwise.

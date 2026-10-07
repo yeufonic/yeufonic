@@ -70,7 +70,7 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   The transcription is cached per recording, so re-rendering skips straight to the music.
 - **Hear what the recording sings.** A cover needs lyrics. **Extract lyrics** separates the vocal,
   listens to it and lays the lines under the sections of the score. It is asked for rather than
-  done every time, and it runs on the CPU, so a render is never held up by it. 
+  done every time. The vocal is separated on the GPU when the engine has Demucs, otherwise on the CPU.
   Configure Yeufonic to use an external LLM for even greater accuracy.
 - **Song from a prompt.** Write a score plan from style and lyrics, read it, repair it, render it.
   A new plan costs seconds, so a bad melody is cheap to discard.
@@ -115,8 +115,9 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   mode to generate different, often off-the-wall takes of original tunes. The app parses tracks into
   vocal melody, accompaniment, and chords, extracts embedded lyrics, and provides high-fidelity audio
   audition via FluidSynth and bundled General MIDI SoundFonts (`.sf2`).
-- **Stems.** Extract vocals, drums, bass, other, and optionally guitar and piano, on CPU, while
-  the GPU stays free. Or split into just the vocals and the instruments, for a backing track.
+- **Stems.** Extract vocals, drums, bass, other, and optionally guitar and piano, on the GPU in the
+  engine's queue when it has Demucs, otherwise on the CPU. Or split into just the vocals and the
+  instruments, for a backing track.
   Download them singly or as a zip.
 - **Spaces.** Keep takes apart by project: a space per song, per album, or for sketches. Create,
   rename and delete spaces, and move a take from one to another.
@@ -716,7 +717,8 @@ built from, and the ports itself: change those in its `settings.ini` instead (se
 | `ENGINE_URL` | `http://127.0.0.1:8188` | where ComfyUI answers. Change it when the engine runs on another machine |
 | `ENGINE_OUTPUT_DIR` | unset | the engine's output folder, mounted into the app. Renders are removed from it once the app has its copy |
 | `MAX_UPLOAD_MB` | `2048` | the largest recording you can upload, in megabytes. The engine has its own ceiling, `ENGINE_MAX_UPLOAD_MB` on the engine service, set to the same figure: raise both together |
-| `STEMS_THREADS` | half the CPUs | torch threads for the separation |
+| `STEMS_ON_GPU` | `1` | `0` keeps stems and vocal separation on the CPU, even when the engine has Demucs |
+| `STEMS_THREADS` | half the CPUs | torch threads for the separation on the CPU |
 | `STEMS_JOBS` | 4, or a quarter of the CPUs | demucs segments applied at once. One uses about 1.8 GB and 2.5x realtime, four uses 3.7 GB and 3.6x. The split setup's 2 GB cap needs this at 1, or the cap raised |
 | `WEAK_RENDER_DB` | `-24` | the average level, in dB, below which a take is marked *Weak render* |
 | `PEAK_GUARD` | `1` | with an engine that has the peak guard, a render whose peaks would clip is turned down around them before it is saved. `0` leaves it out |

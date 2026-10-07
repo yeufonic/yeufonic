@@ -1007,7 +1007,7 @@ async def prepare_song(song_id: str) -> None:
     if not identities.vocals_file(folder):
         stage("Separating the vocal (demucs)", 0.0)
         # FLAC: the same audio exactly, in about half the room of the WAV it used to be written as.
-        await stems.separate(stored, folder, "htdemucs", ["vocals"], "flac", work_root=config.WORK_DIR,
+        await separate_stems(stored, folder, "htdemucs", ["vocals"], "flac", work_root=config.WORK_DIR,
                              on_progress=lambda frac, _: stage("Separating the vocal (demucs)", frac))
     set_song(song_id, vocals_state="done")
     if identity_song(song_id)["style_state"] in ("none", "failed"):
@@ -1316,6 +1316,116 @@ async def _upload(path: Path, name: str) -> str:
     if not result.get("name"):
         raise RuntimeError("the engine did not accept the audio")
     return result["name"]
+
+
+# ------------------------------------------------------------ stems on the GPU
+# The engine's node orders its outputs like this; the app's names for them are the same.
+SEPARATE_OUTPUTS = ("vocals", "drums", "bass", "other", "guitar", "piano", "instruments")
+
+
+def _can_separate_on_engine() -> bool:
+    """The engine has the Demucs node, is up, and is not held by training: a separation would wait in its
+    queue for the whole run."""
+    return bool(config.STEMS_ON_GPU and ENGINE.online and ENGINE.options.get("separate")
+                and CURRENT.get("kind") != "train")
+
+
+async def separate_stems(src: Path, dest_dir: Path, model: str, wanted: list[str], fmt: str,
+                         on_progress=None, work_root: Path | None = None) -> dict:
+    """stems.separate, on the engine's GPU when it can, as a job in the engine's own queue beside the plans and
+    renders; on the CPU when it cannot, or when the engine fails it."""
+    if _can_separate_on_engine():
+        try:
+            done = await _separate_on_engine(src, dest_dir, model, wanted, fmt, on_progress, work_root)
+            log.info("Separated '%s' on the GPU in %.1fs (%s)", src.name, done["seconds"], model)
+            return done
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Separating on the GPU failed, using the CPU: %s", exc)
+            if on_progress:
+                on_progress(0.02, "Using the CPU")
+    return await stems.separate(src, dest_dir, model, wanted, fmt, on_progress, work_root=work_root)
+
+
+async def _separate_on_engine(src: Path, dest_dir: Path, model: str, wanted: list[str], fmt: str,
+                              on_progress, work_root: Path | None) -> dict:
+    spec = stems.MODELS[model]
+    keep = [s for s in wanted if s in spec["stems"]] or list(spec["stems"])
+    fmt = fmt if fmt in stems.FORMATS else "wav"
+    started = time.time()
+    token = os.urandom(4).hex()
+
+    def report(frac: float, stage: str) -> None:
+        if on_progress:
+            on_progress(max(0.0, min(1.0, frac)), stage)
+
+    if work_root:
+        work_root.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix="stems-gpu-", dir=work_root))
+    prompt_id = None
+    try:
+        report(0.02, "Sending it to the engine")
+        # The engine reads audio with PyAV, which can stumble on tags: a lossless copy without them.
+        staged = work / "engine-copy.flac"
+        await asyncio.to_thread(subprocess.run, ["ffmpeg", "-v", "error", "-y", "-i", str(src), "-vn", "-map_metadata", "-1",
+                                                 "-c:a", "flac", str(staged)], check=True, capture_output=True, timeout=600)
+        name = await _upload(staged, f"stems-{token}.flac")
+        graph = {"1": {"class_type": "LoadAudio", "inputs": {"audio": name}},
+                 "2": {"class_type": "Yue2Separate",
+                       "inputs": {"audio": ["1", 0], "model": spec.get("demucs", model), "shifts": 1, "overlap": 0.25}}}
+        saves = {}
+        for index, stem in enumerate(keep):
+            node = str(3 + index)
+            saves[node] = stem
+            graph[node] = {"class_type": "SaveAudio",
+                           "inputs": {"audio": ["2", SEPARATE_OUTPUTS.index(stem)], "filename_prefix": f"yeufonic/stems-{token}/{stem}"}}
+        prompt_id = await ENGINE.submit(graph)
+
+        async def watch() -> None:
+            while True:
+                await asyncio.sleep(0.7)
+                rec = ENGINE.progress.get(prompt_id) or {}
+                frac = rec.get("frac") or 0.0 if rec.get("stage") == "Yue2Separate" else 0.0
+                report(0.05 + 0.85 * frac, "Separating (GPU)")
+
+        watcher = asyncio.create_task(watch())
+        try:
+            outcome, job = await _wait_for("separate", token, prompt_id)
+        finally:
+            watcher.cancel()
+        if outcome != "done":
+            raise RuntimeError(outcome)
+        if job.get("status", {}).get("status_str") != "success":
+            raise RuntimeError(_engine_error(job))
+
+        report(0.92, "Collecting the stems")
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        out: dict[str, str] = {}
+        for node, stem in saves.items():
+            item = ((job.get("outputs") or {}).get(node) or {}).get("audio", [None])[0]
+            if not item:
+                raise RuntimeError(f"the engine returned no {stem}")
+            got = await ENGINE.download(item, work / f"{stem}.flac")
+            target = dest_dir / f"{stem}.{fmt}"
+            if fmt == "flac":
+                shutil.move(str(got), str(target))
+            else:
+                codec = ["-c:a", "pcm_s16le"] if fmt == "wav" else ["-c:a", "libmp3lame", "-b:a", "320k"]
+                await asyncio.to_thread(subprocess.run, ["ffmpeg", "-v", "error", "-y", "-i", str(got), *codec, str(target)],
+                                        check=True, capture_output=True, timeout=600)
+            out[stem] = str(target)
+        report(1.0, "Done")
+        return {"stems": out, "model": model, "format": fmt, "seconds": round(time.time() - started, 1), "device": "gpu"}
+    except asyncio.CancelledError:
+        if prompt_id:
+            with contextlib.suppress(Exception):
+                await ENGINE.cancel(prompt_id)
+        raise
+    finally:
+        if prompt_id:
+            ENGINE.forget(prompt_id)
+        shutil.rmtree(work, ignore_errors=True)
 
 
 async def run_identity_job(kind: str, song_id: str) -> None:
@@ -1803,7 +1913,7 @@ async def run_stems_job(set_id: str) -> None:
     target_type = "take" if job.get("take_id") else "source"
     target_id = job.get("take_id") or job.get("source_id") or set_id
     log.info("Starting stem separation for %s %s (model=%s, wanted=%s)", target_type, target_id, job["model"], job["wanted"])
-    await stems.separate(Path(input_path), dest, job["model"], wanted, job["fmt"], progress, work_root=config.WORK_DIR)
+    await separate_stems(Path(input_path), dest, job["model"], wanted, job["fmt"], progress, work_root=config.WORK_DIR)
 
     elapsed = time.time() - started
     changed = execute(
@@ -1943,7 +2053,7 @@ async def run_cover_lyrics(source_id: str) -> None:
         progress(0.60, "Using the vocal separated earlier")
     else:
         # Separation is most of the wait, so it owns most of the bar.
-        await stems.separate(path, work, "htdemucs", ["vocals"], "flac",
+        await separate_stems(path, work, "htdemucs", ["vocals"], "flac",
                              lambda frac, stage: progress(0.02 + 0.58 * frac, "Separating the vocal"),
                              work_root=config.WORK_DIR)
         separated = next(iter(work.glob("vocals.*")), None)

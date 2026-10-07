@@ -445,8 +445,8 @@ work, or from different ones.
 **Extract lyrics**, beside *Transcribe*, writes down what the recording sings: it separates the
 vocal, listens to it, and lays the lines under the sections of the score. It is asked for rather
 than done with every transcription, because it takes a couple of minutes where transcribing a score
-takes seconds. It runs on the CPU, so a render is never held up by it, and the bar says which of the
-two stages it is on. The separated vocal is kept, so extracting the same recording again skips
+takes seconds. The vocal is separated on the GPU when the engine has Demucs and on the CPU otherwise, and the bar
+says which of the two stages it is on. The separated vocal is kept, so extracting the same recording again skips
 straight to the listening, which is most of the wait saved.
 
 The words are kept with the recording. Press **Extract lyrics** again and they go straight back in
@@ -775,8 +775,11 @@ again after you add a file by hand.
 Press **Stems** on any take. Choose a model, tick the parts you want — vocals, drums, bass, other,
 and guitar and piano on some models — and run.
 
-Separation runs on the **CPU**, so it never competes with a render for the GPU. *Fine tuned* runs
-four models in turn for a better split and takes about four times as long.
+Separation runs on the **GPU** when the engine has Demucs, as a job in the engine's queue: it waits for a
+render that is running, then goes quickly, and a render queued behind it waits in turn. An engine built before
+this, a LoRA being trained (which holds the GPU), or `STEMS_ON_GPU=0` leaves it on the **CPU**, which is slower
+and never holds up a render. *Fine tuned* runs four models in turn for a better split and takes about four times
+as long.
 
 For a backing track, choose **Vocals and instruments**. It splits the song in two: the vocal, and
 **instruments**, everything else as one stem. Untick **vocals** to keep only the instruments. It is
@@ -1012,8 +1015,8 @@ tell your agent which one you mean.
   handled for you, which is easy to get wrong by hand.
 - **Words from the agent.** The agent can write the lyrics itself: "Write lyrics about a night train and make a song of them in a folk
   style." Yeufonic only sees the finished words.
-- **Stems for a whole set.** "Split my five newest takes into vocals and instruments and give me the links." Each runs on the CPU, so
-  they queue behind one another without holding up what the GPU is doing.
+- **Stems for a whole set.** "Split my five newest takes into vocals and instruments and give me the links." They queue behind
+  one another, and behind any render the GPU is running.
 - **Library housekeeping.** "Find the takes with the same title, show me which is newest, and delete the older ones", or "move everything
   I made today into a space called Drafts." It works from ids and asks before deleting.
 - **Checking before a long job.** "Is Yeufonic busy?" before you queue a long render or a batch, so you do not queue behind a training run.

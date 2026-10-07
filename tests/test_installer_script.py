@@ -81,3 +81,12 @@ def test_the_installers_port_check_uses_the_ports_in_settings_ini():
     block = setup[setup.index("$ports = @(8090, 8188)"):setup.index("foreach ($site in")]
     assert "app_port" in block and "engine_port" in block and "settings.ini" in block
     assert "foreach ($port in $ports)" in block and "foreach ($port in @(8090, 8188))" not in setup
+
+
+def test_the_windows_engine_gets_demucs_so_stems_can_run_on_the_gpu():
+    """Installed with the engine's own Python, before our node is copied in, and its weights kept with the engine's models."""
+    setup = (Path(__file__).resolve().parent.parent / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    block = setup.split("IsDone 'engine-demucs')")[1].split("Done 'engine-demucs'")[0]
+    assert "$py @('-s', '-m', 'pip', 'install'" in block and "demucs==4.1.0" in block
+    assert setup.index("Done 'engine-demucs'") < setup.index("# Our own node, carried by the installer.") + len("# Our own node, carried by the installer.")
+    assert "Join-Path $Models 'demucs'" in setup and "HF_HUB_CACHE" in setup

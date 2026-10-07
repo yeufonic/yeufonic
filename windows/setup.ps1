@@ -402,6 +402,13 @@ foreach ($edit in $attention) {
         throw "The trainer's attention call in $($edit.File) is not what this installer expects, so it was left alone."
     }
 }
+# Stem separation on the GPU: the engine's CUDA torch runs Demucs, so a vocal is separated in the engine's queue
+# beside plans and renders. It adds demucs and a few small packages and leaves torch alone. Without it the node is
+# not there and the app separates on the CPU as before. A step of its own, so an update does it without more.
+if (-not (IsDone 'engine-demucs')) {
+    Invoke-Checked "Demucs for the engine" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', 'demucs==4.1.0')
+    Done 'engine-demucs'
+}
 # Our own node, carried by the installer.
 $harmony = Join-Path $nodes 'yue2_harmony'
 if (Test-Path $harmony) { Remove-Item -Recurse -Force $harmony }
@@ -497,6 +504,19 @@ if (-not $SkipModels -and -not (IsDone 'app-models')) {
     Say 'demucs htdemucs (about 80 MB)'
     Invoke-Checked 'demucs' $appPy @('-c', "from demucs.pretrained import get_model; get_model('htdemucs')")
     Done 'app-models'
+}
+
+# The engine's own copy of the Demucs model (it keeps it with its models, found again after an update). Fetched now so
+# the first separation does not wait on it; if this fails the node fetches it when it first runs.
+if (-not $SkipModels -and -not (IsDone 'engine-demucs-model')) {
+    Say 'demucs htdemucs for the engine (about 80 MB)'
+    $demucsDir = Join-Path $Models 'demucs'
+    try {
+        Invoke-Checked 'The engine demucs model' $py @('-s', '-c', "import torch; torch.hub.set_dir(r'$demucsDir'); from huggingface_hub import constants; constants.HF_HUB_CACHE = r'$demucsDir\hub'; from demucs.pretrained import get_model; get_model('htdemucs')")
+        Done 'engine-demucs-model'
+    } catch {
+        Say "Could not fetch it now ($($_.Exception.Message)); the engine will when it first separates a vocal."
+    }
 }
 
 # ---------------------------------------------------------------- soundfonts

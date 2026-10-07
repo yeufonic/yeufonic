@@ -34,13 +34,25 @@ def _weights_dir() -> str:
 
 @contextlib.contextmanager
 def _hub_in(directory: str):
-    """demucs fetches its weights through torch.hub; keep them with the engine's models."""
+    """demucs 4.1 looks a model up on the Hugging Face hub first and falls back to torch.hub; keep what
+    either fetches with the engine's models, so it is found again after the engine is rebuilt."""
     before = torch.hub.get_dir()
     torch.hub.set_dir(directory)
+    constants = None
+    cache = None
+    try:
+        from huggingface_hub import constants
+
+        cache = constants.HF_HUB_CACHE
+        constants.HF_HUB_CACHE = str(Path(directory) / "hub")
+    except Exception:  # noqa: BLE001
+        constants = None
     try:
         yield
     finally:
         torch.hub.set_dir(before)
+        if constants is not None:
+            constants.HF_HUB_CACHE = cache
 
 
 def load(name: str):
