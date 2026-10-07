@@ -533,15 +533,17 @@ Choose **No recording** in the list to go back to writing a plan.
 ### When an instrumental sings
 
 Occasionally the model puts a voice into an instrumental. This is a model failure, not a setting
-you got wrong, and the app handles it in two places:
+you got wrong. Before rendering, if the plan puts notes in the vocal voice, a dialog offers a new
+plan, a new seed, or rendering anyway. A finished take is not checked for singing: listen to it.
 
-- **Before rendering**, if the plan puts notes in the vocal voice, a dialog offers a new plan, a new
-  seed, or rendering anyway.
-- **After rendering**, the finished audio is checked for singing and the card says how much it
-  found.
+### An instrumental from a song's score
 
-The check holds a separator in memory for speed. *Settings* offers a thriftier mode that loads it
-per check and holds nothing, or turns the check off.
+**Make an instrumental**, beside **Render this score** under a song's or cover's score, makes the
+same score as an instrumental, in a new take: the original is left as it was. The sung melody moves
+to an instrument, only the score's section tags are sent to the model in place of the words, the
+instrumental LoRA is used, and the style loses the tags that describe a voice ("soft male vocal").
+It is the way to get "this tune, no vocals". Emptying the Vocal part of a song's score by hand is
+not enough: a song's render still sings the words it is given.
 
 ---
 

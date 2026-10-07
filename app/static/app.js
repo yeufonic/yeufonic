@@ -5735,8 +5735,9 @@ function confirmScoreSaved() {
 
 function setScoreActions() {
   var enabled = Boolean(takeIdInEditor());
-  ['render-take', 'reroll'].forEach(function (name) {
+  ['render-take', 'reroll', 'make-instrumental'].forEach(function (name) {
     var node = $(name);
+    if (!node) { return; }
     node.disabled = !enabled;
     node.style.opacity = enabled ? '' : '0.45';
     node.style.cursor = enabled ? '' : 'not-allowed';
@@ -5744,6 +5745,8 @@ function setScoreActions() {
   var fresh = enabled && wordsChanged();
   var keep = keepTune();
   $('render-take').textContent = fresh ? 'Sing with new words' : 'Render this score';
+  // Already an instrumental: nothing to make.
+  if ($('make-instrumental')) { $('make-instrumental').style.display = State.mode === 'inst' ? 'none' : ''; }
   // The switch is for a song: its main button would otherwise write a new tune.
   if ($('words-changed')) { $('words-changed').classList.toggle('hidden', !(fresh && State.mode === 'song')); }
   $('create-song').textContent = keep ? 'Sing with new words' : 'Write score plan';
@@ -5975,6 +5978,26 @@ function awaitNewPlan(id) {
   $('score-badge').className = 'badge';
   setChart('');
   showPlanLength('');
+}
+
+async function doMakeInstrumental() {
+  var id = takeIdInEditor();
+  if (!id) {
+    statusLine('Nothing to make an instrumental of yet. Write a score plan first.', 'bad');
+    return;
+  }
+  try {
+    // The score as the box has it, without saving it over the original's.
+    await api('/api/takes/' + id + '/instrumental', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ abc: $('abc').value })
+    });
+    statusLine('Making the instrumental\u2026', 'good');
+    loadTakes();
+    closeEditor();
+  } catch (err) {
+    statusLine('Could not make it: ' + err.message, 'bad');
+  }
 }
 
 async function doReroll() {
@@ -11115,6 +11138,7 @@ function wire() {
   wireEditor();
   $('create-song').addEventListener('click', doPlan);
   $('render-take').addEventListener('click', doRenderTake);
+  if ($('make-instrumental')) { $('make-instrumental').addEventListener('click', doMakeInstrumental); }
   $('lyrics').addEventListener('input', setScoreActions);
   if ($('keep-tune')) {
     $('keep-tune').addEventListener('change', function () {

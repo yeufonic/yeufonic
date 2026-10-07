@@ -114,6 +114,17 @@ _AS_SECTION = {"interlude": "bridge", "prechorus": "pre-chorus", "pre chorus": "
                "solo": "bridge", "break": "bridge", "breakdown": "bridge", "coda": "outro", "ending": "outro"}
 
 
+# A style tag that describes a voice: an instrumental has none.
+_VOCAL_TAG = re.compile(r"\b(vocals?|voices?|singers?|singing|choir|lyrics?)\b", re.I)
+
+
+def without_vocal_tags(style: str | None) -> str:
+    """A style with the tags that describe a voice taken out ("soft male vocal", "female voices"), for an instrumental made
+    from a sung take's score; every other tag, and the order, stay."""
+    tags = [tag.strip() for tag in (style or "").split(",") if tag.strip()]
+    return ", ".join(tag for tag in tags if not _VOCAL_TAG.search(tag))
+
+
 def structure_of(abc: str | None) -> str:
     """The structure an instrumental of this score is rendered with: one tag per section
     of the score, in the names the LoRA knows.  A render pairs the tags with the score's

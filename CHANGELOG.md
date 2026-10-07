@@ -42,6 +42,9 @@ cannot creep back in.
 ### Added
 - **A Details button on a take** lists what it was made with, in words (model, mode, seed, interpretation, production polish, whether the volume was normalised, style LoRA and strengths, length cap, the Advanced
   settings and the style), with a button to copy it as text.
+- **Make an instrumental from a song's or cover's score.** A button beside **Render this score** makes the same score as an instrumental in a new take, leaving the original as it was: the sung melody is
+  given to an instrument, only the score's section tags are sent in place of the words, and the style loses its vocal descriptions. Emptying a song's Vocal part by hand did not stop it singing,
+  since the render sings the words it is given.
 
 ### Changed
 - **Switching a corpus song's words between versions no longer drafts them again.** Each version keeps its own finished words, edits and checked tick: the first choice of a version drafts it (and calls the
@@ -51,6 +54,7 @@ cannot creep back in.
 ### Fixed
 - **The take card's Sing again, Variations and Try more icons have their tooltips back.** While no LoRA was training, the check that disables GPU buttons during training replaced
   each button's tooltip with an empty one. It now puts the button's own tooltip back when training ends, and leaves it alone otherwise.
+- The guide no longer says a finished instrumental is checked for singing; that check was removed.
 
 ## 0.0.31 (2026-10-06)
 
