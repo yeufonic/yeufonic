@@ -539,13 +539,20 @@ def key_and_tempo(abc: str) -> tuple[str | None, int | None]:
     return name, int(tempo.group(1)) if tempo else None
 
 
+NO_VOICE = "none"     # a corpus without vocals: the Voice menu's entry for it
+
+
+def vocalless(voice: str | None) -> bool:
+    return (voice or "").strip().lower() == NO_VOICE
+
+
 def caption(trigger: str, description: str, voice: str, key: str | None, tempo: int | None,
             style_hint: str = "") -> str:
     """The style caption a trainer reads: the trigger word first, then the sound."""
     # "key of X" and "N BPM" are the forms the FS_Audio dataset builder looks for; with
     # them present it does not append its own, so the key is not stated twice.
     parts = [trigger.strip(), (style_hint or "").strip(), description.strip(),
-             f"{voice} vocal" if voice else "", f"key of {key}" if key else "",
+             f"{voice} vocal" if voice and not vocalless(voice) else "", f"key of {key}" if key else "",
              f"{tempo} BPM" if tempo else ""]
     return ", ".join(p for p in parts if p)
 
