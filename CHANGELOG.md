@@ -39,9 +39,14 @@ cannot creep back in.
 
 ## Unreleased
 
+### Added
+- **A Details button on a take** lists what it was made with, in words (model, mode, seed, interpretation, production polish, whether the volume was normalised, style LoRA and strengths, length cap, the Advanced
+  settings and the style), with a button to copy it as text.
+
 ### Changed
 - **Switching a corpus song's words between versions no longer drafts them again.** Each version keeps its own finished words, edits and checked tick: the first choice of a version drafts it (and calls the
   external model to mark its sections), and every switch after that puts its words back at once. Before, each switch drafted again and threw away what was in the box, even for a version drafted before.
+- **Each interpretation shows what it does as a tooltip in the menu**, so it can be read before choosing it, not only for the one already chosen.
 
 ### Fixed
 - **The take card's Sing again, Variations and Try more icons have their tooltips back.** While no LoRA was training, the check that disables GPU buttons during training replaced

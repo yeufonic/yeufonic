@@ -2434,6 +2434,11 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 .sheet-pairs { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; font-size: 13px; margin: 0; }
 .sheet-pairs dt { color: var(--muted); }
 .sheet-pairs dd { margin: 0; overflow-wrap: anywhere; }
+.sheet-pairs dd.wide { grid-column: 1 / -1; }
+.modal-box.details .modal-head { align-items: center; }
+.modal-box.details .modal-head > span { display: flex; align-items: center; gap: 8px; }
+.modal-box.details #details-body { overflow: auto; max-height: min(70vh, 640px); }
+.modal-box.details #details-body .sheet-blk:first-child { border-top: 0; padding-top: 4px; }
 .sheet-tags { display: flex; flex-wrap: wrap; gap: 5px; }
 .sheet-tag { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: rgb(var(--ink) / 0.05); border: 1px solid var(--line); }
 .sheet-words { font-size: 13px; line-height: 1.55; }
