@@ -7063,13 +7063,12 @@ async function doInstrumental() {
   }
 }
 
-/* A planned instrumental's main button. A take that already has audio and a score changed since it was
-   loaded is rendered as a new take beside it, as a recording's is, so the original keeps its audio;
-   otherwise the take itself is rendered. */
+/* A planned instrumental's main button, like Create cover and Write score plan, makes a new take: a take that
+   already has audio is rendered as a new take beside it, so the original keeps its audio.  A take with no
+   audio yet is rendered itself. */
 async function doRenderPlanned() {
   var take = scoreOwner();
-  var changed = scoreIsDirty() || (Boolean(State.sectionsOriginal) && State.sectionsOriginal !== $('abc').value);
-  if (!take || take.status !== 'done' || !changed) { await doRenderTake(); return; }
+  if (!take || take.status !== 'done') { await doRenderTake(); return; }
   var payload = editorRenderSettings();
   payload.abc = $('abc').value;
   payload.title = $('title').value.trim();

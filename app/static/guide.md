@@ -519,8 +519,8 @@ length cap, and offers to raise the cap when a longer song would be cut short. P
 
 An instrumental you wrote from a structure has a score too, and once it is planned its sections are listed in the same way. The
 structure builder is the brief for a plan not yet written, so it gives way to the list. Rearrange the sections and press
-**Render this score**: the render's section tags follow the edited score, and a take that already has audio is rendered as a
-new take beside it, so the original keeps its own. **Write a new plan** (under the score) still asks
+**Render this score** (the editor's main button): the render's section tags follow the edited score, and a take that already has audio is rendered as a
+new take beside it, whatever you changed, so the original keeps its own. **Write a new plan** (under the score) still asks
 for a different melody from the structure the take was written with.
 
 **A song with vocals works too.** Its score has the sung melody in the vocal part, which would come

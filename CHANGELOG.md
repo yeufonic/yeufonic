@@ -44,6 +44,9 @@ cannot creep back in.
   (`[instrumental]` without one), the caption leaves out the vocal clause, and the lyrics review and its tick
   do not apply. Style descriptions use the local model when it is installed, as the external one would have only a
   title. Changing a corpus's Voice to or from **none** updates the songs already analysed.
+- **A planned instrumental's main button always makes a new take.** Once an instrumental has a plan the editor's main
+  button reads **Render this score**; like **Create cover** and **Write score plan** it now adds a take beside the
+  original whenever the original has audio, not only when the score had changed. A take with no audio yet is filled in.
 - **Play after switching spaces.** A take paused in one space can be resumed after switching to another; Play
   did nothing because the player had lost the take.
 

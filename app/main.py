@@ -2401,7 +2401,8 @@ async def rearrange(take_id: str, body: RearrangeIn) -> dict:
     record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
     title = " ".join((body.title or "").split())
     if not title or title == take["title"]:
-        title = f"{_base_title(take['title'])} \u00b7 rearranged"
+        moved = (body.abc or "").strip() != (take["abc"] or "").strip()
+        title = f"{_base_title(take['title'])} \u00b7 {'rearranged' if moved else 'again'}"
     if body.seed is not None:
         seed = body.seed
     elif body.reseed:

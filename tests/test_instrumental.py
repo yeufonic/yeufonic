@@ -278,6 +278,11 @@ def test_a_rearranged_planned_instrumental_is_a_new_take_beside_the_original(cli
     kept = one("SELECT abc, lyrics, title FROM takes WHERE id = ?", (original["id"],))
     assert kept["abc"] == original["abc"] and kept["lyrics"] == original["lyrics"] and kept["title"] == "Plan"
     drain()
+    # The score unchanged (only settings differ): still a new take, titled as another render.
+    again = client.post(f"/api/takes/{original['id']}/rearrange", json={"abc": original["abc"], "reseed": True})
+    assert again.status_code == 200 and again.json()["title"] == "Plan · again"
+    assert one("SELECT COUNT(*) AS n FROM takes WHERE title LIKE 'Plan%'")["n"] == 3
+    drain()
     from_recording = make_take(kind="instrumental", source_id="rec1")
     assert client.post(f"/api/takes/{from_recording['id']}/rearrange", json={"abc": edited}).status_code == 400
     assert client.post(f"/api/takes/{original['id']}/rearrange", json={"abc": ""}).status_code == 400
