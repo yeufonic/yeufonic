@@ -5943,7 +5943,29 @@ async function doPlan() {
   }
 }
 
+/* Render this score: a take that already has audio gets a new take beside it, so a render never
+   overwrites one that may be worth keeping.  A take with no audio yet is filled in. */
 async function doRenderTake() {
+  var take = scoreOwner();
+  if (!take || take.status !== 'done' || take.kind === 'cover' || wordsChanged()) { await renderInPlace(); return; }
+  var payload = editorRenderSettings();
+  payload.abc = $('abc').value;
+  payload.title = $('title').value.trim();
+  try {
+    var made = await api('/api/takes/' + take.id + '/rearrange', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    setSelection({ formTakeId: made.id, boxKind: 'take', boxId: made.id });
+    statusLine('Rendering\u2026');
+    loadTakes();
+    closeEditor();
+  } catch (err) {
+    statusLine('Could not render: ' + err.message, 'bad');
+  }
+}
+
+async function renderInPlace() {
   var id = takeIdInEditor();
   if (!id) {
     statusLine('Nothing to render yet. Write a score plan first.', 'bad');
@@ -7063,28 +7085,7 @@ async function doInstrumental() {
   }
 }
 
-/* A planned instrumental's main button, like Create cover and Write score plan, makes a new take: a take that
-   already has audio is rendered as a new take beside it, so the original keeps its audio.  A take with no
-   audio yet is rendered itself. */
-async function doRenderPlanned() {
-  var take = scoreOwner();
-  if (!take || take.status !== 'done') { await doRenderTake(); return; }
-  var payload = editorRenderSettings();
-  payload.abc = $('abc').value;
-  payload.title = $('title').value.trim();
-  try {
-    var made = await api('/api/takes/' + take.id + '/rearrange', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    setSelection({ formTakeId: made.id, boxKind: 'take', boxId: made.id });
-    statusLine('Rendering\u2026');
-    loadTakes();
-    closeEditor();
-  } catch (err) {
-    statusLine('Could not render: ' + err.message, 'bad');
-  }
-}
+var doRenderPlanned = doRenderTake;   // a planned instrumental's main button is Render this score too
 
 async function doInstrumentalFromRecording() {
   var problem = instRecordingProblem();

@@ -2250,7 +2250,7 @@ TRY_TAIL = re.compile(r"try \d+|planner \d+\.\d\d")
 def _base_title(title: str) -> str:
     """'Night drive · Tight' -> 'Night drive', so a variation of a variation is not 'X · Tight · Loose'."""
     head, sep, tail = title.rpartition(" \u00b7 ")
-    known = tail in INTERPRETATION_NAMES.values() or tail in ("new voice", "sung again", "new words", "instrumental")
+    known = tail in INTERPRETATION_NAMES.values() or tail in ("new voice", "sung again", "new words", "instrumental", "again", "rearranged")
     return head if sep and (known or TRY_TAIL.fullmatch(tail)) else title
 
 
@@ -2386,14 +2386,14 @@ async def new_words(take_id: str, body: WordsIn) -> dict:
 
 @app.post("/api/takes/{take_id}/rearrange")
 async def rearrange(take_id: str, body: RearrangeIn) -> dict:
-    """A planned instrumental with its sections changed: a new take beside the original,
-    which keeps its own score and audio.  Its section tags follow the score."""
+    """Render a take's score as a new take beside it, which leaves the original with its own score
+    and audio.  An instrumental's section tags follow the score."""
     _gpu_free_for_rendering()
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         raise HTTPException(404, "no such take")
-    if take["kind"] != "instrumental" or take.get("source_id"):
-        raise HTTPException(400, "only an instrumental written from a structure is rearranged this way")
+    if take["kind"] == "cover":
+        raise HTTPException(400, "a cover is made again from its recording, not from a score")
     if not (body.abc or "").strip():
         raise HTTPException(400, "this take has no score to render. Write a plan first.")
     _check_score(body.abc, take["kind"])
@@ -2409,12 +2409,20 @@ async def rearrange(take_id: str, body: RearrangeIn) -> dict:
         seed = int.from_bytes(os.urandom(4), "big")
     else:
         seed = take["seed"]
-    record.update(id=uuid.uuid4().hex[:12], title=title, abc=body.abc, status="queued", created_at=time.time(),
-                  lyrics=instrumental.structure_following(take["lyrics"], body.abc) or take["lyrics"],
-                  checkpoint=config.CHECKPOINT, seed=seed,
+    abc, lyrics = body.abc, take["lyrics"]
+    if take["kind"] == "instrumental" and take.get("source_id"):
+        # An edit to a recording's score may have given it a sung melody, or changed its sections.
+        abc = _unsung(abc)
+        lyrics = instrumental.structure_of(abc)
+    elif take["kind"] == "instrumental":
+        lyrics = instrumental.structure_following(take["lyrics"], abc) or take["lyrics"]
+    record.update(id=uuid.uuid4().hex[:12], title=title, abc=abc, status="queued", created_at=time.time(),
+                  lyrics=lyrics, checkpoint=config.CHECKPOINT, seed=seed,
                   sound_seed=take.get("sound_seed") if seed == take["seed"] else None)
     record.update(_render_settings(take, body))
     record.update(_advanced_of(body, fallback=take))
+    # The locks are on the score itself, as for a take rendered in place.
+    record["abc"] = _locked_score(record["abc"], record)
     if body.interpretation is not None:
         record["interpretation"] = _interpretation(body.interpretation)
     if body.realaudio is not None:

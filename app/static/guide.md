@@ -19,7 +19,8 @@ thrown away; a render costs minutes. So the app lets you look at the plan first.
 4. Press **Write score plan**. Nothing is rendered yet: the window turns to its **Score** page.
 5. **Read the plan** when it lands. If the melody is wrong, **Write a new plan** rerolls it for the
    cost of a few seconds.
-6. Press **Render this score**. The window closes.
+6. Press **Render this score**. The window closes. A take with no audio yet is filled in; one that already has
+   audio is rendered as a new take beside it, so a render never overwrites one you may want to keep.
 
 Tick *render as soon as the plan is ready* to run both steps without stopping in between.
 
@@ -519,7 +520,7 @@ length cap, and offers to raise the cap when a longer song would be cut short. P
 
 An instrumental you wrote from a structure has a score too, and once it is planned its sections are listed in the same way. The
 structure builder is the brief for a plan not yet written, so it gives way to the list. Rearrange the sections and press
-**Render this score** (the editor's main button): the render's section tags follow the edited score, and a take that already has audio is rendered as a
+**Render this score**: the render's section tags follow the edited score. A take that already has audio is rendered as a
 new take beside it, whatever you changed, so the original keeps its own. **Write a new plan** (under the score) still asks
 for a different melody from the structure the take was written with.
 

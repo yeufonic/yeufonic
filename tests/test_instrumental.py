@@ -283,9 +283,24 @@ def test_a_rearranged_planned_instrumental_is_a_new_take_beside_the_original(cli
     assert again.status_code == 200 and again.json()["title"] == "Plan · again"
     assert one("SELECT COUNT(*) AS n FROM takes WHERE title LIKE 'Plan%'")["n"] == 3
     drain()
-    from_recording = make_take(kind="instrumental", source_id="rec1")
-    assert client.post(f"/api/takes/{from_recording['id']}/rearrange", json={"abc": edited}).status_code == 400
     assert client.post(f"/api/takes/{original['id']}/rearrange", json={"abc": ""}).status_code == 400
+    cover = make_take(kind="cover", source_id="rec1")
+    assert client.post(f"/api/takes/{cover['id']}/rearrange", json={"abc": edited}).status_code == 400
+
+
+def test_a_song_and_an_instrumental_from_a_recording_render_as_new_takes_too(client, monkeypatch):
+    engine_ready(monkeypatch)
+    song = make_take(kind="song", title="Tune", lyrics="[verse]\nla la", abc=RECORDED, seed=7)
+    made = client.post(f"/api/takes/{song['id']}/rearrange", json={"abc": RECORDED})
+    assert made.status_code == 200, made.text
+    new = one("SELECT * FROM takes WHERE id = ?", (made.json()["id"],))
+    assert new["id"] != song["id"] and new["kind"] == "song" and new["lyrics"] == "[verse]\nla la"
+    assert new["title"] == "Tune \u00b7 again" and new["seed"] == 7 and new["status"] == "queued"
+    again = client.post(f"/api/takes/{new['id']}/rearrange", json={"abc": RECORDED}).json()
+    assert again["title"] == "Tune \u00b7 again", "the suffix does not pile up"
+    drain()
+    from_recording = make_take(kind="instrumental", source_id="rec1", abc=RECORDED)
+    assert client.post(f"/api/takes/{from_recording['id']}/rearrange", json={"abc": RECORDED}).status_code == 200
 
 
 def test_the_style_loses_only_the_tags_that_describe_a_voice():
