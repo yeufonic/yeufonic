@@ -97,7 +97,7 @@ def test_the_windows_engine_gets_whisper_with_the_cuda_12_libraries_ctranslate2_
     goes in without its dependencies so PyAV is left alone."""
     setup = (Path(__file__).resolve().parent.parent / "windows" / "setup.ps1").read_text(encoding="utf-8")
     block = setup.split("IsDone 'engine-whisper')")[1].split("Done 'engine-whisper'")[0]
-    assert "'--no-deps', 'faster-whisper==1.2.1'" in block
+    assert "'--no-deps', 'faster-whisper==1.2.1'" in block and block.count("--no-warn-conflicts") >= 2   # pip's red note about onnxruntime is not a failure
     assert "nvidia-cublas-cu12" in block and "nvidia-cudnn-cu12" in block and "ctranslate2>=4.5,<5" in block
     # the model comes down with the installer's own download, so it shows progress, resumes and is checked
     block = setup.split("IsDone 'engine-whisper-model')")[1].split("Done 'engine-whisper-model'")[0]

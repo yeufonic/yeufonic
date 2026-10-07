@@ -415,8 +415,10 @@ if (-not (IsDone 'engine-demucs')) {
 # dependencies, which would hold PyAV to a version of their choosing. Without all this the node is not there and the app
 # hears words on the CPU as before.
 if (-not (IsDone 'engine-whisper')) {
-    Invoke-Checked 'Whisper for the engine' $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', '--no-deps', 'faster-whisper==1.2.1')
-    Invoke-Checked "Whisper's GPU libraries" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', 'ctranslate2>=4.5,<5', 'tokenizers', 'nvidia-cublas-cu12', 'nvidia-cudnn-cu12')
+    # --no-warn-conflicts: pip would say in red that faster-whisper wants onnxruntime, which is only for the voice detector
+    # that is switched off, and the line looks like a failure.
+    Invoke-Checked 'Whisper for the engine' $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', '--no-warn-conflicts', '--no-deps', 'faster-whisper==1.2.1')
+    Invoke-Checked "Whisper's GPU libraries" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', '--no-warn-conflicts', 'ctranslate2>=4.5,<5', 'tokenizers', 'nvidia-cublas-cu12', 'nvidia-cudnn-cu12')
     Done 'engine-whisper'
 }
 # Our own node, carried by the installer.
