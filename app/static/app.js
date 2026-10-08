@@ -5774,6 +5774,21 @@ function setScoreActions() {
     node.style.cursor = enabled ? '' : 'not-allowed';
   });
   var fresh = enabled && wordsChanged();
+  // Words with more sections than the tune has: the tune cannot sing them, so a new plan is written unless asked otherwise.
+  var gap = fresh && State.mode === 'song' ? tuneSectionGap() : null;
+  var owner = scoreOwner();
+  if (gap && owner && State.gapSeen !== owner.id) {
+    State.gapSeen = owner.id;
+    if ($('keep-tune')) { $('keep-tune').checked = false; }
+  }
+  if (!gap) { State.gapSeen = null; }
+  if ($('keep-tune-note')) {
+    $('keep-tune-note').classList.toggle('hidden', !gap);
+    if (gap) {
+      $('keep-tune-note').textContent = 'Your words have ' + gap.asked + ' sections and this tune has ' + gap.have + '. ' +
+        ($('keep-tune') && $('keep-tune').checked ? 'Keeping the tune sings only the first ' + gap.have + '.' : 'A new plan is written, so all of them are used.');
+    }
+  }
   var keep = keepTune();
   $('render-take').textContent = fresh ? 'Sing with new words' : 'Render this score';
   // Already an instrumental: nothing to make.
@@ -5828,6 +5843,13 @@ function scoreOwner() {
   if (!id) { return null; }
   return (State.takes || []).find(function (t) { return t.id === id; }) ||
     (State.formTake && State.formTake.id === id ? State.formTake : null);
+}
+
+/* How many sections the words ask for against how many the tune's score has, when the words ask for more. */
+function tuneSectionGap() {
+  var spans = scoreSectionSpans($('abc').value);
+  var asked = String($('lyrics').value || '').split('\n').filter(function (line) { return /^\[[^\]]+\]\s*$/.test(line.trim()); }).length;
+  return spans.length && asked > spans.length ? { asked: asked, have: spans.length } : null;
 }
 
 function wordsChanged() {
@@ -7823,6 +7845,8 @@ function wireStructure() {
    follows them, and they can be put in the lyrics box as empty sections to write under.  Once the box has
    words, the lyrics are what is sung and the builder steps aside. */
 var SONGPLAN = { sections: ['Verse', 'Chorus', 'Verse', 'Chorus', 'Bridge', 'Chorus'], dragged: null };
+var SONGPLAN_USUAL = 10;               // measured: a plan comes out with 8 to 10 sections whatever the words ask for
+var SONGPLAN_USUAL_WORDS = '8 to 10';
 var SONG_SECTIONS = ['Intro', 'Verse', 'Pre-Chorus', 'Chorus', 'Bridge', 'Interlude', 'Outro'];
 
 function lyricsHaveWords(text) {
@@ -7858,7 +7882,10 @@ function paintSongPlan() {
     return '<button type="button" class="chip" data-sp-add="' + name + '"' +
       (name === 'Interlude' ? ' title="An instrumental passage: no lines are written under it"' : '') + '>+ ' + name.toLowerCase() + '</button>';
   }).join('');
-  $('song-structure-body').innerHTML = '<ol class="struct-list">' + rows + '</ol><div class="struct-add">' + adds + '</div>';
+  var long = SONGPLAN.sections.length > SONGPLAN_USUAL
+    ? '<p class="struct-note over">The planner usually writes ' + SONGPLAN_USUAL_WORDS + ' sections, so a longer list gets condensed and the words of the sections it drops are not sung. ' +
+      'For a longer song, give each section more lines when you write the lyrics.</p>' : '';
+  $('song-structure-body').innerHTML = '<ol class="struct-list">' + rows + '</ol><div class="struct-add">' + adds + '</div>' + long;
 }
 
 function wireSongPlan() {

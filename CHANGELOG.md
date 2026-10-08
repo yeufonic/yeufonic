@@ -46,6 +46,8 @@ cannot creep back in.
   write under by hand, and the lyrics editor has buttons for intro, pre-chorus, interlude and outro. The old Structure
   dropdown in the Write lyrics window is gone, replaced by the builder. A take's **Details** shows the structure it was
   asked for (the lyrics' sections, with their line counts) and the sections the plan wrote, with where each starts.
+  The builder says when a list is longer than the planner usually writes (8 to 10 sections), and when words have more
+  sections than a take's tune, **Keep this tune** is unticked, with a line saying why, so a new plan is written for them.
 - **More styles to start from.** The Style dropdown has 200 styles. About 125 are new and cover mainstream genres (pop,
   rock, country, R&B, gospel, Latin, metal and more), with more rap, hip-hop, trap and EDM; some of the most niche
   of the old ones were dropped to make room. Songs and covers have five more one-click presets.
