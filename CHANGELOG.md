@@ -66,6 +66,9 @@ and a recreate as well as a pull.
   than the planner usually writes (8 to 10 sections), and when edited words have more sections than a take's tune,
   or far more syllables than it has notes (long lines on a tune made for short ones come out repeated or dropped),
   **Keep this tune** is unticked, with a line saying why, so a new plan is written for them.
+- **New songs start at Harmony Varied and interpretation Wide,** where they used to start at Familiar and Standard: our
+  own testing found that pair gave the most musically interesting renditions. Both can be changed, existing takes keep
+  their own, and the API's defaults are unchanged.
 - **Write lyrics remembers the brief.** What a song was said to be about is kept with the take, and opening a take and
   pressing Write lyrics shows it again. A take made with new words keeps it, or takes the one you changed it to.
 - **Render this score makes a new take.** A take that already has audio is rendered as a new take beside it, so a render

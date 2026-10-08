@@ -204,7 +204,9 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
 
 ### The sound
 
-- **Harmony** (the slider): how adventurous the chords are. The planner left alone tends to write one four-chord
+- **Harmony** (the slider): how adventurous the chords are. A new song starts at **Varied**, with the interpretation
+  set to **Wide**: in our own testing that pair gave the most musically interesting renditions, so it is a good place to start. Move
+  either to taste. Existing takes keep what they were made with. The planner left alone tends to write one four-chord
   loop and use it for every section, and each step pushes it a little further from that. The steps build on each
   other:
 
@@ -992,7 +994,7 @@ be rendered again.
 **+ Song**, **+ Cover** and **+ Instrumental** on the take panel, or **New song** beside the
 editor's heading, start again from the take on show. They clear the title, the lyrics and the score,
 and start from the defaults: an empty style (with a chosen LoRA's trigger word), the usual length
-cap, Harmony Familiar, plan variety normal, interpretation Standard, production polish on,
+cap, Harmony Varied, plan variety normal, interpretation Wide, production polish on,
 normalising off, and a new seed that is not held. A chosen LoRA and a chosen recording stay chosen.
 The take being shown lets go of the editor, so Render cannot act on it by mistake.
 

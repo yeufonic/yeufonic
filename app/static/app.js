@@ -10117,9 +10117,9 @@ async function startFresh() {
   State.capFromScore = false;
   followRecordingCap();
   if ($('variety')) { $('variety').value = 'normal'; }
-  // Familiar: YuE2's own chords, the slider's first step.
-  if ($('harmony')) { $('harmony').value = 0; paintHarmony(); }
-  $('interpretation').value = 'standard';
+  // Varied and Wide: where a new song starts (our own testing found it a good starting point).
+  if ($('harmony')) { $('harmony').value = 1; paintHarmony(); }
+  $('interpretation').value = 'wide';
   paintInterpretation();
   if ($('realaudio') && !$('realaudio').disabled) { $('realaudio').checked = true; }
   if ($('normalise')) { $('normalise').checked = false; }
