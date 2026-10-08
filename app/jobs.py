@@ -101,12 +101,14 @@ PLAN_VARIETY = {
 HARMONY_NODE = "YuE2GenerateABCHarmony"
 HARMONY_STEPS = ["Familiar", "Varied", "Colourful", "Adventurous", "Outside"]
 HARMONY_OFF = {"chord_identity": "root", "chord_strength": 0.0, "chord_window": 16, "hold_limit": 8,
-               "outside_bonus": 0.0, "outside_limit": 0.25}
+               "outside_bonus": 0.0, "outside_limit": 0.25, "section_strength": 0.0, "section_open": 4}
+# From Colourful up, a section may not open the way the one before it did (see the node).
+SECTION_STRENGTH = 8.0
 HARMONY = {
     1: {"chord_identity": "spelling", "chord_strength": 8.0},
-    2: {"chord_identity": "spelling", "chord_strength": 16.0},
-    3: {"chord_identity": "root", "chord_strength": 32.0},
-    4: {"chord_identity": "root", "chord_strength": 32.0, "outside_bonus": 3.0},
+    2: {"chord_identity": "spelling", "chord_strength": 16.0, "section_strength": SECTION_STRENGTH},
+    3: {"chord_identity": "root", "chord_strength": 32.0, "section_strength": SECTION_STRENGTH},
+    4: {"chord_identity": "root", "chord_strength": 32.0, "outside_bonus": 3.0, "section_strength": SECTION_STRENGTH},
 }
 
 

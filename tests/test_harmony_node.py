@@ -108,3 +108,43 @@ def test_an_accidental_after_the_letter_decides_the_root(harmony):
 def test_off_is_inactive(harmony):
     assert not harmony.HarmonyTracker(VOCAB, "root", 0.0).active
     assert not harmony.HarmonyTracker(VOCAB, "spelling", 0.0, outside_bonus=5.0).active   # the bonus is root mode only
+
+
+SECTION_VOCAB = VOCAB + ['% verse\n', '% chorus\n', '"Em"']
+SECTION_IDS = {text: i for i, text in enumerate(SECTION_VOCAB)}
+
+
+def follow(harmony, parts, **kw):
+    t = harmony.HarmonyTracker(SECTION_VOCAB, "root", kw.pop("strength", 0.0), section_strength=kw.pop("section_strength", 6.0), **kw)
+    t.feed([SECTION_IDS[p] for p in parts])
+    return t
+
+
+VERSE = ['K:D\n', '% verse\n', 'V: Vocal name="Vocal"\n', '"D"', 'z16|', '"Gmaj7"', 'z16|', '"A"', 'z16|', '"Bm"', 'z16|', '\n']
+
+
+def test_a_section_may_not_open_the_way_the_last_one_did(harmony):
+    t = follow(harmony, VERSE + ['% chorus\n', 'V: Vocal name="Vocal"\n'])
+    assert t.previous == [2, 7, 9, 11]                  # D, G, A, B
+    assert t.section_penalty(harmony.root_of("D")) == 6.0      # the first chord, as before
+    assert t.section_penalty(harmony.root_of("G")) == 0.0      # a chord from the verse, at a different place
+    t = follow(harmony, VERSE + ['% chorus\n', 'V: Vocal name="Vocal"\n', '"G"', 'z16|'])
+    assert t.opening == [7]
+    assert t.section_penalty(harmony.root_of("G")) == 0.0      # holding what it chose
+    assert t.section_penalty(harmony.root_of("G") + 0) == 0.0
+    assert t.section_penalty(harmony.root_of("A")) == 0.0      # the verse's third chord, at the second place
+    t = follow(harmony, VERSE + ['% chorus\n', 'V: Vocal name="Vocal"\n', '"A"', 'z16|'])
+    assert t.section_penalty(harmony.root_of("G")) == 6.0      # the verse's second chord, at the second place
+
+
+def test_the_penalty_ends_after_the_chords_compared(harmony):
+    t = follow(harmony, VERSE + ['% chorus\n', 'V: Vocal name="Vocal"\n', '"A"', 'z16|', '"Em"', 'z16|'], section_open=2)
+    assert t.opening == [9, 4]
+    assert t.section_penalty(harmony.root_of("A")) == 0.0      # past the two compared, nothing is penalised
+
+
+def test_the_first_section_has_nothing_to_copy_and_off_is_off(harmony):
+    t = follow(harmony, ['K:D\n', '% verse\n', 'V: Vocal name="Vocal"\n', '"D"', 'z16|'])
+    assert t.previous == [] and t.section_penalty(harmony.root_of("D")) == 0.0
+    t = follow(harmony, VERSE + ['% chorus\n', 'V: Vocal name="Vocal"\n'], section_strength=0.0)
+    assert not t.active and t.section_penalty(harmony.root_of("D")) == 0.0
