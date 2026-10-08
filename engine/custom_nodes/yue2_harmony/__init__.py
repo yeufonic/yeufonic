@@ -17,6 +17,11 @@ same chord":
   root      root pitch class.  C, Cmaj7 and C/E are one chord, so the model has
             to move somewhere new, and borrowed chords appear.
 
+A section penalty keeps a new section from opening the way the one before it did: the
+n-th chord a section moves to may not be the n-th chord the previous section moved to,
+for its first few chords.  Nothing is forbidden outright and no chord is chosen: it only
+costs the planner logits to copy the opening, so a chorus has to find its own way in.
+
 An optional bonus favours roots outside the key from the score's K: line, only on
 a change of chord and only while few recent chords are already outside, so the
 song cannot settle on an out-of-key chord.
@@ -33,6 +38,7 @@ import comfy.text_encoders.yue2 as yue2
 
 NOTE = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 HEADER = re.compile(r"^[A-Za-z]:")
+SECTION_LINE = re.compile(r"^%\s*([A-Za-z][\w -]*?)\s*$")
 KEY_LINE = re.compile(r"^K:\s*([A-G][#b]?)(m?)", re.M)
 MAJOR_STEPS = {0, 2, 4, 5, 7, 9, 11}
 MINOR_STEPS = {0, 2, 3, 5, 7, 8, 10}
@@ -82,7 +88,7 @@ def walk(text, line, partial):
 
 class HarmonyTracker:
     def __init__(self, vocab, mode="root", strength=0.0, window=16, hold_limit=8,
-                 outside_bonus=0.0, outside_limit=0.25, candidates=64):
+                 outside_bonus=0.0, outside_limit=0.25, candidates=64, section_strength=0.0, section_open=4):
         self.vocab = vocab
         self.mode = mode
         self.strength = strength
@@ -90,6 +96,10 @@ class HarmonyTracker:
         self.outside_bonus = outside_bonus if mode == "root" else 0.0
         self.outside_limit = outside_limit
         self.candidates = candidates
+        self.section_strength = section_strength
+        self.section_open = section_open
+        self.opening = []        # the roots this section has moved through so far, up to section_open of them
+        self.previous = []       # the same for the section before
         self.seen = 0
         self.line = ""
         self.partial = None
@@ -102,7 +112,7 @@ class HarmonyTracker:
 
     @property
     def active(self):
-        return self.strength > 0 or self.outside_bonus > 0
+        return self.strength > 0 or self.outside_bonus > 0 or self.section_strength > 0
 
     # ------------------------------------------------------------- following
     def identity(self, symbol):
@@ -117,11 +127,14 @@ class HarmonyTracker:
                 if key and "\n" in self.head[key.end():]:
                     steps = MINOR_STEPS if key.group(2) else MAJOR_STEPS
                     self.scale = {(root_of(key.group(1)) + s) % 12 for s in steps}
+            self.follow_sections(text)
             self.line, self.partial, done = walk(text, self.line, self.partial)
             for symbol in done:
                 root = root_of(symbol)
                 if root is None:
                     continue
+                if len(self.opening) < self.section_open and (not self.opening or self.opening[-1] != root):
+                    self.opening.append(root)
                 # Holding is counted by root, so respelling a chord (E5, Em, Em7)
                 # does not reset the count.
                 if root == self.last_root:
@@ -133,6 +146,29 @@ class HarmonyTracker:
                 if not self.changes or self.changes[-1] != ident:
                     self.changes.append(ident)
         self.seen = len(history)
+
+    def follow_sections(self, text):
+        """A comment line such as '% chorus' starts a section: what the last one opened with
+        becomes what this one must not copy."""
+        line = self.line
+        for ch in text:
+            if ch != "\n":
+                line += ch
+                continue
+            if SECTION_LINE.match(line):
+                self.previous, self.opening = self.opening, []
+            line = ""
+
+    def section_penalty(self, root):
+        """Cost of choosing this root, if it would repeat the previous section's opening at the same place."""
+        if not self.section_strength or not self.previous:
+            return 0.0
+        place = len(self.opening)
+        if self.opening and root == self.opening[-1]:
+            return 0.0                        # holding the chord already chosen
+        if place < len(self.previous) and place < self.section_open and root == self.previous[place]:
+            return self.section_strength
+        return 0.0
 
     def outside_share(self):
         if not self.scale or not self.changes:
@@ -190,14 +226,14 @@ class HarmonyTracker:
                 value = self.spelling_penalty(done, partial)
                 symbol = done[0] if done else partial
                 if len(before) <= 1 and root_of(symbol) is not None:
-                    value += self.hold_penalty(root_of(symbol))
+                    value += self.hold_penalty(root_of(symbol)) + self.section_penalty(root_of(symbol))
             else:
                 symbol = done[0] if done else partial
                 # The root is decided at its letter, and at the step after it, where
                 # an accidental or anything else settles sharp, flat or natural.
                 if not symbol or root_of(symbol) is None or len(before) >= 2:
                     continue
-                value = self.root_penalty(root_of(symbol))
+                value = self.root_penalty(root_of(symbol)) + self.section_penalty(root_of(symbol))
             if value:
                 out_ids.append(token)
                 values.append(value)
@@ -257,13 +293,20 @@ class YuE2GenerateABCHarmony:
                                         "tooltip": "Root mode: logits added to a change to a root outside the key."}),
             "outside_limit": ("FLOAT", {"default": 0.25, "min": 0.0, "max": 1.0, "step": 0.05,
                                         "tooltip": "The bonus stops while this share of recent chords is already outside the key."}),
+        }, "optional": {
+            "section_strength": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 64.0, "step": 0.5,
+                                           "tooltip": "Logits taken from a chord that would repeat how the previous section opened. 0 is off."}),
+            "section_open": ("INT", {"default": 4, "min": 1, "max": 16,
+                                     "tooltip": "How many of a section's first chords are compared with the previous section's."}),
         }}
 
     def execute(self, clip, style, lyrics, seed, mode, max_abc_tokens, temperature, top_p, top_k, repetition_penalty,
-                penalty_window, chord_identity, chord_strength, chord_window, hold_limit, outside_bonus, outside_limit):
+                penalty_window, chord_identity, chord_strength, chord_window, hold_limit, outside_bonus, outside_limit,
+                section_strength=0.0, section_open=4):
         tokens = clip.tokenize(style, lyrics=lyrics, cot=mode, seed=seed, max_tokens=max_abc_tokens, penalty_window=penalty_window)
         tracker = HarmonyTracker(vocabulary(clip), chord_identity, chord_strength, chord_window, hold_limit,
-                                 outside_bonus, outside_limit, candidates=max(64, top_k))
+                                 outside_bonus, outside_limit, candidates=max(64, top_k),
+                                 section_strength=section_strength, section_open=section_open)
         generate = lambda: clip.generate(tokens, max_length=max_abc_tokens, temperature=temperature, top_p=top_p,
                                          top_k=top_k, repetition_penalty=repetition_penalty, seed=seed)
         if tracker.active:
