@@ -244,3 +244,34 @@ def test_a_plan_is_stored_at_the_locked_tempo(monkeypatch):
     unlocked = make_take(status="queued")
     asyncio.run(jobs.run_job("plan", unlocked["id"]))
     assert "Q:1/4=97" in one("SELECT abc FROM takes WHERE id = ?", (unlocked["id"],))["abc"]
+
+
+# ------------------------------------------------ sections open differently
+
+def test_sections_open_differently_follows_the_harmony_step_unless_forced(monkeypatch):
+    from app import jobs
+    from conftest import make_take
+    plan = lambda harmony, sections: jobs.build_plan_graph(make_take(harmony=harmony, chord_sections=sections))["2"]
+    assert plan(0, None)["class_type"] != jobs.HARMONY_NODE                                # Familiar: the stock planner
+    assert plan(1, None)["inputs"]["section_strength"] == 0.0                                 # Varied: off
+    assert plan(2, None)["inputs"]["section_strength"] == jobs.SECTION_STRENGTH               # Colourful and up: on
+    assert plan(0, 1)["class_type"] == jobs.HARMONY_NODE                                      # forced on at Familiar
+    assert plan(0, 1)["inputs"]["section_strength"] == jobs.SECTION_STRENGTH
+    assert plan(1, 1)["inputs"]["section_strength"] == jobs.SECTION_STRENGTH
+    assert plan(3, 0)["inputs"]["section_strength"] == 0.0                                    # forced off at Adventurous
+    assert plan(0, 0)["class_type"] != jobs.HARMONY_NODE
+
+
+def test_sections_open_differently_is_kept_with_the_take_and_null_means_follow(client):
+    res = client.post("/api/songs", json={"title": "S", "style": "rock", "lyrics": "[Verse]\nhi", "chord_sections": 1})
+    assert res.status_code == 200, res.text
+    take = res.json()
+    assert take["chord_sections"] == 1
+    assert client.post("/api/songs", json={"title": "S", "style": "rock", "lyrics": "[Verse]\nhi"}).json()["chord_sections"] is None
+    assert client.post("/api/songs", json={"title": "S", "style": "rock", "lyrics": "[Verse]\nhi", "chord_sections": 2}).status_code == 422
+    execute("UPDATE takes SET status = 'planned', abc = ? WHERE id = ?", ("X:1\nK:C\nV: Vocal\n" + "z8|" * 40, take["id"]))
+    assert client.post(f"/api/takes/{take['id']}/replan", json={"chord_sections": 0}).status_code == 200
+    assert one("SELECT chord_sections FROM takes WHERE id = ?", (take["id"],))["chord_sections"] == 0
+    execute("UPDATE takes SET status = 'planned' WHERE id = ?", (take["id"],))
+    assert client.post(f"/api/takes/{take['id']}/replan", json={"chord_sections": None}).status_code == 200
+    assert one("SELECT chord_sections FROM takes WHERE id = ?", (take["id"],))["chord_sections"] is None

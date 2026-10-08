@@ -42,7 +42,8 @@ cannot creep back in.
 - **A chorus no longer opens the way the verse did.** From Colourful up, the Harmony step also takes logits from a
   chord that would repeat how the previous section opened (its first four chords, position for position). It chooses no
   chord and forbids none, and the chords inside a section can still loop. The engine image changed (the Harmony node),
-  so updating needs `docker compose build engine` and a recreate.
+  so updating needs `docker compose build engine` and a recreate. **Sections open differently** in the Advanced
+  settings follows the Harmony step by default, or can be set to Always or Never for a take.
 - **Filter takes by kind.** Song, Cover and Instrumental toggles beside the library's filters show only those kinds in
   whichever space is open. Pick more than one, or none for every kind; the choice is kept across a reload.
 - **Build a song's structure, then write the words.** Song from a prompt has a structure builder above the lyrics, as an

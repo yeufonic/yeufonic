@@ -185,9 +185,12 @@ def build_plan_graph(take: dict) -> dict:
     step = int(take.get("harmony") or 0)
     hold_limit = int(take["chord_hold_limit"]) if take.get("chord_hold_limit") is not None else 8
     outside_bonus = float(take["chord_outside_bonus"]) if take.get("chord_outside_bonus") is not None else 0.0
-    if step in HARMONY or hold_limit != 8 or outside_bonus != 0.0:
+    sections = take.get("chord_sections")      # None follows the step; 1 forces sections to open differently, 0 does not
+    if step in HARMONY or hold_limit != 8 or outside_bonus != 0.0 or sections:
         graph["2"]["class_type"] = HARMONY_NODE
         node.update({**HARMONY_OFF, **HARMONY.get(step, {})})
+        if sections is not None:
+            node["section_strength"] = SECTION_STRENGTH if sections else 0.0
         if take.get("chord_hold_limit") is not None:
             node["hold_limit"] = hold_limit
         if take.get("chord_outside_bonus") is not None and (step != 4 or outside_bonus != 0.0):

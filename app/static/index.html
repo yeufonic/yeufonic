@@ -738,6 +738,16 @@
         <input type="number" id="adv-chord-outside-bonus" min="0.0" max="10.0" step="0.5" value="0.0">
       </div>
 
+      <!-- Sections open differently -->
+      <div class="field" title="Whether a section may open on the same chords as the one before it. Follow the Harmony step turns this on from Colourful up.">
+        <label for="adv-chord-sections">Sections open differently <span class="muted">(default: follow Harmony)</span></label>
+        <select id="adv-chord-sections">
+          <option value="">Follow Harmony</option>
+          <option value="1">Always</option>
+          <option value="0">Never</option>
+        </select>
+      </div>
+
       <!-- Target LUFS -->
       <div class="field" title="Integrated loudness target in LUFS used when normalisation is enabled. Default: -14.0 LUFS.">
         <label for="adv-target-lufs">Target loudness <span class="muted">(-24.0 to -6.0 LUFS, default: -14.0)</span></label>

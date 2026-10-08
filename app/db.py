@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS takes (
     max_abc_tokens INTEGER DEFAULT 8192,
     chord_hold_limit INTEGER DEFAULT 8,
     chord_outside_bonus REAL DEFAULT 0.0,
+    chord_sections INTEGER,
     target_lufs REAL,
     fade_out_seconds REAL DEFAULT 3.0
 );
@@ -482,6 +483,12 @@ def _advanced_take_settings() -> None:
         execute("ALTER TABLE takes ADD COLUMN fade_out_seconds REAL DEFAULT 3.0")
 
 
+def _chord_sections() -> None:
+    """Whether a section may open on the chords of the one before: null follows the Harmony step."""
+    if "chord_sections" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN chord_sections INTEGER")
+
+
 MIGRATIONS = [
     lambda: (conn().executescript(BASE_SCHEMA), _legacy_takes()),   # -> 1
     _indexes,                                                        # -> 2
@@ -511,6 +518,7 @@ MIGRATIONS = [
     _source_corpus_song,                                             # -> 26
     _lyrics_versions,                                                # -> 27
     _advanced_take_settings,                                         # -> 28
+    _chord_sections,                                                 # -> 29
 ]
 
 

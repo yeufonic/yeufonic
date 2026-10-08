@@ -70,6 +70,9 @@ Some of these act on the plan, and some on the render and the finished file:
   chords and roots outside the home key. These two act on the planner's choices, so they show as a
   difference in the chords of the plan rather than as a clear difference by ear. Compare the Score
   window.
+- **Sections open differently** (Follow Harmony, Always, Never): whether a section may open on the same
+  chords as the one before it. *Follow Harmony* turns it on from Colourful up and leaves it off below; *Always* and
+  *Never* decide for this take at any step, so two plans can be compared with and without it.
 - **Target loudness:** the level a take is normalised to. It applies only when normalising is on.
 - **Outro fade** (seconds, default 3): the length of the fade when a take is cut off at the length
   cap.
