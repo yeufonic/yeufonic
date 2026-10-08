@@ -99,3 +99,18 @@ def test_a_render_that_leaves_settings_out_keeps_the_takes(client, monkeypatch):
     take = one("SELECT * FROM takes WHERE id = 'orig1'")
     assert (take["style"], take["max_duration"], take["style_lora"], take["style_lora_model"]) == \
         ("pop", 120, "tidewater_lora.safetensors", 0.7)
+
+
+def test_a_songs_brief_is_kept_with_it_and_follows_its_new_words(client, monkeypatch):
+    """What the lyrics were asked to be about comes back when the take is opened and Write lyrics is pressed."""
+    from app import main
+    monkeypatch.setattr(main, "_checkpoint", lambda: "x")
+    made = client.post("/api/songs", json={"title": "S", "style": "rock", "lyrics": "[Verse]\nhi", "brief": "  a night bus home  "}).json()
+    assert made["brief"] == "a night bus home"
+    assert client.post("/api/songs", json={"title": "S", "style": "rock", "lyrics": "[Verse]\nhi"}).json()["brief"] is None
+    execute("UPDATE takes SET status = 'done', abc = ? WHERE id = ?", (ABC, made["id"]))
+    same = client.post(f"/api/takes/{made['id']}/words", json={"lyrics": "[Verse]\nho"}).json()
+    assert one("SELECT brief FROM takes WHERE id = ?", (same["id"],))["brief"] == "a night bus home"      # copied
+    edited = client.post(f"/api/takes/{made['id']}/words", json={"lyrics": "[Verse]\nhey", "brief": "a night bus to the sea"}).json()
+    assert one("SELECT brief FROM takes WHERE id = ?", (edited["id"],))["brief"] == "a night bus to the sea"
+    assert one("SELECT brief FROM takes WHERE id = ?", (made["id"],))["brief"] == "a night bus home"         # the original keeps its own

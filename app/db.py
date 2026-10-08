@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS takes (
     chord_outside_bonus REAL DEFAULT 0.0,
     chord_sections INTEGER,
     follow_structure INTEGER,
+    brief TEXT,
     target_lufs REAL,
     fade_out_seconds REAL DEFAULT 3.0
 );
@@ -496,6 +497,12 @@ def _follow_structure() -> None:
         execute("ALTER TABLE takes ADD COLUMN follow_structure INTEGER")
 
 
+def _brief() -> None:
+    """What a song was said to be about when its lyrics were written, so Write lyrics can show it again."""
+    if "brief" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN brief TEXT")
+
+
 MIGRATIONS = [
     lambda: (conn().executescript(BASE_SCHEMA), _legacy_takes()),   # -> 1
     _indexes,                                                        # -> 2
@@ -527,6 +534,7 @@ MIGRATIONS = [
     _advanced_take_settings,                                         # -> 28
     _chord_sections,                                                 # -> 29
     _follow_structure,                                               # -> 30
+    _brief,                                                          # -> 31
 ]
 
 

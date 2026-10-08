@@ -5934,6 +5934,7 @@ async function doSingNewWords() {
   if (!take) { statusLine('Nothing to sing yet. Write a score plan first.', 'bad'); return; }
   var payload = editorRenderSettings();
   payload.lyrics = $('lyrics').value;
+  payload.brief = $('write-brief') ? $('write-brief').value.trim() : undefined;
   payload.abc = $('abc').value;
   payload.title = $('title').value.trim();
   try {
@@ -6031,6 +6032,7 @@ function songBody(seed) {
     title: $('title').value.trim() || guessTitle($('lyrics').value),
     style: $('style').value,
     lyrics: $('lyrics').value,
+    brief: $('write-brief') ? $('write-brief').value.trim() || null : null,
     seed: seed,
     interpretation: $('interpretation').value,
     max_duration: parseFloat($('max-duration').value) || 360,
@@ -9927,6 +9929,7 @@ function selectTake(take) {
   }
   if (formIsDraft()) { stashDraft(); }
   State.formTake = take;
+  if ($('write-brief')) { $('write-brief').value = take.brief || ''; }   // what this song was said to be about
   if ($('keep-tune')) { $('keep-tune').checked = true; }
   // Songs and instrumentals are both written from a prompt; only a cover has a recording.
   var isInst = take.kind === 'instrumental';
@@ -10084,7 +10087,11 @@ async function startFresh() {
   // The editor reads its take from here: left behind, it kept the last take's player on a new one.
   State.formTake = null;
   $('title').value = '';
-  if (State.mode !== 'inst') { $('lyrics').value = ''; paintSongPlan(); }   // an instrumental keeps its structure, like a setting
+  if (State.mode !== 'inst') {
+    $('lyrics').value = '';
+    if ($('write-brief')) { $('write-brief').value = ''; }
+    paintSongPlan();
+  }   // an instrumental keeps its structure, like a setting
   $('abc').value = '';
   scoreBaseline('');
   setChart('');

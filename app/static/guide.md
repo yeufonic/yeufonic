@@ -186,7 +186,8 @@ three things:
 
   The last choice is remembered. These are aims, not guarantees: a language model follows them closely for the
   extremes (short and punchy, long and flowing) and more loosely for the subtle ones.
-- **The brief** itself, in your own words, and the Style above, which sets the mood.
+- **The brief** itself, in your own words, and the Style above, which sets the mood. The brief is kept with the take,
+  so opening a take and pressing **Write lyrics** shows what it was asked to be about, ready to change and write again.
 
 The draft lands in the lyrics box, and the window closes as soon as it starts. It is a first draft: read it and make it
 yours.

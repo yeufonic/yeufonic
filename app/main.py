@@ -597,6 +597,8 @@ def _advanced_of(body, fallback: dict | None = None) -> dict:
 
 class SongIn(BaseModel):
     title: str | None = Field(None, max_length=200)
+    # What the lyrics were asked to be about, kept with the take so Write lyrics can show it again.
+    brief: str | None = Field(None, max_length=1000)
     style: str = Field(config.DEFAULT_STYLE, max_length=2000)
     lyrics: str = Field("", max_length=20_000)
     seed: int | None = Field(None, ge=0, le=MAX_SEED)
@@ -810,6 +812,7 @@ class RenderIn(BaseModel):
 
 class WordsIn(RenderIn):
     lyrics: str = Field(max_length=20_000)
+    brief: str | None = Field(None, max_length=1000)
     # The score as the editor holds it, so an edit to it goes with the words and the
     # original keeps its own. Omitted, the take's score is used.
     abc: str | None = Field(None, max_length=200_000)
@@ -1989,6 +1992,7 @@ def _new_take_record(kind: str, title: str, words: str, body: SongIn | Instrumen
         "title": title,
         "style": body.style.strip() or config.DEFAULT_STYLE,
         "lyrics": words,
+        "brief": (getattr(body, "brief", None) or "").strip() or None,
         "mode": "full",
         "seed": seed,
         "checkpoint": _checkpoint(),
@@ -2014,13 +2018,13 @@ def _new_take_record(kind: str, title: str, words: str, body: SongIn | Instrumen
 
 def _insert_new_take(record: dict) -> None:
     execute(
-        """INSERT INTO takes(id, kind, source_id, title, style, lyrics, abc, mode, seed, checkpoint,
+        """INSERT INTO takes(id, kind, source_id, title, style, lyrics, brief, abc, mode, seed, checkpoint,
                              max_duration, status, created_at, auto_render, variety, harmony, space_id, interpretation, feel, realaudio,
                              normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                              chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, target_lufs, fade_out_seconds)
-           VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint,
+           VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :brief, :abc, :mode, :seed, :checkpoint,
                   :max_duration, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :interpretation, :feel, :realaudio,
                   :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
@@ -2383,6 +2387,8 @@ async def new_words(take_id: str, body: WordsIn) -> dict:
     _check_score(abc, take["kind"])
     _checkpoint()
     record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
+    if body.brief is not None:
+        record["brief"] = body.brief.strip() or None
     title = " ".join((body.title or "").split())
     if not title or title == take["title"]:
         title = f"{_base_title(take['title'])} \u00b7 new words"
