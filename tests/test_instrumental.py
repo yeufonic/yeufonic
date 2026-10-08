@@ -274,14 +274,16 @@ def test_a_rearranged_planned_instrumental_is_a_new_take_beside_the_original(cli
     new = one("SELECT * FROM takes WHERE id = ?", (made.json()["id"],))
     assert new["id"] != original["id"] and new["status"] == "queued"
     assert new["abc"] == edited and new["lyrics"] == "[intro]\n[verse]\n[chorus]\n[outro]"
-    assert new["title"] == "Plan · rearranged" and new["style"] == original["style"]
+    assert new["title"] == "Plan" and new["style"] == original["style"]
     kept = one("SELECT abc, lyrics, title FROM takes WHERE id = ?", (original["id"],))
     assert kept["abc"] == original["abc"] and kept["lyrics"] == original["lyrics"] and kept["title"] == "Plan"
     drain()
-    # The score unchanged (only settings differ): still a new take, titled as another render.
+    # The score unchanged (only settings differ): still a new take, and the title is left alone.
     again = client.post(f"/api/takes/{original['id']}/rearrange", json={"abc": original["abc"], "reseed": True})
-    assert again.status_code == 200 and again.json()["title"] == "Plan · again"
-    assert one("SELECT COUNT(*) AS n FROM takes WHERE title LIKE 'Plan%'")["n"] == 3
+    assert again.status_code == 200 and again.json()["title"] == "Plan"
+    assert one("SELECT COUNT(*) AS n FROM takes WHERE title = 'Plan'")["n"] == 3
+    renamed = client.post(f"/api/takes/{original['id']}/rearrange", json={"abc": original["abc"], "title": "Mine"})
+    assert renamed.json()["title"] == "Mine"
     drain()
     assert client.post(f"/api/takes/{original['id']}/rearrange", json={"abc": ""}).status_code == 400
     cover = make_take(kind="cover", source_id="rec1")
@@ -295,9 +297,7 @@ def test_a_song_and_an_instrumental_from_a_recording_render_as_new_takes_too(cli
     assert made.status_code == 200, made.text
     new = one("SELECT * FROM takes WHERE id = ?", (made.json()["id"],))
     assert new["id"] != song["id"] and new["kind"] == "song" and new["lyrics"] == "[verse]\nla la"
-    assert new["title"] == "Tune \u00b7 again" and new["seed"] == 7 and new["status"] == "queued"
-    again = client.post(f"/api/takes/{new['id']}/rearrange", json={"abc": RECORDED}).json()
-    assert again["title"] == "Tune \u00b7 again", "the suffix does not pile up"
+    assert new["title"] == "Tune" and new["seed"] == 7 and new["status"] == "queued"
     drain()
     from_recording = make_take(kind="instrumental", source_id="rec1", abc=RECORDED)
     assert client.post(f"/api/takes/{from_recording['id']}/rearrange", json={"abc": RECORDED}).status_code == 200

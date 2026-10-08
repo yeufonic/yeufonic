@@ -2250,7 +2250,7 @@ TRY_TAIL = re.compile(r"try \d+|planner \d+\.\d\d")
 def _base_title(title: str) -> str:
     """'Night drive · Tight' -> 'Night drive', so a variation of a variation is not 'X · Tight · Loose'."""
     head, sep, tail = title.rpartition(" \u00b7 ")
-    known = tail in INTERPRETATION_NAMES.values() or tail in ("new voice", "sung again", "new words", "instrumental", "again", "rearranged")
+    known = tail in INTERPRETATION_NAMES.values() or tail in ("new voice", "sung again", "new words", "instrumental")
     return head if sep and (known or TRY_TAIL.fullmatch(tail)) else title
 
 
@@ -2399,10 +2399,8 @@ async def rearrange(take_id: str, body: RearrangeIn) -> dict:
     _check_score(body.abc, take["kind"])
     _checkpoint()
     record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
-    title = " ".join((body.title or "").split())
-    if not title or title == take["title"]:
-        moved = (body.abc or "").strip() != (take["abc"] or "").strip()
-        title = f"{_base_title(take['title'])} \u00b7 {'rearranged' if moved else 'again'}"
+    # The title is the person's: a new render of a take keeps it.
+    title = " ".join((body.title or "").split()) or take["title"]
     if body.seed is not None:
         seed = body.seed
     elif body.reseed:
