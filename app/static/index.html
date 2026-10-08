@@ -245,6 +245,19 @@
           </div>
           <div class="ed-col ed-words" data-edstep="1">
             <h4 id="ed-words-head">The words</h4>
+            <div class="field" id="song-structure-field" style="display:none">
+              <div class="label-row">
+                <label>Structure</label>
+                <span class="label-actions">
+                  <select id="song-structure-preset" class="compact" title="Start from a common shape" aria-label="Start from a common shape"></select>
+                </span>
+              </div>
+              <div id="song-structure-body"></div>
+              <div class="row" style="margin-top:6px">
+                <button type="button" id="song-structure-fill" class="chip action compact" title="Put these sections in the lyrics box as empty sections, ready to write under">Put sections in the lyrics box</button>
+              </div>
+              <div class="hint">Write lyrics follows this. Once there are words below, the lyrics are what is sung.</div>
+            </div>
             <div class="field" id="lyrics-field">
               <div class="label-row">
                 <label for="lyrics">Lyrics</label>
@@ -943,17 +956,16 @@
       <textarea id="write-brief" maxlength="1000" placeholder="Leaving the seaside town you grew up in. Bittersweet, hopeful at the end."></textarea>
     </div>
     <div class="field">
-      <label for="write-structure">Structure</label>
-      <select id="write-structure">
-        <option value="verse-chorus-bridge" title="The classic song shape. Pop, rock, country and most radio songs.">Verse, Chorus, Verse, Chorus, Bridge, Chorus</option>
-        <option value="verse-chorus" title="Short and direct. Folk, punk, country and early rock and roll.">Verse, Chorus, Verse, Chorus</option>
-        <option value="intro-outro" title="Framed by an intro and an outro. Ballads, soft rock and singer-songwriter songs.">Intro, Verse, Chorus, Verse, Chorus, Outro</option>
-        <option value="story" title="Two verses before the first hook. Story songs, folk, country and ballads.">Verse, Verse, Chorus, Verse, Chorus, Outro</option>
-        <option value="pop-pre-chorus" title="Builds into each chorus. Modern pop, dance-pop, pop rock and K-pop.">Verse, Pre-Chorus, Chorus, Verse, Pre-Chorus, Chorus, Bridge, Chorus</option>
-        <option value="hook-first" title="Opens on the hook. Streaming-era pop, indie pop and hip-hop hooks.">Chorus, Verse, Chorus, Verse, Chorus, Bridge, Chorus</option>
-        <option value="short" title="A tight, no-frills song. Punk, garage rock, rockabilly and folk.">Verse, Chorus, Verse, Chorus, Chorus</option>
-        <option value="hip-hop" title="Three verses with the hook between them. Rap, hip-hop, trap and R&amp;B.">Intro, Verse, Chorus, Verse, Chorus, Verse, Outro</option>
-        <option value="double-bridge" title="A long, building shape. Power ballads, progressive and symphonic rock, epic metal and musical theatre.">Verse, Chorus, Verse, Chorus, Bridge, Bridge, Chorus, Chorus</option>
+      <label>Structure</label>
+      <div id="write-structure-sent" class="muted"></div>
+      <div class="hint">Set in the editor, above the lyrics. The draft follows it.</div>
+    </div>
+    <div class="field">
+      <label for="write-lines">Lines in a verse or chorus</label>
+      <select id="write-lines" title="More lines in a section make a longer song">
+        <option value="4">4</option>
+        <option value="6" selected>6</option>
+        <option value="8">8</option>
       </select>
     </div>
     <p class="hint">The Style above sets the mood. The draft goes into the lyrics box, ready to edit. Treat it as a first draft: read it, and change what is not yours.</p>
@@ -1123,9 +1135,13 @@
     <div class="modal-head">
       <strong>Lyrics</strong>
       <div class="modal-tools">
+        <button class="chip" data-tag="[Intro]">+ Intro</button>
         <button class="chip" data-tag="[Verse]">+ Verse</button>
+        <button class="chip" data-tag="[Pre-Chorus]">+ Pre-Chorus</button>
         <button class="chip" data-tag="[Chorus]">+ Chorus</button>
         <button class="chip" data-tag="[Bridge]">+ Bridge</button>
+        <button class="chip" data-tag="[Interlude]" title="An instrumental passage: the tag on its own, with no lines under it">+ Interlude</button>
+        <button class="chip" data-tag="[Outro]">+ Outro</button>
         <button class="chip" data-tag="[Instrumental]">+ Instrumental</button>
       </div>
       <button id="lyrics-close" class="ghost">Done</button>

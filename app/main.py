@@ -824,6 +824,9 @@ class LyricsIn(BaseModel):
     brief: str = Field(min_length=1, max_length=1000)
     style: str = Field("", max_length=2000)
     structure: str = lyrics.DEFAULT_STRUCTURE
+    # The sections as built in the editor; when given, they are the structure.
+    sections: list[str] | None = Field(None, min_length=1, max_length=40)
+    lines: int = Field(lyrics.DEFAULT_LINES, ge=2, le=12)
     seed: int | None = Field(None, ge=0, le=2**32 - 1)
 
 
@@ -1206,7 +1209,9 @@ def state() -> dict:
             "default_style": config.DEFAULT_STYLE,
             "avg_render_seconds": float(get_setting("avg_render_seconds", "0") or 0),
             "interpretations": [{"id": key, "name": INTERPRETATION_NAMES[key]} for key in INTERPRETATIONS],
-            "lyric_structures": [{"id": key, "sections": value} for key, value in lyrics.STRUCTURES.items()],
+            "lyric_structures": [{"id": key, "sections": value, "hint": lyrics.HINTS.get(key, "")} for key, value in lyrics.STRUCTURES.items()],
+            "lyric_sections": sorted(lyrics.TAGS, key=["intro", "verse", "pre-chorus", "chorus", "bridge", "interlude", "outro"].index),
+            "lyric_lines": lyrics.DEFAULT_LINES,
             "lyrics_available": bool(llm.is_external_enabled() or ENGINE.options.get("lyrics", False)),
             "llm_provider": llm.get_config()["provider"],
             "instrumental_available": ENGINE.options.get("instrumental", False),
@@ -3771,12 +3776,19 @@ async def write_lyrics(body: LyricsIn) -> dict:
         if ENGINE.options_loaded and not ENGINE.options.get("lyrics"):
             raise HTTPException(400, f"The engine cannot write lyrics: it needs {config.LYRICS_MODEL} "
                                      "in models/text_encoders. Run scripts/fetch-models.sh.")
-    if body.structure not in lyrics.STRUCTURES:
+    sections = None
+    if body.sections:
+        try:
+            sections = lyrics.clean_sections(body.sections)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+    elif body.structure not in lyrics.STRUCTURES:
         raise HTTPException(400, f"unknown structure: {body.structure}")
     jobs.forget_old_lyrics()
     record = {
         "id": uuid.uuid4().hex[:12], "status": "queued", "brief": body.brief.strip(),
         "style": body.style.strip(), "structure": body.structure,
+        "sections": sections, "lines": body.lines,
         "seed": body.seed if body.seed is not None else int.from_bytes(os.urandom(4), "big"),
         "created_at": time.time(), "title": None, "lyrics": None, "error": None,
     }

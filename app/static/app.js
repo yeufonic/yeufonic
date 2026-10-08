@@ -1317,6 +1317,7 @@ function saveForm() {
     data.box_id = Selection.boxId || '';
     data.awaiting = awaitingPlanId() || '';
     data.structure = { kind: STRUCTURE.kind, sections: STRUCTURE.sections };
+    data.song_plan = SONGPLAN.sections;
     data.feel = FEEL.value;
     data.ui_mode = State.mode;
     data.advanced = readAdvancedSettings();
@@ -1365,6 +1366,10 @@ function loadForm() {
     STRUCTURE.sections = data.structure.sections.filter(function (item) {
       return item && SECTIONS.indexOf(item.name) >= 0;
     }).map(function (item) { return { name: item.name, seconds: Math.max(4, Math.min(180, Number(item.seconds) || 20)) }; });
+  }
+  if (Array.isArray(data.song_plan)) {
+    var kept = data.song_plan.filter(function (name) { return SONG_SECTIONS.indexOf(name) >= 0; });
+    if (kept.length) { SONGPLAN.sections = kept; }
   }
   if (data.advanced) { writeAdvancedSettings(data.advanced); }
   else { updateAdvancedButtonState(); }
@@ -5619,6 +5624,7 @@ function setMode(mode) {
   show('lyrics-field', !inst);
   show('vocal-field', !inst);
   show('structure-field', inst);
+  paintSongPlan();
   if (cover) { paintStructure(); }
   show('mode-field', !inst);
   $('headline').textContent = cover ? 'Cover a song' : (inst ? 'Write an instrumental' : 'Write a song');
@@ -7788,6 +7794,109 @@ function wireStructure() {
   $('create-inst').addEventListener('click', doInstrumental);
 }
 
+
+/* ------------------------------------------------- the structure of a song
+   Before any words exist, a song's sections are built here, as an instrumental's are: the lyric writer
+   follows them, and they can be put in the lyrics box as empty sections to write under.  Once the box has
+   words, the lyrics are what is sung and the builder steps aside. */
+var SONGPLAN = { sections: ['Verse', 'Chorus', 'Verse', 'Chorus', 'Bridge', 'Chorus'], dragged: null };
+var SONG_SECTIONS = ['Intro', 'Verse', 'Pre-Chorus', 'Chorus', 'Bridge', 'Interlude', 'Outro'];
+
+function lyricsHaveWords(text) {
+  return String(text || '').split('\n').some(function (line) {
+    line = line.trim();
+    return line && !/^\[[^\]]*\]$/.test(line);
+  });
+}
+
+function paintSongPlan() {
+  var field = $('song-structure-field');
+  if (!field) { return; }
+  var shown = State.mode === 'song' && !lyricsHaveWords($('lyrics').value);
+  field.style.display = shown ? '' : 'none';
+  if (!shown) { return; }
+  var preset = $('song-structure-preset');
+  var shapes = (State.options && State.options.lyric_structures) || [];
+  if (preset && shapes.length && preset.options.length !== shapes.length + 1) {
+    preset.innerHTML = '<option value="">Start from\u2026</option>' + shapes.map(function (shape) {
+      return '<option value="' + esc(shape.id) + '" title="' + esc(shape.hint || '') + '">' + esc(shape.sections.join(', ')) + '</option>';
+    }).join('');
+  }
+  var rows = SONGPLAN.sections.map(function (name, index) {
+    var options = SONG_SECTIONS.map(function (item) {
+      return '<option value="' + item + '"' + (item === name ? ' selected' : '') + '>' + item + '</option>';
+    }).join('');
+    return '<li class="struct-row" draggable="true" data-sp="' + index + '"><select data-sp-row="' + index + '">' + options + '</select>' +
+      '<button type="button" class="struct-btn" data-sp-act="up" data-sp-row="' + index + '" title="Move up"' + (index === 0 ? ' disabled' : '') + '>\u2191</button>' +
+      '<button type="button" class="struct-btn" data-sp-act="down" data-sp-row="' + index + '" title="Move down"' + (index === SONGPLAN.sections.length - 1 ? ' disabled' : '') + '>\u2193</button>' +
+      '<button type="button" class="struct-btn" data-sp-act="remove" data-sp-row="' + index + '" title="Remove"' + (SONGPLAN.sections.length < 2 ? ' disabled' : '') + '>\u00d7</button></li>';
+  }).join('');
+  var adds = SONG_SECTIONS.map(function (name) {
+    return '<button type="button" class="chip" data-sp-add="' + name + '"' +
+      (name === 'Interlude' ? ' title="An instrumental passage: no lines are written under it"' : '') + '>+ ' + name.toLowerCase() + '</button>';
+  }).join('');
+  $('song-structure-body').innerHTML = '<ol class="struct-list">' + rows + '</ol><div class="struct-add">' + adds + '</div>';
+}
+
+function wireSongPlan() {
+  var body = $('song-structure-body');
+  if (!body) { return; }
+  $('lyrics').addEventListener('input', paintSongPlan);
+  $('song-structure-preset').addEventListener('change', function (event) {
+    var shape = ((State.options && State.options.lyric_structures) || []).filter(function (item) { return item.id === event.target.value; })[0];
+    if (shape) { SONGPLAN.sections = shape.sections.slice(); }
+    event.target.value = '';
+    paintSongPlan();
+    saveForm();
+  });
+  body.addEventListener('click', function (event) {
+    var add = event.target.closest('[data-sp-add]');
+    var act = event.target.closest('[data-sp-act]');
+    if (add) { SONGPLAN.sections.push(add.dataset.spAdd); }
+    else if (act) {
+      var from = Number(act.dataset.spRow);
+      if (act.dataset.spAct === 'remove') { SONGPLAN.sections.splice(from, 1); }
+      else {
+        var to = from + (act.dataset.spAct === 'up' ? -1 : 1);
+        if (to < 0 || to >= SONGPLAN.sections.length) { return; }
+        SONGPLAN.sections.splice(to, 0, SONGPLAN.sections.splice(from, 1)[0]);
+      }
+    } else { return; }
+    paintSongPlan();
+    saveForm();
+  });
+  body.addEventListener('change', function (event) {
+    if (event.target.dataset.spRow === undefined) { return; }
+    SONGPLAN.sections[Number(event.target.dataset.spRow)] = event.target.value;
+    paintSongPlan();
+    saveForm();
+  });
+  body.addEventListener('dragstart', function (event) {
+    var row = event.target.closest ? event.target.closest('[data-sp]') : null;
+    if (row) { SONGPLAN.dragged = Number(row.dataset.sp); if (event.dataTransfer) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', String(SONGPLAN.dragged)); } }
+  });
+  body.addEventListener('dragover', function (event) {
+    if (SONGPLAN.dragged !== null && event.target.closest && event.target.closest('[data-sp]')) { event.preventDefault(); }
+  });
+  body.addEventListener('drop', function (event) {
+    var row = event.target.closest ? event.target.closest('[data-sp]') : null;
+    var from = SONGPLAN.dragged;
+    SONGPLAN.dragged = null;
+    if (!row || from === null) { return; }
+    event.preventDefault();
+    var to = Number(row.dataset.sp);
+    if (to !== from) { SONGPLAN.sections.splice(to, 0, SONGPLAN.sections.splice(from, 1)[0]); paintSongPlan(); saveForm(); }
+  });
+  $('song-structure-fill').addEventListener('click', function () {
+    var box = $('lyrics');
+    box.value = SONGPLAN.sections.map(function (name) {
+      return '[' + name + ']' + (name === 'Interlude' ? '' : '\n');
+    }).join('\n\n').replace(/\n+$/, '') + '\n';
+    box.dispatchEvent(new Event('input'));
+    box.focus();
+  });
+}
+
 /* ---------------------------------------------------------------- variations
    The same score and seed, rendered in other interpretations, each as a new take. */
 var VARIATIONS = { take: null };
@@ -8338,6 +8447,7 @@ async function runLoraSteps() {
 var WRITE = { id: null, timer: null, started: null, status: null };
 
 function openWrite() {
+  if ($('write-structure-sent')) { $('write-structure-sent').textContent = SONGPLAN.sections.join(', '); }
   $('write-modal').classList.remove('hidden');
   if (!WRITE.id) { $('write-status').textContent = ''; }
   $('write-brief').focus();
@@ -8380,7 +8490,7 @@ async function doWrite() {
   try {
     var draft = await api('/api/lyrics', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brief: brief, style: $('style').value, structure: $('write-structure').value })
+      body: JSON.stringify({ brief: brief, style: $('style').value, sections: SONGPLAN.sections, lines: Number($('write-lines').value) || 6 })
     });
     WRITE.id = draft.id;
     WRITE.started = Date.now();
@@ -8436,7 +8546,7 @@ async function pollWrite() {
 }
 
 function landDraft(draft) {
-  $('lyrics').value = draft.lyrics;
+  $('lyrics').value = draft.lyrics; paintSongPlan();
   if (!$('title').value.trim() && draft.title) { $('title').value = draft.title; }
   State.formEdited = true;
   $('lyrics').dispatchEvent(new Event('input'));
@@ -9702,7 +9812,7 @@ function selectTake(take) {
     FEEL.value = FEELS[take.feel] ? take.feel : 'steady';
     paintFeel();
   } else {
-    $('lyrics').value = take.lyrics || '';
+    $('lyrics').value = take.lyrics || ''; paintSongPlan();
   }
   $('abc').value = take.abc || '';
   scoreBaseline(take.abc || '');
@@ -9796,7 +9906,7 @@ function restoreDraft() {
   setSelection({});
   $('title').value = draft.title || '';
   $('style').value = draft.style || '';
-  $('lyrics').value = draft.lyrics || '';
+  $('lyrics').value = draft.lyrics || ''; paintSongPlan();
   dismissDraft();
   paintVocals();
   refreshTitleHint();
@@ -9834,7 +9944,7 @@ async function startFresh() {
   // The editor reads its take from here: left behind, it kept the last take's player on a new one.
   State.formTake = null;
   $('title').value = '';
-  if (State.mode !== 'inst') { $('lyrics').value = ''; }   // an instrumental keeps its structure, like a setting
+  if (State.mode !== 'inst') { $('lyrics').value = ''; paintSongPlan(); }   // an instrumental keeps its structure, like a setting
   $('abc').value = '';
   scoreBaseline('');
   setChart('');
@@ -11825,6 +11935,7 @@ function wire() {
     });
   }
   wireStructure();
+  wireSongPlan();
   $('interpretation').addEventListener('change', paintInterpretation);
   $('lyrics-write').addEventListener('click', openWrite);
   $('audition').addEventListener('click', function () { playRecording(); });

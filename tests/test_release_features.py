@@ -149,18 +149,50 @@ def test_a_lyrics_job_lands_in_the_draft(monkeypatch):
     assert "d1" not in LYRICS
 
 
-def test_the_write_lyrics_dropdown_offers_exactly_the_structures_the_server_knows():
-    """The dropdown in the page is written out by hand, so a structure added to one place and not the other shows here."""
-    import re
-    from pathlib import Path
+def test_the_page_gets_every_structure_with_a_hint_and_only_sections_the_planner_knows(client):
     from app import lyrics
-    html = (Path(__file__).resolve().parent.parent / "app" / "static" / "index.html").read_text(encoding="utf-8")
-    box = re.search(r'<select id="write-structure">(.*?)</select>', html, re.S).group(1)
-    offered = dict(re.findall(r'<option value="([^"]+)"[^>]*>([^<]+)</option>', box))
-    assert len(re.findall(r'<option value="[^"]+" title="[^"]+">', box)) == len(offered), "every structure has a tooltip"
-    assert set(offered) == set(lyrics.STRUCTURES)
-    for key, sections in lyrics.STRUCTURES.items():
-        assert offered[key] == ", ".join(sections), key
-        assert {name.lower() for name in sections} <= lyrics.TAGS
-    prompt = lyrics.build_prompt("a song", "pop", "pop-pre-chorus")
-    assert "[Pre-Chorus]" in prompt and "Verse, Pre-Chorus, Chorus" in prompt
+    options = client.get("/api/state").json()["options"]
+    shapes = {item["id"]: item for item in options["lyric_structures"]}
+    assert set(shapes) == set(lyrics.STRUCTURES)
+    for key, item in shapes.items():
+        assert item["hint"], f"{key} has a tooltip"
+        assert {name.lower() for name in item["sections"]} <= lyrics.TAGS
+    assert options["lyric_sections"] == ["intro", "verse", "pre-chorus", "chorus", "bridge", "interlude", "outro"]
+    assert options["lyric_lines"] == lyrics.DEFAULT_LINES
+
+
+def test_the_writer_follows_the_sections_built_in_the_editor_and_the_lines_asked_for():
+    from app import lyrics
+    prompt = lyrics.build_prompt("rain", "pop", "verse-chorus", lines=8, sections=["intro", "verse", "Interlude", "pre-chorus", "chorus"])
+    assert "Intro, Verse, Interlude, Pre-Chorus, Chorus" in prompt
+    assert "[Intro] [Verse] [Interlude] [Pre-Chorus] [Chorus]" in prompt
+    assert "have 8 lines each" in prompt and "instrumental passage" in prompt
+    assert "instrumental passage" not in lyrics.build_prompt("rain", "pop", "verse-chorus")
+    assert "have 6 lines each" in lyrics.build_prompt("rain", "pop", "verse-chorus")
+    try:
+        lyrics.clean_sections(["verse", "solo"])
+    except ValueError as exc:
+        assert "solo" in str(exc)
+    else:
+        raise AssertionError("an unknown section was accepted")
+
+
+def test_an_interlude_with_no_lines_is_kept_in_a_draft():
+    from app import lyrics
+    found = lyrics.parse("Title: Rain\n\n[Verse]\nline one\nline two\n\n[Interlude]\n\n[Chorus]\nhook one\n[Outro]\n")
+    assert found["sections"] == ["Verse", "Interlude", "Chorus"]      # an outro with no lines is still dropped
+    assert found["lyrics"] == "[Verse]\nline one\nline two\n\n[Interlude]\n\n[Chorus]\nhook one"
+
+
+def test_the_lyrics_api_takes_built_sections_and_lines(client, monkeypatch):
+    monkeypatch.setitem(jobs.ENGINE.options, "lyrics", True)
+    draft = client.post("/api/lyrics", json={"brief": "rain", "sections": ["intro", "verse", "interlude", "chorus"], "lines": 8}).json()
+    assert draft["sections"] == ["Intro", "Verse", "Interlude", "Chorus"] and draft["lines"] == 8
+    assert QUEUE.get_nowait() == {"kind": "lyrics", "id": draft["id"]}
+    prompt = jobs.build_lyrics_graph(draft)["2"]["inputs"]["prompt"]
+    assert "Intro, Verse, Interlude, Chorus" in prompt and "have 8 lines each" in prompt
+    assert client.post("/api/lyrics", json={"brief": "rain", "sections": ["verse", "solo"]}).status_code == 400
+    assert client.post("/api/lyrics", json={"brief": "rain", "sections": []}).status_code == 422
+    assert client.post("/api/lyrics", json={"brief": "rain", "lines": 40}).status_code == 422
+    plain = client.post("/api/lyrics", json={"brief": "rain", "structure": "hook-first"}).json()
+    assert plain["sections"] is None and plain["lines"] == 6

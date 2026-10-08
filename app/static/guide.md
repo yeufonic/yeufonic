@@ -85,10 +85,18 @@ as breathy or raspy. They are a shortcut for typing, and you can edit the result
 
 ### Drafting the lyrics
 
-**Write lyrics**, beside the lyrics box, asks what the song is about and which shape it should have:
-verse and chorus with a bridge, verse and chorus only, with an intro and outro, or a story with two
-verses up front. The Style above sets the mood. Gemma writes the draft on the same engine, and it
-lands in the box with a title if you had not given one. You can close the window while it writes.
+**The structure.** Above the lyrics box, while it holds no words, a song has a **structure** to build, as an
+instrumental has: a list of sections you can reorder, remove and add to (intro, verse, pre-chorus, chorus, bridge,
+interlude, outro). **Start from** fills it with a common shape, and each shape's tooltip says what it suits. An
+**interlude** is an instrumental passage: the writer puts its tag on a line of its own, and the planner plays it with
+the instrument voice. **Put sections in the lyrics box** drops the tags in as empty sections to write under by hand.
+Once the box has words, the lyrics are what is sung and the structure steps aside.
+
+**Write lyrics**, beside the lyrics box, asks what the song is about and writes words for the sections you built.
+**Lines in a verse or chorus** sets how long each is: more lines in a section make a longer song, because the
+planner writes about as much music as there are words. The Style above sets the mood. Gemma writes the draft on the same
+engine, and it lands in the box with a title if you had not given one. You can close the window while it writes.
+The lyrics editor's buttons add any of these sections too.
 
 It is a first draft. The lines scan and rhyme, but a model reaches for familiar images, and nothing
 checks whether a line is already someone else's. Read it and make it yours before you plan.

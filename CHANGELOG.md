@@ -39,6 +39,12 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Build a song's structure, then write the words.** Song from a prompt has a structure builder above the lyrics, as an
+  instrumental does: add, remove and reorder sections, or start from a common shape. It now includes an **interlude**,
+  an instrumental passage the planner plays on its own. Write lyrics follows the structure and asks how many lines a
+  verse or chorus has (more lines make a longer song), **Put sections in the lyrics box** lays the sections out to
+  write under by hand, and the lyrics editor has buttons for intro, pre-chorus, interlude and outro. The old Structure
+  dropdown in the Write lyrics window is gone, replaced by the builder.
 - **More styles to start from.** The Style dropdown has 200 styles. About 125 are new and cover mainstream genres (pop,
   rock, country, R&B, gospel, Latin, metal and more), with more rap, hip-hop, trap and EDM; some of the most niche
   of the old ones were dropped to make room. Songs and covers have five more one-click presets.

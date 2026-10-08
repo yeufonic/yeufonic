@@ -369,7 +369,8 @@ def build_render_graph(take: dict) -> dict:
 def build_lyrics_graph(record: dict) -> dict:
     """Gemma through ComfyUI's own text nodes.  Built here rather than from a
     template, so an engine without them still passes the compatibility check."""
-    prompt = lyrics.build_prompt(record["brief"], record["style"], record["structure"])
+    prompt = lyrics.build_prompt(record["brief"], record["style"], record["structure"],
+                                 lines=record.get("lines") or lyrics.DEFAULT_LINES, sections=record.get("sections"))
     return {
         "1": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.LYRICS_MODEL, "type": "stable_diffusion"}},
         "2": {"class_type": "TextGenerate", "inputs": {
