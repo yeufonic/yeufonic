@@ -110,6 +110,7 @@ var Editor = { page: 'song', step: 0 };   // the editor window's page and step
 var WIDTH_KEY = 'yue2.width';
 var SPACE_KEY = 'yue2.space';
 var FILTER_KEY = 'yue2.filter';
+var KINDS_KEY = 'yue2.kinds';
 var SEARCHES_KEY = 'yue2.searches';
 var COMPARE_MOST = 6;   // takes the compare window holds
 
@@ -120,6 +121,18 @@ function applyFilter(filter) {
     chip.classList.toggle('active', chip.dataset.filter === State.filter);
   });
   try { localStorage.setItem(FILTER_KEY, State.filter); } catch (err) { /* private mode */ }
+}
+
+/* Song, Cover and Instrumental toggles: the kinds shown, none ticked meaning every kind.  Kept across a reload, and the
+   same in every space. */
+function applyKinds(kinds) {
+  State.kinds = ['song', 'cover', 'instrumental'].filter(function (kind) { return (kinds || []).indexOf(kind) >= 0; });
+  Array.prototype.forEach.call(document.querySelectorAll('.filters [data-takekind]'), function (chip) {
+    var on = State.kinds.indexOf(chip.dataset.takekind) >= 0;
+    chip.classList.toggle('active', on);
+    chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  try { localStorage.setItem(KINDS_KEY, JSON.stringify(State.kinds)); } catch (err) { /* private mode */ }
 }
 
 /* Search: every word typed must appear in a take's title, style, lyrics or LoRA
@@ -317,6 +330,9 @@ function loadLayout() {
   var filter = null;
   try { filter = localStorage.getItem(FILTER_KEY); } catch (err) { filter = null; }
   applyFilter(filter);
+  var kinds = [];
+  try { kinds = JSON.parse(localStorage.getItem(KINDS_KEY) || '[]'); } catch (err) { kinds = []; }
+  applyKinds(Array.isArray(kinds) ? kinds : []);
 }
 
 function $(id) { return document.getElementById(id); }
@@ -6101,7 +6117,8 @@ async function loadTakes() {
   var url = '/api/takes?limit=' + State.takeLimit +
     (everywhere ? '' : '&space_id=' + encodeURIComponent(space)) +
     (search ? '&q=' + encodeURIComponent(search) : '') +
-    (State.filter === 'favourite' ? '&favourite=true' : '');
+    (State.filter === 'favourite' ? '&favourite=true' : '') +
+    (State.kinds && State.kinds.length ? '&kinds=' + State.kinds.join(',') : '');
   var response = await fetch(url, { cache: 'no-cache' });   // revalidates: unchanged is a 304
   if (!response.ok) { return; }
   var text = await response.text();
@@ -10060,6 +10077,7 @@ function pickedIds() {
 
 function visibleTakes() {
   return State.takes.filter(function (take) {
+    if (State.kinds && State.kinds.length && State.kinds.indexOf(take.kind) < 0) { return false; }
     return State.filter === 'all' || (State.filter === 'favourite' && take.favourite);
   });
 }
@@ -10166,7 +10184,10 @@ function paintTakes() {
   State.paintedAt = Date.now();
   $('empty').style.display = list.length ? 'none' : 'block';
   var others = State.spaces.some(function (space) { return space.id !== State.spaceId && space.takes; });
-  $('empty').textContent = State.search
+  var kindWords = (State.kinds || []).map(function (kind) { return kind === 'instrumental' ? 'instrumental' : kind; }).join(' or ');
+  $('empty').textContent = State.kinds && State.kinds.length && !State.search
+    ? 'No ' + (State.filter === 'favourite' ? 'starred ' : '') + kindWords + ' takes in this space.'
+    : State.search
     ? 'No ' + (State.filter === 'favourite' ? 'starred ' : '') + 'takes match \u201c' + State.search + '\u201d' +
       (searchingEverywhere() ? ' in any space.' : ' in this space.')
     : State.filter === 'favourite' ? 'No starred takes in this space.'
@@ -11800,6 +11821,17 @@ function wire() {
   });
 
   document.querySelector('.filters').addEventListener('click', function (event) {
+    var kindChip = event.target.closest('[data-takekind]');
+    if (kindChip) {
+      var now = (State.kinds || []).slice();
+      var at = now.indexOf(kindChip.dataset.takekind);
+      if (at >= 0) { now.splice(at, 1); } else { now.push(kindChip.dataset.takekind); }
+      applyKinds(now);
+      State.takesRaw = '';
+      clearPicked();
+      loadTakes();
+      return;
+    }
     var button = event.target.closest('[data-filter]');
     if (!button) { return; }
     applyFilter(button.dataset.filter);

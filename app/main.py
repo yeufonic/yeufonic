@@ -1692,6 +1692,7 @@ def list_takes(
     source_id: str | None = None,
     space_id: str | None = None,
     favourite: bool = False,
+    kinds: str = Query("", max_length=60),
     q: str = Query("", max_length=200),
     limit: int = Query(300, ge=1, le=5000),
 ) -> Response:
@@ -1711,6 +1712,10 @@ def list_takes(
         args.append(space_id)
     if favourite:
         where.append("favourite = 1")
+    wanted = [k for k in kinds.split(",") if k in ("song", "cover", "instrumental")]
+    if wanted:
+        where.append("kind IN (" + ",".join("?" * len(wanted)) + ")")
+        args.extend(wanted)
     clause = ("WHERE " + " AND ".join(where)) if where else ""
     total = one(f"SELECT COUNT(*) AS n FROM takes {clause}", tuple(args))["n"]
     got = rows(f"SELECT * FROM takes {clause} ORDER BY created_at DESC LIMIT ?", (*args, limit))

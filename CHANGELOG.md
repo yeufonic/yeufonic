@@ -39,6 +39,8 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Filter takes by kind.** Song, Cover and Instrumental toggles beside the library's filters show only those kinds in
+  whichever space is open. Pick more than one, or none for every kind; the choice is kept across a reload.
 - **Build a song's structure, then write the words.** Song from a prompt has a structure builder above the lyrics, as an
   instrumental does: add, remove and reorder sections, or start from a common shape. It now includes an **interlude**,
   an instrumental passage the planner plays on its own. Write lyrics follows the structure and asks how many lines a

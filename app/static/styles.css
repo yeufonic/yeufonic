@@ -1571,6 +1571,7 @@ label .lora-value:disabled { opacity: 0.6; }
 .move-list .muted { font-size: 12px; }
 .move-new .source-row input { flex: 1; min-width: 0; }
 .filters { display: flex; align-items: center; gap: 7px; }
+.filters .kinds { display: inline-flex; gap: 5px; padding-right: 7px; margin-right: 1px; border-right: 1px solid var(--line); }
 /* On a narrow screen the filters wrap under the heading, rather than running off the side. */
 @media (max-width: 760px) {
   .libhead { flex-wrap: wrap; gap: 10px; }

@@ -117,6 +117,11 @@
         </div>
         <button id="search-all" class="chip hidden" title="Search every space, not just this one">All spaces</button>
         <button id="select-all" class="chip" title="Select all takes in this space">Select all</button>
+        <span class="kinds" role="group" aria-label="Show takes of these kinds">
+          <button class="chip" data-takekind="song" title="Show songs from a prompt. Pick more than one, or none for every kind">Song</button>
+          <button class="chip" data-takekind="cover" title="Show covers of a recording. Pick more than one, or none for every kind">Cover</button>
+          <button class="chip" data-takekind="instrumental" title="Show instrumentals. Pick more than one, or none for every kind">Instrumental</button>
+        </span>
         <button class="chip active" data-filter="all">All</button>
         <button class="chip" data-filter="favourite">Starred</button>
         <button id="layout-toggle" class="chip layout" title="Switch card size">Compact</button>

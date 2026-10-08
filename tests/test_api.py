@@ -156,6 +156,17 @@ def test_takes_list_etag_filter_and_limit(client, data_dir):
     assert len(client.get("/api/takes?limit=1").json()) == 1
 
 
+def test_takes_can_be_filtered_by_kind(client):
+    for kind in ("song", "cover", "instrumental", "song"):
+        make_take(title=f"A {kind}", kind=kind)
+    titles = lambda query: sorted(t["title"] for t in client.get(f"/api/takes{query}").json())
+    assert titles("?kinds=cover") == ["A cover"]
+    assert titles("?kinds=song,instrumental") == ["A instrumental", "A song", "A song"]
+    assert titles("?kinds=") == titles("") and len(titles("")) == 4              # none picked means every kind
+    assert titles("?kinds=nonsense") == titles("")                                # an unknown kind is ignored
+    assert client.get("/api/takes?kinds=song").headers["x-total-count"] == "2"    # the count follows the filter
+
+
 def test_search_finds_every_word_in_title_style_lyrics_or_lora(client):
     make_take(title="Harbour Lights", style="folk, fiddle", lyrics="[Verse]\nboats come in")
     make_take(title="Night Drive", style="synthwave", lyrics="[Chorus]\nneon on the harbour wall")
