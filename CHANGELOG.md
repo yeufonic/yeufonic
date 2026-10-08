@@ -64,6 +64,7 @@ and a recreate as well as a pull.
 - **Details shows the structure.** A take's Details lists the structure it was asked for (the lyrics' sections, with
   their line counts) and the sections the plan wrote, with where each starts. The builder says when a list is longer
   than the planner usually writes (8 to 10 sections), and when edited words have more sections than a take's tune,
+  or far more syllables than it has notes (long lines on a tune made for short ones come out repeated or dropped),
   **Keep this tune** is unticked, with a line saying why, so a new plan is written for them.
 - **Render this score makes a new take.** A take that already has audio is rendered as a new take beside it, so a render
   never overwrites one that may be worth keeping: for songs and instrumentals, from the Score page and from a planned

@@ -5810,7 +5810,7 @@ function setScoreActions() {
   });
   var fresh = enabled && wordsChanged();
   // Words with more sections than the tune has: the tune cannot sing them, so a new plan is written unless asked otherwise.
-  var gap = fresh && State.mode === 'song' ? tuneSectionGap() : null;
+  var gap = fresh && State.mode === 'song' ? tuneGap() : null;
   var owner = scoreOwner();
   if (gap && owner && State.gapSeen !== owner.id) {
     State.gapSeen = owner.id;
@@ -5820,8 +5820,7 @@ function setScoreActions() {
   if ($('keep-tune-note')) {
     $('keep-tune-note').classList.toggle('hidden', !gap);
     if (gap) {
-      $('keep-tune-note').textContent = 'Your words have ' + gap.asked + ' sections and this tune has ' + gap.have + '. ' +
-        ($('keep-tune') && $('keep-tune').checked ? 'Keeping the tune sings only the first ' + gap.have + '.' : 'A new plan is written, so all of them are used.');
+      $('keep-tune-note').textContent = $('keep-tune') && $('keep-tune').checked ? gap.keep : gap.fresh;
     }
   }
   var keep = keepTune();
@@ -5885,6 +5884,40 @@ function tuneSectionGap() {
   var spans = scoreSectionSpans($('abc').value);
   var asked = String($('lyrics').value || '').split('\n').filter(function (line) { return /^\[[^\]]+\]\s*$/.test(line.trim()); }).length;
   return spans.length && asked > spans.length ? { asked: asked, have: spans.length } : null;
+}
+
+/* A rough count of the syllables in some lyrics: runs of vowels in each word, the silent final e left out.  Close enough to
+   compare with the notes a tune has, which is all it is for. */
+function lyricSyllables(text) {
+  var total = 0;
+  String(text || '').split('\n').forEach(function (line) {
+    line = line.trim();
+    if (!line || line.charAt(0) === '[' || /^title\s*:/i.test(line)) { return; }
+    (line.toLowerCase().match(/[a-z']+/g) || []).forEach(function (word) {
+      var base = word.length > 3 && !/(le|ee)$/.test(word) ? word.replace(/e$/, '') : word;
+      total += Math.max(1, (base.match(/[aeiouy]+/g) || []).length);
+    });
+  });
+  return total;
+}
+
+/* Why the take's tune cannot sing the words in the box, if it cannot: more sections than it has, or far more
+   syllables than it has notes (long lines on a tune made for short ones).  Songs written to fit run at about
+   one syllable to a note; well beyond that the lines are repeated or dropped. */
+function tuneGap() {
+  var sections = tuneSectionGap();
+  if (sections) {
+    return { keep: 'Your words have ' + sections.asked + ' sections and this tune has ' + sections.have + '. Keeping the tune sings only the first ' + sections.have + '.',
+             fresh: 'Your words have ' + sections.asked + ' sections and this tune has ' + sections.have + '. A new plan is written, so all of them are used.' };
+  }
+  var notes = vocalNotes($('abc').value);
+  var syllables = lyricSyllables($('lyrics').value);
+  if (notes >= 20 && syllables >= 40 && syllables > notes * 1.8) {
+    var about = Math.round(syllables / 10) * 10;
+    return { keep: 'Your words need about ' + about + ' syllables and this tune has ' + notes + ' notes, so it cannot sing them all: expect repeated or dropped lines.',
+             fresh: 'Your words need about ' + about + ' syllables and this tune has ' + notes + ' notes. A new plan is written to fit them.' };
+  }
+  return null;
 }
 
 function wordsChanged() {
