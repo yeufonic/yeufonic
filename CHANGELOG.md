@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+- **How the lines sound.** The lyric writer no longer defaults to eight-syllable rhymed couplets, which is what its old
+  instruction ("6 to 10 syllables, with rhymes") produced almost every time. Write lyrics has a **How the lines
+  sound** choice: Natural (the default, a mix of short and long lines with some rhymes), Regular rhyme (the old
+  shape), Spoken rhythm, Loose rhyme, Short and punchy, and Long and flowing. The last pick is remembered.
 - **Follow this structure exactly.** A tick under a song's lyrics box makes the plan write exactly the
   sections the lyrics name, in order, and no others (so no intro or outro of its own). It steers only the name the
   planner writes after a section comment; the planner still decides when each section begins, and a plan can end before

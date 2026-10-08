@@ -197,9 +197,9 @@ async def test_connection(config_override: dict[str, str] | None = None) -> dict
 
 
 async def generate_lyrics(brief: str, style: str, structure: str, lines: int = lyrics.DEFAULT_LINES,
-                          sections: list[str] | None = None) -> dict[str, Any]:
+                          sections: list[str] | None = None, feel: str = lyrics.DEFAULT_FEEL) -> dict[str, Any]:
     """Draft original lyrics using the external LLM, for a structure by name or the sections the person built."""
-    prompt = lyrics.build_prompt(brief, style, structure, lines=lines, sections=sections)
+    prompt = lyrics.build_prompt(brief, style, structure, lines=lines, sections=sections, feel=feel)
     log.info("Starting external LLM lyrics generation (structure=%s, brief='%s')",
              ", ".join(sections) if sections else structure, brief[:50])
 

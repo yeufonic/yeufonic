@@ -8532,7 +8532,27 @@ async function runLoraSteps() {
    even if this window was closed while it was being written. */
 var WRITE = { id: null, timer: null, started: null, status: null };
 
+var FEEL_KEY = 'yue2.lyricfeel';
+
+/* The choices for how the lines sound come with the page's options; the last one picked is remembered. */
+function paintWriteFeel() {
+  var select = $('write-feel');
+  var feels = (State.options && State.options.lyric_feels) || [];
+  if (!select || !feels.length) { return; }
+  if (select.options.length !== feels.length) {
+    var saved = null;
+    try { saved = localStorage.getItem(FEEL_KEY); } catch (err) { saved = null; }
+    select.innerHTML = feels.map(function (feel) {
+      return '<option value="' + esc(feel.id) + '" title="' + esc(feel.hint) + '">' + esc(feel.label) + '</option>';
+    }).join('');
+    if (saved && feels.some(function (feel) { return feel.id === saved; })) { select.value = saved; }
+  }
+  var picked = feels.filter(function (feel) { return feel.id === select.value; })[0];
+  if ($('write-feel-hint')) { $('write-feel-hint').textContent = picked ? picked.hint : ''; }
+}
+
 function openWrite() {
+  paintWriteFeel();
   if ($('write-structure-sent')) { $('write-structure-sent').textContent = SONGPLAN.sections.join(', '); }
   $('write-modal').classList.remove('hidden');
   if (!WRITE.id) { $('write-status').textContent = ''; }
@@ -8576,7 +8596,7 @@ async function doWrite() {
   try {
     var draft = await api('/api/lyrics', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brief: brief, style: $('style').value, sections: SONGPLAN.sections, lines: Number($('write-lines').value) || 6 })
+      body: JSON.stringify({ brief: brief, style: $('style').value, sections: SONGPLAN.sections, lines: Number($('write-lines').value) || 6, feel: $('write-feel') ? $('write-feel').value : undefined })
     });
     WRITE.id = draft.id;
     WRITE.started = Date.now();
@@ -12053,6 +12073,12 @@ function wire() {
   });
   $('write-close').addEventListener('click', closeWrite);
   $('write-go').addEventListener('click', doWrite);
+  if ($('write-feel')) {
+    $('write-feel').addEventListener('change', function () {
+      try { localStorage.setItem(FEEL_KEY, $('write-feel').value); } catch (err) { /* private mode */ }
+      paintWriteFeel();
+    });
+  }
   $('write-stop').addEventListener('click', stopWrite);
   if ($('lyrics-write-stop-btn')) { $('lyrics-write-stop-btn').addEventListener('click', stopWrite); }
   $('write-modal').addEventListener('click', function (event) { if (backdropClick(event, $('write-modal'))) { closeWrite(); } });

@@ -841,6 +841,7 @@ class LyricsIn(BaseModel):
     # The sections as built in the editor; when given, they are the structure.
     sections: list[str] | None = Field(None, min_length=1, max_length=40)
     lines: int = Field(lyrics.DEFAULT_LINES, ge=2, le=12)
+    feel: str = lyrics.DEFAULT_FEEL
     seed: int | None = Field(None, ge=0, le=2**32 - 1)
 
 
@@ -1226,6 +1227,7 @@ def state() -> dict:
             "lyric_structures": [{"id": key, "sections": value, "hint": lyrics.HINTS.get(key, "")} for key, value in lyrics.STRUCTURES.items()],
             "lyric_sections": sorted(lyrics.TAGS, key=["intro", "verse", "pre-chorus", "chorus", "bridge", "interlude", "outro"].index),
             "lyric_lines": lyrics.DEFAULT_LINES,
+            "lyric_feels": [{"id": key, "label": value[0], "hint": value[2]} for key, value in lyrics.FEELS.items()],
             "lyrics_available": bool(llm.is_external_enabled() or ENGINE.options.get("lyrics", False)),
             "llm_provider": llm.get_config()["provider"],
             "instrumental_available": ENGINE.options.get("instrumental", False),
@@ -3805,11 +3807,13 @@ async def write_lyrics(body: LyricsIn) -> dict:
             raise HTTPException(400, str(exc)) from exc
     elif body.structure not in lyrics.STRUCTURES:
         raise HTTPException(400, f"unknown structure: {body.structure}")
+    if body.feel not in lyrics.FEELS:
+        raise HTTPException(400, f"unknown lyric feel: {body.feel}")
     jobs.forget_old_lyrics()
     record = {
         "id": uuid.uuid4().hex[:12], "status": "queued", "brief": body.brief.strip(),
         "style": body.style.strip(), "structure": body.structure,
-        "sections": sections, "lines": body.lines,
+        "sections": sections, "lines": body.lines, "feel": body.feel,
         "seed": body.seed if body.seed is not None else int.from_bytes(os.urandom(4), "big"),
         "created_at": time.time(), "title": None, "lyrics": None, "error": None,
     }

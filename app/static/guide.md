@@ -105,6 +105,11 @@ planner writes about as much music as there are words. The Style above sets the 
 engine, and it lands in the box with a title if you had not given one. The window closes as soon as the draft starts, and the progress shows beside the lyrics box.
 The lyrics editor's buttons add any of these sections too.
 
+**How the lines sound** sets the rhythm and rhyme the writer aims for. *Natural* (the default) mixes short and long
+lines with some rhymes. *Regular rhyme* is the traditional shape of even lines that rhyme in pairs, which is what
+the writer produced before this choice existed. *Spoken rhythm* is conversational, like speech or rap; *Loose
+rhyme* rhymes only some lines; *Short and punchy* and *Long and flowing* set the length of the lines.
+
 It is a first draft. The lines scan and rhyme, but a model reaches for familiar images, and nothing
 checks whether a line is already someone else's. Read it and make it yours before you plan.
 

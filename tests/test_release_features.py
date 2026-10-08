@@ -196,3 +196,19 @@ def test_the_lyrics_api_takes_built_sections_and_lines(client, monkeypatch):
     assert client.post("/api/lyrics", json={"brief": "rain", "lines": 40}).status_code == 422
     plain = client.post("/api/lyrics", json={"brief": "rain", "structure": "hook-first"}).json()
     assert plain["sections"] is None and plain["lines"] == 6
+
+
+def test_the_lyric_feel_changes_the_one_rule_about_line_length_and_rhyme(client, monkeypatch):
+    from app import lyrics
+    natural = lyrics.build_prompt("rain", "pop", "verse-chorus")
+    assert "Mix short and long lines" in natural and "6 to 10 syllables" not in natural                  # the new default
+    assert "6 to 10 syllables" in lyrics.build_prompt("rain", "pop", "verse-chorus", feel="regular")  # the old rule, on request
+    assert "the way people talk and rap" in lyrics.build_prompt("rain", "pop", "verse-chorus", feel="spoken")
+    assert lyrics.build_prompt("rain", "pop", "verse-chorus", feel="nonsense") == natural             # an unknown feel is the default
+    options = client.get("/api/state").json()["options"]
+    assert [item["id"] for item in options["lyric_feels"]] == list(lyrics.FEELS) and all(item["hint"] for item in options["lyric_feels"])
+    monkeypatch.setitem(jobs.ENGINE.options, "lyrics", True)
+    draft = client.post("/api/lyrics", json={"brief": "rain", "feel": "punchy"}).json()
+    assert draft["feel"] == "punchy" and "3 to 6 syllables" in jobs.build_lyrics_graph(draft)["2"]["inputs"]["prompt"]
+    assert client.post("/api/lyrics", json={"brief": "rain", "feel": "odd"}).status_code == 400
+    assert client.post("/api/lyrics", json={"brief": "rain"}).json()["feel"] == "natural"

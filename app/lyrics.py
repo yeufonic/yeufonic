@@ -40,6 +40,28 @@ TAGS = {"verse", "chorus", "bridge", "intro", "outro", "pre-chorus", "interlude"
 INSTRUMENTAL = {"interlude"}
 DEFAULT_LINES = 6
 
+# How the lines should sound.  A model told "6 to 10 syllables, with rhymes" writes rhymed couplets of eight, which is
+# iambic tetrameter, every time, so the default asks for the opposite and the choices change that one rule.
+FEELS = {
+    "natural": ("Natural", "Mix short and long lines in every verse: some of 3 to 6 syllables, some of 9 to 13, and let the stress "
+                "fall as it would in speech. Rhyme some line ends, not every pair, and do not settle into a regular beat.",
+                "Short and long lines mixed, with some rhymes and no steady beat."),
+    "regular": ("Regular rhyme", "Keep lines singable: roughly 6 to 10 syllables, with rhymes at the ends of lines.",
+                "Even lines that rhyme in pairs, the traditional shape."),
+    "spoken": ("Spoken rhythm", "Write the way people talk and rap: conversational, with uneven lines of 5 to 14 syllables, "
+               "internal rhymes and a steady groove of stressed words, not a regular da-DUM metre.",
+               "Conversational and rhythmic, like speech or rap."),
+    "loose": ("Loose rhyme", "Rhyme only some lines, and differently in each section: an ABCB pattern here, slant rhymes there, "
+              "an unrhymed verse where it suits. Let line lengths differ a lot, from 4 to 13 syllables.",
+              "Some rhymes, some slant rhymes, some none, and lines of very different length."),
+    "punchy": ("Short and punchy", "Use short lines of 3 to 6 syllables, repeated phrases and hook-like turns. Rhyme is optional.",
+               "Short lines and repeated phrases."),
+    "flowing": ("Long and flowing", "Use long, flowing lines of 10 to 14 syllables that run on like a thought, "
+                "with rhyme only now and then.",
+                "Long lines that run on."),
+}
+DEFAULT_FEEL = "natural"
+
 PROMPT = """You are a songwriter. Write original lyrics for a song.
 
 What it is about: {brief}
@@ -52,7 +74,7 @@ Rules:
 - Put one blank line between sections.
 - Verses and choruses have {lines} lines each. A bridge, intro or outro has 2 to 4 lines.{interlude}
 - Every chorus uses the same words.
-- Keep lines singable: roughly 6 to 10 syllables, with rhymes at the ends of lines.
+- {feel}
 - The music description is for the sound only. Do not name instruments, genres or production in the lyrics.
 - Use concrete images and plain words. Avoid cliches.
 - Do not reuse lines from existing songs.
@@ -87,7 +109,7 @@ def clean_sections(sections: list[str]) -> list[str]:
 
 
 def build_prompt(brief: str, style: str, structure: str, lines: int = DEFAULT_LINES,
-                 sections: list[str] | None = None) -> str:
+                 sections: list[str] | None = None, feel: str = DEFAULT_FEEL) -> str:
     """The writer's prompt for a structure by name, or for a list of sections the person built."""
     sections = clean_sections(sections) if sections else STRUCTURES.get(structure, STRUCTURES[DEFAULT_STRUCTURE])
     interlude = ""
@@ -95,6 +117,7 @@ def build_prompt(brief: str, style: str, structure: str, lines: int = DEFAULT_LI
         interlude = ("\n- An Interlude is an instrumental passage: write its tag on a line of its own and no lines under it.")
     return PROMPT.format(brief=" ".join(brief.split()), style=" ".join(style.split()) or "any",
                          structure=", ".join(sections), lines=lines, interlude=interlude,
+                         feel=FEELS.get(feel, FEELS[DEFAULT_FEEL])[1],
                          tags=" ".join(f"[{name}]" for name in dict.fromkeys(sections)))
 
 
