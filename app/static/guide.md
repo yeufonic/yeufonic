@@ -273,7 +273,7 @@ away from chords it has just used, without breaking the song's structure.
 |---|---|
 | Familiar | YuE2's own chords. Often one loop for the whole song |
 | Varied | Avoids repeating the same chords. Stays in the key |
-| Colourful | Verse and chorus get different progressions, with richer chords |
+| Colourful | Verse and chorus get different progressions, with richer chords. A section may not open the way the one before it did |
 | Adventurous | Keeps the harmony moving, and borrows chords from outside the key |
 | Outside | Adventurous, and reaches further outside the key |
 
