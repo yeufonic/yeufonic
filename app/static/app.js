@@ -1119,7 +1119,7 @@ function readAdvancedSettings() {
   if (isNaN(outside) || outside < 0.0 || outside > 10.0) { outside = ADVANCED_DEFAULTS.chord_outside_bonus; }
   var sectionsRaw = $('adv-chord-sections') ? $('adv-chord-sections').value : '';
   var sections = sectionsRaw === '1' ? 1 : (sectionsRaw === '0' ? 0 : null);
-  var follow = $('adv-follow-structure') && $('adv-follow-structure').value === '1' ? 1 : null;
+  var follow = $('follow-structure') && $('follow-structure').checked ? 1 : null;
   var lufs = parseFloat($('adv-target-lufs').value);
   if (isNaN(lufs) || lufs < -30.0 || lufs > -4.0) { lufs = ADVANCED_DEFAULTS.target_lufs; }
   var fade = parseFloat($('adv-fade-out-seconds').value);
@@ -1149,7 +1149,6 @@ function isAdvancedDirty() {
     cur.chord_hold_limit !== ADVANCED_DEFAULTS.chord_hold_limit ||
     Math.abs(cur.chord_outside_bonus - ADVANCED_DEFAULTS.chord_outside_bonus) > 0.001 ||
     cur.chord_sections !== ADVANCED_DEFAULTS.chord_sections ||
-    cur.follow_structure !== ADVANCED_DEFAULTS.follow_structure ||
     Math.abs(cur.target_lufs - ADVANCED_DEFAULTS.target_lufs) > 0.001 ||
     Math.abs(cur.fade_out_seconds - ADVANCED_DEFAULTS.fade_out_seconds) > 0.001;
 }
@@ -1186,14 +1185,16 @@ function writeAdvancedSettings(data) {
   $('adv-chord-hold-limit').value = data.chord_hold_limit != null ? data.chord_hold_limit : ADVANCED_DEFAULTS.chord_hold_limit;
   $('adv-chord-outside-bonus').value = data.chord_outside_bonus != null ? data.chord_outside_bonus : ADVANCED_DEFAULTS.chord_outside_bonus;
   if ($('adv-chord-sections')) { $('adv-chord-sections').value = data.chord_sections === 1 ? '1' : (data.chord_sections === 0 ? '0' : ''); }
-  if ($('adv-follow-structure')) { $('adv-follow-structure').value = data.follow_structure === 1 ? '1' : ''; }
+  if ($('follow-structure')) { $('follow-structure').checked = data.follow_structure === 1; }
   $('adv-target-lufs').value = data.target_lufs != null ? data.target_lufs : ADVANCED_DEFAULTS.target_lufs;
   $('adv-fade-out-seconds').value = data.fade_out_seconds != null ? data.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds;
   updateAdvancedButtonState();
 }
 
 function resetAdvancedSettings() {
+  var follow = $('follow-structure') && $('follow-structure').checked;    // lives under the lyrics, not in this window
   writeAdvancedSettings(ADVANCED_DEFAULTS);
+  if ($('follow-structure')) { $('follow-structure').checked = follow; }
   saveForm();
 }
 
@@ -1299,7 +1300,7 @@ function wireAdvancedSettings() {
   var inputs = [
     'adv-sampler-steps', 'adv-avoid', 'adv-target-key', 'adv-target-bpm',
     'adv-max-abc-tokens', 'adv-chord-hold-limit',
-    'adv-chord-outside-bonus', 'adv-chord-sections', 'adv-follow-structure', 'adv-target-lufs', 'adv-fade-out-seconds'
+    'adv-chord-outside-bonus', 'adv-chord-sections', 'follow-structure', 'adv-target-lufs', 'adv-fade-out-seconds'
   ];
   inputs.forEach(function (id) {
     var el = $(id);
@@ -5680,6 +5681,7 @@ function setMode(mode) {
   show('lyrics-field', !inst);
   show('vocal-field', !inst);
   show('structure-field', inst);
+  show('follow-wrap', State.mode === 'song');
   paintSongPlan();
   if (cover) { paintStructure(); }
   show('mode-field', !inst);

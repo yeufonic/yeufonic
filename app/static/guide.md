@@ -70,7 +70,7 @@ Some of these act on the plan, and some on the render and the finished file:
   chords and roots outside the home key. These two act on the planner's choices, so they show as a
   difference in the chords of the plan rather than as a clear difference by ear. Compare the Score
   window.
-- **Follow my structure exactly** (songs; off by default): the plan writes exactly the sections the lyrics name, in
+- **Follow this structure exactly** (a tick under the lyrics box, not in Advanced; songs; off by default): the plan writes exactly the sections the lyrics name, in
   order, and no others. Left off, the planner shapes the song itself and often adds an intro, an outro or an
   interlude, or leaves a section out. A plan can still end before the list does; Details shows what was asked for and
   what the plan wrote.

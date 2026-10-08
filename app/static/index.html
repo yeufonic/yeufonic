@@ -282,6 +282,8 @@
                 </div>
               </div>
               <textarea id="lyrics" class="lyrics" spellcheck="false" placeholder="[Verse]&#10;First line&#10;Second line&#10;&#10;[Chorus]&#10;..."></textarea>
+              <label class="check follow-structure" id="follow-wrap" title="Make the plan write exactly the sections in the lyrics, in order, and no others. Left off, the planner shapes the song itself and often adds an intro, an outro or an interlude.">
+                <input id="follow-structure" type="checkbox"> Follow this structure exactly</label>
               <label class="check words-changed hidden" id="words-changed" title="Sing this take's score with the new words, as a new take. Untick to write a new plan, and a new tune, for them.">
                 <input id="keep-tune" type="checkbox" checked> Keep this tune <span class="muted">with the new words</span></label>
               <div id="keep-tune-note" class="hint hidden"></div>
@@ -745,15 +747,6 @@
           <option value="">Follow Harmony</option>
           <option value="1">Always</option>
           <option value="0">Never</option>
-        </select>
-      </div>
-
-      <!-- Follow my structure exactly -->
-      <div class="field" title="Make the plan write exactly the sections in the lyrics, in order, and no others. It cannot add an intro or an outro of its own.">
-        <label for="adv-follow-structure">Follow my structure exactly <span class="muted">(songs, default: off)</span></label>
-        <select id="adv-follow-structure">
-          <option value="">Off</option>
-          <option value="1">On</option>
         </select>
       </div>
 

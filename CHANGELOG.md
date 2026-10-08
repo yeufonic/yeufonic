@@ -39,7 +39,7 @@ cannot creep back in.
 
 ## Unreleased
 
-- **Follow my structure exactly.** A song's Advanced settings have a choice that makes the plan write exactly the
+- **Follow this structure exactly.** A tick under a song's lyrics box makes the plan write exactly the
   sections the lyrics name, in order, and no others (so no intro or outro of its own). It steers only the name the
   planner writes after a section comment; the planner still decides when each section begins, and a plan can end before
   the list does. An instrumental is not affected. The engine image changed (the Harmony node).
