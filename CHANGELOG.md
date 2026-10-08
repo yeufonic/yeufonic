@@ -42,6 +42,8 @@ cannot creep back in.
 - **More styles to start from.** The Style dropdown has 200 styles. About 125 are new and cover mainstream genres (pop,
   rock, country, R&B, gospel, Latin, metal and more), with more rap, hip-hop, trap and EDM; some of the most niche
   of the old ones were dropped to make room. Songs and covers have five more one-click presets.
+- **More song structures.** Write lyrics offers five more: pop with a pre-chorus, hook first, short and simple, hip-hop,
+  and double bridge. Each has a tooltip naming the styles it suits.
 - **The mode buttons keep one order.** Song, Cover and Instrumental are in the same order in the editor as on the
   library's buttons.
 

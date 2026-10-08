@@ -147,3 +147,20 @@ def test_a_lyrics_job_lands_in_the_draft(monkeypatch):
     assert LYRICS["d1"]["lyrics"].startswith("[Verse]\nRain on the roof")
     jobs.forget_old_lyrics(now=10_000)
     assert "d1" not in LYRICS
+
+
+def test_the_write_lyrics_dropdown_offers_exactly_the_structures_the_server_knows():
+    """The dropdown in the page is written out by hand, so a structure added to one place and not the other shows here."""
+    import re
+    from pathlib import Path
+    from app import lyrics
+    html = (Path(__file__).resolve().parent.parent / "app" / "static" / "index.html").read_text(encoding="utf-8")
+    box = re.search(r'<select id="write-structure">(.*?)</select>', html, re.S).group(1)
+    offered = dict(re.findall(r'<option value="([^"]+)"[^>]*>([^<]+)</option>', box))
+    assert len(re.findall(r'<option value="[^"]+" title="[^"]+">', box)) == len(offered), "every structure has a tooltip"
+    assert set(offered) == set(lyrics.STRUCTURES)
+    for key, sections in lyrics.STRUCTURES.items():
+        assert offered[key] == ", ".join(sections), key
+        assert {name.lower() for name in sections} <= lyrics.TAGS
+    prompt = lyrics.build_prompt("a song", "pop", "pop-pre-chorus")
+    assert "[Pre-Chorus]" in prompt and "Verse, Pre-Chorus, Chorus" in prompt

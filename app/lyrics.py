@@ -12,6 +12,11 @@ STRUCTURES = {
     "verse-chorus": ["Verse", "Chorus", "Verse", "Chorus"],
     "intro-outro": ["Intro", "Verse", "Chorus", "Verse", "Chorus", "Outro"],
     "story": ["Verse", "Verse", "Chorus", "Verse", "Chorus", "Outro"],
+    "pop-pre-chorus": ["Verse", "Pre-Chorus", "Chorus", "Verse", "Pre-Chorus", "Chorus", "Bridge", "Chorus"],
+    "hook-first": ["Chorus", "Verse", "Chorus", "Verse", "Chorus", "Bridge", "Chorus"],
+    "short": ["Verse", "Chorus", "Verse", "Chorus", "Chorus"],
+    "hip-hop": ["Intro", "Verse", "Chorus", "Verse", "Chorus", "Verse", "Outro"],
+    "double-bridge": ["Verse", "Chorus", "Verse", "Chorus", "Bridge", "Bridge", "Chorus", "Chorus"],
 }
 DEFAULT_STRUCTURE = "verse-chorus-bridge"
 TAGS = {"verse", "chorus", "bridge", "intro", "outro", "pre-chorus"}
