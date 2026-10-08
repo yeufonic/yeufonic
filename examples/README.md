@@ -1,6 +1,6 @@
 # Examples
 
-Songs made with Yeufonic from a prompt, each with a style LoRA trained in the app from a corpus of
+Songs made with Yeufonic from a prompt, most of them with a style LoRA trained in the app from a corpus of
 songs. Play them here, or download the MP3s beside this page. Each MP3's tags hold its lyrics and
 the settings it was made with.
 
@@ -37,3 +37,14 @@ training run saved at step 950.
 https://github.com/user-attachments/assets/349f2f55-8381-4dbc-aa4d-6cace7e44657
 
 [Download the MP3](test%20-%20indie%20rock%20LoRA%20step%20950.mp3)
+
+## song from a prompt - take 1
+
+A song from a prompt, with no style LoRA. The structure was built in the editor, with an interlude, and the plan
+was written at Harmony **Varied** with the **Wide** interpretation.
+
+- **Style:** Midwest Emo, math rock, intricate clean guitar tapping, odd-time signatures, dynamic build-ups, raw emotional energy, 140 BPM, strained confessional male vocals
+- **Harmony:** Varied
+- **Interpretation:** Wide
+
+[Download the MP3](song%20from%20a%20prompt%20-%20take%201.mp3)
