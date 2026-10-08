@@ -115,6 +115,151 @@ checks whether a line is already someone else's. Read it and make it yours befor
 
 ---
 
+## Writing a song from a prompt: every option
+
+**+ Song** has a lot of choices now. None of them is required: a style and some lyrics are enough, as in
+[Your first song](#your-first-song). This chapter goes through all of them in the order the editor shows them,
+its three columns (the song, the words and the sound), and then what to do after the plan. It ends with a
+table for the common wishes, such as a longer song or a chorus that sounds different from the verse.
+
+### The song
+
+- **Title.** Optional. Left blank, the first line of the lyrics is used.
+- **Style.** The **Choose a style…** list holds 200 starting points, from afrobeats to zydeco, in alphabetical order.
+  Picking one fills the Style box with a full description, which you can then edit. The chips under it are ten quick
+  starts for a song: warm indie rock, soulful jazz-pop, synthwave, acoustic ballad, heavy rock, modern pop,
+  country, hip hop, smooth R&B and dance pop. See [What to put in the Style box](#what-to-put-in-the-style-box).
+- **A tempo in the style is only a hint.** The planner often picks its own. To fix the tempo, use **Tempo lock** in
+  Advanced.
+- **Vocal.** The chips write a voice (female, male, duet and a character) into the style for you.
+- **Style LoRA.** Under the sound column. See [Style LoRAs](#style-loras).
+
+### The words
+
+**The structure.** Above the lyrics box, while it holds no words, there is a list of sections: the order the
+song will go in. Each row can be changed to another section, moved up or down (or dragged), or removed, and the
+chips under the list add a section. The sections are intro, verse, pre-chorus, chorus, bridge, interlude and outro.
+An **interlude** is an instrumental passage: it has no words, and the planner plays it with the instrument voice.
+(`solo` is not a section the planner knows; interlude is the way to ask for one.)
+
+**Start from…** fills the list with a common shape. Hover an option to see what it suits:
+
+| Shape | Sections | Suits |
+|---|---|---|
+| Verse, chorus, bridge | verse, chorus, verse, chorus, bridge, chorus | the classic song: pop, rock, country |
+| Short | verse, chorus, verse, chorus | folk, punk, early rock and roll |
+| Intro and outro | intro, verse, chorus, verse, chorus, outro | ballads, soft rock, singer-songwriters |
+| Story | verse, verse, chorus, verse, chorus, outro | story songs, folk, country |
+| Pop with pre-chorus | verse, pre-chorus, chorus, verse, pre-chorus, chorus, bridge, chorus | modern pop, dance-pop, pop rock |
+| Hook first | chorus, verse, chorus, verse, chorus, bridge, chorus | streaming-era pop, indie pop |
+| Short and simple | verse, chorus, verse, chorus, chorus | punk, garage rock, rockabilly |
+| Hip-hop | intro, verse, chorus, verse, chorus, verse, outro | rap, hip-hop, trap, R&B |
+| Double bridge | verse, chorus, verse, chorus, bridge, bridge, chorus, chorus | power ballads, progressive and symphonic rock |
+| Interlude | verse, chorus, interlude, verse, chorus, bridge, chorus | rock, pop rock, indie |
+| Every part | intro, verse, pre-chorus, chorus, interlude, verse, pre-chorus, chorus, outro | pop, dance-pop |
+
+**How many sections.** The planner usually writes 8 to 10 sections whatever the lyrics ask for, so a list longer
+than 10 gets condensed and the words of the sections it drops are not sung. The builder says so when the list is
+that long. A song does not get longer by adding sections; each one just gets shorter. See
+[Making the song longer](#making-the-song-longer).
+
+**Put sections in the lyrics box** drops the sections in as empty tags, ready to write under by hand. Once the box has
+words, the lyrics are what is sung, and the builder steps aside.
+
+**Write lyrics.** Describe what the song is about and a model writes words for the sections you built. It asks for
+three things:
+
+- **Lines in a verse or chorus** (4, 6 or 8; 6 is the default). More lines in a section make a longer song,
+  because the planner writes about as much music as there are words. An intro, bridge or outro stays at 2 to 4 lines,
+  and an interlude has none.
+- **How the lines sound.** The list shows the syllables each line aims for. The old writer produced the same
+  eight-syllable rhymed lines nearly every time, so this changes that:
+
+| Choice | Aims for | What you get |
+|---|---|---|
+| Natural (the default) | 3-13 syllables | A mix of short and long lines, some rhymes, no steady beat |
+| Regular rhyme | 6-10 syllables | Even lines that rhyme in pairs: the traditional shape, and what the writer used to do |
+| Spoken rhythm | 5-14 syllables | Conversational and rhythmic, like speech or rap, with internal rhymes |
+| Loose rhyme | 4-13 syllables | Some rhymes, some slant rhymes, some none, and lines of different lengths |
+| Short and punchy | 3-6 syllables | Short lines and repeated phrases |
+| Long and flowing | 10-14 syllables | Long lines that run on like a thought |
+
+  The last choice is remembered. These are aims, not guarantees: a language model follows them closely for the
+  extremes (short and punchy, long and flowing) and more loosely for the subtle ones.
+- **The brief** itself, in your own words, and the Style above, which sets the mood.
+
+The draft lands in the lyrics box, and the window closes as soon as it starts. It is a first draft: read it and make it
+yours.
+
+**Follow this structure exactly** (the tick under the lyrics box, off by default). The planner treats the section
+tags in the lyrics as guidance, and left alone it writes its own shape: it often adds an intro and an outro,
+swaps a bridge for an interlude and a verse, or condenses a long list. With this on, the plan writes exactly the
+sections the lyrics name, in that order, and no others. It cannot add an intro or an outro that you did not
+list. The planner still decides what the music is and when each section starts. It applies to songs only.
+
+**Writing by hand.** The Expand button opens a full-size editor with buttons for intro, verse, pre-chorus,
+chorus, bridge, interlude, outro and instrumental. A section is a line such as `[Verse]` followed by its lines; a
+tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
+
+### The sound
+
+- **Harmony** (the slider): how adventurous the chords are. The planner left alone tends to write one four-chord
+  loop and use it for every section, and each step pushes it a little further from that. The steps build on each
+  other:
+
+  | Step | What it does to the chords | Reach for it when |
+  |---|---|---|
+  | Familiar | Nothing: YuE2's own chords, often one loop for the whole song | You like the planner's first idea, or want the plainest backing |
+  | Varied | Discourages repeating the exact chords it has just used, so it recolours them (an F, then an Fmaj7) but stays in the key | The loop feels too samey, and you want the song to stay conventional |
+  | Colourful | The same, harder: verse and chorus part ways, with richer chords. A section also may not open on the same chords as the one before it, so a chorus no longer starts the way its verse did | You want the chorus to feel like a lift, not a repeat. A good first step up |
+  | Adventurous | Discourages recently used *roots*, not just spellings, so the harmony has to travel, and it borrows chords from outside the key | You want movement and surprise, and will listen for a chord that sounds odd |
+  | Outside | Adventurous, with a pull towards chords outside the key | Experiments. Expect to reject some plans |
+
+  From Colourful up the chord choices come out more distinct from section to section: more different chords in a
+  song, more four-bar patterns that are not repeats, and less of the chorus copying the verse's opening. The plan is
+  still a normal song, so it is worth trying a step or two higher before reaching for a wilder Plan variety.
+  Under **Advanced**, **Sections open differently** can be set to *Always* or *Never* to try a plan with and without
+  the chorus rule; the default, *Follow Harmony*, is on from Colourful up. A style such as trap or ambient is often
+  loop-based by nature, so expect a smaller change there than in pop or rock. See [Harmony](#harmony) for the measurements.
+- **Plan variety.** How freely the planner writes everything else. See [Plan variety](#plan-variety).
+- **Interpretation.** How the notes are performed when rendered. See [Interpretation](#interpretation).
+- **Length cap.** The latest the song may stop. See [Length](#length).
+- **Mode.** *Full* keeps the chords of the plan; *melody* leaves the accompaniment free.
+- **Seed**, and **keep this seed**. See [Seed, and reproducing a take](#seed-and-reproducing-a-take).
+- **Production polish** and **Normalise volume.** See [Production polish](#production-polish).
+- **Render as soon as the plan is ready** runs the plan and the render without stopping in between. Leave it off to
+  read the plan first.
+- **Advanced** (the button in the header): diffusion steps, Avoid, Key lock, Tempo lock, the longest score,
+  chord hold limit, outside harmony bonus, Sections open differently, target loudness and the outro fade. See
+  [Advanced settings](#advanced-settings).
+
+### Making the song longer
+
+The length of a song is set by its plan, and the render follows the plan's length. These are the things that move it:
+
+| To get… | Do this |
+|---|---|
+| A longer song | Give each section more lines (**Lines in a verse or chorus**: 6 or 8) |
+| A slower, longer song | Set a **Tempo lock** in Advanced. The same plan at a lower BPM runs longer |
+| A longer song by adding sections | This does not work: a plan has about 8 to 10 sections, so more just get shorter or are condensed |
+| More than the plan allows | Write a new plan; lengths vary a lot between runs on the same words |
+| A song that stops at the end of its words | Raise the length cap only if it is being cut short; the cap is a limit, not a target |
+
+### After the plan
+
+- **Render this score** makes a new take whenever the open take already has audio, so a render never overwrites one
+  you may want to compare. A take with no audio yet is filled in.
+- **Keep this tune** (after changing a take's words): sings the take's score with the new words, as a new take. The
+  tune cannot gain sections, so if your words have more sections than the tune does, the tick clears itself and a
+  new plan is written, with a line saying why. See [Same tune, new words](#same-tune-new-words).
+- **Details** (the circled *i* on a take) lists the structure the take was asked for, with the lines in each
+  section, next to the sections the plan actually wrote and where each starts. If a plan does not match your
+  lyrics, that is where to see it, and **Follow this structure exactly** is how to stop it happening.
+- **Filter the library.** The **Song**, **Cover** and **Instrumental** toggles beside the filters show only those
+  kinds in the open space; pick more than one, or none for every kind.
+
+---
+
 ## Reading and fixing the plan
 
 The plan is written in **ABC notation**: music as plain text, letters instead of dots on a stave.

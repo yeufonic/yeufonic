@@ -1227,7 +1227,8 @@ def state() -> dict:
             "lyric_structures": [{"id": key, "sections": value, "hint": lyrics.HINTS.get(key, "")} for key, value in lyrics.STRUCTURES.items()],
             "lyric_sections": sorted(lyrics.TAGS, key=["intro", "verse", "pre-chorus", "chorus", "bridge", "interlude", "outro"].index),
             "lyric_lines": lyrics.DEFAULT_LINES,
-            "lyric_feels": [{"id": key, "label": value[0], "hint": value[2]} for key, value in lyrics.FEELS.items()],
+            "lyric_feels": [{"id": key, "label": f"{value[0]} ({lyrics.FEEL_SYLLABLES[key]} syllables)", "hint": value[2]}
+                            for key, value in lyrics.FEELS.items()],
             "lyrics_available": bool(llm.is_external_enabled() or ENGINE.options.get("lyrics", False)),
             "llm_provider": llm.get_config()["provider"],
             "instrumental_available": ENGINE.options.get("instrumental", False),

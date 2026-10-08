@@ -207,6 +207,8 @@ def test_the_lyric_feel_changes_the_one_rule_about_line_length_and_rhyme(client,
     assert lyrics.build_prompt("rain", "pop", "verse-chorus", feel="nonsense") == natural             # an unknown feel is the default
     options = client.get("/api/state").json()["options"]
     assert [item["id"] for item in options["lyric_feels"]] == list(lyrics.FEELS) and all(item["hint"] for item in options["lyric_feels"])
+    assert set(lyrics.FEEL_SYLLABLES) == set(lyrics.FEELS)
+    assert [item["label"] for item in options["lyric_feels"]][:2] == ["Natural (3-13 syllables)", "Regular rhyme (6-10 syllables)"]
     monkeypatch.setitem(jobs.ENGINE.options, "lyrics", True)
     draft = client.post("/api/lyrics", json={"brief": "rain", "feel": "punchy"}).json()
     assert draft["feel"] == "punchy" and "3 to 6 syllables" in jobs.build_lyrics_graph(draft)["2"]["inputs"]["prompt"]

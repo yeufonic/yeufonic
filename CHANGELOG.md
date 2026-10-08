@@ -37,41 +37,49 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.35 (2026-10-08)
 
+This release changes the engine image (the Harmony node), so a Docker install needs `docker compose build engine`
+and a recreate as well as a pull.
+
+- **Build a song's structure, then write the words.** Song from a prompt has a structure builder above the lyrics, as an
+  instrumental does: add, remove and reorder sections, or start from one of eleven common shapes. It includes an
+  **interlude**, an instrumental passage the planner plays on its own. Write lyrics follows the structure and asks how
+  many lines a verse or chorus has (more lines make a longer song), **Put sections in the lyrics box** lays the
+  sections out to write under by hand, and the lyrics editor has buttons for intro, pre-chorus, interlude and outro.
+  The old Structure dropdown in the Write lyrics window is gone, replaced by the builder.
 - **How the lines sound.** The lyric writer no longer defaults to eight-syllable rhymed couplets, which is what its old
   instruction ("6 to 10 syllables, with rhymes") produced almost every time. Write lyrics has a **How the lines
-  sound** choice: Natural (the default, a mix of short and long lines with some rhymes), Regular rhyme (the old
-  shape), Spoken rhythm, Loose rhyme, Short and punchy, and Long and flowing. The last pick is remembered.
-- **Follow this structure exactly.** A tick under a song's lyrics box makes the plan write exactly the
-  sections the lyrics name, in order, and no others (so no intro or outro of its own). It steers only the name the
-  planner writes after a section comment; the planner still decides when each section begins, and a plan can end before
-  the list does. An instrumental is not affected. The engine image changed (the Harmony node).
-- **Write lyrics closes when the draft starts.** The window used to stay open and tell you to close it; the progress
-  already shows beside the lyrics box.
+  sound** choice that shows the syllables each line aims for: Natural (the default, a mix of short and long lines
+  with some rhymes), Regular rhyme (the old shape), Spoken rhythm, Loose rhyme, Short and punchy, and Long and
+  flowing. The last pick is remembered.
+- **Follow this structure exactly.** A tick under a song's lyrics box makes the plan write exactly the sections the
+  lyrics name, in order, and no others (so no intro or outro of its own). It steers only the name the planner writes
+  after a section comment and holds the plan's end back until the last section has begun; the planner still decides
+  what the music is. An instrumental is not affected.
 - **A chorus no longer opens the way the verse did.** From Colourful up, the Harmony step also takes logits from a
   chord that would repeat how the previous section opened (its first four chords, position for position). It chooses no
-  chord and forbids none, and the chords inside a section can still loop. The engine image changed (the Harmony node),
-  so updating needs `docker compose build engine` and a recreate. **Sections open differently** in the Advanced
+  chord and forbids none, and the chords inside a section can still loop. **Sections open differently** in the Advanced
   settings follows the Harmony step by default, or can be set to Always or Never for a take.
-- **Filter takes by kind.** Song, Cover and Instrumental toggles beside the library's filters show only those kinds in
-  whichever space is open. Pick more than one, or none for every kind; the choice is kept across a reload.
-- **Build a song's structure, then write the words.** Song from a prompt has a structure builder above the lyrics, as an
-  instrumental does: add, remove and reorder sections, or start from a common shape. It now includes an **interlude**,
-  an instrumental passage the planner plays on its own. Write lyrics follows the structure and asks how many lines a
-  verse or chorus has (more lines make a longer song), **Put sections in the lyrics box** lays the sections out to
-  write under by hand, and the lyrics editor has buttons for intro, pre-chorus, interlude and outro. The old Structure
-  dropdown in the Write lyrics window is gone, replaced by the builder. A take's **Details** shows the structure it was
-  asked for (the lyrics' sections, with their line counts) and the sections the plan wrote, with where each starts.
-  The builder says when a list is longer than the planner usually writes (8 to 10 sections), and when words have more
-  sections than a take's tune, **Keep this tune** is unticked, with a line saying why, so a new plan is written for them.
+- **Details shows the structure.** A take's Details lists the structure it was asked for (the lyrics' sections, with
+  their line counts) and the sections the plan wrote, with where each starts. The builder says when a list is longer
+  than the planner usually writes (8 to 10 sections), and when edited words have more sections than a take's tune,
+  **Keep this tune** is unticked, with a line saying why, so a new plan is written for them.
+- **Render this score makes a new take.** A take that already has audio is rendered as a new take beside it, so a render
+  never overwrites one that may be worth keeping: for songs and instrumentals, from the Score page and from a planned
+  instrumental's main button, whatever was changed. The new take keeps the title of the one it came from. A take with
+  no audio yet is filled in, and the card's own Render action is unchanged.
 - **More styles to start from.** The Style dropdown has 200 styles. About 125 are new and cover mainstream genres (pop,
   rock, country, R&B, gospel, Latin, metal and more), with more rap, hip-hop, trap and EDM; some of the most niche
   of the old ones were dropped to make room. Songs and covers have five more one-click presets.
-- **More song structures.** Write lyrics offers five more: pop with a pre-chorus, hook first, short and simple, hip-hop,
-  and double bridge. Each has a tooltip naming the styles it suits.
+- **Filter takes by kind.** Song, Cover and Instrumental toggles beside the library's filters show only those kinds in
+  whichever space is open. Pick more than one, or none for every kind; the choice is kept across a reload.
+- **Write lyrics closes when the draft starts.** The window used to stay open and tell you to close it; the progress
+  already shows beside the lyrics box.
 - **The mode buttons keep one order.** Song, Cover and Instrumental are in the same order in the editor as on the
   library's buttons.
+- **The guide has a chapter on writing a song from a prompt,** going through every option in the order the editor
+  shows them, with what to change to make a song longer.
 
 ## 0.0.34 (2026-10-08)
 

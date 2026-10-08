@@ -61,6 +61,8 @@ FEELS = {
                 "Long lines that run on."),
 }
 DEFAULT_FEEL = "natural"
+# The syllables a line aims for under each feel, shown beside its name in the page's list.
+FEEL_SYLLABLES = {"natural": "3-13", "regular": "6-10", "spoken": "5-14", "loose": "4-13", "punchy": "3-6", "flowing": "10-14"}
 
 PROMPT = """You are a songwriter. Write original lyrics for a song.
 
