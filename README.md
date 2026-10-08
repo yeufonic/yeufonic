@@ -1,10 +1,5 @@
 # <img src="app/static/icon.svg" alt="" width="40" align="top"> Yeufonic
 
-> **YuE2 Studio is now Yeufonic.** It's the same app under a new name.
-> The old repository, [YuE2gen-studio](https://github.com/dynamohum/YuE2gen-studio), 
-> is archived and gets no more updates. If you use YuE2 Studio, your library, settings, LoRAs
-> and models all come across: see [Moving from YuE2 Studio](#moving-from-yue2-studio).
-
 A web interface for [YuE2](https://github.com/multimodal-art-projection/YuE), the open music
 model. Write a song from a prompt, or cover your own recording. Create a local LoRA trained on 
 a corpus of music. Edit the score either way, then pull the stems out of the result.
