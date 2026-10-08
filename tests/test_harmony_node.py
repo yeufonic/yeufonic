@@ -13,6 +13,7 @@ NODE = Path(__file__).resolve().parents[1] / "engine" / "custom_nodes" / "yue2_h
 def harmony():
     stub = types.ModuleType("comfy.text_encoders.yue2")
     stub.EOD = 1000
+    stub.ABC_END = 1001
     stub.distribution = lambda *a, **k: None
     saved = {k: sys.modules.get(k) for k in ("comfy", "comfy.text_encoders", "comfy.text_encoders.yue2")}
     sys.modules.update({"comfy": types.ModuleType("comfy"), "comfy.text_encoders": types.ModuleType("comfy.text_encoders"),
@@ -175,35 +176,47 @@ def follower(harmony, parts, sections):
 
 def test_after_a_percent_only_the_next_sections_name_is_allowed(harmony):
     t = follower(harmony, ['%'], ["verse", "chorus"])
-    ids, values = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    ids, values = t.follow_line(Logits(len(FOLLOW_VOCAB)))
     assert {FOLLOW_VOCAB[i] for i in ids} == {' ver', ' verse'} or {FOLLOW_VOCAB[i] for i in ids} >= {' verse'}
     assert FOLLOW_IDS[' chorus'] not in ids and FOLLOW_IDS[' bridge'] not in ids
     assert all(v < 0 for v in values)                   # a bonus: logits go up
     t = follower(harmony, ['%', ' verse', '\n', 'z16|', '|\n', '%'], ["verse", "chorus"])
-    ids, _ = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    ids, _ = t.follow_line(Logits(len(FOLLOW_VOCAB)))
     assert FOLLOW_IDS[' chorus'] in ids and FOLLOW_IDS[' verse'] not in ids      # the second section is the chorus
 
 
 def test_a_name_is_finished_with_a_newline_and_a_longer_name_is_spelt_out(harmony):
     t = follower(harmony, ['%', ' verse'], ["verse"])
-    ids, _ = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    ids, _ = t.follow_line(Logits(len(FOLLOW_VOCAB)))
     assert [FOLLOW_VOCAB[i] for i in ids] == ['\n']                                # the name is whole: only the line's end
     t = follower(harmony, ['%', ' pre'], ["pre-chorus"])
-    ids, _ = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    ids, _ = t.follow_line(Logits(len(FOLLOW_VOCAB)))
     assert FOLLOW_IDS['-'] in ids and FOLLOW_IDS['chorus'] not in ids               # a hyphen first
 
 
 def test_once_the_structure_is_used_no_more_sections_may_start(harmony):
     t = follower(harmony, ['%', ' verse', '\n', 'z16|', '|\n'], ["verse"])
-    ids, values = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    ids, values = t.follow_line(Logits(len(FOLLOW_VOCAB)))
     assert {FOLLOW_VOCAB[i] for i in ids} == {'%', '%%'} and all(v > 0 for v in values)     # a penalty on every comment opener
     t = follower(harmony, ['%', ' verse', '\n', 'z16|', '|\n'], ["verse", "chorus"])
-    assert t.follow_bias(Logits(len(FOLLOW_VOCAB))) is None                         # more to come: the planner decides when
+    assert t.follow_line(Logits(len(FOLLOW_VOCAB))) is None                         # more to come: the planner decides when
 
 
 def test_a_line_that_is_not_a_section_comment_is_left_alone(harmony):
     t = follower(harmony, ['V', ': Vocal'], ["verse"])
-    assert t.follow_bias(Logits(len(FOLLOW_VOCAB))) is None
+    assert t.follow_line(Logits(len(FOLLOW_VOCAB))) is None
     t = follower(harmony, ['%%'], ["verse"])
-    assert t.follow_bias(Logits(len(FOLLOW_VOCAB))) is None
+    assert t.follow_line(Logits(len(FOLLOW_VOCAB))) is None
     assert follower(harmony, [], []).active is False and follower(harmony, [], ["verse"]).active is True
+
+
+def test_the_plan_may_not_end_before_the_structure_is_written(harmony):
+    t = follower(harmony, ['%', ' verse', '\n', 'z16|', '"D"', 'z16|'], ["verse", "chorus"])
+    ids, values = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    assert 1001 in ids and values[ids.index(1001)] > 0                         # the end of the plan is penalised: a chorus is still to come
+    t = follower(harmony, ['%', ' verse', '\n', '%', ' chorus', '\n'], ["verse", "chorus"])
+    ids, values = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    assert 1001 in ids                                                            # every section has begun, but the last has no chords yet
+    t = follower(harmony, ['%', ' verse', '\n', '%', ' chorus', '\n'] + ['"D"', 'z16|'] * 4, ["verse", "chorus"])
+    got = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    assert got is None or 1001 not in got[0]                                     # all written, the last has chords: it may end

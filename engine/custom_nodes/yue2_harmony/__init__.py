@@ -24,9 +24,9 @@ costs the planner logits to copy the opening, so a chorus has to find its own wa
 
 A structure can be followed exactly.  Given the section names the lyrics asked for, in order, the
 node steers only the name the planner writes after a "%" comment: the first section must be the first
-name, the second the second, and once the list is used no further "%" comment may start.  It does not
-write the sections for the planner or decide when one begins, so a plan may still end before the list
-does.
+name, the second the second, and once the list is used no further "%" comment may start, and the plan may not
+end until every section has begun and the last has some chords.  It does not write the sections for
+the planner or decide when one begins.
 
 An optional bonus favours roots outside the key from the score's K: line, only on
 a change of chord and only while few recent chords are already outside, so the
@@ -44,6 +44,7 @@ import comfy.text_encoders.yue2 as yue2
 
 NOTE = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 HEADER = re.compile(r"^[A-Za-z]:")
+FOLLOW_LAST_CHORDS = 4  # chord symbols the last section needs before the plan may end
 FOLLOW_BOOST = 50.0     # logits added to the tokens that spell the section the structure asks for next
 SECTION_LINE = re.compile(r"^%\s*([A-Za-z][\w -]*?)\s*$")
 KEY_LINE = re.compile(r"^K:\s*([A-G][#b]?)(m?)", re.M)
@@ -108,6 +109,7 @@ class HarmonyTracker:
         self.section_open = section_open
         self.wanted = [name.strip().lower() for name in (sections or []) if name and name.strip()]
         self.section_count = 0   # "% name" comment lines the planner has finished
+        self.section_chords = 0  # chord symbols written since the last one
         self._allowed = {}
         self.opening = []        # the roots this section has moved through so far, up to section_open of them
         self.previous = []       # the same for the section before
@@ -148,6 +150,7 @@ class HarmonyTracker:
                 root = root_of(symbol)
                 if root is None:
                     continue
+                self.section_chords += 1
                 if len(self.opening) < self.section_open and (not self.opening or self.opening[-1] != root):
                     self.opening.append(root)
                 # Holding is counted by root, so respelling a chord (E5, Em, Em7)
@@ -173,6 +176,7 @@ class HarmonyTracker:
             if SECTION_LINE.match(line):
                 self.previous, self.opening = self.opening, []
                 self.section_count += 1
+                self.section_chords = 0
             line = ""
 
     def section_penalty(self, root):
@@ -242,6 +246,18 @@ class HarmonyTracker:
     def follow_bias(self, logits):
         """Hold the planner to the structure: after a "%" it may write only the next section's name, and
         once every section has been written it may not start another."""
+        found = self.follow_line(logits)
+        # The plan may not end with sections still to write, or before the last has some chords.
+        end = getattr(yue2, "ABC_END", None)
+        if end is not None and (self.section_count < len(self.wanted) or self.section_chords < FOLLOW_LAST_CHORDS):
+            ids, values = (list(found[0]), list(found[1])) if found else ([], [])
+            if end not in ids:
+                ids.append(end)
+                values.append(FOLLOW_BOOST)
+            return ids, values
+        return found
+
+    def follow_line(self, logits):
         line = self.line
         if line.startswith("%%"):
             return None
