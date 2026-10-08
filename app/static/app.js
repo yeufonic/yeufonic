@@ -4791,6 +4791,27 @@ function openBrandMenu() {
    Everything the take stores about how it was made, in words, for reading, comparing two takes or pasting into a message. */
 var MODE_WORDS = { full: 'full: keeps the chords', melody: 'melody: free accompaniment' };
 
+/* What the take was asked to be, and what the planner wrote: the lyrics' tags, with how many lines each has, and the
+   score's sections with where each begins.  A song planned from an instrumental's structure has tags only. */
+function structureDetails(take) {
+  var pairs = [];
+  var asked = [];
+  String(take.lyrics || '').split(/\n(?=\[)/).forEach(function (block) {
+    var lines = block.split('\n');
+    var tag = /^\[([^\]]+)\]/.exec(lines[0]);
+    if (!tag) { return; }
+    var count = lines.slice(1).filter(function (line) { return line.trim(); }).length;
+    asked.push(tag[1] + (take.kind === 'instrumental' || !count ? '' : ' (' + count + ')'));
+  });
+  if (asked.length) { pairs.push([take.kind === 'instrumental' ? 'Structure sent' : 'Lyrics asked for', asked.join(', ')]); }
+  var spans = typeof scoreSectionSpans === 'function' ? scoreSectionSpans(take.abc) : [];
+  if (spans.length) {
+    pairs.push(['Plan wrote', spans.map(function (span) { return (span.was || span.name) + ' ' + clock(span.start); }).join(', ')]);
+    pairs.push(['Plan length', clock(spans[spans.length - 1].end)]);
+  }
+  return pairs;
+}
+
 function detailGroups(take) {
   var yes = function (flag) { return flag ? 'yes' : 'no'; };
   var kind = take.kind === 'song' ? 'Song from a prompt' : (take.kind === 'instrumental' ? 'Instrumental' : 'Cover');
@@ -4822,6 +4843,8 @@ function detailGroups(take) {
     sound.push(['Voice LoRA', take.voice_lora.replace(/\.safetensors$/, '') + ' (' + Number(take.voice_lora_strength || 0).toFixed(2) + ')']);
   }
   var groups = [['Made', made], ['Sound', sound]];
+  var structure = structureDetails(take);
+  if (structure.length) { groups.push(['Structure', structure]); }
 
   var advanced = [];
   var set = function (label, value, shown) { if (value != null && value !== '' && value !== false) { advanced.push([label, shown || String(value)]); } };
