@@ -46,7 +46,8 @@ cannot creep back in.
   title. Changing a corpus's Voice to or from **none** updates the songs already analysed.
 - **Render this score makes a new take.** A take that already has audio is rendered as a new take beside it, so a
   render never overwrites one that may be worth keeping: for songs and instrumentals, from the Score page and from a
-  planned instrumental's main button, whatever was changed. A take with no audio yet is filled in. The card's own Render action is unchanged.
+  planned instrumental's main button, whatever was changed. The new take keeps the title of the one it came from.
+  A take with no audio yet is filled in, and the card's own Render action is unchanged.
 - **Play after switching spaces.** A take paused in one space can be resumed after switching to another; Play
   did nothing because the player had lost the take.
 
