@@ -37,6 +37,14 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **More styles to start from.** The Style dropdown has 200 styles. About 125 are new and cover mainstream genres (pop,
+  rock, country, R&B, gospel, Latin, metal and more), with more rap, hip-hop, trap and EDM; some of the most niche
+  of the old ones were dropped to make room. Songs and covers have five more one-click presets.
+- **The mode buttons keep one order.** Song, Cover and Instrumental are in the same order in the editor as on the
+  library's buttons.
+
 ## 0.0.34 (2026-10-08)
 
 - **A corpus without vocals.** The corpus **Voice** menu has a **none** entry for instrumental songs (#40): the
