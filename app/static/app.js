@@ -8572,9 +8572,10 @@ async function doWrite() {
     WRITE.started = Date.now();
     WRITE.status = draft.status || 'queued';
     setWriting(true);
-    writeStatus('Waiting for the engine\u2026 You can close this window: the words land in the lyrics box.');
-    statusLine('Drafting lyrics\u2026 You can close this window: the words land in the lyrics box.', 'wait');
+    writeStatus('Waiting for the engine\u2026 The words land in the lyrics box.');
+    statusLine('Drafting lyrics\u2026 The words land in the lyrics box.', 'wait');
     paintWriteJob(State.currentJob, []);
+    closeWrite();      // the progress is shown beside the lyrics box now
     clearTimeout(WRITE.timer);
     WRITE.timer = setTimeout(pollWrite, 1500);
   } catch (err) {
@@ -8615,7 +8616,7 @@ async function pollWrite() {
     return;
   }
   var statusMsg = draft.status === 'running' ? 'Writing lyrics\u2026'
-    : 'Waiting for the engine\u2026 You can close this window: the words land in the lyrics box.';
+    : 'Waiting for the engine\u2026 The words land in the lyrics box.';
   writeStatus(statusMsg);
   paintWriteJob(State.currentJob, []);
   WRITE.timer = setTimeout(pollWrite, 2000);

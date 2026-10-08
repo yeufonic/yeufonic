@@ -39,6 +39,8 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Write lyrics closes when the draft starts.** The window used to stay open and tell you to close it; the progress
+  already shows beside the lyrics box.
 - **A chorus no longer opens the way the verse did.** From Colourful up, the Harmony step also takes logits from a
   chord that would repeat how the previous section opened (its first four chords, position for position). It chooses no
   chord and forbids none, and the chords inside a section can still loop. The engine image changed (the Harmony node),

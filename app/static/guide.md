@@ -98,7 +98,7 @@ Once the box has words, the lyrics are what is sung and the structure steps asid
 **Write lyrics**, beside the lyrics box, asks what the song is about and writes words for the sections you built.
 **Lines in a verse or chorus** sets how long each is: more lines in a section make a longer song, because the
 planner writes about as much music as there are words. The Style above sets the mood. Gemma writes the draft on the same
-engine, and it lands in the box with a title if you had not given one. You can close the window while it writes.
+engine, and it lands in the box with a title if you had not given one. The window closes as soon as the draft starts, and the progress shows beside the lyrics box.
 The lyrics editor's buttons add any of these sections too.
 
 It is a first draft. The lines scan and rhyme, but a model reaches for familiar images, and nothing
