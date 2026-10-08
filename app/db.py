@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS takes (
     chord_hold_limit INTEGER DEFAULT 8,
     chord_outside_bonus REAL DEFAULT 0.0,
     chord_sections INTEGER,
+    follow_structure INTEGER,
     target_lufs REAL,
     fade_out_seconds REAL DEFAULT 3.0
 );
@@ -489,6 +490,12 @@ def _chord_sections() -> None:
         execute("ALTER TABLE takes ADD COLUMN chord_sections INTEGER")
 
 
+def _follow_structure() -> None:
+    """Whether a plan must follow the lyrics' structure exactly (null and 0: no)."""
+    if "follow_structure" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN follow_structure INTEGER")
+
+
 MIGRATIONS = [
     lambda: (conn().executescript(BASE_SCHEMA), _legacy_takes()),   # -> 1
     _indexes,                                                        # -> 2
@@ -519,6 +526,7 @@ MIGRATIONS = [
     _lyrics_versions,                                                # -> 27
     _advanced_take_settings,                                         # -> 28
     _chord_sections,                                                 # -> 29
+    _follow_structure,                                               # -> 30
 ]
 
 

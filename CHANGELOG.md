@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Follow my structure exactly.** A song's Advanced settings have a choice that makes the plan write exactly the
+  sections the lyrics name, in order, and no others (so no intro or outro of its own). It steers only the name the
+  planner writes after a section comment; the planner still decides when each section begins, and a plan can end before
+  the list does. An instrumental is not affected. The engine image changed (the Harmony node).
 - **Write lyrics closes when the draft starts.** The window used to stay open and tell you to close it; the progress
   already shows beside the lyrics box.
 - **A chorus no longer opens the way the verse did.** From Colourful up, the Harmony step also takes logits from a

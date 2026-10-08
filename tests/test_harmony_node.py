@@ -148,3 +148,62 @@ def test_the_first_section_has_nothing_to_copy_and_off_is_off(harmony):
     assert t.previous == [] and t.section_penalty(harmony.root_of("D")) == 0.0
     t = follow(harmony, VERSE + ['% chorus\n', 'V: Vocal name="Vocal"\n'], section_strength=0.0)
     assert not t.active and t.section_penalty(harmony.root_of("D")) == 0.0
+
+
+FOLLOW_VOCAB = ['\n', '%', ' verse', ' chorus', ' bridge', ' ver', 'se', '|\n', 'z16|', '"D"', ' pre', '-', 'chorus', '%%', 'V', ': Vocal']
+FOLLOW_IDS = {text: i for i, text in enumerate(FOLLOW_VOCAB)}
+
+
+class Logits:
+    """Just enough of a tensor: topk over a row of scores."""
+    def __init__(self, n):
+        self.n = n
+
+    def __getitem__(self, key):
+        return self
+
+    def topk(self, k):
+        import types
+        return types.SimpleNamespace(indices=types.SimpleNamespace(tolist=lambda: list(range(min(k, self.n)))))
+
+
+def follower(harmony, parts, sections):
+    t = harmony.HarmonyTracker(FOLLOW_VOCAB, "root", 0.0, sections=sections)
+    t.feed([FOLLOW_IDS[p] for p in parts])
+    return t
+
+
+def test_after_a_percent_only_the_next_sections_name_is_allowed(harmony):
+    t = follower(harmony, ['%'], ["verse", "chorus"])
+    ids, values = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    assert {FOLLOW_VOCAB[i] for i in ids} == {' ver', ' verse'} or {FOLLOW_VOCAB[i] for i in ids} >= {' verse'}
+    assert FOLLOW_IDS[' chorus'] not in ids and FOLLOW_IDS[' bridge'] not in ids
+    assert all(v < 0 for v in values)                   # a bonus: logits go up
+    t = follower(harmony, ['%', ' verse', '\n', 'z16|', '|\n', '%'], ["verse", "chorus"])
+    ids, _ = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    assert FOLLOW_IDS[' chorus'] in ids and FOLLOW_IDS[' verse'] not in ids      # the second section is the chorus
+
+
+def test_a_name_is_finished_with_a_newline_and_a_longer_name_is_spelt_out(harmony):
+    t = follower(harmony, ['%', ' verse'], ["verse"])
+    ids, _ = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    assert [FOLLOW_VOCAB[i] for i in ids] == ['\n']                                # the name is whole: only the line's end
+    t = follower(harmony, ['%', ' pre'], ["pre-chorus"])
+    ids, _ = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    assert FOLLOW_IDS['-'] in ids and FOLLOW_IDS['chorus'] not in ids               # a hyphen first
+
+
+def test_once_the_structure_is_used_no_more_sections_may_start(harmony):
+    t = follower(harmony, ['%', ' verse', '\n', 'z16|', '|\n'], ["verse"])
+    ids, values = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
+    assert {FOLLOW_VOCAB[i] for i in ids} == {'%', '%%'} and all(v > 0 for v in values)     # a penalty on every comment opener
+    t = follower(harmony, ['%', ' verse', '\n', 'z16|', '|\n'], ["verse", "chorus"])
+    assert t.follow_bias(Logits(len(FOLLOW_VOCAB))) is None                         # more to come: the planner decides when
+
+
+def test_a_line_that_is_not_a_section_comment_is_left_alone(harmony):
+    t = follower(harmony, ['V', ': Vocal'], ["verse"])
+    assert t.follow_bias(Logits(len(FOLLOW_VOCAB))) is None
+    t = follower(harmony, ['%%'], ["verse"])
+    assert t.follow_bias(Logits(len(FOLLOW_VOCAB))) is None
+    assert follower(harmony, [], []).active is False and follower(harmony, [], ["verse"]).active is True

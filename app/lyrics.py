@@ -60,6 +60,21 @@ Rules:
 - Output only the title and the lyrics. No notes, no explanations, no markdown."""
 
 
+def plan_names(text: str) -> list[str]:
+    """The section names a plan should follow, from a song's lyric tags in order: the planner writes an interlude
+    where the lyrics say instrumental, and other tags (a verse number, a note) are not sections."""
+    names = []
+    for line in (text or "").splitlines():
+        found = re.fullmatch(r"\[\s*([A-Za-z -]+?)\s*(?:\d+)?\s*\]", line.strip())
+        if not found:
+            continue
+        name = found.group(1).strip().lower()
+        name = "interlude" if name == "instrumental" else name
+        if name in TAGS:
+            names.append(name)
+    return names
+
+
 def clean_sections(sections: list[str]) -> list[str]:
     """The names a person put in the builder, as the tags the writer and the planner know; ValueError for any other."""
     out = []

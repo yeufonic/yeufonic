@@ -22,6 +22,12 @@ n-th chord a section moves to may not be the n-th chord the previous section mov
 for its first few chords.  Nothing is forbidden outright and no chord is chosen: it only
 costs the planner logits to copy the opening, so a chorus has to find its own way in.
 
+A structure can be followed exactly.  Given the section names the lyrics asked for, in order, the
+node steers only the name the planner writes after a "%" comment: the first section must be the first
+name, the second the second, and once the list is used no further "%" comment may start.  It does not
+write the sections for the planner or decide when one begins, so a plan may still end before the list
+does.
+
 An optional bonus favours roots outside the key from the score's K: line, only on
 a change of chord and only while few recent chords are already outside, so the
 song cannot settle on an out-of-key chord.
@@ -38,6 +44,7 @@ import comfy.text_encoders.yue2 as yue2
 
 NOTE = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 HEADER = re.compile(r"^[A-Za-z]:")
+FOLLOW_BOOST = 50.0     # logits added to the tokens that spell the section the structure asks for next
 SECTION_LINE = re.compile(r"^%\s*([A-Za-z][\w -]*?)\s*$")
 KEY_LINE = re.compile(r"^K:\s*([A-G][#b]?)(m?)", re.M)
 MAJOR_STEPS = {0, 2, 4, 5, 7, 9, 11}
@@ -88,7 +95,8 @@ def walk(text, line, partial):
 
 class HarmonyTracker:
     def __init__(self, vocab, mode="root", strength=0.0, window=16, hold_limit=8,
-                 outside_bonus=0.0, outside_limit=0.25, candidates=64, section_strength=0.0, section_open=4):
+                 outside_bonus=0.0, outside_limit=0.25, candidates=64, section_strength=0.0, section_open=4,
+                 sections=None):
         self.vocab = vocab
         self.mode = mode
         self.strength = strength
@@ -98,6 +106,9 @@ class HarmonyTracker:
         self.candidates = candidates
         self.section_strength = section_strength
         self.section_open = section_open
+        self.wanted = [name.strip().lower() for name in (sections or []) if name and name.strip()]
+        self.section_count = 0   # "% name" comment lines the planner has finished
+        self._allowed = {}
         self.opening = []        # the roots this section has moved through so far, up to section_open of them
         self.previous = []       # the same for the section before
         self.seen = 0
@@ -111,8 +122,12 @@ class HarmonyTracker:
         self.chord_starts = [i for i, t in enumerate(vocab) if t.startswith('"') and t[1:2] in NOTE]
 
     @property
-    def active(self):
+    def chord_active(self):
         return self.strength > 0 or self.outside_bonus > 0 or self.section_strength > 0
+
+    @property
+    def active(self):
+        return self.chord_active or bool(self.wanted)
 
     # ------------------------------------------------------------- following
     def identity(self, symbol):
@@ -157,6 +172,7 @@ class HarmonyTracker:
                 continue
             if SECTION_LINE.match(line):
                 self.previous, self.opening = self.opening, []
+                self.section_count += 1
             line = ""
 
     def section_penalty(self, root):
@@ -205,10 +221,50 @@ class HarmonyTracker:
         return value
 
     def bias(self, logits):
-        """Logit adjustments for this step, as (ids, values).  Only the top candidates
+        """Logit adjustments for this step, as (ids, values): the chords' and the structure's together."""
+        chords = self.chord_bias(logits) if self.chord_active else None
+        follow = self.follow_bias(logits) if self.wanted else None
+        if not follow:
+            return chords
+        if not chords:
+            return follow
+        merged = dict(zip(*chords))
+        for token, value in zip(*follow):
+            merged[token] = merged.get(token, 0.0) + value
+        return list(merged), list(merged.values())
+
+    def tokens_spelling(self, remaining):
+        """Every token that could be the next piece of the text `remaining`, computed once for each."""
+        if remaining not in self._allowed:
+            self._allowed[remaining] = [i for i, text in enumerate(self.vocab) if text and remaining.startswith(text)]
+        return self._allowed[remaining]
+
+    def follow_bias(self, logits):
+        """Hold the planner to the structure: after a "%" it may write only the next section's name, and
+        once every section has been written it may not start another."""
+        line = self.line
+        if line.startswith("%%"):
+            return None
+        if line == "":
+            if self.section_count < len(self.wanted):
+                return None
+            top = logits[0, :yue2.EOD].topk(self.candidates).indices.tolist()
+            banned = [t for t in top if self.vocab[t].startswith("%")]
+            return (banned, [FOLLOW_BOOST] * len(banned)) if banned else None
+        if not line.startswith("%") or self.section_count >= len(self.wanted):
+            return None
+        target = " " + self.wanted[self.section_count]
+        content = line[1:]
+        if not target.startswith(content):
+            return None                       # off the structure already (a comment that is not a section name)
+        allowed = self.tokens_spelling(target[len(content):] + "\n")
+        return (allowed, [-FOLLOW_BOOST] * len(allowed)) if allowed else None
+
+    def chord_bias(self, logits):
+        """Logit adjustments for the chords.  Only the top candidates
         are scored: a penalty only lowers a token, so one outside them could not be
         sampled either way.  A bonus can raise one, so chord openings are added."""
-        if not self.active or not self.changes:
+        if not self.chord_active or not self.changes:
             return None
         top = logits[0, :yue2.EOD].topk(self.candidates).indices.tolist()
         if self.outside_bonus and self.partial is None and any('"' in self.vocab[t] for t in top):
@@ -298,15 +354,17 @@ class YuE2GenerateABCHarmony:
                                            "tooltip": "Logits taken from a chord that would repeat how the previous section opened. 0 is off."}),
             "section_open": ("INT", {"default": 4, "min": 1, "max": 16,
                                      "tooltip": "How many of a section's first chords are compared with the previous section's."}),
+            "follow_sections": ("STRING", {"default": "", "tooltip": "Section names in order, separated by commas. The plan may write only these, in this order. Empty is off."}),
         }}
 
     def execute(self, clip, style, lyrics, seed, mode, max_abc_tokens, temperature, top_p, top_k, repetition_penalty,
                 penalty_window, chord_identity, chord_strength, chord_window, hold_limit, outside_bonus, outside_limit,
-                section_strength=0.0, section_open=4):
+                section_strength=0.0, section_open=4, follow_sections=""):
         tokens = clip.tokenize(style, lyrics=lyrics, cot=mode, seed=seed, max_tokens=max_abc_tokens, penalty_window=penalty_window)
         tracker = HarmonyTracker(vocabulary(clip), chord_identity, chord_strength, chord_window, hold_limit,
                                  outside_bonus, outside_limit, candidates=max(64, top_k),
-                                 section_strength=section_strength, section_open=section_open)
+                                 section_strength=section_strength, section_open=section_open,
+                                 sections=[part for part in str(follow_sections or "").split(",") if part.strip()])
         generate = lambda: clip.generate(tokens, max_length=max_abc_tokens, temperature=temperature, top_p=top_p,
                                          top_k=top_k, repetition_penalty=repetition_penalty, seed=seed)
         if tracker.active:

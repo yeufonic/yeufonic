@@ -70,6 +70,10 @@ Some of these act on the plan, and some on the render and the finished file:
   chords and roots outside the home key. These two act on the planner's choices, so they show as a
   difference in the chords of the plan rather than as a clear difference by ear. Compare the Score
   window.
+- **Follow my structure exactly** (songs; off by default): the plan writes exactly the sections the lyrics name, in
+  order, and no others. Left off, the planner shapes the song itself and often adds an intro, an outro or an
+  interlude, or leaves a section out. A plan can still end before the list does; Details shows what was asked for and
+  what the plan wrote.
 - **Sections open differently** (Follow Harmony, Always, Never): whether a section may open on the same
   chords as the one before it. *Follow Harmony* turns it on from Colourful up and leaves it off below; *Always* and
   *Never* decide for this take at any step, so two plans can be compared with and without it.

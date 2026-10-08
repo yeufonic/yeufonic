@@ -275,3 +275,32 @@ def test_sections_open_differently_is_kept_with_the_take_and_null_means_follow(c
     execute("UPDATE takes SET status = 'planned' WHERE id = ?", (take["id"],))
     assert client.post(f"/api/takes/{take['id']}/replan", json={"chord_sections": None}).status_code == 200
     assert one("SELECT chord_sections FROM takes WHERE id = ?", (take["id"],))["chord_sections"] is None
+
+
+# ------------------------------------------------------ follow my structure exactly
+
+def test_the_sections_a_plan_must_follow_come_from_the_lyric_tags():
+    from app import lyrics
+    text = "Title: x\n[Intro]\nhum\n\n[Verse 2]\nwords\n\n[Pre-Chorus]\nlift\n\n[Chorus]\nhook\n\n[Instrumental]\n\n[Verse 2: stripped back]\nnot a section\n[Outro]"
+    assert lyrics.plan_names(text) == ["intro", "verse", "pre-chorus", "chorus", "interlude", "outro"]
+    assert lyrics.plan_names("") == []
+
+
+def test_following_the_structure_is_written_into_the_plan_request_for_songs_only():
+    from app import jobs
+    from conftest import make_take
+    words = "[Verse]\na\n\n[Chorus]\nb\n\n[Instrumental]\n\n[Chorus]\nb"
+    node = lambda **f: jobs.build_plan_graph(make_take(lyrics=words, **f))["2"]
+    assert node(follow_structure=1)["class_type"] == jobs.HARMONY_NODE                       # even at Familiar
+    assert node(follow_structure=1)["inputs"]["follow_sections"] == "verse,chorus,interlude,chorus"
+    assert "follow_sections" not in node(follow_structure=None)["inputs"]
+    assert "follow_sections" not in node(follow_structure=1, kind="instrumental")["inputs"]
+    assert node(follow_structure=1, harmony=2)["inputs"]["section_strength"] == jobs.SECTION_STRENGTH   # alongside the chord nudge
+
+
+def test_following_the_structure_is_kept_with_the_take(client):
+    body = {"title": "S", "style": "rock", "lyrics": "[Verse]\nhi\n[Chorus]\nyo", "follow_structure": 1}
+    take = client.post("/api/songs", json=body).json()
+    assert take["follow_structure"] == 1
+    assert client.post("/api/songs", json={k: v for k, v in body.items() if k != "follow_structure"}).json()["follow_structure"] is None
+    assert client.post("/api/songs", json={**body, "follow_structure": 2}).status_code == 422
