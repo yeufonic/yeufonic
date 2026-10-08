@@ -192,6 +192,24 @@ async def test_lyrics_job_with_external_llm():
 
 
 @pytest.mark.anyio
+async def test_the_external_llm_writes_for_the_sections_built_and_the_lines_asked_for():
+    """The builder's sections and the lines per section reach the external model's prompt, not only Gemma's."""
+    set_setting("llm.provider", "external")
+    LYRICS["test-draft-2"] = {
+        "id": "test-draft-2", "status": "queued", "brief": "a road song", "style": "rock", "structure": "verse-chorus",
+        "sections": ["Intro", "Verse", "Interlude", "Chorus", "Outro"], "lines": 8, "seed": 42, "created_at": 1000.0,
+        "title": None, "lyrics": None, "error": None,
+    }
+    reply = "Title: Open Road\n\n[Intro]\nHum\n\n[Verse]\nOne\n\n[Interlude]\n\n[Chorus]\nTwo\n\n[Outro]\nBye\n"
+    with patch("app.llm.chat_complete", new_callable=AsyncMock) as mock_chat:
+        mock_chat.return_value = reply
+        await run_job("lyrics", "test-draft-2")
+    prompt = mock_chat.call_args[0][0][-1]["content"]
+    assert "Intro, Verse, Interlude, Chorus, Outro" in prompt and "have 8 lines each" in prompt
+    assert LYRICS["test-draft-2"]["lyrics"].count("[Interlude]") == 1
+
+
+@pytest.mark.anyio
 async def test_identity_style_job_with_external_llm():
     set_setting("llm.provider", "external")
 

@@ -526,7 +526,7 @@ async def run_job(kind: str, ref_id: str) -> None:
         record["status"] = "running"
         if llm.is_external_enabled():
             log.info("Starting external LLM lyrics generation for draft %s (structure=%s, brief='%s')",
-                     ref_id, record.get("structure"), (record.get("brief") or "")[:40])
+                     ref_id, ", ".join(record.get("sections") or []) or record.get("structure"), (record.get("brief") or "")[:40])
             CURRENT.clear()
             CURRENT.update({"kind": kind, "id": ref_id, "prompt_id": None, "started": started})
             try:
@@ -534,6 +534,8 @@ async def run_job(kind: str, ref_id: str) -> None:
                     brief=record["brief"],
                     style=record["style"],
                     structure=record["structure"],
+                    lines=record.get("lines") or lyrics.DEFAULT_LINES,
+                    sections=record.get("sections"),
                 )
                 if ref_id in CANCELLED:
                     fail(kind, ref_id, "cancelled")
