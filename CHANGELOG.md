@@ -39,6 +39,8 @@ cannot creep back in.
 
 ## Unreleased
 
+- **CPU and GPU usage in the header.** Next to the version number, two subtle indicators show current GPU and CPU utilisation in percent, updating live with the app's state polling.
+- **Refreshed UI.** Take cards, action buttons and waveforms have a refreshed look across all themes, and the README screenshots have been updated to match.
 - **The end-of-render notes can be dismissed.** "Ran to the length cap" and "Stopped before the last section" have a × at their end, as the
   weak-render note has, for when the end sounds fine. A new take made from one starts with the note again.
 - **The section list says when a take ended short of its score.** A render that is more than about 5 percent shorter than
