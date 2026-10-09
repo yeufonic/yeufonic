@@ -7650,6 +7650,17 @@ function sectionWordsNote(spans) {
   return text ? '<p class="struct-note over">' + esc(text) + '</p>' : '';
 }
 
+/* A render that ends well before its score has its sections right early and out later, since the music it made is shorter than
+   the music it was given.  Said once under the list, in the take's own terms. */
+function endedShortNote(total) {
+  var take = editorTake();
+  var heard = take && take.status === 'done' && take.duration ? Number(take.duration) : 0;
+  if (!heard || !total) { return ''; }
+  var gap = total - heard;
+  if (gap < 6 || heard > total * 0.95) { return ''; }
+  return '<p class="struct-note over">This take ended ' + Math.round(gap) + ' s short of its score, so the list can be out of step with the audio, more so later in the song.</p>';
+}
+
 function paintStructure() {
   var cover = State.mode === 'cover';
   if ($('structure-field') && (cover || State.mode === 'inst')) {
@@ -7685,6 +7696,7 @@ function paintStructure() {
         }).join('') + '</ol><p class="struct-note">The sections of the recording\'s score' +
           (cover ? '. The words are matched to them in order, so change those to suit.' : '.') +
           ' Moving, copying or removing one rewrites the score.</p>' +
+          (changed ? '' : endedShortNote(total)) +
           (fit.over ? '<p class="struct-note over">The cap is ' + clock(cap) + ', so the render would stop ' + clock(fit.short) +
             ' before the end of the score. <button type="button" class="chip action" data-sec-act="cap">Raise the cap to ' + clock(fit.raiseTo) + '</button></p>' : '') +
           (cover && changed ? sectionWordsNote(spans) : '') +

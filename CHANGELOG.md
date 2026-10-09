@@ -37,6 +37,13 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **The section list says when a take ended short of its score.** A render that is more than about 5 percent shorter than
+  its score (and at least 6 s) now gets a line under the section list saying by how much, and that the list can be out of
+  step with the audio, more so later in the song. The score's section times are right for the first part of every take and
+  for takes that render in full; they drift after a render has compressed or skipped something.
+
 ## 0.0.35 (2026-10-08)
 
 This release changes the engine image (the Harmony node), so a Docker install needs `docker compose build engine`

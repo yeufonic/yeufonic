@@ -685,7 +685,7 @@ The sections come from the score too: one per section of the score, in the names
 which is why the builder gives way to them. To rearrange the song, drag a section to a new place or move it with the arrows, add a
 **copy** of it after itself, or take it out with the **✕**: each change rewrites the score (the Score
 window shows it), and **Restore the original sections** puts it back until another score is loaded.
-While the take plays in the editor, the section it is at is lit, and double-clicking a section jumps to it. A cover shows the same list under its words, and its words are matched to the sections in order, so
+While the take plays in the editor, the section it is at is lit, and double-clicking a section jumps to it. The times come from the score's bars and tempo, which the render follows closely for the first part of a take and for one that renders in full. A render that ends well short of its score has played less music than the score holds, so the list can drift out of step with the audio as the song goes on; a line under the list says so and says by how much. A cover shows the same list under its words, and its words are matched to the sections in order, so
 change them to suit: the list says what they need after you add, remove or rearrange sections. It also shows the total against the
 length cap, and offers to raise the cap when a longer song would be cut short. Press **Create instrumental** to render.
 
