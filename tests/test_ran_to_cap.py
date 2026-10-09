@@ -30,3 +30,15 @@ def test_the_library_carries_it(client):
     from app.db import execute
     execute("UPDATE takes SET duration = 360.0")
     assert [t["ran_to_cap"] for t in client.get("/api/takes").json()] == [True]
+
+
+def test_the_ran_to_cap_note_can_be_dismissed_and_a_copy_starts_without_it_dismissed(client):
+    from app.db import execute, one
+    from conftest import make_take
+    take = make_take()
+    assert client.get("/api/takes").json()[0]["cap_dismissed"] == 0
+    assert client.post(f"/api/takes/{take['id']}/cap/dismiss").json() == {"dismissed": True}
+    assert one("SELECT cap_dismissed FROM takes WHERE id = ?", (take["id"],))["cap_dismissed"] == 1
+    assert client.post("/api/takes/nosuch/cap/dismiss").status_code == 404
+    from app import main
+    assert "cap_dismissed" in main._REVOICE_FRESH

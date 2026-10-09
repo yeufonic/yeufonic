@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS takes (
     chord_sections INTEGER,
     follow_structure INTEGER,
     brief TEXT,
+    cap_dismissed INTEGER NOT NULL DEFAULT 0,
     target_lufs REAL,
     fade_out_seconds REAL DEFAULT 3.0
 );
@@ -503,6 +504,12 @@ def _brief() -> None:
         execute("ALTER TABLE takes ADD COLUMN brief TEXT")
 
 
+def _cap_dismissed() -> None:
+    """The note that a take ran to the length cap can be dismissed, as the weak-render note can."""
+    if "cap_dismissed" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN cap_dismissed INTEGER NOT NULL DEFAULT 0")
+
+
 MIGRATIONS = [
     lambda: (conn().executescript(BASE_SCHEMA), _legacy_takes()),   # -> 1
     _indexes,                                                        # -> 2
@@ -535,6 +542,7 @@ MIGRATIONS = [
     _chord_sections,                                                 # -> 29
     _follow_structure,                                               # -> 30
     _brief,                                                          # -> 31
+    _cap_dismissed,                                                  # -> 32
 ]
 
 

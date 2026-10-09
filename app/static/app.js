@@ -10349,10 +10349,12 @@ function paintTakes() {
       // had already tried once more with a new seed.
       live = '<div class="take-status weak" title="The render ended at ' + clock(take.duration || 0) +
         ', before the last section of its score began, and did again when the app tried once more with a new seed. Render again for another try.">Stopped before the last section: render again for the full song</div>';
-    } else if (take.ran_to_cap) {
+    } else if (take.ran_to_cap && !take.cap_dismissed) {
       // The model never wrote the song's end, so it ran on until the Length cap, and was faded out there.
-      live = '<div class="take-status weak" title="The score ends well before the ' + Math.round(take.max_duration) +
-        ' s cap, but the music kept going until the cap, where it was faded out. The end may loop or wander. Another seed usually ends properly.">Ran to the length cap: may not end cleanly</div>';
+      live = '<div class="take-status weak with-x" title="The score ends well before the ' + Math.round(take.max_duration) +
+        ' s cap, but the music kept going until the cap, where it was faded out. The end may loop or wander. Another seed usually ends properly.">' +
+        '<span>Ran to the length cap: may not end cleanly</span>' +
+        '<button class="status-x" data-act="dismiss-cap" data-id="' + take.id + '" title="The end is fine: dismiss" aria-label="Dismiss">\u00d7</button></div>';
     } else if (take.normalised) {
       live = '<button class="take-status normalised" data-act="unnormalise" data-id="' + take.id +
         '" title="' + normalisedTo(take) + ' Click to go back to the level it was rendered at.">Normalised</button>';
@@ -12265,6 +12267,17 @@ function wire() {
     if (act === 'stem-del') {
       await api('/api/stem-sets/' + button.dataset.set, { method: 'DELETE' });
       loadTakes();
+    }
+    if (act === 'dismiss-cap') {
+      var capped = takeById(id);
+      if (capped) { capped.cap_dismissed = 1; paintTakes(); }
+      try {
+        await api('/api/takes/' + id + '/cap/dismiss', { method: 'POST' });
+      } catch (err) {
+        statusLine('Could not dismiss the note: ' + err.message, 'bad');
+      }
+      loadTakes();
+      return;
     }
     if (act === 'dismiss-weak') {
       var heard = takeById(id);
