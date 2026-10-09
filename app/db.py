@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS takes (
     chord_sections INTEGER,
     follow_structure INTEGER,
     brief TEXT,
-    cap_dismissed INTEGER NOT NULL DEFAULT 0,
+    note_dismissed INTEGER NOT NULL DEFAULT 0,
     target_lufs REAL,
     fade_out_seconds REAL DEFAULT 3.0
 );
@@ -505,9 +505,17 @@ def _brief() -> None:
 
 
 def _cap_dismissed() -> None:
-    """The note that a take ran to the length cap can be dismissed, as the weak-render note can."""
-    if "cap_dismissed" not in _columns("takes"):
+    """The note that a take ran to the length cap can be dismissed, as the weak-render note can (named `note_dismissed` from the next step)."""
+    cols = _columns("takes")
+    if "cap_dismissed" not in cols and "note_dismissed" not in cols:
         execute("ALTER TABLE takes ADD COLUMN cap_dismissed INTEGER NOT NULL DEFAULT 0")
+
+
+def _note_dismissed() -> None:
+    """One flag for the end-of-render notes on a card (ran to the cap, stopped before the last section)."""
+    cols = _columns("takes")
+    if "cap_dismissed" in cols and "note_dismissed" not in cols:
+        execute("ALTER TABLE takes RENAME COLUMN cap_dismissed TO note_dismissed")
 
 
 MIGRATIONS = [
@@ -543,6 +551,7 @@ MIGRATIONS = [
     _follow_structure,                                               # -> 30
     _brief,                                                          # -> 31
     _cap_dismissed,                                                  # -> 32
+    _note_dismissed,                                                 # -> 33
 ]
 
 

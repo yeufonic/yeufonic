@@ -39,8 +39,8 @@ cannot creep back in.
 
 ## Unreleased
 
-- **"Ran to the length cap" can be dismissed.** The note on a take that ran on until the cap has a × at its end, as the
-  weak-render note has, for when the end sounds fine. A new take made from it starts with the note again.
+- **The end-of-render notes can be dismissed.** "Ran to the length cap" and "Stopped before the last section" have a × at their end, as the
+  weak-render note has, for when the end sounds fine. A new take made from one starts with the note again.
 - **The section list says when a take ended short of its score.** A render that is more than about 5 percent shorter than
   its score (and at least 6 s) now gets a line under the section list saying by how much, and that the list can be out of
   step with the audio, more so later in the song. The score's section times are right for the first part of every take and

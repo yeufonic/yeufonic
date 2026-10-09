@@ -32,13 +32,26 @@ def test_the_library_carries_it(client):
     assert [t["ran_to_cap"] for t in client.get("/api/takes").json()] == [True]
 
 
-def test_the_ran_to_cap_note_can_be_dismissed_and_a_copy_starts_without_it_dismissed(client):
-    from app.db import execute, one
+def test_the_end_of_render_notes_can_be_dismissed_and_a_copy_starts_with_them_again(client):
+    from app.db import one
     from conftest import make_take
     take = make_take()
-    assert client.get("/api/takes").json()[0]["cap_dismissed"] == 0
-    assert client.post(f"/api/takes/{take['id']}/cap/dismiss").json() == {"dismissed": True}
-    assert one("SELECT cap_dismissed FROM takes WHERE id = ?", (take["id"],))["cap_dismissed"] == 1
-    assert client.post("/api/takes/nosuch/cap/dismiss").status_code == 404
+    assert client.get("/api/takes").json()[0]["note_dismissed"] == 0
+    assert client.post(f"/api/takes/{take['id']}/note/dismiss").json() == {"dismissed": True}
+    assert one("SELECT note_dismissed FROM takes WHERE id = ?", (take["id"],))["note_dismissed"] == 1
+    assert client.post("/api/takes/nosuch/note/dismiss").status_code == 404
     from app import main
-    assert "cap_dismissed" in main._REVOICE_FRESH
+    assert "note_dismissed" in main._REVOICE_FRESH
+
+
+def test_a_library_that_got_the_first_name_of_the_flag_keeps_what_it_dismissed():
+    """cap_dismissed was the flag's name for a short while; the step after renames it, and a library that never had it
+    gets the new name straight away."""
+    from app import db
+    db.execute("ALTER TABLE takes DROP COLUMN note_dismissed")
+    db.execute("ALTER TABLE takes ADD COLUMN cap_dismissed INTEGER NOT NULL DEFAULT 0")
+    db.execute("INSERT INTO takes(id, title, style, lyrics, mode, seed, checkpoint, status, created_at, cap_dismissed) VALUES('t1', 'x', 's', '', 'full', 1, 'c', 'done', 1, 1)")
+    db._note_dismissed()
+    cols = db._columns("takes")
+    assert "note_dismissed" in cols and "cap_dismissed" not in cols
+    assert db.one("SELECT note_dismissed FROM takes WHERE id = 't1'")["note_dismissed"] == 1

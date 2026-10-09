@@ -2288,7 +2288,7 @@ def _base_title(title: str) -> str:
 # What Sing again leaves behind: the copy is a new take with its own audio and state.
 _REVOICE_FRESH = {"id", "title", "status", "stage", "error", "audio_path", "duration", "prompt_id", "created_at",
                   "finished_at", "elapsed", "favourite", "vocal_check", "loudness", "sound_seed", "normalised",
-                  "normalised_to", "weak_dismissed", "cap_dismissed"}
+                  "normalised_to", "weak_dismissed", "note_dismissed"}
 
 
 @app.post("/api/takes/{take_id}/revoice")
@@ -3955,10 +3955,11 @@ def dismiss_weak(take_id: str) -> dict:
     return {"dismissed": True}
 
 
-@app.post("/api/takes/{take_id}/cap/dismiss")
-def dismiss_cap(take_id: str) -> dict:
-    """Listened to, and the end is fine: the note that the take ran to the length cap goes."""
-    if not execute("UPDATE takes SET cap_dismissed = 1 WHERE id = ?", (take_id,)):
+@app.post("/api/takes/{take_id}/note/dismiss")
+def dismiss_note(take_id: str) -> dict:
+    """Listened to, and the end is fine: the note that a take ran to the length cap, or stopped before its
+    last section, goes."""
+    if not execute("UPDATE takes SET note_dismissed = 1 WHERE id = ?", (take_id,)):
         raise HTTPException(404, "no such take")
     return {"dismissed": True}
 

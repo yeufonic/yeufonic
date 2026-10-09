@@ -10344,17 +10344,19 @@ function paintTakes() {
           '<button class="status-x" data-act="dismiss-weak" data-id="' + take.id + '" title="It sounds fine: dismiss" aria-label="Dismiss">\u00d7</button></div>'
         : '<button class="take-status weak" data-act="normalise"' + ' data-id="' + take.id + '" title="Came out at ' + take.loudness.toFixed(1) +
           ' dB, far below the usual level. Takes like this often sound thin or distorted, and some are only quiet. If it still sounds wrong once normalised, try another seed.">Weak render: click here to normalise, or try another seed</button>';
-    } else if (take.stopped_early) {
+    } else if (take.stopped_early && !take.note_dismissed) {
       // The model wrote the song's end before its score's last section, twice: the app
       // had already tried once more with a new seed.
-      live = '<div class="take-status weak" title="The render ended at ' + clock(take.duration || 0) +
-        ', before the last section of its score began, and did again when the app tried once more with a new seed. Render again for another try.">Stopped before the last section: render again for the full song</div>';
-    } else if (take.ran_to_cap && !take.cap_dismissed) {
+      live = '<div class="take-status weak with-x" title="The render ended at ' + clock(take.duration || 0) +
+        ', before the last section of its score began, and did again when the app tried once more with a new seed. Render again for another try.">' +
+        '<span>Stopped before the last section: render again for the full song</span>' +
+        '<button class="status-x" data-act="dismiss-note" data-id="' + take.id + '" title="The end is fine: dismiss" aria-label="Dismiss">\u00d7</button></div>';
+    } else if (take.ran_to_cap && !take.note_dismissed) {
       // The model never wrote the song's end, so it ran on until the Length cap, and was faded out there.
       live = '<div class="take-status weak with-x" title="The score ends well before the ' + Math.round(take.max_duration) +
         ' s cap, but the music kept going until the cap, where it was faded out. The end may loop or wander. Another seed usually ends properly.">' +
         '<span>Ran to the length cap: may not end cleanly</span>' +
-        '<button class="status-x" data-act="dismiss-cap" data-id="' + take.id + '" title="The end is fine: dismiss" aria-label="Dismiss">\u00d7</button></div>';
+        '<button class="status-x" data-act="dismiss-note" data-id="' + take.id + '" title="The end is fine: dismiss" aria-label="Dismiss">\u00d7</button></div>';
     } else if (take.normalised) {
       live = '<button class="take-status normalised" data-act="unnormalise" data-id="' + take.id +
         '" title="' + normalisedTo(take) + ' Click to go back to the level it was rendered at.">Normalised</button>';
@@ -12268,11 +12270,11 @@ function wire() {
       await api('/api/stem-sets/' + button.dataset.set, { method: 'DELETE' });
       loadTakes();
     }
-    if (act === 'dismiss-cap') {
-      var capped = takeById(id);
-      if (capped) { capped.cap_dismissed = 1; paintTakes(); }
+    if (act === 'dismiss-note') {
+      var noted = takeById(id);
+      if (noted) { noted.note_dismissed = 1; paintTakes(); }
       try {
-        await api('/api/takes/' + id + '/cap/dismiss', { method: 'POST' });
+        await api('/api/takes/' + id + '/note/dismiss', { method: 'POST' });
       } catch (err) {
         statusLine('Could not dismiss the note: ' + err.message, 'bad');
       }
