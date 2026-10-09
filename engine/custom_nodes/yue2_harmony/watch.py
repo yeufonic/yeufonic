@@ -93,6 +93,47 @@ class PointAtYeufonic(logging.Filter):
         return True
 
 
+def _get_gpu_utilization():
+    try:
+        import ctypes
+        import sys
+        lib = ctypes.CDLL("libnvidia-ml.so.1" if sys.platform != "win32" else "nvml.dll")
+        if lib.nvmlInit() == 0:
+            dev = ctypes.c_void_p()
+            if lib.nvmlDeviceGetHandleByIndex(0, ctypes.byref(dev)) == 0:
+                class Utilization(ctypes.Structure):
+                    _fields_ = [("gpu", ctypes.c_uint), ("memory", ctypes.c_uint)]
+                u = Utilization()
+                if lib.nvmlDeviceGetUtilizationRates(dev, ctypes.byref(u)) == 0:
+                    return int(u.gpu)
+    except Exception:
+        pass
+    try:
+        import subprocess
+        res = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=1.0, check=False)
+        if res.returncode == 0 and res.stdout.strip():
+            return int(res.stdout.strip().splitlines()[0].strip())
+    except Exception:
+        pass
+    return None
+
+
+def install_routes():
+    try:
+        import server
+        from aiohttp import web
+        prompt_server = getattr(server.PromptServer, "instance", None)
+        if prompt_server and hasattr(prompt_server, "routes"):
+            @prompt_server.routes.get("/yeufonic/gpu_stats")
+            async def gpu_stats(request):
+                return web.json_response({"utilization": _get_gpu_utilization()})
+    except Exception:
+        pass
+
+
 def install():
     threading.excepthook = job_thread_died
     logging.getLogger().addFilter(PointAtYeufonic())
+    install_routes()
+

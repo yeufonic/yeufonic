@@ -432,13 +432,40 @@ async function pollState() {
     if (data.settings) { adoptSettings(data.settings); }
     if (data.version) { $('app-version').textContent = 'v' + data.version; }
     State.about = { version: data.version || '', build: data.build || '', model: data.model || '' };
+    paintSystemStats(data.system);
     paintUpdate(data.update);
     paintOptions();
     paintJob(data.current, data.queue || [], data.options);
     watchPlan();
   } catch (err) {
+    paintSystemStats(null);
     $('engine-pill').className = 'pill pill-off';
     $('engine-pill').textContent = 'App unreachable';
+  }
+}
+
+function paintSystemStats(sys) {
+  var gpuEl = $('gpu-stat');
+  var gpuText = $('gpu-stat-text');
+  if (gpuEl && gpuText) {
+    if (sys && typeof sys.gpu === 'number' && !isNaN(sys.gpu)) {
+      gpuText.textContent = sys.gpu + '%';
+      gpuEl.title = 'GPU usage: ' + sys.gpu + '%';
+      gpuEl.classList.remove('hidden');
+    } else {
+      gpuEl.classList.add('hidden');
+    }
+  }
+  var cpuEl = $('cpu-stat');
+  var cpuText = $('cpu-stat-text');
+  if (cpuEl && cpuText) {
+    if (sys && typeof sys.cpu === 'number' && !isNaN(sys.cpu)) {
+      cpuText.textContent = sys.cpu + '%';
+      cpuEl.title = 'CPU usage: ' + sys.cpu + '%';
+      cpuEl.classList.remove('hidden');
+    } else {
+      cpuEl.classList.add('hidden');
+    }
   }
 }
 
@@ -10903,10 +10930,17 @@ function drawWave() {
 }
 
 function waveTone() {
-  if (wave.kind === 'song') { return { body: '#38bdf8', outline: 'rgba(56, 189, 248, 0.42)' }; }
-  if (wave.kind === 'instrumental') { return { body: '#a3e635', outline: 'rgba(163, 230, 53, 0.42)' }; }
-  if (wave.kind === 'cover') { return { body: '#ff4d94', outline: 'rgba(255, 77, 148, 0.42)' }; }
-  return { body: '#a78bfa', outline: 'rgba(167, 139, 250, 0.45)' };
+  var prefix = wave.kind === 'song' ? '--wave-song'
+             : wave.kind === 'instrumental' ? '--wave-inst'
+             : wave.kind === 'cover' ? '--wave-cover'
+             : '--wave-default';
+  var body = themeColour(prefix + '-body');
+  var outline = themeColour(prefix + '-outline');
+  if (body && outline) { return { body: body, outline: outline }; }
+  if (wave.kind === 'song') { return { body: 'rgba(56, 175, 235, 0.70)', outline: 'rgba(56, 175, 235, 0.28)' }; }
+  if (wave.kind === 'instrumental') { return { body: 'rgba(52, 200, 140, 0.70)', outline: 'rgba(52, 200, 140, 0.28)' }; }
+  if (wave.kind === 'cover') { return { body: 'rgba(220, 100, 155, 0.70)', outline: 'rgba(220, 100, 155, 0.28)' }; }
+  return { body: 'rgba(167, 139, 250, 0.70)', outline: 'rgba(167, 139, 250, 0.28)' };
 }
 
 function normalise(values) {

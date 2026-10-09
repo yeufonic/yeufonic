@@ -45,6 +45,15 @@
   --good: #34d399;
   --bad: #f87171;
   --radius: 18px;
+  /* Waveform playback colors: toned down translucent tints */
+  --wave-cover-body: rgba(220, 100, 155, 0.70);
+  --wave-cover-outline: rgba(220, 100, 155, 0.28);
+  --wave-song-body: rgba(56, 175, 235, 0.70);
+  --wave-song-outline: rgba(56, 175, 235, 0.28);
+  --wave-inst-body: rgba(52, 200, 140, 0.70);
+  --wave-inst-outline: rgba(52, 200, 140, 0.28);
+  --wave-default-body: rgba(167, 139, 250, 0.70);
+  --wave-default-outline: rgba(167, 139, 250, 0.28);
 }
 
 /* Light: the same layout on white, with darker status colours so they read on it. */
@@ -76,6 +85,15 @@
   --play-bg: #17171f;
   --play-fg: #ffffff;
   --play-bg-hover: #000;
+  /* Waveform playback colors: deeper contrast for light background */
+  --wave-cover-body: rgba(185, 45, 115, 0.75);
+  --wave-cover-outline: rgba(185, 45, 115, 0.32);
+  --wave-song-body: rgba(14, 116, 185, 0.75);
+  --wave-song-outline: rgba(14, 116, 185, 0.32);
+  --wave-inst-body: rgba(15, 135, 90, 0.75);
+  --wave-inst-outline: rgba(15, 135, 90, 0.32);
+  --wave-default-body: rgba(115, 50, 215, 0.75);
+  --wave-default-outline: rgba(115, 50, 215, 0.32);
 }
 
 /* Studio: warm and dark, like the lamps on an old mixing desk. Amber leads. */
@@ -100,6 +118,15 @@
   --play-bg: #f4ecdf;
   --play-fg: #1a150f;
   --play-bg-hover: #fffaf0;
+  /* Waveform playback colors: warm studio desk tuning */
+  --wave-cover-body: rgba(225, 105, 150, 0.70);
+  --wave-cover-outline: rgba(225, 105, 150, 0.28);
+  --wave-song-body: rgba(65, 175, 230, 0.70);
+  --wave-song-outline: rgba(65, 175, 230, 0.28);
+  --wave-inst-body: rgba(60, 195, 130, 0.70);
+  --wave-inst-outline: rgba(60, 195, 130, 0.28);
+  --wave-default-body: rgba(175, 145, 245, 0.70);
+  --wave-default-outline: rgba(175, 145, 245, 0.28);
 }
 
 /* High contrast: black and white, with lines and muted text strong enough to read. */
@@ -125,6 +152,15 @@
   --play-bg: #fff;
   --play-fg: #000;
   --play-bg-hover: #fff;
+  /* Waveform playback colors: high contrast */
+  --wave-cover-body: rgba(255, 77, 148, 0.85);
+  --wave-cover-outline: rgba(255, 77, 148, 0.45);
+  --wave-song-body: rgba(56, 189, 248, 0.85);
+  --wave-song-outline: rgba(56, 189, 248, 0.45);
+  --wave-inst-body: rgba(74, 222, 128, 0.85);
+  --wave-inst-outline: rgba(74, 222, 128, 0.45);
+  --wave-default-body: rgba(167, 139, 250, 0.85);
+  --wave-default-outline: rgba(167, 139, 250, 0.45);
 }
 
 * { box-sizing: border-box; }
@@ -196,7 +232,14 @@ a, .link {
   border: 1px solid var(--line); color: var(--muted); background: var(--panel);
 }
 .version { font-size: 12px; color: var(--muted); margin-right: 12px; letter-spacing: 0.02em; }
-/* One row, level with the name: engine, corpus, version, Logs.  It wraps only when
+.system-stat {
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.system-stat.hidden { display: none !important; }
+.system-stat .stat-icon {
+  width: 13px; height: 13px; flex: 0 0 auto; opacity: 0.75;
+}
+/* One row, level with the name: engine, corpus, gpu, cpu, version, Logs.  It wraps only when
    the window is too narrow for it. */
 .topbar-right {
   display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px 10px;
@@ -204,8 +247,10 @@ a, .link {
 }
 .topbar-right > #engine-pill { order: 0; }
 .topbar-right > .corpora { order: 1; }
-.topbar-right > .version { order: 2; margin-right: 0; }
-.topbar-right > .logs-btn { order: 3; }
+.topbar-right > #gpu-stat { order: 2; margin-right: 0; }
+.topbar-right > #cpu-stat { order: 3; margin-right: 0; }
+.topbar-right > #app-version { order: 4; margin-right: 0; }
+.topbar-right > .logs-btn { order: 5; }
 .pill-on { color: var(--good); border-color: rgb(var(--good-rgb) / 0.35); }
 
 /* The main page says what the app is doing. A corpus being prepared works on the CPU
@@ -1626,13 +1671,21 @@ label .lora-value:disabled { opacity: 0.6; }
 .takes.comfy .take-style { min-height: 2lh; }
 /* The status line (Normalised, a warning, progress) has a place of its own, kept whether or not
    there is one, so the buttons sit at the same height on every card. */
-.take-live { display: contents; }
-.take-live:empty { display: none; }
-.takes.comfy .take-live, .takes.comfy .take-live:empty { display: flex; flex-direction: column; align-items: flex-start; min-height: 28px; }
-.takes.comfy .act { flex: 1 1 auto; max-width: 56px; }
+.take-live, .take-live:empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 26px;
+}
+.takes.comfy .take-live, .takes.comfy .take-live:empty {
+  min-height: 28px;
+}
+.takes.comfy .act { flex: 1 1 auto; max-width: 88px; }
 .take {
   background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px;
   display: flex; flex-direction: column; gap: 10px; cursor: pointer;
+  min-height: 190px;
 }
 .take.playing { border-color: rgb(var(--accent-a-rgb) / 0.55); }
 /* States that want your attention, so they carry a bright pill rather than grey text. */
@@ -1767,7 +1820,11 @@ label .lora-value:disabled { opacity: 0.6; }
   color: var(--muted); font-size: 12px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.take-style { color: var(--muted); font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.take-style {
+  color: var(--muted); font-size: 12.5px; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: 2.7em; min-height: 2lh;
+}
 /* ---------------------------------------------------------------- action tiles
    Colour carries meaning. Raised by default, and they press down when clicked. */
 /* margin-top: auto keeps the row on the card's floor when a neighbour in the row is taller. */
@@ -1776,6 +1833,7 @@ label .lora-value:disabled { opacity: 0.6; }
   gap: 6px;
   flex-wrap: nowrap;
   align-items: center;
+  justify-content: center;
   margin-top: auto;
 }
 
@@ -1788,7 +1846,7 @@ label .lora-value:disabled { opacity: 0.6; }
   justify-content: center;
   flex: 1 1 0;
   min-width: 0;
-  max-width: 52px;
+  max-width: 88px;
   height: 32px;
   padding: 0;
   border: 1px solid rgb(var(--ink) / 0.08);

@@ -233,6 +233,7 @@ class Engine:
         self.compat: dict[str, Any] = {"ok": False, "missing": [], "notes": []}
         # Refreshed by the keeper, so page polls never wait on the engine.
         self.stats: dict[str, Any] | None = None
+        self.gpu_utilization: int | None = None
         self.queue_counts = {"running": 0, "pending": 0}
         self.queue: list[dict[str, Any]] = []
         self._running_since: dict[str, float] = {}
@@ -294,6 +295,12 @@ class Engine:
             return
         self._contact()
         self.stats = stats.json()
+        try:
+            gpu_res = await self.client.get("/yeufonic/gpu_stats", timeout=2.0)
+            if gpu_res.status_code == 200:
+                self.gpu_utilization = gpu_res.json().get("utilization")
+        except Exception:
+            pass
         raw = queue.json()
         # Restarted: the dead job is no longer listed, and the engine runs jobs again.
         if self.stuck_on and self.stuck_on not in {item[1] for item in raw.get("queue_running", []) if len(item) > 1}:
@@ -341,7 +348,8 @@ class Engine:
         # torch_vram_total is what the engine itself holds, which it lets go of before
         # training: the rest of what is not free is someone else's.
         return {"name": device.get("name"), "vram_total": device.get("vram_total"), "vram_free": device.get("vram_free"),
-                "engine_vram": device.get("torch_vram_total") or 0}
+                "engine_vram": device.get("torch_vram_total") or 0,
+                "utilization": self.gpu_utilization}
 
     async def refresh_options(self) -> None:
         """Read node schemas, then check every node our templates need.  The schema

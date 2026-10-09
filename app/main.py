@@ -41,7 +41,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import aligner, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, trainsize, transpose, update
+from . import aligner, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting
 
 personas = identities
@@ -1181,6 +1181,7 @@ def state() -> dict:
         if current.get("stage"):
             current["label"] = stage_label(current["stage"])
 
+    engine_gpu = ENGINE.gpu() if ENGINE.online else None
     return {
         "version": config.VERSION,
         "build": config.BUILD,
@@ -1189,6 +1190,10 @@ def state() -> dict:
         # this current, and this route only ever reads it.
         "update": update.state(),
         "settings": settings_payload(),
+        "system": {
+            "cpu": system_stats.get_cpu_percent(),
+            "gpu": system_stats.get_gpu_percent(engine_gpu=engine_gpu),
+        },
         "engine": {
             "url": config.ENGINE_URL,
             "online": ENGINE.online,
@@ -1197,7 +1202,7 @@ def state() -> dict:
             "error": ENGINE.last_error,
             "compat": ENGINE.compat,
             "queue": ENGINE.queue_counts,
-            "gpu": ENGINE.gpu() if ENGINE.online else None,
+            "gpu": engine_gpu,
         },
         "current": current,
         # A LoRA being trained holds the card, so the page disables the rest while it

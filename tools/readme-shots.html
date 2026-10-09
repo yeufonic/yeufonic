@@ -7,9 +7,8 @@
          --window-size=1900,1500 --virtual-time-budget=9000 \
          --screenshot=cover.png http://<app>/static/readme-shots.html#cover
 
-     Scenes: cover (the editor's Score page), comfy (Wide + Comfy, the take panel), song (the
-     editor), instrumental, lora (the editor as steps: set Editor layout to steps first), corpora,
-     corpus. -->
+     Scenes: cover (the editor's Score page), comfy (Wide + Comfy, the take panel), light (Light theme),
+     song (the editor), instrumental, lora (the editor as steps), corpora, corpus. -->
 <html><body style="margin:0;background:#08080b">
 <iframe id="f" style="width:100vw;height:100vh;border:0;display:block"></iframe>
 <script>
@@ -17,7 +16,8 @@ var scene = location.hash.slice(1);
 var f = document.getElementById('f');
 try {   // the app reads these on load: every scene starts from the same place
   localStorage.setItem('yue2.space', 'demo00000001');
-  localStorage.setItem('yue2.layout', scene === 'comfy' ? 'comfy' : 'compact');
+  localStorage.setItem('yue2.layout', (scene === 'comfy' || scene === 'light') ? 'comfy' : 'compact');
+  localStorage.setItem('yue2.theme', scene === 'light' ? 'light' : 'dark');
   localStorage.setItem('yue2.width', 'wide');
   localStorage.setItem('yue2.filter', 'all');
   localStorage.setItem('yue2.sheet', 'open');
@@ -31,7 +31,11 @@ f.onload = function () {
   function when(test, then, n) { n = n || 0; if (test() || n > 80) { then(); } else { setTimeout(function () { when(test, then, n + 1); }, 100); } }
   when(function () { return w.State && w.State.takes && w.State.takes.length && w.State.settings && w.State.settings['editor.layout']; }, function () {
     // Every scene but Corpora shows the take panel, beside the editor window or on its own.
-    if (scene === 'cover') {
+    if (scene === 'light') {
+      w.State.settings['appearance.theme'] = 'light';
+      w.applyTheme();
+      w.selectTake(take('glasshouse00'));
+    } else if (scene === 'cover') {
       w.selectTake(take('paperboats00')); w.openEditor('score');
       setTimeout(function () { var chart = d.getElementById('chord-chart'); if (chart && chart.textContent !== 'Hide chart') { chart.click(); } }, 400);
     } else if (scene === 'comfy') {
@@ -50,8 +54,7 @@ f.onload = function () {
         w.STRUCTURE.kind = 'sections'; w.paintStructure(); w.paintEditor();
       }, 400);
     } else if (scene === 'lora') {
-      // The Sound step of the steps layout, where the Style LoRA is. The layout is a
-      // setting: set it to steps in the demo app before this scene, and back after.
+      w.State.settings['editor.layout'] = 'steps';
       w.selectTake(take('glasshouse00')); w.openEditor('sound');
     } else if (scene === 'corpora' || scene === 'corpus') {
       w.State.options.training_available = true;   // the trainer is in the engine; say so without waiting on it

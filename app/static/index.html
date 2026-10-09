@@ -60,6 +60,14 @@
     </div>
   </div>
   <div class="topbar-right">
+    <span id="gpu-stat" class="version system-stat hidden" title="GPU usage">
+      <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2V4z"/><circle cx="8" cy="11" r="2.5"/><circle cx="15" cy="11" r="2.5"/><path d="M6 18v2M10 18v2M14 18v2"/></svg>
+      <span id="gpu-stat-text"></span>
+    </span>
+    <span id="cpu-stat" class="version system-stat hidden" title="CPU usage">
+      <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
+      <span id="cpu-stat-text"></span>
+    </span>
     <span id="app-version" class="version"></span>
     <button id="open-logs" class="pill logs-btn" title="View system logs">Logs</button>
     <div id="engine-pill" class="pill pill-off">Connecting</div>
