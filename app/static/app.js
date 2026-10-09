@@ -9894,12 +9894,13 @@ function icon(name) {
 }
 
 function tile(kind, iconName, label, attrs, title) {
-  return '<button class="act ' + kind + '" ' + (attrs || '') + ' title="' + (title || label) + '">' +
+  var tip = title || label;
+  return '<button class="act ' + kind + '" ' + (attrs || '') + ' title="' + esc(tip) + '" aria-label="' + esc(tip) + '">' +
     icon(iconName) + '<span>' + label + '</span></button>';
 }
 
 function downloadTile(take) {
-  return tile('save', 'save', 'Save', 'data-act="save" data-id="' + take.id + '"', 'Download the audio file');
+  return tile('save', 'save', 'Save', 'data-act="save" data-id="' + take.id + '"', 'Save \u2014 Download the audio file (FLAC)');
 }
 
 function stemsBlock(take) {
@@ -10364,49 +10365,61 @@ function paintTakes() {
     var id = ' data-id="' + take.id + '"';
     var actions = '';
     if (status === 'queued' || status === 'running') {
-      actions += tile('del', 'stop', 'Cancel', 'data-act="cancel"' + id);
+      actions += tile('del', 'stop', 'Cancel', 'data-act="cancel"' + id,
+                      'Cancel \u2014 Stop this job and remove from queue');
     }
     if (status === 'planned') {
-      actions += tile('go', 'render', 'Render', 'data-act="render"' + id);
-      actions += tile('again', 'again', 'Replan', 'data-act="replan"' + id);
+      actions += tile('go', 'render', 'Render', 'data-act="render"' + id,
+                      'Render \u2014 Synthesize audio for this take');
+      actions += tile('again', 'again', 'Replan', 'data-act="replan"' + id,
+                      'Replan \u2014 Generate a new song plan from prompt');
     }
     if (status === 'failed') {
       // A failure leaves a dead end unless it can be retried. A take with a score
       // failed while rendering; one without failed while planning.
       if (take.abc && take.abc.length > 50) {
-        actions += tile('go', 'render', 'Render', 'data-act="render"' + id);
+        actions += tile('go', 'render', 'Render', 'data-act="render"' + id,
+                        'Render \u2014 Retry synthesizing audio for this take');
       } else {
-        actions += tile('again', 'again', 'Replan', 'data-act="replan"' + id);
+        actions += tile('again', 'again', 'Replan', 'data-act="replan"' + id,
+                        'Replan \u2014 Try planning again from prompt');
       }
       // A restarted job leaves a take that often still holds its audio or its score.
       // Clear puts it back to whatever it reached, without another run.  A take that
       // failed while planning holds neither, so there is nothing to go back to: the
       // server refuses, and the button would only look broken.
       if (take.has_audio || (take.abc && take.abc.trim())) {
-        actions += tile('go', 'check', 'Clear', 'data-act="clear"' + id);
+        actions += tile('go', 'check', 'Clear', 'data-act="clear"' + id,
+                        'Clear \u2014 Reset failed state and restore take');
       }
       // Again comes from the branches below when there is audio, and from here when
       // there is not, so a failed take never shows it twice.
       if (!take.has_audio) {
-        actions += tile('again', 'again', 'Again', 'data-act="again"' + id);
+        actions += tile('again', 'again', 'Again', 'data-act="again"' + id,
+                        'Again \u2014 Re-plan this song with a fresh seed');
       }
     }
     if (take.abc && take.abc.length > 50) {
-      actions += tile('score', 'score', 'Score', 'data-act="open"' + id);
+      actions += tile('score', 'score', 'Score', 'data-act="open"' + id,
+                      'Score \u2014 View and edit the ABC score notation and piano roll');
     }
     if (take.has_audio) {
       // Named carefully: `live` above already holds the status line for this card,
       // and var is function scoped, so reusing the name printed true or false there.
       var isLive = State.playing === take.id;
       actions += tile('play' + (isLive ? ' playing' : ''), isLive ? 'pause' : 'play',
-                      isLive ? 'Pause' : 'Play', 'data-act="play"' + id);
+                      isLive ? 'Pause' : 'Play', 'data-act="play"' + id,
+                      isLive ? 'Pause \u2014 Pause audio playback' : 'Play \u2014 Listen to this take (Spacebar)');
       actions += downloadTile(take);
-      actions += tile('stems', 'stems', 'Stems', 'data-act="stems"' + id);
-      actions += tile('again', 'again', 'Again', 'data-act="again"' + id);
+      actions += tile('stems', 'stems', 'Stems', 'data-act="stems"' + id,
+                      'Stems \u2014 Separate vocals, instruments, drums, and bass tracks');
+      actions += tile('again', 'again', 'Again', 'data-act="again"' + id,
+                      'Again \u2014 Re-plan this song with a fresh seed');
     }
     actions += tile('star' + (take.favourite ? ' on' : ''), 'star', 'Star', 'data-act="star"' + id,
-                    take.favourite ? 'Starred. Click to remove the star.' : 'Star this take');
-    actions += tile('del', 'trash', 'Delete', 'data-act="del"' + id);
+                    take.favourite ? 'Starred \u2014 Click to remove from favourites' : 'Star \u2014 Add to favourites');
+    actions += tile('del', 'trash', 'Delete', 'data-act="del"' + id,
+                    'Delete \u2014 Remove this take permanently');
     var classes = 'take';
     if (State.picked[take.id]) { classes += ' picked'; }
     if (State.playing === take.id) { classes += ' playing'; }
@@ -10416,11 +10429,16 @@ function paintTakes() {
       // tone-*, not song/cover: a plain .cover class belongs to the 46px tile.
       classes += ' editing ' + ({ song: 'tone-song', instrumental: 'tone-inst' }[take.kind] || 'tone-cover');
     }
+    var coverTip = take.kind === 'song'
+      ? 'Song \u2014 written from a prompt'
+      : (take.kind === 'instrumental'
+          ? 'Instrumental \u2014 created without vocal tracks'
+          : 'Cover \u2014 reimagined from a source recording');
     return '<article class="' + classes + '" data-id="' + take.id + '">' +
       '<div class="take-head">' +
         '<div class="take-icon">' +
-          '<div class="cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover') + '">' + initials(take.title) + '</div>' +
-          '<label class="pick" title="Select this take for deleting">' +
+          '<div class="cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover') + '" title="' + esc(coverTip) + '" aria-label="' + esc(coverTip) + '">' + initials(take.title) + '</div>' +
+          '<label class="pick" title="Select this take for bulk actions or batch deleting">' +
             '<input type="checkbox" data-act="pick"' + id + (State.picked[take.id] ? ' checked' : '') + '>' +
           '</label>' +
         '</div>' +
@@ -10431,21 +10449,21 @@ function paintTakes() {
         // Occasional, so small corner buttons rather than tiles in an already full row.
         '<div class="take-corner">' +
           (take.abc && take.abc.length > 50 && status !== 'queued' && status !== 'running'
-            ? '<button class="take-move" data-act="revoice"' + id + ' title="Sing again: the same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close"' +
+            ? '<button class="take-move" data-act="revoice"' + id + ' title="Sing again \u2014 The same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close"' +
               ' aria-label="Sing again">' + icon('voice') + '</button>' +
-              '<button class="take-move" data-act="variations"' + id + ' title="Variations: render this score in other interpretations"' +
+              '<button class="take-move" data-act="variations"' + id + ' title="Variations \u2014 Render this score in other interpretations"' +
               ' aria-label="Variations">' + icon('variations') + '</button>' +
-              '<button class="take-move" data-act="tries"' + id + ' title="Try more: the same score and words again with new seeds, or at other Planner strengths"' +
+              '<button class="take-move" data-act="tries"' + id + ' title="Try more \u2014 The same score and words again with new seeds, or at other Planner strengths"' +
               ' aria-label="Try more">' + icon('dice') + '</button>'
             : '') +
           // Once normalised it has nothing left to offer, so it goes.
           (status === 'done' && take.has_audio && !take.normalised && !State.normalising[take.id]
-            ? '<button class="take-move" data-act="normalise"' + id + ' title="Normalise: bring this take to the usual loudness. The file as rendered is kept"' +
+            ? '<button class="take-move" data-act="normalise"' + id + ' title="Normalise \u2014 Bring this take to the usual loudness. The file as rendered is kept"' +
               ' aria-label="Normalise">' + icon('level') + '</button>'
             : '') +
-          '<button class="take-move" data-act="details"' + id + ' title="Details: what this take was made with" aria-label="Details">' +
+          '<button class="take-move" data-act="details"' + id + ' title="Details \u2014 What this take was made with" aria-label="Details">' +
             icon('info') + '</button>' +
-          '<button class="take-move" data-act="move"' + id + ' title="Move to another space" aria-label="Move to another space">' +
+          '<button class="take-move" data-act="move"' + id + ' title="Move \u2014 Move to another space" aria-label="Move">' +
             icon('move') + '</button>' +
         '</div>' +
       '</div>' +

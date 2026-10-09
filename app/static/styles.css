@@ -379,7 +379,7 @@ textarea.lyrics { min-height: 200px; font-family: ui-monospace, SFMono-Regular, 
 /* It sits in the tile's corner, so it costs the card no height. */
 .take-icon { position: relative; flex: 0 0 auto; }
 .take .pick {
-  position: absolute; right: 4px; bottom: 4px;
+  position: absolute; right: 2px; bottom: 2px;
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 /* Drawn here rather than by the browser, so it stays small and quiet until ticked. */
@@ -590,9 +590,9 @@ button.icon { width: 42px; padding: 8px 0; text-align: center; }
 #start-fresh.type-inst { background: linear-gradient(90deg, var(--inst-b), var(--inst-a)); color: #07140c; }
 #start-fresh.type-cover:hover, #start-fresh.type-song:hover, #start-fresh.type-inst:hover { filter: brightness(1.1); }
 
-.cover.grad-cover, .np-cover.grad-cover { background: linear-gradient(135deg, var(--cover-a), var(--cover-b)); }
-.cover.grad-song, .np-cover.grad-song { background: linear-gradient(135deg, var(--song-a), var(--song-b)); }
-.cover.grad-inst, .np-cover.grad-inst { background: linear-gradient(135deg, var(--inst-a), var(--inst-b)); color: #07140c; }
+.np-cover.grad-cover { background: linear-gradient(135deg, var(--cover-a), var(--cover-b)); }
+.np-cover.grad-song { background: linear-gradient(135deg, var(--song-a), var(--song-b)); }
+.np-cover.grad-inst { background: linear-gradient(135deg, var(--inst-a), var(--inst-b)); color: #07140c; }
 .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 /* A corpus gives one chip per song, so a big one would push the form down the page.
    They sit in a box of their own that scrolls past about five rows; the half row
@@ -1629,7 +1629,7 @@ label .lora-value:disabled { opacity: 0.6; }
 .take-live { display: contents; }
 .take-live:empty { display: none; }
 .takes.comfy .take-live, .takes.comfy .take-live:empty { display: flex; flex-direction: column; align-items: flex-start; min-height: 28px; }
-.takes.comfy .act { flex: 1 1 auto; max-width: 92px; }
+.takes.comfy .act { flex: 1 1 auto; max-width: 56px; }
 .take {
   background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px;
   display: flex; flex-direction: column; gap: 10px; cursor: pointer;
@@ -1669,9 +1669,67 @@ label .lora-value:disabled { opacity: 0.6; }
 .take-head .take-corner { grid-column: 3; grid-row: 1; }
 .take-head .take-meta { grid-column: 2 / 4; grid-row: 2; align-self: start; }
 .cover {
-  width: 52px; height: 52px; border-radius: 12px; flex: 0 0 auto;
+  width: 40px; height: 40px; border-radius: 10px; flex: 0 0 auto;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 19px; color: rgb(var(--ink) / 0.92);
+  font-weight: 700; font-size: 15px; letter-spacing: -0.02em;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgb(var(--ink) / 0.12), 0 2px 8px rgb(var(--shade) / 0.25);
+  cursor: default;
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+.cover:hover {
+  transform: scale(1.04);
+}
+/* Category badges: reduced color strength with translucent desaturated tints while preserving signature identity */
+.cover.grad-cover {
+  background: linear-gradient(135deg, rgba(205, 95, 145, 0.22), rgba(135, 100, 195, 0.22));
+  border: 1px solid rgba(215, 120, 165, 0.32);
+  color: rgba(250, 235, 245, 0.94);
+}
+.cover.grad-song {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.20), rgba(99, 102, 241, 0.20));
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  color: rgba(224, 242, 254, 0.94);
+}
+.cover.grad-inst {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.20), rgba(5, 150, 105, 0.20));
+  border: 1px solid rgba(52, 211, 153, 0.32);
+  color: rgba(209, 250, 229, 0.94);
+}
+
+/* Light theme overrides for cover badge */
+:root[data-theme="light"] .cover.grad-cover {
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.16), rgba(192, 132, 252, 0.16));
+  border: 1px solid rgba(219, 39, 119, 0.28);
+  color: #9d174d;
+}
+:root[data-theme="light"] .cover.grad-song {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(129, 140, 248, 0.16));
+  border: 1px solid rgba(2, 132, 199, 0.28);
+  color: #0369a1;
+}
+:root[data-theme="light"] .cover.grad-inst {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.18), rgba(16, 185, 129, 0.18));
+  border: 1px solid rgba(5, 150, 105, 0.28);
+  color: #047857;
+}
+
+/* High contrast theme overrides for cover badge */
+:root[data-theme="contrast"] .cover.grad-cover {
+  background: rgba(255, 77, 148, 0.18);
+  border: 1px solid #ff4d94;
+  color: #fff;
+}
+:root[data-theme="contrast"] .cover.grad-song {
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid #38bdf8;
+  color: #fff;
+}
+:root[data-theme="contrast"] .cover.grad-inst {
+  background: rgba(74, 222, 128, 0.18);
+  border: 1px solid #4ade80;
+  color: #fff;
 }
 /* One line only. The full name is in the tooltip. */
 .take-title {
@@ -1713,66 +1771,144 @@ label .lora-value:disabled { opacity: 0.6; }
 /* ---------------------------------------------------------------- action tiles
    Colour carries meaning. Raised by default, and they press down when clicked. */
 /* margin-top: auto keeps the row on the card's floor when a neighbour in the row is taller. */
-.take-actions { display: flex; gap: 5px; flex-wrap: nowrap; align-items: center; margin-top: auto; }
+.take-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin-top: auto;
+}
 
 .act {
   --tint: #a1a1aa;
-  --tint-a: rgba(161, 161, 170, 0.20);
-  --tint-b: rgba(161, 161, 170, 0.05);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  /* Shrink to fit the row rather than wrap to a second line. */
-  flex: 0 1 auto; min-width: 0; padding: 7px 4px 6px;
-  border: 1px solid rgb(var(--ink) / 0.10);
-  border-radius: 13px;
-  background: linear-gradient(180deg, var(--tint-a), var(--tint-b));
+  --tint-a: rgba(161, 161, 170, 0.18);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 52px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgb(var(--ink) / 0.08);
+  border-radius: 9px;
+  background: rgb(var(--ink) / 0.035);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   color: var(--text);
-  font: inherit; font-size: 10px; letter-spacing: 0.02em; line-height: 1;
-  cursor: pointer; text-decoration: none;
-  box-shadow:
-    0 2px 0 rgb(var(--shade) / 0.45),
-    0 4px 10px rgb(var(--shade) / 0.35),
-    inset 0 1px 0 rgb(var(--ink) / 0.16);
-  transition: transform 70ms ease, box-shadow 70ms ease, filter 120ms ease;
-}
-.act svg { width: 17px; height: 17px; color: var(--tint); flex: 0 0 auto; }
-.act svg, .act span, .act path, button.act * { pointer-events: none; }
-.act span {
-  opacity: 0.85; max-width: 100%;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.act:hover { filter: brightness(1.15); }
-.act:focus-visible { outline: 2px solid var(--accent-a); outline-offset: 2px; }
-.act:active {
-  transform: translateY(2px);
-  box-shadow: 0 0 0 rgb(var(--shade) / 0.4), inset 0 2px 6px rgb(var(--shade) / 0.55);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: none;
+  transition: background 120ms ease, border-color 120ms ease, transform 90ms ease, box-shadow 120ms ease;
 }
 
-.act.play   { --tint: var(--good); --tint-a: rgb(var(--good-rgb) / 0.22); --tint-b: rgb(var(--good-rgb) / 0.05); }
+.act svg {
+  width: 16px;
+  height: 16px;
+  color: var(--tint);
+  flex: 0 0 auto;
+  opacity: 0.88;
+  transition: transform 120ms ease, opacity 120ms ease, color 120ms ease;
+}
+
+.act svg, .act span, .act path, button.act * {
+  pointer-events: none;
+}
+
+.act span {
+  display: none;
+}
+
+.act:hover {
+  background: var(--tint-a);
+  border-color: var(--tint);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px var(--tint-a);
+}
+
+.act:hover svg {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.act:focus-visible {
+  outline: 2px solid var(--accent-a);
+  outline-offset: 2px;
+}
+
+.act:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: none;
+}
+
+.act.score  { --tint: #a78bfa; --tint-a: rgba(167, 139, 250, 0.20); }
+.act.play   {
+  --tint: var(--good);
+  --tint-a: rgb(var(--good-rgb) / 0.22);
+  background: rgb(var(--good-rgb) / 0.08);
+  border-color: rgb(var(--good-rgb) / 0.24);
+}
+.act.go     { --tint: #4ade80; --tint-a: rgba(74, 222, 128, 0.22); }
+.act.save   { --tint: #38bdf8; --tint-a: rgb(var(--song-a-rgb) / 0.20); }
+.act.stems  { --tint: #94a3b8; --tint-a: rgba(148, 163, 184, 0.18); }
+.act.again  { --tint: var(--warn); --tint-a: rgb(var(--warn-rgb) / 0.20); }
+.act.star   { --tint: #facc15; --tint-a: rgba(250, 204, 21, 0.18); }
+.act.star.on {
+  --tint-a: rgba(250, 204, 21, 0.32);
+  background: rgba(250, 204, 21, 0.12);
+  border-color: rgba(250, 204, 21, 0.45);
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.22);
+}
+.act.star.on svg {
+  fill: var(--tint);
+  opacity: 1;
+}
+.act.del    { --tint: var(--bad); --tint-a: rgb(var(--bad-rgb) / 0.18); }
 
 /* The tile that is playing breathes, so the live take is obvious across the grid. */
 @keyframes tile-pulse {
-  0%   { box-shadow: 0 2px 0 rgb(var(--shade) / 0.45), 0 0 0 0 rgb(var(--good-rgb) / 0.6), inset 0 1px 0 rgb(var(--ink) / 0.2); }
-  70%  { box-shadow: 0 2px 0 rgb(var(--shade) / 0.45), 0 0 0 10px rgb(var(--good-rgb) / 0), inset 0 1px 0 rgb(var(--ink) / 0.2); }
-  100% { box-shadow: 0 2px 0 rgb(var(--shade) / 0.45), 0 0 0 0 rgb(var(--good-rgb) / 0), inset 0 1px 0 rgb(var(--ink) / 0.2); }
+  0%   { box-shadow: 0 0 0 0 rgb(var(--good-rgb) / 0.6); }
+  70%  { box-shadow: 0 0 0 8px rgb(var(--good-rgb) / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(var(--good-rgb) / 0); }
 }
 .act.play.playing {
   animation: tile-pulse 1.5s ease-out infinite;
-  border-color: rgb(var(--good-rgb) / 0.75);
-  --tint-a: rgb(var(--good-rgb) / 0.42);
-  --tint-b: rgb(var(--good-rgb) / 0.12);
+  border-color: rgb(var(--good-rgb) / 0.85);
+  background: rgb(var(--good-rgb) / 0.24);
 }
-.act.play.playing svg { color: #6ee7b7; }
+.act.play.playing svg { color: #6ee7b7; opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
-  .act.play.playing { animation: none; border-color: rgb(var(--good-rgb) / 0.75); }
+  .act.play.playing { animation: none; border-color: rgb(var(--good-rgb) / 0.85); }
 }
-.act.go     { --tint: #4ade80; --tint-a: rgba(74, 222, 128, 0.24); --tint-b: rgba(74, 222, 128, 0.06); }
-.act.score  { --tint: #a78bfa; --tint-a: rgba(167, 139, 250, 0.22); --tint-b: rgba(167, 139, 250, 0.05); }
-.act.save   { --tint: #38bdf8; --tint-a: rgb(var(--song-a-rgb) / 0.20); --tint-b: rgb(var(--song-a-rgb) / 0.05); }
-.act.again  { --tint: var(--warn); --tint-a: rgb(var(--warn-rgb) / 0.20); --tint-b: rgb(var(--warn-rgb) / 0.05); }
-.act.star   { --tint: #facc15; --tint-a: rgba(250, 204, 21, 0.18); --tint-b: rgba(250, 204, 21, 0.05); }
-.act.star.on { --tint-a: rgba(250, 204, 21, 0.34); box-shadow: 0 2px 0 rgb(var(--shade) / .45), 0 0 14px rgba(250, 204, 21, 0.28), inset 0 1px 0 rgb(var(--ink) / .2); }
-.act.star.on svg { fill: var(--tint); }
-.act.del    { --tint: var(--bad); --tint-a: rgb(var(--bad-rgb) / 0.18); --tint-b: rgb(var(--bad-rgb) / 0.05); }
+
+/* Light theme overrides for action tiles */
+:root[data-theme="light"] .act.score { --tint: #7c3aed; --tint-a: rgba(124, 58, 237, 0.14); }
+:root[data-theme="light"] .act.save  { --tint: #0284c7; --tint-a: rgba(2, 132, 199, 0.14); }
+:root[data-theme="light"] .act.stems { --tint: #475569; --tint-a: rgba(71, 85, 105, 0.14); }
+:root[data-theme="light"] .act.star  { --tint: #b45309; --tint-a: rgba(180, 83, 9, 0.14); }
+:root[data-theme="light"] .act.star.on {
+  border-color: rgba(180, 83, 9, 0.40);
+  background: rgba(180, 83, 9, 0.12);
+  box-shadow: 0 0 10px rgba(180, 83, 9, 0.20);
+}
+:root[data-theme="light"] .act.go    { --tint: #15803d; --tint-a: rgba(21, 128, 61, 0.14); }
+:root[data-theme="light"] .act.play.playing svg { color: #047857; }
+
+/* Contrast theme overrides for action tiles */
+:root[data-theme="contrast"] .act {
+  border: 1px solid rgb(255 255 255 / 0.28);
+  background: #000;
+}
+:root[data-theme="contrast"] .act:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+:root[data-theme="contrast"] .act.play.playing {
+  border-color: #4ade80;
+  box-shadow: 0 0 0 2px #4ade80;
+}
 .tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
 .empty { color: var(--muted); text-align: center; padding: 60px 20px; border: 1px dashed var(--line); border-radius: var(--radius); }
 
