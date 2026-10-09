@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.36 (2026-10-09)
 
 - **CPU and GPU usage in the header.** Next to the version number, two subtle indicators show current GPU and CPU utilisation in percent, updating live with the app's state polling.
 - **Refreshed UI.** Take cards, action buttons and waveforms have a refreshed look across all themes, and the README screenshots have been updated to match.
