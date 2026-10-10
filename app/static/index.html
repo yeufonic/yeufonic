@@ -829,6 +829,11 @@
     </div>
     <div class="score-view hidden" id="view-roll">
       <div class="roll-toolbar">
+        <div class="roll-voices">
+          <span class="roll-label" title="Active voice when adding new notes:">Voice:</span>
+          <button class="chip compact active" id="roll-voice-vocal" data-voice="Vocal" title="Add Vocal notes (Blue) • or convert selected notes to Vocal (V)">● Vocal</button>
+          <button class="chip compact" id="roll-voice-ins" data-voice="Ins" title="Add Instrument notes (Amber) • or convert selected notes to Instrument (V)">● Ins</button>
+        </div>
         <div class="roll-select">
           <button id="roll-select-all" class="ghost compact" title="Select all notes across both Vocal and Instrument voices (Ctrl+A)">Select All</button>
           <button id="roll-select-right" class="ghost compact" title="Select all notes from cursor/playhead to right across both voices (Ctrl+Shift+A or Alt+A)">From Cursor ▶</button>
@@ -885,7 +890,7 @@
         </div>
       </div>
       <div class="roll-hint-bar">
-        <span>Click: add note • Drag: move note • Edge: resize • Marquee select • +/−: zoom • L: edit lyric • C: click track • H: chords • Del: delete • Left/Right: step bar • Space: play</span>
+        <span>Click: add note • Drag: move note • Edge: resize • Marquee select • V: toggle voice • +/−: zoom • L: edit lyric • C: click track • H: chords • Del: delete • Left/Right: step bar • Space: play</span>
       </div>
       <div class="roll-container" id="roll-container">
         <div class="roll-corner">

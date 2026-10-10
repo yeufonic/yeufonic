@@ -1062,10 +1062,18 @@ label .lora-value:disabled { opacity: 0.6; }
   align-items: center;
   gap: 5px;
 }
+#roll-voice-vocal:hover {
+  color: #7dd3fc;
+  border-color: #38bdf8;
+}
 #roll-voice-vocal.active {
   color: #38bdf8;
   border-color: #0284c7;
   background: rgba(2, 132, 199, 0.2);
+}
+#roll-voice-ins:hover {
+  color: #fde68a;
+  border-color: #fbbf24;
 }
 #roll-voice-ins.active {
   color: #fbbf24;

@@ -12938,6 +12938,13 @@ function wire() {
             return;
           }
         }
+        if (event.key.toLowerCase() === 'v' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          event.preventDefault();
+          if (window.PianoRoll && window.PianoRoll.toggleVoice) {
+            window.PianoRoll.toggleVoice();
+          }
+          return;
+        }
         if ((event.key.toLowerCase() === 'c' || event.key.toLowerCase() === 'm') && !event.ctrlKey && !event.metaKey && !event.altKey) {
           event.preventDefault();
           if (window.PianoRoll) { window.PianoRoll.toggleMetronome(); }

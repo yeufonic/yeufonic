@@ -187,6 +187,7 @@
   /* ---------------------------------------------------- Web Audio Synth */
   var audioCtx = null;
   function getAudioContext() {
+    if (typeof window === 'undefined') { return null; }
     if (!audioCtx) {
       var AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (AudioContextClass) {
@@ -908,9 +909,19 @@
       if (model.sections[s].barIndex > maxBar) { maxBar = model.sections[s].barIndex; }
     }
 
+    var voiceList = (model.voices && model.voices.length > 0) ? model.voices.slice() : ['Vocal', 'Ins'];
+    if (voiceList.indexOf('Vocal') === -1) { voiceList.unshift('Vocal'); }
+    if (voiceList.indexOf('Ins') === -1) { voiceList.push('Ins'); }
+    for (var nIdx = 0; nIdx < model.notes.length; nIdx++) {
+      var nVoice = model.notes[nIdx].voice || 'Vocal';
+      if (voiceList.indexOf(nVoice) === -1) {
+        voiceList.push(nVoice);
+      }
+    }
+
     var barSegments = {};
-    for (var vIdx = 0; vIdx < model.voices.length; vIdx++) {
-      var vName = model.voices[vIdx];
+    for (var vIdx = 0; vIdx < voiceList.length; vIdx++) {
+      var vName = voiceList[vIdx];
       barSegments[vName] = {};
       for (var b = 0; b <= maxBar; b++) {
         barSegments[vName][b] = [];
@@ -967,8 +978,8 @@
       var sec = sectionIntervals[intIdx];
       lines.push(sec.text);
 
-      for (var vi = 0; vi < model.voices.length; vi++) {
-        var voiceName = model.voices[vi];
+      for (var vi = 0; vi < voiceList.length; vi++) {
+        var voiceName = voiceList[vi];
         lines.push('V: ' + voiceName);
         var barBuffer = [];
         var lyricBarBuffer = [];
@@ -1119,10 +1130,32 @@
         selectRightBtn.addEventListener('click', function () { self.selectRightOfPlayhead(); });
       }
 
-      // Hide obsolete voice selector if present from cached HTML
+      // Ensure voice selector exists and is visible
       var rollVoices = document.querySelector('.roll-voices');
-      if (rollVoices) {
-        rollVoices.style.display = 'none';
+      if (!rollVoices) {
+        var toolbar = document.querySelector('.roll-toolbar');
+        if (toolbar) {
+          rollVoices = document.createElement('div');
+          rollVoices.className = 'roll-voices';
+          rollVoices.innerHTML =
+            '<span class="roll-label" title="Active voice when adding new notes:">Voice:</span>' +
+            '<button class="chip compact active" id="roll-voice-vocal" data-voice="Vocal" title="Add Vocal notes (Blue) • or convert selected notes to Vocal (V)">● Vocal</button>' +
+            '<button class="chip compact" id="roll-voice-ins" data-voice="Ins" title="Add Instrument notes (Amber) • or convert selected notes to Instrument (V)">● Ins</button>';
+          toolbar.insertBefore(rollVoices, toolbar.firstChild);
+        }
+      } else {
+        rollVoices.style.display = '';
+      }
+
+      var vocalBtn = document.getElementById('roll-voice-vocal');
+      var insBtn = document.getElementById('roll-voice-ins');
+      if (vocalBtn && !vocalBtn._bound) {
+        vocalBtn._bound = true;
+        vocalBtn.addEventListener('click', function () { self.setVoice('Vocal', true); });
+      }
+      if (insBtn && !insBtn._bound) {
+        insBtn._bound = true;
+        insBtn.addEventListener('click', function () { self.setVoice('Ins', true); });
       }
 
       // Update zoom button tooltips
@@ -1135,8 +1168,8 @@
 
       // Update hint bar
       var hintBar = document.querySelector('.roll-hint-bar span');
-      if (hintBar && hintBar.textContent.indexOf('+/−: zoom') === -1) {
-        hintBar.textContent = 'Click: add note • Drag: move note • Edge: resize • Marquee select • +/−: zoom • L: edit lyric • C: click track • H: chords • Del: delete • Left/Right: step bar • Space: play';
+      if (hintBar && hintBar.textContent.indexOf('V: toggle voice') === -1) {
+        hintBar.textContent = 'Click: add note • Drag: move note • Edge: resize • Marquee select • V: toggle voice • +/−: zoom • L: edit lyric • C: click track • H: chords • Del: delete • Left/Right: step bar • Space: play';
       }
     },
 
@@ -1147,14 +1180,16 @@
       var self = this;
       this.ensureToolbar();
 
-      // Voice selectors (active voice for drawing new notes)
+      // Voice selectors (active voice for drawing new notes / converting selected notes)
       var vocalBtn = document.getElementById('roll-voice-vocal');
       var insBtn = document.getElementById('roll-voice-ins');
-      if (vocalBtn) {
-        vocalBtn.addEventListener('click', function () { self.setVoice('Vocal'); });
+      if (vocalBtn && !vocalBtn._bound) {
+        vocalBtn._bound = true;
+        vocalBtn.addEventListener('click', function () { self.setVoice('Vocal', true); });
       }
-      if (insBtn) {
-        insBtn.addEventListener('click', function () { self.setVoice('Ins'); });
+      if (insBtn && !insBtn._bound) {
+        insBtn._bound = true;
+        insBtn.addEventListener('click', function () { self.setVoice('Ins', true); });
       }
 
       // Selection buttons
@@ -1324,12 +1359,53 @@
       this.bindGridEvents();
     },
 
-    setVoice: function (voiceName) {
-      this.currentVoice = voiceName;
-      var vocalBtn = document.getElementById('roll-voice-vocal');
-      var insBtn = document.getElementById('roll-voice-ins');
-      if (vocalBtn) { vocalBtn.classList.toggle('active', voiceName === 'Vocal'); }
-      if (insBtn) { insBtn.classList.toggle('active', voiceName === 'Ins'); }
+    setVoice: function (voiceName, convertSelected) {
+      this.currentVoice = voiceName || 'Vocal';
+      if (typeof document !== 'undefined') {
+        var vocalBtn = document.getElementById('roll-voice-vocal');
+        var insBtn = document.getElementById('roll-voice-ins');
+        if (vocalBtn) { vocalBtn.classList.toggle('active', this.currentVoice === 'Vocal'); }
+        if (insBtn) { insBtn.classList.toggle('active', this.currentVoice === 'Ins'); }
+      }
+
+      if (convertSelected && this.model && this.hasSelection && this.hasSelection()) {
+        var changed = false;
+        for (var i = 0; i < this.model.notes.length; i++) {
+          var n = this.model.notes[i];
+          if (this.isNoteSelected(n.id) && n.voice !== this.currentVoice) {
+            n.voice = this.currentVoice;
+            changed = true;
+          }
+        }
+        if (changed) {
+          if (this.selectedNoteId) {
+            var lead = this.findNote(this.selectedNoteId);
+            if (lead) { playTone(lead.pitch, 0.2, this.currentVoice); }
+          }
+          this.commitEdit();
+        }
+      }
+    },
+
+    toggleVoice: function () {
+      var nextVoice = (this.currentVoice === 'Ins') ? 'Vocal' : 'Ins';
+      if (this.model && this.hasSelection && this.hasSelection()) {
+        var hasVocal = false;
+        var hasIns = false;
+        for (var i = 0; i < this.model.notes.length; i++) {
+          var n = this.model.notes[i];
+          if (this.isNoteSelected(n.id)) {
+            if (n.voice === 'Ins') { hasIns = true; }
+            else { hasVocal = true; }
+          }
+        }
+        if (hasVocal && !hasIns) {
+          nextVoice = 'Ins';
+        } else if (hasIns && !hasVocal) {
+          nextVoice = 'Vocal';
+        }
+      }
+      this.setVoice(nextVoice, true);
     },
 
     setInstrument: function (inst) {
@@ -1356,10 +1432,14 @@
       this.selectedNoteId = null;
       if (this.model && this.model.voices) {
         if (this.model.voices.indexOf('Vocal') !== -1) {
-          this.currentVoice = 'Vocal';
+          this.setVoice('Vocal', false);
         } else if (this.model.voices.length > 0) {
-          this.currentVoice = this.model.voices[0];
+          this.setVoice(this.model.voices[0], false);
+        } else {
+          this.setVoice('Vocal', false);
         }
+      } else {
+        this.setVoice('Vocal', false);
       }
 
       // Auto-match song lyrics on load if score has no lyrics embedded yet
@@ -1659,12 +1739,15 @@
         }
 
         var voiceClass = (note.voice === 'Ins') ? 'ins' : 'vocal';
+        var voiceLabel = (note.voice === 'Ins') ? 'Instrument' : 'Vocal';
         var selClass = isSelected ? 'selected' : '';
         var lyrClass = lyricText ? ' has-lyric' : '';
+        var noteTitle = voiceLabel + ' Note (' + noteName + ') • Press V to flip voice';
 
         html.push(
           '<div class="roll-note ' + voiceClass + ' ' + selClass + lyrClass + '" ' +
           'data-note-id="' + note.id + '" ' +
+          'title="' + escapeHtml(noteTitle) + '" ' +
           'style="left:' + left + 'px; top:' + top + 'px; width:' + width + 'px; height:' + height + 'px">' +
           '<span class="roll-note-title">' + label + '</span>' +
           '<div class="roll-note-resize"></div>' +

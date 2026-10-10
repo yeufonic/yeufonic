@@ -1595,3 +1595,138 @@ def test_midi_to_note_name_in_keys():
     assert res["ds4InC"] == "D#4"
     assert res["ds4NoKey"] == "D#4"
 
+
+def test_piano_roll_voice_toggle_and_drawing_instrument_notes():
+    """Verify switching active voice to Ins draws Instrument notes and serializes to ABC."""
+    raw_abc = (
+        "X:1\n"
+        "M:4/4\n"
+        "L:1/16\n"
+        "Q:1/4=120\n"
+        "K:C\n"
+        "% verse\n"
+        "V: Vocal\n"
+        "\"C\"c4 d4 e4 f4 | \"G\"g16 |\n"
+        "w: Hel- lo world here | sing |\n"
+    )
+
+    js = f"""
+    const input = {json.dumps(raw_abc)};
+    PianoRoll.model = parseAbc(input);
+    PianoRoll.tickWidth = 10;
+    PianoRoll.rowHeight = 16;
+    PianoRoll.snapTicks = 4;
+
+    // Initially defaults to Vocal
+    const initialVoice = PianoRoll.currentVoice;
+
+    // Switch to Ins voice
+    PianoRoll.setVoice("Ins");
+    const switchedVoice = PianoRoll.currentVoice;
+
+    // Add a new Instrument note at bar 1 (tick 16), pitch 60 (C4)
+    const newNote = {{
+        id: 9999,
+        voice: PianoRoll.currentVoice,
+        pitch: 60,
+        startTick: 16,
+        durationTicks: 4
+    }};
+    PianoRoll.model.notes.push(newNote);
+
+    const outAbc = serializeToAbc(PianoRoll.model);
+    const reparsed = parseAbc(outAbc);
+    const vocalNotes = reparsed.notes.filter(n => n.voice === 'Vocal');
+    const insNotes = reparsed.notes.filter(n => n.voice === 'Ins');
+
+    console.log(JSON.stringify({{
+        initialVoice,
+        switchedVoice,
+        vocalCount: vocalNotes.length,
+        insCount: insNotes.length,
+        insPitch: insNotes.length > 0 ? insNotes[0].pitch : null,
+        insTick: insNotes.length > 0 ? insNotes[0].startTick : null,
+        outAbc
+    }}));
+    """
+    res = run_node_script(js)
+    assert res["initialVoice"] == "Vocal"
+    assert res["switchedVoice"] == "Ins"
+    assert res["vocalCount"] == 5
+    assert res["insCount"] == 1
+    assert res["insPitch"] == 60
+    assert res["insTick"] == 16
+    assert "V: Ins" in res["outAbc"]
+    assert score.problems(res["outAbc"]) == []
+
+
+def test_piano_roll_convert_selected_notes_and_toggle_voice():
+    """Verify converting selected notes between Vocal and Ins and keyboard toggleVoice."""
+    raw_abc = (
+        "X:1\n"
+        "M:4/4\n"
+        "L:1/16\n"
+        "Q:1/4=120\n"
+        "K:C\n"
+        "V: Vocal\n"
+        "\"C\"c4 d4 e4 f4 |\n"
+        "V: Ins\n"
+        "\"C\"C16 |\n"
+    )
+
+    js = f"""
+    const input = {json.dumps(raw_abc)};
+    PianoRoll.model = parseAbc(input);
+
+    // Select the first 2 vocal notes (ids 1 and 2)
+    const id0 = PianoRoll.model.notes[0].id;
+    const id1 = PianoRoll.model.notes[1].id;
+    PianoRoll.selectNote(id0, false);
+    PianoRoll.selectNote(id1, true);
+
+    // Convert selected notes to Ins
+    PianoRoll.setVoice("Ins", true);
+    const note0VoiceAfterIns = PianoRoll.findNote(id0).voice;
+    const note1VoiceAfterIns = PianoRoll.findNote(id1).voice;
+    const activeVoiceAfterIns = PianoRoll.currentVoice;
+
+    // Toggle voice with selected notes (should flip from Ins back to Vocal)
+    PianoRoll.toggleVoice();
+    const note0VoiceAfterToggle = PianoRoll.findNote(id0).voice;
+    const note1VoiceAfterToggle = PianoRoll.findNote(id1).voice;
+    const activeVoiceAfterToggle = PianoRoll.currentVoice;
+
+    // Deselect all notes and test toggleVoice
+    PianoRoll.clearSelection();
+    PianoRoll.setVoice("Vocal");
+    PianoRoll.toggleVoice(); // Should switch to Ins
+    const noSelVoice1 = PianoRoll.currentVoice;
+    PianoRoll.toggleVoice(); // Should switch back to Vocal
+    const noSelVoice2 = PianoRoll.currentVoice;
+
+    const outAbc = serializeToAbc(PianoRoll.model);
+
+    console.log(JSON.stringify({{
+        note0VoiceAfterIns,
+        note1VoiceAfterIns,
+        activeVoiceAfterIns,
+        note0VoiceAfterToggle,
+        note1VoiceAfterToggle,
+        activeVoiceAfterToggle,
+        noSelVoice1,
+        noSelVoice2,
+        outAbc
+    }}));
+    """
+    res = run_node_script(js)
+    assert res["note0VoiceAfterIns"] == "Ins"
+    assert res["note1VoiceAfterIns"] == "Ins"
+    assert res["activeVoiceAfterIns"] == "Ins"
+    assert res["note0VoiceAfterToggle"] == "Vocal"
+    assert res["note1VoiceAfterToggle"] == "Vocal"
+    assert res["activeVoiceAfterToggle"] == "Vocal"
+    assert res["noSelVoice1"] == "Ins"
+    assert res["noSelVoice2"] == "Vocal"
+    assert score.problems(res["outAbc"]) == []
+
+
