@@ -10757,11 +10757,15 @@ function activateTakeRecording(take) {
   var audio = $('audio');
   if (!audio) { return; }
 
+  // If audio is currently playing, do not stop or interrupt playback.
+  // The selected take remains highlighted and will be played if Spacebar or the play icon is pressed.
+  if (!audio.paused && !audio.ended) {
+    if (window.Rack) { window.Rack.onTake(take); }
+    return;
+  }
+
   // 1. If the take has rendered audio, load its audio into the transport bar
   if (take.has_audio) {
-    if (State.playing === take.id && !audio.paused && !audio.ended) {
-      return;
-    }
     var version = take.normalised ? '?level=normalised' : '';
     var url = '/api/takes/' + take.id + '/audio' + version;
     var peaksUrl = '/api/takes/' + take.id + '/peaks' + version;
@@ -11253,27 +11257,75 @@ function wireTransport() {
       return;
     }
     var now = Date.now();
-    // Pause whatever is sounding, take or stem. Starting something else while a
-    // stem plays was the old behaviour and always surprising.
+    var activeId = typeof selectedTakeId === 'function' ? selectedTakeId() : null;
+    var activeTake = (activeId && typeof takeById === 'function' ? takeById(activeId) : null) ||
+                     (activeId && State.formTake && State.formTake.id === activeId ? State.formTake : null);
+
+    // 1. Audio is currently sounding (take, source audition, or stem)
     if (!audio.paused && !audio.ended) {
+      // If a different take is highlighted/selected, switch to and play that take!
+      if (activeTake && activeTake.id !== State.playing) {
+        if (activeTake.has_audio) {
+          playTake(activeTake.id);
+          return;
+        }
+        if (activeTake.source_id && typeof sourceById === 'function') {
+          var src = sourceById(activeTake.source_id);
+          if (src) {
+            if ($('source-select')) { $('source-select').value = src.id; }
+            playRecording();
+            return;
+          }
+        }
+        statusLine('This take has not been rendered yet.', 'hint');
+        lastPauseAt = now;
+        audio.pause();
+        if (State.playing) { State.playing = null; paintTakes(); }
+        paintTransport();
+        return;
+      }
+
+      // Otherwise (the selected take is the one currently playing, or no different take is selected), pause it:
       lastPauseAt = now;
       audio.pause();
       if (State.playing) { State.playing = null; paintTakes(); }
       paintTransport();
       return;
     }
+
     // Prevent accidental rapid double-clicks immediately restarting playback right after pause
     if (now - lastPauseAt < 300) {
       return;
     }
-    var id = currentTakeId();
-    if (id) { togglePlay(id); return; }
-    if (audio.src && !audio.ended) { audio.play().catch(function () {}); return; }
-    var activeTake = typeof selectedTakeId === 'function' && selectedTakeId() && typeof takeById === 'function' ? takeById(selectedTakeId()) : null;
-    if (activeTake && !activeTake.has_audio && !activeTake.source_id) {
+
+    // 2. Audio is not playing: start or resume the selected take if one is highlighted
+    if (activeTake) {
+      if (activeTake.has_audio) {
+        if (State.loadedId === activeTake.id && audio.src && !audio.ended && audio.currentTime > 0) {
+          audio.play().catch(function () {});
+          State.playing = activeTake.id;
+          paintTakes();
+          paintTransport();
+          return;
+        }
+        playTake(activeTake.id);
+        return;
+      }
+      if (activeTake.source_id && typeof sourceById === 'function') {
+        var src = sourceById(activeTake.source_id);
+        if (src) {
+          if ($('source-select')) { $('source-select').value = src.id; }
+          playRecording();
+          return;
+        }
+      }
       statusLine('This take has not been rendered yet.', 'hint');
       return;
     }
+
+    var id = currentTakeId();
+    if (id) { togglePlay(id); return; }
+    if (audio.src && !audio.ended) { audio.play().catch(function () {}); return; }
     var list = playableTakes();
     if (list.length) { playTake(list[0].id); }
   });
@@ -11468,8 +11520,15 @@ function wireWave() {
   audio.addEventListener('ended', function () {
     stopWaveLoop(); wave.ratio = 1; drawWave();
     State.playing = null; State.audition = null;
-    paintTakes();
-    paintBulk(); paintTransport(); paintAudition();
+    var activeId = typeof selectedTakeId === 'function' ? selectedTakeId() : null;
+    var activeTake = (activeId && typeof takeById === 'function' ? takeById(activeId) : null) ||
+                     (activeId && State.formTake && State.formTake.id === activeId ? State.formTake : null);
+    if (activeTake && typeof activateTakeRecording === 'function') {
+      activateTakeRecording(activeTake);
+    } else {
+      paintTakes();
+      paintBulk(); paintTransport(); paintAudition();
+    }
   });
   audio.addEventListener('pause', function () {
     // Ignore the pause that fires while a new track is being loaded.
