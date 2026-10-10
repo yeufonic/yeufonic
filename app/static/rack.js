@@ -359,7 +359,7 @@
       if (document.getElementById('rack-panel')) { return; }
 
       var html = [
-        '<div id="rack-panel" class="rack-panel hidden" role="region" aria-label="Mastering Rack">',
+        '<div id="rack-panel" class="rack-panel" role="region" aria-label="Mastering Rack">',
         '  <div class="rack-chassis">',
         '    <!-- Top Rack Header -->',
         '    <div class="rack-header">',
@@ -393,10 +393,10 @@
         '    <!-- Rack Modules Container -->',
         '    <div class="rack-bay">',
 
-        '      <!-- MODULE 1: PULTEC / NEVE PARAMETRIC EQ -->',
+        '      <!-- MODULE 1: PARAMETRIC EQUALISER -->',
         '      <div class="rack-unit unit-eq" id="unit-eq">',
         '        <div class="unit-bar">',
-        '          <div class="unit-brand"><span class="screw-mini"></span> NEVE / PULTEC 1073-EQ <span class="screw-mini"></span></div>',
+        '          <div class="unit-brand"><span class="screw-mini"></span> 1073 PARAMETRIC EQUALISER <span class="screw-mini"></span></div>',
         '          <button type="button" class="unit-toggle on" id="toggle-eq" title="Toggle EQ on/off"><span class="led"></span> IN</button>',
         '        </div>',
         '        <div class="unit-faceplate">',
@@ -468,10 +468,10 @@
         '        </div>',
         '      </div>',
 
-        '      <!-- MODULE 2: UREI 1176 VINTAGE COMPRESSOR -->',
+        '      <!-- MODULE 2: PEAK LIMITING AMPLIFIER -->',
         '      <div class="rack-unit unit-comp" id="unit-comp">',
         '        <div class="unit-bar">',
-        '          <div class="unit-brand"><span class="screw-mini"></span> UREI 1176-LN LIMITING AMPLIFIER <span class="screw-mini"></span></div>',
+        '          <div class="unit-brand"><span class="screw-mini"></span> 76-LN PEAK LIMITING AMPLIFIER <span class="screw-mini"></span></div>',
         '          <button type="button" class="unit-toggle on" id="toggle-comp" title="Toggle Compressor on/off"><span class="led"></span> IN</button>',
         '        </div>',
         '        <div class="unit-faceplate">',
@@ -491,7 +491,7 @@
         '          <!-- Backlit Analog VU Meter -->',
         '          <div class="vu-meter-box" title="Analog Gain Reduction (dB)">',
         '            <div class="vu-glass">',
-        '              <canvas id="vu-canvas" width="160" height="96"></canvas>',
+        '              <canvas id="vu-canvas" width="200" height="110"></canvas>',
         '              <div class="vu-label">GAIN REDUCTION</div>',
         '            </div>',
         '          </div>',
@@ -529,10 +529,10 @@
         '        </div>',
         '      </div>',
 
-        '      <!-- MODULE 3: FAIRCHILD 670 MASTER LIMITER -->',
+        '      <!-- MODULE 3: MASTER LIMITER -->',
         '      <div class="rack-unit unit-limit" id="unit-limit">',
         '        <div class="unit-bar">',
-        '          <div class="unit-brand"><span class="screw-mini"></span> FAIRCHILD 670 MASTER LIMITER <span class="screw-mini"></span></div>',
+        '          <div class="unit-brand"><span class="screw-mini"></span> 670 VARIABLE-MU MASTER LIMITER <span class="screw-mini"></span></div>',
         '          <button type="button" class="unit-toggle on" id="toggle-limit" title="Toggle Limiter on/off"><span class="led"></span> IN</button>',
         '        </div>',
         '        <div class="unit-faceplate">',
@@ -897,8 +897,8 @@
     toggle: function (force) {
       var panel = document.getElementById('rack-panel');
       if (!panel) { return; }
-      this.isOpen = (typeof force === 'boolean') ? force : panel.classList.contains('hidden');
-      panel.classList.toggle('hidden', !this.isOpen);
+      this.isOpen = (typeof force === 'boolean') ? force : !panel.classList.contains('is-open');
+      panel.classList.toggle('is-open', this.isOpen);
 
       var btn = document.getElementById('btn-fx-rack');
       if (btn) { btn.classList.toggle('active', this.isOpen); }
@@ -984,8 +984,8 @@
 
         // Dial Arc & Scale
         var cx = w / 2;
-        var cy = h + 15;
-        var r = h * 0.95;
+        var cy = h + 20;
+        var r = h * 0.94;
 
         ctx.strokeStyle = '#2d2212';
         ctx.lineWidth = 1.5;
@@ -1008,7 +1008,7 @@
         ];
 
         ctx.fillStyle = '#221608';
-        ctx.font = 'bold 8px ui-sans-serif, system-ui, sans-serif';
+        ctx.font = 'bold 9.5px ui-sans-serif, system-ui, sans-serif';
         ctx.textAlign = 'center';
 
         ticks.forEach(function (t) {
