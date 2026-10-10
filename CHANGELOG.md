@@ -37,6 +37,15 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## 0.0.37 (2026-10-10)
+
+- **Vintage Mastering Rack & Channel Strip.** A skeuomorphic studio mastering rack with ultra-low latency real-time Web Audio DSP and matching export rendering:
+  - **1073 Equalizer:** Preamp drive gain (-15 to +20 dB), high-pass low cut (20 to 300 Hz), low shelf (35 to 220 Hz, ±16 dB), mid peaking bell (360 Hz to 7.2 kHz, ±18 dB), 12 kHz high shelf (analog 6.8 kHz corner slope, ±16 dB), phase invert, and output trim.
+  - **Vintage Compressor:** Fast FET-style compressor with stepped ratios (2:1, 4:1, 8:1, 12:1, 20:1, and "All Buttons In" mode), threshold, attack (1 to 80 ms), release (50 to 1200 ms), makeup gain, parallel mix blend, and an analog gain reduction VU meter.
+  - **670 Variable-Mu Master Limiter & Tube Warmth:** Clean input drive, tube warmth harmonic saturation curve, true peak ceiling control, and release timing.
+  - **Chassis & Workflow:** Draggable floating or bottom-docked chassis, take header selector with quick access icon on each take card, factory and user preset manager, master bypass A/B testing, and seamless continuous playback when selecting takes.
+  - **Export Rendering:** All mastering rack settings are non-destructively saved per take and baked into exported FLAC, WAV, and MP3 renditions.
+
 ## 0.0.36 (2026-10-09)
 
 - **CPU and GPU usage in the header.** Next to the version number, two subtle indicators show current GPU and CPU utilisation in percent, updating live with the app's state polling.
