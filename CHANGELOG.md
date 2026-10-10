@@ -43,8 +43,20 @@ cannot creep back in.
   - **1073 Equalizer:** Preamp drive gain (-15 to +20 dB), high-pass low cut (20 to 300 Hz), low shelf (35 to 220 Hz, ±16 dB), mid peaking bell (360 Hz to 7.2 kHz, ±18 dB), 12 kHz high shelf (analog 6.8 kHz corner slope, ±16 dB), phase invert, and output trim.
   - **Vintage Compressor:** Fast FET-style compressor with stepped ratios (2:1, 4:1, 8:1, 12:1, 20:1, and "All Buttons In" mode), threshold, attack (1 to 80 ms), release (50 to 1200 ms), makeup gain, parallel mix blend, and an analog gain reduction VU meter.
   - **670 Variable-Mu Master Limiter & Tube Warmth:** Clean input drive, tube warmth harmonic saturation curve, true peak ceiling control, and release timing.
-  - **Chassis & Workflow:** Draggable floating or bottom-docked chassis, take header selector with quick access icon on each take card, factory and user preset manager, master bypass A/B testing, and seamless continuous playback when selecting takes.
+  - **Chassis & Workflow:** Draggable floating or bottom-docked chassis, take header selector with quick-access M icon on each take card, factory and user preset manager, and master bypass A/B auditioning.
   - **Export Rendering:** All mastering rack settings are non-destructively saved per take and baked into exported FLAC, WAV, and MP3 renditions.
+- **Piano Roll improvements:**
+  - **Follow playback auto-scroll:** The piano roll view smoothly scrolls to follow the active bar as audio plays, keeping the playback position in view.
+  - **Voice toggle:** Switch quickly between Vocal and Instrumental voice parts in the Piano Roll (with dedicated button and keyboard shortcut).
+  - **Key signatures and accidentals:** Corrected note pitch resolution and accidental tracking in flat keys (such as F, B♭, and E♭), respecting measure barlines and key signatures.
+  - **Score saving:** Score edits now auto-save on modal exit and editing, and the score modal has an explicit Save button.
+- **Transport bar & take selection:**
+  - Selecting or highlighting a take now links its recording to the transport bar, so pressing Spacebar immediately plays the selected take.
+  - Selecting another take does not abruptly stop active playback; playback continues undisturbed until Spacebar or Play is clicked.
+  - Double-clicking any take card immediately opens the Take Editor.
+- **Modal and editor ergonomics:**
+  - The song and score editor modals remain open when clicking outside on the backdrop, preventing accidental lost state.
+  - Relocated the Take Editor Close button to the top-right header.
 
 ## 0.0.36 (2026-10-09)
 
