@@ -178,6 +178,11 @@
         return false;
       }
 
+      var self = this;
+      audioEl.addEventListener('play', function () {
+        self.resume();
+      });
+
       var ctx = this.ctx;
 
       // 1. Input Gain (Preamp Gain / Drive)
@@ -320,8 +325,9 @@
 
     resume: function () {
       if (this.ctx && this.ctx.state === 'suspended') {
-        this.ctx.resume().catch(function () {});
+        return this.ctx.resume().catch(function () {});
       }
+      return Promise.resolve();
     },
 
     applySettings: function (s) {
@@ -1748,12 +1754,26 @@
       var isFloating = panel.classList.contains('is-floating');
       dockBtn.textContent = isFloating ? 'Dock' : 'Float';
       dockBtn.title = isFloating ? 'Dock rack to bottom of window' : 'Float rack window (or drag header to move)';
+    },
+
+    resume: function () {
+      return Engine.resume();
     }
   };
 
   // Expose Rack on window
   window.Rack = Rack;
   window.RackEngine = Engine;
+
+  // Global user-gesture unlock for AudioContext
+  function unlockAudio() {
+    if (Engine.ctx && Engine.ctx.state === 'suspended') {
+      Engine.ctx.resume().catch(function () {});
+    }
+  }
+  window.addEventListener('click', unlockAudio, { capture: true, passive: true });
+  window.addEventListener('keydown', unlockAudio, { capture: true, passive: true });
+  window.addEventListener('pointerdown', unlockAudio, { capture: true, passive: true });
 
   window.addEventListener('beforeunload', function () {
     if (window.Rack) { window.Rack.flushSave(); }

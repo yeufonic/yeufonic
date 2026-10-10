@@ -10676,6 +10676,9 @@ function startRenameTake(titleEl, takeId) {
 /* The play tile is a toggle. The active one pulses, shows a pause icon, and stops
    the audio when pressed again, so the live take is obvious at a glance. */
 function togglePlay(id) {
+  if (window.Rack && typeof window.Rack.resume === 'function') {
+    window.Rack.resume();
+  }
   var audio = $('audio');
   if (State.playing === id && !audio.paused) {
     audio.pause();          // keeps currentTime, so Play resumes where it stopped
@@ -10689,6 +10692,9 @@ function togglePlay(id) {
 }
 
 function playTake(id) {
+  if (window.Rack && typeof window.Rack.resume === 'function') {
+    window.Rack.resume();
+  }
   if (window.PianoRoll && window.PianoRoll.isPlaying) {
     window.PianoRoll.stop();
   }
@@ -11252,6 +11258,9 @@ function wireTransport() {
   var audio = $('audio');
   var lastPauseAt = 0;
   $('btn-play').addEventListener('click', function () {
+    if (window.Rack && typeof window.Rack.resume === 'function') {
+      window.Rack.resume();
+    }
     if (window.PianoRoll && window.PianoRoll.isPlaying) {
       window.PianoRoll.stop();
       State.audition = null;
