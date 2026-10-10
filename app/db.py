@@ -102,7 +102,8 @@ CREATE TABLE IF NOT EXISTS takes (
     brief TEXT,
     note_dismissed INTEGER NOT NULL DEFAULT 0,
     target_lufs REAL,
-    fade_out_seconds REAL DEFAULT 3.0
+    fade_out_seconds REAL DEFAULT 3.0,
+    fx_chain TEXT
 );
 CREATE TABLE IF NOT EXISTS identities (
     id TEXT PRIMARY KEY,
@@ -518,6 +519,13 @@ def _note_dismissed() -> None:
         execute("ALTER TABLE takes RENAME COLUMN cap_dismissed TO note_dismissed")
 
 
+def _take_fx_chain() -> None:
+    """Mastering rack / FX chain settings attached to a take."""
+    cols = _columns("takes")
+    if "fx_chain" not in cols:
+        execute("ALTER TABLE takes ADD COLUMN fx_chain TEXT")
+
+
 MIGRATIONS = [
     lambda: (conn().executescript(BASE_SCHEMA), _legacy_takes()),   # -> 1
     _indexes,                                                        # -> 2
@@ -552,6 +560,7 @@ MIGRATIONS = [
     _brief,                                                          # -> 31
     _cap_dismissed,                                                  # -> 32
     _note_dismissed,                                                 # -> 33
+    _take_fx_chain,                                                  # -> 34
 ]
 
 

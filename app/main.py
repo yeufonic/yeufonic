@@ -875,7 +875,7 @@ def _asset_version() -> str:
     """Asset version query string for static cache busting. Includes mtime of core assets
     so browsers automatically fetch updated scripts without needing manual hard-reloads."""
     try:
-        stamp = max(int(p.stat().st_mtime) for p in (STATIC_DIR / "app.js", STATIC_DIR / "pianoroll.js") if p.exists())
+        stamp = max(int(p.stat().st_mtime) for p in (STATIC_DIR / "app.js", STATIC_DIR / "pianoroll.js", STATIC_DIR / "rack.js") if p.exists())
         return f"{config.VERSION}.{stamp}"
     except (OSError, ValueError):
         return config.VERSION
@@ -1781,6 +1781,32 @@ def get_take(take_id: str) -> dict:
     if take.get("prompt_id") and take["status"] == "running":
         take["live"] = ENGINE.snapshot(take["prompt_id"])
     return take
+
+
+@app.get("/api/takes/{take_id}/fx")
+def get_take_fx(take_id: str) -> dict:
+    take = one("SELECT fx_chain FROM takes WHERE id = ?", (take_id,))
+    if not take:
+        raise HTTPException(404, "no such take")
+    raw = take.get("fx_chain")
+    if raw:
+        try:
+            return json.loads(raw)
+        except Exception:
+            pass
+    return {}
+
+
+@app.put("/api/takes/{take_id}/fx")
+async def update_take_fx(take_id: str, request: Request) -> dict:
+    if not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
+        raise HTTPException(404, "no such take")
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(400, "invalid json")
+    execute("UPDATE takes SET fx_chain = ? WHERE id = ?", (json.dumps(data), take_id))
+    return {"status": "ok", "fx_chain": data}
 
 
 @app.post("/api/takes/{take_id}/favourite")

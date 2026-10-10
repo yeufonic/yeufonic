@@ -10698,6 +10698,7 @@ function playTake(id) {
     (take.duration ? secs(take.duration) : take.style.slice(0, 60));
   $('np-cover').className = 'np-cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover');
   updateMediaSession(take);
+  if (window.Rack) { window.Rack.onTake(take); }
   paintTransport();
   paintTakes();
 }
@@ -11260,6 +11261,11 @@ function wireTransport() {
       loadTakes();
     } catch (err) { /* leave the star as it was */ }
   });
+  if ($('btn-fx-rack')) {
+    $('btn-fx-rack').addEventListener('click', function () {
+      if (window.Rack) { window.Rack.toggle(); }
+    });
+  }
   $('btn-mute').addEventListener('click', function () {
     audio.muted = !audio.muted;
     paintTransport();
@@ -12545,6 +12551,7 @@ function wire() {
 
   wireWave();
   wireTransport();
+  if (window.Rack) { window.Rack.init(); }
   paintVocals();
   loadVocalIdentities();
 

@@ -3100,3 +3100,277 @@ button.ghost.run-all { margin-left: 10px; }
 .storage-actions .primary { width: auto; flex: 0 0 auto; padding: 9px 22px; }
 .storage-auto-row select { width: 100%; }
 .storage-convert { grid-column: 2; display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+
+/* ============================================================== Mastering Rack */
+.pbtn.rack-btn { position: relative; }
+.pbtn.rack-btn.active { color: var(--accent-a, #38bdf8); background: rgb(var(--accent-a-rgb, 56 189 248) / 0.15); }
+.rack-dot {
+  position: absolute; top: 4px; right: 4px; width: 6px; height: 6px;
+  border-radius: 50%; background: #38bdf8; box-shadow: 0 0 6px #38bdf8;
+}
+.rack-dot.hidden { display: none; }
+
+.rack-panel {
+  position: fixed; left: 16px; right: 16px; bottom: 68px; z-index: 29;
+  max-width: 1500px; margin: 0 auto;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease;
+  transform: translateY(0); opacity: 1; pointer-events: auto;
+}
+.rack-panel.hidden {
+  transform: translateY(30px); opacity: 0; pointer-events: none; display: none;
+}
+.rack-panel.master-bypassed .rack-bay {
+  filter: grayscale(0.65) brightness(0.85); opacity: 0.7; transition: filter 200ms ease, opacity 200ms ease;
+}
+
+.rack-chassis {
+  background: linear-gradient(180deg, #1e2024 0%, #121316 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+.rack-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px;
+  background: linear-gradient(180deg, #2a2c31 0%, #1a1b1f 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  gap: 12px;
+}
+.rack-ears { display: flex; gap: 8px; align-items: center; }
+.screw {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle, #888 30%, #444 80%, #222 100%);
+  box-shadow: inset 0 1px 1px #bbb, 0 1px 2px rgba(0,0,0,0.8);
+  position: relative; display: inline-block;
+}
+.screw::after {
+  content: ''; position: absolute; top: 4px; left: 1px; right: 1px; height: 1.5px;
+  background: #111; transform: rotate(35deg);
+}
+.screw-mini {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: radial-gradient(circle, #777 30%, #333 80%);
+  display: inline-block; position: relative; vertical-align: middle;
+}
+.screw-mini::after {
+  content: ''; position: absolute; top: 3px; left: 1px; right: 1px; height: 1px;
+  background: #111; transform: rotate(45deg);
+}
+
+.rack-title-block { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.rack-badge {
+  font-size: 10px; font-weight: 750; letter-spacing: 0.08em;
+  padding: 2px 6px; border-radius: 4px; background: #38bdf8; color: #082f49;
+}
+.rack-title {
+  font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em;
+  color: #e2e8f0; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  white-space: nowrap;
+}
+.rack-take-label {
+  font-size: 12px; color: #94a3b8; max-width: 260px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.rack-header-tools { display: flex; align-items: center; gap: 10px; }
+.rack-preset-wrap {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; color: #94a3b8;
+}
+.rack-select {
+  background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f1f5f9; font: inherit; font-size: 12px;
+  padding: 4px 8px; border-radius: 6px; cursor: pointer;
+}
+.rack-head-btn {
+  background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f1f5f9; font: inherit; font-size: 11.5px; font-weight: 600;
+  padding: 4px 10px; border-radius: 6px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.rack-head-btn:hover { filter: brightness(1.15); }
+.rack-head-btn.bypass-btn .led-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #10b981; box-shadow: 0 0 6px #10b981;
+}
+.rack-head-btn.bypass-btn.bypassed .led-dot {
+  background: #ef4444; box-shadow: 0 0 6px #ef4444;
+}
+.rack-head-btn.close-btn { font-size: 16px; padding: 2px 8px; }
+
+/* 3-Bay Rack Layout */
+.rack-bay {
+  display: grid; grid-template-columns: 1.15fr 1fr 0.85fr; gap: 10px;
+  padding: 12px 14px; background: #0c0d0f;
+  overflow-x: auto;
+}
+
+.rack-unit {
+  border-radius: 6px; overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 3px 10px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex; flex-direction: column;
+}
+.unit-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 12px; background: rgba(0,0,0,0.4);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.unit-brand {
+  font-size: 11px; font-weight: 750; letter-spacing: 0.1em;
+  color: #cbd5e1; text-transform: uppercase;
+}
+.unit-toggle {
+  background: #1e293b; border: 1px solid rgba(255,255,255,0.12);
+  color: #94a3b8; font: inherit; font-size: 10.5px; font-weight: 700;
+  padding: 2px 7px; border-radius: 4px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.unit-toggle .led {
+  width: 6px; height: 6px; border-radius: 50%; background: #64748b;
+}
+.unit-toggle.on { color: #f8fafc; border-color: rgba(56, 189, 248, 0.4); }
+.unit-toggle.on .led { background: #38bdf8; box-shadow: 0 0 6px #38bdf8; }
+
+.unit-faceplate {
+  flex: 1; padding: 12px 10px;
+  display: flex; align-items: center; justify-content: space-around;
+  gap: 8px; flex-wrap: nowrap;
+}
+
+/* Faceplate thematic colors */
+.unit-eq { background: linear-gradient(180deg, #1b2533 0%, #121924 100%); border-top: 2px solid #38bdf8; }
+.unit-comp { background: linear-gradient(180deg, #18191c 0%, #101113 100%); border-top: 2px solid #f59e0b; }
+.unit-limit { background: linear-gradient(180deg, #211e1c 0%, #161413 100%); border-top: 2px solid #ef4444; }
+
+.knob-group { display: flex; align-items: center; gap: 8px; }
+.knob-group.separator {
+  position: relative; padding-left: 8px;
+}
+.knob-group.separator::before {
+  content: ''; position: absolute; left: 0; top: 10%; bottom: 10%; width: 1px;
+  background: rgba(255,255,255,0.06);
+}
+
+/* Skeuomorphic Rotary Knobs */
+.knob-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  user-select: none; cursor: ns-resize;
+}
+.knob-dial {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #555b66 0%, #2a2e36 60%, #16181d 100%);
+  border: 2px solid #111317;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.35);
+  position: relative; transform: rotate(-135deg);
+  transition: transform 30ms linear;
+}
+.knob-dial.large { width: 50px; height: 50px; }
+.knob-dial.small { width: 34px; height: 34px; }
+.knob-pointer {
+  position: absolute; top: 3px; left: 50%; width: 2px; height: 40%;
+  transform: translateX(-50%);
+  background: #f8fafc; border-radius: 1px;
+  box-shadow: 0 0 3px rgba(255,255,255,0.8);
+}
+.knob-wrap:hover .knob-dial {
+  filter: brightness(1.1); box-shadow: 0 3px 8px rgba(0,0,0,0.8), 0 0 0 1px rgba(56, 189, 248, 0.4);
+}
+.knob-name {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
+  color: #94a3b8; text-transform: uppercase; white-space: nowrap;
+}
+.knob-val {
+  font-size: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600; color: #38bdf8; background: rgba(0,0,0,0.5);
+  padding: 1px 4px; border-radius: 3px; min-width: 38px; text-align: center;
+}
+
+/* Analog VU Meter */
+.vu-meter-box {
+  background: #111215; border: 2px solid #282b33; border-radius: 6px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.85), 0 2px 6px rgba(0,0,0,0.4);
+  padding: 4px; display: flex; flex-direction: column; align-items: center;
+}
+.vu-glass {
+  position: relative; border-radius: 4px; overflow: hidden;
+  box-shadow: inset 0 0 4px rgba(0,0,0,0.6);
+}
+.vu-glass canvas { display: block; }
+.vu-glass::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 45%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.02) 100%);
+  pointer-events: none;
+}
+.vu-label {
+  font-size: 8px; font-weight: 750; letter-spacing: 0.08em;
+  color: #78716c; text-align: center; margin-top: 2px;
+}
+
+/* Push Button Ratios */
+.ratio-bank {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.ratio-title {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; color: #94a3b8;
+}
+.ratio-buttons {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ratio-btn {
+  background: linear-gradient(180deg, #2b2e36 0%, #17181c 100%);
+  border: 1px solid #111; color: #94a3b8;
+  font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 2px;
+  cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+.ratio-btn.on {
+  background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+  color: #fff; box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
+}
+
+/* Tube Warmth Switch */
+.warmth-box {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.warmth-title {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; color: #94a3b8;
+}
+.switch-toggle {
+  width: 32px; height: 18px; border-radius: 999px;
+  background: #1e293b; border: 1px solid #334155;
+  position: relative; cursor: pointer; padding: 0;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
+}
+.switch-arm {
+  position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+  border-radius: 50%; background: #94a3b8;
+  transition: transform 140ms ease, background 140ms ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+.switch-toggle.on {
+  background: #7f1d1d; border-color: #ef4444;
+}
+.switch-toggle.on .switch-arm {
+  transform: translateX(14px); background: #ef4444; box-shadow: 0 0 6px #ef4444;
+}
+.warmth-status {
+  font-size: 9px; font-weight: 700; color: #64748b;
+}
+.warmth-status.active { color: #ef4444; text-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+
+body.knob-dragging { cursor: ns-resize !important; user-select: none !important; }
+
+@media (max-width: 1200px) {
+  .rack-bay { grid-template-columns: 1fr; }
+  .unit-faceplate { flex-wrap: wrap; justify-content: flex-start; }
+}
+
