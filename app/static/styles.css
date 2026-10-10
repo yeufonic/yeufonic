@@ -2714,8 +2714,7 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 .ed-tabs button, .ed-steps button { border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit;
   font-size: 13.5px; padding: 7px 14px; border-radius: 999px; cursor: pointer; }
 .ed-tabs button.on { color: var(--text); border-color: rgb(var(--accent-a-rgb) / 0.7); background: rgb(var(--accent-a-rgb) / 0.14); }
-.ed-x { border: 0; background: transparent; color: var(--muted); font-size: 24px; line-height: 1; cursor: pointer; padding: 0 4px; }
-.ed-x:hover { color: var(--text); }
+.ed-head #editor-close { padding: 7px 16px; font-size: 13.5px; }
 
 #advanced-take-modal {
   z-index: 70;
@@ -2890,15 +2889,13 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 .ed-score #score-box > .row, .ed-score #score-tools, .ed-score #plan-actions { flex-wrap: wrap; }
 .ed-score #chart { overflow: auto; }
 .ed-score #score-box::after { content: ''; display: block; clear: both; }
-.editor.layout-steps .ed-x { margin-left: auto; }
 .ed-foot { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--line); }
-.ed-foot .primary { width: auto; margin: 0; padding: 11px 26px; order: 4; }
+.ed-foot .primary { width: auto; margin: 0; margin-left: auto; padding: 11px 26px; order: 4; flex: 0 0 auto; }
 .ed-foot #auto-wrap { margin: 0; order: 1; }
 .ed-foot #render-status { display: block; order: 2; flex: 1; min-width: 0; min-height: 0; margin: 0; }
 .ed-foot #render-status.hidden { display: none; }
 /* A render's progress, when the take in the editor is rendering: the status line's place. */
 .ed-foot #render-job { order: 2; flex: 1; min-width: 0; margin: 0; }
-.ed-foot #editor-cancel { order: 3; flex: 0 0 auto; margin-left: auto; }
 .ed-foot .ed-prev, .ed-foot .ed-next { order: 0; flex: 0 0 auto; }
 .ed-review { display: grid; grid-template-columns: 170px 1fr; gap: 8px 16px; font-size: 13.5px; max-width: 900px; margin: 0; }
 .ed-review dt { color: var(--muted); }
