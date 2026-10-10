@@ -3403,7 +3403,7 @@ button.ghost.run-all { margin-left: 10px; }
 
 /* Stepped Skirt Concentric Rings */
 .dpx-concentric-group {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: flex-end; gap: 8px;
 }
 .skirt-dial {
   width: 50px; height: 50px; border-radius: 50%;
@@ -3495,7 +3495,7 @@ button.ghost.run-all { margin-left: 10px; }
   gap: 48px;
 }
 
-.knob-group { display: flex; align-items: center; gap: 14px; }
+.knob-group { display: flex; align-items: flex-end; gap: 14px; }
 .knob-group.separator {
   position: relative; padding-left: 14px;
 }
@@ -3506,9 +3506,23 @@ button.ghost.run-all { margin-left: 10px; }
 
 /* Skeuomorphic Rotary Knobs - Scaled up & Stable layout */
 .knob-wrap {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px;
   user-select: none; cursor: ns-resize;
   min-width: 62px;
+}
+.dpx-faceplate .knob-wrap {
+  height: 100px;
+}
+.unit-comp .knob-wrap,
+.unit-limit .knob-wrap {
+  height: 108px;
+}
+.knob-dial,
+.marconi-dial,
+.skirt-dial,
+.knob-name,
+.knob-val {
+  flex-shrink: 0;
 }
 .knob-dial {
   width: 52px; height: 52px; border-radius: 50%;
