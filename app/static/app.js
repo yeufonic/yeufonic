@@ -12965,7 +12965,12 @@ function wire() {
           if (window.PianoRoll) { window.PianoRoll.zoomOut(); }
           return;
         }
-        if ((event.key.toLowerCase() === 'f' || event.key === '0') && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (event.key.toLowerCase() === 'f' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          event.preventDefault();
+          if (window.PianoRoll && window.PianoRoll.toggleFollow) { window.PianoRoll.toggleFollow(); }
+          return;
+        }
+        if ((event.key.toLowerCase() === 'f' || event.key === '0') && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
           event.preventDefault();
           if (window.PianoRoll) { window.PianoRoll.scrollToNotes(); }
           return;

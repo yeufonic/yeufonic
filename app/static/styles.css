@@ -1112,6 +1112,7 @@ label .lora-value:disabled { opacity: 0.6; }
 }
 #roll-metronome.active,
 #roll-chords.active,
+#roll-follow.active,
 #score-render-sf2.active,
 #notation-render-sf2.active {
   background: rgb(var(--song-rgb, 120 180 255) / 0.2);

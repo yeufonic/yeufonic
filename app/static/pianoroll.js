@@ -1092,6 +1092,7 @@
     selectedNoteIds: [],
     metronomeEnabled: true,
     chordsEnabled: true,
+    followPlayhead: true,
     isPlaying: false,
     playheadTick: 0,
     playTimer: null,
@@ -1166,10 +1167,16 @@
       var zFit = document.getElementById('roll-zoom-fit');
       if (zFit) { zFit.title = 'Scroll to notes (F or 0)'; }
 
+      var followBtn = document.getElementById('roll-follow');
+      if (followBtn && !followBtn._bound) {
+        followBtn._bound = true;
+        followBtn.addEventListener('click', function () { self.toggleFollow(); });
+      }
+
       // Update hint bar
       var hintBar = document.querySelector('.roll-hint-bar span');
-      if (hintBar && hintBar.textContent.indexOf('V: toggle voice') === -1) {
-        hintBar.textContent = 'Click: add note • Drag: move note • Edge: resize • Marquee select • V: toggle voice • +/−: zoom • L: edit lyric • C: click track • H: chords • Del: delete • Left/Right: step bar • Space: play';
+      if (hintBar && hintBar.textContent.indexOf('Follow') === -1) {
+        hintBar.textContent = 'Click: add note • Drag: move note • Edge: resize • Marquee select • V: voice • +/−: zoom • L: lyric • C: click • H: chords • Follow: auto-scroll • Del: delete • Left/Right: step bar • Space: play';
       }
     },
 
@@ -1254,6 +1261,11 @@
       if (chordsBtn) {
         chordsBtn.addEventListener('click', function () { self.toggleChords(); });
       }
+      var followBtn = document.getElementById('roll-follow');
+      if (followBtn && !followBtn._bound) {
+        followBtn._bound = true;
+        followBtn.addEventListener('click', function () { self.toggleFollow(); });
+      }
 
       // History Undo / Redo
       var undoBtn = document.getElementById('roll-undo-btn');
@@ -1283,7 +1295,7 @@
         zoomFit.addEventListener('click', function () { self.scrollToNotes(); });
       }
 
-      // Mouse wheel zoom (Ctrl + wheel or Alt + wheel on grid)
+      // Mouse wheel zoom (Ctrl + wheel or Alt + wheel on grid) and auto-scroll disengage on deliberate horizontal scroll
       var gridScroll = document.getElementById('roll-grid-scroll');
       if (gridScroll) {
         gridScroll.addEventListener('wheel', function (e) {
@@ -1294,6 +1306,9 @@
             } else if (e.deltaY > 0) {
               self.zoomOut(2);
             }
+          } else if ((Math.abs(e.deltaX) > 15 || (e.shiftKey && Math.abs(e.deltaY) > 15)) && (self.isPlaying || self._following)) {
+            // User manually scrolled horizontally away from playhead during playback
+            self.setFollow(false);
           }
         }, { passive: false });
       }
@@ -2473,6 +2488,8 @@
       }
 
       this.isPlaying = true;
+      this.setFollow(true);
+      this.ensurePlayheadVisible(true);
       var playBtn = document.getElementById('roll-play');
       if (playBtn) {
         playBtn.textContent = '⏸ Pause';
@@ -2597,6 +2614,8 @@
     followAudio: function (audio) {
       if (!this.model || !audio || this._following) { return; }
       var self = this;
+      this.setFollow(true);
+      this.ensurePlayheadVisible(true);
       var ticksPerBeat = Math.max(1, Math.round((this.model.unitLength || 16) / 4));
       var secondsPerTick = (60 / (this.model.bpm || 120)) / ticksPerBeat;
       this._following = true;
@@ -2648,7 +2667,7 @@
       if (typeof window !== 'undefined' && window.studioAudio && window.studioAudio.seekTick(tick)) {
         this.playheadTick = Math.max(0, tick);
         this.updatePlayhead();
-        this.ensurePlayheadVisible();
+        this.ensurePlayheadVisible(true);
         return;
       }
       var wasPlaying = this.isPlaying;
@@ -2657,7 +2676,7 @@
       }
       this.playheadTick = Math.max(0, tick);
       this.updatePlayhead();
-      this.ensurePlayheadVisible();
+      this.ensurePlayheadVisible(true);
       if (wasPlaying) {
         this.play();
       }
@@ -2682,15 +2701,71 @@
       this.seekTick(0);
     },
 
-    ensurePlayheadVisible: function () {
+    setFollow: function (enabled) {
+      this.followPlayhead = Boolean(enabled);
+      this.updateFollowVisual();
+      if (this.followPlayhead) {
+        this.followActiveBar(this.playheadTick, true, true);
+      }
+    },
+
+    toggleFollow: function () {
+      this.setFollow(!this.followPlayhead);
+    },
+
+    updateFollowVisual: function () {
+      if (typeof document === 'undefined') { return; }
+      var btn = document.getElementById('roll-follow');
+      if (btn) {
+        btn.classList.toggle('active', Boolean(this.followPlayhead));
+      }
+    },
+
+    ensurePlayheadVisible: function (smooth) {
+      this.followActiveBar(this.playheadTick, true, smooth);
+    },
+
+    followActiveBar: function (curTick, force, smooth) {
+      if (!this.followPlayhead && !force) { return; }
       if (typeof document === 'undefined') { return; }
       var scrollEl = document.getElementById('roll-grid-scroll');
       if (!scrollEl) { return; }
-      var left = this.playheadTick * this.tickWidth;
+
+      var ticksPerBar = (this.model && this.model.ticksPerBar) || 16;
+      var cur = (curTick !== undefined) ? curTick : (this.playheadTick || 0);
+      var playheadX = cur * this.tickWidth;
+      var barWidth = ticksPerBar * this.tickWidth;
+      var activeBar = Math.floor(cur / ticksPerBar);
+      var barStartPx = activeBar * barWidth;
+
       var viewW = scrollEl.clientWidth || 600;
       var curScroll = scrollEl.scrollLeft;
-      if (left < curScroll || left > curScroll + viewW - 60) {
-        scrollEl.scrollLeft = Math.max(0, left - 60);
+      var rightMargin = Math.min(barWidth, Math.max(60, viewW * 0.18));
+      var rightThreshold = curScroll + viewW - rightMargin;
+      var leftThreshold = curScroll - 10;
+
+      if (playheadX >= rightThreshold || playheadX < leftThreshold || force) {
+        var now = Date.now();
+        if (!force) {
+          if (now - (this._lastAutoScrollTime || 0) < 350) { return; }
+          if (this._lastAutoScrollBar === activeBar && playheadX >= rightThreshold) { return; }
+        }
+        this._lastAutoScrollTime = now;
+        this._lastAutoScrollBar = activeBar;
+
+        var leadMargin = Math.min(60, barWidth * 0.4);
+        var targetScroll = (barWidth > viewW * 0.5)
+          ? Math.max(0, playheadX - leadMargin)
+          : Math.max(0, barStartPx - leadMargin);
+
+        if (Math.abs(targetScroll - curScroll) > 8) {
+          var useSmooth = (smooth !== undefined) ? smooth : true;
+          if (useSmooth && typeof scrollEl.scrollTo === 'function') {
+            scrollEl.scrollTo({ left: targetScroll, behavior: 'smooth' });
+          } else {
+            scrollEl.scrollLeft = targetScroll;
+          }
+        }
       }
     },
 
@@ -2713,6 +2788,10 @@
       }
       if (rulerPlayhead) {
         rulerPlayhead.style.left = left + 'px';
+      }
+
+      if (this.followPlayhead && (this.isPlaying || this._following)) {
+        this.followActiveBar(curTick, false, true);
       }
 
       if (timeEl) {

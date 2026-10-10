@@ -1730,3 +1730,77 @@ def test_piano_roll_convert_selected_notes_and_toggle_voice():
     assert score.problems(res["outAbc"]) == []
 
 
+def test_piano_roll_follow_active_bar_and_toggle():
+    """Verify followPlayhead state toggling and followActiveBar auto-scroll calculations."""
+    js = """
+    // 1. Initial follow state should be true
+    const initFollow = PianoRoll.followPlayhead;
+
+    // 2. Toggle follow flips to false, then back to true
+    PianoRoll.toggleFollow();
+    const followAfterToggle1 = PianoRoll.followPlayhead;
+    PianoRoll.toggleFollow();
+    const followAfterToggle2 = PianoRoll.followPlayhead;
+
+    // 3. Mock DOM scrollEl to test followActiveBar right-threshold detection and smooth scrolling
+    PianoRoll.model = { ticksPerBar: 16, unitLength: 16, bpm: 120, key: "C" };
+    PianoRoll.tickWidth = 10; // bar width = 160px
+
+    let scrolledTo = null;
+    const mockScrollEl = {
+        clientWidth: 600,
+        scrollLeft: 0,
+        scrollTo: function(options) {
+            scrolledTo = options;
+            this.scrollLeft = options.left;
+        }
+    };
+
+    // Inject mock document
+    global.document = {
+        getElementById: function(id) {
+            if (id === 'roll-grid-scroll') return mockScrollEl;
+            return null;
+        }
+    };
+
+    // At tick 0 (bar 0, playheadX = 0), well within visible screen [0, 600]
+    PianoRoll.followActiveBar(0, false, true);
+    const scrollAtStart = scrolledTo;
+
+    // At tick 60 (bar 3, tick 60 * 10 = 600px >= rightThreshold = 600 - rightMargin)
+    // Should trigger smooth scroll forward so active bar is on the left
+    PianoRoll.followActiveBar(60, false, true);
+    const scrollAtBar3 = scrolledTo;
+
+    // At tick 120 (bar 7, 1200px), moving beyond what is visible
+    PianoRoll._lastAutoScrollTime = 0; // reset cooldown
+    PianoRoll.followActiveBar(120, false, true);
+    const scrollAtBar7 = scrolledTo;
+
+    // Clean up mock document
+    delete global.document;
+
+    console.log(JSON.stringify({
+        initFollow,
+        followAfterToggle1,
+        followAfterToggle2,
+        scrollAtStart,
+        scrollAtBar3,
+        scrollAtBar7
+    }));
+    """
+    res = run_node_script(js)
+    assert res["initFollow"] is True
+    assert res["followAfterToggle1"] is False
+    assert res["followAfterToggle2"] is True
+    assert res["scrollAtStart"] is None
+    assert res["scrollAtBar3"] is not None
+    assert res["scrollAtBar3"]["behavior"] == "smooth"
+    assert res["scrollAtBar3"]["left"] > 0
+    assert res["scrollAtBar7"] is not None
+    assert res["scrollAtBar7"]["behavior"] == "smooth"
+    assert res["scrollAtBar7"]["left"] > res["scrollAtBar3"]["left"]
+
+
+
