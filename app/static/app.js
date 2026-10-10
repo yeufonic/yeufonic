@@ -2739,6 +2739,9 @@ function openScoreEditor(view) {
 function closeScoreEditor() {
   notationStop();            // a preview left playing has no controls to stop it with
   if (window.PianoRoll) { window.PianoRoll.stop(); }
+  if (scoreIsDirty() && (takeIdInEditor() || (State.mode === 'cover' && currentSource()))) {
+    saveScore(true);
+  }
   $('score-modal').classList.add('hidden');
   document.body.style.overflow = '';
   $('abc').focus();
@@ -2750,6 +2753,7 @@ function syncScoreFromBig() {
   $('abc').dispatchEvent(new Event('input'));
   paintScoreView();
   updateScoreCount();
+  scheduleScoreAutoSave();
 }
 
 /* A window closes when its backdrop is clicked, but only a click that began there.
@@ -5804,26 +5808,86 @@ function scoreIsDirty() {
 }
 
 function paintScoreDirty() {
-  var button = $('save-score');
-  if (!button || button.dataset.confirming === '1') { return; }
   var dirty = scoreIsDirty();
-  button.classList.toggle('needs-save', dirty);
-  button.textContent = dirty ? 'Save score' : 'Saved';
-  button.title = dirty ? 'This score has changes that are not saved yet'
-                       : 'No changes since the last save';
-  button.disabled = !dirty;
+  ['save-score', 'score-save'].forEach(function (id) {
+    var button = $(id);
+    if (!button || button.dataset.confirming === '1') { return; }
+    button.classList.toggle('needs-save', dirty);
+    button.textContent = dirty ? (id === 'score-save' ? 'Save' : 'Save score') : 'Saved';
+    button.title = dirty ? 'This score has changes that are not saved yet'
+                         : 'No changes since the last save';
+    button.disabled = !dirty;
+  });
 }
 
 function confirmScoreSaved() {
-  var button = $('save-score');
-  button.dataset.confirming = '1';
-  button.classList.remove('needs-save');
-  button.textContent = 'Saved';
-  button.disabled = true;
-  setTimeout(function () {
-    delete button.dataset.confirming;
+  ['save-score', 'score-save'].forEach(function (id) {
+    var button = $(id);
+    if (!button) { return; }
+    button.dataset.confirming = '1';
+    button.classList.remove('needs-save');
+    button.textContent = 'Saved';
+    button.disabled = true;
+    setTimeout(function () {
+      delete button.dataset.confirming;
+      paintScoreDirty();
+    }, 1600);
+  });
+}
+
+var scoreAutoSaveTimer = null;
+function scheduleScoreAutoSave() {
+  if (scoreAutoSaveTimer) { clearTimeout(scoreAutoSaveTimer); }
+  if (!takeIdInEditor() && !(State.mode === 'cover' && currentSource())) { return; }
+  scoreAutoSaveTimer = setTimeout(function () {
+    if (scoreIsDirty()) {
+      saveScore(true);
+    }
+  }, 1200);
+}
+
+async function saveScore(silent) {
+  if (scoreAutoSaveTimer) { clearTimeout(scoreAutoSaveTimer); scoreAutoSaveTimer = null; }
+  if (!scoreIsDirty()) { return true; }
+  var takeId = takeIdInEditor();
+  var source = currentSource();
+  var url = takeId ? '/api/takes/' + takeId + '/score'
+                   : (State.mode === 'cover' && source ? '/api/sources/' + source.id + '/score' : '');
+  if (!url) {
+    if (!silent) {
+      statusLine(State.mode !== 'cover'
+        ? 'A score plan is saved with its take. Write a score plan first.'
+        : 'Choose a recording to save this score to.', 'bad');
+    }
+    return false;
+  }
+  var abcVal = $('abc').value;
+  var oldBaseline = State.savedAbc;
+  scoreBaseline(abcVal);
+  var t = takeId ? takeById(takeId) : null;
+  var oldTakeAbc = t ? t.abc : null;
+  if (t) { t.abc = abcVal; }
+  if (State.formTake && State.formTake.id === takeId) { State.formTake.abc = abcVal; }
+  if (source && (!takeId || State.mode === 'cover')) { source.abc = abcVal; }
+  confirmScoreSaved();
+  paintScoreDirty();
+
+  try {
+    await api(url, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ abc: abcVal })
+    });
+    if (!silent) { statusLine('Score saved.', 'good'); }
+    loadSources();
+    loadTakes();
+    return true;
+  } catch (err) {
+    scoreBaseline(oldBaseline);
+    if (t) { t.abc = oldTakeAbc; }
     paintScoreDirty();
-  }, 1600);
+    statusLine('Could not save the score: ' + err.message, 'bad');
+    return false;
+  }
 }
 
 function setScoreActions() {
@@ -5992,7 +6056,7 @@ function syncEditor() {
 /* Which take owns the score currently in the box.  A take we are still waiting on
    does NOT own it: there is nothing to render until its score arrives. */
 function takeIdInEditor() {
-  return scoreTakeId() || '';
+  return scoreTakeId() || selectedTakeId() || (State.formTake ? State.formTake.id : '') || '';
 }
 
 function claimEditorFor(takeId) {
@@ -11908,33 +11972,10 @@ function wire() {
     if (button) { setMode(button.dataset.mode); saveForm(); }
   });
 
-  $('save-score').addEventListener('click', async function () {
-    if (!scoreIsDirty()) { return; }
-    var takeId = takeIdInEditor();
-    var source = currentSource();
-    var url = takeId ? '/api/takes/' + takeId + '/score'
-                     : (State.mode === 'cover' && source ? '/api/sources/' + source.id + '/score' : '');
-    if (!url) {
-      statusLine(State.mode !== 'cover'
-        ? 'A score plan is saved with its take. Write a score plan first.'
-        : 'Choose a recording to save this score to.', 'bad');
-      return;
-    }
-    try {
-      await api(url, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ abc: $('abc').value })
-      });
-    } catch (err) {
-      statusLine('Could not save the score: ' + err.message, 'bad');
-      return;
-    }
-    scoreBaseline($('abc').value);
-    confirmScoreSaved();
-    statusLine('Score saved.', 'good');
-    loadSources();
-    loadTakes();
-  });
+  $('save-score').addEventListener('click', function () { saveScore(false); });
+  if ($('score-save')) {
+    $('score-save').addEventListener('click', function () { saveScore(false); });
+  }
 
   $('do-replace').addEventListener('click', function () {
     var find = $('find-chord').value.trim();
@@ -12698,6 +12739,7 @@ function wire() {
       paintScoreDirty();
       updateScoreCount();
       paintScoreHistory();
+      scheduleScoreAutoSave();
     });
   }
   try {
@@ -12835,6 +12877,11 @@ function wire() {
     if (inScore && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'y') {
       event.preventDefault();
       redoScore();
+      return;
+    }
+    if (inScore && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+      event.preventDefault();
+      saveScore(false);
       return;
     }
 
@@ -13138,6 +13185,10 @@ function openEditor(where) {
 function closeEditor() {
   if (!editorOpen()) { return; }
   notationStop();
+  if (window.PianoRoll) { window.PianoRoll.stop(); }
+  if (scoreIsDirty() && (takeIdInEditor() || (State.mode === 'cover' && currentSource()))) {
+    saveScore(true);
+  }
   $('editor-modal').classList.add('hidden');
   document.body.style.overflow = '';
   paintSheet();

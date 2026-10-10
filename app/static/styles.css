@@ -407,14 +407,17 @@ textarea.lyrics { min-height: 200px; font-family: ui-monospace, SFMono-Regular, 
 }
 
 /* The score button when there is something to save. */
-#save-score.needs-save {
+#save-score.needs-save,
+#score-save.needs-save {
   color: var(--text);
   border-color: rgba(255, 214, 10, 0.85);
   background: rgba(255, 214, 10, 0.14);
   box-shadow: 0 0 0 1px rgba(255, 214, 10, 0.25);
 }
-#save-score.needs-save:hover { background: rgba(255, 214, 10, 0.22); }
-#save-score:disabled { opacity: 0.5; cursor: default; }
+#save-score.needs-save:hover,
+#score-save.needs-save:hover { background: rgba(255, 214, 10, 0.22); }
+#save-score:disabled,
+#score-save:disabled { opacity: 0.5; cursor: default; }
 
 /* ------------------------------------------------------------------ vocal */
 .field .chips + .chips { margin-top: 6px; }
