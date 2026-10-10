@@ -98,4 +98,28 @@ def test_active_playback_mastering_rack_not_altered_when_selecting_another_take(
     )
 
 
+def test_activate_take_recording_preserves_card_dom():
+    app_js = APP_JS.read_text(encoding="utf-8")
+    start = app_js.find("function activateTakeRecording(take)")
+    assert start != -1
+    end = app_js.find("function stepTake(delta)", start)
+    assert end != -1
+    snippet = app_js[start:end]
+    assert "paintTakes()" not in snippet, (
+        "activateTakeRecording must not call paintTakes() as rebuilding card DOM destroys dblclick and selection"
+    )
+
+
+def test_card_double_click_opens_editor():
+    app_js = APP_JS.read_text(encoding="utf-8")
+    click_idx = app_js.find("$('takes').addEventListener('click'")
+    assert click_idx != -1
+    click_snippet = app_js[click_idx:click_idx + 2000]
+    assert "openEditor(take.status === 'planned' ? 'score' : 'song')" in click_snippet
+    dblclick_idx = app_js.find("$('takes').addEventListener('dblclick'")
+    assert dblclick_idx != -1
+    dblclick_snippet = app_js[dblclick_idx:dblclick_idx + 1000]
+    assert "openEditor(take.status === 'planned' ? 'score' : 'song')" in dblclick_snippet
+
+
 

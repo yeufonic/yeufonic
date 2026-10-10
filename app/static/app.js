@@ -10794,7 +10794,6 @@ function activateTakeRecording(take) {
     updateMediaSession(take);
     if (window.Rack) { window.Rack.onTake(take); }
     paintTransport();
-    paintTakes();
     return;
   }
 
@@ -10837,7 +10836,6 @@ function activateTakeRecording(take) {
       $('np-cover').className = 'np-cover grad-cover';
       updateMediaSession({ title: source.title, style: isMidi ? ('MIDI Recording (' + sfLabel + ')') : 'the recording being covered' });
       paintTransport();
-      paintTakes();
       paintAudition();
       return;
     }
@@ -10863,7 +10861,6 @@ function activateTakeRecording(take) {
   $('t-total').textContent = '--:--';
   if (window.Rack) { window.Rack.onTake(take); }
   paintTransport();
-  paintTakes();
 }
 
 function stepTake(delta) {
@@ -12248,6 +12245,7 @@ function wire() {
   $('bulk-delete').addEventListener('click', function () { bulkDelete(); });
 
   var lastTitleClick = { time: 0, id: null };
+  var lastCardClick = { time: 0, id: null };
   $('takes').addEventListener('click', function (event) {
     var titleEl = event.target.closest('.take-title');
     if (titleEl && !titleEl.querySelector('input')) {
@@ -12267,7 +12265,20 @@ function wire() {
     // take the one the left column describes.
     if (event.target.closest('button, a, input, select, textarea, label, .take-title-input')) { return; }
     var card = event.target.closest('.take');
-    if (card && card.dataset.id) { selectTake(takeById(card.dataset.id)); }
+    if (!card || !card.dataset.id) { return; }
+    var take = takeById(card.dataset.id);
+    if (!take) { return; }
+    selectTake(take);
+
+    // Double-click on card body away from controls opens take editor
+    var nowClick = Date.now();
+    if (event.detail >= 2 || (lastCardClick.id === card.dataset.id && nowClick - lastCardClick.time < 450)) {
+      lastCardClick = { time: 0, id: null };
+      if (window.getSelection) { window.getSelection().removeAllRanges(); }
+      openEditor(take.status === 'planned' ? 'score' : 'song');
+      return;
+    }
+    lastCardClick = { time: nowClick, id: card.dataset.id };
   });
 
   $('takes').addEventListener('dblclick', function (event) {
