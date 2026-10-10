@@ -9979,6 +9979,7 @@ var ICONS = {
   stop: '<rect x="6.5" y="6.5" width="11" height="11" rx="1.6"/>',
   dice: '<path d="M12 2.8l7.8 4.5v9.4L12 21.2l-7.8-4.5V7.3z"/><path d="M4.2 7.3L12 12l7.8-4.7M12 12v9.2"/><circle cx="12" cy="7.55" r="1.05" fill="currentColor" stroke="none"/><circle cx="7.4" cy="12.9" r="1.05" fill="currentColor" stroke="none"/><circle cx="9.5" cy="16.3" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.6" cy="13" r="1.05" fill="currentColor" stroke="none"/><circle cx="16.6" cy="15.4" r="1.05" fill="currentColor" stroke="none"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2"/><circle cx="12" cy="7.9" r="0.6" fill="currentColor"/>',
+  mastering: '<circle cx="12" cy="12" r="8.5"/><path d="M8 15.5V8.5l4 3.8 4-3.8v7"/>',
   level: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>'
 };
 
@@ -10555,8 +10556,8 @@ function paintTakes() {
             ? '<button class="take-move" data-act="normalise"' + id + ' title="Normalise \u2014 Bring this take to the usual loudness. The file as rendered is kept"' +
               ' aria-label="Normalise">' + icon('level') + '</button>'
             : '') +
-          '<button class="take-move take-mastering-btn' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + '" data-act="mastering"' + id + ' title="Mastering Rack \u2014 Vintage EQ, Compressor, Limiter" aria-label="Mastering Rack">' +
-            '<span class="take-m-chiclet">M</span></button>' +
+          '<button class="take-move' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + '" data-act="mastering"' + id + ' title="Mastering Rack \u2014 Vintage EQ, Compressor, Limiter" aria-label="Mastering Rack">' +
+            icon('mastering') + '</button>' +
           '<button class="take-move" data-act="move"' + id + ' title="Move \u2014 Move to another space" aria-label="Move">' +
             icon('move') + '</button>' +
         '</div>' +

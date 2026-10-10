@@ -1289,7 +1289,7 @@
     updateTakeCardsUI: function () {
       var activeTakeId = this.currentTakeId;
       var isOpen = this.isOpen;
-      var cardBtns = document.querySelectorAll('.take-mastering-btn');
+      var cardBtns = document.querySelectorAll('button[data-act="mastering"]');
       Array.prototype.forEach.call(cardBtns, function (b) {
         var card = b.closest('.take');
         var cardId = card ? card.dataset.id : null;
@@ -1301,9 +1301,6 @@
       if (!take) { return; }
       this.flushSave();
       this.onTake(take);
-      if (take.has_audio && typeof window.playTake === 'function' && window.State && State.playing !== take.id) {
-        window.playTake(take.id);
-      }
       this.toggle(true);
     },
 
