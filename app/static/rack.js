@@ -621,12 +621,11 @@
         '            </div>',
         '          </div>',
 
-        '          <!-- 6. Chiclet Switches (Phase, EQ, Insert) -->',
+        '          <!-- 6. Chiclet Switches (Phase, EQ) -->',
         '          <div class="dpx-sec dpx-switch-sec">',
         '            <div class="dpx-chiclets vertical">',
         '              <button type="button" class="dpx-btn" id="dpx-btn-phase" title="Phase Invert (&Oslash;): Flips audio polarity 180&deg;"><span>&Oslash;</span></button>',
         '              <button type="button" class="dpx-btn active" id="dpx-btn-eq" title="EQ In/Out (EQL): Toggles 1073 equalizer circuit on/off"><span class="btn-led amber"></span><span>EQL</span></button>',
-        '              <button type="button" class="dpx-btn" id="dpx-btn-ins" title="Insert (INS): Analog outboard loop (cosmetic on hardware)"><span>INS</span></button>',
         '            </div>',
         '          </div>',
 
@@ -928,13 +927,6 @@
           this.classList.toggle('active', self.settings.eq.phase);
           Engine.applySettings(self.settings);
           self.debouncedSave();
-        });
-      }
-
-      var dpxBtnIns = document.getElementById('dpx-btn-ins');
-      if (dpxBtnIns) {
-        dpxBtnIns.addEventListener('click', function () {
-          this.classList.toggle('active');
         });
       }
 
