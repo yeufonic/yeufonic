@@ -354,14 +354,24 @@ def claim_window(hwnd: int) -> bool:
 
 
 def seed_browser_profile(profile: Path) -> None:
-    """Preferences for the window's new profile, read by the browser on its first start:
-    no signing in, so nothing of the user's account comes into it."""
-    prefs = {"signin": {"allowed": False, "allowed_on_next_startup": False},
-             "sync": {"requested": False}, "browser": {"has_seen_welcome_page": True},
-             "download": {"prompt_for_download": True}}
+    """Preferences for the window's profile: no signing in, and prompt where to save downloads."""
+    prefs_file = profile / "Default" / "Preferences"
+    prefs = {}
+    if prefs_file.exists():
+        try:
+            prefs = json.loads(prefs_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            prefs = {}
+    prefs.setdefault("signin", {})["allowed"] = False
+    prefs.setdefault("signin", {})["allowed_on_next_startup"] = False
+    prefs.setdefault("sync", {})["requested"] = False
+    prefs.setdefault("browser", {})["has_seen_welcome_page"] = True
+    if "download" not in prefs or not isinstance(prefs["download"], dict):
+        prefs["download"] = {}
+    prefs["download"]["prompt_for_download"] = True
     try:
         (profile / "Default").mkdir(parents=True, exist_ok=True)
-        (profile / "Default" / "Preferences").write_text(json.dumps(prefs), encoding="utf-8")
+        prefs_file.write_text(json.dumps(prefs), encoding="utf-8")
     except OSError:
         pass
 
@@ -468,8 +478,8 @@ class Launcher:
         args = [browser, f"--app={self.url}", f"--user-data-dir={profile}", "--no-first-run",
                 "--no-default-browser-check", "--disable-sync", "--disable-extensions"]
         if not profile.exists():
-            seed_browser_profile(profile)
             args.append("--window-size=1500,950")   # the first time; after that, where it was left
+        seed_browser_profile(profile)
         record(f"Opening the window in {Path(browser).stem}.")
         subprocess.Popen(args)   # in our job, so it goes when Yeufonic does
 
