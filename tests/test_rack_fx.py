@@ -49,3 +49,32 @@ def test_put_and_get_fx_persists_settings(client):
 def test_fx_endpoints_404_on_missing_take(client):
     assert client.get("/api/takes/nonexistent_take/fx").status_code == 404
     assert client.put("/api/takes/nonexistent_take/fx", json={}).status_code == 404
+
+
+def test_rack_js_high_shelf_corner_tuning():
+    from pathlib import Path
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    assert "this.eqHigh.frequency.value = 6800" in rack_js, "eqHigh init frequency must be 6800 Hz"
+    assert "this.eqHigh.frequency.setTargetAtTime(6800, now, ramp)" in rack_js, "eqHigh applySettings frequency must be 6800 Hz"
+
+
+def test_rack_floating_and_draggable_support():
+    from pathlib import Path
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    styles_css = (Path(__file__).resolve().parent.parent / "app" / "static" / "styles.css").read_text(encoding="utf-8")
+
+    # rack.js draggable & floating methods
+    assert "initDraggable" in rack_js
+    assert "dockToBottom" in rack_js
+    assert "floatToCenter" in rack_js
+    assert "restoreFloatingPosition" in rack_js
+    assert "clampFloatingBounds" in rack_js
+    assert "saveFloatingPosition" in rack_js
+    assert "rack-drag-grip" in rack_js
+    assert "rack-dock-btn" in rack_js
+
+    # styles.css classes
+    assert ".rack-panel.is-floating" in styles_css
+    assert ".rack-panel.is-dragging" in styles_css
+    assert ".rack-drag-grip" in styles_css
+

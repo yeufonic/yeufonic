@@ -205,10 +205,10 @@
       this.eqMid.gain.value = 0;
       this.eqMid1 = this.eqMid; // backward compat
 
-      // High Shelf (fixed 12 kHz)
+      // High Shelf (fixed 12 kHz analog-modeled corner)
       this.eqHigh = ctx.createBiquadFilter();
       this.eqHigh.type = 'highshelf';
-      this.eqHigh.frequency.value = 12000;
+      this.eqHigh.frequency.value = 6800; // Analog 1073 12k shelf corner (slopes musically from 5k-14k)
       this.eqHigh.gain.value = 0;
       this.eqAir = this.eqHigh; // backward compat
 
@@ -357,8 +357,9 @@
         this.eqMid.frequency.setTargetAtTime(midF, now, ramp);
         this.eqMid.gain.setTargetAtTime(midG, now, ramp);
 
-        // High Shelf (Fixed 12 kHz)
+        // High Shelf (Fixed 12 kHz analog-modeled corner)
         var hiG = eqOn ? (s.eq.highGain !== undefined ? Number(s.eq.highGain) : (s.eq.airGain !== undefined ? Number(s.eq.airGain) : 0)) : 0;
+        this.eqHigh.frequency.setTargetAtTime(6800, now, ramp);
         this.eqHigh.gain.setTargetAtTime(hiG, now, ramp);
 
         // Phase Invert
@@ -460,6 +461,7 @@
       this.renderMarkup();
       this.rebuildPresetDropdown('default');
       this.bindEvents();
+      this.initDraggable();
       this.startMeterLoop();
     },
 
@@ -514,6 +516,7 @@
         '    <div class="rack-header">',
         '      <div class="rack-ears left"><span class="screw"></span><span class="screw"></span></div>',
         '      <div class="rack-title-block">',
+        '        <span class="rack-drag-grip" title="Drag to move rack"><svg viewBox="0 0 10 16" width="8" height="13" fill="currentColor" aria-hidden="true"><circle cx="2" cy="2" r="1.4"/><circle cx="8" cy="2" r="1.4"/><circle cx="2" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="2" cy="14" r="1.4"/><circle cx="8" cy="14" r="1.4"/></svg></span>',
         '        <span class="rack-badge">STUDIO</span>',
         '        <strong class="rack-title">VINTAGE MASTERING RACK</strong>',
         '        <span class="rack-take-label" id="rack-take-name">No take selected</span>',
@@ -540,6 +543,7 @@
         '        <button type="button" class="rack-head-btn bypass-btn" id="rack-master-bypass" title="Toggle Master Bypass (A/B audition)">',
         '          <span class="led-dot" id="rack-master-led"></span> BYPASS',
         '        </button>',
+        '        <button type="button" class="rack-head-btn dock-btn" id="rack-dock-btn" title="Float window (or drag header to move)">Float</button>',
         '        <button type="button" class="rack-head-btn close-btn" id="rack-close-btn" title="Close Rack (Esc)">&times;</button>',
         '      </div>',
         '      <div class="rack-ears right"><span class="screw"></span><span class="screw"></span></div>',
@@ -1279,6 +1283,9 @@
             if (t) { this.onTake(t); }
           }
         }
+        if (panel.classList.contains('is-floating')) {
+          this.clampFloatingBounds();
+        }
         Engine.resume();
         this.syncKnobsToState();
       } else {
@@ -1545,6 +1552,197 @@
       }
 
       drawMeters();
+    },
+
+    initDraggable: function () {
+      var self = this;
+      var panel = document.getElementById('rack-panel');
+      var header = document.querySelector('.rack-header');
+      if (!panel || !header) { return; }
+
+      var dockBtn = document.getElementById('rack-dock-btn');
+
+      // Restore saved floating position if any
+      this.restoreFloatingPosition();
+
+      var isDragging = false;
+      var startX = 0, startY = 0;
+      var initialLeft = 0, initialTop = 0;
+      var width = 0;
+
+      header.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0) { return; }
+        // Do not initiate drag on interactive buttons, select dropdowns, or labels
+        if (e.target.closest('button, select, input, label, a, .rack-head-btn, .rack-select')) { return; }
+
+        var rect = panel.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        width = rect.width;
+        isDragging = false;
+
+        function onPointerMove(moveEvent) {
+          var dx = moveEvent.clientX - startX;
+          var dy = moveEvent.clientY - startY;
+          if (!isDragging && Math.hypot(dx, dy) > 3) {
+            isDragging = true;
+            panel.classList.add('is-floating');
+            panel.classList.add('is-dragging');
+            self.updateDockButtonUI();
+          }
+          if (!isDragging) { return; }
+
+          var newLeft = initialLeft + dx;
+          var newTop = initialTop + dy;
+
+          // Constrain within viewport bounds
+          var minLeft = 8;
+          var maxLeft = Math.max(minLeft, window.innerWidth - width - 8);
+          var minTop = 8;
+          var maxTop = Math.max(minTop, window.innerHeight - 60);
+
+          newLeft = Math.max(minLeft, Math.min(maxLeft, newLeft));
+          newTop = Math.max(minTop, Math.min(maxTop, newTop));
+
+          panel.style.left = Math.round(newLeft) + 'px';
+          panel.style.top = Math.round(newTop) + 'px';
+          panel.style.bottom = 'auto';
+          panel.style.right = 'auto';
+          panel.style.margin = '0';
+          panel.style.transform = 'none';
+          panel.style.width = Math.round(width) + 'px';
+        }
+
+        function onPointerUp(upEvent) {
+          try { header.releasePointerCapture(e.pointerId); } catch (err) {}
+          header.removeEventListener('pointermove', onPointerMove);
+          header.removeEventListener('pointerup', onPointerUp);
+          header.removeEventListener('pointercancel', onPointerUp);
+
+          if (isDragging) {
+            panel.classList.remove('is-dragging');
+            var curRect = panel.getBoundingClientRect();
+            self.saveFloatingPosition(curRect.left, curRect.top, width);
+          }
+          isDragging = false;
+        }
+
+        try { header.setPointerCapture(e.pointerId); } catch (err) {}
+        header.addEventListener('pointermove', onPointerMove);
+        header.addEventListener('pointerup', onPointerUp);
+        header.addEventListener('pointercancel', onPointerUp);
+      });
+
+      if (dockBtn) {
+        dockBtn.addEventListener('click', function () {
+          if (panel.classList.contains('is-floating')) {
+            self.dockToBottom();
+          } else {
+            self.floatToCenter();
+          }
+        });
+      }
+
+      window.addEventListener('resize', function () {
+        if (panel.classList.contains('is-floating')) {
+          self.clampFloatingBounds();
+        }
+      });
+    },
+
+    dockToBottom: function () {
+      var panel = document.getElementById('rack-panel');
+      if (!panel) { return; }
+      panel.classList.remove('is-floating');
+      panel.classList.remove('is-dragging');
+      panel.style.left = '';
+      panel.style.top = '';
+      panel.style.bottom = '';
+      panel.style.right = '';
+      panel.style.margin = '';
+      panel.style.transform = '';
+      panel.style.width = '';
+      try { localStorage.removeItem('yue2.rackFloat'); } catch (err) {}
+      this.updateDockButtonUI();
+    },
+
+    floatToCenter: function () {
+      var panel = document.getElementById('rack-panel');
+      if (!panel) { return; }
+      var width = Math.min(1240, window.innerWidth - 24);
+      var left = Math.max(10, Math.round((window.innerWidth - width) / 2));
+      var top = Math.max(20, Math.round((window.innerHeight - 560) / 2));
+      panel.classList.add('is-floating');
+      panel.style.left = left + 'px';
+      panel.style.top = top + 'px';
+      panel.style.bottom = 'auto';
+      panel.style.right = 'auto';
+      panel.style.margin = '0';
+      panel.style.transform = 'none';
+      panel.style.width = width + 'px';
+      this.saveFloatingPosition(left, top, width);
+      this.updateDockButtonUI();
+    },
+
+    saveFloatingPosition: function (left, top, width) {
+      try {
+        localStorage.setItem('yue2.rackFloat', JSON.stringify({
+          isFloating: true,
+          left: Math.round(left),
+          top: Math.round(top),
+          width: Math.round(width)
+        }));
+      } catch (err) {}
+    },
+
+    restoreFloatingPosition: function () {
+      var panel = document.getElementById('rack-panel');
+      if (!panel) { return; }
+      try {
+        var raw = localStorage.getItem('yue2.rackFloat');
+        if (!raw) {
+          this.updateDockButtonUI();
+          return;
+        }
+        var data = JSON.parse(raw);
+        if (data && data.isFloating) {
+          var width = Math.min(data.width || 1240, window.innerWidth - 24);
+          var left = Math.max(8, Math.min(window.innerWidth - width - 8, data.left || 20));
+          var top = Math.max(8, Math.min(window.innerHeight - 60, data.top || 80));
+          panel.classList.add('is-floating');
+          panel.style.left = left + 'px';
+          panel.style.top = top + 'px';
+          panel.style.bottom = 'auto';
+          panel.style.right = 'auto';
+          panel.style.margin = '0';
+          panel.style.transform = 'none';
+          panel.style.width = width + 'px';
+          this.updateDockButtonUI();
+        }
+      } catch (err) {}
+    },
+
+    clampFloatingBounds: function () {
+      var panel = document.getElementById('rack-panel');
+      if (!panel || !panel.classList.contains('is-floating')) { return; }
+      var rect = panel.getBoundingClientRect();
+      var width = Math.min(rect.width, window.innerWidth - 16);
+      var left = Math.max(8, Math.min(window.innerWidth - width - 8, rect.left));
+      var top = Math.max(8, Math.min(window.innerHeight - 60, rect.top));
+      panel.style.left = Math.round(left) + 'px';
+      panel.style.top = Math.round(top) + 'px';
+      panel.style.width = Math.round(width) + 'px';
+    },
+
+    updateDockButtonUI: function () {
+      var panel = document.getElementById('rack-panel');
+      var dockBtn = document.getElementById('rack-dock-btn');
+      if (!dockBtn || !panel) { return; }
+      var isFloating = panel.classList.contains('is-floating');
+      dockBtn.textContent = isFloating ? 'Dock' : 'Float';
+      dockBtn.title = isFloating ? 'Dock rack to bottom of window' : 'Float rack window (or drag header to move)';
     }
   };
 
