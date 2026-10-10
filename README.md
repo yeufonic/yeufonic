@@ -10,7 +10,7 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **MIDI import for covers and instrumentals:** MIDI editing with piano roll and sf2 (experimental).
 - **Style LoRAs:** use published ones, or train your own from a folder of songs.
 - **Lyrics:** draft them from a sentence, or extract them from a recording.
-- **Vintage mastering rack:** a skeuomorphic channel strip with a 1073-style parametric EQ, vintage compressor, and master limiter with tube warmth to polish and master any take in real time.
+- **Vintage mastering rack:** a skeuomorphic channel strip with a 1073-style parametric EQ, vintage compressor, stereo imager, and master limiter with tube warmth to polish and master any take in real time.
 - **An MCP server (off by default):** let an AI agent such as Claude Code make songs, covers and instrumentals, play them and tidy the library, in your own words. See [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp).
 - **Stems:** split any take into vocals, drums, bass and more, or into vocals and a backing track.
 - **A library:** spaces, stars, and every take's settings kept so it can be made again.
@@ -55,6 +55,10 @@ Writing a song from a prompt, in the editor's three columns:
 Writing an instrumental, with the structure built section by section:
 
 [![Instrumental](docs/screenshots/instrumental.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/instrumental.png)
+
+Mastering a take:
+
+[![Mastering a take](docs/screenshots/mastering-take.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/mastering-take.png)
 
 To hear what it makes, there are example songs in **[examples](examples/)**, made with style LoRAs
 trained in the app. They play on that page, and the MP3s can be downloaded.
