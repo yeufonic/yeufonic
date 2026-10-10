@@ -11,7 +11,7 @@ PIANOROLL_JS = Path(__file__).resolve().parent.parent / "app" / "static" / "pian
 def run_node_script(js_code: str) -> dict:
     """Run a small JS snippet importing pianoroll.js and return parsed JSON result."""
     script = f"""
-    const {{ parseAbc, serializeToAbc, PianoRoll, extractLyricsSections, tokenizeLyricLines, matchScoreSectionToLyricSection, splitWordSyllables, playClick, playChord, chordToMidiPitches, alignLinesToNotes, assignLyricsToVocalNotes }} = require({json.dumps(str(PIANOROLL_JS))});
+    const {{ parseAbc, serializeToAbc, abcNoteToMidi, midiToAbcNote, getKeyAccidentals, PianoRoll, extractLyricsSections, tokenizeLyricLines, matchScoreSectionToLyricSection, splitWordSyllables, playClick, playChord, chordToMidiPitches, alignLinesToNotes, assignLyricsToVocalNotes }} = require({json.dumps(str(PIANOROLL_JS))});
     {js_code}
     """
     res = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
@@ -1444,11 +1444,124 @@ def test_extract_lyrics_sections_with_markdown_headers():
     assert sections[2]["lines"] == ["Why the road had to end"]
 
 
+def test_key_signature_accidentals_lookup():
+    """Verify circle of fifths key signature accidentals for major, minor, and modal keys."""
+    js = """
+    const keys = ["C", "G", "D", "A", "E", "B", "F#", "F", "Bb", "Eb", "Ab", "Db", "Am", "Em", "Bm", "Dm", "Gm", "Cm", "Fm", "Ddor", "Dmix"];
+    const results = {};
+    for (const k of keys) {
+        results[k] = getKeyAccidentals(k);
+    }
+    console.log(JSON.stringify(results));
+    """
+    res = run_node_script(js)
+    assert res["C"] == {}
+    assert res["G"] == {"F": 1}
+    assert res["D"] == {"F": 1, "C": 1}
+    assert res["F"] == {"B": -1}
+    assert res["Bb"] == {"B": -1, "E": -1}
+    assert res["Eb"] == {"B": -1, "E": -1, "A": -1}
+    assert res["Ab"] == {"B": -1, "E": -1, "A": -1, "D": -1}
+    assert res["Am"] == {}
+    assert res["Em"] == {"F": 1}
+    assert res["Dm"] == {"B": -1}
+    assert res["Gm"] == {"B": -1, "E": -1}
+    assert res["Cm"] == {"B": -1, "E": -1, "A": -1}
+    assert res["Ddor"] == {}
+    assert res["Dmix"] == {"F": 1}
 
 
+def test_abc_note_to_midi_with_key_and_measure_accidentals():
+    """Verify abcNoteToMidi applies active key signature, explicit accidentals, and bar scope."""
+    js = """
+    const keyBb = getKeyAccidentals("Bb");
+    const keyG = getKeyAccidentals("G");
+    const barAccs = {};
+
+    // In K:Bb, unmarked B4 and e5 are flatted to Bb4 (70) and Eb5 (75)
+    const bInBb = abcNoteToMidi("", "B", "", keyBb, barAccs);
+    const eInBb = abcNoteToMidi("", "e", "", keyBb, barAccs);
+
+    // In K:Bb, explicit =B is natural B4 (71)
+    const bNatInBb = abcNoteToMidi("=", "B", "", keyBb, barAccs);
+
+    // In K:G, unmarked F4 is sharped to F#4 (66), =F is natural (65)
+    const fInG = abcNoteToMidi("", "F", "", keyG, {});
+    const fNatInG = abcNoteToMidi("=", "F", "", keyG, {});
+
+    // Bar accidental persistence: _A in bar sets bar accidental for subsequent A in same bar
+    const barAccs2 = {};
+    const aFlat = abcNoteToMidi("_", "A", ",", keyBb, barAccs2); // _A, -> 56 (Ab3)
+    const aSubsequent = abcNoteToMidi("", "A", ",", keyBb, barAccs2); // A, in same bar -> 56 (Ab3)
+
+    console.log(JSON.stringify({ bInBb, eInBb, bNatInBb, fInG, fNatInG, aFlat, aSubsequent }));
+    """
+    res = run_node_script(js)
+    assert res["bInBb"] == 70  # Bb4
+    assert res["eInBb"] == 75  # Eb5
+    assert res["bNatInBb"] == 71  # B4
+    assert res["fInG"] == 66  # F#4
+    assert res["fNatInG"] == 65  # F4
+    assert res["aFlat"] == 56  # Ab3
+    assert res["aSubsequent"] == 56  # Ab3 in same bar inherits flat
 
 
+def test_bushy_take_score_pitches_in_key_bb_and_cm():
+    """Verify take 'bushy' (c81c76e329dd) with K:Bb and K:Cm parses to correct MIDI pitches."""
+    bushy_json = Path(__file__).resolve().parent.parent / "data" / "takes" / "bushy-c81c76e329dd" / "take.json"
+    if not bushy_json.exists():
+        return
+    with open(bushy_json, "r") as f:
+        take_data = json.load(f)
+    score_abc = take_data["score"]
+
+    js = f"""
+    const abc = {json.dumps(score_abc)};
+    const model = parseAbc(abc);
+
+    // Opening Ins notes in bar 1: E2B2e2g4B2e2g2-
+    const insNotesBar1 = model.notes.filter(n => n.voice === 'Ins' && n.startTick >= 16 && n.startTick < 32);
+    insNotesBar1.sort((a,b) => a.startTick - b.startTick);
+
+    // Vocal verse notes in bar 17: "Ebmaj7"e4f4f4e2g2-
+    const vocalVerseNotes = model.notes.filter(n => n.voice === 'Vocal' && n.startTick >= 17*16 && n.startTick < 18*16);
+    vocalVerseNotes.sort((a,b) => a.startTick - b.startTick);
+
+    console.log(JSON.stringify({{
+        key: model.key,
+        insPitches: insNotesBar1.map(n => n.pitch),
+        vocalPitches: vocalVerseNotes.map(n => n.pitch)
+    }}));
+    """
+    res = run_node_script(js)
+    assert res["key"] == "Bb"
+    # Opening Ins notes must be Eb4 (63), Bb4 (70), Eb5 (75), G5 (79)
+    assert res["insPitches"][:4] == [63, 70, 75, 79]
+    # Vocal verse in Ebmaj7 begins on Eb5 (75), F5 (77), F5 (77), Eb5 (75), G5 (79)
+    assert res["vocalPitches"][0] == 75  # Eb5 (NOT 76 E natural)
+    assert res["vocalPitches"][1] == 77  # F5
+    assert res["vocalPitches"][3] == 75  # Eb5
 
 
+def test_midi_to_abc_note_naturals_in_key():
+    """Verify midiToAbcNote produces = natural accidentals for natural notes in non-C keys."""
+    js = """
+    // In K:Bb, B natural (71) and E natural (64) need =B and =E
+    const bNatInBb = midiToAbcNote(71, "Bb");
+    const eNatInBb = midiToAbcNote(64, "Bb");
 
+    // In K:G, F natural (65) needs =F
+    const fNatInG = midiToAbcNote(65, "G");
 
+    // In K:Bb, Bb4 (70) and Eb4 (63) format cleanly as _B and _E
+    const bFlatInBb = midiToAbcNote(70, "Bb");
+    const eFlatInBb = midiToAbcNote(63, "Bb");
+
+    console.log(JSON.stringify({ bNatInBb, eNatInBb, fNatInG, bFlatInBb, eFlatInBb }));
+    """
+    res = run_node_script(js)
+    assert res["bNatInBb"] == "=B"
+    assert res["eNatInBb"] == "=E"
+    assert res["fNatInG"] == "=F"
+    assert res["bFlatInBb"] == "_B"
+    assert res["eFlatInBb"] == "_E"

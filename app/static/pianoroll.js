@@ -14,6 +14,56 @@
   var PITCH_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   var BLACK_KEYS = [false, true, false, true, false, false, true, false, true, false, true, false];
 
+  var FLAT_PITCH_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+
+  function getKeyAccidentals(keyStr) {
+    if (!keyStr || typeof keyStr !== "string") return {};
+    var clean = keyStr.trim();
+    var m = clean.match(/^([A-Ga-g])([#b]?)\s*(mix(?:olydian)?|dor(?:ian)?|lyd(?:ian)?|phr(?:ygian)?|loc(?:rian)?|maj(?:or)?|ion(?:ian)?|aeo(?:lian)?|min(?:or)?|m(?![a-z]))?/i);
+    if (!m) return {};
+    var letter = m[1].toUpperCase();
+    var acc = m[2] || "";
+    var modeStr = (m[3] || "").toLowerCase();
+
+    var FIFTHS = { "F": -1, "C": 0, "G": 1, "D": 2, "A": 3, "E": 4, "B": 5 };
+    if (FIFTHS[letter] === undefined) return {};
+    var fifth = FIFTHS[letter];
+    if (acc === "#") fifth += 7;
+    if (acc === "b") fifth -= 7;
+
+    var offset = 0;
+    if ((modeStr === "m" || modeStr.startsWith("min") || modeStr.startsWith("aeo")) && !modeStr.startsWith("maj") && !modeStr.startsWith("mix")) {
+      offset = -3;
+    } else if (modeStr.startsWith("dor")) {
+      offset = -2;
+    } else if (modeStr.startsWith("mix")) {
+      offset = -1;
+    } else if (modeStr.startsWith("lyd")) {
+      offset = 1;
+    } else if (modeStr.startsWith("phr")) {
+      offset = -4;
+    } else if (modeStr.startsWith("loc")) {
+      offset = -5;
+    }
+
+    var sharps = fifth + offset;
+    var SHARP_ORDER = "FCGDAEB";
+    var FLAT_ORDER  = "BEADGCF";
+    var res = {};
+    if (sharps > 0) {
+      var count = Math.min(sharps, 7);
+      for (var i = 0; i < count; i++) {
+        res[SHARP_ORDER.charAt(i)] = 1;
+      }
+    } else if (sharps < 0) {
+      var count = Math.min(-sharps, 7);
+      for (var j = 0; j < count; j++) {
+        res[FLAT_ORDER.charAt(j)] = -1;
+      }
+    }
+    return res;
+  }
+
   var KEY_ACCIDENTALS = {
     'C': { flats: false }, 'G': { flats: false }, 'D': { flats: false }, 'A': { flats: false },
     'E': { flats: false }, 'B': { flats: false }, 'F#': { flats: false },
@@ -26,10 +76,23 @@
   var SHARP_NAMES = ["C", "^C", "D", "^D", "E", "F", "^F", "G", "^G", "A", "^A", "B"];
   var FLAT_NAMES  = ["C", "_D", "D", "_E", "E", "F", "_G", "G", "_A", "A", "_B", "B"];
 
-  function midiToNoteName(pitch) {
+  function isFlatKey(key) {
+    if (!key) return false;
+    if (KEY_ACCIDENTALS[key] && KEY_ACCIDENTALS[key].flats !== undefined) {
+      return KEY_ACCIDENTALS[key].flats;
+    }
+    var accs = getKeyAccidentals(key);
+    for (var k in accs) {
+      if (accs[k] < 0) return true;
+    }
+    return false;
+  }
+
+  function midiToNoteName(pitch, key) {
     var semitone = ((pitch % 12) + 12) % 12;
     var octave = Math.floor(pitch / 12) - 1;
-    return PITCH_NAMES[semitone] + octave;
+    var names = isFlatKey(key) ? FLAT_PITCH_NAMES : PITCH_NAMES;
+    return names[semitone] + octave;
   }
 
   function escapeHtml(str) {
@@ -43,7 +106,8 @@
   }
 
   function midiToAbcNote(pitch, key) {
-    var isFlat = key && KEY_ACCIDENTALS[key] && KEY_ACCIDENTALS[key].flats;
+    var keyAccs = key ? getKeyAccidentals(key) : {};
+    var isFlat = isFlatKey(key);
     var names = isFlat ? FLAT_NAMES : SHARP_NAMES;
     var oct = Math.floor(pitch / 12) - 1;
     var semitone = ((pitch % 12) + 12) % 12;
@@ -54,6 +118,9 @@
     if (rawName.charAt(0) === '^' || rawName.charAt(0) === '_') {
       acc = rawName.charAt(0);
       letter = rawName.slice(1);
+    } else if (keyAccs[rawName] !== undefined && keyAccs[rawName] !== 0) {
+      // The note is natural on the keyboard, but the key signature has an accidental on this letter
+      acc = "=";
     }
 
     var noteBody = "";
@@ -71,27 +138,50 @@
     return acc + noteBody;
   }
 
-  function abcNoteToMidi(accidental, letter, octaves) {
+  function abcNoteToMidi(accidental, letter, octaves, keyAccidentals, measureAccidentals) {
     var baseMap = { C: 60, D: 62, E: 64, F: 65, G: 67, A: 69, B: 71 };
     var isLower = letter === letter.toLowerCase();
-    var base = baseMap[letter.toUpperCase()];
+    var upperLetter = letter.toUpperCase();
+    var base = baseMap[upperLetter];
     if (base === undefined) { base = 60; }
-    if (isLower) { base += 12; }
+    var oct = isLower ? 5 : 4;
     if (octaves) {
       for (var i = 0; i < octaves.length; i++) {
         var ch = octaves.charAt(i);
-        if (ch === "'") { base += 12; }
-        if (ch === ",") { base -= 12; }
+        if (ch === "'") { oct++; }
+        else if (ch === ",") { oct--; }
       }
     }
-    if (accidental) {
-      for (var j = 0; j < accidental.length; j++) {
-        var a = accidental.charAt(j);
-        if (a === '^') { base += 1; }
-        if (a === '_') { base -= 1; }
+    base += (oct - 4) * 12;
+
+    var shift = 0;
+    if (accidental && accidental.length > 0) {
+      if (accidental.indexOf('=') !== -1) {
+        shift = 0;
+      } else {
+        for (var j = 0; j < accidental.length; j++) {
+          var a = accidental.charAt(j);
+          if (a === '^') { shift += 1; }
+          else if (a === '_') { shift -= 1; }
+        }
+      }
+      if (measureAccidentals) {
+        var octKey = upperLetter + '_' + oct;
+        measureAccidentals[octKey] = shift;
+        measureAccidentals[upperLetter] = shift;
+      }
+    } else {
+      var octKey = upperLetter + '_' + oct;
+      if (measureAccidentals && measureAccidentals[octKey] !== undefined) {
+        shift = measureAccidentals[octKey];
+      } else if (measureAccidentals && measureAccidentals[upperLetter] !== undefined) {
+        shift = measureAccidentals[upperLetter];
+      } else if (keyAccidentals && keyAccidentals[upperLetter] !== undefined) {
+        shift = keyAccidentals[upperLetter];
       }
     }
-    return base;
+
+    return base + shift;
   }
 
   /* ---------------------------------------------------- Web Audio Synth */
@@ -480,7 +570,12 @@
     var bpm = 120;
     var inHeader = true;
 
-    var tokenRe = /"([^"]*)"|([zZ])(\d*)|\[([A-Ga-g,=_^'\/\d\s]+)\](\d*)(-?)|([_^=]*[A-Ga-g][,']*)(\d*)(-?)|(\|)/g;
+    var currentKey = "C";
+    var voiceKey = {};
+    var voiceMeasureAccidentals = {};
+    var voiceTieCarry = {};
+
+    var tokenRe = /"([^"]*)"|([zZ])(\d*)|\[([A-Ga-g,=_^'\/\d\s]+)\](\d*)(-?)|([_^=]*[A-Ga-g][,']*)(\d*)(-?)|(\|)|\[K:\s*([^\]]+)\]/g;
     var nextId = 1;
     var lastMusicVoice = null;
     var lastMusicBars = null;
@@ -509,11 +604,23 @@
       }
 
       if (/^[A-Za-z]:/.test(raw) && raw.indexOf("V:") !== 0 && raw.indexOf("w:") !== 0 && raw.indexOf("W:") !== 0) {
-        headers.push(raw);
         if (raw.indexOf("K:") === 0) {
-          var km = raw.match(/^K:\s*([A-Ga-g][#b]?[m]?)/);
-          if (km) { key = km[1]; }
-          inHeader = false;
+          var km = raw.match(/^K:\s*([A-Ga-g][#b]?(?:mix|dor|lyd|phr|loc|maj|ion|aeo|min|m)?)/i);
+          if (km) {
+            currentKey = km[1];
+            voiceKey[currentVoice] = currentKey;
+            voiceMeasureAccidentals[currentVoice] = {};
+            if (inHeader) {
+              key = currentKey;
+              headers.push(raw);
+              inHeader = false;
+            }
+          }
+          lastMusicBars = null;
+          continue;
+        }
+        if (inHeader) {
+          headers.push(raw);
         }
         if (raw.indexOf("Q:") === 0 && inHeader) {
           var qm = raw.match(/^Q:\s*(?:(\d+)\/(\d+)=)?(\d+)/);
@@ -585,6 +692,13 @@
       }
 
       if (voiceBarIndex[currentVoice] === undefined) { voiceBarIndex[currentVoice] = 0; }
+      var effectiveKey = voiceKey[currentVoice] || currentKey || key || "C";
+      var activeKeyAccs = getKeyAccidentals(effectiveKey);
+      if (!voiceMeasureAccidentals[currentVoice]) {
+        voiceMeasureAccidentals[currentVoice] = {};
+      }
+      var activeMeasureAccs = voiceMeasureAccidentals[currentVoice];
+
       var musicLineStartBar = voiceBarIndex[currentVoice];
       var tickInBar = 0;
       var sawZ = false;
@@ -623,7 +737,7 @@
             if (!cMatch[1]) { continue; }
             var noteParts = cMatch[1].match(/^([_^=]*)([A-Ga-g])([,']*)$/);
             if (noteParts) {
-              var pitch = abcNoteToMidi(noteParts[1], noteParts[2], noteParts[3]);
+              var pitch = abcNoteToMidi(noteParts[1], noteParts[2], noteParts[3], activeKeyAccs, activeMeasureAccs);
               var nDur = cMatch[2] ? parseInt(cMatch[2], 10) : cDur;
               rawNotes.push({
                 id: nextId++,
@@ -646,7 +760,27 @@
 
           var noteParts = noteStr.match(/^([_^=]*)([A-Ga-g])([,']*)$/);
           if (noteParts) {
-            var pitch = abcNoteToMidi(noteParts[1], noteParts[2], noteParts[3]);
+            var oct = (noteParts[2] === noteParts[2].toLowerCase()) ? 5 : 4;
+            if (noteParts[3]) {
+              for (var oi = 0; oi < noteParts[3].length; oi++) {
+                if (noteParts[3].charAt(oi) === "'") oct++;
+                else if (noteParts[3].charAt(oi) === ",") oct--;
+              }
+            }
+            var upperLetter = noteParts[2].toUpperCase();
+            var carry = voiceTieCarry[currentVoice];
+            var pitch;
+            if (!noteParts[1] && carry && carry.letter === upperLetter && carry.octave === oct) {
+              pitch = carry.pitch;
+            } else {
+              pitch = abcNoteToMidi(noteParts[1], noteParts[2], noteParts[3], activeKeyAccs, activeMeasureAccs);
+            }
+            if (tiedNext) {
+              voiceTieCarry[currentVoice] = { letter: upperLetter, octave: oct, pitch: pitch };
+            } else {
+              voiceTieCarry[currentVoice] = null;
+            }
+
             rawNotes.push({
               id: nextId++,
               voice: currentVoice,
@@ -666,6 +800,14 @@
             voiceBarIndex[currentVoice] += 1;
           }
           tickInBar = 0;
+          voiceMeasureAccidentals[currentVoice] = {};
+          activeMeasureAccs = voiceMeasureAccidentals[currentVoice];
+        } else if (match[11]) {
+          currentKey = match[11].trim();
+          voiceKey[currentVoice] = currentKey;
+          activeKeyAccs = getKeyAccidentals(currentKey);
+          voiceMeasureAccidentals[currentVoice] = {};
+          activeMeasureAccs = voiceMeasureAccidentals[currentVoice];
         }
       }
 
@@ -3359,6 +3501,9 @@
   global.PianoRoll = PianoRoll;
   global.parseAbc = parseAbc;
   global.serializeToAbc = serializeToAbc;
+  global.abcNoteToMidi = abcNoteToMidi;
+  global.midiToAbcNote = midiToAbcNote;
+  global.getKeyAccidentals = getKeyAccidentals;
   global.extractLyricsSections = extractLyricsSections;
   global.splitWordSyllables = splitWordSyllables;
   global.tokenizeLyricLines = tokenizeLyricLines;
