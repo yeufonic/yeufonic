@@ -71,6 +71,11 @@ function setSelection(next) {
   paintTakeHighlights(); // the highlight follows the form without re-rendering card DOM
   setScoreActions();     // so do Render and Replan
   saveForm();
+  if (next.formTakeId && typeof activateTakeRecording === 'function') {
+    var t = (typeof takeById === 'function' ? takeById(next.formTakeId) : null) ||
+            (State.formTake && State.formTake.id === next.formTakeId ? State.formTake : null);
+    if (t) { activateTakeRecording(t); }
+  }
 }
 
 /* Used when restoring the form on a reload, before the painters are ready. */
@@ -6286,6 +6291,12 @@ async function loadTakes() {
   State.takesRaw = text;
   State.takes = JSON.parse(text);
   paintTakes();
+  if (!State.loadedId && !State.audition && !State.playing && typeof activateTakeRecording === 'function') {
+    var activeTake = typeof selectedTakeId === 'function' && selectedTakeId() && typeof takeById === 'function' ? takeById(selectedTakeId()) : null;
+    if (activeTake) {
+      activateTakeRecording(activeTake);
+    }
+  }
 }
 
 /* ----------------------------------------------------------------- spaces
@@ -10033,6 +10044,7 @@ function selectTake(take) {
   // here threw the edit away in favour of words that were already there.
   if (take.id === selectedTakeId() && formIsDraft()) {
     paintTakeHighlights();
+    activateTakeRecording(take);
     return;
   }
   if (formIsDraft()) { stashDraft(); }
@@ -10110,6 +10122,7 @@ function selectTake(take) {
   State.formEdited = false;
   saveForm();
   paintTakeHighlights();
+  activateTakeRecording(take);
 }
 
 /* One click on a card replaces the form.  If the form holds words that are not
@@ -10739,6 +10752,116 @@ function takePosition(id) {
   return null;
 }
 
+function activateTakeRecording(take) {
+  if (!take) { return; }
+  var audio = $('audio');
+  if (!audio) { return; }
+
+  // 1. If the take has rendered audio, load its audio into the transport bar
+  if (take.has_audio) {
+    if (State.playing === take.id && !audio.paused && !audio.ended) {
+      return;
+    }
+    var version = take.normalised ? '?level=normalised' : '';
+    var url = '/api/takes/' + take.id + '/audio' + version;
+    var peaksUrl = '/api/takes/' + take.id + '/peaks' + version;
+    var isLoaded = (State.loadedId === take.id && (audio.src || audio.currentSrc));
+
+    if (audio && !audio.paused) {
+      audio.pause();
+    }
+    State.playing = null;
+    State.audition = null;
+    State.loadedId = take.id;
+    State.loadedTake = take;
+    wave.kind = take.kind;
+
+    if (!isLoaded) {
+      audio.src = url;
+      loadWave(url, peaksUrl);
+    }
+    $('np-title').textContent = take.title;
+    var position = takePosition(take.id);
+    $('np-meta').textContent = (position ? 'take ' + position.index + ' of ' + position.total + ' \u00b7 ' : '') +
+      (take.duration ? secs(take.duration) : (take.style || '').slice(0, 60));
+    $('np-cover').className = 'np-cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover');
+    $('t-now').textContent = secs(audio.currentTime || 0);
+    $('t-total').textContent = take.duration ? secs(take.duration) : '--:--';
+    updateMediaSession(take);
+    if (window.Rack) { window.Rack.onTake(take); }
+    paintTransport();
+    paintTakes();
+    return;
+  }
+
+  // 2. Otherwise if the take has a source recording (cover / instrumental from recording), load that
+  if (take.source_id && typeof sourceById === 'function') {
+    var source = sourceById(take.source_id);
+    if (source) {
+      if (State.audition === source.id && !audio.paused && !audio.ended) {
+        return;
+      }
+      var isMidi = Boolean(source.filename && source.filename.match(/\.midi?$/i));
+      var sel = $('score-sf2-select');
+      var activeSf2 = sel && sel.value ? sel.value : '';
+      var sf2Param = activeSf2 ? '?sf2=' + encodeURIComponent(activeSf2) : '';
+      var sfLabel = (sel && sel.selectedOptions && sel.selectedOptions[0])
+        ? sel.selectedOptions[0].textContent
+        : (activeSf2 ? activeSf2.replace(/_/g, ' ').replace(/\.sf2$/i, '') : 'SoundFont');
+      var url = isMidi
+        ? '/api/sources/' + source.id + '/rendered-audio' + sf2Param
+        : '/api/sources/' + source.id + '/audio';
+      var peaksUrl = '/api/sources/' + source.id + '/peaks' + (isMidi ? sf2Param : '');
+      var isLoaded = (State.audition === source.id && (audio.src || audio.currentSrc));
+
+      if (audio && !audio.paused) {
+        audio.pause();
+      }
+      State.playing = null;
+      State.loadedId = null;
+      State.loadedTake = null;
+      State.audition = source.id;
+      State.auditionLoading = false;
+      wave.kind = 'cover';
+
+      if (!isLoaded) {
+        audio.src = url;
+        loadWave(url, peaksUrl);
+      }
+      $('np-title').textContent = source.title;
+      $('np-meta').textContent = isMidi ? ('MIDI Recording (' + sfLabel + ')') : 'the recording being covered';
+      $('np-cover').className = 'np-cover grad-cover';
+      updateMediaSession({ title: source.title, style: isMidi ? ('MIDI Recording (' + sfLabel + ')') : 'the recording being covered' });
+      paintTransport();
+      paintTakes();
+      paintAudition();
+      return;
+    }
+  }
+
+  // 3. Take has neither rendered audio nor a source recording (planned / queued prompt song)
+  if (audio && !audio.paused) {
+    audio.pause();
+  }
+  State.playing = null;
+  State.audition = null;
+  State.loadedId = null;
+  State.loadedTake = take;
+  audio.removeAttribute('src');
+  wave.peaks = null;
+  wave.rmss = null;
+  wave.ratio = 0;
+  drawWave();
+  $('np-title').textContent = take.title || 'Untitled take';
+  $('np-meta').textContent = take.status === 'planned' ? 'plan ready (no audio yet)' : (take.status ? take.status + ' (no audio yet)' : 'no audio yet');
+  $('np-cover').className = 'np-cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover');
+  $('t-now').textContent = '0:00';
+  $('t-total').textContent = '--:--';
+  if (window.Rack) { window.Rack.onTake(take); }
+  paintTransport();
+  paintTakes();
+}
+
 function stepTake(delta) {
   var list = playableTakes();
   if (!list.length) { return; }
@@ -11146,6 +11269,11 @@ function wireTransport() {
     var id = currentTakeId();
     if (id) { togglePlay(id); return; }
     if (audio.src && !audio.ended) { audio.play().catch(function () {}); return; }
+    var activeTake = typeof selectedTakeId === 'function' && selectedTakeId() && typeof takeById === 'function' ? takeById(selectedTakeId()) : null;
+    if (activeTake && !activeTake.has_audio && !activeTake.source_id) {
+      statusLine('This take has not been rendered yet.', 'hint');
+      return;
+    }
     var list = playableTakes();
     if (list.length) { playTake(list[0].id); }
   });
@@ -12461,6 +12589,7 @@ function wire() {
       if (act === 'mastering') {
         var targetTake = takeById(id);
         if (targetTake && window.Rack) {
+          selectTake(targetTake);
           window.Rack.openForTake(targetTake);
           return;
         }
