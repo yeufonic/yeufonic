@@ -5638,6 +5638,10 @@ function closeSaveModal() {
   $('save-modal').classList.add('hidden');
 }
 
+/* A take the mastering rack changes is rendered here, in the page, by the chain that plays it,
+   so the file sounds as the take does; the server only converts it and adds its tags.  Any
+   other take is handed over as it is kept.  A render that fails saves nothing rather than a
+   file that sounds different. */
 function runSave() {
   if (window.Rack && typeof window.Rack.flushSave === 'function') {
     try { window.Rack.flushSave(); } catch (e) {}
@@ -5648,15 +5652,24 @@ function runSave() {
   var fmt = chosen.dataset.format;
   closeSaveModal();
 
-  var url = '/api/takes/' + id + '/audio?download=1&format=' + fmt;
-  if (window.Rack && typeof window.Rack.hasActiveMastering === 'function' && window.Rack.hasActiveMastering(id)) {
-    if (window.Rack.currentTakeId && String(window.Rack.currentTakeId) === String(id) && window.Rack.settings) {
-      url += '&fx=' + encodeURIComponent(JSON.stringify(window.Rack.settings));
-    }
+  var mastered = false;
+  try {
+    mastered = Boolean(window.Rack && typeof window.Rack.hasActiveMastering === 'function' &&
+                       typeof window.Rack.renderAndDownload === 'function' &&
+                       window.Rack.hasActiveMastering(id));
+  } catch (e) {}
+  if (mastered) {
+    statusLine('Mastering the file to save…', 'wait');
+    window.Rack.renderAndDownload(id, fmt).then(function () {
+      statusLine('Mastered file ready to save.', 'good');
+    }, function (err) {
+      statusLine('Could not master the file, so nothing was saved: ' + ((err && err.message) || err), 'bad');
+    });
+    return;
   }
 
   var link = document.createElement('a');
-  link.href = url;
+  link.href = '/api/takes/' + id + '/audio?download=1&format=' + fmt;
   link.download = '';
   document.body.appendChild(link);
   link.click();

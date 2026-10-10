@@ -3927,11 +3927,13 @@ def take_audio(
     download: bool = False,
     format: str | None = None,
     raw: bool = False,
-    fx: str | None = None
 ) -> FileResponse:
+    """The take's audio: inline to play, or as a file to save.  It is always the take as it is kept.  Mastering is
+    never applied here: the rack renders a mastered file in the browser, with the chain that plays it, and sends it
+    to `export-mastered`.  `raw` is accepted for pages that still send it."""
     if format and format not in SAVE_FORMATS:
         raise HTTPException(400, "the format must be flac, wav or mp3")
-    take = one("SELECT audio_path, title, kind, lyrics, fx_chain FROM takes WHERE id = ?", (take_id,))
+    take = one("SELECT audio_path, title, kind, lyrics FROM takes WHERE id = ?", (take_id,))
     if not take or not take["audio_path"] or not Path(take["audio_path"]).exists():
         raise HTTPException(404, "no audio for this take")
     safe = "".join(ch for ch in (take["title"] or "take") if ch.isalnum() or ch in " -_")[:60].strip() or "take"
@@ -3945,11 +3947,9 @@ def take_audio(
     # Made for this download only, with its tags, and removed once it has been sent.
     config.WORK_DIR.mkdir(parents=True, exist_ok=True)
     out = config.WORK_DIR / f"save-{take_id}-{uuid.uuid4().hex[:8]}.{fmt}"
-    active_fx = None if raw else (fx or take.get("fx_chain"))
     try:
         library.tagged_copy(Path(take["audio_path"]), out, fmt, codec, take["title"] or "",
-                            library.sung_words(take["kind"], take["lyrics"]),
-                            fx_chain=active_fx)
+                            library.sung_words(take["kind"], take["lyrics"]))
     except (subprocess.SubprocessError, OSError) as exc:
         out.unlink(missing_ok=True)
         log.warning("Could not convert take '%s' to %s: %s", take["title"] or take_id, fmt, exc)
@@ -3989,10 +3989,9 @@ async def export_mastered_take(
     try:
         content = await audio_file.read()
         temp_wav.write_bytes(content)
-        # fx_chain is None because audio_file was already rendered with the exact DSP chain!
+        # The upload was rendered by the rack's own chain: it is only tagged and encoded here.
         library.tagged_copy(temp_wav, out, fmt, codec, take["title"] or "",
-                            library.sung_words(take["kind"], take["lyrics"]),
-                            fx_chain=None)
+                            library.sung_words(take["kind"], take["lyrics"]))
     except (subprocess.SubprocessError, OSError) as exc:
         out.unlink(missing_ok=True)
         log.warning("Could not convert uploaded mastered audio for take '%s' to %s: %s", take["title"] or take_id, fmt, exc)
@@ -4046,13 +4045,16 @@ async def bake_master_take(
     undo: bool = Query(False),
     audio_file: UploadFile | None = File(None)
 ) -> dict:
-    """Permanently apply mastering DSP to a take, or restore the unmastered original.
-    Accepts bit-for-bit Web Audio rendered WAV, or falls back to server-side DSP."""
+    """Keep a take's mastering for good, or restore the unmastered original.  The mastered audio is the
+    WAV the rack rendered in the browser, with the chain that plays it: the server does no processing of
+    its own, so without that file there is nothing to bake."""
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take or not take["audio_path"] or not Path(take["audio_path"]).exists():
         raise HTTPException(404, "no audio for this take")
     if take["status"] != "done":
         raise HTTPException(409, "this take is busy")
+    if not undo and audio_file is None:
+        raise HTTPException(400, "send the mastered audio: the rack renders it, the server does not")
 
     current_audio = Path(take["audio_path"])
     premaster = library.premaster_path(current_audio)
@@ -4090,20 +4092,14 @@ async def bake_master_take(
     temp_target = config.WORK_DIR / f"bake-{take_id}-{uuid.uuid4().hex[:8]}.flac"
 
     try:
-        if audio_file is not None:
-            temp_wav = config.WORK_DIR / f"bake-in-{take_id}-{uuid.uuid4().hex[:8]}.wav"
-            try:
-                content = await audio_file.read()
-                temp_wav.write_bytes(content)
-                library.tagged_copy(temp_wav, temp_target, "flac", None, take["title"] or "",
-                                    library.sung_words(take["kind"], take["lyrics"]),
-                                    fx_chain=None)
-            finally:
-                temp_wav.unlink(missing_ok=True)
-        else:
-            library.tagged_copy(premaster, temp_target, "flac", None, take["title"] or "",
-                                library.sung_words(take["kind"], take["lyrics"]),
-                                fx_chain=take.get("fx_chain"))
+        temp_wav = config.WORK_DIR / f"bake-in-{take_id}-{uuid.uuid4().hex[:8]}.wav"
+        try:
+            content = await audio_file.read()
+            temp_wav.write_bytes(content)
+            library.tagged_copy(temp_wav, temp_target, "flac", None, take["title"] or "",
+                                library.sung_words(take["kind"], take["lyrics"]))
+        finally:
+            temp_wav.unlink(missing_ok=True)
 
         shutil.move(str(temp_target), str(current_audio))
     except (subprocess.SubprocessError, OSError) as exc:

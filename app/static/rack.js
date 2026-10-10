@@ -25,10 +25,11 @@
         // legacy aliases
         mid1Freq: 1600, mid1Gain: 0, highFreq: 12000, airGain: 0
       },
-      comp: { enabled: true, threshold: -18, ratio: 4, attack: 0.015, release: 0.25, makeup: 0, mix: 1.0, knee: 10 },
-      imager: { enabled: true, bigness: 1, range: 5, stage: 5, harmonics: false, tubeHarmonics: 1, bass: false },
-      limit: { enabled: true, drive: 0, ceiling: -0.1, release: 0.08, warmth: false },
-      masterBypass: false
+      comp: { enabled: false, threshold: -18, ratio: 4, attack: 0.015, release: 0.25, makeup: 0, mix: 1.0, knee: 10 },
+      imager: { enabled: false, bigness: 1, range: 5, stage: 5, harmonics: false, tubeHarmonics: 1, bass: false },
+      limit: { enabled: false, drive: 0, ceiling: -0.1, release: 0.08, warmth: false },
+      masterBypass: false,
+      version: 2
     },
     'vintage_warmth': {
       name: 'Vintage Tube Warmth',
@@ -48,7 +49,8 @@
       comp: { enabled: true, threshold: -20, ratio: 4, attack: 0.025, release: 0.35, makeup: 2.5, mix: 0.85, knee: 20 },
       imager: { enabled: true, bigness: 3, range: 6, stage: 6, harmonics: true, tubeHarmonics: 4, bass: true },
       limit: { enabled: true, drive: 1.5, ceiling: -0.2, release: 0.12, warmth: true },
-      masterBypass: false
+      masterBypass: false,
+      version: 2
     },
     'vocal_air': {
       name: 'Vocal Air & Glue',
@@ -68,7 +70,8 @@
       comp: { enabled: true, threshold: -22, ratio: 4, attack: 0.008, release: 0.20, makeup: 3.0, mix: 0.90, knee: 12 },
       imager: { enabled: true, bigness: 2, range: 2, stage: 7, harmonics: false, tubeHarmonics: 1, bass: false },
       limit: { enabled: true, drive: 1.0, ceiling: -0.1, release: 0.08, warmth: false },
-      masterBypass: false
+      masterBypass: false,
+      version: 2
     },
     'radio_master': {
       name: 'Radio Ready Master',
@@ -88,7 +91,8 @@
       comp: { enabled: true, threshold: -24, ratio: 8, attack: 0.010, release: 0.15, makeup: 4.0, mix: 1.0, knee: 8 },
       imager: { enabled: true, bigness: 4, range: 5, stage: 6, harmonics: true, tubeHarmonics: 3, bass: true },
       limit: { enabled: true, drive: 2.5, ceiling: -0.1, release: 0.06, warmth: true },
-      masterBypass: false
+      masterBypass: false,
+      version: 2
     },
     'punchy_bass': {
       name: 'Punchy Club & Bass',
@@ -108,7 +112,8 @@
       comp: { enabled: true, threshold: -16, ratio: 8, attack: 0.030, release: 0.12, makeup: 2.0, mix: 0.95, knee: 6 },
       imager: { enabled: true, bigness: 3, range: 5, stage: 5, harmonics: false, tubeHarmonics: 2, bass: true },
       limit: { enabled: true, drive: 2.0, ceiling: -0.1, release: 0.08, warmth: false },
-      masterBypass: false
+      masterBypass: false,
+      version: 2
     },
     'acoustic_clarity': {
       name: 'Acoustic Clarity',
@@ -128,7 +133,8 @@
       comp: { enabled: true, threshold: -18, ratio: 2, attack: 0.020, release: 0.30, makeup: 1.5, mix: 0.80, knee: 18 },
       imager: { enabled: true, bigness: 2, range: 4, stage: 6, harmonics: false, tubeHarmonics: 1, bass: false },
       limit: { enabled: true, drive: 0.5, ceiling: -0.2, release: 0.10, warmth: false },
-      masterBypass: false
+      masterBypass: false,
+      version: 2
     }
   };
 
@@ -154,6 +160,19 @@
       }
     }
     return curve;
+  }
+
+  /* The sample rate a FLAC or WAV file says it has; 48000, what a take is made at, when the
+     header is neither. */
+  function fileSampleRate(arrayBuf) {
+    var b = new Uint8Array(arrayBuf, 0, Math.min(arrayBuf.byteLength, 44));
+    var rate = 0;
+    if (b.length >= 21 && b[0] === 0x66 && b[1] === 0x4c && b[2] === 0x61 && b[3] === 0x43) {
+      rate = (b[18] << 12) | (b[19] << 4) | (b[20] >> 4);          // fLaC: STREAMINFO
+    } else if (b.length >= 28 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46) {
+      rate = b[24] | (b[25] << 8) | (b[26] << 16) | (b[27] << 24);  // RIFF: fmt
+    }
+    return (rate >= 8000 && rate <= 192000) ? rate : 48000;
   }
 
   function audioBufferToWav(buffer) {
@@ -212,245 +231,60 @@
     return new Blob([arrayBuffer], { type: 'audio/wav' });
   }
 
+  /* Whether these settings change the sound at all.  When they do not, the take plays and
+     saves untouched: the chain is not in the path.  It mirrors what applySettings does with
+     each value, and playback, Save and Apply all ask it. */
+  function chainEngaged(s) {
+    if (!s || s.masterBypass) { return false; }
+    function num(v) { var n = Number(v); return isNaN(n) ? 0 : n; }
+    var eq = s.eq || {};
+    if (num(eq.preGain) !== 0 || num(eq.outLevel) !== 0 || eq.phase) { return true; }
+    if (s.eq && eq.enabled !== false) {
+      var mid = eq.midGain !== undefined ? eq.midGain : eq.mid1Gain;
+      var high = eq.highGain !== undefined ? eq.highGain : eq.airGain;
+      if (num(eq.hp) > 20 || num(eq.lowGain) !== 0 || num(mid) !== 0 || num(high) !== 0) { return true; }
+    }
+    return Boolean((s.comp && s.comp.enabled !== false) ||
+                   (s.imager && s.imager.enabled !== false) ||
+                   (s.limit && s.limit.enabled !== false));
+  }
+
+  /* Settings kept before version 2 had every module switched in at values the rack called
+     flat, though a compressor, an imager and a limiter at those values still change the sound.
+     A module left exactly there was never touched, so it is read as out. */
+  function upgradeSettings(stored) {
+    if (!stored || typeof stored !== 'object') { return stored; }
+    var s = JSON.parse(JSON.stringify(stored));
+    if (s.version === 2) { return s; }
+    function is(v, want, fallback) { return Number(v === undefined ? fallback : v) === want; }
+    var c = s.comp, i = s.imager, l = s.limit;
+    if (c && c.enabled !== false && is(c.threshold, -18, -18) && is(c.ratio, 4, 4) &&
+        is(c.attack, 0.015, 0.015) && is(c.release, 0.25, 0.25) && is(c.makeup, 0, 0) &&
+        is(c.mix, 1, 1) && is(c.knee, 10, 10)) {
+      c.enabled = false;
+    }
+    if (i && i.enabled !== false && is(i.bigness, 1, 1) && is(i.range, 5, 5) && is(i.stage, 5, 5) &&
+        !i.harmonics && !i.bass) {
+      i.enabled = false;
+    }
+    if (l && l.enabled !== false && is(l.drive, 0, 0) && is(l.ceiling, -0.1, -0.1) &&
+        is(l.release, 0.08, 0.08) && !l.warmth) {
+      l.enabled = false;
+    }
+    s.version = 2;
+    return s;
+  }
+
+  /* The chain for an offline render: the same nodes and the same settings code as playback,
+     on another context, with the values set at once rather than eased in. */
   function buildMasteringDspGraph(ctx, s) {
-    s = s || PRESETS['default'];
-
-    // 1. Input Gain
-    var inputGain = ctx.createGain();
-    var preDb = (s.eq && s.eq.preGain !== undefined) ? Number(s.eq.preGain) : 0;
-    inputGain.gain.value = Math.pow(10, preDb / 20);
-
-    // 2. 1073 Parametric EQ chain
-    var eqOn = s.eq && s.eq.enabled !== false;
-    var eqHP = ctx.createBiquadFilter();
-    eqHP.type = 'highpass';
-    var hpVal = Number(s.eq && s.eq.hp);
-    if (isNaN(hpVal) || hpVal <= 20) { hpVal = 20; }
-    eqHP.frequency.value = eqOn ? hpVal : 20;
-    eqHP.Q.value = 0.707;
-
-    var eqLow = ctx.createBiquadFilter();
-    eqLow.type = 'lowshelf';
-    var lowF = Number(s.eq && s.eq.lowFreq);
-    if (isNaN(lowF) || lowF <= 0) { lowF = 60; }
-    eqLow.frequency.value = lowF;
-    eqLow.gain.value = eqOn ? (s.eq && s.eq.lowGain !== undefined ? Number(s.eq.lowGain) : 0) : 0;
-
-    var eqMid = ctx.createBiquadFilter();
-    eqMid.type = 'peaking';
-    var midF = Number(s.eq && (s.eq.midFreq || s.eq.mid1Freq));
-    if (isNaN(midF) || midF <= 0) { midF = 1600; }
-    eqMid.frequency.value = midF;
-    eqMid.Q.value = 1.1;
-    eqMid.gain.value = eqOn ? (s.eq && s.eq.midGain !== undefined ? Number(s.eq.midGain) : (s.eq && s.eq.mid1Gain !== undefined ? Number(s.eq.mid1Gain) : 0)) : 0;
-
-    var eqHigh = ctx.createBiquadFilter();
-    eqHigh.type = 'highshelf';
-    eqHigh.frequency.value = 6800;
-    eqHigh.gain.value = eqOn ? (s.eq && s.eq.highGain !== undefined ? Number(s.eq.highGain) : (s.eq && s.eq.airGain !== undefined ? Number(s.eq.airGain) : 0)) : 0;
-
-    var eqPhase = ctx.createGain();
-    eqPhase.gain.value = (s.eq && s.eq.phase) ? -1.0 : 1.0;
-
-    var eqOutput = ctx.createGain();
-    var outDb = (s.eq && s.eq.outLevel !== undefined) ? Number(s.eq.outLevel) : 0;
-    eqOutput.gain.value = Math.pow(10, outDb / 20);
-
-    inputGain.connect(eqHP);
-    eqHP.connect(eqLow);
-    eqLow.connect(eqMid);
-    eqMid.connect(eqHigh);
-    eqHigh.connect(eqPhase);
-    eqPhase.connect(eqOutput);
-
-    // 3. Vintage Compressor stage with parallel blend
-    var compDryGain = ctx.createGain();
-    var compWetGain = ctx.createGain();
-    var compressor = ctx.createDynamicsCompressor();
-    var compMakeup = ctx.createGain();
-    var compSum = ctx.createGain();
-
-    var compOn = s.comp && s.comp.enabled !== false;
-    if (!compOn) {
-      compDryGain.gain.value = 1.0;
-      compWetGain.gain.value = 0.0;
-    } else {
-      var mix = (s.comp && typeof s.comp.mix === 'number') ? s.comp.mix : 1.0;
-      compDryGain.gain.value = 1.0 - mix;
-      compWetGain.gain.value = mix;
-      compressor.threshold.value = (s.comp && s.comp.threshold !== undefined) ? s.comp.threshold : -18;
-      compressor.ratio.value = (s.comp && s.comp.ratio) || 4;
-      compressor.attack.value = (s.comp && s.comp.attack) || 0.015;
-      compressor.release.value = (s.comp && s.comp.release) || 0.25;
-      compressor.knee.value = (s.comp && s.comp.knee !== undefined) ? s.comp.knee : 10;
-      compMakeup.gain.value = Math.pow(10, ((s.comp && s.comp.makeup) || 0) / 20);
-    }
-
-    eqOutput.connect(compDryGain);
-    eqOutput.connect(compressor);
-    compressor.connect(compMakeup);
-    compMakeup.connect(compWetGain);
-    compDryGain.connect(compSum);
-    compWetGain.connect(compSum);
-
-    // 4. Vintage Stereo Imager & Spatial Processor stage
-    var imagerDryGain = ctx.createGain();
-    var imagerWetGain = ctx.createGain();
-    var imagerSplitter = ctx.createChannelSplitter(2);
-    var lToM = ctx.createGain(); lToM.gain.value = 0.5;
-    var rToM = ctx.createGain(); rToM.gain.value = 0.5;
-    var imagerMidBus = ctx.createGain();
-    var imagerBassFilter = ctx.createBiquadFilter();
-    imagerBassFilter.type = 'lowshelf';
-    imagerBassFilter.frequency.value = 85;
-
-    var lToS = ctx.createGain(); lToS.gain.value = 0.5;
-    var rToS = ctx.createGain(); rToS.gain.value = -0.5;
-    var imagerSideBus = ctx.createGain();
-    var imagerSideHP = ctx.createBiquadFilter();
-    imagerSideHP.type = 'highpass';
-    imagerSideHP.frequency.value = 90;
-    imagerSideHP.Q.value = 0.707;
-
-    var imagerRangeFilter = ctx.createBiquadFilter();
-    imagerRangeFilter.type = 'highpass';
-    imagerRangeFilter.Q.value = 0.707;
-
-    var imagerStageFilter = ctx.createBiquadFilter();
-    imagerStageFilter.type = 'allpass';
-
-    var imagerWidthGain = ctx.createGain();
-    var imagerHarmonicsDrive = ctx.createGain();
-    var imagerShaper = ctx.createWaveShaper();
-    imagerShaper.oversample = '4x';
-
-    var midToL = ctx.createGain(); midToL.gain.value = 1.0;
-    var midToR = ctx.createGain(); midToR.gain.value = 1.0;
-    var sideToL = ctx.createGain(); sideToL.gain.value = 1.0;
-    var sideToR = ctx.createGain(); sideToR.gain.value = -1.0;
-    var imagerMerger = ctx.createChannelMerger(2);
-    var imagerSum = ctx.createGain();
-
-    var imagerOn = s.imager && s.imager.enabled !== false;
-    if (!imagerOn) {
-      imagerDryGain.gain.value = 1.0;
-      imagerWetGain.gain.value = 0.0;
-    } else {
-      imagerDryGain.gain.value = 0.0;
-      imagerWetGain.gain.value = 1.0;
-
-      var rangeVal = Number(s.imager && s.imager.range);
-      if (isNaN(rangeVal) || rangeVal < 1) { rangeVal = 5; }
-      var rangeNorm = (rangeVal - 1) / 8;
-      imagerRangeFilter.frequency.value = 2800 * Math.pow(180 / 2800, rangeNorm);
-
-      var stageVal = Number(s.imager && s.imager.stage);
-      if (isNaN(stageVal) || stageVal < 1) { stageVal = 5; }
-      var stageNorm = (stageVal - 1) / 8;
-      imagerStageFilter.frequency.value = 350 * Math.pow(3200 / 350, stageNorm);
-
-      var bignessVal = Number(s.imager && s.imager.bigness);
-      if (isNaN(bignessVal) || bignessVal < 0) { bignessVal = 1; }
-      imagerWidthGain.gain.value = (bignessVal <= 1) ? bignessVal : (1.0 + ((bignessVal - 1) / 8) * 1.4);
-
-      imagerBassFilter.gain.value = (s.imager && s.imager.bass) ? 3.0 : 0.0;
-
-      var harmOn = Boolean(s.imager && s.imager.harmonics);
-      var tubeH = Number(s.imager && s.imager.tubeHarmonics);
-      if (isNaN(tubeH) || tubeH < 1) { tubeH = 1; }
-      if (harmOn) {
-        imagerHarmonicsDrive.gain.value = 1.0 + ((tubeH - 1) / 8) * 0.8;
-        imagerShaper.curve = makeTubeCurve();
-      } else {
-        imagerHarmonicsDrive.gain.value = 1.0;
-        imagerShaper.curve = makeLinearCurve();
-      }
-    }
-
-    compSum.connect(imagerDryGain);
-    imagerDryGain.connect(imagerSum);
-
-    compSum.connect(imagerSplitter);
-    imagerSplitter.connect(lToM, 0);
-    imagerSplitter.connect(rToM, 1);
-    lToM.connect(imagerMidBus);
-    rToM.connect(imagerMidBus);
-    imagerMidBus.connect(imagerBassFilter);
-
-    imagerSplitter.connect(lToS, 0);
-    imagerSplitter.connect(rToS, 1);
-    lToS.connect(imagerSideBus);
-    rToS.connect(imagerSideBus);
-    imagerSideBus.connect(imagerSideHP);
-    imagerSideHP.connect(imagerRangeFilter);
-    imagerRangeFilter.connect(imagerStageFilter);
-    imagerStageFilter.connect(imagerWidthGain);
-
-    imagerBassFilter.connect(midToL);
-    imagerBassFilter.connect(midToR);
-    imagerWidthGain.connect(sideToL);
-    imagerWidthGain.connect(sideToR);
-
-    midToL.connect(imagerMerger, 0, 0);
-    sideToL.connect(imagerMerger, 0, 0);
-    midToR.connect(imagerMerger, 0, 1);
-    sideToR.connect(imagerMerger, 0, 1);
-
-    imagerMerger.connect(imagerHarmonicsDrive);
-    imagerHarmonicsDrive.connect(imagerShaper);
-    imagerShaper.connect(imagerWetGain);
-    imagerWetGain.connect(imagerSum);
-
-    // 5. Master Limiter & Tube Warmth stage
-    var limitDrive = ctx.createGain();
-    var limitShaper = ctx.createWaveShaper();
-    limitShaper.oversample = '4x';
-    var limiter = ctx.createDynamicsCompressor();
-    var limitCeiling = ctx.createGain();
-
-    var limitOn = s.limit && s.limit.enabled !== false;
-    if (!limitOn) {
-      limitDrive.gain.value = 1.0;
-      limitShaper.curve = makeLinearCurve();
-      limiter.ratio.value = 1.0;
-      limitCeiling.gain.value = 1.0;
-    } else {
-      var driveLin = Math.pow(10, ((s.limit && s.limit.drive) || 0) / 20);
-      limitDrive.gain.value = driveLin;
-      limiter.threshold.value = -0.5;
-      limiter.knee.value = 0.0;
-      limiter.ratio.value = 20.0;
-      limiter.attack.value = 0.001;
-      limiter.release.value = (s.limit && s.limit.release) || 0.08;
-      var ceilDb = (s.limit && s.limit.ceiling !== undefined) ? s.limit.ceiling : -0.1;
-      limitCeiling.gain.value = Math.pow(10, ceilDb / 20);
-      limitShaper.curve = (s.limit && s.limit.warmth) ? makeTubeCurve() : makeLinearCurve();
-    }
-
-    imagerSum.connect(limitDrive);
-    limitDrive.connect(limitShaper);
-    limitShaper.connect(limiter);
-    limiter.connect(limitCeiling);
-
-    // 6. Master Output / Bypass Routing
-    var masterDryGain = ctx.createGain();
-    var masterWetGain = ctx.createGain();
-    var masterOut = ctx.createGain();
-
-    var isBypassed = Boolean(s.masterBypass);
-    masterDryGain.gain.value = isBypassed ? 1.0 : 0.0;
-    masterWetGain.gain.value = isBypassed ? 0.0 : 1.0;
-
-    inputGain.connect(masterDryGain);
-    limitCeiling.connect(masterWetGain);
-
-    masterDryGain.connect(masterOut);
-    masterWetGain.connect(masterOut);
-
-    return {
-      inputNode: inputGain,
-      outputNode: masterOut
-    };
+    var chain = Object.create(Engine);
+    var entry = ctx.createGain();
+    var out = ctx.createGain();
+    chain.ctx = ctx;
+    chain.build(ctx, entry, out);
+    chain.applySettings(s || PRESETS['default'], true);
+    return { inputNode: entry, outputNode: out };
   }
 
   // ------------------------------------------------------------- DSP Engine
@@ -495,6 +329,8 @@
     limitShaper: null,
     limiter: null,
     limitCeiling: null,
+    limitDryGain: null,
+    limitWetGain: null,
 
     // Master / Bypass crossfader
     masterDryGain: null,
@@ -525,8 +361,14 @@
         self.resume();
       });
 
-      var ctx = this.ctx;
+      this.build(this.ctx, this.sourceNode, this.ctx.destination);
+      return true;
+    },
 
+    /* The chain itself, from source to destination, on any context: the page's for playback,
+       an offline one for a file.  Everything starts out of the path; applySettings switches
+       in what the settings ask for. */
+    build: function (ctx, source, destination) {
       // 1. Input Gain (Preamp Gain / Drive)
       this.inputGain = ctx.createGain();
       this.inputGain.gain.value = 1.0;
@@ -593,6 +435,9 @@
       this.compressor.connect(this.compMakeup);
       this.compMakeup.connect(this.compWetGain);
 
+      this.compDryGain.gain.value = 1.0;
+      this.compWetGain.gain.value = 0.0;
+
       var compSum = ctx.createGain();
       this.compDryGain.connect(compSum);
       this.compWetGain.connect(compSum);
@@ -600,8 +445,8 @@
       // 4. Vintage Stereo Imager & Spatial Processor stage
       this.imagerDryGain = ctx.createGain();
       this.imagerWetGain = ctx.createGain();
-      this.imagerDryGain.gain.value = 0.0;
-      this.imagerWetGain.gain.value = 1.0;
+      this.imagerDryGain.gain.value = 1.0;
+      this.imagerWetGain.gain.value = 0.0;
 
       // M/S Matrix
       this.imagerSplitter = ctx.createChannelSplitter(2);
@@ -711,30 +556,39 @@
       this.limitCeiling = ctx.createGain();
       this.limitCeiling.gain.value = Math.pow(10, -0.1 / 20); // -0.1 dB
 
+      // Out means out: the limiter has a dry path of its own, like the other two
+      this.limitDryGain = ctx.createGain();
+      this.limitWetGain = ctx.createGain();
+      this.limitDryGain.gain.value = 1.0;
+      this.limitWetGain.gain.value = 0.0;
+      var limitSum = ctx.createGain();
+
+      imagerSum.connect(this.limitDryGain);
       imagerSum.connect(this.limitDrive);
       this.limitDrive.connect(this.limitShaper);
       this.limitShaper.connect(this.limiter);
       this.limiter.connect(this.limitCeiling);
+      this.limitCeiling.connect(this.limitWetGain);
+      this.limitDryGain.connect(limitSum);
+      this.limitWetGain.connect(limitSum);
 
       // 6. Master Output / Bypass Routing
       this.masterDryGain = ctx.createGain();
       this.masterWetGain = ctx.createGain();
-      this.masterDryGain.gain.value = 0.0;
-      this.masterWetGain.gain.value = 1.0;
+      this.masterDryGain.gain.value = 1.0;
+      this.masterWetGain.gain.value = 0.0;
 
       this.analyser = ctx.createAnalyser();
       this.analyser.fftSize = 256;
 
-      this.sourceNode.connect(this.inputGain);
-      this.sourceNode.connect(this.masterDryGain);
+      source.connect(this.inputGain);
+      source.connect(this.masterDryGain);
 
-      this.limitCeiling.connect(this.masterWetGain);
+      limitSum.connect(this.masterWetGain);
 
       this.masterDryGain.connect(this.analyser);
       this.masterWetGain.connect(this.analyser);
-      this.analyser.connect(ctx.destination);
-
-      return true;
+      this.analyser.connect(destination);
     },
 
     makeLinearCurve: function () {
@@ -752,11 +606,15 @@
       return Promise.resolve();
     },
 
-    applySettings: function (s) {
+    applySettings: function (s, atOnce) {
       if (!this.init()) { return; }
       var ctx = this.ctx;
       var now = ctx.currentTime;
       var ramp = 0.02;
+      // Playback eases each value in, so a turned knob does not click; a render sets it.
+      function set(param, value) {
+        if (atOnce) { param.value = value; } else { param.setTargetAtTime(value, now, ramp); }
+      }
 
       // 1073 EQ Stage
       if (s.eq) {
@@ -764,136 +622,127 @@
 
         // Preamp Gain / Drive
         var preDb = s.eq.preGain !== undefined ? Number(s.eq.preGain) : 0;
-        this.inputGain.gain.setTargetAtTime(Math.pow(10, preDb / 20), now, ramp);
+        set(this.inputGain.gain, Math.pow(10, preDb / 20));
 
         // High Pass Filter (Low Cut)
         var hpVal = Number(s.eq.hp);
         if (isNaN(hpVal) || hpVal <= 20) { hpVal = 20; }
-        this.eqHP.frequency.setTargetAtTime(eqOn ? hpVal : 20, now, ramp);
+        set(this.eqHP.frequency, eqOn ? hpVal : 20);
 
         // Low Shelf
         var lowF = Number(s.eq.lowFreq);
         if (isNaN(lowF) || lowF <= 0) { lowF = 60; }
         var lowG = eqOn ? (s.eq.lowGain !== undefined ? Number(s.eq.lowGain) : 0) : 0;
-        this.eqLow.frequency.setTargetAtTime(lowF, now, ramp);
-        this.eqLow.gain.setTargetAtTime(lowG, now, ramp);
+        set(this.eqLow.frequency, lowF);
+        set(this.eqLow.gain, lowG);
 
         // Mid Band
         var midF = Number(s.eq.midFreq || s.eq.mid1Freq);
         if (isNaN(midF) || midF <= 0) { midF = 1600; }
         var midG = eqOn ? (s.eq.midGain !== undefined ? Number(s.eq.midGain) : (s.eq.mid1Gain !== undefined ? Number(s.eq.mid1Gain) : 0)) : 0;
-        this.eqMid.frequency.setTargetAtTime(midF, now, ramp);
-        this.eqMid.gain.setTargetAtTime(midG, now, ramp);
+        set(this.eqMid.frequency, midF);
+        set(this.eqMid.gain, midG);
 
         // High Shelf (Fixed 12 kHz analog-modeled corner)
         var hiG = eqOn ? (s.eq.highGain !== undefined ? Number(s.eq.highGain) : (s.eq.airGain !== undefined ? Number(s.eq.airGain) : 0)) : 0;
-        this.eqHigh.frequency.setTargetAtTime(6800, now, ramp);
-        this.eqHigh.gain.setTargetAtTime(hiG, now, ramp);
+        set(this.eqHigh.frequency, 6800);
+        set(this.eqHigh.gain, hiG);
 
         // Phase Invert
         var isPhaseInvert = Boolean(s.eq.phase);
-        this.eqPhase.gain.setTargetAtTime(isPhaseInvert ? -1.0 : 1.0, now, ramp);
+        set(this.eqPhase.gain, isPhaseInvert ? -1.0 : 1.0);
 
         // Output Trim
         var outDb = s.eq.outLevel !== undefined ? Number(s.eq.outLevel) : 0;
-        this.eqOutput.gain.setTargetAtTime(Math.pow(10, outDb / 20), now, ramp);
+        set(this.eqOutput.gain, Math.pow(10, outDb / 20));
       }
 
       // Compressor
       if (s.comp) {
-        if (s.comp.enabled === false) {
-          this.compDryGain.gain.setTargetAtTime(1.0, now, ramp);
-          this.compWetGain.gain.setTargetAtTime(0.0, now, ramp);
-        } else {
-          var mix = typeof s.comp.mix === 'number' ? s.comp.mix : 1.0;
-          this.compDryGain.gain.setTargetAtTime(1.0 - mix, now, ramp);
-          this.compWetGain.gain.setTargetAtTime(mix, now, ramp);
-          this.compressor.threshold.setTargetAtTime(s.comp.threshold !== undefined ? s.comp.threshold : -18, now, ramp);
-          this.compressor.ratio.setTargetAtTime(s.comp.ratio || 4, now, ramp);
-          this.compressor.attack.setTargetAtTime(s.comp.attack || 0.015, now, ramp);
-          this.compressor.release.setTargetAtTime(s.comp.release || 0.25, now, ramp);
-          this.compressor.knee.setTargetAtTime(s.comp.knee !== undefined ? s.comp.knee : 10, now, ramp);
-          var makeupLinear = Math.pow(10, (s.comp.makeup || 0) / 20);
-          this.compMakeup.gain.setTargetAtTime(makeupLinear, now, ramp);
-        }
+        // A module that is out keeps its values all the same: only its place in the path changes
+        var compOn = s.comp.enabled !== false;
+        var mix = typeof s.comp.mix === 'number' ? s.comp.mix : 1.0;
+        set(this.compDryGain.gain, compOn ? 1.0 - mix : 1.0);
+        set(this.compWetGain.gain, compOn ? mix : 0.0);
+        set(this.compressor.threshold, s.comp.threshold !== undefined ? s.comp.threshold : -18);
+        set(this.compressor.ratio, s.comp.ratio || 4);
+        set(this.compressor.attack, s.comp.attack || 0.015);
+        set(this.compressor.release, s.comp.release || 0.25);
+        set(this.compressor.knee, s.comp.knee !== undefined ? s.comp.knee : 10);
+        var makeupLinear = Math.pow(10, (s.comp.makeup || 0) / 20);
+        set(this.compMakeup.gain, makeupLinear);
       }
 
       // Vintage Stereo Imager Stage (Placed before Master Limiter)
       if (s.imager) {
-        if (s.imager.enabled === false) {
-          this.imagerDryGain.gain.setTargetAtTime(1.0, now, ramp);
-          this.imagerWetGain.gain.setTargetAtTime(0.0, now, ramp);
+        var imagerOn = s.imager.enabled !== false;
+        set(this.imagerDryGain.gain, imagerOn ? 0.0 : 1.0);
+        set(this.imagerWetGain.gain, imagerOn ? 1.0 : 0.0);
+
+        // Range knob: 1 ("HIGH", 2800 Hz) to 9 ("OPEN", 180 Hz)
+        var rangeVal = Number(s.imager.range);
+        if (isNaN(rangeVal) || rangeVal < 1) { rangeVal = 5; }
+        var rangeNorm = (rangeVal - 1) / 8;
+        var rangeHz = 2800 * Math.pow(180 / 2800, rangeNorm);
+        set(this.imagerRangeFilter.frequency, rangeHz);
+
+        // Stage knob: 1 ("BACK", 350 Hz) to 9 ("FRONT", 3200 Hz)
+        var stageVal = Number(s.imager.stage);
+        if (isNaN(stageVal) || stageVal < 1) { stageVal = 5; }
+        var stageNorm = (stageVal - 1) / 8;
+        var stageHz = 350 * Math.pow(3200 / 350, stageNorm);
+        set(this.imagerStageFilter.frequency, stageHz);
+
+        // Bigness knob: 1 ("MIN", 1.0x width) to 9 ("MAX", 2.4x width)
+        var bignessVal = Number(s.imager.bigness);
+        if (isNaN(bignessVal) || bignessVal < 0) { bignessVal = 1; }
+        var widthFactor = (bignessVal <= 1) ? bignessVal : (1.0 + ((bignessVal - 1) / 8) * 1.4);
+        set(this.imagerWidthGain.gain, widthFactor);
+
+        // Bass punch circuit: +3.0 dB low shelf at 85 Hz
+        var bassOn = Boolean(s.imager.bass);
+        set(this.imagerBassFilter.gain, bassOn ? 3.0 : 0.0);
+
+        // Harmonics toggle & Tube Harmonics drive
+        var harmOn = Boolean(s.imager.harmonics);
+        var tubeH = Number(s.imager.tubeHarmonics);
+        if (isNaN(tubeH) || tubeH < 1) { tubeH = 1; }
+        if (harmOn) {
+          var driveLinear = 1.0 + ((tubeH - 1) / 8) * 0.8;
+          set(this.imagerHarmonicsDrive.gain, driveLinear);
+          this.imagerShaper.curve = this.makeTubeCurve();
         } else {
-          this.imagerDryGain.gain.setTargetAtTime(0.0, now, ramp);
-          this.imagerWetGain.gain.setTargetAtTime(1.0, now, ramp);
-
-          // Range knob: 1 ("HIGH", 2800 Hz) to 9 ("OPEN", 180 Hz)
-          var rangeVal = Number(s.imager.range);
-          if (isNaN(rangeVal) || rangeVal < 1) { rangeVal = 5; }
-          var rangeNorm = (rangeVal - 1) / 8;
-          var rangeHz = 2800 * Math.pow(180 / 2800, rangeNorm);
-          this.imagerRangeFilter.frequency.setTargetAtTime(rangeHz, now, ramp);
-
-          // Stage knob: 1 ("BACK", 350 Hz) to 9 ("FRONT", 3200 Hz)
-          var stageVal = Number(s.imager.stage);
-          if (isNaN(stageVal) || stageVal < 1) { stageVal = 5; }
-          var stageNorm = (stageVal - 1) / 8;
-          var stageHz = 350 * Math.pow(3200 / 350, stageNorm);
-          this.imagerStageFilter.frequency.setTargetAtTime(stageHz, now, ramp);
-
-          // Bigness knob: 1 ("MIN", 1.0x width) to 9 ("MAX", 2.4x width)
-          var bignessVal = Number(s.imager.bigness);
-          if (isNaN(bignessVal) || bignessVal < 0) { bignessVal = 1; }
-          var widthFactor = (bignessVal <= 1) ? bignessVal : (1.0 + ((bignessVal - 1) / 8) * 1.4);
-          this.imagerWidthGain.gain.setTargetAtTime(widthFactor, now, ramp);
-
-          // Bass punch circuit: +3.0 dB low shelf at 85 Hz
-          var bassOn = Boolean(s.imager.bass);
-          this.imagerBassFilter.gain.setTargetAtTime(bassOn ? 3.0 : 0.0, now, ramp);
-
-          // Harmonics toggle & Tube Harmonics drive
-          var harmOn = Boolean(s.imager.harmonics);
-          var tubeH = Number(s.imager.tubeHarmonics);
-          if (isNaN(tubeH) || tubeH < 1) { tubeH = 1; }
-          if (harmOn) {
-            var driveLinear = 1.0 + ((tubeH - 1) / 8) * 0.8;
-            this.imagerHarmonicsDrive.gain.setTargetAtTime(driveLinear, now, ramp);
-            this.imagerShaper.curve = this.makeTubeCurve();
-          } else {
-            this.imagerHarmonicsDrive.gain.setTargetAtTime(1.0, now, ramp);
-            this.imagerShaper.curve = this.makeLinearCurve();
-          }
+          set(this.imagerHarmonicsDrive.gain, 1.0);
+          this.imagerShaper.curve = this.makeLinearCurve();
         }
       }
 
       // Limiter
       if (s.limit) {
-        if (s.limit.enabled === false) {
-          this.limitDrive.gain.setTargetAtTime(1.0, now, ramp);
-          this.limiter.ratio.setTargetAtTime(1.0, now, ramp);
-          this.limitCeiling.gain.setTargetAtTime(1.0, now, ramp);
+        var limitOn = s.limit.enabled !== false;
+        set(this.limitDryGain.gain, limitOn ? 0.0 : 1.0);
+        set(this.limitWetGain.gain, limitOn ? 1.0 : 0.0);
+        var driveLin = Math.pow(10, (s.limit.drive || 0) / 20);
+        set(this.limitDrive.gain, driveLin);
+        set(this.limiter.ratio, 20.0);
+        set(this.limiter.release, s.limit.release || 0.08);
+        var ceilDb = s.limit.ceiling !== undefined ? s.limit.ceiling : -0.1;
+        set(this.limitCeiling.gain, Math.pow(10, ceilDb / 20));
+        if (s.limit.warmth) {
+          this.limitShaper.curve = this.makeTubeCurve();
         } else {
-          var driveLin = Math.pow(10, (s.limit.drive || 0) / 20);
-          this.limitDrive.gain.setTargetAtTime(driveLin, now, ramp);
-          this.limiter.ratio.setTargetAtTime(20.0, now, ramp);
-          this.limiter.release.setTargetAtTime(s.limit.release || 0.08, now, ramp);
-          var ceilDb = s.limit.ceiling !== undefined ? s.limit.ceiling : -0.1;
-          this.limitCeiling.gain.setTargetAtTime(Math.pow(10, ceilDb / 20), now, ramp);
-          if (s.limit.warmth) {
-            this.limitShaper.curve = this.makeTubeCurve();
-          } else {
-            this.limitShaper.curve = this.makeLinearCurve();
-          }
+          this.limitShaper.curve = this.makeLinearCurve();
         }
       }
 
-      // Master Bypass
-      if (s.masterBypass) {
-        this.masterDryGain.gain.setTargetAtTime(1.0, now, ramp);
-        this.masterWetGain.gain.setTargetAtTime(0.0, now, ramp);
+      // Master: the chain is in the path only when something in it changes the sound, so a
+      // rack left flat plays the take as it is, and so does Bypass
+      if (!chainEngaged(s)) {
+        set(this.masterDryGain.gain, 1.0);
+        set(this.masterWetGain.gain, 0.0);
       } else {
-        this.masterDryGain.gain.setTargetAtTime(0.0, now, ramp);
-        this.masterWetGain.gain.setTargetAtTime(1.0, now, ramp);
+        set(this.masterDryGain.gain, 0.0);
+        set(this.masterWetGain.gain, 1.0);
       }
     },
 
@@ -1367,7 +1216,7 @@
             self.settings = JSON.parse(JSON.stringify(PRESETS[key]));
             if (delBtn) { delBtn.classList.add('hidden'); }
           } else if (userPresets[key]) {
-            self.settings = JSON.parse(JSON.stringify(userPresets[key]));
+            self.settings = self.mergeSettings(PRESETS['default'], upgradeSettings(userPresets[key]));
             if (delBtn) { delBtn.classList.remove('hidden'); }
           }
           self.syncKnobsToState();
@@ -1523,6 +1372,7 @@
           if (!self.settings.imager) { self.settings.imager = {}; }
           self.settings.imager.harmonics = !self.settings.imager.harmonics;
           this.classList.toggle('active', self.settings.imager.harmonics);
+          if (self.settings.imager.harmonics) { self.engage('imager'); }
           Engine.applySettings(self.settings);
           self.debouncedSave();
         });
@@ -1535,6 +1385,7 @@
           if (!self.settings.imager) { self.settings.imager = {}; }
           self.settings.imager.bass = !self.settings.imager.bass;
           this.classList.toggle('active', self.settings.imager.bass);
+          if (self.settings.imager.bass) { self.engage('imager'); }
           Engine.applySettings(self.settings);
           self.debouncedSave();
         });
@@ -1558,6 +1409,7 @@
         toggleWarmth.addEventListener('click', function () {
           self.settings.limit.warmth = !self.settings.limit.warmth;
           this.classList.toggle('on', self.settings.limit.warmth);
+          if (self.settings.limit.warmth) { self.engage('limit'); }
           if (warmthStatus) {
             warmthStatus.textContent = self.settings.limit.warmth ? 'TUBE ON' : 'OFF';
             warmthStatus.classList.toggle('active', self.settings.limit.warmth);
@@ -1583,6 +1435,7 @@
             self.settings.comp.ratio = Number(r) || 4;
             self.settings.comp.knee = 10;
           }
+          self.engage('comp');
           Engine.applySettings(self.settings);
           self.debouncedSave();
         });
@@ -1662,12 +1515,13 @@
 
         wrap._updateDisplay = updateKnobDisplay;
 
-        function setParamValue(val) {
+        function setParamValue(val, quietly) {
           val = Math.max(min, Math.min(max, val));
           val = Math.round(val / step) * step;
 
           var parts = param.split('.');
           if (parts.length === 2 && self.settings[parts[0]]) {
+            if (!quietly) { self.engage(parts[0]); }
             if (valuesList) {
               var rawVal = valuesList[val];
               self.settings[parts[0]][parts[1]] = isNaN(Number(rawVal)) ? rawVal : Number(rawVal);
@@ -1741,7 +1595,7 @@
         // Double-click to reset to default
         dial.addEventListener('dblclick', function (e) {
           e.preventDefault();
-          setParamValue(def);
+          setParamValue(def, true);
         });
       });
     },
@@ -1864,6 +1718,15 @@
       if (activeDot) { activeDot.classList.toggle('hidden', isBypassed); }
     },
 
+    /* Turning a control of a module that is out switches the module in: a knob that moved
+       and changed nothing would be a puzzle.  Putting a knob back with a double click does not. */
+    engage: function (module) {
+      var m = this.settings[module];
+      if (!m || m.enabled !== false) { return; }
+      m.enabled = true;
+      this.syncKnobsToState();
+    },
+
     mergeSettings: function (base, override) {
       var out = JSON.parse(JSON.stringify(base));
       if (!override || typeof override !== 'object') { return out; }
@@ -1948,7 +1811,8 @@
         try {
           var parsed = typeof take.fx_chain === 'string' ? JSON.parse(take.fx_chain) : take.fx_chain;
           if (parsed && typeof parsed === 'object') {
-            this.settings = this.mergeSettings(PRESETS['default'], parsed);
+            this.settings = this.mergeSettings(PRESETS['default'], upgradeSettings(parsed));
+            this.keptPayload = JSON.stringify(this.settings);
             this.syncKnobsToState();
             Engine.applySettings(this.settings);
             return;
@@ -1962,10 +1826,11 @@
         .then(function (data) {
           if (self.currentTakeId !== take.id) { return; }
           if (data && Object.keys(data).length > 0) {
-            self.settings = self.mergeSettings(PRESETS['default'], data);
+            self.settings = self.mergeSettings(PRESETS['default'], upgradeSettings(data));
           } else {
             self.settings = JSON.parse(JSON.stringify(PRESETS['default']));
           }
+          self.keptPayload = JSON.stringify(self.settings);
           self.syncKnobsToState();
           Engine.applySettings(self.settings);
         })
@@ -1980,6 +1845,9 @@
       if (!this.currentTakeId) { return Promise.resolve(); }
       var takeId = this.currentTakeId;
       var payload = JSON.stringify(this.settings);
+      // A take that was only played or saved keeps no settings: nothing was changed
+      if (payload === this.keptPayload) { return Promise.resolve(); }
+      this.keptPayload = payload;
 
       // Immediately keep take object in State.takes and loadedTake in-sync
       if (window.State && State.takes) {
@@ -2028,6 +1896,7 @@
       if (this.saveTimer) { clearTimeout(this.saveTimer); }
       this.saveTimer = setTimeout(function () {
         self.saveTimer = null;
+        self.keptPayload = payload;
         fetch('/api/takes/' + takeId + '/fx', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -2038,85 +1907,49 @@
       }, 350);
     },
 
-    hasActiveMastering: function (takeId) {
-      var s = null;
+    /* The settings a take plays with: the rack's own while it holds that take, otherwise the
+       ones kept with the take.  Null when the take has none. */
+    settingsFor: function (takeId) {
       if (this.currentTakeId && String(this.currentTakeId) === String(takeId)) {
-        s = this.settings;
-      } else if (window.State && State.takes) {
-        var t = State.takes.find(function (x) { return String(x.id) === String(takeId); });
-        if (t && t.fx_chain) {
-          try {
-            s = typeof t.fx_chain === 'string' ? JSON.parse(t.fx_chain) : t.fx_chain;
-          } catch (e) {}
-        }
+        return this.settings;
       }
-      if (!s) { return false; }
-      if (s.masterBypass === true) { return false; }
-
-      if (s.eq && s.eq.enabled !== false) {
-        if (Number(s.eq.preGain || 0) !== 0 || Number(s.eq.lowGain || 0) !== 0 ||
-            Number(s.eq.midGain || 0) !== 0 || Number(s.eq.highGain || 0) !== 0 ||
-            Number(s.eq.outLevel || 0) !== 0 || Boolean(s.eq.phase) ||
-            (Number(s.eq.hp || 20) > 20)) {
-          return true;
-        }
+      var kept = null;
+      var takes = (window.State && State.takes) || [];
+      var t = takes.find(function (x) { return String(x.id) === String(takeId); });
+      if (!t && window.State && State.loadedTake && String(State.loadedTake.id) === String(takeId)) {
+        t = State.loadedTake;
       }
-      if (s.comp && s.comp.enabled !== false) {
-        if (Number(s.comp.makeup || 0) !== 0 ||
-            (s.comp.mix !== undefined && Number(s.comp.mix) < 0.999) ||
-            Number(s.comp.threshold || -18) !== -18 ||
-            Number(s.comp.ratio || 4) !== 4) {
-          return true;
-        }
-      }
-      if (s.imager && s.imager.enabled !== false) {
-        if (Number(s.imager.bigness || 1) !== 1 || Boolean(s.imager.bass) ||
-            Boolean(s.imager.harmonics) || Number(s.imager.range || 5) !== 5 ||
-            Number(s.imager.stage || 5) !== 5) {
-          return true;
-        }
-      }
-      if (s.limit && s.limit.enabled !== false) {
-        if (Number(s.limit.drive || 0) !== 0 || Boolean(s.limit.warmth) ||
-            Number(s.limit.ceiling !== undefined ? s.limit.ceiling : -0.1) !== -0.1) {
-          return true;
-        }
-      }
-      return false;
-    },
-
-    renderMasterWav: async function (takeId, customSettings) {
-      var s = customSettings;
-      if (!s && this.currentTakeId && String(this.currentTakeId) === String(takeId)) {
-        s = this.settings;
-      }
-      if (!s && window.State && State.takes) {
-        var t = State.takes.find(function (x) { return String(x.id) === String(takeId); });
-        if (t && t.fx_chain) {
-          try {
-            s = typeof t.fx_chain === 'string' ? JSON.parse(t.fx_chain) : t.fx_chain;
-          } catch (e) {}
-        }
-      }
-      if (!s && window.State && State.loadedTake && String(State.loadedTake.id) === String(takeId)) {
-        if (State.loadedTake.fx_chain) {
-          try {
-            s = typeof State.loadedTake.fx_chain === 'string' ? JSON.parse(State.loadedTake.fx_chain) : State.loadedTake.fx_chain;
-          } catch (e) {}
-        }
-      }
-      if (!s) {
+      if (t && t.fx_chain) {
         try {
-          var tResp = await fetch('/api/takes/' + takeId);
-          if (tResp.ok) {
-            var tData = await tResp.json();
-            if (tData && tData.fx_chain) {
-              s = typeof tData.fx_chain === 'string' ? JSON.parse(tData.fx_chain) : tData.fx_chain;
-            }
-          }
+          kept = typeof t.fx_chain === 'string' ? JSON.parse(t.fx_chain) : t.fx_chain;
         } catch (e) {}
       }
-      s = s || this.settings;
+      if (!kept || typeof kept !== 'object') { return null; }
+      return this.mergeSettings(PRESETS['default'], upgradeSettings(kept));
+    },
+
+    /* Whether the rack changes how this take sounds, which is whether Save has to render it. */
+    hasActiveMastering: function (takeId) {
+      return chainEngaged(this.settingsFor(takeId));
+    },
+
+    chainEngaged: chainEngaged,
+    upgradeSettings: upgradeSettings,
+
+    /* The take through the chain, as a WAV: the same nodes and settings as playback, rendered
+       offline at the file's own sample rate. */
+    renderMasterWav: async function (takeId, customSettings) {
+      var s = customSettings || this.settingsFor(takeId);
+      if (!s) {
+        var kept = await fetch('/api/takes/' + takeId + '/fx');
+        if (kept.ok) {
+          var data = await kept.json();
+          if (data && Object.keys(data).length > 0) {
+            s = this.mergeSettings(PRESETS['default'], upgradeSettings(data));
+          }
+        }
+      }
+      s = s || PRESETS['default'];
 
       var resp = await fetch('/api/takes/' + takeId + '/audio');
       if (!resp.ok) {
@@ -2124,25 +1957,12 @@
       }
       var arrayBuf = await resp.arrayBuffer();
 
-      var AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      var tempCtx = new AudioContextClass();
-      var decodedBuffer;
-      try {
-        decodedBuffer = await tempCtx.decodeAudioData(arrayBuf);
-      } catch (decodeErr) {
-        var wavResp = await fetch('/api/takes/' + takeId + '/audio?download=1&format=wav&raw=1');
-        if (wavResp.ok) {
-          var wavBuf = await wavResp.arrayBuffer();
-          decodedBuffer = await tempCtx.decodeAudioData(wavBuf);
-        } else {
-          throw decodeErr;
-        }
-      }
-      if (typeof tempCtx.close === 'function') {
-        tempCtx.close().catch(function () {});
-      }
-
+      // Decoding resamples to the context's rate, so the context is given the file's
       var OfflineContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      var rate = fileSampleRate(arrayBuf);
+      var decodeCtx = new OfflineContextClass(2, 1, rate);
+      var decodedBuffer = await decodeCtx.decodeAudioData(arrayBuf);
+
       var offlineCtx = new OfflineContextClass(
         decodedBuffer.numberOfChannels,
         decodedBuffer.length,
@@ -2192,6 +2012,10 @@
         return;
       }
       var takeId = this.currentTakeId;
+      if (!chainEngaged(this.settings)) {
+        this.showToast('Nothing to apply: the rack is flat');
+        return;
+      }
       var applyBtn = document.getElementById('rack-apply-take-btn');
       if (applyBtn) {
         applyBtn.disabled = true;
