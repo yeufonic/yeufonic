@@ -2165,38 +2165,23 @@
       var wavBlob = await this.renderMasterWav(takeId);
       var formData = new FormData();
       formData.append('audio_file', wavBlob, 'master.wav');
-      var res = await fetch('/api/takes/' + takeId + '/export-mastered?format=' + encodeURIComponent(format), {
+      var res = await fetch('/api/takes/' + takeId + '/export-mastered?format=' + encodeURIComponent(format) + '&prepare=1', {
         method: 'POST',
         body: formData
       });
       if (!res.ok) {
         throw new Error('Server export failed: ' + res.status);
       }
-      var blob = await res.blob();
-      var disposition = res.headers.get('content-disposition') || '';
-      var filename = 'master.' + format;
-      var match = disposition.match(/filename\*=utf-8''([^;]+)/i);
-      if (match && match[1]) {
-        try { filename = decodeURIComponent(match[1]); } catch (e) { filename = match[1]; }
-      } else {
-        var m2 = disposition.match(/filename=["']?([^"';]+)["']?/i);
-        if (m2 && m2[1]) { filename = m2[1]; }
-      }
-      if (filename === 'master.' + format && window.State && State.takes) {
-        var t = State.takes.find(function (x) { return String(x.id) === String(takeId); });
-        if (t && t.title) {
-          var safe = t.title.replace(/[^a-zA-Z0-9 -_]/g, '').trim() || 'take';
-          filename = safe + '.' + format;
-        }
+      var data = await res.json();
+      if (!data || !data.download_url) {
+        throw new Error('Invalid export response');
       }
       var link = document.createElement('a');
-      var url = URL.createObjectURL(blob);
-      link.href = url;
-      link.download = filename;
+      link.href = data.download_url;
+      link.download = '';
       document.body.appendChild(link);
       link.click();
       setTimeout(function () {
-        URL.revokeObjectURL(url);
         link.remove();
       }, 1000);
     },

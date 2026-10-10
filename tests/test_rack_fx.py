@@ -251,6 +251,24 @@ def test_export_mastered_take(client, tmp_path):
     assert res_mp3.status_code == 200
     assert res_mp3.headers["content-type"] == "audio/mpeg"
 
+    # Test prepare mode which yields an HTTP GET download URL
+    with open(master_wav, "rb") as fh:
+        res_prep = client.post(
+            f"/api/takes/{take['id']}/export-mastered?format=flac&prepare=1",
+            files={"audio_file": ("master.wav", fh, "audio/wav")},
+        )
+    assert res_prep.status_code == 200
+    data = res_prep.json()
+    assert "download_url" in data
+    assert data["download_url"].startswith(f"/api/takes/{take['id']}/download-mastered?token=")
+
+    # Follow the download URL via HTTP GET
+    res_down = client.get(data["download_url"])
+    assert res_down.status_code == 200
+    assert res_down.headers["content-type"] == "audio/flac"
+    assert "attachment" in res_down.headers.get("content-disposition", "")
+    assert res_down.content[:4] == b"fLaC"
+
 
 def test_bake_master_with_uploaded_audio_and_revert(client, tmp_path):
     from conftest import make_take, tone

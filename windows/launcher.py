@@ -357,7 +357,8 @@ def seed_browser_profile(profile: Path) -> None:
     """Preferences for the window's new profile, read by the browser on its first start:
     no signing in, so nothing of the user's account comes into it."""
     prefs = {"signin": {"allowed": False, "allowed_on_next_startup": False},
-             "sync": {"requested": False}, "browser": {"has_seen_welcome_page": True}}
+             "sync": {"requested": False}, "browser": {"has_seen_welcome_page": True},
+             "download": {"prompt_for_download": True}}
     try:
         (profile / "Default").mkdir(parents=True, exist_ok=True)
         (profile / "Default" / "Preferences").write_text(json.dumps(prefs), encoding="utf-8")

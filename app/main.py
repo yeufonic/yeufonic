@@ -3952,14 +3952,19 @@ def take_audio(take_id: str, download: bool = False, format: str | None = None, 
                         background=BackgroundTask(out.unlink, missing_ok=True))
 
 
+_PENDING_EXPORTS: dict[str, dict] = {}
+
+
 @app.post("/api/takes/{take_id}/export-mastered")
 async def export_mastered_take(
     take_id: str,
     format: str = Query("flac"),
+    prepare: bool = Query(False),
     audio_file: UploadFile = File(...)
-) -> FileResponse:
+):
     """Export take with exact mastering DSP rendered in browser via OfflineAudioContext,
-    tagging and encoding to the requested format (FLAC, MP3, or WAV)."""
+    tagging and encoding to the requested format (FLAC, MP3, or WAV).
+    If prepare=True, returns JSON {"download_url": ...} so browser triggers a native HTTP download prompt."""
     fmt = format.lower()
     if fmt not in SAVE_FORMATS:
         raise HTTPException(400, "the format must be flac, wav or mp3")
@@ -3988,9 +3993,44 @@ async def export_mastered_take(
     finally:
         temp_wav.unlink(missing_ok=True)
 
+    if prepare:
+        now = time.time()
+        for old_tok, old_entry in list(_PENDING_EXPORTS.items()):
+            if now - old_entry.get("time", 0) > 300:
+                _PENDING_EXPORTS.pop(old_tok, None)
+                try:
+                    Path(old_entry["path"]).unlink(missing_ok=True)
+                except OSError:
+                    pass
+        token = uuid.uuid4().hex
+        _PENDING_EXPORTS[token] = {
+            "path": out,
+            "media": media,
+            "safe": safe,
+            "fmt": fmt,
+            "time": now,
+        }
+        return {"download_url": f"/api/takes/{take_id}/download-mastered?token={token}"}
+
     return FileResponse(out, media_type=media, filename=f"{safe}.{fmt}",
                         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
                         background=BackgroundTask(out.unlink, missing_ok=True))
+
+
+@app.get("/api/takes/{take_id}/download-mastered")
+def download_mastered_take(take_id: str, token: str = Query(...)) -> FileResponse:
+    """Serve prepared mastered export via direct HTTP GET, preserving native browser Save As prompts."""
+    entry = _PENDING_EXPORTS.pop(token, None)
+    if not entry or not Path(entry["path"]).exists():
+        raise HTTPException(404, "Export expired or not found")
+    out_path = Path(entry["path"])
+    return FileResponse(
+        out_path,
+        media_type=entry["media"],
+        filename=f"{entry['safe']}.{entry['fmt']}",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        background=BackgroundTask(out_path.unlink, missing_ok=True)
+    )
 
 
 @app.post("/api/takes/{take_id}/bake-master")
