@@ -324,15 +324,10 @@ def test_rack_js_and_app_js_mastered_features():
     assert "hasActiveMastering:" in rack_js
     assert "renderMasterWav:" in rack_js
     assert "renderAndDownload:" in rack_js
-    assert "applyToTake:" in rack_js
-    assert "rack-apply-take-btn" in rack_js
 
     # app.js offline master download call
     assert "window.Rack.renderAndDownload" in app_js
     assert "window.Rack.hasActiveMastering" in app_js
-
-    # styles.css
-    assert ".rack-head-btn.apply-btn" in styles_css
 
 
 

@@ -1019,7 +1019,6 @@
         '        <button type="button" class="rack-head-btn bypass-btn" id="rack-master-bypass" title="Toggle Master Bypass (A/B audition)">',
         '          <span class="led-dot" id="rack-master-led"></span> BYPASS',
         '        </button>',
-        '        <button type="button" class="rack-head-btn apply-btn" id="rack-apply-take-btn" title="Bake current mastering processing permanently into this take">Apply to Take</button>',
         '        <button type="button" class="rack-head-btn dock-btn" id="rack-dock-btn" title="Float window (or drag header to move)">Float</button>',
         '        <button type="button" class="rack-head-btn close-btn" id="rack-close-btn" title="Close Rack (Esc)">&times;</button>',
         '      </div>',
@@ -1451,14 +1450,6 @@
           self.syncKnobsToState();
           Engine.applySettings(self.settings);
           self.debouncedSave();
-        });
-      }
-
-      // Apply to Take (Bake master permanently into take)
-      var applyBtn = document.getElementById('rack-apply-take-btn');
-      if (applyBtn) {
-        applyBtn.addEventListener('click', function () {
-          self.applyToTake();
         });
       }
 
