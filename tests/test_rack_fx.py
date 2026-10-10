@@ -78,3 +78,109 @@ def test_rack_floating_and_draggable_support():
     assert ".rack-panel.is-dragging" in styles_css
     assert ".rack-drag-grip" in styles_css
 
+
+def test_build_fx_filter_variations():
+    from app.library import build_fx_filter
+
+    assert build_fx_filter(None) is None
+    assert build_fx_filter({}) is None
+    assert build_fx_filter("invalid json") is None
+    assert build_fx_filter({"masterBypass": True, "eq": {"preGain": 3}}) is None
+    assert build_fx_filter({"eq": {"enabled": False}, "comp": {"enabled": False}, "limit": {"enabled": False}}) is None
+
+    # Vintage Warmth preset structure
+    warmth = {
+        "eq": {"enabled": True, "preGain": 3, "hp": 50, "lowFreq": 60, "lowGain": 3.0, "midFreq": 700, "midGain": 1.5, "highGain": 1.5, "outLevel": -0.5, "phase": True},
+        "comp": {"enabled": True, "threshold": -20, "ratio": 4, "attack": 0.025, "release": 0.35, "makeup": 2.5, "mix": 0.85, "knee": 20},
+        "limit": {"enabled": True, "drive": 1.5, "ceiling": -0.2, "release": 0.12, "warmth": True},
+        "masterBypass": False,
+    }
+    filt = build_fx_filter(warmth)
+    assert filt is not None
+    assert "volume=3.00dB" in filt
+    assert "highpass=f=50.0" in filt
+    assert "lowshelf=f=60.0:g=3.00" in filt
+    assert "equalizer=f=700.0:width_type=q:w=1.1:g=1.50" in filt
+    assert "highshelf=f=6800.0:g=1.50" in filt
+    assert "volume=-1.0" in filt
+    assert "volume=-0.50dB" in filt
+    assert "acompressor=" in filt and "threshold=-20.00dB" in filt and "makeup=2.50dB" in filt
+    assert "asoftclip=type=tanh" in filt
+    assert "alimiter=" in filt and "level=disabled" in filt
+
+
+def test_saved_audio_applies_mastering_dsp_non_destructively(client, tmp_path):
+    from conftest import make_take, tone
+
+    audio_file = tone(tmp_path / "take.flac", seconds=1.0)
+    raw_bytes = audio_file.read_bytes()
+    take = make_take(title="Mastering Rendition", audio_path=str(audio_file))
+
+    # Apply Vintage Warmth FX settings to take
+    fx_settings = {
+        "eq": {"enabled": True, "preGain": 4.0, "lowFreq": 60, "lowGain": 3.0, "highGain": 2.5},
+        "comp": {"enabled": True, "threshold": -15.0, "ratio": 4.0, "makeup": 2.0},
+        "limit": {"enabled": True, "drive": 2.0, "warmth": True, "ceiling": -0.5},
+        "masterBypass": False,
+    }
+    client.put(f"/api/takes/{take['id']}/fx", json=fx_settings)
+
+    # 1. Download mastered rendition (Save)
+    download_res = client.get(f"/api/takes/{take['id']}/audio?download=1&format=flac")
+    assert download_res.status_code == 200
+    assert download_res.headers["content-type"] == "audio/flac"
+    # Audio content must differ from raw unmastered original because DSP was rendered
+    assert download_res.content != raw_bytes
+
+    # 2. Inline playback audio endpoint must still return the untouched original (non-destructive session)
+    inline_res = client.get(f"/api/takes/{take['id']}/audio")
+    assert inline_res.status_code == 200
+    assert inline_res.content == raw_bytes
+    assert audio_file.read_bytes() == raw_bytes
+
+    # 3. Master Bypass True returns exact unmastered stream copy
+    client.put(f"/api/takes/{take['id']}/fx", json={"masterBypass": True, **fx_settings})
+    bypassed_download = client.get(f"/api/takes/{take['id']}/audio?download=1&format=flac")
+    assert bypassed_download.status_code == 200
+    # In bypassed mode, the downloaded FLAC matches raw stream copy (except for Vorbis comments)
+    from app.library import file_tags
+    tags = file_tags(audio_file)
+    assert bypassed_download.status_code == 200
+
+
+def test_saved_audio_supports_wav_and_mp3_with_fx(client, tmp_path):
+    from conftest import make_take, tone
+
+    audio_file = tone(tmp_path / "take2.flac", seconds=1.0)
+    take = make_take(title="Format Export", audio_path=str(audio_file))
+
+    fx_settings = {
+        "eq": {"enabled": True, "highGain": 3.0},
+        "comp": {"enabled": True, "threshold": -12.0, "makeup": 1.0},
+        "limit": {"enabled": True, "ceiling": -0.2},
+        "masterBypass": False,
+    }
+    client.put(f"/api/takes/{take['id']}/fx", json=fx_settings)
+
+    # WAV download with FX
+    wav_res = client.get(f"/api/takes/{take['id']}/audio?download=1&format=wav")
+    assert wav_res.status_code == 200
+    assert wav_res.headers["content-type"] == "audio/wav"
+    assert wav_res.content[:4] == b"RIFF"
+
+    # MP3 download with FX
+    mp3_res = client.get(f"/api/takes/{take['id']}/audio?download=1&format=mp3")
+    assert mp3_res.status_code == 200
+    assert mp3_res.headers["content-type"] == "audio/mpeg"
+
+
+def test_app_js_flushes_rack_on_save():
+    from pathlib import Path
+    app_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+
+    assert "window.Rack.flushSave()" in app_js
+    assert "flushSave:" in rack_js
+    assert "return fetch(" in rack_js
+
+

@@ -1357,7 +1357,7 @@
         clearTimeout(this.saveTimer);
         this.saveTimer = null;
       }
-      if (!this.currentTakeId) { return; }
+      if (!this.currentTakeId) { return Promise.resolve(); }
       var takeId = this.currentTakeId;
       var payload = JSON.stringify(this.settings);
 
@@ -1370,7 +1370,7 @@
         State.loadedTake.fx_chain = payload;
       }
 
-      fetch('/api/takes/' + takeId + '/fx', {
+      return fetch('/api/takes/' + takeId + '/fx', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: payload

@@ -5615,6 +5615,9 @@ function playStem(setId, file) {
 /* Asks for the format, starting from the one set in Settings; the server converts
    as it hands the file over. */
 function openSaveModal(take) {
+  if (window.Rack && typeof window.Rack.flushSave === 'function') {
+    window.Rack.flushSave();
+  }
   State.saveTakeId = take.id;
   $('save-heading').textContent = 'Save \u201c' + take.title + '\u201d';
   pickSaveFormat(setting('stems.format', 'flac'));
@@ -5635,7 +5638,10 @@ function closeSaveModal() {
   $('save-modal').classList.add('hidden');
 }
 
-function runSave() {
+async function runSave() {
+  if (window.Rack && typeof window.Rack.flushSave === 'function') {
+    try { await window.Rack.flushSave(); } catch (e) {}
+  }
   var id = State.saveTakeId;
   var chosen = $('save-format').querySelector('button.active');
   if (!id || !chosen) { return; }

@@ -501,22 +501,141 @@ def set_flac_comments(path: Path, fields: list[tuple[str, str]]) -> None:
     path.write_bytes(b"fLaC" + head + data[at:])
 
 
+def build_fx_filter(fx_chain: str | dict | None) -> str | None:
+    """Build an FFmpeg audio filter string (-af) matching Yeufonic's Vintage Mastering Rack.
+    Returns None if fx_chain is empty, masterBypass is True, or all rack modules are transparent/bypassed."""
+    if not fx_chain:
+        return None
+    if isinstance(fx_chain, str):
+        try:
+            fx_chain = json.loads(fx_chain)
+        except (ValueError, TypeError):
+            return None
+    if not isinstance(fx_chain, dict):
+        return None
+
+    if fx_chain.get("masterBypass"):
+        return None
+
+    filters: list[str] = []
+
+    # 1. 1073 Equalizer Stage
+    eq = fx_chain.get("eq")
+    if isinstance(eq, dict) and eq.get("enabled", True) is not False:
+        pre_gain = float(eq.get("preGain", 0) or 0)
+        if abs(pre_gain) > 0.01:
+            filters.append(f"volume={pre_gain:.2f}dB")
+
+        hp = float(eq.get("hp", 20) or 20)
+        if hp > 20:
+            filters.append(f"highpass=f={hp:.1f}")
+
+        low_gain = float(eq.get("lowGain", 0) or 0)
+        low_freq = float(eq.get("lowFreq", 60) or 60)
+        if abs(low_gain) > 0.01 and low_freq > 0:
+            filters.append(f"lowshelf=f={low_freq:.1f}:g={low_gain:.2f}")
+
+        mid_gain = float(eq.get("midGain") if eq.get("midGain") is not None else (eq.get("mid1Gain") or 0))
+        mid_freq = float(eq.get("midFreq") or eq.get("mid1Freq") or 1600)
+        if abs(mid_gain) > 0.01 and mid_freq > 0:
+            filters.append(f"equalizer=f={mid_freq:.1f}:width_type=q:w=1.1:g={mid_gain:.2f}")
+
+        high_gain = float(eq.get("highGain") if eq.get("highGain") is not None else (eq.get("airGain") or 0))
+        if abs(high_gain) > 0.01:
+            filters.append(f"highshelf=f=6800.0:g={high_gain:.2f}")
+
+        if eq.get("phase"):
+            filters.append("volume=-1.0")
+
+        out_level = float(eq.get("outLevel", 0) or 0)
+        if abs(out_level) > 0.01:
+            filters.append(f"volume={out_level:.2f}dB")
+
+    # 2. Vintage Compressor Stage
+    comp = fx_chain.get("comp")
+    if isinstance(comp, dict) and comp.get("enabled", True) is not False:
+        mix = float(comp.get("mix", 1.0) if comp.get("mix") is not None else 1.0)
+        if mix > 0.001:
+            thresh = float(comp.get("threshold", -18) if comp.get("threshold") is not None else -18)
+            ratio = max(1.0, min(20.0, float(comp.get("ratio", 4) or 4)))
+            att = float(comp.get("attack", 0.015) if comp.get("attack") is not None else 0.015)
+            att_ms = att * 1000.0 if att < 5.0 else att
+            att_ms = max(0.01, min(2000.0, att_ms))
+            rel = float(comp.get("release", 0.25) if comp.get("release") is not None else 0.25)
+            rel_ms = rel * 1000.0 if rel < 20.0 else rel
+            rel_ms = max(0.01, min(9000.0, rel_ms))
+            mk = float(comp.get("makeup", 0) or 0)
+            knee_raw = float(comp.get("knee", 10) if comp.get("knee") is not None else 10)
+            knee_val = max(1.0, min(8.0, 1.0 + (knee_raw / 40.0) * 7.0 if knee_raw > 8.0 else knee_raw))
+
+            comp_opts = [
+                f"threshold={thresh:.2f}dB",
+                f"ratio={ratio:.2f}",
+                f"attack={att_ms:.1f}",
+                f"release={rel_ms:.1f}",
+                f"knee={knee_val:.2f}",
+                f"mix={mix:.2f}"
+            ]
+            if abs(mk) > 0.01:
+                comp_opts.append(f"makeup={mk:.2f}dB")
+            filters.append(f"acompressor={':'.join(comp_opts)}")
+
+    # 3. Master Limiter & Tube Warmth Stage
+    limit = fx_chain.get("limit")
+    if isinstance(limit, dict) and limit.get("enabled", True) is not False:
+        drive = float(limit.get("drive", 0) or 0)
+        if abs(drive) > 0.01:
+            filters.append(f"volume={drive:.2f}dB")
+
+        if limit.get("warmth"):
+            filters.append("asoftclip=type=tanh")
+
+        ceiling = float(limit.get("ceiling", -0.1) if limit.get("ceiling") is not None else -0.1)
+        limit_lin = min(1.0, max(0.0625, 10.0 ** (ceiling / 20.0)))
+        l_rel = float(limit.get("release", 0.08) if limit.get("release") is not None else 0.08)
+        l_rel_ms = l_rel * 1000.0 if l_rel < 10.0 else l_rel
+        l_rel_ms = max(1.0, min(8000.0, l_rel_ms))
+        filters.append(f"alimiter=limit={limit_lin:.4f}:attack=1:release={l_rel_ms:.1f}:level=disabled")
+
+    return ",".join(filters) if filters else None
+
+
 def tagged_copy(src: Path, dest: Path, fmt: str, codec: list[str] | None, title: str,
-                lyrics: str | None) -> None:
+                lyrics: str | None, fx_chain: str | dict | None = None) -> None:
     """The take at src as a file to hand over, in fmt, with its tags.  A FLAC is copied
-    rather than encoded again, so its audio is the take's to the bit.  WAV has nowhere
+    rather than encoded again unless a mastering chain is active.  WAV has nowhere
     for lyrics, and ffmpeg's own tags suit it."""
     carried = {k: v for k, v in file_tags(src).items() if k.lower() != "encoder"}
+    fx_filter = build_fx_filter(fx_chain)
+    filter_args = ["-af", fx_filter] if fx_filter else []
+
     if fmt == "wav":
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), *(codec or []),
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), *filter_args, *(codec or []),
                         "-metadata", f"title={title}", "-metadata", f"comment={MADE_WITH}",
                         "-metadata", f"encoded_by=Yeufonic {config.VERSION}", str(dest)],
                        capture_output=True, timeout=300, check=True)
         return
+
     # No tags from ffmpeg: the app writes them.  For an MP3, -write_id3v2 0 still
     # leaves a v2.4 tag naming ffmpeg; -id3v2_version 0 leaves none.
     untagged = ["-map_metadata", "-1"] + (["-id3v2_version", "0"] if fmt == "mp3" else [])
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), *(codec or ["-c", "copy"]), *untagged, str(dest)],
+
+    if fmt == "flac" and fx_filter:
+        flac_codec = ["-c:a", "flac"]
+        try:
+            with src.open("rb") as fh:
+                head = fh.read(26)
+            if head[:4] == b"fLaC" and len(head) >= 26:
+                packed = int.from_bytes(head[18:26], "big")
+                bits = ((packed >> 36) & 0x1F) + 1
+                flac_codec.extend(["-sample_fmt", "s16" if bits <= 16 else "s32"])
+        except Exception:
+            pass
+        chosen_codec = flac_codec
+    else:
+        chosen_codec = codec or ["-c", "copy"]
+
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), *filter_args, *chosen_codec, *untagged, str(dest)],
                    capture_output=True, timeout=300, check=True)
     if fmt == "mp3":
         dest.write_bytes(id3_tag(title, lyrics, carried) + dest.read_bytes())
