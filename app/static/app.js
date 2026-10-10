@@ -2863,6 +2863,9 @@ function confirmModal(options) {
     }
   });
 }
+if (typeof window !== 'undefined') {
+  window.confirmModal = confirmModal;
+}
 
 function openLyricsEditor() {
   $('lyrics-big').value = $('lyrics').value;

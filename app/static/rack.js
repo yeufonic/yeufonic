@@ -548,41 +548,19 @@
         '    <!-- Rack Modules Container -->',
         '    <div class="rack-bay">',
 
-        '      <!-- MODULE 1: 1073-DPX DUAL PREAMP / EQUALISER (No company name/logo) -->',
+        '      <!-- MODULE 1: 1073 EQUALIZER (No company name/logo) -->',
         '      <div class="rack-unit unit-eq unit-1073" id="unit-eq">',
         '        <div class="unit-bar">',
-        '          <div class="unit-brand"><span class="screw-mini"></span> 1073-DPX PREAMP / EQUALISER <span class="screw-mini"></span></div>',
+        '          <div class="unit-brand"><span class="screw-mini"></span> 1073 EQUALIZER <span class="screw-mini"></span></div>',
         '          <div class="unit-bar-right">',
-        '            <span class="dpx-channel-tag">CH 1</span>',
         '            <button type="button" class="unit-toggle on" id="toggle-eq" title="Toggle EQ in/out"><span class="led"></span> IN</button>',
         '          </div>',
         '        </div>',
         '        <div class="unit-faceplate dpx-faceplate">',
 
-        '          <!-- 1. Input / Preamp Stage -->',
-        '          <div class="dpx-sec dpx-input-sec">',
-        '            <div class="dpx-chiclets">',
-        '              <button type="button" class="dpx-btn" id="dpx-btn-front" title="Front Input Selector"><span>FRONT</span></button>',
-        '            </div>',
-        '            <div class="combo-jack-wrap" title="Neutrik Mic / Line Combo Input">',
-        '              <div class="combo-jack">',
-        '                <span class="combo-latch">PUSH</span>',
-        '                <span class="combo-pins"><span class="pin"></span><span class="pin"></span><span class="pin"></span></span>',
-        '                <span class="combo-hole"></span>',
-        '              </div>',
-        '              <span class="jack-label">MIC / LINE</span>',
-        '            </div>',
-        '            <div class="dpx-chiclets">',
-        '              <button type="button" class="dpx-btn active" id="dpx-btn-48v" title="+48V Phantom Power"><span class="btn-led red"></span><span>+48V</span></button>',
-        '              <button type="button" class="dpx-btn" id="dpx-btn-lift" title="Ground Lift"><span>LIFT</span></button>',
-        '              <button type="button" class="dpx-btn" id="dpx-btn-pad" title="-20 dB Input Pad"><span>-20</span></button>',
-        '            </div>',
-        '            <div class="di-jack-wrap" title="Direct Injection Input">',
-        '              <div class="di-jack"><span class="jack-hole"></span></div>',
-        '              <span class="jack-label">DI I/P</span>',
-        '            </div>',
-        '            <!-- Red Fluted Marconi Preamp Gain Knob -->',
-        '            <div class="knob-wrap marconi-wrap" data-param="eq.preGain" data-min="-15" data-max="20" data-step="1" data-default="0" data-unit="dB" title="Preamp Gain / Drive">',
+        '          <!-- 1. Gain Knob -->',
+        '          <div class="dpx-sec dpx-gain-sec">',
+        '            <div class="knob-wrap marconi-wrap" data-param="eq.preGain" data-min="-15" data-max="20" data-step="1" data-default="0" data-unit="dB" title="Gain / Drive">',
         '              <div class="marconi-dial red"><div class="marconi-wing"></div><div class="marconi-stripe"></div><div class="marconi-cap"></div></div>',
         '              <span class="knob-name">GAIN</span>',
         '              <span class="knob-val">0 dB</span>',
@@ -677,21 +655,11 @@
         '            </div>',
         '          </div>',
 
-        '          <!-- 8. Right Badge & Headphone / Power -->',
+        '          <!-- 8. Right Badge -->',
         '          <div class="dpx-sec dpx-badge-sec">',
-        '            <div class="dpx-headphone-wrap" title="Headphone Monitor">',
-        '              <div class="knob-wrap dummy-knob" title="Headphone Level">',
-        '                <div class="knob-dial knob-neve-grey mini"><div class="knob-cap"></div><div class="knob-line"></div></div>',
-        '                <span class="knob-name">VOL</span>',
-        '              </div>',
-        '              <div class="hp-jack"><span class="jack-hole"></span></div>',
-        '            </div>',
-        '            <div class="dpx-power-wrap">',
-        '              <button type="button" class="dpx-power-btn on" title="Unit Power"><span class="power-led red"></span><span class="lbl">POWER</span></button>',
-        '            </div>',
         '            <div class="dpx-badge-plate">',
-        '              <div class="dpx-badge-model">1073-DPX</div>',
-        '              <div class="dpx-badge-desc">CHANNEL EQUALISER</div>',
+        '              <div class="dpx-badge-model">1073</div>',
+        '              <div class="dpx-badge-desc">EQUALIZER</div>',
         '            </div>',
         '          </div>',
 
@@ -854,13 +822,27 @@
         });
       }
 
-      // Save Custom Preset
+      // Save Custom Preset (using app's native confirmModal)
       var savePresetBtn = document.getElementById('rack-save-preset-btn');
       if (savePresetBtn) {
-        savePresetBtn.addEventListener('click', function () {
+        savePresetBtn.addEventListener('click', async function () {
           var userPresets = self.getUserPresets();
           var count = Object.keys(userPresets).length + 1;
-          var name = window.prompt('Enter name for your custom preset:', 'My Preset ' + count);
+          var defaultName = 'My Preset ' + count;
+          var name = null;
+          if (typeof window.confirmModal === 'function') {
+            name = await window.confirmModal({
+              title: 'Save Preset',
+              message: 'Enter a name for this custom preset:',
+              input: true,
+              defaultValue: defaultName,
+              placeholder: 'Preset name',
+              confirmText: 'Save',
+              cancelText: 'Cancel'
+            });
+          } else {
+            name = window.prompt('Enter name for your custom preset:', defaultName);
+          }
           if (!name || !name.trim()) { return; }
           name = name.trim().slice(0, 40);
           var id = 'user_' + Date.now();
@@ -873,15 +855,26 @@
         });
       }
 
-      // Delete Custom Preset
+      // Delete Custom Preset (using app's native confirmModal)
       if (delBtn) {
-        delBtn.addEventListener('click', function () {
+        delBtn.addEventListener('click', async function () {
           if (!presetSelect) { return; }
           var key = presetSelect.value;
           var userPresets = self.getUserPresets();
           if (!userPresets[key]) { return; }
           var name = userPresets[key].name || 'preset';
-          if (!window.confirm('Delete custom preset "' + name + '"?')) { return; }
+          var confirmed = false;
+          if (typeof window.confirmModal === 'function') {
+            confirmed = await window.confirmModal({
+              title: 'Delete Preset',
+              message: 'Delete custom preset \u201c' + name + '\u201d?\n\nThis cannot be undone.',
+              confirmText: 'Delete',
+              danger: true
+            });
+          } else {
+            confirmed = window.confirm('Delete custom preset "' + name + '"?');
+          }
+          if (!confirmed) { return; }
           delete userPresets[key];
           self.saveUserPresets(userPresets);
           self.rebuildPresetDropdown('default');
@@ -938,14 +931,12 @@
         });
       }
 
-      ['dpx-btn-front', 'dpx-btn-48v', 'dpx-btn-lift', 'dpx-btn-pad', 'dpx-btn-ins'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) {
-          el.addEventListener('click', function () {
-            this.classList.toggle('active');
-          });
-        }
-      });
+      var dpxBtnIns = document.getElementById('dpx-btn-ins');
+      if (dpxBtnIns) {
+        dpxBtnIns.addEventListener('click', function () {
+          this.classList.toggle('active');
+        });
+      }
 
       var toggleComp = document.getElementById('toggle-comp');
       if (toggleComp) {
