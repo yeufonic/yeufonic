@@ -3102,13 +3102,58 @@ button.ghost.run-all { margin-left: 10px; }
 .storage-convert { grid-column: 2; display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
 
 /* ============================================================== Mastering Rack */
+.rack-chiclet-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  margin-right: 6px;
+  background: linear-gradient(180deg, #065f46 0%, #064e3b 60%, #022c22 100%);
+  border: 1px solid #10b981;
+  border-bottom: 2px solid #047857;
+  border-radius: 5px;
+  color: #34d399;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: transform 70ms ease, background 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+  user-select: none;
+  flex: 0 0 auto;
+}
+.rack-chiclet-btn:hover {
+  background: linear-gradient(180deg, #047857 0%, #065f46 60%, #064e3b 100%);
+  border-color: #34d399;
+  color: #6ee7b7;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+  filter: brightness(1.08);
+}
+.rack-chiclet-btn:active {
+  transform: translateY(1px);
+  border-bottom: 1px solid #047857;
+}
+.rack-chiclet-btn.active {
+  background: linear-gradient(180deg, #059669 0%, #047857 60%, #064e3b 100%);
+  border-color: #6ee7b7;
+  border-bottom: 1px solid #047857;
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(110, 231, 183, 0.9);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6), inset 0 1px 2px rgba(0,0,0,0.3);
+  transform: translateY(1px);
+}
+.rack-chiclet-btn .rack-dot {
+  position: absolute; top: 2px; right: 2px; width: 4px; height: 4px;
+  border-radius: 50%; background: #34d399; box-shadow: 0 0 4px #34d399;
+}
+.rack-chiclet-btn .rack-dot.hidden { display: none; }
+
 .pbtn.rack-btn { position: relative; }
 .pbtn.rack-btn.active { color: var(--accent-a, #38bdf8); background: rgb(var(--accent-a-rgb, 56 189 248) / 0.15); }
-.rack-dot {
-  position: absolute; top: 4px; right: 4px; width: 6px; height: 6px;
-  border-radius: 50%; background: #38bdf8; box-shadow: 0 0 6px #38bdf8;
-}
-.rack-dot.hidden { display: none; }
 
 .rack-panel {
   position: fixed; left: 20px; right: 20px; bottom: 66px; z-index: 29;
