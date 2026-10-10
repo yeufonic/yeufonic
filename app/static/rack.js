@@ -1313,6 +1313,11 @@
 
     onTake: function (take) {
       if (!take) { return; }
+      var audio = document.getElementById('audio');
+      // If a different take is actively playing, never overwrite rack state or alter active playback DSP
+      if (audio && !audio.paused && !audio.ended && window.State && State.playing && String(State.playing) !== String(take.id)) {
+        return;
+      }
       this.flushSave();
       this.currentTakeId = take.id;
       var label = document.getElementById('rack-take-name');

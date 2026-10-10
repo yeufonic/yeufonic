@@ -10757,10 +10757,10 @@ function activateTakeRecording(take) {
   var audio = $('audio');
   if (!audio) { return; }
 
-  // If audio is currently playing, do not stop or interrupt playback.
+  // If audio is currently playing, do not stop or interrupt playback,
+  // and do not alter the active playback's mastering rack settings.
   // The selected take remains highlighted and will be played if Spacebar or the play icon is pressed.
   if (!audio.paused && !audio.ended) {
-    if (window.Rack) { window.Rack.onTake(take); }
     return;
   }
 
@@ -12648,6 +12648,13 @@ function wire() {
       if (act === 'mastering') {
         var targetTake = takeById(id);
         if (targetTake && window.Rack) {
+          var audio = $('audio');
+          if (audio && !audio.paused && !audio.ended && State.playing !== targetTake.id) {
+            audio.pause();
+            State.playing = null;
+            paintTakes();
+            paintTransport();
+          }
           selectTake(targetTake);
           window.Rack.openForTake(targetTake);
           return;

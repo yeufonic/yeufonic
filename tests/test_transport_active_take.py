@@ -28,7 +28,7 @@ def test_mastering_button_selects_take():
     # Finding act === 'mastering' block
     idx = content.find("act === 'mastering'")
     assert idx != -1, "act === 'mastering' handler not found"
-    snippet = content[idx:idx + 350]
+    snippet = content[idx:idx + 500]
     assert "selectTake(targetTake)" in snippet, "Clicking mastering icon must select the take"
     assert "openForTake(targetTake)" in snippet, "Clicking mastering icon must open rack for take"
 
@@ -74,5 +74,28 @@ def test_ended_event_primes_highlighted_take():
     assert "activateTakeRecording(activeTake)" in snippet, (
         "When audio ends naturally, activateTakeRecording should prime the highlighted take"
     )
+
+
+def test_active_playback_mastering_rack_not_altered_when_selecting_another_take():
+    app_js = APP_JS.read_text(encoding="utf-8")
+    idx = app_js.find("function activateTakeRecording(take)")
+    assert idx != -1
+    snippet = app_js[idx:idx + 400]
+    # In activateTakeRecording's active audio guard, Rack.onTake must NOT be called
+    guard_end = snippet.find("return;")
+    assert guard_end != -1
+    assert "Rack.onTake" not in snippet[:guard_end], (
+        "activateTakeRecording must not call Rack.onTake while another take is playing"
+    )
+
+    # In rack.js, onTake must also guard against altering active playback
+    rack_js = (APP_JS.parent / "rack.js").read_text(encoding="utf-8")
+    on_take_idx = rack_js.find("onTake: function (take)")
+    assert on_take_idx != -1
+    on_take_snippet = rack_js[on_take_idx:on_take_idx + 400]
+    assert "State.playing && String(State.playing) !== String(take.id)" in on_take_snippet, (
+        "Rack.onTake must guard against modifying DSP when a different take is playing"
+    )
+
 
 
