@@ -37,6 +37,17 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## 0.0.38 (2026-10-10)
+
+- **Vintage Stereo Imager & Spatial Processor.** Added a skeuomorphic stereo imaging module to the Vintage Mastering Rack, positioned immediately before the master limiter:
+  - **Bigness width control:** Seamless stereo soundstage width management from mono fold-down (0), transparent stereo (1), up to expansive spatial stereophony (9).
+  - **Bass punch filter:** Dedicated 85 Hz mono-summed low-end punch filter keeping sub frequencies centred and punchy without stereo smear.
+  - **Analogue tube harmonics:** Tube saturation circuit introducing gentle musical warmth across the stereo bus.
+  - **Range & Stage spatial network:** Band-focusing filter network and all-pass phase rotation to shape stereo spread and depth.
+- **Bit-for-bit mastered export:** Mastered downloads automatically render through the exact Web Audio signal chain via `OfflineAudioContext`, ensuring 100% bit-for-bit fidelity with live auditioning while leaving the underlying take untouched.
+- **Mastered audio export cache prevention:** Enforced `Cache-Control: no-cache, no-store, must-revalidate` headers across audio download and export endpoints so browsers never serve stale or unmastered cached audio.
+- **AudioContext autoplay reliability:** Global user gesture listeners unlock and auto-resume the Web Audio context immediately on playback and transport actions, ensuring audio begins without first having to open the mastering rack.
+
 ## 0.0.37 (2026-10-10)
 
 - **Vintage Mastering Rack & Channel Strip.** A skeuomorphic studio mastering rack with ultra-low latency real-time Web Audio DSP and matching export rendering:
