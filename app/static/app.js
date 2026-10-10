@@ -2432,7 +2432,7 @@ function notationInit() {
     holder.addEventListener('click', function (event) {
       if (NOTATION.synth && !NOTATION.synth.isStarted) {
         if (window.PianoRoll && window.PianoRoll.isPlaying) { window.PianoRoll.stop(); }
-        stopStudioAudio();
+        studioModeOff();
       }
       if (notationSoundsReady()) {
         // Let abcjs handle it, but say what is happening until sound starts.

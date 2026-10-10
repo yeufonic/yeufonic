@@ -614,6 +614,9 @@
               key = currentKey;
               headers.push(raw);
               inHeader = false;
+              for (var vi = 0; vi < voices.length; vi++) {
+                voiceKey[voices[vi]] = currentKey;
+              }
             }
           }
           lastMusicBars = null;
@@ -1415,7 +1418,7 @@
       for (var p = MAX_PITCH; p >= MIN_PITCH; p--) {
         var semitone = ((p % 12) + 12) % 12;
         var isBlack = BLACK_KEYS[semitone];
-        var name = midiToNoteName(p);
+        var name = midiToNoteName(p, self.model && self.model.key);
         var isC = semitone === 0;
 
         html.push(
@@ -1641,7 +1644,7 @@
         var width = Math.max(4, note.durationTicks * self.tickWidth - 2);
         var height = self.rowHeight - 2;
         var isSelected = self.isNoteSelected(note.id);
-        var noteName = midiToNoteName(note.pitch);
+        var noteName = midiToNoteName(note.pitch, self.model && self.model.key);
         var lyricText = (note.voice === 'Vocal' && note.lyric) ? note.lyric.trim() : '';
 
         var label = '';
@@ -1723,8 +1726,8 @@
         var lyrText = hasLyr ? escapeHtml(rawText) : '+';
         var emptyClass = hasLyr ? '' : ' empty';
         var titleAttr = hasLyr
-          ? ('Lyric: "' + escapeHtml(rawText) + '" (' + midiToNoteName(vNote.pitch) + ') • Click to edit')
-          : ('Add lyric for ' + midiToNoteName(vNote.pitch) + ' • Click to edit');
+          ? ('Lyric: "' + escapeHtml(rawText) + '" (' + midiToNoteName(vNote.pitch, self.model && self.model.key) + ') • Click to edit')
+          : ('Add lyric for ' + midiToNoteName(vNote.pitch, self.model && self.model.key) + ' • Click to edit');
 
         var itemWidth = Math.max(22, vnWidth);
         var maxW = Math.max(76, itemWidth + 24);
@@ -2916,7 +2919,7 @@
       var note = this.findNote(noteId);
       if (!note || note.voice !== 'Vocal') { return; }
       var currentVal = note.lyric || "";
-      var pitchName = midiToNoteName(note.pitch);
+      var pitchName = midiToNoteName(note.pitch, this.model && this.model.key);
       var entered = window.prompt("Lyric syllable/word for note " + pitchName + "\n(Tip: enter space- or hyphen-separated syllables to fill subsequent notes):", currentVal);
       if (entered === null) { return; }
       entered = entered.trim();
@@ -3503,6 +3506,8 @@
   global.serializeToAbc = serializeToAbc;
   global.abcNoteToMidi = abcNoteToMidi;
   global.midiToAbcNote = midiToAbcNote;
+  global.midiToNoteName = midiToNoteName;
+  global.isFlatKey = isFlatKey;
   global.getKeyAccidentals = getKeyAccidentals;
   global.extractLyricsSections = extractLyricsSections;
   global.splitWordSyllables = splitWordSyllables;

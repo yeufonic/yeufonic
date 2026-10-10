@@ -871,6 +871,16 @@ class SettingIn(BaseModel):
 
 
 # ------------------------------------------------------------------ page, state
+def _asset_version() -> str:
+    """Asset version query string for static cache busting. Includes mtime of core assets
+    so browsers automatically fetch updated scripts without needing manual hard-reloads."""
+    try:
+        stamp = max(int(p.stat().st_mtime) for p in (STATIC_DIR / "app.js", STATIC_DIR / "pianoroll.js") if p.exists())
+        return f"{config.VERSION}.{stamp}"
+    except (OSError, ValueError):
+        return config.VERSION
+
+
 _INDEX = (STATIC_DIR / "index.html").read_text(encoding="utf-8").replace("{{VERSION}}", config.VERSION)
 
 
@@ -879,7 +889,7 @@ _GUIDE = (STATIC_DIR / "guide.html").read_text(encoding="utf-8").replace("{{VERS
 
 @app.get("/")
 def index() -> HTMLResponse:
-    content = (STATIC_DIR / "index.html").read_text(encoding="utf-8").replace("{{VERSION}}", config.VERSION)
+    content = (STATIC_DIR / "index.html").read_text(encoding="utf-8").replace("{{VERSION}}", _asset_version())
     return HTMLResponse(content)
 
 
@@ -890,7 +900,8 @@ def guide() -> HTMLResponse:
     It is served from a tidy path rather than /static/guide.html because it is a
     page people are sent to, and because the markdown itself stays readable in
     the repository and on GitHub."""
-    return HTMLResponse(_GUIDE)
+    content = (STATIC_DIR / "guide.html").read_text(encoding="utf-8").replace("{{VERSION}}", _asset_version())
+    return HTMLResponse(content)
 
 
 @app.get("/logs")

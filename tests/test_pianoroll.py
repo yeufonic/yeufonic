@@ -11,7 +11,7 @@ PIANOROLL_JS = Path(__file__).resolve().parent.parent / "app" / "static" / "pian
 def run_node_script(js_code: str) -> dict:
     """Run a small JS snippet importing pianoroll.js and return parsed JSON result."""
     script = f"""
-    const {{ parseAbc, serializeToAbc, abcNoteToMidi, midiToAbcNote, getKeyAccidentals, PianoRoll, extractLyricsSections, tokenizeLyricLines, matchScoreSectionToLyricSection, splitWordSyllables, playClick, playChord, chordToMidiPitches, alignLinesToNotes, assignLyricsToVocalNotes }} = require({json.dumps(str(PIANOROLL_JS))});
+    const {{ parseAbc, serializeToAbc, abcNoteToMidi, midiToAbcNote, midiToNoteName, isFlatKey, getKeyAccidentals, PianoRoll, extractLyricsSections, tokenizeLyricLines, matchScoreSectionToLyricSection, splitWordSyllables, playClick, playChord, chordToMidiPitches, alignLinesToNotes, assignLyricsToVocalNotes }} = require({json.dumps(str(PIANOROLL_JS))});
     {js_code}
     """
     res = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
@@ -1565,3 +1565,33 @@ def test_midi_to_abc_note_naturals_in_key():
     assert res["fNatInG"] == "=F"
     assert res["bFlatInBb"] == "_B"
     assert res["eFlatInBb"] == "_E"
+
+
+def test_midi_to_note_name_in_keys():
+    """Verify midiToNoteName formats flat notes in flat keys and sharp notes in sharp/default keys."""
+    js = """
+    const eb4InBb = midiToNoteName(63, "Bb");
+    const bb4InBb = midiToNoteName(70, "Bb");
+    const eb5InBb = midiToNoteName(75, "Bb");
+    const g5InBb  = midiToNoteName(79, "Bb");
+
+    const eb4InCm = midiToNoteName(63, "Cm");
+    const ab4InFm = midiToNoteName(68, "Fm");
+
+    const ds4InG  = midiToNoteName(63, "G");
+    const ds4InC  = midiToNoteName(63, "C");
+    const ds4NoKey = midiToNoteName(63);
+
+    console.log(JSON.stringify({ eb4InBb, bb4InBb, eb5InBb, g5InBb, eb4InCm, ab4InFm, ds4InG, ds4InC, ds4NoKey }));
+    """
+    res = run_node_script(js)
+    assert res["eb4InBb"] == "Eb4"
+    assert res["bb4InBb"] == "Bb4"
+    assert res["eb5InBb"] == "Eb5"
+    assert res["g5InBb"] == "G5"
+    assert res["eb4InCm"] == "Eb4"
+    assert res["ab4InFm"] == "Ab4"
+    assert res["ds4InG"] == "D#4"
+    assert res["ds4InC"] == "D#4"
+    assert res["ds4NoKey"] == "D#4"
+
