@@ -3196,6 +3196,13 @@ button.ghost.run-all { margin-left: 10px; }
   box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 .rack-head-btn:hover { filter: brightness(1.15); }
+.rack-head-btn.delete-btn {
+  color: #fca5a5; border-color: rgba(239, 68, 68, 0.35);
+}
+.rack-head-btn.delete-btn:hover {
+  background: linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%); color: #fff;
+}
+.rack-head-btn.hidden { display: none !important; }
 .rack-head-btn.bypass-btn .led-dot {
   width: 7px; height: 7px; border-radius: 50%;
   background: #10b981; box-shadow: 0 0 6px #10b981;
@@ -3224,6 +3231,13 @@ button.ghost.run-all { margin-left: 10px; }
   padding: 8px 16px; background: rgba(0,0,0,0.45);
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
+.unit-bar-right {
+  display: flex; align-items: center; gap: 10px;
+}
+.dpx-channel-tag {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: #94a3b8;
+  background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.08);
+}
 .unit-brand {
   font-size: 12px; font-weight: 750; letter-spacing: 0.12em;
   color: #cbd5e1; text-transform: uppercase;
@@ -3246,15 +3260,303 @@ button.ghost.run-all { margin-left: 10px; }
   gap: 16px; flex-wrap: nowrap;
 }
 
-/* Faceplate thematic colors */
-.unit-eq { background: linear-gradient(180deg, #1b2533 0%, #121924 100%); border-top: 2px solid #38bdf8; }
+/* Faceplate thematic finishes */
+.unit-eq.unit-1073 {
+  background: linear-gradient(180deg, #374b5d 0%, #293847 60%, #1f2c38 100%);
+  border-top: 2px solid #5d82a3;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 3px 12px rgba(0,0,0,0.6);
+}
 .unit-comp { background: linear-gradient(180deg, #18191c 0%, #101113 100%); border-top: 2px solid #f59e0b; }
 .unit-limit { background: linear-gradient(180deg, #211e1c 0%, #161413 100%); border-top: 2px solid #ef4444; }
 
-.unit-eq .unit-faceplate {
-  justify-content: space-around;
-  gap: 12px;
+/* 1073 DPX Horizontal Layout */
+.dpx-faceplate {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 14px 18px; position: relative;
+  background: radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.05) 0%, transparent 80%);
 }
+.dpx-sec {
+  display: flex; align-items: center; gap: 10px; position: relative;
+}
+.dpx-sec + .dpx-sec {
+  padding-left: 12px;
+}
+.dpx-sec + .dpx-sec::before {
+  content: ''; position: absolute; left: 0; top: 12%; bottom: 12%; width: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+/* White Chiclet Pushbuttons */
+.dpx-chiclets {
+  display: flex; flex-direction: column; gap: 4px; align-items: center;
+}
+.dpx-chiclets.vertical { gap: 5px; }
+.dpx-btn {
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 70%, #cbd5e1 100%);
+  border: 1px solid #64748b;
+  border-bottom: 3px solid #334155;
+  border-radius: 3px;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 3px 6px;
+  min-width: 30px;
+  cursor: pointer;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 #fff;
+  transition: transform 60ms ease, border-bottom 60ms ease;
+}
+.dpx-btn:active, .dpx-btn.active {
+  transform: translateY(2px);
+  border-bottom: 1px solid #334155;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+}
+.dpx-btn .btn-led {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: #64748b;
+}
+.dpx-btn.active .btn-led.red {
+  background: #ef4444; box-shadow: 0 0 6px #ef4444;
+}
+.dpx-btn.active .btn-led.amber {
+  background: #f59e0b; box-shadow: 0 0 6px #f59e0b;
+}
+
+/* Sockets */
+.combo-jack-wrap, .di-jack-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.combo-jack {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: radial-gradient(circle, #181a20 45%, #2a2d36 90%, #111 100%);
+  border: 2px solid #0f1013;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.5);
+  position: relative; display: flex; align-items: center; justify-content: center;
+}
+.combo-latch {
+  position: absolute; top: 1px; left: 50%; transform: translateX(-50%);
+  font-size: 6px; font-weight: 800; color: #cbd5e1; background: #475569;
+  padding: 0 3px; border-radius: 1px; border: 1px solid #1e293b;
+}
+.combo-pins {
+  position: absolute; top: 12px; display: flex; gap: 5px;
+}
+.combo-pins .pin {
+  width: 3px; height: 3px; border-radius: 50%; background: #d97706; box-shadow: inset 0 1px 1px #000;
+}
+.combo-hole {
+  position: absolute; bottom: 7px; width: 8px; height: 8px; border-radius: 50%;
+  background: #000; border: 1px solid #334155;
+}
+.jack-label {
+  font-size: 8px; font-weight: 750; letter-spacing: 0.05em; color: #94a3b8; text-align: center;
+}
+.di-jack {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: radial-gradient(circle, #2d333f 30%, #475569 80%, #1e2530 100%);
+  border: 2px solid #0b0f14;
+  box-shadow: inset 0 1px 2px #fff, 0 2px 4px rgba(0,0,0,0.6);
+  position: relative; display: flex; align-items: center; justify-content: center;
+}
+.di-jack .jack-hole {
+  width: 8px; height: 8px; border-radius: 50%; background: #000;
+}
+
+/* Marconi Knobs (Preamp Red & HPF Blue) */
+.marconi-wrap {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.marconi-dial {
+  width: 54px; height: 54px; border-radius: 50%;
+  position: relative; cursor: ns-resize;
+  transform: rotate(-135deg); transition: transform 30ms linear;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.8), inset 0 1px 2px rgba(255,255,255,0.4);
+}
+.marconi-dial.red {
+  background: radial-gradient(circle at 40% 40%, #a81c25 0%, #7f171e 55%, #42080d 100%);
+  border: 2px solid #280507;
+}
+.marconi-dial.blue {
+  background: radial-gradient(circle at 40% 40%, #2563eb 0%, #1d4ed8 55%, #172554 100%);
+  border: 2px solid #0f172a;
+}
+.marconi-wing {
+  position: absolute; top: -14px; left: 50%; width: 14px; height: 32px;
+  transform: translateX(-50%);
+  border-radius: 7px 7px 0 0;
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.5);
+}
+.marconi-dial.red .marconi-wing {
+  background: linear-gradient(90deg, #701016 0%, #b8232e 50%, #52090e 100%);
+}
+.marconi-dial.blue .marconi-wing {
+  background: linear-gradient(90deg, #172554 0%, #2563eb 50%, #1e3a8a 100%);
+}
+.marconi-stripe {
+  position: absolute; top: -11px; left: 50%; width: 2.5px; height: 26px;
+  transform: translateX(-50%);
+  background: #ffffff; border-radius: 1px;
+  box-shadow: 0 0 3px rgba(255,255,255,0.9);
+}
+.marconi-cap {
+  position: absolute; top: 50%; left: 50%; width: 18px; height: 18px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, #555 20%, #222 90%);
+  border: 1px solid #111;
+  box-shadow: inset 0 1px 1px #888, 0 1px 3px rgba(0,0,0,0.6);
+}
+
+/* Neve Fluted Grey Knobs */
+.knob-neve-grey {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: repeating-conic-gradient(#333a45 0deg 15deg, #475363 15deg 30deg);
+  border: 2px solid #1a1e24;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.3);
+  cursor: ns-resize;
+  transform: rotate(-135deg); transition: transform 30ms linear;
+}
+.knob-neve-grey.small { width: 44px; height: 44px; }
+.knob-neve-grey.mini { width: 34px; height: 34px; }
+.knob-neve-grey .knob-cap {
+  position: absolute; top: 50%; left: 50%; width: 26px; height: 26px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, #f8fafc 0%, #cbd5e1 60%, #64748b 100%);
+  border: 1px solid #334155;
+  box-shadow: inset 0 1px 1px #fff, 0 1px 3px rgba(0,0,0,0.5);
+}
+.knob-neve-grey.small .knob-cap { width: 20px; height: 20px; }
+.knob-neve-grey.mini .knob-cap { width: 14px; height: 14px; }
+.knob-neve-grey .knob-line {
+  position: absolute; top: 2px; left: 50%; width: 2px; height: 16px;
+  transform: translateX(-50%);
+  background: #ffffff; border-radius: 1px;
+  box-shadow: 0 0 3px rgba(255,255,255,0.9);
+}
+.knob-neve-grey.small .knob-line { height: 13px; }
+.knob-neve-grey.mini .knob-line { height: 9px; }
+
+/* Stepped Skirt Concentric Rings */
+.dpx-concentric-group {
+  display: flex; align-items: center; gap: 8px;
+}
+.skirt-dial {
+  width: 50px; height: 50px; border-radius: 50%;
+  position: relative; cursor: ns-resize;
+  transform: rotate(-135deg); transition: transform 30ms linear;
+}
+.skirt-ring {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: repeating-conic-gradient(#cbd5e1 0deg 10deg, #94a3b8 10deg 20deg);
+  border: 2px solid #475569;
+  box-shadow: 0 3px 7px rgba(0,0,0,0.6), inset 0 1px 1px #fff;
+  position: relative;
+}
+.skirt-pointer {
+  position: absolute; top: 2px; left: 50%; width: 2.5px; height: 14px;
+  transform: translateX(-50%);
+  background: #0f172a; border-radius: 1px;
+}
+
+/* Filter Symbols */
+.filter-symbol {
+  font-size: 14px; font-weight: 800; color: #cbd5e1; font-family: monospace;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9); letter-spacing: -2px; margin-bottom: 2px;
+  text-align: center;
+}
+
+/* 7-Segment Output LED Ladder Meter */
+.dpx-ladder-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.dpx-ladder {
+  background: #0f1115; border: 1.5px solid #232730; border-radius: 4px;
+  padding: 4px 6px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.9);
+  display: flex; gap: 5px; align-items: center;
+}
+.ladder-col {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.ladder-led {
+  width: 7px; height: 7px; border-radius: 50%; background: #1a202c;
+  transition: background 40ms, box-shadow 40ms;
+}
+.ladder-led.green.lit {
+  background: #22c55e; box-shadow: 0 0 8px #22c55e;
+}
+.ladder-led.yellow.lit {
+  background: #eab308; box-shadow: 0 0 8px #eab308;
+}
+.ladder-led.red.lit {
+  background: #ef4444; box-shadow: 0 0 9px #ef4444;
+}
+.ladder-lbl {
+  font-size: 8px; font-weight: 750; color: #64748b; font-family: monospace;
+}
+
+/* Miniature Status LEDs */
+.dpx-status-leds {
+  display: flex; flex-direction: column; gap: 3px;
+}
+.status-led-item {
+  display: flex; align-items: center; gap: 4px; font-size: 8px; font-weight: 800; color: #94a3b8;
+}
+.mini-led {
+  width: 5px; height: 5px; border-radius: 50%; background: #334155;
+}
+.mini-led.red.on { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+.mini-led.amber.on { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+.mini-led.green.on { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+
+/* Headphone & Power & Studio Badge */
+.dpx-headphone-wrap {
+  display: flex; align-items: center; gap: 4px;
+}
+.hp-jack {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle, #000 40%, #475569 85%, #1e293b 100%);
+  border: 1px solid #111;
+  display: flex; align-items: center; justify-content: center;
+}
+.hp-jack .jack-hole {
+  width: 6px; height: 6px; border-radius: 50%; background: #000;
+}
+.dpx-power-wrap {
+  display: flex; align-items: center;
+}
+.dpx-power-btn {
+  background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
+  border: 1px solid #475569; border-radius: 3px;
+  padding: 3px 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+  font-size: 8.5px; font-weight: 800; color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+.power-led {
+  width: 5px; height: 5px; border-radius: 50%; background: #334155;
+}
+.dpx-power-btn.on .power-led.red {
+  background: #ef4444; box-shadow: 0 0 6px #ef4444;
+}
+.dpx-badge-plate {
+  display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+}
+.dpx-badge-model {
+  font-size: 13px; font-weight: 900; letter-spacing: 0.12em; color: #f1f5f9;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+.dpx-badge-desc {
+  font-size: 8px; font-weight: 800; letter-spacing: 0.14em; color: #94a3b8;
+}
+
 .unit-comp .unit-faceplate {
   justify-content: space-around;
   gap: 18px;
@@ -3294,7 +3596,9 @@ button.ghost.run-all { margin-left: 10px; }
   background: #f8fafc; border-radius: 1px;
   box-shadow: 0 0 4px rgba(255,255,255,0.9);
 }
-.knob-wrap:hover .knob-dial {
+.knob-wrap:hover .knob-dial,
+.knob-wrap:hover .marconi-dial,
+.knob-wrap:hover .skirt-dial {
   filter: brightness(1.12); box-shadow: 0 4px 10px rgba(0,0,0,0.85), 0 0 0 2px rgba(56, 189, 248, 0.45);
 }
 .knob-name {
@@ -3384,7 +3688,9 @@ button.ghost.run-all { margin-left: 10px; }
 
 body.knob-dragging { cursor: ns-resize !important; user-select: none !important; }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
+  .dpx-faceplate { flex-wrap: wrap; justify-content: flex-start; gap: 14px; }
   .unit-faceplate { flex-wrap: wrap; justify-content: flex-start; }
 }
+
 

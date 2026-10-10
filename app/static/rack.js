@@ -1,6 +1,6 @@
 /* =====================================================================
    Yeufonic Vintage Mastering Rack & Channel Strip (rack.js)
-   Parametric EQ · Vintage Compressor · Master Limiter
+   1073 DPX Parametric EQ · 76-LN Compressor · 670 Master Limiter
    Web Audio API · Ultra-low Latency (~2.9ms) · Photorealistic Skeuomorphic UI
    ===================================================================== */
 
@@ -11,42 +11,115 @@
   var PRESETS = {
     'default': {
       name: 'Flat / Transparent',
-      eq: { enabled: true, hp: 20, lowFreq: 60, lowGain: 0, mid1Freq: 800, mid1Gain: 0, mid1Q: 1.0, mid2Freq: 3000, mid2Gain: 0, mid2Q: 1.0, highFreq: 10000, highGain: 0, airGain: 0 },
+      eq: {
+        enabled: true,
+        preGain: 0,
+        hp: 20,
+        lowFreq: 60,
+        lowGain: 0,
+        midFreq: 1600,
+        midGain: 0,
+        highGain: 0,
+        outLevel: 0,
+        phase: false,
+        // legacy aliases
+        mid1Freq: 1600, mid1Gain: 0, highFreq: 12000, airGain: 0
+      },
       comp: { enabled: true, threshold: -18, ratio: 4, attack: 0.015, release: 0.25, makeup: 0, mix: 1.0, knee: 10 },
       limit: { enabled: true, drive: 0, ceiling: -0.1, release: 0.08, warmth: false },
       masterBypass: false
     },
     'vintage_warmth': {
       name: 'Vintage Tube Warmth',
-      eq: { enabled: true, hp: 30, lowFreq: 60, lowGain: 3.0, mid1Freq: 650, mid1Gain: 1.5, mid1Q: 0.8, mid2Freq: 3200, mid2Gain: -1.0, mid2Q: 1.2, highFreq: 10000, highGain: 1.0, airGain: 1.5 },
+      eq: {
+        enabled: true,
+        preGain: 3,
+        hp: 50,
+        lowFreq: 60,
+        lowGain: 3.0,
+        midFreq: 700,
+        midGain: 1.5,
+        highGain: 1.5,
+        outLevel: -0.5,
+        phase: false,
+        mid1Freq: 700, mid1Gain: 1.5, highFreq: 12000, airGain: 1.5
+      },
       comp: { enabled: true, threshold: -20, ratio: 4, attack: 0.025, release: 0.35, makeup: 2.5, mix: 0.85, knee: 20 },
       limit: { enabled: true, drive: 1.5, ceiling: -0.2, release: 0.12, warmth: true },
       masterBypass: false
     },
     'vocal_air': {
       name: 'Vocal Air & Glue',
-      eq: { enabled: true, hp: 80, lowFreq: 100, lowGain: -1.0, mid1Freq: 400, mid1Gain: -1.5, mid1Q: 1.4, mid2Freq: 3500, mid2Gain: 2.0, mid2Q: 1.0, highFreq: 12000, highGain: 2.5, airGain: 3.5 },
+      eq: {
+        enabled: true,
+        preGain: 1,
+        hp: 80,
+        lowFreq: 110,
+        lowGain: -1.0,
+        midFreq: 3200,
+        midGain: 2.5,
+        highGain: 3.0,
+        outLevel: 0,
+        phase: false,
+        mid1Freq: 3200, mid1Gain: 2.5, highFreq: 12000, airGain: 3.0
+      },
       comp: { enabled: true, threshold: -22, ratio: 4, attack: 0.008, release: 0.20, makeup: 3.0, mix: 0.90, knee: 12 },
       limit: { enabled: true, drive: 1.0, ceiling: -0.1, release: 0.08, warmth: false },
       masterBypass: false
     },
     'radio_master': {
       name: 'Radio Ready Master',
-      eq: { enabled: true, hp: 35, lowFreq: 80, lowGain: 2.0, mid1Freq: 500, mid1Gain: -1.0, mid1Q: 1.2, mid2Freq: 2800, mid2Gain: 1.5, mid2Q: 1.0, highFreq: 8000, highGain: 2.0, airGain: 2.0 },
+      eq: {
+        enabled: true,
+        preGain: 2,
+        hp: 50,
+        lowFreq: 60,
+        lowGain: 2.0,
+        midFreq: 1600,
+        midGain: 1.0,
+        highGain: 2.0,
+        outLevel: 0,
+        phase: false,
+        mid1Freq: 1600, mid1Gain: 1.0, highFreq: 12000, airGain: 2.0
+      },
       comp: { enabled: true, threshold: -24, ratio: 8, attack: 0.010, release: 0.15, makeup: 4.0, mix: 1.0, knee: 8 },
       limit: { enabled: true, drive: 2.5, ceiling: -0.1, release: 0.06, warmth: true },
       masterBypass: false
     },
     'punchy_bass': {
       name: 'Punchy Club & Bass',
-      eq: { enabled: true, hp: 28, lowFreq: 60, lowGain: 4.5, mid1Freq: 250, mid1Gain: -2.0, mid1Q: 1.6, mid2Freq: 4000, mid2Gain: 2.0, mid2Q: 1.1, highFreq: 10000, highGain: 1.5, airGain: 1.0 },
+      eq: {
+        enabled: true,
+        preGain: 2,
+        hp: 50,
+        lowFreq: 60,
+        lowGain: 4.5,
+        midFreq: 3200,
+        midGain: 2.0,
+        highGain: 1.5,
+        outLevel: 0,
+        phase: false,
+        mid1Freq: 3200, mid1Gain: 2.0, highFreq: 12000, airGain: 1.5
+      },
       comp: { enabled: true, threshold: -16, ratio: 8, attack: 0.030, release: 0.12, makeup: 2.0, mix: 0.95, knee: 6 },
       limit: { enabled: true, drive: 2.0, ceiling: -0.1, release: 0.08, warmth: false },
       masterBypass: false
     },
     'acoustic_clarity': {
       name: 'Acoustic Clarity',
-      eq: { enabled: true, hp: 60, lowFreq: 120, lowGain: -1.5, mid1Freq: 350, mid1Gain: -2.0, mid1Q: 1.5, mid2Freq: 2500, mid2Gain: 1.0, mid2Q: 0.9, highFreq: 12000, highGain: 2.0, airGain: 2.5 },
+      eq: {
+        enabled: true,
+        preGain: 0,
+        hp: 80,
+        lowFreq: 110,
+        lowGain: -1.5,
+        midFreq: 4800,
+        midGain: 1.5,
+        highGain: 2.0,
+        outLevel: 0,
+        phase: false,
+        mid1Freq: 4800, mid1Gain: 1.5, highFreq: 12000, airGain: 2.0
+      },
       comp: { enabled: true, threshold: -18, ratio: 2, attack: 0.020, release: 0.30, makeup: 1.5, mix: 0.80, knee: 18 },
       limit: { enabled: true, drive: 0.5, ceiling: -0.2, release: 0.10, warmth: false },
       masterBypass: false
@@ -59,13 +132,15 @@
     sourceNode: null,
     inputGain: null,
 
-    // EQ
+    // 1073 EQ Chain
     eqHP: null,
     eqLow: null,
+    eqMid: null,
     eqMid1: null,
-    eqMid2: null,
     eqHigh: null,
     eqAir: null,
+    eqPhase: null,
+    eqOutput: null,
 
     // Compressor
     compDryGain: null,
@@ -100,57 +175,58 @@
       try {
         this.sourceNode = this.ctx.createMediaElementSource(audioEl);
       } catch (e) {
-        // Element already hooked or invalid
         return false;
       }
 
       var ctx = this.ctx;
 
-      // 1. Input Gain
+      // 1. Input Gain (Preamp Gain / Drive)
       this.inputGain = ctx.createGain();
       this.inputGain.gain.value = 1.0;
 
-      // 2. Parametric EQ chain
+      // 2. 1073 Parametric EQ chain
+      // High Pass Filter (Low cut: 20Hz, 50Hz, 80Hz, 160Hz, 300Hz)
       this.eqHP = ctx.createBiquadFilter();
       this.eqHP.type = 'highpass';
       this.eqHP.frequency.value = 20;
       this.eqHP.Q.value = 0.707;
 
+      // Low Shelf (35Hz, 60Hz, 110Hz, 220Hz)
       this.eqLow = ctx.createBiquadFilter();
       this.eqLow.type = 'lowshelf';
       this.eqLow.frequency.value = 60;
       this.eqLow.gain.value = 0;
 
-      this.eqMid1 = ctx.createBiquadFilter();
-      this.eqMid1.type = 'peaking';
-      this.eqMid1.frequency.value = 800;
-      this.eqMid1.Q.value = 1.0;
-      this.eqMid1.gain.value = 0;
+      // Mid Band Peaking (360Hz, 700Hz, 1.6kHz, 3.2kHz, 4.8kHz, 7.2kHz)
+      this.eqMid = ctx.createBiquadFilter();
+      this.eqMid.type = 'peaking';
+      this.eqMid.frequency.value = 1600;
+      this.eqMid.Q.value = 1.1;
+      this.eqMid.gain.value = 0;
+      this.eqMid1 = this.eqMid; // backward compat
 
-      this.eqMid2 = ctx.createBiquadFilter();
-      this.eqMid2.type = 'peaking';
-      this.eqMid2.frequency.value = 3000;
-      this.eqMid2.Q.value = 1.0;
-      this.eqMid2.gain.value = 0;
-
+      // High Shelf (fixed 12 kHz)
       this.eqHigh = ctx.createBiquadFilter();
       this.eqHigh.type = 'highshelf';
-      this.eqHigh.frequency.value = 10000;
+      this.eqHigh.frequency.value = 12000;
       this.eqHigh.gain.value = 0;
+      this.eqAir = this.eqHigh; // backward compat
 
-      this.eqAir = ctx.createBiquadFilter();
-      this.eqAir.type = 'peaking';
-      this.eqAir.frequency.value = 12000;
-      this.eqAir.Q.value = 0.7;
-      this.eqAir.gain.value = 0;
+      // Phase invert node
+      this.eqPhase = ctx.createGain();
+      this.eqPhase.gain.value = 1.0;
+
+      // Output level trim node
+      this.eqOutput = ctx.createGain();
+      this.eqOutput.gain.value = 1.0;
 
       // Connect EQ chain
       this.inputGain.connect(this.eqHP);
       this.eqHP.connect(this.eqLow);
-      this.eqLow.connect(this.eqMid1);
-      this.eqMid1.connect(this.eqMid2);
-      this.eqMid2.connect(this.eqHigh);
-      this.eqHigh.connect(this.eqAir);
+      this.eqLow.connect(this.eqMid);
+      this.eqMid.connect(this.eqHigh);
+      this.eqHigh.connect(this.eqPhase);
+      this.eqPhase.connect(this.eqOutput);
 
       // 3. Vintage Compressor stage with parallel blend
       this.compDryGain = ctx.createGain();
@@ -165,8 +241,8 @@
       this.compMakeup = ctx.createGain();
       this.compMakeup.gain.value = 1.0;
 
-      this.eqAir.connect(this.compDryGain);
-      this.eqAir.connect(this.compressor);
+      this.eqOutput.connect(this.compDryGain);
+      this.eqOutput.connect(this.compressor);
       this.compressor.connect(this.compMakeup);
       this.compMakeup.connect(this.compWetGain);
 
@@ -233,7 +309,6 @@
       var curve = new Float32Array(n);
       for (var i = 0; i < n; i++) {
         var x = (i * 2) / n - 1;
-        // Warm asymmetrical tube curve (subtle 2nd harmonic rounding)
         if (x < -1) { curve[i] = -1; }
         else if (x > 1) { curve[i] = 1; }
         else {
@@ -255,29 +330,44 @@
       var now = ctx.currentTime;
       var ramp = 0.02;
 
-      // EQ
+      // 1073 EQ Stage
       if (s.eq) {
-        if (s.eq.enabled === false) {
-          this.eqLow.gain.setTargetAtTime(0, now, ramp);
-          this.eqMid1.gain.setTargetAtTime(0, now, ramp);
-          this.eqMid2.gain.setTargetAtTime(0, now, ramp);
-          this.eqHigh.gain.setTargetAtTime(0, now, ramp);
-          this.eqAir.gain.setTargetAtTime(0, now, ramp);
-          this.eqHP.frequency.setTargetAtTime(20, now, ramp);
-        } else {
-          this.eqHP.frequency.setTargetAtTime(s.eq.hp || 20, now, ramp);
-          this.eqLow.frequency.setTargetAtTime(s.eq.lowFreq || 60, now, ramp);
-          this.eqLow.gain.setTargetAtTime(s.eq.lowGain || 0, now, ramp);
-          this.eqMid1.frequency.setTargetAtTime(s.eq.mid1Freq || 800, now, ramp);
-          this.eqMid1.gain.setTargetAtTime(s.eq.mid1Gain || 0, now, ramp);
-          this.eqMid1.Q.setTargetAtTime(s.eq.mid1Q || 1.0, now, ramp);
-          this.eqMid2.frequency.setTargetAtTime(s.eq.mid2Freq || 3000, now, ramp);
-          this.eqMid2.gain.setTargetAtTime(s.eq.mid2Gain || 0, now, ramp);
-          this.eqMid2.Q.setTargetAtTime(s.eq.mid2Q || 1.0, now, ramp);
-          this.eqHigh.frequency.setTargetAtTime(s.eq.highFreq || 10000, now, ramp);
-          this.eqHigh.gain.setTargetAtTime(s.eq.highGain || 0, now, ramp);
-          this.eqAir.gain.setTargetAtTime(s.eq.airGain || 0, now, ramp);
-        }
+        var eqOn = s.eq.enabled !== false;
+
+        // Preamp Gain / Drive
+        var preDb = s.eq.preGain !== undefined ? Number(s.eq.preGain) : 0;
+        this.inputGain.gain.setTargetAtTime(Math.pow(10, preDb / 20), now, ramp);
+
+        // High Pass Filter (Low Cut)
+        var hpVal = Number(s.eq.hp);
+        if (isNaN(hpVal) || hpVal <= 20) { hpVal = 20; }
+        this.eqHP.frequency.setTargetAtTime(eqOn ? hpVal : 20, now, ramp);
+
+        // Low Shelf
+        var lowF = Number(s.eq.lowFreq);
+        if (isNaN(lowF) || lowF <= 0) { lowF = 60; }
+        var lowG = eqOn ? (s.eq.lowGain !== undefined ? Number(s.eq.lowGain) : 0) : 0;
+        this.eqLow.frequency.setTargetAtTime(lowF, now, ramp);
+        this.eqLow.gain.setTargetAtTime(lowG, now, ramp);
+
+        // Mid Band
+        var midF = Number(s.eq.midFreq || s.eq.mid1Freq);
+        if (isNaN(midF) || midF <= 0) { midF = 1600; }
+        var midG = eqOn ? (s.eq.midGain !== undefined ? Number(s.eq.midGain) : (s.eq.mid1Gain !== undefined ? Number(s.eq.mid1Gain) : 0)) : 0;
+        this.eqMid.frequency.setTargetAtTime(midF, now, ramp);
+        this.eqMid.gain.setTargetAtTime(midG, now, ramp);
+
+        // High Shelf (Fixed 12 kHz)
+        var hiG = eqOn ? (s.eq.highGain !== undefined ? Number(s.eq.highGain) : (s.eq.airGain !== undefined ? Number(s.eq.airGain) : 0)) : 0;
+        this.eqHigh.gain.setTargetAtTime(hiG, now, ramp);
+
+        // Phase Invert
+        var isPhaseInvert = Boolean(s.eq.phase);
+        this.eqPhase.gain.setTargetAtTime(isPhaseInvert ? -1.0 : 1.0, now, ramp);
+
+        // Output Trim
+        var outDb = s.eq.outLevel !== undefined ? Number(s.eq.outLevel) : 0;
+        this.eqOutput.gain.setTargetAtTime(Math.pow(10, outDb / 20), now, ramp);
       }
 
       // Compressor
@@ -332,7 +422,6 @@
 
     getGainReduction: function () {
       if (!this.compressor) { return 0; }
-      // DynamicsCompressorNode.reduction returns current reduction in negative dB
       var red = this.compressor.reduction;
       if (typeof red === 'number') {
         return Math.abs(red);
@@ -342,6 +431,8 @@
   };
 
   // ------------------------------------------------------------- UI Controller
+  var USER_PRESETS_KEY = 'yeufonic.mastering_user_presets';
+
   var Rack = {
     currentTakeId: null,
     settings: JSON.parse(JSON.stringify(PRESETS['default'])),
@@ -349,10 +440,68 @@
     isOpen: false,
     animFrame: null,
 
+    getUserPresets: function () {
+      try {
+        var raw = localStorage.getItem(USER_PRESETS_KEY);
+        if (!raw) { return {}; }
+        return JSON.parse(raw) || {};
+      } catch (e) {
+        return {};
+      }
+    },
+
+    saveUserPresets: function (presets) {
+      try {
+        localStorage.setItem(USER_PRESETS_KEY, JSON.stringify(presets));
+      } catch (e) {}
+    },
+
     init: function () {
       this.renderMarkup();
+      this.rebuildPresetDropdown('default');
       this.bindEvents();
       this.startMeterLoop();
+    },
+
+    rebuildPresetDropdown: function (selectedKey) {
+      var group = document.getElementById('rack-user-presets-group');
+      var delBtn = document.getElementById('rack-del-preset-btn');
+      var select = document.getElementById('rack-preset-select');
+      if (!group || !select) { return; }
+
+      group.innerHTML = '';
+      var userPresets = this.getUserPresets();
+      var ids = Object.keys(userPresets);
+
+      if (ids.length === 0) {
+        var emptyOpt = document.createElement('option');
+        emptyOpt.value = '';
+        emptyOpt.disabled = true;
+        emptyOpt.textContent = '(No user presets)';
+        group.appendChild(emptyOpt);
+      } else {
+        ids.forEach(function (id) {
+          var opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = userPresets[id].name || id;
+          group.appendChild(opt);
+        });
+      }
+
+      if (selectedKey) {
+        select.value = selectedKey;
+      }
+
+      if (delBtn) {
+        var curVal = select.value;
+        delBtn.classList.toggle('hidden', !userPresets[curVal]);
+      }
+    },
+
+    showToast: function (msg) {
+      if (typeof window.toast === 'function') {
+        window.toast(msg, 'good');
+      }
     },
 
     renderMarkup: function () {
@@ -373,14 +522,20 @@
         '        <label class="rack-preset-wrap" title="Load mastering preset">',
         '          <span>PRESET:</span>',
         '          <select id="rack-preset-select" class="rack-select">',
-        '            <option value="default">Flat / Transparent</option>',
-        '            <option value="vintage_warmth">Vintage Tube Warmth</option>',
-        '            <option value="vocal_air">Vocal Air &amp; Glue</option>',
-        '            <option value="radio_master">Radio Ready Master</option>',
-        '            <option value="punchy_bass">Punchy Club &amp; Bass</option>',
-        '            <option value="acoustic_clarity">Acoustic Clarity</option>',
+        '            <optgroup label="Factory Presets">',
+        '              <option value="default">Flat / Transparent</option>',
+        '              <option value="vintage_warmth">Vintage Tube Warmth</option>',
+        '              <option value="vocal_air">Vocal Air &amp; Glue</option>',
+        '              <option value="radio_master">Radio Ready Master</option>',
+        '              <option value="punchy_bass">Punchy Club &amp; Bass</option>',
+        '              <option value="acoustic_clarity">Acoustic Clarity</option>',
+        '            </optgroup>',
+        '            <optgroup id="rack-user-presets-group" label="User Presets">',
+        '            </optgroup>',
         '          </select>',
         '        </label>',
+        '        <button type="button" class="rack-head-btn" id="rack-save-preset-btn" title="Save current settings as a user preset">+ Save Preset</button>',
+        '        <button type="button" class="rack-head-btn delete-btn hidden" id="rack-del-preset-btn" title="Delete selected user preset">&times; Delete</button>',
         '        <button type="button" class="rack-head-btn" id="rack-reset-btn" title="Reset all rack settings to flat">Reset</button>',
         '        <button type="button" class="rack-head-btn bypass-btn" id="rack-master-bypass" title="Toggle Master Bypass (A/B audition)">',
         '          <span class="led-dot" id="rack-master-led"></span> BYPASS',
@@ -393,78 +548,153 @@
         '    <!-- Rack Modules Container -->',
         '    <div class="rack-bay">',
 
-        '      <!-- MODULE 1: PARAMETRIC EQUALISER -->',
-        '      <div class="rack-unit unit-eq" id="unit-eq">',
+        '      <!-- MODULE 1: 1073-DPX DUAL PREAMP / EQUALISER (No company name/logo) -->',
+        '      <div class="rack-unit unit-eq unit-1073" id="unit-eq">',
         '        <div class="unit-bar">',
-        '          <div class="unit-brand"><span class="screw-mini"></span> 1073 PARAMETRIC EQUALISER <span class="screw-mini"></span></div>',
-        '          <button type="button" class="unit-toggle on" id="toggle-eq" title="Toggle EQ on/off"><span class="led"></span> IN</button>',
+        '          <div class="unit-brand"><span class="screw-mini"></span> 1073-DPX PREAMP / EQUALISER <span class="screw-mini"></span></div>',
+        '          <div class="unit-bar-right">',
+        '            <span class="dpx-channel-tag">CH 1</span>',
+        '            <button type="button" class="unit-toggle on" id="toggle-eq" title="Toggle EQ in/out"><span class="led"></span> IN</button>',
+        '          </div>',
         '        </div>',
-        '        <div class="unit-faceplate">',
-        '          <div class="knob-group">',
-        '            <div class="knob-wrap" data-param="eq.hp" data-min="20" data-max="300" data-step="5" data-default="20" data-unit="Hz">',
-        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
-        '              <span class="knob-name">LOW CUT</span>',
-        '              <span class="knob-val">20 Hz</span>',
+        '        <div class="unit-faceplate dpx-faceplate">',
+
+        '          <!-- 1. Input / Preamp Stage -->',
+        '          <div class="dpx-sec dpx-input-sec">',
+        '            <div class="dpx-chiclets">',
+        '              <button type="button" class="dpx-btn" id="dpx-btn-front" title="Front Input Selector"><span>FRONT</span></button>',
         '            </div>',
-        '          </div>',
-        '          <div class="knob-group separator">',
-        '            <div class="knob-wrap" data-param="eq.lowFreq" data-min="30" data-max="400" data-step="10" data-default="60" data-unit="Hz">',
-        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
-        '              <span class="knob-name">LOW FREQ</span>',
-        '              <span class="knob-val">60 Hz</span>',
+        '            <div class="combo-jack-wrap" title="Neutrik Mic / Line Combo Input">',
+        '              <div class="combo-jack">',
+        '                <span class="combo-latch">PUSH</span>',
+        '                <span class="combo-pins"><span class="pin"></span><span class="pin"></span><span class="pin"></span></span>',
+        '                <span class="combo-hole"></span>',
+        '              </div>',
+        '              <span class="jack-label">MIC / LINE</span>',
         '            </div>',
-        '            <div class="knob-wrap" data-param="eq.lowGain" data-min="-15" data-max="15" data-step="0.5" data-default="0" data-unit="dB">',
-        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
-        '              <span class="knob-name">LOW GAIN</span>',
-        '              <span class="knob-val">0 dB</span>',
+        '            <div class="dpx-chiclets">',
+        '              <button type="button" class="dpx-btn active" id="dpx-btn-48v" title="+48V Phantom Power"><span class="btn-led red"></span><span>+48V</span></button>',
+        '              <button type="button" class="dpx-btn" id="dpx-btn-lift" title="Ground Lift"><span>LIFT</span></button>',
+        '              <button type="button" class="dpx-btn" id="dpx-btn-pad" title="-20 dB Input Pad"><span>-20</span></button>',
         '            </div>',
-        '          </div>',
-        '          <div class="knob-group separator">',
-        '            <div class="knob-wrap" data-param="eq.mid1Freq" data-min="200" data-max="2500" data-step="25" data-default="800" data-unit="Hz">',
-        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
-        '              <span class="knob-name">LO-MID</span>',
-        '              <span class="knob-val">800 Hz</span>',
+        '            <div class="di-jack-wrap" title="Direct Injection Input">',
+        '              <div class="di-jack"><span class="jack-hole"></span></div>',
+        '              <span class="jack-label">DI I/P</span>',
         '            </div>',
-        '            <div class="knob-wrap" data-param="eq.mid1Gain" data-min="-15" data-max="15" data-step="0.5" data-default="0" data-unit="dB">',
-        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
+        '            <!-- Red Fluted Marconi Preamp Gain Knob -->',
+        '            <div class="knob-wrap marconi-wrap" data-param="eq.preGain" data-min="-15" data-max="20" data-step="1" data-default="0" data-unit="dB" title="Preamp Gain / Drive">',
+        '              <div class="marconi-dial red"><div class="marconi-wing"></div><div class="marconi-stripe"></div><div class="marconi-cap"></div></div>',
         '              <span class="knob-name">GAIN</span>',
         '              <span class="knob-val">0 dB</span>',
         '            </div>',
-        '            <div class="knob-wrap" data-param="eq.mid1Q" data-min="0.5" data-max="4.0" data-step="0.1" data-default="1.0" data-unit="Q">',
-        '              <div class="knob-dial small"><div class="knob-pointer"></div></div>',
-        '              <span class="knob-name">Q</span>',
-        '              <span class="knob-val">1.0</span>',
-        '            </div>',
         '          </div>',
-        '          <div class="knob-group separator">',
-        '            <div class="knob-wrap" data-param="eq.mid2Freq" data-min="1000" data-max="8000" data-step="50" data-default="3000" data-unit="Hz">',
-        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
-        '              <span class="knob-name">HI-MID</span>',
-        '              <span class="knob-val">3000 Hz</span>',
-        '            </div>',
-        '            <div class="knob-wrap" data-param="eq.mid2Gain" data-min="-15" data-max="15" data-step="0.5" data-default="0" data-unit="dB">',
-        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
-        '              <span class="knob-name">GAIN</span>',
-        '              <span class="knob-val">0 dB</span>',
-        '            </div>',
-        '            <div class="knob-wrap" data-param="eq.mid2Q" data-min="0.5" data-max="4.0" data-step="0.1" data-default="1.0" data-unit="Q">',
-        '              <div class="knob-dial small"><div class="knob-pointer"></div></div>',
-        '              <span class="knob-name">Q</span>',
-        '              <span class="knob-val">1.0</span>',
-        '            </div>',
-        '          </div>',
-        '          <div class="knob-group separator">',
-        '            <div class="knob-wrap" data-param="eq.highGain" data-min="-15" data-max="15" data-step="0.5" data-default="0" data-unit="dB">',
-        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
-        '              <span class="knob-name">HIGH 10k</span>',
-        '              <span class="knob-val">0 dB</span>',
-        '            </div>',
-        '            <div class="knob-wrap" data-param="eq.airGain" data-min="-10" data-max="12" data-step="0.5" data-default="0" data-unit="dB">',
-        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
-        '              <span class="knob-name">AIR 12k</span>',
+
+        '          <!-- 2. High Shelf (12 kHz fixed) -->',
+        '          <div class="dpx-sec dpx-hf-sec">',
+        '            <div class="filter-symbol high-shelf" title="High Shelf 12 kHz">&#x2500;&#x256D;</div>',
+        '            <div class="knob-wrap" data-param="eq.highGain" data-min="-16" data-max="16" data-step="0.5" data-default="0" data-unit="dB" title="High Shelf Gain (12 kHz)">',
+        '              <div class="knob-dial knob-neve-grey"><div class="knob-cap"></div><div class="knob-line"></div></div>',
+        '              <span class="knob-name">HIGH 12k</span>',
         '              <span class="knob-val">0 dB</span>',
         '            </div>',
         '          </div>',
+
+        '          <!-- 3. Mid Band (Stepped Frequency + Gain) -->',
+        '          <div class="dpx-sec dpx-mid-sec">',
+        '            <div class="filter-symbol mid-bell" title="Mid Parametric Bell">&#x2500;&#x256D;&#x256E;&#x2500;</div>',
+        '            <div class="dpx-concentric-group">',
+        '              <div class="knob-wrap concentric-outer" data-param="eq.midFreq" data-default="3" data-values="OFF,360,700,1600,3200,4800,7200" data-labels="OFF,0.36k,0.7k,1.6k,3.2k,4.8k,7.2k" title="Mid Frequency Selector">',
+        '                <div class="skirt-dial"><div class="skirt-ring"><div class="skirt-pointer"></div></div></div>',
+        '                <span class="knob-name">FREQ</span>',
+        '                <span class="knob-val">1.6 kHz</span>',
+        '              </div>',
+        '              <div class="knob-wrap concentric-inner" data-param="eq.midGain" data-min="-18" data-max="18" data-step="0.5" data-default="0" data-unit="dB" title="Mid Band Gain">',
+        '                <div class="knob-dial knob-neve-grey small"><div class="knob-cap"></div><div class="knob-line"></div></div>',
+        '                <span class="knob-name">GAIN</span>',
+        '                <span class="knob-val">0 dB</span>',
+        '              </div>',
+        '            </div>',
+        '          </div>',
+
+        '          <!-- 4. Low Shelf (Stepped Frequency + Gain) -->',
+        '          <div class="dpx-sec dpx-lf-sec">',
+        '            <div class="filter-symbol low-shelf" title="Low Shelf">&#x256D;&#x2500;</div>',
+        '            <div class="dpx-concentric-group">',
+        '              <div class="knob-wrap concentric-outer" data-param="eq.lowFreq" data-default="2" data-values="OFF,35,60,110,220" data-labels="OFF,35 Hz,60 Hz,110 Hz,220 Hz" title="Low Shelf Frequency Selector">',
+        '                <div class="skirt-dial"><div class="skirt-ring"><div class="skirt-pointer"></div></div></div>',
+        '                <span class="knob-name">FREQ</span>',
+        '                <span class="knob-val">60 Hz</span>',
+        '              </div>',
+        '              <div class="knob-wrap concentric-inner" data-param="eq.lowGain" data-min="-16" data-max="16" data-step="0.5" data-default="0" data-unit="dB" title="Low Shelf Gain">',
+        '                <div class="knob-dial knob-neve-grey small"><div class="knob-cap"></div><div class="knob-line"></div></div>',
+        '                <span class="knob-name">GAIN</span>',
+        '                <span class="knob-val">0 dB</span>',
+        '              </div>',
+        '            </div>',
+        '          </div>',
+
+        '          <!-- 5. High Pass Filter (Blue Fluted Marconi Knob) -->',
+        '          <div class="dpx-sec dpx-hpf-sec">',
+        '            <div class="filter-symbol hpf-symbol" title="High Pass Filter">&#x250C;&#x2500;</div>',
+        '            <div class="knob-wrap marconi-wrap" data-param="eq.hp" data-default="0" data-values="20,50,80,160,300" data-labels="OFF,50 Hz,80 Hz,160 Hz,300 Hz" title="High Pass / Low Cut Filter">',
+        '              <div class="marconi-dial blue"><div class="marconi-wing"></div><div class="marconi-stripe"></div><div class="marconi-cap"></div></div>',
+        '              <span class="knob-name">HPF</span>',
+        '              <span class="knob-val">OFF</span>',
+        '            </div>',
+        '          </div>',
+
+        '          <!-- 6. Chiclet Switches (Phase, EQ, Insert) -->',
+        '          <div class="dpx-sec dpx-switch-sec">',
+        '            <div class="dpx-chiclets vertical">',
+        '              <button type="button" class="dpx-btn" id="dpx-btn-phase" title="Phase Invert (180&deg;)"><span>&Oslash;</span></button>',
+        '              <button type="button" class="dpx-btn active" id="dpx-btn-eq" title="EQ In/Out Circuit Bypass"><span class="btn-led amber"></span><span>EQL</span></button>',
+        '              <button type="button" class="dpx-btn" id="dpx-btn-ins" title="Insert Pre / Post"><span>INS</span></button>',
+        '            </div>',
+        '          </div>',
+
+        '          <!-- 7. Output Level & 7-Segment LED Meter -->',
+        '          <div class="dpx-sec dpx-output-sec">',
+        '            <div class="dpx-status-leds">',
+        '              <div class="status-led-item"><span class="mini-led red" id="dpx-led-ip"></span><span class="lbl">I/P</span></div>',
+        '              <div class="status-led-item"><span class="mini-led amber on" id="dpx-led-eq"></span><span class="lbl">EQ</span></div>',
+        '              <div class="status-led-item"><span class="mini-led green on" id="dpx-led-op"></span><span class="lbl">O/P</span></div>',
+        '            </div>',
+        '            <div class="knob-wrap" data-param="eq.outLevel" data-min="-12" data-max="12" data-step="0.5" data-default="0" data-unit="dB" title="Output Level Trim">',
+        '              <div class="knob-dial knob-neve-grey small"><div class="knob-cap"></div><div class="knob-line"></div></div>',
+        '              <span class="knob-name">LEVEL</span>',
+        '              <span class="knob-val">0 dB</span>',
+        '            </div>',
+        '            <div class="dpx-ladder-wrap" title="Output Peak Meter (dB)">',
+        '              <div class="dpx-ladder" id="dpx-led-ladder">',
+        '                <div class="ladder-col"><span class="ladder-led green" data-db="-30"></span><span class="ladder-lbl">-30</span></div>',
+        '                <div class="ladder-col"><span class="ladder-led green" data-db="-10"></span><span class="ladder-lbl">-10</span></div>',
+        '                <div class="ladder-col"><span class="ladder-led yellow" data-db="0"></span><span class="ladder-lbl">0</span></div>',
+        '                <div class="ladder-col"><span class="ladder-led yellow" data-db="5"></span><span class="ladder-lbl">+5</span></div>',
+        '                <div class="ladder-col"><span class="ladder-led red" data-db="14"></span><span class="ladder-lbl">+14</span></div>',
+        '                <div class="ladder-col"><span class="ladder-led red" data-db="18"></span><span class="ladder-lbl">+18</span></div>',
+        '                <div class="ladder-col"><span class="ladder-led red" data-db="24"></span><span class="ladder-lbl">+24</span></div>',
+        '              </div>',
+        '            </div>',
+        '          </div>',
+
+        '          <!-- 8. Right Badge & Headphone / Power -->',
+        '          <div class="dpx-sec dpx-badge-sec">',
+        '            <div class="dpx-headphone-wrap" title="Headphone Monitor">',
+        '              <div class="knob-wrap dummy-knob" title="Headphone Level">',
+        '                <div class="knob-dial knob-neve-grey mini"><div class="knob-cap"></div><div class="knob-line"></div></div>',
+        '                <span class="knob-name">VOL</span>',
+        '              </div>',
+        '              <div class="hp-jack"><span class="jack-hole"></span></div>',
+        '            </div>',
+        '            <div class="dpx-power-wrap">',
+        '              <button type="button" class="dpx-power-btn on" title="Unit Power"><span class="power-led red"></span><span class="lbl">POWER</span></button>',
+        '            </div>',
+        '            <div class="dpx-badge-plate">',
+        '              <div class="dpx-badge-model">1073-DPX</div>',
+        '              <div class="dpx-badge-desc">CHANNEL EQUALISER</div>',
+        '            </div>',
+        '          </div>',
+
         '        </div>',
         '      </div>',
 
@@ -604,17 +834,62 @@
         });
       }
 
-      // Presets
+      // Preset Select
       var presetSelect = document.getElementById('rack-preset-select');
+      var delBtn = document.getElementById('rack-del-preset-btn');
       if (presetSelect) {
         presetSelect.addEventListener('change', function () {
           var key = this.value;
+          var userPresets = self.getUserPresets();
           if (PRESETS[key]) {
             self.settings = JSON.parse(JSON.stringify(PRESETS[key]));
-            self.syncKnobsToState();
-            Engine.applySettings(self.settings);
-            self.debouncedSave();
+            if (delBtn) { delBtn.classList.add('hidden'); }
+          } else if (userPresets[key]) {
+            self.settings = JSON.parse(JSON.stringify(userPresets[key]));
+            if (delBtn) { delBtn.classList.remove('hidden'); }
           }
+          self.syncKnobsToState();
+          Engine.applySettings(self.settings);
+          self.debouncedSave();
+        });
+      }
+
+      // Save Custom Preset
+      var savePresetBtn = document.getElementById('rack-save-preset-btn');
+      if (savePresetBtn) {
+        savePresetBtn.addEventListener('click', function () {
+          var userPresets = self.getUserPresets();
+          var count = Object.keys(userPresets).length + 1;
+          var name = window.prompt('Enter name for your custom preset:', 'My Preset ' + count);
+          if (!name || !name.trim()) { return; }
+          name = name.trim().slice(0, 40);
+          var id = 'user_' + Date.now();
+          var snapshot = JSON.parse(JSON.stringify(self.settings));
+          snapshot.name = name;
+          userPresets[id] = snapshot;
+          self.saveUserPresets(userPresets);
+          self.rebuildPresetDropdown(id);
+          self.showToast('Saved preset "' + name + '"');
+        });
+      }
+
+      // Delete Custom Preset
+      if (delBtn) {
+        delBtn.addEventListener('click', function () {
+          if (!presetSelect) { return; }
+          var key = presetSelect.value;
+          var userPresets = self.getUserPresets();
+          if (!userPresets[key]) { return; }
+          var name = userPresets[key].name || 'preset';
+          if (!window.confirm('Delete custom preset "' + name + '"?')) { return; }
+          delete userPresets[key];
+          self.saveUserPresets(userPresets);
+          self.rebuildPresetDropdown('default');
+          self.settings = JSON.parse(JSON.stringify(PRESETS['default']));
+          self.syncKnobsToState();
+          Engine.applySettings(self.settings);
+          self.debouncedSave();
+          self.showToast('Deleted preset "' + name + '"');
         });
       }
 
@@ -623,7 +898,8 @@
       if (resetBtn) {
         resetBtn.addEventListener('click', function () {
           self.settings = JSON.parse(JSON.stringify(PRESETS['default']));
-          presetSelect.value = 'default';
+          if (presetSelect) { presetSelect.value = 'default'; }
+          if (delBtn) { delBtn.classList.add('hidden'); }
           self.syncKnobsToState();
           Engine.applySettings(self.settings);
           self.debouncedSave();
@@ -632,15 +908,44 @@
 
       // Module In/Out toggles
       var toggleEq = document.getElementById('toggle-eq');
-      if (toggleEq) {
-        toggleEq.addEventListener('click', function () {
-          self.settings.eq.enabled = !self.settings.eq.enabled;
-          this.classList.toggle('on', self.settings.eq.enabled);
-          this.innerHTML = '<span class="led"></span> ' + (self.settings.eq.enabled ? 'IN' : 'OUT');
+      var dpxBtnEq = document.getElementById('dpx-btn-eq');
+      function onToggleEq() {
+        self.settings.eq.enabled = !self.settings.eq.enabled;
+        var on = self.settings.eq.enabled;
+        if (toggleEq) {
+          toggleEq.classList.toggle('on', on);
+          toggleEq.innerHTML = '<span class="led"></span> ' + (on ? 'IN' : 'OUT');
+        }
+        if (dpxBtnEq) {
+          dpxBtnEq.classList.toggle('active', on);
+        }
+        var led = document.getElementById('dpx-led-eq');
+        if (led) { led.classList.toggle('on', on); }
+        Engine.applySettings(self.settings);
+        self.debouncedSave();
+      }
+      if (toggleEq) { toggleEq.addEventListener('click', onToggleEq); }
+      if (dpxBtnEq) { dpxBtnEq.addEventListener('click', onToggleEq); }
+
+      // 1073 Chiclet Buttons
+      var dpxBtnPhase = document.getElementById('dpx-btn-phase');
+      if (dpxBtnPhase) {
+        dpxBtnPhase.addEventListener('click', function () {
+          self.settings.eq.phase = !self.settings.eq.phase;
+          this.classList.toggle('active', self.settings.eq.phase);
           Engine.applySettings(self.settings);
           self.debouncedSave();
         });
       }
+
+      ['dpx-btn-front', 'dpx-btn-48v', 'dpx-btn-lift', 'dpx-btn-pad', 'dpx-btn-ins'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('click', function () {
+            this.classList.toggle('active');
+          });
+        }
+      });
 
       var toggleComp = document.getElementById('toggle-comp');
       if (toggleComp) {
@@ -691,7 +996,7 @@
           var r = btn.dataset.ratio;
           if (r === 'all') {
             self.settings.comp.ratio = 20;
-            self.settings.comp.knee = 0; // Hard limiting British mode
+            self.settings.comp.knee = 0;
           } else {
             self.settings.comp.ratio = Number(r) || 4;
             self.settings.comp.knee = 10;
@@ -717,12 +1022,21 @@
       var knobWraps = document.querySelectorAll('.knob-wrap');
 
       Array.prototype.forEach.call(knobWraps, function (wrap) {
-        var dial = wrap.querySelector('.knob-dial');
+        if (wrap.classList.contains('dummy-knob')) { return; }
+
+        var dial = wrap.querySelector('.knob-dial, .marconi-dial, .skirt-dial');
+        if (!dial) { return; }
+
         var valLabel = wrap.querySelector('.knob-val');
         var param = wrap.dataset.param;
-        var min = Number(wrap.dataset.min);
-        var max = Number(wrap.dataset.max);
-        var step = Number(wrap.dataset.step) || 1;
+        if (!param) { return; }
+
+        var valuesList = wrap.dataset.values ? wrap.dataset.values.split(',') : null;
+        var labelsList = wrap.dataset.labels ? wrap.dataset.labels.split(',') : null;
+
+        var min = valuesList ? 0 : Number(wrap.dataset.min);
+        var max = valuesList ? (valuesList.length - 1) : Number(wrap.dataset.max);
+        var step = valuesList ? 1 : (Number(wrap.dataset.step) || 1);
         var def = Number(wrap.dataset.default);
         var unit = wrap.dataset.unit || '';
         var display = wrap.dataset.display || '';
@@ -732,10 +1046,20 @@
         var startVal = def;
 
         function updateKnobDisplay(val) {
-          // Normalise to 0..1
+          if (valuesList) {
+            var idx = Math.round(val);
+            idx = Math.max(0, Math.min(valuesList.length - 1, idx));
+            var normStep = idx / (valuesList.length - 1);
+            var degStep = -135 + normStep * 270;
+            dial.style.transform = 'rotate(' + degStep + 'deg)';
+            if (valLabel) {
+              valLabel.textContent = labelsList ? labelsList[idx] : valuesList[idx];
+            }
+            return;
+          }
+
           var norm = (val - min) / (max - min);
           norm = Math.max(0, Math.min(1, norm));
-          // Rotate from -135deg to +135deg (270deg range)
           var deg = -135 + norm * 270;
           dial.style.transform = 'rotate(' + deg + 'deg)';
 
@@ -760,10 +1084,14 @@
           val = Math.max(min, Math.min(max, val));
           val = Math.round(val / step) * step;
 
-          // Set in settings object (supports path like 'eq.hp')
           var parts = param.split('.');
           if (parts.length === 2 && self.settings[parts[0]]) {
-            self.settings[parts[0]][parts[1]] = val;
+            if (valuesList) {
+              var rawVal = valuesList[val];
+              self.settings[parts[0]][parts[1]] = isNaN(Number(rawVal)) ? rawVal : Number(rawVal);
+            } else {
+              self.settings[parts[0]][parts[1]] = val;
+            }
           }
 
           updateKnobDisplay(val);
@@ -779,14 +1107,19 @@
           startY = e.clientY;
 
           var parts = param.split('.');
-          startVal = (parts.length === 2 && self.settings[parts[0]]) ? Number(self.settings[parts[0]][parts[1]]) : def;
+          if (valuesList) {
+            var curStored = parts.length === 2 && self.settings[parts[0]] ? self.settings[parts[0]][parts[1]] : null;
+            var curIdx = curStored !== null ? valuesList.indexOf(String(curStored)) : -1;
+            startVal = curIdx >= 0 ? curIdx : def;
+          } else {
+            startVal = (parts.length === 2 && self.settings[parts[0]] && self.settings[parts[0]][parts[1]] !== undefined) ? Number(self.settings[parts[0]][parts[1]]) : def;
+          }
 
           document.body.classList.add('knob-dragging');
 
           function onMouseMove(moveEvent) {
             if (!isDragging) { return; }
             var deltaY = startY - moveEvent.clientY;
-            // 200px drag = full range (shift for fine control)
             var sensitivity = moveEvent.shiftKey ? 800 : 200;
             var deltaVal = (deltaY / sensitivity) * (max - min);
             setParamValue(startVal + deltaVal);
@@ -811,7 +1144,14 @@
           e.preventDefault();
           Engine.resume();
           var parts = param.split('.');
-          var curVal = (parts.length === 2 && self.settings[parts[0]]) ? Number(self.settings[parts[0]][parts[1]]) : def;
+          var curVal;
+          if (valuesList) {
+            var curStored = parts.length === 2 && self.settings[parts[0]] ? self.settings[parts[0]][parts[1]] : null;
+            var curIdx = curStored !== null ? valuesList.indexOf(String(curStored)) : -1;
+            curVal = curIdx >= 0 ? curIdx : def;
+          } else {
+            curVal = (parts.length === 2 && self.settings[parts[0]]) ? Number(self.settings[parts[0]][parts[1]]) : def;
+          }
           var direction = e.deltaY < 0 ? 1 : -1;
           setParamValue(curVal + direction * step * (e.shiftKey ? 0.2 : 1.0));
         }, { passive: false });
@@ -828,22 +1168,49 @@
       var self = this;
       var knobWraps = document.querySelectorAll('.knob-wrap');
       Array.prototype.forEach.call(knobWraps, function (wrap) {
+        if (wrap.classList.contains('dummy-knob')) { return; }
         var param = wrap.dataset.param;
+        if (!param) { return; }
         var parts = param.split('.');
         if (parts.length === 2 && self.settings[parts[0]] && self.settings[parts[0]][parts[1]] !== undefined) {
-          var val = Number(self.settings[parts[0]][parts[1]]);
-          if (wrap._updateDisplay) { wrap._updateDisplay(val); }
+          var valuesList = wrap.dataset.values ? wrap.dataset.values.split(',') : null;
+          if (valuesList) {
+            var raw = String(self.settings[parts[0]][parts[1]]);
+            var idx = valuesList.indexOf(raw);
+            if (idx === -1) {
+              var numRaw = Number(raw);
+              for (var i = 0; i < valuesList.length; i++) {
+                if (Number(valuesList[i]) === numRaw) { idx = i; break; }
+              }
+            }
+            if (idx === -1) { idx = Number(wrap.dataset.default) || 0; }
+            if (wrap._updateDisplay) { wrap._updateDisplay(idx); }
+          } else {
+            var val = Number(self.settings[parts[0]][parts[1]]);
+            if (wrap._updateDisplay) { wrap._updateDisplay(val); }
+          }
         }
       });
 
-      // Update toggles
+      // Update EQ toggles and chiclets
       var toggleEq = document.getElementById('toggle-eq');
+      var dpxBtnEq = document.getElementById('dpx-btn-eq');
+      var dpxLedEq = document.getElementById('dpx-led-eq');
+      var eqOn = self.settings.eq ? self.settings.eq.enabled !== false : true;
+
       if (toggleEq) {
-        var eqOn = self.settings.eq ? self.settings.eq.enabled !== false : true;
         toggleEq.classList.toggle('on', eqOn);
         toggleEq.innerHTML = '<span class="led"></span> ' + (eqOn ? 'IN' : 'OUT');
       }
+      if (dpxBtnEq) { dpxBtnEq.classList.toggle('active', eqOn); }
+      if (dpxLedEq) { dpxLedEq.classList.toggle('on', eqOn); }
 
+      var dpxBtnPhase = document.getElementById('dpx-btn-phase');
+      if (dpxBtnPhase && self.settings.eq) {
+        dpxBtnPhase.classList.toggle('active', Boolean(self.settings.eq.phase));
+      }
+
+      // Update compressor toggles
       var toggleComp = document.getElementById('toggle-comp');
       if (toggleComp) {
         var compOn = self.settings.comp ? self.settings.comp.enabled !== false : true;
@@ -851,6 +1218,7 @@
         toggleComp.innerHTML = '<span class="led"></span> ' + (compOn ? 'IN' : 'OUT');
       }
 
+      // Update limiter toggles
       var toggleLimit = document.getElementById('toggle-limit');
       if (toggleLimit) {
         var limOn = self.settings.limit ? self.settings.limit.enabled !== false : true;
@@ -927,7 +1295,6 @@
         } catch (e) {}
       }
 
-      // Fetch from API if not embedded
       var self = this;
       fetch('/api/takes/' + take.id + '/fx')
         .then(function (res) { return res.ok ? res.json() : {}; })
@@ -960,119 +1327,143 @@
 
     startMeterLoop: function () {
       var canvas = document.getElementById('vu-canvas');
-      if (!canvas) { return; }
-      var ctx = canvas.getContext('2d');
       var self = this;
 
-      function drawMeter() {
+      function drawMeters() {
         if (!self.isOpen) {
-          self.animFrame = requestAnimationFrame(drawMeter);
+          self.animFrame = requestAnimationFrame(drawMeters);
           return;
         }
 
-        var w = canvas.width;
-        var h = canvas.height;
-        ctx.clearRect(0, 0, w, h);
+        // 1. Draw 1073-DPX Output Meter & Telemetry
+        if (Engine.analyser) {
+          var timeData = new Uint8Array(Engine.analyser.frequencyBinCount);
+          Engine.analyser.getByteTimeDomainData(timeData);
+          var maxAmp = 0;
+          for (var i = 0; i < timeData.length; i++) {
+            var a = Math.abs(timeData[i] - 128) / 128;
+            if (a > maxAmp) { maxAmp = a; }
+          }
+          // Signal dB estimate (-60 to +24 dB)
+          var sigDb = maxAmp > 0.001 ? 20 * Math.log10(maxAmp) + 16 : -60;
 
-        // Analog Backlight Background (warm amber glow)
-        var grad = ctx.createRadialGradient(w / 2, h * 0.8, 10, w / 2, h * 0.8, w * 0.7);
-        grad.addColorStop(0, '#ffe89e');
-        grad.addColorStop(0.65, '#f5c868');
-        grad.addColorStop(1, '#cca048');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
+          // 7-LED ladder
+          var ladderLeds = document.querySelectorAll('#dpx-led-ladder .ladder-led');
+          Array.prototype.forEach.call(ladderLeds, function (led) {
+            var th = Number(led.dataset.db);
+            led.classList.toggle('lit', sigDb >= th);
+          });
 
-        // Dial Arc & Scale
-        var cx = w / 2;
-        var cy = h + 20;
-        var r = h * 0.94;
+          // Miniature status LEDs
+          var ipLed = document.getElementById('dpx-led-ip');
+          var opLed = document.getElementById('dpx-led-op');
+          if (ipLed) { ipLed.classList.toggle('on', maxAmp > 0.02); }
+          if (opLed) { opLed.classList.toggle('on', maxAmp > 0.02 && !self.settings.masterBypass); }
+        }
 
-        ctx.strokeStyle = '#2d2212';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        // Scale arc from -45deg to +45deg
-        ctx.arc(cx, cy, r, -Math.PI * 0.72, -Math.PI * 0.28, false);
-        ctx.stroke();
+        // 2. Backlit Analog VU Meter for Compressor Gain Reduction
+        if (canvas) {
+          var ctx = canvas.getContext('2d');
+          var w = canvas.width;
+          var h = canvas.height;
+          ctx.clearRect(0, 0, w, h);
 
-        // Tick marks & Decibel numbers
-        // 0dB at center-right, -20dB at far left
-        var ticks = [
-          { val: 0, label: '0', angle: -0.32 },
-          { val: 1, label: '1', angle: -0.36 },
-          { val: 2, label: '2', angle: -0.40 },
-          { val: 3, label: '3', angle: -0.44 },
-          { val: 5, label: '5', angle: -0.50 },
-          { val: 7, label: '7', angle: -0.56 },
-          { val: 10, label: '10', angle: -0.62 },
-          { val: 20, label: '20', angle: -0.70 }
-        ];
+          // Analog Backlight Background (warm amber glow)
+          var grad = ctx.createRadialGradient(w / 2, h * 0.8, 10, w / 2, h * 0.8, w * 0.7);
+          grad.addColorStop(0, '#ffe89e');
+          grad.addColorStop(0.65, '#f5c868');
+          grad.addColorStop(1, '#cca048');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, w, h);
 
-        ctx.fillStyle = '#221608';
-        ctx.font = 'bold 9.5px ui-sans-serif, system-ui, sans-serif';
-        ctx.textAlign = 'center';
+          // Dial Arc & Scale
+          var cx = w / 2;
+          var cy = h + 20;
+          var r = h * 0.94;
 
-        ticks.forEach(function (t) {
-          var a = t.angle * Math.PI;
-          var x1 = cx + Math.cos(a) * r;
-          var y1 = cy + Math.sin(a) * r;
-          var x2 = cx + Math.cos(a) * (r - 7);
-          var y2 = cy + Math.sin(a) * (r - 7);
-          var tx = cx + Math.cos(a) * (r - 15);
-          var ty = cy + Math.sin(a) * (r - 15);
-
+          ctx.strokeStyle = '#2d2212';
+          ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
+          ctx.arc(cx, cy, r, -Math.PI * 0.72, -Math.PI * 0.28, false);
           ctx.stroke();
 
-          ctx.fillText(t.label, tx, ty + 3);
-        });
+          // Tick marks & Decibel numbers
+          var ticks = [
+            { val: 0, label: '0', angle: -0.32 },
+            { val: 1, label: '1', angle: -0.36 },
+            { val: 2, label: '2', angle: -0.40 },
+            { val: 3, label: '3', angle: -0.44 },
+            { val: 5, label: '5', angle: -0.50 },
+            { val: 7, label: '7', angle: -0.56 },
+            { val: 10, label: '10', angle: -0.62 },
+            { val: 20, label: '20', angle: -0.70 }
+          ];
 
-        // Current target reduction in dB
-        var targetRed = Engine.getGainReduction();
-        // Target angle interpolation
-        var norm = Math.min(20, Math.max(0, targetRed)) / 20;
-        // 0 dB -> angle -0.32PI, 20 dB -> angle -0.70PI
-        var targetAngle = (-0.32 - norm * 0.38) * Math.PI;
+          ctx.fillStyle = '#221608';
+          ctx.font = 'bold 9.5px ui-sans-serif, system-ui, sans-serif';
+          ctx.textAlign = 'center';
 
-        // Needle Physics (spring + inertia ballistics)
-        var curAngle = Engine.needleVal || (-0.32 * Math.PI);
-        var vel = Engine.needleVel || 0;
-        var diff = targetAngle - curAngle;
-        var springK = 0.28;
-        var damp = 0.72;
+          ticks.forEach(function (t) {
+            var a = t.angle * Math.PI;
+            var x1 = cx + Math.cos(a) * r;
+            var y1 = cy + Math.sin(a) * r;
+            var x2 = cx + Math.cos(a) * (r - 7);
+            var y2 = cy + Math.sin(a) * (r - 7);
+            var tx = cx + Math.cos(a) * (r - 15);
+            var ty = cy + Math.sin(a) * (r - 15);
 
-        vel = vel * damp + diff * springK;
-        curAngle += vel;
-        Engine.needleVal = curAngle;
-        Engine.needleVel = vel;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
 
-        // Draw Needle Shadow
-        ctx.strokeStyle = 'rgba(0,0,0,0.18)';
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.moveTo(cx + 2, cy);
-        ctx.lineTo(cx + Math.cos(curAngle) * (r - 3) + 2, cy + Math.sin(curAngle) * (r - 3));
-        ctx.stroke();
+            ctx.fillText(t.label, tx, ty + 3);
+          });
 
-        // Draw Needle (Classic vivid red pointer)
-        ctx.strokeStyle = '#c9182b';
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(curAngle) * (r - 3), cy + Math.sin(curAngle) * (r - 3));
-        ctx.stroke();
+          // Current target reduction in dB
+          var targetRed = Engine.getGainReduction();
+          var norm = Math.min(20, Math.max(0, targetRed)) / 20;
+          var targetAngle = (-0.32 - norm * 0.38) * Math.PI;
 
-        // Pivot cap
-        ctx.fillStyle = '#1c150c';
-        ctx.beginPath();
-        ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-        ctx.fill();
+          // Needle Physics (spring + inertia ballistics)
+          var curAngle = Engine.needleVal || (-0.32 * Math.PI);
+          var vel = Engine.needleVel || 0;
+          var diff = targetAngle - curAngle;
+          var springK = 0.28;
+          var damp = 0.72;
 
-        self.animFrame = requestAnimationFrame(drawMeter);
+          vel = vel * damp + diff * springK;
+          curAngle += vel;
+          Engine.needleVal = curAngle;
+          Engine.needleVel = vel;
+
+          // Needle Shadow
+          ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(cx + 2, cy);
+          ctx.lineTo(cx + Math.cos(curAngle) * (r - 3) + 2, cy + Math.sin(curAngle) * (r - 3));
+          ctx.stroke();
+
+          // Needle (Vivid red pointer)
+          ctx.strokeStyle = '#c9182b';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(curAngle) * (r - 3), cy + Math.sin(curAngle) * (r - 3));
+          ctx.stroke();
+
+          // Pivot cap
+          ctx.fillStyle = '#1c150c';
+          ctx.beginPath();
+          ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        self.animFrame = requestAnimationFrame(drawMeters);
       }
 
-      drawMeter();
+      drawMeters();
     }
   };
 
