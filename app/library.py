@@ -105,9 +105,9 @@ def _clear_remade(folder: Path) -> None:
 
 def _bring_along(have: Path, want: Path) -> None:
     """A renamed take's other audio moves with it: the file as rendered, when the take
-    plays its normalised copy, and the as-rendered copy the first version of
-    normalising kept.  Left behind, Normalise could not be undone."""
-    for old, new in ((rendered_path(have), rendered_path(want)), (original_path(have), original_path(want))):
+    plays its normalised copy, the unmastered premaster copy, and the as-rendered copy the first version of
+    normalising kept.  Left behind, Normalise or unbaking could not be undone."""
+    for old, new in ((rendered_path(have), rendered_path(want)), (original_path(have), original_path(want)), (premaster_path(have), premaster_path(want))):
         if old != have and old.exists() and not new.exists():
             shutil.move(str(old), str(new))
     _clear_remade(have.parent)
@@ -324,6 +324,11 @@ def original_path(audio: Path) -> Path:
     """Where the first version of normalising kept the file as rendered, when it
     normalised a take in place.  Read only to convert such takes."""
     return audio.with_name(f"{audio.stem}.original{audio.suffix}")
+
+
+def premaster_path(audio: Path) -> Path:
+    """The unmastered file kept when a take has had mastering baked into it."""
+    return audio.with_name(f"{audio.stem}.premaster{audio.suffix}")
 
 
 def convert_old_normalised() -> int:
@@ -646,7 +651,7 @@ def tagged_copy(src: Path, dest: Path, fmt: str, codec: list[str] | None, title:
     # leaves a v2.4 tag naming ffmpeg; -id3v2_version 0 leaves none.
     untagged = ["-map_metadata", "-1"] + (["-id3v2_version", "0"] if fmt == "mp3" else [])
 
-    if fmt == "flac" and fx_filter:
+    if fmt == "flac" and (fx_filter or src.suffix.lower() != ".flac"):
         flac_codec = ["-c:a", "flac"]
         try:
             with src.open("rb") as fh:

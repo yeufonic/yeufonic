@@ -132,6 +132,327 @@
     }
   };
 
+  // ------------------------------------------------------------- DSP Helpers & Waveshapers
+  function makeLinearCurve() {
+    var n = 1024;
+    var curve = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      curve[i] = (i * 2) / n - 1;
+    }
+    return curve;
+  }
+
+  function makeTubeCurve() {
+    var n = 1024;
+    var curve = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      var x = (i * 2) / n - 1;
+      if (x < -1) { curve[i] = -1; }
+      else if (x > 1) { curve[i] = 1; }
+      else {
+        curve[i] = Math.tanh(x * 1.15) / 1.12;
+      }
+    }
+    return curve;
+  }
+
+  function audioBufferToWav(buffer) {
+    var numChannels = buffer.numberOfChannels;
+    var sampleRate = buffer.sampleRate;
+    var format = 1; // 16-bit PCM
+    var bitDepth = 16;
+    var bytesPerSample = bitDepth / 8;
+    var blockAlign = numChannels * bytesPerSample;
+    var length = buffer.length;
+    var dataLength = length * blockAlign;
+    var bufferLength = 44 + dataLength;
+
+    var arrayBuffer = new ArrayBuffer(bufferLength);
+    var view = new DataView(arrayBuffer);
+
+    function writeString(offset, string) {
+      for (var i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    }
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + dataLength, true);
+    writeString(8, 'WAVE');
+
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, format, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitDepth, true);
+
+    writeString(36, 'data');
+    view.setUint32(40, dataLength, true);
+
+    var channels = [];
+    for (var c = 0; c < numChannels; c++) {
+      channels.push(buffer.getChannelData(c));
+    }
+
+    var offset = 44;
+    for (var i = 0; i < length; i++) {
+      for (var ch = 0; ch < numChannels; ch++) {
+        var sample = channels[ch][i];
+        if (sample < -1) { sample = -1; }
+        else if (sample > 1) { sample = 1; }
+        var s = sample < 0 ? sample * 32768 : sample * 32767;
+        view.setInt16(offset, s, true);
+        offset += 2;
+      }
+    }
+
+    return new Blob([arrayBuffer], { type: 'audio/wav' });
+  }
+
+  function buildMasteringDspGraph(ctx, s) {
+    s = s || PRESETS['default'];
+
+    // 1. Input Gain
+    var inputGain = ctx.createGain();
+    var preDb = (s.eq && s.eq.preGain !== undefined) ? Number(s.eq.preGain) : 0;
+    inputGain.gain.value = Math.pow(10, preDb / 20);
+
+    // 2. 1073 Parametric EQ chain
+    var eqOn = s.eq && s.eq.enabled !== false;
+    var eqHP = ctx.createBiquadFilter();
+    eqHP.type = 'highpass';
+    var hpVal = Number(s.eq && s.eq.hp);
+    if (isNaN(hpVal) || hpVal <= 20) { hpVal = 20; }
+    eqHP.frequency.value = eqOn ? hpVal : 20;
+    eqHP.Q.value = 0.707;
+
+    var eqLow = ctx.createBiquadFilter();
+    eqLow.type = 'lowshelf';
+    var lowF = Number(s.eq && s.eq.lowFreq);
+    if (isNaN(lowF) || lowF <= 0) { lowF = 60; }
+    eqLow.frequency.value = lowF;
+    eqLow.gain.value = eqOn ? (s.eq && s.eq.lowGain !== undefined ? Number(s.eq.lowGain) : 0) : 0;
+
+    var eqMid = ctx.createBiquadFilter();
+    eqMid.type = 'peaking';
+    var midF = Number(s.eq && (s.eq.midFreq || s.eq.mid1Freq));
+    if (isNaN(midF) || midF <= 0) { midF = 1600; }
+    eqMid.frequency.value = midF;
+    eqMid.Q.value = 1.1;
+    eqMid.gain.value = eqOn ? (s.eq && s.eq.midGain !== undefined ? Number(s.eq.midGain) : (s.eq && s.eq.mid1Gain !== undefined ? Number(s.eq.mid1Gain) : 0)) : 0;
+
+    var eqHigh = ctx.createBiquadFilter();
+    eqHigh.type = 'highshelf';
+    eqHigh.frequency.value = 6800;
+    eqHigh.gain.value = eqOn ? (s.eq && s.eq.highGain !== undefined ? Number(s.eq.highGain) : (s.eq && s.eq.airGain !== undefined ? Number(s.eq.airGain) : 0)) : 0;
+
+    var eqPhase = ctx.createGain();
+    eqPhase.gain.value = (s.eq && s.eq.phase) ? -1.0 : 1.0;
+
+    var eqOutput = ctx.createGain();
+    var outDb = (s.eq && s.eq.outLevel !== undefined) ? Number(s.eq.outLevel) : 0;
+    eqOutput.gain.value = Math.pow(10, outDb / 20);
+
+    inputGain.connect(eqHP);
+    eqHP.connect(eqLow);
+    eqLow.connect(eqMid);
+    eqMid.connect(eqHigh);
+    eqHigh.connect(eqPhase);
+    eqPhase.connect(eqOutput);
+
+    // 3. Vintage Compressor stage with parallel blend
+    var compDryGain = ctx.createGain();
+    var compWetGain = ctx.createGain();
+    var compressor = ctx.createDynamicsCompressor();
+    var compMakeup = ctx.createGain();
+    var compSum = ctx.createGain();
+
+    var compOn = s.comp && s.comp.enabled !== false;
+    if (!compOn) {
+      compDryGain.gain.value = 1.0;
+      compWetGain.gain.value = 0.0;
+    } else {
+      var mix = (s.comp && typeof s.comp.mix === 'number') ? s.comp.mix : 1.0;
+      compDryGain.gain.value = 1.0 - mix;
+      compWetGain.gain.value = mix;
+      compressor.threshold.value = (s.comp && s.comp.threshold !== undefined) ? s.comp.threshold : -18;
+      compressor.ratio.value = (s.comp && s.comp.ratio) || 4;
+      compressor.attack.value = (s.comp && s.comp.attack) || 0.015;
+      compressor.release.value = (s.comp && s.comp.release) || 0.25;
+      compressor.knee.value = (s.comp && s.comp.knee !== undefined) ? s.comp.knee : 10;
+      compMakeup.gain.value = Math.pow(10, ((s.comp && s.comp.makeup) || 0) / 20);
+    }
+
+    eqOutput.connect(compDryGain);
+    eqOutput.connect(compressor);
+    compressor.connect(compMakeup);
+    compMakeup.connect(compWetGain);
+    compDryGain.connect(compSum);
+    compWetGain.connect(compSum);
+
+    // 4. Vintage Stereo Imager & Spatial Processor stage
+    var imagerDryGain = ctx.createGain();
+    var imagerWetGain = ctx.createGain();
+    var imagerSplitter = ctx.createChannelSplitter(2);
+    var lToM = ctx.createGain(); lToM.gain.value = 0.5;
+    var rToM = ctx.createGain(); rToM.gain.value = 0.5;
+    var imagerMidBus = ctx.createGain();
+    var imagerBassFilter = ctx.createBiquadFilter();
+    imagerBassFilter.type = 'lowshelf';
+    imagerBassFilter.frequency.value = 85;
+
+    var lToS = ctx.createGain(); lToS.gain.value = 0.5;
+    var rToS = ctx.createGain(); rToS.gain.value = -0.5;
+    var imagerSideBus = ctx.createGain();
+    var imagerSideHP = ctx.createBiquadFilter();
+    imagerSideHP.type = 'highpass';
+    imagerSideHP.frequency.value = 90;
+    imagerSideHP.Q.value = 0.707;
+
+    var imagerRangeFilter = ctx.createBiquadFilter();
+    imagerRangeFilter.type = 'highpass';
+    imagerRangeFilter.Q.value = 0.707;
+
+    var imagerStageFilter = ctx.createBiquadFilter();
+    imagerStageFilter.type = 'allpass';
+
+    var imagerWidthGain = ctx.createGain();
+    var imagerHarmonicsDrive = ctx.createGain();
+    var imagerShaper = ctx.createWaveShaper();
+    imagerShaper.oversample = '4x';
+
+    var midToL = ctx.createGain(); midToL.gain.value = 1.0;
+    var midToR = ctx.createGain(); midToR.gain.value = 1.0;
+    var sideToL = ctx.createGain(); sideToL.gain.value = 1.0;
+    var sideToR = ctx.createGain(); sideToR.gain.value = -1.0;
+    var imagerMerger = ctx.createChannelMerger(2);
+    var imagerSum = ctx.createGain();
+
+    var imagerOn = s.imager && s.imager.enabled !== false;
+    if (!imagerOn) {
+      imagerDryGain.gain.value = 1.0;
+      imagerWetGain.gain.value = 0.0;
+    } else {
+      imagerDryGain.gain.value = 0.0;
+      imagerWetGain.gain.value = 1.0;
+
+      var rangeVal = Number(s.imager && s.imager.range);
+      if (isNaN(rangeVal) || rangeVal < 1) { rangeVal = 5; }
+      var rangeNorm = (rangeVal - 1) / 8;
+      imagerRangeFilter.frequency.value = 2800 * Math.pow(180 / 2800, rangeNorm);
+
+      var stageVal = Number(s.imager && s.imager.stage);
+      if (isNaN(stageVal) || stageVal < 1) { stageVal = 5; }
+      var stageNorm = (stageVal - 1) / 8;
+      imagerStageFilter.frequency.value = 350 * Math.pow(3200 / 350, stageNorm);
+
+      var bignessVal = Number(s.imager && s.imager.bigness);
+      if (isNaN(bignessVal) || bignessVal < 0) { bignessVal = 1; }
+      imagerWidthGain.gain.value = (bignessVal <= 1) ? bignessVal : (1.0 + ((bignessVal - 1) / 8) * 1.4);
+
+      imagerBassFilter.gain.value = (s.imager && s.imager.bass) ? 3.0 : 0.0;
+
+      var harmOn = Boolean(s.imager && s.imager.harmonics);
+      var tubeH = Number(s.imager && s.imager.tubeHarmonics);
+      if (isNaN(tubeH) || tubeH < 1) { tubeH = 1; }
+      if (harmOn) {
+        imagerHarmonicsDrive.gain.value = 1.0 + ((tubeH - 1) / 8) * 0.8;
+        imagerShaper.curve = makeTubeCurve();
+      } else {
+        imagerHarmonicsDrive.gain.value = 1.0;
+        imagerShaper.curve = makeLinearCurve();
+      }
+    }
+
+    compSum.connect(imagerDryGain);
+    imagerDryGain.connect(imagerSum);
+
+    compSum.connect(imagerSplitter);
+    imagerSplitter.connect(lToM, 0);
+    imagerSplitter.connect(rToM, 1);
+    lToM.connect(imagerMidBus);
+    rToM.connect(imagerMidBus);
+    imagerMidBus.connect(imagerBassFilter);
+
+    imagerSplitter.connect(lToS, 0);
+    imagerSplitter.connect(rToS, 1);
+    lToS.connect(imagerSideBus);
+    rToS.connect(imagerSideBus);
+    imagerSideBus.connect(imagerSideHP);
+    imagerSideHP.connect(imagerRangeFilter);
+    imagerRangeFilter.connect(imagerStageFilter);
+    imagerStageFilter.connect(imagerWidthGain);
+
+    imagerBassFilter.connect(midToL);
+    imagerBassFilter.connect(midToR);
+    imagerWidthGain.connect(sideToL);
+    imagerWidthGain.connect(sideToR);
+
+    midToL.connect(imagerMerger, 0, 0);
+    sideToL.connect(imagerMerger, 0, 0);
+    midToR.connect(imagerMerger, 0, 1);
+    sideToR.connect(imagerMerger, 0, 1);
+
+    imagerMerger.connect(imagerHarmonicsDrive);
+    imagerHarmonicsDrive.connect(imagerShaper);
+    imagerShaper.connect(imagerWetGain);
+    imagerWetGain.connect(imagerSum);
+
+    // 5. Master Limiter & Tube Warmth stage
+    var limitDrive = ctx.createGain();
+    var limitShaper = ctx.createWaveShaper();
+    limitShaper.oversample = '4x';
+    var limiter = ctx.createDynamicsCompressor();
+    var limitCeiling = ctx.createGain();
+
+    var limitOn = s.limit && s.limit.enabled !== false;
+    if (!limitOn) {
+      limitDrive.gain.value = 1.0;
+      limitShaper.curve = makeLinearCurve();
+      limiter.ratio.value = 1.0;
+      limitCeiling.gain.value = 1.0;
+    } else {
+      var driveLin = Math.pow(10, ((s.limit && s.limit.drive) || 0) / 20);
+      limitDrive.gain.value = driveLin;
+      limiter.threshold.value = -0.5;
+      limiter.knee.value = 0.0;
+      limiter.ratio.value = 20.0;
+      limiter.attack.value = 0.001;
+      limiter.release.value = (s.limit && s.limit.release) || 0.08;
+      var ceilDb = (s.limit && s.limit.ceiling !== undefined) ? s.limit.ceiling : -0.1;
+      limitCeiling.gain.value = Math.pow(10, ceilDb / 20);
+      limitShaper.curve = (s.limit && s.limit.warmth) ? makeTubeCurve() : makeLinearCurve();
+    }
+
+    imagerSum.connect(limitDrive);
+    limitDrive.connect(limitShaper);
+    limitShaper.connect(limiter);
+    limiter.connect(limitCeiling);
+
+    // 6. Master Output / Bypass Routing
+    var masterDryGain = ctx.createGain();
+    var masterWetGain = ctx.createGain();
+    var masterOut = ctx.createGain();
+
+    var isBypassed = Boolean(s.masterBypass);
+    masterDryGain.gain.value = isBypassed ? 1.0 : 0.0;
+    masterWetGain.gain.value = isBypassed ? 0.0 : 1.0;
+
+    inputGain.connect(masterDryGain);
+    limitCeiling.connect(masterWetGain);
+
+    masterDryGain.connect(masterOut);
+    masterWetGain.connect(masterOut);
+
+    return {
+      inputNode: inputGain,
+      outputNode: masterOut
+    };
+  }
+
   // ------------------------------------------------------------- DSP Engine
   var Engine = {
     ctx: null,
@@ -417,27 +738,11 @@
     },
 
     makeLinearCurve: function () {
-      var n = 1024;
-      var curve = new Float32Array(n);
-      for (var i = 0; i < n; i++) {
-        var x = (i * 2) / n - 1;
-        curve[i] = x;
-      }
-      return curve;
+      return makeLinearCurve();
     },
 
     makeTubeCurve: function () {
-      var n = 1024;
-      var curve = new Float32Array(n);
-      for (var i = 0; i < n; i++) {
-        var x = (i * 2) / n - 1;
-        if (x < -1) { curve[i] = -1; }
-        else if (x > 1) { curve[i] = 1; }
-        else {
-          curve[i] = Math.tanh(x * 1.15) / 1.12;
-        }
-      }
-      return curve;
+      return makeTubeCurve();
     },
 
     resume: function () {
@@ -714,6 +1019,7 @@
         '        <button type="button" class="rack-head-btn bypass-btn" id="rack-master-bypass" title="Toggle Master Bypass (A/B audition)">',
         '          <span class="led-dot" id="rack-master-led"></span> BYPASS',
         '        </button>',
+        '        <button type="button" class="rack-head-btn apply-btn" id="rack-apply-take-btn" title="Bake current mastering processing permanently into this take">Apply to Take</button>',
         '        <button type="button" class="rack-head-btn dock-btn" id="rack-dock-btn" title="Float window (or drag header to move)">Float</button>',
         '        <button type="button" class="rack-head-btn close-btn" id="rack-close-btn" title="Close Rack (Esc)">&times;</button>',
         '      </div>',
@@ -1145,6 +1451,14 @@
           self.syncKnobsToState();
           Engine.applySettings(self.settings);
           self.debouncedSave();
+        });
+      }
+
+      // Apply to Take (Bake master permanently into take)
+      var applyBtn = document.getElementById('rack-apply-take-btn');
+      if (applyBtn) {
+        applyBtn.addEventListener('click', function () {
+          self.applyToTake();
         });
       }
 
@@ -1616,8 +1930,10 @@
 
     openForTake: function (take) {
       if (!take) { return; }
-      this.flushSave();
-      this.onTake(take);
+      if (!this.currentTakeId || String(this.currentTakeId) !== String(take.id)) {
+        this.flushSave();
+        this.onTake(take);
+      }
       this.toggle(true);
     },
 
@@ -1626,6 +1942,9 @@
       var audio = document.getElementById('audio');
       // If a different take is actively playing, never overwrite rack state or alter active playback DSP
       if (audio && !audio.paused && !audio.ended && window.State && State.playing && String(State.playing) !== String(take.id)) {
+        return;
+      }
+      if (this.currentTakeId && String(this.currentTakeId) === String(take.id)) {
         return;
       }
       this.flushSave();
@@ -1726,6 +2045,217 @@
           console.error('Failed to save mastering rack FX for take', takeId, err);
         });
       }, 350);
+    },
+
+    hasActiveMastering: function (takeId) {
+      var s = null;
+      if (this.currentTakeId && String(this.currentTakeId) === String(takeId)) {
+        s = this.settings;
+      } else if (window.State && State.takes) {
+        var t = State.takes.find(function (x) { return String(x.id) === String(takeId); });
+        if (t && t.fx_chain) {
+          try {
+            s = typeof t.fx_chain === 'string' ? JSON.parse(t.fx_chain) : t.fx_chain;
+          } catch (e) {}
+        }
+      }
+      if (!s) { return false; }
+      if (s.masterBypass === true) { return false; }
+
+      if (s.eq && s.eq.enabled !== false) {
+        if (Number(s.eq.preGain || 0) !== 0 || Number(s.eq.lowGain || 0) !== 0 ||
+            Number(s.eq.midGain || 0) !== 0 || Number(s.eq.highGain || 0) !== 0 ||
+            Number(s.eq.outLevel || 0) !== 0 || Boolean(s.eq.phase) ||
+            (Number(s.eq.hp || 20) > 20)) {
+          return true;
+        }
+      }
+      if (s.comp && s.comp.enabled !== false) {
+        if (Number(s.comp.makeup || 0) !== 0 ||
+            (s.comp.mix !== undefined && Number(s.comp.mix) < 0.999) ||
+            Number(s.comp.threshold || -18) !== -18 ||
+            Number(s.comp.ratio || 4) !== 4) {
+          return true;
+        }
+      }
+      if (s.imager && s.imager.enabled !== false) {
+        if (Number(s.imager.bigness || 1) !== 1 || Boolean(s.imager.bass) ||
+            Boolean(s.imager.harmonics) || Number(s.imager.range || 5) !== 5 ||
+            Number(s.imager.stage || 5) !== 5) {
+          return true;
+        }
+      }
+      if (s.limit && s.limit.enabled !== false) {
+        if (Number(s.limit.drive || 0) !== 0 || Boolean(s.limit.warmth) ||
+            Number(s.limit.ceiling !== undefined ? s.limit.ceiling : -0.1) !== -0.1) {
+          return true;
+        }
+      }
+      return false;
+    },
+
+    renderMasterWav: async function (takeId, customSettings) {
+      var s = customSettings;
+      if (!s && this.currentTakeId && String(this.currentTakeId) === String(takeId)) {
+        s = this.settings;
+      }
+      if (!s && window.State && State.takes) {
+        var t = State.takes.find(function (x) { return String(x.id) === String(takeId); });
+        if (t && t.fx_chain) {
+          try {
+            s = typeof t.fx_chain === 'string' ? JSON.parse(t.fx_chain) : t.fx_chain;
+          } catch (e) {}
+        }
+      }
+      s = s || this.settings;
+
+      var resp = await fetch('/api/takes/' + takeId + '/audio');
+      if (!resp.ok) {
+        throw new Error('Failed to fetch audio for take ' + takeId);
+      }
+      var arrayBuf = await resp.arrayBuffer();
+
+      var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      var tempCtx = new AudioContextClass();
+      var decodedBuffer;
+      try {
+        decodedBuffer = await tempCtx.decodeAudioData(arrayBuf);
+      } catch (decodeErr) {
+        var wavResp = await fetch('/api/takes/' + takeId + '/audio?download=1&format=wav');
+        if (wavResp.ok) {
+          var wavBuf = await wavResp.arrayBuffer();
+          decodedBuffer = await tempCtx.decodeAudioData(wavBuf);
+        } else {
+          throw decodeErr;
+        }
+      }
+      if (typeof tempCtx.close === 'function') {
+        tempCtx.close().catch(function () {});
+      }
+
+      var OfflineContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      var offlineCtx = new OfflineContextClass(
+        decodedBuffer.numberOfChannels,
+        decodedBuffer.length,
+        decodedBuffer.sampleRate
+      );
+
+      var src = offlineCtx.createBufferSource();
+      src.buffer = decodedBuffer;
+
+      var graph = buildMasteringDspGraph(offlineCtx, s);
+      src.connect(graph.inputNode);
+      graph.outputNode.connect(offlineCtx.destination);
+
+      src.start(0);
+      var renderedBuffer = await offlineCtx.startRendering();
+      return audioBufferToWav(renderedBuffer);
+    },
+
+    renderAndDownload: async function (takeId, format) {
+      var wavBlob = await this.renderMasterWav(takeId);
+      var formData = new FormData();
+      formData.append('audio_file', wavBlob, 'master.wav');
+      var res = await fetch('/api/takes/' + takeId + '/export-mastered?format=' + encodeURIComponent(format), {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) {
+        throw new Error('Server export failed: ' + res.status);
+      }
+      var blob = await res.blob();
+      var disposition = res.headers.get('content-disposition') || '';
+      var filename = 'master.' + format;
+      var match = disposition.match(/filename=["']?([^"';]+)["']?/);
+      if (match && match[1]) {
+        filename = match[1];
+      } else if (window.State && State.takes) {
+        var t = State.takes.find(function (x) { return String(x.id) === String(takeId); });
+        if (t && t.title) {
+          var safe = t.title.replace(/[^a-zA-Z0-9 -_]/g, '').trim() || 'take';
+          filename = safe + '.' + format;
+        }
+      }
+      var link = document.createElement('a');
+      var url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(function () {
+        URL.revokeObjectURL(url);
+        link.remove();
+      }, 1000);
+    },
+
+    applyToTake: async function () {
+      if (!this.currentTakeId) {
+        this.showToast('Select a take first');
+        return;
+      }
+      var takeId = this.currentTakeId;
+      var applyBtn = document.getElementById('rack-apply-take-btn');
+      if (applyBtn) {
+        applyBtn.disabled = true;
+        applyBtn.textContent = 'Baking...';
+      }
+      this.showToast('Rendering & baking master into take...', 'good');
+
+      try {
+        var wavBlob = await this.renderMasterWav(takeId);
+        var formData = new FormData();
+        formData.append('audio_file', wavBlob, 'master.wav');
+        var res = await fetch('/api/takes/' + takeId + '/bake-master', {
+          method: 'POST',
+          body: formData
+        });
+        if (!res.ok) {
+          var errText = await res.text();
+          throw new Error('Failed to bake master: ' + errText);
+        }
+        var data = await res.json();
+
+        // Reset rack settings for this take to default transparent so it is not double-processed
+        this.settings = JSON.parse(JSON.stringify(PRESETS['default']));
+        this.syncKnobsToState();
+        Engine.applySettings(this.settings);
+        await this.flushSave();
+
+        // Reload the takes in the library
+        if (typeof window.loadTakes === 'function') {
+          await window.loadTakes();
+        }
+
+        // If this take was currently playing or loaded in transport, update audio and waveform
+        if (window.State && (State.playing === takeId || State.loadedId === takeId)) {
+          var audio = document.getElementById('audio');
+          if (audio) {
+            var curTime = audio.currentTime || 0;
+            var wasPlaying = !audio.paused && !audio.ended;
+            var version = '?v=' + Date.now();
+            var audioUrl = '/api/takes/' + takeId + '/audio' + version;
+            var peaksUrl = '/api/takes/' + takeId + '/peaks' + version;
+            audio.src = audioUrl;
+            if (typeof loadWave === 'function') {
+              loadWave(audioUrl, peaksUrl);
+            }
+            if (wasPlaying) {
+              audio.currentTime = curTime;
+              audio.play().catch(function () {});
+            }
+          }
+        }
+
+        this.showToast('Mastered audio saved permanently to take!', 'good');
+      } catch (err) {
+        console.error('Bake master failed:', err);
+        this.showToast('Could not bake master: ' + err.message, 'bad');
+      } finally {
+        if (applyBtn) {
+          applyBtn.disabled = false;
+          applyBtn.textContent = 'Apply to Take';
+        }
+      }
     },
 
     startMeterLoop: function () {

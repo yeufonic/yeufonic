@@ -3296,6 +3296,21 @@ button.ghost.run-all { margin-left: 10px; }
 .rack-head-btn.delete-btn:hover {
   background: linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%); color: #fff;
 }
+.rack-head-btn.apply-btn {
+  background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #f0f9ff;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.4);
+}
+.rack-head-btn.apply-btn:hover {
+  background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+}
+.rack-head-btn.apply-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
 .rack-head-btn.hidden { display: none !important; }
 .rack-head-btn.bypass-btn .led-dot {
   width: 7px; height: 7px; border-radius: 50%;

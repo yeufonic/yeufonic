@@ -5645,13 +5645,27 @@ async function runSave() {
   var id = State.saveTakeId;
   var chosen = $('save-format').querySelector('button.active');
   if (!id || !chosen) { return; }
+  var fmt = chosen.dataset.format;
+  closeSaveModal();
+
+  if (window.Rack && typeof window.Rack.hasActiveMastering === 'function' && window.Rack.hasActiveMastering(id)) {
+    statusLine('Rendering mastered ' + fmt.toUpperCase() + '...', 'working');
+    try {
+      await window.Rack.renderAndDownload(id, fmt);
+      statusLine('Mastered ' + fmt.toUpperCase() + ' saved.', 'good');
+      return;
+    } catch (err) {
+      console.warn('Offline master render failed, falling back to server export:', err);
+      statusLine('Rendering on server...', 'working');
+    }
+  }
+
   var link = document.createElement('a');
-  link.href = '/api/takes/' + id + '/audio?download=1&format=' + chosen.dataset.format;
+  link.href = '/api/takes/' + id + '/audio?download=1&format=' + fmt;
   link.download = '';
   document.body.appendChild(link);
   link.click();
   link.remove();
-  closeSaveModal();
 }
 
 function statusLine(message, kind) {
