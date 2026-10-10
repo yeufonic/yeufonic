@@ -580,7 +580,33 @@ def build_fx_filter(fx_chain: str | dict | None) -> str | None:
                 comp_opts.append(f"makeup={mk:.2f}dB")
             filters.append(f"acompressor={':'.join(comp_opts)}")
 
-    # 3. Master Limiter & Tube Warmth Stage
+    # 3. Vintage Stereo Imager Stage (Placed before Master Limiter)
+    imager = fx_chain.get("imager")
+    if isinstance(imager, dict) and imager.get("enabled", True) is not False:
+        bigness_val = float(imager.get("bigness", 1) if imager.get("bigness") is not None else 1)
+        if bigness_val <= 1.0:
+            slev = 1.0 if bigness_val >= 1.0 else max(0.0, bigness_val)
+        else:
+            slev = round(1.0 + ((bigness_val - 1.0) / 8.0) * 1.4, 2)
+
+        stage_val = float(imager.get("stage", 5) if imager.get("stage") is not None else 5)
+        phase_deg = round((stage_val - 5.0) * 4.0, 1)
+
+        if abs(slev - 1.0) > 0.01 or abs(phase_deg) > 0.1:
+            filters.append(f"stereotools=slev={slev:.2f}:mlev=1.00:phase={phase_deg:.1f}")
+
+        if imager.get("bass"):
+            filters.append("lowshelf=f=85.0:g=3.00")
+
+        if imager.get("harmonics"):
+            tube_h = float(imager.get("tubeHarmonics", 1) if imager.get("tubeHarmonics") is not None else 1)
+            if tube_h > 1.0:
+                drive_db = round(((tube_h - 1.0) / 8.0) * 1.8, 2)
+                if drive_db > 0.01:
+                    filters.append(f"volume={drive_db:.2f}dB")
+            filters.append("asoftclip=type=tanh")
+
+    # 4. Master Limiter & Tube Warmth Stage
     limit = fx_chain.get("limit")
     if isinstance(limit, dict) and limit.get("enabled", True) is not False:
         drive = float(limit.get("drive", 0) or 0)

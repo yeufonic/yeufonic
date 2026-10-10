@@ -26,6 +26,7 @@
         mid1Freq: 1600, mid1Gain: 0, highFreq: 12000, airGain: 0
       },
       comp: { enabled: true, threshold: -18, ratio: 4, attack: 0.015, release: 0.25, makeup: 0, mix: 1.0, knee: 10 },
+      imager: { enabled: true, bigness: 1, range: 5, stage: 5, harmonics: false, tubeHarmonics: 1, bass: false },
       limit: { enabled: true, drive: 0, ceiling: -0.1, release: 0.08, warmth: false },
       masterBypass: false
     },
@@ -45,6 +46,7 @@
         mid1Freq: 700, mid1Gain: 1.5, highFreq: 12000, airGain: 1.5
       },
       comp: { enabled: true, threshold: -20, ratio: 4, attack: 0.025, release: 0.35, makeup: 2.5, mix: 0.85, knee: 20 },
+      imager: { enabled: true, bigness: 3, range: 6, stage: 6, harmonics: true, tubeHarmonics: 4, bass: true },
       limit: { enabled: true, drive: 1.5, ceiling: -0.2, release: 0.12, warmth: true },
       masterBypass: false
     },
@@ -64,6 +66,7 @@
         mid1Freq: 3200, mid1Gain: 2.5, highFreq: 12000, airGain: 3.0
       },
       comp: { enabled: true, threshold: -22, ratio: 4, attack: 0.008, release: 0.20, makeup: 3.0, mix: 0.90, knee: 12 },
+      imager: { enabled: true, bigness: 2, range: 2, stage: 7, harmonics: false, tubeHarmonics: 1, bass: false },
       limit: { enabled: true, drive: 1.0, ceiling: -0.1, release: 0.08, warmth: false },
       masterBypass: false
     },
@@ -83,6 +86,7 @@
         mid1Freq: 1600, mid1Gain: 1.0, highFreq: 12000, airGain: 2.0
       },
       comp: { enabled: true, threshold: -24, ratio: 8, attack: 0.010, release: 0.15, makeup: 4.0, mix: 1.0, knee: 8 },
+      imager: { enabled: true, bigness: 4, range: 5, stage: 6, harmonics: true, tubeHarmonics: 3, bass: true },
       limit: { enabled: true, drive: 2.5, ceiling: -0.1, release: 0.06, warmth: true },
       masterBypass: false
     },
@@ -102,6 +106,7 @@
         mid1Freq: 3200, mid1Gain: 2.0, highFreq: 12000, airGain: 1.5
       },
       comp: { enabled: true, threshold: -16, ratio: 8, attack: 0.030, release: 0.12, makeup: 2.0, mix: 0.95, knee: 6 },
+      imager: { enabled: true, bigness: 3, range: 5, stage: 5, harmonics: false, tubeHarmonics: 2, bass: true },
       limit: { enabled: true, drive: 2.0, ceiling: -0.1, release: 0.08, warmth: false },
       masterBypass: false
     },
@@ -121,6 +126,7 @@
         mid1Freq: 4800, mid1Gain: 1.5, highFreq: 12000, airGain: 2.0
       },
       comp: { enabled: true, threshold: -18, ratio: 2, attack: 0.020, release: 0.30, makeup: 1.5, mix: 0.80, knee: 18 },
+      imager: { enabled: true, bigness: 2, range: 4, stage: 6, harmonics: false, tubeHarmonics: 1, bass: false },
       limit: { enabled: true, drive: 0.5, ceiling: -0.2, release: 0.10, warmth: false },
       masterBypass: false
     }
@@ -147,6 +153,21 @@
     compWetGain: null,
     compressor: null,
     compMakeup: null,
+
+    // Vintage Stereo Imager & Spatial Processor
+    imagerDryGain: null,
+    imagerWetGain: null,
+    imagerSplitter: null,
+    imagerMidBus: null,
+    imagerSideBus: null,
+    imagerBassFilter: null,
+    imagerSideHP: null,
+    imagerRangeFilter: null,
+    imagerStageFilter: null,
+    imagerWidthGain: null,
+    imagerHarmonicsDrive: null,
+    imagerShaper: null,
+    imagerMerger: null,
 
     // Limiter
     limitDrive: null,
@@ -255,7 +276,103 @@
       this.compDryGain.connect(compSum);
       this.compWetGain.connect(compSum);
 
-      // 4. Master Limiter & Tube Warmth stage
+      // 4. Vintage Stereo Imager & Spatial Processor stage
+      this.imagerDryGain = ctx.createGain();
+      this.imagerWetGain = ctx.createGain();
+      this.imagerDryGain.gain.value = 0.0;
+      this.imagerWetGain.gain.value = 1.0;
+
+      // M/S Matrix
+      this.imagerSplitter = ctx.createChannelSplitter(2);
+
+      // Mid bus
+      var lToM = ctx.createGain(); lToM.gain.value = 0.5;
+      var rToM = ctx.createGain(); rToM.gain.value = 0.5;
+      this.imagerMidBus = ctx.createGain();
+      this.imagerBassFilter = ctx.createBiquadFilter();
+      this.imagerBassFilter.type = 'lowshelf';
+      this.imagerBassFilter.frequency.value = 85;
+      this.imagerBassFilter.gain.value = 0;
+
+      // Side bus
+      var lToS = ctx.createGain(); lToS.gain.value = 0.5;
+      var rToS = ctx.createGain(); rToS.gain.value = -0.5;
+      this.imagerSideBus = ctx.createGain();
+
+      // Side filtering & spatial processing
+      this.imagerSideHP = ctx.createBiquadFilter();
+      this.imagerSideHP.type = 'highpass';
+      this.imagerSideHP.frequency.value = 90; // mono bass anchor
+      this.imagerSideHP.Q.value = 0.707;
+
+      this.imagerRangeFilter = ctx.createBiquadFilter();
+      this.imagerRangeFilter.type = 'highpass';
+      this.imagerRangeFilter.frequency.value = 800;
+      this.imagerRangeFilter.Q.value = 0.707;
+
+      this.imagerStageFilter = ctx.createBiquadFilter();
+      this.imagerStageFilter.type = 'allpass';
+      this.imagerStageFilter.frequency.value = 1200;
+
+      this.imagerWidthGain = ctx.createGain();
+      this.imagerWidthGain.gain.value = 1.0;
+
+      // Tube Harmonics saturation
+      this.imagerHarmonicsDrive = ctx.createGain();
+      this.imagerHarmonicsDrive.gain.value = 1.0;
+      this.imagerShaper = ctx.createWaveShaper();
+      this.imagerShaper.oversample = '4x';
+      this.imagerShaper.curve = this.makeLinearCurve();
+
+      // M/S reconstruction
+      var midToL = ctx.createGain(); midToL.gain.value = 1.0;
+      var midToR = ctx.createGain(); midToR.gain.value = 1.0;
+      var sideToL = ctx.createGain(); sideToL.gain.value = 1.0;
+      var sideToR = ctx.createGain(); sideToR.gain.value = -1.0;
+      this.imagerMerger = ctx.createChannelMerger(2);
+
+      // Connect M/S network
+      this.imagerSplitter.connect(lToM, 0);
+      this.imagerSplitter.connect(rToM, 1);
+      lToM.connect(this.imagerMidBus);
+      rToM.connect(this.imagerMidBus);
+      this.imagerMidBus.connect(this.imagerBassFilter);
+
+      this.imagerSplitter.connect(lToS, 0);
+      this.imagerSplitter.connect(rToS, 1);
+      lToS.connect(this.imagerSideBus);
+      rToS.connect(this.imagerSideBus);
+      this.imagerSideBus.connect(this.imagerSideHP);
+      this.imagerSideHP.connect(this.imagerRangeFilter);
+      this.imagerRangeFilter.connect(this.imagerStageFilter);
+      this.imagerStageFilter.connect(this.imagerWidthGain);
+
+      // Reconstruct to stereo
+      this.imagerBassFilter.connect(midToL);
+      this.imagerBassFilter.connect(midToR);
+      this.imagerWidthGain.connect(sideToL);
+      this.imagerWidthGain.connect(sideToR);
+
+      midToL.connect(this.imagerMerger, 0, 0);
+      sideToL.connect(this.imagerMerger, 0, 0);
+      midToR.connect(this.imagerMerger, 0, 1);
+      sideToR.connect(this.imagerMerger, 0, 1);
+
+      // Harmonics post-merger
+      this.imagerMerger.connect(this.imagerHarmonicsDrive);
+      this.imagerHarmonicsDrive.connect(this.imagerShaper);
+      this.imagerShaper.connect(this.imagerWetGain);
+
+      // Route compSum into imager
+      compSum.connect(this.imagerDryGain);
+      compSum.connect(this.imagerSplitter);
+
+      // Sum dry and wet
+      var imagerSum = ctx.createGain();
+      this.imagerDryGain.connect(imagerSum);
+      this.imagerWetGain.connect(imagerSum);
+
+      // 5. Master Limiter & Tube Warmth stage (Fed by imagerSum)
       this.limitDrive = ctx.createGain();
       this.limitDrive.gain.value = 1.0;
 
@@ -273,12 +390,12 @@
       this.limitCeiling = ctx.createGain();
       this.limitCeiling.gain.value = Math.pow(10, -0.1 / 20); // -0.1 dB
 
-      compSum.connect(this.limitDrive);
+      imagerSum.connect(this.limitDrive);
       this.limitDrive.connect(this.limitShaper);
       this.limitShaper.connect(this.limiter);
       this.limiter.connect(this.limitCeiling);
 
-      // 5. Master Output / Bypass Routing
+      // 6. Master Output / Bypass Routing
       this.masterDryGain = ctx.createGain();
       this.masterWetGain = ctx.createGain();
       this.masterDryGain.gain.value = 0.0;
@@ -393,6 +510,54 @@
           this.compressor.knee.setTargetAtTime(s.comp.knee !== undefined ? s.comp.knee : 10, now, ramp);
           var makeupLinear = Math.pow(10, (s.comp.makeup || 0) / 20);
           this.compMakeup.gain.setTargetAtTime(makeupLinear, now, ramp);
+        }
+      }
+
+      // Vintage Stereo Imager Stage (Placed before Master Limiter)
+      if (s.imager) {
+        if (s.imager.enabled === false) {
+          this.imagerDryGain.gain.setTargetAtTime(1.0, now, ramp);
+          this.imagerWetGain.gain.setTargetAtTime(0.0, now, ramp);
+        } else {
+          this.imagerDryGain.gain.setTargetAtTime(0.0, now, ramp);
+          this.imagerWetGain.gain.setTargetAtTime(1.0, now, ramp);
+
+          // Range knob: 1 ("HIGH", 2800 Hz) to 9 ("OPEN", 180 Hz)
+          var rangeVal = Number(s.imager.range);
+          if (isNaN(rangeVal) || rangeVal < 1) { rangeVal = 5; }
+          var rangeNorm = (rangeVal - 1) / 8;
+          var rangeHz = 2800 * Math.pow(180 / 2800, rangeNorm);
+          this.imagerRangeFilter.frequency.setTargetAtTime(rangeHz, now, ramp);
+
+          // Stage knob: 1 ("BACK", 350 Hz) to 9 ("FRONT", 3200 Hz)
+          var stageVal = Number(s.imager.stage);
+          if (isNaN(stageVal) || stageVal < 1) { stageVal = 5; }
+          var stageNorm = (stageVal - 1) / 8;
+          var stageHz = 350 * Math.pow(3200 / 350, stageNorm);
+          this.imagerStageFilter.frequency.setTargetAtTime(stageHz, now, ramp);
+
+          // Bigness knob: 1 ("MIN", 1.0x width) to 9 ("MAX", 2.4x width)
+          var bignessVal = Number(s.imager.bigness);
+          if (isNaN(bignessVal) || bignessVal < 0) { bignessVal = 1; }
+          var widthFactor = (bignessVal <= 1) ? bignessVal : (1.0 + ((bignessVal - 1) / 8) * 1.4);
+          this.imagerWidthGain.gain.setTargetAtTime(widthFactor, now, ramp);
+
+          // Bass punch circuit: +3.0 dB low shelf at 85 Hz
+          var bassOn = Boolean(s.imager.bass);
+          this.imagerBassFilter.gain.setTargetAtTime(bassOn ? 3.0 : 0.0, now, ramp);
+
+          // Harmonics toggle & Tube Harmonics drive
+          var harmOn = Boolean(s.imager.harmonics);
+          var tubeH = Number(s.imager.tubeHarmonics);
+          if (isNaN(tubeH) || tubeH < 1) { tubeH = 1; }
+          if (harmOn) {
+            var driveLinear = 1.0 + ((tubeH - 1) / 8) * 0.8;
+            this.imagerHarmonicsDrive.gain.setTargetAtTime(driveLinear, now, ramp);
+            this.imagerShaper.curve = this.makeTubeCurve();
+          } else {
+            this.imagerHarmonicsDrive.gain.setTargetAtTime(1.0, now, ramp);
+            this.imagerShaper.curve = this.makeLinearCurve();
+          }
         }
       }
 
@@ -736,7 +901,82 @@
         '        </div>',
         '      </div>',
 
-        '      <!-- MODULE 3: MASTER LIMITER -->',
+        '      <!-- MODULE 3: VINTAGE STEREO IMAGER & SPATIAL PROCESSOR -->',
+        '      <div class="rack-unit unit-imager" id="unit-imager">',
+        '        <div class="unit-bar">',
+        '          <div class="unit-brand"><span class="screw-mini"></span> VINTAGE STEREO IMAGER & SPATIAL PROCESSOR <span class="screw-mini"></span></div>',
+        '          <button type="button" class="unit-toggle on" id="toggle-imager" title="Toggle Stereo Imager on/off"><span class="led"></span> IN</button>',
+        '        </div>',
+        '        <div class="unit-faceplate imager-faceplate">',
+        '          <div class="knob-group">',
+        '            <div class="knob-wrap" data-param="imager.range" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (HIGH),2,3,4,5,6,7,8,9 (OPEN)" data-default="4" title="Process Frequency Band (High to Open)">',
+        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">RANGE</span>',
+        '              <span class="knob-val">5</span>',
+        '            </div>',
+        '            <div class="knob-wrap" data-param="imager.stage" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (BACK),2,3,4,5,6,7,8,9 (FRONT)" data-default="4" title="Stereo Stage Placement (Back to Front)">',
+        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">STAGE</span>',
+        '              <span class="knob-val">5</span>',
+        '            </div>',
+        '          </div>',
+        '          <div class="imager-harmonics-sec">',
+        '            <div class="imager-push-wrap">',
+        '              <span class="imager-hint-label">Tubes Warm-Up</span>',
+        '              <button type="button" class="imager-btn" id="toggle-imager-harmonics" title="Toggle Valve Tube Harmonics">',
+        '                <span class="imager-btn-led blue"></span>',
+        '                <span class="imager-btn-txt">HARMONICS</span>',
+        '              </button>',
+        '            </div>',
+        '            <div class="knob-wrap" data-param="imager.tubeHarmonics" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (MIN),2,3,4,5,6,7,8,9 (MAX)" data-default="0" title="Tube Harmonic Saturation Drive">',
+        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">TUBE HARMONICS</span>',
+        '              <span class="knob-val">1 (MIN)</span>',
+        '            </div>',
+        '          </div>',
+        '          <div class="imager-center-box">',
+        '            <span class="imager-window-title">STEREO IMAGE</span>',
+        '            <div class="imager-tube-window" title="Stereo Valve Spatial Circuit">',
+        '              <div class="tube-mesh-grille"></div>',
+        '              <div class="tube-glow-core" id="imager-tube-glow"></div>',
+        '              <div class="tube-filament"></div>',
+        '            </div>',
+        '            <span class="imager-window-sub">BIGGER MAKER</span>',
+        '          </div>',
+        '          <div class="knob-group">',
+        '            <div class="knob-wrap" data-param="imager.bigness" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (MIN),2,3,4,5,6,7,8,9 (MAX)" data-default="0" title="Stereo Width Intensity">',
+        '              <div class="knob-dial large"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">BIGNESS</span>',
+        '              <span class="knob-val">1 (MIN)</span>',
+        '            </div>',
+        '          </div>',
+        '          <div class="imager-push-wrap">',
+        '            <button type="button" class="imager-btn" id="toggle-imager-bass" title="Active Bass Punch & Mono Sub Anchor">',
+        '              <span class="imager-btn-led blue"></span>',
+        '              <span class="imager-btn-txt">BASS</span>',
+        '            </button>',
+        '          </div>',
+        '          <div class="imager-right-sec">',
+        '            <div class="imager-badge-block">',
+        '              <div class="imager-badge-main">BiG</div>',
+        '              <div class="imager-badge-sub">[ STUDIO ]</div>',
+        '            </div>',
+        '            <div class="imager-pwr-block">',
+        '              <div class="pwr-indicator-wrap">',
+        '                <span class="imager-pwr-led red on" id="imager-pwr-led"></span>',
+        '                <span class="imager-pwr-lbl">PWR</span>',
+        '              </div>',
+        '              <button type="button" class="imager-on-btn on" id="toggle-imager-pwr" title="Toggle Imager Module Power">',
+        '                <span class="pwr-lamp amber"></span>',
+        '                <span class="pwr-txt">ON</span>',
+        '              </button>',
+        '              <span class="imager-model-spec">Model 2420</span>',
+        '            </div>',
+        '          </div>',
+        '        </div>',
+        '      </div>',
+
+        '      <!-- MODULE 4: MASTER LIMITER -->',
         '      <div class="rack-unit unit-limit" id="unit-limit">',
         '        <div class="unit-bar">',
         '          <div class="unit-brand"><span class="screw-mini"></span> 670 VARIABLE-MU MASTER LIMITER <span class="screw-mini"></span></div>',
@@ -946,6 +1186,50 @@
           self.settings.comp.enabled = !self.settings.comp.enabled;
           this.classList.toggle('on', self.settings.comp.enabled);
           this.innerHTML = '<span class="led"></span> ' + (self.settings.comp.enabled ? 'IN' : 'OUT');
+          Engine.applySettings(self.settings);
+          self.debouncedSave();
+        });
+      }
+
+      // Stereo Imager toggles
+      var toggleImager = document.getElementById('toggle-imager');
+      var toggleImagerPwr = document.getElementById('toggle-imager-pwr');
+      function onToggleImager() {
+        if (!self.settings.imager) { self.settings.imager = {}; }
+        self.settings.imager.enabled = !self.settings.imager.enabled;
+        var on = self.settings.imager.enabled;
+        if (toggleImager) {
+          toggleImager.classList.toggle('on', on);
+          toggleImager.innerHTML = '<span class="led"></span> ' + (on ? 'IN' : 'OUT');
+        }
+        if (toggleImagerPwr) {
+          toggleImagerPwr.classList.toggle('on', on);
+        }
+        Engine.applySettings(self.settings);
+        self.debouncedSave();
+      }
+      if (toggleImager) { toggleImager.addEventListener('click', onToggleImager); }
+      if (toggleImagerPwr) { toggleImagerPwr.addEventListener('click', onToggleImager); }
+
+      // Imager Harmonics toggle
+      var toggleImagerHarmonics = document.getElementById('toggle-imager-harmonics');
+      if (toggleImagerHarmonics) {
+        toggleImagerHarmonics.addEventListener('click', function () {
+          if (!self.settings.imager) { self.settings.imager = {}; }
+          self.settings.imager.harmonics = !self.settings.imager.harmonics;
+          this.classList.toggle('active', self.settings.imager.harmonics);
+          Engine.applySettings(self.settings);
+          self.debouncedSave();
+        });
+      }
+
+      // Imager Bass punch toggle
+      var toggleImagerBass = document.getElementById('toggle-imager-bass');
+      if (toggleImagerBass) {
+        toggleImagerBass.addEventListener('click', function () {
+          if (!self.settings.imager) { self.settings.imager = {}; }
+          self.settings.imager.bass = !self.settings.imager.bass;
+          this.classList.toggle('active', self.settings.imager.bass);
           Engine.applySettings(self.settings);
           self.debouncedSave();
         });
@@ -1209,6 +1493,26 @@
         var compOn = self.settings.comp ? self.settings.comp.enabled !== false : true;
         toggleComp.classList.toggle('on', compOn);
         toggleComp.innerHTML = '<span class="led"></span> ' + (compOn ? 'IN' : 'OUT');
+      }
+
+      // Update stereo imager toggles
+      var toggleImager = document.getElementById('toggle-imager');
+      var toggleImagerPwr = document.getElementById('toggle-imager-pwr');
+      var imagerOn = self.settings.imager ? self.settings.imager.enabled !== false : true;
+      if (toggleImager) {
+        toggleImager.classList.toggle('on', imagerOn);
+        toggleImager.innerHTML = '<span class="led"></span> ' + (imagerOn ? 'IN' : 'OUT');
+      }
+      if (toggleImagerPwr) {
+        toggleImagerPwr.classList.toggle('on', imagerOn);
+      }
+      var toggleImagerHarmonics = document.getElementById('toggle-imager-harmonics');
+      if (toggleImagerHarmonics && self.settings.imager) {
+        toggleImagerHarmonics.classList.toggle('active', Boolean(self.settings.imager.harmonics));
+      }
+      var toggleImagerBass = document.getElementById('toggle-imager-bass');
+      if (toggleImagerBass && self.settings.imager) {
+        toggleImagerBass.classList.toggle('active', Boolean(self.settings.imager.bass));
       }
 
       // Update limiter toggles
@@ -1557,6 +1861,18 @@
           ctx.beginPath();
           ctx.arc(cx, cy, 6, 0, Math.PI * 2);
           ctx.fill();
+        }
+
+        // 3. Stereo Imager Tube Filament Glow Animation
+        var tubeGlow = document.getElementById('imager-tube-glow');
+        if (tubeGlow && self.settings.imager) {
+          var imagerActive = self.settings.imager.enabled !== false && !self.settings.masterBypass;
+          var harmActive = Boolean(self.settings.imager.harmonics);
+          var tubeLvl = Number(self.settings.imager.tubeHarmonics || 1);
+          var baseOpa = imagerActive ? (harmActive ? 0.65 + ((tubeLvl - 1) / 8) * 0.35 : 0.28) : 0.05;
+          var sigPulse = (typeof maxAmp === 'number' && maxAmp > 0.02) ? (maxAmp * 0.25) : 0;
+          var finalOpa = Math.min(1.0, baseOpa + sigPulse);
+          tubeGlow.style.opacity = finalOpa.toFixed(2);
         }
 
         self.animFrame = requestAnimationFrame(drawMeters);

@@ -87,11 +87,13 @@ def test_build_fx_filter_variations():
     assert build_fx_filter("invalid json") is None
     assert build_fx_filter({"masterBypass": True, "eq": {"preGain": 3}}) is None
     assert build_fx_filter({"eq": {"enabled": False}, "comp": {"enabled": False}, "limit": {"enabled": False}}) is None
+    assert build_fx_filter({"eq": {"enabled": False}, "comp": {"enabled": False}, "imager": {"enabled": False}, "limit": {"enabled": False}}) is None
 
     # Vintage Warmth preset structure
     warmth = {
         "eq": {"enabled": True, "preGain": 3, "hp": 50, "lowFreq": 60, "lowGain": 3.0, "midFreq": 700, "midGain": 1.5, "highGain": 1.5, "outLevel": -0.5, "phase": True},
         "comp": {"enabled": True, "threshold": -20, "ratio": 4, "attack": 0.025, "release": 0.35, "makeup": 2.5, "mix": 0.85, "knee": 20},
+        "imager": {"enabled": True, "bigness": 4, "stage": 6, "bass": True, "harmonics": True, "tubeHarmonics": 3},
         "limit": {"enabled": True, "drive": 1.5, "ceiling": -0.2, "release": 0.12, "warmth": True},
         "masterBypass": False,
     }
@@ -105,8 +107,47 @@ def test_build_fx_filter_variations():
     assert "volume=-1.0" in filt
     assert "volume=-0.50dB" in filt
     assert "acompressor=" in filt and "threshold=-20.00dB" in filt and "makeup=2.50dB" in filt
+    assert "stereotools=slev=1.52:mlev=1.00:phase=4.0" in filt
+    assert "lowshelf=f=85.0:g=3.00" in filt
     assert "asoftclip=type=tanh" in filt
     assert "alimiter=" in filt and "level=disabled" in filt
+
+    # Verify processing order: EQ -> Compressor -> Stereo Imager -> Master Limiter
+    comp_pos = filt.find("acompressor")
+    imager_pos = filt.find("stereotools")
+    limit_pos = filt.find("alimiter")
+    assert -1 < comp_pos < imager_pos < limit_pos, "Stereo Imager must be placed after Compressor and before Limiter"
+
+
+def test_rack_stereo_imager_components_present():
+    from pathlib import Path
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    styles_css = (Path(__file__).resolve().parent.parent / "app" / "static" / "styles.css").read_text(encoding="utf-8")
+
+    # rack.js elements
+    assert "unit-imager" in rack_js
+    assert "imager.range" in rack_js
+    assert "imager.stage" in rack_js
+    assert "imager.bigness" in rack_js
+    assert "imager.tubeHarmonics" in rack_js
+    assert "toggle-imager-harmonics" in rack_js
+    assert "toggle-imager-bass" in rack_js
+    assert "imager-tube-glow" in rack_js
+    assert "STEREO IMAGE" in rack_js
+    assert "BIGGER MAKER" in rack_js
+
+    # Web Audio graph connections
+    assert "this.imagerSplitter = ctx.createChannelSplitter(2)" in rack_js
+    assert "this.imagerMerger = ctx.createChannelMerger(2)" in rack_js
+    assert "imagerSum.connect(this.limitDrive)" in rack_js, "Imager output must connect directly into Limit Drive"
+
+    # styles.css classes
+    assert ".unit-imager" in styles_css
+    assert ".imager-faceplate" in styles_css
+    assert ".imager-tube-window" in styles_css
+    assert ".tube-mesh-grille" in styles_css
+    assert ".tube-filament" in styles_css
+    assert ".imager-btn" in styles_css
 
 
 def test_saved_audio_applies_mastering_dsp_non_destructively(client, tmp_path):
