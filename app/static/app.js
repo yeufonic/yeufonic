@@ -13237,9 +13237,6 @@ function wireEditor() {
   });
   $('editor-close').addEventListener('click', closeEditor);
   $('editor-cancel').addEventListener('click', closeEditor);
-  $('editor-modal').addEventListener('click', function (event) {
-    if (backdropClick(event, $('editor-modal'))) { closeEditor(); }
-  });
   $('ed-tabs').addEventListener('click', function (event) {
     var button = event.target.closest('[data-edtab]');
     if (!button) { return; }

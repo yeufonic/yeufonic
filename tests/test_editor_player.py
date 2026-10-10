@@ -31,3 +31,8 @@ def test_the_editors_player_is_not_inside_a_field_that_a_mode_hides():
     parser.feed(PAGE.read_text(encoding="utf-8"))
     assert parser.found is not None, "the editor's player is missing from the page"
     assert "lyrics-field" not in parser.found and "structure-field" not in parser.found
+
+
+def test_editor_does_not_close_on_backdrop_click():
+    app_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    assert "backdropClick(event, $('editor-modal'))" not in app_js
