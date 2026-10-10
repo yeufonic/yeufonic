@@ -343,8 +343,7 @@ def test_rack_js_and_app_js_mastered_features():
     assert "renderMasterWav:" in rack_js
     assert "renderAndDownload:" in rack_js
 
-    # app.js offline master download call
-    assert "window.Rack.renderAndDownload" in app_js
+    # app.js mastered download call
     assert "window.Rack.hasActiveMastering" in app_js
 
 

@@ -5638,9 +5638,9 @@ function closeSaveModal() {
   $('save-modal').classList.add('hidden');
 }
 
-async function runSave() {
+function runSave() {
   if (window.Rack && typeof window.Rack.flushSave === 'function') {
-    try { await window.Rack.flushSave(); } catch (e) {}
+    try { window.Rack.flushSave(); } catch (e) {}
   }
   var id = State.saveTakeId;
   var chosen = $('save-format').querySelector('button.active');
@@ -5648,20 +5648,15 @@ async function runSave() {
   var fmt = chosen.dataset.format;
   closeSaveModal();
 
+  var url = '/api/takes/' + id + '/audio?download=1&format=' + fmt;
   if (window.Rack && typeof window.Rack.hasActiveMastering === 'function' && window.Rack.hasActiveMastering(id)) {
-    statusLine('Rendering mastered ' + fmt.toUpperCase() + '...', 'working');
-    try {
-      await window.Rack.renderAndDownload(id, fmt);
-      statusLine('Mastered ' + fmt.toUpperCase() + ' saved.', 'good');
-      return;
-    } catch (err) {
-      console.warn('Offline master render failed, falling back to server export:', err);
-      statusLine('Rendering on server...', 'working');
+    if (window.Rack.currentTakeId && String(window.Rack.currentTakeId) === String(id) && window.Rack.settings) {
+      url += '&fx=' + encodeURIComponent(JSON.stringify(window.Rack.settings));
     }
   }
 
   var link = document.createElement('a');
-  link.href = '/api/takes/' + id + '/audio?download=1&format=' + fmt;
+  link.href = url;
   link.download = '';
   document.body.appendChild(link);
   link.click();

@@ -3922,7 +3922,13 @@ SAVE_FORMATS = {
 
 
 @app.get("/api/takes/{take_id}/audio")
-def take_audio(take_id: str, download: bool = False, format: str | None = None, raw: bool = False) -> FileResponse:
+def take_audio(
+    take_id: str,
+    download: bool = False,
+    format: str | None = None,
+    raw: bool = False,
+    fx: str | None = None
+) -> FileResponse:
     if format and format not in SAVE_FORMATS:
         raise HTTPException(400, "the format must be flac, wav or mp3")
     take = one("SELECT audio_path, title, kind, lyrics, fx_chain FROM takes WHERE id = ?", (take_id,))
@@ -3939,10 +3945,11 @@ def take_audio(take_id: str, download: bool = False, format: str | None = None, 
     # Made for this download only, with its tags, and removed once it has been sent.
     config.WORK_DIR.mkdir(parents=True, exist_ok=True)
     out = config.WORK_DIR / f"save-{take_id}-{uuid.uuid4().hex[:8]}.{fmt}"
+    active_fx = None if raw else (fx or take.get("fx_chain"))
     try:
         library.tagged_copy(Path(take["audio_path"]), out, fmt, codec, take["title"] or "",
                             library.sung_words(take["kind"], take["lyrics"]),
-                            fx_chain=None if raw else take.get("fx_chain"))
+                            fx_chain=active_fx)
     except (subprocess.SubprocessError, OSError) as exc:
         out.unlink(missing_ok=True)
         log.warning("Could not convert take '%s' to %s: %s", take["title"] or take_id, fmt, exc)
