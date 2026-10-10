@@ -2098,6 +2098,24 @@
           } catch (e) {}
         }
       }
+      if (!s && window.State && State.loadedTake && String(State.loadedTake.id) === String(takeId)) {
+        if (State.loadedTake.fx_chain) {
+          try {
+            s = typeof State.loadedTake.fx_chain === 'string' ? JSON.parse(State.loadedTake.fx_chain) : State.loadedTake.fx_chain;
+          } catch (e) {}
+        }
+      }
+      if (!s) {
+        try {
+          var tResp = await fetch('/api/takes/' + takeId);
+          if (tResp.ok) {
+            var tData = await tResp.json();
+            if (tData && tData.fx_chain) {
+              s = typeof tData.fx_chain === 'string' ? JSON.parse(tData.fx_chain) : tData.fx_chain;
+            }
+          }
+        } catch (e) {}
+      }
       s = s || this.settings;
 
       var resp = await fetch('/api/takes/' + takeId + '/audio');
@@ -2112,7 +2130,7 @@
       try {
         decodedBuffer = await tempCtx.decodeAudioData(arrayBuf);
       } catch (decodeErr) {
-        var wavResp = await fetch('/api/takes/' + takeId + '/audio?download=1&format=wav');
+        var wavResp = await fetch('/api/takes/' + takeId + '/audio?download=1&format=wav&raw=1');
         if (wavResp.ok) {
           var wavBuf = await wavResp.arrayBuffer();
           decodedBuffer = await tempCtx.decodeAudioData(wavBuf);
@@ -2157,10 +2175,14 @@
       var blob = await res.blob();
       var disposition = res.headers.get('content-disposition') || '';
       var filename = 'master.' + format;
-      var match = disposition.match(/filename=["']?([^"';]+)["']?/);
+      var match = disposition.match(/filename\*=utf-8''([^;]+)/i);
       if (match && match[1]) {
-        filename = match[1];
-      } else if (window.State && State.takes) {
+        try { filename = decodeURIComponent(match[1]); } catch (e) { filename = match[1]; }
+      } else {
+        var m2 = disposition.match(/filename=["']?([^"';]+)["']?/i);
+        if (m2 && m2[1]) { filename = m2[1]; }
+      }
+      if (filename === 'master.' + format && window.State && State.takes) {
         var t = State.takes.find(function (x) { return String(x.id) === String(takeId); });
         if (t && t.title) {
           var safe = t.title.replace(/[^a-zA-Z0-9 -_]/g, '').trim() || 'take';

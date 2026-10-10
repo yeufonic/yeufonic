@@ -3922,7 +3922,7 @@ SAVE_FORMATS = {
 
 
 @app.get("/api/takes/{take_id}/audio")
-def take_audio(take_id: str, download: bool = False, format: str | None = None) -> FileResponse:
+def take_audio(take_id: str, download: bool = False, format: str | None = None, raw: bool = False) -> FileResponse:
     if format and format not in SAVE_FORMATS:
         raise HTTPException(400, "the format must be flac, wav or mp3")
     take = one("SELECT audio_path, title, kind, lyrics, fx_chain FROM takes WHERE id = ?", (take_id,))
@@ -3942,12 +3942,13 @@ def take_audio(take_id: str, download: bool = False, format: str | None = None) 
     try:
         library.tagged_copy(Path(take["audio_path"]), out, fmt, codec, take["title"] or "",
                             library.sung_words(take["kind"], take["lyrics"]),
-                            fx_chain=take.get("fx_chain"))
+                            fx_chain=None if raw else take.get("fx_chain"))
     except (subprocess.SubprocessError, OSError) as exc:
         out.unlink(missing_ok=True)
         log.warning("Could not convert take '%s' to %s: %s", take["title"] or take_id, fmt, exc)
         raise HTTPException(500, f"could not convert this take to {fmt.upper()}") from exc
     return FileResponse(out, media_type=media, filename=f"{safe}.{fmt}",
+                        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
                         background=BackgroundTask(out.unlink, missing_ok=True))
 
 
@@ -3988,6 +3989,7 @@ async def export_mastered_take(
         temp_wav.unlink(missing_ok=True)
 
     return FileResponse(out, media_type=media, filename=f"{safe}.{fmt}",
+                        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
                         background=BackgroundTask(out.unlink, missing_ok=True))
 
 
