@@ -150,11 +150,12 @@ def test_the_server_never_processes_a_download(client, tmp_path):
     assert download.headers["content-type"] == "audio/flac"
     assert pcm(download.content) == pcm(audio_file)
 
-    # nor do settings sent with the request reach the sound
+    # A page from before this sent its settings to be applied here. It is still open from before an
+    # update, and it is told so rather than handed a file without the mastering it asked for.
     sent = client.get(f"/api/takes/{take['id']}/audio",
                       params={"download": 1, "format": "flac", "fx": json.dumps(fx_settings)})
-    assert sent.status_code == 200
-    assert pcm(sent.content) == pcm(audio_file)
+    assert sent.status_code == 409
+    assert "reload" in sent.json()["detail"]
 
     inline = client.get(f"/api/takes/{take['id']}/audio")
     assert inline.content == raw_bytes
@@ -317,6 +318,21 @@ def test_rack_js_and_app_js_mastered_features():
     assert "window.Rack.hasActiveMastering" in save
     assert "window.Rack.renderAndDownload(id, fmt)" in save
     assert "fx=" not in save, "settings are not sent to the server to be applied there"
+
+
+def test_a_page_can_tell_it_is_older_than_the_app(client):
+    """The state names the scripts a page loaded now would get, in the words the page's own script
+    address carries, so a page left open across an update can see that it is out of date."""
+    import re
+
+    assets = client.get("/api/state").json()["assets"]
+    page = client.get("/").text
+    for script in ("app.js", "rack.js"):
+        assert re.search(rf'src="/static/{re.escape(script)}\?v=([^"]+)"', page).group(1) == assets
+
+    app_js = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "paintStalePage(data.assets)" in app_js
+    assert "document.currentScript" in app_js
 
 
 # ------------------------------------------------------------------ the chain itself, in node

@@ -252,6 +252,8 @@ a, .link {
 .topbar-right > #app-version { order: 4; margin-right: 0; }
 .topbar-right > .logs-btn { order: 5; }
 .pill-on { color: var(--good); border-color: rgb(var(--good-rgb) / 0.35); }
+/* This page is older than the app behind it: first in the row, and a button. */
+.topbar-right > .pill.reload { order: -1; cursor: pointer; font: inherit; font-size: 12.5px; }
 
 /* The main page says what the app is doing. A corpus being prepared works on the CPU
    lane, so the engine pill knows nothing about it and its own screen has to be open

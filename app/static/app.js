@@ -387,9 +387,33 @@ async function api(path, options) {
 }
 
 /* ------------------------------------------------------------------ state */
+/* A page loads its scripts once, and the app behind it can be updated and restarted while the
+   page stays open: it then runs the old scripts against the new server, and what it does may no
+   longer be what the server expects.  The state says which scripts a page loaded now would get,
+   and a page whose own are different says so, in the header, until it is reloaded. */
+var PAGE_ASSETS = (function () {
+  var me = document.currentScript;
+  var found = me && me.src ? me.src.match(/[?&]v=([^&#]+)/) : null;
+  return found ? decodeURIComponent(found[1]) : null;
+})();
+
+function paintStalePage(assets) {
+  if (!assets || !PAGE_ASSETS || assets === PAGE_ASSETS || $('reload-pill')) { return; }
+  var right = document.querySelector('.topbar-right');
+  if (!right) { return; }
+  var pill = document.createElement('button');
+  pill.id = 'reload-pill';
+  pill.className = 'pill pill-wait reload';
+  pill.textContent = 'Reload to update';
+  pill.title = 'Yeufonic was updated after this page was opened. Reload the page to use the new version.';
+  pill.addEventListener('click', function () { window.location.reload(); });
+  right.insertBefore(pill, right.firstChild);
+}
+
 async function pollState() {
   try {
     var data = await api('/api/state');
+    try { paintStalePage(data.assets); } catch (e) {}
     var pill = $('engine-pill');
     var engine = data.engine;
     State.options = data.options || {};

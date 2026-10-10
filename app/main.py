@@ -1196,6 +1196,9 @@ def state() -> dict:
     return {
         "version": config.VERSION,
         "build": config.BUILD,
+        # Which scripts a page loaded now would get: a page still open from before an update compares
+        # this with its own and asks to be reloaded.
+        "assets": _asset_version(),
         "model": config.CHECKPOINT_LABELS.get(config.CHECKPOINT, config.CHECKPOINT),
         # Whether a newer release is out, and what to do about it: a background task keeps
         # this current, and this route only ever reads it.
@@ -3927,12 +3930,19 @@ def take_audio(
     download: bool = False,
     format: str | None = None,
     raw: bool = False,
+    fx: str | None = None,
 ) -> FileResponse:
     """The take's audio: inline to play, or as a file to save.  It is always the take as it is kept.  Mastering is
     never applied here: the rack renders a mastered file in the browser, with the chain that plays it, and sends it
-    to `export-mastered`.  `raw` is accepted for pages that still send it."""
+    to `export-mastered`.  `raw` is accepted for pages that still send it.
+
+    `fx` is how a page from before that asked for mastering here.  Such a page is still open from before an
+    update, and handing it the take without the mastering it asked for would look like a save that worked, so
+    it is refused."""
     if format and format not in SAVE_FORMATS:
         raise HTTPException(400, "the format must be flac, wav or mp3")
+    if download and fx:
+        raise HTTPException(409, "this page is from before an update: reload it, then save again")
     take = one("SELECT audio_path, title, kind, lyrics FROM takes WHERE id = ?", (take_id,))
     if not take or not take["audio_path"] or not Path(take["audio_path"]).exists():
         raise HTTPException(404, "no audio for this take")
