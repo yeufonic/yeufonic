@@ -10555,8 +10555,8 @@ function paintTakes() {
             ? '<button class="take-move" data-act="normalise"' + id + ' title="Normalise \u2014 Bring this take to the usual loudness. The file as rendered is kept"' +
               ' aria-label="Normalise">' + icon('level') + '</button>'
             : '') +
-          '<button class="take-move" data-act="details"' + id + ' title="Details \u2014 What this take was made with" aria-label="Details">' +
-            icon('info') + '</button>' +
+          '<button class="take-move take-mastering-btn' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + '" data-act="mastering"' + id + ' title="Mastering Rack \u2014 Vintage EQ, Compressor, Limiter" aria-label="Mastering Rack">' +
+            '<span class="take-m-chiclet">M</span></button>' +
           '<button class="take-move" data-act="move"' + id + ' title="Move \u2014 Move to another space" aria-label="Move">' +
             icon('move') + '</button>' +
         '</div>' +
@@ -12456,7 +12456,14 @@ function wire() {
       }
       loadTakes();
     }
-    if (act === 'details') {
+    if (act === 'details' || act === 'mastering') {
+      if (act === 'mastering') {
+        var targetTake = takeById(id);
+        if (targetTake && window.Rack) {
+          window.Rack.openForTake(targetTake);
+          return;
+        }
+      }
       openDetails(takeById(id));
       return;
     }

@@ -1245,6 +1245,21 @@
       if (activeDot) { activeDot.classList.toggle('hidden', isBypassed); }
     },
 
+    mergeSettings: function (base, override) {
+      var out = JSON.parse(JSON.stringify(base));
+      if (!override || typeof override !== 'object') { return out; }
+      for (var k in override) {
+        if (override.hasOwnProperty(k)) {
+          if (override[k] && typeof override[k] === 'object' && !Array.isArray(override[k])) {
+            out[k] = Object.assign({}, out[k] || {}, override[k]);
+          } else {
+            out[k] = override[k];
+          }
+        }
+      }
+      return out;
+    },
+
     toggle: function (force) {
       var panel = document.getElementById('rack-panel');
       if (!panel) { return; }
@@ -1254,23 +1269,57 @@
       var btn = document.getElementById('btn-fx-rack');
       if (btn) { btn.classList.toggle('active', this.isOpen); }
 
+      this.updateTakeCardsUI();
+
       if (this.isOpen) {
+        if (!this.currentTakeId && window.State) {
+          var tid = State.playing || State.loadedId || (typeof selectedTakeId === 'function' ? selectedTakeId() : null);
+          if (tid && typeof takeById === 'function') {
+            var t = takeById(tid);
+            if (t) { this.onTake(t); }
+          }
+        }
         Engine.resume();
         this.syncKnobsToState();
+      } else {
+        this.flushSave();
       }
+    },
+
+    updateTakeCardsUI: function () {
+      var activeTakeId = this.currentTakeId;
+      var isOpen = this.isOpen;
+      var cardBtns = document.querySelectorAll('.take-mastering-btn');
+      Array.prototype.forEach.call(cardBtns, function (b) {
+        var card = b.closest('.take');
+        var cardId = card ? card.dataset.id : null;
+        b.classList.toggle('active', Boolean(isOpen && cardId && String(cardId) === String(activeTakeId)));
+      });
+    },
+
+    openForTake: function (take) {
+      if (!take) { return; }
+      this.flushSave();
+      this.onTake(take);
+      if (take.has_audio && typeof window.playTake === 'function' && window.State && State.playing !== take.id) {
+        window.playTake(take.id);
+      }
+      this.toggle(true);
     },
 
     onTake: function (take) {
       if (!take) { return; }
+      this.flushSave();
       this.currentTakeId = take.id;
       var label = document.getElementById('rack-take-name');
       if (label) { label.textContent = take.title || ('Take #' + take.id); }
+      this.updateTakeCardsUI();
 
       if (take.fx_chain) {
         try {
           var parsed = typeof take.fx_chain === 'string' ? JSON.parse(take.fx_chain) : take.fx_chain;
           if (parsed && typeof parsed === 'object') {
-            this.settings = Object.assign({}, PRESETS['default'], parsed);
+            this.settings = this.mergeSettings(PRESETS['default'], parsed);
             this.syncKnobsToState();
             Engine.applySettings(this.settings);
             return;
@@ -1284,7 +1333,7 @@
         .then(function (data) {
           if (self.currentTakeId !== take.id) { return; }
           if (data && Object.keys(data).length > 0) {
-            self.settings = Object.assign({}, PRESETS['default'], data);
+            self.settings = self.mergeSettings(PRESETS['default'], data);
           } else {
             self.settings = JSON.parse(JSON.stringify(PRESETS['default']));
           }
@@ -1294,17 +1343,69 @@
         .catch(function () {});
     },
 
+    flushSave: function () {
+      if (this.saveTimer) {
+        clearTimeout(this.saveTimer);
+        this.saveTimer = null;
+      }
+      if (!this.currentTakeId) { return; }
+      var takeId = this.currentTakeId;
+      var payload = JSON.stringify(this.settings);
+
+      // Immediately keep take object in State.takes and loadedTake in-sync
+      if (window.State && State.takes) {
+        var t = State.takes.find(function (x) { return String(x.id) === String(takeId); });
+        if (t) { t.fx_chain = payload; }
+      }
+      if (window.State && State.loadedTake && String(State.loadedTake.id) === String(takeId)) {
+        State.loadedTake.fx_chain = payload;
+      }
+
+      fetch('/api/takes/' + takeId + '/fx', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      }).catch(function (err) {
+        console.error('Failed to save mastering rack FX for take', takeId, err);
+      });
+    },
+
     debouncedSave: function () {
       var self = this;
+      if (!this.currentTakeId && window.State) {
+        var tid = State.playing || State.loadedId || (typeof selectedTakeId === 'function' ? selectedTakeId() : null);
+        if (tid) {
+          self.currentTakeId = tid;
+          var tObj = (typeof takeById === 'function') ? takeById(tid) : null;
+          var label = document.getElementById('rack-take-name');
+          if (label && tObj) { label.textContent = tObj.title || ('Take #' + tObj.id); }
+          self.updateTakeCardsUI();
+        }
+      }
       if (!this.currentTakeId) { return; }
+
+      var takeId = this.currentTakeId;
+      var payload = JSON.stringify(this.settings);
+
+      // Immediately update in-memory
+      if (window.State && State.takes) {
+        var t = State.takes.find(function (x) { return String(x.id) === String(takeId); });
+        if (t) { t.fx_chain = payload; }
+      }
+      if (window.State && State.loadedTake && String(State.loadedTake.id) === String(takeId)) {
+        State.loadedTake.fx_chain = payload;
+      }
+
       if (this.saveTimer) { clearTimeout(this.saveTimer); }
       this.saveTimer = setTimeout(function () {
-        if (!self.currentTakeId) { return; }
-        fetch('/api/takes/' + self.currentTakeId + '/fx', {
+        self.saveTimer = null;
+        fetch('/api/takes/' + takeId + '/fx', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(self.settings)
-        }).catch(function () {});
+          body: payload
+        }).catch(function (err) {
+          console.error('Failed to save mastering rack FX for take', takeId, err);
+        });
       }, 350);
     },
 
@@ -1453,5 +1554,9 @@
   // Expose Rack on window
   window.Rack = Rack;
   window.RackEngine = Engine;
+
+  window.addEventListener('beforeunload', function () {
+    if (window.Rack) { window.Rack.flushSave(); }
+  });
 
 })(window, document);
