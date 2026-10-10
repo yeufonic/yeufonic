@@ -5638,7 +5638,7 @@ function closeSaveModal() {
   $('save-modal').classList.add('hidden');
 }
 
-async function runSave() {
+function runSave() {
   if (window.Rack && typeof window.Rack.flushSave === 'function') {
     try { window.Rack.flushSave(); } catch (e) {}
   }
@@ -5648,11 +5648,6 @@ async function runSave() {
   var fmt = chosen.dataset.format;
   closeSaveModal();
 
-  var take = (State.takes || []).find(function (t) { return String(t.id) === String(id); });
-  var title = (take && take.title) ? take.title : 'take';
-  var safe = title.replace(/[^a-zA-Z0-9 -_]/g, '').slice(0, 60).trim() || 'take';
-  var filename = safe + '.' + fmt;
-
   var url = '/api/takes/' + id + '/audio?download=1&format=' + fmt;
   if (window.Rack && typeof window.Rack.hasActiveMastering === 'function' && window.Rack.hasActiveMastering(id)) {
     if (window.Rack.currentTakeId && String(window.Rack.currentTakeId) === String(id) && window.Rack.settings) {
@@ -5660,57 +5655,9 @@ async function runSave() {
     }
   }
 
-  if (typeof window.showSaveFilePicker === 'function') {
-    var mimeMap = {
-      flac: { desc: 'FLAC audio (*.flac)', mime: 'audio/flac' },
-      wav: { desc: 'WAV audio (*.wav)', mime: 'audio/wav' },
-      mp3: { desc: 'MP3 audio (*.mp3)', mime: 'audio/mpeg' }
-    };
-    var target = mimeMap[fmt] || { desc: fmt.toUpperCase() + ' audio (*.' + fmt + ')', mime: 'audio/' + fmt };
-    var pickerAccept = {};
-    pickerAccept[target.mime] = ['.' + fmt];
-    var pickerOptions = {
-      suggestedName: filename,
-      types: [{
-        description: target.desc,
-        accept: pickerAccept
-      }]
-    };
-
-    var handle = null;
-    try {
-      handle = await window.showSaveFilePicker(pickerOptions);
-    } catch (pickerErr) {
-      if (pickerErr && pickerErr.name === 'AbortError') {
-        return;
-      }
-      console.warn('showSaveFilePicker error, falling back to anchor download:', pickerErr);
-    }
-
-    if (handle) {
-      statusLine('Saving ' + fmt.toUpperCase() + '...', 'working');
-      try {
-        var res = await fetch(url);
-        if (!res.ok) {
-          throw new Error('Server returned ' + res.status + ' ' + res.statusText);
-        }
-        var blob = await res.blob();
-        var writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-        statusLine('Saved \u201c' + filename + '\u201d', 'good');
-        return;
-      } catch (writeErr) {
-        console.error('Failed to save file to handle:', writeErr);
-        statusLine('Could not save ' + filename + ': ' + writeErr.message, 'bad');
-        return;
-      }
-    }
-  }
-
   var link = document.createElement('a');
   link.href = url;
-  link.download = filename;
+  link.download = '';
   document.body.appendChild(link);
   link.click();
   link.remove();
