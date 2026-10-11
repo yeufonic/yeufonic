@@ -571,8 +571,10 @@ ADVANCED_DEFAULTS = {
     "chord_sections": None,
     # 1 makes the plan write exactly the sections the lyrics name, in order; None and 0 leave the planner its own shape.
     "follow_structure": None,
-    # 1 keeps the score's vocal line in the register of the voice the lyrics cue for each line (see voices.py).
-    "voice_cues": None,
+    # 1 keeps the score's vocal line in the register of the voice the lyrics cue for each line (see voices.py),
+    # and is how a new take starts: it does nothing to lyrics with no cues.  0 is the tick taken off; null is
+    # a take from before there was one, which is left as it was made.
+    "voice_cues": 1,
     "target_lufs": None,
     "fade_out_seconds": 3.0,
 }

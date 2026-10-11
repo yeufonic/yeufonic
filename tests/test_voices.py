@@ -1,9 +1,10 @@
 """Who sings: voice cues in the lyrics, kept on the plan's vocal line.
 
-The render sings the vocal line an octave below where it is written and takes the voice from
-the register, not from a cue line, so a cue is kept by moving the cued phrases by octaves: low
-for a man, high for a woman, an octave pair for both.  These tests build small plans the way
-the planner writes them, with its habit of changing octave every four lines."""
+The render takes the voice mostly from the register the vocal line is written in, not from a
+cue line, so a cue is kept by moving the cued phrases by octaves: low for a man, high for a
+woman, and for both where a woman sings, the second voice being left to the model.  These
+tests build small plans the way the planner writes them, with its habit of changing octave
+every four lines."""
 import asyncio
 import json
 import re
@@ -42,11 +43,11 @@ def words(*blocks: tuple[str, int]) -> str:
 
 
 def registers(abc: str, lyrics: str) -> str:
-    """Each phrase of the vocal line as a letter: l low, h high, P an octave pair."""
+    """Each phrase of the vocal line as a letter: l low, h high, P with notes doubled at the octave."""
     _, groups, _ = voices.voices_of(abc, lyrics)
     out = ""
     for group in groups:
-        pair = all(len(note["parts"]) > 1 for note in group)
+        pair = any(len(note["parts"]) > 1 for note in group)
         out += "P" if pair else ("h" if voices._mean(group) >= 70.5 else "l")
     return out
 
@@ -54,7 +55,7 @@ def registers(abc: str, lyrics: str) -> str:
 DUET = words(("[Verse 1]", 0), ("[male voice, calm]", 8), ("[female voice, bright]", 8),
              ("[Chorus]", 0), ("[male and female voices, full harmony]", 4))
 # The planner's habit: four lines low, four lines an octave up, and again, whoever is cued.
-HABIT = plan(("verse", [LOW] * 4 + [HIGH] * 4 + [LOW] * 4 + [HIGH] * 4), ("chorus", [HIGH] * 4))
+HABIT = plan(("verse", [LOW] * 4 + [HIGH] * 4 + [LOW] * 4 + [HIGH] * 4), ("chorus", [LOW] * 4))
 
 
 # ------------------------------------------------------------------ reading the cues
@@ -101,12 +102,12 @@ def test_syllables_in_several_scripts():
 
 # ------------------------------------------------------------------ fitting a plan
 def test_the_planners_habit_is_put_right():
-    assert registers(HABIT, DUET) == "llllhhhh" "llllhhhh" "hhhh"
+    assert registers(HABIT, DUET) == "llllhhhh" "llllhhhh" "llll"
     fitted, summary = voices.fit(HABIT, DUET)
-    assert registers(fitted, DUET) == "llllllll" "hhhhhhhh" "PPPP"
-    assert summary["changed"] and summary["moved"] == 8 and summary["paired"] == 4
+    assert registers(fitted, DUET) == "llllllll" "hhhhhhhh" "hhhh"      # for both, where a woman sings
+    assert summary["changed"] and summary["moved"] == 12
     assert (summary["male"], summary["female"], summary["both"]) == (8, 8, 4)
-    assert "8 phrases moved by an octave" in voices.describe(summary) and "4 doubled" in voices.describe(summary)
+    assert voices.describe(summary) == "Voices fitted to the cues: 12 phrases moved by an octave."
 
 
 def test_only_the_octave_of_the_vocal_line_changes():
@@ -114,15 +115,22 @@ def test_only_the_octave_of_the_vocal_line_changes():
     before, after = HABIT.split("\n"), fitted.split("\n")
     assert len(before) == len(after)
     for old, new in zip(before, after):
-        if old != new:
-            # the same notes in the same order, with the same lengths, chords and barlines
-            strip = lambda text: re.sub(r"[\[\],']", "", text).lower()   # noqa: E731
-            assert strip(new).replace("cc", "c").replace("dd", "d").replace("ee", "e").replace("ff", "f") \
-                .replace("gg", "g").replace("aa", "a") == strip(old)
+        # the same notes in the same order, with the same lengths, chords and barlines
+        assert re.sub(r"[,']", "", new).lower() == re.sub(r"[,']", "", old).lower()
     assert [l for l in after if l.startswith("Z")] == [l for l in before if l.startswith("Z")]
-    assert fitted.count('"C"') == HABIT.count('"C"')
-    # a pair is the note and the octave below it, the upper one where a woman sings
-    assert '"C"[cC][dD][eE][fF][gG][aA]z2|' in fitted
+    assert "[" not in fitted.replace("[V", "")          # and no note is doubled: see the next test
+
+
+def test_a_score_fitted_with_doubled_notes_is_put_back_to_one_voice():
+    """Both voices were once asked for by writing every note as an octave pair.  The model took
+    each pair for two notes and ran out of words, so a pair in a cued phrase goes back to its
+    upper note; a chord in a phrase nobody cued is not the fit's to touch."""
+    doubled = plan(("verse", [LOW] * 4), ("chorus", ["[cC][dD][eE][fF][gG][aA]"] * 4), ("bridge", ["[CE][DF][EG][FA][GB][Ac]"] * 2))
+    lyrics = words(("[Verse]", 0), ("[male voice]", 4), ("[Chorus]", 0), ("[both]", 4), ("[Bridge]", 2))
+    fitted, summary = voices.fit(doubled, lyrics)
+    assert '"C"cdefgaz2|' * 4 in fitted and '"C"[CE][DF][EG][FA][GB][Ac]z2|' * 2 in fitted
+    assert summary["singled"] == 24 and summary["moved"] == 0
+    assert voices.describe(summary) == "Voices fitted to the cues: 24 doubled notes back to one."
 
 
 def test_fitting_again_changes_nothing():
@@ -145,13 +153,12 @@ def test_no_cues_no_change():
 
 
 def test_new_cues_undo_the_old_ones():
-    """Fitted for one set of cues and then for another, a plan follows the second: a pair goes
-    back to one voice, and a line cued for nobody stays where it was put."""
+    """Fitted for one set of cues and then for another, a plan follows the second."""
     fitted, _ = voices.fit(HABIT, DUET)
-    swapped = words(("[Verse 1]", 0), ("[female voice]", 8), ("[male voice]", 8), ("[Chorus]", 0), ("[female voice]", 4))
+    swapped = words(("[Verse 1]", 0), ("[female voice]", 8), ("[male voice]", 8), ("[Chorus]", 0), ("[male voice]", 4))
     again, summary = voices.fit(fitted, swapped)
-    assert registers(again, swapped) == "hhhhhhhh" "llllllll" "hhhh"
-    assert summary["singled"] == 4 and "[" not in again.split("% chorus")[1].split("V: Ins")[0].replace('"C"', "")
+    assert registers(again, swapped) == "hhhhhhhh" "llllllll" "llll"
+    assert voices.describe(summary) == "Voices fitted to the cues: 20 phrases moved by an octave."
 
 
 def test_a_run_of_tune_moves_as_one():
@@ -249,21 +256,22 @@ def test_a_line_sung_as_two_phrases_and_a_change_of_voice_one_phrase_out():
 
 
 def test_a_fitted_score_is_still_a_score():
-    """Octave pairs in the vocal line pass the checks a plan has to pass, and a key lock moves them whole."""
+    """A fitted plan passes the checks a plan has to pass, and is still as cued after a key lock moves it."""
     fitted, _ = voices.fit(HABIT, DUET)
     assert score.problems(fitted, need_chords=False) == []
     moved = transpose.to_key(fitted, "D")
-    assert moved and "K:D" in moved and '[dD][eE][fF][gG][aA][bB]' in moved      # F is sharp in the key now
+    assert moved and "K:D" in moved
     assert voices.fit(moved, DUET)[1]["changed"] is False     # and it is still as cued after the move
 
 
 # ------------------------------------------------------------------ in the app
 def test_the_tick_is_kept_with_the_take(client):
-    body = {"title": "S", "style": "rock", "lyrics": DUET, "voice_cues": 1}
-    take = client.post("/api/songs", json=body).json()
-    assert take["voice_cues"] == 1
-    assert client.post("/api/songs", json={k: v for k, v in body.items() if k != "voice_cues"}).json()["voice_cues"] is None
+    """A new take keeps to the cues unless it says not to; a take from before the tick has none."""
+    body = {"title": "S", "style": "rock", "lyrics": DUET}
+    assert client.post("/api/songs", json=body).json()["voice_cues"] == 1
+    assert client.post("/api/songs", json={**body, "voice_cues": 0}).json()["voice_cues"] == 0
     assert client.post("/api/songs", json={**body, "voice_cues": 2}).status_code == 422
+    assert jobs.voiced({"abc": HABIT, "lyrics": DUET, "kind": "song", "voice_cues": 0}) == HABIT
 
 
 def test_a_plan_is_fitted_as_it_lands_when_the_take_asks(monkeypatch):
@@ -272,9 +280,9 @@ def test_a_plan_is_fitted_as_it_lands_when_the_take_asks(monkeypatch):
     use(monkeypatch, FakeEngine([None, done({"3": {"text": [HABIT]}}, PLAN_GRAPH)]))
     asyncio.run(jobs.run_job("plan", ticked["id"]))
     row = one("SELECT * FROM takes WHERE id = ?", (ticked["id"],))
-    assert row["status"] == "planned" and registers(row["abc"], DUET) == "llllllll" "hhhhhhhh" "PPPP"
+    assert row["status"] == "planned" and registers(row["abc"], DUET) == "llllllll" "hhhhhhhh" "hhhh"
 
-    plain = make_take(status="queued", lyrics=DUET)
+    plain = make_take(status="queued", lyrics=DUET)      # as a take made before the tick is: no setting at all
     use(monkeypatch, FakeEngine([None, done({"3": {"text": [HABIT]}}, PLAN_GRAPH)]))
     asyncio.run(jobs.run_job("plan", plain["id"]))
     assert one("SELECT abc FROM takes WHERE id = ?", (plain["id"],))["abc"] == HABIT
@@ -288,7 +296,7 @@ def test_a_render_sings_the_fitted_score_and_keeps_it(monkeypatch):
     engine = use(monkeypatch, FakeEngine([done({}, {}, status="error")]))
     asyncio.run(jobs.run_job("render", take["id"]))
     sent = engine.submitted[0]["11"]["inputs"]["abc"]
-    assert registers(sent, DUET) == "llllllll" "hhhhhhhh" "PPPP"
+    assert registers(sent, DUET) == "llllllll" "hhhhhhhh" "hhhh"
     kept = one("SELECT abc FROM takes WHERE id = ?", (take["id"],))["abc"]
     assert kept == voices.fit(HABIT, DUET)[0] and kept.strip() == sent.strip()
 
@@ -304,7 +312,7 @@ def test_who_is_never_fitted():
 
 def test_the_score_window_can_ask_for_a_fit(client):
     answer = client.post("/api/voices/fit", json={"abc": HABIT, "lyrics": DUET}).json()
-    assert answer["changed"] and answer["cues"] and registers(answer["abc"], DUET) == "llllllll" "hhhhhhhh" "PPPP"
+    assert answer["changed"] and answer["cues"] and registers(answer["abc"], DUET) == "llllllll" "hhhhhhhh" "hhhh"
     assert answer["message"].startswith("Voices fitted to the cues")
     again = client.post("/api/voices/fit", json={"abc": answer["abc"], "lyrics": DUET}).json()
     assert not again["changed"] and again["abc"] == answer["abc"] and again["message"] == "The voices are already as cued."
@@ -327,5 +335,5 @@ def test_the_page_offers_the_tick_for_the_lines_the_server_reads_as_cues():
     assert json.loads(res.stdout) == [voices.cue_of(line) is not None for line in lines]
 
     page = (STATIC / "index.html").read_text(encoding="utf-8")
-    assert 'id="voice-cues"' in page and 'id="fit-voices"' in page
+    assert 'id="voice-cues" type="checkbox" checked' in page and 'id="fit-voices"' in page
     assert "body.voice_cues = adv.voice_cues" in app_js

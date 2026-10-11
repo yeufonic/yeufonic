@@ -71,8 +71,8 @@ Some of these act on the plan, and some on the render and the finished file:
   difference in the chords of the plan rather than as a clear difference by ear. Compare the Score
   window.
 - **Voices follow the cues** (a tick under the lyrics box, shown once the lyrics have a voice cue such as
-  `[male voice]`; off by default): each cued line is sung by the voice its cue names, by moving its melody by
-  octaves. See [The words](#the-words).
+  `[male voice]`; on for a new take): the melody of each cued line is moved by octaves to where the voice its
+  cue names is sung. See [The words](#the-words).
 - **Follow this structure exactly** (a tick under the lyrics box, not in Advanced; songs; off by default): the plan writes exactly the sections the lyrics name, in
   order, and no others. Left off, the planner shapes the song itself and often adds an intro, an outro or an
   interlude, or leaves a section out. A plan can still end before the list does; Details shows what was asked for and
@@ -222,14 +222,24 @@ So meet me where the river bends
 the same way. Other words in the cue are yours to add and do not change who sings. A section with no cue is left
 to the planner.
 
-A cue alone does not decide the voice. The singer comes from how high the melody is written: the same line an
-octave up is sung by a woman, and the planner likes to write a verse in two octaves, changing every four lines or
-so, whoever was cued. **Voices follow the cues** (a tick under the lyrics box, shown once the lyrics have a cue;
-off by default) keeps the cues: when the plan is written, each cued phrase of the melody is moved by whole octaves
-to where that voice sings, low for a man and high for a woman, and for both every note is written as an octave
-pair, which is sung as two voices. Nothing else in the plan changes. It is done again before each render, so it
-follows a change to the words or to the score. In the Score page, **Voices to cues** does the same once to the
-score in the box, for a take made without the tick; save the score and render it.
+A cue alone does not decide the voice. The singer comes mostly from how high the melody is written: the same
+line an octave up is sung by a woman, and the planner likes to write a verse in two octaves, changing every four
+lines or so, whoever was cued. **Voices follow the cues** (a tick under the lyrics box, shown once the lyrics have
+a cue; on for a new take) keeps the cues: when the plan is written, each cued stretch of the melody is moved by
+whole octaves to where that voice sings, low for a man and high for a woman. Nothing else in the plan changes. It
+is done again before each render, so it follows a change to the words or to the score. In the Score page,
+**Voices to cues** does the same once to the score in the box, for a take made without the tick; save the score
+and render it.
+
+Three things to know:
+
+- **Who sings a line is still partly chance.** With the melody in the right place most lines go to the voice
+  cued, but a render can give one to the other singer all the same. Render it again with another seed, or use
+  **Try more**.
+- **Both** puts the line where a woman sings and leaves the second voice to the render, which often brings one
+  in for a chorus. It asks for a duet rather than making one: how much of the second voice you hear varies from
+  render to render. There is no way yet to write two singers on one line without the words suffering.
+- A take made before this tick existed keeps its score as it was; tick it, or use **Voices to cues**, to fit it.
 
 **Writing by hand.** The Expand button opens a full-size editor with buttons for intro, verse, pre-chorus,
 chorus, bridge, interlude, outro and instrumental. A section is a line such as `[Verse]` followed by its lines; a

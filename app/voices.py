@@ -7,9 +7,18 @@ a verse in two octaves and changes about every four lines, whatever the cues say
 
 So the cues are kept on the plan itself.  Each phrase of the vocal line (a run of notes
 between rests) is matched to the lyric lines it carries, and moved by whole octaves into the
-register of the voice cued for them; where both are cued every note becomes an octave pair,
-which is sung as two voices.  Nothing else in the plan changes: the notes, their lengths, the
-chords and the other voice are as the planner wrote them."""
+register of the voice cued for them.  Nothing else in the plan changes: the notes, their
+lengths, the chords and the other voice are as the planner wrote them.
+
+Where both voices are cued the line is put where a woman sings, and the model is left to bring
+the second voice in, as it often does in a chorus.  Writing the notes as octave pairs was tried
+and does bring both voices, but the model takes each pair for two notes: it runs through the
+words too soon and makes up lines to fill the rest.  Doubling only the held notes spared the
+words in one song and not in another.  A pair found in a cued phrase, from a score fitted that
+way, is put back to its upper note.
+
+Who sings a line stays partly chance: the same fitted score, rendered again with another seed,
+has given a line to the other voice."""
 from __future__ import annotations
 
 import re
@@ -368,7 +377,7 @@ def _octaves(mean: float, cue: str) -> int:
             moved -= 1
         while mean + 12 * moved < MALE_FLOOR and mean + 12 * (moved + 1) <= MALE_TOP:
             moved += 1
-    else:   # a woman, or the upper voice of a pair
+    else:   # a woman, or both: she leads
         while mean + 12 * moved < FEMALE_FLOOR:
             moved += 1
         while mean + 12 * moved > FEMALE_TOP and mean + 12 * (moved - 1) >= FEMALE_FLOOR:
@@ -414,23 +423,18 @@ def fit(abc: str, lyrics: str) -> tuple[str, dict[str, Any] | None]:
     if not has_cues(lyrics) or not (abc or "").strip():
         return abc, None
     plan, groups, cues = voices_of(abc, lyrics)
-    summary = {"phrases": 0, "moved": 0, "paired": 0, "singled": 0, MALE: 0, FEMALE: 0, BOTH: 0}
-    wanted: dict[int, tuple[int, bool]] = {}     # id(note) -> (octaves, as a pair)
+    summary = {"phrases": 0, "moved": 0, "singled": 0, MALE: 0, FEMALE: 0, BOTH: 0}
+    wanted: dict[int, int] = {}     # id(note) -> octaves to move it by
     for group, cue, moved in zip(groups, cues, moves(groups, cues)):
         if not cue:
             continue
         summary["phrases"] += 1
         summary[cue] += 1
-        pair = cue == BOTH
-        was_pair = all(len(n["parts"]) > 1 for n in group)
         if moved:
             summary["moved"] += 1
-        if pair and not was_pair:
-            summary["paired"] += 1
-        if not pair and any(len(n["parts"]) > 1 for n in group):
-            summary["singled"] += 1
         for note in group:
-            wanted[id(note)] = (moved, pair)
+            summary["singled"] += 1 if len(note["parts"]) > 1 else 0
+            wanted[id(note)] = moved
     if not wanted:
         return abc, summary
     lines = list(plan["lines"])
@@ -447,17 +451,15 @@ def fit(abc: str, lyrics: str) -> tuple[str, dict[str, Any] | None]:
     return ("\n".join(lines) if changed else abc), summary
 
 
-def _members(note: dict[str, Any], want: tuple[int, bool] | None) -> list[tuple[dict[str, Any], int]]:
+def _members(note: dict[str, Any], octaves: int | None) -> list[tuple[dict[str, Any], int]]:
     """The pitches a note is written as, each as (the part it comes from, its octave): as it
-    stands, or as asked: its top note moved, alone or with the octave below."""
-    if want is None:
+    stands, or, in a cued phrase, its top note alone, moved."""
+    if octaves is None:
         return [(part, _height(part["letter"], part["marks"])) for part in note["parts"]]
-    octaves, pair = want
-    top = _height(note["top"]["letter"], note["top"]["marks"]) + octaves
-    return [(note["top"], top), (note["top"], top - 1)] if pair else [(note["top"], top)]
+    return [(note["top"], _height(note["top"]["letter"], note["top"]["marks"]) + octaves)]
 
 
-def _rewrite(line: str, notes: list[dict[str, Any]], wanted: dict[int, tuple[int, bool]], key: dict[str, int]) -> str:
+def _rewrite(line: str, notes: list[dict[str, Any]], wanted: dict[int, int], key: dict[str, int]) -> str:
     """One line of the vocal part with its notes moved.  An accidental holds for a pitch in its
     own octave to the end of the bar, so in a bar where anything moves every note is written to
     mean what it meant before; a bar where nothing moves is left exactly as it was."""
@@ -512,8 +514,6 @@ def describe(summary: dict[str, Any] | None) -> str:
     done = []
     if summary["moved"]:
         done.append(f"{summary['moved']} phrase{'s' if summary['moved'] != 1 else ''} moved by an octave")
-    if summary["paired"]:
-        done.append(f"{summary['paired']} doubled for both voices")
-    if summary["singled"] and not done:
-        done.append(f"{summary['singled']} back to one voice")
+    if summary["singled"]:
+        done.append(f"{summary['singled']} doubled note{'s' if summary['singled'] != 1 else ''} back to one")
     return "Voices fitted to the cues: " + ", ".join(done) + "."

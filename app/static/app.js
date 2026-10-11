@@ -1210,7 +1210,7 @@ var ADVANCED_DEFAULTS = {
   chord_outside_bonus: 0.0,
   chord_sections: null,
   follow_structure: null,
-  voice_cues: null,
+  voice_cues: 1,          // on for a new take; it only acts on lyrics that cue a voice
   target_lufs: -14.0,
   fade_out_seconds: 3.0
 };
@@ -1232,7 +1232,8 @@ function readAdvancedSettings() {
   var sectionsRaw = $('adv-chord-sections') ? $('adv-chord-sections').value : '';
   var sections = sectionsRaw === '1' ? 1 : (sectionsRaw === '0' ? 0 : null);
   var follow = $('follow-structure') && $('follow-structure').checked ? 1 : null;
-  var voiceCues = $('voice-cues') && $('voice-cues').checked ? 1 : null;
+  // 0, not null, when it is off: null would be taken as "the default", which is on.
+  var voiceCues = $('voice-cues') ? ($('voice-cues').checked ? 1 : 0) : ADVANCED_DEFAULTS.voice_cues;
   var lufs = parseFloat($('adv-target-lufs').value);
   if (isNaN(lufs) || lufs < -30.0 || lufs > -4.0) { lufs = ADVANCED_DEFAULTS.target_lufs; }
   var fade = parseFloat($('adv-fade-out-seconds').value);
@@ -1300,7 +1301,7 @@ function writeAdvancedSettings(data) {
   $('adv-chord-outside-bonus').value = data.chord_outside_bonus != null ? data.chord_outside_bonus : ADVANCED_DEFAULTS.chord_outside_bonus;
   if ($('adv-chord-sections')) { $('adv-chord-sections').value = data.chord_sections === 1 ? '1' : (data.chord_sections === 0 ? '0' : ''); }
   if ($('follow-structure')) { $('follow-structure').checked = data.follow_structure === 1; }
-  if ($('voice-cues')) { $('voice-cues').checked = data.voice_cues === 1; }
+  if ($('voice-cues')) { $('voice-cues').checked = (data.voice_cues == null ? ADVANCED_DEFAULTS.voice_cues : data.voice_cues) === 1; }
   $('adv-target-lufs').value = data.target_lufs != null ? data.target_lufs : ADVANCED_DEFAULTS.target_lufs;
   $('adv-fade-out-seconds').value = data.fade_out_seconds != null ? data.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds;
   updateAdvancedButtonState();
@@ -1330,7 +1331,7 @@ function loadAdvancedTakeSettings(take) {
     chord_outside_bonus: take.chord_outside_bonus != null ? take.chord_outside_bonus : ADVANCED_DEFAULTS.chord_outside_bonus,
     chord_sections: take.chord_sections === 1 || take.chord_sections === 0 ? take.chord_sections : null,
     follow_structure: take.follow_structure === 1 ? 1 : null,
-    voice_cues: take.voice_cues === 1 ? 1 : null,
+    voice_cues: take.voice_cues === 1 ? 1 : 0,      // a take from before the tick was made without it
     target_lufs: take.target_lufs != null ? take.target_lufs : ADVANCED_DEFAULTS.target_lufs,
     fade_out_seconds: take.fade_out_seconds != null ? take.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds
   });
@@ -5014,7 +5015,7 @@ function detailGroups(take) {
   set('Chord hold limit', take.chord_hold_limit);
   set('Out-of-key chord bonus', take.chord_outside_bonus);
   set('Follow my structure', take.follow_structure === 1 ? 1 : null, 'exactly');
-  set('Voices', take.voice_cues === 1 ? 1 : null, 'follow the cues');
+  set('Voices', take.voice_cues === 1 && hasVoiceCues(take.lyrics) ? 1 : null, 'follow the cues');
   set('Sections open differently', take.chord_sections, take.chord_sections === 1 ? 'always' : (take.chord_sections === 0 ? 'never' : ''));
   set('Loudness target', take.target_lufs, take.target_lufs != null ? take.target_lufs + ' LUFS' : '');
   set('Fade out', take.fade_out_seconds, take.fade_out_seconds != null ? take.fade_out_seconds + ' s' : '');
