@@ -91,6 +91,20 @@ SETTINGS_SPEC: list[dict] = [
         "help": "How loud a normalised take is made. Louder squeezes its peaks harder.",
     },
     {
+        "key": "takes.cap",
+        "label": "Length cap for a new take",
+        "type": "select",
+        # The built-in default, or DEFAULT_CAP from the environment, which joins the list when it is none of these.
+        "default": str(config.DEFAULT_CAP),
+        "options": [{"value": str(seconds), "label": label} for seconds, label in sorted({
+            240: "4 minutes", 360: "6 minutes", 480: "8 minutes", 600: "10 minutes", 900: "15 minutes, the most",
+            **({} if config.DEFAULT_CAP in (240, 360, 480, 600, 900) else {config.DEFAULT_CAP: f"{config.DEFAULT_CAP} seconds"}),
+        }.items())],
+        "help": "How long a take may run when you have not set its cap yourself. A render usually ends by itself, "
+                "and a song or instrumental whose plan is longer has its cap raised to fit, so this is mostly how "
+                "long a render that will not stop is let run. Each take's own cap is in the editor.",
+    },
+    {
         "key": "appearance.theme",
         "label": "Theme",
         "type": "select",
@@ -337,6 +351,14 @@ def save_setting(key: str, value: str) -> None:
         set_setting(key, value)
     masked = "***" if any(w in key.lower() for w in ("key", "secret", "password", "token")) else value
     log.info("Setting updated: %s = %s", key, masked)
+
+
+def default_cap() -> float:
+    """The length cap of a take whose cap nobody gave: the one in Settings."""
+    try:
+        return max(10.0, min(900.0, float(setting_value("takes.cap"))))
+    except (TypeError, ValueError):
+        return float(config.DEFAULT_CAP)
 
 
 def setting_default(key: str) -> str:
@@ -606,7 +628,11 @@ class SongIn(BaseModel):
     style: str = Field(config.DEFAULT_STYLE, max_length=2000)
     lyrics: str = Field("", max_length=20_000)
     seed: int | None = Field(None, ge=0, le=MAX_SEED)
-    max_duration: float = Field(360.0, ge=10, le=900)
+    # Left out, the cap is the one in Settings.
+    max_duration: float | None = Field(None, ge=10, le=900)
+    # Whether the person set the cap by hand.  Left out, a cap that was sent counts as set.  A cap nobody
+    # set rises to fit the plan once it is written.
+    cap_typed: bool | None = None
     auto_render: bool = False
     interpretation: str = "standard"
     variety: str = "normal"
@@ -674,7 +700,8 @@ class TakeIn(BaseModel):
     abc: str | None = Field(None, max_length=200_000)
     mode: str = "full"
     seed: int | None = Field(None, ge=0, le=MAX_SEED)
-    max_duration: float = Field(360.0, ge=10, le=900)
+    # Left out, the cap is the one in Settings.
+    max_duration: float | None = Field(None, ge=10, le=900)
     space_id: str = Field(DEFAULT_SPACE, max_length=64)
     interpretation: str = "standard"
     realaudio: bool = True
@@ -710,7 +737,9 @@ class InstrumentalIn(BaseModel):
     source_id: str | None = Field(None, max_length=64)
     abc: str | None = Field(None, max_length=200_000)
     seed: int | None = Field(None, ge=0, le=MAX_SEED)
-    max_duration: float = Field(360.0, ge=10, le=900)
+    # Left out, the cap is the one in Settings.
+    max_duration: float | None = Field(None, ge=10, le=900)
+    cap_typed: bool | None = None
     auto_render: bool = False
     variety: str = "normal"
     harmony: int = Field(0, ge=0, le=len(HARMONY_STEPS) - 1)
@@ -1943,7 +1972,7 @@ async def create_take(body: TakeIn) -> dict:
         "mode": body.mode if body.mode in ("full", "melody") else "full",
         "seed": seed,
         "checkpoint": _checkpoint(),
-        "max_duration": body.max_duration,
+        "max_duration": body.max_duration or default_cap(),
         "created_at": time.time(),
         "space_id": body.space_id,
         "interpretation": _interpretation(body.interpretation),
@@ -2068,7 +2097,8 @@ def _new_take_record(kind: str, title: str, words: str, body: SongIn | Instrumen
         "mode": "full",
         "seed": seed,
         "checkpoint": _checkpoint(),
-        "max_duration": body.max_duration,
+        "max_duration": body.max_duration or default_cap(),
+        "cap_typed": 1 if (body.cap_typed if body.cap_typed is not None else body.max_duration is not None) else 0,
         "created_at": time.time(),
         "auto_render": 1 if body.auto_render else 0,
         "variety": body.variety if body.variety in PLAN_VARIETY else "normal",
@@ -2091,13 +2121,13 @@ def _new_take_record(kind: str, title: str, words: str, body: SongIn | Instrumen
 def _insert_new_take(record: dict) -> None:
     execute(
         """INSERT INTO takes(id, kind, source_id, title, style, lyrics, brief, abc, mode, seed, checkpoint,
-                             max_duration, status, created_at, auto_render, variety, harmony, space_id, interpretation, feel, realaudio,
+                             max_duration, cap_typed, status, created_at, auto_render, variety, harmony, space_id, interpretation, feel, realaudio,
                              normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                              chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds)
            VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :brief, :abc, :mode, :seed, :checkpoint,
-                  :max_duration, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :interpretation, :feel, :realaudio,
+                  :max_duration, :cap_typed, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :interpretation, :feel, :realaudio,
                   :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,

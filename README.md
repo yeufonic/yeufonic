@@ -723,6 +723,7 @@ built from, and the ports itself: change those in its `settings.ini` instead (se
 | `STEMS_THREADS` | half the CPUs | torch threads for the separation on the CPU |
 | `STEMS_JOBS` | 4, or a quarter of the CPUs | demucs segments applied at once. One uses about 1.8 GB and 2.5x realtime, four uses 3.7 GB and 3.6x. The split setup's 2 GB cap needs this at 1, or the cap raised |
 | `WEAK_RENDER_DB` | `-24` | the average level, in dB, below which a take is marked *Weak render* |
+| `DEFAULT_CAP` | `360` | the length cap, in seconds (10 to 900), that a new take starts with until **Length cap for a new take** in Settings is changed. A planned take's cap still rises to fit a longer plan |
 | `PEAK_GUARD` | `1` | with an engine that has the peak guard, a render whose peaks would clip is turned down around them before it is saved. `0` leaves it out |
 | `PEAK_CEILING_DB` | `-0.5` | the highest a peak may reach with the guard on, in dB below full scale |
 | `YUE2_CHECKPOINT` | unset | which YuE2 model the app asks the engine for: `bf16`, `int8`, or a file name. Unset, it uses the full-quality model if it is installed, else the low-memory one. Put it in `.env` (`YUE2_CHECKPOINT=int8`) or in `compose.override.yml`. See Choosing a model size |

@@ -190,6 +190,17 @@ TRAIN_MINUTES_AUTO = _MINUTES in ("", "auto")
 TRAIN_TOKENS_AUTO = _TOKENS in ("", "auto")
 TRAIN_MAX_MINUTES = 3.5 if TRAIN_MINUTES_AUTO else float(_MINUTES)
 TRAIN_MAX_TOKENS = 8192 if TRAIN_TOKENS_AUTO else int(_TOKENS)
+# The length cap a new take starts with, in seconds, until Settings says otherwise.  A cap is a firm
+# limit, not a target: a render usually ends by itself, and a planned take's cap rises to fit its plan
+# when nobody set it by hand, so this is mostly how long a render that will not stop is let run.
+def _default_cap() -> int:
+    try:
+        return max(10, min(900, int(float(os.environ.get("DEFAULT_CAP", "360")))))
+    except ValueError:
+        return 360
+
+
+DEFAULT_CAP = _default_cap()
 # A render can overshoot full scale, and saving it as 16-bit then flattens the peaks.  When the
 # engine has the peak guard (an engine built since it was added), it turns the audio down around
 # those peaks, in floating point, before the save.  PEAK_GUARD=0 leaves it out.

@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import math
 import os
 import re
 import shutil
@@ -317,6 +318,20 @@ def lock_tempo(abc: str, bpm) -> str:
         lines.insert(at + 1 if at >= 0 else 1, f"Q:1/4={bpm}")
         out = "\n".join(lines)
     return out
+
+
+def cap_for_plan(abc: str, cap: float, typed) -> float | None:
+    """The length cap a newly written plan needs, when it is longer than the cap the take has and
+    nobody set that cap by hand: the plan's length and ten seconds, rounded up to ten, and never
+    over the 900 the engine allows.  The same sum a recording's score sets its cap by.  None when
+    the cap stands: it is only ever raised, since a cap is a limit and not a target."""
+    if typed:
+        return None
+    planned = score.estimate(abc)
+    if not planned or not planned.get("seconds"):
+        return None
+    need = min(900.0, float(math.ceil((planned["seconds"] + 10) / 10) * 10))
+    return need if need > float(cap or 0) else None
 
 
 def voiced(take: dict) -> str:
@@ -735,10 +750,15 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
         # A readable plan is set to the voices the lyrics cue before anyone sees it.
         abc = voiced({**record, "abc": abc})
         elapsed = time.time() - started
+        # A plan longer than the cap would be cut short by it, so a cap nobody typed makes room.
+        cap = float(record.get("max_duration") or 0)
+        raised = cap_for_plan(abc, cap, record.get("cap_typed"))
         changed = execute(
-            "UPDATE takes SET abc = ?, status = 'planned', stage = NULL, error = NULL, elapsed = ? WHERE id = ? AND status = 'running'",
-            (abc, elapsed, ref_id),
+            "UPDATE takes SET abc = ?, status = 'planned', stage = NULL, error = NULL, elapsed = ?, max_duration = ? WHERE id = ? AND status = 'running'",
+            (abc, elapsed, raised or record.get("max_duration"), ref_id),
         )
+        if changed and raised:
+            log.info("Plan for '%s' is longer than its cap of %.0f s: the cap is now %.0f s", record.get("title") or ref_id, cap, raised)
         bump_average("plan", elapsed)
         log.info("Score plan finished for '%s' in %.1fs", record.get("title") or ref_id, elapsed)
         # An instrumental whose plan has a melody in the Vocal voice will sing.

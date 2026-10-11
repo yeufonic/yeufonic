@@ -1473,6 +1473,7 @@ function saveForm() {
     data.feel = FEEL.value;
     data.ui_mode = State.mode;
     data.advanced = readAdvancedSettings();
+    data.cap_typed = Boolean(State.capTyped);
     localStorage.setItem(FORM_KEY, JSON.stringify(data));
   } catch (err) { /* private mode, or storage full. Not worth a message. */ }
 }
@@ -1525,6 +1526,7 @@ function loadForm() {
   }
   if (data.advanced) { writeAdvancedSettings(data.advanced); }
   else { updateAdvancedButtonState(); }
+  State.capTyped = data.cap_typed === true;
 }
 
 /* A title from the first real lyric line. Section tags and genre tags do not count. */
@@ -3762,6 +3764,12 @@ var SCORE_SECTION_AS = { interlude: 'bridge', prechorus: 'pre-chorus', 'pre chor
    a take's own, is left alone; letting go of the recording goes back to the default. */
 var DEFAULT_CAP = 360;
 
+/* What a new take's cap starts at: the one in Settings (which starts at 360). */
+function defaultCap() {
+  var seconds = parseInt(setting('takes.cap', DEFAULT_CAP), 10);
+  return seconds >= 10 && seconds <= 900 ? seconds : DEFAULT_CAP;
+}
+
 function capForScore(abc) {
   var length = planLength(abc);
   if (!length || !length.seconds) { return null; }
@@ -3778,7 +3786,7 @@ function followRecordingCap() {
     box.value = cap;
     State.capFromScore = true;
   } else if (State.capFromScore && !fromRecording) {
-    box.value = DEFAULT_CAP;
+    box.value = defaultCap();
     State.capFromScore = false;
   } else {
     return;
@@ -4895,7 +4903,15 @@ function adoptSettings(spec) {
   State.settingSpec = spec || [];
   var values = {};
   State.settingSpec.forEach(function (item) { values[item.key] = item.value; });
+  var capWas = State.settings ? State.settings['takes.cap'] : undefined;
   State.settings = values;
+  // The cap in the box follows the one in Settings while it is nobody's: not typed, not a recording's,
+  // not a take's.  The first time the settings arrive, that means a box still at the page's own 360.
+  var box = $('max-duration');
+  if (box && values['takes.cap'] && !State.capTyped && !State.capFromScore && !State.formTake &&
+      (capWas === undefined ? String(box.value) === String(DEFAULT_CAP) : capWas !== values['takes.cap'])) {
+    box.value = defaultCap();
+  }
   applyTheme();
   if (typeof editorOpen === 'function' && editorOpen()) { paintEditor(); }
 }
@@ -6212,6 +6228,8 @@ async function watchPlan() {
     $('score-badge').className = 'badge ok';
     $('score-box').open = true;
     setChart(chordChart(take.abc));
+    // The plan may have raised the take's cap to fit it; the box follows unless it was typed in.
+    if (!State.capTyped && take.max_duration) { $('max-duration').value = Math.round(take.max_duration); }
     showPlanLength(take.abc);
     statusLine('Plan ready. Edit it, or press render.', 'good');
     loadTakes();
@@ -6252,6 +6270,7 @@ function songBody(seed) {
     seed: seed,
     interpretation: $('interpretation').value,
     max_duration: parseFloat($('max-duration').value) || 360,
+    cap_typed: Boolean(State.capTyped),      // a cap nobody typed rises to fit the plan
     auto_render: $('auto-render').checked,
     variety: $('variety').value,
     harmony: harmonyStep(),
@@ -7805,6 +7824,7 @@ function instBody(seed) {
     interpretation: $('interpretation').value,
     feel: FEEL.value,
     max_duration: parseFloat($('max-duration').value) || 360,
+    cap_typed: Boolean(State.capTyped),      // a cap nobody typed rises to fit the plan
     auto_render: $('auto-render').checked,
     variety: $('variety').value,
     harmony: harmonyStep(),
@@ -10183,8 +10203,9 @@ function selectTake(take) {
   paintVocals();
   // Before the structure: timed sections are laid out against the cap.
   if (take.max_duration) { $('max-duration').value = Math.round(take.max_duration); }
-  // The take's own cap, which a recording's score does not replace.
-  State.capTyped = false;
+  // The take's own cap, which a recording's score does not replace.  One set by hand is still
+  // set by hand in what is made from this take.
+  State.capTyped = take.cap_typed === 1;
   State.capFromScore = false;
   // An instrumental keeps its structure where a song keeps its lyrics.  The lyrics box
   // is left alone, so browsing instrumentals cannot wipe the words of a song.
@@ -10351,7 +10372,7 @@ async function startFresh() {
   delete $('style').dataset.touched;
   // No style LoRA either: one chosen for the last take would bring its trigger word back into the style.
   showStyleLora({});
-  $('max-duration').value = DEFAULT_CAP;
+  $('max-duration').value = defaultCap();
   State.capTyped = false;
   State.capFromScore = false;
   followRecordingCap();

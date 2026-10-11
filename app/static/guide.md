@@ -591,9 +591,17 @@ in the mid-range; this separates instruments and vocals more cleanly. On by defa
 ### Length
 
 The length cap is a firm limit, not a target. YuE2 decides when a song ends, and usually ends by
-itself; the cap stops one that will not. It starts at 360 seconds. With a recording chosen, for a
-cover or an instrumental, it follows the recording's score instead, rounded up with about ten seconds
-to spare, so a long song is not cut short. A cap you type yourself stays as you set it. Now and then
+itself; the cap stops one that will not. It starts at 360 seconds, or at what **Length cap for a new
+take** in Settings says. It then makes room for the music, so a long song is not cut short:
+
+- A **song or instrumental from a prompt** has its cap raised when its plan is written, if the plan
+  is longer: to the plan's length with about ten seconds to spare. It is never brought down.
+- With a **recording** chosen, for a cover or an instrumental, the cap follows the recording's score,
+  rounded up the same way.
+
+A cap you type yourself stays as you set it, and the Score page then says when a plan is longer than
+it. A plan much longer than its cap (more than a third over, and over eight minutes) is not taken
+for a song at all, and is written again. Now and then
 a render doesn't stop at the end of its score and plays on until the cap; such a take is faded out
 over its last few seconds rather than cut off, and its card says it ran to the cap. Rarer still, a
 render ends before the last section of its score begins. The app then renders it once more with a new

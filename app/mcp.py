@@ -78,7 +78,7 @@ TOOLS: list[dict] = [
                                                            "'[intro 0:00-0:10]\\n[verse 0:10-0:30]'. Omit and one is made for "
                                                            "max_duration (default about 2.5 minutes): leave it out unless the person "
                                                            "named the sections."},
-            "max_duration": {"type": "integer", "description": "The most seconds the take may run, 10 to 900. Default 360. "
+            "max_duration": {"type": "integer", "description": "The most seconds the take may run, 10 to 900. Left out, the app's own setting (360 unless changed), raised to fit a longer plan. "
                                                                  "Ask for the length wanted: 60 for a minute."},
             "title": {"type": "string"},
             "seed": {"type": "integer"},
@@ -99,7 +99,7 @@ TOOLS: list[dict] = [
         "inputSchema": {"type": "object", "required": ["style", "lyrics"], "properties": {
             "style": {"type": "string"},
             "lyrics": {"type": "string"},
-            "max_duration": {"type": "integer", "description": "The most seconds the take may run, 10 to 900. Default 360. "
+            "max_duration": {"type": "integer", "description": "The most seconds the take may run, 10 to 900. Left out, the app's own setting (360 unless changed), raised to fit a longer plan. "
                                                                  "Ask for the length wanted: 60 for a minute."},
             "title": {"type": "string"},
             "seed": {"type": "integer"},
@@ -491,6 +491,7 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                     int(args.get("max_duration") or DEFAULT_SECONDS))
                 if not args.get("max_duration") and not args.get("structure"):
                     body["max_duration"] = DEFAULT_SECONDS + 30
+                    body["cap_typed"] = False
                 made = await api("POST", "/api/instrumentals", json=body)
             else:
                 body["lyrics"] = args["lyrics"]

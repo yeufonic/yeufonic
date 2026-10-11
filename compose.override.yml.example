@@ -46,6 +46,8 @@ services:
       # built since the peak guard was added), and how high a peak may reach, in dB below full scale.
       # PEAK_GUARD: "1"
       # PEAK_CEILING_DB: "-0.5"
+      # The length cap a new take starts with, in seconds (10 to 900), until Settings says otherwise.
+      # DEFAULT_CAP: "360"
 
       # ---- Training a LoRA ----
       # The fewest steps a run gets. Small corpora need it: ten passes over 14 songs
