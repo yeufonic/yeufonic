@@ -47,7 +47,7 @@ def registers(abc: str, lyrics: str) -> str:
     out = ""
     for group in groups:
         pair = all(len(note["parts"]) > 1 for note in group)
-        out += "P" if pair else ("h" if voices._mean(group) >= 70 else "l")
+        out += "P" if pair else ("h" if voices._mean(group) >= 70.5 else "l")
     return out
 
 
@@ -164,24 +164,14 @@ def test_a_run_of_tune_moves_as_one():
     assert '"C"cdefgaz2|"C"defgabz2|"C"efgabc\'z2|"C"defgabz2|' in fitted
 
 
-def test_one_phrase_is_not_carried_out_of_reach_by_its_run():
-    """A woman's run that starts low and climbs goes up as one, but a phrase at its top that is
-    already where she sings stays: an octave higher it would be above where a line is sung at all."""
-    climbing = plan(("verse", ["CDEFGA", "EFGABc", "GABcde"]))
-    fitted, _ = voices.fit(climbing, words(("[Verse]", 0), ("[female voice]", 3)))
-    assert '"C"cdefgaz2|"C"efgabc\'z2|"C"GABcdez2|' in fitted
-
-
-def test_between_the_two_registers_a_tune_is_left_where_it_is():
-    """Around A4 to B4 either voice sings what is written, and an octave up would put a woman's
-    line out of reach.  A stretch found there is not moved for anyone; for both, it is doubled
-    where it stands."""
+def test_between_the_two_registers_nobody_is_left():
+    """Around A4 to B4 the same notes have been sung by a man and by a woman.  A man's line found
+    there goes down and a woman's goes up; for both, the upper voice is a woman's."""
     middle = plan(("verse", ["ABABAB"] * 4))
-    assert voices.fit(middle, words(("[Verse]", 0), ("[male voice]", 4)))[0] is middle
-    assert voices.fit(middle, words(("[Verse]", 0), ("[female voice]", 4)))[0] is middle
-    theirs = voices.fit(middle, words(("[Verse]", 0), ("[both]", 4)))[0]
-    assert '"C"[AA,][BB,][AA,][BB,][AA,][BB,]z2|' in theirs
-    # and a woman's line written very high comes down to where it is sung
+    his = voices.fit(middle, words(("[Verse]", 0), ("[male voice]", 4)))[0]
+    hers = voices.fit(middle, words(("[Verse]", 0), ("[female voice]", 4)))[0]
+    assert '"C"A,B,A,B,A,B,z2|' in his and '"C"ababab' in hers
+    # a woman's line written far above the staff comes down to where the planner writes one
     high = plan(("verse", ["c'd'e'f'g'a'"] * 4))
     assert '"C"cdefga' in voices.fit(high, words(("[Verse]", 0), ("[female voice]", 4)))[0]
 

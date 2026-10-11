@@ -21,16 +21,14 @@ MALE, FEMALE, BOTH = "male", "female", "both"
 
 # A stretch of melody is judged by the mean pitch it is written at, weighted by length (MIDI numbers,
 # C4 = 60).  The planner writes in two clusters, around C4 to G4 and an octave above; the lower is sung
-# by a man and the upper by a woman.  Between them, around A4 to B4, either voice has sung what was
-# written, following the lines around it, so a stretch found there is left where it is: moved up an
-# octave it would sit above where a woman's line is sung at all (tried: it came out low instead).
-MALE_TOP = 71.0
+# by a man and the upper by a woman.  Between them, around A4 to B4, the same notes have been sung by
+# either (measured: a woman's lines left there were a man's in three renders of five), so a cued
+# stretch found there is moved out: down for a man, up for a woman.  Written well above the staff a
+# woman still sings it, lower than written.
+MALE_TOP = 69.0
 MALE_FLOOR = 53.0
-FEMALE_FLOOR = 69.0
-FEMALE_TOP = 81.0
-# No single phrase is carried past where its voice is sung by the stretch it belongs to.
-PHRASE_TOP = 80.0
-PHRASE_FLOOR = 53.0
+FEMALE_FLOOR = 72.0
+FEMALE_TOP = 86.0
 # Phrases whose means are within this many semitones of each other are one stretch of tune and move
 # together, so a melody is never broken in the middle to make a point about a single phrase.
 LEAP = 7.0
@@ -391,17 +389,7 @@ def moves(groups: list[list[dict[str, Any]]], cues: list[str | None]) -> list[in
                    and abs(_mean(groups[end]) - _mean(groups[end - 1])) < LEAP):
                 end += 1
             notes = [note for group in groups[start:end] for note in group]
-            together = _octaves(_mean(notes), cues[start])
-            for k in range(start, end):
-                moved, mean = together, _mean(groups[k])
-                # ... unless staying behind would leave it in the other voice's register
-                if cues[start] == MALE:
-                    while moved < 0 and mean + 12 * moved < PHRASE_FLOOR and mean + 12 * (moved + 1) <= MALE_TOP:
-                        moved += 1
-                else:
-                    while moved > 0 and mean + 12 * moved > PHRASE_TOP and mean + 12 * (moved - 1) >= FEMALE_FLOOR:
-                        moved -= 1
-                out[k] = moved
+            out[start:end] = [_octaves(_mean(notes), cues[start])] * (end - start)
         start = end
     return out
 
