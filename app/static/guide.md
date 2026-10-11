@@ -207,14 +207,14 @@ lines under it, until the next cue or the next section:
 ```
 [Verse 1]
 [male voice]
-I packed the truck before the sun came up
-Left a note beside your coffee cup
+The ferry leaves at half past nine
+I watch the harbour lights go by
 [female voice]
-I found your note beneath the kitchen light
+I wait beside the ticket line
 
 [Chorus]
 [both]
-So meet me where the river bends
+Carry me over, carry me home
 ```
 
 `[male voice]`, `[female voice]` and `[both]` are the plain forms; `[man]`, `[woman]`, `[him]`, `[her]`, `[duet]`,

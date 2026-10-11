@@ -94,7 +94,7 @@ def test_a_cue_holds_until_the_next_cue_or_the_next_section():
 
 
 def test_syllables_in_several_scripts():
-    assert voices.syllables("Votre mari est mort cette nuit") == 9
+    assert voices.syllables("Le chat dort sur le toit ce soir") == 8
     assert voices.syllables("la la la") == 3
     assert voices.syllables("hmm") == 1
     assert voices.syllables("你好世界") == 4
