@@ -213,14 +213,18 @@ I watch the harbour lights go by
 I wait beside the ticket line
 
 [Chorus]
-[both]
+[both voices]
 Carry me over, carry me home
 ```
 
-`[male voice]`, `[female voice]` and `[both]` are the plain forms; `[man]`, `[woman]`, `[him]`, `[her]`, `[duet]`,
-`[male and female voices, full harmony]` and a cue in a section's own tag, `[Verse 2 - female vocal]`, are read
-the same way. Other words in the cue are yours to add and do not change who sings. A section with no cue is left
-to the planner.
+Write a cue as `[male voice]`, `[female voice]` or `[both voices]`, each on a line of its own in square brackets.
+These are the forms the feature was tried with, along with `vocal` for `voice` (`[female vocal]`) and
+`[male and female voices]` for both. You can add words of your own after a comma, as in
+`[female voice, soft and close]`; they do not change who sings. A section with no cue is left to the planner.
+
+Other spellings are read as well, so lyrics written elsewhere are not ignored: `[man]`, `[woman]`, `[duet]`, a cue
+inside a section's tag such as `[Verse 2 - female vocal]`, and a cue in parentheses, `(female voice)`. Square
+brackets are the safer habit: words in parentheses are usually backing vocals, and may be sung.
 
 A cue alone does not decide the voice. The singer comes mostly from how high the melody is written: the same
 line an octave up is sung by a woman, and the planner likes to write a verse in two octaves, changing every four

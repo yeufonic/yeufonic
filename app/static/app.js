@@ -1189,7 +1189,7 @@ async function fitVoices() {
       syncEditor();
       statusLine(answer.message + ' Save the score, then render.', 'good');
     } else {
-      statusLine(answer.cues ? answer.message : 'The lyrics have no voice cues: put [male voice], [female voice] or [both] on a line above the words.',
+      statusLine(answer.cues ? answer.message : 'The lyrics have no voice cues: put [male voice], [female voice] or [both voices] on a line above the words.',
                  answer.cues ? 'good' : 'hint');
     }
   } catch (err) {
