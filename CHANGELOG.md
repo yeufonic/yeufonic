@@ -37,6 +37,10 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **The mastering rack's preset box says what the rack holds.** When the rack takes up another take's settings, as it does when the take playing changes, the box names the preset those settings are, a factory one or one of your own, where it used to go on showing the last preset chosen. It shows **Custom** once a control has been moved away from a preset.
+
 ## 0.0.38 (2026-10-10)
 
 - **Vintage Stereo Imager & Spatial Processor.** Added a skeuomorphic stereo imaging module to the Vintage Mastering Rack, positioned immediately before the master limiter:

@@ -386,7 +386,7 @@ const header = new Uint8Array(64);
 header.set([0x66, 0x4c, 0x61, 0x43]);                      // fLaC, then STREAMINFO's sample rate
 header[18] = input.rate >> 12; header[19] = (input.rate >> 4) & 255; header[20] = (input.rate & 15) << 4;
 const sandbox = { window, document, console, setTimeout, clearTimeout, Promise, JSON, Math, Blob, FormData: function () {},
-                  localStorage: { getItem: () => null, setItem() {} },
+                  localStorage: { getItem: () => input.userPresets ? JSON.stringify(input.userPresets) : null, setItem() {} },
                   fetch: async (url) => ({ ok: true, url, arrayBuffer: async () => header.buffer.slice(0), json: async () => ({}) }) };
 vm.runInNewContext(fs.readFileSync(input.rack, 'utf8'), sandbox);
 const Rack = window.Rack, Engine = window.RackEngine;
@@ -407,6 +407,7 @@ function values(made, live) {
   const out = { flat: JSON.parse(JSON.stringify(Rack.settings)), cases: [] };
   out.engaged = input.settings.map((s) => Rack.chainEngaged(s));
   out.upgraded = input.settings.map((s) => Rack.upgradeSettings(s));
+  out.presets = input.settings.map((s) => Rack.presetOf(s));
   for (const s of input.settings) {
     Engine.applySettings(s);
     const live = values(Engine.ctx.made, true);
@@ -446,9 +447,10 @@ def changed(base: dict, **modules) -> dict:
     return out
 
 
-def rack(settings: list[dict], rate: int = 48000) -> dict:
+def rack(settings: list[dict], rate: int = 48000, user_presets: dict | None = None) -> dict:
     res = subprocess.run(["node", "-e", HARNESS], capture_output=True, text=True,
-                         input=json.dumps({"rack": str(STATIC / "rack.js"), "settings": settings, "rate": rate}))
+                         input=json.dumps({"rack": str(STATIC / "rack.js"), "settings": settings, "rate": rate,
+                                           "userPresets": user_presets}))
     assert res.returncode == 0, res.stderr
     return json.loads(res.stdout)
 
@@ -525,3 +527,26 @@ def test_settings_kept_before_version_2_are_read_as_untouched(flat):
     # read raw, the old settings would have put the chain in the path
     assert got["engaged"][0] is True
     assert rack([old])["engaged"] == [False]
+
+
+def test_the_preset_box_names_the_preset_the_settings_are(flat):
+    """Settings come to the rack from a preset chosen there, or with the take now playing. Either
+    way the box names the preset they are, a factory one or the user's own, and nothing when a
+    control has been moved since. A name, the bypass switch and the older spellings of a value
+    do not stop settings being a preset."""
+    warm = {   # the factory preset, as an older build kept it with a take: no version, older names too
+        "name": "anything", "masterBypass": True,
+        "eq": {"enabled": True, "preGain": 3, "hp": 50, "lowFreq": 60, "lowGain": 3.0, "mid1Freq": 700,
+               "mid1Gain": 1.5, "airGain": 1.5, "outLevel": -0.5, "phase": False},
+        "comp": {"enabled": True, "threshold": -20, "ratio": 4, "attack": 0.025, "release": 0.35, "makeup": 2.5,
+                 "mix": 0.85, "knee": 20},
+        "imager": {"enabled": True, "bigness": 3, "range": 6, "stage": 6, "harmonics": True, "tubeHarmonics": 4,
+                   "bass": True},
+        "limit": {"enabled": True, "drive": 1.5, "ceiling": -0.2, "release": 0.12, "warmth": True},
+    }
+    mine = changed(flat, name="Mine", comp={"enabled": True, "threshold": -30})
+    got = rack([flat, FLAT_BEFORE_2, warm, changed(warm, comp={"makeup": 3}), mine, changed(mine, eq={"lowGain": 1})],
+               user_presets={"user_1": mine})
+    assert got["presets"] == ["default", "default", "vintage_warmth", None, "user_1", None]
+    # with no presets of the user's own, theirs is nobody's
+    assert rack([mine])["presets"] == [None]

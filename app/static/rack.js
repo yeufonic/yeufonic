@@ -275,6 +275,24 @@
     return s;
   }
 
+  /* The values the chain reads, in one fixed shape, so two sets of settings can be compared:
+     a name, an alias kept for older settings or the bypass switch does not make them differ. */
+  function soundOf(settings) {
+    var s = upgradeSettings(settings) || {};
+    var eq = s.eq || {}, c = s.comp || {}, i = s.imager || {}, l = s.limit || {};
+    function n(v, fallback) { var x = Number(v === undefined || v === null ? fallback : v); return isNaN(x) ? fallback : Math.round(x * 1e6) / 1e6; }
+    return JSON.stringify([
+      [eq.enabled !== false, n(eq.preGain, 0), Math.max(20, n(eq.hp, 20)), n(eq.lowFreq, 60), n(eq.lowGain, 0),
+       n(eq.midFreq || eq.mid1Freq, 1600), n(eq.midGain !== undefined ? eq.midGain : eq.mid1Gain, 0),
+       n(eq.highGain !== undefined ? eq.highGain : eq.airGain, 0), n(eq.outLevel, 0), Boolean(eq.phase)],
+      [c.enabled !== false, n(c.threshold, -18), n(c.ratio, 4), n(c.attack, 0.015), n(c.release, 0.25),
+       n(c.makeup, 0), n(c.mix, 1), n(c.knee, 10)],
+      [i.enabled !== false, n(i.bigness, 1), n(i.range, 5), n(i.stage, 5), Boolean(i.harmonics),
+       n(i.tubeHarmonics, 1), Boolean(i.bass)],
+      [l.enabled !== false, n(l.drive, 0), n(l.ceiling, -0.1), n(l.release, 0.08), Boolean(l.warmth)]
+    ]);
+  }
+
   /* The chain for an offline render: the same nodes and the same settings code as playback,
      on another context, with the values set at once rather than eased in. */
   function buildMasteringDspGraph(ctx, s) {
@@ -850,6 +868,7 @@
         '        <label class="rack-preset-wrap" title="Load mastering preset">',
         '          <span>PRESET:</span>',
         '          <select id="rack-preset-select" class="rack-select">',
+        '            <option value="custom" hidden disabled>Custom</option>',
         '            <optgroup label="Factory Presets">',
         '              <option value="default">Flat / Transparent</option>',
         '              <option value="vintage_warmth">Vintage Tube Warmth</option>',
@@ -1703,6 +1722,39 @@
       }
 
       this.updateBypassUI();
+      this.syncPresetSelect();
+    },
+
+    /* The preset whose values these settings are: a factory one, then one of the user's.
+       Null when they are nobody's preset. */
+    presetOf: function (settings) {
+      var sound = soundOf(settings);
+      var key;
+      for (key in PRESETS) {
+        if (PRESETS.hasOwnProperty(key) && soundOf(PRESETS[key]) === sound) { return key; }
+      }
+      var mine = this.getUserPresets();
+      for (key in mine) {
+        if (mine.hasOwnProperty(key) && soundOf(mine[key]) === sound) { return key; }
+      }
+      return null;
+    },
+
+    /* The preset box says what the rack holds, however it came to hold it: a preset chosen
+       here, the settings kept with the take now playing, or Custom once a control has moved. */
+    syncPresetSelect: function () {
+      var select = document.getElementById('rack-preset-select');
+      if (!select) { return; }
+      var custom = select.querySelector('option[value="custom"]');
+      if (!custom) {
+        custom = document.createElement('option');
+        custom.value = 'custom'; custom.hidden = true; custom.disabled = true; custom.textContent = 'Custom';
+        select.insertBefore(custom, select.firstChild);
+      }
+      var key = this.presetOf(this.settings) || 'custom';
+      if (select.value !== key) { select.value = key; }
+      var delBtn = document.getElementById('rack-del-preset-btn');
+      if (delBtn) { delBtn.classList.toggle('hidden', !this.getUserPresets()[key]); }
     },
 
     updateBypassUI: function () {
@@ -1869,6 +1921,7 @@
 
     debouncedSave: function () {
       var self = this;
+      this.syncPresetSelect();
       if (!this.currentTakeId && window.State) {
         var tid = State.playing || State.loadedId || (typeof selectedTakeId === 'function' ? selectedTakeId() : null);
         if (tid) {
@@ -1935,6 +1988,7 @@
 
     chainEngaged: chainEngaged,
     upgradeSettings: upgradeSettings,
+    soundOf: soundOf,
 
     /* The take through the chain, as a WAV: the same nodes and settings as playback, rendered
        offline at the file's own sample rate. */
