@@ -15,7 +15,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import config, identities, instrumental, llm, loras, lyrics, score, stems, storage, trainsize, transpose
+from . import config, identities, instrumental, llm, loras, lyrics, score, stems, storage, trainsize, transpose, voices
 from .db import bump_average, execute, get_setting, one, rows
 from .engine import OUT_OF_MEMORY, Engine, load_template
 from .library import (audio_duration, ensure_peaks, fade_out_end, loudness, inside, normal_target, normalise, normalised_path, original_path, remove_tree,
@@ -319,6 +319,24 @@ def lock_tempo(abc: str, bpm) -> str:
     return out
 
 
+def voiced(take: dict) -> str:
+    """The take's score with its vocal line where the lyrics' voice cues ask, when the take keeps
+    to them: a man's lines written low, a woman's an octave higher, both as octave pairs.  Done
+    again before every render, since the words or the score may have changed since the plan; a
+    score already as cued comes back as it is."""
+    abc = take.get("abc") or ""
+    if not take.get("voice_cues") or take.get("kind") == "instrumental" or not abc.strip():
+        return abc
+    try:
+        fitted, summary = voices.fit(abc, take.get("lyrics") or "")
+    except Exception as exc:  # noqa: BLE001  a score it cannot read is sung as it stands
+        log.warning("Voice cues for '%s': the score could not be fitted (%s)", take.get("title") or take.get("id"), exc)
+        return abc
+    if summary and summary.get("changed"):
+        log.info("Voice cues for '%s': %s", take.get("title") or take.get("id"), voices.describe(summary))
+    return fitted
+
+
 def build_render_graph(take: dict) -> dict:
     graph = load_template("render.json")
     graph["10"]["inputs"]["ckpt_name"] = config.CHECKPOINT
@@ -581,6 +599,12 @@ async def run_job(kind: str, ref_id: str) -> None:
         record = one("SELECT * FROM takes WHERE id = ?", (ref_id,))
         if not record or record["status"] != "queued":
             return   # deleted or cancelled while it waited
+        if kind == "render":
+            # The score the person reads is the one that is sung, so the fitted score is kept.
+            fitted = voiced(record)
+            if fitted != (record.get("abc") or ""):
+                execute("UPDATE takes SET abc = ? WHERE id = ?", (fitted, ref_id))
+                record["abc"] = fitted
         graph = build_plan_graph(record) if kind == "plan" else build_render_graph(record)
         execute("UPDATE takes SET status = 'running', error = NULL, stage = NULL WHERE id = ?", (ref_id,))
         title = record.get("title") or ref_id
@@ -708,6 +732,8 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             again = "Write a new plan or try a different checkpoint" if record.get("style_lora") else "Write a new plan"
             fail(kind, ref_id, f"the plan came out unreadable twice ({', '.join(issues)}). {again}{advice}.")
             return
+        # A readable plan is set to the voices the lyrics cue before anyone sees it.
+        abc = voiced({**record, "abc": abc})
         elapsed = time.time() - started
         changed = execute(
             "UPDATE takes SET abc = ?, status = 'planned', stage = NULL, error = NULL, elapsed = ? WHERE id = ? AND status = 'running'",

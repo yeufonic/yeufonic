@@ -41,7 +41,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import aligner, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update
+from . import aligner, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting
 
 personas = identities
@@ -557,7 +557,7 @@ class RetrackIn(BaseModel):
 
 ADVANCED_KEYS = (
     "sampler_steps", "avoid", "target_key", "target_bpm", "max_abc_tokens",
-    "chord_hold_limit", "chord_outside_bonus", "chord_sections", "follow_structure", "target_lufs", "fade_out_seconds",
+    "chord_hold_limit", "chord_outside_bonus", "chord_sections", "follow_structure", "voice_cues", "target_lufs", "fade_out_seconds",
 )
 ADVANCED_DEFAULTS = {
     "sampler_steps": 32,
@@ -571,6 +571,8 @@ ADVANCED_DEFAULTS = {
     "chord_sections": None,
     # 1 makes the plan write exactly the sections the lyrics name, in order; None and 0 leave the planner its own shape.
     "follow_structure": None,
+    # 1 keeps the score's vocal line in the register of the voice the lyrics cue for each line (see voices.py).
+    "voice_cues": None,
     "target_lufs": None,
     "fade_out_seconds": 3.0,
 }
@@ -627,6 +629,7 @@ class SongIn(BaseModel):
     chord_outside_bonus: float | None = Field(0.0, ge=0.0, le=10.0)
     chord_sections: int | None = Field(None, ge=0, le=1)
     follow_structure: int | None = Field(None, ge=0, le=1)
+    voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
 
@@ -656,6 +659,7 @@ class ReplanIn(BaseModel):
     chord_outside_bonus: float | None = Field(None, ge=0.0, le=10.0)
     chord_sections: int | None = Field(None, ge=0, le=1)
     follow_structure: int | None = Field(None, ge=0, le=1)
+    voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
 
@@ -690,6 +694,7 @@ class TakeIn(BaseModel):
     chord_outside_bonus: float | None = Field(0.0, ge=0.0, le=10.0)
     chord_sections: int | None = Field(None, ge=0, le=1)
     follow_structure: int | None = Field(None, ge=0, le=1)
+    voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
 
@@ -729,6 +734,7 @@ class InstrumentalIn(BaseModel):
     chord_outside_bonus: float | None = Field(0.0, ge=0.0, le=10.0)
     chord_sections: int | None = Field(None, ge=0, le=1)
     follow_structure: int | None = Field(None, ge=0, le=1)
+    voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
 
@@ -806,6 +812,7 @@ class RenderIn(BaseModel):
     chord_outside_bonus: float | None = Field(None, ge=0.0, le=10.0)
     chord_sections: int | None = Field(None, ge=0, le=1)
     follow_structure: int | None = Field(None, ge=0, le=1)
+    voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
 
@@ -1890,6 +1897,24 @@ def _interpretation(name: str | None) -> str:
     return name
 
 
+class VoicesIn(BaseModel):
+    abc: str = Field(max_length=200_000)
+    lyrics: str = Field("", max_length=50_000)
+
+
+@app.post("/api/voices/fit")
+def fit_voices(body: VoicesIn) -> dict:
+    """A score with its vocal line set to the voices the lyrics cue, for the Score window: the
+    score comes back to be looked at, and nothing is kept until it is saved or rendered."""
+    try:
+        fitted, summary = voices.fit(body.abc, body.lyrics)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Voice cues: a score could not be fitted (%s)", exc)
+        raise HTTPException(400, "this score could not be read") from exc
+    return {"abc": fitted, "changed": bool(summary and summary.get("changed")), "cues": summary is not None,
+            "message": voices.describe(summary)}
+
+
 @app.post("/api/takes")
 async def create_take(body: TakeIn) -> dict:
     source = one("SELECT * FROM sources WHERE id = ?", (body.source_id,))
@@ -1935,12 +1960,12 @@ async def create_take(body: TakeIn) -> dict:
                              space_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
-                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, target_lufs, fade_out_seconds)
+                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds)
            VALUES(:id, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration, 'queued', :created_at,
                   :space_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
-                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :target_lufs, :fade_out_seconds)""",
+                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds)""",
         record,
     )
     if record["mode"] == "full" and not record["abc"]:
@@ -2068,13 +2093,13 @@ def _insert_new_take(record: dict) -> None:
                              normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
-                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, target_lufs, fade_out_seconds)
+                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds)
            VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :brief, :abc, :mode, :seed, :checkpoint,
                   :max_duration, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :interpretation, :feel, :realaudio,
                   :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
-                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :target_lufs, :fade_out_seconds)""",
+                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds)""",
         record,
     )
 
@@ -2260,12 +2285,12 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
         seed = int.from_bytes(os.urandom(4), "big")
     else:
         seed = take["seed"]
-    execute("UPDATE takes SET status = 'queued', error = NULL, stage = NULL, checkpoint = ?, interpretation = ?, realaudio = ?, normalise = ?, identity_id = ?, persona_id = ?, voice_lora = ?, voice_lora_strength = ?, style_lora = ?, style_lora_model = ?, style_lora_clip = ?, style = ?, max_duration = ?, mode = ?, seed = ?, sound_seed = ?, vocal_check = NULL, loudness = NULL, sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?, chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, target_lufs = ?, fade_out_seconds = ? WHERE id = ?",
+    execute("UPDATE takes SET status = 'queued', error = NULL, stage = NULL, checkpoint = ?, interpretation = ?, realaudio = ?, normalise = ?, identity_id = ?, persona_id = ?, voice_lora = ?, voice_lora_strength = ?, style_lora = ?, style_lora_model = ?, style_lora_clip = ?, style = ?, max_duration = ?, mode = ?, seed = ?, sound_seed = ?, vocal_check = NULL, loudness = NULL, sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?, chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ? WHERE id = ?",
             (config.CHECKPOINT, interpretation, realaudio, normalise, identity_val, identity_val, voice_lora, voice_lora_strength, sl["style_lora"], sl["style_lora_model"], sl["style_lora_clip"],
              sl["style"], sl["max_duration"], sl["mode"], seed,
              take.get("sound_seed") if seed == take["seed"] else None,
              adv["sampler_steps"], adv["avoid"], adv["target_key"], adv["target_bpm"], adv["max_abc_tokens"],
-             adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["target_lufs"], adv["fade_out_seconds"], take_id))
+             adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], take_id))
     await QUEUE.put({"kind": "render", "id": take_id})
     log.info("Queued audio render for take '%s' (%s, seed=%d)", take.get("title") or take_id, take_id, seed)
     return {"queued": True, "seed": seed}
@@ -2308,11 +2333,11 @@ async def replan_take(take_id: str, body: ReplanIn | None = None) -> dict:
         """UPDATE takes SET seed = ?, sound_seed = NULL, abc = '', status = 'queued', error = NULL, stage = NULL,
                             variety = ?, harmony = ?, checkpoint = ?,
                             sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?,
-                            chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, target_lufs = ?, fade_out_seconds = ?
+                            chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ?
            WHERE id = ?""",
         (seed, variety, harmony, config.CHECKPOINT,
          adv["sampler_steps"], adv["avoid"], adv["target_key"], adv["target_bpm"], adv["max_abc_tokens"],
-         adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["target_lufs"], adv["fade_out_seconds"], take_id),
+         adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], take_id),
     )
     await QUEUE.put({"kind": "plan", "id": take_id})
     log.info("Queued replan for take '%s' (%s, variety=%s, harmony=%s, seed=%d)",
@@ -2558,6 +2583,7 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
             "chord_outside_bonus": take.get("chord_outside_bonus", 0.0),
             "chord_sections": take.get("chord_sections"),
             "follow_structure": take.get("follow_structure"),
+            "voice_cues": take.get("voice_cues"),
             "target_lufs": take.get("target_lufs", -14.0),
             "fade_out_seconds": take.get("fade_out_seconds", 3.0),
         }
@@ -2567,13 +2593,13 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
                                  identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                                  style_lora, style_lora_model, style_lora_clip, sound_seed,
                                  sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
-                                 chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, target_lufs, fade_out_seconds)
+                                 chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds)
                VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration,
                       'queued', :created_at, :variety, :harmony, :space_id, :interpretation, :feel, :realaudio, :normalise,
                       :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                       :style_lora, :style_lora_model, :style_lora_clip, :sound_seed,
                       :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
-                      :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :target_lufs, :fade_out_seconds)""",
+                      :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds)""",
             record,
         )
         await QUEUE.put({"kind": "render", "id": record["id"]})

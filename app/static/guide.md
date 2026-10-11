@@ -70,6 +70,9 @@ Some of these act on the plan, and some on the render and the finished file:
   chords and roots outside the home key. These two act on the planner's choices, so they show as a
   difference in the chords of the plan rather than as a clear difference by ear. Compare the Score
   window.
+- **Voices follow the cues** (a tick under the lyrics box, shown once the lyrics have a voice cue such as
+  `[male voice]`; off by default): each cued line is sung by the voice its cue names, by moving its melody by
+  octaves. See [The words](#the-words).
 - **Follow this structure exactly** (a tick under the lyrics box, not in Advanced; songs; off by default): the plan writes exactly the sections the lyrics name, in
   order, and no others. Left off, the planner shapes the song itself and often adds an intro, an outro or an
   interlude, or leaves a section out. A plan can still end before the list does; Details shows what was asked for and
@@ -197,6 +200,36 @@ tags in the lyrics as guidance, and left alone it writes its own shape: it often
 swaps a bridge for an interlude and a verse, or condenses a long list. With this on, the plan writes exactly the
 sections the lyrics name, in that order, and no others. It cannot add an intro or an outro that you did not
 list. The planner still decides what the music is and when each section starts. It applies to songs only.
+
+**Who sings each line: voice cues.** A line on its own in square brackets that names a voice says who sings the
+lines under it, until the next cue or the next section:
+
+```
+[Verse 1]
+[male voice]
+I packed the truck before the sun came up
+Left a note beside your coffee cup
+[female voice]
+I found your note beneath the kitchen light
+
+[Chorus]
+[both]
+So meet me where the river bends
+```
+
+`[male voice]`, `[female voice]` and `[both]` are the plain forms; `[man]`, `[woman]`, `[him]`, `[her]`, `[duet]`,
+`[male and female voices, full harmony]` and a cue in a section's own tag, `[Verse 2 - female vocal]`, are read
+the same way. Other words in the cue are yours to add and do not change who sings. A section with no cue is left
+to the planner.
+
+A cue alone does not decide the voice. The singer comes from how high the melody is written: the same line an
+octave up is sung by a woman, and the planner likes to write a verse in two octaves, changing every four lines or
+so, whoever was cued. **Voices follow the cues** (a tick under the lyrics box, shown once the lyrics have a cue;
+off by default) keeps the cues: when the plan is written, each cued phrase of the melody is moved by whole octaves
+to where that voice sings, low for a man and high for a woman, and for both every note is written as an octave
+pair, which is sung as two voices. Nothing else in the plan changes. It is done again before each render, so it
+follows a change to the words or to the score. In the Score page, **Voices to cues** does the same once to the
+score in the box, for a take made without the tick; save the score and render it.
 
 **Writing by hand.** The Expand button opens a full-size editor with buttons for intro, verse, pre-chorus,
 chorus, bridge, interlude, outro and instrumental. A section is a line such as `[Verse]` followed by its lines; a
@@ -724,7 +757,11 @@ not enough: a song's render still sings the words it is given.
 
 ## Voices
 
-The **Vocal** chips set the singer's sex and character by writing into the style.
+The **Vocal** chips set the singer's sex and character by writing into the style, for the whole song.
+
+For a duet, or one singer for the verses and another for the chorus, put voice cues in the lyrics and tick
+**Voices follow the cues**: see [The words](#the-words) under writing a song from a prompt. It works for a cover's
+words too.
 
 ## Corpora and training a LoRA
 

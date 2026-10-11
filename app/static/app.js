@@ -1144,6 +1144,61 @@ function withStyleLora(data) {
   return data;
 }
 
+/* ============================================== who sings: voice cues in the lyrics */
+/* A whole line in square brackets or parentheses that names a voice says who sings the lines
+   under it: [male voice], [female voice], [both].  The server reads them (voices.py); this is
+   the same reading, to know when to offer the tick. */
+var VOICE_WORDS = {
+  strong: /(^|[^\w])(male|female|masculine?|feminine?|masculin[eo]?|f[eé]minine?|femenin[ao]|m[aä]nnlich|weiblich)(?![\w])/i,
+  weak: /(^|[^\w])(man|men|boy|boys|him|he|baritone|tenor|homme|hombre|mann|woman|women|girl|girls|her|she|soprano|alto|femme|mujer|frau)(?![\w])/i,
+  both: /(^|[^\w])(both|duet|duo|together|unison|ensemble|tous les deux)(?![\w])/i,
+  singing: /(^|[^\w])(voice|voices|vocal|vocals|sing|sings|singer|singers|singing|voix|voz|stimme)(?![\w])/i
+};
+
+function hasVoiceCues(lyrics) {
+  return String(lyrics || '').split('\n').some(function (line) {
+    var found = line.match(/^\s*(?:\[([^\]]*)\]|\(([^)]*)\))\s*$/);
+    if (!found) { return false; }
+    var square = found[1] !== undefined, text = square ? found[1] : found[2];
+    var plain = square || VOICE_WORDS.singing.test(text);
+    return VOICE_WORDS.strong.test(text) || (plain && (VOICE_WORDS.weak.test(text) || VOICE_WORDS.both.test(text)));
+  });
+}
+
+/* The tick is offered once the lyrics have a cue, and the Score page's button where there are words to cue. */
+function paintVoiceCues() {
+  var words = State.mode !== 'inst';
+  var wrap = $('voices-wrap'), button = $('fit-voices');
+  if (wrap) { wrap.classList.toggle('hidden', !(words && $('lyrics') && hasVoiceCues($('lyrics').value))); }
+  if (button) { button.style.display = words ? '' : 'none'; }
+}
+
+async function fitVoices() {
+  var abc = $('abc').value;
+  if (!abc.trim()) { statusLine('There is no score yet.', 'bad'); return; }
+  var button = $('fit-voices');
+  button.disabled = true;
+  try {
+    var answer = await api('/api/voices/fit', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ abc: abc, lyrics: $('lyrics').value })
+    });
+    if (answer.changed) {
+      $('abc').value = answer.abc;
+      if ($('chart').textContent) { setChart(chordChart(answer.abc)); }
+      syncEditor();
+      statusLine(answer.message + ' Save the score, then render.', 'good');
+    } else {
+      statusLine(answer.cues ? answer.message : 'The lyrics have no voice cues: put [male voice], [female voice] or [both] on a line above the words.',
+                 answer.cues ? 'good' : 'hint');
+    }
+  } catch (err) {
+    statusLine(String((err && err.message) || err), 'bad');
+  } finally {
+    button.disabled = false;
+  }
+}
+
 /* ============================================== advanced take settings (#32) */
 var ADVANCED_DEFAULTS = {
   sampler_steps: 32,
@@ -1155,6 +1210,7 @@ var ADVANCED_DEFAULTS = {
   chord_outside_bonus: 0.0,
   chord_sections: null,
   follow_structure: null,
+  voice_cues: null,
   target_lufs: -14.0,
   fade_out_seconds: 3.0
 };
@@ -1176,6 +1232,7 @@ function readAdvancedSettings() {
   var sectionsRaw = $('adv-chord-sections') ? $('adv-chord-sections').value : '';
   var sections = sectionsRaw === '1' ? 1 : (sectionsRaw === '0' ? 0 : null);
   var follow = $('follow-structure') && $('follow-structure').checked ? 1 : null;
+  var voiceCues = $('voice-cues') && $('voice-cues').checked ? 1 : null;
   var lufs = parseFloat($('adv-target-lufs').value);
   if (isNaN(lufs) || lufs < -30.0 || lufs > -4.0) { lufs = ADVANCED_DEFAULTS.target_lufs; }
   var fade = parseFloat($('adv-fade-out-seconds').value);
@@ -1190,6 +1247,7 @@ function readAdvancedSettings() {
     chord_outside_bonus: outside,
     chord_sections: sections,
     follow_structure: follow,
+    voice_cues: voiceCues,
     target_lufs: lufs,
     fade_out_seconds: fade
   };
@@ -1242,6 +1300,7 @@ function writeAdvancedSettings(data) {
   $('adv-chord-outside-bonus').value = data.chord_outside_bonus != null ? data.chord_outside_bonus : ADVANCED_DEFAULTS.chord_outside_bonus;
   if ($('adv-chord-sections')) { $('adv-chord-sections').value = data.chord_sections === 1 ? '1' : (data.chord_sections === 0 ? '0' : ''); }
   if ($('follow-structure')) { $('follow-structure').checked = data.follow_structure === 1; }
+  if ($('voice-cues')) { $('voice-cues').checked = data.voice_cues === 1; }
   $('adv-target-lufs').value = data.target_lufs != null ? data.target_lufs : ADVANCED_DEFAULTS.target_lufs;
   $('adv-fade-out-seconds').value = data.fade_out_seconds != null ? data.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds;
   updateAdvancedButtonState();
@@ -1249,8 +1308,10 @@ function writeAdvancedSettings(data) {
 
 function resetAdvancedSettings() {
   var follow = $('follow-structure') && $('follow-structure').checked;    // lives under the lyrics, not in this window
+  var voiceCues = $('voice-cues') && $('voice-cues').checked;             // and so does this
   writeAdvancedSettings(ADVANCED_DEFAULTS);
   if ($('follow-structure')) { $('follow-structure').checked = follow; }
+  if ($('voice-cues')) { $('voice-cues').checked = voiceCues; }
   saveForm();
 }
 
@@ -1269,6 +1330,7 @@ function loadAdvancedTakeSettings(take) {
     chord_outside_bonus: take.chord_outside_bonus != null ? take.chord_outside_bonus : ADVANCED_DEFAULTS.chord_outside_bonus,
     chord_sections: take.chord_sections === 1 || take.chord_sections === 0 ? take.chord_sections : null,
     follow_structure: take.follow_structure === 1 ? 1 : null,
+    voice_cues: take.voice_cues === 1 ? 1 : null,
     target_lufs: take.target_lufs != null ? take.target_lufs : ADVANCED_DEFAULTS.target_lufs,
     fade_out_seconds: take.fade_out_seconds != null ? take.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds
   });
@@ -1285,6 +1347,7 @@ function withAdvancedSettings(body) {
   body.chord_outside_bonus = adv.chord_outside_bonus;
   body.chord_sections = adv.chord_sections;
   body.follow_structure = adv.follow_structure;
+  body.voice_cues = adv.voice_cues;
   body.target_lufs = Math.abs(adv.target_lufs - ADVANCED_DEFAULTS.target_lufs) > 0.001 ? adv.target_lufs : null;
   body.fade_out_seconds = adv.fade_out_seconds;
   return body;
@@ -1356,7 +1419,7 @@ function wireAdvancedSettings() {
   var inputs = [
     'adv-sampler-steps', 'adv-avoid', 'adv-target-key', 'adv-target-bpm',
     'adv-max-abc-tokens', 'adv-chord-hold-limit',
-    'adv-chord-outside-bonus', 'adv-chord-sections', 'follow-structure', 'adv-target-lufs', 'adv-fade-out-seconds'
+    'adv-chord-outside-bonus', 'adv-chord-sections', 'follow-structure', 'voice-cues', 'adv-target-lufs', 'adv-fade-out-seconds'
   ];
   inputs.forEach(function (id) {
     var el = $(id);
@@ -4951,6 +5014,7 @@ function detailGroups(take) {
   set('Chord hold limit', take.chord_hold_limit);
   set('Out-of-key chord bonus', take.chord_outside_bonus);
   set('Follow my structure', take.follow_structure === 1 ? 1 : null, 'exactly');
+  set('Voices', take.voice_cues === 1 ? 1 : null, 'follow the cues');
   set('Sections open differently', take.chord_sections, take.chord_sections === 1 ? 'always' : (take.chord_sections === 0 ? 'never' : ''));
   set('Loudness target', take.target_lufs, take.target_lufs != null ? take.target_lufs + ' LUFS' : '');
   set('Fade out', take.fade_out_seconds, take.fade_out_seconds != null ? take.fade_out_seconds + ' s' : '');
@@ -8097,6 +8161,7 @@ function lyricsHaveWords(text) {
 }
 
 function paintSongPlan() {
+  paintVoiceCues();     // both follow the words in the box, and this runs wherever they change
   var field = $('song-structure-field');
   if (!field) { return; }
   var shown = State.mode === 'song' && !lyricsHaveWords($('lyrics').value);
@@ -12245,6 +12310,10 @@ function wire() {
     syncEditor();
     statusLine('Replaced ' + count + ' with "' + replace + '". Now save the score, then render.', 'good');
   });
+
+  // Wired with care: the page is read apart from this script, and an older page has neither.
+  if ($('fit-voices')) { $('fit-voices').addEventListener('click', fitVoices); }
+  if ($('lyrics')) { $('lyrics').addEventListener('input', paintVoiceCues); }
 
   $('chord-chart').addEventListener('click', function () {
     if ($('chart').textContent) { setChart(''); return; }

@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS takes (
     chord_outside_bonus REAL DEFAULT 0.0,
     chord_sections INTEGER,
     follow_structure INTEGER,
+    voice_cues INTEGER,
     brief TEXT,
     note_dismissed INTEGER NOT NULL DEFAULT 0,
     target_lufs REAL,
@@ -519,6 +520,12 @@ def _note_dismissed() -> None:
         execute("ALTER TABLE takes RENAME COLUMN cap_dismissed TO note_dismissed")
 
 
+def _voice_cues() -> None:
+    """Whether a take's score keeps to the voices its lyrics cue (null and 0: no)."""
+    if "voice_cues" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN voice_cues INTEGER")
+
+
 def _take_fx_chain() -> None:
     """Mastering rack / FX chain settings attached to a take."""
     cols = _columns("takes")
@@ -561,6 +568,7 @@ MIGRATIONS = [
     _cap_dismissed,                                                  # -> 32
     _note_dismissed,                                                 # -> 33
     _take_fx_chain,                                                  # -> 34
+    _voice_cues,                                                     # -> 35
 ]
 
 
