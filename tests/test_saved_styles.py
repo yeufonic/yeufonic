@@ -7,10 +7,10 @@ STATIC = Path(__file__).resolve().parent.parent / "app" / "static"
 
 def test_a_style_is_kept_listed_by_name_and_deleted(client):
     assert client.get("/api/styles").json() == []
-    second = client.post("/api/styles", json={"name": "Quiet harbour", "prompt": "ambient, soft pads, 70 BPM"}).json()
+    second = client.post("/api/styles", json={"name": "Quiet meadow", "prompt": "ambient, soft pads, 70 BPM"}).json()
     first = client.post("/api/styles", json={"name": "  lantern   folk ", "prompt": " folk,  nylon guitar "}).json()
     assert first["name"] == "lantern folk" and first["prompt"] == "folk, nylon guitar" and first["replaced"] is False
-    assert [s["name"] for s in client.get("/api/styles").json()] == ["lantern folk", "Quiet harbour"]
+    assert [s["name"] for s in client.get("/api/styles").json()] == ["lantern folk", "Quiet meadow"]
     assert client.delete(f"/api/styles/{second['id']}").json() == {"deleted": True}
     assert [s["name"] for s in client.get("/api/styles").json()] == ["lantern folk"]
     assert client.delete(f"/api/styles/{second['id']}").status_code == 404

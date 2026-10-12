@@ -476,7 +476,7 @@ def test_the_rack_starts_flat_and_out_of_the_path(flat):
     """A compressor, an imager and a limiter change the sound at any setting, so a rack nobody
     has touched has all three out, and the take plays through none of it."""
     assert [flat[m]["enabled"] for m in ("comp", "imager", "limit")] == [False, False, False]
-    assert flat["version"] == 2
+    assert flat["version"] == 3
     got = rack([flat])
     assert got["engaged"] == [False]
     assert (got["cases"][0]["masterDry"], got["cases"][0]["masterWet"]) == (1, 0)
@@ -535,7 +535,11 @@ def test_settings_kept_before_version_2_are_read_as_untouched(flat):
     assert [old[m]["enabled"] for m in ("comp", "imager", "limit")] == [False, False, False]
     assert [some[m]["enabled"] for m in ("comp", "imager", "limit")] == [True, False, True]
     assert [new[m]["enabled"] for m in ("comp", "imager", "limit")] == [True, True, True]
-    assert old["version"] == some["version"] == 2
+    assert old["version"] == some["version"] == new["version"] == 3
+    # and a compressor has what its node adds by itself written into its OUTPUT, so it sounds as it did now
+    # that the rack takes that gain off: one that is out as well, for when it is switched in
+    assert (old["comp"]["makeup"], some["comp"]["makeup"], new["comp"]["makeup"]) == (6.0, 8.7, 6.0)
+    assert flat["comp"]["makeup"] == 6.0 and flat["comp"]["enabled"] is False
     # read raw, the old settings would have put the chain in the path
     assert got["engaged"][0] is True
     assert rack([old])["engaged"] == [False]
@@ -588,16 +592,21 @@ def test_the_factory_presets_leave_room_for_what_they_add():
     block = rack_js[rack_js.index("var PRESETS = {"):rack_js.index("// ------------------------------------------------------------- DSP Helpers")]
     names = re.findall(r"^    '(\w+)': \{", block, flags=re.M)
     assert names == ["default", "vintage_warmth", "vocal_air", "radio_master", "punchy_bass", "acoustic_clarity"]
+    sum_of_the_node = rack_js[rack_js.index("  function nodeMakeupDb("):rack_js.index("  /* The sample rate a FLAC or WAV file says it has;")]
     bodies = re.split(r"^    '\w+': \{", block, flags=re.M)[1:]
     for name, body in zip(names, bodies):
         if name == "default":
             continue
         def value(key):
             return float(re.search(r"\b" + key + r": (-?[0-9.]+)", body).group(1))
+        # OUTPUT gives back about what the compressor's own curve takes off full scale, and no more
+        own = float(subprocess.run(["node", "-e", sum_of_the_node + "console.log(nodeMakeupDb(%s, %s, %s))" % (
+            value("threshold"), value("knee"), value("ratio"))], capture_output=True, text=True, check=True).stdout)
+        assert -0.05 <= value("makeup") - own <= 1.05, name
         boost = sum(max(0.0, value(k)) for k in ("lowGain", "midGain", "highGain"))
         assert value("preGain") <= -boost / 2 and value("preGain") <= -2, name     # turned down by at least half of what is added
         assert value("drive") == 0 and value("ceiling") <= -0.3, name
-        assert value("mix") == 1.0 and value("makeup") <= 1.0 and value("outLevel") <= 0, name
+        assert value("mix") == 1.0 and value("outLevel") <= 0, name
         assert value("bigness") <= 3 and value("tubeHarmonics") <= 2, name
 
 
@@ -640,3 +649,23 @@ def test_nothing_is_sliced_before_the_limiter_and_the_dry_signal_waits_for_the_c
     for key, x in (("half", 0.5), ("one", 1), ("two", 2), ("four", 4), ("minus", -1)):
         assert abs(got[key] - tube(x)) < 1e-6, key
     assert got["one"] < got["two"] < got["four"] < 1 / 1.12 + 1e-6     # still bending past full scale, towards its limit
+
+
+def test_the_compressors_output_is_all_the_gain_it_adds():
+    """A DynamicsCompressorNode raises what it puts out by an amount of its own, from its threshold, knee and
+    ratio.  The rack works the same amount out and takes it off after the node.  The figures here are the
+    node's, measured in a browser from a tone far under the threshold."""
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    own = rack_js[rack_js.index("  function nodeMakeupDb("):rack_js.index("  /* The sample rate a FLAC or WAV file says it has;")]
+    measured = {(-18, 10, 4): 6.028, (-18, 20, 3): 2.601, (-24, 8, 8): 10.937, (-45, 0, 20): 25.650, (-45, 40, 20): 10.532,
+                (0, 0, 1): 0.0, (-0.5, 0, 20): 0.285, (-30, 30, 12): 6.556, (-6, 3, 2): 1.390, (-10, 40, 20): 0.171}
+    script = own + "console.log(JSON.stringify(%s.map(function (g) { return nodeMakeupDb(g[0], g[1], g[2]); })));" % (
+        json.dumps([list(key) for key in measured]))
+    got = json.loads(subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout)
+    for (key, want), have in zip(measured.items(), got):
+        assert abs(have - want) < 0.005, (key, have, want)
+    # taken off where the settings are applied, from the same three values the node is given
+    apply = rack_js[rack_js.index("    applySettings: function (s, atOnce) {"):rack_js.index("    getGainReduction: function () {")]
+    assert "var makeupDb = (s.comp.makeup || 0) - nodeMakeupDb(compThreshold, compKnee, compRatio);" in apply
+    assert "set(this.compressor.threshold, compThreshold);" in apply and "set(this.compressor.knee, compKnee);" in apply
+    assert "set(this.compressor.ratio, compRatio);" in apply

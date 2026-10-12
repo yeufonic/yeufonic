@@ -25,19 +25,21 @@
         // legacy aliases
         mid1Freq: 1600, mid1Gain: 0, highFreq: 12000, airGain: 0
       },
-      comp: { enabled: false, threshold: -18, ratio: 4, attack: 0.015, release: 0.25, makeup: 0, mix: 1.0, knee: 10 },
+      // out, and waiting at the OUTPUT that gives back what these settings take off: switched in, it
+      // compresses without a drop in level, and OUTPUT at 0 is still no gain at all
+      comp: { enabled: false, threshold: -18, ratio: 4, attack: 0.015, release: 0.25, makeup: 6.0, mix: 1.0, knee: 10 },
       imager: { enabled: false, bigness: 1, range: 5, stage: 5, harmonics: false, tubeHarmonics: 1, bass: false },
       limit: { enabled: false, drive: 0, ceiling: -0.1, release: 0.08, warmth: false },
       masterBypass: false,
-      version: 2
+      version: 3
     },
     /* The five below are set by measurement, not by ear alone.  A take arrives finished: at its loudness,
        with its peaks within a decibel or so of full scale.  So each preset turns the input down before it
        adds anything, comes out within about a decibel of the loudness it was given (Radio Ready a little
        more), and keeps its peaks under full scale all the way through, so that the limiter is a guard
        here and not what makes the sound.  The presets these replace came out a good deal louder than
-       they went in, and were driven past full scale inside the rack.  The make-up is small because the
-       compressor's Web Audio node adds make-up gain of its own, from the threshold and the ratio. */
+       they went in, and were driven past full scale inside the rack.  The compressor's OUTPUT gives back
+       about what its settings take off the loud parts, and no more. */
     'vintage_warmth': {
       name: 'Vintage Tube Warmth',
       eq: {
@@ -53,11 +55,11 @@
         phase: false,
         mid1Freq: 700, mid1Gain: 0.5, highFreq: 12000, airGain: 1.0
       },
-      comp: { enabled: true, threshold: -18, ratio: 3, attack: 0.020, release: 0.35, makeup: 1.0, mix: 1.0, knee: 20 },
+      comp: { enabled: true, threshold: -18, ratio: 3, attack: 0.020, release: 0.35, makeup: 3.6, mix: 1.0, knee: 20 },
       imager: { enabled: true, bigness: 2, range: 6, stage: 5, harmonics: true, tubeHarmonics: 2, bass: false },
       limit: { enabled: true, drive: 0, ceiling: -0.5, release: 0.12, warmth: true },
       masterBypass: false,
-      version: 2
+      version: 3
     },
     'vocal_air': {
       name: 'Vocal Air & Glue',
@@ -74,11 +76,11 @@
         phase: false,
         mid1Freq: 3200, mid1Gain: 1.5, highFreq: 12000, airGain: 2.0
       },
-      comp: { enabled: true, threshold: -18, ratio: 2.5, attack: 0.010, release: 0.20, makeup: 0.5, mix: 1.0, knee: 12 },
+      comp: { enabled: true, threshold: -18, ratio: 2.5, attack: 0.010, release: 0.20, makeup: 4.8, mix: 1.0, knee: 12 },
       imager: { enabled: true, bigness: 2, range: 3, stage: 6, harmonics: false, tubeHarmonics: 1, bass: false },
       limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.08, warmth: false },
       masterBypass: false,
-      version: 2
+      version: 3
     },
     'radio_master': {
       name: 'Radio Ready Master',
@@ -95,11 +97,11 @@
         phase: false,
         mid1Freq: 1600, mid1Gain: 0.5, highFreq: 12000, airGain: 1.5
       },
-      comp: { enabled: true, threshold: -22, ratio: 4, attack: 0.003, release: 0.15, makeup: 1.0, mix: 1.0, knee: 10 },
+      comp: { enabled: true, threshold: -22, ratio: 4, attack: 0.003, release: 0.15, makeup: 8.8, mix: 1.0, knee: 10 },
       imager: { enabled: true, bigness: 3, range: 5, stage: 5, harmonics: true, tubeHarmonics: 2, bass: false },
       limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.06, warmth: false },
       masterBypass: false,
-      version: 2
+      version: 3
     },
     'punchy_bass': {
       name: 'Punchy Club & Bass',
@@ -116,11 +118,11 @@
         phase: false,
         mid1Freq: 3200, mid1Gain: 1.0, highFreq: 12000, airGain: 1.0
       },
-      comp: { enabled: true, threshold: -16, ratio: 4, attack: 0.020, release: 0.12, makeup: 0.0, mix: 1.0, knee: 6 },
+      comp: { enabled: true, threshold: -16, ratio: 4, attack: 0.020, release: 0.12, makeup: 6.1, mix: 1.0, knee: 6 },
       imager: { enabled: true, bigness: 2, range: 5, stage: 5, harmonics: false, tubeHarmonics: 1, bass: true },
       limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.08, warmth: false },
       masterBypass: false,
-      version: 2
+      version: 3
     },
     'acoustic_clarity': {
       name: 'Acoustic Clarity',
@@ -137,11 +139,11 @@
         phase: false,
         mid1Freq: 4800, mid1Gain: 1.0, highFreq: 12000, airGain: 1.5
       },
-      comp: { enabled: true, threshold: -18, ratio: 3, attack: 0.015, release: 0.30, makeup: 0.0, mix: 1.0, knee: 18 },
+      comp: { enabled: true, threshold: -18, ratio: 3, attack: 0.015, release: 0.30, makeup: 3.2, mix: 1.0, knee: 18 },
       imager: { enabled: true, bigness: 2, range: 4, stage: 6, harmonics: false, tubeHarmonics: 1, bass: false },
       limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.10, warmth: false },
       masterBypass: false,
-      version: 2
+      version: 3
     }
   };
 
@@ -168,6 +170,35 @@
      so that nothing leaves it over full scale whatever the limiter let through. */
   function makeGuardCurve() {
     return new Float32Array([-1, 1]);
+  }
+
+  /* The gain a DynamicsCompressorNode adds by itself, in decibels.  The node raises everything it puts
+     out by an amount it works out from its threshold, knee and ratio, which nothing can switch off, so a
+     compressor set to add nothing still made the sound louder, by more the harder it was set.  This is
+     the node's own sum (the Web Audio specification's, as browsers carry it): the curve it compresses by,
+     taken at full scale, and six tenths of the way back up from there.  The rack takes the same amount
+     off again after the node, so that its OUTPUT is the only gain the compressor adds. */
+  function nodeMakeupDb(thresholdDb, kneeDb, ratio) {
+    function bound(v, low, high, fallback) { var x = Number(v); return isNaN(x) ? fallback : Math.min(high, Math.max(low, x)); }
+    var T = bound(thresholdDb, -100, 0, -24), K = bound(kneeDb, 0, 40, 30), R = bound(ratio, 1, 20, 12);
+    function lin(db) { return Math.pow(10, db / 20); }
+    function dB(x) { return 20 * Math.log10(x); }
+    var linT = lin(T), slope = 1 / R;
+    // through the knee the curve bends over from the threshold; past the knee it rises at the ratio
+    function knee(x, k) { return x < linT ? x : linT + (1 - Math.exp(-k * (x - linT))) / k; }
+    function slopeAt(x, k) {
+      if (x < linT) { return 1; }
+      var x2 = x * 1.001;
+      return (dB(knee(x2, k)) - dB(knee(x, k))) / (dB(x2) - dB(x));
+    }
+    // the bend that reaches the ratio's slope where the knee ends, found as the node finds it
+    var kneeEnd = lin(T + K), low = 0.1, high = 10000, k = 5;
+    for (var i = 0; i < 15; i++) {
+      if (slopeAt(kneeEnd, k) < slope) { high = k; } else { low = k; }
+      k = Math.sqrt(low * high);
+    }
+    var fullScale = 1 < kneeEnd ? knee(1, k) : lin(dB(knee(kneeEnd, k)) + slope * (0 - (T + K)));
+    return -0.6 * dB(fullScale);
   }
 
   /* The sample rate a FLAC or WAV file says it has; 48000, what a take is made at, when the
@@ -263,7 +294,8 @@
   function upgradeSettings(stored) {
     if (!stored || typeof stored !== 'object') { return stored; }
     var s = JSON.parse(JSON.stringify(stored));
-    if (s.version === 2) { return s; }
+    if (s.version === 3) { return s; }
+    if (s.version === 2) { return makeupAsHeard(s); }
     function is(v, want, fallback) { return Number(v === undefined ? fallback : v) === want; }
     var c = s.comp, i = s.imager, l = s.limit;
     if (c && c.enabled !== false && is(c.threshold, -18, -18) && is(c.ratio, 4, 4) &&
@@ -280,6 +312,20 @@
       l.enabled = false;
     }
     s.version = 2;
+    return makeupAsHeard(s);
+  }
+
+  /* Settings kept before version 3 had a compressor's OUTPUT on top of the gain the node adds by itself.
+     The rack now takes that gain off, so the amount is written into OUTPUT, to a tenth of a decibel:
+     the settings sound as they did, and the knob reads all of the gain there is.  A compressor that is
+     out is given it too, as the flat preset's is, so that switching it in sounds as it would have. */
+  function makeupAsHeard(s) {
+    var c = s.comp;
+    if (c) {
+      var hidden = nodeMakeupDb(c.threshold !== undefined ? c.threshold : -18, c.knee !== undefined ? c.knee : 10, c.ratio || 4);
+      c.makeup = Math.round(((Number(c.makeup) || 0) + hidden) * 10) / 10;
+    }
+    s.version = 3;
     return s;
   }
 
@@ -724,13 +770,17 @@
         var mix = typeof s.comp.mix === 'number' ? s.comp.mix : 1.0;
         set(this.compDryGain.gain, compOn ? 1.0 - mix : 1.0);
         set(this.compWetGain.gain, compOn ? mix : 0.0);
-        set(this.compressor.threshold, s.comp.threshold !== undefined ? s.comp.threshold : -18);
-        set(this.compressor.ratio, s.comp.ratio || 4);
+        var compThreshold = s.comp.threshold !== undefined ? s.comp.threshold : -18;
+        var compRatio = s.comp.ratio || 4;
+        var compKnee = s.comp.knee !== undefined ? s.comp.knee : 10;
+        set(this.compressor.threshold, compThreshold);
+        set(this.compressor.ratio, compRatio);
         set(this.compressor.attack, s.comp.attack || 0.015);
         set(this.compressor.release, s.comp.release || 0.25);
-        set(this.compressor.knee, s.comp.knee !== undefined ? s.comp.knee : 10);
-        var makeupLinear = Math.pow(10, (s.comp.makeup || 0) / 20);
-        set(this.compMakeup.gain, makeupLinear);
+        set(this.compressor.knee, compKnee);
+        // OUTPUT is all the gain the compressor adds: what the node adds by itself is taken off again
+        var makeupDb = (s.comp.makeup || 0) - nodeMakeupDb(compThreshold, compKnee, compRatio);
+        set(this.compMakeup.gain, Math.pow(10, makeupDb / 20));
       }
 
       // Vintage Stereo Imager Stage (Placed before Master Limiter)
@@ -1076,7 +1126,7 @@
         '              <span class="knob-name">THRESHOLD</span>',
         '              <span class="knob-val">-18 dB</span>',
         '            </div>',
-        '            <div class="knob-wrap" data-param="comp.makeup" data-min="-6" data-max="20" data-step="0.5" data-default="0" data-unit="dB">',
+        '            <div class="knob-wrap" data-param="comp.makeup" data-min="-6" data-max="30" data-step="0.5" data-default="0" data-unit="dB" title="Output: all the gain the compressor adds (-6 dB to +30 dB)">',
         '              <div class="knob-dial large"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">OUTPUT</span>',
         '              <span class="knob-val">0 dB</span>',
@@ -2064,6 +2114,7 @@
     },
 
     chainEngaged: chainEngaged,
+    nodeMakeupDb: nodeMakeupDb,
     upgradeSettings: upgradeSettings,
     soundOf: soundOf,
 
