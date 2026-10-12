@@ -8707,17 +8707,12 @@ async function doTries() {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     });
     closeTries();
-    // Ticked, with the original, so they are ready to compare once they have finished.
-    var ids = [take.id].concat(reply.created.map(function (made) { return made.id; }));
+    // They used to be ticked with the original, ready for Compare.  Kept in a panel of their own they are
+    // one Select all away from that, and a take that turns up ticked reads as marked for deleting.
     openInside(take.id);
-    if (ids.length <= COMPARE_MOST) {
-      State.picked = {};
-      ids.forEach(function (made) { State.picked[made] = true; });
-    }
     statusLine('Queued ' + reply.created.length + ' take' + (reply.created.length === 1 ? '' : 's') + ' of ' + take.title +
-      ', kept inside it.' + (ids.length <= COMPARE_MOST ? ' They are ticked with the original: Compare opens when they have finished.' : ''), 'good');
+      ', kept inside it. Each shows there when it finishes.', 'good');
     loadTakes();
-    paintBulk();
   } catch (err) {
     $('tries-status').textContent = 'Could not queue: ' + err.message;
     $('tries-status').className = 'status bad';
@@ -10782,13 +10777,13 @@ function paintTakes() {
     if (State.picked[take.id]) { classes += ' picked'; }
     if (State.playing === take.id) { classes += ' playing'; }
     if (take.id === open) { classes += ' holding'; }
-    // Its own take, with room for others: the Inside button is lit when it holds any, and its tip says how many.
-    var holds = !take.parent_id && !State.search;
+    // The Inside button is on a take that holds takes, lit, and its tip says how many.  A take that holds
+    // none has no such button: there is nothing for it to open.
+    var holds = !take.parent_id && !State.search && heldBy(take) > 0;
     var insideTile = holds
-      ? '<button class="take-move inside' + (heldBy(take) ? ' lit' : '') + (take.id === open ? ' active' : '') +
-        '" data-act="inside"' + id + ' title="Inside \u2014 ' + esc(insideWords(take)) +
-        (heldBy(take) ? '' : '. Variations, Try more and Checkpoints put the takes they make in here') + '" aria-label="Takes inside this one"' +
-        (heldBy(take) ? ' aria-expanded="' + (take.id === open ? 'true' : 'false') + '"' : ' aria-disabled="true"') + '>' + icon('inside') + '</button>'
+      ? '<button class="take-move inside lit' + (take.id === open ? ' active' : '') +
+        '" data-act="inside"' + id + ' title="Inside \u2014 ' + esc(insideWords(take)) + '" aria-label="Takes inside this one"' +
+        ' aria-expanded="' + (take.id === open ? 'true' : 'false') + '">' + icon('inside') + '</button>'
       : '';
     // The rack's button is lit when the rack changes how this take sounds.
     var mastered = Boolean(window.Rack && typeof window.Rack.hasActiveMastering === 'function' && window.Rack.hasActiveMastering(take.id));
@@ -12835,7 +12830,7 @@ function wire() {
       }
     }
     if (act === 'inside') {
-      // A take that holds nothing has nothing to open: its button is there, and plain, and does nothing.
+      // A take that holds nothing has no button; this is for one whose last take went while the page was open.
       var holder = takeById(id);
       if (!(State.inside && State.inside.id === id) && !(holder && heldBy(holder))) { return; }
       await toggleInside(id);

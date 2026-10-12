@@ -551,9 +551,9 @@ roll:
   the voice, so it works like another seed.
 
 The new takes are titled *Night drive · try 1* or *Night drive · planner 0.60* and are kept inside
-the take they were made from, whose panel opens to show them as they finish. They are ticked with
-the original, so **Compare** opens as soon as they have finished. The window has its own length
-cap, which starts at the take's own.
+the take they were made from, whose panel opens to show them as they finish. To hear them against
+each other, press **Select all** while the panel is open and then **Compare**. The window has its
+own length cap, which starts at the take's own.
 
 ### Seed, and reproducing a take
 
@@ -1080,11 +1080,11 @@ The folder button on a card moves that take to another space, with any takes ins
 For Checkpoints, which starts from the editor and not from a take, the take on the last checkpoint
 ticked (the finished LoRA, when it is one of them) holds the others.
 
-- **The Inside button** is on every card in the list, among the small buttons at its top. It is
-  plain when the take holds nothing and **lit orange** when it holds takes, finished or still being
-  made. Hover over it to read how many are done and how many are to come. (The mastering rack's
-  button beside it is lit green in the same way, when the take is mastered.)
-- **Click it** when it is lit and a panel opens under the card with the takes inside, each a card of its own. A
+- **The Inside button** appears among the small buttons at the top of a card once its take holds
+  takes, finished or still being made, and it is **lit orange**. Hover over it to read how many are
+  done and how many are to come. (The mastering rack's button beside it is lit green in the same
+  way, when the take is mastered.)
+- **Click it** and a panel opens under the card with the takes inside, each a card of its own. A
   take shows there when it is finished; while it is being made only the take it belongs to shows.
   Click the button again, or **Close**, to shut it.
 - **A take inside another is a take like any other.** Play it, star it, save it, split it into

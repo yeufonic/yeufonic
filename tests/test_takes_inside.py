@@ -251,9 +251,13 @@ def test_the_cards_offer_what_the_rules_allow():
     assert "(take.parent_id ? '' :\n              '<button class=\"take-move\" data-act=\"variations\"" in card
     assert "(take.parent_id\n            ? '<button class=\"take-move\" data-act=\"promote\"" in card
     assert "(take.parent_id ? '' :\n          '<button class=\"take-move\" data-act=\"move\"" in card
-    assert "var holds = !take.parent_id && !State.search;" in card
+    # the Inside button is only on a take of its own that holds takes, and not on what a search finds
+    assert "var holds = !take.parent_id && !State.search && heldBy(take) > 0;" in card
     # and the three that make takes put them inside
     assert "if (holder) { body.parent_id = holder.id; }" in script
+    # Try more does not tick what it makes: a take that turns up ticked reads as marked for deleting
+    tries = script[script.index("async function doTries"):script.index("/* ------------------------------------------------------------- checkpoints")]
+    assert "State.picked" not in tries
 
 
 def test_a_take_that_holds_nothing_has_nothing_to_open():
