@@ -39,6 +39,7 @@ cannot creep back in.
 
 ## Unreleased
 
+- **A take's title has the top of its card to itself.** The small buttons that sat beside the title (Sing again, Variations, Try more, Inside, Normalise, the mastering rack, Move) are now on the status line, to the right, so a narrow card shows its title and not its first letter. A status too long to share the line takes it, and the buttons go under.
 - **The takes inside a take look like they belong to it.** The cards in an open panel have the lighter shade of the take that holds them, where they used to look like more of the list.
 
 ## 0.0.41 (2026-10-12)

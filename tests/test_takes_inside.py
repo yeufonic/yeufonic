@@ -362,3 +362,17 @@ def test_a_take_playing_inside_a_shut_panel_shows_on_the_take_that_holds_it():
     gold = css[css.index(".act.play.inside-playing, .take-move.inside.inside-playing {"):]
     gold = gold[:gold.index("}")]
     assert "--warn-rgb" in gold and "--good-rgb" not in gold          # gold, where the take itself playing is green
+
+
+def test_a_cards_small_buttons_are_on_its_status_line_and_not_beside_its_title():
+    script = (STATIC / "app.js").read_text(encoding="utf-8")
+    card = script[script.index("var cardOf = function (take) {"):script.index("$('takes').innerHTML = list.map")]
+    head = card[card.index("'<div class=\"take-head\">'"):card.index("'<div class=\"take-style\"")]
+    assert "take-corner" not in head and "take-move" not in head
+    assert "'<div class=\"take-live\">' + live + corner + '</div>' +" in card
+    css = (STATIC / "styles.css").read_text(encoding="utf-8")
+    assert ".take-head .take-corner" not in css
+    live = css[css.index("\n.take-live {"):]
+    assert "flex-wrap: wrap;" in live[:live.index("}")]        # a long status takes the line, and the buttons go under
+    corner = css[css.index("\n.take-corner {"):]
+    assert "auto" in corner[:corner.index("}")]                 # pushed to the right

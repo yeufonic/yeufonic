@@ -10837,20 +10837,9 @@ function paintTakes() {
       : (take.kind === 'instrumental'
           ? 'Instrumental \u2014 created without vocal tracks'
           : 'Cover \u2014 reimagined from a source recording');
-    return '<article class="' + classes + '" data-id="' + take.id + '">' +
-      '<div class="take-head">' +
-        '<div class="take-icon">' +
-          '<div class="cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover') + '" title="' + esc(coverTip) + '" aria-label="' + esc(coverTip) + '">' + initials(take.title) + '</div>' +
-          '<label class="pick" title="Select this take for bulk actions or batch deleting">' +
-            '<input type="checkbox" data-act="pick"' + id + (State.picked[take.id] ? ' checked' : '') + '>' +
-          '</label>' +
-        '</div>' +
-        '<div class="take-headtext">' +
-          '<div class="take-title" data-act="rename" data-id="' + take.id + '" title="' + esc(take.title) + ' \u2014 double-click to rename">' + esc(take.title) + '</div>' +
-          '<div class="take-meta" title="' + esc(meta.join(' \u00b7 ')) + '">' + esc(meta.join(' \u00b7 ')) + '</div>' +
-        '</div>' +
-        // Occasional, so small corner buttons rather than tiles in an already full row.
-        '<div class="take-corner">' +
+    // The small buttons for what is done now and then.  They sit on the status line, to the right, and not
+    // beside the title, which on a narrow card they left room for a letter or two of.
+    var corner = '<div class="take-corner">' +
           (take.abc && take.abc.length > 50 && status !== 'queued' && status !== 'running'
             ? '<button class="take-move" data-act="revoice"' + id + ' title="Sing again \u2014 The same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close"' +
               ' aria-label="Sing again">' + icon('voice') + '</button>' +
@@ -10878,10 +10867,22 @@ function paintTakes() {
           (take.parent_id ? '' :
           '<button class="take-move" data-act="move"' + id + ' title="Move \u2014 Move to another space' + (heldBy(take) ? ', with the takes inside it' : '') + '" aria-label="Move">' +
             icon('move') + '</button>') +
+        '</div>';
+    return '<article class="' + classes + '" data-id="' + take.id + '">' +
+      '<div class="take-head">' +
+        '<div class="take-icon">' +
+          '<div class="cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover') + '" title="' + esc(coverTip) + '" aria-label="' + esc(coverTip) + '">' + initials(take.title) + '</div>' +
+          '<label class="pick" title="Select this take for bulk actions or batch deleting">' +
+            '<input type="checkbox" data-act="pick"' + id + (State.picked[take.id] ? ' checked' : '') + '>' +
+          '</label>' +
+        '</div>' +
+        '<div class="take-headtext">' +
+          '<div class="take-title" data-act="rename" data-id="' + take.id + '" title="' + esc(take.title) + ' \u2014 double-click to rename">' + esc(take.title) + '</div>' +
+          '<div class="take-meta" title="' + esc(meta.join(' \u00b7 ')) + '">' + esc(meta.join(' \u00b7 ')) + '</div>' +
         '</div>' +
       '</div>' +
       '<div class="take-style" title="' + esc(take.style) + '">' + esc(take.style) + '</div>' +
-      '<div class="take-live">' + live + '</div>' +
+      '<div class="take-live">' + live + corner + '</div>' +
       '<div class="take-actions">' + actions + '</div>' +
       stemsBlock(take) +
     '</article>';
