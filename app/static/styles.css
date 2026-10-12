@@ -2118,6 +2118,36 @@ label .lora-value:disabled { opacity: 0.6; }
 .lyrics-source { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
 .take-corner { display: flex; gap: 2px; align-self: flex-start; margin: -4px -4px 0 0; }
 .take-corner .take-move { margin: 0; }
+/* ---- takes inside a take ----
+   The Inside button is one of the corner's small buttons: plain when the take holds nothing, lit with a
+   count when it does, and breathing while takes for it are still being made. */
+.take-move.inside { position: relative; }
+.take-move.inside.lit { color: var(--accent-a); border-color: rgb(var(--accent-a-rgb) / 0.55); background: rgb(var(--accent-a-rgb) / 0.14); }
+.take-move.inside b {
+  position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
+  background: var(--accent-a); color: #fff; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+}
+.take-move.inside.busy { animation: inside-busy 1.6s ease-in-out infinite; }
+@keyframes inside-busy { 50% { color: var(--warn); border-color: rgb(var(--warn-rgb) / 0.6); } }
+.take.holding { border-color: rgb(var(--accent-a-rgb) / 0.7); box-shadow: 0 0 0 1px rgb(var(--accent-a-rgb) / 0.35); }
+/* The panel: a row of its own under the card, whatever the columns, holding the takes as cards. */
+.take-inside {
+  grid-column: 1 / -1; padding: 14px 16px 16px; border-radius: 16px; overflow: hidden;
+  background: linear-gradient(180deg, var(--panel), var(--bg-2)); border: 1px solid rgb(var(--accent-a-rgb) / 0.45);
+  box-shadow: 0 14px 40px rgb(var(--shade) / 0.35);
+}
+.take-inside.opening { animation: inside-open 0.32s ease-out; transform-origin: top center; }
+@keyframes inside-open {
+  from { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; transform: scaleY(0.92); }
+  to { opacity: 1; max-height: 900px; transform: scaleY(1); }
+}
+.take-inside > header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.take-inside > header strong { font-size: 14.5px; }
+.take-inside > header .muted { margin-right: auto; font-size: 12.5px; }
+.take-inside > .hint { margin: 4px 0 0; }
+.take-inside-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.takes.comfy .take-inside-list { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+@media (prefers-reduced-motion: reduce) { .take-inside.opening, .take-move.inside.busy { animation: none; } }
 #write-brief { min-height: 90px; }
 #write-go:disabled { opacity: 0.5; cursor: default; }
 #write-go, #variations-go { width: auto; flex: 0 0 auto; margin-top: 0; padding: 10px 24px; font-size: 14px; }

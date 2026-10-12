@@ -623,6 +623,8 @@ def _advanced_of(body, fallback: dict | None = None) -> dict:
 
 class SongIn(BaseModel):
     title: str | None = Field(None, max_length=200)
+    # The take this one is kept inside (Checkpoints makes its takes that way); omitted, a take of its own.
+    parent_id: str | None = Field(None, max_length=64)
     # What the lyrics were asked to be about, kept with the take so Write lyrics can show it again.
     brief: str | None = Field(None, max_length=1000)
     style: str = Field(config.DEFAULT_STYLE, max_length=2000)
@@ -695,6 +697,8 @@ class ReplanIn(BaseModel):
 class TakeIn(BaseModel):
     source_id: str = Field(max_length=64)
     title: str | None = Field(None, max_length=200)
+    # The take this one is kept inside (Checkpoints makes its takes that way); omitted, a take of its own.
+    parent_id: str | None = Field(None, max_length=64)
     style: str = Field(config.DEFAULT_STYLE, max_length=2000)
     lyrics: str = Field("", max_length=20_000)
     abc: str | None = Field(None, max_length=200_000)
@@ -730,6 +734,8 @@ class TakeIn(BaseModel):
 
 class InstrumentalIn(BaseModel):
     title: str | None = Field(None, max_length=200)
+    # The take this one is kept inside (Checkpoints makes its takes that way); omitted, a take of its own.
+    parent_id: str | None = Field(None, max_length=64)
     style: str = Field(config.DEFAULT_STYLE, max_length=2000)
     structure: str = Field(instrumental.BARE, max_length=4000)
     # From a recording: its transcription is the score, as a cover's is, and its
@@ -1772,10 +1778,18 @@ def list_takes(
     kinds: str = Query("", max_length=60),
     q: str = Query("", max_length=200),
     limit: int = Query(300, ge=1, le=5000),
+    inside: str | None = Query(None, max_length=64),
+    keep: str | None = Query(None, max_length=64),
 ) -> Response:
     """The library, newest first.  Carries an ETag, so a poll that finds nothing
     new costs a 304 instead of the whole list.  `q` keeps the takes where every
-    word of it appears in the title, style, lyrics or a LoRA's name."""
+    word of it appears in the title, style, lyrics or a LoRA's name.
+
+    A take made from another is kept inside it and is not in the list: `inside` asks for
+    the takes inside one, those that are finished, and each take in the list says how many
+    it holds and how many more are still being made.  A search finds takes wherever they
+    are.  `keep` names a take the list holds whatever the starred and kind filters say, so
+    the take whose insides are on show does not leave the page when one is pressed."""
     where, args = [], []
     for word in q.split():
         like = "%" + word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
@@ -1793,9 +1807,20 @@ def list_takes(
     if wanted:
         where.append("kind IN (" + ",".join("?" * len(wanted)) + ")")
         args.extend(wanted)
+    if inside:
+        where.append("parent_id = ?")
+        args.append(inside)
+        where.append("status NOT IN (" + ",".join("?" * len(ACTIVE)) + ")")
+        args.extend(ACTIVE)
+    elif not q.split() and not source_id:
+        where.append("parent_id IS NULL")
     clause = ("WHERE " + " AND ".join(where)) if where else ""
+    if keep and not inside and where:
+        clause = f"WHERE (({' AND '.join(where)}) OR (id = ? AND parent_id IS NULL))"
+        args.append(keep)
     total = one(f"SELECT COUNT(*) AS n FROM takes {clause}", tuple(args))["n"]
     got = rows(f"SELECT * FROM takes {clause} ORDER BY created_at DESC LIMIT ?", (*args, limit))
+    _attach_family(got)
     for take in got:
         take["has_audio"] = bool(take["audio_path"] and Path(take["audio_path"]).exists())
         take["ran_to_cap"] = ran_to_cap(take)
@@ -1811,6 +1836,51 @@ def list_takes(
     return Response(body, media_type="application/json", headers=headers)
 
 
+def _attach_family(takes: list[dict]) -> None:
+    """Each take's `children` (finished takes inside it) and `children_pending` (still being
+    made), and for a take inside another the title of the one it is in."""
+    ids = [take["id"] for take in takes]
+    held: dict[str, dict[str, int]] = {}
+    for start in range(0, len(ids), 500):
+        part = ids[start:start + 500]
+        marks = ",".join("?" * len(part))
+        for row in rows(f"SELECT parent_id, status, COUNT(*) AS n FROM takes WHERE parent_id IN ({marks}) GROUP BY parent_id, status",
+                        tuple(part)):
+            counts = held.setdefault(row["parent_id"], {"children": 0, "children_pending": 0})
+            counts["children_pending" if row["status"] in ACTIVE else "children"] += row["n"]
+    mothers = sorted({take["parent_id"] for take in takes if take.get("parent_id")})
+    titles: dict[str, str] = {}
+    for start in range(0, len(mothers), 500):
+        part = mothers[start:start + 500]
+        for row in rows(f"SELECT id, title FROM takes WHERE id IN ({','.join('?' * len(part))})", tuple(part)):
+            titles[row["id"]] = row["title"]
+    for take in takes:
+        take.update(held.get(take["id"], {"children": 0, "children_pending": 0}))
+        if take.get("parent_id"):
+            take["parent_title"] = titles.get(take["parent_id"])
+
+
+def _mother(take: dict) -> str:
+    """The take that takes made from this one are kept inside: this one.  There is one level
+    only, so a take that is itself inside another holds none."""
+    if take.get("parent_id"):
+        raise HTTPException(400, "this take is inside another, and a take inside another holds none of its own. Take it out first.")
+    return take["id"]
+
+
+def _parent_for(parent_id: str | None, space_id: str) -> str | None:
+    """The take a new take asks to be made inside, checked: it exists, it is a take of its own
+    and it is in the space the new take is for."""
+    if not parent_id:
+        return None
+    parent = one("SELECT id, parent_id, space_id FROM takes WHERE id = ?", (parent_id,))
+    if not parent:
+        raise HTTPException(404, "no such take to put this one inside")
+    if parent["space_id"] != space_id:
+        raise HTTPException(400, "a take is kept in the space of the take it is inside")
+    return _mother(parent)
+
+
 @app.get("/api/takes/{take_id}")
 def get_take(take_id: str) -> dict:
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
@@ -1821,6 +1891,7 @@ def get_take(take_id: str) -> dict:
     take["stopped_early"] = score.stopped_early(take.get("duration"), take.get("abc"), take.get("max_duration"))
     if take.get("prompt_id") and take["status"] == "running":
         take["live"] = ENGINE.snapshot(take["prompt_id"])
+    _attach_family([take])
     return take
 
 
@@ -1876,9 +1947,32 @@ async def rename_take(take_id: str, body: RenameTakeIn) -> dict:
 
 @app.delete("/api/takes/{take_id}")
 async def delete_take(take_id: str) -> dict:
+    """Delete a take, and with it the takes kept inside it."""
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         raise HTTPException(404, "no such take")
+    inside = rows("SELECT * FROM takes WHERE parent_id = ?", (take_id,))
+    for child in inside:
+        await _delete_one(child)
+    await _delete_one(take)
+    return {"deleted": True, "inside": len(inside)}
+
+
+@app.post("/api/takes/{take_id}/promote")
+def promote_take(take_id: str) -> dict:
+    """Take a take out of the take it is inside: it becomes a take of its own, in the same space."""
+    take = one("SELECT id, parent_id, space_id FROM takes WHERE id = ?", (take_id,))
+    if not take:
+        raise HTTPException(404, "no such take")
+    if not take["parent_id"]:
+        raise HTTPException(400, "this take is not inside another")
+    execute("UPDATE takes SET parent_id = NULL WHERE id = ?", (take_id,))
+    log.info("Took take %s out of %s", take_id, take["parent_id"])
+    return {"id": take_id, "parent_id": None, "was_inside": take["parent_id"]}
+
+
+async def _delete_one(take: dict) -> None:
+    take_id = take["id"]
     if take["status"] in ACTIVE:
         await jobs.cancel_take(take)
     sets = rows("SELECT * FROM stem_sets WHERE take_id = ?", (take_id,))
@@ -1892,7 +1986,6 @@ async def delete_take(take_id: str) -> dict:
     folder = Path(take["audio_path"]).parent if take.get("audio_path") else take_folder(take_id, take["title"])
     folders = [(folder, config.TAKES_DIR)] + [(Path(item["folder"]), config.DATA_DIR) for item in sets if item["folder"]]
     await asyncio.to_thread(remove_folders, folders)
-    return {"deleted": True}
 
 
 def _locked_score(abc: str, adv: dict) -> str:
@@ -1975,6 +2068,7 @@ async def create_take(body: TakeIn) -> dict:
         "max_duration": body.max_duration or default_cap(),
         "created_at": time.time(),
         "space_id": body.space_id,
+        "parent_id": _parent_for(body.parent_id, body.space_id),
         "interpretation": _interpretation(body.interpretation),
         "realaudio": 1 if body.realaudio else 0,
         "normalise": 1 if body.normalise else 0,
@@ -1988,12 +2082,12 @@ async def create_take(body: TakeIn) -> dict:
     }
     execute(
         """INSERT INTO takes(id, source_id, title, style, lyrics, abc, mode, seed, checkpoint, max_duration, status, created_at,
-                             space_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
+                             space_id, parent_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                              chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds)
            VALUES(:id, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration, 'queued', :created_at,
-                  :space_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
+                  :space_id, :parent_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
                   :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds)""",
@@ -2104,6 +2198,7 @@ def _new_take_record(kind: str, title: str, words: str, body: SongIn | Instrumen
         "variety": body.variety if body.variety in PLAN_VARIETY else "normal",
         "harmony": body.harmony,
         "space_id": body.space_id,
+        "parent_id": _parent_for(getattr(body, "parent_id", None), body.space_id),
         "interpretation": _interpretation(body.interpretation),
         "feel": getattr(body, "feel", "steady"),
         "realaudio": 1 if getattr(body, "realaudio", True) else 0,
@@ -2121,13 +2216,13 @@ def _new_take_record(kind: str, title: str, words: str, body: SongIn | Instrumen
 def _insert_new_take(record: dict) -> None:
     execute(
         """INSERT INTO takes(id, kind, source_id, title, style, lyrics, brief, abc, mode, seed, checkpoint,
-                             max_duration, cap_typed, status, created_at, auto_render, variety, harmony, space_id, interpretation, feel, realaudio,
+                             max_duration, cap_typed, status, created_at, auto_render, variety, harmony, space_id, parent_id, interpretation, feel, realaudio,
                              normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                              chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds)
            VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :brief, :abc, :mode, :seed, :checkpoint,
-                  :max_duration, :cap_typed, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :interpretation, :feel, :realaudio,
+                  :max_duration, :cap_typed, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :parent_id, :interpretation, :feel, :realaudio,
                   :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
@@ -2197,7 +2292,7 @@ def list_spaces() -> list[dict]:
     """Default first, then by name, each with how many takes it holds."""
     return rows(
         """SELECT s.id, s.name, s.created_at, COUNT(t.id) AS takes, MAX(t.created_at) AS last_take_at
-           FROM spaces s LEFT JOIN takes t ON t.space_id = s.id
+           FROM spaces s LEFT JOIN takes t ON t.space_id = s.id AND t.parent_id IS NULL
            GROUP BY s.id ORDER BY s.id != ?, lower(s.name)""",
         (DEFAULT_SPACE,),
     )
@@ -2232,8 +2327,12 @@ def delete_space(space_id: str) -> dict:
 @app.post("/api/takes/{take_id}/move")
 def move_take(take_id: str, body: MoveIn) -> dict:
     space = _space(body.space_id)
-    if not execute("UPDATE takes SET space_id = ? WHERE id = ?", (space["id"], take_id)):
+    take = one("SELECT id, parent_id FROM takes WHERE id = ?", (take_id,))
+    if not take:
         raise HTTPException(404, "no such take")
+    if take["parent_id"]:
+        raise HTTPException(400, "this take is inside another and goes where that one goes. Take it out first to move it by itself.")
+    execute("UPDATE takes SET space_id = ? WHERE id = ? OR parent_id = ?", (space["id"], take_id, take_id))
     return {"space_id": space["id"], "name": space["name"]}
 
 
@@ -2390,7 +2489,7 @@ def _base_title(title: str) -> str:
 # What Sing again leaves behind: the copy is a new take with its own audio and state.
 _REVOICE_FRESH = {"id", "title", "status", "stage", "error", "audio_path", "duration", "prompt_id", "created_at",
                   "finished_at", "elapsed", "favourite", "vocal_check", "loudness", "sound_seed", "normalised",
-                  "normalised_to", "weak_dismissed", "note_dismissed"}
+                  "normalised_to", "weak_dismissed", "note_dismissed", "parent_id"}
 
 
 @app.post("/api/takes/{take_id}/revoice")
@@ -2582,6 +2681,7 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
         raise HTTPException(400, "this take has no score to render again. Write a plan first.")
     _check_score(take["abc"], take["kind"])
     _checkpoint()
+    mother = _mother(take)
     wanted = list(dict.fromkeys(_interpretation(name) for name in body.interpretations))
     base = _base_title(take["title"])
     now = time.time()
@@ -2593,7 +2693,7 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
     voice_lora_strength = take.get("voice_lora_strength", 1.0) if body.voice_lora_strength is None else body.voice_lora_strength
     for offset, name in enumerate(wanted):
         record = {
-            "id": uuid.uuid4().hex[:12], "kind": take["kind"], "source_id": take["source_id"],
+            "id": uuid.uuid4().hex[:12], "kind": take["kind"], "source_id": take["source_id"], "parent_id": mother,
             "title": f"{base} \u00b7 {INTERPRETATION_NAMES[name]}", "style": take["style"], "lyrics": take["lyrics"],
             "abc": take["abc"], "mode": take["mode"], "seed": take["seed"], "checkpoint": config.CHECKPOINT,
             "max_duration": body.max_duration or take["max_duration"], "created_at": now + offset * 0.001,
@@ -2620,13 +2720,13 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
             "fade_out_seconds": take.get("fade_out_seconds", 3.0),
         }
         execute(
-            """INSERT INTO takes(id, kind, source_id, title, style, lyrics, abc, mode, seed, checkpoint, max_duration,
+            """INSERT INTO takes(id, kind, source_id, parent_id, title, style, lyrics, abc, mode, seed, checkpoint, max_duration,
                                  status, created_at, variety, harmony, space_id, interpretation, feel, realaudio, normalise,
                                  identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                                  style_lora, style_lora_model, style_lora_clip, sound_seed,
                                  sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                                  chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds)
-               VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration,
+               VALUES(:id, :kind, :source_id, :parent_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration,
                       'queued', :created_at, :variety, :harmony, :space_id, :interpretation, :feel, :realaudio, :normalise,
                       :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                       :style_lora, :style_lora_model, :style_lora_clip, :sound_seed,
@@ -2813,6 +2913,7 @@ async def tries(take_id: str, body: TriesIn) -> dict:
         raise HTTPException(400, "this take has no score to render again. Write a plan first.")
     _check_score(take["abc"], take["kind"])
     _checkpoint()
+    mother = _mother(take)
     base = _base_title(take["title"])
     specs: list[dict] = []
     if body.mode == "planner":
@@ -2838,7 +2939,7 @@ async def tries(take_id: str, body: TriesIn) -> dict:
     created = []
     for offset, spec in enumerate(specs):
         record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
-        record.update(id=uuid.uuid4().hex[:12], status="queued", created_at=now + offset * 0.001,
+        record.update(id=uuid.uuid4().hex[:12], status="queued", created_at=now + offset * 0.001, parent_id=mother,
                       checkpoint=config.CHECKPOINT, max_duration=body.max_duration or take["max_duration"], **spec)
         columns = list(record)
         execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)

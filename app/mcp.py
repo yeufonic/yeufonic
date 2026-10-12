@@ -32,11 +32,15 @@ TOOLS: list[dict] = [
                        "and `same_title_count` says so. When you show takes to a person, ALWAYS include the `short_id` as a "
                        "column, so they can name one exactly (every tool accepts it). Act on a take by its id; when more than "
                        "one matches what the person said, show the choices (short_id, made, length, style) and ask which. "
-                       "Use get_take for one in full.",
+                       "Takes made from a take by try_more (or Variations and Checkpoints in the app) are kept INSIDE it and "
+                       "are not in this list: a take that holds some says how many in `takes_inside` (and `being_made` for "
+                       "those not finished), and `inside` with its id lists them. A query finds takes wherever they are, and "
+                       "one found inside another says which in `inside_of`. Use get_take for one in full.",
         "inputSchema": {"type": "object", "properties": {
             "query": {"type": "string", "description": "Words that must appear in the title, style or lyrics."},
             "space": {"type": "string", "description": "Only the takes in this space, by name (see list_spaces)."},
             "favourites": {"type": "boolean", "description": "Only starred takes."},
+            "inside": {"type": "string", "description": "The id of a take: list the finished takes kept inside it."},
             "limit": {"type": "integer", "description": f"How many, at most {LIMIT}. Default 20."},
         }},
     },
@@ -149,7 +153,9 @@ TOOLS: list[dict] = [
     {
         "name": "try_more",
         "description": "Make more takes from an existing one: the same score and words rendered again with new seeds, as several "
-                       "new takes to listen to together (the Try more button). Each is queued; follow them with wait_for_take.",
+                       "new takes to listen to together (the Try more button). Each is queued; follow them with wait_for_take. "
+                       "They are kept inside the take they were made from (see list_takes), and a take that is itself inside "
+                       "another cannot have more made from it.",
         "inputSchema": {"type": "object", "required": ["take_id"], "properties": {
             "take_id": {"type": "string"},
             "count": {"type": "integer", "description": "How many, 1 to 8. Default 4."},
@@ -298,6 +304,12 @@ def _brief(take: dict, spaces: dict | None = None) -> dict:
     out["made"] = _when(take.get("created_at"))
     if spaces and take.get("space_id") in spaces:
         out["space"] = spaces[take["space_id"]]           # the name, which an agent can say to a person
+    if take.get("children"):
+        out["takes_inside"] = take["children"]            # list them with list_takes and `inside`
+    if take.get("children_pending"):
+        out["being_made"] = take["children_pending"]
+    if take.get("parent_id"):
+        out["inside_of"] = {"id": take["parent_id"], "title": take.get("parent_title")}
     return out
 
 
@@ -450,6 +462,8 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
             space = await _space_of(api, args.get("space") or args.get("space_id"))
             if space:
                 params["space_id"] = space
+            if args.get("inside"):
+                params["inside"] = await _take_id(api, args["inside"])
             spaces = await _space_names(api)
             found = [_brief(take, spaces) for take in await api("GET", "/api/takes", params=params)]
             same = {}
@@ -617,6 +631,7 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
             if take.get("favourite") and not args.get("even_if_starred"):
                 return _text(f"'{take.get('title')}' ({take['id']}) is starred, so it was not deleted. If the person really wants it "
                              "gone, ask them, then call again with confirm and even_if_starred both true.", True)
+            inside = (take.get("children") or 0) + (take.get("children_pending") or 0)
             if not args.get("confirm"):
                 spaces = await _space_names(api)
                 same = [t for t in await api("GET", "/api/takes", params={"q": take.get("title") or "", "limit": LIMIT})
@@ -624,7 +639,9 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                 return _text({
                     "deleted": False,
                     "message": "NOTHING WAS DELETED. This is the take that would be. Show the person its details, ask whether to "
-                               "delete it for good, and if they agree call delete_take again with confirm true.",
+                               "delete it for good, and if they agree call delete_take again with confirm true."
+                               + (f" It holds {inside} other take{'' if inside == 1 else 's'} made from it, which would be "
+                                  "deleted with it: say so." if inside else ""),
                     "would_delete": _brief(take, spaces) | ({"running": "it is being made and would be stopped"}
                                                            if take.get("status") in ("queued", "running") else {}),
                     "other_takes_with_this_title": [_brief(t, spaces) for t in same],

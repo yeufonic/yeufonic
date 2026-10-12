@@ -105,6 +105,8 @@ function boxShowsSource(sourceId) {
 var State = { normalising: {}, sources: [], takes: [], options: {}, filter: 'all', playing: null, busy: false, mode: 'cover',
   layout: 'compact',
   takesRaw: '', takesTotal: 0, takeLimit: 300, takesAt: 0, paintedAt: 0, draft: null, audition: null,
+  // The list the space shows, and the take whose insides are open: { id, takes, fresh }.  `takes` above is both together.
+  listed: [], inside: null,
   picked: {},
   formEdited: false, spaces: [], spaceId: 'default', moveTakeId: null, search: '', searchAll: false };
 var LAYOUT_KEY = 'yue2.layout';
@@ -6402,17 +6404,26 @@ async function doReroll() {
 
 /* ------------------------------------------------------------------ takes */
 async function loadTakes() {
-  var space = State.spaceId, search = State.search, everywhere = searchingEverywhere();
+  var space = State.spaceId, search = State.search, everywhere = searchingEverywhere(), open = insideOpen();
+  var filters = (State.filter === 'favourite' ? '&favourite=true' : '') +
+    (State.kinds && State.kinds.length ? '&kinds=' + State.kinds.join(',') : '');
   var url = '/api/takes?limit=' + State.takeLimit +
     (everywhere ? '' : '&space_id=' + encodeURIComponent(space)) +
-    (search ? '&q=' + encodeURIComponent(search) : '') +
-    (State.filter === 'favourite' ? '&favourite=true' : '') +
-    (State.kinds && State.kinds.length ? '&kinds=' + State.kinds.join(',') : '');
+    (search ? '&q=' + encodeURIComponent(search) : '') + filters +
+    (open ? '&keep=' + encodeURIComponent(open) : '');   // the take whose insides are open stays, whatever the filters say
   var response = await fetch(url, { cache: 'no-cache' });   // revalidates: unchanged is a 304
   if (!response.ok) { return; }
-  var text = await response.text();
-  // The space or the search changed while this was on its way: the answer is out of date.
-  if (space !== State.spaceId || search !== State.search || everywhere !== searchingEverywhere()) { return; }
+  var listedText = await response.text();
+  // The takes inside the open one: the same filters, asked for beside the list.
+  var insideText = '';
+  if (open) {
+    var within = await fetch('/api/takes?limit=1000&inside=' + encodeURIComponent(open) + filters, { cache: 'no-cache' });
+    if (!within.ok) { return; }
+    insideText = await within.text();
+  }
+  // The space, the search or the open take changed while this was on its way: the answer is out of date.
+  if (space !== State.spaceId || search !== State.search || everywhere !== searchingEverywhere() || open !== insideOpen()) { return; }
+  var text = listedText + '\u0000' + insideText;
   if (text !== State.takesRaw) { loadSpaces(); }   // the counts in the menu may have moved
   State.takesAt = Date.now();
   State.takesTotal = parseInt(response.headers.get('X-Total-Count') || '0', 10) || 0;
@@ -6425,7 +6436,13 @@ async function loadTakes() {
   // Repaint once a minute anyway, so "2 min ago" keeps moving.
   if (text === State.takesRaw && Date.now() - State.paintedAt < 60000) { return; }
   State.takesRaw = text;
-  State.takes = JSON.parse(text);
+  State.listed = JSON.parse(listedText);
+  if (open && State.inside) {
+    State.inside.takes = insideText ? JSON.parse(insideText) : [];
+    // Its take was deleted or moved away while its insides were open: there is nothing to hold them open under.
+    if (!State.listed.some(function (take) { return take.id === open; })) { State.inside = null; }
+  }
+  State.takes = State.listed.concat(insideTakes());
   paintTakes();
   if (!State.loadedId && !State.audition && !State.playing && typeof activateTakeRecording === 'function') {
     var activeTake = typeof selectedTakeId === 'function' && selectedTakeId() && typeof takeById === 'function' ? takeById(selectedTakeId()) : null;
@@ -6474,6 +6491,8 @@ function showSpace(id) {
   State.spaceId = id;
   try { localStorage.setItem(SPACE_KEY, id); } catch (err) { /* private mode */ }
   State.takes = [];
+  State.listed = [];
+  State.inside = null;    // and so does an open take
   State.takesRaw = '';
   State.takesTotal = 0;
   State.takeLimit = 300;
@@ -8327,8 +8346,9 @@ async function doVariations() {
       body: JSON.stringify(body)
     });
     closeVariations();
+    openInside(take.id);
     statusLine('Queued ' + reply.created.length + ' variation' + (reply.created.length === 1 ? '' : 's') + ' of ' + take.title +
-      '. Each appears as its own take when it finishes.', 'good');
+      '. They are kept inside it, and each shows there when it finishes.', 'good');
     loadTakes();
   } catch (err) {
     $('variations-status').textContent = 'Could not queue: ' + err.message;
@@ -8688,12 +8708,13 @@ async function doTries() {
     closeTries();
     // Ticked, with the original, so they are ready to compare once they have finished.
     var ids = [take.id].concat(reply.created.map(function (made) { return made.id; }));
+    openInside(take.id);
     if (ids.length <= COMPARE_MOST) {
       State.picked = {};
       ids.forEach(function (made) { State.picked[made] = true; });
     }
     statusLine('Queued ' + reply.created.length + ' take' + (reply.created.length === 1 ? '' : 's') + ' of ' + take.title +
-      '.' + (ids.length <= COMPARE_MOST ? ' They are ticked with the original: Compare opens when they have finished.' : ''), 'good');
+      ', kept inside it.' + (ids.length <= COMPARE_MOST ? ' They are ticked with the original: Compare opens when they have finished.' : ''), 'good');
     loadTakes();
     paintBulk();
   } catch (err) {
@@ -8751,7 +8772,7 @@ function openLoraSteps() {
   var named = finished && loraCatalogue().filter(function (e) { return e.name === finished.name; })[0];
   $('steps-heading').textContent = 'Checkpoints of ' +
     ((named && named.title) || item.name.replace(/\.safetensors$/i, '').replace(/_step\d+$/i, ''));
-  $('steps-hint').textContent = STEP_MODES[mode].hint + ' Each lands as its own take, named after its step.';
+  $('steps-hint').textContent = STEP_MODES[mode].hint + ' Each is a take named after its step, and the last of them holds the others inside it.';
   $('steps-cap').value = parseFloat($('max-duration').value) || 360;
   $('steps-list').innerHTML = steps.map(function (s) {
     return '<label><input type="checkbox" value="' + esc(s.name) + '" data-label="' + stepLabel(s) + '" checked><strong>' +
@@ -8795,19 +8816,26 @@ async function runLoraSteps() {
   var seed = pickSeed();
   $('steps-go').disabled = true;
   var queued = 0;
+  // One set, kept together: the take on the last checkpoint ticked (the finished LoRA, when it is one of
+  // them) is made first and holds the others inside it.
+  var order = chosen.slice(-1).concat(chosen.slice(0, -1));
+  var holder = null;
   try {
-    for (var i = 0; i < chosen.length; i++) {
+    for (var i = 0; i < order.length; i++) {
       var body = mode.body(seed);
-      body.style_lora = chosen[i].value;
-      body.title = (body.title || (STEPS.mode === 'inst' ? 'Untitled instrumental' : 'Untitled')) + ' \u00b7 ' + chosen[i].dataset.label;
+      body.style_lora = order[i].value;
+      body.title = (body.title || (STEPS.mode === 'inst' ? 'Untitled instrumental' : 'Untitled')) + ' \u00b7 ' + order[i].dataset.label;
       body.max_duration = cap;
       // To be heard, so a plan goes straight on to its render.
       if (STEPS.mode !== 'cover') { body.auto_render = true; }
-      await api(mode.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (holder) { body.parent_id = holder.id; }
+      var made = await api(mode.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!holder) { holder = made; }
       queued += 1;
     }
     closeLoraSteps();
-    statusLine('Queued ' + queued + ' take' + (queued === 1 ? '' : 's') + ', one on each checkpoint, with seed ' + seed + '.', 'good');
+    statusLine('Queued ' + queued + ' take' + (queued === 1 ? '' : 's') + ', one on each checkpoint, with seed ' + seed + '.' +
+      (queued > 1 && holder ? ' The others are kept inside \u201c' + holder.title + '\u201d.' : ''), 'good');
   } catch (err) {
     $('steps-status').textContent = (queued ? 'Queued ' + queued + ', then could not queue the rest: ' : 'Could not queue: ') + err.message;
     $('steps-status').className = 'status bad';
@@ -10129,7 +10157,9 @@ var ICONS = {
   dice: '<path d="M12 2.8l7.8 4.5v9.4L12 21.2l-7.8-4.5V7.3z"/><path d="M4.2 7.3L12 12l7.8-4.7M12 12v9.2"/><circle cx="12" cy="7.55" r="1.05" fill="currentColor" stroke="none"/><circle cx="7.4" cy="12.9" r="1.05" fill="currentColor" stroke="none"/><circle cx="9.5" cy="16.3" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.6" cy="13" r="1.05" fill="currentColor" stroke="none"/><circle cx="16.6" cy="15.4" r="1.05" fill="currentColor" stroke="none"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2"/><circle cx="12" cy="7.9" r="0.6" fill="currentColor"/>',
   mastering: '<circle cx="12" cy="12" r="8.5"/><path d="M8 15.5V8.5l4 3.8 4-3.8v7"/>',
-  level: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>'
+  level: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+  inside: '<rect x="3.5" y="9" width="17" height="11" rx="2"/><path d="M6 6.2h12M8.5 3.5h7"/>',
+  out: '<path d="M9 4.5H6A1.5 1.5 0 0 0 4.5 6v12A1.5 1.5 0 0 0 6 19.5h3"/><path d="M10.5 12h9m0 0l-3.5-3.5m3.5 3.5L16 15.5"/>'
 };
 
 function icon(name) {
@@ -10415,11 +10445,85 @@ function pickedIds() {
   return Object.keys(State.picked).filter(function (id) { return State.picked[id]; });
 }
 
+/* ---------------------------------------------------------- takes inside a take
+   Takes made from a take with Variations, Try more or Checkpoints are kept inside it.  The
+   list shows the take; its Inside button opens a panel under its card with the takes it
+   holds, and while that is open the list's tools (Select all, the filters, Compare, Delete,
+   previous and next) work on the takes in the panel.  A search finds takes wherever they
+   are, so while one is on there are no panels: what is found is shown flat. */
+function insideOpen() {
+  return State.inside && !State.search ? State.inside.id : null;
+}
+
+function insideTakes() {
+  return insideOpen() ? (State.inside.takes || []) : [];
+}
+
+function passesFilters(take) {
+  if (State.kinds && State.kinds.length && State.kinds.indexOf(take.kind) < 0) { return false; }
+  return State.filter === 'all' || (State.filter === 'favourite' && take.favourite);
+}
+
+// The cards of the space: the take whose insides are open stays whatever the filters say.
+function listedTakes() {
+  var open = insideOpen();
+  return (State.listed || []).filter(function (take) { return take.id === open || passesFilters(take); });
+}
+
+// The takes the list's tools act on: those inside the open take, or the space's.
 function visibleTakes() {
-  return State.takes.filter(function (take) {
-    if (State.kinds && State.kinds.length && State.kinds.indexOf(take.kind) < 0) { return false; }
-    return State.filter === 'all' || (State.filter === 'favourite' && take.favourite);
-  });
+  return insideOpen() ? insideTakes().filter(passesFilters) : listedTakes();
+}
+
+function toggleInside(id) {
+  var closing = State.inside && State.inside.id === id;
+  State.inside = closing ? null : { id: id, takes: [], fresh: true };
+  State.takes = State.listed.slice();
+  State.takesRaw = '';
+  clearPicked();          // a pick belongs to the list it was made in
+  // Closing is at once.  Opening waits the moment it takes to fetch what is inside, so the panel unfolds with its takes in it.
+  if (closing) { paintTakes(); }
+  return loadTakes().then(function () { if (State.inside && State.inside.fresh) { paintTakes(); } });
+}
+
+// Open a take's insides without disturbing what is ticked: for the moment its new takes are queued.
+function openInside(id) {
+  if (State.search || (State.inside && State.inside.id === id)) { return; }
+  if (!(State.listed || []).some(function (take) { return take.id === id; })) { return; }
+  State.inside = { id: id, takes: [], fresh: true };
+  State.takes = State.listed.slice();
+  State.takesRaw = '';
+}
+
+function heldBy(take) {
+  return (take.children || 0) + (take.children_pending || 0);
+}
+
+function insideWords(take) {
+  var done = take.children || 0, making = take.children_pending || 0;
+  if (!done && !making) { return 'Nothing inside this take yet'; }
+  return (done ? done + ' take' + (done === 1 ? '' : 's') : '') + (done && making ? ', and ' : '') +
+    (making ? making + (done ? ' more' : ' take' + (making === 1 ? '' : 's')) + ' being made' : '');
+}
+
+// The panel under a take's card: the takes inside it, as cards of their own.
+function insidePanel(mother, cardOf) {
+  var all = insideTakes(), shown = all.filter(passesFilters), making = mother.children_pending || 0;
+  var empty = '';
+  if (!shown.length) {
+    empty = all.length
+      ? 'No ' + (State.filter === 'favourite' ? 'starred ' : '') + (State.kinds && State.kinds.length ? State.kinds.join(' or ') + ' ' : '') + 'takes inside this one.'
+      : making ? 'Each take shows here when it is finished.'
+      : 'Variations, Try more and Checkpoints put the takes they make in here.';
+  }
+  var fresh = State.inside && State.inside.fresh;
+  if (State.inside) { State.inside.fresh = false; }
+  return '<section class="take-inside' + (fresh ? ' opening' : '') + '" data-inside="' + mother.id + '">' +
+    '<header><strong>Inside \u201c' + esc(mother.title) + '\u201d</strong>' +
+    '<span class="muted">' + esc(insideWords(mother)) + '</span>' +
+    '<button class="chip action compact" data-act="inside" data-id="' + mother.id + '" title="Close, and show the space\u2019s takes only">Close</button></header>' +
+    (shown.length ? '<div class="take-inside-list">' + shown.map(cardOf).join('') + '</div>' : '<p class="hint">' + esc(empty) + '</p>') +
+    '</section>';
 }
 
 function paintBulk() {
@@ -10441,9 +10545,9 @@ function paintBulk() {
     selAll.textContent = allPicked ? 'Deselect all' : 'Select all';
     selAll.classList.toggle('active', allPicked);
     selAll.title = allPicked
-      ? 'Deselect all takes in this space'
+      ? (insideOpen() ? 'Deselect all takes inside the open one' : 'Deselect all takes in this space')
       : (visible.length === 0 ? 'No takes to select'
-        : 'Select all ' + visible.length + (State.search ? ' takes found' : ' takes in this space'));
+        : 'Select all ' + visible.length + (State.search ? ' takes found' : (insideOpen() ? ' takes inside the open one' : ' takes in this space')));
   }
 }
 
@@ -10487,9 +10591,12 @@ async function bulkDelete() {
   });
   var shown = names.slice(0, 8).map(function (name) { return '• ' + name; }).join('\n');
   var more = names.length > 8 ? '\nand ' + (names.length - 8) + ' more' : '';
+  // A take goes with the takes inside it, so the warning counts those too.
+  var within = ids.reduce(function (sum, id) { var take = takeById(id); return sum + (take ? heldBy(take) : 0); }, 0);
   if (!await confirmModal({
     title: 'Delete ' + ids.length + ' take' + (ids.length === 1 ? '' : 's'),
     message: 'Delete ' + ids.length + ' take' + (ids.length === 1 ? '' : 's') + '?\n\n' + shown + more
+      + (within ? '\n\nThe ' + within + ' take' + (within === 1 ? '' : 's') + ' inside ' + (ids.length === 1 ? 'it' : 'them') + ' will be deleted too.' : '')
       + '\n\nTheir audio and stems go with them. This cannot be undone.',
     confirmText: 'Delete',
     danger: true
@@ -10520,7 +10627,7 @@ async function bulkDelete() {
 
 function paintTakes() {
   if (document.querySelector('.take-title-input')) { return; }
-  var list = visibleTakes();
+  var list = listedTakes();
   State.paintedAt = Date.now();
   $('empty').style.display = list.length ? 'none' : 'block';
   var others = State.spaces.some(function (space) { return space.id !== State.spaceId && space.takes; });
@@ -10533,13 +10640,16 @@ function paintTakes() {
     : State.filter === 'favourite' ? 'No starred takes in this space.'
     : others ? 'This space is empty. Create a take while it is on show, or move takes here with Move.'
     : 'Nothing yet. Load a recording, write some lyrics, and press create.';
-  var more = State.takesTotal - State.takes.length;
+  var more = State.takesTotal - State.listed.length;
   $('takes-more').classList.toggle('hidden', more <= 0);
   $('takes-more').textContent = 'Show ' + Math.min(more, 300) + ' more of ' + more + ' older takes';
-  $('takes').innerHTML = list.map(function (take) {
+  var open = insideOpen();
+  var cardOf = function (take) {
     var status = take.status;
     var meta = [];
     if (take.space_id && take.space_id !== State.spaceId) { meta.push('In ' + spaceName(take.space_id)); }
+    // Found by a search, a take inside another says which: in its own panel that is plain to see.
+    if (take.parent_id && State.search) { meta.push('Inside ' + (take.parent_title || 'another take')); }
     meta.push(take.kind === 'song' ? 'from a prompt' : (take.kind === 'instrumental' ? 'instrumental' : 'cover'));
     if (take.duration) { meta.push(secs(take.duration)); }
     // The settings that shaped it come first, named, so a card can be read back
@@ -10670,6 +10780,15 @@ function paintTakes() {
     var classes = 'take';
     if (State.picked[take.id]) { classes += ' picked'; }
     if (State.playing === take.id) { classes += ' playing'; }
+    if (take.id === open) { classes += ' holding'; }
+    // Its own take, with room for others: the Inside button is lit when it holds any, and says what is still being made.
+    var holds = !take.parent_id && !State.search;
+    var insideTile = holds
+      ? '<button class="take-move inside' + (take.children ? ' lit' : '') + (take.children_pending ? ' busy' : '') + (take.id === open ? ' active' : '') +
+        '" data-act="inside"' + id + ' title="Inside \u2014 ' + esc(insideWords(take)) +
+        (heldBy(take) ? '' : '. Variations, Try more and Checkpoints put the takes they make in here') + '" aria-label="Takes inside this one"' +
+        ' aria-expanded="' + (take.id === open ? 'true' : 'false') + '">' + icon('inside') + (take.children ? '<b>' + take.children + '</b>' : '') + '</button>'
+      : '';
     // The left column points at a take either through the editor, or through a
     // cover retake, where the score in the box belongs to the source.
     if ((selectedTakeId() || takeIdInEditor()) === take.id) {
@@ -10698,10 +10817,17 @@ function paintTakes() {
           (take.abc && take.abc.length > 50 && status !== 'queued' && status !== 'running'
             ? '<button class="take-move" data-act="revoice"' + id + ' title="Sing again \u2014 The same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close"' +
               ' aria-label="Sing again">' + icon('voice') + '</button>' +
-              '<button class="take-move" data-act="variations"' + id + ' title="Variations \u2014 Render this score in other interpretations"' +
+              // A take inside another holds none of its own, so these two are for takes of their own.
+              (take.parent_id ? '' :
+              '<button class="take-move" data-act="variations"' + id + ' title="Variations \u2014 Render this score in other interpretations. They are kept inside this take"' +
               ' aria-label="Variations">' + icon('variations') + '</button>' +
-              '<button class="take-move" data-act="tries"' + id + ' title="Try more \u2014 The same score and words again with new seeds, or at other Planner strengths"' +
-              ' aria-label="Try more">' + icon('dice') + '</button>'
+              '<button class="take-move" data-act="tries"' + id + ' title="Try more \u2014 The same score and words again with new seeds, or at other Planner strengths. They are kept inside this take"' +
+              ' aria-label="Try more">' + icon('dice') + '</button>')
+            : '') +
+          insideTile +
+          (take.parent_id
+            ? '<button class="take-move" data-act="promote"' + id + ' title="Take out \u2014 Make this a take of its own, in the space\u2019s list"' +
+              ' aria-label="Take out">' + icon('out') + '</button>'
             : '') +
           // Once normalised it has nothing left to offer, so it goes.
           (status === 'done' && take.has_audio && !take.normalised && !State.normalising[take.id]
@@ -10710,8 +10836,10 @@ function paintTakes() {
             : '') +
           '<button class="take-move' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + '" data-act="mastering"' + id + ' title="Mastering Rack \u2014 Vintage EQ, Compressor, Limiter" aria-label="Mastering Rack">' +
             icon('mastering') + '</button>' +
-          '<button class="take-move" data-act="move"' + id + ' title="Move \u2014 Move to another space" aria-label="Move">' +
-            icon('move') + '</button>' +
+          // A take inside another goes where that one goes.
+          (take.parent_id ? '' :
+          '<button class="take-move" data-act="move"' + id + ' title="Move \u2014 Move to another space' + (heldBy(take) ? ', with the takes inside it' : '') + '" aria-label="Move">' +
+            icon('move') + '</button>') +
         '</div>' +
       '</div>' +
       '<div class="take-style" title="' + esc(take.style) + '">' + esc(take.style) + '</div>' +
@@ -10719,6 +10847,9 @@ function paintTakes() {
       '<div class="take-actions">' + actions + '</div>' +
       stemsBlock(take) +
     '</article>';
+  };
+  $('takes').innerHTML = list.map(function (take) {
+    return cardOf(take) + (take.id === open ? insidePanel(take, cardOf) : '');
   }).join('');
   paintBulk();
   paintSheet();
@@ -10874,7 +11005,7 @@ var SPEED_LABELS = ['0.75x', '1.0x', '1.25x', '1.5x'];
 var speedIndex = 1;
 
 function playableTakes() {
-  return State.takes.filter(function (take) { return take.has_audio; });
+  return (insideOpen() ? insideTakes() : State.listed).filter(function (take) { return take.has_audio; });
 }
 
 function currentTakeId() {
@@ -12684,16 +12815,33 @@ function wire() {
       loadTakes();
     }
     if (act === 'del') {
+      var doomed = takeById(id), holding = doomed ? heldBy(doomed) : 0;
       if (await confirmModal({
         title: 'Delete take',
-        message: 'Delete this take and its audio?',
-        confirmText: 'Delete',
+        message: holding
+          ? 'Delete this take and its audio, and the ' + holding + ' take' + (holding === 1 ? '' : 's') + ' inside it?\n\n' +
+            'Takes made from it with Variations, Try more or Checkpoints are kept inside it and go with it. Take out any you want to keep first. This cannot be undone.'
+          : 'Delete this take and its audio?',
+        confirmText: holding ? 'Delete all ' + (holding + 1) : 'Delete',
         danger: true
       })) {
         await api('/api/takes/' + id, { method: 'DELETE' });
         delete State.picked[id];
         loadTakes();
       }
+    }
+    if (act === 'inside') {
+      await toggleInside(id);
+      return;
+    }
+    if (act === 'promote') {
+      var leaving = takeById(id);
+      await api('/api/takes/' + id + '/promote', { method: 'POST' });
+      delete State.picked[id];
+      statusLine((leaving ? '\u201c' + leaving.title + '\u201d' : 'The take') + ' is a take of its own now, in this space\u2019s list.', 'good');
+      State.takesRaw = '';
+      loadTakes();
+      return;
     }
     if (act === 'open') {
       var opened = takeById(id);
@@ -13397,7 +13545,7 @@ every(2000, pollState);
 // every 6 when idle.
 every(3000, function () {
   var working = State.busy || State.takes.some(function (take) {
-    return take.status === 'queued' || take.status === 'running' ||
+    return take.status === 'queued' || take.status === 'running' || take.children_pending ||
       (take.stem_sets || []).some(function (set) { return set.status === 'queued' || set.status === 'running'; });
   });
   if (!working && Date.now() - State.takesAt < 6000) { return; }

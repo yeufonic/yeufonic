@@ -125,6 +125,10 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 - **Try more, and Compare.** Render a take again as a set of new seeds, or at other LoRA planner
   strengths, then play the ones you tick against each other from the same point in the song, with
   matched loudness and an optional blind listen.
+- **Takes kept inside the take they came from.** The takes that Variations, Try more and Checkpoints
+  make are kept inside the take they were made from, so a space lists songs rather than every
+  render of each. A button on the card, lit with a count when the take holds any, opens them in a
+  panel under it, where each is a take like any other and can be taken out to stand on its own.
 - **A library.** Every take keeps its score, style, lyrics, seed and settings, so it can be
   reproduced, reworked, starred or deleted. Search by title, style, lyrics or LoRA, in one space or
   all of them. Tick several cards and one button clears them all.

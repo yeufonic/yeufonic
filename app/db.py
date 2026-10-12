@@ -533,6 +533,13 @@ def _cap_typed() -> None:
         execute("ALTER TABLE takes ADD COLUMN cap_typed INTEGER")
 
 
+def _parent_id() -> None:
+    """The take a take was made from and is kept inside (null: a take of its own)."""
+    if "parent_id" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN parent_id TEXT")
+    execute("CREATE INDEX IF NOT EXISTS takes_parent ON takes(parent_id)")
+
+
 def _take_fx_chain() -> None:
     """Mastering rack / FX chain settings attached to a take."""
     cols = _columns("takes")
@@ -577,6 +584,7 @@ MIGRATIONS = [
     _take_fx_chain,                                                  # -> 34
     _voice_cues,                                                     # -> 35
     _cap_typed,                                                      # -> 36
+    _parent_id,                                                      # -> 37
 ]
 
 

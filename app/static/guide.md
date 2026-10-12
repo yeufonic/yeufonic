@@ -534,8 +534,9 @@ The score fixes the notes. The **interpretation** sets how they are performed.
 
 The sparkle button on a card renders **the same score and the same seed** in the other
 interpretations. Because only the interpretation changes, what you hear between them is the
-interpretation — not a different roll of the dice. Each lands as its own take, titled
-*Night drive · Loose*. The window has its own length cap, which starts at the editor's and applies
+interpretation — not a different roll of the dice. Each is a take of its own, titled
+*Night drive · Loose* and kept inside the take it was made from (see **Takes inside a take**,
+under The library). The window has its own length cap, which starts at the editor's and applies
 only to these takes.
 
 ### Try more
@@ -549,9 +550,10 @@ roll:
   other Planner strengths (its own is left out). Planner changes the performance itself, not only
   the voice, so it works like another seed.
 
-The new takes are titled *Night drive · try 1* or *Night drive · planner 0.60*, and are ticked
-with the original, so **Compare** opens as soon as they have finished. The window has its own
-length cap, which starts at the take's own.
+The new takes are titled *Night drive · try 1* or *Night drive · planner 0.60* and are kept inside
+the take they were made from, whose panel opens to show them as they finish. They are ticked with
+the original, so **Compare** opens as soon as they have finished. The window has its own length
+cap, which starts at the take's own.
 
 ### Seed, and reproducing a take
 
@@ -998,7 +1000,8 @@ To hear them side by side, choose the LoRA, set up the editor as you would for o
 **Checkpoints** beside **Delete LoRA**. It is greyed out for a LoRA without checkpoints. Tick the
 steps you want, set a length cap for these takes if you like, and press **Render**. The editor's
 own action runs once on each checkpoint, all with one seed, and each take is named after its step:
-*Night drive · step 250*, *Night drive · full*. A song or an instrumental writes its plan and goes
+*Night drive · step 250*, *Night drive · full*. The last of them holds the others inside it (see
+**Takes inside a take**, under The library). A song or an instrumental writes its plan and goes
 straight on to render.
 
 In a song or an instrumental the LoRA writes the tune as well as shaping the sound, so the same
@@ -1068,7 +1071,35 @@ chooses which is on show, and anything you make lands there. Deleting a space ne
 they move to Default. Recordings are shared by every space, so one recording can be covered in
 several.
 
-The folder button on a card moves that take to another space.
+The folder button on a card moves that take to another space, with any takes inside it.
+
+### Takes inside a take
+
+**Variations**, **Try more** and **Checkpoints** each make several takes of one song. They are kept
+**inside** the take they were made from, so the space lists your songs and not every render of each.
+For Checkpoints, which starts from the editor and not from a take, the take on the last checkpoint
+ticked (the finished LoRA, when it is one of them) holds the others.
+
+- **The Inside button** is on every card in the list, among the small buttons at its top. It is
+  plain when the take holds nothing, **lit with a count** when it holds takes, and it pulses while
+  takes for it are still being made. Hover over it to read how many are done and how many are to come.
+- **Click it** and a panel opens under the card with the takes inside, each a card of its own. A
+  take shows there when it is finished; while it is being made only the take it belongs to shows.
+  Click the button again, or **Close**, to shut it.
+- **A take inside another is a take like any other.** Play it, star it, save it, split it into
+  stems, rename it, and double-click it to open its song and score.
+- **One level.** A take inside another holds none of its own, so its card has no Variations or Try
+  more. **Take out** (the arrow leaving a box) makes it a take of its own in the space's list,
+  and then it can.
+- **The list's tools follow the panel.** While one is open, **Select all**, **Starred**, the kind
+  buttons, **Compare**, **Delete** and the player's previous and next work on the takes in the
+  panel. The take whose panel is open stays on the page whatever the filters say.
+- **Search finds them** like any other take, wherever they are. While a search is on, what it
+  finds is shown as plain cards, and a take that is inside another says which.
+- **Deleting a take deletes the takes inside it.** The warning says how many. Take out any you want
+  to keep first.
+
+Takes made before this existed stay where they are, side by side in the list.
 
 ### Cards
 

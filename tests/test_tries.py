@@ -36,8 +36,11 @@ def test_the_numbering_carries_on_and_a_try_is_named_for_its_original(client):
     client.post(f"/api/takes/{take['id']}/tries", json={"count": 2})
     again = client.post(f"/api/takes/{take['id']}/tries", json={"count": 2}).json()["created"]
     assert [m["title"] for m in again] == ["Night drive · try 3", "Night drive · try 4"]
-    # Trying more of a try does not stack the suffix.
+    # A try is kept inside its original and holds none of its own.  Taken out, it can be tried
+    # again, and the suffix does not stack.
     second = one("SELECT * FROM takes WHERE title = 'Night drive · try 2'")
+    assert client.post(f"/api/takes/{second['id']}/tries", json={"count": 1}).status_code == 400
+    client.post(f"/api/takes/{second['id']}/promote")
     more = client.post(f"/api/takes/{second['id']}/tries", json={"count": 1}).json()["created"]
     assert more[0]["title"] == "Night drive · try 5"
 
@@ -54,7 +57,8 @@ def test_planner_strengths_keep_the_seed_and_skip_the_takes_own(client, monkeypa
     for m in made:
         row = one("SELECT * FROM takes WHERE id = ?", (m["id"],))
         assert row["seed"] == 111 and row["style_lora"] == "folk_band_lora.safetensors" and row["style_lora_model"] == 0.6
-    # And a planner try, tried again, is still named for the original.
+    # And a planner try, taken out and tried again, is still named for the original.
+    client.post(f"/api/takes/{made[0]['id']}/promote")
     again = client.post(f"/api/takes/{made[0]['id']}/tries", json={"mode": "seeds", "count": 1}).json()["created"]
     assert again[0]["title"] == "Night drive · try 1"
 
