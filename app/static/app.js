@@ -10673,8 +10673,12 @@ function paintTakes() {
   $('takes-more').classList.toggle('hidden', more <= 0);
   $('takes-more').textContent = 'Show ' + Math.min(more, 300) + ' more of ' + more + ' older takes';
   var open = insideOpen();
+  // The take that is playing, when it is one kept inside another: its card is only on show while that
+  // take's panel is open, so with the panel shut the take that holds it says something inside is playing.
+  var playingIn = State.playing && State.loadedTake && State.loadedTake.id === State.playing ? (State.loadedTake.parent_id || null) : null;
   var cardOf = function (take) {
     var status = take.status;
+    var heardInside = Boolean(playingIn) && playingIn === take.id && take.id !== open;
     var meta = [];
     if (take.space_id && take.space_id !== State.spaceId) { meta.push('In ' + spaceName(take.space_id)); }
     // Found by a search, a take inside another says which: in its own panel that is plain to see.
@@ -10793,9 +10797,10 @@ function paintTakes() {
       // Named carefully: `live` above already holds the status line for this card,
       // and var is function scoped, so reusing the name printed true or false there.
       var isLive = State.playing === take.id;
-      actions += tile('play' + (isLive ? ' playing' : ''), isLive ? 'pause' : 'play',
+      actions += tile('play' + (isLive ? ' playing' : '') + (heardInside ? ' inside-playing' : ''), isLive ? 'pause' : 'play',
                       isLive ? 'Pause' : 'Play', 'data-act="play"' + id,
-                      isLive ? 'Pause \u2014 Pause audio playback' : 'Play \u2014 Listen to this take (Spacebar)');
+                      heardInside ? 'A take inside this one is playing: \u201c' + State.loadedTake.title + '\u201d. Open Inside to see it, or click to play this take instead'
+                        : (isLive ? 'Pause \u2014 Pause audio playback' : 'Play \u2014 Listen to this take (Spacebar)'));
       actions += downloadTile(take);
       actions += tile('stems', 'stems', 'Stems', 'data-act="stems"' + id,
                       'Stems \u2014 Separate vocals, instruments, drums, and bass tracks');
@@ -10815,7 +10820,7 @@ function paintTakes() {
     // none has no such button: there is nothing for it to open.
     var holds = !take.parent_id && !State.search && heldBy(take) > 0;
     var insideTile = holds
-      ? '<button class="take-move inside lit' + (take.id === open ? ' active' : '') +
+      ? '<button class="take-move inside lit' + (take.id === open ? ' active' : '') + (heardInside && !take.has_audio ? ' inside-playing' : '') +
         '" data-act="inside"' + id + ' title="Inside \u2014 ' + esc(insideWords(take)) + '" aria-label="Takes inside this one"' +
         ' aria-expanded="' + (take.id === open ? 'true' : 'false') + '">' + icon('inside') + '</button>'
       : '';

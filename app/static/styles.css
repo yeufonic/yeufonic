@@ -1973,6 +1973,22 @@ label .lora-value:disabled { opacity: 0.6; }
 @media (prefers-reduced-motion: reduce) {
   .act.play.playing { animation: none; border-color: rgb(var(--good-rgb) / 0.85); }
 }
+/* A take inside this one is playing and its panel is shut: the same breathing, in gold, so the eye is led to
+   the take that holds what is being heard, and green still means this take itself. */
+@keyframes tile-pulse-gold {
+  0%   { box-shadow: 0 0 0 0 rgb(var(--warn-rgb) / 0.6); }
+  70%  { box-shadow: 0 0 0 8px rgb(var(--warn-rgb) / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(var(--warn-rgb) / 0); }
+}
+.act.play.inside-playing, .take-move.inside.inside-playing {
+  animation: tile-pulse-gold 1.5s ease-out infinite;
+  border-color: rgb(var(--warn-rgb) / 0.85);
+  background: rgb(var(--warn-rgb) / 0.2);
+}
+.act.play.inside-playing svg { color: var(--warn); opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .act.play.inside-playing, .take-move.inside.inside-playing { animation: none; }
+}
 
 /* Light theme overrides for action tiles */
 :root[data-theme="light"] .act.score { --tint: #7c3aed; --tint-a: rgba(124, 58, 237, 0.14); }

@@ -1098,6 +1098,9 @@ it is one of them) holds the others.
 - **The list's tools follow the panel.** While one is open, **Select all**, **Starred**, the kind
   buttons, **Compare**, **Delete** and the player's previous and next work on the takes in the
   panel. The take whose panel is open stays on the page whatever the filters say.
+- **Something playing inside is shown outside.** If you shut the panel while a take in it is
+  playing, the Play button on the take that holds it glows gold, so you can see where the sound is
+  coming from. Green still means that take itself is playing.
 - **Search finds them** like any other take, wherever they are. While a search is on, what it
   finds is shown as plain cards, and a take that is inside another says which.
 - **Deleting a take deletes the takes inside it.** The warning says how many. Take out any you want

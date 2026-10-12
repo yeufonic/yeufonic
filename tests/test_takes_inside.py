@@ -348,3 +348,17 @@ def test_checkpoints_of_a_take_go_inside_that_take_and_it_keeps_its_name():
     assert "var origin = checkpointsHolder();" in run and "var holder = origin;" in run
     # every take is made with the form's title and its step: the take that holds them is never one of them
     assert "var order = origin ? chosen : chosen.slice(-1).concat(chosen.slice(0, -1));" in run
+
+
+def test_a_take_playing_inside_a_shut_panel_shows_on_the_take_that_holds_it():
+    script = (STATIC / "app.js").read_text(encoding="utf-8")
+    paint = script[script.index("function paintTakes() {"):script.index("$('takes').innerHTML = list.map")]
+    # which take holds what is playing comes from the take the player has, since its card may not be on the page
+    assert "State.loadedTake.id === State.playing ? (State.loadedTake.parent_id || null) : null;" in paint
+    # only with the panel shut: open, the playing take's own card says it
+    assert "var heardInside = Boolean(playingIn) && playingIn === take.id && take.id !== open;" in paint
+    assert "(heardInside ? ' inside-playing' : '')" in paint
+    css = (STATIC / "styles.css").read_text(encoding="utf-8")
+    gold = css[css.index(".act.play.inside-playing, .take-move.inside.inside-playing {"):]
+    gold = gold[:gold.index("}")]
+    assert "--warn-rgb" in gold and "--good-rgb" not in gold          # gold, where the take itself playing is green
