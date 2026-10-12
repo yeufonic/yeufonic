@@ -896,6 +896,11 @@ class SpaceIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
 
 
+class StyleIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    prompt: str = Field(min_length=1, max_length=2000)
+
+
 class MoveIn(BaseModel):
     space_id: str = Field(max_length=64)
 
@@ -2322,6 +2327,38 @@ def delete_space(space_id: str) -> dict:
     moved = execute("UPDATE takes SET space_id = ? WHERE space_id = ?", (DEFAULT_SPACE, space_id))
     execute("DELETE FROM spaces WHERE id = ?", (space_id,))
     return {"deleted": True, "moved": moved}
+
+
+# ------------------------------------------------------------------ saved styles
+# A style someone wrote and wants again: a name and the text of the Style box, kept beside the
+# canned ones in the style menu.  The text is kept as given, without a LoRA's trigger word, which
+# the page takes out before saving and puts back for whichever LoRA is chosen when it is used.
+@app.get("/api/styles")
+def list_styles() -> list[dict]:
+    return rows("SELECT id, name, prompt, created_at FROM saved_styles ORDER BY lower(name)")
+
+
+@app.post("/api/styles")
+def save_style(body: StyleIn) -> dict:
+    """Keep a style under a name.  A name already there, ignoring case, is written over: saving
+    again under the same name is how a kept style is changed."""
+    name, prompt = " ".join(body.name.split()), " ".join(body.prompt.split())
+    if not name or not prompt:
+        raise HTTPException(400, "a saved style needs a name and some text")
+    kept = one("SELECT id FROM saved_styles WHERE lower(name) = lower(?)", (name,))
+    if kept:
+        execute("UPDATE saved_styles SET name = ?, prompt = ? WHERE id = ?", (name, prompt, kept["id"]))
+        return {"id": kept["id"], "name": name, "prompt": prompt, "replaced": True}
+    style = {"id": uuid.uuid4().hex[:12], "name": name, "prompt": prompt, "created_at": time.time()}
+    execute("INSERT INTO saved_styles(id, name, prompt, created_at) VALUES(:id, :name, :prompt, :created_at)", style)
+    return {**style, "replaced": False}
+
+
+@app.delete("/api/styles/{style_id}")
+def delete_style(style_id: str) -> dict:
+    if not execute("DELETE FROM saved_styles WHERE id = ?", (style_id,)):
+        raise HTTPException(404, "no such saved style")
+    return {"deleted": True}
 
 
 @app.post("/api/takes/{take_id}/move")

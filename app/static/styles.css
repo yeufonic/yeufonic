@@ -863,6 +863,10 @@ button.icon { width: 42px; padding: 8px 0; text-align: center; }
 }
 
 /* Style canned presets picker */
+/* The style menu and, beside it, the button that keeps the style in the box. */
+.style-pick-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.style-pick-row .style-picker { margin-top: 0; flex: 1; min-width: 0; width: auto; }
+.style-pick-row #style-save { flex: 0 0 auto; }
 .style-picker {
   margin-top: 8px;
   position: relative;
@@ -946,6 +950,26 @@ button.icon { width: 42px; padding: 8px 0; text-align: center; }
   text-align: right;
   min-width: 0;
 }
+/* Saved styles: a heading at the top of the menu that opens onto the styles a user kept, each with
+   a bin at its right. */
+.style-picker-group {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; user-select: none;
+  font-size: 12.5px; font-weight: 600; color: var(--text);
+  border-radius: 8px;
+}
+.style-picker-group:hover { background: rgb(var(--ink) / 0.06); }
+.style-picker-group .chev { width: 14px; height: 14px; flex: 0 0 auto; transition: transform 120ms ease; transform: rotate(-90deg); }
+.style-picker-group.open .chev { transform: none; }
+.style-picker-group .count { color: var(--muted); font-weight: 400; margin-left: auto; }
+.style-picker-item.saved { position: relative; padding-right: 38px; }
+.style-picker-saved { border-bottom: 1px solid var(--line); margin-bottom: 4px; padding-bottom: 4px; }
+.style-item-del {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0;
+  border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer;
+}
+.style-item-del:hover { color: var(--bad); background: rgb(var(--ink) / 0.10); }
+.style-item-del svg { width: 15px; height: 15px; }
 .style-picker-empty {
   padding: 12px;
   text-align: center;

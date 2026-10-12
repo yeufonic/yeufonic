@@ -540,6 +540,12 @@ def _parent_id() -> None:
     execute("CREATE INDEX IF NOT EXISTS takes_parent ON takes(parent_id)")
 
 
+def _saved_styles() -> None:
+    """Styles a user wrote and kept, to choose again from the style menu."""
+    execute("""CREATE TABLE IF NOT EXISTS saved_styles (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL, prompt TEXT NOT NULL, created_at REAL NOT NULL)""")
+
+
 def _take_fx_chain() -> None:
     """Mastering rack / FX chain settings attached to a take."""
     cols = _columns("takes")
@@ -585,6 +591,7 @@ MIGRATIONS = [
     _voice_cues,                                                     # -> 35
     _cap_typed,                                                      # -> 36
     _parent_id,                                                      # -> 37
+    _saved_styles,                                                   # -> 38
 ]
 
 

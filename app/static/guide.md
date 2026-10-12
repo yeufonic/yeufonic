@@ -132,6 +132,10 @@ table for the common wishes, such as a longer song or a chorus that sounds diffe
   Picking one fills the Style box with a full description, which you can then edit. The chips under it are ten quick
   starts for a song: warm indie rock, soulful jazz-pop, synthwave, acoustic ballad, heavy rock, modern pop,
   country, hip hop, smooth R&B and dance pop. See [What to put in the Style box](#what-to-put-in-the-style-box).
+- **Saving a style of your own.** **Save**, beside the list, keeps what is in the Style box under a name you give
+  it. The list's first entry, **Saved styles**, opens onto the ones you kept; the bin beside one deletes it, and the
+  list's search finds them along with the 200. Saving under a name you have used replaces that style. A style
+  LoRA's trigger word is left out of what is kept, and put back for whichever LoRA is chosen when you use the style.
 - **A tempo in the style is only a hint.** The planner often picks its own. To fix the tempo, use **Tempo lock** in
   Advanced.
 - **Vocal.** The chips write a voice (female, male, duet and a character) into the style for you.

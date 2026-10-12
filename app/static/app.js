@@ -7481,8 +7481,106 @@ function currentCannedStyle() {
 function syncStylePickerLabel() {
   var lbl = $('style-picker-label');
   if (!lbl) { return; }
-  var match = currentCannedStyle();
+  var match = currentSavedStyle() || currentCannedStyle();
   lbl.textContent = match ? match.name : 'Choose a style\u2026';
+  paintStyleSave();
+}
+
+/* ------------------------------------------------------------ saved styles
+   A style someone wrote, kept under a name to choose again: the first thing in the style menu, under a
+   heading that opens onto them, and found by the menu's search with the canned ones.  They are kept by
+   the app, not the browser, so every window onto it has them.  A style is kept without the chosen
+   LoRA's trigger word, which is put back for whichever LoRA is chosen when the style is used, as a
+   canned style's is. */
+State.savedStyles = [];
+var SAVED_STYLES_OPEN_KEY = 'yue2.savedStylesOpen';
+
+function savedStylesOpen() {
+  try { return localStorage.getItem(SAVED_STYLES_OPEN_KEY) === '1'; } catch (err) { return false; }
+}
+
+async function loadSavedStyles() {
+  try {
+    var list = await api('/api/styles');
+    State.savedStyles = Array.isArray(list) ? list : [];
+  } catch (err) { State.savedStyles = []; }   // an app not yet restarted has no such route
+  syncStylePickerLabel();
+}
+
+/* The Style box as it would be kept: tidied, and without the trigger word of the LoRA in use. */
+function styleToSave() {
+  var val = tidyStyle($('style') ? $('style').value : '');
+  var item = typeof loraChosen === 'function' ? loraChosen() : null;
+  var trigger = (item && item.trigger) || State.loraTrigger || '';
+  if (trigger) { val = removeStyleWord(val, trigger); }
+  return tidyStyle(val);
+}
+
+function currentSavedStyle() {
+  var val = styleToSave();
+  if (!val) { return null; }
+  for (var i = 0; i < State.savedStyles.length; i++) {
+    if (tidyStyle(State.savedStyles[i].prompt) === val) { return State.savedStyles[i]; }
+  }
+  return null;
+}
+
+function savedStyleById(id) {
+  return State.savedStyles.filter(function (s) { return s.id === id; })[0] || null;
+}
+
+function paintStyleSave() {
+  var btn = $('style-save');
+  if (!btn) { return; }
+  var kept = currentSavedStyle();
+  btn.disabled = !styleToSave() || Boolean(kept);
+  btn.textContent = kept ? 'Saved' : 'Save';
+  btn.title = kept ? 'Saved as ' + kept.name : 'Save this style to use again';
+}
+
+async function saveCurrentStyle() {
+  var prompt = styleToSave();
+  if (!prompt) { return; }
+  var name = await confirmModal({
+    title: 'Save style',
+    message: 'Name this style:',
+    input: true,
+    defaultValue: prompt.split(',')[0].trim().slice(0, 60),
+    confirmText: 'Save'
+  });
+  if (name === null || !name.trim()) { return; }
+  name = name.trim().replace(/\s+/g, ' ').slice(0, 60);
+  var same = State.savedStyles.filter(function (s) { return s.name.toLowerCase() === name.toLowerCase(); })[0];
+  if (same && !(await confirmModal({
+    title: 'Save style',
+    message: 'There is already a saved style called ' + same.name + '. Replace it?',
+    confirmText: 'Replace'
+  }))) { return; }
+  try {
+    await api('/api/styles', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, prompt: prompt })
+    });
+    await loadSavedStyles();
+    try { localStorage.setItem(SAVED_STYLES_OPEN_KEY, '1'); } catch (err) { /* private mode */ }
+  } catch (err) {
+    await confirmModal({ title: 'Save style', message: 'Could not save the style: ' + err.message, confirmText: 'OK' });
+  }
+}
+
+async function deleteSavedStyle(id) {
+  var style = savedStyleById(id);
+  if (!style) { return; }
+  if (!(await confirmModal({
+    title: 'Delete saved style',
+    message: 'Delete the saved style ' + style.name + '?',
+    confirmText: 'Delete',
+    danger: true
+  }))) { return; }
+  try {
+    await api('/api/styles/' + encodeURIComponent(id), { method: 'DELETE' });
+  } catch (err) { /* gone already: the list is read again below */ }
+  await loadSavedStyles();
+  if ($('style-picker-menu') && !$('style-picker-menu').classList.contains('hidden')) { paintStylePickerMenu(); }
 }
 
 function paintStylePickerMenu(filterText) {
@@ -7492,18 +7590,41 @@ function paintStylePickerMenu(filterText) {
   var query = typeof filterText === 'string' ? filterText : (searchInput ? searchInput.value : '');
   query = (query || '').trim().toLowerCase();
   var match = currentCannedStyle();
-  var filtered = CANNED_STYLES.filter(function (s) {
-    if (!query) { return true; }
-    return s.name.toLowerCase().indexOf(query) >= 0 || s.prompt.toLowerCase().indexOf(query) >= 0;
-  });
+  var kept = currentSavedStyle();
+  function has(s) { return !query || s.name.toLowerCase().indexOf(query) >= 0 || s.prompt.toLowerCase().indexOf(query) >= 0; }
+  var filtered = CANNED_STYLES.filter(has);
+  var saved = State.savedStyles.filter(has);
 
-  var listHtml = filtered.length ? filtered.map(function (s) {
-    var isSelected = match && match.name === s.name;
+  // Saved styles first: a heading that opens onto them.  A search opens it by itself, and leaves it
+  // out when none of them matches.
+  var open = query ? saved.length > 0 : savedStylesOpen();
+  var savedHtml = '';
+  if (!query || saved.length) {
+    savedHtml = '<div class="style-picker-group' + (open ? ' open' : '') + '" data-style-group="saved" role="button" aria-expanded="' + open + '">' +
+      '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>' +
+      '<span>Saved styles</span><span class="count">' + (query ? saved.length + ' of ' : '') + State.savedStyles.length + '</span></div>';
+    if (open) {
+      savedHtml += '<div class="style-picker-saved">' + (saved.length ? saved.map(function (s) {
+        return '<div class="style-picker-item saved' + (kept && kept.id === s.id ? ' selected' : '') + '" role="option" data-style-saved="' + esc(s.id) + '" title="' + esc(s.prompt) + '">' +
+          '<span class="style-item-name">' + esc(s.name) + '</span>' +
+          '<span class="style-item-preview">' + esc(s.prompt) + '</span>' +
+          '<button type="button" class="style-item-del" data-style-del="' + esc(s.id) + '" title="Delete this saved style" aria-label="Delete the saved style ' + esc(s.name) + '">' + icon('trash') + '</button>' +
+          '</div>';
+      }).join('') : '<div class="style-picker-empty muted">None yet. Save keeps the style in the box here.</div>') + '</div>';
+    }
+  }
+
+  var cannedHtml = filtered.map(function (s) {
+    var isSelected = !kept && match && match.name === s.name;
     return '<div class="style-picker-item' + (isSelected ? ' selected' : '') + '" role="option" data-style-name="' + esc(s.name) + '" title="' + esc(s.prompt) + '">' +
       '<span class="style-item-name">' + esc(s.name) + '</span>' +
       '<span class="style-item-preview">' + esc(s.prompt) + '</span>' +
       '</div>';
-  }).join('') : '<div class="style-picker-empty muted">No matching styles</div>';
+  }).join('');
+  var listHtml = savedHtml + cannedHtml;
+  if (!filtered.length && !(query && saved.length)) {
+    listHtml += '<div class="style-picker-empty muted">No matching styles</div>';
+  }
 
   var listEl = menu.querySelector('.style-picker-list');
   if (!searchInput || !listEl) {
@@ -7566,14 +7687,24 @@ function applyCannedStyle(styleName) {
       break;
     }
   }
-  if (!found) { return; }
+  applyStyleText(found && found.prompt);
+}
+
+function applySavedStyle(id) {
+  var found = savedStyleById(id);
+  applyStyleText(found && found.prompt);
+}
+
+/* A style chosen from the menu goes into the Style box, behind the trigger word of the LoRA in use. */
+function applyStyleText(prompt) {
+  if (!prompt) { return; }
   var item = typeof loraChosen === 'function' ? loraChosen() : null;
   var trigger = (item && item.trigger) || '';
   if (trigger) {
-    $('style').value = trigger + ', ' + found.prompt;
+    $('style').value = trigger + ', ' + prompt;
     State.loraTrigger = trigger;
   } else {
-    $('style').value = found.prompt;
+    $('style').value = prompt;
     State.loraTrigger = null;
   }
   $('style').dataset.touched = '1';
@@ -12454,8 +12585,20 @@ function wire() {
   if ($('style-picker-btn')) {
     $('style-picker-btn').addEventListener('click', toggleStylePicker);
   }
+  if ($('style-save')) { $('style-save').addEventListener('click', saveCurrentStyle); }
   if ($('style-picker-menu')) {
     $('style-picker-menu').addEventListener('click', function (event) {
+      var bin = event.target.closest('[data-style-del]');
+      if (bin) { deleteSavedStyle(bin.dataset.styleDel); return; }
+      if (event.target.closest('[data-style-group]')) {
+        try { localStorage.setItem(SAVED_STYLES_OPEN_KEY, savedStylesOpen() ? '0' : '1'); } catch (err) { /* private mode */ }
+        // After this click has been heard everywhere: redrawn now, the heading would be out of the page
+        // by the time the page asks whether the click was inside the menu, and the menu would shut.
+        setTimeout(paintStylePickerMenu, 0);
+        return;
+      }
+      var kept = event.target.closest('[data-style-saved]');
+      if (kept) { applySavedStyle(kept.dataset.styleSaved); return; }
       var item = event.target.closest('[data-style-name]');
       if (item) {
         applyCannedStyle(item.dataset.styleName);
@@ -12469,7 +12612,10 @@ function wire() {
     $('style-picker-menu').addEventListener('keydown', function (event) {
       if (event.key === 'Enter') {
         var first = $('style-picker-menu').querySelector('.style-picker-item');
-        if (first && first.dataset.styleName) {
+        if (first && first.dataset.styleSaved) {
+          event.preventDefault();
+          applySavedStyle(first.dataset.styleSaved);
+        } else if (first && first.dataset.styleName) {
           event.preventDefault();
           applyCannedStyle(first.dataset.styleName);
         }
@@ -13630,6 +13776,7 @@ refreshTitleHint();
 setMode(savedMode());
 pollState();
 loadSources();
+loadSavedStyles();
 loadSpaces().catch(function () { /* the takes poll retries */ });
 loadTakes();
 
