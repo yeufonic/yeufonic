@@ -37,6 +37,10 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **The takes inside a take look like they belong to it.** The cards in an open panel have the lighter shade of the take that holds them, where they used to look like more of the list.
+
 ## 0.0.41 (2026-10-12)
 
 - **Piano roll:** saving a score no longer drops a chord that changes at a tie or part-way through a rest, and no longer moves a note by a semitone where a plain note follows a sharp or flat in the same bar.

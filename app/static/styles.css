@@ -2167,6 +2167,9 @@ label .lora-value:disabled { opacity: 0.6; }
 /* And its card is plainly lighter, so a take with takes inside it can be picked out of a list.  It keeps
    that when it is the take on show, which its outline says. */
 .take.has-inside, .take.has-inside.editing { background: var(--take-holds); }
+/* The takes inside wear the same shade as the take that holds them, so the cards in an open panel read as
+   belonging to it and not as more of the list.  They keep it when one is the take on show, as it does. */
+.take-inside .take, .take-inside .take.editing { background: var(--take-holds); }
 .take-move.mastered, .take-move.mastered:hover, .take-move.mastered.active { color: var(--good); }
 .take.holding { border-color: rgb(var(--accent-a-rgb) / 0.7); box-shadow: 0 0 0 1px rgb(var(--accent-a-rgb) / 0.35); }
 /* The panel: a row of its own under the card, whatever the columns, holding the takes as cards.  Its frame
