@@ -90,3 +90,19 @@ def test_the_rack_opened_for_another_take_plays_it_only_when_a_take_was_playing(
     assert card.index("hearForRack(targetTake)") < card.index("window.Rack.openForTake(targetTake)")
     editor = app_js[app_js.index("function toggleEdMastering()"):app_js.index("function paintEdTransport()")]
     assert editor.index("hearForRack(take)") < editor.index("rack.openForTake(take)")
+
+
+def test_the_rack_over_the_editor_has_the_pages_playback_keys():
+    app_js = (STATIC / "app.js").read_text(encoding="utf-8")
+    keys = app_js[app_js.index("var rackOverEditor = "):app_js.index("\nwire();")]
+    # other windows still keep the keys to themselves; the rack over the editor, with nothing over it, does not
+    assert "document.querySelectorAll('.modal:not(.hidden)').length === 1" in keys
+    assert "if (!rackOverEditor && document.querySelector('.modal:not(.hidden)')) { return; }" in keys
+    # play is the window's own there, for the take in the window, and the button last pressed lets go
+    assert "$(rackOverEditor && $('ed-btn-play') ? 'ed-btn-play' : 'btn-play').click();" in keys
+    assert "if (tag === 'BUTTON') { focus.blur(); }" in keys
+    for key in ("ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"):
+        assert keys.index("rackOverEditor") < keys.index(key)
+    # the window's Mastering button does not keep the focus, or space and Enter would press it again
+    editor = app_js[app_js.index("function toggleEdMastering()"):app_js.index("function paintEdTransport()")]
+    assert "$('ed-btn-mastering').blur()" in editor

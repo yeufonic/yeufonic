@@ -283,8 +283,9 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
   chord hold limit, outside harmony bonus, Sections open differently, target loudness and the outro fade. See
   [Advanced settings](#advanced-settings).
 - **Mastering** (the button to its left, when the take has sound) opens the mastering rack over the editor for
-  the take in it. The button is green while the rack changes how the take sounds. Escape closes the rack, and
-  again closes the editor.
+  the take in it. The button is green while the rack changes how the take sounds. With the rack open, space plays
+  and pauses the take and the arrow keys move through it and set the volume, as on the main page. Escape closes
+  the rack, and again closes the editor.
 
 ### Making the song longer
 

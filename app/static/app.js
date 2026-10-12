@@ -11302,6 +11302,7 @@ function toggleEdMastering() {
     return;
   }
   hearForRack(take);
+  if ($('ed-btn-mastering')) { $('ed-btn-mastering').blur(); }   // or space and Enter would press it again
   Editor.rackUp = true;
   rack.openForTake(take);
   paintEdMastering();
@@ -13599,8 +13600,17 @@ function wire() {
     // that is open in front: space belongs to whatever the eye is on.
     var tag = (focus && focus.tagName) || '';
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') { return; }
-    if (document.querySelector('.modal:not(.hidden)')) { return; }
-    if (event.code === 'Space') { event.preventDefault(); $('btn-play').click(); }
+    // A rack standing over the editor window is what the eye is on, and it has the same keys as the rack
+    // opened on the page: only there, play is the window's own, for the take in the window.
+    var rackOverEditor = Editor.rackUp && editorOpen() && document.querySelectorAll('.modal:not(.hidden)').length === 1;
+    if (!rackOverEditor && document.querySelector('.modal:not(.hidden)')) { return; }
+    if (event.code === 'Space') {
+      event.preventDefault();
+      // The button last pressed is let go of: left with the focus, space would press it again as well,
+      // which for the window's Mastering button shut the rack.
+      if (tag === 'BUTTON') { focus.blur(); }
+      $(rackOverEditor && $('ed-btn-play') ? 'ed-btn-play' : 'btn-play').click();
+    }
     else if (event.key === 'ArrowLeft') { nudge(-5); }
     else if (event.key === 'ArrowRight') { nudge(5); }
     else if (event.key === 'ArrowUp') { event.preventDefault(); $('volume').value = Math.min(100, Number($('volume').value) + 5); $('volume').dispatchEvent(new Event('input')); }
