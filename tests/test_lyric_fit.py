@@ -141,6 +141,19 @@ def test_the_roll_and_the_server_hold_the_same_notes_when_a_line_is_shorter_than
     assert [at for at, _ in out["roll"]][:5] == [0, 1, 2, 8, 16]        # a line's last word is on the note the phrase rests after
 
 
+def test_matching_the_lyrics_never_adds_sections_to_the_score():
+    """One long section in the score and two headings in the lyrics: the roll divides the section at a pause to
+    share the words out, and that division is its own working, not a change to the song."""
+    bar = "".join(f"{note}4" for note in "CDEFGA") + "z8"
+    score = HEAD.format(unit=32) + "% verse\nV: Vocal\n" + "\n".join('"C"' + "|".join([bar] * 2) + "|" for _ in range(7)) + "\nV: Ins\nZ14|\n"
+    lines = [LINES[n % 6] for n in range(14)]
+    words = "\n".join(["[Verse 1]"] + lines[:7] + ["[Chorus]"] + lines[7:])
+    out = in_the_roll(score, words)
+    assert out["sections"] == ["% verse"]
+    assert out["abc"].count("\n%") == 1 and bars_of_words(out["abc"]) == [line.split() for line in lines]
+    assert out["roll"] == out["server"]
+
+
 def test_sections_that_count_the_same_are_still_matched_one_to_one():
     words = "\n".join(["[Verse 1]", LINES[0], LINES[1], "[Verse 2]", LINES[2], LINES[3], "[Chorus]", LINES[4], LINES[5]])
     out = in_the_roll(plan(32), words)

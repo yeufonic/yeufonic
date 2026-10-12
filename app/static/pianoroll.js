@@ -3235,19 +3235,10 @@
             refinedSections.push(secItem);
           }
         }
+        // The finer division is only for counting and sharing out the words here.  It used to be written into the
+        // score as well, as new "% verse" lines, so matching the lyrics changed the song's sections.
         if (refinedSections.length > vocalScoreSections.length) {
           vocalScoreSections = refinedSections;
-          // Reflect refined sections in model
-          var newSecMap = {};
-          for (var rsi = 0; rsi < refinedSections.length; rsi++) {
-            newSecMap[refinedSections[rsi].barIndex] = refinedSections[rsi].text;
-          }
-          for (var osi = 0; osi < this.model.sections.length; osi++) {
-            newSecMap[this.model.sections[osi].barIndex] = this.model.sections[osi].text;
-          }
-          this.model.sections = Object.keys(newSecMap).map(function (b) {
-            return { barIndex: parseInt(b, 10), text: newSecMap[b] };
-          }).sort(function (a, b) { return a.barIndex - b.barIndex; });
         }
       }
 

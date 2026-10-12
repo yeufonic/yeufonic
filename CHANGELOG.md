@@ -41,6 +41,7 @@ cannot creep back in.
 
 - **Lyrics in the piano roll follow the tune of a song from a prompt.** The roll shared the lyrics out section by section, and a plan's sections are seldom the lyrics' sections. A heading followed at once by a voice cue such as `[male voice]` counted as a section with no words, so the first sung phrase had none, and each block of the lyrics was squeezed into whichever section of the plan came next. Where the two do not count the same, every line is now fitted to the whole melody at once, as a cover's words already were, and a line that only says who sings is no longer a section. A score matched before this keeps the words it was given: **Match Lyrics** sets them again.
 - **Words matched to a score counted in thirty-seconds are in order.** Matching a cover's or an import's words to its score read every length as a sixteenth. In a score that counts in thirty-seconds a bar then ran on into the next, the notes of neighbouring bars were taken out of order, and the words came out shuffled. Lengths are read in the score's own unit, fractions and whole bars of rest included.
+- **Match Lyrics leaves the score's sections alone.** When the lyrics had more headings than the score had sung sections, the piano roll divided a long section at its pauses to share the words out, and wrote that division into the score as new `% verse` lines. The division is now only its own working.
 
 ## 0.0.39 (2026-10-11)
 
