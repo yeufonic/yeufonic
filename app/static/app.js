@@ -8832,6 +8832,8 @@ async function runLoraSteps() {
     closeLoraSteps();
     statusLine('Queued ' + queued + ' take' + (queued === 1 ? '' : 's') + ', one on each checkpoint, with seed ' + seed + '.' +
       (queued > 1 && holder ? ' The others are kept inside \u201c' + holder.title + '\u201d.' : ''), 'good');
+    // Back to the library, where the takes are: the editor left open looked as if nothing had happened.
+    closeEditor();
   } catch (err) {
     $('steps-status').textContent = (queued ? 'Queued ' + queued + ', then could not queue the rest: ' : 'Could not queue: ') + err.message;
     $('steps-status').className = 'status bad';

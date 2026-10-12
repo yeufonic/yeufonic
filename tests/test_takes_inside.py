@@ -295,3 +295,11 @@ def test_the_cards_in_a_panel_are_the_size_of_the_cards_in_the_list():
         return re.search(re.escape(selector) + r" \{[^}]*grid-template-columns: ([^;]+);", css).group(1)
     assert columns(".take-inside-list") == columns(".takes")
     assert columns(".takes.comfy .take-inside-list") == columns(".takes.comfy")
+
+
+def test_queuing_the_checkpoints_goes_back_to_the_library():
+    script = (STATIC / "app.js").read_text(encoding="utf-8")
+    run = script[script.index("async function runLoraSteps"):script.index("/* ------------------------------------------------------------------ lyrics")]
+    done = run[run.index("closeLoraSteps();"):run.index("} catch (err) {")]
+    assert "closeEditor();" in done                      # only once every take is queued: a failure keeps the window, to say why
+    assert "closeEditor" not in run[run.index("} catch (err) {"):]

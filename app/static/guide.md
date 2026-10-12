@@ -1001,8 +1001,9 @@ To hear them side by side, choose the LoRA, set up the editor as you would for o
 steps you want, set a length cap for these takes if you like, and press **Render**. The editor's
 own action runs once on each checkpoint, all with one seed, and each take is named after its step:
 *Night drive · step 250*, *Night drive · full*. The last of them holds the others inside it (see
-**Takes inside a take**, under The library). A song or an instrumental writes its plan and goes
-straight on to render.
+**Takes inside a take**, under The library). The editor closes, so you are back at the library
+where the takes are being made. A song or an instrumental writes its plan and goes straight on to
+render.
 
 In a song or an instrumental the LoRA writes the tune as well as shaping the sound, so the same
 seed does not give the same song: each checkpoint writes its own melody and structure. The seed
