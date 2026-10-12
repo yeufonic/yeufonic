@@ -56,6 +56,10 @@
   --wave-default-outline: rgba(167, 139, 250, 0.28);
   /* A card's Inside button, when its take holds takes. */
   --lit-take: #ff9a3c;
+  /* What sets a take's card off from the page.  On a dark page a shadow has nothing to darken, so the card
+     has a clearer outline and a lit top edge; each theme says what suits it. */
+  --take-line: rgb(var(--ink) / 0.14);
+  --take-shadow: inset 0 1px 0 rgb(var(--ink) / 0.10);
 }
 
 /* Light: the same layout on white, with darker status colours so they read on it. */
@@ -97,6 +101,9 @@
   --wave-default-body: rgba(115, 50, 215, 0.75);
   --wave-default-outline: rgba(115, 50, 215, 0.32);
   --lit-take: #c2570c;
+  /* On a light page the card is lifted by a soft shadow, and keeps its fine outline. */
+  --take-line: var(--line);
+  --take-shadow: 0 8px 22px rgb(var(--shade) / 0.55);
 }
 
 /* Studio: warm and dark, like the lamps on an old mixing desk. Amber leads. */
@@ -144,6 +151,9 @@
   --muted: #d4d4d8;
   --text-strong: #fff;
   --line: rgb(255 255 255 / 0.32);
+  /* Its outline is already the strongest thing on the card: left as it is. */
+  --take-line: var(--line);
+  --take-shadow: none;
   --bar-rgb: 0 0 0;
   --bar-2-rgb: 0 0 0;
   --accent-a: #a78bfa;
@@ -1700,7 +1710,8 @@ label .lora-value:disabled { opacity: 0.6; }
 }
 .takes.comfy .act { flex: 1 1 auto; max-width: 88px; }
 .take {
-  background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px;
+  background: var(--card); border: 1px solid var(--take-line); border-radius: 16px; padding: 14px;
+  box-shadow: var(--take-shadow);
   display: flex; flex-direction: column; gap: 10px; cursor: pointer;
   min-height: 190px;
 }
