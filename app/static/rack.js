@@ -31,24 +31,33 @@
       masterBypass: false,
       version: 2
     },
+    /* The five below are set by measurement, not by ear alone.  A take arrives finished: at its loudness,
+       with its peaks within a decibel or so of full scale.  So each preset turns the input down before it
+       adds anything, comes out within about a decibel of the loudness it was given (Radio Ready a little
+       more), and keeps every peak under full scale at the two waveshapers, which cut off flat whatever
+       reaches them above it: that cutting off was the distortion in the presets these replace, which also
+       came out a good deal louder than they went in.  The compressor is fully in (mix 1.0): its Web
+       Audio node looks ahead, so what it puts out is a few milliseconds behind the dry signal and a blend
+       of the two combs the sound.  And the node adds make-up gain of its own from the threshold and the
+       ratio, which is why the make-up here is small. */
     'vintage_warmth': {
       name: 'Vintage Tube Warmth',
       eq: {
         enabled: true,
-        preGain: 3,
-        hp: 50,
-        lowFreq: 60,
-        lowGain: 3.0,
+        preGain: -4,
+        hp: 20,
+        lowFreq: 110,
+        lowGain: 1.5,
         midFreq: 700,
-        midGain: 1.5,
-        highGain: 1.5,
-        outLevel: -0.5,
+        midGain: 0.5,
+        highGain: 1.0,
+        outLevel: 0,
         phase: false,
-        mid1Freq: 700, mid1Gain: 1.5, highFreq: 12000, airGain: 1.5
+        mid1Freq: 700, mid1Gain: 0.5, highFreq: 12000, airGain: 1.0
       },
-      comp: { enabled: true, threshold: -20, ratio: 4, attack: 0.025, release: 0.35, makeup: 2.5, mix: 0.85, knee: 20 },
-      imager: { enabled: true, bigness: 3, range: 6, stage: 6, harmonics: true, tubeHarmonics: 4, bass: true },
-      limit: { enabled: true, drive: 1.5, ceiling: -0.2, release: 0.12, warmth: true },
+      comp: { enabled: true, threshold: -18, ratio: 3, attack: 0.020, release: 0.35, makeup: 1.0, mix: 1.0, knee: 20 },
+      imager: { enabled: true, bigness: 2, range: 6, stage: 5, harmonics: true, tubeHarmonics: 2, bass: false },
+      limit: { enabled: true, drive: 0, ceiling: -0.5, release: 0.12, warmth: true },
       masterBypass: false,
       version: 2
     },
@@ -56,20 +65,20 @@
       name: 'Vocal Air & Glue',
       eq: {
         enabled: true,
-        preGain: 1,
-        hp: 80,
+        preGain: -3,
+        hp: 50,
         lowFreq: 110,
-        lowGain: -1.0,
+        lowGain: -0.5,
         midFreq: 3200,
-        midGain: 2.5,
-        highGain: 3.0,
+        midGain: 1.5,
+        highGain: 2.0,
         outLevel: 0,
         phase: false,
-        mid1Freq: 3200, mid1Gain: 2.5, highFreq: 12000, airGain: 3.0
+        mid1Freq: 3200, mid1Gain: 1.5, highFreq: 12000, airGain: 2.0
       },
-      comp: { enabled: true, threshold: -22, ratio: 4, attack: 0.008, release: 0.20, makeup: 3.0, mix: 0.90, knee: 12 },
-      imager: { enabled: true, bigness: 2, range: 2, stage: 7, harmonics: false, tubeHarmonics: 1, bass: false },
-      limit: { enabled: true, drive: 1.0, ceiling: -0.1, release: 0.08, warmth: false },
+      comp: { enabled: true, threshold: -18, ratio: 2.5, attack: 0.010, release: 0.20, makeup: 0.5, mix: 1.0, knee: 12 },
+      imager: { enabled: true, bigness: 2, range: 3, stage: 6, harmonics: false, tubeHarmonics: 1, bass: false },
+      limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.08, warmth: false },
       masterBypass: false,
       version: 2
     },
@@ -77,20 +86,20 @@
       name: 'Radio Ready Master',
       eq: {
         enabled: true,
-        preGain: 2,
+        preGain: -3,
         hp: 50,
         lowFreq: 60,
-        lowGain: 2.0,
+        lowGain: 1.5,
         midFreq: 1600,
-        midGain: 1.0,
-        highGain: 2.0,
+        midGain: 0.5,
+        highGain: 1.5,
         outLevel: 0,
         phase: false,
-        mid1Freq: 1600, mid1Gain: 1.0, highFreq: 12000, airGain: 2.0
+        mid1Freq: 1600, mid1Gain: 0.5, highFreq: 12000, airGain: 1.5
       },
-      comp: { enabled: true, threshold: -24, ratio: 8, attack: 0.010, release: 0.15, makeup: 4.0, mix: 1.0, knee: 8 },
-      imager: { enabled: true, bigness: 4, range: 5, stage: 6, harmonics: true, tubeHarmonics: 3, bass: true },
-      limit: { enabled: true, drive: 2.5, ceiling: -0.1, release: 0.06, warmth: true },
+      comp: { enabled: true, threshold: -22, ratio: 4, attack: 0.003, release: 0.15, makeup: 1.0, mix: 1.0, knee: 10 },
+      imager: { enabled: true, bigness: 3, range: 5, stage: 5, harmonics: true, tubeHarmonics: 2, bass: false },
+      limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.06, warmth: false },
       masterBypass: false,
       version: 2
     },
@@ -98,20 +107,20 @@
       name: 'Punchy Club & Bass',
       eq: {
         enabled: true,
-        preGain: 2,
-        hp: 50,
+        preGain: -5,
+        hp: 20,
         lowFreq: 60,
-        lowGain: 4.5,
+        lowGain: 2.0,
         midFreq: 3200,
-        midGain: 2.0,
-        highGain: 1.5,
-        outLevel: 0,
+        midGain: 1.0,
+        highGain: 1.0,
+        outLevel: -0.5,
         phase: false,
-        mid1Freq: 3200, mid1Gain: 2.0, highFreq: 12000, airGain: 1.5
+        mid1Freq: 3200, mid1Gain: 1.0, highFreq: 12000, airGain: 1.0
       },
-      comp: { enabled: true, threshold: -16, ratio: 8, attack: 0.030, release: 0.12, makeup: 2.0, mix: 0.95, knee: 6 },
-      imager: { enabled: true, bigness: 3, range: 5, stage: 5, harmonics: false, tubeHarmonics: 2, bass: true },
-      limit: { enabled: true, drive: 2.0, ceiling: -0.1, release: 0.08, warmth: false },
+      comp: { enabled: true, threshold: -16, ratio: 4, attack: 0.020, release: 0.12, makeup: 0.0, mix: 1.0, knee: 6 },
+      imager: { enabled: true, bigness: 2, range: 5, stage: 5, harmonics: false, tubeHarmonics: 1, bass: true },
+      limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.08, warmth: false },
       masterBypass: false,
       version: 2
     },
@@ -119,20 +128,20 @@
       name: 'Acoustic Clarity',
       eq: {
         enabled: true,
-        preGain: 0,
-        hp: 80,
+        preGain: -2,
+        hp: 50,
         lowFreq: 110,
-        lowGain: -1.5,
+        lowGain: -1.0,
         midFreq: 4800,
-        midGain: 1.5,
-        highGain: 2.0,
-        outLevel: 0,
+        midGain: 1.0,
+        highGain: 1.5,
+        outLevel: -0.5,
         phase: false,
-        mid1Freq: 4800, mid1Gain: 1.5, highFreq: 12000, airGain: 2.0
+        mid1Freq: 4800, mid1Gain: 1.0, highFreq: 12000, airGain: 1.5
       },
-      comp: { enabled: true, threshold: -18, ratio: 2, attack: 0.020, release: 0.30, makeup: 1.5, mix: 0.80, knee: 18 },
+      comp: { enabled: true, threshold: -18, ratio: 3, attack: 0.015, release: 0.30, makeup: 0.0, mix: 1.0, knee: 18 },
       imager: { enabled: true, bigness: 2, range: 4, stage: 6, harmonics: false, tubeHarmonics: 1, bass: false },
-      limit: { enabled: true, drive: 0.5, ceiling: -0.2, release: 0.10, warmth: false },
+      limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.10, warmth: false },
       masterBypass: false,
       version: 2
     }

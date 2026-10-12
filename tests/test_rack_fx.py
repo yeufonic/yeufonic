@@ -547,13 +547,13 @@ def test_the_preset_box_names_the_preset_the_settings_are(flat):
     do not stop settings being a preset."""
     warm = {   # the factory preset, as an older build kept it with a take: no version, older names too
         "name": "anything", "masterBypass": True,
-        "eq": {"enabled": True, "preGain": 3, "hp": 50, "lowFreq": 60, "lowGain": 3.0, "mid1Freq": 700,
-               "mid1Gain": 1.5, "airGain": 1.5, "outLevel": -0.5, "phase": False},
-        "comp": {"enabled": True, "threshold": -20, "ratio": 4, "attack": 0.025, "release": 0.35, "makeup": 2.5,
-                 "mix": 0.85, "knee": 20},
-        "imager": {"enabled": True, "bigness": 3, "range": 6, "stage": 6, "harmonics": True, "tubeHarmonics": 4,
-                   "bass": True},
-        "limit": {"enabled": True, "drive": 1.5, "ceiling": -0.2, "release": 0.12, "warmth": True},
+        "eq": {"enabled": True, "preGain": -4, "hp": 20, "lowFreq": 110, "lowGain": 1.5, "mid1Freq": 700,
+               "mid1Gain": 0.5, "airGain": 1.0, "outLevel": 0, "phase": False},
+        "comp": {"enabled": True, "threshold": -18, "ratio": 3, "attack": 0.02, "release": 0.35, "makeup": 1.0,
+                 "mix": 1.0, "knee": 20},
+        "imager": {"enabled": True, "bigness": 2, "range": 6, "stage": 5, "harmonics": True, "tubeHarmonics": 2,
+                   "bass": False},
+        "limit": {"enabled": True, "drive": 0, "ceiling": -0.5, "release": 0.12, "warmth": True},
     }
     mine = changed(flat, name="Mine", comp={"enabled": True, "threshold": -30})
     got = rack([flat, FLAT_BEFORE_2, warm, changed(warm, comp={"makeup": 3}), mine, changed(mine, eq={"lowGain": 1})],
@@ -575,3 +575,28 @@ def test_saving_a_preset_under_a_name_already_used_writes_it_over():
     assert "same.slice(1).forEach(function (other) { delete userPresets[other]; });" in save
     named = rack_js[rack_js.index("userPresetsNamed: function"):rack_js.index("saveUserPresets: function")]
     assert named.count(".trim().toLowerCase()") == 2
+
+
+def test_the_factory_presets_leave_room_for_what_they_add():
+    """A take reaches the rack finished, its peaks close to full scale, and the two waveshapers cut off flat
+    whatever reaches them above it.  So a factory preset turns the input down before it boosts anything, does
+    not drive the limiter, keeps its make-up small (the compressor's node adds its own), and has the compressor
+    fully in, since a blend with the dry signal, which the node's look-ahead leaves a few milliseconds ahead,
+    combs the sound."""
+    import re
+    from pathlib import Path
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    block = rack_js[rack_js.index("var PRESETS = {"):rack_js.index("// ------------------------------------------------------------- DSP Helpers")]
+    names = re.findall(r"^    '(\w+)': \{", block, flags=re.M)
+    assert names == ["default", "vintage_warmth", "vocal_air", "radio_master", "punchy_bass", "acoustic_clarity"]
+    bodies = re.split(r"^    '\w+': \{", block, flags=re.M)[1:]
+    for name, body in zip(names, bodies):
+        if name == "default":
+            continue
+        def value(key):
+            return float(re.search(r"\b" + key + r": (-?[0-9.]+)", body).group(1))
+        boost = sum(max(0.0, value(k)) for k in ("lowGain", "midGain", "highGain"))
+        assert value("preGain") <= -boost / 2 and value("preGain") <= -2, name     # turned down by at least half of what is added
+        assert value("drive") == 0 and value("ceiling") <= -0.3, name
+        assert value("mix") == 1.0 and value("makeup") <= 1.0 and value("outLevel") <= 0, name
+        assert value("bigness") <= 3 and value("tubeHarmonics") <= 2, name
