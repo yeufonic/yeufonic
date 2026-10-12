@@ -54,6 +54,8 @@
   --wave-inst-outline: rgba(52, 200, 140, 0.28);
   --wave-default-body: rgba(167, 139, 250, 0.70);
   --wave-default-outline: rgba(167, 139, 250, 0.28);
+  /* A card's Inside button, when its take holds takes. */
+  --lit-take: #ff9a3c;
 }
 
 /* Light: the same layout on white, with darker status colours so they read on it. */
@@ -94,6 +96,7 @@
   --wave-inst-outline: rgba(15, 135, 90, 0.32);
   --wave-default-body: rgba(115, 50, 215, 0.75);
   --wave-default-outline: rgba(115, 50, 215, 0.32);
+  --lit-take: #c2570c;
 }
 
 /* Studio: warm and dark, like the lamps on an old mixing desk. Amber leads. */
@@ -2119,16 +2122,10 @@ label .lora-value:disabled { opacity: 0.6; }
 .take-corner { display: flex; gap: 2px; align-self: flex-start; margin: -4px -4px 0 0; }
 .take-corner .take-move { margin: 0; }
 /* ---- takes inside a take ----
-   The Inside button is one of the corner's small buttons: plain when the take holds nothing, lit with a
-   count when it does, and breathing while takes for it are still being made. */
-.take-move.inside { position: relative; }
-.take-move.inside.lit { color: var(--accent-a); border-color: rgb(var(--accent-a-rgb) / 0.55); background: rgb(var(--accent-a-rgb) / 0.14); }
-.take-move.inside b {
-  position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
-  background: var(--accent-a); color: #fff; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
-}
-.take-move.inside.busy { animation: inside-busy 1.6s ease-in-out infinite; }
-@keyframes inside-busy { 50% { color: var(--warn); border-color: rgb(var(--warn-rgb) / 0.6); } }
+   Two of the corner's small buttons say something about the take by being lit: Inside in orange when the
+   take holds takes, the rack's in green when the take is mastered.  Lit is the colour and nothing more. */
+.take-move.inside.lit, .take-move.inside.lit:hover { color: var(--lit-take); }
+.take-move.mastered, .take-move.mastered:hover, .take-move.mastered.active { color: var(--good); }
 .take.holding { border-color: rgb(var(--accent-a-rgb) / 0.7); box-shadow: 0 0 0 1px rgb(var(--accent-a-rgb) / 0.35); }
 /* The panel: a row of its own under the card, whatever the columns, holding the takes as cards. */
 .take-inside {
@@ -2147,7 +2144,7 @@ label .lora-value:disabled { opacity: 0.6; }
 .take-inside > .hint { margin: 4px 0 0; }
 .take-inside-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
 .takes.comfy .take-inside-list { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
-@media (prefers-reduced-motion: reduce) { .take-inside.opening, .take-move.inside.busy { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .take-inside.opening { animation: none; } }
 #write-brief { min-height: 90px; }
 #write-go:disabled { opacity: 0.5; cursor: default; }
 #write-go, #variations-go { width: auto; flex: 0 0 auto; margin-top: 0; padding: 10px 24px; font-size: 14px; }

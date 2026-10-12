@@ -10781,14 +10781,16 @@ function paintTakes() {
     if (State.picked[take.id]) { classes += ' picked'; }
     if (State.playing === take.id) { classes += ' playing'; }
     if (take.id === open) { classes += ' holding'; }
-    // Its own take, with room for others: the Inside button is lit when it holds any, and says what is still being made.
+    // Its own take, with room for others: the Inside button is lit when it holds any, and its tip says how many.
     var holds = !take.parent_id && !State.search;
     var insideTile = holds
-      ? '<button class="take-move inside' + (take.children ? ' lit' : '') + (take.children_pending ? ' busy' : '') + (take.id === open ? ' active' : '') +
+      ? '<button class="take-move inside' + (heldBy(take) ? ' lit' : '') + (take.id === open ? ' active' : '') +
         '" data-act="inside"' + id + ' title="Inside \u2014 ' + esc(insideWords(take)) +
         (heldBy(take) ? '' : '. Variations, Try more and Checkpoints put the takes they make in here') + '" aria-label="Takes inside this one"' +
-        ' aria-expanded="' + (take.id === open ? 'true' : 'false') + '">' + icon('inside') + (take.children ? '<b>' + take.children + '</b>' : '') + '</button>'
+        ' aria-expanded="' + (take.id === open ? 'true' : 'false') + '">' + icon('inside') + '</button>'
       : '';
+    // The rack's button is lit when the rack changes how this take sounds.
+    var mastered = Boolean(window.Rack && typeof window.Rack.hasActiveMastering === 'function' && window.Rack.hasActiveMastering(take.id));
     // The left column points at a take either through the editor, or through a
     // cover retake, where the score in the box belongs to the source.
     if ((selectedTakeId() || takeIdInEditor()) === take.id) {
@@ -10834,7 +10836,8 @@ function paintTakes() {
             ? '<button class="take-move" data-act="normalise"' + id + ' title="Normalise \u2014 Bring this take to the usual loudness. The file as rendered is kept"' +
               ' aria-label="Normalise">' + icon('level') + '</button>'
             : '') +
-          '<button class="take-move' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + '" data-act="mastering"' + id + ' title="Mastering Rack \u2014 Vintage EQ, Compressor, Limiter" aria-label="Mastering Rack">' +
+          '<button class="take-move' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + (mastered ? ' mastered' : '') +
+            '" data-act="mastering"' + id + ' title="Mastering Rack \u2014 Vintage EQ, Compressor, Limiter' + (mastered ? '. This take is mastered' : '') + '" aria-label="Mastering Rack">' +
             icon('mastering') + '</button>' +
           // A take inside another goes where that one goes.
           (take.parent_id ? '' :

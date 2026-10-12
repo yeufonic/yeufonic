@@ -1081,8 +1081,9 @@ For Checkpoints, which starts from the editor and not from a take, the take on t
 ticked (the finished LoRA, when it is one of them) holds the others.
 
 - **The Inside button** is on every card in the list, among the small buttons at its top. It is
-  plain when the take holds nothing, **lit with a count** when it holds takes, and it pulses while
-  takes for it are still being made. Hover over it to read how many are done and how many are to come.
+  plain when the take holds nothing and **lit orange** when it holds takes, finished or still being
+  made. Hover over it to read how many are done and how many are to come. (The mastering rack's
+  button beside it is lit green in the same way, when the take is mastered.)
 - **Click it** and a panel opens under the card with the takes inside, each a card of its own. A
   take shows there when it is finished; while it is being made only the take it belongs to shows.
   Click the button again, or **Close**, to shut it.
