@@ -37,11 +37,10 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.41 (2026-10-12)
 
-- **The piano roll keeps every chord of a bar.** A chord symbol can only be written in front of a note or a rest, and the roll holds a tied note as one note and a silence as one gap. A chord that changed at a tie, or part-way through a rest, had nowhere to be written when the roll wrote the score out, and was dropped: usually the second chord of a bar. The roll writes the score whenever it saves, including the first time it sets a take's words on its notes, so a score could lose chords by being opened. A note is now tied, and a rest written in pieces, where a chord falls inside it.
-- **The piano roll no longer moves a note by a semitone.** A sharp or flat written on a note holds for that letter to the end of the bar. The roll wrote a sharpened note followed by the plain one without saying the second was natural, so it was read back sharp. It now writes the natural sign.
-- **A take playing inside a shut panel can be found.** When a take kept inside another is playing and that take's panel is shut, the Play button on the take that holds it glows gold, where green means the take itself is playing.
+- **Piano roll:** saving a score no longer drops a chord that changes at a tie or part-way through a rest, and no longer moves a note by a semitone where a plain note follows a sharp or flat in the same bar.
+- **Takes inside a take:** when one is playing and its panel is shut, the Play button on the take that holds it glows gold.
 
 ## 0.0.40 (2026-10-12)
 
