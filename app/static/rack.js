@@ -34,12 +34,10 @@
     /* The five below are set by measurement, not by ear alone.  A take arrives finished: at its loudness,
        with its peaks within a decibel or so of full scale.  So each preset turns the input down before it
        adds anything, comes out within about a decibel of the loudness it was given (Radio Ready a little
-       more), and keeps every peak under full scale at the two waveshapers, which cut off flat whatever
-       reaches them above it: that cutting off was the distortion in the presets these replace, which also
-       came out a good deal louder than they went in.  The compressor is fully in (mix 1.0): its Web
-       Audio node looks ahead, so what it puts out is a few milliseconds behind the dry signal and a blend
-       of the two combs the sound.  And the node adds make-up gain of its own from the threshold and the
-       ratio, which is why the make-up here is small. */
+       more), and keeps its peaks under full scale all the way through, so that the limiter is a guard
+       here and not what makes the sound.  The presets these replace came out a good deal louder than
+       they went in, and were driven past full scale inside the rack.  The make-up is small because the
+       compressor's Web Audio node adds make-up gain of its own, from the threshold and the ratio. */
     'vintage_warmth': {
       name: 'Vintage Tube Warmth',
       eq: {
@@ -148,27 +146,28 @@
   };
 
   // ------------------------------------------------------------- DSP Helpers & Waveshapers
-  function makeLinearCurve() {
-    var n = 1024;
-    var curve = new Float32Array(n);
-    for (var i = 0; i < n; i++) {
-      curve[i] = (i * 2) / n - 1;
+  /* A waveshaper cuts off flat whatever reaches it outside -1 to 1: its curve covers that span and no more.
+     So the tube curve is drawn over four times the span, and the signal is brought to a quarter before the
+     shaper and back after it (SHAPER_SPAN): a peak over full scale is then bent like the rest, and
+     flattens towards the curve's limit instead of being sliced at it.  Inside full scale the curve is the
+     one it always was.  A shaper that is to do nothing has no curve at all, which passes the signal as it
+     is; the straight line it used to be given sliced at full scale too. */
+  var SHAPER_SPAN = 4;
+
+  function makeTubeCurve() {
+    var n = 1024 * SHAPER_SPAN;
+    var curve = new Float32Array(n + 1);
+    for (var i = 0; i <= n; i++) {
+      var x = ((i * 2) / n - 1) * SHAPER_SPAN;          // the signal's own value
+      curve[i] = Math.tanh(x * 1.15) / 1.12 / SHAPER_SPAN;
     }
     return curve;
   }
 
-  function makeTubeCurve() {
-    var n = 1024;
-    var curve = new Float32Array(n);
-    for (var i = 0; i < n; i++) {
-      var x = (i * 2) / n - 1;
-      if (x < -1) { curve[i] = -1; }
-      else if (x > 1) { curve[i] = 1; }
-      else {
-        curve[i] = Math.tanh(x * 1.15) / 1.12;
-      }
-    }
-    return curve;
+  /* The straight line from -1 to 1, which a shaper holds anything beyond to: the guard after the limiter,
+     so that nothing leaves it over full scale whatever the limiter let through. */
+  function makeGuardCurve() {
+    return new Float32Array([-1, 1]);
   }
 
   /* The sample rate a FLAC or WAV file says it has; 48000, what a take is made at, when the
@@ -332,6 +331,7 @@
 
     // Compressor
     compDryGain: null,
+    compDryDelay: null,
     compWetGain: null,
     compressor: null,
     compMakeup: null,
@@ -349,11 +349,16 @@
     imagerWidthGain: null,
     imagerHarmonicsDrive: null,
     imagerShaper: null,
+    imagerShaperIn: null,
+    imagerShaperOut: null,
     imagerMerger: null,
 
     // Limiter
     limitDrive: null,
     limitShaper: null,
+    limitShaperIn: null,
+    limitShaperOut: null,
+    limitGuard: null,
     limiter: null,
     limitCeiling: null,
     limitDryGain: null,
@@ -457,7 +462,12 @@
       this.compMakeup = ctx.createGain();
       this.compMakeup.gain.value = 1.0;
 
-      this.eqOutput.connect(this.compDryGain);
+      // The compressor looks ahead, so what it puts out is behind what goes in by the frames of 6 ms.
+      // The dry signal waits the same, or a blend of the two (MIX) combs the sound.
+      this.compDryDelay = ctx.createDelay(0.05);
+      this.compDryDelay.delayTime.value = Math.floor(0.006 * ctx.sampleRate) / ctx.sampleRate;
+      this.eqOutput.connect(this.compDryDelay);
+      this.compDryDelay.connect(this.compDryGain);
       this.eqOutput.connect(this.compressor);
       this.compressor.connect(this.compMakeup);
       this.compMakeup.connect(this.compWetGain);
@@ -515,7 +525,11 @@
       this.imagerHarmonicsDrive.gain.value = 1.0;
       this.imagerShaper = ctx.createWaveShaper();
       this.imagerShaper.oversample = '4x';
-      this.imagerShaper.curve = this.makeLinearCurve();
+      this.imagerShaper.curve = null;
+      this.imagerShaperIn = ctx.createGain();
+      this.imagerShaperIn.gain.value = 1 / SHAPER_SPAN;
+      this.imagerShaperOut = ctx.createGain();
+      this.imagerShaperOut.gain.value = SHAPER_SPAN;
 
       // M/S reconstruction
       var midToL = ctx.createGain(); midToL.gain.value = 1.0;
@@ -553,8 +567,10 @@
 
       // Harmonics post-merger
       this.imagerMerger.connect(this.imagerHarmonicsDrive);
-      this.imagerHarmonicsDrive.connect(this.imagerShaper);
-      this.imagerShaper.connect(this.imagerWetGain);
+      this.imagerHarmonicsDrive.connect(this.imagerShaperIn);
+      this.imagerShaperIn.connect(this.imagerShaper);
+      this.imagerShaper.connect(this.imagerShaperOut);
+      this.imagerShaperOut.connect(this.imagerWetGain);
 
       // Route compSum into imager
       compSum.connect(this.imagerDryGain);
@@ -571,7 +587,11 @@
 
       this.limitShaper = ctx.createWaveShaper();
       this.limitShaper.oversample = '4x';
-      this.limitShaper.curve = this.makeLinearCurve();
+      this.limitShaper.curve = null;
+      this.limitShaperIn = ctx.createGain();
+      this.limitShaperIn.gain.value = 1 / SHAPER_SPAN;
+      this.limitShaperOut = ctx.createGain();
+      this.limitShaperOut.gain.value = SHAPER_SPAN;
 
       this.limiter = ctx.createDynamicsCompressor();
       this.limiter.threshold.value = -0.5;
@@ -579,6 +599,11 @@
       this.limiter.ratio.value = 20.0;
       this.limiter.attack.value = 0.001;
       this.limiter.release.value = 0.08;
+
+      // What the limiter lets past full scale, a fraction of a decibel on a hard-driven peak, stops
+      // here, so that the ceiling after it is the most the rack puts out.
+      this.limitGuard = ctx.createWaveShaper();
+      this.limitGuard.curve = makeGuardCurve();
 
       this.limitCeiling = ctx.createGain();
       this.limitCeiling.gain.value = Math.pow(10, -0.1 / 20); // -0.1 dB
@@ -592,9 +617,13 @@
 
       imagerSum.connect(this.limitDryGain);
       imagerSum.connect(this.limitDrive);
-      this.limitDrive.connect(this.limitShaper);
-      this.limitShaper.connect(this.limiter);
-      this.limiter.connect(this.limitCeiling);
+      // Drive, then the tube stage when it is in, then the limiter: an over reaches the limiter whole.
+      this.limitDrive.connect(this.limitShaperIn);
+      this.limitShaperIn.connect(this.limitShaper);
+      this.limitShaper.connect(this.limitShaperOut);
+      this.limitShaperOut.connect(this.limiter);
+      this.limiter.connect(this.limitGuard);
+      this.limitGuard.connect(this.limitCeiling);
       this.limitCeiling.connect(this.limitWetGain);
       this.limitDryGain.connect(limitSum);
       this.limitWetGain.connect(limitSum);
@@ -618,12 +647,16 @@
       this.analyser.connect(destination);
     },
 
-    makeLinearCurve: function () {
-      return makeLinearCurve();
-    },
-
     makeTubeCurve: function () {
       return makeTubeCurve();
+    },
+
+    /* A shaper as the tube stage, or as nothing.  Its curve is given only when that changes: a turned
+       knob calls applySettings many times a second, and a curve handed over again restarts the shaper. */
+    setShaper: function (shaper, tube) {
+      if (shaper.tube === tube) { return; }
+      shaper.curve = tube ? this.makeTubeCurve() : null;
+      shaper.tube = tube;
     },
 
     resume: function () {
@@ -737,10 +770,10 @@
         if (harmOn) {
           var driveLinear = 1.0 + ((tubeH - 1) / 8) * 0.8;
           set(this.imagerHarmonicsDrive.gain, driveLinear);
-          this.imagerShaper.curve = this.makeTubeCurve();
+          this.setShaper(this.imagerShaper, true);
         } else {
           set(this.imagerHarmonicsDrive.gain, 1.0);
-          this.imagerShaper.curve = this.makeLinearCurve();
+          this.setShaper(this.imagerShaper, false);
         }
       }
 
@@ -756,9 +789,9 @@
         var ceilDb = s.limit.ceiling !== undefined ? s.limit.ceiling : -0.1;
         set(this.limitCeiling.gain, Math.pow(10, ceilDb / 20));
         if (s.limit.warmth) {
-          this.limitShaper.curve = this.makeTubeCurve();
+          this.setShaper(this.limitShaper, true);
         } else {
-          this.limitShaper.curve = this.makeLinearCurve();
+          this.setShaper(this.limitShaper, false);
         }
       }
 

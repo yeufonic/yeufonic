@@ -372,6 +372,7 @@ function context(rate) {
     createDynamicsCompressor: () => node('dynamics', { threshold: param(-24), knee: param(30), ratio: param(12),
                                                        attack: param(0.003), release: param(0.25), reduction: 0 }),
     createWaveShaper: () => node('shaper', { curve: null, oversample: 'none' }),
+    createDelay: () => node('delay', { delayTime: param(0) }),
     createChannelSplitter: () => node('splitter'),
     createChannelMerger: () => node('merger'),
     createAnalyser: () => node('analyser', { fftSize: 2048 }),
@@ -578,11 +579,9 @@ def test_saving_a_preset_under_a_name_already_used_writes_it_over():
 
 
 def test_the_factory_presets_leave_room_for_what_they_add():
-    """A take reaches the rack finished, its peaks close to full scale, and the two waveshapers cut off flat
-    whatever reaches them above it.  So a factory preset turns the input down before it boosts anything, does
-    not drive the limiter, keeps its make-up small (the compressor's node adds its own), and has the compressor
-    fully in, since a blend with the dry signal, which the node's look-ahead leaves a few milliseconds ahead,
-    combs the sound."""
+    """A take reaches the rack finished, its peaks close to full scale.  So a factory preset turns the input
+    down before it boosts anything, does not drive the limiter, and keeps its make-up small (the compressor's
+    node adds its own): it comes out about as loud as it went in, and the limiter is only a guard."""
     import re
     from pathlib import Path
     rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
@@ -600,3 +599,44 @@ def test_the_factory_presets_leave_room_for_what_they_add():
         assert value("drive") == 0 and value("ceiling") <= -0.3, name
         assert value("mix") == 1.0 and value("makeup") <= 1.0 and value("outLevel") <= 0, name
         assert value("bigness") <= 3 and value("tubeHarmonics") <= 2, name
+
+
+def test_nothing_is_sliced_before_the_limiter_and_the_dry_signal_waits_for_the_compressor():
+    """Two faults of the chain, mended.  Each waveshaper used to hold a straight line when it was to do nothing,
+    and a shaper cuts off flat whatever is outside its curve: so an over was sliced before the limiter saw it.
+    And the compressor's node looks ahead, putting out its signal the frames of 6 ms late, while the dry signal
+    it is blended with (MIX) was not delayed: the blend combed."""
+    import json as _json
+    from pathlib import Path
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    build = rack_js[rack_js.index("    build: function (ctx, source, destination) {"):rack_js.index("    makeTubeCurve: function () {")]
+    assert "makeLinearCurve" not in rack_js
+    # a shaper that is to do nothing has no curve, and is given one only when that changes
+    assert build.count(".curve = null;") == 2
+    assert "shaper.curve = tube ? this.makeTubeCurve() : null;" in rack_js and "if (shaper.tube === tube) { return; }" in rack_js
+    # the order at the limiter: drive, the tube stage, the limiter, the guard, the ceiling
+    order = ["this.limitDrive.connect(this.limitShaperIn);", "this.limitShaperIn.connect(this.limitShaper);",
+             "this.limitShaper.connect(this.limitShaperOut);", "this.limitShaperOut.connect(this.limiter);",
+             "this.limiter.connect(this.limitGuard);", "this.limitGuard.connect(this.limitCeiling);"]
+    assert [build.index(line) for line in order] == sorted(build.index(line) for line in order)
+    # the dry signal goes through a delay of the compressor's own frames
+    assert "this.compDryDelay.delayTime.value = Math.floor(0.006 * ctx.sampleRate) / ctx.sampleRate;" in build
+    assert build.index("this.eqOutput.connect(this.compDryDelay);") < build.index("this.compDryDelay.connect(this.compDryGain);")
+    assert "this.eqOutput.connect(this.compDryGain);" not in build
+    # the tube curve, drawn over four times the span: the old curve inside full scale, and no corner beyond it
+    curves = rack_js[rack_js.index("  var SHAPER_SPAN = 4;"):rack_js.index("  /* The sample rate a FLAC or WAV file says it has;")]
+    script = curves + """
+      var c = makeTubeCurve(), n = c.length - 1;
+      function at(x) { return c[Math.round((x / SHAPER_SPAN + 1) * n / 2)] * SHAPER_SPAN; }
+      var rising = true; for (var i = 1; i <= n; i++) { if (c[i] < c[i - 1]) { rising = false; } }
+      console.log(JSON.stringify({ n: c.length, half: at(0.5), one: at(1), two: at(2), four: at(4), minus: at(-1), zero: at(0),
+                                   rising: rising, guard: Array.from(makeGuardCurve()) }));
+    """
+    got = _json.loads(subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout)
+    import math
+    def tube(x):
+        return math.tanh(1.15 * x) / 1.12
+    assert got["n"] == 4097 and got["rising"] and got["zero"] == 0 and got["guard"] == [-1, 1]
+    for key, x in (("half", 0.5), ("one", 1), ("two", 2), ("four", 4), ("minus", -1)):
+        assert abs(got[key] - tube(x)) < 1e-6, key
+    assert got["one"] < got["two"] < got["four"] < 1 / 1.12 + 1e-6     # still bending past full scale, towards its limit
