@@ -1092,8 +1092,8 @@ ticked (the finished LoRA, when it is one of them) holds the others.
 - **A take inside another is a take like any other.** Play it, star it, save it, split it into
   stems, rename it, and double-click it to open its song and score.
 - **One level.** A take inside another holds none of its own, so its card has no Variations or Try
-  more. **Take out** (the arrow leaving a box) makes it a take of its own in the space's list,
-  and then it can.
+  more, and **Checkpoints** in the editor is greyed out while it is the take open there. **Take
+  out** (the arrow leaving a box) makes it a take of its own in the space's list, and then it can.
 - **The list's tools follow the panel.** While one is open, **Select all**, **Starred**, the kind
   buttons, **Compare**, **Delete** and the player's previous and next work on the takes in the
   panel. The take whose panel is open stays on the page whatever the filters say.

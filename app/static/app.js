@@ -70,6 +70,8 @@ function setSelection(next) {
   syncEditor();
   paintTakeHighlights(); // the highlight follows the form without re-rendering card DOM
   setScoreActions();     // so do Render and Replan
+  // and Checkpoints, which is not for a take kept inside another
+  if (typeof paintStepsButton === 'function') { try { paintStepsButton(); } catch (err) { /* the page is still being set up */ } }
   saveForm();
   if (next.formTakeId && typeof activateTakeRecording === 'function') {
     var t = (typeof takeById === 'function' ? takeById(next.formTakeId) : null) ||
@@ -860,6 +862,29 @@ function closeLoraPicker() {
   btn.setAttribute('aria-expanded', 'false');
 }
 
+/* Whether the take in the editor is kept inside another.  Checkpoints makes a set of takes, as Variations and
+   Try more do, and a take inside another has none of its own: it is taken out first. */
+function editingTakeInside() {
+  var id = selectedTakeId();
+  var take = id ? (takeById(id) || (State.formTake && State.formTake.id === id ? State.formTake : null)) : null;
+  return Boolean(take && take.parent_id);
+}
+
+/* The Checkpoints button: there for a LoRA, live when it has checkpoints and the take in the editor may have a
+   set made from it.  Painted with the LoRA's note, and again whenever the take in the editor changes. */
+function paintStepsButton(item) {
+  var steps = $('lora-steps');
+  if (!steps) { return; }
+  if (item === undefined) { item = loraChosen(); }
+  var hasSteps = Boolean(item) && loraSteps(item.name).length > 0;
+  var inside = editingTakeInside();
+  steps.classList.toggle('hidden', !item);
+  steps.disabled = !hasSteps || inside;
+  steps.title = !hasSteps ? 'This LoRA has no training checkpoints'
+    : inside ? 'This take is kept inside another, and a take inside another has no set of its own. Take it out first, then try the checkpoints from it'
+    : 'Render what this panel makes once on each training checkpoint of this LoRA, to compare them by ear';
+}
+
 function paintStyleLoraNote() {
   paintLoraPicker();
   var item = loraChosen();
@@ -869,15 +894,7 @@ function paintStyleLoraNote() {
     download.href = item ? '/api/loras/' + encodeURIComponent(item.name) + '/download' : '#';
   }
   if ($('lora-delete')) { $('lora-delete').classList.toggle('hidden', !item); }
-  var steps = $('lora-steps');
-  if (steps) {
-    var hasSteps = Boolean(item) && loraSteps(item.name).length > 0;
-    steps.classList.toggle('hidden', !item);
-    steps.disabled = !hasSteps;
-    steps.title = hasSteps
-      ? 'Render what this panel makes once on each training checkpoint of this LoRA, to compare them by ear'
-      : 'This LoRA has no training checkpoints';
-  }
+  paintStepsButton(item);
   if ($('lora-strengths')) { $('lora-strengths').classList.toggle('hidden', !item); }
   var label = document.querySelector('label[for="style-lora"]');
   if (label) {
@@ -8760,6 +8777,7 @@ function openLoraSteps() {
   var steps = item ? loraSteps(item.name) : [];
   var mode = STEP_MODES[State.mode] ? State.mode : 'song';
   if (!steps.length) { return; }
+  if (editingTakeInside()) { statusLine('This take is kept inside another. Take it out first, then try the checkpoints from it.', 'bad'); return; }
   var problem = STEP_MODES[mode].problem();
   if (problem) { statusLine(problem, 'bad'); return; }
   STEPS.mode = mode;
@@ -12845,7 +12863,8 @@ function wire() {
       delete State.picked[id];
       statusLine((leaving ? '\u201c' + leaving.title + '\u201d' : 'The take') + ' is a take of its own now, in this space\u2019s list.', 'good');
       State.takesRaw = '';
-      loadTakes();
+      // What it could not do inside another it can do now: the editor's Checkpoints button says so.
+      loadTakes().then(function () { if (State.formTake && State.formTake.id === id) { State.formTake.parent_id = null; } paintStepsButton(); });
       return;
     }
     if (act === 'open') {

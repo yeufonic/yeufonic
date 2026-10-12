@@ -303,3 +303,30 @@ def test_queuing_the_checkpoints_goes_back_to_the_library():
     done = run[run.index("closeLoraSteps();"):run.index("} catch (err) {")]
     assert "closeEditor();" in done                      # only once every take is queued: a failure keeps the window, to say why
     assert "closeEditor" not in run[run.index("} catch (err) {"):]
+
+
+def test_checkpoints_is_not_offered_from_a_take_inside_another():
+    script = (STATIC / "app.js").read_text(encoding="utf-8")
+    body = script[script.index("function editingTakeInside()"):script.index("/* The Checkpoints button: there for a LoRA")]
+    res = subprocess.run(["node", "-e", """
+      var Selection = { formTakeId: null }, State = { takes: [], formTake: null };
+      function selectedTakeId() { return Selection.formTakeId; }
+      function takeById(id) { return State.takes.filter(function (t) { return t.id === id; })[0] || null; }
+      """ + body + """
+      var out = [];
+      out.push(editingTakeInside());                                             // nothing in the editor: a new take
+      State.takes = [{ id: 'a' }, { id: 'a1', parent_id: 'a' }];
+      Selection.formTakeId = 'a'; out.push(editingTakeInside());                 // a take of its own
+      Selection.formTakeId = 'a1'; out.push(editingTakeInside());                // a take inside another
+      State.takes = [{ id: 'a' }]; State.formTake = { id: 'a1', parent_id: 'a' };
+      out.push(editingTakeInside());                                             // still, with its panel shut and the list not holding it
+      State.takes = [{ id: 'a' }, { id: 'a1', parent_id: null }];
+      out.push(editingTakeInside());                                             // taken out: the list knows before the form does
+      console.log(JSON.stringify(out));"""], capture_output=True, text=True, check=True)
+    assert json.loads(res.stdout) == [False, False, True, True, False]
+    assert "steps.disabled = !hasSteps || inside;" in script
+    # the button is painted again whenever the take in the editor changes, not only when the LoRA does
+    chosen = script[script.index("function setSelection(next) {"):script.index("function setSelection(next) {") + 900]
+    assert "paintStepsButton();" in chosen
+    opened = script[script.index("function openLoraSteps()"):script.index("function closeLoraSteps()")]
+    assert "if (editingTakeInside()) {" in opened and opened.index("editingTakeInside()") < opened.index("$('steps-modal').classList.remove('hidden')")
