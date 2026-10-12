@@ -44,7 +44,7 @@ def test_tries_and_variations_go_inside_the_take_they_were_made_from(client):
 
 
 def test_the_list_shows_the_take_and_says_how_many_it_holds(client):
-    take, other = a_take(), a_take(title="Harbour")
+    take, other = a_take(), a_take(title="Lantern")
     made = tries(client, take, 3)
     finish(made[0])
     got = listed(client)
@@ -86,7 +86,7 @@ def test_a_search_finds_a_take_wherever_it_is(client):
 
 
 def test_the_filters_work_on_the_takes_inside_and_the_take_on_show_stays_in_the_list(client):
-    take, other = a_take(), a_take(title="Harbour")
+    take, other = a_take(), a_take(title="Lantern")
     made = tries(client, take, 2)
     finish(*made)
     execute("UPDATE takes SET favourite = 1 WHERE id IN (?, ?)", (made[0], other["id"]))
@@ -142,7 +142,7 @@ def test_a_take_is_taken_out_and_is_then_a_take_like_any_other(client):
 
 # ------------------------------------------------------------------ deleting and moving
 def test_deleting_a_take_deletes_the_takes_inside_it(client):
-    take, other = a_take(), a_take(title="Harbour")
+    take, other = a_take(), a_take(title="Lantern")
     made = tries(client, take, 3)
     finish(made[0])
     reply = client.delete(f"/api/takes/{take['id']}")
