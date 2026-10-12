@@ -2142,6 +2142,12 @@ label .lora-value:disabled { opacity: 0.6; }
    when the take holds takes, in orange, and the rack's in green when the take is mastered.  Lit is the
    colour and nothing more. */
 .take-move.inside.lit, .take-move.inside.lit:hover { color: var(--lit-take); }
+/* Open or shut, the Inside button looks the same: the panel under the card says it is open.  The fill the
+   corner's buttons take when they are on is darker than this lighter card and showed as a black box. */
+.take-move.inside.active { background: transparent; border-color: transparent; }
+/* On the lighter card the corner's buttons are pointed at, and on, with a wash of the theme's ink rather
+   than a fixed grey, which here would be darker than the card it sits on. */
+.take.has-inside .take-move:hover, .take.has-inside .take-move.active:not(.inside) { background: rgb(var(--ink) / 0.07); }
 /* And its card is plainly lighter, so a take with takes inside it can be picked out of a list.  It keeps
    that when it is the take on show, which its outline says. */
 .take.has-inside, .take.has-inside.editing { background: var(--take-holds); }
