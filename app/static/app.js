@@ -11277,6 +11277,22 @@ function paintEdMastering() {
   btn.title = 'Mastering Rack' + (mastered ? '. This take is mastered' : '');
 }
 
+/* Before the rack opens for a take while something else is sounding.  The rack does not take up a take
+   under another that is playing, and what is heard should be what its controls change: so where another
+   take was playing, this one plays in its place.  A recording being auditioned is only stopped, and with
+   nothing playing nothing starts. */
+function hearForRack(take) {
+  var audio = $('audio');
+  if (!audio || audio.paused || audio.ended || State.playing === take.id) { return; }
+  if (State.playing && take.has_audio) { playTake(take.id); }
+  if (State.playing !== take.id) {
+    audio.pause();
+    State.playing = null;
+    paintTakes();
+    paintTransport();
+  }
+}
+
 function toggleEdMastering() {
   var take = editorTake();
   var rack = window.Rack;
@@ -11285,14 +11301,7 @@ function toggleEdMastering() {
     rack.toggle(false);
     return;
   }
-  // The rack does not take up a take while another is playing, so that one stops first, as from a card.
-  var audio = $('audio');
-  if (audio && !audio.paused && !audio.ended && State.playing !== take.id) {
-    audio.pause();
-    State.playing = null;
-    paintTakes();
-    paintTransport();
-  }
+  hearForRack(take);
   Editor.rackUp = true;
   rack.openForTake(take);
   paintEdMastering();
@@ -13043,13 +13052,7 @@ function wire() {
       if (act === 'mastering') {
         var targetTake = takeById(id);
         if (targetTake && window.Rack) {
-          var audio = $('audio');
-          if (audio && !audio.paused && !audio.ended && State.playing !== targetTake.id) {
-            audio.pause();
-            State.playing = null;
-            paintTakes();
-            paintTransport();
-          }
+          hearForRack(targetTake);
           selectTake(targetTake);
           window.Rack.openForTake(targetTake);
           return;

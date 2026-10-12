@@ -75,3 +75,18 @@ def test_a_rack_opened_from_the_editor_stands_over_it_and_escape_closes_the_rack
     assert "event.rackClosed" in block and "window.Rack.toggle(false)" in block
     rack = (STATIC / "rack.js").read_text(encoding="utf-8")
     assert "e.rackClosed = true" in rack
+
+
+def test_the_rack_opened_for_another_take_plays_it_only_when_a_take_was_playing():
+    app_js = (STATIC / "app.js").read_text(encoding="utf-8")
+    hear = app_js[app_js.index("function hearForRack(take)"):app_js.index("function toggleEdMastering()")]
+    # nothing sounding, or this take already: left alone
+    assert "if (!audio || audio.paused || audio.ended || State.playing === take.id) { return; }" in hear
+    # another take sounding: this one in its place; anything else that was sounding is stopped, as before
+    assert "if (State.playing && take.has_audio) { playTake(take.id); }" in hear
+    assert hear.index("playTake(take.id)") < hear.index("audio.pause()")
+    # a card's button and the editor's both go through it, before the rack is opened
+    card = app_js[app_js.index("if (act === 'mastering') {"):app_js.index("openDetails(takeById(id));")]
+    assert card.index("hearForRack(targetTake)") < card.index("window.Rack.openForTake(targetTake)")
+    editor = app_js[app_js.index("function toggleEdMastering()"):app_js.index("function paintEdTransport()")]
+    assert editor.index("hearForRack(take)") < editor.index("rack.openForTake(take)")
