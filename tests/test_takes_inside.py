@@ -254,7 +254,7 @@ def test_the_cards_offer_what_the_rules_allow():
     # the Inside button is only on a take of its own that holds takes, and not on what a search finds
     assert "var holds = !take.parent_id && !State.search && heldBy(take) > 0;" in card
     # and the three that make takes put them inside
-    assert "if (holder) { body.parent_id = holder.id; }" in script
+    assert "if (holder) { body.parent_id = holder.id; }" in script        # holder: the take in the editor, or the first made
     # Try more does not tick what it makes: a take that turns up ticked reads as marked for deleting
     tries = script[script.index("async function doTries"):script.index("/* ------------------------------------------------------------- checkpoints")]
     assert "State.picked" not in tries
@@ -330,3 +330,21 @@ def test_checkpoints_is_not_offered_from_a_take_inside_another():
     assert "paintStepsButton();" in chosen
     opened = script[script.index("function openLoraSteps()"):script.index("function closeLoraSteps()")]
     assert "if (editingTakeInside()) {" in opened and opened.index("editingTakeInside()") < opened.index("$('steps-modal').classList.remove('hidden')")
+
+
+def test_checkpoints_of_a_take_go_inside_that_take_and_it_keeps_its_name():
+    script = (STATIC / "app.js").read_text(encoding="utf-8")
+    body = script[script.index("function checkpointsHolder()"):script.index("function openLoraSteps()")]
+    res = subprocess.run(["node", "-e", """
+      var Selection = { formTakeId: null }, State = { takes: [{ id: 'a', space_id: 's' }, { id: 'a1', parent_id: 'a', space_id: 's' }, { id: 'b', space_id: 'other' }], spaceId: 's' };
+      function selectedTakeId() { return Selection.formTakeId; }
+      function takeById(id) { return State.takes.filter(function (t) { return t.id === id; })[0] || null; }
+      """ + body + """
+      console.log(JSON.stringify([null, 'a', 'a1', 'b', 'gone'].map(function (id) { Selection.formTakeId = id; var t = checkpointsHolder(); return t ? t.id : null; })));"""],
+                         capture_output=True, text=True, check=True)
+    # a new song has none; a take of its own holds them; not a take inside another, one from another space, or one that has gone
+    assert json.loads(res.stdout) == [None, "a", None, None, None]
+    run = script[script.index("async function runLoraSteps"):script.index("/* ------------------------------------------------------------------ lyrics")]
+    assert "var origin = checkpointsHolder();" in run and "var holder = origin;" in run
+    # every take is made with the form's title and its step: the take that holds them is never one of them
+    assert "var order = origin ? chosen : chosen.slice(-1).concat(chosen.slice(0, -1));" in run

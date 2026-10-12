@@ -1000,8 +1000,8 @@ To hear them side by side, choose the LoRA, set up the editor as you would for o
 **Checkpoints** beside **Delete LoRA**. It is greyed out for a LoRA without checkpoints. Tick the
 steps you want, set a length cap for these takes if you like, and press **Render**. The editor's
 own action runs once on each checkpoint, all with one seed, and each take is named after its step:
-*Night drive · step 250*, *Night drive · full*. The last of them holds the others inside it (see
-**Takes inside a take**, under The library). The editor closes, so you are back at the library
+*Night drive · step 250*, *Night drive · full*. They are kept inside the take open in the editor,
+or, for a new song, inside the last of them (see **Takes inside a take**, under The library). The editor closes, so you are back at the library
 where the takes are being made. A song or an instrumental writes its plan and goes straight on to
 render.
 
@@ -1078,8 +1078,9 @@ The folder button on a card moves that take to another space, with any takes ins
 
 **Variations**, **Try more** and **Checkpoints** each make several takes of one song. They are kept
 **inside** the take they were made from, so the space lists your songs and not every render of each.
-For Checkpoints, which starts from the editor and not from a take, the take on the last checkpoint
-ticked (the finished LoRA, when it is one of them) holds the others.
+Checkpoints is pressed in the editor: with a take open there, its takes go inside that take; for
+a new song, which has no take yet, the take on the last checkpoint ticked (the finished LoRA, when
+it is one of them) holds the others.
 
 - **The Inside button** appears among the small buttons at the top of a card once its take holds
   takes, finished or still being made, and it is **lit orange**. Hover over it to read how many are

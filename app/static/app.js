@@ -8772,6 +8772,13 @@ var STEP_MODES = {
           hint: 'Writes and renders a plan on each checkpoint, with one seed. The LoRA shapes the plan too, so each has its own tune.' }
 };
 
+/* The take that holds what Checkpoints makes: the one in the editor, when there is one, it is a take of
+   its own and it is in the space the new takes are for.  A new song has no take yet, and then none. */
+function checkpointsHolder() {
+  var take = selectedTakeId() ? takeById(selectedTakeId()) : null;
+  return take && !take.parent_id && take.space_id === State.spaceId ? take : null;
+}
+
 function openLoraSteps() {
   var item = loraChosen();
   var steps = item ? loraSteps(item.name) : [];
@@ -8786,7 +8793,9 @@ function openLoraSteps() {
   var named = finished && loraCatalogue().filter(function (e) { return e.name === finished.name; })[0];
   $('steps-heading').textContent = 'Checkpoints of ' +
     ((named && named.title) || item.name.replace(/\.safetensors$/i, '').replace(/_step\d+$/i, ''));
-  $('steps-hint').textContent = STEP_MODES[mode].hint + ' Each is a take named after its step, and the last of them holds the others inside it.';
+  $('steps-hint').textContent = STEP_MODES[mode].hint + (checkpointsHolder()
+    ? ' Each is a take named after its step, kept inside this take.'
+    : ' Each is a take named after its step, and the last of them holds the others inside it.');
   $('steps-cap').value = parseFloat($('max-duration').value) || 360;
   $('steps-list').innerHTML = steps.map(function (s) {
     return '<label><input type="checkbox" value="' + esc(s.name) + '" data-label="' + stepLabel(s) + '" checked><strong>' +
@@ -8830,10 +8839,12 @@ async function runLoraSteps() {
   var seed = pickSeed();
   $('steps-go').disabled = true;
   var queued = 0;
-  // One set, kept together: the take on the last checkpoint ticked (the finished LoRA, when it is one of
-  // them) is made first and holds the others inside it.
-  var order = chosen.slice(-1).concat(chosen.slice(0, -1));
-  var holder = null;
+  // One set, kept together.  Made from a take, they go inside it, as Variations and Try more do, and it
+  // keeps its name.  A new song has no take to hold them, so the take on the last checkpoint ticked (the
+  // finished LoRA, when it is one of them) is made first and holds the others.
+  var origin = checkpointsHolder();
+  var order = origin ? chosen : chosen.slice(-1).concat(chosen.slice(0, -1));
+  var holder = origin;
   try {
     for (var i = 0; i < order.length; i++) {
       var body = mode.body(seed);
@@ -8848,8 +8859,10 @@ async function runLoraSteps() {
       queued += 1;
     }
     closeLoraSteps();
+    if (origin) { openInside(origin.id); }
     statusLine('Queued ' + queued + ' take' + (queued === 1 ? '' : 's') + ', one on each checkpoint, with seed ' + seed + '.' +
-      (queued > 1 && holder ? ' The others are kept inside \u201c' + holder.title + '\u201d.' : ''), 'good');
+      (origin ? ' They are kept inside \u201c' + origin.title + '\u201d.'
+        : (queued > 1 && holder ? ' The others are kept inside \u201c' + holder.title + '\u201d.' : '')), 'good');
     // Back to the library, where the takes are: the editor left open looked as if nothing had happened.
     closeEditor();
   } catch (err) {
