@@ -2139,9 +2139,12 @@ label .lora-value:disabled { opacity: 0.6; }
 .take-move.inside.lit, .take-move.inside.lit:hover { color: var(--lit-take); }
 .take-move.mastered, .take-move.mastered:hover, .take-move.mastered.active { color: var(--good); }
 .take.holding { border-color: rgb(var(--accent-a-rgb) / 0.7); box-shadow: 0 0 0 1px rgb(var(--accent-a-rgb) / 0.35); }
-/* The panel: a row of its own under the card, whatever the columns, holding the takes as cards. */
+/* The panel: a row of its own under the card, whatever the columns, holding the takes as cards.  Its frame
+   is drawn outside the row (the side margins take back what the padding and border add), so the cards in
+   it have exactly the row's width to share and fall into the same columns, at the same size, as the cards
+   of the list above and below. */
 .take-inside {
-  grid-column: 1 / -1; padding: 14px 16px 16px; border-radius: 16px; overflow: hidden;
+  grid-column: 1 / -1; margin: 0 -12px; padding: 14px 11px 16px; border-radius: 16px; overflow: hidden;
   background: linear-gradient(180deg, var(--panel), var(--bg-2)); border: 1px solid rgb(var(--accent-a-rgb) / 0.45);
   box-shadow: 0 14px 40px rgb(var(--shade) / 0.35);
 }

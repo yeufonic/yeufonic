@@ -276,3 +276,22 @@ def test_a_cards_mastering_button_follows_the_rack_at_once():
     assert save.rstrip().endswith("if (this.saveTimer) { clearTimeout(this.saveTimer); }") and "this.updateTakeCardsUI();" in save.split("State.loadedTake.fx_chain = payload;")[-1]
     # drawn and updated by the same question, the one Save asks
     assert "window.Rack.hasActiveMastering(take.id)" in (STATIC / "app.js").read_text(encoding="utf-8")
+
+
+def test_the_cards_in_a_panel_are_the_size_of_the_cards_in_the_list():
+    """The panel's frame is drawn outside its row, so its cards have the whole row to share and fall into the
+    list's own columns.  Padding that came out of the row cost a column at some window widths."""
+    import re
+    css = (STATIC / "styles.css").read_text(encoding="utf-8")
+    rule = css[css.index("\n.take-inside {"):]
+    rule = rule[:rule.index("}")]
+    margin = re.search(r"margin: 0 (-?\d+)px;", rule)
+    padding = re.search(r"padding: \d+px (\d+)px \d+px;", rule)
+    border = re.search(r"border: (\d+)px solid", rule)
+    assert margin and padding and border
+    assert int(margin.group(1)) + int(padding.group(1)) + int(border.group(1)) == 0
+    # and it lays its cards out by the rule the list uses, compact or comfy
+    def columns(selector):
+        return re.search(re.escape(selector) + r" \{[^}]*grid-template-columns: ([^;]+);", css).group(1)
+    assert columns(".take-inside-list") == columns(".takes")
+    assert columns(".takes.comfy .take-inside-list") == columns(".takes.comfy")
