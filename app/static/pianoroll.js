@@ -3173,8 +3173,9 @@
       }
       vocalNotes.sort(function (a, b) { return a.startTick - b.startTick; });
 
-      var lyricSections = extractLyricsSections(lyricsText);
+      var lyricSections = sungSections(extractLyricsSections(lyricsText));
       var ticksPerBar = this.model.ticksPerBar || 16;
+      var perSixteenth = 16 / (this.model.unitLength || 16);     // a tick of this score, in sixteenths
       var assignedCount = 0;
 
       // Group vocal notes by score section
@@ -3250,8 +3251,15 @@
         }
       }
 
-      // Chronological alignment: assign lyric sections monotonically to vocal score sections
-      if (vocalScoreSections.length > 0 && lyricSections.length > 0) {
+      if (vocalScoreSections.length > 0 && lyricSections.length > 0 && vocalScoreSections.length !== lyricSections.length) {
+        // The score's sections are the plan's or the transcriber's and the lyrics' are their headings, and they
+        // rarely agree.  Sharing the lyric sections out by count puts a line in the wrong place and every later
+        // one follows, so the words are fitted to the whole melody at once, as the server does.
+        var everyLine = [];
+        for (var esi = 0; esi < lyricSections.length; esi++) { everyLine = everyLine.concat(lyricSections[esi].lines); }
+        assignedCount += fitWordsToMelody(everyLine, vocalNotes, ticksPerBar, perSixteenth);
+      } else if (vocalScoreSections.length > 0 && lyricSections.length > 0) {
+        // Chronological alignment: assign lyric sections monotonically to vocal score sections
         var currLyricIdx = 0;
         var numScore = vocalScoreSections.length;
         var numLyric = lyricSections.length;
@@ -3663,6 +3671,156 @@
     return count;
   }
 
+  /* ------------------------------------------------ the words fitted to the whole melody
+     For a score whose sections are not the lyrics' sections, which is most plans.  The same reading
+     as the server's (aligner.py: sung_sections, flag_lyric_tokens, _note_groups, align_tokens_to_notes,
+     assign_lyrics_to_vocal_notes), kept in step with it by a test that runs both on one score.
+     Lengths here are in sixteenths, whatever unit the score counts in. */
+  var FILL_RATIO = 0.92;   // most syllables to a note that the melody is expected to carry
+  var DROP_COST = 12;      // leaving a trailing syllable out, against holding a phrase-start note
+  var SECTION_WORDS = /\b(pre[- ]?chorus|chorus|refrain|hook|verse|bridge|intro|outro|coda|interlude|solo|break|instrumental)\b/i;
+
+  // A heading that only says who sings ("[male voice]") is a cue inside a section, not a section:
+  // its lines stay with the section they are in.  The page knows a cue when it sees one (app.js).
+  function sungSections(sections) {
+    var out = [];
+    (sections || []).forEach(function (section) {
+      var name = section.name || '';
+      var cueOnly = Boolean(name) && !SECTION_WORDS.test(name) &&
+        typeof global.hasVoiceCues === 'function' && global.hasVoiceCues('[' + name + ']');
+      if (cueOnly && out.length) {
+        out[out.length - 1].lines = out[out.length - 1].lines.concat(section.lines);
+      } else if (cueOnly) {
+        out.push({ name: '', lines: section.lines.slice() });
+      } else {
+        out.push({ name: name, lines: section.lines.slice() });
+      }
+    });
+    return out;
+  }
+
+  function flagLyricTokens(lines) {
+    var out = [];
+    lines.forEach(function (line) {
+      var toks = tokenizeLyricLines([line]);
+      toks.forEach(function (tok, ti) {
+        var bare = tok.replace(/-+$/, '');
+        out.push({ tok: tok, lineStart: ti === 0, lineEnd: ti === toks.length - 1,
+                   comma: ',.;:!?'.indexOf(bare.charAt(bare.length - 1)) >= 0 && bare.length > 0,
+                   joins: /-$/.test(tok) });
+      });
+    });
+    return out;
+  }
+
+  function noteGroups(notes, per, ticksPerBar) {
+    var groups = notes.slice().sort(function (a, b) { return a.startTick - b.startTick; }).map(function (n) {
+      return { note: n, start: n.startTick * per, end: (n.startTick + n.durationTicks) * per, startsBar: n.startTick % ticksPerBar === 0 };
+    });
+    groups.forEach(function (g, i) {
+      g.restBefore = i ? g.start - groups[i - 1].end : 99;
+      g.restAfter = i + 1 < groups.length ? groups[i + 1].start - g.end : 99;
+      g.dur = g.end - g.start;
+    });
+    return groups;
+  }
+
+  // What it costs to leave a note without a syllable: cheap inside a run of short notes, dear at the start of a phrase.
+  function skipCost(g) {
+    if (g.restBefore >= 4) { return 10; }
+    if (g.restBefore >= 2) { return 6; }
+    return g.dur <= 3 ? 1.5 : 3;
+  }
+
+  // How well a syllable sits on a note: a line ends where the melody rests and begins where a phrase begins.
+  function tokenCost(t, g, joined) {
+    var cost = 0;
+    if (t.lineEnd) {
+      cost += g.restAfter >= 3 ? 0 : (g.restAfter >= 1 ? 3 : 8);
+    } else if (t.comma) {
+      cost += g.restAfter >= 2 ? 0 : 1.5;
+    }
+    if (t.lineStart) {
+      cost += (g.restBefore >= 2 || g.startsBar) ? 0 : 4;
+    } else if (g.restBefore >= 4) {
+      cost += 2;
+    }
+    if (joined && g.restBefore >= 2) { cost += 6; }
+    return cost;
+  }
+
+  // The note each syllable is sung on, in order, chosen over the whole stretch at once; null for one that does not fit.
+  function alignTokensToNotes(tokens, groups) {
+    var T = tokens.length, N = groups.length, reach = Math.min(T, N), INF = 1e12, i, j, k;
+    var out = [];
+    for (j = 0; j < T; j++) { out.push(null); }
+    if (!reach) { return out; }
+    var prefix = [0];
+    for (k = 0; k < N; k++) { prefix.push(prefix[k] + skipCost(groups[k])); }
+    var prev = [], rows = [], back = [], first = [];
+    for (i = 0; i < N; i++) { prev.push(prefix[i] + tokenCost(tokens[0], groups[i], false)); first.push(-1); }
+    rows.push(prev);
+    back.push(first);
+    for (j = 1; j < reach; j++) {
+      var cur = [], arg = [], best = INF, bestI = -1;
+      for (i = 0; i < N; i++) { cur.push(INF); arg.push(-1); }
+      for (i = 1; i < N; i++) {
+        var cand = prev[i - 1] - prefix[i];              // the notes between the two are skipped
+        if (cand < best) { best = cand; bestI = i - 1; }
+        cur[i] = best + prefix[i] + tokenCost(tokens[j], groups[i], tokens[j - 1].joins);
+        arg[i] = bestI;
+      }
+      prev = cur;
+      rows.push(cur);
+      back.push(arg);
+    }
+    // More syllables than notes: the last ones are left out, at a price, rather than squeezing every earlier line.
+    var endJ = 0, endCost = INF * 10;
+    for (j = 0; j < reach; j++) {
+      var least = Math.min.apply(null, rows[j]) + DROP_COST * (T - 1 - j);
+      if (least < endCost) { endCost = least; endJ = j; }
+    }
+    i = 0;
+    for (k = 1; k < N; k++) { if (rows[endJ][k] < rows[endJ][i]) { i = k; } }
+    for (j = endJ; j >= 0; j--) { out[j] = i; i = back[j][i]; }
+    // The second half of a split word follows the first at once: it is the word's end that is held.
+    for (j = 1; j <= endJ; j++) {
+      var before = out[j - 1], here = out[j];
+      if (tokens[j - 1].joins && before !== null && here !== null && here > before + 1) {
+        var next = j + 1 <= endJ ? out[j + 1] : N;
+        if (next !== null && before + 1 < next) { out[j] = before + 1; }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Every line of the words set on the melody at once, for a score whose sections are not the lyrics' sections.
+   * `per` is how many sixteenths one tick of these notes is. Returns how many syllables found a note.
+   */
+  function fitWordsToMelody(lines, notes, ticksPerBar, per) {
+    if (!lines || !lines.length || !notes || !notes.length) { return 0; }
+    var groups = noteGroups(notes, per || 1, ticksPerBar || 16);
+    var tokens = flagLyricTokens(lines);
+    // Words longer than the melody can carry leave no note to hold: whole lines go from the end until some can.
+    var keep = lines.length;
+    var limit = tokens.length > groups.length ? FILL_RATIO * groups.length : tokens.length;
+    while (keep > 1 && tokens.length > limit) {
+      keep -= 1;
+      tokens = flagLyricTokens(lines.slice(0, keep));
+    }
+    if (!tokens.length) { return 0; }
+    var where = alignTokensToNotes(tokens, groups);
+    groups.forEach(function (g) { delete g.note.lyric; });
+    var count = 0;
+    tokens.forEach(function (tok, j) {
+      if (where[j] === null) { return; }
+      groups[where[j]].note.lyric = tok.tok;
+      count += 1;
+    });
+    return count;
+  }
+
   global.PianoRoll = PianoRoll;
   global.parseAbc = parseAbc;
   global.serializeToAbc = serializeToAbc;
@@ -3680,5 +3838,7 @@
   global.chordToMidiPitches = chordToMidiPitches;
   global.alignLinesToNotes = alignLinesToNotes;
   global.assignLyricsToVocalNotes = assignLyricsToVocalNotes;
+  global.fitWordsToMelody = fitWordsToMelody;
+  global.sungSections = sungSections;
 
 })(typeof window !== 'undefined' ? window : this);

@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from . import voices
+
 
 def split_word_syllables(word: str) -> list[str]:
     """Split an English word into hyphenated syllables for singing notes.
@@ -435,6 +437,33 @@ def assign_lyrics_to_vocal_notes(
     return count
 
 
+def _written_length(text: str) -> float:
+    """A note's length as ABC writes it after the note: "", "2", "/2", "3/2", "//"."""
+    found = re.match(r"(\d*)((?:/\d*)*)", text or "")
+    value = float(found.group(1)) if found.group(1) else 1.0
+    for part in re.findall(r"/(\d*)", found.group(2)):
+        value /= float(part) if part else 2.0
+    return value
+
+
+def sung_sections(lyrics_text: str) -> list[dict[str, Any]]:
+    """The lyrics as the sections that are sung.  A line that only says who sings ("[male voice]")
+    is a cue inside a section and not a section of its own: its lines stay with the section they
+    are in.  Counted as sections, a song's cues outnumber the score's sections, and a heading
+    followed at once by a cue is a section with no words that takes a section of the score."""
+    out: list[dict[str, Any]] = []
+    for section in extract_lyrics_sections(lyrics_text):
+        heading = f"[{section.get('name') or ''}]"
+        cue_only = bool(voices.cue_of(heading)) and not voices.section_of(heading)
+        if cue_only and out:
+            out[-1]["lines"].extend(section["lines"])
+        elif cue_only:
+            out.append({"name": "", "lines": list(section["lines"])})
+        else:
+            out.append(section)
+    return out
+
+
 def align_lyrics_to_abc(abc_text: str, lyrics_text: str) -> str:
     """Embed lyrics into an ABC score with accurate w: lines matched to vocal melody notes.
 
@@ -443,7 +472,7 @@ def align_lyrics_to_abc(abc_text: str, lyrics_text: str) -> str:
     if not abc_text or not lyrics_text or not lyrics_text.strip():
         return abc_text
 
-    lyric_sections = extract_lyrics_sections(lyrics_text)
+    lyric_sections = sung_sections(lyrics_text)
     if not lyric_sections:
         return abc_text
 
@@ -458,11 +487,21 @@ def align_lyrics_to_abc(abc_text: str, lyrics_text: str) -> str:
                 num, den = int(m.group(1)), int(m.group(2))
                 ticks_per_bar = num * (16 // den) if den in (1, 2, 4, 8, 16) else 16
                 break
+    # Everything below counts in sixteenths: a rest of four is a beat's breath, a bar is sixteen.
+    # A score says what its own lengths count in (L:1/32 for most plans, L:1/16 for most
+    # transcriptions), and read as sixteenths regardless, a bar of thirty-two ran on into the
+    # next bar and the notes of two bars were taken in the wrong order.
+    unit = 16.0 / 8
+    for l in lines:
+        m = re.match(r"L:\s*(\d+)\s*/\s*(\d+)", l)
+        if m and int(m.group(2)):
+            unit = 16.0 * int(m.group(1)) / int(m.group(2))
+            break
 
     # Parse vocal notes and bar structure from ABC
     # Note regex: chord "...", rest z\d*, bracket chord [...]\d*, single note [_^=]*[A-Ga-g][,']*\d*
     tok_re = re.compile(
-        r'\"([^\"]*)\"|([zZ])(\d*)|\[([^\]]+)\](\d*)(-?)|([_^=]*[A-Ga-g][,\']*)(\d*)(-?)'
+        r'\"([^\"]*)\"|([zZ])([\d/]*)|\[([^\]]+)\]([\d/]*)(-?)|([_^=]*[A-Ga-g][,\']*)([\d/]*)(-?)'
     )
 
     vocal_notes: list[dict[str, Any]] = []
@@ -515,10 +554,15 @@ def align_lyrics_to_abc(abc_text: str, lyrics_text: str) -> str:
                     if tm.group(1):  # chord
                         pass
                     elif tm.group(2):  # rest
-                        r_dur = int(tm.group(3) or "1")
-                        cur_t += r_dur
+                        if tm.group(2) == "Z":      # whole bars of rest
+                            cur_t += _written_length(tm.group(3)) * ticks_per_bar
+                        else:
+                            cur_t += _written_length(tm.group(3)) * unit
                     elif tm.group(4):  # chord bracket
-                        c_dur = int(tm.group(5) or "1")
+                        if re.match(r"[A-Za-z]:", tm.group(4)):     # a field in the line, [M:2/4]: not a note
+                            continue
+                        inner = re.search(r"[A-Ga-g][,\']*([\d/]+)", tm.group(4))
+                        c_dur = _written_length(tm.group(5)) * (_written_length(inner.group(1)) if inner else 1.0) * unit
                         tied = tm.group(6) == "-"
                         note_obj = {
                             "bar": b_num,
@@ -533,7 +577,7 @@ def align_lyrics_to_abc(abc_text: str, lyrics_text: str) -> str:
                         vocal_notes.append(note_obj)
                         cur_t += c_dur
                     elif tm.group(7):  # single note
-                        n_dur = int(tm.group(8) or "1")
+                        n_dur = _written_length(tm.group(8)) * unit
                         tied = tm.group(9) == "-"
                         note_obj = {
                             "bar": b_num,
