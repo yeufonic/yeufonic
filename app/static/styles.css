@@ -3298,10 +3298,12 @@ button.ghost.run-all { margin-left: 10px; }
   border-bottom: 1px solid rgba(0, 0, 0, 0.6);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   gap: 12px;
-  cursor: grab;
   user-select: none;
   -webkit-user-select: none;
 }
+/* Only a floating rack is moved by its header: docked, it has no hand and no grip. */
+.rack-panel.is-floating .rack-header { cursor: grab; }
+.rack-panel:not(.is-floating) .rack-drag-grip { display: none; }
 .rack-panel.is-dragging {
   transition: none !important;
   user-select: none;

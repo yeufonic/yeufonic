@@ -2315,6 +2315,8 @@
 
       header.addEventListener('pointerdown', function (e) {
         if (e.button !== 0) { return; }
+        // A docked rack stays where it is: Float is what lets it be moved.
+        if (!panel.classList.contains('is-floating')) { return; }
         // Do not initiate drag on interactive buttons, select dropdowns, or labels
         if (e.target.closest('button, select, input, label, a, .rack-head-btn, .rack-select')) { return; }
 
@@ -2407,16 +2409,34 @@
       panel.style.margin = '';
       panel.style.transform = '';
       panel.style.width = '';
-      try { localStorage.removeItem('yue2.rackFloat'); } catch (err) {}
+      // Where it floated is kept, marked as docked, so Float puts it back there.
+      try {
+        var kept = JSON.parse(localStorage.getItem('yue2.rackFloat') || 'null');
+        if (kept) {
+          kept.isFloating = false;
+          localStorage.setItem('yue2.rackFloat', JSON.stringify(kept));
+        }
+      } catch (err) {}
       this.updateDockButtonUI();
     },
 
+    /* Float: back where it last floated, or, the first time, in the middle of the window by its own
+       height, which is most of a window's. */
     floatToCenter: function () {
       var panel = document.getElementById('rack-panel');
       if (!panel) { return; }
       var width = Math.min(1240, window.innerWidth - 24);
       var left = Math.max(10, Math.round((window.innerWidth - width) / 2));
-      var top = Math.max(20, Math.round((window.innerHeight - 560) / 2));
+      var height = panel.getBoundingClientRect().height || 560;
+      var top = Math.max(8, Math.round((window.innerHeight - height) / 2));
+      try {
+        var last = JSON.parse(localStorage.getItem('yue2.rackFloat') || 'null');
+        if (last && isFinite(last.left) && isFinite(last.top)) {
+          width = Math.min(last.width || width, window.innerWidth - 24);
+          left = Math.max(8, Math.min(window.innerWidth - width - 8, last.left));
+          top = Math.max(8, Math.min(window.innerHeight - 60, last.top));
+        }
+      } catch (err) {}
       panel.classList.add('is-floating');
       panel.style.left = left + 'px';
       panel.style.top = top + 'px';
@@ -2485,7 +2505,7 @@
       if (!dockBtn || !panel) { return; }
       var isFloating = panel.classList.contains('is-floating');
       dockBtn.textContent = isFloating ? 'Dock' : 'Float';
-      dockBtn.title = isFloating ? 'Dock rack to bottom of window' : 'Float rack window (or drag header to move)';
+      dockBtn.title = isFloating ? 'Dock rack to bottom of window' : 'Float rack window, to drag it by its header';
     },
 
     resume: function () {

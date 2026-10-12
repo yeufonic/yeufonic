@@ -88,6 +88,17 @@ def test_rack_floating_and_draggable_support():
     # styles.css classes
     assert ".rack-panel.is-floating" in styles_css
     assert ".rack-panel.is-dragging" in styles_css
+
+    # a docked rack is not moved by its header: the drag starts only on a floating one, which alone has the hand
+    drag = rack_js[rack_js.index("header.addEventListener('pointerdown'"):rack_js.index("function onPointerMove")]
+    assert "if (!panel.classList.contains('is-floating')) { return; }" in drag
+    assert ".rack-panel.is-floating .rack-header { cursor: grab; }" in styles_css
+    assert ".rack-panel:not(.is-floating) .rack-drag-grip { display: none; }" in styles_css
+    # docking keeps where it floated, so Float goes back there, and the first Float is centred by its real height
+    dock = rack_js[rack_js.index("dockToBottom: function"):rack_js.index("floatToCenter: function")]
+    assert "removeItem('yue2.rackFloat')" not in dock and "kept.isFloating = false" in dock
+    centre = rack_js[rack_js.index("floatToCenter: function"):rack_js.index("saveFloatingPosition: function")]
+    assert "getBoundingClientRect().height" in centre and "last.top" in centre
     assert ".rack-drag-grip" in styles_css
 
 
