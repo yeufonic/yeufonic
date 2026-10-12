@@ -6439,8 +6439,9 @@ async function loadTakes() {
   State.listed = JSON.parse(listedText);
   if (open && State.inside) {
     State.inside.takes = insideText ? JSON.parse(insideText) : [];
-    // Its take was deleted or moved away while its insides were open: there is nothing to hold them open under.
-    if (!State.listed.some(function (take) { return take.id === open; })) { State.inside = null; }
+    // Its take was deleted or moved away while its insides were open, or the last take inside it was taken
+    // out or deleted: there is nothing left to hold open.
+    if (!State.listed.some(function (take) { return take.id === open && heldBy(take) > 0; })) { State.inside = null; }
   }
   State.takes = State.listed.concat(insideTakes());
   paintTakes();
@@ -10787,7 +10788,7 @@ function paintTakes() {
       ? '<button class="take-move inside' + (heldBy(take) ? ' lit' : '') + (take.id === open ? ' active' : '') +
         '" data-act="inside"' + id + ' title="Inside \u2014 ' + esc(insideWords(take)) +
         (heldBy(take) ? '' : '. Variations, Try more and Checkpoints put the takes they make in here') + '" aria-label="Takes inside this one"' +
-        ' aria-expanded="' + (take.id === open ? 'true' : 'false') + '">' + icon('inside') + '</button>'
+        (heldBy(take) ? ' aria-expanded="' + (take.id === open ? 'true' : 'false') + '"' : ' aria-disabled="true"') + '>' + icon('inside') + '</button>'
       : '';
     // The rack's button is lit when the rack changes how this take sounds.
     var mastered = Boolean(window.Rack && typeof window.Rack.hasActiveMastering === 'function' && window.Rack.hasActiveMastering(take.id));
@@ -12834,6 +12835,9 @@ function wire() {
       }
     }
     if (act === 'inside') {
+      // A take that holds nothing has nothing to open: its button is there, and plain, and does nothing.
+      var holder = takeById(id);
+      if (!(State.inside && State.inside.id === id) && !(holder && heldBy(holder))) { return; }
       await toggleInside(id);
       return;
     }

@@ -2125,6 +2125,8 @@ label .lora-value:disabled { opacity: 0.6; }
    Two of the corner's small buttons say something about the take by being lit: Inside in orange when the
    take holds takes, the rack's in green when the take is mastered.  Lit is the colour and nothing more. */
 .take-move.inside.lit, .take-move.inside.lit:hover { color: var(--lit-take); }
+/* Holding nothing, it has nothing to open, and does not offer to. */
+.take-move.inside:not(.lit), .take-move.inside:not(.lit):hover { cursor: default; color: var(--muted); border-color: transparent; background: transparent; }
 .take-move.mastered, .take-move.mastered:hover, .take-move.mastered.active { color: var(--good); }
 .take.holding { border-color: rgb(var(--accent-a-rgb) / 0.7); box-shadow: 0 0 0 1px rgb(var(--accent-a-rgb) / 0.35); }
 /* The panel: a row of its own under the card, whatever the columns, holding the takes as cards. */

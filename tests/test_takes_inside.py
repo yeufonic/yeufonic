@@ -254,3 +254,21 @@ def test_the_cards_offer_what_the_rules_allow():
     assert "var holds = !take.parent_id && !State.search;" in card
     # and the three that make takes put them inside
     assert "if (holder) { body.parent_id = holder.id; }" in script
+
+
+def test_a_take_that_holds_nothing_has_nothing_to_open():
+    script = (STATIC / "app.js").read_text(encoding="utf-8")
+    act = script[script.index("if (act === 'inside') {"):script.index("if (act === 'promote') {")]
+    assert "!(holder && heldBy(holder))) { return; }" in act and act.index("return; }") < act.index("toggleInside(id)")
+    # and a panel whose last take has gone is closed, not left open on nothing
+    assert "take.id === open && heldBy(take) > 0; })) { State.inside = null; }" in script
+
+
+def test_a_cards_mastering_button_follows_the_rack_at_once():
+    rack = (STATIC / "rack.js").read_text(encoding="utf-8")
+    cards = rack[rack.index("updateTakeCardsUI: function () {"):rack.index("openForTake: function (take) {")]
+    assert "b.classList.toggle('mastered', self.hasActiveMastering(cardId));" in cards
+    save = rack[rack.index("debouncedSave: function () {"):rack.index("this.saveTimer = setTimeout(", rack.index("debouncedSave: function () {"))]
+    assert save.rstrip().endswith("if (this.saveTimer) { clearTimeout(this.saveTimer); }") and "this.updateTakeCardsUI();" in save.split("State.loadedTake.fx_chain = payload;")[-1]
+    # drawn and updated by the same question, the one Save asks
+    assert "window.Rack.hasActiveMastering(take.id)" in (STATIC / "app.js").read_text(encoding="utf-8")

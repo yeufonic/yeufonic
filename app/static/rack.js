@@ -1827,10 +1827,14 @@
       var activeTakeId = this.currentTakeId;
       var isOpen = this.isOpen;
       var cardBtns = document.querySelectorAll('button[data-act="mastering"]');
+      var self = this;
       Array.prototype.forEach.call(cardBtns, function (b) {
         var card = b.closest('.take');
         var cardId = card ? card.dataset.id : null;
         b.classList.toggle('active', Boolean(isOpen && cardId && String(cardId) === String(activeTakeId)));
+        // Lit while the rack changes how the take sounds: set here as well as when the cards are drawn,
+        // so a card answers a switch in the rack at once and not when the list is next read.
+        if (cardId) { b.classList.toggle('mastered', self.hasActiveMastering(cardId)); }
       });
     },
 
@@ -1945,6 +1949,7 @@
       if (window.State && State.loadedTake && String(State.loadedTake.id) === String(takeId)) {
         State.loadedTake.fx_chain = payload;
       }
+      this.updateTakeCardsUI();
 
       if (this.saveTimer) { clearTimeout(this.saveTimer); }
       this.saveTimer = setTimeout(function () {

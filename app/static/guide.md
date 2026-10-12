@@ -1084,7 +1084,7 @@ ticked (the finished LoRA, when it is one of them) holds the others.
   plain when the take holds nothing and **lit orange** when it holds takes, finished or still being
   made. Hover over it to read how many are done and how many are to come. (The mastering rack's
   button beside it is lit green in the same way, when the take is mastered.)
-- **Click it** and a panel opens under the card with the takes inside, each a card of its own. A
+- **Click it** when it is lit and a panel opens under the card with the takes inside, each a card of its own. A
   take shows there when it is finished; while it is being made only the take it belongs to shows.
   Click the button again, or **Close**, to shut it.
 - **A take inside another is a take like any other.** Play it, star it, save it, split it into
