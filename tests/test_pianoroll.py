@@ -1804,3 +1804,59 @@ def test_piano_roll_follow_active_bar_and_toggle():
 
 
 
+
+
+def test_a_chord_at_a_tie_or_part_way_through_a_rest_survives_a_rewrite():
+    """A chord symbol can only be written in front of a note or a rest.  A chord at a tie falls inside
+    one note of the roll, and one part-way through a silence inside one gap: both were dropped when
+    the roll wrote the score out, which it does whenever it saves."""
+    raw_abc = (
+        "X:1\nM:4/4\nL:1/16\nQ:1/4=100\nK:C\n"
+        "% verse\n"
+        "V: Vocal\n"
+        "z12\"C\"z4|\"Am\"c8-\"F\"c4z4|\"G\"z8\"Em\"z4\"D\"z4|\"C\"e4d4c4z4|\n"
+        "w: | sing _ | | one two three |\n"
+        "V: Ins\n"
+        "z16|z16|z16|z16|\n"
+    )
+    js = f"""
+    const first = parseAbc({json.dumps(raw_abc)});
+    const out = serializeToAbc(first);
+    const second = parseAbc(out);
+    const chords = m => m.chords.map(c => [c.barIndex, c.tickInBar, c.name]);
+    const notes = m => m.notes.filter(n => n.voice === 'Vocal').map(n => [n.startTick, n.durationTicks, n.pitch, n.lyric || '']);
+    console.log(JSON.stringify({{ out, before: chords(first), after: chords(second), notesBefore: notes(first), notesAfter: notes(second),
+                                 again: serializeToAbc(second) === out }}));
+    """
+    data = run_node_script(js)
+    assert data["before"] == [[0, 12, "C"], [1, 0, "Am"], [1, 8, "F"], [2, 0, "G"], [2, 8, "Em"], [2, 12, "D"], [3, 0, "C"]]
+    assert data["after"] == data["before"]
+    # the held note is one note still, with its word, and written with its tie where the chord changes
+    assert data["notesAfter"] == data["notesBefore"] and data["notesBefore"][0] == [16, 12, 72, "sing"]
+    assert '"Am"c8-"F"c4z4' in data["out"] and 'z12"C"z4' in data["out"] and '"G"z8"Em"z4"D"z4' in data["out"]
+    assert data["again"] is True                       # writing it out again changes nothing
+    assert score.problems(data["out"]) == []
+
+
+def test_a_plain_note_after_a_sharp_in_the_bar_is_written_natural():
+    """A sharp or flat holds for its letter to the end of the bar.  The roll wrote F sharp then F as
+    "^F F", which reads back as two F sharps: the second note came back a semitone out."""
+    raw_abc = (
+        "X:1\nM:4/4\nL:1/16\nQ:1/4=100\nK:C\n"
+        "% verse\n"
+        "V: Vocal\n"
+        "\"C\"^F4=F4_B4=B4|\"G\"^f4F4^F4f4|\"C\"[^F=A]4[=FA]4z8|\n"
+        "V: Ins\n"
+        "z16|z16|z16|\n"
+    )
+    js = f"""
+    const first = parseAbc({json.dumps(raw_abc)});
+    const out = serializeToAbc(first);
+    const second = parseAbc(out);
+    const pitches = m => m.notes.filter(n => n.voice === 'Vocal').sort((a, b) => a.startTick - b.startTick || a.pitch - b.pitch).map(n => n.pitch);
+    console.log(JSON.stringify({{ out, before: pitches(first), after: pitches(second) }}));
+    """
+    data = run_node_script(js)
+    assert data["before"][:4] == [66, 65, 70, 71]
+    assert data["after"] == data["before"]
+    assert "^F4=F4" in data["out"] and "[^FA]4[=FA]4" in data["out"]     # the natural is said, alone and in a chord

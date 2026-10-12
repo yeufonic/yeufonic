@@ -928,6 +928,32 @@
       }
     }
 
+    // A chord symbol is written in front of a note or a rest, so it can only be kept where one starts.  A
+    // score has them elsewhere too: at a tie (c8-"G"c8 is one note here, and the chord falls inside it) and
+    // part-way through a silence (z8"G"z8 is one gap).  So a note is cut, and tied, where a chord of its
+    // voice falls inside it, and a rest is written in pieces around its chords.  Without this the second
+    // chord of such a bar was dropped whenever the score was written out.
+    var chordTicks = {};
+    for (var ct = 0; ct < model.chords.length; ct++) {
+      var chordHere = model.chords[ct];
+      var chordVoice = chordHere.voice || 'Vocal';
+      if (!chordTicks[chordVoice]) { chordTicks[chordVoice] = {}; }
+      if (!chordTicks[chordVoice][chordHere.barIndex]) { chordTicks[chordVoice][chordHere.barIndex] = []; }
+      chordTicks[chordVoice][chordHere.barIndex].push(chordHere.tickInBar);
+    }
+    function restWithChords(from, to, chordsAt) {
+      var cuts = Object.keys(chordsAt).map(Number).filter(function (t) { return t > from && t < to; })
+        .sort(function (a, b) { return a - b; });
+      cuts.push(to);
+      var text = "", at = from;
+      for (var c = 0; c < cuts.length; c++) {
+        if (chordsAt[at]) { text += '"' + chordsAt[at] + '"'; }
+        text += 'z' + (cuts[c] - at > 1 ? cuts[c] - at : "");
+        at = cuts[c];
+      }
+      return text;
+    }
+
     for (var m = 0; m < model.notes.length; m++) {
       var curNote = model.notes[m];
       var remDur = curNote.durationTicks;
@@ -938,6 +964,10 @@
         var tInBar = curTick % ticksPerBar;
         var spaceInBar = ticksPerBar - tInBar;
         var segDur = Math.min(remDur, spaceInBar);
+        var inBar = (chordTicks[curNote.voice] && chordTicks[curNote.voice][bIndex]) || [];
+        for (var cut = 0; cut < inBar.length; cut++) {
+          if (inBar[cut] > tInBar && inBar[cut] < tInBar + segDur) { segDur = inBar[cut] - tInBar; }
+        }
         var isTied = remDur > segDur;
 
         if (!barSegments[curNote.voice]) { barSegments[curNote.voice] = {}; }
@@ -998,10 +1028,24 @@
 
           var curBarTick = 0;
           var barStr = "";
+          // A sharp or flat written on a note holds for that letter to the end of the bar, so a plain note
+          // after one has to say it is natural, or it is read back a semitone out.
+          var marked = {};
+          var spell = function (pitch) {
+            var name = midiToAbcNote(pitch, key);
+            var sign = /^[_^=]/.test(name) ? name.charAt(0) : "";
+            var letter = name.replace(/^[_^=]+/, "").charAt(0).toUpperCase();
+            if (sign) {
+              marked[letter] = sign !== "=";
+            } else if (marked[letter]) {
+              name = "=" + name;
+              marked[letter] = false;
+            }
+            return name;
+          };
 
           if (segs.length === 0) {
-            if (chordMap[0]) { barStr += '"' + chordMap[0] + '"'; }
-            barStr += 'z' + ticksPerBar;
+            barStr += restWithChords(0, ticksPerBar, chordMap);
           } else {
             var byTick = {};
             for (var segIdx = 0; segIdx < segs.length; segIdx++) {
@@ -1015,9 +1059,7 @@
               var tVal = sortedTicks[ti];
               var group = byTick[tVal];
               if (tVal > curBarTick) {
-                var rDur = tVal - curBarTick;
-                if (chordMap[curBarTick]) { barStr += '"' + chordMap[curBarTick] + '"'; }
-                barStr += 'z' + (rDur > 1 ? rDur : "");
+                barStr += restWithChords(curBarTick, tVal, chordMap);
                 curBarTick = tVal;
               }
               if (chordMap[curBarTick]) {
@@ -1027,19 +1069,17 @@
               var dStr = dur > 1 ? String(dur) : "";
               var tStr = group[0].tied ? "-" : "";
               if (group.length === 1) {
-                var nStr = midiToAbcNote(group[0].pitch, key);
+                var nStr = spell(group[0].pitch);
                 barStr += nStr + dStr + tStr;
               } else {
                 group.sort(function (a, b) { return a.pitch - b.pitch; });
-                var chordPitches = group.map(function (g) { return midiToAbcNote(g.pitch, key); }).join("");
+                var chordPitches = group.map(function (g) { return spell(g.pitch); }).join("");
                 barStr += "[" + chordPitches + "]" + dStr + tStr;
               }
               curBarTick += dur;
             }
             if (curBarTick < ticksPerBar) {
-              var endRest = ticksPerBar - curBarTick;
-              if (chordMap[curBarTick]) { barStr += '"' + chordMap[curBarTick] + '"'; }
-              barStr += 'z' + (endRest > 1 ? endRest : "");
+              barStr += restWithChords(curBarTick, ticksPerBar, chordMap);
             }
           }
 
