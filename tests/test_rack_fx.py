@@ -561,3 +561,17 @@ def test_the_preset_box_names_the_preset_the_settings_are(flat):
     assert got["presets"] == ["default", "default", "vintage_warmth", None, "user_1", None]
     # with no presets of the user's own, theirs is nobody's
     assert rack([mine])["presets"] == [None]
+
+
+def test_saving_a_preset_under_a_name_already_used_writes_it_over():
+    from pathlib import Path
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    save = rack_js[rack_js.index("savePresetBtn.addEventListener('click'"):rack_js.index("// Delete Custom Preset")]
+    # the name is looked for among the user's presets, whatever its case, and the user is asked first
+    assert "self.userPresetsNamed(userPresets, name)" in save and "Replace it?" in save
+    assert "if (!replace) { return; }" in save
+    # the preset found keeps its id; a new one is made only for a new name; older doubles of the name go
+    assert "var id = same.length ? same[0] : 'user_' + Date.now();" in save
+    assert "same.slice(1).forEach(function (other) { delete userPresets[other]; });" in save
+    named = rack_js[rack_js.index("userPresetsNamed: function"):rack_js.index("saveUserPresets: function")]
+    assert named.count(".trim().toLowerCase()") == 2

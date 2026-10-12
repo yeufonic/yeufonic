@@ -794,6 +794,14 @@
       }
     },
 
+    /* The ids of the user's presets with this name, whatever its case. */
+    userPresetsNamed: function (presets, name) {
+      var wanted = String(name || '').trim().toLowerCase();
+      return Object.keys(presets).filter(function (id) {
+        return String((presets[id] && presets[id].name) || '').trim().toLowerCase() === wanted;
+      });
+    },
+
     saveUserPresets: function (presets) {
       try {
         localStorage.setItem(USER_PRESETS_KEY, JSON.stringify(presets));
@@ -1267,13 +1275,30 @@
           }
           if (!name || !name.trim()) { return; }
           name = name.trim().slice(0, 40);
-          var id = 'user_' + Date.now();
+          // A name already used is that preset saved again: it is written over, after asking, and not
+          // added beside itself.  Presets left with the same name by earlier saves go with it.
+          var same = self.userPresetsNamed(userPresets, name);
+          if (same.length) {
+            var kept = userPresets[same[0]].name || name;
+            var replace = typeof window.confirmModal === 'function'
+              ? await window.confirmModal({
+                title: 'Save Preset',
+                message: 'There is already a preset called \u201c' + kept + '\u201d. Replace it?',
+                confirmText: 'Replace'
+              })
+              : window.confirm('There is already a preset called "' + kept + '". Replace it?');
+            if (!replace) { return; }
+            userPresets = self.getUserPresets();   // as they are now: the question may have waited
+            same = self.userPresetsNamed(userPresets, name);
+          }
+          var id = same.length ? same[0] : 'user_' + Date.now();
+          same.slice(1).forEach(function (other) { delete userPresets[other]; });
           var snapshot = JSON.parse(JSON.stringify(self.settings));
           snapshot.name = name;
           userPresets[id] = snapshot;
           self.saveUserPresets(userPresets);
           self.rebuildPresetDropdown(id);
-          self.showToast('Saved preset "' + name + '"');
+          self.showToast((same.length ? 'Replaced' : 'Saved') + ' preset "' + name + '"');
         });
       }
 
