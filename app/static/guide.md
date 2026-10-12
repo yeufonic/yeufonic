@@ -1082,8 +1082,9 @@ ticked (the finished LoRA, when it is one of them) holds the others.
 
 - **The Inside button** appears among the small buttons at the top of a card once its take holds
   takes, finished or still being made, and it is **lit orange**. Hover over it to read how many are
-  done and how many are to come. (The mastering rack's button beside it is lit green in the same
-  way, when the take is mastered.)
+  done and how many are to come. The card itself is a shade lighter than the others, so a take
+  with takes inside it stands out in a list. (The mastering rack's button beside it is lit green in
+  the same way, when the take is mastered.)
 - **Click it** and a panel opens under the card with the takes inside, each a card of its own. A
   take shows there when it is finished; while it is being made only the take it belongs to shows.
   Click the button again, or **Close**, to shut it.

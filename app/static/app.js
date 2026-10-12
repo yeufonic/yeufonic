@@ -10777,6 +10777,7 @@ function paintTakes() {
     if (State.picked[take.id]) { classes += ' picked'; }
     if (State.playing === take.id) { classes += ' playing'; }
     if (take.id === open) { classes += ' holding'; }
+    if (!take.parent_id && heldBy(take) > 0) { classes += ' has-inside'; }     // a take that holds takes is a shade lighter
     // The Inside button is on a take that holds takes, lit, and its tip says how many.  A take that holds
     // none has no such button: there is nothing for it to open.
     var holds = !take.parent_id && !State.search && heldBy(take) > 0;
