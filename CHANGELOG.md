@@ -37,6 +37,10 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **Windows:** the picture down the side of the installer says Yeufonic, where it still carried the app's earlier name.
+
 ## 0.0.41 (2026-10-12)
 
 - **Piano roll:** saving a score no longer drops a chord that changes at a tie or part-way through a rest, and no longer moves a note by a semitone where a plain note follows a sharp or flat in the same bar.
