@@ -2787,6 +2787,21 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 .ed-advanced-btn .adv-dot.hidden {
   display: none;
 }
+/* The way to the mastering rack from the editor window: to the left of Advanced, there when the take has
+   sound, and green while the rack changes how the take sounds, as the button on its card is.  Whichever
+   of the two comes first is the one pushed to the right. */
+.ed-master-btn.hidden { display: none; }
+.ed-master-btn:not(.hidden) + .ed-advanced-btn { margin-left: 0; }
+.ed-master-btn.mastered, .ed-master-btn.mastered:hover {
+  color: var(--good);
+  border-color: color-mix(in srgb, var(--good) 70%, transparent);
+  background: color-mix(in srgb, var(--good) 12%, transparent);
+  font-weight: 500;
+}
+.ed-master-btn.mastered .adv-icon { opacity: 1; }
+/* The rack opened from the editor window stands over it, and under any window opened over that. */
+body.rack-over-editor .rack-panel { z-index: 61; }
+body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
 .ed-tabs { display: flex; gap: 4px; margin-left: 0; }
 .ed-tabs button, .ed-steps button { border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit;
   font-size: 13.5px; padding: 7px 14px; border-radius: 999px; cursor: pointer; }

@@ -1466,6 +1466,9 @@
       // Keyboard Esc to close
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && self.isOpen) {
+          // Standing over the editor window, the rack is what Escape closes: the page reads this mark
+          // and leaves the window open.
+          if (document.body && document.body.classList.contains('rack-over-editor')) { e.rackClosed = true; }
           self.toggle(false);
         }
       });
@@ -1836,6 +1839,8 @@
         // so a card answers a switch in the rack at once and not when the list is next read.
         if (cardId) { b.classList.toggle('mastered', self.hasActiveMastering(cardId)); }
       });
+      // The editor window has a button of its own for the take it holds, which the page paints.
+      if (typeof paintEdMastering === 'function') { paintEdMastering(); }
     },
 
     openForTake: function (take) {

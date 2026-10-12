@@ -11259,7 +11259,47 @@ function paintTransport() {
   paintEdTransport();
 }
 
+/* The editor window's way to the mastering rack.  The button is there when the take in the window has
+   sound, and lit while the rack changes how that take sounds, as the button on the take's card is.
+   A rack opened from here stands over the window (Editor.rackUp) until it or the window is closed. */
+function paintEdMastering() {
+  var rack = window.Rack;
+  if (!editorOpen() || !rack || !rack.isOpen) { Editor.rackUp = false; }
+  document.body.classList.toggle('rack-over-editor', Boolean(Editor.rackUp));
+  var btn = $('ed-btn-mastering');
+  if (!btn) { return; }   // a page from before the button
+  var take = editorTake();
+  var show = Boolean(rack && editorOpen() && take && take.has_audio);
+  btn.classList.toggle('hidden', !show);
+  if (!show) { return; }
+  var mastered = rack.hasActiveMastering(take.id);
+  btn.classList.toggle('mastered', mastered);
+  btn.title = 'Mastering Rack' + (mastered ? '. This take is mastered' : '');
+}
+
+function toggleEdMastering() {
+  var take = editorTake();
+  var rack = window.Rack;
+  if (!take || !take.has_audio || !rack) { return; }
+  if (rack.isOpen && Editor.rackUp && String(rack.currentTakeId) === String(take.id)) {
+    rack.toggle(false);
+    return;
+  }
+  // The rack does not take up a take while another is playing, so that one stops first, as from a card.
+  var audio = $('audio');
+  if (audio && !audio.paused && !audio.ended && State.playing !== take.id) {
+    audio.pause();
+    State.playing = null;
+    paintTakes();
+    paintTransport();
+  }
+  Editor.rackUp = true;
+  rack.openForTake(take);
+  paintEdMastering();
+}
+
 function paintEdTransport() {
+  paintEdMastering();
   var box = $('ed-transport');
   if (!box) { return; }
   var take = editorTake();
@@ -11765,6 +11805,7 @@ function wireTransport() {
       if (window.Rack) { window.Rack.toggle(); }
     });
   }
+  if ($('ed-btn-mastering')) { $('ed-btn-mastering').addEventListener('click', toggleEdMastering); }
   $('btn-mute').addEventListener('click', function () {
     audio.muted = !audio.muted;
     paintTransport();
@@ -13428,7 +13469,13 @@ function wire() {
       return;
     }
     if (event.key === 'Escape' && $('advanced-take-modal') && !$('advanced-take-modal').classList.contains('hidden')) { closeAdvancedModal(); return; }
-    if (event.key === 'Escape' && typeof editorOpen === 'function' && editorOpen()) { closeEditor(); return; }
+    if (event.key === 'Escape' && typeof editorOpen === 'function' && editorOpen()) {
+      // A rack standing over the window is what Escape closes, whichever of the two listeners hears it first.
+      if (event.rackClosed) { return; }
+      if (Editor.rackUp && window.Rack && window.Rack.isOpen) { window.Rack.toggle(false); return; }
+      closeEditor();
+      return;
+    }
 
     if (compareOpen()) { if (compareKey(event)) { event.preventDefault(); } return; }
 
@@ -13770,6 +13817,7 @@ function closeEditor() {
   }
   $('editor-modal').classList.add('hidden');
   document.body.style.overflow = '';
+  paintEdMastering();   // a rack opened from the window stays open, on the page
   paintSheet();
 }
 

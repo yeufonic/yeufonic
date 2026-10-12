@@ -282,6 +282,9 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
 - **Advanced** (the button in the header): diffusion steps, Avoid, Key lock, Tempo lock, the longest score,
   chord hold limit, outside harmony bonus, Sections open differently, target loudness and the outro fade. See
   [Advanced settings](#advanced-settings).
+- **Mastering** (the button to its left, when the take has sound) opens the mastering rack over the editor for
+  the take in it. The button is green while the rack changes how the take sounds. Escape closes the rack, and
+  again closes the editor.
 
 ### Making the song longer
 

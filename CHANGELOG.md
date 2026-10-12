@@ -40,6 +40,7 @@ cannot creep back in.
 ## Unreleased
 
 - **A take's title has the top of its card to itself.** The small buttons that sat beside the title (Sing again, Variations, Try more, Inside, Normalise, the mastering rack, Move) are now on the status line, to the right, so a narrow card shows its title and not its first letter. A status too long to share the line takes it, and the buttons go under.
+- **The mastering rack opens from the editor window.** A **Mastering** button in the window's header, to the left of Advanced, is there when the take has sound, and is green while the rack changes how the take sounds. The rack opens over the window; Escape closes the rack first, and the window after.
 - **The takes inside a take look like they belong to it.** The cards in an open panel have the lighter shade of the take that holds them, where they used to look like more of the list.
 
 ## 0.0.41 (2026-10-12)
