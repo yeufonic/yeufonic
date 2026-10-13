@@ -43,3 +43,15 @@ def test_rendering_with_a_new_seed_lets_the_sound_follow_it(client, monkeypatch)
     execute("UPDATE takes SET status = 'done' WHERE id = 'orig1'")
     client.post("/api/takes/orig1/render", json={"seed": 5})
     assert one("SELECT sound_seed FROM takes WHERE id = 'orig1'")["sound_seed"] is None
+
+
+def test_sing_again_asks_before_it_renders():
+    """The button is a small one on the card, and one click started a whole render.  It asks first, in the page's
+    own dialog, and does nothing when the answer is no."""
+    from pathlib import Path
+    app_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    action = app_js[app_js.index("if (act === 'revoice') {"):app_js.index("if (act === 'variations') {")]
+    assert "await confirmModal({" in action and "title: 'Sing again'" in action and "confirmText: 'Sing again'" in action
+    assert "{ return; }" in action
+    assert action.index("confirmModal") < action.index("'/revoice'")
+    assert "danger" not in action            # nothing is lost: it is a new take, and this one is kept

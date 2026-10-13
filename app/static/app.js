@@ -13217,6 +13217,13 @@ function wire() {
     }
     if (act === 'revoice') {
       var voiced = takeById(id);
+      // One click on a small button would otherwise start a whole render: asked first, as a delete is.
+      if (!(await confirmModal({
+        title: 'Sing again',
+        message: 'Render ' + (voiced && voiced.title ? '\u201c' + voiced.title + '\u201d' : 'this take') + ' again with a new seed?\n\n' +
+          'The score is the same; the backing and phrasing come out new. It is made as a new take, and this one is kept.',
+        confirmText: 'Sing again'
+      }))) { return; }
       await api('/api/takes/' + id + '/revoice', { method: 'POST' });
       statusLine('Singing ' + (voiced ? voiced.title : 'this take') + ' again with a new seed\u2026', 'good');
       loadTakes();
