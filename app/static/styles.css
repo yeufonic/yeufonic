@@ -3271,9 +3271,11 @@ button.ghost.run-all { margin-left: 10px; }
 .pbtn.rack-btn { position: relative; }
 .pbtn.rack-btn.active { color: var(--accent-a, #38bdf8); background: rgb(var(--accent-a-rgb, 56 189 248) / 0.15); }
 
+/* --rack-zoom is the size the rack is drawn at to be seen whole in the window (rack.js, fitToWindow):
+   the panel narrows by it and its chassis is drawn smaller by it, so the rack keeps its proportions. */
 .rack-panel {
   position: fixed; left: 20px; right: 20px; bottom: 66px; z-index: 35;
-  max-width: 1240px; margin: 0 auto;
+  max-width: calc(1240px * var(--rack-zoom, 1)); margin: 0 auto;
   transform: translateY(calc(100% + 80px)); opacity: 0; pointer-events: none; visibility: hidden;
   transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease, visibility 380ms;
 }
@@ -3313,6 +3315,7 @@ button.ghost.run-all { margin-left: 10px; }
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   overflow: hidden;
   display: flex; flex-direction: column;
+  zoom: var(--rack-zoom, 1);
 }
 
 .rack-header {
@@ -3424,9 +3427,9 @@ button.ghost.run-all { margin-left: 10px; }
 
 /* Stack modules vertically on top of each other */
 .rack-bay {
-  display: flex; flex-direction: column; gap: 12px;
+  display: flex; flex-direction: column; gap: 10px;
   padding: 14px 18px; background: #0c0d0f;
-  max-height: calc(84vh - 75px);
+  max-height: var(--rack-bay-max, calc(84vh - 75px));
   overflow-y: auto; overflow-x: hidden;
 }
 
@@ -3473,7 +3476,7 @@ button.ghost.run-all { margin-left: 10px; }
    chosen.  Its colours are its own, as the other units' are: a rack does not change with the theme. */
 .unit-peq { background: linear-gradient(180deg, #17181d 0%, #0f1014 100%); }
 .peq-screen { display: flex; flex-direction: column; background: #0b0c10; }
-.peq-graph { position: relative; height: 250px; }
+.peq-graph { position: relative; height: 220px; }
 .peq-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .peq-range {
   position: absolute; top: 8px; left: 12px; padding: 2px 8px; border-radius: 5px; cursor: pointer;

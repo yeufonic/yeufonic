@@ -780,3 +780,24 @@ def test_the_equaliser_sits_after_the_1073_and_before_the_compressor_and_the_bay
     css = (Path(__file__).resolve().parent.parent / "app" / "static" / "styles.css").read_text(encoding="utf-8")
     unit = css[css.index("\n.rack-unit {"):css.index(".unit-bar {")]
     assert "flex-shrink: 0;" in unit       # or five units are squeezed into the bay and their controls cut off
+
+
+def test_the_rack_is_drawn_to_fit_the_window_unless_asked_for_at_full_size():
+    """Five units are taller than most windows.  The rack is given the window's height and drawn smaller until
+    all of it shows, down to a floor; Full size and Fit in its header choose, and the browser remembers."""
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    css = (Path(__file__).resolve().parent.parent / "app" / "static" / "styles.css").read_text(encoding="utf-8")
+    fit = rack_js[rack_js.index("    fitToWindow: function () {"):rack_js.index("    dockToBottom: function () {")]
+    # measured at full size, never under the floor or over full size, and the choice is kept
+    assert fit.index("panel.style.setProperty('--rack-zoom', '1');") < fit.index("var needed = header.offsetHeight + bay.scrollHeight + 2;")
+    assert "Math.min(1, Math.max(this.RACK_FLOOR, room / needed)) : 1;" in fit
+    assert "RACK_FLOOR: 0.65," in rack_js and "localStorage.getItem('yue2.rackFit') !== '0'" in rack_js
+    # hairlines do not shrink, so it is checked again once drawn
+    assert "bay.scrollHeight > bay.clientHeight + 1" in fit
+    # it is fitted when opened, floated, docked and when the window changes
+    assert rack_js.count("this.fitToWindow();") >= 4 and "self.fitToWindow();" in rack_js
+    # the panel narrows with it and the bay's limit comes from the fit
+    assert "max-width: calc(1240px * var(--rack-zoom, 1));" in css and "zoom: var(--rack-zoom, 1);" in css
+    assert "max-height: var(--rack-bay-max, calc(84vh - 75px));" in css
+    # the equaliser's graph reads the pointer in its own pixels, which a smaller rack makes larger
+    assert "scale = box.width ? canvas.clientWidth / box.width : 1;" in rack_js

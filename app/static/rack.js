@@ -1150,6 +1150,7 @@
         '          <span class="led-dot" id="rack-master-led"></span> BYPASS',
         '        </button>',
         '        <button type="button" class="rack-head-btn dock-btn" id="rack-dock-btn" title="Float window (or drag header to move)">Float</button>',
+        '        <button type="button" class="rack-head-btn" id="rack-fit-btn" title="Show the rack at full size, and scroll it">Full size</button>',
         '        <button type="button" class="rack-head-btn close-btn" id="rack-close-btn" title="Close Rack (Esc)">&times;</button>',
         '      </div>',
         '      <div class="rack-ears right"><span class="screw"></span><span class="screw"></span></div>',
@@ -2171,8 +2172,9 @@
       // The graph: a band's handle is dragged across for its frequency and up and down for its gain
       var drag = null;
       function at(e) {
-        var box = canvas.getBoundingClientRect();
-        return { x: e.clientX - box.left, y: e.clientY - box.top };
+        // the pointer is in the window's pixels and the graph in its own, which a rack drawn smaller makes larger
+        var box = canvas.getBoundingClientRect(), scale = box.width ? canvas.clientWidth / box.width : 1;
+        return { x: (e.clientX - box.left) * scale, y: (e.clientY - box.top) * scale };
       }
       function bandAt(point) {
         var plot = self.peqPlot(canvas), best = -1, nearest = 16;
@@ -2324,7 +2326,7 @@
     drawPeq: function () {
       var canvas = document.getElementById('peq-canvas');
       if (!canvas || !canvas.getContext || !canvas.clientWidth) { return; }
-      var ratio = window.devicePixelRatio || 1, plot = this.peqPlot(canvas), self = this;
+      var ratio = (window.devicePixelRatio || 1) * (this.rackZoom || 1), plot = this.peqPlot(canvas), self = this;
       if (canvas.width !== Math.round(plot.w * ratio) || canvas.height !== Math.round(plot.h * ratio)) {
         canvas.width = Math.round(plot.w * ratio);
         canvas.height = Math.round(plot.h * ratio);
@@ -2522,6 +2524,7 @@
           this.clampFloatingBounds();
         }
         Engine.resume();
+        this.fitToWindow();
         this.syncKnobsToState();
       } else {
         this.flushSave();
@@ -3101,11 +3104,70 @@
         });
       }
 
+      var fitBtn = document.getElementById('rack-fit-btn');
+      if (fitBtn) {
+        fitBtn.addEventListener('click', function () {
+          try { localStorage.setItem('yue2.rackFit', self.fitsWindow() ? '0' : '1'); } catch (err) { /* private mode */ }
+          self.fitToWindow();
+        });
+      }
+
       window.addEventListener('resize', function () {
         if (panel.classList.contains('is-floating')) {
           self.clampFloatingBounds();
         }
+        self.fitToWindow();
       });
+      this.fitToWindow();
+    },
+
+    /* The rack is taller than most windows.  Unless asked for at full size it is drawn smaller, by as
+       much as it takes for all of it to be seen at once and no less than RACK_FLOOR, and it is given
+       all the height the window has; whatever still does not fit is scrolled to.  The choice is how the
+       rack is looked at, so the browser keeps it. */
+    RACK_FLOOR: 0.65,
+    rackZoom: 1,
+    fitsWindow: function () {
+      try { return localStorage.getItem('yue2.rackFit') !== '0'; } catch (err) { return true; }
+    },
+    fitToWindow: function () {
+      var panel = document.getElementById('rack-panel');
+      var bay = panel && panel.querySelector('.rack-bay'), header = panel && panel.querySelector('.rack-header');
+      if (!panel || !bay || !header) { return; }
+      var floating = panel.classList.contains('is-floating');
+      panel.style.setProperty('--rack-zoom', '1');                   // measured at full size
+      var needed = header.offsetHeight + bay.scrollHeight + 2;
+      var under = floating ? 8 : (parseFloat(window.getComputedStyle(panel).bottom) || 66);
+      var room = window.innerHeight - under - 8;
+      var zoom = this.fitsWindow() ? Math.min(1, Math.max(this.RACK_FLOOR, room / needed)) : 1;
+      var self = this;
+      function drawnAt(size) {
+        zoom = Math.floor(size * 100) / 100;
+        self.rackZoom = zoom;
+        panel.style.setProperty('--rack-zoom', String(zoom));
+        // lengths inside the rack are drawn at its size, so the bay's limit is given at full size
+        panel.style.setProperty('--rack-bay-max', Math.max(160, Math.floor(room / zoom) - header.offsetHeight - 2) + 'px');
+      }
+      drawnAt(zoom);
+      // Drawn smaller, hairlines stay a whole pixel and the rack comes out a little taller than its
+      // share: a step or two smaller takes that up.
+      for (var again = 0; again < 4 && zoom > this.RACK_FLOOR && zoom < 1 && bay.scrollHeight > bay.clientHeight + 1; again++) {
+        drawnAt(Math.max(this.RACK_FLOOR, zoom * bay.clientHeight / bay.scrollHeight - 0.005));
+      }
+      if (floating) {
+        panel.style.width = Math.round(Math.min(1240 * zoom, window.innerWidth - 24)) + 'px';
+        var box = panel.getBoundingClientRect();
+        if (box.bottom > window.innerHeight - 8) {
+          panel.style.top = Math.max(8, Math.round(window.innerHeight - 8 - box.height)) + 'px';
+        }
+      }
+      var fitBtn = document.getElementById('rack-fit-btn');
+      if (fitBtn) {
+        var fits = this.fitsWindow();
+        fitBtn.textContent = fits ? 'Full size' : 'Fit';
+        fitBtn.title = fits ? 'Show the rack at full size, and scroll it' : 'Fit the whole rack in the window';
+      }
+      this.drawPeq();
     },
 
     dockToBottom: function () {
@@ -3129,6 +3191,7 @@
         }
       } catch (err) {}
       this.updateDockButtonUI();
+      this.fitToWindow();
     },
 
     /* Float: back where it last floated, or, the first time, in the middle of the window by its own
@@ -3158,6 +3221,7 @@
       panel.style.width = width + 'px';
       this.saveFloatingPosition(left, top, width);
       this.updateDockButtonUI();
+      this.fitToWindow();
     },
 
     saveFloatingPosition: function (left, top, width) {
