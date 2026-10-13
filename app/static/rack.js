@@ -201,6 +201,127 @@
     return -0.6 * dB(fullScale);
   }
 
+  // ------------------------------------------------------------- Parametric equaliser
+  /* Seven bands, each a filter of the user's choosing: a low cut, a low shelf, a bell, a notch, a high
+     shelf or a high cut, at a frequency, with a gain where the kind has one and a width (Q) where it
+     has one.  It sits after the 1073 and before the compressor: with that equaliser it is all filters
+     and gains, so the order of the two makes no difference to the sound, and what follows compresses
+     the corrected signal.  A band that changes nothing, a band switched off and the whole unit
+     switched out are all the same filter, a bell with no gain, which passes the signal as it is. */
+  var PEQ_TYPES = ['lowcut', 'lowshelf', 'bell', 'notch', 'highshelf', 'highcut'];
+  var PEQ_FREQ = [20, 20000], PEQ_GAIN = [-18, 18], PEQ_Q = [0.3, 12];
+  var PEQ_BUTTERWORTH = 0.71;      // the width at which a cut has no bump at its corner
+
+  function defaultPeq() {
+    // a cut at each end, waiting switched off, with shelves and bells between them
+    return { enabled: false, bands: [
+      { on: false, type: 'lowcut', freq: 30, gain: 0, q: PEQ_BUTTERWORTH },
+      { on: true, type: 'lowshelf', freq: 90, gain: 0, q: 1 },
+      { on: true, type: 'bell', freq: 250, gain: 0, q: 1 },
+      { on: true, type: 'bell', freq: 1000, gain: 0, q: 1 },
+      { on: true, type: 'bell', freq: 4000, gain: 0, q: 1 },
+      { on: true, type: 'highshelf', freq: 10000, gain: 0, q: 1 },
+      { on: false, type: 'highcut', freq: 18000, gain: 0, q: PEQ_BUTTERWORTH }
+    ] };
+  }
+
+  /* The equaliser as settings hold it, whole and within its ranges: settings kept before there was
+     one have none, and it is then out. */
+  function peqOf(settings) {
+    var kept = settings && settings.peq && typeof settings.peq === 'object' ? settings.peq : null;
+    var bands = kept && Array.isArray(kept.bands) ? kept.bands : [];
+    function within(v, range, fallback) {
+      var x = Number(v);
+      return (v === undefined || v === null || isNaN(x)) ? fallback : Math.min(range[1], Math.max(range[0], x));
+    }
+    return {
+      enabled: kept ? kept.enabled !== false : false,
+      bands: defaultPeq().bands.map(function (start, i) {
+        var b = bands[i] && typeof bands[i] === 'object' ? bands[i] : {};
+        return {
+          on: b.on === undefined ? start.on : b.on !== false,
+          type: PEQ_TYPES.indexOf(b.type) >= 0 ? b.type : start.type,
+          freq: within(b.freq, PEQ_FREQ, start.freq),
+          gain: within(b.gain, PEQ_GAIN, start.gain),
+          q: within(b.q, PEQ_Q, start.q)
+        };
+      })
+    };
+  }
+
+  function peqHasGain(type) { return type === 'lowshelf' || type === 'bell' || type === 'highshelf'; }
+  function peqHasWidth(type) { return type === 'bell' || type === 'notch' || type === 'lowcut' || type === 'highcut'; }
+
+  /* Whether a band changes the sound: a shelf or a bell with no gain does not. */
+  function peqBandActive(band) {
+    return band.on !== false && (!peqHasGain(band.type) || Number(band.gain) !== 0);
+  }
+
+  function peqActive(peq) {
+    return Boolean(peq && peq.enabled !== false && peq.bands.some(peqBandActive));
+  }
+
+  /* What a band's biquad is given.  A Web Audio low-pass or high-pass takes its Q in decibels, the
+     others as a plain figure, and a shelf takes none. */
+  function peqBandShape(band, unitIn) {
+    if (!unitIn || !peqBandActive(band)) { return { type: 'peaking', frequency: band.freq, Q: 1, gain: 0 }; }
+    var cutQ = Math.round(2000 * Math.log10(band.q)) / 100;
+    switch (band.type) {
+      case 'lowcut': return { type: 'highpass', frequency: band.freq, Q: cutQ, gain: 0 };
+      case 'highcut': return { type: 'lowpass', frequency: band.freq, Q: cutQ, gain: 0 };
+      case 'lowshelf': return { type: 'lowshelf', frequency: band.freq, Q: 1, gain: band.gain };
+      case 'highshelf': return { type: 'highshelf', frequency: band.freq, Q: 1, gain: band.gain };
+      case 'notch': return { type: 'notch', frequency: band.freq, Q: band.q, gain: 0 };
+      default: return { type: 'peaking', frequency: band.freq, Q: band.q, gain: band.gain };
+    }
+  }
+
+  /* How much a biquad of this shape raises or lowers a frequency, in decibels: the Web Audio
+     specification's own coefficients, so the curve drawn is the filter heard. */
+  function biquadDb(shape, hz, rate) {
+    var w0 = 2 * Math.PI * Math.min(shape.frequency, rate / 2) / rate, cos = Math.cos(w0), sin = Math.sin(w0);
+    var A = Math.pow(10, shape.gain / 40), root = Math.sqrt(A);
+    var aQ = sin / (2 * Math.max(shape.Q, 1e-4)), aQdb = sin / (2 * Math.pow(10, shape.Q / 20)), aS = sin / 2 * Math.SQRT2;
+    var b0, b1, b2, a0, a1, a2;
+    switch (shape.type) {
+      case 'lowpass':
+        b0 = (1 - cos) / 2; b1 = 1 - cos; b2 = b0; a0 = 1 + aQdb; a1 = -2 * cos; a2 = 1 - aQdb; break;
+      case 'highpass':
+        b0 = (1 + cos) / 2; b1 = -(1 + cos); b2 = b0; a0 = 1 + aQdb; a1 = -2 * cos; a2 = 1 - aQdb; break;
+      case 'notch':
+        b0 = 1; b1 = -2 * cos; b2 = 1; a0 = 1 + aQ; a1 = -2 * cos; a2 = 1 - aQ; break;
+      case 'lowshelf':
+        b0 = A * ((A + 1) - (A - 1) * cos + 2 * aS * root); b1 = 2 * A * ((A - 1) - (A + 1) * cos);
+        b2 = A * ((A + 1) - (A - 1) * cos - 2 * aS * root);
+        a0 = (A + 1) + (A - 1) * cos + 2 * aS * root; a1 = -2 * ((A - 1) + (A + 1) * cos);
+        a2 = (A + 1) + (A - 1) * cos - 2 * aS * root; break;
+      case 'highshelf':
+        b0 = A * ((A + 1) + (A - 1) * cos + 2 * aS * root); b1 = -2 * A * ((A - 1) + (A + 1) * cos);
+        b2 = A * ((A + 1) + (A - 1) * cos - 2 * aS * root);
+        a0 = (A + 1) - (A - 1) * cos + 2 * aS * root; a1 = 2 * ((A - 1) - (A + 1) * cos);
+        a2 = (A + 1) - (A - 1) * cos - 2 * aS * root; break;
+      default:      // peaking
+        b0 = 1 + aQ * A; b1 = -2 * cos; b2 = 1 - aQ * A; a0 = 1 + aQ / A; a1 = -2 * cos; a2 = 1 - aQ / A;
+    }
+    var w = 2 * Math.PI * hz / rate, c1 = Math.cos(w), s1 = Math.sin(w), c2 = Math.cos(2 * w), s2 = Math.sin(2 * w);
+    var top = Math.pow(b0 + b1 * c1 + b2 * c2, 2) + Math.pow(b1 * s1 + b2 * s2, 2);
+    var bottom = Math.pow(a0 + a1 * c1 + a2 * c2, 2) + Math.pow(a1 * s1 + a2 * s2, 2);
+    return 10 * Math.log10(Math.max(top / bottom, 1e-12));
+  }
+
+  /* The whole equaliser's curve at a frequency, or one band's. */
+  function peqDb(peq, hz, rate, only) {
+    var total = 0;
+    peq.bands.forEach(function (band, i) {
+      if (only === undefined || only === i) { total += biquadDb(peqBandShape(band, peq.enabled !== false), hz, rate || 48000); }
+    });
+    return total;
+  }
+
+  // A preset is the whole rack: each one has the parametric equaliser flat and out.  (Here, and not
+  // beside the presets, because the equaliser's own figures above have to exist first.)
+  Object.keys(PRESETS).forEach(function (key) { PRESETS[key].peq = defaultPeq(); });
+
   /* The sample rate a FLAC or WAV file says it has; 48000, what a take is made at, when the
      header is neither. */
   function fileSampleRate(arrayBuf) {
@@ -283,6 +404,7 @@
       var high = eq.highGain !== undefined ? eq.highGain : eq.airGain;
       if (num(eq.hp) > 20 || num(eq.lowGain) !== 0 || num(mid) !== 0 || num(high) !== 0) { return true; }
     }
+    if (peqActive(peqOf(s))) { return true; }
     return Boolean((s.comp && s.comp.enabled !== false) ||
                    (s.imager && s.imager.enabled !== false) ||
                    (s.limit && s.limit.enabled !== false));
@@ -343,7 +465,15 @@
        n(c.makeup, 0), n(c.mix, 1), n(c.knee, 10)],
       [i.enabled !== false, n(i.bigness, 1), n(i.range, 5), n(i.stage, 5), Boolean(i.harmonics),
        n(i.tubeHarmonics, 1), Boolean(i.bass)],
-      [l.enabled !== false, n(l.drive, 0), n(l.ceiling, -0.1), n(l.release, 0.08), Boolean(l.warmth)]
+      [l.enabled !== false, n(l.drive, 0), n(l.ceiling, -0.1), n(l.release, 0.08), Boolean(l.warmth)],
+      // the equaliser by what its filters do: a band that changes nothing is nothing, wherever it sits,
+      // and so is the whole unit when it is out
+      (function (p) {
+        return p.bands.map(function (b) {
+          var shape = peqBandShape(b, p.enabled);
+          return shape.type === 'peaking' && shape.gain === 0 ? 0 : [shape.type, n(shape.frequency, 0), n(shape.Q, 1), n(shape.gain, 0)];
+        });
+      })(peqOf(s))
     ]);
   }
 
@@ -376,6 +506,8 @@
     eqOutput: null,
 
     // Compressor
+    peqBands: null,
+    spectrum: null,
     compDryGain: null,
     compDryDelay: null,
     compWetGain: null,
@@ -508,13 +640,27 @@
       this.compMakeup = ctx.createGain();
       this.compMakeup.gain.value = 1.0;
 
+      // 2b. The parametric equaliser: its biquads in a row, after the 1073 and before the compressor
+      this.peqBands = [];
+      var eqTail = this.eqOutput;
+      for (var band = 0; band < defaultPeq().bands.length; band++) {
+        var filter = ctx.createBiquadFilter();
+        filter.type = 'peaking';
+        filter.frequency.value = 1000;
+        filter.Q.value = 1;
+        filter.gain.value = 0;
+        eqTail.connect(filter);
+        eqTail = filter;
+        this.peqBands.push(filter);
+      }
+
       // The compressor looks ahead, so what it puts out is behind what goes in by the frames of 6 ms.
       // The dry signal waits the same, or a blend of the two (MIX) combs the sound.
       this.compDryDelay = ctx.createDelay(0.05);
       this.compDryDelay.delayTime.value = Math.floor(0.006 * ctx.sampleRate) / ctx.sampleRate;
-      this.eqOutput.connect(this.compDryDelay);
+      eqTail.connect(this.compDryDelay);
       this.compDryDelay.connect(this.compDryGain);
-      this.eqOutput.connect(this.compressor);
+      eqTail.connect(this.compressor);
       this.compressor.connect(this.compMakeup);
       this.compMakeup.connect(this.compWetGain);
 
@@ -682,6 +828,10 @@
 
       this.analyser = ctx.createAnalyser();
       this.analyser.fftSize = 256;
+      // What is heard, finely enough to draw behind the equaliser's curve: it only listens
+      this.spectrum = ctx.createAnalyser();
+      this.spectrum.fftSize = 4096;
+      this.spectrum.smoothingTimeConstant = 0.82;
 
       source.connect(this.inputGain);
       source.connect(this.masterDryGain);
@@ -691,6 +841,7 @@
       this.masterDryGain.connect(this.analyser);
       this.masterWetGain.connect(this.analyser);
       this.analyser.connect(destination);
+      this.analyser.connect(this.spectrum);
     },
 
     makeTubeCurve: function () {
@@ -761,6 +912,16 @@
         // Output Trim
         var outDb = s.eq.outLevel !== undefined ? Number(s.eq.outLevel) : 0;
         set(this.eqOutput.gain, Math.pow(10, outDb / 20));
+      }
+
+      // Parametric equaliser
+      var peq = peqOf(s);
+      for (var b = 0; b < this.peqBands.length; b++) {
+        var shape = peqBandShape(peq.bands[b], peq.enabled);
+        if (this.peqBands[b].type !== shape.type) { this.peqBands[b].type = shape.type; }
+        set(this.peqBands[b].frequency, shape.frequency);
+        set(this.peqBands[b].Q, shape.Q);
+        set(this.peqBands[b].gain, shape.gain);
       }
 
       // Compressor
@@ -904,6 +1065,7 @@
       this.renderMarkup();
       this.rebuildPresetDropdown('default');
       this.bindEvents();
+      this.bindPeq();
       this.initDraggable();
       this.startMeterLoop();
     },
@@ -1110,6 +1272,39 @@
         '            </div>',
         '          </div>',
 
+        '        </div>',
+        '      </div>',
+
+        '      <!-- PARAMETRIC EQUALIZER: a graph of five bands, each a node to drag -->',
+        '      <div class="rack-unit unit-peq" id="unit-peq">',
+        '        <div class="unit-bar">',
+        '          <div class="unit-brand"><span class="screw-mini"></span> PARAMETRIC EQUALIZER <span class="screw-mini"></span></div>',
+        '          <button type="button" class="unit-toggle" id="toggle-peq" title="Toggle the parametric equalizer in/out"><span class="led"></span> OUT</button>',
+        '        </div>',
+        '        <div class="peq-screen">',
+        '          <div class="peq-graph">',
+        '            <canvas id="peq-canvas" class="peq-canvas" title="Drag a band to set its frequency and gain. The wheel sets its width. Double-click to reset it."></canvas>',
+        '            <button type="button" class="peq-range" id="peq-range" title="How many decibels the graph shows">&plusmn;12 dB</button>',
+        '          </div>',
+        '          <div class="peq-strip" id="peq-strip">',
+        '            <div class="peq-dots" id="peq-dots" role="group" aria-label="Band"></div>',
+        '            <button type="button" class="peq-power" id="peq-band-on" title="Switch this band on or off" aria-label="Band on or off">',
+        '              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>',
+        '            </button>',
+        '            <div class="peq-types" id="peq-types" role="group" aria-label="Kind of filter"></div>',
+        '            <div class="knob-wrap dummy-knob peq-knob" data-peq="freq" title="Frequency">',
+        '              <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">FREQ</span><span class="knob-val">1 kHz</span>',
+        '            </div>',
+        '            <div class="knob-wrap dummy-knob peq-knob" data-peq="gain" title="Gain">',
+        '              <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">GAIN</span><span class="knob-val">0 dB</span>',
+        '            </div>',
+        '            <div class="knob-wrap dummy-knob peq-knob" data-peq="q" title="Width (Q): higher is narrower">',
+        '              <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">Q</span><span class="knob-val">1.0</span>',
+        '            </div>',
+        '          </div>',
         '        </div>',
         '      </div>',
 
@@ -1841,8 +2036,398 @@
         });
       }
 
+      this.syncPeq();
       this.updateBypassUI();
       this.syncPresetSelect();
+    },
+
+    // ------------------------------------------------------------- The parametric equaliser's screen
+    PEQ_COLOURS: ['#22d3ee', '#a3e635', '#fbbf24', '#fb7185', '#c084fc', '#34d399', '#60a5fa'],
+    PEQ_RANGES: [6, 12, 18],
+    PEQ_KINDS: {
+      lowcut: ['Low cut', 'M3 17c5 0 6-10 10-10h8'],
+      lowshelf: ['Low shelf', 'M3 15h5c3 0 3-6 6-6h7'],
+      bell: ['Bell', 'M3 15h4c3 0 3-8 5-8s2 8 5 8h4'],
+      notch: ['Notch', 'M3 9h5c3 0 3 9 4 9s1-9 4-9h5'],
+      highshelf: ['High shelf', 'M3 9h7c3 0 3 6 6 6h5'],
+      highcut: ['High cut', 'M3 7h8c4 0 5 10 10 10']
+    },
+    peqBand: 0,          // the band the strip's controls are for
+
+    /* The settings' equaliser, made whole: older settings have none, and a preset replaces it. */
+    peq: function () {
+      var held = this.settings.peq;
+      if (!held || !Array.isArray(held.bands) || held.bands.length !== defaultPeq().bands.length) {
+        this.settings.peq = peqOf(this.settings);
+      }
+      return this.settings.peq;
+    },
+
+    /* Where the graph is drawn within the canvas, and the two scales: frequency by octaves along it,
+       decibels up it. */
+    peqPlot: function (canvas) {
+      var w = canvas.clientWidth, h = canvas.clientHeight;
+      return { left: 8, top: 10, width: Math.max(10, w - 8 - 38), height: Math.max(10, h - 10 - 20), w: w, h: h, range: this.peqRange() };
+    },
+    /* How many decibels the graph shows either side of the middle: small for fine moves, large for broad
+       ones.  It is how the graph is looked at, not part of the sound, so the browser keeps it. */
+    peqRange: function () {
+      var kept = 12;
+      try { kept = Number(localStorage.getItem('yue2.peqRange')) || 12; } catch (err) { /* private mode */ }
+      return this.PEQ_RANGES.indexOf(kept) >= 0 ? kept : 12;
+    },
+    peqX: function (plot, hz) { return plot.left + plot.width * Math.log(hz / PEQ_FREQ[0]) / Math.log(PEQ_FREQ[1] / PEQ_FREQ[0]); },
+    peqHz: function (plot, x) {
+      var t = Math.min(1, Math.max(0, (x - plot.left) / plot.width));
+      return PEQ_FREQ[0] * Math.pow(PEQ_FREQ[1] / PEQ_FREQ[0], t);
+    },
+    peqY: function (plot, db) {
+      var shown = Math.min(plot.range, Math.max(-plot.range, db));     // a value past the edge is drawn at it
+      return plot.top + plot.height * (0.5 - shown / (2 * plot.range));
+    },
+    peqGainAt: function (plot, y) { return (0.5 - (y - plot.top) / plot.height) * 2 * plot.range; },
+    /* A band's handle: at its gain, or on the middle line when its kind has none. */
+    peqNode: function (plot, band) {
+      return { x: this.peqX(plot, band.freq), y: this.peqY(plot, peqHasGain(band.type) ? band.gain : 0) };
+    },
+
+    /* A value of the equaliser has changed: heard at once, kept with the take, shown. */
+    peqChanged: function (engage) {
+      var peq = this.peq();
+      if (engage && peq.enabled === false) { peq.enabled = true; }
+      Engine.applySettings(this.settings);
+      this.debouncedSave();
+      this.syncPeq();
+    },
+
+    peqSet: function (index, key, value) {
+      var band = this.peq().bands[index];
+      if (!band) { return; }
+      if (key === 'freq') { band.freq = Math.round(Math.min(PEQ_FREQ[1], Math.max(PEQ_FREQ[0], value))); }
+      if (key === 'gain') { band.gain = Math.round(Math.min(PEQ_GAIN[1], Math.max(PEQ_GAIN[0], value)) * 10) / 10; }
+      if (key === 'q') { band.q = Math.round(Math.min(PEQ_Q[1], Math.max(PEQ_Q[0], value)) * 100) / 100; }
+      if (key === 'type' && PEQ_TYPES.indexOf(value) >= 0) {
+        // a cut starts without a bump at its corner; a bell or a notch at a middling width
+        if (!peqHasWidth(band.type) || (peqHasGain(band.type) !== peqHasGain(value))) {
+          band.q = (value === 'lowcut' || value === 'highcut') ? PEQ_BUTTERWORTH : 1;
+        }
+        band.type = value;
+      }
+      band.on = true;
+    },
+
+    bindPeq: function () {
+      var self = this;
+      var canvas = document.getElementById('peq-canvas');
+      var dots = document.getElementById('peq-dots');
+      var types = document.getElementById('peq-types');
+      if (!canvas || !dots || !types) { return; }
+
+      dots.innerHTML = this.PEQ_COLOURS.map(function (colour, i) {
+        return '<button type="button" class="peq-dot" data-band="' + i + '" style="--band:' + colour + '" title="Band ' + (i + 1) + '">' + (i + 1) + '</button>';
+      }).join('');
+      types.innerHTML = PEQ_TYPES.map(function (kind) {
+        return '<button type="button" class="peq-type" data-kind="' + kind + '" title="' + self.PEQ_KINDS[kind][0] + '" aria-label="' + self.PEQ_KINDS[kind][0] + '">' +
+          '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + self.PEQ_KINDS[kind][1] + '"/></svg></button>';
+      }).join('');
+
+      dots.addEventListener('click', function (e) {
+        var dot = e.target.closest('[data-band]');
+        if (!dot) { return; }
+        self.peqBand = Number(dot.dataset.band);
+        self.syncPeq();
+      });
+      types.addEventListener('click', function (e) {
+        var button = e.target.closest('[data-kind]');
+        if (!button) { return; }
+        self.peqSet(self.peqBand, 'type', button.dataset.kind);
+        self.peqChanged(true);
+      });
+      var power = document.getElementById('peq-band-on');
+      if (power) {
+        power.addEventListener('click', function () {
+          var band = self.peq().bands[self.peqBand];
+          band.on = band.on === false;
+          self.peqChanged(band.on);
+        });
+      }
+      var toggle = document.getElementById('toggle-peq');
+      if (toggle) {
+        toggle.addEventListener('click', function () {
+          var peq = self.peq();
+          peq.enabled = peq.enabled === false;
+          self.peqChanged(false);
+        });
+      }
+      var range = document.getElementById('peq-range');
+      if (range) {
+        range.addEventListener('click', function () {
+          var next = self.PEQ_RANGES[(self.PEQ_RANGES.indexOf(self.peqRange()) + 1) % self.PEQ_RANGES.length];
+          try { localStorage.setItem('yue2.peqRange', String(next)); } catch (err) { /* private mode */ }
+          self.syncPeq();
+        });
+      }
+
+      // The graph: a band's handle is dragged across for its frequency and up and down for its gain
+      var drag = null;
+      function at(e) {
+        var box = canvas.getBoundingClientRect();
+        return { x: e.clientX - box.left, y: e.clientY - box.top };
+      }
+      function bandAt(point) {
+        var plot = self.peqPlot(canvas), best = -1, nearest = 16;
+        self.peq().bands.forEach(function (band, i) {
+          var node = self.peqNode(plot, band), far = Math.hypot(node.x - point.x, node.y - point.y);
+          // the chosen band wins where two handles lie together
+          if (far < nearest || (far <= nearest + 0.5 && i === self.peqBand && far < 16)) { nearest = far; best = i; }
+        });
+        return best;
+      }
+      canvas.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0) { return; }
+        var hit = bandAt(at(e));
+        if (hit < 0) { return; }
+        self.peqBand = hit;
+        drag = { band: hit, moved: false };
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+        self.syncPeq();
+        e.preventDefault();
+      });
+      canvas.addEventListener('pointermove', function (e) {
+        var point = at(e);
+        if (!drag) {
+          canvas.style.cursor = bandAt(point) >= 0 ? 'grab' : 'default';
+          return;
+        }
+        var plot = self.peqPlot(canvas), band = self.peq().bands[drag.band];
+        drag.moved = true;
+        self.peqSet(drag.band, 'freq', self.peqHz(plot, point.x));
+        if (peqHasGain(band.type)) { self.peqSet(drag.band, 'gain', self.peqGainAt(plot, point.y)); }
+        self.peqChanged(true);
+      });
+      function drop(e) {
+        if (!drag) { return; }
+        try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+        drag = null;
+      }
+      canvas.addEventListener('pointerup', drop);
+      canvas.addEventListener('pointercancel', drop);
+      canvas.addEventListener('dblclick', function (e) {
+        var hit = bandAt(at(e));
+        if (hit < 0) { return; }
+        self.peq().bands[hit] = defaultPeq().bands[hit];
+        self.peqBand = hit;
+        self.peqChanged(false);
+      });
+      canvas.addEventListener('wheel', function (e) {
+        var hit = bandAt(at(e));
+        if (hit < 0) { return; }
+        var band = self.peq().bands[hit];
+        if (!peqHasWidth(band.type)) { return; }
+        e.preventDefault();
+        self.peqBand = hit;
+        self.peqSet(hit, 'q', band.q * Math.pow(1.12, e.deltaY < 0 ? 1 : -1));
+        self.peqChanged(true);
+      }, { passive: false });
+
+      // The strip's three knobs, for the chosen band: frequency and width by ratio, gain by decibels
+      Array.prototype.forEach.call(document.querySelectorAll('.peq-knob'), function (wrap) {
+        var key = wrap.dataset.peq, start = null;
+        function turned(from, steps) {
+          if (key === 'freq') { return from * Math.pow(PEQ_FREQ[1] / PEQ_FREQ[0], steps / 220); }
+          if (key === 'q') { return from * Math.pow(PEQ_Q[1] / PEQ_Q[0], steps / 180); }
+          return from + steps * (PEQ_GAIN[1] - PEQ_GAIN[0]) / 180;
+        }
+        function usable() {
+          var band = self.peq().bands[self.peqBand];
+          return key === 'freq' || (key === 'gain' ? peqHasGain(band.type) : peqHasWidth(band.type));
+        }
+        wrap.addEventListener('pointerdown', function (e) {
+          if (e.button !== 0 || !usable()) { return; }
+          start = { y: e.clientY, value: self.peq().bands[self.peqBand][key] };
+          try { wrap.setPointerCapture(e.pointerId); } catch (err) {}
+          e.preventDefault();
+        });
+        wrap.addEventListener('pointermove', function (e) {
+          if (!start) { return; }
+          self.peqSet(self.peqBand, key, turned(start.value, start.y - e.clientY));
+          self.peqChanged(true);
+        });
+        function let_go(e) {
+          if (!start) { return; }
+          try { wrap.releasePointerCapture(e.pointerId); } catch (err) {}
+          start = null;
+        }
+        wrap.addEventListener('pointerup', let_go);
+        wrap.addEventListener('pointercancel', let_go);
+        wrap.addEventListener('dblclick', function () {
+          if (!usable()) { return; }
+          var first = defaultPeq().bands[self.peqBand], band = self.peq().bands[self.peqBand];
+          var cut = band.type === 'lowcut' || band.type === 'highcut';
+          self.peqSet(self.peqBand, key, key === 'q' ? (cut ? PEQ_BUTTERWORTH : 1) : first[key]);
+          self.peqChanged(true);
+        });
+        wrap.addEventListener('wheel', function (e) {
+          if (!usable()) { return; }
+          e.preventDefault();
+          self.peqSet(self.peqBand, key, turned(self.peq().bands[self.peqBand][key], e.deltaY < 0 ? 4 : -4));
+          self.peqChanged(true);
+        }, { passive: false });
+      });
+    },
+
+    /* The unit's switch and the strip, from the settings. */
+    syncPeq: function () {
+      var peq = this.peq(), self = this;
+      if (this.peqBand >= peq.bands.length) { this.peqBand = 0; }
+      var band = peq.bands[this.peqBand], unitIn = peq.enabled !== false;
+      var toggle = document.getElementById('toggle-peq');
+      if (toggle) {
+        toggle.classList.toggle('on', unitIn);
+        toggle.innerHTML = '<span class="led"></span> ' + (unitIn ? 'IN' : 'OUT');
+      }
+      var range = document.getElementById('peq-range');
+      if (range) { range.textContent = '\u00b1' + this.peqRange() + ' dB'; }
+      var strip = document.getElementById('peq-strip');
+      if (!strip) { return; }
+      strip.style.setProperty('--band', this.PEQ_COLOURS[this.peqBand]);
+      Array.prototype.forEach.call(strip.querySelectorAll('.peq-dot'), function (dot) {
+        var i = Number(dot.dataset.band);
+        dot.classList.toggle('chosen', i === self.peqBand);
+        dot.classList.toggle('off', peq.bands[i].on === false);
+      });
+      Array.prototype.forEach.call(strip.querySelectorAll('.peq-type'), function (button) {
+        button.classList.toggle('chosen', button.dataset.kind === band.type);
+      });
+      var power = document.getElementById('peq-band-on');
+      if (power) { power.classList.toggle('on', band.on !== false); }
+      Array.prototype.forEach.call(strip.querySelectorAll('.peq-knob'), function (wrap) {
+        var key = wrap.dataset.peq, dial = wrap.querySelector('.knob-dial'), label = wrap.querySelector('.knob-val');
+        var used = key === 'freq' || (key === 'gain' ? peqHasGain(band.type) : peqHasWidth(band.type));
+        var turn = key === 'freq' ? Math.log(band.freq / PEQ_FREQ[0]) / Math.log(PEQ_FREQ[1] / PEQ_FREQ[0])
+          : key === 'q' ? Math.log(band.q / PEQ_Q[0]) / Math.log(PEQ_Q[1] / PEQ_Q[0])
+          : (band.gain - PEQ_GAIN[0]) / (PEQ_GAIN[1] - PEQ_GAIN[0]);
+        wrap.classList.toggle('unused', !used);
+        if (dial) { dial.style.transform = 'rotate(' + (-135 + Math.min(1, Math.max(0, used ? turn : 0.5)) * 270) + 'deg)'; }
+        if (label) {
+          label.textContent = !used ? '\u2013'
+            : key === 'freq' ? (band.freq >= 1000 ? (Math.round(band.freq / 10) / 100) + ' kHz' : Math.round(band.freq) + ' Hz')
+            : key === 'q' ? band.q.toFixed(2)
+            : (band.gain > 0 ? '+' : '') + band.gain.toFixed(1) + ' dB';
+        }
+      });
+      this.drawPeq();
+    },
+
+    /* The screen: the scales, what is being heard behind them, each band's own curve in its colour,
+       and over them the one line that is all of them together. */
+    drawPeq: function () {
+      var canvas = document.getElementById('peq-canvas');
+      if (!canvas || !canvas.getContext || !canvas.clientWidth) { return; }
+      var ratio = window.devicePixelRatio || 1, plot = this.peqPlot(canvas), self = this;
+      if (canvas.width !== Math.round(plot.w * ratio) || canvas.height !== Math.round(plot.h * ratio)) {
+        canvas.width = Math.round(plot.w * ratio);
+        canvas.height = Math.round(plot.h * ratio);
+      }
+      var g = canvas.getContext('2d');
+      g.setTransform(ratio, 0, 0, ratio, 0, 0);
+      g.clearRect(0, 0, plot.w, plot.h);
+      var peq = this.peq(), unitIn = peq.enabled !== false;
+      var rate = (Engine.ctx && Engine.ctx.sampleRate) || 48000;
+      var right = plot.left + plot.width, bottom = plot.top + plot.height, zero = this.peqY(plot, 0);
+
+      // scales
+      g.font = '10px ui-monospace, SFMono-Regular, Menlo, monospace';
+      g.textBaseline = 'middle';
+      [20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000,
+       6000, 7000, 8000, 9000, 10000, 20000].forEach(function (hz) {
+        var x = Math.round(self.peqX(plot, hz)) + 0.5, named = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].indexOf(hz) >= 0;
+        g.strokeStyle = named ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.035)';
+        g.beginPath(); g.moveTo(x, plot.top); g.lineTo(x, bottom); g.stroke();
+        if (named) {
+          g.fillStyle = 'rgba(148,163,184,0.75)';
+          g.textAlign = hz === 20 ? 'left' : hz === 20000 ? 'right' : 'center';
+          g.fillText(hz >= 1000 ? (hz / 1000) + 'k' : String(hz), x, bottom + 11);
+        }
+      });
+      var step = plot.range === 6 ? 2 : plot.range === 12 ? 3 : 6, lines = [0];
+      for (var mark = step; mark < plot.range; mark += step) { lines.push(mark, -mark); }
+      lines.forEach(function (db) {
+        var y = Math.round(self.peqY(plot, db)) + 0.5;
+        g.strokeStyle = db === 0 ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.06)';
+        g.beginPath(); g.moveTo(plot.left, y); g.lineTo(right, y); g.stroke();
+        g.fillStyle = db === 0 ? 'rgba(226,232,240,0.85)' : 'rgba(148,163,184,0.75)';
+        g.textAlign = 'left';
+        g.fillText((db > 0 ? '+' : '') + db, right + 6, y);
+      });
+
+      // what is heard
+      var heard = Engine.spectrum, audio = document.getElementById('audio');
+      if (heard && heard.getFloatFrequencyData && audio && !audio.paused) {
+        var bins = this.peqBins && this.peqBins.length === heard.frequencyBinCount ? this.peqBins : (this.peqBins = new Float32Array(heard.frequencyBinCount));
+        heard.getFloatFrequencyData(bins);
+        var perBin = rate / (2 * bins.length);
+        g.beginPath(); g.moveTo(plot.left, bottom);
+        for (var sx = 0; sx <= plot.width; sx += 2) {
+          var from = Math.floor(this.peqHz(plot, plot.left + sx) / perBin), to = Math.max(from, Math.floor(this.peqHz(plot, plot.left + sx + 2) / perBin));
+          var loud = -200;
+          for (var bin = from; bin <= to && bin < bins.length; bin++) { if (bins[bin] > loud) { loud = bins[bin]; } }
+          var level = Math.min(1, Math.max(0, (loud + 105) / 90));
+          g.lineTo(plot.left + sx, bottom - level * plot.height);
+        }
+        g.lineTo(right, bottom); g.closePath();
+        g.fillStyle = 'rgba(148,163,184,0.13)'; g.fill();
+        g.strokeStyle = 'rgba(203,213,225,0.28)'; g.lineWidth = 1; g.stroke();
+      }
+
+      // each band, then all of them
+      var xs = [], total = [];
+      for (var px = 0; px <= plot.width; px += 2) { xs.push(px); total.push(0); }
+      g.save();
+      g.beginPath(); g.rect(plot.left, plot.top, plot.width, plot.height); g.clip();
+      peq.bands.forEach(function (band, i) {
+        if (!peqBandActive(band)) { return; }
+        var shape = peqBandShape(band, true), chosen = i === self.peqBand;
+        g.beginPath(); g.moveTo(plot.left, zero);
+        xs.forEach(function (px, n) {
+          var db = biquadDb(shape, self.peqHz(plot, plot.left + px), rate);
+          total[n] += db;
+          g.lineTo(plot.left + px, self.peqY(plot, db));
+        });
+        g.lineTo(right, zero); g.closePath();
+        g.globalAlpha = (unitIn ? 1 : 0.4) * (chosen ? 0.34 : 0.16);
+        g.fillStyle = self.PEQ_COLOURS[i]; g.fill();
+        g.globalAlpha = (unitIn ? 1 : 0.4) * (chosen ? 0.95 : 0.55);
+        g.strokeStyle = self.PEQ_COLOURS[i]; g.lineWidth = 1.2; g.stroke();
+      });
+      g.globalAlpha = 1;
+      g.beginPath();
+      xs.forEach(function (px, n) {
+        var y = self.peqY(plot, total[n]);
+        if (n) { g.lineTo(plot.left + px, y); } else { g.moveTo(plot.left + px, y); }
+      });
+      g.strokeStyle = unitIn ? '#f8fafc' : 'rgba(148,163,184,0.6)';
+      g.lineWidth = 2;
+      if (!unitIn) { g.setLineDash([5, 5]); }
+      g.stroke();
+      g.setLineDash([]);
+      g.restore();
+
+      // the handles
+      peq.bands.forEach(function (band, i) {
+        var node = self.peqNode(plot, band), chosen = i === self.peqBand, on = band.on !== false;
+        g.globalAlpha = (unitIn ? 1 : 0.55) * (on ? 1 : 0.35);
+        g.beginPath(); g.arc(node.x, node.y, chosen ? 8 : 6, 0, Math.PI * 2);
+        g.fillStyle = self.PEQ_COLOURS[i]; g.fill();
+        g.lineWidth = chosen ? 2.5 : 1.5;
+        g.strokeStyle = chosen ? '#ffffff' : 'rgba(15,17,22,0.9)'; g.stroke();
+        if (chosen) {
+          g.fillStyle = '#0b0c10'; g.textAlign = 'center';
+          g.font = 'bold 9px ui-monospace, SFMono-Regular, Menlo, monospace';
+          g.fillText(String(i + 1), node.x, node.y + 0.5);
+        }
+      });
+      g.globalAlpha = 1;
     },
 
     /* The preset whose values these settings are: a factory one, then one of the user's.
@@ -2115,6 +2700,11 @@
 
     chainEngaged: chainEngaged,
     nodeMakeupDb: nodeMakeupDb,
+    defaultPeq: defaultPeq,
+    peqOf: peqOf,
+    peqDb: peqDb,
+    peqBandShape: peqBandShape,
+    biquadDb: biquadDb,
     upgradeSettings: upgradeSettings,
     soundOf: soundOf,
 
@@ -2271,6 +2861,9 @@
           self.animFrame = requestAnimationFrame(drawMeters);
           return;
         }
+        // the equaliser's screen moves only with what is heard behind its curve
+        var heardNow = document.getElementById('audio');
+        if (heardNow && !heardNow.paused) { self.drawPeq(); }
 
         // 1. Draw 1073-DPX Output Meter & Telemetry
         if (Engine.analyser) {

@@ -37,6 +37,11 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **Mastering rack: a parametric equalizer.** A new unit between the 1073 EQ and the compressor, with seven bands on a graph. Each band is a dot: drag it across for its frequency and up or down for its gain, turn the mouse wheel over it for its width, double-click it to reset it. A band can be a low cut, a low shelf, a bell, a notch, a high shelf or a high cut, and can be switched off; a cut waits, switched off, at each end. The graph shows each band's own curve in its colour, the curve of all of them together, and, while a take plays, the spectrum of what is heard behind them. A button in the graph's corner sets how many decibels it shows (6, 12 or 18 either side), for fine moves or broad ones. The equalizer is part of the rack's settings: it is kept with the take, and a preset you save holds it. The factory presets leave it out and flat.
+- **Mastering rack: the units keep their height.** With five units the rack is taller than most windows, and its units were squeezed to fit, cutting their controls off. The rack now scrolls.
+
 ## 0.0.42 (2026-10-12)
 
 - **Saved styles.** A **Save** button beside the style menu keeps the style in the Style box under a name you give it. The menu's first entry is **Saved styles**, which opens onto the ones you kept, each with a bin to delete it, and the menu's search finds them with the canned styles. Saving under a name already used replaces that style, after asking. A style is kept without a style LoRA's trigger word, which is put back for the LoRA in use when the style is chosen. They are kept by the app, so the Windows window and any browser see the same ones.

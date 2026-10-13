@@ -592,7 +592,7 @@ def test_the_factory_presets_leave_room_for_what_they_add():
     block = rack_js[rack_js.index("var PRESETS = {"):rack_js.index("// ------------------------------------------------------------- DSP Helpers")]
     names = re.findall(r"^    '(\w+)': \{", block, flags=re.M)
     assert names == ["default", "vintage_warmth", "vocal_air", "radio_master", "punchy_bass", "acoustic_clarity"]
-    sum_of_the_node = rack_js[rack_js.index("  function nodeMakeupDb("):rack_js.index("  /* The sample rate a FLAC or WAV file says it has;")]
+    sum_of_the_node = rack_js[rack_js.index("  function nodeMakeupDb("):rack_js.index("  // ------------------------------------------------------------- Parametric equaliser")]
     bodies = re.split(r"^    '\w+': \{", block, flags=re.M)[1:]
     for name, body in zip(names, bodies):
         if name == "default":
@@ -630,10 +630,10 @@ def test_nothing_is_sliced_before_the_limiter_and_the_dry_signal_waits_for_the_c
     assert [build.index(line) for line in order] == sorted(build.index(line) for line in order)
     # the dry signal goes through a delay of the compressor's own frames
     assert "this.compDryDelay.delayTime.value = Math.floor(0.006 * ctx.sampleRate) / ctx.sampleRate;" in build
-    assert build.index("this.eqOutput.connect(this.compDryDelay);") < build.index("this.compDryDelay.connect(this.compDryGain);")
-    assert "this.eqOutput.connect(this.compDryGain);" not in build
+    assert build.index("eqTail.connect(this.compDryDelay);") < build.index("this.compDryDelay.connect(this.compDryGain);")
+    assert "connect(this.compDryGain);" in build and "eqTail.connect(this.compDryGain);" not in build
     # the tube curve, drawn over four times the span: the old curve inside full scale, and no corner beyond it
-    curves = rack_js[rack_js.index("  var SHAPER_SPAN = 4;"):rack_js.index("  /* The sample rate a FLAC or WAV file says it has;")]
+    curves = rack_js[rack_js.index("  var SHAPER_SPAN = 4;"):rack_js.index("  /* The gain a DynamicsCompressorNode adds by itself")]
     script = curves + """
       var c = makeTubeCurve(), n = c.length - 1;
       function at(x) { return c[Math.round((x / SHAPER_SPAN + 1) * n / 2)] * SHAPER_SPAN; }
@@ -656,7 +656,7 @@ def test_the_compressors_output_is_all_the_gain_it_adds():
     ratio.  The rack works the same amount out and takes it off after the node.  The figures here are the
     node's, measured in a browser from a tone far under the threshold."""
     rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
-    own = rack_js[rack_js.index("  function nodeMakeupDb("):rack_js.index("  /* The sample rate a FLAC or WAV file says it has;")]
+    own = rack_js[rack_js.index("  function nodeMakeupDb("):rack_js.index("  // ------------------------------------------------------------- Parametric equaliser")]
     measured = {(-18, 10, 4): 6.028, (-18, 20, 3): 2.601, (-24, 8, 8): 10.937, (-45, 0, 20): 25.650, (-45, 40, 20): 10.532,
                 (0, 0, 1): 0.0, (-0.5, 0, 20): 0.285, (-30, 30, 12): 6.556, (-6, 3, 2): 1.390, (-10, 40, 20): 0.171}
     script = own + "console.log(JSON.stringify(%s.map(function (g) { return nodeMakeupDb(g[0], g[1], g[2]); })));" % (
@@ -669,3 +669,114 @@ def test_the_compressors_output_is_all_the_gain_it_adds():
     assert "var makeupDb = (s.comp.makeup || 0) - nodeMakeupDb(compThreshold, compKnee, compRatio);" in apply
     assert "set(this.compressor.threshold, compThreshold);" in apply and "set(this.compressor.knee, compKnee);" in apply
     assert "set(this.compressor.ratio, compRatio);" in apply
+
+
+# ------------------------------------------------------------------ the parametric equaliser
+def equalised(flat: dict, unit_in: bool = True, **bands) -> dict:
+    """The flat rack with some bands of the parametric equaliser set: band3={"gain": 4} and so on."""
+    out = json.loads(json.dumps(flat))
+    out["peq"]["enabled"] = unit_in
+    for name, values in bands.items():
+        out["peq"]["bands"][int(name[4:]) - 1].update(values)
+    return out
+
+
+def test_the_parametric_equaliser_starts_out_with_a_cut_waiting_at_each_end(flat):
+    peq = flat["peq"]
+    assert peq["enabled"] is False and len(peq["bands"]) == 7
+    assert [band["type"] for band in peq["bands"]] == ["lowcut", "lowshelf", "bell", "bell", "bell", "highshelf", "highcut"]
+    assert [band["on"] for band in peq["bands"]] == [False, True, True, True, True, True, False]
+    assert all(band["gain"] == 0 for band in peq["bands"])
+    assert [band["freq"] for band in peq["bands"]] == sorted(band["freq"] for band in peq["bands"])
+
+
+def test_a_band_that_changes_nothing_is_nothing(flat):
+    """The unit switched in with every band flat, a band set and then switched off, and bands set in a unit that
+    is out all leave the sound alone: the chain stays out of the path, the rack is still the flat preset, and
+    every one of the equaliser's filters is a bell with no gain."""
+    cases = [equalised(flat),                                                   # in, and flat
+             equalised(flat, band3={"gain": 5, "on": False}),                   # a band set, and off
+             equalised(flat, False, band3={"gain": 5}, band1={"on": True}),     # set, in a unit that is out
+             equalised(flat, band4={"freq": 2500, "q": 6})]                     # a flat band moved about
+    got = rack(cases)
+    assert got["engaged"] == [False] * 4 and got["presets"] == ["default"] * 4
+    for case in got["cases"]:
+        mine = [n for n in case["render"] if n["kind"] == "biquad"][4:11]     # after the 1073's four
+        assert all(n["type"] == "peaking" and n["gain"] == 0 for n in mine)
+
+
+def test_the_equalisers_bands_reach_the_chain_and_the_render_holds_what_playback_does(flat):
+    busy = equalised(flat, band1={"on": True, "freq": 45}, band2={"gain": 2.5}, band3={"gain": -4, "q": 2, "freq": 250},
+                     band5={"type": "notch", "freq": 3200, "q": 6}, band6={"gain": 4}, band7={"on": True, "freq": 16000, "q": 1})
+    got = rack([busy])
+    assert got["engaged"] == [True] and got["presets"] == [None]
+    case = got["cases"][0]
+    assert case["live"] == case["render"]
+    mine = [n for n in case["render"] if n["kind"] == "biquad"][4:11]     # after the 1073's four
+    assert [n["type"] for n in mine] == ["highpass", "lowshelf", "peaking", "peaking", "notch", "highshelf", "lowpass"]
+    assert [n["frequency"] for n in mine] == [45, 90, 250, 1000, 3200, 10000, 16000]
+    assert [n["gain"] for n in mine] == [0, 2.5, -4, 0, 0, 4, 0]
+    # a cut's Q goes to its filter in decibels, a bell's and a notch's as they are, a shelf has none
+    assert mine[0]["Q"] == pytest.approx(-2.97, abs=0.01) and mine[6]["Q"] == 0
+    assert (mine[2]["Q"], mine[4]["Q"]) == (2, 6)
+    # and it is kept as part of the rack: a preset of the user's own holds it
+    assert rack([busy], user_presets={"user_1": busy})["presets"] == ["user_1"]
+
+
+def test_the_curve_drawn_is_the_filter_heard():
+    """The screen works a band's curve out with the Web Audio specification's own coefficients; in a browser the
+    sum agrees with the node's getFrequencyResponse to the thousandth of a decibel.  Here, the things any
+    equaliser must do."""
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    section = rack_js[rack_js.index("  var PEQ_TYPES = "):rack_js.index("  // A preset is the whole rack: each one has")]
+    script = section + """
+      function band(type, freq, gain, q) { return { on: true, type: type, freq: freq, gain: gain, q: q }; }
+      function db(b, hz) { return biquadDb(peqBandShape(b, true), hz, 48000); }
+      var settings = { peq: { enabled: true, bands: [band('lowcut', 60, 0, 0.71), band('lowshelf', 200, 4, 1), band('bell', 1000, 6, 1.5),
+                                                      band('bell', 1000, -6, 1.5), band('notch', 4000, 0, 4), band('highshelf', 6000, -3, 1),
+                                                      band('highcut', 15000, 0, 0.71)] } };
+      var peq = peqOf(settings);
+      console.log(JSON.stringify({
+        bell: [db(peq.bands[2], 1000), db(peq.bands[2], 50), db(peq.bands[2], 16000)],
+        opposite: db(peq.bands[2], 700) + db(peq.bands[3], 700),
+        lowshelf: [db(peq.bands[1], 20), db(peq.bands[1], 200), db(peq.bands[1], 10000)],
+        highshelf: [db(peq.bands[5], 20000), db(peq.bands[5], 100)],
+        lowcut: [db(peq.bands[0], 60), db(peq.bands[0], 30), db(peq.bands[0], 2000)],
+        highcut: [db(peq.bands[6], 15000), db(peq.bands[6], 1000)],
+        notch: [db(peq.bands[4], 4000), db(peq.bands[4], 400)],
+        whole: peqDb(peq, 1000, 48000),
+        out: peqDb(peqOf({ peq: { enabled: false, bands: peq.bands } }), 1000, 48000),
+        none: peqOf({}), odd: peqOf({ peq: { bands: [{ type: 'wah', freq: 5, gain: 99, q: 0 }] } }).bands[0]
+      }));
+    """
+    got = json.loads(subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout)
+    near = lambda want, tolerance=0.05: pytest.approx(want, abs=tolerance)
+    assert got["bell"][0] == near(6) and got["bell"][1] == near(0) and got["bell"][2] == near(0, 0.1)
+    assert got["opposite"] == near(0, 1e-6)                    # a boost and the same cut undo each other
+    assert got["lowshelf"][0] == near(4, 0.1) and got["lowshelf"][1] == near(2, 0.1) and got["lowshelf"][2] == near(0)
+    assert got["highshelf"][0] == near(-3, 0.1) and got["highshelf"][1] == near(0)
+    assert got["lowcut"][0] == near(-3, 0.1) and got["lowcut"][1] < -11 and got["lowcut"][2] == near(0)
+    assert got["highcut"][0] == near(-3, 0.1) and got["highcut"][1] == near(0)
+    assert got["notch"][0] < -40 and got["notch"][1] == near(0, 0.1)
+    assert got["whole"] == near(0, 0.2)                        # the two bells cancel at 1 kHz; the rest are far off
+    assert got["out"] == 0
+    # settings with no equaliser have one that is out; values out of range come within it, a kind not known is the band's own
+    assert got["none"]["enabled"] is False and len(got["none"]["bands"]) == 7
+    assert got["odd"] == {"on": False, "type": "lowcut", "freq": 20, "gain": 18, "q": 0.3}
+
+
+def test_the_equaliser_sits_after_the_1073_and_before_the_compressor_and_the_bay_scrolls():
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    build = rack_js[rack_js.index("    build: function (ctx, source, destination) {"):rack_js.index("    makeTubeCurve: function () {")]
+    order = ["this.eqPhase.connect(this.eqOutput);", "var eqTail = this.eqOutput;", "eqTail.connect(filter);",
+             "eqTail.connect(this.compDryDelay);", "eqTail.connect(this.compressor);"]
+    assert [build.index(line) for line in order] == sorted(build.index(line) for line in order)
+    # the analyser behind the curve only listens
+    assert "this.analyser.connect(this.spectrum);" in build and "this.spectrum.connect(" not in build
+    # the unit is in the rack between the two, and has no brand or preset of its own
+    markup = rack_js[rack_js.index('id="unit-peq"'):rack_js.index('id="unit-comp"')]
+    assert rack_js.index('id="unit-eq"') < rack_js.index('id="unit-peq"') < rack_js.index('id="unit-comp"')
+    assert "PARAMETRIC EQUALIZER" in markup and "<select" not in markup
+    css = (Path(__file__).resolve().parent.parent / "app" / "static" / "styles.css").read_text(encoding="utf-8")
+    unit = css[css.index("\n.rack-unit {"):css.index(".unit-bar {")]
+    assert "flex-shrink: 0;" in unit       # or five units are squeezed into the bay and their controls cut off
