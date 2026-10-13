@@ -554,7 +554,7 @@ def test_the_preset_box_names_the_preset_the_settings_are(flat):
         "name": "anything", "masterBypass": True,
         "eq": {"enabled": True, "preGain": -4, "hp": 20, "lowFreq": 110, "lowGain": 1.5, "mid1Freq": 700,
                "mid1Gain": 0.5, "airGain": 1.0, "outLevel": 0, "phase": False},
-        "comp": {"enabled": True, "threshold": -18, "ratio": 3, "attack": 0.02, "release": 0.35, "makeup": 1.0,
+        "comp": {"enabled": True, "threshold": -22, "ratio": 2, "attack": 0.02, "release": 0.35, "makeup": 1.0,
                  "mix": 1.0, "knee": 20},
         "imager": {"enabled": True, "bigness": 2, "range": 6, "stage": 5, "harmonics": True, "tubeHarmonics": 2,
                    "bass": False},
@@ -607,6 +607,8 @@ def test_the_factory_presets_leave_room_for_what_they_add():
         assert value("preGain") <= -boost / 2 and value("preGain") <= -2, name     # turned down by at least half of what is added
         assert value("drive") == 0 and value("ceiling") <= -0.3, name
         assert value("mix") == 1.0 and value("outLevel") <= 0, name
+        # a ratio the rack has a button for, or no button is lit when the preset is chosen
+        assert 'data-ratio="%g"' % value("ratio") in rack_js, name
         assert value("bigness") <= 3 and value("tubeHarmonics") <= 2, name
 
 

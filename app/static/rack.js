@@ -39,7 +39,8 @@
        more), and keeps its peaks under full scale all the way through, so that the limiter is a guard
        here and not what makes the sound.  The presets these replace came out a good deal louder than
        they went in, and were driven past full scale inside the rack.  The compressor's OUTPUT gives back
-       about what its settings take off the loud parts, and no more. */
+       about what its settings take off the loud parts, and no more.  Every ratio is one the rack has a
+       button for, so the button is lit when the preset is chosen. */
     'vintage_warmth': {
       name: 'Vintage Tube Warmth',
       eq: {
@@ -55,7 +56,7 @@
         phase: false,
         mid1Freq: 700, mid1Gain: 0.5, highFreq: 12000, airGain: 1.0
       },
-      comp: { enabled: true, threshold: -18, ratio: 3, attack: 0.020, release: 0.35, makeup: 3.6, mix: 1.0, knee: 20 },
+      comp: { enabled: true, threshold: -22, ratio: 2, attack: 0.020, release: 0.35, makeup: 4.0, mix: 1.0, knee: 20 },
       imager: { enabled: true, bigness: 2, range: 6, stage: 5, harmonics: true, tubeHarmonics: 2, bass: false },
       limit: { enabled: true, drive: 0, ceiling: -0.5, release: 0.12, warmth: true },
       masterBypass: false,
@@ -76,7 +77,7 @@
         phase: false,
         mid1Freq: 3200, mid1Gain: 1.5, highFreq: 12000, airGain: 2.0
       },
-      comp: { enabled: true, threshold: -18, ratio: 2.5, attack: 0.010, release: 0.20, makeup: 4.8, mix: 1.0, knee: 12 },
+      comp: { enabled: true, threshold: -20, ratio: 2, attack: 0.010, release: 0.20, makeup: 5.1, mix: 1.0, knee: 12 },
       imager: { enabled: true, bigness: 2, range: 3, stage: 6, harmonics: false, tubeHarmonics: 1, bass: false },
       limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.08, warmth: false },
       masterBypass: false,
@@ -139,7 +140,7 @@
         phase: false,
         mid1Freq: 4800, mid1Gain: 1.0, highFreq: 12000, airGain: 1.5
       },
-      comp: { enabled: true, threshold: -18, ratio: 3, attack: 0.015, release: 0.30, makeup: 3.2, mix: 1.0, knee: 18 },
+      comp: { enabled: true, threshold: -20, ratio: 2, attack: 0.015, release: 0.30, makeup: 3.2, mix: 1.0, knee: 18 },
       imager: { enabled: true, bigness: 2, range: 4, stage: 6, harmonics: false, tubeHarmonics: 1, bass: false },
       limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.10, warmth: false },
       masterBypass: false,
