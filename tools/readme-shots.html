@@ -8,7 +8,9 @@
          --screenshot=cover.png http://<app>/static/readme-shots.html#cover
 
      Scenes: cover (the editor's Score page), comfy (Wide + Comfy, the take panel), light (Light theme),
-     song (the editor), instrumental, lora (the editor as steps), corpora, corpus. -->
+     song (the editor), instrumental, lora (the editor as steps), corpora, corpus,
+     mastering (the rack on its own, floating at 30,24: the shot is cropped to it; it reports the
+     rack's box to /__r, which the app's log shows, for the crop). -->
 <html><body style="margin:0;background:#08080b">
 <iframe id="f" style="width:100vw;height:100vh;border:0;display:block"></iframe>
 <script>
@@ -21,6 +23,7 @@ try {   // the app reads these on load: every scene starts from the same place
   localStorage.setItem('yue2.width', 'wide');
   localStorage.setItem('yue2.filter', 'all');
   localStorage.setItem('yue2.sheet', 'open');
+  if (scene === 'mastering') { localStorage.setItem('yue2.peqRange', '6'); }   // small moves, seen large
 } catch (e) {}
 f.onload = function () {
   var w = f.contentWindow, d = w.document;
@@ -56,6 +59,45 @@ f.onload = function () {
     } else if (scene === 'lora') {
       w.State.settings['editor.layout'] = 'steps';
       w.selectTake(take('glasshouse00')); w.openEditor('sound');
+    } else if (scene === 'mastering') {
+      // The rack on its own, every unit in, with a take playing through it.
+      var song = take('glasshouse00'), R = w.Rack, E = w.RackEngine, panel = d.getElementById('rack-panel');
+      w.selectTake(song); w.playTake(song.id); R.openForTake(song);
+      // The rack reads the settings kept with the take as it opens, and that answer comes back a moment
+      // later: the scene is set once it has, or it would be set and then put back to flat.
+      setTimeout(function () {
+        var preset = d.getElementById('rack-preset-select');
+        preset.value = 'radio_master'; preset.dispatchEvent(new w.Event('change'));
+        [[0, 'freq', 32], [1, 'gain', 1.5], [2, 'freq', 280], [2, 'q', 1.4], [2, 'gain', -2.5], [3, 'freq', 1800], [3, 'gain', 1.2],
+         [4, 'freq', 4200], [4, 'q', 1.3], [4, 'gain', 2], [5, 'gain', 2.5]].forEach(function (set) { R.peqSet(set[0], set[1], set[2]); });
+        R.peqBand = 2; R.peqChanged(true);
+        R.floatToCenter();
+        panel.style.left = '30px'; panel.style.top = '24px';
+        // nothing but the rack: the shot is cropped to it, and its corners and shadow want a plain page behind
+        var alone = d.createElement('style'); alone.textContent = 'body > *:not(#rack-panel){visibility:hidden!important}'; d.head.appendChild(alone);
+        // A shot stops the clock, so nothing is really playing and the analyser behind the equaliser's curve has
+        // heard nothing.  The spectrum drawn is the take's own all the same: a few seconds of it are rendered here
+        // through the rack as it is set, and the screen is given what that render's analyser heard.
+        w.fetch('/api/takes/' + song.id + '/audio').then(function (r) { return r.arrayBuffer(); }).then(function (bytes) {
+          return new w.OfflineAudioContext(2, 1, 48000).decodeAudioData(bytes);
+        }).then(function (whole) {
+          var ctx = new w.OfflineAudioContext(2, 3 * whole.sampleRate, whole.sampleRate), source = ctx.createBufferSource();
+          var chain = Object.create(E), entry = ctx.createGain(), out = ctx.createGain();
+          chain.ctx = ctx; chain.build(ctx, entry, out); chain.applySettings(R.settings, true);
+          source.buffer = whole; source.connect(entry); out.connect(ctx.destination); source.start(0, 62, 3);
+          return ctx.startRendering().then(function () {
+            var heard = new Float32Array(chain.spectrum.frequencyBinCount);
+            chain.spectrum.getFloatFrequencyData(heard);
+            E.spectrum = { staged: true, frequencyBinCount: heard.length, getFloatFrequencyData: function (into) { into.set(heard); } };
+            Object.defineProperty(d.getElementById('audio'), 'paused', { get: function () { return false; } });
+            R.drawPeq();
+          });
+        }).catch(function () { /* the shot goes without a spectrum */ }).then(function () {
+          var box = panel.getBoundingClientRect();
+          w.fetch('/__r?' + encodeURIComponent(JSON.stringify({ rack: [box.left, box.top, box.width, box.height].map(Math.round), zoom: R.rackZoom,
+                                                                 preset: d.getElementById('rack-preset-select').value, spectrum: Boolean(E.spectrum && E.spectrum.staged) })));
+        });
+      }, 900);
     } else if (scene === 'corpora' || scene === 'corpus') {
       w.State.options.training_available = true;   // the trainer is in the engine; say so without waiting on it
       w.openIdentities(); if (scene === 'corpus') { w.showIdentity('glassorchard'); }
