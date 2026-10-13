@@ -3272,10 +3272,12 @@ button.ghost.run-all { margin-left: 10px; }
 .pbtn.rack-btn.active { color: var(--accent-a, #38bdf8); background: rgb(var(--accent-a-rgb, 56 189 248) / 0.15); }
 
 /* --rack-zoom is the size the rack is drawn at to be seen whole in the window (rack.js, fitToWindow):
-   the panel narrows by it and its chassis is drawn smaller by it, so the rack keeps its proportions. */
+   the panel narrows by it and its chassis is drawn smaller by it, so the rack keeps its proportions.
+   --rack-type is how much larger its lettering is set to make up for that: knobs and panels can be drawn
+   at two thirds of their size and still be used, and small bold capitals cannot be read at it. */
 .rack-panel {
   position: fixed; left: 20px; right: 20px; bottom: 66px; z-index: 35;
-  max-width: calc(1240px * var(--rack-zoom, 1)); margin: 0 auto;
+  max-width: calc(1240px * var(--rack-zoom, 1) * var(--rack-wide, 1)); margin: 0 auto;
   transform: translateY(calc(100% + 80px)); opacity: 0; pointer-events: none; visibility: hidden;
   transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease, visibility 380ms;
 }
@@ -3352,7 +3354,7 @@ button.ghost.run-all { margin-left: 10px; }
   cursor: pointer;
 }
 .rack-head-btn.dock-btn {
-  font-size: 11px;
+  font-size: calc(11px * var(--rack-type, 1));
 }
 .rack-ears { display: flex; gap: 8px; align-items: center; }
 .screw {
@@ -3377,33 +3379,33 @@ button.ghost.run-all { margin-left: 10px; }
 
 .rack-title-block { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .rack-badge {
-  font-size: 10px; font-weight: 750; letter-spacing: 0.08em;
+  font-size: calc(10px * var(--rack-type, 1)); font-weight: 750; letter-spacing: 0.08em;
   padding: 2px 6px; border-radius: 4px; background: #38bdf8; color: #082f49;
 }
 .rack-title {
-  font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em;
+  font-size: calc(12.5px * var(--rack-type, 1)); font-weight: 700; letter-spacing: 0.08em;
   color: #e2e8f0; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
   white-space: nowrap;
 }
 .rack-take-label {
-  font-size: 12px; color: #94a3b8; max-width: 260px;
+  font-size: calc(12px * var(--rack-type, 1)); color: #94a3b8; max-width: 260px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 .rack-header-tools { display: flex; align-items: center; gap: 10px; }
 .rack-preset-wrap {
   display: flex; align-items: center; gap: 6px;
-  font-size: 11.5px; font-weight: 600; color: #94a3b8;
+  font-size: calc(11.5px * var(--rack-type, 1)); font-weight: 600; color: #94a3b8;
 }
 .rack-select {
   background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #f1f5f9; font: inherit; font-size: 12px;
+  color: #f1f5f9; font: inherit; font-size: calc(12px * var(--rack-type, 1));
   padding: 4px 8px; border-radius: 6px; cursor: pointer;
 }
 .rack-head-btn {
   background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #f1f5f9; font: inherit; font-size: 11.5px; font-weight: 600;
+  color: #f1f5f9; font: inherit; font-size: calc(11.5px * var(--rack-type, 1)); font-weight: 600;
   padding: 4px 10px; border-radius: 6px; cursor: pointer;
   display: inline-flex; align-items: center; gap: 5px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.4);
@@ -3451,12 +3453,12 @@ button.ghost.run-all { margin-left: 10px; }
   display: flex; align-items: center; gap: 10px;
 }
 .unit-brand {
-  font-size: 12px; font-weight: 750; letter-spacing: 0.12em;
+  font-size: calc(12px * var(--rack-type, 1)); font-weight: 750; letter-spacing: 0.12em;
   color: #cbd5e1; text-transform: uppercase;
 }
 .unit-toggle {
   background: #1e293b; border: 1px solid rgba(255,255,255,0.14);
-  color: #94a3b8; font: inherit; font-size: 11px; font-weight: 700;
+  color: #94a3b8; font: inherit; font-size: calc(11px * var(--rack-type, 1)); font-weight: 700;
   padding: 4px 10px; border-radius: 5px; cursor: pointer;
   display: inline-flex; align-items: center; gap: 6px;
 }
@@ -3480,7 +3482,7 @@ button.ghost.run-all { margin-left: 10px; }
 .peq-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .peq-range {
   position: absolute; top: 8px; left: 12px; padding: 2px 8px; border-radius: 5px; cursor: pointer;
-  font: 600 10.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: #cbd5e1;
+  font: 600 calc(10.5px * var(--rack-type, 1)) ui-monospace, SFMono-Regular, Menlo, monospace; color: #cbd5e1;
   background: rgba(15, 17, 22, 0.75); border: 1px solid rgba(255, 255, 255, 0.14);
 }
 .peq-range:hover { color: #f8fafc; border-color: rgba(255, 255, 255, 0.3); }
@@ -3493,7 +3495,7 @@ button.ghost.run-all { margin-left: 10px; }
 .peq-dots, .peq-types { display: flex; align-items: center; gap: 5px; }
 .peq-dot {
   width: 24px; height: 24px; border-radius: 50%; padding: 0; cursor: pointer;
-  font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: #0b0c10;
+  font: 700 calc(11px * var(--rack-type, 1)) ui-monospace, SFMono-Regular, Menlo, monospace; color: #0b0c10;
   background: var(--band); border: 2px solid rgba(11, 12, 16, 0.9); opacity: 0.55;
 }
 .peq-dot:hover { opacity: 0.85; }
@@ -3553,7 +3555,7 @@ button.ghost.run-all { margin-left: 10px; }
   border-radius: 3px;
   color: #0f172a;
   font-family: inherit;
-  font-size: 9.5px;
+  font-size: calc(9.5px * var(--rack-type, 1));
   font-weight: 800;
   letter-spacing: 0.05em;
   padding: 3px 6px;
@@ -3714,7 +3716,7 @@ button.ghost.run-all { margin-left: 10px; }
   background: #ef4444; box-shadow: 0 0 9px #ef4444;
 }
 .ladder-lbl {
-  font-size: 8px; font-weight: 750; color: #64748b; font-family: monospace;
+  font-size: calc(8px * var(--rack-type, 1)); font-weight: 750; color: #64748b; font-family: monospace;
 }
 
 /* Miniature Status LEDs */
@@ -3722,7 +3724,7 @@ button.ghost.run-all { margin-left: 10px; }
   display: flex; flex-direction: column; gap: 3px;
 }
 .status-led-item {
-  display: flex; align-items: center; gap: 4px; font-size: 8px; font-weight: 800; color: #94a3b8;
+  display: flex; align-items: center; gap: 4px; font-size: calc(8px * var(--rack-type, 1)); font-weight: 800; color: #94a3b8;
 }
 .mini-led {
   width: 5px; height: 5px; border-radius: 50%; background: #334155;
@@ -3741,7 +3743,7 @@ button.ghost.run-all { margin-left: 10px; }
   text-shadow: 0 1px 3px rgba(0,0,0,0.9);
 }
 .dpx-badge-desc {
-  font-size: 8.5px; font-weight: 800; letter-spacing: 0.16em; color: #94a3b8;
+  font-size: calc(8.5px * var(--rack-type, 1)); font-weight: 800; letter-spacing: 0.16em; color: #94a3b8;
 }
 
 .unit-comp .unit-faceplate {
@@ -3804,18 +3806,18 @@ button.ghost.run-all { margin-left: 10px; }
   filter: brightness(1.12); box-shadow: 0 4px 10px rgba(0,0,0,0.85), 0 0 0 2px rgba(56, 189, 248, 0.45);
 }
 .knob-name {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
+  font-size: calc(11px * var(--rack-type, 1)); font-weight: 700; letter-spacing: 0.07em;
   color: #94a3b8; text-transform: uppercase; white-space: nowrap;
-  height: 14px; line-height: 14px; text-align: center;
+  height: calc(14px * var(--rack-type, 1)); line-height: calc(14px * var(--rack-type, 1)); text-align: center;
 }
 .knob-val {
-  font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(11px * var(--rack-type, 1)); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-weight: 600; color: #38bdf8; background: rgba(0,0,0,0.6);
-  padding: 2px 6px; border-radius: 4px; min-width: 62px; text-align: center;
+  padding: 2px 6px; border-radius: 4px; min-width: calc(62px * var(--rack-type, 1)); text-align: center;
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
   white-space: nowrap !important;
   box-sizing: border-box;
-  height: 20px; line-height: 16px;
+  height: calc(4px + 16px * var(--rack-type, 1)); line-height: calc(16px * var(--rack-type, 1));
   display: inline-block;
 }
 
@@ -3836,7 +3838,7 @@ button.ghost.run-all { margin-left: 10px; }
   pointer-events: none;
 }
 .vu-label {
-  font-size: 9.5px; font-weight: 750; letter-spacing: 0.1em;
+  font-size: calc(9.5px * var(--rack-type, 1)); font-weight: 750; letter-spacing: 0.1em;
   color: #78716c; text-align: center; margin-top: 3px;
 }
 
@@ -3845,7 +3847,7 @@ button.ghost.run-all { margin-left: 10px; }
   display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
 .ratio-title {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #94a3b8;
+  font-size: calc(11px * var(--rack-type, 1)); font-weight: 700; letter-spacing: 0.08em; color: #94a3b8;
 }
 .ratio-buttons {
   display: flex; flex-direction: column; gap: 3px;
@@ -3853,7 +3855,7 @@ button.ghost.run-all { margin-left: 10px; }
 .ratio-btn {
   background: linear-gradient(180deg, #2b2e36 0%, #17181c 100%);
   border: 1px solid #111; color: #94a3b8;
-  font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 3px;
+  font-size: calc(11px * var(--rack-type, 1)); font-weight: 700; padding: 4px 10px; border-radius: 3px;
   cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.6);
 }
 .ratio-btn.on {
@@ -3868,7 +3870,7 @@ button.ghost.run-all { margin-left: 10px; }
   border: 1px solid rgba(255,255,255,0.06);
 }
 .warmth-title {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #94a3b8;
+  font-size: calc(11px * var(--rack-type, 1)); font-weight: 700; letter-spacing: 0.08em; color: #94a3b8;
 }
 .switch-toggle {
   width: 40px; height: 22px; border-radius: 999px;
@@ -3889,7 +3891,7 @@ button.ghost.run-all { margin-left: 10px; }
   transform: translateX(18px); background: #ef4444; box-shadow: 0 0 8px #ef4444;
 }
 .warmth-status {
-  font-size: 10px; font-weight: 700; color: #64748b;
+  font-size: calc(10px * var(--rack-type, 1)); font-weight: 700; color: #64748b;
 }
 .warmth-status.active { color: #ef4444; text-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
 
@@ -3915,7 +3917,7 @@ button.ghost.run-all { margin-left: 10px; }
   gap: 6px; height: 108px;
 }
 .imager-hint-label {
-  font-size: 8.5px; font-weight: 700; color: #64748b;
+  font-size: calc(8.5px * var(--rack-type, 1)); font-weight: 700; color: #64748b;
   text-align: center; white-space: nowrap; letter-spacing: 0.04em;
   margin-bottom: 2px;
 }
@@ -3940,7 +3942,7 @@ button.ghost.run-all { margin-left: 10px; }
   box-shadow: inset 0 1px 4px rgba(0,0,0,0.8), 0 0 10px rgba(56, 189, 248, 0.25);
 }
 .imager-btn-txt {
-  font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  font-size: calc(9.5px * var(--rack-type, 1)); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
 }
 .imager-btn-led {
   width: 14px; height: 14px; border-radius: 2px;
@@ -3962,7 +3964,7 @@ button.ghost.run-all { margin-left: 10px; }
 }
 .imager-window-title,
 .imager-window-sub {
-  font-size: 9px; font-weight: 800; letter-spacing: 0.16em;
+  font-size: calc(9px * var(--rack-type, 1)); font-weight: 800; letter-spacing: 0.16em;
   color: #cbd5e1; text-transform: uppercase;
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
@@ -4014,7 +4016,7 @@ button.ghost.run-all { margin-left: 10px; }
   text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 .imager-badge-sub {
-  font-size: 8px; font-weight: 800; letter-spacing: 0.16em; color: #64748b;
+  font-size: calc(8px * var(--rack-type, 1)); font-weight: 800; letter-spacing: 0.16em; color: #64748b;
   margin-top: 2px;
 }
 .imager-pwr-block {
@@ -4030,13 +4032,13 @@ button.ghost.run-all { margin-left: 10px; }
   background: #ef4444; box-shadow: 0 0 7px #ef4444;
 }
 .imager-pwr-lbl {
-  font-size: 8px; font-weight: 800; color: #64748b;
+  font-size: calc(8px * var(--rack-type, 1)); font-weight: 800; color: #64748b;
 }
 .imager-on-btn {
   background: linear-gradient(180deg, #382717 0%, #1f140a 100%);
   border: 1px solid #78350f;
   border-radius: 3px; color: #d97706;
-  font-size: 9px; font-weight: 850; letter-spacing: 0.08em;
+  font-size: calc(9px * var(--rack-type, 1)); font-weight: 850; letter-spacing: 0.08em;
   padding: 4px 8px; cursor: pointer;
   display: inline-flex; align-items: center; gap: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.6);
@@ -4054,7 +4056,7 @@ button.ghost.run-all { margin-left: 10px; }
   background: #fbbf24; box-shadow: 0 0 6px #f59e0b;
 }
 .imager-model-spec {
-  font-size: 8px; font-weight: 750; color: #475569; letter-spacing: 0.06em;
+  font-size: calc(8px * var(--rack-type, 1)); font-weight: 750; color: #475569; letter-spacing: 0.06em;
 }
 
 body.knob-dragging { cursor: ns-resize !important; user-select: none !important; }

@@ -791,13 +791,22 @@ def test_the_rack_is_drawn_to_fit_the_window_unless_asked_for_at_full_size():
     # measured at full size, never under the floor or over full size, and the choice is kept
     assert fit.index("panel.style.setProperty('--rack-zoom', '1');") < fit.index("var needed = header.offsetHeight + bay.scrollHeight + 2;")
     assert "Math.min(1, Math.max(this.RACK_FLOOR, room / needed)) : 1;" in fit
-    assert "RACK_FLOOR: 0.65," in rack_js and "localStorage.getItem('yue2.rackFit') !== '0'" in rack_js
+    assert "RACK_FLOOR: 0.58," in rack_js and "localStorage.getItem('yue2.rackFit') !== '0'" in rack_js
+    # the lettering is set larger by what the rack is drawn smaller, up to a limit, and worked out with the size,
+    # since larger lettering makes the rack taller; the panel is let out sideways for it
+    assert "Math.min(this.RACK_TYPE_MOST, Math.max(1, this.RACK_TYPE_KEPT / zoom))" in fit
+    assert "panel.style.setProperty('--rack-type', String(type));" in fit and "panel.style.setProperty('--rack-wide', String(wide));" in fit
+    sizes = css[css.index("/* --rack-zoom is the size the rack is drawn at"):]
+    import re as _re
+    plain = [px for px in _re.findall(r"font-size: ([0-9.]+)px", sizes) if float(px) < 14]
+    assert plain == [], plain                # every label's size follows --rack-type; only badge lettering is fixed
+    assert sizes.count("* var(--rack-type, 1))") >= 30
     # hairlines do not shrink, so it is checked again once drawn
     assert "bay.scrollHeight > bay.clientHeight + 1" in fit
     # it is fitted when opened, floated, docked and when the window changes
     assert rack_js.count("this.fitToWindow();") >= 4 and "self.fitToWindow();" in rack_js
     # the panel narrows with it and the bay's limit comes from the fit
-    assert "max-width: calc(1240px * var(--rack-zoom, 1));" in css and "zoom: var(--rack-zoom, 1);" in css
+    assert "max-width: calc(1240px * var(--rack-zoom, 1) * var(--rack-wide, 1));" in css and "zoom: var(--rack-zoom, 1);" in css
     assert "max-height: var(--rack-bay-max, calc(84vh - 75px));" in css
     # the equaliser's graph reads the pointer in its own pixels, which a smaller rack makes larger
     assert "scale = box.width ? canvas.clientWidth / box.width : 1;" in rack_js

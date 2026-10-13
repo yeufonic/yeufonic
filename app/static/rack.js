@@ -2067,8 +2067,9 @@
     /* Where the graph is drawn within the canvas, and the two scales: frequency by octaves along it,
        decibels up it. */
     peqPlot: function (canvas) {
-      var w = canvas.clientWidth, h = canvas.clientHeight;
-      return { left: 8, top: 10, width: Math.max(10, w - 8 - 38), height: Math.max(10, h - 10 - 20), w: w, h: h, range: this.peqRange() };
+      var w = canvas.clientWidth, h = canvas.clientHeight, type = this.rackType || 1;
+      return { left: 8, top: 10, width: Math.max(10, w - 8 - 38 * type), height: Math.max(10, h - 10 - 20 * type), w: w, h: h,
+               range: this.peqRange(), type: type };
     },
     /* How many decibels the graph shows either side of the middle: small for fine moves, large for broad
        ones.  It is how the graph is looked at, not part of the sound, so the browser keeps it. */
@@ -2177,11 +2178,11 @@
         return { x: (e.clientX - box.left) * scale, y: (e.clientY - box.top) * scale };
       }
       function bandAt(point) {
-        var plot = self.peqPlot(canvas), best = -1, nearest = 16;
+        var plot = self.peqPlot(canvas), reach = 16 * plot.type, best = -1, nearest = reach;
         self.peq().bands.forEach(function (band, i) {
           var node = self.peqNode(plot, band), far = Math.hypot(node.x - point.x, node.y - point.y);
           // the chosen band wins where two handles lie together
-          if (far < nearest || (far <= nearest + 0.5 && i === self.peqBand && far < 16)) { nearest = far; best = i; }
+          if (far < nearest || (far <= nearest + 0.5 && i === self.peqBand && far < reach)) { nearest = far; best = i; }
         });
         return best;
       }
@@ -2339,7 +2340,7 @@
       var right = plot.left + plot.width, bottom = plot.top + plot.height, zero = this.peqY(plot, 0);
 
       // scales
-      g.font = '10px ui-monospace, SFMono-Regular, Menlo, monospace';
+      g.font = Math.round(10 * plot.type * 10) / 10 + 'px ui-monospace, SFMono-Regular, Menlo, monospace';
       g.textBaseline = 'middle';
       [20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000,
        6000, 7000, 8000, 9000, 10000, 20000].forEach(function (hz) {
@@ -2349,7 +2350,7 @@
         if (named) {
           g.fillStyle = 'rgba(148,163,184,0.75)';
           g.textAlign = hz === 20 ? 'left' : hz === 20000 ? 'right' : 'center';
-          g.fillText(hz >= 1000 ? (hz / 1000) + 'k' : String(hz), x, bottom + 11);
+          g.fillText(hz >= 1000 ? (hz / 1000) + 'k' : String(hz), x, bottom + 11 * plot.type);
         }
       });
       var step = plot.range === 6 ? 2 : plot.range === 12 ? 3 : 6, lines = [0];
@@ -2419,13 +2420,13 @@
       peq.bands.forEach(function (band, i) {
         var node = self.peqNode(plot, band), chosen = i === self.peqBand, on = band.on !== false;
         g.globalAlpha = (unitIn ? 1 : 0.55) * (on ? 1 : 0.35);
-        g.beginPath(); g.arc(node.x, node.y, chosen ? 8 : 6, 0, Math.PI * 2);
+        g.beginPath(); g.arc(node.x, node.y, (chosen ? 8 : 6) * plot.type, 0, Math.PI * 2);
         g.fillStyle = self.PEQ_COLOURS[i]; g.fill();
         g.lineWidth = chosen ? 2.5 : 1.5;
         g.strokeStyle = chosen ? '#ffffff' : 'rgba(15,17,22,0.9)'; g.stroke();
         if (chosen) {
           g.fillStyle = '#0b0c10'; g.textAlign = 'center';
-          g.font = 'bold 9px ui-monospace, SFMono-Regular, Menlo, monospace';
+          g.font = 'bold ' + Math.round(9 * plot.type * 10) / 10 + 'px ui-monospace, SFMono-Regular, Menlo, monospace';
           g.fillText(String(i + 1), node.x, node.y + 0.5);
         }
       });
@@ -3125,8 +3126,11 @@
        much as it takes for all of it to be seen at once and no less than RACK_FLOOR, and it is given
        all the height the window has; whatever still does not fit is scrolled to.  The choice is how the
        rack is looked at, so the browser keeps it. */
-    RACK_FLOOR: 0.65,
+    RACK_FLOOR: 0.58,
+    RACK_TYPE_KEPT: 0.92,      // the share of its full size the lettering keeps in a rack drawn smaller
+    RACK_TYPE_MOST: 1.45,      // and the most it is set larger by
     rackZoom: 1,
+    rackType: 1,
     fitsWindow: function () {
       try { return localStorage.getItem('yue2.rackFit') !== '0'; } catch (err) { return true; }
     },
@@ -3134,12 +3138,26 @@
       var panel = document.getElementById('rack-panel');
       var bay = panel && panel.querySelector('.rack-bay'), header = panel && panel.querySelector('.rack-header');
       if (!panel || !bay || !header) { return; }
-      var floating = panel.classList.contains('is-floating');
-      panel.style.setProperty('--rack-zoom', '1');                   // measured at full size
-      var needed = header.offsetHeight + bay.scrollHeight + 2;
+      var floating = panel.classList.contains('is-floating'), fits = this.fitsWindow();
       var under = floating ? 8 : (parseFloat(window.getComputedStyle(panel).bottom) || 66);
       var room = window.innerHeight - under - 8;
-      var zoom = this.fitsWindow() ? Math.min(1, Math.max(this.RACK_FLOOR, room / needed)) : 1;
+      var zoom = 1, type = 1;
+      // The lettering is set larger by what the rack is drawn smaller, short of all of it and up to a
+      // limit the panels can hold; larger lettering makes the rack a little taller, so the two are
+      // worked out together, in a few rounds.  Each round measures the rack at full size.
+      for (var round = 0; round < 3; round++) {
+        panel.style.setProperty('--rack-zoom', '1');
+        panel.style.setProperty('--rack-type', String(type));
+        var needed = header.offsetHeight + bay.scrollHeight + 2;
+        zoom = fits ? Math.min(1, Math.max(this.RACK_FLOOR, room / needed)) : 1;
+        var wanted = Math.round(Math.min(this.RACK_TYPE_MOST, Math.max(1, this.RACK_TYPE_KEPT / zoom)) * 100) / 100;
+        if (wanted === type) { break; }
+        type = wanted;
+      }
+      this.rackType = type;
+      // larger lettering needs wider rows, so the panel is let out by part of what the lettering grew
+      var wide = Math.round(Math.sqrt(type) * 100) / 100;
+      panel.style.setProperty('--rack-wide', String(wide));
       var self = this;
       function drawnAt(size) {
         zoom = Math.floor(size * 100) / 100;
@@ -3155,7 +3173,7 @@
         drawnAt(Math.max(this.RACK_FLOOR, zoom * bay.clientHeight / bay.scrollHeight - 0.005));
       }
       if (floating) {
-        panel.style.width = Math.round(Math.min(1240 * zoom, window.innerWidth - 24)) + 'px';
+        panel.style.width = Math.round(Math.min(1240 * zoom * wide, window.innerWidth - 24)) + 'px';
         var box = panel.getBoundingClientRect();
         if (box.bottom > window.innerHeight - 8) {
           panel.style.top = Math.max(8, Math.round(window.innerHeight - 8 - box.height)) + 'px';
@@ -3163,7 +3181,6 @@
       }
       var fitBtn = document.getElementById('rack-fit-btn');
       if (fitBtn) {
-        var fits = this.fitsWindow();
         fitBtn.textContent = fits ? 'Full size' : 'Fit';
         fitBtn.title = fits ? 'Show the rack at full size, and scroll it' : 'Fit the whole rack in the window';
       }
