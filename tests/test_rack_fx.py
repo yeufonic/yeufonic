@@ -810,3 +810,17 @@ def test_the_rack_is_drawn_to_fit_the_window_unless_asked_for_at_full_size():
     assert "max-height: var(--rack-bay-max, calc(84vh - 75px));" in css
     # the equaliser's graph reads the pointer in its own pixels, which a smaller rack makes larger
     assert "scale = box.width ? canvas.clientWidth / box.width : 1;" in rack_js
+
+
+def test_flat_puts_every_band_on_the_middle_line_and_leaves_it_where_it_is():
+    """Flat, to the right of the kinds in the equaliser's strip: a band with a gain goes to 0 dB, and a cut or a
+    notch, which has none, is switched off.  Place, kind and width are kept, and so is the unit's own switch."""
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    strip = rack_js[rack_js.index('id="peq-strip"'):rack_js.index("<!-- MODULE 2: PEAK LIMITING AMPLIFIER -->")]
+    assert strip.index('id="peq-types"') < strip.index('id="peq-flat"') < strip.index('data-peq="freq"')
+    assert "<span>FLAT</span>" in strip
+    press = rack_js[rack_js.index("var flat = document.getElementById('peq-flat');"):rack_js.index("var range = document.getElementById('peq-range');")]
+    assert "if (peqHasGain(band.type)) { band.gain = 0; } else { band.on = false; }" in press
+    assert "self.peqChanged(false);" in press               # it does not switch the unit in
+    for kept in ("band.freq =", "band.type =", "band.q =", "defaultPeq()"):
+        assert kept not in press, kept

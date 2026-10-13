@@ -291,7 +291,8 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
   a limiter. On the parametric equalizer's graph each of the seven bands is a dot: drag it across for its frequency
   and up or down for its gain, turn the wheel over it for its width, double-click it to put it back. The strip under
   the graph sets the chosen band's kind (low cut, low shelf, bell, notch, high shelf, high cut) and switches it on
-  or off, and the button in the graph's corner changes how many decibels the graph shows. The button is green while the rack changes how the take sounds. With the rack open, space plays
+  or off, **Flat** puts every band back to 0 dB, and the button in the graph's corner changes how many decibels the
+  graph shows. The button is green while the rack changes how the take sounds. With the rack open, space plays
   and pauses the take and the arrow keys move through it and set the volume, as on the main page. Escape closes
   the rack, and again closes the editor.
 

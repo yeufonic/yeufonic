@@ -3508,6 +3508,14 @@ button.ghost.run-all { margin-left: 10px; }
   background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .peq-power { width: 30px; border-radius: 50%; }
+/* Flat, to the right of the kinds: every band back on the middle line. */
+.peq-flat {
+  display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 10px 0 7px; margin-left: -6px; cursor: pointer;
+  border-radius: 7px; color: #94a3b8; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1);
+  font: 700 calc(10.5px * var(--rack-type, 1)) ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em;
+}
+.peq-flat:hover { color: #f8fafc; border-color: rgba(255, 255, 255, 0.28); }
+.peq-flat:active { color: #0b0c10; background: #e2e8f0; border-color: #e2e8f0; }
 .peq-power:hover, .peq-type:hover { color: #f8fafc; border-color: rgba(255, 255, 255, 0.28); }
 .peq-power.on { color: var(--band); border-color: var(--band); }
 .peq-type.chosen { color: #0b0c10; background: var(--band); border-color: var(--band); }

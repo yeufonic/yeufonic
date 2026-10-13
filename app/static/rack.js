@@ -1293,6 +1293,10 @@
         '              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>',
         '            </button>',
         '            <div class="peq-types" id="peq-types" role="group" aria-label="Kind of filter"></div>',
+        '            <button type="button" class="peq-flat" id="peq-flat" title="Flat: every band back to 0 dB, and the cuts and notches off. Each band stays where it is">',
+        '              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12h18"/></svg>',
+        '              <span>FLAT</span>',
+        '            </button>',
         '            <div class="knob-wrap dummy-knob peq-knob" data-peq="freq" title="Frequency">',
         '              <div class="knob-dial small"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">FREQ</span><span class="knob-val">1 kHz</span>',
@@ -2158,6 +2162,17 @@
         toggle.addEventListener('click', function () {
           var peq = self.peq();
           peq.enabled = peq.enabled === false;
+          self.peqChanged(false);
+        });
+      }
+      // Flat: the curve is a straight line again.  A band with a gain goes to 0 dB; a cut or a notch has
+      // none, so it is switched off.  Each band keeps its place, its kind and its width, to be used again.
+      var flat = document.getElementById('peq-flat');
+      if (flat) {
+        flat.addEventListener('click', function () {
+          self.peq().bands.forEach(function (band) {
+            if (peqHasGain(band.type)) { band.gain = 0; } else { band.on = false; }
+          });
           self.peqChanged(false);
         });
       }
