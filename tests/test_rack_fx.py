@@ -826,3 +826,12 @@ def test_flat_puts_every_band_on_the_middle_line_and_leaves_it_where_it_is():
     assert "self.peqChanged(false);" in press               # it does not switch the unit in
     for kept in ("band.freq =", "band.type =", "band.q =", "defaultPeq()"):
         assert kept not in press, kept
+
+
+def test_a_double_click_on_the_compressors_output_goes_where_reset_leaves_it(flat):
+    """Reset loads the flat preset, whose compressor waits at the OUTPUT that gives back what its settings take
+    off.  A double-click on the knob went to 0 dB instead, so the two ways of putting it back disagreed."""
+    import re
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    knob = re.search(r'data-param="comp.makeup"[^>]*data-default="(-?[0-9.]+)"', rack_js)
+    assert knob and float(knob.group(1)) == flat["comp"]["makeup"] == 6.0

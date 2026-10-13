@@ -1327,7 +1327,7 @@
         '              <span class="knob-name">THRESHOLD</span>',
         '              <span class="knob-val">-18 dB</span>',
         '            </div>',
-        '            <div class="knob-wrap" data-param="comp.makeup" data-min="-6" data-max="30" data-step="0.5" data-default="0" data-unit="dB" title="Output: all the gain the compressor adds (-6 dB to +30 dB)">',
+        '            <div class="knob-wrap" data-param="comp.makeup" data-min="-6" data-max="30" data-step="0.5" data-default="6" data-unit="dB" title="Output: all the gain the compressor adds (-6 dB to +30 dB). Double-click for +6 dB, where Reset leaves it">',
         '              <div class="knob-dial large"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">OUTPUT</span>',
         '              <span class="knob-val">0 dB</span>',
