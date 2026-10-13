@@ -103,3 +103,14 @@ def test_the_windows_engine_gets_whisper_with_the_cuda_12_libraries_ctranslate2_
     block = setup.split("IsDone 'engine-whisper-model')")[1].split("Done 'engine-whisper-model'")[0]
     assert "Get-Verified" in block and "whisper\\large-v3-turbo" in block and "model.bin" in block
     assert "e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da" in block and "download_model" not in block
+
+
+def test_quit_from_the_tray_quits_at_once_and_asks_only_when_it_would_stop_work():
+    """Quit is chosen from a menu, on purpose, so it is not asked about; a render or a training run that quitting
+    would stop is the one thing it still asks for."""
+    launcher = (Path(__file__).resolve().parent.parent / "windows" / "launcher.py").read_text(encoding="utf-8")
+    body = launcher[launcher.index("    def ask_to_quit(self)"):launcher.index("    def stop_with(")]
+    assert "if warning and message(" in body                 # no question unless there is something to lose
+    assert body.count("message(") == 1 and "MB_DEFBUTTON2" in body
+    assert body.index("warning = self.busy()") < body.index("self.quitting = True")
+    assert 'f"Quit {APP}?" + ' not in body

@@ -43,6 +43,7 @@ cannot creep back in.
 - **Mastering rack: all of it in the window.** With five units the rack is taller than most windows. It now takes all the height the window has and is drawn smaller, by as much as it needs for every unit to be seen at once, so there is nothing to scroll. Its lettering is set larger as the rack is drawn smaller, so labels and readouts stay close to their own size and stay readable. **Full size** in its header shows the rack at its own size instead, and scrolls; **Fit** goes back. In a very short window it stops shrinking at a little over half its size and scrolls the rest.
 - **Mastering rack: three presets have a ratio the rack has a button for.** Vintage Tube Warmth, Vocal Air & Glue and Acoustic Clarity used compressor ratios between the rack's buttons, so none was lit when one of them was chosen. They are now 2:1, with threshold and output moved so that they come out as loud as before.
 - **Mastering rack: a double-click on the compressor's OUTPUT goes to +6 dB.** That is where Reset leaves it; the double-click went to 0 dB, so the two disagreed.
+- **Windows: Quit quits.** Choosing Quit from the icon by the clock asked "Quit Yeufonic?" every time. It now quits at once, and asks only when a render or a training run is going, which quitting would stop.
 - **Sing again asks first.** One click on the card's Sing again button started a render at once. It now asks, saying what it will do, and does nothing if you cancel.
 
 ## 0.0.42 (2026-10-12)

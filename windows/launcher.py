@@ -498,11 +498,12 @@ class Launcher:
         return ""
 
     def ask_to_quit(self) -> None:
+        """Quit.  Choosing Quit from the icon's menu is already a deliberate act, so it is done at once; it is
+        asked first only when it would stop a job or a training run, which cannot be had back."""
         if self.quitting:
             return
         warning = self.busy()
-        text = f"Quit {APP}?" + (f"\n\n{warning}" if warning else "")
-        if message(text, MB_YESNO | MB_ICONQUESTION | (MB_DEFBUTTON2 if warning else 0)) != IDYES:
+        if warning and message(f"Quit {APP}?\n\n{warning}", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES:
             return
         self.quitting = True
         record("Quit.")
