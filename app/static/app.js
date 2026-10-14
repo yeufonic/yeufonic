@@ -11155,12 +11155,12 @@ function paintTakes() {
 }
 
 /* Takes normalised before the level could be chosen have none recorded; all were -14. */
-/* A take's beat, in seconds of the song, from its score's tempo line (Q:1/4=), or from "NN BPM" in its style;
-   null when it has neither. */
+/* How often the playing take's edge pulses, in seconds of the song: every other beat of its score's tempo line
+   (Q:1/4=), or of "NN BPM" in its style (on every beat it was too busy); null when it has neither. */
 function takeBeat(take) {
   var match = /^Q:\s*1\/4\s*=\s*(\d+)/m.exec(take.abc || '') || /(\d{2,3})\s*bpm\b/i.exec(take.style || '');
   var bpm = match ? parseInt(match[1], 10) : 0;
-  return bpm >= 40 && bpm <= 240 ? 60 / bpm : null;
+  return bpm >= 40 && bpm <= 240 ? 120 / bpm : null;
 }
 
 /* The pulse's length and where in it to start, so its flash falls on the beat at the point the song is at; in the
