@@ -129,8 +129,9 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   make are kept inside the take they were made from, so a space lists songs rather than every
   render of each. A button that appears on the card once the take holds any opens them in a
   panel under it, where each is a take like any other and can be taken out to stand on its own.
-- **A picture for each take.** While a take renders, a picture of the song is made beside it and
-  shown behind the take's card, atop the take panel and behind the editor: an LLM describes it from the title, style and opening
+- **A picture for each take.** Each new take gets a picture of the song, shown behind the take's card,
+  atop the take panel and behind the editor (drawn on this PC, it waits until the song is made, so it never
+  holds it up): an LLM describes it from the title, style and opening
   words, then FLUX.2 klein draws it on this PC (an install option) or the external LLM's image model
   does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
   to the plain background. Without either way to draw, there are no pictures.

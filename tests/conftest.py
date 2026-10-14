@@ -69,6 +69,7 @@ def client(data_dir, monkeypatch):
     def empty():   # with no worker, what one test queued would be the next one's
         while not jobs.QUEUE.empty():
             jobs.QUEUE.get_nowait()
+        jobs.ART_WAITING.clear()
     empty()
     with TestClient(app, base_url="http://localhost") as test_client:
         yield test_client

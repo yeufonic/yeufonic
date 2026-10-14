@@ -3,6 +3,7 @@ engine, and the CPU lane for stems.  Both run in this process."""
 from __future__ import annotations
 
 import asyncio
+import collections
 import contextlib
 import json
 import logging
@@ -432,12 +433,24 @@ _ART_TASKS: set = set()
 _ART_CHECK: list = []
 
 
+# Pictures that need the GPU (Gemma describing, FLUX.2 klein drawing) wait here, apart from the song work: the
+# worker turns to them only when nothing for a song is queued or running, so a picture never holds up a plan or
+# a render, nor pushes YuE2 off the card between them.
+ART_WAITING: "collections.deque[str]" = collections.deque()
+
+
+def songs_in_flight() -> bool:
+    """Whether any take is waiting for or in the middle of its plan or render."""
+    return bool(one("SELECT 1 FROM takes WHERE status IN ('queued', 'running') LIMIT 1"))
+
+
 def start_art(take_id: str) -> None:
-    """Make the take's picture in the background.  Described by Gemma or drawn by FLUX.2 klein it waits its turn
-    in the GPU lane; described and drawn by the external provider it runs beside it, while the take renders."""
+    """Make the take's picture in the background.  Described by Gemma or drawn by FLUX.2 klein it waits until the
+    GPU has no song work (ART_WAITING); described and drawn by the external provider it runs beside the render."""
     artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
     if artwork.words_by_engine() or artwork.drawer() == "local":
-        QUEUE.put_nowait({"kind": "art", "id": take_id})
+        if take_id not in ART_WAITING:
+            ART_WAITING.append(take_id)
     else:
         task = asyncio.create_task(run_art(take_id))
         _ART_TASKS.add(task)
@@ -2140,12 +2153,20 @@ async def cancel_waiting(kind: str, ref_id: str, whole_song: bool = True) -> boo
             return False
         await cancel_take(take)
         return True
+    if kind == "art":
+        if ref_id not in ART_WAITING:
+            return False
+        ART_WAITING.remove(ref_id)
+        artwork.STATE.pop(ref_id, None)
+        log.info("Cancelled a waiting picture for take %s", ref_id)
+        return True
     return False
 
 
 def waiting_jobs() -> list[dict]:
     """App jobs not yet sent to the engine, in the order the worker will take them."""
-    return list(QUEUE._queue)   # asyncio.Queue keeps its items in a deque
+    # asyncio.Queue keeps its items in a deque; the pictures waiting for the GPU to be free come after everything
+    return list(QUEUE._queue) + [{"kind": "art", "id": take_id} for take_id in ART_WAITING]
 
 
 async def wait_for_engine() -> None:
@@ -2164,9 +2185,23 @@ async def wait_for_engine() -> None:
         await asyncio.sleep(1)
 
 
+async def next_gpu_job() -> tuple[dict, bool]:
+    """The worker's next job, and whether it came from QUEUE: the song work and everything else first, a waiting
+    picture only once no take is queued or running (so not between a plan and the render it leads to)."""
+    while True:
+        if not QUEUE.empty():
+            return QUEUE.get_nowait(), True
+        if ART_WAITING and not songs_in_flight():
+            return {"kind": "art", "id": ART_WAITING.popleft()}, False
+        try:   # wait for work; while pictures wait, look again now and then, as a take may have finished
+            return await asyncio.wait_for(QUEUE.get(), timeout=2 if ART_WAITING else None), True
+        except asyncio.TimeoutError:
+            continue
+
+
 async def worker() -> None:
     while True:
-        job = await QUEUE.get()
+        job, queued = await next_gpu_job()
         try:
             await wait_for_engine()
             await run_job(job["kind"], job["id"])
@@ -2176,7 +2211,8 @@ async def worker() -> None:
             log.exception("job crashed")
             fail(job["kind"], job["id"], f"internal error: {exc}")
         finally:
-            QUEUE.task_done()
+            if queued:
+                QUEUE.task_done()
 
 
 async def keeper() -> None:

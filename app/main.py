@@ -296,7 +296,7 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "local", "label": "This PC (FLUX.2 klein)"},
             {"value": "external", "label": "The external LLM's image model"},
         ],
-        "help": "FLUX.2 klein draws on this PC, in turn with the renders, at no cost; the external LLM's image model "
+        "help": "FLUX.2 klein draws on this PC once no song is being made, at no cost; the external LLM's image model "
                 "draws beside them, one request a picture.",
         "requires": {"pictures": "possible", "art.auto": "on"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
@@ -2074,7 +2074,7 @@ def take_art(take_id: str) -> dict:
 @app.post("/api/takes/{take_id}/art")
 async def make_take_art(take_id: str) -> dict:
     """Make the take's picture again, in the background, replacing any it has (the editor's Make a new picture).
-    Described by Gemma, it waits its turn in the GPU lane; described by the external LLM, it runs beside it."""
+    Needing the GPU (Gemma or FLUX.2 klein), it waits until no song is being made; otherwise it runs beside them."""
     if not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
         raise HTTPException(404, "no such take")
     if artwork.busy(take_id):

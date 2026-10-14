@@ -107,7 +107,7 @@ def test_described_by_gemma_it_waits_in_the_gpu_lane(client):
     set_setting("art.words", "local")
     reply = client.post(f"/api/takes/{take['id']}/art")
     assert reply.status_code == 200 and reply.json()["state"] == "queued"
-    assert jobs.QUEUE._queue[-1] == {"kind": "art", "id": take["id"]}
+    assert jobs.ART_WAITING[-1] == take["id"]
     assert client.post(f"/api/takes/{take['id']}/art").status_code == 409
     assert client.get(f"/api/takes/{take['id']}/art").json()["state"] == "queued"
 
@@ -284,7 +284,7 @@ def test_drawn_here_the_picture_waits_its_turn_in_the_gpu_lane(client, monkeypat
     external()                                               # described by the external LLM, drawn here
     take = a_take()
     jobs.start_art(take["id"])
-    assert jobs.QUEUE._queue[-1] == {"kind": "art", "id": take["id"]}
+    assert jobs.ART_WAITING[-1] == take["id"]
 
 
 def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
@@ -409,3 +409,35 @@ def test_with_nothing_to_draw_take_pictures_says_no_pictures(client, monkeypatch
     assert artwork.automatic()
     set_setting("art.auto", "off")                        # chosen off: kept off
     assert picture_setting()["value"] == "off" and not artwork.automatic()
+
+
+def test_a_picture_waits_until_no_song_is_being_made(client, monkeypatch):
+    """A picture that needs the GPU is not taken while a take is queued or running, nor before song work already
+    in the queue: it comes after the song, never between its plan and its render."""
+    picture, song = a_take(), a_take()
+    jobs.ART_WAITING.append(picture["id"])
+    execute("UPDATE takes SET status = 'queued' WHERE id = ?", (song["id"],))
+    jobs.QUEUE.put_nowait({"kind": "render", "id": song["id"]})
+
+    async def next_now():
+        return await asyncio.wait_for(jobs.next_gpu_job(), timeout=0.5)
+
+    assert asyncio.run(next_now()) == ({"kind": "render", "id": song["id"]}, True)
+    execute("UPDATE takes SET status = 'running' WHERE id = ?", (song["id"],))
+    with pytest.raises(asyncio.TimeoutError):           # the song is being made: the picture keeps waiting
+        asyncio.run(next_now())
+    assert list(jobs.ART_WAITING) == [picture["id"]]
+    execute("UPDATE takes SET status = 'done' WHERE id = ?", (song["id"],))
+    assert asyncio.run(next_now()) == ({"kind": "art", "id": picture["id"]}, False)
+    assert not jobs.ART_WAITING
+
+
+def test_a_waiting_picture_is_listed_last_and_can_be_cancelled(client):
+    picture, song = a_take(), a_take()
+    jobs.ART_WAITING.append(picture["id"])
+    artwork.STATE[picture["id"]] = {"state": "queued", "error": None}
+    jobs.QUEUE.put_nowait({"kind": "render", "id": song["id"]})
+    assert [job["kind"] for job in jobs.waiting_jobs()] == ["render", "art"]
+    assert asyncio.run(jobs.cancel_waiting("art", picture["id"]))
+    assert not jobs.ART_WAITING and picture["id"] not in artwork.STATE
+    assert not asyncio.run(jobs.cancel_waiting("art", picture["id"]))

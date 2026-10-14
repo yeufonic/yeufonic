@@ -1139,9 +1139,10 @@ wider ones with more of the prompt. A title always stays on one line, ending in 
 
 ### A picture for each take
 
-While a take renders, a picture of the song is made beside it, and shown faintly behind the take's
-card, across the top of the take panel when you choose it, and behind the editor when the take is open
-there. It is made in two steps: an LLM reads the take's title, style and opening words and **describes**
+Each new take gets a picture of the song, shown faintly behind the take's card, across the top of the take panel when you choose it, and behind the editor when the take is open
+there. Drawn on this PC it waits until no song is being made, so it never holds up a plan or a render, and
+appears a little after the song is finished; drawn by an external LLM it is made while the take renders.
+It is made in two steps: an LLM reads the take's title, style and opening words and **describes**
 a picture, then an image model **draws** it on white, and the white is taken out, leaving the picture
 with a transparent background. A take made inside another (Try more, Variations, Checkpoints) shows the
 picture of the take it is inside rather than having one of its own.
@@ -1158,7 +1159,7 @@ Pictures need something that can draw. There are two, and you can have either, b
 | What it is | a small image model that runs on the engine, beside YuE2 | the provider's own image model, such as Gemini's |
 | What it costs | nothing; about 8 GB of disk | each picture is one request to the provider, which may be charged |
 | What leaves the PC | nothing (Gemma on this PC writes the description too) | the take's title, style and opening words, and the description |
-| When it runs | in turn with the renders, on the GPU | beside the renders, while they run |
+| When it runs | on the GPU once no song is being made: after your song, never in its way | beside the renders, while they run |
 | What you set up | an install option | the external LLM in Settings, with a provider that lists an image model |
 
 **To draw on this PC, install FLUX.2 klein.**
