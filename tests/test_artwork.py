@@ -466,3 +466,17 @@ def test_a_running_picture_steps_aside_when_song_work_comes_in(client, monkeypat
     asyncio.run(jobs.run_art(picture["id"]))
     assert list(jobs.ART_WAITING) == [picture["id"], other["id"]]
     assert artwork.STATE[picture["id"]]["state"] == "queued"
+
+
+def test_an_idle_worker_notices_a_picture_added_while_it_waits(client, monkeypatch):
+    """The worker waiting on an empty queue must still see a picture that joins its line afterwards."""
+    picture = a_take()
+
+    async def scenario():
+        monkeypatch.setattr(jobs, "QUEUE", asyncio.Queue())     # a queue of this loop's own, and empty
+        waiting = asyncio.ensure_future(jobs.next_gpu_job())
+        await asyncio.sleep(0.2)                  # the worker is now waiting, with nothing anywhere
+        jobs.ART_WAITING.append(picture["id"])
+        return await asyncio.wait_for(waiting, timeout=5)
+
+    assert asyncio.run(scenario()) == ({"kind": "art", "id": picture["id"]}, False)

@@ -2208,8 +2208,9 @@ async def next_gpu_job() -> tuple[dict, bool]:
             return QUEUE.get_nowait(), True
         if ART_WAITING and not songs_in_flight():
             return {"kind": "art", "id": ART_WAITING.popleft()}, False
-        try:   # wait for work; while pictures wait, look again now and then, as a take may have finished
-            return await asyncio.wait_for(QUEUE.get(), timeout=2 if ART_WAITING else None), True
+        try:   # wait for work, looking again every two seconds: a picture may have joined its line meanwhile, or
+            # the take holding pictures back may have finished
+            return await asyncio.wait_for(QUEUE.get(), timeout=2), True
         except asyncio.TimeoutError:
             continue
 
