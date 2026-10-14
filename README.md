@@ -137,7 +137,7 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 - **A library.** Every take keeps its score, style, lyrics, seed and settings, so it can be
   reproduced, reworked, starred or deleted. Search by title, style, lyrics or LoRA, in one space or
   all of them. Tick several cards and one button clears them all. Single keys act on the chosen take:
-  mastering, edit, details, normalise, Variations, Try more and star.
+  mastering, edit, details, normalise, Variations, Try more, star and delete.
 - **A player for reviewing takes.** A real waveform you can click to seek, previous and next through
   the library, ten second skips, repeat, speed and volume, with keyboard shortcuts.
 - **Told when a newer version is out.** Every four hours the app asks its own site whether a later release
