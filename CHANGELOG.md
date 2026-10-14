@@ -41,6 +41,7 @@ cannot creep back in.
 
 - **The mastering rack follows the theme.** In the light theme it was still black. Its panels are now brushed silver with dark lettering there, each unit keeping its own tint and coloured top edge; the knobs, the meter windows and the readouts keep the dark look of the hardware. The parametric equalizer's graph is drawn in light colours to match. The dark themes keep the rack as it was.
 - **Backdrop colour.** A setting under Theme tints the page behind the takes with a hue you choose, at a strength from a faint wash to a rich colour, and the page changes as you drag. The take cards, the panels and the windows keep their own colours, and the high contrast theme stays black. Like every setting it is kept by the app, so every window onto it shows the same.
+- **Mastering rack: a Boost preset.** A sixth factory preset, made by ear: a strong lift of the lows and highs, a touch of the parametric equalizer, the compressor catching only what passes full scale, and no limiter. Unlike the others it comes out a good deal louder than the take it is given, and its loudest peaks clip, which is part of its sound.
 
 ## 0.0.43 (2026-10-13)
 

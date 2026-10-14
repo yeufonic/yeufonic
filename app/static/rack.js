@@ -145,6 +145,43 @@
       limit: { enabled: true, drive: 0, ceiling: -0.3, release: 0.10, warmth: false },
       masterBypass: false,
       version: 3
+    },
+    /* Made by ear in the rack and kept as it was saved, not to the rules above: a strong lift of the lows and
+       highs, the compressor catching only what passes full scale, and no limiter.  On finished takes it comes
+       out about 6 to 7.5 dB louder than it went in, and its loudest peaks pass full scale by 3 to 5 dB, where
+       the output clips them: part of its sound, by choice. */
+    'boost': {
+      name: 'Boost',
+      eq: {
+        enabled: true,
+        preGain: 0,
+        hp: 50,
+        lowFreq: 110,
+        lowGain: 9.5,
+        midFreq: 7200,
+        midGain: 13.5,
+        highGain: 6.5,
+        outLevel: 3.5,
+        phase: false,
+        mid1Freq: 4800, mid1Gain: 1.5, highFreq: 12000, airGain: 2
+      },
+      comp: { enabled: true, threshold: 0, ratio: 20, attack: 0.002, release: 0.75, makeup: 1, mix: 1.0, knee: 0 },
+      imager: { enabled: false, bigness: 1, range: 1, stage: 1, harmonics: true, tubeHarmonics: 1, bass: false },
+      limit: { enabled: false, drive: 0.5, ceiling: -0.2, release: 0.10, warmth: false },
+      peq: {
+        enabled: true,
+        bands: [
+          { on: false, type: 'lowcut', freq: 30, gain: 0, q: 0.71 },
+          { on: true, type: 'lowshelf', freq: 90, gain: 0, q: 1 },
+          { on: true, type: 'bell', freq: 250, gain: 0, q: 1 },
+          { on: true, type: 'bell', freq: 992, gain: 4.3, q: 1 },
+          { on: true, type: 'bell', freq: 4000, gain: 0, q: 1 },
+          { on: true, type: 'highshelf', freq: 10000, gain: 0, q: 1 },
+          { on: true, type: 'lowshelf', freq: 13040, gain: 1.4, q: 1 }
+        ]
+      },
+      masterBypass: false,
+      version: 3
     }
   };
 
@@ -321,7 +358,8 @@
 
   // A preset is the whole rack: each one has the parametric equaliser flat and out.  (Here, and not
   // beside the presets, because the equaliser's own figures above have to exist first.)
-  Object.keys(PRESETS).forEach(function (key) { PRESETS[key].peq = defaultPeq(); });
+  // a preset that sets the equaliser keeps its bands; the rest start from the default layout
+  Object.keys(PRESETS).forEach(function (key) { PRESETS[key].peq = PRESETS[key].peq || defaultPeq(); });
 
   /* The sample rate a FLAC or WAV file says it has; 48000, what a take is made at, when the
      header is neither. */
@@ -1139,6 +1177,7 @@
         '              <option value="radio_master">Radio Ready Master</option>',
         '              <option value="punchy_bass">Punchy Club &amp; Bass</option>',
         '              <option value="acoustic_clarity">Acoustic Clarity</option>',
+        '              <option value="boost">Boost</option>',
         '            </optgroup>',
         '            <optgroup id="rack-user-presets-group" label="User Presets">',
         '            </optgroup>',

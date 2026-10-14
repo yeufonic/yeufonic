@@ -591,7 +591,7 @@ def test_the_factory_presets_leave_room_for_what_they_add():
     rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
     block = rack_js[rack_js.index("var PRESETS = {"):rack_js.index("// ------------------------------------------------------------- DSP Helpers")]
     names = re.findall(r"^    '(\w+)': \{", block, flags=re.M)
-    assert names == ["default", "vintage_warmth", "vocal_air", "radio_master", "punchy_bass", "acoustic_clarity"]
+    assert names == ["default", "vintage_warmth", "vocal_air", "radio_master", "punchy_bass", "acoustic_clarity", "boost"]
     sum_of_the_node = rack_js[rack_js.index("  function nodeMakeupDb("):rack_js.index("  // ------------------------------------------------------------- Parametric equaliser")]
     bodies = re.split(r"^    '\w+': \{", block, flags=re.M)[1:]
     for name, body in zip(names, bodies):
@@ -599,6 +599,10 @@ def test_the_factory_presets_leave_room_for_what_they_add():
             continue
         def value(key):
             return float(re.search(r"\b" + key + r": (-?[0-9.]+)", body).group(1))
+        # a ratio the rack has a button for, or no button is lit when the preset is chosen
+        assert 'data-ratio="%g"' % value("ratio") in rack_js, name
+        if name == "boost":     # made by ear and kept as saved: loud and clipping by choice, not to these rules
+            continue
         # OUTPUT gives back about what the compressor's own curve takes off full scale, and no more
         own = float(subprocess.run(["node", "-e", sum_of_the_node + "console.log(nodeMakeupDb(%s, %s, %s))" % (
             value("threshold"), value("knee"), value("ratio"))], capture_output=True, text=True, check=True).stdout)
@@ -607,8 +611,6 @@ def test_the_factory_presets_leave_room_for_what_they_add():
         assert value("preGain") <= -boost / 2 and value("preGain") <= -2, name     # turned down by at least half of what is added
         assert value("drive") == 0 and value("ceiling") <= -0.3, name
         assert value("mix") == 1.0 and value("outLevel") <= 0, name
-        # a ratio the rack has a button for, or no button is lit when the preset is chosen
-        assert 'data-ratio="%g"' % value("ratio") in rack_js, name
         assert value("bigness") <= 3 and value("tubeHarmonics") <= 2, name
 
 
