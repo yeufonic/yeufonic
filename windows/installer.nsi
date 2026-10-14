@@ -82,6 +82,7 @@ Var InstSubtext
 Var FinishText
 Var ModelRadio     ; the model size section that is ticked (SecFull or SecSmall)
 Var LyricsText      ; the Gemma option's description, which says when it is already here
+Var PicturesText    ; the same for FLUX.2 klein
 
 !define MUI_WELCOMEPAGE_TITLE "$WelcomeTitle"
 !define MUI_WELCOMEPAGE_TEXT "$WelcomeText"
@@ -222,6 +223,12 @@ Section "Lyric drafts (Gemma 4)" SecLyrics
   ; song analysis need an external LLM, set in Settings.
 SectionEnd
 
+Section /o "Take pictures (FLUX.2 klein)" SecPictures
+  AddSize 8060000
+  ; No files: setup.ps1 is told whether to fetch FLUX.2 klein.  Without it, a take's picture is drawn
+  ; by the external LLM's image model, if one is set up, or not at all.
+SectionEnd
+
 Section "-Setup"
   ${If} ${SectionIsSelected} ${SecLyrics}
     StrCpy $1 ""
@@ -233,6 +240,12 @@ Section "-Setup"
     WriteRegDWORD HKCU "Software\${REGNAME}" "SmallModel" 1
   ${Else}
     WriteRegDWORD HKCU "Software\${REGNAME}" "SmallModel" 0
+  ${EndIf}
+  ${If} ${SectionIsSelected} ${SecPictures}
+    StrCpy $1 "$1 -Pictures"
+    WriteRegDWORD HKCU "Software\${REGNAME}" "Pictures" 1
+  ${Else}
+    WriteRegDWORD HKCU "Software\${REGNAME}" "Pictures" 0
   ${EndIf}
   ; Remembered, so an update offers the same choice again.
   ${If} ${SectionIsSelected} ${SecLyrics}
@@ -246,6 +259,10 @@ Section "-Setup"
     ${If} ${SectionIsSelected} ${SecLyrics}
     ${AndIf} ${FileExists} "$INSTDIR\engine\ComfyUI\models\text_encoders\gemma4_e4b_it_int8_convrot.safetensors"
       DetailPrint "Gemma 4 is already here, so it is not downloaded again."
+    ${EndIf}
+    ${If} ${SectionIsSelected} ${SecPictures}
+    ${AndIf} ${FileExists} "$INSTDIR\engine\ComfyUI\models\diffusion_models\flux-2-klein-4b-fp8.safetensors"
+      DetailPrint "FLUX.2 klein is already here, so it is not downloaded again."
     ${EndIf}
   ${Else}
     DetailPrint "This takes a while: about 24 GB to download."
@@ -272,6 +289,7 @@ SectionEnd
 LangString DESC_Core ${LANG_ENGLISH} "The app, the engine (ComfyUI), and the YuE2 models."
 LangString DESC_Full ${LANG_ENGLISH} "The full-quality YuE2 model (BF16), 7.8 GB. Recommended. It needs a graphics card with plenty of memory to run at full speed, and it is the one that LoRA training uses."
 LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for graphics cards with little memory (6 GB or less). It is the choice to try if the full one is too slow on this PC, and it sounded fine in our listening. LoRA training needs the full-quality model. Only one size is installed: run this installer again to change."
+LangString DESC_Pictures ${LANG_ENGLISH} "FLUX.2 klein, which draws a picture of each take on this PC, shown behind its card. Leave it out if your external LLM can draw them, or if you do not want pictures. About 8 GB to download."
 LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analysis on this PC. Leave it out if you intend to configure an external LLM. This will save an 8 GB download."
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} $(DESC_Core)
@@ -279,6 +297,7 @@ LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analy
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFull} $(DESC_Full)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSmall} $(DESC_Small)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLyrics} $LyricsText
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecPictures} $PicturesText
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ; The two sizes of the model are radio buttons: ticking one unticks the other, and one is always ticked.
@@ -378,6 +397,17 @@ Function .onInit
     ${EndIf}
     StrCpy $InstSubtext "Only what has changed is downloaded. The setup window may be behind this one."
     StrCpy $LyricsText "$(DESC_Lyrics)"
+    StrCpy $PicturesText "$(DESC_Pictures)"
+    ; FLUX.2 klein as chosen last time: kept if it is here, ticked again if it was chosen.
+    ReadRegDWORD $2 HKCU "Software\$R9" "Pictures"
+    ${If} ${FileExists} "$INSTDIR\engine\ComfyUI\models\diffusion_models\flux-2-klein-4b-fp8.safetensors"
+      !insertmacro SelectSection ${SecPictures}
+      SectionSetSize ${SecPictures} 0
+      SectionSetText ${SecPictures} "FLUX.2 klein (installed)"
+      StrCpy $PicturesText "FLUX.2 klein is already on this PC, so nothing is downloaded for it. Leave it ticked to keep drawing take pictures here. Unticking it does not remove it."
+    ${ElseIf} $2 == 1
+      !insertmacro SelectSection ${SecPictures}
+    ${EndIf}
     ; Only the app itself is new: the engine and the models are already here.
     SectionSetSize ${SecCore} 100000
     ; The model size as it is on disk: kept as it is unless another is picked, and nothing to download for it.
@@ -407,6 +437,7 @@ Function .onInit
   ${Else}
     StrCpy $WelcomeTitle "Install ${APPNAME}"
     StrCpy $LyricsText "$(DESC_Lyrics)"
+    StrCpy $PicturesText "$(DESC_Pictures)"
     ${If} ${FileExists} "$INSTDIR\models-kept\*.*"
     ${OrIf} ${FileExists} "$INSTDIR\data\*.*"
       StrCpy $WelcomeText "${APPNAME} writes and covers songs with the YuE2 music model, on this PC.$\r$\n$\r$\nWhat you kept when ${APPNAME} was uninstalled is in $INSTDIR, and this install picks it up: your library, and any models you kept are not downloaded again.$\r$\n$\r$\nIt checks that this PC can run YuE2, then downloads the rest from each part's publisher. A separate window shows the setup's progress; it may open behind this one."

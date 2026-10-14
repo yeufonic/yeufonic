@@ -281,9 +281,27 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "on", "label": "Make one for each new take"},
             {"value": "off", "label": "Off"},
         ],
-        "help": "With an external LLM set up, each new take gets a picture of the song, made while it renders and shown "
-                "behind its card. Takes made inside another show that one's. Each picture is one image request to "
-                "the provider, which may be charged.",
+        "help": "Each new take gets a picture of the song, made while it renders and shown behind its card and the "
+                "editor. Takes made inside another show that one's. It is drawn on this PC by FLUX.2 klein, where it "
+                "was chosen when installing, or by the external LLM's image model, one request each, which may be "
+                "charged.",
+        "requires": {"pictures": "possible"},
+        "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
+    },
+    {
+        "key": "art.drawer",
+        "label": "Take pictures: drawn by",
+        "type": "select",
+        "default": "auto",
+        "options": [
+            {"value": "auto", "label": "This PC if FLUX.2 klein is installed, else the external LLM"},
+            {"value": "local", "label": "This PC (FLUX.2 klein)"},
+            {"value": "external", "label": "The external LLM's image model"},
+        ],
+        "help": "FLUX.2 klein draws on this PC, in turn with the renders, at no cost; the external LLM's image model "
+                "draws beside them, one request a picture.",
+        "requires": {"pictures": "possible", "art.auto": "on"},
+        "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },
     {
         "key": "art.words",
@@ -298,14 +316,16 @@ SETTINGS_SPEC: list[dict] = [
         "help": "A take's picture is made in two steps: an LLM reads the take's title, style and opening words "
                 "and describes a picture, then the external LLM's image model draws it, and the app takes out its "
                 "white background. This chooses who writes the description.",
-        "requires": {"art.auto": "on"},
+        "requires": {"pictures": "possible", "art.auto": "on"},
+        "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },
     {
         "key": "art.model",
         "label": "Take pictures: image model",
         "type": "text",
         "default": "",
-        "help": "The external provider's model that draws a take's picture (e.g. gemini-3.1-flash-image, "
+        "help": "The external provider's model that draws a take's picture, when the external LLM draws them (e.g. "
+                "gemini-3.1-flash-image, "
                 "gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 "
                 "otherwise. Each picture is one image request to the provider, which may be charged.",
         "requires": {"art.auto": "on"},
@@ -1317,6 +1337,7 @@ def state() -> dict:
         # this with its own and asks to be reloaded.
         "assets": _asset_version(),
         "pictures": artwork.automatic(),
+        "pictures_possible": artwork.possible(),
         "model": config.CHECKPOINT_LABELS.get(config.CHECKPOINT, config.CHECKPOINT),
         # Whether a newer release is out, and what to do about it: a background task keeps
         # this current, and this route only ever reads it.
@@ -4698,9 +4719,17 @@ def get_settings() -> dict:
     return {"settings": settings_payload()}
 
 
+# Asking the provider whether it can draw take pictures, after its settings change: held until it ends.
+_ART_RECHECK: set = set()
+
+
 @app.put("/api/settings")
-def put_setting(body: SettingIn) -> dict:
+async def put_setting(body: SettingIn) -> dict:
     save_setting(body.key, body.value)
+    if body.key.startswith(("llm.", "art.")):
+        task = asyncio.create_task(artwork.check_external(force=True))   # can the provider now draw pictures
+        _ART_RECHECK.add(task)
+        task.add_done_callback(_ART_RECHECK.discard)
     return {"settings": settings_payload()}
 
 

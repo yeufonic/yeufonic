@@ -1,6 +1,7 @@
 """A take's picture: an LLM describes it, the external image model draws it on white, and the app takes the
 white out.  Nothing here reaches a provider: the describing and the drawing are stood in for."""
 import asyncio
+import time
 
 import numpy as np
 
@@ -10,6 +11,19 @@ from app.db import execute, one, set_setting
 from conftest import make_take
 
 LYRICS = "[verse]\nLanterns on the water\nCarry what we said\n\n[chorus]\n\nAnd the river keeps it\n[male voice]\nAll night long"
+
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def fresh_memory():
+    """What the module remembers (the provider check, pictures being made) starts empty in every test."""
+    artwork._EXTERNAL.clear()
+    artwork.STATE.clear()
+    yield
+    artwork._EXTERNAL.clear()
+    artwork.STATE.clear()
 
 
 def a_take(**fields):
@@ -89,7 +103,8 @@ def test_the_png_written_reads_back_the_same():
 # ------------------------------------------------------------------ the job and the routes
 def test_described_by_gemma_it_waits_in_the_gpu_lane(client):
     take = a_take()
-    set_setting("llm.provider", "local")
+    external()
+    set_setting("art.words", "local")
     reply = client.post(f"/api/takes/{take['id']}/art")
     assert reply.status_code == 200 and reply.json()["state"] == "queued"
     assert jobs.QUEUE._queue[-1] == {"kind": "art", "id": take["id"]}
@@ -97,17 +112,18 @@ def test_described_by_gemma_it_waits_in_the_gpu_lane(client):
     assert client.get(f"/api/takes/{take['id']}/art").json()["state"] == "queued"
 
 
-def test_it_cannot_start_without_the_provider_it_draws_with(client):
+def test_it_cannot_start_without_something_to_draw_it(client):
     take = a_take()
     set_setting("llm.api_url", "https://generativelanguage.googleapis.com")
     reply = client.post(f"/api/takes/{take['id']}/art")
-    assert reply.status_code == 400 and "key" in reply.json()["detail"]
+    assert reply.status_code == 400 and "FLUX.2 klein was not installed" in reply.json()["detail"]
     assert client.get(f"/api/takes/{take['id']}/art").json()["state"] == "none"
 
 
 def test_the_job_keeps_the_picture_and_its_description(client, monkeypatch):
     take = a_take()
     monkeypatch.setattr(artwork, "words_by_engine", lambda: False)
+    monkeypatch.setattr(artwork, "drawer", lambda: "external")
 
     async def describe(record):
         assert record["id"] == take["id"]
@@ -147,11 +163,13 @@ def test_a_failed_picture_says_why_and_leaves_the_take_alone(client, monkeypatch
 
 
 # ------------------------------------------------------------------ made by itself
-def external(key="a-key"):
+def external(key="a-key", draws=True):
+    """An external provider set up; `draws`: its model list has the image model (as the background check found)."""
     set_setting("llm.provider", "external")
     set_setting("llm.api_url", "https://generativelanguage.googleapis.com")
     if key:
         set_setting("llm.api_key", key)
+        artwork._EXTERNAL[artwork._external_key()] = (draws, time.time())
 
 
 def started(monkeypatch):
@@ -222,6 +240,7 @@ def test_back_to_the_default_background_stays_there(client, monkeypatch):
     jobs.art_for_new_take(take["id"])                                # never made again by itself
     assert calls == []
     monkeypatch.setattr(artwork, "words_by_engine", lambda: False)
+    monkeypatch.setattr(artwork, "drawer", lambda: "external")
 
     async def describe(record):
         return "A ring on white."
@@ -239,3 +258,116 @@ def test_the_page_is_told_whether_pictures_are_made(client):
     assert client.get("/api/state").json()["pictures"] is False
     external()
     assert client.get("/api/state").json()["pictures"] is True
+
+
+# ------------------------------------------------------------------ who draws
+def test_who_draws_this_pc_first_then_the_provider_then_nobody(client, monkeypatch):
+    engine = {}
+    monkeypatch.setattr(artwork, "engine_options", lambda: engine)
+    assert artwork.drawer() is None and not artwork.possible() and not artwork.automatic()
+    external(draws=False)                                    # a provider with no image model draws nothing
+    assert artwork.drawer() is None
+    external()
+    assert artwork.drawer() == "external" and artwork.automatic()
+    engine["pictures"] = True                                # FLUX.2 klein installed: it is preferred, it costs nothing
+    assert artwork.drawer() == "local"
+    set_setting("art.drawer", "external")
+    assert artwork.drawer() == "external"
+    set_setting("art.drawer", "local")
+    engine["pictures"] = False
+    assert artwork.drawer() is None                          # asked for this PC, which has not got it
+    assert client.get("/api/state").json()["pictures_possible"] is True
+
+
+def test_drawn_here_the_picture_waits_its_turn_in_the_gpu_lane(client, monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"pictures": True})
+    external()                                               # described by the external LLM, drawn here
+    take = a_take()
+    jobs.start_art(take["id"])
+    assert jobs.QUEUE._queue[-1] == {"kind": "art", "id": take["id"]}
+
+
+def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"pictures": True})
+    monkeypatch.setattr(artwork, "words_by_engine", lambda: False)
+    take, drawn_with = a_take(), []
+
+    async def describe(record):
+        return "A ring on white."
+
+    async def on_engine(take_id, description):
+        drawn_with.append((take_id, description))
+        return as_file(drawing())
+
+    async def never(description):
+        raise AssertionError("the external model was asked")
+
+    monkeypatch.setattr(artwork, "describe_external", describe)
+    monkeypatch.setattr(artwork, "draw", never)
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    asyncio.run(jobs.run_art(take["id"]))
+    assert drawn_with == [(take["id"], "A ring on white.")]
+    got = artwork.info(take["id"])
+    assert got["has"] and "drawn by FLUX.2 klein on this PC" in got["words"]
+
+
+def test_the_flux_graph_is_comfyuis_own_klein_workflow():
+    graph = artwork.picture_graph("A lantern.", 7, "yeufonic/picture-x")
+    kinds = {node["class_type"]: node["inputs"] for node in graph.values()}
+    assert kinds["UNETLoader"]["unet_name"] == "flux-2-klein-4b-fp8.safetensors"
+    assert kinds["CLIPLoader"] == {"clip_name": "qwen_3_4b_fp4_flux2.safetensors", "type": "flux2"}
+    assert kinds["VAELoader"]["vae_name"] == "flux2-vae.safetensors"
+    assert kinds["Flux2Scheduler"]["steps"] == 4 and kinds["CFGGuider"]["cfg"] == 1.0
+    assert kinds["EmptyFlux2LatentImage"]["width"] % 16 == 0 and kinds["EmptyFlux2LatentImage"]["height"] % 16 == 0
+    assert "pure white background" in kinds["CLIPTextEncode"]["text"] and kinds["RandomNoise"]["noise_seed"] == 7
+    for node in graph.values():                              # every link points at a node in the graph
+        for value in node["inputs"].values():
+            if isinstance(value, list):
+                assert value[0] in graph
+
+
+def test_the_provider_is_asked_whether_it_has_the_image_model(client, monkeypatch):
+    set_setting("llm.provider", "external")
+    set_setting("llm.api_url", "https://generativelanguage.googleapis.com")
+    set_setting("llm.api_key", "a-key")
+    listed = {"models": [{"name": "models/gemini-flash-latest"}, {"name": "models/gemini-3.1-flash-image"}]}
+    asked = []
+
+    class Reply:
+        status_code = 200
+
+        def json(self):
+            return listed
+
+    class Client:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def get(self, url, **kwargs):
+            asked.append(url)
+            return Reply()
+
+    monkeypatch.setattr(artwork.httpx, "AsyncClient", Client)
+    assert not artwork.external_ready()                      # not asked yet: not counted on
+    assert asyncio.run(artwork.check_external()) and artwork.external_ready()
+    asyncio.run(artwork.check_external())                    # remembered: not asked again
+    assert len(asked) == 1
+    set_setting("art.model", "gemini-9-image")               # a model it has not got
+    assert not asyncio.run(artwork.check_external()) and not artwork.external_ready()
+
+
+def test_every_engine_job_kind_has_a_time_limit():
+    """_wait_for looks the kind up in TIMEOUTS: a kind missing there fails the job before it starts."""
+    import re
+    from pathlib import Path
+    from app import config
+    source = Path(jobs.__file__).read_text()
+    kinds = set(re.findall(r'_run_graph\(\s*"(\w+)"', source))
+    assert "art" in kinds
+    assert kinds <= set(config.TIMEOUTS)

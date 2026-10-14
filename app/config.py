@@ -95,6 +95,10 @@ def choose_checkpoint(installed: list[str] | None) -> str:
             return name
     return CHECKPOINT_BF16
 LYRICS_MODEL = "gemma4_e4b_it_int8_convrot.safetensors"
+# Take pictures drawn on this PC: FLUX.2 klein 4B, its text encoder and its VAE, chosen at install.
+PICTURE_MODEL = "flux-2-klein-4b-fp8.safetensors"
+PICTURE_TEXT = "qwen_3_4b_fp4_flux2.safetensors"
+PICTURE_VAE = "flux2-vae.safetensors"
 # The engine's model folder, when this machine can see it.  The app only reads
 # from it, and only to say what a LoRA holds; the engine is what loads them.
 MODELS_DIR = Path(os.environ.get("MODELS_DIR", "/app/models"))
@@ -107,7 +111,7 @@ DEFAULT_STYLE = "English, warm indie rock, expressive lead vocal, drums, bass, g
 # How long a job may run once the engine has started it.  Time spent waiting in the
 # engine's queue does not count.
 TIMEOUTS = {"transcribe": 12 * 60, "plan": 10 * 60, "render": 25 * 60, "lyrics": 15 * 60, "separate": 20 * 60, "hear": 40 * 60,
-            "identity_score": 12 * 60, "identity_style": 10 * 60,
+            "identity_score": 12 * 60, "identity_style": 10 * 60, "art": 10 * 60,
             "persona_score": 12 * 60, "persona_style": 10 * 60,
             # None: no limit.  A clock blind to progress stopped a run at step 1325 of
             # 1400 that was reporting a step every few seconds.  Training shows its

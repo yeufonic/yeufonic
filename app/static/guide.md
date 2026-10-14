@@ -1138,6 +1138,32 @@ click one, or pick it with the arrow keys and Enter.
 **Starred** shows only starred takes. **Compact** switches between three narrow cards across and
 wider ones with more of the prompt. A title always stays on one line, ending in … when it is long. Hover over a card's title, settings or style to read all of it.
 
+### A picture for each take
+
+While a take renders, a picture of the song is made beside it, and shown faintly behind the take's
+card and behind the editor when the take is open there. An LLM reads the take's title, style and
+opening words and describes a picture; then something draws it, and the plain white it is drawn on
+is taken out, leaving the picture with a transparent background. It is drawn either:
+
+- **on this PC** by FLUX.2 klein, if you chose **Take pictures** when installing (or fetched it with
+  `fetch-models.sh --pictures`). It waits its turn with the renders and costs nothing; or
+- **by your external LLM's image model**, if the provider has one (Gemini does). It is made beside the
+  renders, and each picture is one request to the provider, which may be charged.
+
+With neither, no pictures are made, and their settings are greyed out. Set up a provider that can draw,
+and they come on. A take made inside another (Try more, Variations, Checkpoints) shows the picture of
+the take it is inside rather than having one of its own.
+
+In the editor, the **Picture** button by Mastering shows the picture with two choices: **Make a new
+picture**, which makes it again in the background, and **Use the default background**, which takes it
+away for good: no picture is made for that take again unless you ask for one. An image model will not
+draw a real band or person, so the description leaves names out; and the picture's own lettering is
+kept soft, so it does not fight the card's.
+
+Settings > **Take pictures** turns them off. **Drawn by** chooses this PC or the external LLM (this PC
+first, when both can), **Described by** which LLM writes the description, and **Image model** which of
+the provider's models draws.
+
 ### Comparing takes
 
 Tick two to six takes and press **Compare** (it appears beside Select all once two are ticked, and

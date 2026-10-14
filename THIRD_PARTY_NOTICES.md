@@ -67,6 +67,15 @@ differ, the publisher's terms apply.
   ComfyUI as [Comfy-Org/gemma-4](https://huggingface.co/Comfy-Org/gemma-4).
 - Official licence: [Google's Gemma 4 licence page](https://ai.google.dev/gemma/docs/gemma_4_license)
 
+### FLUX.2 klein 4B and Qwen3 4B (take pictures, when chosen)
+
+- FLUX.2 klein 4B by Black Forest Labs. **Apache 2.0**. Source:
+  [black-forest-labs/FLUX.2-klein-4b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8).
+- Its text encoder, Qwen3 4B by the Qwen team (Alibaba Cloud), and its VAE. **Apache 2.0**. Repackaged for
+  ComfyUI as [Comfy-Org/vae-text-encorder-for-flux-klein-4b](https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-4b).
+- Fetched only when chosen at install (or with `fetch-models.sh --pictures`).
+- Official licence: [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0), as declared on each model card.
+
 ### Demucs (stems)
 
 - By Meta. Code and weights: **MIT**. Source: [facebookresearch/demucs](https://github.com/facebookresearch/demucs).

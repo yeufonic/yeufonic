@@ -129,6 +129,11 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   make are kept inside the take they were made from, so a space lists songs rather than every
   render of each. A button that appears on the card once the take holds any opens them in a
   panel under it, where each is a take like any other and can be taken out to stand on its own.
+- **A picture for each take.** While a take renders, a picture of the song is made beside it and
+  shown behind the take's card and the editor: an LLM describes it from the title, style and opening
+  words, then FLUX.2 klein draws it on this PC (an install option) or the external LLM's image model
+  does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
+  to the plain background. Without either way to draw, there are no pictures.
 - **A library.** Every take keeps its score, style, lyrics, seed and settings, so it can be
   reproduced, reworked, starred or deleted. Search by title, style, lyrics or LoRA, in one space or
   all of them. Tick several cards and one button clears them all.
@@ -243,6 +248,9 @@ The installer checks all of this before it downloads anything.
      the new one and removes the old. [Choosing a model size](#choosing-a-model-size) says how to decide.
    - Choose whether to include **Lyric drafts (Gemma 4)**. Leave it out if you will set up an
      external LLM; that saves an 8 GB download.
+   - Choose whether to include **Take pictures (FLUX.2 klein)**, unticked to begin with. It draws a
+     picture of each take on this PC, about 8 GB to download. Leave it out if your external LLM can
+     draw them (Gemini can), or if you do not want pictures.
    - Keep or change the folder. The default is `%LOCALAPPDATA%\Programs\Yeufonic`.
 4. **Wait for setup.** A setup window checks the PC, then downloads each part from its own
    publisher and checks it against its published checksum. The window may open behind the
@@ -361,6 +369,7 @@ git clone https://github.com/yeufonic/yeufonic.git
 cd yeufonic
 sh scripts/fetch-models.sh          # about 19 GB, and creates the folders below
 # sh scripts/fetch-models.sh --int8   # the smaller low-memory model instead: see Choosing a model size
+# sh scripts/fetch-models.sh --pictures   # also FLUX.2 klein (8.3 GB), to draw take pictures here
 docker compose up -d --build
 ```
 
@@ -409,7 +418,9 @@ sudo chown -R "$(id -u):$(id -g)" data engine-state/output
 ```
 
 The models are YuE2 (plans and renders), SheetSage2 (transcription), Gemma 4 E4B (lyric drafts),
-the YuE2 instrumental LoRA, and the Realaudio decoder LoRA and tokenizer head.
+the YuE2 instrumental LoRA, and the Realaudio decoder LoRA and tokenizer head; with `--pictures`,
+FLUX.2 klein 4B with its text encoder and VAE as well. Fetched later, the engine sees them at once:
+no restart.
 
 Only localhost is published, and **there is no login**: anyone who can reach the port can use the
 app. To reach it from other machines, put it behind something that authenticates, and add the
@@ -518,6 +529,7 @@ any browser and survive a rebuild.
 | Stem separation model | Which model a run starts with |
 | Use the GPU for stems and lyrics | On by default. Separating a vocal and hearing its words run on the engine's GPU when it has Demucs and Whisper, in its queue beside renders; off, or while a LoRA trains, the CPU does them |
 | Stem save folder | Where stems are written. It must sit inside the data folder |
+| Take pictures | On by default, where something can draw them: FLUX.2 klein, chosen at install, or an external LLM whose provider lists an image model. **Drawn by** chooses between the two (this PC first, as it costs nothing), **Described by** which LLM writes the picture's description, and **Image model** which of the provider's models draws. Greyed out where nothing can draw |
 | Storage | Opens the Storage window (below). It also holds three settings: **Training checkpoints**, kept by default or deleted when training ends; **Working copies of corpus songs**, removed when a song's analysis ends by default; and **Training sets**, kept by default or removed when training ends |
 
 A settings sheet is generated from a specification on the server, so a new setting is a
@@ -786,6 +798,8 @@ cut.
 - [YuE2 instrumental LoRA](https://huggingface.co/Mothersuperior/YuE2-instrumental-cot-full-loras) by
   Mothersuperior, for instrumentals. CC BY-NC 4.0.
 - [Gemma 4](https://huggingface.co/Comfy-Org/gemma-4) by Google, for lyric drafts. Apache 2.0.
+- [FLUX.2 klein 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8) by Black Forest Labs, with
+  Qwen3 4B as its text encoder, for take pictures, when chosen. Apache 2.0.
 - [ComfyUI](https://github.com/comfyanonymous/ComfyUI) as the engine.
 - [Demucs](https://github.com/facebookresearch/demucs) by Meta for stems. MIT.
 - [abcjs](https://github.com/paulrosen/abcjs) by Paul Rosen and Gregory Dyke, for staff notation.

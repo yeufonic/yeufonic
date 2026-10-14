@@ -2,7 +2,8 @@
 
 Two steps.  A language model reads the take (its title, style and opening words) and writes a
 description of a picture; that is the LLM the Settings name for it, the external one or Gemma on
-the engine.  Then the external provider's image model draws it.  No image model asked here can
+the engine.  Then an image model draws it: FLUX.2 klein on the engine, where it was chosen at
+install, or the external provider's image model.  No image model asked here can
 draw a transparent background (asked to, one draws a checkerboard), so it is asked for a plain
 white one, and the white that reaches the picture's edges is taken out here: what is left is
 the drawing, with its outline's softening kept as part-transparency.  White inside the drawing,
@@ -33,6 +34,13 @@ ASPECT = "21:9"                 # a wide banner, as an album's artwork might be 
 OPENAI_SIZE = "1536x1024"       # the widest an OpenAI image model draws
 WORD_LINES = 12                 # the opening of the song the description is written from
 DRAW_TIMEOUT = 180.0
+
+# What the engine reports it has (set by the job lanes, which hold the engine).
+engine_options = lambda: {}  # noqa: E731
+
+# Whether the external provider has the image model asked for: (url, model, key's tail) -> (yes, when asked).
+_EXTERNAL: dict[tuple, tuple[bool, float]] = {}
+EXTERNAL_RECHECK = 6 * 3600
 
 # Where a take's picture is being made: take id -> {state, error, started}.  States: queued,
 # writing (the description), drawing, cutting (the background), failed.  A finished picture
@@ -124,22 +132,87 @@ def image_model() -> str:
     return DEFAULT_GEMINI_MODEL if _is_gemini(llm.get_config()["api_url"]) else DEFAULT_OPENAI_MODEL
 
 
+def local_ready() -> bool:
+    """FLUX.2 klein is on the engine (chosen at install), with the nodes to run it."""
+    return bool((engine_options() or {}).get("pictures"))
+
+
+def _external_key() -> tuple:
+    cfg = llm.get_config()
+    return (cfg.get("api_url") or "", image_model(), (cfg.get("api_key") or "")[-6:])
+
+
+def external_ready() -> bool:
+    """The external provider is set up, with a key, and lists the image model asked for (checked now and then,
+    in the background: until it has been, it counts as not there)."""
+    cfg = llm.get_config()
+    if not (cfg.get("api_key") or "").strip() or not (cfg.get("api_url") or "").strip():
+        return False
+    held = _EXTERNAL.get(_external_key())
+    return bool(held and held[0])
+
+
+async def check_external(force: bool = False) -> bool:
+    """Ask the provider's model list whether it has the image model; remembered for some hours."""
+    cfg = llm.get_config()
+    key = _external_key()
+    held = _EXTERNAL.get(key)
+    if held and not force and time.time() - held[1] < EXTERNAL_RECHECK:
+        return held[0]
+    if not (cfg.get("api_key") or "").strip() or not (cfg.get("api_url") or "").strip():
+        _EXTERNAL[key] = (False, time.time())
+        return False
+    model = image_model()
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            if _is_gemini(cfg["api_url"]):
+                resp = await client.get("https://generativelanguage.googleapis.com/v1beta/models",
+                                        params={"pageSize": 1000}, headers={"x-goog-api-key": cfg["api_key"]})
+                names = [m.get("name", "").split("/")[-1] for m in resp.json().get("models", [])] if resp.status_code == 200 else []
+            else:
+                url = cfg["api_url"].strip().rstrip("/")
+                url = url[: -len("/chat/completions")] if url.endswith("/chat/completions") else url
+                resp = await client.get(url + "/models", headers={"Authorization": f"Bearer {cfg['api_key']}"})
+                names = [m.get("id", "") for m in (resp.json().get("data") or [])] if resp.status_code == 200 else []
+        found = model in names
+    except Exception as exc:  # noqa: BLE001
+        log.info("could not ask the provider for its image models: %s", exc)
+        held = _EXTERNAL.get(key)
+        return bool(held and held[0])
+    if (not held) or held[0] != found:
+        log.info("The external provider %s the image model %s", "has" if found else "does not list", model)
+    _EXTERNAL[key] = (found, time.time())
+    return found
+
+
+def drawer() -> str | None:
+    """Who draws: "local" (FLUX.2 klein on the engine), "external" (the provider's image model), or None when
+    neither is there.  Settings can ask for one; left to choose, this PC is preferred, as it costs nothing."""
+    chosen = (get_setting("art.drawer", "auto") or "auto").strip().lower()
+    if chosen in ("local", "auto") and local_ready():
+        return "local"
+    if chosen in ("external", "auto") and external_ready():
+        return "external"
+    return None
+
+
+def possible() -> bool:
+    """Pictures can be made here at all: what the Settings for them need."""
+    return local_ready() or external_ready()
+
+
 def automatic() -> bool:
-    """Whether each new take gets a picture by itself: Settings say so (on unless turned off), and the external
-    provider is there to draw it, with a key (a provider with no key is taken to have no image model)."""
+    """Each new take gets a picture by itself: Settings say so (on unless turned off), and something can draw it."""
     if (get_setting("art.auto", "on") or "on").strip().lower() == "off":
         return False
-    cfg = llm.get_config()
-    return bool((cfg.get("api_key") or "").strip()) and drawing_problem() is None
+    return drawer() is not None
 
 
 def drawing_problem() -> str | None:
     """Why a picture cannot be drawn now, in words, or None."""
-    cfg = llm.get_config()
-    if not (cfg.get("api_url") or "").strip():
-        return "set the external LLM's address in Settings: its image model draws the picture"
-    if not (cfg.get("api_key") or "").strip() and _is_gemini(cfg["api_url"]):
-        return "set the external LLM's key in Settings: its image model draws the picture"
+    if drawer() is None:
+        return ("nothing here can draw a picture: FLUX.2 klein was not installed, and the external LLM has no image "
+                "model (or it is not set up)")
     return None
 
 
@@ -225,8 +298,32 @@ def drawing_request(description: str) -> str:
 
 
 # ------------------------------------------------------------------ the drawing
+WIDTH, HEIGHT = 1536, 672     # 16:7, near the 21:9 asked of an external model, in the steps FLUX.2 wants
+LOCAL_STEPS = 4               # klein is distilled for four
+
+
+def picture_graph(description: str, seed: int, prefix: str) -> dict:
+    """FLUX.2 klein on the engine, as ComfyUI's own workflow for it runs it: no guidance, four steps."""
+    return {
+        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": config.PICTURE_MODEL, "weight_dtype": "default"}},
+        "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.PICTURE_TEXT, "type": "flux2"}},
+        "3": {"class_type": "VAELoader", "inputs": {"vae_name": config.PICTURE_VAE}},
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": drawing_request(description)}},
+        "5": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["4", 0]}},
+        "6": {"class_type": "EmptyFlux2LatentImage", "inputs": {"width": WIDTH, "height": HEIGHT, "batch_size": 1}},
+        "7": {"class_type": "Flux2Scheduler", "inputs": {"steps": LOCAL_STEPS, "width": WIDTH, "height": HEIGHT}},
+        "8": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "euler"}},
+        "9": {"class_type": "RandomNoise", "inputs": {"noise_seed": int(seed)}},
+        "10": {"class_type": "CFGGuider", "inputs": {"model": ["1", 0], "positive": ["4", 0], "negative": ["5", 0], "cfg": 1.0}},
+        "11": {"class_type": "SamplerCustomAdvanced", "inputs": {"noise": ["9", 0], "guider": ["10", 0], "sampler": ["8", 0],
+                                                                 "sigmas": ["7", 0], "latent_image": ["6", 0]}},
+        "12": {"class_type": "VAEDecode", "inputs": {"samples": ["11", 0], "vae": ["3", 0]}},
+        "13": {"class_type": "SaveImage", "inputs": {"images": ["12", 0], "filename_prefix": prefix}},
+    }
+
+
 async def draw(description: str) -> bytes:
-    """The image model's picture, as the bytes of an image file."""
+    """The external image model's picture, as the bytes of an image file."""
     cfg = llm.get_config()
     model = image_model()
     prompt = drawing_request(description)

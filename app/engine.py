@@ -377,6 +377,12 @@ class Engine:
                         # An engine built with WITH_TRAINER=0 has no trainer, so the
                         # app can tell whether training is there to offer at all.
                         "trainer": "FSAudioArtistTrainer" in info,
+                        # Take pictures drawn here: FLUX.2 klein and its parts, chosen at install, and the nodes for them.
+                        "pictures": (config.PICTURE_MODEL in combo_options(info, "UNETLoader", "unet_name")
+                                     and config.PICTURE_TEXT in text_models
+                                     and config.PICTURE_VAE in combo_options(info, "VAELoader", "vae_name")
+                                     and all(n in info for n in ("EmptyFlux2LatentImage", "Flux2Scheduler",
+                                                                 "SamplerCustomAdvanced", "CFGGuider"))),
                         "loras": loras}
 
         # Which size of the model is installed decides which one the graphs ask for.

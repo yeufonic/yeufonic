@@ -424,15 +424,19 @@ def build_lyrics_graph(record: dict) -> dict:
     }
 
 
+# The pictures read what the engine has (FLUX.2 klein or not) from the engine client held here.
+artwork.engine_options = lambda: ENGINE.options or {}
+
 # Pictures described by the external LLM run beside the GPU lane; each task is held here until it ends.
 _ART_TASKS: set = set()
+_ART_CHECK: list = []
 
 
 def start_art(take_id: str) -> None:
-    """Make the take's picture in the background.  Described by Gemma it waits its turn in the GPU lane;
-    described by the external LLM it runs beside it, while the take renders."""
+    """Make the take's picture in the background.  Described by Gemma or drawn by FLUX.2 klein it waits its turn
+    in the GPU lane; described and drawn by the external provider it runs beside it, while the take renders."""
     artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
-    if artwork.words_by_engine():
+    if artwork.words_by_engine() or artwork.drawer() == "local":
         QUEUE.put_nowait({"kind": "art", "id": take_id})
     else:
         task = asyncio.create_task(run_art(take_id))
@@ -475,15 +479,40 @@ async def run_art(take_id: str) -> None:
             raise RuntimeError("the LLM wrote no description")
         log.info("Picture for '%s' (%s): %s", take.get("title"), take_id, description[:200])
         artwork.STATE[take_id]["state"] = "drawing"
-        drawn = await artwork.draw(description)
+        drawer = artwork.drawer()
+        if drawer == "local":
+            drawn = await _draw_on_engine(take_id, description)
+            painter = "FLUX.2 klein on this PC"
+        elif drawer == "external":
+            drawn = await artwork.draw(description)
+            painter = artwork.image_model()
+        else:
+            raise RuntimeError(artwork.drawing_problem() or "nothing here can draw a picture")
         artwork.STATE[take_id]["state"] = "cutting"
         picture = await asyncio.to_thread(artwork.cut_out, drawn)
-        await asyncio.to_thread(artwork.keep, take_id, description, drawn, picture, artwork.image_model(), writer)
+        await asyncio.to_thread(artwork.keep, take_id, description, drawn, picture, painter, writer)
         artwork.STATE.pop(take_id, None)
         log.info("Picture for '%s' (%s) is ready", take.get("title"), take_id)
     except Exception as exc:  # noqa: BLE001
         log.warning("Picture for %s failed: %s", take_id, exc)
         artwork.STATE[take_id] = {"state": "failed", "error": str(exc)}
+
+
+async def _draw_on_engine(take_id: str, description: str) -> bytes:
+    """FLUX.2 klein draws the picture on the engine; the app takes its copy and the engine's goes."""
+    graph = artwork.picture_graph(description, int(time.time() * 1000) % 2**31, f"yeufonic/picture-{take_id}")
+    job = await _run_graph("art", take_id, graph)
+    item = next((out["images"][0] for out in _outputs_of(job, ("SaveImage",)) if out.get("images")), None)
+    if not item:
+        raise RuntimeError("the engine drew no picture")
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    dest = config.WORK_DIR / f"picture-{take_id}.png"
+    try:
+        await ENGINE.download(item, dest)
+        return await asyncio.to_thread(dest.read_bytes)
+    finally:
+        dest.unlink(missing_ok=True)
+        _drop_engine_output(item)
 
 
 def forget_old_lyrics(now: float | None = None) -> None:
@@ -2167,6 +2196,9 @@ async def keeper() -> None:
         if ENGINE.online != was_online:
             log.info("engine %s", "online" if ENGINE.online else f"offline: {ENGINE.last_error}")
         was_online = ENGINE.online
+        # Whether the external provider can draw take pictures: asked now and then (remembered for hours).
+        if not _ART_CHECK or _ART_CHECK[0].done():
+            _ART_CHECK[:] = [asyncio.create_task(artwork.check_external())]
         await asyncio.sleep(2)
 
 

@@ -14,6 +14,10 @@
 #   sh scripts/fetch-models.sh           the full-quality YuE2 model (recommended)
 #   sh scripts/fetch-models.sh --int8    the low-memory YuE2 model instead, 4.0 GB, for GPUs
 #                                        with little memory (checkpoints/yue2_3b_int8_convrot.safetensors)
+#   sh scripts/fetch-models.sh --pictures   also FLUX.2 klein 4B, 8.3 GB, which draws each take's
+#                                        picture on this PC (diffusion_models/, text_encoders/, vae/).
+#                                        Without it a picture is drawn by the external LLM's image
+#                                        model, if one is set up in Settings, or not at all.
 #
 # One size or the other: with both in models/checkpoints the app uses the full-quality one.
 # A file that is already there is kept, and an interrupted download resumes.
@@ -22,9 +26,11 @@
 set -eu
 
 MODEL=bf16
+PICTURES=no
 for arg in "$@"; do
   case "$arg" in
     --int8) MODEL=int8 ;;
+    --pictures) PICTURES=yes ;;
     -h|--help) sed -n '2,/^set -eu/p' "$0" | sed '$d'; exit 0 ;;
     *) echo "unknown option: $arg (see --help)" >&2; exit 1 ;;
   esac
@@ -96,6 +102,17 @@ fetch "$REAL_AUDIO/tokenizer_head_joint_v9.safetensors" \
 
 fetch "$REGULARIZER/minted_regularizer_pack_v2.pt" \
       "$ROOT/models/fs_audio/minted_regularizer_pack_v2.pt"
+
+# FLUX.2 klein 4B for take pictures drawn here, with its text encoder and VAE (all Apache 2.0): only when asked for.
+if [ "$PICTURES" = yes ]; then
+  mkdir -p "$ROOT/models/diffusion_models" "$ROOT/models/vae"
+  KLEIN=https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-4b/resolve/main/split_files
+  fetch "https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors" \
+        "$ROOT/models/diffusion_models/flux-2-klein-4b-fp8.safetensors"
+  fetch "$KLEIN/text_encoders/qwen_3_4b_fp4_flux2.safetensors" \
+        "$ROOT/models/text_encoders/qwen_3_4b_fp4_flux2.safetensors"
+  fetch "$KLEIN/vae/flux2-vae.safetensors" "$ROOT/models/vae/flux2-vae.safetensors"
+fi
 
 # Whisper for the engine, which hears the words of a separated vocal on the GPU.  The engine would fetch it the first
 # time it is needed, and a lyric hearing would wait on 1.6 GB; here it is a plain folder the engine uses as it stands.

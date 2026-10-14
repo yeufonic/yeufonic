@@ -419,6 +419,10 @@ async function pollState() {
     var data = await api('/api/state');
     try { paintStalePage(data.assets); } catch (e) {}
     State.pictures = Boolean(data.pictures);
+    if (Boolean(data.pictures_possible) !== Boolean(State.picturesPossible)) {
+      State.picturesPossible = Boolean(data.pictures_possible);
+      try { paintSettingRequirements(); } catch (e) {}
+    }
     var pill = $('engine-pill');
     var engine = data.engine;
     State.options = data.options || {};
@@ -4785,6 +4789,8 @@ function paintSettingRequirements() {
   (State.settingSpec || []).forEach(function (item) {
     if (!item.requires) { return; }
     var met = Object.keys(item.requires).every(function (key) {
+      // "pictures" is not a setting: it is whether anything here can draw a take's picture
+      if (key === 'pictures') { return Boolean(State.picturesPossible) === (item.requires[key] === 'possible'); }
       return setting(key, '') === item.requires[key];
     });
     var control = list.querySelector('[data-key="' + item.key + '"]');

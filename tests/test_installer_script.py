@@ -114,3 +114,21 @@ def test_quit_from_the_tray_quits_at_once_and_asks_only_when_it_would_stop_work(
     assert body.count("message(") == 1 and "MB_DEFBUTTON2" in body
     assert body.index("warning = self.busy()") < body.index("self.quitting = True")
     assert 'f"Quit {APP}?" + ' not in body
+
+
+def test_take_pictures_are_chosen_at_install():
+    """FLUX.2 klein, about 8 GB, comes only when ticked (unticked to begin with) and is remembered for updates;
+    setup.ps1 fetches its three files, each against its published checksum, only with -Pictures."""
+    ROOT = Path(__file__).resolve().parent.parent
+    nsi = (ROOT / "windows" / "installer.nsi").read_text(encoding="utf-8")
+    setup = (ROOT / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    fetch = (ROOT / "scripts" / "fetch-models.sh").read_text(encoding="utf-8")
+    assert 'Section /o "Take pictures (FLUX.2 klein)" SecPictures' in nsi
+    assert 'StrCpy $1 "$1 -Pictures"' in nsi and '"Pictures" 1' in nsi and 'ReadRegDWORD $2 HKCU "Software\\$R9" "Pictures"' in nsi
+    assert "[switch]$Pictures," in setup and "if ($Pictures) { $ModelFiles = @($ModelFiles) + $PictureFiles }" in setup
+    assert "'Pictures', 'CheckOnly'" in setup                # carried across the 64-bit restart
+    for name, sha in (("flux-2-klein-4b-fp8.safetensors", "97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6"),
+                      ("qwen_3_4b_fp4_flux2.safetensors", "3eab03a77adb0ee5304a4e677d5c10ac22f9049c1d7c894adca4f8bb39206ca8"),
+                      ("flux2-vae.safetensors", "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3")):
+        assert name in setup and sha in setup and name in fetch
+    assert "--pictures) PICTURES=yes ;;" in fetch

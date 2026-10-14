@@ -3,8 +3,9 @@
 # version and checked by sha256 where the publisher gives one.  Safe to run again:
 # whatever is already in place is kept, and an interrupted download carries on.
 #
-#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-NoLyrics] [-Int8]
+#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-NoLyrics] [-Int8] [-Pictures]
 #   ... -Int8             the smaller, low-memory YuE2 model instead of the full-quality one
+#   ... -Pictures         FLUX.2 klein, which draws each take's picture on this PC (about 8.3 GB)
 #   ... -CheckOnly        only the system check
 #   ... -SkipModels       everything but the 18 GB of models (for testing)
 
@@ -12,6 +13,7 @@ param(
     [Parameter(Mandatory = $true)][string]$InstallDir,
     [switch]$NoLyrics,
     [switch]$Int8,
+    [switch]$Pictures,
     [switch]$CheckOnly,
     [switch]$SkipModels
 )
@@ -21,7 +23,7 @@ param(
 if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProcess) {
     $native = Join-Path $env:WINDIR 'Sysnative\WindowsPowerShell\v1.0\powershell.exe'
     $again = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-InstallDir', $InstallDir)
-    foreach ($flag in @('NoLyrics', 'Int8', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
+    foreach ($flag in @('NoLyrics', 'Int8', 'Pictures', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
     & $native @again
     exit $LASTEXITCODE
 }
@@ -90,6 +92,20 @@ $ModelFiles = @(
        Url = "$HF/Mothersuperior/YuE2-hum-to-song/resolve/main/minted_regularizer_pack_v2.pt"
        Sha = '587631eec5946f9f87d4b422abcda7e35dee43299efb7b7d2fcba4cd8752c475'; Size = 296098847 }
 )
+# Take pictures drawn on this PC: FLUX.2 klein 4B, its text encoder and its VAE (Apache 2.0), only when chosen.
+# Left out, a take's picture is drawn by the external LLM's image model, if it has one, or not at all.
+$PictureFiles = @(
+    @{ Name = 'FLUX.2 klein 4B (take pictures)'; Dir = 'diffusion_models'; File = 'flux-2-klein-4b-fp8.safetensors'; Pictures = $true
+       Url = "$HF/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors"
+       Sha = '97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6'; Size = 4070624520 }
+    @{ Name = 'Qwen3 4B text encoder (take pictures)'; Dir = 'text_encoders'; File = 'qwen_3_4b_fp4_flux2.safetensors'; Pictures = $true
+       Url = "$HF/Comfy-Org/vae-text-encorder-for-flux-klein-4b/resolve/main/split_files/text_encoders/qwen_3_4b_fp4_flux2.safetensors"
+       Sha = '3eab03a77adb0ee5304a4e677d5c10ac22f9049c1d7c894adca4f8bb39206ca8'; Size = 3848213998 }
+    @{ Name = 'FLUX.2 VAE (take pictures)'; Dir = 'vae'; File = 'flux2-vae.safetensors'; Pictures = $true
+       Url = "$HF/Comfy-Org/vae-text-encorder-for-flux-klein-4b/resolve/main/split_files/vae/flux2-vae.safetensors"
+       Sha = '868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3'; Size = 336211292 }
+)
+if ($Pictures) { $ModelFiles = @($ModelFiles) + $PictureFiles }
 if ($NoLyrics) { $ModelFiles = @($ModelFiles | Where-Object { -not $_.Lyrics }) }
 # The model comes in two sizes and an install has one of them: the full-quality file, or with -Int8 the
 # smaller one for a GPU with little memory.  The other is taken off the entry list here, and removed from
@@ -468,6 +484,7 @@ if (-not $SkipModels) {
     foreach ($m in $ModelFiles) {
         Say ''
         Say $m.Name 'White'
+        New-Item -ItemType Directory -Force -Path (Join-Path $Models $m.Dir) | Out-Null
         Get-Verified $m (Join-Path (Join-Path $Models $m.Dir) $m.File)
     }
     # One size only: with the chosen one in place, the other is taken away, so the app uses what was chosen.
