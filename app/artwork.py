@@ -116,13 +116,15 @@ def to_default(take_id: str) -> None:
 
 # ------------------------------------------------------------------ who does what
 def words_by_engine() -> bool:
-    """Whether the description is written by Gemma on the engine (else by the external LLM)."""
-    chosen = (get_setting("art.words", "same") or "same").strip().lower()
+    """Whether the description is written by Gemma on the engine (else by the external LLM).  Left to choose
+    ("auto"; "same" is the earlier name for it), it is written where the picture is drawn: a picture drawn on
+    this PC sends nothing out, and one drawn by the provider is described there too."""
+    chosen = (get_setting("art.words", "auto") or "auto").strip().lower()
     if chosen == "local":
         return True
     if chosen == "external":
         return False
-    return not llm.is_external_enabled()
+    return drawer() != "external"
 
 
 def image_model() -> str:

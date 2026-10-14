@@ -1155,7 +1155,8 @@ kept soft, so it does not fight the card's.
 
 Settings > **Take pictures** turns them off. **Drawn by** chooses this PC or the external LLM (this PC
 first, when both can), **Described by** which LLM writes the description, and **Image model** which of
-the provider's models draws.
+the provider's models draws. Left to choose, the description is written where the picture is drawn: a
+picture drawn on this PC is described by Gemma on this PC, so nothing is sent to the provider.
 
 ### Comparing takes
 

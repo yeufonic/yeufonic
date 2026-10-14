@@ -529,7 +529,7 @@ any browser and survive a rebuild.
 | Stem separation model | Which model a run starts with |
 | Use the GPU for stems and lyrics | On by default. Separating a vocal and hearing its words run on the engine's GPU when it has Demucs and Whisper, in its queue beside renders; off, or while a LoRA trains, the CPU does them |
 | Stem save folder | Where stems are written. It must sit inside the data folder |
-| Take pictures | On by default, where something can draw them: FLUX.2 klein, chosen at install, or an external LLM whose provider lists an image model. **Drawn by** chooses between the two (this PC first, as it costs nothing), **Described by** which LLM writes the picture's description, and **Image model** which of the provider's models draws. Greyed out where nothing can draw |
+| Take pictures | On by default, where something can draw them: FLUX.2 klein, chosen at install, or an external LLM whose provider lists an image model. **Drawn by** chooses between the two (this PC first, as it costs nothing), **Described by** which LLM writes the picture's description (where it is drawn, unless you choose), and **Image model** which of the provider's models draws. Greyed out where nothing can draw |
 | Storage | Opens the Storage window (below). It also holds three settings: **Training checkpoints**, kept by default or deleted when training ends; **Working copies of corpus songs**, removed when a song's analysis ends by default; and **Training sets**, kept by default or removed when training ends |
 
 A settings sheet is generated from a specification on the server, so a new setting is a

@@ -371,3 +371,21 @@ def test_every_engine_job_kind_has_a_time_limit():
     kinds = set(re.findall(r'_run_graph\(\s*"(\w+)"', source))
     assert "art" in kinds
     assert kinds <= set(config.TIMEOUTS)
+
+
+def test_left_to_choose_the_description_is_written_where_the_picture_is_drawn(monkeypatch):
+    """A picture drawn on this PC sends nothing to the provider, whatever writes the lyrics."""
+    external()
+    for chosen in (None, "auto", "same"):              # "same": the earlier name for it, read the same way
+        if chosen:
+            set_setting("art.words", chosen)
+        monkeypatch.setattr(artwork, "drawer", lambda: "local")
+        assert artwork.words_by_engine()
+        monkeypatch.setattr(artwork, "drawer", lambda: "external")
+        assert not artwork.words_by_engine()
+    set_setting("art.words", "external")               # chosen: kept, even when this PC draws
+    monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    assert not artwork.words_by_engine()
+    set_setting("art.words", "local")
+    monkeypatch.setattr(artwork, "drawer", lambda: "external")
+    assert artwork.words_by_engine()

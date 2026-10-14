@@ -307,15 +307,16 @@ SETTINGS_SPEC: list[dict] = [
         "key": "art.words",
         "label": "Take pictures: described by",
         "type": "select",
-        "default": "same",
+        "default": "auto",
         "options": [
-            {"value": "same", "label": "The LLM chosen above"},
+            {"value": "auto", "label": "Where it is drawn: Gemma on this PC with FLUX.2 klein"},
             {"value": "local", "label": "Local Gemma (engine ComfyUI node)"},
             {"value": "external", "label": "External LLM"},
         ],
         "help": "A take's picture is made in two steps: an LLM reads the take's title, style and opening words "
-                "and describes a picture, then the external LLM's image model draws it, and the app takes out its "
-                "white background. This chooses who writes the description.",
+                "and describes a picture, then it is drawn, and the app takes out its white background. This "
+                "chooses who writes the description. Left to choose, a picture drawn on this PC is described by "
+                "Gemma on this PC too, so nothing is sent out; one drawn by the external LLM is described there.",
         "requires": {"pictures": "possible", "art.auto": "on"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },
