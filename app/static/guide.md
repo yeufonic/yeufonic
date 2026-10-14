@@ -75,8 +75,7 @@ Some of these act on the plan, and some on the render and the finished file:
   cue names is sung. See [The words](#the-words).
 - **Follow this structure exactly** (a tick under the lyrics box, not in Advanced; songs; off by default): the plan writes exactly the sections the lyrics name, in
   order, and no others. Left off, the planner shapes the song itself and often adds an intro, an outro or an
-  interlude, or leaves a section out. A plan can still end before the list does; Details shows what was asked for and
-  what the plan wrote.
+  interlude, or leaves a section out. A plan can still end before the list does.
 - **Sections open differently** (Follow Harmony, Always, Never): whether a section may open on the same
   chords as the one before it. *Follow Harmony* turns it on from Colourful up and leaves it off below; *Always* and
   *Never* decide for this take at any step, so two plans can be compared with and without it.
@@ -316,9 +315,6 @@ The length of a song is set by its plan, and the render follows the plan's lengt
   tune cannot gain sections or notes, so if your words have more sections than the tune does, or far more syllables
   than it has notes (as with **Long and flowing** lines on a tune made for short ones), the tick clears itself and a
   new plan is written, with a line saying why. See [Same tune, new words](#same-tune-new-words).
-- **Details** (the circled *i* on a take) lists the structure the take was asked for, with the lines in each
-  section, next to the sections the plan actually wrote and where each starts. If a plan does not match your
-  lyrics, that is where to see it, and **Follow this structure exactly** is how to stop it happening.
 - **Filter the library.** The **Song**, **Cover** and **Instrumental** toggles beside the filters show only those
   kinds in the open space; pick more than one, or none for every kind.
 
@@ -575,10 +571,7 @@ shows them in the take panel, and opening it in the editor loads all of it back.
 editor with exactly that, seed included, so a take you liked can be reproduced, and a take you nearly
 liked can be nudged one setting at a time.
 
-The **Details** button (the circled *i*, among the small icons at the card's top right) opens a window listing everything the
-take was made with in words: its model, mode, seed, interpretation, production polish, whether the volume was normalised, its
-style LoRA and strengths, the length cap and the Advanced settings. **Copy** puts it on the clipboard as text, to compare two
-takes or to describe one to someone else. In the editor's menus, hovering an interpretation shows what it does.
+In the editor's menus, hovering an interpretation shows what it does.
 
 Tick **keep this seed** to keep the same seed across renders; leave it off and each render rolls a
 new one.
