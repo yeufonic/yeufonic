@@ -54,6 +54,8 @@ cannot creep back in.
 - **The mastering rack follows the theme.** In the light theme it was still black. Its panels are now brushed silver with dark lettering there, each unit keeping its own tint and coloured top edge; the knobs, the meter windows and the readouts keep the dark look of the hardware. The parametric equalizer's graph is drawn in light colours to match. The dark themes keep the rack as it was.
 - **Equalizer band tips.** Each band of the parametric equalizer says what it is and how it is set when the pointer rests on it.
 - **Backdrop colour.** A setting under Theme tints the page behind the takes with a hue you choose, at a strength from a faint wash to a rich colour, and the page changes as you drag. The take cards, the panels and the windows keep their own colours, and the high contrast theme stays black. Like every setting it is kept by the app, so every window onto it shows the same.
+- **The editor's player on every step, with its keys.** In the steps layout the player for the take open in the editor sits in the window's bottom bar on every step (it showed on the Words step only), and Space and the arrows work it in either layout, as they do the page's player; typing in a box is left alone.
+- **The layout buttons say what they do.** The buttons beside Starred read Comfy or Compact, and Fit or Wide, for the layout a click gives, rather than the one on show.
 - **Escape closes the logs** before anything under them, and closes the popped-out log window.
 - **Reload to update** now appears for a change to the page's look, as it did for a change to its scripts.
 
