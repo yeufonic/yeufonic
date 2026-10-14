@@ -4075,3 +4075,110 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 }
 
 
+
+/* ---------- the mastering rack in the light theme
+   The rack follows the theme as everything else does: in the light theme it is brushed silver, with dark
+   lettering.  The knobs, the meter windows and the readouts keep the look of the hardware they are drawn
+   from, which is dark on a silver panel as much as on a black one.  The dark themes (dark, Studio, high
+   contrast) keep the rack as it is drawn above. */
+:root[data-theme="light"] .rack-chassis,
+:root[data-theme="light"] .rack-panel.is-floating .rack-chassis {
+  background: linear-gradient(180deg, #eef0f4 0%, #dde1e7 100%);
+  border-color: rgba(15, 23, 42, 0.14);
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+:root[data-theme="light"] .rack-panel.is-floating .rack-chassis {
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.28), 0 4px 14px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+:root[data-theme="light"] .rack-header {
+  background: linear-gradient(180deg, #f8f9fb 0%, #e6e9ee 100%);
+  border-bottom-color: rgba(15, 23, 42, 0.12); box-shadow: inset 0 1px 0 #fff;
+}
+:root[data-theme="light"] .rack-title { color: #0f172a; text-shadow: none; }
+:root[data-theme="light"] .rack-take-label,
+:root[data-theme="light"] .rack-preset-wrap { color: #475569; }
+:root[data-theme="light"] .rack-select { background: #fff; color: #0f172a; border-color: rgba(15, 23, 42, 0.2); }
+:root[data-theme="light"] .rack-head-btn {
+  background: linear-gradient(180deg, #ffffff 0%, #e8ebf0 100%); color: #1e293b;
+  border-color: rgba(15, 23, 42, 0.16); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+:root[data-theme="light"] .rack-head-btn.delete-btn { color: #b91c1c; }
+:root[data-theme="light"] .rack-bay { background: #d6dae1; }
+:root[data-theme="light"] .rack-unit {
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 8px rgba(15, 23, 42, 0.14);
+}
+:root[data-theme="light"] .unit-bar { background: rgba(255, 255, 255, 0.55); border-bottom-color: rgba(15, 23, 42, 0.08); }
+:root[data-theme="light"] .unit-brand { color: #334155; }
+:root[data-theme="light"] .unit-toggle { background: #fff; color: #64748b; border-color: rgba(15, 23, 42, 0.18); }
+:root[data-theme="light"] .unit-toggle.on { color: #0f172a; border-color: rgba(2, 132, 199, 0.55); }
+:root[data-theme="light"] .knob-name,
+:root[data-theme="light"] .ratio-title,
+:root[data-theme="light"] .warmth-title,
+:root[data-theme="light"] .status-led-item,
+:root[data-theme="light"] .dpx-badge-desc { color: #475569; }
+:root[data-theme="light"] .knob-group.separator::before,
+:root[data-theme="light"] .imager-harmonics-sec::before,
+:root[data-theme="light"] .imager-right-sec::before,
+:root[data-theme="light"] .dpx-sec + .dpx-sec::before { background: rgba(15, 23, 42, 0.12); box-shadow: 1px 0 0 rgba(255, 255, 255, 0.6); }
+
+/* the units' faceplates: each keeps its own tint and its coloured top edge */
+:root[data-theme="light"] .unit-eq.unit-1073 {
+  background: linear-gradient(180deg, #dfe8f1 0%, #cdd9e5 60%, #c0cedc 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 8px rgba(15, 23, 42, 0.14);
+}
+:root[data-theme="light"] .dpx-faceplate,
+:root[data-theme="light"] .imager-faceplate { background: radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.35) 0%, transparent 80%); }
+:root[data-theme="light"] .filter-symbol { color: #334155; text-shadow: none; }
+:root[data-theme="light"] .dpx-badge-model { color: #0f172a; text-shadow: none; }
+:root[data-theme="light"] .unit-comp { background: linear-gradient(180deg, #efede9 0%, #dfdbd4 100%); }
+:root[data-theme="light"] .unit-imager { background: linear-gradient(180deg, #eaedf2 0%, #dce1e8 50%, #d2d8e0 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 8px rgba(15, 23, 42, 0.14); }
+:root[data-theme="light"] .unit-limit { background: linear-gradient(180deg, #f1ebe7 0%, #e0d7d0 100%); }
+:root[data-theme="light"] .ratio-btn { background: linear-gradient(180deg, #ffffff 0%, #e5e8ed 100%); border-color: rgba(15, 23, 42, 0.2); color: #475569; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.15); }
+:root[data-theme="light"] .ratio-btn.on { background: linear-gradient(180deg, #d97706 0%, #b45309 100%); color: #fff; border-color: #92400e; }
+:root[data-theme="light"] .warmth-box { background: rgba(255, 255, 255, 0.45); border-color: rgba(15, 23, 42, 0.1); }
+:root[data-theme="light"] .switch-toggle { background: #e2e8f0; border-color: #94a3b8; box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.2); }
+:root[data-theme="light"] .switch-arm { background: #fff; }
+:root[data-theme="light"] .switch-toggle.on { background: #fecaca; border-color: #ef4444; }
+:root[data-theme="light"] .switch-toggle.on .switch-arm { background: #ef4444; }
+:root[data-theme="light"] .imager-btn {
+  background: linear-gradient(180deg, #ffffff 0%, #e5e8ed 100%); color: #475569;
+  border-color: rgba(15, 23, 42, 0.2); border-bottom-color: rgba(15, 23, 42, 0.35); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+}
+:root[data-theme="light"] .imager-btn.active { color: #0369a1; border-color: #0284c7; box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.2), 0 0 8px rgba(56, 189, 248, 0.3); }
+:root[data-theme="light"] .imager-window-title,
+:root[data-theme="light"] .imager-window-sub { color: #334155; text-shadow: none; }
+/* the readouts are small displays: dark, as on the hardware, so their figures stand out on a silver panel */
+:root[data-theme="light"] .knob-val { background: #1e293b; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6); }
+:root[data-theme="light"] .imager-badge-main { color: #0f172a; text-shadow: none; }
+
+/* the equalizer: a light screen, its own graph colours (rack.js reads these), and its strip */
+.unit-peq {
+  --peq-grid: rgba(255, 255, 255, 0.09); --peq-grid-faint: rgba(255, 255, 255, 0.035); --peq-zero: rgba(255, 255, 255, 0.22);
+  --peq-line: rgba(255, 255, 255, 0.06); --peq-label: rgba(148, 163, 184, 0.75); --peq-label-zero: rgba(226, 232, 240, 0.85);
+  --peq-heard: rgba(148, 163, 184, 0.13); --peq-heard-edge: rgba(203, 213, 225, 0.28);
+  --peq-total: #f8fafc; --peq-total-out: rgba(148, 163, 184, 0.6); --peq-ring: rgba(15, 17, 22, 0.9); --peq-ring-chosen: #ffffff; --peq-number: #0b0c10;
+}
+:root[data-theme="light"] .unit-peq {
+  background: linear-gradient(180deg, #f1f3f6 0%, #e4e7ec 100%);
+  --peq-grid: rgba(15, 23, 42, 0.1); --peq-grid-faint: rgba(15, 23, 42, 0.04); --peq-zero: rgba(15, 23, 42, 0.3);
+  --peq-line: rgba(15, 23, 42, 0.07); --peq-label: rgba(71, 85, 105, 0.85); --peq-label-zero: #0f172a;
+  --peq-heard: rgba(71, 85, 105, 0.12); --peq-heard-edge: rgba(71, 85, 105, 0.3);
+  --peq-total: #0f172a; --peq-total-out: rgba(71, 85, 105, 0.55); --peq-ring: rgba(255, 255, 255, 0.95); --peq-ring-chosen: #0f172a; --peq-number: #0b0c10;
+}
+:root[data-theme="light"] .peq-screen { background: #fbfcfd; }
+:root[data-theme="light"] .peq-range { color: #334155; background: rgba(255, 255, 255, 0.85); border-color: rgba(15, 23, 42, 0.18); }
+:root[data-theme="light"] .peq-range:hover { color: #0f172a; border-color: rgba(15, 23, 42, 0.35); }
+:root[data-theme="light"] .peq-strip { background: linear-gradient(180deg, #f1f3f6 0%, #e6e9ee 100%); border-top-color: rgba(15, 23, 42, 0.1); }
+:root[data-theme="light"] .peq-dot { border-color: rgba(255, 255, 255, 0.9); }
+:root[data-theme="light"] .peq-dot.chosen { border-color: #0f172a; }
+:root[data-theme="light"] .peq-dot.off { border-color: var(--band); opacity: 0.85; }
+:root[data-theme="light"] .peq-dot.off.chosen { border-color: #0f172a; }
+:root[data-theme="light"] .peq-power,
+:root[data-theme="light"] .peq-type,
+:root[data-theme="light"] .peq-flat { color: #475569; background: #fff; border-color: rgba(15, 23, 42, 0.16); }
+:root[data-theme="light"] .peq-power:hover,
+:root[data-theme="light"] .peq-type:hover,
+:root[data-theme="light"] .peq-flat:hover { color: #0f172a; border-color: rgba(15, 23, 42, 0.35); }
+:root[data-theme="light"] .peq-type.chosen { color: #0b0c10; background: var(--band); border-color: var(--band); }
+:root[data-theme="light"] .peq-flat:active { color: #fff; background: #334155; border-color: #334155; }

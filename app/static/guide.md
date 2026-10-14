@@ -1225,7 +1225,8 @@ When there is a newer one, the menu offers **Get x.y.z**, which downloads the in
 **Theme** sets how the app looks: **Dark**, **Light**, **Match the computer**, which follows your
 system's light or dark and changes with it, **Studio**, a warm dark with amber, or **High
 contrast**, black and white with strong outlines. It changes at once, and each browser remembers it
-so the page opens in it. The log window stays dark in every theme, like a terminal.
+so the page opens in it. The log window stays dark in every theme, like a terminal. The mastering rack follows the theme too: in the light theme its panels are brushed silver, while its knobs,
+meter windows and readouts keep the dark look of the hardware.
 
 ---
 

@@ -37,6 +37,10 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **The mastering rack follows the theme.** In the light theme it was still black. Its panels are now brushed silver with dark lettering there, each unit keeping its own tint and coloured top edge; the knobs, the meter windows and the readouts keep the dark look of the hardware. The parametric equalizer's graph is drawn in light colours to match. The dark themes keep the rack as it was.
+
 ## 0.0.43 (2026-10-13)
 
 - **Mastering rack: a parametric equalizer.** A new unit between the 1073 EQ and the compressor, with seven bands on a graph. Each band is a dot: drag it across for its frequency and up or down for its gain, turn the mouse wheel over it for its width, double-click it to reset it. A band can be a low cut, a low shelf, a bell, a notch, a high shelf or a high cut, and can be switched off; a cut waits, switched off, at each end. The graph shows each band's own curve in its colour, the curve of all of them together, and, while a take plays, the spectrum of what is heard behind them. **Flat**, beside the kinds, puts every band back to 0 dB and switches the cuts and notches off, leaving each band where it is. A button in the graph's corner sets how many decibels it shows (6, 12 or 18 either side), for fine moves or broad ones. The equalizer is part of the rack's settings: it is kept with the take, and a preset you save holds it. The factory presets leave it out and flat.

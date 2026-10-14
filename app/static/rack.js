@@ -2354,6 +2354,17 @@
       var peq = this.peq(), unitIn = peq.enabled !== false;
       var rate = (Engine.ctx && Engine.ctx.sampleRate) || 48000;
       var right = plot.left + plot.width, bottom = plot.top + plot.height, zero = this.peqY(plot, 0);
+      // the graph's colours are the unit's, so they follow the theme (styles.css, .unit-peq)
+      var look = window.getComputedStyle(canvas.closest('.unit-peq') || canvas);
+      function colour(name, otherwise) { return (look.getPropertyValue(name) || '').trim() || otherwise; }
+      var ink = {
+        grid: colour('--peq-grid', 'rgba(255,255,255,0.09)'), faint: colour('--peq-grid-faint', 'rgba(255,255,255,0.035)'),
+        zero: colour('--peq-zero', 'rgba(255,255,255,0.22)'), line: colour('--peq-line', 'rgba(255,255,255,0.06)'),
+        label: colour('--peq-label', 'rgba(148,163,184,0.75)'), labelZero: colour('--peq-label-zero', 'rgba(226,232,240,0.85)'),
+        heard: colour('--peq-heard', 'rgba(148,163,184,0.13)'), heardEdge: colour('--peq-heard-edge', 'rgba(203,213,225,0.28)'),
+        total: colour('--peq-total', '#f8fafc'), totalOut: colour('--peq-total-out', 'rgba(148,163,184,0.6)'),
+        ring: colour('--peq-ring', 'rgba(15,17,22,0.9)'), ringChosen: colour('--peq-ring-chosen', '#ffffff'), number: colour('--peq-number', '#0b0c10')
+      };
 
       // scales
       g.font = Math.round(10 * plot.type * 10) / 10 + 'px ui-monospace, SFMono-Regular, Menlo, monospace';
@@ -2361,10 +2372,10 @@
       [20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000,
        6000, 7000, 8000, 9000, 10000, 20000].forEach(function (hz) {
         var x = Math.round(self.peqX(plot, hz)) + 0.5, named = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].indexOf(hz) >= 0;
-        g.strokeStyle = named ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.035)';
+        g.strokeStyle = named ? ink.grid : ink.faint;
         g.beginPath(); g.moveTo(x, plot.top); g.lineTo(x, bottom); g.stroke();
         if (named) {
-          g.fillStyle = 'rgba(148,163,184,0.75)';
+          g.fillStyle = ink.label;
           g.textAlign = hz === 20 ? 'left' : hz === 20000 ? 'right' : 'center';
           g.fillText(hz >= 1000 ? (hz / 1000) + 'k' : String(hz), x, bottom + 11 * plot.type);
         }
@@ -2373,9 +2384,9 @@
       for (var mark = step; mark < plot.range; mark += step) { lines.push(mark, -mark); }
       lines.forEach(function (db) {
         var y = Math.round(self.peqY(plot, db)) + 0.5;
-        g.strokeStyle = db === 0 ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.06)';
+        g.strokeStyle = db === 0 ? ink.zero : ink.line;
         g.beginPath(); g.moveTo(plot.left, y); g.lineTo(right, y); g.stroke();
-        g.fillStyle = db === 0 ? 'rgba(226,232,240,0.85)' : 'rgba(148,163,184,0.75)';
+        g.fillStyle = db === 0 ? ink.labelZero : ink.label;
         g.textAlign = 'left';
         g.fillText((db > 0 ? '+' : '') + db, right + 6, y);
       });
@@ -2395,8 +2406,8 @@
           g.lineTo(plot.left + sx, bottom - level * plot.height);
         }
         g.lineTo(right, bottom); g.closePath();
-        g.fillStyle = 'rgba(148,163,184,0.13)'; g.fill();
-        g.strokeStyle = 'rgba(203,213,225,0.28)'; g.lineWidth = 1; g.stroke();
+        g.fillStyle = ink.heard; g.fill();
+        g.strokeStyle = ink.heardEdge; g.lineWidth = 1; g.stroke();
       }
 
       // each band, then all of them
@@ -2425,7 +2436,7 @@
         var y = self.peqY(plot, total[n]);
         if (n) { g.lineTo(plot.left + px, y); } else { g.moveTo(plot.left + px, y); }
       });
-      g.strokeStyle = unitIn ? '#f8fafc' : 'rgba(148,163,184,0.6)';
+      g.strokeStyle = unitIn ? ink.total : ink.totalOut;
       g.lineWidth = 2;
       if (!unitIn) { g.setLineDash([5, 5]); }
       g.stroke();
@@ -2439,9 +2450,9 @@
         g.beginPath(); g.arc(node.x, node.y, (chosen ? 8 : 6) * plot.type, 0, Math.PI * 2);
         g.fillStyle = self.PEQ_COLOURS[i]; g.fill();
         g.lineWidth = chosen ? 2.5 : 1.5;
-        g.strokeStyle = chosen ? '#ffffff' : 'rgba(15,17,22,0.9)'; g.stroke();
+        g.strokeStyle = chosen ? ink.ringChosen : ink.ring; g.stroke();
         if (chosen) {
-          g.fillStyle = '#0b0c10'; g.textAlign = 'center';
+          g.fillStyle = ink.number; g.textAlign = 'center';
           g.font = 'bold ' + Math.round(9 * plot.type * 10) / 10 + 'px ui-monospace, SFMono-Regular, Menlo, monospace';
           g.fillText(String(i + 1), node.x, node.y + 0.5);
         }

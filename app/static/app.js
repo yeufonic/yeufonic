@@ -4970,6 +4970,8 @@ function repaintTheme() {
   if (typeof drawWave === 'function') { try { drawWave(); } catch (err) { /* nothing on show */ } }
   var big = $('notation-big');
   if (big && big.offsetParent && typeof renderNotationView === 'function') { try { renderNotationView(); } catch (err) { /* ditto */ } }
+  // the equalizer's graph is drawn in the theme's colours too
+  if (window.Rack && typeof window.Rack.drawPeq === 'function') { try { window.Rack.drawPeq(); } catch (err) { /* no rack yet */ } }
 }
 
 function openBrandMenu() {
