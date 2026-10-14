@@ -121,18 +121,16 @@ def gemma_ready() -> bool:
 
 
 def describer() -> str:
-    """Who writes the picture's description: "take" (made from the take itself, no LLM: quick, and all that a
-    picture drawn on this PC needs), "gemma" (Gemma on the engine) or "external" (the external LLM).  Left to
-    choose ("auto"; "same" is the earlier name for it): from the take when this PC draws, the external LLM when
-    it draws.  Gemma or the external LLM chosen but not there falls back to the take."""
-    chosen = (get_setting("art.words", "auto") or "auto").strip().lower()
+    """Who writes the picture's description: "take" (made from the take itself, no LLM: quick, the default,
+    whoever draws), "gemma" (Gemma on the engine) or "external" (the external LLM).  Gemma or the external LLM
+    chosen but not there falls back to the take; so does anything else on file ("auto" and "same", earlier
+    names for a choice that followed the drawer)."""
+    chosen = (get_setting("art.words", "take") or "take").strip().lower()
     if chosen == "local":
         return "gemma" if gemma_ready() else "take"
     if chosen == "external":
         return "external" if llm.is_external_enabled() else "take"
-    if chosen == "take":
-        return "take"
-    return "external" if drawer() == "external" else "take"
+    return "take"
 
 
 def words_by_engine() -> bool:

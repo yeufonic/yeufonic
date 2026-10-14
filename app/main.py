@@ -305,18 +305,17 @@ SETTINGS_SPEC: list[dict] = [
         "key": "art.words",
         "label": "Take pictures: described by",
         "type": "select",
-        "default": "auto",
+        "default": "take",
         "options": [
-            {"value": "auto", "label": "Where it is drawn: from the take itself with FLUX.2 klein, else the external LLM"},
             {"value": "take", "label": "From the take itself (no LLM, quickest)"},
             {"value": "local", "label": "Local Gemma (slower; needs Lyric drafts)"},
             {"value": "external", "label": "External LLM"},
         ],
         "help": "A take's picture is made in two steps: it is described from the take's title, style and opening "
                 "words, then drawn, and the app takes out its white background. This chooses who writes the "
-                "description. Left to choose, a picture drawn on this PC is described from the take itself, with no "
-                "LLM: quick, and nothing is sent out. Gemma writes more inventive descriptions but takes far longer; "
-                "chosen and not installed, the take's own description is used.",
+                "description. From the take itself needs no LLM: it is quick, and nothing is sent out for it. Gemma "
+                "or the external LLM write more inventive descriptions but take far longer (the external one a "
+                "request each); chosen and not there, the take's own description is used.",
         "requires": {"pictures": "possible", "art.auto": "on"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },
@@ -329,7 +328,8 @@ SETTINGS_SPEC: list[dict] = [
                 "gemini-3.1-flash-image, "
                 "gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 "
                 "otherwise. Each picture is one image request to the provider, which may be charged.",
-        "requires": {"art.auto": "on"},
+        "requires": {"art.auto": "on", "art.drawer": "external"},
+        "requires_note": "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.",
     },
     {
         "key": "lyrics.transcriber",
