@@ -57,6 +57,11 @@ def words_path(take_id: str) -> Path:
     return art_dir() / f"{take_id}.txt"
 
 
+def plain_path(take_id: str) -> Path:
+    """Its mark that the take was put back to the default background: no picture is shown or made for it."""
+    return art_dir() / f"{take_id}.plain"
+
+
 def info(take_id: str) -> dict[str, Any]:
     png, words = png_path(take_id), words_path(take_id)
     held = STATE.get(take_id) or {}
@@ -64,10 +69,23 @@ def info(take_id: str) -> dict[str, Any]:
         "state": held.get("state") or ("ready" if png.exists() else "none"),
         "error": held.get("error"),
         "has": png.exists(),
+        "plain": plain_path(take_id).exists(),
         "has_drawn": drawn_path(take_id).exists(),
         "v": int(png.stat().st_mtime) if png.exists() else None,
         "words": words.read_text(encoding="utf-8") if words.exists() else None,
     }
+
+
+def url_for(take_id: str, parent_id: str | None = None) -> str | None:
+    """Where the page finds the picture shown for a take: its own, or the one of the take it is inside."""
+    if plain_path(take_id).exists():
+        return None
+    for owner in (take_id, parent_id):
+        if owner:
+            png = png_path(owner)
+            if png.exists():
+                return f"/api/takes/{owner}/art.png?v={int(png.stat().st_mtime)}"
+    return None
 
 
 def busy(take_id: str) -> bool:
@@ -77,8 +95,15 @@ def busy(take_id: str) -> bool:
 def forget(take_id: str) -> None:
     """A deleted take's picture goes with it."""
     STATE.pop(take_id, None)
-    for path in (png_path(take_id), drawn_path(take_id), words_path(take_id)):
+    for path in (png_path(take_id), drawn_path(take_id), words_path(take_id), plain_path(take_id)):
         path.unlink(missing_ok=True)
+
+
+def to_default(take_id: str) -> None:
+    """Back to the default background: the picture goes, and stays gone (the take inside another shows none either)."""
+    forget(take_id)
+    art_dir().mkdir(parents=True, exist_ok=True)
+    plain_path(take_id).touch()
 
 
 # ------------------------------------------------------------------ who does what
@@ -97,6 +122,15 @@ def image_model() -> str:
     if chosen:
         return chosen
     return DEFAULT_GEMINI_MODEL if _is_gemini(llm.get_config()["api_url"]) else DEFAULT_OPENAI_MODEL
+
+
+def automatic() -> bool:
+    """Whether each new take gets a picture by itself: Settings say so (on unless turned off), and the external
+    provider is there to draw it, with a key (a provider with no key is taken to have no image model)."""
+    if (get_setting("art.auto", "on") or "on").strip().lower() == "off":
+        return False
+    cfg = llm.get_config()
+    return bool((cfg.get("api_key") or "").strip()) and drawing_problem() is None
 
 
 def drawing_problem() -> str | None:
@@ -336,6 +370,7 @@ def png_bytes(rgba: np.ndarray) -> bytes:
 
 def keep(take_id: str, description: str, drawn: bytes, picture: bytes, model: str, writer: str) -> None:
     art_dir().mkdir(parents=True, exist_ok=True)
+    plain_path(take_id).unlink(missing_ok=True)
     drawn_path(take_id).write_bytes(png_bytes(decode(drawn)))
     png_path(take_id).write_bytes(picture)
     words_path(take_id).write_text(f"{description}\n\n(Described by {writer}; drawn by {model}.)\n", encoding="utf-8")

@@ -273,6 +273,19 @@ SETTINGS_SPEC: list[dict] = [
         "help": "Model identifier to query (e.g. gpt-4o-mini, claude-3-5-sonnet-20241022, gemini-1.5-flash, llama3.2, mistral-large).",
     },
     {
+        "key": "art.auto",
+        "label": "Take pictures",
+        "type": "select",
+        "default": "on",
+        "options": [
+            {"value": "on", "label": "Make one for each new take"},
+            {"value": "off", "label": "Off"},
+        ],
+        "help": "With an external LLM set up, each new take gets a picture of the song, made while it renders and shown "
+                "behind its card. Takes made inside another show that one's. Each picture is one image request to "
+                "the provider, which may be charged.",
+    },
+    {
         "key": "art.words",
         "label": "Take pictures: described by",
         "type": "select",
@@ -285,6 +298,7 @@ SETTINGS_SPEC: list[dict] = [
         "help": "A take's picture is made in two steps: an LLM reads the take's title, style and opening words "
                 "and describes a picture, then the external LLM's image model draws it, and the app takes out its "
                 "white background. This chooses who writes the description.",
+        "requires": {"art.auto": "on"},
     },
     {
         "key": "art.model",
@@ -294,6 +308,7 @@ SETTINGS_SPEC: list[dict] = [
         "help": "The external provider's model that draws a take's picture (e.g. gemini-3.1-flash-image, "
                 "gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 "
                 "otherwise. Each picture is one image request to the provider, which may be charged.",
+        "requires": {"art.auto": "on"},
     },
     {
         "key": "lyrics.transcriber",
@@ -512,6 +527,12 @@ async def requeue_waiting() -> None:
         await STEM_QUEUE.put({"kind": "lyrics", "id": row["id"]})
     if waiting:
         log.info("%d waiting jobs queued again after the restart", len(waiting))
+
+
+async def queue_take(kind: str, take_id: str) -> None:
+    """A new take into the GPU lane, and its picture started beside it where pictures are made by themselves."""
+    await QUEUE.put({"kind": kind, "id": take_id})
+    jobs.art_for_new_take(take_id)
 
 
 app = FastAPI(title="Yeufonic", lifespan=lifespan)
@@ -1295,6 +1316,7 @@ def state() -> dict:
         # Which scripts a page loaded now would get: a page still open from before an update compares
         # this with its own and asks to be reloaded.
         "assets": _asset_version(),
+        "pictures": artwork.automatic(),
         "model": config.CHECKPOINT_LABELS.get(config.CHECKPOINT, config.CHECKPOINT),
         # Whether a newer release is out, and what to do about it: a background task keeps
         # this current, and this route only ever reads it.
@@ -1877,6 +1899,7 @@ def list_takes(
         take["has_audio"] = bool(take["audio_path"] and Path(take["audio_path"]).exists())
         take["ran_to_cap"] = ran_to_cap(take)
         take["stopped_early"] = score.stopped_early(take.get("duration"), take.get("abc"), take.get("max_duration"))
+        take["art"] = artwork.url_for(take["id"], take.get("parent_id"))
         if take.get("prompt_id") and take["status"] == "running":
             take["live"] = ENGINE.snapshot(take["prompt_id"])
     _attach_stem_sets(got)
@@ -2010,10 +2033,6 @@ async def delete_take(take_id: str) -> dict:
     return {"deleted": True, "inside": len(inside)}
 
 
-# A picture made with the external LLM runs beside the GPU lane; its task is held here until it ends.
-_ART_TASKS: set = set()
-
-
 @app.get("/api/takes/{take_id}/art")
 def take_art(take_id: str) -> dict:
     """Where the take's picture is: none, being made (queued, writing, drawing, cutting), failed, or ready."""
@@ -2024,8 +2043,8 @@ def take_art(take_id: str) -> dict:
 
 @app.post("/api/takes/{take_id}/art")
 async def make_take_art(take_id: str) -> dict:
-    """Make the take's picture, in the background, replacing any it has.  Described by Gemma, it waits its
-    turn in the GPU lane; described by the external LLM, it runs beside it."""
+    """Make the take's picture again, in the background, replacing any it has (the editor's Make a new picture).
+    Described by Gemma, it waits its turn in the GPU lane; described by the external LLM, it runs beside it."""
     if not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
         raise HTTPException(404, "no such take")
     if artwork.busy(take_id):
@@ -2033,13 +2052,7 @@ async def make_take_art(take_id: str) -> dict:
     problem = artwork.drawing_problem()
     if problem:
         raise HTTPException(400, problem)
-    artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
-    if artwork.words_by_engine():
-        await jobs.QUEUE.put({"kind": "art", "id": take_id})
-    else:
-        task = asyncio.create_task(jobs.run_art(take_id))
-        _ART_TASKS.add(task)
-        task.add_done_callback(_ART_TASKS.discard)
+    jobs.start_art(take_id)
     return artwork.info(take_id)
 
 
@@ -2054,10 +2067,13 @@ def take_art_png(take_id: str, drawn: bool = False) -> FileResponse:
 
 @app.delete("/api/takes/{take_id}/art")
 def delete_take_art(take_id: str) -> dict:
+    """Back to the default background, for good: no picture is made for the take again unless asked for."""
+    if not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
+        raise HTTPException(404, "no such take")
     if artwork.busy(take_id):
         raise HTTPException(409, "this take's picture is being made")
-    artwork.forget(take_id)
-    return {"deleted": True}
+    artwork.to_default(take_id)
+    return artwork.info(take_id)
 
 
 @app.post("/api/takes/{take_id}/promote")
@@ -2198,7 +2214,7 @@ async def create_take(body: TakeIn) -> dict:
     )
     if record["mode"] == "full" and not record["abc"]:
         log.info("render queued with an empty score; the engine will write its own chords")
-    await QUEUE.put({"kind": "render", "id": take_id})
+    await queue_take("render", take_id)
     log.info("Queued cover render for '%s' (%s, mode=%s, seed=%d)", record["title"], take_id, record["mode"], record["seed"])
     return {**record, "status": "queued"}
 
@@ -2263,7 +2279,7 @@ async def _instrumental_from_recording(body: InstrumentalIn) -> dict:
     record = _new_take_record("instrumental", title, instrumental.structure_of(abc), body)
     record.update(source_id=source["id"], abc=abc, auto_render=0)
     _insert_new_take(record)
-    await QUEUE.put({"kind": "render", "id": record["id"]})
+    await queue_take("render", record["id"])
     log.info("Queued instrumental of recording '%s' for '%s' (%s)", source["title"], title, record["id"])
     return {**record, "status": "queued"}
 
@@ -2271,7 +2287,7 @@ async def _instrumental_from_recording(body: InstrumentalIn) -> dict:
 async def _plan_new_take(kind: str, title: str, words: str, body: SongIn | InstrumentalIn) -> dict:
     record = _new_take_record(kind, title, words, body)
     _insert_new_take(record)
-    await QUEUE.put({"kind": "plan", "id": record["id"]})
+    await queue_take("plan", record["id"])
     log.info("Queued %s plan for '%s' (%s, variety=%s, auto_render=%s)",
              kind, title, record["id"], record["variety"], bool(record["auto_render"]))
     return {**record, "status": "queued"}
@@ -2557,7 +2573,7 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
              take.get("sound_seed") if seed == take["seed"] else None,
              adv["sampler_steps"], adv["avoid"], adv["target_key"], adv["target_bpm"], adv["max_abc_tokens"],
              adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], take_id))
-    await QUEUE.put({"kind": "render", "id": take_id})
+    await queue_take("render", take_id)
     log.info("Queued audio render for take '%s' (%s, seed=%d)", take.get("title") or take_id, take_id, seed)
     return {"queued": True, "seed": seed}
 
@@ -2605,7 +2621,7 @@ async def replan_take(take_id: str, body: ReplanIn | None = None) -> dict:
          adv["sampler_steps"], adv["avoid"], adv["target_key"], adv["target_bpm"], adv["max_abc_tokens"],
          adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], take_id),
     )
-    await QUEUE.put({"kind": "plan", "id": take_id})
+    await queue_take("plan", take_id)
     log.info("Queued replan for take '%s' (%s, variety=%s, harmony=%s, seed=%d)",
              take.get("title") or take_id, take_id, variety, harmony, seed)
     return {"queued": True, "seed": seed}
@@ -2648,7 +2664,7 @@ async def revoice(take_id: str) -> dict:
                   status="queued", created_at=time.time(), checkpoint=config.CHECKPOINT, seed=seed, sound_seed=None)
     columns = list(record)
     execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)
-    await QUEUE.put({"kind": "render", "id": record["id"]})
+    await queue_take("render", record["id"])
     log.info("Queued Sing again for take '%s' (%s -> %s, seed %d)", take.get("title") or take_id,
              take_id, record["id"], seed)
     return {"id": record["id"], "title": record["title"], "seed": seed}
@@ -2691,7 +2707,7 @@ async def instrumental_of_take(take_id: str, body: InstrumentalOfIn | None = Non
                   identity_id=None, persona_id=None, voice_lora=None, voice_lora_strength=1.0, voice_lora_clip=0.0)
     columns = list(record)
     execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)
-    await QUEUE.put({"kind": "render", "id": record["id"]})
+    await queue_take("render", record["id"])
     log.info("Queued an instrumental of take '%s' (%s -> %s)", take.get("title") or take_id, take_id, record["id"])
     return {"id": record["id"], "title": title, "seed": record["seed"]}
 
@@ -2747,7 +2763,7 @@ async def new_words(take_id: str, body: WordsIn) -> dict:
         record["normalise"] = 1 if body.normalise else 0
     columns = list(record)
     execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)
-    await QUEUE.put({"kind": "render", "id": record["id"]})
+    await queue_take("render", record["id"])
     log.info("Queued new words for take '%s' (%s -> %s, seed %d)", take.get("title") or take_id,
              take_id, record["id"], seed)
     return {"id": record["id"], "title": record["title"], "seed": seed}
@@ -2798,7 +2814,7 @@ async def rearrange(take_id: str, body: RearrangeIn) -> dict:
         record["normalise"] = 1 if body.normalise else 0
     columns = list(record)
     execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)
-    await QUEUE.put({"kind": "render", "id": record["id"]})
+    await queue_take("render", record["id"])
     log.info("Queued a rearranged score for take '%s' (%s -> %s, seed %d)", take.get("title") or take_id,
              take_id, record["id"], seed)
     return {"id": record["id"], "title": record["title"], "seed": seed}
@@ -2869,7 +2885,7 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
                       :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds)""",
             record,
         )
-        await QUEUE.put({"kind": "render", "id": record["id"]})
+        await queue_take("render", record["id"])
         created.append({"id": record["id"], "title": record["title"], "interpretation": name})
     log.info("Queued %d variations for take '%s' (%s)", len(created), take.get("title") or take_id, take_id)
     return {"created": created}
@@ -3078,7 +3094,7 @@ async def tries(take_id: str, body: TriesIn) -> dict:
                       checkpoint=config.CHECKPOINT, max_duration=body.max_duration or take["max_duration"], **spec)
         columns = list(record)
         execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)
-        await QUEUE.put({"kind": "render", "id": record["id"]})
+        await queue_take("render", record["id"])
         created.append({"id": record["id"], "title": record["title"], "seed": record["seed"],
                         "style_lora_clip": record.get("style_lora_clip")})
     log.info("Queued %d tries (%s) for take '%s' (%s)", len(created), body.mode, take.get("title") or take_id, take_id)

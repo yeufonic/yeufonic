@@ -418,6 +418,7 @@ async function pollState() {
   try {
     var data = await api('/api/state');
     try { paintStalePage(data.assets); } catch (e) {}
+    State.pictures = Boolean(data.pictures);
     var pill = $('engine-pill');
     var engine = data.engine;
     State.options = data.options || {};
@@ -5191,63 +5192,10 @@ function openDetails(take) {
   }).join('');
   $('details-copied').textContent = '';
   $('details-modal').classList.remove('hidden');
-  showTakeArt(take.id);
 }
 
 function closeDetails() {
   $('details-modal').classList.add('hidden');
-  clearTimeout(State.artPoll);
-}
-
-/* ------------------------------------------------------------ a take's picture
-   An LLM describes a picture from the take's title, style and opening words, the external LLM's image model draws
-   it, and the app takes out its white background.  It is made in the background; the Details window follows it. */
-var ART_STATES = { queued: 'Waiting its turn\u2026', writing: 'Writing the description\u2026', drawing: 'Drawing\u2026',
-  cutting: 'Taking out the background\u2026' };
-
-async function showTakeArt(takeId) {
-  clearTimeout(State.artPoll);
-  var body = $('details-body');
-  if (!body || !takeId) { return; }
-  var box = $('details-art');
-  if (!box) {
-    box = document.createElement('div');
-    box.id = 'details-art';
-    box.className = 'sheet-blk take-art';
-    body.insertBefore(box, body.firstChild);
-  }
-  var art;
-  try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { box.remove(); return; }
-  if (!State.detailsTake || State.detailsTake.id !== takeId || $('details-modal').classList.contains('hidden')) { return; }
-  paintTakeArt(box, takeId, art);
-  if (ART_STATES[art.state]) { State.artPoll = setTimeout(function () { showTakeArt(takeId); }, 2000); }
-}
-
-function paintTakeArt(box, takeId, art) {
-  var making = !!ART_STATES[art.state];
-  var src = '/api/takes/' + takeId + '/art.png?v=' + (art.v || 0);
-  var picture = art.has ? '<a class="art-frame" href="' + src + '" target="_blank" rel="noopener" title="Open the picture">' +
-      '<img src="' + src + '" alt="The take\'s picture"></a>' :
-    '<div class="art-frame art-empty">' + (making ? '' : 'No picture yet') + '</div>';
-  var status = making ? ART_STATES[art.state] : (art.state === 'failed' ? 'Failed: ' + (art.error || 'no reason given') : '');
-  var links = art.has ? ' <a class="ghost small" href="' + src + '" download="picture.png">Save</a>' +
-    (art.has_drawn ? ' <a class="ghost small" href="/api/takes/' + takeId + '/art.png?drawn=1&v=' + (art.v || 0) +
-      '" target="_blank" rel="noopener" title="The picture as the image model drew it, with its white background">As drawn</a>' : '') : '';
-  box.innerHTML = '<h3>Picture</h3>' + picture +
-    '<div class="art-row"><button type="button" class="ghost" id="art-make"' + (making ? ' disabled' : '') + '>' +
-    (art.has ? 'Make again' : 'Make picture') + '</button>' + links +
-    '<span class="art-status muted small' + (art.state === 'failed' ? ' bad' : '') + '">' + esc(status) + '</span></div>' +
-    (art.words ? '<details class="art-words"><summary>Description</summary><p>' + esc(art.words) + '</p></details>' : '');
-  $('art-make').addEventListener('click', async function () {
-    this.disabled = true;
-    try {
-      await api('/api/takes/' + takeId + '/art', { method: 'POST' });
-    } catch (err) {
-      paintTakeArt(box, takeId, { state: 'failed', error: err.message, has: art.has, has_drawn: art.has_drawn, v: art.v, words: art.words });
-      return;
-    }
-    showTakeArt(takeId);
-  });
 }
 
 async function copyDetails() {
@@ -11167,7 +11115,9 @@ function paintTakes() {
           '<button class="take-move" data-act="move"' + id + ' title="Move \u2014 Move to another space' + (heldBy(take) ? ', with the takes inside it' : '') + '" aria-label="Move">' +
             icon('move') + '</button>') +
         '</div>';
-    return '<article class="' + classes + '" data-id="' + take.id + '">' +
+    // The take's picture, made while it rendered, lies faintly behind the card.
+    var art = take.art ? ' style="--take-art: url(&quot;' + esc(take.art) + '&quot;)"' : '';
+    return '<article class="' + classes + (take.art ? ' with-art' : '') + '" data-id="' + take.id + '"' + art + '>' +
       '<div class="take-head">' +
         '<div class="take-icon">' +
           '<div class="cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover') + '" title="' + esc(coverTip) + '" aria-label="' + esc(coverTip) + '">' + initials(take.title) + '</div>' +
@@ -11562,6 +11512,7 @@ function paintTransport() {
    sound, and lit while the rack changes how that take sounds, as the button on the take's card is.
    A rack opened from here stands over the window (Editor.rackUp) until it or the window is closed. */
 function paintEdMastering() {
+  paintEdPicture();
   var rack = window.Rack;
   if (!editorOpen() || !rack || !rack.isOpen) { Editor.rackUp = false; }
   document.body.classList.toggle('rack-over-editor', Boolean(Editor.rackUp));
@@ -11574,6 +11525,83 @@ function paintEdMastering() {
   var mastered = rack.hasActiveMastering(take.id);
   btn.classList.toggle('mastered', mastered);
   btn.title = 'Mastering Rack' + (mastered ? '. This take is mastered' : '');
+}
+
+/* ------------------------------------------------------------ a take's picture
+   Made by itself while a take renders, where an image model is set up, and shown behind the take's card.  The
+   editor's Picture button has the two things to do about it: make it again, or go back to the default background. */
+var ART_STATES = { queued: 'Waiting its turn\u2026', writing: 'Writing the description\u2026', drawing: 'Drawing\u2026',
+  cutting: 'Taking out the background\u2026' };
+
+function paintEdPicture() {
+  var btn = $('ed-btn-picture');
+  if (!btn) { return; }   // a page from before the button
+  var take = editorTake();
+  var show = Boolean(editorOpen() && take && take.id && (State.pictures || take.art));
+  btn.classList.toggle('hidden', !show);
+  btn.classList.toggle('has-art', Boolean(show && take.art));
+  if (!show) { closePictureMenu(); }
+}
+
+function closePictureMenu() {
+  var menu = $('ed-picture-menu');
+  if (menu) { menu.remove(); }
+  clearTimeout(State.artPoll);
+}
+
+async function togglePictureMenu() {
+  if ($('ed-picture-menu')) { closePictureMenu(); return; }
+  var take = editorTake();
+  if (!take || !take.id) { return; }
+  var menu = document.createElement('div');
+  menu.id = 'ed-picture-menu';
+  menu.className = 'ed-picture-menu';
+  menu.setAttribute('role', 'menu');
+  document.body.appendChild(menu);
+  var at = $('ed-btn-picture').getBoundingClientRect();
+  menu.style.top = Math.round(at.bottom + 6) + 'px';
+  menu.style.right = Math.round(window.innerWidth - at.right) + 'px';
+  await paintPictureMenu(take.id);
+}
+
+async function paintPictureMenu(takeId) {
+  var menu = $('ed-picture-menu');
+  if (!menu) { return; }
+  var art;
+  try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { art = { state: 'failed', error: err.message }; }
+  menu = $('ed-picture-menu');
+  if (!menu) { return; }
+  var making = Boolean(ART_STATES[art.state]);
+  var take = takeById(takeId) || {};
+  var shown = take.art && !art.has ? 'Showing the picture of the take it is inside.' : '';
+  var note = making ? ART_STATES[art.state]
+    : art.state === 'failed' ? 'The last try failed: ' + (art.error || 'no reason given')
+    : art.plain ? 'This take has the default background.' : (art.has ? '' : (shown || 'No picture yet.'));
+  menu.innerHTML = (take.art ? '<img class="ed-picture-thumb" src="' + esc(take.art) + '" alt="">' : '') +
+    (note ? '<p class="ed-picture-note' + (art.state === 'failed' ? ' bad' : '') + '">' + esc(note) + '</p>' : '') +
+    '<button type="button" role="menuitem" data-pic="make"' + (making || !State.pictures ? ' disabled' : '') + '>Make a new picture</button>' +
+    '<button type="button" role="menuitem" data-pic="plain"' + (making || art.plain ? ' disabled' : '') + '>Use the default background</button>';
+  menu.querySelectorAll('[data-pic]').forEach(function (button) {
+    button.addEventListener('click', async function () {
+      var make = this.dataset.pic === 'make';
+      menu.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+      try {
+        await api('/api/takes/' + takeId + '/art', { method: make ? 'POST' : 'DELETE' });
+      } catch (err) {
+        statusLine(err.message, 'bad');
+      }
+      if (!make) { await loadTakes(); paintEdPicture(); }
+      paintPictureMenu(takeId);
+    });
+  });
+  clearTimeout(State.artPoll);
+  if (making) {
+    State.artPoll = setTimeout(async function () {
+      var now = await api('/api/takes/' + takeId + '/art').catch(function () { return {}; });
+      if (!ART_STATES[now.state]) { await loadTakes(); paintEdPicture(); }
+      paintPictureMenu(takeId);
+    }, 2000);
+  }
 }
 
 /* Before the rack opens for a take while something else is sounding.  The rack does not take up a take
@@ -12115,6 +12143,12 @@ function wireTransport() {
     });
   }
   if ($('ed-btn-mastering')) { $('ed-btn-mastering').addEventListener('click', toggleEdMastering); }
+  if ($('ed-btn-picture')) {
+    $('ed-btn-picture').addEventListener('click', function (event) { event.stopPropagation(); this.blur(); togglePictureMenu(); });
+    document.addEventListener('click', function (event) {
+      if ($('ed-picture-menu') && !event.target.closest('#ed-picture-menu')) { closePictureMenu(); }
+    });
+  }
   $('btn-mute').addEventListener('click', function () {
     audio.muted = !audio.muted;
     paintTransport();

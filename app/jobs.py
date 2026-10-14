@@ -424,6 +424,37 @@ def build_lyrics_graph(record: dict) -> dict:
     }
 
 
+# Pictures described by the external LLM run beside the GPU lane; each task is held here until it ends.
+_ART_TASKS: set = set()
+
+
+def start_art(take_id: str) -> None:
+    """Make the take's picture in the background.  Described by Gemma it waits its turn in the GPU lane;
+    described by the external LLM it runs beside it, while the take renders."""
+    artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
+    if artwork.words_by_engine():
+        QUEUE.put_nowait({"kind": "art", "id": take_id})
+    else:
+        task = asyncio.create_task(run_art(take_id))
+        _ART_TASKS.add(task)
+        task.add_done_callback(_ART_TASKS.discard)
+
+
+def art_for_new_take(take_id: str) -> None:
+    """A new take's picture, started as the take is queued, where pictures are made by themselves.  A take made
+    inside another shows that one's: it is the same song.  Never fails the take."""
+    try:
+        if not artwork.automatic():
+            return
+        take = one("SELECT parent_id FROM takes WHERE id = ?", (take_id,))
+        if (not take or take["parent_id"] or artwork.png_path(take_id).exists() or artwork.plain_path(take_id).exists()
+                or artwork.busy(take_id)):
+            return
+        start_art(take_id)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("could not start the picture for %s: %s", take_id, exc)
+
+
 async def run_art(take_id: str) -> None:
     """A take's picture: the description (by Gemma on the engine, through this lane, or by the external
     LLM), the drawing (the external image model), then the white background taken out."""

@@ -5,7 +5,7 @@ import asyncio
 import numpy as np
 
 from app import artwork, jobs
-from app.db import one, set_setting
+from app.db import execute, one, set_setting
 
 from conftest import make_take
 
@@ -142,3 +142,98 @@ def test_a_failed_picture_says_why_and_leaves_the_take_alone(client, monkeypatch
     jobs.fail("art", take["id"], "boom")
     assert one("SELECT status, error FROM takes WHERE id = ?", (take["id"],))["status"] == "done"
     assert client.get(f"/api/takes/{take['id']}/art").json()["error"] == "boom"
+
+
+# ------------------------------------------------------------------ made by itself
+def external(key="a-key"):
+    set_setting("llm.provider", "external")
+    set_setting("llm.api_url", "https://generativelanguage.googleapis.com")
+    if key:
+        set_setting("llm.api_key", key)
+
+
+def started(monkeypatch):
+    calls = []
+    monkeypatch.setattr(jobs, "start_art", lambda take_id: calls.append(take_id))
+    return calls
+
+
+def test_a_new_take_gets_its_picture_by_itself_where_the_provider_can_draw(client, monkeypatch):
+    calls = started(monkeypatch)
+    take, inner = a_take(), a_take()
+    external()
+    jobs.art_for_new_take(take["id"])
+    execute("UPDATE takes SET parent_id = ? WHERE id = ?", (take["id"], inner["id"]))
+    jobs.art_for_new_take(inner["id"])                 # inside another: shows that one's
+    assert calls == [take["id"]]
+    set_setting("art.auto", "off")
+    jobs.art_for_new_take(a_take()["id"])
+    assert calls == [take["id"]]
+
+
+def test_no_picture_is_tried_without_a_provider_to_draw_it(client, monkeypatch):
+    calls = started(monkeypatch)
+    jobs.art_for_new_take(a_take()["id"])             # the defaults: local Gemma, no key
+    external(key="")
+    jobs.art_for_new_take(a_take()["id"])
+    assert calls == []
+
+
+def test_every_new_take_is_queued_through_the_picture_starter(client, monkeypatch):
+    seen = []
+    monkeypatch.setattr(jobs, "art_for_new_take", lambda take_id: seen.append(take_id))
+    from test_score import GOOD
+    take = make_take(status="done", title="River lights", abc=GOOD, seed=111)
+    made = client.post(f"/api/takes/{take['id']}/tries", json={"count": 2}).json()["created"]
+    assert seen == [m["id"] for m in made]
+    import re
+    from pathlib import Path
+    main = (Path(__file__).resolve().parent.parent / "app" / "main.py").read_text(encoding="utf-8")
+    after_startup = main[main.index("async def queue_take("):]
+    assert not re.search(r'QUEUE\.put\(\{"kind": "(render|plan)"', after_startup)
+
+
+def test_the_list_says_where_each_takes_picture_is(client):
+    take, inner, bare = a_take(), a_take(), a_take(title="Lantern")
+    execute("UPDATE takes SET parent_id = ? WHERE id = ?", (take["id"], inner["id"]))
+    artwork.art_dir().mkdir(parents=True, exist_ok=True)
+    artwork.png_path(take["id"]).write_bytes(as_file(drawing()))
+    listed = {t["id"]: t for t in client.get("/api/takes", params={"space_id": "default"}).json()}
+    assert listed[take["id"]]["art"].startswith(f"/api/takes/{take['id']}/art.png?v=")
+    assert listed[bare["id"]]["art"] is None
+    inside = client.get("/api/takes", params={"inside": take["id"]}).json()
+    assert inside[0]["art"].startswith(f"/api/takes/{take['id']}/art.png")   # the take it is inside
+
+
+def test_back_to_the_default_background_stays_there(client, monkeypatch):
+    take, inner = a_take(), a_take()
+    execute("UPDATE takes SET parent_id = ? WHERE id = ?", (take["id"], inner["id"]))
+    artwork.art_dir().mkdir(parents=True, exist_ok=True)
+    artwork.png_path(take["id"]).write_bytes(as_file(drawing()))
+    got = client.delete(f"/api/takes/{inner['id']}/art").json()      # the take inside: no longer shows its mother's
+    assert got["plain"] and not got["has"]
+    assert artwork.url_for(inner["id"], take["id"]) is None and artwork.url_for(take["id"]) is not None
+    assert client.delete(f"/api/takes/{take['id']}/art").json()["plain"]
+    assert not artwork.png_path(take["id"]).exists() and artwork.url_for(take["id"]) is None
+    calls = started(monkeypatch)
+    external()
+    jobs.art_for_new_take(take["id"])                                # never made again by itself
+    assert calls == []
+    monkeypatch.setattr(artwork, "words_by_engine", lambda: False)
+
+    async def describe(record):
+        return "A ring on white."
+
+    async def draw(description):
+        return as_file(drawing())
+
+    monkeypatch.setattr(artwork, "describe_external", describe)
+    monkeypatch.setattr(artwork, "draw", draw)
+    asyncio.run(jobs.run_art(take["id"]))                            # asked for again: made, and the mark gone
+    assert artwork.info(take["id"])["has"] and not artwork.info(take["id"])["plain"]
+
+
+def test_the_page_is_told_whether_pictures_are_made(client):
+    assert client.get("/api/state").json()["pictures"] is False
+    external()
+    assert client.get("/api/state").json()["pictures"] is True

@@ -1790,6 +1790,12 @@ label .lora-value:disabled { opacity: 0.6; }
   min-height: 190px;
 }
 .take.playing { border-color: rgb(var(--accent-a-rgb) / 0.55); }
+/* A take's picture, faint behind the card: under everything on it, never in the way of reading it. */
+.take.with-art { position: relative; isolation: isolate; }
+.take.with-art::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.22);
+}
 /* States that want your attention, so they carry a bright pill rather than grey text. */
 .take-status {
   align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
@@ -2794,17 +2800,6 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 .modal-box.details .modal-head > span { display: flex; align-items: center; gap: 8px; }
 .modal-box.details #details-body { overflow: auto; max-height: min(70vh, 640px); }
 .modal-box.details #details-body .sheet-blk:first-child { border-top: 0; padding-top: 4px; }
-/* A take's picture: shown over a checkerboard, so what is transparent can be seen to be. */
-.take-art .art-frame { display: flex; align-items: center; justify-content: center; min-height: 96px; border-radius: 8px;
-  border: 1px solid var(--line); overflow: hidden;
-  background: repeating-conic-gradient(color-mix(in srgb, var(--text) 10%, transparent) 0% 25%, transparent 0% 50%) 0 0 / 16px 16px; }
-.take-art .art-frame img { display: block; max-width: 100%; max-height: 320px; }
-.take-art .art-empty { color: var(--muted); font-size: 13px; }
-.take-art .art-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-.take-art .art-row a.ghost { text-decoration: none; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--text); }
-.take-art .art-status.bad { color: var(--bad, #e5484d); }
-.take-art .art-words { margin-top: 6px; font-size: 12.5px; }
-.take-art .art-words p { margin: 6px 0 0; white-space: pre-wrap; color: var(--muted); }
 .sheet-tags { display: flex; flex-wrap: wrap; gap: 5px; }
 .sheet-tag { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: rgb(var(--ink) / 0.05); border: 1px solid var(--line); }
 .sheet-words { font-size: 13px; line-height: 1.55; }
@@ -2872,6 +2867,21 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 /* The way to the mastering rack from the editor window: to the left of Advanced, there when the take has
    sound, and green while the rack changes how the take sounds, as the button on its card is.  Whichever
    of the two comes first is the one pushed to the right. */
+/* The take's picture: its button in the editor, lit while the take has one, and the menu under it. */
+.ed-picture-btn.hidden { display: none; }
+.ed-picture-btn:not(.hidden) + .ed-master-btn, .ed-picture-btn:not(.hidden) + .ed-master-btn.hidden + .ed-advanced-btn { margin-left: 0; }
+.ed-picture-btn.has-art { color: var(--text); }
+.ed-picture-btn.has-art .adv-icon { opacity: 1; }
+.ed-picture-menu { position: fixed; z-index: 80; width: 280px; padding: 8px; border-radius: 12px; display: flex; flex-direction: column; gap: 4px;
+  background: var(--card); border: 1px solid var(--line); box-shadow: 0 12px 32px rgb(0 0 0 / 0.35); }
+.ed-picture-menu .ed-picture-thumb { width: 100%; border-radius: 8px; margin-bottom: 4px;
+  background: repeating-conic-gradient(color-mix(in srgb, var(--text) 10%, transparent) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px; }
+.ed-picture-menu .ed-picture-note { margin: 2px 4px 4px; font-size: 12.5px; color: var(--muted); }
+.ed-picture-menu .ed-picture-note.bad { color: var(--bad); }
+.ed-picture-menu button { text-align: left; font: inherit; font-size: 13.5px; padding: 8px 10px; border-radius: 8px; border: 0;
+  background: transparent; color: var(--text); cursor: pointer; }
+.ed-picture-menu button:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.ed-picture-menu button:disabled { color: var(--muted); cursor: default; opacity: 0.6; }
 .ed-master-btn.hidden { display: none; }
 .ed-master-btn:not(.hidden) + .ed-advanced-btn { margin-left: 0; }
 .ed-master-btn.mastered, .ed-master-btn.mastered:hover {
