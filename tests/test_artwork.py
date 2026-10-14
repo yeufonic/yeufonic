@@ -45,9 +45,9 @@ def test_the_description_is_asked_without_real_names():
     asked = artwork.description_request({"title": "River lights · step 400", "style": "folk, warm", "lyrics": LYRICS})
     assert "Song title: River lights\n" in asked and "Style: folk, warm" in asked and "Carry what we said" in asked
     assert "Never name a real band, artist or person" in asked
-    assert "no words in it at all" in asked and "lettering" in asked      # it lies behind the card's own words
+    assert "drawn soft" in asked and "never bold, dark or outlined" in asked     # it lies behind the card's own words
     drawn = artwork.drawing_request("A lantern.")
-    assert "pure white background" in drawn and "No text of any kind" in drawn
+    assert "pure white background" in drawn and "Any lettering stays soft" in drawn
     assert artwork.tidy_description('Here is the prompt:\n"A lantern on a river."') == "A lantern on a river."
 
 
