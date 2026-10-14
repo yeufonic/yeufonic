@@ -14416,7 +14416,29 @@ function paintEditor() {
   if (page === 'score') { $('score-box').open = true; }
   if (page === 'review') { paintEditorReview(); }
   paintWriteJob(State.currentJob, []);
+  placeEdTransport(steps);
   paintEdTransport();
+}
+
+/* The window's player belongs to every step: in the columns layout it sits in the words column, in the steps layout
+   (where only one step's part shows) at the foot of the window's body, on every step.  Its place in the words column
+   is kept by a marker, so it goes back there when the layout changes. */
+function placeEdTransport(steps) {
+  var player = $('ed-transport'), body = $('ed-body');
+  if (!player || !body) { return; }
+  var home = $('ed-transport-home');
+  if (!home) {
+    home = document.createElement('span');
+    home.id = 'ed-transport-home';
+    home.hidden = true;
+    player.parentNode.insertBefore(home, player);
+  }
+  if (steps && player.parentNode !== body) {
+    body.appendChild(player);
+  } else if (!steps && player.previousSibling !== home) {
+    home.parentNode.insertBefore(player, home.nextSibling);
+  }
+  player.classList.toggle('ed-transport-foot', steps);
 }
 
 /* Steps: what will be sent, and anything that stops it. */

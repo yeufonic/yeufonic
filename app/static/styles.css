@@ -3181,6 +3181,9 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
 .editor.layout-steps .ed-cols { display: block; max-width: 820px; }
 .editor.layout-steps .ed-col { display: none; }
 .editor.layout-steps .ed-col.on { display: block; }
+/* In the steps layout the player is on every step: at the foot of the window's body, held in view as a step scrolls. */
+.editor.layout-steps .ed-transport.ed-transport-foot { position: sticky; bottom: 0; z-index: 2; max-width: 820px; margin-top: 16px;
+  box-shadow: 0 -6px 18px rgb(var(--shade) / 0.18); }
 .editor.layout-steps .ed-words #lyrics { height: 250px; min-height: 250px; max-height: 250px; resize: none; }
 
 @media (max-width: 1100px) {
