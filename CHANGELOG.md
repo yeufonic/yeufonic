@@ -40,6 +40,7 @@ cannot creep back in.
 ## Unreleased
 
 - **The mastering rack follows the theme.** In the light theme it was still black. Its panels are now brushed silver with dark lettering there, each unit keeping its own tint and coloured top edge; the knobs, the meter windows and the readouts keep the dark look of the hardware. The parametric equalizer's graph is drawn in light colours to match. The dark themes keep the rack as it was.
+- **Backdrop colour.** A setting under Theme tints the page behind the takes with a hue you choose, at a strength from a faint wash to a rich colour, and the page changes as you drag. The take cards, the panels and the windows keep their own colours, and the high contrast theme stays black. Like every setting it is kept by the app, so every window onto it shows the same.
 
 ## 0.0.43 (2026-10-13)
 

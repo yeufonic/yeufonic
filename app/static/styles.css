@@ -204,6 +204,40 @@
 }
 *::-webkit-scrollbar-corner { background: transparent; }
 
+/* The backdrop's colour (a trial, app.js: applyBackdrop): the page behind the takes, in a hue of the
+   user's choosing.  --backdrop-s, from 0.1 to 1, is how much of it: the ground grows a little lighter and
+   more coloured, and the two glows at the top take the hue and its neighbour.  Not in high contrast. */
+:root.backdrop-hue:not([data-theme="contrast"]) body {
+  background:
+    radial-gradient(900px 500px at 15% -10%, hsl(var(--backdrop-h) 80% 55% / calc(0.06 + 0.22 * var(--backdrop-s))), transparent 60%),
+    radial-gradient(700px 400px at 95% 0%, hsl(calc(var(--backdrop-h) + 35) 80% 55% / calc(0.04 + 0.16 * var(--backdrop-s))), transparent 55%),
+    hsl(var(--backdrop-h) calc(18% + 42% * var(--backdrop-s)) calc(3% + 7% * var(--backdrop-s)));
+}
+:root.backdrop-hue[data-theme="light"] body {
+  background:
+    radial-gradient(900px 500px at 15% -10%, hsl(var(--backdrop-h) 85% 60% / calc(0.06 + 0.18 * var(--backdrop-s))), transparent 60%),
+    radial-gradient(700px 400px at 95% 0%, hsl(calc(var(--backdrop-h) + 35) 85% 60% / calc(0.04 + 0.12 * var(--backdrop-s))), transparent 55%),
+    hsl(var(--backdrop-h) calc(25% + 45% * var(--backdrop-s)) calc(97% - 9% * var(--backdrop-s)));
+}
+.backdrop-control { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 250px; }
+.backdrop-control label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); width: 100%; }
+.backdrop-control .backdrop-slider input { flex: 1; }
+.backdrop-control input[type="range"] {
+  -webkit-appearance: none; appearance: none; height: 8px; border-radius: 999px; outline: none;
+  border: 1px solid var(--line); margin: 0;
+}
+.backdrop-control .backdrop-hue {
+  background: linear-gradient(to right, hsl(0 75% 50%), hsl(60 75% 50%), hsl(120 75% 50%), hsl(180 75% 50%),
+                                        hsl(240 75% 50%), hsl(300 75% 50%), hsl(359 75% 50%));
+}
+.backdrop-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: #f8fafc; border: 2px solid rgba(0, 0, 0, 0.45); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); cursor: pointer;
+}
+.backdrop-control input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%; background: #f8fafc; border: 2px solid rgba(0, 0, 0, 0.45); cursor: pointer;
+}
+
 html, body { height: 100%; }
 
 body {

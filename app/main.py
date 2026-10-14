@@ -119,6 +119,16 @@ SETTINGS_SPEC: list[dict] = [
         "help": "How the app looks.",
     },
     {
+        # The page behind the takes in a hue of the user's choosing.  Drawn by the page with sliders of its own
+        # (app.js, paintBackdropRow); kept as "on:<hue>:<strength>", or "off:..." to keep the choice while the
+        # tint is off, and empty for none.
+        "key": "appearance.backdrop",
+        "label": "Backdrop colour",
+        "type": "backdrop",
+        "default": "",
+        "help": "A tint for the page behind the takes. The cards keep their own colours; the high contrast theme stays black.",
+    },
+    {
         "key": "editor.layout",
         "label": "Editor layout",
         "type": "select",
@@ -337,6 +347,15 @@ def save_setting(key: str, value: str) -> None:
                 allowed = [sf["id"] for sf in sf_list]
         if value not in allowed:
             raise HTTPException(400, f"{key} must be one of {', '.join(allowed)}")
+    if spec["type"] == "backdrop" and value:
+        on, _, rest = value.partition(":")
+        hue, _, strength = rest.partition(":")
+        try:
+            good = on in ("on", "off") and 0 <= int(hue) <= 359 and 0.1 <= float(strength) <= 1
+        except ValueError:
+            good = False
+        if not good:
+            raise HTTPException(400, f"{key} must be on or off, a hue from 0 to 359 and a strength from 0.1 to 1")
     if key == "stems.folder":
         if not value:
             raise HTTPException(400, "the stem folder cannot be empty")

@@ -4730,6 +4730,8 @@ function paintSettings() {
         '<button type="button" class="ghost small btn-toggle-mask" title="Reveal or hide what you type">Show</button>' +
         (item.saved ? '<button type="button" class="ghost small btn-remove-secret" data-remove="' + esc(item.key) + '">Remove</button>' : '') +
       '</div>';
+    } else if (item.type === 'backdrop') {
+      control = backdropControl(item);
     } else if (item.key === 'llm.model') {
       var models = State.llmModels || [];
       var hasModels = models.length > 0;
@@ -4770,6 +4772,7 @@ function paintSettings() {
     '</div>';
   }).join('');
   paintSettingRequirements();
+  paintBackdropRow();
 }
 
 /* Grey out a setting whose requirement is not met, and say why.  Separate from
@@ -4932,6 +4935,7 @@ function adoptSettings(spec) {
     box.value = defaultCap();
   }
   applyTheme();
+  adoptBackdrop();
   if (typeof editorOpen === 'function' && editorOpen()) { paintEditor(); }
 }
 
@@ -4958,6 +4962,115 @@ if (SYSTEM_LIGHT && SYSTEM_LIGHT.addEventListener) {
   SYSTEM_LIGHT.addEventListener('change', function () {
     if (setting('appearance.theme', 'dark') === 'system') { applyTheme(); }
   });
+}
+
+/* ------------------------------------------------------- the backdrop's colour
+   The page behind the takes tinted with a hue of the user's choosing, at a strength from a breath of colour
+   to a rich one.  The cards, the bar at the top and every window keep the theme's own colours, and the high
+   contrast theme is left black.  A setting of the app's (appearance.backdrop, "on:<hue>:<strength>" or
+   "off:..." with the choice kept), so every window onto the app has it; this browser keeps a copy only to
+   draw it before the settings arrive. */
+var BACKDROP_COPY = 'yue2.backdropCopy';
+var BACKDROP_TRIAL = 'yue2.backdrop';          // where the first trial of it was kept, by this browser alone
+var BACKDROP_MOVING = false;                  // a slider held: the settings read meanwhile do not take it back
+
+function backdropFrom(text) {
+  var parts = String(text || '').split(':');
+  var hue = Number(parts[1]), strength = Number(parts[2]);
+  return {
+    on: parts[0] === 'on',
+    hue: parts.length === 3 && isFinite(hue) ? Math.min(359, Math.max(0, Math.round(hue))) : 265,
+    strength: parts.length === 3 && isFinite(strength) ? Math.min(1, Math.max(0.1, strength)) : 0.5
+  };
+}
+
+function backdropText(choice) {
+  return (choice.on ? 'on' : 'off') + ':' + choice.hue + ':' + (Math.round(choice.strength * 100) / 100);
+}
+
+function backdropChoice() {
+  if (State.settings && State.settings['appearance.backdrop'] !== undefined) {
+    return backdropFrom(State.settings['appearance.backdrop']);
+  }
+  var copy = null;
+  try { copy = localStorage.getItem(BACKDROP_COPY); } catch (err) { copy = null; }
+  return backdropFrom(copy);
+}
+
+function applyBackdrop(choice) {
+  choice = choice || backdropChoice();
+  var root = document.documentElement;
+  root.classList.toggle('backdrop-hue', choice.on);
+  root.style.setProperty('--backdrop-h', String(choice.hue));
+  root.style.setProperty('--backdrop-s', String(choice.strength));
+  try { localStorage.setItem(BACKDROP_COPY, backdropText(choice)); } catch (err) { /* private mode */ }
+}
+applyBackdrop();
+
+/* Once the settings have arrived: the trial's choice, kept only by this browser, becomes the setting if the
+   app has none yet; then the setting is drawn. */
+function adoptBackdrop() {
+  var trial = null;
+  try { trial = JSON.parse(localStorage.getItem(BACKDROP_TRIAL) || 'null'); } catch (err) { trial = null; }
+  if (trial && typeof trial === 'object') {
+    try { localStorage.removeItem(BACKDROP_TRIAL); } catch (err) { /* private mode */ }
+    if (!setting('appearance.backdrop', '')) {
+      var kept = backdropText(backdropFrom((trial.on ? 'on' : 'off') + ':' + trial.hue + ':' + trial.strength));
+      saveBackdrop(kept);
+      return;
+    }
+  }
+  if (!BACKDROP_MOVING) { applyBackdrop(); }
+}
+
+function saveBackdrop(text) {
+  if (State.settings) { State.settings['appearance.backdrop'] = text; }
+  applyBackdrop(backdropFrom(text));
+  return api('/api/settings', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'appearance.backdrop', value: text })
+  }).catch(function () { /* an app from before the setting: it stays as drawn until the next reload */ });
+}
+
+/* Its row in Settings, where the spec puts it: a switch, the hue and the strength, each seen at once as it
+   moves, and kept when let go. */
+function backdropControl(item) {
+  var choice = backdropFrom(item.value);
+  return '<div class="backdrop-control" data-backdrop-row>' +
+    '<label class="backdrop-on"><input type="checkbox" data-backdrop="on"' + (choice.on ? ' checked' : '') + '> Tint</label>' +
+    '<label class="backdrop-slider">Hue <input type="range" class="backdrop-hue" data-backdrop="hue" min="0" max="359" step="1" value="' + choice.hue + '"></label>' +
+    '<label class="backdrop-slider">Strength <input type="range" class="backdrop-strength" data-backdrop="strength" min="0.1" max="1" step="0.05" value="' + choice.strength + '"></label>' +
+  '</div>';
+}
+
+function paintBackdropRow() {
+  var row = document.querySelector('#settings-list [data-backdrop-row]');
+  if (!row) { return; }
+  function chosen(event) {
+    if (!event.target.dataset || !event.target.dataset.backdrop) { return; }
+    event.stopPropagation();          // the settings list's own handlers save text boxes; this saves itself
+    var on = row.querySelector('[data-backdrop="on"]');
+    if (event.target.dataset.backdrop !== 'on') { on.checked = true; }   // moving a slider means wanting it
+    var next = {
+      on: on.checked,
+      hue: Number(row.querySelector('[data-backdrop="hue"]').value),
+      strength: Number(row.querySelector('[data-backdrop="strength"]').value)
+    };
+    paintBackdropSliders(row, next);
+    BACKDROP_MOVING = event.type === 'input';
+    if (event.type === 'input') { applyBackdrop(next); } else { saveBackdrop(backdropText(next)); }
+  }
+  row.addEventListener('input', chosen);
+  row.addEventListener('change', chosen);
+  paintBackdropSliders(row, backdropChoice());
+}
+
+/* The strength slider runs from grey to the chosen hue, so it shows what it will do. */
+function paintBackdropSliders(row, choice) {
+  var strength = row.querySelector('.backdrop-strength');
+  if (strength) {
+    strength.style.background = 'linear-gradient(to right, hsl(' + choice.hue + ' 10% 30%), hsl(' + choice.hue + ' 75% 50%))';
+  }
 }
 
 /* A colour the theme sets, for what the script draws itself. */

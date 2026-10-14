@@ -1228,6 +1228,11 @@ contrast**, black and white with strong outlines. It changes at once, and each b
 so the page opens in it. The log window stays dark in every theme, like a terminal. The mastering rack follows the theme too: in the light theme its panels are brushed silver, while its knobs,
 meter windows and readouts keep the dark look of the hardware.
 
+**Backdrop colour**, under Theme, tints the page behind the takes with a colour you choose: tick **Tint**, then
+move **Hue** round the colour wheel and **Strength** from a faint wash to a rich colour. The page changes as you
+drag, and the choice is kept when you let go. The take cards, the panels and the windows keep their own
+colours, and the high contrast theme stays black.
+
 ---
 
 ## Using Yeufonic from an AI agent (MCP)
