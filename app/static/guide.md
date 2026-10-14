@@ -1141,8 +1141,9 @@ looks through every space, and a card from another space says which one. × or E
 box starts empty each time the page opens, and offers your last few searches that found something:
 click one, or pick it with the arrow keys and Enter.
 
-**Starred** shows only starred takes. **Compact** switches between three narrow cards across and
-wider ones with more of the prompt. A title always stays on one line, ending in … when it is long. Hover over a card's title, settings or style to read all of it.
+**Starred** shows only starred takes. Beside it, two buttons name what a click does: **Comfy** or **Compact**
+switches between wider cards with more of the prompt and three narrow cards across, and **Fit** or **Wide**
+between a centred column and the whole width of the window. A title always stays on one line, ending in … when it is long. Hover over a card's title, settings or style to read all of it.
 
 ### A picture for each take
 

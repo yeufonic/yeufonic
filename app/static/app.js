@@ -303,11 +303,12 @@ function applyLayout(mode) {
   State.layout = mode === 'comfy' ? 'comfy' : 'compact';
   var wide = State.layout === 'comfy';
   $('takes').classList.toggle('comfy', wide);
+  // The button names what a click does, not what is on show.
   var button = $('layout-toggle');
-  button.textContent = wide ? 'Comfy' : 'Compact';
+  button.textContent = wide ? 'Compact' : 'Comfy';
   button.title = wide
-    ? 'Wide cards with more of the prompt. Click for compact.'
-    : 'Compact cards, three across. Click for wide.';
+    ? 'Switch to compact cards, three across'
+    : 'Switch to comfy cards, wider, with more of the prompt';
   try { localStorage.setItem(LAYOUT_KEY, State.layout); } catch (err) { /* private mode */ }
 }
 
@@ -318,11 +319,12 @@ function applyWidth(mode) {
   State.width = mode === 'fit' ? 'fit' : 'wide';
   var fit = State.width === 'fit';
   document.querySelector('main').classList.toggle('fit', fit);
+  // The button names what a click does, not what is on show.
   var button = $('width-toggle');
-  button.textContent = fit ? 'Fit' : 'Wide';
+  button.textContent = fit ? 'Wide' : 'Fit';
   button.title = fit
-    ? 'A centred column. Click to fill the window.'
-    : 'Fills the window, most cards at once. Click for a centred column.';
+    ? 'Switch to wide: fill the window, most cards at once'
+    : 'Switch to fit: a centred column';
   try { localStorage.setItem(WIDTH_KEY, State.width); } catch (err) { /* private mode */ }
 }
 

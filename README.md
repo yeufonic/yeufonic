@@ -38,7 +38,7 @@ chart:
 
 [![Cover a recording](docs/screenshots/cover-a-recording.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/cover-a-recording.png)
 
-The library with **Wide** and **Comfy** on, and the take panel on the left showing how the selected
+The library at the window's full width with comfy cards, and the take panel on the left showing how the selected
 take was made. The cards are wider, with room for more of the title and prompt; hover over a card's title, settings or
 prompt to read all of it. Compact cards are what you start with, and the chevron beside the panel
 folds it away:
