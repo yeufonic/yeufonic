@@ -1187,6 +1187,7 @@ Click or drag the waveform to seek. Previous and next step through the cards in 
 | N | normalise the take, or undo it if it is normalised |
 | V | Variations |
 | T | Try more |
+| S | star the take, or unstar it |
 
 The chosen take is the one in the left panel: click its card first. The keys do nothing while you are
 typing, while a window is open in front, or with Ctrl, Alt or the system key held, and the letter keys

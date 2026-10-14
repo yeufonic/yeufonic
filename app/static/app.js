@@ -11062,7 +11062,7 @@ function paintTakes() {
                       'Again \u2014 Re-plan this song with a fresh seed');
     }
     actions += tile('star' + (take.favourite ? ' on' : ''), 'star', 'Star', 'data-act="star"' + id,
-                    take.favourite ? 'Starred \u2014 Click to remove from favourites' : 'Star \u2014 Add to favourites');
+                    take.favourite ? 'Starred (S) \u2014 Click to remove from favourites' : 'Star (S) \u2014 Add to favourites');
     actions += tile('del', 'trash', 'Delete', 'data-act="del"' + id,
                     'Delete \u2014 Remove this take permanently');
     var classes = 'take';
@@ -11562,7 +11562,7 @@ var runTakeAction = null;
 function takeKey(event) {
   if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || !runTakeAction) { return false; }
   var key = (event.key || '').toLowerCase();
-  if (key.length !== 1 || 'meivnt'.indexOf(key) < 0) { return false; }
+  if (key.length !== 1 || 'meivnts'.indexOf(key) < 0) { return false; }
   var take = takeById(selectedTakeId());
   if (!take) { statusLine('Choose a take first: click its card.', 'bad'); return true; }
   var scored = take.abc && take.abc.length > 50 && take.status !== 'queued' && take.status !== 'running';
@@ -11575,6 +11575,8 @@ function takeKey(event) {
     openEditor(take.status === 'planned' ? 'score' : 'song');
   } else if (key === 'i') {
     openDetails(take);
+  } else if (key === 's') {
+    runTakeAction('star', take.id, take.favourite ? 'unstar' : 'star');
   } else if (key === 'n') {
     if (take.status !== 'done' || !take.has_audio) { return says('Only a finished take can be normalised.'); }
     if (State.normalising[take.id]) { return true; }
