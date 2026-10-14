@@ -10911,6 +10911,7 @@ function paintTakes() {
   if (document.querySelector('.take-title-input')) { return; }
   var list = listedTakes();
   State.paintedAt = Date.now();
+  paintEdTakeTools();
   $('empty').style.display = list.length ? 'none' : 'block';
   var others = State.spaces.some(function (space) { return space.id !== State.spaceId && space.takes; });
   var kindWords = (State.kinds || []).map(function (kind) { return kind === 'instrumental' ? 'instrumental' : kind; }).join(' or ');
@@ -11003,7 +11004,7 @@ function paintTakes() {
         '<button class="status-x" data-act="dismiss-note" data-id="' + take.id + '" title="The end is fine: dismiss" aria-label="Dismiss">\u00d7</button></div>';
     } else if (take.normalised) {
       live = '<button class="take-status normalised" data-act="unnormalise" data-id="' + take.id +
-        '" title="' + normalisedTo(take) + ' Click to go back to the level it was rendered at.">Normalised</button>';
+        '" title="' + normalisedTo(take) + ' Click to go back to the level it was rendered at (N).">Normalised</button>';
     }
     var id = ' data-id="' + take.id + '"';
     var actions = '';
@@ -11098,9 +11099,9 @@ function paintTakes() {
               ' aria-label="Sing again">' + icon('voice') + '</button>' +
               // A take inside another holds none of its own, so these two are for takes of their own.
               (take.parent_id ? '' :
-              '<button class="take-move" data-act="variations"' + id + ' title="Variations \u2014 Render this score in other interpretations. They are kept inside this take"' +
+              '<button class="take-move" data-act="variations"' + id + ' title="Variations (V) \u2014 Render this score in other interpretations. They are kept inside this take"' +
               ' aria-label="Variations">' + icon('variations') + '</button>' +
-              '<button class="take-move" data-act="tries"' + id + ' title="Try more \u2014 The same score and words again with new seeds, or at other Planner strengths. They are kept inside this take"' +
+              '<button class="take-move" data-act="tries"' + id + ' title="Try more (T) \u2014 The same score and words again with new seeds, or at other Planner strengths. They are kept inside this take"' +
               ' aria-label="Try more">' + icon('dice') + '</button>')
             : '') +
           insideTile +
@@ -11110,11 +11111,11 @@ function paintTakes() {
             : '') +
           // Once normalised it has nothing left to offer, so it goes.
           (status === 'done' && take.has_audio && !take.normalised && !State.normalising[take.id]
-            ? '<button class="take-move" data-act="normalise"' + id + ' title="Normalise \u2014 Bring this take to the usual loudness. The file as rendered is kept"' +
+            ? '<button class="take-move" data-act="normalise"' + id + ' title="Normalise (N) \u2014 Bring this take to the usual loudness. The file as rendered is kept"' +
               ' aria-label="Normalise">' + icon('level') + '</button>'
             : '') +
           '<button class="take-move' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + (mastered ? ' mastered' : '') +
-            '" data-act="mastering"' + id + ' title="Mastering Rack \u2014 Vintage EQ, Compressor, Limiter' + (mastered ? '. This take is mastered' : '') + '" aria-label="Mastering Rack">' +
+            '" data-act="mastering"' + id + ' title="Mastering Rack (M) \u2014 Vintage EQ, Compressor, Limiter' + (mastered ? '. This take is mastered' : '') + '" aria-label="Mastering Rack">' +
             icon('mastering') + '</button>' +
           // A take inside another goes where that one goes.
           (take.parent_id ? '' :
@@ -11517,8 +11518,99 @@ function paintTransport() {
 /* The editor window's way to the mastering rack.  The button is there when the take in the window has
    sound, and lit while the rack changes how that take sounds, as the button on the take's card is.
    A rack opened from here stands over the window (Editor.rackUp) until it or the window is closed. */
+/* The take's own small buttons, as on its card, in the editor window's top row: larger, since there is room, and
+   lit or worded by what the take is.  The same actions as the card's (takeAction), so they do the same thing. */
+function edTakeTools(take) {
+  var id = esc(take.id), status = take.status;
+  var tool = function (act, iconName, label, title, extra, disabled) {
+    return '<button type="button" class="ed-tool' + (extra ? ' ' + extra : '') + '" data-act="' + act + '" data-id="' + id + '"' +
+      ' title="' + esc(title) + '" aria-label="' + esc(label) + '"' + (disabled ? ' disabled' : '') + '>' + icon(iconName) + '</button>';
+  };
+  var html = '';
+  if (take.abc && take.abc.length > 50 && status !== 'queued' && status !== 'running') {
+    html += tool('revoice', 'voice', 'Sing again', 'Sing again \u2014 The same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close');
+    if (!take.parent_id) {
+      html += tool('variations', 'variations', 'Variations', 'Variations \u2014 Render this score in other interpretations. They are kept inside this take');
+      html += tool('tries', 'dice', 'Try more', 'Try more \u2014 The same score and words again with new seeds, or at other Planner strengths. They are kept inside this take');
+    }
+  }
+  if (!take.parent_id && heldBy(take) > 0) {
+    html += tool('inside', 'inside', 'Takes inside this one', 'Inside \u2014 ' + insideWords(take) + '. Closes this window and opens them under the take', 'lit');
+  }
+  if (take.parent_id) {
+    html += tool('promote', 'out', 'Take out', 'Take out \u2014 Make this a take of its own, in the space\u2019s list');
+  }
+  if (status === 'done' && take.has_audio) {
+    if (State.normalising[take.id]) {
+      html += tool('normalise', 'level', 'Normalising', 'Normalising\u2026', 'busy', true);
+    } else if (take.normalised) {
+      html += tool('unnormalise', 'level', 'Normalised', normalisedTo(take) + ' Click to go back to the level it was rendered at', 'on');
+    } else {
+      html += tool('normalise', 'level', 'Normalise', 'Normalise \u2014 Bring this take to the usual loudness. The file as rendered is kept');
+    }
+  }
+  if (!take.parent_id) {
+    html += tool('move', 'move', 'Move', 'Move \u2014 Move to another space' + (heldBy(take) ? ', with the takes inside it' : ''));
+  }
+  return html;
+}
+
+/* Keys for the take chosen in the list (the one in the left panel), on the page itself: never while typing, never
+   through a window, never with Ctrl, Alt or the system key, which belong to the browser.  Each does what the card's
+   button does, and says why when the take cannot. */
+var runTakeAction = null;
+function takeKey(event) {
+  if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || !runTakeAction) { return false; }
+  var key = (event.key || '').toLowerCase();
+  if (key.length !== 1 || 'meivnt'.indexOf(key) < 0) { return false; }
+  var take = takeById(selectedTakeId());
+  if (!take) { statusLine('Choose a take first: click its card.', 'bad'); return true; }
+  var scored = take.abc && take.abc.length > 50 && take.status !== 'queued' && take.status !== 'running';
+  var says = function (why) { statusLine(why, 'bad'); return true; };
+  if (key === 'm') {
+    if (window.Rack && window.Rack.isOpen && String(window.Rack.currentTakeId) === String(take.id)) { window.Rack.toggle(false); return true; }
+    runTakeAction('mastering', take.id, 'open the mastering rack');
+  } else if (key === 'e') {
+    selectTake(take);
+    openEditor(take.status === 'planned' ? 'score' : 'song');
+  } else if (key === 'i') {
+    openDetails(take);
+  } else if (key === 'n') {
+    if (take.status !== 'done' || !take.has_audio) { return says('Only a finished take can be normalised.'); }
+    if (State.normalising[take.id]) { return true; }
+    runTakeAction(take.normalised ? 'unnormalise' : 'normalise', take.id, take.normalised ? 'undo the normalise' : 'normalise');
+  } else if (key === 'v' || key === 't') {
+    var what = key === 'v' ? 'Variations' : 'Try more';
+    if (!scored) { return says(what + ' needs a take with a score, and not one being made.'); }
+    if (take.parent_id) { return says(what + ' is for a take of its own: this one is inside another.'); }
+    runTakeAction(key === 'v' ? 'variations' : 'tries', take.id, what);
+  }
+  return true;
+}
+
+function paintEdTakeTools() {
+  var box = $('ed-take-tools');
+  if (!box) {
+    // A page from before the row: made here, beside the Picture button.
+    var picture = $('ed-btn-picture');
+    if (!picture) { return; }
+    box = document.createElement('div');
+    box.id = 'ed-take-tools';
+    box.className = 'ed-take-tools';
+    box.setAttribute('role', 'toolbar');
+    box.setAttribute('aria-label', 'This take');
+    picture.parentNode.insertBefore(box, picture);
+  }
+  var shown = editorOpen() ? editorTake() : null;
+  var take = shown && shown.id ? takeById(shown.id) : null;     // a take in the list, not a song still being written
+  var html = take ? edTakeTools(take) : '';
+  if (box.innerHTML !== html) { box.innerHTML = html; }          // redrawn only on a change, so a hover and its tip hold
+  box.classList.toggle('hidden', !html);
+}
+
 function paintEdMastering() {
   paintEdPicture();
+  paintEdTakeTools();
   var rack = window.Rack;
   if (!editorOpen() || !rack || !rack.isOpen) { Editor.rackUp = false; }
   document.body.classList.toggle('rack-over-editor', Boolean(Editor.rackUp));
@@ -13053,6 +13145,26 @@ function wire() {
       loadTakes();
     });
   });
+  // A take's action from the editor's row or a key: the card's own, by name.
+  runTakeAction = function (act, id, label) {
+    return takeAction({ dataset: { act: act, id: id } }).catch(function (err) {
+      statusLine('Could not ' + (label || act).toLowerCase() + ': ' + err.message, 'bad');
+      loadTakes();
+    });
+  };
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest('#ed-take-tools button[data-act]');
+    if (!button || button.disabled) { return; }
+    button.blur();   // or space and Enter would press it again
+    var id = button.dataset.id;
+    if (button.dataset.act === 'inside') {
+      // Its takes are shown in the list, under the take, so the window makes way for them.
+      closeEditor();
+      if (!(State.inside && State.inside.id === id)) { runTakeAction('inside', id, 'open the takes inside'); }
+      return;
+    }
+    runTakeAction(button.dataset.act, id, button.getAttribute('aria-label'));
+  });
   $('source-delete').addEventListener('click', deleteSource);
   if ($('source-picker-btn')) {
     $('source-picker-btn').addEventListener('click', function (event) {
@@ -13989,6 +14101,7 @@ function wire() {
     }
     else if (event.key === 'ArrowLeft') { nudge(-5); }
     else if (event.key === 'ArrowRight') { nudge(5); }
+    else if (!rackOverEditor && !editorOpen() && takeKey(event)) { event.preventDefault(); }
     else if (event.key === 'ArrowUp') { event.preventDefault(); $('volume').value = Math.min(100, Number($('volume').value) + 5); $('volume').dispatchEvent(new Event('input')); }
     else if (event.key === 'ArrowDown') { event.preventDefault(); $('volume').value = Math.max(0, Number($('volume').value) - 5); $('volume').dispatchEvent(new Event('input')); }
   });

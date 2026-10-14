@@ -2915,6 +2915,22 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
   background: transparent; color: var(--text); cursor: pointer; }
 .ed-picture-menu button:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 8%, transparent); }
 .ed-picture-menu button:disabled { color: var(--muted); cursor: default; opacity: 0.6; }
+/* The take's own small buttons, as on its card, larger here: first in the row of the window's buttons, so the
+   ones after it lose the push to the right. */
+.ed-take-tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.ed-take-tools.hidden { display: none; }
+.ed-take-tools:not(.hidden) ~ .ed-advanced-btn { margin-left: 0; }
+.ed-tool {
+  display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0;
+  border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ed-tool svg { width: 21px; height: 21px; }
+.ed-tool:hover:not(:disabled) { color: var(--info); border-color: rgb(var(--accent-a-rgb) / 0.5); background: var(--card-2); }
+.ed-tool:focus-visible { outline: 2px solid var(--accent-a); outline-offset: 2px; }
+.ed-tool.lit, .ed-tool.lit:hover { color: var(--lit-take); }
+.ed-tool.on, .ed-tool.on:hover { color: var(--good); border-color: rgb(var(--good-rgb) / 0.5); background: rgb(var(--good-rgb) / 0.1); }
+.ed-tool.busy { opacity: 0.55; cursor: progress; }
 .ed-master-btn.hidden { display: none; }
 .ed-master-btn:not(.hidden) + .ed-advanced-btn { margin-left: 0; }
 .ed-master-btn.mastered, .ed-master-btn.mastered:hover {

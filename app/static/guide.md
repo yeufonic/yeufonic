@@ -42,6 +42,11 @@ layout** offers steps instead, one part at a time, with a summary of what will b
 
 Closing the window, with **Close**, the cross or Escape, keeps what you typed.
 
+The window's top row has the take's own small buttons from its card, larger: Sing again, Variations,
+Try more, Inside, Take out, Normalise and Move, each where the card would show it. Normalise is green
+while the take is normalised, and a click then puts it back to the level it was rendered at; Inside is
+lit while the take holds others, and closes the window to show them under the take.
+
 ### Advanced settings
 
 The **Advanced** button in the editor's header opens settings for this one take. Most songs never
@@ -1176,9 +1181,16 @@ Click or drag the waveform to seek. Previous and next step through the cards in 
 | Space | play or pause |
 | Left, Right | back or forward five seconds |
 | Up, Down | volume |
+| M | the mastering rack for the chosen take (again to close it) |
+| E | open the chosen take in the editor |
+| I | the take's details: everything it was made with, in words |
+| N | normalise the take, or undo it if it is normalised |
+| V | Variations |
+| T | Try more |
 
-The keys do nothing while you are typing, or while a window is open in front. The system media keys
-work too.
+The chosen take is the one in the left panel: click its card first. The keys do nothing while you are
+typing, while a window is open in front, or with Ctrl, Alt or the system key held, and the letter keys
+only on the main page. The system media keys work too.
 
 ---
 
