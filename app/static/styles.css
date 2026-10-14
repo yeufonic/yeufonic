@@ -1814,8 +1814,8 @@ label .lora-value:disabled { opacity: 0.6; }
 @keyframes take-breathe { from { opacity: 0; } to { opacity: 1; } }
 .take.playing.with-art::before { animation: take-art-breathe 2.4s ease-in-out infinite alternate; }
 @keyframes take-art-breathe {
-  from { opacity: var(--take-art-strength, 0.24); filter: saturate(var(--take-art-colour, 0.6)); }
-  to   { opacity: calc(var(--take-art-strength, 0.24) + 0.08); filter: saturate(0.8); }
+  from { opacity: var(--take-art-strength, 0.16); filter: saturate(var(--take-art-colour, 0.6)); }
+  to   { opacity: calc(var(--take-art-strength, 0.16) + 0.08); filter: saturate(0.8); }
 }
 @media (prefers-reduced-motion: reduce) {
   .take { transition: none; }
@@ -1830,7 +1830,7 @@ label .lora-value:disabled { opacity: 0.6; }
 .take.with-art { position: relative; isolation: isolate; }
 .take.with-art::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
-  background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.24);
+  background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.16);
   filter: saturate(var(--take-art-colour, 0.6));   /* its colour toned back: behind the card, not competing with it */
 }
 /* The muted grey lifted towards the text colour: the lettering over a picture.  Worked out here, on the page's root,
