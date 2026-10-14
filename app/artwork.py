@@ -177,12 +177,11 @@ def description_request(take: dict) -> str:
         f"Song title: {title}\n"
         f"Style: {style or 'not given'}\n"
         f"The opening of the song:\n{sung}\n\n"
-        "The illustration is a wide banner, about twice as wide as it is tall. Hand-lettered words are part of it: "
-        "the title, perhaps a short phrase from the song, and the style written small along a curve, exactly as "
-        "given but with any name of a real band, artist or person left out. Say what is in the picture, how it is "
-        "laid out, its colours and its kind of drawing. Never name a real band, artist or person anywhere in the "
-        "prompt, not even in the lettering: an image model will not draw one, so describe the era and the look "
-        "instead. Between 60 and 120 words. Reply with the prompt only."
+        "The illustration is a wide banner, about twice as wide as it is tall, that lies faintly behind the song's "
+        "title and details on a card. So it has no words in it at all: no lettering, title, captions, signs, labels "
+        "or numbers. Say what is in the picture, how it is laid out, its colours and its kind of drawing. Never "
+        "name a real band, artist or person anywhere in the prompt: an image model will not draw one, so describe "
+        "the era and the look instead. Between 60 and 120 words. Reply with the prompt only."
     )
 
 
@@ -216,8 +215,8 @@ def describe_graph(take: dict, seed: int) -> dict:
 def drawing_request(description: str) -> str:
     return (description.strip() + "\n\n"
             "Draw it as a cut-out: the artwork alone on a plain, flat, pure white background (#FFFFFF) that runs to "
-            "every edge, with a clear white margin all round. No checkerboard pattern, no frame, no border, no drop "
-            "shadow, no paper texture.")
+            "every edge, with a clear white margin all round. No text of any kind: no letters, words or numbers "
+            "anywhere in the picture. No checkerboard pattern, no frame, no border, no drop shadow, no paper texture.")
 
 
 # ------------------------------------------------------------------ the drawing
