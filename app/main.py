@@ -41,7 +41,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import aligner, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
+from . import aligner, artwork, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting
 
 personas = identities
@@ -271,6 +271,29 @@ SETTINGS_SPEC: list[dict] = [
         "type": "text",
         "default": "gpt-4o-mini",
         "help": "Model identifier to query (e.g. gpt-4o-mini, claude-3-5-sonnet-20241022, gemini-1.5-flash, llama3.2, mistral-large).",
+    },
+    {
+        "key": "art.words",
+        "label": "Take pictures: described by",
+        "type": "select",
+        "default": "same",
+        "options": [
+            {"value": "same", "label": "The LLM chosen above"},
+            {"value": "local", "label": "Local Gemma (engine ComfyUI node)"},
+            {"value": "external", "label": "External LLM"},
+        ],
+        "help": "A take's picture is made in two steps: an LLM reads the take's title, style and opening words "
+                "and describes a picture, then the external LLM's image model draws it, and the app takes out its "
+                "white background. This chooses who writes the description.",
+    },
+    {
+        "key": "art.model",
+        "label": "Take pictures: image model",
+        "type": "text",
+        "default": "",
+        "help": "The external provider's model that draws a take's picture (e.g. gemini-3.1-flash-image, "
+                "gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 "
+                "otherwise. Each picture is one image request to the provider, which may be charged.",
     },
     {
         "key": "lyrics.transcriber",
@@ -1052,6 +1075,9 @@ def _job_title(kind: str, ref_id: str) -> str | None:
     if kind == "lyrics":
         record = LYRICS.get(ref_id)
         return ("Lyrics: " + _shorten(record["brief"], 60)) if record else None
+    if kind == "art":
+        row = one("SELECT title FROM takes WHERE id = ?", (ref_id,))
+        return f"Picture: {row['title']}" if row else None
     if kind == "transcribe":
         row = one("SELECT title FROM sources WHERE id = ?", (ref_id,))
     else:
@@ -1098,6 +1124,8 @@ def queue_view() -> list[dict]:
             row = {"title": _job_title("lyrics", job["id"]), "status": draft["status"]} if draft else None
         elif job["kind"] == "transcribe":
             row = one("SELECT title, transcribe_state AS status FROM sources WHERE id = ?", (job["id"],))
+        elif job["kind"] == "art":
+            row = {"title": _job_title("art", job["id"]), "status": artwork.info(job["id"])["state"]}
         else:
             row = one("SELECT title, status FROM takes WHERE id = ?", (job["id"],))
         if not row or row["status"] != "queued":
@@ -1982,6 +2010,56 @@ async def delete_take(take_id: str) -> dict:
     return {"deleted": True, "inside": len(inside)}
 
 
+# A picture made with the external LLM runs beside the GPU lane; its task is held here until it ends.
+_ART_TASKS: set = set()
+
+
+@app.get("/api/takes/{take_id}/art")
+def take_art(take_id: str) -> dict:
+    """Where the take's picture is: none, being made (queued, writing, drawing, cutting), failed, or ready."""
+    if not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
+        raise HTTPException(404, "no such take")
+    return artwork.info(take_id)
+
+
+@app.post("/api/takes/{take_id}/art")
+async def make_take_art(take_id: str) -> dict:
+    """Make the take's picture, in the background, replacing any it has.  Described by Gemma, it waits its
+    turn in the GPU lane; described by the external LLM, it runs beside it."""
+    if not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
+        raise HTTPException(404, "no such take")
+    if artwork.busy(take_id):
+        raise HTTPException(409, "this take's picture is being made")
+    problem = artwork.drawing_problem()
+    if problem:
+        raise HTTPException(400, problem)
+    artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
+    if artwork.words_by_engine():
+        await jobs.QUEUE.put({"kind": "art", "id": take_id})
+    else:
+        task = asyncio.create_task(jobs.run_art(take_id))
+        _ART_TASKS.add(task)
+        task.add_done_callback(_ART_TASKS.discard)
+    return artwork.info(take_id)
+
+
+@app.get("/api/takes/{take_id}/art.png")
+def take_art_png(take_id: str, drawn: bool = False) -> FileResponse:
+    """The picture, or with `drawn` the image model's own before its background was taken out."""
+    path = artwork.drawn_path(take_id) if drawn else artwork.png_path(take_id)
+    if not path.exists():
+        raise HTTPException(404, "no picture")
+    return FileResponse(path, media_type="image/png", headers={"Cache-Control": "no-cache"})
+
+
+@app.delete("/api/takes/{take_id}/art")
+def delete_take_art(take_id: str) -> dict:
+    if artwork.busy(take_id):
+        raise HTTPException(409, "this take's picture is being made")
+    artwork.forget(take_id)
+    return {"deleted": True}
+
+
 @app.post("/api/takes/{take_id}/promote")
 def promote_take(take_id: str) -> dict:
     """Take a take out of the take it is inside: it becomes a take of its own, in the same space."""
@@ -2007,6 +2085,7 @@ async def _delete_one(take: dict) -> None:
     execute("DELETE FROM stem_sets WHERE take_id = ?", (take_id,))
     execute("DELETE FROM takes WHERE id = ?", (take_id,))
     log.info("Deleted take '%s' (%s)", take.get("title") or take_id, take_id)
+    artwork.forget(take_id)
     folder = Path(take["audio_path"]).parent if take.get("audio_path") else take_folder(take_id, take["title"])
     folders = [(folder, config.TAKES_DIR)] + [(Path(item["folder"]), config.DATA_DIR) for item in sets if item["folder"]]
     await asyncio.to_thread(remove_folders, folders)

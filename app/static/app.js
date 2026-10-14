@@ -5191,10 +5191,63 @@ function openDetails(take) {
   }).join('');
   $('details-copied').textContent = '';
   $('details-modal').classList.remove('hidden');
+  showTakeArt(take.id);
 }
 
 function closeDetails() {
   $('details-modal').classList.add('hidden');
+  clearTimeout(State.artPoll);
+}
+
+/* ------------------------------------------------------------ a take's picture
+   An LLM describes a picture from the take's title, style and opening words, the external LLM's image model draws
+   it, and the app takes out its white background.  It is made in the background; the Details window follows it. */
+var ART_STATES = { queued: 'Waiting its turn\u2026', writing: 'Writing the description\u2026', drawing: 'Drawing\u2026',
+  cutting: 'Taking out the background\u2026' };
+
+async function showTakeArt(takeId) {
+  clearTimeout(State.artPoll);
+  var body = $('details-body');
+  if (!body || !takeId) { return; }
+  var box = $('details-art');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'details-art';
+    box.className = 'sheet-blk take-art';
+    body.insertBefore(box, body.firstChild);
+  }
+  var art;
+  try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { box.remove(); return; }
+  if (!State.detailsTake || State.detailsTake.id !== takeId || $('details-modal').classList.contains('hidden')) { return; }
+  paintTakeArt(box, takeId, art);
+  if (ART_STATES[art.state]) { State.artPoll = setTimeout(function () { showTakeArt(takeId); }, 2000); }
+}
+
+function paintTakeArt(box, takeId, art) {
+  var making = !!ART_STATES[art.state];
+  var src = '/api/takes/' + takeId + '/art.png?v=' + (art.v || 0);
+  var picture = art.has ? '<a class="art-frame" href="' + src + '" target="_blank" rel="noopener" title="Open the picture">' +
+      '<img src="' + src + '" alt="The take\'s picture"></a>' :
+    '<div class="art-frame art-empty">' + (making ? '' : 'No picture yet') + '</div>';
+  var status = making ? ART_STATES[art.state] : (art.state === 'failed' ? 'Failed: ' + (art.error || 'no reason given') : '');
+  var links = art.has ? ' <a class="ghost small" href="' + src + '" download="picture.png">Save</a>' +
+    (art.has_drawn ? ' <a class="ghost small" href="/api/takes/' + takeId + '/art.png?drawn=1&v=' + (art.v || 0) +
+      '" target="_blank" rel="noopener" title="The picture as the image model drew it, with its white background">As drawn</a>' : '') : '';
+  box.innerHTML = '<h3>Picture</h3>' + picture +
+    '<div class="art-row"><button type="button" class="ghost" id="art-make"' + (making ? ' disabled' : '') + '>' +
+    (art.has ? 'Make again' : 'Make picture') + '</button>' + links +
+    '<span class="art-status muted small' + (art.state === 'failed' ? ' bad' : '') + '">' + esc(status) + '</span></div>' +
+    (art.words ? '<details class="art-words"><summary>Description</summary><p>' + esc(art.words) + '</p></details>' : '');
+  $('art-make').addEventListener('click', async function () {
+    this.disabled = true;
+    try {
+      await api('/api/takes/' + takeId + '/art', { method: 'POST' });
+    } catch (err) {
+      paintTakeArt(box, takeId, { state: 'failed', error: err.message, has: art.has, has_drawn: art.has_drawn, v: art.v, words: art.words });
+      return;
+    }
+    showTakeArt(takeId);
+  });
 }
 
 async function copyDetails() {

@@ -16,7 +16,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import config, identities, instrumental, llm, loras, lyrics, score, stems, storage, trainsize, transpose, voices
+from . import artwork, config, identities, instrumental, llm, loras, lyrics, score, stems, storage, trainsize, transpose, voices
 from .db import bump_average, execute, get_setting, one, rows
 from .engine import OUT_OF_MEMORY, Engine, load_template
 from .library import (audio_duration, ensure_peaks, fade_out_end, loudness, inside, normal_target, normalise, normalised_path, original_path, remove_tree,
@@ -424,6 +424,37 @@ def build_lyrics_graph(record: dict) -> dict:
     }
 
 
+async def run_art(take_id: str) -> None:
+    """A take's picture: the description (by Gemma on the engine, through this lane, or by the external
+    LLM), the drawing (the external image model), then the white background taken out."""
+    take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
+    if not take:
+        artwork.STATE.pop(take_id, None)
+        return
+    try:
+        artwork.STATE[take_id] = {"state": "writing", "error": None, "started": time.time()}
+        if artwork.words_by_engine():
+            job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31))
+            description = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
+            writer = "Gemma on this PC"
+        else:
+            description = await artwork.describe_external(take)
+            writer = llm.get_config()["model"]
+        if not description:
+            raise RuntimeError("the LLM wrote no description")
+        log.info("Picture for '%s' (%s): %s", take.get("title"), take_id, description[:200])
+        artwork.STATE[take_id]["state"] = "drawing"
+        drawn = await artwork.draw(description)
+        artwork.STATE[take_id]["state"] = "cutting"
+        picture = await asyncio.to_thread(artwork.cut_out, drawn)
+        await asyncio.to_thread(artwork.keep, take_id, description, drawn, picture, artwork.image_model(), writer)
+        artwork.STATE.pop(take_id, None)
+        log.info("Picture for '%s' (%s) is ready", take.get("title"), take_id)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Picture for %s failed: %s", take_id, exc)
+        artwork.STATE[take_id] = {"state": "failed", "error": str(exc)}
+
+
 def forget_old_lyrics(now: float | None = None) -> None:
     now = now or time.time()
     for key in [k for k, r in LYRICS.items() if r["status"] in ("done", "failed") and now - r["created_at"] > LYRICS_KEEP]:
@@ -465,7 +496,9 @@ def fail(kind: str, ref_id: str, message: str) -> None:
         title = row["title"] if row else None
     title_str = f" for '{title}'" if title else ""
     log.warning("%s %s%s failed: %s", kind, ref_id, title_str, message)
-    if kind == "lyrics":
+    if kind == "art":
+        artwork.STATE[ref_id] = {"state": "failed", "error": message}
+    elif kind == "lyrics":
         if ref_id in LYRICS:
             LYRICS[ref_id].update({"status": "failed", "error": message})
     elif kind == "transcribe":
@@ -560,6 +593,9 @@ async def run_job(kind: str, ref_id: str) -> None:
                        finished_at=time.time())
             return
         await run_lora_train(ref_id)
+        return
+    if kind == "art":
+        await run_art(ref_id)
         return
     if kind == "lyrics":
         record = LYRICS.get(ref_id)
