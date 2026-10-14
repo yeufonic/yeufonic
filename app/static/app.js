@@ -11541,6 +11541,13 @@ function paintEdPicture() {
   btn.classList.toggle('hidden', !show);
   btn.classList.toggle('has-art', Boolean(show && take.art));
   if (!show) { closePictureMenu(); }
+  // and the picture behind the editor window itself
+  var box = $('editor');
+  if (box) {
+    var art = editorOpen() && take && take.art ? take.art : '';
+    box.classList.toggle('with-art', Boolean(art));
+    if (art) { box.style.setProperty('--take-art', 'url("' + art.replace(/"/g, '') + '")'); } else { box.style.removeProperty('--take-art'); }
+  }
 }
 
 function closePictureMenu() {

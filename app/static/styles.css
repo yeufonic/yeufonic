@@ -1794,7 +1794,20 @@ label .lora-value:disabled { opacity: 0.6; }
 .take.with-art { position: relative; isolation: isolate; }
 .take.with-art::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
-  background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.22);
+  background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.32);
+}
+/* Over a picture the lettering needs more definition: the full text colour, a little more weight, and a tight
+   edge of the card's own colour that keeps each letter apart from the lines behind it (not a glow). */
+/* The editor, open on a take with a picture, has it behind the whole window: fainter, under many more controls. */
+#editor.with-art { position: relative; isolation: isolate; }
+#editor.with-art::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: var(--take-art) center / cover no-repeat; opacity: var(--editor-art-strength, 0.16);
+}
+.take.with-art .take-title { font-weight: 700; }
+.take.with-art :is(.take-meta, .take-style) { color: color-mix(in srgb, var(--text) 85%, var(--muted)); font-weight: 500; }
+.take.with-art :is(.take-title, .take-meta, .take-style) {
+  text-shadow: 0 0 1px var(--card), 0 0 1px var(--card), 0 0 2px var(--card), 0 0 3px var(--card);
 }
 /* States that want your attention, so they carry a bright pill rather than grey text. */
 .take-status {
