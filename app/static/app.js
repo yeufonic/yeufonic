@@ -4721,8 +4721,8 @@ function paintSettings() {
     var control;
     if (item.type === 'select') {
       control = '<select data-key="' + esc(item.key) + '">' + item.options.map(function (option) {
-        return '<option value="' + esc(option.value) + '"' +
-          (option.value === item.value ? ' selected' : '') + '>' + esc(option.label) + '</option>';
+        return '<option value="' + esc(option.value) + '"' + (option.value === item.value ? ' selected' : '') +
+          (option.disabled ? ' disabled' : '') + '>' + esc(option.label) + '</option>';
       }).join('') + '</select>';
     } else if (item.type === 'password') {
       // The saved key never comes back from the server, only whether there is one,
@@ -11643,7 +11643,8 @@ function paintEdPicture() {
   var btn = $('ed-btn-picture');
   if (!btn) { return; }   // a page from before the button
   var take = editorTake();
-  var show = Boolean(editorOpen() && take && take.id && (State.pictures || take.art));
+  // Wherever something can draw, even with pictures off for new takes: one can still be made for this take.
+  var show = Boolean(editorOpen() && take && take.id && (State.pictures || State.picturesPossible || take.art));
   btn.classList.toggle('hidden', !show);
   btn.classList.toggle('has-art', Boolean(show && take.art));
   // An icon among the take's others since it lost its word: its tip says what it holds, as theirs do.

@@ -279,14 +279,12 @@ SETTINGS_SPEC: list[dict] = [
         "default": "on",
         "options": [
             {"value": "on", "label": "Make one for each new take"},
-            {"value": "off", "label": "Off"},
+            {"value": "off", "label": "No pictures: the default background"},
         ],
         "help": "Each new take gets a picture of the song, made while it renders and shown behind its card and the "
                 "editor. Takes made inside another show that one's. It is drawn on this PC by FLUX.2 klein, where it "
                 "was chosen when installing, or by the external LLM's image model, one request each, which may be "
                 "charged.",
-        "requires": {"pictures": "possible"},
-        "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },
     {
         "key": "art.drawer",
@@ -386,6 +384,15 @@ def settings_payload() -> list[dict]:
                     ],
                 }
         value = setting_value(spec["key"])
+        if spec["key"] == "art.auto" and not artwork.possible():
+            # Nothing here can draw: no pictures, said plainly, and the way to have them, rather than a greyed-out row.
+            value = "off"
+            spec = {**spec,
+                    "options": [{**option, "disabled": True, "label": option["label"] + " (nothing here can draw them yet)"}
+                                if option["value"] == "on" else option for option in spec["options"]],
+                    "help": "Nothing here can draw a take's picture yet, so takes keep the default background. To have "
+                            "pictures, choose FLUX.2 [klein] when installing or updating (a large download, which draws "
+                            "them on this PC), or set up an external LLM whose provider has an image model (Gemini has)."}
         if spec["type"] == "password":
             out.append({**spec, "value": "", "saved": bool(value)})
         else:

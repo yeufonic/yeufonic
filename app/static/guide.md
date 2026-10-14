@@ -1178,14 +1178,15 @@ provider is asked for `gpt-image-1`. The app asks the provider for its list of m
 when the app starts, when these settings change and every few hours, and draws there only once the list
 has the image model.
 
-With neither, no pictures are made and their settings are greyed out, with a line saying what they need.
+With neither, **Take pictures** in Settings says **No pictures: the default background**, with a line on how to have
+them, and the choice to make them cannot be picked.
 Set up either and they come on: pictures are then made for the takes you make from then on.
 
 #### Managing pictures in Settings
 
 | Setting | Does |
 |---|---|
-| **Take pictures** | *Make one for each new take* (the default), or *Off*: no picture is made unless you ask for one in the editor. |
+| **Take pictures** | *Make one for each new take* (the default where something can draw), or *No pictures: the default background*, where none is made unless you ask for one in the editor. It is *No pictures* while nothing here can draw. |
 | **Take pictures: drawn by** | *This PC if FLUX.2 klein is installed, else the external LLM* (the default), *This PC (FLUX.2 klein)* or *The external LLM's image model*. |
 | **Take pictures: described by** | *Where it is drawn* (the default): Gemma on this PC when FLUX.2 klein draws, the external LLM when it draws. Or always *Local Gemma*, or always the *External LLM*. |
 | **Take pictures: image model** | which of the provider's models draws, when the external LLM does. Empty for the provider's usual one. |

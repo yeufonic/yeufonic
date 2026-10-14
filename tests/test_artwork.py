@@ -389,3 +389,23 @@ def test_left_to_choose_the_description_is_written_where_the_picture_is_drawn(mo
     set_setting("art.words", "local")
     monkeypatch.setattr(artwork, "drawer", lambda: "external")
     assert artwork.words_by_engine()
+
+
+def test_with_nothing_to_draw_take_pictures_says_no_pictures(client, monkeypatch):
+    """Nothing here can draw: Take pictures reads No pictures, and pictures for each take cannot be chosen.  Once
+    something can draw, they are on unless chosen off."""
+    def picture_setting():
+        return next(s for s in client.get("/api/settings").json()["settings"] if s["key"] == "art.auto")
+    monkeypatch.setattr(artwork, "local_ready", lambda: False)
+    shown = picture_setting()
+    assert shown["value"] == "off"
+    assert [o["value"] for o in shown["options"] if o.get("disabled")] == ["on"]
+    assert "requires" not in shown                        # a choice, not a greyed-out row
+    assert "FLUX.2 [klein]" in shown["help"]
+    assert not artwork.automatic()
+    external()                                            # a provider that can draw
+    shown = picture_setting()
+    assert shown["value"] == "on" and not any(o.get("disabled") for o in shown["options"])
+    assert artwork.automatic()
+    set_setting("art.auto", "off")                        # chosen off: kept off
+    assert picture_setting()["value"] == "off" and not artwork.automatic()
