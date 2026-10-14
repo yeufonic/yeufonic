@@ -1259,8 +1259,9 @@ The letter keys do nothing while you are typing in a box, while a window is open
 Alt or the Windows or Command key held, so the browser's own shortcuts (Ctrl+L, Ctrl+S and the rest)
 still work. A button's tip names its key, as in **Variations (V)**.
 
-In the editor window the keys are left to what you are typing, except with the mastering rack open over
-it: then space plays and pauses the take in the window, and the arrows move through it and set the volume. The piano roll has keys of its own: see [The Piano Roll](#the-piano-roll).
+In the editor window, Space and the arrows work the window's player, for the take open there, whenever its player
+shows: on every step, and with the mastering rack open over it. They never act while you are typing in a box,
+and the letter keys are the main page's only. The piano roll has keys of its own: see [The Piano Roll](#the-piano-roll).
 
 ---
 

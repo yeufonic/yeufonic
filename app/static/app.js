@@ -14144,21 +14144,26 @@ function wire() {
     // Playback shortcuts, but never while typing, and never through a window
     // that is open in front: space belongs to whatever the eye is on.
     var tag = (focus && focus.tagName) || '';
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') { return; }
-    // A rack standing over the editor window is what the eye is on, and it has the same keys as the rack
-    // opened on the page: only there, play is the window's own, for the take in the window.
+    var aimed = (event.target && event.target.tagName) || '';
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || /^(INPUT|TEXTAREA|SELECT)$/.test(aimed) ||
+        (event.target && event.target.isContentEditable)) { return; }
+    // The editor window, alone (or with the mastering rack over it), has the player's keys too, for the take in
+    // the window, whenever its player shows: typing is already left alone above.  Any other window in front
+    // keeps them, and the letter keys are the main page's only.
     var rackOverEditor = Editor.rackUp && editorOpen() && document.querySelectorAll('.modal:not(.hidden)').length === 1;
-    if (!rackOverEditor && document.querySelector('.modal:not(.hidden)')) { return; }
+    var inEditor = editorOpen() && document.querySelectorAll('.modal:not(.hidden)').length === 1;
+    if (inEditor && !rackOverEditor && (!$('ed-transport') || $('ed-transport').classList.contains('hidden'))) { return; }
+    if (!inEditor && document.querySelector('.modal:not(.hidden)')) { return; }
     if (event.code === 'Space') {
       event.preventDefault();
       // The button last pressed is let go of: left with the focus, space would press it again as well,
       // which for the window's Mastering button shut the rack.
       if (tag === 'BUTTON') { focus.blur(); }
-      $(rackOverEditor && $('ed-btn-play') ? 'ed-btn-play' : 'btn-play').click();
+      $(inEditor && $('ed-btn-play') ? 'ed-btn-play' : 'btn-play').click();
     }
     else if (event.key === 'ArrowLeft') { nudge(-5); }
     else if (event.key === 'ArrowRight') { nudge(5); }
-    else if (!rackOverEditor && !editorOpen() && takeKey(event)) { event.preventDefault(); }
+    else if (!inEditor && takeKey(event)) { event.preventDefault(); }
     else if (event.key === 'ArrowUp') { event.preventDefault(); $('volume').value = Math.min(100, Number($('volume').value) + 5); $('volume').dispatchEvent(new Event('input')); }
     else if (event.key === 'ArrowDown') { event.preventDefault(); $('volume').value = Math.max(0, Number($('volume').value) - 5); $('volume').dispatchEvent(new Event('input')); }
   });
