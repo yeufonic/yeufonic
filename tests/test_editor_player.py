@@ -92,14 +92,20 @@ def test_the_rack_opened_for_another_take_plays_it_only_when_a_take_was_playing(
     assert editor.index("hearForRack(take)") < editor.index("rack.openForTake(take)")
 
 
-def test_the_rack_over_the_editor_has_the_pages_playback_keys():
+def test_the_editor_has_the_pages_playback_keys():
+    """The editor window, alone or with the mastering rack over it, has Space and the arrows for its own player
+    whenever that player shows; any other window in front keeps them, and the letter keys are the main page's."""
     app_js = (STATIC / "app.js").read_text(encoding="utf-8")
     keys = app_js[app_js.index("var rackOverEditor = "):app_js.index("\nwire();")]
-    # other windows still keep the keys to themselves; the rack over the editor, with nothing over it, does not
-    assert "document.querySelectorAll('.modal:not(.hidden)').length === 1" in keys
-    assert "if (!rackOverEditor && document.querySelector('.modal:not(.hidden)')) { return; }" in keys
+    assert "var inEditor = editorOpen() && document.querySelectorAll('.modal:not(.hidden)').length === 1;" in keys
+    assert "if (inEditor && !rackOverEditor && (!$('ed-transport') || $('ed-transport').classList.contains('hidden'))) { return; }" in keys
+    assert "if (!inEditor && document.querySelector('.modal:not(.hidden)')) { return; }" in keys
+    assert "else if (!inEditor && takeKey(event)) { event.preventDefault(); }" in keys
     # play is the window's own there, for the take in the window, and the button last pressed lets go
-    assert "$(rackOverEditor && $('ed-btn-play') ? 'ed-btn-play' : 'btn-play').click();" in keys
+    assert "$(inEditor && $('ed-btn-play') ? 'ed-btn-play' : 'btn-play').click();" in keys
+    # typing is left alone, whether the focus or the key is aimed at a box
+    guard = app_js[app_js.index("var aimed = "):app_js.index("var rackOverEditor = ")]
+    assert "/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || /^(INPUT|TEXTAREA|SELECT)$/.test(aimed)" in guard
     assert "if (tag === 'BUTTON') { focus.blur(); }" in keys
     for key in ("ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"):
         assert keys.index("rackOverEditor") < keys.index(key)
