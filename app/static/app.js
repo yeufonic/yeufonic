@@ -14305,6 +14305,12 @@ function paintSheet() {
       button.classList.toggle('current', button.dataset.new === current);
     });
   }
+  // The take's picture, where it has one, as a banner across the top of the panel, fading into it.
+  var panel = $('sheet-panel'), art = take && take.art ? take.art : '';
+  if (panel) {
+    panel.classList.toggle('with-art', Boolean(art));
+    if (art) { panel.style.setProperty('--take-art', 'url("' + art.replace(/"/g, '') + '")'); } else { panel.style.removeProperty('--take-art'); }
+  }
   var html = sheetHTML(take);
   if (host.dataset.html !== html) {
     host.innerHTML = html;

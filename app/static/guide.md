@@ -1139,7 +1139,8 @@ wider ones with more of the prompt. A title always stays on one line, ending in 
 ### A picture for each take
 
 While a take renders, a picture of the song is made beside it, and shown faintly behind the take's
-card and behind the editor when the take is open there. An LLM reads the take's title, style and
+card, across the top of the take panel when you choose it, and behind the editor when the take is open
+there. An LLM reads the take's title, style and
 opening words and describes a picture; then something draws it, and the plain white it is drawn on
 is taken out, leaving the picture with a transparent background. It is drawn either:
 

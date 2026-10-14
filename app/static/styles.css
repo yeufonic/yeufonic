@@ -3205,6 +3205,20 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
    and opacity animate, which need no layout. */
 main { position: relative; }
 main > .sheet-panel { transition: opacity 0.22s ease, transform 0.22s ease; }
+/* The chosen take's picture across the top of the panel, behind its buttons and title, fading out by the style;
+   toned back as on the card, and the panel's lettering given the card's definition over it. */
+.sheet-panel.with-art { position: relative; isolation: isolate; }
+.sheet-panel.with-art::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 420px; z-index: -1; pointer-events: none;
+  border-radius: inherit; background: var(--take-art) center top / cover no-repeat;
+  opacity: var(--sheet-art-strength, 0.5); filter: saturate(var(--take-art-colour, 0.6));
+  -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent); mask-image: linear-gradient(to bottom, #000 45%, transparent);
+}
+.sheet-panel.with-art .take-sheet {
+  --muted: var(--muted-defined);
+  text-shadow: 0 0 1px var(--panel), 0 0 1px var(--panel), 0 0 2px var(--panel), 0 0 3px var(--panel);
+}
+main.sheet-collapsed > .sheet-panel::before { display: none; }
 main.sheet-fading > .sheet-panel { opacity: 0; transform: translateX(calc(-100% - 22px)); }
 main > .library { transition: opacity 0.28s ease; }
 /* The moment the columns change: nothing may animate across it, or the panel and the

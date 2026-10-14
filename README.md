@@ -130,7 +130,7 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   render of each. A button that appears on the card once the take holds any opens them in a
   panel under it, where each is a take like any other and can be taken out to stand on its own.
 - **A picture for each take.** While a take renders, a picture of the song is made beside it and
-  shown behind the take's card and the editor: an LLM describes it from the title, style and opening
+  shown behind the take's card, atop the take panel and behind the editor: an LLM describes it from the title, style and opening
   words, then FLUX.2 klein draws it on this PC (an install option) or the external LLM's image model
   does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
   to the plain background. Without either way to draw, there are no pictures.
