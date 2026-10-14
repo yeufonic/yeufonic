@@ -24,7 +24,11 @@ def test_the_page_tints_only_the_ground_behind_the_takes():
     assert ':root.backdrop-hue:not([data-theme="contrast"]) body {' in css
     assert ':root.backdrop-hue[data-theme="light"] body {' in css
     rules = [line for line in css.splitlines() if ":root.backdrop-hue" in line and "{" in line]
-    assert all(line.rstrip().endswith("body {") for line in rules), rules      # the body's ground, nothing else
+    # the body's ground, nothing else, and the name of its colour on the root for the panel of takes inside a take
+    assert all(line.rstrip().endswith("body {") or line.rstrip().endswith(") {") or line.rstrip().endswith('"] {') for line in rules), rules
+    assert "background: var(--backdrop-ground, var(--bg));" in css[css.index("\n.take-inside {"):]
+    sticky = css[css.index(".libsticky {"):]
+    assert "var(--backdrop-ground, var(--bg))" in sticky[:sticky.index("}")]     # the band over the list, likewise
     app_js = (STATIC / "app.js").read_text(encoding="utf-8")
     assert "} else if (item.type === 'backdrop') {" in app_js and "adoptBackdrop();" in app_js
     row = app_js[app_js.index("function paintBackdropRow()"):app_js.index("function paintBackdropSliders(")]

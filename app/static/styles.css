@@ -207,17 +207,24 @@
 /* The backdrop's colour (a trial, app.js: applyBackdrop): the page behind the takes, in a hue of the
    user's choosing.  --backdrop-s, from 0.1 to 1, is how much of it: the ground grows a little lighter and
    more coloured, and the two glows at the top take the hue and its neighbour.  Not in high contrast. */
+/* --backdrop-ground is the page's own colour under the glows, which the panel of takes inside a take shares. */
+:root.backdrop-hue:not([data-theme="contrast"]) {
+  --backdrop-ground: hsl(var(--backdrop-h) calc(18% + 42% * var(--backdrop-s)) calc(3% + 7% * var(--backdrop-s)));
+}
+:root.backdrop-hue[data-theme="light"] {
+  --backdrop-ground: hsl(var(--backdrop-h) calc(25% + 45% * var(--backdrop-s)) calc(97% - 9% * var(--backdrop-s)));
+}
 :root.backdrop-hue:not([data-theme="contrast"]) body {
   background:
     radial-gradient(900px 500px at 15% -10%, hsl(var(--backdrop-h) 80% 55% / calc(0.06 + 0.22 * var(--backdrop-s))), transparent 60%),
     radial-gradient(700px 400px at 95% 0%, hsl(calc(var(--backdrop-h) + 35) 80% 55% / calc(0.04 + 0.16 * var(--backdrop-s))), transparent 55%),
-    hsl(var(--backdrop-h) calc(18% + 42% * var(--backdrop-s)) calc(3% + 7% * var(--backdrop-s)));
+    var(--backdrop-ground);
 }
 :root.backdrop-hue[data-theme="light"] body {
   background:
     radial-gradient(900px 500px at 15% -10%, hsl(var(--backdrop-h) 85% 60% / calc(0.06 + 0.18 * var(--backdrop-s))), transparent 60%),
     radial-gradient(700px 400px at 95% 0%, hsl(calc(var(--backdrop-h) + 35) 85% 60% / calc(0.04 + 0.12 * var(--backdrop-s))), transparent 55%),
-    hsl(var(--backdrop-h) calc(25% + 45% * var(--backdrop-s)) calc(97% - 9% * var(--backdrop-s)));
+    var(--backdrop-ground);
 }
 .backdrop-control { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 250px; }
 .backdrop-control label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); width: 100%; }
@@ -366,7 +373,8 @@ main {
      would lie over the first row when the pane is at the top. */
   .libsticky {
     position: sticky; top: 0; z-index: 3; padding: 2px 0 18px;
-    background: linear-gradient(180deg, var(--bg) 0, var(--bg) calc(100% - 18px), transparent);
+    /* the page's own colour (a backdrop colour's, when there is one), so the band does not show as a strip */
+    background: linear-gradient(180deg, var(--backdrop-ground, var(--bg)) 0, var(--backdrop-ground, var(--bg)) calc(100% - 18px), transparent);
   }
   .libhead { margin-bottom: 14px; }
   /* A little air under the header's fading edge, so the first row is never tight
@@ -1696,9 +1704,13 @@ label .lora-value:disabled { opacity: 0.6; }
 /* ---------- library ---------- */
 .library { min-width: 0; }
 .libhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+/* The space's name, set in as far as the word Space and the list's text above it, off the margin. */
+.libhead #takes-heading { padding-left: 16px; }
 /* Spaces: one row above the takes, wrapping on a phone. */
 .spacebar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
-.spacebar .space-label { font-size: 12.5px; color: var(--muted); }
+/* The word over the space list is a heading for it: a size up and bold, so it holds its own above the box,
+   and set in to start where the box's own text starts rather than on the margin. */
+.spacebar .space-label { font-size: 14px; font-weight: 650; color: var(--text); letter-spacing: 0.01em; padding-left: 16px; }
 .spacebar .chip:disabled, .filters .chip:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
 .move-list { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
 .move-list button { text-align: left; display: flex; justify-content: space-between; gap: 10px; }
@@ -2231,10 +2243,11 @@ label .lora-value:disabled { opacity: 0.6; }
 /* The panel: a row of its own under the card, whatever the columns, holding the takes as cards.  Its frame
    is drawn outside the row (the side margins take back what the padding and border add), so the cards in
    it have exactly the row's width to share and fall into the same columns, at the same size, as the cards
-   of the list above and below. */
+   of the list above and below.  Its ground is the page's own (with a backdrop colour, that colour), so the takes
+   inside sit on what the takes outside sit on, and only the frame says where the panel is. */
 .take-inside {
   grid-column: 1 / -1; margin: 0 -12px; padding: 14px 11px 16px; border-radius: 16px; overflow: hidden;
-  background: linear-gradient(180deg, var(--panel), var(--bg-2)); border: 1px solid rgb(var(--accent-a-rgb) / 0.45);
+  background: var(--backdrop-ground, var(--bg)); border: 1px solid rgb(var(--accent-a-rgb) / 0.45);
   box-shadow: 0 14px 40px rgb(var(--shade) / 0.35);
 }
 .take-inside.opening { animation: inside-open 0.32s ease-out; transform-origin: top center; }
