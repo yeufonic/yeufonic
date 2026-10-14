@@ -32,7 +32,8 @@ The **left panel** shows the take you last clicked, read-only: its style, its so
 first lines of its words, and its score as a key, a tempo, a length and each section's chords.
 **+ Song**, **+ Cover** and **+ Instrumental** at the top start something new; the one for the
 take's own kind stands out. The chevron beside the panel folds it away, so the takes have the width,
-and brings it back.
+and brings it back. Single keys act on the take the panel shows (M for the mastering rack, E for
+the editor and more): see [Hot keys](#hot-keys).
 
 Making and changing a take happens in the **editor window**. Its main button on the panel says what
 fits: *Edit and render again*, or *Review the plan and render* when a plan is waiting. A card's
@@ -1140,29 +1141,65 @@ wider ones with more of the prompt. A title always stays on one line, ending in 
 
 While a take renders, a picture of the song is made beside it, and shown faintly behind the take's
 card, across the top of the take panel when you choose it, and behind the editor when the take is open
-there. An LLM reads the take's title, style and
-opening words and describes a picture; then something draws it, and the plain white it is drawn on
-is taken out, leaving the picture with a transparent background. It is drawn either:
+there. It is made in two steps: an LLM reads the take's title, style and opening words and **describes**
+a picture, then an image model **draws** it on white, and the white is taken out, leaving the picture
+with a transparent background. A take made inside another (Try more, Variations, Checkpoints) shows the
+picture of the take it is inside rather than having one of its own.
 
-- **on this PC** by FLUX.2 klein, if you chose **Take pictures** when installing (or fetched it with
-  `fetch-models.sh --pictures`). It waits its turn with the renders and costs nothing; or
-- **by your external LLM's image model**, if the provider has one (Gemini does). It is made beside the
-  renders, and each picture is one request to the provider, which may be charged.
+An image model will not draw a real band or person, so the description leaves names out; and the
+picture's own lettering is kept soft, so it does not fight the card's.
 
-With neither, no pictures are made, and their settings are greyed out. Set up a provider that can draw,
-and they come on. A take made inside another (Try more, Variations, Checkpoints) shows the picture of
-the take it is inside rather than having one of its own.
+#### Two ways to draw: FLUX.2 klein on this PC, or an external LLM
 
-In the editor, the **Picture** button by Mastering shows the picture with two choices: **Make a new
-picture**, which makes it again in the background, and **Use the default background**, which takes it
-away for good: no picture is made for that take again unless you ask for one. An image model will not
-draw a real band or person, so the description leaves names out; and the picture's own lettering is
-kept soft, so it does not fight the card's.
+Pictures need something that can draw. There are two, and you can have either, both or neither.
 
-Settings > **Take pictures** turns them off. **Drawn by** chooses this PC or the external LLM (this PC
-first, when both can), **Described by** which LLM writes the description, and **Image model** which of
-the provider's models draws. Left to choose, the description is written where the picture is drawn: a
-picture drawn on this PC is described by Gemma on this PC, so nothing is sent to the provider.
+| | FLUX.2 klein, on this PC | Your external LLM's image model |
+|---|---|---|
+| What it is | a small image model that runs on the engine, beside YuE2 | the provider's own image model, such as Gemini's |
+| What it costs | nothing; about 8 GB of disk | each picture is one request to the provider, which may be charged |
+| What leaves the PC | nothing (Gemma on this PC writes the description too) | the take's title, style and opening words, and the description |
+| When it runs | in turn with the renders, on the GPU | beside the renders, while they run |
+| What you set up | an install option | the external LLM in Settings, with a provider that lists an image model |
+
+**To draw on this PC, install FLUX.2 klein.**
+
+- **Windows:** tick **Take pictures (FLUX.2 klein)** on the installer's components page. It is not ticked
+  unless you choose it. An installed app gets the same page when it updates, or run the installer again
+  from the release page: the tick is remembered after that, and an update never downloads it twice. It
+  is three files, about 8 GB in all.
+- **Docker:** run `sh scripts/fetch-models.sh --pictures`, which puts the three files in `models/`
+  (`diffusion_models`, `text_encoders` and `vae`) and checks each one, then restart the app with
+  `docker compose restart app` so it finds them.
+
+**To draw with an external LLM,** open Settings and set **LLM for writing lyrics & style tags** to the
+external LLM, with its **API URL**, **API Key** and **Model**, as for lyrics. The provider must have an image
+model: Gemini does (`gemini-3.1-flash-image` is used unless you name another), and an OpenAI-compatible
+provider is asked for `gpt-image-1`. The app asks the provider for its list of models, in the background,
+when the app starts, when these settings change and every few hours, and draws there only once the list
+has the image model.
+
+With neither, no pictures are made and their settings are greyed out, with a line saying what they need.
+Set up either and they come on: pictures are then made for the takes you make from then on.
+
+#### Managing pictures in Settings
+
+| Setting | Does |
+|---|---|
+| **Take pictures** | *Make one for each new take* (the default), or *Off*: no picture is made unless you ask for one in the editor. |
+| **Take pictures: drawn by** | *This PC if FLUX.2 klein is installed, else the external LLM* (the default), *This PC (FLUX.2 klein)* or *The external LLM's image model*. |
+| **Take pictures: described by** | *Where it is drawn* (the default): Gemma on this PC when FLUX.2 klein draws, the external LLM when it draws. Or always *Local Gemma*, or always the *External LLM*. |
+| **Take pictures: image model** | which of the provider's models draws, when the external LLM does. Empty for the provider's usual one. |
+
+So with FLUX.2 klein installed and the settings as they come, pictures are made entirely on this PC, even
+when the external LLM writes your lyrics. Choose *The external LLM's image model* to have the provider draw
+them instead, or set **described by** to *External LLM* to keep FLUX.2 klein drawing from the provider's
+descriptions.
+
+#### A take's picture in the editor
+
+The **Picture** icon in the editor window's top row, beside the take's other buttons, shows the picture
+with two choices: **Make a new picture**, which makes it again in the background, and **Use the default
+background**, which takes it away for good: no picture is made for that take again unless you ask for one.
 
 ### Comparing takes
 
@@ -1182,19 +1219,38 @@ Click or drag the waveform to seek. Previous and next step through the cards in 
 | Space | play or pause |
 | Left, Right | back or forward five seconds |
 | Up, Down | volume |
-| M | the mastering rack for the chosen take (again to close it) |
-| E | open the chosen take in the editor |
-| I | the take's details: everything it was made with, in words |
+
+The system media keys work too. The take's own keys are under [Hot keys](#hot-keys).
+
+### Hot keys
+
+On the main page, single keys act on the **chosen take**: the one in the left panel. Click its card to
+choose it. Each key does what the button for it does, so a key that would delete asks first, and a take
+that cannot do what a key asks (Variations on a take with no score, say) leaves a line in the status
+bar saying why.
+
+| Key | Does |
+|---|---|
+| Space | play or pause |
+| Left, Right | back or forward five seconds |
+| Up, Down | volume |
+| M | open the mastering rack for the take; again to close it |
+| E | open the take in the editor |
+| I | the take's details: everything it was made with, in words, with **Copy** |
 | N | normalise the take, or undo it if it is normalised |
 | V | Variations |
 | T | Try more |
 | S | star the take, or unstar it |
 | D | delete the take, after asking, as its bin does |
-| L | the logs (again to close them) |
+| L | the logs; again to close them |
+| Escape | close the window in front: the logs first, then the mastering rack over the editor, then the editor or any other window |
 
-The chosen take is the one in the left panel: click its card first. The keys do nothing while you are
-typing, while a window is open in front, or with Ctrl, Alt or the system key held, and the letter keys
-only on the main page. The system media keys work too.
+The letter keys do nothing while you are typing in a box, while a window is open in front, or with Ctrl,
+Alt or the Windows or Command key held, so the browser's own shortcuts (Ctrl+L, Ctrl+S and the rest)
+still work. A button's tip names its key, as in **Variations (V)**.
+
+In the editor window the keys are left to what you are typing, except with the mastering rack open over
+it: then space plays and pauses the take in the window, and the arrows move through it and set the volume. The piano roll has keys of its own: see [The Piano Roll](#the-piano-roll).
 
 ---
 
