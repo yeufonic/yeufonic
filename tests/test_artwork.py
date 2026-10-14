@@ -441,3 +441,28 @@ def test_a_waiting_picture_is_listed_last_and_can_be_cancelled(client):
     assert asyncio.run(jobs.cancel_waiting("art", picture["id"]))
     assert not jobs.ART_WAITING and picture["id"] not in artwork.STATE
     assert not asyncio.run(jobs.cancel_waiting("art", picture["id"]))
+
+
+def test_a_running_picture_steps_aside_when_song_work_comes_in(client, monkeypatch):
+    """While a picture runs on the engine, song work arriving stops it there, and the picture goes back to the
+    front of its line, to start again when the GPU is free."""
+    async def nothing_yet(prompt_id):
+        return None
+    async def no_wait(seconds):
+        return None
+    monkeypatch.setattr(jobs.ENGINE, "history", nothing_yet)
+    monkeypatch.setattr(jobs.asyncio, "sleep", no_wait)
+    monkeypatch.setattr(jobs.ENGINE, "last_contact", time.time() + 3600, raising=False)
+    song = a_take()
+    jobs.QUEUE.put_nowait({"kind": "render", "id": song["id"]})
+    assert asyncio.run(jobs._wait_for("art", "p1", "prompt-1")) == ("yield", None)
+
+    picture, other = a_take(), a_take()
+    jobs.ART_WAITING.append(other["id"])
+    async def stopped(kind, ref_id, graph):
+        raise jobs.ArtYielded()
+    monkeypatch.setattr(jobs, "_run_graph", stopped)
+    monkeypatch.setattr(artwork, "words_by_engine", lambda: True)
+    asyncio.run(jobs.run_art(picture["id"]))
+    assert list(jobs.ART_WAITING) == [picture["id"], other["id"]]
+    assert artwork.STATE[picture["id"]]["state"] == "queued"

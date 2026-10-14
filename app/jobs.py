@@ -439,6 +439,10 @@ _ART_CHECK: list = []
 ART_WAITING: "collections.deque[str]" = collections.deque()
 
 
+class ArtYielded(Exception):
+    """A picture stopped on the engine because song work came in; it goes back to wait."""
+
+
 def songs_in_flight() -> bool:
     """Whether any take is waiting for or in the middle of its plan or render."""
     return bool(one("SELECT 1 FROM takes WHERE status IN ('queued', 'running') LIMIT 1"))
@@ -506,6 +510,13 @@ async def run_art(take_id: str) -> None:
         await asyncio.to_thread(artwork.keep, take_id, description, drawn, picture, painter, writer)
         artwork.STATE.pop(take_id, None)
         log.info("Picture for '%s' (%s) is ready", take.get("title"), take_id)
+    except ArtYielded:
+        # Song work came in while it was being made: back to the front of the line, to start again once the
+        # GPU is free.  Nothing is lost but the seconds it had run.
+        log.info("Picture for '%s' (%s) stepped aside for song work; it waits again", take.get("title"), take_id)
+        artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
+        if take_id not in ART_WAITING:
+            ART_WAITING.appendleft(take_id)
     except Exception as exc:  # noqa: BLE001
         log.warning("Picture for %s failed: %s", take_id, exc)
         artwork.STATE[take_id] = {"state": "failed", "error": str(exc)}
@@ -613,6 +624,8 @@ async def _wait_for(kind: str, ref_id: str, prompt_id: str) -> tuple[str, dict |
         await asyncio.sleep(1.5)
         if ref_id in CANCELLED:
             return "cancelled", None
+        if kind == "art" and not QUEUE.empty():
+            return "yield", None        # song work has come in: a picture steps aside for it
         job = None
         try:
             job = await ENGINE.history(prompt_id)
@@ -1503,8 +1516,10 @@ async def _run_graph(kind: str, ref_id: str, graph: dict) -> dict:
     try:
         outcome, job = await _wait_for(kind, ref_id, prompt_id)
         if outcome != "done":
-            if outcome in ("cancelled", "timeout"):
+            if outcome in ("cancelled", "timeout", "yield"):
                 await ENGINE.cancel(prompt_id)
+            if outcome == "yield":
+                raise ArtYielded()
             if outcome == "dead":
                 raise RuntimeError((_lost(kind, since, prompt_id) or "the engine stopped running jobs.") + RESTART)
             raise RuntimeError({"cancelled": "cancelled", "timeout": "timed out"}.get(outcome)
