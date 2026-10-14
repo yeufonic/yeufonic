@@ -115,16 +115,61 @@ def to_default(take_id: str) -> None:
 
 
 # ------------------------------------------------------------------ who does what
-def words_by_engine() -> bool:
-    """Whether the description is written by Gemma on the engine (else by the external LLM).  Left to choose
-    ("auto"; "same" is the earlier name for it), it is written where the picture is drawn: a picture drawn on
-    this PC sends nothing out, and one drawn by the provider is described there too."""
+def gemma_ready() -> bool:
+    """Gemma is on the engine (the Lyric drafts install option), with the node that runs it."""
+    return bool((engine_options() or {}).get("lyrics"))
+
+
+def describer() -> str:
+    """Who writes the picture's description: "take" (made from the take itself, no LLM: quick, and all that a
+    picture drawn on this PC needs), "gemma" (Gemma on the engine) or "external" (the external LLM).  Left to
+    choose ("auto"; "same" is the earlier name for it): from the take when this PC draws, the external LLM when
+    it draws.  Gemma or the external LLM chosen but not there falls back to the take."""
     chosen = (get_setting("art.words", "auto") or "auto").strip().lower()
     if chosen == "local":
-        return True
+        return "gemma" if gemma_ready() else "take"
     if chosen == "external":
-        return False
-    return drawer() != "external"
+        return "external" if llm.is_external_enabled() else "take"
+    if chosen == "take":
+        return "take"
+    return "external" if drawer() == "external" else "take"
+
+
+def words_by_engine() -> bool:
+    """Whether the description needs the engine (Gemma)."""
+    return describer() == "gemma"
+
+
+# What a style says about the sound rather than the look: left out of a description made from the take, or the
+# picture fills with musicians and instruments.  Whole words only ("synthwave" is a look, "synth" is not).
+NOT_A_LOOK = re.compile(r"\b(vocals?|voices?|sing(er|ers|ing)?|bpm|guitars?|bass|drums?|piano|synths?|keys|organ|strings|"
+                        r"horns?|sax|trumpets?|violins?|cellos?|choir|beats?|tempo|arpeggios?|pads?|lead|"
+                        r"english|french|spanish|german|italian)\b|\bkey of\b", re.I)
+PLAIN_WORDS = set("""a an and are as at be but by for from had has have he her his i if in into is it its just like me my no
+not of on or our out she so than that the their them then there these they this those to too up us was we were what when where
+which while who will with you your yours ours mine every each some any all very still only ever never once more most much many
+down over under again here now one two little nearly""".split())
+
+
+def take_description(take: dict) -> str:
+    """A description made from the take itself, with no LLM: the look from the style's genre and mood words, the
+    scene from the picture words of its opening lines (never quoted, or they are lettered across it), and the title
+    as the only writing."""
+    title = song_title(take.get("title") or "")
+    tags = [t.strip() for t in (take.get("style") or "").split(",") if t.strip() and not NOT_A_LOOK.search(t)]
+    seen, things = set(), []
+    for line in opening_words(take.get("lyrics") or "", 8):
+        for word in re.findall(r"[a-z']+", line.lower()):
+            word = word.strip("'")
+            if len(word) >= 4 and word not in PLAIN_WORDS and word not in seen:
+                seen.add(word)
+                things.append(word)
+    look = ", ".join(tags[:6]) or "the song"
+    return ("A wide banner illustration: one rich scene, dense with colour and detail, filling the picture almost "
+            f"to its edges, with the mood, colours and era of {look}. "
+            + (f"The scene is built from these things: {', '.join(things[:10])}. " if things else "")
+            + "Painterly and atmospheric, a place and its light rather than a portrait; no musicians, no instruments. "
+              f"No writing anywhere except the title {title}, small, in thin soft light strokes woven into the scene.")
 
 
 def image_model() -> str:

@@ -1142,7 +1142,7 @@ wider ones with more of the prompt. A title always stays on one line, ending in 
 Each new take gets a picture of the song, shown faintly behind the take's card, across the top of the take panel when you choose it, and behind the editor when the take is open
 there. Drawn on this PC it waits until no song is being made, so it never holds up a plan or a render, and
 appears a little after the song is finished; drawn by an external LLM it is made while the take renders.
-It is made in two steps: an LLM reads the take's title, style and opening words and **describes**
+It is made in two steps: the take's title, style and opening words are turned into a **description** of
 a picture, then an image model **draws** it on white, and the white is taken out, leaving the picture
 with a transparent background. A take made inside another (Try more, Variations, Checkpoints) shows the
 picture of the take it is inside rather than having one of its own.
@@ -1158,7 +1158,7 @@ Pictures need something that can draw. There are two, and you can have either, b
 |---|---|---|
 | What it is | a small image model that runs on the engine, beside YuE2 | the provider's own image model, such as Gemini's |
 | What it costs | nothing; about 8 GB of disk | each picture is one request to the provider, which may be charged |
-| What leaves the PC | nothing (Gemma on this PC writes the description too) | the take's title, style and opening words, and the description |
+| What leaves the PC | nothing: the description is made from the take itself, with no LLM | the take's title, style and opening words, and the description |
 | When it runs | on the GPU once no song is being made: after your song, never in its way | beside the renders, while they run |
 | What you set up | an install option | the external LLM in Settings, with a provider that lists an image model |
 
@@ -1189,13 +1189,14 @@ Set up either and they come on: pictures are then made for the takes you make fr
 |---|---|
 | **Take pictures** | *Make one for each new take* (the default where something can draw), or *No pictures: the default background*, where none is made unless you ask for one in the editor. It is *No pictures* while nothing here can draw. |
 | **Take pictures: drawn by** | *This PC if FLUX.2 klein is installed, else the external LLM* (the default), *This PC (FLUX.2 klein)* or *The external LLM's image model*. |
-| **Take pictures: described by** | *Where it is drawn* (the default): Gemma on this PC when FLUX.2 klein draws, the external LLM when it draws. Or always *Local Gemma*, or always the *External LLM*. |
+| **Take pictures: described by** | *Where it is drawn* (the default): made from the take itself when FLUX.2 klein draws, written by the external LLM when it draws. Or always *From the take itself*, which is the quickest; *Local Gemma*, whose descriptions are more inventive but take far longer and need the Lyric drafts option; or the *External LLM*. |
 | **Take pictures: image model** | which of the provider's models draws, when the external LLM does. Empty for the provider's usual one. |
 
 So with FLUX.2 klein installed and the settings as they come, pictures are made entirely on this PC, even
-when the external LLM writes your lyrics. Choose *The external LLM's image model* to have the provider draw
-them instead, or set **described by** to *External LLM* to keep FLUX.2 klein drawing from the provider's
-descriptions.
+when the external LLM writes your lyrics, and they need no LLM at all: a description made from the take takes no
+time, so a picture is ready a few seconds after its song. Choose *The external LLM's image model* to have the
+provider draw them instead, or set **described by** to *Local Gemma* or *External LLM* for their descriptions
+over the take's own, at the cost of time (and, for the provider, a request each).
 
 #### A take's picture in the editor
 

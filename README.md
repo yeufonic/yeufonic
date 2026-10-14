@@ -131,9 +131,9 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   panel under it, where each is a take like any other and can be taken out to stand on its own.
 - **A picture for each take.** Each new take gets a picture of the song, shown behind the take's card,
   atop the take panel and behind the editor (drawn on this PC, it waits until the song is made, so it never
-  holds it up): an LLM describes it from the title, style and opening
-  words, then FLUX.2 klein draws it on this PC (an install option) or the external LLM's image model
-  does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
+  holds it up): a description is made from the title, style and opening words (written by the external
+  LLM when it draws), then FLUX.2 klein draws it on this PC in a few seconds (an install option, and all a
+  picture drawn here needs) or the external LLM's image model does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
   to the plain background. Without either way to draw, there are no pictures.
 - **A library.** Every take keeps its score, style, lyrics, seed and settings, so it can be
   reproduced, reworked, starred or deleted. Search by title, style, lyrics or LoRA, in one space or

@@ -101,7 +101,8 @@ def test_the_png_written_reads_back_the_same():
 
 
 # ------------------------------------------------------------------ the job and the routes
-def test_described_by_gemma_it_waits_in_the_gpu_lane(client):
+def test_described_by_gemma_it_waits_in_the_gpu_lane(client, monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"lyrics": True})
     take = a_take()
     external()
     set_setting("art.words", "local")
@@ -122,7 +123,7 @@ def test_it_cannot_start_without_something_to_draw_it(client):
 
 def test_the_job_keeps_the_picture_and_its_description(client, monkeypatch):
     take = a_take()
-    monkeypatch.setattr(artwork, "words_by_engine", lambda: False)
+    monkeypatch.setattr(artwork, "describer", lambda: "external")
     monkeypatch.setattr(artwork, "drawer", lambda: "external")
 
     async def describe(record):
@@ -147,7 +148,7 @@ def test_the_job_keeps_the_picture_and_its_description(client, monkeypatch):
 
 def test_a_failed_picture_says_why_and_leaves_the_take_alone(client, monkeypatch):
     take = a_take()
-    monkeypatch.setattr(artwork, "words_by_engine", lambda: False)
+    monkeypatch.setattr(artwork, "describer", lambda: "external")
 
     async def describe(record):
         raise RuntimeError("the LLM is away")
@@ -239,7 +240,7 @@ def test_back_to_the_default_background_stays_there(client, monkeypatch):
     external()
     jobs.art_for_new_take(take["id"])                                # never made again by itself
     assert calls == []
-    monkeypatch.setattr(artwork, "words_by_engine", lambda: False)
+    monkeypatch.setattr(artwork, "describer", lambda: "external")
     monkeypatch.setattr(artwork, "drawer", lambda: "external")
 
     async def describe(record):
@@ -289,7 +290,7 @@ def test_drawn_here_the_picture_waits_its_turn_in_the_gpu_lane(client, monkeypat
 
 def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
     monkeypatch.setattr(artwork, "engine_options", lambda: {"pictures": True})
-    monkeypatch.setattr(artwork, "words_by_engine", lambda: False)
+    monkeypatch.setattr(artwork, "describer", lambda: "external")
     take, drawn_with = a_take(), []
 
     async def describe(record):
@@ -373,22 +374,42 @@ def test_every_engine_job_kind_has_a_time_limit():
     assert kinds <= set(config.TIMEOUTS)
 
 
-def test_left_to_choose_the_description_is_written_where_the_picture_is_drawn(monkeypatch):
-    """A picture drawn on this PC sends nothing to the provider, whatever writes the lyrics."""
+def test_left_to_choose_a_picture_drawn_here_is_described_from_the_take(monkeypatch):
+    """A picture drawn on this PC needs no LLM: it is described from the take itself, quickly, and nothing is sent
+    out.  One drawn by the provider is described there.  Gemma or the provider chosen but not there: the take."""
     external()
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"lyrics": True})
     for chosen in (None, "auto", "same"):              # "same": the earlier name for it, read the same way
         if chosen:
             set_setting("art.words", chosen)
         monkeypatch.setattr(artwork, "drawer", lambda: "local")
-        assert artwork.words_by_engine()
+        assert artwork.describer() == "take" and not artwork.words_by_engine()
         monkeypatch.setattr(artwork, "drawer", lambda: "external")
-        assert not artwork.words_by_engine()
-    set_setting("art.words", "external")               # chosen: kept, even when this PC draws
+        assert artwork.describer() == "external"
     monkeypatch.setattr(artwork, "drawer", lambda: "local")
-    assert not artwork.words_by_engine()
+    set_setting("art.words", "external")               # chosen: kept, even when this PC draws
+    assert artwork.describer() == "external"
     set_setting("art.words", "local")
-    monkeypatch.setattr(artwork, "drawer", lambda: "external")
-    assert artwork.words_by_engine()
+    assert artwork.describer() == "gemma" and artwork.words_by_engine()
+    monkeypatch.setattr(artwork, "engine_options", lambda: {})       # Gemma not installed (no Lyric drafts)
+    assert artwork.describer() == "take"
+    set_setting("art.words", "take")
+    assert artwork.describer() == "take"
+
+
+def test_a_description_from_the_take_paints_its_look_and_letters_only_its_title():
+    take = {"title": "Harbour Lights \u00b7 sung again",
+            "style": "synthwave, female vocal, analog synth lead, gated drums, 112 BPM, neon, wistful",
+            "lyrics": "[Verse]\nThe harbour lights are counting down\nA ferry hums across the bay\n\n[Chorus]\nStay"}
+    text = artwork.take_description(take)
+    assert "synthwave" in text and "neon" in text and "wistful" in text           # the look, whole words kept
+    assert not any(w in text for w in ("vocal", "lead", "drums", "BPM"))          # the sound, left out
+    assert "harbour" in text and "ferry" in text and "bay" not in text            # picture words, not short ones
+    assert "counting down" not in text and '"' not in text                         # never a line, never quoted
+    assert "title Harbour Lights," in text and "sung again" not in text
+    assert "No writing anywhere except the title" in text
+    bare = artwork.take_description({"title": "Untitled", "style": "", "lyrics": ""})
+    assert "era of the song" in bare and "built from" not in bare
 
 
 def test_with_nothing_to_draw_take_pictures_says_no_pictures(client, monkeypatch):
@@ -462,7 +483,7 @@ def test_a_running_picture_steps_aside_when_song_work_comes_in(client, monkeypat
     async def stopped(kind, ref_id, graph):
         raise jobs.ArtYielded()
     monkeypatch.setattr(jobs, "_run_graph", stopped)
-    monkeypatch.setattr(artwork, "words_by_engine", lambda: True)
+    monkeypatch.setattr(artwork, "describer", lambda: "gemma")
     asyncio.run(jobs.run_art(picture["id"]))
     assert list(jobs.ART_WAITING) == [picture["id"], other["id"]]
     assert artwork.STATE[picture["id"]]["state"] == "queued"

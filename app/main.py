@@ -307,14 +307,16 @@ SETTINGS_SPEC: list[dict] = [
         "type": "select",
         "default": "auto",
         "options": [
-            {"value": "auto", "label": "Where it is drawn: Gemma on this PC with FLUX.2 klein"},
-            {"value": "local", "label": "Local Gemma (engine ComfyUI node)"},
+            {"value": "auto", "label": "Where it is drawn: from the take itself with FLUX.2 klein, else the external LLM"},
+            {"value": "take", "label": "From the take itself (no LLM, quickest)"},
+            {"value": "local", "label": "Local Gemma (slower; needs Lyric drafts)"},
             {"value": "external", "label": "External LLM"},
         ],
-        "help": "A take's picture is made in two steps: an LLM reads the take's title, style and opening words "
-                "and describes a picture, then it is drawn, and the app takes out its white background. This "
-                "chooses who writes the description. Left to choose, a picture drawn on this PC is described by "
-                "Gemma on this PC too, so nothing is sent out; one drawn by the external LLM is described there.",
+        "help": "A take's picture is made in two steps: it is described from the take's title, style and opening "
+                "words, then drawn, and the app takes out its white background. This chooses who writes the "
+                "description. Left to choose, a picture drawn on this PC is described from the take itself, with no "
+                "LLM: quick, and nothing is sent out. Gemma writes more inventive descriptions but takes far longer; "
+                "chosen and not installed, the take's own description is used.",
         "requires": {"pictures": "possible", "art.auto": "on"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },

@@ -477,15 +477,19 @@ def art_for_new_take(take_id: str) -> None:
 
 
 async def run_art(take_id: str) -> None:
-    """A take's picture: the description (by Gemma on the engine, through this lane, or by the external
-    LLM), the drawing (the external image model), then the white background taken out."""
+    """A take's picture: the description (made from the take, written by Gemma on the engine, or by the external
+    LLM), the drawing (FLUX.2 klein on the engine or the external image model), then the white background taken out."""
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         artwork.STATE.pop(take_id, None)
         return
     try:
         artwork.STATE[take_id] = {"state": "writing", "error": None, "started": time.time()}
-        if artwork.words_by_engine():
+        writes = artwork.describer()
+        if writes == "take":
+            description = artwork.take_description(take)
+            writer = "its own title, style and words"
+        elif writes == "gemma":
             job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31))
             description = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
             writer = "Gemma on this PC"
