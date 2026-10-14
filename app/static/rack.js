@@ -2099,6 +2099,24 @@
     },
     peqBand: 0,          // the band the strip's controls are for
 
+    /* What a band does, in words, for its tooltip: a shelf or a cut acts on everything on one side of its
+       frequency, which is easy to miss when it sits far from the end it is named for. */
+    peqBandTip: function (band, i) {
+      var hz = band.freq >= 1000 ? (Math.round(band.freq / 100) / 10) + ' kHz' : Math.round(band.freq) + ' Hz';
+      var gain = Math.round(band.gain * 10) / 10, kind = this.PEQ_KINDS[band.type] ? this.PEQ_KINDS[band.type][0] : band.type;
+      var head = 'Band ' + (i + 1) + ': ' + kind + ' at ' + hz + (peqHasGain(band.type) ? ', ' + (gain > 0 ? '+' : '') + gain + ' dB' : '');
+      var how = gain > 0 ? 'raises' : 'lowers';
+      var does = {
+        lowcut: 'takes away everything below ' + hz,
+        highcut: 'takes away everything above ' + hz,
+        notch: 'takes out a narrow slice at ' + hz,
+        lowshelf: gain ? how + ' everything below ' + hz : 'no change yet',
+        highshelf: gain ? how + ' everything above ' + hz : 'no change yet',
+        bell: gain ? how + ' the sound around ' + hz : 'no change yet'
+      }[band.type] || '';
+      return head + (does ? ': ' + does : '') + (band.on === false ? ' (off)' : '');
+    },
+
     /* The settings' equaliser, made whole: older settings have none, and a preset replaces it. */
     peq: function () {
       var held = this.settings.peq;
@@ -2254,7 +2272,10 @@
       canvas.addEventListener('pointermove', function (e) {
         var point = at(e);
         if (!drag) {
-          canvas.style.cursor = bandAt(point) >= 0 ? 'grab' : 'default';
+          var over = bandAt(point);
+          canvas.style.cursor = over >= 0 ? 'grab' : 'default';
+          if (!canvas.dataset.tip) { canvas.dataset.tip = canvas.title; }
+          canvas.title = over >= 0 ? self.peqBandTip(self.peq().bands[over], over) : canvas.dataset.tip;
           return;
         }
         var plot = self.peqPlot(canvas), band = self.peq().bands[drag.band];
@@ -2353,6 +2374,7 @@
         var i = Number(dot.dataset.band);
         dot.classList.toggle('chosen', i === self.peqBand);
         dot.classList.toggle('off', peq.bands[i].on === false);
+        dot.title = self.peqBandTip(peq.bands[i], i);
       });
       Array.prototype.forEach.call(strip.querySelectorAll('.peq-type'), function (button) {
         button.classList.toggle('chosen', button.dataset.kind === band.type);
