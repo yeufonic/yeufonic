@@ -2827,7 +2827,7 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
   font-weight: 650; cursor: pointer; color: #fff; }
 .sheet-new-btn:hover { filter: brightness(1.08); }
 /* The kind of the take on show stands out; the others dim until pointed at. */
-.sheet-new.has-current .sheet-new-btn:not(.current) { opacity: 0.8; filter: saturate(0.6); }   /* faded in colour, not see-through */
+.sheet-new.has-current .sheet-new-btn:not(.current) { opacity: 0.7; filter: saturate(0.6); }   /* faded in colour, not see-through */
 /* Over the take's picture the buttons stand off it: a thin shadow, so the two stepped back are still found. */
 .sheet-panel.with-art .sheet-new-btn { box-shadow: 0 1px 4px rgb(var(--shade) / 0.35); }
 .sheet-new.has-current .sheet-new-btn:not(.current):hover { opacity: 1; filter: none; }
