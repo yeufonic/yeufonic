@@ -1008,7 +1008,8 @@ def _asset_version() -> str:
     """Asset version query string for static cache busting. Includes mtime of core assets
     so browsers automatically fetch updated scripts without needing manual hard-reloads."""
     try:
-        stamp = max(int(p.stat().st_mtime) for p in (STATIC_DIR / "app.js", STATIC_DIR / "pianoroll.js", STATIC_DIR / "rack.js") if p.exists())
+        stamp = max(int(p.stat().st_mtime) for p in (STATIC_DIR / "app.js", STATIC_DIR / "pianoroll.js", STATIC_DIR / "rack.js",
+                                                     STATIC_DIR / "styles.css") if p.exists())
         return f"{config.VERSION}.{stamp}"
     except (OSError, ValueError):
         return config.VERSION

@@ -11562,7 +11562,11 @@ var runTakeAction = null;
 function takeKey(event) {
   if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || !runTakeAction) { return false; }
   var key = (event.key || '').toLowerCase();
-  if (key.length !== 1 || 'meivntsd'.indexOf(key) < 0) { return false; }
+  if (key.length !== 1 || 'meivntsdl'.indexOf(key) < 0) { return false; }
+  if (key === 'l') {            // the logs: no take needed; again to close them
+    if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
+    return true;
+  }
   var take = takeById(selectedTakeId());
   if (!take) { statusLine('Choose a take first: click its card.', 'bad'); return true; }
   var scored = take.abc && take.abc.length > 50 && take.status !== 'queued' && take.status !== 'running';
@@ -11642,6 +11646,17 @@ function paintEdPicture() {
   var show = Boolean(editorOpen() && take && take.id && (State.pictures || take.art));
   btn.classList.toggle('hidden', !show);
   btn.classList.toggle('has-art', Boolean(show && take.art));
+  // An icon among the take's others since it lost its word: its tip says what it holds, as theirs do.
+  btn.title = show && take.art
+    ? 'Picture \u2014 The take\u2019s picture, behind its card and this window: make a new one, or use the default background'
+    : 'Picture \u2014 None yet: make one for this take';
+  // A page from before the icon has the old button, with its word: it takes the icon's look.
+  if (!btn.classList.contains('ed-tool')) {
+    btn.classList.remove('ed-advanced-btn');
+    btn.classList.add('ed-tool');
+    var word = btn.querySelector('span');
+    if (word) { word.remove(); }
+  }
   if (!show) { closePictureMenu(); }
   // and the picture behind the editor window itself
   var box = $('editor');

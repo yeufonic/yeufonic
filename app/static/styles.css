@@ -1789,12 +1789,49 @@ label .lora-value:disabled { opacity: 0.6; }
   display: flex; flex-direction: column; gap: 10px; cursor: pointer;
   min-height: 190px;
 }
-.take.playing { border-color: rgb(var(--accent-a-rgb) / 0.55); }
+.take { transition: transform 0.25s ease; }
+.take.playing { --take-edge: rgb(var(--accent-a-rgb) / 0.55); --take-glow: var(--take-shadow);
+  border-color: var(--take-edge); position: relative; isolation: isolate; z-index: 1;
+  transform: scale(1.02);                          /* a little larger than the takes at rest, into the gap */
+  animation: take-edge-breathe 2.4s ease-in-out infinite alternate; }
+.take.playing.editing.tone-song { --take-edge: #38bdf8; --take-glow: 0 0 0 1px rgb(var(--song-a-rgb) / 0.6); }
+.take.playing.editing.tone-cover { --take-edge: #ff4d94; --take-glow: 0 0 0 1px rgb(var(--accent-b-rgb) / 0.6); }
+.take.playing.editing.tone-inst { --take-edge: #a3e635; --take-glow: 0 0 0 1px rgba(163, 230, 53, 0.55); }
+/* Its edge breathes with the wash below: to the Play tile's green and back, with a soft glow round it, over the
+   card's own shadow or the chosen take's ring, which it keeps. */
+@keyframes take-edge-breathe {
+  from { border-color: var(--take-edge); box-shadow: var(--take-glow), 0 0 0 0 rgb(var(--good-rgb) / 0); }
+  to   { border-color: rgb(var(--good-rgb) / 0.85); box-shadow: var(--take-glow), 0 0 14px 1px rgb(var(--good-rgb) / 0.38); }
+}
+/* The take that is playing breathes, slowly and quietly: a green wash over its ground comes and goes, and its
+   picture, where it has one, brightens and takes back some of its colour, then settles.  Under everything on the
+   card, as the picture is. */
+.take.playing::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(120% 140% at 50% 100%, rgb(var(--good-rgb) / 0.22), rgb(var(--good-rgb) / 0.08));
+  opacity: 0; animation: take-breathe 2.4s ease-in-out infinite alternate;
+}
+@keyframes take-breathe { from { opacity: 0; } to { opacity: 1; } }
+.take.playing.with-art::before { animation: take-art-breathe 2.4s ease-in-out infinite alternate; }
+@keyframes take-art-breathe {
+  from { opacity: var(--take-art-strength, 0.32); filter: saturate(var(--take-art-colour, 0.6)); }
+  to   { opacity: calc(var(--take-art-strength, 0.32) + 0.18); filter: saturate(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .take { transition: none; }
+  .take.playing { animation: none; border-color: rgb(var(--good-rgb) / 0.85); }
+  .take.playing::after { animation: none; opacity: 0.6; }
+  .take.playing.with-art::before { animation: none; }
+}
+/* High contrast keeps a steady ring, as its Play tile has, and no wash. */
+:root[data-theme="contrast"] .take.playing { animation: none; box-shadow: 0 0 0 2px #4ade80; }
+:root[data-theme="contrast"] .take.playing::after { display: none; }
 /* A take's picture, faint behind the card: under everything on it, never in the way of reading it. */
 .take.with-art { position: relative; isolation: isolate; }
 .take.with-art::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
   background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.32);
+  filter: saturate(var(--take-art-colour, 0.6));   /* its colour toned back: behind the card, not competing with it */
 }
 /* The muted grey lifted towards the text colour: the lettering over a picture.  Worked out here, on the page's root,
    where each theme sets --muted, so a box can take it as its own --muted without naming itself. */
@@ -2901,10 +2938,12 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
    sound, and green while the rack changes how the take sounds, as the button on its card is.  Whichever
    of the two comes first is the one pushed to the right. */
 /* The take's picture: its button in the editor, lit while the take has one, and the menu under it. */
+/* An icon like the take's others, beside them: pushed right only when it is the first of the row's buttons. */
+.ed-picture-btn { margin-left: auto; }
+.ed-take-tools:not(.hidden) + .ed-picture-btn { margin-left: -8px; }   /* the tools' own gap, not the header's */
 .ed-picture-btn.hidden { display: none; }
 .ed-picture-btn:not(.hidden) + .ed-master-btn, .ed-picture-btn:not(.hidden) + .ed-master-btn.hidden + .ed-advanced-btn { margin-left: 0; }
 .ed-picture-btn.has-art { color: var(--text); }
-.ed-picture-btn.has-art .adv-icon { opacity: 1; }
 .ed-picture-menu { position: fixed; z-index: 80; width: 280px; padding: 8px; border-radius: 12px; display: flex; flex-direction: column; gap: 4px;
   background: var(--card); border: 1px solid var(--line); box-shadow: 0 12px 32px rgb(0 0 0 / 0.35); }
 .ed-picture-menu .ed-picture-thumb { width: 100%; border-radius: 8px; margin-bottom: 4px;
