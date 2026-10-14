@@ -1797,18 +1797,25 @@ label .lora-value:disabled { opacity: 0.6; }
 .take.playing.editing.tone-song { --take-edge: #38bdf8; --take-glow: 0 0 0 1px rgb(var(--song-a-rgb) / 0.6); }
 .take.playing.editing.tone-cover { --take-edge: #ff4d94; --take-glow: 0 0 0 1px rgb(var(--accent-b-rgb) / 0.6); }
 .take.playing.editing.tone-inst { --take-edge: #a3e635; --take-glow: 0 0 0 1px rgba(163, 230, 53, 0.55); }
-/* The take that is playing breathes at its edge only, slowly: to the Play tile's green and back, with a soft glow
-   round it, over the card's own shadow or the chosen take's ring, which it keeps.  Its ground and picture stay still. */
+/* The take that is playing has a wider edge (a 2 px ring outside its border) that pulses: on each beat of its
+   score's tempo where it has one (.on-beat: a green flash fading before the next beat), else a slow breath.  Over
+   the card's own shadow or the chosen take's ring, which it keeps; its ground and picture stay still. */
 @keyframes take-edge-breathe {
-  from { border-color: var(--take-edge); box-shadow: var(--take-glow), 0 0 0 0 rgb(var(--good-rgb) / 0); }
-  to   { border-color: rgb(var(--good-rgb) / 0.85); box-shadow: var(--take-glow), 0 0 14px 1px rgb(var(--good-rgb) / 0.38); }
+  from { border-color: var(--take-edge); box-shadow: var(--take-glow), 0 0 0 2px var(--take-edge), 0 0 0 0 rgb(var(--good-rgb) / 0); }
+  to   { border-color: rgb(var(--good-rgb) / 0.9); box-shadow: var(--take-glow), 0 0 0 2px rgb(var(--good-rgb) / 0.9), 0 0 16px 2px rgb(var(--good-rgb) / 0.4); }
 }
+@keyframes take-edge-beat {
+  0%   { border-color: rgb(var(--good-rgb) / 0.95); box-shadow: var(--take-glow), 0 0 0 2px rgb(var(--good-rgb) / 0.95), 0 0 16px 2px rgb(var(--good-rgb) / 0.45); }
+  70%, 100% { border-color: var(--take-edge); box-shadow: var(--take-glow), 0 0 0 2px var(--take-edge), 0 0 0 0 rgb(var(--good-rgb) / 0); }
+}
+.take.playing.on-beat { animation: take-edge-beat var(--take-beat, 0.5s) ease-out infinite; }
 @media (prefers-reduced-motion: reduce) {
   .take { transition: none; }
-  .take.playing { animation: none; border-color: rgb(var(--good-rgb) / 0.85); }
+  .take.playing, .take.playing.on-beat { animation: none; border-color: rgb(var(--good-rgb) / 0.85);
+    box-shadow: var(--take-glow), 0 0 0 2px rgb(var(--good-rgb) / 0.85); }
 }
 /* High contrast keeps a steady ring, as its Play tile has. */
-:root[data-theme="contrast"] .take.playing { animation: none; box-shadow: 0 0 0 2px #4ade80; }
+:root[data-theme="contrast"] .take.playing, :root[data-theme="contrast"] .take.playing.on-beat { animation: none; box-shadow: 0 0 0 3px #4ade80; }
 /* A take's picture, faint behind the card: under everything on it, never in the way of reading it. */
 .take.with-art { position: relative; isolation: isolate; }
 .take.with-art::before {

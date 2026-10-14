@@ -45,7 +45,7 @@ cannot creep back in.
 
 ### UI enhancements
 
-- **The take that is playing breathes.** Its edge turns to the Play button's green and back, with a soft glow, and the card sits a little larger than the takes at rest, so the take you are hearing is found at a glance. Reduced motion holds it still.
+- **The take that is playing pulses on its beat.** Its edge widens and flashes the Play button's green on each beat of its score's tempo (following the speed control, and back in step after a seek), with a slow breath for a take with no tempo, and the card sits a little larger than the takes at rest, so the take you are hearing is found at a glance. Reduced motion holds it still.
 - **The editor has the take's own buttons.** Sing again, Variations, Try more, Inside, Take out, Normalise and Move sit in the window's top row, larger than on the card, lit as on the card and with tips that follow. The Picture button is an icon among them.
 - **The take panel shows the take's picture,** as a banner across its top, behind the buttons and the title, fading out before the details.
 - **Clearer, larger lettering.** The text on every take card, and the small text in the editor, is a point larger, with a little more weight and a fine edge that keeps it sharp over a picture. A take's picture behind its card is less saturated, so it no longer competes with the card.

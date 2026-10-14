@@ -11123,7 +11123,11 @@ function paintTakes() {
             icon('move') + '</button>') +
         '</div>';
     // The take's picture, made while it rendered, lies faintly behind the card.
-    var art = take.art ? ' style="--take-art: url(&quot;' + esc(take.art) + '&quot;)"' : '';
+    // The playing take's edge pulses on its beat, from its score's tempo, in step with where the song is.
+    var beat = State.playing === take.id ? takeBeat(take) : null;
+    var looks = (take.art ? '--take-art: url(&quot;' + esc(take.art) + '&quot;);' : '') + (beat ? beatStyle(beat) : '');
+    if (beat) { classes += ' on-beat'; }
+    var art = looks ? ' style="' + looks + '"' : '';
     return '<article class="' + classes + (take.art ? ' with-art' : '') + '" data-id="' + take.id + '"' + art + '>' +
       '<div class="take-head">' +
         '<div class="take-icon">' +
@@ -11151,6 +11155,38 @@ function paintTakes() {
 }
 
 /* Takes normalised before the level could be chosen have none recorded; all were -14. */
+/* A take's beat, in seconds of the song, from its score's tempo line (Q:1/4=), or from "NN BPM" in its style;
+   null when it has neither. */
+function takeBeat(take) {
+  var match = /^Q:\s*1\/4\s*=\s*(\d+)/m.exec(take.abc || '') || /(\d{2,3})\s*bpm\b/i.exec(take.style || '');
+  var bpm = match ? parseInt(match[1], 10) : 0;
+  return bpm >= 40 && bpm <= 240 ? 60 / bpm : null;
+}
+
+/* The pulse's length and where in it to start, so its flash falls on the beat at the point the song is at; in the
+   player's time, so it follows the speed control. */
+function beatStyle(beat) {
+  var audio = $('audio');
+  var rate = (audio && audio.playbackRate) || 1;
+  var into = audio ? (audio.currentTime || 0) % beat : 0;
+  return '--take-beat: ' + (beat / rate).toFixed(4) + 's; animation-delay: -' + (into / rate).toFixed(4) + 's;';
+}
+
+/* Back in step when playback starts, jumps or changes speed: the pulse is set again from where the song is. */
+function keepBeat() {
+  if (!State.playing) { return; }
+  var card = document.querySelector('.take.on-beat[data-id="' + State.playing + '"]');
+  var take = card && takeById(State.playing);
+  var beat = take && takeBeat(take);
+  if (!beat) { return; }
+  var parts = beatStyle(beat).split(';');
+  card.style.setProperty('--take-beat', parts[0].split(':')[1].trim());
+  card.style.animation = 'none';
+  void card.offsetWidth;                       // let the animation go, so it starts again from the delay below
+  card.style.animation = '';
+  card.style.animationDelay = parts[1].split(':')[1].trim();
+}
+
 function normalisedTo(take) {
   var level = take.normalised_to == null ? -14 : take.normalised_to;
   return 'Normalised to ' + (level < 0 ? '\u2212' : '') + Math.abs(level) + ' LUFS.';
@@ -12340,6 +12376,7 @@ function wireWave() {
   var audio = $('audio');
   audio.addEventListener('play', startWaveLoop);
   audio.addEventListener('playing', startWaveLoop);
+  ['playing', 'seeked', 'ratechange'].forEach(function (name) { audio.addEventListener(name, keepBeat); });
   audio.addEventListener('pause', stopWaveLoop);
   audio.addEventListener('ended', function () {
     stopWaveLoop(); wave.ratio = 1; drawWave();
