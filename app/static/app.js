@@ -14426,10 +14426,10 @@ function paintEditor() {
 }
 
 /* The window's player belongs to every step: in the columns layout it sits in the words column, in the steps layout
-   (where only one step's part shows) at the foot of the window's body, on every step.  Its place in the words column
-   is kept by a marker, so it goes back there when the layout changes. */
+   (where only one step's part shows) in the window's bottom bar, between the status line and the main button, on
+   every step.  Its place in the words column is kept by a marker, so it goes back there when the layout changes. */
 function placeEdTransport(steps) {
-  var player = $('ed-transport'), body = $('ed-body');
+  var player = $('ed-transport'), body = document.querySelector('#editor .ed-foot');
   if (!player || !body) { return; }
   var home = $('ed-transport-home');
   if (!home) {
