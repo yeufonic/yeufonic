@@ -11162,8 +11162,6 @@ function paintTakes() {
           '<button class="take-move' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + (mastered ? ' mastered' : '') +
             '" data-act="mastering"' + id + ' title="Mastering Rack \u2014 Vintage EQ, Compressor, Limiter' + (mastered ? '. This take is mastered' : '') + '" aria-label="Mastering Rack">' +
             icon('mastering') + '</button>' +
-          '<button class="take-move" data-act="details"' + id + ' title="Details \u2014 What this take was made with, and its picture" aria-label="Details">' +
-            icon('info') + '</button>' +
           // A take inside another goes where that one goes.
           (take.parent_id ? '' :
           '<button class="take-move" data-act="move"' + id + ' title="Move \u2014 Move to another space' + (heldBy(take) ? ', with the takes inside it' : '') + '" aria-label="Move">' +
