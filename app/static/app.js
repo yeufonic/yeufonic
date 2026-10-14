@@ -12673,6 +12673,14 @@ function wireLogs() {
   if (guideLink) { guideLink.addEventListener('click', closeBrandMenu); }
   var closeBtn = $('logs-close');
   if (closeBtn) { closeBtn.addEventListener('click', closeLogsModal); }
+  // The log panel floats above every window, so Escape closes it first and nothing under it: caught on the
+  // way down, before the rack's and the page's own Escape listeners hear it.
+  window.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape' || !LogsState.open) { return; }
+    event.preventDefault();
+    event.stopPropagation();
+    closeLogsModal();
+  }, true);
   var clearBtn = $('logs-clear');
   if (clearBtn) {
     clearBtn.addEventListener('click', function () {

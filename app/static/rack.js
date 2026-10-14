@@ -1068,6 +1068,8 @@
 
   // ------------------------------------------------------------- UI Controller
   var USER_PRESETS_KEY = 'yeufonic.mastering_user_presets';
+  var TRASH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
+    'stroke-linejoin="round" aria-hidden="true"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l1 12.2h9l1-12.2"/></svg>';
 
   var Rack = {
     currentTakeId: null,
@@ -1111,7 +1113,6 @@
 
     rebuildPresetDropdown: function (selectedKey) {
       var group = document.getElementById('rack-user-presets-group');
-      var delBtn = document.getElementById('rack-del-preset-btn');
       var select = document.getElementById('rack-preset-select');
       if (!group || !select) { return; }
 
@@ -1137,11 +1138,81 @@
       if (selectedKey) {
         select.value = selectedKey;
       }
+      this.paintPresetButton();
+    },
 
-      if (delBtn) {
-        var curVal = select.value;
-        delBtn.classList.toggle('hidden', !userPresets[curVal]);
-      }
+    /* The preset box is a button and a menu drawn over the select, which stays (hidden) as what holds the
+       choice: a select cannot put a bin beside each of the user's presets. */
+    paintPresetButton: function () {
+      var select = document.getElementById('rack-preset-select');
+      var label = document.getElementById('rack-preset-label');
+      if (!select || !label) { return; }
+      var opt = select.options[select.selectedIndex];
+      label.textContent = opt ? opt.textContent : 'Custom';
+    },
+
+    presetMenuOpen: function () {
+      var menu = document.getElementById('rack-preset-menu');
+      return !!menu && !menu.classList.contains('hidden');
+    },
+
+    paintPresetMenu: function () {
+      var menu = document.getElementById('rack-preset-menu');
+      var select = document.getElementById('rack-preset-select');
+      if (!menu || !select) { return; }
+      var html = [];
+      var esc = function (t) {
+        return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      };
+      Array.prototype.forEach.call(select.querySelectorAll('optgroup'), function (group) {
+        var mine = group.id === 'rack-user-presets-group';
+        html.push('<div class="rack-preset-group">' + esc(group.label) + '</div>');
+        Array.prototype.forEach.call(group.querySelectorAll('option'), function (opt) {
+          if (opt.disabled) {
+            html.push('<div class="rack-preset-empty">' + esc(opt.textContent) + '</div>');
+            return;
+          }
+          html.push('<div class="rack-preset-item' + (mine ? ' mine' : '') + (opt.value === select.value ? ' current' : '') +
+            '" role="option" data-preset="' + esc(opt.value) + '" aria-selected="' + (opt.value === select.value) + '">' +
+            '<span class="rack-preset-name">' + esc(opt.textContent) + '</span>' +
+            (mine ? '<button type="button" class="rack-preset-del" data-preset-del="' + esc(opt.value) + '" title="Delete this preset"' +
+              ' aria-label="Delete the preset ' + esc(opt.textContent) + '">' + TRASH_ICON + '</button>' : '') +
+            '</div>');
+        });
+      });
+      menu.innerHTML = html.join('');
+    },
+
+    openPresetMenu: function (open) {
+      var menu = document.getElementById('rack-preset-menu');
+      var btn = document.getElementById('rack-preset-btn');
+      if (!menu) { return; }
+      if (open) { this.paintPresetMenu(); }
+      menu.classList.toggle('hidden', !open);
+      if (btn) { btn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+    },
+
+    /* A user preset goes, after asking.  The sound does not change: a rack holding the preset deleted keeps its
+       settings, and the box then says Custom. */
+    deleteUserPreset: async function (key) {
+      var userPresets = this.getUserPresets();
+      if (!userPresets[key]) { return; }
+      var name = userPresets[key].name || 'preset';
+      var confirmed = typeof window.confirmModal === 'function'
+        ? await window.confirmModal({
+          title: 'Delete Preset',
+          message: 'Delete custom preset \u201c' + name + '\u201d?\n\nThis cannot be undone.',
+          confirmText: 'Delete',
+          danger: true
+        })
+        : window.confirm('Delete custom preset "' + name + '"?');
+      if (!confirmed) { return; }
+      userPresets = this.getUserPresets();   // as they are now: the question may have waited
+      delete userPresets[key];
+      this.saveUserPresets(userPresets);
+      this.rebuildPresetDropdown();
+      this.syncPresetSelect();
+      this.showToast('Deleted preset "' + name + '"');
     },
 
     showToast: function (msg) {
@@ -1166,9 +1237,11 @@
         '        <span class="rack-take-label" id="rack-take-name">No take selected</span>',
         '      </div>',
         '      <div class="rack-header-tools">',
-        '        <label class="rack-preset-wrap" title="Load mastering preset">',
+        '        <div class="rack-preset-wrap">',
         '          <span>PRESET:</span>',
-        '          <select id="rack-preset-select" class="rack-select">',
+        '          <button type="button" id="rack-preset-btn" class="rack-select rack-preset-btn" title="Load mastering preset" aria-haspopup="listbox" aria-expanded="false"><span id="rack-preset-label">Flat / Transparent</span><span class="rack-preset-caret" aria-hidden="true">\u25BE</span></button>',
+        '          <div id="rack-preset-menu" class="rack-preset-menu hidden" role="listbox"></div>',
+        '          <select id="rack-preset-select" class="rack-select hidden" tabindex="-1" aria-hidden="true">',
         '            <option value="custom" hidden disabled>Custom</option>',
         '            <optgroup label="Factory Presets">',
         '              <option value="default">Flat / Transparent</option>',
@@ -1182,9 +1255,8 @@
         '            <optgroup id="rack-user-presets-group" label="User Presets">',
         '            </optgroup>',
         '          </select>',
-        '        </label>',
+        '        </div>',
         '        <button type="button" class="rack-head-btn" id="rack-save-preset-btn" title="Save current settings as a user preset">+ Save Preset</button>',
-        '        <button type="button" class="rack-head-btn delete-btn hidden" id="rack-del-preset-btn" title="Delete selected user preset">&times; Delete</button>',
         '        <button type="button" class="rack-head-btn" id="rack-reset-btn" title="Reset all rack settings to flat">Reset</button>',
         '        <button type="button" class="rack-head-btn bypass-btn" id="rack-master-bypass" title="Toggle Master Bypass (A/B audition)">',
         '          <span class="led-dot" id="rack-master-led"></span> BYPASS',
@@ -1566,18 +1638,38 @@
 
       // Preset Select
       var presetSelect = document.getElementById('rack-preset-select');
-      var delBtn = document.getElementById('rack-del-preset-btn');
+      var presetBtn = document.getElementById('rack-preset-btn');
+      var presetMenu = document.getElementById('rack-preset-menu');
+      if (presetBtn && presetMenu) {
+        presetBtn.addEventListener('click', function () { self.openPresetMenu(!self.presetMenuOpen()); });
+        presetMenu.addEventListener('click', function (e) {
+          var bin = e.target.closest('[data-preset-del]');
+          if (bin) {
+            e.stopPropagation();
+            self.openPresetMenu(false);
+            self.deleteUserPreset(bin.getAttribute('data-preset-del'));
+            return;
+          }
+          var item = e.target.closest('[data-preset]');
+          if (!item || !presetSelect) { return; }
+          self.openPresetMenu(false);
+          presetSelect.value = item.getAttribute('data-preset');
+          presetSelect.dispatchEvent(new Event('change'));
+        });
+        document.addEventListener('mousedown', function (e) {
+          if (self.presetMenuOpen() && !e.target.closest('#rack-preset-menu, #rack-preset-btn')) { self.openPresetMenu(false); }
+        });
+      }
       if (presetSelect) {
         presetSelect.addEventListener('change', function () {
           var key = this.value;
           var userPresets = self.getUserPresets();
           if (PRESETS[key]) {
             self.settings = JSON.parse(JSON.stringify(PRESETS[key]));
-            if (delBtn) { delBtn.classList.add('hidden'); }
           } else if (userPresets[key]) {
             self.settings = self.mergeSettings(PRESETS['default'], upgradeSettings(userPresets[key]));
-            if (delBtn) { delBtn.classList.remove('hidden'); }
           }
+          self.paintPresetButton();
           self.syncKnobsToState();
           Engine.applySettings(self.settings);
           self.debouncedSave();
@@ -1634,44 +1726,13 @@
         });
       }
 
-      // Delete Custom Preset (using app's native confirmModal)
-      if (delBtn) {
-        delBtn.addEventListener('click', async function () {
-          if (!presetSelect) { return; }
-          var key = presetSelect.value;
-          var userPresets = self.getUserPresets();
-          if (!userPresets[key]) { return; }
-          var name = userPresets[key].name || 'preset';
-          var confirmed = false;
-          if (typeof window.confirmModal === 'function') {
-            confirmed = await window.confirmModal({
-              title: 'Delete Preset',
-              message: 'Delete custom preset \u201c' + name + '\u201d?\n\nThis cannot be undone.',
-              confirmText: 'Delete',
-              danger: true
-            });
-          } else {
-            confirmed = window.confirm('Delete custom preset "' + name + '"?');
-          }
-          if (!confirmed) { return; }
-          delete userPresets[key];
-          self.saveUserPresets(userPresets);
-          self.rebuildPresetDropdown('default');
-          self.settings = JSON.parse(JSON.stringify(PRESETS['default']));
-          self.syncKnobsToState();
-          Engine.applySettings(self.settings);
-          self.debouncedSave();
-          self.showToast('Deleted preset "' + name + '"');
-        });
-      }
-
       // Reset
       var resetBtn = document.getElementById('rack-reset-btn');
       if (resetBtn) {
         resetBtn.addEventListener('click', function () {
           self.settings = JSON.parse(JSON.stringify(PRESETS['default']));
           if (presetSelect) { presetSelect.value = 'default'; }
-          if (delBtn) { delBtn.classList.add('hidden'); }
+          self.paintPresetButton();
           self.syncKnobsToState();
           Engine.applySettings(self.settings);
           self.debouncedSave();
@@ -1822,6 +1883,11 @@
 
       // Keyboard Esc to close
       document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && self.isOpen && self.presetMenuOpen()) {
+          e.rackClosed = true;   // the menu was what Escape closed: the page leaves its windows open
+          self.openPresetMenu(false);
+          return;
+        }
         if (e.key === 'Escape' && self.isOpen) {
           // Standing over the editor window, the rack is what Escape closes: the page reads this mark
           // and leaves the window open.
@@ -2549,8 +2615,7 @@
       }
       var key = this.presetOf(this.settings) || 'custom';
       if (select.value !== key) { select.value = key; }
-      var delBtn = document.getElementById('rack-del-preset-btn');
-      if (delBtn) { delBtn.classList.toggle('hidden', !this.getUserPresets()[key]); }
+      this.paintPresetButton();
     },
 
     updateBypassUI: function () {
@@ -2595,6 +2660,7 @@
       if (!panel) { return; }
       this.isOpen = (typeof force === 'boolean') ? force : !panel.classList.contains('is-open');
       panel.classList.toggle('is-open', this.isOpen);
+      if (!this.isOpen) { this.openPresetMenu(false); }
 
       var btn = document.getElementById('btn-fx-rack');
       if (btn) { btn.classList.toggle('active', this.isOpen); }
@@ -3121,7 +3187,7 @@
         // A docked rack stays where it is: Float is what lets it be moved.
         if (!panel.classList.contains('is-floating')) { return; }
         // Do not initiate drag on interactive buttons, select dropdowns, or labels
-        if (e.target.closest('button, select, input, label, a, .rack-head-btn, .rack-select')) { return; }
+        if (e.target.closest('button, select, input, label, a, .rack-head-btn, .rack-select, .rack-preset-menu')) { return; }
 
         var rect = panel.getBoundingClientRect();
         startX = e.clientX;

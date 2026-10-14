@@ -571,7 +571,7 @@ def test_the_preset_box_names_the_preset_the_settings_are(flat):
 def test_saving_a_preset_under_a_name_already_used_writes_it_over():
     from pathlib import Path
     rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
-    save = rack_js[rack_js.index("savePresetBtn.addEventListener('click'"):rack_js.index("// Delete Custom Preset")]
+    save = rack_js[rack_js.index("savePresetBtn.addEventListener('click'"):rack_js.index("      // Reset\n")]
     # the name is looked for among the user's presets, whatever its case, and the user is asked first
     assert "self.userPresetsNamed(userPresets, name)" in save and "Replace it?" in save
     assert "if (!replace) { return; }" in save
@@ -580,6 +580,22 @@ def test_saving_a_preset_under_a_name_already_used_writes_it_over():
     assert "same.slice(1).forEach(function (other) { delete userPresets[other]; });" in save
     named = rack_js[rack_js.index("userPresetsNamed: function"):rack_js.index("saveUserPresets: function")]
     assert named.count(".trim().toLowerCase()") == 2
+
+
+def test_a_user_preset_has_a_bin_and_deleting_it_leaves_the_sound_alone():
+    from pathlib import Path
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    menu = rack_js[rack_js.index("paintPresetMenu: function"):rack_js.index("openPresetMenu: function")]
+    # a bin beside each of the user's presets, none beside a factory one
+    assert "(mine ? '<button type=\"button\" class=\"rack-preset-del\"" in menu
+    assert "var mine = group.id === 'rack-user-presets-group';" in menu
+    gone = rack_js[rack_js.index("deleteUserPreset: async function"):rack_js.index("showToast: function")]
+    # asked first; only that preset goes; the rack keeps what it holds and the box says what that is now
+    assert "danger: true" in gone and "if (!confirmed) { return; }" in gone
+    assert "delete userPresets[key];" in gone and "this.syncPresetSelect();" in gone
+    assert "this.settings" not in gone and "applySettings" not in gone
+    # the old header button is gone with the select it read
+    assert "rack-del-preset-btn" not in rack_js
 
 
 def test_the_factory_presets_leave_room_for_what_they_add():

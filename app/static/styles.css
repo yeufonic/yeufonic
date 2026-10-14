@@ -1796,15 +1796,34 @@ label .lora-value:disabled { opacity: 0.6; }
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
   background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.32);
 }
-/* A card's lettering, with definition: the full text colour, a little more weight, and a tight edge of the card's
-   own colour that keeps each letter apart from the lines of a picture behind it (not a glow; on a plain card it
-   cannot be seen). */
+/* The muted grey lifted towards the text colour: the lettering over a picture.  Worked out here, on the page's root,
+   where each theme sets --muted, so a box can take it as its own --muted without naming itself. */
+:root { --muted-defined: color-mix(in srgb, var(--text) 85%, var(--muted)); }
 /* The editor, open on a take with a picture, has it behind the whole window: fainter, under many more controls. */
 #editor.with-art { position: relative; isolation: isolate; }
 #editor.with-art::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
   background: var(--take-art) center / cover no-repeat; opacity: var(--editor-art-strength, 0.16);
 }
+/* The editor's small lettering, with the card's definition (below): its grey lifted towards the text colour, a
+   little more weight, and the tight edge in the window's own colour.  The edge is inherited, and the browser
+   keeps it off buttons and the boxes typed in, which have their own grounds. */
+#editor .ed-body {
+  --muted: var(--muted-defined);
+  text-shadow: 0 0 1px var(--panel), 0 0 1px var(--panel), 0 0 2px var(--panel), 0 0 3px var(--panel);
+}
+#editor .ed-body :is(.field > label, .label-row label, .hint, .muted, .check, .status) { font-weight: 500; }
+/* And a point larger, as the card's lettering is: the small text only; buttons and boxes keep their size. */
+#editor .ed-body :is(.field > label, .label-row label, .hint, .check, .status, .struct-note, .drop-inner span, summary,
+  .ed-col h4) { font-size: 13.5px; }
+#editor .ed-body .chip { font-size: 13.5px; }
+#editor .ed-body .chip.compact, #editor .ed-body .struct-row :is(.struct-time, .struct-was) { font-size: 12.5px; }
+#editor .ed-body .struct-row .struct-name { font-size: 14px; }
+#editor .ed-body :is(.small, .structure-total, .ed-np-title) { font-size: 13px; }
+#editor .ed-body :is(.time.small, .lora-style-chip .muted) { font-size: 12px; }
+/* A card's lettering, with definition: the full text colour, a little more weight, and a tight edge of the card's
+   own colour that keeps each letter apart from the lines of a picture behind it (not a glow; on a plain card it
+   cannot be seen). */
 .take .take-title { font-weight: 700; }
 .take :is(.take-meta, .take-style) { color: color-mix(in srgb, var(--text) 85%, var(--muted)); font-weight: 500; }
 .take :is(.take-title, .take-meta, .take-style) {
@@ -3476,6 +3495,7 @@ button.ghost.run-all { margin-left: 10px; }
 
 .rack-header-tools { display: flex; align-items: center; gap: 10px; }
 .rack-preset-wrap {
+  position: relative;
   display: flex; align-items: center; gap: 6px;
   font-size: calc(11.5px * var(--rack-type, 1)); font-weight: 600; color: #94a3b8;
 }
@@ -3484,6 +3504,34 @@ button.ghost.run-all { margin-left: 10px; }
   color: #f1f5f9; font: inherit; font-size: calc(12px * var(--rack-type, 1));
   padding: 4px 8px; border-radius: 6px; cursor: pointer;
 }
+/* The preset box: a button and its menu, with a bin beside each of the user's presets. */
+.rack-preset-btn { display: inline-flex; align-items: center; gap: 8px; min-width: 170px; justify-content: space-between; text-align: left; }
+.rack-preset-caret { opacity: 0.7; }
+.rack-preset-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 5;
+  min-width: 240px; max-height: 360px; overflow-y: auto; padding: 4px;
+  background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  font-size: calc(12px * var(--rack-type, 1)); font-weight: 500; color: #f1f5f9;
+}
+.rack-preset-menu, .rack-preset-menu * { cursor: pointer; }
+.rack-preset-group {
+  padding: 6px 8px 3px; font-size: calc(10.5px * var(--rack-type, 1)); font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: #64748b; cursor: default;
+}
+.rack-preset-empty { padding: 4px 8px 6px; color: #64748b; font-style: italic; cursor: default; }
+.rack-preset-item { position: relative; display: flex; align-items: center; padding: 5px 8px; border-radius: 5px; }
+.rack-preset-item.mine { padding-right: 40px; }
+.rack-preset-item:hover { background: rgba(255, 255, 255, 0.08); }
+.rack-preset-item.current { color: #7dd3fc; font-weight: 650; }
+.rack-preset-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rack-preset-del {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0;
+  border: 0; border-radius: 5px; background: transparent; color: #cbd5e1;
+}
+.rack-preset-del:hover { color: #f87171; background: rgba(239, 68, 68, 0.15); }
+.rack-preset-del svg { width: 18px; height: 18px; }
 .rack-head-btn {
   background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -3493,12 +3541,6 @@ button.ghost.run-all { margin-left: 10px; }
   box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 .rack-head-btn:hover { filter: brightness(1.15); }
-.rack-head-btn.delete-btn {
-  color: #fca5a5; border-color: rgba(239, 68, 68, 0.35);
-}
-.rack-head-btn.delete-btn:hover {
-  background: linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%); color: #fff;
-}
 .rack-head-btn.hidden { display: none !important; }
 .rack-head-btn.bypass-btn .led-dot {
   width: 7px; height: 7px; border-radius: 50%;
@@ -4180,12 +4222,16 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 :root[data-theme="light"] .rack-take-label,
 :root[data-theme="light"] .rack-preset-wrap { color: #475569; }
 :root[data-theme="light"] .rack-select { background: #fff; color: #0f172a; border-color: rgba(15, 23, 42, 0.2); }
+:root[data-theme="light"] .rack-preset-menu { background: #fff; color: #0f172a; border-color: rgba(15, 23, 42, 0.2); box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25); }
+:root[data-theme="light"] .rack-preset-item:hover { background: rgba(15, 23, 42, 0.07); }
+:root[data-theme="light"] .rack-preset-item.current { color: #0369a1; }
+:root[data-theme="light"] .rack-preset-del { color: #64748b; }
+:root[data-theme="light"] .rack-preset-del:hover { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
 :root[data-theme="light"] .rack-head-btn {
   background: linear-gradient(180deg, #ffffff 0%, #e8ebf0 100%); color: #1e293b;
   border-color: rgba(15, 23, 42, 0.16); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
 }
-:root[data-theme="light"] .rack-head-btn.delete-btn { color: #b91c1c; }
-:root[data-theme="light"] .rack-bay { background: #d6dae1; }
+:root[data-theme="light"] :root[data-theme="light"] .rack-bay { background: #d6dae1; }
 :root[data-theme="light"] .rack-unit {
   border-color: rgba(15, 23, 42, 0.12);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 8px rgba(15, 23, 42, 0.14);
