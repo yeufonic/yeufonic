@@ -35,7 +35,9 @@ f.onload = function () {
   when(function () { return w.State && w.State.takes && w.State.takes.length && w.State.settings && w.State.settings['editor.layout']; }, function () {
     // Every scene but Corpora shows the take panel, beside the editor window or on its own.
     if (scene === 'light') {
-      w.State.settings['appearance.theme'] = 'light';
+      // The theme is a setting the page reads again on every poll of the settings: held light here.
+      var setting = w.setting;
+      w.setting = function (key, fallback) { return key === 'appearance.theme' ? 'light' : setting(key, fallback); };
       w.applyTheme();
       w.selectTake(take('glasshouse00'));
     } else if (scene === 'cover') {
@@ -57,6 +59,9 @@ f.onload = function () {
         w.STRUCTURE.kind = 'sections'; w.paintStructure(); w.paintEditor();
       }, 400);
     } else if (scene === 'lora') {
+      // Held as steps, as the theme is held light: the settings poll would put the columns back.
+      var layout = w.setting;
+      w.setting = function (key, fallback) { return key === 'editor.layout' ? 'steps' : layout(key, fallback); };
       w.State.settings['editor.layout'] = 'steps';
       w.selectTake(take('glasshouse00')); w.openEditor('sound');
     } else if (scene === 'mastering') {
