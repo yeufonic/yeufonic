@@ -83,6 +83,7 @@ Var FinishText
 Var ModelRadio     ; the model size section that is ticked (SecFull or SecSmall)
 Var LyricsText      ; the Gemma option's description, which says when it is already here
 Var PicturesText    ; the same for FLUX.2 klein
+Var LorasText       ; the same for the style LoRAs
 
 !define MUI_WELCOMEPAGE_TITLE "$WelcomeTitle"
 !define MUI_WELCOMEPAGE_TEXT "$WelcomeText"
@@ -229,6 +230,12 @@ Section /o "FLUX.2 [klein]" SecPictures
   ; by the external LLM's image model, if one is set up, or not at all.
 SectionEnd
 
+Section /o "Style LoRAs" SecLoras
+  AddSize 3716400
+  ; No files: setup.ps1 is told whether to fetch the style LoRAs gathered on Hugging Face.  Without them the
+  ; picker holds the user's own and any they import.
+SectionEnd
+
 Section "-Setup"
   ${If} ${SectionIsSelected} ${SecLyrics}
     StrCpy $1 ""
@@ -246,6 +253,12 @@ Section "-Setup"
     WriteRegDWORD HKCU "Software\${REGNAME}" "Pictures" 1
   ${Else}
     WriteRegDWORD HKCU "Software\${REGNAME}" "Pictures" 0
+  ${EndIf}
+  ${If} ${SectionIsSelected} ${SecLoras}
+    StrCpy $1 "$1 -Loras"
+    WriteRegDWORD HKCU "Software\${REGNAME}" "Loras" 1
+  ${Else}
+    WriteRegDWORD HKCU "Software\${REGNAME}" "Loras" 0
   ${EndIf}
   ; Remembered, so an update offers the same choice again.
   ${If} ${SectionIsSelected} ${SecLyrics}
@@ -290,6 +303,7 @@ LangString DESC_Core ${LANG_ENGLISH} "The app, the engine (ComfyUI), and the YuE
 LangString DESC_Full ${LANG_ENGLISH} "The full-quality YuE2 model (BF16), 7.8 GB. Recommended. It needs a graphics card with plenty of memory to run at full speed, and it is the one that LoRA training uses."
 LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for graphics cards with little memory (6 GB or less). It is the choice to try if the full one is too slow on this PC, and it sounded fine in our listening. LoRA training needs the full-quality model. Only one size is installed: run this installer again to change."
 LangString DESC_Pictures ${LANG_ENGLISH} "FLUX.2 klein, which draws a picture of each take on this PC, shown behind its card. Leave it out if your external LLM can draw them, or if you do not want pictures. Download size: 8.2 GB."
+LangString DESC_Loras ${LANG_ENGLISH} "39 style LoRAs by their authors: chanson, canzone, Bulgarian voices, qawwali, militant reggae, J-pop, dream pop, old school hip-hop and 16 concept sliders, each with its trigger word and suggested strengths. CC BY-NC 4.0, credited in the guide. Download size: 3.8 GB."
 LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analysis on this PC. Leave it out if you intend to configure an external LLM. This will save an 8 GB download."
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} $(DESC_Core)
@@ -298,6 +312,7 @@ LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analy
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSmall} $(DESC_Small)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLyrics} $LyricsText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPictures} $PicturesText
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecLoras} $LorasText
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ; The two sizes of the model are radio buttons: ticking one unticks the other, and one is always ticked.
@@ -398,6 +413,17 @@ Function .onInit
     StrCpy $InstSubtext "Only what has changed is downloaded. The setup window may be behind this one."
     StrCpy $LyricsText "$(DESC_Lyrics)"
     StrCpy $PicturesText "$(DESC_Pictures)"
+    StrCpy $LorasText "$(DESC_Loras)"
+    ; The style LoRAs as chosen last time: ticked again if they were chosen, and nothing downloaded for those here.
+    ReadRegDWORD $2 HKCU "Software\$R9" "Loras"
+    ${If} $2 == 1
+      !insertmacro SelectSection ${SecLoras}
+      ${If} ${FileExists} "$INSTDIR\engine\ComfyUI\models\loras\chnsn_cabaret.safetensors"
+        SectionSetSize ${SecLoras} 0
+        SectionSetText ${SecLoras} "Style LoRAs (installed)"
+        StrCpy $LorasText "The style LoRAs are already on this PC: only any that are missing are downloaded. Unticking them does not remove them."
+      ${EndIf}
+    ${EndIf}
     ; FLUX.2 klein as chosen last time: kept if it is here, ticked again if it was chosen.
     ReadRegDWORD $2 HKCU "Software\$R9" "Pictures"
     ${If} ${FileExists} "$INSTDIR\engine\ComfyUI\models\diffusion_models\flux-2-klein-4b-fp8.safetensors"
@@ -438,6 +464,7 @@ Function .onInit
     StrCpy $WelcomeTitle "Install ${APPNAME}"
     StrCpy $LyricsText "$(DESC_Lyrics)"
     StrCpy $PicturesText "$(DESC_Pictures)"
+    StrCpy $LorasText "$(DESC_Loras)"
     ${If} ${FileExists} "$INSTDIR\models-kept\*.*"
     ${OrIf} ${FileExists} "$INSTDIR\data\*.*"
       StrCpy $WelcomeText "${APPNAME} writes and covers songs with the YuE2 music model, on this PC.$\r$\n$\r$\nWhat you kept when ${APPNAME} was uninstalled is in $INSTDIR, and this install picks it up: your library, and any models you kept are not downloaded again.$\r$\n$\r$\nIt checks that this PC can run YuE2, then downloads the rest from each part's publisher. A separate window shows the setup's progress; it may open behind this one."

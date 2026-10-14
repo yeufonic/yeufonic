@@ -929,8 +929,15 @@ such rather than failing quietly inside a render.
 
 ### Where to find style LoRAs
 
-There are free Style LoRAs available, mostly found on Hugging Face. Here are a few examples of LoRAs that
-Yeufonic can import and use with your own creations:
+The quickest way is at install: tick **Style LoRAs** on the installer's components page (or, with Docker, run
+`sh scripts/fetch-models.sh --loras`). That fetches 39 style LoRAs by their authors, 3.8 GB in all, each with a
+description giving its trigger word and suggested strengths: the sets below, two from atomtanstudio (dream pop
+and old school hip-hop), and sixteen concept sliders from ntc-ai, which shape the score only (Sound does nothing,
+and they need no trigger word). They are gathered, unchanged, in
+[pshields/yue2-style-loras](https://huggingface.co/pshields/yue2-style-loras), whose README credits each author
+and links the page it came from. A LoRA already in your folder under the same name is left as it is.
+
+There are more on Hugging Face. These are the sets gathered there, each on its author's own page:
 
 - [Militant reggae](https://huggingface.co/becausereasons/yue2-mltnt-militant-reggae)
 - [Chanson française](https://huggingface.co/becausereasons/yue2-chnsn-chanson-francaise)

@@ -253,6 +253,11 @@ The installer checks all of this before it downloads anything.
    - Choose whether to include **FLUX.2 [klein]**, unticked to begin with. It draws a
      picture of each take on this PC, about 8 GB to download. Leave it out if your external LLM can
      draw them (Gemini can), or if you do not want pictures.
+   - Choose whether to include **Style LoRAs**, unticked to begin with: 39 style LoRAs by their
+     authors (chanson, canzone, Bulgarian voices, qawwali, militant reggae, J-pop, dream pop, old school
+     hip-hop and 16 concept sliders), each with its trigger word and suggested strengths, 3.8 GB to
+     download. They are CC BY-NC 4.0; [their repository](https://huggingface.co/pshields/yue2-style-loras)
+     credits each author.
    - Keep or change the folder. The default is `%LOCALAPPDATA%\Programs\Yeufonic`.
 4. **Wait for setup.** A setup window checks the PC, then downloads each part from its own
    publisher and checks it against its published checksum. The window may open behind the
@@ -372,6 +377,7 @@ cd yeufonic
 sh scripts/fetch-models.sh          # about 19 GB, and creates the folders below
 # sh scripts/fetch-models.sh --int8   # the smaller low-memory model instead: see Choosing a model size
 # sh scripts/fetch-models.sh --pictures   # also FLUX.2 klein (8.3 GB), to draw take pictures here
+# sh scripts/fetch-models.sh --loras      # also 39 style LoRAs by their authors (3.8 GB, CC BY-NC 4.0)
 docker compose up -d --build
 ```
 
@@ -421,7 +427,7 @@ sudo chown -R "$(id -u):$(id -g)" data engine-state/output
 
 The models are YuE2 (plans and renders), SheetSage2 (transcription), Gemma 4 E4B (lyric drafts),
 the YuE2 instrumental LoRA, and the Realaudio decoder LoRA and tokenizer head; with `--pictures`,
-FLUX.2 klein 4B with its text encoder and VAE as well. Fetched later, the engine sees them at once:
+FLUX.2 klein 4B with its text encoder and VAE as well; with `--loras`, the style LoRAs. Fetched later, the engine sees them at once:
 no restart.
 
 Only localhost is published, and **there is no login**: anyone who can reach the port can use the
@@ -802,6 +808,9 @@ cut.
 - [Gemma 4](https://huggingface.co/Comfy-Org/gemma-4) by Google, for lyric drafts. Apache 2.0.
 - [FLUX.2 klein 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8) by Black Forest Labs, with
   Qwen3 4B as its text encoder, for take pictures, when chosen. Apache 2.0.
+- The style LoRAs offered at install, by becausereasons, storagejuju, atomtanstudio and ntc-ai, gathered unchanged
+  in [pshields/yue2-style-loras](https://huggingface.co/pshields/yue2-style-loras), whose README credits each one.
+  CC BY-NC 4.0.
 - [ComfyUI](https://github.com/comfyanonymous/ComfyUI) as the engine.
 - [Demucs](https://github.com/facebookresearch/demucs) by Meta for stems. MIT.
 - [abcjs](https://github.com/paulrosen/abcjs) by Paul Rosen and Gregory Dyke, for staff notation.

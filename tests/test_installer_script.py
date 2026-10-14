@@ -126,9 +126,35 @@ def test_take_pictures_are_chosen_at_install():
     assert 'Section /o "FLUX.2 [klein]" SecPictures' in nsi
     assert 'StrCpy $1 "$1 -Pictures"' in nsi and '"Pictures" 1' in nsi and 'ReadRegDWORD $2 HKCU "Software\\$R9" "Pictures"' in nsi
     assert "[switch]$Pictures," in setup and "if ($Pictures) { $ModelFiles = @($ModelFiles) + $PictureFiles }" in setup
-    assert "'Pictures', 'CheckOnly'" in setup                # carried across the 64-bit restart
+    assert "'Pictures', 'Loras', 'CheckOnly'" in setup       # carried across the 64-bit restart
     for name, sha in (("flux-2-klein-4b-fp8.safetensors", "97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6"),
                       ("qwen_3_4b_fp4_flux2.safetensors", "3eab03a77adb0ee5304a4e677d5c10ac22f9049c1d7c894adca4f8bb39206ca8"),
                       ("flux2-vae.safetensors", "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3")):
         assert name in setup and sha in setup and name in fetch
     assert "--pictures) PICTURES=yes ;;" in fetch
+
+
+def test_style_loras_are_chosen_at_install_and_never_replace_a_users_file():
+    """The style LoRAs (by their authors, CC BY-NC 4.0, gathered in one Hugging Face repository) come only when ticked
+    and are remembered for updates; Windows and Docker fetch the same files against the same checksums, a description
+    with each, and a file already in the folder is left as it is, never checked or replaced."""
+    import re
+    ROOT = Path(__file__).resolve().parent.parent
+    nsi = (ROOT / "windows" / "installer.nsi").read_text(encoding="utf-8")
+    setup = (ROOT / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    fetch = (ROOT / "scripts" / "fetch-models.sh").read_text(encoding="utf-8")
+    assert 'Section /o "Style LoRAs" SecLoras' in nsi
+    assert 'StrCpy $1 "$1 -Loras"' in nsi and '"Loras" 1' in nsi and 'ReadRegDWORD $2 HKCU "Software\\$R9" "Loras"' in nsi
+    assert "Download size: 3.8 GB." in nsi and "CC BY-NC 4.0" in nsi
+    assert "[switch]$Loras," in setup and "if ($Loras) { $ModelFiles = @($ModelFiles) + $LoraFiles }" in setup
+    assert "if ($spec.KeepIfPresent -and (Test-Path $dest)) { return }" in setup
+    assert '$StyleLoras = "$HF/pshields/yue2-style-loras/resolve/main"' in setup
+    windows = dict(re.findall(r"File = '([^']+)'; KeepIfPresent = \$true\n\s+Url = \"\$StyleLoras/\1\"\n\s+Sha = '([0-9a-f]{64})'", setup))
+    listed = fetch.split("<<'LIST'\n", 1)[1].split("\nLIST\n", 1)[0]
+    docker = dict(line.split() for line in listed.splitlines() if line.strip())
+    assert windows == docker and len(windows) == 78
+    loras = [name for name in windows if name.endswith(".safetensors")]
+    assert len(loras) == 39 and all(name[:-len(".safetensors")] + ".txt" in windows for name in loras)
+    assert not any(name.startswith(("samjac", "earthdrone")) for name in windows)   # no licence: never passed on
+    assert '--loras) LORAS=yes ;;' in fetch and 'if [ -s "$dest" ]; then echo "have  $file"; continue; fi' in fetch
+

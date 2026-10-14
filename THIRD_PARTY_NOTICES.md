@@ -76,6 +76,23 @@ differ, the publisher's terms apply.
 - Fetched only when chosen at install (or with `fetch-models.sh --pictures`).
 - Official licence: [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0), as declared on each model card.
 
+### Style LoRAs (when chosen)
+
+- 39 style LoRAs, each its author's work, fetched only when chosen at install (or with `fetch-models.sh --loras`)
+  from [pshields/yue2-style-loras](https://huggingface.co/pshields/yue2-style-loras), where they are gathered
+  byte for byte as published (only the concept sliders' file names are shortened). Its README lists every file
+  with its source and checksum.
+- By becausereasons: [chanson française](https://huggingface.co/becausereasons/yue2-chnsn-chanson-francaise),
+  [canzone italiana](https://huggingface.co/becausereasons/yue2-cnzn-canzone-italiana),
+  [Bulgarian voices](https://huggingface.co/becausereasons/yue2-blgr-bulgarian-voices),
+  [qawwali, sufi and tabla](https://huggingface.co/becausereasons/yue2-qwwl-qawwali-sufi-tabla),
+  [militant reggae](https://huggingface.co/becausereasons/yue2-mltnt-militant-reggae). By storagejuju:
+  [J-pop](https://huggingface.co/storagejuju/yue2-jpop-t4-lora). By atomtanstudio: dream pop and old school
+  hip-hop, from [lora-library](https://huggingface.co/atomtanstudio/lora-library). By ntc-ai: the concept sliders,
+  from [yue2-particle-sliders](https://huggingface.co/ntc-ai/yue2-particle-sliders).
+- Official licence: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/), as declared on each
+  author's model card. Non-commercial use only.
+
 ### Demucs (stems)
 
 - By Meta. Code and weights: **MIT**. Source: [facebookresearch/demucs](https://github.com/facebookresearch/demucs).

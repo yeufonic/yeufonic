@@ -3,9 +3,10 @@
 # version and checked by sha256 where the publisher gives one.  Safe to run again:
 # whatever is already in place is kept, and an interrupted download carries on.
 #
-#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-NoLyrics] [-Int8] [-Pictures]
+#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-NoLyrics] [-Int8] [-Pictures] [-Loras]
 #   ... -Int8             the smaller, low-memory YuE2 model instead of the full-quality one
 #   ... -Pictures         FLUX.2 klein, which draws each take's picture on this PC (about 8.3 GB)
+#   ... -Loras            39 style LoRAs by their authors, CC BY-NC 4.0, gathered on Hugging Face (about 3.8 GB)
 #   ... -CheckOnly        only the system check
 #   ... -SkipModels       everything but the 18 GB of models (for testing)
 
@@ -14,6 +15,7 @@ param(
     [switch]$NoLyrics,
     [switch]$Int8,
     [switch]$Pictures,
+    [switch]$Loras,
     [switch]$CheckOnly,
     [switch]$SkipModels
 )
@@ -23,7 +25,7 @@ param(
 if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProcess) {
     $native = Join-Path $env:WINDIR 'Sysnative\WindowsPowerShell\v1.0\powershell.exe'
     $again = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-InstallDir', $InstallDir)
-    foreach ($flag in @('NoLyrics', 'Int8', 'Pictures', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
+    foreach ($flag in @('NoLyrics', 'Int8', 'Pictures', 'Loras', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
     & $native @again
     exit $LASTEXITCODE
 }
@@ -106,6 +108,248 @@ $PictureFiles = @(
        Sha = '868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3'; Size = 336211292 }
 )
 if ($Pictures) { $ModelFiles = @($ModelFiles) + $PictureFiles }
+# Style LoRAs, only when chosen: each its author's work under CC BY-NC 4.0, gathered unchanged in one Hugging Face
+# repository (its README credits them; the guide links it).  Each comes with a description (.txt) the picker reads.
+# A file already in the folder is left as it is, never checked against these and never replaced: it may be the
+# user's own copy, or a description they have written over.
+$StyleLoras = "$HF/pshields/yue2-style-loras/resolve/main"
+$LoraFiles = @(
+    @{ Name = 'Style LoRA blgr_kargyraa'; Dir = 'loras'; File = 'blgr_kargyraa.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/blgr_kargyraa.safetensors"
+       Sha = '5f5e0274fa0233c7f97fc1408d67184d0dafa621508767d02c2c65f74b7e0642'; Size = 177279864 }
+    @{ Name = 'Style LoRA blgr_kargyraa (description)'; Dir = 'loras'; File = 'blgr_kargyraa.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/blgr_kargyraa.txt"
+       Sha = 'ef6c73a5739e9100330f004b8563ee523df483a9f912f6f52e5e0666800587e0'; Size = 218 }
+    @{ Name = 'Style LoRA blgr_rhodope'; Dir = 'loras'; File = 'blgr_rhodope.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/blgr_rhodope.safetensors"
+       Sha = 'e6c216c5ee55683e1d75bd4f9fa6b92c67dc5960dc52706fa98f3eeab192656d'; Size = 177279960 }
+    @{ Name = 'Style LoRA blgr_rhodope (description)'; Dir = 'loras'; File = 'blgr_rhodope.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/blgr_rhodope.txt"
+       Sha = '96bb6d99644b8a5fe30bf9380d054642ca0bfbadfa5c273e1fb0a7a061d13b55'; Size = 252 }
+    @{ Name = 'Style LoRA blgr_steppe'; Dir = 'loras'; File = 'blgr_steppe.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/blgr_steppe.safetensors"
+       Sha = 'adfd9dabaeb5f9cfd61f98e6dfe1a4f908e79e276fd40587c355d8634497f77d'; Size = 177279864 }
+    @{ Name = 'Style LoRA blgr_steppe (description)'; Dir = 'loras'; File = 'blgr_steppe.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/blgr_steppe.txt"
+       Sha = '738d050a0a0abbefaa59c5ecbf93e253563a393111a0bf6f79b03399df813b7c'; Size = 243 }
+    @{ Name = 'Style LoRA chnsn_cabaret'; Dir = 'loras'; File = 'chnsn_cabaret.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/chnsn_cabaret.safetensors"
+       Sha = '0230ff0ba9f75fcf1586b36a8dcfe67f526703c193d9a63cf1c3f5de9c7f896e'; Size = 117500808 }
+    @{ Name = 'Style LoRA chnsn_cabaret (description)'; Dir = 'loras'; File = 'chnsn_cabaret.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/chnsn_cabaret.txt"
+       Sha = '2da7dbc56629c46814228a26719dcf42155ca32ef9f4350c74272cb46f2d2ace'; Size = 315 }
+    @{ Name = 'Style LoRA chnsn_grand_boulevard'; Dir = 'loras'; File = 'chnsn_grand_boulevard.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/chnsn_grand_boulevard.safetensors"
+       Sha = '42527d1f61d26693905316f4392e93a2a404906309a37b884c124e38190ae101'; Size = 177279864 }
+    @{ Name = 'Style LoRA chnsn_grand_boulevard (description)'; Dir = 'loras'; File = 'chnsn_grand_boulevard.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/chnsn_grand_boulevard.txt"
+       Sha = '874064b90d57d0f1c97f5cacc3e294fa4aa1081a5b848c0e978623cb27d9902d'; Size = 264 }
+    @{ Name = 'Style LoRA chnsn_montmartre'; Dir = 'loras'; File = 'chnsn_montmartre.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/chnsn_montmartre.safetensors"
+       Sha = 'bcbf1b5aebe2947b1677f87265f0d422adf868745bec12462e39ed9897c9dc65'; Size = 117500808 }
+    @{ Name = 'Style LoRA chnsn_montmartre (description)'; Dir = 'loras'; File = 'chnsn_montmartre.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/chnsn_montmartre.txt"
+       Sha = 'c808d526e4423bfd984d284ffd66d2ada3894cfaadd1250c92dd4225e2ddf470'; Size = 310 }
+    @{ Name = 'Style LoRA chnsn_rive_gauche'; Dir = 'loras'; File = 'chnsn_rive_gauche.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/chnsn_rive_gauche.safetensors"
+       Sha = '8421a25b6650febf8e6b7418b1830dc27d79fab57605962f2c6890be98c42ef6'; Size = 177279864 }
+    @{ Name = 'Style LoRA chnsn_rive_gauche (description)'; Dir = 'loras'; File = 'chnsn_rive_gauche.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/chnsn_rive_gauche.txt"
+       Sha = 'f6a6e6a20dda3bd7daee7e53cbd6dd37b438e40b85095dd7e001d13bcb92ec06'; Size = 308 }
+    @{ Name = 'Style LoRA cnzn_coro'; Dir = 'loras'; File = 'cnzn_coro.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/cnzn_coro.safetensors"
+       Sha = 'c0708785f63a7f6d582d172120aa64e8085a3f578ac5b722cb36a2c2b1e347ed'; Size = 117500808 }
+    @{ Name = 'Style LoRA cnzn_coro (description)'; Dir = 'loras'; File = 'cnzn_coro.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/cnzn_coro.txt"
+       Sha = 'f8180110ba36e12488e521f5695f08edd05eceb1392150905f576e0901074849'; Size = 232 }
+    @{ Name = 'Style LoRA cnzn_notte'; Dir = 'loras'; File = 'cnzn_notte.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/cnzn_notte.safetensors"
+       Sha = '93b87d31bbce1dfb4e83be9d1f55e155b71f3572e640eda5351e7a34f0f32527'; Size = 117500808 }
+    @{ Name = 'Style LoRA cnzn_notte (description)'; Dir = 'loras'; File = 'cnzn_notte.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/cnzn_notte.txt"
+       Sha = '46ef979461e8505fcf80f3f99fbef1659c29468e50554ff5439e2a435a270ad1'; Size = 279 }
+    @{ Name = 'Style LoRA cnzn_sanremo'; Dir = 'loras'; File = 'cnzn_sanremo.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/cnzn_sanremo.safetensors"
+       Sha = '8a0322971cfe484414d01f0765092f2454384a18cfa4167824832346451cade0'; Size = 177279960 }
+    @{ Name = 'Style LoRA cnzn_sanremo (description)'; Dir = 'loras'; File = 'cnzn_sanremo.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/cnzn_sanremo.txt"
+       Sha = 'fc4c4bb3d82617a2dd3b66ff0f809360a5311144d4ed5caba020aa54c9e1fe25'; Size = 299 }
+    @{ Name = 'Style LoRA cnzn_sussurro'; Dir = 'loras'; File = 'cnzn_sussurro.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/cnzn_sussurro.safetensors"
+       Sha = '2ec3fc4eab4413623c600015ba3f5b7ce59f5604668344912cd2eb495b0bbd63'; Size = 117500808 }
+    @{ Name = 'Style LoRA cnzn_sussurro (description)'; Dir = 'loras'; File = 'cnzn_sussurro.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/cnzn_sussurro.txt"
+       Sha = '3f9c829d54356dfcef44fcbb15b8f2ca89cf95c3faa215001d6e13f9f37060d9'; Size = 342 }
+    @{ Name = 'Style LoRA cnzn_teatro'; Dir = 'loras'; File = 'cnzn_teatro.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/cnzn_teatro.safetensors"
+       Sha = '6faef04d10c20a28b311815421e12676b3abfa5c650bfbd1fff1a0c01d48f31d'; Size = 117500808 }
+    @{ Name = 'Style LoRA cnzn_teatro (description)'; Dir = 'loras'; File = 'cnzn_teatro.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/cnzn_teatro.txt"
+       Sha = '15a125c3e2a268e7fcbcd09e95e9cd58fa5747b0bd6be559770557b450b53944'; Size = 285 }
+    @{ Name = 'Style LoRA dreampop_sv_dreampop'; Dir = 'loras'; File = 'dreampop_sv_dreampop.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/dreampop_sv_dreampop.safetensors"
+       Sha = '617852d379c66b0407879421a353233d29cda8188cca82973a94c61b512ca03d'; Size = 234969024 }
+    @{ Name = 'Style LoRA dreampop_sv_dreampop (description)'; Dir = 'loras'; File = 'dreampop_sv_dreampop.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/dreampop_sv_dreampop.txt"
+       Sha = '588c63e08b70640b78eb141cb4d6a3f99e42f54f50e49e6465cef4a4ef65a7fe'; Size = 387 }
+    @{ Name = 'Style LoRA drksf_midnight'; Dir = 'loras'; File = 'drksf_midnight.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/drksf_midnight.safetensors"
+       Sha = '924076bc78c0ef29d6705341e82c4d292bf557dcc9743045b4fca9bb77e7f580'; Size = 177279760 }
+    @{ Name = 'Style LoRA drksf_midnight (description)'; Dir = 'loras'; File = 'drksf_midnight.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/drksf_midnight.txt"
+       Sha = 'd38ea4d03e69eb3c79d4415fee82b603118d4be86e6b0b24e15a891344c24f59'; Size = 334 }
+    @{ Name = 'Style LoRA mltnt_chanter'; Dir = 'loras'; File = 'mltnt_chanter.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_chanter.safetensors"
+       Sha = '4aaaa42f7c61b4a3226880dd1e6f1a36bd585171d26a45358c3dba3c9d56b20c'; Size = 117500816 }
+    @{ Name = 'Style LoRA mltnt_chanter (description)'; Dir = 'loras'; File = 'mltnt_chanter.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_chanter.txt"
+       Sha = 'b7e1f6ede32b6578d5e2cd33fad975aeb85141d0a83e260c698224e6cd3ef1f5'; Size = 359 }
+    @{ Name = 'Style LoRA mltnt_frontline'; Dir = 'loras'; File = 'mltnt_frontline.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_frontline.safetensors"
+       Sha = '9c8960158db6340156cc1b44fbec1ff58d0bfabfc96e933ee5a1d14b0bc26574'; Size = 177279880 }
+    @{ Name = 'Style LoRA mltnt_frontline (description)'; Dir = 'loras'; File = 'mltnt_frontline.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_frontline.txt"
+       Sha = 'cb33570cfc0005371ef1888546cc6dc020bde8be6a7960b0f9203d9c7c390903'; Size = 357 }
+    @{ Name = 'Style LoRA mltnt_fusion'; Dir = 'loras'; File = 'mltnt_fusion.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_fusion.safetensors"
+       Sha = 'e9525b892ce625ac7491a13c21b39b7623ef132884996a87eb341370f459aa7b'; Size = 177279784 }
+    @{ Name = 'Style LoRA mltnt_fusion (description)'; Dir = 'loras'; File = 'mltnt_fusion.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_fusion.txt"
+       Sha = '4a4886eb5d4e554f5ac9e7f4e73843b8920bcefaead50f95ba46a6e7502df29c'; Size = 272 }
+    @{ Name = 'Style LoRA mltnt_roots'; Dir = 'loras'; File = 'mltnt_roots.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_roots.safetensors"
+       Sha = 'e829f3af1534614bc28f85e821115d48888edf35aead317e9b5cdf179a79f5f3'; Size = 177279888 }
+    @{ Name = 'Style LoRA mltnt_roots (description)'; Dir = 'loras'; File = 'mltnt_roots.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_roots.txt"
+       Sha = '3304dd0f8c160eee5465be5c169780916bd7487824cd6b19c1defd0d0abe69d0'; Size = 209 }
+    @{ Name = 'Style LoRA mltnt_soundclash'; Dir = 'loras'; File = 'mltnt_soundclash.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_soundclash.safetensors"
+       Sha = 'fa43a4ddb7af26fb0e7821c1ad3386fc90db84897efd00571e0c7f27cf790537'; Size = 117500816 }
+    @{ Name = 'Style LoRA mltnt_soundclash (description)'; Dir = 'loras'; File = 'mltnt_soundclash.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_soundclash.txt"
+       Sha = 'd5a988ebbe5ee8dceee6f758a178eeb04430cbf11984ff84ede647769d3c04d7'; Size = 330 }
+    @{ Name = 'Style LoRA mltnt_steppers'; Dir = 'loras'; File = 'mltnt_steppers.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_steppers.safetensors"
+       Sha = '63094f0bbf8dd1e1fb2654a94aaba77e7360b0bef08d2254ef4a972ea8dce10e'; Size = 177279888 }
+    @{ Name = 'Style LoRA mltnt_steppers (description)'; Dir = 'loras'; File = 'mltnt_steppers.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/mltnt_steppers.txt"
+       Sha = 'dade8fa79bf12ea685b02b9a3fb5b4a9243a34ba42bd9f622f01d789b77f57b9'; Size = 232 }
+    @{ Name = 'Style LoRA qwwl_mehfil'; Dir = 'loras'; File = 'qwwl_mehfil.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/qwwl_mehfil.safetensors"
+       Sha = '28132e4b545b3c57a831179553e509408fa11d6eed96811c50f0d2629ddceb2e'; Size = 177279760 }
+    @{ Name = 'Style LoRA qwwl_mehfil (description)'; Dir = 'loras'; File = 'qwwl_mehfil.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/qwwl_mehfil.txt"
+       Sha = '5d09c0ec81338395b17b8788bd8c6cf597f0307f9b26d3ff8aa7ca0a7c831582'; Size = 359 }
+    @{ Name = 'Style LoRA slider-acoustic-folk'; Dir = 'loras'; File = 'slider-acoustic-folk.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-acoustic-folk.safetensors"
+       Sha = 'b51c0f8a80d1001e19a2650e3184ed188c3aac97c1e2cd9cb3ec5ed03a6efef0'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-acoustic-folk (description)'; Dir = 'loras'; File = 'slider-acoustic-folk.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-acoustic-folk.txt"
+       Sha = '0b9a3f253d774133f0f021e07d1e484354b06993e7211376ae7ecc43fcc9ecec'; Size = 341 }
+    @{ Name = 'Style LoRA slider-afrobeats'; Dir = 'loras'; File = 'slider-afrobeats.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-afrobeats.safetensors"
+       Sha = '7b0be8a08aa9bb63579d3daf6f23f08f36084282c1e143be7aa2184088a86982'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-afrobeats (description)'; Dir = 'loras'; File = 'slider-afrobeats.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-afrobeats.txt"
+       Sha = '921d7cea8aba2282a771fdfb20e0b5ed3e2284b2c4dc595201794fcd11951878'; Size = 339 }
+    @{ Name = 'Style LoRA slider-country'; Dir = 'loras'; File = 'slider-country.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-country.safetensors"
+       Sha = 'c41c13e09e0daf764808be8cdbe6970b3bce359c11460584ccb09b4d502aee2a'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-country (description)'; Dir = 'loras'; File = 'slider-country.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-country.txt"
+       Sha = 'cbbe724e264dc8548dec51d1123dc91da7d82a37010518279bb2eeae56e8ef3e'; Size = 330 }
+    @{ Name = 'Style LoRA slider-disco-funk'; Dir = 'loras'; File = 'slider-disco-funk.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-disco-funk.safetensors"
+       Sha = '89149145bc3f69518a7b9de63672083f994786c9af66822ef11d7b521f82cb27'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-disco-funk (description)'; Dir = 'loras'; File = 'slider-disco-funk.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-disco-funk.txt"
+       Sha = 'd3e3759eeb72ac67e8a30545bfe5bfde618352d16b240b78202d6a8a41d50ed7'; Size = 343 }
+    @{ Name = 'Style LoRA slider-female'; Dir = 'loras'; File = 'slider-female.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-female.safetensors"
+       Sha = 'a760f6535b9be6412aec12e8ebd30c45c7886ecb01007dc900c944d57cce4a53'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-female (description)'; Dir = 'loras'; File = 'slider-female.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-female.txt"
+       Sha = '6b9c69609cc65d1ffdb14f0761283741f98124ae90daaad4ae5954c701032ab5'; Size = 329 }
+    @{ Name = 'Style LoRA slider-hiphop'; Dir = 'loras'; File = 'slider-hiphop.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-hiphop.safetensors"
+       Sha = '544481919541a7f97fa581911a71fdeace03a55ddd15172a58a60ec60b963cad'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-hiphop (description)'; Dir = 'loras'; File = 'slider-hiphop.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-hiphop.txt"
+       Sha = 'cb5aba62431e1f480d6502ddea6678ae68e3b11f2878f820d8e89cc787c95144'; Size = 325 }
+    @{ Name = 'Style LoRA slider-house'; Dir = 'loras'; File = 'slider-house.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-house.safetensors"
+       Sha = '6149fcde75b7f959c323ebd90f760dc7994183aef1a9345482fddf530c06737a'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-house (description)'; Dir = 'loras'; File = 'slider-house.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-house.txt"
+       Sha = '5bf43f69b59d8b8f7eb3da675bec0b2e5a0c6fc8456871e9e9037c42390b7306'; Size = 333 }
+    @{ Name = 'Style LoRA slider-indie-rock'; Dir = 'loras'; File = 'slider-indie-rock.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-indie-rock.safetensors"
+       Sha = 'bf97b12ae89317343b1498f0bb066dbf01aa547381d60b6cf9b163db05f1b5d9'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-indie-rock (description)'; Dir = 'loras'; File = 'slider-indie-rock.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-indie-rock.txt"
+       Sha = '25fe649e8b414b09760b2fac5e6e7970f9f733ba838997af8cef3dba688a0a7a'; Size = 333 }
+    @{ Name = 'Style LoRA slider-kpop'; Dir = 'loras'; File = 'slider-kpop.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-kpop.safetensors"
+       Sha = 'eca99b3b12bf94e1a605122a99c42bb3123c0d32bdb93758ee9967d20fc7458c'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-kpop (description)'; Dir = 'loras'; File = 'slider-kpop.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-kpop.txt"
+       Sha = '9e1a9e8057178c689ea4d869c883eddc62b041c28b96c346eaf380b42c23f9be'; Size = 331 }
+    @{ Name = 'Style LoRA slider-lofi'; Dir = 'loras'; File = 'slider-lofi.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-lofi.safetensors"
+       Sha = '14474d0273924c7abe3b3b2caae794ae9052cff9a392985ff9540f0829067db4'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-lofi (description)'; Dir = 'loras'; File = 'slider-lofi.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-lofi.txt"
+       Sha = '4d37f0cc153b6f2486a36c44a093eca0729feaedcdd452baddab9d4f7b22349b'; Size = 331 }
+    @{ Name = 'Style LoRA slider-male'; Dir = 'loras'; File = 'slider-male.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-male.safetensors"
+       Sha = '125a5e3adad5e1c541ad47bd377f1e7ff4edffc02f7552895dd6eb86dda7b5c1'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-male (description)'; Dir = 'loras'; File = 'slider-male.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-male.txt"
+       Sha = '0b65c5e885a29267fd1141b486edc07a47d9c039bdde813d33308c0cc7a10ae5'; Size = 325 }
+    @{ Name = 'Style LoRA slider-metal'; Dir = 'loras'; File = 'slider-metal.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-metal.safetensors"
+       Sha = '8ae844629dcaf4fd55f13ed123f24ace69fa28951382e7652e169a6c9b7a4d5b'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-metal (description)'; Dir = 'loras'; File = 'slider-metal.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-metal.txt"
+       Sha = '93a52f3f387f20906d1a9dfc9352ad0c09a620aab60251247cd25f46688a7522'; Size = 335 }
+    @{ Name = 'Style LoRA slider-pop-punk'; Dir = 'loras'; File = 'slider-pop-punk.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-pop-punk.safetensors"
+       Sha = 'bb8d8e4146f872c74ade1e6982946f84be1538a618a922ff9eb9674539ec34c3'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-pop-punk (description)'; Dir = 'loras'; File = 'slider-pop-punk.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-pop-punk.txt"
+       Sha = 'dafbe727ea18498a1334fa836a81ffebe47d79ec9c032ae2fe78e937cc1ed7f2'; Size = 330 }
+    @{ Name = 'Style LoRA slider-pop'; Dir = 'loras'; File = 'slider-pop.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-pop.safetensors"
+       Sha = 'bc6642b68882fbc0f73df4a0e89a51c1ebe144bc1ded5b877b5dd157ffa48cd2'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-pop (description)'; Dir = 'loras'; File = 'slider-pop.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-pop.txt"
+       Sha = '66699ef7c06098f77d4514d72aed2e12ceae22735d91829ea1984c20442b7604'; Size = 323 }
+    @{ Name = 'Style LoRA slider-reggaeton'; Dir = 'loras'; File = 'slider-reggaeton.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-reggaeton.safetensors"
+       Sha = '297623d8a2546749bfa7190acc5de7bfdb02135358156558cd7a8506f1a905ff'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-reggaeton (description)'; Dir = 'loras'; File = 'slider-reggaeton.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-reggaeton.txt"
+       Sha = '730d823a662eb143088ada83e838f49851cd4ea0a5282c7467045a784ad574f6'; Size = 339 }
+    @{ Name = 'Style LoRA slider-rnb'; Dir = 'loras'; File = 'slider-rnb.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-rnb.safetensors"
+       Sha = 'faa89944f0d3c9a7e17f62374e29ee76d1d82f5283674060d11a811eaf9f632d'; Size = 10113448 }
+    @{ Name = 'Style LoRA slider-rnb (description)'; Dir = 'loras'; File = 'slider-rnb.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/slider-rnb.txt"
+       Sha = '220d04247170392e2dfe9c2daaa13d5e648034da547ef49e72d36b47951f7b9c'; Size = 324 }
+    @{ Name = 'Style LoRA sv_oldschoolhiphop'; Dir = 'loras'; File = 'sv_oldschoolhiphop.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/sv_oldschoolhiphop.safetensors"
+       Sha = 'ca176909d55998d4f78426439885ff79cc96ba4daaaaea22a9936590d6e72694'; Size = 234969032 }
+    @{ Name = 'Style LoRA sv_oldschoolhiphop (description)'; Dir = 'loras'; File = 'sv_oldschoolhiphop.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/sv_oldschoolhiphop.txt"
+       Sha = '93c332bb5c5cfb6b387cb32335a4e398381804597af888d47e7b620e7ea7086a'; Size = 431 }
+    @{ Name = 'Style LoRA yue2_jpop_t4'; Dir = 'loras'; File = 'yue2_jpop_t4.safetensors'; KeepIfPresent = $true
+       Url = "$StyleLoras/yue2_jpop_t4.safetensors"
+       Sha = '8cdbe15cf1968ff586d734a8ce4f8e7c823f8a8005fe1466c5aa9f442d257d57'; Size = 106474864 }
+    @{ Name = 'Style LoRA yue2_jpop_t4 (description)'; Dir = 'loras'; File = 'yue2_jpop_t4.txt'; KeepIfPresent = $true
+       Url = "$StyleLoras/yue2_jpop_t4.txt"
+       Sha = 'f799ce448332f646850d3dab41c182d5819c39c2840a8f3617464574fab2f173'; Size = 231 }
+)
+if ($Loras) { $ModelFiles = @($ModelFiles) + $LoraFiles }
 if ($NoLyrics) { $ModelFiles = @($ModelFiles | Where-Object { -not $_.Lyrics }) }
 # The model comes in two sizes and an install has one of them: the full-quality file, or with -Int8 the
 # smaller one for a GPU with little memory.  The other is taken off the entry list here, and removed from
@@ -151,6 +395,7 @@ function Stop-Setup([string]$why) {
 function Get-Verified($spec, [string]$dest) {
     $ok = "$dest.sha256ok"
     if ((Test-Path $dest) -and (Test-Path $ok)) { return }
+    if ($spec.KeepIfPresent -and (Test-Path $dest)) { return }   # someone's own copy: not ours to check or replace
     $part = "$dest.part"
     if (-not (Test-Path $dest)) {
         Say ("Downloading {0} ({1:N0} MB)" -f (Split-Path $dest -Leaf), ($spec.Size / 1e6))
