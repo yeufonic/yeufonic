@@ -1163,7 +1163,7 @@ Pictures need something that can draw. There are two, and you can have either, b
 
 **To draw on this PC, install FLUX.2 klein.**
 
-- **Windows:** tick **Take pictures (FLUX.2 klein)** on the installer's components page. It is not ticked
+- **Windows:** tick **FLUX.2 [klein]** on the installer's components page. It is not ticked
   unless you choose it. An installed app gets the same page when it updates, or run the installer again
   from the release page: the tick is remembered after that, and an update never downloads it twice. It
   is three files, about 8 GB in all.

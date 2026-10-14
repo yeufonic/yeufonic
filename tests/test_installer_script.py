@@ -123,7 +123,7 @@ def test_take_pictures_are_chosen_at_install():
     nsi = (ROOT / "windows" / "installer.nsi").read_text(encoding="utf-8")
     setup = (ROOT / "windows" / "setup.ps1").read_text(encoding="utf-8")
     fetch = (ROOT / "scripts" / "fetch-models.sh").read_text(encoding="utf-8")
-    assert 'Section /o "Take pictures (FLUX.2 klein)" SecPictures' in nsi
+    assert 'Section /o "FLUX.2 [klein]" SecPictures' in nsi
     assert 'StrCpy $1 "$1 -Pictures"' in nsi and '"Pictures" 1' in nsi and 'ReadRegDWORD $2 HKCU "Software\\$R9" "Pictures"' in nsi
     assert "[switch]$Pictures," in setup and "if ($Pictures) { $ModelFiles = @($ModelFiles) + $PictureFiles }" in setup
     assert "'Pictures', 'CheckOnly'" in setup                # carried across the 64-bit restart

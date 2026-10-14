@@ -249,7 +249,7 @@ The installer checks all of this before it downloads anything.
      the new one and removes the old. [Choosing a model size](#choosing-a-model-size) says how to decide.
    - Choose whether to include **Lyric drafts (Gemma 4)**. Leave it out if you will set up an
      external LLM; that saves an 8 GB download.
-   - Choose whether to include **Take pictures (FLUX.2 klein)**, unticked to begin with. It draws a
+   - Choose whether to include **FLUX.2 [klein]**, unticked to begin with. It draws a
      picture of each take on this PC, about 8 GB to download. Leave it out if your external LLM can
      draw them (Gemini can), or if you do not want pictures.
    - Keep or change the folder. The default is `%LOCALAPPDATA%\Programs\Yeufonic`.
