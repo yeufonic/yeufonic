@@ -37,10 +37,6 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
-
-- **The editor is always three columns.** The Editor layout setting, which offered the editor as steps one part at a time, is gone: the editor is three columns with everything in view, and the score on a tab of its own.
-
 ## 0.0.44 (2026-10-14)
 
 - **A picture for each take.** Each new take gets a picture of the song, made once no song is being made when it is drawn on this PC (so it never holds up a plan or a render) and while the take renders when an external LLM draws it, and shown faintly behind the take's card, across the top of the take panel when it is chosen, and behind the editor when the take is open there; a take made inside another shows that one's. It is described from the take's title, style and opening words with no LLM, drawn on white, and the app takes the white out: drawn on this PC a picture takes a few seconds and needs nothing but FLUX.2 [klein]. It is drawn on this PC by FLUX.2 klein 4B, a new install option (**FLUX.2 [klein]**, unticked, about 8 GB; `fetch-models.sh --pictures` for Docker), or by the external LLM's image model where the provider lists one; with neither, Settings says **No pictures**, the default background, and how to have them, until something that can draw is there. The editor's **Picture** button makes a new one or goes back to the default background, for good. Settings turn pictures off, choose who draws (this PC first), who describes (the take itself by default, or Local Gemma or the external LLM, slower) and which image model. The description leaves out real names, which an image model will not draw, and asks for soft lettering.
@@ -58,7 +54,8 @@ cannot creep back in.
 - **The mastering rack follows the theme.** In the light theme it was still black. Its panels are now brushed silver with dark lettering there, each unit keeping its own tint and coloured top edge; the knobs, the meter windows and the readouts keep the dark look of the hardware. The parametric equalizer's graph is drawn in light colours to match. The dark themes keep the rack as it was.
 - **Equalizer band tips.** Each band of the parametric equalizer says what it is and how it is set when the pointer rests on it.
 - **Backdrop colour.** A setting under Theme tints the page behind the takes with a hue you choose, at a strength from a faint wash to a rich colour, and the page changes as you drag. The take cards, the panels and the windows keep their own colours, and the high contrast theme stays black. Like every setting it is kept by the app, so every window onto it shows the same.
-- **The editor's player on every step, with its keys.** In the steps layout the player for the take open in the editor sits in the window's bottom bar on every step (it showed on the Words step only), and Space and the arrows work it in either layout, as they do the page's player; typing in a box is left alone.
+- **The editor's player has its keys.** Space and the arrows work the player for the take open in the editor, as they do the page's player; typing in a box is left alone.
+- **The editor is always three columns.** The Editor layout setting, which offered the editor as steps one part at a time, is gone: the editor is three columns with everything in view, and the score on a tab of its own.
 - **The layout buttons say what they do.** The buttons beside Starred read Comfy or Compact, and Fit or Wide, for the layout a click gives, rather than the one on show.
 - **Escape closes the logs** before anything under them, and closes the popped-out log window.
 - **Reload to update** now appears for a change to the page's look, as it did for a change to its scripts.
