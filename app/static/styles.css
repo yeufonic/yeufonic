@@ -3186,6 +3186,15 @@ main > .sheet-panel { transition: opacity 0.22s ease, transform 0.22s ease; }
   --muted: var(--muted-defined);
   text-shadow: 0 0 1px var(--panel), 0 0 1px var(--panel), 0 0 2px var(--panel), 0 0 3px var(--panel);
 }
+/* Over the picture the panel's top reads firmly: its heading lines bolder and a point larger, with a fuller edge,
+   and the style chips on a backing of the panel's own colour, so the picture does not show through their words. */
+.sheet-panel.with-art .take-sheet :is(.kind, h2, .meta) {
+  text-shadow: 0 0 1px var(--panel), 0 0 2px var(--panel), 0 0 3px var(--panel), 0 0 6px var(--panel);
+}
+.sheet-panel.with-art .take-sheet .kind { font-weight: 800; font-size: 12.5px; }
+.sheet-panel.with-art .take-sheet h2 { font-weight: 800; }
+.sheet-panel.with-art .take-sheet .meta { font-weight: 600; font-size: 13.5px; color: var(--text); }
+.sheet-panel.with-art .sheet-tag { background: color-mix(in srgb, var(--panel) 80%, transparent); font-weight: 500; font-size: 13px; }
 main.sheet-collapsed > .sheet-panel::before { display: none; }
 main.sheet-fading > .sheet-panel { opacity: 0; transform: translateX(calc(-100% - 22px)); }
 main > .library { transition: opacity 0.28s ease; }
