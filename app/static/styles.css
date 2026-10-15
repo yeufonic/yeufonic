@@ -2851,8 +2851,10 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 .primary.tone-cover { background: linear-gradient(90deg, var(--cover-a), var(--cover-b)); }
 .primary.tone-instrumental { background: linear-gradient(90deg, var(--inst-b), var(--inst-a)); color: #07140c; }
 .sheet-blk { border-top: 1px solid var(--line); padding: 12px 0 6px; }
-.sheet-blk h3 { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-  margin: 0 0 8px; display: flex; justify-content: space-between; align-items: baseline; }
+.sheet-blk h3 { font-size: 12px; color: var(--text); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  margin: 0 0 8px; display: flex; justify-content: space-between; align-items: baseline;
+  /* a solid strip, so the headings stand out, over a picture too */
+  padding: 5px 10px; border-radius: 8px; background: color-mix(in srgb, color-mix(in srgb, var(--panel) 86%, var(--text) 14%) 70%, transparent); text-shadow: none; }
 .sheet-blk h3 .link { text-transform: none; letter-spacing: 0; font-size: 12px; }
 .sheet-pairs { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; font-size: 13px; margin: 0; }
 .sheet-pairs dt { color: var(--muted); }
