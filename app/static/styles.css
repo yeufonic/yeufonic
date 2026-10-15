@@ -3194,7 +3194,7 @@ main > .sheet-panel { transition: opacity 0.22s ease, transform 0.22s ease; }
 .sheet-panel.with-art .take-sheet .kind { font-weight: 800; font-size: 12.5px; }
 .sheet-panel.with-art .take-sheet h2 { font-weight: 800; }
 .sheet-panel.with-art .take-sheet .meta { font-weight: 600; font-size: 13.5px; color: var(--text); }
-.sheet-panel.with-art .sheet-tag { background: color-mix(in srgb, var(--panel) 80%, transparent); font-weight: 500; font-size: 13px; }
+.sheet-panel.with-art .sheet-tag { background: color-mix(in srgb, var(--panel) 55%, transparent); font-weight: 500; font-size: 13px; }
 main.sheet-collapsed > .sheet-panel::before { display: none; }
 main.sheet-fading > .sheet-panel { opacity: 0; transform: translateX(calc(-100% - 22px)); }
 main > .library { transition: opacity 0.28s ease; }
