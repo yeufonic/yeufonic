@@ -129,18 +129,6 @@ SETTINGS_SPEC: list[dict] = [
         "help": "A tint for the page behind the takes. The cards keep their own colours; the high contrast theme stays black.",
     },
     {
-        "key": "editor.layout",
-        "label": "Editor layout",
-        "type": "select",
-        # Everything in view at once; steps suit someone finding their way.
-        "default": "columns",
-        "options": [
-            {"value": "columns", "label": "Three columns, everything in view"},
-            {"value": "steps", "label": "Steps, one part at a time"},
-        ],
-        "help": "How the window for making and changing takes is laid out.",
-    },
-    {
         "key": "app.update_check",
         "label": "Check for a new version",
         "type": "select",

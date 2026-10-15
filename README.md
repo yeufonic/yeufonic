@@ -151,7 +151,7 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 A LoRA is a small file that leans YuE2 towards a sound: a genre, a tradition, a production style.
 Put one in `models/loras/` and press **Rescan**, or use **Install**, and it appears in the **Style
 LoRA** list in the editor's sound settings, in all three modes. **Download** hands one to someone
-else. Here it is in the editor's other layout, steps, on the Sound step:
+else. Here it is in the editor, chosen, with its strengths and its trigger word in the style:
 
 [![Style LoRA](docs/screenshots/style-lora.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/style-lora.png)
 
@@ -531,7 +531,6 @@ any browser and survive a rebuild.
 |---|---|
 | Output audio format | FLAC (the default), WAV, or MP3 at 320 kbps. The format stems and a take's **Save** start with; each can choose another at the time |
 | Theme | Dark (the default), Light, Match the computer (dark or light, as the system is), Studio (warm and dark) or High contrast |
-| Editor layout | Three columns with the score on a tab of its own (the default), or steps, one part at a time |
 | Normalise to | How loud a normalised take is made: −16, −14 (the default) or −11 LUFS |
 | MCP server | Off by default. Turn it on to let an AI agent on this computer use Yeufonic: see [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp) |
 | Stem separation model | Which model a run starts with |

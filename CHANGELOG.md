@@ -39,7 +39,7 @@ cannot creep back in.
 
 ## Unreleased
 
-- **Steps layout: a LoRA's learned styles on the Sound step.** With the editor laid out in steps, the style chips and corpus songs of the chosen style LoRA sat on the Idea step, under the Style box, while the LoRA is chosen on the Sound step. They now sit on the Sound step, under the LoRA they come from; a click still writes that sound into the Style. The columns layout keeps them under the Style box.
+- **The editor is always three columns.** The Editor layout setting, which offered the editor as steps one part at a time, is gone: the editor is three columns with everything in view, and the score on a tab of its own.
 
 ## 0.0.44 (2026-10-14)
 

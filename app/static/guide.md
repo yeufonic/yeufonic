@@ -38,8 +38,7 @@ the editor and more): see [Hot keys](#hot-keys).
 Making and changing a take happens in the **editor window**. Its main button on the panel says what
 fits: *Edit and render again*, or *Review the plan and render* when a plan is waiting. A card's
 **Score** and **Again** buttons open it too, and so does double-clicking a card. It has three
-columns (the song, the words and the sound) with the score on a tab of its own. **Settings → Editor
-layout** offers steps instead, one part at a time, with a summary of what will be sent at the end.
+columns (the song, the words and the sound), everything in view, with the score on a tab of its own.
 
 Closing the window, with **Close**, the cross or Escape, keeps what you typed.
 
@@ -882,9 +881,8 @@ restarts, the job it was running is lost, and it says that too.
 ### The trained LoRA
 
 When training finishes, the LoRA appears in the **Style LoRA** list with its trigger word. Choosing
-it shows a chip for each song it learned from, and clicking one puts that song's style in the Style box. The
-chips sit under the Style box in the editor's columns; with **Editor layout** set to steps, they are on the
-**Sound** step, under the Style LoRA they come from, and a click still writes the Style on the Idea step.
+it shows a chip for each song it learned from, under the Style box, and clicking one puts that song's style in
+the box.
 Past a dozen songs, a filter box and a row of the tags that recur across the corpus (its genres,
 moods and instruments) narrow them; click two tags to find songs with both. The list shows its
 first dozen until **Show all**. See **Balancing Planner and Sound** below for starting strengths. To share it, press **Download LoRA** on the corpus's page, or **Download** under

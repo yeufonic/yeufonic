@@ -2975,7 +2975,7 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 body.rack-over-editor .rack-panel { z-index: 61; }
 body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
 .ed-tabs { display: flex; gap: 4px; margin-left: 0; }
-.ed-tabs button, .ed-steps button { border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit;
+.ed-tabs button { border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit;
   font-size: 13.5px; padding: 7px 14px; border-radius: 999px; cursor: pointer; }
 .ed-tabs button.on { color: var(--text); border-color: rgb(var(--accent-a-rgb) / 0.7); background: rgb(var(--accent-a-rgb) / 0.14); }
 .ed-head #editor-close { padding: 7px 16px; font-size: 13.5px; }
@@ -3160,40 +3160,8 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
 .ed-foot #render-status.hidden { display: none; }
 /* A render's progress, when the take in the editor is rendering: the status line's place. */
 .ed-foot #render-job { order: 2; flex: 1; min-width: 0; margin: 0; }
-.ed-foot .ed-prev, .ed-foot .ed-next { order: 0; flex: 0 0 auto; }
-.ed-review { display: grid; grid-template-columns: 170px 1fr; gap: 8px 16px; font-size: 13.5px; max-width: 900px; margin: 0; }
-.ed-review dt { color: var(--muted); }
-.ed-review dd { margin: 0; overflow-wrap: anywhere; }
-.ed-review .bad { color: var(--bad); }
-
-/* Three columns: every step at once, so no Back and Next, no step list, no review page. */
-.editor.layout-columns .ed-steps, .editor.layout-columns .ed-prev, .editor.layout-columns .ed-next { display: none; }
-/* Steps: one part at a time, chosen from the list down the side. */
-.editor.layout-steps .ed-tabs { display: none; }
-.ed-steps { width: 210px; flex: 0 0 auto; border-right: 1px solid var(--line); padding: 18px 14px;
-  display: flex; flex-direction: column; gap: 6px; }
-.ed-steps button { text-align: left; border-radius: 12px; display: flex; gap: 10px; align-items: center; padding: 10px 12px; }
-.ed-steps button .n { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px; border: 1px solid var(--line); flex: 0 0 auto; }
-.ed-steps button.on { color: var(--text); background: rgb(var(--accent-a-rgb) / 0.14); border-color: rgb(var(--accent-a-rgb) / 0.6); }
-.ed-steps button.on .n { background: var(--accent-a); border-color: var(--accent-a); color: #fff; }
-.ed-steps .hint { margin-top: auto; }
-.editor.layout-steps .ed-cols { display: block; max-width: 820px; }
-.editor.layout-steps .ed-col { display: none; }
-.editor.layout-steps .ed-col.on { display: block; }
-/* In the steps layout the player is on every step: in the bottom bar, between the status line and the main button,
-   on one row (title and buttons, then the progress line). */
-.ed-foot .ed-transport.ed-transport-foot { order: 3; flex: 0 1 520px; min-width: 260px; margin: 0; padding: 4px 10px;
-  flex-direction: row; align-items: center; gap: 10px; }
-.ed-foot .ed-transport-foot .ed-transport-top { flex: 0 1 auto; min-width: 0; }
-.ed-foot .ed-transport-foot .ed-np-title { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
-.ed-foot .ed-transport-foot .ed-transport-progress { flex: 1 1 120px; min-width: 80px; width: auto; }
-.ed-foot .ed-transport-foot.hidden { display: none; }
-.editor.layout-steps .ed-words #lyrics { height: 250px; min-height: 250px; max-height: 250px; resize: none; }
-
 @media (max-width: 1100px) {
   .ed-cols { grid-template-columns: 1fr; }
-  .ed-steps { width: 150px; }
 }
 
 /* ------------------------------------------------ folding the take panel away

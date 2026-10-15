@@ -186,14 +186,6 @@
       <button type="button" class="ghost" id="editor-close" title="Close (Esc). What you typed is kept.">Close</button>
     </div>
     <div class="ed-main">
-      <nav class="ed-steps" id="ed-steps" aria-label="Steps">
-        <button type="button" data-edstep="0"><span class="n">1</span><span class="ed-step-name">Idea</span></button>
-        <button type="button" data-edstep="1"><span class="n">2</span><span class="ed-step-name">Words</span></button>
-        <button type="button" data-edstep="2"><span class="n">3</span><span class="ed-step-name">Sound</span></button>
-        <button type="button" data-edstep="3"><span class="n">4</span><span class="ed-step-name">Score</span></button>
-        <button type="button" data-edstep="4"><span class="n">5</span><span class="ed-step-name">Make it</span></button>
-        <p class="hint">Visit the steps in any order. <b>Make it</b> shows what will be sent.</p>
-      </nav>
       <div class="ed-body" id="ed-body">
         <div id="draft-bar" class="draft hidden" role="status">
           <span id="draft-text">Your unsaved words were kept.</span>
@@ -202,7 +194,7 @@
         </div>
 
         <div class="ed-page ed-cols" data-edpage="song">
-          <div class="ed-col" data-edstep="0">
+          <div class="ed-col">
             <h4>The song</h4>
             <div class="field">
               <label>Song title</label>
@@ -269,7 +261,7 @@
             </div>
 
           </div>
-          <div class="ed-col ed-words" data-edstep="1">
+          <div class="ed-col ed-words">
             <h4 id="ed-words-head">The words</h4>
             <div class="field" id="song-structure-field" style="display:none">
               <div class="label-row">
@@ -355,7 +347,7 @@
             </div>
 
           </div>
-          <div class="ed-col" data-edstep="2">
+          <div class="ed-col">
             <h4>The sound</h4>
             <div class="field" id="harmony-field">
               <div class="label-row">
@@ -475,7 +467,7 @@
 
           </div>
         </div>
-        <div class="ed-page ed-score hidden" data-edpage="score" data-edstep="3">
+        <div class="ed-page ed-score hidden" data-edpage="score">
         <details id="score-box" class="block">
           <summary>
             <span id="score-label">Score</span> <span id="score-badge" class="badge">no score</span>
@@ -505,14 +497,9 @@
         </details>
 
         </div>
-        <div class="ed-page hidden" data-edpage="review" data-edstep="4">
-          <dl class="ed-review" id="ed-review"></dl>
-        </div>
       </div>
     </div>
     <div class="ed-foot">
-      <button type="button" class="ghost ed-prev" id="ed-prev">Back</button>
-      <button type="button" class="ghost ed-next" id="ed-next">Next</button>
       <label class="check" id="auto-wrap"><input id="auto-render" type="checkbox"> render as soon as the plan is ready</label>
       <button id="create-cover" class="primary">Create cover</button>
       <button id="create-song" class="primary" style="display:none">Write score plan</button>

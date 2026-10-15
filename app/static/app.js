@@ -932,7 +932,7 @@ function paintStyleLoraNote() {
       : 'Starts at <b>' + pair + '</b>.');
   }
   if (item.styles && item.styles.length) {
-    parts.push('<b>Learned styles:</b> ' + item.styles.length + ' corpus songs. Click any of its style chips to write that sound into the Style.');
+    parts.push('<b>Learned styles:</b> ' + item.styles.length + ' corpus songs. Click any style chip under the Style box to write in that sound.');
   }
   if (item.note) { parts.push(esc(plainNote(item.note)).replace(/\n/g, '<br>')); }
   // What the file needs to do anything, and whether it currently is.
@@ -8009,8 +8009,7 @@ function paintPresets() {
       wrap.classList.remove('hidden');
       // Its own name: the group is shared by every corpus LoRA.
       var artistName = lora.title || lora.family || lora.name.replace(/\.safetensors$/, '');
-      labelEl.textContent = 'Learned styles for ' + artistName +
-        (editorLayout() === 'steps' ? ' (click one to write it into the Style, on the Idea step):' : ' (click to apply):');
+      labelEl.textContent = 'Learned styles for ' + artistName + ' (click to apply):';
       var styles = loraStylesShown(lora, wrap, loraBox);
       var loraHtml = styles.shown.map(function (s) {
         var prompt = loraStylePrompt(s);
@@ -14369,13 +14368,11 @@ function paintSheet() {
    score on a tab of its own, or steps, as Settings chooses. The controls are the ones
    the left panel used to hold, so everything they do works as it did. */
 
-function editorLayout() { return setting('editor.layout', 'columns') === 'steps' ? 'steps' : 'columns'; }
 function editorOpen() { return Boolean($('editor-modal')) && !$('editor-modal').classList.contains('hidden'); }
 
 function openEditor(where) {
   if (!$('editor-modal')) { return; }
   Editor.page = where === 'score' ? 'score' : 'song';
-  Editor.step = { words: 1, sound: 2, score: 3 }[where] || 0;
   $('editor-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   paintEditor();
@@ -14399,111 +14396,18 @@ function paintEditor() {
   var ed = $('editor');
   if (!ed) { return; }
   setScoreActions();   // the main button's words follow the mode and the words
-  var steps = editorLayout() === 'steps';
-  ed.classList.toggle('layout-steps', steps);
-  ed.classList.toggle('layout-columns', !steps);
-  var page = steps ? (Editor.step === 3 ? 'score' : (Editor.step === 4 ? 'review' : 'song')) : Editor.page;
+  var page = Editor.page;
   Array.prototype.forEach.call(ed.querySelectorAll('[data-edpage]'), function (el) {
     el.classList.toggle('hidden', el.dataset.edpage !== page);
-  });
-  Array.prototype.forEach.call(ed.querySelectorAll('.ed-col'), function (el) {
-    el.classList.toggle('on', Number(el.dataset.edstep) === Editor.step);
   });
   Array.prototype.forEach.call(ed.querySelectorAll('#ed-tabs [data-edtab]'), function (b) {
     b.classList.toggle('on', b.dataset.edtab === Editor.page);
   });
-  Array.prototype.forEach.call(ed.querySelectorAll('#ed-steps [data-edstep]'), function (b) {
-    b.classList.toggle('on', Number(b.dataset.edstep) === Editor.step);
-  });
-  var names = [State.mode === 'cover' ? 'Recording and style' : 'Idea', State.mode === 'inst' ? 'Structure' : 'Words', 'Sound', 'Score', 'Make it'];
-  Array.prototype.forEach.call(ed.querySelectorAll('#ed-steps .ed-step-name'), function (el, i) { el.textContent = names[i]; });
   if ($('ed-words-head')) { $('ed-words-head').textContent = State.mode === 'inst' ? 'The structure' : 'The words'; }
   if ($('ed-bar')) { $('ed-bar').className = 'ed-bar ' + ({ song: 'song', inst: 'inst' }[State.mode] || 'cover'); }
-  $('ed-prev').disabled = Editor.step === 0;
-  $('ed-next').disabled = Editor.step === 4;
   if (page === 'score') { $('score-box').open = true; }
-  if (page === 'review') { paintEditorReview(); }
   paintWriteJob(State.currentJob, []);
-  placeLoraStyles(steps);
-  placeEdTransport(steps);
   paintEdTransport();
-}
-
-/* The window's player belongs to every step: in the columns layout it sits in the words column, in the steps layout
-   (where only one step's part shows) in the window's bottom bar, between the status line and the main button, on
-   every step.  Its place in the words column is kept by a marker, so it goes back there when the layout changes. */
-/* A style LoRA's learned styles and corpus songs sit under the Style box in the columns layout.  In the steps layout,
-   where the Style and the LoRA are on different steps, they go to the Sound step under the LoRA they belong to (a
-   click still writes the Style); a marker keeps their place by the Style box. */
-function placeLoraStyles(steps) {
-  var block = $('lora-presets-wrap'), hint = $('style-lora-hint');
-  if (!block || !hint) { return; }
-  var home = $('lora-presets-home');
-  if (!home) {
-    home = document.createElement('span');
-    home.id = 'lora-presets-home';
-    home.hidden = true;
-    block.parentNode.insertBefore(home, block);
-  }
-  if (steps && block.previousSibling !== hint) {
-    hint.parentNode.insertBefore(block, hint.nextSibling);
-  } else if (!steps && block.previousSibling !== home) {
-    home.parentNode.insertBefore(block, home.nextSibling);
-  }
-  paintPresets();     // its heading says where a click writes
-}
-
-function placeEdTransport(steps) {
-  var player = $('ed-transport'), body = document.querySelector('#editor .ed-foot');
-  if (!player || !body) { return; }
-  var home = $('ed-transport-home');
-  if (!home) {
-    home = document.createElement('span');
-    home.id = 'ed-transport-home';
-    home.hidden = true;
-    player.parentNode.insertBefore(home, player);
-  }
-  if (steps && player.parentNode !== body) {
-    body.appendChild(player);
-  } else if (!steps && player.previousSibling !== home) {
-    home.parentNode.insertBefore(player, home.nextSibling);
-  }
-  player.classList.toggle('ed-transport-foot', steps);
-}
-
-/* Steps: what will be sent, and anything that stops it. */
-function paintEditorReview() {
-  var mode = State.mode;
-  var problem = mode === 'cover' ? coverProblem() : (mode === 'inst' ? instProblem() : songProblem());
-  var lines = ($('lyrics').value || '').split('\n').filter(function (l) { return l.trim() && !/^\s*\[.*\]\s*$/.test(l); });
-  var lora = $('style-lora') ? $('style-lora').value : '';
-  var rows = [['Making', { cover: 'a cover of a recording', song: 'a song from a prompt', inst: 'an instrumental' }[mode]],
-              ['Title', esc($('title').value) || '<span class="muted">from the first lyric line</span>']];
-  if (mode === 'cover') {
-    var source = sourceById($('source-select').value);
-    rows.push(['Recording', source ? esc(source.title || source.filename) : '<span class="bad">none chosen</span>']);
-  }
-  rows.push(['Style', esc($('style').value) || '<span class="muted">none</span>']);
-  rows.push(mode === 'inst' ? ['Structure', esc(($('structure-preview') || {}).textContent || '')] : ['Words', lines.length + ' lines']);
-  if (mode !== 'cover') {
-    rows.push(['Harmony', esc($('harmony-word').textContent)]);
-    rows.push(['Plan variety', esc($('variety').value)]);
-  }
-  rows.push(['Interpretation', (INTERPRETATIONS[$('interpretation').value] || INTERPRETATIONS.standard).name]);
-  rows.push(['Style LoRA', lora ? esc(lora.replace(/\.safetensors$/, '')) + ' <span class="muted">(planner ' +
-    Number($('style-lora-clip').value).toFixed(2) + ', sound ' + Number($('style-lora-model').value).toFixed(2) + ')</span>' : 'none']);
-  rows.push(['Length cap', esc($('max-duration').value) + ' s']);
-  rows.push(['Seed', $('seed-fixed').checked ? esc($('seed').value) : 'a new one']);
-  rows.push(['Production polish', $('realaudio').checked ? 'on' : 'off']);
-  rows.push(['Score', keepTune() ? 'this take\'s, sung with the new words as a new take'
-    : ($('abc').value.trim().length > 50 && !wordsChanged() ? 'ready, as it stands on the Score step'
-    : (mode === 'cover' ? 'from the recording' : 'written first, then sung'))]);
-  if (State.training) {
-    rows.push(['GPU status', '<span class="bad">Reserved for training LoRA \u201c' + esc(State.training.lora_name || 'custom') + '\u201d</span>']);
-  } else if (problem) {
-    rows.push(['Before it can be made', '<span class="bad">' + esc(problem) + '</span>']);
-  }
-  $('ed-review').innerHTML = rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('');
 }
 
 /* After the main button: a render is queued, so the window closes and the card shows
@@ -14539,15 +14443,7 @@ function wireEditor() {
     Editor.page = button.dataset.edtab;
     paintEditor();
   });
-  $('ed-steps').addEventListener('click', function (event) {
-    var button = event.target.closest('[data-edstep]');
-    if (!button) { return; }
-    Editor.step = Number(button.dataset.edstep);
-    paintEditor();
-  });
-  $('ed-prev').addEventListener('click', function () { Editor.step = Math.max(0, Editor.step - 1); paintEditor(); });
-  $('ed-next').addEventListener('click', function () { Editor.step = Math.min(4, Editor.step + 1); paintEditor(); });
-  // The mode buttons change what the window shows: its colour, its headings, its steps.
+  // The mode buttons change what the window shows: its colour and its headings.
   Array.prototype.forEach.call(document.querySelectorAll('.modes .mode'), function (button) {
     button.addEventListener('click', function () { setTimeout(paintEditor, 0); });
   });
