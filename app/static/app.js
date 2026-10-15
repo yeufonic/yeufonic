@@ -932,7 +932,7 @@ function paintStyleLoraNote() {
       : 'Starts at <b>' + pair + '</b>.');
   }
   if (item.styles && item.styles.length) {
-    parts.push('<b>Learned styles:</b> ' + item.styles.length + ' corpus songs. Click any style chip under the Style box to write in that sound.');
+    parts.push('<b>Learned styles:</b> ' + item.styles.length + ' corpus songs. Click any of its style chips to write that sound into the Style.');
   }
   if (item.note) { parts.push(esc(plainNote(item.note)).replace(/\n/g, '<br>')); }
   // What the file needs to do anything, and whether it currently is.
@@ -8009,7 +8009,8 @@ function paintPresets() {
       wrap.classList.remove('hidden');
       // Its own name: the group is shared by every corpus LoRA.
       var artistName = lora.title || lora.family || lora.name.replace(/\.safetensors$/, '');
-      labelEl.textContent = 'Learned styles for ' + artistName + ' (click to apply):';
+      labelEl.textContent = 'Learned styles for ' + artistName +
+        (editorLayout() === 'steps' ? ' (click one to write it into the Style, on the Idea step):' : ' (click to apply):');
       var styles = loraStylesShown(lora, wrap, loraBox);
       var loraHtml = styles.shown.map(function (s) {
         var prompt = loraStylePrompt(s);
@@ -14423,6 +14424,7 @@ function paintEditor() {
   if (page === 'score') { $('score-box').open = true; }
   if (page === 'review') { paintEditorReview(); }
   paintWriteJob(State.currentJob, []);
+  placeLoraStyles(steps);
   placeEdTransport(steps);
   paintEdTransport();
 }
@@ -14430,6 +14432,27 @@ function paintEditor() {
 /* The window's player belongs to every step: in the columns layout it sits in the words column, in the steps layout
    (where only one step's part shows) in the window's bottom bar, between the status line and the main button, on
    every step.  Its place in the words column is kept by a marker, so it goes back there when the layout changes. */
+/* A style LoRA's learned styles and corpus songs sit under the Style box in the columns layout.  In the steps layout,
+   where the Style and the LoRA are on different steps, they go to the Sound step under the LoRA they belong to (a
+   click still writes the Style); a marker keeps their place by the Style box. */
+function placeLoraStyles(steps) {
+  var block = $('lora-presets-wrap'), hint = $('style-lora-hint');
+  if (!block || !hint) { return; }
+  var home = $('lora-presets-home');
+  if (!home) {
+    home = document.createElement('span');
+    home.id = 'lora-presets-home';
+    home.hidden = true;
+    block.parentNode.insertBefore(home, block);
+  }
+  if (steps && block.previousSibling !== hint) {
+    hint.parentNode.insertBefore(block, hint.nextSibling);
+  } else if (!steps && block.previousSibling !== home) {
+    home.parentNode.insertBefore(block, home.nextSibling);
+  }
+  paintPresets();     // its heading says where a click writes
+}
+
 function placeEdTransport(steps) {
   var player = $('ed-transport'), body = document.querySelector('#editor .ed-foot');
   if (!player || !body) { return; }

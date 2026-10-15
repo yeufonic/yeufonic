@@ -37,6 +37,10 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **Steps layout: a LoRA's learned styles on the Sound step.** With the editor laid out in steps, the style chips and corpus songs of the chosen style LoRA sat on the Idea step, under the Style box, while the LoRA is chosen on the Sound step. They now sit on the Sound step, under the LoRA they come from; a click still writes that sound into the Style. The columns layout keeps them under the Style box.
+
 ## 0.0.44 (2026-10-14)
 
 - **A picture for each take.** Each new take gets a picture of the song, made once no song is being made when it is drawn on this PC (so it never holds up a plan or a render) and while the take renders when an external LLM draws it, and shown faintly behind the take's card, across the top of the take panel when it is chosen, and behind the editor when the take is open there; a take made inside another shows that one's. It is described from the take's title, style and opening words with no LLM, drawn on white, and the app takes the white out: drawn on this PC a picture takes a few seconds and needs nothing but FLUX.2 [klein]. It is drawn on this PC by FLUX.2 klein 4B, a new install option (**FLUX.2 [klein]**, unticked, about 8 GB; `fetch-models.sh --pictures` for Docker), or by the external LLM's image model where the provider lists one; with neither, Settings says **No pictures**, the default background, and how to have them, until something that can draw is there. The editor's **Picture** button makes a new one or goes back to the default background, for good. Settings turn pictures off, choose who draws (this PC first), who describes (the take itself by default, or Local Gemma or the external LLM, slower) and which image model. The description leaves out real names, which an image model will not draw, and asks for soft lettering.
