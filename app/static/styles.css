@@ -612,6 +612,33 @@ a.menu-item { text-decoration: none; box-sizing: border-box; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .confirm-actions button { width: auto; margin-top: 0; padding: 9px 18px; font-size: 13.5px; }
 
+#hotkeys-modal { z-index: 70; }
+.modal-box.hotkeys-box { width: min(600px, 100%); height: auto; max-height: 85vh; gap: 14px; }
+.hotkeys-body { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 2px; }
+.hotkeys-sec h3 {
+  font-size: 11.5px; color: var(--text); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  margin: 0 0 6px; padding: 5px 10px; border-radius: 8px;
+  background: color-mix(in srgb, color-mix(in srgb, var(--panel) 86%, var(--text) 14%) 70%, transparent);
+}
+.hotkeys-grid { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.hotkey-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; border-radius: 6px; gap: 14px; }
+.hotkey-row:hover { background: rgb(var(--ink) / 0.04); }
+.hotkey-row .hk-keys { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; font-size: 12px; }
+.hotkey-row .hk-desc { color: var(--muted); text-align: right; }
+kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.25;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card-2);
+  color: var(--text);
+  box-shadow: 0 1px 0 rgb(var(--shade) / 0.4);
+  display: inline-block;
+  white-space: nowrap;
+}
+
 #update-modal { z-index: 70; }
 .modal-box.update-modal-box { width: min(480px, 100%); height: auto; gap: 14px; }
 .update-modal-body { font-size: 13.5px; line-height: 1.55; color: var(--text); }

@@ -41,6 +41,10 @@
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span>Guide</span>
       </a>
+      <button id="menu-hotkeys" class="menu-item" role="menuitem">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/></svg>
+        <span>Hot keys</span>
+      </button>
       <button id="menu-settings" class="menu-item" role="menuitem">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>Settings</span>
@@ -642,6 +646,66 @@
       <a href="https://github.com/yeufonic/yeufonic/blob/main/THIRD_PARTY_NOTICES.md" data-external>THIRD_PARTY_NOTICES.md</a>).
       You are responsible for reviewing the upstream model terms and ensuring that your use and any
       distribution or monetization of generated audio complies with those licenses.</p>
+  </div>
+</div>
+
+<div id="hotkeys-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="hotkeys-title">
+  <div class="modal-box narrow hotkeys-box">
+    <div class="modal-head">
+      <strong id="hotkeys-title">Hot keys</strong>
+      <button id="hotkeys-close" class="ghost" title="Close (Esc or ?)">Close</button>
+    </div>
+    <div class="hotkeys-body">
+      <div class="hotkeys-sec">
+        <h3>Main page &amp; Player</h3>
+        <div class="hotkeys-grid">
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Space</kbd></span><span class="hk-desc">Play or pause playback</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd></span><span class="hk-desc">Back or forward 5 seconds</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>&uarr;</kbd> <kbd>&darr;</kbd></span><span class="hk-desc">Volume up or down 5%</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>M</kbd></span><span class="hk-desc">Mastering rack for chosen take; again to close</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>E</kbd></span><span class="hk-desc">Open chosen take in editor</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>I</kbd></span><span class="hk-desc">Take details: prompt, seed, tags, with Copy</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>N</kbd></span><span class="hk-desc">Normalise take, or undo normalisation</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>V</kbd></span><span class="hk-desc">Variations on chosen take</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>T</kbd></span><span class="hk-desc">Try more takes with chosen take's score</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>S</kbd></span><span class="hk-desc">Star or unstar chosen take</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>D</kbd></span><span class="hk-desc">Delete chosen take, after asking</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>L</kbd></span><span class="hk-desc">System logs; again to close</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>?</kbd></span><span class="hk-desc">Show or hide these hot keys</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Esc</kbd></span><span class="hk-desc">Close window, rack, menu, or modal in front</span></div>
+        </div>
+      </div>
+      <div class="hotkeys-sec">
+        <h3>Score Editor &amp; Piano Roll</h3>
+        <div class="hotkeys-grid">
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Space</kbd></span><span class="hk-desc">Play or pause score playback</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd></span><span class="hk-desc">Step back or forward one bar</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Home</kbd></span><span class="hk-desc">Return playhead to start</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>C</kbd> or <kbd>M</kbd></span><span class="hk-desc">Toggle metronome click</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>H</kbd></span><span class="hk-desc">Toggle chord harmony accompaniment</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>L</kbd></span><span class="hk-desc">Edit lyric for selected note</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>V</kbd></span><span class="hk-desc">Toggle note voice (lead / harmony)</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Del</kbd> / <kbd>Backspace</kbd></span><span class="hk-desc">Delete selected note(s)</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd></span><span class="hk-desc">Undo edit</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Ctrl</kbd>+<kbd>Y</kbd> / <kbd>Shift</kbd>+<kbd>Z</kbd></span><span class="hk-desc">Redo edit</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd></span><span class="hk-desc">Save score</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd></span><span class="hk-desc">Select all notes across voices</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Alt</kbd>+<kbd>A</kbd></span><span class="hk-desc">Select notes right of playhead</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>+</kbd> / <kbd>-</kbd></span><span class="hk-desc">Zoom in or out timeline scale</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>F</kbd> or <kbd>0</kbd></span><span class="hk-desc">Fit view / scroll to notes</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Shift</kbd>+<kbd>F</kbd></span><span class="hk-desc">Toggle follow playhead</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Esc</kbd></span><span class="hk-desc">Clear note selection, or close score</span></div>
+        </div>
+      </div>
+      <div class="hotkeys-sec">
+        <h3>Compare Takes</h3>
+        <div class="hotkeys-grid">
+          <div class="hotkey-row"><span class="hk-keys"><kbd>1</kbd>&ndash;<kbd>9</kbd></span><span class="hk-desc">Switch active comparison take</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Space</kbd></span><span class="hk-desc">Play or pause</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd></span><span class="hk-desc">Back or forward 5 seconds</span></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 

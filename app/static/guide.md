@@ -1262,11 +1262,12 @@ bar saying why.
 | S | star the take, or unstar it |
 | D | delete the take, after asking, as its bin does |
 | L | the logs; again to close them |
+| ? | show or hide the hot keys; again to close |
 | Escape | close the window in front: the logs first, then the mastering rack over the editor, then the editor or any other window |
 
 The letter keys do nothing while you are typing in a box, while a window is open in front, or with Ctrl,
 Alt or the Windows or Command key held, so the browser's own shortcuts (Ctrl+L, Ctrl+S and the rest)
-still work. A button's tip names its key, as in **Variations (V)**.
+still work. A button's tip names its key, as in **Variations (V)**. Press **?** at any time to display the list of hot keys.
 
 In the editor window, Space and the arrows work the window's player, for the take open there, whenever its player
 shows: on every step, and with the mastering rack open over it. They never act while you are typing in a box,

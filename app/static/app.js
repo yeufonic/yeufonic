@@ -5274,6 +5274,43 @@ function wireAbout() {
   });
 }
 
+function openHotkeys() {
+  var modal = $('hotkeys-modal');
+  if (modal) { modal.classList.remove('hidden'); }
+}
+
+function closeHotkeys() {
+  var modal = $('hotkeys-modal');
+  if (modal) { modal.classList.add('hidden'); }
+}
+
+function toggleHotkeys() {
+  var modal = $('hotkeys-modal');
+  if (!modal) { return; }
+  if (modal.classList.contains('hidden')) {
+    openHotkeys();
+  } else {
+    closeHotkeys();
+  }
+}
+
+function wireHotkeys() {
+  var item = $('menu-hotkeys');
+  if (item) {
+    item.addEventListener('click', function (event) {
+      event.stopPropagation();
+      closeBrandMenu();
+      openHotkeys();
+    });
+  }
+  var modal = $('hotkeys-modal');
+  if (!modal) { return; }
+  if ($('hotkeys-close')) { $('hotkeys-close').addEventListener('click', closeHotkeys); }
+  modal.addEventListener('click', function (event) {
+    if (backdropClick(event, modal)) { closeHotkeys(); }
+  });
+}
+
 function closeBrandMenu() {
   var menu = $('brand-menu');
   if (menu) { menu.classList.add('hidden'); }
@@ -13863,6 +13900,7 @@ function wire() {
     });
   }
   wireAbout();
+  wireHotkeys();
   wireDetails();
   var menuSettings = $('menu-settings');
   if (menuSettings) {
@@ -14081,6 +14119,7 @@ function wire() {
     if (event.key === 'Escape' && $('brand-menu') && !$('brand-menu').classList.contains('hidden')) { closeBrandMenu(); return; }
     if (event.key === 'Escape' && $('details-modal') && !$('details-modal').classList.contains('hidden')) { closeDetails(); return; }
     if (event.key === 'Escape' && $('about-modal') && !$('about-modal').classList.contains('hidden')) { closeAbout(); return; }
+    if (event.key === 'Escape' && $('hotkeys-modal') && !$('hotkeys-modal').classList.contains('hidden')) { closeHotkeys(); return; }
     if (event.key === 'Escape' && !$('sung-modal').classList.contains('hidden')) { closeSungWarning(); return; }
     if (event.key === 'Escape' && !$('move-modal').classList.contains('hidden')) { closeMoveModal(); return; }
     var idModal = $('identities-modal') || $('personas-modal');
@@ -14234,6 +14273,11 @@ function wire() {
     var aimed = (event.target && event.target.tagName) || '';
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || /^(INPUT|TEXTAREA|SELECT)$/.test(aimed) ||
         (event.target && event.target.isContentEditable)) { return; }
+    if (event.key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      toggleHotkeys();
+      return;
+    }
     // The editor window, alone (or with the mastering rack over it), has the player's keys too, for the take in
     // the window, whenever its player shows: typing is already left alone above.  Any other window in front
     // keeps them, and the letter keys are the main page's only.
