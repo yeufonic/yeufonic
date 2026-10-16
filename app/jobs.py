@@ -431,6 +431,7 @@ artwork.engine_options = lambda: ENGINE.options or {}
 # Pictures described by the external LLM run beside the GPU lane; each task is held here until it ends.
 _ART_TASKS: set = set()
 _ART_CHECK: list = []
+_ART_DRAWER_FALLBACK: set[str] = set()
 
 
 # Pictures that need the GPU (Gemma describing, FLUX.2 klein drawing) wait here, apart from the song work: the
@@ -478,7 +479,8 @@ def art_for_new_take(take_id: str) -> None:
 
 async def run_art(take_id: str) -> None:
     """A take's picture: the description (made from the take, written by Gemma on the engine, or by the external
-    LLM), the drawing (FLUX.2 klein on the engine or the external image model), then the white background taken out."""
+    LLM), the drawing (FLUX.2 klein on the engine or the external image model), then the white background taken out.
+    If the external LLM or image model fails (429, unavailable, quota reached), gracefully falls back to local models."""
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         artwork.STATE.pop(take_id, None)
@@ -490,29 +492,71 @@ async def run_art(take_id: str) -> None:
             description = artwork.take_description(take)
             writer = "its own title, style and words"
         elif writes == "gemma":
-            job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31))
-            description = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
-            writer = "Gemma on this PC"
+            try:
+                job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31))
+                description = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
+                writer = "Gemma on this PC"
+            except ArtYielded:
+                raise
+            except Exception as exc:
+                log.warning("Gemma failed to describe picture for '%s' (%s): %s; falling back to take description",
+                            take.get("title"), take_id, exc)
+                description = artwork.take_description(take)
+                writer = "its own title, style and words (Gemma failed)"
         else:
-            description = await artwork.describe_external(take)
-            writer = llm.get_config()["model"]
+            try:
+                description = await artwork.describe_external(take)
+                writer = llm.get_config()["model"]
+            except Exception as exc:
+                log.warning("External LLM failed to describe picture for '%s' (%s): %s; falling back to take description",
+                            take.get("title"), take_id, exc)
+                artwork.record_external_words_failure(str(exc))
+                description = artwork.take_description(take)
+                writer = f"its own title, style and words ({llm.get_config().get('model', 'external LLM')} failed)"
         if not description:
-            raise RuntimeError("the LLM wrote no description")
+            description = artwork.take_description(take)
+            writer = "its own title, style and words"
         log.info("Picture for '%s' (%s): %s", take.get("title"), take_id, description[:200])
         artwork.STATE[take_id]["state"] = "drawing"
         drawer = artwork.drawer()
+        if drawer == "external" and take_id in _ART_DRAWER_FALLBACK:
+            drawer = "local"
         if drawer == "local":
+            if songs_in_flight():
+                log.info("Picture for '%s' (%s) waits for song work to finish before drawing on engine", take.get("title"), take_id)
+                artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
+                if take_id not in ART_WAITING:
+                    ART_WAITING.append(take_id)
+                return
             drawn = await _draw_on_engine(take_id, description)
             painter = "FLUX.2 klein on this PC"
         elif drawer == "external":
-            drawn = await artwork.draw(description)
-            painter = artwork.image_model()
+            try:
+                drawn = await artwork.draw(description)
+                painter = artwork.image_model()
+            except Exception as exc:
+                if artwork.local_ready():
+                    log.warning("External image model (%s) failed to draw picture for '%s' (%s): %s; falling back to FLUX.2 klein on this PC",
+                                artwork.image_model(), take.get("title"), take_id, exc)
+                    artwork.record_external_draw_failure(str(exc))
+                    _ART_DRAWER_FALLBACK.add(take_id)
+                    if songs_in_flight():
+                        log.info("Picture for '%s' (%s) waits for song work to finish before drawing on engine", take.get("title"), take_id)
+                        artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
+                        if take_id not in ART_WAITING:
+                            ART_WAITING.append(take_id)
+                        return
+                    drawn = await _draw_on_engine(take_id, description)
+                    painter = f"FLUX.2 klein on this PC ({artwork.image_model()} failed)"
+                else:
+                    raise
         else:
             raise RuntimeError(artwork.drawing_problem() or "nothing here can draw a picture")
         artwork.STATE[take_id]["state"] = "cutting"
         picture = await asyncio.to_thread(artwork.cut_out, drawn)
         await asyncio.to_thread(artwork.keep, take_id, description, drawn, picture, painter, writer)
         artwork.STATE.pop(take_id, None)
+        _ART_DRAWER_FALLBACK.discard(take_id)
         log.info("Picture for '%s' (%s) is ready", take.get("title"), take_id)
     except ArtYielded:
         # Song work came in while it was being made: back to the front of the line, to start again once the
@@ -522,6 +566,7 @@ async def run_art(take_id: str) -> None:
         if take_id not in ART_WAITING:
             ART_WAITING.appendleft(take_id)
     except Exception as exc:  # noqa: BLE001
+        _ART_DRAWER_FALLBACK.discard(take_id)
         log.warning("Picture for %s failed: %s", take_id, exc)
         artwork.STATE[take_id] = {"state": "failed", "error": str(exc)}
 
@@ -718,11 +763,19 @@ async def run_job(kind: str, ref_id: str) -> None:
                 return
             except Exception as exc:
                 log.exception("External LLM lyrics generation failed for draft %s: %s", ref_id, exc)
-                fail(kind, ref_id, f"external LLM failed: {exc}")
-                return
+                if ENGINE.options_loaded and ENGINE.options.get("lyrics"):
+                    warn_msg = f"External LLM failed ({exc}); drafting with local Gemma instead"
+                    log.warning("Falling back to local Gemma for lyrics draft %s: %s", ref_id, warn_msg)
+                    record["warning"] = warn_msg
+                else:
+                    fail(kind, ref_id, f"external LLM failed: {exc}")
+                    return
             finally:
                 CURRENT.clear()
                 CANCELLED.discard(ref_id)
+        if ref_id in CANCELLED:
+            fail(kind, ref_id, "cancelled")
+            return
         log.info("Starting lyrics generation for draft %s (structure=%s)", ref_id, record.get("structure"))
         graph = build_lyrics_graph(record)
     elif kind == "transcribe":
@@ -1810,6 +1863,7 @@ async def run_identity_job(kind: str, song_id: str) -> None:
             # With no words, the external model has only a title; the local one listens to the music.
             owner = one("SELECT voice FROM identities WHERE id = ?", (song.get("identity_id") or song.get("persona_id"),)) or {}
             listens = identities.vocalless(owner.get("voice")) and bool(ENGINE.options.get("lyrics"))
+            hint = None
             if llm.is_external_enabled() and not listens:
                 # The title and the words only.  No artist: the corpus's name is whatever
                 # the user called the folder, and a model can read it as an unrelated band
@@ -1818,10 +1872,17 @@ async def run_identity_job(kind: str, song_id: str) -> None:
                 title = song.get("title") or song_title
                 lyrics_text = song.get("lyrics") or ""
                 log.info("Starting external LLM style analysis for corpus song '%s' (%s)", title, song_id)
-                hint = await llm.describe_song_style(title=title, lyrics_text=lyrics_text)
-                set_song(song_id, style_hint=hint, style_state="done")
-                log.info("Finished external LLM style analysis for corpus song '%s': %s", song_title, hint[:60] + "..." if len(hint) > 60 else hint)
-            else:
+                try:
+                    hint = await llm.describe_song_style(title=title, lyrics_text=lyrics_text)
+                    set_song(song_id, style_hint=hint, style_state="done")
+                    log.info("Finished external LLM style analysis for corpus song '%s': %s", song_title, hint[:60] + "..." if len(hint) > 60 else hint)
+                except Exception as exc:
+                    log.warning("External LLM style analysis failed for corpus song '%s' (%s): %s", title, song_id, exc)
+                    if ENGINE.options_loaded and ENGINE.options.get("lyrics"):
+                        log.info("Falling back to local Gemma style analysis for corpus song '%s'", song_title)
+                    else:
+                        raise
+            if hint is None:
                 # Gemma is optional (the Windows installer can leave it out).  Without it
                 # the engine cannot run this, and says so only in its own terms.
                 if ENGINE.options_loaded and not ENGINE.options.get("lyrics"):

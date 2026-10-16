@@ -21,9 +21,11 @@ def fresh_memory():
     """What the module remembers (the provider check, pictures being made) starts empty in every test."""
     artwork._EXTERNAL.clear()
     artwork.STATE.clear()
+    artwork.clear_failures()
     yield
     artwork._EXTERNAL.clear()
     artwork.STATE.clear()
+    artwork.clear_failures()
 
 
 def a_take(**fields):
@@ -148,12 +150,13 @@ def test_the_job_keeps_the_picture_and_its_description(client, monkeypatch):
 
 def test_a_failed_picture_says_why_and_leaves_the_take_alone(client, monkeypatch):
     take = a_take()
-    monkeypatch.setattr(artwork, "describer", lambda: "external")
+    monkeypatch.setattr(artwork, "describer", lambda: "take")
+    monkeypatch.setattr(artwork, "drawer", lambda: "external")
 
-    async def describe(record):
-        raise RuntimeError("the LLM is away")
+    async def draw(description):
+        raise RuntimeError("the image model is away")
 
-    monkeypatch.setattr(artwork, "describe_external", describe)
+    monkeypatch.setattr(artwork, "draw", draw)
     asyncio.run(jobs.run_art(take["id"]))
     got = client.get(f"/api/takes/{take['id']}/art").json()
     assert got["state"] == "failed" and "away" in got["error"] and not got["has"]
@@ -327,7 +330,7 @@ def test_the_flux_graph_is_comfyuis_own_klein_workflow():
                 assert value[0] in graph
 
 
-def test_the_provider_is_asked_whether_it_has_the_image_model(client, monkeypatch):
+def test_the_provider_is_asked_whether_it_has_the_image_model(monkeypatch):
     set_setting("llm.provider", "external")
     set_setting("llm.api_url", "https://generativelanguage.googleapis.com")
     set_setting("llm.api_key", "a-key")
@@ -472,8 +475,10 @@ def test_a_running_picture_steps_aside_when_song_work_comes_in(client, monkeypat
     front of its line, to start again when the GPU is free."""
     async def nothing_yet(prompt_id):
         return None
+    real_sleep = asyncio.sleep
+
     async def no_wait(seconds):
-        return None
+        await real_sleep(0.001)
     monkeypatch.setattr(jobs.ENGINE, "history", nothing_yet)
     monkeypatch.setattr(jobs.asyncio, "sleep", no_wait)
     monkeypatch.setattr(jobs.ENGINE, "last_contact", time.time() + 3600, raising=False)
@@ -504,3 +509,65 @@ def test_an_idle_worker_notices_a_picture_added_while_it_waits(client, monkeypat
         return await asyncio.wait_for(waiting, timeout=5)
 
     assert asyncio.run(scenario()) == ({"kind": "art", "id": picture["id"]}, False)
+
+
+def test_external_draw_failure_falls_back_to_local_flux(client, monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"pictures": True})
+    monkeypatch.setattr(artwork, "describer", lambda: "take")
+    monkeypatch.setattr(artwork, "drawer", lambda: "external")
+    take = a_take()
+    drawn_on_engine = []
+
+    async def fail_draw(description):
+        raise RuntimeError("the image model (gpt-image-1) said 429: rate limit exceeded")
+
+    async def on_engine(take_id, description):
+        drawn_on_engine.append((take_id, description))
+        return as_file(drawing())
+
+    monkeypatch.setattr(artwork, "draw", fail_draw)
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    asyncio.run(jobs.run_art(take["id"]))
+
+    assert len(drawn_on_engine) == 1
+    got = artwork.info(take["id"])
+    assert got["has"]
+    assert "drawn by FLUX.2 klein on this PC" in got["words"]
+
+
+def test_external_words_failure_falls_back_to_take_description(client, monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"pictures": True})
+    monkeypatch.setattr(artwork, "describer", lambda: "external")
+    monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    take = a_take()
+
+    async def fail_describe(record):
+        raise RuntimeError("External LLM HTTP 429: quota exhausted")
+
+    async def on_engine(take_id, description):
+        return as_file(drawing())
+
+    monkeypatch.setattr(artwork, "describe_external", fail_describe)
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    asyncio.run(jobs.run_art(take["id"]))
+
+    got = artwork.info(take["id"])
+    assert got["has"]
+    assert "its own title, style and words" in got["words"]
+    assert "failed" in got["words"]
+
+
+def test_external_draw_failure_without_flux_fails_job(client, monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {})
+    monkeypatch.setattr(artwork, "describer", lambda: "take")
+    monkeypatch.setattr(artwork, "drawer", lambda: "external")
+    take = a_take()
+
+    async def fail_draw(description):
+        raise RuntimeError("the image model said 429: rate limit exceeded")
+
+    monkeypatch.setattr(artwork, "draw", fail_draw)
+    asyncio.run(jobs.run_art(take["id"]))
+
+    assert artwork.STATE[take["id"]]["state"] == "failed"
+    assert "429" in artwork.STATE[take["id"]]["error"]

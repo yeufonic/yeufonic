@@ -5735,8 +5735,14 @@ async function pollHear(id) {
   if (state.state === 'done') {
     stopHearPoll();
     if (state.lyrics) { await useHeardLyrics(state.lyrics); }
-    statusLine('Wrote down what the recording sings' + (state.method ? ', heard by ' + state.method : '') +
-      '. Read it before you plan.', 'good');
+    var isFallback = state.warning || (state.method && state.method.startsWith('Whisper (') && (state.method.indexOf('could not') !== -1 || state.method.indexOf('held back') !== -1 || state.method.indexOf('failed') !== -1));
+    if (isFallback) {
+      statusLine('Wrote down what the recording sings' + (state.method ? ', heard by ' + state.method : '') +
+        '. Read it before you plan.', 'bad');
+    } else {
+      statusLine('Wrote down what the recording sings' + (state.method ? ', heard by ' + state.method : '') +
+        '. Read it before you plan.', 'good');
+    }
     loadSources();
   } else if (state.state === 'failed') {
     showHearError(state.error === 'cancelled' ? 'Stopped.' : 'Could not hear the words: ' + (state.error || 'unknown'));
@@ -9311,7 +9317,11 @@ function landDraft(draft) {
   saveForm();
   closeWrite();
   writeStatus('');
-  statusLine('Draft lyrics are in the box. Read them and make them yours, then Write score plan.', 'good');
+  if (draft.warning) {
+    statusLine('Draft lyrics are in the box (' + draft.warning + '). Read them and make them yours, then Write score plan.', 'bad');
+  } else {
+    statusLine('Draft lyrics are in the box. Read them and make them yours, then Write score plan.', 'good');
+  }
 }
 
 async function stopWrite() {

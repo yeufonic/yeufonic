@@ -47,6 +47,45 @@ EXTERNAL_RECHECK = 6 * 3600
 # is on disk and needs no entry.
 STATE: dict[str, dict[str, Any]] = {}
 
+EXTERNAL_FAILURE_COOLDOWN = 120.0  # seconds to prefer fallback before trying external again
+_EXTERNAL_DRAW_FAILED_AT: float = 0.0
+_EXTERNAL_WORDS_FAILED_AT: float = 0.0
+
+
+def record_external_draw_failure(reason: str = "") -> None:
+    global _EXTERNAL_DRAW_FAILED_AT
+    _EXTERNAL_DRAW_FAILED_AT = time.time()
+    log.info("Recorded external draw failure (cooldown %.0fs): %s", EXTERNAL_FAILURE_COOLDOWN, reason)
+
+
+def reset_external_draw_failure() -> None:
+    global _EXTERNAL_DRAW_FAILED_AT
+    _EXTERNAL_DRAW_FAILED_AT = 0.0
+
+
+def external_draw_failed() -> bool:
+    return bool(_EXTERNAL_DRAW_FAILED_AT and (time.time() - _EXTERNAL_DRAW_FAILED_AT < EXTERNAL_FAILURE_COOLDOWN))
+
+
+def record_external_words_failure(reason: str = "") -> None:
+    global _EXTERNAL_WORDS_FAILED_AT
+    _EXTERNAL_WORDS_FAILED_AT = time.time()
+    log.info("Recorded external words failure (cooldown %.0fs): %s", EXTERNAL_FAILURE_COOLDOWN, reason)
+
+
+def reset_external_words_failure() -> None:
+    global _EXTERNAL_WORDS_FAILED_AT
+    _EXTERNAL_WORDS_FAILED_AT = 0.0
+
+
+def clear_failures() -> None:
+    reset_external_draw_failure()
+    reset_external_words_failure()
+
+
+def external_words_failed() -> bool:
+    return bool(_EXTERNAL_WORDS_FAILED_AT and (time.time() - _EXTERNAL_WORDS_FAILED_AT < EXTERNAL_FAILURE_COOLDOWN))
+
 
 def art_dir() -> Path:
     return config.DATA_DIR / "art"
@@ -129,6 +168,8 @@ def describer() -> str:
     if chosen == "local":
         return "gemma" if gemma_ready() else "take"
     if chosen == "external":
+        if external_words_failed():
+            return "take"
         return "external" if llm.is_external_enabled() else "take"
     return "take"
 
@@ -232,12 +273,18 @@ async def check_external(force: bool = False) -> bool:
 
 def drawer() -> str | None:
     """Who draws: "local" (FLUX.2 klein on the engine), "external" (the provider's image model), or None when
-    neither is there.  Settings can ask for one; left to choose, this PC is preferred, as it costs nothing."""
+    neither is there.  Settings can ask for one; left to choose, this PC is preferred, as it costs nothing.
+    If external drawing fails or is not ready, falls back to local FLUX.2 klein if available."""
     chosen = (get_setting("art.drawer", "auto") or "auto").strip().lower()
     if chosen in ("local", "auto") and local_ready():
         return "local"
-    if chosen in ("external", "auto") and external_ready():
-        return "external"
+    if chosen in ("external", "auto"):
+        if external_draw_failed() and local_ready():
+            return "local"
+        if external_ready():
+            return "external"
+        if chosen == "external" and local_ready():
+            return "local"
     return None
 
 
@@ -435,10 +482,15 @@ MARGIN = 12           # pixels of clear space kept round the drawing when the pi
 
 def decode(data: bytes) -> np.ndarray:
     """An image file's pixels, height x width x 4 (RGBA)."""
-    import av
-    with av.open(io.BytesIO(data)) as container:
-        frame = next(container.decode(video=0))
-        return frame.to_ndarray(format="rgba")
+    try:
+        import av
+        with av.open(io.BytesIO(data)) as container:
+            frame = next(container.decode(video=0))
+            return frame.to_ndarray(format="rgba")
+    except ImportError:
+        from PIL import Image
+        with Image.open(io.BytesIO(data)) as im:
+            return np.array(im.convert("RGBA"))
 
 
 def _grow(mask: np.ndarray) -> np.ndarray:
