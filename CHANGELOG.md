@@ -39,6 +39,15 @@ cannot creep back in.
 
 ## Unreleased
 
+## 0.0.45 (2026-10-16)
+
+- **Hot keys help overlay.** Pressing **?** (or **Shift + /**) opens an overlay dialog displaying all application keyboard shortcuts grouped by section: main page playback and chosen take actions, the score editor and piano roll, and take comparison. The dialog closes on Escape, on clicking Close or the backdrop, or on pressing **?** again. A **Hot keys** item with a keyboard icon is also in the top-left brand menu. Typing in text fields is left alone so question marks in lyrics, styles and titles are unaffected.
+- **Performance, deduplication and code maintainability.**
+  - **Database transactions & query performance:** wrapped startup initialization in atomic database transactions, optimized single-record lookups to `.fetchone()`, added thread-safe settings locking, and batched N+1 style resolution queries.
+  - **Canonical music theory & lyrics:** centralized pitch, interval and ABC notation conversion in a shared `app/music.py` module, unified section tag synonyms in `app/lyrics.py`, and eliminated circular dependencies.
+  - **Audio & storage speedups:** unified FLAC header parsing to read streaminfo directly across normalization, audio duration and tagging routines without spawning external `ffprobe` processes; cached LoRA metadata by file modification time.
+  - **Engine & frontend rendering:** precalculated harmony bias penalties, cached NVML library handles to avoid reopening the shared library, recycled piano roll key DOM elements to eliminate layout rebuilds, paused mastering rack meter animations when closed, and throttled waveform playback updates.
+
 ### UI enhancements
 
 - **The editor can fill the window.** A button in its top right corner, after Close, makes the editor fill the whole browser window, and a second click puts it back to its usual size. The editor opens the way you last left it. Filling the window, the words column takes its full height: the lyrics box (once there are words in it) and the structure grow into the room, and the player stays at the foot of the column.
