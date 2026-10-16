@@ -18,11 +18,12 @@ const src = fs.readFileSync(here, 'utf8');
 
 function makeEl(id) {
   const el = { id, value: '', textContent: '', innerHTML: '', className: '', checked: false, disabled: false,
-    open: false, files: [], selectionStart: 0, selectionEnd: 0, style: {}, dataset: {},
+    open: false, files: [], options: [], selectionStart: 0, selectionEnd: 0,
+    style: { setProperty() {}, removeProperty() {} }, dataset: {},
     classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
     addEventListener(t, fn) { (el._h[t] = el._h[t] || []).push(fn); },
     dispatchEvent(t) { (el._h[t.type] || []).forEach((f) => f(t)); return true; },
-    closest() { return null; }, scrollIntoView() {}, focus() {}, setAttribute() {},
+    closest() { return null; }, scrollIntoView() {}, focus() {}, blur() {}, remove() {}, setAttribute() {},
     getContext() { return { clearRect() {}, fillRect() {}, fillStyle: '', measureText: () => ({ width: 10 }) }; },
     getBoundingClientRect() { return { left: 0, width: 600, top: 0, height: 44 }; },
     clientWidth: 600, width: 600, height: 44, _h: {}, querySelectorAll() { return []; },
@@ -33,7 +34,8 @@ const els = new Map();
 const document = {
   getElementById(id) { if (!els.has(id)) els.set(id, makeEl(id)); return els.get(id); },
   querySelector(s) { if (!els.has(s)) els.set(s, makeEl(s)); return els.get(s); },
-  querySelectorAll() { return []; }, addEventListener() {}, body: { style: {} }
+  querySelectorAll() { return []; }, addEventListener() {}, body: makeEl('body'),
+  documentElement: makeEl('documentElement')
 };
 
 const LONG = (name) => 'X:1\nT:' + name + '\nM:4/4\nL:1/16\nQ:1/4=100\nK:C\n% intro\n"C"z8|"C"z8|"C"z8|"C"z8|\n';

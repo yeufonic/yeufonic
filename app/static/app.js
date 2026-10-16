@@ -3013,10 +3013,15 @@ function insertTag(tag) {
   var box = $('lyrics-big');
   var text = box.value;
   var start = box.selectionStart;
+  var end = box.selectionEnd;
   var before = text.slice(0, start);
+  var after = text.slice(end !== undefined ? end : start);
   var prefix = (!before || before.endsWith('\n')) ? '' : '\n';
+  if ((!before || before.endsWith('\n')) && after.startsWith('\n')) {
+    after = after.slice(1);
+  }
   var insert = prefix + tag + '\n';
-  box.value = before + insert + text.slice(start);
+  box.value = before + insert + after;
   box.selectionStart = box.selectionEnd = start + insert.length;
   box.focus();
   syncLyricsFromBig();
@@ -5009,6 +5014,7 @@ function backdropChoice() {
 function applyBackdrop(choice) {
   choice = choice || backdropChoice();
   var root = document.documentElement;
+  if (!root) { return; }
   root.classList.toggle('backdrop-hue', choice.on);
   root.style.setProperty('--backdrop-h', String(choice.hue));
   root.style.setProperty('--backdrop-s', String(choice.strength));
@@ -11702,13 +11708,46 @@ function paintEdPicture() {
   if (box) {
     var art = editorOpen() && take && take.art ? take.art : '';
     box.classList.toggle('with-art', Boolean(art));
-    if (art) { box.style.setProperty('--take-art', 'url("' + art.replace(/"/g, '') + '")'); } else { box.style.removeProperty('--take-art'); }
+    if (art) {
+      if (box.style.setProperty) { box.style.setProperty('--take-art', 'url("' + art.replace(/"/g, '') + '")'); }
+    } else {
+      if (box.style.removeProperty) { box.style.removeProperty('--take-art'); }
+    }
   }
+}
+
+// A take's whole picture, over everything; a click anywhere or Escape puts it away (and only it: the editor stays).
+function showPicture(src) {
+  closePicture();
+  var view = document.createElement('div');
+  view.id = 'picture-view';
+  view.className = 'picture-view';
+  view.setAttribute('role', 'dialog');
+  view.setAttribute('aria-label', 'The take\'s picture');
+  view.title = 'Click or press Escape to close';
+  var img = document.createElement('img');
+  img.src = src;
+  img.alt = 'The take\'s picture';
+  view.appendChild(img);
+  view.addEventListener('click', closePicture);
+  document.body.appendChild(view);
+  window.addEventListener('keydown', pictureKey, true);
+}
+function pictureKey(event) {
+  if (event.key !== 'Escape' || !$('picture-view')) { return; }
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  closePicture();
+}
+function closePicture() {
+  var view = $('picture-view');
+  if (view) { if (view.remove) { view.remove(); } else if (view.parentNode) { view.parentNode.removeChild(view); } }
+  window.removeEventListener('keydown', pictureKey, true);
 }
 
 function closePictureMenu() {
   var menu = $('ed-picture-menu');
-  if (menu) { menu.remove(); }
+  if (menu) { if (menu.remove) { menu.remove(); } else if (menu.parentNode) { menu.parentNode.removeChild(menu); } }
   clearTimeout(State.artPoll);
 }
 
@@ -11740,10 +11779,16 @@ async function paintPictureMenu(takeId) {
   var note = making ? ART_STATES[art.state]
     : art.state === 'failed' ? 'The last try failed: ' + (art.error || 'no reason given')
     : art.plain ? 'This take has the default background.' : (art.has ? '' : (shown || 'No picture yet.'));
-  menu.innerHTML = (take.art ? '<img class="ed-picture-thumb" src="' + esc(take.art) + '" alt="">' : '') +
+  menu.innerHTML = (take.art ? '<img class="ed-picture-thumb" src="' + esc(take.art) + '" alt="The take\'s picture" title="Show the whole picture" role="button" tabindex="0">' : '') +
     (note ? '<p class="ed-picture-note' + (art.state === 'failed' ? ' bad' : '') + '">' + esc(note) + '</p>' : '') +
     '<button type="button" role="menuitem" data-pic="make"' + (making || !State.pictures ? ' disabled' : '') + '>Make a new picture</button>' +
     '<button type="button" role="menuitem" data-pic="plain"' + (making || art.plain ? ' disabled' : '') + '>Use the default background</button>';
+  var thumb = menu.querySelector('.ed-picture-thumb');
+  if (thumb) {
+    var whole = function () { var src = take.art; closePictureMenu(); showPicture(src); };
+    thumb.addEventListener('click', whole);
+    thumb.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); whole(); } });
+  }
   menu.querySelectorAll('[data-pic]').forEach(function (button) {
     button.addEventListener('click', async function () {
       var make = this.dataset.pic === 'make';
@@ -14354,7 +14399,11 @@ function paintSheet() {
   var panel = $('sheet-panel'), art = take && take.art ? take.art : '';
   if (panel) {
     panel.classList.toggle('with-art', Boolean(art));
-    if (art) { panel.style.setProperty('--take-art', 'url("' + art.replace(/"/g, '') + '")'); } else { panel.style.removeProperty('--take-art'); }
+    if (art) {
+      if (panel.style.setProperty) { panel.style.setProperty('--take-art', 'url("' + art.replace(/"/g, '') + '")'); }
+    } else {
+      if (panel.style.removeProperty) { panel.style.removeProperty('--take-art'); }
+    }
   }
   var html = sheetHTML(take);
   if (host.dataset.html !== html) {
@@ -14369,6 +14418,24 @@ function paintSheet() {
    the left panel used to hold, so everything they do works as it did. */
 
 function editorOpen() { return Boolean($('editor-modal')) && !$('editor-modal').classList.contains('hidden'); }
+
+// The editor can fill the browser window; the choice is kept for the next time it opens.
+function editorMax() {
+  try { return localStorage.getItem('yue2.editorMax') === '1'; } catch (e) { return false; }
+}
+function setEditorMax(on) {
+  var modal = $('editor-modal'), button = $('editor-max');
+  if (!modal || !button) { return; }
+  modal.classList.toggle('editor-max', on);
+  button.setAttribute('aria-pressed', on ? 'true' : 'false');
+  button.title = on ? 'Back to the usual size' : 'Fill the window';
+  button.setAttribute('aria-label', button.title);
+  if (button.blur) { button.blur(); }
+  try { localStorage.setItem('yue2.editorMax', on ? '1' : '0'); } catch (e) {}
+  if (typeof window !== 'undefined' && window.dispatchEvent && typeof Event === 'function') {
+    window.dispatchEvent(new Event('resize'));
+  }
+}
 
 function openEditor(where) {
   if (!$('editor-modal')) { return; }
@@ -14436,6 +14503,7 @@ function wireEditor() {
     openEditor(act === 'edit' ? 'song' : act);
   });
   $('editor-close').addEventListener('click', closeEditor);
+  if ($('editor-max')) { $('editor-max').addEventListener('click', function () { setEditorMax(!editorMax()); }); setEditorMax(editorMax()); }
   if ($('editor-cancel')) { $('editor-cancel').addEventListener('click', closeEditor); }
   $('ed-tabs').addEventListener('click', function (event) {
     var button = event.target.closest('[data-edtab]');

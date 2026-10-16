@@ -452,6 +452,8 @@ textarea.lyrics { min-height: 200px; font-family: ui-monospace, SFMono-Regular, 
   flex: 1; min-height: 0; resize: none;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; line-height: 1.65;
 }
+.lyrics-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.lyrics-foot #lyrics-close { padding: 6px 18px; font-size: 13px; }
 .small { font-size: 12px; }
 
 /* The Audition button while the recording is playing. */
@@ -1820,7 +1822,7 @@ label .lora-value:disabled { opacity: 0.6; }
 .take.with-art { position: relative; isolation: isolate; }
 .take.with-art::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
-  background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.16);
+  background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.10);
   filter: saturate(var(--take-art-colour, 0.6));   /* its colour toned back: behind the card, not competing with it */
 }
 /* The muted grey lifted towards the text colour: the lettering over a picture.  Worked out here, on the page's root,
@@ -1830,7 +1832,7 @@ label .lora-value:disabled { opacity: 0.6; }
 #editor.with-art { position: relative; isolation: isolate; }
 #editor.with-art::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
-  background: var(--take-art) center / cover no-repeat; opacity: var(--editor-art-strength, 0.16);
+  background: var(--take-art) center / cover no-repeat; opacity: var(--editor-art-strength, 0.10);
 }
 /* The editor's small lettering, with the card's definition (below): its grey lifted towards the text colour, a
    little more weight, and the tight edge in the window's own colour.  The edge is inherited, and the browser
@@ -2943,6 +2945,13 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 .ed-picture-menu .ed-picture-thumb { width: 100%; border-radius: 8px; margin-bottom: 4px;
   background: repeating-conic-gradient(color-mix(in srgb, var(--text) 10%, transparent) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px; }
 .ed-picture-menu .ed-picture-note { margin: 2px 4px 4px; font-size: 12.5px; color: var(--muted); }
+.ed-picture-menu .ed-picture-thumb { cursor: zoom-in; }
+.ed-picture-menu .ed-picture-thumb:hover, .ed-picture-menu .ed-picture-thumb:focus-visible { outline: 2px solid var(--accent-a); outline-offset: 1px; }
+/* A take's whole picture, over the editor: on the window's own colour, as large as the browser allows. */
+.picture-view { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 28px;
+  background: rgb(var(--backdrop-rgb) / 0.82); backdrop-filter: blur(6px); cursor: zoom-out; }
+.picture-view img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px;
+  background: var(--panel); box-shadow: 0 30px 80px rgb(var(--shade) / 0.6); }
 .ed-picture-menu .ed-picture-note.bad { color: var(--bad); }
 .ed-picture-menu button { text-align: left; font: inherit; font-size: 13.5px; padding: 8px 10px; border-radius: 8px; border: 0;
   background: transparent; color: var(--text); cursor: pointer; }
@@ -2981,6 +2990,26 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
   font-size: 13.5px; padding: 7px 14px; border-radius: 999px; cursor: pointer; }
 .ed-tabs button.on { color: var(--text); border-color: rgb(var(--accent-a-rgb) / 0.7); background: rgb(var(--accent-a-rgb) / 0.14); }
 .ed-head #editor-close { padding: 7px 16px; font-size: 13.5px; }
+/* The editor filling the browser window, and back (its button sits after Close) */
+.ed-max-btn { width: 34px; height: 34px; margin-left: -6px; }
+.ed-max-btn .max-off, .ed-max-btn[aria-pressed="true"] .max-on { display: none; }
+.ed-max-btn[aria-pressed="true"] .max-off { display: block; }
+#editor-modal.editor-max { padding: 0; }
+#editor-modal.editor-max .modal-box.editor { width: 100%; height: 100%; max-width: none; max-height: none; border-radius: 0; border: 0; }
+/* Filling the window, the words column has the window's height: the lyrics (once there are any) and the
+   structure take the room, and the player stays at the foot of the column. The other two columns keep
+   their own height, and the window scrolls as before when one of them is the taller. */
+@media (min-width: 1101px) {
+  #editor-modal.editor-max .ed-page.ed-cols { flex: 1 1 0; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+  #editor-modal.editor-max .ed-cols > .ed-col:not(.ed-words) { align-self: start; }
+  #editor-modal.editor-max .ed-words { align-self: stretch; min-height: 0; display: flex; flex-direction: column; }
+  #editor-modal.editor-max #lyrics-field { flex: 0 0 auto; display: flex; flex-direction: column; }
+  #editor-modal.editor-max #lyrics-field:not(:has(#lyrics:placeholder-shown)) { flex: 1 1 auto; min-height: 0; }
+  #editor-modal.editor-max #lyrics-field:not(:has(#lyrics:placeholder-shown)) #lyrics { flex: 1 1 auto; height: auto; max-height: none; }
+  #editor-modal.editor-max #structure-field { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  #editor-modal.editor-max #structure-body { min-height: 0; overflow-y: auto; }
+  #editor-modal.editor-max #ed-transport { margin-top: auto; flex: 0 0 auto; }
+}
 
 #advanced-take-modal {
   z-index: 70;
@@ -3073,7 +3102,7 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
 .ed-page.ed-score { height: 100%; }
 .ed-page.hidden { display: none; }
 .ed-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; align-items: start; }
-.ed-col h4 { margin: 0 0 12px; font-size: 12.5px; color: var(--muted); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.ed-col h4 { margin: 0 0 12px; font-size: 13.5px; color: var(--text); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
 .ed-words #lyrics { height: 250px; min-height: 250px; max-height: 250px; resize: none; overflow-y: auto; }
 /* Mini transport controls in the editor under lyrics */
 .ed-transport {
@@ -3181,7 +3210,7 @@ main > .sheet-panel { transition: opacity 0.22s ease, transform 0.22s ease; }
 .sheet-panel.with-art::before {
   content: ""; position: absolute; left: 0; right: 0; top: 0; height: 420px; z-index: -1; pointer-events: none;
   border-radius: inherit; background: var(--take-art) center top / cover no-repeat;
-  opacity: var(--sheet-art-strength, 0.5); filter: saturate(var(--take-art-colour, 0.6));
+  opacity: var(--sheet-art-strength, 0.20); filter: saturate(var(--take-art-colour, 0.6));
   -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent); mask-image: linear-gradient(to bottom, #000 45%, transparent);
 }
 .sheet-panel.with-art .take-sheet {

@@ -42,6 +42,11 @@ columns (the song, the words and the sound), everything in view, with the score 
 
 Closing the window, with **Close**, the cross or Escape, keeps what you typed.
 
+The button after **Close**, in the top right corner, makes the window fill the whole browser window, and
+a second click puts it back to its usual size. The window opens the way you last left it. Filling the window,
+the words column takes its full height: the lyrics box (once there are words in it) and the structure grow into
+the room, and the player stays at the foot of the column.
+
 The window's top row has the take's own small buttons from its card, larger: Sing again, Variations,
 Try more, Inside, Take out, Normalise and Move, each where the card would show it. Normalise is green
 while the take is normalised, and a click then puts it back to the level it was rendered at; Inside is
@@ -110,7 +115,7 @@ Once the box has words, the lyrics are what is sung and the structure steps asid
 **Lines in a verse or chorus** sets how long each is: more lines in a section make a longer song, because the
 planner writes about as much music as there are words. The Style above sets the mood. Gemma writes the draft on the same
 engine, and it lands in the box with a title if you had not given one. The window closes as soon as the draft starts, and the progress shows beside the lyrics box.
-The lyrics editor's buttons add any of these sections too.
+The lyrics editor's buttons add any of these sections too, along with voice cues (+ Male, + Female, + Both).
 
 **How the lines sound** sets the rhythm and rhyme the writer aims for. *Natural* (the default) mixes short and long
 lines with some rhymes. *Regular rhyme* is the traditional shape of even lines that rhyme in pairs, which is what
@@ -226,6 +231,7 @@ Carry me over, carry me home
 ```
 
 Write a cue as `[male voice]`, `[female voice]` or `[both voices]`, each on a line of its own in square brackets.
+The expanded lyrics editor has **+ Male**, **+ Female** and **+ Both** buttons in its header to insert them at the cursor.
 These are the forms the feature was tried with, along with `vocal` for `voice` (`[female vocal]`) and
 `[male and female voices]` for both. You can add words of your own after a comma, as in
 `[female voice, soft and close]`; they do not change who sings. A section with no cue is left to the planner.
@@ -1211,6 +1217,8 @@ over the take's own, at the cost of time (and, for the provider, a request each)
 The **Picture** icon in the editor window's top row, beside the take's other buttons, shows the picture
 with two choices: **Make a new picture**, which makes it again in the background, and **Use the default
 background**, which takes it away for good: no picture is made for that take again unless you ask for one.
+Click the picture there to see the whole of it, as large as the window allows; a click anywhere or Escape
+puts it away and leaves the editor as it was.
 
 ### Comparing takes
 

@@ -37,6 +37,14 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+### UI enhancements
+
+- **The editor can fill the window.** A button in its top right corner, after Close, makes the editor fill the whole browser window, and a second click puts it back to its usual size. The editor opens the way you last left it. Filling the window, the words column takes its full height: the lyrics box (once there are words in it) and the structure grow into the room, and the player stays at the foot of the column.
+- **The whole picture.** Clicking the picture in the editor's Picture menu shows the whole of it, as large as the window allows; a click anywhere or Escape puts it away and leaves the editor open.
+- **Voice cues in the expanded lyrics editor.** Buttons for **+ Male**, **+ Female** and **+ Both** in the expanded lyrics window add `[male voice]`, `[female voice]` or `[both voices]` on the line where the cursor is, and **Done** moves to the bottom status line beside the word count so the buttons fit on one line.
+
 ## 0.0.44 (2026-10-14)
 
 - **A picture for each take.** Each new take gets a picture of the song, made once no song is being made when it is drawn on this PC (so it never holds up a plan or a render) and while the take renders when an external LLM draws it, and shown faintly behind the take's card, across the top of the take panel when it is chosen, and behind the editor when the take is open there; a take made inside another shows that one's. It is described from the take's title, style and opening words with no LLM, drawn on white, and the app takes the white out: drawn on this PC a picture takes a few seconds and needs nothing but FLUX.2 [klein]. It is drawn on this PC by FLUX.2 klein 4B, a new install option (**FLUX.2 [klein]**, unticked, about 8 GB; `fetch-models.sh --pictures` for Docker), or by the external LLM's image model where the provider lists one; with neither, Settings says **No pictures**, the default background, and how to have them, until something that can draw is there. The editor's **Picture** button makes a new one or goes back to the default background, for good. Settings turn pictures off, choose who draws (this PC first), who describes (the take itself by default, or Local Gemma or the external LLM, slower) and which image model. The description leaves out real names, which an image model will not draw, and asks for soft lettering.

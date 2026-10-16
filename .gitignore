@@ -72,6 +72,7 @@ RELEASE-NOTES-*.md
 
 # Working notes, kept on this machine and out of the published repository:
 .version-test
+REFACTOR.md
 IDEAS.md
 HANDOVER.md
 TODO.md

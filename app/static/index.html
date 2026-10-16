@@ -184,6 +184,10 @@
         <button type="button" data-edtab="score" id="ed-tab-score">Score</button>
       </div>
       <button type="button" class="ghost" id="editor-close" title="Close (Esc). What you typed is kept.">Close</button>
+      <button type="button" id="editor-max" class="ed-tool ed-max-btn" title="Fill the window" aria-label="Fill the window" aria-pressed="false">
+        <svg class="max-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        <svg class="max-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+      </button>
     </div>
     <div class="ed-main">
       <div class="ed-body" id="ed-body">
@@ -1183,11 +1187,16 @@
         <button class="chip" data-tag="[Interlude]" title="An instrumental passage: the tag on its own, with no lines under it">+ Interlude</button>
         <button class="chip" data-tag="[Outro]">+ Outro</button>
         <button class="chip" data-tag="[Instrumental]">+ Instrumental</button>
+        <button class="chip" data-tag="[male voice]" title="Cue a male voice for the lines under it">+ Male</button>
+        <button class="chip" data-tag="[female voice]" title="Cue a female voice for the lines under it">+ Female</button>
+        <button class="chip" data-tag="[both voices]" title="Cue both voices for the lines under it">+ Both</button>
       </div>
-      <button id="lyrics-close" class="ghost">Done</button>
     </div>
     <textarea id="lyrics-big" spellcheck="false" placeholder="[Verse]&#10;First line&#10;Second line&#10;&#10;[Chorus]&#10;..."></textarea>
-    <div id="lyrics-count" class="muted small"></div>
+    <div class="lyrics-foot">
+      <div id="lyrics-count" class="muted small"></div>
+      <button id="lyrics-close" class="ghost">Done</button>
+    </div>
   </div>
 </div>
 

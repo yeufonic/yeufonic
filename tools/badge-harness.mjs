@@ -17,7 +17,8 @@ function makeEl(id) {
   const classes = new Set();
   const el = {
     id, value: '', textContent: '', innerHTML: '', title: '', dataset: {},
-    style: {},
+    options: [], selectionStart: 0, selectionEnd: 0,
+    style: { setProperty() {}, removeProperty() {} },
     get className() { return Array.from(classes).join(' '); },
     set className(val) { classes.clear(); (val || '').split(/\s+/).filter(Boolean).forEach((c) => classes.add(c)); },
     classList: {
@@ -28,6 +29,7 @@ function makeEl(id) {
     },
     addEventListener(t, fn) { (el._h[t] = el._h[t] || []).push(fn); },
     dispatchEvent(t) { (el._h[t.type] || []).forEach((f) => f(t)); return true; },
+    focus() {}, blur() {}, remove() {},
     closest() { return null; }, querySelector() { return null; }, querySelectorAll() { return []; },
     appendChild(child) { if (child && child.id) { els.set(child.id, child); } return child; },
     setAttribute() {}, removeAttribute() {}, _h: {}
@@ -42,7 +44,8 @@ const document = {
   querySelector(s) { if (!els.has(s)) els.set(s, makeEl(s)); return els.get(s); },
   querySelectorAll() { return []; },
   createElement(tag) { return makeEl(''); },
-  body: { style: {} },
+  body: makeEl('body'),
+  documentElement: makeEl('documentElement'),
   addEventListener() {}
 };
 

@@ -16,7 +16,8 @@ function makeEl(id) {
   const classes = new Set();
   const el = {
     id, value: '', textContent: '', innerHTML: '', checked: false, disabled: false,
-    open: false, files: [], selectionStart: 0, selectionEnd: 0, style: {}, dataset: {},
+    open: false, files: [], options: [], selectionStart: 0, selectionEnd: 0,
+    style: { setProperty() {}, removeProperty() {} }, dataset: {},
     get className() { return Array.from(classes).join(' '); },
     set className(val) { classes.clear(); (val || '').split(/\s+/).filter(Boolean).forEach((c) => classes.add(c)); },
     classList: {
@@ -28,7 +29,7 @@ function makeEl(id) {
     addEventListener(t, fn) { (el._h[t] = el._h[t] || []).push(fn); },
     click() { (el._h.click || []).forEach((f) => f({ target: el, preventDefault() {} })); },
     dispatchEvent(t) { (el._h[t.type] || []).forEach((f) => f(t)); return true; },
-    focus() { document.activeElement = el; },
+    focus() { document.activeElement = el; }, blur() {}, remove() {},
     closest() { return null; }, scrollIntoView() {}, setAttribute() {},
     querySelectorAll() { return []; }, querySelector() { return null; }, _h: {}
   };
@@ -43,7 +44,7 @@ const document = {
   querySelectorAll() { return []; },
   addEventListener(t, fn) { (this._h[t] = this._h[t] || []).push(fn); },
   dispatchEvent(e) { (this._h[e.type] || []).forEach((f) => f(e)); },
-  _h: {}, body: { style: {} }
+  _h: {}, body: makeEl('body'), documentElement: makeEl('documentElement')
 };
 
 const ctx = {
