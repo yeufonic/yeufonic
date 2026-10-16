@@ -32,9 +32,9 @@ def test_hotkeys_script_wiring_and_handler():
 
     # Keydown ? handler after typing guard
     guard_idx = app_js.index("/^(INPUT|TEXTAREA|SELECT)$/.test(tag)")
-    hotkey_idx = app_js.index("event.key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey")
+    hotkey_idx = app_js.index("event.key === '?' || (event.key === '/' && event.shiftKey)")
     assert guard_idx < hotkey_idx, "? must be checked after the input/textarea typing guard"
-    assert "toggleHotkeys();" in app_js[hotkey_idx:hotkey_idx + 200]
+    assert "toggleHotkeys();" in app_js[hotkey_idx:hotkey_idx + 250]
 
 
 def test_guide_documents_question_mark_hotkey():

@@ -11666,6 +11666,10 @@ var runTakeAction = null;
 function takeKey(event) {
   if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || !runTakeAction) { return false; }
   var key = (event.key || '').toLowerCase();
+  if (event.key === '?' || (event.code === 'Slash' && event.shiftKey)) {
+    toggleHotkeys();
+    return true;
+  }
   if (key.length !== 1 || 'meivntsdl'.indexOf(key) < 0) { return false; }
   if (key === 'l') {            // the logs: no take needed; again to close them
     if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
@@ -14273,7 +14277,8 @@ function wire() {
     var aimed = (event.target && event.target.tagName) || '';
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || /^(INPUT|TEXTAREA|SELECT)$/.test(aimed) ||
         (event.target && event.target.isContentEditable)) { return; }
-    if (event.key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    if ((event.key === '?' || (event.key === '/' && event.shiftKey) || (event.code === 'Slash' && event.shiftKey)) &&
+        !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       toggleHotkeys();
       return;
