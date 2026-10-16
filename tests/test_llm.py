@@ -229,6 +229,70 @@ async def test_identity_style_job_with_external_llm():
 
 
 @pytest.mark.anyio
+async def test_lyrics_job_falls_back_to_local_gemma_on_external_failure(monkeypatch):
+    from app.jobs import ENGINE
+    set_setting("llm.provider", "external")
+    monkeypatch.setattr(ENGINE, "options_loaded", True)
+    monkeypatch.setattr(ENGINE, "options", {"lyrics": True})
+    monkeypatch.setattr(ENGINE, "submit", AsyncMock(return_value="prompt-test"))
+    monkeypatch.setattr("app.jobs._wait_for", AsyncMock(return_value=("done", {"status": {"status_str": "success"}})))
+    monkeypatch.setattr("app.jobs.extract_text_output", lambda job, *nodes: "[Verse]\nLocal Gemma words\n[Chorus]\nSing along")
+
+    LYRICS["test-draft-fallback"] = {
+        "id": "test-draft-fallback",
+        "status": "queued",
+        "brief": "a road song",
+        "style": "rock",
+        "structure": "verse-chorus",
+        "seed": 42,
+        "created_at": 1000.0,
+        "title": None,
+        "lyrics": None,
+        "error": None,
+    }
+
+    with patch("app.llm.chat_complete", new_callable=AsyncMock) as mock_chat:
+        mock_chat.side_effect = RuntimeError("External LLM HTTP 429: Too Many Requests")
+        await run_job("lyrics", "test-draft-fallback")
+
+    record = LYRICS["test-draft-fallback"]
+    assert record["status"] == "done"
+    assert record["warning"] is not None
+    assert "External LLM failed" in record["warning"]
+    assert "local Gemma" in record["warning"]
+    assert "Local Gemma words" in record["lyrics"]
+
+
+@pytest.mark.anyio
+async def test_lyrics_job_fails_if_external_fails_and_no_gemma(monkeypatch):
+    from app.jobs import ENGINE
+    set_setting("llm.provider", "external")
+    monkeypatch.setattr(ENGINE, "options_loaded", True)
+    monkeypatch.setattr(ENGINE, "options", {"lyrics": False})
+
+    LYRICS["test-draft-fail"] = {
+        "id": "test-draft-fail",
+        "status": "queued",
+        "brief": "a road song",
+        "style": "rock",
+        "structure": "verse-chorus",
+        "seed": 42,
+        "created_at": 1000.0,
+        "title": None,
+        "lyrics": None,
+        "error": None,
+    }
+
+    with patch("app.llm.chat_complete", new_callable=AsyncMock) as mock_chat:
+        mock_chat.side_effect = RuntimeError("External LLM HTTP 429: Rate limit")
+        await run_job("lyrics", "test-draft-fail")
+
+    record = LYRICS["test-draft-fail"]
+    assert record["status"] == "failed"
+    assert "429" in record["error"]
+
+
+@pytest.mark.anyio
 async def test_style_analysis_without_gemma_or_an_llm_says_what_it_needs(monkeypatch):
     """The Windows installer can leave Gemma out.  Then a song's style step fails at
     once with the reason, instead of sending the engine a job it cannot run."""

@@ -4680,6 +4680,7 @@ _ART_RECHECK: set = set()
 async def put_setting(body: SettingIn) -> dict:
     save_setting(body.key, body.value)
     if body.key.startswith(("llm.", "art.")):
+        artwork.clear_failures()
         task = asyncio.create_task(artwork.check_external(force=True))   # can the provider now draw pictures
         _ART_RECHECK.add(task)
         task.add_done_callback(_ART_RECHECK.discard)
