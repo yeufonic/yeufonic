@@ -10,33 +10,7 @@
 // It runs offline: the DOM is stubbed and fetch is answered from a fixture, so it
 // needs no server, no engine and no library.
 
-import fs from 'node:fs';
-import vm from 'node:vm';
-
-const here = new URL('../app/static/app.js', import.meta.url);
-const src = fs.readFileSync(here, 'utf8');
-
-function makeEl(id) {
-  const el = { id, value: '', textContent: '', innerHTML: '', className: '', checked: false, disabled: false,
-    open: false, files: [], options: [], selectionStart: 0, selectionEnd: 0,
-    style: { setProperty() {}, removeProperty() {} }, dataset: {},
-    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
-    addEventListener(t, fn) { (el._h[t] = el._h[t] || []).push(fn); },
-    dispatchEvent(t) { (el._h[t.type] || []).forEach((f) => f(t)); return true; },
-    closest() { return null; }, scrollIntoView() {}, focus() {}, blur() {}, remove() {}, setAttribute() {},
-    getContext() { return { clearRect() {}, fillRect() {}, fillStyle: '', measureText: () => ({ width: 10 }) }; },
-    getBoundingClientRect() { return { left: 0, width: 600, top: 0, height: 44 }; },
-    clientWidth: 600, width: 600, height: 44, _h: {}, querySelectorAll() { return []; },
-    querySelector() { return null; } };
-  return el;
-}
-const els = new Map();
-const document = {
-  getElementById(id) { if (!els.has(id)) els.set(id, makeEl(id)); return els.get(id); },
-  querySelector(s) { if (!els.has(s)) els.set(s, makeEl(s)); return els.get(s); },
-  querySelectorAll() { return []; }, addEventListener() {}, body: makeEl('body'),
-  documentElement: makeEl('documentElement')
-};
+import { createAppSandbox } from './dom-harness.mjs';
 
 const LONG = (name) => 'X:1\nT:' + name + '\nM:4/4\nL:1/16\nQ:1/4=100\nK:C\n% intro\n"C"z8|"C"z8|"C"z8|"C"z8|\n';
 const SOURCE_A = { id: 'srcA', title: 'A recording', transcribe_state: 'done', has_score: 1, abc: LONG('recording') };
@@ -52,37 +26,22 @@ const routes = {
   '/api/takes/t1': Object.assign({}, SONG, { abc: LONG('brand-new-plan'), status: 'planned' })
 };
 
-const store = new Map();
-const ctx = {
-  document, console,
-  navigator: { mediaSession: { setActionHandler() {} }, clipboard: { writeText: async () => {} } },
-  ABCJS: { renderAbc() {} },
-  marked: { parse: (text) => text },
-  localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)) },
-  window: { devicePixelRatio: 1, addEventListener() {}, requestAnimationFrame: () => 0, cancelAnimationFrame() {} },
-  fetch: async (path, options) => {
+let sandboxCtx = null;
+const { ctx, $ } = createAppSandbox({
+  fetch: async (path) => {
     const clean = path.split('?')[0];
     const answer = (body) => ({ ok: true, status: 200, json: async () => body,
                                 text: async () => JSON.stringify(body), headers: { get: () => 'application/json' } });
     if (routes[clean]) { return answer(routes[clean]); }
-    // The page loads these on start; the test only cares about the selection.
-    if (clean === '/api/sources') { return answer(ctx.State.sources); }
-    if (clean === '/api/takes') { return answer(ctx.State.takes); }
+    if (clean === '/api/sources') { return answer(sandboxCtx ? sandboxCtx.State.sources : []); }
+    if (clean === '/api/takes') { return answer(sandboxCtx ? sandboxCtx.State.takes : []); }
     if (clean === '/api/spaces') { return answer([{ id: 'default', title: 'Default', take_count: 0 }]); }
     if (clean === '/api/state') { return answer({ engine: { online: true, queue: {} }, current: null, options: {} }); }
-    // Lists the page paints on start, which this test does not exercise.
     if (/^\/api\/(identities|personas|stem-sets|lyrics|takes\/)/.test(clean)) { return answer([]); }
     return answer({});
-  },
-  setTimeout, clearTimeout, Event: class { constructor(t) { this.type = t; } },
-  setInterval: () => 0, clearInterval: () => 0, confirm: () => true,
-  requestAnimationFrame: () => 0, cancelAnimationFrame: () => 0
-};
-ctx.globalThis = ctx;
-vm.createContext(ctx);
-vm.runInContext(src, ctx, { filename: 'app.js' });
-
-const $ = (id) => document.getElementById(id);
+  }
+});
+sandboxCtx = ctx;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let failures = 0;
 

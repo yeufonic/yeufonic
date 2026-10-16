@@ -213,14 +213,15 @@ class HarmonyTracker:
             return self.strength * (1 + self.held - self.hold_limit) / 4
         return 0.0
 
-    def root_penalty(self, root):
+    def root_penalty(self, root, counter=None, outside_allowed=None):
         current = self.changes[-1]
-        value = 0.0
         if root == current:
             return self.hold_penalty(root)
-        value += self.strength * collections.Counter(self.changes)[root] / len(self.changes)
-        if (self.outside_bonus and self.scale is not None and root not in self.scale
-                and self.outside_share() < self.outside_limit):
+        count = counter[root] if counter is not None else collections.Counter(self.changes)[root]
+        value = self.strength * count / len(self.changes)
+        if outside_allowed is None:
+            outside_allowed = bool(self.outside_bonus and self.scale is not None and self.outside_share() < self.outside_limit)
+        if outside_allowed and root not in self.scale:
             value -= self.outside_bonus
         return value
 
@@ -286,6 +287,9 @@ class HarmonyTracker:
         if self.outside_bonus and self.partial is None and any('"' in self.vocab[t] for t in top):
             top = list(dict.fromkeys(top + self.chord_starts))
         before = self.partial or ""
+        counter = collections.Counter(self.changes)
+        outside_allowed = bool(self.outside_bonus and self.scale is not None and self.outside_share() < self.outside_limit)
+        root_penalties = {r: self.root_penalty(r, counter=counter, outside_allowed=outside_allowed) for r in range(12)}
         out_ids, values = [], []
         for token in top:
             text = self.vocab[token]
@@ -297,15 +301,17 @@ class HarmonyTracker:
                     continue
                 value = self.spelling_penalty(done, partial)
                 symbol = done[0] if done else partial
-                if len(before) <= 1 and root_of(symbol) is not None:
-                    value += self.hold_penalty(root_of(symbol)) + self.section_penalty(root_of(symbol))
+                r = root_of(symbol) if symbol else None
+                if len(before) <= 1 and r is not None:
+                    value += self.hold_penalty(r) + self.section_penalty(r)
             else:
                 symbol = done[0] if done else partial
+                r = root_of(symbol) if symbol else None
                 # The root is decided at its letter, and at the step after it, where
                 # an accidental or anything else settles sharp, flat or natural.
-                if not symbol or root_of(symbol) is None or len(before) >= 2:
+                if not symbol or r is None or len(before) >= 2:
                     continue
-                value = self.root_penalty(root_of(symbol)) + self.section_penalty(root_of(symbol))
+                value = root_penalties[r] + self.section_penalty(r)
             if value:
                 out_ids.append(token)
                 values.append(value)

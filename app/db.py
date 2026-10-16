@@ -27,17 +27,40 @@ def conn() -> sqlite3.Connection:
     return current
 
 
+from contextlib import contextmanager
+
+
+@contextmanager
+def transaction():
+    """Group multiple statements into a single SQLite commit."""
+    c = conn()
+    outer = getattr(_local, "in_tx", False)
+    _local.in_tx = True
+    try:
+        yield c
+        if not outer:
+            c.commit()
+    except Exception:
+        if not outer:
+            c.rollback()
+        raise
+    finally:
+        _local.in_tx = outer
+
+
 def rows(sql: str, args: tuple | dict = ()) -> list[dict]:
     return [dict(r) for r in conn().execute(sql, args).fetchall()]
 
 
 def one(sql: str, args: tuple | dict = ()) -> dict | None:
-    got = rows(sql, args)
-    return got[0] if got else None
+    row = conn().execute(sql, args).fetchone()
+    return dict(row) if row is not None else None
 
 
 def execute(sql: str, args: tuple | dict = ()) -> int:
     c = conn()
+    if getattr(_local, "in_tx", False):
+        return c.execute(sql, args).rowcount
     with c:
         return c.execute(sql, args).rowcount
 
@@ -55,7 +78,15 @@ CREATE TABLE IF NOT EXISTS sources (
     abc TEXT,
     abc_updated_at REAL,
     transcribe_state TEXT NOT NULL DEFAULT 'none',
-    transcribe_error TEXT
+    transcribe_error TEXT,
+    lyrics TEXT,
+    lyrics_state TEXT NOT NULL DEFAULT 'none',
+    lyrics_progress REAL NOT NULL DEFAULT 0,
+    lyrics_stage TEXT,
+    lyrics_error TEXT,
+    duration REAL,
+    lyrics_method TEXT,
+    corpus_song_id TEXT
 );
 CREATE TABLE IF NOT EXISTS takes (
     id TEXT PRIMARY KEY,
@@ -90,6 +121,18 @@ CREATE TABLE IF NOT EXISTS takes (
     persona_id TEXT,
     voice_lora TEXT,
     voice_lora_strength REAL NOT NULL DEFAULT 1.0,
+    voice_lora_clip REAL NOT NULL DEFAULT 0.0,
+    vocal_check REAL,
+    style_lora TEXT,
+    style_lora_model REAL NOT NULL DEFAULT 1.0,
+    style_lora_clip REAL NOT NULL DEFAULT 1.0,
+    loudness REAL,
+    sound_seed INTEGER,
+    normalise INTEGER NOT NULL DEFAULT 0,
+    normalised INTEGER NOT NULL DEFAULT 0,
+    weak_dismissed INTEGER NOT NULL DEFAULT 0,
+    engine TEXT,
+    normalised_to REAL,
     sampler_steps INTEGER DEFAULT 32,
     avoid TEXT,
     target_key TEXT,
@@ -105,7 +148,8 @@ CREATE TABLE IF NOT EXISTS takes (
     note_dismissed INTEGER NOT NULL DEFAULT 0,
     target_lufs REAL,
     fade_out_seconds REAL DEFAULT 3.0,
-    fx_chain TEXT
+    fx_chain TEXT,
+    parent_id TEXT
 );
 CREATE TABLE IF NOT EXISTS identities (
     id TEXT PRIMARY KEY,
@@ -142,7 +186,8 @@ CREATE TABLE IF NOT EXISTS identity_songs (
     lyrics_checked INTEGER NOT NULL DEFAULT 0,
     style_hint TEXT,
     position INTEGER NOT NULL DEFAULT 0,
-    description TEXT NOT NULL DEFAULT ''
+    description TEXT NOT NULL DEFAULT '',
+    lyrics_versions TEXT
 );
 CREATE TABLE IF NOT EXISTS spaces (
     id TEXT PRIMARY KEY,
@@ -170,6 +215,37 @@ CREATE TABLE IF NOT EXISTS stem_sets (
     finished_at REAL,
     elapsed REAL
 );
+CREATE TABLE IF NOT EXISTS lora_runs (
+    id TEXT PRIMARY KEY,
+    identity_id TEXT NOT NULL,
+    lora_name TEXT NOT NULL,
+    steps INTEGER NOT NULL,
+    rank INTEGER NOT NULL,
+    state TEXT NOT NULL DEFAULT 'queued',
+    stage TEXT,
+    progress REAL NOT NULL DEFAULT 0,
+    started_at REAL,
+    finished_at REAL,
+    elapsed REAL,
+    error TEXT
+);
+CREATE TABLE IF NOT EXISTS saved_styles (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    prompt TEXT NOT NULL,
+    created_at REAL NOT NULL
+);
+"""
+
+BASE_INDEXES = """
+CREATE INDEX IF NOT EXISTS takes_created ON takes(created_at);
+CREATE INDEX IF NOT EXISTS takes_source ON takes(source_id);
+CREATE INDEX IF NOT EXISTS takes_space ON takes(space_id, created_at);
+CREATE INDEX IF NOT EXISTS takes_parent ON takes(parent_id);
+CREATE INDEX IF NOT EXISTS stem_sets_take ON stem_sets(take_id);
+CREATE INDEX IF NOT EXISTS stem_sets_source ON stem_sets(source_id);
+CREATE INDEX IF NOT EXISTS identity_songs_identity ON identity_songs(identity_id, position);
+CREATE INDEX IF NOT EXISTS lora_runs_state ON lora_runs(state);
 """
 
 
@@ -601,37 +677,55 @@ def migrate() -> None:
     c = conn()
     c.execute("PRAGMA journal_mode=WAL")
     version = c.execute("PRAGMA user_version").fetchone()[0]
-    for number in range(version, len(MIGRATIONS)):
-        log.info("database migration %d", number + 1)
-        MIGRATIONS[number]()
-        c.execute(f"PRAGMA user_version = {number + 1}")
+    if version == 0 and c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='takes'").fetchone() is None:
+        c.executescript(
+            BASE_SCHEMA
+            + BASE_INDEXES
+            + f"""
+            CREATE VIEW IF NOT EXISTS personas AS SELECT * FROM identities;
+            CREATE VIEW IF NOT EXISTS persona_songs AS SELECT id, identity_id AS persona_id, identity_id, file, title, sha256, duration, bit_rate, include, flag, stored_path, vocals_state, score_state, lyrics_state, style_state, error, key, tempo, lyrics, lyrics_checked, style_hint, position, description FROM identity_songs;
+            INSERT OR IGNORE INTO spaces(id, name, created_at) VALUES('{DEFAULT_SPACE}', 'Default', 0);
+            PRAGMA user_version = {len(MIGRATIONS)};
+            """
+        )
         c.commit()
-    _settings_cache.clear()
+    elif version < len(MIGRATIONS):
+        with transaction():
+            for number in range(version, len(MIGRATIONS)):
+                log.info("database migration %d", number + 1)
+                MIGRATIONS[number]()
+                c.execute(f"PRAGMA user_version = {number + 1}")
+    with _settings_lock:
+        _settings_cache.clear()
 
 
 # -------------------------------------------------------------------- settings
 _settings_cache: dict[str, str | None] = {}
+_settings_lock = threading.RLock()
 
 
 def get_setting(key: str, default: str | None = None) -> str | None:
-    if key not in _settings_cache:
-        row = one("SELECT value FROM settings WHERE key = ?", (key,))
-        _settings_cache[key] = row["value"] if row else None
-    value = _settings_cache[key]
-    return default if value is None else value
+    with _settings_lock:
+        if key not in _settings_cache:
+            row = one("SELECT value FROM settings WHERE key = ?", (key,))
+            _settings_cache[key] = row["value"] if row else None
+        value = _settings_cache[key]
+        return default if value is None else value
 
 
 def delete_setting(key: str) -> None:
-    execute("DELETE FROM settings WHERE key = ?", (key,))
-    _settings_cache[key] = None
+    with _settings_lock:
+        execute("DELETE FROM settings WHERE key = ?", (key,))
+        _settings_cache[key] = None
 
 
 def set_setting(key: str, value: str) -> None:
-    execute(
-        "INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-        (key, value),
-    )
-    _settings_cache[key] = value
+    with _settings_lock:
+        execute(
+            "INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
+        _settings_cache[key] = value
 
 
 def bump_average(kind: str, seconds: float) -> None:

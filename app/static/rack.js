@@ -2482,16 +2482,21 @@
       var rate = (Engine.ctx && Engine.ctx.sampleRate) || 48000;
       var right = plot.left + plot.width, bottom = plot.top + plot.height, zero = this.peqY(plot, 0);
       // the graph's colours are the unit's, so they follow the theme (styles.css, .unit-peq)
-      var look = window.getComputedStyle(canvas.closest('.unit-peq') || canvas);
-      function colour(name, otherwise) { return (look.getPropertyValue(name) || '').trim() || otherwise; }
-      var ink = {
-        grid: colour('--peq-grid', 'rgba(255,255,255,0.09)'), faint: colour('--peq-grid-faint', 'rgba(255,255,255,0.035)'),
-        zero: colour('--peq-zero', 'rgba(255,255,255,0.22)'), line: colour('--peq-line', 'rgba(255,255,255,0.06)'),
-        label: colour('--peq-label', 'rgba(148,163,184,0.75)'), labelZero: colour('--peq-label-zero', 'rgba(226,232,240,0.85)'),
-        heard: colour('--peq-heard', 'rgba(148,163,184,0.13)'), heardEdge: colour('--peq-heard-edge', 'rgba(203,213,225,0.28)'),
-        total: colour('--peq-total', '#f8fafc'), totalOut: colour('--peq-total-out', 'rgba(148,163,184,0.6)'),
-        ring: colour('--peq-ring', 'rgba(15,17,22,0.9)'), ringChosen: colour('--peq-ring-chosen', '#ffffff'), number: colour('--peq-number', '#0b0c10')
-      };
+      var curTheme = (document.documentElement && document.documentElement.dataset.theme) || 'dark';
+      if (!this._peqInk || this._peqInkTheme !== curTheme) {
+        var look = window.getComputedStyle(canvas.closest('.unit-peq') || canvas);
+        function colour(name, otherwise) { return (look.getPropertyValue(name) || '').trim() || otherwise; }
+        this._peqInk = {
+          grid: colour('--peq-grid', 'rgba(255,255,255,0.09)'), faint: colour('--peq-grid-faint', 'rgba(255,255,255,0.035)'),
+          zero: colour('--peq-zero', 'rgba(255,255,255,0.22)'), line: colour('--peq-line', 'rgba(255,255,255,0.06)'),
+          label: colour('--peq-label', 'rgba(148,163,184,0.75)'), labelZero: colour('--peq-label-zero', 'rgba(226,232,240,0.85)'),
+          heard: colour('--peq-heard', 'rgba(148,163,184,0.13)'), heardEdge: colour('--peq-heard-edge', 'rgba(203,213,225,0.28)'),
+          total: colour('--peq-total', '#f8fafc'), totalOut: colour('--peq-total-out', 'rgba(148,163,184,0.6)'),
+          ring: colour('--peq-ring', 'rgba(15,17,22,0.9)'), ringChosen: colour('--peq-ring-chosen', '#ffffff'), number: colour('--peq-number', '#0b0c10')
+        };
+        this._peqInkTheme = curTheme;
+      }
+      var ink = this._peqInk;
 
       // scales
       g.font = Math.round(10 * plot.type * 10) / 10 + 'px ui-monospace, SFMono-Regular, Menlo, monospace';
@@ -2681,7 +2686,14 @@
         Engine.resume();
         this.fitToWindow();
         this.syncKnobsToState();
+        if (!this.animFrame) {
+          this.startMeterLoop();
+        }
       } else {
+        if (this.animFrame) {
+          cancelAnimationFrame(this.animFrame);
+          this.animFrame = null;
+        }
         this.flushSave();
       }
     },
@@ -3010,13 +3022,26 @@
       }
     },
 
+    invalidateTheme: function () {
+      this._peqInk = null;
+    },
+
     startMeterLoop: function () {
+      if (this.animFrame) {
+        cancelAnimationFrame(this.animFrame);
+        this.animFrame = null;
+      }
       var canvas = document.getElementById('vu-canvas');
       var self = this;
+      var ladderLeds = null;
+      var ipLed = null;
+      var opLed = null;
+      var tubeGlow = null;
+      var timeData = null;
 
       function drawMeters() {
         if (!self.isOpen) {
-          self.animFrame = requestAnimationFrame(drawMeters);
+          self.animFrame = null;
           return;
         }
         // the equaliser's screen moves only with what is heard behind its curve
@@ -3025,7 +3050,10 @@
 
         // 1. Draw 1073-DPX Output Meter & Telemetry
         if (Engine.analyser) {
-          var timeData = new Uint8Array(Engine.analyser.frequencyBinCount);
+          var binCount = Engine.analyser.frequencyBinCount;
+          if (!timeData || timeData.length !== binCount) {
+            timeData = new Uint8Array(binCount);
+          }
           Engine.analyser.getByteTimeDomainData(timeData);
           var maxAmp = 0;
           for (var i = 0; i < timeData.length; i++) {
@@ -3036,15 +3064,17 @@
           var sigDb = maxAmp > 0.001 ? 20 * Math.log10(maxAmp) + 16 : -60;
 
           // 7-LED ladder
-          var ladderLeds = document.querySelectorAll('#dpx-led-ladder .ladder-led');
+          if (!ladderLeds) {
+            ladderLeds = document.querySelectorAll('#dpx-led-ladder .ladder-led');
+          }
           Array.prototype.forEach.call(ladderLeds, function (led) {
             var th = Number(led.dataset.db);
             led.classList.toggle('lit', sigDb >= th);
           });
 
           // Miniature status LEDs
-          var ipLed = document.getElementById('dpx-led-ip');
-          var opLed = document.getElementById('dpx-led-op');
+          if (!ipLed) { ipLed = document.getElementById('dpx-led-ip'); }
+          if (!opLed) { opLed = document.getElementById('dpx-led-op'); }
           if (ipLed) { ipLed.classList.toggle('on', maxAmp > 0.02); }
           if (opLed) { opLed.classList.toggle('on', maxAmp > 0.02 && !self.settings.masterBypass); }
         }
@@ -3149,7 +3179,7 @@
         }
 
         // 3. Stereo Imager Tube Filament Glow Animation
-        var tubeGlow = document.getElementById('imager-tube-glow');
+        if (!tubeGlow) { tubeGlow = document.getElementById('imager-tube-glow'); }
         if (tubeGlow && self.settings.imager) {
           var imagerActive = self.settings.imager.enabled !== false && !self.settings.masterBypass;
           var harmActive = Boolean(self.settings.imager.harmonics);

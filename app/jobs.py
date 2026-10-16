@@ -924,6 +924,7 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
     # Ended long before its score: the model wrote its end early (about one render in
     # eighty, most of them instrumentals). Tried once more with a new seed before
     # anyone is told it's ready; a second early end is kept, and its card says so.
+    rendered_for = None
     if kind == "render" and ref_id not in RETRIED_EARLY:
         rendered_for = await asyncio.to_thread(audio_duration, dest)
         if score.stopped_early(rendered_for, record.get("abc"), float(record.get("max_duration") or 0)):
@@ -941,11 +942,12 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
     # it cut off mid-bar, before its level is read or a louder copy is made (#24).
     cap = float(record.get("max_duration") or 0)
     if cap:
-        rendered_for = await asyncio.to_thread(audio_duration, dest)
+        if rendered_for is None:
+            rendered_for = await asyncio.to_thread(audio_duration, dest)
         if rendered_for and rendered_for >= cap - 0.5:
             fade_seconds = float(record.get("fade_out_seconds") or 3.0)
             try:
-                await asyncio.to_thread(fade_out_end, dest, fade_seconds)
+                await asyncio.to_thread(fade_out_end, dest, fade_seconds, rendered_for)
             except Exception as exc:  # noqa: BLE001
                 log.warning("Could not fade out '%s' at its length cap: %s", record.get("title") or ref_id, exc)
     # The level as rendered, before any normalising: a render far quieter than usual
@@ -961,7 +963,7 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
         except Exception as exc:  # noqa: BLE001
             log.warning("Could not normalise '%s'; it keeps the level it was rendered at: %s",
                         record.get("title") or ref_id, exc)
-    duration = await asyncio.to_thread(audio_duration, dest)
+    duration = rendered_for if rendered_for is not None else await asyncio.to_thread(audio_duration, dest)
     elapsed = time.time() - started
     execute(
         "UPDATE takes SET status = 'done', stage = NULL, audio_path = ?, duration = ?, finished_at = ?, elapsed = ?, error = NULL, loudness = ?, normalised = ?, normalised_to = ?, weak_dismissed = 0 WHERE id = ?",

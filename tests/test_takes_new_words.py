@@ -3,19 +3,21 @@ import time
 
 from app.db import execute, one
 
+from conftest import make_take
+
 ABC = "X:1\nM:4/4\nL:1/16\nK:C\nV: Vocal\n" + "|".join(['"C"c4d4e4f4'] * 8) + "|\n"
 
 
 def a_take(**extra):
-    row = {"id": "orig1", "kind": "song", "title": "good1", "style": "pop", "lyrics": "[verse]\nla la",
-           "abc": ABC, "mode": "full", "seed": 1747519420, "checkpoint": "x", "status": "done",
-           "created_at": time.time(), "max_duration": 120, "interpretation": "tight", "variety": "calm",
-           "style_lora": "tidewater_lora.safetensors", "style_lora_model": 0.7, "style_lora_clip": 0.7,
-           "favourite": 1, "audio_path": "/data/takes/x.flac", "loudness": -15.0, "sound_seed": 999}
-    row.update(extra)
-    cols = list(row)
-    execute(f"INSERT INTO takes({', '.join(cols)}) VALUES({', '.join('?' * len(cols))})", [row[c] for c in cols])
-    return row
+    defaults = {
+        "id": "orig1", "kind": "song", "title": "good1", "style": "pop", "lyrics": "[verse]\nla la",
+        "abc": ABC, "mode": "full", "seed": 1747519420, "checkpoint": "x", "status": "done",
+        "created_at": time.time(), "max_duration": 120, "interpretation": "tight", "variety": "calm",
+        "style_lora": "tidewater_lora.safetensors", "style_lora_model": 0.7, "style_lora_clip": 0.7,
+        "favourite": 1, "audio_path": "/data/takes/x.flac", "loudness": -15.0, "sound_seed": 999,
+    }
+    defaults.update(extra)
+    return make_take(**defaults)
 
 
 def test_new_words_sing_the_same_score_with_the_same_seed(client, monkeypatch):

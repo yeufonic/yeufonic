@@ -3,19 +3,21 @@ import time
 
 from app.db import execute, one
 
+from conftest import extract_js_function, make_take
+
 ABC = "X:1\nM:4/4\nL:1/16\nK:C\nV: Vocal\n" + "|".join(['"C"c4d4e4f4'] * 8) + "|\n"
 
 
 def a_take(**extra):
-    row = {"id": "orig1", "kind": "song", "title": "good1 · Tight", "style": "pop", "lyrics": "[verse]\nla",
-           "abc": ABC, "mode": "full", "seed": 1747519420, "checkpoint": "x", "status": "done",
-           "created_at": time.time(), "max_duration": 120, "interpretation": "tight", "variety": "calm",
-           "style_lora": "harbour_lights_lora.safetensors", "style_lora_model": 0.7, "style_lora_clip": 0.7,
-           "favourite": 1, "audio_path": "/data/takes/x.flac", "loudness": -15.0}
-    row.update(extra)
-    cols = list(row)
-    execute(f"INSERT INTO takes({', '.join(cols)}) VALUES({', '.join('?' * len(cols))})", [row[c] for c in cols])
-    return row
+    defaults = {
+        "id": "orig1", "kind": "song", "title": "good1 · Tight", "style": "pop", "lyrics": "[verse]\nla",
+        "abc": ABC, "mode": "full", "seed": 1747519420, "checkpoint": "x", "status": "done",
+        "created_at": time.time(), "max_duration": 120, "interpretation": "tight", "variety": "calm",
+        "style_lora": "harbour_lights_lora.safetensors", "style_lora_model": 0.7, "style_lora_clip": 0.7,
+        "favourite": 1, "audio_path": "/data/takes/x.flac", "loudness": -15.0,
+    }
+    defaults.update(extra)
+    return make_take(**defaults)
 
 
 def test_a_new_voice_sings_the_same_score_with_a_new_seed(client, monkeypatch):
@@ -50,7 +52,7 @@ def test_sing_again_asks_before_it_renders():
     own dialog, and does nothing when the answer is no."""
     from pathlib import Path
     app_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "app.js").read_text(encoding="utf-8")
-    action = app_js[app_js.index("if (act === 'revoice') {"):app_js.index("if (act === 'variations') {")]
+    action = extract_js_function(app_js, "if (act === 'revoice')")
     assert "await confirmModal({" in action and "title: 'Sing again'" in action and "confirmText: 'Sing again'" in action
     assert "{ return; }" in action
     assert action.index("confirmModal") < action.index("'/revoice'")

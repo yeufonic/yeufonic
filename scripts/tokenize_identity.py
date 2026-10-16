@@ -61,7 +61,6 @@ def tokenize_files(
     device: str = "cuda",
 ) -> None:
     import numpy as np
-    import torchaudio
     from app.tokenizer import AudioTokenizer, SAMPLE_RATE, TOKEN_RATE_HZ
 
     output_dir.mkdir(parents=True, exist_ok=True)

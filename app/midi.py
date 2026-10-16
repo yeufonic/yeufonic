@@ -393,7 +393,7 @@ def detect_bar_chord(
     if not events_or_pitches:
         key = arg4 if isinstance(arg2, int) and arg4 is not None else (arg2 if isinstance(arg2, str) else "C")
         last = arg5 if isinstance(arg2, int) and arg5 is not None else (arg3 if isinstance(arg3, str) else "")
-        return last or (key.replace("m", "m") if key.endswith("m") else key)
+        return last or key
 
     if isinstance(arg2, int) and arg4 is not None:
         # Called as detect_bar_chord(bar_events, b, ticks_per_bar, key, last_chord)
@@ -437,7 +437,7 @@ def detect_bar_chord(
 
     total_dur = sum(pitch_dur)
     if total_dur == 0:
-        return last_chord or (key.replace("m", "m") if key.endswith("m") else key)
+        return last_chord or key
 
     primary_bass = (
         downbeat_bass[1]
@@ -478,7 +478,7 @@ def detect_bar_chord(
 
     if best_chord and best_score >= 1.5:
         return best_chord
-    return last_chord or (key.replace("m", "m") if key.endswith("m") else key)
+    return last_chord or key
 
 
 def midi_to_abc(
@@ -839,7 +839,7 @@ def parse_midi(
     total_bars = max(4, math.ceil(max_tick / ticks_per_bar)) if ticks_per_bar > 0 else 4
 
     bar_chords: list[str] = []
-    last_chord = key.replace("m", "m") if key.endswith("m") else key
+    last_chord = key
     for b in range(total_bars):
         b_start = b * ticks_per_bar
         b_end = (b + 1) * ticks_per_bar

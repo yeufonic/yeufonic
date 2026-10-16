@@ -42,7 +42,7 @@ from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import aligner, artwork, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
-from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting
+from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 
 personas = identities
 from .engine import stage_label
@@ -458,14 +458,7 @@ def forget_frozen_defaults() -> int:
     return gone
 
 
-def guess_title(lyrics: str) -> str:
-    """First real lyric line. Section and genre tags do not make a title."""
-    for line in (lyrics or "").splitlines():
-        text = line.strip()
-        if not text or text[0] in "[#({":
-            continue
-        return text[:60]
-    return ""
+from app.lyrics import guess_title
 
 
 def remove_folders(folders: list[tuple[Path | None, Path]]) -> None:
@@ -486,17 +479,23 @@ async def lifespan(app: FastAPI):
     # a path: copy the files in, and the corpus screen offers them.
     await asyncio.to_thread(config.CORPUS_INBOX.mkdir, parents=True, exist_ok=True)
     await asyncio.to_thread(sweep_engine_input)
-    # A job that was running when the app stopped cannot be picked up again.  One
-    # that was only waiting can, so it goes back in the queue.
-    execute("UPDATE takes SET status = 'failed', error = 'interrupted by a restart' WHERE status = 'running'")
-    execute("UPDATE sources SET transcribe_state = 'failed', transcribe_error = 'interrupted by a restart' WHERE transcribe_state = 'running'")
-    execute("UPDATE stem_sets SET status = 'failed', error = 'interrupted by a restart' WHERE status = 'running'")
-    execute("UPDATE lora_runs SET state = 'failed', error = 'interrupted by a restart', finished_at = ? WHERE state IN ('queued', 'running')", (time.time(),))
+    with transaction():
+        # A job that was running when the app stopped cannot be picked up again.  One
+        # that was only waiting can, so it goes back in the queue.
+        execute("UPDATE takes SET status = 'failed', error = 'interrupted by a restart' WHERE status = 'running'")
+        execute("UPDATE sources SET transcribe_state = 'failed', transcribe_error = 'interrupted by a restart' WHERE transcribe_state = 'running'")
+        execute("UPDATE stem_sets SET status = 'failed', error = 'interrupted by a restart' WHERE status = 'running'")
+        execute("UPDATE lora_runs SET state = 'failed', error = 'interrupted by a restart', finished_at = ? WHERE state IN ('queued', 'running')", (time.time(),))
+        forget_frozen_defaults()
+        # Identity analysis is not queued again after a restart: its states go back to
+        # none, and Analyse picks up whatever is left.
+        execute("""UPDATE identity_songs SET vocals_state = 'none' WHERE vocals_state IN ('queued', 'running')""")
+        for field in ("score_state", "lyrics_state", "style_state"):
+            execute(f"UPDATE identity_songs SET {field} = 'none' WHERE {field} IN ('queued', 'running')")
     await requeue_waiting()
     # Before relayout, which names each take's file, and before the levels are read.
     await asyncio.to_thread(library.convert_old_normalised)
     await asyncio.to_thread(relayout)
-    forget_frozen_defaults()
     await asyncio.to_thread(fill_source_durations)
     if config.ENGINE_OUTPUT_DIR:
         # Renders are saved here.  Created by the app, so the app may delete the
@@ -506,11 +505,6 @@ async def lifespan(app: FastAPI):
         except OSError as exc:
             log.warning("engine output folder not usable, renders stay in the engine: %s", exc)
     await ENGINE.start()
-    # Identity analysis is not queued again after a restart: its states go back to
-    # none, and Analyse picks up whatever is left.
-    execute("""UPDATE identity_songs SET vocals_state = 'none' WHERE vocals_state IN ('queued', 'running')""")
-    for field in ("score_state", "lyrics_state", "style_state"):
-        execute(f"UPDATE identity_songs SET {field} = 'none' WHERE {field} IN ('queued', 'running')")
     tasks = [asyncio.create_task(jobs.worker()), asyncio.create_task(jobs.stems_worker()), asyncio.create_task(jobs.keeper()),
              asyncio.create_task(jobs.identity_worker()),
              # One request a day to our own site, on this loop rather than in a job lane:
@@ -630,17 +624,6 @@ async def guard(request: Request, call_next):
     return response
 
 
-@app.middleware("http")
-async def revalidate_static(request, call_next):
-    """Let the browser cache the page's scripts and stylesheets, but check them
-    every time.  They are asked for as app.js?v=<VERSION>, and the version moves
-    only for a feature release, so without this a deploy could leave a browser on
-    the old files.  StaticFiles sends an ETag and a Last-Modified, so an unchanged
-    file costs a 304 rather than a download."""
-    response = await call_next(request)
-    if request.url.path.startswith("/static/"):
-        response.headers["Cache-Control"] = "no-cache"
-    return response
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -702,7 +685,33 @@ def _advanced_of(body, fallback: dict | None = None) -> dict:
     return res
 
 
-class SongIn(BaseModel):
+class LoraSettingsMixin(BaseModel):
+    identity_id: str | None = Field(None, max_length=64)
+    persona_id: str | None = Field(None, max_length=64)
+    voice_lora: str | None = Field(None, max_length=200)
+    voice_lora_strength: float = 1.0
+    voice_lora_clip: float = Field(0.0, ge=0.0, le=3.0)
+    style_lora: str | None = Field(None, max_length=200)
+    style_lora_model: float = Field(1.0, ge=0.0, le=3.0)
+    style_lora_clip: float = Field(1.0, ge=0.0, le=3.0)
+
+
+class AdvancedRenderSettingsMixin(BaseModel):
+    sampler_steps: int | None = Field(32, ge=16, le=64)
+    avoid: str | None = Field(None, max_length=1000)
+    target_key: str | None = Field(None, max_length=50)
+    target_bpm: int | None = Field(None, ge=20, le=400)
+    max_abc_tokens: int | None = Field(8192, ge=512, le=8192)
+    chord_hold_limit: int | None = Field(8, ge=1, le=32)
+    chord_outside_bonus: float | None = Field(0.0, ge=0.0, le=10.0)
+    chord_sections: int | None = Field(None, ge=0, le=1)
+    follow_structure: int | None = Field(None, ge=0, le=1)
+    voice_cues: int | None = Field(None, ge=0, le=1)
+    target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
+    fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
+
+
+class SongIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     title: str | None = Field(None, max_length=200)
     # The take this one is kept inside (Checkpoints makes its takes that way); omitted, a take of its own.
     parent_id: str | None = Field(None, max_length=64)
@@ -723,26 +732,6 @@ class SongIn(BaseModel):
     space_id: str = Field(DEFAULT_SPACE, max_length=64)
     realaudio: bool = True
     normalise: bool = False
-    identity_id: str | None = Field(None, max_length=64)
-    persona_id: str | None = Field(None, max_length=64)
-    voice_lora: str | None = Field(None, max_length=200)
-    voice_lora_strength: float = 1.0
-    voice_lora_clip: float = Field(0.0, ge=0.0, le=3.0)
-    style_lora: str | None = Field(None, max_length=200)
-    style_lora_model: float = Field(1.0, ge=0.0, le=3.0)
-    style_lora_clip: float = Field(1.0, ge=0.0, le=3.0)
-    sampler_steps: int | None = Field(32, ge=16, le=64)
-    avoid: str | None = Field(None, max_length=1000)
-    target_key: str | None = Field(None, max_length=50)
-    target_bpm: int | None = Field(None, ge=20, le=400)
-    max_abc_tokens: int | None = Field(8192, ge=512, le=8192)
-    chord_hold_limit: int | None = Field(8, ge=1, le=32)
-    chord_outside_bonus: float | None = Field(0.0, ge=0.0, le=10.0)
-    chord_sections: int | None = Field(None, ge=0, le=1)
-    follow_structure: int | None = Field(None, ge=0, le=1)
-    voice_cues: int | None = Field(None, ge=0, le=1)
-    target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
-    fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
 
 
 def _style_lora_of(body) -> dict:
@@ -775,7 +764,7 @@ class ReplanIn(BaseModel):
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
 
 
-class TakeIn(BaseModel):
+class TakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     source_id: str = Field(max_length=64)
     title: str | None = Field(None, max_length=200)
     # The take this one is kept inside (Checkpoints makes its takes that way); omitted, a take of its own.
@@ -791,29 +780,9 @@ class TakeIn(BaseModel):
     interpretation: str = "standard"
     realaudio: bool = True
     normalise: bool = False
-    identity_id: str | None = Field(None, max_length=64)
-    persona_id: str | None = Field(None, max_length=64)
-    voice_lora: str | None = Field(None, max_length=200)
-    voice_lora_strength: float = 1.0
-    voice_lora_clip: float = Field(0.0, ge=0.0, le=3.0)
-    style_lora: str | None = Field(None, max_length=200)
-    style_lora_model: float = Field(1.0, ge=0.0, le=3.0)
-    style_lora_clip: float = Field(1.0, ge=0.0, le=3.0)
-    sampler_steps: int | None = Field(32, ge=16, le=64)
-    avoid: str | None = Field(None, max_length=1000)
-    target_key: str | None = Field(None, max_length=50)
-    target_bpm: int | None = Field(None, ge=20, le=400)
-    max_abc_tokens: int | None = Field(8192, ge=512, le=8192)
-    chord_hold_limit: int | None = Field(8, ge=1, le=32)
-    chord_outside_bonus: float | None = Field(0.0, ge=0.0, le=10.0)
-    chord_sections: int | None = Field(None, ge=0, le=1)
-    follow_structure: int | None = Field(None, ge=0, le=1)
-    voice_cues: int | None = Field(None, ge=0, le=1)
-    target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
-    fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
 
 
-class InstrumentalIn(BaseModel):
+class InstrumentalIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     title: str | None = Field(None, max_length=200)
     # The take this one is kept inside (Checkpoints makes its takes that way); omitted, a take of its own.
     parent_id: str | None = Field(None, max_length=64)
@@ -835,26 +804,6 @@ class InstrumentalIn(BaseModel):
     feel: str = "steady"
     realaudio: bool = True
     normalise: bool = False
-    identity_id: str | None = Field(None, max_length=64)
-    persona_id: str | None = Field(None, max_length=64)
-    voice_lora: str | None = Field(None, max_length=200)
-    voice_lora_strength: float = 1.0
-    voice_lora_clip: float = Field(0.0, ge=0.0, le=3.0)
-    style_lora: str | None = Field(None, max_length=200)
-    style_lora_model: float = Field(1.0, ge=0.0, le=3.0)
-    style_lora_clip: float = Field(1.0, ge=0.0, le=3.0)
-    sampler_steps: int | None = Field(32, ge=16, le=64)
-    avoid: str | None = Field(None, max_length=1000)
-    target_key: str | None = Field(None, max_length=50)
-    target_bpm: int | None = Field(None, ge=20, le=400)
-    max_abc_tokens: int | None = Field(8192, ge=512, le=8192)
-    chord_hold_limit: int | None = Field(8, ge=1, le=32)
-    chord_outside_bonus: float | None = Field(0.0, ge=0.0, le=10.0)
-    chord_sections: int | None = Field(None, ge=0, le=1)
-    follow_structure: int | None = Field(None, ge=0, le=1)
-    voice_cues: int | None = Field(None, ge=0, le=1)
-    target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
-    fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
 
 
 class IdentityIn(BaseModel):
@@ -1012,12 +961,6 @@ def _asset_version() -> str:
         return config.VERSION
 
 
-_INDEX = (STATIC_DIR / "index.html").read_text(encoding="utf-8").replace("{{VERSION}}", config.VERSION)
-
-
-_GUIDE = (STATIC_DIR / "guide.html").read_text(encoding="utf-8").replace("{{VERSION}}", config.VERSION)
-
-
 @app.get("/")
 def index() -> HTMLResponse:
     content = (STATIC_DIR / "index.html").read_text(encoding="utf-8").replace("{{VERSION}}", _asset_version())
@@ -1038,7 +981,7 @@ def guide() -> HTMLResponse:
 @app.get("/logs")
 def logs_page() -> HTMLResponse:
     """Standalone live logs viewer in its own window or tab."""
-    content = (STATIC_DIR / "logs.html").read_text(encoding="utf-8").replace("{{VERSION}}", config.VERSION)
+    content = (STATIC_DIR / "logs.html").read_text(encoding="utf-8").replace("{{VERSION}}", _asset_version())
     return HTMLResponse(content)
 
 
@@ -1195,24 +1138,33 @@ def _lora_corpus_styles() -> dict[str, list[dict]]:
     the voice asks it for something it never saw, and it falls back to stock."""
     try:
         identity_rows = rows("SELECT id, lora, description, voice FROM identities WHERE lora IS NOT NULL AND lora != ''")
+        if not identity_rows:
+            return {}
+        iden_map = {r["id"]: r for r in identity_rows}
+        placeholders = ",".join("?" * len(iden_map))
+        all_songs = rows(
+            f"SELECT identity_id, title, style_hint, tempo, key, description FROM identity_songs "
+            f"WHERE identity_id IN ({placeholders}) AND include = 1 ORDER BY position, id",
+            tuple(iden_map.keys()),
+        )
         out: dict[str, list[dict]] = {}
-        for iden in identity_rows:
-            songs = rows(
-                "SELECT title, style_hint, tempo, key, description FROM identity_songs "
-                "WHERE identity_id = ? AND include = 1 ORDER BY position, id",
-                (iden["id"],),
-            )
-            seen = set()
-            song_list = []
-            for s in songs:
-                prompt = _learned_style(s, iden)
-                if not prompt or (prompt, s["tempo"]) in seen:
-                    continue
-                seen.add((prompt, s["tempo"]))
-                song_list.append({"title": s["title"], "prompt": prompt, "hint": s["style_hint"] or "",
-                                  "tempo": s["tempo"], "key": s["key"]})
-            if song_list:
-                out[iden["lora"]] = song_list
+        seen_per_lora: dict[str, set] = {}
+        for s in all_songs:
+            iden = iden_map.get(s["identity_id"])
+            if not iden:
+                continue
+            lora_name = iden["lora"]
+            prompt = _learned_style(s, iden)
+            if not prompt:
+                continue
+            seen = seen_per_lora.setdefault(lora_name, set())
+            if (prompt, s["tempo"]) in seen:
+                continue
+            seen.add((prompt, s["tempo"]))
+            out.setdefault(lora_name, []).append({
+                "title": s["title"], "prompt": prompt, "hint": s["style_hint"] or "",
+                "tempo": s["tempo"], "key": s["key"]
+            })
         return out
     except Exception as err:
         log.warning("could not query corpus styles for loras: %s", err)
@@ -1848,14 +1800,15 @@ def _attach_stem_sets(takes: list[dict]) -> None:
         take["stem_sets"] = by_take[take["id"]]
 
 
-def ran_to_cap(take: dict) -> bool:
+def ran_to_cap(take: dict, planned: dict | None = None) -> bool:
     """A render that was still going at its Length cap and was cut there, though its
     score ended well before: the model never wrote its end, and the take stops
     mid-stream.  A take capped short on purpose, shorter than its score, is not this."""
     duration, cap = take.get("duration"), take.get("max_duration")
     if not duration or not cap or duration < cap - 0.5:
         return False
-    planned = score.estimate(take.get("abc") or "")
+    if planned is None:
+        planned = score.estimate(take.get("abc") or "")
     return bool(planned and planned["seconds"] < cap - 10)
 
 
@@ -1917,8 +1870,9 @@ def list_takes(
     _attach_family(got)
     for take in got:
         take["has_audio"] = bool(take["audio_path"] and Path(take["audio_path"]).exists())
-        take["ran_to_cap"] = ran_to_cap(take)
-        take["stopped_early"] = score.stopped_early(take.get("duration"), take.get("abc"), take.get("max_duration"))
+        est = score.estimate(take.get("abc") or "") if take.get("abc") else None
+        take["ran_to_cap"] = ran_to_cap(take, planned=est)
+        take["stopped_early"] = score.stopped_early(take.get("duration"), take.get("abc"), take.get("max_duration"), planned=est)
         take["art"] = artwork.url_for(take["id"], take.get("parent_id"))
         if take.get("prompt_id") and take["status"] == "running":
             take["live"] = ENGINE.snapshot(take["prompt_id"])

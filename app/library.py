@@ -286,20 +286,25 @@ NORMALISED = ".normalised"
 CAP_FADE = 4.0   # seconds faded at the end of a render the length cap stopped
 
 
-def fade_out_end(rendered: Path, seconds: float = CAP_FADE) -> None:
+def fade_out_end(rendered: Path, seconds: float = CAP_FADE, duration: float | None = None) -> None:
     """Fade out the end of a render the length cap cut off, in place.  The model does
     not always stop at the end of its score, and a take stopped by the cap otherwise
     ends mid-bar at full level."""
-    probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries",
-                            "stream=sample_fmt:format=duration", "-of", "json", str(rendered)],
-                           capture_output=True, text=True, timeout=60, check=True)
-    info = json.loads(probe.stdout)
-    duration = float(info["format"]["duration"])
-    sample_fmt = (info.get("streams") or [{}])[0].get("sample_fmt", "s16")
+    flac_info = read_flac_streaminfo(rendered)
+    if flac_info and (duration or flac_info.duration):
+        dur = duration or flac_info.duration
+        sample_fmt = "s16" if flac_info.bits_per_sample <= 16 else "s32"
+    else:
+        probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries",
+                                "stream=sample_fmt:format=duration", "-of", "json", str(rendered)],
+                               capture_output=True, text=True, timeout=60, check=True)
+        info = json.loads(probe.stdout)
+        dur = duration or float(info["format"]["duration"])
+        sample_fmt = (info.get("streams") or [{}])[0].get("sample_fmt", "s16")
     staged = rendered.with_name(f"{rendered.stem}.fading{rendered.suffix}")
     try:
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(rendered), "-af",
-                        f"afade=t=out:st={max(0.0, duration - seconds):.3f}:d={seconds}",
+                        f"afade=t=out:st={max(0.0, dur - seconds):.3f}:d={seconds}",
                         "-sample_fmt", "s16" if sample_fmt.startswith("s16") else "s32", "-c:a", "flac", str(staged)],
                        capture_output=True, text=True, timeout=300, check=True)
         replace_file(staged, rendered)
@@ -352,6 +357,54 @@ def convert_old_normalised() -> int:
     return done
 
 
+class FlacStreamInfo:
+    def __init__(
+        self,
+        sample_rate: int,
+        channels: int,
+        bits_per_sample: int,
+        total_samples: int,
+        pcm_md5: bytes | None = None,
+    ):
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.bits_per_sample = bits_per_sample
+        self.total_samples = total_samples
+        self.pcm_md5 = pcm_md5
+
+    @property
+    def duration(self) -> float | None:
+        if self.sample_rate and self.total_samples:
+            return round(self.total_samples / self.sample_rate, 2)
+        return None
+
+
+def read_flac_streaminfo(path: Path) -> FlacStreamInfo | None:
+    """Read the 34-byte STREAMINFO metadata block from a FLAC header.
+    Extracts sample_rate, channels, bits_per_sample, total_samples, and pcm_md5.
+    Returns None if the file cannot be opened or is not a FLAC file."""
+    try:
+        with path.open("rb") as fh:
+            head = fh.read(42)
+        if len(head) >= 26 and head[:4] == b"fLaC":
+            packed = int.from_bytes(head[18:26], "big")
+            sample_rate = packed >> 44
+            channels = ((packed >> 41) & 0x07) + 1
+            bits = ((packed >> 36) & 0x1F) + 1
+            total_samples = packed & ((1 << 36) - 1)
+            md5 = head[26:42] if len(head) >= 42 else None
+            return FlacStreamInfo(
+                sample_rate=sample_rate or 48000,
+                channels=channels,
+                bits_per_sample=bits,
+                total_samples=total_samples,
+                pcm_md5=md5,
+            )
+    except OSError:
+        pass
+    return None
+
+
 def normalise(rendered: Path, target: float = NORMAL_LUFS) -> Path:
     """Write a copy of a take at the target loudness beside the file as rendered, and
     return it.  The rendered file is only read, so doing it twice gives the same result.
@@ -378,12 +431,9 @@ def normalise(rendered: Path, target: float = NORMAL_LUFS) -> Path:
         # tenth of a dB under the ceiling for what the resampling back adds.
         ceiling = 10 ** ((NORMAL_PEAK - 0.1) / 20)
         chain += f",aresample=192000,alimiter=limit={ceiling:.4f}:attack=5:release=50:level=0"
-    rate, bits = 48000, 16
-    with rendered.open("rb") as fh:
-        head = fh.read(26)
-    if head[:4] == b"fLaC" and len(head) >= 26:
-        packed = int.from_bytes(head[18:26], "big")
-        rate, bits = (packed >> 44) or 48000, ((packed >> 36) & 0x1F) + 1
+    flac_info = read_flac_streaminfo(rendered)
+    rate = flac_info.sample_rate if flac_info else 48000
+    bits = flac_info.bits_per_sample if flac_info else 16
     audio = normalised_path(rendered)
     staged = rendered.with_name(f"{rendered.stem}.normalising{rendered.suffix}")
     try:
@@ -402,18 +452,9 @@ def normalise(rendered: Path, target: float = NORMAL_LUFS) -> Path:
 def audio_duration(path: Path) -> float | None:
     """FLAC carries its length in the header, which is instant.  Anything else, or a
     FLAC that does not say, goes to ffprobe."""
-    try:
-        with path.open("rb") as fh:
-            head = fh.read(26)
-        if head[:4] == b"fLaC" and len(head) >= 26:
-            packed = int.from_bytes(head[18:26], "big")
-            sample_rate = packed >> 44
-            total_samples = packed & ((1 << 36) - 1)
-            if sample_rate and total_samples:
-                return round(total_samples / sample_rate, 2)
-    except OSError as exc:
-        log.warning("duration read failed for %s: %s", path, exc)
-        return None
+    flac_info = read_flac_streaminfo(path)
+    if flac_info and flac_info.duration is not None:
+        return flac_info.duration
     try:
         out = subprocess.run(
             ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
@@ -525,18 +566,12 @@ def tagged_copy(src: Path, dest: Path, fmt: str, codec: list[str] | None, title:
     # leaves a v2.4 tag naming ffmpeg; -id3v2_version 0 leaves none.
     untagged = ["-map_metadata", "-1"] + (["-id3v2_version", "0"] if fmt == "mp3" else [])
 
-    if fmt == "flac" and src.suffix.lower() != ".flac":
-        flac_codec = ["-c:a", "flac"]
-        try:
-            with src.open("rb") as fh:
-                head = fh.read(26)
-            if head[:4] == b"fLaC" and len(head) >= 26:
-                packed = int.from_bytes(head[18:26], "big")
-                bits = ((packed >> 36) & 0x1F) + 1
-                flac_codec.extend(["-sample_fmt", "s16" if bits <= 16 else "s32"])
-        except Exception:
-            pass
-        chosen_codec = flac_codec
+    if fmt == "flac":
+        info = read_flac_streaminfo(src)
+        if info:
+            chosen_codec = codec or ["-c", "copy"]
+        else:
+            chosen_codec = codec or ["-c:a", "flac"]
     else:
         chosen_codec = codec or ["-c", "copy"]
 

@@ -295,10 +295,11 @@ def corpora(lora_base: Callable[[dict], str]) -> list[dict]:
     """Per corpus: where its space is, so the biggest can be seen at a glance."""
     out = []
     root = loras.folder()
+    all_working = _working_copy_paths()
     for identity in rows("SELECT id, name FROM identities ORDER BY name"):
         base = _corpus_dir(identity["id"])
         songs = tree(base / "songs")
-        working = _sum([p for p in _working_copy_paths() if base in p.parents]) if songs[1] else (0, 0)
+        working = _sum([p for p in all_working if base in p.parents]) if songs[1] else (0, 0)
         marks = loras.checkpoints(lora_base(identity), root) if root else []
         out.append({"id": identity["id"], "name": identity["name"] or "corpus",
                     "songs": songs[0] - working[0], "working_copies": working[0],

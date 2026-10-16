@@ -14,61 +14,9 @@ assert.match(html, /<button class="chip" data-tag="\[female voice\]"[^>]*>\+ Fem
 assert.match(html, /<button class="chip" data-tag="\[both voices\]"[^>]*>\+ Both<\/button>/);
 
 // 2. Test insertion logic in app.js
-import vm from 'node:vm';
+import { createAppSandbox } from './dom-harness.mjs';
 
-const src = fs.readFileSync(new URL('../app/static/app.js', import.meta.url), 'utf8');
-
-function makeEl(id) {
-  const classes = new Set();
-  const el = {
-    id, value: '', textContent: '', innerHTML: '', className: '', checked: false, disabled: false,
-    open: false, files: [], options: [], selectionStart: 0, selectionEnd: 0,
-    style: { setProperty() {}, removeProperty() {} }, dataset: {},
-    classList: {
-      add(c) { classes.add(c); },
-      remove(c) { classes.delete(c); },
-      toggle(c, force) { if (force !== undefined) { force ? classes.add(c) : classes.delete(c); } else { classes.has(c) ? classes.delete(c) : classes.add(c); } },
-      contains(c) { return classes.has(c); }
-    },
-    addEventListener(t, fn) { (el._h[t] = el._h[t] || []).push(fn); },
-    click() { (el._h.click || []).forEach((f) => f({ target: el, preventDefault() {} })); },
-    dispatchEvent(t) { (el._h[t.type] || []).forEach((f) => f(t)); return true; },
-    focus() { document.activeElement = el; }, blur() {}, remove() {},
-    closest(selector) {
-      if (selector === '[data-tag]' && el.dataset.tag) return el;
-      return null;
-    },
-    scrollIntoView() {}, setAttribute(k, v) { if (k.startsWith('data-')) el.dataset[k.slice(5)] = v; },
-    querySelectorAll() { return []; }, querySelector() { return null; }, _h: {}
-  };
-  return el;
-}
-
-const els = new Map();
-const document = {
-  activeElement: null,
-  getElementById(id) { if (!els.has(id)) els.set(id, makeEl(id)); return els.get(id); },
-  querySelector(s) { if (!els.has(s)) els.set(s, makeEl(s)); return els.get(s); },
-  querySelectorAll() { return []; },
-  createElement(tag) { return makeEl(''); },
-  body: makeEl('body'),
-  documentElement: makeEl('documentElement'),
-  addEventListener() {}
-};
-
-const ctx = {
-  document, console, setTimeout, clearTimeout, setInterval: () => 0, clearInterval: () => {}, Promise,
-  window: { confirm: () => true, addEventListener() {}, devicePixelRatio: 1, requestAnimationFrame: () => 0, cancelAnimationFrame: () => 0 },
-  navigator: { mediaSession: { setActionHandler() {} }, clipboard: { writeText: async () => {} } },
-  ABCJS: { renderAbc() {} },
-  Path2D: class {},
-  localStorage: { getItem: () => null, setItem: () => {} },
-  fetch: () => Promise.resolve({ ok: true, headers: { get: () => 'application/json' }, json: () => Promise.resolve({}), text: () => Promise.resolve('') }),
-  Event: class { constructor(type) { this.type = type; } }
-};
-
-vm.createContext(ctx);
-vm.runInContext(src, ctx);
+const { document, makeEl } = createAppSandbox();
 
 const lyricsBig = document.getElementById('lyrics-big');
 const lyricsSmall = document.getElementById('lyrics');

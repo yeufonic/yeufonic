@@ -159,3 +159,48 @@ def parse(text: str) -> dict:
         problems.append("no song sections")
     lyrics = "\n\n".join(f"[{name}]" + ("\n" + "\n".join(lines) if lines else "") for name, lines in sections)
     return {"title": title, "lyrics": lyrics, "sections": [name for name, _ in sections], "problems": problems}
+
+
+_CANONICAL_SYNONYMS = {
+    "prechorus": "pre-chorus",
+    "pre chorus": "pre-chorus",
+    "pre-chorus": "pre-chorus",
+    "refrain": "chorus",
+    "hook": "chorus",
+    "coda": "outro",
+    "ending": "outro",
+    "solo": "bridge",
+    "break": "bridge",
+    "breakdown": "bridge",
+    "interlude": "interlude",
+}
+
+
+def canonical_tag(name: str, keep: str | None = None) -> str:
+    """Normalize any lyric section header name to a canonical lower-case tag."""
+    low = (name or "").strip().lower()
+    if not low:
+        return keep or "verse"
+    if low in _CANONICAL_SYNONYMS:
+        return _CANONICAL_SYNONYMS[low]
+    if low in TAGS:
+        return low
+    for tag in ("pre-chorus", "chorus", "bridge", "intro", "outro", "interlude", "verse"):
+        if tag in low:
+            return tag
+    if "hook" in low or "refrain" in low:
+        return "chorus"
+    if "coda" in low:
+        return "outro"
+    return keep or "verse"
+
+
+def guess_title(lyrics: str) -> str:
+    """First real lyric line. Section and genre tags do not make a title."""
+    for line in (lyrics or "").splitlines():
+        text = line.strip()
+        if not text or text[0] in "[#({":
+            continue
+        return text[:60]
+    return ""
+

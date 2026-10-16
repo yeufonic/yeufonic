@@ -99,12 +99,9 @@ def test_active_playback_mastering_rack_not_altered_when_selecting_another_take(
 
 
 def test_activate_take_recording_preserves_card_dom():
+    from conftest import extract_js_function
     app_js = APP_JS.read_text(encoding="utf-8")
-    start = app_js.find("function activateTakeRecording(take)")
-    assert start != -1
-    end = app_js.find("function stepTake(delta)", start)
-    assert end != -1
-    snippet = app_js[start:end]
+    snippet = extract_js_function(app_js, "function activateTakeRecording(take)")
     assert "paintTakes()" not in snippet, (
         "activateTakeRecording must not call paintTakes() as rebuilding card DOM destroys dblclick and selection"
     )

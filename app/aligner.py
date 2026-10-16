@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from . import lyrics
+from . import music
 from . import voices
 
 
@@ -384,22 +386,8 @@ def own_section_name(score_line: str) -> str | None:
 
 
 def clean_section_tag(name: str, keep: str | None = None) -> str:
-    """Normalize lyric section header name to clean ABC section comment tag.
-
-    A bracketed line in the lyrics is not always a section: "[strings]" and "[full orchestra]" are cues.
-    One that names no section leaves the score's own name for that section (`keep`) in place, where it
-    used to turn the intro, interlude and outro of a transcription into verses."""
-    low = (name or "").strip().lower()
-    if not low:
-        return keep or "verse"
-    for tag in ("pre-chorus", "chorus", "bridge", "intro", "outro", "verse"):
-        if tag in low:
-            return tag
-    if "hook" in low or "refrain" in low:
-        return "chorus"
-    if "coda" in low:
-        return "outro"
-    return keep or "verse"
+    """Normalize lyric section header name to clean ABC section comment tag."""
+    return lyrics.canonical_tag(name, keep=keep)
 
 
 def assign_lyrics_to_vocal_notes(
@@ -437,13 +425,7 @@ def assign_lyrics_to_vocal_notes(
     return count
 
 
-def _written_length(text: str) -> float:
-    """A note's length as ABC writes it after the note: "", "2", "/2", "3/2", "//"."""
-    found = re.match(r"(\d*)((?:/\d*)*)", text or "")
-    value = float(found.group(1)) if found.group(1) else 1.0
-    for part in re.findall(r"/(\d*)", found.group(2)):
-        value /= float(part) if part else 2.0
-    return value
+_written_length = music.parse_abc_length
 
 
 def sung_sections(lyrics_text: str) -> list[dict[str, Any]]:

@@ -6,64 +6,9 @@
 // It runs offline: the DOM is stubbed, so it needs no server, no engine
 // and no library.
 
-import fs from 'node:fs';
-import vm from 'node:vm';
+import { createAppSandbox } from './dom-harness.mjs';
 
-const here = new URL('../app/static/app.js', import.meta.url);
-const src = fs.readFileSync(here, 'utf8');
-
-function makeEl(id) {
-  const classes = new Set();
-  const el = {
-    id, value: '', textContent: '', innerHTML: '', checked: false, disabled: false,
-    open: false, files: [], options: [], selectionStart: 0, selectionEnd: 0,
-    style: { setProperty() {}, removeProperty() {} }, dataset: {},
-    get className() { return Array.from(classes).join(' '); },
-    set className(val) { classes.clear(); (val || '').split(/\s+/).filter(Boolean).forEach((c) => classes.add(c)); },
-    classList: {
-      add(c) { classes.add(c); },
-      remove(c) { classes.delete(c); },
-      toggle(c, force) { if (force !== undefined) { force ? classes.add(c) : classes.delete(c); } else { classes.has(c) ? classes.delete(c) : classes.add(c); } },
-      contains(c) { return classes.has(c); }
-    },
-    addEventListener(t, fn) { (el._h[t] = el._h[t] || []).push(fn); },
-    click() { (el._h.click || []).forEach((f) => f({ target: el, preventDefault() {} })); },
-    dispatchEvent(t) { (el._h[t.type] || []).forEach((f) => f(t)); return true; },
-    focus() { document.activeElement = el; }, blur() {}, remove() {},
-    closest() { return null; }, scrollIntoView() {}, setAttribute() {},
-    querySelectorAll() { return []; }, querySelector() { return null; }, _h: {}
-  };
-  return el;
-}
-
-const els = new Map();
-const document = {
-  activeElement: null,
-  getElementById(id) { if (!els.has(id)) els.set(id, makeEl(id)); return els.get(id); },
-  querySelector(s) { if (!els.has(s)) els.set(s, makeEl(s)); return els.get(s); },
-  querySelectorAll() { return []; },
-  addEventListener(t, fn) { (this._h[t] = this._h[t] || []).push(fn); },
-  dispatchEvent(e) { (this._h[e.type] || []).forEach((f) => f(e)); },
-  _h: {}, body: makeEl('body'), documentElement: makeEl('documentElement')
-};
-
-const ctx = {
-  document, console, setTimeout, clearTimeout, setInterval: () => 0, clearInterval: () => {}, Promise,
-  window: { confirm: () => true, addEventListener() {}, devicePixelRatio: 1, requestAnimationFrame: () => 0, cancelAnimationFrame: () => 0 },
-  navigator: { mediaSession: { setActionHandler() {} }, clipboard: { writeText: async () => {} } },
-  ABCJS: { renderAbc() {} },
-  Path2D: class {},
-  localStorage: { getItem: () => null, setItem: () => {} },
-  fetch: () => Promise.resolve({
-    ok: true,
-    headers: { get: () => 'application/json' },
-    json: () => Promise.resolve({}),
-    text: () => Promise.resolve('')
-  })
-};
-ctx.globalThis = ctx;
-vm.createContext(ctx);
-vm.runInContext(src, ctx);
+const { ctx, document } = createAppSandbox();
 
 async function run() {
   const { confirmModal, $ } = ctx;

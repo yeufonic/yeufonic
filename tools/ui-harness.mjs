@@ -9,40 +9,11 @@
 //
 // It creates real takes.  Delete them afterwards.
 
-import fs from 'node:fs';
-import vm from 'node:vm';
+import { createAppSandbox } from './dom-harness.mjs';
 const APP = process.env.APP || 'http://127.0.0.1:8090';
-const src = fs.readFileSync(new URL('../app/static/app.js', import.meta.url), 'utf8');
-function makeEl(id) {
-  const el = { id, value: '', textContent: '', innerHTML: '', className: '', checked: false, disabled: false,
-    open: false, files: [], selectionStart: 0, selectionEnd: 0, style: {}, dataset: {},
-    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
-    addEventListener(t, fn) { (el._h[t] = el._h[t] || []).push(fn); }, dispatchEvent() { return true; },
-    closest() { return null; }, scrollIntoView() {}, focus() {}, setAttribute() {}, removeAttribute() {},
-    querySelector() { return null; }, querySelectorAll() { return []; },
-    getContext() { return { clearRect() {}, fillRect() {}, fillStyle: '' }; },
-    getBoundingClientRect() { return { left: 0, width: 600 }; }, clientWidth: 600, width: 600, height: 44, _h: {} };
-  return el;
-}
-const els = new Map();
-const document = { getElementById(id) { if (!els.has(id)) els.set(id, makeEl(id)); return els.get(id); },
-  querySelector(s) { if (!els.has(s)) els.set(s, makeEl(s)); return els.get(s); },
-  querySelectorAll() { return []; }, addEventListener() {}, body: { style: {} } };
-const store = new Map();
-const ctx = { document, console,
-  // The page uses these when it wires the player and the score views.
-  navigator: { mediaSession: { setActionHandler() {} }, clipboard: { writeText: async () => {} } },
-  ABCJS: { renderAbc() {} },
-  Path2D: class { moveTo() {} lineTo() {} closePath() {} },
-  localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)) },
-  window: { devicePixelRatio: 1, addEventListener() {}, requestAnimationFrame: () => 0, cancelAnimationFrame() {} },
-  fetch: (u, o) => fetch(u.startsWith('http') ? u : APP + u, o),
-  setTimeout, clearTimeout, Event: class { constructor(t) { this.type = t; } },
-  setInterval: () => 0, confirm: () => true, requestAnimationFrame: () => 0, cancelAnimationFrame: () => 0 };
-ctx.globalThis = ctx;
-vm.createContext(ctx);
-vm.runInContext(src, ctx, { filename: 'app.js' });
-const $ = (id) => document.getElementById(id);
+const { ctx, $ } = createAppSandbox({
+  fetch: (u, o) => fetch(u.startsWith('http') ? u : APP + u, o)
+});
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 ctx.setMode('song');

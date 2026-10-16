@@ -1227,28 +1227,6 @@
       var self = this;
       this.ensureToolbar();
 
-      // Voice selectors (active voice for drawing new notes / converting selected notes)
-      var vocalBtn = document.getElementById('roll-voice-vocal');
-      var insBtn = document.getElementById('roll-voice-ins');
-      if (vocalBtn && !vocalBtn._bound) {
-        vocalBtn._bound = true;
-        vocalBtn.addEventListener('click', function () { self.setVoice('Vocal', true); });
-      }
-      if (insBtn && !insBtn._bound) {
-        insBtn._bound = true;
-        insBtn.addEventListener('click', function () { self.setVoice('Ins', true); });
-      }
-
-      // Selection buttons
-      var selectAllBtn = document.getElementById('roll-select-all');
-      if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function () { self.selectAll(); });
-      }
-      var selectRightBtn = document.getElementById('roll-select-right');
-      if (selectRightBtn) {
-        selectRightBtn.addEventListener('click', function () { self.selectRightOfPlayhead(); });
-      }
-
       // Ghost checkbox (optional backwards compatibility)
       var ghostCheck = document.getElementById('roll-ghost');
       if (ghostCheck) {
@@ -1301,25 +1279,6 @@
       if (chordsBtn) {
         chordsBtn.addEventListener('click', function () { self.toggleChords(); });
       }
-      var followBtn = document.getElementById('roll-follow');
-      if (followBtn && !followBtn._bound) {
-        followBtn._bound = true;
-        followBtn.addEventListener('click', function () { self.toggleFollow(); });
-      }
-
-      // History Undo / Redo
-      var undoBtn = document.getElementById('roll-undo-btn');
-      if (undoBtn) {
-        undoBtn.addEventListener('click', function () {
-          if (global.undoScore) { global.undoScore(); }
-        });
-      }
-      var redoBtn = document.getElementById('roll-redo-btn');
-      if (redoBtn) {
-        redoBtn.addEventListener('click', function () {
-          if (global.redoScore) { global.redoScore(); }
-        });
-      }
 
       // Zoom controls
       var zoomIn = document.getElementById('roll-zoom-in');
@@ -1351,16 +1310,6 @@
             self.setFollow(false);
           }
         }, { passive: false });
-      }
-
-      // Maximize toggle
-      var maxBtn = document.getElementById('roll-maximize');
-      if (maxBtn) {
-        maxBtn.addEventListener('click', function () {
-          if (global.toggleScoreMaximized) {
-            global.toggleScoreMaximized();
-          }
-        });
       }
 
       // Show / Hide ABC text split toggle
@@ -1527,7 +1476,6 @@
     renderAll: function () {
       if (!this.model) { return; }
       if (typeof document === 'undefined') { return; }
-      this.ensureToolbar();
       this.updateMetadata();
       this.renderKeys();
       this.renderTimeline();
@@ -1547,13 +1495,19 @@
     renderKeys: function () {
       var keysEl = document.getElementById('roll-keys');
       if (!keysEl) { return; }
+      var curKey = (this.model && this.model.key) || 'C';
+      if (keysEl.children.length > 0 && keysEl._renderedKey === curKey && keysEl._renderedRowHeight === this.rowHeight) {
+        return;
+      }
+      keysEl._renderedKey = curKey;
+      keysEl._renderedRowHeight = this.rowHeight;
       var self = this;
       var html = [];
 
       for (var p = MAX_PITCH; p >= MIN_PITCH; p--) {
         var semitone = ((p % 12) + 12) % 12;
         var isBlack = BLACK_KEYS[semitone];
-        var name = midiToNoteName(p, self.model && self.model.key);
+        var name = midiToNoteName(p, curKey);
         var isC = semitone === 0;
 
         html.push(
@@ -1939,7 +1893,7 @@
         this.selectedNoteIds = [id];
       }
       this.selectedNoteId = this.selectedNoteIds.length > 0 ? this.selectedNoteIds[0] : null;
-      this.renderNotes();
+      this.updateSelectionVisuals();
     },
 
     deselectNote: function (id) {
@@ -1949,13 +1903,13 @@
         this.selectedNoteIds.splice(idx, 1);
       }
       this.selectedNoteId = this.selectedNoteIds.length > 0 ? this.selectedNoteIds[0] : null;
-      this.renderNotes();
+      this.updateSelectionVisuals();
     },
 
     clearSelection: function () {
       this.selectedNoteIds = [];
       this.selectedNoteId = null;
-      this.renderNotes();
+      this.updateSelectionVisuals();
     },
 
     selectAll: function () {
@@ -1966,7 +1920,7 @@
       }
       this.selectedNoteIds = ids;
       this.selectedNoteId = ids.length > 0 ? ids[0] : null;
-      this.renderNotes();
+      this.updateSelectionVisuals();
     },
 
     selectFromTick: function (fromTick) {
@@ -1980,7 +1934,7 @@
       }
       this.selectedNoteIds = ids;
       this.selectedNoteId = ids.length > 0 ? ids[0] : null;
-      this.renderNotes();
+      this.updateSelectionVisuals();
     },
 
     selectRightOfPlayhead: function () {
@@ -2055,6 +2009,7 @@
     },
 
     updateSelectionVisuals: function () {
+      if (typeof document === 'undefined') { return; }
       var notesLayer = document.getElementById('roll-notes-layer');
       if (!notesLayer) { return; }
       var noteNodes = notesLayer.querySelectorAll('.roll-note');
@@ -2088,7 +2043,7 @@
 
           self.selectedNoteIds = [rId];
           self.selectedNoteId = rId;
-          self.renderNotes();
+          self.updateSelectionVisuals();
 
           dragState = {
             type: 'resize',

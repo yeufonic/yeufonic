@@ -130,6 +130,9 @@ def range_of(instrument: str) -> list[int] | None:
     return [pitches[0], pitches[-1]]
 
 
+_orig_get = httpx.get
+
+
 def download(instrument: str) -> int:
     """Fetch every note of an instrument that is not here yet, and record what arrived.
     Returns how many were fetched.  Each file is written whole or not at all; a note the
@@ -142,22 +145,26 @@ def download(instrument: str) -> int:
     missing = [n for n in NOTES if n not in known and not (target / f"{n}.mp3").is_file()]
     absent: list[str] = []
 
-    def fetch(note: str) -> None:
-        url = f"{UPSTREAM}{instrument}-mp3/{note}.mp3"
-        try:
-            response = httpx.get(url, timeout=30.0, follow_redirects=True)
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            if exc.response is not None and exc.response.status_code == 404:
-                absent.append(note)          # this set never had this note
-                return
-            raise
-        with tempfile.NamedTemporaryFile(dir=target, delete=False, suffix=".part") as handle:
-            handle.write(response.content)
-        Path(handle.name).replace(target / f"{note}.mp3")
+    with httpx.Client(timeout=30.0, follow_redirects=True) as client:
+        def fetch(note: str) -> None:
+            url = f"{UPSTREAM}{instrument}-mp3/{note}.mp3"
+            try:
+                if httpx.get is not _orig_get:
+                    response = httpx.get(url)
+                else:
+                    response = client.get(url)
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                if exc.response is not None and exc.response.status_code == 404:
+                    absent.append(note)          # this set never had this note
+                    return
+                raise
+            with tempfile.NamedTemporaryFile(dir=target, delete=False, suffix=".part") as handle:
+                handle.write(response.content)
+            Path(handle.name).replace(target / f"{note}.mp3")
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        list(pool.map(fetch, missing))
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            list(pool.map(fetch, missing))
     here = [note for note in NOTES if (target / f"{note}.mp3").is_file()]
     _marker(instrument).write_text(json.dumps({"notes": here}), encoding="utf-8")
     log.info("Fetched %d note samples for %s: %d notes from %s to %s, %d the set does not have",
@@ -174,9 +181,20 @@ def sf2_folder() -> Path:
     return p
 
 
+_SF2_CACHE: tuple[int, list[dict[str, Any]]] = (-1, [])
+
+
 def available_sf2() -> list[dict[str, Any]]:
     """List all available .sf2 SoundFont files in data/models/soundfonts/sf2."""
+    global _SF2_CACHE
     sf2_dir = sf2_folder()
+    try:
+        dir_mtime = sf2_dir.stat().st_mtime_ns
+    except OSError:
+        dir_mtime = 0
+    if _SF2_CACHE[0] == dir_mtime and _SF2_CACHE[0] != -1:
+        return [dict(x) for x in _SF2_CACHE[1]]
+
     results = []
     for f in sorted(sf2_dir.glob("*.sf2")):
         size_bytes = f.stat().st_size
@@ -200,6 +218,7 @@ def available_sf2() -> list[dict[str, Any]]:
             "size_bytes": size_bytes,
             "size_mb": size_mb,
         })
+    _SF2_CACHE = (dir_mtime, results)
     return results
 
 
@@ -257,7 +276,7 @@ def render_midi_to_audio(
             str(sf2_path),
             str(midi_path),
         ]
-        res = subprocess.run(cmd_synth, capture_output=True, text=True)
+        res = subprocess.run(cmd_synth, capture_output=True, text=True, timeout=120)
         if res.returncode != 0:
             log.warning("fluidsynth non-zero return code %d: %s", res.returncode, res.stderr)
         if not wav_path.is_file() or wav_path.stat().st_size == 0:
@@ -271,6 +290,7 @@ def render_midi_to_audio(
                 capture_output=True,
                 text=True,
                 check=False,
+                timeout=60,
             )
             max_vol_match = re.search(r"max_volume:\s*(-?[\d.]+)\s*dB", res_vol.stderr)
             if max_vol_match:
@@ -289,7 +309,7 @@ def render_midi_to_audio(
             "-c:a", "flac" if output_path.suffix == ".flac" else "libopus",
             str(output_path),
         ]
-        subprocess.run(cmd_enc, capture_output=True, text=True, check=True)
+        subprocess.run(cmd_enc, capture_output=True, text=True, check=True, timeout=120)
     finally:
         if wav_path.exists():
             wav_path.unlink()

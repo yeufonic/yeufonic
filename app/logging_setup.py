@@ -15,6 +15,7 @@ _LOCK = threading.Lock()
 _SEQUENCE = 0
 LOG_BUFFER: collections.deque[dict[str, Any]] = collections.deque(maxlen=MAX_BUFFER)
 LOG_FILE_PATH: Path | None = None
+LOG_FILE_HANDLER: RotatingFileHandler | None = None
 
 FORMAT = "%(asctime)s %(levelname)-5s [%(name)s] %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -154,7 +155,13 @@ def log_engine_entry(
                 }
                 LOG_BUFFER.append(entry)
 
-                if LOG_FILE_PATH:
+                if LOG_FILE_HANDLER and LOG_FILE_HANDLER.stream:
+                    try:
+                        LOG_FILE_HANDLER.stream.write(entry["raw"] + "\n")
+                        LOG_FILE_HANDLER.stream.flush()
+                    except Exception:
+                        pass
+                elif LOG_FILE_PATH:
                     try:
                         with LOG_FILE_PATH.open("a", encoding="utf-8") as f:
                             f.write(entry["raw"] + "\n")
@@ -174,7 +181,7 @@ class WindowsDisconnectNoise(logging.Filter):
 
 def setup_logging(logs_dir: Path | str | None = None) -> Path | None:
     """Configure console, rotating file, and in-memory ring buffer logging."""
-    global LOG_FILE_PATH
+    global LOG_FILE_PATH, LOG_FILE_HANDLER
     root = logging.getLogger()
     root.setLevel(logging.INFO)
 
@@ -219,6 +226,12 @@ def setup_logging(logs_dir: Path | str | None = None) -> Path | None:
                 file_handler.setFormatter(formatter)
                 file_handler.addFilter(_REDACT)
                 root.addHandler(file_handler)
+                LOG_FILE_HANDLER = file_handler
+            else:
+                for h in root.handlers:
+                    if isinstance(h, RotatingFileHandler) and getattr(h, "baseFilename", None) == str(log_file):
+                        LOG_FILE_HANDLER = h
+                        break
         except OSError as exc:
             logging.getLogger("yue2").warning("could not set up log file in %s: %s", path, exc)
 

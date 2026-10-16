@@ -1929,44 +1929,46 @@ function notationFitRange() {
 
 function notationPlayable(chordsOff) {
   var fit = notationFitRange();
-  var range = function (shift) {
-    var flat = NOTATION.tune.setUpAudio({ chordsOff: chordsOff, midiTranspose: shift });
-    var lo = 999, hi = -1, count = 0, inRange = 0;
-    flat.tracks.forEach(function (track) {
-      track.forEach(function (note) {
-        if (typeof note.pitch !== 'number') { return; }
-        count += 1;
-        lo = Math.min(lo, note.pitch);
-        hi = Math.max(hi, note.pitch);
-        if (note.pitch >= fit.low && note.pitch <= fit.high) {
-          inRange += 1;
-        }
-      });
+  var flat = NOTATION.tune.setUpAudio({ chordsOff: chordsOff, midiTranspose: 0 });
+  var pitches = [];
+  var lo = 999, hi = -1;
+  flat.tracks.forEach(function (track) {
+    track.forEach(function (note) {
+      if (typeof note.pitch !== 'number') { return; }
+      pitches.push(note.pitch);
+      lo = Math.min(lo, note.pitch);
+      hi = Math.max(hi, note.pitch);
     });
-    return { notes: count, lo: lo, hi: hi, inRange: inRange };
-  };
-  var plain = range(0);
-  if (!plain.notes) { return { notes: 0, shift: 0, fits: false, partial: false }; }
+  });
+  if (!pitches.length) { return { notes: 0, shift: 0, fits: false, partial: false }; }
   var bestShift = 0;
   var bestInRange = -1;
   var exactFit = false;
   var shifts = [0, -12, 12, -24, 24, -36, 36];
   for (var i = 0; i < shifts.length; i++) {
     var cand = shifts[i];
-    var found = range(cand);
-    if (found.lo >= fit.low && found.hi <= fit.high) {
+    var cLo = lo + cand;
+    var cHi = hi + cand;
+    var inRange = 0;
+    for (var j = 0; j < pitches.length; j++) {
+      var p = pitches[j] + cand;
+      if (p >= fit.low && p <= fit.high) {
+        inRange += 1;
+      }
+    }
+    if (cLo >= fit.low && cHi <= fit.high) {
       bestShift = cand;
-      bestInRange = found.inRange;
+      bestInRange = inRange;
       exactFit = true;
       break;
     }
-    if (found.inRange > bestInRange) {
-      bestInRange = found.inRange;
+    if (inRange > bestInRange) {
+      bestInRange = inRange;
       bestShift = cand;
     }
   }
   return {
-    notes: plain.notes,
+    notes: pitches.length,
     shift: bestShift,
     fits: true,
     partial: !exactFit
@@ -5095,11 +5097,15 @@ function themeColour(name) {
 
 /* What the script draws in colour, drawn again in the new theme's. */
 function repaintTheme() {
+  if (typeof wave !== 'undefined') { wave._cachedColors = null; }
   if (typeof drawWave === 'function') { try { drawWave(); } catch (err) { /* nothing on show */ } }
   var big = $('notation-big');
   if (big && big.offsetParent && typeof renderNotationView === 'function') { try { renderNotationView(); } catch (err) { /* ditto */ } }
   // the equalizer's graph is drawn in the theme's colours too
-  if (window.Rack && typeof window.Rack.drawPeq === 'function') { try { window.Rack.drawPeq(); } catch (err) { /* no rack yet */ } }
+  if (window.Rack) {
+    if (typeof window.Rack.invalidateTheme === 'function') { window.Rack.invalidateTheme(); }
+    if (typeof window.Rack.drawPeq === 'function') { try { window.Rack.drawPeq(); } catch (err) { /* no rack yet */ } }
+  }
 }
 
 function openBrandMenu() {
@@ -7143,7 +7149,7 @@ var CANNED_STYLES = [
   },
   {
     name: 'gypsy jazz',
-    prompt: '1930s Gypsy Jazz, jazz manouche, blistering acoustic Selmer guitar arpeggios, steady'
+    prompt: '1930s Gypsy Jazz, jazz manouche, blistering acoustic Selmer guitar arpeggios, steady la pompe rhythm guitar, violin lead, swinging upbeat acoustic swing, 200 BPM, spirited male vocal scats'
   },
   {
     name: 'hair metal',
@@ -11506,19 +11512,36 @@ function editorTake() {
   return id ? takeById(id) : null;
 }
 
+var _lastSecsCur = -1;
+var _lastSecsDur = -1;
+var _lastSecsEdCur = -1;
+var _lastSecsEdDur = -1;
+
 function updateTimes() {
   var audio = $('audio');
   var cur = audio.currentTime || 0;
   var dur = audio.duration;
   var hasDur = dur && isFinite(dur);
-  $('t-now').textContent = secs(cur);
-  $('t-total').textContent = hasDur ? secs(dur) : '--:--';
+  var floorCur = Math.floor(cur);
+  var floorDur = hasDur ? Math.floor(dur) : -1;
+
+  if (floorCur !== _lastSecsCur || floorDur !== _lastSecsDur) {
+    _lastSecsCur = floorCur;
+    _lastSecsDur = floorDur;
+    $('t-now').textContent = secs(cur);
+    $('t-total').textContent = hasDur ? secs(dur) : '--:--';
+  }
+
   var edTake = editorTake();
   if (edTake && State.loadedId === edTake.id) {
-    var edNow = $('ed-t-now');
-    if (edNow) { edNow.textContent = secs(cur); }
-    var edTotal = $('ed-t-total');
-    if (edTotal) { edTotal.textContent = hasDur ? secs(dur) : '--:--'; }
+    if (floorCur !== _lastSecsEdCur || floorDur !== _lastSecsEdDur) {
+      _lastSecsEdCur = floorCur;
+      _lastSecsEdDur = floorDur;
+      var edNow = $('ed-t-now');
+      if (edNow) { edNow.textContent = secs(cur); }
+      var edTotal = $('ed-t-total');
+      if (edTotal) { edTotal.textContent = hasDur ? secs(dur) : '--:--'; }
+    }
     var edSeek = $('ed-seek');
     if (edSeek && !edSeek.dataset.dragging) {
       edSeek.value = (hasDur && dur > 0) ? Math.round((cur / dur) * 1000) : 0;
@@ -11964,42 +11987,59 @@ function drawWave() {
   // A mirrored envelope from the peak values, with an inner body from the RMS.
   // The outline shows transients, the body shows loudness, which is what makes a
   // thin or squashed mix visible before you listen to it.
-  var columns = Math.max(1, Math.floor(w / dpr));
-  var mid = h / 2;
-  var amp = h * 0.46;
-  var outline = new Path2D();
-  var body = new Path2D();
-  var i;
-  var x;
-  var p;
-  var r;
-  for (i = 0; i < columns; i++) {
-    p = column(wave.peaks, i, columns) * amp;
-    r = column(wave.rmss, i, columns) * amp;
-    x = i * dpr;
-    if (i === 0) {
-      outline.moveTo(x, mid - p);
-      body.moveTo(x, mid - r);
-    } else {
-      outline.lineTo(x, mid - p);
-      body.lineTo(x, mid - r);
+  var cache = wave._cachedPaths;
+  var outline, body;
+  if (cache && cache.peaks === wave.peaks && cache.w === w && cache.h === h && cache.dpr === dpr) {
+    outline = cache.outline;
+    body = cache.body;
+  } else {
+    var columns = Math.max(1, Math.floor(w / dpr));
+    var mid = h / 2;
+    var amp = h * 0.46;
+    outline = new Path2D();
+    body = new Path2D();
+    var i;
+    var x;
+    var p;
+    var r;
+    for (i = 0; i < columns; i++) {
+      p = column(wave.peaks, i, columns) * amp;
+      r = column(wave.rmss, i, columns) * amp;
+      x = i * dpr;
+      if (i === 0) {
+        outline.moveTo(x, mid - p);
+        body.moveTo(x, mid - r);
+      } else {
+        outline.lineTo(x, mid - p);
+        body.lineTo(x, mid - r);
+      }
     }
+    for (i = columns - 1; i >= 0; i--) {
+      p = column(wave.peaks, i, columns) * amp;
+      r = column(wave.rmss, i, columns) * amp;
+      x = i * dpr;
+      outline.lineTo(x, mid + p);
+      body.lineTo(x, mid + r);
+    }
+    outline.closePath();
+    body.closePath();
+    wave._cachedPaths = { outline: outline, body: body, peaks: wave.peaks, w: w, h: h, dpr: dpr };
   }
-  for (i = columns - 1; i >= 0; i--) {
-    p = column(wave.peaks, i, columns) * amp;
-    r = column(wave.rmss, i, columns) * amp;
-    x = i * dpr;
-    outline.lineTo(x, mid + p);
-    body.lineTo(x, mid + r);
-  }
-  outline.closePath();
-  body.closePath();
 
   // The played part wears the take's own colour: blue for a song from a prompt,
   // pink for a cover. Stems and anything else keep the neutral violet.
-  var tone = waveTone();
-  // The unplayed part and the playhead are drawn in the theme's own ink and text.
-  var ink = themeColour('--ink') || '255 255 255';
+  var curTheme = (document.documentElement && document.documentElement.dataset.theme) || 'dark';
+  if (!wave._cachedColors || wave._cachedColors.theme !== curTheme || wave._cachedColors.kind !== wave.kind) {
+    wave._cachedColors = {
+      theme: curTheme,
+      kind: wave.kind,
+      tone: waveTone(),
+      ink: themeColour('--ink') || '255 255 255',
+      text: themeColour('--text') || '#f4f4f7'
+    };
+  }
+  var tone = wave._cachedColors.tone;
+  var ink = wave._cachedColors.ink;
   function paint(played) {
     ctx.fillStyle = played ? tone.outline : 'rgb(' + ink + ' / 0.10)';
     ctx.fill(outline);
@@ -12018,7 +12058,7 @@ function drawWave() {
 
   // The theme's text colour, so the playhead shows on a pink waveform as well as a
   // blue one, in any theme.
-  ctx.fillStyle = themeColour('--text') || '#f4f4f7';
+  ctx.fillStyle = wave._cachedColors.text;
   ctx.fillRect(Math.max(0, Math.min(w - 2, head - 1)), 0, Math.max(2, 2 * dpr), h);
 }
 

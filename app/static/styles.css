@@ -21,6 +21,7 @@
   --bad-rgb: 248 113 113;
   --info-rgb: 96 165 250;
   --song-a-rgb: 56 189 248;
+  --song-rgb: var(--song-a-rgb);
   --warn: #fbbf24;
   --danger-text: #ff8fa3;
   --info: #60a5fa;
@@ -34,11 +35,13 @@
   --muted: #9b9ba8;
   --accent-a: #7b5cff;
   --accent-b: #ff4d94;
+  --accent: var(--accent-a);
   /* Origin colours: pink means a cover of a recording, blue means written from a prompt. */
   --cover-a: #ff4d94;
   --cover-b: #a855f7;
   --song-a: #38bdf8;
   --song-b: #7b5cff;
+  --song: var(--song-a);
   /* Green means an instrumental. */
   --inst-a: #a3e635;
   --inst-b: #10b981;
@@ -4308,7 +4311,7 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   background: linear-gradient(180deg, #ffffff 0%, #e8ebf0 100%); color: #1e293b;
   border-color: rgba(15, 23, 42, 0.16); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
 }
-:root[data-theme="light"] :root[data-theme="light"] .rack-bay { background: #d6dae1; }
+:root[data-theme="light"] .rack-bay { background: #d6dae1; }
 :root[data-theme="light"] .rack-unit {
   border-color: rgba(15, 23, 42, 0.12);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 8px rgba(15, 23, 42, 0.14);

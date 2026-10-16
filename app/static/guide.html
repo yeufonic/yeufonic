@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Yeufonic — the guide</title>
+<script>
+  (function () {
+    try {
+      var chosen = localStorage.getItem('yue2.theme') || 'dark';
+      var theme = chosen === 'system'
+        ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        : chosen;
+      if (theme !== 'dark') { document.documentElement.dataset.theme = theme; }
+    } catch (err) { /* private mode: dark */ }
+  })();
+</script>
 <link rel="stylesheet" href="/static/styles.css?v={{VERSION}}">
 <link rel="icon" type="image/svg+xml" href="/static/icon.svg?v={{VERSION}}">
 <style>

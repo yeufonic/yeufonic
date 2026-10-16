@@ -470,6 +470,9 @@ def families(root: Path | None) -> dict[str, str]:
     return out
 
 
+_DESCRIBE_CACHE: dict[tuple[str, int, int], dict] = {}
+
+
 def describe(name: str, root: Path | None) -> dict:
     """One entry for the picker: what the file is, what it is for, and whether
     it can be read at all."""
@@ -477,15 +480,32 @@ def describe(name: str, root: Path | None) -> dict:
     if not root:
         return entry
     path = root / name
+    if not path.is_file():
+        return entry
+
+    cache_key = None
     try:
-        if not path.is_file():
-            return entry
+        mtime = path.stat().st_mtime_ns
+        sidecar = path.with_suffix(".txt")
+        sidecar_mtime = sidecar.stat().st_mtime_ns if sidecar.is_file() else 0
+        cache_key = (str(path), mtime, sidecar_mtime)
+        cached = _DESCRIBE_CACHE.get(cache_key)
+        if cached is not None:
+            return dict(cached)
+    except OSError:
+        pass
+
+    try:
         entry["kind"] = kind_of(names_in(path))
     except (OSError, ValueError, json.JSONDecodeError, UnicodeDecodeError) as err:
         # A file the engine lists but this side cannot parse is still offered:
         # the engine is the one that has to load it.
         log.warning("could not read %s: %s", name, err)
     entry.update(note_for(path))
+    if cache_key is not None:
+        if len(_DESCRIBE_CACHE) > 500:
+            _DESCRIBE_CACHE.clear()
+        _DESCRIBE_CACHE[cache_key] = dict(entry)
     return entry
 
 

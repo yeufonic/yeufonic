@@ -93,7 +93,16 @@ class PointAtYeufonic(logging.Filter):
         return True
 
 
-def _get_gpu_utilization():
+_NVML_LIB = None
+_NVML_DEV = None
+_NVML_INITED = False
+
+
+def _init_nvml():
+    global _NVML_LIB, _NVML_DEV, _NVML_INITED
+    if _NVML_INITED:
+        return _NVML_LIB, _NVML_DEV
+    _NVML_INITED = True
     try:
         import ctypes
         import sys
@@ -101,13 +110,27 @@ def _get_gpu_utilization():
         if lib.nvmlInit() == 0:
             dev = ctypes.c_void_p()
             if lib.nvmlDeviceGetHandleByIndex(0, ctypes.byref(dev)) == 0:
-                class Utilization(ctypes.Structure):
-                    _fields_ = [("gpu", ctypes.c_uint), ("memory", ctypes.c_uint)]
-                u = Utilization()
-                if lib.nvmlDeviceGetUtilizationRates(dev, ctypes.byref(u)) == 0:
-                    return int(u.gpu)
+                _NVML_LIB = lib
+                _NVML_DEV = dev
     except Exception:
         pass
+    return _NVML_LIB, _NVML_DEV
+
+
+def _get_gpu_utilization():
+    lib, dev = _init_nvml()
+    if lib and dev:
+        try:
+            import ctypes
+
+            class Utilization(ctypes.Structure):
+                _fields_ = [("gpu", ctypes.c_uint), ("memory", ctypes.c_uint)]
+
+            u = Utilization()
+            if lib.nvmlDeviceGetUtilizationRates(dev, ctypes.byref(u)) == 0:
+                return int(u.gpu)
+        except Exception:
+            pass
     try:
         import subprocess
         res = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"],

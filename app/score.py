@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import re
 
+from . import music
+
 KEY = re.compile(r"^K:\s*\S", re.M)
 VOICE = re.compile(r"^V:\s*(\S+)")
 HEADER = re.compile(r"^[A-Za-z]:")
@@ -87,12 +89,13 @@ def last_section_start(abc: str) -> float | None:
     return before["seconds"] if before else None
 
 
-def stopped_early(duration: float | None, abc: str | None, cap: float | None) -> bool:
+def stopped_early(duration: float | None, abc: str | None, cap: float | None, planned: dict | None = None) -> bool:
     """A render that ended before its score's last section began: the model wrote its
     end long before the music it was given ran out.  A score of one section is judged
     by the share of it that was played.  The cap counts as the end when it is the
     shorter, so a take capped on purpose is not this."""
-    planned = estimate(abc or "")
+    if planned is None:
+        planned = estimate(abc or "")
     if not duration or not planned:
         return False
     expected = min(planned["seconds"], cap or planned["seconds"])
@@ -116,7 +119,7 @@ RUNAWAY_CAP_SHARE = 1.3  # ...nor is one this much past a longer cap
 NOTE = re.compile(r"([_^=]*)([A-Ga-g])([,']*)")
 NOT_NOTES = re.compile(r'"[^"]*"|![^!]*!|\+[^+]*\+|\[[A-Za-z]:[^\]]*\]|%.*$')
 DOUBLE_CHORD = re.compile(r'"[A-G](?:##|bb)')
-STEPS = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+STEPS = music.PITCH_CLASS
 
 
 def voice_lines(abc: str, voice_name: str) -> list[str]:

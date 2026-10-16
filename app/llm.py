@@ -212,8 +212,7 @@ async def generate_lyrics(brief: str, style: str, structure: str, lines: int = l
     parsed = lyrics.parse(reply)
 
     if not parsed.get("title"):
-        from app.main import guess_title
-        parsed["title"] = guess_title(parsed.get("lyrics", "")) or brief[:50] or "Untitled"
+        parsed["title"] = lyrics.guess_title(parsed.get("lyrics", "")) or brief[:50] or "Untitled"
 
     log.info(
         "Finished external LLM lyrics generation: title='%s', sections=%d, problems=%s",

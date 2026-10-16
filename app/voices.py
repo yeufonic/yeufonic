@@ -24,6 +24,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from . import lyrics
+from . import music
 from . import transpose
 
 MALE, FEMALE, BOTH = "male", "female", "both"
@@ -84,8 +86,7 @@ def section_of(line: str) -> str | None:
     named = _SECTION.search(found.group("square"))
     if not named:
         return None
-    name = re.sub(r"[- ]", "", named.group(1).lower())
-    return {"prechorus": "pre-chorus", "refrain": "chorus", "hook": "chorus", "coda": "outro"}.get(name, name)
+    return lyrics.canonical_tag(named.group(1))
 
 
 _VOWELS = re.compile(r"[aeiouyàâäáãåæéèêëíìîïóòôöõœúùûüÿ]+", re.I)
@@ -139,24 +140,10 @@ _TOKEN = re.compile(
 _MEMBER = re.compile(r"(?P<acc>\^\^|\^|__|_|=)?(?P<letter>[A-Ga-g])(?P<marks>[,']*)(?P<len>[\d/]*)")
 _LENGTH = re.compile(r"(\d*)((?:/\d*)*)")
 _FIELD = re.compile(r"^[A-Za-z]:")
-_ACC = {"^^": 2, "^": 1, "=": 0, "__": -2, "_": -1}
-
-
-def _units(text: str) -> float:
-    found = _LENGTH.match(text)
-    value = float(found.group(1)) if found.group(1) else 1.0
-    for part in re.findall(r"/(\d*)", found.group(2)):
-        value /= float(part) if part else 2.0
-    return value
-
-
-def _height(letter: str, marks: str) -> int:
-    """The octave a note is written in: 4 for C to B, 5 for c to b."""
-    return (5 if letter.islower() else 4) + marks.count("'") - marks.count(",")
-
-
-def _spelled(letter: str, octave: int) -> str:
-    return letter.lower() + "'" * (octave - 5) if octave >= 5 else letter.upper() + "," * (4 - octave)
+_ACC = music.ACCIDENTAL_DELTA
+_units = music.parse_abc_length
+_height = music.abc_note_octave
+_spelled = music.midi_to_abc_spelling
 
 
 def _fraction(text: str, default: float) -> float:
@@ -261,8 +248,7 @@ def _section(phrase: list[dict[str, Any]]) -> str | None:
     found = _SECTION.search(name)
     if not found:
         return name
-    low = re.sub(r"[- ]", "", found.group(1).lower())
-    return {"prechorus": "pre-chorus", "refrain": "chorus", "hook": "chorus", "coda": "outro"}.get(low, low)
+    return lyrics.canonical_tag(found.group(1))
 
 
 # ------------------------------------------------------------------ which phrase carries which line

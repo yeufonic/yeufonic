@@ -55,12 +55,13 @@ def test_the_editor_has_a_mastering_button_to_the_left_of_advanced():
 
 
 def test_the_button_is_lit_by_the_racks_own_test_and_the_rack_keeps_it_in_step():
+    from conftest import extract_js_function
     app_js = (STATIC / "app.js").read_text(encoding="utf-8")
-    paint = app_js[app_js.index("function paintEdMastering()"):app_js.index("function toggleEdMastering()")]
+    paint = extract_js_function(app_js, "function paintEdMastering()")
     assert "take.has_audio" in paint and "rack.hasActiveMastering(take.id)" in paint
     assert "$('ed-btn-mastering').addEventListener('click', toggleEdMastering)" in app_js
     rack = (STATIC / "rack.js").read_text(encoding="utf-8")
-    cards = rack[rack.index("updateTakeCardsUI: function"):rack.index("openForTake: function")]
+    cards = extract_js_function(rack, "updateTakeCardsUI: function")
     assert "paintEdMastering()" in cards
 
 
@@ -78,23 +79,25 @@ def test_a_rack_opened_from_the_editor_stands_over_it_and_escape_closes_the_rack
 
 
 def test_the_rack_opened_for_another_take_plays_it_only_when_a_take_was_playing():
+    from conftest import extract_js_function
     app_js = (STATIC / "app.js").read_text(encoding="utf-8")
-    hear = app_js[app_js.index("function hearForRack(take)"):app_js.index("function toggleEdMastering()")]
+    hear = extract_js_function(app_js, "function hearForRack(take)")
     # nothing sounding, or this take already: left alone
     assert "if (!audio || audio.paused || audio.ended || State.playing === take.id) { return; }" in hear
     # another take sounding: this one in its place; anything else that was sounding is stopped, as before
     assert "if (State.playing && take.has_audio) { playTake(take.id); }" in hear
     assert hear.index("playTake(take.id)") < hear.index("audio.pause()")
     # a card's button and the editor's both go through it, before the rack is opened
-    card = app_js[app_js.index("if (act === 'mastering') {"):app_js.index("openDetails(takeById(id));")]
+    card = extract_js_function(app_js, "if (act === 'mastering')")
     assert card.index("hearForRack(targetTake)") < card.index("window.Rack.openForTake(targetTake)")
-    editor = app_js[app_js.index("function toggleEdMastering()"):app_js.index("function paintEdTransport()")]
+    editor = extract_js_function(app_js, "function toggleEdMastering()")
     assert editor.index("hearForRack(take)") < editor.index("rack.openForTake(take)")
 
 
 def test_the_editor_has_the_pages_playback_keys():
     """The editor window, alone or with the mastering rack over it, has Space and the arrows for its own player
     whenever that player shows; any other window in front keeps them, and the letter keys are the main page's."""
+    from conftest import extract_js_function
     app_js = (STATIC / "app.js").read_text(encoding="utf-8")
     keys = app_js[app_js.index("var rackOverEditor = "):app_js.index("\nwire();")]
     assert "var inEditor = editorOpen() && document.querySelectorAll('.modal:not(.hidden)').length === 1;" in keys
@@ -110,5 +113,5 @@ def test_the_editor_has_the_pages_playback_keys():
     for key in ("ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"):
         assert keys.index("rackOverEditor") < keys.index(key)
     # the window's Mastering button does not keep the focus, or space and Enter would press it again
-    editor = app_js[app_js.index("function toggleEdMastering()"):app_js.index("function paintEdTransport()")]
+    editor = extract_js_function(app_js, "function toggleEdMastering()")
     assert "$('ed-btn-mastering').blur()" in editor

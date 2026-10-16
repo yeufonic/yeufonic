@@ -87,19 +87,84 @@ def make_take(**fields):
         "created_at": time.time(), "audio_path": None,
     }
     take.update(fields)
-    execute(
-        """INSERT INTO takes(id, kind, source_id, title, style, lyrics, abc, mode, seed, checkpoint,
-                             max_duration, status, created_at, audio_path)
-           VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint,
-                  :max_duration, :status, :created_at, :audio_path)""",
-        take,
-    )
+    cols = ", ".join(take.keys())
+    vals = ", ".join(f":{k}" for k in take.keys())
+    execute(f"INSERT INTO takes({cols}) VALUES({vals})", take)
     return take
 
 
+_TONE_CACHE: dict[tuple[str, float], Path] = {}
+
+
 def tone(path: Path, seconds: float = 2.0) -> Path:
+    import array
+    import math
+    import shutil
     import subprocess
+    import wave
+
     path.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"sine=frequency=440:duration={seconds}",
-                    "-ar", "44100", str(path)], check=True)
+    ext = path.suffix.lower()
+    key = (ext, float(seconds))
+    cached = _TONE_CACHE.get(key)
+    if cached is not None and cached.exists():
+        shutil.copyfile(cached, path)
+        return path
+
+    if ext == ".wav":
+        rate = 44100
+        total_frames = max(1, int(round(rate * seconds)))
+        period = 100  # 441 Hz (exact 100-sample period at 44.1 kHz)
+        one_cycle = array.array(
+            "h",
+            [int(16000.0 * math.sin(2.0 * math.pi * i / period)) for i in range(period)],
+        )
+        full_cycles, rem = divmod(total_frames, period)
+        pcm = one_cycle.tobytes() * full_cycles + one_cycle[:rem].tobytes()
+        with wave.open(str(path), "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(rate)
+            wf.writeframes(pcm)
+    else:
+        subprocess.run(
+            ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"sine=frequency=440:duration={seconds}",
+             "-ar", "44100", str(path)],
+            check=True,
+        )
+
+    cache_file = Path(_BOOT) / f"tone_{abs(hash(key))}{ext}"
+    try:
+        shutil.copyfile(path, cache_file)
+        _TONE_CACHE[key] = cache_file
+    except OSError:
+        pass
     return path
+
+
+def extract_js_function(source: str, func_Declaration: str) -> str:
+    """Return a brace-balanced slice starting at `func_Declaration` in `source`."""
+    start = source.index(func_Declaration)
+    brace_open = source.index("{", start)
+    depth = 0
+    in_str = None
+    escaped = False
+    for idx in range(brace_open, len(source)):
+        ch = source[idx]
+        if in_str:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == in_str:
+                in_str = None
+            continue
+        if ch in ("'", '"', "`"):
+            in_str = ch
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return source[start : idx + 1]
+    return source[start:]

@@ -238,6 +238,8 @@ class Engine:
         self.queue: list[dict[str, Any]] = []
         self._running_since: dict[str, float] = {}
         self._seen_engine_logs: collections.deque[tuple[Any, Any]] = collections.deque(maxlen=2000)
+        self._seen_engine_logs_set: set[tuple[Any, Any]] = set()
+        self._ws_connected = False
 
     # How long an engine that has not answered yet counts as starting rather than
     # offline.  The Windows launcher gives ComfyUI as long before it gives up.
@@ -308,12 +310,13 @@ class Engine:
             self.stuck_on = None
         self.queue_counts = {"running": len(raw.get("queue_running", [])), "pending": len(raw.get("queue_pending", []))}
         self.queue = queue_items(raw, self._running_since, time.time())
-        try:
-            raw_logs = await self.client.get("/internal/logs/raw", timeout=2.0)
-            if raw_logs.status_code == 200:
-                self._ingest_engine_entries(raw_logs.json().get("entries") or [])
-        except Exception:
-            pass
+        if not self._ws_connected:
+            try:
+                raw_logs = await self.client.get("/internal/logs/raw", timeout=2.0)
+                if raw_logs.status_code == 200:
+                    self._ingest_engine_entries(raw_logs.json().get("entries") or [])
+            except Exception:
+                pass
 
     def _ingest_engine_entries(self, entries: list[dict[str, Any]]) -> None:
         for entry in entries:
@@ -322,9 +325,13 @@ class Engine:
             if not m:
                 continue
             key = (t, m)
-            if key in self._seen_engine_logs:
+            if key in self._seen_engine_logs_set:
                 continue
+            if len(self._seen_engine_logs) >= 2000:
+                old = self._seen_engine_logs.popleft()
+                self._seen_engine_logs_set.discard(old)
             self._seen_engine_logs.append(key)
+            self._seen_engine_logs_set.add(key)
             if OUT_OF_MEMORY.search(str(m)):
                 self.oom_at = time.time()
             logging_setup.log_engine_entry(m, timestamp=t)
@@ -545,15 +552,20 @@ class Engine:
                 # nothing, and that is not a dropped connection.
                 async with websockets.connect(ws_url, open_timeout=10, ping_interval=20, ping_timeout=20, max_size=None) as ws:
                     log.info("engine websocket connected")
+                    self._ws_connected = True
                     await self._subscribe_logs()
                     async for raw in ws:
                         if isinstance(raw, bytes):
                             continue
                         self._handle_ws(json.loads(raw))
             except asyncio.CancelledError:
+                self._ws_connected = False
                 raise
             except Exception as exc:  # noqa: BLE001
+                self._ws_connected = False
                 log.debug("engine websocket unavailable: %s", exc)
+            else:
+                self._ws_connected = False
             await asyncio.sleep(3)
 
     def _handle_ws(self, msg: dict[str, Any]) -> None:

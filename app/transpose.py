@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import re
 
-BASE = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+from . import music
+
+BASE = music.PITCH_CLASS
 SHARP_ORDER = "FCGDAEB"
 FLAT_ORDER = "BEADGCF"
 # The signature (sharps positive, flats negative) of the key on each tonic pitch class.
@@ -25,7 +27,7 @@ NAME_FLAT = {0: "C", 1: "Db", 2: "D", 3: "Eb", 4: "E", 5: "F", 6: "Gb", 7: "G", 
 SHARP_SPELLING = {1: ("C", 1), 3: ("D", 1), 6: ("F", 1), 8: ("G", 1), 10: ("A", 1)}
 FLAT_SPELLING = {1: ("D", -1), 3: ("E", -1), 6: ("G", -1), 8: ("A", -1), 10: ("B", -1)}
 NATURAL = {0: "C", 2: "D", 4: "E", 5: "F", 7: "G", 9: "A", 11: "B"}
-SYMBOL = {2: "^^", 1: "^", 0: "=", -1: "_", -2: "__"}
+SYMBOL = music.ACCIDENTAL_SYMBOL
 
 KEY_TEXT = re.compile(r"^\s*([A-Ga-g])([#b]?)\s*(m(?![a-z])|min(?:or)?|maj(?:or)?|M|ion|aeo)?\s*$")
 KEY_LINE = re.compile(r"^K:\s*(\S+)(.*)$")
