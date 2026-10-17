@@ -186,7 +186,14 @@ def hear(wave: torch.Tensor, rate: int, name: str, language: str, on_progress=No
         return out
     finally:
         if own:
+            import gc
+            try:
+                if hasattr(model, "model") and hasattr(model.model, "unload_model"):
+                    model.model.unload_model()
+            except Exception:  # noqa: BLE001
+                pass
             del model
+            gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 

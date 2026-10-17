@@ -508,6 +508,7 @@ async def run_art(take_id: str) -> None:
                 description = await artwork.describe_external(take)
                 writer = llm.get_config()["model"]
             except Exception as exc:
+                llm.record_alert_from_exception(exc)
                 log.warning("External LLM failed to describe picture for '%s' (%s): %s; falling back to take description",
                             take.get("title"), take_id, exc)
                 artwork.record_external_words_failure(str(exc))
@@ -858,6 +859,8 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             return
         record.update({"status": "done", "title": draft["title"], "lyrics": draft["lyrics"],
                        "finished_at": time.time(), "error": None})
+        with contextlib.suppress(Exception):
+            await ENGINE.free()
         log.info("Lyrics generation finished for '%s' in %.1fs", draft["title"] or ref_id, time.time() - started)
         return
 
@@ -1406,6 +1409,7 @@ async def _llm_sections(song_id: str, lines: list[dict], fallback: str) -> None:
         draft = identities.lyrics_text(blocks)
         log.info("Lyrics for '%s': sections marked by %s", title, model)
     except Exception as exc:  # noqa: BLE001
+        llm.record_alert_from_exception(exc)
         log.warning("Lyrics for '%s': %s could not mark the sections, keeping the music analysis's: %s",
                     title, model, str(exc)[:200])
     # Only if nothing changed meanwhile: stopped, re-analysed, or checked by hand.
@@ -1854,7 +1858,7 @@ async def run_identity_job(kind: str, song_id: str) -> None:
             staged = await asyncio.to_thread(_without_tags, source, folder)
             abc, how = await _transcribe_corpus_song(kind, song_id, staged, folder)
             (folder / "score.abc").write_text(abc, encoding="utf-8")
-            key, tempo = identities.key_and_tempo(abc)
+            key, tempo = identities.key_and_tempo(abc, audio=source)
             set_song(song_id, key=key, tempo=tempo, score_state="done")
             log.info("Finished score analysis for corpus song '%s' (key=%s, tempo=%s%s)", song_title, key or "unknown",
                      tempo or "unknown", f"; transcribed {how}, after the full transcription failed" if how else "")
@@ -2390,7 +2394,8 @@ MIN_HEARD_WORDS = 8
 
 
 async def hear_all(vocal: Path, seconds: float = 0.0, on_progress=None, on_stage=None,
-                   title: str = "", should_stop=None, on_download=None) -> dict:
+                   title: str = "", should_stop=None, on_download=None,
+                   source_path: Path | None = None, artist: str | None = None) -> dict:
     """What was heard in a separated vocal, by each method that ran, and which one is in use.
 
     Whisper always runs: it times the lines.  When Settings asks for the external LLM to
@@ -2422,6 +2427,49 @@ async def hear_all(vocal: Path, seconds: float = 0.0, on_progress=None, on_stage
         log.info("Lyrics for '%s': Whisper, as set in Settings", name)
 
     lines = await hear_lines(vocal, on_progress, seconds, should_stop, on_download)
+    if get_setting("lyrics.lrclib", "on") == "on" and (source_path is not None or artist is not None):
+        meta = (await asyncio.to_thread(identities.file_metadata, source_path, title)
+                if source_path is not None else {"artist": artist, "title": title, "duration": seconds or None})
+        lookup_title = meta.get("title") or title
+        lookup_artist = meta.get("artist") or artist
+        lookup_dur = meta.get("duration") or seconds or None
+        if lookup_title:
+            log.info("Lyrics for '%s': querying LRCLIB (artist=%s, title=%s, duration=%s)",
+                     name, lookup_artist or "any", lookup_title,
+                     f"{lookup_dur:.0f}s" if lookup_dur else "unknown")
+            found_lrc = await asyncio.to_thread(identities.fetch_lrclib, lookup_artist, lookup_title, lookup_dur)
+            if found_lrc and len(found_lrc.get("lyrics") or "") >= 40:
+                whisper_text = " ".join(l["text"] for l in lines)
+                score = identities.lyrics_match_transcript(found_lrc["lyrics"], whisper_text) if lines else 1.0
+                if score >= 0.35:
+                    if found_lrc.get("lines"):
+                        lrc_timed = found_lrc["lines"]
+                        lrc_method = "LRCLIB (synced studio lyrics), verified against Whisper"
+                    else:
+                        raw_lines = [
+                            l.strip() for l in found_lrc["lyrics"].splitlines()
+                            if l.strip() and not l.strip().startswith("[")
+                        ]
+                        lrc_timed = identities.time_lines(lines, raw_lines)
+                        if lrc_timed is None:
+                            start, end = (lines[0]["start"], lines[-1]["end"]) if lines else (0.0, seconds)
+                            lrc_timed = identities.spread_lines(raw_lines, start, end if end > start else seconds)
+                        lrc_method = "LRCLIB, timed by Whisper"
+                    log.info("Lyrics for '%s': LRCLIB matched transcript %.0f%% (%d lines)",
+                             name, score * 100, len(lrc_timed))
+                    return {
+                        "lines": lrc_timed,
+                        "method": lrc_method,
+                        "whisper": lines,
+                        "llm": lrc_timed,
+                        "model": "LRCLIB",
+                        "lrclib": found_lrc["lyrics"],
+                    }
+                log.info("Lyrics for '%s': LRCLIB hit '%s - %s' matched transcript only %.0f%% -> rejected",
+                         name, found_lrc.get("artist") or "?", found_lrc.get("title") or lookup_title, score * 100)
+            else:
+                log.info("Lyrics for '%s': no match on LRCLIB, keeping Whisper's lines", name)
+
     only_whisper = {"lines": lines, "method": "Whisper", "whisper": lines, "llm": None, "model": model}
     if not (wanted and external):
         return only_whisper
@@ -2431,6 +2479,7 @@ async def hear_all(vocal: Path, seconds: float = 0.0, on_progress=None, on_stage
     try:
         heard = await llm.hear_lyrics(vocal)
     except Exception as exc:  # noqa: BLE001
+        llm.record_alert_from_exception(exc)
         log.warning("Lyrics for '%s': %s could not hear the vocal, keeping Whisper's lines: %s",
                     name, model, exc)
         return {**only_whisper, "method": f"Whisper ({model} could not take the audio: {str(exc)[:160]})"}
@@ -2457,9 +2506,11 @@ async def hear_all(vocal: Path, seconds: float = 0.0, on_progress=None, on_stage
 
 
 async def hear(vocal: Path, seconds: float = 0.0, on_progress=None, on_stage=None,
-               title: str = "", should_stop=None) -> tuple[list[dict], str]:
+               title: str = "", should_stop=None, source_path: Path | None = None,
+               artist: str | None = None) -> tuple[list[dict], str]:
     """The lines chosen by `hear_all`, and which method heard them."""
-    found = await hear_all(vocal, seconds, on_progress, on_stage, title, should_stop)
+    found = await hear_all(vocal, seconds, on_progress, on_stage, title, should_stop,
+                           source_path=source_path, artist=artist)
     return found["lines"], found["method"]
 
 
@@ -2516,7 +2567,7 @@ async def run_cover_lyrics(source_id: str) -> None:
         lines, method = await hear(
             vocal, seconds,
             lambda frac: progress(0.62 + 0.30 * frac, "Listening for words"),
-            lambda stage: progress(0.93, stage), title=source_title)
+            lambda stage: progress(0.93, stage), title=source_title, source_path=path)
         if not lines:
             fail_cover_lyrics(source_id, "no words were heard in this recording")
             return

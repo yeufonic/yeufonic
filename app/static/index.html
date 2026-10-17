@@ -73,6 +73,7 @@
       <span id="cpu-stat-text"></span>
     </span>
     <span id="app-version" class="version"></span>
+    <button id="llm-session-pill" class="pill pill-wait hidden" type="button" title="Switched to local LLMs for this session after an external LLM error. Click to resume External LLM.">Local LLM (session)</button>
     <button id="open-logs" class="pill logs-btn" title="View system logs (L)">Logs</button>
     <div id="engine-pill" class="pill pill-off">Connecting</div>
     <button id="corpora-badge" class="pill corpora hidden" title="Corpora, and what the app is preparing">
@@ -568,10 +569,6 @@
       <span class="hint">What is using disk space, what can be given back, and what is tidied automatically.</span>
     </div>
     <div id="settings-list"></div>
-    <div id="settings-llm-test" class="row" style="margin-top: 14px; gap: 10px; align-items: center;">
-      <button type="button" id="btn-test-llm" class="ghost small">Test LLM Connection</button>
-      <span id="test-llm-status" class="hint"></span>
-    </div>
     <div id="settings-note" class="hint"></div>
   </form>
 </div>
@@ -1287,6 +1284,20 @@
     </div>
     <div id="update-modal-body" class="update-modal-body"></div>
     <div id="update-modal-actions" class="row confirm-actions"></div>
+  </div>
+</div>
+
+<div id="llm-alert-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="llm-alert-title">
+  <div class="modal-box narrow llm-alert-box">
+    <div class="modal-head">
+      <strong id="llm-alert-title">External LLM Error</strong>
+      <button id="llm-alert-close" class="ghost" type="button" aria-label="Close">Dismiss</button>
+    </div>
+    <div id="llm-alert-body" class="llm-alert-body"></div>
+    <div class="row confirm-actions llm-alert-actions">
+      <button id="llm-alert-keep" class="ghost" type="button">Keep Trying External LLM</button>
+      <button id="llm-alert-local" class="primary" type="button">Switch to Local for This Session</button>
+    </div>
   </div>
 </div>
 

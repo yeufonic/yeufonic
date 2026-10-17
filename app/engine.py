@@ -354,9 +354,19 @@ class Engine:
             return None
         # torch_vram_total is what the engine itself holds, which it lets go of before
         # training: the rest of what is not free is someone else's.
-        return {"name": device.get("name"), "vram_total": device.get("vram_total"), "vram_free": device.get("vram_free"),
-                "engine_vram": device.get("torch_vram_total") or 0,
-                "utilization": self.gpu_utilization}
+        system = (self.stats or {}).get("system") or {}
+        out: dict[str, Any] = {
+            "name": device.get("name"),
+            "vram_total": device.get("vram_total"),
+            "vram_free": device.get("vram_free"),
+            "engine_vram": device.get("torch_vram_total") or 0,
+            "utilization": self.gpu_utilization,
+        }
+        if system.get("ram_total") is not None:
+            out["ram_total"] = system.get("ram_total")
+        if system.get("ram_free") is not None:
+            out["ram_free"] = system.get("ram_free")
+        return out
 
     async def refresh_options(self) -> None:
         """Read node schemas, then check every node our templates need.  The schema
@@ -469,10 +479,27 @@ class Engine:
     async def free(self) -> None:
         """Unload every model the engine holds, so a job that needs the whole card, such
         as training, starts with it.  Best effort: the job runs whether this worked or not."""
+        import ctypes
+        import gc
+        import sys
+        gc.collect()
+        try:
+            if sys.platform == "win32":
+                handle = ctypes.windll.kernel32.GetCurrentProcess()
+                ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, ctypes.c_size_t(-1), ctypes.c_size_t(-1))
+            else:
+                ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:  # noqa: BLE001
+            pass
         if not self.client:
             return
         try:
             await self.client.post("/free", json={"unload_models": True, "free_memory": True}, timeout=10.0)
+            try:
+                await self.client.post("/yeufonic/free", timeout=10.0)
+            except Exception:  # noqa: BLE001
+                pass
+            await self.refresh_status()
             log.info("asked the engine to unload its models")
         except Exception as exc:  # noqa: BLE001
             log.warning("could not ask the engine to unload its models: %s", exc)

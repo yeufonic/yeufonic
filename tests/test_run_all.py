@@ -39,10 +39,13 @@ def chain(monkeypatch):
     async def train(identity_id, body=None):
         calls["train"].append(body.previous)
         return {}
+    import threading
+    test_thread = threading.current_thread()
     monkeypatch.setattr(main, "analyse_identity", analyse)
     monkeypatch.setattr(main, "_export", export)
     monkeypatch.setattr(main, "train_identity", train)
-    monkeypatch.setattr(main.asyncio, "sleep", lambda _s: REAL_SLEEP(0))
+    monkeypatch.setattr(main.asyncio, "sleep",
+                        lambda s: REAL_SLEEP(0) if threading.current_thread() is test_thread else REAL_SLEEP(s))
     main.RUN_ALL.clear()
     return calls
 
