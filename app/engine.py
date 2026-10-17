@@ -48,6 +48,13 @@ STAGE_LABELS = {
     "CLIPLoader": "Loading the lyric writer",
     "TextGenerate": "Writing lyrics",
     "LoraLoader": "Loading the instrumental adapter",
+    "YuE2TrainerDatasetFolder": "Scanning training songs",
+    "YuE2TrainerEncodeDataset": "Encoding latents & transcribing",
+    "YuE2TrainerRegularizationScores": "Generating regularization scores",
+    "YuE2TrainerPlannerLoRA": "Training planner LoRA (composition)",
+    "YuE2TrainerAcousticLoRA": "Training acoustic LoRA (timbre)",
+    "YuE2TrainerSaveLoRA": "Saving trained LoRA",
+    "YuE2TrainerMergeLoRA": "Merging LoRA adapters",
     "FSAudioDatasetBuilder": "Building dataset & tokens",
     "FSAudioArtistTrainer": "Training artist LoRA (dual-branch)",
     "YuE2TrainingDataset": "Reading the songs",
@@ -63,8 +70,14 @@ STAGE_WEIGHT = {
     "YuE2GenerateABC": 16,
     "YuE2GenerateABCHarmony": 16,
     "YuE2GenerateMusic": 22,
-    # Training is measured: dataset preparation takes a few moments, then
-    # dual-branch flow and CE steps take the bulk of the run.
+    # Training: dataset scanning and encoding, regularization, planner AR and acoustic flow.
+    "YuE2TrainerDatasetFolder": 1,
+    "YuE2TrainerEncodeDataset": 15,
+    "YuE2TrainerRegularizationScores": 5,
+    "YuE2TrainerPlannerLoRA": 40,
+    "YuE2TrainerAcousticLoRA": 40,
+    "YuE2TrainerSaveLoRA": 1,
+    "YuE2TrainerMergeLoRA": 1,
     "FSAudioDatasetBuilder": 5,
     "FSAudioArtistTrainer": 95,
     "YuE2TrainingDataset": 1,
@@ -105,6 +118,9 @@ def combo_options(info: dict[str, Any], node: str, field: str) -> list[str]:
 
 # What a queued graph is, from the nodes in it.  First match wins.
 JOB_KINDS = [
+    ("YuE2TrainerAcousticLoRA", "train"),
+    ("YuE2TrainerPlannerLoRA", "train"),
+    ("FSAudioArtistTrainer", "train"),
     ("YuE2GenerateMusic", "render"),
     ("YuE2GenerateABCHarmony", "plan"),
     ("YuE2GenerateABC", "plan"),
@@ -354,9 +370,19 @@ class Engine:
             return None
         # torch_vram_total is what the engine itself holds, which it lets go of before
         # training: the rest of what is not free is someone else's.
-        return {"name": device.get("name"), "vram_total": device.get("vram_total"), "vram_free": device.get("vram_free"),
-                "engine_vram": device.get("torch_vram_total") or 0,
-                "utilization": self.gpu_utilization}
+        system = (self.stats or {}).get("system") or {}
+        out: dict[str, Any] = {
+            "name": device.get("name"),
+            "vram_total": device.get("vram_total"),
+            "vram_free": device.get("vram_free"),
+            "engine_vram": device.get("torch_vram_total") or 0,
+            "utilization": self.gpu_utilization,
+        }
+        if system.get("ram_total") is not None:
+            out["ram_total"] = system.get("ram_total")
+        if system.get("ram_free") is not None:
+            out["ram_free"] = system.get("ram_free")
+        return out
 
     async def refresh_options(self) -> None:
         """Read node schemas, then check every node our templates need.  The schema
@@ -383,7 +409,7 @@ class Engine:
                         "realaudio": config.REAL_AUDIO_LORA in loras,
                         # An engine built with WITH_TRAINER=0 has no trainer, so the
                         # app can tell whether training is there to offer at all.
-                        "trainer": "FSAudioArtistTrainer" in info,
+                        "trainer": any(n in info for n in ("YuE2TrainerAcousticLoRA", "YuE2TrainerPlannerLoRA")),
                         # Take pictures drawn here: FLUX.2 klein and its parts, chosen at install, and the nodes for them.
                         "pictures": (config.PICTURE_MODEL in combo_options(info, "UNETLoader", "unet_name")
                                      and config.PICTURE_TEXT in text_models
@@ -423,6 +449,11 @@ class Engine:
         payload = {"prompt": graph, "client_id": self.client_id}
         r = await self.client.post("/prompt", json=payload)
         if r.status_code >= 400:
+            if "missing_node_type" in r.text and "YuE2Trainer" in r.text:
+                raise RuntimeError(
+                    "the engine image does not have the YuE2 Trainer node pack yet. "
+                    "Rebuild the engine image (docker compose build engine) and restart."
+                )
             raise RuntimeError(f"engine rejected the job: {r.text[:400]}")
         self._contact()
         pid = r.json()["prompt_id"]
@@ -469,10 +500,27 @@ class Engine:
     async def free(self) -> None:
         """Unload every model the engine holds, so a job that needs the whole card, such
         as training, starts with it.  Best effort: the job runs whether this worked or not."""
+        import ctypes
+        import gc
+        import sys
+        gc.collect()
+        try:
+            if sys.platform == "win32":
+                handle = ctypes.windll.kernel32.GetCurrentProcess()
+                ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, ctypes.c_size_t(-1), ctypes.c_size_t(-1))
+            else:
+                ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:  # noqa: BLE001
+            pass
         if not self.client:
             return
         try:
             await self.client.post("/free", json={"unload_models": True, "free_memory": True}, timeout=10.0)
+            try:
+                await self.client.post("/yeufonic/free", timeout=10.0)
+            except Exception:  # noqa: BLE001
+                pass
+            await self.refresh_status()
             log.info("asked the engine to unload its models")
         except Exception as exc:  # noqa: BLE001
             log.warning("could not ask the engine to unload its models: %s", exc)
@@ -578,8 +626,10 @@ class Engine:
         rec = self.progress.get(pid or "")
         if rec is None and kind == "fsaudio.train":
             for candidate_rec in self.progress.values():
-                if candidate_rec.get("executing") and candidate_rec.get("stage") in ("FSAudioArtistTrainer",
-                                                                                     "FSAudioDatasetBuilder"):
+                if candidate_rec.get("executing") and candidate_rec.get("stage") in (
+                    "YuE2TrainerAcousticLoRA", "YuE2TrainerPlannerLoRA", "YuE2TrainerEncodeDataset",
+                    "FSAudioArtistTrainer", "FSAudioDatasetBuilder"
+                ):
                     rec = candidate_rec
                     break
         if rec is None:

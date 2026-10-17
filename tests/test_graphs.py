@@ -43,18 +43,51 @@ def test_extractors():
 def test_train_graph():
     from app.jobs import train_graph
     g = train_graph("lora-run1", "dataset1", "test_lora", 50, 64, 32, 3.5)
-    assert g["1"]["class_type"] == "FSAudioLoraLoader"
-    assert g["2"]["class_type"] == "FSAudioModelLoader"
-    assert g["3"]["class_type"] == "FSAudioDatasetBuilder"
-    assert g["3"]["inputs"]["max_minutes"] == 3.5
-    assert g["4"]["class_type"] == "FSAudioRegularizer"
-    assert g["5"]["class_type"] == "FSAudioArtistTrainer"
-    assert g["5"]["inputs"]["steps"] == 50
-    assert g["5"]["inputs"]["rank_planner"] == 64
-    assert g["5"]["inputs"]["rank_decoder"] == 32
-    assert g["5"]["inputs"]["artist_fraction"] == 0.5
-    assert g["5"]["inputs"]["batch_songs"] == 2
-    assert g["7"]["class_type"] == "PreviewAny"
+    assert g["1"]["class_type"] == "CheckpointLoaderSimple"
+    assert g["2"]["class_type"] == "AudioEncoderLoader"
+    assert g["3"]["class_type"] == "YuE2TrainerDatasetFolder"
+    assert g["3"]["inputs"]["folder"] == "lora-run1"
+    assert g["4"]["class_type"] == "YuE2TrainerEncodeDataset"
+    assert g["4"]["inputs"]["max_seconds"] == 3.5 * 60
+    assert g["5"]["class_type"] == "YuE2TrainerRegularizationScores"
+    assert g["6"]["class_type"] == "YuE2TrainerPlannerLoRA"
+    assert g["6"]["inputs"]["steps"] == 50
+    assert g["6"]["inputs"]["rank"] == 64
+    assert g["7"]["class_type"] == "YuE2TrainerAcousticLoRA"
+    assert g["7"]["inputs"]["rank"] == 32
+    assert g["7"]["inputs"]["conditioning"] == "compact"
+    assert g["8"]["class_type"] == "YuE2TrainerSaveLoRA"
+    assert g["9"]["class_type"] == "YuE2TrainerSaveLoRA"
+
+
+def test_train_graph_optional_settings():
+    from app.jobs import train_graph
+    # Acoustic-only branch omits regularization (5), planner (6) and planner save (8)
+    g_ac = train_graph("lora-run1", "dataset1", "test_lora", 100, branches="acoustic",
+                       semantic_tokens="on", keep_strategy="final", targets="attention", max_minutes=0.0)
+    assert "5" not in g_ac and "6" not in g_ac and "8" not in g_ac
+    assert "7" in g_ac and "9" in g_ac
+    assert g_ac["4"]["inputs"]["max_seconds"] == 0.0
+    assert g_ac["7"]["inputs"]["use_semantic_tokens"] is True
+    assert g_ac["7"]["inputs"]["train_acoustic_head"] is True
+    assert g_ac["7"]["inputs"]["keep"] == "final"
+    assert g_ac["7"]["inputs"]["ema_decay"] == 0.0
+    assert g_ac["7"]["inputs"]["eval_holdout"] == 0
+    assert g_ac["7"]["inputs"]["targets"] == "attention"
+    assert g_ac["7"]["inputs"]["conditioning"] == "compact"
+
+    g_inf = train_graph("lora-run1", "dataset1", "test_lora", 100, branches="acoustic", conditioning="inference_like")
+    assert g_inf["7"]["inputs"]["conditioning"] == "inference_like"
+
+    # Planner-only branch without regularization omits (5), acoustic (7) and acoustic save (9)
+    g_pl = train_graph("lora-run1", "dataset1", "test_lora", 100, branches="planner",
+                       regularization="off", semantic_tokens="on", targets="attention")
+    assert "5" not in g_pl and "7" not in g_pl and "9" not in g_pl
+    assert "6" in g_pl and "8" in g_pl
+    assert "regularization" not in g_pl["6"]["inputs"]
+    assert g_pl["6"]["inputs"]["regularization_fraction"] == 0.0
+    assert g_pl["6"]["inputs"]["train_semantic"] is True
+    assert g_pl["6"]["inputs"]["targets"] == "attention"
 
 
 

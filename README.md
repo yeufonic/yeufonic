@@ -318,8 +318,10 @@ are not downloaded again. Deleting that folder removes it.
 - An NVIDIA GPU with 12 GB of VRAM or more is recommended, with 16 GB of system RAM. An 8 GB card
   is worth trying: ComfyUI moves what does not fit into system RAM, so it still works, though
   smaller cards are usually slower chips and renders take longer. Training a LoRA locally needs
-  more: about 12.5 GB of VRAM free while it prepares the songs, so 16 GB is the practical minimum.
-  An 8 GB card can't train, though it can still use LoRAs trained elsewhere.
+  more: about 12.5 GB of VRAM free while it prepares the songs, so **16 GB of GPU VRAM and 32 GB of
+  system RAM** is the practical minimum (the engine stages the 11.5 GB YuE2 weights and dataset
+  caches in host memory; on WSL2, set `memory=32GB` in `.wslconfig`). An 8 GB card can't train,
+  though it can still use LoRAs trained elsewhere.
 - Docker with the NVIDIA container toolkit, so containers can see the GPU.
 - About 30 GB of disk, more as your library grows.
 - Linux, or Windows with WSL2 or Docker Desktop. WSL2 is what this was built on; Windows with
@@ -450,15 +452,18 @@ the same way. The setup around it needs care:
 3. **Install a current NVIDIA driver** for Windows. It includes WSL support; nothing is installed
    inside Linux. Check with `docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi`,
    which should print the card.
-4. **Give WSL enough memory.** It is capped at part of the PC's RAM, and a render needs about
-   11 GB. Create `%UserProfile%\.wslconfig` with:
+4. **Give WSL enough memory.** It is capped at part of the PC's RAM: a render needs about
+   14 GB, and **LoRA training needs 32 GB** (so the engine can stage the 11.5 GB YuE2 weights
+   and training caches in host RAM without the Linux kernel OOM-killing the container). Create
+   `%UserProfile%\.wslconfig` with:
 
    ```ini
    [wsl2]
-   memory=14GB
+   memory=32GB
    ```
 
-   Set it to your RAM less 2 GB, then run `wsl --shutdown` and start Docker Desktop again.
+   Set it to at least 14 GB for rendering or 32 GB for LoRA training (up to your RAM less 2 GB),
+   then run `wsl --shutdown` and start Docker Desktop again.
 5. **Clone inside WSL, not on C:.** Open a WSL terminal (Ubuntu from the Store is the usual one)
    and run the quick start there. A clone on `C:\` works, but the 19 GB of models and the library
    then cross a slow bridge into Linux, and SQLite's locking is less dependable across it.

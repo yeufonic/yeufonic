@@ -48,9 +48,9 @@ Start-Transcript -Path (Join-Path $Logs 'install.log') -Append | Out-Null
 # ------------------------------------------------------------------------ pins
 # What was tested together.  Change one deliberately, and test again.
 $Pins = @{
-    ComfyCommit   = '36da3ff763687eab86a35e1019995dd1fb369b0d'   # the commit engine/Dockerfile builds
-    FsAudioCommit = '26fe2e91d20ebf3531cf053c0c654fd3b849e5de'
-    AppPython     = '3.13'
+    ComfyCommit       = '36da3ff763687eab86a35e1019995dd1fb369b0d'   # the commit engine/Dockerfile builds
+    Yue2TrainerCommit = '6a9355efff60589d93b41b569676f09d5db85d09'
+    AppPython         = '3.13'
 }
 # ComfyUI's own Windows build: its embedded Python and CUDA torch.  The default wants
 # an NVIDIA driver of 580 or later (CUDA 13.0); the cu126 build serves older ones.
@@ -634,34 +634,10 @@ if ($variant -eq 'cu130') {
 }
 
 $nodes = Join-Path $ComfyDir 'custom_nodes'
-if (-not (IsDone "fs_audio-$($Pins.FsAudioCommit.Substring(0, 8))") -or -not (Test-Path (Join-Path $nodes 'ComfyUI-FS_Audio_Suite'))) {
-    Get-Commit 'KytraScript/ComfyUI-FS_Audio_Suite' $Pins.FsAudioCommit (Join-Path $nodes 'ComfyUI-FS_Audio_Suite')
-    Invoke-Checked "The trainer's packages" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', 'soundfile>=0.12', 'librosa>=0.10', 'scipy')
-    Done "fs_audio-$($Pins.FsAudioCommit.Substring(0, 8))"
-}
-# PyTorch's Windows builds have no FlashAttention, and the trainer asks for grouped-query attention (enable_gqa), which
-# on Windows falls back to a kernel that needs memory in proportion to the square of the song's length: a long song
-# fills the card and training crawls or aborts. Giving every query head its own copy of the key/value heads first lets
-# the ordinary fast kernel run, with the same result. Done on every run, so an install updated from an earlier version
-# is repaired too; each edit is an exact match, and a trainer that has changed stops setup rather than being guessed at.
-$trainDir = Join-Path $nodes 'ComfyUI-FS_Audio_Suite\fs_train'
-$attention = @(
-    @{ File = 'trainer.py'
-       Old = 'o = F.scaled_dot_product_attention(q, k, v, is_causal=True, enable_gqa=True)'
-       New = 'o = F.scaled_dot_product_attention(q, k.repeat_interleave(self.NH // self.NKV, 1), v.repeat_interleave(self.NH // self.NKV, 1), is_causal=True)' },
-    @{ File = 'decoder.py'
-       Old = 'o = F.scaled_dot_product_attention(q, torch.cat([pk.to(k.dtype), k], 2), torch.cat([pv.to(v.dtype), v], 2), is_causal=False, enable_gqa=True)'
-       New = 'o = F.scaled_dot_product_attention(q, torch.cat([pk.to(k.dtype), k], 2).repeat_interleave(self.NH // self.NKV, 1), torch.cat([pv.to(v.dtype), v], 2).repeat_interleave(self.NH // self.NKV, 1), is_causal=False)' }
-)
-foreach ($edit in $attention) {
-    $file = Join-Path $trainDir $edit.File
-    $source = [IO.File]::ReadAllText($file)
-    if ($source.Contains($edit.Old)) {
-        [IO.File]::WriteAllText($file, $source.Replace($edit.Old, $edit.New), (New-Object Text.UTF8Encoding($false)))
-        Say "Adjusted the trainer's attention ($($edit.File))."
-    } elseif (-not $source.Contains($edit.New)) {
-        throw "The trainer's attention call in $($edit.File) is not what this installer expects, so it was left alone."
-    }
+if (-not (IsDone "yue2_trainer-$($Pins.Yue2TrainerCommit.Substring(0, 8))") -or -not (Test-Path (Join-Path $nodes 'ComfyUI-YuE2-Trainer'))) {
+    Get-Commit 'speedyrulz/ComfyUI-YuE2-Trainer' $Pins.Yue2TrainerCommit (Join-Path $nodes 'ComfyUI-YuE2-Trainer')
+    Invoke-Checked "The trainer's packages" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', 'soundfile>=0.12', 'librosa>=0.10', 'scipy', 'mutagen', 'einops')
+    Done "yue2_trainer-$($Pins.Yue2TrainerCommit.Substring(0, 8))"
 }
 # Stem separation on the GPU: the engine's CUDA torch runs Demucs, so a vocal is separated in the engine's queue
 # beside plans and renders. It adds demucs and a few small packages and leaves torch alone. Without it the node is
@@ -738,18 +714,6 @@ if (-not $SkipModels) {
         Say ''
         Say ("Removing {0}: this install uses the {1} model." -f (Split-Path $unchosen -Leaf), $(if ($Int8) { 'low-memory' } else { 'full-quality' }))
         Remove-Item -Force $unchosen
-    }
-    # The trainer lists the tokenizer head from models\fs_audio, while the rest of the app reads it from
-    # models\audio_encoders, so it has to be in both. Without this copy training is refused with
-    # "tokenizer_head ... not in ['(run FS_Audio Training Assets first)']". Done here, after the download, so an
-    # install updated from an earlier version is repaired too.
-    $head = 'tokenizer_head_joint_v9.safetensors'
-    $headFrom = Join-Path (Join-Path $Models 'audio_encoders') $head
-    $headTo = Join-Path (Join-Path $Models 'fs_audio') $head
-    if ((Test-Path $headFrom) -and -not (Test-Path $headTo)) {
-        New-Item -ItemType Directory -Force -Path (Split-Path $headTo) | Out-Null
-        Copy-Item $headFrom $headTo
-        Say "Copied $head for the trainer."
     }
 }
 

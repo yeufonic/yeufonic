@@ -65,6 +65,7 @@ MAX_SEED = 2**64 - 1
 SETTINGS_SPEC: list[dict] = [
     {
         "key": "stems.format",
+        "group": "audio",
         "label": "Output audio format",
         "type": "select",
         # FLAC by default: lossless like WAV at about half the size, and what takes are
@@ -79,6 +80,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "normalise.level",
+        "group": "audio",
         "label": "Normalise to",
         "type": "select",
         # What streaming services play at, and where a render that went well lands.
@@ -92,6 +94,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "takes.cap",
+        "group": "audio",
         "label": "Length cap for a new take",
         "type": "select",
         # The built-in default, or DEFAULT_CAP from the environment, which joins the list when it is none of these.
@@ -105,45 +108,8 @@ SETTINGS_SPEC: list[dict] = [
                 "long a render that will not stop is let run. Each take's own cap is in the editor.",
     },
     {
-        "key": "appearance.theme",
-        "label": "Theme",
-        "type": "select",
-        "default": "dark",
-        "options": [
-            {"value": "dark", "label": "Dark"},
-            {"value": "light", "label": "Light"},
-            {"value": "system", "label": "Match the computer (dark or light)"},
-            {"value": "studio", "label": "Studio (warm, dark)"},
-            {"value": "contrast", "label": "High contrast"},
-        ],
-        "help": "How the app looks.",
-    },
-    {
-        # The page behind the takes in a hue of the user's choosing.  Drawn by the page with sliders of its own
-        # (app.js, paintBackdropRow); kept as "on:<hue>:<strength>", or "off:..." to keep the choice while the
-        # tint is off, and empty for none.
-        "key": "appearance.backdrop",
-        "label": "Backdrop colour",
-        "type": "backdrop",
-        "default": "",
-        "help": "A tint for the page behind the takes. The cards keep their own colours; the high contrast theme stays black.",
-    },
-    {
-        "key": "app.update_check",
-        "label": "Check for a new version",
-        "type": "select",
-        "default": "on",
-        "options": [
-            {"value": "on", "label": "Every 4 hours"},
-            {"value": "off", "label": "Do not check"},
-        ],
-        # One small request to our own site, and nothing else: worth saying plainly in a
-        # tool whose selling point is that it runs on your own machine.
-        "help": "One request every four hours to yeufonic.com, to see whether a newer release is out. "
-                "Nothing else leaves the computer, and Check for updates in the menu works either way.",
-    },
-    {
         "key": "stems.model",
+        "group": "audio",
         "label": "Stem separation model",
         "type": "select",
         "default": "htdemucs",
@@ -151,19 +117,8 @@ SETTINGS_SPEC: list[dict] = [
         "help": "The model new runs start with.",
     },
     {
-        "key": "mcp.enabled",
-        "label": "MCP server",
-        "type": "select",
-        "default": "off",
-        "options": [
-            {"value": "off", "label": "Off"},
-            {"value": "on", "label": "On"},
-        ],
-        "help": "Lets an AI agent on this computer (Claude Code, Cursor and others) make songs and read the library, at "
-                "/mcp. A request can start work on the GPU, so it is off until you turn it on.",
-    },
-    {
         "key": "stems.folder",
+        "group": "audio",
         "label": "Stem save folder",
         "type": "text",
         "default": str(config.STEMS_DIR),
@@ -171,6 +126,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "processing.gpu",
+        "group": "audio",
         "label": "Use the GPU for stems and lyrics",
         "type": "select",
         "default": "on",
@@ -181,6 +137,143 @@ SETTINGS_SPEC: list[dict] = [
         "help": "Separating a vocal and hearing its words run on the engine's GPU when it has what they need, as jobs in its "
                 "queue beside plans and renders. Off, or while a LoRA is training, the CPU does them: slower, and never in a "
                 "render's way.",
+    },
+    {
+        "key": "midi.soundfont",
+        "group": "audio",
+        "label": "MIDI SoundFont (.sf2)",
+        "type": "select",
+        "default": "Arachno_SoundFont_Version_1.0.sf2",
+        "options": [
+            {"value": "Arachno_SoundFont_Version_1.0.sf2", "label": "Arachno SoundFont 1.0 (148.2 MB)"},
+            {"value": "Musyng_Kite.sf2", "label": "Musyng Kite (1020.6 MB)"},
+            {"value": "DSoundFontV4.sf2", "label": "DSoundFont V4 (553.3 MB)"},
+            {"value": "github_Jnsgm2.sf2", "label": "Jnsgm2 GM (31.7 MB)"},
+        ],
+        "help": "SoundFont used for high-fidelity MIDI audio rendering and audition in data/models/soundfonts/sf2.",
+    },
+    {
+        "key": "training.branches",
+        "group": "training",
+        "label": "What to train",
+        "type": "select",
+        "default": "both",
+        "options": [
+            {"value": "both", "label": "Full style & sound (Planner + Acoustic)"},
+            {"value": "acoustic", "label": "Voice & sound only (Acoustic decoder only)"},
+            {"value": "planner", "label": "Songwriting & structure only (Score planner only)"},
+        ],
+        "help": "Planner learns song structure, chord progressions and melody (text_encoders); Acoustic learns vocal "
+                "timbre, instruments and mix (diffusion_model). Training both merges them into a single LoRA; choosing "
+                "one skips the other and cuts training time roughly in half.",
+    },
+    {
+        "key": "training.regularization",
+        "group": "training",
+        "label": "Base-model prior preservation",
+        "type": "select",
+        "default": "off",
+        "options": [
+            {"value": "off", "label": "Off (Default) \u2014 pure corpus fitting (no reference score generation)"},
+            {"value": "on", "label": "On (100% of songs) \u2014 protect structure & endings across every prompt"},
+            {"value": "75%", "label": "Sample 75% of corpus prompts"},
+            {"value": "50%", "label": "Sample 50% of corpus prompts \u2014 halves pre-generation time"},
+            {"value": "25%", "label": "Sample 25% of corpus prompts \u2014 fast startup on large corpora"},
+            {"value": "10%", "label": "Sample 10% of corpus prompts \u2014 quick prior anchor"},
+        ],
+        "requires": {"training.branches": ["both", "planner"]},
+        "requires_note": "Only used when training the Planner (Full style & sound, or Songwriting & structure only).",
+        "help": "Generates reference scores from the frozen base model before planner training (cached on disk for "
+                "reuse) and mixes them into training steps so the LoRA keeps natural song endings and phrasing. "
+                "Sampling a percentage of prompts scales naturally with any corpus size, or choose Off to skip.",
+    },
+    {
+        "key": "training.semantic_tokens",
+        "group": "training",
+        "label": "Semantic audio tokens",
+        "type": "select",
+        "default": "off",
+        "options": [
+            {"value": "off", "label": "Off \u2014 ABC score, lyrics & style only"},
+            {"value": "on", "label": "On \u2014 include SheetSage semantic audio tokens"},
+        ],
+        "help": "When on, trains the planner and acoustic decoder on continuous SheetSage semantic audio tokens "
+                "alongside ABC notation to capture micro-timing, vocal inflection and performance nuances that sheet "
+                "music cannot write down. Uses more VRAM and takes longer per step.",
+    },
+    {
+        "key": "training.keep_strategy",
+        "group": "training",
+        "label": "Final weights & overfitting guard",
+        "type": "select",
+        "default": "best_eval",
+        "options": [
+            {"value": "best_eval", "label": "Best validation loss with EMA smoothing"},
+            {"value": "final", "label": "Final step weights (no holdout, 100% of segments)"},
+        ],
+        "help": "Best validation loss holds out validation segments, maintains an Exponential Moving Average (EMA) "
+                "of weights, and saves the lowest-loss snapshot to prevent late-step overfitting on small corpora. "
+                "Final step weights trains on every segment with no holdout and keeps the exact last step.",
+    },
+    {
+        "key": "training.targets",
+        "group": "training",
+        "label": "LoRA target layers",
+        "type": "select",
+        "default": "attention+mlp",
+        "options": [
+            {"value": "attention+mlp", "label": "Attention + MLP layers (full capacity)"},
+            {"value": "attention", "label": "Attention layers only (faster, half file size)"},
+        ],
+        "help": "Attention + MLP adapts both attention routing and feed-forward projections for deeper timbral and "
+                "harmonic learning. Attention only adapts q/k/v/o projections, cutting LoRA file size in half and "
+                "resisting overfitting on very small corpora (1\u20133 songs).",
+    },
+    {
+        "key": "training.conditioning",
+        "group": "training",
+        "label": "Acoustic conditioning mode",
+        "type": "select",
+        "default": "compact",
+        "options": [
+            {"value": "compact", "label": "Compact (Recommended) \u2014 fast style-prefix conditioning (< 8 GB RAM)"},
+            {"value": "inference_like", "label": "Inference-like \u2014 full ABC + lyrics prefix conditioning (high RAM)"},
+        ],
+        "requires": {"training.branches": ["both", "acoustic"]},
+        "requires_note": "Only used when training Acoustic (Voice & sound).",
+        "help": "Compact conditions the acoustic diffusion model on the style prompt prefix (< 8 GB RAM, tested identical "
+                "in audio quality). Inference-like conditions on full ABC and lyrics, pre-computing large KV caches per song "
+                "which requires significant host RAM (64 GB+ recommended for corpora over 30 songs).",
+    },
+    {
+        "key": "training.max_minutes",
+        "group": "training",
+        "label": "Song length limit for training",
+        "type": "select",
+        "default": "auto",
+        "options": [
+            {"value": "auto", "label": "Auto by GPU memory"},
+            {"value": "4", "label": "4 minutes per song"},
+            {"value": "6", "label": "6 minutes per song"},
+            {"value": "8", "label": "8 minutes per song"},
+            {"value": "0", "label": "Full song (no length cut)"},
+        ],
+        "help": "How much of each song is exported, encoded and transcribed for training. Because the trainer encodes "
+                "in 60-second windows and trains on 30-second crops, longer songs no longer run out of VRAM during "
+                "training \u2014 they only take longer to encode the first time.",
+    },
+    {
+        "key": "training.allow_int8",
+        "group": "training",
+        "label": "Low-memory (int8) model training",
+        "type": "select",
+        "default": "off",
+        "options": [
+            {"value": "off", "label": "Off \u2014 require the full-quality (bf16) model"},
+            {"value": "on", "label": "On \u2014 allow training on the low-memory (int8) model"},
+        ],
+        "help": "Lets corpus training run on the quantized int8 checkpoint (< 6 GB VRAM) when the 40 GB full-quality "
+                "bf16 model is not installed. The base model stays int8 while LoRA adapters train in fp32.",
     },
     {
         "key": "training.checkpoints",
@@ -230,6 +323,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "llm.provider",
+        "group": "llm",
         "label": "LLM for writing lyrics & style tags",
         "type": "select",
         "default": "local",
@@ -241,6 +335,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "llm.api_url",
+        "group": "llm",
         "label": "External LLM API URL",
         "type": "text",
         "default": "https://api.openai.com/v1",
@@ -248,6 +343,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "llm.api_key",
+        "group": "llm",
         "label": "External LLM API Key",
         "type": "password",
         "default": "",
@@ -255,13 +351,44 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "llm.model",
+        "group": "llm",
         "label": "External LLM Model",
         "type": "text",
         "default": "gpt-4o-mini",
         "help": "Model identifier to query (e.g. gpt-4o-mini, claude-3-5-sonnet-20241022, gemini-1.5-flash, llama3.2, mistral-large).",
     },
     {
+        "key": "lyrics.transcriber",
+        "group": "llm",
+        "label": "Lyrics from a recording",
+        "type": "select",
+        "default": "whisper",
+        "options": [
+            {"value": "whisper", "label": "Whisper, on this machine"},
+            {"value": "llm", "label": "External LLM"},
+        ],
+        # Only meaningful with an external provider.  The sheet greys it out
+        # otherwise, and the job ignores it, so a stale "llm" can do no harm.
+        "requires": {"llm.provider": "external"},
+        "requires_note": "Choose External LLM as the provider to use this.",
+        "help": "The LLM must accept audio, as Gemini does. Whisper still times the lines, and is used instead if the LLM can't hear it.",
+    },
+    {
+        "key": "lyrics.lrclib",
+        "group": "llm",
+        "label": "Studio lyrics lookup (LRCLIB)",
+        "type": "select",
+        "default": "on",
+        "options": [
+            {"value": "on", "label": "Look up studio lyrics on LRCLIB first, Whisper as fallback"},
+            {"value": "off", "label": "Off \u2014 always transcribe from audio"},
+        ],
+        "help": "Queries lrclib.net by song title, artist tag (or 'Artist - Title' filename) and duration to fetch "
+                "verified studio lyrics and timestamps before falling back to Whisper.",
+    },
+    {
         "key": "art.auto",
+        "group": "art",
         "label": "Take pictures",
         "type": "select",
         "default": "on",
@@ -276,6 +403,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "art.drawer",
+        "group": "art",
         "label": "Take pictures: drawn by",
         "type": "select",
         "default": "auto",
@@ -291,6 +419,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "art.words",
+        "group": "art",
         "label": "Take pictures: described by",
         "type": "select",
         "default": "take",
@@ -309,6 +438,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "art.model",
+        "group": "art",
         "label": "Take pictures: image model",
         "type": "text",
         "default": "",
@@ -320,32 +450,58 @@ SETTINGS_SPEC: list[dict] = [
         "requires_note": "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.",
     },
     {
-        "key": "lyrics.transcriber",
-        "label": "Lyrics from a recording",
+        "key": "appearance.theme",
+        "group": "system",
+        "label": "Theme",
         "type": "select",
-        "default": "whisper",
+        "default": "dark",
         "options": [
-            {"value": "whisper", "label": "Whisper, on this machine"},
-            {"value": "llm", "label": "External LLM"},
+            {"value": "dark", "label": "Dark"},
+            {"value": "light", "label": "Light"},
+            {"value": "system", "label": "Match the computer (dark or light)"},
+            {"value": "studio", "label": "Studio (warm, dark)"},
+            {"value": "contrast", "label": "High contrast"},
         ],
-        # Only meaningful with an external provider.  The sheet greys it out
-        # otherwise, and the job ignores it, so a stale "llm" can do no harm.
-        "requires": {"llm.provider": "external"},
-        "requires_note": "Choose External LLM as the provider to use this.",
-        "help": "The LLM must accept audio, as Gemini does. Whisper still times the lines, and is used instead if the LLM can't hear it.",
+        "help": "How the app looks.",
     },
     {
-        "key": "midi.soundfont",
-        "label": "MIDI SoundFont (.sf2)",
+        # The page behind the takes in a hue of the user's choosing.  Drawn by the page with sliders of its own
+        # (app.js, paintBackdropRow); kept as "on:<hue>:<strength>", or "off:..." to keep the choice while the
+        # tint is off, and empty for none.
+        "key": "appearance.backdrop",
+        "group": "system",
+        "label": "Backdrop colour",
+        "type": "backdrop",
+        "default": "",
+        "help": "A tint for the page behind the takes. The cards keep their own colours; the high contrast theme stays black.",
+    },
+    {
+        "key": "app.update_check",
+        "group": "system",
+        "label": "Check for a new version",
         "type": "select",
-        "default": "Arachno_SoundFont_Version_1.0.sf2",
+        "default": "on",
         "options": [
-            {"value": "Arachno_SoundFont_Version_1.0.sf2", "label": "Arachno SoundFont 1.0 (148.2 MB)"},
-            {"value": "Musyng_Kite.sf2", "label": "Musyng Kite (1020.6 MB)"},
-            {"value": "DSoundFontV4.sf2", "label": "DSoundFont V4 (553.3 MB)"},
-            {"value": "github_Jnsgm2.sf2", "label": "Jnsgm2 GM (31.7 MB)"},
+            {"value": "on", "label": "Every 4 hours"},
+            {"value": "off", "label": "Do not check"},
         ],
-        "help": "SoundFont used for high-fidelity MIDI audio rendering and audition in data/models/soundfonts/sf2.",
+        # One small request to our own site, and nothing else: worth saying plainly in a
+        # tool whose selling point is that it runs on your own machine.
+        "help": "One request every four hours to yeufonic.com, to see whether a newer release is out. "
+                "Nothing else leaves the computer, and Check for updates in the menu works either way.",
+    },
+    {
+        "key": "mcp.enabled",
+        "group": "system",
+        "label": "MCP server",
+        "type": "select",
+        "default": "off",
+        "options": [
+            {"value": "off", "label": "Off"},
+            {"value": "on", "label": "On"},
+        ],
+        "help": "Lets an AI agent on this computer (Claude Code, Cursor and others) make songs and read the library, at "
+                "/mcp. A request can start work on the GPU, so it is off until you turn it on.",
     },
 ]
 
@@ -1293,6 +1449,7 @@ def state() -> dict:
         # Whether a newer release is out, and what to do about it: a background task keeps
         # this current, and this route only ever reads it.
         "update": update.state(),
+        "llm_status": llm.alert_state(),
         "settings": settings_payload(),
         "system": {
             "cpu": system_stats.get_cpu_percent(),
@@ -3091,10 +3248,20 @@ _persona = _identity
 
 
 def _train_sizing(identity_id: str) -> dict:
-    """How much of each song a corpus trains on, from the card as it is now."""
+    """How much of each song a corpus trains on, from the card as it is now (or Settings)."""
     durations = [r["duration"] for r in rows(
         "SELECT duration FROM identity_songs WHERE identity_id = ? AND include = 1", (identity_id,))]
-    return trainsize.for_corpus(durations, ENGINE.gpu())
+    base = trainsize.for_corpus(durations, ENGINE.gpu())
+    chosen = setting_value("training.max_minutes")
+    if chosen and chosen != "auto":
+        try:
+            mins = float(chosen)
+            if mins <= 0:
+                return {**base, "minutes": 60.0, "reason": "full songs (no length cut, from Settings)"}
+            return {**base, "minutes": mins, "reason": f"up to {mins:g} minutes per song (from Settings)"}
+        except ValueError:
+            pass
+    return base
 
 
 def _training_cut(song: dict, limit: float) -> dict | None:
@@ -3804,9 +3971,11 @@ async def train_identity(identity_id: str, body: TrainIn | None = None) -> dict:
     runs, and shows it on the main screen with a stop button."""
     _training_built_in()
     identity = _identity(identity_id)
-    if ENGINE.options_loaded and config.TRAIN_CHECKPOINT not in (ENGINE.options.get("checkpoints") or []):
+    allow_int8 = setting_value("training.allow_int8") == "on"
+    if ENGINE.options_loaded and not allow_int8 and config.TRAIN_CHECKPOINT not in (ENGINE.options.get("checkpoints") or []):
         raise HTTPException(400, "Training learns from the full-quality model, and this install has the "
-                                 "low-memory one. Run the installer again and choose full quality, or "
+                                 "low-memory one. Turn on low-memory model training in Settings, or run "
+                                 "the installer again and choose full quality, or "
                                  "scripts/fetch-models.sh for Docker.")
     if _training_run():
         raise HTTPException(409, "A LoRA is already training.")
@@ -3969,7 +4138,20 @@ async def _export(identity: dict, view: dict, chosen: list[dict]) -> dict:
                      " (the end of a section)" if cut["at_section"] else "")
         await asyncio.to_thread(subprocess.run, [*command, str(dest / f"{name}.flac")], check=True, timeout=600)
         (dest / f"{name}.lyrics.txt").write_text(lyrics_content + "\n", encoding="utf-8")
+        (dest / f"{name}.style.txt").write_text(song["caption"] + "\n", encoding="utf-8")
         (dest / f"{name}.txt").write_text(song["caption"] + "\n", encoding="utf-8")
+        meta = {
+            "title": song["title"],
+            "style": song["caption"],
+            "lyrics": lyrics_content,
+            "key": song.get("key"),
+            "tempo": song.get("tempo"),
+        }
+        (dest / f"{name}.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        score_file = Path(song["stored_path"]).parent / "score.abc"
+        if score_file.is_file():
+            with contextlib.suppress(Exception):
+                shutil.copyfile(score_file, dest / f"{name}.abc")
         written.append(song["title"])
         if not song["lyrics_checked"] and not identities.vocalless(identity["voice"]):
             unchecked.append(song["title"])
@@ -4679,12 +4861,29 @@ _ART_RECHECK: set = set()
 @app.put("/api/settings")
 async def put_setting(body: SettingIn) -> dict:
     save_setting(body.key, body.value)
+    if body.key.startswith("llm."):
+        llm.reset_session_state()
     if body.key.startswith(("llm.", "art.")):
         artwork.clear_failures()
         task = asyncio.create_task(artwork.check_external(force=True))   # can the provider now draw pictures
         _ART_RECHECK.add(task)
         task.add_done_callback(_ART_RECHECK.discard)
-    return {"settings": settings_payload()}
+    return {"settings": settings_payload(), "llm_status": llm.alert_state()}
+
+
+class LLMSessionActionIn(BaseModel):
+    action: str = Field(..., pattern="^(local_session|resume_external|dismiss)$")
+
+
+@app.post("/api/llm/session-fallback")
+def llm_session_fallback(body: LLMSessionActionIn) -> dict:
+    """Switch to local LLMs for the rest of this session, resume external LLM, or dismiss the alert."""
+    if body.action == "local_session":
+        return llm.set_session_local_only(True)
+    if body.action == "resume_external":
+        artwork.clear_failures()
+        return llm.set_session_local_only(False)
+    return llm.dismiss_alert()
 
 
 @app.post("/api/settings/test-llm")
@@ -4706,6 +4905,8 @@ async def test_llm_settings(body: LLMTestIn | None = None) -> dict:
     log.info("Testing external LLM connection via settings")
     try:
         res = await llm.test_connection(config_override=override)
+        llm.reset_session_state()
+        artwork.clear_failures()
         return res
     except Exception as exc:
         log.warning("External LLM connection test failed: %s", exc)

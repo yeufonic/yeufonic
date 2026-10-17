@@ -142,6 +142,44 @@ def _get_gpu_utilization():
     return None
 
 
+def free_host_memory() -> dict:
+    """Release custom-node CPU caches, ComfyUI staged models, CUDA VRAM cache, and OS heap/working-set memory."""
+    import gc
+    import sys
+    try:
+        from . import separate
+        separate.clear_cache()
+    except Exception:
+        pass
+    try:
+        import comfy.model_management as mm
+        mm.unload_all_models()
+        mm.soft_empty_cache(True)
+    except Exception:
+        pass
+    gc.collect()
+    try:
+        import torch
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            if hasattr(torch.cuda, "ipc_collect"):
+                torch.cuda.ipc_collect()
+    except Exception:
+        pass
+    trimmed = False
+    try:
+        import ctypes
+        if sys.platform == "win32":
+            handle = ctypes.windll.kernel32.GetCurrentProcess()
+            trimmed = bool(ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, ctypes.c_size_t(-1), ctypes.c_size_t(-1)))
+        else:
+            libc = ctypes.CDLL("libc.so.6")
+            trimmed = bool(libc.malloc_trim(0))
+    except Exception:
+        pass
+    return {"ok": True, "trimmed": trimmed}
+
+
 def install_routes():
     try:
         import server
@@ -151,6 +189,10 @@ def install_routes():
             @prompt_server.routes.get("/yeufonic/gpu_stats")
             async def gpu_stats(request):
                 return web.json_response({"utilization": _get_gpu_utilization()})
+
+            @prompt_server.routes.post("/yeufonic/free")
+            async def yeufonic_free(request):
+                return web.json_response(free_host_memory())
     except Exception:
         pass
 
@@ -159,4 +201,5 @@ def install():
     threading.excepthook = job_thread_died
     logging.getLogger().addFilter(PointAtYeufonic())
     install_routes()
+
 

@@ -71,6 +71,11 @@ def load(name: str):
     return _CACHE[name]
 
 
+def clear_cache() -> None:
+    """Release any cached Demucs model from CPU RAM."""
+    _CACHE.clear()
+
+
 def silence(rate: int, channels: int = 2) -> dict:
     """What an output the model has no stem for carries, so nothing downstream gets a None."""
     return {"waveform": torch.zeros(1, channels, 1), "sample_rate": rate}

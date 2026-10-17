@@ -811,7 +811,8 @@ artist, one genre, or a few similar artists.
 Open **Corpora** from the menu. It is on by default; `TRAINING_ENABLED=0` for the app, or an
 engine built with `WITH_TRAINER=0`, takes it out.
 
-Training is the most demanding thing the app does: a 16 GB card is the practical minimum.
+Training is the most demanding thing the app does: a 16 GB graphics card and 32 GB of system RAM
+(on WSL2, `memory=32GB` in `.wslconfig`) is the practical minimum.
 
 1. **New corpus.** Give it a name and a **trigger word**, say whether the voice is male or female
    (**none** for songs without vocals: see below), describe the sound shared by every song, and open the folder that holds the songs. Confirm you
@@ -852,9 +853,11 @@ Training is the most demanding thing the app does: a 16 GB card is the practical
    the LoRA from the last run under a dated name, in **Previous runs**, or deletes it, as you
    choose.
    Training needs at least about 12.5 GB of GPU memory (at a 3½ minute cut; a longer cut takes
-   more), most of it while it prepares the songs, so a 16 GB card is the practical minimum; a smaller one, such as 8 GB, can't train, though it can
-   still use LoRAs trained elsewhere (**Install a LoRA**). The Train window warns when less than
-   that is free, so close anything else using the GPU first.
+   more), most of it while it prepares the songs, so a 16 GB card is the practical minimum, along
+   with 32 GB of system RAM (ComfyUI stages the full YuE2 weights and dataset caches in host memory;
+   on WSL2, set `memory=32GB` in `.wslconfig`). A smaller card, such as 8 GB, can't train, though it
+   can still use LoRAs trained elsewhere (**Install a LoRA**). The Train window warns when less GPU
+   or system memory is available, so close anything else using the GPU first.
 
 ### A run that ends early
 

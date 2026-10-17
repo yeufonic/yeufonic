@@ -247,3 +247,118 @@ def test_editing_the_identity_changes_captions_and_export_names_the_host_folder(
     monkeypatch.setattr(config, "DATA_DIR_HOST", "/home/me/yue2/data")
     out = client.post(f"/api/identities/{made['id']}/export").json()
     assert out["folder"] == f"/home/me/yue2/data/identities/{made['id']}/dataset" and len(out["written"]) == 1
+
+
+def test_parse_stem_and_lrclib_lookup_with_transcript_verification(tmp_path, monkeypatch):
+    import asyncio
+    from pathlib import Path
+    from app.db import set_setting
+
+    assert identities.parse_stem("03 The Harbour Band - Glass Orchard [Official Audio]") == ("The Harbour Band", "Glass Orchard")
+    assert identities.parse_stem("01_Morning_Light_(Official_Video)") == (None, "Morning Light")
+
+    lrc_text = "[00:10.00] Walking down the harbour wall\n[00:14.50] Watching all the seagulls fall\n"
+    parsed = identities.parse_lrc(lrc_text, duration=20.0)
+    assert parsed == [
+        {"start": 10.0, "end": 14.5, "text": "Walking down the harbour wall"},
+        {"start": 14.5, "end": 20.0, "text": "Watching all the seagulls fall"},
+    ]
+
+    studio_plain = (
+        "Walking down the harbour wall\nWatching all the seagulls fall\n\n"
+        "Silver water in the bay\nCarry all the clouds away\n\n"
+        "Silver water in the bay\nCarry all the clouds away"
+    )
+    whisper_lines = [
+        {"start": 10.0, "end": 14.0, "text": "Walking down the harbour wall"},
+        {"start": 14.5, "end": 18.0, "text": "Watching all the seagulls fall"},
+        {"start": 22.0, "end": 26.0, "text": "Silver water in the bay"},
+        {"start": 26.5, "end": 30.0, "text": "Carry all the clouds away"},
+    ]
+    assert identities.lyrics_match_transcript(studio_plain, " ".join(l["text"] for l in whisper_lines)) >= 0.8
+    assert identities.lyrics_match_transcript("Completely unrelated words about spaceships", " ".join(l["text"] for l in whisper_lines)) == 0.0
+
+    monkeypatch.setattr(identities, "transcribe", lambda *a, **kw: list(whisper_lines))
+    monkeypatch.setattr(identities, "fetch_lrclib", lambda artist, title, dur: {
+        "lyrics": studio_plain,
+        "synced": None,
+        "lines": None,
+        "artist": artist or "The Harbour Band",
+        "title": title,
+        "duration": 180.0,
+    })
+    set_setting("lyrics.lrclib", "on")
+    found = asyncio.run(jobs.hear_all(Path("/nowhere/vocals.flac"), 180.0, title="Glass Orchard", artist="The Harbour Band"))
+    assert found["model"] == "LRCLIB"
+    assert "LRCLIB" in found["method"]
+    assert found["lrclib"] == studio_plain
+    assert len(found["lines"]) == 6
+
+    # Rejects an LRCLIB hit whose words do not match what Whisper heard on the recording
+    monkeypatch.setattr(identities, "fetch_lrclib", lambda artist, title, dur: {
+        "lyrics": "Completely different song with unrelated words that do not appear in the vocal track at all",
+        "synced": None,
+        "lines": None,
+        "artist": "Wrong Artist",
+        "title": title,
+        "duration": 180.0,
+    })
+    rejected = asyncio.run(jobs.hear_all(Path("/nowhere/vocals.flac"), 180.0, title="Glass Orchard", artist="The Harbour Band"))
+    assert rejected["method"] == "Whisper" and rejected["llm"] is None
+
+
+def test_heuristic_sections_and_plain_to_sections_tag_repeated_choruses():
+    plain = (
+        "First verse walking down the road\nCarrying a heavy load\n\n"
+        "Shine on silver moon tonight\nGuide us through the fading light\n\n"
+        "Second verse waiting by the gate\nHoping that it's not too late\n\n"
+        "Shine on silver moon tonight\nGuide us through the fading light"
+    )
+    tagged = identities.plain_to_sections(plain)
+    assert tagged == (
+        "[Verse]\nFirst verse walking down the road\nCarrying a heavy load\n\n"
+        "[Chorus]\nShine on silver moon tonight\nGuide us through the fading light\n\n"
+        "[Verse]\nSecond verse waiting by the gate\nHoping that it's not too late\n\n"
+        "[Chorus]\nShine on silver moon tonight\nGuide us through the fading light"
+    )
+
+    timed = [
+        {"start": 10.0, "end": 13.0, "text": "First verse walking down the road"},
+        {"start": 13.5, "end": 16.5, "text": "Carrying a heavy load"},
+        {"start": 20.0, "end": 23.0, "text": "Shine on silver moon tonight"},
+        {"start": 23.5, "end": 26.5, "text": "Guide us through the fading light"},
+        {"start": 31.0, "end": 34.0, "text": "Second verse waiting by the gate"},
+        {"start": 34.5, "end": 37.5, "text": "Hoping that it's not too late"},
+        {"start": 42.0, "end": 45.0, "text": "Shine on silver moon tonight"},
+        {"start": 45.5, "end": 48.5, "text": "Guide us through the fading light"},
+    ]
+    # Without SheetSage sections, tag_lyrics uses the repetition heuristic and marks [Intro], [Verse], [Chorus]
+    auto_tagged = identities.tag_lyrics(timed, [], 60.0)
+    assert auto_tagged.startswith("[Intro]\n\n[Verse]\nFirst verse")
+    assert auto_tagged.count("[Chorus]") == 2
+    assert auto_tagged.count("[Verse]") == 2
+
+
+def test_audio_key_and_tempo_krumhansl_schmuckler_and_fallback():
+    sr = identities.CHUNK_RATE
+    duration = 12.0
+    t = np.arange(int(sr * duration), dtype=np.float32) / sr
+    # Synthesize A minor triad (A3=220, C4=261.63, E4=329.63, A4=440) pulsed at 120 BPM (2 Hz)
+    chord = (
+        1.0 * np.sin(2 * np.pi * 220.0 * t)
+        + 0.8 * np.sin(2 * np.pi * 261.63 * t)
+        + 0.8 * np.sin(2 * np.pi * 329.63 * t)
+        + 0.6 * np.sin(2 * np.pi * 440.0 * t)
+    )
+    beat_phase = (t * 2.0) % 1.0
+    envelope = np.exp(-6.0 * beat_phase)
+    wave = (chord * envelope * 0.3).astype(np.float32)
+
+    key, bpm = identities.audio_key_and_tempo(wave, sr=sr)
+    assert key == "A minor"
+    assert bpm is not None and abs(bpm - 120) <= 3
+
+    # key_and_tempo fills in missing K: or Q: from audio when ABC omits them
+    assert identities.key_and_tempo("X:1\nM:4/4\n", wave) == ("A minor", bpm)
+    assert identities.key_and_tempo("X:1\nK:G\n", wave) == ("G major", bpm)
+

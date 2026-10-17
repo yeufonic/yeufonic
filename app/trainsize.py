@@ -34,6 +34,7 @@ CEILING_MINUTES = 6.0        # the builder encodes a song whole: past this it ne
 BUILDER_BASE_GB = 8.6        # provisional: the engine's weights at rest
 BUILDER_GB_PER_MINUTE = 0.9  # provisional: (13.9 - 8.6) / 5.9
 MARGIN_GB = 1.0              # kept spare: a build that runs out of memory wedges the engine
+MIN_RAM_GB = 28.0            # 32 GB physical / WSL2 RAM reports ~30-31.5 GB to the OS; <28 GB risks OS OOM kill
 
 GB = 1024 ** 3
 
@@ -69,15 +70,26 @@ def available_gb(gpu: dict | None) -> float | None:
     return ((gpu.get("vram_free") or 0) + (gpu.get("engine_vram") or 0)) / GB
 
 
+def ram_gb(gpu: dict | None) -> float | None:
+    """Total system RAM visible to the engine (physical RAM on Windows/Linux, or WSL2's memory cap)."""
+    if not gpu or not gpu.get("ram_total"):
+        return None
+    return float(gpu["ram_total"]) / GB
+
+
 def card_limit(gpu: dict | None) -> dict:
     """What the card allows: minutes of a song, and how it got there."""
     free = available_gb(gpu)
+    ram = ram_gb(gpu)
+    ram_tight = ram is not None and ram < MIN_RAM_GB
     if free is None:
         return {"minutes": FLOOR_MINUTES, "tight": False, "free_gb": None,
+                "ram_gb": ram, "ram_tight": ram_tight,
                 "note": "the card's memory could not be read"}
     raw = minutes_from_memory(free)
     return {"minutes": max(FLOOR_MINUTES, _half_minutes_down(min(raw, CEILING_MINUTES))),
             "tight": raw < FLOOR_MINUTES, "free_gb": free,
+            "ram_gb": ram, "ram_tight": ram_tight,
             "note": f"{free:.1f} GB available; the builder needs about {BUILDER_BASE_GB:g} GB "
                     f"and {BUILDER_GB_PER_MINUTE:g} GB a minute, with {MARGIN_GB:g} GB spare"}
 
@@ -98,7 +110,8 @@ def size(limit: float, durations: list[float]) -> dict:
 def choose(gpu: dict | None, durations: list[float]) -> dict:
     """`size` for a card as it is now, with the reason in words."""
     card = card_limit(gpu)
-    result = {**size(card["minutes"], durations), "tight": card["tight"]}
+    result = {**size(card["minutes"], durations), "tight": card["tight"],
+              "ram_gb": card["ram_gb"], "ram_tight": card["ram_tight"]}
     result["reason"] = f"up to {clock(result['minutes'])} of each song, {result['tokens']:,} tokens: {card['note']}"
     return result
 
@@ -108,11 +121,13 @@ def for_corpus(durations: list[float], gpu: dict | None) -> dict:
     card's answer, read as it is now, when they are auto.  Read when the export or the
     training runs, so it is what the card has then; a card that cannot be read gets the
     default."""
+    card = card_limit(gpu)
     if config.TRAIN_MINUTES_AUTO:
-        card = card_limit(gpu)
-        result = {**size(card["minutes"], durations), "tight": card["tight"], "note": card["note"]}
+        result = {**size(card["minutes"], durations), "tight": card["tight"],
+                  "ram_gb": card["ram_gb"], "ram_tight": card["ram_tight"], "note": card["note"]}
     else:
-        result = {**size(config.TRAIN_MAX_MINUTES, durations), "tight": False, "note": "set by TRAIN_MAX_MINUTES"}
+        result = {**size(config.TRAIN_MAX_MINUTES, durations), "tight": False,
+                  "ram_gb": card["ram_gb"], "ram_tight": card["ram_tight"], "note": "set by TRAIN_MAX_MINUTES"}
         result["minutes"] = config.TRAIN_MAX_MINUTES
     if not config.TRAIN_TOKENS_AUTO:
         result["tokens"] = config.TRAIN_MAX_TOKENS

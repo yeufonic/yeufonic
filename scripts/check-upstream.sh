@@ -65,12 +65,12 @@ fi
 python3 "$HERE/scripts/_upstream_report.py" comfy "$tmp" "$PIN" "$REPO" $DETAILS
 
 # The trainer: every change matters, since the whole repository is the trainer.
-FS_REPO=KytraScript/ComfyUI-FS_Audio_Suite
-FS_PIN=$(sed -n 's/^ARG FS_AUDIO_REF=\(.*\)$/\1/p' "$HERE/engine/Dockerfile")
+TRAINER_REPO=speedyrulz/ComfyUI-YuE2-Trainer
+TRAINER_PIN=$(sed -n 's/^ARG YUE2_TRAINER_REF=\(.*\)$/\1/p' "$HERE/engine/Dockerfile")
 echo
-echo "trainer pinned to $FS_REPO @ $(printf %.8s "$FS_PIN")"
-if gh api "repos/$FS_REPO/compare/$FS_PIN...HEAD" > "$tmp" 2>/dev/null; then
-  python3 "$HERE/scripts/_upstream_report.py" trainer "$tmp" "$FS_PIN" "$FS_REPO" $DETAILS
+echo "trainer pinned to $TRAINER_REPO @ $(printf %.8s "$TRAINER_PIN")"
+if gh api "repos/$TRAINER_REPO/compare/$TRAINER_PIN...HEAD" > "$tmp" 2>/dev/null; then
+  python3 "$HERE/scripts/_upstream_report.py" trainer "$tmp" "$TRAINER_PIN" "$TRAINER_REPO" $DETAILS
 else
   echo "Could not compare the trainer; check the network or the pin." >&2
 fi

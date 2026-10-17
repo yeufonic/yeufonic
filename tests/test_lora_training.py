@@ -128,14 +128,14 @@ def test_a_run_trains_on_as_much_of_each_song_as_the_card_allows(client, monkeyp
     execute("""INSERT INTO lora_runs(id, identity_id, lora_name, steps, rank, state)
                VALUES('run1', 'corpus1', 'alicia_lora', 100, 16, 'queued')""")
     asyncio.run(jobs.run_lora_train("run1"))
-    assert seen["graph"]["3"]["inputs"]["max_minutes"] == 5.5
-    assert seen["graph"]["5"]["inputs"]["max_tokens"] == 10240
+    assert seen["graph"]["4"]["inputs"]["max_seconds"] == 5.5 * 60
+    assert seen["graph"]["6"]["inputs"]["max_tokens"] == 10240
 
     monkeypatch.setattr(config, "TRAIN_MINUTES_AUTO", False)
     monkeypatch.setattr(config, "TRAIN_MAX_MINUTES", 4.0)
     execute("UPDATE lora_runs SET state = 'queued' WHERE id = 'run1'")
     asyncio.run(jobs.run_lora_train("run1"))
-    assert seen["graph"]["3"]["inputs"]["max_minutes"] == 4.0
+    assert seen["graph"]["4"]["inputs"]["max_seconds"] == 4.0 * 60
 
 
 def test_steps_follow_the_size_of_the_corpus_above_a_floor(monkeypatch):
@@ -156,12 +156,13 @@ def test_steps_follow_the_size_of_the_corpus_above_a_floor(monkeypatch):
 def test_the_trainer_gets_the_published_recipe():
     from app import jobs
 
-    inputs = jobs.train_graph("in", "set", "alicia_lora", 200)["5"]["inputs"]
-    assert inputs["steps"] == 200
-    assert inputs["batch_songs"] == 2
-    assert inputs["decoder_steps"] == 1000
-    assert inputs["score_first_fraction"] == 0
-    assert inputs["checkpoint_every"] == 50
+    g = jobs.train_graph("in", "set", "alicia_lora", 200)
+    planner_inputs = g["6"]["inputs"]
+    acoustic_inputs = g["7"]["inputs"]
+    assert planner_inputs["steps"] == 200
+    assert acoustic_inputs["steps"] == 1000
+    assert planner_inputs["save_every"] == 50
+    assert acoustic_inputs["save_every"] == 50
 
 
 def test_a_queued_run_can_be_cancelled(client):
@@ -452,3 +453,162 @@ def test_training_asks_the_engine_to_unload_its_models_first(client, monkeypatch
                VALUES('run1', 'corpus1', 'alicia_lora', 100, 16, 'queued')""")
     asyncio.run(jobs.run_lora_train("run1"))
     assert order == ["free", "train"]
+
+
+def test_settings_groups_and_lora_training_options(client, monkeypatch, tmp_path):
+    """Settings are organised into collapsible groups, and the training.* settings
+    materially configure the training workflow, song length cap, and int8 model gate."""
+    import asyncio
+    from app import jobs, loras, main
+
+    items = client.get("/api/settings").json()["settings"]
+    by_key = {item["key"]: item for item in items}
+
+    # Every non-storage setting belongs to one of the five Settings sub-folders
+    non_storage = [item for item in items if item.get("section") != "storage"]
+    assert all(item.get("group") in ("audio", "training", "llm", "art", "system") for item in non_storage)
+
+    training_keys = {item["key"] for item in non_storage if item.get("group") == "training"}
+    assert training_keys == {
+        "training.branches",
+        "training.regularization",
+        "training.semantic_tokens",
+        "training.keep_strategy",
+        "training.targets",
+        "training.conditioning",
+        "training.max_minutes",
+        "training.allow_int8",
+    }
+    assert by_key["training.regularization"]["requires"] == {"training.branches": ["both", "planner"]}
+    assert by_key["training.conditioning"]["requires"] == {"training.branches": ["both", "acoustic"]}
+
+    # Low-memory (int8) gate: blocked by default when only the int8 model is present, allowed when turned on
+    corpus = a_corpus()
+    monkeypatch.setattr(config, "ENGINE_INPUT_DIR", tmp_path / "engine-input")
+    monkeypatch.setattr(main.ENGINE, "options_loaded", True)
+    monkeypatch.setitem(main.ENGINE.options, "checkpoints", ["yue2_3b_int8_convrot.safetensors"])
+
+    refused = client.post(f"/api/identities/{corpus['id']}/train")
+    assert refused.status_code == 400 and "low-memory" in refused.json()["detail"]
+
+    assert client.put("/api/settings", json={"key": "training.allow_int8", "value": "on"}).status_code == 200
+    allowed = client.post(f"/api/identities/{corpus['id']}/train", json={"steps": 50, "rank": 16})
+    assert allowed.status_code == 200
+    while not jobs.QUEUE.empty():
+        jobs.QUEUE.get_nowait()
+
+    # Configure custom training options and verify run_lora_train wires them into the graph
+    assert client.put("/api/settings", json={"key": "training.branches", "value": "acoustic"}).status_code == 200
+    assert client.put("/api/settings", json={"key": "training.semantic_tokens", "value": "on"}).status_code == 200
+    assert client.put("/api/settings", json={"key": "training.keep_strategy", "value": "final"}).status_code == 200
+    assert client.put("/api/settings", json={"key": "training.targets", "value": "attention"}).status_code == 200
+    assert client.put("/api/settings", json={"key": "training.max_minutes", "value": "0"}).status_code == 200
+
+    # Full song (0) means _train_sizing gives 60 minutes for export/view and 0.0 max_seconds in EncodeDataset
+    assert main._train_sizing(corpus["id"])["minutes"] == 60.0
+
+    root = tmp_path / "loras"
+    root.mkdir()
+    monkeypatch.setattr(loras, "folder", lambda: root)
+    seen = {}
+
+    async def trained(kind, run_id, graph):
+        seen["graph"] = graph
+        (root / "alicia_lora_acoustic.safetensors").write_bytes(b"acoustic")
+    monkeypatch.setattr(jobs, "_run_graph", trained)
+
+    asyncio.run(jobs.run_lora_train(allowed.json()["id"]))
+    g = seen["graph"]
+    assert "6" not in g and "5" not in g and "7" in g
+    assert g["4"]["inputs"]["max_seconds"] == 0.0
+    assert g["7"]["inputs"]["use_semantic_tokens"] is True
+    assert g["7"]["inputs"]["keep"] == "final"
+    assert g["7"]["inputs"]["targets"] == "attention"
+
+
+def test_regularization_can_use_all_songs_or_sample_by_percentage(client, tmp_path):
+    """training.regularization supports 'on' (100% of songs), percentage samples ('75%', '50%', '25%', '10%'), and 'off'."""
+    from app import jobs
+
+    ds = tmp_path / "dataset"
+    ds.mkdir()
+    for idx in range(20):
+        (ds / f"song_{idx:02d}.style.txt").write_text(f"trig, indie rock song {idx}, 120 BPM\n", encoding="utf-8")
+        (ds / f"song_{idx:02d}.lyrics.txt").write_text(f"[Verse]\nLine {idx} one\nLine {idx} two\n\n[Chorus]\nHook {idx}\n",
+                                                       encoding="utf-8")
+
+    # 'on' leaves styles/lyrics blank so YuE2TrainerRegularizationScores uses all songs from the dataset
+    assert jobs._sample_regularization_prompts(ds, "on") == ("", "")
+    assert jobs._sample_regularization_prompts(ds, "off") == ("", "")
+
+    # '25%' of 20 songs samples 5 evenly spaced style prompts and a representative lyric block
+    styles_25, lyrics_25 = jobs._sample_regularization_prompts(ds, "25%")
+    lines = styles_25.splitlines()
+    assert len(lines) == 5
+    assert lines[0] == "trig, indie rock song 0, 120 BPM"
+    assert lines[-1] == "trig, indie rock song 19, 120 BPM"
+    assert "[Verse]" in lyrics_25 and "[Chorus]" in lyrics_25
+
+    # '50%' of 20 songs samples 10 prompts
+    styles_50, _ = jobs._sample_regularization_prompts(ds, "50%")
+    assert len(styles_50.splitlines()) == 10
+
+    # Setting '25%' via PUT /api/settings is accepted and wired into Node 5 of train_graph
+    assert client.put("/api/settings", json={"key": "training.regularization", "value": "25%"}).status_code == 200
+    g = jobs.train_graph("in", "set", "alicia_lora", 200, regularization="25%", reg_styles=styles_25, reg_lyrics=lyrics_25)
+    assert g["5"]["inputs"]["styles"] == styles_25
+    assert g["5"]["inputs"]["lyrics"] == lyrics_25
+    assert g["6"]["inputs"]["regularization"] == ["5", 0]
+
+
+def test_finish_training_cleans_up_dual_branch_and_resume_files(monkeypatch, tmp_path):
+    """When dual-branch training finishes, planner and acoustic weights and step checkpoints
+    are merged into unified files, and all raw branch parts, raw weights, and .resume optimizer
+    states are deleted."""
+    import asyncio
+    import safetensors.torch
+    import torch
+    from app import jobs, loras
+
+    root = tmp_path / "loras"
+    root.mkdir()
+    monkeypatch.setattr(loras, "folder", lambda: root)
+
+    name = "alicia_lora"
+    # Create final branch files
+    safetensors.torch.save_file({"diffusion_model.weight": torch.zeros(2)}, str(root / f"{name}_acoustic.safetensors"))
+    safetensors.torch.save_file({"text_encoders.weight": torch.zeros(2)}, str(root / f"{name}_planner.safetensors"))
+    (root / f"{name}_acoustic_raw.safetensors").write_bytes(b"raw_acoustic")
+    (root / f"{name}_planner_raw.safetensors").write_bytes(b"raw_planner")
+    (root / f"{name}_acoustic.resume").write_bytes(b"resume_acoustic")
+    (root / f"{name}_planner.resume").write_bytes(b"resume_planner")
+
+    # Create step 50 branch files
+    safetensors.torch.save_file({"diffusion_model.step50": torch.zeros(2)}, str(root / f"{name}_acoustic_000050.safetensors"))
+    safetensors.torch.save_file({"text_encoders.step50": torch.zeros(2)}, str(root / f"{name}_planner_000050.safetensors"))
+    (root / f"{name}_acoustic_000050.resume").write_bytes(b"resume_acoustic_50")
+    (root / f"{name}_planner_000050.resume").write_bytes(b"resume_planner_50")
+
+    run = {"id": "run1", "lora_name": name}
+    identity = {"id": "c1", "name": "Alicia", "trigger_word": "alicia"}
+
+    produced = asyncio.run(jobs.finish_training(run, identity))
+    assert produced == f"{name}.safetensors"
+    assert (root / f"{name}.safetensors").is_file()
+    assert (root / f"{name}_step50.safetensors").is_file()
+
+    # Verify merged contents contain both planner and acoustic weights
+    final_sd = safetensors.torch.load_file(str(root / f"{name}.safetensors"))
+    assert "diffusion_model.weight" in final_sd and "text_encoders.weight" in final_sd
+
+    step50_sd = safetensors.torch.load_file(str(root / f"{name}_step50.safetensors"))
+    assert "diffusion_model.step50" in step50_sd and "text_encoders.step50" in step50_sd
+
+    # Verify no .resume or branch files remain
+    assert not list(root.glob("*.resume"))
+    assert not list(root.glob("*_acoustic*"))
+    assert not list(root.glob("*_planner*"))
+
+
+
+

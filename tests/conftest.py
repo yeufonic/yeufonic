@@ -30,8 +30,9 @@ def data_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "SOURCES_DIR", tmp_path / "sources")
     monkeypatch.setattr(config, "WORK_DIR", tmp_path / "tmp")
     monkeypatch.setattr(config, "CORPUS_INBOX", tmp_path / "corpus")
-    from app import db
+    from app import db, llm
     db._settings_cache.clear()
+    llm.reset_session_state()
     db.migrate()
     yield tmp_path
 
