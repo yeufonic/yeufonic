@@ -26,6 +26,57 @@ try:
 except OSError:
     BUILD = ""
 
+
+def get_branch() -> str:
+    """Detect which git branch is active, checking environment variables, .git/HEAD
+    (in standard checkouts, worktrees, and mounted container paths), and branch marker files."""
+    env_branch = os.environ.get("YEUFONIC_BRANCH") or os.environ.get("GIT_BRANCH")
+    if env_branch:
+        return env_branch.strip()
+
+    # Search for .git directory or worktree reference
+    candidates: list[Path] = [
+        Path("/app/.git"),
+        Path(__file__).resolve().parent.parent / ".git",
+        Path.cwd() / ".git",
+    ]
+    for git_dir in candidates:
+        try:
+            head_file: Path | None = None
+            if git_dir.is_dir():
+                head_file = git_dir / "HEAD"
+            elif git_dir.is_file():
+                txt = git_dir.read_text(encoding="utf-8").strip()
+                if txt.startswith("gitdir:"):
+                    head_file = Path(txt.split(":", 1)[1].strip()) / "HEAD"
+            if head_file and head_file.exists():
+                content = head_file.read_text(encoding="utf-8").strip()
+                if content.startswith("ref: refs/heads/"):
+                    return content.removeprefix("ref: refs/heads/")
+                if len(content) >= 7:
+                    return content[:8]
+        except (OSError, UnicodeDecodeError):
+            continue
+
+    # Fallback to marker files in app or repo
+    for marker in [
+        Path(__file__).resolve().parent / ".branch",
+        Path(__file__).resolve().parent / "BRANCH",
+        Path("/app/BRANCH"),
+    ]:
+        try:
+            if marker.exists():
+                val = marker.read_text(encoding="utf-8").strip()
+                if val:
+                    return val
+        except (OSError, UnicodeDecodeError):
+            continue
+
+    return ""
+
+
+BRANCH = get_branch()
+
 # A test build of the Windows installer sets this (through settings.ini) to a manifest that only
 # the tester knows, so an update can be tried before it is released.  When it is set, nothing
 # else is asked, GitHub included.  Public builds never set it.
