@@ -247,3 +247,35 @@ def test_branch_in_health_and_state(client, monkeypatch):
     assert config.get_branch() == "feature/custom-test-branch"
     assert client.get("/api/health").json()["branch"] == "feature/custom-test-branch"
     assert client.get("/api/state").json()["branch"] == "feature/custom-test-branch"
+
+
+def test_free_engine_endpoint(client, monkeypatch):
+    from app.main import CURRENT, ENGINE
+
+    called = []
+
+    async def fake_free():
+        called.append(True)
+
+    monkeypatch.setattr(ENGINE, "free", fake_free)
+
+    # When idle: frees engine and returns ok
+    CURRENT.clear()
+    res = client.post("/api/engine/free")
+    assert res.status_code == 200
+    assert res.json()["ok"] is True
+    assert res.json()["busy"] is False
+    assert called == [True]
+
+    # When busy with an ongoing render: refuses to free models
+    called.clear()
+    CURRENT["kind"] = "render"
+    try:
+        res_busy = client.post("/api/engine/free")
+        assert res_busy.status_code == 200
+        assert res_busy.json()["ok"] is False
+        assert res_busy.json()["busy"] is True
+        assert called == []
+    finally:
+        CURRENT.clear()
+

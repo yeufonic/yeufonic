@@ -504,6 +504,7 @@ class Engine:
             return
         try:
             await self.client.post("/free", json={"unload_models": True, "free_memory": True}, timeout=10.0)
+            await asyncio.sleep(0.3)
             await self.refresh_status()
             log.info("asked the engine to unload its models")
         except Exception as exc:  # noqa: BLE001
