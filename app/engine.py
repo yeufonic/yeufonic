@@ -500,26 +500,10 @@ class Engine:
     async def free(self) -> None:
         """Unload every model the engine holds, so a job that needs the whole card, such
         as training, starts with it.  Best effort: the job runs whether this worked or not."""
-        import ctypes
-        import gc
-        import sys
-        gc.collect()
-        try:
-            if sys.platform == "win32":
-                handle = ctypes.windll.kernel32.GetCurrentProcess()
-                ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, ctypes.c_size_t(-1), ctypes.c_size_t(-1))
-            else:
-                ctypes.CDLL("libc.so.6").malloc_trim(0)
-        except Exception:  # noqa: BLE001
-            pass
         if not self.client:
             return
         try:
             await self.client.post("/free", json={"unload_models": True, "free_memory": True}, timeout=10.0)
-            try:
-                await self.client.post("/yeufonic/free", timeout=10.0)
-            except Exception:  # noqa: BLE001
-                pass
             await self.refresh_status()
             log.info("asked the engine to unload its models")
         except Exception as exc:  # noqa: BLE001

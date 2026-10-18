@@ -2322,6 +2322,8 @@ def _merge_lora_files(paths: list[Path], out_path: Path) -> dict:
     for path in paths:
         if not path.is_file():
             continue
+        with contextlib.suppress(OSError):
+            os.chmod(path, 0o644)
         try:
             sd = safetensors.torch.load_file(str(path), device="cpu")
             merged.update(sd)
@@ -2370,7 +2372,16 @@ async def finish_training(run: dict, identity: dict, stopped: bool = False) -> s
     # If the trainer produced separate planner and acoustic weights, merge them into the canonical LoRA.
     planner_file = root / f"{name}_planner.safetensors"
     acoustic_file = root / f"{name}_acoustic.safetensors"
+    if not acoustic_file.is_file():
+        raw_ac = root / f"{name}_acoustic_raw.safetensors"
+        if raw_ac.is_file():
+            acoustic_file = raw_ac
     canonical = root / f"{name}.safetensors"
+
+    for f in (acoustic_file, planner_file, canonical):
+        if f and f.exists():
+            with contextlib.suppress(OSError):
+                os.chmod(f, 0o644)
 
     if planner_file.is_file() and acoustic_file.is_file():
         log.info("Merging planner and acoustic LoRAs into %s", canonical.name)

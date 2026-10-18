@@ -566,6 +566,8 @@ def test_finish_training_cleans_up_dual_branch_and_resume_files(monkeypatch, tmp
     are merged into unified files, and all raw branch parts, raw weights, and .resume optimizer
     states are deleted."""
     import asyncio
+    import pytest
+    pytest.importorskip("safetensors.torch")
     import safetensors.torch
     import torch
     from app import jobs, loras
