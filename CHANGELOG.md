@@ -41,7 +41,7 @@ cannot creep back in.
 
 ## 0.0.45 (2026-10-16)
 
-- **Hot keys help overlay.** Pressing **?** (or **Shift + /**) opens an overlay dialog displaying all application keyboard shortcuts grouped by section: main page playback and chosen take actions, the score editor and piano roll, and take comparison. The dialog closes on Escape, on clicking Close or the backdrop, or on pressing **?** again. A **Hot keys** item with a keyboard icon is also in the top-left brand menu. Typing in text fields is left alone so question marks in lyrics, styles and titles are unaffected.
+- **Hot keys help overlay.** Pressing **?** (or **Shift + /**) opens an overlay dialog displaying all application keyboard shortcuts grouped by section: main page playback and chosen take actions, the score editor and piano roll, and take comparison. The dialog closes on Escape, on clicking Close or the backdrop, or on pressing **?** again. Typing in text fields is left alone so question marks in lyrics, styles and titles are unaffected.
 - **Resilient fallback on external LLM and image model limits.**
   - **Take picture drawing:** When set to *The external LLM's image model*, if an external draw request fails (HTTP 429 rate limits, quota/credit exhaustion, timeout), picture generation gracefully falls back to FLUX.2 [klein] on this PC if installed. If a song render is active on the GPU, drawing steps aside to the waiting queue so song renders are never interrupted.
   - **Take picture description:** When set to *External LLM*, if the description request fails, it seamlessly falls back to describing from the take itself (title, style tags and lyrics imagery) without failing the picture.
