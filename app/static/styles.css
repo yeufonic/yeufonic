@@ -552,6 +552,65 @@ textarea.lyrics { min-height: 200px; font-family: ui-monospace, SFMono-Regular, 
 a.menu-item { text-decoration: none; box-sizing: border-box; }
 .brand-menu .menu-icon { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; }
 .brand-menu .menu-item:hover .menu-icon { color: var(--text); }
+.settings-group {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgb(var(--ink) / 0.025);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.settings-group-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  position: relative;
+  padding-right: 34px;
+  transition: background 0.14s ease;
+}
+.settings-group-head::-webkit-details-marker { display: none; }
+.settings-group-head:hover { background: rgb(var(--ink) / 0.045); }
+.settings-group-head::after {
+  content: "\25B8";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 13px;
+  transition: transform 0.16s ease, color 0.14s ease;
+}
+.settings-group[open] > .settings-group-head {
+  border-bottom: 1px solid var(--line);
+  background: rgb(var(--ink) / 0.04);
+}
+.settings-group[open] > .settings-group-head::after {
+  transform: translateY(-50%) rotate(90deg);
+  color: var(--text);
+}
+.settings-group-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.settings-group-summary {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.settings-group-body {
+  padding: 2px 14px 6px;
+}
+.setting-group-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 8px;
+  border-top: 1px solid var(--line);
+}
 .setting-row {
   display: flex; align-items: flex-start; gap: 18px; padding: 15px 0;
   border-top: 1px solid var(--line);
@@ -650,6 +709,39 @@ kbd {
 .update-progress-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
 .update-success-badge { display: flex; align-items: center; gap: 8px; color: var(--good); font-weight: 600; margin-bottom: 10px; font-size: 14px; }
 .update-error-text { color: var(--danger, #e53935); font-weight: 500; }
+
+/* External LLM error alert modal & session fallback banner */
+#llm-alert-modal { z-index: 70; }
+.llm-alert-box { max-width: 540px; }
+.llm-alert-body { display: flex; flex-direction: column; gap: 10px; margin: 10px 0 14px; }
+.llm-alert-body .hint { margin: 0; line-height: 1.45; }
+.llm-alert-error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: var(--bad, #f87171);
+  font-size: 12.5px;
+  line-height: 1.45;
+  word-break: break-word;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.llm-alert-actions { justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.llm-session-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+#llm-session-pill { cursor: pointer; }
 
 .modal-box.settings { width: min(680px, 100%); }
 .stem-list { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -3392,6 +3484,22 @@ button.ghost.run-all { margin-left: 10px; }
 .about-id { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 2px 0 16px; }
 .about-id strong { font-size: 22px; letter-spacing: 0.01em; }
 .about-logo { width: 56px; height: 62px; }
+.about-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--card-2);
+  color: var(--accent-a);
+  border: 1px solid var(--line);
+}
+.about-branch .branch-icon {
+  flex-shrink: 0;
+  stroke: var(--accent-a);
+}
 
 /* Storage */
 .settings-storage-row { display: flex; align-items: center; gap: 10px; margin: 6px 0 12px; }
@@ -4417,3 +4525,4 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 :root[data-theme="light"] .peq-flat:hover { color: #0f172a; border-color: rgba(15, 23, 42, 0.35); }
 :root[data-theme="light"] .peq-type.chosen { color: #0b0c10; background: var(--band); border-color: var(--band); }
 :root[data-theme="light"] .peq-flat:active { color: #fff; background: #334155; border-color: #334155; }
+

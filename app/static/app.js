@@ -448,9 +448,21 @@ async function pollState() {
     } else if (engine.online && engine.compat && engine.compat.ok) {
       if (State.training) {
         pill.className = 'pill pill-wait';
-        var pct = State.training.progress ? ' ' + Math.round(State.training.progress * 100) + '%' : '';
-        pill.textContent = 'Training LoRA' + pct;
-        pill.title = 'LoRA \u201c' + (State.training.lora_name || 'custom') + '\u201d is training and holds the GPU. Click to view in Corpora.';
+        var vramInfo = '';
+        var vramHover = '';
+        if (engine.gpu && typeof engine.gpu.vram_free === 'number') {
+          var freeGb = Math.max(0, engine.gpu.vram_free / 1073741824);
+          if (engine.gpu.vram_total) {
+            var usedGb = Math.max(0, (engine.gpu.vram_total - engine.gpu.vram_free) / 1073741824);
+            var totalGb = Math.round(engine.gpu.vram_total / 1073741824);
+            vramInfo = ' \u00b7 ' + usedGb.toFixed(1).replace(/\.0$/, '') + ' / ' + totalGb + ' GB';
+            vramHover = ' (' + usedGb.toFixed(1) + ' GB used \u00b7 ' + freeGb.toFixed(1) + ' GB free of ' + totalGb + ' GB VRAM)';
+          } else {
+            vramInfo = ' \u00b7 ' + Math.round(freeGb) + ' GB free';
+          }
+        }
+        pill.textContent = 'Training LoRA' + vramInfo;
+        pill.title = 'LoRA \u201c' + (State.training.lora_name || 'custom') + '\u201d is training and holds the GPU' + vramHover + '. Click to view in Corpora.';
         pill.style.cursor = 'pointer';
       } else {
         pill.className = 'pill pill-on';
@@ -471,9 +483,10 @@ async function pollState() {
     State.stemsOptions = data.stems || State.stemsOptions || {};
     if (data.settings) { adoptSettings(data.settings); }
     if (data.version) { $('app-version').textContent = 'v' + data.version; }
-    State.about = { version: data.version || '', build: data.build || '', model: data.model || '' };
+    State.about = { version: data.version || '', build: data.build || '', branch: data.branch || '', model: data.model || '' };
     paintSystemStats(data.system);
     paintUpdate(data.update);
+    paintLLMStatus(data.llm_status);
     paintOptions();
     paintJob(data.current, data.queue || [], data.options);
     watchPlan();
@@ -574,7 +587,7 @@ var LORA_KINDS = { both: 'score and sound', planner: 'score only', decoder: 'sou
    strength, which is everything the corpus screen used to offer separately. */
 function corpusLoras() {
   var found = {};
-  (IDENTITIES_LIST || []).forEach(function (identity) {
+  (Array.isArray(IDENTITIES_LIST) ? IDENTITIES_LIST : []).forEach(function (identity) {
     getIdentityLoRAs(identity).forEach(function (name) {
       found[name] = { trigger: identity.trigger_word || '', corpus: identity.name || '' };
     });
@@ -1088,7 +1101,7 @@ function allKnownLoraTriggers() {
       triggers[item.trigger.trim().toLowerCase()] = true;
     }
   });
-  (IDENTITIES_LIST || []).forEach(function (id) {
+  (Array.isArray(IDENTITIES_LIST) ? IDENTITIES_LIST : []).forEach(function (id) {
     if (id && id.trigger_word) {
       triggers[id.trigger_word.trim().toLowerCase()] = true;
     }
@@ -3381,7 +3394,8 @@ function paintJob(current, queue, options) {
 
 /* --------------------------------------------------------------- sources */
 async function loadSources() {
-  State.sources = await api('/api/sources');
+  var res = await api('/api/sources');
+  State.sources = Array.isArray(res) ? res : [];
   var select = $('source-select');
   var previous = select.value;
   select.innerHTML = '<option value="">Choose a recording\u2026</option>' + State.sources.map(function (source) {
@@ -4718,75 +4732,196 @@ var getPersonaLoRAs = getIdentityLoRAs;
 
 
 /* ---------------------------------------------------------------- settings */
+var SETTINGS_GROUPS = [
+  { id: 'audio', title: 'Audio, Takes & Stems', summary: 'Output format, loudness, length cap, stem separation and SoundFonts' },
+  { id: 'training', title: 'LoRA Training', summary: 'Planner and acoustic branches, prior preservation, semantic tokens and song limits' },
+  { id: 'llm', title: 'External LLM & Lyrics', summary: 'Provider, API connection, model selection and recording transcription' },
+  { id: 'art', title: 'Take Pictures', summary: 'Automatic artwork generation, local FLUX.2 klein or external image model' },
+  { id: 'system', title: 'Appearance & System', summary: 'Theme, backdrop tint, update checks and MCP server' }
+];
+
 function setting(key, fallback) {
   var value = (State.settings || {})[key];
   return value === undefined || value === null || value === '' ? fallback : value;
 }
 
+function renderSettingRow(item) {
+  var control;
+  if (item.type === 'select') {
+    control = '<select data-key="' + esc(item.key) + '">' + item.options.map(function (option) {
+      return '<option value="' + esc(option.value) + '"' + (option.value === item.value ? ' selected' : '') +
+        (option.disabled ? ' disabled' : '') + '>' + esc(option.label) + '</option>';
+    }).join('') + '</select>';
+  } else if (item.type === 'password') {
+    // The saved key never comes back from the server, only whether there is one,
+    // so the box starts empty and a new key typed into it replaces the old.
+    control = '<div class="api-key-control">' +
+      '<input type="text" class="setting-masked-input" autocomplete="off" spellcheck="false" ' +
+      'data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" ' +
+      'data-secret="1" data-key="' + esc(item.key) + '" value="" placeholder="' +
+      (item.saved ? 'Saved. Type a new key to replace it' : 'Paste your key') + '">' +
+      '<button type="button" class="ghost small btn-toggle-mask" title="Reveal or hide what you type">Show</button>' +
+      (item.saved ? '<button type="button" class="ghost small btn-remove-secret" data-remove="' + esc(item.key) + '">Remove</button>' : '') +
+    '</div>';
+  } else if (item.type === 'backdrop') {
+    control = backdropControl(item);
+  } else if (item.key === 'llm.model') {
+    var models = State.llmModels || [];
+    var hasModels = models.length > 0;
+    var curVal = item.value || '';
+    var selectHtml = '<select id="select-llm-model" class="llm-model-select' + (hasModels ? '' : ' hidden') + '" style="' + (hasModels ? 'display:block;' : 'display:none;') + '">' +
+      '<option value="">-- ' + (hasModels ? 'Select from ' + models.length + ' available models' : 'Select model') + ' --</option>' +
+      models.map(function (m) {
+        var isSel = (m.id === curVal);
+        return '<option value="' + esc(m.id) + '"' + (isSel ? ' selected' : '') + '>' + esc(m.label || m.name || m.id) + '</option>';
+      }).join('') +
+    '</select>';
+
+    control = '<div class="llm-model-control">' +
+      '<div class="llm-model-input-group">' +
+        '<input type="text" spellcheck="false" data-key="' + esc(item.key) + '" id="input-llm-model" value="' + esc(item.value) + '" placeholder="e.g. gemini-2.5-flash">' +
+        '<button type="button" id="btn-fetch-models" class="ghost small" title="Fetch available models from provider API">Fetch Models</button>' +
+      '</div>' +
+      selectHtml +
+      '<div id="fetch-models-status" class="hint llm-models-status">' +
+        (hasModels ? '\u2713 Loaded ' + models.length + ' models' : '') +
+      '</div>' +
+    '</div>';
+  } else {
+    control = '<input type="text" spellcheck="false" data-key="' + esc(item.key) + '" value="' + esc(item.value) + '">';
+  }
+  // A setting that only means something when another one has a given value, such
+  // as the lyrics method with an external LLM, carries a note saying what it needs.
+  var needs = item.requires
+    ? '<div class="setting-help hidden" data-needs="' + esc(item.key) + '">' + esc(item.requires_note || '') + '</div>'
+    : '';
+  return '<div class="setting-row">' +
+    '<div class="setting-text">' +
+      '<div class="setting-label">' + esc(item.label) + '</div>' +
+      '<div class="setting-help">' + esc(item.help || '') + '</div>' +
+      needs +
+    '</div>' +
+    '<div class="setting-control">' + control + '<span class="saved" data-saved="' + esc(item.key) + '"></span></div>' +
+  '</div>';
+}
+
 function paintSettings() {
   // The settings about disk space live in the Storage window, beside what they act on.
   var list = (State.settingSpec || []).filter(function (item) { return item.section !== 'storage'; });
-  $('settings-list').innerHTML = list.map(function (item) {
-    var control;
-    if (item.type === 'select') {
-      control = '<select data-key="' + esc(item.key) + '">' + item.options.map(function (option) {
-        return '<option value="' + esc(option.value) + '"' + (option.value === item.value ? ' selected' : '') +
-          (option.disabled ? ' disabled' : '') + '>' + esc(option.label) + '</option>';
-      }).join('') + '</select>';
-    } else if (item.type === 'password') {
-      // The saved key never comes back from the server, only whether there is one,
-      // so the box starts empty and a new key typed into it replaces the old.
-      control = '<div class="api-key-control">' +
-        '<input type="text" class="setting-masked-input" autocomplete="off" spellcheck="false" ' +
-        'data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" ' +
-        'data-secret="1" data-key="' + esc(item.key) + '" value="" placeholder="' +
-        (item.saved ? 'Saved. Type a new key to replace it' : 'Paste your key') + '">' +
-        '<button type="button" class="ghost small btn-toggle-mask" title="Reveal or hide what you type">Show</button>' +
-        (item.saved ? '<button type="button" class="ghost small btn-remove-secret" data-remove="' + esc(item.key) + '">Remove</button>' : '') +
-      '</div>';
-    } else if (item.type === 'backdrop') {
-      control = backdropControl(item);
-    } else if (item.key === 'llm.model') {
-      var models = State.llmModels || [];
-      var hasModels = models.length > 0;
-      var curVal = item.value || '';
-      var selectHtml = '<select id="select-llm-model" class="llm-model-select' + (hasModels ? '' : ' hidden') + '" style="' + (hasModels ? 'display:block;' : 'display:none;') + '">' +
-        '<option value="">-- ' + (hasModels ? 'Select from ' + models.length + ' available models' : 'Select model') + ' --</option>' +
-        models.map(function (m) {
-          var isSel = (m.id === curVal);
-          return '<option value="' + esc(m.id) + '"' + (isSel ? ' selected' : '') + '>' + esc(m.label || m.name || m.id) + '</option>';
-        }).join('') +
-      '</select>';
-
-      control = '<div class="llm-model-control">' +
-        '<div class="llm-model-input-group">' +
-          '<input type="text" spellcheck="false" data-key="' + esc(item.key) + '" id="input-llm-model" value="' + esc(item.value) + '" placeholder="e.g. gemini-2.5-flash">' +
-          '<button type="button" id="btn-fetch-models" class="ghost small" title="Fetch available models from provider API">Fetch Models</button>' +
-        '</div>' +
-        selectHtml +
-        '<div id="fetch-models-status" class="hint llm-models-status">' +
-          (hasModels ? '\u2713 Loaded ' + models.length + ' models' : '') +
-        '</div>' +
-      '</div>';
-    } else {
-      control = '<input type="text" spellcheck="false" data-key="' + esc(item.key) + '" value="' + esc(item.value) + '">';
-    }
-    // A setting that only means something when another one has a given value, such
-    // as the lyrics method with an external LLM, carries a note saying what it needs.
-    var needs = item.requires
-      ? '<div class="setting-help hidden" data-needs="' + esc(item.key) + '">' + esc(item.requires_note || '') + '</div>'
+  var container = $('settings-list');
+  if (!container) { return; }
+  if (!State.openSettingGroups) {
+    State.openSettingGroups = { audio: true, training: false, llm: false, art: false, system: false };
+  } else {
+    Array.prototype.forEach.call(container.querySelectorAll('details.settings-group[data-group]'), function (el) {
+      State.openSettingGroups[el.dataset.group] = el.open;
+    });
+  }
+  var byGroup = {};
+  list.forEach(function (item) {
+    var g = item.group || 'system';
+    if (!byGroup[g]) { byGroup[g] = []; }
+    byGroup[g].push(item);
+  });
+  container.innerHTML = SETTINGS_GROUPS.map(function (group) {
+    var items = byGroup[group.id] || [];
+    if (!items.length) { return ''; }
+    var isOpen = Boolean(State.openSettingGroups[group.id]);
+    var sessionLocal = Boolean(State.llmStatus && State.llmStatus.session_local_only);
+    var headBanner = group.id === 'llm'
+      ? '<div id="settings-llm-session-banner" class="llm-session-banner' + (sessionLocal ? '' : ' hidden') + '">' +
+          '<span>Switched to <strong>local LLMs</strong> for this session after an external API error. Your saved External LLM settings remain intact for next restart.</span>' +
+          '<button type="button" id="btn-resume-external-llm" class="ghost small">Resume External LLM</button>' +
+        '</div>'
       : '';
-    return '<div class="setting-row">' +
-      '<div class="setting-text">' +
-        '<div class="setting-label">' + esc(item.label) + '</div>' +
-        '<div class="setting-help">' + esc(item.help || '') + '</div>' +
-        needs +
+    var foot = group.id === 'llm'
+      ? '<div id="settings-llm-test" class="setting-group-foot">' +
+          '<button type="button" id="btn-test-llm" class="ghost small">Test LLM Connection</button>' +
+          '<span id="test-llm-status" class="hint"></span>' +
+        '</div>'
+      : '';
+    return '<details class="settings-group" data-group="' + esc(group.id) + '"' + (isOpen ? ' open' : '') + '>' +
+      '<summary class="settings-group-head">' +
+        '<span class="settings-group-title">' + esc(group.title) + '</span>' +
+        '<span class="settings-group-summary">' + esc(group.summary) + '</span>' +
+      '</summary>' +
+      '<div class="settings-group-body">' +
+        headBanner +
+        items.map(renderSettingRow).join('') +
+        foot +
       '</div>' +
-      '<div class="setting-control">' + control + '<span class="saved" data-saved="' + esc(item.key) + '"></span></div>' +
-    '</div>';
+    '</details>';
   }).join('');
+  Array.prototype.forEach.call(container.querySelectorAll('details.settings-group[data-group]'), function (el) {
+    el.addEventListener('toggle', function () {
+      if (State.openSettingGroups) { State.openSettingGroups[el.dataset.group] = el.open; }
+    });
+  });
   paintSettingRequirements();
   paintBackdropRow();
+}
+
+function renderLLMAlertBody(alert) {
+  var model = alert.model || 'External LLM';
+  var code = alert.status_code ? 'HTTP ' + alert.status_code : 'Connection Error';
+  var countNote = alert.count > 1 ? ' (' + alert.count + ' failed requests)' : '';
+  return '<p class="hint">The external LLM (<strong>' + esc(model) + '</strong>) returned <strong>' + esc(code) + '</strong>' + esc(countNote) + ':</p>' +
+    '<div class="llm-alert-error">' + esc(alert.message || 'The external LLM request could not be completed.') + '</div>' +
+    '<p class="hint">The current task automatically fell back to local processing on this PC.</p>' +
+    '<p class="hint">You can switch to <strong>local LLMs for the rest of this session</strong> (until Yeufonic is restarted) so remaining tasks do not keep retrying the external API, or <strong>keep trying the external LLM</strong> if you have resolved the issue (for example, after increasing your API spending cap).</p>';
+}
+
+function openLLMAlertModal(alert) {
+  var modal = $('llm-alert-modal');
+  if (!modal || !alert) { return; }
+  State.seenLlmAlertId = alert.id;
+  var title = alert.status_code === 429 ? 'External LLM Quota / Spending Cap Reached' : 'External LLM Error';
+  if ($('llm-alert-title')) { $('llm-alert-title').textContent = title; }
+  if ($('llm-alert-body')) { $('llm-alert-body').innerHTML = renderLLMAlertBody(alert); }
+  modal.classList.remove('hidden');
+}
+
+function closeLLMAlertModal() {
+  var modal = $('llm-alert-modal');
+  if (modal) { modal.classList.add('hidden'); }
+}
+
+async function handleLLMSessionAction(action) {
+  closeLLMAlertModal();
+  try {
+    var res = await api('/api/llm/session-fallback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action })
+    });
+    paintLLMStatus(res);
+  } catch (err) {
+    /* next pollState will sync */
+  }
+}
+
+function paintLLMStatus(status) {
+  State.llmStatus = status || { session_local_only: false, configured_external: false, alert: null };
+  var sessionLocal = Boolean(State.llmStatus.session_local_only);
+  var pill = $('llm-session-pill');
+  if (pill) {
+    pill.classList.toggle('hidden', !sessionLocal);
+  }
+  var banner = $('settings-llm-session-banner');
+  if (banner) {
+    banner.classList.toggle('hidden', !sessionLocal);
+  }
+  var alert = State.llmStatus.alert;
+  var modal = $('llm-alert-modal');
+  if (alert && alert.id) {
+    if (State.seenLlmAlertId !== alert.id) {
+      openLLMAlertModal(alert);
+    } else if (modal && !modal.classList.contains('hidden') && $('llm-alert-body')) {
+      $('llm-alert-body').innerHTML = renderLLMAlertBody(alert);
+    }
+  } else if (modal && !modal.classList.contains('hidden')) {
+    closeLLMAlertModal();
+  }
 }
 
 /* Grey out a setting whose requirement is not met, and say why.  Separate from
@@ -4800,7 +4935,9 @@ function paintSettingRequirements() {
     var met = Object.keys(item.requires).every(function (key) {
       // "pictures" is not a setting: it is whether anything here can draw a take's picture
       if (key === 'pictures') { return Boolean(State.picturesPossible) === (item.requires[key] === 'possible'); }
-      return setting(key, '') === item.requires[key];
+      var wanted = item.requires[key];
+      var actual = setting(key, '');
+      return Array.isArray(wanted) ? wanted.indexOf(actual) >= 0 : actual === wanted;
     });
     var control = list.querySelector('[data-key="' + item.key + '"]');
     if (control) { control.disabled = !met; }
@@ -4895,6 +5032,7 @@ async function testLLMConnection() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+    paintLLMStatus({ session_local_only: false, configured_external: setting('llm.provider') === 'external', alert: null });
     status.style.color = 'var(--good, #4ade80)';
     status.textContent = '\u2713 Connected! (' + (res.model || '') + ', ' + (res.latency_ms || 0) + 'ms)';
   } catch (err) {
@@ -4918,6 +5056,7 @@ async function saveSetting(input) {
       body: JSON.stringify({ key: key, value: input.value })
     });
     adoptSettings(data.settings);
+    if (data.llm_status) { paintLLMStatus(data.llm_status); }
     paintSettingRequirements();
     if (input.dataset.secret) {
       // Saved, so it leaves the page: the box goes back to saying there is one.
@@ -5246,6 +5385,15 @@ function openAbout() {
   var line = about.version ? 'Version ' + about.version : '';
   if (about.build) { line += (line ? ' \u00b7 build ' : 'Build ') + about.build; }
   $('about-build').textContent = line;
+  if ($('about-branch')) {
+    if (about.branch) {
+      if ($('about-branch-name')) { $('about-branch-name').textContent = about.branch; }
+      else { $('about-branch').textContent = about.branch; }
+      $('about-branch').style.display = 'inline-flex';
+    } else {
+      $('about-branch').style.display = 'none';
+    }
+  }
   if ($('about-model')) { $('about-model').textContent = about.model ? 'Model: ' + about.model : ''; }
   $('about-modal').classList.remove('hidden');
 }
@@ -5295,14 +5443,6 @@ function toggleHotkeys() {
 }
 
 function wireHotkeys() {
-  var item = $('menu-hotkeys');
-  if (item) {
-    item.addEventListener('click', function (event) {
-      event.stopPropagation();
-      closeBrandMenu();
-      openHotkeys();
-    });
-  }
   var modal = $('hotkeys-modal');
   if (!modal) { return; }
   if ($('hotkeys-close')) { $('hotkeys-close').addEventListener('click', closeHotkeys); }
@@ -6632,7 +6772,12 @@ async function loadTakes() {
   // Repaint once a minute anyway, so "2 min ago" keeps moving.
   if (text === State.takesRaw && Date.now() - State.paintedAt < 60000) { return; }
   State.takesRaw = text;
-  State.listed = JSON.parse(listedText);
+  try {
+    var parsedListed = JSON.parse(listedText);
+    State.listed = Array.isArray(parsedListed) ? parsedListed : [];
+  } catch (err) {
+    State.listed = [];
+  }
   if (open && State.inside) {
     State.inside.takes = insideText ? JSON.parse(insideText) : [];
     // Its take was deleted or moved away while its insides were open, or the last take inside it was taken
@@ -6653,20 +6798,20 @@ async function loadTakes() {
    Each take lives in one space. Which space is on show is this browser's choice. */
 async function loadSpaces() {
   var spaces = await api('/api/spaces');
-  State.spaces = spaces;
-  if (!spaces.some(function (space) { return space.id === State.spaceId; })) {
+  State.spaces = Array.isArray(spaces) ? spaces : [];
+  if (!State.spaces.some(function (space) { return space.id === State.spaceId; })) {
     showSpace('default');   // deleted elsewhere, or never existed here
   }
   paintSpaces();
 }
 
 function currentSpace() {
-  return State.spaces.filter(function (space) { return space.id === State.spaceId; })[0] || null;
+  return (Array.isArray(State.spaces) ? State.spaces : []).filter(function (space) { return space.id === State.spaceId; })[0] || null;
 }
 
 function paintSpaces() {
   var select = $('space');
-  var html = State.spaces.map(function (space) {
+  var html = (Array.isArray(State.spaces) ? State.spaces : []).map(function (space) {
     return '<option value="' + esc(space.id) + '">' + esc(space.name) + ' (' + space.takes + ')</option>';
   }).join('');
   if (select.dataset.html !== html) {
@@ -9721,7 +9866,7 @@ function identityRunAll(run) {
 
 /* Training, from the corpus window: what it will do, and what happens to a LoRA an
    earlier run left under the same name -- kept under a dated name, or deleted. */
-function openTrain(all) {
+async function openTrain(all) {
   var data = IDENTITY.data || {};
   var included = (data.songs || []).filter(function (song) { return song.include; }).length;
   State.trainAll = Boolean(all);
@@ -9747,8 +9892,23 @@ function openTrain(all) {
   }
   $('train-status').textContent = '';
   $('train-go').disabled = false;
-  paintTrainMemory();
   $('train-modal').classList.remove('hidden');
+
+  // If memory appears tight, proactively ask the engine to unload any models it holds
+  // from earlier renders before showing a warning, so we don't alarm the user unnecessarily.
+  var gb = function (bytes) { return bytes / 1073741824; };
+  var gpu = State.gpu;
+  var total = (gpu && gpu.vram_total) ? gb(gpu.vram_total) : 0;
+  var free = (gpu && gpu.vram_free) ? gb(gpu.vram_free) : 0;
+  if (total >= TRAIN_NEEDS_GB && free < TRAIN_NEEDS_GB) {
+    var note = $('train-memory');
+    if (note) { note.classList.add('hidden'); }
+    try {
+      var res = await api('/api/engine/free', { method: 'POST' });
+      if (res && res.gpu) { State.gpu = res.gpu; }
+    } catch (e) {}
+  }
+  paintTrainMemory();
 }
 
 /* Training needs about 12.5 GB of GPU memory, measured on a 16 GB card, most of it
@@ -9756,24 +9916,30 @@ function openTrain(all) {
    before it starts, and kept current while the window is open. A warning, not a
    refusal: whatever holds the memory may let go of it in time. */
 var TRAIN_NEEDS_GB = 12.5;
+var TRAIN_NEEDS_RAM_GB = 28.0;
 
 function paintTrainMemory() {
   var note = $('train-memory');
   if (!note) { return; }
   var gpu = State.gpu;
   var gb = function (bytes) { return bytes / 1073741824; };
-  var text = '';
+  var warnings = [];
   if (gpu && gpu.vram_total) {
     // What the engine holds itself, it lets go of before training.
     var usable = gb((gpu.vram_free || 0) + (gpu.engine_vram || 0));
     if (gb(gpu.vram_total) < TRAIN_NEEDS_GB) {
-      text = 'This GPU has ' + gb(gpu.vram_total).toFixed(1) + ' GB, and training needs about ' + TRAIN_NEEDS_GB +
-        ' GB. It may run out of memory.';
+      warnings.push('This GPU has ' + gb(gpu.vram_total).toFixed(1) + ' GB, and training needs about ' + TRAIN_NEEDS_GB +
+        ' GB. It may run out of memory.');
     } else if (usable < TRAIN_NEEDS_GB) {
-      text = 'Only ' + usable.toFixed(1) + ' GB of GPU memory is free, and training needs about ' + TRAIN_NEEDS_GB +
-        ' GB. Close anything else using the GPU first, or it may run out.';
+      warnings.push('Only ' + usable.toFixed(1) + ' GB of GPU memory is free, and training needs about ' + TRAIN_NEEDS_GB +
+        ' GB. Close anything else using the GPU first, or it may run out.');
     }
   }
+  if (gpu && gpu.ram_total && gb(gpu.ram_total) < TRAIN_NEEDS_RAM_GB) {
+    warnings.push('System RAM visible to the engine is ' + gb(gpu.ram_total).toFixed(1) +
+      ' GB, and LoRA training recommends at least 32 GB (on WSL2, set memory=32GB in .wslconfig), or the OS may stop the engine mid-run.');
+  }
+  var text = warnings.join(' ');
   note.textContent = text;
   note.classList.toggle('hidden', !text);
 }
@@ -12947,14 +13113,6 @@ function renderLogs(logs) {
 function wireLogs() {
   var openBtn = $('open-logs');
   if (openBtn) { openBtn.addEventListener('click', showLogs); }
-  var menuBtn = $('menu-logs');
-  if (menuBtn) {
-    menuBtn.addEventListener('click', function () {
-      var menu = $('brand-menu');
-      if (menu) { menu.classList.add('hidden'); }
-      showLogs();
-    });
-  }
   // The guide opens in its own tab, so this page stays, and so would the menu.
   var guideLink = $('menu-guide');
   if (guideLink) { guideLink.addEventListener('click', closeBrandMenu); }
@@ -13948,6 +14106,16 @@ function wire() {
     if (event.target.dataset && event.target.dataset.key) { saveSetting(event.target); }
   });
   $('settings-list').addEventListener('click', async function (event) {
+    if (event.target && event.target.id === 'btn-resume-external-llm') {
+      event.preventDefault();
+      handleLLMSessionAction('resume_external');
+      return;
+    }
+    if (event.target && event.target.id === 'btn-test-llm') {
+      event.preventDefault();
+      testLLMConnection();
+      return;
+    }
     if (event.target && event.target.id === 'btn-fetch-models') {
       event.preventDefault();
       fetchLLMModels(false);
@@ -14109,7 +14277,35 @@ function wire() {
       if (backdropClick(event, $('confirm-modal'))) { closeConfirmModal(false); }
     });
   }
+  if ($('llm-alert-modal')) {
+    if ($('llm-alert-local')) {
+      $('llm-alert-local').addEventListener('click', function () { handleLLMSessionAction('local_session'); });
+    }
+    if ($('llm-alert-keep')) {
+      $('llm-alert-keep').addEventListener('click', function () { handleLLMSessionAction('dismiss'); });
+    }
+    if ($('llm-alert-close')) {
+      $('llm-alert-close').addEventListener('click', function () { handleLLMSessionAction('dismiss'); });
+    }
+    $('llm-alert-modal').addEventListener('click', function (event) {
+      if (backdropClick(event, $('llm-alert-modal'))) { handleLLMSessionAction('dismiss'); }
+    });
+  }
+  if ($('llm-session-pill')) {
+    $('llm-session-pill').addEventListener('click', async function () {
+      var resume = await confirmModal({
+        title: 'Using Local LLMs for This Session',
+        message: 'Yeufonic switched to local LLMs for this session after an external LLM error. Your saved External LLM settings are unchanged.\n\nIf you have resolved the external LLM issue (for example, increased your spending cap), would you like to resume using the external LLM now?',
+        confirmText: 'Resume External LLM',
+        cancelText: 'Stay on Local'
+      });
+      if (resume) {
+        handleLLMSessionAction('resume_external');
+      }
+    });
+  }
   document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && $('llm-alert-modal') && !$('llm-alert-modal').classList.contains('hidden')) { handleLLMSessionAction('dismiss'); return; }
     if (event.key === 'Escape' && $('confirm-modal') && !$('confirm-modal').classList.contains('hidden')) { closeConfirmModal(false); return; }
     if (event.key === 'Tab' && $('confirm-modal') && !$('confirm-modal').classList.contains('hidden')) {
       var focusable = $('confirm-modal').querySelectorAll('button:not([disabled]), input:not([disabled]):not(.hidden)');
@@ -14291,6 +14487,12 @@ function wire() {
         !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       toggleHotkeys();
+      return;
+    }
+    if ((event.key === 'l' || event.key === 'L') &&
+        !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
+      event.preventDefault();
+      if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
       return;
     }
     // The editor window, alone (or with the mastering rack over it), has the player's keys too, for the take in

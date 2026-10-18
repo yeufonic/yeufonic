@@ -95,6 +95,36 @@ def title_from_name(name: str) -> str:
     return stem[:1].upper() + stem[1:] if stem else name
 
 
+def parse_stem(stem: str) -> tuple[str | None, str]:
+    """Extract (artist, title) from '01 Artist - Title [Official Audio]' file stems."""
+    stem = re.sub(r"^\s*\d{1,3}\s*[.\-_)]?\s*", "", stem)
+    stem = re.sub(r"\[(official|lyrics?|audio|video|hd|4k)[^\]]*\]", "", stem, flags=re.I)
+    stem = re.sub(r"\((official|lyrics?|audio|video|hd|4k)[^)]*\)", "", stem, flags=re.I)
+    parts = re.split(r"\s+-\s+|\s+\u2013\s+|_-_", stem, maxsplit=1)
+    if len(parts) == 2:
+        return parts[0].strip() or None, parts[1].strip()
+    return None, stem.replace("_", " ").strip()
+
+
+def file_metadata(path: Path | None, fallback_title: str = "") -> dict:
+    """Artist, title and duration from audio tags or an 'Artist - Title' file name."""
+    meta: dict = {"artist": None, "title": None, "duration": None}
+    if path and path.is_file():
+        try:
+            info = probe(path)
+            meta["artist"] = info.get("artist")
+            meta["title"] = info.get("title")
+            meta["duration"] = info.get("duration") or None
+        except Exception as exc:  # noqa: BLE001
+            log.debug("probe failed on %s: %s", path, exc)
+    stem_artist, stem_title = parse_stem(path.stem if path else fallback_title)
+    if not meta["artist"]:
+        meta["artist"] = stem_artist
+    if not meta["title"]:
+        meta["title"] = fallback_title.strip() or stem_title
+    return meta
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as fh:
@@ -382,6 +412,188 @@ def time_lines(timed: list[dict], lines: list[str]) -> list[dict] | None:
             for a, b, text in zip(starts, ends, lines)]
 
 
+LRC_LINE = re.compile(r"^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$")
+
+
+def parse_lrc(synced: str, duration: float = 0.0) -> list[dict]:
+    """Convert synced LRC [mm:ss.xx] lines into timed {'start', 'end', 'text'} dicts."""
+    raw = []
+    for line in (synced or "").splitlines():
+        m = LRC_LINE.match(line.strip())
+        if m:
+            at = int(m.group(1)) * 60 + float(m.group(2))
+            text = m.group(3).strip()
+            raw.append((at, text))
+    out = []
+    for idx, (start, text) in enumerate(raw):
+        if not text:
+            continue
+        next_at = raw[idx + 1][0] if idx + 1 < len(raw) else (max(start + 3.0, duration) if duration else start + 3.0)
+        end = max(start + 0.5, min(next_at, start + 12.0))
+        out.append({"start": round(start, 2), "end": round(end, 2), "text": text})
+    return out
+
+
+def fetch_lrclib(artist: str | None, title: str, duration: float | None = None,
+                 timeout: float = 10.0, tolerance: float = 8.0) -> dict | None:
+    """Query LRCLIB (lrclib.net) for verified studio lyrics by artist, title and duration.
+
+    Tries an exact artist+title+duration lookup first, then falls back to search where the
+    best duration match must be within `tolerance` seconds (or requires an artist match
+    when duration is unknown).
+    """
+    import httpx
+    if not (title or "").strip():
+        return None
+    headers = {"User-Agent": f"Yeufonic/{config.VERSION} (https://yeufonic.com)"}
+
+    def pack(c: dict) -> dict:
+        plain = (c.get("plainLyrics") or "").strip()
+        synced = (c.get("syncedLyrics") or "").strip()
+        lines = parse_lrc(synced, float(c.get("duration") or duration or 0.0)) if synced else None
+        if not plain and lines:
+            plain = "\n".join(l["text"] for l in lines)
+        return {
+            "lyrics": plain,
+            "synced": synced or None,
+            "lines": lines or None,
+            "artist": c.get("artistName"),
+            "title": c.get("trackName"),
+            "duration": c.get("duration"),
+        }
+
+    try:
+        with httpx.Client(timeout=timeout, headers=headers) as client:
+            if artist and duration:
+                r = client.get("https://lrclib.net/api/get", params={
+                    "artist_name": artist,
+                    "track_name": title,
+                    "duration": int(round(duration)),
+                })
+                if r.status_code == 200:
+                    data = r.json()
+                    if data.get("plainLyrics") or data.get("syncedLyrics"):
+                        return pack(data)
+            params = {"track_name": title}
+            if artist:
+                params["artist_name"] = artist
+            r = client.get("https://lrclib.net/api/search", params=params)
+            if r.status_code != 200:
+                return None
+            candidates = [c for c in (r.json() or []) if c.get("plainLyrics") or c.get("syncedLyrics")]
+            if not candidates:
+                return None
+            if duration:
+                candidates.sort(key=lambda c: abs(float(c.get("duration") or 0) - duration))
+                best = candidates[0]
+                if abs(float(best.get("duration") or 0) - duration) <= tolerance:
+                    return pack(best)
+                return None
+            return pack(candidates[0]) if artist else None
+    except Exception as exc:  # noqa: BLE001
+        log.warning("LRCLIB lookup failed for %s - %s: %s", artist or "?", title, exc)
+        return None
+
+
+def lyrics_match_transcript(lyrics: str, transcript: str) -> float:
+    """Fraction of distinct transcript words (or CJK characters) that occur in the lyrics."""
+    def tokens(text: str) -> set[str]:
+        text = (text or "").lower()
+        words = set(re.findall(r"[a-z0-9']{3,}", text))
+        cjk = set(re.findall(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]", text))
+        return words | cjk
+    have, want = tokens(lyrics), tokens(transcript)
+    if not want:
+        return 0.0
+    return len(want & have) / len(want)
+
+
+def _norm_line(line: str) -> str:
+    return re.sub(r"[^\w\s]", "", (line or "").lower()).strip()
+
+
+def _similar_line(a: str, b: str) -> bool:
+    if a == b:
+        return True
+    if min(len(a), len(b)) < 10 or abs(len(a) - len(b)) > max(3, len(a) // 3):
+        return False
+    import difflib
+    return difflib.SequenceMatcher(None, a, b).ratio() >= 0.85
+
+
+def _block_overlap(lines: list[str], other: list[str]) -> float:
+    """Fraction of `lines` that (fuzzily) occur in `other`, tolerant to ASR spelling variance."""
+    if not lines or not other:
+        return 0.0
+    return sum(any(_similar_line(l, o) for o in other) for l in lines) / len(lines)
+
+
+def _group_line_blocks(lines: list[dict] | list[tuple[float, float, str]],
+                       gap_seconds: float = 2.5, max_lines: int = 6) -> tuple[list[list[str]], list[str], float]:
+    """Group timed lines into stanza blocks and classify each block as 'Chorus' or 'Verse'."""
+    if not lines:
+        return [], [], 0.0
+    items = [
+        (float(item["start"]), float(item["end"]), str(item["text"]))
+        if isinstance(item, dict) else (float(item[0]), float(item[1]), str(item[2]))
+        for item in lines
+    ]
+    blocks: list[list[str]] = []
+    current: list[str] = []
+    last_end: float | None = None
+    for start, end, text in items:
+        if current and ((last_end is not None and start - last_end > gap_seconds) or len(current) >= max_lines):
+            blocks.append(current)
+            current = []
+        current.append(text)
+        last_end = end
+    if current:
+        blocks.append(current)
+    normed = [[_norm_line(l) for l in b if _norm_line(l)] for b in blocks]
+    kinds = [
+        "Chorus" if any(i != j and _block_overlap(ns, other) >= 0.6 for j, other in enumerate(normed))
+        else "Verse"
+        for i, ns in enumerate(normed)
+    ]
+    return blocks, kinds, items[0][0]
+
+
+def heuristic_sections(lines: list[dict] | list[tuple[float, float, str]],
+                       gap_seconds: float = 2.5, max_lines: int = 6) -> str:
+    """Group transcribed lines into blocks; blocks that repeat elsewhere become [Chorus]."""
+    blocks, kinds, first_start = _group_line_blocks(lines, gap_seconds=gap_seconds, max_lines=max_lines)
+    if not blocks:
+        return ""
+    out: list[str] = []
+    if first_start > 8.0:
+        out.append("[Intro]\n")
+    previous = None
+    for kind, block in zip(kinds, blocks):
+        if kind != previous or kind == "Verse":
+            out.append(f"[{kind}]")
+        out.extend(block)
+        out.append("")
+        previous = kind
+    return "\n".join(out).strip()
+
+
+def plain_to_sections(text: str) -> str:
+    """Format plain stanza-separated lyrics (e.g. from LRCLIB) with [Verse] and [Chorus] tags."""
+    if re.search(r"(?m)^\[(Intro|Verse|Pre-Chorus|Chorus|Bridge|Outro)", text or "", re.I):
+        return (text or "").strip()
+    stanzas = [s.strip().splitlines() for s in re.split(r"\n\s*\n", (text or "").strip()) if s.strip()]
+    if not stanzas:
+        return ""
+    normed = [[_norm_line(l) for l in s if _norm_line(l)] for s in stanzas]
+    out: list[str] = []
+    for i, stanza in enumerate(stanzas):
+        repeated = any(i != j and _block_overlap(normed[i], normed[j]) >= 0.6 for j in range(len(stanzas)))
+        out.append("[Chorus]" if repeated else "[Verse]")
+        out.extend(l.strip() for l in stanza)
+        out.append("")
+    return "\n".join(out).strip()
+
+
 SECTION_TAGS = {"intro": "Intro", "verse": "Verse", "pre-chorus": "Pre-Chorus", "prechorus": "Pre-Chorus",
                 "chorus": "Chorus", "bridge": "Bridge", "outro": "Outro", "interlude": "Bridge", "solo": "Bridge"}
 
@@ -481,16 +693,28 @@ def merged_spans(bounds: list[tuple[str, float, float]]) -> list[tuple[str, floa
 
 def tag_lyrics(lines: list[dict], sections: list[tuple[str, float]], duration: float) -> str:
     """Each sung line under the section playing when it starts, by SheetSage's
-    sections (see section_spans).  Without sections, the lines go under one verse."""
+    sections (see section_spans).  Without sections (or when SheetSage only marks
+    verses), repeated stanzas are promoted to [Chorus] via the repetition heuristic."""
     if not lines:
         return ""
     if not sections or not duration:
+        _, kinds, _ = _group_line_blocks(lines)
+        if "Chorus" in kinds:
+            return heuristic_sections(lines)
         return "[Verse]\n" + "\n".join(l["text"] for l in lines)
     spans = merged_spans(section_spans(lines, sections, duration))
     blocks = [(tag, [l["text"] for l in lines if start <= (l["start"] + l["end"]) / 2 < end])
               for tag, start, end in spans]
     # Lines past the last boundary (a rounding matter) join the last section.
     blocks[-1][1].extend(l["text"] for l in lines if (l["start"] + l["end"]) / 2 >= spans[-1][2])
+    sung_tags = {tag for tag, sung in blocks if sung}
+    if sung_tags == {"Verse"}:
+        normed = [[_norm_line(l) for l in sung if _norm_line(l)] for _, sung in blocks]
+        blocks = [
+            ("Chorus" if sung and any(i != j and _block_overlap(normed[i], normed[j]) >= 0.6 for j in range(len(blocks)))
+             else tag, sung)
+            for i, (tag, sung) in enumerate(blocks)
+        ]
     return lyrics_text(blocks)
 
 
@@ -530,13 +754,110 @@ DESCRIBE = ("Describe this music for a music generator as one line of comma-sepa
 
 
 # --------------------------------------------------------------- style and export
-def key_and_tempo(abc: str) -> tuple[str | None, int | None]:
+KEYS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+MAJOR_PROFILE = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
+MINOR_PROFILE = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
+
+
+def _krumhansl_key(chroma: np.ndarray) -> str | None:
+    """Match a 12-bin pitch-class energy vector (C..B) against Krumhansl-Schmuckler profiles."""
+    if chroma.shape != (12,) or float(np.std(chroma)) < 1e-9:
+        return None
+    best, best_score = None, -2.0
+    for i in range(12):
+        for mode, profile in (("major", MAJOR_PROFILE), ("minor", MINOR_PROFILE)):
+            score = float(np.corrcoef(np.roll(profile, i), chroma)[0, 1])
+            if np.isfinite(score) and score > best_score:
+                best, best_score = f"{KEYS[i]} {mode}", score
+    return best
+
+
+def _numpy_chroma_and_bpm(y: np.ndarray, sr: int) -> tuple[np.ndarray, int | None]:
+    """Fallback 12-bin STFT chroma and onset-autocorrelation BPM when librosa is not installed."""
+    n_fft = 4096
+    hop = max(1, sr // 20)
+    chroma = np.zeros(12, dtype=np.float64)
+    if len(y) >= n_fft:
+        frames = (len(y) - n_fft) // hop + 1
+        window = np.hanning(n_fft).astype(np.float32)
+        freqs = np.fft.rfftfreq(n_fft, d=1.0 / sr)
+        valid = (freqs >= 65.0) & (freqs <= 2093.0)
+        pitches = np.round(69.0 + 12.0 * np.log2(np.maximum(freqs[valid], 1e-6) / 440.0)).astype(int) % 12
+        mag_sum = np.zeros(int(valid.sum()), dtype=np.float64)
+        step = max(1, frames // 200)
+        for idx in range(0, frames, step):
+            frame = y[idx * hop: idx * hop + n_fft] * window
+            spec = np.abs(np.fft.rfft(frame))[valid]
+            mag_sum += spec
+        for pc in range(12):
+            chroma[pc] = mag_sum[pitches == pc].sum()
+
+    bpm = None
+    env_hop = max(1, sr // 100)
+    n_frames = len(y) // env_hop
+    if n_frames > 400:
+        rms = np.sqrt(np.mean(y[: n_frames * env_hop].reshape(n_frames, env_hop) ** 2, axis=1) + 1e-12)
+        onset = np.maximum(0.0, np.diff(rms))
+        onset = onset - onset.mean()
+        if float(np.std(onset)) > 1e-7:
+            fps = sr / env_hop
+            ac = np.correlate(onset, onset, mode="full")[len(onset) - 1:]
+            lo_lag = max(1, int(round(fps * 60.0 / 180.0)))
+            hi_lag = min(len(ac) - 1, int(round(fps * 60.0 / 60.0)))
+            if hi_lag > lo_lag:
+                lags = np.arange(lo_lag, hi_lag + 1)
+                bpms = 60.0 * fps / lags
+                prior = np.exp(-0.5 * ((np.log2(bpms / 120.0)) / 0.5) ** 2)
+                best_idx = int(np.argmax(ac[lags] * prior))
+                bpm = int(round(float(bpms[best_idx])))
+    return chroma, bpm
+
+
+def audio_key_and_tempo(audio: Path | np.ndarray, sr: int = CHUNK_RATE) -> tuple[str | None, int | None]:
+    """Detect musical key (Krumhansl-Schmuckler chroma profile) and BPM from an audio file or waveform.
+
+    Uses librosa (`beat_track` + `chroma_cqt`) when available, with a pure-numpy STFT chroma and
+    onset autocorrelation fallback when librosa is not installed.
+    """
+    try:
+        if isinstance(audio, Path):
+            if not audio.is_file():
+                return None, None
+            y = read_mono(audio)
+            sr = CHUNK_RATE
+        else:
+            y = np.asarray(audio, dtype=np.float32).reshape(-1)
+        if y.size == 0:
+            return None, None
+        y = y[: sr * 120]
+        try:
+            import librosa
+            y22 = librosa.resample(y.astype(np.float32), orig_sr=sr, target_sr=22050) if sr != 22050 else y.astype(np.float32)
+            tempo_val, _ = librosa.beat.beat_track(y=y22, sr=22050)
+            tempo_num = float(np.atleast_1d(tempo_val)[0])
+            bpm = int(round(tempo_num)) if tempo_num > 0 else None
+            chroma = librosa.feature.chroma_cqt(y=y22, sr=22050).mean(axis=1)
+            return _krumhansl_key(chroma), bpm
+        except ImportError:
+            chroma, bpm = _numpy_chroma_and_bpm(y, sr)
+            return _krumhansl_key(chroma), bpm
+    except Exception as exc:  # noqa: BLE001
+        log.debug("audio key/tempo detection failed: %s", exc)
+        return None, None
+
+
+def key_and_tempo(abc: str, audio: Path | np.ndarray | None = None) -> tuple[str | None, int | None]:
     key = re.search(r"^K:\s*([A-G][#b]?m?)\b", abc or "", re.M)
     tempo = re.search(r"^Q:\s*\d+/\d+\s*=\s*(\d+)", abc or "", re.M)
     name = key.group(1) if key else None
     if name:
         name = name[:-1] + " minor" if name.endswith("m") else name + " major"
-    return name, int(tempo.group(1)) if tempo else None
+    bpm = int(tempo.group(1)) if tempo else None
+    if audio is not None and (name is None or bpm is None):
+        audio_key, audio_bpm = audio_key_and_tempo(audio)
+        name = name or audio_key
+        bpm = bpm or audio_bpm
+    return name, bpm
 
 
 NO_VOICE = "none"     # a corpus without vocals: the Voice menu's entry for it

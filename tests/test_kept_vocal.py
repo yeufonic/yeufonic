@@ -27,7 +27,7 @@ def pause_stems_worker(monkeypatch):
 def listening(monkeypatch):
     """Everything after the separation, faked: this is about the separation."""
     monkeypatch.setattr(instrumental, "duration_of", lambda path: 60.0)
-    async def hear(vocal, seconds=0.0, on_progress=None, on_stage=None, title=""):
+    async def hear(vocal, seconds=0.0, on_progress=None, on_stage=None, title="", **kwargs):
         return list(LINES), "Whisper"
     monkeypatch.setattr(jobs, "hear", hear)
 

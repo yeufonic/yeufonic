@@ -627,7 +627,7 @@ class Launcher:
         engine_log = LOGS / "engine.log"
         engine = subprocess.Popen(
             [str(engine_python), "-s", str(COMFY / "main.py"), "--windows-standalone-build",
-             "--disable-auto-launch", "--listen", "127.0.0.1", "--port", str(self.engine_port),
+             "--disable-pinned-memory", "--disable-auto-launch", "--listen", "127.0.0.1", "--port", str(self.engine_port),
              *shlex.split(self.cfg.get("engine_args", ""))],
             cwd=str(COMFY), stdout=engine_log.open("w", encoding="utf-8"), stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW,

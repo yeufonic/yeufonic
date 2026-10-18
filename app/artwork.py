@@ -231,6 +231,8 @@ def _external_key() -> tuple:
 def external_ready() -> bool:
     """The external provider is set up, with a key, and lists the image model asked for (checked now and then,
     in the background: until it has been, it counts as not there)."""
+    if llm.is_session_local_only():
+        return False
     cfg = llm.get_config()
     if not (cfg.get("api_key") or "").strip() or not (cfg.get("api_url") or "").strip():
         return False

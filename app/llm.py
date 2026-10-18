@@ -31,6 +31,15 @@ DEFAULT_API_URL = "https://api.openai.com/v1"
 DEFAULT_MODEL = "gpt-4o-mini"
 REQUEST_TIMEOUT = 60.0
 
+# Session-only state: when an external LLM error occurs, the UI shows a pop-up
+# allowing the user to switch to local LLMs for the rest of this session without
+# overwriting their saved Settings.
+_SESSION_LOCAL_ONLY: bool = False
+_ALERT_SEQ: int = 0
+_LAST_ALERT: dict[str, Any] | None = None
+_DISMISSED_AT: float = 0.0
+DISMISS_QUIET_SECONDS: float = 10.0
+
 
 def get_config() -> dict[str, str]:
     """Return the current LLM configuration from the settings store."""
@@ -53,9 +62,117 @@ def get_config() -> dict[str, str]:
     }
 
 
+def is_session_local_only() -> bool:
+    """Return True if the user opted to use local LLMs for the rest of this session."""
+    return bool(_SESSION_LOCAL_ONLY)
+
+
 def is_external_enabled() -> bool:
-    """Return True if an external LLM provider is active."""
+    """Return True if an external LLM provider is active and not paused for this session."""
+    if _SESSION_LOCAL_ONLY:
+        return False
     return get_config()["provider"] == "external"
+
+
+def record_alert(
+    *,
+    model: str = "",
+    endpoint: str = "",
+    message: str = "",
+    status_code: int | None = None,
+) -> None:
+    """Record an external LLM error so the UI can show a pop-up offering to switch to local for the session."""
+    global _ALERT_SEQ, _LAST_ALERT
+    if _SESSION_LOCAL_ONLY:
+        return
+    cfg = get_config()
+    model = model or cfg.get("model") or DEFAULT_MODEL
+    endpoint = endpoint or _endpoint_url(cfg.get("api_url") or DEFAULT_API_URL)
+    now = time.time()
+    if _LAST_ALERT and not _LAST_ALERT.get("dismissed"):
+        _LAST_ALERT["model"] = model
+        _LAST_ALERT["endpoint"] = endpoint
+        _LAST_ALERT["status_code"] = status_code
+        _LAST_ALERT["message"] = (message or "")[:500]
+        _LAST_ALERT["at"] = now
+        _LAST_ALERT["count"] = int(_LAST_ALERT.get("count", 1)) + 1
+        return
+    if _DISMISSED_AT and (now - _DISMISSED_AT) < DISMISS_QUIET_SECONDS:
+        return
+    _ALERT_SEQ += 1
+    _LAST_ALERT = {
+        "id": _ALERT_SEQ,
+        "model": model,
+        "endpoint": endpoint,
+        "status_code": status_code,
+        "message": (message or "")[:500],
+        "at": now,
+        "count": 1,
+        "dismissed": False,
+    }
+
+
+def record_alert_from_exception(exc: BaseException) -> None:
+    """Record an alert from a caught exception if chat_complete did not already record it."""
+    if getattr(exc, "_llm_alert_recorded", False):
+        return
+    text = str(exc)
+    m = re.search(r"\bHTTP\s+(\d{3})\b", text)
+    code = int(m.group(1)) if m else None
+    cleaned = re.sub(r"^External LLM (?:HTTP \d{3}:\s*|connection failed:\s*|request timed out:\s*)?", "", text).strip()
+    record_alert(message=cleaned or text, status_code=code)
+    try:
+        setattr(exc, "_llm_alert_recorded", True)
+    except Exception:
+        pass
+
+
+def set_session_local_only(enabled: bool) -> dict[str, Any]:
+    """Switch to local LLMs for the rest of this session (or resume external LLM)."""
+    global _SESSION_LOCAL_ONLY, _LAST_ALERT, _DISMISSED_AT
+    _SESSION_LOCAL_ONLY = bool(enabled)
+    if enabled:
+        if _LAST_ALERT:
+            _LAST_ALERT["dismissed"] = True
+        log.info("User switched to local LLMs for the rest of this session")
+    else:
+        _LAST_ALERT = None
+        _DISMISSED_AT = 0.0
+        log.info("User resumed external LLM for this session")
+    return alert_state()
+
+
+def dismiss_alert() -> dict[str, Any]:
+    """Dismiss the current external LLM alert while keeping external LLM active."""
+    global _DISMISSED_AT
+    if _LAST_ALERT:
+        _LAST_ALERT["dismissed"] = True
+    _DISMISSED_AT = time.time()
+    log.info("User dismissed external LLM alert (continuing with external LLM)")
+    return alert_state()
+
+
+def reset_session_state() -> None:
+    """Clear session fallback and alerts (e.g. when LLM settings change or tests run)."""
+    global _SESSION_LOCAL_ONLY, _LAST_ALERT, _DISMISSED_AT
+    _SESSION_LOCAL_ONLY = False
+    _LAST_ALERT = None
+    _DISMISSED_AT = 0.0
+
+
+def alert_state() -> dict[str, Any]:
+    """Current session fallback state and any unacknowledged alert for /api/state."""
+    configured = get_config()["provider"] == "external"
+    active_alert = (
+        dict(_LAST_ALERT)
+        if (_LAST_ALERT and not _LAST_ALERT.get("dismissed") and not _SESSION_LOCAL_ONLY and configured)
+        else None
+    )
+    return {
+        "session_local_only": bool(_SESSION_LOCAL_ONLY and configured),
+        "configured_external": configured,
+        "alert": active_alert,
+    }
 
 
 def _endpoint_url(base_url: str) -> str:
@@ -116,12 +233,22 @@ async def chat_complete(
             resp = await client.post(endpoint, json=payload, headers=headers)
         except httpx.TimeoutException as exc:
             elapsed = time.perf_counter() - t0
+            msg = f"External LLM request timed out after {elapsed:.1f}s"
             log.error("External LLM request to %s timed out after %.2fs", endpoint, elapsed)
-            raise RuntimeError(f"External LLM request timed out after {elapsed:.1f}s") from exc
+            err = RuntimeError(msg)
+            if config_override is None:
+                record_alert(model=model, endpoint=endpoint, message=msg, status_code=None)
+                setattr(err, "_llm_alert_recorded", True)
+            raise err from exc
         except Exception as exc:
             elapsed = time.perf_counter() - t0
+            msg = f"External LLM connection failed: {exc}"
             log.error("External LLM request to %s failed after %.2fs: %s", endpoint, elapsed, exc)
-            raise RuntimeError(f"External LLM connection failed: {exc}") from exc
+            err = RuntimeError(msg)
+            if config_override is None:
+                record_alert(model=model, endpoint=endpoint, message=str(exc), status_code=None)
+                setattr(err, "_llm_alert_recorded", True)
+            raise err from exc
 
     elapsed = time.perf_counter() - t0
     if resp.status_code != 200:
@@ -138,7 +265,11 @@ async def chat_complete(
             flash_alt = model.replace("-live", "-flash")
             err_msg = f"{err_msg} (Tip: '{model}' is a WebSocket streaming-only model. Use '{flash_alt}' for REST completions)."
         log.warning("External LLM error from %s: HTTP %d - %s", endpoint, resp.status_code, err_msg)
-        raise RuntimeError(f"External LLM HTTP {resp.status_code}: {err_msg}")
+        err = RuntimeError(f"External LLM HTTP {resp.status_code}: {err_msg}")
+        if config_override is None:
+            record_alert(model=model, endpoint=endpoint, message=err_msg, status_code=resp.status_code)
+            setattr(err, "_llm_alert_recorded", True)
+        raise err
 
     try:
         data = resp.json()

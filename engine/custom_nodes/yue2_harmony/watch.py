@@ -160,3 +160,4 @@ def install():
     logging.getLogger().addFilter(PointAtYeufonic())
     install_routes()
 
+

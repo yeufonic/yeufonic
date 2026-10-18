@@ -9,7 +9,8 @@ def test_hotkeys_modal_exists_in_index_html():
     assert 'id="hotkeys-title"' in html
     assert 'id="hotkeys-close"' in html
     assert 'class="modal hidden"' in html
-    assert 'id="menu-hotkeys"' in html
+    assert 'id="menu-hotkeys"' not in html
+    assert 'id="menu-logs"' not in html
 
 
 def test_hotkeys_css_rules():
@@ -37,6 +38,25 @@ def test_hotkeys_script_wiring_and_handler():
     assert "toggleHotkeys();" in app_js[hotkey_idx:hotkey_idx + 250]
 
 
+def test_logs_hotkey_works_anywhere():
+    app_js = (STATIC / "app.js").read_text(encoding="utf-8")
+    guard_idx = app_js.index("/^(INPUT|TEXTAREA|SELECT)$/.test(tag)")
+    logs_key_idx = app_js.index("event.key === 'l' || event.key === 'L'")
+    modal_guard_idx = app_js.index("var rackOverEditor = ")
+    assert guard_idx < logs_key_idx < modal_guard_idx, (
+        "L hotkey must be placed after the typing guard but before modal/editor guards"
+    )
+    snippet = app_js[logs_key_idx:logs_key_idx + 250]
+    assert "if (LogsState.open) { closeLogsModal(); } else { showLogs(); }" in snippet
+
+
+def test_popout_logs_closes_on_escape_and_l():
+    logs_html = (STATIC / "logs.html").read_text(encoding="utf-8")
+    assert "event.key === 'Escape'" in logs_html
+    assert "event.key === 'l' || event.key === 'L'" in logs_html
+
+
 def test_guide_documents_question_mark_hotkey():
     guide = (STATIC / "guide.md").read_text(encoding="utf-8")
     assert "| ? | show or hide the hot keys; again to close |" in guide
+

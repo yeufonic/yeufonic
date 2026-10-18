@@ -259,9 +259,13 @@ function beat() {
 }
 beat();
 setInterval(beat, 2000);
-// Escape closes the window, as it closes the panel in the app's page.
+// Escape or L closes the window, as it closes the panel in the app's page.
 window.addEventListener('keydown', function (event) {
-  if (event.key === 'Escape') { window.close(); }
+  var tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) { return; }
+  if (event.key === 'Escape' || ((event.key === 'l' || event.key === 'L') && !event.ctrlKey && !event.metaKey && !event.altKey)) {
+    window.close();
+  }
 });
 window.addEventListener('pagehide', function () {
   try { localStorage.removeItem('yue2.logs-popout'); } catch (err) { /* private mode */ }

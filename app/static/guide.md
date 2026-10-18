@@ -1466,7 +1466,7 @@ shortcut round the engine: the GPU still does one job at a time, so a large batc
 
 The app writes a consolidated, real-time log of every major action — score planning, rendering, audio transcription, stem separation, and LoRA training — tagged with `INFO`, `WARN`, and `ERROR` prefixes.
 
-- **In-Browser Console:** Click the **Logs** button in the topbar (or select *Logs* from the brand menu) to open a floating, draggable, and resizable console. It stays open without blocking the page, allowing you to queue takes and monitor generation in real time.
+- **In-Browser Console:** Click the **Logs** button in the topbar (or press **L**) to open a floating, draggable, and resizable console. It stays open without blocking the page, allowing you to queue takes and monitor generation in real time.
 - **Standalone Window:** Click **↗ Pop out** in the console header (or navigate directly to `/logs`) to open a dedicated log viewer window.
 - **Terminal Tail:** Logs rotate automatically to `data/logs/yeufonic.log` on the host, where you can follow them live:
   ```bash

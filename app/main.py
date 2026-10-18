@@ -65,6 +65,7 @@ MAX_SEED = 2**64 - 1
 SETTINGS_SPEC: list[dict] = [
     {
         "key": "stems.format",
+        "group": "audio",
         "label": "Output audio format",
         "type": "select",
         # FLAC by default: lossless like WAV at about half the size, and what takes are
@@ -79,6 +80,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "normalise.level",
+        "group": "audio",
         "label": "Normalise to",
         "type": "select",
         # What streaming services play at, and where a render that went well lands.
@@ -92,6 +94,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "takes.cap",
+        "group": "audio",
         "label": "Length cap for a new take",
         "type": "select",
         # The built-in default, or DEFAULT_CAP from the environment, which joins the list when it is none of these.
@@ -105,45 +108,8 @@ SETTINGS_SPEC: list[dict] = [
                 "long a render that will not stop is let run. Each take's own cap is in the editor.",
     },
     {
-        "key": "appearance.theme",
-        "label": "Theme",
-        "type": "select",
-        "default": "dark",
-        "options": [
-            {"value": "dark", "label": "Dark"},
-            {"value": "light", "label": "Light"},
-            {"value": "system", "label": "Match the computer (dark or light)"},
-            {"value": "studio", "label": "Studio (warm, dark)"},
-            {"value": "contrast", "label": "High contrast"},
-        ],
-        "help": "How the app looks.",
-    },
-    {
-        # The page behind the takes in a hue of the user's choosing.  Drawn by the page with sliders of its own
-        # (app.js, paintBackdropRow); kept as "on:<hue>:<strength>", or "off:..." to keep the choice while the
-        # tint is off, and empty for none.
-        "key": "appearance.backdrop",
-        "label": "Backdrop colour",
-        "type": "backdrop",
-        "default": "",
-        "help": "A tint for the page behind the takes. The cards keep their own colours; the high contrast theme stays black.",
-    },
-    {
-        "key": "app.update_check",
-        "label": "Check for a new version",
-        "type": "select",
-        "default": "on",
-        "options": [
-            {"value": "on", "label": "Every 4 hours"},
-            {"value": "off", "label": "Do not check"},
-        ],
-        # One small request to our own site, and nothing else: worth saying plainly in a
-        # tool whose selling point is that it runs on your own machine.
-        "help": "One request every four hours to yeufonic.com, to see whether a newer release is out. "
-                "Nothing else leaves the computer, and Check for updates in the menu works either way.",
-    },
-    {
         "key": "stems.model",
+        "group": "audio",
         "label": "Stem separation model",
         "type": "select",
         "default": "htdemucs",
@@ -151,19 +117,8 @@ SETTINGS_SPEC: list[dict] = [
         "help": "The model new runs start with.",
     },
     {
-        "key": "mcp.enabled",
-        "label": "MCP server",
-        "type": "select",
-        "default": "off",
-        "options": [
-            {"value": "off", "label": "Off"},
-            {"value": "on", "label": "On"},
-        ],
-        "help": "Lets an AI agent on this computer (Claude Code, Cursor and others) make songs and read the library, at "
-                "/mcp. A request can start work on the GPU, so it is off until you turn it on.",
-    },
-    {
         "key": "stems.folder",
+        "group": "audio",
         "label": "Stem save folder",
         "type": "text",
         "default": str(config.STEMS_DIR),
@@ -171,6 +126,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "processing.gpu",
+        "group": "audio",
         "label": "Use the GPU for stems and lyrics",
         "type": "select",
         "default": "on",
@@ -183,8 +139,22 @@ SETTINGS_SPEC: list[dict] = [
                 "render's way.",
     },
     {
+        "key": "midi.soundfont",
+        "group": "audio",
+        "label": "MIDI SoundFont (.sf2)",
+        "type": "select",
+        "default": "Arachno_SoundFont_Version_1.0.sf2",
+        "options": [
+            {"value": "Arachno_SoundFont_Version_1.0.sf2", "label": "Arachno SoundFont 1.0 (148.2 MB)"},
+            {"value": "Musyng_Kite.sf2", "label": "Musyng Kite (1020.6 MB)"},
+            {"value": "DSoundFontV4.sf2", "label": "DSoundFont V4 (553.3 MB)"},
+            {"value": "github_Jnsgm2.sf2", "label": "Jnsgm2 GM (31.7 MB)"},
+        ],
+        "help": "SoundFont used for high-fidelity MIDI audio rendering and audition in data/models/soundfonts/sf2.",
+    },
+    {
         "key": "training.checkpoints",
-        "section": "storage",
+        "group": "training",
         "label": "Training checkpoints",
         "type": "select",
         # Kept by default: each sounds about as good as the finished LoRA but reads the
@@ -199,7 +169,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "storage.working_copies",
-        "section": "storage",
+        "group": "training",
         "label": "Working copies of corpus songs",
         "type": "select",
         # Removed by default: nothing reads them once a song has been analysed, and a corpus makes about
@@ -215,7 +185,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "storage.training_set",
-        "section": "storage",
+        "group": "training",
         "label": "Training sets",
         "type": "select",
         # Kept by default: removing one means pressing Export again before the corpus can train again.
@@ -230,6 +200,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "llm.provider",
+        "group": "llm",
         "label": "LLM for writing lyrics & style tags",
         "type": "select",
         "default": "local",
@@ -241,6 +212,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "llm.api_url",
+        "group": "llm",
         "label": "External LLM API URL",
         "type": "text",
         "default": "https://api.openai.com/v1",
@@ -248,6 +220,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "llm.api_key",
+        "group": "llm",
         "label": "External LLM API Key",
         "type": "password",
         "default": "",
@@ -255,13 +228,42 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "llm.model",
+        "group": "llm",
         "label": "External LLM Model",
         "type": "text",
         "default": "gpt-4o-mini",
         "help": "Model identifier to query (e.g. gpt-4o-mini, claude-3-5-sonnet-20241022, gemini-1.5-flash, llama3.2, mistral-large).",
     },
     {
+        "key": "lyrics.transcriber",
+        "group": "llm",
+        "label": "Lyrics from a recording",
+        "type": "select",
+        "default": "whisper",
+        "options": [
+            {"value": "whisper", "label": "Whisper, on this machine"},
+            {"value": "llm", "label": "External LLM"},
+        ],
+        "requires": {"llm.provider": "external"},
+        "requires_note": "Choose External LLM as the provider to use this.",
+        "help": "The LLM must accept audio, as Gemini does. Whisper still times the lines, and is used instead if the LLM can't hear it.",
+    },
+    {
+        "key": "lyrics.lrclib",
+        "group": "llm",
+        "label": "Studio lyrics lookup (LRCLIB)",
+        "type": "select",
+        "default": "on",
+        "options": [
+            {"value": "on", "label": "Search LRCLIB first, verify against Whisper"},
+            {"value": "off", "label": "Off (use Whisper or LLM only)"},
+        ],
+        "help": "When uploading a song or cover, look up official synced or plain lyrics on lrclib.net by artist, title and duration. "
+                "Only accepted if the lyrics match Whisper's transcript (>= 35% overlap); otherwise Whisper's words are kept.",
+    },
+    {
         "key": "art.auto",
+        "group": "art",
         "label": "Take pictures",
         "type": "select",
         "default": "on",
@@ -276,6 +278,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "art.drawer",
+        "group": "art",
         "label": "Take pictures: drawn by",
         "type": "select",
         "default": "auto",
@@ -291,6 +294,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "art.words",
+        "group": "art",
         "label": "Take pictures: described by",
         "type": "select",
         "default": "take",
@@ -309,6 +313,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "art.model",
+        "group": "art",
         "label": "Take pictures: image model",
         "type": "text",
         "default": "",
@@ -320,32 +325,53 @@ SETTINGS_SPEC: list[dict] = [
         "requires_note": "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.",
     },
     {
-        "key": "lyrics.transcriber",
-        "label": "Lyrics from a recording",
+        "key": "appearance.theme",
+        "group": "system",
+        "label": "Theme",
         "type": "select",
-        "default": "whisper",
+        "default": "dark",
         "options": [
-            {"value": "whisper", "label": "Whisper, on this machine"},
-            {"value": "llm", "label": "External LLM"},
+            {"value": "dark", "label": "Dark"},
+            {"value": "light", "label": "Light"},
+            {"value": "system", "label": "Match the computer (dark or light)"},
+            {"value": "studio", "label": "Studio (warm, dark)"},
+            {"value": "contrast", "label": "High contrast"},
         ],
-        # Only meaningful with an external provider.  The sheet greys it out
-        # otherwise, and the job ignores it, so a stale "llm" can do no harm.
-        "requires": {"llm.provider": "external"},
-        "requires_note": "Choose External LLM as the provider to use this.",
-        "help": "The LLM must accept audio, as Gemini does. Whisper still times the lines, and is used instead if the LLM can't hear it.",
+        "help": "How the app looks.",
     },
     {
-        "key": "midi.soundfont",
-        "label": "MIDI SoundFont (.sf2)",
+        "key": "appearance.backdrop",
+        "group": "system",
+        "label": "Backdrop colour",
+        "type": "backdrop",
+        "default": "",
+        "help": "A tint for the page behind the takes. The cards keep their own colours; the high contrast theme stays black.",
+    },
+    {
+        "key": "app.update_check",
+        "group": "system",
+        "label": "Check for a new version",
         "type": "select",
-        "default": "Arachno_SoundFont_Version_1.0.sf2",
+        "default": "on",
         "options": [
-            {"value": "Arachno_SoundFont_Version_1.0.sf2", "label": "Arachno SoundFont 1.0 (148.2 MB)"},
-            {"value": "Musyng_Kite.sf2", "label": "Musyng Kite (1020.6 MB)"},
-            {"value": "DSoundFontV4.sf2", "label": "DSoundFont V4 (553.3 MB)"},
-            {"value": "github_Jnsgm2.sf2", "label": "Jnsgm2 GM (31.7 MB)"},
+            {"value": "on", "label": "Every 4 hours"},
+            {"value": "off", "label": "Do not check"},
         ],
-        "help": "SoundFont used for high-fidelity MIDI audio rendering and audition in data/models/soundfonts/sf2.",
+        "help": "One request every four hours to yeufonic.com, to see whether a newer release is out. "
+                "Nothing else leaves the computer, and Check for updates in the menu works either way.",
+    },
+    {
+        "key": "mcp.enabled",
+        "group": "system",
+        "label": "MCP server",
+        "type": "select",
+        "default": "off",
+        "options": [
+            {"value": "off", "label": "Off"},
+            {"value": "on", "label": "On"},
+        ],
+        "help": "Lets an AI agent on this computer (Claude Code, Cursor and others) make songs and read the library, at "
+                "/mcp. A request can start work on the GPU, so it is off until you turn it on.",
     },
 ]
 
@@ -987,7 +1013,7 @@ def logs_page() -> HTMLResponse:
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"ok": True, "engine": ENGINE.online, "version": config.VERSION}
+    return {"ok": True, "engine": ENGINE.online, "version": config.VERSION, "branch": config.get_branch()}
 
 
 @app.get("/api/logs")
@@ -1284,6 +1310,7 @@ def state() -> dict:
     return {
         "version": config.VERSION,
         "build": config.BUILD,
+        "branch": config.get_branch(),
         # Which scripts a page loaded now would get: a page still open from before an update compares
         # this with its own and asks to be reloaded.
         "assets": _asset_version(),
@@ -1293,6 +1320,7 @@ def state() -> dict:
         # Whether a newer release is out, and what to do about it: a background task keeps
         # this current, and this route only ever reads it.
         "update": update.state(),
+        "llm_status": llm.alert_state(),
         "settings": settings_payload(),
         "system": {
             "cpu": system_stats.get_cpu_percent(),
@@ -3301,6 +3329,15 @@ async def reload_engine_options() -> dict:
             "loras": len(options.get("loras") or [])}
 
 
+@app.post("/api/engine/free")
+async def free_engine() -> dict:
+    """Unload every model the engine holds, returning refreshed GPU stats."""
+    if CURRENT.get("kind"):
+        return {"ok": False, "busy": True, "gpu": ENGINE.gpu() if ENGINE.online else None}
+    await ENGINE.free()
+    return {"ok": True, "busy": False, "gpu": ENGINE.gpu() if ENGINE.online else None}
+
+
 @app.get("/api/identities")
 @app.get("/api/personas", include_in_schema=False)
 def list_identities() -> list[dict]:
@@ -3336,6 +3373,9 @@ async def create_identity(body: IdentityIn) -> dict:
                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (uuid.uuid4().hex[:12], identity_id, song["file"], song["title"], song["sha256"], song["duration"],
                  song["bit_rate"], 1 if song["include"] else 0, song["flag"], position))
+    if ENGINE.online and not CURRENT.get("kind"):
+        with contextlib.suppress(Exception):
+            await ENGINE.free()
     return _identity_view(_identity(identity_id))
 
 
@@ -4679,12 +4719,29 @@ _ART_RECHECK: set = set()
 @app.put("/api/settings")
 async def put_setting(body: SettingIn) -> dict:
     save_setting(body.key, body.value)
+    if body.key.startswith("llm."):
+        llm.reset_session_state()
     if body.key.startswith(("llm.", "art.")):
         artwork.clear_failures()
         task = asyncio.create_task(artwork.check_external(force=True))   # can the provider now draw pictures
         _ART_RECHECK.add(task)
         task.add_done_callback(_ART_RECHECK.discard)
-    return {"settings": settings_payload()}
+    return {"settings": settings_payload(), "llm_status": llm.alert_state()}
+
+
+class LLMSessionActionIn(BaseModel):
+    action: str = Field(..., pattern="^(local_session|resume_external|dismiss)$")
+
+
+@app.post("/api/llm/session-fallback")
+def llm_session_fallback(body: LLMSessionActionIn) -> dict:
+    """Switch to local LLMs for the rest of this session, resume external LLM, or dismiss the alert."""
+    if body.action == "local_session":
+        return llm.set_session_local_only(True)
+    if body.action == "resume_external":
+        artwork.clear_failures()
+        return llm.set_session_local_only(False)
+    return llm.dismiss_alert()
 
 
 @app.post("/api/settings/test-llm")
@@ -4706,6 +4763,8 @@ async def test_llm_settings(body: LLMTestIn | None = None) -> dict:
     log.info("Testing external LLM connection via settings")
     try:
         res = await llm.test_connection(config_override=override)
+        llm.reset_session_state()
+        artwork.clear_failures()
         return res
     except Exception as exc:
         log.warning("External LLM connection test failed: %s", exc)

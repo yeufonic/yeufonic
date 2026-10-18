@@ -502,3 +502,63 @@ async def test_a_reply_cut_off_at_its_budget_is_logged():
         await llm.chat_complete([{"role": "user", "content": "x"}], max_tokens=150,
                                 config_override={"api_url": "https://api.test/v1", "model": "m", "api_key": ""})
     assert any("was cut off at max_tokens=150" in e["message"] for e in logging_setup.LOG_BUFFER)
+
+
+@pytest.mark.anyio
+async def test_external_llm_error_records_alert_and_session_fallback_switches_to_local(client):
+    """When an external LLM call fails (e.g. HTTP 429 spending cap), /api/state exposes
+    the alert for the UI pop-up, and the user can switch to local LLMs for the rest of
+    the session without overwriting their saved setting."""
+    set_setting("llm.provider", "external")
+    set_setting("llm.api_url", "https://generativelanguage.googleapis.com/v1beta/openai")
+    set_setting("llm.model", "gemini-3.8-flash")
+
+    resp_429 = httpx.Response(
+        429,
+        json={"error": {"message": "Your project has exceeded its monthly spending cap."}},
+        request=httpx.Request("POST", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"),
+    )
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value = resp_429
+        with pytest.raises(RuntimeError, match="HTTP 429"):
+            await llm.chat_complete([{"role": "user", "content": "hello"}])
+
+    state = client.get("/api/state").json()
+    llm_status = state["llm_status"]
+    assert llm_status["session_local_only"] is False
+    assert llm_status["alert"] is not None
+    assert llm_status["alert"]["status_code"] == 429
+    assert llm_status["alert"]["model"] == "gemini-3.8-flash"
+    assert "exceeded its monthly spending cap" in llm_status["alert"]["message"]
+
+    # User chooses "Switch to Local for This Session" in the pop-up
+    res = client.post("/api/llm/session-fallback", json={"action": "local_session"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["session_local_only"] is True
+    assert body["alert"] is None
+    assert llm.is_external_enabled() is False
+    # Saved DB setting remains "external" for next app restart
+    assert get_setting("llm.provider") == "external"
+
+    # User increases their budget and clicks "Resume External LLM"
+    res2 = client.post("/api/llm/session-fallback", json={"action": "resume_external"})
+    assert res2.status_code == 200
+    assert res2.json()["session_local_only"] is False
+    assert llm.is_external_enabled() is True
+
+
+@pytest.mark.anyio
+async def test_dismissing_external_llm_alert_keeps_external_llm_active(client):
+    """Choosing 'Keep Trying External LLM' dismisses the pop-up while keeping external LLM enabled."""
+    set_setting("llm.provider", "external")
+    set_setting("llm.model", "gemini-3.8-flash")
+    llm.record_alert(model="gemini-3.8-flash", endpoint="https://api.test", message="Rate limit", status_code=429)
+
+    assert client.get("/api/state").json()["llm_status"]["alert"] is not None
+    res = client.post("/api/llm/session-fallback", json={"action": "dismiss"})
+    assert res.status_code == 200
+    assert res.json()["alert"] is None
+    assert res.json()["session_local_only"] is False
+    assert llm.is_external_enabled() is True
+

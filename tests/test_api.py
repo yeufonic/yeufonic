@@ -226,3 +226,56 @@ def test_waiting_jobs_are_queued_again_on_start(data_dir):
     assert {"kind": "plan", "id": planned["id"]} in queued
     assert {"kind": "render", "id": rendering["id"]} in queued
     assert one("SELECT status FROM takes WHERE id = ?", (running["id"],))["status"] == "failed"
+
+
+def test_branch_in_health_and_state(client, monkeypatch):
+    """Health and state endpoints report the active git branch for the About modal."""
+    # Active branch detection
+    active_branch = config.get_branch()
+    assert isinstance(active_branch, str)
+
+    health = client.get("/api/health").json()
+    assert "branch" in health
+    assert health["branch"] == active_branch
+
+    state = client.get("/api/state").json()
+    assert "branch" in state
+    assert state["branch"] == active_branch
+
+    # Environment variable override takes immediate effect without restart
+    monkeypatch.setenv("GIT_BRANCH", "feature/custom-test-branch")
+    assert config.get_branch() == "feature/custom-test-branch"
+    assert client.get("/api/health").json()["branch"] == "feature/custom-test-branch"
+    assert client.get("/api/state").json()["branch"] == "feature/custom-test-branch"
+
+
+def test_free_engine_endpoint(client, monkeypatch):
+    from app.main import CURRENT, ENGINE
+
+    called = []
+
+    async def fake_free():
+        called.append(True)
+
+    monkeypatch.setattr(ENGINE, "free", fake_free)
+
+    # When idle: frees engine and returns ok
+    CURRENT.clear()
+    res = client.post("/api/engine/free")
+    assert res.status_code == 200
+    assert res.json()["ok"] is True
+    assert res.json()["busy"] is False
+    assert called == [True]
+
+    # When busy with an ongoing render: refuses to free models
+    called.clear()
+    CURRENT["kind"] = "render"
+    try:
+        res_busy = client.post("/api/engine/free")
+        assert res_busy.status_code == 200
+        assert res_busy.json()["ok"] is False
+        assert res_busy.json()["busy"] is True
+        assert called == []
+    finally:
+        CURRENT.clear()
+
