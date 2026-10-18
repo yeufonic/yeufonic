@@ -1013,7 +1013,7 @@ def logs_page() -> HTMLResponse:
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"ok": True, "engine": ENGINE.online, "version": config.VERSION}
+    return {"ok": True, "engine": ENGINE.online, "version": config.VERSION, "branch": config.get_branch()}
 
 
 @app.get("/api/logs")
@@ -1310,6 +1310,7 @@ def state() -> dict:
     return {
         "version": config.VERSION,
         "build": config.BUILD,
+        "branch": config.get_branch(),
         # Which scripts a page loaded now would get: a page still open from before an update compares
         # this with its own and asks to be reloaded.
         "assets": _asset_version(),

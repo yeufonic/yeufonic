@@ -483,7 +483,7 @@ async function pollState() {
     State.stemsOptions = data.stems || State.stemsOptions || {};
     if (data.settings) { adoptSettings(data.settings); }
     if (data.version) { $('app-version').textContent = 'v' + data.version; }
-    State.about = { version: data.version || '', build: data.build || '', model: data.model || '' };
+    State.about = { version: data.version || '', build: data.build || '', branch: data.branch || '', model: data.model || '' };
     paintSystemStats(data.system);
     paintUpdate(data.update);
     paintLLMStatus(data.llm_status);
@@ -587,7 +587,7 @@ var LORA_KINDS = { both: 'score and sound', planner: 'score only', decoder: 'sou
    strength, which is everything the corpus screen used to offer separately. */
 function corpusLoras() {
   var found = {};
-  (IDENTITIES_LIST || []).forEach(function (identity) {
+  (Array.isArray(IDENTITIES_LIST) ? IDENTITIES_LIST : []).forEach(function (identity) {
     getIdentityLoRAs(identity).forEach(function (name) {
       found[name] = { trigger: identity.trigger_word || '', corpus: identity.name || '' };
     });
@@ -1101,7 +1101,7 @@ function allKnownLoraTriggers() {
       triggers[item.trigger.trim().toLowerCase()] = true;
     }
   });
-  (IDENTITIES_LIST || []).forEach(function (id) {
+  (Array.isArray(IDENTITIES_LIST) ? IDENTITIES_LIST : []).forEach(function (id) {
     if (id && id.trigger_word) {
       triggers[id.trigger_word.trim().toLowerCase()] = true;
     }
@@ -3394,7 +3394,8 @@ function paintJob(current, queue, options) {
 
 /* --------------------------------------------------------------- sources */
 async function loadSources() {
-  State.sources = await api('/api/sources');
+  var res = await api('/api/sources');
+  State.sources = Array.isArray(res) ? res : [];
   var select = $('source-select');
   var previous = select.value;
   select.innerHTML = '<option value="">Choose a recording\u2026</option>' + State.sources.map(function (source) {
@@ -5384,6 +5385,15 @@ function openAbout() {
   var line = about.version ? 'Version ' + about.version : '';
   if (about.build) { line += (line ? ' \u00b7 build ' : 'Build ') + about.build; }
   $('about-build').textContent = line;
+  if ($('about-branch')) {
+    if (about.branch) {
+      if ($('about-branch-name')) { $('about-branch-name').textContent = about.branch; }
+      else { $('about-branch').textContent = about.branch; }
+      $('about-branch').style.display = 'inline-flex';
+    } else {
+      $('about-branch').style.display = 'none';
+    }
+  }
   if ($('about-model')) { $('about-model').textContent = about.model ? 'Model: ' + about.model : ''; }
   $('about-modal').classList.remove('hidden');
 }
@@ -6770,7 +6780,12 @@ async function loadTakes() {
   // Repaint once a minute anyway, so "2 min ago" keeps moving.
   if (text === State.takesRaw && Date.now() - State.paintedAt < 60000) { return; }
   State.takesRaw = text;
-  State.listed = JSON.parse(listedText);
+  try {
+    var parsedListed = JSON.parse(listedText);
+    State.listed = Array.isArray(parsedListed) ? parsedListed : [];
+  } catch (err) {
+    State.listed = [];
+  }
   if (open && State.inside) {
     State.inside.takes = insideText ? JSON.parse(insideText) : [];
     // Its take was deleted or moved away while its insides were open, or the last take inside it was taken
@@ -6791,20 +6806,20 @@ async function loadTakes() {
    Each take lives in one space. Which space is on show is this browser's choice. */
 async function loadSpaces() {
   var spaces = await api('/api/spaces');
-  State.spaces = spaces;
-  if (!spaces.some(function (space) { return space.id === State.spaceId; })) {
+  State.spaces = Array.isArray(spaces) ? spaces : [];
+  if (!State.spaces.some(function (space) { return space.id === State.spaceId; })) {
     showSpace('default');   // deleted elsewhere, or never existed here
   }
   paintSpaces();
 }
 
 function currentSpace() {
-  return State.spaces.filter(function (space) { return space.id === State.spaceId; })[0] || null;
+  return (Array.isArray(State.spaces) ? State.spaces : []).filter(function (space) { return space.id === State.spaceId; })[0] || null;
 }
 
 function paintSpaces() {
   var select = $('space');
-  var html = State.spaces.map(function (space) {
+  var html = (Array.isArray(State.spaces) ? State.spaces : []).map(function (space) {
     return '<option value="' + esc(space.id) + '">' + esc(space.name) + ' (' + space.takes + ')</option>';
   }).join('');
   if (select.dataset.html !== html) {

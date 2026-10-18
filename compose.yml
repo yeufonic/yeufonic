@@ -102,6 +102,8 @@ services:
       - ./data:/data
       - ./engine-state/output:/engine-output
       - ./app:/app/app
+      # Mount .git read-only so the app can identify the active branch in About:
+      - ./.git:/app/.git:ro
       # Read only, and only ever read: the app opens a LoRA's header to say
       # whether it holds a planner half, a decoder half or both.
       - ./models:/app/models:ro

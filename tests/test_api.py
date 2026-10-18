@@ -226,3 +226,24 @@ def test_waiting_jobs_are_queued_again_on_start(data_dir):
     assert {"kind": "plan", "id": planned["id"]} in queued
     assert {"kind": "render", "id": rendering["id"]} in queued
     assert one("SELECT status FROM takes WHERE id = ?", (running["id"],))["status"] == "failed"
+
+
+def test_branch_in_health_and_state(client, monkeypatch):
+    """Health and state endpoints report the active git branch for the About modal."""
+    # Active branch detection
+    active_branch = config.get_branch()
+    assert isinstance(active_branch, str)
+
+    health = client.get("/api/health").json()
+    assert "branch" in health
+    assert health["branch"] == active_branch
+
+    state = client.get("/api/state").json()
+    assert "branch" in state
+    assert state["branch"] == active_branch
+
+    # Environment variable override takes immediate effect without restart
+    monkeypatch.setenv("GIT_BRANCH", "feature/custom-test-branch")
+    assert config.get_branch() == "feature/custom-test-branch"
+    assert client.get("/api/health").json()["branch"] == "feature/custom-test-branch"
+    assert client.get("/api/state").json()["branch"] == "feature/custom-test-branch"

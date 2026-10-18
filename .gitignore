@@ -76,6 +76,7 @@ REFACTOR.md
 IDEAS.md
 HANDOVER.md
 TODO.md
+app/.branch
 
 # Local machine Docker compose overrides:
 compose.override.yml
