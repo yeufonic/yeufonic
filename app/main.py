@@ -3329,6 +3329,15 @@ async def reload_engine_options() -> dict:
             "loras": len(options.get("loras") or [])}
 
 
+@app.post("/api/engine/free")
+async def free_engine() -> dict:
+    """Unload every model the engine holds, returning refreshed GPU stats."""
+    if CURRENT.get("kind"):
+        return {"ok": False, "busy": True, "gpu": ENGINE.gpu() if ENGINE.online else None}
+    await ENGINE.free()
+    return {"ok": True, "busy": False, "gpu": ENGINE.gpu() if ENGINE.online else None}
+
+
 @app.get("/api/identities")
 @app.get("/api/personas", include_in_schema=False)
 def list_identities() -> list[dict]:
@@ -3364,6 +3373,9 @@ async def create_identity(body: IdentityIn) -> dict:
                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (uuid.uuid4().hex[:12], identity_id, song["file"], song["title"], song["sha256"], song["duration"],
                  song["bit_rate"], 1 if song["include"] else 0, song["flag"], position))
+    if ENGINE.online and not CURRENT.get("kind"):
+        with contextlib.suppress(Exception):
+            await ENGINE.free()
     return _identity_view(_identity(identity_id))
 
 

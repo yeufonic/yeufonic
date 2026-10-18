@@ -9874,7 +9874,7 @@ function identityRunAll(run) {
 
 /* Training, from the corpus window: what it will do, and what happens to a LoRA an
    earlier run left under the same name -- kept under a dated name, or deleted. */
-function openTrain(all) {
+async function openTrain(all) {
   var data = IDENTITY.data || {};
   var included = (data.songs || []).filter(function (song) { return song.include; }).length;
   State.trainAll = Boolean(all);
@@ -9900,8 +9900,23 @@ function openTrain(all) {
   }
   $('train-status').textContent = '';
   $('train-go').disabled = false;
-  paintTrainMemory();
   $('train-modal').classList.remove('hidden');
+
+  // If memory appears tight, proactively ask the engine to unload any models it holds
+  // from earlier renders before showing a warning, so we don't alarm the user unnecessarily.
+  var gb = function (bytes) { return bytes / 1073741824; };
+  var gpu = State.gpu;
+  var total = (gpu && gpu.vram_total) ? gb(gpu.vram_total) : 0;
+  var free = (gpu && gpu.vram_free) ? gb(gpu.vram_free) : 0;
+  if (total >= TRAIN_NEEDS_GB && free < TRAIN_NEEDS_GB) {
+    var note = $('train-memory');
+    if (note) { note.classList.add('hidden'); }
+    try {
+      var res = await api('/api/engine/free', { method: 'POST' });
+      if (res && res.gpu) { State.gpu = res.gpu; }
+    } catch (e) {}
+  }
+  paintTrainMemory();
 }
 
 /* Training needs about 12.5 GB of GPU memory, measured on a 16 GB card, most of it
