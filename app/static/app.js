@@ -5443,14 +5443,6 @@ function toggleHotkeys() {
 }
 
 function wireHotkeys() {
-  var item = $('menu-hotkeys');
-  if (item) {
-    item.addEventListener('click', function (event) {
-      event.stopPropagation();
-      closeBrandMenu();
-      openHotkeys();
-    });
-  }
   var modal = $('hotkeys-modal');
   if (!modal) { return; }
   if ($('hotkeys-close')) { $('hotkeys-close').addEventListener('click', closeHotkeys); }
@@ -13121,14 +13113,6 @@ function renderLogs(logs) {
 function wireLogs() {
   var openBtn = $('open-logs');
   if (openBtn) { openBtn.addEventListener('click', showLogs); }
-  var menuBtn = $('menu-logs');
-  if (menuBtn) {
-    menuBtn.addEventListener('click', function () {
-      var menu = $('brand-menu');
-      if (menu) { menu.classList.add('hidden'); }
-      showLogs();
-    });
-  }
   // The guide opens in its own tab, so this page stays, and so would the menu.
   var guideLink = $('menu-guide');
   if (guideLink) { guideLink.addEventListener('click', closeBrandMenu); }
@@ -14503,6 +14487,12 @@ function wire() {
         !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       toggleHotkeys();
+      return;
+    }
+    if ((event.key === 'l' || event.key === 'L') &&
+        !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
+      event.preventDefault();
+      if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
       return;
     }
     // The editor window, alone (or with the mastering rack over it), has the player's keys too, for the take in
