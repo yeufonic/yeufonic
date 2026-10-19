@@ -11152,6 +11152,7 @@ async function bulkDelete() {
 
 function paintTakes() {
   if (document.querySelector('.take-title-input')) { return; }
+  if (_coverPopupAnchor && !_coverPopupAnchor.isConnected) { closeCoverPopup(true); }
   var list = listedTakes();
   State.paintedAt = Date.now();
   paintEdTakeTools();
@@ -11371,10 +11372,18 @@ function paintTakes() {
     var looks = (take.art ? '--take-art: url(&quot;' + esc(take.art) + '&quot;);' : '') + (beat ? beatStyle(beat) : '');
     if (beat) { classes += ' on-beat'; }
     var art = looks ? ' style="' + looks + '"' : '';
+    var hasArt = Boolean(take.art);
+    var coverCls = 'cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover') + (hasArt ? ' has-art' : '');
+    var coverTipText = hasArt
+      ? (take.title ? esc(take.title) + ' \u2014 ' : '') + 'Album cover (hover or click to view)'
+      : esc(coverTip);
+    var coverAttr = hasArt
+      ? ' data-act="cover-pic" data-id="' + take.id + '" data-art="' + esc(take.art) + '" data-title="' + esc(take.title) + '" role="button" tabindex="0" title="' + coverTipText + '" aria-label="' + coverTipText + '"'
+      : ' title="' + coverTipText + '" aria-label="' + coverTipText + '"';
     return '<article class="' + classes + (take.art ? ' with-art' : '') + '" data-id="' + take.id + '"' + art + '>' +
       '<div class="take-head">' +
         '<div class="take-icon">' +
-          '<div class="cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover') + '" title="' + esc(coverTip) + '" aria-label="' + esc(coverTip) + '">' + initials(take.title) + '</div>' +
+          '<div class="' + coverCls + '"' + coverAttr + '>' + initials(take.title) + '</div>' +
           '<label class="pick" title="Select this take for bulk actions or batch deleting">' +
             '<input type="checkbox" data-act="pick"' + id + (State.picked[take.id] ? ' checked' : '') + '>' +
           '</label>' +
@@ -11478,7 +11487,14 @@ function startRenameTake(titleEl, takeId) {
         var card = titleEl.closest('.take');
         if (card) {
           var cover = card.querySelector('.cover');
-          if (cover) { cover.textContent = initials(updated.title); }
+          if (cover) {
+            cover.textContent = initials(updated.title);
+            if (cover.dataset.art) {
+              cover.dataset.title = updated.title;
+              cover.title = updated.title + ' \u2014 Album cover (hover or click to view)';
+              cover.setAttribute('aria-label', updated.title + ' \u2014 Album cover');
+            }
+          }
         }
         statusLine('Renamed take to \u201c' + updated.title + '\u201d.', 'good');
       } catch (err) {
@@ -11970,6 +11986,144 @@ function paintEdPicture() {
       if (box.style.removeProperty) { box.style.removeProperty('--take-art'); }
     }
   }
+}
+
+var _coverPopup = null;
+var _coverPopupTimer = null;
+var _coverPopupPinned = false;
+var _coverPopupAnchor = null;
+
+function ensureCoverPopup() {
+  if (_coverPopup && document.body.contains(_coverPopup)) {
+    return _coverPopup;
+  }
+  var pop = $('cover-popup');
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.id = 'cover-popup';
+    pop.className = 'cover-popup hidden';
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', 'Album cover preview');
+    pop.innerHTML =
+      '<div class="cover-popup-card">' +
+        '<div class="cover-popup-preview">' +
+          '<img class="cover-popup-img" alt="Album cover" />' +
+        '</div>' +
+        '<div class="cover-popup-meta">' +
+          '<div class="cover-popup-title"></div>' +
+          '<div class="cover-popup-hint">Click for full view</div>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(pop);
+
+    pop.addEventListener('mouseenter', function () {
+      clearTimeout(_coverPopupTimer);
+    });
+
+    pop.addEventListener('mouseleave', function () {
+      if (!_coverPopupPinned) {
+        scheduleCoverPopupClose();
+      }
+    });
+
+    pop.addEventListener('click', function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+      var artSrc = pop.dataset.art;
+      if (artSrc) {
+        closeCoverPopup(true);
+        showPicture(artSrc);
+      }
+    });
+  }
+  _coverPopup = pop;
+  return pop;
+}
+
+function showCoverPopup(anchorEl, artSrc, title, pin) {
+  if (!anchorEl || !artSrc) { return; }
+
+  if (!pin && _coverPopupPinned && _coverPopupAnchor !== anchorEl) {
+    return;
+  }
+
+  var pop = ensureCoverPopup();
+
+  if (pin && _coverPopupPinned && _coverPopupAnchor === anchorEl && !pop.classList.contains('hidden')) {
+    closeCoverPopup(true);
+    return;
+  }
+
+  clearTimeout(_coverPopupTimer);
+  _coverPopupAnchor = anchorEl;
+  if (pin) {
+    _coverPopupPinned = true;
+  }
+
+  pop.dataset.art = artSrc;
+  var img = pop.querySelector('.cover-popup-img');
+  if (img) {
+    if (img.src !== artSrc) {
+      img.src = artSrc;
+    }
+    img.alt = title ? title + ' album cover' : 'Album cover';
+  }
+  var titleEl = pop.querySelector('.cover-popup-title');
+  if (titleEl) {
+    titleEl.textContent = title || 'Album cover';
+    titleEl.title = title || '';
+  }
+
+  pop.classList.remove('hidden');
+  pop.classList.toggle('pinned', _coverPopupPinned);
+  positionCoverPopup(pop, anchorEl);
+}
+
+function positionCoverPopup(pop, anchor) {
+  if (!pop || !anchor) { return; }
+  var rect = anchor.getBoundingClientRect();
+  var popW = 256;
+  var popH = 310;
+  var gap = 12;
+
+  var left = rect.right + gap;
+  var top = rect.top - 4;
+
+  if (left + popW > window.innerWidth - 12) {
+    left = rect.left - popW - gap;
+  }
+  if (left < 12) {
+    left = Math.max(12, Math.min(window.innerWidth - popW - 12, rect.left));
+    top = rect.bottom + gap;
+  }
+  if (top + popH > window.innerHeight - 12) {
+    top = Math.max(12, window.innerHeight - popH - 12);
+  }
+  if (top < 12) {
+    top = 12;
+  }
+
+  pop.style.left = Math.round(left) + 'px';
+  pop.style.top = Math.round(top) + 'px';
+}
+
+function scheduleCoverPopupClose() {
+  if (_coverPopupPinned) { return; }
+  clearTimeout(_coverPopupTimer);
+  _coverPopupTimer = setTimeout(function () {
+    closeCoverPopup(false);
+  }, 160);
+}
+
+function closeCoverPopup(force) {
+  clearTimeout(_coverPopupTimer);
+  var pop = $('cover-popup');
+  if (!pop) { return; }
+  if (_coverPopupPinned && !force) { return; }
+  _coverPopupPinned = false;
+  _coverPopupAnchor = null;
+  pop.classList.add('hidden');
+  pop.classList.remove('pinned');
 }
 
 // A take's whole picture, over everything; a click anywhere or Escape puts it away (and only it: the editor stays).
@@ -13450,6 +13604,16 @@ function wire() {
   var lastTitleClick = { time: 0, id: null };
   var lastCardClick = { time: 0, id: null };
   $('takes').addEventListener('click', function (event) {
+    var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"]');
+    if (coverEl) {
+      event.preventDefault();
+      event.stopPropagation();
+      var art = coverEl.dataset.art;
+      var title = coverEl.dataset.title;
+      showCoverPopup(coverEl, art, title, true);
+      return;
+    }
+
     var titleEl = event.target.closest('.take-title');
     if (titleEl && !titleEl.querySelector('input')) {
       var id = titleEl.dataset.id || (titleEl.closest('.take') && titleEl.closest('.take').dataset.id);
@@ -13513,6 +13677,37 @@ function wire() {
       statusLine('Could not ' + button.textContent.trim().toLowerCase() + ': ' + err.message, 'bad');
       loadTakes();
     });
+  });
+
+  $('takes').addEventListener('mouseover', function (event) {
+    var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"]');
+    if (!coverEl) { return; }
+    if (event.relatedTarget && coverEl.contains(event.relatedTarget)) { return; }
+    var art = coverEl.dataset.art;
+    var title = coverEl.dataset.title;
+    if (art) {
+      showCoverPopup(coverEl, art, title, false);
+    }
+  });
+
+  $('takes').addEventListener('mouseout', function (event) {
+    var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"]');
+    if (!coverEl) { return; }
+    if (event.relatedTarget && coverEl.contains(event.relatedTarget)) { return; }
+    scheduleCoverPopupClose();
+  });
+
+  $('takes').addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"]');
+      if (coverEl) {
+        event.preventDefault();
+        event.stopPropagation();
+        var art = coverEl.dataset.art;
+        var title = coverEl.dataset.title;
+        showCoverPopup(coverEl, art, title, true);
+      }
+    }
   });
   // A take's action from the editor's row or a key: the card's own, by name.
   runTakeAction = function (act, id, label) {
@@ -13590,6 +13785,29 @@ function wire() {
     }
     if (!event.target.closest('#lora-picker')) { closeLoraPicker(); }
     if (!event.target.closest('#style-picker')) { closeStylePicker(); }
+    if (!event.target.closest('#cover-popup, .cover.has-art, [data-act="cover-pic"]')) {
+      closeCoverPopup(true);
+    }
+  });
+  window.addEventListener('scroll', function () {
+    var pop = $('cover-popup');
+    if (!pop || pop.classList.contains('hidden')) { return; }
+    if (!_coverPopupPinned) {
+      closeCoverPopup(false);
+    } else if (_coverPopupAnchor && _coverPopupAnchor.isConnected) {
+      positionCoverPopup(pop, _coverPopupAnchor);
+    } else {
+      closeCoverPopup(true);
+    }
+  }, true);
+  window.addEventListener('resize', function () {
+    var pop = $('cover-popup');
+    if (!pop || pop.classList.contains('hidden')) { return; }
+    if (_coverPopupAnchor && _coverPopupAnchor.isConnected) {
+      positionCoverPopup(pop, _coverPopupAnchor);
+    } else {
+      closeCoverPopup(true);
+    }
   });
   $('lora-picker-btn').addEventListener('click', function () {
     if ($('lora-picker-menu').classList.contains('hidden')) { openLoraPicker(); } else { closeLoraPicker(); }
@@ -14339,6 +14557,7 @@ function wire() {
         }
       }
     }
+    if (event.key === 'Escape' && $('cover-popup') && !$('cover-popup').classList.contains('hidden')) { closeCoverPopup(true); return; }
     if (event.key === 'Escape' && $('source-picker-menu') && !$('source-picker-menu').classList.contains('hidden')) { closeSourcePicker(); return; }
     if (event.key === 'Escape' && $('lora-picker-menu') && !$('lora-picker-menu').classList.contains('hidden')) { closeLoraPicker(); return; }
     if (event.key === 'Escape' && $('style-picker-menu') && !$('style-picker-menu').classList.contains('hidden')) { closeStylePicker(); return; }

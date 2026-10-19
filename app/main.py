@@ -698,9 +698,8 @@ async def requeue_waiting() -> None:
 
 
 async def queue_take(kind: str, take_id: str) -> None:
-    """A new take into the GPU lane, and its picture started beside it where pictures are made by themselves."""
+    """A new take into the GPU lane."""
     await QUEUE.put({"kind": kind, "id": take_id})
-    jobs.art_for_new_take(take_id)
 
 
 app = FastAPI(title="Yeufonic", lifespan=lifespan)

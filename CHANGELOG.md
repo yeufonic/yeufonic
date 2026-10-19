@@ -57,6 +57,12 @@ cannot creep back in.
   - **Stored audio preservation:** Analysis and training re-use the preserved lossless copy stored in Yeufonic's identity storage, so moving or deleting the original import folder never breaks re-analysis or exports.
   - **Queue visibility & control:** Corpus analysis jobs now display in the main page active job card and queue list, with buttons to cancel upcoming jobs or stop the running step.
   - **Enriched style tagging:** Song titles, artist tags and lyrics snippets are now provided to local Gemma and external LLMs for structured subgenre, instrumentation and mood tagging.
+- **Hipgnosis album cover artwork & non-blocking generation.**
+  - Take pictures are drawn as 1:1 square album covers in the style of Hipgnosis, explicitly including the song title and style prompt with ~30% randomised probability of well-worn sleeve wear.
+  - Picture creation waits until audio rendering is complete before queueing, ensuring external image requests never block or delay audio rendering.
+  - Corpus trigger words and well-known artist names are automatically stripped from image prompts to prevent external model refusals.
+  - Consolidated logging outputs a single full prompt log entry under `[yue2.jobs]`.
+- **Album cover pop-up preview.** On the main page takes grid, hovering or clicking the cover initial square in the top-left of any take card with artwork opens a floating pop-up preview of the album cover. Clicking the preview opens the full-screen lightbox view.
 - **Resilient external LLM error handling & session fallback.**
   - When an external LLM returns an HTTP 429 quota or spending limit error, Yeufonic presents an error alert dialog with the option to switch to local models for the remainder of the session or keep trying after increasing an API budget.
   - A topbar pill and Settings banner indicate when session-local mode is active, with a single click to resume using the external LLM at any time.

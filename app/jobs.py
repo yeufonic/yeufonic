@@ -463,7 +463,7 @@ def start_art(take_id: str) -> None:
 
 
 def art_for_new_take(take_id: str) -> None:
-    """A new take's picture, started as the take is queued, where pictures are made by themselves.  A take made
+    """A take's picture, started once its audio render is done, where pictures are made by themselves.  A take made
     inside another shows that one's: it is the same song.  Never fails the take."""
     try:
         if not artwork.automatic():
@@ -488,40 +488,47 @@ async def run_art(take_id: str) -> None:
     try:
         artwork.STATE[take_id] = {"state": "writing", "error": None, "started": time.time()}
         writes = artwork.describer()
+        worn = artwork.is_well_worn(take)
         if writes == "take":
-            description = artwork.take_description(take)
+            description = artwork.take_description(take, well_worn=worn)
             writer = "its own title, style and words"
         elif writes == "gemma":
             try:
                 job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31))
-                description = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
+                scene = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
+                description = artwork.take_description(take, scene=scene, well_worn=worn)
                 writer = "Gemma on this PC"
             except ArtYielded:
                 raise
             except Exception as exc:
                 log.warning("Gemma failed to describe picture for '%s' (%s): %s; falling back to take description",
                             take.get("title"), take_id, exc)
-                description = artwork.take_description(take)
+                description = artwork.take_description(take, well_worn=worn)
                 writer = "its own title, style and words (Gemma failed)"
         else:
             try:
-                description = await artwork.describe_external(take)
+                scene = await artwork.describe_external(take, well_worn=worn)
+                description = artwork.take_description(take, scene=scene, well_worn=worn)
                 writer = llm.get_config()["model"]
             except Exception as exc:
                 llm.record_alert_from_exception(exc)
                 log.warning("External LLM failed to describe picture for '%s' (%s): %s; falling back to take description",
                             take.get("title"), take_id, exc)
                 artwork.record_external_words_failure(str(exc))
-                description = artwork.take_description(take)
+                description = artwork.take_description(take, well_worn=worn)
                 writer = f"its own title, style and words ({llm.get_config().get('model', 'external LLM')} failed)"
         if not description:
-            description = artwork.take_description(take)
+            description = artwork.take_description(take, well_worn=worn)
             writer = "its own title, style and words"
-        log.info("Picture for '%s' (%s): %s", take.get("title"), take_id, description[:200])
-        artwork.STATE[take_id]["state"] = "drawing"
+        full_prompt = artwork.drawing_request(description, take, well_worn=worn)
+        description = full_prompt
         drawer = artwork.drawer()
         if drawer == "external" and take_id in _ART_DRAWER_FALLBACK:
             drawer = "local"
+        drawer_name = artwork.image_model() if drawer == "external" else "FLUX.2 klein"
+        log.info("Picture for '%s' (%s) [writer=%s, drawer=%s] prompt:\n%s",
+                 take.get("title") or take_id, take_id, writer, drawer_name, full_prompt)
+        artwork.STATE[take_id]["state"] = "drawing"
         if drawer == "local":
             if songs_in_flight():
                 log.info("Picture for '%s' (%s) waits for song work to finish before drawing on engine", take.get("title"), take_id)
@@ -1034,6 +1041,7 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
     bump_average("render", elapsed)
     log.info("Audio render finished for '%s' (duration=%.1fs, elapsed=%.1fs)",
              record.get("title") or ref_id, duration or 0.0, elapsed)
+    art_for_new_take(ref_id)
 
 
 def _drop_engine_output(item: dict) -> None:

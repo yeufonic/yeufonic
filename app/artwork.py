@@ -1,13 +1,6 @@
-"""A picture for a take: an illustration of the song, with a transparent background.
+"""A picture for a take: a well-worn vinyl album cover in the style of Hipgnosis.
 
-Two steps.  A language model reads the take (its title, style and opening words) and writes a
-description of a picture; that is the LLM the Settings name for it, the external one or Gemma on
-the engine.  Then an image model draws it: FLUX.2 klein on the engine, where it was chosen at
-install, or the external provider's image model.  No image model asked here can
-draw a transparent background (asked to, one draws a checkerboard), so it is asked for a plain
-white one, and the white that reaches the picture's edges is taken out here: what is left is
-the drawing, with its outline's softening kept as part-transparency.  White inside the drawing,
-a clock face or a gap inside a letter, is not reached from the edges and stays."""
+Prompted from the song's title and style, and drawn by the external image model or local FLUX.2 klein on the engine."""
 from __future__ import annotations
 
 import base64
@@ -30,8 +23,8 @@ log = logging.getLogger("yue2.artwork")
 
 DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-image"
 DEFAULT_OPENAI_MODEL = "gpt-image-1"
-ASPECT = "21:9"                 # a wide banner, as an album's artwork might be laid out across a page
-OPENAI_SIZE = "1536x1024"       # the widest an OpenAI image model draws
+ASPECT = "1:1"                  # square album cover
+OPENAI_SIZE = "1024x1024"       # square 1:1 album cover
 WORD_LINES = 12                 # the opening of the song the description is written from
 DRAW_TIMEOUT = 180.0
 
@@ -179,36 +172,200 @@ def words_by_engine() -> bool:
     return describer() == "gemma"
 
 
-# What a style says about the sound rather than the look: left out of a description made from the take, or the
-# picture fills with musicians and instruments.  Whole words only ("synthwave" is a look, "synth" is not).
-NOT_A_LOOK = re.compile(r"\b(vocals?|voices?|sing(er|ers|ing)?|bpm|guitars?|bass|drums?|piano|synths?|keys|organ|strings|"
-                        r"horns?|sax|trumpets?|violins?|cellos?|choir|beats?|tempo|arpeggios?|pads?|lead|"
-                        r"english|french|spanish|german|italian)\b|\bkey of\b", re.I)
-PLAIN_WORDS = set("""a an and are as at be but by for from had has have he her his i if in into is it its just like me my no
-not of on or our out she so than that the their them then there these they this those to too up us was we were what when where
-which while who will with you your yours ours mine every each some any all very still only ever never once more most much many
-down over under again here now one two little nearly""".split())
+COMMON_TERMS = {
+    "a", "an", "and", "or", "in", "on", "at", "to", "for", "with", "by", "from", "of", "is", "it",
+    "pop", "rock", "folk", "jazz", "soul", "blues", "punk", "disco", "metal", "country", "rap",
+    "r&b", "ambient", "indie", "electronic", "dance", "classical", "acoustic", "electric", "vocal",
+    "vocals", "male", "female", "slow", "fast", "song", "music", "style", "track", "sound", "band",
+    "artist", "album", "cover", "voice", "lead", "guitar", "bass", "drums", "piano", "synth", "strings",
+    "tempo", "key", "bpm", "major", "minor", "groove", "beat", "harmonies", "harmony", "rhythm",
+}
 
 
-def take_description(take: dict) -> str:
-    """A description made from the take itself, with no LLM: the look from the style's genre and mood words, the
-    scene from the picture words of its opening lines (never quoted, or they are lettered across it), and the title
-    as the only writing."""
+def song_title(title: str) -> str:
+    """The song's own title: a take made from another carries what was done after a dot ("· sung again")."""
+    return (title or "").split(" \u00b7 ")[0].strip() or "Untitled"
+
+
+def take_triggers(take: dict | None = None) -> set[str]:
+    """All known corpus/identity trigger words and artist names that should be kept out of image prompts."""
+    triggers: set[str] = set()
+
+    # 1. Triggers and names from all registered identities/corpora in the database
+    try:
+        from . import db
+        for r in db.rows("SELECT name, trigger_word FROM identities"):
+            if r.get("trigger_word"):
+                w = r["trigger_word"].strip()
+                if w:
+                    triggers.add(w)
+            if r.get("name"):
+                n = r["name"].strip()
+                if n:
+                    triggers.add(n)
+    except Exception:
+        pass
+
+    # 2. Triggers and titles from installed LoRAs on disk
+    try:
+        from . import loras
+        folder = loras.folder()
+        if folder and folder.is_dir():
+            for txt_file in folder.glob("*.txt"):
+                try:
+                    note = loras.note_for(txt_file.with_suffix(".safetensors"))
+                    if note.get("trigger"):
+                        w = note["trigger"].strip()
+                        if w:
+                            triggers.add(w)
+                    if note.get("title"):
+                        t = note["title"].strip()
+                        if t:
+                            triggers.add(t)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    # 3. From the given take specifically
+    if take:
+        for key in ("style_lora", "voice_lora"):
+            val = take.get(key)
+            if val and isinstance(val, str):
+                stem = val.removesuffix(".safetensors").strip()
+                if stem:
+                    triggers.add(stem)
+        for key in ("identity_id", "persona_id"):
+            val = take.get(key)
+            if val and isinstance(val, str):
+                try:
+                    from . import db
+                    row = db.one("SELECT name, trigger_word FROM identities WHERE id = ?", (val,))
+                    if row:
+                        if row.get("trigger_word"):
+                            triggers.add(row["trigger_word"].strip())
+                        if row.get("name"):
+                            triggers.add(row["name"].strip())
+                except Exception:
+                    pass
+        if take.get("lora_trigger"):
+            triggers.add(str(take["lora_trigger"]).strip())
+
+    return {t for t in triggers if len(t) >= 2 and t.lower() not in COMMON_TERMS}
+
+
+def clean_cover_style(style: str, take: dict | None = None) -> str:
+    """Strip known corpus trigger words and artist names from the style description."""
+    if not style:
+        return ""
+    triggers = take_triggers(take)
+    if not triggers:
+        return style.strip()
+
+    lower_triggers = {t.lower() for t in triggers}
+    tags = [t.strip() for t in style.split(",") if t.strip()]
+    filtered_tags = []
+
+    for tag in tags:
+        if tag.lower() in lower_triggers:
+            continue
+        cleaned_tag = tag
+        for trig in sorted(triggers, key=len, reverse=True):
+            cleaned_tag = re.sub(rf"\b{re.escape(trig)}\b", "", cleaned_tag, flags=re.IGNORECASE).strip()
+        cleaned_tag = re.sub(r"\(\s*\)|\[\s*\]", "", cleaned_tag).strip()
+        cleaned_tag = re.sub(r"\s+", " ", cleaned_tag).strip(" -:–—")
+        if cleaned_tag and cleaned_tag.lower() not in lower_triggers:
+            filtered_tags.append(cleaned_tag)
+
+    result = ", ".join(filtered_tags)
+    result = re.sub(r"\s*,\s*", ", ", result)
+    result = re.sub(r",(\s*,)+", ", ", result)
+    return result.strip(" ,")
+
+
+def clean_cover_title(take: dict) -> str:
+    """The song's title for the cover, with corpus trigger words and artist names stripped out."""
     title = song_title(take.get("title") or "")
-    tags = [t.strip() for t in (take.get("style") or "").split(",") if t.strip() and not NOT_A_LOOK.search(t)]
-    seen, things = set(), []
-    for line in opening_words(take.get("lyrics") or "", 8):
-        for word in re.findall(r"[a-z']+", line.lower()):
-            word = word.strip("'")
-            if len(word) >= 4 and word not in PLAIN_WORDS and word not in seen:
-                seen.add(word)
-                things.append(word)
-    look = ", ".join(tags[:6]) or "the song"
-    return ("A wide banner illustration: one rich scene, dense with colour and detail, filling the picture almost "
-            f"to its edges, with the mood, colours and era of {look}. "
-            + (f"The scene is built from these things: {', '.join(things[:10])}. " if things else "")
-            + "Painterly and atmospheric, a place and its light rather than a portrait; no musicians, no instruments. "
-              f"No writing anywhere except the title {title}, small, in thin soft light strokes woven into the scene.")
+    if not title or title.lower() == "untitled":
+        return ""
+    triggers = take_triggers(take)
+    if not triggers:
+        return title
+
+    lower_triggers = {t.lower() for t in triggers}
+    if title.lower() in lower_triggers:
+        return ""
+
+    cleaned = title
+    for trig in sorted(triggers, key=len, reverse=True):
+        cleaned = re.sub(rf"^{re.escape(trig)}\s*[-:–—]\s*", "", cleaned, flags=re.IGNORECASE).strip()
+        cleaned = re.sub(rf"\b{re.escape(trig)}\b", "", cleaned, flags=re.IGNORECASE).strip()
+
+    cleaned = re.sub(r"\(\s*\)|\[\s*\]", "", cleaned).strip()
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -:–—")
+    if not cleaned or cleaned.lower() == "untitled" or cleaned.lower() in lower_triggers:
+        return ""
+    return cleaned
+
+
+def clean_prompt_text(text: str, take: dict | None = None) -> str:
+    """Strip known corpus trigger words and artist names from prompt or description prose."""
+    if not text:
+        return ""
+    triggers = take_triggers(take)
+    if not triggers:
+        return text
+    cleaned = text
+    for trig in sorted(triggers, key=len, reverse=True):
+        cleaned = re.sub(rf"\b{re.escape(trig)}\b", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\(\s*\)|\[\s*\]", "", cleaned)
+    cleaned = re.sub(r"  +", " ", cleaned)
+    cleaned = re.sub(r",\s*,+", ", ", cleaned)
+    return cleaned.strip()
+
+
+HIPGNOSIS_PREFIX_RE = re.compile(
+    r"^Create an image in the shape of (?:a well[- ]worn |an )?album cover in the style of Hipgnosis "
+    r"\(the UK art design group\) that uses the following as its inspiration:\s*",
+    re.IGNORECASE
+)
+
+
+def is_well_worn(take: dict | None = None) -> bool:
+    """Around 30% of covers are given vintage well-worn sleeve textures; the rest stay pristine."""
+    if take and isinstance(take.get("seed"), (int, float)):
+        try:
+            return (int(take["seed"]) % 10) < 3
+        except (ValueError, TypeError):
+            pass
+    import random
+    return random.random() < 0.30
+
+
+def album_cover_prefix(well_worn: bool = False) -> str:
+    qualifier = "a well worn " if well_worn else "an "
+    return (
+        f"Create an image in the shape of {qualifier}album cover in the style of Hipgnosis "
+        "(the UK art design group) that uses the following as its inspiration:"
+    )
+
+
+def take_description(take: dict, scene: str | None = None, well_worn: bool | None = None) -> str:
+    """An album cover prompt in the style of Hipgnosis, built from the song's title, style, and optional visual scene."""
+    title = clean_cover_title(take)
+    style = clean_cover_style(take.get("style") or "", take) or config.DEFAULT_STYLE
+    worn = is_well_worn(take) if well_worn is None else well_worn
+    parts = [
+        f"{album_cover_prefix(worn)}\n"
+    ]
+    if title:
+        parts.append(f"Song title: {title}\n")
+    parts.append(f'cover style:\n"{style}"')
+    if scene:
+        clean_scene = clean_prompt_text(scene.strip(), take)
+        if clean_scene:
+            parts.append(f'\nvisual scene:\n"{clean_scene}"')
+    return "\n".join(parts)
 
 
 def image_model() -> str:
@@ -328,30 +485,24 @@ def opening_words(lyrics: str, limit: int = WORD_LINES) -> list[str]:
     return out
 
 
-def song_title(title: str) -> str:
-    """The song's own title: a take made from another carries what was done after a dot ("· sung again")."""
-    return (title or "").split(" \u00b7 ")[0].strip() or "Untitled"
-
-
-def description_request(take: dict) -> str:
-    title = song_title(take.get("title") or "")
-    style = (take.get("style") or "").strip()
+def description_request(take: dict, well_worn: bool | None = None) -> str:
+    title = clean_cover_title(take)
+    style = clean_cover_style(take.get("style") or "", take)
     words = opening_words(take.get("lyrics") or "")
     sung = "\n".join(words) if words else "(an instrumental: no words)"
+    title_line = f"Song title: {title}\n" if title else ""
+    worn = is_well_worn(take) if well_worn is None else well_worn
+    worn_intro = "a well-worn " if worn else "an "
+    worn_texture = " with well-worn album sleeve ring-wear and creased edges" if worn else ""
     return (
-        "You are an art director. Write one prompt for an image model: an illustration that captures this song, "
-        "its imagery, its mood and its era.\n\n"
-        f"Song title: {title}\n"
+        "You are an art director in the style of Hipgnosis (the UK art design group). "
+        f"Write one scene description for {worn_intro}album cover inspired by this song.\n\n"
+        f"{title_line}"
         f"Style: {style or 'not given'}\n"
         f"The opening of the song:\n{sung}\n\n"
-        "The illustration is a wide banner, about twice as wide as it is tall, dense with colour and detail that "
-        "fills it almost to its edges, with a free-form outline rather than a frame or a vignette; it lies behind "
-        "the song's title and details on a card. Hand-lettered words can be part of it, "
-        "the title, perhaps a short phrase from the song, the style written small along a curve, but drawn soft: "
-        "thin, light strokes in colours close to what is around them, woven into the pattern, never bold, dark or "
-        "outlined. Say what is in the picture, how it is laid out, its colours and its kind of drawing. Never name "
-        "a real band, artist or person anywhere in the prompt, not even in the lettering: an image model will not "
-        "draw one, so describe the era and the look instead. Between 60 and 120 words. Reply with the prompt only."
+        "Describe a surreal, enigmatic photographic or painterly scene in the distinctive Hipgnosis style: "
+        "striking visual metaphors, unexpected juxtaposition, dramatic landscapes, and vintage 1970s film textures"
+        f"{worn_texture}. Between 40 and 90 words. Reply with the description only."
     )
 
 
@@ -363,8 +514,8 @@ def tidy_description(reply: str) -> str:
     return text.strip().strip('"').strip()
 
 
-async def describe_external(take: dict) -> str:
-    reply = await llm.chat_complete([{"role": "user", "content": description_request(take)}],
+async def describe_external(take: dict, well_worn: bool | None = None) -> str:
+    reply = await llm.chat_complete([{"role": "user", "content": description_request(take, well_worn=well_worn)}],
                                     temperature=0.9, max_tokens=2048, timeout=120)
     return tidy_description(reply)
 
@@ -382,17 +533,19 @@ def describe_graph(take: dict, seed: int) -> dict:
     }
 
 
-def drawing_request(description: str) -> str:
-    return (description.strip() + "\n\n"
-            "Draw it as a cut-out: the artwork alone on a plain, flat, pure white background (#FFFFFF) that runs to "
-            "every edge. The artwork fills nearly the whole picture, with only a thin white margin, its edge free-form "
-            "(swirls, shapes and figures reaching out), not a rectangle or an oval. Any lettering stays soft: thin, light, close in colour "
-            "to what is around it, never bold or outlined in a dark colour. No checkerboard pattern, no frame, no "
-            "border, no drop shadow, no paper texture.")
+def drawing_request(description: str, take: dict | None = None, well_worn: bool | None = None) -> str:
+    text = clean_prompt_text(description.strip(), take)
+    if HIPGNOSIS_PREFIX_RE.match(text):
+        return text
+    if take:
+        return take_description(take, scene=text, well_worn=well_worn)
+    worn = is_well_worn(take) if well_worn is None else well_worn
+    prefix = album_cover_prefix(worn)
+    return f"{prefix}\n\n{text}"
 
 
 # ------------------------------------------------------------------ the drawing
-WIDTH, HEIGHT = 1536, 672     # 16:7, near the 21:9 asked of an external model, in the steps FLUX.2 wants
+WIDTH, HEIGHT = 1024, 1024     # square 1:1 album cover
 LOCAL_STEPS = 4               # klein is distilled for four
 
 
@@ -434,7 +587,7 @@ async def draw(description: str) -> bytes:
             url = cfg["api_url"].strip().rstrip("/")
             url = url[: -len("/chat/completions")] if url.endswith("/chat/completions") else url
             headers = {"Authorization": f"Bearer {cfg['api_key']}"} if cfg.get("api_key") else {}
-            body = {"model": model, "prompt": prompt, "size": OPENAI_SIZE, "n": 1, "background": "transparent"}
+            body = {"model": model, "prompt": prompt, "size": OPENAI_SIZE, "n": 1}
             resp = await client.post(url + "/images/generations", json=body, headers=headers)
             data = _reply_json(resp, model)
             item = (data.get("data") or [{}])[0]
@@ -527,23 +680,26 @@ def cut_out(data: bytes) -> bytes:
     rgba = decode(data)
     if (rgba[..., 3] < 250).mean() > 0.05:      # drawn transparent already (an OpenAI model can)
         return png_bytes(trim(rgba))
-    rgb = rgba[..., :3].astype(np.float32)
     bg, distance = background(rgba[..., :3])
-    alpha = np.ones(distance.shape, np.float32)
-    # the background: clear where it is white, fading in where it is merely near white
-    alpha[bg] = np.clip((distance[bg] - WHITE_GONE) / (WHITE_NEAR - WHITE_GONE), 0.0, 1.0)
-    # the drawing's outline, softened into the white: take the white back out of its colour
-    band = bg.copy()
-    for _ in range(EDGE):
-        band = _grow(band)
-    band &= ~bg
-    # (an outline is dark, about this far from white: half of it blended with white is half clear)
-    alpha[band] = np.minimum(1.0, distance[band] / OUTLINE)
-    unmix = (alpha > 0) & (bg | band)
-    a = alpha[unmix][:, None]
-    rgb[unmix] = np.clip(255.0 - (255.0 - rgb[unmix]) / a, 0.0, 255.0)
-    out = np.dstack([rgb, alpha * 255.0]).round().astype(np.uint8)
-    return png_bytes(trim(out))
+    # White background removal is only applied if there is a dominant white margin around the artwork (>15%),
+    # preserving full-bleed album covers with their aged sleeve borders and paper textures intact.
+    corners_pure_white = (distance[0, 0] < 0.03 and distance[0, -1] < 0.03 and
+                          distance[-1, 0] < 0.03 and distance[-1, -1] < 0.03)
+    if corners_pure_white and (bg.mean() > 0.15 or (rgba[..., :3] > 250).all(axis=2).mean() > 0.3):
+        alpha = np.ones(distance.shape, np.float32)
+        alpha[bg] = np.clip((distance[bg] - WHITE_GONE) / (WHITE_NEAR - WHITE_GONE), 0.0, 1.0)
+        band = bg.copy()
+        for _ in range(EDGE):
+            band = _grow(band)
+        band &= ~bg
+        alpha[band] = np.minimum(1.0, distance[band] / OUTLINE)
+        unmix = (alpha > 0) & (bg | band)
+        a = alpha[unmix][:, None]
+        rgb = rgba[..., :3].astype(np.float32)
+        rgb[unmix] = np.clip(255.0 - (255.0 - rgb[unmix]) / a, 0.0, 255.0)
+        out = np.dstack([rgb, alpha * 255.0]).round().astype(np.uint8)
+        return png_bytes(trim(out))
+    return png_bytes(rgba)
 
 
 def trim(rgba: np.ndarray) -> np.ndarray:

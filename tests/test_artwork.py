@@ -60,10 +60,9 @@ def test_a_takes_title_loses_what_was_done_to_it():
 def test_the_description_is_asked_without_real_names():
     asked = artwork.description_request({"title": "River lights · step 400", "style": "folk, warm", "lyrics": LYRICS})
     assert "Song title: River lights\n" in asked and "Style: folk, warm" in asked and "Carry what we said" in asked
-    assert "Never name a real band, artist or person" in asked
-    assert "drawn soft" in asked and "never bold, dark or outlined" in asked     # it lies behind the card's own words
+    assert "Hipgnosis" in asked
     drawn = artwork.drawing_request("A lantern.")
-    assert "pure white background" in drawn and "Any lettering stays soft" in drawn
+    assert "Hipgnosis" in drawn and "album cover" in drawn
     assert artwork.tidy_description('Here is the prompt:\n"A lantern on a river."') == "A lantern on a river."
 
 
@@ -128,7 +127,7 @@ def test_the_job_keeps_the_picture_and_its_description(client, monkeypatch):
     monkeypatch.setattr(artwork, "describer", lambda: "external")
     monkeypatch.setattr(artwork, "drawer", lambda: "external")
 
-    async def describe(record):
+    async def describe(record, *args, **kwargs):
         assert record["id"] == take["id"]
         return "A ring on white."
 
@@ -139,7 +138,7 @@ def test_the_job_keeps_the_picture_and_its_description(client, monkeypatch):
     monkeypatch.setattr(artwork, "draw", draw)
     asyncio.run(jobs.run_art(take["id"]))
     got = client.get(f"/api/takes/{take['id']}/art").json()
-    assert got["state"] == "ready" and got["has"] and got["has_drawn"] and got["words"].startswith("A ring on white.")
+    assert got["state"] == "ready" and got["has"] and got["has_drawn"] and "A ring on white." in got["words"]
     picture = client.get(f"/api/takes/{take['id']}/art.png")
     assert picture.status_code == 200 and picture.headers["content-type"] == "image/png"
     assert artwork.decode(picture.content)[0, 0, 3] == 0
@@ -203,18 +202,13 @@ def test_no_picture_is_tried_without_a_provider_to_draw_it(client, monkeypatch):
     assert calls == []
 
 
-def test_every_new_take_is_queued_through_the_picture_starter(client, monkeypatch):
+def test_every_new_take_waits_for_render_before_picture_starts(client, monkeypatch):
     seen = []
     monkeypatch.setattr(jobs, "art_for_new_take", lambda take_id: seen.append(take_id))
     from test_score import GOOD
     take = make_take(status="done", title="River lights", abc=GOOD, seed=111)
     made = client.post(f"/api/takes/{take['id']}/tries", json={"count": 2}).json()["created"]
-    assert seen == [m["id"] for m in made]
-    import re
-    from pathlib import Path
-    main = (Path(__file__).resolve().parent.parent / "app" / "main.py").read_text(encoding="utf-8")
-    after_startup = main[main.index("async def queue_take("):]
-    assert not re.search(r'QUEUE\.put\(\{"kind": "(render|plan)"', after_startup)
+    assert seen == []   # queuing a take no longer triggers artwork; it waits until render is done
 
 
 def test_the_list_says_where_each_takes_picture_is(client):
@@ -246,7 +240,7 @@ def test_back_to_the_default_background_stays_there(client, monkeypatch):
     monkeypatch.setattr(artwork, "describer", lambda: "external")
     monkeypatch.setattr(artwork, "drawer", lambda: "external")
 
-    async def describe(record):
+    async def describe(record, *args, **kwargs):
         return "A ring on white."
 
     async def draw(description):
@@ -296,7 +290,7 @@ def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
     monkeypatch.setattr(artwork, "describer", lambda: "external")
     take, drawn_with = a_take(), []
 
-    async def describe(record):
+    async def describe(record, *args, **kwargs):
         return "A ring on white."
 
     async def on_engine(take_id, description):
@@ -310,7 +304,7 @@ def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
     monkeypatch.setattr(artwork, "draw", never)
     monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
     asyncio.run(jobs.run_art(take["id"]))
-    assert drawn_with == [(take["id"], "A ring on white.")]
+    assert drawn_with[0][0] == take["id"] and "A ring on white." in drawn_with[0][1] and "folk, warm" in drawn_with[0][1]
     got = artwork.info(take["id"])
     assert got["has"] and "drawn by FLUX.2 klein on this PC" in got["words"]
 
@@ -323,7 +317,7 @@ def test_the_flux_graph_is_comfyuis_own_klein_workflow():
     assert kinds["VAELoader"]["vae_name"] == "flux2-vae.safetensors"
     assert kinds["Flux2Scheduler"]["steps"] == 4 and kinds["CFGGuider"]["cfg"] == 1.0
     assert kinds["EmptyFlux2LatentImage"]["width"] % 16 == 0 and kinds["EmptyFlux2LatentImage"]["height"] % 16 == 0
-    assert "pure white background" in kinds["CLIPTextEncode"]["text"] and kinds["RandomNoise"]["noise_seed"] == 7
+    assert "Hipgnosis" in kinds["CLIPTextEncode"]["text"] and kinds["RandomNoise"]["noise_seed"] == 7
     for node in graph.values():                              # every link points at a node in the graph
         for value in node["inputs"].values():
             if isinstance(value, list):
@@ -408,14 +402,13 @@ def test_a_description_from_the_take_paints_its_look_and_letters_only_its_title(
             "style": "synthwave, female vocal, analog synth lead, gated drums, 112 BPM, neon, wistful",
             "lyrics": "[Verse]\nThe harbour lights are counting down\nA ferry hums across the bay\n\n[Chorus]\nStay"}
     text = artwork.take_description(take)
-    assert "synthwave" in text and "neon" in text and "wistful" in text           # the look, whole words kept
-    assert not any(w in text for w in ("vocal", "lead", "drums", "BPM"))          # the sound, left out
-    assert "harbour" in text and "ferry" in text and "bay" not in text            # picture words, not short ones
-    assert "counting down" not in text and '"' not in text                         # never a line, never quoted
-    assert "title Harbour Lights," in text and "sung again" not in text
-    assert "No writing anywhere except the title" in text
+    assert "album cover in the style of Hipgnosis" in text
+    assert "Song title: Harbour Lights" in text
+    assert "sung again" not in text
+    assert 'cover style:\n"synthwave, female vocal, analog synth lead, gated drums, 112 BPM, neon, wistful"' in text
     bare = artwork.take_description({"title": "Untitled", "style": "", "lyrics": ""})
-    assert "era of the song" in bare and "built from" not in bare
+    assert "Song title:" not in bare
+    assert "cover style:" in bare
 
 
 def test_with_nothing_to_draw_take_pictures_says_no_pictures(client, monkeypatch):
@@ -541,7 +534,7 @@ def test_external_words_failure_falls_back_to_take_description(client, monkeypat
     monkeypatch.setattr(artwork, "drawer", lambda: "local")
     take = a_take()
 
-    async def fail_describe(record):
+    async def fail_describe(record, *args, **kwargs):
         raise RuntimeError("External LLM HTTP 429: quota exhausted")
 
     async def on_engine(take_id, description):
@@ -571,3 +564,78 @@ def test_external_draw_failure_without_flux_fails_job(client, monkeypatch):
 
     assert artwork.STATE[take["id"]]["state"] == "failed"
     assert "429" in artwork.STATE[take["id"]]["error"]
+
+
+def test_trigger_words_and_artist_names_are_stripped_from_cover_prompts():
+    execute("INSERT OR REPLACE INTO identities (id, name, trigger_word, folder, created_at) VALUES (?, ?, ?, ?, ?)",
+            ("id-test-dylan", "Bobby Dylan", "bobbydyln", "bob", 12345.0))
+    triggers = artwork.take_triggers()
+    assert "bobbydyln" in triggers
+    assert "Bobby Dylan" in triggers
+
+    # Style cleaning removes both the trigger word and the artist name
+    style = "bobbydyln, mid-1970s soft rock, Bobby Dylan, acoustic rhythm guitar, male vocal"
+    cleaned_style = artwork.clean_cover_style(style)
+    assert "bobbydyln" not in cleaned_style
+    assert "Bobby Dylan" not in cleaned_style
+    assert "mid-1970s soft rock" in cleaned_style
+    assert "acoustic rhythm guitar" in cleaned_style
+
+    # Title cleaning drops titles that are solely the trigger word or artist name
+    assert artwork.clean_cover_title({"title": "bobbydyln"}) == ""
+    assert artwork.clean_cover_title({"title": "Bobby Dylan"}) == ""
+    # But preserves actual song titles with artist prefix stripped
+    assert artwork.clean_cover_title({"title": "Bobby Dylan - Like a Rolling Stone"}) == "Like a Rolling Stone"
+
+    # take_description omits title if it was the trigger word, and strips triggers from cover style
+    take = {"title": "bobbydyln", "style": "bobbydyln, 1970s rock, acoustic guitar", "lyrics": LYRICS}
+    desc = artwork.take_description(take)
+    assert "bobbydyln" not in desc
+    assert "Bobby Dylan" not in desc
+    assert "Song title:" not in desc
+    assert 'cover style:\n"1970s rock, acoustic guitar"' in desc
+
+    # description_request omits trigger words and artist name from Style and Song title
+    req = artwork.description_request({"title": "Bobby Dylan - Tangled", "style": "bobbydyln, folk rock", "lyrics": LYRICS})
+    assert "bobbydyln" not in req
+    assert "Song title: Tangled\n" in req
+    assert "Style: folk rock\n" in req
+
+    # drawing_request strips any stray artist names or trigger words from description prose
+    drawn = artwork.drawing_request("A surreal photo of Bobby Dylan in a desert with bobbydyln guitar.")
+    assert "Bobby Dylan" not in drawn
+    assert "bobbydyln" not in drawn
+    assert "Hipgnosis" in drawn
+
+
+def test_well_worn_randomization_and_scene_inclusion():
+    # is_well_worn logic based on take seed (seeds 0, 1, 2 are well worn; seeds 3-9 are not)
+    assert artwork.is_well_worn({"seed": 0}) is True
+    assert artwork.is_well_worn({"seed": 2}) is True
+    assert artwork.is_well_worn({"seed": 3}) is False
+    assert artwork.is_well_worn({"seed": 7}) is False
+
+    # take_description with well_worn=False produces "an album cover" without "well worn"
+    clean_desc = artwork.take_description({"title": "Old Man", "style": "soft rock, 118 BPM"}, well_worn=False)
+    assert "Create an image in the shape of an album cover" in clean_desc
+    assert "well worn" not in clean_desc
+    assert "Song title: Old Man\n" in clean_desc
+    assert 'cover style:\n"soft rock, 118 BPM"' in clean_desc
+
+    # take_description with well_worn=True produces "a well worn album cover"
+    worn_desc = artwork.take_description({"title": "Old Man", "style": "soft rock, 118 BPM"}, well_worn=True)
+    assert "Create an image in the shape of a well worn album cover" in worn_desc
+
+    # take_description includes visual scene when passed
+    scene_desc = artwork.take_description({"title": "Old Man", "style": "soft rock"}, scene="A pear on a crate.", well_worn=False)
+    assert "Song title: Old Man\n" in scene_desc
+    assert 'cover style:\n"soft rock"' in scene_desc
+    assert 'visual scene:\n"A pear on a crate."' in scene_desc
+
+    # drawing_request with take combines scene with song title and style prompt
+    combined = artwork.drawing_request("A lonely telephone box.", take={"title": "Dial In", "style": "yacht rock", "seed": 5})
+    assert "Song title: Dial In\n" in combined
+    assert 'cover style:\n"yacht rock"' in combined
+    assert 'visual scene:\n"A lonely telephone box."' in combined
+
+
