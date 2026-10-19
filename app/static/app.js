@@ -3050,7 +3050,8 @@ function refreshTitleHint() {
 }
 
 var JOB_KINDS = { render: 'Render', plan: 'Score plan', transcribe: 'Transcription', separate: 'Stem separation', hear: 'Lyric hearing', lyrics: 'Lyrics', text: 'Text generation', train: 'LoRA training', other: 'Engine job',
-  identity_score: 'Corpus analysis', identity_style: 'Corpus analysis', persona_score: 'Corpus analysis', persona_style: 'Corpus analysis' };
+  identity_score: 'Corpus analysis', identity_style: 'Corpus analysis', persona_score: 'Corpus analysis', persona_style: 'Corpus analysis',
+  identity_prep: 'Corpus prep', persona_prep: 'Corpus prep' };
 
 /* While a LoRA trains it holds the GPU — 12.5 GB of 16, measured — so everything
    else that would ask for the card is disabled rather than left to fail. The server
@@ -3336,7 +3337,8 @@ function paintJob(current, queue, options) {
   var mineRunning = current && head && !head.outside && head.id === current.id;
   var titles = { render: 'Rendering your song', plan: 'Writing the score plan', transcribe: 'Transcribing the recording',
     lyrics: 'Writing lyrics', train: 'Training the LoRA', identity_score: 'Analysing a corpus song',
-    identity_style: 'Analysing a corpus song', persona_score: 'Analysing a corpus song', persona_style: 'Analysing a corpus song' };
+    identity_style: 'Analysing a corpus song', persona_score: 'Analysing a corpus song', persona_style: 'Analysing a corpus song',
+    identity_prep: 'Preparing corpus song', persona_prep: 'Preparing corpus song' };
   // Only the render has an average, measured from this machine's own history.
   // The others show the time they have taken and claim nothing about the rest.
   var average = function (kind) {
@@ -3352,12 +3354,12 @@ function paintJob(current, queue, options) {
   $('job-stop').style.display = current ? '' : 'none';
   if (current && (mineRunning || !head)) {
     rest = head ? queue.slice(1) : queue.filter(function (item) { return item.id !== current.id; });
-    $('job-title').textContent = (titles[current.kind] || 'Working') + (head && head.title ? ': ' + head.title : '');
+    $('job-title').textContent = (titles[current.kind] || 'Working') + (head && head.title ? ': ' + head.title : (current.title ? ': ' + current.title : ''));
     var avg = average(current.kind);
     var eta = avg > 0 ? Math.max(0, avg - (current.elapsed || 0)) : 0;
     $('job-time').textContent = secs(current.elapsed) + (eta ? ' / about ' + secs(avg) : '');
     $('job-bar').style.width = Math.max(3, Math.round((current.progress || 0) * 100)) + '%';
-    var label = head ? (current.label || 'Starting') : 'Waiting for the engine';
+    var label = current.label || (head ? 'Starting' : 'Waiting for the engine');
     if (current.value && current.max) { label += ' \u00b7 ' + current.value + '/' + current.max; }
     $('job-stage').textContent = label;
   } else if (head) {
@@ -13990,7 +13992,7 @@ function wire() {
   });
 
   $('job-stop').addEventListener('click', function () {
-    api('/api/jobs/current/cancel', { method: 'POST' }).then(loadTakes).catch(function (err) {
+    api('/api/jobs/current/cancel', { method: 'POST' }).then(function () { loadTakes(); pollState(); }).catch(function (err) {
       statusLine('Could not stop the job: ' + err.message, 'bad');
     });
   });

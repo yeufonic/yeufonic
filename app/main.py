@@ -1206,11 +1206,13 @@ def _shorten(text: str, limit: int) -> str:
 
 
 def _job_title(kind: str, ref_id: str) -> str | None:
-    if kind in jobs.IDENTITY_FIELDS:
-        row = one("SELECT title FROM identity_songs WHERE id = ?", (ref_id,))
+    if kind in jobs.IDENTITY_FIELDS or kind in ("identity_prep", "persona_prep"):
+        row = one("SELECT title, file FROM identity_songs WHERE id = ?", (ref_id,))
         label = {"identity_score": "key and tempo", "identity_style": "style",
-                 "persona_score": "key and tempo", "persona_style": "style"}.get(kind, "analysis")
-        return f"{label.capitalize()}: {row['title']}" if row else None
+                 "persona_score": "key and tempo", "persona_style": "style",
+                 "identity_prep": "vocal & lyrics", "persona_prep": "vocal & lyrics"}.get(kind, "analysis")
+        title = (row["title"] or row["file"]) if row else None
+        return f"{label.capitalize()}: {title}" if title else None
     if kind == "lyrics":
         record = LYRICS.get(ref_id)
         return ("Lyrics: " + _shorten(record["brief"], 60)) if record else None
@@ -1252,12 +1254,29 @@ def queue_view() -> list[dict]:
             "since": CURRENT.get("started", now),
             "id": CURRENT["id"],
             "title": _job_title(CURRENT["kind"], CURRENT["id"]),
-            "label": "External LLM",
+            "label": CURRENT.get("label") or "External LLM",
+        })
+    elif not CURRENT.get("id") and jobs.CURRENT_IDENTITY.get("id"):
+        cid = jobs.CURRENT_IDENTITY["id"]
+        items.append({
+            "state": "running",
+            "kind": "identity_prep",
+            "outside": False,
+            "client": None,
+            "since": jobs.CURRENT_IDENTITY.get("started", now),
+            "id": cid,
+            "title": _job_title("identity_prep", cid),
+            "label": jobs.CURRENT_IDENTITY.get("stage") or "Preparing recording",
+            "progress": jobs.CURRENT_IDENTITY.get("progress"),
         })
     for job in jobs.waiting_jobs():
         if job["kind"] in jobs.IDENTITY_FIELDS:
             song = one(f"SELECT {jobs.IDENTITY_FIELDS[job['kind']]} AS status FROM identity_songs WHERE id = ?", (job["id"],))
             row = {"title": _job_title(job["kind"], job["id"]), "status": song["status"]} if song else None
+        elif job["kind"] in ("identity_prep", "persona_prep"):
+            song = one("SELECT vocals_state, lyrics_state FROM identity_songs WHERE id = ?", (job["id"],))
+            status = "queued" if song and ("queued" in (song["vocals_state"], song["lyrics_state"])) else "done"
+            row = {"title": _job_title(job["kind"], job["id"]), "status": status} if song else None
         elif job["kind"] == "lyrics":
             draft = LYRICS.get(job["id"])
             row = {"title": _job_title("lyrics", job["id"]), "status": draft["status"]} if draft else None
@@ -1433,8 +1452,23 @@ def state() -> dict:
             "elapsed": round(time.time() - CURRENT["started"], 1),
             **ENGINE.snapshot(CURRENT.get("prompt_id")),
         }
-        if current.get("stage"):
+        if CURRENT.get("label"):
+            current["label"] = CURRENT["label"]
+        elif current.get("stage"):
             current["label"] = stage_label(current["stage"])
+        current["title"] = _job_title(CURRENT["kind"], CURRENT["id"])
+    elif jobs.CURRENT_IDENTITY.get("id"):
+        cid = jobs.CURRENT_IDENTITY["id"]
+        stg = jobs.CURRENT_IDENTITY.get("stage") or "Preparing recording"
+        current = {
+            "kind": "identity_prep",
+            "id": cid,
+            "title": _job_title("identity_prep", cid),
+            "elapsed": round(time.time() - jobs.CURRENT_IDENTITY.get("started", time.time()), 1),
+            "label": stg,
+            "stage": stg,
+            "progress": jobs.CURRENT_IDENTITY.get("progress"),
+        }
 
     engine_gpu = ENGINE.gpu() if ENGINE.online else None
     return {

@@ -1071,6 +1071,11 @@ async def cancel_current() -> dict | None:
         return {"kind": "train", "id": run_id}
 
     if not CURRENT:
+        if CURRENT_IDENTITY.get("id"):
+            cid = CURRENT_IDENTITY["id"]
+            log.info("Cancelling current corpus prep %s", cid)
+            await stop_song_analysis(cid)
+            return {"kind": "identity_prep", "id": cid}
         active_train = one("SELECT id FROM lora_runs WHERE state IN ('queued', 'running') ORDER BY started_at IS NULL, started_at DESC LIMIT 1")
         if active_train:
             run_id = active_train["id"]
@@ -1078,15 +1083,18 @@ async def cancel_current() -> dict | None:
             await cancel_train(run_id)
             return {"kind": "train", "id": run_id}
         return None
-    log.info("Cancelling current %s job %s", CURRENT.get("kind"), CURRENT.get("id"))
-    CANCELLED.add(CURRENT["id"])
+    ckind = CURRENT.get("kind")
+    cid = CURRENT.get("id")
+    log.info("Cancelling current %s job %s", ckind, cid)
+    CANCELLED.add(cid)
     if CURRENT.get("prompt_id"):
         await ENGINE.cancel(CURRENT["prompt_id"])
     # A corpus song's analysis is one thing to the user: stopping its GPU step stops
     # its vocal separation and lyrics too, instead of leaving them running unseen.
-    if CURRENT.get("kind") in IDENTITY_FIELDS:
-        await stop_song_analysis(CURRENT["id"])
-    return {"kind": CURRENT["kind"], "id": CURRENT["id"]}
+    if ckind in IDENTITY_FIELDS or ckind in ("identity_prep", "persona_prep"):
+        await stop_song_analysis(cid)
+    CURRENT.clear()
+    return {"kind": ckind, "id": cid}
 
 
 # ---------------------------------------------------------------------- identities
@@ -1148,9 +1156,12 @@ async def stop_song_analysis(song_id: str) -> bool:
     if not song:
         return False
     stopped = False
-    if CURRENT_IDENTITY.get("id") == song_id and CURRENT_IDENTITY.get("task"):
-        CURRENT_IDENTITY["stop"].set()
-        CURRENT_IDENTITY["task"].cancel()
+    if CURRENT_IDENTITY.get("id") == song_id:
+        if CURRENT_IDENTITY.get("stop"):
+            CURRENT_IDENTITY["stop"].set()
+        if CURRENT_IDENTITY.get("task"):
+            CURRENT_IDENTITY["task"].cancel()
+        CURRENT_IDENTITY.clear()
         stopped = True
     # Waiting on the CPU lane: the worker skips a song whose steps are no longer queued.
     waiting = {f: "none" for f in ("vocals_state", "lyrics_state") if song[f] == "queued"}
@@ -1170,6 +1181,7 @@ async def stop_song_analysis(song_id: str) -> bool:
             CANCELLED.add(song_id)
             if CURRENT.get("prompt_id"):
                 await ENGINE.cancel(CURRENT["prompt_id"])
+            CURRENT.clear()
             stopped = True
     if stopped:
         log.info("Stopped the analysis of corpus song '%s'", song.get("title") or song_id)
@@ -1872,8 +1884,17 @@ async def run_identity_job(kind: str, song_id: str) -> None:
     folder = Path(song["stored_path"]).parent if song.get("stored_path") else None
     song_title = song.get("title") or song.get("file")
     log.info("Starting %s for corpus song '%s'", kind, song_title)
+    CURRENT.clear()
+    CURRENT.update({
+        "kind": kind,
+        "id": song_id,
+        "prompt_id": None,
+        "started": time.time(),
+        "label": "External LLM" if kind in ("identity_style", "persona_style") and llm.is_external_enabled() else "Analysing",
+    })
     try:
         if kind in ("identity_score", "persona_score"):
+            CURRENT["label"] = "Finding key and tempo"
             source = Path(song["stored_path"])
             staged = await asyncio.to_thread(_without_tags, source, folder)
             abc, how = await _transcribe_corpus_song(kind, song_id, staged, folder)
@@ -1892,6 +1913,7 @@ async def run_identity_job(kind: str, song_id: str) -> None:
             lyrics_text = song.get("lyrics") or ""
             artist = (owner.get("name") or "").strip()
             if llm.is_external_enabled() and not listens:
+                CURRENT["label"] = "External LLM"
                 log.info("Starting external LLM style analysis for corpus song '%s'%s (%s)",
                          title, f" by '{artist}'" if artist else "", song_id)
                 try:
@@ -1906,6 +1928,7 @@ async def run_identity_job(kind: str, song_id: str) -> None:
                     else:
                         raise
             if hint is None:
+                CURRENT["label"] = "Local Gemma"
                 # Gemma is optional (the Windows installer can leave it out).  Without it
                 # the engine cannot run this, and says so only in its own terms.
                 if ENGINE.options_loaded and not ENGINE.options.get("lyrics"):
@@ -1921,8 +1944,9 @@ async def run_identity_job(kind: str, song_id: str) -> None:
                 set_song(song_id, style_hint=hint, style_state="done")
                 log.info("Finished style analysis for corpus song '%s': %s", song_title, hint[:60] + "..." if len(hint) > 60 else hint)
     except Exception as exc:  # noqa: BLE001
-        if song_id in STOPPED_SONGS:
+        if song_id in STOPPED_SONGS or song_id in CANCELLED:
             STOPPED_SONGS.discard(song_id)
+            CANCELLED.discard(song_id)
             log.info("%s for '%s' (%s) stopped", kind, song_title, song_id)
             set_song(song_id, **{field: "none"}, error="stopped")
             return
@@ -1936,6 +1960,9 @@ async def run_identity_job(kind: str, song_id: str) -> None:
                         set_song(song_id, key=song.get("key") or fb_key, tempo=song.get("tempo") or fb_tempo)
             maybe_draft(song_id)
     finally:
+        CURRENT.clear()
+        CANCELLED.discard(song_id)
+        STOPPED_SONGS.discard(song_id)
         # The copies made for the engine are not read again; Settings > Storage can keep them.
         if get_setting("storage.working_copies", "remove") != "keep":
             freed = await asyncio.to_thread(storage.drop_working_copies, folder, song_id)
@@ -2554,6 +2581,13 @@ async def cancel_waiting(kind: str, ref_id: str, whole_song: bool = True) -> boo
         if whole_song:
             await stop_song_analysis(ref_id)
         return True
+    if kind in ("identity_prep", "persona_prep"):
+        song = identity_song(ref_id)
+        if not song or "queued" not in (song.get("vocals_state"), song.get("lyrics_state")):
+            return False
+        await stop_song_analysis(ref_id)
+        log.info("Cancelled waiting corpus prep for '%s'", song.get("title") or ref_id)
+        return True
     if kind == "lyrics":
         record = LYRICS.get(ref_id)
         if not record or record["status"] != "queued":
@@ -2587,8 +2621,8 @@ async def cancel_waiting(kind: str, ref_id: str, whole_song: bool = True) -> boo
 
 def waiting_jobs() -> list[dict]:
     """App jobs not yet sent to the engine, in the order the worker will take them."""
-    # asyncio.Queue keeps its items in a deque; the pictures waiting for the GPU to be free come after everything
-    return list(QUEUE._queue) + [{"kind": "art", "id": take_id} for take_id in ART_WAITING]
+    prep = [{"kind": "identity_prep", "id": item["id"]} for item in IDENTITY_QUEUE._queue]
+    return prep + list(QUEUE._queue) + [{"kind": "art", "id": take_id} for take_id in ART_WAITING]
 
 
 async def wait_for_engine() -> None:
