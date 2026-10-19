@@ -41,16 +41,6 @@ cannot creep back in.
 
 ## 0.0.46 (2026-10-19)
 
-- **Docker update: container rebuild required.** This release replaces the engine's LoRA trainer node (`ComfyUI-YuE2-Trainer`) and adds new python dependencies (`mutagen`, `einops`, `scipy`), so existing Docker installs require a full container rebuild:
-  ```sh
-  git pull && docker compose up -d --build
-  ```
-  Or, running each step separately:
-  ```sh
-  git pull
-  docker compose build
-  docker compose up -d
-  ```
 - **ComfyUI-YuE2-Trainer migration: faster LoRA training, lower memory overhead and configurable pipelines.** The corpus trainer replaces the legacy FS_Audio Suite with ComfyUI-YuE2-Trainer, delivering substantial performance improvements and eight configurable settings under **Settings → YuE2 LoRA Training**:
   - **Training performance & VRAM efficiency:** Audio is processed in fixed 30-second crops with chunked 60-second encoding using native PyTorch scaled dot-product attention, eliminating the quadratic VRAM growth and severe training slowdowns that afflicted longer songs in the legacy trainer.
   - **Drastically lower host RAM consumption:** Default *Compact* acoustic conditioning mode keeps system memory usage under 8 GB (compared to 64 GB+ RAM previously needed for corpora over 30 songs) while accelerating batch preparation and step execution with identical acoustic fidelity.
