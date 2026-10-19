@@ -144,17 +144,18 @@ def test_reanalysing_corpus_styles_queues_all_songs(client):
     corpus_song(id="s-1", title="Song One", vocals_state="done", lyrics_state="done", score_state="done", style_state="done")
     corpus_song(id="s-2", title="Song Two", vocals_state="done", lyrics_state="done", score_state="done", style_state="done")
 
-    # Regular analyse skips completed songs:
-    assert client.post("/api/identities/id-1/analyse").json() == {"queued": 0}
-
-    # Step="style" re-queues style analysis for all songs:
-    res = client.post("/api/identities/id-1/analyse?step=style").json()
+    # A plain analyse call on an already completed corpus automatically re-queues style analysis:
+    res = client.post("/api/identities/id-1/analyse").json()
     assert res == {"queued": 2}
     s1 = one("SELECT style_state FROM identity_songs WHERE id = 's-1'")
     s2 = one("SELECT style_state FROM identity_songs WHERE id = 's-2'")
     assert (s1["style_state"], s2["style_state"]) == ("queued", "queued")
     q_titles = [q["title"] for q in client.get("/api/state").json()["queue"]]
     assert q_titles == ["Style: Song One", "Style: Song Two"]
+
+    # Explicit step="style" also works identically:
+    res = client.post("/api/identities/id-1/analyse?step=style").json()
+    assert res == {"queued": 2}
 
 
 def test_reanalysing_corpus_all_steps_queues_full_pipeline(client):

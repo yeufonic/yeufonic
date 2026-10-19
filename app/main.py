@@ -3713,6 +3713,16 @@ async def analyse_identity(identity_id: str, step: str | None = None, force: boo
                     jobs.set_song(song["id"], **{field: "queued"}, error=None)
                     await QUEUE.put({"kind": kind, "id": song["id"]})
                     queued += 1
+    if queued == 0 and songs and all(all(s[f] == "done" for f in IDENTITY_STEPS) for s in songs):
+        for song in songs:
+            if identities.too_long(song["duration"]):
+                continue
+            jobs.set_song(song["id"], style_state="queued", error=None)
+            await QUEUE.put({"kind": "identity_style", "id": song["id"]})
+            queued += 1
+        log.info("Corpus '%s' was already fully analysed: queued style re-analysis (%d jobs queued)",
+                 identity.get("name") or identity_id, queued)
+        return {"queued": queued}
     log.info("Queued analysis for corpus '%s' (%d jobs queued)", identity.get("name") or identity_id, queued)
     return {"queued": queued}
 
