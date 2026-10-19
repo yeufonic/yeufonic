@@ -318,10 +318,11 @@ are not downloaded again. Deleting that folder removes it.
 - An NVIDIA GPU with 12 GB of VRAM or more is recommended, with 16 GB of system RAM. An 8 GB card
   is worth trying: ComfyUI moves what does not fit into system RAM, so it still works, though
   smaller cards are usually slower chips and renders take longer. Training a LoRA locally needs
-  more: about 12.5 GB of VRAM free while it prepares the songs, so **16 GB of GPU VRAM and 32 GB of
-  system RAM** is the practical minimum (the engine stages the 11.5 GB YuE2 weights and dataset
-  caches in host memory; on WSL2, set `memory=32GB` in `.wslconfig`). An 8 GB card can't train,
-  though it can still use LoRAs trained elsewhere.
+  more: If using BF16 then about 12.5 GB of VRAM free while it prepares the songs, so 16 GB of GPU
+  VRAM and 32 GB of system RAM is the practical minimum (the engine stages the 11.5 GB YuE2 weights
+  and dataset caches in host memory; on WSL2, set `memory=32GB` in `.wslconfig`). An 8 GB card
+  can be used to train LoRAs if you are using the INT8 model. Regardless, you can always use
+  LoRAs that have been trained elsewhere.
 - Docker with the NVIDIA container toolkit, so containers can see the GPU.
 - About 30 GB of disk, more as your library grows.
 - Linux, or Windows with WSL2 or Docker Desktop. WSL2 is what this was built on; Windows with
