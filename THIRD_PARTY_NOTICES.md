@@ -108,10 +108,10 @@ differ, the publisher's terms apply.
   it runs as a separate container that the app talks to over HTTP.
 - Official licence: [ComfyUI LICENSE](https://github.com/comfyanonymous/ComfyUI/blob/master/LICENSE)
 
-### FS_Audio Suite (LoRA training)
+### ComfyUI-YuE2-Trainer (LoRA training)
 
-- By Make the Robot Do It. **CC BY-NC 4.0**, as declared in its `pyproject.toml`.
-  Source: [KytraScript/ComfyUI-FS_Audio_Suite](https://github.com/KytraScript/ComfyUI-FS_Audio_Suite).
+- By speedyrulz. **Apache-2.0**.
+  Source: [speedyrulz/ComfyUI-YuE2-Trainer](https://github.com/speedyrulz/ComfyUI-YuE2-Trainer).
 - It is not part of this repository. `engine/Dockerfile` installs it into the engine at a pinned
   commit (unless built with `WITH_TRAINER=0`), where it trains the style LoRAs made from a corpus.
 

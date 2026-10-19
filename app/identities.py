@@ -29,7 +29,7 @@ AUDIO_TYPES = {".mp3", ".wav", ".flac", ".m4a", ".ogg", ".opus", ".aac", ".aif",
 MIN_SECONDS = 90
 # Longer than any song: most likely a whole album or a side in one file.  Analysing one
 # takes a very long time and a great deal of memory, and it would train as one song.
-MAX_SECONDS = 600
+MAX_SECONDS = 1500
 # A filename that credits someone else ("Ft. Alan Williams on vocals") is not one voice.
 OTHER_SINGER = re.compile(r"\b(ft\.?|feat\.?|featuring|duet|with .+ on vocals)\b", re.I)
 CHUNK_RATE = 16000          # what Gemma's audio encoder takes
@@ -749,8 +749,33 @@ def training_cut(lines: list[dict], sections: list[tuple[str, float]], duration:
             "at_section": bool(ends)}
 
 
-DESCRIBE = ("Describe this music for a music generator as one line of comma-separated tags: "
-            "genre, lead instruments, drums and mood. Output only the tags.")
+DEFAULT_DESCRIBE_INSTRUCTION = (
+    "Describe this music for a music generator as one line of rich, comma-separated tags.\n"
+    "Include specific details across each of these dimensions:\n"
+    "- Specific subgenre and era (avoid generic labels like 'pop' or 'rock')\n"
+    "- Exact lead instruments and playing techniques (e.g. pedal steel, electric piano, acoustic textures, specific synth/guitar timbres)\n"
+    "- Rhythm, drum feel and bass groove (e.g. slow atmospheric groove, punchy acoustic drums, walking bass)\n"
+    "- Vocal delivery and harmonies if present (or state instrumental)\n"
+    "- Production aesthetics and mix character (e.g. analog tape warmth, vintage stereo panning, lush reverb, spacious production)\n"
+    "- Mood and atmosphere\n"
+    "Output ONLY the comma-separated tags on a single line."
+)
+
+DESCRIBE = DEFAULT_DESCRIBE_INSTRUCTION
+
+
+def gemma_style_prompt(title: str = "", artist: str = "", lyrics_text: str = "") -> str:
+    """Build a detailed prompt for Gemma audio-language analysis combining metadata with audio cues."""
+    context = []
+    if title and title.strip():
+        context.append(f"Track: '{title.strip()}'" + (f" by {artist.strip()}" if artist and artist.strip() else ""))
+    elif artist and artist.strip():
+        context.append(f"Artist/Corpus: {artist.strip()}")
+    if lyrics_text and lyrics_text.strip():
+        # First 200 characters of lyrics give strong hints about genre, mood, and era
+        context.append(f"Lyrics snippet:\n{lyrics_text.strip()[:200]}")
+    header = ("\n".join(context) + "\n\n") if context else ""
+    return f"{header}{DEFAULT_DESCRIBE_INSTRUCTION}"
 
 
 # --------------------------------------------------------------- style and export

@@ -19,7 +19,7 @@ on Windows: no Docker, no WSL and no administrator prompt.
      - ComfyUI's own Windows portable build, for its Python and CUDA torch. It takes the CUDA
        13.0 build with driver 580 or later, and the CUDA 12.6 build otherwise.
      - The ComfyUI commit `engine/Dockerfile` pins, in place of the portable's newer one.
-     - FS_Audio Suite.
+     - ComfyUI-YuE2-Trainer.
      - uv, which installs a Python for the app and its packages (CPU torch and demucs, as in
        the app image).
      - ffmpeg and 7-Zip's `7zr.exe`.

@@ -153,8 +153,131 @@ SETTINGS_SPEC: list[dict] = [
         "help": "SoundFont used for high-fidelity MIDI audio rendering and audition in data/models/soundfonts/sf2.",
     },
     {
-        "key": "training.checkpoints",
+        "key": "training.branches",
         "group": "training",
+        "label": "What to train",
+        "type": "select",
+        "default": "both",
+        "options": [
+            {"value": "both", "label": "Full style & sound (Planner + Acoustic)"},
+            {"value": "acoustic", "label": "Voice & sound only (Acoustic decoder only)"},
+            {"value": "planner", "label": "Songwriting & structure only (Score planner only)"},
+        ],
+        "help": "Planner learns song structure, chord progressions and melody (text_encoders); Acoustic learns vocal "
+                "timbre, instruments and mix (diffusion_model). Training both merges them into a single LoRA; choosing "
+                "one skips the other and cuts training time roughly in half.",
+    },
+    {
+        "key": "training.regularization",
+        "group": "training",
+        "label": "Base-model prior preservation",
+        "type": "select",
+        "default": "off",
+        "options": [
+            {"value": "off", "label": "Off (Default) \u2014 pure corpus fitting (no reference score generation)"},
+            {"value": "on", "label": "On (100% of songs) \u2014 protect structure & endings across every prompt"},
+            {"value": "75%", "label": "Sample 75% of corpus prompts"},
+            {"value": "50%", "label": "Sample 50% of corpus prompts \u2014 halves pre-generation time"},
+            {"value": "25%", "label": "Sample 25% of corpus prompts \u2014 fast startup on large corpora"},
+            {"value": "10%", "label": "Sample 10% of corpus prompts \u2014 quick prior anchor"},
+        ],
+        "requires": {"training.branches": ["both", "planner"]},
+        "requires_note": "Only used when training the Planner (Full style & sound, or Songwriting & structure only).",
+        "help": "Generates reference scores from the frozen base model before planner training (cached on disk for "
+                "reuse) and mixes them into training steps so the LoRA keeps natural song endings and phrasing. "
+                "Sampling a percentage of prompts scales naturally with any corpus size, or choose Off to skip.",
+    },
+    {
+        "key": "training.semantic_tokens",
+        "group": "training",
+        "label": "Semantic audio tokens",
+        "type": "select",
+        "default": "off",
+        "options": [
+            {"value": "off", "label": "Off \u2014 ABC score, lyrics & style only"},
+            {"value": "on", "label": "On \u2014 include SheetSage semantic audio tokens"},
+        ],
+        "help": "When on, trains the planner and acoustic decoder on continuous SheetSage semantic audio tokens "
+                "alongside ABC notation to capture micro-timing, vocal inflection and performance nuances that sheet "
+                "music cannot write down. Uses more VRAM and takes longer per step.",
+    },
+    {
+        "key": "training.keep_strategy",
+        "group": "training",
+        "label": "Final weights & overfitting guard",
+        "type": "select",
+        "default": "best_eval",
+        "options": [
+            {"value": "best_eval", "label": "Best validation loss with EMA smoothing"},
+            {"value": "final", "label": "Final step weights (no holdout, 100% of segments)"},
+        ],
+        "help": "Best validation loss holds out validation segments, maintains an Exponential Moving Average (EMA) "
+                "of weights, and saves the lowest-loss snapshot to prevent late-step overfitting on small corpora. "
+                "Final step weights trains on every segment with no holdout and keeps the exact last step.",
+    },
+    {
+        "key": "training.targets",
+        "group": "training",
+        "label": "LoRA target layers",
+        "type": "select",
+        "default": "attention+mlp",
+        "options": [
+            {"value": "attention+mlp", "label": "Attention + MLP layers (full capacity)"},
+            {"value": "attention", "label": "Attention layers only (faster, half file size)"},
+        ],
+        "help": "Attention + MLP adapts both attention routing and feed-forward projections for deeper timbral and "
+                "harmonic learning. Attention only adapts q/k/v/o projections, cutting LoRA file size in half and "
+                "resisting overfitting on very small corpora (1\u20133 songs).",
+    },
+    {
+        "key": "training.conditioning",
+        "group": "training",
+        "label": "Acoustic conditioning mode",
+        "type": "select",
+        "default": "compact",
+        "options": [
+            {"value": "compact", "label": "Compact (Recommended) \u2014 fast style-prefix conditioning (< 8 GB RAM)"},
+            {"value": "inference_like", "label": "Inference-like \u2014 full ABC + lyrics prefix conditioning (high RAM)"},
+        ],
+        "requires": {"training.branches": ["both", "acoustic"]},
+        "requires_note": "Only used when training Acoustic (Voice & sound).",
+        "help": "Compact conditions the acoustic diffusion model on the style prompt prefix (< 8 GB RAM, tested identical "
+                "in audio quality). Inference-like conditions on full ABC and lyrics, pre-computing large KV caches per song "
+                "which requires significant host RAM (64 GB+ recommended for corpora over 30 songs).",
+    },
+    {
+        "key": "training.max_minutes",
+        "group": "training",
+        "label": "Song length limit for training",
+        "type": "select",
+        "default": "auto",
+        "options": [
+            {"value": "auto", "label": "Auto by GPU memory"},
+            {"value": "4", "label": "4 minutes per song"},
+            {"value": "6", "label": "6 minutes per song"},
+            {"value": "8", "label": "8 minutes per song"},
+            {"value": "0", "label": "Full song (no length cut)"},
+        ],
+        "help": "How much of each song is exported, encoded and transcribed for training. Because the trainer encodes "
+                "in 60-second windows and trains on 30-second crops, longer songs no longer run out of VRAM during "
+                "training \u2014 they only take longer to encode the first time.",
+    },
+    {
+        "key": "training.allow_int8",
+        "group": "training",
+        "label": "Low-memory (int8) model training",
+        "type": "select",
+        "default": "off",
+        "options": [
+            {"value": "off", "label": "Off \u2014 require the full-quality (bf16) model"},
+            {"value": "on", "label": "On \u2014 allow training on the low-memory (int8) model"},
+        ],
+        "help": "Lets corpus training run on the quantized int8 checkpoint (< 6 GB VRAM) when the 40 GB full-quality "
+                "bf16 model is not installed. The base model stays int8 while LoRA adapters train in fp32.",
+    },
+    {
+        "key": "training.checkpoints",
+        "section": "storage",
         "label": "Training checkpoints",
         "type": "select",
         # Kept by default: each sounds about as good as the finished LoRA but reads the
@@ -169,7 +292,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "storage.working_copies",
-        "group": "training",
+        "section": "storage",
         "label": "Working copies of corpus songs",
         "type": "select",
         # Removed by default: nothing reads them once a song has been analysed, and a corpus makes about
@@ -185,7 +308,7 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "storage.training_set",
-        "group": "training",
+        "section": "storage",
         "label": "Training sets",
         "type": "select",
         # Kept by default: removing one means pressing Export again before the corpus can train again.
@@ -208,7 +331,7 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "local", "label": "Local Gemma (engine ComfyUI node)"},
             {"value": "external", "label": "External LLM (OpenAI-compatible API)"},
         ],
-        "help": "Choose whether to run local Gemma on GPU or connect to an external LLM (OpenAI, Anthropic, Gemini, Groq, OpenRouter, Ollama, LM Studio). Using external LLM avoids loading Gemma into GPU memory and produces significantly richer lyrics and style descriptions.",
+        "help": "Choose whether to run local Gemma on GPU or connect to an external LLM (OpenAI, Anthropic, Gemini, Groq, OpenRouter, Ollama, LM Studio). Using an external LLM avoids loading Gemma into GPU memory and produces significantly richer lyrics and style descriptions. We recommend choosing a provider without billing applied to the API if available (such as Google Gemini).",
     },
     {
         "key": "llm.api_url",
@@ -244,6 +367,8 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "whisper", "label": "Whisper, on this machine"},
             {"value": "llm", "label": "External LLM"},
         ],
+        # Only meaningful with an external provider.  The sheet greys it out
+        # otherwise, and the job ignores it, so a stale "llm" can do no harm.
         "requires": {"llm.provider": "external"},
         "requires_note": "Choose External LLM as the provider to use this.",
         "help": "The LLM must accept audio, as Gemini does. Whisper still times the lines, and is used instead if the LLM can't hear it.",
@@ -255,11 +380,11 @@ SETTINGS_SPEC: list[dict] = [
         "type": "select",
         "default": "on",
         "options": [
-            {"value": "on", "label": "Search LRCLIB first, verify against Whisper"},
-            {"value": "off", "label": "Off (use Whisper or LLM only)"},
+            {"value": "on", "label": "Look up studio lyrics on LRCLIB first, Whisper as fallback"},
+            {"value": "off", "label": "Off \u2014 always transcribe from audio"},
         ],
-        "help": "When uploading a song or cover, look up official synced or plain lyrics on lrclib.net by artist, title and duration. "
-                "Only accepted if the lyrics match Whisper's transcript (>= 35% overlap); otherwise Whisper's words are kept.",
+        "help": "Queries lrclib.net by song title, artist tag (or 'Artist - Title' filename) and duration to fetch "
+                "verified studio lyrics and timestamps before falling back to Whisper.",
     },
     {
         "key": "art.auto",
@@ -340,6 +465,9 @@ SETTINGS_SPEC: list[dict] = [
         "help": "How the app looks.",
     },
     {
+        # The page behind the takes in a hue of the user's choosing.  Drawn by the page with sliders of its own
+        # (app.js, paintBackdropRow); kept as "on:<hue>:<strength>", or "off:..." to keep the choice while the
+        # tint is off, and empty for none.
         "key": "appearance.backdrop",
         "group": "system",
         "label": "Backdrop colour",
@@ -357,6 +485,8 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "on", "label": "Every 4 hours"},
             {"value": "off", "label": "Do not check"},
         ],
+        # One small request to our own site, and nothing else: worth saying plainly in a
+        # tool whose selling point is that it runs on your own machine.
         "help": "One request every four hours to yeufonic.com, to see whether a newer release is out. "
                 "Nothing else leaves the computer, and Check for updates in the menu works either way.",
     },
@@ -1076,11 +1206,13 @@ def _shorten(text: str, limit: int) -> str:
 
 
 def _job_title(kind: str, ref_id: str) -> str | None:
-    if kind in jobs.IDENTITY_FIELDS:
-        row = one("SELECT title FROM identity_songs WHERE id = ?", (ref_id,))
+    if kind in jobs.IDENTITY_FIELDS or kind in ("identity_prep", "persona_prep"):
+        row = one("SELECT title, file FROM identity_songs WHERE id = ?", (ref_id,))
         label = {"identity_score": "key and tempo", "identity_style": "style",
-                 "persona_score": "key and tempo", "persona_style": "style"}.get(kind, "analysis")
-        return f"{label.capitalize()}: {row['title']}" if row else None
+                 "persona_score": "key and tempo", "persona_style": "style",
+                 "identity_prep": "vocal & lyrics", "persona_prep": "vocal & lyrics"}.get(kind, "analysis")
+        title = (row["title"] or row["file"]) if row else None
+        return f"{label.capitalize()}: {title}" if title else None
     if kind == "lyrics":
         record = LYRICS.get(ref_id)
         return ("Lyrics: " + _shorten(record["brief"], 60)) if record else None
@@ -1122,12 +1254,29 @@ def queue_view() -> list[dict]:
             "since": CURRENT.get("started", now),
             "id": CURRENT["id"],
             "title": _job_title(CURRENT["kind"], CURRENT["id"]),
-            "label": "External LLM",
+            "label": CURRENT.get("label") or "External LLM",
+        })
+    elif not CURRENT.get("id") and jobs.CURRENT_IDENTITY.get("id"):
+        cid = jobs.CURRENT_IDENTITY["id"]
+        items.append({
+            "state": "running",
+            "kind": "identity_prep",
+            "outside": False,
+            "client": None,
+            "since": jobs.CURRENT_IDENTITY.get("started", now),
+            "id": cid,
+            "title": _job_title("identity_prep", cid),
+            "label": jobs.CURRENT_IDENTITY.get("stage") or "Preparing recording",
+            "progress": jobs.CURRENT_IDENTITY.get("progress"),
         })
     for job in jobs.waiting_jobs():
         if job["kind"] in jobs.IDENTITY_FIELDS:
             song = one(f"SELECT {jobs.IDENTITY_FIELDS[job['kind']]} AS status FROM identity_songs WHERE id = ?", (job["id"],))
             row = {"title": _job_title(job["kind"], job["id"]), "status": song["status"]} if song else None
+        elif job["kind"] in ("identity_prep", "persona_prep"):
+            song = one("SELECT vocals_state, lyrics_state FROM identity_songs WHERE id = ?", (job["id"],))
+            status = "queued" if song and ("queued" in (song["vocals_state"], song["lyrics_state"])) else "done"
+            row = {"title": _job_title(job["kind"], job["id"]), "status": status} if song else None
         elif job["kind"] == "lyrics":
             draft = LYRICS.get(job["id"])
             row = {"title": _job_title("lyrics", job["id"]), "status": draft["status"]} if draft else None
@@ -1303,8 +1452,23 @@ def state() -> dict:
             "elapsed": round(time.time() - CURRENT["started"], 1),
             **ENGINE.snapshot(CURRENT.get("prompt_id")),
         }
-        if current.get("stage"):
+        if CURRENT.get("label"):
+            current["label"] = CURRENT["label"]
+        elif current.get("stage"):
             current["label"] = stage_label(current["stage"])
+        current["title"] = _job_title(CURRENT["kind"], CURRENT["id"])
+    elif jobs.CURRENT_IDENTITY.get("id"):
+        cid = jobs.CURRENT_IDENTITY["id"]
+        stg = jobs.CURRENT_IDENTITY.get("stage") or "Preparing recording"
+        current = {
+            "kind": "identity_prep",
+            "id": cid,
+            "title": _job_title("identity_prep", cid),
+            "elapsed": round(time.time() - jobs.CURRENT_IDENTITY.get("started", time.time()), 1),
+            "label": stg,
+            "stage": stg,
+            "progress": jobs.CURRENT_IDENTITY.get("progress"),
+        }
 
     engine_gpu = ENGINE.gpu() if ENGINE.online else None
     return {
@@ -3119,10 +3283,20 @@ _persona = _identity
 
 
 def _train_sizing(identity_id: str) -> dict:
-    """How much of each song a corpus trains on, from the card as it is now."""
+    """How much of each song a corpus trains on, from the card as it is now (or Settings)."""
     durations = [r["duration"] for r in rows(
         "SELECT duration FROM identity_songs WHERE identity_id = ? AND include = 1", (identity_id,))]
-    return trainsize.for_corpus(durations, ENGINE.gpu())
+    base = trainsize.for_corpus(durations, ENGINE.gpu())
+    chosen = setting_value("training.max_minutes")
+    if chosen and chosen != "auto":
+        try:
+            mins = float(chosen)
+            if mins <= 0:
+                return {**base, "minutes": 60.0, "reason": "full songs (no length cut, from Settings)"}
+            return {**base, "minutes": mins, "reason": f"up to {mins:g} minutes per song (from Settings)"}
+        except ValueError:
+            pass
+    return base
 
 
 def _training_cut(song: dict, limit: float) -> dict | None:
@@ -3160,6 +3334,8 @@ def _identity_view(identity: dict) -> dict:
             song["flag"] = song["flag"] or identities.TOO_LONG
             found = identities.cue_for(_song_source(identity, song))
             song["cue"] = {"file": found["cue"], "tracks": len(found["tracks"])} if found else None
+        elif song.get("flag") and "longer than" in song["flag"]:
+            song["flag"] = None
     chosen = [s for s in songs if s["include"]]
     busy = any(s[f] in ("queued", "running") for s in songs for f in IDENTITY_STEPS)
     return {**identity, "vocalless": identities.vocalless(identity["voice"]), "songs": songs, "busy": busy,
@@ -3487,12 +3663,43 @@ async def regenerate_song_style(identity_id: str, song_id: str) -> dict:
 
 @app.post("/api/identities/{identity_id}/analyse")
 @app.post("/api/personas/{identity_id}/analyse", include_in_schema=False)
-async def analyse_identity(identity_id: str) -> dict:
+async def analyse_identity(identity_id: str, step: str | None = None, force: bool = False) -> dict:
     """Queue every step not yet done for each included song.  Safe to press again:
-    finished steps are kept, failed ones are tried again."""
+    finished steps are kept, failed ones are tried again.
+
+    - step="style": re-queues style analysis for all included songs with the latest prompts.
+    - step="all" or force=True: re-queues all steps from scratch.
+    """
     identity = _identity(identity_id)
     queued = 0
-    for song in rows("SELECT * FROM identity_songs WHERE identity_id = ? AND include = 1 ORDER BY position", (identity_id,)):
+    songs = rows("SELECT * FROM identity_songs WHERE identity_id = ? AND include = 1 ORDER BY position", (identity_id,))
+
+    if step == "style":
+        for song in songs:
+            if identities.too_long(song["duration"]):
+                continue
+            jobs.set_song(song["id"], style_state="queued", error=None)
+            await QUEUE.put({"kind": "identity_style", "id": song["id"]})
+            queued += 1
+        log.info("Queued style analysis for corpus '%s' (%d jobs queued)", identity.get("name") or identity_id, queued)
+        return {"queued": queued}
+
+    if step == "all" or force:
+        for song in songs:
+            if identities.too_long(song["duration"]):
+                continue
+            jobs.set_song(song["id"], vocals_state="queued", lyrics_state="queued",
+                          score_state="queued", style_state="queued", error=None)
+            await jobs.IDENTITY_QUEUE.put({"id": song["id"]})
+            queued += 1
+            await QUEUE.put({"kind": "identity_score", "id": song["id"]})
+            queued += 1
+            await QUEUE.put({"kind": "identity_style", "id": song["id"]})
+            queued += 1
+        log.info("Queued full re-analysis for corpus '%s' (%d jobs queued)", identity.get("name") or identity_id, queued)
+        return {"queued": queued}
+
+    for song in songs:
         if identities.too_long(song["duration"]):
             continue
         cpu = {f: "queued" for f in ("vocals_state", "lyrics_state") if song[f] in ("none", "failed")}
@@ -3506,6 +3713,16 @@ async def analyse_identity(identity_id: str) -> dict:
                     jobs.set_song(song["id"], **{field: "queued"}, error=None)
                     await QUEUE.put({"kind": kind, "id": song["id"]})
                     queued += 1
+    if queued == 0 and songs and all(all(s[f] == "done" for f in IDENTITY_STEPS) for s in songs):
+        for song in songs:
+            if identities.too_long(song["duration"]):
+                continue
+            jobs.set_song(song["id"], style_state="queued", error=None)
+            await QUEUE.put({"kind": "identity_style", "id": song["id"]})
+            queued += 1
+        log.info("Corpus '%s' was already fully analysed: queued style re-analysis (%d jobs queued)",
+                 identity.get("name") or identity_id, queued)
+        return {"queued": queued}
     log.info("Queued analysis for corpus '%s' (%d jobs queued)", identity.get("name") or identity_id, queued)
     return {"queued": queued}
 
@@ -3844,9 +4061,11 @@ async def train_identity(identity_id: str, body: TrainIn | None = None) -> dict:
     runs, and shows it on the main screen with a stop button."""
     _training_built_in()
     identity = _identity(identity_id)
-    if ENGINE.options_loaded and config.TRAIN_CHECKPOINT not in (ENGINE.options.get("checkpoints") or []):
+    allow_int8 = setting_value("training.allow_int8") == "on"
+    if ENGINE.options_loaded and not allow_int8 and config.TRAIN_CHECKPOINT not in (ENGINE.options.get("checkpoints") or []):
         raise HTTPException(400, "Training learns from the full-quality model, and this install has the "
-                                 "low-memory one. Run the installer again and choose full quality, or "
+                                 "low-memory one. Turn on low-memory model training in Settings, or run "
+                                 "the installer again and choose full quality, or "
                                  "scripts/fetch-models.sh for Docker.")
     if _training_run():
         raise HTTPException(409, "A LoRA is already training.")
@@ -4009,7 +4228,20 @@ async def _export(identity: dict, view: dict, chosen: list[dict]) -> dict:
                      " (the end of a section)" if cut["at_section"] else "")
         await asyncio.to_thread(subprocess.run, [*command, str(dest / f"{name}.flac")], check=True, timeout=600)
         (dest / f"{name}.lyrics.txt").write_text(lyrics_content + "\n", encoding="utf-8")
+        (dest / f"{name}.style.txt").write_text(song["caption"] + "\n", encoding="utf-8")
         (dest / f"{name}.txt").write_text(song["caption"] + "\n", encoding="utf-8")
+        meta = {
+            "title": song["title"],
+            "style": song["caption"],
+            "lyrics": lyrics_content,
+            "key": song.get("key"),
+            "tempo": song.get("tempo"),
+        }
+        (dest / f"{name}.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        score_file = Path(song["stored_path"]).parent / "score.abc"
+        if score_file.is_file():
+            with contextlib.suppress(Exception):
+                shutil.copyfile(score_file, dest / f"{name}.abc")
         written.append(song["title"])
         if not song["lyrics_checked"] and not identities.vocalless(identity["voice"]):
             unchecked.append(song["title"])

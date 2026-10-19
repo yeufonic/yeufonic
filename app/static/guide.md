@@ -114,7 +114,7 @@ Once the box has words, the lyrics are what is sung and the structure steps asid
 **Write lyrics**, beside the lyrics box, asks what the song is about and writes words for the sections you built.
 **Lines in a verse or chorus** sets how long each is: more lines in a section make a longer song, because the
 planner writes about as much music as there are words. The Style above sets the mood. Gemma writes the draft on the same
-engine, and it lands in the box with a title if you had not given one. The window closes as soon as the draft starts, and the progress shows beside the lyrics box.
+engine, and it lands in the box with a title if you had not given one; an [external LLM](#external-llm) can write them instead, configured in Settings. The window closes as soon as the draft starts, and the progress shows beside the lyrics box.
 The lyrics editor's buttons add any of these sections too, along with voice cues (+ Male, + Female, + Both).
 
 **How the lines sound** sets the rhythm and rhyme the writer aims for. *Natural* (the default) mixes short and long
@@ -713,7 +713,7 @@ each other in the last chorus. It listens to the whole vocal: it used to skip wh
 detector took for silence, which on sung vocals was most of the song. Read the draft and fix what it
 misheard, especially where voices overlap.
 
-**Letting an external LLM listen.** If an external LLM is your provider, Settings has a choice under
+**Letting an external LLM listen.** If an [external LLM](#external-llm) is your provider, Settings has a choice under
 *Lyrics from a recording*. Set it to **External LLM** and the separated vocal is sent to the model to
 hear the words, while Whisper still works out when each line is sung. On the same two songs Gemini
 got **1.5% and 23%**, so the two are close; try both on a song Whisper struggles with. It needs a
@@ -811,7 +811,8 @@ artist, one genre, or a few similar artists.
 Open **Corpora** from the menu. It is on by default; `TRAINING_ENABLED=0` for the app, or an
 engine built with `WITH_TRAINER=0`, takes it out.
 
-Training is the most demanding thing the app does: a 16 GB card is the practical minimum.
+Training is the most demanding thing the app does: a 16 GB graphics card and 32 GB of system RAM
+(on WSL2, `memory=32GB` in `.wslconfig`) is the practical minimum.
 
 1. **New corpus.** Give it a name and a **trigger word**, say whether the voice is male or female
    (**none** for songs without vocals: see below), describe the sound shared by every song, and open the folder that holds the songs. Confirm you
@@ -825,18 +826,10 @@ Training is the most demanding thing the app does: a 16 GB card is the practical
    A LoRA trained this way may write notes in the Vocal part of a plan, which makes a render sing or hum;
    a plan's "may sing" warning shows it. Changing the Voice of a corpus already analysed changes its
    lyrics to match.
-2. **Choose the songs.** Untick any you want left out. A recording longer than 10 minutes is
-   left out, since it is most likely a whole album in one file. If a `.cue` sheet sits beside it,
-   **Split into tracks** cuts it into its songs, which take its place in the corpus. The tracks go
-   in the app's own folder; yours is not changed.
-3. **Analyse.** Each song's vocal is separated, its key, tempo and sections are found, and its
-   lyrics are drafted, tagged by section. With an external LLM set in Settings, the sections are
-   marked from the words as heard: choruses by their words coming back, new sections by the
-   pauses. Only the lines and their timings are sent, and the words and their order are never
-   changed. Without one, or if its answer does not hold every line, the tags come from the music
-   analysis. **Redraft**, beside Save in a song's review, marks the sections again the same way
-   without hearing the song again, for a song drafted before, and replaces what is in the box. A line under the buttons says what is running, and
-   **Stop** ends it. Finished steps are kept, so **Analyse** carries on from where it stopped.
+2. **Choose the songs.** Untick any you want left out. When a song is prepared, the app keeps its own copy of the full recording in internal corpus storage, so a corpus remains intact even if its source folder is later cleared or moved. A recording longer than 25 minutes is left out, since it is most likely a whole album or concert in one file. If a `.cue` sheet sits beside it, **Split into tracks** cuts it into its songs, which take its place in the corpus. The tracks go in the app's own folder; yours is not changed. (Songs longer than the trainer's GPU limit, such as 15-minute tracks, are safely cut and faded at a musical section boundary when exported.)
+3. **Analyse.** Each song's vocal is separated, its key, tempo and sections are found, and its lyrics are drafted, tagged by section. With an external LLM set in Settings, the sections are marked from the words as heard: choruses by their words coming back, new sections by the pauses. Only the lines and their timings are sent, and the words and their order are never changed. Without one, or if its answer does not hold every line, the tags come from the music analysis. **Redraft**, beside Save in a song's review, marks the sections again the same way without hearing the song again, for a song drafted before, and replaces what is in the box. A line under the buttons says what is running, and active analysis appears in the main screen's job card and queue. **Stop** ends it. Finished steps are kept, so **Analyse** carries on from where it stopped.
+
+   **Re-analysing.** Once every song is analysed, the button shows **Analysed ✓**. Clicking it asks if you want to re-analyse style suggestions for all songs with the latest prompts and LLM settings (convenient after renaming a corpus or changing providers). Shift-clicking **Analysed ✓** offers a complete re-analysis from scratch (re-running stem separation, key, tempo, transcription and styles). Individual songs can also be re-styled with **Re-analyse** in each song's review.
 4. **Review.** Open a song to check its lyrics and tick **checked**, and to describe its sound
    where it differs from the rest. The style caption shows what the trainer will read.
 5. **Export training set.** Writes the audio, lyrics and caption for each song. A line under the
@@ -852,9 +845,11 @@ Training is the most demanding thing the app does: a 16 GB card is the practical
    the LoRA from the last run under a dated name, in **Previous runs**, or deletes it, as you
    choose.
    Training needs at least about 12.5 GB of GPU memory (at a 3½ minute cut; a longer cut takes
-   more), most of it while it prepares the songs, so a 16 GB card is the practical minimum; a smaller one, such as 8 GB, can't train, though it can
-   still use LoRAs trained elsewhere (**Install a LoRA**). The Train window warns when less than
-   that is free, so close anything else using the GPU first.
+   more), most of it while it prepares the songs, so a 16 GB card is the practical minimum, along
+   with 32 GB of system RAM (ComfyUI stages the full YuE2 weights and dataset caches in host memory;
+   on WSL2, set `memory=32GB` in `.wslconfig`). A smaller card, such as 8 GB, can't train, though it
+   can still use LoRAs trained elsewhere (**Install a LoRA**). The Train window warns when less GPU
+   or system memory is available, so close anything else using the GPU first.
 
 ### A run that ends early
 
@@ -1187,7 +1182,7 @@ Pictures need something that can draw. There are two, and you can have either, b
   `docker compose restart app` so it finds them.
 
 **To draw with an external LLM,** open Settings and set **LLM for writing lyrics & style tags** to the
-external LLM, with its **API URL**, **API Key** and **Model**, as for lyrics. The provider must have an image
+[external LLM](#external-llm), with its **API URL**, **API Key** and **Model**, as for lyrics. The provider must have an image
 model: Gemini does (`gemini-3.1-flash-image` is used unless you name another), and an OpenAI-compatible
 provider is asked for `gpt-image-1`. The app asks the provider for its list of models, in the background,
 when the app starts, when these settings change and every few hours, and draws there only once the list
@@ -1345,6 +1340,25 @@ meter windows and readouts keep the dark look of the hardware.
 move **Hue** round the colour wheel and **Strength** from a faint wash to a rich colour. The page changes as you
 drag, and the choice is kept when you let go. The take cards, the panels and the windows keep their own
 colours, and the high contrast theme stays black.
+
+### External LLM
+
+Yeufonic can write lyric drafts, transcribe recordings, mark song sections, and analyse corpus styles using an external LLM rather than the local Gemma model.
+
+Using an external LLM has two clear benefits:
+- **Saves GPU memory:** It avoids loading the Gemma 4 model into GPU VRAM (saving roughly 8 GB of video memory), leaving your graphics card entirely free for YuE2 audio planning and rendering.
+- **Richer drafts and analysis:** Larger cloud models often draft more nuanced lyrics and produce detailed style tags for your corpora.
+
+**Recommended provider:** We recommend choosing an external LLM provider that does not have billing applied to the API if that is available to you — **Google Gemini** is a good example to use. Gemini's API (via Google AI Studio) offers a generous free tier with no billing required, supports standard OpenAI-compatible endpoints (`https://generativelanguage.googleapis.com/v1beta/openai/`), and accepts audio directly for recording transcription.
+
+If you use a metered or pay-per-token API (such as paid tiers of OpenAI or Anthropic), analysing an entire corpus with dozens of songs or generating descriptions for many takes can quickly consume API credits or trigger spending limits. If an external API returns a quota or rate limit error (HTTP 429), Yeufonic displays an alert and lets you switch to local models for the remainder of your session so other jobs continue uninterrupted. Using a provider without billing applied avoids unexpected costs.
+
+**Setting it up:**
+1. Open **Yeufonic → Settings → External LLM & Lyrics**.
+2. Set **LLM for writing lyrics & style tags** to **External LLM (OpenAI-compatible API)**.
+3. Enter your provider's **API URL**, **API Key**, and **Model** (for example, model `gemini-2.5-flash` or `gemini-1.5-flash` with the Google Gemini OpenAI-compatible base URL `https://generativelanguage.googleapis.com/v1beta/openai/`).
+4. Click **Test LLM Connection** to verify your credentials.
+5. If your chosen model supports audio input (like Gemini), you can also set **Lyrics from a recording** to **External LLM** to have it listen to separated vocals.
 
 ---
 

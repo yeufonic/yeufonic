@@ -974,11 +974,8 @@ function paintStyleLoraNote() {
     if (loraTrainedHere(item.name)) {
       parts.push('<b>Sound texture:</b> Sound strength around <b>~0.55–0.60</b> applies the corpus acoustic texture cleanly.');
     }
-  } else if (loraTrainedHere(item.name) && !item.strengths) {
-    // General advice, until the LoRA has strengths of its own.
-    parts.push(State.mode === 'cover'
-      ? '<b>In a cover</b>, keep Sound near 0.50: your recording sets the tune.'
-      : '<b>Trained from a corpus:</b> up to about 0.70 / 0.70, with Plan variety Calm or Normal.');
+  } else if (loraTrainedHere(item.name) && !item.strengths && State.mode === 'cover') {
+    parts.push('<b>In a cover</b>, keep Sound near 0.50: your recording sets the tune.');
   }
   hint.innerHTML = parts.join('<br>');
 }
@@ -3050,7 +3047,8 @@ function refreshTitleHint() {
 }
 
 var JOB_KINDS = { render: 'Render', plan: 'Score plan', transcribe: 'Transcription', separate: 'Stem separation', hear: 'Lyric hearing', lyrics: 'Lyrics', text: 'Text generation', train: 'LoRA training', other: 'Engine job',
-  identity_score: 'Corpus analysis', identity_style: 'Corpus analysis', persona_score: 'Corpus analysis', persona_style: 'Corpus analysis' };
+  identity_score: 'Corpus analysis', identity_style: 'Corpus analysis', persona_score: 'Corpus analysis', persona_style: 'Corpus analysis',
+  identity_prep: 'Corpus prep', persona_prep: 'Corpus prep' };
 
 /* While a LoRA trains it holds the GPU — 12.5 GB of 16, measured — so everything
    else that would ask for the card is disabled rather than left to fail. The server
@@ -3336,7 +3334,8 @@ function paintJob(current, queue, options) {
   var mineRunning = current && head && !head.outside && head.id === current.id;
   var titles = { render: 'Rendering your song', plan: 'Writing the score plan', transcribe: 'Transcribing the recording',
     lyrics: 'Writing lyrics', train: 'Training the LoRA', identity_score: 'Analysing a corpus song',
-    identity_style: 'Analysing a corpus song', persona_score: 'Analysing a corpus song', persona_style: 'Analysing a corpus song' };
+    identity_style: 'Analysing a corpus song', persona_score: 'Analysing a corpus song', persona_style: 'Analysing a corpus song',
+    identity_prep: 'Preparing corpus song', persona_prep: 'Preparing corpus song' };
   // Only the render has an average, measured from this machine's own history.
   // The others show the time they have taken and claim nothing about the rest.
   var average = function (kind) {
@@ -3352,12 +3351,12 @@ function paintJob(current, queue, options) {
   $('job-stop').style.display = current ? '' : 'none';
   if (current && (mineRunning || !head)) {
     rest = head ? queue.slice(1) : queue.filter(function (item) { return item.id !== current.id; });
-    $('job-title').textContent = (titles[current.kind] || 'Working') + (head && head.title ? ': ' + head.title : '');
+    $('job-title').textContent = (titles[current.kind] || 'Working') + (head && head.title ? ': ' + head.title : (current.title ? ': ' + current.title : ''));
     var avg = average(current.kind);
     var eta = avg > 0 ? Math.max(0, avg - (current.elapsed || 0)) : 0;
     $('job-time').textContent = secs(current.elapsed) + (eta ? ' / about ' + secs(avg) : '');
     $('job-bar').style.width = Math.max(3, Math.round((current.progress || 0) * 100)) + '%';
-    var label = head ? (current.label || 'Starting') : 'Waiting for the engine';
+    var label = current.label || (head ? 'Starting' : 'Waiting for the engine');
     if (current.value && current.max) { label += ' \u00b7 ' + current.value + '/' + current.max; }
     $('job-stage').textContent = label;
   } else if (head) {
@@ -10399,7 +10398,24 @@ async function identityClick(event) {
   }
   if (target.closest('#identity-analyse') || target.closest('#persona-analyse')) {
     try {
-      var queued = await api('/api/identities/' + IDENTITY.id + '/analyse', { method: 'POST' });
+      var sum = (IDENTITY.data && IDENTITY.data.summary) || {};
+      var isAnalysed = (sum.included || 0) > 0 && (sum.analysed || 0) >= (sum.included || 0);
+      var query = '';
+      if (isAnalysed) {
+        var isShift = Boolean(event && event.shiftKey);
+        var msg = isShift
+          ? 'Re-analyse all ' + sum.included + ' songs from scratch?\n\nThis will re-run stem separation, chords/key, transcription and style analysis.'
+          : 'All ' + sum.included + ' songs in this corpus are already analysed.\n\nRe-analyse style suggestions for all songs with the latest prompts?';
+        var ok = await confirmModal({
+          title: isShift ? 'Re-analyse entire corpus' : 'Re-analyse styles',
+          message: msg,
+          confirmText: isShift ? 'Re-analyse all' : 'Re-analyse styles',
+          cancelText: 'Cancel'
+        });
+        if (!ok) { return; }
+        query = isShift ? '?step=all' : '?step=style';
+      }
+      var queued = await api('/api/identities/' + IDENTITY.id + '/analyse' + query, { method: 'POST' });
       if (status) {
         status.textContent = queued.queued ? 'Queued ' + queued.queued + ' step' + (queued.queued === 1 ? '' : 's') + '. It carries on if you close this window.'
           : 'Nothing left to analyse.';
@@ -13990,7 +14006,7 @@ function wire() {
   });
 
   $('job-stop').addEventListener('click', function () {
-    api('/api/jobs/current/cancel', { method: 'POST' }).then(loadTakes).catch(function (err) {
+    api('/api/jobs/current/cancel', { method: 'POST' }).then(function () { loadTakes(); pollState(); }).catch(function (err) {
       statusLine('Could not stop the job: ' + err.message, 'bad');
     });
   });

@@ -32,24 +32,24 @@ RUN pip install "torch==2.9.*" "torchvision==0.24.*" "torchaudio==2.9.*" \
     && pip install -r requirements.txt
 
 # LoRA training, so a corpus built in the app can be trained from it.
-# Dual-branch training using ComfyUI-FS_Audio_Suite (joint planner LoRA and decoder LoRA).
+# Dual-branch training using ComfyUI-YuE2-Trainer (planner LoRA and acoustic LoRA).
 # Standalone: applies to ComfyUI's own YuE2 weights; no other checkpoint is downloaded.
 # Pinned to the commit this was tested against.
 #
-# librosa, scipy and soundfile are required for audio tokenization and latent storage.
+# librosa, scipy, soundfile and mutagen are required for dataset encoding and training.
 #
 # Built in by default.  --build-arg WITH_TRAINER=0 leaves it out, and the app then
 # hides Corpora and training.
 ARG WITH_TRAINER=1
-ARG FS_AUDIO_REF=26fe2e91d20ebf3531cf053c0c654fd3b849e5de
+ARG YUE2_TRAINER_REF=6a9355efff60589d93b41b569676f09d5db85d09
 RUN if [ "${WITH_TRAINER}" = "1" ]; then \
-        git clone --quiet https://github.com/KytraScript/ComfyUI-FS_Audio_Suite.git \
-            /app/custom_nodes/ComfyUI-FS_Audio_Suite \
-        && git -C /app/custom_nodes/ComfyUI-FS_Audio_Suite checkout --quiet ${FS_AUDIO_REF} \
-        && rm -rf /app/custom_nodes/ComfyUI-FS_Audio_Suite/.git \
-        && sed -i 's/scale": "1.0 (no alpha)".*})/&; os.chmod(path, 0o644)/' \
-            /app/custom_nodes/ComfyUI-FS_Audio_Suite/fs_train/artist.py \
-        && pip install "soundfile>=0.12" "librosa>=0.10" "scipy"; \
+        git clone --quiet https://github.com/speedyrulz/ComfyUI-YuE2-Trainer.git \
+            /app/custom_nodes/ComfyUI-YuE2-Trainer \
+        && git -C /app/custom_nodes/ComfyUI-YuE2-Trainer checkout --quiet ${YUE2_TRAINER_REF} \
+        && rm -rf /app/custom_nodes/ComfyUI-YuE2-Trainer/.git \
+        && sed -i 's/safetensors\.torch\.save_file(lora_sd, str(path), metadata=meta)/&; import os; os.chmod(str(path), 0o644)/' \
+            /app/custom_nodes/ComfyUI-YuE2-Trainer/yue2_trainer/lora.py \
+        && pip install "soundfile>=0.12" "librosa>=0.10" "scipy" "mutagen" "einops"; \
     else \
         echo "trainer left out (WITH_TRAINER=0)"; \
     fi

@@ -38,7 +38,7 @@ def album_folder(tmp_path, monkeypatch):
     folder = root / "Albums"
     folder.mkdir(parents=True)
     monkeypatch.setattr(config, "IMPORT_ROOTS", [str(root)])
-    tone(folder / "Album.flac", 610)
+    tone(folder / "Album.flac", 1600)
     (folder / "Album.cue").write_text(CUE, encoding="utf-8")
     tone(folder / "A Single.flac", 100)
     return folder
@@ -52,10 +52,10 @@ def test_a_cue_sheet_is_read_for_its_tracks():
     assert [t["performer"] for t in entry["tracks"]] == ["The Band", "Someone Else", "The Band"]
 
 
-def test_a_recording_longer_than_ten_minutes_is_flagged_and_its_cue_found(tmp_path, monkeypatch):
+def test_a_recording_longer_than_limit_is_flagged_and_its_cue_found(tmp_path, monkeypatch):
     folder = album_folder(tmp_path, monkeypatch)
     found = {s["file"]: s for s in identities.scan(folder)}
-    assert (found["Album.flac"]["include"], found["Album.flac"]["flag"]) == (False, "longer than 10 minutes")
+    assert (found["Album.flac"]["include"], found["Album.flac"]["flag"]) == (False, identities.TOO_LONG)
     assert found["A Single.flac"]["include"]
     # The sheet names Album.wav: an album converted to FLAC after it was ripped.
     assert len(identities.cue_for(folder / "Album.flac")["tracks"]) == 3
@@ -79,7 +79,7 @@ def test_an_album_is_split_into_songs_in_its_place(client, tmp_path, monkeypatch
     titles = [s["title"] for s in view["songs"]]
     assert titles == ["A Single", "First Song", "Second Song", "Third Song"]     # in the album's place
     tracks = [s for s in view["songs"] if s["title"] != "A Single"]
-    assert [round(s["duration"]) for s in tracks] == [200, 200, 210]
+    assert [round(s["duration"]) for s in tracks] == [200, 200, 1200]
     assert all(s["include"] and not s["too_long"] for s in tracks)
     for track in tracks:
         path = Path(track["file"])
@@ -96,7 +96,7 @@ def test_a_too_long_song_is_never_separated(tmp_path, monkeypatch):
     execute("""INSERT INTO identities(id, name, trigger_word, folder, consent, created_at)
                VALUES('c1', 'Band', 'band', ?, 1, 0)""", (str(folder),))
     execute("""INSERT INTO identity_songs(id, identity_id, file, title, sha256, duration, include, vocals_state, lyrics_state, position)
-               VALUES('s1', 'c1', 'Album.flac', 'Album', 'x', 610, 1, 'queued', 'queued', 0)""")
+               VALUES('s1', 'c1', 'Album.flac', 'Album', 'x', 1600, 1, 'queued', 'queued', 0)""")
     asyncio.run(jobs.prepare_song("s1"))
     row = one("SELECT * FROM identity_songs WHERE id = 's1'")
     assert (row["vocals_state"], row["lyrics_state"], row["stored_path"]) == ("none", "none", None)
@@ -203,9 +203,8 @@ def test_a_track_is_linked_into_its_song_not_copied(tmp_path):
     assert kept.stat().st_ino != own.stat().st_ino and own.stat().st_nlink == 1
 
 
-def test_style_analysis_sends_the_title_and_words_never_an_artist(tmp_path, monkeypatch):
-    """The corpus name is whatever the folder was called, and a model can read it as
-    an unrelated band.  A file's artist tag is not sent either."""
+def test_style_analysis_sends_the_title_artist_and_words(tmp_path, monkeypatch):
+    """The corpus name is sent as the artist context, along with title and lyrics."""
     import subprocess
     from app import llm
     song = tmp_path / "song.flac"
@@ -223,7 +222,7 @@ def test_style_analysis_sends_the_title_and_words_never_an_artist(tmp_path, monk
     monkeypatch.setattr(llm, "is_external_enabled", lambda: True)
     monkeypatch.setattr(llm, "describe_song_style", describe)
     asyncio.run(jobs.run_identity_job("identity_style", "s1"))
-    assert asked == {"title": "First Song", "lyrics_text": "Paper boats on the river"}
+    assert asked == {"title": "First Song", "artist": "mycorpus", "lyrics_text": "Paper boats on the river"}
     assert one("SELECT style_state FROM identity_songs WHERE id = 's1'")["style_state"] == "done"
 
 

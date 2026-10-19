@@ -70,3 +70,14 @@ def test_the_settings_win_over_the_card(monkeypatch):
     # Unreadable card, and auto: the default.
     monkeypatch.setattr(config, "TRAIN_MINUTES_AUTO", True)
     assert trainsize.for_corpus(LONG, None)["minutes"] == trainsize.FLOOR_MINUTES
+
+
+def test_system_ram_is_checked_against_the_32_gb_recommendation():
+    low_ram = {**card(14.7), "ram_total": 24 * GB}
+    plenty_ram = {**card(14.7), "ram_total": 31 * GB}
+    assert trainsize.choose(low_ram, LONG)["ram_tight"] is True
+    assert trainsize.choose(low_ram, LONG)["ram_gb"] == 24.0
+    assert trainsize.choose(plenty_ram, LONG)["ram_tight"] is False
+    assert trainsize.for_corpus(LONG, low_ram)["ram_tight"] is True
+    assert trainsize.for_corpus(LONG, plenty_ram)["ram_tight"] is False
+

@@ -181,32 +181,21 @@ STEMS_ON_GPU = os.environ.get("STEMS_ON_GPU", "1") != "0"
 # engine built with --build-arg WITH_TRAINER=0 leaves out the trainer node pack; the
 # app offers training only when both are in.
 #
-# Dual-branch training uses ComfyUI-FS_Audio_Suite (FSAudioArtistTrainer):
-# trains the planner LoRA (what they write) and the decoder LoRA (how they sound)
-# in one joint loop, exported as one file that applies to both halves.
-# Evaluated against reference convergence targets (blgr_rhodope): artist loss ~4.635,
-# regularizer loss ~3.576, decoder flow loss ~1.069.
+# Dual-branch training uses ComfyUI-YuE2-Trainer (YuE2TrainerPlannerLoRA & YuE2TrainerAcousticLoRA):
+# trains the planner LoRA (what they write) and the acoustic LoRA (how they sound),
+# merged into one canonical file that applies to both halves via LoraLoader.
 TRAINING_ENABLED = os.environ.get("TRAINING_ENABLED", "1").strip().lower() in ("1", "true", "yes", "on")
 
-# Dual-branch training parameters, following the trainer's own guidance and the
-# published LoRAs made with it (blgr, mltnt, cnzn, chnsn, qwwl, drksf).  Those ran
-# 300-500 planner steps over two songs a step, with the score never put in front,
-# and their authors picked a checkpoint by ear.  A fixed 600 steps of one song a step,
-# whatever the corpus, means many passes over a small one: the planner memorises, and
-# the decoder -- conditioned on that drifting planner, with one update a step -- gets
-# worse throughout.
+# Dual-branch training parameters, following the trainer's guidance:
+# The planner trains on ABC scores and style/lyrics with structured cropping and
+# prior preservation, while the acoustic model trains on 30s segmented latent crops.
 #
 # Planner steps come from the corpus size: TRAIN_PASSES over each song, the rule of
 # thumb in the trainer (steps x batch_songs x artist_fraction / songs), rounded up to
-# a checkpoint, and never fewer than TRAIN_MIN_STEPS.  TRAIN_STEPS, when set,
+# a checkpoint, and never fewer than TRAIN_MIN_STEPS. TRAIN_STEPS, when set,
 # overrides it for every run.
 #
-# The floor is there because the passes alone starve a small corpus: its planner is
-# still learning fast when they run out.  The checkpoints are kept, so a run that goes
-# on too long can be heard back to an earlier step with Checkpoints.
-# A take whose average level is below this is flagged as probably spoiled. Across the
-# library the median is about -18 dB; the three renders heard as badly distorted
-# came out at -28 to -34, all of them covers through a corpus LoRA.
+# The checkpoints are kept, so a run can be evaluated at earlier steps.
 WEAK_RENDER_DB = float(os.environ.get("WEAK_RENDER_DB", "-24"))
 
 TRAIN_PASSES = float(os.environ.get("TRAIN_PASSES", "10"))
@@ -243,7 +232,7 @@ _MINUTES = os.environ.get("TRAIN_MAX_MINUTES", "auto").strip().lower()
 _TOKENS = os.environ.get("TRAIN_MAX_TOKENS", "auto").strip().lower()
 TRAIN_MINUTES_AUTO = _MINUTES in ("", "auto")
 TRAIN_TOKENS_AUTO = _TOKENS in ("", "auto")
-TRAIN_MAX_MINUTES = 3.5 if TRAIN_MINUTES_AUTO else float(_MINUTES)
+TRAIN_MAX_MINUTES = 6.0 if TRAIN_MINUTES_AUTO else float(_MINUTES)
 TRAIN_MAX_TOKENS = 8192 if TRAIN_TOKENS_AUTO else int(_TOKENS)
 # The length cap a new take starts with, in seconds, until Settings says otherwise.  A cap is a firm
 # limit, not a target: a render usually ends by itself, and a planned take's cap rises to fit its plan

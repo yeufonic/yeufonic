@@ -228,14 +228,6 @@ else
   echo "      itself, so it has Whisper already. To fetch it here instead: sudo chown -R $(id -u):$(id -g) models/whisper" >&2
 fi
 
-# The trainer lists the tokenizer head from models/fs_audio; the rest of the app reads it from audio_encoders.
-# It has to be in both, or training is refused ("tokenizer_head ... not in ['(run FS_Audio Training Assets first)']").
-if [ -s "$ROOT/models/audio_encoders/tokenizer_head_joint_v9.safetensors" ] && \
-   [ ! -s "$ROOT/models/fs_audio/tokenizer_head_joint_v9.safetensors" ]; then
-  cp "$ROOT/models/audio_encoders/tokenizer_head_joint_v9.safetensors" "$ROOT/models/fs_audio/tokenizer_head_joint_v9.safetensors"
-  echo "copy  tokenizer_head_joint_v9.safetensors for the trainer"
-fi
-
 SF2_DIR="$ROOT/data/models/soundfonts/sf2"
 fetch "https://raw.githubusercontent.com/wrightflyer/SF2_SoundFonts/master/Jnsgm2.sf2" \
       "$SF2_DIR/github_Jnsgm2.sf2"
@@ -244,7 +236,7 @@ fetch "https://archive.org/download/free-soundfonts-sf2-2019-04/Arachno_SoundFon
       "$SF2_DIR/Arachno_SoundFont_Version_1.0.sf2"
 
 echo "done.  models/ now holds:"
-ls -la "$ROOT/models/checkpoints" "$ROOT/models/audio_encoders" "$ROOT/models/text_encoders" "$ROOT/models/loras" "$ROOT/models/fs_audio" | grep -v '^total' | grep -v '^d'
+ls -la "$ROOT/models/checkpoints" "$ROOT/models/audio_encoders" "$ROOT/models/text_encoders" "$ROOT/models/loras" | grep -v '^total' | grep -v '^d'
 echo ""
 echo "soundfonts/sf2/ now holds:"
 ls -la "$SF2_DIR" | grep -v '^total' | grep -v '^d'

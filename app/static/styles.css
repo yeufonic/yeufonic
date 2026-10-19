@@ -4526,3 +4526,35 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 :root[data-theme="light"] .peq-type.chosen { color: #0b0c10; background: var(--band); border-color: var(--band); }
 :root[data-theme="light"] .peq-flat:active { color: #fff; background: #334155; border-color: #334155; }
 
+/* External LLM error alert modal & session fallback banner */
+.llm-alert-box { max-width: 540px; }
+.llm-alert-body { display: flex; flex-direction: column; gap: 10px; margin: 10px 0 14px; }
+.llm-alert-body .hint { margin: 0; line-height: 1.45; }
+.llm-alert-error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: var(--bad, #f87171);
+  font-size: 12.5px;
+  line-height: 1.45;
+  word-break: break-word;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.llm-alert-actions { justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.llm-session-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+#llm-session-pill { cursor: pointer; }
+

@@ -763,6 +763,7 @@ async def run_job(kind: str, ref_id: str) -> None:
                          ref_id, record["title"], len(record["lyrics"]))
                 return
             except Exception as exc:
+                llm.record_alert_from_exception(exc)
                 log.exception("External LLM lyrics generation failed for draft %s: %s", ref_id, exc)
                 if ENGINE.options_loaded and ENGINE.options.get("lyrics"):
                     warn_msg = f"External LLM failed ({exc}); drafting with local Gemma instead"
@@ -859,9 +860,10 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             return
         record.update({"status": "done", "title": draft["title"], "lyrics": draft["lyrics"],
                        "finished_at": time.time(), "error": None})
+        log.info("Lyrics generation finished for '%s' in %.1fs", draft["title"] or ref_id, time.time() - started)
+        # Unload the local Gemma LLM (~8 GB) so VRAM returns to normal for music planning and rendering
         with contextlib.suppress(Exception):
             await ENGINE.free()
-        log.info("Lyrics generation finished for '%s' in %.1fs", draft["title"] or ref_id, time.time() - started)
         return
 
     if kind == "transcribe":
@@ -1070,6 +1072,11 @@ async def cancel_current() -> dict | None:
         return {"kind": "train", "id": run_id}
 
     if not CURRENT:
+        if CURRENT_IDENTITY.get("id"):
+            cid = CURRENT_IDENTITY["id"]
+            log.info("Cancelling current corpus prep %s", cid)
+            await stop_song_analysis(cid)
+            return {"kind": "identity_prep", "id": cid}
         active_train = one("SELECT id FROM lora_runs WHERE state IN ('queued', 'running') ORDER BY started_at IS NULL, started_at DESC LIMIT 1")
         if active_train:
             run_id = active_train["id"]
@@ -1077,15 +1084,18 @@ async def cancel_current() -> dict | None:
             await cancel_train(run_id)
             return {"kind": "train", "id": run_id}
         return None
-    log.info("Cancelling current %s job %s", CURRENT.get("kind"), CURRENT.get("id"))
-    CANCELLED.add(CURRENT["id"])
+    ckind = CURRENT.get("kind")
+    cid = CURRENT.get("id")
+    log.info("Cancelling current %s job %s", ckind, cid)
+    CANCELLED.add(cid)
     if CURRENT.get("prompt_id"):
         await ENGINE.cancel(CURRENT["prompt_id"])
     # A corpus song's analysis is one thing to the user: stopping its GPU step stops
     # its vocal separation and lyrics too, instead of leaving them running unseen.
-    if CURRENT.get("kind") in IDENTITY_FIELDS:
-        await stop_song_analysis(CURRENT["id"])
-    return {"kind": CURRENT["kind"], "id": CURRENT["id"]}
+    if ckind in IDENTITY_FIELDS or ckind in ("identity_prep", "persona_prep"):
+        await stop_song_analysis(cid)
+    CURRENT.clear()
+    return {"kind": ckind, "id": cid}
 
 
 # ---------------------------------------------------------------------- identities
@@ -1147,9 +1157,12 @@ async def stop_song_analysis(song_id: str) -> bool:
     if not song:
         return False
     stopped = False
-    if CURRENT_IDENTITY.get("id") == song_id and CURRENT_IDENTITY.get("task"):
-        CURRENT_IDENTITY["stop"].set()
-        CURRENT_IDENTITY["task"].cancel()
+    if CURRENT_IDENTITY.get("id") == song_id:
+        if CURRENT_IDENTITY.get("stop"):
+            CURRENT_IDENTITY["stop"].set()
+        if CURRENT_IDENTITY.get("task"):
+            CURRENT_IDENTITY["task"].cancel()
+        CURRENT_IDENTITY.clear()
         stopped = True
     # Waiting on the CPU lane: the worker skips a song whose steps are no longer queued.
     waiting = {f: "none" for f in ("vocals_state", "lyrics_state") if song[f] == "queued"}
@@ -1169,6 +1182,7 @@ async def stop_song_analysis(song_id: str) -> bool:
             CANCELLED.add(song_id)
             if CURRENT.get("prompt_id"):
                 await ENGINE.cancel(CURRENT["prompt_id"])
+            CURRENT.clear()
             stopped = True
     if stopped:
         log.info("Stopped the analysis of corpus song '%s'", song.get("title") or song_id)
@@ -1228,15 +1242,14 @@ async def prepare_song(song_id: str) -> None:
     identity = one("SELECT * FROM identities WHERE id = ?", (id_val,))
     # A track cut from an album is stored by its full path, in the corpus's own folder.
     source = Path(identity["folder"]) / song["file"]
-    if not (identities.allowed(source) or identities.is_track(source)) or not source.is_file():
-        raise RuntimeError("the song is no longer in its folder")
-    set_song(song_id, vocals_state="running", error=None)
     folder = identities.song_dir(identity["id"], song)
     folder.mkdir(parents=True, exist_ok=True)
     stored = folder / f"original{source.suffix.lower()}"
     if not stored.exists():
+        if not (identities.allowed(source) or identities.is_track(source)) or not source.is_file():
+            raise RuntimeError("the song is no longer in its folder")
         await asyncio.to_thread(_store_original, source, stored)
-    set_song(song_id, stored_path=str(stored))
+    set_song(song_id, vocals_state="running", error=None, stored_path=str(stored))
     song_title = song.get("title") or song.get("file")
     log.info("Preparing corpus song '%s' for '%s' (separating vocals, transcribing)", song_title, identity["name"])
     # Key and tempo only need the recording, so the GPU can start while demucs runs.
@@ -1273,7 +1286,8 @@ async def prepare_song(song_id: str) -> None:
             found = await hear_all(identities.vocals_file(folder) or folder / "vocals.flac", seconds=song["duration"] or 0.0, title=song_title,
                                    on_progress=lambda frac: stage("Hearing the lyrics (Whisper)", frac),
                                    on_download=lambda text: stage(text, 0.0),
-                                   should_stop=stop.is_set if stop else None)
+                                   should_stop=stop.is_set if stop else None,
+                                   source_path=source)
             lines, method = found["lines"], found["method"]
             log.info("Corpus song '%s': lyrics heard by %s", song_title, method)
         except Exception as exc:  # noqa: BLE001
@@ -1297,6 +1311,10 @@ def keep_lyric_versions(song_id: str, folder: Path, found: dict) -> None:
         versions["llm"] = {"model": found["model"], "words": words(found["llm"])}
     else:
         (folder / "lyrics-llm.json").unlink(missing_ok=True)
+    if found.get("lrclib"):
+        (folder / "lyrics-lrclib.txt").write_text(found["lrclib"], encoding="utf-8")
+    else:
+        (folder / "lyrics-lrclib.txt").unlink(missing_ok=True)
     set_song(song_id, lyrics_versions=json.dumps(versions))
 
 
@@ -1359,7 +1377,17 @@ def maybe_draft(song_id: str) -> None:
     lines = [] if vocalless else json.loads((folder / "whisper.json").read_text(encoding="utf-8"))
     abc = (folder / "score.abc").read_text(encoding="utf-8") if (folder / "score.abc").exists() else ""
     sections = identities.score_sections(abc)
-    draft = identities.tag_lyrics(lines, sections, song["duration"] or 0)
+    lrclib_file = folder / "lyrics-lrclib.txt"
+    try:
+        ver_info = json.loads(song.get("lyrics_versions") or "null") or {}
+    except ValueError:
+        ver_info = {}
+    lrclib_active = (ver_info.get("active") == "llm" and (ver_info.get("llm") or {}).get("model") == "LRCLIB"
+                     and lrclib_file.is_file())
+    if lrclib_active and not sections:
+        draft = identities.plain_to_sections(lrclib_file.read_text(encoding="utf-8"))
+    else:
+        draft = identities.tag_lyrics(lines, sections, song["duration"] or 0)
     if not draft.strip():
         if sections:
             draft = "\n\n".join(f"[{identities.SECTION_TAGS[name]}]" for name, _ in sections)
@@ -1492,6 +1520,10 @@ def _lost(kind: str, since: float, prompt_id: str) -> str | None:
     if getattr(ENGINE, "oom_at", 0) >= since:
         return out_of_memory(kind)
     if getattr(ENGINE, "offline_at", 0) >= since:
+        if kind == "train":
+            return ("the engine stopped during this job and came back without it (often caused by running out of "
+                    "system RAM — 32 GB+ RAM is recommended for LoRA training; on WSL2 set memory=32GB in "
+                    ".wslconfig). The log may say why.")
         return "the engine stopped during this job and came back without it. The log may say why."
     return None
 
@@ -1852,41 +1884,51 @@ async def run_identity_job(kind: str, song_id: str) -> None:
     folder = Path(song["stored_path"]).parent if song.get("stored_path") else None
     song_title = song.get("title") or song.get("file")
     log.info("Starting %s for corpus song '%s'", kind, song_title)
+    CURRENT.clear()
+    CURRENT.update({
+        "kind": kind,
+        "id": song_id,
+        "prompt_id": None,
+        "started": time.time(),
+        "label": "External LLM" if kind in ("identity_style", "persona_style") and llm.is_external_enabled() else "Analysing",
+    })
     try:
         if kind in ("identity_score", "persona_score"):
+            CURRENT["label"] = "Finding key and tempo"
             source = Path(song["stored_path"])
             staged = await asyncio.to_thread(_without_tags, source, folder)
             abc, how = await _transcribe_corpus_song(kind, song_id, staged, folder)
             (folder / "score.abc").write_text(abc, encoding="utf-8")
-            key, tempo = identities.key_and_tempo(abc, audio=source)
+            key, tempo = await asyncio.to_thread(identities.key_and_tempo, abc, source)
             set_song(song_id, key=key, tempo=tempo, score_state="done")
             log.info("Finished score analysis for corpus song '%s' (key=%s, tempo=%s%s)", song_title, key or "unknown",
                      tempo or "unknown", f"; transcribed {how}, after the full transcription failed" if how else "")
             maybe_draft(song_id)
         elif kind in ("identity_style", "persona_style"):
             # With no words, the external model has only a title; the local one listens to the music.
-            owner = one("SELECT voice FROM identities WHERE id = ?", (song.get("identity_id") or song.get("persona_id"),)) or {}
+            owner = one("SELECT name, voice FROM identities WHERE id = ?", (song.get("identity_id") or song.get("persona_id"),)) or {}
             listens = identities.vocalless(owner.get("voice")) and bool(ENGINE.options.get("lyrics"))
             hint = None
+            title = song.get("title") or song_title
+            lyrics_text = song.get("lyrics") or ""
+            artist = (owner.get("name") or "").strip()
             if llm.is_external_enabled() and not listens:
-                # The title and the words only.  No artist: the corpus's name is whatever
-                # the user called the folder, and a model can read it as an unrelated band
-                # and describe the songs in that band's genre.  A file's artist tag can be
-                # as wrong, or missing.
-                title = song.get("title") or song_title
-                lyrics_text = song.get("lyrics") or ""
-                log.info("Starting external LLM style analysis for corpus song '%s' (%s)", title, song_id)
+                CURRENT["label"] = "External LLM"
+                log.info("Starting external LLM style analysis for corpus song '%s'%s (%s)",
+                         title, f" by '{artist}'" if artist else "", song_id)
                 try:
-                    hint = await llm.describe_song_style(title=title, lyrics_text=lyrics_text)
+                    hint = await llm.describe_song_style(title=title, lyrics_text=lyrics_text, artist=artist)
                     set_song(song_id, style_hint=hint, style_state="done")
                     log.info("Finished external LLM style analysis for corpus song '%s': %s", song_title, hint[:60] + "..." if len(hint) > 60 else hint)
                 except Exception as exc:
+                    llm.record_alert_from_exception(exc)
                     log.warning("External LLM style analysis failed for corpus song '%s' (%s): %s", title, song_id, exc)
                     if ENGINE.options_loaded and ENGINE.options.get("lyrics"):
                         log.info("Falling back to local Gemma style analysis for corpus song '%s'", song_title)
                     else:
                         raise
             if hint is None:
+                CURRENT["label"] = "Local Gemma"
                 # Gemma is optional (the Windows installer can leave it out).  Without it
                 # the engine cannot run this, and says so only in its own terms.
                 if ENGINE.options_loaded and not ENGINE.options.get("lyrics"):
@@ -1895,21 +1937,32 @@ async def run_identity_job(kind: str, song_id: str) -> None:
                 middle = len(samples) / identities.CHUNK_RATE * 0.4
                 clip = identities.write_chunk(samples, (middle, middle + 30), folder / "style-clip.wav")
                 name = await _upload(clip, f"identity-{song_id}-style.wav")
-                job = await _run_graph(kind, song_id, _gemma_graph(identities.DESCRIBE, [name], 120))
-                hint = " ".join((_texts_in_order(job) or [""])[0].split())[:300]
+                prompt = identities.gemma_style_prompt(title=title, artist=artist, lyrics_text=lyrics_text)
+                job = await _run_graph(kind, song_id, _gemma_graph(prompt, [name], 180))
+                raw_text = " ".join((_texts_in_order(job) or [""])[0].split())
+                hint = llm.clean_style_tags(raw_text, title=title) or raw_text[:300]
                 set_song(song_id, style_hint=hint, style_state="done")
                 log.info("Finished style analysis for corpus song '%s': %s", song_title, hint[:60] + "..." if len(hint) > 60 else hint)
     except Exception as exc:  # noqa: BLE001
-        if song_id in STOPPED_SONGS:
+        if song_id in STOPPED_SONGS or song_id in CANCELLED:
             STOPPED_SONGS.discard(song_id)
+            CANCELLED.discard(song_id)
             log.info("%s for '%s' (%s) stopped", kind, song_title, song_id)
             set_song(song_id, **{field: "none"}, error="stopped")
             return
         log.warning("%s for '%s' (%s) failed: %s", kind, song_title, song_id, exc)
         set_song(song_id, **{field: "failed"}, error=f"{kind.split('_')[1]}: {exc}"[:400])
         if kind in ("identity_score", "persona_score"):
+            if song.get("stored_path") and (not song.get("key") or not song.get("tempo")):
+                with contextlib.suppress(Exception):
+                    fb_key, fb_tempo = await asyncio.to_thread(identities.audio_key_and_tempo, Path(song["stored_path"]))
+                    if fb_key or fb_tempo:
+                        set_song(song_id, key=song.get("key") or fb_key, tempo=song.get("tempo") or fb_tempo)
             maybe_draft(song_id)
     finally:
+        CURRENT.clear()
+        CANCELLED.discard(song_id)
+        STOPPED_SONGS.discard(song_id)
         # The copies made for the engine are not read again; Settings > Storage can keep them.
         if get_setting("storage.working_copies", "remove") != "keep":
             freed = await asyncio.to_thread(storage.drop_working_copies, folder, song_id)
@@ -1931,84 +1984,264 @@ run_persona_job = run_identity_job
 # steps, 44 minutes, 12.5 GB — so nothing else that needs the card may start while it
 # runs, and the routes refuse to start it while something else is using the card.
 
+def _sample_regularization_prompts(dataset_dir: Path, regularization: str) -> tuple[str, str]:
+    """When ``regularization`` is a percentage (e.g. '50%', '25%', '10%') or numeric cap, sample
+    evenly spaced style lines and a representative lyric excerpt across the exported corpus."""
+    spec = (regularization or "").strip()
+    if not spec or spec in ("on", "all", "100%", "off") or not dataset_dir.is_dir():
+        return "", ""
+    entries: list[tuple[str, Path]] = []
+    for style_path in sorted(dataset_dir.glob("*.style.txt")):
+        with contextlib.suppress(OSError):
+            line = " ".join(style_path.read_text(encoding="utf-8").split()).strip()
+            if line:
+                entries.append((line, style_path))
+    if not entries:
+        return "", ""
+    try:
+        if spec.endswith("%"):
+            pct = float(spec[:-1].strip())
+            if pct <= 0 or pct >= 100:
+                return "", ""
+            limit = max(1, round(len(entries) * pct / 100.0))
+        else:
+            limit = int(spec)
+    except (TypeError, ValueError):
+        return "", ""
+    if limit <= 0 or len(entries) <= limit:
+        return "", ""
+    if limit == 1:
+        indices = [0]
+    else:
+        indices = [round(i * (len(entries) - 1) / (limit - 1)) for i in range(limit)]
+    chosen = [entries[idx] for idx in dict.fromkeys(indices)]
+    reg_styles = "\n".join(style for style, _ in chosen)
+    reg_lyrics = ""
+    for _, style_path in chosen:
+        stem = style_path.name[:-len(".style.txt")]
+        lyrics_path = dataset_dir / f"{stem}.lyrics.txt"
+        with contextlib.suppress(OSError):
+            if lyrics_path.is_file():
+                lines = [ln.rstrip() for ln in lyrics_path.read_text(encoding="utf-8").splitlines()]
+                non_empty = [ln for ln in lines if ln.strip() and ln.strip().lower() != "[instrumental]"]
+                if non_empty:
+                    reg_lyrics = "\n".join(lines[:16]).strip()
+                    break
+    log.info("Regularization: sampling %d of %d corpus style prompts (%s) for base-model reference scores",
+             len(chosen), len(entries), spec)
+    return reg_styles, reg_lyrics
+
+
 def train_graph(audio_folder: str, dataset_name: str, lora_name: str, steps: int,
                 rank_planner: int = 64, rank_decoder: int = 32,
-                max_minutes: float = 3.5, max_tokens: int | None = None) -> dict:
-    """The dual-branch FS_Audio training graph in ComfyUI prompt API format.
+                max_minutes: float = 6.0, max_tokens: int | None = None,
+                *,
+                branches: str = "both",
+                regularization: str = "on",
+                semantic_tokens: str = "off",
+                keep_strategy: str = "best_eval",
+                targets: str = "attention+mlp",
+                conditioning: str = "compact",
+                reg_styles: str = "",
+                reg_lyrics: str = "") -> dict:
+    """The dual-branch YuE2 training graph in ComfyUI prompt API format.
 
-    Trains both planner LoRA (composition/harmony/phrasing) and decoder LoRA
-    (timbre/production) in one joint loop with regularizer contrast.
+    Encodes dataset latents and transcribes scores, optionally generates base-model
+    regularization class priors, trains planner LoRA (composition/harmony) and/or
+    acoustic LoRA (timbre/production), and saves the trained branches.
     """
-    return {
+    decoder_steps = config.TRAIN_DECODER_STEPS if config.TRAIN_DECODER_STEPS else steps
+    train_planner = branches in ("both", "planner")
+    train_acoustic = branches in ("both", "acoustic")
+    use_reg = train_planner and (regularization != "off")
+    use_sem = semantic_tokens == "on"
+    keep_eval = keep_strategy != "final"
+    target_mods = targets if targets in ("attention+mlp", "attention") else "attention+mlp"
+
+    graph: dict = {
         "1": {
-            "class_type": "FSAudioLoraLoader",
+            "class_type": "CheckpointLoaderSimple",
             "inputs": {
-                "lora_name": config.REAL_AUDIO_LORA,
-                "strength_model": 1.0,
-                "strength_clip": 0.0,
+                "ckpt_name": config.CHECKPOINT,
             },
         },
         "2": {
-            "class_type": "FSAudioModelLoader",
+            "class_type": "AudioEncoderLoader",
             "inputs": {
-                "yue2_checkpoint": config.TRAIN_CHECKPOINT,
-                "melody_transcriber": "sheetsage2_bf16.safetensors",
-                "loras": ["1", 0],
+                "audio_encoder_name": "sheetsage2_bf16.safetensors",
             },
         },
         "3": {
-            "class_type": "FSAudioDatasetBuilder",
+            "class_type": "YuE2TrainerDatasetFolder",
             "inputs": {
-                "pipe": ["2", 0],
-                "audio_folder": audio_folder,
-                "dataset_name": dataset_name,
-                "tokenizer_head": config.TOKENIZER_HEAD,
+                "folder": audio_folder,
                 "default_style": "",
                 "default_lyrics": "[instrumental]",
-                "transcribe_scores": True,
-                "hold_out_percent": 0,
-                "max_minutes": max_minutes,
-                "store_latents": True,
-                "auto_tempo_key": True,
+                "recursive": True,
             },
         },
         "4": {
-            "class_type": "FSAudioRegularizer",
-            "inputs": {"pack": config.REGULARIZER_PACK},
-        },
-        "5": {
-            "class_type": "FSAudioArtistTrainer",
+            "class_type": "YuE2TrainerEncodeDataset",
             "inputs": {
-                "pipe": ["2", 0],
                 "dataset": ["3", 0],
-                "regularizer": ["4", 0],
-                "lora_name": lora_name,
-                "steps": max(50, steps),
-                "decoder_steps": config.TRAIN_DECODER_STEPS,
-                "rank_planner": rank_planner,
-                "rank_decoder": rank_decoder,
-                "planner_lr": 3e-5,
-                "decoder_lr": 4e-5,
-                "io_lr": 2e-5,
-                "artist_fraction": config.TRAIN_ARTIST_FRACTION,
-                "batch_songs": config.TRAIN_BATCH_SONGS,
-                "kl_weight": 0.1,
-                "score_first_fraction": config.TRAIN_SCORE_FIRST,
-                "end_token_weight": config.TRAIN_END_TOKEN_WEIGHT,
-                "max_tokens": max_tokens or config.TRAIN_MAX_TOKENS,
-                "window_seconds": 30.0,
-                "ema_decay": 0.99,
-                "eval_every": 25,
-                "checkpoint_from": config.TRAIN_CHECKPOINT_EVERY,
-                "checkpoint_every": config.TRAIN_CHECKPOINT_EVERY,
-                "seed": 0,
-                "strength_model": 1.0,
-                "strength_clip": 1.0,
+                "vae": ["1", 2],
+                "audio_encoder": ["2", 0],
+                "transcribe": "full",
+                "max_seconds": float(max_minutes * 60) if max_minutes and max_minutes > 0 else 0.0,
+                "window_seconds": 60,
+                "cache_dir": "yue2_trainer_cache",
+                "force_reencode": False,
+                "vae_precision": "fp32",
             },
         },
-        # FSAudioArtistTrainer is not an output node, so PreviewAny provides the output sink.
-        "7": {"class_type": "PreviewAny", "inputs": {"source": ["5", 1]}},
     }
+
+    if use_reg:
+        graph["5"] = {
+            "class_type": "YuE2TrainerRegularizationScores",
+            "inputs": {
+                "clip": ["1", 1],
+                "styles": reg_styles,
+                "lyrics": reg_lyrics,
+                "scores_per_prompt": 1,
+                "mode": "full",
+                "music_seconds": 0.0,
+                "seed": 0,
+                "max_abc_tokens": 2048,
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "top_k": 30,
+                "repetition_penalty": 1.005,
+                "folder": "yue2_regularization",
+                "dataset": ["4", 0],
+            },
+        }
+
+    if train_planner:
+        planner_inputs = {
+            "clip": ["1", 1],
+            "dataset": ["4", 0],
+            "train_abc": True,
+            "train_semantic": use_sem,
+            "abc_mode": "full",
+            "max_tokens": max_tokens or config.TRAIN_MAX_TOKENS,
+            "steps": max(50, steps),
+            "learning_rate": 5e-5,
+            "rank": rank_planner,
+            "alpha": float(rank_planner),
+            "targets": target_mods,
+            "batch_size": 1,
+            "grad_accumulation": 1,
+            "warmup_steps": 10,
+            "seed": 0,
+            "optimizer": "AdamW",
+            "lora_dtype": "fp32",
+            "gradient_checkpointing": True,
+            "max_grad_norm": 1.0,
+            "existing_lora": "[None]",
+            "save_every": config.TRAIN_CHECKPOINT_EVERY,
+            "save_name": f"{lora_name}_planner",
+            "devices": "auto",
+            "log_every": 1,
+            "tensorboard": False,
+            "tensorboard_dir": "yue2_tensorboard",
+            "lr_schedule": "cosine",
+            "eval_every": 25 if keep_eval else 0,
+            "eval_samples": 8,
+            "eval_holdout": 1 if keep_eval else 0,
+            "resume_state": False,
+            "regularization_fraction": (config.TRAIN_ARTIST_FRACTION if hasattr(config, "TRAIN_ARTIST_FRACTION") else 0.5) if use_reg else 0.0,
+            "kl_weight": 0.0 if use_reg else 0.5,
+            "abc_dropout": 0.0,
+            "probe_every": 0,
+            "probe_style": "",
+            "probe_lyrics": "",
+            "probe_max_tokens": 8192,
+            "probe_seed": 0,
+            "probe_abc": "",
+            "sample_every": 0,
+            "sample_seconds": 30.0,
+            "sample_seed": 0,
+            "sample_device": "auto",
+            "keep": "final",
+            "ema_decay": 0.0,
+        }
+        if use_reg:
+            planner_inputs["regularization"] = ["5", 0]
+        graph["6"] = {
+            "class_type": "YuE2TrainerPlannerLoRA",
+            "inputs": planner_inputs,
+        }
+        graph["8"] = {
+            "class_type": "YuE2TrainerSaveLoRA",
+            "inputs": {
+                "lora": ["6", 0],
+                "name": f"{lora_name}_planner",
+                "add_timestamp": False,
+                "loss_map": ["6", 1],
+            },
+        }
+
+    if train_acoustic:
+        graph["7"] = {
+            "class_type": "YuE2TrainerAcousticLoRA",
+            "inputs": {
+                "model": ["1", 0],
+                "clip": ["1", 1],
+                "dataset": ["4", 0],
+                "segment_seconds": 30.0,
+                "prefix_mode": "full",
+                "use_semantic_tokens": use_sem,
+                "train_acoustic_head": use_sem,
+                "timestep_sampling": "uniform",
+                "shift": 1.0,
+                "sample_every": 0,
+                "sample_tokens": "",
+                "sample_seconds": 30.0,
+                "sample_seed": 0,
+                "steps": decoder_steps,
+                "learning_rate": 1e-4,
+                "rank": rank_decoder,
+                "alpha": float(rank_decoder),
+                "targets": target_mods,
+                "batch_size": 1,
+                "grad_accumulation": 1,
+                "warmup_steps": 10,
+                "seed": 0,
+                "optimizer": "AdamW",
+                "lora_dtype": "fp32",
+                "gradient_checkpointing": True,
+                "max_grad_norm": 1.0,
+                "existing_lora": "[None]",
+                "save_every": config.TRAIN_CHECKPOINT_EVERY,
+                "save_name": f"{lora_name}_acoustic",
+                "devices": "auto",
+                "log_every": 1,
+                "tensorboard": False,
+                "tensorboard_dir": "yue2_tensorboard",
+                "lr_schedule": "cosine",
+                "caption_dropout": 0.1,
+                "conditioning": conditioning if conditioning in ("compact", "inference_like") else "compact",
+                "eval_every": 25 if keep_eval else 0,
+                "eval_samples": 8,
+                "eval_holdout": 1 if keep_eval else 0,
+                "resume_state": False,
+                "keep": "best_eval" if keep_eval else "final",
+                "ema_decay": 0.99 if keep_eval else 0.0,
+                "vae": ["1", 2],
+            },
+        }
+        graph["9"] = {
+            "class_type": "YuE2TrainerSaveLoRA",
+            "inputs": {
+                "lora": ["7", 0],
+                "name": f"{lora_name}_acoustic",
+                "add_timestamp": False,
+                "loss_map": ["7", 1],
+            },
+        }
+
+    return graph
 
 
 def _run_state(run_id: str, **changes) -> None:
@@ -2051,8 +2284,15 @@ async def run_lora_train(run_id: str) -> None:
         steps = max(50, int(run["steps"]))
         rank_planner = int(run.get("rank") or config.TRAIN_RANK_PLANNER)
         rank_decoder = config.TRAIN_RANK_DECODER
-        log.info("Starting LoRA training run %s for corpus '%s' (%d steps, rank=%d, name=%s)",
-                 run_id, identity["name"], steps, rank_planner, run["lora_name"])
+        branches = get_setting("training.branches", "both") or "both"
+        regularization = get_setting("training.regularization", "off") or "off"
+        semantic_tokens = get_setting("training.semantic_tokens", "off") or "off"
+        keep_strategy = get_setting("training.keep_strategy", "best_eval") or "best_eval"
+        targets = get_setting("training.targets", "attention+mlp") or "attention+mlp"
+        conditioning = get_setting("training.conditioning", "compact") or "compact"
+        max_min_setting = get_setting("training.max_minutes", "auto") or "auto"
+        log.info("Starting LoRA training run %s for corpus '%s' (%d steps, rank=%d, branches=%s, conditioning=%s, name=%s)",
+                 run_id, identity["name"], steps, rank_planner, branches, conditioning, run["lora_name"])
         # Whatever analysis or renders left loaded would share the card with the trainer,
         # and preparing long songs already takes most of a 16 GB card.
         await ENGINE.free()
@@ -2061,14 +2301,31 @@ async def run_lora_train(run_id: str) -> None:
         sizing = trainsize.for_corpus(
             [r["duration"] for r in rows("SELECT duration FROM identity_songs WHERE identity_id = ? AND include = 1",
                                          (identity["id"],))], ENGINE.gpu())
+        minutes = sizing["minutes"]
+        if max_min_setting != "auto":
+            with contextlib.suppress(ValueError):
+                minutes = float(max_min_setting)
         log.info("Training on %s. %s", sizing["reason"],
                  "" if not config.TRAIN_MINUTES_AUTO else "Set TRAIN_MAX_MINUTES to change it.")
         if sizing["tight"]:
             log.warning("This card is short of memory for training: preparing the songs may run out at %s",
                         trainsize.clock(sizing["minutes"]))
+        if sizing.get("ram_tight") and sizing.get("ram_gb") is not None:
+            log.warning("System RAM visible to the engine is %.1f GB; LoRA training recommends at least 32 GB "
+                        "(on WSL2, set memory=32GB in .wslconfig), or the OS may stop the engine mid-run",
+                        sizing["ram_gb"])
+        reg_styles, reg_lyrics = _sample_regularization_prompts(dataset, regularization)
         graph = train_graph(f"lora-{run_id}", f"dataset_{run_id}",
                             run["lora_name"], steps, rank_planner, rank_decoder,
-                            sizing["minutes"], sizing["tokens"])
+                            minutes, sizing["tokens"],
+                            branches=branches,
+                            regularization=regularization,
+                            semantic_tokens=semantic_tokens,
+                            keep_strategy=keep_strategy,
+                            targets=targets,
+                            conditioning=conditioning,
+                            reg_styles=reg_styles,
+                            reg_lyrics=reg_lyrics)
         await _run_graph("train", run_id, graph)
         produced = await finish_training(run, identity)
         _run_state(run_id, state="done", stage=None, progress=1.0, finished_at=time.time(),
@@ -2083,6 +2340,43 @@ async def run_lora_train(run_id: str) -> None:
         await asyncio.to_thread(remove_tree, staged)
 
 
+def _merge_lora_files(paths: list[Path], out_path: Path) -> dict:
+    """Merge disjoint LoRA files (e.g. acoustic diffusion_model.* and planner text_encoders.*)
+    into a single canonical safetensors file with metadata."""
+    import safetensors.torch
+    merged = {}
+    parts = []
+    for path in paths:
+        if not path.is_file():
+            continue
+        with contextlib.suppress(OSError):
+            os.chmod(path, 0o644)
+        try:
+            sd = safetensors.torch.load_file(str(path), device="cpu")
+            merged.update(sd)
+            meta = {}
+            with contextlib.suppress(Exception):
+                with safetensors.safe_open(str(path), "pt") as handle:
+                    raw_meta = handle.metadata() or {}
+                    meta = json.loads(raw_meta.get("yue2_trainer", "{}"))
+            parts.append({"file": path.name, "keys": len(sd), **{k: meta.get(k) for k in ("kind", "steps", "rank", "alpha", "save_name", "kept_step") if k in meta}})
+        except Exception as exc:
+            log.warning("Could not load LoRA file %s for merge: %s", path, exc)
+    if not merged:
+        return {}
+    metadata = {
+        "kind": "merged",
+        "parts": parts,
+        "model_keys": sum(1 for k in merged if k.startswith("diffusion_model.")),
+        "clip_keys": sum(1 for k in merged if k.startswith("text_encoders.")),
+    }
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    safetensors.torch.save_file(merged, str(out_path), metadata={"yue2_trainer": json.dumps(metadata)})
+    with contextlib.suppress(OSError):
+        os.chmod(out_path, 0o644)
+    return metadata
+
+
 def run_checkpoints(name: str, root: Path) -> list[Path]:
     """A run's checkpoints (name_stepN), in step order."""
     return sorted(root.glob(f"{name}_step*.safetensors"),
@@ -2090,9 +2384,9 @@ def run_checkpoints(name: str, root: Path) -> list[Path]:
 
 
 async def finish_training(run: dict, identity: dict, stopped: bool = False) -> str:
-    """What a run does once the engine has written its files: the trainer's best copy
-    becomes the LoRA, named after the corpus, noted and grouped; the checkpoints are
-    kept or deleted as Settings says, and noted under it; the corpus remembers it.
+    """What a run does once the engine has written its files: merges planner and
+    acoustic LoRAs into the canonical corpus LoRA; checkpoints are kept or deleted
+    as Settings says, and noted under it; the corpus remembers it.
 
     Also for a run that stopped short (stopped=True): the same from what it saved, its
     best copy, or failing that its last checkpoint, which then stays a checkpoint too.
@@ -2101,8 +2395,72 @@ async def finish_training(run: dict, identity: dict, stopped: bool = False) -> s
     if not root:
         raise RuntimeError("the app cannot see the LoRA folder")
     name = run["lora_name"]
+
+    # If the trainer produced separate planner and acoustic weights, merge them into the canonical LoRA.
+    planner_file = root / f"{name}_planner.safetensors"
+    acoustic_file = root / f"{name}_acoustic.safetensors"
+    if not acoustic_file.is_file():
+        raw_ac = root / f"{name}_acoustic_raw.safetensors"
+        if raw_ac.is_file():
+            acoustic_file = raw_ac
+    canonical = root / f"{name}.safetensors"
+
+    for f in (acoustic_file, planner_file, canonical):
+        if f and f.exists():
+            with contextlib.suppress(OSError):
+                os.chmod(f, 0o644)
+
+    if planner_file.is_file() and acoustic_file.is_file():
+        log.info("Merging planner and acoustic LoRAs into %s", canonical.name)
+        merged_meta = _merge_lora_files([acoustic_file, planner_file], canonical)
+        if len(merged_meta.get("parts", [])) == 2:
+            planner_file.unlink(missing_ok=True)
+            acoustic_file.unlink(missing_ok=True)
+    elif acoustic_file.is_file() and not canonical.is_file():
+        shutil.copyfile(acoustic_file, canonical)
+        acoustic_file.unlink(missing_ok=True)
+    elif planner_file.is_file() and not canonical.is_file():
+        shutil.copyfile(planner_file, canonical)
+        planner_file.unlink(missing_ok=True)
+
+    # Merge step checkpoints if planner/acoustic split checkpoints exist
+    planner_steps: dict[int, list[Path]] = collections.defaultdict(list)
+    for p in root.glob(f"{name}_planner_*.safetensors"):
+        if p.name.endswith("_raw.safetensors"):
+            continue
+        with contextlib.suppress(Exception):
+            match = re.search(r"_(?:step)?(\d+)\.safetensors$", p.name)
+            if match:
+                planner_steps[int(match.group(1))].append(p)
+    acoustic_steps: dict[int, list[Path]] = collections.defaultdict(list)
+    for p in root.glob(f"{name}_acoustic_*.safetensors"):
+        if p.name.endswith("_raw.safetensors"):
+            continue
+        with contextlib.suppress(Exception):
+            match = re.search(r"_(?:step)?(\d+)\.safetensors$", p.name)
+            if match:
+                acoustic_steps[int(match.group(1))].append(p)
+    for step_num in sorted(set(planner_steps) | set(acoustic_steps)):
+        step_canonical = root / f"{name}_step{step_num}.safetensors"
+        ac_list = [p for p in acoustic_steps.get(step_num, []) if p.is_file()]
+        pl_list = [p for p in planner_steps.get(step_num, []) if p.is_file()]
+        to_merge = []
+        if ac_list:
+            to_merge.append(ac_list[0])
+        if pl_list:
+            to_merge.append(pl_list[0])
+        if len(to_merge) > 1:
+            _merge_lora_files(to_merge, step_canonical)
+        elif len(to_merge) == 1 and not step_canonical.is_file():
+            shutil.copyfile(to_merge[0], step_canonical)
+            with contextlib.suppress(OSError):
+                os.chmod(step_canonical, 0o644)
+        for p in ac_list + pl_list:
+            p.unlink(missing_ok=True)
+            p.with_suffix(".resume").unlink(missing_ok=True)
+
     produced = None
-    for cand_name in (f"{name}_best.safetensors", f"{name}.safetensors"):
+    for cand_name in (f"{name}.safetensors", f"{name}_best.safetensors"):
         cand = root / cand_name
         if cand.exists():
             produced = cand
@@ -2125,7 +2483,6 @@ async def finish_training(run: dict, identity: dict, stopped: bool = False) -> s
         with contextlib.suppress(OSError):
             os.chmod(p, 0o644)
 
-    canonical = root / f"{name}.safetensors"
     was_best = produced.name == f"{name}_best.safetensors"
     if produced != canonical:
         with contextlib.suppress(OSError):
@@ -2140,6 +2497,12 @@ async def finish_training(run: dict, identity: dict, stopped: bool = False) -> s
     if produced == canonical and was_best:
         with contextlib.suppress(OSError):
             (root / f"{name}_best.safetensors").unlink(missing_ok=True)
+
+    # Clean up single-branch intermediate files, raw un-averaged weights, and optimizer resume states
+    for pat in (f"{name}_acoustic*", f"{name}_planner*", f"{name}*.resume", f"{name}*.tmp"):
+        for p in root.glob(pat):
+            with contextlib.suppress(OSError):
+                p.unlink()
 
     # Parse training log if present to check loss progression against reference targets
     # (blgr_rhodope: artist ~4.635, regularizer ~3.576, decoder ~1.069).
@@ -2218,6 +2581,13 @@ async def cancel_waiting(kind: str, ref_id: str, whole_song: bool = True) -> boo
         if whole_song:
             await stop_song_analysis(ref_id)
         return True
+    if kind in ("identity_prep", "persona_prep"):
+        song = identity_song(ref_id)
+        if not song or "queued" not in (song.get("vocals_state"), song.get("lyrics_state")):
+            return False
+        await stop_song_analysis(ref_id)
+        log.info("Cancelled waiting corpus prep for '%s'", song.get("title") or ref_id)
+        return True
     if kind == "lyrics":
         record = LYRICS.get(ref_id)
         if not record or record["status"] != "queued":
@@ -2251,8 +2621,8 @@ async def cancel_waiting(kind: str, ref_id: str, whole_song: bool = True) -> boo
 
 def waiting_jobs() -> list[dict]:
     """App jobs not yet sent to the engine, in the order the worker will take them."""
-    # asyncio.Queue keeps its items in a deque; the pictures waiting for the GPU to be free come after everything
-    return list(QUEUE._queue) + [{"kind": "art", "id": take_id} for take_id in ART_WAITING]
+    prep = [{"kind": "identity_prep", "id": item["id"]} for item in IDENTITY_QUEUE._queue]
+    return prep + list(QUEUE._queue) + [{"kind": "art", "id": take_id} for take_id in ART_WAITING]
 
 
 async def wait_for_engine() -> None:

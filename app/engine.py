@@ -48,6 +48,13 @@ STAGE_LABELS = {
     "CLIPLoader": "Loading the lyric writer",
     "TextGenerate": "Writing lyrics",
     "LoraLoader": "Loading the instrumental adapter",
+    "YuE2TrainerDatasetFolder": "Scanning training songs",
+    "YuE2TrainerEncodeDataset": "Encoding latents & transcribing",
+    "YuE2TrainerRegularizationScores": "Generating regularization scores",
+    "YuE2TrainerPlannerLoRA": "Training planner LoRA (composition)",
+    "YuE2TrainerAcousticLoRA": "Training acoustic LoRA (timbre)",
+    "YuE2TrainerSaveLoRA": "Saving trained LoRA",
+    "YuE2TrainerMergeLoRA": "Merging LoRA adapters",
     "FSAudioDatasetBuilder": "Building dataset & tokens",
     "FSAudioArtistTrainer": "Training artist LoRA (dual-branch)",
     "YuE2TrainingDataset": "Reading the songs",
@@ -63,8 +70,14 @@ STAGE_WEIGHT = {
     "YuE2GenerateABC": 16,
     "YuE2GenerateABCHarmony": 16,
     "YuE2GenerateMusic": 22,
-    # Training is measured: dataset preparation takes a few moments, then
-    # dual-branch flow and CE steps take the bulk of the run.
+    # Training: dataset scanning and encoding, regularization, planner AR and acoustic flow.
+    "YuE2TrainerDatasetFolder": 1,
+    "YuE2TrainerEncodeDataset": 15,
+    "YuE2TrainerRegularizationScores": 5,
+    "YuE2TrainerPlannerLoRA": 40,
+    "YuE2TrainerAcousticLoRA": 40,
+    "YuE2TrainerSaveLoRA": 1,
+    "YuE2TrainerMergeLoRA": 1,
     "FSAudioDatasetBuilder": 5,
     "FSAudioArtistTrainer": 95,
     "YuE2TrainingDataset": 1,
@@ -105,6 +118,9 @@ def combo_options(info: dict[str, Any], node: str, field: str) -> list[str]:
 
 # What a queued graph is, from the nodes in it.  First match wins.
 JOB_KINDS = [
+    ("YuE2TrainerAcousticLoRA", "train"),
+    ("YuE2TrainerPlannerLoRA", "train"),
+    ("FSAudioArtistTrainer", "train"),
     ("YuE2GenerateMusic", "render"),
     ("YuE2GenerateABCHarmony", "plan"),
     ("YuE2GenerateABC", "plan"),
@@ -393,7 +409,7 @@ class Engine:
                         "realaudio": config.REAL_AUDIO_LORA in loras,
                         # An engine built with WITH_TRAINER=0 has no trainer, so the
                         # app can tell whether training is there to offer at all.
-                        "trainer": "FSAudioArtistTrainer" in info,
+                        "trainer": any(n in info for n in ("YuE2TrainerAcousticLoRA", "YuE2TrainerPlannerLoRA")),
                         # Take pictures drawn here: FLUX.2 klein and its parts, chosen at install, and the nodes for them.
                         "pictures": (config.PICTURE_MODEL in combo_options(info, "UNETLoader", "unet_name")
                                      and config.PICTURE_TEXT in text_models
@@ -433,6 +449,11 @@ class Engine:
         payload = {"prompt": graph, "client_id": self.client_id}
         r = await self.client.post("/prompt", json=payload)
         if r.status_code >= 400:
+            if "missing_node_type" in r.text and "YuE2Trainer" in r.text:
+                raise RuntimeError(
+                    "the engine image does not have the YuE2 Trainer node pack yet. "
+                    "Rebuild the engine image (docker compose build engine) and restart."
+                )
             raise RuntimeError(f"engine rejected the job: {r.text[:400]}")
         self._contact()
         pid = r.json()["prompt_id"]
@@ -590,8 +611,10 @@ class Engine:
         rec = self.progress.get(pid or "")
         if rec is None and kind == "fsaudio.train":
             for candidate_rec in self.progress.values():
-                if candidate_rec.get("executing") and candidate_rec.get("stage") in ("FSAudioArtistTrainer",
-                                                                                     "FSAudioDatasetBuilder"):
+                if candidate_rec.get("executing") and candidate_rec.get("stage") in (
+                    "YuE2TrainerAcousticLoRA", "YuE2TrainerPlannerLoRA", "YuE2TrainerEncodeDataset",
+                    "FSAudioArtistTrainer", "FSAudioDatasetBuilder"
+                ):
                     rec = candidate_rec
                     break
         if rec is None:

@@ -20,14 +20,13 @@ def test_the_component_choice_is_set_up_before_the_page_is_shown():
     assert "StrCpy $ModelRadio" in init
 
 
-def test_both_installers_put_the_tokenizer_head_where_the_trainer_looks():
-    """The trainer lists the head from models/fs_audio, the rest of the app reads it from audio_encoders. Without a
-    copy in both, a fresh install refuses to train ("not in ['(run FS_Audio Training Assets first)']")."""
+def test_both_installers_pin_the_trainer_commit():
+    """Both Docker and Windows install ComfyUI-YuE2-Trainer pinned to the same tested commit."""
     root = Path(__file__).resolve().parent.parent
     windows = (root / "windows" / "setup.ps1").read_text(encoding="utf-8")
-    docker = (root / "scripts" / "fetch-models.sh").read_text(encoding="utf-8")
-    assert "tokenizer_head_joint_v9.safetensors" in windows and "'fs_audio'" in windows and "Copy-Item $headFrom $headTo" in windows
-    assert "models/fs_audio/tokenizer_head_joint_v9.safetensors" in docker
+    docker = (root / "engine" / "Dockerfile").read_text(encoding="utf-8")
+    assert "Yue2TrainerCommit = '6a9355efff60589d93b41b569676f09d5db85d09'" in windows
+    assert "ARG YUE2_TRAINER_REF=6a9355efff60589d93b41b569676f09d5db85d09" in docker
 
 
 def test_the_launcher_shows_a_dead_engine_once_not_on_every_tick():
@@ -58,21 +57,12 @@ def test_the_windows_engine_keeps_the_portable_torch_and_undoes_the_0_0_25_pin()
     assert "torch-2.9.1-cu128-*.done" in block
 
 
-def test_the_windows_trainer_is_given_the_attention_that_runs_fast_on_windows():
-    """PyTorch's Windows builds have no FlashAttention, and the trainer's enable_gqa call then runs a kernel that needs
-    memory in proportion to the square of the song's length. The installer rewrites the two calls (so each query head has
-    its own key/value heads), on every run, and refuses to continue if the trainer's source is not what it expects."""
+def test_the_windows_engine_gets_the_yue2_trainer():
+    """Windows installs ComfyUI-YuE2-Trainer with soundfile, librosa, scipy, mutagen and einops."""
     setup = (Path(__file__).resolve().parent.parent / "windows" / "setup.ps1").read_text(encoding="utf-8")
-    block = setup[setup.index("$trainDir = "):setup.index("# Our own node, carried by the installer.")]
-    olds = [line.split("Old = ", 1)[1] for line in block.splitlines() if "Old = " in line]
-    news = [line.split("New = ", 1)[1] for line in block.splitlines() if "New = " in line]
-    assert len(olds) == len(news) == 2
-    assert all("enable_gqa=True" in o for o in olds)                  # the two calls that need it, matched exactly...
-    assert not any("enable_gqa" in n for n in news)                   # ...and rewritten without it
-    assert all(n.count("repeat_interleave(self.NH // self.NKV, 1)") == 2 for n in news)
-    assert "throw" in block and ".Contains($edit.New)" in block       # a changed trainer stops setup; a patched one is left alone
-    fetch = setup[setup.index('if (-not (IsDone "fs_audio-'):setup.index("$trainDir = ")]
-    assert "$trainDir" not in fetch and "$edit" not in fetch          # outside the fetch's own check, so an existing install is repaired
+    assert "speedyrulz/ComfyUI-YuE2-Trainer" in setup
+    assert "ComfyUI-YuE2-Trainer" in setup
+    assert "soundfile>=0.12" in setup and "librosa>=0.10" in setup and "mutagen" in setup
 
 
 def test_the_installers_port_check_uses_the_ports_in_settings_ini():
