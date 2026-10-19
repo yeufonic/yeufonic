@@ -39,6 +39,37 @@ cannot creep back in.
 
 ## Unreleased
 
+## 0.0.46 (2026-10-19)
+
+- **ComfyUI-YuE2-Trainer migration: faster LoRA training, lower memory overhead and configurable pipelines.** The corpus trainer replaces the legacy FS_Audio Suite with ComfyUI-YuE2-Trainer, delivering substantial performance improvements and eight configurable settings under **Settings → YuE2 LoRA Training**:
+  - **Training performance & VRAM efficiency:** Audio is processed in fixed 30-second crops with chunked 60-second encoding using native PyTorch scaled dot-product attention, eliminating the quadratic VRAM growth and severe training slowdowns that afflicted longer songs in the legacy trainer.
+  - **Drastically lower host RAM consumption:** Default *Compact* acoustic conditioning mode keeps system memory usage under 8 GB (compared to 64 GB+ RAM previously needed for corpora over 30 songs) while accelerating batch preparation and step execution with identical acoustic fidelity.
+  - **Single-branch & layer acceleration:** Training a single branch (*Voice & sound only* for vocal timbre/instruments, or *Songwriting & structure only* for composition and melody) cuts total training time roughly in half. Choosing *Attention only* target layers reduces step latency, halves file size (~88 MB vs ~177 MB), and resists overfitting on small corpora.
+  - **Faster prior-preservation startup:** Prior regularization mixes base-model reference scores into training to preserve natural musical structures, phrasing and endings. Prompt sampling (10%, 25%, 50%, 75% or 100%) and persistent disk caching cut pre-generation startup time from hours to minutes on large corpora.
+  - **Semantic audio tokens:** Optionally trains on SheetSage continuous acoustic tokens alongside ABC notation to capture micro-timing, vocal inflection and performance nuances beyond standard sheet notation.
+  - **Final weights & overfitting guard:** Choose between keeping the snapshot with the lowest validation loss (using Exponential Moving Average weights) to guard against late-step overfitting on small corpora, or saving the final step without holdout.
+  - **Song length limits:** Configurable per-song audio limits for training exports (*Auto*, 4, 6, or 8 minutes, or *Full song*). Long songs are safely trained without memory exhaustion.
+  - **Low-memory (int8) training:** Optionally allows training on the quantized int8 checkpoint in under 6 GB VRAM when the full 40 GB bf16 model is not installed.
+  - **Dual-branch merging & cleanup:** When training both branches, the planner and acoustic adapters are automatically merged into a single `.safetensors` LoRA, and temporary `.resume` state and raw single-branch weights are purged automatically.
+- **Corpora: 25-minute song duration limit & full re-analysis.**
+  - **Extended duration limit:** The maximum song length for corpus audio is raised from 10 minutes to 25 minutes (1,500 seconds), supporting long studio and progressive rock tracks. Stale duration warnings on existing songs under 25 minutes are cleared automatically on startup.
+  - **Style re-analysis:** Clicking **Analysed ✓** on a completed corpus prompts to re-analyse style tags across all songs with current prompt templates and LLMs (useful after renaming a corpus or switching providers). Shift-clicking runs a complete re-analysis from scratch.
+  - **Stored audio preservation:** Analysis and training re-use the preserved lossless copy stored in Yeufonic's identity storage, so moving or deleting the original import folder never breaks re-analysis or exports.
+  - **Queue visibility & control:** Corpus analysis jobs now display in the main page active job card and queue list, with buttons to cancel upcoming jobs or stop the running step.
+  - **Enriched style tagging:** Song titles, artist tags and lyrics snippets are now provided to local Gemma and external LLMs for structured subgenre, instrumentation and mood tagging.
+- **Resilient external LLM error handling & session fallback.**
+  - When an external LLM returns an HTTP 429 quota or spending limit error, Yeufonic presents an error alert dialog with the option to switch to local models for the remainder of the session or keep trying after increasing an API budget.
+  - A topbar pill and Settings banner indicate when session-local mode is active, with a single click to resume using the external LLM at any time.
+- **Proactive engine memory management.** The engine ComfyUI node unloads local Gemma from GPU memory (`/free`) immediately after lyrics generation and before initiating LoRA training, returning ~8 GB of VRAM to the pool for YuE2 audio generation.
+- **Studio lyrics lookup (LRCLIB).** Automatic studio lyrics search on lrclib.net before transcription, matching title, artist and duration tags before falling back to Whisper.
+- **External LLM guide & unbilled recommendations.** Added a dedicated External LLM section to the user guide under Settings, explaining GPU memory benefits and recommending unbilled API tiers (such as Google Gemini via Google AI Studio) to prevent unintended token charges during bulk corpus analysis.
+
+### UI enhancements
+
+- **Grouped settings.** Settings are now organised into distinct categories (General, Stems & Demucs, External LLM & Lyrics, Take Pictures, YuE2 LoRA Training, and Appearance).
+- **Style LoRA suggestion cleanup.** Removed the redundant static strength recommendation line under the Style LoRA picker in the editor.
+- **Log hot key.** Pressing **L** toggles the system log window from anywhere on the page.
+
 ## 0.0.45 (2026-10-16)
 
 - **Hot keys help overlay.** Pressing **?** (or **Shift + /**) opens an overlay dialog displaying all application keyboard shortcuts grouped by section: main page playback and chosen take actions, the score editor and piano roll, and take comparison. The dialog closes on Escape, on clicking Close or the backdrop, or on pressing **?** again. Typing in text fields is left alone so question marks in lyrics, styles and titles are unaffected.
