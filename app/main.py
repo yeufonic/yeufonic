@@ -331,7 +331,7 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "local", "label": "Local Gemma (engine ComfyUI node)"},
             {"value": "external", "label": "External LLM (OpenAI-compatible API)"},
         ],
-        "help": "Choose whether to run local Gemma on GPU or connect to an external LLM (OpenAI, Anthropic, Gemini, Groq, OpenRouter, Ollama, LM Studio). Using external LLM avoids loading Gemma into GPU memory and produces significantly richer lyrics and style descriptions.",
+        "help": "Choose whether to run local Gemma on GPU or connect to an external LLM (OpenAI, Anthropic, Gemini, Groq, OpenRouter, Ollama, LM Studio). Using an external LLM avoids loading Gemma into GPU memory and produces significantly richer lyrics and style descriptions. We recommend choosing a provider without billing applied to the API if available (such as Google Gemini).",
     },
     {
         "key": "llm.api_url",

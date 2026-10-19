@@ -542,6 +542,7 @@ any browser and survive a rebuild.
 | Use the GPU for stems and lyrics | On by default. Separating a vocal and hearing its words run on the engine's GPU when it has Demucs and Whisper, in its queue beside renders; off, or while a LoRA trains, the CPU does them |
 | Stem save folder | Where stems are written. It must sit inside the data folder |
 | Take pictures | On by default, where something can draw them: FLUX.2 klein, chosen at install, or an external LLM whose provider lists an image model. **Drawn by** chooses between the two (this PC first, as it costs nothing), **Described by** what writes the picture's description (the take itself by default, with no LLM; or Gemma or the external LLM), and **Image model** which of the provider's models draws, when it draws. **No pictures** where nothing can draw, saying how to have them |
+| External LLM & Lyrics | Choose between Local Gemma on GPU or an external OpenAI-compatible API for lyric drafting, corpus analysis, and audio transcription. Avoids GPU VRAM overhead. An API without billing applied (such as Google Gemini's free tier) is recommended if available to avoid usage charges |
 | Storage | Opens the Storage window (below). It also holds three settings: **Training checkpoints**, kept by default or deleted when training ends; **Working copies of corpus songs**, removed when a song's analysis ends by default; and **Training sets**, kept by default or removed when training ends |
 
 A settings sheet is generated from a specification on the server, so a new setting is a
