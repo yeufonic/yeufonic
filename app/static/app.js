@@ -10401,7 +10401,24 @@ async function identityClick(event) {
   }
   if (target.closest('#identity-analyse') || target.closest('#persona-analyse')) {
     try {
-      var queued = await api('/api/identities/' + IDENTITY.id + '/analyse', { method: 'POST' });
+      var sum = (IDENTITY.data && IDENTITY.data.summary) || {};
+      var isAnalysed = (sum.included || 0) > 0 && (sum.analysed || 0) >= (sum.included || 0);
+      var query = '';
+      if (isAnalysed) {
+        var isShift = Boolean(event && event.shiftKey);
+        var msg = isShift
+          ? 'Re-analyse all ' + sum.included + ' songs from scratch?\n\nThis will re-run stem separation, chords/key, transcription and style analysis.'
+          : 'All ' + sum.included + ' songs in this corpus are already analysed.\n\nRe-analyse style suggestions for all songs with the latest prompts?';
+        var ok = await confirmModal({
+          title: isShift ? 'Re-analyse entire corpus' : 'Re-analyse styles',
+          message: msg,
+          confirmText: isShift ? 'Re-analyse all' : 'Re-analyse styles',
+          cancelText: 'Cancel'
+        });
+        if (!ok) { return; }
+        query = isShift ? '?step=all' : '?step=style';
+      }
+      var queued = await api('/api/identities/' + IDENTITY.id + '/analyse' + query, { method: 'POST' });
       if (status) {
         status.textContent = queued.queued ? 'Queued ' + queued.queued + ' step' + (queued.queued === 1 ? '' : 's') + '. It carries on if you close this window.'
           : 'Nothing left to analyse.';

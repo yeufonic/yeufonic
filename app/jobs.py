@@ -1241,15 +1241,14 @@ async def prepare_song(song_id: str) -> None:
     identity = one("SELECT * FROM identities WHERE id = ?", (id_val,))
     # A track cut from an album is stored by its full path, in the corpus's own folder.
     source = Path(identity["folder"]) / song["file"]
-    if not (identities.allowed(source) or identities.is_track(source)) or not source.is_file():
-        raise RuntimeError("the song is no longer in its folder")
-    set_song(song_id, vocals_state="running", error=None)
     folder = identities.song_dir(identity["id"], song)
     folder.mkdir(parents=True, exist_ok=True)
     stored = folder / f"original{source.suffix.lower()}"
     if not stored.exists():
+        if not (identities.allowed(source) or identities.is_track(source)) or not source.is_file():
+            raise RuntimeError("the song is no longer in its folder")
         await asyncio.to_thread(_store_original, source, stored)
-    set_song(song_id, stored_path=str(stored))
+    set_song(song_id, vocals_state="running", error=None, stored_path=str(stored))
     song_title = song.get("title") or song.get("file")
     log.info("Preparing corpus song '%s' for '%s' (separating vocals, transcribing)", song_title, identity["name"])
     # Key and tempo only need the recording, so the GPU can start while demucs runs.

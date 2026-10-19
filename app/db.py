@@ -27,7 +27,7 @@ def conn() -> sqlite3.Connection:
     return current
 
 
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 
 
 @contextmanager
@@ -695,6 +695,9 @@ def migrate() -> None:
                 log.info("database migration %d", number + 1)
                 MIGRATIONS[number]()
                 c.execute(f"PRAGMA user_version = {number + 1}")
+    with suppress(Exception):
+        c.execute("UPDATE identity_songs SET flag = NULL WHERE flag LIKE 'longer than%' AND duration <= 1500")
+        c.commit()
     with _settings_lock:
         _settings_cache.clear()
 

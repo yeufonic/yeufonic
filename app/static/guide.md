@@ -826,7 +826,7 @@ Training is the most demanding thing the app does: a 16 GB graphics card and 32 
    A LoRA trained this way may write notes in the Vocal part of a plan, which makes a render sing or hum;
    a plan's "may sing" warning shows it. Changing the Voice of a corpus already analysed changes its
    lyrics to match.
-2. **Choose the songs.** Untick any you want left out. A recording longer than 10 minutes is
+2. **Choose the songs.** Untick any you want left out. A recording longer than 25 minutes is
    left out, since it is most likely a whole album in one file. If a `.cue` sheet sits beside it,
    **Split into tracks** cuts it into its songs, which take its place in the corpus. The tracks go
    in the app's own folder; yours is not changed.

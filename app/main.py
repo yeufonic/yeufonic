@@ -3334,6 +3334,8 @@ def _identity_view(identity: dict) -> dict:
             song["flag"] = song["flag"] or identities.TOO_LONG
             found = identities.cue_for(_song_source(identity, song))
             song["cue"] = {"file": found["cue"], "tracks": len(found["tracks"])} if found else None
+        elif song.get("flag") and "longer than" in song["flag"]:
+            song["flag"] = None
     chosen = [s for s in songs if s["include"]]
     busy = any(s[f] in ("queued", "running") for s in songs for f in IDENTITY_STEPS)
     return {**identity, "vocalless": identities.vocalless(identity["voice"]), "songs": songs, "busy": busy,
@@ -3661,12 +3663,43 @@ async def regenerate_song_style(identity_id: str, song_id: str) -> dict:
 
 @app.post("/api/identities/{identity_id}/analyse")
 @app.post("/api/personas/{identity_id}/analyse", include_in_schema=False)
-async def analyse_identity(identity_id: str) -> dict:
+async def analyse_identity(identity_id: str, step: str | None = None, force: bool = False) -> dict:
     """Queue every step not yet done for each included song.  Safe to press again:
-    finished steps are kept, failed ones are tried again."""
+    finished steps are kept, failed ones are tried again.
+
+    - step="style": re-queues style analysis for all included songs with the latest prompts.
+    - step="all" or force=True: re-queues all steps from scratch.
+    """
     identity = _identity(identity_id)
     queued = 0
-    for song in rows("SELECT * FROM identity_songs WHERE identity_id = ? AND include = 1 ORDER BY position", (identity_id,)):
+    songs = rows("SELECT * FROM identity_songs WHERE identity_id = ? AND include = 1 ORDER BY position", (identity_id,))
+
+    if step == "style":
+        for song in songs:
+            if identities.too_long(song["duration"]):
+                continue
+            jobs.set_song(song["id"], style_state="queued", error=None)
+            await QUEUE.put({"kind": "identity_style", "id": song["id"]})
+            queued += 1
+        log.info("Queued style analysis for corpus '%s' (%d jobs queued)", identity.get("name") or identity_id, queued)
+        return {"queued": queued}
+
+    if step == "all" or force:
+        for song in songs:
+            if identities.too_long(song["duration"]):
+                continue
+            jobs.set_song(song["id"], vocals_state="queued", lyrics_state="queued",
+                          score_state="queued", style_state="queued", error=None)
+            await jobs.IDENTITY_QUEUE.put({"id": song["id"]})
+            queued += 1
+            await QUEUE.put({"kind": "identity_score", "id": song["id"]})
+            queued += 1
+            await QUEUE.put({"kind": "identity_style", "id": song["id"]})
+            queued += 1
+        log.info("Queued full re-analysis for corpus '%s' (%d jobs queued)", identity.get("name") or identity_id, queued)
+        return {"queued": queued}
+
+    for song in songs:
         if identities.too_long(song["duration"]):
             continue
         cpu = {f: "queued" for f in ("vocals_state", "lyrics_state") if song[f] in ("none", "failed")}

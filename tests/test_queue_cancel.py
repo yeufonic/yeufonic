@@ -138,3 +138,66 @@ def test_waiting_corpus_prep_appears_in_queue_and_can_be_cancelled(client):
     finally:
         while not IDENTITY_QUEUE.empty():
             IDENTITY_QUEUE.get_nowait()
+
+
+def test_reanalysing_corpus_styles_queues_all_songs(client):
+    corpus_song(id="s-1", title="Song One", vocals_state="done", lyrics_state="done", score_state="done", style_state="done")
+    corpus_song(id="s-2", title="Song Two", vocals_state="done", lyrics_state="done", score_state="done", style_state="done")
+
+    # Regular analyse skips completed songs:
+    assert client.post("/api/identities/id-1/analyse").json() == {"queued": 0}
+
+    # Step="style" re-queues style analysis for all songs:
+    res = client.post("/api/identities/id-1/analyse?step=style").json()
+    assert res == {"queued": 2}
+    s1 = one("SELECT style_state FROM identity_songs WHERE id = 's-1'")
+    s2 = one("SELECT style_state FROM identity_songs WHERE id = 's-2'")
+    assert (s1["style_state"], s2["style_state"]) == ("queued", "queued")
+    q_titles = [q["title"] for q in client.get("/api/state").json()["queue"]]
+    assert q_titles == ["Style: Song One", "Style: Song Two"]
+
+
+def test_reanalysing_corpus_all_steps_queues_full_pipeline(client):
+    corpus_song(id="s-all", title="Complete Song", vocals_state="done", lyrics_state="done", score_state="done", style_state="done")
+    from app.jobs import IDENTITY_QUEUE
+    while not IDENTITY_QUEUE.empty():
+        IDENTITY_QUEUE.get_nowait()
+
+    res = client.post("/api/identities/id-1/analyse?step=all").json()
+    assert res == {"queued": 3}
+    row = one("SELECT vocals_state, lyrics_state, score_state, style_state FROM identity_songs WHERE id = 's-all'")
+    assert (row["vocals_state"], row["lyrics_state"], row["score_state"], row["style_state"]) == ("queued", "queued", "queued", "queued")
+
+
+def test_prepare_song_reuses_stored_audio_when_inbox_removed(tmp_path, monkeypatch):
+    import asyncio
+    from app import identities, jobs
+    song_dir = identities.song_dir("id-1", {"id": "s-stored", "title": "Track", "file": "track.flac"})
+    song_dir.mkdir(parents=True, exist_ok=True)
+    stored = song_dir / "original.flac"
+    stored.write_bytes(b"dummy audio content")
+    (song_dir / "vocals.flac").write_bytes(b"vocals")
+    (song_dir / "whisper.json").write_text("[]")
+
+    execute("""INSERT OR REPLACE INTO identities(id, name, trigger_word, folder, created_at)
+               VALUES('id-1', 'Band', 'band', '/tmp/nonexistent_removed_folder', 1.0)""")
+    execute("""INSERT OR REPLACE INTO identity_songs(id, identity_id, file, title, sha256, duration, include,
+                                                     vocals_state, lyrics_state, score_state, position)
+               VALUES('s-stored', 'id-1', 'track.flac', 'Track', 'x', 300, 1, 'queued', 'queued', 'done', 0)""")
+
+    asyncio.run(jobs.prepare_song("s-stored"))
+    row = one("SELECT vocals_state, lyrics_state, stored_path FROM identity_songs WHERE id = 's-stored'")
+    assert row["stored_path"] == str(stored)
+    assert row["vocals_state"] == "done"
+    assert row["lyrics_state"] == "done"
+
+
+def test_duration_threshold_is_25_minutes():
+    from app import identities
+    assert identities.MAX_SECONDS == 1500
+    assert not identities.too_long(600)      # 10 min: previously blocked, now accepted
+    assert not identities.too_long(1024)     # 17 min (Dogs): accepted
+    assert not identities.too_long(1411)     # 23.5 min (Echoes): accepted
+    assert not identities.too_long(1500)     # 25 min exact: accepted
+    assert identities.too_long(1501)         # > 25 min: flagged as too long
+

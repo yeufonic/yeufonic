@@ -29,7 +29,7 @@ AUDIO_TYPES = {".mp3", ".wav", ".flac", ".m4a", ".ogg", ".opus", ".aac", ".aif",
 MIN_SECONDS = 90
 # Longer than any song: most likely a whole album or a side in one file.  Analysing one
 # takes a very long time and a great deal of memory, and it would train as one song.
-MAX_SECONDS = 600
+MAX_SECONDS = 1500
 # A filename that credits someone else ("Ft. Alan Williams on vocals") is not one voice.
 OTHER_SINGER = re.compile(r"\b(ft\.?|feat\.?|featuring|duet|with .+ on vocals)\b", re.I)
 CHUNK_RATE = 16000          # what Gemma's audio encoder takes
