@@ -826,18 +826,10 @@ Training is the most demanding thing the app does: a 16 GB graphics card and 32 
    A LoRA trained this way may write notes in the Vocal part of a plan, which makes a render sing or hum;
    a plan's "may sing" warning shows it. Changing the Voice of a corpus already analysed changes its
    lyrics to match.
-2. **Choose the songs.** Untick any you want left out. A recording longer than 25 minutes is
-   left out, since it is most likely a whole album in one file. If a `.cue` sheet sits beside it,
-   **Split into tracks** cuts it into its songs, which take its place in the corpus. The tracks go
-   in the app's own folder; yours is not changed.
-3. **Analyse.** Each song's vocal is separated, its key, tempo and sections are found, and its
-   lyrics are drafted, tagged by section. With an external LLM set in Settings, the sections are
-   marked from the words as heard: choruses by their words coming back, new sections by the
-   pauses. Only the lines and their timings are sent, and the words and their order are never
-   changed. Without one, or if its answer does not hold every line, the tags come from the music
-   analysis. **Redraft**, beside Save in a song's review, marks the sections again the same way
-   without hearing the song again, for a song drafted before, and replaces what is in the box. A line under the buttons says what is running, and
-   **Stop** ends it. Finished steps are kept, so **Analyse** carries on from where it stopped.
+2. **Choose the songs.** Untick any you want left out. When a song is prepared, the app keeps its own copy of the full recording in internal corpus storage, so a corpus remains intact even if its source folder is later cleared or moved. A recording longer than 25 minutes is left out, since it is most likely a whole album or concert in one file. If a `.cue` sheet sits beside it, **Split into tracks** cuts it into its songs, which take its place in the corpus. The tracks go in the app's own folder; yours is not changed. (Songs longer than the trainer's GPU limit, such as 15-minute tracks, are safely cut and faded at a musical section boundary when exported.)
+3. **Analyse.** Each song's vocal is separated, its key, tempo and sections are found, and its lyrics are drafted, tagged by section. With an external LLM set in Settings, the sections are marked from the words as heard: choruses by their words coming back, new sections by the pauses. Only the lines and their timings are sent, and the words and their order are never changed. Without one, or if its answer does not hold every line, the tags come from the music analysis. **Redraft**, beside Save in a song's review, marks the sections again the same way without hearing the song again, for a song drafted before, and replaces what is in the box. A line under the buttons says what is running, and active analysis appears in the main screen's job card and queue. **Stop** ends it. Finished steps are kept, so **Analyse** carries on from where it stopped.
+
+   **Re-analysing.** Once every song is analysed, the button shows **Analysed ✓**. Clicking it asks if you want to re-analyse style suggestions for all songs with the latest prompts and LLM settings (convenient after renaming a corpus or changing providers). Shift-clicking **Analysed ✓** offers a complete re-analysis from scratch (re-running stem separation, key, tempo, transcription and styles). Individual songs can also be re-styled with **Re-analyse** in each song's review.
 4. **Review.** Open a song to check its lyrics and tick **checked**, and to describe its sound
    where it differs from the rest. The style caption shows what the trainer will read.
 5. **Export training set.** Writes the audio, lyrics and caption for each song. A line under the
