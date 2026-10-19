@@ -203,9 +203,8 @@ def test_a_track_is_linked_into_its_song_not_copied(tmp_path):
     assert kept.stat().st_ino != own.stat().st_ino and own.stat().st_nlink == 1
 
 
-def test_style_analysis_sends_the_title_and_words_never_an_artist(tmp_path, monkeypatch):
-    """The corpus name is whatever the folder was called, and a model can read it as
-    an unrelated band.  A file's artist tag is not sent either."""
+def test_style_analysis_sends_the_title_artist_and_words(tmp_path, monkeypatch):
+    """The corpus name is sent as the artist context, along with title and lyrics."""
     import subprocess
     from app import llm
     song = tmp_path / "song.flac"
@@ -223,7 +222,7 @@ def test_style_analysis_sends_the_title_and_words_never_an_artist(tmp_path, monk
     monkeypatch.setattr(llm, "is_external_enabled", lambda: True)
     monkeypatch.setattr(llm, "describe_song_style", describe)
     asyncio.run(jobs.run_identity_job("identity_style", "s1"))
-    assert asked == {"title": "First Song", "lyrics_text": "Paper boats on the river"}
+    assert asked == {"title": "First Song", "artist": "mycorpus", "lyrics_text": "Paper boats on the river"}
     assert one("SELECT style_state FROM identity_songs WHERE id = 's1'")["style_state"] == "done"
 
 

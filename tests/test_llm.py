@@ -161,7 +161,19 @@ async def test_describe_song_style_external_llm():
         tags = await llm.describe_song_style(title="Paper Lanterns", lyrics_text="Once upon a time...")
         assert tags == "folk rock, hammond organ, electric guitar, loose driving backbeat, defiant"
         prompt = mock_chat.call_args[0][0][-1]["content"]
-        assert "Song: Paper Lanterns" in prompt and "Artist" not in prompt     # never an artist
+        assert "Song: Paper Lanterns" in prompt and "Artist" not in prompt     # never an artist if omitted
+
+
+@pytest.mark.anyio
+async def test_describe_song_style_with_artist_external_llm():
+    with patch("app.llm.chat_complete", new_callable=AsyncMock) as mock_chat:
+        mock_chat.return_value = "psychedelic rock, pedal steel guitar, fender rhodes, slow tempo, atmospheric"
+        tags = await llm.describe_song_style(title="Breathe (in the air)", artist="Pink Floyd", lyrics_text="Breathe, breathe in the air...")
+        assert "psychedelic rock" in tags
+        prompt = mock_chat.call_args[0][0][-1]["content"]
+        assert "Song: Breathe (in the air)" in prompt
+        assert "Artist/Corpus: Pink Floyd" in prompt
+        assert "Lyrics excerpt:\nBreathe, breathe in the air..." in prompt
 
 
 @pytest.mark.anyio
@@ -226,6 +238,9 @@ async def test_identity_style_job_with_external_llm():
     row = one("SELECT * FROM identity_songs WHERE id = 'song-1'")
     assert row["style_state"] == "done"
     assert row["style_hint"] == "folk rock, hammond organ, telecaster, driving beat, cynical"
+    prompt = mock_chat.call_args[0][0][-1]["content"]
+    assert "Song: Paper Lanterns" in prompt
+    assert "Artist/Corpus: June Halloway" in prompt
 
 
 @pytest.mark.anyio

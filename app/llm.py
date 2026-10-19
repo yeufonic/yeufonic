@@ -395,14 +395,17 @@ def clean_style_tags(raw: str, title: str = "") -> str:
     return ", ".join(cleaned_tags)[:300]
 
 
-async def describe_song_style(title: str, lyrics_text: str = "") -> str:
+async def describe_song_style(title: str, lyrics_text: str = "", artist: str = "") -> str:
     """Describe a corpus song's musical style as comma-separated tags using external LLM."""
-    log.info("Starting external LLM style description for '%s'", title)
+    log.info("Starting external LLM style description for '%s'%s", title, f" by '{artist}'" if artist else "")
 
     user_content = [
-        "Describe the musical style of the following song for a music generator as one line of comma-separated tags: genre, lead instruments, drums and mood. Output only the tags.",
+        "Describe the musical style of the following song for the YuE2 music generator as one line of rich, comma-separated tags.\n"
+        "Include specific details across: subgenre & era (avoid generic 'pop' or 'rock'), exact lead instruments, rhythm & drum groove, production aesthetics (reverb, tape warmth, stereo panning), and mood. Output only the tags.",
         f"\nSong: {title}",
     ]
+    if artist and artist.strip():
+        user_content.append(f"Artist/Corpus: {artist.strip()}")
     if lyrics_text and lyrics_text.strip():
         user_content.append(f"Lyrics excerpt:\n{lyrics_text.strip()[:600]}")
 

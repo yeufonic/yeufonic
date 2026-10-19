@@ -1885,19 +1885,17 @@ async def run_identity_job(kind: str, song_id: str) -> None:
             maybe_draft(song_id)
         elif kind in ("identity_style", "persona_style"):
             # With no words, the external model has only a title; the local one listens to the music.
-            owner = one("SELECT voice FROM identities WHERE id = ?", (song.get("identity_id") or song.get("persona_id"),)) or {}
+            owner = one("SELECT name, voice FROM identities WHERE id = ?", (song.get("identity_id") or song.get("persona_id"),)) or {}
             listens = identities.vocalless(owner.get("voice")) and bool(ENGINE.options.get("lyrics"))
             hint = None
+            title = song.get("title") or song_title
+            lyrics_text = song.get("lyrics") or ""
+            artist = (owner.get("name") or "").strip()
             if llm.is_external_enabled() and not listens:
-                # The title and the words only.  No artist: the corpus's name is whatever
-                # the user called the folder, and a model can read it as an unrelated band
-                # and describe the songs in that band's genre.  A file's artist tag can be
-                # as wrong, or missing.
-                title = song.get("title") or song_title
-                lyrics_text = song.get("lyrics") or ""
-                log.info("Starting external LLM style analysis for corpus song '%s' (%s)", title, song_id)
+                log.info("Starting external LLM style analysis for corpus song '%s'%s (%s)",
+                         title, f" by '{artist}'" if artist else "", song_id)
                 try:
-                    hint = await llm.describe_song_style(title=title, lyrics_text=lyrics_text)
+                    hint = await llm.describe_song_style(title=title, lyrics_text=lyrics_text, artist=artist)
                     set_song(song_id, style_hint=hint, style_state="done")
                     log.info("Finished external LLM style analysis for corpus song '%s': %s", song_title, hint[:60] + "..." if len(hint) > 60 else hint)
                 except Exception as exc:
@@ -1916,8 +1914,10 @@ async def run_identity_job(kind: str, song_id: str) -> None:
                 middle = len(samples) / identities.CHUNK_RATE * 0.4
                 clip = identities.write_chunk(samples, (middle, middle + 30), folder / "style-clip.wav")
                 name = await _upload(clip, f"identity-{song_id}-style.wav")
-                job = await _run_graph(kind, song_id, _gemma_graph(identities.DESCRIBE, [name], 120))
-                hint = " ".join((_texts_in_order(job) or [""])[0].split())[:300]
+                prompt = identities.gemma_style_prompt(title=title, artist=artist, lyrics_text=lyrics_text)
+                job = await _run_graph(kind, song_id, _gemma_graph(prompt, [name], 180))
+                raw_text = " ".join((_texts_in_order(job) or [""])[0].split())
+                hint = llm.clean_style_tags(raw_text, title=title) or raw_text[:300]
                 set_song(song_id, style_hint=hint, style_state="done")
                 log.info("Finished style analysis for corpus song '%s': %s", song_title, hint[:60] + "..." if len(hint) > 60 else hint)
     except Exception as exc:  # noqa: BLE001

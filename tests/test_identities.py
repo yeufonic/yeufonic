@@ -362,3 +362,19 @@ def test_audio_key_and_tempo_krumhansl_schmuckler_and_fallback():
     assert identities.key_and_tempo("X:1\nM:4/4\n", wave) == ("A minor", bpm)
     assert identities.key_and_tempo("X:1\nK:G\n", wave) == ("G major", bpm)
 
+
+def test_gemma_style_prompt_includes_metadata_and_structured_dimensions():
+    bare = identities.gemma_style_prompt()
+    assert "Describe this music for a music generator" in bare
+    assert "Specific subgenre and era" in bare
+    assert "Exact lead instruments" in bare
+
+    prompt = identities.gemma_style_prompt(title="Breathe", artist="Pink Floyd", lyrics_text="Breathe, breathe in the air...")
+    assert "Track: 'Breathe' by Pink Floyd" in prompt
+    assert "Lyrics snippet:\nBreathe, breathe in the air..." in prompt
+    assert "Specific subgenre and era (avoid generic labels like 'pop' or 'rock')" in prompt
+
+    artist_only = identities.gemma_style_prompt(artist="Pink Floyd")
+    assert "Artist/Corpus: Pink Floyd" in artist_only
+
+
