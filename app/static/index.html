@@ -656,10 +656,10 @@
           <div class="hotkey-row"><span class="hk-keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd></span><span class="hk-desc">Back or forward 5 seconds</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>&uarr;</kbd> <kbd>&darr;</kbd></span><span class="hk-desc">Volume up or down 5%</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>M</kbd></span><span class="hk-desc">Mastering rack for chosen take; again to close</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>V</kbd></span><span class="hk-desc">Audio visualizer while playing; Variations when stopped</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>E</kbd></span><span class="hk-desc">Open chosen take in editor</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>I</kbd></span><span class="hk-desc">Take details: prompt, seed, tags, with Copy</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>N</kbd></span><span class="hk-desc">Normalise take, or undo normalisation</span></div>
-          <div class="hotkey-row"><span class="hk-keys"><kbd>V</kbd></span><span class="hk-desc">Variations on chosen take</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>T</kbd></span><span class="hk-desc">Try more takes with chosen take's score</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>S</kbd></span><span class="hk-desc">Star or unstar chosen take</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>D</kbd></span><span class="hk-desc">Delete chosen take, after asking</span></div>
@@ -1298,7 +1298,56 @@
 </div>
 
 
+<div id="visualizer-modal" class="visualizer-modal hidden" role="dialog" aria-modal="true" aria-label="Visualizer">
+  <canvas id="visualizer-canvas" class="visualizer-canvas"></canvas>
+  <div id="vis-art-aura" class="vis-art-aura hidden"></div>
+  
+  <div class="vis-ui-container">
+    <header class="vis-topbar">
+      <div class="vis-track-info">
+        <h2 id="vis-title" class="vis-title">Nothing playing</h2>
+        <div id="vis-meta" class="vis-meta muted"></div>
+      </div>
+      
+      <div class="vis-modes" role="toolbar" aria-label="Visualizer modes">
+        <button type="button" class="vis-mode-btn active" data-mode="wave">Wave</button>
+        <button type="button" class="vis-mode-btn" data-mode="aurora">Aurora</button>
+        <button type="button" class="vis-mode-btn" data-mode="cosmic">Cosmic</button>
+        <button type="button" class="vis-mode-btn" data-mode="kaleidoscope">Mandala</button>
+      </div>
+
+      <div class="vis-actions">
+        <button type="button" id="vis-btn-art" class="vis-tool-btn" title="Toggle Album Artwork">Artwork: Sleeve</button>
+        <button type="button" id="vis-btn-lyrics" class="vis-tool-btn active" title="Toggle Synced Lyrics">Lyrics: On</button>
+        <button type="button" id="vis-btn-fullscreen" class="vis-tool-btn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">⛶</button>
+        <button type="button" id="vis-btn-close" class="vis-tool-btn vis-close" title="Close (Esc or V)" aria-label="Close Visualizer">&times;</button>
+      </div>
+    </header>
+
+    <main class="vis-stage">
+      <div id="vis-art-wrap" class="vis-art-wrap hidden">
+        <div id="vis-art-sleeve" class="vis-art-sleeve">
+          <div class="vis-vinyl-record" id="vis-vinyl-record">
+            <div class="vis-vinyl-grooves"></div>
+            <div class="vis-vinyl-label"></div>
+          </div>
+          <img id="vis-cover-img" class="vis-cover-img" src="" alt="Album Cover">
+        </div>
+      </div>
+
+      <div id="vis-lyrics-wrap" class="vis-lyrics-wrap hidden">
+        <div id="vis-lyrics-list" class="vis-lyrics-list"></div>
+      </div>
+    </main>
+
+    <footer class="vis-bottom-hint">
+      <span><kbd>Space</kbd> Play / Pause</span> · <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> Seek</span> · <span><kbd>V</kbd> or <kbd>Esc</kbd> Close</span>
+    </footer>
+  </div>
+</div>
+
 <div class="player">
+  <canvas id="mini-vis" class="player-mini-vis"></canvas>
   <div class="np-cover" id="np-cover"></div>
   <div class="np-text">
     <div id="np-title">Nothing playing</div>
@@ -1309,6 +1358,9 @@
     <button class="rack-chiclet-btn" id="btn-fx-rack" title="Mastering Rack (Vintage EQ, Compressor, Limiter)" aria-label="Mastering Rack">
       <span class="rack-chiclet-m">M</span>
       <span class="rack-dot hidden" id="rack-active-dot"></span>
+    </button>
+    <button class="vis-chiclet-btn" id="btn-visualizer" title="Audio Visualizer (Hot key: V)" aria-label="Audio Visualizer">
+      <span class="vis-chiclet-v">V</span>
     </button>
     <button class="pbtn" id="btn-prev" title="Previous take" aria-label="Previous take">
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h2.4v14H7z"/><path d="M19 5v14l-9-7z"/></svg>
@@ -1351,6 +1403,7 @@
 <script src="/static/sectionedit.js?v={{VERSION}}"></script>
 <script src="/static/midiwrite.js?v={{VERSION}}"></script>
 <script src="/static/rack.js?v={{VERSION}}"></script>
+<script src="/static/visualizer.js?v={{VERSION}}"></script>
 <script src="/static/app.js?v={{VERSION}}"></script>
 </body>
 </html>

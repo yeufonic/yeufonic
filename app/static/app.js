@@ -5090,7 +5090,26 @@ function adoptSettings(spec) {
   }
   applyTheme();
   adoptBackdrop();
+  adoptVisualizerSettings();
   if (typeof editorOpen === 'function' && editorOpen()) { paintEditor(); }
+}
+
+function adoptVisualizerSettings() {
+  if (!window.Visualizer) { return; }
+  var mini = setting('appearance.mini_visualizer', 'on');
+  window.Visualizer.miniEnabled = (mini === 'on');
+  var art = setting('appearance.visualizer_art', 'sleeve');
+  window.Visualizer.artMode = art;
+  var lyrics = setting('appearance.visualizer_lyrics', 'on');
+  window.Visualizer.showLyrics = (lyrics === 'on');
+  var mode = setting('appearance.visualizer_mode', 'wave');
+  window.Visualizer.mode = mode;
+  window.Visualizer.saveSettings();
+  if (window.Visualizer.isOpen) {
+    window.Visualizer.updateButtonsState();
+    window.Visualizer.updateArtworkDisplay();
+    window.Visualizer.updateLyricsDisplay();
+  }
 }
 
 /* ------------------------------------------------------------------- themes
@@ -11582,6 +11601,7 @@ function playTake(id) {
   $('np-cover').className = 'np-cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover');
   updateMediaSession(take);
   if (window.Rack) { window.Rack.onTake(take); }
+  if (window.Visualizer) { window.Visualizer.setTake(take); }
   paintTransport();
   paintTakes();
 }
@@ -11659,6 +11679,7 @@ function activateTakeRecording(take) {
     $('t-total').textContent = take.duration ? secs(take.duration) : '--:--';
     updateMediaSession(take);
     if (window.Rack) { window.Rack.onTake(take); }
+    if (window.Visualizer) { window.Visualizer.setTake(take); }
     paintTransport();
     return;
   }
@@ -11726,6 +11747,7 @@ function activateTakeRecording(take) {
   $('t-now').textContent = '0:00';
   $('t-total').textContent = '--:--';
   if (window.Rack) { window.Rack.onTake(take); }
+  if (window.Visualizer) { window.Visualizer.setTake(take); }
   paintTransport();
 }
 
@@ -14557,6 +14579,7 @@ function wire() {
         }
       }
     }
+    if (event.key === 'Escape' && window.Visualizer && window.Visualizer.isOpen) { window.Visualizer.toggle(false); return; }
     if (event.key === 'Escape' && $('cover-popup') && !$('cover-popup').classList.contains('hidden')) { closeCoverPopup(true); return; }
     if (event.key === 'Escape' && $('source-picker-menu') && !$('source-picker-menu').classList.contains('hidden')) { closeSourcePicker(); return; }
     if (event.key === 'Escape' && $('lora-picker-menu') && !$('lora-picker-menu').classList.contains('hidden')) { closeLoraPicker(); return; }
@@ -14729,6 +14752,17 @@ function wire() {
       event.preventDefault();
       if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
       return;
+    }
+    if ((event.key === 'v' || event.key === 'V') &&
+        !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
+      var audio = $('audio');
+      var isPlaying = audio && !audio.paused && !audio.ended;
+      var visOpen = window.Visualizer && window.Visualizer.isOpen;
+      if (isPlaying || visOpen) {
+        event.preventDefault();
+        if (window.Visualizer) { window.Visualizer.toggle(); }
+        return;
+      }
     }
     // The editor window, alone (or with the mastering rack over it), has the player's keys too, for the take in
     // the window, whenever its player shows: typing is already left alone above.  Any other window in front

@@ -279,3 +279,24 @@ def test_free_engine_endpoint(client, monkeypatch):
     finally:
         CURRENT.clear()
 
+
+def test_visualizer_settings(client):
+    res = client.get("/api/settings")
+    assert res.status_code == 200
+    by_key = {s["key"]: s for s in res.json()["settings"]}
+    assert "appearance.mini_visualizer" in by_key
+    assert "appearance.visualizer_art" in by_key
+    assert "appearance.visualizer_lyrics" in by_key
+    assert "appearance.visualizer_mode" in by_key
+
+    # Update visualizer setting
+    put_res = client.put("/api/settings", json={"key": "appearance.mini_visualizer", "value": "off"})
+    assert put_res.status_code == 200
+    updated = {s["key"]: s for s in put_res.json()["settings"]}
+    assert updated["appearance.mini_visualizer"]["value"] == "off"
+
+    # Reject invalid setting value
+    invalid_res = client.put("/api/settings", json={"key": "appearance.mini_visualizer", "value": "invalid_mode"})
+    assert invalid_res.status_code == 400
+
+

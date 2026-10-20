@@ -4652,3 +4652,352 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 }
 #llm-session-pill { cursor: pointer; }
 
+/* ============================================================== Audio Visualizer */
+.player-mini-vis {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.38;
+}
+.player > *:not(.player-mini-vis) {
+  position: relative;
+  z-index: 2;
+}
+
+.vis-chiclet-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  margin-right: 6px;
+  background: linear-gradient(180deg, #4c1d95 0%, #3b0764 60%, #1e1b4b 100%);
+  border: 1px solid #a855f7;
+  border-bottom: 2px solid #7e22ce;
+  border-radius: 4px;
+  color: #e9d5ff;
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: transform 70ms ease, background 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+  user-select: none;
+  flex: 0 0 auto;
+}
+.vis-chiclet-btn:hover {
+  background: linear-gradient(180deg, #6b21a8 0%, #581c87 60%, #3b0764 100%);
+  border-color: #c084fc;
+  color: #f3e8ff;
+  box-shadow: 0 2px 6px rgba(168, 85, 247, 0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+  filter: brightness(1.08);
+}
+.vis-chiclet-btn:active {
+  transform: translateY(1px);
+  border-bottom: 1px solid #7e22ce;
+}
+.vis-chiclet-btn.active {
+  background: linear-gradient(180deg, #7e22ce 0%, #6b21a8 60%, #3b0764 100%);
+  border-color: #d8b4fe;
+  border-bottom: 1px solid #7e22ce;
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(216, 180, 254, 0.9);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.6), inset 0 1px 2px rgba(0,0,0,0.3);
+  transform: translateY(1px);
+}
+
+.visualizer-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  background: #050509;
+  overflow: hidden;
+  user-select: none;
+}
+.visualizer-modal.hidden { display: none !important; }
+
+.visualizer-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: block;
+}
+
+.vis-art-aura {
+  position: absolute;
+  inset: -15%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(80px) saturate(1.8) brightness(0.55);
+  opacity: 0.65;
+  z-index: 2;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+.vis-art-aura.hidden { display: none; }
+
+.vis-ui-container {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 32px;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.visualizer-modal.idle .vis-topbar,
+.visualizer-modal.idle .vis-bottom-hint {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vis-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  pointer-events: auto;
+  transition: opacity 0.3s ease;
+}
+
+.vis-track-info {
+  min-width: 0;
+  max-width: 320px;
+}
+.vis-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+}
+.vis-meta {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vis-modes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+}
+.vis-mode-btn {
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: none;
+  background: none;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.vis-mode-btn:hover { color: #f8fafc; }
+.vis-mode-btn.active {
+  background: rgba(168, 85, 247, 0.35);
+  color: #f3e8ff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+}
+
+.vis-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vis-tool-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(15, 23, 42, 0.65);
+  color: #cbd5e1;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.vis-tool-btn:hover {
+  background: rgba(30, 41, 59, 0.85);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.vis-tool-btn.active {
+  background: rgba(168, 85, 247, 0.25);
+  color: #e9d5ff;
+  border-color: #a855f7;
+}
+.vis-tool-btn.vis-close {
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 10px;
+}
+
+.vis-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 60px;
+  min-height: 0;
+  padding: 10px 0;
+}
+
+.vis-art-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+.vis-art-wrap.hidden { display: none !important; }
+.vis-art-wrap.mode-aura { display: none; }
+
+.vis-art-sleeve {
+  position: relative;
+  width: 330px;
+  height: 330px;
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.85);
+  transition: transform 0.07s ease-out, box-shadow 0.07s ease-out;
+}
+.vis-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  position: relative;
+  z-index: 3;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.vis-vinyl-record {
+  position: absolute;
+  top: 10px;
+  right: -50px;
+  width: 310px;
+  height: 310px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #09090b 0%, #18181b 60%, #050505 100%);
+  z-index: 1;
+  box-shadow: inset 0 0 25px rgba(255,255,255,0.07), 0 10px 35px rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s linear;
+}
+.vis-vinyl-grooves {
+  position: absolute;
+  inset: 15px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0 40px rgba(255,255,255,0.05);
+}
+.vis-vinyl-label {
+  width: 95px;
+  height: 95px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #b91c1c 0%, #7f1d1d 100%);
+  border: 3px solid #fef08a;
+  position: relative;
+  z-index: 2;
+}
+
+.vis-lyrics-wrap {
+  flex: 1;
+  max-width: 620px;
+  height: 75%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: auto;
+  mask-image: linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%);
+}
+.vis-lyrics-wrap.hidden { display: none !important; }
+
+.vis-lyrics-list {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 160px 0;
+  text-align: left;
+}
+.vis-lyrics-list::-webkit-scrollbar { display: none; }
+
+.vis-lyric-sec {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent-a, #38bdf8);
+  font-weight: 700;
+  margin: 28px 0 10px;
+  opacity: 0.65;
+}
+.vis-lyric-line {
+  font-size: 26px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: #ffffff;
+  opacity: 0.3;
+  margin: 14px 0;
+  transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+}
+.vis-lyric-line.active {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  opacity: 1.0;
+  transform: scale(1.02);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.7), 0 0 40px rgba(168, 85, 247, 0.45);
+}
+.vis-lyric-line.past { opacity: 0.45; }
+
+.vis-bottom-hint {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.vis-bottom-hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #cbd5e1;
+}
+
+@media (max-width: 900px) {
+  .vis-stage { flex-direction: column; gap: 20px; }
+  .vis-art-sleeve { width: 220px; height: 220px; }
+  .vis-vinyl-record { width: 210px; height: 210px; right: -30px; }
+  .vis-lyric-line { font-size: 20px; }
+  .vis-lyric-line.active { font-size: 24px; }
+}
+
