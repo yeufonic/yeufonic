@@ -56,6 +56,14 @@
     ring2Scale: 1,
     ring2Opacity: 0,
 
+    // Additional visualizer mode states
+    gridOffset: 0,
+    liquidCanvas: null,
+    swarmParticles: null,
+    barLevels: null,
+    barPeaks: null,
+    barPeakTimes: null,
+
     // Stars for cosmic mode
     stars: null,
 
@@ -64,6 +72,8 @@
       this.loadSettings();
       this.wireElements();
       this.initCosmicStars();
+      this.initSwarmParticles();
+      this.initBars();
       this.startMini();
     },
 
@@ -674,6 +684,18 @@
         case 'kaleidoscope':
           this.renderKaleidoscope(ctx, w, h, now);
           break;
+        case 'grid':
+          this.renderGrid(ctx, w, h, now);
+          break;
+        case 'liquid':
+          this.renderLiquid(ctx, w, h, now);
+          break;
+        case 'swarm':
+          this.renderSwarm(ctx, w, h, now);
+          break;
+        case 'bars':
+          this.renderBars(ctx, w, h, now);
+          break;
         case 'wave':
         default:
           this.renderWave(ctx, w, h, now);
@@ -1002,6 +1024,380 @@
       }
       ctx.restore();
       ctx.shadowBlur = 0;
+    },
+
+    /* Mode 5: Neon Synthwave Grid (Outrun) */
+    renderGrid: function (ctx, w, h, now) {
+      var bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+      bgGrad.addColorStop(0, '#04020a');
+      bgGrad.addColorStop(0.5, '#0c041c');
+      bgGrad.addColorStop(1, '#05020d');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      var cx = w * 0.5;
+      var hy = h * 0.52; // Horizon line
+
+      // Distant twinkling stars
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+      for (var s = 0; s < 40; s++) {
+        var sx = (Math.sin(s * 91.7 + 12) * 0.5 + 0.5) * w;
+        var sy = (Math.cos(s * 43.1 + 5) * 0.5 + 0.5) * (hy * 0.88);
+        var sAlpha = 0.2 + Math.sin(now * 0.002 + s) * 0.25;
+        ctx.globalAlpha = Math.max(0.05, sAlpha);
+        ctx.fillRect(sx, sy, 1.5, 1.5);
+      }
+      ctx.globalAlpha = 1.0;
+
+      // 80s Synthwave Sunset Sun
+      var sunR = Math.min(w, h) * 0.16 * (1.0 + this.bassEnergy * 0.12);
+      var sunY = hy - sunR * 0.35;
+      var sunGrad = ctx.createLinearGradient(cx, sunY - sunR, cx, sunY + sunR);
+      sunGrad.addColorStop(0, '#fef08a');
+      sunGrad.addColorStop(0.5, '#f43f5e');
+      sunGrad.addColorStop(1, '#a855f7');
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, sunY, sunR, 0, Math.PI * 2);
+      ctx.fillStyle = sunGrad;
+      ctx.shadowColor = '#f43f5e';
+      ctx.shadowBlur = 35 + this.bassEnergy * 30;
+      ctx.fill();
+
+      // Horizontal slats slicing through lower half of sun
+      var slats = 7;
+      ctx.fillStyle = '#0c041c';
+      ctx.shadowBlur = 0;
+      for (var si = 0; si < slats; si++) {
+        var slatY = sunY + (si / slats) * sunR;
+        var slatH = (si + 1) * 1.8;
+        ctx.fillRect(cx - sunR - 10, slatY, (sunR + 10) * 2, slatH);
+      }
+      ctx.restore();
+
+      // Horizon glow bar
+      var horizGrad = ctx.createLinearGradient(0, hy - 15, 0, hy + 25);
+      horizGrad.addColorStop(0, 'rgba(244, 63, 94, 0)');
+      horizGrad.addColorStop(0.4, 'rgba(6, 182, 212, 0.55)');
+      horizGrad.addColorStop(1, 'rgba(6, 182, 212, 0)');
+      ctx.fillStyle = horizGrad;
+      ctx.fillRect(0, hy - 15, w, 40);
+
+      // 3D Perspective Wireframe Grid
+      var lines = 22;
+      this.gridOffset = ((this.gridOffset || 0) + 0.006 + this.bassEnergy * 0.012) % 1;
+
+      ctx.lineWidth = 1.8;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#06b6d4';
+
+      // Horizontal perspective lines moving forward
+      for (var li = 0; li < lines; li++) {
+        var z = (li + this.gridOffset) / lines;
+        var gy = hy + Math.pow(z, 2.8) * (h - hy);
+        var alpha = Math.min(1.0, z * 1.4);
+
+        ctx.strokeStyle = 'rgba(6, 182, 212, ' + alpha.toFixed(3) + ')';
+        ctx.beginPath();
+
+        // Terrain mountain ripples on left and right edges
+        var segments = 40;
+        var segW = w / segments;
+        for (var seg = 0; seg <= segments; seg++) {
+          var px = seg * segW;
+          var edgeFactor = Math.abs(px - cx) / cx;
+          var elev = 0;
+          if (edgeFactor > 0.3) {
+            var waveX = Math.sin(px * 0.02 + now * 0.003);
+            elev = Math.pow(edgeFactor - 0.3, 1.6) * (35 + this.bassEnergy * 85) * z * waveX;
+          }
+          var py = gy - elev;
+          if (seg === 0) { ctx.moveTo(px, py); } else { ctx.lineTo(px, py); }
+        }
+        ctx.stroke();
+      }
+
+      // Vertical converging perspective lines
+      var vCols = 24;
+      ctx.strokeStyle = 'rgba(217, 70, 239, 0.45)';
+      ctx.shadowColor = '#d946ef';
+      for (var vi = -vCols; vi <= vCols; vi++) {
+        var bottomX = cx + vi * (w / (vCols * 0.65));
+        ctx.beginPath();
+        ctx.moveTo(cx, hy);
+        ctx.lineTo(bottomX, h);
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+    },
+
+    /* Mode 6: Liquid Warp (Milkdrop / Psychedelic Tunnel) */
+    renderLiquid: function (ctx, w, h, now) {
+      if (!this.liquidCanvas) {
+        this.liquidCanvas = document.createElement('canvas');
+      }
+      if (this.liquidCanvas.width !== w || this.liquidCanvas.height !== h) {
+        this.liquidCanvas.width = w;
+        this.liquidCanvas.height = h;
+      }
+      var lctx = this.liquidCanvas.getContext('2d');
+
+      var cx = w * 0.5;
+      var cy = h * 0.5;
+
+      // Recursive feedback warp
+      var zoom = 1.018 + this.bassEnergy * 0.038;
+      var rot = (this.midEnergy - 0.15) * 0.012;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(rot);
+      ctx.scale(zoom, zoom);
+      ctx.drawImage(this.liquidCanvas, -cx, -cy, w, h);
+      ctx.restore();
+
+      // Trail decay
+      ctx.fillStyle = 'rgba(5, 5, 12, 0.14)';
+      ctx.fillRect(0, 0, w, h);
+
+      // Central fluid ripples and audio curves
+      var points = 48;
+      var baseR = 70 + this.bassEnergy * 110;
+      var hue = (now * 0.06 + this.trebleEnergy * 90) % 360;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(now * 0.001);
+
+      for (var layer = 0; layer < 3; layer++) {
+        var lRadius = baseR * (0.6 + layer * 0.45);
+        var lHue = (hue + layer * 55) % 360;
+
+        ctx.beginPath();
+        ctx.lineWidth = 3.5 + layer * 1.5;
+        ctx.strokeStyle = 'hsla(' + lHue + ', 95%, 65%, 0.75)';
+        ctx.shadowColor = 'hsla(' + lHue + ', 100%, 65%, 0.85)';
+        ctx.shadowBlur = 20 + this.bassEnergy * 25;
+
+        for (var p = 0; p <= points; p++) {
+          var angle = (p / points) * Math.PI * 2;
+          var waveMod = Math.sin(angle * (4 + layer * 2) + now * 0.004) * (15 + this.midEnergy * 30);
+          var audioMod = 0;
+          if (this.dataTime && this.dataTime.length) {
+            var sIdx = Math.floor((p / points) * (this.dataTime.length - 1));
+            audioMod = ((this.dataTime[sIdx] - 128) / 128) * (20 + this.bassEnergy * 40);
+          }
+          var r = lRadius + waveMod + audioMod;
+          var x = Math.cos(angle) * r;
+          var y = Math.sin(angle) * r;
+          if (p === 0) { ctx.moveTo(x, y); } else { ctx.lineTo(x, y); }
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.shadowBlur = 0;
+
+      // Copy to feedback buffer
+      lctx.clearRect(0, 0, w, h);
+      lctx.drawImage(ctx.canvas, 0, 0, w, h);
+    },
+
+    /* Mode 7: Particle Swarm (Cosmic Nebula) */
+    initSwarmParticles: function () {
+      this.swarmParticles = [];
+      var count = 380;
+      var colors = [
+        'rgba(56, 189, 248, 0.85)',
+        'rgba(168, 85, 247, 0.85)',
+        'rgba(236, 72, 153, 0.85)',
+        'rgba(250, 204, 21, 0.85)',
+        'rgba(52, 211, 153, 0.85)'
+      ];
+
+      for (var i = 0; i < count; i++) {
+        var angle = Math.random() * Math.PI * 2;
+        var dist = 30 + Math.pow(Math.random(), 1.5) * 450;
+        this.swarmParticles.push({
+          angle: angle,
+          dist: dist,
+          baseDist: dist,
+          speed: (0.004 + Math.random() * 0.012) * (Math.random() < 0.5 ? 1 : -1),
+          radialSpeed: 0,
+          size: 1.2 + Math.random() * 2.8,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          seed: Math.random() * 100
+        });
+      }
+    },
+
+    renderSwarm: function (ctx, w, h, now) {
+      if (!this.swarmParticles) {
+        this.initSwarmParticles();
+      }
+
+      ctx.fillStyle = 'rgba(6, 6, 14, 0.28)';
+      ctx.fillRect(0, 0, w, h);
+
+      var cx = w * 0.5;
+      var cy = h * 0.5;
+      var bass = this.bassEnergy || 0;
+
+      var positions = [];
+
+      for (var i = 0; i < this.swarmParticles.length; i++) {
+        var p = this.swarmParticles[i];
+
+        p.angle += p.speed * (1.0 + this.midEnergy * 1.5);
+
+        // Transient outward explosion on beats
+        if (this.beatDetected) {
+          p.radialSpeed = 12 + Math.random() * 25;
+        }
+        p.dist += p.radialSpeed;
+        p.radialSpeed *= 0.88;
+
+        // Spring return towards base orbit
+        p.dist += (p.baseDist - p.dist) * 0.04;
+
+        var breath = Math.sin(now * 0.003 + p.seed) * (15 + bass * 35);
+        var r = Math.max(10, p.dist + breath);
+
+        var px = cx + Math.cos(p.angle) * r;
+        var py = cy + Math.sin(p.angle) * r;
+
+        positions.push({ x: px, y: py, color: p.color, size: p.size });
+
+        ctx.beginPath();
+        var pSize = p.size * (1.0 + bass * 0.8);
+        ctx.arc(px, py, pSize, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = pSize * 3;
+        ctx.fill();
+      }
+
+      // Constellation connection lines
+      if (this.midEnergy > 0.25) {
+        ctx.lineWidth = 0.8;
+        var maxLines = 60;
+        var drawn = 0;
+        for (var a = 0; a < positions.length && drawn < maxLines; a += 3) {
+          for (var b = a + 1; b < positions.length && drawn < maxLines; b += 5) {
+            var dx = positions[a].x - positions[b].x;
+            var dy = positions[a].y - positions[b].y;
+            var d2 = dx * dx + dy * dy;
+            if (d2 < 2500) {
+              var alpha = (1 - Math.sqrt(d2) / 50) * (this.midEnergy * 0.7);
+              ctx.strokeStyle = 'rgba(255, 255, 255, ' + alpha.toFixed(3) + ')';
+              ctx.beginPath();
+              ctx.moveTo(positions[a].x, positions[a].y);
+              ctx.lineTo(positions[b].x, positions[b].y);
+              ctx.stroke();
+              drawn++;
+            }
+          }
+        }
+      }
+      ctx.shadowBlur = 0;
+    },
+
+    /* Mode 8: Hi-Fi Studio Bars (Vintage Spectrum) */
+    initBars: function () {
+      var count = 54;
+      this.barLevels = new Float32Array(count);
+      this.barPeaks = new Float32Array(count);
+      this.barPeakTimes = new Float32Array(count);
+    },
+
+    renderBars: function (ctx, w, h, now) {
+      if (!this.barLevels) {
+        this.initBars();
+      }
+
+      ctx.fillStyle = 'rgba(5, 5, 10, 0.32)';
+      ctx.fillRect(0, 0, w, h);
+
+      if (!this.dataFreq || !this.dataFreq.length) { return; }
+
+      var barCount = this.barLevels.length;
+      var totalW = Math.min(w * 0.92, 1200);
+      var startX = (w - totalW) * 0.5;
+      var barW = (totalW / barCount) * 0.72;
+      var gap = (totalW / barCount) * 0.28;
+
+      var baseY = h * 0.84;
+      var maxH = h * 0.55;
+
+      // Floor glass line
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(startX - 20, baseY + 2);
+      ctx.lineTo(startX + totalW + 20, baseY + 2);
+      ctx.stroke();
+
+      for (var i = 0; i < barCount; i++) {
+        var binIdx = Math.min(this.dataFreq.length - 1, Math.floor(Math.pow(i / barCount, 1.4) * (this.dataFreq.length - 1)));
+        var targetLevel = (this.dataFreq[binIdx] / 255);
+
+        if (targetLevel > this.barLevels[i]) {
+          this.barLevels[i] = this.barLevels[i] * 0.3 + targetLevel * 0.7;
+        } else {
+          this.barLevels[i] = this.barLevels[i] * 0.85;
+        }
+
+        var barH = Math.max(4, this.barLevels[i] * maxH);
+
+        // Peak hold
+        if (this.barLevels[i] >= this.barPeaks[i]) {
+          this.barPeaks[i] = this.barLevels[i];
+          this.barPeakTimes[i] = now;
+        } else if (now - this.barPeakTimes[i] > 320) {
+          this.barPeaks[i] = Math.max(0, this.barPeaks[i] - 0.016);
+        }
+
+        var bx = startX + i * (barW + gap);
+
+        // Segmented LED blocks
+        var segH = 4.5;
+        var segGap = 2;
+        var totalSegments = Math.floor(barH / (segH + segGap));
+
+        for (var s = 0; s < totalSegments; s++) {
+          var sy = baseY - (s + 1) * (segH + segGap);
+          var ratio = s / (maxH / (segH + segGap));
+
+          var color = '#10b981'; // Green
+          if (ratio > 0.78) {
+            color = '#ef4444'; // Red
+          } else if (ratio > 0.52) {
+            color = '#f59e0b'; // Amber
+          }
+
+          ctx.fillStyle = color;
+          ctx.fillRect(bx, sy, barW, segH);
+        }
+
+        // Floating peak indicator
+        var peakY = baseY - (this.barPeaks[i] * maxH) - 4;
+        if (peakY < baseY) {
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 8;
+          ctx.fillRect(bx, peakY, barW, 2.5);
+          ctx.shadowBlur = 0;
+        }
+
+        // Mirrored glass floor reflection
+        var reflH = barH * 0.28;
+        var reflGrad = ctx.createLinearGradient(bx, baseY + 2, bx, baseY + 2 + reflH);
+        reflGrad.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
+        reflGrad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+        ctx.fillStyle = reflGrad;
+        ctx.fillRect(bx, baseY + 3, barW, reflH);
+      }
     },
 
     /* ------------------------------------------------------------- Mini Player Backdrop */
