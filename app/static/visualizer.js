@@ -43,6 +43,19 @@
     lyricsRenderedForTake: null,
     hasTimings: false,
 
+    // Artwork animation & dynamic motion state
+    artX: 0,
+    artY: 0,
+    lastDriftX: 0,
+    lastDriftY: 0,
+    vinylAngle: 0,
+    vinylSpeed: 3.33,
+    beatImpulse: 0,
+    ring1Scale: 1,
+    ring1Opacity: 0,
+    ring2Scale: 1,
+    ring2Opacity: 0,
+
     // Stars for cosmic mode
     stars: null,
 
@@ -669,25 +682,152 @@
 
       ctx.restore();
 
-      // Dynamic reactive transform on Vinyl Sleeve
-      this.applyArtworkDynamics();
+      // Dynamic reactive transform, 3D tilt, and wandering on Vinyl Sleeve
+      this.applyArtworkDynamics(now);
     },
 
-    applyArtworkDynamics: function () {
+    applyArtworkDynamics: function (now) {
+      var wrap = $('vis-art-wrap');
       var sleeve = $('vis-art-sleeve');
       var record = $('vis-vinyl-record');
-      if (!sleeve) { return; }
+      var glare = $('vis-art-glare');
+      var ring1 = $('vis-art-ring-1');
+      var ring2 = $('vis-art-ring-2');
+      var aura = $('vis-art-aura');
 
-      var scale = 1.0 + this.bassEnergy * 0.08;
-      var rot = (performance.now() * 0.015) % 360;
-      var shadowBlur = 24 + this.bassEnergy * 40;
-      var shadowSpread = 4 + this.bassEnergy * 15;
+      if (!wrap || !sleeve) { return; }
 
-      sleeve.style.transform = 'scale(' + scale.toFixed(3) + ')';
-      sleeve.style.boxShadow = '0 20px ' + shadowBlur.toFixed(1) + 'px ' + shadowSpread.toFixed(1) + 'px rgba(0, 0, 0, 0.7), 0 0 ' + (shadowBlur * 1.5).toFixed(1) + 'px rgba(168, 85, 247, ' + (this.bassEnergy * 0.6).toFixed(2) + ')';
+      var audio = $('audio');
+      var isPlaying = audio && !audio.paused && !audio.ended;
+      var t = (now || performance.now()) * 0.001;
 
+      // Transient beat impulse with snappy spring decay
+      if (this.beatDetected) {
+        this.beatImpulse = 1.0;
+        // Trigger expanding shockwave rings (alternating between ring 1 and 2)
+        if (this.ring1Opacity < 0.2) {
+          this.ring1Scale = 1.0;
+          this.ring1Opacity = 0.85;
+        } else {
+          this.ring2Scale = 1.0;
+          this.ring2Opacity = 0.75;
+        }
+      }
+      this.beatImpulse = Math.max(0, (this.beatImpulse || 0) * 0.90);
+
+      // Handle Aura mode breathing dynamics
+      if (this.artMode === 'aura' && aura) {
+        var auraScale = 1.04 + this.bassEnergy * 0.08 + this.beatImpulse * 0.04;
+        var auraSat = 1.6 + this.bassEnergy * 0.8;
+        var auraBright = 0.5 + this.bassEnergy * 0.25;
+        aura.style.transform = 'scale(' + auraScale.toFixed(3) + ')';
+        aura.style.filter = 'blur(75px) saturate(' + auraSat.toFixed(2) + ') brightness(' + auraBright.toFixed(2) + ')';
+        return;
+      }
+
+      if (this.artMode !== 'sleeve') { return; }
+
+      // Canvas wandering / orbital drift calculations:
+      // When lyrics are visible: float on the left side of the stage.
+      // When lyrics are closed (e.g. user toggled off lyrics or no lyrics):
+      // Orbit smoothly around the visualizer center so the mandala/center effects remain completely visible!
+      var isLyricsVisible = this.showLyrics && this.lyricsLines && this.lyricsLines.length > 0;
+      var stage = $('vis-stage') || document.querySelector('.vis-stage');
+      var stageW = stage ? stage.clientWidth : window.innerWidth;
+      var stageH = stage ? stage.clientHeight : window.innerHeight;
+
+      var targetX = 0;
+      var targetY = 0;
+
+      if (isLyricsVisible) {
+        // Constrained floating drift on the left half of the stage
+        var rangeX = Math.min(45, stageW * 0.06);
+        var rangeY = Math.min(35, stageH * 0.08);
+        targetX = Math.sin(t * 0.5) * rangeX + Math.cos(t * 1.1) * (rangeX * 0.4);
+        targetY = Math.cos(t * 0.6) * rangeY + Math.sin(t * 1.3) * (rangeY * 0.35);
+      } else {
+        // Wide orbital wander around the canvas center
+        // Orbit radius (Rx, Ry) keeps it looping gracefully through quadrants
+        var orbRx = Math.min(280, stageW * 0.26);
+        var orbRy = Math.min(160, stageH * 0.22);
+        // Multi-frequency harmonic orbit
+        targetX = Math.cos(t * 0.35) * orbRx + Math.sin(t * 0.8) * (orbRx * 0.25);
+        targetY = Math.sin(t * 0.35) * orbRy + Math.cos(t * 0.65) * (orbRy * 0.25);
+      }
+
+      // Smooth exponential lerp towards target position
+      if (this.artX === undefined) { this.artX = targetX; this.artY = targetY; }
+      this.artX += (targetX - this.artX) * 0.06;
+      this.artY += (targetY - this.artY) * 0.06;
+
+      // Estimate travel velocity for 3D banking / momentum
+      var vx = (this.artX - (this.lastDriftX || this.artX));
+      var vy = (this.artY - (this.lastDriftY || this.artY));
+      this.lastDriftX = this.artX;
+      this.lastDriftY = this.artY;
+
+      var bankY = Math.max(-14, Math.min(14, vx * 4.5));
+      var bankX = Math.max(-10, Math.min(10, -vy * 4.0));
+      var swayZ = Math.sin(t * 0.8) * 3.5;
+
+      // Audio-reactive forward kick tilt and dynamic scale
+      var kickTiltX = this.bassEnergy * 9.0 + this.beatImpulse * 5.5;
+      var kickScale = 1.0 + (this.bassEnergy * 0.06) + (this.beatImpulse * 0.05);
+
+      var rotX = bankX + kickTiltX;
+      var rotY = bankY + Math.sin(t * 0.4) * 4.0;
+      var rotZ = swayZ;
+
+      // Move wrap in 2D space across the canvas
+      wrap.style.transform = 'translate3d(' + this.artX.toFixed(2) + 'px, ' + this.artY.toFixed(2) + 'px, 0)';
+
+      // 3D perspective tilt, rotation, and spring-scale on sleeve
+      sleeve.style.transform = 'perspective(900px) rotateX(' + rotX.toFixed(2) + 'deg) rotateY(' + rotY.toFixed(2) + 'deg) rotateZ(' + rotZ.toFixed(2) + 'deg) scale(' + kickScale.toFixed(3) + ')';
+
+      // Audio-reactive shadow depth and colored glow
+      var shadowBlur = 24 + this.bassEnergy * 45;
+      var shadowSpread = 4 + this.bassEnergy * 14;
+      var glowAlpha = (0.2 + this.bassEnergy * 0.55).toFixed(2);
+      sleeve.style.boxShadow = '0 25px ' + shadowBlur.toFixed(1) + 'px ' + shadowSpread.toFixed(1) + 'px rgba(0, 0, 0, 0.85), 0 0 ' + (shadowBlur * 1.3).toFixed(1) + 'px rgba(56, 189, 248, ' + glowAlpha + ')';
+
+      // Holographic glare tracking 3D tilt
+      if (glare) {
+        var glareX = (rotY * 4.2).toFixed(1);
+        var glareY = (-rotX * 3.8).toFixed(1);
+        glare.style.transform = 'translate(' + glareX + '%, ' + glareY + '%) rotate(' + (45 + rotZ * 1.5).toFixed(1) + 'deg)';
+        glare.style.opacity = (0.18 + this.bassEnergy * 0.35 + this.beatImpulse * 0.22).toFixed(2);
+      }
+
+      // Vinyl record spin and slide
       if (record) {
-        record.style.transform = 'translateX(' + (this.bassEnergy * 18).toFixed(1) + 'px) rotate(' + rot.toFixed(1) + 'deg)';
+        if (isPlaying) {
+          this.vinylSpeed = 3.33; // 33 1/3 RPM
+        } else {
+          this.vinylSpeed = (this.vinylSpeed || 3.33) * 0.94; // decelerates when paused
+        }
+        this.vinylAngle = ((this.vinylAngle || 0) + (this.vinylSpeed || 0)) % 360;
+
+        var slideX = 65 + (this.bassEnergy * 22) + (this.beatImpulse * 12);
+        record.style.transform = 'translateX(' + slideX.toFixed(1) + 'px) rotate(' + this.vinylAngle.toFixed(1) + 'deg)';
+      }
+
+      // Update shockwave pulse rings
+      if (this.ring1Opacity > 0.01 && ring1) {
+        this.ring1Scale += 0.025;
+        this.ring1Opacity *= 0.92;
+        ring1.style.transform = 'scale(' + this.ring1Scale.toFixed(3) + ')';
+        ring1.style.opacity = this.ring1Opacity.toFixed(3);
+      } else if (ring1 && ring1.style.opacity !== '0') {
+        ring1.style.opacity = '0';
+      }
+
+      if (this.ring2Opacity > 0.01 && ring2) {
+        this.ring2Scale += 0.022;
+        this.ring2Opacity *= 0.93;
+        ring2.style.transform = 'scale(' + this.ring2Scale.toFixed(3) + ')';
+        ring2.style.opacity = this.ring2Opacity.toFixed(3);
+      } else if (ring2 && ring2.style.opacity !== '0') {
+        ring2.style.opacity = '0';
       }
     },
 
