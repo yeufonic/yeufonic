@@ -19,8 +19,9 @@ STAGE="$OUT/stage"
 
 rm -rf "$STAGE"
 mkdir -p "$STAGE/studio/engine-nodes"
-# The app, less caches and the page-test harnesses.
-tar -C "$ROOT" --exclude='__pycache__' --exclude='static/__*' -cf - app | tar -C "$STAGE/studio" -xf -
+# The app, less caches, branch markers and the page-test harnesses.
+tar -C "$ROOT" --exclude='__pycache__' --exclude='static/__*' --exclude='.branch' --exclude='BRANCH' -cf - app | tar -C "$STAGE/studio" -xf -
+rm -f "$STAGE/studio/app/.branch" "$STAGE/studio/app/BRANCH"
 cp "$ROOT/requirements.txt" "$STAGE/studio/"
 echo "$VERSION" > "$STAGE/studio/VERSION"
 # Which build of this version it is, for the About window: the commit, whether the tree had

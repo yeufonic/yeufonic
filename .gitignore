@@ -80,5 +80,7 @@ app/.branch
 
 # Local machine Docker compose overrides:
 compose.override.yml
+
+.wrangler/
 docker-compose.override.yml
 windows/dist/

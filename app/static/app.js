@@ -5413,7 +5413,7 @@ function openAbout() {
   if (about.build) { line += (line ? ' \u00b7 build ' : 'Build ') + about.build; }
   $('about-build').textContent = line;
   if ($('about-branch')) {
-    if (about.branch) {
+    if (about.branch && about.branch !== 'main' && about.branch !== 'master') {
       if ($('about-branch-name')) { $('about-branch-name').textContent = about.branch; }
       else { $('about-branch').textContent = about.branch; }
       $('about-branch').style.display = 'inline-flex';
