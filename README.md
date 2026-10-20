@@ -236,9 +236,10 @@ installation, and running it again is also how you change the model size (below)
 - Windows 10 22H2 or Windows 11, 64-bit.
 - An NVIDIA graphics card, RTX 30-series or newer, with a recent driver. 12 GB of video memory is
   recommended, and 8 GB works for making songs (with 6 GB or less, choose the low-memory model: see
-  [Choosing a model size](#choosing-a-model-size)). Training a LoRA needs more: about 12.5 GB free
-  while it prepares the songs, so 16 GB is the practical minimum, and an 8 GB card can't train
-  (it can still use LoRAs trained elsewhere). AMD and Intel graphics are not supported.
+  [Choosing a model size](https://github.com/yeufonic/yeufonic#choosing-a-model-size)). Training a LoRA can
+  need more VRAM: about 12.5 GB free while it prepares the songs, so 16 GB is the practical minimum
+  when using the recommended BF16 model. An 8 GB card can be used for training if the INT8 model is
+  chosen at installation time. AMD and Intel graphics are not supported.
 - 16 GB of RAM and about 30 GB of free disk, more as your library grows.
 - An internet connection for about 27 GB of downloads (23 GB with the smaller low-memory model, see
   [Choosing a model size](#choosing-a-model-size)), most of it the models. The score preview
@@ -353,7 +354,7 @@ with `docker compose up -d`). On Windows, to change later, run the installer aga
 |---|---|---|
 | Download | 7.8 GB | 4.0 GB |
 | Video memory a render adds | about 8 GB | about 5 GB |
-| LoRA training | yes | no: training uses the full-quality model |
+| LoRA training | yes (recommended) | yes (with the INT8 model) |
 | Sound | the model as released | a compressed copy; in our listening it sounded fine, with and without the production polish decoder |
 
 **What to expect.** We timed one short song on one PC: an RTX 4070 Ti SUPER (16 GB) on a PCIe 3.0 x16
