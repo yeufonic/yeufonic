@@ -176,6 +176,8 @@ def test_the_page_has_playlist_elements():
     assert "actions += tile('playlist'" in app_js
     assert "function toggleColumnSort(" in app_js
     assert "function openTakeInLibrary(" in app_js
+    assert "State.activeView === 'playlists' && key !== 'm'" in app_js
+    assert "playlist-open-take" in app_js
 
     styles = (STATIC / "styles.css").read_text(encoding="utf-8")
     assert "main.view-playlists" in styles

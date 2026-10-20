@@ -12078,8 +12078,22 @@ function takeKey(event) {
     if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
     return true;
   }
-  var take = takeById(selectedTakeId());
-  if (!take) { statusLine('Choose a take first: click its card.', 'bad'); return true; }
+  // In playlist view, ignore any take-specific hot keys apart from M for Mastering:
+  if (State.activeView === 'playlists' && key !== 'm') {
+    return false;
+  }
+  var take = null;
+  if (State.activeView === 'playlists') {
+    take = State.loadedTake || (State.playing ? (takeById(State.playing) || (State.activePlaylist && State.activePlaylist.items ? State.activePlaylist.items.filter(function (t) { return t.id === State.playing; })[0] : null)) : null) || takeById(selectedTakeId());
+  } else {
+    take = takeById(selectedTakeId());
+  }
+  if (!take) {
+    if (State.activeView !== 'playlists') {
+      statusLine('Choose a take first: click its card.', 'bad');
+    }
+    return true;
+  }
   var scored = take.abc && take.abc.length > 50 && take.status !== 'queued' && take.status !== 'running';
   var says = function (why) { statusLine(why, 'bad'); return true; };
   if (key === 'm') {
@@ -15579,7 +15593,7 @@ function paintActivePlaylist() {
         '</div>' +
         '<div class="row-text">' +
           '<div class="row-title-line">' +
-            '<span class="row-title" title="Double-click to open in Library">' + esc(take.title) + '</span>' +
+            '<span class="row-title" data-act="playlist-open-take" data-id="' + esc(take.id) + '" title="Click to open in Library">' + esc(take.title) + '</span>' +
             '<span class="row-badge' + kindClass + '">' + esc(take.kind || 'song') + '</span>' +
           '</div>' +
           '<div class="row-style">' + esc(take.style || '') + '</div>' +
@@ -15631,13 +15645,26 @@ function shuffleActivePlaylist() {
 }
 
 async function handlePlaylistTrackClick(event) {
+  var titleEl = event.target.closest('.row-title, [data-act="playlist-open-take"]');
+  if (titleEl) {
+    var row = titleEl.closest('.playlist-track-row');
+    var takeId = titleEl.dataset.id || (row ? row.dataset.id : null);
+    if (takeId) {
+      openTakeInLibrary(takeId);
+      return;
+    }
+  }
+
   var btn = event.target.closest('[data-act]');
   if (!btn) { return; }
   var act = btn.dataset.act;
   var id = btn.dataset.id;
   if (!id) { return; }
 
-  if (act === 'playlist-row-play') {
+  if (act === 'playlist-open-take') {
+    openTakeInLibrary(id);
+    return;
+  } else if (act === 'playlist-row-play') {
     if (State.activePlaylist && State.activePlaylist.items) {
       State.playlistQueue = State.activePlaylist.items.filter(function (t) { return t.has_audio; });
     }
@@ -16017,6 +16044,13 @@ function wirePlaylists() {
         }
       });
     }
+  }
+
+  var heroTitle = $('playlist-title');
+  if (heroTitle) {
+    heroTitle.style.cursor = 'pointer';
+    heroTitle.title = 'Switch to Library view';
+    heroTitle.addEventListener('click', function () { switchView('library'); });
   }
 
   var tracksBody = $('playlist-tracks-body');
