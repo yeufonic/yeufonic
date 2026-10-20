@@ -209,27 +209,21 @@
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.8"/><path d="M10.6 10.6 14 14"/></svg>
         <input type="search" id="playlist-items-filter" placeholder="Search in playlist" autocomplete="off" spellcheck="false" aria-label="Search in playlist">
       </div>
-      <div class="playlist-sort-wrap">
-        <label for="playlist-sort-select" class="playlist-sort-label">Sort by</label>
-        <select id="playlist-sort-select">
-          <option value="added_desc">Recently Added (Newest)</option>
-          <option value="added_asc">Recently Added (Oldest)</option>
-          <option value="title_asc">Title (A&ndash;Z)</option>
-          <option value="title_desc">Title (Z&ndash;A)</option>
-          <option value="duration_desc">Duration (Longest)</option>
-          <option value="duration_asc">Duration (Shortest)</option>
-        </select>
-      </div>
     </div>
 
     <div class="playlist-table-wrap">
       <table class="playlist-table" id="playlist-table">
         <thead>
           <tr>
-            <th class="th-num">#</th>
-            <th class="th-title">Title</th>
-            <th class="th-duration">Duration</th>
-            <th class="th-added">Added</th>
+            <th class="th-title sortable" data-sort-key="title" role="button" tabindex="0" title="Click to sort by Title">
+              <span class="th-content">Title <span class="sort-icon" aria-hidden="true"></span></span>
+            </th>
+            <th class="th-duration sortable" data-sort-key="duration" role="button" tabindex="0" title="Click to sort by Duration">
+              <span class="th-content">Duration <span class="sort-icon" aria-hidden="true"></span></span>
+            </th>
+            <th class="th-added sortable" data-sort-key="added" role="button" tabindex="0" title="Click to sort by Added Date">
+              <span class="th-content">Added <span class="sort-icon" aria-hidden="true"></span></span>
+            </th>
             <th class="th-actions"></th>
           </tr>
         </thead>

@@ -164,12 +164,18 @@ def test_the_page_has_playlist_elements():
     assert 'id="playlist-view"' in page
     assert 'id="playlist-picker-modal"' in page
     assert 'id="playlist-edit-modal"' in page
+    assert 'class="th-title sortable"' in page
+    assert 'class="th-duration sortable"' in page
+    assert 'class="th-added sortable"' in page
+    assert 'playlist-sort-select' not in page
 
     app_js = (STATIC / "app.js").read_text(encoding="utf-8")
     assert "function wirePlaylists()" in app_js
     assert "function switchView(" in app_js
     assert "function openPlaylistPicker(" in app_js
     assert "actions += tile('playlist'" in app_js
+    assert "function toggleColumnSort(" in app_js
+    assert "function openTakeInLibrary(" in app_js
 
     styles = (STATIC / "styles.css").read_text(encoding="utf-8")
     assert "main.view-playlists" in styles
