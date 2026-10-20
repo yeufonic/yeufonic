@@ -663,7 +663,7 @@
           <div class="hotkey-row"><span class="hk-keys"><kbd>T</kbd></span><span class="hk-desc">Try more takes with chosen take's score</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>S</kbd></span><span class="hk-desc">Star or unstar chosen take</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>D</kbd></span><span class="hk-desc">Delete chosen take, after asking</span></div>
-          <div class="hotkey-row"><span class="hk-keys"><kbd>L</kbd></span><span class="hk-desc">System logs; again to close</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>L</kbd></span><span class="hk-desc">System logs; toggle lyrics in visualizer</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>?</kbd></span><span class="hk-desc">Show or hide these hot keys</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>Esc</kbd></span><span class="hk-desc">Close window, rack, menu, or modal in front</span></div>
         </div>
@@ -1336,12 +1336,13 @@
       </div>
 
       <div id="vis-lyrics-wrap" class="vis-lyrics-wrap hidden">
+        <button type="button" id="vis-lyrics-close" class="vis-lyrics-close" title="Close lyrics (L)" aria-label="Close lyrics">&times;</button>
         <div id="vis-lyrics-list" class="vis-lyrics-list"></div>
       </div>
     </main>
 
     <footer class="vis-bottom-hint">
-      <span><kbd>Space</kbd> Play / Pause</span> · <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> Seek</span> · <span><kbd>V</kbd> or <kbd>Esc</kbd> Close</span>
+      <span><kbd>Space</kbd> Play / Pause</span> · <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> Seek</span> · <span><kbd>L</kbd> Lyrics</span> · <span><kbd>V</kbd> or <kbd>Esc</kbd> Close</span>
     </footer>
   </div>
 </div>

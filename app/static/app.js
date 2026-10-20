@@ -5096,19 +5096,32 @@ function adoptSettings(spec) {
 
 function adoptVisualizerSettings() {
   if (!window.Visualizer) { return; }
-  var mini = setting('appearance.mini_visualizer', 'on');
-  window.Visualizer.miniEnabled = (mini === 'on');
+  var mini = setting('appearance.mini_visualizer', 'on') === 'on';
   var art = setting('appearance.visualizer_art', 'sleeve');
-  window.Visualizer.artMode = art;
-  var lyrics = setting('appearance.visualizer_lyrics', 'on');
-  window.Visualizer.showLyrics = (lyrics === 'on');
+  var lyrics = setting('appearance.visualizer_lyrics', 'on') === 'on';
   var mode = setting('appearance.visualizer_mode', 'wave');
-  window.Visualizer.mode = mode;
-  window.Visualizer.saveSettings();
-  if (window.Visualizer.isOpen) {
+
+  var changed = false;
+  if (window.Visualizer.miniEnabled !== mini) {
+    window.Visualizer.miniEnabled = mini;
+    changed = true;
+  }
+  if (window.Visualizer.artMode !== art) {
+    window.Visualizer.artMode = art;
+    changed = true;
+    if (window.Visualizer.isOpen) { window.Visualizer.updateArtworkDisplay(); }
+  }
+  if (window.Visualizer.showLyrics !== lyrics) {
+    window.Visualizer.showLyrics = lyrics;
+    changed = true;
+    if (window.Visualizer.isOpen) { window.Visualizer.updateLyricsDisplay(); }
+  }
+  if (window.Visualizer.mode !== mode) {
+    window.Visualizer.mode = mode;
+    changed = true;
+  }
+  if (changed && window.Visualizer.isOpen) {
     window.Visualizer.updateButtonsState();
-    window.Visualizer.updateArtworkDisplay();
-    window.Visualizer.updateLyricsDisplay();
   }
 }
 
@@ -14750,6 +14763,10 @@ function wire() {
     if ((event.key === 'l' || event.key === 'L') &&
         !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
       event.preventDefault();
+      if (window.Visualizer && window.Visualizer.isOpen) {
+        window.Visualizer.toggleLyrics();
+        return;
+      }
       if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
       return;
     }

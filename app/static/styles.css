@@ -4926,6 +4926,7 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 }
 
 .vis-lyrics-wrap {
+  position: relative;
   flex: 1;
   max-width: 620px;
   height: 75%;
@@ -4943,6 +4944,33 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   padding: 24px 28px;
 }
 .vis-lyrics-wrap.hidden { display: none !important; }
+
+.vis-lyrics-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.65);
+  color: #cbd5e1;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+.vis-lyrics-close:hover {
+  background: rgba(239, 68, 68, 0.35);
+  color: #ffffff;
+  border-color: rgba(239, 68, 68, 0.6);
+  transform: scale(1.08);
+}
 
 /* Untimed lyric sheet styling: clean, legible, comfortable manual scrolling */
 .vis-lyrics-list {

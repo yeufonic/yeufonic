@@ -40,6 +40,8 @@
     // Synced lyrics data
     lyricsLines: [],
     activeLineIdx: -1,
+    lyricsRenderedForTake: null,
+    hasTimings: false,
 
     // Stars for cosmic mode
     stars: null,
@@ -65,13 +67,53 @@
       } catch (e) { /* ignore storage errors */ }
     },
 
-    saveSettings: function () {
+    saveSettings: function (which) {
       try {
         localStorage.setItem('yue2.vis.mode', this.mode);
         localStorage.setItem('yue2.vis.artMode', this.artMode);
         localStorage.setItem('yue2.vis.lyrics', this.showLyrics ? '1' : '0');
         localStorage.setItem('yue2.vis.mini', this.miniEnabled ? '1' : '0');
       } catch (e) { /* ignore */ }
+
+      // Keep in-memory settings in sync so background pollState won't revert them
+      if (window.State && window.State.settings) {
+        window.State.settings['appearance.visualizer_mode'] = this.mode;
+        window.State.settings['appearance.visualizer_art'] = this.artMode;
+        window.State.settings['appearance.visualizer_lyrics'] = this.showLyrics ? 'on' : 'off';
+        window.State.settings['appearance.mini_visualizer'] = this.miniEnabled ? 'on' : 'off';
+      }
+
+      // Persist to backend settings
+      if (typeof window.api === 'function') {
+        if (!which || which === 'mode') {
+          window.api('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: 'appearance.visualizer_mode', value: this.mode })
+          }).catch(function () {});
+        }
+        if (!which || which === 'art') {
+          window.api('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: 'appearance.visualizer_art', value: this.artMode })
+          }).catch(function () {});
+        }
+        if (!which || which === 'lyrics') {
+          window.api('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: 'appearance.visualizer_lyrics', value: this.showLyrics ? 'on' : 'off' })
+          }).catch(function () {});
+        }
+        if (!which || which === 'mini') {
+          window.api('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: 'appearance.mini_visualizer', value: this.miniEnabled ? 'on' : 'off' })
+          }).catch(function () {});
+        }
+      }
     },
 
     /* ------------------------------------------------------------- Audio Hook */
@@ -184,6 +226,14 @@
           lyricsBtn.addEventListener('click', function () { self.toggleLyrics(); });
         }
 
+        var lyricsClose = $('vis-lyrics-close');
+        if (lyricsClose) {
+          lyricsClose.addEventListener('click', function (e) {
+            e.stopPropagation();
+            self.toggleLyrics(false);
+          });
+        }
+
         // Mode switch buttons
         var modeBtns = modal.querySelectorAll('.vis-mode-btn');
         Array.prototype.forEach.call(modeBtns, function (btn) {
@@ -228,18 +278,6 @@
         });
         audio.addEventListener('timeupdate', function () {
           if (self.isOpen && self.hasTimings) { self.updateLyrics(audio.currentTime); }
-        });
-        audio.addEventListener('loadedmetadata', function () {
-          if (self.currentTake) {
-            self.parseLyrics();
-            if (self.isOpen) { self.updateLyricsDisplay(); }
-          }
-        });
-        audio.addEventListener('durationchange', function () {
-          if (self.currentTake) {
-            self.parseLyrics();
-            if (self.isOpen) { self.updateLyricsDisplay(); }
-          }
         });
       }
     },
@@ -286,9 +324,9 @@
     },
 
     setMode: function (mode) {
-      if (!mode) { return; }
+      if (!mode || this.mode === mode) { return; }
       this.mode = mode;
-      this.saveSettings();
+      this.saveSettings('mode');
       this.updateButtonsState();
     },
 
@@ -296,14 +334,16 @@
       var modes = ['sleeve', 'aura', 'off'];
       var idx = modes.indexOf(this.artMode);
       this.artMode = modes[(idx + 1) % modes.length];
-      this.saveSettings();
+      this.saveSettings('art');
       this.updateButtonsState();
       this.updateArtworkDisplay();
     },
 
-    toggleLyrics: function () {
-      this.showLyrics = !this.showLyrics;
-      this.saveSettings();
+    toggleLyrics: function (force) {
+      var next = (force !== undefined) ? Boolean(force) : !this.showLyrics;
+      if (this.showLyrics === next) { return; }
+      this.showLyrics = next;
+      this.saveSettings('lyrics');
       this.updateButtonsState();
       this.updateLyricsDisplay();
     },
@@ -332,12 +372,14 @@
 
     /* ------------------------------------------------------------- Take Metadata & Synced Lyrics */
     setTake: function (take) {
+      var isSame = this.currentTake && take && this.currentTake.id === take.id &&
+                   this.currentTake.lyrics === take.lyrics && this.currentTake.art === take.art;
       this.currentTake = take || null;
+      if (isSame) { return; }
+      this.lyricsRenderedForTake = null;
       this.parseLyrics();
       if (this.isOpen) {
         this.updateTakeInfo();
-        this.updateArtworkDisplay();
-        this.updateLyricsDisplay();
       }
     },
 
@@ -476,6 +518,12 @@
 
       wrap.classList.remove('hidden');
       wrap.classList.toggle('vis-lyrics-timed', Boolean(this.hasTimings));
+
+      var curTakeId = this.currentTake ? this.currentTake.id : null;
+      if (this.lyricsRenderedForTake === curTakeId && list.childNodes.length > 0) {
+        return;
+      }
+      this.lyricsRenderedForTake = curTakeId;
 
       var html = '';
       for (var i = 0; i < this.lyricsLines.length; i++) {
