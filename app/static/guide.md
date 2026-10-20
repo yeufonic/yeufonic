@@ -1261,8 +1261,10 @@ Click **Playlists** in the top bar to switch to the Playlists view.
 
 - **Two-Column Layout:** The left column lists your playlists alongside the pinned system **Liked** playlist with total song counts. The main column displays the active playlist's header (high-resolution artwork, title, description, total songs, and duration) and track table.
 - **Automatic Liked Synchronisation:** Any take starred in the library across any space automatically appears in the Liked playlist. Removing a star removes it from the Liked playlist.
-- **Add to Playlist:** Press **P** or click the **Playlist** icon on any take card to open the playlist picker, toggle membership across playlists, or create a new playlist.
-- **Sorting & In-Playlist Search:** Sort by *Recently Added (Newest / Oldest)*, *Title (A–Z / Z–A)*, or *Duration (Longest / Shortest)*, and filter tracks with the search box.
+- **Add to Playlist:** Press **P** or click the **Playlist** icon on any take card to open the playlist picker, toggle membership across playlists, or create a new playlist. Pressing **Escape** closes the picker pane.
+- **Interactive Column Sorting & Search:** Click any column header (**Title**, **Duration**, or **Added**) to sort with directional indicators and reverse order on click, and filter tracks with the search box.
+- **Jump to Space in Library:** Click any song's title in the playlist track table to immediately flip to the Library view, open the space where that take lives, and highlight its card.
+- **Hot Keys in Playlists:** Take-specific hot keys are ignored in the Playlists view to prevent unintentional modifications, except for **M** (Mastering Rack), which operates on the currently playing or loaded track alongside standard transport controls (**Space**, arrows, **?**, and **L**).
 - **Continuous Playback & Shuffle:** Click **Play** on the playlist header to listen from track 1, or click **Shuffle** to play in randomised order. Playback advances automatically to the next track in the playlist when each song finishes.
 
 ### Hot keys

@@ -42,13 +42,15 @@ cannot creep back in.
 ## 0.0.47 (2026-10-20)
 
 - **Playlists and Liked Songs.** Organise takes into custom playlists and access all your starred favourites in a dedicated two-column view:
-  - **Dedicated Playlists view:** Switch seamlessly between the generation Library and Playlists via the topbar segmented control. The playlist sidebar occupies the left column (matching the sheet panel dimensions), and the playlist tracks table occupies the main view.
-  - **Suno-style track list:** Features high-resolution cover artwork, playlist title, description, aggregate song count, and total duration. Each track row displays an album art thumbnail, title, badge, style tags, duration, added date, favourite star button, and quick actions.
+  - **Dedicated Playlists view:** Switch seamlessly between the generation Library and Playlists via the topbar segmented control. The playlist sidebar occupies the left column (matching the sheet panel dimensions), and the playlist tracks table occupies the main view with complete view isolation from library panels.
+  - **Suno-style track list:** Features high-resolution cover artwork, playlist title, description, aggregate song count, and total duration. Each track row displays a prominent 56px album art thumbnail with a superimposed circular play/pause button on hover, title, badge, style tags, duration, added date, favourite star button, and quick actions.
   - **Automatic Liked songs synchronisation:** Starring any take across any space immediately adds it to the system "Liked" playlist, and unstarring removes it.
-  - **Quick Add to Playlist:** Press **P** or click the Playlist button on any take card to toggle membership across existing playlists or create and populate a new playlist on the fly.
-  - **Sorting & in-playlist search:** Sort any playlist by *Recently Added (Newest / Oldest)*, *Title (A–Z / Z–A)*, or *Duration (Longest / Shortest)*, with instant text filtering across titles, styles, and lyrics.
+  - **Quick Add to Playlist:** Press **P** or click the Playlist button on any take card to toggle membership across existing playlists or create and populate a new playlist on the fly. Pressing Escape closes the picker pane.
+  - **Interactive column sorting & in-playlist search:** Click table column headers (**Title**, **Duration**, or **Added**) to sort with directional indicators and reverse the order on a second click, with instant text filtering across titles, styles, and lyrics.
+  - **Instant space navigation:** Clicking any song title in the playlist table immediately flips to the Library view, switches to the space where that take lives, selects the take in the left Sheet panel, and scrolls its card into view with a focus pulse.
+  - **Contextual hotkey handling:** Take-specific hotkeys are ignored in the Playlists view to prevent unintentional library edits, while **M** continues to open and close the vintage mastering rack for the currently playing or loaded track alongside full transport keyboard controls.
   - **Continuous playback & shuffle:** Start listening from the beginning or click **Shuffle** to randomise the playback order. The transport player bar automatically steps through the playlist tracks.
-- **Real-time audio visualizer & synchronised lyrics engine.** A dedicated hardware-accelerated audio visualizer stage is integrated directly into playback, offering full-screen immersion, interactive Hipgnosis album cover dynamics, synchronised lyrics, and an ambient player bar backdrop:
+- **Real-time audio visualizer & synchronised lyrics engine.** A dedicated hardware-accelerated audio visualizer stage is integrated directly into playback, offering full-screen immersion, interactive Hipgnosis-style album cover dynamics, synchronised lyrics, and an ambient player bar backdrop:
   - **Full-screen visualizer stage & modes:** Toggle the visualizer with **V** or the transport button whenever audio is playing. Features eight real-time visualizer rendering modes:
     - *Waveform Ribbon:* Dual floating harmonic wave ribbons reacting smoothly to audio amplitude and frequency contours.
     - *Aurora Borealis:* Undulating, ethereal northern lights shifting with musical tone and mid/high frequencies.
@@ -58,7 +60,7 @@ cannot creep back in.
     - *Liquid Warp:* Fluid reactive displacement surface warping and flowing with harmonic layers.
     - *Particle Swarm:* Gravitational particle clusters that scatter on transient percussive hits and coalesce into orbital nodes.
     - *Hi-Fi Spectrum Bars:* Classic multi-band equalizer spectrum analyzer with physical floating peak decay caps.
-  - **Hipgnosis album artwork & vinyl dynamics:**
+  - **Hipgnosis-style album artwork & vinyl dynamics:**
     - Large album cover sleeve presentation with interactive 3D pointer-tracking orbit and subtle tilt.
     - Realistic vinyl record complete with light-sheen reflections, concentric groove rings, and accurate 33⅓ RPM rotation that slides dynamically out from the sleeve on bass hits.
     - Holographic glare overlay and expanding beat-synchronized shockwave pulse rings.

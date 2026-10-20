@@ -61,6 +61,10 @@ Mastering a take:
 
 [![Mastering a take](docs/screenshots/mastering-take.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/mastering-take.png)
 
+Organising playlists and liked songs: gather favourite takes into custom collections, browse starred tracks, sort columns by clicking their headers, and jump directly to any track's space in the library:
+
+[![Playlists](docs/screenshots/playlists.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/playlists.png)
+
 To hear what it makes, there are example songs in **[examples](examples/)**, made with style LoRAs
 trained in the app. They play on that page, and the MP3s can be downloaded.
 
@@ -141,6 +145,12 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   mastering, edit, details, normalise, Variations, Try more, star and delete.
 - **A player for reviewing takes.** A real waveform you can click to seek, previous and next through
   the library, ten second skips, repeat, speed and volume, with keyboard shortcuts.
+- **Playlists and Liked songs.** Group takes into custom playlists and browse your starred songs in a
+  dedicated view. Sort by title, duration, or date added, click any song title to jump straight to its
+  space in the library, and play tracks directly with inline art-hover controls.
+- **Audio visualizer and synchronised lyrics.** An expandable visualizer displays real-time frequency
+  bars, waveform scope, or circular frequency displays alongside synchronised lyrics that scroll and
+  track line progress in real time, with configurable colour themes.
 - **Told when a newer version is out.** Every four hours the app asks its own site whether a later release
   exists — one request, nothing else leaves the computer. When there is one, a quiet pill beside the
   version and **Check for updates** in the menu offer the installer (Windows) or the two commands

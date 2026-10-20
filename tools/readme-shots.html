@@ -10,7 +10,7 @@
      Scenes: cover (the editor's Score page), comfy (Wide + Comfy, the take panel), light (Light theme),
      song (the editor), instrumental, lora (the editor with a style LoRA), corpora, corpus,
      mastering (the rack on its own, floating at 30,24: the shot is cropped to it; it reports the
-     rack's box to /__r, which the app's log shows, for the crop). -->
+     rack's box to /__r, which the app's log shows, for the crop), playlists (the playlists view). -->
 <html><body style="margin:0;background:#08080b">
 <iframe id="f" style="width:100vw;height:100vh;border:0;display:block"></iframe>
 <script>
@@ -60,6 +60,8 @@ f.onload = function () {
       }, 400);
     } else if (scene === 'lora') {
       w.selectTake(take('glasshouse00')); w.openEditor('sound');
+    } else if (scene === 'playlists') {
+      w.switchView('playlists');
     } else if (scene === 'mastering') {
       // The rack on its own, every unit in, with a take playing through it.
       var song = take('glasshouse00'), R = w.Rack, E = w.RackEngine, panel = d.getElementById('rack-panel');
