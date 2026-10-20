@@ -4956,6 +4956,12 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   font-weight: 700;
   margin: 28px 0 10px;
   opacity: 0.65;
+  transition: opacity 0.3s ease, color 0.3s ease;
+}
+.vis-lyric-sec.current {
+  opacity: 1.0;
+  color: #7dd3fc;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
 }
 .vis-lyric-line {
   font-size: 26px;
@@ -4964,7 +4970,7 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   color: #ffffff;
   opacity: 0.3;
   margin: 14px 0;
-  transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+  transition: opacity 0.35s ease, transform 0.35s ease, color 0.35s ease, text-shadow 0.35s ease;
 }
 .vis-lyric-line.active {
   font-size: 32px;

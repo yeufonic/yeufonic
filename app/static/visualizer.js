@@ -229,6 +229,18 @@
         audio.addEventListener('timeupdate', function () {
           if (self.isOpen) { self.updateLyrics(audio.currentTime); }
         });
+        audio.addEventListener('loadedmetadata', function () {
+          if (self.currentTake) {
+            self.parseLyrics();
+            if (self.isOpen) { self.updateLyricsDisplay(); }
+          }
+        });
+        audio.addEventListener('durationchange', function () {
+          if (self.currentTake) {
+            self.parseLyrics();
+            if (self.isOpen) { self.updateLyricsDisplay(); }
+          }
+        });
       }
     },
 
@@ -381,55 +393,162 @@
       if (!take || !take.lyrics) { return; }
 
       var raw = String(take.lyrics).split(/\r?\n/);
-      var lines = [];
-      var lineIdx = 0;
+      var sections = [];
+      var curSec = { tag: '', name: '', isSection: true, isInstrumental: false, lines: [] };
+      sections.push(curSec);
+
       for (var i = 0; i < raw.length; i++) {
         var line = raw[i].trim();
-        if (!line) { continue; }
-        var isSection = /^\[.*\]$/.test(line);
-        lines.push({
-          id: lineIdx++,
-          text: line,
-          isSection: isSection,
-          startTime: 0,
-          endTime: 0
-        });
-      }
-
-      // Timing estimation: If ABC notation exists with BPM, estimate note timings
-      var bpm = 120;
-      if (take.bpm && Number(take.bpm) > 0) {
-        bpm = Number(take.bpm);
-      } else if (take.abc) {
-        var mBpm = take.abc.match(/Q:\s*(?:1\/[248]=)?(\d+)/i);
-        if (mBpm) { bpm = parseInt(mBpm[1], 10) || 120; }
-      }
-
-      var duration = 180;
-      var audio = $('audio');
-      if (audio && audio.duration && isFinite(audio.duration) && audio.duration > 10) {
-        duration = audio.duration;
-      }
-
-      // Distribute timing across sung lines
-      var sungCount = lines.filter(function (l) { return !l.isSection; }).length;
-      if (sungCount > 0) {
-        var secPerLine = (duration * 0.85) / sungCount;
-        var leadIn = Math.min(8, duration * 0.08);
-        var curTime = leadIn;
-        for (var j = 0; j < lines.length; j++) {
-          if (lines[j].isSection) {
-            lines[j].startTime = Math.max(0, curTime - 1.5);
-            lines[j].endTime = curTime;
-          } else {
-            lines[j].startTime = curTime;
-            lines[j].endTime = curTime + secPerLine;
-            curTime += secPerLine;
-          }
+        if (!line || line.charAt(0) === '%') { continue; }
+        var secMatch = line.match(/^\[(.*)\]$/);
+        if (secMatch) {
+          var tagText = secMatch[1].trim();
+          var isInst = /^(intro|solo|instrumental|interlude|break|outro|fade)/i.test(tagText);
+          curSec = { tag: line, name: tagText, isSection: true, isInstrumental: isInst, lines: [] };
+          sections.push(curSec);
+        } else {
+          var isCue = /^\(.*\)$/.test(line);
+          curSec.lines.push({ text: line, isCue: isCue });
         }
       }
 
-      this.lyricsLines = lines;
+      var audio = $('audio');
+      var duration = (audio && audio.duration && isFinite(audio.duration) && audio.duration > 5)
+        ? audio.duration
+        : (take.duration && Number(take.duration) > 5 ? Number(take.duration) : 180);
+
+      var abcModel = null;
+      if (take.abc && typeof window.parseAbc === 'function') {
+        try { abcModel = window.parseAbc(take.abc); } catch (e) { abcModel = null; }
+      }
+
+      var bpm = (abcModel && abcModel.bpm) || (take.bpm && Number(take.bpm)) || (take.target_bpm && Number(take.target_bpm)) || 120;
+      var unitLength = (abcModel && abcModel.unitLength) || 16;
+      var ticksPerBar = (abcModel && abcModel.ticksPerBar) || 16;
+      var secPerTick = 240.0 / (bpm * unitLength);
+      var secPerBar = ticksPerBar * secPerTick;
+
+      var abcSections = (abcModel && abcModel.sections) || [];
+      var vocalNotes = (abcModel && abcModel.notes || []).filter(function (n) {
+        return (n.voice || '').toLowerCase().indexOf('voc') >= 0;
+      });
+      if (vocalNotes.length === 0 && abcModel && abcModel.notes) {
+        vocalNotes = abcModel.notes.filter(function (n) { return (n.voice || '').toLowerCase().indexOf('ins') === -1; });
+      }
+      vocalNotes.sort(function (a, b) { return a.startTick - b.startTick; });
+
+      var realSections = sections.filter(function (s) { return s.tag || s.lines.length; });
+      if (!realSections.length) { return; }
+
+      // Determine true vocal onset / intro duration
+      var firstIsIntro = realSections[0].isInstrumental && /intro/i.test(realSections[0].name || '');
+      var leadInTime = 0;
+      if (vocalNotes.length > 0) {
+        leadInTime = Math.max(0, vocalNotes[0].startTick * secPerTick);
+      } else if (abcSections.length > 1) {
+        leadInTime = abcSections[1].barIndex * secPerBar;
+      } else if (firstIsIntro) {
+        leadInTime = Math.max(14, Math.min(32, duration * 0.13));
+      } else {
+        leadInTime = Math.max(9, Math.min(22, duration * 0.08));
+      }
+
+      var outLines = [];
+      var lineIdx = 0;
+      var curTime = 0;
+
+      for (var si = 0; si < realSections.length; si++) {
+        var sec = realSections[si];
+        var isIntro = sec.isInstrumental && /intro/i.test(sec.name || '');
+        var isSolo = sec.isInstrumental && !isIntro && !/outro/i.test(sec.name || '');
+        var isOutro = sec.isInstrumental && /outro/i.test(sec.name || '');
+
+        if (sec.tag) {
+          var secStart = curTime;
+          var secEnd = curTime;
+          if (isIntro) {
+            secEnd = Math.max(curTime + 2.0, leadInTime);
+          } else if (isSolo) {
+            secEnd = curTime + Math.max(14, Math.min(26, duration * 0.10));
+          } else if (isOutro) {
+            secEnd = duration;
+          }
+          outLines.push({
+            id: lineIdx++,
+            text: sec.tag,
+            isSection: true,
+            startTime: Math.round(secStart * 100) / 100,
+            endTime: Math.round(secEnd * 100) / 100
+          });
+          if (isIntro) {
+            curTime = leadInTime;
+          } else if (isSolo) {
+            curTime = secEnd;
+          }
+        }
+
+        var sLines = sec.lines.filter(function (l) { return !l.isCue; });
+        if (!sLines.length) { continue; }
+
+        // Try mapping against ABC vocal notes
+        var secVocalNotes = [];
+        if (abcSections.length > 0 && vocalNotes.length > 0) {
+          var abcSecIdx = -1;
+          for (var ai = 0; ai < abcSections.length; ai++) {
+            var aName = abcSections[ai].text.replace(/^%\s*/, '').toLowerCase();
+            if (sec.name && aName.indexOf(sec.name.toLowerCase().replace(/\s*\d+$/, '')) >= 0) {
+              abcSecIdx = ai;
+              break;
+            }
+          }
+          if (abcSecIdx >= 0) {
+            var startBar = abcSections[abcSecIdx].barIndex;
+            var endBar = (abcSecIdx + 1 < abcSections.length) ? abcSections[abcSecIdx + 1].barIndex : (startBar + sLines.length * 4);
+            var sTick = startBar * ticksPerBar;
+            var eTick = endBar * ticksPerBar;
+            secVocalNotes = vocalNotes.filter(function (n) { return n.startTick >= sTick && n.startTick < eTick; });
+            if (secVocalNotes.length > 0) {
+              curTime = Math.max(curTime, secVocalNotes[0].startTick * secPerTick);
+            }
+          }
+        }
+
+        // Section timing distribution
+        var remDuration = Math.max(0, duration - curTime);
+        var remSections = Math.max(1, realSections.length - si);
+        var secDuration = Math.max(sLines.length * 4.5, remDuration / remSections);
+        var lineTime = secDuration / sLines.length;
+
+        for (var li = 0; li < sLines.length; li++) {
+          var lObj = sLines[li];
+          var lStart = curTime;
+          var lDur = Math.max(3.8, lineTime * 0.82);
+          var lEnd = lStart + lDur;
+          outLines.push({
+            id: lineIdx++,
+            text: lObj.text,
+            isSection: false,
+            startTime: Math.round(lStart * 100) / 100,
+            endTime: Math.round(lEnd * 100) / 100
+          });
+          curTime += lineTime;
+        }
+      }
+
+      // Link nextStart and compute activeUntil for all sung lines
+      var sungOnly = outLines.filter(function (l) { return !l.isSection; });
+      for (var k = 0; k < sungOnly.length; k++) {
+        var nextS = sungOnly[k + 1];
+        sungOnly[k].nextStart = nextS ? nextS.startTime : duration;
+        // Keep active throughout the sung line and across normal breath pauses until the next line starts
+        if (nextS && (nextS.startTime - sungOnly[k].endTime <= 6.0)) {
+          sungOnly[k].activeUntil = nextS.startTime;
+        } else {
+          sungOnly[k].activeUntil = Math.min(duration, sungOnly[k].endTime + 3.5);
+        }
+      }
+
+      this.lyricsLines = outLines;
     },
 
     updateLyricsDisplay: function () {
@@ -455,15 +574,32 @@
     },
 
     updateLyrics: function (currentTime) {
-      if (!this.showLyrics || !this.lyricsLines.length) { return; }
+      if (!this.showLyrics || !this.lyricsLines || !this.lyricsLines.length) { return; }
       var active = -1;
+      var activeSecIdx = -1;
+
       for (var i = 0; i < this.lyricsLines.length; i++) {
         var l = this.lyricsLines[i];
-        if (currentTime >= l.startTime && currentTime <= l.endTime + 0.5) {
+        if (l.isSection) {
+          if (currentTime >= l.startTime && currentTime <= l.endTime) {
+            activeSecIdx = i;
+          }
+          continue;
+        }
+        var activeEnd = l.activeUntil || (l.endTime + 0.5);
+        if (currentTime >= l.startTime && currentTime < activeEnd) {
           active = i;
           break;
-        } else if (currentTime > l.endTime) {
-          active = i;
+        }
+      }
+
+      if (active === -1 && this.activeLineIdx >= 0) {
+        var prevL = this.lyricsLines[this.activeLineIdx];
+        if (prevL && !prevL.isSection) {
+          var holdEnd = prevL.activeUntil || (prevL.endTime + 2.5);
+          if (currentTime >= prevL.startTime && currentTime < holdEnd) {
+            active = this.activeLineIdx;
+          }
         }
       }
 
@@ -474,12 +610,25 @@
       if (!list) { return; }
 
       var all = list.querySelectorAll('.vis-lyric-line, .vis-lyric-sec');
+      var activeItem = (active >= 0) ? this.lyricsLines[active] : null;
+
+      var self = this;
       Array.prototype.forEach.call(all, function (el, idx) {
-        el.classList.toggle('active', idx === active);
-        el.classList.toggle('past', idx < active);
+        var item = self.lyricsLines[idx];
+        if (!item) { return; }
+        if (item.isSection) {
+          var isCurSec = (activeSecIdx === idx) ||
+            (activeItem && item.id < activeItem.id && (!self.lyricsLines[idx + 1] || self.lyricsLines[idx + 1].id <= activeItem.id));
+          el.classList.toggle('current', Boolean(isCurSec));
+        } else {
+          var isAct = (idx === active);
+          var isPast = active >= 0 ? (idx < active) : (item.endTime < currentTime);
+          el.classList.toggle('active', isAct);
+          el.classList.toggle('past', isPast);
+        }
       });
 
-      var activeEl = $('vis-line-' + (this.lyricsLines[active] ? this.lyricsLines[active].id : -1));
+      var activeEl = $('vis-line-' + (activeItem ? activeItem.id : -1));
       if (activeEl) {
         var targetY = activeEl.offsetTop - (list.clientHeight / 2) + (activeEl.clientHeight / 2);
         list.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
@@ -517,6 +666,11 @@
 
     renderFullFrame: function (now) {
       this.updateAudioMetrics();
+
+      var audio = $('audio');
+      if (this.showLyrics && audio && !audio.paused && this.lyricsLines.length) {
+        this.updateLyrics(audio.currentTime);
+      }
 
       var canvas = $('visualizer-canvas');
       if (!canvas) { return; }
