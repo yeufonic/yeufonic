@@ -74,6 +74,7 @@
       this.initCosmicStars();
       this.initSwarmParticles();
       this.initBars();
+      this.resizeMini();
       this.startMini();
     },
 
@@ -145,6 +146,9 @@
       if (!audio) { return false; }
 
       // Prefer sharing Rack's AudioContext and Analyser
+      if (window.RackEngine && !window.RackEngine.ctx && typeof window.RackEngine.init === 'function') {
+        try { window.RackEngine.init(); } catch (e) {}
+      }
       if (window.RackEngine && window.RackEngine.ctx) {
         this.audioCtx = window.RackEngine.ctx;
         if (window.RackEngine.analyser) {
@@ -156,6 +160,10 @@
         var AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) { return false; }
         this.audioCtx = new AudioCtx();
+      }
+
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(function () {});
       }
 
       if (!this.analyser) {
@@ -298,6 +306,12 @@
         audio.addEventListener('play', function () {
           self.ensureAudioNode();
           self.startMini();
+        });
+        audio.addEventListener('pause', function () {
+          self.renderMiniFrame(performance.now());
+        });
+        audio.addEventListener('ended', function () {
+          self.renderMiniFrame(performance.now());
         });
         audio.addEventListener('timeupdate', function () {
           if (self.isOpen && self.hasTimings) { self.updateLyrics(audio.currentTime); }
@@ -1406,14 +1420,19 @@
       if (!canvas) { return; }
       var dpr = window.devicePixelRatio || 1;
       var rect = canvas.getBoundingClientRect();
-      var w = Math.max(200, rect.width || window.innerWidth);
-      var h = Math.max(40, rect.height || 64);
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
+      var w = Math.max(200, Math.round(rect.width || canvas.clientWidth || window.innerWidth || 1200));
+      var h = Math.max(30, Math.round(rect.height || canvas.clientHeight || 64));
+      var targetW = Math.round(w * dpr);
+      var targetH = Math.round(h * dpr);
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
     },
 
     startMini: function () {
       if (this.miniAnimId) { return; }
+      this.resizeMini();
       var self = this;
       function loop(now) {
         self.renderMiniFrame(now);
@@ -1427,74 +1446,128 @@
         cancelAnimationFrame(this.miniAnimId);
         this.miniAnimId = null;
       }
+      var canvas = $('mini-vis');
+      if (canvas) {
+        var ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
     },
 
     renderMiniFrame: function (now) {
       var canvas = $('mini-vis');
-      if (!canvas || !this.miniEnabled) { return; }
+      if (!canvas || !this.miniEnabled) {
+        if (canvas) {
+          var c = canvas.getContext('2d');
+          if (c) {
+            c.setTransform(1, 0, 0, 1, 0, 0);
+            c.clearRect(0, 0, canvas.width, canvas.height);
+          }
+        }
+        return;
+      }
 
-      var audio = $('audio');
-      var isPlaying = audio && !audio.paused && !audio.ended;
+      var dpr = window.devicePixelRatio || 1;
+      var rect = canvas.getBoundingClientRect();
+      var w = Math.max(200, Math.round(rect.width || canvas.clientWidth || window.innerWidth || 1200));
+      var h = Math.max(30, Math.round(rect.height || canvas.clientHeight || 64));
+      var targetW = Math.round(w * dpr);
+      var targetH = Math.round(h * dpr);
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
 
       var ctx = canvas.getContext('2d');
       if (!ctx) { return; }
 
-      var dpr = window.devicePixelRatio || 1;
-      var w = canvas.width / dpr;
-      var h = canvas.height / dpr;
+      // Clear the physical canvas buffer completely in untransformed device pixels
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      ctx.clearRect(0, 0, w, h);
-
+      var audio = $('audio');
+      var isPlaying = audio && !audio.paused && !audio.ended;
       if (!isPlaying) {
-        // Draw resting baseline
-        ctx.save();
-        ctx.scale(dpr, dpr);
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(0, h * 0.5);
-        ctx.lineTo(w, h * 0.5);
-        ctx.stroke();
-        ctx.restore();
         return;
       }
 
+      if (!this.analyser) {
+        this.ensureAudioNode();
+      }
       this.updateAudioMetrics();
 
-      ctx.save();
-      ctx.scale(dpr, dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Render ambient mirrored wave ribbon across the bottom player
-      var points = 80;
+      // Render smooth ambient audio-reactive wave across the full width of the player
+      var points = Math.max(120, Math.floor(w / 8));
       var step = w / points;
       var cy = h * 0.5;
       var time = now * 0.002;
+      var timeData = this.dataTime;
+      var timeLen = timeData ? timeData.length : 0;
+      var bass = this.bassEnergy || 0;
 
+      // Primary flowing ribbon across full player width
       ctx.beginPath();
       for (var i = 0; i <= points; i++) {
         var x = i * step;
         var audioSample = 0;
-        if (this.dataTime && this.dataTime.length) {
-          var sIdx = Math.floor((i / points) * this.dataTime.length);
-          audioSample = ((this.dataTime[sIdx] - 128) / 128) * (h * 0.38);
+        if (timeLen > 0) {
+          var sIdx = Math.floor((i / points) * timeLen);
+          audioSample = ((timeData[sIdx] - 128) / 128) * (h * 0.28);
         }
-        var waveY = Math.sin(x * 0.02 + time) * (h * 0.18 * (1.0 + this.bassEnergy * 1.5)) + audioSample;
+        var waveY = Math.sin(x * 0.015 + time) * (h * 0.14 * (1.0 + bass * 1.3)) + audioSample;
         var y = cy + waveY;
-        if (i === 0) { ctx.moveTo(x, y); } else { ctx.lineTo(x, y); }
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
       }
 
       var grad = ctx.createLinearGradient(0, 0, w, 0);
-      grad.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
-      grad.addColorStop(0.5, 'rgba(168, 85, 247, 0.45)');
-      grad.addColorStop(1, 'rgba(236, 72, 153, 0.25)');
+      grad.addColorStop(0, 'rgba(56, 189, 248, 0.40)');
+      grad.addColorStop(0.5, 'rgba(168, 85, 247, 0.55)');
+      grad.addColorStop(1, 'rgba(236, 72, 153, 0.40)');
 
       ctx.strokeStyle = grad;
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = 'rgba(168, 85, 247, 0.6)';
-      ctx.shadowBlur = 10;
+      ctx.lineWidth = 2.0;
+      ctx.shadowColor = 'rgba(168, 85, 247, 0.5)';
+      ctx.shadowBlur = 8;
       ctx.stroke();
 
-      ctx.restore();
+      // Secondary subtle harmonic counter-wave for rich depth
+      ctx.beginPath();
+      for (var j = 0; j <= points; j++) {
+        var x2 = j * step;
+        var audioSample2 = 0;
+        if (timeLen > 0) {
+          var sIdx2 = Math.floor(((points - j) / points) * timeLen);
+          audioSample2 = ((timeData[sIdx2] - 128) / 128) * (h * 0.18);
+        }
+        var waveY2 = Math.sin(x2 * 0.022 - time * 0.8) * (h * 0.10 * (1.0 + bass)) + audioSample2;
+        var y2 = cy + waveY2;
+        if (j === 0) {
+          ctx.moveTo(x2, y2);
+        } else {
+          ctx.lineTo(x2, y2);
+        }
+      }
+
+      var grad2 = ctx.createLinearGradient(0, 0, w, 0);
+      grad2.addColorStop(0, 'rgba(168, 85, 247, 0.20)');
+      grad2.addColorStop(0.5, 'rgba(56, 189, 248, 0.35)');
+      grad2.addColorStop(1, 'rgba(168, 85, 247, 0.20)');
+
+      ctx.strokeStyle = grad2;
+      ctx.lineWidth = 1.2;
+      ctx.shadowColor = 'rgba(56, 189, 248, 0.4)';
+      ctx.shadowBlur = 6;
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
     }
   };
 

@@ -2329,6 +2329,7 @@ label .lora-value:disabled { opacity: 0.6; }
   display: flex; align-items: center; gap: 12px;
   padding: 10px 20px; background: rgb(var(--bar-2-rgb) / 0.94);
   backdrop-filter: blur(16px); border-top: 1px solid var(--line);
+  overflow: hidden;
 }
 .np-cover { width: 44px; height: 44px; border-radius: 11px; background: var(--card-2); flex: 0 0 auto; }
 .np-text { flex: 0 0 190px; min-width: 0; }
@@ -4660,7 +4661,8 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   height: 100%;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.38;
+  opacity: 0.55;
+  overflow: hidden;
 }
 .player > *:not(.player-mini-vis) {
   position: relative;
