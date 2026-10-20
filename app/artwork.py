@@ -326,8 +326,8 @@ def clean_prompt_text(text: str, take: dict | None = None) -> str:
 
 HIPGNOSIS_PREFIX_RE = re.compile(
     r"^Create an image in the shape of (?:a well[- ]worn |an )?album cover in the style of Hipgnosis "
-    r"\(the UK art design group\) that uses the following as its inspiration:\s*",
-    re.IGNORECASE
+    r"\(the UK art design group\) that uses the following as its inspiration.*?:",
+    re.IGNORECASE | re.DOTALL
 )
 
 
@@ -346,7 +346,9 @@ def album_cover_prefix(well_worn: bool = False) -> str:
     qualifier = "a well worn " if well_worn else "an "
     return (
         f"Create an image in the shape of {qualifier}album cover in the style of Hipgnosis "
-        "(the UK art design group) that uses the following as its inspiration:"
+        "(the UK art design group) that uses the following as its inspiration. "
+        "Do not use the name Hipgnosis in the image; "
+        "the image should only be influenced by that design group, not made to look like it was created by them:"
     )
 
 
@@ -363,6 +365,8 @@ def take_description(take: dict, scene: str | None = None, well_worn: bool | Non
     parts.append(f'cover style:\n"{style}"')
     if scene:
         clean_scene = clean_prompt_text(scene.strip(), take)
+        clean_scene = re.sub(r",?\s*(?:designed by|created by|in the style of|by)?\s*(?:hipgnosis|hignosis)\b", "", clean_scene, flags=re.IGNORECASE)
+        clean_scene = re.sub(r"  +", " ", clean_scene).strip()
         if clean_scene:
             parts.append(f'\nvisual scene:\n"{clean_scene}"')
     return "\n".join(parts)
@@ -501,8 +505,11 @@ def description_request(take: dict, well_worn: bool | None = None) -> str:
         f"Style: {style or 'not given'}\n"
         f"The opening of the song:\n{sung}\n\n"
         "Describe a surreal, enigmatic photographic or painterly scene in the distinctive Hipgnosis style: "
-        "striking visual metaphors, unexpected juxtaposition, dramatic landscapes, and vintage 1970s film textures"
-        f"{worn_texture}. Between 40 and 90 words. Reply with the description only."
+        "striking visual metaphors, unexpected juxtaposition, dramatic landscapes, and vintage film textures"
+        f"{worn_texture}. Do not use the name Hipgnosis in the image or description; "
+        "the image should only be influenced by that design group, not made to look like it was created by them. "
+        "Do not specify or add a year or decade unless one is explicitly stated in the style above. "
+        "Between 40 and 90 words. Reply with the description only."
     )
 
 
@@ -511,6 +518,7 @@ def tidy_description(reply: str) -> str:
     text = re.sub(r"^```[a-z]*\s*|\s*```$", "", text)
     text = re.sub(r"^(here is|here's)[^:\n]*:\s*", "", text, flags=re.I)
     text = re.sub(r"^(prompt|image prompt)\s*:\s*", "", text, flags=re.I)
+    text = re.sub(r"^(?:in the style of )?(?:hipgnosis|hignosis)\s*[:\-]\s*", "", text, flags=re.I)
     return text.strip().strip('"').strip()
 
 
@@ -541,7 +549,9 @@ def drawing_request(description: str, take: dict | None = None, well_worn: bool 
         return take_description(take, scene=text, well_worn=well_worn)
     worn = is_well_worn(take) if well_worn is None else well_worn
     prefix = album_cover_prefix(worn)
-    return f"{prefix}\n\n{text}"
+    clean_text = re.sub(r",?\s*(?:designed by|created by|in the style of|by)?\s*(?:hipgnosis|hignosis)\b", "", text, flags=re.IGNORECASE)
+    clean_text = re.sub(r"  +", " ", clean_text).strip()
+    return f"{prefix}\n\n{clean_text or text}"
 
 
 # ------------------------------------------------------------------ the drawing

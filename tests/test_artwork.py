@@ -639,3 +639,39 @@ def test_well_worn_randomization_and_scene_inclusion():
     assert 'visual scene:\n"A lonely telephone box."' in combined
 
 
+def test_hipgnosis_attribution_and_year_rules():
+    # 1. album_cover_prefix explicitly specifies not to use the name Hipgnosis on the image
+    # and that the artwork is only influenced by them, not created by them
+    prefix = artwork.album_cover_prefix()
+    assert "Do not use the name Hipgnosis in the image" in prefix
+    assert "only be influenced by that design group, not made to look like it was created by them" in prefix
+
+    # 2. take_description and drawing_request inherit this instruction
+    take = {"title": "Silent Night", "style": "acoustic, ambient"}
+    prompt = artwork.take_description(take)
+    assert "Do not use the name Hipgnosis in the image" in prompt
+    assert "only be influenced by that design group, not made to look like it was created by them" in prompt
+
+    drawn = artwork.drawing_request("A solitary lighthouse.")
+    assert "Do not use the name Hipgnosis in the image" in drawn
+
+    # 3. description_request does not hardcode 1970s or any year when not in style
+    req_no_year = artwork.description_request({"title": "Echoes", "style": "progressive rock"})
+    assert "1970s" not in req_no_year
+    assert "vintage film textures" in req_no_year
+    assert "Do not specify or add a year or decade unless one is explicitly stated in the style above" in req_no_year
+    assert "Do not use the name Hipgnosis in the image or description" in req_no_year
+
+    # 4. If a year is in the style prompt, it is included in Style / cover style
+    req_with_year = artwork.description_request({"title": "Neon Grid", "style": "1984 synthwave"})
+    assert "Style: 1984 synthwave" in req_with_year
+    desc_with_year = artwork.take_description({"title": "Neon Grid", "style": "1984 synthwave"})
+    assert 'cover style:\n"1984 synthwave"' in desc_with_year
+
+    # 5. Stray "by Hipgnosis" or "Hipgnosis" in scene descriptions are stripped out
+    scene_with_leak = artwork.take_description(take, scene="A glowing monolith in the desert, designed by Hipgnosis.")
+    assert 'visual scene:\n"A glowing monolith in the desert."' in scene_with_leak
+    assert "designed by Hipgnosis" not in scene_with_leak
+
+
+
