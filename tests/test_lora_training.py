@@ -482,15 +482,34 @@ def test_settings_groups_and_lora_training_options(client, monkeypatch, tmp_path
     assert by_key["training.regularization"]["requires"] == {"training.branches": ["both", "planner"]}
     assert by_key["training.conditioning"]["requires"] == {"training.branches": ["both", "acoustic"]}
 
-    # Low-memory (int8) gate: blocked by default when only the int8 model is present, allowed when turned on
+    # Low-memory (int8) default: enabled by default when only the int8 model is present;
+    # off by default when the bf16 model is available.
     corpus = a_corpus()
     monkeypatch.setattr(config, "ENGINE_INPUT_DIR", tmp_path / "engine-input")
     monkeypatch.setattr(main.ENGINE, "options_loaded", True)
     monkeypatch.setitem(main.ENGINE.options, "checkpoints", ["yue2_3b_int8_convrot.safetensors"])
 
-    refused = client.post(f"/api/identities/{corpus['id']}/train")
-    assert refused.status_code == 400 and "low-memory" in refused.json()["detail"]
+    assert main.setting_default("training.allow_int8") == "on"
+    # By default on an int8 install, training is allowed out-of-the-box
+    allowed = client.post(f"/api/identities/{corpus['id']}/train", json={"steps": 50, "rank": 16})
+    assert allowed.status_code == 200
+    while not jobs.QUEUE.empty():
+        jobs.QUEUE.get_nowait()
 
+    # When the user explicitly sets allow_int8 to "off" on an int8 install, both train and run-all are refused upfront
+    assert client.put("/api/settings", json={"key": "training.allow_int8", "value": "off"}).status_code == 200
+    refused_train = client.post(f"/api/identities/{corpus['id']}/train")
+    assert refused_train.status_code == 400 and "low-memory" in refused_train.json()["detail"]
+    refused_run_all = client.post(f"/api/identities/{corpus['id']}/run-all")
+    assert refused_run_all.status_code == 400 and "low-memory" in refused_run_all.json()["detail"]
+
+    # When bf16 model is present, the default is "off" (train on full-quality)
+    monkeypatch.setitem(main.ENGINE.options, "checkpoints", [config.TRAIN_CHECKPOINT])
+    assert main.setting_default("training.allow_int8") == "off"
+
+    # Reset allow_int8 back to "on" and int8 checkpoint for remainder of test
+    main.execute("DELETE FROM lora_runs")
+    monkeypatch.setitem(main.ENGINE.options, "checkpoints", ["yue2_3b_int8_convrot.safetensors"])
     assert client.put("/api/settings", json={"key": "training.allow_int8", "value": "on"}).status_code == 200
     allowed = client.post(f"/api/identities/{corpus['id']}/train", json={"steps": 50, "rank": 16})
     assert allowed.status_code == 200

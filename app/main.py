@@ -635,8 +635,35 @@ def default_cap() -> float:
         return float(config.DEFAULT_CAP)
 
 
+def _is_bf16_available() -> bool:
+    """Whether the full-quality (BF16) model is installed and available to the engine."""
+    if ENGINE.options_loaded:
+        return config.TRAIN_CHECKPOINT in (ENGINE.options.get("checkpoints") or [])
+    if config.CHECKPOINT == config.CHECKPOINT_BF16:
+        ckpt_dir = config.MODELS_DIR / "checkpoints"
+        if ckpt_dir.is_dir():
+            return (ckpt_dir / config.TRAIN_CHECKPOINT).is_file()
+        return True
+    return False
+
+
 def setting_default(key: str) -> str:
-    return str(config.STEMS_DIR) if key == "stems.folder" else SETTINGS_BY_KEY[key]["default"]
+    if key == "stems.folder":
+        return str(config.STEMS_DIR)
+    if key == "training.allow_int8":
+        # On by default when only the low-memory (int8) model is installed,
+        # and Off when the full-quality (bf16) model is available.
+        return "off" if _is_bf16_available() else "on"
+    return SETTINGS_BY_KEY[key]["default"]
+
+
+def _check_training_model_allowed() -> None:
+    allow_int8 = setting_value("training.allow_int8") == "on"
+    if not allow_int8 and not _is_bf16_available():
+        raise HTTPException(400, "Training learns from the full-quality model, and this install has the "
+                                 "low-memory one. Turn on low-memory model training in Settings, or run "
+                                 "the installer again and choose full quality, or "
+                                 "scripts/fetch-models.sh for Docker.")
 
 
 def forget_frozen_defaults() -> int:
@@ -4324,13 +4351,8 @@ async def train_identity(identity_id: str, body: TrainIn | None = None) -> dict:
     it while the engine is busy, refuses to start anything else on the engine while it
     runs, and shows it on the main screen with a stop button."""
     _training_built_in()
+    _check_training_model_allowed()
     identity = _identity(identity_id)
-    allow_int8 = setting_value("training.allow_int8") == "on"
-    if ENGINE.options_loaded and not allow_int8 and config.TRAIN_CHECKPOINT not in (ENGINE.options.get("checkpoints") or []):
-        raise HTTPException(400, "Training learns from the full-quality model, and this install has the "
-                                 "low-memory one. Turn on low-memory model training in Settings, or run "
-                                 "the installer again and choose full quality, or "
-                                 "scripts/fetch-models.sh for Docker.")
     if _training_run():
         raise HTTPException(409, "A LoRA is already training.")
     _engine_free_for_training()
@@ -4544,6 +4566,7 @@ async def run_all_identity(identity_id: str, body: RunAllIn | None = None) -> di
     """Start the chain.  Everything it will need to ask is asked now, so it never
     stops halfway to wait for an answer."""
     _training_built_in()
+    _check_training_model_allowed()
     identity = _identity(identity_id)
     if (RUN_ALL.get(identity_id) or {}).get("stage") in ("analysing", "exporting", "waiting"):
         raise HTTPException(409, "Run all is already going for this corpus.")
