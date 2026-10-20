@@ -101,7 +101,7 @@ def trainer(data: dict, pin: str, repo: str, details: bool) -> None:
         describe(commit, full=details, repo=repo)
     if commits:
         print(f"\n  https://github.com/{repo}/compare/{pin[:8]}...HEAD")
-        print("  To bump: move ARG FS_AUDIO_REF, rebuild the engine, and train a short run on a small corpus.")
+        print("  To bump: move ARG YUE2_TRAINER_REF, rebuild the engine, and train a short run on a small corpus.")
 
 
 def main() -> None:

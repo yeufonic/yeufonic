@@ -410,7 +410,7 @@ These need a rebuild rather than a setting.
 | Build arg | Default | What it does |
 |---|---|---|
 | `WITH_TRAINER` | `1` | on the **engine** service. Builds in the LoRA trainer; `0` leaves it out, and Corpora is hidden. See Training a LoRA above |
-| `FS_AUDIO_REF` | pinned commit | which commit of that pack to use, if it is included |
+| `YUE2_TRAINER_REF` | pinned commit | which commit of ComfyUI-YuE2-Trainer to use, if it is included |
 | `COMFYUI_REF` | pinned commit | which commit of ComfyUI the engine is built from. See Contributing for how far it has drifted |
 
 They are set under `build: args:` in `compose.yml`, or passed on the command line:

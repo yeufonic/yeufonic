@@ -3,7 +3,7 @@
 #
 #   - ComfyUI, pinned in engine/Dockerfile. The YuE2 nodes this app renders
 #     through live there.
-#   - FS_Audio Suite, the trainer, pinned there too.
+#   - ComfyUI-YuE2-Trainer, the trainer, pinned there too.
 #   - The model repositories on Hugging Face that scripts/fetch-models.sh
 #     downloads from, and the YuE2 authors' own (m-a-p), where a new version
 #     appears first.

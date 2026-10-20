@@ -126,7 +126,7 @@ instrumental and a lyric draft against it, then move the pin in a commit that sa
 
 It also reports:
 
-- **The trainer:** the commits to FS_Audio Suite since its pin (`ARG FS_AUDIO_REF`). Bump it by
+- **The trainer:** the commits to ComfyUI-YuE2-Trainer since its pin (`ARG YUE2_TRAINER_REF`). Bump it by
   moving the pin, rebuilding the engine, and training a short run on a small corpus.
 - **The models:** each Hugging Face repository `scripts/fetch-models.sh` downloads from, and the YuE2
   authors' own (m-a-p), where a new version appears first. These aren't pinned: a fresh install
