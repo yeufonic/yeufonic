@@ -171,3 +171,9 @@ def test_the_page_has_playlist_elements():
     assert "function openPlaylistPicker(" in app_js
     assert "actions += tile('playlist'" in app_js
 
+    styles = (STATIC / "styles.css").read_text(encoding="utf-8")
+    assert "main.view-playlists" in styles
+    assert "main:not(.view-playlists) > .playlist-sidebar" in styles
+    assert "main.view-playlists > .sheet-panel" in styles
+    assert "main.view-playlists > .library" in styles
+

@@ -3738,8 +3738,28 @@ button.ghost.run-all { margin-left: 10px; }
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
 }
 
-/* ---------- playlists layout ---------- */
-main.view-playlists .sheet-toggle { display: none !important; }
+/* ---------- playlists layout & view switching ---------- */
+main.view-playlists {
+  grid-template-columns: 400px minmax(0, 1fr) !important;
+}
+
+/* In Library view (default): completely hide playlist panels */
+main:not(.view-playlists) > .playlist-sidebar,
+main:not(.view-playlists) > .playlist-view {
+  display: none !important;
+}
+
+/* In Playlists view: completely hide library sheet panel, sheet toggle, and library takes */
+main.view-playlists > .sheet-panel,
+main.view-playlists > .sheet-toggle,
+main.view-playlists > .library {
+  display: none !important;
+}
+
+.playlist-sidebar.hidden,
+.playlist-view.hidden {
+  display: none !important;
+}
 
 @media (min-width: 1001px) {
   main > .playlist-sidebar, main > .playlist-view {
@@ -3747,6 +3767,12 @@ main.view-playlists .sheet-toggle { display: none !important; }
     overflow: hidden auto;
     padding-bottom: 118px;
     scrollbar-gutter: stable both-edges;
+  }
+  main.view-playlists > .playlist-sidebar {
+    display: flex !important;
+  }
+  main.view-playlists > .playlist-view {
+    display: flex !important;
   }
 }
 

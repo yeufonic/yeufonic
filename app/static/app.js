@@ -15851,6 +15851,7 @@ async function deleteActivePlaylist() {
 }
 
 function wirePlaylists() {
+  switchView('library');
   var btnLib = $('view-btn-library');
   if (btnLib) { btnLib.addEventListener('click', function () { switchView('library'); }); }
   var btnPl = $('view-btn-playlists');
