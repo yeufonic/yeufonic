@@ -148,9 +148,9 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 - **Playlists and Liked songs.** Group takes into custom playlists and browse your starred songs in a
   dedicated view. Sort by title, duration, or date added, click any song title to jump straight to its
   space in the library, and play tracks directly with inline art-hover controls.
-- **Audio visualizer and synchronised lyrics.** An expandable visualizer displays real-time frequency
-  bars, waveform scope, or circular frequency displays alongside synchronised lyrics that scroll and
-  track line progress in real time, with configurable colour themes.
+- **Audio visualizer and lyrics display.** An expandable visualizer displays real-time frequency
+  bars, waveform scope, or circular frequency displays alongside a scrollable lyrics sheet view,
+  with configurable colour themes.
 - **Told when a newer version is out.** Every four hours the app asks its own site whether a later release
   exists — one request, nothing else leaves the computer. When there is one, a quiet pill beside the
   version and **Check for updates** in the menu offer the installer (Windows) or the two commands

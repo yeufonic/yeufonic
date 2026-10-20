@@ -50,7 +50,7 @@ cannot creep back in.
   - **Instant space navigation:** Clicking any song title in the playlist table immediately flips to the Library view, switches to the space where that take lives, selects the take in the left Sheet panel, and scrolls its card into view with a focus pulse.
   - **Contextual hotkey handling:** Take-specific hotkeys are ignored in the Playlists view to prevent unintentional library edits, while **M** continues to open and close the vintage mastering rack for the currently playing or loaded track alongside full transport keyboard controls.
   - **Continuous playback & shuffle:** Start listening from the beginning or click **Shuffle** to randomise the playback order. The transport player bar automatically steps through the playlist tracks.
-- **Real-time audio visualizer & synchronised lyrics engine.** A dedicated hardware-accelerated audio visualizer stage is integrated directly into playback, offering full-screen immersion, interactive Hipgnosis-style album cover dynamics, synchronised lyrics, and an ambient player bar backdrop:
+- **Real-time audio visualizer & lyrics display.** A dedicated hardware-accelerated audio visualizer stage is integrated directly into playback, offering full-screen immersion, interactive Hipgnosis-style album cover dynamics, lyrics display, and an ambient player bar backdrop:
   - **Full-screen visualizer stage & modes:** Toggle the visualizer with **V** or the transport button whenever audio is playing. Features eight real-time visualizer rendering modes:
     - *Waveform Ribbon:* Dual floating harmonic wave ribbons reacting smoothly to audio amplitude and frequency contours.
     - *Aurora Borealis:* Undulating, ethereal northern lights shifting with musical tone and mid/high frequencies.
@@ -65,10 +65,8 @@ cannot creep back in.
     - Realistic vinyl record complete with light-sheen reflections, concentric groove rings, and accurate 33⅓ RPM rotation that slides dynamically out from the sleeve on bass hits.
     - Holographic glare overlay and expanding beat-synchronized shockwave pulse rings.
     - Three selectable artwork modes (**Sleeve**, **Aura** blurred ambient backdrop, or **Off**).
-  - **Synchronised lyrics display:**
+  - **Lyrics display:**
     - High-legibility typography sheet view scrollable independently of the visual stage.
-    - Real-time line highlighting with phrase-by-phrase glow and automatic smooth centering.
-    - Supports both SheetSage/Whisper word-level onset alignments and explicit LRC timestamp tags (`[mm:ss.xx]`).
     - Toggle with **L** or the **Lyrics** toolbar button.
   - **Ambient mini player ribbon:**
     - Real-time reactive dual-wave audio visualizer ribbon integrated across the bottom transport player bar behind playback controls.

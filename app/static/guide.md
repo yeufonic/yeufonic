@@ -1251,8 +1251,8 @@ The stage renders real-time audio visualisations synchronized with playback:
   - *Liquid Warp:* Fluid harmonic wave displacement surface.
   - *Particle Swarm:* Gravitational particle clusters that scatter on percussive hits.
   - *Hi-Fi Spectrum Bars:* Multi-band equalizer spectrum analyzer with physical floating peak decay caps.
-- **Album Artwork & Vinyl Dynamics:** Displays the take's Hipgnosis album cover in an interactive 3D sleeve that tilts and orbits with pointer movement. A realistic vinyl record spins at 33⅓ RPM and slides out of the sleeve on bass hits, accompanied by holographic sheen and beat-reactive shockwave rings. Cycle modes with the **Artwork** button: *Sleeve*, *Aura* (ambient blurred background), or *Off*.
-- **Synchronised Lyrics:** Press **L** or click **Lyrics** to display lyrics with phrase glow and smooth auto-scrolling synchronization.
+- **Album Artwork & Vinyl Dynamics:** Displays the take's Hipgnosis-style album cover in an interactive 3D sleeve that tilts and orbits with pointer movement. A realistic vinyl record spins at 33⅓ RPM and slides out of the sleeve on bass hits, accompanied by holographic sheen and beat-reactive shockwave rings. Cycle modes with the **Artwork** button: *Sleeve*, *Aura* (ambient blurred background), or *Off*.
+- **Lyrics Display:** Press **L** or click **Lyrics** to toggle the independent, scrollable lyrics panel.
 - **Mini Player Ribbon:** While the full visualizer is closed, a reactive mini dual-wave visualizer ribbon plays inside the bottom transport bar. It can be toggled in **Settings → Appearance**.
 
 ### Playlists & Liked Songs
