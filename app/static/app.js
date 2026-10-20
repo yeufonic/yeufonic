@@ -6345,6 +6345,114 @@ function confirmScoreSaved() {
   });
 }
 
+var titleAutoSaveTimer = null;
+var titleSaveInProgress = false;
+
+function setTitleSaveStatus(text, kind) {
+  var el = $('title-save-status');
+  if (!el) { return; }
+  el.textContent = text || '';
+  el.className = 'title-save-status' + (kind ? ' ' + kind : '');
+}
+
+function titleSaveStatusText() {
+  var el = $('title-save-status');
+  return el ? el.textContent : '';
+}
+
+function scheduleTitleAutoSave() {
+  if (titleAutoSaveTimer) {
+    clearTimeout(titleAutoSaveTimer);
+    titleAutoSaveTimer = null;
+  }
+  var take = editorTake();
+  if (!take || !take.id) {
+    setTitleSaveStatus('');
+    return;
+  }
+  var newTitle = ($('title').value || '').trim();
+  if (!newTitle || newTitle === take.title) {
+    setTitleSaveStatus('');
+    return;
+  }
+  titleAutoSaveTimer = setTimeout(function () {
+    saveTitleIfDirty();
+  }, 1200);
+}
+
+async function saveTitleIfDirty() {
+  if (titleAutoSaveTimer) {
+    clearTimeout(titleAutoSaveTimer);
+    titleAutoSaveTimer = null;
+  }
+  var take = editorTake();
+  if (!take || !take.id) { return; }
+  var newTitle = ($('title').value || '').trim();
+  if (!newTitle || newTitle === take.title) { return; }
+
+  if (titleSaveInProgress) {
+    scheduleTitleAutoSave();
+    return;
+  }
+
+  titleSaveInProgress = true;
+  var takeId = take.id;
+  var prevTitle = take.title;
+
+  // Optimistically update in-memory state so any immediate close or UI paint reflects the new name
+  take.title = newTitle;
+  if (State.formTake && State.formTake.id === takeId) {
+    State.formTake.title = newTitle;
+  }
+  for (var i = 0; i < State.takes.length; i++) {
+    if (State.takes[i].id === takeId) {
+      State.takes[i].title = newTitle;
+      break;
+    }
+  }
+  saveForm();
+  if (State.playing === takeId) {
+    $('np-title').textContent = newTitle;
+    if (window.Visualizer) { window.Visualizer.updateTakeInfo(); }
+  }
+  paintTakes();
+  paintSheet();
+
+  setTitleSaveStatus('Saving\u2026', 'saving');
+
+  try {
+    var updated = await api('/api/takes/' + takeId + '/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTitle })
+    });
+    take.title = updated.title;
+    if (State.formTake && State.formTake.id === takeId) {
+      State.formTake.title = updated.title;
+    }
+    setTitleSaveStatus('Saved', 'saved');
+    setTimeout(function () {
+      if (titleSaveStatusText() === 'Saved') {
+        setTitleSaveStatus('');
+      }
+    }, 2000);
+  } catch (err) {
+    take.title = prevTitle;
+    if (State.formTake && State.formTake.id === takeId) {
+      State.formTake.title = prevTitle;
+    }
+    paintTakes();
+    paintSheet();
+    setTitleSaveStatus('Could not save', 'error');
+  } finally {
+    titleSaveInProgress = false;
+    var currentInput = ($('title').value || '').trim();
+    if (currentInput && currentInput !== take.title) {
+      scheduleTitleAutoSave();
+    }
+  }
+}
+
 var scoreAutoSaveTimer = null;
 function scheduleScoreAutoSave() {
   if (scoreAutoSaveTimer) { clearTimeout(scoreAutoSaveTimer); }
@@ -10785,6 +10893,7 @@ function selectTake(take) {
   if (!isSong && take.source_id) { $('source-select').value = take.source_id; }
   if (isInst && $('source-select')) { $('source-select').value = take.source_id || ''; }
   $('title').value = take.title;
+  setTitleSaveStatus('');
   $('style').value = take.style || '';
   $('style').dataset.touched = '1';
   paintVocals();
@@ -10895,6 +11004,7 @@ function restoreDraft() {
   setMode(draft.mode === 'song' ? 'song' : 'cover');
   setSelection({});
   $('title').value = draft.title || '';
+  setTitleSaveStatus('');
   $('style').value = draft.style || '';
   $('lyrics').value = draft.lyrics || ''; paintSongPlan();
   dismissDraft();
@@ -10934,6 +11044,7 @@ async function startFresh() {
   // The editor reads its take from here: left behind, it kept the last take's player on a new one.
   State.formTake = null;
   $('title').value = '';
+  setTitleSaveStatus('');
   if (State.mode !== 'inst') {
     $('lyrics').value = '';
     if ($('write-brief')) { $('write-brief').value = ''; }
@@ -14318,9 +14429,21 @@ function wire() {
     State.formEdited = true;
     refreshTitleHint();
   });
-  ['title', 'style'].forEach(function (id) {
-    $(id).addEventListener('input', function () { State.formEdited = true; });
+  $('title').addEventListener('input', function () {
+    State.formEdited = true;
+    scheduleTitleAutoSave();
   });
+  $('title').addEventListener('blur', function () {
+    saveTitleIfDirty();
+  });
+  $('title').addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      saveTitleIfDirty();
+      $('title').blur();
+    }
+  });
+  $('style').addEventListener('input', function () { State.formEdited = true; });
   $('abc').addEventListener('input', function () {
     if (State.mode === 'inst') { paintInstSource(); }
     if (State.mode === 'cover') { paintStructure(); }
@@ -15035,6 +15158,7 @@ function openEditor(where) {
 
 function closeEditor() {
   if (!editorOpen()) { return; }
+  saveTitleIfDirty();
   notationStop();
   if (window.PianoRoll) { window.PianoRoll.stop(); }
   if (scoreIsDirty() && (takeIdInEditor() || (State.mode === 'cover' && currentSource()))) {

@@ -411,6 +411,28 @@ textarea.lyrics { min-height: 200px; font-family: ui-monospace, SFMono-Regular, 
 .label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .label-row label { font-size: 12.5px; color: var(--muted); }
 .label-row .link { font-size: 12px; }
+.title-save-status {
+  font-size: 12px;
+  font-weight: 500;
+  min-height: 16px;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+.title-save-status.saving {
+  color: var(--accent-a);
+  animation: pulse-saving 1.2s ease-in-out infinite;
+}
+.title-save-status.saved {
+  color: var(--good);
+  animation: none;
+}
+.title-save-status.error {
+  color: var(--danger-text);
+  animation: none;
+}
+@keyframes pulse-saving {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
 .vocal-identity-wrap, .vocal-persona-wrap { display: flex; align-items: center; gap: 6px; }
 .vocal-identity-wrap label, .vocal-persona-wrap label { font-size: 11.5px; color: var(--muted); }
 .vocal-identity-wrap select, .vocal-persona-wrap select { font-size: 12px; padding: 3px 8px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); color: var(--text); max-width: 170px; }
