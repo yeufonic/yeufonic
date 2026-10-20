@@ -5098,7 +5098,6 @@ function adoptVisualizerSettings() {
   if (!window.Visualizer) { return; }
   var mini = setting('appearance.mini_visualizer', 'on') === 'on';
   var art = setting('appearance.visualizer_art', 'sleeve');
-  var lyrics = setting('appearance.visualizer_lyrics', 'on') === 'on';
   var mode = setting('appearance.visualizer_mode', 'wave');
 
   var changed = false;
@@ -5110,11 +5109,6 @@ function adoptVisualizerSettings() {
     window.Visualizer.artMode = art;
     changed = true;
     if (window.Visualizer.isOpen) { window.Visualizer.updateArtworkDisplay(); }
-  }
-  if (window.Visualizer.showLyrics !== lyrics) {
-    window.Visualizer.showLyrics = lyrics;
-    changed = true;
-    if (window.Visualizer.isOpen) { window.Visualizer.updateLyricsDisplay(); }
   }
   if (window.Visualizer.mode !== mode) {
     window.Visualizer.mode = mode;

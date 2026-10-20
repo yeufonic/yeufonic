@@ -286,7 +286,6 @@ def test_visualizer_settings(client):
     by_key = {s["key"]: s for s in res.json()["settings"]}
     assert "appearance.mini_visualizer" in by_key
     assert "appearance.visualizer_art" in by_key
-    assert "appearance.visualizer_lyrics" in by_key
     assert "appearance.visualizer_mode" in by_key
 
     # Update visualizer setting

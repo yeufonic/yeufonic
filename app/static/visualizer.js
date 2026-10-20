@@ -103,7 +103,6 @@
       if (window.State && window.State.settings) {
         window.State.settings['appearance.visualizer_mode'] = this.mode;
         window.State.settings['appearance.visualizer_art'] = this.artMode;
-        window.State.settings['appearance.visualizer_lyrics'] = this.showLyrics ? 'on' : 'off';
         window.State.settings['appearance.mini_visualizer'] = this.miniEnabled ? 'on' : 'off';
       }
 
@@ -121,13 +120,6 @@
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key: 'appearance.visualizer_art', value: this.artMode })
-          }).catch(function () {});
-        }
-        if (!which || which === 'lyrics') {
-          window.api('/api/settings', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: 'appearance.visualizer_lyrics', value: this.showLyrics ? 'on' : 'off' })
           }).catch(function () {});
         }
         if (!which || which === 'mini') {

@@ -501,18 +501,6 @@ SETTINGS_SPEC: list[dict] = [
         "help": "How the take's album cover is incorporated into the full-screen audio visualizer.",
     },
     {
-        "key": "appearance.visualizer_lyrics",
-        "group": "system",
-        "label": "Full visualizer lyrics",
-        "type": "select",
-        "default": "on",
-        "options": [
-            {"value": "on", "label": "On (synchronised glowing lyrics)"},
-            {"value": "off", "label": "Off"},
-        ],
-        "help": "Displays synchronised lyrics glowing and scrolling in real time across the visualizer.",
-    },
-    {
         "key": "appearance.visualizer_mode",
         "group": "system",
         "label": "Visualizer style",
