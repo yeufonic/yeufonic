@@ -55,6 +55,16 @@
       </button>
     </div>
   </div>
+  <nav class="view-switch" role="tablist" aria-label="Views">
+    <button type="button" class="view-switch-btn active" id="view-btn-library" role="tab" aria-selected="true" data-view="library" title="Library of takes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Library</span>
+    </button>
+    <button type="button" class="view-switch-btn" id="view-btn-playlists" role="tab" aria-selected="false" data-view="playlists" title="Playlists">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
+      <span>Playlists</span>
+    </button>
+  </nav>
   <div class="topbar-right">
     <span id="gpu-stat" class="version system-stat hidden" title="GPU usage">
       <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2V4z"/><circle cx="8" cy="11" r="2.5"/><circle cx="15" cy="11" r="2.5"/><path d="M6 18v2M10 18v2M14 18v2"/></svg>
@@ -139,6 +149,97 @@
     <div id="takes" class="takes"></div>
     <button id="takes-more" class="ghost more hidden">Show more</button>
     <div id="empty" class="empty">Nothing yet. Load a recording, write some lyrics, and press create.</div>
+  </section>
+
+  <!-- Playlists view: Left column is playlist sidebar, main column is playlist track list -->
+  <section class="panel playlist-sidebar hidden" id="playlist-sidebar" aria-label="Playlists">
+    <div class="playlist-sidebar-head">
+      <div class="playlist-sidebar-title-row">
+        <h2>Playlists</h2>
+        <button type="button" id="playlist-new-btn" class="chip action playlist-new-btn" title="Create a new playlist">+ New</button>
+      </div>
+      <div class="playlist-search-wrap">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.8"/><path d="M10.6 10.6 14 14"/></svg>
+        <input type="search" id="playlist-filter-input" placeholder="Search playlists" autocomplete="off" spellcheck="false" aria-label="Search playlists">
+      </div>
+    </div>
+    <div class="playlist-list" id="playlist-list" role="list"></div>
+  </section>
+
+  <section class="playlist-view hidden" id="playlist-view" aria-label="Playlist contents">
+    <div class="playlist-hero" id="playlist-hero">
+      <div class="playlist-cover-wrap">
+        <img id="playlist-hero-cover" class="playlist-hero-cover hidden" alt="Playlist cover">
+        <div id="playlist-hero-fallback" class="playlist-hero-fallback">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
+        </div>
+      </div>
+      <div class="playlist-meta-wrap">
+        <span class="playlist-badge" id="playlist-badge">PLAYLIST</span>
+        <h1 class="playlist-title" id="playlist-title">Liked</h1>
+        <p class="playlist-desc" id="playlist-desc"></p>
+        <div class="playlist-stats" id="playlist-stats">
+          <span id="playlist-track-count">0 songs</span>
+          <span class="playlist-dot">&bull;</span>
+          <span id="playlist-duration">0 min</span>
+        </div>
+        <div class="playlist-hero-actions">
+          <button type="button" class="playlist-play-hero-btn" id="playlist-play-hero-btn" title="Play all tracks">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            <span>Play</span>
+          </button>
+          <button type="button" class="playlist-action-hero-btn" id="playlist-shuffle-hero-btn" title="Shuffle playlist">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+            <span>Shuffle</span>
+          </button>
+          <button type="button" class="playlist-action-hero-btn hidden" id="playlist-edit-hero-btn" title="Edit playlist details">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Edit</span>
+          </button>
+          <button type="button" class="playlist-action-hero-btn danger hidden" id="playlist-del-hero-btn" title="Delete playlist">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="playlist-items-toolbar">
+      <div class="playlist-items-search">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.8"/><path d="M10.6 10.6 14 14"/></svg>
+        <input type="search" id="playlist-items-filter" placeholder="Search in playlist" autocomplete="off" spellcheck="false" aria-label="Search in playlist">
+      </div>
+      <div class="playlist-sort-wrap">
+        <label for="playlist-sort-select" class="playlist-sort-label">Sort by</label>
+        <select id="playlist-sort-select">
+          <option value="added_desc">Recently Added (Newest)</option>
+          <option value="added_asc">Recently Added (Oldest)</option>
+          <option value="title_asc">Title (A&ndash;Z)</option>
+          <option value="title_desc">Title (Z&ndash;A)</option>
+          <option value="duration_desc">Duration (Longest)</option>
+          <option value="duration_asc">Duration (Shortest)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="playlist-table-wrap">
+      <table class="playlist-table" id="playlist-table">
+        <thead>
+          <tr>
+            <th class="th-num">#</th>
+            <th class="th-title">Title</th>
+            <th class="th-duration">Duration</th>
+            <th class="th-added">Added</th>
+            <th class="th-actions"></th>
+          </tr>
+        </thead>
+        <tbody id="playlist-tracks-body"></tbody>
+      </table>
+      <div class="playlist-empty hidden" id="playlist-empty">
+        <p class="playlist-empty-msg">No tracks in this playlist yet.</p>
+        <p class="playlist-empty-sub muted">Star takes or click the playlist button on any take card in the Library to add them.</p>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -665,6 +766,7 @@
           <div class="hotkey-row"><span class="hk-keys"><kbd>N</kbd></span><span class="hk-desc">Normalise take, or undo normalisation</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>T</kbd></span><span class="hk-desc">Try more takes with chosen take's score</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>S</kbd></span><span class="hk-desc">Star or unstar chosen take</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>P</kbd></span><span class="hk-desc">Add chosen take to playlist</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>D</kbd></span><span class="hk-desc">Delete chosen take, after asking</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>L</kbd></span><span class="hk-desc">System logs; toggle lyrics in visualizer</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>?</kbd></span><span class="hk-desc">Show or hide these hot keys</span></div>
@@ -1012,6 +1114,51 @@
       </div>
     </div>
     <div id="move-status" class="status"></div>
+  </div>
+</div>
+
+<div id="playlist-picker-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Add to playlist">
+  <div class="modal-box narrow">
+    <div class="modal-head">
+      <div>
+        <strong id="playlist-picker-heading">Add to playlist</strong>
+        <div id="playlist-picker-sub" class="muted" style="font-size: 13px; margin-top: 2px;"></div>
+      </div>
+      <button id="playlist-picker-close" class="ghost">Done</button>
+    </div>
+    <div class="field playlist-picker-new">
+      <label for="playlist-picker-new-name">New playlist</label>
+      <div class="source-row">
+        <input id="playlist-picker-new-name" type="text" maxlength="120" placeholder="Playlist name">
+        <button type="button" id="playlist-picker-create" class="ghost">Create &amp; Add</button>
+      </div>
+    </div>
+    <div id="playlist-picker-list" class="playlist-picker-list"></div>
+    <div id="playlist-picker-status" class="status"></div>
+  </div>
+</div>
+
+<div id="playlist-edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Playlist details">
+  <div class="modal-box narrow">
+    <div class="modal-head">
+      <strong id="playlist-edit-heading">New Playlist</strong>
+      <button id="playlist-edit-close" class="ghost">Cancel</button>
+    </div>
+    <form id="playlist-edit-form" onsubmit="return false;">
+      <div class="field">
+        <label for="playlist-edit-name">Name</label>
+        <input id="playlist-edit-name" type="text" maxlength="120" placeholder="My Playlist" required>
+      </div>
+      <div class="field">
+        <label for="playlist-edit-desc">Description (optional)</label>
+        <textarea id="playlist-edit-desc" rows="3" maxlength="500" placeholder="Give your playlist a description"></textarea>
+      </div>
+      <div class="source-row" style="margin-top: 14px; justify-content: flex-end; gap: 8px;">
+        <button type="button" id="playlist-edit-cancel" class="ghost">Cancel</button>
+        <button type="submit" id="playlist-edit-save" class="chip action">Save</button>
+      </div>
+    </form>
+    <div id="playlist-edit-status" class="status"></div>
   </div>
 </div>
 

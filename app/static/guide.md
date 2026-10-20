@@ -1255,6 +1255,16 @@ The stage renders real-time audio visualisations synchronized with playback:
 - **Synchronised Lyrics:** Press **L** or click **Lyrics** to display lyrics with phrase glow and smooth auto-scrolling synchronization.
 - **Mini Player Ribbon:** While the full visualizer is closed, a reactive mini dual-wave visualizer ribbon plays inside the bottom transport bar. It can be toggled in **Settings → Appearance**.
 
+### Playlists & Liked Songs
+
+Click **Playlists** in the top bar to switch to the Playlists view.
+
+- **Two-Column Layout:** The left column lists your playlists alongside the pinned system **Liked** playlist with total song counts. The main column displays the active playlist's header (high-resolution artwork, title, description, total songs, and duration) and track table.
+- **Automatic Liked Synchronisation:** Any take starred in the library across any space automatically appears in the Liked playlist. Removing a star removes it from the Liked playlist.
+- **Add to Playlist:** Press **P** or click the **Playlist** icon on any take card to open the playlist picker, toggle membership across playlists, or create a new playlist.
+- **Sorting & In-Playlist Search:** Sort by *Recently Added (Newest / Oldest)*, *Title (A–Z / Z–A)*, or *Duration (Longest / Shortest)*, and filter tracks with the search box.
+- **Continuous Playback & Shuffle:** Click **Play** on the playlist header to listen from track 1, or click **Shuffle** to play in randomised order. Playback advances automatically to the next track in the playlist when each song finishes.
+
 ### Hot keys
 
 On the main page, single keys act on the **chosen take**: the one in the left panel. Click its card to
@@ -1274,6 +1284,7 @@ bar saying why.
 | V | open or close the Visualizer while playing, or Variations when idle |
 | T | Try more |
 | S | star the take, or unstar it |
+| P | add the take to a playlist |
 | D | delete the take, after asking, as its bin does |
 | L | the logs; or toggle lyrics while the visualizer is open |
 | ? | show or hide the hot keys; again to close |

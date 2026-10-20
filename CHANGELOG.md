@@ -41,6 +41,13 @@ cannot creep back in.
 
 ## 0.0.47 (2026-10-20)
 
+- **Playlists and Liked Songs.** Organise takes into custom playlists and access all your starred favourites in a dedicated two-column view:
+  - **Dedicated Playlists view:** Switch seamlessly between the generation Library and Playlists via the topbar segmented control. The playlist sidebar occupies the left column (matching the sheet panel dimensions), and the playlist tracks table occupies the main view.
+  - **Suno-style track list:** Features high-resolution cover artwork, playlist title, description, aggregate song count, and total duration. Each track row displays an album art thumbnail, title, badge, style tags, duration, added date, favourite star button, and quick actions.
+  - **Automatic Liked songs synchronisation:** Starring any take across any space immediately adds it to the system "Liked" playlist, and unstarring removes it.
+  - **Quick Add to Playlist:** Press **P** or click the Playlist button on any take card to toggle membership across existing playlists or create and populate a new playlist on the fly.
+  - **Sorting & in-playlist search:** Sort any playlist by *Recently Added (Newest / Oldest)*, *Title (A–Z / Z–A)*, or *Duration (Longest / Shortest)*, with instant text filtering across titles, styles, and lyrics.
+  - **Continuous playback & shuffle:** Start listening from the beginning or click **Shuffle** to randomise the playback order. The transport player bar automatically steps through the playlist tracks.
 - **Real-time audio visualizer & synchronised lyrics engine.** A dedicated hardware-accelerated audio visualizer stage is integrated directly into playback, offering full-screen immersion, interactive Hipgnosis album cover dynamics, synchronised lyrics, and an ambient player bar backdrop:
   - **Full-screen visualizer stage & modes:** Toggle the visualizer with **V** or the transport button whenever audio is playing. Features eight real-time visualizer rendering modes:
     - *Waveform Ribbon:* Dual floating harmonic wave ribbons reacting smoothly to audio amplitude and frequency contours.

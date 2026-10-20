@@ -2208,6 +2208,13 @@ async def update_take_fx(take_id: str, request: Request) -> dict:
 def favourite(take_id: str, value: bool = True) -> dict:
     if not execute("UPDATE takes SET favourite = ? WHERE id = ?", (1 if value else 0, take_id)):
         raise HTTPException(404, "no such take")
+    if value:
+        execute(
+            "INSERT OR IGNORE INTO playlist_items (playlist_id, take_id, position, added_at) VALUES ('liked', ?, 0, ?)",
+            (take_id, time.time()),
+        )
+    else:
+        execute("DELETE FROM playlist_items WHERE playlist_id = 'liked' AND take_id = ?", (take_id,))
     return {"favourite": value}
 
 
@@ -2307,6 +2314,7 @@ async def _delete_one(take: dict) -> None:
     # Rows first: a file that fails to delete leaves clutter, never a row that
     # points at nothing.
     execute("DELETE FROM stem_sets WHERE take_id = ?", (take_id,))
+    execute("DELETE FROM playlist_items WHERE take_id = ?", (take_id,))
     execute("DELETE FROM takes WHERE id = ?", (take_id,))
     log.info("Deleted take '%s' (%s)", take.get("title") or take_id, take_id)
     artwork.forget(take_id)
@@ -2681,6 +2689,220 @@ def delete_style(style_id: str) -> dict:
     if not execute("DELETE FROM saved_styles WHERE id = ?", (style_id,)):
         raise HTTPException(404, "no such saved style")
     return {"deleted": True}
+
+
+# ------------------------------------------------------------------- playlists
+class PlaylistIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    description: str = Field(default="", max_length=500)
+
+
+class PlaylistUpdateIn(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=500)
+
+
+class PlaylistItemIn(BaseModel):
+    take_id: str = Field(..., min_length=1, max_length=64)
+
+
+def _playlist_cover(playlist_id: str) -> str | None:
+    """Cover art for a playlist: the artwork of the newest take in the playlist that has artwork."""
+    item_rows = rows(
+        """SELECT t.id, t.parent_id
+           FROM playlist_items pi
+           JOIN takes t ON pi.take_id = t.id
+           WHERE pi.playlist_id = ?
+           ORDER BY pi.added_at DESC, pi.rowid DESC LIMIT 50""",
+        (playlist_id,),
+    )
+    for r in item_rows:
+        art = artwork.url_for(r["id"], r.get("parent_id"))
+        if art:
+            return art
+    return None
+
+
+@app.get("/api/playlists")
+def list_playlists() -> list[dict]:
+    """All playlists. System playlist Liked first, then custom playlists in chronological order."""
+    all_playlists = rows(
+        """SELECT p.id, p.name, p.description, p.created_at, p.updated_at, p.is_system,
+                  COUNT(pi.take_id) AS count,
+                  COALESCE(SUM(t.duration), 0) AS total_duration
+           FROM playlists p
+           LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
+           LEFT JOIN takes t ON pi.take_id = t.id
+           GROUP BY p.id
+           ORDER BY p.is_system DESC, p.created_at ASC"""
+    )
+    for p in all_playlists:
+        p["is_system"] = bool(p["is_system"])
+        p["cover_art"] = _playlist_cover(p["id"])
+    return all_playlists
+
+
+@app.post("/api/playlists")
+def create_playlist(body: PlaylistIn) -> dict:
+    name = " ".join(body.name.split())
+    if not name:
+        raise HTTPException(400, "playlist name cannot be blank")
+    now = time.time()
+    pid = "pl_" + uuid.uuid4().hex[:12]
+    execute(
+        "INSERT INTO playlists (id, name, description, created_at, updated_at, is_system) VALUES (?, ?, ?, ?, ?, 0)",
+        (pid, name, body.description.strip(), now, now),
+    )
+    return {
+        "id": pid,
+        "name": name,
+        "description": body.description.strip(),
+        "created_at": now,
+        "updated_at": now,
+        "is_system": False,
+        "count": 0,
+        "total_duration": 0.0,
+        "cover_art": None,
+    }
+
+
+@app.get("/api/playlists/{playlist_id}")
+def get_playlist(
+    playlist_id: str,
+    sort: Literal["added_desc", "added_asc", "title_asc", "title_desc", "duration_desc", "duration_asc"] = "added_desc",
+    q: str = Query("", max_length=200),
+) -> dict:
+    pl = one("SELECT id, name, description, created_at, updated_at, is_system FROM playlists WHERE id = ?", (playlist_id,))
+    if not pl:
+        raise HTTPException(404, "no such playlist")
+    pl["is_system"] = bool(pl["is_system"])
+
+    where = ["pi.playlist_id = ?"]
+    args: list[object] = [playlist_id]
+
+    for word in q.split():
+        like = "%" + word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        where.append("(" + " OR ".join(f"t.{col} LIKE ? ESCAPE '\\'" for col in SEARCHED) + ")")
+        args.extend([like] * len(SEARCHED))
+
+    order_by = {
+        "added_desc": "pi.added_at DESC, pi.rowid DESC",
+        "added_asc": "pi.added_at ASC, pi.rowid ASC",
+        "title_asc": "t.title COLLATE NOCASE ASC, pi.added_at DESC",
+        "title_desc": "t.title COLLATE NOCASE DESC, pi.added_at DESC",
+        "duration_desc": "COALESCE(t.duration, 0) DESC, t.title COLLATE NOCASE ASC",
+        "duration_asc": "COALESCE(t.duration, 0) ASC, t.title COLLATE NOCASE ASC",
+    }.get(sort, "pi.added_at DESC, pi.rowid DESC")
+
+    where_clause = "WHERE " + " AND ".join(where)
+    sql = f"""SELECT t.*, pi.added_at AS item_added_at, pi.position AS item_position
+              FROM playlist_items pi
+              JOIN takes t ON pi.take_id = t.id
+              {where_clause}
+              ORDER BY {order_by}"""
+    items = rows(sql, tuple(args))
+    _attach_family(items)
+    for take in items:
+        take["has_audio"] = bool(take["audio_path"] and Path(take["audio_path"]).exists())
+        est = score.estimate(take.get("abc") or "") if take.get("abc") else None
+        take["ran_to_cap"] = ran_to_cap(take, planned=est)
+        take["stopped_early"] = score.stopped_early(take.get("duration"), take.get("abc"), take.get("max_duration"), planned=est)
+        take["art"] = artwork.url_for(take["id"], take.get("parent_id"))
+        take["added_at"] = take.get("item_added_at")
+    _attach_stem_sets(items)
+
+    total_count = one("SELECT COUNT(*) AS n FROM playlist_items WHERE playlist_id = ?", (playlist_id,))["n"]
+    total_duration = one(
+        """SELECT COALESCE(SUM(t.duration), 0) AS d
+           FROM playlist_items pi
+           JOIN takes t ON pi.take_id = t.id
+           WHERE pi.playlist_id = ?""",
+        (playlist_id,),
+    )["d"]
+
+    cover_art = _playlist_cover(playlist_id)
+    return {
+        **pl,
+        "count": total_count,
+        "total_duration": total_duration,
+        "cover_art": cover_art,
+        "items": items,
+    }
+
+
+@app.patch("/api/playlists/{playlist_id}")
+def update_playlist(playlist_id: str, body: PlaylistUpdateIn) -> dict:
+    pl = one("SELECT id, name, description, created_at, updated_at, is_system FROM playlists WHERE id = ?", (playlist_id,))
+    if not pl:
+        raise HTTPException(404, "no such playlist")
+    now = time.time()
+    name = pl["name"]
+    desc = pl["description"]
+    if body.name is not None:
+        clean_name = " ".join(body.name.split())
+        if not clean_name:
+            raise HTTPException(400, "playlist name cannot be blank")
+        if pl["is_system"] and clean_name != pl["name"]:
+            raise HTTPException(400, "the system playlist cannot be renamed")
+        name = clean_name
+    if body.description is not None:
+        desc = body.description.strip()
+    execute("UPDATE playlists SET name = ?, description = ?, updated_at = ? WHERE id = ?", (name, desc, now, playlist_id))
+    return {"id": playlist_id, "name": name, "description": desc, "updated_at": now, "is_system": bool(pl["is_system"])}
+
+
+@app.delete("/api/playlists/{playlist_id}")
+def delete_playlist(playlist_id: str) -> dict:
+    pl = one("SELECT id, is_system FROM playlists WHERE id = ?", (playlist_id,))
+    if not pl:
+        raise HTTPException(404, "no such playlist")
+    if pl["is_system"]:
+        raise HTTPException(400, "the system playlist cannot be deleted")
+    execute("DELETE FROM playlist_items WHERE playlist_id = ?", (playlist_id,))
+    execute("DELETE FROM playlists WHERE id = ?", (playlist_id,))
+    return {"deleted": True, "id": playlist_id}
+
+
+@app.post("/api/playlists/{playlist_id}/items")
+def add_playlist_item(playlist_id: str, body: PlaylistItemIn) -> dict:
+    pl = one("SELECT id FROM playlists WHERE id = ?", (playlist_id,))
+    if not pl:
+        raise HTTPException(404, "no such playlist")
+    take = one("SELECT id, favourite FROM takes WHERE id = ?", (body.take_id,))
+    if not take:
+        raise HTTPException(404, "no such take")
+    now = time.time()
+    execute(
+        """INSERT OR IGNORE INTO playlist_items (playlist_id, take_id, position, added_at)
+           VALUES (?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM playlist_items WHERE playlist_id = ?), ?)""",
+        (playlist_id, body.take_id, playlist_id, now),
+    )
+    if playlist_id == "liked":
+        execute("UPDATE takes SET favourite = 1 WHERE id = ?", (body.take_id,))
+    execute("UPDATE playlists SET updated_at = ? WHERE id = ?", (now, playlist_id))
+    return {"status": "ok", "playlist_id": playlist_id, "take_id": body.take_id}
+
+
+@app.delete("/api/playlists/{playlist_id}/items/{take_id}")
+def remove_playlist_item(playlist_id: str, take_id: str) -> dict:
+    pl = one("SELECT id FROM playlists WHERE id = ?", (playlist_id,))
+    if not pl:
+        raise HTTPException(404, "no such playlist")
+    execute("DELETE FROM playlist_items WHERE playlist_id = ? AND take_id = ?", (playlist_id, take_id))
+    if playlist_id == "liked":
+        execute("UPDATE takes SET favourite = 0 WHERE id = ?", (take_id,))
+    now = time.time()
+    execute("UPDATE playlists SET updated_at = ? WHERE id = ?", (now, playlist_id))
+    return {"status": "ok", "playlist_id": playlist_id, "take_id": take_id}
+
+
+@app.get("/api/takes/{take_id}/playlists")
+def get_take_playlists(take_id: str) -> dict:
+    take = one("SELECT id FROM takes WHERE id = ?", (take_id,))
+    if not take:
+        raise HTTPException(404, "no such take")
+    pids = [r["playlist_id"] for r in rows("SELECT playlist_id FROM playlist_items WHERE take_id = ?", (take_id,))]
+    return {"take_id": take_id, "playlists": pids}
 
 
 @app.post("/api/takes/{take_id}/move")

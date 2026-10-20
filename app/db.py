@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 import threading
+import time
 from pathlib import Path
 
 from . import config
@@ -235,6 +236,21 @@ CREATE TABLE IF NOT EXISTS saved_styles (
     prompt TEXT NOT NULL,
     created_at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS playlists (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    created_at REAL NOT NULL,
+    updated_at REAL NOT NULL,
+    is_system INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS playlist_items (
+    playlist_id TEXT NOT NULL,
+    take_id TEXT NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0,
+    added_at REAL NOT NULL,
+    PRIMARY KEY (playlist_id, take_id)
+);
 """
 
 BASE_INDEXES = """
@@ -246,6 +262,8 @@ CREATE INDEX IF NOT EXISTS stem_sets_take ON stem_sets(take_id);
 CREATE INDEX IF NOT EXISTS stem_sets_source ON stem_sets(source_id);
 CREATE INDEX IF NOT EXISTS identity_songs_identity ON identity_songs(identity_id, position);
 CREATE INDEX IF NOT EXISTS lora_runs_state ON lora_runs(state);
+CREATE INDEX IF NOT EXISTS playlist_items_playlist ON playlist_items(playlist_id, position);
+CREATE INDEX IF NOT EXISTS playlist_items_take ON playlist_items(take_id);
 """
 
 
@@ -622,6 +640,32 @@ def _saved_styles() -> None:
         id TEXT PRIMARY KEY, name TEXT NOT NULL, prompt TEXT NOT NULL, created_at REAL NOT NULL)""")
 
 
+def _playlists() -> None:
+    """Playlists of takes, including the system Liked playlist populated from starred takes."""
+    execute("""CREATE TABLE IF NOT EXISTS playlists (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        created_at REAL NOT NULL,
+        updated_at REAL NOT NULL,
+        is_system INTEGER NOT NULL DEFAULT 0
+    )""")
+    execute("""CREATE TABLE IF NOT EXISTS playlist_items (
+        playlist_id TEXT NOT NULL,
+        take_id TEXT NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
+        added_at REAL NOT NULL,
+        PRIMARY KEY (playlist_id, take_id)
+    )""")
+    execute("CREATE INDEX IF NOT EXISTS playlist_items_playlist ON playlist_items(playlist_id, position)")
+    execute("CREATE INDEX IF NOT EXISTS playlist_items_take ON playlist_items(take_id)")
+    now = time.time()
+    execute("""INSERT OR IGNORE INTO playlists (id, name, description, created_at, updated_at, is_system)
+               VALUES ('liked', 'Liked', 'Songs you have starred', ?, ?, 1)""", (now, now))
+    execute("""INSERT OR IGNORE INTO playlist_items (playlist_id, take_id, position, added_at)
+               SELECT 'liked', id, 0, created_at FROM takes WHERE favourite = 1""")
+
+
 def _take_fx_chain() -> None:
     """Mastering rack / FX chain settings attached to a take."""
     cols = _columns("takes")
@@ -668,6 +712,7 @@ MIGRATIONS = [
     _cap_typed,                                                      # -> 36
     _parent_id,                                                      # -> 37
     _saved_styles,                                                   # -> 38
+    _playlists,                                                      # -> 39
 ]
 
 
@@ -685,6 +730,7 @@ def migrate() -> None:
             CREATE VIEW IF NOT EXISTS personas AS SELECT * FROM identities;
             CREATE VIEW IF NOT EXISTS persona_songs AS SELECT id, identity_id AS persona_id, identity_id, file, title, sha256, duration, bit_rate, include, flag, stored_path, vocals_state, score_state, lyrics_state, style_state, error, key, tempo, lyrics, lyrics_checked, style_hint, position, description FROM identity_songs;
             INSERT OR IGNORE INTO spaces(id, name, created_at) VALUES('{DEFAULT_SPACE}', 'Default', 0);
+            INSERT OR IGNORE INTO playlists (id, name, description, created_at, updated_at, is_system) VALUES ('liked', 'Liked', 'Songs you have starred', 0, 0, 1);
             PRAGMA user_version = {len(MIGRATIONS)};
             """
         )
