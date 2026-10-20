@@ -10054,7 +10054,9 @@ async function openTrain(all) {
   var gpu = State.gpu;
   var total = (gpu && gpu.vram_total) ? gb(gpu.vram_total) : 0;
   var free = (gpu && gpu.vram_free) ? gb(gpu.vram_free) : 0;
-  if (total >= TRAIN_NEEDS_GB && free < TRAIN_NEEDS_GB) {
+  var isLowMemory = Boolean(State.about && State.about.model && State.about.model.indexOf('Low memory') >= 0);
+  var needsGb = isLowMemory ? 6.0 : TRAIN_NEEDS_GB;
+  if (total >= needsGb && free < needsGb) {
     var note = $('train-memory');
     if (note) { note.classList.add('hidden'); }
     try {
@@ -10077,15 +10079,17 @@ function paintTrainMemory() {
   if (!note) { return; }
   var gpu = State.gpu;
   var gb = function (bytes) { return bytes / 1073741824; };
+  var isLowMemory = Boolean(State.about && State.about.model && State.about.model.indexOf('Low memory') >= 0);
+  var needsGb = isLowMemory ? 6.0 : TRAIN_NEEDS_GB;
   var warnings = [];
   if (gpu && gpu.vram_total) {
     // What the engine holds itself, it lets go of before training.
     var usable = gb((gpu.vram_free || 0) + (gpu.engine_vram || 0));
-    if (gb(gpu.vram_total) < TRAIN_NEEDS_GB) {
-      warnings.push('This GPU has ' + gb(gpu.vram_total).toFixed(1) + ' GB, and training needs about ' + TRAIN_NEEDS_GB +
+    if (gb(gpu.vram_total) < needsGb) {
+      warnings.push('This GPU has ' + gb(gpu.vram_total).toFixed(1) + ' GB, and training needs about ' + needsGb +
         ' GB. It may run out of memory.');
-    } else if (usable < TRAIN_NEEDS_GB) {
-      warnings.push('Only ' + usable.toFixed(1) + ' GB of GPU memory is free, and training needs about ' + TRAIN_NEEDS_GB +
+    } else if (usable < needsGb) {
+      warnings.push('Only ' + usable.toFixed(1) + ' GB of GPU memory is free, and training needs about ' + needsGb +
         ' GB. Close anything else using the GPU first, or it may run out.');
     }
   }

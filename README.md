@@ -216,8 +216,9 @@ LoRA, and render, with no transcribing or lyric extraction to wait for. The styl
 the one the song was learned with. See
 [Covering a song from a corpus](app/static/guide.md#covering-a-song-from-a-corpus).
 
-Training needs about 12.5 GB of GPU memory, most of it while it prepares the songs, and the Train
-window warns when less than that is free.
+Training on the recommended full-quality (BF16) model needs about 12.5 GB of GPU memory, most of
+it while it prepares the songs (the low-memory INT8 model trains in about 6 GB), and the Train window
+warns when less is free.
 
 How many steps a run trains for, and how much it can learn, can be changed: see
 [Environment variables](#training).

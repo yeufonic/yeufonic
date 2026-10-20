@@ -811,8 +811,9 @@ artist, one genre, or a few similar artists.
 Open **Corpora** from the menu. It is on by default; `TRAINING_ENABLED=0` for the app, or an
 engine built with `WITH_TRAINER=0`, takes it out.
 
-Training is the most demanding thing the app does: a 16 GB graphics card and 32 GB of system RAM
-(on WSL2, `memory=32GB` in `.wslconfig`) is the practical minimum.
+Training is the most demanding thing the app does: with the recommended full-quality (BF16) model,
+a 16 GB graphics card and 32 GB of system RAM (on WSL2, `memory=32GB` in `.wslconfig`) is the practical minimum.
+An 8 GB card can be used for training when using the low-memory (INT8) model.
 
 1. **New corpus.** Give it a name and a **trigger word**, say whether the voice is male or female
    (**none** for songs without vocals: see below), describe the sound shared by every song, and open the folder that holds the songs. Confirm you
@@ -844,12 +845,13 @@ Training is the most demanding thing the app does: a 16 GB graphics card and 32 
    and the corpus's badge at the top of the page pulses while it trains. Training again keeps
    the LoRA from the last run under a dated name, in **Previous runs**, or deletes it, as you
    choose.
-   Training needs at least about 12.5 GB of GPU memory (at a 3½ minute cut; a longer cut takes
-   more), most of it while it prepares the songs, so a 16 GB card is the practical minimum, along
-   with 32 GB of system RAM (ComfyUI stages the full YuE2 weights and dataset caches in host memory;
-   on WSL2, set `memory=32GB` in `.wslconfig`). A smaller card, such as 8 GB, can't train, though it
-   can still use LoRAs trained elsewhere (**Install a LoRA**). The Train window warns when less GPU
-   or system memory is available, so close anything else using the GPU first.
+   Training on the recommended full-quality (BF16) model needs at least about 12.5 GB of GPU memory
+   (at a 3½ minute cut; a longer cut takes more), most of it while it prepares the songs, so a 16 GB
+   card is the practical minimum, along with 32 GB of system RAM (ComfyUI stages the full YuE2 weights
+   and dataset caches in host memory; on WSL2, set `memory=32GB` in `.wslconfig`). An 8 GB card can
+   train when using the low-memory (INT8) model. Cards that cannot train can still use LoRAs trained
+   elsewhere (**Install a LoRA**). The Train window warns when less GPU or system memory is available,
+   so close anything else using the GPU first.
 
 ### A run that ends early
 
@@ -1348,9 +1350,9 @@ says which you have. It is chosen when Yeufonic is installed, not here:
   `sh scripts/fetch-models.sh --int8` the low-memory one. With both files in `models/checkpoints`, the
   app uses full quality unless `YUE2_CHECKPOINT=int8` is set in `.env`.
 
-Try low memory if renders are very slow or the engine runs out of GPU memory. Training a LoRA uses
-the full-quality model and says so if only the small one is installed. The README on GitHub has
-a section, *Choosing a model size*, with what to expect from each.
+Try low memory if renders are very slow or the engine runs out of GPU memory. Training a LoRA is
+supported on both model sizes (the setting **Low-memory (int8) model training** defaults to on for
+INT8 installs). The README on GitHub has a section, *Choosing a model size*, with what to expect from each.
 
 **Check for a new version** is the one thing here that uses the internet on its own account: every
 four hours the app asks yeufonic.com whether a later release is out, and says so with a pill beside the
