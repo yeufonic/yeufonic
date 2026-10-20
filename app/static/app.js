@@ -6919,6 +6919,25 @@ async function loadTakes() {
   }
   State.takes = State.listed.concat(insideTakes());
   paintTakes();
+  var curPlayingId = State.playing || State.loadedId;
+  if (curPlayingId && typeof takeById === 'function') {
+    var curPlaying = takeById(curPlayingId);
+    if (curPlaying) {
+      if (typeof paintNpCover === 'function') {
+        paintNpCover(curPlaying);
+      }
+      if (curPlaying.art) {
+        if (window.Visualizer && window.Visualizer.currentTake && window.Visualizer.currentTake.id === curPlaying.id) {
+          if (!window.Visualizer.currentTake.art || window.Visualizer.currentTake.art !== curPlaying.art) {
+            window.Visualizer.applyArtwork(curPlaying.art);
+          }
+        }
+        if (typeof updateMediaSession === 'function') {
+          updateMediaSession(curPlaying);
+        }
+      }
+    }
+  }
   if (!State.loadedId && !State.audition && !State.playing && typeof activateTakeRecording === 'function') {
     var activeTake = typeof selectedTakeId === 'function' && selectedTakeId() && typeof takeById === 'function' ? takeById(selectedTakeId()) : null;
     if (activeTake) {
@@ -11682,6 +11701,23 @@ function togglePlay(id) {
   playTake(id);
 }
 
+function paintNpCover(take) {
+  var el = $('np-cover');
+  if (!el) { return; }
+  el.className = 'np-cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[(take && take.kind) || ''] || 'grad-cover');
+  if (take && take.art) {
+    var bg = 'url("' + take.art.replace(/"/g, '') + '")';
+    if (el.style.backgroundImage !== bg) {
+      el.style.backgroundImage = bg;
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
+    }
+  } else {
+    el.style.backgroundImage = '';
+  }
+}
+window.paintNpCover = paintNpCover;
+
 function playTake(id) {
   if (window.Rack && typeof window.Rack.resume === 'function') {
     window.Rack.resume();
@@ -11716,7 +11752,7 @@ function playTake(id) {
   var position = takePosition(id);
   $('np-meta').textContent = (position ? 'take ' + position.index + ' of ' + position.total + ' \u00b7 ' : '') +
     (take.duration ? secs(take.duration) : take.style.slice(0, 60));
-  $('np-cover').className = 'np-cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover');
+  paintNpCover(take);
   updateMediaSession(take);
   if (window.Rack) { window.Rack.onTake(take); }
   if (window.Visualizer) { window.Visualizer.setTake(take); }
@@ -11792,7 +11828,7 @@ function activateTakeRecording(take) {
     var position = takePosition(take.id);
     $('np-meta').textContent = (position ? 'take ' + position.index + ' of ' + position.total + ' \u00b7 ' : '') +
       (take.duration ? secs(take.duration) : (take.style || '').slice(0, 60));
-    $('np-cover').className = 'np-cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover');
+    paintNpCover(take);
     $('t-now').textContent = secs(audio.currentTime || 0);
     $('t-total').textContent = take.duration ? secs(take.duration) : '--:--';
     updateMediaSession(take);
@@ -11861,7 +11897,7 @@ function activateTakeRecording(take) {
   drawWave();
   $('np-title').textContent = take.title || 'Untitled take';
   $('np-meta').textContent = take.status === 'planned' ? 'plan ready (no audio yet)' : (take.status ? take.status + ' (no audio yet)' : 'no audio yet');
-  $('np-cover').className = 'np-cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover');
+  paintNpCover(take);
   $('t-now').textContent = '0:00';
   $('t-total').textContent = '--:--';
   if (window.Rack) { window.Rack.onTake(take); }
@@ -12471,13 +12507,19 @@ function paintPlayingSection(seconds) {
 function updateMediaSession(take) {
   if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') { return; }
   try {
+    var artworkList = [];
+    if (take && take.art) {
+      artworkList.push({ src: take.art, sizes: '512x512', type: 'image/png' });
+    }
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: take.title,
-      artist: (take.style || '').split(',')[0],
-      album: 'Yeufonic'
+      title: take ? take.title : '',
+      artist: take && take.style ? take.style.split(',')[0] : '',
+      album: 'Yeufonic',
+      artwork: artworkList
     });
   } catch (err) { /* older browsers */ }
 }
+window.updateMediaSession = updateMediaSession;
 
 /* ------------------------------------------------------------- waveform ---
    Drawn from the decoded audio. Click or drag anywhere to seek, and the played
@@ -14950,7 +14992,8 @@ every(2000, pollState);
 // Every 3 seconds while something is running, so progress on the cards moves;
 // every 6 when idle.
 every(3000, function () {
-  var working = State.busy || State.takes.some(function (take) {
+  var visWaitingArt = Boolean(window.Visualizer && window.Visualizer.currentTake && !window.Visualizer.currentTake.art);
+  var working = State.busy || visWaitingArt || State.takes.some(function (take) {
     return take.status === 'queued' || take.status === 'running' || take.children_pending ||
       (take.stem_sets || []).some(function (set) { return set.status === 'queued' || set.status === 'running'; });
   });

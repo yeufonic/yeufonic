@@ -426,10 +426,10 @@ def build_lyrics_graph(record: dict) -> dict:
 
 
 # The pictures read what the engine has (FLUX.2 klein or not) from the engine client held here.
-artwork.engine_options = lambda: ENGINE.options or {}
+artwork.engine_options = lambda: getattr(ENGINE, "options", None) or {}
 
 # Pictures described by the external LLM run beside the GPU lane; each task is held here until it ends.
-_ART_TASKS: set = set()
+_ART_TASKS: dict[str, asyncio.Task] = {}
 _ART_CHECK: list = []
 _ART_DRAWER_FALLBACK: set[str] = set()
 
@@ -458,13 +458,14 @@ def start_art(take_id: str) -> None:
             ART_WAITING.append(take_id)
     else:
         task = asyncio.create_task(run_art(take_id))
-        _ART_TASKS.add(task)
-        task.add_done_callback(_ART_TASKS.discard)
+        _ART_TASKS[take_id] = task
+        task.add_done_callback(lambda _t: _ART_TASKS.pop(take_id, None))
 
 
 def art_for_new_take(take_id: str) -> None:
-    """A take's picture, started once its audio render is done, where pictures are made by themselves.  A take made
-    inside another shows that one's: it is the same song.  Never fails the take."""
+    """A take's picture, started beside its render (for external providers) or once audio is done (for local GPU
+    models), where pictures are made by themselves.  A take made inside another shows that one's: it is the same
+    song.  Never fails the take."""
     try:
         if not artwork.automatic():
             return
@@ -562,6 +563,10 @@ async def run_art(take_id: str) -> None:
             raise RuntimeError(artwork.drawing_problem() or "nothing here can draw a picture")
         artwork.STATE[take_id]["state"] = "cutting"
         picture = await asyncio.to_thread(artwork.cut_out, drawn)
+        if take_id in CANCELLED or not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
+            artwork.STATE.pop(take_id, None)
+            _ART_DRAWER_FALLBACK.discard(take_id)
+            return
         await asyncio.to_thread(artwork.keep, take_id, description, drawn, picture, painter, writer)
         artwork.STATE.pop(take_id, None)
         _ART_DRAWER_FALLBACK.discard(take_id)
@@ -573,6 +578,11 @@ async def run_art(take_id: str) -> None:
         artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
         if take_id not in ART_WAITING:
             ART_WAITING.appendleft(take_id)
+    except asyncio.CancelledError:
+        _ART_DRAWER_FALLBACK.discard(take_id)
+        artwork.STATE.pop(take_id, None)
+        log.info("Picture task for %s was cancelled", take_id)
+        raise
     except Exception as exc:  # noqa: BLE001
         _ART_DRAWER_FALLBACK.discard(take_id)
         log.warning("Picture for %s failed: %s", take_id, exc)
@@ -832,6 +842,8 @@ async def run_job(kind: str, ref_id: str) -> None:
     CURRENT.update({"kind": kind, "id": ref_id, "prompt_id": prompt_id, "started": started})
     if kind in ("plan", "render"):
         execute("UPDATE takes SET prompt_id = ? WHERE id = ?", (prompt_id, ref_id))
+    if kind == "render" and artwork.automatic() and artwork.drawer() == "external" and not artwork.words_by_engine():
+        art_for_new_take(ref_id)
     try:
         outcome, job = await _wait_for(kind, ref_id, prompt_id)
         if outcome != "done":
@@ -1061,13 +1073,20 @@ def _drop_engine_output(item: dict) -> None:
 async def cancel_take(take: dict) -> None:
     """Stop a take's job, queued or running.  A queued job is skipped when the
     worker reaches it, because its status is no longer 'queued'."""
-    log.info("Cancelling take '%s' (%s, status=%s)", take.get("title") or take["id"], take["id"], take["status"])
+    cid = take["id"]
+    log.info("Cancelling take '%s' (%s, status=%s)", take.get("title") or cid, cid, take["status"])
     if take["status"] == "queued":
-        execute("UPDATE takes SET status = 'failed', error = 'cancelled' WHERE id = ? AND status = 'queued'", (take["id"],))
+        execute("UPDATE takes SET status = 'failed', error = 'cancelled' WHERE id = ? AND status = 'queued'", (cid,))
     elif take["status"] == "running":
-        CANCELLED.add(take["id"])
-        if CURRENT.get("id") == take["id"] and CURRENT.get("prompt_id"):
+        CANCELLED.add(cid)
+        if CURRENT.get("id") == cid and CURRENT.get("prompt_id"):
             await ENGINE.cancel(CURRENT["prompt_id"])
+    art_task = _ART_TASKS.pop(cid, None)
+    if art_task and not art_task.done():
+        art_task.cancel()
+    if cid in ART_WAITING:
+        ART_WAITING.remove(cid)
+    artwork.STATE.pop(cid, None)
 
 
 async def cancel_current() -> dict | None:

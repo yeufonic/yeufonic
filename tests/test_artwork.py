@@ -5,7 +5,7 @@ import time
 
 import numpy as np
 
-from app import artwork, jobs
+from app import artwork, config, jobs
 from app.db import execute, one, set_setting
 
 from conftest import make_take
@@ -672,6 +672,73 @@ def test_hipgnosis_attribution_and_year_rules():
     scene_with_leak = artwork.take_description(take, scene="A glowing monolith in the desert, designed by Hipgnosis.")
     assert 'visual scene:\n"A glowing monolith in the desert."' in scene_with_leak
     assert "designed by Hipgnosis" not in scene_with_leak
+
+
+def test_external_artwork_starts_before_audio_finishes(monkeypatch, data_dir):
+    from test_jobs import FakeEngine, render_history, tone, use
+    called_order = []
+
+    def fake_art(take_id):
+        called_order.append(("art", take_id))
+
+    monkeypatch.setattr(jobs, "art_for_new_take", fake_art)
+    monkeypatch.setattr(artwork, "automatic", lambda: True)
+    monkeypatch.setattr(artwork, "drawer", lambda: "external")
+    monkeypatch.setattr(artwork, "words_by_engine", lambda: False)
+
+    engine_out = data_dir / "engine-output"
+    engine_copy = tone(engine_out / "yeufonic" / "take_00001_.flac", 1.0)
+    monkeypatch.setattr(config, "ENGINE_OUTPUT_DIR", engine_out)
+    take = make_take(status="queued", abc="X:1\nT:Test\nK:C\nC4|", title="Parallel Art Order", max_duration=1.0)
+    engine = use(monkeypatch, FakeEngine([render_history()], audio=engine_copy))
+    orig_download = engine.download
+
+    async def mock_download(item, dest):
+        called_order.append(("download", take["id"]))
+        return await orig_download(item, dest)
+
+    engine.download = mock_download
+
+    asyncio.run(jobs.run_job("render", take["id"]))
+    assert ("art", take["id"]) in called_order
+    assert ("download", take["id"]) in called_order
+    art_idx = called_order.index(("art", take["id"]))
+    dl_idx = called_order.index(("download", take["id"]))
+    assert art_idx < dl_idx
+
+
+def test_local_artwork_does_not_start_before_render_finishes(monkeypatch, data_dir):
+    from test_jobs import FakeEngine, render_history, tone, use
+    called_order = []
+
+    def fake_art(take_id):
+        called_order.append(("art", take_id))
+
+    monkeypatch.setattr(jobs, "art_for_new_take", fake_art)
+    monkeypatch.setattr(artwork, "automatic", lambda: True)
+    monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    monkeypatch.setattr(artwork, "words_by_engine", lambda: False)
+
+    engine_out = data_dir / "engine-output"
+    engine_copy = tone(engine_out / "yeufonic" / "take_00001_.flac", 1.0)
+    monkeypatch.setattr(config, "ENGINE_OUTPUT_DIR", engine_out)
+    take = make_take(status="queued", abc="X:1\nT:Test\nK:C\nC4|", title="Local Art Order", max_duration=1.0)
+    engine = use(monkeypatch, FakeEngine([render_history()], audio=engine_copy))
+    orig_download = engine.download
+
+    async def mock_download(item, dest):
+        called_order.append(("download", take["id"]))
+        return await orig_download(item, dest)
+
+    engine.download = mock_download
+
+    asyncio.run(jobs.run_job("render", take["id"]))
+    assert ("art", take["id"]) in called_order
+    assert ("download", take["id"]) in called_order
+    art_idx = called_order.index(("art", take["id"]))
+    dl_idx = called_order.index(("download", take["id"]))
+    assert art_idx > dl_idx
+
 
 
 

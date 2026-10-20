@@ -19,6 +19,8 @@
     showLyrics: true,
     miniEnabled: true,
     fpsCap: 60,
+    artPollTimer: null,
+    lastArtCheckTime: 0,
 
     // Audio Analysis State
     audioCtx: null,
@@ -405,10 +407,92 @@
                    this.currentTake.lyrics === take.lyrics && this.currentTake.art === take.art;
       this.currentTake = take || null;
       if (isSame) { return; }
+
+      if (this.currentTake && this.currentTake.id && !this.currentTake.art) {
+        this.startArtPolling();
+      } else {
+        this.stopArtPolling();
+      }
+
       this.lyricsRenderedForTake = null;
       this.parseLyrics();
       if (this.isOpen) {
         this.updateTakeInfo();
+      }
+    },
+
+    startArtPolling: function () {
+      this.stopArtPolling();
+      if (!this.currentTake || !this.currentTake.id || this.currentTake.art) { return; }
+      var self = this;
+      var takeId = this.currentTake.id;
+
+      var check = function () {
+        if (!self.currentTake || self.currentTake.id !== takeId) {
+          self.stopArtPolling();
+          return;
+        }
+        if (self.currentTake.art) {
+          self.stopArtPolling();
+          return;
+        }
+
+        // 1. Check if main app state already discovered artwork for this take
+        if (typeof window.takeById === 'function') {
+          var local = window.takeById(takeId);
+          if (local && local.art) {
+            self.applyArtwork(local.art);
+            return;
+          }
+        }
+
+        // 2. Poll server for take artwork status
+        fetch('/api/takes/' + encodeURIComponent(takeId) + '/art')
+          .then(function (res) { return res.ok ? res.json() : null; })
+          .then(function (data) {
+            if (!data || !self.currentTake || self.currentTake.id !== takeId) { return; }
+            if (data.has) {
+              var v = data.v || Date.now();
+              var artUrl = '/api/takes/' + encodeURIComponent(takeId) + '/art.png?v=' + v;
+              self.applyArtwork(artUrl);
+            } else if (data.plain || data.state === 'failed') {
+              self.stopArtPolling();
+            }
+          })
+          .catch(function () {});
+      };
+
+      this.artPollTimer = setInterval(check, 2500);
+      setTimeout(check, 1000);
+    },
+
+    stopArtPolling: function () {
+      if (this.artPollTimer) {
+        clearInterval(this.artPollTimer);
+        this.artPollTimer = null;
+      }
+    },
+
+    applyArtwork: function (artUrl) {
+      if (!this.currentTake || !artUrl) { return; }
+      this.currentTake.art = artUrl;
+      this.stopArtPolling();
+
+      if (typeof window.takeById === 'function') {
+        var local = window.takeById(this.currentTake.id);
+        if (local) { local.art = artUrl; }
+      }
+
+      this.updateArtworkDisplay();
+
+      if (typeof window.paintNpCover === 'function') {
+        window.paintNpCover(this.currentTake);
+      }
+      if (typeof window.updateMediaSession === 'function') {
+        window.updateMediaSession(this.currentTake);
+      }
+      if (typeof window.paintTakes === 'function') {
+        window.paintTakes();
       }
     },
 
@@ -421,6 +505,9 @@
       }
       if (metaEl) {
         metaEl.textContent = take && take.style ? take.style : '';
+      }
+      if (take && take.id && !take.art && !this.artPollTimer) {
+        this.startArtPolling();
       }
       this.updateArtworkDisplay();
       this.updateLyricsDisplay();
@@ -446,13 +533,14 @@
       wrap.classList.toggle('mode-sleeve', this.artMode === 'sleeve');
       wrap.classList.toggle('mode-aura', this.artMode === 'aura');
 
-      if (img && img.src !== artUrl) {
+      if (img && img.getAttribute('src') !== artUrl) {
         img.src = artUrl;
       }
       if (aura) {
         aura.classList.toggle('hidden', this.artMode !== 'aura');
-        if (aura.style.backgroundImage !== 'url("' + artUrl + '")') {
-          aura.style.backgroundImage = 'url("' + artUrl + '")';
+        var auraCss = 'url("' + artUrl.replace(/"/g, '') + '")';
+        if (aura.style.backgroundImage.indexOf(artUrl) === -1) {
+          aura.style.backgroundImage = auraCss;
         }
       }
     },
@@ -661,6 +749,16 @@
 
     renderFullFrame: function (now) {
       this.updateAudioMetrics();
+
+      if (this.currentTake && !this.currentTake.art && (!this.lastArtCheckTime || now - this.lastArtCheckTime > 3000)) {
+        this.lastArtCheckTime = now;
+        if (typeof window.takeById === 'function') {
+          var updated = window.takeById(this.currentTake.id);
+          if (updated && updated.art) {
+            this.applyArtwork(updated.art);
+          }
+        }
+      }
 
       var audio = $('audio');
       if (this.showLyrics && this.hasTimings && audio && !audio.paused && this.lyricsLines.length) {
