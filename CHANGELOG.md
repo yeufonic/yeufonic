@@ -39,6 +39,49 @@ cannot creep back in.
 
 ## Unreleased
 
+## 0.0.47 (2026-10-20)
+
+- **Real-time audio visualizer & synchronised lyrics engine.** A dedicated hardware-accelerated audio visualizer stage is integrated directly into playback, offering full-screen immersion, interactive Hipgnosis album cover dynamics, synchronised lyrics, and an ambient player bar backdrop:
+  - **Full-screen visualizer stage & modes:** Toggle the visualizer with **V** or the transport button whenever audio is playing. Features eight real-time visualizer rendering modes:
+    - *Waveform Ribbon:* Dual floating harmonic wave ribbons reacting smoothly to audio amplitude and frequency contours.
+    - *Aurora Borealis:* Undulating, ethereal northern lights shifting with musical tone and mid/high frequencies.
+    - *Cosmic Nebula:* Deep space starfield with glowing galaxy dust particles that pulse and drift with bass energy.
+    - *Kaleidoscope:* Radial geometric symmetries pulsing and folding in time with musical tempo.
+    - *Neon Grid:* Retro-futuristic synthwave perspective wireframe terrain undulating to low frequencies.
+    - *Liquid Warp:* Fluid reactive displacement surface warping and flowing with harmonic layers.
+    - *Particle Swarm:* Gravitational particle clusters that scatter on transient percussive hits and coalesce into orbital nodes.
+    - *Hi-Fi Spectrum Bars:* Classic multi-band equalizer spectrum analyzer with physical floating peak decay caps.
+  - **Hipgnosis album artwork & vinyl dynamics:**
+    - Large album cover sleeve presentation with interactive 3D pointer-tracking orbit and subtle tilt.
+    - Realistic vinyl record complete with light-sheen reflections, concentric groove rings, and accurate 33⅓ RPM rotation that slides dynamically out from the sleeve on bass hits.
+    - Holographic glare overlay and expanding beat-synchronized shockwave pulse rings.
+    - Three selectable artwork modes (**Sleeve**, **Aura** blurred ambient backdrop, or **Off**).
+  - **Synchronised lyrics display:**
+    - High-legibility typography sheet view scrollable independently of the visual stage.
+    - Real-time line highlighting with phrase-by-phrase glow and automatic smooth centering.
+    - Supports both SheetSage/Whisper word-level onset alignments and explicit LRC timestamp tags (`[mm:ss.xx]`).
+    - Toggle with **L** or the **Lyrics** toolbar button.
+  - **Ambient mini player ribbon:**
+    - Real-time reactive dual-wave audio visualizer ribbon integrated across the bottom transport player bar behind playback controls.
+    - Configurable under **Settings → Appearance → Mini player visualizer backdrop**.
+  - **Visualizer controls & hot keys:**
+    - **V** or **Escape**: Close the visualizer.
+    - **F**: Toggle fullscreen.
+    - **L**: Toggle lyrics sheet view.
+    - **Space**: Play / pause.
+    - **Left / Right arrow**: Seek backward / forward 5 seconds.
+- **Parallel artwork generation for external image providers.**
+  - When using external providers (such as Google Gemini via `gemini-3.1-flash-image`) with take or external descriptions, artwork generation requires zero local GPU compute. Image generation now starts in parallel as soon as the audio render is submitted, reducing total take waiting time by 15–30 seconds.
+  - Local GPU models (FLUX.2 klein drawing, Gemma descriptions) remain strictly sequential, waiting until the GPU has finished all audio work to prevent CUDA memory exhaustion.
+  - Resilient fallback: if an external image provider encounters an API quota or network error, it automatically yields and queues into local FLUX.2 drawing once the audio render completes.
+- **Dynamic artwork polling & live updates.**
+  - The visualizer, player bar cover, and OS system media session metadata dynamically poll for artwork while playing, immediately revealing the album sleeve, spinning vinyl, and lockscreen artwork as soon as background generation completes without requiring playback to be paused or restarted.
+- **Auto-saving song titles in editor.**
+  - Editing a take's title in the score editor now auto-saves automatically with a 1.2s debounce and immediate flush on Enter, blur, or closing the editor.
+  - A gentle pulsing indicator displays "Saving…" followed by "Saved".
+- **Prompt refinement for album covers.**
+  - Album cover prompts ensure the literal name "Hipgnosis" and unrequested decades or years are not injected into prompts unless explicitly requested in the song's style description.
+
 ## 0.0.46 (2026-10-19)
 
 - **ComfyUI-YuE2-Trainer migration: faster LoRA training, lower memory overhead and configurable pipelines.** The corpus trainer replaces the legacy FS_Audio Suite with ComfyUI-YuE2-Trainer, delivering substantial performance improvements and eight configurable settings under **Settings → YuE2 LoRA Training**:

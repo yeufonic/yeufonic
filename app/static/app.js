@@ -14922,10 +14922,7 @@ function wire() {
     if ((event.key === 'l' || event.key === 'L') &&
         !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
       event.preventDefault();
-      if (window.Visualizer && window.Visualizer.isOpen) {
-        window.Visualizer.toggleLyrics();
-        return;
-      }
+      if (window.Visualizer && window.Visualizer.isOpen) { window.Visualizer.toggleLyrics(); return; }
       if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
       return;
     }

@@ -46,7 +46,7 @@ def test_logs_hotkey_works_anywhere():
     assert guard_idx < logs_key_idx < modal_guard_idx, (
         "L hotkey must be placed after the typing guard but before modal/editor guards"
     )
-    snippet = app_js[logs_key_idx:logs_key_idx + 250]
+    snippet = app_js[logs_key_idx:logs_key_idx + 400]
     assert "if (LogsState.open) { closeLogsModal(); } else { showLogs(); }" in snippet
 
 

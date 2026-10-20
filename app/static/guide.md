@@ -1236,6 +1236,25 @@ Click or drag the waveform to seek. Previous and next step through the cards in 
 
 The system media keys work too. The take's own keys are under [Hot keys](#hot-keys).
 
+### The Audio Visualizer and Synced Lyrics
+
+Press **Visualizer** on the transport bar (or press **V** while a track is playing) to launch the full-screen visualizer stage.
+
+The stage renders real-time audio visualisations synchronized with playback:
+
+- **Visualizer Modes:** Choose from eight distinct visualizer engines from the top toolbar:
+  - *Waveform Ribbon:* Floating harmonic dual-ribbon reactive waves.
+  - *Aurora Borealis:* Undulating curtains of ethereal northern lights reacting to mid and high frequencies.
+  - *Cosmic Nebula:* Starfield and swirling interstellar particle nebula pulsing to the beat.
+  - *Kaleidoscope:* Radial geometric symmetries pulsing with musical tempo.
+  - *Neon Grid:* Retro-futuristic synthwave perspective wireframe plane undulating to basslines.
+  - *Liquid Warp:* Fluid harmonic wave displacement surface.
+  - *Particle Swarm:* Gravitational particle clusters that scatter on percussive hits.
+  - *Hi-Fi Spectrum Bars:* Multi-band equalizer spectrum analyzer with physical floating peak decay caps.
+- **Album Artwork & Vinyl Dynamics:** Displays the take's Hipgnosis album cover in an interactive 3D sleeve that tilts and orbits with pointer movement. A realistic vinyl record spins at 33⅓ RPM and slides out of the sleeve on bass hits, accompanied by holographic sheen and beat-reactive shockwave rings. Cycle modes with the **Artwork** button: *Sleeve*, *Aura* (ambient blurred background), or *Off*.
+- **Synchronised Lyrics:** Press **L** or click **Lyrics** to display lyrics with phrase glow and smooth auto-scrolling synchronization.
+- **Mini Player Ribbon:** While the full visualizer is closed, a reactive mini dual-wave visualizer ribbon plays inside the bottom transport bar. It can be toggled in **Settings → Appearance**.
+
 ### Hot keys
 
 On the main page, single keys act on the **chosen take**: the one in the left panel. Click its card to
@@ -1252,13 +1271,13 @@ bar saying why.
 | E | open the take in the editor |
 | I | the take's details: everything it was made with, in words, with **Copy** |
 | N | normalise the take, or undo it if it is normalised |
-| V | Variations |
+| V | open or close the Visualizer while playing, or Variations when idle |
 | T | Try more |
 | S | star the take, or unstar it |
 | D | delete the take, after asking, as its bin does |
-| L | the logs; again to close them |
+| L | the logs; or toggle lyrics while the visualizer is open |
 | ? | show or hide the hot keys; again to close |
-| Escape | close the window in front: the logs first, then the mastering rack over the editor, then the editor or any other window |
+| Escape | close the window in front: the visualizer, the logs, the mastering rack over the editor, then the editor or any other window |
 
 The letter keys do nothing while you are typing in a box, while a window is open in front, or with Ctrl,
 Alt or the Windows or Command key held, so the browser's own shortcuts (Ctrl+L, Ctrl+S and the rest)
