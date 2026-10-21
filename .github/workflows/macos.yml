@@ -1,0 +1,56 @@
+name: macOS Apple Silicon Build & Package
+
+'on':
+  workflow_dispatch:
+  push:
+    branches:
+      - 'feature/macos-*'
+    paths:
+      - 'macos/**'
+      - 'app/**'
+      - 'engine/custom_nodes/**'
+      - '.github/workflows/macos.yml'
+
+jobs:
+  build-macos:
+    name: Build macOS DMG (Apple Silicon)
+    runs-on: macos-14 # Apple Silicon M-series runner
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run Core Test Suite
+        run: |
+          pytest -q -p no:cacheprovider tests/test_macos.py tests/test_hotkeys.py tests/test_update.py
+
+      - name: Verify macOS Hardware Pre-flight
+        run: |
+          bash macos/setup.sh --check-only
+
+      - name: Test macOS Environment Provisioning (Skip Models)
+        run: |
+          bash macos/setup.sh --skip-models --install-dir "$HOME/Library/Application Support/Yeufonic"
+
+      - name: Build macOS App & DMG
+        run: |
+          bash macos/build.sh
+
+      - name: Upload DMG Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Yeufonic-Setup-macOS
+          path: macos/dist/Yeufonic-Setup-*.dmg
+          if-no-files-found: error
