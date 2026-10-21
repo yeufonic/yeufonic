@@ -33,10 +33,12 @@ def take_audio_path(take_id: str, title: str) -> Path:
     return take_folder(take_id, title) / f"{slugify(title)}.flac"
 
 
-def source_path(digest: str, filename: str, fallback: str, ext: str) -> Path:
-    """sources/<hash>-<original name><ext>, so the file still says what it was."""
+def source_path(digest: str, filename: str, fallback: str, ext: str, folder: str | None = None) -> Path:
+    """sources/<hash>-<original name><ext>, so the file still says what it was.
+    If folder is specified, saves in sources/<folder>/."""
     name = slugify(Path(filename).stem if filename else fallback, 40)
-    return config.SOURCES_DIR / f"{digest[:16]}-{name}{ext}"
+    base = config.SOURCES_DIR / folder if folder else config.SOURCES_DIR
+    return base / f"{digest[:16]}-{name}{ext}"
 
 
 def remove_tree(path: Path | None) -> None:

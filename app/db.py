@@ -87,7 +87,8 @@ CREATE TABLE IF NOT EXISTS sources (
     lyrics_error TEXT,
     duration REAL,
     lyrics_method TEXT,
-    corpus_song_id TEXT
+    corpus_song_id TEXT,
+    origin TEXT NOT NULL DEFAULT 'upload'
 );
 CREATE TABLE IF NOT EXISTS takes (
     id TEXT PRIMARY KEY,
@@ -559,6 +560,12 @@ def _source_corpus_song() -> None:
         execute("ALTER TABLE sources ADD COLUMN corpus_song_id TEXT")
 
 
+def _source_origin() -> None:
+    """Categorisation for sources: 'upload' (default) or 'recording' for microphone/instrument takes."""
+    if "origin" not in _columns("sources"):
+        execute("ALTER TABLE sources ADD COLUMN origin TEXT NOT NULL DEFAULT 'upload'")
+
+
 def _advanced_take_settings() -> None:
     """Per-take generation and mix parameters (steps, avoid, key, bpm, token cap,
     harmony limits, target loudness, outro fade)."""
@@ -713,6 +720,7 @@ MIGRATIONS = [
     _parent_id,                                                      # -> 37
     _saved_styles,                                                   # -> 38
     _playlists,                                                      # -> 39
+    _source_origin,                                                  # -> 40
 ]
 
 

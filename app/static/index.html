@@ -306,7 +306,7 @@
                 <input id="file" type="file" accept="audio/*,.mid,.midi,audio/midi" hidden>
                 <div class="drop-inner">
                   <strong>Drop an audio or MIDI file</strong>
-                  <span>or <button id="browse" class="link">browse</button> &middot; mp3, wav, flac, m4a, mid</span>
+                  <span>or <button id="browse" class="link">browse</button> &middot; <button type="button" id="record-melody-btn" class="link" style="font-weight:600;">record melody</button> &middot; mp3, wav, flac, m4a, mid</span>
                 </div>
               </div>
               <div class="source-row">
@@ -318,6 +318,7 @@
                   </button>
                   <div id="source-picker-menu" class="source-picker-menu hidden" role="listbox"></div>
                 </div>
+                <button type="button" id="source-record-btn" class="ghost" title="Record vocal or hummed melody with microphone"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px; margin-right:3px;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>Record</button>
                 <button id="transcribe" class="ghost">Transcribe</button>
                 <button id="source-lyrics" class="ghost" title="Write down the words this recording sings">Extract lyrics</button>
                 <button id="source-tracks" class="ghost hidden" title="View MIDI tracks and select Lead Vocal track">MIDI tracks</button>
@@ -1443,6 +1444,164 @@
 </div>
 
 
+<div id="recorder-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="recorder-modal-title">
+  <div class="modal-box recorder-modal-box">
+    <div class="modal-head">
+      <div class="row vcenter" style="gap: 10px;">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="22"/>
+        </svg>
+        <h2 id="recorder-modal-title">Record Melody</h2>
+        <span id="rec-status-badge" class="rec-status-badge status-ready">Ready</span>
+      </div>
+      <button id="rec-close-btn" class="ghost" type="button" aria-label="Close" onclick="window.Recorder.closeModal()">&times;</button>
+    </div>
+
+    <div class="recorder-layout">
+      <!-- Left Panel: Deck & Controls -->
+      <div class="rec-deck">
+        <div id="rec-error-msg" class="rec-error-msg hidden"></div>
+
+        <!-- Timer & Note Pitch Display -->
+        <div class="rec-display-row">
+          <div class="rec-timer-display">
+            <span class="rec-display-label">Time</span>
+            <span id="rec-timer" class="rec-timer-digits">00:00.0</span>
+          </div>
+          <div class="rec-pitch-display">
+            <span class="rec-display-label">Live Pitch</span>
+            <span id="rec-live-pitch" class="rec-pitch-digits">—</span>
+          </div>
+        </div>
+
+        <!-- VU Meter -->
+        <div class="rec-vu-meter-wrap" title="Microphone Input Level">
+          <div class="rec-vu-meter">
+            <div id="rec-vu-fill" class="rec-vu-fill"></div>
+          </div>
+          <div id="rec-vu-clip" class="rec-vu-clip" title="Clipping indicator">CLIP</div>
+        </div>
+
+        <!-- Transport Controls -->
+        <div class="rec-transport-row">
+          <button type="button" id="rec-transport-arm" class="rec-transport-btn rec-arm-btn" onclick="window.Recorder.state === 'idle' ? window.Recorder.armRecorder() : window.Recorder.disarmRecorder()" title="Arm / Disarm microphone">
+            <span class="rec-arm-dot"></span> ARM
+          </button>
+          <button type="button" id="rec-transport-record" class="rec-transport-btn rec-record-btn" onclick="window.Recorder.toggleRecordAction()" title="Record / Stop (Space)">
+            <span class="rec-rec-symbol"></span>
+          </button>
+          <button type="button" id="rec-transport-stop" class="rec-transport-btn rec-stop-btn" onclick="window.Recorder.stopRecording()" title="Stop Recording">
+            <span class="rec-stop-symbol"></span>
+          </button>
+          <button type="button" id="rec-transport-retake" class="rec-transport-btn rec-retake-btn" onclick="window.Recorder.retakeCurrent()" title="Discard & Retake (Start new recording immediately)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Retake
+          </button>
+        </div>
+        <div class="rec-hint muted">Press <kbd>Space</kbd> to start/stop recording &middot; Sing or hum your melody into the mic</div>
+
+        <!-- Direct Monitoring Row -->
+        <div class="rec-settings-card">
+          <div class="rec-card-title">Live Monitoring (Low Latency)</div>
+          <div class="rec-row vcenter" style="gap: 12px; margin-top: 6px;">
+            <button type="button" id="rec-monitor-btn" class="rec-pill-btn" onclick="window.Recorder.setMonitor(!window.Recorder.monitorEnabled)" title="Hear your voice live (Headphones recommended to prevent feedback)">
+              Headphone Monitor
+            </button>
+            <label class="rec-inline-label">
+              Vol:
+              <input type="range" id="rec-monitor-vol" min="0" max="1" step="0.05" value="0.8" oninput="window.Recorder.setMonitor(window.Recorder.monitorEnabled, parseFloat(this.value))">
+            </label>
+          </div>
+        </div>
+
+        <!-- Metronome & Count-In Row -->
+        <div class="rec-settings-card">
+          <div class="rec-card-title">Metronome & Count-In</div>
+          <div class="rec-grid-cols">
+            <div class="field compact">
+              <label>Click</label>
+              <button type="button" id="rec-metro-toggle" class="rec-pill-btn active" onclick="this.classList.toggle('active'); window.Recorder.metronome.enabled = this.classList.contains('active');">On</button>
+            </div>
+            <div class="field compact">
+              <label for="rec-bpm">BPM</label>
+              <input type="number" id="rec-bpm" min="40" max="240" value="120" onchange="window.Recorder.metronome.bpm = Math.max(40, Math.min(240, parseInt(this.value, 10) || 120))">
+            </div>
+            <div class="field compact">
+              <label for="rec-countin">Count-in</label>
+              <select id="rec-countin" onchange="window.Recorder.metronome.countInBars = parseInt(this.value, 10)">
+                <option value="1" selected>1 Bar (4 beats)</option>
+                <option value="2">2 Bars (8 beats)</option>
+                <option value="0">None (Immediate)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Autotune Setting Row -->
+        <div class="rec-settings-card">
+          <div class="rec-card-title">Melody Pitch Correction (Autotune)</div>
+          <div class="rec-grid-cols">
+            <div class="field compact">
+              <label>Autotune</label>
+              <button type="button" id="rec-auto-toggle" class="rec-pill-btn" onclick="this.classList.toggle('active'); window.Recorder.autotune.enabled = this.classList.contains('active'); this.textContent = this.classList.contains('active') ? 'On' : 'Off';">
+                Off
+              </button>
+            </div>
+            <div class="field compact">
+              <label for="rec-scale">Scale</label>
+              <select id="rec-scale" onchange="window.Recorder.autotune.scale = this.value">
+                <option value="chromatic" selected>Chromatic (All Semitones)</option>
+                <option value="major">Major Scale</option>
+                <option value="minor">Minor Scale</option>
+                <option value="pentatonic">Pentatonic</option>
+              </select>
+            </div>
+            <div class="field compact">
+              <label for="rec-root">Key Root</label>
+              <select id="rec-root" onchange="window.Recorder.autotune.root = this.value">
+                <option value="C" selected>C</option>
+                <option value="C#">C# / Db</option>
+                <option value="D">D</option>
+                <option value="D#">D# / Eb</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+                <option value="F#">F# / Gb</option>
+                <option value="G">G</option>
+                <option value="G#">G# / Ab</option>
+                <option value="A">A</option>
+                <option value="A#">A# / Bb</option>
+                <option value="B">B</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Takes Management -->
+      <div class="rec-takes-panel">
+        <div class="rec-takes-header">
+          <h3>Recorded Takes</h3>
+          <span class="muted" style="font-size: 11px;">Audition, tune, and choose a take to send to Cover</span>
+        </div>
+        <div id="rec-takes-list" class="rec-takes-list">
+          <div class="rec-no-takes">No recorded takes yet. Arm the microphone and press Record or Space to sing your melody.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Count-In Overlay -->
+    <div id="rec-countin-overlay" class="rec-countin-overlay hidden">
+      <div class="rec-countin-box">
+        <div class="rec-countin-label">Get Ready to Sing…</div>
+        <div id="rec-countin-number" class="rec-countin-number">4</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <div id="visualizer-modal" class="visualizer-modal hidden" role="dialog" aria-modal="true" aria-label="Visualizer">
   <canvas id="visualizer-canvas" class="visualizer-canvas"></canvas>
   <div id="vis-art-aura" class="vis-art-aura hidden"></div>
@@ -1561,6 +1720,7 @@
 <script src="/static/midiwrite.js?v={{VERSION}}"></script>
 <script src="/static/rack.js?v={{VERSION}}"></script>
 <script src="/static/visualizer.js?v={{VERSION}}"></script>
+<script src="/static/recorder.js?v={{VERSION}}"></script>
 <script src="/static/app.js?v={{VERSION}}"></script>
 </body>
 </html>

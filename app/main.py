@@ -41,7 +41,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import aligner, artwork, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
+from . import aligner, artwork, autotune, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 
 personas = identities
@@ -1180,7 +1180,7 @@ def _asset_version() -> str:
     so browsers automatically fetch updated scripts without needing manual hard-reloads."""
     try:
         stamp = max(int(p.stat().st_mtime) for p in (STATIC_DIR / "app.js", STATIC_DIR / "pianoroll.js", STATIC_DIR / "rack.js",
-                                                     STATIC_DIR / "styles.css") if p.exists())
+                                                     STATIC_DIR / "recorder.js", STATIC_DIR / "styles.css") if p.exists())
         return f"{config.VERSION}.{stamp}"
     except (OSError, ValueError):
         return config.VERSION
@@ -1620,13 +1620,16 @@ def state() -> dict:
 
 # ----------------------------------------------------------------------- sources
 @app.get("/api/sources")
-def list_sources() -> list[dict]:
+def list_sources(origin: str | None = None) -> list[dict]:
+    where = "WHERE origin = ?" if origin else ""
+    args = (origin,) if origin else ()
     got = rows(
-        """SELECT id, title, filename, created_at, transcribe_state, transcribe_error, duration,
-                  abc, lyrics_state, (lyrics IS NOT NULL AND lyrics != '') AS has_lyrics,
+        f"""SELECT id, title, filename, created_at, transcribe_state, transcribe_error, duration,
+                  abc, lyrics_state, origin, (lyrics IS NOT NULL AND lyrics != '') AS has_lyrics,
                   (abc IS NOT NULL AND abc != '') AS has_score,
                   (SELECT COUNT(*) FROM takes t WHERE t.source_id = sources.id) AS take_count
-           FROM sources ORDER BY created_at DESC"""
+           FROM sources {where} ORDER BY created_at DESC""",
+        args
     )
     for item in got:
         # What the score says the music lasts, so the page can weigh it against the
@@ -1673,7 +1676,11 @@ def _store_upload(fileobj) -> tuple[str, Path, int]:
 
 
 @app.post("/api/sources")
-async def upload_source(file: UploadFile = File(...), title: str = Form("", max_length=200)) -> dict:
+async def upload_source(
+    file: UploadFile = File(...),
+    title: str = Form("", max_length=200),
+    origin: str = Form("upload", max_length=30)
+) -> dict:
     try:
         digest, tmp, size = await asyncio.to_thread(_store_upload, file.file)
     except TooLarge:
@@ -1690,7 +1697,8 @@ async def upload_source(file: UploadFile = File(...), title: str = Form("", max_
     if len(ext) > 6 or not ext[1:].isalnum():
         ext = ".audio"
     source_id = uuid.uuid4().hex[:12]
-    dest = source_path(digest, file.filename or "", title or "source", ext)
+    folder = "recordings" if origin == "recording" else None
+    dest = source_path(digest, file.filename or "", title or "source", ext, folder=folder)
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp.replace(dest)
 
@@ -1730,12 +1738,13 @@ async def upload_source(file: UploadFile = File(...), title: str = Form("", max_
                 "lyrics": lyrics_text or None,
                 "lyrics_state": "done" if lyrics_text else "none",
                 "lyrics_method": "midi" if lyrics_text else None,
+                "origin": origin,
             }
             execute(
                 """INSERT INTO sources(id, title, filename, stored_path, engine_file, sha256, created_at, duration,
-                                       abc, abc_updated_at, transcribe_state, lyrics, lyrics_state, lyrics_method)
+                                       abc, abc_updated_at, transcribe_state, lyrics, lyrics_state, lyrics_method, origin)
                    VALUES(:id, :title, :filename, :stored_path, :engine_file, :sha256, :created_at, :duration,
-                          :abc, :abc_updated_at, :transcribe_state, :lyrics, :lyrics_state, :lyrics_method)""",
+                          :abc, :abc_updated_at, :transcribe_state, :lyrics, :lyrics_state, :lyrics_method, :origin)""",
                 record,
             )
             # Render audio preview with active SoundFont
@@ -1758,15 +1767,45 @@ async def upload_source(file: UploadFile = File(...), title: str = Form("", max_
         "created_at": time.time(),
         # Read once here, so a score transcribed from it can be checked against it.
         "duration": await asyncio.to_thread(audio_duration, dest),
+        "origin": origin,
     }
     execute(
-        """INSERT INTO sources(id, title, filename, stored_path, engine_file, sha256, created_at, duration)
-           VALUES(:id, :title, :filename, :stored_path, :engine_file, :sha256, :created_at, :duration)""",
+        """INSERT INTO sources(id, title, filename, stored_path, engine_file, sha256, created_at, duration, origin)
+           VALUES(:id, :title, :filename, :stored_path, :engine_file, :sha256, :created_at, :duration, :origin)""",
         record,
     )
     dur_str = f", {record['duration']:.1f}s" if record.get("duration") else ""
-    log.info("Uploaded source recording '%s' (%s%s)", record["title"], record["id"], dur_str)
+    log.info("Uploaded source recording '%s' (%s%s, origin=%s)", record["title"], record["id"], dur_str, origin)
     return {**record, "transcribe_state": "none", "abc": None, "duplicate": False}
+
+
+@app.post("/api/recorder/autotune")
+async def recorder_autotune(
+    audio_file: UploadFile = File(...),
+    scale: str = Form("chromatic"),
+    root: str = Form("C"),
+    strength: float = Form(0.85),
+) -> FileResponse:
+    """Tune a vocal recording and return the tuned audio as WAV."""
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    in_tmp = config.WORK_DIR / f"tune-in-{uuid.uuid4().hex[:8]}.wav"
+    out_tmp = config.WORK_DIR / f"tune-out-{uuid.uuid4().hex[:8]}.wav"
+    try:
+        content = await audio_file.read()
+        in_tmp.write_bytes(content)
+        await asyncio.to_thread(autotune.tune_file, in_tmp, out_tmp, scale=scale, root=root, strength=strength)
+        return FileResponse(
+            out_tmp,
+            media_type="audio/wav",
+            filename="tuned.wav",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+            background=BackgroundTask(lambda: (in_tmp.unlink(missing_ok=True), out_tmp.unlink(missing_ok=True))),
+        )
+    except Exception as exc:
+        in_tmp.unlink(missing_ok=True)
+        out_tmp.unlink(missing_ok=True)
+        log.warning("Autotune processing failed: %s", exc)
+        raise HTTPException(500, f"autotune processing failed: {exc}") from exc
 
 
 # ------------------------------------------------------ a corpus song as a recording

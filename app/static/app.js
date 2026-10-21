@@ -3399,10 +3399,24 @@ async function loadSources() {
   State.sources = Array.isArray(res) ? res : [];
   var select = $('source-select');
   var previous = select.value;
-  select.innerHTML = '<option value="">Choose a recording\u2026</option>' + State.sources.map(function (source) {
+
+  var recordings = State.sources.filter(function (s) { return s.origin === 'recording'; });
+  var uploads = State.sources.filter(function (s) { return s.origin !== 'recording'; });
+
+  function optionHtml(source) {
     var mark = source.has_score ? ' \u2713 score' : '';
     return '<option value="' + source.id + '">' + esc(source.title) + mark + '</option>';
-  }).join('');
+  }
+
+  var optHtml = '<option value="">Choose a recording\u2026</option>';
+  if (recordings.length > 0 && uploads.length > 0) {
+    optHtml += '<optgroup label="Voice Recordings">' + recordings.map(optionHtml).join('') + '</optgroup>';
+    optHtml += '<optgroup label="Uploaded Audio">' + uploads.map(optionHtml).join('') + '</optgroup>';
+  } else {
+    optHtml += State.sources.map(optionHtml).join('');
+  }
+  select.innerHTML = optHtml;
+
   if (previous) { select.value = previous; }
   // Spent on use, like the LoRA picker's: left in place it would put the
   // remembered recording back every time another was chosen.
@@ -3425,11 +3439,18 @@ function paintSourcePickerMenu() {
     '<div class="source-item-main"><span class="source-item-title muted">' +
       (State.mode === 'inst' ? 'No recording: write a score plan' : 'Choose a recording\u2026') + '</span></div>' +
     '</div>';
-  itemsHtml += State.sources.map(function (source) {
+
+  var recordings = State.sources.filter(function (s) { return s.origin === 'recording'; });
+  var uploads = State.sources.filter(function (s) { return s.origin !== 'recording'; });
+
+  function sourceItemHtml(source) {
     var isMidi = Boolean(source.filename && source.filename.match(/\.midi?$/i));
+    var isRec = source.origin === 'recording';
     var scoreBadge = isMidi
       ? '<span class="source-item-score midi-tag">MIDI</span>'
-      : (source.has_score ? '<span class="source-item-score">\u2713 score</span>' : '');
+      : (isRec
+          ? '<span class="source-item-score rec-tag" title="Recorded Melody">MIC</span>'
+          : (source.has_score ? '<span class="source-item-score">\u2713 score</span>' : ''));
     var isSel = source.id === currentId ? ' selected' : '';
     return '<div class="source-picker-item' + isSel + '" data-id="' + esc(source.id) + '" role="option">' +
       '<div class="source-item-main">' +
@@ -3443,7 +3464,17 @@ function paintSourcePickerMenu() {
         '</svg>' +
       '</button>' +
     '</div>';
-  }).join('');
+  }
+
+  if (recordings.length > 0 && uploads.length > 0) {
+    itemsHtml += '<div class="source-picker-group-head">Voice Recordings</div>';
+    itemsHtml += recordings.map(sourceItemHtml).join('');
+    itemsHtml += '<div class="source-picker-group-head">Uploaded Audio</div>';
+    itemsHtml += uploads.map(sourceItemHtml).join('');
+  } else {
+    itemsHtml += State.sources.map(sourceItemHtml).join('');
+  }
+
   itemsHtml += corpusSongsHtml(currentId);
   // Typing in the filter redraws the menu; the box it redraws keeps the caret.
   var typing = document.activeElement && document.activeElement.id === 'source-corpus-filter';
@@ -3635,9 +3666,11 @@ function paintSource() {
 
   var pickerLabel = $('source-picker-label');
   var isMidi = Boolean(source && source.filename && source.filename.match(/\.midi?$/i));
+  var isRec = Boolean(source && source.origin === 'recording');
   if (pickerLabel) {
+    var tag = isMidi ? ' [MIDI]' : (isRec ? ' [MIC]' : (source && source.has_score ? ' \u2713 score' : ''));
     pickerLabel.textContent = source
-      ? source.title + (isMidi ? ' [MIDI]' : (source.has_score ? ' \u2713 score' : ''))
+      ? source.title + tag
       : 'Choose a recording\u2026';
   }
   var items = document.querySelectorAll('.source-picker-item');
@@ -13775,6 +13808,18 @@ function wire() {
 
   $('browse').addEventListener('click', function () { $('file').click(); });
   $('file').addEventListener('change', function (event) { uploadFile(event.target.files[0]); });
+  if ($('record-melody-btn')) {
+    $('record-melody-btn').addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.Recorder) { window.Recorder.openModal(); }
+    });
+  }
+  if ($('source-record-btn')) {
+    $('source-record-btn').addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.Recorder) { window.Recorder.openModal(); }
+    });
+  }
   var drop = $('drop');
   drop.addEventListener('dragover', function (event) { event.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
