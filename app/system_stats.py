@@ -64,6 +64,28 @@ def _read_cpu_raw() -> tuple[float, float] | None:
         except Exception as exc:
             log.debug("GetSystemTimes call failed: %s", exc)
 
+    # 3. macOS host_statistics64 (native macOS app)
+    if sys.platform == "darwin":
+        try:
+            libc = ctypes.CDLL(None)
+            host = libc.mach_host_self()
+
+            class HostCpuLoadInfo(ctypes.Structure):
+                _fields_ = [("cpu_ticks", ctypes.c_uint32 * 4)]
+
+            info = HostCpuLoadInfo()
+            count = ctypes.c_uint32(4)
+            HOST_CPU_LOAD_INFO = 3
+            if libc.host_statistics64(host, HOST_CPU_LOAD_INFO, ctypes.byref(info), ctypes.byref(count)) == 0:
+                user = info.cpu_ticks[0]
+                system = info.cpu_ticks[1]
+                idle = info.cpu_ticks[2]
+                nice = info.cpu_ticks[3]
+                total = float(user + system + idle + nice)
+                return total, float(idle)
+        except Exception as exc:
+            log.debug("macOS host_statistics64 call failed: %s", exc)
+
     return None
 
 
