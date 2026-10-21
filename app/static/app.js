@@ -6138,6 +6138,7 @@ function openSaveModal(take) {
     window.Rack.flushSave();
   }
   State.saveTakeId = take.id;
+  State.saveTake = take;
   $('save-heading').textContent = 'Save \u201c' + take.title + '\u201d';
   pickSaveFormat(setting('stems.format', 'flac'));
   $('save-modal').classList.remove('hidden');
@@ -6154,6 +6155,7 @@ function pickSaveFormat(format) {
 
 function closeSaveModal() {
   State.saveTakeId = null;
+  State.saveTake = null;
   $('save-modal').classList.add('hidden');
 }
 
@@ -6171,28 +6173,40 @@ function runSave() {
   var fmt = chosen.dataset.format;
   closeSaveModal();
 
-  var mastered = false;
-  try {
-    mastered = Boolean(window.Rack && typeof window.Rack.hasActiveMastering === 'function' &&
-                       typeof window.Rack.renderAndDownload === 'function' &&
-                       window.Rack.hasActiveMastering(id));
-  } catch (e) {}
-  if (mastered) {
-    statusLine('Mastering the file to save…', 'wait');
-    window.Rack.renderAndDownload(id, fmt).then(function () {
-      statusLine('Mastered file ready to save.', 'good');
-    }, function (err) {
-      statusLine('Could not master the file, so nothing was saved: ' + ((err && err.message) || err), 'bad');
-    });
-    return;
-  }
+  (async function () {
+    if (window.Rack && typeof window.Rack.flushSave === 'function') {
+      try { await window.Rack.flushSave(); } catch (e) {}
+    }
 
-  var link = document.createElement('a');
-  link.href = '/api/takes/' + id + '/audio?download=1&format=' + fmt;
-  link.download = '';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+    var mastered = false;
+    try {
+      if (window.Rack && typeof window.Rack.renderAndDownload === 'function') {
+        if (typeof window.Rack.hasActiveMasteringAsync === 'function') {
+          mastered = await window.Rack.hasActiveMasteringAsync(id);
+        } else if (typeof window.Rack.hasActiveMastering === 'function') {
+          mastered = Boolean(window.Rack.hasActiveMastering(id));
+        }
+      }
+    } catch (e) {}
+
+    if (mastered) {
+      statusLine('Mastering the file to save…', 'wait');
+      try {
+        await window.Rack.renderAndDownload(id, fmt);
+        statusLine('Mastered file ready to save.', 'good');
+      } catch (err) {
+        statusLine('Could not master the file, so nothing was saved: ' + ((err && err.message) || err), 'bad');
+      }
+      return;
+    }
+
+    var link = document.createElement('a');
+    link.href = '/api/takes/' + id + '/audio?download=1&format=' + fmt;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  })();
 }
 
 function statusLine(message, kind) {

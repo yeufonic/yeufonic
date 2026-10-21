@@ -321,6 +321,8 @@ def test_rack_js_and_app_js_mastered_features():
     assert "audioBufferToWav" in rack_js
     assert "buildMasteringDspGraph" in rack_js
     assert "hasActiveMastering:" in rack_js
+    assert "hasActiveMasteringAsync:" in rack_js
+    assert "resolveSettings:" in rack_js
     assert "renderMasterWav:" in rack_js
     assert "renderAndDownload:" in rack_js
 
@@ -329,6 +331,61 @@ def test_rack_js_and_app_js_mastered_features():
     assert "window.Rack.hasActiveMastering" in save
     assert "window.Rack.renderAndDownload(id, fmt)" in save
     assert "fx=" not in save, "settings are not sent to the server to be applied there"
+
+
+def test_async_mastering_resolution_falls_back_to_server():
+    """When a take is not in State.takes, hasActiveMasteringAsync fetches /api/takes/{id}/fx
+    so that Save never silently bypasses mastering."""
+    script = r"""
+const fs = require('fs'), vm = require('vm');
+const window = {
+  addEventListener() {},
+  AudioContext: function () { return { state: 'running', destination: {}, createGain: () => ({ gain: { value: 1 } }) }; },
+  State: { takes: [{ id: 'take_in_list', fx_chain: null }] },
+};
+const document = { getElementById: () => null, querySelectorAll: () => [] };
+let serverFx = {};
+const sandbox = {
+  window, document, console, setTimeout, clearTimeout, Promise, JSON, Math, Blob,
+  FormData: function () {}, localStorage: { getItem: () => null, setItem() {} },
+  fetch: async (url) => {
+    if (url.includes('/api/takes/take_remote/fx')) {
+      return { ok: true, json: async () => serverFx };
+    }
+    return { ok: true, json: async () => ({}) };
+  }
+};
+vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), sandbox);
+const Rack = window.Rack;
+
+(async () => {
+  // 1. Not in memory, server has nothing -> false
+  serverFx = {};
+  const empty = await Rack.hasActiveMasteringAsync('take_remote');
+  if (empty !== false) { throw new Error('Expected false for empty server settings'); }
+
+  // 2. Not in memory, server has active EQ boost -> true
+  serverFx = { eq: { enabled: true, highGain: 3.5 } };
+  const engaged = await Rack.hasActiveMasteringAsync('take_remote');
+  if (engaged !== true) { throw new Error('Expected true for active server settings'); }
+
+  // 3. Synchronous check was false before fetch
+  if (Rack.hasActiveMastering('take_remote') !== false) {
+    throw new Error('Sync check should have been false when not in memory');
+  }
+
+  // 4. Save take in State.saveTake is checked synchronously by settingsFor
+  window.State.saveTake = { id: 'take_modal', fx_chain: JSON.stringify({ version: 3, comp: { enabled: true, threshold: -24 } }) };
+  if (Rack.hasActiveMastering('take_modal') !== true) {
+    throw new Error('Expected true for take held in State.saveTake');
+  }
+
+  console.log('OK');
+})().catch((err) => { console.error(err); process.exit(1); });
+"""
+    res = subprocess.run(["node", "-e", script, str(STATIC / "rack.js")], capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr
+    assert "OK" in res.stdout
 
 
 def test_a_page_can_tell_it_is_older_than_the_app(client):

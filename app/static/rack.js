@@ -2849,10 +2849,14 @@
         return this.settings;
       }
       var kept = null;
-      var takes = (window.State && State.takes) || [];
+      var state = (typeof window !== 'undefined' && window.State) || (typeof State !== 'undefined' ? State : null);
+      var takes = (state && state.takes) || [];
       var t = takes.find(function (x) { return String(x.id) === String(takeId); });
-      if (!t && window.State && State.loadedTake && String(State.loadedTake.id) === String(takeId)) {
-        t = State.loadedTake;
+      if (!t && state && state.loadedTake && String(state.loadedTake.id) === String(takeId)) {
+        t = state.loadedTake;
+      }
+      if (!t && state && state.saveTake && String(state.saveTake.id) === String(takeId)) {
+        t = state.saveTake;
       }
       if (t && t.fx_chain) {
         try {
@@ -2863,9 +2867,40 @@
       return this.mergeSettings(PRESETS['default'], upgradeSettings(kept));
     },
 
+    /* Resolves settings for a take, falling back to querying /api/takes/{id}/fx from the server if not held locally. */
+    resolveSettings: async function (takeId) {
+      var s = this.settingsFor(takeId);
+      if (s) { return s; }
+      try {
+        var resp = await fetch('/api/takes/' + encodeURIComponent(takeId) + '/fx');
+        if (resp.ok) {
+          var data = await resp.json();
+          if (data && Object.keys(data).length > 0) {
+            var merged = this.mergeSettings(PRESETS['default'], upgradeSettings(data));
+            var state = (typeof window !== 'undefined' && window.State) || (typeof State !== 'undefined' ? State : null);
+            var takes = (state && state.takes) || [];
+            var t = takes.find(function (x) { return String(x.id) === String(takeId); });
+            if (t) { t.fx_chain = data; }
+            if (state && state.loadedTake && String(state.loadedTake.id) === String(takeId)) {
+              state.loadedTake.fx_chain = data;
+            }
+            return merged;
+          }
+        }
+      } catch (e) {}
+      return null;
+    },
+
     /* Whether the rack changes how this take sounds, which is whether Save has to render it. */
     hasActiveMastering: function (takeId) {
       return chainEngaged(this.settingsFor(takeId));
+    },
+
+    /* Whether the rack changes how this take sounds, resolving from the server if not cached locally. */
+    hasActiveMasteringAsync: async function (takeId) {
+      if (this.hasActiveMastering(takeId)) { return true; }
+      var s = await this.resolveSettings(takeId);
+      return chainEngaged(s);
     },
 
     chainEngaged: chainEngaged,
@@ -2881,17 +2916,7 @@
     /* The take through the chain, as a WAV: the same nodes and settings as playback, rendered
        offline at the file's own sample rate. */
     renderMasterWav: async function (takeId, customSettings) {
-      var s = customSettings || this.settingsFor(takeId);
-      if (!s) {
-        var kept = await fetch('/api/takes/' + takeId + '/fx');
-        if (kept.ok) {
-          var data = await kept.json();
-          if (data && Object.keys(data).length > 0) {
-            s = this.mergeSettings(PRESETS['default'], upgradeSettings(data));
-          }
-        }
-      }
-      s = s || PRESETS['default'];
+      var s = customSettings || (await this.resolveSettings(takeId)) || PRESETS['default'];
 
       var resp = await fetch('/api/takes/' + takeId + '/audio');
       if (!resp.ok) {
