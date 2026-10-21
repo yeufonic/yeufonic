@@ -50,8 +50,13 @@
     artY: 0,
     lastDriftX: 0,
     lastDriftY: 0,
+    lastDynamicsTime: 0,
+    smoothBankX: 0,
+    smoothBankY: 0,
+    smoothSlideX: 65,
     vinylAngle: 0,
-    vinylSpeed: 3.33,
+    vinylDegPerSec: 200,
+    beatTarget: 0,
     beatImpulse: 0,
     ring1Scale: 1,
     ring1Opacity: 0,
@@ -750,6 +755,9 @@
         cancelAnimationFrame(this.fullAnimId);
         this.fullAnimId = null;
       }
+      this.lastDynamicsTime = 0;
+      this.lastDriftX = undefined;
+      this.lastDriftY = undefined;
     },
 
     renderFullFrame: function (now) {
@@ -830,11 +838,16 @@
 
       var audio = $('audio');
       var isPlaying = audio && !audio.paused && !audio.ended;
-      var t = (now || performance.now()) * 0.001;
+      var currTime = (now !== undefined && now !== null) ? now : performance.now();
+      var t = currTime * 0.001;
 
-      // Transient beat impulse with snappy spring decay
+      // Delta-time normalization: bounds dt between 1ms and 64ms (~15fps min) to prevent physics jumps
+      var dt = this.lastDynamicsTime ? Math.min(0.064, Math.max(0.001, (currTime - this.lastDynamicsTime) * 0.001)) : (1 / 60);
+      this.lastDynamicsTime = currTime;
+
+      // Smooth transient beat impulse with fast attack and natural musical decay
       if (this.beatDetected) {
-        this.beatImpulse = 1.0;
+        this.beatTarget = 1.0;
         // Trigger expanding shockwave rings (alternating between ring 1 and 2)
         if (this.ring1Opacity < 0.2) {
           this.ring1Scale = 1.0;
@@ -843,8 +856,13 @@
           this.ring2Scale = 1.0;
           this.ring2Opacity = 0.75;
         }
+      } else {
+        this.beatTarget = (this.beatTarget || 0) * Math.exp(-8.0 * dt);
       }
-      this.beatImpulse = Math.max(0, (this.beatImpulse || 0) * 0.90);
+
+      var impulseRate = ((this.beatTarget || 0) > (this.beatImpulse || 0)) ? 32.0 : 7.5;
+      var impulseLerp = 1.0 - Math.exp(-impulseRate * dt);
+      this.beatImpulse = (this.beatImpulse || 0) + ((this.beatTarget || 0) - (this.beatImpulse || 0)) * impulseLerp;
 
       // Handle Aura mode breathing dynamics
       if (this.artMode === 'aura' && aura) {
@@ -859,9 +877,9 @@
       if (this.artMode !== 'sleeve') { return; }
 
       // Canvas wandering / orbital drift calculations:
-      // When lyrics are visible: float on the left side of the stage.
-      // When lyrics are closed (e.g. user toggled off lyrics or no lyrics):
-      // Orbit smoothly around the visualizer center so the mandala/center effects remain completely visible!
+      // When lyrics are visible: smoothly float on the left side of the stage.
+      // When lyrics are closed: orbit widely around the canvas perimeter, keeping the centre
+      // clear so central visualizer graphics (mandala, waves, cosmic, swarm) remain unobstructed!
       var isLyricsVisible = this.showLyrics && this.lyricsLines && this.lyricsLines.length > 0;
       var stage = $('vis-stage') || document.querySelector('.vis-stage');
       var stageW = stage ? stage.clientWidth : window.innerWidth;
@@ -871,42 +889,58 @@
       var targetY = 0;
 
       if (isLyricsVisible) {
-        // Constrained floating drift on the left half of the stage
-        var rangeX = Math.min(45, stageW * 0.06);
-        var rangeY = Math.min(35, stageH * 0.08);
-        targetX = Math.sin(t * 0.5) * rangeX + Math.cos(t * 1.1) * (rangeX * 0.4);
-        targetY = Math.cos(t * 0.6) * rangeY + Math.sin(t * 1.3) * (rangeY * 0.35);
+        // Floating drift on the left half of the stage
+        var rangeX = Math.min(80, Math.max(25, stageW * 0.07));
+        var rangeY = Math.min(60, Math.max(20, stageH * 0.08));
+        targetX = Math.sin(t * 0.35) * rangeX + Math.cos(t * 0.78) * (rangeX * 0.35);
+        targetY = Math.cos(t * 0.30) * rangeY + Math.sin(t * 0.65) * (rangeY * 0.30);
       } else {
-        // Wide orbital wander around the canvas center
-        // Orbit radius (Rx, Ry) keeps it looping gracefully through quadrants
-        var orbRx = Math.min(280, stageW * 0.26);
-        var orbRy = Math.min(160, stageH * 0.22);
-        // Multi-frequency harmonic orbit
-        targetX = Math.cos(t * 0.35) * orbRx + Math.sin(t * 0.8) * (orbRx * 0.25);
-        targetY = Math.sin(t * 0.35) * orbRy + Math.cos(t * 0.65) * (orbRy * 0.25);
+        // Wide orbital wander around the canvas perimeter
+        var maxTravelX = Math.max(160, (stageW * 0.5) - 330);
+        var maxTravelY = Math.max(110, (stageH * 0.5) - 250);
+
+        // Orbital angle around the canvas with subtle harmonic pacing
+        var orbAngle = t * 0.21 + Math.sin(t * 0.09) * 0.22;
+        // Radial breathing: maintains a healthy minimum distance from the centre (58% to 98% of max travel)
+        var radMod = 0.78 + 0.20 * Math.cos(t * 0.14);
+
+        targetX = Math.cos(orbAngle) * (maxTravelX * radMod) + Math.sin(t * 0.43) * (maxTravelX * 0.10);
+        targetY = Math.sin(orbAngle) * (maxTravelY * radMod) + Math.cos(t * 0.37) * (maxTravelY * 0.12);
       }
 
-      // Smooth exponential lerp towards target position
-      if (this.artX === undefined) { this.artX = targetX; this.artY = targetY; }
-      this.artX += (targetX - this.artX) * 0.06;
-      this.artY += (targetY - this.artY) * 0.06;
+      // Smooth exponential lerp towards target position (frame-rate independent)
+      var posLerp = 1.0 - Math.exp(-2.6 * dt);
+      if (this.artX === undefined || isNaN(this.artX)) {
+        this.artX = targetX;
+        this.artY = targetY;
+      } else {
+        this.artX += (targetX - this.artX) * posLerp;
+        this.artY += (targetY - this.artY) * posLerp;
+      }
 
-      // Estimate travel velocity for 3D banking / momentum
-      var vx = (this.artX - (this.lastDriftX || this.artX));
-      var vy = (this.artY - (this.lastDriftY || this.artY));
+      // Compute travel velocity normalized per second (px/sec)
+      var instantVx = (this.artX - (this.lastDriftX !== undefined ? this.lastDriftX : this.artX)) / Math.max(0.001, dt);
+      var instantVy = (this.artY - (this.lastDriftY !== undefined ? this.lastDriftY : this.artY)) / Math.max(0.001, dt);
       this.lastDriftX = this.artX;
       this.lastDriftY = this.artY;
 
-      var bankY = Math.max(-14, Math.min(14, vx * 4.5));
-      var bankX = Math.max(-10, Math.min(10, -vy * 4.0));
-      var swayZ = Math.sin(t * 0.8) * 3.5;
+      // Target banking angles derived from normalized velocity
+      var targetBankY = Math.max(-11, Math.min(11, instantVx * 0.045));
+      var targetBankX = Math.max(-8.5, Math.min(8.5, -instantVy * 0.040));
 
-      // Audio-reactive forward kick tilt and dynamic scale
-      var kickTiltX = this.bassEnergy * 9.0 + this.beatImpulse * 5.5;
-      var kickScale = 1.0 + (this.bassEnergy * 0.06) + (this.beatImpulse * 0.05);
+      // Low-pass exponential filter on banking angles to eliminate micro-jitter
+      var bankLerp = 1.0 - Math.exp(-4.2 * dt);
+      this.smoothBankX = (this.smoothBankX !== undefined ? this.smoothBankX : targetBankX) + (targetBankX - (this.smoothBankX !== undefined ? this.smoothBankX : targetBankX)) * bankLerp;
+      this.smoothBankY = (this.smoothBankY !== undefined ? this.smoothBankY : targetBankY) + (targetBankY - (this.smoothBankY !== undefined ? this.smoothBankY : targetBankY)) * bankLerp;
 
-      var rotX = bankX + kickTiltX;
-      var rotY = bankY + Math.sin(t * 0.4) * 4.0;
+      var swayZ = Math.sin(t * 0.6) * 3.0;
+
+      // Audio-reactive forward kick tilt and dynamic scale with smoothed impulse
+      var kickTiltX = (this.bassEnergy * 7.5) + (this.beatImpulse * 4.2);
+      var kickScale = 1.0 + (this.bassEnergy * 0.05) + (this.beatImpulse * 0.035);
+
+      var rotX = this.smoothBankX + kickTiltX;
+      var rotY = this.smoothBankY + Math.sin(t * 0.35) * 3.5;
       var rotZ = swayZ;
 
       // Move wrap in 2D space across the canvas
@@ -923,29 +957,31 @@
 
       // Holographic glare tracking 3D tilt
       if (glare) {
-        var glareX = (rotY * 4.2).toFixed(1);
-        var glareY = (-rotX * 3.8).toFixed(1);
+        var glareX = (rotY * 4.0).toFixed(1);
+        var glareY = (-rotX * 3.6).toFixed(1);
         glare.style.transform = 'translate(' + glareX + '%, ' + glareY + '%) rotate(' + (45 + rotZ * 1.5).toFixed(1) + 'deg)';
-        glare.style.opacity = (0.18 + this.bassEnergy * 0.35 + this.beatImpulse * 0.22).toFixed(2);
+        var glareOpacity = 0.18 + this.bassEnergy * 0.35 + this.beatImpulse * 0.20;
+        glare.style.opacity = glareOpacity.toFixed(2);
       }
 
       // Vinyl record spin and slide
       if (record) {
-        if (isPlaying) {
-          this.vinylSpeed = 3.33; // 33 1/3 RPM
-        } else {
-          this.vinylSpeed = (this.vinylSpeed || 3.33) * 0.94; // decelerates when paused
-        }
-        this.vinylAngle = ((this.vinylAngle || 0) + (this.vinylSpeed || 0)) % 360;
+        var targetRpmSpeed = isPlaying ? 200.0 : 0.0; // 33 1/3 RPM = 200 deg/sec
+        var spinLerp = 1.0 - Math.exp(-3.0 * dt);
+        this.vinylDegPerSec = (this.vinylDegPerSec !== undefined ? this.vinylDegPerSec : 200.0) + (targetRpmSpeed - (this.vinylDegPerSec !== undefined ? this.vinylDegPerSec : 200.0)) * spinLerp;
+        this.vinylAngle = ((this.vinylAngle || 0) + this.vinylDegPerSec * dt) % 360;
 
-        var slideX = 65 + (this.bassEnergy * 22) + (this.beatImpulse * 12);
-        record.style.transform = 'translateX(' + slideX.toFixed(1) + 'px) rotate(' + this.vinylAngle.toFixed(1) + 'deg)';
+        // Smooth physical slide out on bass and beats
+        var targetSlideX = 65 + (this.bassEnergy * 20) + (this.beatImpulse * 10);
+        var slideLerp = 1.0 - Math.exp(-8.0 * dt);
+        this.smoothSlideX = (this.smoothSlideX !== undefined ? this.smoothSlideX : targetSlideX) + (targetSlideX - (this.smoothSlideX !== undefined ? this.smoothSlideX : targetSlideX)) * slideLerp;
+        record.style.transform = 'translateX(' + this.smoothSlideX.toFixed(1) + 'px) rotate(' + this.vinylAngle.toFixed(1) + 'deg)';
       }
 
       // Update shockwave pulse rings
       if (this.ring1Opacity > 0.01 && ring1) {
-        this.ring1Scale += 0.025;
-        this.ring1Opacity *= 0.92;
+        this.ring1Scale += 1.5 * dt;
+        this.ring1Opacity *= Math.exp(-5.0 * dt);
         ring1.style.transform = 'scale(' + this.ring1Scale.toFixed(3) + ')';
         ring1.style.opacity = this.ring1Opacity.toFixed(3);
       } else if (ring1 && ring1.style.opacity !== '0') {
@@ -953,8 +989,8 @@
       }
 
       if (this.ring2Opacity > 0.01 && ring2) {
-        this.ring2Scale += 0.022;
-        this.ring2Opacity *= 0.93;
+        this.ring2Scale += 1.35 * dt;
+        this.ring2Opacity *= Math.exp(-4.5 * dt);
         ring2.style.transform = 'scale(' + this.ring2Scale.toFixed(3) + ')';
         ring2.style.opacity = this.ring2Opacity.toFixed(3);
       } else if (ring2 && ring2.style.opacity !== '0') {
