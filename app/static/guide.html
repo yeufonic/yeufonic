@@ -149,6 +149,68 @@
     .catch(function (err) {
       document.getElementById('body').textContent = 'Could not load the guide: ' + err.message;
     });
+
+  function lockEscape() {
+    if (navigator.keyboard && typeof navigator.keyboard.lock === 'function') {
+      navigator.keyboard.lock(['Escape']).catch(function () {});
+    }
+  }
+
+  function unlockEscape() {
+    if (navigator.keyboard && typeof navigator.keyboard.unlock === 'function') {
+      try { navigator.keyboard.unlock(); } catch (e) {}
+    }
+  }
+
+  function toggleFullscreen() {
+    var doc = document;
+    var fsEl = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+    if (!fsEl) {
+      var el = doc.documentElement;
+      var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+      if (req) {
+        try {
+          var p = req.call(el);
+          if (p && typeof p.then === 'function') {
+            p.then(lockEscape).catch(function () {});
+          } else {
+            lockEscape();
+          }
+        } catch (e) {}
+      }
+    } else {
+      unlockEscape();
+      var exit = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+      if (exit) {
+        try {
+          var p = exit.call(doc);
+          if (p && typeof p.catch === 'function') { p.catch(function () {}); }
+        } catch (e) {}
+      }
+    }
+  }
+
+  document.addEventListener('fullscreenchange', function () {
+    if (document.fullscreenElement) {
+      lockEscape();
+    } else {
+      unlockEscape();
+    }
+  });
+
+  // F toggles fullscreen; Esc does not exit fullscreen
+  window.addEventListener('keydown', function (event) {
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) { return; }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      return;
+    }
+    if ((event.key === 'f' || event.key === 'F') && !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
+      event.preventDefault();
+      toggleFullscreen();
+    }
+  });
 }());
 </script>
 </body>

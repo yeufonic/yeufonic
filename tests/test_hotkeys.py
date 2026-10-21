@@ -60,3 +60,43 @@ def test_guide_documents_question_mark_hotkey():
     guide = (STATIC / "guide.md").read_text(encoding="utf-8")
     assert "| ? | show or hide the hot keys; again to close |" in guide
 
+
+def test_fullscreen_hotkey_works_anywhere():
+    app_js = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "function toggleFullscreen()" in app_js
+    assert "window.toggleFullscreen = toggleFullscreen;" in app_js
+    assert "function lockEscape()" in app_js
+    assert "navigator.keyboard.lock(['Escape'])" in app_js
+    guard_idx = app_js.index("/^(INPUT|TEXTAREA|SELECT)$/.test(tag)")
+    fs_key_idx = app_js.index("event.key === 'f' || event.key === 'F'")
+    modal_guard_idx = app_js.index("var rackOverEditor = ")
+    assert guard_idx < fs_key_idx < modal_guard_idx, (
+        "F hotkey must be placed after the typing guard but before modal/editor guards"
+    )
+    snippet = app_js[fs_key_idx:fs_key_idx + 200]
+    assert "toggleFullscreen();" in snippet
+
+    # Visualizer does not exit fullscreen when closed
+    vis_js = (STATIC / "visualizer.js").read_text(encoding="utf-8")
+    stop_full_idx = vis_js.index("this.stopFull();")
+    vis_close_snippet = vis_js[stop_full_idx:stop_full_idx + 100]
+    assert "document.exitFullscreen" not in vis_close_snippet
+
+
+def test_popout_logs_and_guide_fullscreen_hotkey():
+    logs_html = (STATIC / "logs.html").read_text(encoding="utf-8")
+    assert "event.key === 'f' || event.key === 'F'" in logs_html
+    assert "toggleFullscreen()" in logs_html
+
+    guide_html = (STATIC / "guide.html").read_text(encoding="utf-8")
+    assert "event.key === 'f' || event.key === 'F'" in guide_html
+    assert "toggleFullscreen()" in guide_html
+
+
+def test_fullscreen_hotkey_documented():
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    assert '<div class="hotkey-row"><span class="hk-keys"><kbd>F</kbd></span><span class="hk-desc">Toggle fullscreen</span></div>' in html
+    assert 'title="Toggle Fullscreen (F)"' in html
+    guide = (STATIC / "guide.md").read_text(encoding="utf-8")
+    assert "| F | toggle fullscreen |" in guide
+

@@ -259,12 +259,65 @@ function beat() {
 }
 beat();
 setInterval(beat, 2000);
-// Escape or L closes the window, as it closes the panel in the app's page.
+function lockEscape() {
+  if (navigator.keyboard && typeof navigator.keyboard.lock === 'function') {
+    navigator.keyboard.lock(['Escape']).catch(function () {});
+  }
+}
+
+function unlockEscape() {
+  if (navigator.keyboard && typeof navigator.keyboard.unlock === 'function') {
+    try { navigator.keyboard.unlock(); } catch (e) {}
+  }
+}
+
+function toggleFullscreen() {
+  var doc = document;
+  var fsEl = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+  if (!fsEl) {
+    var el = doc.documentElement;
+    var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req) {
+      try {
+        var p = req.call(el);
+        if (p && typeof p.then === 'function') {
+          p.then(lockEscape).catch(function () {});
+        } else {
+          lockEscape();
+        }
+      } catch (e) {}
+    }
+  } else {
+    unlockEscape();
+    var exit = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+    if (exit) {
+      try {
+        var p = exit.call(doc);
+        if (p && typeof p.catch === 'function') { p.catch(function () {}); }
+      } catch (e) {}
+    }
+  }
+}
+
+document.addEventListener('fullscreenchange', function () {
+  if (document.fullscreenElement) {
+    lockEscape();
+  } else {
+    unlockEscape();
+  }
+});
+
+// Escape or L closes the window, as it closes the panel in the app's page. F toggles fullscreen.
 window.addEventListener('keydown', function (event) {
   var tag = (document.activeElement && document.activeElement.tagName) || '';
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) { return; }
   if (event.key === 'Escape' || ((event.key === 'l' || event.key === 'L') && !event.ctrlKey && !event.metaKey && !event.altKey)) {
     window.close();
+    return;
+  }
+  if ((event.key === 'f' || event.key === 'F') && !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
+    event.preventDefault();
+    toggleFullscreen();
   }
 });
 window.addEventListener('pagehide', function () {

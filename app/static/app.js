@@ -5478,6 +5478,55 @@ function wireHotkeys() {
   });
 }
 
+function lockEscape() {
+  if (navigator.keyboard && typeof navigator.keyboard.lock === 'function') {
+    navigator.keyboard.lock(['Escape']).catch(function () {});
+  }
+}
+
+function unlockEscape() {
+  if (navigator.keyboard && typeof navigator.keyboard.unlock === 'function') {
+    try { navigator.keyboard.unlock(); } catch (e) {}
+  }
+}
+
+function toggleFullscreen() {
+  var doc = document;
+  var fsEl = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+  if (!fsEl) {
+    var el = doc.documentElement;
+    var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req) {
+      try {
+        var p = req.call(el);
+        if (p && typeof p.then === 'function') {
+          p.then(lockEscape).catch(function () {});
+        } else {
+          lockEscape();
+        }
+      } catch (e) {}
+    }
+  } else {
+    unlockEscape();
+    var exit = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+    if (exit) {
+      try {
+        var p = exit.call(doc);
+        if (p && typeof p.catch === 'function') { p.catch(function () {}); }
+      } catch (e) {}
+    }
+  }
+}
+window.toggleFullscreen = toggleFullscreen;
+
+document.addEventListener('fullscreenchange', function () {
+  if (document.fullscreenElement) {
+    lockEscape();
+  } else {
+    unlockEscape();
+  }
+});
+
 function closeBrandMenu() {
   var menu = $('brand-menu');
   if (menu) { menu.classList.add('hidden'); }
@@ -14857,6 +14906,10 @@ function wire() {
       closeEditor();
       return;
     }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      return;
+    }
 
     if (compareOpen()) { if (compareKey(event)) { event.preventDefault(); } return; }
 
@@ -14965,7 +15018,7 @@ function wire() {
           if (window.PianoRoll && window.PianoRoll.toggleFollow) { window.PianoRoll.toggleFollow(); }
           return;
         }
-        if ((event.key.toLowerCase() === 'f' || event.key === '0') && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (event.key === '0' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
           event.preventDefault();
           if (window.PianoRoll) { window.PianoRoll.scrollToNotes(); }
           return;
@@ -14979,6 +15032,12 @@ function wire() {
     var aimed = (event.target && event.target.tagName) || '';
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || /^(INPUT|TEXTAREA|SELECT)$/.test(aimed) ||
         (event.target && event.target.isContentEditable)) { return; }
+    if ((event.key === 'f' || event.key === 'F') &&
+        !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
+      event.preventDefault();
+      toggleFullscreen();
+      return;
+    }
     if ((event.key === '?' || (event.key === '/' && event.shiftKey) || (event.code === 'Slash' && event.shiftKey)) &&
         !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();

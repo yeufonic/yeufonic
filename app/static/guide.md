@@ -488,7 +488,7 @@ Press <kbd>Space</kbd> or click **▶ Play** to start playback from the playhead
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> / <kbd>Alt</kbd>+<kbd>A</kbd> | Select all notes from playhead cursor to end across both voices |
 | <kbd>+</kbd> or <kbd>=</kbd> | Zoom in timeline horizontal scale |
 | <kbd>-</kbd> or <kbd>_</kbd> | Zoom out timeline horizontal scale |
-| <kbd>F</kbd> or <kbd>0</kbd> | Scroll to notes (Fit view) |
+| <kbd>0</kbd> | Scroll to notes (Fit view) |
 | <kbd>L</kbd> | Edit lyric for selected vocal note |
 | <kbd>Escape</kbd> | Clear note selection, or close score window |
 
@@ -1291,6 +1291,7 @@ bar saying why.
 | P | add the take to a playlist |
 | D | delete the take, after asking, as its bin does |
 | L | the logs; or toggle lyrics while the visualizer is open |
+| F | toggle fullscreen |
 | ? | show or hide the hot keys; again to close |
 | Escape | close the window in front: the visualizer, the logs, the mastering rack over the editor, then the editor or any other window |
 

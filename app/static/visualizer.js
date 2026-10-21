@@ -294,6 +294,10 @@
         self.resizeMini();
       });
 
+      document.addEventListener('fullscreenchange', function () {
+        if (self.isOpen) { self.resizeFull(); }
+      });
+
       // Hook audio play/pause events
       var audio = $('audio');
       if (audio) {
@@ -338,14 +342,15 @@
         this.startFull();
       } else {
         this.stopFull();
-        if (document.fullscreenElement) {
-          try { document.exitFullscreen(); } catch (e) {}
-        }
       }
     },
 
     toggleFullscreen: function () {
-      var modal = $('visualizer-modal');
+      if (typeof window.toggleFullscreen === 'function') {
+        window.toggleFullscreen();
+        return;
+      }
+      var modal = $('visualizer-modal') || document.documentElement;
       if (!modal) { return; }
       if (!document.fullscreenElement) {
         if (modal.requestFullscreen) { modal.requestFullscreen().catch(function () {}); }
