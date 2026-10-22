@@ -220,3 +220,73 @@ def test_the_plan_may_not_end_before_the_structure_is_written(harmony):
     t = follower(harmony, ['%', ' verse', '\n', '%', ' chorus', '\n'] + ['"D"', 'z16|'] * 4, ["verse", "chorus"])
     got = t.follow_bias(Logits(len(FOLLOW_VOCAB)))
     assert got is None or 1001 not in got[0]                                     # all written, the last has chords: it may end
+
+
+# ------------------------------------------------------------------ the hook
+HEAD = 'X:1\nT:\nM:4/4\nL:1/16\nQ:1/4=100\nV: Vocal\nV: Ins\nK:Cm\n'
+BODY = 'V: Vocal\nz8F4F2|E8z8|\nV: Ins\nz16|z16|\n'
+WANTS = '% intro\nV: Vocal\n"C"c4|\nV: Ins\nZ|\n% chorus\n% pre-chorus\nV: Vocal\n"G"g4|\nV: Ins\nZ|\n% chorus\n'
+HOOK_VOCAB = sorted(set(HEAD + BODY + WANTS + 'X:1\nM:3/4\nK:D\n% verse\n')) + ['V: Vocal\n', 'V: Ins\n', 'z16|', '%%']
+
+
+def plan(harmony, wants, head=HEAD, body=BODY, section="chorus", sections=None, steps=400):
+    """Write a plan the way the planner would, a token at a time: what the node favours most when it
+    favours anything, else the next piece of what this planner wants to write, then the end."""
+    t = harmony.HarmonyTracker(HOOK_VOCAB, "root", 0.0, sections=sections, hook_head=head, hook_body=body,
+                               hook_section=section)
+    history, written, at = [], "", 0
+    for _ in range(steps):
+        t.feed(history)
+        adjust = t.bias(Logits(len(HOOK_VOCAB)))
+        want = [i for i, piece in enumerate(HOOK_VOCAB) if wants.startswith(piece, at)]
+        own = max(want, key=lambda i: len(HOOK_VOCAB[i])) if want else 1001
+        bonuses = {i: v for i, v in zip(*adjust) if v < 0} if adjust else {}   # a positive value is a penalty
+        if bonuses:
+            best = min(bonuses.values())
+            favoured = [i for i, v in bonuses.items() if v == best]
+            token = own if own in favoured else favoured[0]
+            if own not in bonuses and 1001 in bonuses and at >= len(wants):
+                token = 1001
+        else:
+            token = own
+        if token == 1001:
+            break
+        if wants.startswith(HOOK_VOCAB[token], at):
+            at += len(HOOK_VOCAB[token])
+        history.append(token)
+        written += HOOK_VOCAB[token]
+    return t, written
+
+
+def test_the_plan_opens_with_the_hooks_header_and_every_chorus_holds_the_hook(harmony):
+    t, written = plan(harmony, 'X:1\nM:3/4\nK:D\n' + WANTS)
+    assert written.startswith(HEAD), "the planner's own header (3/4, D) gave way to the hook's"
+    assert written.count('% chorus\n' + BODY) == 2 and t.hooks == 2
+    assert '% pre-chorus\nV: Vocal\n"G"g4|' in written, "a pre-chorus is not a chorus: the planner writes it"
+    assert '% intro\nV: Vocal\n"C"c4|' in written
+
+
+def test_the_hook_is_spelt_with_the_longest_tokens(harmony):
+    t = harmony.HarmonyTracker(HOOK_VOCAB, "root", 0.0, hook_head="", hook_body=BODY, hook_section="chorus")
+    t.feed([HOOK_VOCAB.index(c) for c in '% chorus\n'])
+    ids, values = t.bias(Logits(len(HOOK_VOCAB)))
+    assert HOOK_VOCAB[ids[values.index(min(values))]] == 'V: Vocal\n'
+    assert all(v < 0 for v in values)
+
+
+def test_after_the_hook_comes_the_next_section_or_the_end(harmony):
+    # Following a structure with the chorus last: after its hook, only the end.
+    t, written = plan(harmony, '% verse\nV: Vocal\n"C"c4|\nV: Ins\nZ|\n% chorus\nV: Vocal\n"G"g4|\n', head="",
+                      sections=["verse", "chorus"])
+    assert written.endswith('% chorus\n' + BODY), "the planner's own chorus bars did not follow the hook"
+    t = harmony.HarmonyTracker(HOOK_VOCAB, "root", 0.0, sections=["chorus", "verse"], hook_body=BODY, hook_section="chorus")
+    t.feed([HOOK_VOCAB.index(c) for c in '% chorus\n'] + [HOOK_VOCAB.index(c) for c in BODY])
+    ids, _ = t.bias(Logits(len(HOOK_VOCAB)))
+    assert set(ids) == {HOOK_VOCAB.index('%')}, "a verse is still to come: the next section, and not the end"
+
+
+def test_no_hook_is_no_change(harmony):
+    t = harmony.HarmonyTracker(HOOK_VOCAB, "root", 0.0)
+    assert t.active is False and t.hook_bias() is None
+    t = harmony.HarmonyTracker(HOOK_VOCAB, "root", 0.0, hook_body=BODY, hook_section="chorus")
+    assert t.active is True

@@ -188,14 +188,22 @@ def build_plan_graph(take: dict) -> dict:
     hold_limit = int(take["chord_hold_limit"]) if take.get("chord_hold_limit") is not None else 8
     outside_bonus = float(take["chord_outside_bonus"]) if take.get("chord_outside_bonus") is not None else 0.0
     sections = take.get("chord_sections")      # None follows the step; 1 forces sections to open differently, 0 does not
-    follow = lyrics.plan_names(take.get("lyrics") or "") if take.get("follow_structure") and take.get("kind") == "song" else []
-    if step in HARMONY or hold_limit != 8 or outside_bonus != 0.0 or sections or follow:
+    hook = take.get("hook_abc") or ""
+    follow = lyrics.plan_names(take.get("lyrics") or "") if take.get("follow_structure") and (take.get("kind") == "song" or hook) else []
+    if step in HARMONY or hold_limit != 8 or outside_bonus != 0.0 or sections or follow or hook:
         graph["2"]["class_type"] = HARMONY_NODE
         node.update({**HARMONY_OFF, **HARMONY.get(step, {})})
         if sections is not None:
             node["section_strength"] = SECTION_STRENGTH if sections else 0.0
         if follow:
             node["follow_sections"] = ",".join(follow)
+        if hook:
+            # A tune recorded for this song, held in every section of its name (composer.py): the
+            # plan opens with the tune's header, through its K: line, and those sections hold its bars.
+            split = re.search(r"^K:.*\n", hook, re.M)
+            if split:
+                node.update({"hook_head": hook[:split.end()], "hook_body": hook[split.end():],
+                             "hook_section": take.get("hook_section") or "chorus"})
         if take.get("chord_hold_limit") is not None:
             node["hold_limit"] = hold_limit
         if take.get("chord_outside_bonus") is not None and (step != 4 or outside_bonus != 0.0):
@@ -890,6 +898,11 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
         if not abc:
             fail(kind, ref_id, "the engine returned no score")
             return
+        if record.get("origin") == "recording":
+            sung = instrumental.tune_on_voice(abc)
+            if sung != abc:
+                log.info("Transcription of '%s' put the tune in Ins; moved it to the Vocal voice", record.get("title") or ref_id)
+                abc = sung
         execute(
             "UPDATE sources SET abc = ?, abc_updated_at = ?, transcribe_state = 'done', transcribe_error = NULL WHERE id = ?",
             (abc, time.time(), ref_id),

@@ -6660,6 +6660,8 @@ function setScoreActions() {
     }
   }
   var keep = keepTune();
+  // A cover's score is its recording's, so there is no plan to write again, unless the planner wrote it around the recording's tune.
+  if (State.mode === 'cover' && $('reroll')) { $('reroll').style.display = owner && owner.hook_section ? '' : 'none'; }
   $('render-take').textContent = fresh ? 'Sing with new words' : 'Render this score';
   // Already an instrumental: nothing to make.
   if ($('make-instrumental')) { $('make-instrumental').style.display = State.mode === 'inst' ? 'none' : ''; }
@@ -9773,22 +9775,10 @@ async function stopWrite() {
   try { await api('/api/lyrics/' + WRITE.id + '/cancel', { method: 'POST' }); } catch (err) { /* the poll reports it */ }
 }
 
-/* ------------------------------------------------ Hum-to-Song Thematic Composer */
-var EXPAND = { method: 'symbolic' };
-
-function setExpandMethod(method) {
-  EXPAND.method = method;
-  if ($('expand-method-symbolic')) { $('expand-method-symbolic').classList.toggle('active', method === 'symbolic'); }
-  if ($('expand-method-neural')) { $('expand-method-neural').classList.toggle('active', method === 'neural'); }
-  if ($('expand-palette-field')) { $('expand-palette-field').classList.toggle('hidden', method !== 'symbolic'); }
-  if ($('expand-neural-field')) { $('expand-neural-field').classList.toggle('hidden', method !== 'neural'); }
-  if ($('expand-method-hint')) {
-    $('expand-method-hint').textContent = method === 'symbolic'
-      ? 'Instant musical transformation. Develops Verse, Pre-Chorus, and Bridge sections by shifting register, smoothing intervals, and applying chord palettes. Opens immediately in the visual Piano Roll.'
-      : 'The YuE2 autoregressive music planner will compose the remaining sections dynamically from your melody prefix in the requested style.';
-  }
-}
-
+/* ------------------------------------------------ hum to song
+   A recording's tune made into a whole song: the planner writes it with the tune held in every
+   chorus (or verse), in the tune's own key and tempo.  The words in the lyrics box come with it,
+   and their sections are the song's structure; with none, the structure chosen here. */
 async function openExpandModal() {
   var source = currentSource();
   var motifAbc = $('abc').value.trim();
@@ -9807,26 +9797,25 @@ async function openExpandModal() {
 
   if (!motifAbc) {
     if (source && !source.has_score) {
-      statusLine('This recording has not been transcribed yet. Transcribe it first to get the melody notes to expand.', 'bad');
+      statusLine('This recording has not been transcribed yet. Transcribe it first.', 'bad');
       return;
     }
-    statusLine('There is no melody score to expand yet. Transcribe a recording or enter notes first.', 'bad');
+    statusLine('There is no tune to make a song from yet. Transcribe a recording first.', 'bad');
     return;
   }
 
-  // Summarize motif info
-  var barsMatch = motifAbc.match(/\|/g);
-  var barCount = barsMatch ? barsMatch.length : 0;
   var keyMatch = motifAbc.match(/^K:\s*([^\n\r]+)/m);
-  var keyStr = keyMatch ? keyMatch[1].trim() : 'C';
-  var bpmMatch = motifAbc.match(/^Q:1\/4=(\d+)/m);
-  var bpmStr = bpmMatch ? bpmMatch[1] : '120';
-
+  var bpmMatch = motifAbc.match(/^Q:\s*1\/4\s*=\s*(\d+)/m);
   if ($('expand-motif-summary')) {
-    $('expand-motif-summary').textContent = 'Melody Motif: ' + (barCount ? barCount + ' bars' : 'active score') + ' · Key: ' + keyStr + ' · ' + bpmStr + ' BPM';
+    $('expand-motif-summary').textContent = 'Your tune: ' + (keyMatch ? keyMatch[1].trim() : 'C') + ' \u00b7 ' + (bpmMatch ? bpmMatch[1] : '120') + ' BPM';
   }
-
-  setExpandMethod('symbolic');
+  var words = ($('lyrics') ? $('lyrics').value : '').trim();
+  if ($('expand-preset')) { $('expand-preset').disabled = Boolean(words); }
+  if ($('expand-preset-hint')) {
+    $('expand-preset-hint').textContent = words
+      ? 'The lyrics in the box are used, and their sections are the structure.'
+      : 'No lyrics in the box, so the song is planned without words.';
+  }
   if ($('expand-status')) { $('expand-status').textContent = ''; }
   if ($('expand-go')) { $('expand-go').disabled = false; }
   $('expand-modal').classList.remove('hidden');
@@ -9838,16 +9827,12 @@ function closeExpandModal() {
 
 async function doExpandToSong() {
   var source = currentSource();
-  var inputAbc = $('abc').value.trim();
-  var method = EXPAND.method || 'symbolic';
-  var preset = $('expand-preset') ? $('expand-preset').value : 'standard';
-  var palette = $('expand-palette') ? $('expand-palette').value : 'pop';
   var role = $('expand-role') ? $('expand-role').value : 'chorus';
   var style = ($('expand-style') ? $('expand-style').value.trim() : '') || ($('style') ? $('style').value.trim() : '');
-  var title = ($('title') ? $('title').value.trim() : '') || (source ? source.title + ' (Expanded)' : 'Expanded Song');
+  var title = ($('title') ? $('title').value.trim() : '') || (source ? source.title + ' (Full Song)' : '');
 
   if ($('expand-status')) {
-    $('expand-status').textContent = method === 'symbolic' ? 'Composing full song structure\u2026' : 'Queuing neural score planner\u2026';
+    $('expand-status').textContent = 'Queuing the plan\u2026';
     $('expand-status').className = 'status wait';
   }
   if ($('expand-go')) { $('expand-go').disabled = true; }
@@ -9858,40 +9843,26 @@ async function doExpandToSong() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         source_id: source ? source.id : null,
-        abc: inputAbc || null,
-        method: method,
-        preset: preset,
-        palette: palette,
+        abc: $('abc').value.trim() || null,
+        preset: $('expand-preset') ? $('expand-preset').value : 'standard',
         role: role,
         style: style,
         title: title,
+        lyrics: $('lyrics') ? $('lyrics').value : '',
         space_id: State.spaceId
       })
     });
-
     closeExpandModal();
-
-    if (res.method === 'symbolic') {
-      $('abc').value = res.abc || '';
-      scoreBaseline(res.abc || '');
-      setSelection({ formTakeId: null, boxKind: 'source', boxId: source ? source.id : null });
-      setChart('');
-      syncEditor();
-      updateScoreCount();
-      var durStr = res.estimate ? ' (' + res.estimate.bars + ' bars, ' + res.estimate.seconds + 's)' : '';
-      statusLine('Melody motif expanded into full song' + durStr + ' across ' + (res.sections ? res.sections.length : 0) + ' sections. Audition in Piano roll or click Write lyrics to fit words.', 'good');
-      openScoreEditor('roll');
-    } else {
-      if (typeof loadTakes === 'function') { await loadTakes(); }
-      statusLine('Queued neural score plan for full song (' + (res.estimate ? res.estimate.bpm + ' BPM, ' + res.estimate.key : '') + '). The AI planner is composing the arrangement\u2026', 'good');
-    }
+    setSelection({ formTakeId: res.take_id, boxKind: 'none', boxId: null, awaiting: res.take_id });
+    editorAfterPlan();
+    if (typeof loadTakes === 'function') { await loadTakes(); }
+    statusLine('Making a cover with your tune (' + res.bars + ' bars) in every ' + res.section + ', in ' + res.key + ' at ' + res.bpm + ' BPM: the plan first, then the render.', 'good');
   } catch (err) {
     if ($('expand-status')) {
-      $('expand-status').textContent = 'Failed to expand: ' + (err.message || err);
+      $('expand-status').textContent = 'Could not plan it: ' + (err.message || err);
       $('expand-status').className = 'status bad';
     }
     if ($('expand-go')) { $('expand-go').disabled = false; }
-    statusLine('Could not expand melody: ' + (err.message || err), 'bad');
   }
 }
 
@@ -11368,6 +11339,12 @@ async function startFresh() {
   // and a new take would otherwise reuse it.
   $('seed-fixed').checked = false;
   $('seed').value = Math.floor(Math.random() * 4294967295);
+  if ($('mode')) { $('mode').value = 'full'; }
+  // The Advanced settings too, and the ticks under the lyrics with them: a new take starts from the defaults.
+  writeAdvancedSettings(ADVANCED_DEFAULTS);
+  // And no message left from the last take: the recording's tempo warning, a LoRA install.
+  if (cover) { paintSourceTempo(null); }
+  if ($('lora-install-status')) { $('lora-install-status').textContent = ''; $('lora-install-status').className = 'status'; }
   paintVocals();
   if (State.mode === 'inst' && typeof paintStructure === 'function') { paintStructure(); }
   State.formEdited = false;
@@ -13446,10 +13423,20 @@ function coverBody(seed) {
   }));
 }
 
+/* A cover the planner wrote around the recording's tune (Expand to full song), not yet rendered:
+   its plan is in the box, so Create cover renders that take rather than making another beside it.
+   With new words the plan no longer fits them, so a new cover is made from the box as usual. */
+function humCoverInEditor() {
+  var owner = scoreOwner(), source = currentSource();
+  if (!owner || owner.kind !== 'cover' || !owner.hook_section || owner.has_audio || !source || owner.source_id !== source.id) { return null; }
+  return wordsChanged() ? null : owner;
+}
+
 async function doRender() {
   var status = $('render-status');
   var problem = coverProblem();
   if (problem) { status.textContent = problem; status.className = 'status bad'; return; }
+  if (humCoverInEditor()) { await renderInPlace(); return; }
   var body = coverBody(pickSeed());
   status.textContent = 'Queued\u2026';
   status.className = 'status';
@@ -14380,8 +14367,6 @@ function wire() {
   if ($('source-expand-song')) { $('source-expand-song').addEventListener('click', openExpandModal); }
   if ($('expand-close')) { $('expand-close').addEventListener('click', closeExpandModal); }
   if ($('expand-cancel')) { $('expand-cancel').addEventListener('click', closeExpandModal); }
-  if ($('expand-method-symbolic')) { $('expand-method-symbolic').addEventListener('click', function () { setExpandMethod('symbolic'); }); }
-  if ($('expand-method-neural')) { $('expand-method-neural').addEventListener('click', function () { setExpandMethod('neural'); }); }
   if ($('expand-go')) { $('expand-go').addEventListener('click', doExpandToSong); }
   if ($('expand-modal')) { $('expand-modal').addEventListener('click', function (event) { if (backdropClick(event, $('expand-modal'))) { closeExpandModal(); } }); }
   $('lyrics-hear-stop').addEventListener('click', function () {

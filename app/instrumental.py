@@ -16,6 +16,8 @@ from fractions import Fraction
 import subprocess
 from pathlib import Path
 
+from . import score
+
 SECTIONS = ("intro", "verse", "pre-chorus", "chorus", "bridge", "outro")
 # The LoRA is always held at full strength.
 #
@@ -188,6 +190,20 @@ def _as_rests(bar: str) -> str:
                    for part in parts)
 
 
+def _voice_blocks(lines: list[str]) -> list:
+    """The body of a score as a field or section line, or [voice, its V: line, its lines]."""
+    blocks: list = []
+    for line in lines:
+        if line.startswith("V:"):
+            name = line[2:].strip().split()
+            blocks.append([name[0] if name else "", line, []])
+        elif line.startswith("%") or not blocks or not isinstance(blocks[-1], list):
+            blocks.append(line)
+        else:
+            blocks[-1][2].append(line)
+    return blocks
+
+
 def _tokens(lines: list[str]) -> list[tuple[str, str]]:
     """A voice's lines as bars and the field lines between them (M: and the like).
     Z4 is four bars of rest, so it counts as four."""
@@ -234,15 +250,7 @@ def tune_on_instrument(abc: str) -> str:
     if body is None:
         return abc
     out = lines[:body]
-    blocks: list = []           # a field or section line, or [voice, its V: line, its lines]
-    for line in lines[body:]:
-        if line.startswith("V:"):
-            name = line[2:].strip().split()
-            blocks.append([name[0] if name else "", line, []])
-        elif line.startswith("%") or not blocks or not isinstance(blocks[-1], list):
-            blocks.append(line)
-        else:
-            blocks[-1][2].append(line)
+    blocks = _voice_blocks(lines[body:])
     index = 0
     while index < len(blocks):
         block = blocks[index]
@@ -268,6 +276,60 @@ def tune_on_instrument(abc: str) -> str:
             tokens = [(kind, _as_rests(text) if kind == "bar" else text) for kind, text in tokens]
         out += [block[1], *_lines(tokens)]
         index += 1
+    return "\n".join(out)
+
+
+# ------------------------------------------------ a recorded tune given to the voice
+# A recording from the microphone is a voice, but the transcriber decides for itself, note by
+# note, whether a line sounds sung or played: a short wordless hum can come back with every
+# note in Ins and the Vocal voice all rests, or with its first bars in Ins and the rest in Vocal.
+# A cover sings the Vocal voice (and refuses a score with none there), so the tune moves there,
+# bar by bar.  The reverse of tune_on_instrument.
+
+def _voice_has_notes(abc: str, voice: str) -> bool:
+    return any(_has_notes(bar) for bar in score.vocal_bars(abc, voice))
+
+
+def tune_on_voice(abc: str) -> str:
+    """The score with the notes the transcriber wrote in Ins moved into the Vocal voice, in
+    every bar where the voice rests.  Where a Vocal block and the Ins block after it have the
+    same bars, such a Vocal bar keeps its chords and takes the Ins bar's notes, and Ins is left
+    as rests of the same length; a bar where both have notes is left as it is.  Where the bars
+    do not line up and the Vocal block has no notes, the two blocks trade places whole.  Either
+    way the score keeps its length and its sections."""
+    if not _voice_has_notes(abc, "Ins"):
+        return abc
+    lines = abc.split("\n")
+    body = next((i + 1 for i, line in enumerate(lines) if line.startswith("K:")), None)
+    if body is None:
+        return abc
+    out = lines[:body]
+    blocks = _voice_blocks(lines[body:])
+    index = 0
+    while index < len(blocks):
+        block = blocks[index]
+        after = blocks[index + 1] if index + 1 < len(blocks) else None
+        if not (isinstance(block, list) and block[0] == "Vocal" and isinstance(after, list) and after[0] == "Ins"):
+            out += [block[1], *block[2]] if isinstance(block, list) else [block]
+            index += 1
+            continue
+        sung, played = _tokens(block[2]), _tokens(after[2])
+        bars_sung = [i for i, token in enumerate(sung) if token[0] == "bar"]
+        bars_played = [i for i, token in enumerate(played) if token[0] == "bar"]
+        if len(bars_sung) == len(bars_played):
+            for s, p in zip(bars_sung, bars_played):
+                notes = played[p][1]
+                if not _has_notes(notes) or _has_notes(sung[s][1]):
+                    continue
+                chords = _QUOTED.findall(sung[s][1])
+                sung[s] = ("bar", "".join(chords) + _QUOTED.sub("", notes) if chords else notes)
+                played[p] = ("bar", _as_rests(_QUOTED.sub("", notes)))
+            out += [block[1], *_lines(sung), after[1], *_lines(played)]
+        elif not any(_has_notes(text) for kind, text in sung if kind == "bar"):
+            out += [block[1], *after[2], after[1], *block[2]]
+        else:
+            out += [block[1], *block[2], after[1], *after[2]]
+        index += 2
     return "\n".join(out)
 
 

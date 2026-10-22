@@ -151,7 +151,9 @@ CREATE TABLE IF NOT EXISTS takes (
     target_lufs REAL,
     fade_out_seconds REAL DEFAULT 3.0,
     fx_chain TEXT,
-    parent_id TEXT
+    parent_id TEXT,
+    hook_abc TEXT,
+    hook_section TEXT
 );
 CREATE TABLE IF NOT EXISTS identities (
     id TEXT PRIMARY KEY,
@@ -566,6 +568,16 @@ def _source_origin() -> None:
         execute("ALTER TABLE sources ADD COLUMN origin TEXT NOT NULL DEFAULT 'upload'")
 
 
+def _hook() -> None:
+    """A song made from a recorded tune keeps the tune it holds in its sections, so it is held again
+    when the plan is written again: the tune's header and bars, and the section it fills."""
+    cols = _columns("takes")
+    if "hook_abc" not in cols:
+        execute("ALTER TABLE takes ADD COLUMN hook_abc TEXT")
+    if "hook_section" not in cols:
+        execute("ALTER TABLE takes ADD COLUMN hook_section TEXT")
+
+
 def _advanced_take_settings() -> None:
     """Per-take generation and mix parameters (steps, avoid, key, bpm, token cap,
     harmony limits, target loudness, outro fade)."""
@@ -721,6 +733,7 @@ MIGRATIONS = [
     _saved_styles,                                                   # -> 38
     _playlists,                                                      # -> 39
     _source_origin,                                                  # -> 40
+    _hook,                                                           # -> 41
 ]
 
 

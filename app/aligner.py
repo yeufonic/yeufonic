@@ -627,7 +627,9 @@ def align_lyrics_to_abc(abc_text: str, lyrics_text: str) -> str:
                 for sp in range(len(splits) - 1):
                     sub_notes = notes[splits[sp] : splits[sp + 1]]
                     if sub_notes:
-                        sub_bar = sub_notes[0]["start_tick"] // ticks_per_bar
+                        # The first piece is the section itself, keyed by the bar of its "%" line, so the
+                        # name the lyrics give it is written there even when it opens with rests.
+                        sub_bar = sec_item["bar"] if sp == 0 else sub_notes[0]["start_tick"] // ticks_per_bar
                         refined.append({
                             "bar": sub_bar,
                             "text": sec_item["text"] if sp == 0 else "% verse",

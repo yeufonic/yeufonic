@@ -32,12 +32,20 @@ An optional bonus favours roots outside the key from the score's K: line, only o
 a change of chord and only while few recent chords are already outside, so the
 song cannot settle on an out-of-key chord.
 
+A melody can be written into the plan: a hook (a hummed or sung tune, transcribed).  The plan opens with
+the hook's own header, so it is in the hook's key, metre, note length and tempo, and every section of the
+hook's name ("% chorus") holds the hook's bars, after which the next thing the planner writes is the next
+section or the end.  The planner writes everything else, with the hook in what it has already written, so
+the rest of the song follows on from it.  The text is held as the planner's own: the tokens that spell it,
+the longest favoured, so it reads as the planner would have written it.
+
 The node wraps comfy.text_encoders.yue2.distribution for the length of one
 generation and restores it afterwards.  With strength 0 and no bonus, its output is
 identical to the stock YuE2 Generate ABC node.
 """
 import collections
 import contextlib
+import logging
 import re
 
 import comfy.text_encoders.yue2 as yue2
@@ -46,6 +54,8 @@ NOTE = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 HEADER = re.compile(r"^[A-Za-z]:")
 FOLLOW_LAST_CHORDS = 4  # chord symbols the last section needs before the plan may end
 FOLLOW_BOOST = 50.0     # logits added to the tokens that spell the section the structure asks for next
+HOOK_BOOST = 100.0      # logits added to the tokens that spell the hook's text; the longest gets HOOK_LONGEST more
+HOOK_LONGEST = 20.0
 SECTION_LINE = re.compile(r"^%\s*([A-Za-z][\w -]*?)\s*$")
 KEY_LINE = re.compile(r"^K:\s*([A-G][#b]?)(m?)", re.M)
 MAJOR_STEPS = {0, 2, 4, 5, 7, 9, 11}
@@ -97,7 +107,7 @@ def walk(text, line, partial):
 class HarmonyTracker:
     def __init__(self, vocab, mode="root", strength=0.0, window=16, hold_limit=8,
                  outside_bonus=0.0, outside_limit=0.25, candidates=64, section_strength=0.0, section_open=4,
-                 sections=None):
+                 sections=None, hook_head="", hook_body="", hook_section=""):
         self.vocab = vocab
         self.mode = mode
         self.strength = strength
@@ -122,6 +132,16 @@ class HarmonyTracker:
         self.head = ""
         self.scale = None
         self.chord_starts = [i for i, t in enumerate(vocab) if t.startswith('"') and t[1:2] in NOTE]
+        # The hook: text to hold the planner to (the header first), the section it fills, and its bars.
+        self.hook_body = hook_body or ""
+        self.hook_section = (hook_section or "").strip().lower() if self.hook_body else ""
+        self.holding = hook_head or ""     # what is still to be written of the text being held
+        self.held_hook = False             # the text being held is the hook's bars, not the header
+        self.after_hook = False            # the hook's bars are written: next is the next section or the end
+        self.hook_line = ""
+        self.hooks = 0                     # sections the hook has filled
+        self._by_first = None
+        self._sections_start = None
 
     @property
     def chord_active(self):
@@ -129,7 +149,7 @@ class HarmonyTracker:
 
     @property
     def active(self):
-        return self.chord_active or bool(self.wanted)
+        return self.chord_active or bool(self.wanted) or bool(self.holding or self.hook_body)
 
     # ------------------------------------------------------------- following
     def identity(self, symbol):
@@ -144,6 +164,7 @@ class HarmonyTracker:
                 if key and "\n" in self.head[key.end():]:
                     steps = MINOR_STEPS if key.group(2) else MAJOR_STEPS
                     self.scale = {(root_of(key.group(1)) + s) % 12 for s in steps}
+            self.follow_hook(text)
             self.follow_sections(text)
             self.line, self.partial, done = walk(text, self.line, self.partial)
             for symbol in done:
@@ -164,6 +185,56 @@ class HarmonyTracker:
                 if not self.changes or self.changes[-1] != ident:
                     self.changes.append(ident)
         self.seen = len(history)
+
+    def follow_hook(self, text):
+        """Keep up with the hook: what is left of the text being held, and the lines the planner
+        writes itself, where a section of the hook's name sets the hook's bars to be held next."""
+        for ch in text:
+            if self.holding:
+                if ch == self.holding[0]:
+                    self.holding = self.holding[1:]
+                    if not self.holding:
+                        self.after_hook, self.held_hook, self.hook_line = self.held_hook, False, ""
+                    continue
+                self.holding, self.held_hook = "", False     # off the text: only if a bonus was overruled
+            self.after_hook = False
+            if ch != "\n":
+                self.hook_line += ch
+                continue
+            found = SECTION_LINE.match(self.hook_line)
+            if self.hook_section and found and found.group(1).strip().lower() == self.hook_section:
+                self.holding, self.held_hook = self.hook_body, True
+                self.hooks += 1
+            self.hook_line = ""
+
+    def tokens_starting(self, text):
+        """Every token that could be the next piece of `text`, looked up by its first character."""
+        if self._by_first is None:
+            self._by_first = collections.defaultdict(list)
+            for i, piece in enumerate(self.vocab):
+                if piece:
+                    self._by_first[piece[0]].append((i, piece))
+        return [(i, piece) for i, piece in self._by_first.get(text[:1], ()) if text.startswith(piece)]
+
+    def hook_bias(self):
+        """While text is held, a bonus to the tokens that spell it, the longest the most.  Just after the
+        hook's bars, a bonus to starting the next section, or to the end when the structure has none left."""
+        if self.holding:
+            pieces = self.tokens_starting(self.holding)
+            if not pieces:
+                return None
+            longest = max(pieces, key=lambda p: len(p[1]))[0]
+            return [i for i, _ in pieces], [-(HOOK_BOOST + (HOOK_LONGEST if i == longest else 0.0)) for i, _ in pieces]
+        if not self.after_hook:
+            return None
+        if self._sections_start is None:
+            self._sections_start = [i for i, piece in enumerate(self.vocab) if piece.startswith("%") and not piece.startswith("%%")]
+        end = getattr(yue2, "ABC_END", None)
+        more = not self.wanted or self.section_count < len(self.wanted)
+        ids = list(self._sections_start) if more else []
+        if end is not None and (not self.wanted or not more):
+            ids.append(end)
+        return (ids, [-HOOK_BOOST] * len(ids)) if ids else None
 
     def follow_sections(self, text):
         """A comment line such as '% chorus' starts a section: what the last one opened with
@@ -226,7 +297,11 @@ class HarmonyTracker:
         return value
 
     def bias(self, logits):
-        """Logit adjustments for this step, as (ids, values): the chords' and the structure's together."""
+        """Logit adjustments for this step, as (ids, values): the chords' and the structure's together,
+        or the hook's alone while it holds the planner to its text."""
+        hook = self.hook_bias()
+        if hook:
+            return hook
         chords = self.chord_bias(logits) if self.chord_active else None
         follow = self.follow_bias(logits) if self.wanted else None
         if not follow:
@@ -377,16 +452,22 @@ class YuE2GenerateABCHarmony:
             "section_open": ("INT", {"default": 4, "min": 1, "max": 16,
                                      "tooltip": "How many of a section's first chords are compared with the previous section's."}),
             "follow_sections": ("STRING", {"default": "", "tooltip": "Section names in order, separated by commas. The plan may write only these, in this order. Empty is off."}),
+            "hook_head": ("STRING", {"default": "", "multiline": True,
+                                     "tooltip": "The header the plan opens with, through its K: line: the hook's key, metre, note length and tempo."}),
+            "hook_body": ("STRING", {"default": "", "multiline": True,
+                                     "tooltip": "The hook's bars as V: Vocal and V: Ins blocks, written into every section named below."}),
+            "hook_section": ("STRING", {"default": "", "tooltip": "The section the hook fills, as the plan names it (chorus, verse). Empty is off."}),
         }}
 
     def execute(self, clip, style, lyrics, seed, mode, max_abc_tokens, temperature, top_p, top_k, repetition_penalty,
                 penalty_window, chord_identity, chord_strength, chord_window, hold_limit, outside_bonus, outside_limit,
-                section_strength=0.0, section_open=4, follow_sections=""):
+                section_strength=0.0, section_open=4, follow_sections="", hook_head="", hook_body="", hook_section=""):
         tokens = clip.tokenize(style, lyrics=lyrics, cot=mode, seed=seed, max_tokens=max_abc_tokens, penalty_window=penalty_window)
         tracker = HarmonyTracker(vocabulary(clip), chord_identity, chord_strength, chord_window, hold_limit,
                                  outside_bonus, outside_limit, candidates=max(64, top_k),
                                  section_strength=section_strength, section_open=section_open,
-                                 sections=[part for part in str(follow_sections or "").split(",") if part.strip()])
+                                 sections=[part for part in str(follow_sections or "").split(",") if part.strip()],
+                                 hook_head=hook_head, hook_body=hook_body, hook_section=hook_section)
         generate = lambda: clip.generate(tokens, max_length=max_abc_tokens, temperature=temperature, top_p=top_p,
                                          top_k=top_k, repetition_penalty=repetition_penalty, seed=seed)
         if tracker.active:
@@ -394,6 +475,8 @@ class YuE2GenerateABCHarmony:
                 ids = generate()
         else:
             ids = generate()
+        if tracker.hook_section:
+            logging.info("YuE2 Generate ABC (Harmony): the hook filled %d %s section(s)", tracker.hooks, tracker.hook_section)
         return (clip.decode(ids),)
 
 

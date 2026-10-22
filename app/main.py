@@ -862,9 +862,7 @@ class ScoreIn(BaseModel):
 class ComposerExpandIn(BaseModel):
     source_id: str | None = None
     abc: str | None = Field(None, max_length=200_000)
-    method: str = Field("symbolic", pattern="^(symbolic|neural)$")
     preset: str = Field("standard", max_length=64)
-    palette: str = Field("pop", max_length=64)
     role: str = Field("chorus", pattern="^(chorus|verse)$")
     style: str = Field("", max_length=2000)
     title: str | None = Field(None, max_length=200)
@@ -1830,87 +1828,51 @@ async def recorder_autotune(
         raise HTTPException(500, f"autotune processing failed: {exc}") from exc
 
 
-# ------------------------------------------------------ Hum-to-Song Thematic Composer
+# ------------------------------------------------------ hum to song
+# A short recorded tune made into a whole song: the planner writes the song with the tune
+# held in every chorus (or verse), in the tune's own key, metre and tempo (composer.py).
 @app.get("/api/composer/options")
 def get_composer_options() -> dict:
-    """Return available song structure presets and harmonic palettes."""
-    return {
-        "presets": [
-            {"id": "standard", "name": "Standard Pop (Verse-PreChorus-Chorus-Bridge)", "sections": composer.PRESETS["standard"]},
-            {"id": "short", "name": "Radio Edit / Short (Verse-Chorus-Verse-Chorus)", "sections": composer.PRESETS["short"]},
-            {"id": "aaba", "name": "AABA Classic (Verse-Verse-Bridge-Verse)", "sections": composer.PRESETS["aaba"]},
-        ],
-        "palettes": [
-            {"id": "pop", "name": "Pop / Commercial (I - V - vi - IV)"},
-            {"id": "ballad", "name": "Moody / Ballad (vi - IV - I - V)"},
-            {"id": "uplifting", "name": "Uplifting / Anthem (I - IV - vi - V)"},
-            {"id": "rock", "name": "Classic Rock (I - IV - V - IV)"},
-            {"id": "rnb", "name": "RnB / Neo-Soul (ii - V - I - vi)"},
-        ],
-    }
+    """The song structures a hum can become, as lyric tags."""
+    return {"presets": [{"id": key, "sections": sections} for key, sections in composer.PRESETS.items()]}
 
 
 @app.post("/api/composer/expand")
 async def expand_melody_to_song(body: ComposerExpandIn) -> dict:
-    """Expand a short melody motif into a full multi-section song structure.
+    """Queue a cover of the recording whose score the planner writes, with the recording's tune
+    held in every chorus (or verse): a whole song made from a hummed or sung few bars."""
+    if not body.source_id:
+        raise HTTPException(400, "Choose a recording to make a song from.")
+    if ENGINE.options_loaded and not ENGINE.options.get("hook"):
+        raise HTTPException(400, "The engine cannot hold a tune in a plan yet. Rebuild it: docker compose build engine, then restart.")
+    source = one("SELECT * FROM sources WHERE id = ?", (body.source_id,))
+    if not source:
+        raise HTTPException(404, "no such source")
+    input_abc = (body.abc or "").strip() or (source["abc"] or "").strip()
+    if not input_abc:
+        raise HTTPException(400, "This recording has no score yet. Transcribe it first.")
+    try:
+        hook = composer.hook_of(input_abc)
+    except composer.NoMelody as exc:
+        raise HTTPException(400, str(exc)) from exc
 
-    Supports both instant rule-based Symbolic composition and AI Neural continuation.
-    """
-    input_abc = (body.abc or "").strip()
-    source_title = ""
-    if not input_abc and body.source_id:
-        source = one("SELECT * FROM sources WHERE id = ?", (body.source_id,))
-        if not source:
-            raise HTTPException(404, "no such source")
-        input_abc = (source["abc"] or "").strip()
-        source_title = source["title"]
-        if not input_abc:
-            raise HTTPException(400, "This recording has no score yet. Transcribe it first to extract the melody notes.")
-    elif not input_abc:
-        raise HTTPException(400, "Provide an input score (abc) or source_id to expand.")
-
-    sections = composer.PRESETS.get(body.preset, composer.PRESETS["standard"])
-
-    if body.method == "symbolic":
-        expanded = composer.expand_motif_to_song(
-            input_abc,
-            structure=sections,
-            palette_name=body.palette,
-            role=body.role,
-        )
-        est = score.estimate(expanded)
-        probs = score.problems(expanded)
-        return {
-            "method": "symbolic",
-            "abc": expanded,
-            "estimate": est,
-            "problems": probs,
-            "sections": sections,
-        }
-
-    # Neural Continuation via score planner
-    analysis = composer.analyze_motif(input_abc)
-    target_key = f"{analysis.key_root}{'m' if analysis.mode == 'minor' else ''}"
-    struct_lyrics = body.lyrics.strip() or "\n\n".join([f"[{sec}]" for sec in sections])
-    title = (body.title or "").strip() or (f"{source_title} (Full Song)" if source_title else "Full Song from Melody")
-
-    song_body = SongIn(
-        title=title,
-        style=body.style.strip() or f"{analysis.bpm} BPM, {target_key}, melodic pop arrangement",
-        lyrics=struct_lyrics,
-        target_key=target_key,
-        target_bpm=analysis.bpm,
-        space_id=body.space_id,
-    )
-    planned_take = await _plan_new_take("song", title, struct_lyrics, song_body)
-    return {
-        "method": "neural",
-        "take_id": planned_take["id"],
-        "status": planned_take["status"],
-        "sections": sections,
-        "estimate": {"bpm": analysis.bpm, "key": target_key},
-    }
-
+    section = composer.section_name(body.role)
+    words = body.lyrics.strip() or "\n\n".join(f"[{name}]" for name in composer.PRESETS.get(body.preset, composer.PRESETS["standard"]))
+    if section not in lyrics.plan_names(words):
+        raise HTTPException(400, f"The {'lyrics have' if body.lyrics.strip() else 'structure has'} no [{section.title()}] for the tune to be. "
+                                 "Choose another structure or melody role, or add one.")
+    title = (body.title or "").strip() or f"{source['title']} (Full Song)"
+    # Rendered as soon as the plan is written and passes its checks: the cover workflow ends in a cover.
+    song = SongIn(title=title, style=body.style.strip() or "melodic pop arrangement", lyrics=words,
+                  follow_structure=1, auto_render=True, space_id=body.space_id)
+    record = _new_take_record("cover", title, words, song)
+    record.update({"source_id": source["id"], "hook_abc": hook.head + hook.body, "hook_section": section})
+    _insert_new_take(record)
+    await queue_take("plan", record["id"])
+    log.info("Queued cover plan for '%s' (%s) from recording '%s', with its %d-bar tune in every %s (%s, %d BPM)",
+             title, record["id"], source["title"], hook.bars, section, hook.key, hook.bpm)
+    return {"take_id": record["id"], "status": "queued", "section": section, "bars": hook.bars,
+            "key": hook.key, "bpm": hook.bpm}
 
 
 # ------------------------------------------------------ a corpus song as a recording
@@ -2716,6 +2678,8 @@ def _new_take_record(kind: str, title: str, words: str, body: SongIn | Instrumen
         "voice_lora_clip": getattr(body, "voice_lora_clip", 0.0),
         **_style_lora_of(body),
         **_advanced_of(body),
+        "hook_abc": None,
+        "hook_section": None,
     }
 
 
@@ -2726,14 +2690,16 @@ def _insert_new_take(record: dict) -> None:
                              normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
-                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds)
+                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds,
+                             hook_abc, hook_section)
            VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :brief, :abc, :mode, :seed, :checkpoint,
                   :max_duration, :cap_typed, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :parent_id, :interpretation, :feel, :realaudio,
                   :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
-                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds)""",
-        record,
+                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds,
+                  :hook_abc, :hook_section)""",
+        {"hook_abc": None, "hook_section": None, **record},
     )
 
 
@@ -3204,7 +3170,8 @@ async def replan_take(take_id: str, body: ReplanIn | None = None) -> dict:
     """Write a fresh score plan for the same lyrics and style, optionally with a
     different plan variety or harmony."""
     take = _idle_take(take_id)
-    if take.get("source_id"):
+    # A cover's score is its recording's transcription, unless the planner wrote it around the recording's tune.
+    if take.get("source_id") and not take.get("hook_abc"):
         raise HTTPException(400, "this take's score is its recording's transcription, so there is no plan to write again.")
     body = body or ReplanIn()
     _check_harmony(body.harmony)
