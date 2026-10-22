@@ -7,6 +7,7 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **Song from a prompt:** write a score plan from a style and lyrics, edit it, render it.
 - **Cover a recording:** transcribe your song, change its melody and chords, render a new version.
 - **Instrumentals:** build the structure section by section, or play a recording's score.
+- **Record a tune:** sing, hum or play one on an instrument, and expand a few bars into a whole song.
 - **MIDI import for covers and instrumentals:** MIDI editing with piano roll and sf2 (experimental).
 - **Style LoRAs:** use published ones, or train your own from a folder of songs.
 - **Lyrics:** draft them from a sentence, or extract them from a recording.
@@ -116,6 +117,10 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   names — a guitar, a piano, strings, a synth — and drums when the style asks for them. **Download
   MIDI** saves the score for a DAW, one track for each part: the vocal and instrument lines, the
   chords with their bass, and drums when the style asks for them, each with its General MIDI instrument.
+- **Record a tune of your own.** Sing or hum into a microphone (with optional autotune), or play a
+  melody on an instrument such as a guitar into an audio interface, with a metronome, count-in and
+  headphone monitoring. **Expand to full song** has YuE2 write a whole song around those few bars,
+  your tune in every chorus, sung by the voice you choose, with words you write or draft.
 - **MIDI import and audition (Experimental).** Drop a Standard MIDI file (`.mid`, `.midi`) into Cover
   mode to generate different, often off-the-wall takes of original tunes. The app parses tracks into
   vocal melody, accompaniment, and chords, extracts embedded lyrics, and provides high-fidelity audio

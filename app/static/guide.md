@@ -645,6 +645,39 @@ last section: **Render** again for another try.
 A cover follows the original's melody and chords while the style decides everything else, which is
 what makes it a cover rather than a copy.
 
+### Recording a tune of your own
+
+In **Cover** mode, **Record melody** opens the recorder. Choose what you are recording under **Input**:
+
+- **Voice:** sing or hum into a microphone. **Autotune** can snap the take to a key and scale; the
+  button on a take switches between the tuned and raw versions so you can hear what it did.
+- **Instrument:** play the tune on an instrument, a guitar into an audio interface for example.
+  Play it **one note at a time**: the line you play becomes the tune that is sung, and strummed
+  chords give no tune to sing. Choose the interface under **Device**, and under **Channel** the side
+  your instrument is plugged into (an interface's input 1 is usually **Left**). Raise **Input Gain**
+  for a quiet instrument, keeping the meter out of CLIP. Autotune is not offered: an instrument is
+  already in tune. Yeufonic remembers these choices in this browser.
+
+The metronome, count-in and headphone monitoring work the same for both. **Use as Cover** keeps the
+take as a recording, marked **MIC** or **INST** in the list. Transcribe it as any recording.
+**Extract lyrics** is not offered for an instrument take, since it has no words to hear: use
+**Write lyrics**.
+
+#### Expand to full song
+
+A recorded tune is often only a few bars long. **Expand to full song** has YuE2 plan a whole song
+with your tune in it: the plan is in your tune's key, metre and tempo, every chorus (or every verse,
+if you choose) holds your tune, and the rest of the song is written around it. Then it is rendered
+as a cover of your recording.
+
+- **Sung by:** a man or a woman. Your tune is moved by whole octaves to where that voice sings,
+  since the octave the melody is written in decides who sings it. If the style names no singer,
+  the voice is added to it.
+- **Song structure:** used when the lyrics box is empty. With words in the box, their sections are
+  the structure, and they need a **[Chorus]** (or **[Verse]**) for your tune to be.
+- **Words:** a hum can be planned without words. A tune played on an instrument needs words to
+  sing, so write them first: **Write lyrics** drafts them for you.
+
 ### MIDI files and covers (Experimental)
 
 > [!NOTE]

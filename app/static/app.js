@@ -3410,7 +3410,7 @@ async function loadSources() {
 
   var optHtml = '<option value="">Choose a recording\u2026</option>';
   if (recordings.length > 0 && uploads.length > 0) {
-    optHtml += '<optgroup label="Voice Recordings">' + recordings.map(optionHtml).join('') + '</optgroup>';
+    optHtml += '<optgroup label="Your Recordings">' + recordings.map(optionHtml).join('') + '</optgroup>';
     optHtml += '<optgroup label="Uploaded Audio">' + uploads.map(optionHtml).join('') + '</optgroup>';
   } else {
     optHtml += State.sources.map(optionHtml).join('');
@@ -3449,7 +3449,9 @@ function paintSourcePickerMenu() {
     var scoreBadge = isMidi
       ? '<span class="source-item-score midi-tag">MIDI</span>'
       : (isRec
-          ? '<span class="source-item-score rec-tag" title="Recorded Melody">MIC</span>'
+          ? (source.instrument
+              ? '<span class="source-item-score rec-tag" title="Played on an instrument">INST</span>'
+              : '<span class="source-item-score rec-tag" title="Sung or hummed">MIC</span>')
           : (source.has_score ? '<span class="source-item-score">\u2713 score</span>' : ''));
     var isSel = source.id === currentId ? ' selected' : '';
     return '<div class="source-picker-item' + isSel + '" data-id="' + esc(source.id) + '" role="option">' +
@@ -3676,7 +3678,7 @@ function updateLyricsWriteVisibility() {
   if (btn) {
     btn.style.display = showBtn ? '' : 'none';
     if (showBtn && State.mode === 'cover') {
-      btn.title = 'Draft lyrics to fit what was hummed, sung or played via MIDI';
+      btn.title = 'Draft lyrics to fit what was hummed, sung or played';
     } else if (showBtn) {
       btn.title = 'Draft lyrics from a short description';
     }
@@ -3694,7 +3696,7 @@ function paintSource() {
   var isMidi = Boolean(source && source.filename && source.filename.match(/\.midi?$/i));
   var isRec = Boolean(source && source.origin === 'recording');
   if (pickerLabel) {
-    var tag = isMidi ? ' [MIDI]' : (isRec ? ' [MIC]' : (source && source.has_score ? ' \u2713 score' : ''));
+    var tag = isMidi ? ' [MIDI]' : (isRec ? (source.instrument ? ' [INST]' : ' [MIC]') : (source && source.has_score ? ' \u2713 score' : ''));
     pickerLabel.textContent = source
       ? source.title + tag
       : 'Choose a recording\u2026';
@@ -3708,8 +3710,10 @@ function paintSource() {
     $('transcribe').title = isMidi ? 'MIDI files are converted to score on upload and do not need transcription' : '';
   }
   if ($('source-lyrics')) {
-    $('source-lyrics').disabled = !source || isMidi;
-    $('source-lyrics').title = isMidi ? 'MIDI files do not have audio vocals for lyric extraction' : 'Write down the words this recording sings';
+    $('source-lyrics').disabled = !source || isMidi || Boolean(source.instrument);
+    $('source-lyrics').title = isMidi ? 'MIDI files do not have audio vocals for lyric extraction'
+      : (source && source.instrument) ? 'Played on an instrument: there are no words to hear. Use Write lyrics.'
+      : 'Write down the words this recording sings';
   }
   if ($('source-expand-song')) {
     var hasMelody = Boolean(source && (source.has_score || isMidi || $('abc').value.trim()));
@@ -5859,6 +5863,7 @@ function paintHearButton() {
   // The label stays an instruction. "Lyrics heard" read as a status, and a
   // status is not something anyone thinks to press.
   button.title = !source ? 'Choose a recording first'
+    : source.instrument ? 'Played on an instrument: there are no words to hear. Use Write lyrics.'
     : source.origin === 'recording' ? 'Extract words heard in recording (or use Write lyrics if you hummed)'
     : source.has_lyrics ? 'Put the words heard earlier in the box, and offer to hear them again'
     : 'Separate the vocal from this recording and write down what it sings. English recordings only: '
@@ -9810,14 +9815,25 @@ async function openExpandModal() {
     $('expand-motif-summary').textContent = 'Your tune: ' + (keyMatch ? keyMatch[1].trim() : 'C') + ' \u00b7 ' + (bpmMatch ? bpmMatch[1] : '120') + ' BPM';
   }
   var words = ($('lyrics') ? $('lyrics').value : '').trim();
+  // A tune played on an instrument has nothing to sing without words of its own.
+  var needsWords = Boolean(source && source.instrument) && !words;
   if ($('expand-preset')) { $('expand-preset').disabled = Boolean(words); }
   if ($('expand-preset-hint')) {
     $('expand-preset-hint').textContent = words
       ? 'The lyrics in the box are used, and their sections are the structure.'
       : 'No lyrics in the box, so the song is planned without words.';
   }
-  if ($('expand-status')) { $('expand-status').textContent = ''; }
-  if ($('expand-go')) { $('expand-go').disabled = false; }
+  if ($('expand-voice')) {
+    var voice = '';
+    try { voice = localStorage.getItem('yue2.expandVoice') || ''; } catch (e) { /* no storage */ }
+    if (voice === 'male' || voice === 'female') { $('expand-voice').value = voice; }
+  }
+  if ($('expand-status')) {
+    $('expand-status').textContent = needsWords
+      ? 'This tune was played on an instrument, so it needs words to sing. Write lyrics first.' : '';
+    $('expand-status').className = needsWords ? 'status bad' : 'status';
+  }
+  if ($('expand-go')) { $('expand-go').disabled = needsWords; }
   $('expand-modal').classList.remove('hidden');
 }
 
@@ -9828,6 +9844,8 @@ function closeExpandModal() {
 async function doExpandToSong() {
   var source = currentSource();
   var role = $('expand-role') ? $('expand-role').value : 'chorus';
+  var voice = $('expand-voice') ? $('expand-voice').value : 'male';
+  try { localStorage.setItem('yue2.expandVoice', voice); } catch (e) { /* no storage */ }
   var style = ($('expand-style') ? $('expand-style').value.trim() : '') || ($('style') ? $('style').value.trim() : '');
   var title = ($('title') ? $('title').value.trim() : '') || (source ? source.title + ' (Full Song)' : '');
 
@@ -9846,6 +9864,7 @@ async function doExpandToSong() {
         abc: $('abc').value.trim() || null,
         preset: $('expand-preset') ? $('expand-preset').value : 'standard',
         role: role,
+        voice: voice,
         style: style,
         title: title,
         lyrics: $('lyrics') ? $('lyrics').value : '',
@@ -9856,7 +9875,9 @@ async function doExpandToSong() {
     setSelection({ formTakeId: res.take_id, boxKind: 'none', boxId: null, awaiting: res.take_id });
     editorAfterPlan();
     if (typeof loadTakes === 'function') { await loadTakes(); }
-    statusLine('Making a cover with your tune (' + res.bars + ' bars) in every ' + res.section + ', in ' + res.key + ' at ' + res.bpm + ' BPM: the plan first, then the render.', 'good');
+    statusLine('Making a cover with your tune (' + res.bars + ' bars) in every ' + res.section + ', in ' + res.key + ' at ' + res.bpm + ' BPM'
+      + (res.octaves ? ', moved ' + Math.abs(res.octaves) + ' octave' + (Math.abs(res.octaves) > 1 ? 's ' : ' ') + (res.octaves > 0 ? 'up' : 'down') : '')
+      + ': the plan first, then the render.', 'good');
   } catch (err) {
     if ($('expand-status')) {
       $('expand-status').textContent = 'Could not plan it: ' + (err.message || err);

@@ -6324,6 +6324,19 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   margin-bottom: 8px;
 }
 
+.rec-source-seg {
+  display: flex;
+  gap: 4px;
+}
+.rec-source-seg .rec-pill-btn {
+  flex: 1;
+}
+.rec-input-grid {
+  align-items: start;
+}
+#rec-device {
+  width: 100%;
+}
 .rec-grid-cols {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));

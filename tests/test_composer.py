@@ -68,7 +68,7 @@ def test_a_hum_becomes_a_cover_whose_plan_follows_its_structure_with_the_hook(cl
     assert take["kind"] == "cover" and take["source_id"] == sid and take["follow_structure"] == 1
     assert take["status"] == "queued" and take["abc"] == ""
     assert take["auto_render"] == 1, "rendered once the plan is written: the workflow ends in a cover"
-    assert take["title"] == "Hum (Full Song)" and take["style"] == "folk, acoustic guitar"
+    assert take["title"] == "Hum (Full Song)" and take["style"] == "folk, acoustic guitar, male vocals"
     assert take["lyrics"] == "[Verse 1]\n\n[Chorus]\n\n[Verse 2]\n\n[Chorus]\n\n[Outro]"
     hook = composer.hook_of(HUM)
     assert take["hook_abc"] == hook.head + hook.body and take["hook_section"] == "chorus"

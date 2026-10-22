@@ -1215,6 +1215,14 @@
       </select>
     </div>
     <div class="field">
+      <label for="expand-voice">Sung by</label>
+      <select id="expand-voice">
+        <option value="male" selected>A man</option>
+        <option value="female">A woman</option>
+      </select>
+      <div class="hint">Your tune is moved by octaves to suit the voice.</div>
+    </div>
+    <div class="field">
       <label for="expand-preset">Song structure</label>
       <select id="expand-preset">
         <option value="standard" selected>Intro, Verse, Pre-Chorus, Chorus, Verse, Pre-Chorus, Chorus, Bridge, Chorus, Outro</option>
@@ -1512,6 +1520,39 @@
       <div class="rec-deck">
         <div id="rec-error-msg" class="rec-error-msg hidden"></div>
 
+        <!-- Input: a voice into a mic, or an instrument (a guitar into an interface) -->
+        <div class="rec-settings-card">
+          <div class="rec-card-title">Input</div>
+          <div class="rec-grid-cols rec-input-grid">
+            <div class="field compact">
+              <label>Source</label>
+              <div class="rec-source-seg" role="group" aria-label="What you are recording">
+                <button type="button" id="rec-src-voice" class="rec-pill-btn active" onclick="window.Recorder.setInputMode('mic')" title="Sing or hum into a microphone">Voice</button>
+                <button type="button" id="rec-src-instrument" class="rec-pill-btn" onclick="window.Recorder.setInputMode('instrument')" title="Play a single-note melody on an instrument, e.g. a guitar into an audio interface">Instrument</button>
+              </div>
+            </div>
+            <div class="field compact">
+              <label for="rec-channel">Channel</label>
+              <select id="rec-channel" onchange="window.Recorder.setInputChannel(this.value)" title="An interface's input 1 is usually Left">
+                <option value="both" selected>Both (mono)</option>
+                <option value="left">Left / Input 1</option>
+                <option value="right">Right / Input 2</option>
+              </select>
+            </div>
+            <div class="field compact">
+              <label for="rec-gain">Input Gain</label>
+              <input type="range" id="rec-gain" min="0.25" max="8" step="0.05" value="1" oninput="window.Recorder.setInputGain(parseFloat(this.value))" title="Raise a quiet instrument; keep the meter out of CLIP">
+            </div>
+          </div>
+          <div class="field compact" style="margin-top: 8px;">
+            <label for="rec-device">Device</label>
+            <select id="rec-device" onchange="window.Recorder.setDevice(this.value)">
+              <option value="">Default input</option>
+            </select>
+          </div>
+          <div id="rec-input-hint" class="rec-hint muted" style="margin-top: 6px; font-size: 11px;">Sing or hum your melody.</div>
+        </div>
+
         <!-- Timer & Note Pitch Display -->
         <div class="rec-display-row">
           <div class="rec-timer-display">
@@ -1548,7 +1589,7 @@
             Retake
           </button>
         </div>
-        <div class="rec-hint muted">Press <kbd>Space</kbd> to start/stop recording &middot; Sing or hum your melody into the mic</div>
+        <div class="rec-hint muted">Press <kbd>Space</kbd> to start/stop recording</div>
 
         <!-- Direct Monitoring Row -->
         <div class="rec-settings-card">
@@ -1566,7 +1607,7 @@
             </div>
           </div>
           <div class="rec-hint muted" style="margin-top: 6px; font-size: 11px;">
-            Routes mic directly to your headphones so you can hear your pitch while singing.
+            Routes the input straight to your headphones, to hear yourself as you sing or play.
           </div>
         </div>
 
@@ -1605,7 +1646,7 @@
         </div>
 
         <!-- Autotune Setting Row -->
-        <div class="rec-settings-card">
+        <div id="rec-autotune-card" class="rec-settings-card">
           <div class="rec-card-title">Melody Pitch Correction (Autotune)</div>
           <div class="rec-grid-cols">
             <div class="field compact">
@@ -1665,7 +1706,7 @@
     <!-- Visual Count-In Overlay -->
     <div id="rec-countin-overlay" class="rec-countin-overlay hidden">
       <div class="rec-countin-box">
-        <div id="rec-countin-label" class="rec-countin-label">Get Ready to Sing…</div>
+        <div id="rec-countin-label" class="rec-countin-label">Get Ready…</div>
         <div id="rec-countin-number" class="rec-countin-number">4</div>
         <div id="rec-countin-root" class="rec-countin-root hidden"></div>
       </div>

@@ -864,6 +864,7 @@ class ComposerExpandIn(BaseModel):
     abc: str | None = Field(None, max_length=200_000)
     preset: str = Field("standard", max_length=64)
     role: str = Field("chorus", pattern="^(chorus|verse)$")
+    voice: str = Field("male", pattern="^(male|female)$")
     style: str = Field("", max_length=2000)
     title: str | None = Field(None, max_length=200)
     lyrics: str = Field("", max_length=20_000)
@@ -1636,7 +1637,7 @@ def list_sources(origin: str | None = None) -> list[dict]:
     args = (origin,) if origin else ()
     got = rows(
         f"""SELECT id, title, filename, created_at, transcribe_state, transcribe_error, duration,
-                  abc, lyrics_state, origin, (lyrics IS NOT NULL AND lyrics != '') AS has_lyrics,
+                  abc, lyrics_state, origin, instrument, (lyrics IS NOT NULL AND lyrics != '') AS has_lyrics,
                   (abc IS NOT NULL AND abc != '') AS has_score,
                   (SELECT COUNT(*) FROM takes t WHERE t.source_id = sources.id) AS take_count
            FROM sources {where} ORDER BY created_at DESC""",
@@ -1690,7 +1691,8 @@ def _store_upload(fileobj) -> tuple[str, Path, int]:
 async def upload_source(
     file: UploadFile = File(...),
     title: str = Form("", max_length=200),
-    origin: str = Form("upload", max_length=30)
+    origin: str = Form("upload", max_length=30),
+    instrument: int = Form(0, ge=0, le=1),
 ) -> dict:
     try:
         digest, tmp, size = await asyncio.to_thread(_store_upload, file.file)
@@ -1779,14 +1781,17 @@ async def upload_source(
         # Read once here, so a score transcribed from it can be checked against it.
         "duration": await asyncio.to_thread(audio_duration, dest),
         "origin": origin,
+        # Played rather than sung: only the recorder says so.
+        "instrument": instrument if origin == "recording" else 0,
     }
     execute(
-        """INSERT INTO sources(id, title, filename, stored_path, engine_file, sha256, created_at, duration, origin)
-           VALUES(:id, :title, :filename, :stored_path, :engine_file, :sha256, :created_at, :duration, :origin)""",
+        """INSERT INTO sources(id, title, filename, stored_path, engine_file, sha256, created_at, duration, origin, instrument)
+           VALUES(:id, :title, :filename, :stored_path, :engine_file, :sha256, :created_at, :duration, :origin, :instrument)""",
         record,
     )
     dur_str = f", {record['duration']:.1f}s" if record.get("duration") else ""
-    log.info("Uploaded source recording '%s' (%s%s, origin=%s)", record["title"], record["id"], dur_str, origin)
+    log.info("Uploaded source recording '%s' (%s%s, origin=%s%s)", record["title"], record["id"], dur_str, origin,
+             ", an instrument" if record["instrument"] else "")
     return {**record, "transcribe_state": "none", "abc": None, "duplicate": False}
 
 
@@ -1848,6 +1853,8 @@ async def expand_melody_to_song(body: ComposerExpandIn) -> dict:
     source = one("SELECT * FROM sources WHERE id = ?", (body.source_id,))
     if not source:
         raise HTTPException(404, "no such source")
+    if source.get("instrument") and not body.lyrics.strip():
+        raise HTTPException(400, "A tune played on an instrument needs words to sing. Write lyrics first.")
     input_abc = (body.abc or "").strip() or (source["abc"] or "").strip()
     if not input_abc:
         raise HTTPException(400, "This recording has no score yet. Transcribe it first.")
@@ -1855,6 +1862,7 @@ async def expand_melody_to_song(body: ComposerExpandIn) -> dict:
         hook = composer.hook_of(input_abc)
     except composer.NoMelody as exc:
         raise HTTPException(400, str(exc)) from exc
+    hook, octaves = composer.fit_to_voice(hook, body.voice)
 
     section = composer.section_name(body.role)
     words = body.lyrics.strip() or "\n\n".join(f"[{name}]" for name in composer.PRESETS.get(body.preset, composer.PRESETS["standard"]))
@@ -1863,16 +1871,17 @@ async def expand_melody_to_song(body: ComposerExpandIn) -> dict:
                                  "Choose another structure or melody role, or add one.")
     title = (body.title or "").strip() or f"{source['title']} (Full Song)"
     # Rendered as soon as the plan is written and passes its checks: the cover workflow ends in a cover.
-    song = SongIn(title=title, style=body.style.strip() or "melodic pop arrangement", lyrics=words,
+    song = SongIn(title=title, style=composer.style_for_voice(body.style.strip() or "melodic pop arrangement", body.voice), lyrics=words,
                   follow_structure=1, auto_render=True, space_id=body.space_id)
     record = _new_take_record("cover", title, words, song)
     record.update({"source_id": source["id"], "hook_abc": hook.head + hook.body, "hook_section": section})
     _insert_new_take(record)
     await queue_take("plan", record["id"])
-    log.info("Queued cover plan for '%s' (%s) from recording '%s', with its %d-bar tune in every %s (%s, %d BPM)",
-             title, record["id"], source["title"], hook.bars, section, hook.key, hook.bpm)
+    log.info("Queued cover plan for '%s' (%s) from recording '%s', with its %d-bar tune in every %s (%s, %d BPM), "
+             "for a %s voice%s", title, record["id"], source["title"], hook.bars, section, hook.key, hook.bpm, body.voice,
+             f", moved {octaves:+d} octave(s)" if octaves else "")
     return {"take_id": record["id"], "status": "queued", "section": section, "bars": hook.bars,
-            "key": hook.key, "bpm": hook.bpm}
+            "key": hook.key, "bpm": hook.bpm, "voice": body.voice, "octaves": octaves}
 
 
 # ------------------------------------------------------ a corpus song as a recording
@@ -5513,6 +5522,8 @@ async def source_lyrics(source_id: str) -> dict:
         raise HTTPException(404, "no such recording")
     if (source.get("filename") or "").lower().endswith((".mid", ".midi")):
         raise HTTPException(400, "Lyrics extraction with Whisper requires an audio recording, not a MIDI file.")
+    if source.get("instrument"):
+        raise HTTPException(400, "This recording was played on an instrument, so it has no words to hear. Use Write lyrics.")
     if not Path(source["stored_path"]).exists():
         raise HTTPException(400, "the file for this recording is missing")
     if source["lyrics_state"] in ("queued", "running"):

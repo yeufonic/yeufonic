@@ -20,7 +20,12 @@
 
     // Transport state: 'idle' | 'armed' | 'countin' | 'recording' | 'stopped'
     state: 'idle',
-    inputMode: 'mic', // extensible for 'midi' in future
+    // 'mic' (a voice, sung or hummed) or 'instrument' (a single-note line, e.g. a guitar into an interface)
+    inputMode: 'mic',
+    deviceId: '',          // '' is the system's default input
+    inputChannel: 'both',  // 'both' (mixed to mono), 'left' or 'right': an interface's input 1 or 2
+    inputGain: null,
+    inputSplitter: null,
 
     // Recorded audio chunks
     recordedChunks: [],
@@ -65,7 +70,111 @@
     isOpen: false,
 
     init: function () {
+      this.loadPrefs();
       this.bindDOM();
+      this.paintInput();
+    },
+
+    // ------------------------------------------------- Input choice (remembered per browser)
+    loadPrefs: function () {
+      var saved = null;
+      try { saved = JSON.parse(localStorage.getItem('yue2.recorderInput') || 'null'); } catch (e) { saved = null; }
+      if (!saved) { return; }
+      if (saved.mode === 'mic' || saved.mode === 'instrument') { this.inputMode = saved.mode; }
+      if (typeof saved.deviceId === 'string') { this.deviceId = saved.deviceId; }
+      if (['both', 'left', 'right'].indexOf(saved.channel) >= 0) { this.inputChannel = saved.channel; }
+      if (typeof saved.gain === 'number' && saved.gain > 0) { this.inputGainVal = saved.gain; }
+    },
+
+    savePrefs: function () {
+      try {
+        localStorage.setItem('yue2.recorderInput', JSON.stringify({
+          mode: this.inputMode, deviceId: this.deviceId, channel: this.inputChannel, gain: this.inputGainVal
+        }));
+      } catch (e) { /* no storage: the choice lasts this visit */ }
+    },
+
+    isInstrument: function () {
+      return this.inputMode === 'instrument';
+    },
+
+    paintInput: function () {
+      var inst = this.isInstrument();
+      var voiceBtn = document.getElementById('rec-src-voice');
+      var instBtn = document.getElementById('rec-src-instrument');
+      if (voiceBtn) { voiceBtn.classList.toggle('active', !inst); }
+      if (instBtn) { instBtn.classList.toggle('active', inst); }
+      var channel = document.getElementById('rec-channel');
+      if (channel) { channel.value = this.inputChannel; }
+      var gain = document.getElementById('rec-gain');
+      if (gain) { gain.value = String(this.inputGainVal); }
+      // Snapping pitch is for a voice: an instrument is already in tune.
+      var tuneCard = document.getElementById('rec-autotune-card');
+      if (tuneCard) { tuneCard.classList.toggle('hidden', inst); }
+      var hint = document.getElementById('rec-input-hint');
+      if (hint) {
+        hint.textContent = inst
+          ? 'Play the melody one note at a time: it becomes the sung tune, and Write lyrics gives it words. Strummed chords give no tune to sing.'
+          : 'Sing or hum your melody.';
+      }
+      var title = document.getElementById('recorder-modal-title');
+      if (title) { title.textContent = inst ? 'Record Instrument' : 'Record Melody'; }
+    },
+
+    setInputMode: function (mode) {
+      if (mode !== 'mic' && mode !== 'instrument') { return; }
+      if (this.state === 'recording' || this.state === 'countin') { return; }
+      this.inputMode = mode;
+      if (mode === 'instrument' && this.autotune.enabled) { this.toggleAutotune(false); }
+      this.savePrefs();
+      this.paintInput();
+    },
+
+    setInputGain: function (value) {
+      if (!(value > 0)) { return; }
+      this.inputGainVal = value;
+      if (this.inputGain && this.audioCtx) {
+        this.inputGain.gain.setTargetAtTime(value, this.audioCtx.currentTime, 0.01);
+      }
+      this.savePrefs();
+    },
+
+    setInputChannel: function (channel) {
+      if (['both', 'left', 'right'].indexOf(channel) < 0) { return; }
+      this.inputChannel = channel;
+      this.savePrefs();
+      this.rearm();
+    },
+
+    setDevice: function (deviceId) {
+      this.deviceId = deviceId || '';
+      this.savePrefs();
+      this.rearm();
+    },
+
+    // A new device or channel needs the input opened again; not in the middle of a take.
+    rearm: function () {
+      if (this.state !== 'armed') { return; }
+      this.disarmRecorder();
+      this.armRecorder();
+    },
+
+    // Devices are named only once the page may use one, so the list is filled after arming.
+    refreshDevices: async function () {
+      var select = document.getElementById('rec-device');
+      if (!select || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) { return; }
+      var inputs = [];
+      try {
+        inputs = (await navigator.mediaDevices.enumerateDevices()).filter(function (d) { return d.kind === 'audioinput'; });
+      } catch (e) { return; }
+      var self = this;
+      select.innerHTML = '<option value="">Default input</option>' + inputs
+        .filter(function (d) { return d.deviceId && d.deviceId !== 'default'; })
+        .map(function (d, i) {
+          return '<option value="' + self.esc(d.deviceId) + '">' + self.esc(d.label || ('Input ' + (i + 1))) + '</option>';
+        }).join('');
+      select.value = this.deviceId;
+      if (select.value !== this.deviceId) { select.value = ''; }
     },
 
     bindDOM: function () {
@@ -126,39 +235,66 @@
           await this.audioCtx.resume();
         }
 
-        // Direct microphone input with zero echo/noise suppression latency
+        // Direct input with zero echo/noise suppression latency.  One side of a stereo
+        // interface (a guitar in input 1) is asked for in stereo and taken apart below.
         if (!this.micStream) {
-          this.micStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-              noiseSuppression: false,
-              autoGainControl: false,
-              channelCount: 1
-            }
-          });
+          var wanted = {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            channelCount: this.inputChannel === 'both' ? 1 : { ideal: 2 }
+          };
+          if (this.deviceId) { wanted.deviceId = { exact: this.deviceId }; }
+          try {
+            this.micStream = await navigator.mediaDevices.getUserMedia({ audio: wanted });
+          } catch (err) {
+            // The remembered device has gone: the default input will do.
+            if (!this.deviceId || (err && err.name !== 'OverconstrainedError' && err.name !== 'NotFoundError')) { throw err; }
+            delete wanted.deviceId;
+            this.deviceId = '';
+            this.savePrefs();
+            this.micStream = await navigator.mediaDevices.getUserMedia({ audio: wanted });
+          }
         }
 
         this.micSource = this.audioCtx.createMediaStreamSource(this.micStream);
 
-        // Low-latency direct monitor path: mic -> monitorGain -> destination
+        // Everything downstream (monitor, meter, recording) hears the input through its gain,
+        // from one side of the input when a side is chosen and the device gives two.
+        this.inputGain = this.audioCtx.createGain();
+        this.inputGain.gain.value = this.inputGainVal;
+        var track = this.micStream.getAudioTracks()[0];
+        var channels = (track && track.getSettings && track.getSettings().channelCount) || this.micSource.channelCount || 1;
+        if (this.inputChannel !== 'both' && channels >= 2) {
+          this.inputSplitter = this.audioCtx.createChannelSplitter(2);
+          this.micSource.connect(this.inputSplitter);
+          this.inputSplitter.connect(this.inputGain, this.inputChannel === 'right' ? 1 : 0);
+        } else {
+          this.micSource.connect(this.inputGain);
+        }
+
+        // Low-latency direct monitor path: input -> monitorGain -> destination
         this.monitorGain = this.audioCtx.createGain();
         this.monitorGain.gain.value = this.monitorEnabled ? this.monitorVolume : 0.0;
-        this.micSource.connect(this.monitorGain);
+        this.inputGain.connect(this.monitorGain);
         this.monitorGain.connect(this.audioCtx.destination);
 
         // VU Analyser
         this.analyser = this.audioCtx.createAnalyser();
         this.analyser.fftSize = 512;
-        this.micSource.connect(this.analyser);
+        this.inputGain.connect(this.analyser);
 
         this.state = 'armed';
+        var errShown = document.getElementById('rec-error-msg');
+        if (errShown) { errShown.classList.add('hidden'); }
         this.updateTransportUI();
         this.startMeterLoop();
+        this.refreshDevices();
       } catch (err) {
-        console.error('Failed to arm microphone:', err);
+        console.error('Failed to arm input:', err);
         var errEl = document.getElementById('rec-error-msg');
         if (errEl) {
-          errEl.textContent = 'Could not access microphone: ' + (err.message || err);
+          errEl.textContent = 'Could not open the input: ' + (err.message || err);
           errEl.classList.remove('hidden');
         }
         this.state = 'idle';
@@ -178,6 +314,14 @@
       if (this.analyser) {
         try { this.analyser.disconnect(); } catch (e) {}
         this.analyser = null;
+      }
+      if (this.inputGain) {
+        try { this.inputGain.disconnect(); } catch (e) {}
+        this.inputGain = null;
+      }
+      if (this.inputSplitter) {
+        try { this.inputSplitter.disconnect(); } catch (e) {}
+        this.inputSplitter = null;
       }
       if (this.micSource) {
         try { this.micSource.disconnect(); } catch (e) {}
@@ -595,7 +739,7 @@
         self.recordedLength += chunk.length;
       };
 
-      this.micSource.connect(this.processorNode);
+      this.inputGain.connect(this.processorNode);
       // ScriptProcessor requires a destination connection to process audio
       this.dummyDest = this.audioCtx.createGain();
       this.dummyDest.gain.value = 0.0;
@@ -663,9 +807,11 @@
       var wavBlob = this.encodeWAV(fullBuffer, sampleRate);
       var takeNum = this.sessionTakes.length + 1;
       var takeId = 'rec_' + Date.now();
+      var instrument = this.isInstrument();
       var take = {
         id: takeId,
-        title: 'Vocal Melody Take ' + takeNum,
+        title: (instrument ? 'Instrument Melody Take ' : 'Vocal Melody Take ') + takeNum,
+        instrument: instrument,
         duration: durationSec,
         blob: wavBlob,
         tunedBlob: null,
@@ -682,7 +828,7 @@
       this.renderTakesList();
 
       // Automatically apply autotune if the autotune toggle is on
-      if (this.autotune.enabled) {
+      if (this.autotune.enabled && !instrument) {
         this.applyAutotune(takeId);
       }
     },
@@ -841,12 +987,13 @@
       var take = this.takeById(takeId);
       if (!take) { return; }
       var blobToSave = (take.isTuned && take.tunedBlob) ? take.tunedBlob : take.blob;
-      var title = take.title || 'Vocal Melody';
+      var title = take.title || (take.instrument ? 'Instrument Melody' : 'Vocal Melody');
 
       var form = new FormData();
       form.append('file', blobToSave, 'melody.wav');
       form.append('title', title);
       form.append('origin', 'recording');
+      form.append('instrument', take.instrument ? '1' : '0');
 
       var sendBtn = document.getElementById('rec-send-btn-' + takeId);
       if (sendBtn) {
@@ -933,7 +1080,7 @@
       var container = document.getElementById('rec-takes-list');
       if (!container) { return; }
       if (this.sessionTakes.length === 0) {
-        container.innerHTML = '<div class="rec-no-takes">No recorded takes yet. Arm the microphone and press Record or Space to sing your melody.</div>';
+        container.innerHTML = '<div class="rec-no-takes">No recorded takes yet. Press Record or Space and sing, hum or play your melody.</div>';
         return;
       }
 
@@ -942,7 +1089,9 @@
         var isPlaying = self.previewPlayingId === take.id;
         var durStr = Math.round(take.duration) + 's';
         var tuneBadge = '';
-        if (take.autotuneStatus === 'tuning') {
+        if (take.instrument) {
+          tuneBadge = '<span class="rec-tune-tag" title="Played on an instrument">Instrument</span>';
+        } else if (take.autotuneStatus === 'tuning') {
           tuneBadge = '<span class="rec-tune-tag tuning">Tuning…</span>';
         } else if (take.autotuneStatus === 'done') {
           var label = take.isTuned ? '✓ Autotuned' : 'Raw Pitch';

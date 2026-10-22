@@ -39,6 +39,21 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Record a tune.** Cover mode has a recorder: sing or hum into a microphone, or play a melody on an
+  instrument such as a guitar into an audio interface (choose the device, the input's side and its
+  gain). A metronome with time signatures and a count-in, headphone monitoring, a level meter and a
+  live pitch readout; for a voice, optional autotune to a key and scale with an A/B switch. A take is
+  kept as a recording, marked MIC or INST, and transcribed like any other; its tune is put in the
+  vocal line even where the transcriber heard it as an instrument.
+- **Expand to full song.** A recorded tune becomes the hook of a whole song: YuE2 plans the song in
+  the tune's key, metre and tempo with the tune in every chorus (or verse) and writes the rest around
+  it, then renders it as a cover of the recording. Choose who sings it: the tune is moved by octaves
+  to that voice's register. A tune played on an instrument needs words first (Write lyrics). Docker
+  needs `docker compose build engine` for it.
+- **Write lyrics in a cover** of a recorded tune or a MIDI file.
+- A cover whose score opens with a bar of rest kept its first section unnamed when its words had
+  more sections than the score, and could leave those words unsung.
+
 ## 0.0.47 (2026-10-20)
 
 - **Playlists and Liked Songs.** Organise takes into custom playlists and access all your starred favourites in a dedicated two-column view:

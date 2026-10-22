@@ -88,7 +88,8 @@ CREATE TABLE IF NOT EXISTS sources (
     duration REAL,
     lyrics_method TEXT,
     corpus_song_id TEXT,
-    origin TEXT NOT NULL DEFAULT 'upload'
+    origin TEXT NOT NULL DEFAULT 'upload',
+    instrument INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS takes (
     id TEXT PRIMARY KEY,
@@ -578,6 +579,13 @@ def _hook() -> None:
         execute("ALTER TABLE takes ADD COLUMN hook_section TEXT")
 
 
+def _source_instrument() -> None:
+    """A recording played on an instrument rather than sung or hummed: it has no words to hear,
+    and a song made from it needs words of its own."""
+    if "instrument" not in _columns("sources"):
+        execute("ALTER TABLE sources ADD COLUMN instrument INTEGER NOT NULL DEFAULT 0")
+
+
 def _advanced_take_settings() -> None:
     """Per-take generation and mix parameters (steps, avoid, key, bpm, token cap,
     harmony limits, target loudness, outro fade)."""
@@ -734,6 +742,7 @@ MIGRATIONS = [
     _playlists,                                                      # -> 39
     _source_origin,                                                  # -> 40
     _hook,                                                           # -> 41
+    _source_instrument,                                              # -> 42
 ]
 
 

@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from . import instrumental, score
+from . import instrumental, score, transpose, voices
 
 # Song structures, as the lyric tags of a plan with no words of its own
 PRESETS: dict[str, list[str]] = {
@@ -95,3 +95,51 @@ def section_name(role: str) -> str:
     """The section the hook fills, as the planner names it."""
     return "verse" if role == "verse" else "chorus"
 
+
+
+VOICES = (voices.MALE, voices.FEMALE)
+
+
+def _shift_octaves(line: str, octaves: int) -> str:
+    """A line of music with every note written `octaves` higher (or lower).  Every note moves by
+    the same amount, so an accidental still holds for the notes it held for, and chord symbols,
+    decorations and inline fields are left as they are."""
+    def move(found: re.Match) -> str:
+        if not found.group("note"):
+            return found.group(0)
+        letter, marks = found.group("letter"), found.group("marks")
+        height = (4 if letter.isupper() else 5) + marks.count("'") - marks.count(",") + octaves
+        text = letter.lower() + "'" * (height - 5) if height >= 5 else letter.upper() + "," * (4 - height)
+        return (found.group("acc") or "") + text
+    return transpose.TOKEN.sub(move, line)
+
+
+def fit_to_voice(hook: Hook, voice: str) -> tuple[Hook, int]:
+    """The hook with its tune moved by whole octaves to where the chosen voice is sung, and by how
+    many.  The render takes the singer from the octave the vocal line is written in (voices.py),
+    so a man's tune hummed, or a guitar line played, between the two registers or below them
+    would otherwise be sung by whoever the model chose."""
+    notes = voices.read(hook.head + hook.body)["notes"]
+    total = sum(note["length"] for note in notes)
+    if not total:
+        return hook, 0
+    mean = sum(note["pitch"] * note["length"] for note in notes) / total
+    octaves = voices._octaves(mean, voice)
+    if not octaves:
+        return hook, 0
+    lines, voice_now = hook.body.split("\n"), ""
+    for index, line in enumerate(lines):
+        if line.startswith("V:"):
+            voice_now = line[2:].split()[0] if line[2:].split() else ""
+        elif voice_now == "Vocal":
+            lines[index] = _shift_octaves(line, octaves)
+    return Hook(head=hook.head, body="\n".join(lines), key=hook.key, bpm=hook.bpm, bars=hook.bars), octaves
+
+
+def style_for_voice(style: str, voice: str) -> str:
+    """The style with the chosen voice named, unless it names a singer already: the style's own
+    words are the user's and win."""
+    if any(voices._word(pattern, style) for pattern in
+           (voices._MALE_STRONG, voices._FEMALE_STRONG, voices._MALE_WEAK, voices._FEMALE_WEAK)):
+        return style
+    return f"{style}, {voice} vocals" if style else f"{voice} vocals"
