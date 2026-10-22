@@ -1,5 +1,6 @@
 """A recording from the microphone is a voice, whichever voice the transcriber files its notes in."""
 import asyncio
+import re
 import time
 
 from app import composer, instrumental, jobs, score
@@ -91,7 +92,12 @@ def test_an_uploaded_file_keeps_the_voices_the_transcriber_gave_it():
 def test_a_hum_transcribed_before_the_change_still_makes_a_hook():
     # A score stored with the tune in Ins: the hook reads it from there.
     hook = composer.hook_of(HUM)
-    assert hook.body.startswith("V: Vocal\nz8z2F4F2|E8z4F4-|F2z2E4C2E2C4|z4D4C4B,4|\n")
+    assert _notes(hook.body).startswith("V: Vocal\nz8z2F4F2|E8z4F4-|F2z2E4C2E2C4|z4D4C4B,4|\n")
+
+
+def _notes(body: str) -> str:
+    """The hook's bars without the chords a tune with none is given (test_instrument_recording)."""
+    return re.sub(r'"[^"]*"', "", body)
 
 
 def test_a_hum_split_between_the_voices_is_all_given_to_the_vocal_voice():
@@ -102,7 +108,7 @@ def test_a_hum_split_between_the_voices_is_all_given_to_the_vocal_voice():
     assert score.vocal_bars(voiced) == ["B,DEG", "EGDF", "BAGF", "EDE2"]
     assert score.vocal_bars(voiced, "Ins") == ["z4", "z4", "E2z2", "Z"], "where the voice sings, Ins keeps its own"
     hook = composer.hook_of(split)
-    assert hook.body.startswith("V: Vocal\nB,DEG|EGDF|BAGF|EDE2|\n")
+    assert _notes(hook.body).startswith("V: Vocal\nB,DEG|EGDF|BAGF|EDE2|\n")
 
 
 

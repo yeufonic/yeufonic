@@ -1,4 +1,5 @@
 """A tune played on an instrument (a guitar into the recorder) as the sung tune of a song."""
+import re
 from pathlib import Path
 
 from app import composer, voices
@@ -39,11 +40,11 @@ def test_the_tune_is_moved_by_octaves_to_where_the_chosen_voice_is_sung():
 
     man, up = composer.fit_to_voice(hook, voices.MALE)
     assert up == 1 and voices.MALE_FLOOR <= _mean(man.head + man.body) <= voices.MALE_TOP
-    assert man.body.startswith("V: Vocal\nG,2B,2D2G2|^F2E2D4|"), "every note an octave up, the sharp kept with its note"
+    assert re.sub(r'"[^"]*"', "", man.body).startswith("V: Vocal\nG,2B,2D2G2|^F2E2D4|"), "every note an octave up, the sharp kept with its note"
 
     woman, up = composer.fit_to_voice(hook, voices.FEMALE)
     assert up == 2 and _mean(woman.head + woman.body) >= voices.FEMALE_FLOOR
-    assert "G2B2d2g2|^f2e2d4|" in woman.body
+    assert "G2B2d2g2|^f2e2d4|" in re.sub(r'"[^"]*"', "", woman.body)
     # Only the tune moves: the header and what Ins holds are as they were.
     assert woman.head == hook.head and woman.body.split("V: Ins")[1] == hook.body.split("V: Ins")[1]
 
@@ -119,3 +120,55 @@ def test_a_recorded_tune_is_transcribed_as_melody_only_and_an_upload_with_chords
     graph = jobs.build_transcribe_graph("tune.flac", jobs.transcribe_mode({"origin": "recording"}))
     assert graph["3"]["inputs"]["mode"] == "melody" and graph["1"]["inputs"]["audio"] == "tune.flac"
     assert jobs.build_transcribe_graph("song.flac")["3"]["inputs"]["mode"] == "full"
+
+
+# A lone tune as the transcriber writes it when it hears no chords: a guitar line in A minor.
+NO_CHORDS = """X:1
+T:
+M:4/4
+L:1/16
+Q:1/4=90
+V: Vocal clef=treble name="Vocal Melody" snm="Vocal"
+V: Ins clef=treble name="Ins Melody" snm="Inst."
+K:Am
+V: Vocal
+z12c4|A8z2A2c2d2|G12G2A2|_B4f6f2e2c2|
+V: Ins
+z16|z16|z16|z16|
+V: Vocal
+d2c_BA12|Z|
+V: Ins
+z16|Z|
+"""
+
+
+def test_a_tune_with_no_chords_is_given_them_from_its_own_notes():
+    # A plan held to a hook with no chords was written with none, twice, and failed its checks.
+    hook = composer.hook_of(NO_CHORDS)
+    first = hook.body.split("\n")[1]
+    assert first == '"Am"z12c4|"Am"A8z2A2c2d2|"C"G12G2A2|"F"_B4f6f2e2c2|'
+    # The flat a bar's B carries holds for the rest of that bar: a D minor bar, not a B flat one.
+    assert hook.body.split("\n")[5] == '"Dm"d2c_BA12|'
+    # Ins keeps its rests, and no chord is put on a bar of whole rests.
+    assert hook.body.split("\n")[3] == "z16|z16|z16|z16|"
+    assert hook.bars == 5
+
+
+def test_a_tune_whose_transcription_has_chords_keeps_them():
+    with_some = NO_CHORDS.replace("|G12G2A2|", '|"Em"G12G2A2|')
+    assert composer.with_chords(with_some) == with_some
+    assert '"Em"G12G2A2' in composer.hook_of(with_some).body
+    assert '"Am"' not in composer.hook_of(with_some).body
+
+
+def test_chords_follow_the_key_signature_and_a_flat_key_is_spelled_in_flats():
+    abc = "X:1\nM:4/4\nL:1/8\nK:Bb\nV: Vocal\nB2d2f4|E2G2B4|F2A2c4|\nV: Ins\nZ3|\n"
+    assert composer.with_chords(abc).split("\n")[5] == '"Bb"B2d2f4|"Eb"E2G2B4|"F"F2A2c4|'
+
+
+def test_the_expand_window_takes_the_tune_from_the_recording_not_a_takes_plan():
+    page = (Path(__file__).resolve().parents[1] / "app/static/app.js").read_text(encoding="utf-8")
+    start = page.index("async function doExpandToSong")
+    sent = page[start:page.index("JSON.stringify", start) + 400]
+    assert "abc: expandBoxIsTune(source) ?" in sent
+    assert "Selection.boxKind === 'source' && Selection.boxId === source.id" in page

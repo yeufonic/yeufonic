@@ -676,6 +676,11 @@ as a cover of your recording.
 - **Sung by:** a man or a woman. Your tune is moved by whole octaves to where that voice sings,
   since the octave the melody is written in decides who sings it. If the style names no singer,
   the voice is added to it.
+- **Chords:** a tune on its own often comes back from the transcriber with no chords. Yeufonic then
+  gives it chords from its own notes, so the planner has a harmony to follow. Chords you write into
+  the recording's score are kept.
+- **Your tune** is always the recording's score, even when the editor is showing a take made from
+  it.
 - **Song structure:** used when the lyrics box is empty. With words in the box, their sections are
   the structure, and they need a **[Chorus]** (or **[Verse]**) for your tune to be.
 - **Words:** a hum can be planned without words. A tune played on an instrument needs words to

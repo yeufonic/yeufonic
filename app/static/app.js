@@ -9784,17 +9784,19 @@ async function stopWrite() {
    A recording's tune made into a whole song: the planner writes it with the tune held in every
    chorus (or verse), in the tune's own key and tempo.  The words in the lyrics box come with it,
    and their sections are the song's structure; with none, the structure chosen here. */
+/* The tune is the recording's own score: the box's, edited or not, while the box holds it, and
+   otherwise the stored transcription.  A take's plan in the box is a whole song, not the tune. */
+function expandBoxIsTune(source) {
+  return Boolean(source) && Selection.boxKind === 'source' && Selection.boxId === source.id;
+}
+
 async function openExpandModal() {
   var source = currentSource();
-  var motifAbc = $('abc').value.trim();
+  var motifAbc = expandBoxIsTune(source) ? $('abc').value.trim() : '';
   if (!motifAbc && source && source.has_score) {
     try {
       var full = await api('/api/sources/' + source.id);
       motifAbc = (full.abc || '').trim();
-      if (motifAbc) {
-        $('abc').value = motifAbc;
-        scoreBaseline(motifAbc);
-      }
     } catch (err) {
       console.warn('Could not fetch source score:', err);
     }
@@ -9861,7 +9863,7 @@ async function doExpandToSong() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         source_id: source ? source.id : null,
-        abc: $('abc').value.trim() || null,
+        abc: expandBoxIsTune(source) ? ($('abc').value.trim() || null) : null,
         preset: $('expand-preset') ? $('expand-preset').value : 'standard',
         role: role,
         voice: voice,
