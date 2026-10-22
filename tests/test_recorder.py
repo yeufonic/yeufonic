@@ -50,6 +50,9 @@ def test_static_recorder_js_and_markup_served(client):
     res = client.get("/static/recorder.js")
     assert res.status_code == 200
     assert "Yeufonic Melody Recorder" in res.text
+    assert "getRootFrequency" in res.text
+    assert "playCountInClick" in res.text
+    assert "auditionRootNote" in res.text
     assert res.headers["cache-control"] == "no-cache"
 
     page = client.get("/")
@@ -58,6 +61,16 @@ def test_static_recorder_js_and_markup_served(client):
     assert "recorder-modal" in page.text
     assert "source-record-btn" in page.text
     assert "record-melody-btn" in page.text
+    assert "rec-close-btn" in page.text
+    assert "rec-root-audition-btn" in page.text
+    assert "rec-countin-root" in page.text
+
+    css = client.get("/static/styles.css")
+    assert css.status_code == 200
+    assert "#rec-close-btn" in css.text
+    assert "position: absolute" in css.text
+    assert ".rec-audition-btn" in css.text
+    assert ".rec-countin-root" in css.text
 
 
 def test_upload_melody_recording(client):

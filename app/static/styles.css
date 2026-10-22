@@ -5903,6 +5903,40 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   overflow: hidden;
 }
 
+.recorder-modal-box .modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-right: 44px;
+}
+
+#rec-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+  z-index: 10;
+}
+
+#rec-close-btn:hover {
+  color: var(--text-strong);
+  background: rgb(var(--ink) / 0.12);
+}
+
 .rec-status-badge {
   font-size: 11px;
   font-weight: 700;
@@ -6276,6 +6310,48 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   width: 90px;
 }
 
+.rec-root-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rec-root-picker-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.rec-audition-btn {
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  height: 30px;
+}
+
+.rec-audition-btn:hover {
+  background: var(--card-3);
+  border-color: var(--accent-a);
+  color: var(--text-strong);
+}
+
+.rec-audition-btn.playing {
+  border-color: var(--accent-a);
+  background: rgb(var(--accent-a-rgb) / 0.25);
+  color: #fff;
+  box-shadow: 0 0 10px rgb(var(--accent-a-rgb) / 0.4);
+}
+
 .rec-takes-panel {
   background: var(--card);
   border: 1px solid var(--line);
@@ -6513,6 +6589,19 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   animation: countin-pop 0.3s ease-out;
 }
 
+.rec-countin-root {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-a);
+  margin-top: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.rec-countin-root.hidden {
+  display: none;
+}
+
 @keyframes countin-pop {
   0% { transform: scale(0.6); opacity: 0.5; }
   50% { transform: scale(1.15); }
@@ -6563,6 +6652,22 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 :root[data-theme="light"] .rec-countin-number {
   color: #17171f;
   text-shadow: 0 0 20px rgba(123, 92, 255, 0.4);
+}
+
+:root[data-theme="light"] #rec-close-btn:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme="light"] .rec-audition-btn {
+  background: #fff;
+  border-color: rgba(15, 23, 42, 0.16);
+  color: #334155;
+}
+
+:root[data-theme="light"] .rec-audition-btn:hover {
+  border-color: var(--accent-a);
+  color: #0f172a;
 }
 
 

@@ -1456,7 +1456,7 @@
         <h2 id="recorder-modal-title">Record Melody</h2>
         <span id="rec-status-badge" class="rec-status-badge status-ready">Ready</span>
       </div>
-      <button id="rec-close-btn" class="ghost" type="button" aria-label="Close" onclick="window.Recorder.closeModal()">&times;</button>
+      <button id="rec-close-btn" class="rec-close-btn" type="button" aria-label="Close" onclick="window.Recorder.closeModal()">&times;</button>
     </div>
 
     <div class="recorder-layout">
@@ -1545,7 +1545,7 @@
           <div class="rec-grid-cols">
             <div class="field compact">
               <label>Autotune</label>
-              <button type="button" id="rec-auto-toggle" class="rec-pill-btn" onclick="this.classList.toggle('active'); window.Recorder.autotune.enabled = this.classList.contains('active'); this.textContent = this.classList.contains('active') ? 'On' : 'Off';">
+              <button type="button" id="rec-auto-toggle" class="rec-pill-btn" onclick="window.Recorder.toggleAutotune()">
                 Off
               </button>
             </div>
@@ -1560,20 +1560,26 @@
             </div>
             <div class="field compact">
               <label for="rec-root">Key Root</label>
-              <select id="rec-root" onchange="window.Recorder.autotune.root = this.value">
-                <option value="C" selected>C</option>
-                <option value="C#">C# / Db</option>
-                <option value="D">D</option>
-                <option value="D#">D# / Eb</option>
-                <option value="E">E</option>
-                <option value="F">F</option>
-                <option value="F#">F# / Gb</option>
-                <option value="G">G</option>
-                <option value="G#">G# / Ab</option>
-                <option value="A">A</option>
-                <option value="A#">A# / Bb</option>
-                <option value="B">B</option>
-              </select>
+              <div class="rec-root-picker-row">
+                <select id="rec-root" onchange="window.Recorder.setRoot(this.value)">
+                  <option value="C" selected>C</option>
+                  <option value="C#">C# / Db</option>
+                  <option value="D">D</option>
+                  <option value="D#">D# / Eb</option>
+                  <option value="E">E</option>
+                  <option value="F">F</option>
+                  <option value="F#">F# / Gb</option>
+                  <option value="G">G</option>
+                  <option value="G#">G# / Ab</option>
+                  <option value="A">A</option>
+                  <option value="A#">A# / Bb</option>
+                  <option value="B">B</option>
+                </select>
+                <button type="button" id="rec-root-audition-btn" class="rec-audition-btn" title="Audition Key Root note" onclick="window.Recorder.auditionRootNote()">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                  <span>Hear</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1594,8 +1600,9 @@
     <!-- Visual Count-In Overlay -->
     <div id="rec-countin-overlay" class="rec-countin-overlay hidden">
       <div class="rec-countin-box">
-        <div class="rec-countin-label">Get Ready to Sing…</div>
+        <div id="rec-countin-label" class="rec-countin-label">Get Ready to Sing…</div>
         <div id="rec-countin-number" class="rec-countin-number">4</div>
+        <div id="rec-countin-root" class="rec-countin-root hidden"></div>
       </div>
     </div>
   </div>

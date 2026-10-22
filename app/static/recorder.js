@@ -313,6 +313,19 @@
     },
 
     // ------------------------------------------------- Metronome & Count-In
+    getRootFrequency: function (rootName, octave) {
+      if (octave === undefined) { octave = 4; }
+      var map = {
+        'C': 0, 'C#': 1, 'DB': 1, 'D': 2, 'D#': 3, 'EB': 3,
+        'E': 4, 'F': 5, 'F#': 6, 'GB': 6, 'G': 7, 'G#': 8,
+        'AB': 8, 'A': 9, 'A#': 10, 'BB': 10, 'B': 11
+      };
+      var clean = String(rootName || 'C').trim().toUpperCase().split('/')[0].trim();
+      var semitone = map[clean] !== undefined ? map[clean] : 0;
+      var midi = 12 * (octave + 1) + semitone;
+      return 440.0 * Math.pow(2.0, (midi - 69) / 12.0);
+    },
+
     playClick: function (accent) {
       if (!this.audioCtx) { return; }
       var osc = this.audioCtx.createOscillator();
@@ -328,6 +341,119 @@
       gain.connect(this.audioCtx.destination);
       osc.start(now);
       osc.stop(now + 0.07);
+    },
+
+    playCountInClick: function (accent) {
+      if (!this.audioCtx) {
+        this.audioCtx = new AudioContextClass();
+      }
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+
+      if (this.autotune && this.autotune.enabled) {
+        var root = (this.autotune && this.autotune.root) || 'C';
+        var freq = this.getRootFrequency(root, accent ? 5 : 4);
+        var now = this.audioCtx.currentTime;
+
+        var osc = this.audioCtx.createOscillator();
+        var oscHarmonic = this.audioCtx.createOscillator();
+        var gain = this.audioCtx.createGain();
+
+        // Warm musical tone with clear harmonic definition
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+
+        oscHarmonic.type = 'sine';
+        oscHarmonic.frequency.setValueAtTime(freq * (accent ? 1.0 : 2.0), now);
+
+        var dur = accent ? 0.26 : 0.18;
+        var peak = accent ? 0.65 : 0.45;
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(peak, now + 0.015);
+        gain.gain.setValueAtTime(peak * 0.75, now + dur * 0.4);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+        osc.connect(gain);
+        oscHarmonic.connect(gain);
+        gain.connect(this.audioCtx.destination);
+
+        osc.start(now);
+        oscHarmonic.start(now);
+        osc.stop(now + dur + 0.02);
+        oscHarmonic.stop(now + dur + 0.02);
+      } else {
+        this.playClick(accent);
+      }
+    },
+
+    auditionRootNote: function () {
+      if (!this.audioCtx) {
+        this.audioCtx = new AudioContextClass();
+      }
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+
+      var root = (this.autotune && this.autotune.root) || 'C';
+      var freq = this.getRootFrequency(root, 4);
+
+      var now = this.audioCtx.currentTime;
+      var osc1 = this.audioCtx.createOscillator();
+      var osc2 = this.audioCtx.createOscillator();
+      var gain = this.audioCtx.createGain();
+
+      // Fundamental in octave 4 (e.g. C4 = 261.6Hz, A4 = 440Hz)
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(freq, now);
+
+      // Sub-octave for warmth and pleasant timbre
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(freq * 0.5, now);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.45, now + 0.025);
+      gain.gain.setValueAtTime(0.4, now + 0.5);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(this.audioCtx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 1.0);
+      osc2.stop(now + 1.0);
+
+      // Visual feedback on audition button
+      var btn = document.getElementById('rec-root-audition-btn');
+      if (btn) {
+        btn.classList.add('playing');
+        setTimeout(function () {
+          btn.classList.remove('playing');
+        }, 800);
+      }
+    },
+
+    setRoot: function (val) {
+      if (val) {
+        this.autotune.root = val;
+      }
+      this.auditionRootNote();
+    },
+
+    toggleAutotune: function (forceVal) {
+      var btn = document.getElementById('rec-auto-toggle');
+      var on = forceVal !== undefined ? forceVal : !this.autotune.enabled;
+      this.autotune.enabled = on;
+      if (btn) {
+        btn.classList.toggle('active', on);
+        btn.textContent = on ? 'On' : 'Off';
+      }
+      if (on) {
+        this.auditionRootNote();
+      }
     },
 
     startCountInThenRecord: function () {
@@ -346,11 +472,20 @@
 
       var overlay = document.getElementById('rec-countin-overlay');
       var numEl = document.getElementById('rec-countin-number');
+      var rootEl = document.getElementById('rec-countin-root');
       if (overlay) { overlay.classList.remove('hidden'); }
+      if (rootEl) {
+        if (self.autotune && self.autotune.enabled) {
+          rootEl.textContent = 'Root: ' + (self.autotune.root || 'C');
+          rootEl.classList.remove('hidden');
+        } else {
+          rootEl.classList.add('hidden');
+        }
+      }
 
       function beat() {
         var beatNum = ((totalBeats - count) % self.metronome.beatsPerBar) + 1;
-        self.playClick(beatNum === 1);
+        self.playCountInClick(beatNum === 1);
         if (numEl) {
           numEl.textContent = String(beatNum);
           numEl.classList.remove('pulse');
