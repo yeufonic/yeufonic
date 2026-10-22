@@ -6324,6 +6324,13 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   margin-bottom: 8px;
 }
 
+.expand-structure-words {
+  padding: 8px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  line-height: 1.4;
+}
 .rec-source-seg {
   display: flex;
   gap: 4px;

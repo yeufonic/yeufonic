@@ -9790,6 +9790,22 @@ function expandBoxIsTune(source) {
   return Boolean(source) && Selection.boxKind === 'source' && Selection.boxId === source.id;
 }
 
+/* The sections a plan follows, as the server reads them (lyrics.plan_names): known tags in
+   order, a verse number dropped, and Instrumental played as an interlude. */
+var EXPAND_TAGS = ['verse', 'chorus', 'bridge', 'intro', 'outro', 'pre-chorus', 'interlude'];
+function expandSectionsOf(words) {
+  var out = [];
+  (words || '').split('\n').forEach(function (line) {
+    var found = line.trim().match(/^\[\s*([A-Za-z -]+?)\s*(?:\d+)?\s*\]$/);
+    if (!found) { return; }
+    var name = found[1].trim().toLowerCase();
+    if (name === 'instrumental') { name = 'interlude'; }
+    if (EXPAND_TAGS.indexOf(name) < 0) { return; }
+    out.push(name.replace(/(^|-)([a-z])/g, function (all, dash, letter) { return dash + letter.toUpperCase(); }));
+  });
+  return out;
+}
+
 async function openExpandModal() {
   var source = currentSource();
   var motifAbc = expandBoxIsTune(source) ? $('abc').value.trim() : '';
@@ -9819,10 +9835,21 @@ async function openExpandModal() {
   var words = ($('lyrics') ? $('lyrics').value : '').trim();
   // A tune played on an instrument has nothing to sing without words of its own.
   var needsWords = Boolean(source && source.instrument) && !words;
-  if ($('expand-preset')) { $('expand-preset').disabled = Boolean(words); }
+  // With words in the box their sections are the structure, so they are shown in place of the
+  // menu: a menu that cannot be used should not look as if it could.
+  var fromWords = expandSectionsOf(words);
+  if ($('expand-preset')) {
+    $('expand-preset').classList.toggle('hidden', Boolean(words) || needsWords);
+    $('expand-preset').disabled = Boolean(words);
+  }
+  if ($('expand-structure-words')) {
+    $('expand-structure-words').classList.toggle('hidden', !words);
+    $('expand-structure-words').textContent = fromWords.length ? fromWords.join(', ') : 'No sections in the lyrics';
+  }
   if ($('expand-preset-hint')) {
     $('expand-preset-hint').textContent = words
-      ? 'The lyrics in the box are used, and their sections are the structure.'
+      ? 'From the lyrics in the box. Change their sections to change it.'
+      : needsWords ? 'Comes from the lyrics, once they are written.'
       : 'No lyrics in the box, so the song is planned without words.';
   }
   if ($('expand-voice')) {
