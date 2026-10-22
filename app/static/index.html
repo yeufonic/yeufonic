@@ -1529,6 +1529,15 @@
               <input type="number" id="rec-bpm" min="40" max="240" value="120" onchange="window.Recorder.metronome.bpm = Math.max(40, Math.min(240, parseInt(this.value, 10) || 120))">
             </div>
             <div class="field compact">
+              <label for="rec-timesig">Time Sig</label>
+              <select id="rec-timesig" onchange="window.Recorder.setTimeSignature(this.value)">
+                <option value="4/4" selected>4/4</option>
+                <option value="3/4">3/4</option>
+                <option value="2/4">2/4</option>
+                <option value="6/8">6/8</option>
+              </select>
+            </div>
+            <div class="field compact">
               <label for="rec-countin">Count-in</label>
               <select id="rec-countin" onchange="window.Recorder.metronome.countInBars = parseInt(this.value, 10)">
                 <option value="1" selected>1 Bar (4 beats)</option>

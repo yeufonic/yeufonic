@@ -37,9 +37,11 @@
     metronome: {
       enabled: true,
       bpm: 120,
-      countInBars: 1, // 1 bar (4 beats), 2 bars, or 0
+      timeSignature: '4/4',
       beatsPerBar: 4,
+      countInBars: 1, // 1 bar (4 beats), 2 bars, or 0
       timerId: null,
+      recTimerId: null,
       currentBeat: 0,
       countInRemaining: 0
     },
@@ -92,6 +94,7 @@
       }
       this.renderTakesList();
       this.updateTransportUI();
+      this.updateCountInLabels();
       // Auto-arm on open if not already armed
       if (this.state === 'idle') {
         this.armRecorder();
@@ -455,6 +458,25 @@
       }
     },
 
+    setTimeSignature: function (sigStr) {
+      this.metronome.timeSignature = sigStr || '4/4';
+      var num = parseInt((sigStr || '4/4').split('/')[0], 10) || 4;
+      this.metronome.beatsPerBar = num;
+      this.updateCountInLabels();
+    },
+
+    updateCountInLabels: function () {
+      var select = document.getElementById('rec-countin');
+      if (!select) { return; }
+      var bpb = this.metronome.beatsPerBar || 4;
+      var curVal = select.value || '1';
+      select.innerHTML =
+        '<option value="1">1 Bar (' + bpb + ' beats)</option>' +
+        '<option value="2">2 Bars (' + (bpb * 2) + ' beats)</option>' +
+        '<option value="0">None (Immediate)</option>';
+      select.value = curVal;
+    },
+
     startCountInThenRecord: function () {
       var self = this;
       var bars = Number(this.metronome.countInBars) || 0;
@@ -465,9 +487,10 @@
 
       this.state = 'countin';
       this.updateTransportUI();
-      var totalBeats = bars * this.metronome.beatsPerBar;
+      var bpb = Math.max(1, parseInt(this.metronome.beatsPerBar, 10) || 4);
+      var totalBeats = bars * bpb;
       var intervalMs = (60 / this.metronome.bpm) * 1000;
-      var count = totalBeats;
+      var currentBeatIndex = 0;
 
       var overlay = document.getElementById('rec-countin-overlay');
       var numEl = document.getElementById('rec-countin-number');
@@ -482,24 +505,27 @@
         }
       }
 
-      function beat() {
-        var beatNum = ((totalBeats - count) % self.metronome.beatsPerBar) + 1;
-        self.playCountInClick(beatNum === 1);
-        if (numEl) {
-          numEl.textContent = String(beatNum);
-          numEl.classList.remove('pulse');
-          void numEl.offsetWidth; // retrigger css animation
-          numEl.classList.add('pulse');
-        }
-        count--;
-        if (count >= 0) {
-          self.metronome.timerId = setTimeout(beat, intervalMs);
+      function tick() {
+        if (self.state !== 'countin') { return; }
+
+        if (currentBeatIndex < totalBeats) {
+          var beatInBar = (currentBeatIndex % bpb) + 1;
+          self.playCountInClick(beatInBar === 1);
+          if (numEl) {
+            numEl.textContent = String(beatInBar);
+            numEl.classList.remove('pulse');
+            void numEl.offsetWidth; // retrigger css animation
+            numEl.classList.add('pulse');
+          }
+          currentBeatIndex++;
+          self.metronome.timerId = setTimeout(tick, intervalMs);
         } else {
           if (overlay) { overlay.classList.add('hidden'); }
           self.startRecordingImmediate();
         }
       }
-      beat();
+
+      tick();
     },
 
     // ------------------------------------------------- Recording Engine
@@ -545,13 +571,16 @@
       // Start metronome during recording if enabled
       if (this.metronome.enabled) {
         var intervalMs = (60 / this.metronome.bpm) * 1000;
+        var bpb = Math.max(1, parseInt(this.metronome.beatsPerBar, 10) || 4);
         var bCount = 0;
+        self.playClick(true);
+        bCount = 1;
         self.metronome.recTimerId = setInterval(function () {
           if (self.state !== 'recording') {
             clearInterval(self.metronome.recTimerId);
             return;
           }
-          self.playClick(bCount % self.metronome.beatsPerBar === 0);
+          self.playClick(bCount % bpb === 0);
           bCount++;
         }, intervalMs);
       }
