@@ -43,8 +43,9 @@ cannot creep back in.
   instrument such as a guitar into an audio interface (choose the device, the input's side and its
   gain). A metronome with time signatures and a count-in, headphone monitoring, a level meter and a
   live pitch readout; for a voice, optional autotune to a key and scale with an A/B switch. A take is
-  kept as a recording, marked MIC or INST, and transcribed like any other; its tune is put in the
-  vocal line even where the transcriber heard it as an instrument.
+  kept as a recording, marked MIC or INST, and transcribed as melody only, so no guessed chords are
+  held in a song made from it; its tune is put in the vocal line even where the transcriber heard
+  it as an instrument.
 - **Expand to full song.** A recorded tune becomes the hook of a whole song: YuE2 plans the song in
   the tune's key, metre and tempo with the tune in every chorus (or verse) and writes the rest around
   it, then renders it as a cover of the recording. Choose who sings it: the tune is moved by octaves

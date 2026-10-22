@@ -62,10 +62,18 @@ LYRICS_KEEP = 3600   # seconds a finished draft stays readable
 
 
 # ------------------------------------------------------------------- templates
-def build_transcribe_graph(engine_file: str) -> dict:
+def build_transcribe_graph(engine_file: str, mode: str = "full") -> dict:
     graph = load_template("transcribe.json")
     graph["1"]["inputs"]["audio"] = engine_file
+    graph["3"]["inputs"]["mode"] = mode
     return graph
+
+
+def transcribe_mode(source: dict) -> str:
+    """How a recording is transcribed.  A tune recorded here (hummed, sung or played a note at a
+    time) has no accompaniment, so the chords "full" writes for it are guesses, and a song made
+    from it would hold them in every chorus: melody only leaves the harmony to the planner."""
+    return "melody" if source.get("origin") == "recording" else "full"
 
 
 # The ABC sampler settings behind the "plan variety" control.
@@ -812,7 +820,7 @@ async def run_job(kind: str, ref_id: str) -> None:
         execute("UPDATE sources SET transcribe_state = 'running', transcribe_error = NULL WHERE id = ?", (ref_id,))
         log.info("Starting audio transcription for source '%s' (%s)", record.get("title") or ref_id, ref_id)
         try:
-            graph = build_transcribe_graph(await _ensure_engine_file(record))
+            graph = build_transcribe_graph(await _ensure_engine_file(record), transcribe_mode(record))
         except Exception as exc:  # noqa: BLE001
             fail(kind, ref_id, f"could not send the recording to the engine: {exc}")
             return
@@ -1615,8 +1623,7 @@ async def _transcribe_corpus_song(kind: str, song_id: str, staged: Path, folder:
         path = await asyncio.to_thread(_ended_copy, staged, folder / f"engine-copy-ended{f'-{seconds}s' if seconds else ''}.flac",
                                        seconds)
         name = await _upload(path, f"identity-{song_id}-{path.stem}{path.suffix}")
-        graph = build_transcribe_graph(name)
-        graph["3"]["inputs"]["mode"] = mode
+        graph = build_transcribe_graph(name, mode)
         try:
             job = await _run_graph(kind, song_id, graph)
         except RuntimeError as exc:

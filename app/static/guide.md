@@ -659,7 +659,10 @@ In **Cover** mode, **Record melody** opens the recorder. Choose what you are rec
   already in tune. Yeufonic remembers these choices in this browser.
 
 The metronome, count-in and headphone monitoring work the same for both. **Use as Cover** keeps the
-take as a recording, marked **MIC** or **INST** in the list. Transcribe it as any recording.
+take as a recording, marked **MIC** or **INST** in the list. Transcribe it as any recording; a
+recorded tune is transcribed as melody only, since chords guessed from a lone tune would be held in
+every chorus of a song made from it (a recording transcribed before this keeps its chords until it is
+transcribed again). Ten to thirty seconds of tune is plenty.
 **Extract lyrics** is not offered for an instrument take, since it has no words to hear: use
 **Write lyrics**.
 

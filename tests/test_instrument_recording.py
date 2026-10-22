@@ -109,3 +109,13 @@ def test_an_upload_is_not_an_instrument_take(client):
     assert res.status_code == 200 and res.json()["instrument"] == 0
     assert Path(res.json()["stored_path"]).exists()
     client.delete(f"/api/sources/{res.json()['id']}")
+
+
+def test_a_recorded_tune_is_transcribed_as_melody_only_and_an_upload_with_chords():
+    from app import jobs
+    assert jobs.transcribe_mode({"origin": "recording", "instrument": 1}) == "melody"
+    assert jobs.transcribe_mode({"origin": "recording"}) == "melody"
+    assert jobs.transcribe_mode({"origin": "upload"}) == "full"
+    graph = jobs.build_transcribe_graph("tune.flac", jobs.transcribe_mode({"origin": "recording"}))
+    assert graph["3"]["inputs"]["mode"] == "melody" and graph["1"]["inputs"]["audio"] == "tune.flac"
+    assert jobs.build_transcribe_graph("song.flac")["3"]["inputs"]["mode"] == "full"
