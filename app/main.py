@@ -1793,12 +1793,21 @@ async def recorder_autotune(
     try:
         content = await audio_file.read()
         in_tmp.write_bytes(content)
-        await asyncio.to_thread(autotune.tune_file, in_tmp, out_tmp, scale=scale, root=root, strength=strength)
+        stats = await asyncio.to_thread(autotune.tune_file, in_tmp, out_tmp, scale=scale, root=root, strength=strength)
+        headers = {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Access-Control-Expose-Headers": "X-Tuned, X-Notes-Detected, X-Notes-Adjusted, X-Scale, X-Root",
+            "X-Tuned": "1" if stats.get("tuned") else "0",
+            "X-Notes-Detected": str(stats.get("notes_detected", 0)),
+            "X-Notes-Adjusted": str(stats.get("notes_adjusted", 0)),
+            "X-Scale": str(stats.get("scale", scale)),
+            "X-Root": str(stats.get("root", root)),
+        }
         return FileResponse(
             out_tmp,
             media_type="audio/wav",
             filename="tuned.wav",
-            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+            headers=headers,
             background=BackgroundTask(lambda: (in_tmp.unlink(missing_ok=True), out_tmp.unlink(missing_ok=True))),
         )
     except Exception as exc:

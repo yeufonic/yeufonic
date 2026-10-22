@@ -1515,15 +1515,21 @@
 
         <!-- Direct Monitoring Row -->
         <div class="rec-settings-card">
-          <div class="rec-card-title">Live Monitoring (Low Latency)</div>
-          <div class="rec-row vcenter" style="gap: 12px; margin-top: 6px;">
-            <button type="button" id="rec-monitor-btn" class="rec-pill-btn" onclick="window.Recorder.setMonitor(!window.Recorder.monitorEnabled)" title="Hear your voice live (Headphones recommended to prevent feedback)">
-              Headphone Monitor
-            </button>
-            <label class="rec-inline-label">
-              Vol:
-              <input type="range" id="rec-monitor-vol" min="0" max="1" step="0.05" value="0.8" oninput="window.Recorder.setMonitor(window.Recorder.monitorEnabled, parseFloat(this.value))">
-            </label>
+          <div class="rec-card-title">Live Headphone Monitoring (Low Latency)</div>
+          <div class="rec-grid-cols">
+            <div class="field compact">
+              <label>Monitor</label>
+              <button type="button" id="rec-monitor-btn" class="rec-pill-btn" onclick="window.Recorder.toggleMonitor()" title="Hear your voice live through headphones as you sing (keep Off if using speakers to avoid feedback)">
+                Off
+              </button>
+            </div>
+            <div class="field compact">
+              <label for="rec-monitor-vol">Monitor Vol</label>
+              <input type="range" id="rec-monitor-vol" min="0" max="1" step="0.05" value="0.8" oninput="window.Recorder.setMonitor(window.Recorder.monitorEnabled, parseFloat(this.value))" title="Adjust live headphone volume">
+            </div>
+          </div>
+          <div class="rec-hint muted" style="margin-top: 6px; font-size: 11px;">
+            Routes mic directly to your headphones so you can hear your pitch while singing.
           </div>
         </div>
 

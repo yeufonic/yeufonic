@@ -192,15 +192,34 @@
       this.resetMeterUI();
     },
 
-    setMonitor: function (enabled, volume) {
+    toggleMonitor: function (forceVal) {
+      var on = forceVal !== undefined ? forceVal : !this.monitorEnabled;
+      this.setMonitor(on);
+    },
+
+    setMonitor: async function (enabled, volume) {
       this.monitorEnabled = Boolean(enabled);
       if (typeof volume === 'number') { this.monitorVolume = volume; }
-      if (this.monitorGain) {
-        this.monitorGain.gain.value = this.monitorEnabled ? this.monitorVolume : 0.0;
+
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        try { await this.audioCtx.resume(); } catch (e) {}
+      }
+
+      if (this.monitorEnabled && (!this.micSource || !this.monitorGain)) {
+        await this.armRecorder();
+      }
+
+      if (this.monitorGain && this.audioCtx) {
+        try {
+          this.monitorGain.gain.setValueAtTime(this.monitorEnabled ? this.monitorVolume : 0.0, this.audioCtx.currentTime);
+        } catch (e) {
+          this.monitorGain.gain.value = this.monitorEnabled ? this.monitorVolume : 0.0;
+        }
       }
       var monBtn = document.getElementById('rec-monitor-btn');
       if (monBtn) {
         monBtn.classList.toggle('active', this.monitorEnabled);
+        monBtn.textContent = this.monitorEnabled ? 'On' : 'Off';
       }
     },
 
@@ -754,11 +773,32 @@
         var tunedBlob = await resp.blob();
         take.tunedBlob = tunedBlob;
         take.tunedUrl = URL.createObjectURL(tunedBlob);
-        take.autotuneStatus = 'done';
-        take.isTuned = true;
+
+        var notesDetected = parseInt(resp.headers.get('x-notes-detected') || resp.headers.get('X-Notes-Detected') || '0', 10);
+        var notesAdjusted = parseInt(resp.headers.get('x-notes-adjusted') || resp.headers.get('X-Notes-Adjusted') || '0', 10);
+        var scale = resp.headers.get('x-scale') || resp.headers.get('X-Scale') || this.autotune.scale;
+        var root = resp.headers.get('x-root') || resp.headers.get('X-Root') || this.autotune.root;
+
+        take.tuneStats = {
+          notesDetected: notesDetected,
+          notesAdjusted: notesAdjusted,
+          scale: scale,
+          root: root
+        };
+
+        if (notesDetected === 0) {
+          take.autotuneStatus = 'no_voice';
+          take.isTuned = false;
+        } else {
+          take.autotuneStatus = 'done';
+          take.isTuned = true;
+          // Immediately play tuned version so the user hears what autotune did
+          this.playTake(take.id);
+        }
       } catch (err) {
         console.error('Autotune processing failed:', err);
         take.autotuneStatus = 'failed';
+        take.tuneError = err.message || 'Processing failed';
       }
       this.renderTakesList();
     },
@@ -767,14 +807,14 @@
       var take = this.takeById(takeId);
       if (!take || !take.tunedBlob) { return; }
       take.isTuned = !take.isTuned;
-      if (this.previewPlayingId === takeId) {
-        this.playTake(takeId);
-      }
+      // Continue or start preview so user immediately hears the difference between Raw and Autotuned
+      var curTime = (this.previewAudio && this.previewPlayingId === takeId) ? this.previewAudio.currentTime : 0;
+      this.playTake(takeId, curTime);
       this.renderTakesList();
     },
 
     // ------------------------------------------------- Audition / Preview
-    playTake: function (takeId) {
+    playTake: function (takeId, seekSec) {
       var take = this.takeById(takeId);
       if (!take) { return; }
       this.stopPreview();
@@ -787,6 +827,9 @@
         self.previewPlayingId = null;
         self.renderTakesList();
       };
+      if (typeof seekSec === 'number' && seekSec > 0) {
+        try { this.previewAudio.currentTime = seekSec; } catch (e) {}
+      }
       this.previewAudio.play().catch(function () {});
       this.renderTakesList();
     },
@@ -930,10 +973,23 @@
         if (take.autotuneStatus === 'tuning') {
           tuneBadge = '<span class="rec-tune-tag tuning">Tuning…</span>';
         } else if (take.autotuneStatus === 'done') {
-          var label = take.isTuned ? 'Autotuned' : 'Raw Pitch';
-          tuneBadge = '<button type="button" class="rec-tune-toggle' + (take.isTuned ? ' active' : '') + '" onclick="window.Recorder.toggleTakeTuning(\'' + take.id + '\')" title="Toggle A/B Autotune preview">' + label + '</button>';
+          var label = take.isTuned ? '✓ Autotuned' : 'Raw Pitch';
+          var titleHint = take.isTuned ? 'Autotuned (click to audition Raw Pitch)' : 'Raw Pitch (click to audition Autotuned)';
+          tuneBadge = '<button type="button" class="rec-tune-toggle' + (take.isTuned ? ' active' : '') + '" onclick="window.Recorder.toggleTakeTuning(\'' + take.id + '\')" title="' + titleHint + '">' + label + '</button>';
+        } else if (take.autotuneStatus === 'no_voice') {
+          tuneBadge = '<span class="rec-tune-tag muted" title="Pitch detector found no singing or humming in this take">No voice detected</span>' +
+            '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="Retry autotune on this take">Retry</button>';
+        } else if (take.autotuneStatus === 'failed') {
+          tuneBadge = '<span class="rec-tune-tag err" title="' + self.esc(take.tuneError || 'Error') + '">Error</span>' +
+            '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="Retry autotune">Retry</button>';
         } else {
-          tuneBadge = '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="Snap sung pitch to nearest semitones">Autotune</button>';
+          tuneBadge = '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="Snap sung pitch to nearest semitones (plays tuned audio upon completion)">Autotune</button>';
+        }
+
+        var tuneInfo = '';
+        if (take.autotuneStatus === 'done' && take.tuneStats) {
+          var sName = take.tuneStats.scale ? (take.tuneStats.scale.charAt(0).toUpperCase() + take.tuneStats.scale.slice(1)) : '';
+          tuneInfo = '<span class="rec-tune-info" title="' + take.tuneStats.notesAdjusted + ' notes snapped to ' + take.tuneStats.root + ' ' + sName + '">(' + take.tuneStats.root + ' ' + sName + ' &middot; ' + take.tuneStats.notesAdjusted + ' tuned)</span>';
         }
 
         return '<div class="rec-take-card' + (self.activeTakeId === take.id ? ' active' : '') + '">' +
@@ -944,6 +1000,7 @@
             '<div class="rec-take-info">' +
               '<input type="text" class="rec-take-title-input" value="' + self.esc(take.title) + '" onchange="window.Recorder.renameTake(\'' + take.id + '\', this.value)">' +
               '<span class="rec-take-dur">' + durStr + '</span>' +
+              tuneInfo +
             '</div>' +
           '</div>' +
           '<div class="rec-take-actions">' +

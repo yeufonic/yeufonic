@@ -6554,6 +6554,25 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   padding: 3px 6px;
 }
 
+.rec-tune-tag.muted {
+  font-size: 10.5px;
+  color: var(--muted);
+  padding: 3px 6px;
+}
+
+.rec-tune-tag.err {
+  font-size: 10.5px;
+  color: var(--bad);
+  padding: 3px 6px;
+}
+
+.rec-tune-info {
+  font-size: 10.5px;
+  color: var(--good);
+  margin-left: 6px;
+  font-weight: 500;
+}
+
 .rec-tune-toggle {
   background: rgb(var(--good-rgb) / 0.15);
   border: 1px solid rgb(var(--good-rgb) / 0.35);

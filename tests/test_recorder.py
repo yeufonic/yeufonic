@@ -127,6 +127,11 @@ def test_autotune_endpoint(client):
         assert wf.getframerate() == 16000
         assert wf.getnframes() > 0
 
+    assert "x-notes-detected" in resp.headers
+    assert "x-notes-adjusted" in resp.headers
+    assert resp.headers["x-scale"] == "major"
+    assert resp.headers["x-root"] == "C"
+
 
 def test_autotune_quantize_scale():
     """Verify scale pitch snapping in autotune module."""
