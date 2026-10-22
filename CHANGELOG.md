@@ -37,22 +37,27 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.48 (2026-10-22)
 
-- **Record a tune.** Cover mode has a recorder: sing or hum into a microphone, or play a melody on an
-  instrument such as a guitar into an audio interface (choose the device, the input's side and its
-  gain). A metronome with time signatures and a count-in, headphone monitoring, a level meter and a
-  live pitch readout; for a voice, optional autotune to a key and scale with an A/B switch. A take is
-  kept as a recording, marked MIC or INST, and transcribed as melody only, so no guessed chords are
-  held in a song made from it; its tune is put in the vocal line even where the transcriber heard
-  it as an instrument.
-- **Expand to full song.** A recorded tune becomes the hook of a whole song: YuE2 plans the song in
-  the tune's key, metre and tempo with the tune in every chorus (or verse) and writes the rest around
-  it, then renders it as a cover of the recording. Choose who sings it: the tune is moved by octaves
-  to that voice's register. A tune transcribed with no chords is given chords from its own notes,
-  so the plan has a harmony to follow. A tune played on an instrument needs words first (Write lyrics). Docker
-  needs `docker compose build engine` for it.
+- **Record a tune (Experimental).** Cover mode has a recorder: sing or hum into a microphone, or play
+  a melody on an instrument such as a guitar into an audio interface (choose the device, the input's
+  side and its gain). A metronome with time signatures and a count-in, headphone monitoring, a level
+  meter and a live pitch readout; for a voice, optional autotune to a key and scale with an A/B
+  switch. A take is kept as a recording, marked MIC or INST, and transcribed as melody only, so no
+  guessed chords are held in a song made from it; its tune is put in the vocal line even where the
+  transcriber heard it as an instrument.
+- **Expand to full song (Experimental).** A recorded tune becomes the hook of a whole song: YuE2 plans
+  the song in the tune's key, metre and tempo with the tune in every chorus (or verse) and writes the
+  rest around it, then renders it as a cover of the recording. Choose who sings it: the tune is moved
+  by octaves to that voice's register. A tune transcribed with no chords is given chords from its own
+  notes, so the plan has a harmony to follow. With lyrics in the box their sections are the
+  structure; a tune played on an instrument needs words first (Write lyrics). Docker needs
+  `docker compose build engine` for it.
 - **Write lyrics in a cover** of a recorded tune or a MIDI file.
+- **F toggles fullscreen** on every page: the main page, the guide and the logs.
+- Saving a take mastered earlier could download it without its mastering when the rack had not yet
+  read the take's settings; Save now waits for them.
+- The visualizer's artwork moves more smoothly and wanders further.
 - A cover whose score opens with a bar of rest kept its first section unnamed when its words had
   more sections than the score, and could leave those words unsung.
 

@@ -645,7 +645,12 @@ last section: **Render** again for another try.
 A cover follows the original's melody and chords while the style decides everything else, which is
 what makes it a cover rather than a copy.
 
-### Recording a tune of your own
+### Recording a tune of your own (Experimental)
+
+> [!NOTE]
+> **Experimental:** recording a tune and Expand to full song are new. How well a tune is heard
+> depends on the recording, and a plan made around it can still fail or wander: write a new plan, or
+> record the tune again.
 
 In **Cover** mode, **Record melody** opens the recorder. Choose what you are recording under **Input**:
 
