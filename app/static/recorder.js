@@ -51,6 +51,7 @@
       enabled: false,
       scale: 'chromatic',
       root: 'C',
+      tone: 'sine',
       strength: 0.85
     },
 
@@ -348,6 +349,90 @@
       return 440.0 * Math.pow(2.0, (midi - 69) / 12.0);
     },
 
+    playNoteTone: function (freq, tone, duration, volume) {
+      if (!this.audioCtx) {
+        this.audioCtx = new AudioContextClass();
+      }
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+
+      var now = this.audioCtx.currentTime;
+      var dur = duration || 1.25;
+      var vol = typeof volume === 'number' ? volume : 0.6;
+      var selectedTone = tone || (this.autotune && this.autotune.tone) || 'sine';
+
+      if (selectedTone === 'piano') {
+        // Pure acoustic piano note: dominant fundamental sine with delicate percussive hammer harmonics
+        var osc1 = this.audioCtx.createOscillator();
+        var osc2 = this.audioCtx.createOscillator();
+        var osc3 = this.audioCtx.createOscillator();
+
+        var g1 = this.audioCtx.createGain();
+        var g2 = this.audioCtx.createGain();
+        var g3 = this.audioCtx.createGain();
+        var masterGain = this.audioCtx.createGain();
+
+        // Fundamental
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(freq, now);
+        g1.gain.setValueAtTime(0.0001, now);
+        g1.gain.linearRampToValueAtTime(0.65, now + 0.005);
+        g1.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+        // 2nd harmonic (octave) - decays quickly
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(freq * 2, now);
+        g2.gain.setValueAtTime(0.0001, now);
+        g2.gain.linearRampToValueAtTime(0.18, now + 0.004);
+        g2.gain.exponentialRampToValueAtTime(0.0001, now + Math.min(dur, 0.35));
+
+        // 3rd harmonic - subtle touch
+        osc3.type = 'sine';
+        osc3.frequency.setValueAtTime(freq * 3, now);
+        g3.gain.setValueAtTime(0.0001, now);
+        g3.gain.linearRampToValueAtTime(0.05, now + 0.003);
+        g3.gain.exponentialRampToValueAtTime(0.0001, now + Math.min(dur, 0.15));
+
+        masterGain.gain.setValueAtTime(vol, now);
+
+        osc1.connect(g1);
+        osc2.connect(g2);
+        osc3.connect(g3);
+
+        g1.connect(masterGain);
+        g2.connect(masterGain);
+        g3.connect(masterGain);
+
+        masterGain.connect(this.audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc3.start(now);
+
+        osc1.stop(now + dur + 0.05);
+        osc2.stop(now + dur + 0.05);
+        osc3.stop(now + dur + 0.05);
+      } else {
+        // Pure sine wave: 100% pure fundamental frequency, zero harmonics, zero ambiguity
+        var osc = this.audioCtx.createOscillator();
+        var gain = this.audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(vol, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + dur + 0.05);
+      }
+    },
+
     playClick: function (accent) {
       if (!this.audioCtx) {
         this.audioCtx = new AudioContextClass();
@@ -359,35 +444,10 @@
       if (this.autotune && this.autotune.enabled) {
         var root = (this.autotune && this.autotune.root) || 'C';
         var freq = this.getRootFrequency(root, accent ? 5 : 4);
-        var now = this.audioCtx.currentTime;
-
-        var osc = this.audioCtx.createOscillator();
-        var oscHarmonic = this.audioCtx.createOscillator();
-        var gain = this.audioCtx.createGain();
-
-        // Warm musical tone with clear harmonic definition
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now);
-
-        oscHarmonic.type = 'sine';
-        oscHarmonic.frequency.setValueAtTime(freq * (accent ? 1.0 : 2.0), now);
-
-        var dur = accent ? 0.24 : 0.16;
-        var peak = accent ? 0.65 : 0.45;
-
-        gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(peak, now + 0.012);
-        gain.gain.setValueAtTime(peak * 0.75, now + dur * 0.35);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-        osc.connect(gain);
-        oscHarmonic.connect(gain);
-        gain.connect(this.audioCtx.destination);
-
-        osc.start(now);
-        oscHarmonic.start(now);
-        osc.stop(now + dur + 0.02);
-        oscHarmonic.stop(now + dur + 0.02);
+        var tone = (this.autotune && this.autotune.tone) || 'sine';
+        var dur = accent ? 0.22 : 0.14;
+        var vol = accent ? 0.7 : 0.5;
+        this.playNoteTone(freq, tone, dur, vol);
       } else {
         var oscStd = this.audioCtx.createOscillator();
         var gainStd = this.audioCtx.createGain();
@@ -410,42 +470,11 @@
     },
 
     auditionRootNote: function () {
-      if (!this.audioCtx) {
-        this.audioCtx = new AudioContextClass();
-      }
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume();
-      }
-
       var root = (this.autotune && this.autotune.root) || 'C';
       var freq = this.getRootFrequency(root, 4);
+      var tone = (this.autotune && this.autotune.tone) || 'sine';
 
-      var now = this.audioCtx.currentTime;
-      var osc1 = this.audioCtx.createOscillator();
-      var osc2 = this.audioCtx.createOscillator();
-      var gain = this.audioCtx.createGain();
-
-      // Fundamental in octave 4 (e.g. C4 = 261.6Hz, A4 = 440Hz)
-      osc1.type = 'triangle';
-      osc1.frequency.setValueAtTime(freq, now);
-
-      // Sub-octave for warmth and pleasant timbre
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(freq * 0.5, now);
-
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.45, now + 0.025);
-      gain.gain.setValueAtTime(0.4, now + 0.5);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
-
-      osc1.connect(gain);
-      osc2.connect(gain);
-      gain.connect(this.audioCtx.destination);
-
-      osc1.start(now);
-      osc2.start(now);
-      osc1.stop(now + 1.0);
-      osc2.stop(now + 1.0);
+      this.playNoteTone(freq, tone, 1.25, 0.6);
 
       // Visual feedback on audition button
       var btn = document.getElementById('rec-root-audition-btn');
@@ -455,6 +484,13 @@
           btn.classList.remove('playing');
         }, 800);
       }
+    },
+
+    setTone: function (val) {
+      if (val) {
+        this.autotune.tone = val;
+      }
+      this.auditionRootNote();
     },
 
     setRoot: function (val) {

@@ -1609,6 +1609,13 @@
                 </button>
               </div>
             </div>
+            <div class="field compact">
+              <label for="rec-tone">Tone</label>
+              <select id="rec-tone" onchange="window.Recorder.setTone(this.value)">
+                <option value="sine" selected>Pure Sine</option>
+                <option value="piano">Piano Note</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>

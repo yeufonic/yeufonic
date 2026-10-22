@@ -53,6 +53,8 @@ def test_static_recorder_js_and_markup_served(client):
     assert "getRootFrequency" in res.text
     assert "playCountInClick" in res.text
     assert "auditionRootNote" in res.text
+    assert "playNoteTone" in res.text
+    assert "setTone" in res.text
     assert "setTimeSignature" in res.text
     assert res.headers["cache-control"] == "no-cache"
 
@@ -66,6 +68,7 @@ def test_static_recorder_js_and_markup_served(client):
     assert "rec-root-audition-btn" in page.text
     assert "rec-countin-root" in page.text
     assert "rec-timesig" in page.text
+    assert "rec-tone" in page.text
     assert "drop-record-btn" in page.text
 
     css = client.get("/static/styles.css")
