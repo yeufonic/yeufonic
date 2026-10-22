@@ -327,23 +327,6 @@
     },
 
     playClick: function (accent) {
-      if (!this.audioCtx) { return; }
-      var osc = this.audioCtx.createOscillator();
-      var gain = this.audioCtx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.value = accent ? 980 : 480;
-
-      var now = this.audioCtx.currentTime;
-      gain.gain.setValueAtTime(0.7, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-
-      osc.connect(gain);
-      gain.connect(this.audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.07);
-    },
-
-    playCountInClick: function (accent) {
       if (!this.audioCtx) {
         this.audioCtx = new AudioContextClass();
       }
@@ -367,12 +350,12 @@
         oscHarmonic.type = 'sine';
         oscHarmonic.frequency.setValueAtTime(freq * (accent ? 1.0 : 2.0), now);
 
-        var dur = accent ? 0.26 : 0.18;
+        var dur = accent ? 0.24 : 0.16;
         var peak = accent ? 0.65 : 0.45;
 
         gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(peak, now + 0.015);
-        gain.gain.setValueAtTime(peak * 0.75, now + dur * 0.4);
+        gain.gain.linearRampToValueAtTime(peak, now + 0.012);
+        gain.gain.setValueAtTime(peak * 0.75, now + dur * 0.35);
         gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
         osc.connect(gain);
@@ -384,8 +367,24 @@
         osc.stop(now + dur + 0.02);
         oscHarmonic.stop(now + dur + 0.02);
       } else {
-        this.playClick(accent);
+        var oscStd = this.audioCtx.createOscillator();
+        var gainStd = this.audioCtx.createGain();
+        oscStd.type = 'triangle';
+        oscStd.frequency.value = accent ? 980 : 480;
+
+        var nowStd = this.audioCtx.currentTime;
+        gainStd.gain.setValueAtTime(0.7, nowStd);
+        gainStd.gain.exponentialRampToValueAtTime(0.001, nowStd + 0.06);
+
+        oscStd.connect(gainStd);
+        gainStd.connect(this.audioCtx.destination);
+        oscStd.start(nowStd);
+        oscStd.stop(nowStd + 0.07);
       }
+    },
+
+    playCountInClick: function (accent) {
+      this.playClick(accent);
     },
 
     auditionRootNote: function () {
