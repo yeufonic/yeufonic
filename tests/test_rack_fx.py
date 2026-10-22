@@ -873,8 +873,11 @@ def test_the_rack_is_drawn_to_fit_the_window_unless_asked_for_at_full_size():
     # since larger lettering makes the rack taller; the panel is let out sideways for it
     assert "Math.min(this.RACK_TYPE_MOST, Math.max(1, this.RACK_TYPE_KEPT / zoom))" in fit
     assert "panel.style.setProperty('--rack-type', String(type));" in fit and "panel.style.setProperty('--rack-wide', String(wide));" in fit
-    sizes = css[css.index("/* --rack-zoom is the size the rack is drawn at"):]
     import re as _re
+    start = css.index("/* --rack-zoom is the size the rack is drawn at")
+    # the rack's styles run to the first section heading after them that is not the rack's own
+    after = [m.start() for m in _re.finditer(r"\n/\* -{4,}([^\n]*)", css[start:]) if "rack" not in m.group(1).lower()]
+    sizes = css[start:start + after[0]] if after else css[start:]
     plain = [px for px in _re.findall(r"font-size: ([0-9.]+)px", sizes) if float(px) < 14]
     assert plain == [], plain                # every label's size follows --rack-type; only badge lettering is fixed
     assert sizes.count("* var(--rack-type, 1))") >= 30
