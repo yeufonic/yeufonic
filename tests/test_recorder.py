@@ -77,6 +77,11 @@ def test_static_recorder_js_and_markup_served(client):
     assert ".rec-countin-root" in css.text
     assert ".drop-action-btn" in css.text
 
+    app_js = client.get("/static/app.js")
+    assert app_js.status_code == 200
+    assert "shouldShowWriteLyrics" in app_js.text
+    assert "updateLyricsWriteVisibility" in app_js.text
+
 
 def test_upload_melody_recording(client):
     """Verify recording upload stores into sources/recordings/ and records origin='recording'."""

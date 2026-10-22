@@ -3658,11 +3658,37 @@ function sourceById(id) {
   return null;
 }
 
+function shouldShowWriteLyrics() {
+  if (State.mode === 'song') { return true; }
+  if (State.mode === 'cover') {
+    var source = currentSource();
+    if (!source) { return false; }
+    var isMidi = Boolean(source.filename && source.filename.match(/\.midi?$/i));
+    var isRec = Boolean(source.origin === 'recording');
+    return isRec || isMidi;
+  }
+  return false;
+}
+
+function updateLyricsWriteVisibility() {
+  var showBtn = shouldShowWriteLyrics();
+  var btn = $('lyrics-write');
+  if (btn) {
+    btn.style.display = showBtn ? '' : 'none';
+    if (showBtn && State.mode === 'cover') {
+      btn.title = 'Draft lyrics to fit what was hummed, sung or played via MIDI';
+    } else if (showBtn) {
+      btn.title = 'Draft lyrics from a short description';
+    }
+  }
+}
+
 function paintSource() {
   var source = currentSource();
   var badge = $('score-badge');
   paintHearButton();
   paintAudition();
+  updateLyricsWriteVisibility();
 
   var pickerLabel = $('source-picker-label');
   var isMidi = Boolean(source && source.filename && source.filename.match(/\.midi?$/i));
@@ -5825,6 +5851,7 @@ function paintHearButton() {
   // The label stays an instruction. "Lyrics heard" read as a status, and a
   // status is not something anyone thinks to press.
   button.title = !source ? 'Choose a recording first'
+    : source.origin === 'recording' ? 'Extract words heard in recording (or use Write lyrics if you hummed)'
     : source.has_lyrics ? 'Put the words heard earlier in the box, and offer to hear them again'
     : 'Separate the vocal from this recording and write down what it sings. English recordings only: '
       + 'Whisper hears nothing else, and would write down nonsense.';
@@ -6300,7 +6327,7 @@ function setMode(mode) {
   var sourceLabel = $('cover-only') ? $('cover-only').querySelector('label') : null;
   if (sourceLabel) { sourceLabel.textContent = inst ? 'From a recording (optional)' : 'Source recording'; }
   paintSourcePickerMenu();
-  show('lyrics-write', mode === 'song');
+  updateLyricsWriteVisibility();
   // It acts on a recording, so it lives with the recording's own buttons, which
   // the whole cover-only block already shows and hides.
   show('auto-wrap', !cover);
@@ -9605,7 +9632,16 @@ function paintWriteFeel() {
 
 function openWrite() {
   paintWriteFeel();
-  if ($('write-structure-sent')) { $('write-structure-sent').textContent = SONGPLAN.sections.join(', '); }
+  if ($('write-structure-sent')) {
+    if (State.mode === 'cover') {
+      var source = currentSource();
+      var isMidi = Boolean(source && source.filename && source.filename.match(/\.midi?$/i));
+      var srcType = isMidi ? 'MIDI melody' : 'recorded melody';
+      $('write-structure-sent').textContent = 'Fitting ' + srcType + ' (' + SONGPLAN.sections.join(', ') + ')';
+    } else {
+      $('write-structure-sent').textContent = SONGPLAN.sections.join(', ');
+    }
+  }
   $('write-modal').classList.remove('hidden');
   if (!WRITE.id) { $('write-status').textContent = ''; }
   $('write-brief').focus();
@@ -9712,10 +9748,11 @@ function landDraft(draft) {
   saveForm();
   closeWrite();
   writeStatus('');
+  var nextStep = State.mode === 'cover' ? 'then Create cover.' : 'then Write score plan.';
   if (draft.warning) {
-    statusLine('Draft lyrics are in the box (' + draft.warning + '). Read them and make them yours, then Write score plan.', 'bad');
+    statusLine('Draft lyrics are in the box (' + draft.warning + '). Read them and make them yours, ' + nextStep, 'bad');
   } else {
-    statusLine('Draft lyrics are in the box. Read them and make them yours, then Write score plan.', 'good');
+    statusLine('Draft lyrics are in the box. Read them and make them yours, ' + nextStep, 'good');
   }
 }
 
