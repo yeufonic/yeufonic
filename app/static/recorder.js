@@ -312,7 +312,7 @@
       var octave = Math.floor(roundMidi / 12) - 1;
       var cents = Math.round((midi - roundMidi) * 100);
       var sign = cents >= 0 ? '+' : '';
-      noteEl.textContent = noteName + octave + ' (' + Math.round(freq) + ' Hz ' + sign + cents + '¢)';
+      noteEl.textContent = noteName + octave + ' (' + Math.round(freq) + 'Hz ' + sign + cents + '¢)';
     },
 
     // ------------------------------------------------- Metronome & Count-In

@@ -6060,11 +6060,16 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  height: 74px;
+  min-height: 74px;
+  box-sizing: border-box;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
 }
 
 .rec-display-label {
@@ -6076,17 +6081,31 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   margin-bottom: 2px;
 }
 
-.rec-timer-digits,
-.rec-pitch-digits {
+.rec-timer-digits {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--text-strong);
+  line-height: 1.2;
 }
 
 .rec-pitch-digits {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: var(--accent-a);
+  white-space: nowrap;
+  line-height: 1.2;
+  text-align: center;
+  max-width: 100%;
+}
+
+@media (max-width: 480px) {
+  .rec-pitch-digits {
+    font-size: 13.5px;
+  }
 }
 
 .rec-vu-meter-wrap {
