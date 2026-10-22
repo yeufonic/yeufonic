@@ -445,6 +445,16 @@
       this.auditionRootNote();
     },
 
+    toggleMetronome: function (forceVal) {
+      var btn = document.getElementById('rec-metro-toggle');
+      var on = forceVal !== undefined ? forceVal : !this.metronome.enabled;
+      this.metronome.enabled = on;
+      if (btn) {
+        btn.classList.toggle('active', on);
+        btn.textContent = on ? 'On' : 'Off';
+      }
+    },
+
     toggleAutotune: function (forceVal) {
       var btn = document.getElementById('rec-auto-toggle');
       var on = forceVal !== undefined ? forceVal : !this.autotune.enabled;
@@ -452,9 +462,6 @@
       if (btn) {
         btn.classList.toggle('active', on);
         btn.textContent = on ? 'On' : 'Off';
-      }
-      if (on) {
-        this.auditionRootNote();
       }
     },
 

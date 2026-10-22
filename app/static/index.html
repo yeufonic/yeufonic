@@ -1533,7 +1533,9 @@
           <div class="rec-grid-cols">
             <div class="field compact">
               <label>Click</label>
-              <button type="button" id="rec-metro-toggle" class="rec-pill-btn active" onclick="this.classList.toggle('active'); window.Recorder.metronome.enabled = this.classList.contains('active');">On</button>
+              <button type="button" id="rec-metro-toggle" class="rec-pill-btn active" onclick="window.Recorder.toggleMetronome()">
+                On
+              </button>
             </div>
             <div class="field compact">
               <label for="rec-bpm">BPM</label>
