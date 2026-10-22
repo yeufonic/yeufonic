@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import math
+import wave
 from pathlib import Path
 from typing import Any
 
@@ -168,6 +169,58 @@ def tune_waveform(
     return out, stats
 
 
+def load_audio(path: Path) -> tuple[torch.Tensor, int]:
+    """Load audio from path, prioritizing Python's standard wave module
+    to completely avoid external codec library dependencies (e.g. torchcodec/sox)."""
+    try:
+        with wave.open(str(path), "rb") as wf:
+            channels = wf.getnchannels()
+            sample_rate = wf.getframerate()
+            sampwidth = wf.getsampwidth()
+            frames = wf.readframes(wf.getnframes())
+            if sampwidth == 2:  # 16-bit PCM
+                data = torch.frombuffer(bytearray(frames), dtype=torch.int16).clone().float() / 32768.0
+            elif sampwidth == 4:  # 32-bit PCM
+                data = torch.frombuffer(bytearray(frames), dtype=torch.int32).clone().float() / 2147483648.0
+            elif sampwidth == 1:  # 8-bit unsigned PCM
+                data = (torch.frombuffer(bytearray(frames), dtype=torch.uint8).clone().float() - 128.0) / 128.0
+            else:
+                raise ValueError(f"Unsupported sample width: {sampwidth}")
+
+            if channels > 1:
+                data = data.view(-1, channels).t().contiguous()
+            else:
+                data = data.unsqueeze(0)
+            return data, sample_rate
+    except Exception as exc:
+        log.warning("Standard wave reader failed (%s), falling back to torchaudio.load: %s", path, exc)
+        return torchaudio.load(str(path))
+
+
+def save_audio(path: Path, waveform: torch.Tensor, sample_rate: int) -> None:
+    """Save audio to WAV using Python's standard wave module to avoid
+    external codec library dependencies (e.g. torchcodec/sox)."""
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        wav = waveform.detach().cpu()
+        if wav.dim() == 1:
+            wav = wav.unsqueeze(0)
+        channels = wav.shape[0]
+        clamped = torch.clamp(wav, -1.0, 1.0)
+        int16_data = (clamped * 32767.0).round().to(torch.int16)
+        if channels > 1:
+            int16_data = int16_data.t().contiguous()
+        raw_bytes = int16_data.numpy().tobytes()
+        with wave.open(str(path), "wb") as wf:
+            wf.setnchannels(channels)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+            wf.writeframes(raw_bytes)
+    except Exception as exc:
+        log.warning("Standard wave writer failed (%s), falling back to torchaudio.save: %s", path, exc)
+        torchaudio.save(str(path), waveform, sample_rate)
+
+
 def tune_file(
     src: Path,
     dest: Path,
@@ -176,10 +229,10 @@ def tune_file(
     strength: float = 0.85,
 ) -> dict[str, Any]:
     """Reads audio from `src`, tunes it, and saves to `dest`."""
-    waveform, sr = torchaudio.load(str(src))
+    waveform, sr = load_audio(src)
     tuned_wav, stats = tune_waveform(waveform, sr, scale=scale, root=root, strength=strength)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    torchaudio.save(str(dest), tuned_wav, sr)
+    save_audio(dest, tuned_wav, sr)
     stats["src"] = str(src)
     stats["dest"] = str(dest)
     return stats
