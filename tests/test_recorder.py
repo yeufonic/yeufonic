@@ -66,6 +66,7 @@ def test_static_recorder_js_and_markup_served(client):
     assert "rec-root-audition-btn" in page.text
     assert "rec-countin-root" in page.text
     assert "rec-timesig" in page.text
+    assert "drop-record-btn" in page.text
 
     css = client.get("/static/styles.css")
     assert css.status_code == 200
@@ -73,6 +74,7 @@ def test_static_recorder_js_and_markup_served(client):
     assert "position: absolute" in css.text
     assert ".rec-audition-btn" in css.text
     assert ".rec-countin-root" in css.text
+    assert ".drop-action-btn" in css.text
 
 
 def test_upload_melody_recording(client):
