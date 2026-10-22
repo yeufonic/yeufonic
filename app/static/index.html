@@ -332,6 +332,7 @@
                 <button type="button" id="source-record-btn" class="ghost" title="Record vocal or hummed melody with microphone"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px; margin-right:3px;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>Record</button>
                 <button id="transcribe" class="ghost">Transcribe</button>
                 <button id="source-lyrics" class="ghost" title="Write down the words this recording sings">Extract lyrics</button>
+                <button id="source-expand-song" class="ghost" title="Expand this melody motif into a full multi-section song">Expand to full song</button>
                 <button id="source-tracks" class="ghost hidden" title="View MIDI tracks and select Lead Vocal track">MIDI tracks</button>
                 <button id="audition" class="ghost" title="Play this recording through the player">Audition</button>
                 <button id="source-delete" class="ghost" title="Delete this recording">Delete</button>
@@ -1195,6 +1196,62 @@
     <p id="train-memory" class="train-memory hidden"></p>
     <button id="train-go" class="primary">Train</button>
     <div id="train-status" class="status"></div>
+  </div>
+</div>
+
+<div id="expand-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="expand-title">
+  <div class="modal-box narrow">
+    <div class="modal-head">
+      <strong id="expand-title">Expand to full song</strong>
+      <button id="expand-close" class="ghost">Close</button>
+    </div>
+    <div id="expand-motif-summary" class="muted" style="margin-bottom:12px; font-size:12.5px; padding:6px 10px; background:var(--bg-card); border-radius:4px; border:1px solid var(--border);"></div>
+    <div class="field">
+      <label>Expansion method</label>
+      <div class="row" style="gap:8px; margin-top:4px;">
+        <button type="button" id="expand-method-symbolic" class="chip action active" style="flex:1; text-align:center;">Rule-Based Composer</button>
+        <button type="button" id="expand-method-neural" class="chip action" style="flex:1; text-align:center;">Neural Continuation</button>
+      </div>
+      <div id="expand-method-hint" class="hint" style="margin-top:4px;">
+        Instant musical transformation. Develops Verse, Pre-Chorus, and Bridge sections by shifting register, smoothing intervals, and applying chord palettes. Opens immediately in the visual Piano Roll.
+      </div>
+    </div>
+    <div class="field">
+      <label for="expand-preset">Song structure</label>
+      <select id="expand-preset">
+        <option value="standard" selected>Standard Pop (Verse 1, Pre-Chorus, Chorus, Verse 2, Pre-Chorus, Chorus, Bridge, Chorus, Outro)</option>
+        <option value="short">Radio Edit / Short (Verse 1, Chorus, Verse 2, Chorus, Outro)</option>
+        <option value="aaba">AABA Classic (Verse 1, Verse 2, Bridge, Verse 3, Outro)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="expand-role">Melody role</label>
+      <select id="expand-role">
+        <option value="chorus" selected>Chorus Hook (Main theme — most common)</option>
+        <option value="verse">Verse Theme (Opening narrative)</option>
+      </select>
+      <div class="hint">Which part of the song was hummed or recorded?</div>
+    </div>
+    <div class="field" id="expand-palette-field">
+      <label for="expand-palette">Harmonic palette</label>
+      <select id="expand-palette">
+        <option value="pop" selected>Pop / Commercial (I - V - vi - IV)</option>
+        <option value="ballad">Moody / Ballad (vi - IV - I - V)</option>
+        <option value="uplifting">Uplifting / Anthem (I - IV - vi - V)</option>
+        <option value="rock">Classic Rock (I - IV - V - IV)</option>
+        <option value="rnb">RnB / Neo-Soul (ii - V - I - vi)</option>
+      </select>
+    </div>
+    <div class="field hidden" id="expand-neural-field">
+      <label for="expand-style">Style for AI planner</label>
+      <input type="text" id="expand-style" placeholder="e.g. upbeat synthpop, electric guitar, driving bass">
+      <div class="hint">The YuE2 autoregressive music planner will compose the remaining sections in this style.</div>
+    </div>
+    <div class="row" style="margin-top:16px;">
+      <button id="expand-go" class="primary">Expand to full song</button>
+      <button id="expand-cancel" class="ghost">Cancel</button>
+    </div>
+    <div id="expand-status" class="status"></div>
   </div>
 </div>
 

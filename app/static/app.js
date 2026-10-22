@@ -3711,6 +3711,14 @@ function paintSource() {
     $('source-lyrics').disabled = !source || isMidi;
     $('source-lyrics').title = isMidi ? 'MIDI files do not have audio vocals for lyric extraction' : 'Write down the words this recording sings';
   }
+  if ($('source-expand-song')) {
+    var hasMelody = Boolean(source && (source.has_score || isMidi || $('abc').value.trim()));
+    $('source-expand-song').disabled = !source;
+    $('source-expand-song').title = !source ? 'Choose a recording first'
+      : (hasMelody
+        ? 'Expand this melody motif into a full multi-section song structure'
+        : 'Transcribe this recording first to get melody notes to expand');
+  }
   if ($('audition')) { $('audition').disabled = !source; }
   if ($('source-delete')) { $('source-delete').disabled = !source; }
   if ($('source-tracks')) {
@@ -9765,6 +9773,128 @@ async function stopWrite() {
   try { await api('/api/lyrics/' + WRITE.id + '/cancel', { method: 'POST' }); } catch (err) { /* the poll reports it */ }
 }
 
+/* ------------------------------------------------ Hum-to-Song Thematic Composer */
+var EXPAND = { method: 'symbolic' };
+
+function setExpandMethod(method) {
+  EXPAND.method = method;
+  if ($('expand-method-symbolic')) { $('expand-method-symbolic').classList.toggle('active', method === 'symbolic'); }
+  if ($('expand-method-neural')) { $('expand-method-neural').classList.toggle('active', method === 'neural'); }
+  if ($('expand-palette-field')) { $('expand-palette-field').classList.toggle('hidden', method !== 'symbolic'); }
+  if ($('expand-neural-field')) { $('expand-neural-field').classList.toggle('hidden', method !== 'neural'); }
+  if ($('expand-method-hint')) {
+    $('expand-method-hint').textContent = method === 'symbolic'
+      ? 'Instant musical transformation. Develops Verse, Pre-Chorus, and Bridge sections by shifting register, smoothing intervals, and applying chord palettes. Opens immediately in the visual Piano Roll.'
+      : 'The YuE2 autoregressive music planner will compose the remaining sections dynamically from your melody prefix in the requested style.';
+  }
+}
+
+async function openExpandModal() {
+  var source = currentSource();
+  var motifAbc = $('abc').value.trim();
+  if (!motifAbc && source && source.has_score) {
+    try {
+      var full = await api('/api/sources/' + source.id);
+      motifAbc = (full.abc || '').trim();
+      if (motifAbc) {
+        $('abc').value = motifAbc;
+        scoreBaseline(motifAbc);
+      }
+    } catch (err) {
+      console.warn('Could not fetch source score:', err);
+    }
+  }
+
+  if (!motifAbc) {
+    if (source && !source.has_score) {
+      statusLine('This recording has not been transcribed yet. Transcribe it first to get the melody notes to expand.', 'bad');
+      return;
+    }
+    statusLine('There is no melody score to expand yet. Transcribe a recording or enter notes first.', 'bad');
+    return;
+  }
+
+  // Summarize motif info
+  var barsMatch = motifAbc.match(/\|/g);
+  var barCount = barsMatch ? barsMatch.length : 0;
+  var keyMatch = motifAbc.match(/^K:\s*([^\n\r]+)/m);
+  var keyStr = keyMatch ? keyMatch[1].trim() : 'C';
+  var bpmMatch = motifAbc.match(/^Q:1\/4=(\d+)/m);
+  var bpmStr = bpmMatch ? bpmMatch[1] : '120';
+
+  if ($('expand-motif-summary')) {
+    $('expand-motif-summary').textContent = 'Melody Motif: ' + (barCount ? barCount + ' bars' : 'active score') + ' · Key: ' + keyStr + ' · ' + bpmStr + ' BPM';
+  }
+
+  setExpandMethod('symbolic');
+  if ($('expand-status')) { $('expand-status').textContent = ''; }
+  if ($('expand-go')) { $('expand-go').disabled = false; }
+  $('expand-modal').classList.remove('hidden');
+}
+
+function closeExpandModal() {
+  $('expand-modal').classList.add('hidden');
+}
+
+async function doExpandToSong() {
+  var source = currentSource();
+  var inputAbc = $('abc').value.trim();
+  var method = EXPAND.method || 'symbolic';
+  var preset = $('expand-preset') ? $('expand-preset').value : 'standard';
+  var palette = $('expand-palette') ? $('expand-palette').value : 'pop';
+  var role = $('expand-role') ? $('expand-role').value : 'chorus';
+  var style = ($('expand-style') ? $('expand-style').value.trim() : '') || ($('style') ? $('style').value.trim() : '');
+  var title = ($('title') ? $('title').value.trim() : '') || (source ? source.title + ' (Expanded)' : 'Expanded Song');
+
+  if ($('expand-status')) {
+    $('expand-status').textContent = method === 'symbolic' ? 'Composing full song structure\u2026' : 'Queuing neural score planner\u2026';
+    $('expand-status').className = 'status wait';
+  }
+  if ($('expand-go')) { $('expand-go').disabled = true; }
+
+  try {
+    var res = await api('/api/composer/expand', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source_id: source ? source.id : null,
+        abc: inputAbc || null,
+        method: method,
+        preset: preset,
+        palette: palette,
+        role: role,
+        style: style,
+        title: title,
+        space_id: State.spaceId
+      })
+    });
+
+    closeExpandModal();
+
+    if (res.method === 'symbolic') {
+      $('abc').value = res.abc || '';
+      scoreBaseline(res.abc || '');
+      setSelection({ formTakeId: null, boxKind: 'source', boxId: source ? source.id : null });
+      setChart('');
+      syncEditor();
+      updateScoreCount();
+      var durStr = res.estimate ? ' (' + res.estimate.bars + ' bars, ' + res.estimate.seconds + 's)' : '';
+      statusLine('Melody motif expanded into full song' + durStr + ' across ' + (res.sections ? res.sections.length : 0) + ' sections. Audition in Piano roll or click Write lyrics to fit words.', 'good');
+      openScoreEditor('roll');
+    } else {
+      if (typeof loadTakes === 'function') { await loadTakes(); }
+      statusLine('Queued neural score plan for full song (' + (res.estimate ? res.estimate.bpm + ' BPM, ' + res.estimate.key : '') + '). The AI planner is composing the arrangement\u2026', 'good');
+    }
+  } catch (err) {
+    if ($('expand-status')) {
+      $('expand-status').textContent = 'Failed to expand: ' + (err.message || err);
+      $('expand-status').className = 'status bad';
+    }
+    if ($('expand-go')) { $('expand-go').disabled = false; }
+    statusLine('Could not expand melody: ' + (err.message || err), 'bad');
+  }
+}
+
 /* ---------------------------------------------------------------- identities
    A folder of songs (an artist, a genre, a few similar artists), prepared for
    training a style LoRA.  The folder is only read;
@@ -14247,6 +14377,13 @@ function wire() {
   $('source-lyrics').addEventListener('click', function () {
     hearLyrics().catch(function (err) { statusLine('Could not start: ' + err.message, 'bad'); });
   });
+  if ($('source-expand-song')) { $('source-expand-song').addEventListener('click', openExpandModal); }
+  if ($('expand-close')) { $('expand-close').addEventListener('click', closeExpandModal); }
+  if ($('expand-cancel')) { $('expand-cancel').addEventListener('click', closeExpandModal); }
+  if ($('expand-method-symbolic')) { $('expand-method-symbolic').addEventListener('click', function () { setExpandMethod('symbolic'); }); }
+  if ($('expand-method-neural')) { $('expand-method-neural').addEventListener('click', function () { setExpandMethod('neural'); }); }
+  if ($('expand-go')) { $('expand-go').addEventListener('click', doExpandToSong); }
+  if ($('expand-modal')) { $('expand-modal').addEventListener('click', function (event) { if (backdropClick(event, $('expand-modal'))) { closeExpandModal(); } }); }
   $('lyrics-hear-stop').addEventListener('click', function () {
     var source = currentSource();
     if (!source) { return; }

@@ -41,7 +41,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import aligner, artwork, autotune, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
+from . import aligner, artwork, autotune, composer, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 
 personas = identities
@@ -857,6 +857,19 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 # ------------------------------------------------------------------- api models
 class ScoreIn(BaseModel):
     abc: str = Field(max_length=200_000)
+
+
+class ComposerExpandIn(BaseModel):
+    source_id: str | None = None
+    abc: str | None = Field(None, max_length=200_000)
+    method: str = Field("symbolic", pattern="^(symbolic|neural)$")
+    preset: str = Field("standard", max_length=64)
+    palette: str = Field("pop", max_length=64)
+    role: str = Field("chorus", pattern="^(chorus|verse)$")
+    style: str = Field("", max_length=2000)
+    title: str | None = Field(None, max_length=200)
+    lyrics: str = Field("", max_length=20_000)
+    space_id: str = Field(DEFAULT_SPACE, max_length=64)
 
 
 class RetrackIn(BaseModel):
@@ -1815,6 +1828,89 @@ async def recorder_autotune(
         out_tmp.unlink(missing_ok=True)
         log.warning("Autotune processing failed: %s", exc)
         raise HTTPException(500, f"autotune processing failed: {exc}") from exc
+
+
+# ------------------------------------------------------ Hum-to-Song Thematic Composer
+@app.get("/api/composer/options")
+def get_composer_options() -> dict:
+    """Return available song structure presets and harmonic palettes."""
+    return {
+        "presets": [
+            {"id": "standard", "name": "Standard Pop (Verse-PreChorus-Chorus-Bridge)", "sections": composer.PRESETS["standard"]},
+            {"id": "short", "name": "Radio Edit / Short (Verse-Chorus-Verse-Chorus)", "sections": composer.PRESETS["short"]},
+            {"id": "aaba", "name": "AABA Classic (Verse-Verse-Bridge-Verse)", "sections": composer.PRESETS["aaba"]},
+        ],
+        "palettes": [
+            {"id": "pop", "name": "Pop / Commercial (I - V - vi - IV)"},
+            {"id": "ballad", "name": "Moody / Ballad (vi - IV - I - V)"},
+            {"id": "uplifting", "name": "Uplifting / Anthem (I - IV - vi - V)"},
+            {"id": "rock", "name": "Classic Rock (I - IV - V - IV)"},
+            {"id": "rnb", "name": "RnB / Neo-Soul (ii - V - I - vi)"},
+        ],
+    }
+
+
+@app.post("/api/composer/expand")
+async def expand_melody_to_song(body: ComposerExpandIn) -> dict:
+    """Expand a short melody motif into a full multi-section song structure.
+
+    Supports both instant rule-based Symbolic composition and AI Neural continuation.
+    """
+    input_abc = (body.abc or "").strip()
+    source_title = ""
+    if not input_abc and body.source_id:
+        source = one("SELECT * FROM sources WHERE id = ?", (body.source_id,))
+        if not source:
+            raise HTTPException(404, "no such source")
+        input_abc = (source["abc"] or "").strip()
+        source_title = source["title"]
+        if not input_abc:
+            raise HTTPException(400, "This recording has no score yet. Transcribe it first to extract the melody notes.")
+    elif not input_abc:
+        raise HTTPException(400, "Provide an input score (abc) or source_id to expand.")
+
+    sections = composer.PRESETS.get(body.preset, composer.PRESETS["standard"])
+
+    if body.method == "symbolic":
+        expanded = composer.expand_motif_to_song(
+            input_abc,
+            structure=sections,
+            palette_name=body.palette,
+            role=body.role,
+        )
+        est = score.estimate(expanded)
+        probs = score.problems(expanded)
+        return {
+            "method": "symbolic",
+            "abc": expanded,
+            "estimate": est,
+            "problems": probs,
+            "sections": sections,
+        }
+
+    # Neural Continuation via score planner
+    analysis = composer.analyze_motif(input_abc)
+    target_key = f"{analysis.key_root}{'m' if analysis.mode == 'minor' else ''}"
+    struct_lyrics = body.lyrics.strip() or "\n\n".join([f"[{sec}]" for sec in sections])
+    title = (body.title or "").strip() or (f"{source_title} (Full Song)" if source_title else "Full Song from Melody")
+
+    song_body = SongIn(
+        title=title,
+        style=body.style.strip() or f"{analysis.bpm} BPM, {target_key}, melodic pop arrangement",
+        lyrics=struct_lyrics,
+        target_key=target_key,
+        target_bpm=analysis.bpm,
+        space_id=body.space_id,
+    )
+    planned_take = await _plan_new_take("song", title, struct_lyrics, song_body)
+    return {
+        "method": "neural",
+        "take_id": planned_take["id"],
+        "status": planned_take["status"],
+        "sections": sections,
+        "estimate": {"bpm": analysis.bpm, "key": target_key},
+    }
+
 
 
 # ------------------------------------------------------ a corpus song as a recording

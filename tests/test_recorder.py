@@ -81,6 +81,12 @@ def test_static_recorder_js_and_markup_served(client):
     assert app_js.status_code == 200
     assert "shouldShowWriteLyrics" in app_js.text
     assert "updateLyricsWriteVisibility" in app_js.text
+    assert "openExpandModal" in app_js.text
+    assert "doExpandToSong" in app_js.text
+
+    assert "source-expand-song" in page.text
+    assert "expand-modal" in page.text
+
 
 
 def test_upload_melody_recording(client):
