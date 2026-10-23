@@ -305,6 +305,22 @@ def free_port() -> int:
         return s.getsockname()[1]
 
 
+def why_not_answering(port: int, path: str) -> dict:
+    """What a failure to answer looked like from here, for a run on a machine we cannot reach."""
+    import socket
+    import urllib.request
+    out = {"proxies": urllib.request.getproxies()}
+    with socket.socket() as s:
+        s.settimeout(2)
+        out["connect"] = s.connect_ex(("127.0.0.1", port))
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}{path}", timeout=3) as reply:
+            out["urlopen"] = reply.status
+    except Exception as exc:  # noqa: BLE001 - reported, not handled
+        out["urlopen"] = repr(exc)
+    return out
+
+
 def test_the_launcher_starts_both_and_stops_both(monkeypatch, tmp_path):
     launcher = load_launcher(monkeypatch, tmp_path)
     server = tmp_path / "server.py"
@@ -326,7 +342,7 @@ def test_the_launcher_starts_both_and_stops_both(monkeypatch, tmp_path):
             seen.append(run.poll())
             time.sleep(0.2)
         logs = {name: log.read_text() if log.exists() else "(no log)" for name, (_, log) in run.programs.items()}
-        assert "app ready" in seen, (sorted(set(seen)), logs)
+        assert "app ready" in seen, (sorted(set(seen)), logs, why_not_answering(app_port, "/api/health"))
         assert run.engine_ready, logs
         assert run.busy() == ""          # /api/state does not answer here: nothing to lose
     finally:
