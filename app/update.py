@@ -49,6 +49,12 @@ KEY_CHECKED = "update.checked"
 KEY_SEEN = "update.seen"
 KEY_ANSWER = "update.answer"
 
+def _install_kind() -> str:
+    """Which install this is, which decides what an update means: an installer to run, a disk
+    image to drag from, or a pull and a rebuild."""
+    return {"win32": "windows", "darwin": "macos"}.get(sys.platform, "docker")
+
+
 def _initial() -> dict:
     """What we know before asking anything.  A function, so the state can be rebuilt:
     `config.VERSION` and the platform are read when this module is imported, and a test
@@ -61,7 +67,7 @@ def _initial() -> dict:
         "notes": None,
         "installer": None,
         "sha256": None,
-        "install": {"win32": "windows", "darwin": "macos"}.get(sys.platform, "docker"),
+        "install": _install_kind(),
         "line": None,
         "seen": False,
         "error": None,

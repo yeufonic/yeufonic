@@ -34,6 +34,9 @@ def fresh(monkeypatch):
     and the day the app really became 0.0.12, four of them started failing for the right
     reason — 0.0.12 is not newer than 0.0.12."""
     monkeypatch.setattr(config, "VERSION", "0.0.10")
+    # A Docker install wherever the tests run: on a Mac the state would otherwise say macos
+    # and look for a disk image.  The Windows and Mac cases set theirs.
+    monkeypatch.setattr(update, "_install_kind", lambda: "docker")
     monkeypatch.setattr(update, "STATE", update._initial())
 
 

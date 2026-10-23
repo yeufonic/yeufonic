@@ -28,10 +28,15 @@ jobs:
       - name: Build the app and the disk image
         run: bash macos/build.sh
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Tests (on macOS's bash and tools)
         run: |
-          python3 -m venv "$RUNNER_TEMP/tests"
-          "$RUNNER_TEMP/tests/bin/pip" install -q -r requirements.txt pytest anyio
+          python -m venv "$RUNNER_TEMP/tests"
+          # As the app image has it: the requirements, and torch for stems.
+          "$RUNNER_TEMP/tests/bin/pip" install -q -r requirements.txt torch==2.9.1 torchaudio==2.9.1 pytest anyio
           "$RUNNER_TEMP/tests/bin/python" -m pytest -q -p no:cacheprovider tests/test_macos.py tests/test_update.py
 
       - name: The system check

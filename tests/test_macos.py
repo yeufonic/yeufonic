@@ -325,8 +325,9 @@ def test_the_launcher_starts_both_and_stops_both(monkeypatch, tmp_path):
         while time.time() < deadline and "app ready" not in seen:
             seen.append(run.poll())
             time.sleep(0.2)
-        assert "app ready" in seen
-        assert run.engine_ready
+        logs = {name: log.read_text() if log.exists() else "(no log)" for name, (_, log) in run.programs.items()}
+        assert "app ready" in seen, (sorted(set(seen)), logs)
+        assert run.engine_ready, logs
         assert run.busy() == ""          # /api/state does not answer here: nothing to lose
     finally:
         run.stop()
