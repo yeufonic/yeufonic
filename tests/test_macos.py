@@ -287,14 +287,16 @@ def test_settings_ini_moves_ports_and_data_and_turns_training_on(monkeypatch, tm
     assert "8099" in launcher.app_command(cfg)
 
 
+# socketserver's TCPServer, not http.server's HTTPServer: that one looks up 127.0.0.1's name
+# between binding and listening, and on GitHub's Mac runners the lookup outlasts the test.
 SERVER = """
-import http.server, sys
+import http.server, socketserver, sys
 class H(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         ok = self.path == sys.argv[2]
         self.send_response(200 if ok else 404); self.end_headers(); self.wfile.write(b"{}")
     def log_message(self, *a): pass
-http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
+socketserver.TCPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
 """
 
 
