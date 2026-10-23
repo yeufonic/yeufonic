@@ -61,7 +61,7 @@ def _initial() -> dict:
         "notes": None,
         "installer": None,
         "sha256": None,
-        "install": "windows" if sys.platform == "win32" else ("macos" if sys.platform == "darwin" else "docker"),
+        "install": {"win32": "windows", "darwin": "macos"}.get(sys.platform, "docker"),
         "line": None,
         "seen": False,
         "error": None,
@@ -96,19 +96,21 @@ def is_newer(latest: str | None, mine: str | None = None) -> bool:
 
 
 def _installer_from(assets: list[dict] | None) -> tuple[str | None, str | None]:
-    """The setup file and its hash, from a release's assets.  The installer is what a
-    Windows or macOS user is sent to, so it is worth finding by name; anything else can fall back
-    to the release page."""
-    ext = ".dmg" if sys.platform == "darwin" else ".exe"
+    """The setup file and its hash, from a release's assets: the Windows installer, or on a
+    Mac the disk image.  It is what such an install is sent to, so it is worth finding by
+    name; anything else can fall back to the release page."""
+    prefix, suffix = ("yeufonic-", ".dmg") if STATE["install"] == "macos" else ("yeufonic-setup", ".exe")
     for asset in assets or []:
-        name = str(asset.get("name") or "")
-        if name.lower().startswith("yeufonic-setup") and name.lower().endswith(ext):
+        name = str(asset.get("name") or "").lower()
+        if name.startswith(prefix) and name.endswith(suffix):
             return asset.get("browser_download_url"), asset.get("digest") or None
     return None, None
 
 
 def _from_manifest(data: dict) -> dict:
-    installer = data.get("installer") or {}
+    # "installer" is the Windows one; a Mac's disk image is under "macos", and a manifest
+    # without it sends a Mac to the release notes rather than to a Windows installer.
+    installer = (data.get("macos") if STATE["install"] == "macos" else data.get("installer")) or {}
     if isinstance(installer, str):                    # a plain URL is allowed too
         installer = {"url": installer}
     return {
@@ -166,7 +168,7 @@ def advice() -> str:
     if STATE["install"] == "windows":
         return "Run the installer over this one: your library and models are kept."
     if STATE["install"] == "macos":
-        return "Open the DMG and drag Yeufonic over your existing app: your library and models are kept."
+        return "Quit Yeufonic, then drag the new one into Applications: your library and models are kept."
     return "Pull the new version and rebuild: " + (STATE["line"] or "git pull && docker compose up -d --build")
 
 
@@ -300,11 +302,10 @@ async def start_download() -> dict[str, Any]:
         raise ValueError("No installer URL available for this update")
 
     version = STATE.get("latest") or ""
-    ext = ".dmg" if sys.platform == "darwin" else ".exe"
     filename = (
-        f"Yeufonic-Setup-{version}{ext}"
+        f"Yeufonic-Setup-{version}.exe"
         if version
-        else Path(urllib.parse.urlsplit(installer_url).path).name or f"Yeufonic-Setup{ext}"
+        else Path(urllib.parse.urlsplit(installer_url).path).name or "Yeufonic-Setup.exe"
     )
     downloads = get_downloads_dir()
     target_path = downloads / filename
@@ -449,23 +450,15 @@ def launch_installer() -> bool:
         except Exception as exc:
             log.warning("Could not launch installer: %s", exc)
             raise
-    if sys.platform == "darwin":
-        try:
-            subprocess.Popen(["open", path_str])
-            return True
-        except Exception as exc:
-            log.warning("Could not open macOS installer DMG: %s", exc)
-            raise
     return False
 
 
 def reveal_installer() -> bool:
-    """Reveal the downloaded installer in Windows Explorer or macOS Finder."""
+    """Reveal the downloaded installer in Windows Explorer."""
     path_str = DOWNLOAD_STATE.get("path")
     if not path_str or not Path(path_str).is_file():
-        ext = ".dmg" if sys.platform == "darwin" else ".exe"
         filename = DOWNLOAD_STATE.get("filename") or (
-            f"Yeufonic-Setup-{STATE['latest']}{ext}" if STATE.get("latest") else None
+            f"Yeufonic-Setup-{STATE['latest']}.exe" if STATE.get("latest") else None
         )
         if filename:
             candidate = get_downloads_dir() / filename
@@ -479,13 +472,6 @@ def reveal_installer() -> bool:
             return True
         except Exception as exc:
             log.warning("Could not reveal installer: %s", exc)
-            raise
-    if sys.platform == "darwin":
-        try:
-            subprocess.Popen(["open", "-R", path_str])
-            return True
-        except Exception as exc:
-            log.warning("Could not reveal installer in Finder: %s", exc)
             raise
     return False
 

@@ -1,104 +1,92 @@
 #!/bin/bash
-# Build the macOS distribution: Yeufonic.app and Yeufonic-Setup-<version>.dmg
+# Build Yeufonic.app and the disk image it is shipped in, macos/dist/Yeufonic-<version>.dmg.
 #
-# Runs natively on macOS (including GitHub Actions macos-14 Apple Silicon runners).
-# On Linux, stages the .app bundle and archives it as a tarball.
+#   bash macos/build.sh                  the version in VERSION
+#   VERSION=0.0.99 bash macos/build.sh   another
 #
-# Usage:
-#   bash macos/build.sh
+# The disk image needs a Mac (hdiutil).  Anywhere else the app is still put together, in
+# macos/dist/Yeufonic.app, and packed as a .tar.gz to look inside: it is not something to ship.
+#
+# The app carries what windows/build.sh puts in the installer: the app, its requirements,
+# VERSION, BUILD and our engine node, with setup.sh and launcher.py.  Python, the engine and
+# the models are fetched by setup.sh the first time it is opened.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${VERSION:-$(cat "${ROOT}/VERSION")}"
-OUT="${ROOT}/macos/dist"
-STAGE="${OUT}/stage"
-APP_NAME="Yeufonic"
-APP_DIR="${STAGE}/${APP_NAME}.app"
-CONTENTS="${APP_DIR}/Contents"
-MACOS="${CONTENTS}/MacOS"
-RESOURCES="${CONTENTS}/Resources"
+VERSION="${VERSION:-$(cat "$ROOT/VERSION")}"
+OUT="${OUT:-$ROOT/macos/dist}"
+APP_DIR="$OUT/Yeufonic.app"
+CONTENTS="$APP_DIR/Contents"
+RES="$CONTENTS/Resources"
+STUDIO="$RES/studio"
 
-rm -rf "${STAGE}"
-mkdir -p "${MACOS}" "${RESOURCES}/studio/engine-nodes"
+rm -rf "$APP_DIR" "$OUT/stage"
+mkdir -p "$CONTENTS/MacOS" "$STUDIO/engine-nodes"
 
-echo "=== Staging macOS Bundle for ${APP_NAME} ${VERSION} ==="
+tar -C "$ROOT" --exclude='__pycache__' --exclude='static/__*' -cf - app | tar -C "$STUDIO" -xf -
+cp "$ROOT/requirements.txt" "$STUDIO/"
+echo "$VERSION" > "$STUDIO/VERSION"
+# The commit it was built from, marked + when the working tree had changes, as windows/build.sh does.
+BUILD_ID="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+[ -z "$(git -C "$ROOT" status --porcelain --untracked-files=no 2>/dev/null)" ] || BUILD_ID="$BUILD_ID+"
+echo "$BUILD_ID, $(date -u +'%d %b %Y %H:%M UTC')" > "$STUDIO/BUILD"
+tar -C "$ROOT/engine/custom_nodes" --exclude='__pycache__' -cf - yue2_harmony | tar -C "$STUDIO/engine-nodes" -xf -
 
-# 1. Stage Application Files
-tar -C "${ROOT}" --exclude='__pycache__' --exclude='static/__*' --exclude='.branch' --exclude='BRANCH' -cf - app | tar -C "${RESOURCES}/studio" -xf -
-cp "${ROOT}/requirements.txt" "${RESOURCES}/studio/"
-echo "${VERSION}" > "${RESOURCES}/studio/VERSION"
+sed "s/@VERSION@/$VERSION/g" "$ROOT/macos/Info.plist" > "$CONTENTS/Info.plist"
+cp "$ROOT/macos/launcher.py" "$ROOT/macos/setup.sh" "$RES/"
+cp "$ROOT/macos/yeufonic.icns" "$RES/"
+cp "$ROOT/LICENSE.md" "$ROOT/THIRD_PARTY_NOTICES.md" "$RES/"
 
-BUILD_ID=$(git -C "${ROOT}" rev-parse --short HEAD 2>/dev/null || echo unknown)
-[ -z "$(git -C "${ROOT}" status --porcelain --untracked-files=no 2>/dev/null)" ] || BUILD_ID="${BUILD_ID}+"
-echo "${BUILD_ID}, $(date -u +'%d %b %Y %H:%M UTC')" > "${RESOURCES}/studio/BUILD"
-
-tar -C "${ROOT}/engine/custom_nodes" --exclude='__pycache__' -cf - yue2_harmony | tar -C "${RESOURCES}/studio/engine-nodes" -xf -
-
-# 2. Stage macOS Scripts & Metadata
-cp "${ROOT}/macos/Info.plist" "${CONTENTS}/"
-sed -i.bak "s/0.0.47/${VERSION}/g" "${CONTENTS}/Info.plist" && rm -f "${CONTENTS}/Info.plist.bak"
-
-cp "${ROOT}/macos/launcher.py" "${RESOURCES}/"
-cp "${ROOT}/macos/setup.sh" "${RESOURCES}/"
-chmod +x "${RESOURCES}/setup.sh"
-
-cp "${ROOT}/LICENSE.md" "${RESOURCES}/"
-cp "${ROOT}/THIRD_PARTY_NOTICES.md" "${RESOURCES}/"
-
-# 3. Create the Executable Launcher
-cat > "${MACOS}/${APP_NAME}" << 'EOF'
+# The app's own program.  On first use, and whenever the app is not the one set up (a new copy
+# dragged into Applications), setup.sh runs in a Terminal window and opens the app again when it
+# has finished; otherwise the launcher runs with the app's Python.  A .command file opened with
+# Terminal needs no permission to control Terminal, which "tell application" would.
+cat > "$CONTENTS/MacOS/Yeufonic" <<'STUB'
 #!/bin/bash
-DIR="$(cd "$(dirname "$0")/../Resources" && pwd)"
-APP_SUPPORT="$HOME/Library/Application Support/Yeufonic"
-
-# First launch check: run setup if runtime is not ready
-if [ ! -f "${APP_SUPPORT}/state/python-runtime.done" ]; then
-  osascript -e 'tell application "Terminal" to do script "bash \"'"$DIR/setup.sh"'\""'
+RES="$(cd "$(dirname "$0")/../Resources" && pwd)"
+APP="$(cd "$(dirname "$0")/../.." && pwd)"
+SUPPORT="${YEUFONIC_HOME:-$HOME/Library/Application Support/Yeufonic}"
+case "$APP" in
+  /Volumes/*|*/AppTranslocation/*)
+    # Opened from the disk image, or from Downloads before being moved: macOS runs it from a
+    # read-only copy of its own, which would be gone by the time setup opens it again.
+    osascript -e 'display alert "Yeufonic" message "Drag Yeufonic into the Applications folder first, then open it from there."'
+    exit 0 ;;
+esac
+WANT="$(cat "$RES/studio/VERSION" "$RES/studio/BUILD" 2>/dev/null)"
+if [ ! -x "$SUPPORT/venv/bin/python" ] || [ "$(cat "$SUPPORT/state/set-up-for" 2>/dev/null)" != "$WANT" ]; then
+  mkdir -p "$SUPPORT"
+  CMD="$SUPPORT/Set up Yeufonic.command"
+  {
+    echo '#!/bin/bash'
+    echo 'clear'
+    printf '/bin/bash %q --then-open %q\n' "$RES/setup.sh" "$APP"
+  } > "$CMD"
+  chmod +x "$CMD"
+  open -a Terminal "$CMD"
   exit 0
 fi
+exec "$SUPPORT/venv/bin/python" "$RES/launcher.py" "$@"
+STUB
+chmod +x "$CONTENTS/MacOS/Yeufonic" "$RES/setup.sh"
 
-PYTHON_BIN="${APP_SUPPORT}/venv/bin/python"
-if [ ! -x "${PYTHON_BIN}" ]; then
-  PYTHON_BIN="python3"
-fi
-
-exec "${PYTHON_BIN}" "${DIR}/launcher.py" "$@"
-EOF
-chmod +x "${MACOS}/${APP_NAME}"
-
-# 4. Icon handling
-if [ -f "${ROOT}/macos/yeufonic.icns" ]; then
-  cp "${ROOT}/macos/yeufonic.icns" "${RESOURCES}/"
-elif [ -f "${ROOT}/app/static/icon-192.png" ]; then
-  # Stage PNG fallback
-  cp "${ROOT}/app/static/icon-192.png" "${RESOURCES}/yeufonic.png"
-fi
-
-DMG_NAME="Yeufonic-Setup-${VERSION}.dmg"
-
-# 5. Disk Image Assembly
-mkdir -p "${OUT}"
-
+mkdir -p "$OUT"
 if command -v hdiutil >/dev/null 2>&1; then
-  echo "Assembling macOS Disk Image (DMG) via hdiutil..."
-  # Create link to /Applications for standard drag-and-drop installer UX
-  ln -sf /Applications "${STAGE}/Applications"
-
-  DMG_OUT="${OUT}/${DMG_NAME}"
-  rm -f "${DMG_OUT}"
-
-  hdiutil create \
-    -volname "${APP_NAME}" \
-    -srcfolder "${STAGE}" \
-    -ov \
-    -format UDZO \
-    "${DMG_OUT}"
-
-  echo "Built ${DMG_OUT} ($(du -h "${DMG_OUT}" | cut -f1))"
+  # Not signed with a Developer ID, so Gatekeeper asks the first time (see macos/README.md).
+  # An ad-hoc signature at least seals the bundle, so a damaged download says so.
+  codesign --force --deep --sign - "$APP_DIR"
+  STAGE="$OUT/stage"
+  mkdir -p "$STAGE"
+  cp -R "$APP_DIR" "$STAGE/"
+  ln -s /Applications "$STAGE/Applications"
+  DMG="$OUT/Yeufonic-$VERSION.dmg"
+  rm -f "$DMG"
+  hdiutil create -volname "Yeufonic $VERSION" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+  rm -rf "$STAGE"
+  echo "built $DMG ($(du -h "$DMG" | cut -f1))"
+  shasum -a 256 "$DMG"
 else
-  echo "hdiutil not available on this platform (Linux/WSL)."
-  echo "Packaging tarball archive for distribution..."
-  TAR_OUT="${OUT}/Yeufonic-${VERSION}-macos.tar.gz"
-  tar -C "${STAGE}" -czf "${TAR_OUT}" "${APP_NAME}.app"
-  echo "Built ${TAR_OUT} ($(du -h "${TAR_OUT}" | cut -f1))"
+  TAR="$OUT/Yeufonic-$VERSION-macos-app.tar.gz"
+  tar -C "$OUT" -czf "$TAR" Yeufonic.app
+  echo "No hdiutil here, so no disk image: the app is in $APP_DIR, and packed in $TAR to look inside."
 fi

@@ -1,6 +1,6 @@
 """Yeufonic: lightweight CPU and GPU utilization stats.
 
-Works on both Linux and Windows platforms, supporting both native and Docker installs.
+Works on Linux, Windows and macOS, supporting both native and Docker installs.
 Assumes nothing about the target platform; uses standard OS facilities and APIs without
 requiring external tools or packages. Fails gracefully with a debug log entry if stats
 are unavailable.
@@ -28,6 +28,7 @@ _last_cpu_pct: int | None = None
 _nvml_initialized: bool = False
 _nvml_lib: Any = None
 _nvml_failed: bool = False
+_mach: Any = None
 
 
 def _read_cpu_raw() -> tuple[float, float] | None:
@@ -64,27 +65,23 @@ def _read_cpu_raw() -> tuple[float, float] | None:
         except Exception as exc:
             log.debug("GetSystemTimes call failed: %s", exc)
 
-    # 3. macOS host_statistics64 (native macOS app)
+    # 3. macOS host_statistics (native Mac install): user, system, idle and nice ticks
     if sys.platform == "darwin":
         try:
-            libc = ctypes.CDLL(None)
-            host = libc.mach_host_self()
-
-            class HostCpuLoadInfo(ctypes.Structure):
-                _fields_ = [("cpu_ticks", ctypes.c_uint32 * 4)]
-
-            info = HostCpuLoadInfo()
-            count = ctypes.c_uint32(4)
-            HOST_CPU_LOAD_INFO = 3
-            if libc.host_statistics64(host, HOST_CPU_LOAD_INFO, ctypes.byref(info), ctypes.byref(count)) == 0:
-                user = info.cpu_ticks[0]
-                system = info.cpu_ticks[1]
-                idle = info.cpu_ticks[2]
-                nice = info.cpu_ticks[3]
-                total = float(user + system + idle + nice)
-                return total, float(idle)
+            global _mach
+            if _mach is None:
+                libc = ctypes.CDLL("/usr/lib/libSystem.B.dylib")
+                libc.mach_host_self.restype = ctypes.c_uint32
+                libc.host_statistics.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_void_p,
+                                                 ctypes.POINTER(ctypes.c_uint32)]
+                _mach = (libc, libc.mach_host_self())   # one port, kept, rather than one per reading
+            libc, host = _mach
+            ticks = (ctypes.c_uint32 * 4)()
+            count = ctypes.c_uint32(4)                   # HOST_CPU_LOAD_INFO_COUNT
+            if libc.host_statistics(host, 3, ticks, ctypes.byref(count)) == 0:   # HOST_CPU_LOAD_INFO
+                return float(sum(ticks)), float(ticks[2])
         except Exception as exc:
-            log.debug("macOS host_statistics64 call failed: %s", exc)
+            log.debug("host_statistics call failed: %s", exc)
 
     return None
 

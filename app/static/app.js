@@ -4359,17 +4359,18 @@ function openExternal(url) {
 }
 
 /* Somewhere to go.  A Windows install has an installer to run, which is the whole of its
-   update; a Docker copy has to be pulled and rebuilt, so what it wants is the release page
+   update, and a Mac a disk image to drag the new app from; a Docker copy has to be pulled and rebuilt, so what it wants is the release page
    — its notes end with the two commands — and the installer beside it would be no use to it
    at all.  Neither install updates itself: the app only ever tells you. */
 function updateLink() {
   var info = State.update || {};
-  if (info.install === 'windows') { return info.installer || info.notes || ''; }
+  if (info.install === 'windows' || info.install === 'macos') { return info.installer || info.notes || ''; }
   return info.notes || info.installer || '';
 }
 
 function updateAdvice(info) {
   if (info.install === 'windows') { return 'Download the installer and run it over this one; your library and models are kept.'; }
+  if (info.install === 'macos') { return 'Download it, quit Yeufonic, and drag the new one into Applications; your library and models are kept.'; }
   return 'Then ' + (info.line || 'git pull && docker compose up -d --build') + '.';
 }
 

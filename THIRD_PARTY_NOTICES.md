@@ -142,6 +142,21 @@ differ, the publisher's terms apply.
 - **LGPL-2.1-or-later**. Source: [FluidSynth/fluidsynth](https://github.com/FluidSynth/fluidsynth).
 - Used for high-fidelity offline audio rendering of MIDI files. Installed via system package manager
   in the Docker image, and fetched as official Windows x64 release binaries during Windows setup.
+  On a Mac, Homebrew's is used when it is installed; it is not fetched.
+
+### FFmpeg (decoding, encoding and measuring audio)
+
+- **GPL-3.0** as built (with `--enable-gpl --enable-version3`). Source:
+  [FFmpeg](https://ffmpeg.org/download.html).
+- Not part of this repository. Installed from the system's packages in the Docker images; fetched
+  during setup as the "essentials" build from [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) on
+  Windows, and as the static arm64 `ffmpeg` and `ffprobe` from
+  [Martin Riedl's build server](https://ffmpeg.martin-riedl.de/) on a Mac.
+
+### PyObjC (the Mac app's menu-bar icon)
+
+- **MIT**. Source: [ronaldoussoren/pyobjc](https://github.com/ronaldoussoren/pyobjc). Installed
+  into the Mac app's Python during setup.
 
 ### SoundFonts (.sf2)
 
