@@ -1,6 +1,11 @@
-name: macOS Apple Silicon Build & Package
+# The Mac install on a real Mac: GitHub's Apple silicon runners.  They have about 7 GB of
+# memory and no Metal for PyTorch, so this cannot make a song; it builds the app and the disk
+# image, runs the tests on macOS's own bash and tools, sets the install up (without the 18 GB
+# of models) from inside the built app, and starts it, checking that the app answers and that
+# the engine loads ComfyUI's YuE2 nodes and ours.  A song is macos/README.md's test plan.
+name: macOS build
 
-'on':
+on:
   workflow_dispatch:
   push:
     branches:
@@ -9,48 +14,72 @@ name: macOS Apple Silicon Build & Package
       - 'macos/**'
       - 'app/**'
       - 'engine/custom_nodes/**'
+      - 'requirements.txt'
+      - 'tests/test_macos.py'
       - '.github/workflows/macos.yml'
 
 jobs:
-  build-macos:
-    name: Build macOS DMG (Apple Silicon)
-    runs-on: macos-14 # Apple Silicon M-series runner
-
+  mac:
+    runs-on: macos-15
+    timeout-minutes: 75
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
+      - name: Build the app and the disk image
+        run: bash macos/build.sh
 
-      - name: Install dependencies
+      - name: Tests (on macOS's bash and tools)
         run: |
-          python3 -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-asyncio httpx
+          python3 -m venv "$RUNNER_TEMP/tests"
+          "$RUNNER_TEMP/tests/bin/pip" install -q -r requirements.txt pytest anyio
+          "$RUNNER_TEMP/tests/bin/python" -m pytest -q -p no:cacheprovider tests/test_macos.py tests/test_update.py
 
-      - name: Run Core Test Suite
+      - name: The system check
+        run: bash macos/dist/Yeufonic.app/Contents/Resources/setup.sh --check-only
+
+      - name: Set up, as the app does on first use, without the models
+        run: bash macos/dist/Yeufonic.app/Contents/Resources/setup.sh --skip-models
+
+      - name: Start it and check the app and the engine answer
         run: |
-          pytest -q -p no:cacheprovider tests/test_macos.py tests/test_hotkeys.py tests/test_update.py
+          SUPPORT="$HOME/Library/Application Support/Yeufonic"
+          # Metal is not there on these runners; the engine runs on the CPU here.
+          if "$SUPPORT/engine/venv/bin/python" -c "import torch, sys; sys.exit(0 if torch.backends.mps.is_available() else 1)"; then
+            echo "Metal: available"; ARGS=""
+          else
+            echo "Metal: not available on this runner, so the engine runs with --cpu"; ARGS="--cpu"
+          fi
+          printf '[yue2]\nopen_browser = no\nengine_args = %s\n' "$ARGS" > "$SUPPORT/settings.ini"
+          "$SUPPORT/venv/bin/python" macos/dist/Yeufonic.app/Contents/Resources/launcher.py --console &
+          for i in $(seq 1 120); do
+            curl -sf http://127.0.0.1:8090/api/health >/dev/null && curl -sf http://127.0.0.1:8188/system_stats >/dev/null && break
+            sleep 5
+          done
+          curl -sf http://127.0.0.1:8090/api/health
+          curl -sf http://127.0.0.1:8188/object_info > "$RUNNER_TEMP/object_info.json"
+          python3 - "$RUNNER_TEMP/object_info.json" <<'EOF'
+          import json, sys
+          nodes = json.load(open(sys.argv[1]))
+          need = ["YuE2GenerateABC", "YuE2GenerateMusic", "EmptyYuE2LatentAudio",
+                  "YuE2GenerateABCHarmony", "Yue2PeakGuard", "Yue2Separate"]
+          missing = [n for n in need if n not in nodes]
+          print("engine nodes:", ", ".join(n for n in need if n in nodes))
+          print("Yue2Hear (CUDA only, expected absent):", "Yue2Hear" in nodes)
+          sys.exit(f"missing: {missing}" if missing else 0)
+          EOF
+          kill %1
+          wait %1 || true
 
-      - name: Verify macOS Hardware Pre-flight
-        run: |
-          bash macos/setup.sh --check-only
-
-      - name: Test macOS Environment Provisioning (Skip Models)
-        run: |
-          bash macos/setup.sh --skip-models --install-dir "$HOME/Library/Application Support/Yeufonic"
-
-      - name: Build macOS App & DMG
-        run: |
-          bash macos/build.sh
-
-      - name: Upload DMG Artifact
+      - name: Keep the disk image
         uses: actions/upload-artifact@v4
         with:
-          name: Yeufonic-Setup-macOS
-          path: macos/dist/Yeufonic-Setup-*.dmg
+          name: Yeufonic-macOS
+          path: macos/dist/Yeufonic-*.dmg
           if-no-files-found: error
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: ~/Library/Logs/Yeufonic
