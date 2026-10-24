@@ -111,7 +111,11 @@ def from_macos_setup(path: Path) -> list[Source]:
     if not path.exists():
         return []
     text = path.read_text(encoding="utf-8")
-    names = {m.group(1): m.group(2) for m in re.finditer(r"^\s*([A-Z_]+)=(https://\S+?)\s*$", text, re.M)}
+    names: dict[str, str] = {}
+    for m in re.finditer(r"^\s*([A-Z_]+)=((?:https://|\$\w+/)\S+?)\s*$", text, re.M):
+        value = _expand(m.group(2), names)
+        if value:
+            names[m.group(1)] = value
     found = []
     # dir|file|bytes|sha256|url|lyrics[|copy]
     for size, sha, raw, copy in re.findall(r"^\w+\|[^|]+\|(\d+)\|([0-9a-f]{64})\|([^|]+)\|[^|\n]*(?:\|([^|\n]+))?$", text, re.M):
