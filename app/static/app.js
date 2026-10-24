@@ -11610,6 +11610,47 @@ async function bulkDelete() {
   statusLine('Deleted ' + done + ' take' + (done === 1 ? '' : 's') + '.', 'good');
 }
 
+/* ------------------------------------------------------------- folding a take ---
+   A card folded shut shows its head line — the title, the kind, the length and the age — the
+   small row of its own buttons with the space at the left for notices, and the row of icons.
+   It is kept per take and on this browser, so one card can be opened without the rest and a
+   folded card stays folded across a reload. */
+var FOLDED_KEY = 'yue2.takes.folded';
+var FOLDED = null;
+
+function foldedIds() {
+  if (FOLDED) { return FOLDED; }
+  FOLDED = [];
+  try {
+    var saved = JSON.parse(localStorage.getItem(FOLDED_KEY) || '[]');
+    if (Array.isArray(saved)) { FOLDED = saved.filter(function (x) { return typeof x === 'string'; }); }
+  } catch (err) { /* private mode: the folds last as long as the page */ }
+  return FOLDED;
+}
+
+function isFolded(id) { return foldedIds().indexOf(id) >= 0; }
+
+function saveFolded(ids) {
+  FOLDED = ids.slice();
+  try { localStorage.setItem(FOLDED_KEY, JSON.stringify(FOLDED)); } catch (err) { /* private mode */ }
+}
+
+function foldCard(card, on) {
+  if (card) { card.classList.toggle('collapsed', Boolean(on)); }
+}
+
+/* The chip names what a click does, as Comfy and Fit do. */
+function paintFoldAll() {
+  var button = $('fold-toggle');
+  if (!button) { return; }
+  var cards = Array.prototype.slice.call(document.querySelectorAll('#takes .take'));
+  var anyOpen = !cards.length || cards.some(function (card) { return !card.classList.contains('collapsed'); });
+  button.textContent = anyOpen ? 'Collapse' : 'Expand';
+  button.title = anyOpen
+    ? 'Fold every take down to its head line and its icons'
+    : 'Open every take again';
+}
+
 function paintTakes() {
   if (document.querySelector('.take-title-input')) { return; }
   if (_coverPopupAnchor && !_coverPopupAnchor.isConnected) { closeCoverPopup(true); }
@@ -11641,7 +11682,11 @@ function paintTakes() {
     if (take.space_id && take.space_id !== State.spaceId) { meta.push('In ' + spaceName(take.space_id)); }
     // Found by a search, a take inside another says which: in its own panel that is plain to see.
     if (take.parent_id && State.search) { meta.push('Inside ' + (take.parent_title || 'another take')); }
-    meta.push(take.kind === 'song' ? 'from a prompt' : (take.kind === 'instrumental' ? 'instrumental' : 'cover'));
+    var kindWord = take.kind === 'song' ? 'from a prompt' : (take.kind === 'instrumental' ? 'instrumental' : 'cover');
+    meta.push(kindWord);
+    // The same three things in short, for a folded card: what it is, how long, how old.
+    var shortMeta = [kindWord];
+    if (take.duration) { shortMeta.push(secs(take.duration)); }
     if (take.duration) { meta.push(secs(take.duration)); }
     // The settings that shaped it come first, named, so a card can be read back
     // as the recipe that made it. Always shown, defaults included, so two cards
@@ -11664,6 +11709,7 @@ function paintTakes() {
     meta.push('seed ' + take.seed);
     if (take.sound_seed) { meta.push('voice ' + take.sound_seed); }
     meta.push(age(take.created_at));
+    shortMeta.push(age(take.created_at));
     var live = '';
     if (status === 'running' && take.live) {
       live = '<div class="take-meta">' + esc(take.live.label || 'working') + ' \u00b7 ' + Math.round((take.live.progress || 0) * 100) + '%</div>';
@@ -11842,7 +11888,8 @@ function paintTakes() {
     var coverAttr = hasArt
       ? ' data-act="cover-pic" data-id="' + take.id + '" data-art="' + esc(take.art) + '" data-title="' + esc(take.title) + '" role="button" tabindex="0" title="' + coverTipText + '" aria-label="' + coverTipText + '"'
       : ' title="' + coverTipText + '" aria-label="' + coverTipText + '"';
-    return '<article class="' + classes + (take.art ? ' with-art' : '') + '" data-id="' + take.id + '"' + art + '>' +
+    var folded = isFolded(take.id);
+    return '<article class="' + classes + (take.art ? ' with-art' : '') + (folded ? ' collapsed' : '') + '" data-id="' + take.id + '"' + art + '>' +
       '<div class="take-head">' +
         '<div class="take-icon">' +
           '<div class="' + coverCls + '"' + coverAttr + '>' + initials(take.title) + '</div>' +
@@ -11853,6 +11900,7 @@ function paintTakes() {
         '<div class="take-headtext">' +
           '<div class="take-title" data-act="rename" data-id="' + take.id + '" title="' + esc(take.title) + ' \u2014 double-click to rename">' + esc(take.title) + '</div>' +
           '<div class="take-meta" title="' + esc(meta.join(' \u00b7 ')) + '">' + esc(meta.join(' \u00b7 ')) + '</div>' +
+          '<div class="take-meta take-meta-short" title="' + esc(meta.join(' \u00b7 ')) + '">' + esc(shortMeta.join(' \u00b7 ')) + '</div>' +
         '</div>' +
       '</div>' +
       '<div class="take-style" title="' + esc(take.style) + '">' + esc(take.style) + '</div>' +
@@ -11866,6 +11914,7 @@ function paintTakes() {
   }).join('');
   paintBulk();
   paintSheet();
+  paintFoldAll();
 }
 
 /* Takes normalised before the level could be chosen have none recorded; all were -14. */
@@ -14120,6 +14169,14 @@ function wire() {
 
   $('width-toggle').addEventListener('click', function () {
     applyWidth(State.width === 'wide' ? 'fit' : 'wide');
+  });
+  // One chip folds every take down, or opens them all again, whatever each was doing.
+  $('fold-toggle').addEventListener('click', function () {
+    var cards = Array.prototype.slice.call(document.querySelectorAll('#takes .take'));
+    var anyOpen = !cards.length || cards.some(function (card) { return !card.classList.contains('collapsed'); });
+    cards.forEach(function (card) { foldCard(card, anyOpen); });
+    saveFolded(anyOpen ? cards.map(function (card) { return card.dataset.id; }) : []);
+    paintFoldAll();
   });
   $('layout-toggle').addEventListener('click', function () {
     applyLayout(State.layout === 'comfy' ? 'compact' : 'comfy');
