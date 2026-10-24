@@ -19,7 +19,8 @@ MODELS (downloaded from Hugging Face, about 18 GB)
 SOFTWARE
 
   ComfyUI (the engine), GPL-3.0, from github.com/Comfy-Org/ComfyUI.
-  ComfyUI-YuE2-Trainer (LoRA training), by speedyrulz: Apache-2.0.
+  ComfyUI-YuE2-Trainer (LoRA training), by speedyrulz: Apache-2.0, from
+  github.com/yeufonic/ComfyUI-YuE2-Trainer.
   Python, PyTorch, demucs, faster-whisper, ffmpeg, 7-Zip and uv, each under its own
   licence.
 

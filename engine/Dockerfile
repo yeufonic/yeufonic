@@ -34,7 +34,8 @@ RUN pip install "torch==2.9.*" "torchvision==0.24.*" "torchaudio==2.9.*" \
 # LoRA training, so a corpus built in the app can be trained from it.
 # Dual-branch training using ComfyUI-YuE2-Trainer (planner LoRA and acoustic LoRA).
 # Standalone: applies to ComfyUI's own YuE2 weights; no other checkpoint is downloaded.
-# Pinned to the commit this was tested against.
+# Pinned to the commit this was tested against, fetched from our copy of the trainer's history
+# (the original repository is no longer on GitHub).
 #
 # librosa, scipy, soundfile and mutagen are required for dataset encoding and training.
 #
@@ -43,7 +44,7 @@ RUN pip install "torch==2.9.*" "torchvision==0.24.*" "torchaudio==2.9.*" \
 ARG WITH_TRAINER=1
 ARG YUE2_TRAINER_REF=6a9355efff60589d93b41b569676f09d5db85d09
 RUN if [ "${WITH_TRAINER}" = "1" ]; then \
-        git clone --quiet https://github.com/speedyrulz/ComfyUI-YuE2-Trainer.git \
+        git clone --quiet https://github.com/yeufonic/ComfyUI-YuE2-Trainer.git \
             /app/custom_nodes/ComfyUI-YuE2-Trainer \
         && git -C /app/custom_nodes/ComfyUI-YuE2-Trainer checkout --quiet ${YUE2_TRAINER_REF} \
         && rm -rf /app/custom_nodes/ComfyUI-YuE2-Trainer/.git \

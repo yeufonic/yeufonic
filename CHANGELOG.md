@@ -39,6 +39,9 @@ cannot creep back in.
 
 ## 0.0.48 (2026-10-22)
 
+- **A fresh install could not fetch the LoRA trainer.** Its repository is no longer on GitHub, so the
+  Windows installer stopped at the engine step and an engine image could not be built. Both now fetch
+  the same pinned commit from a copy kept under the project's own account.
 - **Record a tune (Experimental).** Cover mode has a recorder: sing or hum into a microphone, or play
   a melody on an instrument such as a guitar into an audio interface (choose the device, the input's
   side and its gain). A metronome with time signatures and a count-in, headphone monitoring, a level
