@@ -322,7 +322,7 @@ EPY="$ENGINE_VENV/bin/python"
 NODES="$COMFY/custom_nodes"
 mkdir -p "$NODES"
 if ! is_done "yue2_trainer-${TRAINER_COMMIT:0:8}" || [ ! -d "$NODES/ComfyUI-YuE2-Trainer" ]; then
-  get_commit speedyrulz/ComfyUI-YuE2-Trainer "$TRAINER_COMMIT" "$NODES/ComfyUI-YuE2-Trainer"
+  get_commit yeufonic/ComfyUI-YuE2-Trainer "$TRAINER_COMMIT" "$NODES/ComfyUI-YuE2-Trainer"
   "$UV" pip install --python "$EPY" "soundfile>=0.12" "librosa>=0.10" scipy mutagen einops || stop_setup "the trainer's packages failed"
   mark_done "yue2_trainer-${TRAINER_COMMIT:0:8}"
 fi
