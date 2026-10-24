@@ -71,6 +71,9 @@ $Files = @{
                   Sha = 'fab7a2e4b85675b66970f97a39bbc239729c5e0f237198b5922a6a73cbc8677c'; Size = 2727529 }
 }
 $HF = 'https://huggingface.co'
+# Unchanged copies of the files by Mothersuperior, a single author's account: tried first, with the author's own as the
+# fallback, and either must match the checksum.  The copies' README credits the author and keeps the licence.
+$Copies = "$HF/pshields/yue2-mothersuperior-copies/resolve/main"
 $ModelFiles = @(
     @{ Name = 'YuE2 (plans and renders)'; Dir = 'checkpoints'; File = 'yue2_3b_bf16.safetensors'
        Url = "$HF/Comfy-Org/YuE2/resolve/main/checkpoints/yue2_3b_bf16.safetensors"
@@ -82,15 +85,19 @@ $ModelFiles = @(
        Url = "$HF/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e4b_it_int8_convrot.safetensors"
        Sha = '974d0c838ef4ac1a989b06ccb4e57691c21b6270dd8e345ffa7531f9388f117c'; Size = 8090965702 }
     @{ Name = 'Instrumental LoRA'; Dir = 'loras'; File = 'ar_lora_inst_v3abc_comfyui.safetensors'
+       Copy = "$Copies/ar_lora_inst_v3abc_comfyui.safetensors"
        Url = "$HF/Mothersuperior/YuE2-instrumental-cot-full-loras/resolve/main/ar_lora_inst_v3abc_comfyui.safetensors"
        Sha = 'de6a11d5701df103a191c87dc73115266e2420f3834739319dec5c24d2119f31'; Size = 212891736 }
     @{ Name = 'Production polish LoRA'; Dir = 'loras'; File = 'nar_lora_joint_v9_comfyui.safetensors'
+       Copy = "$Copies/nar_lora_joint_v9_comfyui.safetensors"
        Url = "$HF/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main/nar_lora_joint_v9_comfyui.safetensors"
        Sha = 'cd2bf0d3ce4bf68697daa016671da7d70e34e2f5545617ab9094c96b14a581db'; Size = 107518800 }
     @{ Name = 'Realaudio tokenizer head'; Dir = 'audio_encoders'; File = 'tokenizer_head_joint_v9.safetensors'
+       Copy = "$Copies/tokenizer_head_joint_v9.safetensors"
        Url = "$HF/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main/tokenizer_head_joint_v9.safetensors"
        Sha = '06440f25605c6c12c4e517ef033d7b70b8d9e961b3b06aa3848b1f8028fd7eb8'; Size = 171278808 }
     @{ Name = 'Training regularizer pack'; Dir = 'fs_audio'; File = 'minted_regularizer_pack_v2.pt'
+       Copy = "$Copies/minted_regularizer_pack_v2.pt"
        Url = "$HF/Mothersuperior/YuE2-hum-to-song/resolve/main/minted_regularizer_pack_v2.pt"
        Sha = '587631eec5946f9f87d4b422abcda7e35dee43299efb7b7d2fcba4cd8752c475'; Size = 296098847 }
 )
@@ -101,10 +108,10 @@ $PictureFiles = @(
        Url = "$HF/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors"
        Sha = '97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6'; Size = 4070624520 }
     @{ Name = 'Qwen3 4B text encoder (take pictures)'; Dir = 'text_encoders'; File = 'qwen_3_4b_fp4_flux2.safetensors'; Pictures = $true
-       Url = "$HF/Comfy-Org/vae-text-encorder-for-flux-klein-4b/resolve/main/split_files/text_encoders/qwen_3_4b_fp4_flux2.safetensors"
+       Url = "$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b_fp4_flux2.safetensors"
        Sha = '3eab03a77adb0ee5304a4e677d5c10ac22f9049c1d7c894adca4f8bb39206ca8'; Size = 3848213998 }
     @{ Name = 'FLUX.2 VAE (take pictures)'; Dir = 'vae'; File = 'flux2-vae.safetensors'; Pictures = $true
-       Url = "$HF/Comfy-Org/vae-text-encorder-for-flux-klein-4b/resolve/main/split_files/vae/flux2-vae.safetensors"
+       Url = "$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/vae/flux2-vae.safetensors"
        Sha = '868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3'; Size = 336211292 }
 )
 if ($Pictures) { $ModelFiles = @($ModelFiles) + $PictureFiles }
@@ -399,13 +406,24 @@ function Get-Verified($spec, [string]$dest) {
     $part = "$dest.part"
     if (-not (Test-Path $dest)) {
         Say ("Downloading {0} ({1:N0} MB)" -f (Split-Path $dest -Leaf), ($spec.Size / 1e6))
-        for ($try = 1; $try -le 6; $try++) {
-            & curl.exe -L --fail --retry 5 -C - -# -o $part $spec.Url
-            if ($LASTEXITCODE -eq 0) { break }
-            if ($try -eq 6) { Stop-Setup "could not download $($spec.Url)" }
-            Say "  the download broke off; trying again ($try of 5)" 'Yellow'
-            Start-Sleep -Seconds (5 * $try)
+        # Our copy first where there is one, then the publisher.  A refusal (404 and the like, curl's 22) moves on at
+        # once; a broken download is tried again, and a part left by one source is not resumed from another.
+        $sources = @(@($spec.Copy, $spec.Url) | Where-Object { $_ })
+        $tries = if ($sources.Count -gt 1) { 3 } else { 6 }
+        $got = $false
+        foreach ($url in $sources) {
+            for ($try = 1; $try -le $tries; $try++) {
+                & curl.exe -L --fail --retry 5 -C - -# -o $part $url
+                if ($LASTEXITCODE -eq 0) { $got = $true; break }
+                if ($LASTEXITCODE -eq 22 -or $try -eq $tries) { break }
+                Say "  the download broke off; trying again ($try of $($tries - 1))" 'Yellow'
+                Start-Sleep -Seconds (5 * $try)
+            }
+            if ($got) { break }
+            if (Test-Path $part) { Remove-Item -Force $part }
+            if ($url -ne $sources[-1]) { Say "  could not download it from $url; trying $($sources[-1])" 'Yellow' }
         }
+        if (-not $got) { Stop-Setup "could not download $($spec.Url)" }
         Move-Item -Force $part $dest
     }
     if ($spec.Size -and (Get-Item $dest).Length -ne $spec.Size) {
@@ -749,7 +767,7 @@ if (-not $SkipModels -and -not (IsDone 'app-models')) {
 # checked, and the first lyric hearing does not wait on 1.6 GB.
 if (-not $SkipModels -and -not (IsDone 'engine-whisper-model')) {
     Step 'Whisper for the engine (about 1.6 GB)'
-    $whisperUrl = 'https://huggingface.co/mobiuslabsgmbh/faster-whisper-large-v3-turbo/resolve/main'
+    $whisperUrl = 'https://huggingface.co/dropbox-dash/faster-whisper-large-v3-turbo/resolve/main'
     $engineWhisper = Join-Path $Models 'whisper\large-v3-turbo'
     New-Item -ItemType Directory -Force -Path $engineWhisper | Out-Null
     $whisperFiles = @(

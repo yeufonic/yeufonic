@@ -37,6 +37,23 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- A **Yeufonic** visualizer style: the mark itself as the scene. Its tile glows with the bass and
+  expands on the beat, each fork arm is a meter with its own half of the spectrum — the left the lows,
+  the right the mids and highs — and the green dot flares on the beat. The fork stays white, so it
+  reads as the logo rather than as a redrawing of it.
+- A new cover or instrumental no longer shows the last recording's tempo warning, and a switch of the
+  editor's mode tabs that lets go of the open take starts the Advanced settings from their defaults.
+- **An install no longer depends on one person's account for files every install needs.** The instrumental and
+  production polish LoRAs, the tokenizer head and the training regularizer pack are fetched from an unchanged copy
+  first, with their author's repository as the fallback; either must match the same checksum, on Windows and Docker.
+- Two model repositories that were renamed upstream (the Whisper model, and FLUX.2 klein's text encoder and VAE)
+  are fetched under their new names, rather than through a redirect from the old ones.
+- MERT, which `scripts/tokenize_identity.py` downloads, is loaded at a pinned revision rather than the latest.
+- `scripts/check-upstream.sh` also asks every address the installers download from whether it still answers with
+  the size and checksum pinned, and says when a repository has been renamed.
+
 ## 0.0.48 (2026-10-22)
 
 - **A fresh install could not fetch the LoRA trainer.** Its repository is no longer on GitHub, so the

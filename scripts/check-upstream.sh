@@ -6,7 +6,11 @@
 #   - ComfyUI-YuE2-Trainer, the trainer, pinned there too.
 #   - The model repositories on Hugging Face that scripts/fetch-models.sh
 #     downloads from, and the YuE2 authors' own (m-a-p), where a new version
-#     appears first.
+#     appears first. MERT is pinned in app/tokenizer.py.
+#   - Every address the installers download from (windows/setup.ps1,
+#     scripts/fetch-models.sh, macos/setup.sh, the Dockerfile's clones): does it
+#     still answer, with the size and checksum pinned? A repository that is taken
+#     down or renamed breaks every fresh install, as the trainer's once did.
 #
 # The pins are on purpose: a build that changes under you is worse than one that
 # is a little old. But a pin nobody looks at quietly becomes a fork. Run this
@@ -15,12 +19,14 @@
 #   sh scripts/check-upstream.sh                  report
 #   sh scripts/check-upstream.sh --show-details   also list each commit with its
 #                                                 description (ComfyUI's in full only
-#                                                 where they touch our code)
+#                                                 where they touch our code), and every
+#                                                 download source, not only the failing
 #   sh scripts/check-upstream.sh --reviewed       also record the model repositories
 #                                                 as reviewed at their current revision
 #
 # Needs the GitHub CLI (gh) to compare the pins; without it, it prints each pin and
-# its comparison URL so it can be read by hand.
+# its comparison URL so it can be read by hand. Exits 1 when a download source is
+# missing or different.
 set -eu
 
 DETAILS=
@@ -46,7 +52,7 @@ if ! command -v gh >/dev/null 2>&1; then
   echo
   echo "gh is not installed, so the comparison is up to you:"
   echo "  https://github.com/$REPO/compare/$PIN...master"
-  exit 0
+  exec python3 "$HERE/scripts/_sources_report.py" $DETAILS
 fi
 
 echo "upstream master  $(gh api "repos/$REPO/commits?per_page=1" \
@@ -76,3 +82,6 @@ else
 fi
 
 python3 "$HERE/scripts/_models_report.py" "$@"
+
+# Last, so its exit status is the script's: 1 when a fresh install would stop.
+python3 "$HERE/scripts/_sources_report.py" $DETAILS

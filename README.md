@@ -655,7 +655,8 @@ app/                   the application
   static/              the page. No build step
 tests/                 pytest: the API, the job lanes against a fake engine, migrations
 scripts/fetch-models.sh
-scripts/check-upstream.sh   how far ComfyUI, the trainer and the model repositories have moved
+scripts/check-upstream.sh   how far ComfyUI, the trainer and the model repositories have moved,
+                            and whether every download address still answers as pinned
 models/                bind mounted into the engine (git ignored)
 data/                  your library: sources, takes, stems, SQLite (git ignored)
 engine-state/          ComfyUI's input, output and user folders (git ignored)
@@ -826,8 +827,10 @@ cut.
 
 - YuE2 by HKUST M-A-P. Weights CC BY-NC 4.0.
 - SheetSage2 and MERT2 by the same team, for transcription.
-- [YuE2 instrumental LoRA](https://huggingface.co/Mothersuperior/YuE2-instrumental-cot-full-loras) by
-  Mothersuperior, for instrumentals. CC BY-NC 4.0.
+- [YuE2 instrumental LoRA](https://huggingface.co/Mothersuperior/YuE2-instrumental-cot-full-loras), the realaudio
+  LoRA and tokenizer head, and the training regularizer pack, by Mothersuperior. CC BY-NC 4.0. The installers fetch
+  them from an unchanged copy, [pshields/yue2-mothersuperior-copies](https://huggingface.co/pshields/yue2-mothersuperior-copies),
+  with the author's repositories as the fallback.
 - [Gemma 4](https://huggingface.co/Comfy-Org/gemma-4) by Google, for lyric drafts. Apache 2.0.
 - [FLUX.2 klein 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8) by Black Forest Labs, with
   Qwen3 4B as its text encoder, for take pictures, when chosen. Apache 2.0.

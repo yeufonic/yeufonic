@@ -12,7 +12,10 @@ MODELS (downloaded from Hugging Face, about 18 GB)
   excluded.
 
   The Instrumental, Production polish and training LoRAs and packs, by Mothersuperior:
-  CC BY-NC 4.0.
+  CC BY-NC 4.0. Fetched from an unchanged copy at huggingface.co/pshields, with the
+  author's own repository as the fallback.
+
+  Whisper large-v3-turbo (hearing lyrics), by OpenAI: MIT.
 
   Gemma 4 E4B (lyric drafts), by Google: Apache 2.0. Optional.
 

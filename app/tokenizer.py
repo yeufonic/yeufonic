@@ -18,6 +18,11 @@ H = 8
 SAMPLE_RATE = 24000
 TOKEN_RATE_HZ = 25
 
+# MERT is loaded with trust_remote_code, so its Python runs here: pinned to the revision that was read, so a
+# change on Hugging Face neither changes the tokens nor runs code nobody has looked at.
+MERT_REPO = "m-a-p/MERT-v2-FullSong"
+MERT_REVISION = "7001f7657276238629e61c7746ce70735e0604c0"
+
 
 def load_audio(filepath: str | Path, target_sr: int = SAMPLE_RATE):
     """Loads audio as float32 mono array at target_sr using PyAV or torchaudio."""
@@ -112,10 +117,10 @@ class AudioTokenizer:
         self.cache_dir = str(cache_dir) if cache_dir else None
 
         self.proc = AutoFeatureExtractor.from_pretrained(
-            "m-a-p/MERT-v2-FullSong", trust_remote_code=True, cache_dir=self.cache_dir
+            MERT_REPO, revision=MERT_REVISION, trust_remote_code=True, cache_dir=self.cache_dir
         )
         self.mert = AutoModel.from_pretrained(
-            "m-a-p/MERT-v2-FullSong", trust_remote_code=True, cache_dir=self.cache_dir
+            MERT_REPO, revision=MERT_REVISION, trust_remote_code=True, cache_dir=self.cache_dir
         ).to(self.device).eval()
         rebuild_rotary(self.mert)
 

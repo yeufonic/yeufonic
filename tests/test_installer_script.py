@@ -148,3 +148,67 @@ def test_style_loras_are_chosen_at_install_and_never_replace_a_users_file():
     assert not any(name.startswith(("samjac", "earthdrone")) for name in windows)   # no licence: never passed on
     assert '--loras) LORAS=yes ;;' in fetch and 'if [ -s "$dest" ]; then echo "have  $file"; continue; fi' in fetch
 
+
+
+MOTHERSUPERIOR = {
+    "ar_lora_inst_v3abc_comfyui.safetensors": "de6a11d5701df103a191c87dc73115266e2420f3834739319dec5c24d2119f31",
+    "nar_lora_joint_v9_comfyui.safetensors": "cd2bf0d3ce4bf68697daa016671da7d70e34e2f5545617ab9094c96b14a581db",
+    "tokenizer_head_joint_v9.safetensors": "06440f25605c6c12c4e517ef033d7b70b8d9e961b3b06aa3848b1f8028fd7eb8",
+    "minted_regularizer_pack_v2.pt": "587631eec5946f9f87d4b422abcda7e35dee43299efb7b7d2fcba4cd8752c475",
+}
+
+
+def test_files_from_a_single_authors_account_are_fetched_from_our_copy_first():
+    """The trainer's repository vanished and every fresh install stopped. The files by Mothersuperior (one person's
+    account, every install needs them) are fetched from an unchanged copy first and from the author's repository if the
+    copy cannot be had, on Windows and Docker alike, and either must match the same checksum."""
+    import re
+    ROOT = Path(__file__).resolve().parent.parent
+    setup = (ROOT / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    fetch = (ROOT / "scripts" / "fetch-models.sh").read_text(encoding="utf-8")
+    assert '$Copies = "$HF/pshields/yue2-mothersuperior-copies/resolve/main"' in setup
+    assert "COPIES=https://huggingface.co/pshields/yue2-mothersuperior-copies/resolve/main" in fetch
+    for name, sha in MOTHERSUPERIOR.items():
+        block = re.search(r"@\{[^{}]*File = '" + re.escape(name) + r"'[^{}]*\}", setup).group(0)
+        assert f'Copy = "$Copies/{name}"' in block and "Url = \"$HF/Mothersuperior/" in block and sha in block
+        assert re.search(r'fetch "\$COPIES/' + re.escape(name) + r'" \\\n[^\n]+\\\n\s+"\$\w+/' + re.escape(name) + '"', fetch)
+    helper = setup[setup.index("function Get-Verified("):setup.index("function Expand-Zip(")]
+    assert "@(@($spec.Copy, $spec.Url) | Where-Object { $_ })" in helper   # the copy first, then the publisher
+    assert "$LASTEXITCODE -eq 22" in helper                                # a refusal moves on at once
+    assert helper.index("if (-not $got)") < helper.index("Move-Item -Force $part $dest")
+
+
+def test_mert_is_loaded_at_a_pinned_revision():
+    """MERT comes with trust_remote_code, so its Python runs in the app: loaded from main, a change on Hugging Face would
+    change the tokens and run code nobody had read."""
+    import re
+    text = (Path(__file__).resolve().parent.parent / "app" / "tokenizer.py").read_text(encoding="utf-8")
+    assert re.search(r'^MERT_REVISION = "[0-9a-f]{40}"$', text, re.M)
+    calls = re.findall(r"from_pretrained\(([^)]*)\)", text)
+    mert = [c for c in calls if "MERT" in c]
+    assert len(mert) == 2 and all("revision=MERT_REVISION" in c for c in mert)
+    assert text.count('"m-a-p/MERT-v2-FullSong"') == 1   # only in MERT_REPO: nothing loads it another way
+
+
+def test_the_sources_check_reads_every_kind_of_address():
+    """scripts/check-upstream.sh asks every download address whether it still answers; this checks it finds them all
+    without the network: files with a checksum, our copies, the Whisper files, pinned commits and the score samples."""
+    import importlib.util
+    ROOT = Path(__file__).resolve().parent.parent
+    spec = importlib.util.spec_from_file_location("sources_report", ROOT / "scripts" / "_sources_report.py")
+    report = importlib.util.module_from_spec(spec)
+    import sys
+    sys.modules["sources_report"] = report   # its dataclass looks itself up there
+    spec.loader.exec_module(report)
+    found = {s.url: s for s in report.sources()}
+    assert all("$" not in url for url in found)
+    copies = [u for u in found if "/pshields/yue2-mothersuperior-copies/" in u]
+    assert sorted(u.rsplit("/", 1)[1] for u in copies) == sorted(MOTHERSUPERIOR)
+    assert all(found[u].sha == MOTHERSUPERIOR[u.rsplit("/", 1)[1]] for u in copies)
+    assert any(u.endswith("/faster-whisper-large-v3-turbo/resolve/main/model.bin") for u in found)
+    assert "https://github.com/yeufonic/ComfyUI-YuE2-Trainer/commit/6a9355efff60589d93b41b569676f09d5db85d09" in found
+    assert any(u.startswith("https://github.com/Comfy-Org/ComfyUI/commit/") for u in found)       # setup.ps1
+    assert any(u.startswith("https://github.com/comfyanonymous/ComfyUI/commit/") for u in found)  # the Dockerfile
+    assert sum("/pshields/yue2-style-loras/" in u for u in found) == 78
+    assert any(u.endswith("acoustic_grand_piano-mp3/A4.mp3") for u in found)
+    assert all(found[u].sha for u in found if u.endswith(".safetensors"))
