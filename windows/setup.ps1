@@ -635,7 +635,7 @@ if ($variant -eq 'cu130') {
 
 $nodes = Join-Path $ComfyDir 'custom_nodes'
 if (-not (IsDone "yue2_trainer-$($Pins.Yue2TrainerCommit.Substring(0, 8))") -or -not (Test-Path (Join-Path $nodes 'ComfyUI-YuE2-Trainer'))) {
-    Get-Commit 'speedyrulz/ComfyUI-YuE2-Trainer' $Pins.Yue2TrainerCommit (Join-Path $nodes 'ComfyUI-YuE2-Trainer')
+    Get-Commit 'yeufonic/ComfyUI-YuE2-Trainer' $Pins.Yue2TrainerCommit (Join-Path $nodes 'ComfyUI-YuE2-Trainer')
     Invoke-Checked "The trainer's packages" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', 'soundfile>=0.12', 'librosa>=0.10', 'scipy', 'mutagen', 'einops')
     Done "yue2_trainer-$($Pins.Yue2TrainerCommit.Substring(0, 8))"
 }

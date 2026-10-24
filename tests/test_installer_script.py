@@ -60,7 +60,7 @@ def test_the_windows_engine_keeps_the_portable_torch_and_undoes_the_0_0_25_pin()
 def test_the_windows_engine_gets_the_yue2_trainer():
     """Windows installs ComfyUI-YuE2-Trainer with soundfile, librosa, scipy, mutagen and einops."""
     setup = (Path(__file__).resolve().parent.parent / "windows" / "setup.ps1").read_text(encoding="utf-8")
-    assert "speedyrulz/ComfyUI-YuE2-Trainer" in setup
+    assert "yeufonic/ComfyUI-YuE2-Trainer" in setup and "speedyrulz/" not in setup
     assert "ComfyUI-YuE2-Trainer" in setup
     assert "soundfile>=0.12" in setup and "librosa>=0.10" in setup and "mutagen" in setup
 

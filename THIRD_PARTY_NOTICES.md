@@ -111,7 +111,8 @@ differ, the publisher's terms apply.
 ### ComfyUI-YuE2-Trainer (LoRA training)
 
 - By speedyrulz. **Apache-2.0**.
-  Source: [speedyrulz/ComfyUI-YuE2-Trainer](https://github.com/speedyrulz/ComfyUI-YuE2-Trainer).
+  Source: [yeufonic/ComfyUI-YuE2-Trainer](https://github.com/yeufonic/ComfyUI-YuE2-Trainer), an
+  unchanged copy of its history, kept because the original repository is no longer on GitHub.
 - It is not part of this repository. `engine/Dockerfile` installs it into the engine at a pinned
   commit (unless built with `WITH_TRAINER=0`), where it trains the style LoRAs made from a corpus.
 

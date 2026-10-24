@@ -65,7 +65,7 @@ fi
 python3 "$HERE/scripts/_upstream_report.py" comfy "$tmp" "$PIN" "$REPO" $DETAILS
 
 # The trainer: every change matters, since the whole repository is the trainer.
-TRAINER_REPO=speedyrulz/ComfyUI-YuE2-Trainer
+TRAINER_REPO=yeufonic/ComfyUI-YuE2-Trainer
 TRAINER_PIN=$(sed -n 's/^ARG YUE2_TRAINER_REF=\(.*\)$/\1/p' "$HERE/engine/Dockerfile")
 echo
 echo "trainer pinned to $TRAINER_REPO @ $(printf %.8s "$TRAINER_PIN")"
