@@ -3733,6 +3733,7 @@ function paintSource() {
   if (!source) {
     badge.textContent = 'no score';
     badge.className = 'badge';
+    paintSourceTempo(null);
     // An instrumental let go of its recording: the recording's score goes with it.
     if (State.mode === 'inst' && Selection.boxKind === 'source') { clearRecordingScore(); }
     followRecordingCap();
@@ -3793,14 +3794,15 @@ function paintSourceTempo(source) {
   var estimate = source && source.score_seconds
     ? { seconds: Number(source.score_seconds), bpm: Number(source.score_bpm) || 120 }
     : null;
-  if (!estimate || !seconds) { node.textContent = ''; node.className = 'status'; return; }
+  // Not for a new take that kept its recording (an instrumental): it is old news there until the recording is chosen again.
+  if (!estimate || !seconds || source.id === State.tempoQuiet) { node.textContent = ''; node.className = 'status'; return; }
   var ratio = estimate.seconds / seconds;
   if (ratio > 0.85 && ratio < 1.15) { node.textContent = ''; node.className = 'status'; return; }
   var fits = Math.round(estimate.bpm / ratio);
   node.textContent = 'The score describes ' + Math.round(estimate.seconds) + 's of music for a '
     + Math.round(seconds) + 's recording (' + ratio.toFixed(2) + 'x), so its tempo is probably wrong. '
     + 'The score says ' + estimate.bpm + ' BPM and about ' + fits + ' fits the recording. '
-    + 'A cover follows the score, so it plays at that tempo. Expand the score to change it.';
+    + (State.mode === 'inst' ? 'An instrumental' : 'A cover') + ' follows the score, so it plays at that tempo. Expand the score to change it.';
   node.className = 'status bad';
 }
 
@@ -5171,7 +5173,7 @@ function adoptVisualizerSettings() {
   if (!window.Visualizer) { return; }
   var mini = setting('appearance.mini_visualizer', 'on') === 'on';
   var art = setting('appearance.visualizer_art', 'sleeve');
-  var mode = setting('appearance.visualizer_mode', 'wave');
+  var mode = setting('appearance.visualizer_mode', 'yeufonic');
 
   var changed = false;
   if (window.Visualizer.miniEnabled !== mini) {
@@ -6406,6 +6408,8 @@ function setMode(mode) {
   }
   followRecordingCap();
   if (inst) { paintInstSource(); }
+  // No recording on show, so no word about one's tempo.
+  if (!cover && !(inst && currentSource())) { paintSourceTempo(null); }
 }
 
 /* The working score and the take it belongs to survive a reload, so the render
@@ -11194,6 +11198,7 @@ function selectTake(take) {
   var hasScore = Boolean(take.abc && take.abc.length > 50);
   var planning = isSong && !hasScore && (take.status === 'queued' || take.status === 'running');
   setMode(isInst ? 'inst' : (isSong ? 'song' : 'cover'));
+  State.tempoQuiet = null;   // an opened take shows what its recording's score says
   if (!isSong && take.source_id) { $('source-select').value = take.source_id; }
   if (isInst && $('source-select')) { $('source-select').value = take.source_id || ''; }
   $('title').value = take.title;
@@ -11392,8 +11397,10 @@ async function startFresh() {
   if ($('mode')) { $('mode').value = 'full'; }
   // The Advanced settings too, and the ticks under the lyrics with them: a new take starts from the defaults.
   writeAdvancedSettings(ADVANCED_DEFAULTS);
-  // And no message left from the last take: the recording's tempo warning, a LoRA install.
-  if (cover) { paintSourceTempo(null); }
+  // And no message left from the last take: the recording's tempo warning (an instrumental keeps
+  // its recording, but the warning is not news to a new take), a LoRA install.
+  paintSourceTempo(null);
+  State.tempoQuiet = currentSource() ? currentSource().id : null;
   if ($('lora-install-status')) { $('lora-install-status').textContent = ''; $('lora-install-status').className = 'status'; }
   paintVocals();
   if (State.mode === 'inst' && typeof paintStructure === 'function') { paintStructure(); }
@@ -14034,6 +14041,7 @@ function wire() {
   });
 
   $('source-select').addEventListener('change', function () {
+    State.tempoQuiet = null;
     var boxTake = scoreTakeId() ? takeById(scoreTakeId()) : null;
     var recordingScore = Selection.boxKind === 'source' || Boolean(boxTake && boxTake.source_id);
     // Choosing a recording the box's take did not come from lets go of that take:
@@ -14068,7 +14076,12 @@ function wire() {
   $('reroll').addEventListener('click', doReroll);
   document.querySelector('.modes').addEventListener('click', function (event) {
     var button = event.target.closest('[data-mode]');
-    if (button) { setMode(button.dataset.mode); saveForm(); }
+    if (!button) { return; }
+    var heldTake = scoreTakeId() || selectedTakeId();
+    setMode(button.dataset.mode);
+    // A switch that let go of the open take starts a new one, and a new take starts from the defaults.
+    if (heldTake && !(scoreTakeId() || selectedTakeId())) { writeAdvancedSettings(ADVANCED_DEFAULTS); }
+    saveForm();
   });
 
   $('save-score').addEventListener('click', function () { saveScore(false); });

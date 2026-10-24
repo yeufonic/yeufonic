@@ -14,7 +14,7 @@
   var Visualizer = {
     isOpen: false,
     currentTake: null,
-    mode: 'wave', // 'yeufonic', 'wave', 'aurora', 'cosmic', 'kaleidoscope', ...
+    mode: 'yeufonic', // 'yeufonic' is the fresh install's default; 'wave', 'aurora', 'cosmic', ...
     artMode: 'sleeve', // 'sleeve', 'aura', 'off'
     showLyrics: true,
     miniEnabled: true,

@@ -505,7 +505,8 @@ SETTINGS_SPEC: list[dict] = [
         "group": "system",
         "label": "Visualizer style",
         "type": "select",
-        "default": "wave",
+        # The brand scene is what a fresh install opens on; a saved choice is kept.
+        "default": "yeufonic",
         "options": [
             {"value": "yeufonic", "label": "Yeufonic"},
             {"value": "wave", "label": "Wave Ribbon"},

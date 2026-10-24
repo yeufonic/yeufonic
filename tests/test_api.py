@@ -287,6 +287,9 @@ def test_visualizer_settings(client):
     assert "appearance.mini_visualizer" in by_key
     assert "appearance.visualizer_art" in by_key
     assert "appearance.visualizer_mode" in by_key
+    # A fresh install opens the visualizer on the brand scene; a saved choice is kept.
+    assert by_key["appearance.visualizer_mode"]["value"] == "yeufonic"
+    assert "yeufonic" in [o["value"] for o in by_key["appearance.visualizer_mode"]["options"]]
 
     # Update visualizer setting
     put_res = client.put("/api/settings", json={"key": "appearance.mini_visualizer", "value": "off"})
