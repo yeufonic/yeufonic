@@ -14,7 +14,7 @@
   var Visualizer = {
     isOpen: false,
     currentTake: null,
-    mode: 'wave', // 'wave', 'aurora', 'cosmic', 'kaleidoscope'
+    mode: 'wave', // 'yeufonic', 'wave', 'aurora', 'cosmic', 'kaleidoscope', ...
     artMode: 'sleeve', // 'sleeve', 'aura', 'off'
     showLyrics: true,
     miniEnabled: true,
@@ -792,6 +792,9 @@
 
       // Render selected visualizer mode
       switch (this.mode) {
+        case 'yeufonic':
+          this.renderYeufonic(ctx, w, h, now);
+          break;
         case 'aurora':
           this.renderAurora(ctx, w, h, now);
           break;
@@ -996,6 +999,160 @@
       } else if (ring2 && ring2.style.opacity !== '0') {
         ring2.style.opacity = '0';
       }
+    },
+
+    /* The brand scene: the mark itself, breathing.
+
+       The tile's glow follows the bass and expands on the beat, each fork arm is a meter with
+       its own half of the spectrum (left the lows, right the mids and highs, so the arms move
+       independently), and the green dot — the one accent the logo has — flares on the beat.
+       The fork stays white and the arms only widen, so it reads as the logo rather than as a
+       redrawing of it. */
+    spectrumLevel: function (from, to) {
+      var data = this.dataFreq;
+      if (!data || !data.length) { return 0; }
+      var start = Math.floor(from * data.length);
+      var end = Math.max(start + 1, Math.floor(to * data.length));
+      end = Math.min(end, data.length);
+      var sum = 0;
+      for (var i = start; i < end; i++) { sum += data[i]; }
+      return sum / ((end - start) * 255);
+    },
+
+    renderYeufonic: function (ctx, w, h, now) {
+      ctx.fillStyle = 'rgba(11, 11, 16, 0.32)';
+      ctx.fillRect(0, 0, w, h);
+
+      var bass = this.bassEnergy || 0;
+      var mid = this.midEnergy || 0;
+
+      // A beat is a flare of the dot and a ripple leaving the tile.
+      if (this.beatDetected) {
+        this.yfDot = 1;
+        if (!this.yfRipples) { this.yfRipples = []; }
+        this.yfRipples.push(now);
+        if (this.yfRipples.length > 6) { this.yfRipples.shift(); }
+      }
+      this.yfDot = (this.yfDot || 0) * 0.90;
+      var dot = this.yfDot;
+      this.yfRipples = (this.yfRipples || []).filter(function (born) { return now - born < 1200; });
+
+      var size = Math.min(w, h) * 0.34;
+      var cx = w * 0.5;
+      var cy = h * 0.46;
+      var unit = size / 64;
+      var breathe = 1 + bass * 0.09 + dot * 0.04;
+
+      // The halo behind the tile, in the two brand colours.
+      var haloR = size * (1.0 + bass * 0.6);
+      var halo = ctx.createRadialGradient(cx, cy, size * 0.08, cx, cy, haloR);
+      halo.addColorStop(0, 'rgba(123, 92, 255, ' + (0.15 + bass * 0.32).toFixed(3) + ')');
+      halo.addColorStop(0.55, 'rgba(255, 77, 148, ' + (0.07 + mid * 0.18).toFixed(3) + ')');
+      halo.addColorStop(1, 'rgba(255, 77, 148, 0)');
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, w, h);
+
+      // Ripples on the beat, in the dot's green.
+      var ripples = this.yfRipples;
+      for (var r = 0; r < ripples.length; r++) {
+        var age = (now - ripples[r]) / 1200;
+        ctx.strokeStyle = 'rgba(163, 230, 53, ' + ((1 - age) * 0.20).toFixed(3) + ')';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, size * (0.60 + age * 0.9), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(unit * breathe, unit * breathe);
+      ctx.translate(-32, -32);
+
+      // The tile, built once: a rounded square of 15 in the mark's own 64 units.
+      if (!this.yfTile) {
+        var tile = new Path2D(), rad = 15;
+        tile.moveTo(rad, 0); tile.lineTo(64 - rad, 0); tile.quadraticCurveTo(64, 0, 64, rad);
+        tile.lineTo(64, 64 - rad); tile.quadraticCurveTo(64, 64, 64 - rad, 64);
+        tile.lineTo(rad, 64); tile.quadraticCurveTo(0, 64, 0, 64 - rad);
+        tile.lineTo(0, rad); tile.quadraticCurveTo(0, 0, rad, 0);
+        tile.closePath();
+        this.yfTile = tile;
+      }
+
+      var grad = ctx.createLinearGradient(0, 0, 64, 64);
+      grad.addColorStop(0, '#7b5cff');
+      grad.addColorStop(1, '#ff4d94');
+      ctx.shadowColor = 'rgba(123, 92, 255, ' + (0.30 + bass * 0.45).toFixed(3) + ')';
+      ctx.shadowBlur = size * (0.10 + bass * 0.28);
+      ctx.fillStyle = grad;
+      ctx.fill(this.yfTile);
+      ctx.shadowBlur = 0;
+
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#ffffff';
+
+      // The stem, a little thicker with the whole spectrum.
+      var all = this.spectrumLevel(0, 0.85);
+      ctx.lineWidth = 7.5 * (0.85 + all * 0.5);
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.35)';
+      ctx.shadowBlur = size * 0.05;
+      ctx.beginPath();
+      ctx.moveTo(32, 54);
+      ctx.lineTo(32, 36);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // The arms: sampled along their own curves, each step as wide as its part of the spectrum.
+      var arms = [
+        { p: [[32, 36], [32, 26], [20, 23], [15, 12]], from: 0.00, to: 0.30 },
+        { p: [[32, 36], [32, 26], [44, 23], [49, 12]], from: 0.30, to: 0.85 },
+      ];
+      var steps = 14;
+      var self = this;
+      function point(p, t) {
+        var u = 1 - t;
+        return [
+          u * u * u * p[0][0] + 3 * u * u * t * p[1][0] + 3 * u * t * t * p[2][0] + t * t * t * p[3][0],
+          u * u * u * p[0][1] + 3 * u * u * t * p[1][1] + 3 * u * t * t * p[2][1] + t * t * t * p[3][1],
+        ];
+      }
+      for (var a = 0; a < arms.length; a++) {
+        var arm = arms[a];
+        for (var i = 0; i < steps; i++) {
+          var t0 = i / steps, t1 = (i + 1) / steps;
+          var level = self.spectrumLevel(arm.from + (arm.to - arm.from) * t0, arm.from + (arm.to - arm.from) * t1 + 0.02);
+          var q0 = point(arm.p, t0), q1 = point(arm.p, t1);
+          ctx.lineWidth = 7.5 * (0.62 + level * 1.05);
+          ctx.shadowColor = 'rgba(255, 255, 255, ' + (0.20 + level * 0.5).toFixed(3) + ')';
+          ctx.shadowBlur = size * (0.02 + level * 0.05);
+          ctx.beginPath();
+          ctx.moveTo(q0[0], q0[1]);
+          ctx.lineTo(q1[0], q1[1]);
+          ctx.stroke();
+        }
+      }
+      ctx.shadowBlur = 0;
+
+      // The dot: the brand's accent, as the beat indicator.
+      // The flare is a pulse, not a change of logo: under twice its size, and it fades quickly.
+      var dotR = 4.6 * (1 + dot * 0.85);
+      var bloom = ctx.createRadialGradient(49, 12, 2, 49, 12, 16 + dot * 12);
+      bloom.addColorStop(0, 'rgba(163, 230, 53, ' + (0.18 + dot * 0.34).toFixed(3) + ')');
+      bloom.addColorStop(1, 'rgba(163, 230, 53, 0)');
+      ctx.fillStyle = bloom;
+      ctx.beginPath();
+      ctx.arc(49, 12, 16 + dot * 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#a3e635';
+      ctx.shadowColor = 'rgba(163, 230, 53, ' + (0.45 + dot * 0.5).toFixed(3) + ')';
+      ctx.shadowBlur = size * (0.03 + dot * 0.10);
+      ctx.beginPath();
+      ctx.arc(49, 12, dotR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.restore();
     },
 
     /* Mode 1: Multi-Harmonic Wave Ribbon */

@@ -1290,7 +1290,8 @@ Press **Visualizer** on the transport bar (or press **V** while a track is playi
 
 The stage renders real-time audio visualisations synchronized with playback:
 
-- **Visualizer Modes:** Choose from eight distinct visualizer engines from the top toolbar:
+- **Visualizer Modes:** Choose from nine distinct visualizer engines from the top toolbar:
+  - *Yeufonic:* The mark itself, breathing — the tile glowing with the bass and expanding on the beat, each fork arm a meter with its own half of the spectrum, and the green dot flaring on the beat.
   - *Waveform Ribbon:* Floating harmonic dual-ribbon reactive waves.
   - *Aurora Borealis:* Undulating curtains of ethereal northern lights reacting to mid and high frequencies.
   - *Cosmic Nebula:* Starfield and swirling interstellar particle nebula pulsing to the beat.

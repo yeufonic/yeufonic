@@ -155,7 +155,7 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   space in the library, and play tracks directly with inline art-hover controls.
 - **Audio visualizer and lyrics display.** An expandable visualizer displays real-time frequency
   bars, waveform scope, or circular frequency displays alongside a scrollable lyrics sheet view,
-  with configurable colour themes.
+  with configurable colour themes — or the Yeufonic mark itself, breathing with the music.
 - **Told when a newer version is out.** Every four hours the app asks its own site whether a later release
   exists — one request, nothing else leaves the computer. When there is one, a quiet pill beside the
   version and **Check for updates** in the menu offer the installer (Windows) or the two commands

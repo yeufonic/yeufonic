@@ -507,6 +507,7 @@ SETTINGS_SPEC: list[dict] = [
         "type": "select",
         "default": "wave",
         "options": [
+            {"value": "yeufonic", "label": "Yeufonic"},
             {"value": "wave", "label": "Wave Ribbon"},
             {"value": "aurora", "label": "Chromatic Aurora Spectrum"},
             {"value": "cosmic", "label": "Cosmic Hyperspace"},
