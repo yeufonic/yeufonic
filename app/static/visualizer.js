@@ -1037,6 +1037,11 @@
       var dot = this.yfDot;
       this.yfRipples = (this.yfRipples || []).filter(function (born) { return now - born < 1200; });
 
+      // Two hues turning slowly: the fork keeps near white and only takes a tint, the dot keeps a
+      // fixed distance from it so the accent stays distinct from the body.
+      var hueFork = (now * 0.008) % 360;          // a full turn every 45 seconds
+      var hueDot = (hueFork + 145) % 360;
+
       var size = Math.min(w, h) * 0.34;
       var cx = w * 0.5;
       var cy = h * 0.46;
@@ -1056,7 +1061,7 @@
       var ripples = this.yfRipples;
       for (var r = 0; r < ripples.length; r++) {
         var age = (now - ripples[r]) / 1200;
-        ctx.strokeStyle = 'rgba(163, 230, 53, ' + ((1 - age) * 0.20).toFixed(3) + ')';
+        ctx.strokeStyle = 'hsla(' + hueDot.toFixed(0) + ', 85%, 62%, ' + ((1 - age) * 0.22).toFixed(3) + ')';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(cx, cy, size * (0.60 + age * 0.9), 0, Math.PI * 2);
@@ -1089,11 +1094,12 @@
       ctx.shadowBlur = 0;
 
       ctx.lineCap = 'round';
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = 'hsl(' + hueFork.toFixed(0) + ', 62%, 88%)';
+      var glowFork = 'hsla(' + hueFork.toFixed(0) + ', 60%, 96%, ';
 
       // The stem, at the mark's own weight (7.5 of 64 units, as the logo has it).
       ctx.lineWidth = 7.5;
-      ctx.shadowColor = 'rgba(255, 255, 255, 0.35)';
+      ctx.shadowColor = glowFork + '0.35)';
       ctx.shadowBlur = size * 0.05;
       ctx.beginPath();
       ctx.moveTo(32, 54);
@@ -1139,7 +1145,7 @@
           var q0 = point(arm.p, i / steps), q1 = point(arm.p, (i + 1) / steps);
           ctx.lineWidth = widths[i].width;
           // The glow carries the spectrum now, not the thickness.
-          ctx.shadowColor = 'rgba(255, 255, 255, ' + (0.22 + level * 0.55).toFixed(3) + ')';
+          ctx.shadowColor = glowFork + (0.22 + level * 0.55).toFixed(3) + ')';
           ctx.shadowBlur = size * (0.025 + level * 0.075);
           ctx.beginPath();
           ctx.moveTo(q0[0], q0[1]);
@@ -1149,20 +1155,24 @@
       }
       ctx.shadowBlur = 0;
 
-      // The dot: the brand's accent, as the beat indicator.
-      // The flare is a pulse, not a change of logo: under twice its size, and it fades quickly.
-      var dotR = 4.6 * (1 + dot * 0.85);
-      var bloom = ctx.createRadialGradient(49, 12, 2, 49, 12, 16 + dot * 12);
-      bloom.addColorStop(0, 'rgba(163, 230, 53, ' + (0.18 + dot * 0.34).toFixed(3) + ')');
-      bloom.addColorStop(1, 'rgba(163, 230, 53, 0)');
+      // The dot: the accent, pulsing with the music rather than only on detected beats — the bass
+      // envelope sets its size continuously and a beat adds a flare on top — and turning with the
+      // fork's hue, a fixed distance from it.
+      var pulse = Math.min(1, bass * 0.9 + dot * 0.8);
+      var dotR = 4.6 * (1 + bass * 0.45 + dot * 0.7);
+      var dotHueText = hueDot.toFixed(0);
+      var bloomR = 15 + pulse * 16;
+      var bloom = ctx.createRadialGradient(49, 12, 2, 49, 12, bloomR);
+      bloom.addColorStop(0, 'hsla(' + dotHueText + ', 90%, 60%, ' + (0.16 + pulse * 0.40).toFixed(3) + ')');
+      bloom.addColorStop(1, 'hsla(' + dotHueText + ', 90%, 60%, 0)');
       ctx.fillStyle = bloom;
       ctx.beginPath();
-      ctx.arc(49, 12, 16 + dot * 12, 0, Math.PI * 2);
+      ctx.arc(49, 12, bloomR, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#a3e635';
-      ctx.shadowColor = 'rgba(163, 230, 53, ' + (0.45 + dot * 0.5).toFixed(3) + ')';
-      ctx.shadowBlur = size * (0.03 + dot * 0.10);
+      ctx.fillStyle = 'hsl(' + dotHueText + ', 88%, 55%)';
+      ctx.shadowColor = 'hsla(' + dotHueText + ', 90%, 62%, ' + (0.40 + pulse * 0.5).toFixed(3) + ')';
+      ctx.shadowBlur = size * (0.03 + pulse * 0.12);
       ctx.beginPath();
       ctx.arc(49, 12, dotR, 0, Math.PI * 2);
       ctx.fill();
