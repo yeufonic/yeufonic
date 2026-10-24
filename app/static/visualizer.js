@@ -1091,9 +1091,8 @@
       ctx.lineCap = 'round';
       ctx.strokeStyle = '#ffffff';
 
-      // The stem, a little thicker with the whole spectrum.
-      var all = this.spectrumLevel(0, 0.85);
-      ctx.lineWidth = 7.5 * (0.85 + all * 0.5);
+      // The stem, at the mark's own weight (7.5 of 64 units, as the logo has it).
+      ctx.lineWidth = 7.5;
       ctx.shadowColor = 'rgba(255, 255, 255, 0.35)';
       ctx.shadowBlur = size * 0.05;
       ctx.beginPath();
@@ -1109,6 +1108,22 @@
       ];
       var steps = 14;
       var self = this;
+      // The level for each step, smoothed over its neighbours: measured per step alone the arm
+      // looked lumpy, and widening much past the logo's own weight made the fork knot at the join.
+      function armWidths(arm) {
+        var raw = [];
+        for (var i = 0; i < steps; i++) {
+          var t0 = i / steps, t1 = (i + 1) / steps;
+          raw.push(self.spectrumLevel(arm.from + (arm.to - arm.from) * t0,
+                                      arm.from + (arm.to - arm.from) * t1 + 0.02));
+        }
+        var smooth = [];
+        for (var j = 0; j < steps; j++) {
+          var a = raw[Math.max(0, j - 1)], b = raw[j], c = raw[Math.min(steps - 1, j + 1)];
+          smooth.push((a + 2 * b + c) / 4);
+        }
+        return smooth.map(function (lvl) { return { lvl: lvl, width: 7.5 * (1 + lvl * 0.22) }; });
+      }
       function point(p, t) {
         var u = 1 - t;
         return [
@@ -1118,13 +1133,14 @@
       }
       for (var a = 0; a < arms.length; a++) {
         var arm = arms[a];
+        var widths = armWidths(arm);
         for (var i = 0; i < steps; i++) {
-          var t0 = i / steps, t1 = (i + 1) / steps;
-          var level = self.spectrumLevel(arm.from + (arm.to - arm.from) * t0, arm.from + (arm.to - arm.from) * t1 + 0.02);
-          var q0 = point(arm.p, t0), q1 = point(arm.p, t1);
-          ctx.lineWidth = 7.5 * (0.62 + level * 1.05);
-          ctx.shadowColor = 'rgba(255, 255, 255, ' + (0.20 + level * 0.5).toFixed(3) + ')';
-          ctx.shadowBlur = size * (0.02 + level * 0.05);
+          var level = widths[i].lvl;
+          var q0 = point(arm.p, i / steps), q1 = point(arm.p, (i + 1) / steps);
+          ctx.lineWidth = widths[i].width;
+          // The glow carries the spectrum now, not the thickness.
+          ctx.shadowColor = 'rgba(255, 255, 255, ' + (0.22 + level * 0.55).toFixed(3) + ')';
+          ctx.shadowBlur = size * (0.025 + level * 0.075);
           ctx.beginPath();
           ctx.moveTo(q0[0], q0[1]);
           ctx.lineTo(q1[0], q1[1]);
