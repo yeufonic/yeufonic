@@ -47,8 +47,10 @@ def mac_models() -> dict:
     block = re.search(r"model_list\(\) \{\n  cat <<LIST\n(.*?)\nLIST", text, re.S).group(1)
     out = {}
     for line in block.splitlines():
-        folder, name, size, sha, url, _lyrics = line.split("|")
-        out[name] = {"dir": folder, "size": int(size), "sha": sha, "url": url.replace("$HF", "https://huggingface.co")}
+        folder, name, size, sha, url, _lyrics, *copy = line.split("|")
+        copies = "https://huggingface.co/pshields/yue2-mothersuperior-copies/resolve/main"
+        out[name] = {"dir": folder, "size": int(size), "sha": sha, "url": url.replace("$HF", "https://huggingface.co"),
+                     "copy": copy[0].replace("$COPIES", copies) if copy else None}
     return out
 
 
@@ -61,8 +63,10 @@ def windows_models() -> dict:
         for entry in re.findall(r"@\{(.*?Size = \d+) \}", block, re.S):
             name = re.search(r"File = '([^']+)'", entry).group(1)
             url = re.search(r"Url = [\"']([^\"']+)[\"']", entry).group(1).replace("$HF", "https://huggingface.co")
+            copy = re.search(r"Copy = \"([^\"]+)\"", entry)
             out[name] = {"size": int(re.search(r"Size = (\d+)", entry).group(1)),
-                         "sha": re.search(r"Sha = '([0-9a-f]{64})'", entry).group(1), "url": url}
+                         "sha": re.search(r"Sha = '([0-9a-f]{64})'", entry).group(1), "url": url,
+                         "copy": copy.group(1).replace("$Copies", "https://huggingface.co/pshields/yue2-mothersuperior-copies/resolve/main") if copy else None}
     return out
 
 
@@ -71,7 +75,7 @@ def test_the_mac_fetches_the_windows_models_with_the_same_checksums():
     assert mac, "no models found in setup.sh"
     for name, entry in mac.items():
         assert name in windows, f"{name} is fetched on a Mac but not on Windows"
-        for key in ("size", "sha", "url"):
+        for key in ("size", "sha", "url", "copy"):
             assert entry[key] == windows[name][key], f"{name}: {key} differs from windows/setup.ps1"
     # Every Windows model is on a Mac too, but for the soundfonts (a list of their own).
     left_out = set(windows) - set(mac) - {"github_Jnsgm2.sf2", "Arachno_SoundFont_Version_1.0.sf2"}
@@ -84,7 +88,7 @@ def test_the_mac_fetches_the_windows_soundfonts():
     windows = windows_models()
     for line in block.splitlines():
         name, size, sha, url = line.split("|")
-        assert windows[name] == {"size": int(size), "sha": sha, "url": url}
+        assert windows[name] == {"size": int(size), "sha": sha, "url": url, "copy": None}
 
 
 def test_the_engine_is_pinned_where_docker_and_windows_pin_it():

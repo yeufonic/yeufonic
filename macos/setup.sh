@@ -82,18 +82,20 @@ FFPROBE_SHA=fcbe839537485eaee7a7a8bc5cbc0f90d53617e80943e8a5b2e31cb851197ea6
 FFPROBE_SIZE=28317701
 
 HF=https://huggingface.co
-# dir|file|bytes|sha256|url|lyrics: the models windows/setup.ps1 fetches, with the same
-# checksums (tests/test_macos.py holds the two lists together).  Left out on a Mac: the
+COPIES=$HF/pshields/yue2-mothersuperior-copies/resolve/main
+# dir|file|bytes|sha256|url|lyrics|copy: the models windows/setup.ps1 fetches, with the same
+# checksums and, for Mothersuperior's files (one author's account), our unchanged copy, tried first
+# (tests/test_macos.py holds the two lists together).  Left out on a Mac: the
 # low-memory YuE2 and FLUX.2 [klein], whose int8 and fp8 kernels are CUDA's.
 model_list() {
   cat <<LIST
 checkpoints|yue2_3b_bf16.safetensors|7799983228|33765adbf9813c9a50318218760b2fd819a319862460a04884607581961c6fee|$HF/Comfy-Org/YuE2/resolve/main/checkpoints/yue2_3b_bf16.safetensors|
 audio_encoders|sheetsage2_bf16.safetensors|1386868122|5fd960ce3df281e3f3a889d174584d88f96247711480cf96377b12d7e8b6adc5|$HF/Comfy-Org/YuE2/resolve/main/audio_encoders/sheetsage2_bf16.safetensors|
 text_encoders|gemma4_e4b_it_int8_convrot.safetensors|8090965702|974d0c838ef4ac1a989b06ccb4e57691c21b6270dd8e345ffa7531f9388f117c|$HF/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e4b_it_int8_convrot.safetensors|lyrics
-loras|ar_lora_inst_v3abc_comfyui.safetensors|212891736|de6a11d5701df103a191c87dc73115266e2420f3834739319dec5c24d2119f31|$HF/Mothersuperior/YuE2-instrumental-cot-full-loras/resolve/main/ar_lora_inst_v3abc_comfyui.safetensors|
-loras|nar_lora_joint_v9_comfyui.safetensors|107518800|cd2bf0d3ce4bf68697daa016671da7d70e34e2f5545617ab9094c96b14a581db|$HF/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main/nar_lora_joint_v9_comfyui.safetensors|
-audio_encoders|tokenizer_head_joint_v9.safetensors|171278808|06440f25605c6c12c4e517ef033d7b70b8d9e961b3b06aa3848b1f8028fd7eb8|$HF/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main/tokenizer_head_joint_v9.safetensors|
-fs_audio|minted_regularizer_pack_v2.pt|296098847|587631eec5946f9f87d4b422abcda7e35dee43299efb7b7d2fcba4cd8752c475|$HF/Mothersuperior/YuE2-hum-to-song/resolve/main/minted_regularizer_pack_v2.pt|
+loras|ar_lora_inst_v3abc_comfyui.safetensors|212891736|de6a11d5701df103a191c87dc73115266e2420f3834739319dec5c24d2119f31|$HF/Mothersuperior/YuE2-instrumental-cot-full-loras/resolve/main/ar_lora_inst_v3abc_comfyui.safetensors||$COPIES/ar_lora_inst_v3abc_comfyui.safetensors
+loras|nar_lora_joint_v9_comfyui.safetensors|107518800|cd2bf0d3ce4bf68697daa016671da7d70e34e2f5545617ab9094c96b14a581db|$HF/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main/nar_lora_joint_v9_comfyui.safetensors||$COPIES/nar_lora_joint_v9_comfyui.safetensors
+audio_encoders|tokenizer_head_joint_v9.safetensors|171278808|06440f25605c6c12c4e517ef033d7b70b8d9e961b3b06aa3848b1f8028fd7eb8|$HF/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main/tokenizer_head_joint_v9.safetensors||$COPIES/tokenizer_head_joint_v9.safetensors
+fs_audio|minted_regularizer_pack_v2.pt|296098847|587631eec5946f9f87d4b422abcda7e35dee43299efb7b7d2fcba4cd8752c475|$HF/Mothersuperior/YuE2-hum-to-song/resolve/main/minted_regularizer_pack_v2.pt||$COPIES/minted_regularizer_pack_v2.pt
 LIST
 }
 soundfont_list() {
@@ -122,20 +124,31 @@ trap 'stop_setup "an unexpected error at line $LINENO"' ERR
 sha_of() { shasum -a 256 "$1" | awk '{print $1}'; }
 size_of() { stat -f %z "$1" 2>/dev/null || stat -c %s "$1"; }
 
-# A file from its publisher.  curl resumes a broken download; the sha256 is checked once and
-# remembered, so a second run does not read 8 GB again.
+# A file from its publisher, or first from our copy of it where there is one.  curl resumes a
+# broken download; a refusal (404 and the like, curl's 22) moves on at once, and a part left by
+# one source is not resumed from another.  The sha256 is checked once and remembered, so a
+# second run does not read 8 GB again.
 get_verified() {
-  local url="$1" dest="$2" size="$3" sha="$4"
+  local url="$1" dest="$2" size="$3" sha="$4" copy="${5:-}"
   if [ -f "$dest" ] && [ -f "$dest.sha256ok" ]; then return 0; fi
   if [ ! -f "$dest" ]; then
     say "Downloading $(basename "$dest") ($((size / 1000000)) MB)"
-    local try
-    for try in 1 2 3 4 5 6; do
-      if curl -L --fail --retry 5 -C - -# -o "$dest.part" "$url"; then break; fi
-      if [ "$try" -eq 6 ]; then stop_setup "could not download $url"; fi
-      say "  the download broke off; trying again ($try of 5)"
-      sleep $((5 * try))
+    local try source tries=6 got=0 code
+    [ -n "$copy" ] && tries=3
+    for source in $copy $url; do
+      for try in $(seq 1 "$tries"); do
+        code=0
+        curl -L --fail --retry 5 -C - -# -o "$dest.part" "$source" || code=$?
+        if [ "$code" -eq 0 ]; then got=1; break; fi
+        if [ "$code" -eq 22 ] || [ "$try" -eq "$tries" ]; then break; fi
+        say "  the download broke off; trying again ($try of $((tries - 1)))"
+        sleep $((5 * try))
+      done
+      [ "$got" -eq 1 ] && break
+      rm -f "$dest.part"
+      [ "$source" != "$url" ] && say "  could not download it from $source; trying $url"
     done
+    [ "$got" -eq 1 ] || stop_setup "could not download $url"
     mv -f "$dest.part" "$dest"
   fi
   if [ -n "$size" ] && [ "$(size_of "$dest")" != "$size" ]; then
@@ -211,7 +224,7 @@ fi
 # app and the downloads while they unpack.  Counted in thousands, as download sites count.
 NEED=8000000000
 if [ "$SKIP_MODELS" -eq 0 ]; then
-  while IFS='|' read -r dir file size sha url lyrics; do
+  while IFS='|' read -r dir file size sha url lyrics copy; do
     [ -z "$file" ] && continue
     if [ "$lyrics" = lyrics ] && [ "$NO_LYRICS" -eq 1 ]; then continue; fi
     [ -f "$MODELS/$dir/$file" ] || NEED=$((NEED + size))
@@ -365,13 +378,13 @@ mkdir -p "$DATA"
 # ------------------------------------------------------------------- models
 if [ "$SKIP_MODELS" -eq 0 ]; then
   step "The models (the long part)"
-  while IFS='|' read -r dir file size sha url lyrics; do
+  while IFS='|' read -r dir file size sha url lyrics copy; do
     [ -z "$file" ] && continue
     if [ "$lyrics" = lyrics ] && [ "$NO_LYRICS" -eq 1 ]; then continue; fi
     say ""
     say "$file"
     mkdir -p "$MODELS/$dir"
-    get_verified "$url" "$MODELS/$dir/$file" "$size" "$sha"
+    get_verified "$url" "$MODELS/$dir/$file" "$size" "$sha" "$copy"
   done <<EOF
 $(model_list)
 EOF
