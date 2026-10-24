@@ -20,12 +20,23 @@ FETCH = HERE / "fetch-models.sh"
 # The authors' own releases. We download Comfy-Org's repackaging, so a new version
 # shows here first.
 AUTHORS = ["m-a-p/YuE2-3B", "m-a-p/YuE2-Vae", "m-a-p/SheetSage2", "m-a-p/MERT-v2-FullSong"]
+# Our own copies change only when we change them; whether they still answer is the sources report's.
+OURS = ("pshields/", "yeufonic/")
+TOKENIZER = HERE.parent / "app" / "tokenizer.py"
 
 
 def repositories() -> list[str]:
     """Every Hugging Face repository fetch-models.sh downloads from, then the authors'."""
     found = re.findall(r"huggingface\.co/([\w.-]+/[\w.-]+)/resolve", FETCH.read_text(encoding="utf-8"))
-    return list(dict.fromkeys(found + AUTHORS))
+    return [r for r in dict.fromkeys(found + AUTHORS) if not r.startswith(OURS)]
+
+
+def pinned() -> dict[str, str]:
+    """Repositories loaded at a pinned revision rather than main: MERT, in app/tokenizer.py."""
+    text = TOKENIZER.read_text(encoding="utf-8") if TOKENIZER.exists() else ""
+    repo = re.search(r'^MERT_REPO = "([^"]+)"', text, re.M)
+    rev = re.search(r'^MERT_REVISION = "([0-9a-f]{40})"', text, re.M)
+    return {repo.group(1): rev.group(1)} if repo and rev else {}
 
 
 def revision(repo: str) -> dict:
@@ -68,7 +79,8 @@ def main() -> None:
     seen = json.loads(REVIEWED.read_text(encoding="utf-8")) if REVIEWED.exists() else {}
     changed = []
     print()
-    print("Model repositories on Hugging Face (fetched from main, not pinned):")
+    pins = pinned()
+    print("Model repositories on Hugging Face (fetched from main unless pinned):")
     for repo in repositories():
         now = revision(repo)
         if "error" in now:
@@ -82,6 +94,8 @@ def main() -> None:
             changed.append(repo)
         else:
             state = "as reviewed"
+        if repo in pins:
+            state += f"; loaded at {pins[repo][:8]}" + ("" if pins[repo] == now["sha"] else " (main has moved past it)")
         print(f"  {repo:58} {now['sha'][:8]}  {now['date']}  {state}")
         if details and before != now["sha"]:
             show(commits_since(repo, before))

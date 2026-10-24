@@ -132,10 +132,22 @@ It also reports:
   authors' own (m-a-p), where a new version appears first. These aren't pinned: a fresh install
   takes whatever is on `main`. So `scripts/upstream-reviewed.json` records the revision each one was
   at when last looked at, and the report marks any that have changed since. Read what changed, and
-  when done, record it with `sh scripts/check-upstream.sh --reviewed`.
+  when done, record it with `sh scripts/check-upstream.sh --reviewed`. MERT is the exception: it is loaded at
+  the revision pinned in `app/tokenizer.py` (`MERT_REVISION`), shown beside its line. Our own copies
+  (`pshields/`, `yeufonic/`) are left out of this list: they change only when we change them.
+- **The download sources:** every address in `windows/setup.ps1`, `scripts/fetch-models.sh`, `macos/setup.sh`
+  and the Dockerfile's clones, read from those files. A file on Hugging Face must still be there with the size and
+  SHA-256 pinned (a file replaced under the same name shows too); anything else must answer; a pinned commit must
+  exist. A repository that has been renamed is marked to be moved to its new name, since the redirect from the old
+  one lasts only until someone takes it. The script exits 1 when a fresh install would stop.
+- **Copies:** files from a single person's account that every install needs (the trainer, Mothersuperior's
+  LoRAs and packs) are fetched from an unchanged copy under the project's own accounts, with the original as the
+  fallback (`Copy` before `Url` in `setup.ps1`, the third argument of `fetch` in `fetch-models.sh`). A copy keeps
+  its licence and credits its author; only files whose licence allows it are copied.
 
 `--show-details` lists every commit with its description and author:
 - **ComfyUI:** those touching the code this app renders through are marked, with a link to their
   pull request, where most of ComfyUI's descriptions live.
 - **The trainer:** every commit since its pin.
+- **The download sources:** every one, not only those missing or moved.
 - **The models:** each repository's commits since it was last reviewed.

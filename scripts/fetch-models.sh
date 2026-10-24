@@ -47,7 +47,9 @@ GEMMA=https://huggingface.co/Comfy-Org/gemma-4/resolve/main
 INSTRUMENTAL=https://huggingface.co/Mothersuperior/YuE2-instrumental-cot-full-loras/resolve/main
 REAL_AUDIO=https://huggingface.co/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main
 REGULARIZER=https://huggingface.co/Mothersuperior/YuE2-hum-to-song/resolve/main
-WHISPER=https://huggingface.co/mobiuslabsgmbh/faster-whisper-large-v3-turbo/resolve/main
+WHISPER=https://huggingface.co/dropbox-dash/faster-whisper-large-v3-turbo/resolve/main
+# Unchanged copies of the files by Mothersuperior, a single author's account: tried first, the author's own after.
+COPIES=https://huggingface.co/pshields/yue2-mothersuperior-copies/resolve/main
 
 mkdir -p "$ROOT/models/checkpoints" "$ROOT/models/audio_encoders" "$ROOT/models/text_encoders" "$ROOT/models/loras" "$ROOT/models/fs_audio"
 # The engine writes under these when it fetches a model for itself, and as root: a folder it makes first is root's, and
@@ -67,13 +69,23 @@ if [ "$(uname -s)" = Linux ] && [ "$(id -u)" != 0 ] && ! grep -qs '^APP_UID=' "$
   echo "wrote APP_UID=$(id -u) and APP_GID=$(id -g) to .env"
 fi
 
+# fetch URL DEST [FALLBACK_URL]: a FALLBACK is tried when URL cannot be had, starting the file afresh.
 fetch() {
-  url="$1"; dest="$2"
+  url="$1"; dest="$2"; fallback="${3:-}"
   if [ -s "$dest" ]; then
     echo "have  $(basename "$dest")"
     return 0
   fi
   echo "fetch $(basename "$dest")"
+  if [ -n "$fallback" ]; then
+    if curl -L --fail --retry 3 -C - -o "$dest.part" "$url"; then
+      mv "$dest.part" "$dest"
+      return 0
+    fi
+    rm -f "$dest.part"
+    echo "      not from $url; trying $fallback"
+    url="$fallback"
+  fi
   curl -L --fail --retry 5 --retry-all-errors -C - -o "$dest.part" "$url"
   mv "$dest.part" "$dest"
 }
@@ -96,22 +108,26 @@ fetch "$YUE2/audio_encoders/sheetsage2_bf16.safetensors" \
 fetch "$GEMMA/text_encoders/gemma4_e4b_it_int8_convrot.safetensors" \
       "$ROOT/models/text_encoders/gemma4_e4b_it_int8_convrot.safetensors"
 
-fetch "$INSTRUMENTAL/ar_lora_inst_v3abc_comfyui.safetensors" \
-      "$ROOT/models/loras/ar_lora_inst_v3abc_comfyui.safetensors"
+fetch "$COPIES/ar_lora_inst_v3abc_comfyui.safetensors" \
+      "$ROOT/models/loras/ar_lora_inst_v3abc_comfyui.safetensors" \
+      "$INSTRUMENTAL/ar_lora_inst_v3abc_comfyui.safetensors"
 
-fetch "$REAL_AUDIO/nar_lora_joint_v9_comfyui.safetensors" \
-      "$ROOT/models/loras/nar_lora_joint_v9_comfyui.safetensors"
+fetch "$COPIES/nar_lora_joint_v9_comfyui.safetensors" \
+      "$ROOT/models/loras/nar_lora_joint_v9_comfyui.safetensors" \
+      "$REAL_AUDIO/nar_lora_joint_v9_comfyui.safetensors"
 
-fetch "$REAL_AUDIO/tokenizer_head_joint_v9.safetensors" \
-      "$ROOT/models/audio_encoders/tokenizer_head_joint_v9.safetensors"
+fetch "$COPIES/tokenizer_head_joint_v9.safetensors" \
+      "$ROOT/models/audio_encoders/tokenizer_head_joint_v9.safetensors" \
+      "$REAL_AUDIO/tokenizer_head_joint_v9.safetensors"
 
-fetch "$REGULARIZER/minted_regularizer_pack_v2.pt" \
-      "$ROOT/models/fs_audio/minted_regularizer_pack_v2.pt"
+fetch "$COPIES/minted_regularizer_pack_v2.pt" \
+      "$ROOT/models/fs_audio/minted_regularizer_pack_v2.pt" \
+      "$REGULARIZER/minted_regularizer_pack_v2.pt"
 
 # FLUX.2 klein 4B for take pictures drawn here, with its text encoder and VAE (all Apache 2.0): only when asked for.
 if [ "$PICTURES" = yes ]; then
   mkdir -p "$ROOT/models/diffusion_models" "$ROOT/models/vae"
-  KLEIN=https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-4b/resolve/main/split_files
+  KLEIN=https://huggingface.co/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files
   fetch "https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors" \
         "$ROOT/models/diffusion_models/flux-2-klein-4b-fp8.safetensors"
   fetch "$KLEIN/text_encoders/qwen_3_4b_fp4_flux2.safetensors" \

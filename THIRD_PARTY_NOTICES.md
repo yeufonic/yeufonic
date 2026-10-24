@@ -3,7 +3,8 @@
 Yeufonic's own code is licensed for free personal, non-commercial use (see [LICENSE.md](LICENSE.md)). It runs
 models and software made by others, and each of those keeps its own terms. None of the model
 weights are part of this repository: `scripts/fetch-models.sh` downloads them from their
-publishers, and by using them you accept their terms.
+publishers, and by using them you accept their terms. Files from a single author's account are fetched from an
+unchanged copy first, so an install does not stop if the original is moved or taken down.
 
 This page is a summary for convenience, not legal advice. Where it and a publisher's own terms
 differ, the publisher's terms apply.
@@ -39,6 +40,8 @@ differ, the publisher's terms apply.
 
 - By Mothersuperior. **CC BY-NC 4.0**, inherited from YuE2-3B.
   Source: [Mothersuperior/YuE2-instrumental-cot-full-loras](https://huggingface.co/Mothersuperior/YuE2-instrumental-cot-full-loras).
+- Downloaded from an unchanged copy, [pshields/yue2-mothersuperior-copies](https://huggingface.co/pshields/yue2-mothersuperior-copies), with the author's
+  repository as the fallback; either must match the same checksum. The copy keeps the licence and credits the author.
 - Its model card says nothing about monetising generated music. The YuE2 creator permission above
   comes from the YuE2 authors; check with the LoRA's author before relying on it for music made in
   Instrumental mode.
@@ -48,6 +51,8 @@ differ, the publisher's terms apply.
 
 - By Mothersuperior. **CC BY-NC 4.0**, inherited from YuE2-3B.
   Source: [Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4](https://huggingface.co/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4).
+- Downloaded from an unchanged copy, [pshields/yue2-mothersuperior-copies](https://huggingface.co/pshields/yue2-mothersuperior-copies), with the author's
+  repository as the fallback; either must match the same checksum. The copy keeps the licence and credits the author.
 - Production LoRA (`nar_lora_joint_v9_comfyui.safetensors`) enhances rendering fidelity and frequency separation.
 - Audio Tokenizer head (`tokenizer_head_joint_v9.safetensors`) enables vocal token extraction in conjunction with MERT-v2.
 - User consent: only use audio recordings that are your own voice or with explicit written consent from the performer.
@@ -58,6 +63,8 @@ differ, the publisher's terms apply.
   Source: [Mothersuperior/YuE2-hum-to-song](https://huggingface.co/Mothersuperior/YuE2-hum-to-song)
   (`minted_regularizer_pack_v2.pt`). Training uses it to keep a LoRA close to the base model's
   general musicianship while it learns a corpus.
+- Downloaded from an unchanged copy, [pshields/yue2-mothersuperior-copies](https://huggingface.co/pshields/yue2-mothersuperior-copies), with the author's
+  repository as the fallback; either must match the same checksum. The copy keeps the licence and credits the author.
 - Official licence: as declared on its [model card](https://huggingface.co/Mothersuperior/YuE2-hum-to-song).
 
 ### Gemma 4 E4B (lyric drafts)
@@ -72,7 +79,7 @@ differ, the publisher's terms apply.
 - FLUX.2 klein 4B by Black Forest Labs. **Apache 2.0**. Source:
   [black-forest-labs/FLUX.2-klein-4b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8).
 - Its text encoder, Qwen3 4B by the Qwen team (Alibaba Cloud), and its VAE. **Apache 2.0**. Repackaged for
-  ComfyUI as [Comfy-Org/vae-text-encorder-for-flux-klein-4b](https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-4b).
+  ComfyUI as [Comfy-Org/Flux-2-Klein-4B](https://huggingface.co/Comfy-Org/Flux-2-Klein-4B).
 - Fetched only when chosen at install (or with `fetch-models.sh --pictures`).
 - Official licence: [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0), as declared on each model card.
 
@@ -92,6 +99,19 @@ differ, the publisher's terms apply.
   from [yue2-particle-sliders](https://huggingface.co/ntc-ai/yue2-particle-sliders).
 - Official licence: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/), as declared on each
   author's model card. Non-commercial use only.
+
+### Whisper large-v3-turbo (hearing lyrics)
+
+- By OpenAI, converted for faster-whisper. **MIT**. Source:
+  [dropbox-dash/faster-whisper-large-v3-turbo](https://huggingface.co/dropbox-dash/faster-whisper-large-v3-turbo)
+  (formerly published as mobiuslabsgmbh/faster-whisper-large-v3-turbo).
+- Official licence: [MIT](https://huggingface.co/dropbox-dash/faster-whisper-large-v3-turbo), as declared on its model card.
+
+### MERT-v2-FullSong (semantic tokens, a command-line script only)
+
+- By HKUST M-A-P. **CC BY-NC 4.0**. Source: [m-a-p/MERT-v2-FullSong](https://huggingface.co/m-a-p/MERT-v2-FullSong).
+- Not installed: `scripts/tokenize_identity.py` downloads it when run, at the revision pinned in `app/tokenizer.py`.
+- Official licence: [MERT-v2-FullSong LICENSE](https://huggingface.co/m-a-p/MERT-v2-FullSong/blob/main/LICENSE)
 
 ### Demucs (stems)
 
