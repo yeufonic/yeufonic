@@ -2202,8 +2202,13 @@ label .lora-value:disabled { opacity: 0.6; }
    row of its own buttons, whose left side stays free for notices, and the row of icons.  The
    style line, the stems and the takes inside it go away until it is opened. */
 .take-meta-short { display: none; }
-/* The card's own floor (190px) is what makes a row tall; folded, it sizes to its three rows. */
-.take.collapsed { min-height: 0; }
+/* The card's own floor (190px) is what makes a row tall; folded, it sizes to its three rows, with
+   less padding and gap and a smaller cover, since nothing is read on it but one line. */
+.take.collapsed { min-height: 0; padding: 9px 11px; gap: 6px; }
+.take.collapsed .cover { width: 30px; height: 30px; border-radius: 8px; font-size: 12px; }
+.take.collapsed .take-head { column-gap: 9px; }
+/* Comfy cards hold their details line at two lines' height; the short one needs one. */
+.takes.comfy .take.collapsed .take-head .take-meta { min-height: 0; }
 .take.collapsed .take-meta:not(.take-meta-short) { display: none; }
 .take.collapsed .take-meta-short { display: block; }
 .take.collapsed .take-style,
