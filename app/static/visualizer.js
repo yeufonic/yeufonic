@@ -287,6 +287,7 @@
         if (canvas) {
           canvas.addEventListener('click', function (e) {
             if (e.target === canvas) {
+              if (self.mode === 'yeufonic' && self.seekWaveStrip(e)) { return; }
               var playBtn = $('btn-play');
               if (playBtn) { playBtn.click(); }
             }
@@ -1179,6 +1180,120 @@
       ctx.shadowBlur = 0;
 
       ctx.restore();
+
+      // Where the song is up to, from the same peaks the main page draws.
+      this.loadWaveStrip(this.currentTake);
+      this.drawWaveStrip(ctx, w, h, now);
+    },
+
+    /* The waveform under the mark: the take's own peaks, the played part filled in, and a
+       playhead — the one thing a full-screen scene otherwise never says.  The peaks come from
+       the same endpoint the main page's waveform uses, fetched once per take. */
+    loadWaveStrip: function (take) {
+      var id = take && take.id;
+      if (!id) { return; }
+      if (!this.waveStrip) {
+        this.waveStrip = { id: null, peaks: null, rmss: null, pending: false, path: null };
+      }
+      var strip = this.waveStrip;
+      if (strip.id === id || strip.pending) { return; }
+      if (!window.api) { return; }
+      strip.pending = true;
+      var self = this;
+      window.api('/api/takes/' + encodeURIComponent(id) + '/peaks')
+        .then(function (data) {
+          if (data && data.peaks && data.peaks.length) {
+            strip.id = id;
+            strip.peaks = data.peaks;
+            strip.rmss = (data.rms && data.rms.length) ? data.rms : data.peaks;
+            strip.path = null;
+          }
+        })
+        .catch(function () { /* no waveform is fine: the strip simply does not appear */ })
+        .then(function () { if (self.waveStrip === strip) { strip.pending = false; } });
+    },
+
+    drawWaveStrip: function (ctx, w, h, now) {
+      var take = this.currentTake;
+      var strip = this.waveStrip;
+      if (!take || !strip || strip.id !== take.id || !strip.peaks) { return; }
+      var audio = $('audio');
+      if (!audio) { return; }
+
+      var margin = Math.max(24, Math.min(90, w * 0.07));
+      var x0 = margin;
+      var x1 = w - margin;
+      var bandH = Math.max(14, Math.min(26, h * 0.032));
+      var midY = h - bandH - 62;              // clear of the hint line at the bottom
+      if (x1 - x0 < 80) { return; }
+
+      var key = [Math.round(x0), Math.round(x1), Math.round(midY), Math.round(bandH), strip.peaks.length].join(':');
+      if (!strip.path || strip.path.key !== key) {
+        // A column every two CSS pixels: transients as the outline, loudness as the body, as the
+        // main page draws it.
+        var cols = Math.max(40, Math.floor((x1 - x0) / 2));
+        var outline = new Path2D();
+        var body = new Path2D();
+        for (var i = 0; i < cols; i++) {
+          var x = x0 + (i / (cols - 1)) * (x1 - x0);
+          var idx = Math.min(strip.peaks.length - 1, Math.floor((i / cols) * strip.peaks.length));
+          var p = Math.max(0.02, Math.min(1, strip.peaks[idx] || 0));
+          var r = Math.max(0.01, Math.min(1, strip.rmss[idx] || 0));
+          outline.rect(x, midY - p * bandH, 1.2, p * bandH * 2);
+          body.rect(x, midY - r * bandH, 1.2, r * bandH * 2);
+        }
+        strip.path = { key: key, outline: outline, body: body, x0: x0, x1: x1, midY: midY, bandH: bandH };
+      }
+      var P = strip.path;
+
+      var dur = (isFinite(audio.duration) && audio.duration > 0) ? audio.duration : (take.seconds || take.duration || 0);
+      var frac = dur ? Math.max(0, Math.min(1, audio.currentTime / dur)) : 0;
+      var hueDot = (now * 0.008 + 145) % 360;
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.20)';
+      ctx.fill(P.outline);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.11)';
+      ctx.fill(P.body);
+
+      if (frac > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(P.x0 - 2, P.midY - P.bandH - 4, (P.x1 - P.x0) * frac + 2, P.bandH * 2 + 8);
+        ctx.clip();
+        ctx.fillStyle = 'hsla(' + hueDot.toFixed(0) + ', 82%, 58%, 0.92)';
+        ctx.fill(P.outline);
+        ctx.fillStyle = 'hsla(' + hueDot.toFixed(0) + ', 82%, 74%, 0.55)';
+        ctx.fill(P.body);
+        ctx.restore();
+      }
+
+      var px = P.x0 + (P.x1 - P.x0) * frac;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px, P.midY - P.bandH - 3);
+      ctx.lineTo(px, P.midY + P.bandH + 3);
+      ctx.stroke();
+    },
+
+    // A click on the strip seeks there; anything else falls through to the play toggle.
+    seekWaveStrip: function (e) {
+      var strip = this.waveStrip;
+      var take = this.currentTake;
+      if (!this.isOpen || !strip || !strip.path || !take || strip.id !== take.id) { return false; }
+      var canvas = $('visualizer-canvas');
+      var audio = $('audio');
+      if (!canvas || !audio) { return false; }
+      var P = strip.path;
+      var rect = canvas.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var y = e.clientY - rect.top;
+      if (y < P.midY - P.bandH - 12 || y > P.midY + P.bandH + 12) { return false; }
+      if (x < P.x0 - 12 || x > P.x1 + 12) { return false; }
+      var dur = (isFinite(audio.duration) && audio.duration > 0) ? audio.duration : 0;
+      if (!dur) { return false; }
+      audio.currentTime = Math.max(0, Math.min(dur, ((x - P.x0) / (P.x1 - P.x0)) * dur));
+      return true;
     },
 
     /* Mode 1: Multi-Harmonic Wave Ribbon */
