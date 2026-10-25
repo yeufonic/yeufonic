@@ -37,12 +37,21 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.49 (2026-10-25)
 
 - A **Yeufonic** visualizer style: the mark itself as the scene. Its tile glows with the bass and
   expands on the beat, each fork arm is a meter with its own half of the spectrum — the left the lows,
   the right the mids and highs — and the green dot flares on the beat. The fork stays white, so it
-  reads as the logo rather than as a redrawing of it.
+  reads as the logo rather than as a redrawing of it. A fresh install opens the visualizer on it; a style
+  already chosen is kept.
+- **The player's play and pause button stays with the song it is playing.** Pausing a song played from a
+  playlist and pressing play again resumed the take left in focus in the library instead; now it carries on
+  with the song the player shows, from where it stopped. Another take is played from its own card.
+- **Pictures drawn on this PC by FLUX.2 [klein] have no lettering.** It wrote garbled words on the sleeve,
+  often the song's title; the picture is now described without the title and drawn with a negative prompt
+  against text. A picture from an external image model still carries the title, as before.
+- Enlarging a take's picture offers the picture menu's two actions under it: make a new picture, or put the
+  default background back.
 - A new cover or instrumental no longer shows the last recording's tempo warning, and a switch of the
   editor's mode tabs that lets go of the open take starts the Advanced settings from their defaults.
 - **An install no longer depends on one person's account for files every install needs.** The instrumental and
@@ -53,6 +62,11 @@ cannot creep back in.
 - MERT, which `scripts/tokenize_identity.py` downloads, is loaded at a pinned revision rather than the latest.
 - `scripts/check-upstream.sh` also asks every address the installers download from whether it still answers with
   the size and checksum pinned, and says when a repository has been renamed.
+
+### UI enhancements
+
+- A **Collapse** chip beside Comfy and Fit folds every take card down to its title line and buttons, so more
+  takes fit on screen; **Expand** opens them again. The choice is kept per take on this browser.
 
 ## 0.0.48 (2026-10-22)
 
