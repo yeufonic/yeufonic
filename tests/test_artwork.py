@@ -315,13 +315,18 @@ def test_the_flux_graph_is_comfyuis_own_klein_workflow():
     assert kinds["UNETLoader"]["unet_name"] == "flux-2-klein-4b-fp8.safetensors"
     assert kinds["CLIPLoader"] == {"clip_name": "qwen_3_4b_fp4_flux2.safetensors", "type": "flux2"}
     assert kinds["VAELoader"]["vae_name"] == "flux2-vae.safetensors"
-    assert kinds["Flux2Scheduler"]["steps"] == 4 and kinds["CFGGuider"]["cfg"] == 1.0
+    assert kinds["Flux2Scheduler"]["steps"] == 4 and kinds["RandomNoise"]["noise_seed"] == 7
     assert kinds["EmptyFlux2LatentImage"]["width"] % 16 == 0 and kinds["EmptyFlux2LatentImage"]["height"] % 16 == 0
-    assert "Hipgnosis" in kinds["CLIPTextEncode"]["text"] and kinds["RandomNoise"]["noise_seed"] == 7
-    # klein cannot spell, so the picture drawn here is asked for no lettering of any kind; an
-    # external image model, which can, keeps the prompt as it was.
-    assert artwork.NO_TEXT_RULE in kinds["CLIPTextEncode"]["text"]
-    assert artwork.NO_TEXT_RULE not in artwork.drawing_request("A lantern.")
+    # klein cannot spell: what it is sent describes the style without naming the design group, asks
+    # for no lettering, and subtracts text through a real negative — which needs a cfg above 1 to act
+    # at all.  The external model, which letters reliably, keeps the named Hipgnosis prompt.
+    local = graph["4"]["inputs"]["text"]
+    assert artwork.NO_TEXT_RULE in local
+    assert "Hipgnosis" not in local and "album cover" not in local.lower()
+    assert graph["5"]["inputs"]["text"] == artwork.NO_TEXT_NEGATIVE
+    assert kinds["CFGGuider"]["cfg"] == artwork.LOCAL_CFG and artwork.LOCAL_CFG > 1.0
+    external = artwork.drawing_request("A lantern.")
+    assert "Hipgnosis" in external and artwork.NO_TEXT_RULE not in external
     for node in graph.values():                              # every link points at a node in the graph
         for value in node["inputs"].values():
             if isinstance(value, list):
