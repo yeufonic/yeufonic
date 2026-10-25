@@ -11622,28 +11622,29 @@ async function bulkDelete() {
   statusLine('Deleted ' + done + ' take' + (done === 1 ? '' : 's') + '.', 'good');
 }
 
-/* ------------------------------------------------------------- folding a take ---
-   A card folded shut shows its head line — the title, the kind, the length and the age — the
-   small row of its own buttons with the space at the left for notices, and the row of icons.
-   It is kept per take and on this browser, so one card can be opened without the rest and a
-   folded card stays folded across a reload. */
+/* ------------------------------------------------------------- folding the takes ---
+   A view, as Comfy and Fit are: folded, every card shows its head line — the title, the kind, the length
+   and the age — the small row of its own buttons with the space at the left for notices, and the row of
+   icons.  It is every card, so the takes inside a take, a new take and another space's takes come folded
+   too, and it is kept on this browser across a reload.  (It was once kept as the ids of the cards folded,
+   so a card that was not on the page at the time came open; a list kept from then means folded.) */
 var FOLDED_KEY = 'yue2.takes.folded';
 var FOLDED = null;
 
-function foldedIds() {
-  if (FOLDED) { return FOLDED; }
-  FOLDED = [];
+function foldedView() {
+  if (FOLDED !== null) { return FOLDED; }
+  FOLDED = false;
   try {
-    var saved = JSON.parse(localStorage.getItem(FOLDED_KEY) || '[]');
-    if (Array.isArray(saved)) { FOLDED = saved.filter(function (x) { return typeof x === 'string'; }); }
-  } catch (err) { /* private mode: the folds last as long as the page */ }
+    var saved = JSON.parse(localStorage.getItem(FOLDED_KEY) || 'false');
+    FOLDED = saved === true || (Array.isArray(saved) && saved.length > 0);
+  } catch (err) { /* private mode: the view lasts as long as the page */ }
   return FOLDED;
 }
 
-function isFolded(id) { return foldedIds().indexOf(id) >= 0; }
+function isFolded() { return foldedView(); }
 
-function saveFolded(ids) {
-  FOLDED = ids.slice();
+function saveFolded(on) {
+  FOLDED = Boolean(on);
   try { localStorage.setItem(FOLDED_KEY, JSON.stringify(FOLDED)); } catch (err) { /* private mode */ }
 }
 
@@ -11655,12 +11656,9 @@ function foldCard(card, on) {
 function paintFoldAll() {
   var button = $('fold-toggle');
   if (!button) { return; }
-  var cards = Array.prototype.slice.call(document.querySelectorAll('#takes .take'));
-  var anyOpen = !cards.length || cards.some(function (card) { return !card.classList.contains('collapsed'); });
-  button.textContent = anyOpen ? 'Collapse' : 'Expand';
-  button.title = anyOpen
-    ? 'Fold every take down to its head line and its icons'
-    : 'Open every take again';
+  var folded = foldedView();
+  button.textContent = folded ? 'Expand' : 'Collapse';
+  button.title = folded ? 'Open every take again' : 'Fold every take down to its head line and its icons';
 }
 
 function paintTakes() {
@@ -14235,12 +14233,11 @@ function wire() {
   $('width-toggle').addEventListener('click', function () {
     applyWidth(State.width === 'wide' ? 'fit' : 'wide');
   });
-  // One chip folds every take down, or opens them all again, whatever each was doing.
+  // One chip folds every take down, or opens them all again: those on the page now, and any that come after.
   $('fold-toggle').addEventListener('click', function () {
-    var cards = Array.prototype.slice.call(document.querySelectorAll('#takes .take'));
-    var anyOpen = !cards.length || cards.some(function (card) { return !card.classList.contains('collapsed'); });
-    cards.forEach(function (card) { foldCard(card, anyOpen); });
-    saveFolded(anyOpen ? cards.map(function (card) { return card.dataset.id; }) : []);
+    var on = !foldedView();
+    saveFolded(on);
+    Array.prototype.forEach.call(document.querySelectorAll('#takes .take'), function (card) { foldCard(card, on); });
     paintFoldAll();
   });
   $('layout-toggle').addEventListener('click', function () {

@@ -384,3 +384,23 @@ def test_the_takes_inside_a_folded_card_still_open_under_it():
     import re
     css = (Path(__file__).resolve().parent.parent / "app" / "static" / "styles.css").read_text(encoding="utf-8")
     assert not re.search(r"\.collapsed[^{]*\.take-inside[^{]*\{[^}]*display:\s*none", css)
+
+
+def test_folding_is_a_view_so_takes_not_on_the_page_come_folded_too():
+    """The Collapse chip folds every card, the takes inside a take included, as Comfy and Fit apply to every card.
+    It was once kept as the ids of the cards folded, so the takes inside one came open; a list kept from then
+    reads as folded."""
+    import json as _json
+    app_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    start = app_js.index("var FOLDED_KEY")
+    code = app_js[start:app_js.index("function foldCard(", start)]
+    script = ("const store = {}; const localStorage = { getItem: k => k in store ? store[k] : null, setItem: (k, v) => { store[k] = v; } };\n"
+              + code + "\nconst seen = [];"
+              "for (const kept of [null, '[\"abc123def456\"]', '[]', 'true', 'false']) {"
+              "  FOLDED = null; if (kept === null) delete store[FOLDED_KEY]; else store[FOLDED_KEY] = kept;"
+              "  seen.push(isFolded('any-take'));"
+              "}"
+              "saveFolded(true); FOLDED = null; seen.push(isFolded('another'));"
+              "console.log(JSON.stringify(seen));")
+    out = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout
+    assert _json.loads(out) == [False, True, False, True, False, True]
