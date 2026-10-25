@@ -3966,13 +3966,20 @@ function scoreSectionSpans(abc) {
 
 /* Notes in the Vocal voice: an instrumental whose score has any would sing, so the
    server gives them to the Ins voice first. */
+/* The notes the Vocal voice sings, each a syllable's place.  A note tied on from the one before is that note held,
+   not another to sing, so it is not counted. */
 function vocalNotes(abc) {
-  var voice = null, notes = 0;
+  var voice = null, notes = 0, tied = false;
   String(abc || '').split('\n').forEach(function (raw) {
     var line = raw.trim();
     if (line.indexOf('V:') === 0) { voice = line.slice(2).trim().split(/\s+/)[0] || null; return; }
     if (!line || line.charAt(0) === '%' || /^[A-Za-z]:/.test(line) || voice !== 'Vocal') { return; }
-    notes += (line.replace(/"[^"]*"/g, '').match(/[A-Ga-g]/g) || []).length;
+    var body = line.replace(/"[^"]*"/g, '').replace(/![^!]*!/g, '').replace(/\[[A-Za-z]:[^\]]*\]/g, '');
+    var note = /[_^=]*[A-Ga-g][,']*[0-9\/]*(-?)/g, found;
+    while ((found = note.exec(body))) {
+      if (!tied) { notes += 1; }
+      tied = found[1] === '-';
+    }
   });
   return notes;
 }
@@ -6752,6 +6759,10 @@ function lyricSyllables(text) {
 /* Why the take's tune cannot sing the words in the box, if it cannot: more sections than it has, or far more
    syllables than it has notes (long lines on a tune made for short ones).  Songs written to fit run at about
    one syllable to a note; well beyond that the lines are repeated or dropped. */
+/* Past this many syllables a note, a tune cannot sing the words: they are crammed onto its notes and come out
+   garbled, unless that is the style (rap can run past it): Keep this tune is unticked, and can be ticked again. */
+var WORDS_PER_NOTE = 1.3;
+
 function tuneGap() {
   var sections = tuneSectionGap();
   if (sections) {
@@ -6760,9 +6771,9 @@ function tuneGap() {
   }
   var notes = vocalNotes($('abc').value);
   var syllables = lyricSyllables($('lyrics').value);
-  if (notes >= 20 && syllables >= 40 && syllables > notes * 1.8) {
+  if (notes >= 20 && syllables >= 40 && syllables > notes * WORDS_PER_NOTE) {
     var about = Math.round(syllables / 10) * 10;
-    return { keep: 'Your words need about ' + about + ' syllables and this tune has ' + notes + ' notes, so it cannot sing them all: expect repeated or dropped lines.',
+    return { keep: 'Your words need about ' + about + ' syllables and this tune has ' + notes + ' notes, so they are crammed onto them: expect garbled or dropped words.',
              fresh: 'Your words need about ' + about + ' syllables and this tune has ' + notes + ' notes. A new plan is written to fit them.' };
   }
   return null;

@@ -52,6 +52,10 @@ cannot creep back in.
   against text. A picture from an external image model still carries the title, as before.
 - Enlarging a take's picture offers the picture menu's two actions under it: make a new picture, or put the
   default background back.
+- **New words that do not fit the tune write a new plan.** Words with far more syllables than the tune has notes
+  are crammed onto them and come out garbled, so **Keep this tune** is unticked from about 1.3 syllables a note
+  (it was 1.8), and a note held over a bar is counted once, not as two. It can be ticked again for a style that
+  packs words in.
 - Settings' **Resume External LLM** notice goes away once the external LLM is resumed. It stayed on screen whatever
   the state, so Resume looked as if it did nothing.
 - A new cover or instrumental no longer shows the last recording's tempo warning, and a switch of the
