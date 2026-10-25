@@ -376,3 +376,11 @@ def test_a_cards_small_buttons_are_on_its_status_line_and_not_beside_its_title()
     assert "flex-wrap: wrap;" in live[:live.index("}")]        # a long status takes the line, and the buttons go under
     corner = css[css.index("\n.take-corner {"):]
     assert "auto" in corner[:corner.index("}")]                 # pushed to the right
+
+
+def test_the_takes_inside_a_folded_card_still_open_under_it():
+    """Folding a card (the Collapse chip) leaves its Inside button working: a rule hid the panel under a folded
+    card, so clicking Inside on one loaded its takes and showed nothing."""
+    import re
+    css = (Path(__file__).resolve().parent.parent / "app" / "static" / "styles.css").read_text(encoding="utf-8")
+    assert not re.search(r"\.collapsed[^{]*\.take-inside[^{]*\{[^}]*display:\s*none", css)

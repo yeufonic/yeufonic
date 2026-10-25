@@ -2217,7 +2217,8 @@ label .lora-value:disabled { opacity: 0.6; }
 /* Folding a take away -------------------------------------------------------------
    Folded, a card keeps its head line — the title, the kind, the length and the age — the small
    row of its own buttons, whose left side stays free for notices, and the row of icons.  The
-   style line, the stems and the takes inside it go away until it is opened. */
+   style line and the stems go away until it is opened.  The takes inside it still open under it from its
+   Inside button: that is asked for, and a folded card hid them. */
 .take-meta-short { display: none; }
 /* The card's own floor (190px) is what makes a row tall; folded, it sizes to its three rows, with
    less padding and gap and a smaller cover, since nothing is read on it but one line. */
@@ -2230,7 +2231,6 @@ label .lora-value:disabled { opacity: 0.6; }
 .take.collapsed .take-meta-short { display: block; }
 .take.collapsed .take-style,
 .take.collapsed .take-stems { display: none; }
-.take.collapsed + .take-inside { display: none; }
 
 
 

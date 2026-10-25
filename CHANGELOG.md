@@ -72,7 +72,8 @@ cannot creep back in.
 ### UI enhancements
 
 - A **Collapse** chip beside Comfy and Fit folds every take card down to its title line and buttons, so more
-  takes fit on screen; **Expand** opens them again. The choice is kept per take on this browser.
+  takes fit on screen; **Expand** opens them again. The choice is kept per take on this browser. A folded
+  take's **Inside** button still opens the takes inside it.
 - Settings opens with every section folded, and each section has a colour of its own, so the five are easier to
   tell apart.
 
