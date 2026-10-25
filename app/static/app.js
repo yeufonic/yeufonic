@@ -12048,7 +12048,6 @@ function togglePlay(id) {
   if (State.playing === id && !audio.paused) {
     audio.pause();          // keeps currentTime, so Play resumes where it stopped
     State.pausedId = State.playing;
-    State.pausedFocus = Selection.formTakeId;
     State.playing = null;
     paintTakes();
     paintBulk();
@@ -13168,7 +13167,6 @@ function wireTransport() {
       lastPauseAt = now;
       audio.pause();
       State.pausedId = State.playing;
-      State.pausedFocus = Selection.formTakeId;
       if (State.playing) { State.playing = null; paintTakes(); }
       paintTransport();
       return;
@@ -13179,20 +13177,18 @@ function wireTransport() {
       return;
     }
 
-    // 2. Audio is not playing: put back what was paused, then the take in focus, then the first
-    //    take with sound.  What was paused comes first — and only while nothing has been focused
-    //    since — so pause then play resumes the song instead of jumping to whatever the takes
-    //    page still holds in focus.
-    if (State.pausedId && State.pausedFocus === Selection.formTakeId) {
-      var back = typeof takeById === 'function' ? takeById(State.pausedId) : null;
-      if (back && back.has_audio) {
-        // playTake resumes the take it is already loaded with, keeping the audio element and so
-        // the position; it also sets the playing take and paints, which a bare play() does not.
-        playTake(back.id);
-        return;
-      }
+    // 2. Audio is not playing.  What was paused comes first: the transport resumes the song it
+    //    stopped, whatever else the page has in focus, so a song playing from a playlist is not
+    //    replaced by the take the library happens to hold.  playTake finds the take wherever it
+    //    came from — the library, the player it is already loaded in, or a playlist, whose songs
+    //    need not be in the library's list at all — and resumes it without reloading the media,
+    //    so it carries on where it stopped.  To play another take, use its own card's play.
+    if (State.pausedId) {
+      var backId = State.pausedId;
+      State.pausedId = null;
+      playTake(backId);
+      return;
     }
-    State.pausedId = null;
 
     // 3. Nothing paused to come back to: start or resume the selected take if one is highlighted
     if (activeTake) {
