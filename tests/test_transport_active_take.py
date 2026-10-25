@@ -53,17 +53,17 @@ def test_playback_continues_when_another_take_selected():
     )
 
 
-def test_spacebar_plays_highlighted_take_when_another_is_playing():
+def test_the_play_button_pauses_what_is_playing_rather_than_switching_to_the_take_in_focus():
+    """Pausing a song played from a playlist used to start the take left in focus in the library.
+    While something plays, the transport's button pauses it; another take is played from its card."""
     content = APP_JS.read_text(encoding="utf-8")
     btn_play_idx = content.find("$('btn-play').addEventListener('click'")
     assert btn_play_idx != -1
-    snippet = content[btn_play_idx:btn_play_idx + 1500]
-    assert "activeTake && activeTake.id !== State.playing" in snippet, (
-        "btn-play should check if the highlighted take is different from the currently playing take"
-    )
-    assert "playTake(activeTake.id);" in snippet, (
-        "btn-play must switch to and play the highlighted take"
-    )
+    snippet = content[btn_play_idx:btn_play_idx + 2500]
+    sounding = snippet.index("if (!audio.paused && !audio.ended) {")
+    branch = snippet[sounding:snippet.index("return;", sounding)]
+    assert "audio.pause();" in branch
+    assert "playTake(" not in branch, "while something plays, the button must pause it, not switch takes"
 
 
 def test_ended_event_primes_highlighted_take():
