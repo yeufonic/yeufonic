@@ -13155,31 +13155,12 @@ function wireTransport() {
     var activeTake = (activeId && typeof takeById === 'function' ? takeById(activeId) : null) ||
                      (activeId && State.formTake && State.formTake.id === activeId ? State.formTake : null);
 
-    // 1. Audio is currently sounding (take, source audition, or stem)
+    // 1. Audio is currently sounding (a take, a source audition, a stem): the transport button
+    //    pauses it.  It used to switch to the take left in focus on the takes page instead, so
+    //    pausing a song started from a playlist started that take.  The button says pause while
+    //    something plays, so it pauses; to move to another take, play it from its own card, or
+    //    press this twice — the first press pauses, the second plays the take in focus.
     if (!audio.paused && !audio.ended) {
-      // If a different take is highlighted/selected, switch to and play that take!
-      if (activeTake && activeTake.id !== State.playing) {
-        if (activeTake.has_audio) {
-          playTake(activeTake.id);
-          return;
-        }
-        if (activeTake.source_id && typeof sourceById === 'function') {
-          var src = sourceById(activeTake.source_id);
-          if (src) {
-            if ($('source-select')) { $('source-select').value = src.id; }
-            playRecording();
-            return;
-          }
-        }
-        statusLine('This take has not been rendered yet.', 'hint');
-        lastPauseAt = now;
-        audio.pause();
-        if (State.playing) { State.playing = null; paintTakes(); }
-        paintTransport();
-        return;
-      }
-
-      // Otherwise (the selected take is the one currently playing, or no different take is selected), pause it:
       lastPauseAt = now;
       audio.pause();
       if (State.playing) { State.playing = null; paintTakes(); }
