@@ -12047,6 +12047,8 @@ function togglePlay(id) {
   var audio = $('audio');
   if (State.playing === id && !audio.paused) {
     audio.pause();          // keeps currentTime, so Play resumes where it stopped
+    State.pausedId = State.playing;
+    State.pausedFocus = Selection.formTakeId;
     State.playing = null;
     paintTakes();
     paintBulk();
@@ -12074,6 +12076,8 @@ function paintNpCover(take) {
 window.paintNpCover = paintNpCover;
 
 function playTake(id) {
+  // A deliberate start takes over from whatever was paused.
+  State.pausedId = null;
   if (window.Rack && typeof window.Rack.resume === 'function') {
     window.Rack.resume();
   }
@@ -13163,6 +13167,8 @@ function wireTransport() {
     if (!audio.paused && !audio.ended) {
       lastPauseAt = now;
       audio.pause();
+      State.pausedId = State.playing;
+      State.pausedFocus = Selection.formTakeId;
       if (State.playing) { State.playing = null; paintTakes(); }
       paintTransport();
       return;
@@ -13173,7 +13179,22 @@ function wireTransport() {
       return;
     }
 
-    // 2. Audio is not playing: start or resume the selected take if one is highlighted
+    // 2. Audio is not playing: put back what was paused, then the take in focus, then the first
+    //    take with sound.  What was paused comes first — and only while nothing has been focused
+    //    since — so pause then play resumes the song instead of jumping to whatever the takes
+    //    page still holds in focus.
+    if (State.pausedId && State.pausedFocus === Selection.formTakeId) {
+      var back = typeof takeById === 'function' ? takeById(State.pausedId) : null;
+      if (back && back.has_audio) {
+        // playTake resumes the take it is already loaded with, keeping the audio element and so
+        // the position; it also sets the playing take and paints, which a bare play() does not.
+        playTake(back.id);
+        return;
+      }
+    }
+    State.pausedId = null;
+
+    // 3. Nothing paused to come back to: start or resume the selected take if one is highlighted
     if (activeTake) {
       if (activeTake.has_audio) {
         if (State.loadedId === activeTake.id && audio.src && !audio.ended && audio.currentTime > 0) {
