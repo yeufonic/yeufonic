@@ -28,6 +28,14 @@ OPENAI_SIZE = "1024x1024"       # square 1:1 album cover
 WORD_LINES = 12                 # the opening of the song the description is written from
 DRAW_TIMEOUT = 180.0
 
+# FLUX.2 [klein] on this PC cannot spell: asked for an album cover it writes lettering of its own,
+# garbled or half there.  So the picture drawn here is asked for with no text at all, while an
+# external image model, which renders lettering reliably, keeps the prompts as they were.
+NO_TEXT_RULE = (
+    "No text of any kind appears in the image: no lettering, no title, no numbers, no signature, "
+    "no caption, no watermark, no words, not even a partial one or as decoration."
+)
+
 # What the engine reports it has (set by the job lanes, which hold the engine).
 engine_options = lambda: {}  # noqa: E731
 
@@ -352,7 +360,8 @@ def album_cover_prefix(well_worn: bool = False) -> str:
     )
 
 
-def take_description(take: dict, scene: str | None = None, well_worn: bool | None = None) -> str:
+def take_description(take: dict, scene: str | None = None, well_worn: bool | None = None,
+                     no_text: bool = False) -> str:
     """An album cover prompt in the style of Hipgnosis, built from the song's title, style, and optional visual scene."""
     title = clean_cover_title(take)
     style = clean_cover_style(take.get("style") or "", take) or config.DEFAULT_STYLE
@@ -360,6 +369,8 @@ def take_description(take: dict, scene: str | None = None, well_worn: bool | Non
     parts = [
         f"{album_cover_prefix(worn)}\n"
     ]
+    if no_text:
+        parts.append(NO_TEXT_RULE + "\n")
     if title:
         parts.append(f"Song title: {title}\n")
     parts.append(f'cover style:\n"{style}"')
@@ -541,17 +552,20 @@ def describe_graph(take: dict, seed: int) -> dict:
     }
 
 
-def drawing_request(description: str, take: dict | None = None, well_worn: bool | None = None) -> str:
+def drawing_request(description: str, take: dict | None = None, well_worn: bool | None = None,
+                    no_text: bool = False) -> str:
     text = clean_prompt_text(description.strip(), take)
     if HIPGNOSIS_PREFIX_RE.match(text):
-        return text
+        # Already an album-cover prompt: leave it as it is, but still ask for no lettering.
+        return text + ("\n\n" + NO_TEXT_RULE if no_text else "")
     if take:
-        return take_description(take, scene=text, well_worn=well_worn)
+        return take_description(take, scene=text, well_worn=well_worn, no_text=no_text)
     worn = is_well_worn(take) if well_worn is None else well_worn
     prefix = album_cover_prefix(worn)
     clean_text = re.sub(r",?\s*(?:designed by|created by|in the style of|by)?\s*(?:hipgnosis|hignosis)\b", "", text, flags=re.IGNORECASE)
     clean_text = re.sub(r"  +", " ", clean_text).strip()
-    return f"{prefix}\n\n{clean_text or text}"
+    body = f"{prefix}\n\n{clean_text or text}"
+    return body + ("\n\n" + NO_TEXT_RULE if no_text else "")
 
 
 # ------------------------------------------------------------------ the drawing
@@ -565,7 +579,8 @@ def picture_graph(description: str, seed: int, prefix: str) -> dict:
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": config.PICTURE_MODEL, "weight_dtype": "default"}},
         "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.PICTURE_TEXT, "type": "flux2"}},
         "3": {"class_type": "VAELoader", "inputs": {"vae_name": config.PICTURE_VAE}},
-        "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": drawing_request(description)}},
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0],
+                                                           "text": drawing_request(description, no_text=True)}},
         "5": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["4", 0]}},
         "6": {"class_type": "EmptyFlux2LatentImage", "inputs": {"width": WIDTH, "height": HEIGHT, "batch_size": 1}},
         "7": {"class_type": "Flux2Scheduler", "inputs": {"steps": LOCAL_STEPS, "width": WIDTH, "height": HEIGHT}},

@@ -318,6 +318,10 @@ def test_the_flux_graph_is_comfyuis_own_klein_workflow():
     assert kinds["Flux2Scheduler"]["steps"] == 4 and kinds["CFGGuider"]["cfg"] == 1.0
     assert kinds["EmptyFlux2LatentImage"]["width"] % 16 == 0 and kinds["EmptyFlux2LatentImage"]["height"] % 16 == 0
     assert "Hipgnosis" in kinds["CLIPTextEncode"]["text"] and kinds["RandomNoise"]["noise_seed"] == 7
+    # klein cannot spell, so the picture drawn here is asked for no lettering of any kind; an
+    # external image model, which can, keeps the prompt as it was.
+    assert artwork.NO_TEXT_RULE in kinds["CLIPTextEncode"]["text"]
+    assert artwork.NO_TEXT_RULE not in artwork.drawing_request("A lantern.")
     for node in graph.values():                              # every link points at a node in the graph
         for value in node["inputs"].values():
             if isinstance(value, list):
