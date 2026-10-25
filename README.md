@@ -18,6 +18,7 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **A library:** spaces, stars, and every take's settings kept so it can be made again.
 - **A take panel and an editor:** the left panel shows how the selected take was made, and a large
   window, in three columns or as steps, is where takes are made and changed.
+- **Song art:** Create song/album art using local models (Flux.2, Gemma), or for better quality plug in your own external LLM API
 - **Windows without Docker:** an installer that sets it all up natively, for people who would
   rather not use Docker.
 
