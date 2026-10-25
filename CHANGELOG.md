@@ -52,6 +52,8 @@ cannot creep back in.
   against text. A picture from an external image model still carries the title, as before.
 - Enlarging a take's picture offers the picture menu's two actions under it: make a new picture, or put the
   default background back.
+- Settings' **Resume External LLM** notice goes away once the external LLM is resumed. It stayed on screen whatever
+  the state, so Resume looked as if it did nothing.
 - A new cover or instrumental no longer shows the last recording's tempo warning, and a switch of the
   editor's mode tabs that lets go of the open take starts the Advanced settings from their defaults.
 - **An install no longer depends on one person's account for files every install needs.** The instrumental and
@@ -67,6 +69,8 @@ cannot creep back in.
 
 - A **Collapse** chip beside Comfy and Fit folds every take card down to its title line and buttons, so more
   takes fit on screen; **Expand** opens them again. The choice is kept per take on this browser.
+- Settings opens with every section folded, and each section has a colour of its own, so the five are easier to
+  tell apart.
 
 ## 0.0.48 (2026-10-22)
 

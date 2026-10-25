@@ -4885,7 +4885,7 @@ function paintSettings() {
   var container = $('settings-list');
   if (!container) { return; }
   if (!State.openSettingGroups) {
-    State.openSettingGroups = { audio: true, training: false, llm: false, art: false, system: false };
+    State.openSettingGroups = { audio: false, training: false, llm: false, art: false, system: false };
   } else {
     Array.prototype.forEach.call(container.querySelectorAll('details.settings-group[data-group]'), function (el) {
       State.openSettingGroups[el.dataset.group] = el.open;
@@ -5835,6 +5835,7 @@ function wireStorage() {
 
 function openSettings() {
   closeBrandMenu();
+  State.openSettingGroups = null;   // every section folded, so the five can be seen at once and one chosen
   paintSettings();
   $('settings-note').textContent = '';
   $('settings-modal').classList.remove('hidden');

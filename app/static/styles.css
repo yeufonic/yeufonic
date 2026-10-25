@@ -454,6 +454,8 @@ textarea.lyrics { min-height: 200px; font-family: ui-monospace, SFMono-Regular, 
   background: rgb(var(--backdrop-rgb) / 0.72); backdrop-filter: blur(6px);
 }
 .modal.hidden { display: none; }
+/* The settings' session banner sets display: flex later on, which would beat .hidden and keep it on screen. */
+.llm-session-banner.hidden { display: none; }
 /* `.hidden` is one class, so any rule with two beats it and the element stays on
    screen.  That has now caught `.grid2`, `.job` and the brand menu's rows, each
    found only by looking at the running page.  These restate it at the losing
@@ -617,6 +619,21 @@ a.menu-item { text-decoration: none; box-sizing: border-box; }
   font-size: 14px;
   font-weight: 700;
   color: var(--text);
+}
+/* Each section has its own colour, on its edge, a dot before its title and its head when open, so the five
+   can be told apart at a glance. */
+.settings-group[data-group="audio"] { --group-tone: var(--accent-a); }
+.settings-group[data-group="training"] { --group-tone: var(--inst-a); }
+.settings-group[data-group="llm"] { --group-tone: var(--info); }
+.settings-group[data-group="art"] { --group-tone: var(--cover-a); }
+.settings-group[data-group="system"] { --group-tone: var(--good); }
+.settings-group[data-group] { border-left: 3px solid var(--group-tone); }
+.settings-group[data-group] .settings-group-title::before {
+  content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px;
+  vertical-align: 1px; background: var(--group-tone);
+}
+.settings-group[data-group][open] > .settings-group-head {
+  background: color-mix(in srgb, var(--group-tone) 10%, transparent);
 }
 .settings-group-summary {
   font-size: 12px;
