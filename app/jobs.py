@@ -511,8 +511,7 @@ async def run_art(take_id: str) -> None:
             writer = "its own title, style and words"
         elif writes == "gemma":
             try:
-                job = await _run_graph("art", take_id,
-                                       artwork.describe_graph(take, int(time.time()) % 2**31, with_title=False))
+                job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31))
                 scene = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
                 description = artwork.take_description(take, scene=scene, well_worn=worn)
                 writer = "Gemma on this PC"

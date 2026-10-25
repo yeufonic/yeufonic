@@ -564,11 +564,11 @@ async def describe_external(take: dict, well_worn: bool | None = None) -> str:
     return tidy_description(reply)
 
 
-def describe_graph(take: dict, seed: int, with_title: bool = False) -> dict:
+def describe_graph(take: dict, seed: int, with_title: bool = True) -> dict:
     """Gemma on the engine writes the description, through the same nodes as the lyrics.
 
-    The title is left out by default: the description ends up in klein's prompt, and klein letters
-    a title it has been given.  An external image model is described with it, by describe_external.
+    The title is in the brief, as it always was.  It is the *drawing* that leaves the title out when
+    the picture is drawn here: klein letters a title it is given, and klein_request strips it.
     """
     return {
         "1": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.LYRICS_MODEL, "type": "stable_diffusion"}},

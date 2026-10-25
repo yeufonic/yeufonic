@@ -309,18 +309,16 @@ def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
     assert got["has"] and "drawn by FLUX.2 klein on this PC" in got["words"]
 
 
-def test_the_local_description_and_picture_leave_the_title_out():
-    """klein letters a title it is given, so neither the brief nor its prompt carries one."""
+def test_only_the_local_drawing_leaves_the_title_out():
+    """The brief keeps the title, as it always did; klein is drawn from no title, since it letters one."""
     take = {"title": "Night Fishing", "style": "folk, warm", "lyrics": "Night Fishing\nA boat at dusk", "seed": 1}
-    brief = artwork.description_request(take, with_title=False)
-    assert "Night Fishing" not in brief and "Song title:" not in brief
-    assert "A boat at dusk" in brief
-    assert "Night Fishing" in artwork.description_request(take)            # an external model keeps it
-    graph = artwork.picture_graph("A boat at dusk under a moon.", 3, "yeufonic/p", title="Night Fishing")
-    assert "Night Fishing" not in graph["4"]["inputs"]["text"]
-    # a title that reached the description anyway is taken out of what klein is drawn from
-    dirty = artwork.klein_request("Night Fishing floats on calm water.", title="Night Fishing")
-    assert "Night Fishing" not in dirty and "floats on calm water" in dirty
+    assert "Song title: Night Fishing" in artwork.description_request(take)      # local and external
+    # the drawing on this PC strips it, from the description and from a brief that reached it anyway
+    graph = artwork.picture_graph("Night Fishing floats on calm water.", 3, "yeufonic/p", title="Night Fishing")
+    local = graph["4"]["inputs"]["text"]
+    assert "Night Fishing" not in local and "floats on calm water" in local
+    # an external image model is asked with it, unchanged
+    assert "Night Fishing" in artwork.drawing_request("A boat at dusk.", take)
 
 
 def test_the_flux_graph_is_comfyuis_own_klein_workflow():
