@@ -12047,7 +12047,6 @@ function togglePlay(id) {
   var audio = $('audio');
   if (State.playing === id && !audio.paused) {
     audio.pause();          // keeps currentTime, so Play resumes where it stopped
-    State.pausedId = State.playing;
     State.playing = null;
     paintTakes();
     paintBulk();
@@ -12075,8 +12074,6 @@ function paintNpCover(take) {
 window.paintNpCover = paintNpCover;
 
 function playTake(id) {
-  // A deliberate start takes over from whatever was paused.
-  State.pausedId = null;
   if (window.Rack && typeof window.Rack.resume === 'function') {
     window.Rack.resume();
   }
@@ -13166,7 +13163,6 @@ function wireTransport() {
     if (!audio.paused && !audio.ended) {
       lastPauseAt = now;
       audio.pause();
-      State.pausedId = State.playing;
       if (State.playing) { State.playing = null; paintTakes(); }
       paintTransport();
       return;
@@ -13177,16 +13173,15 @@ function wireTransport() {
       return;
     }
 
-    // 2. Audio is not playing.  What was paused comes first: the transport resumes the song it
-    //    stopped, whatever else the page has in focus, so a song playing from a playlist is not
-    //    replaced by the take the library happens to hold.  playTake finds the take wherever it
-    //    came from — the library, the player it is already loaded in, or a playlist, whose songs
-    //    need not be in the library's list at all — and resumes it without reloading the media,
-    //    so it carries on where it stopped.  To play another take, use its own card's play.
-    if (State.pausedId) {
-      var backId = State.pausedId;
-      State.pausedId = null;
-      playTake(backId);
+    // 2. Audio is not playing.  The transport's own song comes back: whatever the lower player
+    //    shows as active is what play restarts, from where it stopped — after a pause, or after
+    //    it has finished — and never the take the library happens to hold in focus.  A song from
+    //    a playlist is one of these, and need not be in the library's list at all.  playTake finds
+    //    the take wherever it came from and resumes it without reloading the media.  Only an
+    //    empty transport falls through to the take in focus, or the first take with sound.
+    var held = State.loadedTake;
+    if (held && held.id && held.has_audio !== false) {
+      playTake(held.id);
       return;
     }
 
