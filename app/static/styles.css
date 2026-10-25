@@ -3164,6 +3164,15 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
   background: rgb(var(--backdrop-rgb) / 0.82); backdrop-filter: blur(6px); cursor: zoom-out; }
 .picture-view img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px;
   background: var(--panel); box-shadow: 0 30px 80px rgb(var(--shade) / 0.6); }
+/* The picture with its own two actions under it: a new one on the left, the default background back
+   on the right.  Clicks on them must not close the view, which is how the rest of it closes. */
+.picture-view-frame { display: flex; flex-direction: column; align-items: center; gap: 14px;
+  max-width: 100%; max-height: 100%; cursor: default; }
+.picture-view-frame img { max-height: calc(100vh - 130px); }
+.picture-view-bar { display: flex; justify-content: space-between; align-items: center; gap: 14px; width: 100%; }
+.picture-view-bar .chip { background: rgb(var(--panel-rgb) / 0.9); }
+.picture-view-bar .chip:hover { color: var(--text); }
+.picture-view-bar .chip:disabled { opacity: 0.45; cursor: default; }
 /* Pop-up showing the take's album cover when hovering or clicking the cover initial square */
 .cover-popup {
   position: fixed;

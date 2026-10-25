@@ -12592,8 +12592,9 @@ function ensureCoverPopup() {
       e.preventDefault();
       var artSrc = pop.dataset.art;
       if (artSrc) {
+        var takeId = pop.dataset.take || '';
         closeCoverPopup(true);
-        showPicture(artSrc);
+        showPicture(artSrc, takeId);
       }
     });
   }
@@ -12622,6 +12623,8 @@ function showCoverPopup(anchorEl, artSrc, title, pin) {
   }
 
   pop.dataset.art = artSrc;
+  var card = anchorEl && anchorEl.closest ? anchorEl.closest('.take') : null;
+  pop.dataset.take = (card && card.dataset.id) || '';
   var img = pop.querySelector('.cover-popup-img');
   if (img) {
     if (img.src !== artSrc) {
@@ -12688,7 +12691,7 @@ function closeCoverPopup(force) {
 }
 
 // A take's whole picture, over everything; a click anywhere or Escape puts it away (and only it: the editor stays).
-function showPicture(src) {
+function showPicture(src, takeId) {
   closePicture();
   var view = document.createElement('div');
   view.id = 'picture-view';
@@ -12696,13 +12699,70 @@ function showPicture(src) {
   view.setAttribute('role', 'dialog');
   view.setAttribute('aria-label', 'The take\'s picture');
   view.title = 'Click or press Escape to close';
+
+  var frame = document.createElement('div');
+  frame.className = 'picture-view-frame';
   var img = document.createElement('img');
   img.src = src;
   img.alt = 'The take\'s picture';
-  view.appendChild(img);
+  frame.appendChild(img);
+
+  // The two picture actions the editor's menu offers, under the picture itself: a new one at the
+  // bottom left, the default background back at the bottom right.  Only for the take it is the
+  // picture of; a picture with no take behind it is just a picture.
+  if (takeId) {
+    var bar = document.createElement('div');
+    bar.className = 'picture-view-bar';
+    var make = document.createElement('button');
+    make.type = 'button';
+    make.className = 'chip';
+    make.dataset.pic = 'make';
+    make.textContent = 'Make a new picture';
+    var plain = document.createElement('button');
+    plain.type = 'button';
+    plain.className = 'chip';
+    plain.dataset.pic = 'plain';
+    plain.textContent = 'Use the default background';
+    bar.appendChild(make);
+    bar.appendChild(plain);
+    bar.addEventListener('click', function (e) { e.stopPropagation(); });
+    make.addEventListener('click', function () { pictureViewAction(takeId, 'make'); });
+    plain.addEventListener('click', function () { pictureViewAction(takeId, 'plain'); });
+    frame.appendChild(bar);
+    paintPictureViewButtons(takeId, make, plain);
+  }
+
+  view.appendChild(frame);
   view.addEventListener('click', closePicture);
   document.body.appendChild(view);
   window.addEventListener('keydown', pictureKey, true);
+}
+
+/* The same two questions the editor's picture menu answers: is a picture being made, can this PC
+   make one, and has this take the default background already. */
+async function paintPictureViewButtons(takeId, make, plain) {
+  var art;
+  try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { return; }
+  var making = Boolean(ART_STATES[art.state]);
+  make.disabled = making || !State.pictures;
+  plain.disabled = making || Boolean(art.plain);
+}
+
+async function pictureViewAction(takeId, kind) {
+  var make = kind === 'make';
+  var view = $('picture-view');
+  Array.prototype.forEach.call(view ? view.querySelectorAll('[data-pic]') : [], function (b) { b.disabled = true; });
+  try {
+    await api('/api/takes/' + takeId + '/art', { method: make ? 'POST' : 'DELETE' });
+  } catch (err) {
+    statusLine(err.message, 'bad');
+    return;                        // the picture stays up, so the action can be tried again
+  }
+  if (!make) {
+    await loadTakes();
+    if (typeof paintEdPicture === 'function') { paintEdPicture(); }
+  }
+  closePicture();
 }
 function pictureKey(event) {
   if (event.key !== 'Escape' || !$('picture-view')) { return; }
@@ -12756,7 +12816,7 @@ async function paintPictureMenu(takeId) {
     '<button type="button" role="menuitem" data-pic="plain"' + (making || art.plain ? ' disabled' : '') + '>Use the default background</button>';
   var thumb = menu.querySelector('.ed-picture-thumb');
   if (thumb) {
-    var whole = function () { var src = take.art; closePictureMenu(); showPicture(src); };
+    var whole = function () { var src = take.art; closePictureMenu(); showPicture(src, takeId); };
     thumb.addEventListener('click', whole);
     thumb.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); whole(); } });
   }
