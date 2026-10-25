@@ -293,7 +293,7 @@ def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
     async def describe(record, *args, **kwargs):
         return "A ring on white."
 
-    async def on_engine(take_id, description):
+    async def on_engine(take_id, description, title=''):
         drawn_with.append((take_id, description))
         return as_file(drawing())
 
@@ -307,6 +307,20 @@ def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
     assert drawn_with[0][0] == take["id"] and "A ring on white." in drawn_with[0][1] and "folk, warm" in drawn_with[0][1]
     got = artwork.info(take["id"])
     assert got["has"] and "drawn by FLUX.2 klein on this PC" in got["words"]
+
+
+def test_the_local_description_and_picture_leave_the_title_out():
+    """klein letters a title it is given, so neither the brief nor its prompt carries one."""
+    take = {"title": "Night Fishing", "style": "folk, warm", "lyrics": "Night Fishing\nA boat at dusk", "seed": 1}
+    brief = artwork.description_request(take, with_title=False)
+    assert "Night Fishing" not in brief and "Song title:" not in brief
+    assert "A boat at dusk" in brief
+    assert "Night Fishing" in artwork.description_request(take)            # an external model keeps it
+    graph = artwork.picture_graph("A boat at dusk under a moon.", 3, "yeufonic/p", title="Night Fishing")
+    assert "Night Fishing" not in graph["4"]["inputs"]["text"]
+    # a title that reached the description anyway is taken out of what klein is drawn from
+    dirty = artwork.klein_request("Night Fishing floats on calm water.", title="Night Fishing")
+    assert "Night Fishing" not in dirty and "floats on calm water" in dirty
 
 
 def test_the_flux_graph_is_comfyuis_own_klein_workflow():
@@ -523,7 +537,7 @@ def test_external_draw_failure_falls_back_to_local_flux(client, monkeypatch):
     async def fail_draw(description):
         raise RuntimeError("the image model (gpt-image-1) said 429: rate limit exceeded")
 
-    async def on_engine(take_id, description):
+    async def on_engine(take_id, description, title=''):
         drawn_on_engine.append((take_id, description))
         return as_file(drawing())
 
@@ -546,7 +560,7 @@ def test_external_words_failure_falls_back_to_take_description(client, monkeypat
     async def fail_describe(record, *args, **kwargs):
         raise RuntimeError("External LLM HTTP 429: quota exhausted")
 
-    async def on_engine(take_id, description):
+    async def on_engine(take_id, description, title=''):
         return as_file(drawing())
 
     monkeypatch.setattr(artwork, "describe_external", fail_describe)

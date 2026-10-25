@@ -511,7 +511,8 @@ async def run_art(take_id: str) -> None:
             writer = "its own title, style and words"
         elif writes == "gemma":
             try:
-                job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31))
+                job = await _run_graph("art", take_id,
+                                       artwork.describe_graph(take, int(time.time()) % 2**31, with_title=False))
                 scene = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
                 description = artwork.take_description(take, scene=scene, well_worn=worn)
                 writer = "Gemma on this PC"
@@ -553,7 +554,7 @@ async def run_art(take_id: str) -> None:
                 if take_id not in ART_WAITING:
                     ART_WAITING.append(take_id)
                 return
-            drawn = await _draw_on_engine(take_id, description)
+            drawn = await _draw_on_engine(take_id, description, title=artwork.clean_cover_title(take))
             painter = "FLUX.2 klein on this PC"
         elif drawer == "external":
             try:
@@ -571,7 +572,7 @@ async def run_art(take_id: str) -> None:
                         if take_id not in ART_WAITING:
                             ART_WAITING.append(take_id)
                         return
-                    drawn = await _draw_on_engine(take_id, description)
+                    drawn = await _draw_on_engine(take_id, description, title=artwork.clean_cover_title(take))
                     painter = f"FLUX.2 klein on this PC ({artwork.image_model()} failed)"
                 else:
                     raise
@@ -605,9 +606,10 @@ async def run_art(take_id: str) -> None:
         artwork.STATE[take_id] = {"state": "failed", "error": str(exc)}
 
 
-async def _draw_on_engine(take_id: str, description: str) -> bytes:
+async def _draw_on_engine(take_id: str, description: str, title: str = "") -> bytes:
     """FLUX.2 klein draws the picture on the engine; the app takes its copy and the engine's goes."""
-    graph = artwork.picture_graph(description, int(time.time() * 1000) % 2**31, f"yeufonic/picture-{take_id}")
+    graph = artwork.picture_graph(description, int(time.time() * 1000) % 2**31, f"yeufonic/picture-{take_id}",
+                                 title=title)
     job = await _run_graph("art", take_id, graph)
     item = next((out["images"][0] for out in _outputs_of(job, ("SaveImage",)) if out.get("images")), None)
     if not item:

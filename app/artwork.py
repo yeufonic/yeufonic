@@ -506,10 +506,29 @@ def opening_words(lyrics: str, limit: int = WORD_LINES) -> list[str]:
     return out
 
 
-def description_request(take: dict, well_worn: bool | None = None) -> str:
-    title = clean_cover_title(take)
+def without_title(text: str, title: str) -> str:
+    """The text without the song's title, wherever it appears in it, as whole words in any case."""
+    if not text or not title:
+        return text
+    pattern = re.compile(r"(?<!\w)" + re.escape(title) + r"(?!\w)", re.IGNORECASE)
+    return re.sub(r"  +", " ", pattern.sub("", text)).strip(" ,.;:-")
+
+
+def description_request(take: dict, well_worn: bool | None = None, with_title: bool = True) -> str:
+    """The scene brief for the description model.
+
+    With with_title false the title is left out of the brief, and out of the words and the style as
+    well: a model given it works it into the scene ("a telephone box reading ..."), and klein then
+    letters it on the sleeve — the one text it went on drawing.
+    """
+    raw_title = clean_cover_title(take)
+    title = raw_title if with_title else ""
     style = clean_cover_style(take.get("style") or "", take)
     words = opening_words(take.get("lyrics") or "")
+    if not with_title:
+        style = without_title(style, raw_title)
+        words = [without_title(word, raw_title) for word in words]
+        words = [word for word in words if word]
     sung = "\n".join(words) if words else "(an instrumental: no words)"
     title_line = f"Song title: {title}\n" if title else ""
     worn = is_well_worn(take) if well_worn is None else well_worn
@@ -545,12 +564,17 @@ async def describe_external(take: dict, well_worn: bool | None = None) -> str:
     return tidy_description(reply)
 
 
-def describe_graph(take: dict, seed: int) -> dict:
-    """Gemma on the engine writes the description, through the same nodes as the lyrics."""
+def describe_graph(take: dict, seed: int, with_title: bool = False) -> dict:
+    """Gemma on the engine writes the description, through the same nodes as the lyrics.
+
+    The title is left out by default: the description ends up in klein's prompt, and klein letters
+    a title it has been given.  An external image model is described with it, by describe_external.
+    """
     return {
         "1": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.LYRICS_MODEL, "type": "stable_diffusion"}},
         "2": {"class_type": "TextGenerate", "inputs": {
-            "clip": ["1", 0], "prompt": description_request(take), "max_length": 400, "thinking": False,
+            "clip": ["1", 0], "prompt": description_request(take, with_title=with_title),
+            "max_length": 400, "thinking": False,
             "sampling_mode": "on", "sampling_mode.temperature": 0.9, "sampling_mode.top_k": 64,
             "sampling_mode.top_p": 0.95, "sampling_mode.min_p": 0.05, "sampling_mode.repetition_penalty": 1.05,
             "sampling_mode.seed": int(seed)}},
@@ -573,7 +597,7 @@ def drawing_request(description: str, take: dict | None = None, well_worn: bool 
     return f"{prefix}\n\n{clean_text or text}"
 
 
-def klein_request(description: str, take: dict | None = None) -> str:
+def klein_request(description: str, take: dict | None = None, title: str = "") -> str:
     """The prompt for FLUX.2 [klein] on this PC, which cannot spell.
 
     Three things in the shared prompt are what make it write: the words "album cover", the phrase
@@ -588,6 +612,8 @@ def klein_request(description: str, take: dict | None = None) -> str:
     clean_text = re.sub(r",?\s*(?:designed by|created by|in the style of|by)?\s*(?:hipgnosis|hignosis)\b", "",
                         clean_text, flags=re.IGNORECASE)
     clean_text = re.sub(r"  +", " ", clean_text).strip() or text
+    # A title that reached the description in any case is taken out of what klein is drawn from.
+    clean_text = without_title(clean_text, title or clean_cover_title(take or {}))
     return (
         "A square picture, 1:1: an image only, wordless and textless. Its look: a surreal photographic "
         "or painterly scene \u2014 striking visual metaphor, unexpected juxtaposition, dramatic landscape, "
@@ -603,13 +629,14 @@ WIDTH, HEIGHT = 1024, 1024     # square 1:1 album cover
 LOCAL_STEPS = 4               # klein is distilled for four
 
 
-def picture_graph(description: str, seed: int, prefix: str) -> dict:
+def picture_graph(description: str, seed: int, prefix: str, title: str = "") -> dict:
     """FLUX.2 klein on the engine, as ComfyUI's own workflow for it runs it: no guidance, four steps."""
     return {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": config.PICTURE_MODEL, "weight_dtype": "default"}},
         "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.PICTURE_TEXT, "type": "flux2"}},
         "3": {"class_type": "VAELoader", "inputs": {"vae_name": config.PICTURE_VAE}},
-        "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": klein_request(description)}},
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0],
+                                                           "text": klein_request(description, title=title)}},
         "5": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": NO_TEXT_NEGATIVE}},
         "6": {"class_type": "EmptyFlux2LatentImage", "inputs": {"width": WIDTH, "height": HEIGHT, "batch_size": 1}},
         "7": {"class_type": "Flux2Scheduler", "inputs": {"steps": LOCAL_STEPS, "width": WIDTH, "height": HEIGHT}},
