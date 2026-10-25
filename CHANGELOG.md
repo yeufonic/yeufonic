@@ -39,17 +39,14 @@ cannot creep back in.
 
 ## 0.0.49 (2026-10-25)
 
-- A **Yeufonic** visualizer style: the mark itself as the scene. Its tile glows with the bass and
-  expands on the beat, each fork arm is a meter with its own half of the spectrum — the left the lows,
-  the right the mids and highs — and the green dot flares on the beat. The fork stays white, so it
-  reads as the logo rather than as a redrawing of it. A fresh install opens the visualizer on it; a style
-  already chosen is kept.
+- A **Yeufonic** visualizer style.
 - **The player's play and pause button stays with the song it is playing.** Pausing a song played from a
   playlist and pressing play again resumed the take left in focus in the library instead; now it carries on
   with the song the player shows, from where it stopped. Another take is played from its own card.
 - **Pictures drawn on this PC by FLUX.2 [klein] have no lettering.** It wrote garbled words on the sleeve,
   often the song's title; the picture is now described without the title and drawn with a negative prompt
-  against text. A picture from an external image model still carries the title, as before.
+  against text. A picture from an external image model still carries the title, as before. As always,
+  configuring Yeufonic to use an external LLM will generate much better results.
 - Enlarging a take's picture offers the picture menu's two actions under it: make a new picture, or put the
   default background back.
 - **New words that do not fit the tune write a new plan.** Words with far more syllables than the tune has notes
@@ -60,7 +57,7 @@ cannot creep back in.
   the state, so Resume looked as if it did nothing.
 - A new cover or instrumental no longer shows the last recording's tempo warning, and a switch of the
   editor's mode tabs that lets go of the open take starts the Advanced settings from their defaults.
-- **An install no longer depends on one person's account for files every install needs.** The instrumental and
+- **Files every install needs are fetched from our own copy first.** The instrumental and
   production polish LoRAs, the tokenizer head and the training regularizer pack are fetched from an unchanged copy
   first, with their author's repository as the fallback; either must match the same checksum, on Windows and Docker.
 - Two model repositories that were renamed upstream (the Whisper model, and FLUX.2 klein's text encoder and VAE)
