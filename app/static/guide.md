@@ -1246,7 +1246,7 @@ Set up either and they come on: pictures are then made for the takes you make fr
 |---|---|
 | **Take pictures** | *Make one for each new take* (the default where something can draw), or *No pictures: the default background*, where none is made unless you ask for one in the editor. It is *No pictures* while nothing here can draw. |
 | **Take pictures: drawn by** | *This PC if FLUX.2 klein is installed, else the external LLM* (the default), *This PC (FLUX.2 klein)* or *The external LLM's image model*. |
-| **Take pictures: described by** | *From the take itself* (the default): made from the take's title, style and opening words with no LLM, whoever draws; the quickest, and nothing is sent out for it. Or *Local Gemma*, whose descriptions are more inventive but take far longer and need the Lyric drafts option, or the *External LLM*, a request each. |
+| **Take pictures: described by** | *From the take itself* (the default): made from the take's title, style and opening words with no LLM, whoever draws; the quickest, and nothing is sent out for it. Or *Local Gemma*, whose descriptions are more inventive but take far longer and need the Lyric drafts option, or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
 | **Take pictures: image model** | which of the provider's models draws. Only for pictures drawn by the external LLM (choose it under **Drawn by**; greyed out otherwise), and empty for the provider's usual one, which is nearly always what you want. |
 
 So with FLUX.2 klein installed and the settings as they come, pictures are made entirely on this PC, even

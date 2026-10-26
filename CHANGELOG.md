@@ -37,6 +37,10 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **A take's picture is described by Gemma when the external LLM cannot be.** When the external LLM fails, or you switch to local LLMs for the session, and Gemma is installed (Lyric drafts), Gemma writes the picture's description. It used to fall back to the take's own title and style tags, from which FLUX.2 [klein] drew much the same landscape every time.
+
 ## 0.0.49 (2026-10-25)
 
 - A **Yeufonic** visualizer style.

@@ -411,6 +411,99 @@ def test_left_to_choose_a_picture_is_described_from_the_take(monkeypatch):
     assert artwork.describer() == "take"
 
 
+def test_the_external_llm_not_there_falls_back_to_gemma_before_the_take(monkeypatch):
+    """The take's own description is its title and style tags alone, from which klein draws much the same landscape
+    every time: so an external LLM that is local for the session, or has just failed, gives way to Gemma."""
+    from app import llm
+    external()
+    set_setting("art.words", "external")
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"lyrics": True})
+    try:
+        llm.set_session_local_only(True)
+        assert artwork.describer() == "gemma" and artwork.words_by_engine()
+        llm.set_session_local_only(False)
+        assert artwork.describer() == "external"
+        artwork.record_external_words_failure("HTTP 429")
+        assert artwork.describer() == "gemma"
+        monkeypatch.setattr(artwork, "engine_options", lambda: {})   # no Gemma: the take, as before
+        assert artwork.describer() == "take"
+    finally:
+        llm.reset_session_state()
+
+
+def test_an_external_description_that_fails_is_written_by_gemma_in_the_gpu_lane(client, monkeypatch):
+    """Beside a render the external LLM fails: the picture goes to wait for the GPU lane, and there Gemma writes it."""
+    external()
+    set_setting("art.words", "external")
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"lyrics": True, "pictures": True})
+    monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    take = a_take()
+    asked, drawn = [], []
+
+    async def fail_describe(record, *args, **kwargs):
+        asked.append("external")
+        raise RuntimeError("External LLM HTTP 429: quota exhausted")
+
+    async def gemma(kind, ref_id, graph):
+        asked.append("gemma")
+        assert graph["2"]["class_type"] == "TextGenerate"
+        return {"gemma": True}
+
+    async def on_engine(take_id, description, title=''):
+        drawn.append(description)
+        return as_file(drawing())
+
+    monkeypatch.setattr(artwork, "describe_external", fail_describe)
+    monkeypatch.setattr(jobs, "_run_graph", gemma)
+    monkeypatch.setattr(jobs, "extract_text_output", lambda job, *a: "A piano floating over a salt flat.")
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    monkeypatch.setattr(jobs, "songs_in_flight", lambda: False)
+    jobs.ART_WAITING.clear()
+
+    asyncio.run(jobs.run_art(take["id"]))                  # beside the render: no Gemma here
+    assert asked == ["external"] and list(jobs.ART_WAITING) == [take["id"]]
+    assert artwork.STATE[take["id"]]["state"] == "queued" and not drawn
+
+    artwork.clear_failures()                               # the lane gets to it after the two minutes are up
+    jobs.ART_WAITING.clear()
+    asyncio.run(jobs.run_art(take["id"], on_gpu=True))
+    assert asked == ["external", "gemma"]                  # not the external LLM again
+    assert "A piano floating over a salt flat." in drawn[0]
+    got = artwork.info(take["id"])
+    assert got["has"] and "Described by Gemma on this PC (" in got["words"] and "failed)" in got["words"]
+    assert take["id"] not in jobs._ART_WORDS_FALLBACK
+
+
+def test_in_the_gpu_lane_a_failed_external_description_goes_straight_to_gemma(client, monkeypatch):
+    external()
+    set_setting("art.words", "external")
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"lyrics": True, "pictures": True})
+    monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    take = a_take()
+    asked = []
+
+    async def fail_describe(record, *args, **kwargs):
+        asked.append("external")
+        raise RuntimeError("External LLM request timed out")
+
+    async def gemma(kind, ref_id, graph):
+        asked.append("gemma")
+        return {}
+
+    async def on_engine(take_id, description, title=''):
+        return as_file(drawing())
+
+    monkeypatch.setattr(artwork, "describe_external", fail_describe)
+    monkeypatch.setattr(jobs, "_run_graph", gemma)
+    monkeypatch.setattr(jobs, "extract_text_output", lambda job, *a: "A chair on a frozen lake.")
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    monkeypatch.setattr(jobs, "songs_in_flight", lambda: False)
+    jobs.ART_WAITING.clear()
+    asyncio.run(jobs.run_art(take["id"], on_gpu=True))
+    assert asked == ["external", "gemma"] and not jobs.ART_WAITING
+    assert "Gemma on this PC" in artwork.info(take["id"])["words"]
+
+
 def test_the_image_model_setting_only_applies_when_the_provider_draws(client):
     shown = next(s for s in client.get("/api/settings").json()["settings"] if s["key"] == "art.model")
     assert shown["requires"] == {"art.auto": "on", "art.drawer": "external"} and shown["requires_note"]
@@ -506,7 +599,7 @@ def test_a_running_picture_steps_aside_when_song_work_comes_in(client, monkeypat
         raise jobs.ArtYielded()
     monkeypatch.setattr(jobs, "_run_graph", stopped)
     monkeypatch.setattr(artwork, "describer", lambda: "gemma")
-    asyncio.run(jobs.run_art(picture["id"]))
+    asyncio.run(jobs.run_art(picture["id"], on_gpu=True))
     assert list(jobs.ART_WAITING) == [picture["id"], other["id"]]
     assert artwork.STATE[picture["id"]]["state"] == "queued"
 

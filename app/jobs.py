@@ -448,6 +448,8 @@ artwork.engine_options = lambda: getattr(ENGINE, "options", None) or {}
 _ART_TASKS: dict[str, asyncio.Task] = {}
 _ART_CHECK: list = []
 _ART_DRAWER_FALLBACK: set[str] = set()
+# Pictures whose external description failed, to be described by Gemma when the GPU lane reaches them.
+_ART_WORDS_FALLBACK: set[str] = set()
 
 
 # Pictures that need the GPU (Gemma describing, FLUX.2 klein drawing) wait here, apart from the song work: the
@@ -494,10 +496,24 @@ def art_for_new_take(take_id: str) -> None:
         log.warning("could not start the picture for %s: %s", take_id, exc)
 
 
-async def run_art(take_id: str) -> None:
+def _art_waits_for_gpu(take_id: str) -> None:
+    """The picture goes to wait for the GPU lane, which takes it once no song is being made."""
+    artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
+    if take_id not in ART_WAITING:
+        ART_WAITING.append(take_id)
+
+
+def _forget_art_fallbacks(take_id: str) -> None:
+    _ART_DRAWER_FALLBACK.discard(take_id)
+    _ART_WORDS_FALLBACK.discard(take_id)
+
+
+async def run_art(take_id: str, on_gpu: bool = False) -> None:
     """A take's picture: the description (made from the take, written by Gemma on the engine, or by the external
     LLM), the drawing (FLUX.2 klein on the engine or the external image model), then the white background taken out.
-    If the external LLM or image model fails (429, unavailable, quota reached), gracefully falls back to local models."""
+    If the external LLM or image model fails (429, unavailable, quota reached), gracefully falls back to local models:
+    Gemma describes where it is installed, else the take's own description.  on_gpu says the GPU lane is running it;
+    anything else that needs Gemma goes to wait for that lane."""
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         artwork.STATE.pop(take_id, None)
@@ -505,6 +521,14 @@ async def run_art(take_id: str) -> None:
     try:
         artwork.STATE[take_id] = {"state": "writing", "error": None, "started": time.time()}
         writes = artwork.describer()
+        failed_words = ""
+        if writes == "external" and take_id in _ART_WORDS_FALLBACK and artwork.gemma_ready():
+            writes = "gemma"
+        if take_id in _ART_WORDS_FALLBACK:
+            failed_words = f" ({llm.get_config().get('model', 'external LLM')} failed)"
+        if writes == "gemma" and not on_gpu:
+            _art_waits_for_gpu(take_id)
+            return
         worn = artwork.is_well_worn(take)
         if writes == "take":
             description = artwork.take_description(take, well_worn=worn)
@@ -514,7 +538,7 @@ async def run_art(take_id: str) -> None:
                 job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31))
                 scene = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
                 description = artwork.take_description(take, scene=scene, well_worn=worn)
-                writer = "Gemma on this PC"
+                writer = f"Gemma on this PC{failed_words}"
             except ArtYielded:
                 raise
             except Exception as exc:
@@ -529,9 +553,18 @@ async def run_art(take_id: str) -> None:
                 writer = llm.get_config()["model"]
             except Exception as exc:
                 llm.record_alert_from_exception(exc)
-                log.warning("External LLM failed to describe picture for '%s' (%s): %s; falling back to take description",
-                            take.get("title"), take_id, exc)
+                log.warning("External LLM failed to describe picture for '%s' (%s): %s; falling back to %s",
+                            take.get("title"), take_id, exc,
+                            "Gemma on this PC" if artwork.gemma_ready() else "take description")
                 artwork.record_external_words_failure(str(exc))
+                if artwork.gemma_ready():
+                    # Gemma writes it instead, on the engine: in the GPU lane, which this may not be.
+                    _ART_WORDS_FALLBACK.add(take_id)
+                    if on_gpu:
+                        await run_art(take_id, on_gpu=True)
+                    else:
+                        _art_waits_for_gpu(take_id)
+                    return
                 description = artwork.take_description(take, well_worn=worn)
                 writer = f"its own title, style and words ({llm.get_config().get('model', 'external LLM')} failed)"
         if not description:
@@ -581,11 +614,11 @@ async def run_art(take_id: str) -> None:
         picture = await asyncio.to_thread(artwork.cut_out, drawn)
         if take_id in CANCELLED or not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
             artwork.STATE.pop(take_id, None)
-            _ART_DRAWER_FALLBACK.discard(take_id)
+            _forget_art_fallbacks(take_id)
             return
         await asyncio.to_thread(artwork.keep, take_id, description, drawn, picture, painter, writer)
         artwork.STATE.pop(take_id, None)
-        _ART_DRAWER_FALLBACK.discard(take_id)
+        _forget_art_fallbacks(take_id)
         log.info("Picture for '%s' (%s) is ready", take.get("title"), take_id)
     except ArtYielded:
         # Song work came in while it was being made: back to the front of the line, to start again once the
@@ -595,12 +628,12 @@ async def run_art(take_id: str) -> None:
         if take_id not in ART_WAITING:
             ART_WAITING.appendleft(take_id)
     except asyncio.CancelledError:
-        _ART_DRAWER_FALLBACK.discard(take_id)
+        _forget_art_fallbacks(take_id)
         artwork.STATE.pop(take_id, None)
         log.info("Picture task for %s was cancelled", take_id)
         raise
     except Exception as exc:  # noqa: BLE001
-        _ART_DRAWER_FALLBACK.discard(take_id)
+        _forget_art_fallbacks(take_id)
         log.warning("Picture for %s failed: %s", take_id, exc)
         artwork.STATE[take_id] = {"state": "failed", "error": str(exc)}
 
@@ -765,7 +798,7 @@ async def run_job(kind: str, ref_id: str) -> None:
         await run_lora_train(ref_id)
         return
     if kind == "art":
-        await run_art(ref_id)
+        await run_art(ref_id, on_gpu=True)
         return
     if kind == "lyrics":
         record = LYRICS.get(ref_id)

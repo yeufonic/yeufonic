@@ -432,7 +432,8 @@ SETTINGS_SPEC: list[dict] = [
                 "words, then drawn, and the app takes out its white background. This chooses who writes the "
                 "description. From the take itself needs no LLM: it is quick, and nothing is sent out for it. Gemma "
                 "or the external LLM write more inventive descriptions but take far longer (the external one a "
-                "request each); chosen and not there, the take's own description is used.",
+                "request each). The external LLM chosen and not there (or local for this session) falls back to "
+                "Gemma when it is installed; otherwise the take's own description is used.",
         "requires": {"pictures": "possible", "art.auto": "on"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },

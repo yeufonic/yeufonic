@@ -171,16 +171,18 @@ def gemma_ready() -> bool:
 
 def describer() -> str:
     """Who writes the picture's description: "take" (made from the take itself, no LLM: quick, the default,
-    whoever draws), "gemma" (Gemma on the engine) or "external" (the external LLM).  Gemma or the external LLM
-    chosen but not there falls back to the take; so does anything else on file ("auto" and "same", earlier
-    names for a choice that followed the drawer)."""
+    whoever draws), "gemma" (Gemma on the engine) or "external" (the external LLM).  The external LLM chosen but
+    not there (not set up, local for this session, or failed in the last two minutes) falls back to Gemma where
+    it is installed: the take's own description is only its title and style tags, and FLUX.2 klein given that
+    alone draws much the same landscape every time.  Gemma chosen but not there falls back to the take; so does
+    anything else on file ("auto" and "same", earlier names for a choice that followed the drawer)."""
     chosen = (get_setting("art.words", "take") or "take").strip().lower()
     if chosen == "local":
         return "gemma" if gemma_ready() else "take"
     if chosen == "external":
-        if external_words_failed():
-            return "take"
-        return "external" if llm.is_external_enabled() else "take"
+        if llm.is_external_enabled() and not external_words_failed():
+            return "external"
+        return "gemma" if gemma_ready() else "take"
     return "take"
 
 
