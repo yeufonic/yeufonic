@@ -13,7 +13,7 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **Lyrics:** draft them from a sentence, or extract them from a recording.
 - **Duets:** cue a man, a woman or both for any lines of the lyrics, and the melody is set where that voice sings.
 - **Vintage mastering rack:** a skeuomorphic channel strip with a 1073-style EQ, a seven-band parametric equalizer you shape by dragging its bands on a graph over the live spectrum, vintage compressor, stereo imager, and master limiter with tube warmth to polish and master any take in real time.
-- **An MCP server (off by default):** let an AI agent such as Claude Code make songs, covers and instrumentals, play them and tidy the library, in your own words. See [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp).
+- **An MCP server (off by default):** let an AI agent such as Claude Code make songs, covers and instrumentals, try them other ways, give them pictures, gather them into playlists and tidy the library, in your own words. See [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp).
 - **Stems:** split any take into vocals, drums, bass and more, or into vocals and a backing track.
 - **A library:** spaces, stars, and every take's settings kept so it can be made again.
 - **A take panel and an editor:** the left panel shows how the selected take was made, and a large

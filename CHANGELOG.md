@@ -37,6 +37,16 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **More for the MCP server.** An agent can now name a new take's settings as the page shows them (Harmony, Plan variety, the
+  interpretation, the key and tempo locks, and for a song Follow this structure exactly and Voices follow the cues), and a take it
+  makes starts where the page's does, at Varied and Wide. It can also sing a take again, make its variations, sing its score with new
+  words, make an instrumental of it, write a new plan for a take with no audio yet, and take a take out of the one it is kept in; make
+  a take's picture and open it; make playlists and put takes in them or take them out; look through the saved and built-in styles and
+  save one; make a space; and have the app write lyrics in its own song shapes and feels. The guide's MCP chapter has an example
+  conversation from an idea to a playlist.
+
 ## 0.0.50 (2026-10-26)
 
 - **Take pictures are described by Gemma when the external LLM is unavailable** (if Gemma is installed), instead of from the take's title and style alone, which gave much the same landscape each time.

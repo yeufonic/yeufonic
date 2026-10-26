@@ -14,7 +14,9 @@ from __future__ import annotations
 import asyncio
 import datetime
 import json
+import re
 import time
+from pathlib import Path
 from typing import Any, Awaitable, Callable
 
 PROTOCOL_VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
@@ -23,6 +25,45 @@ Api = Callable[..., Awaitable[Any]]      # api(method, path, json=None, params=N
 LIMIT = 100                              # most takes one call returns
 MOST_WAIT = 55                           # seconds one wait_for_take may hold a call: short of a client's timeout
 POLL = 2.0                               # how often it looks while waiting
+
+# What the page sets for a new take, by the names it shows: kept here as words an agent can send, and checked
+# against the app's own lists by the tests.
+INTERPRETATIONS = ("standard", "tight", "loose", "settled", "restless", "wide")
+HARMONY = ("familiar", "varied", "colourful", "adventurous", "outside")
+VARIETY = ("calm", "normal", "lively", "bold", "quirky", "wild")
+NEW_INTERPRETATION, NEW_HARMONY = "wide", "varied"        # where a new take starts in the page
+LYRIC_SHAPES = ("verse-chorus-bridge", "verse-chorus", "intro-outro", "story", "pop-pre-chorus", "hook-first", "short", "hip-hop",
+                "double-bridge", "interlude", "full-pop")
+LYRIC_FEELS = ("natural", "regular", "spoken", "loose", "punchy", "flowing")
+
+_INTERPRETATION = {"interpretation": {
+    "type": "string", "enum": list(INTERPRETATIONS),
+    "description": "How the notes are performed: standard (YuE2's usual reading), tight (controlled, polished), loose (rougher, "
+                   "spontaneous), settled (sits in a groove), restless (keeps moving, avoids repeating), wide (less obvious "
+                   f"sounds). Default {NEW_INTERPRETATION}, where a new take starts in the app."}}
+_PLANNING = {
+    "harmony": {"type": "string", "enum": list(HARMONY),
+                "description": "How adventurous the chords are: familiar (often one loop), varied (avoids repeating chords, stays "
+                               "in the key), colourful (verse and chorus differ), adventurous (borrows chords from outside the key), "
+                               f"outside (further still). Default {NEW_HARMONY}, where a new take starts in the app."},
+    "variety": {"type": "string", "enum": list(VARIETY),
+                "description": "How freely the planner writes melody, structure and length: calm, normal (the default), lively, "
+                               "bold, quirky, wild (may change key part way)."},
+}
+_LOCKS = {
+    "key": {"type": "string", "description": "Move the plan to this key once it is written, such as 'A', 'F#' or 'Eb'. The plan's "
+                                             "own mode (major or minor) is kept. A key named in the style is ignored by the planner: "
+                                             "this is the way to choose one."},
+    "tempo": {"type": "integer", "description": "Lock the tempo, in beats a minute (40 to 240). A tempo in the style is a hint; this "
+                                                "is kept to."},
+}
+_SONG_ONLY = {
+    "follow_structure": {"type": "boolean", "description": "Plan exactly the sections the lyrics name, in order, and no others. "
+                                                          "Default false: the planner may add an intro, an outro or an interlude, or "
+                                                          "leave a section out."},
+    "voices_follow_cues": {"type": "boolean", "description": "Move each line cued [male voice] or [female voice] in the lyrics to "
+                                                            "where that voice sings. Default true; it does nothing without cues."},
+}
 
 TOOLS: list[dict] = [
     {
@@ -93,7 +134,7 @@ TOOLS: list[dict] = [
             "lora_planner": {"type": "number", "description": "How strongly it shapes the plan, 0 to 3. Default: the strength saved with it."},
             "lora_sound": {"type": "number", "description": "How strongly it shapes the sound, 0 to 3. Default: the strength saved with it."},
             "render": {"type": "boolean", "description": "Render as well as plan. Default true."},
-        }},
+            **_INTERPRETATION, **_PLANNING, **_LOCKS}},
     },
     {
         "name": "make_song",
@@ -114,7 +155,7 @@ TOOLS: list[dict] = [
             "lora_planner": {"type": "number", "description": "How strongly it shapes the plan, 0 to 3. Default: the strength saved with it."},
             "lora_sound": {"type": "number", "description": "How strongly it shapes the sound, 0 to 3. Default: the strength saved with it."},
             "render": {"type": "boolean", "description": "Render as well as plan. Default true."},
-        }},
+            **_INTERPRETATION, **_PLANNING, **_LOCKS, **_SONG_ONLY}},
     },
     {
         "name": "list_recordings",
@@ -142,7 +183,7 @@ TOOLS: list[dict] = [
                                                            "trigger word is added to the style for you."},
             "lora_planner": {"type": "number", "description": "How strongly it shapes the plan, 0 to 3. Default: the strength saved with it."},
             "lora_sound": {"type": "number", "description": "How strongly it shapes the sound, 0 to 3. Default: the strength saved with it."},
-        }},
+            **_INTERPRETATION, **_LOCKS}},
     },
     {
         "name": "list_style_loras",
@@ -251,6 +292,154 @@ TOOLS: list[dict] = [
         "description": "Stop a take that is queued or running.",
         "inputSchema": {"type": "object", "required": ["take_id"], "properties": {"take_id": {"type": "string"}}},
     },
+    {
+        "name": "sing_again",
+        "description": "The same score sung again with a new seed: a new take beside the original with a different voice and "
+                       "slightly different phrasing (the Sing again button). The original is left as it is. Follow it with "
+                       "wait_for_take.",
+        "inputSchema": {"type": "object", "required": ["take_id"], "properties": {"take_id": {"type": "string"}}},
+    },
+    {
+        "name": "make_variations",
+        "description": "The same score and seed rendered once in each interpretation asked for (the Variations button), so the "
+                       "only difference between them is how the notes are performed. They are kept inside the take they were "
+                       "made from, like try_more's. Follow them with wait_for_take.",
+        "inputSchema": {"type": "object", "required": ["take_id"], "properties": {
+            "take_id": {"type": "string"},
+            "interpretations": {"type": "array", "items": {"type": "string", "enum": list(INTERPRETATIONS)},
+                                "description": "Which to make. Default: every one but the take's own."},
+        }},
+    },
+    {
+        "name": "new_words",
+        "description": "The same score sung with other words: a new take beside the original, keeping its melody, key and tempo "
+                       "(writing a new plan for new words would make a new tune). Not for an instrumental. Follow it with "
+                       "wait_for_take.",
+        "inputSchema": {"type": "object", "required": ["take_id", "lyrics"], "properties": {
+            "take_id": {"type": "string"},
+            "lyrics": {"type": "string", "description": "The new words, with section tags like [Verse]."},
+            "title": {"type": "string", "description": "Default: the take's title with \"new words\" after it."},
+            "new_seed": {"type": "boolean", "description": "Sing it with a new seed as well. Default false: the take's own."},
+            **_INTERPRETATION,
+        }},
+    },
+    {
+        "name": "instrumental_from_take",
+        "description": "The same score as an instrumental: the sung melody moved to an instrument and the words left out, as a new "
+                       "take beside the original (the Make an instrumental button). Follow it with wait_for_take.",
+        "inputSchema": {"type": "object", "required": ["take_id"], "properties": {
+            "take_id": {"type": "string"},
+            "title": {"type": "string", "description": "Default: the take's title with \"instrumental\" after it."},
+        }},
+    },
+    {
+        "name": "replan_take",
+        "description": "Write a new plan for a take that has no audio yet (planned with render false, or whose plan failed), with "
+                       "the same words and style, and optionally other planning settings. It replaces that take's score. For a "
+                       "take that has audio, make a new take instead (make_song, new_words, try_more).",
+        "inputSchema": {"type": "object", "required": ["take_id"], "properties": {
+            "take_id": {"type": "string"},
+            **_PLANNING, **_LOCKS,
+            "follow_structure": _SONG_ONLY["follow_structure"],
+        }},
+    },
+    {
+        "name": "take_out",
+        "description": "Make a take that is kept inside another (one made by try_more or make_variations) a take of its own "
+                       "again, in the same space.",
+        "inputSchema": {"type": "object", "required": ["take_id"], "properties": {"take_id": {"type": "string"}}},
+    },
+    {
+        "name": "list_playlists",
+        "description": "The playlists, with how many takes each holds and their length. Liked is always there and holds the "
+                       "starred takes. With `playlist`, the takes in that one.",
+        "inputSchema": {"type": "object", "properties": {
+            "playlist": {"type": "string", "description": "A playlist's name: list the takes in it."},
+        }},
+    },
+    {
+        "name": "create_playlist",
+        "description": "Make a new, empty playlist. Names must differ from the ones there are.",
+        "inputSchema": {"type": "object", "required": ["name"], "properties": {
+            "name": {"type": "string"},
+            "description": {"type": "string"},
+        }},
+    },
+    {
+        "name": "add_to_playlist",
+        "description": "Put takes in a playlist, by the playlist's name. A take already there stays once. Putting a take in "
+                       "Liked stars it.",
+        "inputSchema": {"type": "object", "required": ["playlist", "take_ids"], "properties": {
+            "playlist": {"type": "string"},
+            "take_ids": {"type": "array", "items": {"type": "string"}},
+        }},
+    },
+    {
+        "name": "remove_from_playlist",
+        "description": "Take takes out of a playlist. The takes themselves are kept. Taking one out of Liked unstars it.",
+        "inputSchema": {"type": "object", "required": ["playlist", "take_ids"], "properties": {
+            "playlist": {"type": "string"},
+            "take_ids": {"type": "array", "items": {"type": "string"}},
+        }},
+    },
+    {
+        "name": "make_picture",
+        "description": "Make a new picture for a take, replacing the one it has, as the editor's Picture button does. It is "
+                       "described and drawn the way Settings say (on this computer or by the external service). Drawing on "
+                       "this computer waits until no song is being made, so it can take a while. Waits up to `wait_seconds` and "
+                       "returns where it is; once ready, `picture_url` opens it in a browser (get_take gives it too).",
+        "inputSchema": {"type": "object", "required": ["take_id"], "properties": {
+            "take_id": {"type": "string"},
+            "wait_seconds": {"type": "integer", "description": f"How long to wait for it, at most {MOST_WAIT}. Default 45."},
+        }},
+    },
+    {
+        "name": "list_styles",
+        "description": "Styles ready to use: the person's saved styles, then the app's built-in ones. Without a query it gives the "
+                       "saved styles in full and only the names of the built-in ones; with a query, every style whose name or "
+                       "text has those words, in full. Use a style's text as the `style` of make_song, make_instrumental or "
+                       "make_cover.",
+        "inputSchema": {"type": "object", "properties": {
+            "query": {"type": "string", "description": "Words to look for, such as \"synthwave\" or \"female vocals\"."},
+        }},
+    },
+    {
+        "name": "save_style",
+        "description": "Keep a style under a name, beside the person's other saved styles in the app's style menu. A name already "
+                       "saved (ignoring case) is written over: say so to the person first.",
+        "inputSchema": {"type": "object", "required": ["name", "style"], "properties": {
+            "name": {"type": "string"},
+            "style": {"type": "string", "description": "The style text, without any style LoRA's trigger word."},
+        }},
+    },
+    {
+        "name": "create_space",
+        "description": "Make a new, empty space to keep takes in. Names must differ from the ones there are (see list_spaces).",
+        "inputSchema": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}},
+    },
+    {
+        "name": "write_lyrics",
+        "description": "Have the app write lyrics from a short brief, in its own song shapes, as the Write lyrics button does "
+                       "(with the external LLM if one is set, else on this computer). It waits up to `wait_seconds`; if the words "
+                       "are not ready, call again with the `draft_id` it returns. The words come back with a title, ready for "
+                       "make_song or new_words. You can write lyrics yourself too: use this when the person asks for the "
+                       "app's, or for one of its shapes or feels.",
+        "inputSchema": {"type": "object", "properties": {
+            "brief": {"type": "string", "description": "What the song is about, in a sentence or two."},
+            "style": {"type": "string", "description": "The style it will be sung in, which colours the words."},
+            "shape": {"type": "string", "enum": list(LYRIC_SHAPES), "description": "Which sections, in order. Default "
+                                                                                   "verse-chorus-bridge."},
+            "sections": {"type": "array", "items": {"type": "string"},
+                         "description": "Sections of your own, in order, such as [\"Intro\", \"Verse\", \"Chorus\"], in place of a shape."},
+            "lines": {"type": "integer", "description": "Lines in each section, 2 to 12. Default 6."},
+            "feel": {"type": "string", "enum": list(LYRIC_FEELS),
+                     "description": "How the lines sound: natural (short and long mixed, some rhymes; the default), regular (even "
+                                    "rhyming lines), spoken (conversational, like rap), loose (some rhymes, very different "
+                                    "lengths), punchy (short lines, repeated phrases), flowing (long lines that run on)."},
+            "draft_id": {"type": "string", "description": "Wait again for a draft already asked for, instead of asking for a new one."},
+            "wait_seconds": {"type": "integer", "description": f"How long to wait for the words, at most {MOST_WAIT}. Default 45."},
+        }},
+    },
 ]
 
 # Without times the planner writes plans of ten minutes and more for an instrumental, which the app rejects as
@@ -285,7 +474,9 @@ def timed_structure(total: int) -> str:
     return "\n".join(out)
 
 
-TAKE_TOOLS = ("try_more", "make_stems", "get_stems", "get_take", "wait_for_take", "move_take", "delete_take", "render_take", "cancel_take", "star_take", "rename_take")
+TAKE_TOOLS = ("try_more", "make_stems", "get_stems", "get_take", "wait_for_take", "move_take", "delete_take", "render_take", "cancel_take",
+              "star_take", "rename_take", "sing_again", "make_variations", "new_words", "instrumental_from_take", "replan_take",
+              "take_out", "make_picture")
 _BRIEF = ("id", "title", "kind", "status", "duration", "style", "favourite", "error")
 
 
@@ -432,6 +623,103 @@ async def _with_lora(api: Api, args: dict, body: dict) -> None:
         body["style"] = trigger + (", " + body["style"] if body.get("style") else "")
 
 
+def _one_of(args: dict, key: str, choices: tuple, default: str | None = None) -> str | None:
+    """A named choice an agent sent, checked against the names there are."""
+    value = str(args.get(key) or "").strip().lower() or default
+    if value is not None and value not in choices:
+        raise ApiRefused(f"{key} must be one of: {', '.join(choices)}")
+    return value
+
+
+def _whole(args: dict, key: str) -> int:
+    try:
+        return int(args[key])
+    except (TypeError, ValueError):
+        raise ApiRefused(f"{key} must be a whole number") from None
+
+
+async def _shape(api: Api, args: dict, body: dict, planning: bool = False, song: bool = False, new: bool = True) -> None:
+    """Put the settings that shape a take into a request, by the names the page shows. A new take starts where the page's
+    does (Varied, Wide; Familiar on an engine without the harmony node, which cannot go higher); anything left out of a
+    request about an existing take keeps what that take has."""
+    interpretation = _one_of(args, "interpretation", INTERPRETATIONS, NEW_INTERPRETATION if new else None)
+    if interpretation:
+        body["interpretation"] = interpretation
+    if planning:
+        start = None
+        if new and not args.get("harmony"):
+            options = (await api("GET", "/api/state")).get("options") or {}
+            start = NEW_HARMONY if options.get("harmony_available") else None
+        harmony = _one_of(args, "harmony", HARMONY, start)
+        if harmony:
+            body["harmony"] = HARMONY.index(harmony)
+        variety = _one_of(args, "variety", VARIETY)
+        if variety:
+            body["variety"] = variety
+    if str(args.get("key") or "").strip():
+        body["target_key"] = str(args["key"]).strip()
+    if args.get("tempo") not in (None, ""):
+        body["target_bpm"] = _whole(args, "tempo")
+    if song:
+        for asked, field in (("follow_structure", "follow_structure"), ("voices_follow_cues", "voice_cues")):
+            if args.get(asked) is not None:
+                body[field] = 1 if args[asked] else 0
+
+
+async def _playlist_of(api: Api, asked: Any) -> dict:
+    """The playlist an agent named, by name (any case) or id. A name that matches nothing lists the ones there are."""
+    name = str(asked or "").strip()
+    playlists = await api("GET", "/api/playlists")
+    found = [p for p in playlists if p["id"] == name] or [p for p in playlists if p["name"].strip().lower() == name.lower()]
+    if len(found) == 1:
+        return found[0]
+    names = ", ".join(p["name"] for p in playlists)
+    raise ApiRefused(f"{'More than one playlist is' if found else 'No playlist is'} called '{name}'. The playlists are: {names}.")
+
+
+_DRAWING = ("queued", "writing", "drawing", "cutting")
+
+
+async def _picture_url(api: Api, take: dict, base: str) -> str | None:
+    """Where the picture shown for a take is: its own, or the one of the take it is inside, as the page shows it."""
+    own = await api("GET", f"/api/takes/{take['id']}/art")
+    if own.get("plain"):
+        return None
+    for owner, art in ((take["id"], own), (take.get("parent_id"), None)):
+        if not owner:
+            continue
+        art = art or await api("GET", f"/api/takes/{owner}/art")
+        if art.get("has"):
+            return f"{base}/api/takes/{owner}/art.png?v={art.get('v')}"
+    return None
+
+
+_STATIC = Path(__file__).with_name("static")
+_CANNED = re.compile(r"name:\s*'((?:[^'\\]|\\.)*)',\s*prompt:\s*'((?:[^'\\]|\\.)*)'")
+
+
+def builtin_styles() -> list[dict]:
+    """The style menu's own styles, read from the page's script so there is one list."""
+    script = (_STATIC / "app.js").read_text(encoding="utf-8")
+    block = script[script.index("var CANNED_STYLES = ["):]
+    block = block[:block.index("\n];")]
+    return [{"name": re.sub(r"\\(.)", r"\1", name), "style": re.sub(r"\\(.)", r"\1", prompt)}
+            for name, prompt in _CANNED.findall(block)]
+
+
+def _matches(query: str, *texts: str) -> bool:
+    words = query.lower().split()
+    haystack = " ".join(texts).lower()
+    return all(word in haystack for word in words)
+
+
+def _made(made: dict, **more: Any) -> dict:
+    """A new take a route queued, as an agent wants it: its id and short id, and what to do next."""
+    out = {"id": made["id"], "short_id": made["id"][:6], "title": made.get("title"), "seed": made.get("seed"), **more}
+    out["next"] = "It is rendering. Use wait_for_take with its id."
+    return {key: value for key, value in out.items() if value is not None}
+
+
 def _text(value: Any, error: bool = False) -> dict:
     return {"content": [{"type": "text", "text": value if isinstance(value, str) else json.dumps(value, indent=2, default=str)}],
             "isError": error}
@@ -475,7 +763,9 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
             return _text(found)
         if name == "get_take":
             take = await api("GET", f"/api/takes/{args['take_id']}")
-            return _text(_full(take, bool(args.get("include_score")), await _space_names(api), base))
+            result = _full(take, bool(args.get("include_score")), await _space_names(api), base)
+            result["picture_url"] = await _picture_url(api, take, base)
+            return _text({key: value for key, value in result.items() if value is not None})
         if name == "wait_for_take":
             wait = max(1, min(MOST_WAIT, int(args.get("seconds") or 45)))
             deadline, started = time.monotonic() + wait, time.monotonic()
@@ -485,6 +775,9 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                     break
                 await asyncio.sleep(min(POLL, max(0.05, deadline - time.monotonic())))
             result = _full(take, False, await _space_names(api), base)
+            picture = await _picture_url(api, take, base)
+            if picture:
+                result["picture_url"] = picture
             result["finished"] = _settled(take)
             result["waited_seconds"] = round(time.monotonic() - started, 1)
             return _text(result)
@@ -499,6 +792,7 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                 if args.get(key) not in (None, ""):
                     body[key] = args[key]
             await _with_lora(api, args, body)
+            await _shape(api, args, body, planning=True, song=name == "make_song")
             if name == "make_instrumental":
                 # What the person asked for, or a timed structure for the length: never bare, which fails.
                 body["structure"] = str(args.get("structure") or "").strip() or timed_structure(
@@ -540,6 +834,7 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
             if space:
                 body["space_id"] = space
             await _with_lora(api, args, body)
+            await _shape(api, args, body)
             made = await api("POST", "/api/takes", json=body)
             if isinstance(made, dict) and "id" in made:
                 return _text({"kind": "cover", **_brief(made, await _space_names(api))})     # the route's reply does not say
@@ -648,6 +943,132 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                 })
             await api("DELETE", f"/api/takes/{args['take_id']}")
             return _text({"deleted": True, "take": {"id": take["id"], "title": take.get("title"), "made": _when(take.get("created_at"))}})
+        if name == "sing_again":
+            return _text(_made(await api("POST", f"/api/takes/{args['take_id']}/revoice")))
+        if name == "make_variations":
+            take = await api("GET", f"/api/takes/{args['take_id']}")
+            asked = [str(item).strip().lower() for item in args.get("interpretations") or []]
+            unknown = [item for item in asked if item not in INTERPRETATIONS]
+            if unknown:
+                return _text(f"no interpretation called {', '.join(unknown)}: they are {', '.join(INTERPRETATIONS)}", True)
+            wanted = asked or [item for item in INTERPRETATIONS if item != take.get("interpretation")]
+            made = await api("POST", f"/api/takes/{args['take_id']}/variations", json={"interpretations": wanted})
+            return _text({"queued": [{"id": t["id"], "short_id": t["id"][:6], "title": t["title"], "interpretation": t["interpretation"]}
+                                     for t in made.get("created", [])],
+                          "next": "Each is rendering, inside the take they came from. Use wait_for_take on any of them, or "
+                                  "list_takes with `inside` to see them all."})
+        if name == "new_words":
+            body = {"lyrics": str(args.get("lyrics") or ""), "reseed": bool(args.get("new_seed"))}
+            if args.get("title"):
+                body["title"] = args["title"]
+            await _shape(api, args, body, new=False)
+            return _text(_made(await api("POST", f"/api/takes/{args['take_id']}/words", json=body)))
+        if name == "instrumental_from_take":
+            body = {"title": args["title"]} if args.get("title") else {}
+            return _text(_made(await api("POST", f"/api/takes/{args['take_id']}/instrumental", json=body)))
+        if name == "replan_take":
+            take = await api("GET", f"/api/takes/{args['take_id']}")
+            if take.get("has_audio"):
+                return _text(f"'{take.get('title')}' has audio, and a new plan would leave it out of step with its score. Make a "
+                             "new take instead: make_song with its words and style, new_words, or try_more.", True)
+            body: dict = {}
+            await _shape(api, args, body, planning=True, new=False)
+            body.pop("interpretation", None)
+            if args.get("follow_structure") is not None:
+                body["follow_structure"] = 1 if args["follow_structure"] else 0
+            made = await api("POST", f"/api/takes/{args['take_id']}/replan", json=body)
+            return _text({"id": take["id"], "short_id": take["id"][:6], "title": take.get("title"), "seed": made.get("seed"),
+                          "next": "A new plan is being written. Use wait_for_take with its id."})
+        if name == "take_out":
+            made = await api("POST", f"/api/takes/{args['take_id']}/promote")
+            return _text({"id": made["id"], "was_inside": made.get("was_inside"),
+                          "message": "It is a take of its own again, in the same space."})
+        if name == "list_playlists":
+            if not str(args.get("playlist") or "").strip():
+                return _text([{"name": p["name"], "takes": p.get("count"), "minutes": round((p.get("total_duration") or 0) / 60, 1),
+                               "description": p.get("description") or None, "liked": bool(p.get("is_system")) or None}
+                              for p in await api("GET", "/api/playlists")])
+            playlist = await _playlist_of(api, args["playlist"])
+            full = await api("GET", f"/api/playlists/{playlist['id']}")
+            spaces = await _space_names(api)
+            return _text({"name": full["name"], "description": full.get("description") or None, "takes": [_brief(t, spaces) for t in full.get("items") or []]})
+        if name == "create_playlist":
+            if any(p["name"].strip().lower() == str(args.get("name") or "").strip().lower() for p in await api("GET", "/api/playlists")):
+                return _text(f"there is already a playlist called {args.get('name')}", True)
+            made = await api("POST", "/api/playlists", json={"name": str(args.get("name") or ""), "description": str(args.get("description") or "")})
+            return _text({"name": made["name"], "description": made.get("description") or None, "takes": 0})
+        if name in ("add_to_playlist", "remove_from_playlist"):
+            playlist = await _playlist_of(api, args.get("playlist"))
+            asked = args.get("take_ids")
+            if isinstance(asked, str):
+                asked = [asked]
+            if not asked:
+                return _text("say which takes, by id", True)
+            ids = [await _take_id(api, item) for item in asked]
+            for ident in ids:
+                if name == "add_to_playlist":
+                    await api("POST", f"/api/playlists/{playlist['id']}/items", json={"take_id": ident})
+                else:
+                    await api("DELETE", f"/api/playlists/{playlist['id']}/items/{ident}")
+            now = next(p for p in await api("GET", "/api/playlists") if p["id"] == playlist["id"])
+            return _text({"playlist": playlist["name"], ("added" if name == "add_to_playlist" else "removed"): ids, "takes_in_it": now.get("count")})
+        if name == "make_picture":
+            await api("POST", f"/api/takes/{args['take_id']}/art")
+            wait = max(0, min(MOST_WAIT, int(args.get("wait_seconds") if args.get("wait_seconds") is not None else 45)))
+            deadline = time.monotonic() + wait
+            while True:
+                art = await api("GET", f"/api/takes/{args['take_id']}/art")
+                if art.get("state") not in _DRAWING or time.monotonic() >= deadline:
+                    break
+                await asyncio.sleep(min(POLL, max(0.05, deadline - time.monotonic())))
+            out = {"take_id": args["take_id"], "picture": art.get("state"), "error": art.get("error"), "described_as": art.get("words")}
+            if art.get("state") == "ready" or (art.get("state") not in _DRAWING and art.get("has")):
+                out["picture"] = "ready"
+                out["picture_url"] = f"{base}/api/takes/{args['take_id']}/art.png?v={art.get('v')}"
+            elif art.get("state") in _DRAWING:
+                out["next"] = ("Still being made" + (": it waits until no song is being made" if art.get("state") == "queued" else "")
+                               + ". get_take gives picture_url once it is ready.")
+            return _text({key: value for key, value in out.items() if value not in (None, "")})
+        if name == "list_styles":
+            query = str(args.get("query") or "").strip()
+            saved = [{"name": item["name"], "style": item["prompt"]} for item in await api("GET", "/api/styles")]
+            builtin = builtin_styles()
+            if query:
+                return _text({"saved": [item for item in saved if _matches(query, item["name"], item["style"])],
+                              "built_in": [item for item in builtin if _matches(query, item["name"], item["style"])]})
+            return _text({"saved": saved, "built_in_names": [item["name"] for item in builtin],
+                          "next": "Call again with a query (a name, or words such as a genre) for the text of the built-in ones."})
+        if name == "save_style":
+            made = await api("POST", "/api/styles", json={"name": str(args.get("name") or ""), "prompt": str(args.get("style") or "")})
+            return _text({"name": made["name"], "style": made["prompt"], "replaced_one_with_this_name": made.get("replaced")})
+        if name == "create_space":
+            made = await api("POST", "/api/spaces", json={"name": str(args.get("name") or "")})
+            return _text({"name": made["name"], "takes": 0})
+        if name == "write_lyrics":
+            draft_id = str(args.get("draft_id") or "").strip()
+            if not draft_id:
+                if not str(args.get("brief") or "").strip():
+                    return _text("say what the song is about in `brief`", True)
+                body = {"brief": str(args["brief"]), "style": str(args.get("style") or ""),
+                        "structure": _one_of(args, "shape", LYRIC_SHAPES, LYRIC_SHAPES[0]),
+                        "feel": _one_of(args, "feel", LYRIC_FEELS, LYRIC_FEELS[0])}
+                if args.get("sections"):
+                    body["sections"] = list(args["sections"])
+                if args.get("lines") not in (None, ""):
+                    body["lines"] = _whole(args, "lines")
+                draft_id = (await api("POST", "/api/lyrics", json=body))["id"]
+            wait = max(0, min(MOST_WAIT, int(args.get("wait_seconds") if args.get("wait_seconds") is not None else 45)))
+            deadline = time.monotonic() + wait
+            while True:
+                draft = await api("GET", f"/api/lyrics/{draft_id}")
+                if draft.get("status") in ("done", "failed", "cancelled") or time.monotonic() >= deadline:
+                    break
+                await asyncio.sleep(min(POLL, max(0.05, deadline - time.monotonic())))
+            out = {"draft_id": draft_id, "status": draft.get("status"), "title": draft.get("title"), "lyrics": draft.get("lyrics"),
+                   "error": draft.get("error")}
+            if draft.get("status") not in ("done", "failed", "cancelled"):
+                out["next"] = "Still writing: call write_lyrics again with this draft_id."
+            return _text({key: value for key, value in out.items() if value not in (None, "")})
         if name == "render_take":
             made = await api("POST", f"/api/takes/{args['take_id']}/render", json={"reseed": bool(args.get("new_seed"))})
             return _text(made)

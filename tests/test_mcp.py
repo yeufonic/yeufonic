@@ -50,7 +50,7 @@ def test_a_notification_gets_no_reply_and_ping_is_answered(client, on):
 
 def test_tools_are_listed_with_schemas(client, on):
     tools = {t["name"]: t for t in rpc(client, "tools/list").json()["result"]["tools"]}
-    assert {"list_takes", "get_take", "wait_for_take", "list_spaces", "make_instrumental", "make_song", "make_cover", "list_recordings", "list_style_loras", "try_more", "status", "transcribe_recording", "make_stems", "get_stems", "star_take", "rename_take", "move_take", "delete_take", "render_take", "cancel_take"} <= set(tools)
+    assert {"list_takes", "get_take", "wait_for_take", "list_spaces", "make_instrumental", "make_song", "make_cover", "list_recordings", "list_style_loras", "try_more", "status", "transcribe_recording", "make_stems", "get_stems", "star_take", "rename_take", "move_take", "delete_take", "render_take", "cancel_take", "sing_again", "make_variations", "new_words", "instrumental_from_take", "replan_take", "take_out", "list_playlists", "create_playlist", "add_to_playlist", "remove_from_playlist", "make_picture", "list_styles", "save_style", "create_space", "write_lyrics"} <= set(tools)
     assert all(t["inputSchema"]["type"] == "object" and t["description"] for t in tools.values())
     assert tools["make_song"]["inputSchema"]["required"] == ["style", "lyrics"]
     assert "max_duration" in tools["make_song"]["inputSchema"]["properties"]
@@ -63,8 +63,8 @@ def test_an_unknown_method_and_a_bad_message_are_errors(client, on):
     assert client.post("/mcp", content=b"not json", headers={"content-type": "application/json"}).status_code == 400
 
 
-def call(client, name, **arguments):
-    reply = rpc(client, "tools/call", {"name": name, "arguments": arguments}).json()["result"]
+def call(client, tool, **arguments):
+    reply = rpc(client, "tools/call", {"name": tool, "arguments": arguments}).json()["result"]
     import json
     return reply["isError"], json.loads(reply["content"][0]["text"]) if not reply["isError"] else reply["content"][0]["text"]
 
@@ -546,3 +546,207 @@ def test_list_recordings_says_where_transcription_is(client, on, tmp_path):
     bare = a_recording(tmp_path, "Memo", abc="")
     found = {r["id"]: r for r in call(client, "list_recordings")[1]}
     assert "transcription" in found[bare]
+
+
+# ------------------------------------------------------------------ added since the server was first built
+
+@pytest.fixture
+def engine_ready(monkeypatch):
+    from app import jobs
+    monkeypatch.setitem(jobs.ENGINE.options, "checkpoints", ["yue2_3b_bf16.safetensors"])
+    monkeypatch.setitem(jobs.ENGINE.options, "instrumental", True)
+    monkeypatch.setitem(jobs.ENGINE.options, "lyrics", True)
+    monkeypatch.setitem(jobs.ENGINE.options, "harmony", True)
+    monkeypatch.setattr(jobs.ENGINE, "options_loaded", True)
+
+
+SCORE = ("X:1\nM:4/4\nL:1/16\nQ:1/4=90\nV: Vocal\nV: Ins\nK:C\n% verse\nV: Vocal\n" + '"C"c4e4g4e4|"G"B4d4g4d4|\n' * 2 +
+         "V: Ins\n" + "c4e4g4e4|B4d4g4d4|\n" * 2)
+
+
+def test_the_names_an_agent_sends_are_the_apps_own():
+    from app import jobs, lyrics, mcp
+    assert mcp.INTERPRETATIONS == tuple(jobs.INTERPRETATIONS)
+    assert mcp.HARMONY == tuple(step.lower() for step in jobs.HARMONY_STEPS)
+    assert mcp.VARIETY == tuple(jobs.PLAN_VARIETY)
+    assert mcp.LYRIC_SHAPES == tuple(lyrics.STRUCTURES) and mcp.LYRIC_FEELS == tuple(lyrics.FEELS)
+
+
+def test_a_new_take_starts_where_the_pages_does_and_takes_the_settings_asked_for(client, on, engine_ready):
+    from app.db import one
+    error, plain = call(client, "make_song", style="folk", lyrics="[Verse]\nla la la")
+    row = one("SELECT interpretation, harmony, variety FROM takes WHERE id = ?", (plain["id"],))
+    assert not error and (row["interpretation"], row["harmony"], row["variety"]) == ("wide", 1, "normal")      # Varied, Wide
+    error, asked = call(client, "make_song", style="folk", lyrics="[Verse]\nla la la", interpretation="tight", harmony="Adventurous",
+                        variety="bold", key="F#", tempo=128, follow_structure=True, voices_follow_cues=False)
+    row = one("SELECT * FROM takes WHERE id = ?", (asked["id"],))
+    assert not error and (row["interpretation"], row["harmony"], row["variety"]) == ("tight", 3, "bold")
+    assert (row["target_key"], row["target_bpm"], row["follow_structure"], row["voice_cues"]) == ("F#", 128, 1, 0)
+    error, made = call(client, "make_instrumental", style="edm", harmony="outside", tempo=140)
+    row = one("SELECT harmony, target_bpm, interpretation FROM takes WHERE id = ?", (made["id"],))
+    assert not error and (row["harmony"], row["target_bpm"], row["interpretation"]) == (4, 140, "wide")
+    error, text = call(client, "make_song", style="folk", lyrics="[Verse]\nla", harmony="jazzy")
+    assert error and "familiar" in text and "outside" in text                     # the choices there are
+    error, text = call(client, "make_song", style="folk", lyrics="[Verse]\nla", tempo="fast")
+    assert error and "whole number" in text
+
+
+def test_on_an_engine_without_the_harmony_node_a_new_take_starts_at_familiar(client, on, engine_ready, monkeypatch):
+    from app import jobs
+    from app.db import one
+    monkeypatch.setitem(jobs.ENGINE.options, "harmony", False)
+    error, made = call(client, "make_song", style="folk", lyrics="[Verse]\nla la la")
+    assert not error and one("SELECT harmony FROM takes WHERE id = ?", (made["id"],))["harmony"] == 0
+
+
+def test_a_cover_takes_an_interpretation_and_the_locks(client, on, tmp_path, engine_ready):
+    from app.db import one
+    recording = a_recording(tmp_path)
+    error, made = call(client, "make_cover", recording_id=recording, style="jazz", lyrics="[Verse]\nla la", interpretation="loose", key="Eb")
+    row = one("SELECT interpretation, target_key FROM takes WHERE id = ?", (made["id"],))
+    assert not error and (row["interpretation"], row["target_key"]) == ("loose", "Eb")
+
+
+def test_sing_again_new_words_and_an_instrumental_are_new_takes_beside_the_original(client, on, engine_ready):
+    from app.db import one
+    original = make_take(title="Lantern", abc=SCORE, interpretation="standard")
+    error, again = call(client, "sing_again", take_id=original["id"][:6])
+    assert not error and again["short_id"] == again["id"][:6] and again["id"] != original["id"] and "wait_for_take" in again["next"]
+    assert "sung again" in again["title"]
+    error, words = call(client, "new_words", take_id=original["id"], lyrics="[Verse]\nother words here", interpretation="settled")
+    row = one("SELECT lyrics, interpretation, abc, seed FROM takes WHERE id = ?", (words["id"],))
+    assert not error and row["lyrics"] == "[Verse]\nother words here" and row["interpretation"] == "settled" and row["seed"] == 1
+    error, inst = call(client, "instrumental_from_take", take_id=original["id"], title="Lantern, no voice")
+    row = one("SELECT kind, title FROM takes WHERE id = ?", (inst["id"],))
+    assert not error and (row["kind"], row["title"]) == ("instrumental", "Lantern, no voice")
+    assert one("SELECT lyrics FROM takes WHERE id = ?", (original["id"],))["lyrics"] == "[Verse]\nla la"      # left as it was
+    error, text = call(client, "new_words", take_id=inst["id"], lyrics="[Verse]\nla")
+    assert error and "instrumental" in text                                        # the route's own refusal
+
+
+def test_variations_default_to_every_interpretation_but_the_takes_own_and_are_kept_inside_it(client, on, engine_ready):
+    from app.db import rows
+    original = make_take(title="Harbour lights", abc=SCORE, interpretation="wide")
+    error, made = call(client, "make_variations", take_id=original["id"])
+    assert not error and sorted(t["interpretation"] for t in made["queued"]) == sorted(["standard", "tight", "loose", "settled", "restless"])
+    assert {r["parent_id"] for r in rows("SELECT parent_id FROM takes WHERE id != ?", (original["id"],))} == {original["id"]}
+    error, two = call(client, "make_variations", take_id=original["id"], interpretations=["Tight", "loose"])
+    assert not error and [t["interpretation"] for t in two["queued"]] == ["tight", "loose"]
+    error, text = call(client, "make_variations", take_id=original["id"], interpretations=["dreamy"])
+    assert error and "dreamy" in text
+
+
+def test_take_out_makes_a_take_inside_another_its_own(client, on):
+    from app.db import one
+    mother = make_take(title="Mother")
+    child = make_take(title="Mother · try 2", parent_id=mother["id"])
+    error, out = call(client, "take_out", take_id=child["id"])
+    assert not error and out["was_inside"] == mother["id"] and one("SELECT parent_id FROM takes WHERE id = ?", (child["id"],))["parent_id"] is None
+    error, text = call(client, "take_out", take_id=mother["id"])
+    assert error and "not inside" in text
+
+
+def test_replan_is_only_for_a_take_without_audio(client, on, engine_ready, tmp_path):
+    from app.db import one
+    planned = make_take(title="Plan only", abc=SCORE, status="planned", variety="normal", harmony=0)
+    error, made = call(client, "replan_take", take_id=planned["id"], variety="lively", harmony="colourful", key="A")
+    row = one("SELECT status, variety, harmony, target_key, abc FROM takes WHERE id = ?", (planned["id"],))
+    assert not error and made["id"] == planned["id"] and (row["status"], row["variety"], row["harmony"], row["target_key"]) == ("queued", "lively", 2, "A")
+    assert row["abc"] == ""                                                        # a new plan is being written
+    audio = tmp_path / "heard.flac"
+    audio.write_bytes(b"fLaC")
+    heard = make_take(title="Has audio", abc=SCORE, audio_path=str(audio))
+    error, text = call(client, "replan_take", take_id=heard["id"])
+    assert error and "has audio" in text and one("SELECT abc FROM takes WHERE id = ?", (heard["id"],))["abc"] == SCORE
+
+
+def test_playlists_are_named_made_filled_and_emptied(client, on):
+    a, b = make_take(title="First"), make_take(title="Second")
+    error, lists = call(client, "list_playlists")
+    assert not error and any(p["name"] == "Liked" and p["liked"] for p in lists)
+    error, made = call(client, "create_playlist", name="Road trip", description="for the car")
+    assert not error and made["name"] == "Road trip"
+    error, text = call(client, "create_playlist", name="road TRIP")
+    assert error and "already" in text
+    error, added = call(client, "add_to_playlist", playlist="road trip", take_ids=[a["id"][:6], b["id"]])
+    assert not error and added["takes_in_it"] == 2 and added["added"] == [a["id"], b["id"]]
+    error, inside = call(client, "list_playlists", playlist="Road trip")
+    assert not error and {t["id"] for t in inside["takes"]} == {a["id"], b["id"]} and all("short_id" in t for t in inside["takes"])
+    error, removed = call(client, "remove_from_playlist", playlist="Road trip", take_ids=[a["id"]])
+    assert not error and removed["takes_in_it"] == 1
+    error, text = call(client, "add_to_playlist", playlist="Nowhere", take_ids=[a["id"]])
+    assert error and "Road trip" in text and "Liked" in text                       # the ones there are
+
+
+def test_putting_a_take_in_liked_stars_it(client, on):
+    from app.db import one
+    take = make_take(title="Favourite")
+    error, _ = call(client, "add_to_playlist", playlist="liked", take_ids=[take["id"]])
+    assert not error and one("SELECT favourite FROM takes WHERE id = ?", (take["id"],))["favourite"] == 1
+
+
+def test_make_picture_starts_one_and_get_take_gives_its_link(client, on, monkeypatch):
+    from app import artwork, jobs
+    take = make_take(title="Painted")
+    error, one_ = call(client, "get_take", take_id=take["id"])
+    assert not error and "picture_url" not in one_
+    monkeypatch.setattr(artwork, "drawing_problem", lambda: None)
+
+    def drawn(take_id):
+        artwork.png_path(take_id).parent.mkdir(parents=True, exist_ok=True)
+        artwork.png_path(take_id).write_bytes(b"\x89PNG")
+    monkeypatch.setattr(jobs, "start_art", drawn)
+    error, made = call(client, "make_picture", take_id=take["id"], wait_seconds=0)
+    assert not error and made["picture"] == "ready" and made["picture_url"].endswith(f"/api/takes/{take['id']}/art.png?v={made['picture_url'].split('v=')[1]}")
+    error, one_ = call(client, "get_take", take_id=take["id"])
+    assert not error and "/api/takes/" in one_["picture_url"]
+    child = make_take(title="Painted · try 2", parent_id=take["id"])
+    error, inner = call(client, "get_take", take_id=child["id"])
+    assert not error and f"/api/takes/{take['id']}/art.png" in inner["picture_url"]        # the picture it is shown with
+
+
+def test_make_picture_says_why_nothing_can_draw(client, on, monkeypatch):
+    from app import artwork
+    monkeypatch.setattr(artwork, "drawing_problem", lambda: "nothing here can draw a picture")
+    error, text = call(client, "make_picture", take_id=make_take()["id"])
+    assert error and "nothing here can draw" in text
+
+
+def test_list_styles_gives_saved_ones_and_finds_built_in_ones(client, on):
+    from app import mcp
+    builtin = mcp.builtin_styles()
+    assert len(builtin) >= 100 and all(item["name"] and item["style"] for item in builtin)
+    assert not any("\\'" in item["name"] + item["style"] for item in builtin)    # the script's escapes undone
+    error, saved = call(client, "save_style", name="Quiet meadow", style="ambient, soft piano, field recordings")
+    assert not error and saved["replaced_one_with_this_name"] is False
+    error, again = call(client, "save_style", name="quiet MEADOW", style="ambient, harp")
+    assert not error and again["replaced_one_with_this_name"] is True
+    error, listed = call(client, "list_styles")
+    assert not error and listed["saved"] == [{"name": "quiet MEADOW", "style": "ambient, harp"}]
+    assert len(listed["built_in_names"]) == len(builtin) and "next" in listed
+    error, found = call(client, "list_styles", query="synth")
+    assert not error and found["built_in"] and all("synth" in (s["name"] + s["style"]).lower() for s in found["built_in"])
+
+
+def test_create_space_makes_one_an_agent_can_then_use(client, on, engine_ready):
+    error, made = call(client, "create_space", name="Drafts")
+    assert not error and made["name"] == "Drafts"
+    error, text = call(client, "create_space", name="drafts")
+    assert error and "already" in text
+    error, song = call(client, "make_song", style="folk", lyrics="[Verse]\nla", space="Drafts")
+    assert not error and song["space"] == "Drafts"
+
+
+def test_write_lyrics_asks_for_a_draft_and_returns_it_when_written(client, on, engine_ready):
+    from app.jobs import LYRICS
+    error, text = call(client, "write_lyrics")
+    assert error and "brief" in text
+    error, asked = call(client, "write_lyrics", brief="a night train", feel="spoken", shape="hip-hop", lines=4, wait_seconds=0)
+    assert not error and asked["status"] == "queued" and "draft_id" in asked["next"]
+    record = LYRICS[asked["draft_id"]]
+    assert (record["feel"], record["structure"], record["lines"]) == ("spoken", "hip-hop", 4)
+    record.update(status="done", title="Night train", lyrics="[Verse]\nrails at night")
+    error, done = call(client, "write_lyrics", draft_id=asked["draft_id"], wait_seconds=0)
+    assert not error and (done["title"], done["lyrics"]) == ("Night train", "[Verse]\nrails at night") and "next" not in done
+    error, text = call(client, "write_lyrics", brief="x", feel="sad")
+    assert error and "natural" in text

@@ -1447,8 +1447,8 @@ If you use a metered or pay-per-token API (such as paid tiers of OpenAI or Anthr
 ## Using Yeufonic from an AI agent (MCP)
 
 Yeufonic can act as an **MCP server**. That lets an AI agent on the same computer, such as Claude Code or Cursor, use it for you:
-ask for a song, a cover or an instrumental, wait for it, play it, and tidy the library, all in your own words ("make a one-minute
-EDM instrumental in the EDM space and play it"). The agent does what the page does, through the same routes, so a take it starts is an
+ask for a song, a cover or an instrumental, wait for it, play it, try it another way, give it a picture, put it in a playlist and
+tidy the library, all in your own words ("make a one-minute EDM instrumental in the EDM space and play it"). The agent does what the page does, through the same routes, so a take it starts is an
 ordinary take in your library.
 
 ### Setting it up
@@ -1484,17 +1484,48 @@ reconnect the agent (in Claude Code, `/mcp`). Reconnect after restarting Yeufoni
 | "List my latest takes", "show the takes in the EDM space" | Lists takes, newest first, with a short id, when each was made, its length and style |
 | "Make a one-minute instrumental in a synthwave style" | Plans and renders an instrumental. A length, a space and a [style LoRA](#style-loras) can be named |
 | "Make a song in a folk style with these words" | The same for a song, from the lyrics you give |
+| "…with adventurous harmony, a tight interpretation, in F#, at 100 BPM" | Any of a new take's settings by the names the page uses: [Harmony](#harmony), [Plan variety](#plan-variety), the [interpretation](#interpretation), the key and tempo locks, and for a song **Follow this structure exactly** and **Voices follow the cues**. Left unsaid, a new take starts where the page's does: Varied and Wide |
+| "Write lyrics about a night train, in a spoken feel" | The app's own **Write lyrics**, with its song shapes, lines per section and feels. The agent can also write words itself |
 | "Make a cover of *the recording* in a jazz style" | Makes a cover from a recording already in your library. It needs a score (transcribe it in the app first). Without words of your own it uses the words heard in the recording |
 | "Play it" | Opens the take in your browser, where it plays |
 | "Star that one", "call it Sunrise", "move it to the Folk space" | Stars, renames or moves a take |
 | "Render it again with a new seed", "stop that" | Renders a take again, or cancels one in progress |
 | "Give me a few more like that one" | Renders the take again with new seeds, as several new takes to listen to together |
+| "Sing it again", "try it in every interpretation" | **Sing again** (a new voice for the same score) or **Variations** (the same score and seed, performed each way). Variations are kept inside the take, like Try more |
+| "Sing that tune with these words instead" | **New words**: the same melody, key and tempo with other lyrics, as a new take |
+| "Make an instrumental of it" | The same score with the tune on an instrument and no singing, as a new take |
+| "Write a new plan for it, more lively" | A new plan for a take that has no audio yet (one planned without rendering, or whose plan failed). A take that has audio is left alone: ask for a new take instead |
+| "Keep the loose one on its own" | **Take out**: a take kept inside another becomes a take of its own |
+| "Give it a picture" | Makes a new picture for the take, as the editor's **Picture** button does, and gives a link that opens it. A picture drawn on this computer waits until no song is being made |
+| "Put the best three in a playlist called Road trip" | Makes playlists, lists what is in them, and adds or removes takes. Putting a take in **Liked** stars it |
+| "Find me a synthwave style", "save that style as Night drive" | Looks through your saved styles and the built-in ones, and saves a style under a name for the style menu |
+| "Make a space called Drafts" | Makes a new space to keep takes in |
 | "Transcribe *the recording*" | Transcribes a recording into a score, so a cover can be made from it. It leaves a recording that already has a score alone unless asked |
 | "Split that into vocals and instruments" | Separates a finished take into its parts (four, six, or just vocals and instruments) and gives you a link to each file and one to the whole set as a zip |
 | "Is Yeufonic busy?" | Says whether the engine is ready, what is running and with what progress, what is waiting, and whether a LoRA is training |
 | "Delete that take" | Shows what would go and asks you first; see below |
 
 Making a take takes minutes. The agent starts it and waits, reporting progress, so you can ask for the next thing meanwhile.
+
+### How it can work: an example
+
+One conversation, from an idea to a playlist. You talk; the agent picks the tools (the middle column is only there to show what
+happens) and tells you what came back.
+
+| You say | The agent | What you get |
+|---|---|---|
+| "Write lyrics about a lighthouse keeper's last night, folk style, story shape. Then make a song of them in a new space called Coast." | `write_lyrics`, `create_space`, `make_song`, then `wait_for_take` until it is done | The words, titled *The Last Light*, shown to you; a space called Coast; a song planned and rendered there, with progress as it goes |
+| "Play it." | `get_take`, then opens its `listen_url` | It plays in your browser |
+| "Good tune. Try it looser and more restless, and give me one with no singing." | `make_variations` with loose and restless, `instrumental_from_take` | Two takes inside the song, and an instrumental beside it |
+| "Show me what we have." | `list_takes` in Coast, and with `inside` for the song | A list with a short id for each, so you can say "3f9a" rather than a title |
+| "Keep 3f9a on its own, star it and give it a picture." | `take_out`, `star_take`, `make_picture` | The loose one as a take of its own, starred (so in Liked too), with a link to its picture |
+| "Put that and the instrumental in a playlist called Coast demos." | `create_playlist`, `add_to_playlist` | A playlist holding the two |
+| "Save the style as Coastal folk." | `save_style` | **Coastal folk** in the app's style menu, ready the next time |
+| "Now a duet: these words, with [male voice] and [female voice] cues, every section as written." | `make_song` with `follow_structure` (a new plan, because the sections change) | A new song that plans exactly your sections, in order, with each cued line moved to where that voice sings |
+
+Everything it made is in the library as if you had made it in the page: open any take in the editor, master it, or carry on there.
+When a step cannot be done, the agent gets the app's own reason ("this take is an instrumental already", "nothing here can draw a
+picture") and passes it on, so you hear the same answer the page would give.
 
 ### Everything it can do
 
@@ -1510,12 +1541,22 @@ tell your agent which one you mean.
 | `make_song` | The same for a song, from lyrics |
 | `make_cover` | A cover from a recording in the library, using its score and, unless you give others, its words |
 | `try_more` | Several more takes from an existing one, with new seeds |
+| `sing_again` | The same score sung again with a new seed: a new voice, as a new take |
+| `make_variations` | The same score and seed in each interpretation named (or all of them), kept inside the take |
+| `new_words` | The same score sung with other lyrics, as a new take |
+| `instrumental_from_take` | The same score as an instrumental, as a new take |
+| `replan_take` | A new plan for a take with no audio yet, optionally with other Harmony, Plan variety, key or tempo |
+| `take_out` | Makes a take kept inside another a take of its own |
+| `write_lyrics` | Lyrics from a brief, in a song shape and feel, written as the page's Write lyrics does |
 | `render_take` | Renders a planned take, or renders a finished one again (with a new seed if asked) |
 | `cancel_take` | Stops a take that is queued or running |
 | `make_stems`, `get_stems` | Splits a take into parts, then lists the parts with a link to each and to the whole set as a zip |
 | `list_recordings`, `transcribe_recording` | Shows the recordings in the library and whether each has a score; transcribes one that has none |
 | `list_style_loras` | The style LoRAs installed, with their trigger words and the strengths saved with them |
-| `list_spaces`, `move_take` | The spaces and what each holds; moves a take to another |
+| `list_spaces`, `move_take`, `create_space` | The spaces and what each holds; moves a take to another; makes a new space |
+| `list_playlists`, `create_playlist`, `add_to_playlist`, `remove_from_playlist` | The playlists and the takes in one; makes one; puts takes in or takes them out |
+| `make_picture` | A new picture for a take, with a link that opens it. `get_take` gives the link to a take's picture too |
+| `list_styles`, `save_style` | Your saved styles and the built-in ones, searched by words; keeps a style under a name |
 | `star_take`, `rename_take` | Stars or unstars a take; changes its title |
 | `delete_take` | Deletes a take for good, after showing it to you and being told to go ahead |
 | `status` | Whether the engine is ready, what is running and waiting, and whether a LoRA is training |
@@ -1531,8 +1572,15 @@ tell your agent which one you mean.
   the recording first if it has no score, then makes the covers in the space you name.
 - **Working a LoRA.** "List my style LoRAs, then make an instrumental with the jazz one." The trigger word and the saved strengths are
   handled for you, which is easy to get wrong by hand.
-- **Words from the agent.** The agent can write the lyrics itself: "Write lyrics about a night train and make a song of them in a folk
-  style." Yeufonic only sees the finished words.
+- **Words from the agent, or from the app.** The agent can write the lyrics itself: "Write lyrics about a night train and make a song
+  of them in a folk style." Yeufonic only sees the finished words. Or ask for the app's: "use Yeufonic's lyric writer, hip-hop shape,
+  spoken feel", which writes them as the page's **Write lyrics** does and hands them back for a song.
+- **Same tune, other words.** "Sing that one again with these words for the second verse": `new_words` keeps the melody, key and tempo,
+  where a new song from the words would write a new tune.
+- **Comparing settings.** "Make the same song twice, once at Familiar and once at Adventurous harmony, with the same seed", then
+  "now give the better one every interpretation." Settings are asked for by their names, so you can design a small test in a sentence.
+- **Playlists from listening.** "Put every starred take from this week in a playlist called Week 43", or "take the instrumentals out of
+  Road trip." Liked is the starred takes, so starring and Liked stay the same list.
 - **Stems for a whole set.** "Split my five newest takes into vocals and instruments and give me the links." They queue behind
   one another, and behind any render the GPU is running.
 - **Library housekeeping.** "Find the takes with the same title, show me which is newest, and delete the older ones", or "move everything
@@ -1553,6 +1601,10 @@ shortcut round the engine: the GPU still does one job at a time, so a large batc
   only after you say yes. A starred take needs you to say so explicitly. A deleted take, with its audio, cannot be got back.
 - **Spaces and style LoRAs are named,** not numbered: "in the EDM space", "using the jazz LoRA". A name that matches nothing gets the list of
   what there is, and nothing is created. A LoRA's trigger word is added to the style for you, since a LoRA does very little without it.
+- **A new take starts where the page's does:** Harmony at Varied and the Wide interpretation, unless you name others. On an engine
+  without the harmony node it starts at Familiar, as Harmony cannot go higher there.
+- **Pictures and lyrics wait their turn.** A picture drawn or described on this computer waits until no song is being made, and lyrics
+  written on this computer queue with the other GPU work, so the agent may report "still being made" and look again later.
 - **An instrumental is always planned with a structure that has times,** worked out from the length you ask for (about two and a half
   minutes when you do not say). Without times the planner writes plans too long to use. Name your own sections and they are used as given.
 - **Only on this computer.** The same host-name and cross-site checks apply as for the page, and there is no login, so turn the setting
