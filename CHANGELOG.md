@@ -40,6 +40,7 @@ cannot creep back in.
 ## Unreleased
 
 - **A take's picture is described by Gemma when the external LLM cannot be.** When the external LLM fails, or you switch to local LLMs for the session, and Gemma is installed (Lyric drafts), Gemma writes the picture's description. It used to fall back to the take's own title and style tags, from which FLUX.2 [klein] drew much the same landscape every time.
+- **A take card's details in the Comfy layout are readable again.** The short line meant for a folded card (kind, length, age) was drawn over them.
 
 ## 0.0.49 (2026-10-25)
 
