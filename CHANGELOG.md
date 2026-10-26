@@ -37,10 +37,10 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.50 (2026-10-26)
 
-- **A take's picture is described by Gemma when the external LLM cannot be.** When the external LLM fails, or you switch to local LLMs for the session, and Gemma is installed (Lyric drafts), Gemma writes the picture's description. It used to fall back to the take's own title and style tags, from which FLUX.2 [klein] drew much the same landscape every time.
-- **A take card's details in the Comfy layout are readable again.** The short line meant for a folded card (kind, length, age) was drawn over them.
+- **Take pictures are described by Gemma when the external LLM is unavailable** (if Gemma is installed), instead of from the take's title and style alone, which gave much the same landscape each time.
+- **Comfy layout: a take card's details are readable again.** A folded card's short line was drawn over them.
 
 ## 0.0.49 (2026-10-25)
 
