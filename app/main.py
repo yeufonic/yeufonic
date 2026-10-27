@@ -45,7 +45,7 @@ from . import aligner, artwork, autotune, composer, config, identities, instrume
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 
 personas = identities
-from .engine import stage_label
+from .engine import engine_build, model_slow, stage_label, start_problem
 from .jobs import (CURRENT, CURRENT_STEMS, ENGINE, HARMONY_STEPS, INTERPRETATION_NAMES, INTERPRETATIONS, LYRICS,
                    PLAN_VARIETY, QUEUE, STEM_QUEUE)
 from .library import (audio_duration, ensure_peaks, fill_loudness, inside, kept_beside, relayout, remove_tree,
@@ -1555,6 +1555,7 @@ def state() -> dict:
         }
 
     engine_gpu = ENGINE.gpu() if ENGINE.online else None
+    built = engine_build(ENGINE.stats) if ENGINE.online else None
     return {
         "version": config.VERSION,
         "build": config.BUILD,
@@ -1565,6 +1566,9 @@ def state() -> dict:
         "pictures": artwork.automatic(),
         "pictures_possible": artwork.possible(),
         "model": config.CHECKPOINT_LABELS.get(config.CHECKPOINT, config.CHECKPOINT),
+        # The engine's PyTorch and CUDA, for About, which also says when the low-memory model is slow on it.
+        "engine_build": built,
+        "model_slow": model_slow(built),
         # Whether a newer release is out, and what to do about it: a background task keeps
         # this current, and this route only ever reads it.
         "update": update.state(),
@@ -1583,6 +1587,8 @@ def state() -> dict:
             "compat": ENGINE.compat,
             "queue": ENGINE.queue_counts,
             "gpu": engine_gpu,
+            # Why it would not start, when its start script said (a driver too old for its PyTorch).
+            "problem": None if ENGINE.online else start_problem(),
         },
         "current": current,
         # A LoRA being trained holds the card, so the page disables the rest while it

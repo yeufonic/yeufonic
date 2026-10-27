@@ -22,6 +22,9 @@ services:
       # (fetched with `sh scripts/fetch-models.sh --int8`). This forces one: "bf16", "int8".
       # It can also go in .env as YUE2_CHECKPOINT=int8, which an update never touches.
       # YUE2_CHECKPOINT: int8
+      # The engine is built for CUDA 13.0, which needs a driver that supports it (nvidia-smi says
+      # which). For an older driver, put TORCH_CUDA=cu128 in .env, not here, and rebuild the engine:
+      # `docker compose up -d --build`. The low-memory model is much slower on that build.
 
       # ---- The app ----
       # Host names the page may be reached by. Add a LAN name or address to open it

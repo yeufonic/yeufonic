@@ -342,6 +342,9 @@ are not downloaded again. Deleting that folder removes it.
   can be used to train LoRAs if you are using the INT8 model. Regardless, you can always use
   LoRAs that have been trained elsewhere.
 - Docker with the NVIDIA container toolkit, so containers can see the GPU.
+- An NVIDIA driver that supports CUDA 13.0: the top line of `nvidia-smi` says `CUDA Version: 13.0` or higher.
+  With an older driver, put `TORCH_CUDA=cu128` in `.env` before building the engine. Everything works on it,
+  but the low-memory model is much slower (see [Choosing a model size](#choosing-a-model-size)).
 - About 30 GB of disk, more as your library grows.
 - Linux, or Windows with WSL2 or Docker Desktop. WSL2 is what this was built on; Windows with
   Docker Desktop needs a few settings, below.  Alternatively, on Windows, [the installer](#on-windows-without-docker) needs none of this.
@@ -380,9 +383,10 @@ runs, so read them as a comparison between the two columns, not as figures for y
   slower RAM, may slow down sooner.
 - **Around 5 to 6 GB free** the full-quality model slowed ten-fold or more, and the low-memory model
   did not. That is what it is for.
-- **Speed depends on the software around the model.** With the older CUDA 12.8 build that the Docker
-  engine uses, the low-memory model rendered about four times slower than full quality in an earlier
-  test on the same card. On Windows, with CUDA 13.0, it was not slower.
+- **Speed depends on the software around the model.** The low-memory model needs PyTorch built for
+  CUDA 13.0, which both the Windows install and the Docker engine use. On an engine built for CUDA 12.8
+  (`TORCH_CUDA=cu128`, for an older driver) it rendered about four times slower than full quality in an
+  earlier test on the same card, and **About** says so.
 - **The LoRAs** (the instrumental one, the production polish decoder, and style LoRAs) are applied on
   top of either model. A style LoRA and the polish decoder ran without error on the low-memory model;
   we have not compared how they sound.
@@ -418,6 +422,7 @@ These need a rebuild rather than a setting.
 | `WITH_TRAINER` | `1` | on the **engine** service. Builds in the LoRA trainer; `0` leaves it out, and Corpora is hidden. See Training a LoRA above |
 | `YUE2_TRAINER_REF` | pinned commit | which commit of ComfyUI-YuE2-Trainer to use, if it is included |
 | `COMFYUI_REF` | pinned commit | which commit of ComfyUI the engine is built from. See Contributing for how far it has drifted |
+| `TORCH_CUDA` | `cu130` | on the **engine** service: PyTorch's CUDA build. `cu130` needs a driver that supports CUDA 13.0; `cu128` runs on older drivers, with the low-memory model and Gemma much slower. Read from `.env` (`TORCH_CUDA=cu128`), so an update never changes it |
 
 They are set under `build: args:` in `compose.yml`, or passed on the command line:
 
@@ -470,7 +475,7 @@ the same way. The setup around it needs care:
    other names the distribution.
 3. **Install a current NVIDIA driver** for Windows. It includes WSL support; nothing is installed
    inside Linux. Check with `docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi`,
-   which should print the card.
+   which should print the card, with `CUDA Version: 13.0` or higher at the top (see Requirements if not).
 4. **Give WSL enough memory.** It is capped at part of the PC's RAM: a render needs about
    14 GB, and **LoRA training needs 32 GB** (so the engine can stage the 11.5 GB YuE2 weights
    and training caches in host RAM without the Linux kernel OOM-killing the container). Create
@@ -803,6 +808,7 @@ heard back to an earlier step with **Checkpoints**.
 | Symptom | Cause | Fix |
 |---|---|---|
 | Header says *Engine offline* | the engine container is not running | `docker compose up -d engine`, then read `docker compose logs engine` |
+| Header says *Engine can't start: driver too old* | the NVIDIA driver does not support CUDA 13.0, which the engine is built for | update the driver, or put `TORCH_CUDA=cu128` in `.env` and run `docker compose up -d --build` |
 | Header names a missing node | ComfyUI was updated and a node was renamed | check `app/templates/*.json` against `/object_info` |
 | torchaudio fails to load its extension | torch, torchvision and torchaudio drifted apart | they are pinned together in both Dockerfiles; keep it that way |
 | `docker compose build` hangs with no output | the buildx plugin is missing | install `docker-buildx` for your Docker |

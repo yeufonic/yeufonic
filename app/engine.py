@@ -98,6 +98,40 @@ TEMPLATE_NAMES = ("transcribe.json", "render.json", "song_plan.json")
 _TEMPLATES = {name: json.loads((TEMPLATE_DIR / name).read_text(encoding="utf-8")) for name in TEMPLATE_NAMES}
 
 
+# Written by the engine image's start script when the driver is too old for its PyTorch (engine/start.py), and taken
+# away again when it starts.
+START_NOTE = "yeufonic/engine-start.json"
+
+
+def start_problem() -> dict[str, Any] | None:
+    """Why the engine's container did not start ComfyUI, from its start script's note: asked only while the engine
+    is offline, since a note left behind by an engine that has since started means nothing."""
+    if not config.ENGINE_OUTPUT_DIR:
+        return None
+    try:
+        note = json.loads((config.ENGINE_OUTPUT_DIR / START_NOTE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return note if isinstance(note, dict) and note.get("message") else None
+
+
+def engine_build(stats: dict[str, Any] | None) -> dict[str, Any] | None:
+    """The engine's PyTorch and the CUDA it was built for, from /system_stats ("2.9.1+cu130" is 2.9.1 and CUDA 13.0).
+    A build with no CUDA (a Mac's) has cuda None."""
+    version = str(((stats or {}).get("system") or {}).get("pytorch_version") or "")
+    if not version:
+        return None
+    torch, _, local = version.partition("+")
+    cuda = re.fullmatch(r"cu(\d+)(\d)", local)
+    return {"torch": torch, "cuda": f"{cuda.group(1)}.{cuda.group(2)}" if cuda else None}
+
+
+def model_slow(built: dict[str, Any] | None) -> bool:
+    """The low-memory model on an engine built for CUDA 12, where ComfyUI has no fast kernels for it."""
+    cuda = (built or {}).get("cuda")
+    return bool(cuda) and int(cuda.split(".")[0]) < 13 and config.CHECKPOINT == config.CHECKPOINT_INT8
+
+
 def load_template(name: str) -> dict[str, Any]:
     """A fresh copy of a graph template, read from disk once at import."""
     return copy.deepcopy(_TEMPLATES[name])

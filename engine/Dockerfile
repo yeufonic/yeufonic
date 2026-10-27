@@ -27,8 +27,11 @@ RUN git clone --quiet https://github.com/comfyanonymous/ComfyUI.git /app \
 # torch, torchvision and torchaudio must move together.  Pinning only torch let
 # pip pull torchaudio 2.11 against torch 2.9, and torchaudio then failed to load
 # its own extension at import time.
+# TORCH_CUDA picks the CUDA build: cu130, with which ComfyUI uses its fast kernels for quantised models
+# (Gemma, the INT8 YuE2) and which needs a driver supporting CUDA 13, or cu128 for an older driver.
+ARG TORCH_CUDA=cu130
 RUN pip install "torch==2.9.*" "torchvision==0.24.*" "torchaudio==2.9.*" \
-        --index-url https://download.pytorch.org/whl/cu128 \
+        --index-url https://download.pytorch.org/whl/${TORCH_CUDA} \
     && pip install -r requirements.txt
 
 # LoRA training, so a corpus built in the app can be trained from it.
@@ -65,10 +68,20 @@ RUN pip install "demucs==4.1.0"
 # av to a version of their choosing, and the engine has the one ComfyUI wants; the audio reaches it as an array, so
 # it never opens a file.  The node is simply absent from an engine built without it.
 RUN pip install --no-deps "faster-whisper==1.2.1" && pip install "ctranslate2>=4.5,<5" tokenizers
+# A CUDA 13 torch carries no CUDA 12 libraries, and CTranslate2 wants them: they go in a folder of their own, since
+# cuDNN for CUDA 12 would be written over the one torch uses, and Whisper then runs in a process that loads them from
+# there (hear.py).
+RUN case "${TORCH_CUDA}" in cu12*) ;; *) \
+        pip install --target /opt/cuda12 "nvidia-cublas-cu12==12.8.4.1" "nvidia-cudnn-cu12==9.10.2.21" ;; \
+    esac
 
 # Yeufonic's own node: the Harmony control for score plans.  Copied after the
 # slow installs, so a change to it rebuilds in seconds.
 COPY custom_nodes/yue2_harmony /app/custom_nodes/yue2_harmony
+
+# Checks the driver can run this PyTorch before starting the command (start.py says why).
+COPY start.py /opt/yeufonic/start.py
+ENTRYPOINT ["python", "/opt/yeufonic/start.py"]
 
 EXPOSE 8188
 

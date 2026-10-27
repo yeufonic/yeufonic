@@ -46,6 +46,12 @@ cannot creep back in.
   a take's picture and open it; make playlists and put takes in them or take them out; look through the saved and built-in styles and
   save one; make a space; and have the app write lyrics in its own song shapes and feels. The guide's MCP chapter has an example
   conversation from an idea to a playlist.
+- **The Docker engine is built for CUDA 13.0, as the Windows install's is.** The low-memory (INT8) model now renders at full
+  speed on Docker, where it was several times slower than full quality; a LoRA trained on it trains faster and with less video
+  memory; and Gemma's lyric drafts and picture descriptions run faster too. It needs an NVIDIA driver that supports CUDA 13.0;
+  with an older one the engine waits rather than starting, and the header says the driver is too old. `TORCH_CUDA=cu128` in
+  `.env` keeps the previous build. **About** shows the engine's PyTorch and CUDA. The same seed gives a different take on the
+  new build.
 
 ## 0.0.50 (2026-10-26)
 

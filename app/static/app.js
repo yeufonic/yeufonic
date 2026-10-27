@@ -471,6 +471,11 @@ async function pollState() {
         pill.textContent = 'Engine ready' + (engine.gpu ? ' \u00b7 ' + Math.round(engine.gpu.vram_free / 1073741824) + ' GB free' : '');
         pill.style.cursor = '';
       }
+    } else if (engine.problem) {
+      // The engine's start script found it cannot run (a driver too old for its PyTorch) and is waiting.
+      pill.className = 'pill pill-off';
+      pill.textContent = engine.problem.problem === 'driver' ? 'Engine can\u2019t start: driver too old' : 'Engine can\u2019t start';
+      pill.title = engine.problem.message || '';
     } else if (engine.starting) {
       // Up before the engine: the page opens early, and a job asked for now waits.
       pill.className = 'pill pill-wait';
@@ -485,7 +490,8 @@ async function pollState() {
     State.stemsOptions = data.stems || State.stemsOptions || {};
     if (data.settings) { adoptSettings(data.settings); }
     if (data.version) { $('app-version').textContent = 'v' + data.version; }
-    State.about = { version: data.version || '', build: data.build || '', branch: data.branch || '', model: data.model || '' };
+    State.about = { version: data.version || '', build: data.build || '', branch: data.branch || '', model: data.model || '',
+                    engine: data.engine_build || (State.about && State.about.engine) || null, modelSlow: Boolean(data.model_slow) };
     paintSystemStats(data.system);
     paintUpdate(data.update);
     paintLLMStatus(data.llm_status);
@@ -5502,6 +5508,11 @@ function openAbout() {
     }
   }
   if ($('about-model')) { $('about-model').textContent = about.model ? 'Model: ' + about.model : ''; }
+  if ($('about-engine')) {
+    var built = about.engine;
+    $('about-engine').textContent = !built ? '' : 'Engine: PyTorch ' + built.torch + (built.cuda ? ', CUDA ' + built.cuda : '') +
+      (about.modelSlow ? ' \u00b7 the low-memory model is slow on CUDA 12' : '');
+  }
   $('about-modal').classList.remove('hidden');
 }
 

@@ -16,6 +16,9 @@ services:
       # and the app then hides Corpora and training.
       args:
         WITH_TRAINER: "1"
+        # PyTorch's CUDA build: cu130 needs a driver supporting CUDA 13 (nvidia-smi says which); TORCH_CUDA=cu128
+        # in .env keeps an older driver working, more slowly with the low-memory model.  Read when the image is built.
+        TORCH_CUDA: "${TORCH_CUDA:-cu130}"
     image: yeufonic-engine:latest
     container_name: yeufonic-engine
     restart: unless-stopped

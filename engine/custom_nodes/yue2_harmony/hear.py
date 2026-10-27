@@ -26,14 +26,19 @@ MODELS = ("large-v3-turbo",)
 _RATE = 16000
 
 
-# Where PyTorch and CTranslate2 want different cuDNN under one name (Windows), Whisper runs in a process of its own: see
-# hear_worker.py.  On Linux the CUDA 12 libraries are the ones PyTorch carries too, and it runs here.
-ISOLATE = sys.platform == "win32"
+# Where PyTorch and CTranslate2 want different cuDNN under one name, Whisper runs in a process of its own: see
+# hear_worker.py.  That is Windows, and Linux with a CUDA 13 PyTorch (the engine image built with TORCH_CUDA=cu130),
+# whose CUDA 12 libraries are kept apart in CUDA12_LIBS.  On Linux with a CUDA 12 PyTorch, it runs here.
+ISOLATE = sys.platform == "win32" or not (torch.version.cuda or "12").startswith("12")
 WORKER = Path(__file__).with_name("hear_worker.py")
+CUDA12_LIBS = Path(os.environ.get("CUDA12_LIBS", "/opt/cuda12"))
 
 
 def cuda_12_folders() -> list[str]:
-    """The folders of the CUDA 12 cuBLAS and cuDNN DLLs that the nvidia packages carry (Windows)."""
+    """The folders of the CUDA 12 cuBLAS and cuDNN libraries that the nvidia packages carry: beside the engine's own
+    packages on Windows (DLLs in bin), in CUDA12_LIBS on Linux (lib)."""
+    if sys.platform != "win32":
+        return [str(lib) for lib in sorted((CUDA12_LIBS / "nvidia").glob("*/lib"))]
     found = []
     for root in sys.path:
         base = Path(root) / "nvidia"
@@ -43,10 +48,11 @@ def cuda_12_folders() -> list[str]:
 
 
 def worker_env() -> dict:
-    """The environment for the worker: those folders first on PATH, where CTranslate2's native code looks.  Only the
-    worker's: the engine's own PATH is left alone, or its cuDNN would be the wrong one."""
+    """The environment for the worker: those folders first where CTranslate2's native code looks (PATH on Windows,
+    LD_LIBRARY_PATH on Linux).  Only the worker's: the engine's own is left alone, or its cuDNN would be the wrong one."""
     env = dict(os.environ)
-    env["PATH"] = os.pathsep.join(cuda_12_folders() + [env.get("PATH", "")])
+    var = "PATH" if sys.platform == "win32" else "LD_LIBRARY_PATH"
+    env[var] = os.pathsep.join(cuda_12_folders() + ([env[var]] if env.get(var) else []))
     return env
 
 
