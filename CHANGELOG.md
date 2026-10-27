@@ -51,7 +51,9 @@ cannot creep back in.
   memory; and Gemma's lyric drafts and picture descriptions run faster too. It needs an NVIDIA driver that supports CUDA 13.0;
   with an older one the engine waits rather than starting, and the header says the driver is too old. `TORCH_CUDA=cu128` in
   `.env` keeps the previous build. **About** shows the engine's PyTorch and CUDA. The same seed gives a different take on the
-  new build.
+  new build. **A Docker install has to rebuild the engine to get it:** check that `nvidia-smi` says `CUDA Version: 13.0` or
+  higher, then `git pull && docker compose up -d --build` (with a foreground compose, Ctrl+C and `docker compose up --build`).
+  A plain `docker compose up` can keep running the old engine. The first build downloads a new PyTorch, so it takes a while.
 - **Low-memory model training does what it says with both models installed.** With full quality and the low-memory model both
   installed and the low-memory one chosen, a LoRA trained on the low-memory model even with **Low-memory (int8) model training**
   off. Off now trains on full quality, and on trains on the model in use. The Train window's memory note follows the model it will
