@@ -269,11 +269,12 @@ SETTINGS_SPEC: list[dict] = [
         "type": "select",
         "default": "off",
         "options": [
-            {"value": "off", "label": "Off \u2014 require the full-quality (bf16) model"},
-            {"value": "on", "label": "On \u2014 allow training on the low-memory (int8) model"},
+            {"value": "off", "label": "Off \u2014 train on the full-quality (bf16) model"},
+            {"value": "on", "label": "On \u2014 train on the model in use, low-memory (int8) included"},
         ],
-        "help": "Lets corpus training run on the quantized int8 checkpoint (< 6 GB VRAM) when the 40 GB full-quality "
-                "bf16 model is not installed. The base model stays int8 while LoRA adapters train in fp32.",
+        "help": "Off, training always uses the full-quality model and needs it installed. On, it uses the model the app "
+                "renders with, so the low-memory model can train on a card with little video memory. The base model "
+                "stays int8 while the LoRA adapters train in fp32.",
     },
     {
         "key": "training.checkpoints",
@@ -640,14 +641,7 @@ def default_cap() -> float:
 
 def _is_bf16_available() -> bool:
     """Whether the full-quality (BF16) model is installed and available to the engine."""
-    if ENGINE.options_loaded:
-        return config.TRAIN_CHECKPOINT in (ENGINE.options.get("checkpoints") or [])
-    if config.CHECKPOINT == config.CHECKPOINT_BF16:
-        ckpt_dir = config.MODELS_DIR / "checkpoints"
-        if ckpt_dir.is_dir():
-            return (ckpt_dir / config.TRAIN_CHECKPOINT).is_file()
-        return True
-    return False
+    return jobs.full_quality_installed()
 
 
 def setting_default(key: str) -> str:
@@ -1566,6 +1560,8 @@ def state() -> dict:
         "pictures": artwork.automatic(),
         "pictures_possible": artwork.possible(),
         "model": config.CHECKPOINT_LABELS.get(config.CHECKPOINT, config.CHECKPOINT),
+        # The model a LoRA would learn from, which the Train window's memory note goes by.
+        "train_model": config.CHECKPOINT_LABELS.get(jobs.training_checkpoint(), jobs.training_checkpoint()),
         # The engine's PyTorch and CUDA, for About, which also says when the low-memory model is slow on it.
         "engine_build": built,
         "model_slow": model_slow(built),

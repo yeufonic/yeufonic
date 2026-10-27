@@ -633,3 +633,27 @@ def test_finish_training_cleans_up_dual_branch_and_resume_files(monkeypatch, tmp
 
 
 
+
+
+@pytest.mark.parametrize("installed, in_use, setting, trains_on", [
+    (["bf16", "int8"], "int8", None, "bf16"),     # both installed: full quality unless low-memory training is on
+    (["bf16", "int8"], "int8", "off", "bf16"),
+    (["bf16", "int8"], "int8", "on", "int8"),
+    (["bf16", "int8"], "bf16", "on", "bf16"),
+    (["int8"], "int8", None, "int8"),             # only the low-memory model: it, by default
+    (["bf16"], "bf16", None, "bf16"),
+])
+def test_training_learns_from_full_quality_unless_low_memory_training_is_on(client, monkeypatch, installed, in_use,
+                                                                            setting, trains_on):
+    from app import jobs
+
+    names = {"bf16": config.CHECKPOINT_BF16, "int8": config.CHECKPOINT_INT8}
+    monkeypatch.setattr(jobs.ENGINE, "options_loaded", True)
+    monkeypatch.setitem(jobs.ENGINE.options, "checkpoints", [names[n] for n in installed])
+    monkeypatch.setattr(config, "CHECKPOINT", names[in_use])
+    if setting:
+        assert client.put("/api/settings", json={"key": "training.allow_int8", "value": setting}).status_code == 200
+    assert jobs.training_checkpoint() == names[trains_on]
+    graph = jobs.train_graph("lora-x", "dataset_x", "x", 50)
+    assert graph["1"]["inputs"]["ckpt_name"] == names[trains_on]
+    assert client.get("/api/state").json()["train_model"] == config.CHECKPOINT_LABELS[names[trains_on]]

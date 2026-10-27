@@ -491,7 +491,8 @@ async function pollState() {
     if (data.settings) { adoptSettings(data.settings); }
     if (data.version) { $('app-version').textContent = 'v' + data.version; }
     State.about = { version: data.version || '', build: data.build || '', branch: data.branch || '', model: data.model || '',
-                    engine: data.engine_build || (State.about && State.about.engine) || null, modelSlow: Boolean(data.model_slow) };
+                    engine: data.engine_build || (State.about && State.about.engine) || null, modelSlow: Boolean(data.model_slow),
+                    trainModel: data.train_model || '' };
     paintSystemStats(data.system);
     paintUpdate(data.update);
     paintLLMStatus(data.llm_status);
@@ -10365,7 +10366,7 @@ async function openTrain(all) {
   var gpu = State.gpu;
   var total = (gpu && gpu.vram_total) ? gb(gpu.vram_total) : 0;
   var free = (gpu && gpu.vram_free) ? gb(gpu.vram_free) : 0;
-  var isLowMemory = Boolean(State.about && State.about.model && State.about.model.indexOf('Low memory') >= 0);
+  var isLowMemory = trainsLowMemory();
   var needsGb = isLowMemory ? 6.0 : TRAIN_NEEDS_GB;
   if (total >= needsGb && free < needsGb) {
     var note = $('train-memory');
@@ -10376,6 +10377,12 @@ async function openTrain(all) {
     } catch (e) {}
   }
   paintTrainMemory();
+}
+
+/* Whether a LoRA would learn from the low-memory model, which needs less of the card. */
+function trainsLowMemory() {
+  var about = State.about || {};
+  return (about.trainModel || about.model || '').indexOf('Low memory') >= 0;
 }
 
 /* Training needs about 12.5 GB of GPU memory, measured on a 16 GB card, most of it
@@ -10390,7 +10397,7 @@ function paintTrainMemory() {
   if (!note) { return; }
   var gpu = State.gpu;
   var gb = function (bytes) { return bytes / 1073741824; };
-  var isLowMemory = Boolean(State.about && State.about.model && State.about.model.indexOf('Low memory') >= 0);
+  var isLowMemory = trainsLowMemory();
   var needsGb = isLowMemory ? 6.0 : TRAIN_NEEDS_GB;
   var warnings = [];
   if (gpu && gpu.vram_total) {

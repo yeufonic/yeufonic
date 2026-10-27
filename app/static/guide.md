@@ -1398,9 +1398,10 @@ says which you have. It is chosen when Yeufonic is installed, not here:
   `sh scripts/fetch-models.sh --int8` the low-memory one. With both files in `models/checkpoints`, the
   app uses full quality unless `YUE2_CHECKPOINT=int8` is set in `.env`.
 
-Try low memory if renders are very slow or the engine runs out of GPU memory. Training a LoRA is
-supported on both model sizes (the setting **Low-memory (int8) model training** defaults to on for
-INT8 installs). The README on GitHub has a section, *Choosing a model size*, with what to expect from each.
+Try low memory if renders are very slow or the engine runs out of GPU memory. Training a LoRA works
+on both model sizes. The setting **Low-memory (int8) model training** chooses which: off, training uses
+the full-quality model; on, it uses the model the app renders with. It starts on when only the low-memory
+model is installed. The README on GitHub has a section, *Choosing a model size*, with what to expect from each.
 
 **Check for a new version** is the one thing here that uses the internet on its own account: every
 four hours the app asks yeufonic.com whether a later release is out, and says so with a pill beside the

@@ -2113,6 +2113,29 @@ def _sample_regularization_prompts(dataset_dir: Path, regularization: str) -> tu
     return reg_styles, reg_lyrics
 
 
+def full_quality_installed() -> bool:
+    """Whether the full-quality (BF16) model is installed: what the engine lists once it has said, before that the
+    models folder when it is in use."""
+    if ENGINE.options_loaded:
+        return config.TRAIN_CHECKPOINT in (ENGINE.options.get("checkpoints") or [])
+    if config.CHECKPOINT == config.CHECKPOINT_BF16:
+        ckpt_dir = config.MODELS_DIR / "checkpoints"
+        if ckpt_dir.is_dir():
+            return (ckpt_dir / config.TRAIN_CHECKPOINT).is_file()
+        return True
+    return False
+
+
+def training_checkpoint() -> str:
+    """The model a LoRA learns from.  The full-quality one wherever it is installed, unless low-memory training is on
+    (the default where it is not installed): then the model in use, so a low-memory model chosen with YUE2_CHECKPOINT
+    trains as it renders.  Renders follow YUE2_CHECKPOINT alone, so with both models installed the setting is what
+    keeps training on full quality."""
+    full = full_quality_installed()
+    allowed = get_setting("training.allow_int8", None) or ("off" if full else "on")
+    return config.CHECKPOINT_BF16 if full and allowed != "on" else config.CHECKPOINT
+
+
 def train_graph(audio_folder: str, dataset_name: str, lora_name: str, steps: int,
                 rank_planner: int = 64, rank_decoder: int = 32,
                 max_minutes: float = 6.0, max_tokens: int | None = None,
@@ -2143,7 +2166,7 @@ def train_graph(audio_folder: str, dataset_name: str, lora_name: str, steps: int
         "1": {
             "class_type": "CheckpointLoaderSimple",
             "inputs": {
-                "ckpt_name": config.CHECKPOINT,
+                "ckpt_name": training_checkpoint(),
             },
         },
         "2": {

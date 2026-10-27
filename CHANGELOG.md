@@ -52,6 +52,10 @@ cannot creep back in.
   with an older one the engine waits rather than starting, and the header says the driver is too old. `TORCH_CUDA=cu128` in
   `.env` keeps the previous build. **About** shows the engine's PyTorch and CUDA. The same seed gives a different take on the
   new build.
+- **Low-memory model training does what it says with both models installed.** With full quality and the low-memory model both
+  installed and the low-memory one chosen, a LoRA trained on the low-memory model even with **Low-memory (int8) model training**
+  off. Off now trains on full quality, and on trains on the model in use. The Train window's memory note follows the model it will
+  train on.
 
 ## 0.0.50 (2026-10-26)
 
