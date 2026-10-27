@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.51 (2026-10-27)
 
 - **More for the MCP server.** An agent can now name a new take's settings as the page shows them (Harmony, Plan variety, the
   interpretation, the key and tempo locks, and for a song Follow this structure exactly and Voices follow the cues), and a take it
