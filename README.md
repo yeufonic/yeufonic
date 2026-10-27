@@ -21,7 +21,7 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **Song art:** Create song/album art using local models (Flux.2, Gemma), or for better quality plug in your own external LLM API
 - **Windows without Docker:** an installer that sets it all up natively, for people who would
   rather not use Docker.
-- **Example LoRAs and songs generated with Yeufonic:** https://github.com/yeufonic/yeufonic/blob/main/examples
+- **Example LoRAs and songs generated with Yeufonic:**  **[examples](examples/)**
 
 Everything runs on one machine, in two parts: the app and the engine. With Docker they are two
 containers; the Windows installer runs the same two natively. No cloud and no accounts; an
