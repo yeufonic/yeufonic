@@ -782,6 +782,7 @@ built from, and the ports itself: change those in its `settings.ini` instead (se
 | `PEAK_GUARD` | `1` | with an engine that has the peak guard, a render whose peaks would clip is turned down around them before it is saved. `0` leaves it out |
 | `PEAK_CEILING_DB` | `-0.5` | the highest a peak may reach with the guard on, in dB below full scale |
 | `YUE2_CHECKPOINT` | unset | which YuE2 model the app asks the engine for: `bf16`, `int8`, or a file name. Unset, it uses the full-quality model if it is installed, else the low-memory one. Put it in `.env` (`YUE2_CHECKPOINT=int8`) or in `compose.override.yml`. See Choosing a model size |
+| `UNLOAD_WHEN_IDLE` | `auto` | whether the engine is asked to unload its models whenever no more GPU work is waiting. `auto` does it on a Mac, where the GPU shares the computer's memory and a model left loaded can crowd out the next job; `1` always, `0` never. The next job loads its models again |
 | `TRAINING_ENABLED` | `1` | corpora and LoRA training; `0` takes them out of the app. Training also needs `WITH_TRAINER` on the engine. See Training a LoRA |
 | `DATA_DIR` | `/data` | the library. Only needed when running without the containers |
 

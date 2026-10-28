@@ -186,6 +186,12 @@ STEMS_ON_GPU = os.environ.get("STEMS_ON_GPU", "1") != "0"
 # merged into one canonical file that applies to both halves via LoraLoader.
 TRAINING_ENABLED = os.environ.get("TRAINING_ENABLED", "1").strip().lower() in ("1", "true", "yes", "on")
 
+# Whether the engine is asked to unload its models whenever the GPU's line of work runs dry.
+# "auto" does it where the GPU shares the computer's memory (a Mac, whose engine keeps its models
+# loaded on the GPU between jobs), so a model left over from one job cannot crowd out the next;
+# "1" always, "0" never.  The next job loads its models again.
+UNLOAD_WHEN_IDLE = os.environ.get("UNLOAD_WHEN_IDLE", "auto").strip().lower()
+
 # Dual-branch training parameters, following the trainer's guidance:
 # The planner trains on ABC scores and style/lyrics with structured cropping and
 # prior preservation, while the acoustic model trains on 30s segmented latent crops.

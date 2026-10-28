@@ -2760,6 +2760,16 @@ async def next_gpu_job() -> tuple[dict, bool]:
             continue
 
 
+def unload_when_idle() -> bool:
+    """Whether to ask the engine to unload once a job ends: only when nothing else is waiting
+    (a plan's own render is queued before the plan's job ends), and as UNLOAD_WHEN_IDLE says."""
+    if not QUEUE.empty() or ART_WAITING:
+        return False
+    if config.UNLOAD_WHEN_IDLE == "auto":
+        return ENGINE.shares_memory
+    return config.UNLOAD_WHEN_IDLE in ("1", "true", "yes", "on")
+
+
 async def worker() -> None:
     while True:
         job, queued = await next_gpu_job()
@@ -2774,6 +2784,8 @@ async def worker() -> None:
         finally:
             if queued:
                 QUEUE.task_done()
+        if unload_when_idle():
+            await ENGINE.free()
 
 
 async def keeper() -> None:

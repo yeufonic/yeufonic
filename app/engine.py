@@ -405,6 +405,11 @@ class Engine:
         except Exception as exc:  # noqa: BLE001
             log.debug("engine log subscription: %s", exc)
 
+    @property
+    def shares_memory(self) -> bool:
+        """The engine's GPU is the computer's own memory: Apple silicon, through Metal."""
+        return ((self.gpu() or {}).get("name") or "").lower() == "mps"
+
     def gpu(self) -> dict[str, Any] | None:
         try:
             device = (self.stats or {})["devices"][0]

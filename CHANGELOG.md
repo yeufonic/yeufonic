@@ -37,6 +37,17 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **An engine too busy to answer is no longer called offline.** Loading several gigabytes of models can keep the engine from
+  answering the app's status check for a while; that read as "offline" in the log and on the page, and could make a later
+  failure say the engine had stopped. A slow answer now leaves it online for up to 90 seconds; a refused connection is still
+  offline at once.
+- **Running out of GPU memory on a Mac is said plainly**, with what to try, instead of the engine's whole raw report.
+- **`UNLOAD_WHEN_IDLE`:** the engine is asked to unload its models whenever no more GPU work is waiting. On by itself
+  (`auto`) where the GPU shares the computer's memory, as on a Mac, so a model left loaded by one job cannot crowd out the
+  next; `1` always, `0` never.
+
 ## 0.0.51 (2026-10-27)
 
 - **More for the MCP server.** An agent can now name a new take's settings as the page shows them (Harmony, Plan variety, the

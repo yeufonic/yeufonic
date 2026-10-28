@@ -51,6 +51,8 @@ services:
       # PEAK_CEILING_DB: "-0.5"
       # The length cap a new take starts with, in seconds (10 to 900), until Settings says otherwise.
       # DEFAULT_CAP: "360"
+      # Unload the engine's models when no GPU work is waiting: auto (on a Mac), 1 always, 0 never.
+      # UNLOAD_WHEN_IDLE: "auto"
 
       # ---- Training a LoRA ----
       # The fewest steps a run gets. Small corpora need it: ten passes over 14 songs
