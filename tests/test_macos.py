@@ -349,7 +349,7 @@ def test_the_launcher_starts_both_and_stops_both(monkeypatch, tmp_path):
     run.start()
     try:
         recorded = json.loads(launcher.RUNNING.read_text())
-        assert set(recorded) == {"engine", "app"}
+        assert set(recorded) == {"launcher", "engine", "app"}
         deadline = time.time() + 20
         seen = []
         while time.time() < deadline and "app ready" not in seen:
@@ -456,6 +456,28 @@ def test_programs_left_by_a_killed_launcher_are_stopped_first(monkeypatch, tmp_p
         for p in (leftover, stranger):
             p.kill()
             p.wait()
+
+
+@pytest.mark.skipif(not shutil.which("ps"), reason="needs ps, as a Mac has")
+def test_an_app_left_by_a_killed_launcher_is_not_taken_for_a_running_copy(monkeypatch, tmp_path):
+    # Its app still answers on the port; only a live launcher makes it "already running".
+    launcher = load_launcher(monkeypatch, tmp_path)
+    launcher.RUNNING.parent.mkdir(parents=True)
+    assert not launcher.launcher_running()                  # no record: nothing to go by
+    (tmp_path / "launcher.py").write_text("import time\ntime.sleep(60)\n")
+    alive = subprocess.Popen([sys.executable, str(tmp_path / "launcher.py")])
+    gone = subprocess.Popen([sys.executable, "-c", "pass"])
+    gone.wait()
+    try:
+        launcher.RUNNING.write_text(json.dumps({"launcher": alive.pid, "engine": 1, "app": 1}))
+        assert launcher.launcher_running()
+        launcher.RUNNING.write_text(json.dumps({"launcher": gone.pid, "engine": 1, "app": 1}))
+        assert not launcher.launcher_running()
+        launcher.RUNNING.write_text(json.dumps({"engine": 1, "app": 1}))   # written by an older launcher
+        assert not launcher.launcher_running()
+    finally:
+        alive.kill()
+        alive.wait()
 
 
 def test_the_launcher_says_what_is_missing(monkeypatch, tmp_path):

@@ -168,6 +168,16 @@ def _command_of(pid: int) -> str:
         return ""
 
 
+def launcher_running() -> bool:
+    """Whether the launcher that started the recorded engine and app is still running.  If
+    it is not, an app answering on the port is a leftover, not another copy of Yeufonic."""
+    try:
+        pid = int(json.loads(RUNNING.read_text(encoding="utf-8")).get("launcher") or 0)
+    except (OSError, ValueError, TypeError):
+        return False
+    return pid > 0 and pid != os.getpid() and "launcher.py" in _command_of(pid)
+
+
 def end_leftovers() -> None:
     """A launcher that was killed outright leaves its engine and app running, holding their ports
     and several gigabytes of memory.  The ones it recorded, and only while they are still what it
@@ -184,7 +194,7 @@ def end_leftovers() -> None:
 
     stopping = []
     for name, pid in recorded.items():
-        if ours(int(pid)):
+        if name != "launcher" and ours(int(pid)):
             record(f"Stopping the {name} left running by an earlier start (pid {pid}).")
             try:
                 os.kill(int(pid), signal.SIGTERM)
@@ -259,7 +269,8 @@ class Launcher:
     def _remember(self) -> None:
         try:
             RUNNING.parent.mkdir(parents=True, exist_ok=True)
-            RUNNING.write_text(json.dumps({name: p.pid for name, (p, _) in self.programs.items()}), encoding="utf-8")
+            started = {name: p.pid for name, (p, _) in self.programs.items()}
+            RUNNING.write_text(json.dumps({"launcher": os.getpid(), **started}), encoding="utf-8")
         except OSError:
             pass
 
@@ -391,8 +402,9 @@ def main() -> int:
     child = "--child" in sys.argv[1:]
     cfg = settings()
     launcher = Launcher(cfg)
-    if answering(f"{launcher.url}/api/health"):
-        # Started some other way, or still running from before: just open the page.
+    if answering(f"{launcher.url}/api/health") and (launcher_running() or not RUNNING.exists()):
+        # Still running from before, or started some other way: just open the page.  An app
+        # whose launcher was killed outright answers too, but is stopped below and started again.
         launcher.open_page()
         return 0
     end_leftovers()
