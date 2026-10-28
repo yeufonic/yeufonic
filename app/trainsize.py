@@ -62,11 +62,20 @@ def minutes_from_memory(available_gb: float) -> float:
     return (available_gb - BUILDER_BASE_GB - MARGIN_GB) / BUILDER_GB_PER_MINUTE
 
 
+def shared(gpu: dict | None) -> bool:
+    """The GPU is the computer's own memory (Apple silicon, through Metal)."""
+    return ((gpu or {}).get("name") or "").lower() == "mps"
+
+
 def available_gb(gpu: dict | None) -> float | None:
     """What the engine could have once it lets go of what it holds: the free memory
-    plus its own.  Memory that other programs hold is not counted."""
+    plus its own.  Memory that other programs hold is not counted.  Where the GPU is the
+    computer's memory the engine reports the whole of it as its own, so only the free
+    memory counts there (adding the two said 43 GB on a 24 GB Mac)."""
     if not gpu or gpu.get("vram_free") is None:
         return None
+    if shared(gpu):
+        return (gpu.get("vram_free") or 0) / GB
     return ((gpu.get("vram_free") or 0) + (gpu.get("engine_vram") or 0)) / GB
 
 

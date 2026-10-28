@@ -28,6 +28,14 @@ def test_what_the_engine_holds_counts_as_available():
     assert trainsize.choose(card(6.0, 8.7), LONG)["minutes"] == trainsize.choose(card(14.7), LONG)["minutes"]
 
 
+def test_on_a_mac_only_the_free_memory_counts():
+    """Metal reports the whole of the computer's memory as the engine's own; adding it to the free
+    memory said 43 GB on a 24 GB Mac."""
+    mac = {"name": "mps", "vram_free": 19.3 * GB, "engine_vram": 24.0 * GB}
+    assert round(trainsize.available_gb(mac), 1) == 19.3
+    assert round(trainsize.available_gb({**mac, "name": "cuda:0 NVIDIA GeForce RTX 4070"}), 1) == 43.3
+
+
 def test_a_small_card_never_does_worse_than_the_default_and_says_so():
     small = trainsize.choose(card(10.9), LONG)
     assert small["minutes"] == trainsize.FLOOR_MINUTES and small["tight"]
