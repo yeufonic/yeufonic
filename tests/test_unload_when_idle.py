@@ -31,7 +31,7 @@ def test_when_the_line_is_empty_it_follows_the_setting(monkeypatch, idle, settin
     assert jobs.unload_when_idle() is wanted
 
 
-def test_never_while_work_is_waiting(monkeypatch, idle):
+def test_not_while_work_is_waiting(monkeypatch, idle):
     # A plan's render is queued before the plan's job ends: the two keep their models.
     monkeypatch.setattr(config, "UNLOAD_WHEN_IDLE", "1")
     gpu_named(monkeypatch, "mps")
@@ -75,3 +75,17 @@ def test_the_worker_unloads_after_the_last_job(monkeypatch, idle):
         task.cancel()
     asyncio.run(go())
     assert ran == ["a", "b"] and freed == [True]       # once, after b, not between a and b
+
+
+def test_after_a_picture_even_with_songs_waiting(monkeypatch, idle):
+    # A picture steps aside for song work; its models are no use to the song and would sit under it.
+    monkeypatch.setattr(config, "UNLOAD_WHEN_IDLE", "auto")
+    gpu_named(monkeypatch, "mps")
+    jobs.QUEUE.put_nowait({"kind": "render", "id": "x"})
+    try:
+        assert jobs.unload_when_idle("art") is True
+        assert jobs.unload_when_idle("render") is False
+        gpu_named(monkeypatch, "cuda:0 NVIDIA GeForce RTX 4070")
+        assert jobs.unload_when_idle("art") is False          # a card with memory of its own: left as it was
+    finally:
+        jobs.QUEUE.get_nowait()

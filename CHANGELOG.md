@@ -46,7 +46,7 @@ cannot creep back in.
 - **Running out of GPU memory on a Mac is said plainly**, with what to try, instead of the engine's whole raw report.
 - **`UNLOAD_WHEN_IDLE`:** the engine is asked to unload its models whenever no more GPU work is waiting. On by itself
   (`auto`) where the GPU shares the computer's memory, as on a Mac, so a model left loaded by one job cannot crowd out the
-  next; `1` always, `0` never.
+  next; `1` always, `0` never. After a picture it unloads even when songs are waiting, since none of them uses its models.
 - **Pictures from FLUX.2 [klein]'s full-precision files.** The app draws with whichever of its two sets of files is installed:
   the FP8 model and FP4 encoder that Windows and Docker install, or the full-precision pair, which a GPU without FP8 and
   FP4 (a Mac's) can run.
