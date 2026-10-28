@@ -295,6 +295,10 @@ class Engine:
     # How long an engine that has not answered yet counts as starting rather than
     # offline.  The Windows launcher gives ComfyUI as long before it gives up.
     START_GRACE = 600.0
+    # How long an engine that takes the connection but is too slow to answer still counts
+    # as online: loading several gigabytes of models holds its web server up for many
+    # seconds (longer on a Mac), and that is a busy engine, not a stopped one.
+    SLOW_GRACE = 90.0
 
     @property
     def starting(self) -> bool:
@@ -339,6 +343,9 @@ class Engine:
             queue = await self.client.get("/queue", timeout=4.0)
             queue.raise_for_status()
         except Exception as exc:  # noqa: BLE001
+            if (isinstance(exc, httpx.ReadTimeout) and self.online
+                    and time.time() - self.last_contact < self.SLOW_GRACE):
+                return  # busy: the last answer and the queue stand until it answers again
             if self.online:
                 self.offline_at = time.time()
             self.online = False

@@ -276,3 +276,55 @@ def test_the_mark_clears_once_the_restarted_engine_no_longer_lists_the_job():
         await engine.client.aclose()
         return still, engine.stuck_on
     assert asyncio.run(run()) == ("pid", None)
+
+
+def test_an_engine_too_busy_to_answer_is_not_offline():
+    # Loading models holds the engine's web server up for seconds: it takes the
+    # connection and answers late.  That is busy, not stopped, until SLOW_GRACE.
+    import httpx
+    slow = {"on": False}
+
+    def answer(request):
+        if slow["on"]:
+            raise httpx.ReadTimeout("timed out", request=request)
+        if request.url.path == "/queue":
+            return httpx.Response(200, json={"queue_running": [[0, "pid", {}, {}, []]], "queue_pending": []})
+        if request.url.path == "/system_stats":
+            return httpx.Response(200, json={"devices": []})
+        return httpx.Response(404)
+
+    async def run():
+        engine = Engine("http://engine")
+        engine.client = httpx.AsyncClient(base_url="http://engine", transport=httpx.MockTransport(answer))
+        await engine.refresh_status()
+        slow["on"] = True
+        await engine.refresh_status()
+        busy = (engine.online, engine.offline_at, engine.queue_counts["running"])
+        engine.last_contact -= engine.SLOW_GRACE + 1
+        await engine.refresh_status()
+        await engine.client.aclose()
+        return busy, engine.online, engine.offline_at > 0
+    busy, online, marked = asyncio.run(run())
+    assert busy == (True, 0.0, 1)
+    assert (online, marked) == (False, True)
+
+
+def test_an_engine_that_refuses_the_connection_is_offline_at_once():
+    import httpx
+    up = {"on": True}
+
+    def answer(request):
+        if not up["on"]:
+            raise httpx.ConnectError("refused", request=request)
+        return httpx.Response(200, json={"devices": []} if request.url.path == "/system_stats"
+                              else {"queue_running": [], "queue_pending": []})
+
+    async def run():
+        engine = Engine("http://engine")
+        engine.client = httpx.AsyncClient(base_url="http://engine", transport=httpx.MockTransport(answer))
+        await engine.refresh_status()
+        up["on"] = False
+        await engine.refresh_status()
+        await engine.client.aclose()
+        return engine.online, engine.offline_at > 0
+    assert asyncio.run(run()) == (False, True)
