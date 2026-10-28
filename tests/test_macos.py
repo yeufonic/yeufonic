@@ -199,11 +199,14 @@ def test_the_app_carries_what_setup_and_the_launcher_need(built):
         assert (res / need).exists(), need
     assert (res / "studio" / "VERSION").read_text().strip() == "0.0.98"
     assert not list(res.rglob("__pycache__"))
-    assert (contents / "MacOS" / "Yeufonic").stat().st_mode & stat.S_IXUSR
+    assert (res / "start.sh").stat().st_mode & stat.S_IXUSR
+    assert (MACOS / "Yeufonic.swift").exists()
+    if shutil.which("swiftc"):
+        assert (contents / "MacOS" / "Yeufonic").stat().st_mode & stat.S_IXUSR
 
 
 def run_stub(built, tmp_path, app_path=None):
-    """The app's own program, as macOS would start it, with `open` and `osascript` recorded."""
+    """What the app's own program runs, start.sh, with `open` and `osascript` recorded."""
     calls = tmp_path / "calls"
     bin_dir = tmp_path / "stubbin"
     bin_dir.mkdir(exist_ok=True)
@@ -217,7 +220,7 @@ def run_stub(built, tmp_path, app_path=None):
         app = app_path
     env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}", HOME=str(tmp_path),
                YEUFONIC_HOME=str(tmp_path / "support"))
-    res = subprocess.run([str(app / "Contents" / "MacOS" / "Yeufonic")], env=env, capture_output=True,
+    res = subprocess.run(["bash", str(app / "Contents" / "Resources" / "start.sh")], env=env, capture_output=True,
                          text=True, timeout=30)
     return res, (calls.read_text() if calls.exists() else "")
 
@@ -253,7 +256,7 @@ def test_once_set_up_it_runs_the_launcher_and_sets_up_again_after_an_update(buil
     (support / "state").mkdir()
     (support / "state" / "set-up-for").write_text((studio / "VERSION").read_text() + (studio / "BUILD").read_text())
     _, calls = run_stub(built, tmp_path)
-    assert f"launcher {built / 'Contents' / 'Resources' / 'launcher.py'}" in calls
+    assert f"launcher {built / 'Contents' / 'Resources' / 'launcher.py'} --child" in calls
     assert "Terminal" not in calls
     # A newer app dragged over this one is not the one set up: setup runs again.
     (support / "state" / "set-up-for").write_text("0.0.97\n")
@@ -381,6 +384,51 @@ def test_a_stopped_engine_is_said_once_and_can_be_restarted(monkeypatch, tmp_pat
         assert run.programs["engine"][0].pid != 0 and not run.engine_stopped
     finally:
         run.stop()
+
+
+CHILD = """
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("mac_launcher", sys.argv[1])
+launcher = importlib.util.module_from_spec(spec); spec.loader.exec_module(launcher)
+server, here, app_port, engine_port = sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
+launcher.COMFY = launcher.STUDIO = launcher.Path(here)
+launcher.engine_command = lambda cfg: [sys.executable, server, engine_port, "/system_stats"]
+launcher.app_command = lambda cfg: [sys.executable, server, app_port, "/api/health"]
+cfg = dict(launcher.settings(), app_port=app_port, engine_port=engine_port, open_browser="no")
+sys.exit(launcher.run_child(launcher.Launcher(cfg)))
+"""
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="signals as a Mac has them")
+def test_under_the_apps_program_it_reports_restarts_the_engine_and_stops(tmp_path):
+    # What Yeufonic.swift relies on: "@@url" on standard output, SIGUSR1 restarts the engine,
+    # SIGTERM stops the app and the engine and ends with 0.
+    (tmp_path / "server.py").write_text(SERVER)
+    (tmp_path / "child.py").write_text(CHILD)
+    app_port, engine_port = free_port(), free_port()
+    env = dict(os.environ, YEUFONIC_HOME=str(tmp_path / "support"), YEUFONIC_LOGS=str(tmp_path / "logs"))
+    child = subprocess.Popen([sys.executable, str(tmp_path / "child.py"), str(MACOS / "launcher.py"),
+                              str(tmp_path / "server.py"), str(tmp_path), str(app_port), str(engine_port)],
+                             stdout=subprocess.PIPE, text=True, env=env)
+    try:
+        # Its own log lines are said too; the app's program reads only the "@@" ones.
+        told = [child.stdout.readline().strip() for _ in range(3)]
+        assert f"@@url http://127.0.0.1:{app_port}" in told, told
+        log = tmp_path / "logs" / "launcher.log"
+        deadline = time.time() + 20
+        while time.time() < deadline and "The engine answered" not in (log.read_text() if log.exists() else ""):
+            time.sleep(0.2)
+        child.send_signal(signal.SIGUSR1)
+        deadline = time.time() + 20
+        while time.time() < deadline and "Restarting the engine." not in log.read_text():
+            time.sleep(0.2)
+        assert "Restarting the engine." in log.read_text()
+        child.send_signal(signal.SIGTERM)
+        assert child.wait(30) == 0
+        assert log.read_text().rstrip().endswith("Stopped.")
+    finally:
+        if child.poll() is None:
+            child.kill()
 
 
 @pytest.mark.skipif(not shutil.which("ps"), reason="needs ps, as a Mac has")

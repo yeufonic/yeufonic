@@ -365,8 +365,6 @@ if ! is_done "$APP_MARK" || [ ! -x "$APP_VENV/bin/python" ]; then
   # shellcheck disable=SC2086
   "$UV" pip install --python "$APP_VENV/bin/python" $APP_TORCH || stop_setup "torch for stems failed"
   "$UV" pip install --python "$APP_VENV/bin/python" demucs==4.1.0 || stop_setup "demucs failed"
-  # The icon the launcher puts in the menu bar.
-  "$UV" pip install --python "$APP_VENV/bin/python" pyobjc-framework-Cocoa==12.2.2 || stop_setup "the menu-bar icon's package failed"
   mark_done "$APP_MARK"
 fi
 

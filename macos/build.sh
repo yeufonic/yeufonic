@@ -37,14 +37,15 @@ cp "$ROOT/macos/launcher.py" "$ROOT/macos/setup.sh" "$RES/"
 cp "$ROOT/macos/yeufonic.icns" "$RES/"
 cp "$ROOT/LICENSE.md" "$ROOT/THIRD_PARTY_NOTICES.md" "$RES/"
 
-# The app's own program.  On first use, and whenever the app is not the one set up (a new copy
-# dragged into Applications), setup.sh runs in a Terminal window and opens the app again when it
-# has finished; otherwise the launcher runs with the app's Python.  A .command file opened with
-# Terminal needs no permission to control Terminal, which "tell application" would.
-cat > "$CONTENTS/MacOS/Yeufonic" <<'STUB'
+# What the app's own program (Yeufonic.swift, below) runs.  On first use, and whenever the app is
+# not the one set up (a new copy dragged into Applications), setup.sh runs in a Terminal window
+# and opens the app again when it has finished; otherwise the launcher runs with the app's Python.
+# A .command file opened with Terminal needs no permission to control Terminal, which "tell
+# application" would.
+cat > "$RES/start.sh" <<'STUB'
 #!/bin/bash
-RES="$(cd "$(dirname "$0")/../Resources" && pwd)"
-APP="$(cd "$(dirname "$0")/../.." && pwd)"
+RES="$(cd "$(dirname "$0")" && pwd)"
+APP="$(cd "$RES/../.." && pwd)"
 SUPPORT="${YEUFONIC_HOME:-$HOME/Library/Application Support/Yeufonic}"
 case "$APP" in
   /Volumes/*|*/AppTranslocation/*)
@@ -66,9 +67,15 @@ if [ ! -x "$SUPPORT/venv/bin/python" ] || [ "$(cat "$SUPPORT/state/set-up-for" 2
   open -a Terminal "$CMD"
   exit 0
 fi
-exec "$SUPPORT/venv/bin/python" "$RES/launcher.py" "$@"
+exec "$SUPPORT/venv/bin/python" "$RES/launcher.py" --child
 STUB
-chmod +x "$CONTENTS/MacOS/Yeufonic" "$RES/setup.sh"
+chmod +x "$RES/start.sh" "$RES/setup.sh"
+
+# The app's own program, compiled where there is a Swift compiler (a Mac).  Elsewhere the app is
+# only put together to look inside, and has no program.
+if command -v swiftc >/dev/null 2>&1; then
+  swiftc -O -target arm64-apple-macos14.0 -o "$CONTENTS/MacOS/Yeufonic" "$ROOT/macos/Yeufonic.swift"
+fi
 
 mkdir -p "$OUT"
 if command -v hdiutil >/dev/null 2>&1; then

@@ -3,9 +3,10 @@ together, an icon in the menu bar to open the page, see the logs and quit, and t
 the default browser as soon as the app answers.  The macOS counterpart of
 windows/launcher.py.
 
-Yeufonic.app's own program (written by macos/build.sh) sets the install up on first use,
-and again after an update, then runs this with the app's Python.  `--console` runs it
-without the menu bar, for a terminal or a test: Ctrl+C stops both.
+Yeufonic.app's own program (macos/Yeufonic.swift) owns the icon in the menu bar and runs
+Resources/start.sh (written by macos/build.sh), which sets the install up on first use, and
+again after an update, then runs this with the app's Python and `--child`.  Without it, as from
+a terminal or a test, it runs on its own: Ctrl+C stops both.
 
 The install lives in ~/Library/Application Support/Yeufonic (YEUFONIC_HOME moves it), its
 logs in ~/Library/Logs/Yeufonic (YEUFONIC_LOGS), and settings.ini there overrides:
@@ -341,111 +342,44 @@ def run_console(launcher: Launcher) -> int:
         return 0
 
 
-def run_menu_bar(launcher: Launcher) -> int:
-    """The icon by the clock, as the Windows launcher has one in the tray: no Dock icon and no
-    window of its own, since the page is the app."""
-    import objc  # noqa: F401  (PyObjC; installed into the app's Python by setup.sh)
-    from AppKit import (NSAlert, NSAlertFirstButtonReturn, NSApplication, NSApplicationActivationPolicyAccessory,
-                        NSImage, NSMenu, NSMenuItem, NSStatusBar, NSVariableStatusItemLength, NSWorkspace)
-    from Foundation import NSURL, NSObject, NSTimer
+def run_child(launcher: Launcher) -> int:
+    """Under the app's own program (macos/Yeufonic.swift), which owns the icon in the menu bar:
+    what it needs to know goes to it in lines starting "@@" on standard output, Restart the
+    engine comes as SIGUSR1 and quitting as SIGTERM."""
+    def tell(event: str, detail: str = "") -> None:
+        print(f"@@{event} {detail}".rstrip(), flush=True)
 
-    def alert(text: str, detail: str = "", buttons: tuple[str, ...] = ("OK",)) -> int:
-        box = NSAlert.alloc().init()
-        box.setMessageText_(text)
-        box.setInformativeText_(detail)
-        for label in buttons:
-            box.addButtonWithTitle_(label)
-        NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
-        return box.runModal() - NSAlertFirstButtonReturn
-
-    class Delegate(NSObject):
-        def applicationDidFinishLaunching_(self, _note):
-            bar = NSStatusBar.systemStatusBar().statusItemWithLength_(NSVariableStatusItemLength)
-            image = NSImage.imageWithSystemSymbolName_accessibilityDescription_("music.note", APP)
-            if image:
-                image.setTemplate_(True)
-                bar.button().setImage_(image)
-            else:
-                bar.button().setTitle_("Y")
-            bar.button().setToolTip_(APP)
-            menu = NSMenu.alloc().init()
-            for title, action in ((f"Open {APP}", "openPage:"), ("Show the logs", "showLogs:"),
-                                  ("Restart the engine", "restartEngine:"), (None, None), (f"Quit {APP}", "quit:")):
-                if title is None:
-                    menu.addItem_(NSMenuItem.separatorItem())
-                    continue
-                item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(title, action, "")
-                item.setTarget_(self)
-                menu.addItem_(item)
-            bar.setMenu_(menu)
-            self.bar = bar
-            launcher.start()
-            self.timer = NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
-                0.5, self, "tick:", None, True)
-
-        def tick_(self, _timer):
-            if launcher.quitting:
-                return
-            happened = launcher.poll()
-            if happened == "app ready" and yes(launcher.cfg.get("open_browser", "yes")):
-                launcher.open_page()
-            elif happened == "engine stopped":
-                alert("The engine stopped.", "Songs cannot be made until it is running again. "
-                      f"Restart it from the {APP} menu in the menu bar; the engine log may say why.")
-            elif happened == "app stopped":
-                alert(f"{APP} stopped.", f"The app log in {LOGS} may say why.")
-                NSApplication.sharedApplication().terminate_(None)
-
-        def openPage_(self, _sender):
-            launcher.open_page()
-
-        def showLogs_(self, _sender):
-            NSWorkspace.sharedWorkspace().openURL_(NSURL.fileURLWithPath_(str(LOGS)))
-
-        def restartEngine_(self, _sender):
-            warning = launcher.busy()
-            if warning and alert("Restart the engine?", warning, ("Cancel", "Restart")) != 1:
-                return
+    asked = {"stop": False, "restart": False}
+    signal.signal(signal.SIGTERM, lambda _s, _f: asked.update(stop=True))
+    signal.signal(signal.SIGUSR1, lambda _s, _f: asked.update(restart=True))
+    launcher.start()
+    tell("url", launcher.url)
+    while not asked["stop"]:
+        if asked["restart"]:
+            asked["restart"] = False
             launcher.restart_engine()
-
-        def quit_(self, _sender):
-            # Asked only when it would stop a job or a training run, as on Windows.
-            warning = launcher.busy()
-            if warning and alert(f"Quit {APP}?", warning, ("Cancel", "Quit")) != 1:
-                return
-            NSApplication.sharedApplication().terminate_(None)
-
-        def applicationShouldHandleReopen_hasVisibleWindows_(self, _app, _flag):
-            # Opening Yeufonic again while it runs: the page, as a second click does on Windows.
+        happened = launcher.poll()
+        if happened == "app ready" and yes(launcher.cfg.get("open_browser", "yes")):
             launcher.open_page()
-            return False
-
-        def applicationWillTerminate_(self, _note):
+        elif happened == "engine stopped":
+            tell("engine-stopped")
+        elif happened == "app stopped":
             launcher.stop()
-
-    def on_signal(_signum, _frame):
-        launcher.stop()
-        os._exit(0)
-    signal.signal(signal.SIGTERM, on_signal)
-
-    app = NSApplication.sharedApplication()
-    app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
-    delegate = Delegate.alloc().init()
-    app.setDelegate_(delegate)
-    app.run()
+            return 1
+        time.sleep(0.5)
+    launcher.stop()
     return 0
 
 
-def fail(text: str, console: bool) -> int:
+def fail(text: str, child: bool) -> int:
     record(text)
-    if not console:
-        subprocess.run(["osascript", "-e", f"display alert {json.dumps(APP, ensure_ascii=False)} message {json.dumps(text, ensure_ascii=False)}"],
-                       check=False)
+    if child:
+        print(f"@@fail {text}", flush=True)
     return 1
 
 
 def main() -> int:
-    console = "--console" in sys.argv[1:]
+    child = "--child" in sys.argv[1:]
     cfg = settings()
     launcher = Launcher(cfg)
     if answering(f"{launcher.url}/api/health"):
@@ -455,14 +389,8 @@ def main() -> int:
     end_leftovers()
     problem = launcher.problem()
     if problem:
-        return fail(problem, console)
-    if console:
-        return run_console(launcher)
-    try:
-        return run_menu_bar(launcher)
-    except ImportError as exc:
-        record(f"No menu-bar icon ({exc}); running as in a terminal.")
-        return run_console(launcher)
+        return fail(problem, child)
+    return run_child(launcher) if child else run_console(launcher)
 
 
 if __name__ == "__main__":

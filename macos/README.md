@@ -40,19 +40,22 @@ Where things are:
   the tools, the library (`data/`) and `settings.ini`.
 - The logs: `~/Library/Logs/Yeufonic`: `setup.log`, `launcher.log`, `engine.log`, `app.log`.
 
-**The launcher.** Once set up, the app runs `launcher.py` with the app's Python.
+**The launcher.** The app's own program (`Yeufonic.swift`, compiled by `build.sh`) owns the icon in
+the menu bar and runs `start.sh`, which sets the install up when it needs it and otherwise runs
+`launcher.py --child` with the app's Python. (macOS 26 shows no icon from a program the app hands
+over to, so the icon cannot be Python's.)
 
 - **Start:** the engine and the app start together, and the page opens in the default browser as
   soon as the app answers.
-- **The icon in the menu bar** (drawn with PyObjC, installed by `setup.sh`): *Open Yeufonic*,
+- **The icon in the menu bar:** *Open Yeufonic*,
   *Show the logs*, *Restart the engine* and *Quit Yeufonic*. Quit asks only when it would stop a
   job or a training run, as on Windows. There is no Dock icon and no window of its own: the page is
   the app. Opening Yeufonic again while it runs opens the page.
 - **Stopping:** quitting, logging out or shutting down stops the app and then the engine. A
   launcher that was killed outright leaves them running; the next start finds the ones it
   recorded and stops them first.
-- **Problems** (a port in use, the engine stopping) are shown in an alert. `launcher.py --console`
-  runs it without the menu bar, reporting in the terminal.
+- **Problems** (a port in use, the engine stopping) are shown in an alert. `launcher.py` run from a
+  terminal runs it without the menu bar, reporting there.
 
 `settings.ini` in the install folder can change:
 
