@@ -21,17 +21,24 @@ def fast(monkeypatch):
     jobs.CURRENT.clear()
 
 
-def oom_report(graph):
+CUDA_OOM = "CUDA error: out of memory\nSearch for `cudaErrorMemoryAllocation'"
+# A Mac's engine, on Metal.
+MPS_OOM = ("MPS backend out of memory (MPS allocated: 27.10 GiB, other allocations: 5.77 MiB, max allowed: "
+           "30.19 GiB). Tried to allocate 1.68 GiB on shared pool.")
+
+
+def oom_report(graph, message=CUDA_OOM):
     job = done({}, graph, status="error")
     job["status"]["messages"] = [["execution_error", {
         "node_type": "YuE2GenerateABC", "exception_type": "torch.AcceleratorError",
-        "exception_message": "CUDA error: out of memory\nSearch for `cudaErrorMemoryAllocation'"}]]
+        "exception_message": message}]]
     return job
 
 
-def test_an_out_of_memory_report_is_said_plainly(monkeypatch):
+@pytest.mark.parametrize("message", [CUDA_OOM, MPS_OOM])
+def test_an_out_of_memory_report_is_said_plainly(monkeypatch, message):
     take = make_take(status="queued")
-    use(monkeypatch, FakeEngine([oom_report(PLAN_GRAPH)]))
+    use(monkeypatch, FakeEngine([oom_report(PLAN_GRAPH, message)]))
     asyncio.run(jobs.run_job("plan", take["id"]))
     error = one("SELECT error FROM takes WHERE id = ?", (take["id"],))["error"]
     assert error.startswith("the GPU ran out of memory.") and "length cap" in error

@@ -19,10 +19,11 @@ import httpx
 
 from . import config, logging_setup
 
-# The engine's own words when the GPU runs out: CUDA's error, torch's exception, and
-# ComfyUI's note as it gives up. Not its "Ran out of memory when regular VAE encoding,
-# retrying with tiled VAE encoding", which it recovers from by itself.
-OUT_OF_MEMORY = re.compile(r"CUDA error: out of memory|CUDA out of memory|OutOfMemoryError|Got an OOM")
+# The engine's own words when the GPU runs out: CUDA's error, Metal's on a Mac, torch's
+# exception, and ComfyUI's note as it gives up. Not its "Ran out of memory when regular VAE
+# encoding, retrying with tiled VAE encoding", which it recovers from by itself.
+OUT_OF_MEMORY = re.compile(r"CUDA error: out of memory|CUDA out of memory|MPS backend out of memory"
+                           r"|OutOfMemoryError|Got an OOM")
 
 log = logging.getLogger("yue2.engine")
 
