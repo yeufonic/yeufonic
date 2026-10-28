@@ -84,17 +84,18 @@ class App:
     def get(self, path: str) -> dict:
         return self.call("GET", path)
 
-    def tool(self, name: str, **arguments) -> dict:
-        """One MCP tool call; its JSON answer, or Failed with the tool's own words."""
+    def tool(self, tool_name: str, /, **arguments) -> dict:
+        """One MCP tool call; its JSON answer, or Failed with the tool's own words.  The tool's
+        name is positional only: create_space has an argument called name of its own."""
         self.rpc_id += 1
         reply = self.call("POST", "/mcp", {"jsonrpc": "2.0", "id": self.rpc_id, "method": "tools/call",
-                                           "params": {"name": name, "arguments": arguments}}, timeout=200)
+                                           "params": {"name": tool_name, "arguments": arguments}}, timeout=200)
         if "error" in reply:
-            raise Failed(f"{name}: {reply['error'].get('message')}")
+            raise Failed(f"{tool_name}: {reply['error'].get('message')}")
         result = reply.get("result") or {}
         text = "".join(part.get("text", "") for part in result.get("content", []))
         if result.get("isError"):
-            raise Failed(f"{name}: {text[:300]}")
+            raise Failed(f"{tool_name}: {text[:300]}")
         try:
             return json.loads(text)
         except ValueError:
