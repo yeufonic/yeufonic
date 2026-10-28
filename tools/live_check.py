@@ -254,7 +254,7 @@ def run(args) -> list[dict]:
         return out
 
     def song():
-        take = app.tool("make_song", style=STYLE, lyrics=LYRICS, title="Live check song", seed=SEED,
+        take = app.tool("make_song", style=STYLE, lyrics=LYRICS, title="Live check song", seed=args.seed,
                         max_duration=60 if not args.full else 180, space=SPACE)
         out = timed_take(take, args.limit)
         made["song"] = out["take"]
@@ -262,7 +262,7 @@ def run(args) -> list[dict]:
 
     def instrumental():
         take = app.tool("make_instrumental", style="lo-fi hip hop, mellow piano, vinyl crackle, 80 bpm",
-                        structure=STRUCTURE, title="Live check instrumental", seed=SEED, max_duration=70, space=SPACE)
+                        structure=STRUCTURE, title="Live check instrumental", seed=args.seed, max_duration=70, space=SPACE)
         return timed_take(take, args.limit)
 
     def first_take(reply: dict) -> dict:
@@ -311,7 +311,7 @@ def run(args) -> list[dict]:
             app.call("POST", f"/api/sources/{sid}/lyrics", {})
             app.wait_source(sid, "lyrics", args.limit)
         times["lyrics"] = round(time.time() - started, 1)
-        take = app.tool("make_cover", recording_id=sid, style=STYLE, title="Live check cover", seed=SEED,
+        take = app.tool("make_cover", recording_id=sid, style=STYLE, title="Live check cover", seed=args.seed,
                         space=SPACE, **({} if args.full else {"max_duration": 90}))
         out = timed_take(take, args.limit)
         out.update(transcribe_seconds=times["transcribe"], lyrics_seconds=times["lyrics"])
@@ -412,6 +412,9 @@ def main() -> int:
     parser.add_argument("--only", type=lambda s: s.split(","), default=[])
     parser.add_argument("--skip", type=lambda s: s.split(","), default=[])
     parser.add_argument("--full", action="store_true", help="full-length song and cover, not the short ones")
+    parser.add_argument("--seed", type=int, default=SEED,
+                        help="the seed for every take; a new one for each run of a batch, or the engine hands back "
+                             "the last run's result from its cache")
     parser.add_argument("--limit", type=float, default=3600, help="the longest any one job may take, in seconds")
     parser.add_argument("--lyrics-limit", type=float, default=900)
     parser.add_argument("--out", default="live-check-results")
