@@ -442,6 +442,7 @@ class Engine:
         encoders = combo_options(info, "AudioEncoderLoader", "audio_encoder_name")
         # The harmony node is optional: plans without it use the stock planner.
         text_models = combo_options(info, "CLIPLoader", "clip_name")
+        picture_pair = config.choose_picture_files(combo_options(info, "UNETLoader", "unet_name"), text_models)
         loras = combo_options(info, "LoraLoader", "lora_name")
         self.options = {"checkpoints": checkpoints, "audio_encoders": encoders,
                         "harmony": "YuE2GenerateABCHarmony" in info,
@@ -460,15 +461,17 @@ class Engine:
                         # app can tell whether training is there to offer at all.
                         "trainer": any(n in info for n in ("YuE2TrainerAcousticLoRA", "YuE2TrainerPlannerLoRA")),
                         # Take pictures drawn here: FLUX.2 klein and its parts, chosen at install, and the nodes for them.
-                        "pictures": (config.PICTURE_MODEL in combo_options(info, "UNETLoader", "unet_name")
-                                     and config.PICTURE_TEXT in text_models
+                        "pictures": (picture_pair in config.PICTURE_PAIRS
+                                     and picture_pair[0] in combo_options(info, "UNETLoader", "unet_name")
+                                     and picture_pair[1] in text_models
                                      and config.PICTURE_VAE in combo_options(info, "VAELoader", "vae_name")
                                      and all(n in info for n in ("EmptyFlux2LatentImage", "Flux2Scheduler",
                                                                  "SamplerCustomAdvanced", "CFGGuider"))),
                         "loras": loras}
 
-        # Which size of the model is installed decides which one the graphs ask for.
+        # Which size of the model is installed decides which one the graphs ask for, and the same for klein.
         config.CHECKPOINT = config.choose_checkpoint(checkpoints)
+        config.PICTURE_MODEL, config.PICTURE_TEXT = picture_pair
 
         needed = set()
         for graph in _TEMPLATES.values():

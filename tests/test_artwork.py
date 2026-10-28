@@ -856,3 +856,37 @@ def test_local_artwork_does_not_start_before_render_finishes(monkeypatch, data_d
 
 
 
+
+
+def test_klein_is_drawn_with_whichever_pair_of_files_is_installed():
+    # FP8 + FP4 on Windows and Docker; the full-precision pair on a Mac, whose GPU cannot run FP8 or FP4.
+    nvidia, mac = config.PICTURE_PAIRS
+    assert nvidia == ("flux-2-klein-4b-fp8.safetensors", "qwen_3_4b_fp4_flux2.safetensors")
+    assert config.choose_picture_files([nvidia[0], mac[0]], [nvidia[1], mac[1]]) == nvidia
+    assert config.choose_picture_files([mac[0]], [mac[1], "gemma.safetensors"]) == mac
+    assert config.choose_picture_files([nvidia[0]], [mac[1]]) == nvidia          # no whole pair: the usual names
+    assert config.choose_picture_files(None, None) == nvidia
+
+
+def test_an_engine_with_the_full_precision_klein_files_can_draw(monkeypatch):
+    import httpx
+    from app.engine import Engine
+    model, encoder = config.PICTURE_PAIRS[1]
+    combo = lambda field, names: {"input": {"required": {field: [names]}}}
+    info = {"UNETLoader": combo("unet_name", [model]), "CLIPLoader": combo("clip_name", [encoder]),
+            "VAELoader": combo("vae_name", [config.PICTURE_VAE]), "CheckpointLoaderSimple": combo("ckpt_name", []),
+            **{node: {"input": {"required": {}}} for node in ("EmptyFlux2LatentImage", "Flux2Scheduler",
+                                                             "SamplerCustomAdvanced", "CFGGuider")}}
+
+    async def run():
+        engine = Engine("http://engine")
+        engine.client = httpx.AsyncClient(base_url="http://engine",
+                                          transport=httpx.MockTransport(lambda r: httpx.Response(200, json=info)))
+        await engine.refresh_options()
+        await engine.client.aclose()
+        return engine.options["pictures"]
+    monkeypatch.setattr(config, "PICTURE_MODEL", config.PICTURE_MODEL)
+    monkeypatch.setattr(config, "PICTURE_TEXT", config.PICTURE_TEXT)
+    assert asyncio.run(run()) is True
+    assert (config.PICTURE_MODEL, config.PICTURE_TEXT) == (model, encoder)
+    assert artwork.picture_graph("a field", 1, "p")["1"]["inputs"]["unet_name"] == model

@@ -145,10 +145,23 @@ def choose_checkpoint(installed: list[str] | None) -> str:
         if name in (installed or []):
             return name
     return CHECKPOINT_BF16
+def choose_picture_files(models: list[str] | None, encoders: list[str] | None) -> tuple[str, str]:
+    """The klein model and text encoder to draw with: the first pair of PICTURE_PAIRS whose two
+    files are both installed, else the first pair (so a message about missing files names it)."""
+    for model, encoder in PICTURE_PAIRS:
+        if model in (models or []) and encoder in (encoders or []):
+            return model, encoder
+    return PICTURE_PAIRS[0]
+
+
 LYRICS_MODEL = "gemma4_e4b_it_int8_convrot.safetensors"
 # Take pictures drawn on this PC: FLUX.2 klein 4B, its text encoder and its VAE, chosen at install.
-PICTURE_MODEL = "flux-2-klein-4b-fp8.safetensors"
-PICTURE_TEXT = "qwen_3_4b_fp4_flux2.safetensors"
+# Two pairs of files, looked for in this order: the FP8 model with the FP4 encoder that Windows and
+# Docker install, whose fast kernels are NVIDIA's, and the full-precision pair, the one a Mac's GPU
+# can run.  The engine's list says which is installed (choose_picture_files).
+PICTURE_PAIRS = (("flux-2-klein-4b-fp8.safetensors", "qwen_3_4b_fp4_flux2.safetensors"),
+                 ("flux-2-klein-4b.safetensors", "qwen_3_4b.safetensors"))
+PICTURE_MODEL, PICTURE_TEXT = PICTURE_PAIRS[0]
 PICTURE_VAE = "flux2-vae.safetensors"
 # The engine's model folder, when this machine can see it.  The app only reads
 # from it, and only to say what a LoRA holds; the engine is what loads them.
