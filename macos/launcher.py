@@ -101,9 +101,18 @@ def port_taken(port: int) -> bool:
         return s.connect_ex(("127.0.0.1", port)) == 0
 
 
+# What ComfyUI needs told on a Mac (found on the first Mac test, 2026-10-28).  On Metal it keeps
+# every text encoder, YuE2's planner and sampler among them, on the CPU unless --gpu-only; and it
+# uses its basic attention, which holds a whole song's attention matrix at once and ran a cover out
+# of memory, unless --use-pytorch-cross-attention (which an NVIDIA card gets by itself).  engine_args
+# in settings.ini come after these.
+MAC_ENGINE_FLAGS = ["--gpu-only", "--use-pytorch-cross-attention"]
+
+
 def engine_command(cfg: dict) -> list[str]:
     return [str(ENGINE_PYTHON), "-s", str(COMFY / "main.py"), "--disable-auto-launch",
-            "--listen", "127.0.0.1", "--port", str(cfg["engine_port"]), *shlex.split(cfg.get("engine_args", ""))]
+            "--listen", "127.0.0.1", "--port", str(cfg["engine_port"]), *MAC_ENGINE_FLAGS,
+            *shlex.split(cfg.get("engine_args", ""))]
 
 
 def engine_env(cfg: dict) -> dict:

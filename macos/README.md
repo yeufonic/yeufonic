@@ -64,7 +64,8 @@ over to, so the icon cannot be Python's.)
 app_port = 8090
 engine_port = 8188
 data_dir = ~/Music/Yeufonic
-; added to ComfyUI's command line, e.g. --cpu or --lowvram
+; added to ComfyUI's command line after --gpu-only --use-pytorch-cross-attention
+; (always given on a Mac), e.g. --cpu or --lowvram
 engine_args =
 ; off: the trainer is written for CUDA and has not been tried on a Mac
 training = no

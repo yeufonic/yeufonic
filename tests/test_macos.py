@@ -290,7 +290,12 @@ def test_settings_ini_moves_ports_and_data_and_turns_training_on(monkeypatch, tm
     assert cfg["data_dir"] == str(Path.home() / "Music" / "Yeufonic")
     assert launcher.app_env(cfg)["TRAINING_ENABLED"] == "1"
     assert launcher.app_env(cfg)["ENGINE_URL"] == "http://127.0.0.1:8199"
-    assert launcher.engine_command(cfg)[-2:] == ["--cpu", "--lowvram"]
+    command = launcher.engine_command(cfg)
+    assert command[-2:] == ["--cpu", "--lowvram"]
+    # What Metal needs: the text encoders on the GPU, and attention that does not hold a
+    # whole song's matrix at once.  Given before engine_args, so those can add to them.
+    assert command.index("--use-pytorch-cross-attention") < command.index("--cpu")
+    assert "--gpu-only" in command
     assert "8099" in launcher.app_command(cfg)
 
 
