@@ -49,6 +49,12 @@ KEY_CHECKED = "update.checked"
 KEY_SEEN = "update.seen"
 KEY_ANSWER = "update.answer"
 
+def _install_kind() -> str:
+    """Which install this is, which decides what an update means: an installer to run, a disk
+    image to drag from, or a pull and a rebuild."""
+    return {"win32": "windows", "darwin": "macos"}.get(sys.platform, "docker")
+
+
 def _initial() -> dict:
     """What we know before asking anything.  A function, so the state can be rebuilt:
     `config.VERSION` and the platform are read when this module is imported, and a test
@@ -61,7 +67,7 @@ def _initial() -> dict:
         "notes": None,
         "installer": None,
         "sha256": None,
-        "install": "windows" if sys.platform == "win32" else "docker",
+        "install": _install_kind(),
         "line": None,
         "seen": False,
         "error": None,
@@ -96,18 +102,21 @@ def is_newer(latest: str | None, mine: str | None = None) -> bool:
 
 
 def _installer_from(assets: list[dict] | None) -> tuple[str | None, str | None]:
-    """The setup file and its hash, from a release's assets.  The installer is what a
-    Windows user is sent to, so it is worth finding by name; anything else can fall back
-    to the release page."""
+    """The setup file and its hash, from a release's assets: the Windows installer, or on a
+    Mac the disk image.  It is what such an install is sent to, so it is worth finding by
+    name; anything else can fall back to the release page."""
+    prefix, suffix = ("yeufonic-", ".dmg") if STATE["install"] == "macos" else ("yeufonic-setup", ".exe")
     for asset in assets or []:
-        name = str(asset.get("name") or "")
-        if name.lower().startswith("yeufonic-setup") and name.lower().endswith(".exe"):
+        name = str(asset.get("name") or "").lower()
+        if name.startswith(prefix) and name.endswith(suffix):
             return asset.get("browser_download_url"), asset.get("digest") or None
     return None, None
 
 
 def _from_manifest(data: dict) -> dict:
-    installer = data.get("installer") or {}
+    # "installer" is the Windows one; a Mac's disk image is under "macos", and a manifest
+    # without it sends a Mac to the release notes rather than to a Windows installer.
+    installer = (data.get("macos") if STATE["install"] == "macos" else data.get("installer")) or {}
     if isinstance(installer, str):                    # a plain URL is allowed too
         installer = {"url": installer}
     return {
@@ -164,6 +173,8 @@ def advice() -> str:
     """What to do about it, in the words of the install this is running in."""
     if STATE["install"] == "windows":
         return "Run the installer over this one: your library and models are kept."
+    if STATE["install"] == "macos":
+        return "Quit Yeufonic, then drag the new one into Applications: your library and models are kept."
     return "Pull the new version and rebuild: " + (STATE["line"] or "git pull && docker compose up -d --build")
 
 

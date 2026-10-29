@@ -1,6 +1,6 @@
 """Yeufonic: lightweight CPU and GPU utilization stats.
 
-Works on both Linux and Windows platforms, supporting both native and Docker installs.
+Works on Linux, Windows and macOS, supporting both native and Docker installs.
 Assumes nothing about the target platform; uses standard OS facilities and APIs without
 requiring external tools or packages. Fails gracefully with a debug log entry if stats
 are unavailable.
@@ -28,6 +28,7 @@ _last_cpu_pct: int | None = None
 _nvml_initialized: bool = False
 _nvml_lib: Any = None
 _nvml_failed: bool = False
+_mach: Any = None
 
 
 def _read_cpu_raw() -> tuple[float, float] | None:
@@ -63,6 +64,24 @@ def _read_cpu_raw() -> tuple[float, float] | None:
                 return total, idle
         except Exception as exc:
             log.debug("GetSystemTimes call failed: %s", exc)
+
+    # 3. macOS host_statistics (native Mac install): user, system, idle and nice ticks
+    if sys.platform == "darwin":
+        try:
+            global _mach
+            if _mach is None:
+                libc = ctypes.CDLL("/usr/lib/libSystem.B.dylib")
+                libc.mach_host_self.restype = ctypes.c_uint32
+                libc.host_statistics.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_void_p,
+                                                 ctypes.POINTER(ctypes.c_uint32)]
+                _mach = (libc, libc.mach_host_self())   # one port, kept, rather than one per reading
+            libc, host = _mach
+            ticks = (ctypes.c_uint32 * 4)()
+            count = ctypes.c_uint32(4)                   # HOST_CPU_LOAD_INFO_COUNT
+            if libc.host_statistics(host, 3, ticks, ctypes.byref(count)) == 0:   # HOST_CPU_LOAD_INFO
+                return float(sum(ticks)), float(ticks[2])
+        except Exception as exc:
+            log.debug("host_statistics call failed: %s", exc)
 
     return None
 
