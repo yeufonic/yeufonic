@@ -4,9 +4,8 @@ Yeufonic as a Mac app, for a Mac with Apple silicon (M1 or later) and macOS 14 o
 Windows installer it runs natively: no Docker, which on a Mac cannot reach the GPU, and no
 administrator prompt. The engine runs on the GPU through Metal (PyTorch's MPS backend).
 
-**It has not yet made a song on a Mac.** Everything here is built and tested as far as a Linux
-machine and GitHub's Mac runners allow (see *What has been tried*); whether YuE2 renders on Metal,
-and how fast, is the first thing the test plan below answers.
+**It is not released.** It installs and makes songs, covers and pictures on a Mac with Apple silicon,
+but it is slower than on an NVIDIA card, and training does not yet work on Metal.
 
 ## What it does
 
@@ -23,8 +22,15 @@ and how fast, is the first thing the test plan below answers.
      - The ComfyUI commit `engine/Dockerfile` pins, and ComfyUI-YuE2-Trainer.
      - ffmpeg and ffprobe, static arm64 builds.
      - The models from Hugging Face: the ones the Windows installer fetches, with the same
-       checksums (a test holds the two lists together), but for the low-memory YuE2 and
-       FLUX.2 [klein], whose int8 and fp8 kernels are CUDA's.
+       checksums (a test holds the two lists together), but for the low-memory YuE2, whose
+       int8 kernels are CUDA's.
+   - **Take pictures drawn on the Mac are an option**, asked once in that window and remembered
+     for every later run: FLUX.2 [klein], about 16 GB more. A Mac takes the model and its text
+     encoder at full precision, because the FP8 and FP4 files Windows uses need an NVIDIA card. The
+     question says it is slow on a Mac (minutes a picture), needs 24 GB of memory at the least
+     (32 GB recommended), and is experimental. To change the answer later, quit Yeufonic and run
+     `bash /Applications/Yeufonic.app/Contents/Resources/setup.sh --pictures` (or
+     `--no-pictures`, which fetches nothing and leaves files already there).
    - Downloads resume, and a second run keeps whatever is already in place.
    - A Terminal window is used because it needs no permission: the app writes a `.command` file
      and opens it, where telling Terminal what to do would ask to control it.

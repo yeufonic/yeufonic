@@ -168,6 +168,84 @@ def test_a_build_machine_with_little_memory_may_still_test_the_setup(tmp_path):
     assert "too little to make songs" in res.stdout
 
 
+# ------------------------------------------------------------------- take pictures
+
+def picture_models() -> dict:
+    text = SETUP.read_text(encoding="utf-8")
+    block = re.search(r"picture_list\(\) \{\n  cat <<LIST\n(.*?)\nLIST", text, re.S).group(1)
+    out = {}
+    for line in block.splitlines():
+        folder, name, size, sha, url = line.split("|")
+        out[name] = {"dir": folder, "size": int(size), "sha": sha, "url": url.replace("$HF", "https://huggingface.co")}
+    return out
+
+
+def test_a_mac_draws_with_the_full_precision_pair_and_the_windows_vae():
+    mac = picture_models()
+    full = [pair for pair in config.PICTURE_PAIRS if pair != config.PICTURE_PAIRS[0]]
+    assert full, "config.PICTURE_PAIRS has no pair a Mac can use"
+    model, encoder = full[0]
+    assert set(mac) == {model, encoder, config.PICTURE_VAE}
+    assert mac[model]["dir"] == "diffusion_models" and mac[encoder]["dir"] == "text_encoders"
+    # The VAE is the very file Windows fetches.
+    windows = SETUP_PS1.read_text(encoding="utf-8").split("$PictureFiles = @(", 1)[1].split("\n)\n", 1)[0]
+    vae = re.search(r"File = 'flux2-vae\.safetensors'.*?Url = \"([^\"]+)\".*?Sha = '([0-9a-f]{64})'; Size = (\d+)",
+                    windows, re.S)
+    assert mac[config.PICTURE_VAE] == {"dir": "vae", "url": vae.group(1).replace("$HF", "https://huggingface.co"),
+                                       "sha": vae.group(2), "size": int(vae.group(3))}
+    # Neither of the files a Mac's GPU cannot run is fetched.
+    assert not set(config.PICTURE_PAIRS[0]) & set(mac)
+
+
+def needed_gb(res) -> int:
+    return int(re.search(r"needed: about (\d+) GB", res.stdout).group(1))
+
+
+@needs_bash
+def test_pictures_are_left_out_unless_chosen_and_a_check_keeps_no_choice(tmp_path):
+    plain = check(tmp_path)
+    assert "Take pictures on this Mac: no" in plain.stdout
+    chosen = check(tmp_path, "--pictures")
+    assert "Take pictures on this Mac: yes" in chosen.stdout
+    assert needed_gb(chosen) - needed_gb(plain) == 16
+    # Not asked without a terminal, and a check alone keeps nothing, so a run in a window still asks.
+    assert not (tmp_path / "install" / "state" / "pictures").exists()
+
+
+@needs_bash
+def test_a_choice_made_before_is_kept(tmp_path):
+    state = tmp_path / "install" / "state"
+    state.mkdir(parents=True)
+    (state / "pictures").write_text("yes\n")
+    res = check(tmp_path)
+    assert "Take pictures on this Mac: yes" in res.stdout
+    assert "Draw take pictures" not in res.stdout
+    assert needed_gb(res) - needed_gb(check(tmp_path, "--no-pictures")) == 16
+
+
+@needs_bash
+@pytest.mark.parametrize("answer, memory_gb, chosen", [("y", 32, "yes"), ("", 32, "no"), ("y", 16, "yes")])
+def test_the_first_run_in_a_window_asks_and_remembers(tmp_path, answer, memory_gb, chosen):
+    import pty
+    env = fake_mac(tmp_path, memory_gb=memory_gb)
+    # Too little room, so setup stops at the space check just after asking, before it fetches anything.
+    df = tmp_path / "fakebin" / "df"
+    df.write_text("#!/bin/sh\necho 'Filesystem 1024-blocks Used Available'\necho 'disk 1 1 1000'\n")
+    df.chmod(0o755)
+    leader, follower = pty.openpty()
+    proc = subprocess.Popen(["bash", str(SETUP), "--install-dir", str(tmp_path / "install")], env=env,
+                            stdin=follower, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    os.close(follower)
+    os.write(leader, (answer + "\n").encode())
+    out, _ = proc.communicate(timeout=60)
+    os.close(leader)
+    assert "Draw take pictures on this Mac? [y/N]" in out
+    assert ("not recommended" in out) == (memory_gb < 24)
+    assert f"Take pictures on this Mac: {chosen}" in out
+    assert (tmp_path / "install" / "state" / "pictures").read_text().strip() == chosen
+    assert "Not enough free space" in out
+
+
 @needs_bash
 def test_setup_keeps_a_log(tmp_path):
     check(tmp_path)

@@ -5,9 +5,13 @@
 # kept, and an interrupted download carries on.  The macOS counterpart of windows/setup.ps1,
 # and it keeps that script's order, so the two can be read side by side.
 #
-#   bash setup.sh [--install-dir <folder>] [--no-lyrics] [--check-only] [--skip-models] [--then-open <app>]
+#   bash setup.sh [--install-dir <folder>] [--no-lyrics] [--pictures | --no-pictures] [--check-only]
+#                 [--skip-models] [--then-open <app>]
 #   ... --install-dir   where it goes (default: ~/Library/Application Support/Yeufonic)
 #   ... --no-lyrics     leave out Gemma 4 (8.1 GB), for an external LLM in Settings instead
+#   ... --pictures      FLUX.2 [klein], which draws each take's picture on this Mac (about 16 GB);
+#                       --no-pictures fetches none.  Without either, the first run asks and the
+#                       answer is kept for every later run.
 #   ... --check-only    only the system check
 #   ... --skip-models   everything but the 18 GB of models (for testing)
 #   ... --then-open     open this app when setup has finished (the launcher passes itself)
@@ -20,10 +24,13 @@ NO_LYRICS=0
 CHECK_ONLY=0
 SKIP_MODELS=0
 THEN_OPEN=""
+PICTURES=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --install-dir) INSTALL_DIR="$2"; shift 2 ;;
     --no-lyrics) NO_LYRICS=1; shift ;;
+    --pictures) PICTURES=yes; shift ;;
+    --no-pictures) PICTURES=no; shift ;;
     --check-only) CHECK_ONLY=1; shift ;;
     --skip-models) SKIP_MODELS=1; shift ;;
     --then-open) THEN_OPEN="$2"; shift 2 ;;
@@ -86,7 +93,7 @@ COPIES=$HF/pshields/yue2-mothersuperior-copies/resolve/main
 # dir|file|bytes|sha256|url|lyrics|copy: the models windows/setup.ps1 fetches, with the same
 # checksums and, for Mothersuperior's files (one author's account), our unchanged copy, tried first
 # (tests/test_macos.py holds the two lists together).  Left out on a Mac: the
-# low-memory YuE2 and FLUX.2 [klein], whose int8 and fp8 kernels are CUDA's.
+# low-memory YuE2, whose int8 kernels are CUDA's, and FLUX.2 [klein]'s FP8 and FP4 files (below).
 model_list() {
   cat <<LIST
 checkpoints|yue2_3b_bf16.safetensors|7799983228|33765adbf9813c9a50318218760b2fd819a319862460a04884607581961c6fee|$HF/Comfy-Org/YuE2/resolve/main/checkpoints/yue2_3b_bf16.safetensors|
@@ -96,6 +103,18 @@ loras|ar_lora_inst_v3abc_comfyui.safetensors|212891736|de6a11d5701df103a191c87dc
 loras|nar_lora_joint_v9_comfyui.safetensors|107518800|cd2bf0d3ce4bf68697daa016671da7d70e34e2f5545617ab9094c96b14a581db|$HF/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main/nar_lora_joint_v9_comfyui.safetensors||$COPIES/nar_lora_joint_v9_comfyui.safetensors
 audio_encoders|tokenizer_head_joint_v9.safetensors|171278808|06440f25605c6c12c4e517ef033d7b70b8d9e961b3b06aa3848b1f8028fd7eb8|$HF/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main/tokenizer_head_joint_v9.safetensors||$COPIES/tokenizer_head_joint_v9.safetensors
 fs_audio|minted_regularizer_pack_v2.pt|296098847|587631eec5946f9f87d4b422abcda7e35dee43299efb7b7d2fcba4cd8752c475|$HF/Mothersuperior/YuE2-hum-to-song/resolve/main/minted_regularizer_pack_v2.pt||$COPIES/minted_regularizer_pack_v2.pt
+LIST
+}
+# dir|file|bytes|sha256|url: FLUX.2 [klein] 4B, its text encoder and its VAE (Apache 2.0), only when
+# chosen.  Windows and Docker fetch the model in FP8 and the encoder in FP4, which a Mac's GPU does
+# not have, so a Mac takes the full-precision pair, about twice the size; the VAE is the same file.
+# The app draws with whichever pair the engine lists.  Left out, a take's picture is drawn by the
+# external LLM's image model, if it has one, or not at all.
+picture_list() {
+  cat <<LIST
+diffusion_models|flux-2-klein-4b.safetensors|7751105712|ec3d4e733a771f61c052fb4856c48b336c55eaf2c65487c2a1faeb9bbda7a343|$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/diffusion_models/flux-2-klein-4b.safetensors
+text_encoders|qwen_3_4b.safetensors|8044982048|6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a|$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors
+vae|flux2-vae.safetensors|336211292|868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3|$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/vae/flux2-vae.safetensors
 LIST
 }
 soundfont_list() {
@@ -220,6 +239,42 @@ elif [ "$MEM_GB" -lt 32 ]; then
   warning "$MEM_GB GB of memory may be enough for songs, but not for lyric drafts on this Mac as well: choose an external LLM in Settings. 32 GB is recommended."
 fi
 
+# Take pictures drawn on this Mac: an option, asked once (in the Terminal window setup runs in)
+# and kept in state/, so an update does not ask again.  --pictures or --no-pictures changes it.
+# Answering no fetches nothing and leaves any files already here, as the Windows installer does.
+ask_pictures() {
+  say ""
+  say "Take pictures drawn on this Mac (optional)"
+  say "  FLUX.2 [klein] can draw a picture for each take on this Mac, with no external service."
+  say "  - About 16 GB more to download. A Mac needs the model's full-size files: the smaller"
+  say "    ones that Windows uses need an NVIDIA graphics card."
+  say "  - Slow on a Mac: a picture can take minutes, where an NVIDIA card takes seconds."
+  say "    It waits until no song is being made."
+  say "  - It needs a lot of memory while it draws: 24 GB at the least, 32 GB or more recommended."
+  if [ "$MEM_GB" -lt 24 ]; then
+    say "    This Mac has $MEM_GB GB: not recommended, as the whole Mac would slow down while it draws."
+  fi
+  say "  - Experimental on a Mac."
+  say "  Without it, a take's picture comes from the external LLM's image model, if it has one."
+  say "  To change this later, quit Yeufonic and run in Terminal:"
+  say "    bash $(printf '%q' "$HERE/setup.sh") --pictures    (or --no-pictures)"
+  printf 'Draw take pictures on this Mac? [y/N] '
+  local answer=""
+  read -r answer || answer=""
+  case "$answer" in [yY]*) PICTURES=yes ;; *) PICTURES=no ;; esac
+}
+if [ -n "$PICTURES" ]; then
+  [ "$CHECK_ONLY" -eq 1 ] || echo "$PICTURES" > "$STATE/pictures"
+elif [ -f "$STATE/pictures" ]; then
+  PICTURES="$(cat "$STATE/pictures")"
+elif [ -z "$problems" ] && [ "$CHECK_ONLY" -eq 0 ] && [ "$SKIP_MODELS" -eq 0 ] && [ -t 0 ]; then
+  ask_pictures
+  echo "$PICTURES" > "$STATE/pictures"
+fi
+# Not asked (no terminal, or only a check): none, and nothing kept, so the next run in a window asks.
+[ "$PICTURES" = yes ] || PICTURES=no
+say "Take pictures on this Mac: $PICTURES"
+
 # Room for what is still to come: the missing models, plus about 8 GB for the engine, the
 # app and the downloads while they unpack.  Counted in thousands, as download sites count.
 NEED=8000000000
@@ -231,6 +286,14 @@ if [ "$SKIP_MODELS" -eq 0 ]; then
   done <<EOF
 $(model_list)
 EOF
+  if [ "$PICTURES" = yes ]; then
+    while IFS='|' read -r dir file size sha url; do
+      [ -z "$file" ] && continue
+      [ -f "$MODELS/$dir/$file" ] || NEED=$((NEED + size))
+    done <<EOF
+$(picture_list)
+EOF
+  fi
   NEED=$((NEED + 1700000000))   # Whisper and demucs, for the app
 fi
 FREE_KB="$(df -k "$INSTALL_DIR" | awk 'NR==2 {print $4}')"
@@ -386,6 +449,17 @@ if [ "$SKIP_MODELS" -eq 0 ]; then
   done <<EOF
 $(model_list)
 EOF
+  if [ "$PICTURES" = yes ]; then
+    while IFS='|' read -r dir file size sha url; do
+      [ -z "$file" ] && continue
+      say ""
+      say "$file (take pictures)"
+      mkdir -p "$MODELS/$dir"
+      get_verified "$url" "$MODELS/$dir/$file" "$size" "$sha"
+    done <<EOF
+$(picture_list)
+EOF
+  fi
   # The trainer lists its tokenizer head from fs_audio as well.
   if [ ! -f "$MODELS/fs_audio/tokenizer_head_joint_v9.safetensors" ]; then
     cp "$MODELS/audio_encoders/tokenizer_head_joint_v9.safetensors" "$MODELS/fs_audio/"
