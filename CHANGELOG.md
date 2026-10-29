@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+- **A new take renders as soon as its plan is ready, unless you say otherwise.** *Render as soon as the plan is ready* is
+  ticked to begin with, and sits beside **Write score plan**, where it is seen, rather than at the other end of the
+  window. Without it a new take stopped at its plan, which looked as if nothing had been made. A browser that has saved
+  a choice keeps it.
 - **An engine too busy to answer is no longer called offline.** Loading several gigabytes of models can keep the engine from
   answering the app's status check for a while; that read as "offline" in the log and on the page, and could make a later
   failure say the engine had stopped. A slow answer now leaves it online for up to 90 seconds; a refused connection is still
