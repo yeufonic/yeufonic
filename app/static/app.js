@@ -10413,7 +10413,7 @@ function paintTrainMemory() {
   }
   if (gpu && gpu.ram_total && gb(gpu.ram_total) < TRAIN_NEEDS_RAM_GB) {
     warnings.push('System RAM visible to the engine is ' + gb(gpu.ram_total).toFixed(1) +
-      ' GB, and LoRA training recommends at least 32 GB (on WSL2, set memory=32GB in .wslconfig), or the OS may stop the engine mid-run.');
+      ' GB, and LoRA training recommends at least 32 GB, or the OS may stop the engine mid-run.');
   }
   var text = warnings.join(' ');
   note.textContent = text;

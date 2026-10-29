@@ -2415,9 +2415,8 @@ async def run_lora_train(run_id: str) -> None:
             log.warning("This card is short of memory for training: preparing the songs may run out at %s",
                         trainsize.clock(sizing["minutes"]))
         if sizing.get("ram_tight") and sizing.get("ram_gb") is not None:
-            log.warning("System RAM visible to the engine is %.1f GB; LoRA training recommends at least 32 GB%s, "
-                        "or the OS may stop the engine mid-run", sizing["ram_gb"],
-                        "" if ENGINE.shares_memory else " (on WSL2, set memory=32GB in .wslconfig)")
+            log.warning("System RAM visible to the engine is %.1f GB; LoRA training recommends at least 32 GB, "
+                        "or the OS may stop the engine mid-run", sizing["ram_gb"])
         reg_styles, reg_lyrics = _sample_regularization_prompts(dataset, regularization)
         graph = train_graph(f"lora-{run_id}", f"dataset_{run_id}",
                             run["lora_name"], steps, rank_planner, rank_decoder,

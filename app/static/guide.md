@@ -671,6 +671,11 @@ transcribed again). Ten to thirty seconds of tune is plenty.
 **Extract lyrics** is not offered for an instrument take, since it has no words to hear: use
 **Write lyrics**.
 
+**Hearing yourself late?** The browser adds a short delay between what you sing or play and what
+you hear in your headphones. If your audio interface has direct (zero-latency) monitoring, use it
+and turn the recorder's **Monitor** off, so you hear yourself straight from the interface, and only
+once. Use wired headphones: Bluetooth adds a delay of its own.
+
 #### Expand to full song
 
 A recorded tune is often only a few bars long. **Expand to full song** has YuE2 plan a whole song
