@@ -1,11 +1,12 @@
-# The Mac app (in development)
+# The Mac app (experimental)
 
 Yeufonic as a Mac app, for a Mac with Apple silicon (M1 or later) and macOS 14 or later. Like the
 Windows installer it runs natively: no Docker, which on a Mac cannot reach the GPU, and no
 administrator prompt. The engine runs on the GPU through Metal (PyTorch's MPS backend).
 
-**It is not released.** It installs and makes songs, covers and pictures on a Mac with Apple silicon,
-but it is slower than on an NVIDIA card, and training does not yet work on Metal.
+**It is experimental**, offered as a pre-release on GitHub and through
+[yeufonic.com/macos](https://yeufonic.com/macos/). It installs and makes songs, covers and pictures on a
+Mac with Apple silicon, but it is slower than on an NVIDIA card, and training does not yet work on Metal.
 
 ## What it does
 
@@ -73,7 +74,7 @@ data_dir = ~/Music/Yeufonic
 ; added to ComfyUI's command line after --gpu-only --use-pytorch-cross-attention
 ; (always given on a Mac), e.g. --cpu or --lowvram
 engine_args =
-; off: the trainer is written for CUDA and has not been tried on a Mac
+; off: the trainer is written for CUDA and does not yet finish a run on Metal
 training = no
 ```
 
@@ -90,7 +91,9 @@ as a `.tar.gz`, to look inside; that is not something to ship.
 The workflow `.github/workflows/macos.yml` does it on GitHub's Apple silicon runners, runs
 `tests/test_macos.py` there, sets the install up without the models from inside the built app,
 starts it, and checks that the app answers and the engine loads ComfyUI's YuE2 nodes and ours.
-Those runners have little memory and no Metal for PyTorch, so it cannot make a song.
+Those runners have Metal but too little memory for the models, so it cannot make a song. Each disk
+image it builds carries a build-provenance attestation (`gh attestation verify <file> --repo
+yeufonic/yeufonic`).
 
 ## Testing without the 18 GB of models
 

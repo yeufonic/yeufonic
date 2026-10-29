@@ -39,6 +39,12 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Yeufonic for Mac, experimental.** A disk image for Macs with Apple silicon (M1 or later, macOS 14 or later) that sets
+  it all up natively, with no Docker: the first time it is opened, a Terminal window installs Python, the engine and the
+  models, and asks once whether to draw take pictures on the Mac. The engine runs on the Mac's GPU through Metal; a Mac is
+  much slower than an NVIDIA card, and LoRA training does not work on it yet. Its icon sits in the menu bar. The disk
+  image is built on GitHub's own Mac runners, which keep a signed record of the build to check it against. The update
+  notice tells a Mac to drag in the new app, and the CPU meter reads a Mac's own figures. See yeufonic.com/macos.
 - **A new take renders as soon as its plan is ready, unless you say otherwise.** *Render as soon as the plan is ready* is
   ticked to begin with, and sits beside **Write score plan**, where it is seen, rather than at the other end of the
   window. Without it a new take stopped at its plan, which looked as if nothing had been made. A browser that has saved

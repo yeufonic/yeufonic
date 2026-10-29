@@ -1,5 +1,5 @@
 # The Mac install on a real Mac: GitHub's Apple silicon runners.  They have about 7 GB of
-# memory and no Metal for PyTorch, so this cannot make a song; it builds the app and the disk
+# memory (Metal is there, but too little of it for the models), so this cannot make a song; it builds the app and the disk
 # image, runs the tests on macOS's own bash and tools, sets the install up (without the 18 GB
 # of models) from inside the built app, and starts it, checking that the app answers and that
 # the engine loads ComfyUI's YuE2 nodes and ours.  A song is macos/README.md's test plan.
@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - 'feature/macos-*'
     paths:
       - 'macos/**'
@@ -53,7 +54,7 @@ jobs:
       - name: Start it and check the app and the engine answer
         run: |
           SUPPORT="$HOME/Library/Application Support/Yeufonic"
-          # Metal is not there on these runners; the engine runs on the CPU here.
+          # Metal has been there on these runners; if a runner lacks it, the engine runs on the CPU.
           if "$SUPPORT/engine/venv/bin/python" -c "import torch, sys; sys.exit(0 if torch.backends.mps.is_available() else 1)"; then
             echo "Metal: available"; ARGS=""
           else
