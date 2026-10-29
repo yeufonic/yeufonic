@@ -22,6 +22,11 @@ jobs:
   mac:
     runs-on: macos-15
     timeout-minutes: 75
+    # id-token and attestations: for the build provenance below.
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v4
 
@@ -74,6 +79,14 @@ jobs:
           EOF
           kill %1
           wait %1 || true
+
+      # A signed record that this disk image was built here, by this workflow, from this commit,
+      # once every check above has passed.  Anyone can check a download against it:
+      #   gh attestation verify Yeufonic-<version>.dmg --repo yeufonic/yeufonic
+      - name: Attest where the disk image came from
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: macos/dist/Yeufonic-*.dmg
 
       - name: Keep the disk image
         uses: actions/upload-artifact@v4
