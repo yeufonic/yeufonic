@@ -645,12 +645,11 @@ last section: **Render** again for another try.
 A cover follows the original's melody and chords while the style decides everything else, which is
 what makes it a cover rather than a copy.
 
-### Recording a tune of your own (Experimental)
+### Recording a tune of your own
 
 > [!NOTE]
-> **Experimental:** recording a tune and Expand to full song are new. How well a tune is heard
-> depends on the recording, and a plan made around it can still fail or wander: write a new plan, or
-> record the tune again.
+> How well a tune is heard depends on the recording, and a plan made around it can still fail or
+> wander: write a new plan, or record the tune again.
 
 In **Cover** mode, **Record melody** opens the recorder. Choose what you are recording under **Input**:
 
@@ -696,10 +695,10 @@ as a cover of your recording.
 - **Words:** a hum can be planned without words. A tune played on an instrument needs words to
   sing, so write them first: **Write lyrics** drafts them for you.
 
-### MIDI files and covers (Experimental)
+### MIDI files and covers
 
 > [!NOTE]
-> **Experimental:** Using MIDI files is designed for generating different, often off-the-wall takes of original tunes.
+> Using MIDI files is designed for generating different, often off-the-wall takes of original tunes.
 
 In addition to recorded audio files, you can drop or upload Standard MIDI files (`.mid`, `.midi`) directly into **Cover** mode.
 
