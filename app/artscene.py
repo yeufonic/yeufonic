@@ -81,7 +81,6 @@ DEVICES_ONE = [
     "{A} frozen inside a block of clear ice {where}",
     "{A} made entirely of glass {where}",
     "{A} caught in a single beam of light from above {where}",
-    "A small distant figure in a dark suit standing beside {a} {where}",
     "Two halves of {a} drifting apart {where}",
     "A framed painting of {a} standing on an easel {where}, the painting continuing the view behind it",
     "{A} whose shadow points the wrong way {where}",

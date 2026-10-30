@@ -44,11 +44,14 @@ KLEIN_LOOK = (
     "photography: a bold, precise composition, sharp focus and rich detail from edge to edge, clean and "
     "evenly exposed, true colour."
 )
-# klein 4B draws people badly close up (a hand with four fingers, an arm too many), and the house style
-# seldom showed them close.  Gemma, who writes the scene, is asked to keep them far off; klein is not
-# told about people at all, since a sentence about them put a small figure in every picture.
-FIGURES_FAR_BRIEF = ("Any person is a small figure far off, seen from behind or in silhouette; keep hands and "
-                     "faces out of close-up. Often the subject is objects rather than people.")
+# Gemma, who writes the scene klein draws, is asked to leave people out: klein 4B draws them badly close up
+# (a hand with four fingers, an arm too many), and asked only to keep them far off, Gemma put a distant
+# figure in many of its scenes.  Leading with "leave people out" keeps them out; saying nothing about people
+# let some back in.  klein itself is told nothing about people, since a sentence about them put a small
+# figure in every picture.
+PEOPLE_BRIEF = ("Leave people out: let the objects, the place and the light carry the picture. Only if the idea "
+                "cannot work without a person, make them one small figure far off, seen from behind; never a "
+                "close-up of hands or faces.")
 KLEIN_WORN = "The print shows light ring-wear and creased corners; its colour is still strong."
 KLEIN_WORDLESS = "A wordless image."
 # Words that put lettering in a scene, and the words after them: "a sign reading ...", "a boat named ...".
@@ -614,7 +617,7 @@ def description_request(take: dict, well_worn: bool | None = None, with_title: b
     well: a model given it works it into the scene ("a telephone box reading ..."), and klein then
     letters it on the sleeve — the one text it went on drawing.  With for_klein (Gemma's brief) the
     scene is asked for in what klein can draw from: a setting and light chosen for the song rather than
-    a landscape every time, concrete details, and people kept far off (FIGURES_FAR_BRIEF).
+    a landscape every time, concrete details, and people left out (PEOPLE_BRIEF).
     """
     raw_title = clean_cover_title(take)
     title = raw_title if with_title else ""
@@ -640,7 +643,7 @@ def description_request(take: dict, well_worn: bool | None = None, with_title: b
         f"{worn_texture}. Do not use the name Hipgnosis in the image or description; "
         "the image should only be influenced by that design group, not made to look like it was created by them. "
         "Do not specify or add a year or decade unless one is explicitly stated in the style above. "
-        f"{FIGURES_FAR_BRIEF + ' ' if for_klein else ''}"
+        f"{PEOPLE_BRIEF + ' ' if for_klein else ''}"
         "Between 40 and 90 words. Reply with the description only."
     )
 

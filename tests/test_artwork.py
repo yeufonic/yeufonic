@@ -939,7 +939,7 @@ def test_a_picture_that_skips_the_external_models_says_why(client, monkeypatch, 
 
 def test_gemma_is_asked_for_a_scene_klein_can_draw_and_klein_for_the_scene_first():
     """klein weighs the start of its prompt most, so the scene leads.  Gemma, writing the scene klein draws,
-    is asked for a setting and light chosen for the song rather than a landscape, and for people far off
+    is asked for a setting and light chosen for the song rather than a landscape, and to leave people out
     (klein draws hands and faces badly up close); klein itself is told nothing about people, which put a
     small figure in every picture.  The external LLM's brief is left as it was."""
     take = {"title": "Night Fishing", "style": "folk", "lyrics": "A boat at dusk", "seed": 1}
@@ -948,9 +948,10 @@ def test_gemma_is_asked_for_a_scene_klein_can_draw_and_klein_for_the_scene_first
     assert "person" not in klein.lower() and "figure" not in klein.lower() and "hand" not in klein.lower()
     assert "vast" not in klein and "empty space" not in klein and "muted" not in klein
     brief = artwork.describe_graph(take, 1)["2"]["inputs"]["prompt"]
-    assert artwork.KLEIN_BRIEF in brief and artwork.FIGURES_FAR_BRIEF in brief and "dramatic landscapes" not in brief
+    assert artwork.KLEIN_BRIEF in brief and artwork.PEOPLE_BRIEF in brief and "dramatic landscapes" not in brief
     external = artwork.description_request(take)
-    assert artwork.EXTERNAL_BRIEF in external and artwork.FIGURES_FAR_BRIEF not in external
+    assert artwork.EXTERNAL_BRIEF in external and artwork.PEOPLE_BRIEF not in external
+    assert artwork.PEOPLE_BRIEF.startswith("Leave people out")   # leading with it is what keeps them out
 
 
 def test_klein_9b_is_found_when_its_files_are_put_in_and_drawn_with_as_settings_ask(monkeypatch):

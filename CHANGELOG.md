@@ -48,6 +48,10 @@ cannot creep back in.
   visualizer's top right, in every scene, makes a new picture for the take playing. The waveform under the Yeufonic
   scene is fainter, the lyrics panel can be dragged out of the way, and a scene chosen in the visualizer no longer
   switches back to the saved one a moment later.
+- **Pictures drawn on this PC seldom have people in them.** Gemma, describing a picture for FLUX.2 [klein], is asked to
+  leave people out and let objects, the place and the light carry it; a person appears only where the idea needs one,
+  small and far off. Asked before only to keep people far off, it put a distant figure in many pictures. Pictures
+  already made are not changed.
 - **A take with no picture offers to make one from its card.** Pointing at the square at the top left of a card with no
   picture shows **Make a new picture**, as the enlarged picture does, where this PC can make pictures.
 
