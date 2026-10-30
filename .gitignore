@@ -84,3 +84,4 @@ compose.override.yml
 .wrangler/
 docker-compose.override.yml
 windows/dist/
+macos/dist/

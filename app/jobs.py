@@ -529,6 +529,11 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
         if writes == "gemma" and not on_gpu:
             _art_waits_for_gpu(take_id)
             return
+        passed_over = artwork.words_passed_over()
+        if passed_over and take_id not in _ART_WORDS_FALLBACK:
+            log.warning("Picture for '%s' (%s): not described by the external LLM, as %s; %s instead",
+                        take.get("title") or take_id, take_id, passed_over,
+                        "Gemma on this PC" if writes == "gemma" else "the take's own scene")
         worn = artwork.is_well_worn(take)
         if writes == "take":
             description = artwork.take_description(take, well_worn=worn)
@@ -576,6 +581,10 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
         if drawer == "external" and take_id in _ART_DRAWER_FALLBACK:
             drawer = "local"
         drawer_name = artwork.image_model() if drawer == "external" else "FLUX.2 klein"
+        passed_over = artwork.drawing_passed_over()
+        if drawer == "local" and passed_over and take_id not in _ART_DRAWER_FALLBACK:
+            log.warning("Picture for '%s' (%s): not drawn by %s, as %s; FLUX.2 klein on this PC instead",
+                        take.get("title") or take_id, take_id, artwork.image_model(), passed_over)
         log.info("Picture for '%s' (%s) [writer=%s, drawer=%s] prompt:\n%s",
                  take.get("title") or take_id, take_id, writer, drawer_name, full_prompt)
         artwork.STATE[take_id]["state"] = "drawing"
@@ -845,6 +854,9 @@ async def run_job(kind: str, ref_id: str) -> None:
         if ref_id in CANCELLED:
             fail(kind, ref_id, "cancelled")
             return
+        if llm.is_session_local_only() and llm.get_config()["provider"] == "external":
+            log.warning("Lyrics draft %s: the external LLM is paused for this session (Resume in Settings); "
+                        "drafting with local Gemma instead", ref_id)
         log.info("Starting lyrics generation for draft %s (structure=%s)", ref_id, record.get("structure"))
         graph = build_lyrics_graph(record)
     elif kind == "transcribe":

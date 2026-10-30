@@ -16,13 +16,15 @@ thrown away; a render costs minutes. So the app lets you look at the plan first.
 2. **Type a style.** A sentence, not a tag list: *"warm indie rock, expressive female lead, jangly
    guitars, 96 BPM"*. This is the single biggest influence on what comes out.
 3. **Add lyrics**, or press **Write lyrics** and let Gemma draft them from a description.
-4. Press **Write score plan**. Nothing is rendered yet: the window turns to its **Score** page.
-5. **Read the plan** when it lands. If the melody is wrong, **Write a new plan** rerolls it for the
-   cost of a few seconds.
-6. Press **Render this score**. The window closes. A take with no audio yet is filled in; one that already has
-   audio is rendered as a new take beside it, so a render never overwrites one you may want to keep.
+4. Press **Write score plan**. The window closes and the take appears in the left panel. With
+   **Render as soon as the plan is ready** ticked beside the button, as it is to begin with, the plan
+   goes straight on to its render.
 
-Tick *render as soon as the plan is ready* to run both steps without stopping in between.
+To read the plan before anything is rendered, untick **Render as soon as the plan is ready** first. The
+take then stops at its plan: open it, and on its **Score** page **Write a new plan** rerolls a melody you
+do not like for the cost of a few seconds, and **Render this score** renders it. A take with no audio yet
+is filled in; one that already has audio is rendered as a new take beside it, so a render never
+overwrites one you may want to keep.
 
 The take appears in the library on the right, and plays in the bar at the bottom.
 
@@ -291,8 +293,9 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
 - **Mode.** *Full* keeps the chords of the plan; *melody* leaves the accompaniment free.
 - **Seed**, and **keep this seed**. See [Seed, and reproducing a take](#seed-and-reproducing-a-take).
 - **Production polish** and **Normalise volume.** See [Production polish](#production-polish).
-- **Render as soon as the plan is ready** runs the plan and the render without stopping in between. Leave it off to
-  read the plan first.
+- **Render as soon as the plan is ready**, beside the button at the foot of the window, runs the plan and the render
+  without stopping in between. It is ticked to begin with, and the editor remembers your choice. Untick it to read the
+  plan first.
 - **Advanced** (the button in the header): diffusion steps, Avoid, Key lock, Tempo lock, the longest score,
   chord hold limit, outside harmony bonus, Sections open differently, target loudness and the outro fade. See
   [Advanced settings](#advanced-settings).

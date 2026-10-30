@@ -16,7 +16,7 @@ from typing import Any
 import httpx
 import numpy as np
 
-from . import config, llm
+from . import artscene, config, llm
 from .db import get_setting
 
 log = logging.getLogger("yue2.artwork")
@@ -382,9 +382,13 @@ def album_cover_prefix(well_worn: bool = False) -> str:
 
 
 def take_description(take: dict, scene: str | None = None, well_worn: bool | None = None) -> str:
-    """An album cover prompt in the style of Hipgnosis, built from the song's title, style, and optional visual scene."""
+    """An album cover prompt in the style of Hipgnosis, built from the song's title, style and a visual scene.
+    With no scene given (nothing wrote one), the scene is made from the take itself (`artscene`): a title and
+    style tags alone gave klein nothing to draw but a landscape."""
     title = clean_cover_title(take)
     style = clean_cover_style(take.get("style") or "", take) or config.DEFAULT_STYLE
+    if scene is None:
+        scene = artscene.take_scene(title, style, take.get("lyrics") or "")
     worn = is_well_worn(take) if well_worn is None else well_worn
     parts = [
         f"{album_cover_prefix(worn)}\n"
@@ -477,6 +481,36 @@ def drawer() -> str | None:
             return "external"
         if chosen == "external" and local_ready():
             return "local"
+    return None
+
+
+def words_passed_over() -> str | None:
+    """Why the external LLM, chosen in Settings to describe pictures, is not asked this time; None when it is
+    asked or was not chosen."""
+    if (get_setting("art.words", "take") or "take").strip().lower() != "external":
+        return None
+    if llm.is_session_local_only():
+        return "the external LLM is paused for this session (Resume in Settings)"
+    if not llm.is_external_enabled():
+        return "the external LLM is not set up"
+    if external_words_failed():
+        return (f"it failed {time.time() - _EXTERNAL_WORDS_FAILED_AT:.0f} s ago and is not asked again for "
+                f"{EXTERNAL_FAILURE_COOLDOWN:.0f} s")
+    return None
+
+
+def drawing_passed_over() -> str | None:
+    """Why the image model, chosen in Settings to draw, is not asked this time; None when it is asked or was not
+    chosen."""
+    if (get_setting("art.drawer", "auto") or "auto").strip().lower() != "external":
+        return None
+    if external_draw_failed():
+        return (f"it failed {time.time() - _EXTERNAL_DRAW_FAILED_AT:.0f} s ago and is not asked again for "
+                f"{EXTERNAL_FAILURE_COOLDOWN:.0f} s")
+    if llm.is_session_local_only():
+        return "the external LLM is paused for this session (Resume in Settings)"
+    if not external_ready():
+        return f"the provider is not set up, or does not list {image_model()}"
     return None
 
 
@@ -646,7 +680,9 @@ def klein_request(description: str, take: dict | None = None, title: str = "") -
     The house look described rather than named (naming the design group, or "album cover", is what
     made it letter the sleeve: "HIPGNOS?" as a signature), then the scene, then the take's mood where
     there is no scene to carry it.  None of take_description's labels reach it: an empty "Song title:"
-    asks for a title, and "72 bpm" for numbers.
+    asks for a title, and "72 bpm" for numbers.  Nor do the style's tags when there is a scene: guitars,
+    drums and a male vocal made it draw the band, and its people are where its drawing goes wrong (a leg
+    or an arm too few or too many); the scene was made with the style in mind already.
     """
     text = clean_prompt_text(description.strip(), take)
     worn, style, scene = description_parts(text)

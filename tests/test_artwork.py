@@ -902,7 +902,7 @@ def test_klein_is_sent_the_scene_and_the_look_without_the_prompts_labels():
     assert "holds a paper moon on a string beside a phone box." in local        # the pun stays, the sign goes
     assert '"' not in local and "bpm" not in local and "melancholic" not in local
     assert artwork.KLEIN_WORN in local
-    bare = artwork.klein_request(artwork.take_description(take, well_worn=False), take)
+    bare = artwork.klein_request(artwork.take_description(take, scene="", well_worn=False), take)
     assert "Its mood: melancholic indie folk, piano." in bare
     assert artwork.KLEIN_WORN not in bare and "72" not in bare and "vocals" not in bare
 
@@ -912,3 +912,26 @@ def test_klein_loses_the_words_it_would_letter():
     assert artwork.wordless_scene("A sign that reads \u201cRain\u201d in a field.", "Rain") == "A sign in a field."
     assert artwork.wordless_scene("Rain falls on open umbrellas.", "Rain") == "Rain falls on open umbrellas."
     assert artwork.wordless_scene("Two figures, called by the sea, wait.", "") == "Two figures, called by the sea, wait."
+
+
+def test_a_picture_that_skips_the_external_models_says_why(client, monkeypatch, caplog):
+    """After a failure the external models are not asked for a while: the log says so for each picture, rather
+    than only showing a local writer and drawer."""
+    external()
+    set_setting("art.words", "external")
+    set_setting("art.drawer", "external")
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"pictures": True})
+    artwork.record_external_words_failure("HTTP 503")
+    artwork.record_external_draw_failure("HTTP 429")
+    take = a_take()
+
+    async def on_engine(take_id, description, title=''):
+        return as_file(drawing())
+
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    with caplog.at_level("WARNING", logger="yue2.jobs"):
+        asyncio.run(jobs.run_art(take["id"]))
+    said = caplog.text
+    assert "not described by the external LLM, as it failed" in said and "the take's own scene instead" in said
+    assert "not drawn by" in said and "FLUX.2 klein on this PC instead" in said
+    assert artwork.info(take["id"])["has"]

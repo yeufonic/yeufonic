@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Yeufonic.app's description.  macos/build.sh writes the version in for @VERSION@. -->
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>Yeufonic</string>
+    <key>CFBundleDisplayName</key>
+    <string>Yeufonic</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.yeufonic.app</string>
+    <key>CFBundleVersion</key>
+    <string>@VERSION@</string>
+    <key>CFBundleShortVersionString</key>
+    <string>@VERSION@</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>Yeufonic</string>
+    <key>CFBundleIconFile</key>
+    <string>yeufonic</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSArchitecturePriority</key>
+    <array>
+        <string>arm64</string>
+    </array>
+    <!-- An icon in the menu bar and the page in the browser: no Dock icon, no window of its own. -->
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.music</string>
+</dict>
+</plist>
