@@ -35,19 +35,21 @@ DRAW_TIMEOUT = 180.0
 # they were.  It is sampled as it was distilled to be, at cfg 1 with no negative: a weighted negative at
 # cfg 3 kept the odd sign blank but burnt every picture (hard contrast, oversaturated, plastic), and
 # spelling out "no text" in the prompt only put text in mind.
+# What the scene is drawn as, after the scene: klein weighs the start of a prompt most, and a long fixed
+# opening ("a vast and quiet real place", "generous empty space", "muted colour") drew the same bleak
+# landscape under every scene.  So the scene leads, and this asks only for the craft: staged for real,
+# sharp and detailed to the corners (an "old print" and "vintage film" brought a vignette and lost detail).
 KLEIN_LOOK = (
-    "A square photograph, 1:1, in the manner of 1970s British surrealist record-sleeve photography: "
-    "one impossible, enigmatic event staged and photographed for real, in camera, in a vast and quiet "
-    "real place \u2014 deadpan and witty, a visual metaphor taken literally. Medium-format film, natural "
-    "light, muted colour, fine grain, a precise composition with generous empty space around a single "
-    "striking subject."
+    "Photographed for real, in camera, in the manner of classic British surrealist record-sleeve "
+    "photography: a bold, precise composition, sharp focus and rich detail from edge to edge, clean and "
+    "evenly exposed, true colour."
 )
 # klein 4B draws people badly close up (a hand with four fingers, an arm too many), and the house style
-# seldom showed them close: its figures stand small in the frame, faceless or turned away.  klein is told
-# only what to draw (naming hands puts them in mind, as naming text did); Gemma is also told what to avoid.
-FIGURES_FAR = "Any person is a small figure far off in the frame, seen from behind or in silhouette."
-FIGURES_FAR_BRIEF = FIGURES_FAR + " Keep hands and faces out of close-up: a hand is in a pocket, a glove or out of frame."
-KLEIN_WORN = "The print is old and well handled: faded colour, ring-wear and soft creases across it."
+# seldom showed them close.  Gemma, who writes the scene, is asked to keep them far off; klein is not
+# told about people at all, since a sentence about them put a small figure in every picture.
+FIGURES_FAR_BRIEF = ("Any person is a small figure far off, seen from behind or in silhouette; keep hands and "
+                     "faces out of close-up. Often the subject is objects rather than people.")
+KLEIN_WORN = "The print shows light ring-wear and creased corners; its colour is still strong."
 KLEIN_WORDLESS = "A wordless image."
 # Words that put lettering in a scene, and the words after them: "a sign reading ...", "a boat named ...".
 SIGNAGE_RE = re.compile(
@@ -565,14 +567,29 @@ def without_title(text: str, title: str) -> str:
     return re.sub(r"  +", " ", pattern.sub("", text)).strip(" ,.;:-")
 
 
+EXTERNAL_BRIEF = (
+    "Describe a surreal, enigmatic photographic or painterly scene in the distinctive Hipgnosis style: "
+    "striking visual metaphors, unexpected juxtaposition, dramatic landscapes, and vintage film textures"
+)
+KLEIN_BRIEF = (
+    "Describe one surreal, enigmatic scene in the distinctive Hipgnosis style, staged and photographed for "
+    "real: ordinary things in an impossible situation, a visual pun on the song. Choose the setting to suit "
+    "the song, not a bare landscape by default: a room, a studio, a swimming pool, a beach, a city street, a "
+    "factory, a motorway, a forest, the sky. Choose the light and colour to suit it too, bright and saturated "
+    "as readily as dark or cold. Name concrete details: materials, colours, textures, what is near and what "
+    "is far"
+)
+
+
 def description_request(take: dict, well_worn: bool | None = None, with_title: bool = True,
-                        figures_far: bool = False) -> str:
+                        for_klein: bool = False) -> str:
     """The scene brief for the description model.
 
     With with_title false the title is left out of the brief, and out of the words and the style as
     well: a model given it works it into the scene ("a telephone box reading ..."), and klein then
-    letters it on the sleeve — the one text it went on drawing.  With figures_far the people in the
-    scene are kept small and turned away (FIGURES_FAR_BRIEF), for Gemma, whose scene klein draws.
+    letters it on the sleeve — the one text it went on drawing.  With for_klein (Gemma's brief) the
+    scene is asked for in what klein can draw from: a setting and light chosen for the song rather than
+    a landscape every time, concrete details, and people kept far off (FIGURES_FAR_BRIEF).
     """
     raw_title = clean_cover_title(take)
     title = raw_title if with_title else ""
@@ -586,19 +603,19 @@ def description_request(take: dict, well_worn: bool | None = None, with_title: b
     title_line = f"Song title: {title}\n" if title else ""
     worn = is_well_worn(take) if well_worn is None else well_worn
     worn_intro = "a well-worn " if worn else "an "
-    worn_texture = " with well-worn album sleeve ring-wear and creased edges" if worn else ""
+    # klein is given the wear in its own words (KLEIN_WORN), so Gemma's scene need not carry it.
+    worn_texture = " with well-worn album sleeve ring-wear and creased edges" if worn and not for_klein else ""
     return (
         "You are an art director in the style of Hipgnosis (the UK art design group). "
         f"Write one scene description for {worn_intro}album cover inspired by this song.\n\n"
         f"{title_line}"
         f"Style: {style or 'not given'}\n"
         f"The opening of the song:\n{sung}\n\n"
-        "Describe a surreal, enigmatic photographic or painterly scene in the distinctive Hipgnosis style: "
-        "striking visual metaphors, unexpected juxtaposition, dramatic landscapes, and vintage film textures"
+        f"{KLEIN_BRIEF if for_klein else EXTERNAL_BRIEF}"
         f"{worn_texture}. Do not use the name Hipgnosis in the image or description; "
         "the image should only be influenced by that design group, not made to look like it was created by them. "
         "Do not specify or add a year or decade unless one is explicitly stated in the style above. "
-        f"{FIGURES_FAR_BRIEF + ' ' if figures_far else ''}"
+        f"{FIGURES_FAR_BRIEF + ' ' if for_klein else ''}"
         "Between 40 and 90 words. Reply with the description only."
     )
 
@@ -627,7 +644,7 @@ def describe_graph(take: dict, seed: int, with_title: bool = True) -> dict:
     return {
         "1": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.LYRICS_MODEL, "type": "stable_diffusion"}},
         "2": {"class_type": "TextGenerate", "inputs": {
-            "clip": ["1", 0], "prompt": description_request(take, with_title=with_title, figures_far=True),
+            "clip": ["1", 0], "prompt": description_request(take, with_title=with_title, for_klein=True),
             "max_length": 400, "thinking": False,
             "sampling_mode": "on", "sampling_mode.temperature": 0.9, "sampling_mode.top_k": 64,
             "sampling_mode.top_p": 0.95, "sampling_mode.min_p": 0.05, "sampling_mode.repetition_penalty": 1.05,
@@ -685,9 +702,9 @@ def wordless_scene(scene: str, title: str) -> str:
 def klein_request(description: str, take: dict | None = None, title: str = "") -> str:
     """The prompt for FLUX.2 [klein] on this PC, which cannot spell.
 
-    The house look described rather than named (naming the design group, or "album cover", is what
-    made it letter the sleeve: "HIPGNOS?" as a signature), then the scene, then the take's mood where
-    there is no scene to carry it.  None of take_description's labels reach it: an empty "Song title:"
+    The scene first, then the house look described rather than named (naming the design group, or
+    "album cover", is what made it letter the sleeve: "HIPGNOS?" as a signature), with the take's mood
+    where there is no scene to carry it.  None of take_description's labels reach it: an empty "Song title:"
     asks for a title, and "72 bpm" for numbers.  Nor do the style's tags when there is a scene: guitars,
     drums and a male vocal made it draw the band, and its people are where its drawing goes wrong (a leg
     or an arm too few or too many); the scene was made with the style in mind already.
@@ -698,10 +715,11 @@ def klein_request(description: str, take: dict | None = None, title: str = "") -
                    scene, flags=re.IGNORECASE)
     title = title or clean_cover_title(take or {})
     scene = wordless_scene(scene, title)
-    parts = [f"{KLEIN_LOOK} {FIGURES_FAR}"]
+    parts = []
     if scene:
-        parts.append(scene)
+        parts += [scene, KLEIN_LOOK]
     else:
+        parts.append(KLEIN_LOOK)
         mood = picture_mood(without_title(style, title))
         if mood:
             parts.append(f"Its mood: {mood}.")

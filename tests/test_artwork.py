@@ -334,7 +334,7 @@ def test_the_flux_graph_is_comfyuis_own_klein_workflow():
     # negative at cfg 3 burnt the pictures).  The external model, which letters reliably, keeps the
     # named Hipgnosis prompt.
     local = graph["4"]["inputs"]["text"]
-    assert local.startswith(artwork.KLEIN_LOOK) and "A lantern." in local
+    assert local.startswith("A lantern.") and artwork.KLEIN_LOOK in local     # the scene leads
     assert "Hipgnosis" not in local and "album cover" not in local.lower()
     assert kinds["ConditioningZeroOut"]["conditioning"] == ["4", 0] and kinds["CFGGuider"]["cfg"] == 1.0
     external = artwork.drawing_request("A lantern.")
@@ -937,11 +937,17 @@ def test_a_picture_that_skips_the_external_models_says_why(client, monkeypatch, 
     assert artwork.info(take["id"])["has"]
 
 
-def test_people_are_kept_far_off_where_klein_or_gemma_is_asked():
-    """klein draws hands and faces badly up close: its prompt and Gemma's brief keep people small and turned
-    away.  The external LLM's brief is left as it was."""
+def test_gemma_is_asked_for_a_scene_klein_can_draw_and_klein_for_the_scene_first():
+    """klein weighs the start of its prompt most, so the scene leads.  Gemma, writing the scene klein draws,
+    is asked for a setting and light chosen for the song rather than a landscape, and for people far off
+    (klein draws hands and faces badly up close); klein itself is told nothing about people, which put a
+    small figure in every picture.  The external LLM's brief is left as it was."""
     take = {"title": "Night Fishing", "style": "folk", "lyrics": "A boat at dusk", "seed": 1}
     klein = artwork.klein_request("A man rows a boat at dusk.")
-    assert artwork.FIGURES_FAR in klein and "hand" not in klein.lower()       # klein is told only what to draw
-    assert artwork.FIGURES_FAR_BRIEF in artwork.describe_graph(take, 1)["2"]["inputs"]["prompt"]
-    assert artwork.FIGURES_FAR not in artwork.description_request(take)
+    assert klein.startswith("A man rows a boat at dusk.")
+    assert "person" not in klein.lower() and "figure" not in klein.lower() and "hand" not in klein.lower()
+    assert "vast" not in klein and "empty space" not in klein and "muted" not in klein
+    brief = artwork.describe_graph(take, 1)["2"]["inputs"]["prompt"]
+    assert artwork.KLEIN_BRIEF in brief and artwork.FIGURES_FAR_BRIEF in brief and "dramatic landscapes" not in brief
+    external = artwork.description_request(take)
+    assert artwork.EXTERNAL_BRIEF in external and artwork.FIGURES_FAR_BRIEF not in external
