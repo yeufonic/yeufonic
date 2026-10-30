@@ -43,6 +43,8 @@ cannot creep back in.
   the title of the take playing in the player, and the library goes to that take in whichever space it is in, clearing a
   search or filter that would hide it; a take being made inside another opens on that take's card. A picture's job is
   named as one, not as an engine job.
+- **A take with no picture offers to make one from its card.** Pointing at the square at the top left of a card with no
+  picture shows **Make a new picture**, as the enlarged picture does, where this PC can make pictures.
 
 ## 0.0.52 (2026-10-30)
 

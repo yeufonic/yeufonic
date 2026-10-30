@@ -11943,7 +11943,7 @@ function paintTakes() {
       : esc(coverTip);
     var coverAttr = hasArt
       ? ' data-act="cover-pic" data-id="' + take.id + '" data-art="' + esc(take.art) + '" data-title="' + esc(take.title) + '" role="button" tabindex="0" title="' + coverTipText + '" aria-label="' + coverTipText + '"'
-      : ' title="' + coverTipText + '" aria-label="' + coverTipText + '"';
+      : ' data-act="cover-make" data-id="' + take.id + '" data-title="' + esc(take.title) + '" title="' + coverTipText + '" aria-label="' + coverTipText + '"';
     var folded = isFolded(take.id);
     return '<article class="' + classes + (take.art ? ' with-art' : '') + (folded ? ' collapsed' : '') + '" data-id="' + take.id + '"' + art + '>' +
       '<div class="take-head">' +
@@ -12629,6 +12629,8 @@ function ensureCoverPopup() {
         '<div class="cover-popup-meta">' +
           '<div class="cover-popup-title"></div>' +
           '<div class="cover-popup-hint">Click for full view</div>' +
+          '<div class="cover-popup-none">No picture yet.</div>' +
+          '<button type="button" class="chip cover-popup-make">Make a new picture</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(pop);
@@ -12646,6 +12648,7 @@ function ensureCoverPopup() {
     pop.addEventListener('click', function (e) {
       e.stopPropagation();
       e.preventDefault();
+      if (e.target.closest('.cover-popup-make')) { makeCoverPicture(pop); return; }
       var artSrc = pop.dataset.art;
       if (artSrc) {
         var takeId = pop.dataset.take || '';
@@ -12659,7 +12662,7 @@ function ensureCoverPopup() {
 }
 
 function showCoverPopup(anchorEl, artSrc, title, pin) {
-  if (!anchorEl || !artSrc) { return; }
+  if (!anchorEl) { return; }
 
   if (!pin && _coverPopupPinned && _coverPopupAnchor !== anchorEl) {
     return;
@@ -12678,9 +12681,12 @@ function showCoverPopup(anchorEl, artSrc, title, pin) {
     _coverPopupPinned = true;
   }
 
-  pop.dataset.art = artSrc;
+  pop.dataset.art = artSrc || '';
   var card = anchorEl && anchorEl.closest ? anchorEl.closest('.take') : null;
   pop.dataset.take = (card && card.dataset.id) || '';
+  // A take with no picture: its square offers to make one, as the enlarged picture does.
+  pop.classList.toggle('no-art', !artSrc);
+  if (!artSrc) { paintCoverMake(pop, pop.dataset.take); }
   var img = pop.querySelector('.cover-popup-img');
   if (img) {
     if (img.src !== artSrc) {
@@ -12744,6 +12750,43 @@ function closeCoverPopup(force) {
   _coverPopupAnchor = null;
   pop.classList.add('hidden');
   pop.classList.remove('pinned');
+}
+
+/* The popup over a square with no picture: Make a new picture, unless one is being made or nothing here can make one. */
+async function paintCoverMake(pop, takeId) {
+  var make = pop.querySelector('.cover-popup-make');
+  var note = pop.querySelector('.cover-popup-none');
+  if (!make || !note) { return; }
+  make.disabled = !State.pictures;
+  note.textContent = 'No picture yet.';
+  if (!takeId) { return; }
+  var art;
+  try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { return; }
+  if (pop.dataset.take !== takeId) { return; }   // the popup has moved to another take since
+  var making = Boolean(ART_STATES[art.state]);
+  make.disabled = making || !State.pictures;
+  note.textContent = making ? ART_STATES[art.state]
+    : art.state === 'failed' ? 'The last try failed: ' + (art.error || 'no reason given')
+    : art.plain ? 'This take has the default background.' : 'No picture yet.';
+}
+
+async function makeCoverPicture(pop) {
+  var takeId = pop.dataset.take;
+  var make = pop.querySelector('.cover-popup-make');
+  if (!takeId || !make || make.disabled) { return; }
+  make.disabled = true;
+  // The take a picture is asked for becomes the one on show, as a click on its card would make it.
+  var take = takeById(takeId);
+  if (take) { selectTake(take); }
+  try {
+    await api('/api/takes/' + takeId + '/art', { method: 'POST' });
+  } catch (err) {
+    make.disabled = false;
+    statusLine(err.message, 'bad');
+    return;
+  }
+  closeCoverPopup(true);
+  pollState();
 }
 
 // A take's whole picture, over everything; a click anywhere or Escape puts it away (and only it: the editor stays).
@@ -14334,8 +14377,8 @@ function wire() {
   var lastTitleClick = { time: 0, id: null };
   var lastCardClick = { time: 0, id: null };
   $('takes').addEventListener('click', function (event) {
-    var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"]');
-    if (coverEl) {
+    var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"], [data-act="cover-make"]');
+    if (coverEl && (coverEl.dataset.art || State.pictures)) {
       event.preventDefault();
       event.stopPropagation();
       var art = coverEl.dataset.art;
@@ -14410,18 +14453,16 @@ function wire() {
   });
 
   $('takes').addEventListener('mouseover', function (event) {
-    var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"]');
+    var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"], [data-act="cover-make"]');
     if (!coverEl) { return; }
     if (event.relatedTarget && coverEl.contains(event.relatedTarget)) { return; }
-    var art = coverEl.dataset.art;
-    var title = coverEl.dataset.title;
-    if (art) {
-      showCoverPopup(coverEl, art, title, false);
-    }
+    // A square with no picture offers to make one, where this PC can make pictures.
+    if (!coverEl.dataset.art && !State.pictures) { return; }
+    showCoverPopup(coverEl, coverEl.dataset.art || '', coverEl.dataset.title, false);
   });
 
   $('takes').addEventListener('mouseout', function (event) {
-    var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"]');
+    var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"], [data-act="cover-make"]');
     if (!coverEl) { return; }
     if (event.relatedTarget && coverEl.contains(event.relatedTarget)) { return; }
     scheduleCoverPopupClose();
@@ -14429,8 +14470,8 @@ function wire() {
 
   $('takes').addEventListener('keydown', function (event) {
     if (event.key === 'Enter' || event.key === ' ') {
-      var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"]');
-      if (coverEl) {
+      var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"], [data-act="cover-make"]');
+      if (coverEl && (coverEl.dataset.art || State.pictures)) {
         event.preventDefault();
         event.stopPropagation();
         var art = coverEl.dataset.art;
@@ -14515,7 +14556,7 @@ function wire() {
     }
     if (!event.target.closest('#lora-picker')) { closeLoraPicker(); }
     if (!event.target.closest('#style-picker')) { closeStylePicker(); }
-    if (!event.target.closest('#cover-popup, .cover.has-art, [data-act="cover-pic"]')) {
+    if (!event.target.closest('#cover-popup, .cover.has-art, [data-act="cover-pic"], [data-act="cover-make"]')) {
       closeCoverPopup(true);
     }
   });

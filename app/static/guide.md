@@ -1304,6 +1304,9 @@ background**, which takes it away for good: no picture is made for that take aga
 Click the picture there to see the whole of it, as large as the window allows; a click anywhere or Escape
 puts it away and leaves the editor as it was.
 
+On a take's card, the square at the top left shows the picture when you point at it. A take with no
+picture offers **Make a new picture** there instead, where this PC can make pictures.
+
 ### Comparing takes
 
 Tick two to six takes and press **Compare** (it appears beside Select all once two are ticked, and

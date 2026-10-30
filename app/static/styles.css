@@ -3285,6 +3285,14 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
   font-size: 11px;
   opacity: 0.7;
 }
+/* Over a square with no picture: the title, a line, and Make a new picture; no preview, nothing to zoom into. */
+.cover-popup-none, .cover-popup-make { display: none; }
+.cover-popup.no-art { width: 220px; }
+.cover-popup.no-art .cover-popup-card { cursor: default; }
+.cover-popup.no-art .cover-popup-preview, .cover-popup.no-art .cover-popup-hint { display: none; }
+.cover-popup.no-art .cover-popup-none { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.cover-popup.no-art .cover-popup-make { display: inline-flex; align-self: flex-start; }
+.cover-popup-make:disabled { opacity: 0.45; cursor: default; }
 .ed-picture-menu .ed-picture-note.bad { color: var(--bad); }
 .ed-picture-menu button { text-align: left; font: inherit; font-size: 13.5px; padding: 8px 10px; border-radius: 8px; border: 0;
   background: transparent; color: var(--text); cursor: pointer; }
