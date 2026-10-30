@@ -890,3 +890,26 @@ def test_an_engine_with_the_full_precision_klein_files_can_draw(monkeypatch):
     assert asyncio.run(run()) is True
     assert (config.PICTURE_MODEL, config.PICTURE_TEXT) == (model, encoder)
     assert artwork.picture_graph("a field", 1, "p")["1"]["inputs"]["unet_name"] == model
+
+
+def test_a_picture_that_skips_the_external_models_says_why(client, monkeypatch, caplog):
+    """After a failure the external models are not asked for a while: the log says so for each picture, rather
+    than only showing a local writer and drawer."""
+    external()
+    set_setting("art.words", "external")
+    set_setting("art.drawer", "external")
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"pictures": True})
+    artwork.record_external_words_failure("HTTP 503")
+    artwork.record_external_draw_failure("HTTP 429")
+    take = a_take()
+
+    async def on_engine(take_id, description, title=''):
+        return as_file(drawing())
+
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    with caplog.at_level("WARNING", logger="yue2.jobs"):
+        asyncio.run(jobs.run_art(take["id"]))
+    said = caplog.text
+    assert "not described by the external LLM, as it failed" in said and "the take's own scene instead" in said
+    assert "not drawn by" in said and "FLUX.2 klein on this PC instead" in said
+    assert artwork.info(take["id"])["has"]
