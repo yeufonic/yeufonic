@@ -53,6 +53,9 @@ cannot creep back in.
   so the same few settings (a swimming pool, an empty hall) no longer turn up across unrelated songs. It leaves people
   out and lets objects, the place and the light carry the picture; a person appears only where the idea needs one,
   small and far off. Pictures already made are not changed.
+- **Previous and next take from the visualizer, and Shift+Left / Shift+Right.** The visualizer has previous and next
+  buttons, and Shift with an arrow key steps to the previous or next take anywhere the player's keys work; in the
+  Playlists view both go through the playlist.
 - **A playlist plays on to its next song.** When a song played from a playlist ended, the take chosen in the library
   was put in the player instead, and the playlist stopped.
 - **The Bars visualizer spans the screen** at any width, and its highest bars move with the music.

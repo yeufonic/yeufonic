@@ -256,6 +256,17 @@
           lyricsBtn.addEventListener('click', function () { self.toggleLyrics(); });
         }
 
+        // Previous and next take, as the player's own buttons: through the playlist in the Playlists view.
+        ['vis-btn-prev', 'vis-btn-next'].forEach(function (id) {
+          var btn = $(id);
+          if (!btn) { return; }
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var player = $(id === 'vis-btn-prev' ? 'btn-prev' : 'btn-next');
+            if (player) { player.click(); }
+          });
+        });
+
         var pictureBtn = $('vis-btn-picture');
         if (pictureBtn) {
           pictureBtn.addEventListener('click', function (e) {

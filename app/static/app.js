@@ -15589,6 +15589,9 @@ function wire() {
       if (tag === 'BUTTON') { focus.blur(); }
       $(inEditor && $('ed-btn-play') ? 'ed-btn-play' : 'btn-play').click();
     }
+    // Shift and an arrow: the previous or next take, through the playlist in the Playlists view, else the list.
+    else if (event.shiftKey && event.key === 'ArrowLeft' && !inEditor) { event.preventDefault(); stepTake(-1); }
+    else if (event.shiftKey && event.key === 'ArrowRight' && !inEditor) { event.preventDefault(); stepTake(1); }
     else if (event.key === 'ArrowLeft') { nudge(-5); }
     else if (event.key === 'ArrowRight') { nudge(5); }
     else if (!inEditor && takeKey(event)) { event.preventDefault(); }

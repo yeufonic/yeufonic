@@ -5038,6 +5038,12 @@ main.view-playlists > .library {
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
+/* Previous and next take, at the start of the hint line: the line lets clicks through, these take them. */
+.vis-step-btn { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; width: 30px;
+  height: 24px; margin-right: 4px; vertical-align: middle; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(15, 23, 42, 0.65); color: #cbd5e1; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+.vis-step-btn:hover { background: rgba(30, 41, 59, 0.9); color: #ffffff; }
+#vis-btn-next { margin-right: 12px; }
 .vis-bottom-hint kbd {
   display: inline-block;
   padding: 1px 6px;

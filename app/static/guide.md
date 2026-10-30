@@ -1324,6 +1324,7 @@ Click or drag the waveform to seek. Previous and next step through the cards in 
 |---|---|
 | Space | play or pause |
 | Left, Right | back or forward five seconds |
+| Shift+Left, Shift+Right | the previous or next take; in the Playlists view, the playlist's previous or next song |
 | Up, Down | volume |
 
 The system media keys work too. The take's own keys are under [Hot keys](#hot-keys).
@@ -1375,6 +1376,7 @@ bar saying why.
 |---|---|
 | Space | play or pause |
 | Left, Right | back or forward five seconds |
+| Shift+Left, Shift+Right | the previous or next take; in the Playlists view, the playlist's previous or next song |
 | Up, Down | volume |
 | M | open the mastering rack for the take; again to close it |
 | E | open the take in the editor |

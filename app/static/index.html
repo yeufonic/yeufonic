@@ -767,6 +767,7 @@
         <div class="hotkeys-grid">
           <div class="hotkey-row"><span class="hk-keys"><kbd>Space</kbd></span><span class="hk-desc">Play or pause playback</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd></span><span class="hk-desc">Back or forward 5 seconds</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Shift</kbd>+<kbd>&larr;</kbd> <kbd>&rarr;</kbd></span><span class="hk-desc">Previous or next take (in a playlist, its songs)</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>&uarr;</kbd> <kbd>&darr;</kbd></span><span class="hk-desc">Volume up or down 5%</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>M</kbd></span><span class="hk-desc">Mastering rack for chosen take; again to close</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>V</kbd></span><span class="hk-desc">Audio visualizer while playing; Variations when stopped</span></div>
@@ -1778,7 +1779,9 @@
     </main>
 
     <footer class="vis-bottom-hint">
-      <span><kbd>Space</kbd> Play / Pause</span> · <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> Seek</span> · <span><kbd>L</kbd> Lyrics</span> · <span><kbd>V</kbd> or <kbd>Esc</kbd> Close</span>
+      <button type="button" id="vis-btn-prev" class="vis-step-btn" title="Previous take (Shift+&larr;)" aria-label="Previous take"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button type="button" id="vis-btn-next" class="vis-step-btn" title="Next take (Shift+&rarr;)" aria-label="Next take"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+      <span><kbd>Space</kbd> Play / Pause</span> · <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> Seek</span> · <span><kbd>Shift</kbd>+<kbd>&larr;</kbd><kbd>&rarr;</kbd> Previous / Next</span> · <span><kbd>L</kbd> Lyrics</span> · <span><kbd>V</kbd> or <kbd>Esc</kbd> Close</span>
     </footer>
   </div>
 </div>
