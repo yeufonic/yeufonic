@@ -11,6 +11,10 @@
   function $(id) { return document.getElementById(id); }
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
+  // The scenes drawn over the take's breathing picture, where it has one (the Yeufonic and Artwork scenes draw it
+  // themselves).
+  var OVER_ART = { kaleidoscope: true, grid: true, liquid: true };
+
   var Visualizer = {
     isOpen: false,
     currentTake: null,
@@ -913,7 +917,58 @@
       ctx.save();
       ctx.scale(dpr, dpr);
 
-      // Render selected visualizer mode
+      // Mandala, Grid and Liquid lie over the take's breathing picture where it has one: drawn on a layer of their
+      // own, so their trails fade to clear rather than to dark, and Liquid's feedback carries only its own shapes.
+      var overArt = OVER_ART[this.mode] ? this.loadArtScene(this.currentTake) : null;
+      var target = ctx;
+      if (overArt) {
+        this.drawArtBackdrop(ctx, w, h, now, overArt, this.currentTake);
+        target = this.sceneLayer(canvas, dpr);
+        this.overArt = true;
+      } else if (this.fxLayer) {
+        this.fxLayer = null;   // a scene starting again over its own ground begins without the old trails
+      }
+      this.renderScene(target, w, h, now);
+      if (overArt) {
+        this.overArt = false;
+        ctx.drawImage(target.canvas, 0, 0, w, h);
+      }
+
+      ctx.restore();
+
+      // Dynamic reactive transform, 3D tilt, and wandering on Vinyl Sleeve
+      this.applyArtworkDynamics(now);
+    },
+
+    /* The layer a scene draws on over the picture: the canvas's own size, cleared when the scene or the size
+       changes so no trails carry over. */
+    sceneLayer: function (canvas, dpr) {
+      var layer = this.fxLayer;
+      if (!layer || layer.mode !== this.mode || layer.canvas.width !== canvas.width || layer.canvas.height !== canvas.height) {
+        var c = document.createElement('canvas');
+        c.width = canvas.width; c.height = canvas.height;
+        layer = this.fxLayer = { canvas: c, mode: this.mode };
+      }
+      var lc = layer.canvas.getContext('2d');
+      lc.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return lc;
+    },
+
+    /* What a scene lays over its last frame to leave a trail: its dark wash, or over the picture, the same fade
+       towards clear. */
+    fadeGround: function (ctx, w, h, colour, alpha) {
+      ctx.save();
+      if (this.overArt) {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = 'rgba(0, 0, 0, ' + alpha + ')';
+      } else {
+        ctx.fillStyle = colour;
+      }
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+    },
+
+    renderScene: function (ctx, w, h, now) {
       switch (this.mode) {
         case 'yeufonic':
           this.renderYeufonic(ctx, w, h, now);
@@ -947,11 +1002,6 @@
           this.renderWave(ctx, w, h, now);
           break;
       }
-
-      ctx.restore();
-
-      // Dynamic reactive transform, 3D tilt, and wandering on Vinyl Sleeve
-      this.applyArtworkDynamics(now);
     },
 
     applyArtworkDynamics: function (now) {
@@ -1836,8 +1886,7 @@
 
     /* Mode 4: Geometric Kaleidoscope Mandala */
     renderKaleidoscope: function (ctx, w, h, now) {
-      ctx.fillStyle = 'rgba(5, 5, 10, 0.25)';
-      ctx.fillRect(0, 0, w, h);
+      this.fadeGround(ctx, w, h, 'rgba(5, 5, 10, 0.25)', 0.25);
 
       var cx = w * 0.5;
       var cy = h * 0.5;
@@ -1876,12 +1925,16 @@
 
     /* Mode 5: Neon Synthwave Grid (Outrun) */
     renderGrid: function (ctx, w, h, now) {
-      var bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-      bgGrad.addColorStop(0, '#04020a');
-      bgGrad.addColorStop(0.5, '#0c041c');
-      bgGrad.addColorStop(1, '#05020d');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, w, h);
+      if (this.overArt) {
+        ctx.clearRect(0, 0, w, h);   // the picture is the sky
+      } else {
+        var bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+        bgGrad.addColorStop(0, '#04020a');
+        bgGrad.addColorStop(0.5, '#0c041c');
+        bgGrad.addColorStop(1, '#05020d');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, w, h);
+      }
 
       var cx = w * 0.5;
       var hy = h * 0.52; // Horizon line
@@ -1913,9 +1966,10 @@
       ctx.shadowBlur = 35 + this.bassEnergy * 30;
       ctx.fill();
 
-      // Horizontal slats slicing through lower half of sun
+      // Horizontal slats slicing through lower half of sun: cut out of it over the picture, so it shows through
       var slats = 7;
       ctx.fillStyle = '#0c041c';
+      if (this.overArt) { ctx.globalCompositeOperation = 'destination-out'; }
       ctx.shadowBlur = 0;
       for (var si = 0; si < slats; si++) {
         var slatY = sunY + (si / slats) * sunR;
@@ -1998,16 +2052,19 @@
       var zoom = 1.018 + this.bassEnergy * 0.038;
       var rot = (this.midEnergy - 0.15) * 0.012;
 
+      // Over the picture the layer starts each frame clear and the last frame comes back at the strength the dark
+      // wash would leave it: drawn over itself, the copies piled up until the layer was solid colour.
+      if (this.overArt) { ctx.clearRect(0, 0, w, h); }
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(rot);
       ctx.scale(zoom, zoom);
+      if (this.overArt) { ctx.globalAlpha = 0.86; }
       ctx.drawImage(this.liquidCanvas, -cx, -cy, w, h);
       ctx.restore();
 
       // Trail decay
-      ctx.fillStyle = 'rgba(5, 5, 12, 0.14)';
-      ctx.fillRect(0, 0, w, h);
+      if (!this.overArt) { this.fadeGround(ctx, w, h, 'rgba(5, 5, 12, 0.14)', 0.14); }
 
       // Central fluid ripples and audio curves
       var points = 48;
