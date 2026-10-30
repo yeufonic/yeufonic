@@ -5044,6 +5044,9 @@ main.view-playlists > .library {
   background: rgba(15, 23, 42, 0.65); color: #cbd5e1; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
 .vis-step-btn:hover { background: rgba(30, 41, 59, 0.9); color: #ffffff; }
 #vis-btn-next { margin-right: 12px; }
+.vis-bottom-hint kbd[data-key], .vis-bottom-hint kbd[data-close] { pointer-events: auto; cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease; }
+.vis-bottom-hint kbd[data-key]:hover, .vis-bottom-hint kbd[data-close]:hover { background: rgba(255, 255, 255, 0.22); color: #ffffff; }
 .vis-bottom-hint kbd {
   display: inline-block;
   padding: 1px 6px;

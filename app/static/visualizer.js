@@ -267,6 +267,22 @@
           });
         });
 
+        // The key labels in the hint line act as their keys when clicked: each sends its own key press, so a click
+        // does what pressing it does.  V and Esc close.
+        var hint = document.querySelector('.vis-bottom-hint');
+        if (hint) {
+          hint.addEventListener('click', function (e) {
+            var key = e.target.closest('kbd[data-key], kbd[data-close]');
+            if (!key) { return; }
+            e.stopPropagation();
+            if (key.dataset.close) { self.toggle(false); return; }
+            document.dispatchEvent(new KeyboardEvent('keydown', {
+              key: key.dataset.key, code: key.dataset.code || key.dataset.key,
+              shiftKey: Boolean(key.dataset.shift), bubbles: true, cancelable: true
+            }));
+          });
+        }
+
         var pictureBtn = $('vis-btn-picture');
         if (pictureBtn) {
           pictureBtn.addEventListener('click', function (e) {
