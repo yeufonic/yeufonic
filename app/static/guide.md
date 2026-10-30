@@ -1125,7 +1125,8 @@ a zip. They stay until you delete them.
 ## Stopping, deleting and starting again
 
 A queued or running take shows **Cancel** on its card, and **stop** on the job card stops whatever
-the engine is working on. Deleting a take stops its job and removes its stems. **Delete** beside a
+the engine is working on. A take's title on the job card, in its **Up next** list, or in the player at the
+foot of the page takes you to the take: to its space, with any search or filter that hides it cleared. Deleting a take stops its job and removes its stems. **Delete** beside a
 recording removes the file and its stems; covers made from it keep their audio and score, but cannot
 be rendered again.
 

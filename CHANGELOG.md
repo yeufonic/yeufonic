@@ -37,6 +37,13 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **The job card and the player take you to the take.** Click the title of the job running, a take in **Up next**, or
+  the title of the take playing in the player, and the library goes to that take in whichever space it is in, clearing a
+  search or filter that would hide it; a take being made inside another opens on that take's card. A picture's job is
+  named as one, not as an engine job.
+
 ## 0.0.52 (2026-10-30)
 
 - **Yeufonic for Mac, experimental.** A disk image for Macs with Apple silicon (M1 or later, macOS 14 or later) that sets

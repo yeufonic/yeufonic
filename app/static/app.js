@@ -2427,7 +2427,7 @@ async function renderScoreSf2() {
         STUDIO.mode = true;
         audio.play().catch(function () {});
         var sfLabel = res.soundfont ? res.soundfont.replace(/_/g, ' ').replace(/\.sf2$/i, '') : 'SoundFont';
-        $('np-title').textContent = ($('title') && $('title').value) || 'Score';
+        npTitle(($('title') && $('title').value) || 'Score');
         $('np-meta').textContent = 'Score (Studio Audio: ' + sfLabel + ')';
         $('np-cover').className = 'np-cover grad-cover';
         if (res.peaks_url) {
@@ -3057,7 +3057,25 @@ function refreshTitleHint() {
 
 var JOB_KINDS = { render: 'Render', plan: 'Score plan', transcribe: 'Transcription', separate: 'Stem separation', hear: 'Lyric hearing', lyrics: 'Lyrics', text: 'Text generation', train: 'LoRA training', other: 'Engine job',
   identity_score: 'Corpus analysis', identity_style: 'Corpus analysis', persona_score: 'Corpus analysis', persona_style: 'Corpus analysis',
-  identity_prep: 'Corpus prep', persona_prep: 'Corpus prep' };
+  identity_prep: 'Corpus prep', persona_prep: 'Corpus prep', art: 'Picture' };
+
+/* The take a job is for, where it is one of the app's own: a plan, a render or a picture.  Its title in the job card
+   goes to that take. */
+var TAKE_JOBS = ['render', 'plan', 'art'];
+function jobTake(item) {
+  return item && !item.outside && item.id && TAKE_JOBS.indexOf(item.kind) >= 0 ? item.id : '';
+}
+
+// A picture's title comes as "Picture: <take>", which the kind already says.
+function jobTitle(item) {
+  var title = (item && item.title) || '';
+  return item && item.kind === 'art' ? title.replace(/^Picture: /, '') : title;
+}
+
+function jobTakeLink(item, text) {
+  var id = jobTake(item);
+  return id ? '<button type="button" class="q-take" data-take="' + esc(id) + '" title="Show this take">' + esc(text) + '</button>' : esc(text);
+}
 
 /* While a LoRA trains it holds the GPU — 12.5 GB of 16, measured — so everything
    else that would ask for the card is disabled rather than left to fail. The server
@@ -3136,7 +3154,7 @@ function queueWhat(item) {
   if (!item.title) {
     return kind + ' <span class="q-outside">' + esc(item.note || 'from the app') + '</span>';
   }
-  return kind + ' \u00b7 ' + esc(item.title);
+  return kind + ' \u00b7 ' + jobTakeLink(item, jobTitle(item));
 }
 
 function queueWhen(item) {
@@ -3322,6 +3340,8 @@ function paintJob(current, queue, options) {
       card.className = 'job';
       $('job-stop').style.display = '';
       $('job-title').textContent = 'Training LoRA: ' + (State.training.lora_name || 'custom');
+      $('job-title').dataset.take = '';
+      $('job-title').classList.remove('job-take-link');
       var p = State.training.progress || 0;
       var elapsed = State.training.elapsed || 0;
       var eta = p > 0.02 && elapsed ? Math.max(0, (elapsed / p) - elapsed) : 0;
@@ -3344,7 +3364,8 @@ function paintJob(current, queue, options) {
   var titles = { render: 'Rendering your song', plan: 'Writing the score plan', transcribe: 'Transcribing the recording',
     lyrics: 'Writing lyrics', train: 'Training the LoRA', identity_score: 'Analysing a corpus song',
     identity_style: 'Analysing a corpus song', persona_score: 'Analysing a corpus song', persona_style: 'Analysing a corpus song',
-    identity_prep: 'Preparing corpus song', persona_prep: 'Preparing corpus song' };
+    identity_prep: 'Preparing corpus song', persona_prep: 'Preparing corpus song', art: 'Drawing a picture' };
+  var shown = null;   // the job whose title the card shows, so a click on it can go to its take
   // Only the render has an average, measured from this machine's own history.
   // The others show the time they have taken and claim nothing about the rest.
   var average = function (kind) {
@@ -3360,7 +3381,8 @@ function paintJob(current, queue, options) {
   $('job-stop').style.display = current ? '' : 'none';
   if (current && (mineRunning || !head)) {
     rest = head ? queue.slice(1) : queue.filter(function (item) { return item.id !== current.id; });
-    $('job-title').textContent = (titles[current.kind] || 'Working') + (head && head.title ? ': ' + head.title : (current.title ? ': ' + current.title : ''));
+    shown = head && head.title ? head : current;
+    $('job-title').textContent = (titles[current.kind] || 'Working') + (jobTitle(shown) ? ': ' + jobTitle(shown) : '');
     var avg = average(current.kind);
     var eta = avg > 0 ? Math.max(0, avg - (current.elapsed || 0)) : 0;
     $('job-time').textContent = secs(current.elapsed) + (eta ? ' / about ' + secs(avg) : '');
@@ -3372,7 +3394,8 @@ function paintJob(current, queue, options) {
     rest = queue.slice(1);
     $('job-title').textContent = head.outside
       ? 'Engine busy: ' + (JOB_KINDS[head.kind] || 'Engine job').toLowerCase() + ' from outside the app'
-      : (titles[head.kind] || 'Working') + (head.title ? ': ' + head.title : '');
+      : (titles[head.kind] || 'Working') + (jobTitle(head) ? ': ' + jobTitle(head) : '');
+    shown = head;
     var guess = average(head.kind);
     $('job-time').textContent = secs(head.seconds || 0) + (guess ? ' / about ' + secs(guess) : '');
     $('job-bar').style.width = (guess ? Math.max(3, Math.min(95, Math.round(100 * (head.seconds || 0) / guess))) : 3) + '%';
@@ -3385,6 +3408,10 @@ function paintJob(current, queue, options) {
     $('job-bar').style.width = '0%';
     $('job-stage').textContent = 'Waiting for the engine';
   }
+  var titleTake = jobTake(shown);
+  $('job-title').dataset.take = titleTake;
+  $('job-title').classList.toggle('job-take-link', Boolean(titleTake));
+  $('job-title').title = titleTake ? 'Show this take' : '';
   $('job-next').classList.toggle('hidden', !rest.length);
   var html = rest.map(function (item) {
     // Only the app's own jobs that have not started can be taken back here; the one
@@ -5932,7 +5959,7 @@ function playRecording() {
       paintAudition();
       statusLine("Could not play MIDI audio: " + (err.message || err), "bad");
     });
-    $('np-title').textContent = source.title;
+    npTitle(source.title);
     $('np-meta').textContent = 'Synthesizing with ' + sfLabel + '…';
     $('np-cover').className = 'np-cover grad-cover';
     updateMediaSession({ title: source.title, style: 'MIDI Recording (' + sfLabel + ')' });
@@ -5961,7 +5988,7 @@ function playRecording() {
   State.playRequestedAt = Date.now();
   audio.src = url;
   audio.play().catch(function () {});
-  $('np-title').textContent = source.title;
+  npTitle(source.title);
   $('np-meta').textContent = 'the recording being covered';
   $('np-cover').className = 'np-cover grad-cover';
   updateMediaSession({ title: source.title, style: 'the recording being covered' });
@@ -6220,7 +6247,7 @@ function playStem(setId, file) {
   wave.kind = null;        // and it gets the neutral tone
   audio.src = '/api/stem-sets/' + setId + '/' + encodeURIComponent(file);
   audio.play().catch(function () {});
-  $('np-title').textContent = file.replace(/\.[a-z0-9]+$/i, '');
+  npTitle(file.replace(/\.[a-z0-9]+$/i, ''));
   $('np-meta').textContent = 'stem from take ' + setId;
   $('np-cover').className = 'np-cover grad-cover';
   loadWave(audio.src, '/api/stem-sets/' + setId + '/' + encodeURIComponent(file) + '/peaks');
@@ -12142,7 +12169,7 @@ function playTake(id) {
     audio.play().catch(function () {});
     loadWave(url, '/api/takes/' + id + '/peaks' + version);
   }
-  $('np-title').textContent = take.title;
+  npTitle(take.title, id);
   var position = takePosition(id);
   $('np-meta').textContent = (position ? 'take ' + position.index + ' of ' + position.total + ' \u00b7 ' : '') +
     (take.duration ? secs(take.duration) : take.style.slice(0, 60));
@@ -12222,7 +12249,7 @@ function activateTakeRecording(take) {
       audio.src = url;
       loadWave(url, peaksUrl);
     }
-    $('np-title').textContent = take.title;
+    npTitle(take.title, take.id);
     var position = takePosition(take.id);
     $('np-meta').textContent = (position ? 'take ' + position.index + ' of ' + position.total + ' \u00b7 ' : '') +
       (take.duration ? secs(take.duration) : (take.style || '').slice(0, 60));
@@ -12270,7 +12297,7 @@ function activateTakeRecording(take) {
         audio.src = url;
         loadWave(url, peaksUrl);
       }
-      $('np-title').textContent = source.title;
+      npTitle(source.title);
       $('np-meta').textContent = isMidi ? ('MIDI Recording (' + sfLabel + ')') : 'the recording being covered';
       $('np-cover').className = 'np-cover grad-cover';
       updateMediaSession({ title: source.title, style: isMidi ? ('MIDI Recording (' + sfLabel + ')') : 'the recording being covered' });
@@ -12293,7 +12320,7 @@ function activateTakeRecording(take) {
   wave.rmss = null;
   wave.ratio = 0;
   drawWave();
-  $('np-title').textContent = take.title || 'Untitled take';
+  npTitle(take.title || 'Untitled take', take.id);
   $('np-meta').textContent = take.status === 'planned' ? 'plan ready (no audio yet)' : (take.status ? take.status + ' (no audio yet)' : 'no audio yet');
   paintNpCover(take);
   $('t-now').textContent = '0:00';
@@ -14925,6 +14952,17 @@ function wire() {
     }
   }
 
+  // The player's title, while it is a take's: go to the take.
+  $('np-title').addEventListener('click', function () {
+    if ($('np-title').dataset.take) { openTakeInLibrary($('np-title').dataset.take); }
+  });
+
+  // A take's job, in the card's title or in Up next: go to the take, in whichever space it is in.
+  $('job-card').addEventListener('click', function (event) {
+    var link = event.target.closest('[data-take]');
+    if (link && link.dataset.take) { openTakeInLibrary(link.dataset.take); }
+  });
+
   $('job-queue').addEventListener('click', function (event) {
     var button = event.target.closest('.q-cancel');
     if (!button) { return; }
@@ -16232,12 +16270,25 @@ function toggleColumnSort(sortKey) {
   loadActivePlaylist();
 }
 
+/* The player's title, and the take it belongs to: a take's title goes to the take when clicked, a recording's, a
+   stem's or a score's does not. */
+function npTitle(text, takeId) {
+  var el = $('np-title');
+  el.textContent = text;
+  el.dataset.take = takeId || '';
+  el.classList.toggle('np-take-link', Boolean(takeId));
+  el.title = takeId ? 'Show this take' : '';
+}
+
+/* Go to a take's card in the library, from a playlist, the job card or the player: its space, with nothing in the way.  A take
+   inside another shows on that one's card while it is being made, and in its panel once it is finished.  A search or a
+   filter that would hide the card is cleared, since the take was asked for by name. */
 async function openTakeInLibrary(takeId) {
   var take = null;
   if (State.activePlaylist && State.activePlaylist.items) {
     take = State.activePlaylist.items.filter(function (t) { return t.id === takeId; })[0];
   }
-  if (!take) {
+  if (!take || (take.parent_id && !take.status)) {
     try {
       take = await api('/api/takes/' + takeId);
     } catch (err) {
@@ -16245,21 +16296,52 @@ async function openTakeInLibrary(takeId) {
     }
   }
   if (!take) { return; }
+  var mother = null;
+  if (take.parent_id) {
+    try { mother = await api('/api/takes/' + take.parent_id); } catch (err) { mother = null; }
+  }
+  var inside = Boolean(mother && take.status === 'done');
+  var listed = mother || take;            // the card in the space's list
+  var target = inside ? take : listed;    // the card to go to
 
   switchView('library');
 
-  var spaceId = take.space_id || 'default';
+  var reload = false;
+  if (State.search) {
+    State.search = '';
+    if ($('take-search')) { $('take-search').value = ''; }
+    paintSearchCount();
+    reload = true;
+  }
+  var hidden = function (t) {
+    return (State.filter === 'favourite' && !t.favourite) || (State.kinds.length && State.kinds.indexOf(t.kind) < 0);
+  };
+  if (hidden(listed) || hidden(target)) {
+    applyFilter('all');
+    applyKinds([]);
+    reload = true;
+  }
+  var spaceId = listed.space_id || 'default';
   if (spaceId !== State.spaceId) {
     State.spaceId = spaceId;
     try { localStorage.setItem(SPACE_KEY, spaceId); } catch (err) {}
     State.takes = [];
     State.listed = [];
     State.inside = null;
-    State.takesRaw = '';
     State.takesTotal = 0;
     State.takeLimit = 300;
     clearPicked();
     paintSpaces();
+    reload = true;
+  }
+  if (inside && !(State.inside && State.inside.id === mother.id)) {
+    State.inside = { id: mother.id, takes: [], fresh: true };
+    State.takes = (State.listed || []).slice();
+    clearPicked();
+    reload = true;
+  }
+  if (reload) {
+    State.takesRaw = '';
     paintTakes();
     await loadTakes();
   }
@@ -16267,11 +16349,13 @@ async function openTakeInLibrary(takeId) {
   selectTake(take);
 
   setTimeout(function () {
-    var card = document.querySelector('article[data-id="' + takeId + '"]') || document.querySelector('[data-id="' + takeId + '"]');
+    var card = document.querySelector('article[data-id="' + target.id + '"]');
     if (card) {
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.remove('pulse-focus');
+      void card.offsetWidth;   // so a second click pulses again
       card.classList.add('pulse-focus');
-      setTimeout(function () { card.classList.remove('pulse-focus'); }, 1500);
+      setTimeout(function () { card.classList.remove('pulse-focus'); }, 1600);
     }
   }, 120);
 }

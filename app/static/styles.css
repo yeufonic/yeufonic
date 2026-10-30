@@ -2418,6 +2418,17 @@ label .lora-value:disabled { opacity: 0.6; }
 .job-queue .q-outside { color: var(--muted); font-style: italic; }
 .job-queue .q-when { color: var(--muted); flex: 0 0 auto; }
 .job-queue .q-cancel { flex: 0 0 auto; font-size: 12px; }
+/* A take's job goes to the take: its title in the card and in Up next, plain until pointed at. */
+#job-title.job-take-link, .job-queue .q-take, #np-title.np-take-link { cursor: pointer; }
+#job-title.job-take-link:hover, .job-queue .q-take:hover, #np-title.np-take-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.job-queue .q-take { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; }
+/* The card a jump lands on: one ring that fades. */
+@keyframes take-found {
+  0%   { box-shadow: 0 0 0 3px rgb(var(--good-rgb) / 0.85), 0 0 18px 4px rgb(var(--good-rgb) / 0.35); }
+  100% { box-shadow: 0 0 0 3px rgb(var(--good-rgb) / 0), 0 0 0 0 rgb(var(--good-rgb) / 0); }
+}
+.take.pulse-focus { animation: take-found 1.5s ease-out; }
+@media (prefers-reduced-motion: reduce) { .take.pulse-focus { animation: none; outline: 2px solid rgb(var(--good-rgb) / 0.8); } }
 
 /* ---------- player ---------- */
 .player {
