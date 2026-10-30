@@ -106,12 +106,8 @@
         localStorage.setItem('yue2.vis.mini', this.miniEnabled ? '1' : '0');
       } catch (e) { /* ignore */ }
 
-      // Keep in-memory settings in sync so background pollState won't revert them
-      if (window.State && window.State.settings) {
-        window.State.settings['appearance.visualizer_mode'] = this.mode;
-        window.State.settings['appearance.visualizer_art'] = this.artMode;
-        window.State.settings['appearance.mini_visualizer'] = this.miniEnabled ? 'on' : 'off';
-      }
+      // The page takes up a setting only when the server's value changes (adoptVisualizerSettings), so a choice made
+      // here holds while its save is on the way, or if the save is refused.
 
       // Persist to backend settings
       if (typeof window.api === 'function') {

@@ -5211,28 +5211,41 @@ function adoptSettings(spec) {
   if (typeof editorOpen === 'function' && editorOpen()) { paintEditor(); }
 }
 
+/* The visualizer's settings as the server last said them.  Only a change there (Settings, or another browser) is taken
+   up: re-applying the same value on every poll put back a scene chosen in the visualizer whenever its save had not
+   landed yet, or had been refused. */
+var VIS_SEEN = {};
+
 function adoptVisualizerSettings() {
   if (!window.Visualizer) { return; }
-  var mini = setting('appearance.mini_visualizer', 'on') === 'on';
-  var art = setting('appearance.visualizer_art', 'sleeve');
-  var mode = setting('appearance.visualizer_mode', 'yeufonic');
-
+  var vis = window.Visualizer;
+  var wanted = {
+    mini: setting('appearance.mini_visualizer', 'on') === 'on',
+    art: setting('appearance.visualizer_art', 'sleeve'),
+    mode: setting('appearance.visualizer_mode', 'yeufonic'),
+  };
+  var fresh = function (key) {
+    var moved = VIS_SEEN[key] !== wanted[key];
+    VIS_SEEN[key] = wanted[key];
+    return moved;
+  };
   var changed = false;
-  if (window.Visualizer.miniEnabled !== mini) {
-    window.Visualizer.miniEnabled = mini;
+  if (fresh('mini') && vis.miniEnabled !== wanted.mini) {
+    vis.miniEnabled = wanted.mini;
     changed = true;
   }
-  if (window.Visualizer.artMode !== art) {
-    window.Visualizer.artMode = art;
+  if (fresh('art') && vis.artMode !== wanted.art) {
+    vis.artMode = wanted.art;
     changed = true;
-    if (window.Visualizer.isOpen) { window.Visualizer.updateArtworkDisplay(); }
+    if (vis.isOpen) { vis.updateArtworkDisplay(); }
   }
-  if (window.Visualizer.mode !== mode) {
-    window.Visualizer.mode = mode;
+  if (fresh('mode') && vis.mode !== wanted.mode) {
+    vis.mode = wanted.mode;
     changed = true;
+    if (vis.isOpen) { vis.updateArtworkDisplay(); }
   }
-  if (changed && window.Visualizer.isOpen) {
-    window.Visualizer.updateButtonsState();
+  if (changed && vis.isOpen) {
+    vis.updateButtonsState();
   }
 }
 
