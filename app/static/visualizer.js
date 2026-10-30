@@ -490,14 +490,27 @@
           self.pictureWaiting = true;
           self.pictureTimer = setTimeout(function () { self.watchPicture(); }, 2000);
         } else if (self.pictureWaiting) {
-          // Ready: the take's new address carries the picture's new version.
+          // Ready: its address carries the picture's new version, as the take lists give it.  (A single take from
+          // the server carries no address, so asking for it found nothing, and only a take the library list held
+          // ever showed its new picture: not a playlist's.)
           self.pictureWaiting = false;
-          window.api('/api/takes/' + encodeURIComponent(id)).then(function (fresh) {
-            if (fresh && fresh.art && self.currentTake && self.currentTake.id === id) { self.applyArtwork(fresh.art); }
-          }).catch(function () {});
+          if (art.has && art.v) {
+            var url = '/api/takes/' + encodeURIComponent(id) + '/art.png?v=' + art.v;
+            self.applyArtwork(url);
+            self.carryPicture(id, url);
+          }
           if (typeof window.loadTakes === 'function') { window.loadTakes(); }
         }
       }).catch(function () { self.paintPictureButton(null); });
+    },
+
+    // A new picture into the playlist's own copies of the take, so its row and the queue show it too.
+    carryPicture: function (id, url) {
+      var S = window.State;
+      if (!S) { return; }
+      var lists = [S.playlistQueue || [], (S.activePlaylist && S.activePlaylist.items) || []];
+      lists.forEach(function (list) { list.forEach(function (t) { if (t.id === id) { t.art = url; } }); });
+      if (S.activeView === 'playlists' && typeof window.paintActivePlaylist === 'function') { window.paintActivePlaylist(); }
     },
 
     makePicture: function () {
