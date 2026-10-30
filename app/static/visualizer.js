@@ -13,7 +13,7 @@
 
   // The scenes drawn over the take's breathing picture, where it has one (the Yeufonic and Artwork scenes draw it
   // themselves).
-  var OVER_ART = { kaleidoscope: true, grid: true, liquid: true };
+  var OVER_ART = { kaleidoscope: true, grid: true, liquid: true, bars: true };
 
   var Visualizer = {
     isOpen: false,
@@ -917,7 +917,7 @@
       ctx.save();
       ctx.scale(dpr, dpr);
 
-      // Mandala, Grid and Liquid lie over the take's breathing picture where it has one: drawn on a layer of their
+      // Mandala, Grid, Liquid and Bars lie over the take's breathing picture where it has one: drawn on a layer of their
       // own, so their trails fade to clear rather than to dark, and Liquid's feedback carries only its own shapes.
       var overArt = OVER_ART[this.mode] ? this.loadArtScene(this.currentTake) : null;
       var target = ctx;
@@ -2209,8 +2209,8 @@
     },
 
     /* Mode 8: Hi-Fi Studio Bars (Vintage Spectrum) */
-    initBars: function () {
-      var count = 54;
+    initBars: function (count) {
+      count = count || 54;
       this.barLevels = new Float32Array(count);
       this.barPeaks = new Float32Array(count);
       this.barPeakTimes = new Float32Array(count);
@@ -2221,14 +2221,19 @@
         this.initBars();
       }
 
-      ctx.fillStyle = 'rgba(5, 5, 10, 0.32)';
-      ctx.fillRect(0, 0, w, h);
+      this.fadeGround(ctx, w, h, 'rgba(5, 5, 10, 0.32)', 0.32);
 
       if (!this.dataFreq || !this.dataFreq.length) { return; }
 
+      // Across the screen, whatever its width: more bars on a wider one rather than fatter bars.
+      var totalW = w * 0.92;
+      var wanted = Math.max(48, Math.min(128, Math.round(totalW / 22)));
+      if (this.barLevels.length !== wanted) { this.initBars(wanted); }
       var barCount = this.barLevels.length;
-      var totalW = Math.min(w * 0.92, 1200);
       var startX = (w - totalW) * 0.5;
+      // Up to 16 kHz: above it a song has next to nothing, and the bars there never moved.
+      var nyquist = ((this.audioCtx && this.audioCtx.sampleRate) || 48000) / 2;
+      var topBin = Math.max(8, Math.floor((this.dataFreq.length - 1) * Math.min(1, 16000 / nyquist)));
       var barW = (totalW / barCount) * 0.72;
       var gap = (totalW / barCount) * 0.28;
 
@@ -2244,7 +2249,7 @@
       ctx.stroke();
 
       for (var i = 0; i < barCount; i++) {
-        var binIdx = Math.min(this.dataFreq.length - 1, Math.floor(Math.pow(i / barCount, 1.4) * (this.dataFreq.length - 1)));
+        var binIdx = Math.min(topBin, Math.floor(Math.pow(i / barCount, 1.4) * topBin));
         var targetLevel = (this.dataFreq[binIdx] / 255);
 
         if (targetLevel > this.barLevels[i]) {

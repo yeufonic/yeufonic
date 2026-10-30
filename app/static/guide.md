@@ -1345,7 +1345,7 @@ The stage renders real-time audio visualisations synchronized with playback:
   - *Particle Swarm:* Gravitational particle clusters that scatter on percussive hits.
   - *Hi-Fi Spectrum Bars:* Multi-band equalizer spectrum analyzer with physical floating peak decay caps.
   - *Artwork:* The take's picture, large, with its title under it, over a soft copy of itself that moves with the music. A take with no picture shows the Yeufonic scene until one is made.
-- **Behind the scenes:** the Yeufonic, Mandala, Grid and Liquid scenes play over the take's picture, softly moving with the music, where the take has one.
+- **Behind the scenes:** the Yeufonic, Mandala, Grid, Liquid and Bars scenes play over the take's picture, softly moving with the music, where the take has one.
 - **The waveform:** under the Yeufonic and Artwork scenes, the take's waveform shows how far the song has played; click it to jump there.
 - **Album Artwork & Vinyl Dynamics:** Displays the take's Hipgnosis-style album cover in an interactive 3D sleeve that tilts and orbits with pointer movement. A realistic vinyl record spins at 33⅓ RPM and slides out of the sleeve on bass hits, accompanied by holographic sheen and beat-reactive shockwave rings. Cycle modes with the **Artwork** button: *Sleeve*, *Aura* (ambient blurred background), or *Off*.
 - **A new picture:** the picture button at the top right, in every scene, makes a new picture for the take playing, where this PC can make pictures. It pulses while the picture is made, and the new one takes over when it is ready.

@@ -44,7 +44,7 @@ cannot creep back in.
   search or filter that would hide it; a take being made inside another opens on that take's card. A picture's job is
   named as one, not as an engine job.
 - **An Artwork visualizer.** The take's picture, large, with its title under it, over a soft copy of itself that
-  moves with the music; the Yeufonic, Mandala, Grid and Liquid scenes play over the same backdrop. A picture button at the
+  moves with the music; the Yeufonic, Mandala, Grid, Liquid and Bars scenes play over the same backdrop. A picture button at the
   visualizer's top right, in every scene, makes a new picture for the take playing. The waveform under the Yeufonic
   scene is fainter, the lyrics panel can be dragged out of the way, and a scene chosen in the visualizer no longer
   switches back to the saved one a moment later.
@@ -53,6 +53,7 @@ cannot creep back in.
   so the same few settings (a swimming pool, an empty hall) no longer turn up across unrelated songs. It leaves people
   out and lets objects, the place and the light carry the picture; a person appears only where the idea needs one,
   small and far off. Pictures already made are not changed.
+- **The Bars visualizer spans the screen** at any width, and its highest bars move with the music.
 - **A take with no picture offers to make one from its card.** Pointing at the square at the top left of a card with no
   picture shows **Make a new picture**, as the enlarged picture does, where this PC can make pictures.
 
