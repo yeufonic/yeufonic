@@ -4727,6 +4727,11 @@ main.view-playlists > .library {
   color: #e9d5ff;
   border-color: #a855f7;
 }
+/* The picture button: an icon the height of its neighbours; it pulses while a picture is being made. */
+.vis-tool-btn.vis-picture-btn { display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; align-self: stretch; }
+.vis-tool-btn.vis-picture-btn:disabled { cursor: default; }
+.vis-tool-btn.vis-picture-btn.making svg { animation: vis-picture-making 1.4s ease-in-out infinite; }
+@keyframes vis-picture-making { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 .vis-tool-btn.vis-close {
   font-size: 18px;
   line-height: 1;
@@ -4886,6 +4891,14 @@ main.view-playlists > .library {
   padding: 24px 28px;
 }
 .vis-lyrics-wrap.hidden { display: none !important; }
+/* The grip at the top of the lyrics: drag to move the panel, double-click to put it back.  Faint until pointed at. */
+.vis-lyrics-grip { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 18px;
+  cursor: grab; z-index: 9; touch-action: none; }
+.vis-lyrics-grip::before { content: ''; position: absolute; left: 50%; top: 7px; transform: translateX(-50%); width: 44px;
+  height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.22); transition: background 0.15s ease, width 0.15s ease; }
+.vis-lyrics-wrap:hover .vis-lyrics-grip::before { background: rgba(255, 255, 255, 0.45); }
+.vis-lyrics-grip:hover::before, .vis-lyrics-wrap.dragging .vis-lyrics-grip::before { background: rgba(255, 255, 255, 0.75); width: 56px; }
+.vis-lyrics-wrap.dragging, .vis-lyrics-wrap.dragging .vis-lyrics-grip { cursor: grabbing; user-select: none; }
 
 .vis-lyrics-close {
   position: absolute;

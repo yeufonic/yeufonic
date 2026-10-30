@@ -535,6 +535,7 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "liquid", "label": "Liquid Warp"},
             {"value": "swarm", "label": "Particle Swarm Nebula"},
             {"value": "bars", "label": "Hi-Fi Studio Bars"},
+            {"value": "artwork", "label": "Artwork (the take's picture)"},
         ],
         "help": "The default visualizer scene for the full-screen visualizer.",
     },

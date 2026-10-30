@@ -252,6 +252,14 @@
           lyricsBtn.addEventListener('click', function () { self.toggleLyrics(); });
         }
 
+        var pictureBtn = $('vis-btn-picture');
+        if (pictureBtn) {
+          pictureBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            self.makePicture();
+          });
+        }
+
         var lyricsClose = $('vis-lyrics-close');
         if (lyricsClose) {
           lyricsClose.addEventListener('click', function (e) {
@@ -259,6 +267,7 @@
             self.toggleLyrics(false);
           });
         }
+        this.wireLyricsDrag();
 
         // Mode switch buttons
         var modeBtns = modal.querySelectorAll('.vis-mode-btn');
@@ -283,7 +292,7 @@
         if (canvas) {
           canvas.addEventListener('click', function (e) {
             if (e.target === canvas) {
-              if (self.mode === 'yeufonic' && self.seekWaveStrip(e)) { return; }
+              if ((self.mode === 'yeufonic' || self.mode === 'artwork') && self.seekWaveStrip(e)) { return; }
               var playBtn = $('btn-play');
               if (playBtn) { playBtn.click(); }
             }
@@ -361,11 +370,125 @@
       }
     },
 
+    /* The lyrics panel can be moved: by the grip at its top, or by its edge.  Where it was put is kept on this browser
+       as an offset from its own place, held on screen; a double-click on the grip puts it back. */
+    lyricsAt: null,
+    wireLyricsDrag: function () {
+      var wrap = $('vis-lyrics-wrap');
+      if (!wrap || wrap.dataset.drag) { return; }
+      wrap.dataset.drag = '1';
+      var grip = document.createElement('div');
+      grip.className = 'vis-lyrics-grip';
+      grip.title = 'Drag to move \u2014 double-click to put it back';
+      wrap.insertBefore(grip, wrap.firstChild);
+      var self = this;
+      try { this.lyricsAt = JSON.parse(localStorage.getItem('yue2.vis.lyricsAt') || 'null'); } catch (e) { this.lyricsAt = null; }
+      var drag = null;
+      wrap.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0 || (e.target !== grip && e.target !== wrap)) { return; }
+        var at = self.lyricsAt || { x: 0, y: 0 };
+        drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x: at.x, y: at.y };
+        try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* moves still arrive while the pointer is over it */ }
+        wrap.classList.add('dragging');
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      wrap.addEventListener('pointermove', function (e) {
+        if (!drag || e.pointerId !== drag.id) { return; }
+        self.placeLyrics({ x: drag.x + e.clientX - drag.sx, y: drag.y + e.clientY - drag.sy });
+      });
+      var end = function (e) {
+        if (!drag || e.pointerId !== drag.id) { return; }
+        drag = null;
+        wrap.classList.remove('dragging');
+        try { localStorage.setItem('yue2.vis.lyricsAt', JSON.stringify(self.lyricsAt)); } catch (err) { /* private mode */ }
+      };
+      wrap.addEventListener('pointerup', end);
+      wrap.addEventListener('pointercancel', end);
+      wrap.addEventListener('click', function (e) { if (e.target === grip || e.target === wrap) { e.stopPropagation(); } });
+      grip.addEventListener('dblclick', function (e) {
+        e.stopPropagation();
+        self.lyricsAt = null;
+        wrap.style.transform = '';
+        try { localStorage.removeItem('yue2.vis.lyricsAt'); } catch (err) { /* private mode */ }
+      });
+      window.addEventListener('resize', function () { if (self.lyricsAt) { self.placeLyrics(self.lyricsAt); } });
+    },
+
+    // Moves the panel by an offset, held so at least most of it stays on screen.
+    placeLyrics: function (at) {
+      var wrap = $('vis-lyrics-wrap');
+      if (!wrap || wrap.classList.contains('hidden')) { this.lyricsAt = at; return; }
+      wrap.style.transform = '';
+      var home = wrap.getBoundingClientRect();
+      var keep = 60;   // pixels of the panel that stay in view
+      var x = Math.max(keep - home.right, Math.min(window.innerWidth - keep - home.left, at.x));
+      var y = Math.max(-home.top, Math.min(window.innerHeight - keep - home.top, at.y));
+      this.lyricsAt = { x: Math.round(x), y: Math.round(y) };
+      wrap.style.transform = 'translate(' + this.lyricsAt.x + 'px, ' + this.lyricsAt.y + 'px)';
+    },
+
+    /* The picture button, top right in every scene: a new picture for the take playing, where this PC can make one.
+       While one is being made it pulses and waits; the new picture takes over when it is ready. */
+    pictureTimer: null,
+    paintPictureButton: function (art) {
+      var btn = $('vis-btn-picture');
+      if (!btn) { return; }
+      var take = this.currentTake;
+      var can = Boolean(take && take.id && window.State && window.State.pictures);
+      btn.style.display = can ? '' : 'none';
+      if (!can) { return; }
+      var states = window.ART_STATES || {};
+      var making = Boolean(art && states[art.state]);
+      btn.disabled = making;
+      btn.classList.toggle('making', making);
+      btn.title = making ? states[art.state] : (art && art.state === 'failed' ? 'The last try failed: ' + (art.error || 'no reason given') + ' \u2014 make a new picture' : 'Make a new picture');
+    },
+
+    // Asks the server how the take's picture stands, and keeps asking while one is being made.
+    watchPicture: function () {
+      clearTimeout(this.pictureTimer);
+      var take = this.currentTake;
+      if (!take || !take.id || !window.api || !this.isOpen) { this.paintPictureButton(null); return; }
+      var self = this, id = take.id;
+      window.api('/api/takes/' + encodeURIComponent(id) + '/art').then(function (art) {
+        if (!self.currentTake || self.currentTake.id !== id) { return; }
+        self.paintPictureButton(art);
+        var states = window.ART_STATES || {};
+        if (states[art.state]) {
+          self.pictureWaiting = true;
+          self.pictureTimer = setTimeout(function () { self.watchPicture(); }, 2000);
+        } else if (self.pictureWaiting) {
+          // Ready: the take's new address carries the picture's new version.
+          self.pictureWaiting = false;
+          window.api('/api/takes/' + encodeURIComponent(id)).then(function (fresh) {
+            if (fresh && fresh.art && self.currentTake && self.currentTake.id === id) { self.applyArtwork(fresh.art); }
+          }).catch(function () {});
+          if (typeof window.loadTakes === 'function') { window.loadTakes(); }
+        }
+      }).catch(function () { self.paintPictureButton(null); });
+    },
+
+    makePicture: function () {
+      var take = this.currentTake;
+      var btn = $('vis-btn-picture');
+      if (!take || !take.id || !window.api || (btn && btn.disabled)) { return; }
+      var self = this;
+      if (btn) { btn.disabled = true; btn.classList.add('making'); }
+      window.api('/api/takes/' + encodeURIComponent(take.id) + '/art', { method: 'POST' })
+        .then(function () { self.pictureWaiting = true; self.watchPicture(); })
+        .catch(function (err) {
+          if (btn) { btn.disabled = false; btn.classList.remove('making'); }
+          if (typeof window.statusLine === 'function') { window.statusLine(err.message, 'bad'); }
+        });
+    },
+
     setMode: function (mode) {
       if (!mode || this.mode === mode) { return; }
       this.mode = mode;
       this.saveSettings('mode');
       this.updateButtonsState();
+      this.updateArtworkDisplay();   // the Artwork scene draws the picture itself, so the sleeve steps aside
     },
 
     cycleArtMode: function () {
@@ -399,6 +522,7 @@
       if (artBtn) {
         artBtn.textContent = 'Artwork: ' + (this.artMode === 'sleeve' ? 'Sleeve' : (this.artMode === 'aura' ? 'Aura' : 'Off'));
         artBtn.classList.toggle('active', this.artMode !== 'off');
+        artBtn.style.display = this.mode === 'artwork' ? 'none' : '';
       }
 
       var lyricsBtn = $('vis-btn-lyrics');
@@ -516,6 +640,7 @@
       if (take && take.id && !take.art && !this.artPollTimer) {
         this.startArtPolling();
       }
+      this.watchPicture();
       this.updateArtworkDisplay();
       this.updateLyricsDisplay();
     },
@@ -530,7 +655,7 @@
       var take = this.currentTake;
       var artUrl = take && take.art ? take.art : null;
 
-      if (!artUrl || this.artMode === 'off') {
+      if (!artUrl || this.artMode === 'off' || this.mode === 'artwork') {
         wrap.classList.add('hidden');
         if (aura) { aura.classList.add('hidden'); }
         return;
@@ -642,6 +767,7 @@
 
       wrap.classList.remove('hidden');
       wrap.classList.toggle('vis-lyrics-timed', Boolean(this.hasTimings));
+      if (this.lyricsAt) { this.placeLyrics(this.lyricsAt); }
 
       var curTakeId = this.currentTake ? this.currentTake.id : null;
       if (this.lyricsRenderedForTake === curTakeId && list.childNodes.length > 0) {
@@ -791,6 +917,9 @@
       switch (this.mode) {
         case 'yeufonic':
           this.renderYeufonic(ctx, w, h, now);
+          break;
+        case 'artwork':
+          this.renderArtwork(ctx, w, h, now);
           break;
         case 'aurora':
           this.renderAurora(ctx, w, h, now);
@@ -1182,6 +1311,239 @@
       this.drawWaveStrip(ctx, w, h, now);
     },
 
+    /* The take's picture, front and centre at full resolution and still, over the same picture filling the screen:
+       softly blurred and dimmed, drifting and zooming slowly, its colours swaying, and breathing once every two bars,
+       in step with the song, by as much as the music is loud.  The waveform under it seeks.  A take with no picture (yet) gets the
+       Yeufonic scene, and the picture takes over once it arrives. */
+    renderArtwork: function (ctx, w, h, now) {
+      var take = this.currentTake;
+      var url = take && take.art;
+      var art = this.artScene;
+      if (url && (!art || art.url !== url)) {
+        art = this.artScene = { url: url, img: new Image(), ready: false, blur: null, glow: '123, 92, 255', hue: 260 };
+        var self = this, scene = art;
+        art.img.onload = function () {
+          if (self.artScene !== scene) { return; }
+          // The blurred copy, made once: drawn past its own edges so the blur has no dark rim, then stretched
+          // over the screen each frame, which costs nothing.
+          // Soft enough to sit back, sharp enough to be the picture: blurred lightly at 1024 pixels, about the size
+          // it is shown, so the stretch over the screen adds little more.
+          var blur = document.createElement('canvas');
+          blur.width = 1024; blur.height = 1024;
+          var bctx = blur.getContext('2d');
+          bctx.filter = 'blur(5px) saturate(0.9)';
+          bctx.drawImage(scene.img, -16, -16, 1056, 1056);
+          scene.blurBase = blur;
+          scene.blur = document.createElement('canvas');
+          scene.blur.width = 1024; scene.blur.height = 1024;
+          scene.blurHue = null;
+          try {
+            var one = document.createElement('canvas');
+            one.width = 1; one.height = 1;
+            var octx = one.getContext('2d');
+            octx.drawImage(scene.img, 0, 0, 1, 1);
+            var px = octx.getImageData(0, 0, 1, 1).data;
+            var lift = 255 / Math.max(60, px[0], px[1], px[2]);   // a dark picture still has a glow to show
+            var rgb = [px[0], px[1], px[2]].map(function (v) { return Math.min(255, Math.round(v * lift)); });
+            scene.glow = rgb.join(', ');
+            // Its hue, where the tint starts its slow turn.
+            var r = rgb[0] / 255, g = rgb[1] / 255, bl = rgb[2] / 255;
+            var mx = Math.max(r, g, bl), mn = Math.min(r, g, bl), d = mx - mn;
+            if (d > 0.02) {
+              var hh = mx === r ? ((g - bl) / d) % 6 : (mx === g ? (bl - r) / d + 2 : (r - g) / d + 4);
+              scene.hue = (hh * 60 + 360) % 360;
+            }
+            // A picture whose background was taken out (some older ones) is drawn as it is, its shadow following
+            // its outline; a whole picture gets rounded corners.
+            var probe = document.createElement('canvas');
+            probe.width = 8; probe.height = 8;
+            var pctx = probe.getContext('2d');
+            pctx.drawImage(scene.img, 0, 0, 8, 8);
+            var corners = [[0, 0], [7, 0], [0, 7], [7, 7]].map(function (c) { return pctx.getImageData(c[0], c[1], 1, 1).data[3]; });
+            scene.opaque = Math.min.apply(null, corners) > 240;
+          } catch (err) { /* a picture that cannot be read keeps the brand colours */ }
+          scene.ready = true;
+        };
+        art.img.src = url;
+      }
+      if (!url || !art || !art.ready) {
+        this.renderYeufonic(ctx, w, h, now);
+        return;
+      }
+
+      var t = now / 1000;
+
+      // The breath: once every two bars, fullest on the downbeat that starts them and easing out between, from where
+      // the song is; how deep, from the music's loudness taken slowly, so a quiet passage breathes shallow and a loud
+      // one deep.
+      var bar = 2 * this.barSeconds(take);
+      var audio = $('audio');
+      var at = audio && isFinite(audio.currentTime) ? audio.currentTime : t;
+      var breath = 0.5 + 0.5 * Math.cos(2 * Math.PI * ((at % bar) / bar));
+      var loud = Math.min(1, (this.bassEnergy || 0) * 0.7 + (this.midEnergy || 0) * 0.6);
+      this.artLevel = (this.artLevel || 0) + (loud - (this.artLevel || 0)) * 0.025;
+      var swell = breath * (0.30 + this.artLevel * 0.70);
+
+      // The backdrop's colours sway well either side of the picture's own, over about two minutes; recoloured only
+      // when the shift has moved a degree.
+      var shift = Math.round(Math.sin(t * 0.05) * 60 + Math.sin(t * 0.017) * 25);
+      if (art.blurHue !== shift) {
+        var hctx = art.blur.getContext('2d');
+        hctx.clearRect(0, 0, 1024, 1024);
+        hctx.filter = 'hue-rotate(' + shift + 'deg)';
+        hctx.drawImage(art.blurBase, 0, 0);
+        hctx.filter = 'none';
+        art.blurHue = shift;
+      }
+
+      // The backdrop: the picture over the whole screen, drifting and zooming slowly, a touch larger on each breath.
+      ctx.fillStyle = '#07070b';
+      ctx.fillRect(0, 0, w, h);
+      var span = Math.max(w, h) * 1.16 * (1 + Math.sin(t * 0.029) * 0.035 + swell * 0.015);
+      var driftX = Math.sin(t * 0.043) * w * 0.03, driftY = Math.cos(t * 0.031) * h * 0.03;
+      ctx.save();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(art.blur, w / 2 - span / 2 + driftX, h / 2 - span / 2 + driftY, span, span);
+      ctx.restore();
+      // Dimmed, so the picture in front stands out; each breath lifts it.
+      ctx.fillStyle = 'rgba(5, 5, 8, ' + Math.max(0.45, 0.68 - swell * 0.11).toFixed(3) + ')';
+      ctx.fillRect(0, 0, w, h);
+
+      // The light from behind the picture, breathing with it, in the picture's colour turned as far as the backdrop.
+      var cx = w * 0.5, cy = h * 0.45;
+      var glowR = Math.max(w, h) * (0.40 + swell * 0.12);
+      var glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
+      var glowHue = ((art.hue + shift) % 360 + 360) % 360;
+      glowGrad.addColorStop(0, 'hsla(' + glowHue.toFixed(0) + ', 70%, 58%, ' + (0.04 + swell * 0.09).toFixed(3) + ')');
+      glowGrad.addColorStop(1, 'hsla(' + glowHue.toFixed(0) + ', 70%, 58%, 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(0, 0, w, h);
+      var vignette = ctx.createRadialGradient(cx, cy, Math.min(w, h) * 0.35, cx, cy, Math.max(w, h) * 0.75);
+      vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      vignette.addColorStop(1, 'rgba(0, 0, 0, 0.65)');
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, w, h);
+
+      // The picture itself: still, as large as the space above the title allows, its own shape kept.
+      var img = art.img;
+      var aspect = img.naturalWidth / Math.max(1, img.naturalHeight);
+      var pw = Math.min(w * 0.78, h * 0.64 * aspect), ph = pw / aspect;
+      var x = cx - pw / 2, y = h * 0.43 - ph / 2;
+      var radius = Math.min(pw, ph) * 0.025;
+      var rounded = function (path) {
+        path.moveTo(x + radius, y); path.lineTo(x + pw - radius, y); path.quadraticCurveTo(x + pw, y, x + pw, y + radius);
+        path.lineTo(x + pw, y + ph - radius); path.quadraticCurveTo(x + pw, y + ph, x + pw - radius, y + ph);
+        path.lineTo(x + radius, y + ph); path.quadraticCurveTo(x, y + ph, x, y + ph - radius);
+        path.lineTo(x, y + radius); path.quadraticCurveTo(x, y, x + radius, y);
+        path.closePath();
+        return path;
+      };
+      // The picture breathes with the backdrop: see-through on each breath, so the backdrop shows through it, and
+      // whole again between.
+      var seeThrough = 1 - swell * 0.4;
+      ctx.save();
+      ctx.imageSmoothingQuality = 'high';
+      if (art.opaque !== false) {
+        var edge = rounded(new Path2D());
+        // Its shadow falls only outside it: a shape drawn far off the canvas casts it back into place, clipped to
+        // everything but the picture, so nothing dark lies under a picture the backdrop shows through.
+        var away = w + h + Math.min(pw, ph);
+        var outside = new Path2D();
+        outside.rect(0, 0, w, h);
+        outside.addPath(edge);
+        ctx.save();
+        ctx.clip(outside, 'evenodd');
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+        ctx.shadowBlur = Math.min(pw, ph) * 0.08;
+        // Shadow offsets ignore the canvas's scaling (the screen's pixel ratio), the move does not.
+        var scaleX = ctx.getTransform ? ctx.getTransform().a : 1;
+        ctx.shadowOffsetX = away * scaleX;
+        ctx.shadowOffsetY = Math.min(pw, ph) * 0.02 * scaleX;
+        ctx.translate(-away, 0);
+        ctx.fillStyle = '#000';
+        ctx.fill(edge);
+        ctx.restore();
+        ctx.clip(edge);
+      } else {
+        // A picture whose background was taken out: its shadow follows its outline.
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+        ctx.shadowBlur = Math.min(pw, ph) * 0.08;
+        ctx.shadowOffsetY = Math.min(pw, ph) * 0.02;
+      }
+      ctx.globalAlpha = seeThrough;
+      ctx.drawImage(img, x, y, pw, ph);
+      ctx.restore();
+
+      this.drawSleeveTitle(ctx, take.title, cx, y + ph, w, h);
+
+      this.loadWaveStrip(take);
+      this.drawWaveStrip(ctx, w, h, now);
+    },
+
+    /* How long a bar of the take lasts, from its score's tempo and metre, or the tempo its style names in 4/4;
+       a short bar is taken twice, so the breath stays slow.  Two and a half seconds when nothing says. */
+    barSeconds: function (take) {
+      if (!take) { return 2.5; }
+      if (this.barFor && this.barFor.id === take.id && this.barFor.abc === take.abc) { return this.barFor.seconds; }
+      var abc = take.abc || '';
+      var perMinute = 0, quarters = 4;
+      var q = /^Q:\s*(?:(\d+)\/(\d+)\s*=\s*)?(\d+)/m.exec(abc);
+      if (q) { perMinute = parseInt(q[3], 10) * (q[1] ? 4 * parseInt(q[1], 10) / parseInt(q[2], 10) : 1); }
+      else {
+        var named = /(\d{2,3})\s*bpm\b/i.exec(take.style || '');
+        if (named) { perMinute = parseInt(named[1], 10); }
+      }
+      var m = /^M:\s*(\d+)\/(\d+)/m.exec(abc);
+      if (m) { quarters = 4 * parseInt(m[1], 10) / parseInt(m[2], 10); }
+      else if (/^M:\s*C\|/m.test(abc)) { quarters = 4; }
+      var seconds = perMinute >= 30 && perMinute <= 400 ? quarters * 60 / perMinute : 2.5;
+      while (seconds < 1.6) { seconds *= 2; }
+      this.barFor = { id: take.id, abc: take.abc, seconds: seconds };
+      return seconds;
+    },
+
+    /* The take's title under its picture, in capitals, tall and condensed, in a soft off-white, as an old sleeve's
+       lettering is, at a semi-bold weight rather than a black one; brought down to fit a long title, and cut short
+       only past that.  The faces are the ones a computer is likely to have (Bahnschrift on Windows, Avenir Next
+       Condensed on a Mac); the first it has is used. */
+    drawSleeveTitle: function (ctx, title, cx, top, w, h) {
+      var text = String(title || '').trim().toUpperCase();
+      if (!text) { return; }
+      var faces = "Bahnschrift, 'Avenir Next Condensed', 'Roboto Condensed', 'Arial Narrow', 'Liberation Sans Narrow', 'DejaVu Sans Condensed', sans-serif";
+      var bandH = Math.max(14, Math.min(26, h * 0.032));
+      var room = (h - 2 * bandH - 62) - 16 - top - 16;   // down to the waveform's top, with a gap either side
+      if (room < 20) { return; }   // a window too short for it
+      var size = Math.max(14, Math.min(room * 0.5, h * 0.04, 44));
+      var widest = Math.min(w * 0.86, 1400);
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(236, 232, 224, 0.65)';   // a warm off-white, a little see-through: it sits under the picture
+      var spacing = function (px) { if ('letterSpacing' in ctx) { ctx.letterSpacing = Math.round(px * 0.03) + 'px'; } };
+      var font = function (px) {
+        ctx.font = '600 condensed ' + Math.round(px) + 'px ' + faces;
+        if ('fontStretch' in ctx) { ctx.fontStretch = 'condensed'; }
+      };
+      font(size);
+      spacing(size);
+      var width = ctx.measureText(text).width;
+      if (width > widest) {
+        size = Math.max(14, size * widest / width);
+        font(size);
+        spacing(size);
+        width = ctx.measureText(text).width;
+      }
+      while (width > widest && text.length > 4) {
+        text = text.slice(0, -2).replace(/\s+$/, '') + '\u2026';
+        width = ctx.measureText(text).width;
+      }
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+      ctx.shadowBlur = size * 0.2;
+      ctx.fillText(text, cx, top + 16 + room / 2);
+      ctx.restore();
+    },
+
     /* The waveform under the mark: the take's own peaks, the played part filled in, and a
        playhead — the one thing a full-screen scene otherwise never says.  The peaks come from
        the same endpoint the main page's waveform uses, fetched once per take. */
@@ -1246,6 +1608,9 @@
       var frac = dur ? Math.max(0, Math.min(1, audio.currentTime / dur)) : 0;
       var hueDot = (now * 0.008 + 145) % 360;
 
+      // Seen but not leaning on the scene above it.
+      ctx.save();
+      ctx.globalAlpha = 0.35;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.20)';
       ctx.fill(P.outline);
       ctx.fillStyle = 'rgba(255, 255, 255, 0.11)';
@@ -1270,6 +1635,7 @@
       ctx.moveTo(px, P.midY - P.bandH - 3);
       ctx.lineTo(px, P.midY + P.bandH + 3);
       ctx.stroke();
+      ctx.restore();
     },
 
     // A click on the strip seeks there; anything else falls through to the play toggle.

@@ -43,6 +43,13 @@ cannot creep back in.
   the title of the take playing in the player, and the library goes to that take in whichever space it is in, clearing a
   search or filter that would hide it; a take being made inside another opens on that take's card. A picture's job is
   named as one, not as an engine job.
+- **An Artwork visualizer.** The take's picture, still, front and centre at full size with the title in capitals
+  under it, over the same picture filling the screen behind it, soft and dim, drifting slowly and breathing once
+  every two bars with the music, with the waveform to click under it. A picture button at the visualizer's top right, in every scene, makes a
+  new picture for the take playing. The waveform under the Yeufonic scene is fainter too, so it no longer competes
+  with the scene. The visualizer's lyrics panel can be dragged out of the way, and stays where it is put. A scene
+  chosen in the visualizer is no longer put back to the saved one by the app's next settings check when its save has
+  not gone through.
 - **A take with no picture offers to make one from its card.** Pointing at the square at the top left of a card with no
   picture shows **Make a new picture**, as the enlarged picture does, where this PC can make pictures.
 
