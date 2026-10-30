@@ -329,16 +329,16 @@ def test_the_flux_graph_is_comfyuis_own_klein_workflow():
     assert kinds["VAELoader"]["vae_name"] == "flux2-vae.safetensors"
     assert kinds["Flux2Scheduler"]["steps"] == 4 and kinds["RandomNoise"]["noise_seed"] == 7
     assert kinds["EmptyFlux2LatentImage"]["width"] % 16 == 0 and kinds["EmptyFlux2LatentImage"]["height"] % 16 == 0
-    # klein cannot spell: what it is sent describes the style without naming the design group, asks
-    # for no lettering, and subtracts text through a real negative — which needs a cfg above 1 to act
-    # at all.  The external model, which letters reliably, keeps the named Hipgnosis prompt.
+    # klein cannot spell: what it is sent describes the style without naming the design group or an
+    # album cover, and it is sampled as it was distilled, at cfg 1 with the negative zeroed (a real
+    # negative at cfg 3 burnt the pictures).  The external model, which letters reliably, keeps the
+    # named Hipgnosis prompt.
     local = graph["4"]["inputs"]["text"]
-    assert artwork.NO_TEXT_RULE in local
+    assert local.startswith(artwork.KLEIN_LOOK) and "A lantern." in local
     assert "Hipgnosis" not in local and "album cover" not in local.lower()
-    assert graph["5"]["inputs"]["text"] == artwork.NO_TEXT_NEGATIVE
-    assert kinds["CFGGuider"]["cfg"] == artwork.LOCAL_CFG and artwork.LOCAL_CFG > 1.0
+    assert kinds["ConditioningZeroOut"]["conditioning"] == ["4", 0] and kinds["CFGGuider"]["cfg"] == 1.0
     external = artwork.drawing_request("A lantern.")
-    assert "Hipgnosis" in external and artwork.NO_TEXT_RULE not in external
+    assert "Hipgnosis" in external and artwork.KLEIN_LOOK not in external
     for node in graph.values():                              # every link points at a node in the graph
         for value in node["inputs"].values():
             if isinstance(value, list):
@@ -890,3 +890,25 @@ def test_an_engine_with_the_full_precision_klein_files_can_draw(monkeypatch):
     assert asyncio.run(run()) is True
     assert (config.PICTURE_MODEL, config.PICTURE_TEXT) == (model, encoder)
     assert artwork.picture_graph("a field", 1, "p")["1"]["inputs"]["unet_name"] == model
+
+
+def test_klein_is_sent_the_scene_and_the_look_without_the_prompts_labels():
+    """take_description's labels never reach klein: an empty "Song title:" asks for a title, "72 bpm" for
+    numbers.  A well-worn sleeve keeps its wear, and the take's mood stands in only where there is no scene."""
+    take = {"title": "Paper Moon", "style": "melancholic indie folk, female vocals, piano, 72 bpm", "seed": 1}
+    scene = 'A man holds a paper moon on a string beside a phone box reading "Paper Moon".'
+    local = artwork.klein_request(artwork.take_description(take, scene=scene, well_worn=True), take)
+    assert "Song title" not in local and "cover style" not in local and "visual scene" not in local
+    assert "holds a paper moon on a string beside a phone box." in local        # the pun stays, the sign goes
+    assert '"' not in local and "bpm" not in local and "melancholic" not in local
+    assert artwork.KLEIN_WORN in local
+    bare = artwork.klein_request(artwork.take_description(take, well_worn=False), take)
+    assert "Its mood: melancholic indie folk, piano." in bare
+    assert artwork.KLEIN_WORN not in bare and "72" not in bare and "vocals" not in bare
+
+
+def test_klein_loses_the_words_it_would_letter():
+    assert artwork.wordless_scene("A boat named Night Fishing drifts on fog.", "Night Fishing") == "A boat drifts on fog."
+    assert artwork.wordless_scene("A sign that reads \u201cRain\u201d in a field.", "Rain") == "A sign in a field."
+    assert artwork.wordless_scene("Rain falls on open umbrellas.", "Rain") == "Rain falls on open umbrellas."
+    assert artwork.wordless_scene("Two figures, called by the sea, wait.", "") == "Two figures, called by the sea, wait."

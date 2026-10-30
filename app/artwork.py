@@ -28,22 +28,32 @@ OPENAI_SIZE = "1024x1024"       # square 1:1 album cover
 WORD_LINES = 12                 # the opening of the song the description is written from
 DRAW_TIMEOUT = 180.0
 
-# FLUX.2 [klein] on this PC cannot spell: asked for an album cover it writes lettering of its own,
-# garbled or half there.  So the picture drawn here is asked for with no text at all, while an
-# external image model, which renders lettering reliably, keeps the prompts as they were.
-NO_TEXT_RULE = (
-    "No text of any kind appears in the image: no lettering, no title, no numbers, no signature, "
-    "no caption, no watermark, no words, not even a partial one or as decoration."
+# FLUX.2 [klein] on this PC cannot spell, and letters what it is led to: the words "album cover", the
+# design group's name, a "Song title:" label, a sign "reading" something.  So the picture drawn here is
+# described as a photograph in the house style, without the name, and the scene loses any quoted words
+# and signage, while an external image model, which renders lettering reliably, keeps the prompts as
+# they were.  It is sampled as it was distilled to be, at cfg 1 with no negative: a weighted negative at
+# cfg 3 kept the odd sign blank but burnt every picture (hard contrast, oversaturated, plastic), and
+# spelling out "no text" in the prompt only put text in mind.
+KLEIN_LOOK = (
+    "A square photograph, 1:1, in the manner of 1970s British surrealist record-sleeve photography: "
+    "one impossible, enigmatic event staged and photographed for real, in camera, in a vast and quiet "
+    "real place \u2014 deadpan and witty, a visual metaphor taken literally. Medium-format film, natural "
+    "light, muted colour, fine grain, a precise composition with generous empty space around a single "
+    "striking subject."
 )
-# What to subtract from it.  Naming the design group in the positive prompt made klein letter it on
-# the sleeve ("HIPGNOS?"), so for the picture drawn here the style is described instead of named,
-# and the name is asked instead to be absent.
-NO_TEXT_NEGATIVE = (
-    "(text, lettering, letters, words, numbers, typography, font, writing, handwriting, inscription, "
-    "sign, signboard, plaque, label, badge, logo, watermark, signature, caption, title, subtitle, "
-    "signage, poster text, graffiti, sheet music:1.4), garbled text, hipgnosis"
+KLEIN_WORN = "The print is old and well handled: faded colour, ring-wear and soft creases across it."
+KLEIN_WORDLESS = "A wordless image."
+# Words that put lettering in a scene, and the words after them: "a sign reading ...", "a boat named ...".
+SIGNAGE_RE = re.compile(
+    r"\s*,?\s*\b(?:reading|that reads|which reads|saying|labell?ed|inscribed(?: with)?|bearing the words|"
+    r"with the words|emblazoned with|spelling(?: out)?|named|called|titled|entitled)\s+"
+    r"(?:[\"\u201c\u2018'][^\"\u201d\u2019']*[\"\u201d\u2019']|[A-Z][\w']*(?:\s+[A-Z][\w']*)*)",
 )
-LOCAL_CFG = 3.0                 # klein is distilled for cfg 1.0; a real negative needs more than that
+QUOTED_RE = re.compile(r"[\"\u201c][^\"\u201d]*[\"\u201d]")
+# Music tags that are no help to a picture, or draw the wrong one: a tempo, a key, who sings.
+NOT_FOR_PICTURE_RE = re.compile(r"\d|\bbpm\b|\bkey\b|\btempo\b|vocal|voice|singer|\bmale\b|\bfemale\b|\bduet\b",
+                                re.IGNORECASE)
 
 # What the engine reports it has (set by the job lanes, which hold the engine).
 engine_options = lambda: {}  # noqa: E731
@@ -599,31 +609,62 @@ def drawing_request(description: str, take: dict | None = None, well_worn: bool 
     return f"{prefix}\n\n{clean_text or text}"
 
 
+def description_parts(text: str) -> tuple[bool, str, str]:
+    """An album-cover prompt (take_description's) taken apart: whether the sleeve is well worn, its
+    style, and its scene.  Anything else is all scene."""
+    head = HIPGNOSIS_PREFIX_RE.match(text)
+    if not head:
+        return False, "", text.strip()
+    worn = bool(re.search(r"well[- ]worn", head.group(0), re.IGNORECASE))
+    style = re.search(r'cover style:\s*"(.*?)"\s*(?:visual scene:|\Z)', text, re.DOTALL)
+    scene = re.search(r'visual scene:\s*"(.*)"\s*\Z', text, re.DOTALL)
+    return worn, (style.group(1).strip() if style else ""), (scene.group(1).strip() if scene else "")
+
+
+def picture_mood(style: str) -> str:
+    """The take's style tags that say something a picture can show: no tempo, key or voice."""
+    tags = [t.strip() for t in (style or "").split(",") if t.strip()]
+    return ", ".join(t for t in tags if not NOT_FOR_PICTURE_RE.search(t))
+
+
+def wordless_scene(scene: str, title: str) -> str:
+    """The scene without the words klein would letter: signs reading something, quoted words, and the
+    title where it is used as a name ("Night Fishing floats ...", in its own capitals).  The title's words used as things
+    stay ("a paper moon on a string" for Paper Moon): they are the cover's visual pun, and taking them
+    out left "holding a on a string"."""
+    text = SIGNAGE_RE.sub("", scene)
+    text = QUOTED_RE.sub("", text)
+    if title and len(title.split()) > 1:
+        text = re.sub(r"(?<!\w)" + re.escape(title) + r"(?!\w)", "", text)
+    text = re.sub(r"\s+([,.;:])", r"\1", text)
+    return re.sub(r"  +", " ", text).strip(" ,;:-")
+
+
 def klein_request(description: str, take: dict | None = None, title: str = "") -> str:
     """The prompt for FLUX.2 [klein] on this PC, which cannot spell.
 
-    Three things in the shared prompt are what make it write: the words "album cover", the phrase
-    "in the style of Hipgnosis", and naming the design group at all — it then letters the sleeve,
-    garbled ("FLIPGäEINEE" on a phone box, "HIPGNOS?" as a signature).  Measured on the live
-    engine, one scene at a time: a no-text sentence alone changed nothing; describing the style
-    without naming any group, with the weighted text negative at cfg 3, left the very sign that had
-    been lettered blank, and cfg 4.5 drew no better.  So: no name, this request, and the negative.
+    The house look described rather than named (naming the design group, or "album cover", is what
+    made it letter the sleeve: "HIPGNOS?" as a signature), then the scene, then the take's mood where
+    there is no scene to carry it.  None of take_description's labels reach it: an empty "Song title:"
+    asks for a title, and "72 bpm" for numbers.
     """
     text = clean_prompt_text(description.strip(), take)
-    clean_text = HIPGNOSIS_PREFIX_RE.sub("", text) if HIPGNOSIS_PREFIX_RE.match(text) else text
-    clean_text = re.sub(r",?\s*(?:designed by|created by|in the style of|by)?\s*(?:hipgnosis|hignosis)\b", "",
-                        clean_text, flags=re.IGNORECASE)
-    clean_text = re.sub(r"  +", " ", clean_text).strip() or text
-    # A title that reached the description in any case is taken out of what klein is drawn from.
-    clean_text = without_title(clean_text, title or clean_cover_title(take or {}))
-    return (
-        "A square picture, 1:1: an image only, wordless and textless. Its look: a surreal photographic "
-        "or painterly scene \u2014 striking visual metaphor, unexpected juxtaposition, dramatic landscape, "
-        "vintage film texture \u2014 in the manner of late-1960s British record-sleeve design, without "
-        "naming or imitating any design group.\n\n"
-        f"{clean_text}\n\n"
-        f"{NO_TEXT_RULE}"
-    )
+    worn, style, scene = description_parts(text)
+    scene = re.sub(r",?\s*(?:designed by|created by|in the style of|by)?\s*(?:hipgnosis|hignosis)\b", "",
+                   scene, flags=re.IGNORECASE)
+    title = title or clean_cover_title(take or {})
+    scene = wordless_scene(scene, title)
+    parts = [KLEIN_LOOK]
+    if scene:
+        parts.append(scene)
+    else:
+        mood = picture_mood(without_title(style, title))
+        if mood:
+            parts.append(f"Its mood: {mood}.")
+    if worn:
+        parts.append(KLEIN_WORN)
+    parts.append(KLEIN_WORDLESS)
+    return "\n\n".join(parts)
 
 
 # ------------------------------------------------------------------ the drawing
@@ -639,13 +680,13 @@ def picture_graph(description: str, seed: int, prefix: str, title: str = "") -> 
         "3": {"class_type": "VAELoader", "inputs": {"vae_name": config.PICTURE_VAE}},
         "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0],
                                                            "text": klein_request(description, title=title)}},
-        "5": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": NO_TEXT_NEGATIVE}},
+        "5": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["4", 0]}},
         "6": {"class_type": "EmptyFlux2LatentImage", "inputs": {"width": WIDTH, "height": HEIGHT, "batch_size": 1}},
         "7": {"class_type": "Flux2Scheduler", "inputs": {"steps": LOCAL_STEPS, "width": WIDTH, "height": HEIGHT}},
         "8": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "euler"}},
         "9": {"class_type": "RandomNoise", "inputs": {"noise_seed": int(seed)}},
         "10": {"class_type": "CFGGuider", "inputs": {"model": ["1", 0], "positive": ["4", 0], "negative": ["5", 0],
-                                                     "cfg": LOCAL_CFG}},
+                                                     "cfg": 1.0}},
         "11": {"class_type": "SamplerCustomAdvanced", "inputs": {"noise": ["9", 0], "guider": ["10", 0], "sampler": ["8", 0],
                                                                  "sigmas": ["7", 0], "latent_image": ["6", 0]}},
         "12": {"class_type": "VAEDecode", "inputs": {"samples": ["11", 0], "vae": ["3", 0]}},
