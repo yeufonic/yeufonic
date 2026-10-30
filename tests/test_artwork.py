@@ -935,3 +935,13 @@ def test_a_picture_that_skips_the_external_models_says_why(client, monkeypatch, 
     assert "not described by the external LLM, as it failed" in said and "the take's own scene instead" in said
     assert "not drawn by" in said and "FLUX.2 klein on this PC instead" in said
     assert artwork.info(take["id"])["has"]
+
+
+def test_people_are_kept_far_off_where_klein_or_gemma_is_asked():
+    """klein draws hands and faces badly up close: its prompt and Gemma's brief keep people small and turned
+    away.  The external LLM's brief is left as it was."""
+    take = {"title": "Night Fishing", "style": "folk", "lyrics": "A boat at dusk", "seed": 1}
+    klein = artwork.klein_request("A man rows a boat at dusk.")
+    assert artwork.FIGURES_FAR in klein and "hand" not in klein.lower()       # klein is told only what to draw
+    assert artwork.FIGURES_FAR_BRIEF in artwork.describe_graph(take, 1)["2"]["inputs"]["prompt"]
+    assert artwork.FIGURES_FAR not in artwork.description_request(take)

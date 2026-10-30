@@ -42,6 +42,11 @@ KLEIN_LOOK = (
     "light, muted colour, fine grain, a precise composition with generous empty space around a single "
     "striking subject."
 )
+# klein 4B draws people badly close up (a hand with four fingers, an arm too many), and the house style
+# seldom showed them close: its figures stand small in the frame, faceless or turned away.  klein is told
+# only what to draw (naming hands puts them in mind, as naming text did); Gemma is also told what to avoid.
+FIGURES_FAR = "Any person is a small figure far off in the frame, seen from behind or in silhouette."
+FIGURES_FAR_BRIEF = FIGURES_FAR + " Keep hands and faces out of close-up: a hand is in a pocket, a glove or out of frame."
 KLEIN_WORN = "The print is old and well handled: faded colour, ring-wear and soft creases across it."
 KLEIN_WORDLESS = "A wordless image."
 # Words that put lettering in a scene, and the words after them: "a sign reading ...", "a boat named ...".
@@ -560,12 +565,14 @@ def without_title(text: str, title: str) -> str:
     return re.sub(r"  +", " ", pattern.sub("", text)).strip(" ,.;:-")
 
 
-def description_request(take: dict, well_worn: bool | None = None, with_title: bool = True) -> str:
+def description_request(take: dict, well_worn: bool | None = None, with_title: bool = True,
+                        figures_far: bool = False) -> str:
     """The scene brief for the description model.
 
     With with_title false the title is left out of the brief, and out of the words and the style as
     well: a model given it works it into the scene ("a telephone box reading ..."), and klein then
-    letters it on the sleeve — the one text it went on drawing.
+    letters it on the sleeve — the one text it went on drawing.  With figures_far the people in the
+    scene are kept small and turned away (FIGURES_FAR_BRIEF), for Gemma, whose scene klein draws.
     """
     raw_title = clean_cover_title(take)
     title = raw_title if with_title else ""
@@ -591,6 +598,7 @@ def description_request(take: dict, well_worn: bool | None = None, with_title: b
         f"{worn_texture}. Do not use the name Hipgnosis in the image or description; "
         "the image should only be influenced by that design group, not made to look like it was created by them. "
         "Do not specify or add a year or decade unless one is explicitly stated in the style above. "
+        f"{FIGURES_FAR_BRIEF + ' ' if figures_far else ''}"
         "Between 40 and 90 words. Reply with the description only."
     )
 
@@ -619,7 +627,7 @@ def describe_graph(take: dict, seed: int, with_title: bool = True) -> dict:
     return {
         "1": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.LYRICS_MODEL, "type": "stable_diffusion"}},
         "2": {"class_type": "TextGenerate", "inputs": {
-            "clip": ["1", 0], "prompt": description_request(take, with_title=with_title),
+            "clip": ["1", 0], "prompt": description_request(take, with_title=with_title, figures_far=True),
             "max_length": 400, "thinking": False,
             "sampling_mode": "on", "sampling_mode.temperature": 0.9, "sampling_mode.top_k": 64,
             "sampling_mode.top_p": 0.95, "sampling_mode.min_p": 0.05, "sampling_mode.repetition_penalty": 1.05,
@@ -690,7 +698,7 @@ def klein_request(description: str, take: dict | None = None, title: str = "") -
                    scene, flags=re.IGNORECASE)
     title = title or clean_cover_title(take or {})
     scene = wordless_scene(scene, title)
-    parts = [KLEIN_LOOK]
+    parts = [f"{KLEIN_LOOK} {FIGURES_FAR}"]
     if scene:
         parts.append(scene)
     else:
