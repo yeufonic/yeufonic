@@ -1236,12 +1236,11 @@ Pictures need something that can draw. There are two, and you can have either, b
   (`diffusion_models`, `text_encoders` and `vae`) and checks each one, then restart the app with
   `docker compose restart app` so it finds them.
 
-**FLUX.2 klein 9B, if you have the graphics card for it.** klein comes in a larger size that draws
-more detail and better hands and faces. Yeufonic never downloads it, because its files are gated on
-Hugging Face, under Black Forest Labs' **non-commercial licence**, and about 18 GB for the usual pair (the
-FP8 model and its FP8 text encoder; 16 GB with the FP4 encoder). But put them in place and they are used. You need the 4B's VAE (`flux2-vae.safetensors`) already in place, so install
-the 4B first, and a graphics card with plenty of memory: 16 GB or more is comfortable, while less works
-more slowly as the engine moves the model in and out.
+**FLUX.2 klein 9B, if you have the graphics card for it.** klein comes in a larger size, a higher-quality
+model meant only for graphics cards with more video memory: it can use nearly all of a card's memory while it
+draws. Yeufonic never downloads it, because its files are gated on Hugging Face and under Black Forest Labs'
+**non-commercial licence**, but put them in place and they are used. It needs the 4B's VAE
+(`flux2-vae.safetensors`), so install the 4B first.
 
 1. **The model.** Sign in to Hugging Face, accept the licence on
    [black-forest-labs/FLUX.2-klein-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8)

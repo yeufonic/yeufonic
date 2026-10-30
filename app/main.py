@@ -429,11 +429,9 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "4b", "label": "4B (installed with Yeufonic)"},
             {"value": "9b", "label": "9B (added by hand: see the guide)"},
         ],
-        "help": "Which FLUX.2 klein draws on this PC. The 4B is what the installer offers. The 9B draws more detail "
-                "and better hands, but Yeufonic never downloads it: its files are gated on Hugging Face and under a "
-                "non-commercial licence. They are about 18 GB (the FP8 model and its FP8 text encoder) and need a "
-                "graphics card with plenty of memory. Put them in the models folder (the guide says which) and the 9B "
-                "is used. If the one asked for is not there, the other draws.",
+        "help": "Which FLUX.2 klein draws on this PC. The 4B is what the installer offers. The 9B is a higher-quality "
+                "model, meant only for graphics cards with more video memory. Yeufonic never downloads it; the guide "
+                "says how to add it. If the one asked for is not there, the other draws.",
         "requires": {"pictures": "possible", "art.auto": "on", "art.drawer": ["auto", "local"]},
         "requires_note": "Only for pictures drawn on this PC: choose This PC under Take pictures: drawn by.",
     },
