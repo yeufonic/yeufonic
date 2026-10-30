@@ -13586,6 +13586,20 @@ function wireWave() {
   audio.addEventListener('pause', stopWaveLoop);
   audio.addEventListener('ended', function () {
     stopWaveLoop(); wave.ratio = 1; drawWave();
+    // A song played from a playlist goes on to the next in it, decided from the song that ended and before
+    // anything else is loaded: the library's chosen take used to be put in the player first, so the playlist
+    // never found its place and that take was what came next.
+    var endedId = State.loadedId;
+    if (State.activeView === 'playlists' && State.playlistQueue && State.playlistQueue.length) {
+      var q = State.playlistQueue;
+      for (var qi = 0; qi + 1 < q.length; qi++) {
+        if (q[qi].id === endedId) {
+          playTake(q[qi + 1].id);
+          if (typeof paintPlaylistActiveRow === 'function') { paintPlaylistActiveRow(); }
+          return;
+        }
+      }
+    }
     State.playing = null; State.audition = null;
     var activeId = typeof selectedTakeId === 'function' ? selectedTakeId() : null;
     var activeTake = (activeId && typeof takeById === 'function' ? takeById(activeId) : null) ||
@@ -13597,18 +13611,6 @@ function wireWave() {
       paintBulk(); paintTransport(); paintAudition();
     }
     if (typeof paintPlaylistActiveRow === 'function') { paintPlaylistActiveRow(); }
-    if (State.activeView === 'playlists' && State.playlistQueue && State.playlistQueue.length) {
-      var q = State.playlistQueue;
-      var curId = State.loadedId;
-      var curIdx = -1;
-      for (var qi = 0; qi < q.length; qi++) {
-        if (q[qi].id === curId) { curIdx = qi; break; }
-      }
-      if (curIdx !== -1 && curIdx + 1 < q.length) {
-        playTake(q[curIdx + 1].id);
-        return;
-      }
-    }
   });
   audio.addEventListener('pause', function () {
     // Ignore the pause that fires while a new track is being loaded.

@@ -53,6 +53,8 @@ cannot creep back in.
   so the same few settings (a swimming pool, an empty hall) no longer turn up across unrelated songs. It leaves people
   out and lets objects, the place and the light carry the picture; a person appears only where the idea needs one,
   small and far off. Pictures already made are not changed.
+- **A playlist plays on to its next song.** When a song played from a playlist ended, the take chosen in the library
+  was put in the player instead, and the playlist stopped.
 - **The Bars visualizer spans the screen** at any width, and its highest bars move with the music.
 - **A take with no picture offers to make one from its card.** Pointing at the square at the top left of a card with no
   picture shows **Make a new picture**, as the enlarged picture does, where this PC can make pictures.
