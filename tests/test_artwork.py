@@ -952,6 +952,8 @@ def test_gemma_is_asked_for_a_scene_klein_can_draw_and_klein_for_the_scene_first
     external = artwork.description_request(take)
     assert artwork.EXTERNAL_BRIEF in external and artwork.PEOPLE_BRIEF not in external
     assert artwork.PEOPLE_BRIEF.startswith("Leave people out")   # leading with it is what keeps them out
+    # No menu of settings, which Gemma took literally across unrelated songs: the scene comes from the song.
+    assert "swimming pool" not in artwork.KLEIN_BRIEF and "the title and the words" in artwork.KLEIN_BRIEF
 
 
 def test_klein_9b_is_found_when_its_files_are_put_in_and_drawn_with_as_settings_ask(monkeypatch):

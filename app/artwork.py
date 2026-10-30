@@ -599,13 +599,17 @@ EXTERNAL_BRIEF = (
     "Describe a surreal, enigmatic photographic or painterly scene in the distinctive Hipgnosis style: "
     "striking visual metaphors, unexpected juxtaposition, dramatic landscapes, and vintage film textures"
 )
+# The scene is built from the song: its subject, objects and place from the title and words, its light and
+# mood from the style.  An earlier brief listed settings to choose from ("a room, a studio, a swimming pool, a
+# beach ..."), and Gemma took them as a menu: the same pool and the same "A vast ..." opening turned up across
+# unrelated songs.  Asking for a pun that could belong to no other song, opening with its subject rather than
+# the place, gave scenes made of each song's own things.
 KLEIN_BRIEF = (
     "Describe one surreal, enigmatic scene in the distinctive Hipgnosis style, staged and photographed for "
-    "real: ordinary things in an impossible situation, a visual pun on the song. Choose the setting to suit "
-    "the song, not a bare landscape by default: a room, a studio, a swimming pool, a beach, a city street, a "
-    "factory, a motorway, a forest, the sky. Choose the light and colour to suit it too, bright and saturated "
-    "as readily as dark or cold. Name concrete details: materials, colours, textures, what is near and what "
-    "is far"
+    "real: a visual pun on this song that could belong to no other song. Take its subject, its objects and "
+    "its place from the title and the words above, using the things they name; take its light, colour and "
+    "mood from the style. Open with the song's own subject, not with the place. Name concrete details: "
+    "materials, colours, textures, what is near and what is far"
 )
 
 
