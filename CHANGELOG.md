@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.52 (2026-10-30)
 
 - **Yeufonic for Mac, experimental.** A disk image for Macs with Apple silicon (M1 or later, macOS 14 or later) that sets
   it all up natively, with no Docker: the first time it is opened, a Terminal window installs Python, the engine and the
@@ -45,6 +45,20 @@ cannot creep back in.
   much slower than an NVIDIA card, and LoRA training does not work on it yet. Its icon sits in the menu bar. The disk
   image is built on GitHub's own Mac runners, which keep a signed record of the build to check it against. The update
   notice tells a Mac to drag in the new app, and the CPU meter reads a Mac's own figures. See yeufonic.com/macos.
+- **Take pictures drawn on this PC are better, and less alike.** FLUX.2 [klein] is run as it was made to be run again,
+  so pictures are no longer burnt (hard contrast, oversaturated colour). Gemma's scene leads what klein is asked for,
+  and a cover keeps its visual pun on the song's title, where the title's words were cut out of it before. Gemma is asked
+  for a setting and light that suit the song rather than a bleak landscape each time, with concrete detail, and for any
+  people to stand far off, where klein draws them well (it draws hands badly up close). Without an LLM, a picture's scene
+  is made from the song's words and title, so it is no longer the same wide landscape every time. Signs and quoted words
+  are still kept out, so klein does not letter the sleeve. An external image model's prompt is unchanged.
+- **FLUX.2 klein 9B, for graphics cards with more video memory.** A larger klein that draws more detail and better hands.
+  Yeufonic never downloads it (it is gated on Hugging Face and under a non-commercial licence), but put its model and text
+  encoder in the models folder and it draws your pictures. **Take pictures: FLUX.2 klein model** in Settings chooses
+  between it and the 4B. The guide says where to get the files and where they go. A picture's note says which drew it.
+- **The graphics card's memory is freed after a take's picture**, on every PC. klein stayed loaded after drawing, holding
+  most of a 16 GB card with the 9B, out of reach of the app's stems and of other programs; the next picture loads it again.
+  The log also says why a picture was not described or drawn by the external LLM when that was chosen.
 - **A new take renders as soon as its plan is ready, unless you say otherwise.** *Render as soon as the plan is ready* is
   ticked to begin with, and sits beside **Write score plan**, where it is seen, rather than at the other end of the
   window. Without it a new take stopped at its plan, which looked as if nothing had been made. A browser that has saved
@@ -54,9 +68,10 @@ cannot creep back in.
   failure say the engine had stopped. A slow answer now leaves it online for up to 90 seconds; a refused connection is still
   offline at once.
 - **Running out of GPU memory on a Mac is said plainly**, with what to try, instead of the engine's whole raw report.
-- **`UNLOAD_WHEN_IDLE`:** the engine is asked to unload its models whenever no more GPU work is waiting. On by itself
-  (`auto`) where the GPU shares the computer's memory, as on a Mac, so a model left loaded by one job cannot crowd out the
-  next; `1` always, `0` never. After a picture it unloads even when songs are waiting, since none of them uses its models.
+- **`UNLOAD_WHEN_IDLE`:** when the engine is asked to unload its models. `auto` (the default) unloads after a take's
+  picture on any GPU, unless another picture is next, and, where the GPU shares the computer's memory as on a Mac, whenever
+  no more GPU work is waiting; `1` whenever no more work is waiting, `0` never. Docker reads it from `.env`; the Windows and
+  Mac apps read `unload_when_idle` from `settings.ini`.
 - **Pictures from FLUX.2 [klein]'s full-precision files.** The app draws with whichever of its two sets of files is installed:
   the FP8 model and FP4 encoder that Windows and Docker install, or the full-precision pair, which a GPU without FP8 and
   FP4 (a Mac's) can run.
