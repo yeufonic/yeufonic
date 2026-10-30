@@ -419,6 +419,25 @@ SETTINGS_SPEC: list[dict] = [
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },
     {
+        "key": "art.klein",
+        "group": "art",
+        "label": "Take pictures: FLUX.2 klein model",
+        "type": "select",
+        "default": "auto",
+        "options": [
+            {"value": "auto", "label": "9B where its files are installed, else 4B"},
+            {"value": "4b", "label": "4B (installed with Yeufonic)"},
+            {"value": "9b", "label": "9B (added by hand: see the guide)"},
+        ],
+        "help": "Which FLUX.2 klein draws on this PC. The 4B is what the installer offers. The 9B draws more detail "
+                "and better hands, but Yeufonic never downloads it: its files are gated on Hugging Face, under a "
+                "non-commercial licence, about 16 GB, and need a graphics card with plenty of memory. Put them in the "
+                "models folder (the guide says which) and it is used. Either one asked for and not there, the other "
+                "draws.",
+        "requires": {"pictures": "possible", "art.auto": "on", "art.drawer": ["auto", "local"]},
+        "requires_note": "Only for pictures drawn on this PC: choose This PC under Take pictures: drawn by.",
+    },
+    {
         "key": "art.words",
         "group": "art",
         "label": "Take pictures: described by",

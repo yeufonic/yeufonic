@@ -580,7 +580,7 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
         drawer = artwork.drawer()
         if drawer == "external" and take_id in _ART_DRAWER_FALLBACK:
             drawer = "local"
-        drawer_name = artwork.image_model() if drawer == "external" else "FLUX.2 klein"
+        drawer_name = artwork.image_model() if drawer == "external" else artwork.klein_name()
         passed_over = artwork.drawing_passed_over()
         if drawer == "local" and passed_over and take_id not in _ART_DRAWER_FALLBACK:
             log.warning("Picture for '%s' (%s): not drawn by %s, as %s; FLUX.2 klein on this PC instead",
@@ -596,7 +596,7 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
                     ART_WAITING.append(take_id)
                 return
             drawn = await _draw_on_engine(take_id, description, title=artwork.clean_cover_title(take))
-            painter = "FLUX.2 klein on this PC"
+            painter = f"{artwork.klein_name()} on this PC"
         elif drawer == "external":
             try:
                 drawn = await artwork.draw(description)
@@ -614,7 +614,7 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
                             ART_WAITING.append(take_id)
                         return
                     drawn = await _draw_on_engine(take_id, description, title=artwork.clean_cover_title(take))
-                    painter = f"FLUX.2 klein on this PC ({artwork.image_model()} failed)"
+                    painter = f"{artwork.klein_name()} on this PC ({artwork.image_model()} failed)"
                 else:
                     raise
         else:

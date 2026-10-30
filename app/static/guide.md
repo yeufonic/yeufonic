@@ -1236,6 +1236,33 @@ Pictures need something that can draw. There are two, and you can have either, b
   (`diffusion_models`, `text_encoders` and `vae`) and checks each one, then restart the app with
   `docker compose restart app` so it finds them.
 
+**FLUX.2 klein 9B, if you have the graphics card for it.** klein comes in a larger size that draws
+more detail and better hands and faces. Yeufonic never downloads it, because its files are gated on
+Hugging Face, under Black Forest Labs' **non-commercial licence**, and about 16 GB or more. But put them in
+place and they are used. You need the 4B's VAE (`flux2-vae.safetensors`) already in place, so install
+the 4B first, and a graphics card with plenty of memory: 16 GB or more is comfortable, while less works
+more slowly as the engine moves the model in and out.
+
+1. **The model.** Sign in to Hugging Face, accept the licence on
+   [black-forest-labs/FLUX.2-klein-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8)
+   and download `flux-2-klein-9b-fp8.safetensors` (9.4 GB). Or take the full-precision
+   `flux-2-klein-9b.safetensors` from [black-forest-labs/FLUX.2-klein-9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B),
+   the one for a Mac, which is about twice the size and needs twice the memory.
+   It goes in the `diffusion_models` folder.
+2. **Its text encoder.** From [Comfy-Org/Flux-2-Klein-9B](https://huggingface.co/Comfy-Org/Flux-2-Klein-9B/tree/main/split_files/text_encoders),
+   which needs no sign-in, download one of these and put it in the `text_encoders` folder:
+   `qwen_3_8b_fp8mixed.safetensors` (8.7 GB, the usual choice on an NVIDIA card), `qwen_3_8b_fp4mixed.safetensors`
+   (6.8 GB, the smallest) or `qwen_3_8b.safetensors` (16.4 GB, full precision, for a Mac).
+3. **Where the folders are:** under `models/` in the Yeufonic folder for **Docker**; under
+   `engine\ComfyUI\models\` in the install folder on **Windows**; under `engine/ComfyUI/models/` in the
+   install folder on a **Mac**.
+4. **Let the app see them.** Restart Yeufonic (with Docker, `docker compose restart app`). The 9B
+   draws from then on: **Take pictures: FLUX.2 klein model** in Settings is *9B where its files are
+   installed, else 4B* to begin with. Choose *4B* to go back without removing anything. The picture's
+   note in the editor says which drew it (*drawn by FLUX.2 klein 9B on this PC*).
+
+The model and its encoder are found by these names only, so keep the file names as they are downloaded.
+
 **To draw with an external LLM,** open Settings and set **LLM for writing lyrics & style tags** to the
 [external LLM](#external-llm), with its **API URL**, **API Key** and **Model**, as for lyrics. The provider must have an image
 model: Gemini does (`gemini-3.1-flash-image` is used unless you name another), and an OpenAI-compatible
@@ -1253,6 +1280,7 @@ Set up either and they come on: pictures are then made for the takes you make fr
 |---|---|
 | **Take pictures** | *Make one for each new take* (the default where something can draw), or *No pictures: the default background*, where none is made unless you ask for one in the editor. It is *No pictures* while nothing here can draw. |
 | **Take pictures: drawn by** | *This PC if FLUX.2 klein is installed, else the external LLM* (the default), *This PC (FLUX.2 klein)* or *The external LLM's image model*. |
+| **Take pictures: FLUX.2 klein model** | *9B where its files are installed, else 4B* (the default), *4B* or *9B*. Only for pictures drawn on this PC. The 9B is never installed for you: see [FLUX.2 klein 9B](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. Either one asked for and not there, the other draws. |
 | **Take pictures: described by** | *From the take itself* (the default): made from the take's title, style and opening words with no LLM, whoever draws; the quickest, and nothing is sent out for it. Or *Local Gemma*, whose descriptions are more inventive but take far longer and need the Lyric drafts option, or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
 | **Take pictures: image model** | which of the provider's models draws. Only for pictures drawn by the external LLM (choose it under **Drawn by**; greyed out otherwise), and empty for the provider's usual one, which is nearly always what you want. |
 

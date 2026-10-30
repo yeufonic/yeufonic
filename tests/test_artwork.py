@@ -951,3 +951,46 @@ def test_gemma_is_asked_for_a_scene_klein_can_draw_and_klein_for_the_scene_first
     assert artwork.KLEIN_BRIEF in brief and artwork.FIGURES_FAR_BRIEF in brief and "dramatic landscapes" not in brief
     external = artwork.description_request(take)
     assert artwork.EXTERNAL_BRIEF in external and artwork.FIGURES_FAR_BRIEF not in external
+
+
+def test_klein_9b_is_found_when_its_files_are_put_in_and_drawn_with_as_settings_ask(monkeypatch):
+    """The 9B is never installed by Yeufonic, but its files put in by hand are found, beside the 4B or alone.
+    Settings choose; "auto" takes the 9B; one asked for and not there leaves the other to draw."""
+    import httpx
+
+    from app.engine import Engine
+    four, nine = config.PICTURE_PAIRS[0], ("flux-2-klein-9b.safetensors", "qwen_3_8b_fp8mixed.safetensors")
+    combo = lambda field, names: {"input": {"required": {field: [names]}}}
+
+    def options(unets, encoders):
+        info = {"UNETLoader": combo("unet_name", unets), "CLIPLoader": combo("clip_name", encoders),
+                "VAELoader": combo("vae_name", [config.PICTURE_VAE]), "CheckpointLoaderSimple": combo("ckpt_name", []),
+                **{node: {"input": {"required": {}}} for node in ("EmptyFlux2LatentImage", "Flux2Scheduler",
+                                                                 "SamplerCustomAdvanced", "CFGGuider")}}
+
+        async def run():
+            engine = Engine("http://engine")
+            engine.client = httpx.AsyncClient(base_url="http://engine",
+                                              transport=httpx.MockTransport(lambda r: httpx.Response(200, json=info)))
+            await engine.refresh_options()
+            await engine.client.aclose()
+            return engine.options
+        return asyncio.run(run())
+
+    monkeypatch.setattr(config, "PICTURE_MODEL", config.PICTURE_MODEL)
+    monkeypatch.setattr(config, "PICTURE_TEXT", config.PICTURE_TEXT)
+    both = options([four[0], nine[0]], [four[1], nine[1]])
+    assert both["pictures"] and both["klein"] == {"4b": list(four), "9b": list(nine)}
+    alone = options([nine[0]], [nine[1]])
+    assert alone["pictures"] and alone["klein"] == {"9b": list(nine)}
+    assert options([nine[0]], [four[1]])["pictures"] is False          # the 9B model without its text encoder
+
+    chosen = {}
+    monkeypatch.setattr(artwork, "get_setting", lambda key, default=None: chosen.get(key, default))
+    monkeypatch.setattr(artwork, "engine_options", lambda: both)
+    unet = lambda: artwork.picture_graph("a field", 1, "p")["1"]["inputs"]["unet_name"]
+    assert unet() == nine[0] and artwork.klein_name() == "FLUX.2 klein 9B"          # auto
+    chosen["art.klein"] = "4b"
+    assert unet() == four[0] and artwork.picture_graph("a", 1, "p")["2"]["inputs"]["clip_name"] == four[1]
+    monkeypatch.setattr(artwork, "engine_options", lambda: alone)
+    assert unet() == nine[0] and artwork.klein_name() == "FLUX.2 klein 9B"          # the 4B asked for, not there

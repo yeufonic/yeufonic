@@ -145,13 +145,18 @@ def choose_checkpoint(installed: list[str] | None) -> str:
         if name in (installed or []):
             return name
     return CHECKPOINT_BF16
-def choose_picture_files(models: list[str] | None, encoders: list[str] | None) -> tuple[str, str]:
-    """The klein model and text encoder to draw with: the first pair of PICTURE_PAIRS whose two
-    files are both installed, else the first pair (so a message about missing files names it)."""
-    for model, encoder in PICTURE_PAIRS:
+def installed_picture_pair(pairs: tuple, models: list[str] | None, encoders: list[str] | None) -> tuple[str, str] | None:
+    """The first of these klein model and text encoder pairs whose two files are both installed, or None."""
+    for model, encoder in pairs:
         if model in (models or []) and encoder in (encoders or []):
             return model, encoder
-    return PICTURE_PAIRS[0]
+    return None
+
+
+def choose_picture_files(models: list[str] | None, encoders: list[str] | None) -> tuple[str, str]:
+    """The klein 4B model and text encoder to draw with: the first pair of PICTURE_PAIRS whose two
+    files are both installed, else the first pair (so a message about missing files names it)."""
+    return installed_picture_pair(PICTURE_PAIRS, models, encoders) or PICTURE_PAIRS[0]
 
 
 LYRICS_MODEL = "gemma4_e4b_it_int8_convrot.safetensors"
@@ -162,6 +167,16 @@ LYRICS_MODEL = "gemma4_e4b_it_int8_convrot.safetensors"
 PICTURE_PAIRS = (("flux-2-klein-4b-fp8.safetensors", "qwen_3_4b_fp4_flux2.safetensors"),
                  ("flux-2-klein-4b.safetensors", "qwen_3_4b.safetensors"))
 PICTURE_MODEL, PICTURE_TEXT = PICTURE_PAIRS[0]
+# FLUX.2 klein 9B, which draws better and needs more of everything: never installed by Yeufonic, as its
+# weights are gated on Hugging Face and under a non-commercial licence, but used when someone has put its
+# files in the models folder (the guide says how).  Looked for in this order, the FP8 model first, with
+# whichever of its text encoders is there; it shares the 4B's VAE.
+PICTURE_PAIRS_9B = (("flux-2-klein-9b-fp8.safetensors", "qwen_3_8b_fp8mixed.safetensors"),
+                    ("flux-2-klein-9b-fp8.safetensors", "qwen_3_8b_fp4mixed.safetensors"),
+                    ("flux-2-klein-9b-fp8.safetensors", "qwen_3_8b.safetensors"),
+                    ("flux-2-klein-9b.safetensors", "qwen_3_8b.safetensors"),
+                    ("flux-2-klein-9b.safetensors", "qwen_3_8b_fp8mixed.safetensors"),
+                    ("flux-2-klein-9b.safetensors", "qwen_3_8b_fp4mixed.safetensors"))
 PICTURE_VAE = "flux2-vae.safetensors"
 # The engine's model folder, when this machine can see it.  The app only reads
 # from it, and only to say what a LoRA holds; the engine is what loads them.

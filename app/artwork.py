@@ -419,6 +419,30 @@ def image_model() -> str:
     return DEFAULT_GEMINI_MODEL if _is_gemini(llm.get_config()["api_url"]) else DEFAULT_OPENAI_MODEL
 
 
+def klein_size() -> str | None:
+    """Which FLUX.2 klein draws here: "9b" or "4b", as Settings ask where that one is installed, else the
+    other; "auto" (the default) takes the 9B where its files are there.  None when the engine has not said."""
+    have = (engine_options() or {}).get("klein") or {}
+    chosen = (get_setting("art.klein", "auto") or "auto").strip().lower()
+    if chosen in have:
+        return chosen
+    return next((size for size in ("9b", "4b") if size in have), None)
+
+
+def klein_files() -> tuple[str, str]:
+    """The klein model and text encoder the picture is drawn with."""
+    size = klein_size()
+    if size:
+        model, encoder = (engine_options() or {})["klein"][size]
+        return model, encoder
+    return config.PICTURE_MODEL, config.PICTURE_TEXT
+
+
+def klein_name() -> str:
+    size = klein_size()
+    return f"FLUX.2 klein {size.upper()}" if size else "FLUX.2 klein"
+
+
 def local_ready() -> bool:
     """FLUX.2 klein is on the engine (chosen at install), with the nodes to run it."""
     return bool((engine_options() or {}).get("pictures"))
@@ -735,10 +759,12 @@ LOCAL_STEPS = 4               # klein is distilled for four
 
 
 def picture_graph(description: str, seed: int, prefix: str, title: str = "") -> dict:
-    """FLUX.2 klein on the engine, as ComfyUI's own workflow for it runs it: no guidance, four steps."""
+    """FLUX.2 klein on the engine, as ComfyUI's own workflow for it runs it: no guidance, four steps.  The 4B
+    and the 9B are both distilled for that, so they share it; only the files differ."""
+    model, encoder = klein_files()
     return {
-        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": config.PICTURE_MODEL, "weight_dtype": "default"}},
-        "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.PICTURE_TEXT, "type": "flux2"}},
+        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": model, "weight_dtype": "default"}},
+        "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": encoder, "type": "flux2"}},
         "3": {"class_type": "VAELoader", "inputs": {"vae_name": config.PICTURE_VAE}},
         "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0],
                                                            "text": klein_request(description, title=title)}},
