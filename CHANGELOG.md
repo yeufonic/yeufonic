@@ -55,7 +55,7 @@ cannot creep back in.
 - **FLUX.2 klein 9B, for graphics cards with more video memory.** A larger klein that draws more detail and better hands.
   Yeufonic never downloads it (it is gated on Hugging Face and under a non-commercial licence), but put its model and text
   encoder in the models folder and it draws your pictures. **Take pictures: FLUX.2 klein model** in Settings chooses
-  between it and the 4B. The guide says where to get the files and where they go. A picture's note says which drew it.
+  between it and the 4B, which draws until the 9B is chosen. The guide says where to get the files and where they go. A picture's note says which drew it.
 - **The graphics card's memory is freed after a take's picture**, on every PC. klein stayed loaded after drawing, holding
   most of a 16 GB card with the 9B, out of reach of the app's stems and of other programs; the next picture loads it again.
   The log also says why a picture was not described or drawn by the external LLM when that was chosen.

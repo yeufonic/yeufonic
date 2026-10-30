@@ -1261,10 +1261,10 @@ Labs' **non-commercial licence**, but put them in place and they are used.
 3. **Where the folders are:** under `models/` in the Yeufonic folder for **Docker**; under
    `engine\ComfyUI\models\` in the install folder on **Windows**; under `engine/ComfyUI/models/` in the
    install folder on a **Mac**.
-4. **Let the app see them.** Restart Yeufonic (with Docker, `docker compose restart app`). The 9B
-   draws from then on: **Take pictures: FLUX.2 klein model** in Settings is *9B where its files are
-   installed, else 4B* to begin with. Choose *4B* to go back without removing anything. The picture's
-   note in the editor says which drew it (*drawn by FLUX.2 klein 9B on this PC*).
+4. **Let the app see them, and choose it.** Restart Yeufonic (with Docker, `docker compose restart app`),
+   then set **Take pictures: FLUX.2 klein model** in Settings to *9B*. The 4B draws until you do. Choose
+   *4B* to go back without removing anything. The picture's note in the editor says which drew it
+   (*drawn by FLUX.2 klein 9B on this PC*).
 
 The model and its encoder are found by these names only, so keep the file names as they are downloaded.
 
@@ -1285,7 +1285,7 @@ Set up either and they come on: pictures are then made for the takes you make fr
 |---|---|
 | **Take pictures** | *Make one for each new take* (the default where something can draw), or *No pictures: the default background*, where none is made unless you ask for one in the editor. It is *No pictures* while nothing here can draw. |
 | **Take pictures: drawn by** | *This PC if FLUX.2 klein is installed, else the external LLM* (the default), *This PC (FLUX.2 klein)* or *The external LLM's image model*. |
-| **Take pictures: FLUX.2 klein model** | *9B where its files are installed, else 4B* (the default), *4B* or *9B*. Only for pictures drawn on this PC. The 9B is never installed for you: see [FLUX.2 klein 9B](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. Either one asked for and not there, the other draws. |
+| **Take pictures: FLUX.2 klein model** | *4B* (the default), *9B*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B is never installed for you: see [FLUX.2 klein 9B](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. Either one asked for and not there, the other draws. |
 | **Take pictures: described by** | *From the take itself* (the default): made from the take's title, style and opening words with no LLM, whoever draws; the quickest, and nothing is sent out for it. Or *Local Gemma*, whose descriptions are more inventive but take far longer and need the Lyric drafts option, or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
 | **Take pictures: image model** | which of the provider's models draws. Only for pictures drawn by the external LLM (choose it under **Drawn by**; greyed out otherwise), and empty for the provider's usual one, which is nearly always what you want. |
 

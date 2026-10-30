@@ -955,7 +955,8 @@ def test_gemma_is_asked_for_a_scene_klein_can_draw_and_klein_for_the_scene_first
 
 def test_klein_9b_is_found_when_its_files_are_put_in_and_drawn_with_as_settings_ask(monkeypatch):
     """The 9B is never installed by Yeufonic, but its files put in by hand are found, beside the 4B or alone.
-    Settings choose; "auto" takes the 9B; one asked for and not there leaves the other to draw."""
+    Settings choose: the 4B by default, so a clean install draws with it; "auto" takes the 9B; one asked for
+    and not there leaves the other to draw."""
     import httpx
 
     from app.engine import Engine
@@ -989,8 +990,18 @@ def test_klein_9b_is_found_when_its_files_are_put_in_and_drawn_with_as_settings_
     monkeypatch.setattr(artwork, "get_setting", lambda key, default=None: chosen.get(key, default))
     monkeypatch.setattr(artwork, "engine_options", lambda: both)
     unet = lambda: artwork.picture_graph("a field", 1, "p")["1"]["inputs"]["unet_name"]
-    assert unet() == nine[0] and artwork.klein_name() == "FLUX.2 klein 9B"          # auto
+    assert unet() == four[0] and artwork.klein_name() == "FLUX.2 klein 4B"          # the default, 9B there or not
+    assert artwork.picture_graph("a", 1, "p")["2"]["inputs"]["clip_name"] == four[1]
+    chosen["art.klein"] = "9b"
+    assert unet() == nine[0] and artwork.klein_name() == "FLUX.2 klein 9B"
+    chosen["art.klein"] = "auto"
+    assert unet() == nine[0]
     chosen["art.klein"] = "4b"
-    assert unet() == four[0] and artwork.picture_graph("a", 1, "p")["2"]["inputs"]["clip_name"] == four[1]
     monkeypatch.setattr(artwork, "engine_options", lambda: alone)
     assert unet() == nine[0] and artwork.klein_name() == "FLUX.2 klein 9B"          # the 4B asked for, not there
+
+
+def test_a_clean_install_draws_with_the_4b():
+    from app.main import SETTINGS_BY_KEY
+    spec = SETTINGS_BY_KEY["art.klein"]
+    assert spec["default"] == "4b" and spec["options"][0]["value"] == "4b"

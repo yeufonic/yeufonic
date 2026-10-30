@@ -423,11 +423,11 @@ SETTINGS_SPEC: list[dict] = [
         "group": "art",
         "label": "Take pictures: FLUX.2 klein model",
         "type": "select",
-        "default": "auto",
+        "default": "4b",
         "options": [
-            {"value": "auto", "label": "9B where its files are installed, else 4B"},
             {"value": "4b", "label": "4B (installed with Yeufonic)"},
             {"value": "9b", "label": "9B (added by hand: see the guide)"},
+            {"value": "auto", "label": "9B where its files are installed, else 4B"},
         ],
         "help": "Which FLUX.2 klein draws on this PC. The 9B is higher quality, for graphics cards with more video "
                 "memory, and is added by hand: see the guide.",

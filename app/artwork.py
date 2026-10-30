@@ -420,10 +420,11 @@ def image_model() -> str:
 
 
 def klein_size() -> str | None:
-    """Which FLUX.2 klein draws here: "9b" or "4b", as Settings ask where that one is installed, else the
-    other; "auto" (the default) takes the 9B where its files are there.  None when the engine has not said."""
+    """Which FLUX.2 klein draws here: "4b" (the default) or "9b", as Settings ask where that one is installed,
+    else the other; "auto" takes the 9B where its files are there.  The 4B is the default, so the 9B draws
+    only once it is chosen, even where its files are in place.  None when the engine has not said."""
     have = (engine_options() or {}).get("klein") or {}
-    chosen = (get_setting("art.klein", "auto") or "auto").strip().lower()
+    chosen = (get_setting("art.klein", "4b") or "4b").strip().lower()
     if chosen in have:
         return chosen
     return next((size for size in ("9b", "4b") if size in have), None)
