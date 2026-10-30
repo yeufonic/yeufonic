@@ -1146,8 +1146,15 @@
     },
 
     renderYeufonic: function (ctx, w, h, now) {
-      ctx.fillStyle = 'rgba(11, 11, 16, 0.32)';
-      ctx.fillRect(0, 0, w, h);
+      // Behind the mark, the take's picture breathing as in the Artwork scene, where it has one; else the dark ground,
+      // a little of each frame left behind.
+      var art = this.loadArtScene(this.currentTake);
+      if (art) {
+        this.drawArtBackdrop(ctx, w, h, now, art, this.currentTake);
+      } else {
+        ctx.fillStyle = 'rgba(11, 11, 16, 0.32)';
+        ctx.fillRect(0, 0, w, h);
+      }
 
       var bass = this.bassEnergy || 0;
       var mid = this.midEnergy || 0;
@@ -1311,12 +1318,9 @@
       this.drawWaveStrip(ctx, w, h, now);
     },
 
-    /* The take's picture, front and centre at full resolution and still, over the same picture filling the screen:
-       softly blurred and dimmed, drifting and zooming slowly, its colours swaying, and breathing once every two bars,
-       in step with the song, by as much as the music is loud.  The waveform under it seeks.  A take with no picture (yet) gets the
-       Yeufonic scene, and the picture takes over once it arrives. */
-    renderArtwork: function (ctx, w, h, now) {
-      var take = this.currentTake;
+    /* The take's picture made ready for a scene: the picture, a softly blurred copy for the backdrop, its colour and
+       hue, and whether it is whole or cut out.  Null until it has loaded, or when the take has none. */
+    loadArtScene: function (take) {
       var url = take && take.art;
       var art = this.artScene;
       if (url && (!art || art.url !== url)) {
@@ -1324,8 +1328,6 @@
         var self = this, scene = art;
         art.img.onload = function () {
           if (self.artScene !== scene) { return; }
-          // The blurred copy, made once: drawn past its own edges so the blur has no dark rim, then stretched
-          // over the screen each frame, which costs nothing.
           // Soft enough to sit back, sharp enough to be the picture: blurred lightly at 1024 pixels, about the size
           // it is shown, so the stretch over the screen adds little more.
           var blur = document.createElement('canvas');
@@ -1366,11 +1368,12 @@
         };
         art.img.src = url;
       }
-      if (!url || !art || !art.ready) {
-        this.renderYeufonic(ctx, w, h, now);
-        return;
-      }
+      return url && art && art.ready ? art : null;
+    },
 
+    /* The breathing backdrop made of the take's picture, shared by the Artwork and Yeufonic scenes.  Says how far into
+       its breath it is (swell, 0 to 1) and how far its colours have turned (shift, in degrees). */
+    drawArtBackdrop: function (ctx, w, h, now, art, take) {
       var t = now / 1000;
 
       // The breath: once every two bars, fullest on the downbeat that starts them and easing out between, from where
@@ -1406,12 +1409,43 @@
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(art.blur, w / 2 - span / 2 + driftX, h / 2 - span / 2 + driftY, span, span);
       ctx.restore();
-      // Dimmed, so the picture in front stands out; each breath lifts it.
+      // Dimmed, so what is in front stands out; each breath lifts it.
       ctx.fillStyle = 'rgba(5, 5, 8, ' + Math.max(0.45, 0.68 - swell * 0.11).toFixed(3) + ')';
       ctx.fillRect(0, 0, w, h);
+      return { swell: swell, shift: shift };
+    },
+
+    /* The take's picture, front and centre at full resolution and still, over the same picture filling the screen:
+       softly blurred and dimmed, drifting and zooming slowly, its colours swaying, and breathing once every two bars,
+       in step with the song, by as much as the music is loud.  The waveform under it seeks.  A take with no picture (yet) gets the
+       Yeufonic scene, and the picture takes over once it arrives. */
+    renderArtwork: function (ctx, w, h, now) {
+      var take = this.currentTake;
+      var art = this.loadArtScene(take);
+      if (!art) {
+        this.renderYeufonic(ctx, w, h, now);
+        return;
+      }
+      var back = this.drawArtBackdrop(ctx, w, h, now, art, take);
+      var swell = back.swell, shift = back.shift;
+
+      // The layout, from the foot up: the waveform, the title just above it, and the picture as large as the rest
+      // allows, down to the title.
+      var img = art.img;
+      var aspect = img.naturalWidth / Math.max(1, img.naturalHeight);
+      var bandH = Math.max(14, Math.min(26, h * 0.032));
+      var stripTop = h - 2 * bandH - 62;
+      var titleSize = Math.max(13, Math.min(h * 0.026, 28));
+      var titleGap = titleSize * 0.7;
+      var top = Math.max(78, h * 0.09);                        // clear of the toolbar
+      var room = stripTop - 18 - titleSize - titleGap - top;
+      var pw = Math.min(w * 0.82, room * aspect), ph = pw / aspect;
+      var cx = w * 0.5;
+      var x = cx - pw / 2, y = top + (room - ph) / 2;
+      var cy = y + ph / 2;
+      var framed = art.opaque !== false;   // a whole picture, rather than one whose background was taken out
 
       // The light from behind the picture, breathing with it, in the picture's colour turned as far as the backdrop.
-      var cx = w * 0.5, cy = h * 0.45;
       var glowR = Math.max(w, h) * (0.40 + swell * 0.12);
       var glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
       var glowHue = ((art.hue + shift) % 360 + 360) % 360;
@@ -1425,57 +1459,74 @@
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, w, h);
 
-      // The picture itself: still, as large as the space above the title allows, its own shape kept.
-      var img = art.img;
-      var aspect = img.naturalWidth / Math.max(1, img.naturalHeight);
-      var pw = Math.min(w * 0.78, h * 0.64 * aspect), ph = pw / aspect;
-      var x = cx - pw / 2, y = h * 0.43 - ph / 2;
-      var radius = Math.min(pw, ph) * 0.025;
-      var rounded = function (path) {
-        path.moveTo(x + radius, y); path.lineTo(x + pw - radius, y); path.quadraticCurveTo(x + pw, y, x + pw, y + radius);
-        path.lineTo(x + pw, y + ph - radius); path.quadraticCurveTo(x + pw, y + ph, x + pw - radius, y + ph);
-        path.lineTo(x + radius, y + ph); path.quadraticCurveTo(x, y + ph, x, y + ph - radius);
-        path.lineTo(x, y + radius); path.quadraticCurveTo(x, y, x + radius, y);
-        path.closePath();
-        return path;
-      };
+      // The picture itself: still, its own shape kept.
       // The picture breathes with the backdrop: see-through on each breath, so the backdrop shows through it, and
       // whole again between.
       var seeThrough = 1 - swell * 0.4;
+      var side = Math.min(pw, ph);
       ctx.save();
       ctx.imageSmoothingQuality = 'high';
-      if (art.opaque !== false) {
-        var edge = rounded(new Path2D());
-        // Its shadow falls only outside it: a shape drawn far off the canvas casts it back into place, clipped to
+      if (framed) {
+        // A sleeve lying just above the backdrop: a soft shadow falling a little below it and a tight one at its
+        // edge.  Both fall only outside it: a shape drawn far off the canvas casts them back into place, clipped to
         // everything but the picture, so nothing dark lies under a picture the backdrop shows through.
-        var away = w + h + Math.min(pw, ph);
+        var outer = new Path2D();
+        outer.rect(x, y, pw, ph);
+        var away = w + h + side;
         var outside = new Path2D();
         outside.rect(0, 0, w, h);
-        outside.addPath(edge);
+        outside.addPath(outer);
+        // Shadow offsets and blur ignore the canvas's scaling (the screen's pixel ratio), the move does not.
+        var scaleX = ctx.getTransform ? ctx.getTransform().a : 1;
+        var shadows = [[0.62, 0.085, 0.028], [0.50, 0.012, 0.004]];   // strength, blur, drop: as parts of its side
         ctx.save();
         ctx.clip(outside, 'evenodd');
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
-        ctx.shadowBlur = Math.min(pw, ph) * 0.08;
-        // Shadow offsets ignore the canvas's scaling (the screen's pixel ratio), the move does not.
-        var scaleX = ctx.getTransform ? ctx.getTransform().a : 1;
-        ctx.shadowOffsetX = away * scaleX;
-        ctx.shadowOffsetY = Math.min(pw, ph) * 0.02 * scaleX;
         ctx.translate(-away, 0);
         ctx.fillStyle = '#000';
-        ctx.fill(edge);
+        for (var sh = 0; sh < shadows.length; sh++) {
+          ctx.shadowColor = 'rgba(0, 0, 0, ' + shadows[sh][0] + ')';
+          ctx.shadowBlur = side * shadows[sh][1] * scaleX;
+          ctx.shadowOffsetX = away * scaleX;
+          ctx.shadowOffsetY = side * shadows[sh][2] * scaleX;
+          ctx.fill(outer);
+        }
         ctx.restore();
-        ctx.clip(edge);
+
+        ctx.globalAlpha = seeThrough;
+        ctx.drawImage(img, x, y, pw, ph);
+
+        // Its surface: the edges shaded a touch inwards, light caught along the top and left, a dark line along the
+        // bottom and right.
+        var shade = side * 0.035;
+        var edges = [
+          [x, y, x + shade, y, x, y, shade, ph], [x + pw, y, x + pw - shade, y, x + pw - shade, y, shade, ph],
+          [x, y, x, y + shade, x, y, pw, shade], [x, y + ph, x, y + ph - shade, x, y + ph - shade, pw, shade],
+        ];
+        for (var e = 0; e < edges.length; e++) {
+          var g = ctx.createLinearGradient(edges[e][0], edges[e][1], edges[e][2], edges[e][3]);
+          g.addColorStop(0, 'rgba(0, 0, 0, 0.16)');
+          g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(edges[e][4], edges[e][5], edges[e][6], edges[e][7]);
+        }
+        var line = Math.max(1, side * 0.0015);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+        ctx.fillRect(x, y, pw, line);
+        ctx.fillRect(x, y, line, ph);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.30)';
+        ctx.fillRect(x, y + ph - line, pw, line);
+        ctx.fillRect(x + pw - line, y, line, ph);
       } else {
         // A picture whose background was taken out: its shadow follows its outline.
         ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
-        ctx.shadowBlur = Math.min(pw, ph) * 0.08;
-        ctx.shadowOffsetY = Math.min(pw, ph) * 0.02;
+        ctx.shadowBlur = side * 0.08;
+        ctx.shadowOffsetY = side * 0.02;
+        ctx.globalAlpha = seeThrough;
+        ctx.drawImage(img, x, y, pw, ph);
       }
-      ctx.globalAlpha = seeThrough;
-      ctx.drawImage(img, x, y, pw, ph);
       ctx.restore();
 
-      this.drawSleeveTitle(ctx, take.title, cx, y + ph, w, h);
+      this.drawSleeveTitle(ctx, take.title, cx, y + ph + titleGap + titleSize / 2, titleSize, w);
 
       this.loadWaveStrip(take);
       this.drawWaveStrip(ctx, w, h, now);
@@ -1503,44 +1554,36 @@
       return seconds;
     },
 
-    /* The take's title under its picture, in capitals, tall and condensed, in a soft off-white, as an old sleeve's
+    /* The take's title under its picture, in capitals, tall and condensed, in a quiet grey-white, as an old sleeve's
        lettering is, at a semi-bold weight rather than a black one; brought down to fit a long title, and cut short
        only past that.  The faces are the ones a computer is likely to have (Bahnschrift on Windows, Avenir Next
        Condensed on a Mac); the first it has is used. */
-    drawSleeveTitle: function (ctx, title, cx, top, w, h) {
+    drawSleeveTitle: function (ctx, title, cx, middle, size, w) {
       var text = String(title || '').trim().toUpperCase();
       if (!text) { return; }
       var faces = "Bahnschrift, 'Avenir Next Condensed', 'Roboto Condensed', 'Arial Narrow', 'Liberation Sans Narrow', 'DejaVu Sans Condensed', sans-serif";
-      var bandH = Math.max(14, Math.min(26, h * 0.032));
-      var room = (h - 2 * bandH - 62) - 16 - top - 16;   // down to the waveform's top, with a gap either side
-      if (room < 20) { return; }   // a window too short for it
-      var size = Math.max(14, Math.min(room * 0.5, h * 0.04, 44));
-      var widest = Math.min(w * 0.86, 1400);
+      var widest = Math.min(w * 0.8, 1200);
       ctx.save();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(236, 232, 224, 0.65)';   // a warm off-white, a little see-through: it sits under the picture
-      var spacing = function (px) { if ('letterSpacing' in ctx) { ctx.letterSpacing = Math.round(px * 0.03) + 'px'; } };
+      ctx.fillStyle = 'rgba(214, 210, 202, 0.5)';   // a quiet grey-white, half see-through: a caption, not a headline
       var font = function (px) {
         ctx.font = '600 condensed ' + Math.round(px) + 'px ' + faces;
         if ('fontStretch' in ctx) { ctx.fontStretch = 'condensed'; }
+        if ('letterSpacing' in ctx) { ctx.letterSpacing = Math.max(1, Math.round(px * 0.06)) + 'px'; }
       };
       font(size);
-      spacing(size);
       var width = ctx.measureText(text).width;
       if (width > widest) {
-        size = Math.max(14, size * widest / width);
+        size = Math.max(12, size * widest / width);
         font(size);
-        spacing(size);
         width = ctx.measureText(text).width;
       }
       while (width > widest && text.length > 4) {
         text = text.slice(0, -2).replace(/\s+$/, '') + '\u2026';
         width = ctx.measureText(text).width;
       }
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-      ctx.shadowBlur = size * 0.2;
-      ctx.fillText(text, cx, top + 16 + room / 2);
+      ctx.fillText(text, cx, middle);
       ctx.restore();
     },
 

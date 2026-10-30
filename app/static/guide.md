@@ -1335,7 +1335,7 @@ Press **Visualizer** on the transport bar (or press **V** while a track is playi
 The stage renders real-time audio visualisations synchronized with playback:
 
 - **Visualizer Modes:** Choose from ten distinct visualizer engines from the top toolbar:
-  - *Yeufonic:* The mark itself, breathing — the tile glowing with the bass and expanding on the beat, each fork arm a meter with its own half of the spectrum, and the green dot flaring on the beat.
+  - *Yeufonic:* The mark itself, breathing — the tile glowing with the bass and expanding on the beat, each fork arm a meter with its own half of the spectrum, and the green dot flaring on the beat. Behind it, the take's picture moves softly with the music, where the take has one.
   - *Waveform Ribbon:* Floating harmonic dual-ribbon reactive waves.
   - *Aurora Borealis:* Undulating curtains of ethereal northern lights reacting to mid and high frequencies.
   - *Cosmic Nebula:* Starfield and swirling interstellar particle nebula pulsing to the beat.
@@ -1344,7 +1344,7 @@ The stage renders real-time audio visualisations synchronized with playback:
   - *Liquid Warp:* Fluid harmonic wave displacement surface.
   - *Particle Swarm:* Gravitational particle clusters that scatter on percussive hits.
   - *Hi-Fi Spectrum Bars:* Multi-band equalizer spectrum analyzer with physical floating peak decay caps.
-  - *Artwork:* The take's picture, still, front and centre at full size with the take's title in capitals under it, over the same picture filling the screen behind it, softly blurred and dimmed, drifting slowly, its colours swaying, and breathing once every two bars in step with the song (from the tempo and time signature in its score), deeper when the music is loud. The picture breathes with it, turning see-through on each breath so the backdrop shows through. A take with no picture shows the Yeufonic scene until one is made. The **Artwork** button is not needed here, so it steps aside.
+  - *Artwork:* The take's picture, large, with its title under it, over a soft copy of itself that moves with the music. A take with no picture shows the Yeufonic scene until one is made.
 - **The waveform:** under the Yeufonic and Artwork scenes, the take's waveform shows how far the song has played; click it to jump there.
 - **Album Artwork & Vinyl Dynamics:** Displays the take's Hipgnosis-style album cover in an interactive 3D sleeve that tilts and orbits with pointer movement. A realistic vinyl record spins at 33⅓ RPM and slides out of the sleeve on bass hits, accompanied by holographic sheen and beat-reactive shockwave rings. Cycle modes with the **Artwork** button: *Sleeve*, *Aura* (ambient blurred background), or *Off*.
 - **A new picture:** the picture button at the top right, in every scene, makes a new picture for the take playing, where this PC can make pictures. It pulses while the picture is made, and the new one takes over when it is ready.
