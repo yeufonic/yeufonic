@@ -49,7 +49,7 @@ def settings() -> dict:
     overrides the defaults.  window = app opens the page in a window of its own (Edge's
     app mode); window = browser opens it in the default browser instead."""
     values = {"app_port": "8090", "engine_port": "8188", "engine_args": "", "data_dir": str(HERE / "data"),
-              "import_roots": str(Path.home()), "open_browser": "yes", "window": "app"}
+              "import_roots": str(Path.home()), "open_browser": "yes", "window": "app", "unload_when_idle": "auto"}
     ini = HERE / "settings.ini"
     if ini.exists():
         parser = configparser.ConfigParser()
@@ -649,6 +649,8 @@ class Launcher:
             "TORCH_HOME": str(data / "models" / "torch"),
             "HF_HOME": str(data / "models" / "whisper"),
             "TRAINING_ENABLED": "1",
+            # When the engine is asked to unload its models: auto (after a picture), 1 whenever the GPU's work runs out, 0 never.
+            "UNLOAD_WHEN_IDLE": self.cfg.get("unload_when_idle", "auto"),
             "PYTHONUTF8": "1",
             # Set only by a test build of the installer: where to look for an update to try.
             "YEUFONIC_UPDATE_MANIFEST": self.cfg.get("update_manifest", ""),

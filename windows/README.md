@@ -61,6 +61,8 @@ engine_port = 8188
 data_dir = D:\YuE2 library
 ; app: a window of its own (the default); browser: a tab in the default browser
 window = app
+; when the engine frees the graphics card's memory: auto (after a picture), 1 whenever its work runs out, 0 never
+unload_when_idle = auto
 ```
 
 ## Building

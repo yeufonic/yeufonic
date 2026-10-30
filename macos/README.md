@@ -76,6 +76,8 @@ data_dir = ~/Music/Yeufonic
 engine_args =
 ; off: the trainer is written for CUDA and does not yet finish a run on Metal
 training = no
+; when the engine frees the GPU's memory: auto (after a picture, and whenever its work runs out), 0 never
+unload_when_idle = auto
 ```
 
 ## Building

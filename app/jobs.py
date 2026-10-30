@@ -2772,15 +2772,21 @@ async def next_gpu_job() -> tuple[dict, bool]:
 
 
 def unload_when_idle(kind: str = "") -> bool:
-    """Whether to ask the engine to unload once a job ends, as UNLOAD_WHEN_IDLE says: when nothing
-    else is waiting (a plan's own render is queued before the plan's job ends), and after a picture
-    even when songs are waiting, since none of them uses its models (a picture steps aside for song
-    work, and its 16 GB would otherwise stay loaded under the song)."""
-    if config.UNLOAD_WHEN_IDLE == "auto":
-        wanted = ENGINE.shares_memory
-    else:
-        wanted = config.UNLOAD_WHEN_IDLE in ("1", "true", "yes", "on")
-    return wanted and (kind == "art" or (QUEUE.empty() and not ART_WAITING))
+    """Whether to ask the engine to unload once a job ends, as UNLOAD_WHEN_IDLE says.
+
+    After a picture, on any GPU unless it says "0", even when songs are waiting: none of them uses
+    klein's models (a picture steps aside for song work), and left loaded they hold most of a 16 GB card
+    with the 9B, out of reach of the app's own GPU work (stems, hearing) and of other programs.  Not when
+    another picture is next, which would only load them again.  After other work, where it says so
+    ("auto": where the GPU shares the computer's memory) and only when nothing else is waiting (a plan's
+    own render is queued before the plan's job ends)."""
+    setting = config.UNLOAD_WHEN_IDLE
+    if setting in ("0", "false", "no", "off"):
+        return False
+    if kind == "art":   # the next picture goes only when no song is waiting or under way (next_gpu_job)
+        return not (ART_WAITING and QUEUE.empty() and not songs_in_flight())
+    wanted = ENGINE.shares_memory if setting == "auto" else setting in ("1", "true", "yes", "on")
+    return wanted and QUEUE.empty() and not ART_WAITING
 
 
 async def worker() -> None:

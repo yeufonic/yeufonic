@@ -18,6 +18,7 @@ logs in ~/Library/Logs/Yeufonic (YEUFONIC_LOGS), and settings.ini there override
     data_dir = ~/Library/Application Support/Yeufonic/data
     import_roots = ~
     open_browser = yes
+    unload_when_idle = auto
     training = no
 """
 from __future__ import annotations
@@ -55,7 +56,8 @@ def settings() -> dict:
     overrides the defaults.  Training is off unless asked for: the trainer is written for
     CUDA and has not been tried on a Mac."""
     values = {"app_port": "8090", "engine_port": "8188", "engine_args": "", "data_dir": str(SUPPORT / "data"),
-              "import_roots": str(Path.home()), "open_browser": "yes", "training": "no", "update_manifest": ""}
+              "import_roots": str(Path.home()), "open_browser": "yes", "training": "no", "update_manifest": "",
+              "unload_when_idle": "auto"}
     ini = SUPPORT / "settings.ini"
     if ini.exists():
         parser = configparser.ConfigParser()
@@ -149,6 +151,9 @@ def app_env(cfg: dict) -> dict:
         "TORCH_HOME": str(data / "models" / "torch"),
         "HF_HOME": str(data / "models" / "whisper"),
         "TRAINING_ENABLED": "1" if yes(cfg.get("training", "no")) else "0",
+        # When the engine is asked to unload its models: auto (after a picture, and whenever the GPU's work runs out,
+        # as a Mac's GPU shares its memory), 1 the same, 0 never.
+        "UNLOAD_WHEN_IDLE": cfg.get("unload_when_idle", "auto"),
         "PYTHONUTF8": "1",
         "PYTHONUNBUFFERED": "1",
         # The app runs from inside Yeufonic.app, which is not to be written in: a byte-compiled

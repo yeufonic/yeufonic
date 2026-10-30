@@ -304,10 +304,16 @@ import_roots = D:\Music
 open_browser = yes
 window = app
 engine_args = --disable-dynamic-vram
+unload_when_idle = auto
 ```
 
 `engine_args` adds switches to the command that starts the engine (ComfyUI), for when it misbehaves on a particular PC;
 its own `--help` lists them. Leave it out unless you need it.
+
+`unload_when_idle` says when the engine is asked to free the graphics card's memory. `auto` (the default)
+frees it after a take's picture, so FLUX.2 klein does not stay loaded under your songs and other programs;
+`1` also frees it whenever the engine's work runs out, at the cost of loading the song model again for the
+next take; `0` never frees it.
 
 `data_dir` is where the library lives (by default, `data` in the install folder). `import_roots`
 is the folders a corpus may be built from, separated by commas (by default, your user folder).
@@ -786,7 +792,7 @@ built from, and the ports itself: change those in its `settings.ini` instead (se
 | `PEAK_GUARD` | `1` | with an engine that has the peak guard, a render whose peaks would clip is turned down around them before it is saved. `0` leaves it out |
 | `PEAK_CEILING_DB` | `-0.5` | the highest a peak may reach with the guard on, in dB below full scale |
 | `YUE2_CHECKPOINT` | unset | which YuE2 model the app asks the engine for: `bf16`, `int8`, or a file name. Unset, it uses the full-quality model if it is installed, else the low-memory one. Put it in `.env` (`YUE2_CHECKPOINT=int8`) or in `compose.override.yml`. See Choosing a model size |
-| `UNLOAD_WHEN_IDLE` | `auto` | whether the engine is asked to unload its models whenever no more GPU work is waiting. `auto` does it on a Mac, where the GPU shares the computer's memory and a model left loaded can crowd out the next job; `1` always, `0` never. The next job loads its models again |
+| `UNLOAD_WHEN_IDLE` | `auto` | whether the engine is asked to unload its models whenever no more GPU work is waiting. `auto` does it after a take's picture on any GPU (unless another picture is next), so FLUX.2 klein does not sit in video memory under the songs, the app's stems and other programs; and on a Mac, where the GPU shares the computer's memory, whenever the GPU's work runs out. `1` whenever it runs out, `0` never, not even after a picture. The next job loads its models again. Put it in `.env` (`UNLOAD_WHEN_IDLE=1`) |
 | `TRAINING_ENABLED` | `1` | corpora and LoRA training; `0` takes them out of the app. Training also needs `WITH_TRAINER` on the engine. See Training a LoRA |
 | `DATA_DIR` | `/data` | the library. Only needed when running without the containers |
 

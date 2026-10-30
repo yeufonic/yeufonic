@@ -216,8 +216,9 @@ TRAINING_ENABLED = os.environ.get("TRAINING_ENABLED", "1").strip().lower() in ("
 
 # Whether the engine is asked to unload its models whenever the GPU's line of work runs dry.
 # "auto" does it where the GPU shares the computer's memory (a Mac, whose engine keeps its models
-# loaded on the GPU between jobs), so a model left over from one job cannot crowd out the next;
-# "1" always, "0" never.  The next job loads its models again.
+# loaded on the GPU between jobs), so a model left over from one job cannot crowd out the next, and
+# after a picture on any GPU (jobs.unload_when_idle); "1" always, "0" never, not even after a picture.
+# The next job loads its models again.
 UNLOAD_WHEN_IDLE = os.environ.get("UNLOAD_WHEN_IDLE", "auto").strip().lower()
 
 # Dual-branch training parameters, following the trainer's guidance:

@@ -368,6 +368,7 @@ def test_settings_ini_moves_ports_and_data_and_turns_training_on(monkeypatch, tm
     assert cfg["data_dir"] == str(Path.home() / "Music" / "Yeufonic")
     assert launcher.app_env(cfg)["TRAINING_ENABLED"] == "1"
     assert launcher.app_env(cfg)["ENGINE_URL"] == "http://127.0.0.1:8199"
+    assert launcher.app_env(cfg)["UNLOAD_WHEN_IDLE"] == "auto"
     command = launcher.engine_command(cfg)
     assert command[-2:] == ["--cpu", "--lowvram"]
     # What Metal needs: the text encoders on the GPU, and attention that does not hold a
@@ -600,3 +601,10 @@ def test_a_mac_finds_the_disk_image_among_the_release_assets(on_a_mac):
     assert update._installer_from(assets) == ("https://example.invalid/a.dmg", "sha256:1")
     update.STATE["install"] = "windows"
     assert update._installer_from(assets)[0] == "https://example.invalid/a.exe"
+
+
+def test_settings_ini_says_when_the_engine_frees_the_gpu(monkeypatch, tmp_path):
+    launcher = load_launcher(monkeypatch, tmp_path)
+    (tmp_path / "support").mkdir()
+    (tmp_path / "support" / "settings.ini").write_text("[yue2]\nunload_when_idle = 0\n")
+    assert launcher.app_env(launcher.settings())["UNLOAD_WHEN_IDLE"] == "0"

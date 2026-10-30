@@ -78,7 +78,8 @@ def test_the_worker_unloads_after_the_last_job(monkeypatch, idle):
 
 
 def test_after_a_picture_even_with_songs_waiting(monkeypatch, idle):
-    # A picture steps aside for song work; its models are no use to the song and would sit under it.
+    # A picture steps aside for song work; its models are no use to the song and would sit under it,
+    # on a card with memory of its own as on a Mac.
     monkeypatch.setattr(config, "UNLOAD_WHEN_IDLE", "auto")
     gpu_named(monkeypatch, "mps")
     jobs.QUEUE.put_nowait({"kind": "render", "id": "x"})
@@ -86,6 +87,25 @@ def test_after_a_picture_even_with_songs_waiting(monkeypatch, idle):
         assert jobs.unload_when_idle("art") is True
         assert jobs.unload_when_idle("render") is False
         gpu_named(monkeypatch, "cuda:0 NVIDIA GeForce RTX 4070")
-        assert jobs.unload_when_idle("art") is False          # a card with memory of its own: left as it was
+        assert jobs.unload_when_idle("art") is True
+        assert jobs.unload_when_idle("render") is False
     finally:
         jobs.QUEUE.get_nowait()
+
+
+def test_after_a_picture_not_when_another_picture_is_next_nor_when_told_never(monkeypatch, idle):
+    monkeypatch.setattr(config, "UNLOAD_WHEN_IDLE", "auto")
+    gpu_named(monkeypatch, "cuda:0 NVIDIA GeForce RTX 4070")
+    assert jobs.unload_when_idle("art") is True
+    jobs.ART_WAITING.append("take")
+    try:
+        assert jobs.unload_when_idle("art") is False          # the next picture would only load them again
+        jobs.QUEUE.put_nowait({"kind": "render", "id": "x"})
+        try:
+            assert jobs.unload_when_idle("art") is True       # a song goes first: they would sit under it
+        finally:
+            jobs.QUEUE.get_nowait()
+    finally:
+        jobs.ART_WAITING.clear()
+    monkeypatch.setattr(config, "UNLOAD_WHEN_IDLE", "0")
+    assert jobs.unload_when_idle("art") is False

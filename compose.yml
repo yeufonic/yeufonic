@@ -101,6 +101,9 @@ services:
       # Which YuE2 model to ask the engine for: bf16 or int8. Empty (the default) uses the full-quality
       # one if it is in models/checkpoints, else the low-memory one. Set YUE2_CHECKPOINT in .env.
       YUE2_CHECKPOINT: "${YUE2_CHECKPOINT:-}"
+      # When the engine is asked to unload its models: auto (after a picture, and on a Mac whenever the GPU's
+      # line runs dry), 1 whenever it runs dry, 0 never. Set UNLOAD_WHEN_IDLE in .env.
+      UNLOAD_WHEN_IDLE: "${UNLOAD_WHEN_IDLE:-auto}"
     volumes:
       - ./data:/data
       - ./engine-state/output:/engine-output

@@ -212,3 +212,11 @@ def test_the_sources_check_reads_every_kind_of_address():
     assert sum("/pshields/yue2-style-loras/" in u for u in found) == 78
     assert any(u.endswith("acoustic_grand_piano-mp3/A4.mp3") for u in found)
     assert all(found[u].sha for u in found if u.endswith(".safetensors"))
+
+
+def test_settings_ini_says_when_the_engine_frees_the_graphics_card():
+    # unload_when_idle in settings.ini reaches the app as UNLOAD_WHEN_IDLE; auto (after a picture) unless it says.
+    launcher = (Path(__file__).resolve().parent.parent / "windows" / "launcher.py").read_text(encoding="utf-8")
+    assert '"unload_when_idle": "auto"' in launcher.split("def settings()", 1)[1].split("return values", 1)[0]
+    told = launcher.split("env.update({", 1)[1].split("})", 1)[0]
+    assert '"UNLOAD_WHEN_IDLE": self.cfg.get("unload_when_idle", "auto")' in told
