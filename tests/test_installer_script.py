@@ -220,3 +220,52 @@ def test_settings_ini_says_when_the_engine_frees_the_graphics_card():
     assert '"unload_when_idle": "auto"' in launcher.split("def settings()", 1)[1].split("return values", 1)[0]
     told = launcher.split("env.update({", 1)[1].split("})", 1)[0]
     assert '"UNLOAD_WHEN_IDLE": self.cfg.get("unload_when_idle", "auto")' in told
+
+
+def test_the_engine_choice_is_two_radio_buttons_handled_by_hand():
+    """The engine sections are radio buttons like the model sizes, kept in .onSelChange by hand, and the choice reaches
+    setup.ps1 and the registry, so an update offers it again."""
+    assert "Var EngineRadio" in SCRIPT and 'Section "ComfyUI" SecComfy' in SCRIPT and 'Section /o "yue2.cpp" SecCpp' in SCRIPT
+    change = SCRIPT[SCRIPT.index("Function .onSelChange"):]
+    assert "StrCpy $EngineRadio ${SecCpp}" in change and "!insertmacro SelectSection $EngineRadio" in change
+    setup = SCRIPT[SCRIPT.index('Section "-Setup"'):]
+    assert '-Engine yue2cpp' in setup and '"Engine" "yue2cpp"' in setup
+    init = SCRIPT[SCRIPT.index("Function .onInit"):]
+    assert 'ReadRegStr $2 HKCU "Software\\$R9" "Engine"' in init and "StrCpy $EngineRadio" in init
+
+
+def test_the_uninstaller_and_the_installer_stop_and_remove_the_yue2cpp_programs():
+    for exe in ("yue-server.exe", "ollama.exe", "sd-server.exe"):
+        assert SCRIPT.count(exe) >= 2, exe
+    assert 'RMDir /r "$INSTDIR\\engine-cpp"' in SCRIPT
+
+
+def test_setup_keeps_the_engine_it_was_given_and_remembers_it():
+    setup = (Path(__file__).resolve().parent.parent / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    assert "[string]$Engine = ''" in setup
+    assert "if ($Engine) { $again += @('-Engine', $Engine) }" in setup      # the 64-bit restart passes it on
+    assert "Set-IniValue $settingsIni 'engine' $EngineKind" in setup
+    # Repair runs with no arguments: the engine settings.ini names is kept.
+    assert "engine\\s*=\\s*(\\w+)" in setup
+    # Without a byte order mark, which the launcher's configparser would read as part of the section name.
+    assert "[System.IO.File]::WriteAllLines" in setup and "-Encoding UTF8" not in setup[setup.index("function Set-IniValue"):setup.index("# ------------------------------------------------------------------------ pins")]
+
+
+def test_setup_pins_the_yue2cpp_programs_and_models():
+    setup = (Path(__file__).resolve().parent.parent / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    block = setup[setup.index("$CppPrograms = @{"):setup.index("$CppPictureEncoder")]
+    for name in ("YuE2-3B-Q8_0.gguf", "YuE2-Vae-F32.gguf", "SheetSage2-Q8_0.gguf", "MERT-v2-FullSong-Q8_0.gguf",
+                 "ollama-windows-amd64.zip", "bin-win-cuda12-x64.zip", "cudart-sd-bin-win-cu12-x64.zip"):
+        assert name in block, name
+    import re
+    for sha in re.findall(r"Sha = '([0-9a-f]*)'", block):
+        assert sha == "" or len(sha) == 64
+
+
+def test_the_launcher_starts_yue2cpp_and_tells_the_app():
+    launcher = (Path(__file__).resolve().parent.parent / "windows" / "launcher.py").read_text(encoding="utf-8")
+    cpp = launcher[launcher.index("    def start_cpp("):launcher.index("    def start(self")]
+    assert 'yue-server.exe' in cpp and 'env["ENGINE_KIND"] = "yue2cpp"' in cpp
+    assert 'OLLAMA_KEEP_ALIVE="0"' in cpp and '"GEMMA_URL"' in cpp and '"PICTURES_URL"' in cpp
+    assert '("health" if self.cpp else "system_stats")' in launcher
+    assert '"engine": "comfyui"' in launcher

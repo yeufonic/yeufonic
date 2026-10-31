@@ -10,6 +10,9 @@ on Windows: no Docker, no WSL and no administrator prompt.
    (recommended for richer results), then you can leave this out.
 2. **Copies our own files** into `%LOCALAPPDATA%\Programs\Yeufonic`: the app, our engine node,
    `setup.ps1`, `launcher.py` and the notices.
+   It also asks which engine to install: **ComfyUI** (everything, LoRA training included) or **yue2.cpp**
+   (smaller, for graphics cards with less memory; see `docs/ENGINES.md`). The choice goes to `setup.ps1` as
+   `-Engine`, and into `settings.ini` as `engine =`, which the launcher and a Repair read.
 3. **Runs `setup.ps1`** in a window that shows its progress.
    - It checks the PC: Windows 10 22H2 or 11, an NVIDIA card of compute capability 8.0 or
      higher (RTX 30-series or newer, for bf16), video memory, driver, RAM, disk space, ports and
@@ -24,6 +27,11 @@ on Windows: no Docker, no WSL and no administrator prompt.
        the app image).
      - ffmpeg and 7-Zip's `7zr.exe`.
      - The models from Hugging Face.
+     - With yue2.cpp instead of ComfyUI and its add-ons: our Windows build of yue2.cpp's server (with the patches in
+       `engine-cpp/patches`, built by `.github/workflows/engine-cpp-windows.yml` and published as a pre-release),
+       its GGUF models, Ollama with Gemma for lyric drafts, and stable-diffusion.cpp's server with a GGUF text
+       encoder for take pictures. They go in `engine-cpp\`, beside ComfyUI's `engine\`, and share its models
+       folder, so switching engines keeps the LoRAs.
    - Downloads resume. A second run keeps whatever is already in place, which is also what
      **Repair** in the Start menu does.
 4. **Adds shortcuts** to the Start menu and the desktop, and an uninstaller. The uninstaller

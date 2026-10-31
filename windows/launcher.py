@@ -1,4 +1,4 @@
-"""Start Yeufonic on Windows: the engine (ComfyUI) and the app together, then the page,
+"""Start Yeufonic on Windows: the engine (ComfyUI or yue2.cpp, as installed) and the app together, then the page,
 in a window of its own, as soon as the app answers.  The engine takes longer; the page
 says it is starting, and anything asked of it meanwhile waits.
 
@@ -12,7 +12,9 @@ The engine, the app and the window's browser belong to a Windows job that ends w
 this process does, however it ends.  Their output goes to logs\\engine.log and
 logs\\app.log, and how long each took to start to logs\\launcher.log.
 
-Ports and folders can be changed in settings.ini beside this file.
+Ports and folders can be changed in settings.ini beside this file.  engine = yue2cpp there (written by setup.ps1)
+starts yue2.cpp's server instead of ComfyUI, with Ollama for Gemma and stable-diffusion.cpp's server for pictures
+beside it where they are installed.
 """
 from __future__ import annotations
 
@@ -32,6 +34,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ENGINE = HERE / "engine"
 COMFY = ENGINE / "ComfyUI"
+MODELS = COMFY / "models"      # the models folder, for either engine
+CPP = HERE / "engine-cpp"      # yue2.cpp's server, Ollama and stable-diffusion.cpp's server
 LOGS = HERE / "logs"
 STATE = HERE / "state"
 ICON = HERE / "yeufonic.ico"
@@ -49,7 +53,9 @@ def settings() -> dict:
     overrides the defaults.  window = app opens the page in a window of its own (Edge's
     app mode); window = browser opens it in the default browser instead."""
     values = {"app_port": "8090", "engine_port": "8188", "engine_args": "", "data_dir": str(HERE / "data"),
-              "import_roots": str(Path.home()), "open_browser": "yes", "window": "app", "unload_when_idle": "auto"}
+              "import_roots": str(Path.home()), "open_browser": "yes", "window": "app", "unload_when_idle": "auto",
+              "engine": "comfyui", "gemma_port": "11435", "pictures_port": "8187", "gemma_model": "gemma4:e4b-it-qat",
+              "yue2cpp_model": "YuE2-3B-Q8_0.gguf"}
     ini = HERE / "settings.ini"
     if ini.exists():
         parser = configparser.ConfigParser()
@@ -383,7 +389,8 @@ class Launcher:
         self.app_port, self.engine_port = int(cfg["app_port"]), int(cfg["engine_port"])
         self.url = f"http://localhost:{self.app_port}"
         self.app_url = f"http://127.0.0.1:{self.app_port}/api/health"
-        self.engine_url = f"http://127.0.0.1:{self.engine_port}/system_stats"
+        self.cpp = cfg.get("engine", "comfyui").strip().lower() == "yue2cpp"
+        self.engine_url = f"http://127.0.0.1:{self.engine_port}/" + ("health" if self.cpp else "system_stats")
         self.job = None
         self.programs: tuple = ()
         self.started = 0.0
@@ -618,6 +625,39 @@ class Launcher:
             user32.DispatchMessageW(ctypes.byref(msg))
         return self.exit_code
 
+    def start_cpp(self, env: dict) -> list:
+        """yue2.cpp's server, and beside it Ollama for Gemma and the picture server where they are installed; the app is
+        told where each answers.  Every one is in the launcher's job, so they stop together."""
+        hidden = dict(stdin=subprocess.DEVNULL, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW)
+        gguf = MODELS / "yue2cpp"
+        engine_log = LOGS / "engine.log"
+        args = [str(CPP / "yue2cpp" / "yue-server.exe"), "--host", "127.0.0.1", "--port", str(self.engine_port),
+                "--model", str(gguf / self.cfg["yue2cpp_model"]), "--vae", str(gguf / "YuE2-Vae-F32.gguf"),
+                "--adapters", str(MODELS / "loras")]
+        if (gguf / "SheetSage2-Q8_0.gguf").exists():
+            args += ["--transcriber", str(gguf / "SheetSage2-Q8_0.gguf")]
+        started = [("engine", subprocess.Popen(args + shlex.split(self.cfg.get("engine_args", "")), cwd=str(CPP / "yue2cpp"),
+                                               stdout=engine_log.open("w", encoding="utf-8"), **hidden), engine_log)]
+        env["ENGINE_KIND"] = "yue2cpp"
+        ollama = CPP / "ollama" / "ollama.exe"
+        if ollama.exists() and (MODELS / "ollama" / "manifests").is_dir():
+            port = self.cfg["gemma_port"]
+            log = LOGS / "gemma.log"
+            started.append(("Gemma server", subprocess.Popen(
+                [str(ollama), "serve"], cwd=str(CPP / "ollama"), stdout=log.open("w", encoding="utf-8"),
+                env=dict(os.environ, OLLAMA_HOST=f"127.0.0.1:{port}", OLLAMA_MODELS=str(MODELS / "ollama"),
+                         OLLAMA_KEEP_ALIVE="0"), **hidden), log))
+            env["GEMMA_URL"], env["GEMMA_MODEL"] = f"http://127.0.0.1:{port}", self.cfg["gemma_model"]
+        sdserver = CPP / "sdcpp" / "sd-server.exe"
+        if sdserver.exists():
+            port = self.cfg["pictures_port"]
+            log = LOGS / "pictures.log"
+            started.append(("picture server", subprocess.Popen(
+                [str(sdserver), "--model-dir", str(MODELS), "--listen-ip", "127.0.0.1", "--listen-port", str(port)],
+                cwd=str(CPP / "sdcpp"), stdout=log.open("w", encoding="utf-8"), **hidden), log))
+            env["PICTURES_URL"] = f"http://127.0.0.1:{port}"
+        return started
+
     def start(self, data: Path) -> None:
         """The engine and the app at once: the app is up in seconds and copes with an
         engine still starting, so the page need not wait for ComfyUI."""
@@ -625,7 +665,9 @@ class Launcher:
         self.started = time.time()
         record(f"Starting the engine and the app (Windows up {windows_uptime() / 60:.0f} min)...")
         engine_log = LOGS / "engine.log"
-        engine = subprocess.Popen(
+        env = dict(os.environ)
+        engines = self.start_cpp(env) if self.cpp else []
+        engine = engines[0][1] if engines else subprocess.Popen(
             [str(engine_python), "-s", str(COMFY / "main.py"), "--windows-standalone-build",
              "--disable-pinned-memory", "--disable-auto-launch", "--listen", "127.0.0.1", "--port", str(self.engine_port),
              *shlex.split(self.cfg.get("engine_args", ""))],
@@ -634,12 +676,11 @@ class Launcher:
             # Its start-up message then sends people to the app, not the engine.
             env=dict(os.environ, YEUFONIC_APP_URL=f"http://127.0.0.1:{self.app_port}"))
 
-        env = dict(os.environ)
         tools = HERE / "tools"
         env.update({
             "PATH": os.pathsep.join([str(HERE / "venv" / "Scripts"), str(tools / "ffmpeg" / "bin"), str(tools / "fluidsynth" / "bin"), env.get("PATH", "")]),
             "DATA_DIR": str(data),
-            "MODELS_DIR": str(COMFY / "models"),
+            "MODELS_DIR": str(MODELS),
             "VERSION_FILE": str(HERE / "studio" / "VERSION"),
             "BUILD_FILE": str(HERE / "studio" / "BUILD"),
             "ENGINE_URL": f"http://127.0.0.1:{self.engine_port}",
@@ -664,7 +705,7 @@ class Launcher:
              "--host", "127.0.0.1", "--port", str(self.app_port), "--no-access-log"],
             cwd=str(HERE / "studio"), env=env, stdout=app_log.open("w", encoding="utf-8"),
             stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
-        self.programs = (("engine", engine, engine_log), ("app", app, app_log))
+        self.programs = tuple(engines or [("engine", engine, engine_log)]) + (("app", app, app_log),)
         say(f"{APP} opens at {self.url} once the app answers. Quit it from the icon by the clock.")
 
 
@@ -689,7 +730,14 @@ def main() -> int:
             fail(f"Port {port}, which {what} uses, is taken by another program. If Docker Desktop is "
                  f"running Yeufonic or ComfyUI, stop it first. The ports can be changed in "
                  f"{HERE / 'settings.ini'}.")
-    if not (ENGINE / "python_embeded" / "python.exe").exists() or not (COMFY / "main.py").exists():
+    if cfg.get("engine", "comfyui").strip().lower() == "yue2cpp":
+        if not (CPP / "yue2cpp" / "yue-server.exe").exists():
+            fail("The yue2.cpp engine is not installed. Run the installer again.")
+        for key, what in (("gemma_port", "Gemma"), ("pictures_port", "the picture server")):
+            if port_taken(int(cfg[key])):
+                fail(f"Port {cfg[key]}, which {what} uses, is taken by another program. The ports can be changed in "
+                     f"{HERE / 'settings.ini'}.")
+    elif not (ENGINE / "python_embeded" / "python.exe").exists() or not (COMFY / "main.py").exists():
         fail("The engine is not installed. Run the installer again.")
 
     LOGS.mkdir(exist_ok=True)

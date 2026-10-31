@@ -81,6 +81,9 @@ Var InstHeader
 Var InstSubtext
 Var FinishText
 Var ModelRadio     ; the model size section that is ticked (SecFull or SecSmall)
+Var EngineRadio    ; the engine section that is ticked (SecComfy or SecCpp)
+Var FullSize       ; the two model sizes' download sizes as the page first showed them (0 when installed),
+Var SmallSize      ; put back when ComfyUI is chosen again after yue2.cpp, which needs neither
 Var LyricsText      ; the Gemma option's description, which says when it is already here
 Var PicturesText    ; the same for FLUX.2 klein
 Var LorasText       ; the same for the style LoRAs
@@ -164,14 +167,14 @@ FunctionEnd
 
 Section "${APPNAME}" SecCore
   SectionIn RO
-  ; What setup.ps1 will put on disk, so the page shows the real figure: the engine,
-  ; the app and the models other than Gemma.
-  AddSize 7200000
+  ; What setup.ps1 will put on disk for the app and its tools, so the page shows the real figure; the
+  ; engine chosen below adds its own.
+  AddSize 2700000
   SetOutPath "$INSTDIR"
   ; A running copy holds its files open.  Only its own programs are stopped, never
   ; this installer, which may be running from the same folder.
   Call WaitForYeufonicClosed
-  nsExec::Exec '"$PowerShell" -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -like $\'$INSTDIR\*$\' -and $$_.Name -in $\'Yeufonic.exe$\',$\'python.exe$\',$\'pythonw.exe$\',$\'ffmpeg.exe$\',$\'ffprobe.exe$\',$\'fluidsynth.exe$\' } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"'
+  nsExec::Exec '"$PowerShell" -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -like $\'$INSTDIR\*$\' -and $$_.Name -in $\'Yeufonic.exe$\',$\'python.exe$\',$\'pythonw.exe$\',$\'ffmpeg.exe$\',$\'ffprobe.exe$\',$\'fluidsynth.exe$\',$\'yue-server.exe$\',$\'ollama.exe$\',$\'sd-server.exe$\' } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"'
   Pop $0
   RMDir /r "$INSTDIR\studio"
   File /r "${STAGE}\studio"
@@ -207,9 +210,20 @@ Section "${APPNAME}" SecCore
   ${EndIf}
 SectionEnd
 
+; The engine: ComfyUI (everything) or yue2.cpp (less video memory, no training).  Radio buttons, handled in
+; .onSelChange as the model sizes are.  No files here: setup.ps1 is told which, and settings.ini remembers it.
+SectionGroup /e "Engine" SecEngineGroup
+  Section "ComfyUI" SecComfy
+    AddSize 4500000
+  SectionEnd
+  Section /o "yue2.cpp" SecCpp
+    AddSize 6000000
+  SectionEnd
+SectionGroupEnd
+
 ; The YuE2 model comes in two sizes and an install has one of them (radio buttons, below).  No
 ; files here: setup.ps1 is told which to fetch, and takes the other away if it is there.
-SectionGroup /e "YuE2 model size" SecModelGroup
+SectionGroup /e "YuE2 model size (ComfyUI)" SecModelGroup
   Section "Full quality" SecFull
     AddSize 7800000
   SectionEnd
@@ -241,6 +255,13 @@ Section "-Setup"
     StrCpy $1 ""
   ${Else}
     StrCpy $1 "-NoLyrics"
+  ${EndIf}
+  ${If} ${SectionIsSelected} ${SecCpp}
+    StrCpy $1 "$1 -Engine yue2cpp"
+    WriteRegStr HKCU "Software\${REGNAME}" "Engine" "yue2cpp"
+  ${Else}
+    StrCpy $1 "$1 -Engine comfyui"
+    WriteRegStr HKCU "Software\${REGNAME}" "Engine" "comfyui"
   ${EndIf}
   ${If} ${SectionIsSelected} ${SecSmall}
     StrCpy $1 "$1 -Int8"
@@ -299,7 +320,10 @@ Section "-Setup"
   CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\Yeufonic.exe"
 SectionEnd
 
-LangString DESC_Core ${LANG_ENGLISH} "The app, the engine (ComfyUI), and the YuE2 models."
+LangString DESC_Core ${LANG_ENGLISH} "The app, the engine chosen below, and the YuE2 models."
+LangString DESC_Engine ${LANG_ENGLISH} "Which engine runs YuE2. ComfyUI does everything, LoRA training included, and works best with 12 GB of video memory or more. yue2.cpp is smaller and lets go of the graphics card after every job, for cards with less memory; it does not train LoRAs. Run this installer again to switch: your library, settings and LoRAs are kept."
+LangString DESC_Comfy ${LANG_ENGLISH} "ComfyUI: everything Yeufonic does, LoRA training included. Works best with 12 GB of video memory or more."
+LangString DESC_Cpp ${LANG_ENGLISH} "yue2.cpp: a smaller native engine for graphics cards with less memory. Songs, covers, instrumentals, Harmony and transcription, with your style LoRAs; no LoRA training. Lyric drafts and pictures below run beside it. Download size: about 6 GB."
 LangString DESC_Full ${LANG_ENGLISH} "The full-quality YuE2 model (BF16), 7.8 GB. Recommended. It needs a graphics card with plenty of memory to run at full speed, and it is the one that LoRA training uses."
 LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for graphics cards with little memory (6 GB or less). It is the choice to try if the full one is too slow on this PC, and it sounded fine in our listening. LoRA training is supported on both sizes. Only one size is installed: run this installer again to change."
 LangString DESC_Pictures ${LANG_ENGLISH} "FLUX.2 klein, which draws a picture of each take on this PC, shown behind its card. Leave it out if your external LLM can draw them, or if you do not want pictures. Download size: 8.2 GB."
@@ -307,6 +331,9 @@ LangString DESC_Loras ${LANG_ENGLISH} "39 style LoRAs by their authors: chanson,
 LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analysis on this PC. Leave it out if you intend to configure an external LLM. This will save an 8 GB download."
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} $(DESC_Core)
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecEngineGroup} $(DESC_Engine)
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecComfy} $(DESC_Comfy)
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecCpp} $(DESC_Cpp)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecModelGroup} $(DESC_Full)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFull} $(DESC_Full)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSmall} $(DESC_Small)
@@ -320,6 +347,35 @@ LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analy
 ; choice and untick *that section first*: with it unset they unticked the core section, and nothing installed.
 ; This touches the two model sections only. $ModelRadio is the one that was ticked before the click.
 Function .onSelChange
+  ; The engine first, as the model size below: one of the two always ticked.
+  SectionGetFlags ${SecComfy} $0
+  SectionGetFlags ${SecCpp} $1
+  IntOp $0 $0 & ${SF_SELECTED}
+  IntOp $1 $1 & ${SF_SELECTED}
+  ${If} $0 != 0
+  ${AndIf} $1 != 0
+    ${If} $EngineRadio == ${SecComfy}
+      !insertmacro UnselectSection ${SecComfy}
+      StrCpy $EngineRadio ${SecCpp}
+    ${Else}
+      !insertmacro UnselectSection ${SecCpp}
+      StrCpy $EngineRadio ${SecComfy}
+    ${EndIf}
+  ${ElseIf} $0 != 0
+    StrCpy $EngineRadio ${SecComfy}
+  ${ElseIf} $1 != 0
+    StrCpy $EngineRadio ${SecCpp}
+  ${Else}
+    !insertmacro SelectSection $EngineRadio
+  ${EndIf}
+  ; The model size is ComfyUI's: with yue2.cpp it downloads nothing.
+  ${If} $EngineRadio == ${SecCpp}
+    SectionSetSize ${SecFull} 0
+    SectionSetSize ${SecSmall} 0
+  ${Else}
+    SectionSetSize ${SecFull} $FullSize
+    SectionSetSize ${SecSmall} $SmallSize
+  ${EndIf}
   SectionGetFlags ${SecFull} $0
   SectionGetFlags ${SecSmall} $1
   IntOp $0 $0 & ${SF_SELECTED}
@@ -454,6 +510,10 @@ Function .onInit
       SectionSetSize ${SecLyrics} 0
       SectionSetText ${SecLyrics} "Gemma 4 (installed)"
       StrCpy $LyricsText "Gemma 4 is already on this PC, so nothing is downloaded for it. Leave it ticked to keep using it for lyric drafts and song analysis. Unticking it does not remove it."
+    ${ElseIf} ${FileExists} "$INSTDIR\engine\ComfyUI\models\ollama\manifests\*.*"
+      ; Gemma for yue2.cpp, in Ollama's folder.
+      SectionSetSize ${SecLyrics} 0
+      SectionSetText ${SecLyrics} "Gemma 4 (installed)"
     ${ElseIf} $1 != 1
       ; Left out when installing, most likely for an external LLM: it stays out
       ; unless ticked now, and the page says why it is not ticked.
@@ -475,6 +535,29 @@ Function .onInit
     StrCpy $InstSubtext "The setup window shows its progress, and may be behind this one."
     StrCpy $FinishText "${APPNAME} has been installed on this PC."
   ${EndIf}
+  ; The engine as chosen last time, and which one is ticked to begin with, for .onSelChange.
+  ReadRegStr $2 HKCU "Software\$R9" "Engine"
+  ${If} $2 == "yue2cpp"
+    !insertmacro UnselectSection ${SecComfy}
+    !insertmacro SelectSection ${SecCpp}
+  ${EndIf}
+!ifdef TEST_CPP
+  !insertmacro UnselectSection ${SecComfy}
+  !insertmacro SelectSection ${SecCpp}
+!endif
+  SectionGetFlags ${SecCpp} $0
+  IntOp $0 $0 & ${SF_SELECTED}
+  ${If} $0 != 0
+    StrCpy $EngineRadio ${SecCpp}
+  ${Else}
+    StrCpy $EngineRadio ${SecComfy}
+  ${EndIf}
+  SectionGetSize ${SecFull} $FullSize
+  SectionGetSize ${SecSmall} $SmallSize
+  ${If} $EngineRadio == ${SecCpp}
+    SectionSetSize ${SecFull} 0
+    SectionSetSize ${SecSmall} 0
+  ${EndIf}
   ; Which model size is ticked to begin with, for .onSelChange.
   SectionGetFlags ${SecSmall} $0
   IntOp $0 $0 & ${SF_SELECTED}
@@ -489,7 +572,7 @@ Var KeepLibrary
 Var KeepModels
 
 Section "Uninstall"
-  nsExec::Exec '"$PowerShell" -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -like $\'$INSTDIR\*$\' -and $$_.Name -in $\'Yeufonic.exe$\',$\'python.exe$\',$\'pythonw.exe$\',$\'ffmpeg.exe$\',$\'ffprobe.exe$\' } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"'
+  nsExec::Exec '"$PowerShell" -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -like $\'$INSTDIR\*$\' -and $$_.Name -in $\'Yeufonic.exe$\',$\'python.exe$\',$\'pythonw.exe$\',$\'ffmpeg.exe$\',$\'ffprobe.exe$\',$\'yue-server.exe$\',$\'ollama.exe$\',$\'sd-server.exe$\' } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"'
   Pop $0
   Delete "$DESKTOP\${APPNAME}.lnk"
   RMDir /r "$SMPROGRAMS\${APPNAME}"
@@ -528,6 +611,7 @@ Section "Uninstall"
       Delete "$INSTDIR\settings.ini"
     ${EndIf}
     RMDir /r "$INSTDIR\engine"
+    RMDir /r "$INSTDIR\engine-cpp"
     RMDir /r "$INSTDIR\venv"
     RMDir /r "$INSTDIR\python"
     RMDir /r "$INSTDIR\tools"

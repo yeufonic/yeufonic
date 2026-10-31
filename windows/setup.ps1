@@ -3,8 +3,11 @@
 # version and checked by sha256 where the publisher gives one.  Safe to run again:
 # whatever is already in place is kept, and an interrupted download carries on.
 #
-#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-NoLyrics] [-Int8] [-Pictures] [-Loras]
-#   ... -Int8             the smaller, low-memory YuE2 model instead of the full-quality one
+#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-NoLyrics] [-Int8] [-Pictures] [-Loras]
+#   ... -Engine           comfyui (everything, the default) or yue2cpp (yue2.cpp's server, for less video memory: no
+#                         training; Gemma in Ollama and pictures in stable-diffusion.cpp beside it).  Left out, the
+#                         engine settings.ini names, so Repair keeps it.
+#   ... -Int8             the smaller, low-memory YuE2 model instead of the full-quality one (ComfyUI)
 #   ... -Pictures         FLUX.2 klein, which draws each take's picture on this PC (about 8.3 GB)
 #   ... -Loras            39 style LoRAs by their authors, CC BY-NC 4.0, gathered on Hugging Face (about 3.8 GB)
 #   ... -CheckOnly        only the system check
@@ -12,6 +15,7 @@
 
 param(
     [Parameter(Mandatory = $true)][string]$InstallDir,
+    [string]$Engine = '',
     [switch]$NoLyrics,
     [switch]$Int8,
     [switch]$Pictures,
@@ -25,6 +29,7 @@ param(
 if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProcess) {
     $native = Join-Path $env:WINDIR 'Sysnative\WindowsPowerShell\v1.0\powershell.exe'
     $again = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-InstallDir', $InstallDir)
+    if ($Engine) { $again += @('-Engine', $Engine) }
     foreach ($flag in @('NoLyrics', 'Int8', 'Pictures', 'Loras', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
     & $native @again
     exit $LASTEXITCODE
@@ -37,13 +42,39 @@ $Host.UI.RawUI.WindowTitle = 'Setting up Yeufonic'
 $InstallDir = [System.IO.Path]::GetFullPath($InstallDir)
 $Downloads = Join-Path $InstallDir 'downloads'
 $Tools = Join-Path $InstallDir 'tools'
+# Which engine: the one asked for, else the one settings.ini names (Repair runs with no arguments), else ComfyUI.
+$EngineKind = $Engine.Trim().ToLower()
 $Engine = Join-Path $InstallDir 'engine'
 $ComfyDir = Join-Path $Engine 'ComfyUI'
+# The models folder is ComfyUI's for either engine, so switching engines keeps the LoRAs and the shared files.
 $Models = Join-Path $ComfyDir 'models'
+# yue2.cpp and the programs beside it, apart from ComfyUI, so replacing either engine leaves the other alone.
+$CppDir = Join-Path $InstallDir 'engine-cpp'
 $Logs = Join-Path $InstallDir 'logs'
 $State = Join-Path $InstallDir 'state'
 foreach ($d in @($InstallDir, $Downloads, $Tools, $Logs, $State)) { New-Item -ItemType Directory -Force -Path $d | Out-Null }
 Start-Transcript -Path (Join-Path $Logs 'install.log') -Append | Out-Null
+$settingsIni = Join-Path $InstallDir 'settings.ini'
+if (-not $EngineKind -and (Test-Path $settingsIni)) {
+    $named = Get-Content $settingsIni | Where-Object { $_ -match '^\s*engine\s*=\s*(\w+)' } | Select-Object -First 1
+    if ($named) { $EngineKind = $Matches[1].ToLower() }
+}
+if ($EngineKind -notin @('comfyui', 'yue2cpp')) { $EngineKind = 'comfyui' }
+$Cpp = $EngineKind -eq 'yue2cpp'
+
+# A key in settings.ini's [yue2] section, set or replaced, the rest of the file left as it is.
+function Set-IniValue([string]$path, [string]$key, [string]$value) {
+    $lines = @(if (Test-Path $path) { Get-Content $path } else { @() })
+    if (-not ($lines | Where-Object { $_ -match '^\s*\[yue2\]' })) { $lines = @('[yue2]') + $lines }
+    $found = $false
+    $lines = @($lines | ForEach-Object { if ($_ -match ('^\s*' + $key + '\s*=')) { $found = $true; "$key = $value" } else { $_ } })
+    if (-not $found) {
+        $at = [array]::IndexOf($lines, ($lines | Where-Object { $_ -match '^\s*\[yue2\]' } | Select-Object -First 1))
+        $lines = @($lines[0..$at]) + @("$key = $value") + @(if ($at + 1 -lt $lines.Count) { $lines[($at + 1)..($lines.Count - 1)] } else { @() })
+    }
+    # UTF-8 without a byte order mark: the launcher's configparser would read one as part of "[yue2]".
+    [System.IO.File]::WriteAllLines($path, [string[]]$lines)
+}
 
 # ------------------------------------------------------------------------ pins
 # What was tested together.  Change one deliberately, and test again.
@@ -71,6 +102,35 @@ $Files = @{
                   Sha = 'fab7a2e4b85675b66970f97a39bbc239729c5e0f237198b5922a6a73cbc8677c'; Size = 2727529 }
 }
 $HF = 'https://huggingface.co'
+# The yue2.cpp engine.  Its server is built for Windows with Yeufonic's patches by .github/workflows/engine-cpp-windows.yml
+# and published as a pre-release named for the upstream commit and the patches; Ollama and stable-diffusion.cpp come
+# from their own releases.
+$CppPrograms = @{
+    Server  = @{ Url = 'https://github.com/yeufonic/yeufonic/releases/download/yue2cpp-windows-8af0174-133a0d60/yue2cpp-windows-8af0174-133a0d60.zip'
+                 Sha = ''; Size = 0 }
+    Ollama  = @{ Url = 'https://github.com/ollama/ollama/releases/download/v0.40.13/ollama-windows-amd64.zip'
+                 Sha = '7afa38624fa62ee5d8293422d0ab084c1bb4603134c7f4dafce11a033b57cc19'; Size = 1601969847 }
+    Sdcpp   = @{ Url = 'https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1030-0a06712/sd-master-0a06712-bin-win-cuda12-x64.zip'
+                 Sha = '916c6f4b1a98e94de627d9901d0229d60fd3fc05266be8be57f2280b2548b5c4'; Size = 354211822 }
+    SdCudart = @{ Url = 'https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1030-0a06712/cudart-sd-bin-win-cu12-x64.zip'
+                 Sha = 'fe20366827d357c00797eebb58244dddab7fd9a348d70090c3871004c320f38d'; Size = 563452046 }
+}
+$GemmaModel = 'gemma4:e4b-it-qat'   # Gemma 4 E4B for Ollama, about 6.1 GB
+$Gguf = "$HF/Serveurperso/YuE2-GGUF/resolve/main"
+$CppModelFiles = @(
+    @{ Name = 'YuE2, Q8 (plans and renders)'; Dir = 'yue2cpp'; File = 'YuE2-3B-Q8_0.gguf'; Url = "$Gguf/YuE2-3B-Q8_0.gguf"
+       Sha = '41121ce97786d7795a325bcf123ca196956c03bb252c9e75384cfc1f2fc19e6b'; Size = 3810232064 }
+    @{ Name = 'YuE2 VAE (renders)'; Dir = 'yue2cpp'; File = 'YuE2-Vae-F32.gguf'; Url = "$Gguf/YuE2-Vae-F32.gguf"
+       Sha = '93e49dfb1970e89ad64cacb17cf13b5d05f6bb30ef7ed3adae3050bcb728638a'; Size = 530497344 }
+    @{ Name = 'SheetSage2 (transcription)'; Dir = 'yue2cpp'; File = 'SheetSage2-Q8_0.gguf'; Url = "$Gguf/SheetSage2-Q8_0.gguf"
+       Sha = '95d8fa8761753b4833782a52b68d5c0afa3bd3cfbc03d3dcbbf8ded0c13f611e'; Size = 105629856 }
+    @{ Name = 'MERT (transcription)'; Dir = 'yue2cpp'; File = 'MERT-v2-FullSong-Q8_0.gguf'; Url = "$Gguf/MERT-v2-FullSong-Q8_0.gguf"
+       Sha = '35a6032ec7e8123c02becdefc7bfe10a3adb33faa8a1951dc0af864b4494b8ef'; Size = 902283712 }
+)
+# Its picture server reads klein's model and VAE as ComfyUI does, but not ComfyUI's text encoder: Qwen 3 4B as GGUF.
+$CppPictureEncoder = @{ Name = 'Qwen3 4B text encoder, GGUF (take pictures)'; Dir = 'text_encoders'; File = 'Qwen3-4B-Q4_K_M.gguf'; Pictures = $true
+    Url = "$HF/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf"
+    Sha = 'f6f851777709861056efcdad3af01da38b31223a3ba26e61a4f8bf3a2195813a'; Size = 2497281312 }
 # Unchanged copies of the files by Mothersuperior, a single author's account: tried first, with the author's own as the
 # fallback, and either must match the checksum.  The copies' README credits the author and keeps the licence.
 $Copies = "$HF/pshields/yue2-mothersuperior-copies/resolve/main"
@@ -372,6 +432,13 @@ if ($Int8) {
         } else { $_ }
     })
 }
+# The yue2.cpp engine needs its own YuE2 files, none of ComfyUI's model files but the LoRAs, and with pictures klein's
+# model and VAE with a GGUF encoder.  Gemma comes through Ollama (below), not as a file here.
+if ($Cpp) {
+    $shared = @($ModelFiles | Where-Object { $_.Dir -eq 'loras' -or ($_.Pictures -and $_.Dir -ne 'text_encoders') })
+    $ModelFiles = @($CppModelFiles) + $shared
+    if ($Pictures) { $ModelFiles = @($ModelFiles) + @($CppPictureEncoder) }
+}
 $SoundFontFiles = @(
     @{ Name = 'Jnsgm2 GM SoundFont'; File = 'github_Jnsgm2.sf2'
        Url = 'https://raw.githubusercontent.com/wrightflyer/SF2_SoundFonts/master/Jnsgm2.sf2'
@@ -525,6 +592,7 @@ if ($ramGB -lt 15) { [void]$warnings.Add("This PC has $ramGB GB of memory; 16 GB
 # Sizes are shown in thousands, as the installer's own pages and download sites count.
 $needBytes = 16e9   # the engine, the app, Whisper and demucs, and room to unpack
 foreach ($m in $ModelFiles) { if (-not (Test-Path (Join-Path (Join-Path $Models $m.Dir) $m.File))) { $needBytes += $m.Size } }
+if ($Cpp -and -not $NoLyrics -and -not (Test-Path (Join-Path $Models 'ollama\manifests'))) { $needBytes += 6.2e9 + 1.7e9 }
 if ($SkipModels) { $needBytes = 12e9 }
 $drive = (Get-Item $InstallDir).PSDrive
 $freeGB = [math]::Round($drive.Free / 1e9, 1)
@@ -590,6 +658,53 @@ $env:UV_PYTHON_INSTALL_DIR = Join-Path $InstallDir 'python'
 $env:UV_CACHE_DIR = Join-Path $Downloads 'uv-cache'
 
 # ------------------------------------------------------------------- engine
+if ($Cpp) {
+    Step 'The engine (yue2.cpp)'
+    $server = $CppPrograms.Server
+    $serverZip = Join-Path $Downloads (Split-Path $server.Url -Leaf)
+    $serverMark = 'yue2cpp-' + [System.IO.Path]::GetFileNameWithoutExtension($serverZip)
+    if (-not (IsDone $serverMark) -or -not (Test-Path (Join-Path $CppDir 'yue2cpp\yue-server.exe'))) {
+        Get-Verified $server $serverZip
+        Expand-Zip $serverZip (Join-Path $CppDir 'yue2cpp')
+        Done $serverMark
+        Remove-Item -Force -ErrorAction SilentlyContinue $serverZip, "$serverZip.sha256ok"
+    }
+    foreach ($sub in @('yue2cpp', 'loras', 'text_encoders', 'diffusion_models', 'vae')) {
+        New-Item -ItemType Directory -Force -Path (Join-Path $Models $sub) | Out-Null
+    }
+    if ($Pictures) {
+        Say 'The picture server (stable-diffusion.cpp)'
+        $sdMark = 'sdcpp-' + [System.IO.Path]::GetFileNameWithoutExtension((Split-Path $CppPrograms.Sdcpp.Url -Leaf))
+        if (-not (IsDone $sdMark) -or -not (Test-Path (Join-Path $CppDir 'sdcpp\sd-server.exe'))) {
+            $sdZip = Join-Path $Downloads (Split-Path $CppPrograms.Sdcpp.Url -Leaf)
+            $rtZip = Join-Path $Downloads (Split-Path $CppPrograms.SdCudart.Url -Leaf)
+            Get-Verified $CppPrograms.Sdcpp $sdZip
+            Get-Verified $CppPrograms.SdCudart $rtZip
+            Expand-Zip $sdZip (Join-Path $CppDir 'sdcpp')
+            Expand-Archive -Path $rtZip -DestinationPath (Join-Path $CppDir 'sdcpp') -Force
+            # The server may sit one folder down in the archive.
+            $exe = Get-ChildItem -Recurse (Join-Path $CppDir 'sdcpp') -Filter 'sd-server.exe' | Select-Object -First 1
+            if (-not $exe) { Stop-Setup "the picture server's archive has no sd-server.exe" }
+            if ($exe.DirectoryName -ne (Join-Path $CppDir 'sdcpp')) {
+                Get-ChildItem $exe.DirectoryName | Move-Item -Destination (Join-Path $CppDir 'sdcpp') -Force
+            }
+            Done $sdMark
+            Remove-Item -Force -ErrorAction SilentlyContinue $sdZip, "$sdZip.sha256ok", $rtZip, "$rtZip.sha256ok"
+        }
+    }
+    if (-not $NoLyrics) {
+        Say 'Ollama, which runs Gemma beside the engine'
+        $olMark = 'ollama-' + ($CppPrograms.Ollama.Url -replace '.*/download/([^/]+)/.*', '$1')
+        if (-not (IsDone $olMark) -or -not (Test-Path (Join-Path $CppDir 'ollama\ollama.exe'))) {
+            $olZip = Join-Path $Downloads (Split-Path $CppPrograms.Ollama.Url -Leaf)
+            Get-Verified $CppPrograms.Ollama $olZip
+            Expand-Zip $olZip (Join-Path $CppDir 'ollama')
+            Done $olMark
+            Remove-Item -Force -ErrorAction SilentlyContinue $olZip, "$olZip.sha256ok"
+        }
+    }
+}
+if (-not $Cpp) {
 Step 'The engine (ComfyUI)'
 $engineMark = "engine-$variant-$($Pins.ComfyCommit.Substring(0, 8))"
 if (-not (IsDone $engineMark)) {
@@ -683,6 +798,7 @@ Copy-Item -Recurse (Join-Path $InstallDir 'studio\engine-nodes\yue2_harmony') $h
 foreach ($sub in @('checkpoints', 'audio_encoders', 'text_encoders', 'loras', 'fs_audio')) {
     New-Item -ItemType Directory -Force -Path (Join-Path $Models $sub) | Out-Null
 }
+}   # the ComfyUI engine
 # Models kept by an uninstall come back, with the LoRAs trained here.
 $kept = Join-Path $InstallDir 'models-kept'
 if (Test-Path $kept) {
@@ -728,7 +844,7 @@ if (-not $SkipModels) {
     }
     # One size only: with the chosen one in place, the other is taken away, so the app uses what was chosen.
     $unchosen = Join-Path (Join-Path $Models 'checkpoints') $(if ($Int8) { $FullModel } else { $SmallModel })
-    if (Test-Path $unchosen) {
+    if (-not $Cpp -and (Test-Path $unchosen)) {
         Say ''
         Say ("Removing {0}: this install uses the {1} model." -f (Split-Path $unchosen -Leaf), $(if ($Int8) { 'low-memory' } else { 'full-quality' }))
         Remove-Item -Force $unchosen
@@ -765,7 +881,7 @@ if (-not $SkipModels -and -not (IsDone 'app-models')) {
 # The engine's own copy of the Whisper model (the app keeps its own, for the CPU), as a plain folder the node uses as it
 # stands. Fetched with the same download as the other models, so it shows its progress, resumes if it breaks off and is
 # checked, and the first lyric hearing does not wait on 1.6 GB.
-if (-not $SkipModels -and -not (IsDone 'engine-whisper-model')) {
+if (-not $Cpp -and -not $SkipModels -and -not (IsDone 'engine-whisper-model')) {
     Step 'Whisper for the engine (about 1.6 GB)'
     $whisperUrl = 'https://huggingface.co/dropbox-dash/faster-whisper-large-v3-turbo/resolve/main'
     $engineWhisper = Join-Path $Models 'whisper\large-v3-turbo'
@@ -785,7 +901,7 @@ if (-not $SkipModels -and -not (IsDone 'engine-whisper-model')) {
 
 # The engine's own copy of the Demucs model (it keeps it with its models, found again after an update). Fetched now so
 # the first separation does not wait on it; if this fails the node fetches it when it first runs.
-if (-not $SkipModels -and -not (IsDone 'engine-demucs-model')) {
+if (-not $Cpp -and -not $SkipModels -and -not (IsDone 'engine-demucs-model')) {
     Say 'demucs htdemucs for the engine (about 80 MB)'
     $demucsDir = Join-Path $Models 'demucs'
     try {
@@ -795,6 +911,38 @@ if (-not $SkipModels -and -not (IsDone 'engine-demucs-model')) {
         Say "Could not fetch it now ($($_.Exception.Message)); the engine will when it first separates a vocal."
     }
 }
+
+# Gemma for the yue2.cpp engine, fetched by Ollama itself into the models folder: Ollama checks what it fetches.  A
+# server of its own is started for it, on a port nothing else uses, and stopped again.
+if ($Cpp -and -not $NoLyrics -and -not $SkipModels -and -not (IsDone "gemma-$($GemmaModel -replace '[:]', '-')")) {
+    Step "Gemma for lyric drafts ($GemmaModel, about 6.1 GB)"
+    $ollama = Join-Path $CppDir 'ollama\ollama.exe'
+    $env:OLLAMA_MODELS = Join-Path $Models 'ollama'
+    $env:OLLAMA_HOST = '127.0.0.1:11439'
+    New-Item -ItemType Directory -Force -Path $env:OLLAMA_MODELS | Out-Null
+    $serve = Start-Process -FilePath $ollama -ArgumentList 'serve' -WindowStyle Hidden -PassThru
+    try {
+        $up = $false
+        for ($i = 0; $i -lt 60 -and -not $up; $i++) {
+            Start-Sleep -Seconds 1
+            & curl.exe -s -o NUL --max-time 2 "http://$($env:OLLAMA_HOST)/api/tags"
+            $up = $LASTEXITCODE -eq 0
+        }
+        if (-not $up) { Stop-Setup 'Ollama did not start, so Gemma could not be fetched' }
+        & $ollama pull $GemmaModel
+        if ($LASTEXITCODE -ne 0) { Stop-Setup 'Gemma could not be fetched; run the installer again to carry on' }
+        Done "gemma-$($GemmaModel -replace '[:]', '-')"
+    } finally {
+        if ($serve -and -not $serve.HasExited) { Stop-Process -Id $serve.Id -Force -ErrorAction SilentlyContinue }
+        Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -like (Join-Path $CppDir 'ollama\*') } |
+            ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+        Remove-Item Env:OLLAMA_HOST, Env:OLLAMA_MODELS -ErrorAction SilentlyContinue
+    }
+}
+
+# Which engine the launcher starts: remembered in settings.ini, where Repair reads it back.
+Set-IniValue $settingsIni 'engine' $EngineKind
+if ($Cpp) { Set-IniValue $settingsIni 'gemma_model' $GemmaModel }
 
 # ---------------------------------------------------------------- soundfonts
 if (-not $SkipModels) {
@@ -812,6 +960,6 @@ if (-not $SkipModels) {
 # uv's download cache is only needed while installing.
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $env:UV_CACHE_DIR
 Step 'Finished'
-Say 'Yeufonic is set up. Start it from the Start menu or the desktop.' 'Green'
+Say ("Yeufonic is set up, with the {0} engine. Start it from the Start menu or the desktop." -f $(if ($Cpp) { 'yue2.cpp' } else { 'ComfyUI' })) 'Green'
 Stop-Transcript | Out-Null
 exit 0
