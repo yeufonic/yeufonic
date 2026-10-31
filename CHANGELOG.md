@@ -54,6 +54,8 @@ cannot creep back in.
   it now keeps it, so switching back downloads nothing, and marks each size already downloaded. With
   yue2.cpp chosen the sizes are greyed out, as they are ComfyUI's. The components page's descriptions can be
   read in full: the box is wider, and off the list it describes the highlighted item.
+- **When the engine or another program stops on Windows, `logs\launcher.log` says how.** It records the exit code
+  and the last lines of that program's own log, which the next start would otherwise write over.
 - **The log says how a picture or a lyric draft was made, and how long it took.** Its "is ready" line names who
   described and who drew a picture (and any fallback), or who wrote the words, with the time taken.
 - **The job card and the player take you to the take.** Click the title of the job running, a take in **Up next**, or

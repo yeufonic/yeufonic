@@ -297,3 +297,29 @@ def test_the_model_size_is_greyed_out_for_yue2cpp_but_not_its_group():
     body = SCRIPT[start:SCRIPT.index("\nFunctionEnd", start)]
     assert "SetSectionFlag ${SecFull} ${SF_RO}" in body and "SetSectionFlag ${SecSmall} ${SF_RO}" in body
     assert "SecModelGroup" not in body
+
+
+def test_a_program_that_stops_leaves_its_exit_code_and_last_lines_in_launcher_log(tmp_path, monkeypatch):
+    """The next start writes the program's own log afresh, so launcher.log keeps how it ended."""
+    import sys
+    src = Path(__file__).resolve().parent.parent / "windows" / "launcher.py"
+    text = src.read_text(encoding="utf-8")
+    ns: dict = {"Path": Path}
+    for name in ("exit_code", "tail", "say", "record", "fail"):
+        start = text.index(f"def {name}(")
+        exec(text[start:text.index("\n\n\n", start)], ns)
+    logs = tmp_path / "logs"; logs.mkdir()
+    shown = []
+    ns.update(LOGS=logs, CONSOLE=False, Path=Path, time=__import__("time"), os=__import__("os"), sys=sys,
+              message=lambda text, flags: shown.append(text) or 0, MB_YESNO=0, MB_ICONERROR=0, MB_OK=0, IDYES=6)
+    engine = logs / "engine.log"
+    engine.write_text("yue2.cpp 1234567\n\nUsage: yue-server.exe --model <gguf> --vae <gguf> [options]\n", encoding="utf-8")
+    assert ns["exit_code"](1) == "exit code 1" and ns["exit_code"](3221225477) == "exit code 0xC0000005"
+    try:
+        ns["fail"]("The engine stopped unexpectedly (exit code 1).", engine)
+    except SystemExit:
+        pass
+    kept = (logs / "launcher.log").read_text(encoding="utf-8")
+    assert "The engine stopped unexpectedly (exit code 1)." in kept and f"The last lines of {engine}:" in kept
+    assert "    Usage: yue-server.exe --model <gguf> --vae <gguf> [options]" in kept
+    assert str(engine) in shown[0]

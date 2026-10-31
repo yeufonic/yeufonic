@@ -218,6 +218,13 @@ def tail(path: Path, lines: int = 15) -> str:
         return ""
 
 
+def exit_code(code: int) -> str:
+    """A crash's code is a Windows status, read in hex (0xC0000005 is an access violation); a program that stopped by
+    itself returns a small number."""
+    code &= 0xFFFFFFFF
+    return f"exit code 0x{code:08X}" if code > 0xFFFF else f"exit code {code}"
+
+
 def windows_uptime() -> float:
     """Seconds since Windows started: a start soon after a reboot reads everything from
     disk, and is the slow one."""
@@ -249,7 +256,16 @@ def fail(text: str, log: Path | None = None) -> None:
     """Say what went wrong, then stop: leaving ends the job, and the programs in it."""
     record(text)
     if log:
-        say(f"The last lines of {log}:\n{tail(log)}")
+        # launcher.log keeps the end of the program's own log as it was: the next start writes that log afresh.
+        ending = tail(log, 25)
+        record(f"The last lines of {log}:" if ending else f"{log} is empty.")
+        if ending:
+            say(ending)
+            try:
+                with (LOGS / "launcher.log").open("a", encoding="utf-8") as fh:
+                    fh.writelines(f"    {line}\n" for line in ending.splitlines())
+            except OSError:
+                pass
         if message(f"{text}\n\nThe details are in {log}. Open the logs folder?", MB_YESNO | MB_ICONERROR) == IDYES:
             os.startfile(LOGS)
     else:
@@ -538,7 +554,7 @@ class Launcher:
             return
         for name, process, log in self.programs:
             if process.poll() is not None:
-                self.stop_with(f"The {name} stopped unexpectedly.", log)
+                self.stop_with(f"The {name} stopped unexpectedly ({exit_code(process.returncode)}).", log)
         now = time.time()
         if not self.app_ready:
             if answering(self.app_url):
