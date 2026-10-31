@@ -18,6 +18,13 @@
 #                                        picture on this PC (diffusion_models/, text_encoders/, vae/).
 #                                        Without it a picture is drawn by the external LLM's image
 #                                        model, if one is set up in Settings, or not at all.
+#   sh scripts/fetch-models.sh --cpp     the yue2.cpp engine's models instead, about 5.4 GB, for GPUs with less
+#                                        memory (models/yue2cpp/): YuE2 at Q8 (near lossless), its VAE, SheetSage2
+#                                        and its audio encoder, with the two LoRAs above.  It records
+#                                        COMPOSE_FILE=compose.yml:compose.cpp.yml in .env, so docker compose runs
+#                                        that engine (see compose.cpp.yml).  Training, Gemma and pictures drawn on
+#                                        this PC need the ComfyUI engine and are left out.  YUE2CPP_MODEL picks
+#                                        another size: YuE2-3B-BF16.gguf (7.2 GB), -Q6_K (2.9 GB), -Q5_K_M (2.6 GB).
 #   sh scripts/fetch-models.sh --loras      also 39 style LoRAs by their authors (CC BY-NC 4.0), 3.8 GB, with a
 #                                        description each, into models/loras/. One already there is kept as
 #                                        it is. The README of pshields/yue2-style-loras credits them.
@@ -29,11 +36,13 @@
 set -eu
 
 MODEL=bf16
+ENGINE=comfyui
 PICTURES=no
 LORAS=no
 for arg in "$@"; do
   case "$arg" in
     --int8) MODEL=int8 ;;
+    --cpp) ENGINE=cpp ;;
     --pictures) PICTURES=yes ;;
     --loras) LORAS=yes ;;
     -h|--help) sed -n '2,/^set -eu/p' "$0" | sed '$d'; exit 0 ;;
@@ -90,7 +99,22 @@ fetch() {
   mv "$dest.part" "$dest"
 }
 
-if [ "$MODEL" = int8 ]; then
+if [ "$ENGINE" = cpp ]; then
+  # The yue2.cpp engine: GGUF files, one folder of their own.  The transcriber finds its audio encoder beside it.
+  GGUF=https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/main
+  mkdir -p "$ROOT/models/yue2cpp"
+  for f in "${YUE2CPP_MODEL:-YuE2-3B-Q8_0.gguf}" YuE2-Vae-F32.gguf SheetSage2-Q8_0.gguf MERT-v2-FullSong-Q8_0.gguf; do
+    fetch "$GGUF/$f" "$ROOT/models/yue2cpp/$f"
+  done
+  if ! grep -qs '^COMPOSE_FILE=' "$ROOT/.env"; then
+    if [ -s "$ROOT/.env" ] && [ -n "$(tail -c 1 "$ROOT/.env")" ]; then echo >> "$ROOT/.env"; fi
+    echo 'COMPOSE_FILE=compose.yml:compose.cpp.yml' >> "$ROOT/.env"
+    echo "wrote COMPOSE_FILE=compose.yml:compose.cpp.yml to .env: docker compose now runs the yue2.cpp engine"
+  fi
+  if [ -n "${YUE2CPP_MODEL:-}" ] && ! grep -qs '^YUE2CPP_MODEL=' "$ROOT/.env"; then
+    echo "YUE2CPP_MODEL=$YUE2CPP_MODEL" >> "$ROOT/.env"
+  fi
+elif [ "$MODEL" = int8 ]; then
   fetch "$YUE2/checkpoints/yue2_3b_int8_convrot.safetensors" \
         "$ROOT/models/checkpoints/yue2_3b_int8_convrot.safetensors"
   if [ -s "$ROOT/models/checkpoints/yue2_3b_bf16.safetensors" ]; then
@@ -102,11 +126,14 @@ else
         "$ROOT/models/checkpoints/yue2_3b_bf16.safetensors"
 fi
 
-fetch "$YUE2/audio_encoders/sheetsage2_bf16.safetensors" \
-      "$ROOT/models/audio_encoders/sheetsage2_bf16.safetensors"
+# ComfyUI's transcriber and Gemma: the yue2.cpp engine has its own transcriber and no Gemma.
+if [ "$ENGINE" = comfyui ]; then
+  fetch "$YUE2/audio_encoders/sheetsage2_bf16.safetensors" \
+        "$ROOT/models/audio_encoders/sheetsage2_bf16.safetensors"
 
-fetch "$GEMMA/text_encoders/gemma4_e4b_it_int8_convrot.safetensors" \
-      "$ROOT/models/text_encoders/gemma4_e4b_it_int8_convrot.safetensors"
+  fetch "$GEMMA/text_encoders/gemma4_e4b_it_int8_convrot.safetensors" \
+        "$ROOT/models/text_encoders/gemma4_e4b_it_int8_convrot.safetensors"
+fi
 
 fetch "$COPIES/ar_lora_inst_v3abc_comfyui.safetensors" \
       "$ROOT/models/loras/ar_lora_inst_v3abc_comfyui.safetensors" \
@@ -116,16 +143,21 @@ fetch "$COPIES/nar_lora_joint_v9_comfyui.safetensors" \
       "$ROOT/models/loras/nar_lora_joint_v9_comfyui.safetensors" \
       "$REAL_AUDIO/nar_lora_joint_v9_comfyui.safetensors"
 
-fetch "$COPIES/tokenizer_head_joint_v9.safetensors" \
-      "$ROOT/models/audio_encoders/tokenizer_head_joint_v9.safetensors" \
-      "$REAL_AUDIO/tokenizer_head_joint_v9.safetensors"
+# The tokenizer head and the trainer's regularizer: ComfyUI's training only.
+if [ "$ENGINE" = comfyui ]; then
+  fetch "$COPIES/tokenizer_head_joint_v9.safetensors" \
+        "$ROOT/models/audio_encoders/tokenizer_head_joint_v9.safetensors" \
+        "$REAL_AUDIO/tokenizer_head_joint_v9.safetensors"
 
-fetch "$COPIES/minted_regularizer_pack_v2.pt" \
-      "$ROOT/models/fs_audio/minted_regularizer_pack_v2.pt" \
-      "$REGULARIZER/minted_regularizer_pack_v2.pt"
+  fetch "$COPIES/minted_regularizer_pack_v2.pt" \
+        "$ROOT/models/fs_audio/minted_regularizer_pack_v2.pt" \
+        "$REGULARIZER/minted_regularizer_pack_v2.pt"
+fi
 
 # FLUX.2 klein 4B for take pictures drawn here, with its text encoder and VAE (all Apache 2.0): only when asked for.
-if [ "$PICTURES" = yes ]; then
+if [ "$PICTURES" = yes ] && [ "$ENGINE" = cpp ]; then
+  echo "skip  FLUX.2 klein: pictures drawn on this PC need the ComfyUI engine (an external image model still draws them)" >&2
+elif [ "$PICTURES" = yes ]; then
   mkdir -p "$ROOT/models/diffusion_models" "$ROOT/models/vae"
   KLEIN=https://huggingface.co/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files
   fetch "https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors" \
@@ -235,7 +267,9 @@ fi
 
 # Whisper for the engine, which hears the words of a separated vocal on the GPU.  The engine would fetch it the first
 # time it is needed, and a lyric hearing would wait on 1.6 GB; here it is a plain folder the engine uses as it stands.
-if mkdir -p "$ROOT/models/whisper/large-v3-turbo" 2>/dev/null && [ -w "$ROOT/models/whisper/large-v3-turbo" ]; then
+if [ "$ENGINE" = cpp ]; then
+  : # the app hears lyrics on the CPU with this engine, and fetches its own copy the first time
+elif mkdir -p "$ROOT/models/whisper/large-v3-turbo" 2>/dev/null && [ -w "$ROOT/models/whisper/large-v3-turbo" ]; then
   for f in config.json preprocessor_config.json tokenizer.json vocabulary.json model.bin; do
     fetch "$WHISPER/$f" "$ROOT/models/whisper/large-v3-turbo/$f"
   done
@@ -252,7 +286,11 @@ fetch "https://archive.org/download/free-soundfonts-sf2-2019-04/Arachno_SoundFon
       "$SF2_DIR/Arachno_SoundFont_Version_1.0.sf2"
 
 echo "done.  models/ now holds:"
-ls -la "$ROOT/models/checkpoints" "$ROOT/models/audio_encoders" "$ROOT/models/text_encoders" "$ROOT/models/loras" | grep -v '^total' | grep -v '^d'
+if [ "$ENGINE" = cpp ]; then
+  ls -la "$ROOT/models/yue2cpp" "$ROOT/models/loras" | grep -v '^total' | grep -v '^d'
+else
+  ls -la "$ROOT/models/checkpoints" "$ROOT/models/audio_encoders" "$ROOT/models/text_encoders" "$ROOT/models/loras" | grep -v '^total' | grep -v '^d'
+fi
 echo ""
 echo "soundfonts/sf2/ now holds:"
 ls -la "$SF2_DIR" | grep -v '^total' | grep -v '^d'

@@ -1,0 +1,59 @@
+# The yue2.cpp engine in place of ComfyUI: for GPUs with less memory.  It renders, plans and
+# transcribes; training, Gemma (lyrics drafted on this PC) and pictures drawn on this PC need
+# the ComfyUI engine, and the app leaves them out (an external LLM still drafts lyrics and
+# describes or draws pictures).
+#
+# Chosen in .env, read by every docker compose command:
+#   COMPOSE_FILE=compose.yml:compose.cpp.yml
+# and its models fetched with scripts/fetch-models.sh --cpp.  Take the line out to go back.
+services:
+  # Not started: the profile is never asked for.
+  engine:
+    profiles: ["comfyui"]
+
+  engine-cpp:
+    build:
+      context: ./engine-cpp
+      args:
+        # Empty builds for every recent NVIDIA card; one architecture (89-real for an RTX 40,
+        # 86-real for an RTX 30) builds much faster.
+        CUDA_ARCHITECTURES: "${YUE2CPP_CUDA_ARCH:-}"
+    image: yeufonic-engine-cpp:latest
+    container_name: yeufonic-engine-cpp
+    restart: unless-stopped
+    # The backbone: Q8_0 (near lossless) by default; YUE2CPP_MODEL picks another,
+    # such as YuE2-3B-BF16.gguf, or YuE2-3B-Q6_K.gguf for a smaller card.
+    command:
+      - --model
+      - /models/${YUE2CPP_MODEL:-YuE2-3B-Q8_0.gguf}
+      - --vae
+      - /models/YuE2-Vae-F32.gguf
+      - --transcriber
+      - /models/SheetSage2-Q8_0.gguf
+      - --adapters
+      - /adapters
+    # Localhost only, for debugging: its own page is a plain test bench.
+    ports:
+      - "127.0.0.1:8189:8087"
+    volumes:
+      - ./models/yue2cpp:/models:ro
+      - ./models/loras:/adapters:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    depends_on: !override
+      - engine-cpp
+    environment:
+      ENGINE_URL: http://engine-cpp:8087
+      ENGINE_KIND: yue2cpp

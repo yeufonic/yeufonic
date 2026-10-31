@@ -33,3 +33,5 @@ secrets.json
 .pytest_cache/
 compose.override.yml
 docker-compose.override.yml
+# A checkout of yue2.cpp kept here for work on its engine: engine-cpp/ builds from its own pinned copy.
+yue2.cpp/

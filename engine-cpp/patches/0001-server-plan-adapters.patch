@@ -1,0 +1,315 @@
+From dbf730e05e8e25d63ff3be03accd515b0e74cd17 Mon Sep 17 00:00:00 2001
+From: Paul Shields <noisyoly@gmail.com>
+Date: Sat, 31 Oct 2026 12:42:52 +0000
+Subject: [PATCH] Server: plan-only jobs, per-half adapter strengths,
+ timestep-embedding adapters
+
+POST /plan runs the first stage alone, under the planner half of the request's
+adapters, and returns the score with the seed it was drawn with: a front end
+can let the score be read and edited before anything is rendered.
+
+An adapter in a request can set scale_ar and scale_nar apart: a style adapter's
+planner half and acoustic half are often wanted at different strengths, and a
+voice adapter on the acoustic half alone.  scale still covers a half not named.
+
+Adapters that also train the acoustic half's timestep embedding
+(time_embedder.mlp.0 and .2) were skipped at the scan as unsupported; they
+merge like vae2llm and llm2vae.
+
+POST /adapters/rescan reads the adapter directory again, from the worker,
+so a file added after the start can be named without a restart.  /props
+reports the compute device and its free and total memory.
+---
+ src/adapter.h        |  3 +-
+ src/pipeline.h       | 66 +++++++++++++++++++++++++++++++++++++-----
+ src/request.cpp      | 22 ++++++++++++--
+ src/request.h        | 12 +++++++-
+ tools/yue-server.cpp | 69 ++++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 160 insertions(+), 12 deletions(-)
+
+diff --git a/src/adapter.h b/src/adapter.h
+index 8a47ee7..d5f82fa 100644
+--- a/src/adapter.h
++++ b/src/adapter.h
+@@ -159,7 +159,8 @@ static bool adapter_parse_key(std::string key, AdapterKey * out) {
+         adapter_strip(&key, "io.");
+     }
+ 
+-    if (key == "vae2llm" || key == "llm2vae") {
++    // The acoustic half's projections and its timestep embedding, outside the layers
++    if (key == "vae2llm" || key == "llm2vae" || key == "time_embedder.mlp.0" || key == "time_embedder.mlp.2") {
+         out->module = key;
+         out->half   = ADAPTER_NAR;
+         return hint != ADAPTER_AR;
+diff --git a/src/pipeline.h b/src/pipeline.h
+index f5a2159..cbcd161 100644
+--- a/src/pipeline.h
++++ b/src/pipeline.h
+@@ -159,7 +159,7 @@ static void pipeline_free(Yue2Pipeline * p) {
+ }
+ 
+ // The adapters of a request resolved to their files, split by the half each
+-// changes. A zero strength leaves the halves as they are.
++// changes. A zero strength leaves a half as it is.
+ static bool pipeline_adapters(const Yue2Pipeline *      p,
+                               const Yue2Request &       r,
+                               std::vector<AdapterUse> * ar,
+@@ -170,14 +170,11 @@ static bool pipeline_adapters(const Yue2Pipeline *      p,
+             fprintf(stderr, "[Pipeline] FATAL: adapter %s not found\n", a.name.c_str());
+             return false;
+         }
+-        if (a.scale == 0.0f) {
+-            continue;
+-        }
+-        if (e->halves & ADAPTER_AR) {
+-            ar->push_back({ e->path, a.scale });
++        if ((e->halves & ADAPTER_AR) && a.ar() != 0.0f) {
++            ar->push_back({ e->path, a.ar() });
+         }
+-        if (e->halves & ADAPTER_NAR) {
+-            nar->push_back({ e->path, a.scale });
++        if ((e->halves & ADAPTER_NAR) && a.nar() != 0.0f) {
++            nar->push_back({ e->path, a.nar() });
+         }
+     }
+     return true;
+@@ -349,6 +346,59 @@ struct KvScope {
+     }
+ };
+ 
++// The score alone, the first stage of a generate: one plan drawn with
++// lm_seed under the planner half of the request's adapters, nothing
++// rendered. The score can be edited and sent back as the abc of a request.
++static bool pipeline_plan(Yue2Pipeline *      p,
++                          const Yue2Request & r,
++                          std::string *       score,
++                          bool *              truncated,
++                          bool (*cancelled)(void *) = nullptr,
++                          void * cancel_data        = nullptr) {
++    Yue2Cot cot;
++    if (!yue2_cot_parse(r.cot, &cot) || cot == YUE2_COT_OFF) {
++        fprintf(stderr, "[Plan] FATAL: cot must be full or melody to write a score\n");
++        return false;
++    }
++    if (!yue2_sampling_valid(r.abc_sampling, "abc")) {
++        return false;
++    }
++    std::vector<AdapterUse> ar_adapters, nar_adapters;
++    if (!pipeline_adapters(p, r, &ar_adapters, &nar_adapters)) {
++        return false;
++    }
++
++    KvScope        kv_scope = { p };
++    BPETokenizer * tok      = store_bpe(p->store, p->model_path.c_str());
++    auto           encode   = [tok](const std::string & text) {
++        return bpe_encode(tok, text);
++    };
++    Qwen3LM * lm = require_lm(p, ar_adapters);
++    if (!lm) {
++        return false;
++    }
++    ModelHandle                 hold(p->store, lm);
++    std::vector<int>            open = yue2_build_prompt_ids(encode, cot, r.style, r.lyrics, nullptr);
++    std::vector<Yue2Generation> plans;
++    if (!yue2_generate(lm, &p->kv, std::vector<std::vector<int>>(1, open), {}, 1.0f, r.abc_sampling, r.lm_seed,
++                       YUE2_PHASE_ABC, &plans, cancelled, cancel_data)) {
++        return false;
++    }
++    *score     = bpe_decode(tok, plans[0].tokens);
++    *truncated = plans[0].truncated;
++    fprintf(stderr, "[Plan] Score %zu tokens%s, seed %lld\n", plans[0].tokens.size(),
++            plans[0].truncated ? " (truncated)" : "", (long long) r.lm_seed);
++    return true;
++}
++
++// The adapter directory read again, so a file put there since the start can
++// be named by the next request. Called from the thread that runs the jobs.
++static void pipeline_rescan_adapters(Yue2Pipeline * p) {
++    if (p->params.adapters_dir) {
++        p->adapters = adapter_scan(p->params.adapters_dir);
++    }
++}
++
+ // The codes of a continuation: the section [source_start, source_end) of
+ // the source stream opens the song, the AR writes on behind the prompt and
+ // it until the requested length or its end token. The whole song is then
+diff --git a/src/request.cpp b/src/request.cpp
+index ad6c564..eee5f22 100644
+--- a/src/request.cpp
++++ b/src/request.cpp
+@@ -181,9 +181,21 @@ static void request_parse_obj(yyjson_val * obj, Yue2Request * r) {
+         yyjson_arr_foreach(v, i, n, item) {
+             yyjson_val * name  = yyjson_obj_get(item, "name");
+             yyjson_val * scale = yyjson_obj_get(item, "scale");
++            yyjson_val * ar    = yyjson_obj_get(item, "scale_ar");
++            yyjson_val * nar   = yyjson_obj_get(item, "scale_nar");
+             if (name && yyjson_is_str(name)) {
+-                r->adapters.push_back(
+-                    { yy_str(name), scale && yyjson_is_num(scale) ? (float) yyjson_get_num(scale) : 1.0f });
++                Yue2Adapter a;
++                a.name  = yy_str(name);
++                a.scale = scale && yyjson_is_num(scale) ? (float) yyjson_get_num(scale) : 1.0f;
++                if (ar && yyjson_is_num(ar)) {
++                    a.has_ar   = true;
++                    a.scale_ar = (float) yyjson_get_num(ar);
++                }
++                if (nar && yyjson_is_num(nar)) {
++                    a.has_nar   = true;
++                    a.scale_nar = (float) yyjson_get_num(nar);
++                }
++                r->adapters.push_back(a);
+             }
+         }
+     }
+@@ -296,6 +308,12 @@ std::string request_to_json(const Yue2Request * r, bool sparse) {
+             yyjson_mut_val * item = yyjson_mut_arr_add_obj(doc, list);
+             yyjson_mut_obj_add_strncpy(doc, item, "name", a.name.c_str(), a.name.size());
+             yyjson_mut_obj_add_real(doc, item, "scale", a.scale);
++            if (a.has_ar) {
++                yyjson_mut_obj_add_real(doc, item, "scale_ar", a.scale_ar);
++            }
++            if (a.has_nar) {
++                yyjson_mut_obj_add_real(doc, item, "scale_nar", a.scale_nar);
++            }
+         }
+         yyjson_mut_obj_add_val(doc, root, "adapters", list);
+     }
+diff --git a/src/request.h b/src/request.h
+index c508f5b..623c5d4 100644
+--- a/src/request.h
++++ b/src/request.h
+@@ -11,10 +11,20 @@
+ #include <string>
+ #include <vector>
+ 
+-// One adapter of a request: an entry of the --adapters directory and its strength
++// One adapter of a request: an entry of the --adapters directory and its strength.
++// scale_ar and scale_nar, when given, set the strength of one half on its own
++// (the planner and token half, the acoustic half); scale covers the other.
+ struct Yue2Adapter {
+     std::string name;
+     float       scale;  // 1.0
++    bool        has_ar    = false;
++    float       scale_ar  = 1.0f;
++    bool        has_nar   = false;
++    float       scale_nar = 1.0f;
++
++    float ar() const { return has_ar ? scale_ar : scale; }
++
++    float nar() const { return has_nar ? scale_nar : scale; }
+ };
+ 
+ struct Yue2Request {
+diff --git a/tools/yue-server.cpp b/tools/yue-server.cpp
+index 56ed439..92687cd 100644
+--- a/tools/yue-server.cpp
++++ b/tools/yue-server.cpp
+@@ -425,6 +425,8 @@ static void worker_main() {
+ }
+ 
+ static Yue2Pipeline g_pipeline;
++// the adapter list: read by the HTTP threads, written by the worker's rescan
++static std::mutex   mtx_adapters;
+ static bool         g_keep_loaded = false;
+ static std::string  g_model_path;
+ static std::string  g_vae_path;
+@@ -466,8 +468,22 @@ static void handle_props(const httplib::Request &, httplib::Response & res) {
+     yyjson_mut_obj_add_int(doc, root, "frame_rate", YUE2_FRAME_RATE);
+     yyjson_mut_obj_add_int(doc, root, "context", YUE2_CONTEXT);
+ 
++    // The compute device and its memory, as the driver reports it now
++    ggml_backend_dev_t dev = g_pipeline.kv_backend.backend ? ggml_backend_get_device(g_pipeline.kv_backend.backend) : nullptr;
++    if (dev) {
++        size_t free_mem = 0, total_mem = 0;
++        ggml_backend_dev_memory(dev, &free_mem, &total_mem);
++        yyjson_mut_val * device = yyjson_mut_obj(doc);
++        yyjson_mut_obj_add_str(doc, device, "name", ggml_backend_dev_name(dev));
++        yyjson_mut_obj_add_str(doc, device, "description", ggml_backend_dev_description(dev));
++        yyjson_mut_obj_add_uint(doc, device, "memory_free", (uint64_t) free_mem);
++        yyjson_mut_obj_add_uint(doc, device, "memory_total", (uint64_t) total_mem);
++        yyjson_mut_obj_add_val(doc, root, "device", device);
++    }
++
+     // The adapter directory, each entry with the halves it changes
+     yyjson_mut_val * adapters = yyjson_mut_arr(doc);
++    std::lock_guard<std::mutex> adapters_lock(mtx_adapters);
+     for (const AdapterEntry & e : g_pipeline.adapters) {
+         yyjson_mut_val * item = yyjson_mut_arr_add_obj(doc, adapters);
+         yyjson_mut_obj_add_strncpy(doc, item, "name", e.name.c_str(), e.name.size());
+@@ -534,6 +550,7 @@ static bool validate(const std::string & json, httplib::Response & res, Yue2Requ
+         res.set_content(json_string("error", "sampling preset outside the protocol bounds"), "application/json");
+         return false;
+     }
++    std::lock_guard<std::mutex> adapters_lock(mtx_adapters);
+     for (const Yue2Adapter & a : r->adapters) {
+         if (!adapter_find(g_pipeline.adapters, a.name)) {
+             res.status = 400;
+@@ -569,6 +586,35 @@ static void run_transcribe(std::shared_ptr<Job> job, std::vector<float> audio, b
+     job->status.store(JobStatus::DONE);
+ }
+ 
++// Plan worker: the score alone, with the seed it was drawn with, nothing
++// rendered
++static void run_plan(std::shared_ptr<Job> job, Yue2Request request) {
++    active_job_set(job);
++    fprintf(stderr, "[Server] Plan job %s: %s\n", job->id.c_str(), request_to_json(&request).c_str());
++    std::string score;
++    bool        truncated = false;
++    bool ok = pipeline_plan(&g_pipeline, request, &score, &truncated, server_cancel_job, (void *) &job->cancel);
++    active_job_set(nullptr);
++    if (!ok) {
++        job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
++        return;
++    }
++    yyjson_mut_doc * doc  = yyjson_mut_doc_new(NULL);
++    yyjson_mut_val * root = yyjson_mut_obj(doc);
++    yyjson_mut_doc_set_root(doc, root);
++    yyjson_mut_obj_add_strncpy(doc, root, "abc", score.c_str(), score.size());
++    yyjson_mut_obj_add_bool(doc, root, "truncated", truncated);
++    yyjson_mut_obj_add_int(doc, root, "lm_seed", request.lm_seed);
++    char * json = yyjson_mut_write(doc, 0, NULL);
++    job->result_body = json ? json : "{}";
++    if (json) {
++        free(json);
++    }
++    yyjson_mut_doc_free(doc);
++    job->result_mime = "application/json";
++    job->status.store(JobStatus::DONE);
++}
++
+ // Tokenize worker: the uploaded recording becomes its semantic codes, the
+ // stream a card keeps for its replay and for the continuations it opens.
+ static void run_tokenize(std::shared_ptr<Job> job, std::vector<float> audio) {
+@@ -838,6 +884,29 @@ int main(int argc, char ** argv) {
+         res.set_content(json_string("id", job->id), "application/json");
+     });
+ 
++    // POST /plan, the body of /synth: the score alone, returned as
++    // {"abc", "truncated", "lm_seed"}
++    svr.Post("/plan", [](const httplib::Request & req, httplib::Response & res) {
++        Yue2Request request;
++        if (!validate(req.body, res, &request)) {
++            return;
++        }
++        auto job = job_create();
++        work_push([job, request] { run_plan(job, request); });
++        res.set_content(json_string("id", job->id), "application/json");
++    });
++
++    // POST /adapters/rescan: the adapter directory is read again once the
++    // jobs ahead have run, for a file put there since the start
++    svr.Post("/adapters/rescan", [](const httplib::Request &, httplib::Response & res) {
++        work_push([] {
++            std::lock_guard<std::mutex> lock(mtx_adapters);
++            pipeline_rescan_adapters(&g_pipeline);
++            fprintf(stderr, "[Server] Adapters rescanned: %zu\n", g_pipeline.adapters.size());
++        });
++        res.set_content(json_string("status", "queued"), "application/json");
++    });
++
+     // POST /transcribe, multipart/form-data: an "audio" part (WAV or MP3)
+     // and an optional "melody_only" field that drops the chord symbols. The
+     // route is served when a transcriber is given.
+-- 
+2.43.0
+
