@@ -226,6 +226,57 @@ def test_options_say_what_this_engine_has(monkeypatch):
     assert gpu["name"] == "Test GPU" and gpu["vram_total"] == 12 << 30
 
 
+def test_the_lora_folder_is_read_again_only_when_it_changed(monkeypatch, tmp_path):
+    """The server logs every LoRA as it reads them, and the options are looked at every few minutes."""
+    monkeypatch.setattr(config, "CHECKPOINT", config.CHECKPOINT)
+    monkeypatch.setattr(config, "MODELS_DIR", tmp_path)
+    loras = tmp_path / "loras"
+    loras.mkdir()
+    for name in (config.INSTRUMENTAL_LORA, "style.safetensors"):
+        (loras / name).write_bytes(b"x")
+    (loras / "notes.txt").write_text("not a LoRA")
+    rescans = []
+    server = FakeServer()
+
+    def counting(request):
+        if request.url.path == "/adapters/rescan":
+            rescans.append(1)
+        return server(request)
+    engine = _engine(counting)
+
+    async def go():
+        await engine.refresh_status()
+        await engine.refresh_options()      # the server's own list has both: nothing to read
+        await engine.refresh_options()
+        assert not rescans
+        (loras / "new.safetensors").write_bytes(b"y")
+        await engine.refresh_options()      # a new file
+        assert len(rescans) == 1
+        await engine.refresh_options()
+        assert len(rescans) == 1
+        (loras / "new.safetensors").unlink()
+        await engine.refresh_options()      # one taken away
+        assert len(rescans) == 2
+    asyncio.run(go())
+
+
+def test_a_lora_added_before_the_app_started_is_read_at_its_first_look(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "CHECKPOINT", config.CHECKPOINT)
+    monkeypatch.setattr(config, "MODELS_DIR", tmp_path)
+    (tmp_path / "loras").mkdir()
+    (tmp_path / "loras" / "unlisted.safetensors").write_bytes(b"x")
+    rescans = []
+    server = FakeServer()
+
+    def counting(request):
+        if request.url.path == "/adapters/rescan":
+            rescans.append(1)
+        return server(request)
+    engine = _engine(counting)
+    asyncio.run(engine.refresh_options())
+    assert len(rescans) == 1
+
+
 def test_a_plan_comes_back_as_comfyuis_history_would_have_it():
     server = FakeServer()
     engine = _engine(server)

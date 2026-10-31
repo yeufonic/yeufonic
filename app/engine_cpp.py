@@ -17,6 +17,7 @@ import asyncio
 import base64
 import logging
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -312,6 +313,26 @@ def split_tracks(body: bytes, content_type: str) -> list[dict[str, Any]]:
     return parts
 
 
+def lora_folder_state() -> dict[str, tuple] | None:
+    """What the server would read in the LoRA folder, as it reads it: each .safetensors file, and each folder holding
+    one, by name with its size and time.  None when this app cannot see the folder."""
+    folder = Path(config.MODELS_DIR) / "loras"
+    try:
+        state: dict[str, tuple] = {}
+        for entry in os.scandir(folder):
+            if entry.is_dir():
+                inner = sorted((e.name, e.stat().st_size, e.stat().st_mtime_ns) for e in os.scandir(entry.path)
+                               if e.is_file() and e.name.endswith(".safetensors"))
+                if inner:
+                    state[entry.name] = tuple(inner)
+            elif entry.name.endswith(".safetensors"):
+                st = entry.stat()
+                state[entry.name] = (st.st_size, st.st_mtime_ns)
+        return state
+    except OSError:
+        return None
+
+
 class CppEngine(Engine):
     """The Engine interface, spoken to yue2.cpp's server."""
 
@@ -342,6 +363,8 @@ class CppEngine(Engine):
         self._current_server_job: str | None = None
         self._lock = asyncio.Lock()
         self.props: dict[str, Any] = {}
+        # The LoRA folder as last seen (lora_folder_state), so the server is asked to read it again only when it changed.
+        self._loras_seen: dict[str, tuple] | None = None
         self._scratch = Path(tempfile.mkdtemp(prefix="yeufonic-cpp-"))
 
     # ---------- lifecycle ----------
@@ -475,19 +498,34 @@ class CppEngine(Engine):
             self.options["klein"] = dict(klein)
         return bool(klein)
 
-    async def refresh_options(self) -> None:
+    async def _rescan_adapters(self) -> None:
         assert self.client
-        await self.refresh_gemma()
-        await self.refresh_pictures()
-        # A LoRA put into the folder since the start is read once the jobs ahead have run.
         try:
             await self.client.post("/adapters/rescan", timeout=4.0)
             await asyncio.sleep(0.3)
         except Exception:  # noqa: BLE001  an older build has no rescan; the start-up list stands
             pass
+
+    async def refresh_options(self) -> None:
+        assert self.client
+        await self.refresh_gemma()
+        await self.refresh_pictures()
+        # A LoRA put into the folder since the start is read once the jobs ahead have run.  The server logs every
+        # LoRA as it reads them, and this runs every few minutes, so it is asked only when the folder has changed.
+        seen = lora_folder_state()
+        if seen is None or (self._loras_seen is not None and seen != self._loras_seen):
+            await self._rescan_adapters()
         r = await self.client.get("/props", timeout=10.0)
         r.raise_for_status()
         props = r.json()
+        if seen is not None and self._loras_seen is None:
+            # The first look: the server read the folder when it started, which may be before a file came.
+            if not set(seen) <= {a.get("name") for a in props.get("adapters") or []}:
+                await self._rescan_adapters()
+                r = await self.client.get("/props", timeout=10.0)
+                r.raise_for_status()
+                props = r.json()
+        self._loras_seen = seen
         self.props = props
         loras = [a["name"] for a in props.get("adapters") or [] if a.get("name")]
         # The harmony control, and the hook it holds, are in this build when it says so (patch 0002).
