@@ -49,6 +49,10 @@ cannot creep back in.
   add-ons. Training needs ComfyUI: with yue2.cpp the app leaves it out, and stems and lyric hearing run on the CPU.
   **About** names the engine. [docs/ENGINES.md](docs/ENGINES.md) compares the two and says how to choose and switch.
 
+- **Changing the model size on Windows keeps the other one.** The installer used to remove the size you left;
+  it now keeps it, so switching back downloads nothing, and marks each size already downloaded. With
+  yue2.cpp chosen the sizes are greyed out, as they are ComfyUI's. The components page's descriptions can be
+  read in full: the box is wider, and off the list it describes the highlighted item.
 - **The log says how a picture or a lyric draft was made, and how long it took.** Its "is ready" line names who
   described and who drew a picture (and any fallback), or who wrote the words, with the time taken.
 - **The job card and the player take you to the take.** Click the title of the job running, a take in **Up next**, or

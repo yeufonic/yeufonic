@@ -402,7 +402,7 @@ LangString DESC_Engine ${LANG_ENGLISH} "Which engine runs YuE2. ComfyUI does eve
 LangString DESC_Comfy ${LANG_ENGLISH} "ComfyUI: everything Yeufonic does, LoRA training included. Works best with 12 GB of video memory or more."
 LangString DESC_Cpp ${LANG_ENGLISH} "yue2.cpp: a smaller native engine for graphics cards with less memory. Songs, covers, instrumentals, Harmony and transcription, with your style LoRAs; no LoRA training. Lyric drafts and pictures below run beside it. Download size: about 6 GB."
 LangString DESC_Full ${LANG_ENGLISH} "The full-quality YuE2 model (BF16), 7.8 GB. Recommended. It needs a graphics card with plenty of memory to run at full speed, and it is the one that LoRA training uses."
-LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for graphics cards with 6 GB of memory or less, or if the full one is too slow on this PC. LoRA training works on both sizes. Only one size is installed: run this installer again to change."
+LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for graphics cards with 6 GB of memory or less, or if the full one is too slow on this PC. LoRA training works on both sizes. A size already downloaded is kept, so changing back costs nothing."
 LangString DESC_Pictures ${LANG_ENGLISH} "FLUX.2 klein, which draws a picture of each take on this PC, shown behind its card. Leave it out if your external LLM can draw them, or if you do not want pictures. Download size: 8.2 GB."
 LangString DESC_Loras ${LANG_ENGLISH} "39 style LoRAs by their authors: chanson, canzone, Bulgarian voices, qawwali, militant reggae, J-pop, dream pop, old school hip-hop and 16 concept sliders, each with its trigger word and suggested strengths. CC BY-NC 4.0, credited in the guide. Download size: 3.8 GB."
 LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analysis on this PC. Leave it out if you intend to configure an external LLM. This will save an 8 GB download."
@@ -453,6 +453,22 @@ FunctionEnd
 ; Written out here rather than with the radio-button macros, which take a variable holding the previous
 ; choice and untick *that section first*: with it unset they unticked the core section, and nothing installed.
 ; This touches the two model sections only. $ModelRadio is the one that was ticked before the click.
+; The model size is ComfyUI's.  With yue2.cpp it is greyed out, kept as it was (so going back to ComfyUI finds it
+; unchanged), and downloads nothing.
+Function ModelSizeForEngine
+  ${If} $EngineRadio == ${SecCpp}
+    SectionSetSize ${SecFull} 0
+    SectionSetSize ${SecSmall} 0
+    !insertmacro SetSectionFlag ${SecFull} ${SF_RO}
+    !insertmacro SetSectionFlag ${SecSmall} ${SF_RO}
+  ${Else}
+    SectionSetSize ${SecFull} $FullSize
+    SectionSetSize ${SecSmall} $SmallSize
+    !insertmacro ClearSectionFlag ${SecFull} ${SF_RO}
+    !insertmacro ClearSectionFlag ${SecSmall} ${SF_RO}
+  ${EndIf}
+FunctionEnd
+
 Function .onSelChange
   ; The engine first, as the model size below: one of the two always ticked.
   SectionGetFlags ${SecComfy} $0
@@ -475,14 +491,7 @@ Function .onSelChange
   ${Else}
     !insertmacro SelectSection $EngineRadio
   ${EndIf}
-  ; The model size is ComfyUI's: with yue2.cpp it downloads nothing.
-  ${If} $EngineRadio == ${SecCpp}
-    SectionSetSize ${SecFull} 0
-    SectionSetSize ${SecSmall} 0
-  ${Else}
-    SectionSetSize ${SecFull} $FullSize
-    SectionSetSize ${SecSmall} $SmallSize
-  ${EndIf}
+  Call ModelSizeForEngine
   SectionGetFlags ${SecFull} $0
   SectionGetFlags ${SecSmall} $1
   IntOp $0 $0 & ${SF_SELECTED}
@@ -599,16 +608,23 @@ Function .onInit
     ${EndIf}
     ; Only the app itself is new: the engine and the models are already here.
     SectionSetSize ${SecCore} 100000
-    ; The model size as it is on disk: kept as it is unless another is picked, and nothing to download for it.
-    ${If} ${FileExists} "$INSTDIR\engine\ComfyUI\models\checkpoints\yue2_3b_int8_convrot.safetensors"
-    ${AndIfNot} ${FileExists} "$INSTDIR\engine\ComfyUI\models\checkpoints\yue2_3b_bf16.safetensors"
-      !insertmacro UnselectSection ${SecFull}
-      !insertmacro SelectSection ${SecSmall}
-      SectionSetSize ${SecSmall} 0
-      SectionSetText ${SecSmall} "Low memory (installed)"
-    ${ElseIf} ${FileExists} "$INSTDIR\engine\ComfyUI\models\checkpoints\yue2_3b_bf16.safetensors"
+    ; The model sizes on disk: each one here downloads nothing, and both are kept.  The one in use stays chosen:
+    ; the one chosen last time, or the low-memory one when it is the only one here.
+    ${If} ${FileExists} "$INSTDIR\engine\ComfyUI\models\checkpoints\yue2_3b_bf16.safetensors"
       SectionSetSize ${SecFull} 0
       SectionSetText ${SecFull} "Full quality (installed)"
+    ${EndIf}
+    ${If} ${FileExists} "$INSTDIR\engine\ComfyUI\models\checkpoints\yue2_3b_int8_convrot.safetensors"
+      SectionSetSize ${SecSmall} 0
+      SectionSetText ${SecSmall} "Low memory (installed)"
+    ${EndIf}
+    ReadRegDWORD $1 HKCU "Software\$R9" "SmallModel"
+    ${If} $1 == 1
+    ${OrIfNot} ${FileExists} "$INSTDIR\engine\ComfyUI\models\checkpoints\yue2_3b_bf16.safetensors"
+      ${If} ${FileExists} "$INSTDIR\engine\ComfyUI\models\checkpoints\yue2_3b_int8_convrot.safetensors"
+        !insertmacro UnselectSection ${SecFull}
+        !insertmacro SelectSection ${SecSmall}
+      ${EndIf}
     ${EndIf}
     ; Gemma as chosen last time: kept if it is here, left out if it was left out.
     ReadRegDWORD $1 HKCU "Software\$R9" "Lyrics"
@@ -661,10 +677,7 @@ Function .onInit
   ${EndIf}
   SectionGetSize ${SecFull} $FullSize
   SectionGetSize ${SecSmall} $SmallSize
-  ${If} $EngineRadio == ${SecCpp}
-    SectionSetSize ${SecFull} 0
-    SectionSetSize ${SecSmall} 0
-  ${EndIf}
+  Call ModelSizeForEngine
   ; Which model size is ticked to begin with, for .onSelChange.
   SectionGetFlags ${SecSmall} $0
   IntOp $0 $0 & ${SF_SELECTED}

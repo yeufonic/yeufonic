@@ -1446,8 +1446,9 @@ YuE2 comes in two sizes, and an install has one: **full quality**, which we reco
 memory**, a smaller copy for graphics cards with little video memory. **About**, in the same menu,
 says which you have. It is chosen when Yeufonic is installed, not here:
 
-- **On Windows**, run the installer again. Its components page offers both sizes, shows the one you
-  have, and switching downloads the other and removes the first.
+- **On Windows**, run the installer again. Its components page offers both sizes and marks the ones
+  already downloaded. Switching downloads the other the first time and keeps both, so switching back
+  downloads nothing.
 - **With Docker**, `sh scripts/fetch-models.sh` fetches full quality and
   `sh scripts/fetch-models.sh --int8` the low-memory one. With both files in `models/checkpoints`, the
   app uses full quality unless `YUE2_CHECKPOINT=int8` is set in `.env`.

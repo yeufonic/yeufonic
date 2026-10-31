@@ -94,9 +94,12 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir C:\somewhere -Che
 ## The model size
 
 The components page offers two sizes of the YuE2 model, full quality (BF16) and low memory (INT8), as
-a choice of one. The choice is passed to `setup.ps1` as `-Int8` for the small one, remembered in the
-registry for the next update, and the file that was not chosen is removed once the chosen one is in
-place. The app picks whichever the engine reports (BF16 first), so there is no setting to keep in step.
+a choice of one. The choice is passed to `setup.ps1` as `-Int8` for the small one and remembered in the
+registry for the next update. Only the chosen file is downloaded, but one already on disk is kept, so
+changing back costs no download; `setup.ps1` writes the choice to `settings.ini` (`model = bf16` or
+`int8`), and the launcher hands it to the app as `YUE2_CHECKPOINT`. An install from before that line
+existed has one size on disk, which the app finds by itself (BF16 first). With yue2.cpp chosen the
+sizes are greyed out: they are ComfyUI's, and stay as they were for when ComfyUI is chosen again.
 
 ## Trying an update before it is released
 

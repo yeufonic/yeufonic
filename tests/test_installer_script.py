@@ -269,3 +269,24 @@ def test_the_launcher_starts_yue2cpp_and_tells_the_app():
     assert 'OLLAMA_KEEP_ALIVE="0"' in cpp and '"GEMMA_URL"' in cpp and '"PICTURES_URL"' in cpp
     assert '("health" if self.cpp else "system_stats")' in launcher
     assert '"engine": "comfyui"' in launcher
+
+
+def test_changing_the_model_size_keeps_the_other_and_says_which_is_used():
+    """Switching sizes used to delete the one left, so switching back downloaded it again.  Both are kept now,
+    and the choice reaches the app through settings.ini and the launcher, as both may be on disk."""
+    root = Path(__file__).resolve().parent.parent
+    setup = (root / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    launcher = (root / "windows" / "launcher.py").read_text(encoding="utf-8")
+    assert "$unchosen" not in setup
+    assert "Set-IniValue $settingsIni 'model' $(if ($Int8) { 'int8' } else { 'bf16' })" in setup
+    assert '"YUE2_CHECKPOINT": self.cfg.get("model", "")' in launcher
+    assert 'SectionSetText ${SecFull} "Full quality (installed)"' in SCRIPT
+    assert 'SectionSetText ${SecSmall} "Low memory (installed)"' in SCRIPT
+
+
+def test_the_model_size_is_greyed_out_for_yue2cpp_but_not_its_group():
+    """Read-only set on the group itself re-applied its selection to both sizes, ticking both."""
+    start = SCRIPT.index("Function ModelSizeForEngine")
+    body = SCRIPT[start:SCRIPT.index("\nFunctionEnd", start)]
+    assert "SetSectionFlag ${SecFull} ${SF_RO}" in body and "SetSectionFlag ${SecSmall} ${SF_RO}" in body
+    assert "SecModelGroup" not in body

@@ -692,6 +692,9 @@ class Launcher:
             "TRAINING_ENABLED": "1",
             # When the engine is asked to unload its models: auto (after a picture), 1 whenever the GPU's work runs out, 0 never.
             "UNLOAD_WHEN_IDLE": self.cfg.get("unload_when_idle", "auto"),
+            # Which YuE2 size ComfyUI renders with (bf16 or int8), as the installer chose: both can be on disk.
+            # Unset, the app takes the full-quality one where it is there.
+            "YUE2_CHECKPOINT": self.cfg.get("model", ""),
             "PYTHONUTF8": "1",
             # Set only by a test build of the installer: where to look for an update to try.
             "YEUFONIC_UPDATE_MANIFEST": self.cfg.get("update_manifest", ""),

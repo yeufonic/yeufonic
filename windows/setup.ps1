@@ -420,9 +420,9 @@ $LoraFiles = @(
 )
 if ($Loras) { $ModelFiles = @($ModelFiles) + $LoraFiles }
 if ($NoLyrics) { $ModelFiles = @($ModelFiles | Where-Object { -not $_.Lyrics }) }
-# The model comes in two sizes and an install has one of them: the full-quality file, or with -Int8 the
-# smaller one for a GPU with little memory.  The other is taken off the entry list here, and removed from
-# the folder once the chosen one is in place (below), so choosing differently later is just running this again.
+# The model comes in two sizes: the full-quality file, or with -Int8 the smaller one for a GPU with little memory.
+# Only the chosen one is downloaded, but one already here is kept, so changing back costs no download; settings.ini
+# says which one the app uses (below).
 $FullModel = 'yue2_3b_bf16.safetensors'
 $SmallModel = 'yue2_3b_int8_convrot.safetensors'
 if ($Int8) {
@@ -844,13 +844,6 @@ if (-not $SkipModels) {
         New-Item -ItemType Directory -Force -Path (Join-Path $Models $m.Dir) | Out-Null
         Get-Verified $m (Join-Path (Join-Path $Models $m.Dir) $m.File)
     }
-    # One size only: with the chosen one in place, the other is taken away, so the app uses what was chosen.
-    $unchosen = Join-Path (Join-Path $Models 'checkpoints') $(if ($Int8) { $FullModel } else { $SmallModel })
-    if (-not $Cpp -and (Test-Path $unchosen)) {
-        Say ''
-        Say ("Removing {0}: this install uses the {1} model." -f (Split-Path $unchosen -Leaf), $(if ($Int8) { 'low-memory' } else { 'full-quality' }))
-        Remove-Item -Force $unchosen
-    }
 }
 
 # ------------------------------------------------------ the app's own models
@@ -945,6 +938,8 @@ if ($Cpp -and -not $NoLyrics -and -not $SkipModels -and -not (IsDone "gemma-$($G
 # Which engine the launcher starts: remembered in settings.ini, where Repair reads it back.
 Set-IniValue $settingsIni 'engine' $EngineKind
 if ($Cpp) { Set-IniValue $settingsIni 'gemma_model' $GemmaModel }
+# And which size of YuE2 ComfyUI uses, as both may be here.  yue2.cpp has its own files: the choice stays as it was.
+if (-not $Cpp) { Set-IniValue $settingsIni 'model' $(if ($Int8) { 'int8' } else { 'bf16' }) }
 
 # ---------------------------------------------------------------- soundfonts
 if (-not $SkipModels) {

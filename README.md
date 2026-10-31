@@ -369,7 +369,7 @@ fetches full quality and `sh scripts/fetch-models.sh --int8` the low-memory one;
 is in `models/checkpoints`, so that is all the choosing there is. With both files there it uses full quality,
 and `YUE2_CHECKPOINT=int8` in `.env` picks the other, so a Docker install can keep both and switch (restart
 with `docker compose up -d`). On Windows, to change later, run the installer again and choose differently
-(it removes the one you leave). The Settings page doesn't switch it, and **About** says which is in use.
+(the one you leave is kept, so changing back downloads nothing). The Settings page doesn't switch it, and **About** says which is in use.
 
 | | Full quality (BF16) | Low memory (INT8) |
 |---|---|---|
