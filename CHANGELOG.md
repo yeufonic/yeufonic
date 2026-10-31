@@ -39,14 +39,15 @@ cannot creep back in.
 
 ## Unreleased
 
-- **A second engine, yue2.cpp, for graphics cards with less memory (Docker).** `sh scripts/fetch-models.sh --cpp`
-  sets an install up with yue2.cpp's server in place of ComfyUI: a native engine with a download of about 5.4 GB that
-  holds nothing in video memory between jobs. It writes plans, renders songs, covers and instrumentals and transcribes
-  recordings, with the same style LoRAs, each half at its own strength, and the Harmony control, following a structure
-  exactly and expanding a tune to a full song work on it as on ComfyUI. `--gemma` adds Gemma beside it, in Ollama, for
-  lyric drafts and picture descriptions on this PC, and `--pictures` FLUX.2 klein, in stable-diffusion.cpp, for take
-  pictures. Training needs ComfyUI: with yue2.cpp the app leaves it out, and stems and lyric hearing run on the CPU. **About** names the engine. [docs/ENGINES.md](docs/ENGINES.md) compares the two and says how to choose and
-  switch.
+- **A second engine, yue2.cpp, for graphics cards with less memory.** A native engine in place of ComfyUI, with a
+  download of about 5.4 GB, that holds nothing in video memory between jobs. It writes plans, renders songs, covers and
+  instrumentals and transcribes recordings, with the same style LoRAs, each half at its own strength; the Harmony
+  control, following a structure exactly and expanding a tune to a full song work on it as on ComfyUI. Gemma can run
+  beside it, in Ollama, for lyric drafts and picture descriptions on this PC, and FLUX.2 klein, in stable-diffusion.cpp,
+  for take pictures. The Windows installer asks which engine to install, with lyric drafts and take pictures offered
+  for either; on Docker, `sh scripts/fetch-models.sh --cpp` sets it up, with `--gemma` and `--pictures` for the two
+  add-ons. Training needs ComfyUI: with yue2.cpp the app leaves it out, and stems and lyric hearing run on the CPU.
+  **About** names the engine. [docs/ENGINES.md](docs/ENGINES.md) compares the two and says how to choose and switch.
 
 - **The job card and the player take you to the take.** Click the title of the job running, a take in **Up next**, or
   the title of the take playing in the player, and the library goes to that take in whichever space it is in, clearing a

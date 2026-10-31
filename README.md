@@ -411,7 +411,8 @@ YuE2 runs on one of two engines, chosen when you set up. **ComfyUI** is the defa
 this page. **yue2.cpp**, a smaller native engine, is for graphics cards with less memory: it makes songs,
 covers and instrumentals, and with its add-ons drafts lyrics and draws take pictures on your PC, but it does
 not train LoRAs. [docs/ENGINES.md](docs/ENGINES.md) has a table of what each one
-does, how to choose, and how to switch, with Docker (`sh scripts/fetch-models.sh --cpp`).
+does, how to choose, and how to switch: on the Windows installer's components page, or with Docker
+(`sh scripts/fetch-models.sh --cpp`).
 
 ## Quick start
 

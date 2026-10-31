@@ -114,8 +114,6 @@ take pictures section says where to put it, and which text encoder yue2.cpp need
 
 ## On Windows, with the installer
 
-> **Coming with the next Windows installer.** Until then the Windows install runs ComfyUI.
-
 The installer's components page asks which engine to install, beside the model size and the optional
 parts. Lyric drafts and take pictures are offered for either engine.
 
