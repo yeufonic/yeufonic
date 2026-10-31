@@ -54,7 +54,16 @@ STAGES = {
     "render": ["CheckpointLoaderSimple", "YuE2GenerateMusic", "KSampler", "VAEDecodeAudioTiled", "SaveAudioAdvanced"],
     "plan": ["CheckpointLoaderSimple", "YuE2GenerateABC"],
     "transcribe": ["AudioEncoderLoader", "SheetSage2AudioToABC"],
+    "text": ["CLIPLoader", "TextGenerate"],
 }
+
+# Gemma: ComfyUI runs it in its TextGenerate node.  Beside yue2.cpp it runs in Ollama
+# (compose.cpp.yml's gemma service), which unloads it as soon as it has answered, so it never
+# holds video memory a render needs; the app's queue runs one GPU job at a time either way.
+TEXT_NODE = "TextGenerate"
+# TextGenerate's sampling inputs, as Ollama's options name them.
+OLLAMA_OPTIONS = {"temperature": "temperature", "top_k": "top_k", "top_p": "top_p", "min_p": "min_p",
+                  "repetition_penalty": "repeat_penalty", "seed": "seed"}
 
 # The log lines that say where a job is.  "[Server] Job <id>", "[Server] Plan job <id>" and
 # "[Server] Transcribe job <id>" open a job; the rest are its steps.
@@ -183,6 +192,25 @@ def translate(graph: dict) -> dict:
                 "audio": (audio.get("inputs") or {}).get("audio"),
                 "melody_only": transcribe["inputs"].get("mode") == "melody",
                 "output": _output_node(graph, "PreviewAny") or nid}
+    texts = [(nid, node) for nid, node in graph.items() if node.get("class_type") == TEXT_NODE]
+    if texts:
+        if any((node.get("inputs") or {}).get("audio") for _, node in texts):
+            raise RuntimeError("listening to a recording with Gemma needs the ComfyUI engine")
+        previews = {str((n.get("inputs") or {}).get("source", [None])[0]): nid
+                    for nid, n in graph.items() if n.get("class_type") == "PreviewAny"}
+        asks = []
+        for nid, node in texts:
+            inputs = node.get("inputs") or {}
+            options: dict[str, Any] = {"num_predict": int(inputs.get("max_length") or 400)}
+            if inputs.get("sampling_mode") == "on":
+                for name, ollama_name in OLLAMA_OPTIONS.items():
+                    if f"sampling_mode.{name}" in inputs:
+                        options[ollama_name] = inputs[f"sampling_mode.{name}"]
+            else:
+                options.update({"temperature": 0.0, "top_k": 1})   # greedy, as ComfyUI's "off"
+            asks.append({"prompt": str(inputs.get("prompt") or ""), "options": options,
+                         "output": previews.get(nid, nid)})
+        return {"kind": "text", "asks": asks}
     names = sorted({node.get("class_type", "?") for node in graph.values()})
     raise RuntimeError("the yue2.cpp engine cannot run this job (" + ", ".join(names[:4]) + "): it needs the ComfyUI engine")
 
@@ -241,8 +269,13 @@ class CppEngine(Engine):
     name = NAME
     POLL = 0.75
 
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str, llm_url: str = "", llm_model: str = "") -> None:
         super().__init__(url)
+        # Gemma, when this install has it (compose.cpp.yml's gemma service): Ollama's address and the model.
+        self.llm_url = (llm_url or "").rstrip("/")
+        self.llm_model = llm_model
+        self.llm: httpx.AsyncClient | None = None
+        self.gemma = False
         self.client_id = f"yeufonic-{uuid.uuid4().hex[:8]}"
         self.uploads: dict[str, bytes] = {}
         self.results: dict[str, dict[str, Any]] = {}
@@ -259,6 +292,8 @@ class CppEngine(Engine):
     # ---------- lifecycle ----------
     async def start(self) -> None:
         self.client = httpx.AsyncClient(base_url=self.url, timeout=httpx.Timeout(60.0, connect=4.0))
+        if self.llm_url:
+            self.llm = httpx.AsyncClient(base_url=self.llm_url, timeout=httpx.Timeout(600.0, connect=4.0))
         self._log_task = asyncio.create_task(self._log_loop())
         self._options_task = asyncio.create_task(self._options_loop())
         await self.refresh_status()
@@ -274,6 +309,8 @@ class CppEngine(Engine):
                 task.cancel()
         if self.client:
             await self.client.aclose()
+        if self.llm:
+            await self.llm.aclose()
         shutil.rmtree(self._scratch, ignore_errors=True)
 
     # ---------- status ----------
@@ -296,6 +333,9 @@ class CppEngine(Engine):
             return
         self._contact()
         self.props = props
+        if self.llm and (not self.gemma or time.time() - getattr(self, "_gemma_checked", 0) > 60):
+            self._gemma_checked = time.time()
+            await self.refresh_gemma()
         device = props.get("device") or {}
         total = int(device.get("memory_total") or 0)
         free = int(device.get("memory_free") or 0)
@@ -325,8 +365,29 @@ class CppEngine(Engine):
     def shares_memory(self) -> bool:
         return str((self.props.get("device") or {}).get("name") or "").upper().startswith("MTL")
 
+    async def refresh_gemma(self) -> bool:
+        """Whether Ollama answers and has the model: Gemma's features are offered only then.
+        It may start after the app, or have its model fetched later, so this is asked again."""
+        had = self.gemma
+        if not self.llm:
+            self.gemma = False
+            return False
+        try:
+            r = await self.llm.get("/api/tags", timeout=4.0)
+            r.raise_for_status()
+            names = {m.get("name") for m in r.json().get("models") or []} | {m.get("model") for m in r.json().get("models") or []}
+            self.gemma = self.llm_model in names or f"{self.llm_model}:latest" in names
+        except Exception:  # noqa: BLE001
+            self.gemma = False
+        if self.gemma != had:
+            log.info("Gemma (%s) on this PC: %s", self.llm_model, "ready" if self.gemma else "not available")
+        if self.options_loaded:
+            self.options["lyrics"] = self.gemma
+        return self.gemma
+
     async def refresh_options(self) -> None:
         assert self.client
+        await self.refresh_gemma()
         # A LoRA put into the folder since the start is read once the jobs ahead have run.
         try:
             await self.client.post("/adapters/rescan", timeout=4.0)
@@ -352,7 +413,7 @@ class CppEngine(Engine):
             "peak_guard": True,       # done by the app as the audio comes down (level_to_flac)
             "separate": False,
             "hear": False,
-            "lyrics": False,
+            "lyrics": self.gemma,
             "instrumental": config.INSTRUMENTAL_LORA in loras,
             "realaudio": config.REAL_AUDIO_LORA in loras,
             "trainer": False,
@@ -412,29 +473,11 @@ class CppEngine(Engine):
         status = "error"
         error = None
         try:
-            server_id = await self._send(job)
-            self.server_ids[pid] = server_id
-            while True:
-                await asyncio.sleep(self.POLL)
-                r = await self.client.get("/job", params={"id": server_id}, timeout=10.0)
-                if r.status_code == 404:
-                    raise RuntimeError("the engine lost the job")
-                state = r.json().get("status")
-                self._contact()
-                if state == "running":
-                    continue
-                if state == "cancelled":
-                    error = "cancelled"
-                    break
-                if state == "failed":
-                    error = rec.get("error") or "the engine could not finish the job"
-                    break
-                if state == "done":
-                    res = await self.client.get("/job", params={"id": server_id, "result": "1"}, timeout=120.0)
-                    res.raise_for_status()
-                    outputs = await self._outputs(pid, job, res)
-                    status = "success"
-                    break
+            if job["kind"] == "text":
+                outputs = await self._text(pid, job)
+                status = "success"
+            else:
+                outputs, status, error = await self._server_job(pid, job)
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001
@@ -455,6 +498,47 @@ class CppEngine(Engine):
                        "messages": [] if status == "success" else
                        [["execution_error", {"exception_message": error or "error", "node_type": "yue2.cpp"}]]},
         }
+
+    async def _server_job(self, pid: str, job: dict) -> tuple[dict[str, Any], str, str | None]:
+        """A job on yue2.cpp's server, sent and polled until it ends: (outputs, status, error)."""
+        rec = self.progress[pid]
+        server_id = await self._send(job)
+        self.server_ids[pid] = server_id
+        while True:
+            await asyncio.sleep(self.POLL)
+            r = await self.client.get("/job", params={"id": server_id}, timeout=10.0)
+            if r.status_code == 404:
+                raise RuntimeError("the engine lost the job")
+            state = r.json().get("status")
+            self._contact()
+            if state == "running":
+                continue
+            if state == "cancelled":
+                return {}, "error", "cancelled"
+            if state == "failed":
+                return {}, "error", rec.get("error") or "the engine could not finish the job"
+            if state == "done":
+                res = await self.client.get("/job", params={"id": server_id, "result": "1"}, timeout=120.0)
+                res.raise_for_status()
+                return await self._outputs(pid, job, res), "success", None
+
+    async def _text(self, pid: str, job: dict) -> dict[str, Any]:
+        """Gemma's answer to each prompt, from Ollama, unloaded again as soon as it has answered."""
+        if not self.llm:
+            raise RuntimeError("Gemma is not set up beside the yue2.cpp engine")
+        rec = self.progress[pid]
+        rec.update({"executing": True, "started": time.time(), "stage": "CLIPLoader"})
+        outputs: dict[str, Any] = {}
+        for ask in job["asks"]:
+            body = {"model": self.llm_model, "stream": False, "think": False, "keep_alive": 0,
+                    "messages": [{"role": "user", "content": ask["prompt"]}], "options": ask["options"]}
+            rec["stage"] = "TextGenerate"
+            r = await self.llm.post("/api/chat", json=body)
+            if r.status_code >= 400:
+                raise RuntimeError(f"Gemma could not answer: {r.text[:200]}")
+            text = ((r.json().get("message") or {}).get("content") or "").strip()
+            outputs[str(ask["output"])] = {"text": [text]}
+        return outputs
 
     async def _outputs(self, pid: str, job: dict, res: httpx.Response) -> dict[str, Any]:
         if job["kind"] in ("plan", "transcribe"):
@@ -590,7 +674,7 @@ def cpp_model_label(model: str) -> str:
 
 def make_engine(url: str, kind: str) -> Engine:
     """The client for the engine this install runs."""
-    return CppEngine(url) if kind == KIND else Engine(url)
+    return CppEngine(url, config.GEMMA_URL, config.GEMMA_MODEL) if kind == KIND else Engine(url)
 
 
 def describe(engine: Engine) -> dict[str, Any]:

@@ -572,7 +572,7 @@ function paintOptions() {
   $('lyrics-write').disabled = !canWrite;
   $('lyrics-write').title = canWrite
     ? (WRITE.id ? 'Drafting lyrics in progress\u2026 Click to view status or stop' : 'Draft lyrics from a short description')
-    : (cppEngine() ? 'Set up an external LLM in Settings to draft lyrics: the yue2.cpp engine has no lyric writer.'
+    : (cppEngine() ? 'Gemma is not installed beside the yue2.cpp engine (scripts/fetch-models.sh --cpp --gemma). An external LLM, set up in Settings, can draft lyrics instead.'
       : 'The engine has no lyric writer. Run scripts/fetch-models.sh, then restart the engine.');
   if (canWrite) {
     $('lyrics-write').textContent = WRITE.id ? 'Drafting\u2026' : 'Write lyrics';

@@ -42,9 +42,9 @@ cannot creep back in.
 - **A second engine, yue2.cpp, for graphics cards with less memory (Docker).** `sh scripts/fetch-models.sh --cpp`
   sets an install up with yue2.cpp's server in place of ComfyUI: a native engine with a download of about 5.4 GB that
   holds nothing in video memory between jobs. It writes plans, renders songs, covers and instrumentals and transcribes
-  recordings, with the same style LoRAs, each half at its own strength. Training, Gemma's lyrics, pictures drawn on this
-  PC and the harmony control need ComfyUI: with yue2.cpp the app turns those off and says so, and stems and lyric
-  hearing run on the CPU. **About** names the engine. See *Choosing an engine* in the README.
+  recordings, with the same style LoRAs, each half at its own strength. `--gemma` adds Gemma beside it, in Ollama, for
+  lyric drafts and picture descriptions on this PC. Training, pictures drawn on this PC and the harmony control need
+  ComfyUI: with yue2.cpp the app turns those off and says so, and stems and lyric hearing run on the CPU. **About** names the engine. See *Choosing an engine* in the README.
 
 - **The job card and the player take you to the take.** Click the title of the job running, a take in **Up next**, or
   the title of the take playing in the player, and the library goes to that take in whichever space it is in, clearing a

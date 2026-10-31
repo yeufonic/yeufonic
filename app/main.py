@@ -4851,8 +4851,9 @@ async def write_lyrics(body: LyricsIn) -> dict:
     """Queue a lyric draft.  The page polls GET /api/lyrics/{id} for the words."""
     if not llm.is_external_enabled():
         if ENGINE.options_loaded and not ENGINE.options.get("lyrics"):
-            elsewhere = _needs_comfyui("Writing lyrics on this PC")
-            raise HTTPException(400, elsewhere + " Set up an external LLM in Settings to draft them." if elsewhere else
+            raise HTTPException(400, "Drafting lyrics on this PC needs Gemma beside the yue2.cpp engine "
+                                     "(sh scripts/fetch-models.sh --cpp --gemma), or an external LLM set up in Settings."
+                                if ENGINE.kind != "comfyui" else
                                 f"The engine cannot write lyrics: it needs {config.LYRICS_MODEL} "
                                 "in models/text_encoders. Run scripts/fetch-models.sh.")
     sections = None

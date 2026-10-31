@@ -84,7 +84,7 @@ def test_a_transcription_sends_the_uploaded_recording():
 
 
 def test_a_job_only_comfyui_can_run_is_refused_with_why():
-    graph = {"1": {"class_type": "CLIPLoader", "inputs": {}}, "2": {"class_type": "TextGenerate", "inputs": {}}}
+    graph = {"1": {"class_type": "UNETLoader", "inputs": {}}, "2": {"class_type": "SamplerCustomAdvanced", "inputs": {}}}
     with pytest.raises(RuntimeError, match="ComfyUI engine"):
         translate(graph)
 
@@ -300,3 +300,92 @@ def test_the_log_moves_the_progress_of_the_job_it_is_on():
 def test_the_engine_is_chosen_by_its_kind():
     assert isinstance(engine_cpp.make_engine("http://x", "yue2cpp"), CppEngine)
     assert not isinstance(engine_cpp.make_engine("http://x", "comfyui"), CppEngine)
+
+
+# ------------------------------------------------------------------ Gemma beside it, in Ollama
+from app import artwork  # noqa: E402
+from app.jobs import _gemma_graph, build_lyrics_graph  # noqa: E402
+
+LYRICS_RECORD = {"brief": "a harbour at night", "style": "folk", "structure": "verse-chorus", "seed": 9}
+
+
+def test_a_lyric_draft_becomes_a_chat_with_its_sampling():
+    job = translate(build_lyrics_graph(LYRICS_RECORD))
+    assert job["kind"] == "text" and len(job["asks"]) == 1
+    ask = job["asks"][0]
+    assert "harbour" in ask["prompt"] and ask["output"] == "3"
+    assert ask["options"]["temperature"] == 0.8 and ask["options"]["seed"] == 9
+    assert ask["options"]["repeat_penalty"] == 1.05 and ask["options"]["num_predict"] == 900
+
+
+def test_a_greedy_prompt_stays_greedy():
+    ask = translate(_gemma_graph("Name three colours.", [], 60))["asks"][0]
+    assert ask["options"] == {"num_predict": 60, "temperature": 0.0, "top_k": 1}
+
+
+def test_listening_to_a_recording_needs_comfyui():
+    with pytest.raises(RuntimeError, match="ComfyUI engine"):
+        translate(_gemma_graph("What style is this?", ["clip.wav"], 180))
+
+
+class FakeOllama:
+    def __init__(self, models=("gemma4:e4b-it-qat",)):
+        self.models = list(models)
+        self.asked = []
+
+    def __call__(self, request):
+        if request.url.path == "/api/tags":
+            return httpx.Response(200, json={"models": [{"name": m, "model": m} for m in self.models]})
+        if request.url.path == "/api/chat":
+            body = json.loads(request.content)
+            self.asked.append(body)
+            return httpx.Response(200, json={"message": {"role": "assistant", "content": "  [Verse]\nLights on the water  "}})
+        return httpx.Response(404)
+
+
+def _with_gemma(server, ollama):
+    engine = _engine(server)
+    engine.llm_model = "gemma4:e4b-it-qat"
+    engine.llm = httpx.AsyncClient(base_url="http://gemma", transport=httpx.MockTransport(ollama))
+    return engine
+
+
+def test_gemma_is_offered_only_when_ollama_has_the_model(monkeypatch):
+    monkeypatch.setattr(config, "CHECKPOINT", config.CHECKPOINT)
+    engine = _with_gemma(FakeServer(), FakeOllama(models=()))
+    asyncio.run(engine.refresh_options())
+    assert engine.options["lyrics"] is False
+    engine.llm = httpx.AsyncClient(base_url="http://gemma", transport=httpx.MockTransport(FakeOllama()))
+    asyncio.run(engine.refresh_status())
+    assert engine.options["lyrics"] is True
+    monkeypatch.setattr(artwork, "engine_options", lambda: engine.options)
+    assert artwork.gemma_ready()
+
+
+def test_without_ollama_gemma_is_not_offered(monkeypatch):
+    monkeypatch.setattr(config, "CHECKPOINT", config.CHECKPOINT)
+    engine = _engine(FakeServer())
+    asyncio.run(engine.refresh_options())
+    assert engine.options["lyrics"] is False
+
+
+def test_a_draft_comes_back_as_comfyuis_history_would_have_it():
+    ollama = FakeOllama()
+    engine = _with_gemma(FakeServer(), ollama)
+
+    async def go():
+        pid = await engine.submit(build_lyrics_graph(LYRICS_RECORD))
+        return await _finish(engine, pid)
+    job = asyncio.run(go())
+    assert job["status"]["status_str"] == "success"
+    assert extract_text_output(job, "TextGenerate", "PreviewAny") == "[Verse]\nLights on the water"
+    sent = ollama.asked[0]
+    # Unloaded as soon as it has answered, and not thinking aloud first.
+    assert sent["keep_alive"] == 0 and sent["think"] is False and sent["stream"] is False
+    assert sent["model"] == "gemma4:e4b-it-qat"
+
+
+def test_a_picture_description_goes_to_gemma_too():
+    take = {"id": "t1", "title": "Harbour", "style": "folk", "lyrics": "[verse]\nla"}
+    job = translate(artwork.describe_graph(take, 5))
+    assert job["kind"] == "text" and job["asks"][0]["options"]["seed"] == 5

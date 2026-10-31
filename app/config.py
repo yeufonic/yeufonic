@@ -12,6 +12,10 @@ ENGINE_URL = os.environ.get("ENGINE_URL", "http://127.0.0.1:8188")
 # yue2.cpp's server, which renders, plans and transcribes on smaller GPUs and Macs and
 # leaves training, Gemma and pictures to the ComfyUI engine (compose.cpp.yml sets it).
 ENGINE_KIND = os.environ.get("ENGINE_KIND", "comfyui").strip().lower() or "comfyui"
+# Gemma beside the yue2.cpp engine, which cannot run it: Ollama's address (compose.cpp.yml's gemma
+# service) and the model.  Unset, lyric drafts and picture descriptions on this PC are not offered.
+GEMMA_URL = os.environ.get("GEMMA_URL", "").strip()
+GEMMA_MODEL = os.environ.get("GEMMA_MODEL", "gemma4:e4b-it-qat").strip() or "gemma4:e4b-it-qat"
 
 # The version lives in ./VERSION at the repo root, copied into the image by the
 # Dockerfile.  It is shown in the header so a running container can be identified.

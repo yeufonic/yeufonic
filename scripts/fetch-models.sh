@@ -25,6 +25,9 @@
 #                                        that engine (see compose.cpp.yml).  Training, Gemma and pictures drawn on
 #                                        this PC need the ComfyUI engine and are left out.  YUE2CPP_MODEL picks
 #                                        another size: YuE2-3B-BF16.gguf (7.2 GB), -Q6_K (2.9 GB), -Q5_K_M (2.6 GB).
+#   sh scripts/fetch-models.sh --cpp --gemma   also Gemma 4 E4B for that engine, 6.1 GB, to draft lyrics and
+#                                        describe pictures on this PC (models/ollama/, through Docker, and
+#                                        COMPOSE_PROFILES=gemma in .env).  Without it an external LLM does both.
 #   sh scripts/fetch-models.sh --loras      also 39 style LoRAs by their authors (CC BY-NC 4.0), 3.8 GB, with a
 #                                        description each, into models/loras/. One already there is kept as
 #                                        it is. The README of pshields/yue2-style-loras credits them.
@@ -37,12 +40,14 @@ set -eu
 
 MODEL=bf16
 ENGINE=comfyui
+GEMMA=no
 PICTURES=no
 LORAS=no
 for arg in "$@"; do
   case "$arg" in
     --int8) MODEL=int8 ;;
     --cpp) ENGINE=cpp ;;
+    --gemma) GEMMA=yes ;;
     --pictures) PICTURES=yes ;;
     --loras) LORAS=yes ;;
     -h|--help) sed -n '2,/^set -eu/p' "$0" | sed '$d'; exit 0 ;;
@@ -113,6 +118,30 @@ if [ "$ENGINE" = cpp ]; then
   fi
   if [ -n "${YUE2CPP_MODEL:-}" ] && ! grep -qs '^YUE2CPP_MODEL=' "$ROOT/.env"; then
     echo "YUE2CPP_MODEL=$YUE2CPP_MODEL" >> "$ROOT/.env"
+  fi
+  # Gemma beside it, in Ollama: fetched by Ollama itself, in a container that is gone again afterwards.
+  if [ "$GEMMA" = yes ]; then
+    GEMMA_MODEL="${GEMMA_MODEL:-gemma4:e4b-it-qat}"
+    OLLAMA_IMAGE="$(sed -n 's/^ *image: *\(ollama\/ollama:[^ ]*\).*/\1/p' "$ROOT/compose.cpp.yml" | head -1)"
+    mkdir -p "$ROOT/models/ollama"
+    echo "fetch Gemma ($GEMMA_MODEL) with $OLLAMA_IMAGE"
+    docker rm -f yeufonic-gemma-fetch >/dev/null 2>&1 || true
+    docker run -d --name yeufonic-gemma-fetch --label com.docker.compose.project=yeufonic-fetch \
+      -v "$ROOT/models/ollama:/root/.ollama" "$OLLAMA_IMAGE" >/dev/null
+    sleep 3
+    if ! docker exec yeufonic-gemma-fetch ollama pull "$GEMMA_MODEL"; then
+      docker rm -f yeufonic-gemma-fetch >/dev/null 2>&1 || true
+      echo "error: Gemma could not be fetched; run this again to resume" >&2
+      exit 1
+    fi
+    docker rm -f yeufonic-gemma-fetch >/dev/null 2>&1 || true
+    if ! grep -qs '^COMPOSE_PROFILES=' "$ROOT/.env"; then
+      echo 'COMPOSE_PROFILES=gemma' >> "$ROOT/.env"
+      echo "wrote COMPOSE_PROFILES=gemma to .env: docker compose now runs Gemma beside the engine"
+    fi
+    if [ "$GEMMA_MODEL" != gemma4:e4b-it-qat ] && ! grep -qs '^GEMMA_MODEL=' "$ROOT/.env"; then
+      echo "GEMMA_MODEL=$GEMMA_MODEL" >> "$ROOT/.env"
+    fi
   fi
 elif [ "$MODEL" = int8 ]; then
   fetch "$YUE2/checkpoints/yue2_3b_int8_convrot.safetensors" \

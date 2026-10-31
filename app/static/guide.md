@@ -1455,9 +1455,10 @@ model is installed. The README on GitHub has a section, *Choosing a model size*,
 
 A Docker install can also run the **yue2.cpp** engine instead of ComfyUI, for graphics cards with less
 memory, chosen when it is set up (`sh scripts/fetch-models.sh --cpp`); **About** says which engine is running.
-It makes songs, covers and instrumentals and transcribes recordings, with your style LoRAs. Training,
-lyrics and pictures made on this PC, and Harmony above Familiar, need the ComfyUI engine: with yue2.cpp
-those controls are off and say so, and an external LLM can still draft lyrics and draw pictures. The
+It makes songs, covers and instrumentals and transcribes recordings, with your style LoRAs, and with
+`--gemma` Gemma drafts lyrics and describes pictures beside it. Training, pictures drawn on this PC and
+Harmony above Familiar need the ComfyUI engine: with yue2.cpp those controls are off and say so, and an
+external LLM can still draft lyrics and draw pictures. The
 README's *Choosing an engine* has the whole list.
 
 **Check for a new version** is the one thing here that uses the internet on its own account: every

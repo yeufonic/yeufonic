@@ -1,11 +1,12 @@
 # The yue2.cpp engine in place of ComfyUI: for GPUs with less memory.  It renders, plans and
-# transcribes; training, Gemma (lyrics drafted on this PC) and pictures drawn on this PC need
-# the ComfyUI engine, and the app leaves them out (an external LLM still drafts lyrics and
-# describes or draws pictures).
+# transcribes; training and pictures drawn on this PC need the ComfyUI engine, and the app
+# leaves them out (an external LLM still describes or draws pictures).  Gemma, for lyric drafts
+# and picture descriptions on this PC, runs beside it in Ollama when chosen (the gemma service).
 #
 # Chosen in .env, read by every docker compose command:
 #   COMPOSE_FILE=compose.yml:compose.cpp.yml
-# and its models fetched with scripts/fetch-models.sh --cpp.  Take the line out to go back.
+#   COMPOSE_PROFILES=gemma          (with Gemma)
+# and its models fetched with scripts/fetch-models.sh --cpp [--gemma].  Take the lines out to go back.
 services:
   # Not started: the profile is never asked for.
   engine:
@@ -51,9 +52,36 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Gemma 4 E4B in Ollama: started only with the gemma profile.  It unloads the model as soon as
+  # it has answered (OLLAMA_KEEP_ALIVE=0), so it never holds video memory a render needs.
+  gemma:
+    image: ollama/ollama:0.40.13
+    profiles: ["gemma"]
+    container_name: yeufonic-gemma
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: "0"
+    volumes:
+      - ./models/ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   app:
     depends_on: !override
       - engine-cpp
     environment:
       ENGINE_URL: http://engine-cpp:8087
       ENGINE_KIND: yue2cpp
+      # Asked whether it is there; without the gemma profile it is not, and Gemma's features are off.
+      GEMMA_URL: http://gemma:11434
+      GEMMA_MODEL: "${GEMMA_MODEL:-gemma4:e4b-it-qat}"
