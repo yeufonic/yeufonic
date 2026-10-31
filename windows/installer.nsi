@@ -93,6 +93,7 @@ Var LorasText       ; the same for the style LoRAs
 !insertmacro MUI_PAGE_WELCOME
 !define MUI_LICENSEPAGE_TEXT_TOP "Each part is used under its own terms."
 !insertmacro MUI_PAGE_LICENSE "${STAGE}\terms.txt"
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW WiderComponents
 !insertmacro MUI_PAGE_COMPONENTS
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipWhenUpdating
 !insertmacro MUI_PAGE_DIRECTORY
@@ -156,6 +157,79 @@ FunctionEnd
 
 Function StartNow
   ExecShell "" "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk"
+FunctionEnd
+
+;  A control's place on its page, in the page's own coordinates: x, y, width and height.
+!macro ControlRect PAGE CONTROL
+  System::Call "*(i,i,i,i)p.R0"
+  System::Call "user32::GetWindowRect(p${CONTROL},pR0)"
+  System::Call "user32::MapWindowPoints(p0,p${PAGE},pR0,i2)"
+  System::Call "*$R0(i.R1,i.R2,i.R3,i.R4)"
+  System::Free $R0
+  IntOp $R3 $R3 - $R1
+  IntOp $R4 $R4 - $R2
+!macroend
+!define SWP_KEEP 0x14   ; SWP_NOZORDER | SWP_NOACTIVATE
+
+; The components page leaves a third of its width to the words "Select components to install:", and its
+; description box is too narrow for the longer descriptions, which then need scrolling (and the box empties
+; as soon as the mouse leaves the component).  The label goes; the list and the description share its width,
+; and the space needed sits under the list.
+Function WiderComponents
+  Push $9
+  Push $R0
+  Push $R1
+  Push $R2
+  Push $R3
+  Push $R4
+  Push $R5
+  Push $R6
+  Push $R7
+  Push $R8
+  Push $R9
+  FindWindow $R9 "#32770" "" $HWNDPARENT
+  GetDlgItem $R8 $R9 1022                      ; "Select components to install:"
+  !insertmacro ControlRect $R9 $R8
+  StrCpy $R5 $R1                               ; the left edge
+  ShowWindow $R8 ${SW_HIDE}
+  GetDlgItem $R8 $R9 1023                      ; "Space required"
+  !insertmacro ControlRect $R9 $R8
+  StrCpy $R6 $R4                               ; its height
+  GetDlgItem $R8 $R9 1032                      ; the list
+  !insertmacro ControlRect $R9 $R8
+  IntOp $9 $R1 - $R5                           ; the width set free
+  IntOp $R7 $9 * 2
+  IntOp $R7 $R7 / 5                            ; two fifths of it to the list
+  IntOp $9 $9 - $R7                            ; and the rest to the description
+  IntOp $R3 $R3 + $R7
+  IntOp $R4 $R4 - $R6
+  IntOp $R4 $R4 - 6
+  System::Call "user32::SetWindowPos(p$R8,p0,i$R5,i$R2,i$R3,i$R4,i${SWP_KEEP})"
+  IntOp $R2 $R2 + $R4
+  IntOp $R2 $R2 + 6
+  GetDlgItem $R8 $R9 1023
+  System::Call "user32::SetWindowPos(p$R8,p0,i$R5,i$R2,i$R3,i$R6,i${SWP_KEEP})"
+  GetDlgItem $R8 $R9 1042                      ; the description's frame
+  !insertmacro ControlRect $R9 $R8
+  IntOp $R1 $R1 - $9
+  IntOp $R3 $R3 + $9
+  System::Call "user32::SetWindowPos(p$R8,p0,i$R1,i$R2,i$R3,i$R4,i${SWP_KEEP})"
+  GetDlgItem $R8 $R9 1043                      ; and its text
+  !insertmacro ControlRect $R9 $R8
+  IntOp $R1 $R1 - $9
+  IntOp $R3 $R3 + $9
+  System::Call "user32::SetWindowPos(p$R8,p0,i$R1,i$R2,i$R3,i$R4,i${SWP_KEEP})"
+  Pop $R9
+  Pop $R8
+  Pop $R7
+  Pop $R6
+  Pop $R5
+  Pop $R4
+  Pop $R3
+  Pop $R2
+  Pop $R1
+  Pop $R0
+  Pop $9
 FunctionEnd
 
 ; An update goes where the app already is: a new folder would be a second install.
@@ -321,15 +395,19 @@ Section "-Setup"
 SectionEnd
 
 LangString DESC_Core ${LANG_ENGLISH} "The app, the engine chosen below, and the YuE2 models."
-LangString DESC_Engine ${LANG_ENGLISH} "Which engine runs YuE2. ComfyUI does everything, LoRA training included, and works best with 12 GB of video memory or more. yue2.cpp is smaller and lets go of the graphics card after every job, for cards with less memory; it does not train LoRAs. Run this installer again to switch: your library, settings and LoRAs are kept."
+LangString DESC_Engine ${LANG_ENGLISH} "Which engine runs YuE2. ComfyUI does everything, LoRA training included, best with 12 GB of video memory or more. yue2.cpp is smaller, for cards with less memory, and does not train LoRAs. Run this installer again to switch: your library, settings and LoRAs are kept."
 LangString DESC_Comfy ${LANG_ENGLISH} "ComfyUI: everything Yeufonic does, LoRA training included. Works best with 12 GB of video memory or more."
 LangString DESC_Cpp ${LANG_ENGLISH} "yue2.cpp: a smaller native engine for graphics cards with less memory. Songs, covers, instrumentals, Harmony and transcription, with your style LoRAs; no LoRA training. Lyric drafts and pictures below run beside it. Download size: about 6 GB."
 LangString DESC_Full ${LANG_ENGLISH} "The full-quality YuE2 model (BF16), 7.8 GB. Recommended. It needs a graphics card with plenty of memory to run at full speed, and it is the one that LoRA training uses."
-LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for graphics cards with little memory (6 GB or less). It is the choice to try if the full one is too slow on this PC, and it sounded fine in our listening. LoRA training is supported on both sizes. Only one size is installed: run this installer again to change."
+LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for graphics cards with 6 GB of memory or less, or if the full one is too slow on this PC. LoRA training works on both sizes. Only one size is installed: run this installer again to change."
 LangString DESC_Pictures ${LANG_ENGLISH} "FLUX.2 klein, which draws a picture of each take on this PC, shown behind its card. Leave it out if your external LLM can draw them, or if you do not want pictures. Download size: 8.2 GB."
 LangString DESC_Loras ${LANG_ENGLISH} "39 style LoRAs by their authors: chanson, canzone, Bulgarian voices, qawwali, militant reggae, J-pop, dream pop, old school hip-hop and 16 concept sliders, each with its trigger word and suggested strengths. CC BY-NC 4.0, credited in the guide. Download size: 3.8 GB."
 LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analysis on this PC. Leave it out if you intend to configure an external LLM. This will save an 8 GB download."
-!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+; Modern UI's own description function, except that moving off the list keeps the last description rather than
+; emptying the box, so a long one can still be read and scrolled.
+Function .onMouseOverSection
+  ${If} $0 == -1
+    ; nothing: the description shown last stays
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} $(DESC_Core)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecEngineGroup} $(DESC_Engine)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecComfy} $(DESC_Comfy)
@@ -340,7 +418,8 @@ LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analy
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLyrics} $LyricsText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPictures} $PicturesText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLoras} $LorasText
-!insertmacro MUI_FUNCTION_DESCRIPTION_END
+  ${EndIf}
+FunctionEnd
 
 ; The two sizes of the model are radio buttons: ticking one unticks the other, and one is always ticked.
 ; Written out here rather than with the radio-button macros, which take a variable holding the previous
