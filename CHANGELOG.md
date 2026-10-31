@@ -43,8 +43,9 @@ cannot creep back in.
   sets an install up with yue2.cpp's server in place of ComfyUI: a native engine with a download of about 5.4 GB that
   holds nothing in video memory between jobs. It writes plans, renders songs, covers and instrumentals and transcribes
   recordings, with the same style LoRAs, each half at its own strength. `--gemma` adds Gemma beside it, in Ollama, for
-  lyric drafts and picture descriptions on this PC. Training, pictures drawn on this PC and the harmony control need
-  ComfyUI: with yue2.cpp the app turns those off and says so, and stems and lyric hearing run on the CPU. **About** names the engine. See *Choosing an engine* in the README.
+  lyric drafts and picture descriptions on this PC, and `--pictures` FLUX.2 klein, in stable-diffusion.cpp, for take
+  pictures. Training and the harmony control need ComfyUI: with yue2.cpp the app turns those off and says so, and stems
+  and lyric hearing run on the CPU. **About** names the engine. See *Choosing an engine* in the README.
 
 - **The job card and the player take you to the take.** Click the title of the job running, a take in **Up next**, or
   the title of the take playing in the player, and the library goes to that take in whichever space it is in, clearing a

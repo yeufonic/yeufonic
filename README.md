@@ -421,14 +421,16 @@ What it does not do, the app leaves out, and says it needs the ComfyUI engine:
 | Harmony above Familiar, Follow this structure exactly, Expand to full song | yes | no: plans come from YuE2's own planner |
 | Corpora and LoRA training | yes | no |
 | Lyrics drafted and pictures described on this PC (Gemma) | yes | with `--gemma` (below), which runs Gemma in Ollama beside it; otherwise an external LLM, set up in Settings |
-| Pictures drawn on this PC (FLUX.2 klein) | yes | no: an external image model draws them |
+| Pictures drawn on this PC (FLUX.2 klein) | yes | with `--pictures` (below), in stable-diffusion.cpp beside it; otherwise an external image model |
 | Stems and lyric hearing | on the GPU | on the CPU |
 
 With Docker, `sh scripts/fetch-models.sh --cpp` fetches its models into `models/yue2cpp` and writes
 `COMPOSE_FILE=compose.yml:compose.cpp.yml` to `.env`, so `docker compose up -d --build` builds and runs
 yue2.cpp in place of ComfyUI. `sh scripts/fetch-models.sh --cpp --gemma` also fetches Gemma 4 E4B (6.1 GB)
 and writes `COMPOSE_PROFILES=gemma`, so Gemma runs beside it in Ollama, which lets go of the GPU as soon as
-it has answered. Its YuE2 is the Q8 copy, near lossless; `YUE2CPP_MODEL=YuE2-3B-BF16.gguf`
+it has answered. `--cpp --pictures` fetches FLUX.2 klein 4B (the same model and VAE as ComfyUI's, with its text
+encoder as GGUF, 8.7 GB) and adds `pictures` to `COMPOSE_PROFILES`, so stable-diffusion.cpp's server draws take
+pictures beside it, loading klein for each picture and letting go of it after. Both can be chosen together. Its YuE2 is the Q8 copy, near lossless; `YUE2CPP_MODEL=YuE2-3B-BF16.gguf`
 in `.env` (before fetching) picks the full-precision one, or `-Q6_K` / `-Q5_K_M` a smaller one. To go back,
 take the `COMPOSE_FILE` and `COMPOSE_PROFILES` lines out of `.env`, run `sh scripts/fetch-models.sh` and `docker compose up -d --build`.
 **About** says which engine is running. The Windows installer and the Mac app use ComfyUI.
@@ -814,6 +816,7 @@ built from, and the ports itself: change those in its `settings.ini` instead (se
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1,::1` | host names the page may be reached by. Add a LAN name or address when you publish the port; `*` turns the check off |
 | `ENGINE_URL` | `http://127.0.0.1:8188` | where the engine answers. Change it when the engine runs on another machine |
 | `ENGINE_KIND` | `comfyui` | which engine that is: `comfyui`, or `yue2cpp` for yue2.cpp's server (`compose.cpp.yml` sets it). See Choosing an engine |
+| `PICTURES_URL` | unset | with yue2.cpp, where stable-diffusion.cpp's server answers (`compose.cpp.yml` sets it). Unset, pictures are not drawn on this PC |
 | `GEMMA_URL`, `GEMMA_MODEL` | unset, `gemma4:e4b-it-qat` | with yue2.cpp, where Ollama answers with Gemma, and which model (`compose.cpp.yml` sets the address). Unset, Gemma's features are off |
 | `ENGINE_OUTPUT_DIR` | unset | the engine's output folder, mounted into the app. Renders are removed from it once the app has its copy |
 | `MAX_UPLOAD_MB` | `2048` | the largest recording you can upload, in megabytes. The engine has its own ceiling, `ENGINE_MAX_UPLOAD_MB` on the engine service, set to the same figure: raise both together |

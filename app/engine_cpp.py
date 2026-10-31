@@ -14,6 +14,7 @@ progress only in its log, so the log stream is read for the lines of the job it 
 from __future__ import annotations
 
 import asyncio
+import base64
 import logging
 import math
 import re
@@ -55,7 +56,18 @@ STAGES = {
     "plan": ["CheckpointLoaderSimple", "YuE2GenerateABC"],
     "transcribe": ["AudioEncoderLoader", "SheetSage2AudioToABC"],
     "text": ["CLIPLoader", "TextGenerate"],
+    "picture": ["UNETLoader", "SamplerCustomAdvanced", "SaveImage"],
 }
+
+# Pictures: ComfyUI draws FLUX.2 klein from the graph artwork.picture_graph builds.  Beside yue2.cpp,
+# stable-diffusion.cpp's server (compose.cpp.yml's pictures service) draws it from the same model and VAE
+# files, loading them for each picture and letting go of them after it, as Ollama does Gemma.  Its loader
+# cannot read the text encoders ComfyUI is given (their 4-bit block scales), so it reads Qwen 3 as GGUF.
+PICTURE_ENCODERS = {
+    "4b": ("Qwen3-4B-Q8_0.gguf", "Qwen3-4B-Q6_K.gguf", "Qwen3-4B-Q4_K_M.gguf", "qwen_3_4b.safetensors"),
+    "9b": ("Qwen3-8B-Q8_0.gguf", "Qwen3-8B-Q6_K.gguf", "Qwen3-8B-Q4_K_M.gguf", "qwen_3_8b.safetensors"),
+}
+PICTURE_RECIPES = {"4b": "flux2-klein-4b", "9b": "flux2-klein-9b"}
 
 # Gemma: ComfyUI runs it in its TextGenerate node.  Beside yue2.cpp it runs in Ollama
 # (compose.cpp.yml's gemma service), which unloads it as soon as it has answered, so it never
@@ -185,6 +197,30 @@ def translate(graph: dict) -> dict:
         }
         return {"kind": "plan", "path": "/plan", "body": body,
                 "output": _output_node(graph, "PreviewAny") or nid}
+    _, unet = _find(graph, "UNETLoader")
+    save_id, _ = _find(graph, "SaveImage")
+    if unet and save_id:
+        def first(class_type: str) -> dict:
+            return (_find(graph, class_type)[1] or {}).get("inputs") or {}
+        model = str(unet["inputs"].get("unet_name") or "")
+        latent = first("EmptyFlux2LatentImage")
+        body = {
+            "prompt": str(first("CLIPTextEncode").get("text") or ""),
+            "negative_prompt": "",
+            "width": int(latent.get("width") or 1024),
+            "height": int(latent.get("height") or 1024),
+            "seed": int(first("RandomNoise").get("noise_seed") or 0),
+            "batch_count": 1,
+            "output_format": "png",
+            "sample_params": {"sample_method": str(first("KSamplerSelect").get("sampler_name") or "euler"),
+                              "sample_steps": int(first("Flux2Scheduler").get("steps") or 4),
+                              "guidance": {"txt_cfg": float(first("CFGGuider").get("cfg") or 1.0)}},
+        }
+        return {"kind": "picture", "body": body, "output": save_id,
+                "recipe": PICTURE_RECIPES["9b" if "9b" in model.lower() else "4b"],
+                "files": {"diffusion_model": f"diffusion_models/{model}",
+                          "llm": f"text_encoders/{first('CLIPLoader').get('clip_name') or ''}",
+                          "vae": f"vae/{first('VAELoader').get('vae_name') or config.PICTURE_VAE}"}}
     nid, transcribe = _find(graph, TRANSCRIBE_NODE)
     if transcribe:
         audio = _input(graph, transcribe["inputs"].get("audio")) or {}
@@ -269,8 +305,13 @@ class CppEngine(Engine):
     name = NAME
     POLL = 0.75
 
-    def __init__(self, url: str, llm_url: str = "", llm_model: str = "") -> None:
+    def __init__(self, url: str, llm_url: str = "", llm_model: str = "", pictures_url: str = "") -> None:
         super().__init__(url)
+        # FLUX.2 klein, when this install has it (the pictures service): the server's address, and the
+        # sizes whose files it can see, as the picture code asks for them ({"4b": [model, encoder]}).
+        self.pictures_url = (pictures_url or "").rstrip("/")
+        self.pictures: httpx.AsyncClient | None = None
+        self.klein: dict[str, list[str]] = {}
         # Gemma, when this install has it (compose.cpp.yml's gemma service): Ollama's address and the model.
         self.llm_url = (llm_url or "").rstrip("/")
         self.llm_model = llm_model
@@ -294,6 +335,8 @@ class CppEngine(Engine):
         self.client = httpx.AsyncClient(base_url=self.url, timeout=httpx.Timeout(60.0, connect=4.0))
         if self.llm_url:
             self.llm = httpx.AsyncClient(base_url=self.llm_url, timeout=httpx.Timeout(600.0, connect=4.0))
+        if self.pictures_url:
+            self.pictures = httpx.AsyncClient(base_url=self.pictures_url, timeout=httpx.Timeout(600.0, connect=4.0))
         self._log_task = asyncio.create_task(self._log_loop())
         self._options_task = asyncio.create_task(self._options_loop())
         await self.refresh_status()
@@ -311,6 +354,8 @@ class CppEngine(Engine):
             await self.client.aclose()
         if self.llm:
             await self.llm.aclose()
+        if self.pictures:
+            await self.pictures.aclose()
         shutil.rmtree(self._scratch, ignore_errors=True)
 
     # ---------- status ----------
@@ -336,6 +381,9 @@ class CppEngine(Engine):
         if self.llm and (not self.gemma or time.time() - getattr(self, "_gemma_checked", 0) > 60):
             self._gemma_checked = time.time()
             await self.refresh_gemma()
+        if self.pictures and (not self.klein or time.time() - getattr(self, "_pictures_checked", 0) > 60):
+            self._pictures_checked = time.time()
+            await self.refresh_pictures()
         device = props.get("device") or {}
         total = int(device.get("memory_total") or 0)
         free = int(device.get("memory_free") or 0)
@@ -385,9 +433,36 @@ class CppEngine(Engine):
             self.options["lyrics"] = self.gemma
         return self.gemma
 
+    async def refresh_pictures(self) -> bool:
+        """Which sizes of klein the picture server can draw: its model, an encoder it can read and the VAE
+        all in the models folder.  Asked again now and then, as Gemma is."""
+        had = dict(self.klein)
+        klein: dict[str, list[str]] = {}
+        if self.pictures:
+            try:
+                r = await self.pictures.get("/sdcpp/v1/model-files", timeout=6.0)
+                r.raise_for_status()
+                files = {f.get("id") for f in r.json().get("files") or []}
+                if f"vae/{config.PICTURE_VAE}" in files:
+                    for size, pairs in (("4b", config.PICTURE_PAIRS), ("9b", config.PICTURE_PAIRS_9B)):
+                        model = next((m for m, _ in pairs if f"diffusion_models/{m}" in files), None)
+                        encoder = next((e for e in PICTURE_ENCODERS[size] if f"text_encoders/{e}" in files), None)
+                        if model and encoder:
+                            klein[size] = [model, encoder]
+            except Exception:  # noqa: BLE001
+                klein = {}
+        self.klein = klein
+        if klein != had:
+            log.info("FLUX.2 klein on this PC: %s", ", ".join(sorted(klein)) or "not available")
+        if self.options_loaded:
+            self.options["pictures"] = bool(klein)
+            self.options["klein"] = dict(klein)
+        return bool(klein)
+
     async def refresh_options(self) -> None:
         assert self.client
         await self.refresh_gemma()
+        await self.refresh_pictures()
         # A LoRA put into the folder since the start is read once the jobs ahead have run.
         try:
             await self.client.post("/adapters/rescan", timeout=4.0)
@@ -417,8 +492,8 @@ class CppEngine(Engine):
             "instrumental": config.INSTRUMENTAL_LORA in loras,
             "realaudio": config.REAL_AUDIO_LORA in loras,
             "trainer": False,
-            "pictures": False,
-            "klein": {},
+            "pictures": bool(self.klein),
+            "klein": dict(self.klein),
             "loras": loras,
         }
         self.compat = {"ok": True, "missing": [], "notes": []}
@@ -475,6 +550,9 @@ class CppEngine(Engine):
         try:
             if job["kind"] == "text":
                 outputs = await self._text(pid, job)
+                status = "success"
+            elif job["kind"] == "picture":
+                outputs = await self._picture(pid, job)
                 status = "success"
             else:
                 outputs, status, error = await self._server_job(pid, job)
@@ -540,6 +618,48 @@ class CppEngine(Engine):
             outputs[str(ask["output"])] = {"text": [text]}
         return outputs
 
+    async def _picture(self, pid: str, job: dict) -> dict[str, Any]:
+        """klein's picture from the picture server: its files loaded, the picture drawn, and the files let go
+        of again whatever happened, so the card is free for the next song."""
+        if not self.pictures:
+            raise RuntimeError("pictures are not set up beside the yue2.cpp engine")
+        rec = self.progress[pid]
+        rec.update({"executing": True, "started": time.time(), "stage": "UNETLoader"})
+        try:
+            r = await self.pictures.post("/sdcpp/v1/models/load", json={"recipe": job["recipe"], "models": job["files"]})
+            if r.status_code >= 400:
+                raise RuntimeError(f"the picture model did not load: {r.text[:200]}")
+            r = await self.pictures.post("/sdcpp/v1/img_gen", json=job["body"])
+            if r.status_code >= 400:
+                raise RuntimeError(f"the picture was refused: {r.text[:200]}")
+            job_id = r.json()["id"]
+            self.server_ids[pid] = "picture:" + job_id
+            rec["stage"] = "SamplerCustomAdvanced"
+            while True:
+                await asyncio.sleep(self.POLL)
+                state = (await self.pictures.get(f"/sdcpp/v1/jobs/{job_id}", timeout=10.0)).json()
+                preview = state.get("preview") or {}
+                if preview.get("total_steps"):
+                    rec.update({"value": preview.get("step"), "max": preview["total_steps"],
+                                "frac": float(preview.get("step") or 0) / float(preview["total_steps"])})
+                status = state.get("status")
+                if status == "completed":
+                    images = ((state.get("result") or {}).get("images") or [])
+                    if not images:
+                        raise RuntimeError("the picture server drew nothing")
+                    path = self._scratch / f"{pid}.png"
+                    path.write_bytes(base64.b64decode(images[0]["b64_json"]))
+                    self.files[path.name] = path
+                    rec["stage"] = "SaveImage"
+                    return {str(job["output"]): {"images": [{"filename": path.name, "subfolder": "", "type": KIND}]}}
+                if status in ("failed", "cancelled"):
+                    raise RuntimeError(str(((state.get("error") or {}).get("message")) or status))
+        finally:
+            try:
+                await self.pictures.post("/sdcpp/v1/models/unload", timeout=30.0)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("the picture server did not let go of its model: %s", exc)
+
     async def _outputs(self, pid: str, job: dict, res: httpx.Response) -> dict[str, Any]:
         if job["kind"] in ("plan", "transcribe"):
             abc = (res.json() or {}).get("abc") or ""
@@ -567,6 +687,12 @@ class CppEngine(Engine):
 
     async def cancel(self, prompt_id: str) -> None:
         server_id = self.server_ids.get(prompt_id)
+        if server_id and server_id.startswith("picture:") and self.pictures:
+            try:
+                await self.pictures.post(f"/sdcpp/v1/jobs/{server_id.split(':', 1)[1]}/cancel", timeout=4.0)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("could not cancel the picture %s: %s", prompt_id, exc)
+            return
         if server_id and self.client:
             try:
                 await self.client.post("/job", params={"id": server_id, "cancel": "1"}, timeout=4.0)
@@ -588,6 +714,10 @@ class CppEngine(Engine):
         src = self.files.pop(item.get("filename") or "", None)
         if not src or not src.is_file():
             raise RuntimeError("the render is no longer held for the app")
+        if src.suffix == ".png":                 # a picture: kept as it was drawn
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(src), str(dest))
+            return dest
         pid = Path(item["filename"]).stem
         ceiling = float((self.progress.get(pid) or {}).get("ceiling_db", config.PEAK_CEILING_DB))
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -674,7 +804,7 @@ def cpp_model_label(model: str) -> str:
 
 def make_engine(url: str, kind: str) -> Engine:
     """The client for the engine this install runs."""
-    return CppEngine(url, config.GEMMA_URL, config.GEMMA_MODEL) if kind == KIND else Engine(url)
+    return CppEngine(url, config.GEMMA_URL, config.GEMMA_MODEL, config.PICTURES_URL) if kind == KIND else Engine(url)
 
 
 def describe(engine: Engine) -> dict[str, Any]:

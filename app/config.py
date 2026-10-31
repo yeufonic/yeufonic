@@ -16,6 +16,9 @@ ENGINE_KIND = os.environ.get("ENGINE_KIND", "comfyui").strip().lower() or "comfy
 # service) and the model.  Unset, lyric drafts and picture descriptions on this PC are not offered.
 GEMMA_URL = os.environ.get("GEMMA_URL", "").strip()
 GEMMA_MODEL = os.environ.get("GEMMA_MODEL", "gemma4:e4b-it-qat").strip() or "gemma4:e4b-it-qat"
+# Pictures drawn beside the yue2.cpp engine: stable-diffusion.cpp's server (compose.cpp.yml's pictures
+# service).  Unset, FLUX.2 klein is not offered with that engine.
+PICTURES_URL = os.environ.get("PICTURES_URL", "").strip()
 
 # The version lives in ./VERSION at the repo root, copied into the image by the
 # Dockerfile.  It is shown in the header so a running container can be identified.

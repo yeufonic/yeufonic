@@ -220,8 +220,9 @@ yue2.cpp instead: a render to `POST /synth`, a plan to `POST /plan`, a transcrip
 `POST /transcribe` with the recording, and each `LoraLoader` on the text side or the sampler's side as
 an adapter with that half's strength (`scale_ar`, `scale_nar`). It polls `GET /job`, reads progress from
 the server's log stream, and hands the result back shaped like ComfyUI's history, so the job code does
-not know which engine it spoke to. Graphs that only ComfyUI can run (training, Gemma, FLUX.2 klein,
-the GPU's stems and hearing) are refused, and the engine's options say so beforehand, which is how the
+not know which engine it spoke to. Gemma's text graphs go to Ollama (`/api/chat`) and FLUX.2 klein's to
+stable-diffusion.cpp's server (`/sdcpp/v1/models/load`, `img_gen`, `unload`), each when that service is there.
+Graphs that only ComfyUI can run (training, Gemma listening to audio, the GPU's stems and hearing) are refused, and the engine's options say so beforehand, which is how the
 page knows to turn those controls off. The patches in `engine-cpp/patches` add what the server lacked:
 plan-only jobs, per-half adapter strengths, LoRAs that also train the timestep embedding, a rescan of
 the adapter folder, and the device's memory in `/props`.

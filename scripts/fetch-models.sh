@@ -28,6 +28,9 @@
 #   sh scripts/fetch-models.sh --cpp --gemma   also Gemma 4 E4B for that engine, 6.1 GB, to draft lyrics and
 #                                        describe pictures on this PC (models/ollama/, through Docker, and
 #                                        COMPOSE_PROFILES=gemma in .env).  Without it an external LLM does both.
+#   sh scripts/fetch-models.sh --cpp --pictures   FLUX.2 klein 4B for that engine, 8.7 GB: the model and VAE
+#                                        --pictures fetches for ComfyUI, with Qwen 3 4B as GGUF, which its
+#                                        picture server reads (COMPOSE_PROFILES=pictures in .env).
 #   sh scripts/fetch-models.sh --loras      also 39 style LoRAs by their authors (CC BY-NC 4.0), 3.8 GB, with a
 #                                        description each, into models/loras/. One already there is kept as
 #                                        it is. The README of pshields/yue2-style-loras credits them.
@@ -119,6 +122,18 @@ if [ "$ENGINE" = cpp ]; then
   if [ -n "${YUE2CPP_MODEL:-}" ] && ! grep -qs '^YUE2CPP_MODEL=' "$ROOT/.env"; then
     echo "YUE2CPP_MODEL=$YUE2CPP_MODEL" >> "$ROOT/.env"
   fi
+  # The profiles of the services beside it, added to any already chosen.
+  add_profile() {
+    if grep -qs '^COMPOSE_PROFILES=' "$ROOT/.env"; then
+      if ! grep -qs "^COMPOSE_PROFILES=.*\b$1\b" "$ROOT/.env"; then
+        sed -i "s/^COMPOSE_PROFILES=\(.*\)/COMPOSE_PROFILES=\1,$1/" "$ROOT/.env"
+        echo "added $1 to COMPOSE_PROFILES in .env"
+      fi
+    else
+      echo "COMPOSE_PROFILES=$1" >> "$ROOT/.env"
+      echo "wrote COMPOSE_PROFILES=$1 to .env"
+    fi
+  }
   # Gemma beside it, in Ollama: fetched by Ollama itself, in a container that is gone again afterwards.
   if [ "$GEMMA" = yes ]; then
     GEMMA_MODEL="${GEMMA_MODEL:-gemma4:e4b-it-qat}"
@@ -135,10 +150,7 @@ if [ "$ENGINE" = cpp ]; then
       exit 1
     fi
     docker rm -f yeufonic-gemma-fetch >/dev/null 2>&1 || true
-    if ! grep -qs '^COMPOSE_PROFILES=' "$ROOT/.env"; then
-      echo 'COMPOSE_PROFILES=gemma' >> "$ROOT/.env"
-      echo "wrote COMPOSE_PROFILES=gemma to .env: docker compose now runs Gemma beside the engine"
-    fi
+    add_profile gemma
     if [ "$GEMMA_MODEL" != gemma4:e4b-it-qat ] && ! grep -qs '^GEMMA_MODEL=' "$ROOT/.env"; then
       echo "GEMMA_MODEL=$GEMMA_MODEL" >> "$ROOT/.env"
     fi
@@ -185,7 +197,15 @@ fi
 
 # FLUX.2 klein 4B for take pictures drawn here, with its text encoder and VAE (all Apache 2.0): only when asked for.
 if [ "$PICTURES" = yes ] && [ "$ENGINE" = cpp ]; then
-  echo "skip  FLUX.2 klein: pictures drawn on this PC need the ComfyUI engine (an external image model still draws them)" >&2
+  # The same model and VAE as ComfyUI's, and Qwen 3 4B as GGUF: the picture server cannot read ComfyUI's encoder.
+  mkdir -p "$ROOT/models/diffusion_models" "$ROOT/models/vae" "$ROOT/models/text_encoders"
+  KLEIN=https://huggingface.co/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files
+  fetch "https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors" \
+        "$ROOT/models/diffusion_models/flux-2-klein-4b-fp8.safetensors"
+  fetch "$KLEIN/vae/flux2-vae.safetensors" "$ROOT/models/vae/flux2-vae.safetensors"
+  fetch "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q8_0.gguf" \
+        "$ROOT/models/text_encoders/Qwen3-4B-Q8_0.gguf"
+  add_profile pictures
 elif [ "$PICTURES" = yes ]; then
   mkdir -p "$ROOT/models/diffusion_models" "$ROOT/models/vae"
   KLEIN=https://huggingface.co/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files

@@ -397,3 +397,106 @@ def test_the_page_sends_familiar_when_the_engine_has_no_harmony_control():
     js = (Path(__file__).resolve().parents[1] / "app" / "static" / "app.js").read_text(encoding="utf-8")
     helper = js[js.index("function harmonyStep() {"):js.index("function paintHarmony() {")]
     assert "harmony_available === false" in helper and "return 0;" in helper
+
+
+# ------------------------------------------------------------------ FLUX.2 klein beside it
+import base64  # noqa: E402
+
+PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
+
+
+class FakePictures:
+    def __init__(self, files=("diffusion_models/flux-2-klein-4b-fp8.safetensors", "text_encoders/Qwen3-4B-Q8_0.gguf",
+                              "vae/flux2-vae.safetensors")):
+        self.files = list(files)
+        self.calls = []
+
+    def __call__(self, request):
+        path = request.url.path
+        self.calls.append((path, json.loads(request.content) if request.content else None))
+        if path == "/sdcpp/v1/model-files":
+            return httpx.Response(200, json={"files": [{"id": f} for f in self.files]})
+        if path in ("/sdcpp/v1/models/load", "/sdcpp/v1/models/unload"):
+            return httpx.Response(200, json={"state": "ready"})
+        if path == "/sdcpp/v1/img_gen":
+            return httpx.Response(202, json={"id": "job_1", "status": "queued"})
+        if path == "/sdcpp/v1/jobs/job_1":
+            return httpx.Response(200, json={"status": "completed",
+                                             "result": {"images": [{"index": 0, "b64_json": base64.b64encode(PNG).decode()}]}})
+        return httpx.Response(404)
+
+
+def _with_pictures(server, pictures):
+    engine = _engine(server)
+    engine.pictures = httpx.AsyncClient(base_url="http://pictures", transport=httpx.MockTransport(pictures))
+    return engine
+
+
+def test_a_klein_picture_becomes_a_picture_request(monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"klein": {"4b": ["flux-2-klein-4b-fp8.safetensors", "Qwen3-4B-Q8_0.gguf"]}})
+    job = translate(artwork.picture_graph("a paper crown on a rooftop", 77, "yeufonic/picture-t1"))
+    assert job["kind"] == "picture" and job["recipe"] == "flux2-klein-4b"
+    assert job["files"] == {"diffusion_model": "diffusion_models/flux-2-klein-4b-fp8.safetensors",
+                            "llm": "text_encoders/Qwen3-4B-Q8_0.gguf", "vae": "vae/flux2-vae.safetensors"}
+    body = job["body"]
+    assert "paper crown" in body["prompt"] and body["seed"] == 77 and (body["width"], body["height"]) == (1024, 1024)
+    assert body["sample_params"]["sample_steps"] == artwork.LOCAL_STEPS and body["sample_params"]["sample_method"] == "euler"
+    assert body["sample_params"]["guidance"]["txt_cfg"] == 1.0
+
+
+def test_the_9b_has_its_own_recipe(monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"klein": {"9b": ["flux-2-klein-9b-fp8.safetensors", "Qwen3-8B-Q8_0.gguf"]}})
+    monkeypatch.setattr(artwork, "get_setting", lambda key, default=None: "9b" if key == "art.klein" else default)
+    assert translate(artwork.picture_graph("x", 1, "p"))["recipe"] == "flux2-klein-9b"
+
+
+def test_klein_is_offered_only_with_a_model_an_encoder_it_reads_and_the_vae(monkeypatch):
+    monkeypatch.setattr(config, "CHECKPOINT", config.CHECKPOINT)
+    engine = _with_pictures(FakeServer(), FakePictures(files=("diffusion_models/flux-2-klein-4b-fp8.safetensors",
+                                                              "text_encoders/qwen_3_4b_fp4_flux2.safetensors",
+                                                              "vae/flux2-vae.safetensors")))
+    asyncio.run(engine.refresh_options())
+    assert engine.options["pictures"] is False       # ComfyUI's encoder alone: the server cannot read it
+    engine.pictures = httpx.AsyncClient(base_url="http://pictures", transport=httpx.MockTransport(FakePictures()))
+    asyncio.run(engine.refresh_status())
+    assert engine.options["pictures"] is True
+    assert engine.options["klein"] == {"4b": ["flux-2-klein-4b-fp8.safetensors", "Qwen3-4B-Q8_0.gguf"]}
+
+
+def test_a_picture_is_drawn_then_its_model_let_go(tmp_path, monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"klein": {"4b": ["flux-2-klein-4b-fp8.safetensors", "Qwen3-4B-Q8_0.gguf"]}})
+    pictures = FakePictures()
+    engine = _with_pictures(FakeServer(), pictures)
+    dest = tmp_path / "picture.png"
+
+    async def go():
+        pid = await engine.submit(artwork.picture_graph("a lighthouse", 5, "yeufonic/picture-t1"))
+        job = await _finish(engine, pid)
+        item = next(out["images"][0] for out in job["outputs"].values() if out.get("images"))
+        await engine.download(item, dest)
+        return job
+    job = asyncio.run(go())
+    assert job["status"]["status_str"] == "success"
+    assert dest.read_bytes() == PNG
+    order = [path for path, _ in pictures.calls]
+    assert order[0] == "/sdcpp/v1/models/load" and order[1] == "/sdcpp/v1/img_gen" and order[-1] == "/sdcpp/v1/models/unload"
+
+
+def test_a_failed_picture_still_lets_go_of_its_model(monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"klein": {"4b": ["flux-2-klein-4b-fp8.safetensors", "Qwen3-4B-Q8_0.gguf"]}})
+
+    class Refusing(FakePictures):
+        def __call__(self, request):
+            if request.url.path == "/sdcpp/v1/img_gen":
+                self.calls.append((request.url.path, None))
+                return httpx.Response(400, json={"error": "too big"})
+            return super().__call__(request)
+    pictures = Refusing()
+    engine = _with_pictures(FakeServer(), pictures)
+
+    async def go():
+        pid = await engine.submit(artwork.picture_graph("x", 5, "p"))
+        return await _finish(engine, pid)
+    job = asyncio.run(go())
+    assert job["status"]["status_str"] == "error" and "refused" in json.dumps(job["status"]["messages"])
+    assert pictures.calls[-1][0] == "/sdcpp/v1/models/unload"

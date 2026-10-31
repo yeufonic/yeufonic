@@ -1,12 +1,12 @@
 # The yue2.cpp engine in place of ComfyUI: for GPUs with less memory.  It renders, plans and
-# transcribes; training and pictures drawn on this PC need the ComfyUI engine, and the app
-# leaves them out (an external LLM still describes or draws pictures).  Gemma, for lyric drafts
-# and picture descriptions on this PC, runs beside it in Ollama when chosen (the gemma service).
+# transcribes; training needs the ComfyUI engine, and the app leaves it out.  Gemma, for lyric
+# drafts and picture descriptions on this PC, runs beside it in Ollama when chosen (the gemma
+# service), and FLUX.2 klein, for take pictures, in stable-diffusion.cpp's server (pictures).
 #
 # Chosen in .env, read by every docker compose command:
 #   COMPOSE_FILE=compose.yml:compose.cpp.yml
-#   COMPOSE_PROFILES=gemma          (with Gemma)
-# and its models fetched with scripts/fetch-models.sh --cpp [--gemma].  Take the lines out to go back.
+#   COMPOSE_PROFILES=gemma,pictures     (with Gemma, with pictures drawn here: either or both)
+# and its models fetched with scripts/fetch-models.sh --cpp [--gemma] [--pictures].  Take the lines out to go back.
 services:
   # Not started: the profile is never asked for.
   engine:
@@ -76,6 +76,34 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # FLUX.2 klein in stable-diffusion.cpp's server: started only with the pictures profile.  It reads
+  # the models folder as ComfyUI's layout (diffusion_models/, text_encoders/, vae/); the app loads klein
+  # for each picture and unloads it after, so it holds no video memory between pictures.
+  pictures:
+    build:
+      context: ./engine-pictures
+      args:
+        CUDA_ARCHITECTURES: "${YUE2CPP_CUDA_ARCH:-}"
+    image: yeufonic-pictures:latest
+    profiles: ["pictures"]
+    container_name: yeufonic-pictures
+    restart: unless-stopped
+    command: ["--model-dir", "/models"]
+    volumes:
+      - ./models:/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   app:
     depends_on: !override
       - engine-cpp
@@ -85,3 +113,4 @@ services:
       # Asked whether it is there; without the gemma profile it is not, and Gemma's features are off.
       GEMMA_URL: http://gemma:11434
       GEMMA_MODEL: "${GEMMA_MODEL:-gemma4:e4b-it-qat}"
+      PICTURES_URL: http://pictures:8088
