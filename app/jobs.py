@@ -503,6 +503,15 @@ def _art_waits_for_gpu(take_id: str) -> None:
         ART_WAITING.append(take_id)
 
 
+def took(seconds: float) -> str:
+    """A job's time for the log: "8 seconds", "1 minute 36 seconds"."""
+    whole = max(0, round(seconds))
+    if whole < 60:
+        return f"{whole} second{'' if whole == 1 else 's'}"
+    minutes, rest = divmod(whole, 60)
+    return f"{minutes} minute{'' if minutes == 1 else 's'}" + (f" {rest} second{'' if rest == 1 else 's'}" if rest else "")
+
+
 def _forget_art_fallbacks(take_id: str) -> None:
     _ART_DRAWER_FALLBACK.discard(take_id)
     _ART_WORDS_FALLBACK.discard(take_id)
@@ -519,7 +528,8 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
         artwork.STATE.pop(take_id, None)
         return
     try:
-        artwork.STATE[take_id] = {"state": "writing", "error": None, "started": time.time()}
+        began = time.time()
+        artwork.STATE[take_id] = {"state": "writing", "error": None, "started": began}
         writes = artwork.describer()
         failed_words = ""
         if writes == "external" and take_id in _ART_WORDS_FALLBACK and artwork.gemma_ready():
@@ -577,6 +587,7 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
             writer = "its own title, style and words"
         full_prompt = artwork.drawing_request(description, take, well_worn=worn)
         description = full_prompt
+        described = time.time()
         drawer = artwork.drawer()
         if drawer == "external" and take_id in _ART_DRAWER_FALLBACK:
             drawer = "local"
@@ -628,7 +639,11 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
         await asyncio.to_thread(artwork.keep, take_id, description, drawn, picture, painter, writer)
         artwork.STATE.pop(take_id, None)
         _forget_art_fallbacks(take_id)
-        log.info("Picture for '%s' (%s) is ready", take.get("title"), take_id)
+        done = time.time()
+        log.info("Picture for '%s' (%s) is ready. Method: described %s, drawn by %s. Duration: %s (describing %s, "
+                 "drawing %s).", take.get("title"), take_id,
+                 "from " + writer if writer.startswith("its own") else "by " + writer, painter,
+                 took(done - began), took(described - began), took(done - described))
     except ArtYielded:
         # Song work came in while it was being made: back to the front of the line, to start again once the
         # GPU is free.  Nothing is lost but the seconds it had run.
@@ -835,8 +850,9 @@ async def run_job(kind: str, ref_id: str) -> None:
                 record["lyrics"] = result["lyrics"]
                 record["status"] = "done"
                 record["error"] = None
-                log.info("Finished external LLM lyrics generation for draft %s ('%s', %d chars)",
-                         ref_id, record["title"], len(record["lyrics"]))
+                log.info("Lyrics draft for '%s' (%s) is ready. Method: external LLM (%s). Duration: %s.",
+                         record["title"] or "untitled", ref_id, llm.get_config().get("model") or "external",
+                         took(time.time() - started))
                 return
             except Exception as exc:
                 llm.record_alert_from_exception(exc)
@@ -941,7 +957,9 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             return
         record.update({"status": "done", "title": draft["title"], "lyrics": draft["lyrics"],
                        "finished_at": time.time(), "error": None})
-        log.info("Lyrics generation finished for '%s' in %.1fs", draft["title"] or ref_id, time.time() - started)
+        log.info("Lyrics draft for '%s' (%s) is ready. Method: Local Gemma%s. Duration: %s.",
+                 draft["title"] or "untitled", ref_id,
+                 " (after the external LLM failed)" if record.get("warning") else "", took(time.time() - started))
         # Unload the local Gemma LLM (~8 GB) so VRAM returns to normal for music planning and rendering
         with contextlib.suppress(Exception):
             await ENGINE.free()

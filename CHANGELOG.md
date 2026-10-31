@@ -49,6 +49,8 @@ cannot creep back in.
   add-ons. Training needs ComfyUI: with yue2.cpp the app leaves it out, and stems and lyric hearing run on the CPU.
   **About** names the engine. [docs/ENGINES.md](docs/ENGINES.md) compares the two and says how to choose and switch.
 
+- **The log says how a picture or a lyric draft was made, and how long it took.** Its "is ready" line names who
+  described and who drew a picture (and any fallback), or who wrote the words, with the time taken.
 - **The job card and the player take you to the take.** Click the title of the job running, a take in **Up next**, or
   the title of the take playing in the player, and the library goes to that take in whichever space it is in, clearing a
   search or filter that would hide it; a take being made inside another opens on that take's card. A picture's job is

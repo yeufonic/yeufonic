@@ -147,6 +147,29 @@ def test_the_job_keeps_the_picture_and_its_description(client, monkeypatch):
     assert not artwork.png_path(take["id"]).exists() and not artwork.words_path(take["id"]).exists()
 
 
+def test_the_log_says_how_the_picture_was_made_and_how_long_it_took(client, monkeypatch, caplog):
+    take = a_take()
+    monkeypatch.setattr(artwork, "describer", lambda: "take")
+    monkeypatch.setattr(artwork, "drawer", lambda: "external")
+    monkeypatch.setattr(artwork, "image_model", lambda: "an-image-model")
+
+    async def draw(description):
+        return as_file(drawing())
+
+    monkeypatch.setattr(artwork, "draw", draw)
+    with caplog.at_level("INFO", logger="yue2.jobs"):
+        asyncio.run(jobs.run_art(take["id"]))
+    ready = [r.getMessage() for r in caplog.records if "is ready" in r.getMessage()]
+    assert len(ready) == 1
+    assert "Method: described from its own title, style and words, drawn by an-image-model." in ready[0]
+    assert "Duration: 0 seconds (describing 0 seconds, drawing 0 seconds)." in ready[0]
+
+
+def test_times_in_the_log_read_as_words():
+    assert jobs.took(0.4) == "0 seconds" and jobs.took(1) == "1 second" and jobs.took(10.4) == "10 seconds"
+    assert jobs.took(60) == "1 minute" and jobs.took(96) == "1 minute 36 seconds" and jobs.took(121) == "2 minutes 1 second"
+
+
 def test_a_failed_picture_says_why_and_leaves_the_take_alone(client, monkeypatch):
     take = a_take()
     monkeypatch.setattr(artwork, "describer", lambda: "take")
