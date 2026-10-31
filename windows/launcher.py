@@ -55,7 +55,7 @@ def settings() -> dict:
     values = {"app_port": "8090", "engine_port": "8188", "engine_args": "", "data_dir": str(HERE / "data"),
               "import_roots": str(Path.home()), "open_browser": "yes", "window": "app", "unload_when_idle": "auto",
               "engine": "comfyui", "gemma_port": "11435", "pictures_port": "8187", "gemma_model": "gemma4:e4b-it-qat",
-              "yue2cpp_model": "YuE2-3B-Q8_0.gguf"}
+              "yue2cpp_model": "YuE2-3B-Q8_0.gguf", "cpp_engine_args": ""}
     ini = HERE / "settings.ini"
     if ini.exists():
         parser = configparser.ConfigParser()
@@ -636,7 +636,9 @@ class Launcher:
                 "--adapters", str(MODELS / "loras")]
         if (gguf / "SheetSage2-Q8_0.gguf").exists():
             args += ["--transcriber", str(gguf / "SheetSage2-Q8_0.gguf")]
-        started = [("engine", subprocess.Popen(args + shlex.split(self.cfg.get("engine_args", "")), cwd=str(CPP / "yue2cpp"),
+        # engine_args is ComfyUI's (an install switched from ComfyUI keeps it): yue2.cpp has switches of its own,
+        # and stops at one it does not know.
+        started = [("engine", subprocess.Popen(args + shlex.split(self.cfg.get("cpp_engine_args", "")), cwd=str(CPP / "yue2cpp"),
                                                stdout=engine_log.open("w", encoding="utf-8"), **hidden), engine_log)]
         env["ENGINE_KIND"] = "yue2cpp"
         ollama = CPP / "ollama" / "ollama.exe"

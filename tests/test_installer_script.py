@@ -44,6 +44,13 @@ def test_extra_engine_switches_can_be_set_in_settings_ini():
     assert '"engine_args": ""' in launcher and 'shlex.split(self.cfg.get("engine_args", ""))' in launcher
 
 
+def test_comfyui_switches_are_not_given_to_yue2cpp():
+    """An install switched from ComfyUI keeps its engine_args; yue2.cpp stops at a switch it does not know."""
+    launcher = (Path(__file__).resolve().parent.parent / "windows" / "launcher.py").read_text(encoding="utf-8")
+    cpp = launcher.split("def start_cpp", 1)[1].split("\n    def ", 1)[0]
+    assert 'cfg.get("engine_args"' not in cpp and 'shlex.split(self.cfg.get("cpp_engine_args", ""))' in cpp
+
+
 def test_the_windows_engine_keeps_the_portable_torch_and_undoes_the_0_0_25_pin():
     """0.0.25 put torch 2.9.1 on CUDA 12.8 into the Windows engine, where the low-memory model renders several
     times slower than on the CUDA 13 build the portable ships. The installer must not install CUDA 12.8 torch,

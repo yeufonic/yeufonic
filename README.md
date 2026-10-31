@@ -308,7 +308,9 @@ unload_when_idle = auto
 ```
 
 `engine_args` adds switches to the command that starts the engine (ComfyUI), for when it misbehaves on a particular PC;
-its own `--help` lists them. Leave it out unless you need it.
+its own `--help` lists them. Leave it out unless you need it. `cpp_engine_args` does the same for yue2.cpp, whose
+switches are different: an install switched from ComfyUI keeps its `engine_args` for switching back, and yue2.cpp
+does not see them.
 
 `unload_when_idle` says when the engine is asked to free the graphics card's memory. `auto` (the default)
 frees it after a take's picture, so FLUX.2 klein does not stay loaded under your songs and other programs;

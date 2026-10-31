@@ -48,6 +48,7 @@ cannot creep back in.
   for either; on Docker, `sh scripts/fetch-models.sh --cpp` sets it up, with `--gemma` and `--pictures` for the two
   add-ons. Training needs ComfyUI: with yue2.cpp the app leaves it out, and stems and lyric hearing run on the CPU.
   **About** names the engine. [docs/ENGINES.md](docs/ENGINES.md) compares the two and says how to choose and switch.
+  On Windows, `engine_args` in `settings.ini` stays ComfyUI's; yue2.cpp's own switches go in `cpp_engine_args`.
 
 - **Changing the model size on Windows keeps the other one.** The installer used to remove the size you left;
   it now keeps it, so switching back downloads nothing, and marks each size already downloaded. With
