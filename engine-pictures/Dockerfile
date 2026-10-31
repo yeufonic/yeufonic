@@ -13,9 +13,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
     && rm -rf /var/lib/apt/lists/*
 ARG SDCPP_REF=0a067120b388bfefb9a87b96960cb548b97e9157
 WORKDIR /src
-RUN git clone --quiet https://github.com/leejet/stable-diffusion.cpp.git . \
-    && git checkout --quiet ${SDCPP_REF} \
-    && git submodule update --quiet --init --recursive
+# From our copies of stable-diffusion.cpp, its ggml and its web page (github.com/yeufonic, which keep the pinned
+# commits tagged), with the author's own as the fallback: the insteadOf reaches the submodules too.
+RUN ours="url.https://github.com/yeufonic/.insteadOf=https://github.com/leejet/" \
+    && if ! { git -c "$ours" clone --quiet https://github.com/leejet/stable-diffusion.cpp.git . \
+              && git checkout --quiet ${SDCPP_REF} \
+              && git -c "$ours" submodule update --quiet --init --recursive; }; then \
+         echo "Our copy of stable-diffusion.cpp could not be used; trying the author's" \
+         && find . -mindepth 1 -delete \
+         && git clone --quiet https://github.com/leejet/stable-diffusion.cpp.git . \
+         && git checkout --quiet ${SDCPP_REF} \
+         && git submodule update --quiet --init --recursive; \
+       fi
 # Empty keeps upstream's list of GPU architectures; one (89-real for an RTX 40) builds much faster.
 ARG CUDA_ARCHITECTURES=""
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSD_CUDA=ON -DGGML_NATIVE=OFF \

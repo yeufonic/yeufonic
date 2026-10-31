@@ -116,20 +116,22 @@ $CppPrograms = @{
                  Sha = 'fe20366827d357c00797eebb58244dddab7fd9a348d70090c3871004c320f38d'; Size = 563452046 }
 }
 $GemmaModel = 'gemma4:e4b-it-qat'   # Gemma 4 E4B for Ollama, about 6.1 GB
-$Gguf = "$HF/Serveurperso/YuE2-GGUF/resolve/main"
+$Gguf = "$HF/Serveurperso/YuE2-GGUF/resolve/e630f2b8f6aedf8254c3186438633c1b5eeaf80a"
+# Unchanged copies of the author's files, tried first; either must match the checksum.
+$GgufCopies = "$HF/pshields/yue2-gguf-copies/resolve/main"
 $CppModelFiles = @(
-    @{ Name = 'YuE2, Q8 (plans and renders)'; Dir = 'yue2cpp'; File = 'YuE2-3B-Q8_0.gguf'; Url = "$Gguf/YuE2-3B-Q8_0.gguf"
+    @{ Name = 'YuE2, Q8 (plans and renders)'; Dir = 'yue2cpp'; File = 'YuE2-3B-Q8_0.gguf'; Copy = "$GgufCopies/YuE2-3B-Q8_0.gguf"; Url = "$Gguf/YuE2-3B-Q8_0.gguf"
        Sha = '41121ce97786d7795a325bcf123ca196956c03bb252c9e75384cfc1f2fc19e6b'; Size = 3810232064 }
-    @{ Name = 'YuE2 VAE (renders)'; Dir = 'yue2cpp'; File = 'YuE2-Vae-F32.gguf'; Url = "$Gguf/YuE2-Vae-F32.gguf"
+    @{ Name = 'YuE2 VAE (renders)'; Dir = 'yue2cpp'; File = 'YuE2-Vae-F32.gguf'; Copy = "$GgufCopies/YuE2-Vae-F32.gguf"; Url = "$Gguf/YuE2-Vae-F32.gguf"
        Sha = '93e49dfb1970e89ad64cacb17cf13b5d05f6bb30ef7ed3adae3050bcb728638a'; Size = 530497344 }
-    @{ Name = 'SheetSage2 (transcription)'; Dir = 'yue2cpp'; File = 'SheetSage2-Q8_0.gguf'; Url = "$Gguf/SheetSage2-Q8_0.gguf"
+    @{ Name = 'SheetSage2 (transcription)'; Dir = 'yue2cpp'; File = 'SheetSage2-Q8_0.gguf'; Copy = "$GgufCopies/SheetSage2-Q8_0.gguf"; Url = "$Gguf/SheetSage2-Q8_0.gguf"
        Sha = '95d8fa8761753b4833782a52b68d5c0afa3bd3cfbc03d3dcbbf8ded0c13f611e'; Size = 105629856 }
-    @{ Name = 'MERT (transcription)'; Dir = 'yue2cpp'; File = 'MERT-v2-FullSong-Q8_0.gguf'; Url = "$Gguf/MERT-v2-FullSong-Q8_0.gguf"
+    @{ Name = 'MERT (transcription)'; Dir = 'yue2cpp'; File = 'MERT-v2-FullSong-Q8_0.gguf'; Copy = "$GgufCopies/MERT-v2-FullSong-Q8_0.gguf"; Url = "$Gguf/MERT-v2-FullSong-Q8_0.gguf"
        Sha = '35a6032ec7e8123c02becdefc7bfe10a3adb33faa8a1951dc0af864b4494b8ef'; Size = 902283712 }
 )
 # Its picture server reads klein's model and VAE as ComfyUI does, but not ComfyUI's text encoder: Qwen 3 4B as GGUF.
 $CppPictureEncoder = @{ Name = 'Qwen3 4B text encoder, GGUF (take pictures)'; Dir = 'text_encoders'; File = 'Qwen3-4B-Q4_K_M.gguf'; Pictures = $true
-    Url = "$HF/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf"
+    Url = "$HF/unsloth/Qwen3-4B-GGUF/resolve/22c9fc8a8c7700b76a1789366280a6a5a1ad1120/Qwen3-4B-Q4_K_M.gguf"
     Sha = 'f6f851777709861056efcdad3af01da38b31223a3ba26e61a4f8bf3a2195813a'; Size = 2497281312 }
 # Unchanged copies of the files by Mothersuperior, a single author's account: tried first, with the author's own as the
 # fallback, and either must match the checksum.  The copies' README credits the author and keeps the licence.

@@ -10,9 +10,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends cmake build-ess
     && rm -rf /var/lib/apt/lists/*
 ARG YUE2CPP_REF=8af01740686824ffd4a1839a457954f42e2a8ce7
 WORKDIR /src
-RUN git clone --quiet https://github.com/ServeurpersoCom/yue2.cpp.git . \
-    && git checkout --quiet ${YUE2CPP_REF} \
-    && git submodule update --quiet --init --recursive
+# From our copies of yue2.cpp and its ggml (github.com/yeufonic, which keep the pinned commits tagged), with the
+# author's own as the fallback: the insteadOf reaches the submodule too.
+RUN ours="url.https://github.com/yeufonic/.insteadOf=https://github.com/ServeurpersoCom/" \
+    && if ! { git -c "$ours" clone --quiet https://github.com/ServeurpersoCom/yue2.cpp.git . \
+              && git checkout --quiet ${YUE2CPP_REF} \
+              && git -c "$ours" submodule update --quiet --init --recursive; }; then \
+         echo "Our copy of yue2.cpp could not be used; trying the author's" \
+         && find . -mindepth 1 -delete \
+         && git clone --quiet https://github.com/ServeurpersoCom/yue2.cpp.git . \
+         && git checkout --quiet ${YUE2CPP_REF} \
+         && git submodule update --quiet --init --recursive; \
+       fi
 COPY patches/ /patches/
 RUN git -c user.name=build -c user.email=build@localhost am --quiet /patches/*.patch
 # Empty keeps upstream's list of GPU architectures; one (89-real for an RTX 40) builds much

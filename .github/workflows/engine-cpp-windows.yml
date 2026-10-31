@@ -51,10 +51,16 @@ jobs:
         if: steps.ref.outputs.built == 'no'
         shell: bash
         run: |
-          git clone --quiet https://github.com/ServeurpersoCom/yue2.cpp.git "$RUNNER_TEMP/yue2.cpp"
+          # From our copies of yue2.cpp and its ggml, with the author's own as the fallback (as engine-cpp/Dockerfile).
+          ours="url.https://github.com/yeufonic/.insteadOf=https://github.com/ServeurpersoCom/"
+          get() {
+            rm -rf "$RUNNER_TEMP/yue2.cpp"
+            git "$@" clone --quiet https://github.com/ServeurpersoCom/yue2.cpp.git "$RUNNER_TEMP/yue2.cpp" &&
+              git -C "$RUNNER_TEMP/yue2.cpp" checkout --quiet "${{ steps.ref.outputs.ref }}" &&
+              git -C "$RUNNER_TEMP/yue2.cpp" "$@" submodule update --quiet --init --recursive
+          }
+          get -c "$ours" || { echo "Our copy of yue2.cpp could not be used; trying the author's"; get -c core.quotepath=on; }
           cd "$RUNNER_TEMP/yue2.cpp"
-          git checkout --quiet "${{ steps.ref.outputs.ref }}"
-          git submodule update --quiet --init --recursive
           git -c user.name=build -c user.email=build@localhost am --quiet "$GITHUB_WORKSPACE"/engine-cpp/patches/*.patch
           git log --oneline -3
 
@@ -62,7 +68,7 @@ jobs:
       # CUDA 12 family or later.  Only the parts the build needs.
       - name: CUDA toolkit
         if: steps.ref.outputs.built == 'no'
-        uses: Jimver/cuda-toolkit@v0.2.30
+        uses: Jimver/cuda-toolkit@b6fc3a9f3f15256d9d94ffe1254f9c5a2565cde6  # v0.2.30
         with:
           cuda: '12.8.1'
           method: network

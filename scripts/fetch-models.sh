@@ -109,10 +109,12 @@ fetch() {
 
 if [ "$ENGINE" = cpp ]; then
   # The yue2.cpp engine: GGUF files, one folder of their own.  The transcriber finds its audio encoder beside it.
-  GGUF=https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/main
+  # Unchanged copies of the author's files, tried first, with the author's own (at the revision tested) as the fallback.
+  GGUF_COPIES=https://huggingface.co/pshields/yue2-gguf-copies/resolve/main
+  GGUF=https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/e630f2b8f6aedf8254c3186438633c1b5eeaf80a
   mkdir -p "$ROOT/models/yue2cpp"
   for f in "${YUE2CPP_MODEL:-YuE2-3B-Q8_0.gguf}" YuE2-Vae-F32.gguf SheetSage2-Q8_0.gguf MERT-v2-FullSong-Q8_0.gguf; do
-    fetch "$GGUF/$f" "$ROOT/models/yue2cpp/$f"
+    fetch "$GGUF_COPIES/$f" "$ROOT/models/yue2cpp/$f" "$GGUF/$f"
   done
   if ! grep -qs '^COMPOSE_FILE=' "$ROOT/.env"; then
     if [ -s "$ROOT/.env" ] && [ -n "$(tail -c 1 "$ROOT/.env")" ]; then echo >> "$ROOT/.env"; fi
@@ -203,7 +205,7 @@ if [ "$PICTURES" = yes ] && [ "$ENGINE" = cpp ]; then
   fetch "https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors" \
         "$ROOT/models/diffusion_models/flux-2-klein-4b-fp8.safetensors"
   fetch "$KLEIN/vae/flux2-vae.safetensors" "$ROOT/models/vae/flux2-vae.safetensors"
-  fetch "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf" \
+  fetch "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/22c9fc8a8c7700b76a1789366280a6a5a1ad1120/Qwen3-4B-Q4_K_M.gguf" \
         "$ROOT/models/text_encoders/Qwen3-4B-Q4_K_M.gguf"
   add_profile pictures
 elif [ "$PICTURES" = yes ]; then
