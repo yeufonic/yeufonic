@@ -70,10 +70,12 @@ def test_ended_event_primes_highlighted_take():
     content = APP_JS.read_text(encoding="utf-8")
     ended_idx = content.find("stopWaveLoop(); wave.ratio = 1; drawWave();")
     assert ended_idx != -1
-    snippet = content[ended_idx:ended_idx + 500]
+    snippet = content[ended_idx:ended_idx + 1500]
     assert "activateTakeRecording(activeTake)" in snippet, (
         "When audio ends naturally, activateTakeRecording should prime the highlighted take"
     )
+    # A playlist's next song is decided first: priming the library's take before it put that take in the player.
+    assert snippet.index("State.playlistQueue") < snippet.index("activateTakeRecording(activeTake)")
 
 
 def test_active_playback_mastering_rack_not_altered_when_selecting_another_take():
