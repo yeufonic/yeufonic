@@ -170,6 +170,9 @@ FunctionEnd
   IntOp $R4 $R4 - $R2
 !macroend
 !define SWP_KEEP 0x14   ; SWP_NOZORDER | SWP_NOACTIVATE
+!define TVM_GETNEXTITEM 0x110A
+!define TVGN_CARET 0x9
+!define TVM_GETITEM 0x113E  ; TVM_GETITEMW
 
 ; The components page leaves a third of its width to the words "Select components to install:", and its
 ; description box is too narrow for the longer descriptions, which then need scrolling (and the box empties
@@ -403,11 +406,36 @@ LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for 
 LangString DESC_Pictures ${LANG_ENGLISH} "FLUX.2 klein, which draws a picture of each take on this PC, shown behind its card. Leave it out if your external LLM can draw them, or if you do not want pictures. Download size: 8.2 GB."
 LangString DESC_Loras ${LANG_ENGLISH} "39 style LoRAs by their authors: chanson, canzone, Bulgarian voices, qawwali, militant reggae, J-pop, dream pop, old school hip-hop and 16 concept sliders, each with its trigger word and suggested strengths. CC BY-NC 4.0, credited in the guide. Download size: 3.8 GB."
 LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analysis on this PC. Leave it out if you intend to configure an external LLM. This will save an 8 GB download."
-; Modern UI's own description function, except that moving off the list keeps the last description rather than
-; emptying the box, so a long one can still be read and scrolled.
+; The section of the item highlighted in the list (the one last clicked, or moved to with the keys), or -1.
+; The installer keeps each item's section in its lParam.
+Function HighlightedSection
+  Push $1
+  Push $2
+  Push $3
+  StrCpy $0 -1
+  FindWindow $1 "#32770" "" $HWNDPARENT
+  GetDlgItem $1 $1 1032
+  SendMessage $1 ${TVM_GETNEXTITEM} ${TVGN_CARET} 0 $2
+  ${If} $2 != 0
+    System::Call "*(i 4, p r2, i, i, p, i, i, i, i, p)p.r3"     ; TVITEM asking for lParam (TVIF_PARAM)
+    SendMessage $1 ${TVM_GETITEM} 0 $3
+    System::Call "*$3(i, p, i, i, p, i, i, i, i, p.r0)"
+    System::Free $3
+  ${EndIf}
+  Pop $3
+  Pop $2
+  Pop $1
+FunctionEnd
+
+; Modern UI's own description function, except that moving off the list does not empty the box: it describes
+; the highlighted item instead, so a long description can be read and scrolled, and what it says matches what
+; is highlighted.
 Function .onMouseOverSection
   ${If} $0 == -1
-    ; nothing: the description shown last stays
+    Call HighlightedSection
+  ${EndIf}
+  ${If} $0 == -1
+    ; nothing highlighted yet: the box keeps what it says
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} $(DESC_Core)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecEngineGroup} $(DESC_Engine)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecComfy} $(DESC_Comfy)
