@@ -423,6 +423,8 @@ async function pollState() {
     var data = await api('/api/state');
     try { paintStalePage(data.assets); } catch (e) {}
     State.pictures = Boolean(data.pictures);
+    State.klein = data.klein || State.klein || null;
+    paintKleinFallback();
     if (Boolean(data.pictures_possible) !== Boolean(State.picturesPossible)) {
       State.picturesPossible = Boolean(data.pictures_possible);
       try { paintSettingRequirements(); } catch (e) {}
@@ -4926,6 +4928,8 @@ function renderSettingRow(item) {
   var needs = item.requires
     ? '<div class="setting-help hidden" data-needs="' + esc(item.key) + '">' + esc(item.requires_note || '') + '</div>'
     : '';
+  // The klein size chosen may not be installed; the other then draws, and this says so.
+  if (item.key === 'art.klein') { needs += '<div class="setting-help hidden" id="klein-fallback"></div>'; }
   return '<div class="setting-row">' +
     '<div class="setting-text">' +
       '<div class="setting-label">' + esc(item.label) + '</div>' +
@@ -5075,6 +5079,27 @@ function paintSettingRequirements() {
     var note = list.querySelector('[data-needs="' + item.key + '"]');
     if (note) { note.classList.toggle('hidden', met); }
   });
+  paintKleinFallback();
+}
+
+/* "The 9B is not installed here, so the 4B draws": when the size chosen in Settings cannot draw on
+   this PC and the other one does, rather than leaving the choice to look as if it had taken. */
+function paintKleinFallback() {
+  var note = $('klein-fallback');
+  if (!note) { return; }
+  var klein = State.klein || {};
+  var chosen = setting('art.klein', '4b');
+  var have = klein.installed || [];
+  var shown = Boolean(have.length && (chosen === '4b' || chosen === '9b') && have.indexOf(chosen) < 0);
+  var drawing = have.indexOf('9b') >= 0 ? '9b' : (have[0] || '');
+  if (shown) {
+    var name = chosen.toUpperCase();
+    var why = chosen === '9b' && klein.engine === 'yue2cpp'
+      ? 'The 9B is not set up here (it needs its model and Qwen 3 8B as GGUF in the models folder: see the guide)'
+      : 'The ' + name + '\u2019s files are not installed here';
+    note.textContent = why + ', so the ' + drawing.toUpperCase() + ' draws.';
+  }
+  note.classList.toggle('hidden', !shown);
 }
 
 async function fetchLLMModels(isBackground) {

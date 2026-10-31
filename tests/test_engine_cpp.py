@@ -416,7 +416,7 @@ class FakePictures:
         self.calls.append((path, json.loads(request.content) if request.content else None))
         if path == "/sdcpp/v1/model-files":
             return httpx.Response(200, json={"files": [{"id": f} for f in self.files]})
-        if path in ("/sdcpp/v1/models/load", "/sdcpp/v1/models/unload"):
+        if path in ("/sdcpp/v1/models/load", "/sdcpp/v1/models/unload", "/sdcpp/v1/models/refresh"):
             return httpx.Response(200, json={"state": "ready"})
         if path == "/sdcpp/v1/img_gen":
             return httpx.Response(202, json={"id": "job_1", "status": "queued"})
@@ -500,3 +500,35 @@ def test_a_failed_picture_still_lets_go_of_its_model(monkeypatch):
     job = asyncio.run(go())
     assert job["status"]["status_str"] == "error" and "refused" in json.dumps(job["status"]["messages"])
     assert pictures.calls[-1][0] == "/sdcpp/v1/models/unload"
+
+
+def test_a_file_put_in_after_the_server_started_is_looked_for_again(monkeypatch):
+    """The server lists its files when it starts; a load naming one added since is refused, so it looks again."""
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"klein": {"4b": ["flux-2-klein-4b-fp8.safetensors", "Qwen3-4B-Q4_K_M.gguf"]}})
+
+    class Late(FakePictures):
+        refreshed = False
+
+        def __call__(self, request):
+            if request.url.path == "/sdcpp/v1/models/refresh":
+                self.refreshed = True
+            if request.url.path == "/sdcpp/v1/models/load" and not self.refreshed:
+                self.calls.append((request.url.path, None))
+                return httpx.Response(400, json={"code": "invalid_model_config", "error": "unknown model or incorrect category: llm"})
+            return super().__call__(request)
+    pictures = Late()
+    engine = _with_pictures(FakeServer(), pictures)
+
+    async def go():
+        pid = await engine.submit(artwork.picture_graph("x", 5, "p"))
+        return await _finish(engine, pid)
+    assert asyncio.run(go())["status"]["status_str"] == "success"
+    assert [p for p, _ in pictures.calls][:3] == ["/sdcpp/v1/models/load", "/sdcpp/v1/models/refresh", "/sdcpp/v1/models/load"]
+
+
+def test_settings_say_when_the_chosen_klein_cannot_draw():
+    from pathlib import Path
+    js = (Path(__file__).resolve().parents[1] / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    note = js[js.index("function paintKleinFallback() {"):]
+    note = note[:note.index("\n}\n")]
+    assert "have.indexOf(chosen) < 0" in note and "draws." in note

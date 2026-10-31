@@ -440,6 +440,8 @@ class CppEngine(Engine):
         klein: dict[str, list[str]] = {}
         if self.pictures:
             try:
+                # Its list of files is read when it starts: asked again, for a model put in since.
+                await self.pictures.post("/sdcpp/v1/models/refresh", timeout=10.0)
                 r = await self.pictures.get("/sdcpp/v1/model-files", timeout=6.0)
                 r.raise_for_status()
                 files = {f.get("id") for f in r.json().get("files") or []}
@@ -626,7 +628,12 @@ class CppEngine(Engine):
         rec = self.progress[pid]
         rec.update({"executing": True, "started": time.time(), "stage": "UNETLoader"})
         try:
-            r = await self.pictures.post("/sdcpp/v1/models/load", json={"recipe": job["recipe"], "models": job["files"]})
+            load = {"recipe": job["recipe"], "models": job["files"]}
+            r = await self.pictures.post("/sdcpp/v1/models/load", json=load)
+            if r.status_code == 400 and "unknown model" in r.text:
+                # A file put in since the server last looked: it looks again, once.
+                await self.pictures.post("/sdcpp/v1/models/refresh", timeout=10.0)
+                r = await self.pictures.post("/sdcpp/v1/models/load", json=load)
             if r.status_code >= 400:
                 raise RuntimeError(f"the picture model did not load: {r.text[:200]}")
             r = await self.pictures.post("/sdcpp/v1/img_gen", json=job["body"])

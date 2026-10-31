@@ -429,7 +429,7 @@ With Docker, `sh scripts/fetch-models.sh --cpp` fetches its models into `models/
 yue2.cpp in place of ComfyUI. `sh scripts/fetch-models.sh --cpp --gemma` also fetches Gemma 4 E4B (6.1 GB)
 and writes `COMPOSE_PROFILES=gemma`, so Gemma runs beside it in Ollama, which lets go of the GPU as soon as
 it has answered. `--cpp --pictures` fetches FLUX.2 klein 4B (the same model and VAE as ComfyUI's, with its text
-encoder as GGUF, 8.7 GB) and adds `pictures` to `COMPOSE_PROFILES`, so stable-diffusion.cpp's server draws take
+encoder as GGUF, 6.9 GB) and adds `pictures` to `COMPOSE_PROFILES`, so stable-diffusion.cpp's server draws take
 pictures beside it, loading klein for each picture and letting go of it after. Both can be chosen together. Its YuE2 is the Q8 copy, near lossless; `YUE2CPP_MODEL=YuE2-3B-BF16.gguf`
 in `.env` (before fetching) picks the full-precision one, or `-Q6_K` / `-Q5_K_M` a smaller one. To go back,
 take the `COMPOSE_FILE` and `COMPOSE_PROFILES` lines out of `.env`, run `sh scripts/fetch-models.sh` and `docker compose up -d --build`.

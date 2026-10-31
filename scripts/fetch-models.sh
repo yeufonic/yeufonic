@@ -28,9 +28,9 @@
 #   sh scripts/fetch-models.sh --cpp --gemma   also Gemma 4 E4B for that engine, 6.1 GB, to draft lyrics and
 #                                        describe pictures on this PC (models/ollama/, through Docker, and
 #                                        COMPOSE_PROFILES=gemma in .env).  Without it an external LLM does both.
-#   sh scripts/fetch-models.sh --cpp --pictures   FLUX.2 klein 4B for that engine, 8.7 GB: the model and VAE
-#                                        --pictures fetches for ComfyUI, with Qwen 3 4B as GGUF, which its
-#                                        picture server reads (COMPOSE_PROFILES=pictures in .env).
+#   sh scripts/fetch-models.sh --cpp --pictures   FLUX.2 klein 4B for that engine, 6.9 GB: the model and VAE
+#                                        --pictures fetches for ComfyUI, with Qwen 3 4B as GGUF (Q4_K_M), which
+#                                        its picture server reads (COMPOSE_PROFILES=pictures in .env).
 #   sh scripts/fetch-models.sh --loras      also 39 style LoRAs by their authors (CC BY-NC 4.0), 3.8 GB, with a
 #                                        description each, into models/loras/. One already there is kept as
 #                                        it is. The README of pshields/yue2-style-loras credits them.
@@ -203,8 +203,8 @@ if [ "$PICTURES" = yes ] && [ "$ENGINE" = cpp ]; then
   fetch "https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors" \
         "$ROOT/models/diffusion_models/flux-2-klein-4b-fp8.safetensors"
   fetch "$KLEIN/vae/flux2-vae.safetensors" "$ROOT/models/vae/flux2-vae.safetensors"
-  fetch "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q8_0.gguf" \
-        "$ROOT/models/text_encoders/Qwen3-4B-Q8_0.gguf"
+  fetch "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf" \
+        "$ROOT/models/text_encoders/Qwen3-4B-Q4_K_M.gguf"
   add_profile pictures
 elif [ "$PICTURES" = yes ]; then
   mkdir -p "$ROOT/models/diffusion_models" "$ROOT/models/vae"

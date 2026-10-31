@@ -1259,11 +1259,15 @@ Labs' **non-commercial licence**, but put them in place and they are used.
    which needs no sign-in, download one of these and put it in the `text_encoders` folder:
    `qwen_3_8b_fp8mixed.safetensors` (8.7 GB, the usual choice on an NVIDIA card), `qwen_3_8b_fp4mixed.safetensors`
    (6.8 GB, the smallest) or `qwen_3_8b.safetensors` (16.4 GB, full precision, for a Mac).
+   **With the yue2.cpp engine** the picture server cannot read those encoders: take `Qwen3-8B-Q4_K_M.gguf`
+   (5.0 GB) from [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF) instead
+   (`-Q8_0.gguf`, 8.7 GB, also works), and put it in the same folder.
 3. **Where the folders are:** under `models/` in the Yeufonic folder for **Docker**; under
    `engine\ComfyUI\models\` in the install folder on **Windows**; under `engine/ComfyUI/models/` in the
    install folder on a **Mac**.
 4. **Let the app see them, and choose it.** Restart Yeufonic (with Docker, `docker compose restart app`),
-   then set **Take pictures: FLUX.2 klein model** in Settings to *9B*. The 4B draws until you do. Choose
+   then set **Take pictures: FLUX.2 klein model** in Settings to *9B*. The 4B draws until you do, and
+   Settings say so when the 9B is chosen but cannot draw here. Choose
    *4B* to go back without removing anything. The picture's note in the editor says which drew it
    (*drawn by FLUX.2 klein 9B on this PC*).
 

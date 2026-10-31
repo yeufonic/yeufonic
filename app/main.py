@@ -1576,6 +1576,10 @@ def state() -> dict:
         "assets": _asset_version(),
         "pictures": artwork.automatic(),
         "pictures_possible": artwork.possible(),
+        # Which sizes of FLUX.2 klein this PC can draw with, and the one that draws: Settings say when the size
+        # chosen is not there and the other draws instead.
+        "klein": {"installed": sorted((ENGINE.options or {}).get("klein") or {}), "drawing": artwork.klein_size(),
+                  "engine": ENGINE.kind},
         "model": config.CHECKPOINT_LABELS.get(config.CHECKPOINT, config.CHECKPOINT),
         # The model a LoRA would learn from, which the Train window's memory note goes by.
         "train_model": config.CHECKPOINT_LABELS.get(jobs.training_checkpoint(), jobs.training_checkpoint()),
