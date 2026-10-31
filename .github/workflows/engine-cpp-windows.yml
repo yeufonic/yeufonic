@@ -1,0 +1,130 @@
+# The yue2.cpp engine for the Windows installer: yue2.cpp's server, at the commit engine-cpp/Dockerfile pins,
+# with the patches in engine-cpp/patches, built for Windows with CUDA on GitHub's own Windows machines.  Upstream
+# publishes no Windows builds, and ours must carry the patches.
+#
+# The zip (yue-server.exe, ggml's DLLs and the CUDA runtime DLLs it needs) is attached to a pre-release named for
+# the upstream commit and the patches, so a build that already exists is not made again, and windows/setup.ps1
+# downloads it pinned by that name and its SHA-256.
+name: yue2.cpp for Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'feature/cpp-*'
+    paths:
+      - 'engine-cpp/**'
+      - '.github/workflows/engine-cpp-windows.yml'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The upstream commit and the patches
+        id: ref
+        shell: bash
+        run: |
+          ref=$(sed -n 's/^ARG YUE2CPP_REF=//p' engine-cpp/Dockerfile)
+          patches=$(cat engine-cpp/patches/*.patch | sha256sum | cut -c1-8)
+          tag="yue2cpp-windows-${ref:0:7}-${patches}"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "built=yes" >> "$GITHUB_OUTPUT"
+            echo "$tag is already published: nothing to build"
+          else
+            echo "built=no" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: yue2.cpp, with our patches
+        if: steps.ref.outputs.built == 'no'
+        shell: bash
+        run: |
+          git clone --quiet https://github.com/ServeurpersoCom/yue2.cpp.git "$RUNNER_TEMP/yue2.cpp"
+          cd "$RUNNER_TEMP/yue2.cpp"
+          git checkout --quiet "${{ steps.ref.outputs.ref }}"
+          git submodule update --quiet --init --recursive
+          git -c user.name=build -c user.email=build@localhost am --quiet "$GITHUB_WORKSPACE"/engine-cpp/patches/*.patch
+          git log --oneline -3
+
+      # CUDA 12.8: the oldest release that builds for an RTX 50 (sm_120), and its programs run on any driver of the
+      # CUDA 12 family or later.  Only the parts the build needs.
+      - name: CUDA toolkit
+        if: steps.ref.outputs.built == 'no'
+        uses: Jimver/cuda-toolkit@v0.2.30
+        with:
+          cuda: '12.8.1'
+          method: network
+          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
+
+      - name: Build the server
+        if: steps.ref.outputs.built == 'no'
+        shell: pwsh
+        run: |
+          Set-Location "$env:RUNNER_TEMP\yue2.cpp"
+          # The cards the installer accepts (compute capability 8.0 and up: RTX 30, 40, 50 and the A-series), with
+          # PTX for 8.0 so a later card still runs.
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DGGML_CUDA=ON -DGGML_NATIVE=OFF `
+            "-DCMAKE_CUDA_ARCHITECTURES=80-virtual;86-real;89-real;120-real"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build build --config Release --target yue-server -j $env:NUMBER_OF_PROCESSORS -- /v:minimal
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Get-ChildItem -Recurse build -Include yue-server.exe, *.dll | Select-Object FullName, Length
+
+      - name: Package
+        if: steps.ref.outputs.built == 'no'
+        id: zip
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.ref.outputs.tag }}"
+          $out = "$env:RUNNER_TEMP\$tag"
+          New-Item -ItemType Directory -Path $out | Out-Null
+          $build = "$env:RUNNER_TEMP\yue2.cpp\build"
+          Get-ChildItem -Recurse $build -Include yue-server.exe, ggml*.dll | Where-Object { $_.FullName -match '\\Release\\' } |
+            Copy-Item -Destination $out
+          # The CUDA runtime it links: redistributable under NVIDIA's EULA, so the PC needs only a driver.
+          $cuda = $env:CUDA_PATH
+          foreach ($dll in "cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll") {
+            Copy-Item "$cuda\bin\$dll" $out
+          }
+          Get-ChildItem $out | Select-Object Name, Length
+          if (-not (Test-Path "$out\yue-server.exe")) { throw "no yue-server.exe" }
+          # No GPU here: the server only has to start far enough to print its usage.
+          & "$out\yue-server.exe" --help 2>&1 | Select-Object -First 5
+          $global:LASTEXITCODE = 0
+          $zip = "$env:RUNNER_TEMP\$tag.zip"
+          Compress-Archive -Path "$out\*" -DestinationPath $zip
+          $sha = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLower()
+          "$sha  $tag.zip" | Out-File -Encoding ascii "$env:RUNNER_TEMP\$tag.zip.sha256"
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+          "sha=$sha" >> $env:GITHUB_OUTPUT
+          Write-Host "SHA-256: $sha"
+
+      - name: Attest the build
+        if: steps.ref.outputs.built == 'no'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.zip.outputs.zip }}
+
+      - name: Publish as a pre-release
+        if: steps.ref.outputs.built == 'no'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.ref.outputs.tag }}"
+          gh release create "$tag" --prerelease --target "$GITHUB_SHA" \
+            --title "yue2.cpp for Windows (${{ steps.ref.outputs.ref }} with Yeufonic's patches)" \
+            --notes "yue2.cpp's server (https://github.com/ServeurpersoCom/yue2.cpp) at ${{ steps.ref.outputs.ref }}, with the patches in engine-cpp/patches, built for Windows with CUDA 12.8 by .github/workflows/engine-cpp-windows.yml. Downloaded by the Windows installer when the yue2.cpp engine is chosen; not a Yeufonic release. SHA-256 of the zip: ${{ steps.zip.outputs.sha }}" \
+            "$RUNNER_TEMP/$tag.zip" "$RUNNER_TEMP/$tag.zip.sha256"
