@@ -8,6 +8,10 @@ from pathlib import Path
 # compose.yml sets this to the engine service name.  The fallback suits running the
 # app outside Docker against an engine on the same machine.
 ENGINE_URL = os.environ.get("ENGINE_URL", "http://127.0.0.1:8188")
+# Which engine that is: "comfyui" (the default, everything the app does) or "yue2cpp",
+# yue2.cpp's server, which renders, plans and transcribes on smaller GPUs and Macs and
+# leaves training, Gemma and pictures to the ComfyUI engine (compose.cpp.yml sets it).
+ENGINE_KIND = os.environ.get("ENGINE_KIND", "comfyui").strip().lower() or "comfyui"
 
 # The version lives in ./VERSION at the repo root, copied into the image by the
 # Dockerfile.  It is shown in the header so a running container can be identified.

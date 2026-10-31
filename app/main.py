@@ -1593,6 +1593,10 @@ def state() -> dict:
         },
         "engine": {
             "url": config.ENGINE_URL,
+            # ComfyUI, or yue2.cpp: the page says what needs the other one.
+            "kind": ENGINE.kind,
+            "name": ENGINE.name,
+            "version": (getattr(ENGINE, "props", None) or {}).get("version"),
             "online": ENGINE.online,
             "starting": ENGINE.starting,
             "stuck": bool(ENGINE.stuck_on),
@@ -1644,9 +1648,12 @@ def state() -> dict:
             "harmony_steps": HARMONY_STEPS,
             # Unknown until the engine has been read, so only a confirmed absence disables it.
             "harmony_available": ENGINE.options.get("harmony", False) or not ENGINE.options_loaded,
+            # A recorded tune held in a plan: the harmony node's newer inputs.
+            "hook_available": ENGINE.options.get("hook", False) or not ENGINE.options_loaded,
             # Both switches and the engine's node, so the page never offers a button
             # that would answer 501.  See config.TRAINING_ENABLED.
             "training_available": config.TRAINING_ENABLED and ENGINE.options.get("trainer", False),
+            "engine_kind": ENGINE.kind,
             "weak_render_db": config.WEAK_RENDER_DB,
         },
     }
@@ -1871,7 +1878,8 @@ async def expand_melody_to_song(body: ComposerExpandIn) -> dict:
     if not body.source_id:
         raise HTTPException(400, "Choose a recording to make a song from.")
     if ENGINE.options_loaded and not ENGINE.options.get("hook"):
-        raise HTTPException(400, "The engine cannot hold a tune in a plan yet. Rebuild it: docker compose build engine, then restart.")
+        raise HTTPException(400, _needs_comfyui("Holding a tune in a plan") or
+                            "The engine cannot hold a tune in a plan yet. Rebuild it: docker compose build engine, then restart.")
     source = one("SELECT * FROM sources WHERE id = ?", (body.source_id,))
     if not source:
         raise HTTPException(404, "no such source")
@@ -3085,10 +3093,19 @@ def move_take(take_id: str, body: MoveIn) -> dict:
     return {"space_id": space["id"], "name": space["name"]}
 
 
+def _needs_comfyui(feature: str) -> str | None:
+    """What to say when a feature is not on this install's engine because it is yue2.cpp,
+    or None on a ComfyUI engine (whose own message says what to rebuild or fetch)."""
+    if ENGINE.kind == "comfyui":
+        return None
+    return f"{feature} needs the ComfyUI engine: this install renders with {ENGINE.name}."
+
+
 def _check_harmony(step: int | None) -> None:
     if step and ENGINE.options_loaded and not ENGINE.options.get("harmony"):
-        raise HTTPException(400, "The engine has no harmony node, so Harmony must stay at Familiar. "
-                                 "Rebuild the engine: docker compose up -d --build engine")
+        raise HTTPException(400, _needs_comfyui("Harmony above Familiar") or
+                            "The engine has no harmony node, so Harmony must stay at Familiar. "
+                            "Rebuild the engine: docker compose up -d --build engine")
 
 
 def _idle_take(take_id: str) -> dict:
@@ -4834,8 +4851,10 @@ async def write_lyrics(body: LyricsIn) -> dict:
     """Queue a lyric draft.  The page polls GET /api/lyrics/{id} for the words."""
     if not llm.is_external_enabled():
         if ENGINE.options_loaded and not ENGINE.options.get("lyrics"):
-            raise HTTPException(400, f"The engine cannot write lyrics: it needs {config.LYRICS_MODEL} "
-                                     "in models/text_encoders. Run scripts/fetch-models.sh.")
+            elsewhere = _needs_comfyui("Writing lyrics on this PC")
+            raise HTTPException(400, elsewhere + " Set up an external LLM in Settings to draft them." if elsewhere else
+                                f"The engine cannot write lyrics: it needs {config.LYRICS_MODEL} "
+                                "in models/text_encoders. Run scripts/fetch-models.sh.")
     sections = None
     if body.sections:
         try:

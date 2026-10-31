@@ -492,7 +492,9 @@ async function pollState() {
     if (data.version) { $('app-version').textContent = 'v' + data.version; }
     State.about = { version: data.version || '', build: data.build || '', branch: data.branch || '', model: data.model || '',
                     engine: data.engine_build || (State.about && State.about.engine) || null, modelSlow: Boolean(data.model_slow),
-                    trainModel: data.train_model || '' };
+                    trainModel: data.train_model || '',
+                    engineName: (data.engine && data.engine.kind !== 'comfyui' && data.engine.name) || '',
+                    engineVersion: (data.engine && data.engine.version) || '' };
     paintSystemStats(data.system);
     paintUpdate(data.update);
     paintLLMStatus(data.llm_status);
@@ -551,17 +553,27 @@ function paintInterpretation() {
   });
 }
 
+/* The yue2.cpp engine renders, plans and transcribes; training, Gemma, pictures drawn here
+   and the harmony control are the ComfyUI engine's.  What it lacks is said as that, not as
+   something to fetch or rebuild. */
+function cppEngine() {
+  return Boolean(State.options && State.options.engine_kind === 'yue2cpp');
+}
+
 function paintOptions() {
   paintHarmony();
   paintInterpretation();
   var canInst = State.options.instrumental_available !== false;
   $('create-inst').disabled = !canInst;
-  $('create-inst').title = canInst ? '' : 'The engine has no instrumental LoRA. Run scripts/fetch-models.sh, then restart the engine.';
+  $('create-inst').title = canInst ? '' : (cppEngine()
+    ? 'The instrumental LoRA is not in the LoRA folder. Run scripts/fetch-models.sh.'
+    : 'The engine has no instrumental LoRA. Run scripts/fetch-models.sh, then restart the engine.');
   var canWrite = State.options.lyrics_available !== false;
   $('lyrics-write').disabled = !canWrite;
   $('lyrics-write').title = canWrite
     ? (WRITE.id ? 'Drafting lyrics in progress\u2026 Click to view status or stop' : 'Draft lyrics from a short description')
-    : 'The engine has no lyric writer. Run scripts/fetch-models.sh, then restart the engine.';
+    : (cppEngine() ? 'Set up an external LLM in Settings to draft lyrics: the yue2.cpp engine has no lyric writer.'
+      : 'The engine has no lyric writer. Run scripts/fetch-models.sh, then restart the engine.');
   if (canWrite) {
     $('lyrics-write').textContent = WRITE.id ? 'Drafting\u2026' : 'Write lyrics';
   }
@@ -569,7 +581,8 @@ function paintOptions() {
   $('realaudio').disabled = !canRealaudio;
   if (!canRealaudio) {
     $('realaudio').checked = false;
-    $('realaudio-field').title = 'The engine has no Realaudio LoRA. Run scripts/fetch-models.sh, then restart the engine.';
+    $('realaudio-field').title = cppEngine() ? 'The Realaudio LoRA is not in the LoRA folder. Run scripts/fetch-models.sh.'
+      : 'The engine has no Realaudio LoRA. Run scripts/fetch-models.sh, then restart the engine.';
   } else {
     var tip = 'Applies Mothersuperior v9 real-audio decoder LoRA for studio-grade acoustic clarity, frequency separation, and clean lead vocals.';
     $('realaudio-field').title = tip;
@@ -3751,8 +3764,10 @@ function paintSource() {
   }
   if ($('source-expand-song')) {
     var hasMelody = Boolean(source && (source.has_score || isMidi || $('abc').value.trim()));
-    $('source-expand-song').disabled = !source;
+    var holdsTune = !State.options || State.options.hook_available !== false;
+    $('source-expand-song').disabled = !source || !holdsTune;
     $('source-expand-song').title = !source ? 'Choose a recording first'
+      : !holdsTune ? 'Holding a tune in a plan needs the ComfyUI engine.'
       : (hasMelody
         ? 'Expand this melody motif into a full multi-section song structure'
         : 'Transcribe this recording first to get melody notes to expand');
@@ -5552,7 +5567,9 @@ function openAbout() {
   if ($('about-model')) { $('about-model').textContent = about.model ? 'Model: ' + about.model : ''; }
   if ($('about-engine')) {
     var built = about.engine;
-    $('about-engine').textContent = !built ? '' : 'Engine: PyTorch ' + built.torch + (built.cuda ? ', CUDA ' + built.cuda : '') +
+    $('about-engine').textContent = about.engineName
+      ? 'Engine: ' + about.engineName + (about.engineVersion ? ' ' + about.engineVersion : '')
+      : !built ? '' : 'Engine: PyTorch ' + built.torch + (built.cuda ? ', CUDA ' + built.cuda : '') +
       (about.modelSlow ? ' \u00b7 the low-memory model is slow on CUDA 12' : '');
   }
   $('about-modal').classList.remove('hidden');
@@ -6382,9 +6399,23 @@ function paintHarmony() {
   var step = harmonyStep();
   $('harmony').disabled = !available;
   $('harmony-word').textContent = HARMONY_WORDS[step];
+  // The same node follows a structure exactly and sets the chord details, so they go with it.
+  var follow = $('follow-structure');
+  if (follow) {
+    follow.disabled = !available;
+    if (!available) { follow.checked = false; }
+    if ($('follow-wrap')) {
+      $('follow-wrap').classList.toggle('disabled', !available);
+      if (!available) { $('follow-wrap').title = 'Following a structure exactly needs the harmony control' + (cppEngine() ? ', on the ComfyUI engine.' : '.'); }
+    }
+  }
+  ['adv-chord-hold-limit', 'adv-chord-outside-bonus', 'adv-chord-sections'].forEach(function (id) {
+    if ($(id)) { $(id).disabled = !available; }
+  });
   $('harmony-hint').textContent = available
     ? HARMONY_HINTS[step]
-    : 'The engine has no harmony node. Rebuild the engine to use this.';
+    : (cppEngine() ? 'Plans are written by the stock planner: the harmony control needs the ComfyUI engine.'
+      : 'The engine has no harmony node. Rebuild the engine to use this.');
   if ($('style-lora') && $('style-lora').value) { paintStyleLoraNote(); }
 }
 

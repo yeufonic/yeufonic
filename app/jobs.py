@@ -17,7 +17,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import artwork, config, identities, instrumental, llm, loras, lyrics, score, stems, storage, trainsize, transpose, voices
+from . import artwork, config, engine_cpp, identities, instrumental, llm, loras, lyrics, score, stems, storage, trainsize, transpose, voices
 from .db import bump_average, execute, get_setting, one, rows
 from .engine import OUT_OF_MEMORY, Engine, load_template
 from .library import (audio_duration, ensure_peaks, fade_out_end, loudness, inside, normal_target, normalise, normalised_path, original_path, remove_tree,
@@ -27,7 +27,7 @@ personas = identities
 
 log = logging.getLogger("yue2.jobs")
 
-ENGINE = Engine(config.ENGINE_URL)
+ENGINE = engine_cpp.make_engine(config.ENGINE_URL, config.ENGINE_KIND)
 QUEUE: "asyncio.Queue[dict]" = asyncio.Queue()
 # Stems get their own lane.  Renders run on the GPU and stems on the CPU, so a
 # three minute separation must never sit in front of a render.

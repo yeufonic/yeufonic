@@ -255,6 +255,10 @@ def _log_training(rec: dict[str, Any], data: dict[str, Any]) -> None:
 
 
 class Engine:
+    # Which engine this is: ComfyUI here, yue2.cpp in engine_cpp.py.
+    kind = "comfyui"
+    name = "ComfyUI"
+
     def __init__(self, url: str) -> None:
         self.url = url.rstrip("/")
         self.client: httpx.AsyncClient | None = None

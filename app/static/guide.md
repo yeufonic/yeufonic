@@ -1453,6 +1453,13 @@ on both model sizes. The setting **Low-memory (int8) model training** chooses wh
 the full-quality model; on, it uses the model the app renders with. It starts on when only the low-memory
 model is installed. The README on GitHub has a section, *Choosing a model size*, with what to expect from each.
 
+A Docker install can also run the **yue2.cpp** engine instead of ComfyUI, for graphics cards with less
+memory, chosen when it is set up (`sh scripts/fetch-models.sh --cpp`); **About** says which engine is running.
+It makes songs, covers and instrumentals and transcribes recordings, with your style LoRAs. Training,
+lyrics and pictures made on this PC, and Harmony above Familiar, need the ComfyUI engine: with yue2.cpp
+those controls are off and say so, and an external LLM can still draft lyrics and draw pictures. The
+README's *Choosing an engine* has the whole list.
+
 **Check for a new version** is the one thing here that uses the internet on its own account: every
 four hours the app asks yeufonic.com whether a later release is out, and says so with a pill beside the
 version in the top right. That pill hands you the installer, or, for a Docker copy, the two commands
@@ -1674,7 +1681,7 @@ The app writes a consolidated, real-time log of every major action — score pla
 
 ## The engine's own page
 
-The engine is ComfyUI, and its own interface is reachable: <http://localhost:8189> with Docker, or
+The engine is ComfyUI (unless this install runs yue2.cpp, whose page there is a plain test bench), and its own interface is reachable: <http://localhost:8189> with Docker, or
 <http://localhost:8188> with the Windows install (the `engine_port` in `settings.ini`). It answers
 on this machine only, with no login.
 

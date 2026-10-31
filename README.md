@@ -405,6 +405,31 @@ runs, so read them as a comparison between the two columns, not as figures for y
 Our advice: use full quality if your card has the room, and try low memory if renders are slow or
 run out of memory.
 
+## Choosing an engine
+
+YuE2 runs on one of two engines, chosen when you set up. **ComfyUI** is the default and does everything
+on this page. **yue2.cpp**, a smaller native engine built on GGML, is for graphics cards with less memory:
+its download is about 5.4 GB rather than 19 GB, and it holds no model in memory between jobs. It writes
+plans, renders songs, covers and instrumentals, and transcribes recordings, with the same style LoRAs.
+What it does not do, the app leaves out, and says it needs the ComfyUI engine:
+
+| | ComfyUI | yue2.cpp |
+|---|---|---|
+| Songs, covers, instrumentals, score plans, transcription | yes | yes |
+| Style LoRAs, the instrumental LoRA, production polish | yes | yes |
+| Harmony above Familiar, Follow this structure exactly, Expand to full song | yes | no: plans come from YuE2's own planner |
+| Corpora and LoRA training | yes | no |
+| Lyrics drafted on this PC (Gemma) | yes | no: an external LLM, set up in Settings, drafts them |
+| Pictures drawn on this PC (FLUX.2 klein) | yes | no: an external image model draws them |
+| Stems and lyric hearing | on the GPU | on the CPU |
+
+With Docker, `sh scripts/fetch-models.sh --cpp` fetches its models into `models/yue2cpp` and writes
+`COMPOSE_FILE=compose.yml:compose.cpp.yml` to `.env`, so `docker compose up -d --build` builds and runs
+yue2.cpp in place of ComfyUI. Its YuE2 is the Q8 copy, near lossless; `YUE2CPP_MODEL=YuE2-3B-BF16.gguf`
+in `.env` (before fetching) picks the full-precision one, or `-Q6_K` / `-Q5_K_M` a smaller one. To go back,
+take the `COMPOSE_FILE` line out of `.env`, run `sh scripts/fetch-models.sh` and `docker compose up -d --build`.
+**About** says which engine is running. The Windows installer and the Mac app use ComfyUI.
+
 ## Quick start
 
 ```sh
@@ -412,6 +437,7 @@ git clone https://github.com/yeufonic/yeufonic.git
 cd yeufonic
 sh scripts/fetch-models.sh          # about 19 GB, and creates the folders below
 # sh scripts/fetch-models.sh --int8   # the smaller low-memory model instead: see Choosing a model size
+# sh scripts/fetch-models.sh --cpp    # the yue2.cpp engine instead (5.4 GB): see Choosing an engine
 # sh scripts/fetch-models.sh --pictures   # also FLUX.2 klein (8.3 GB), to draw take pictures here
 # sh scripts/fetch-models.sh --loras      # also 39 style LoRAs by their authors (3.8 GB, CC BY-NC 4.0)
 docker compose up -d --build
@@ -434,6 +460,8 @@ These need a rebuild rather than a setting.
 | `YUE2_TRAINER_REF` | pinned commit | which commit of ComfyUI-YuE2-Trainer to use, if it is included |
 | `COMFYUI_REF` | pinned commit | which commit of ComfyUI the engine is built from. See Contributing for how far it has drifted |
 | `TORCH_CUDA` | `cu130` | on the **engine** service: PyTorch's CUDA build. `cu130` needs a driver that supports CUDA 13.0; `cu128` runs on older drivers, with the low-memory model and Gemma much slower. Read from `.env` (`TORCH_CUDA=cu128`), so an update never changes it |
+| `CUDA_ARCHITECTURES` | every recent card | on the **engine-cpp** service (yue2.cpp): which NVIDIA GPU generations to build for. One builds much faster: `YUE2CPP_CUDA_ARCH=89-real` in `.env` for an RTX 40, `86-real` for an RTX 30 |
+| `YUE2CPP_REF` | pinned commit | on the **engine-cpp** service: which commit of yue2.cpp to build, with the patches in `engine-cpp/patches` |
 
 They are set under `build: args:` in `compose.yml`, or passed on the command line:
 
@@ -781,7 +809,8 @@ built from, and the ports itself: change those in its `settings.ini` instead (se
 |---|---|---|
 | `IMPORT_ROOTS` | `/import` | folders a corpus may be built from, comma-separated, as paths inside the container. Each needs a read-only volume mount; `compose.override.yml.example` has examples. `./data/corpus` is always offered |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1,::1` | host names the page may be reached by. Add a LAN name or address when you publish the port; `*` turns the check off |
-| `ENGINE_URL` | `http://127.0.0.1:8188` | where ComfyUI answers. Change it when the engine runs on another machine |
+| `ENGINE_URL` | `http://127.0.0.1:8188` | where the engine answers. Change it when the engine runs on another machine |
+| `ENGINE_KIND` | `comfyui` | which engine that is: `comfyui`, or `yue2cpp` for yue2.cpp's server (`compose.cpp.yml` sets it). See Choosing an engine |
 | `ENGINE_OUTPUT_DIR` | unset | the engine's output folder, mounted into the app. Renders are removed from it once the app has its copy |
 | `MAX_UPLOAD_MB` | `2048` | the largest recording you can upload, in megabytes. The engine has its own ceiling, `ENGINE_MAX_UPLOAD_MB` on the engine service, set to the same figure: raise both together |
 | `STEMS_ON_GPU` | `1` | `0` keeps stems, vocal separation and lyric hearing on the CPU whatever Settings says |

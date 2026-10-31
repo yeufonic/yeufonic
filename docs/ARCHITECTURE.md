@@ -212,6 +212,20 @@ A trimmed example of what `POST /prompt` receives for a plan (the whole body is
 `YuE2GenerateABCHarmony` (from `engine/custom_nodes/yue2_harmony`), which nudges the planner away
 from chords it has just used.
 
+### The other engine: yue2.cpp
+
+An install can run yue2.cpp's server (`engine-cpp/`, `compose.cpp.yml`) in place of ComfyUI. The app
+builds the same graphs either way; `app/engine_cpp.py` reads them and sends what they ask for to
+yue2.cpp instead: a render to `POST /synth`, a plan to `POST /plan`, a transcription to
+`POST /transcribe` with the recording, and each `LoraLoader` on the text side or the sampler's side as
+an adapter with that half's strength (`scale_ar`, `scale_nar`). It polls `GET /job`, reads progress from
+the server's log stream, and hands the result back shaped like ComfyUI's history, so the job code does
+not know which engine it spoke to. Graphs that only ComfyUI can run (training, Gemma, FLUX.2 klein,
+the GPU's stems and hearing) are refused, and the engine's options say so beforehand, which is how the
+page knows to turn those controls off. The patches in `engine-cpp/patches` add what the server lacked:
+plan-only jobs, per-half adapter strengths, LoRAs that also train the timestep embedding, a rescan of
+the adapter folder, and the device's memory in `/props`.
+
 ## How YuE2 makes a song
 
 YuE2 is two models in one checkpoint. The **planner** is a language model (it lives under
