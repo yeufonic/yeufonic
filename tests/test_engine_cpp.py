@@ -389,3 +389,11 @@ def test_a_picture_description_goes_to_gemma_too():
     take = {"id": "t1", "title": "Harbour", "style": "folk", "lyrics": "[verse]\nla"}
     job = translate(artwork.describe_graph(take, 5))
     assert job["kind"] == "text" and job["asks"][0]["options"]["seed"] == 5
+
+
+def test_the_page_sends_familiar_when_the_engine_has_no_harmony_control():
+    """The form starts at Varied: on yue2.cpp the slider is off, and a song must still be made, at Familiar."""
+    from pathlib import Path
+    js = (Path(__file__).resolve().parents[1] / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    helper = js[js.index("function harmonyStep() {"):js.index("function paintHarmony() {")]
+    assert "harmony_available === false" in helper and "return 0;" in helper

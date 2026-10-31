@@ -6389,7 +6389,10 @@ var HARMONY_HINTS = [
   'Adventurous, and reaches further outside the key.'
 ];
 
+/* Familiar on an engine without the harmony control, whatever the slider was left at: the form
+   starts at Varied, and a saved form or a take being edited may hold more. */
 function harmonyStep() {
+  if (State.options && State.options.harmony_available === false) { return 0; }
   var step = parseInt($('harmony').value, 10);
   return isNaN(step) ? 0 : Math.max(0, Math.min(HARMONY_WORDS.length - 1, step));
 }
@@ -6398,6 +6401,7 @@ function paintHarmony() {
   var available = State.options.harmony_available !== false;
   var step = harmonyStep();
   $('harmony').disabled = !available;
+  if (!available) { $('harmony').value = '0'; }
   $('harmony-word').textContent = HARMONY_WORDS[step];
   // The same node follows a structure exactly and sets the chord details, so they go with it.
   var follow = $('follow-structure');
