@@ -410,7 +410,7 @@ run out of memory.
 YuE2 runs on one of two engines, chosen when you set up. **ComfyUI** is the default and does everything on
 this page. **yue2.cpp**, a smaller native engine, is for graphics cards with less memory: it makes songs,
 covers and instrumentals, and with its add-ons drafts lyrics and draws take pictures on your PC, but it does
-not train LoRAs and has no Harmony control. [docs/ENGINES.md](docs/ENGINES.md) has a table of what each one
+not train LoRAs. [docs/ENGINES.md](docs/ENGINES.md) has a table of what each one
 does, how to choose, and how to switch, with Docker (`sh scripts/fetch-models.sh --cpp`).
 
 ## Quick start

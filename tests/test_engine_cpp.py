@@ -73,9 +73,38 @@ def test_a_plan_becomes_a_plan_request_with_its_variety_and_planner_lora():
     assert job["output"] == "3"
 
 
-def test_a_harmony_plan_is_written_by_the_stock_planner():
-    job = translate(build_plan_graph({**TAKE, "harmony": 2}))
-    assert job["kind"] == "plan" and "chord_strength" not in job["body"]
+def test_a_harmony_plan_carries_its_steering():
+    job = translate(build_plan_graph({**TAKE, "harmony": 3, "follow_structure": 1, "kind": "song",
+                                      "lyrics": "[verse]\nla\n[chorus]\nla"}))
+    h = job["body"]["harmony"]
+    assert job["kind"] == "plan" and h["chord_identity"] == "root" and h["chord_strength"] == 32.0
+    assert h["section_strength"] > 0 and h["follow_sections"] == ["verse", "chorus"]
+
+
+def test_a_familiar_plan_asks_for_no_steering():
+    assert "harmony" not in translate(build_plan_graph(TAKE))["body"]
+
+
+def test_a_hook_is_held_in_the_plan():
+    hook = "X:1\nM:4/4\nL:1/16\nK:D\nV: Vocal\n|A4 F4|\n"
+    h = translate(build_plan_graph({**TAKE, "hook_abc": hook, "hook_section": "chorus"}))["body"]["harmony"]
+    assert h["hook_head"].endswith("K:D\n") and h["hook_body"].startswith("V: Vocal") and h["hook_section"] == "chorus"
+
+
+def test_the_harmony_control_is_offered_when_the_build_has_it(monkeypatch):
+    monkeypatch.setattr(config, "CHECKPOINT", config.CHECKPOINT)
+
+    class Steering(FakeServer):
+        def __call__(self, request):
+            res = super().__call__(request)
+            if request.url.path == "/props":
+                body = json.loads(res.content)
+                body["features"] = ["plan", "adapter_halves", "harmony"]
+                return httpx.Response(200, json=body)
+            return res
+    engine = _engine(Steering())
+    asyncio.run(engine.refresh_options())
+    assert engine.options["harmony"] is True and engine.options["hook"] is True
 
 
 def test_a_transcription_sends_the_uploaded_recording():

@@ -225,7 +225,8 @@ stable-diffusion.cpp's server (`/sdcpp/v1/models/load`, `img_gen`, `unload`), ea
 Graphs that only ComfyUI can run (training, Gemma listening to audio, the GPU's stems and hearing) are refused, and the engine's options say so beforehand, which is how the
 page knows to turn those controls off. The patches in `engine-cpp/patches` add what the server lacked:
 plan-only jobs, per-half adapter strengths, LoRAs that also train the timestep embedding, a rescan of
-the adapter folder, and the device's memory in `/props`.
+the adapter folder, the device's memory in `/props`, and (0002) a C++ port of the `yue2_harmony` node's
+steering, so a `YuE2GenerateABCHarmony` graph's settings travel in the plan request's `harmony` object.
 
 ## How YuE2 makes a song
 

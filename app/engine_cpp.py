@@ -138,6 +138,20 @@ def _output_node(graph: dict, *class_types: str) -> str | None:
     return nid
 
 
+# The harmony node's inputs, as yue2.cpp's harmony object (its patch 0002 ports the node).
+HARMONY_FIELDS = {"chord_identity": str, "chord_strength": float, "chord_window": int, "hold_limit": int,
+                  "outside_bonus": float, "outside_limit": float, "section_strength": float, "section_open": int,
+                  "hook_head": str, "hook_body": str, "hook_section": str}
+
+
+def harmony_of(inputs: dict) -> dict:
+    out = {name: kind(inputs[name]) for name, kind in HARMONY_FIELDS.items() if inputs.get(name) is not None}
+    follow = [part.strip() for part in str(inputs.get("follow_sections") or "").split(",") if part.strip()]
+    if follow:
+        out["follow_sections"] = follow
+    return out
+
+
 def translate(graph: dict) -> dict:
     """What a graph asks for, as a yue2.cpp request: {"kind", "path", "body"} plus, for the
     answer, the id of the node ComfyUI would have put it on.  Raises for a graph this engine
@@ -177,8 +191,6 @@ def translate(graph: dict) -> dict:
     nid, plan = _find(graph, PLAN_NODES)
     if plan:
         inputs = plan["inputs"]
-        if plan.get("class_type") != "YuE2GenerateABC":
-            log.info("yue2.cpp has no harmony control: this plan is written by the stock planner")
         body = {
             "style": inputs.get("style") or "",
             "lyrics": inputs.get("lyrics") or "",
@@ -195,6 +207,8 @@ def translate(graph: dict) -> dict:
             },
             "adapters": adapters_for(graph, inputs.get("clip"), None),
         }
+        if plan.get("class_type") == "YuE2GenerateABCHarmony":
+            body["harmony"] = harmony_of(inputs)
         return {"kind": "plan", "path": "/plan", "body": body,
                 "output": _output_node(graph, "PreviewAny") or nid}
     _, unet = _find(graph, "UNETLoader")
@@ -476,6 +490,8 @@ class CppEngine(Engine):
         props = r.json()
         self.props = props
         loras = [a["name"] for a in props.get("adapters") or [] if a.get("name")]
+        # The harmony control, and the hook it holds, are in this build when it says so (patch 0002).
+        steering = "harmony" in (props.get("features") or [])
         model = Path(str(props.get("model") or "")).name or "yue2.cpp"
         config.CHECKPOINT = model
         config.CHECKPOINT_LABELS.setdefault(model, cpp_model_label(model))
@@ -483,10 +499,10 @@ class CppEngine(Engine):
             "engine": KIND,
             "checkpoints": [model],
             "audio_encoders": [],
-            # Not on this engine: the harmony control, the recorded tune held in a plan, the GPU's
-            # stems and hearing (the app's CPU does them), Gemma, pictures, training.
-            "harmony": False,
-            "hook": False,
+            # Not on this engine: the GPU's stems and hearing (the app's CPU does them) and training.
+            # Gemma and pictures are there when their services are; the harmony control when the build has it.
+            "harmony": steering,
+            "hook": steering,
             "peak_guard": True,       # done by the app as the audio comes down (level_to_flac)
             "separate": False,
             "hear": False,

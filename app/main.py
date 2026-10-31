@@ -1882,8 +1882,8 @@ async def expand_melody_to_song(body: ComposerExpandIn) -> dict:
     if not body.source_id:
         raise HTTPException(400, "Choose a recording to make a song from.")
     if ENGINE.options_loaded and not ENGINE.options.get("hook"):
-        raise HTTPException(400, _needs_comfyui("Holding a tune in a plan") or
-                            "The engine cannot hold a tune in a plan yet. Rebuild it: docker compose build engine, then restart.")
+        raise HTTPException(400, "The engine cannot hold a tune in a plan yet. Rebuild it: docker compose build "
+                                 + ("engine-cpp" if ENGINE.kind != "comfyui" else "engine") + ", then restart.")
     source = one("SELECT * FROM sources WHERE id = ?", (body.source_id,))
     if not source:
         raise HTTPException(404, "no such source")
@@ -3107,9 +3107,9 @@ def _needs_comfyui(feature: str) -> str | None:
 
 def _check_harmony(step: int | None) -> None:
     if step and ENGINE.options_loaded and not ENGINE.options.get("harmony"):
-        raise HTTPException(400, _needs_comfyui("Harmony above Familiar") or
-                            "The engine has no harmony node, so Harmony must stay at Familiar. "
-                            "Rebuild the engine: docker compose up -d --build engine")
+        raise HTTPException(400, "The engine has no harmony control, so Harmony must stay at Familiar. "
+                                 "Rebuild the engine: docker compose up -d --build "
+                                 + ("engine-cpp" if ENGINE.kind != "comfyui" else "engine"))
 
 
 def _idle_take(take_id: str) -> dict:

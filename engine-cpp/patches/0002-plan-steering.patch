@@ -1,0 +1,968 @@
+From f99a5d667f5ae33d20d333de715f0d46fe43d067 Mon Sep 17 00:00:00 2001
+From: Paul Shields <noisyoly@gmail.com>
+Date: Sat, 31 Oct 2026 16:23:04 +0000
+Subject: [PATCH] Plans: steering the score's chords, sections and structure
+
+A request's harmony object steers the first stage while it writes the score:
+recently used chords lose logits for their share of recent chord changes (by
+exact spelling or by root), holding one root past a limit costs more each
+bar, a section may not open the way the one before it did, roots outside the
+key can be favoured while few recent chords are outside it, the names after
+'%' can be held to a given list of sections in order, and a hook (a tune's
+header and bars) can be held: the plan opens with its header and every
+section of its name holds its bars.
+
+The steering only adds to or takes from logits before the distribution, one
+tracker per song of a batch, in plan-only jobs and in a full generate's plan.
+Nothing asked for leaves the planner as it was.  /props lists the features
+this build adds to the protocol.
+---
+ src/generate.h       |  24 +-
+ src/harmony.h        | 690 +++++++++++++++++++++++++++++++++++++++++++
+ src/pipeline.h       |  34 ++-
+ src/request.cpp      |  48 +++
+ src/request.h        |   6 +
+ tools/yue-server.cpp |   7 +
+ 6 files changed, 805 insertions(+), 4 deletions(-)
+ create mode 100644 src/harmony.h
+
+diff --git a/src/generate.h b/src/generate.h
+index 120b9e1..74d30bf 100644
+--- a/src/generate.h
++++ b/src/generate.h
+@@ -12,6 +12,7 @@
+ // holds for the whole loop.
+ #pragma once
+ 
++#include "harmony.h"
+ #include "qwen3-lm.h"
+ #include "sampling.h"
+ #include "timer.h"
+@@ -65,8 +66,9 @@ static bool yue2_generate(Qwen3LM *                             lm,
+                           int64_t                               seed,
+                           Yue2Phase                             phase,
+                           std::vector<Yue2Generation> *         out,
+-                          bool (*cancelled)(void *) = nullptr,
+-                          void * cancel_data        = nullptr) {
++                          bool (*cancelled)(void *)              = nullptr,
++                          void *                         cancel_data = nullptr,
++                          std::vector<HarmonyTracker *> * steer       = nullptr) {
+     const int B       = (int) prefixes.size();
+     const int context = kv->cfg.max_seq_len;
+     bool      guided  = cfg_scale != 1.0f;
+@@ -124,6 +126,9 @@ static bool yue2_generate(Qwen3LM *                             lm,
+     std::vector<int>           owed(B, -1);
+     std::vector<int>           tokens(N);
+     std::vector<float>         mixed(guided ? (size_t) rows : 0);
++    // The score's steering (harmony.h), one tracker per song, on a copy of the logits
++    std::vector<float>                 steered(steer ? (size_t) rows : 0);
++    std::vector<std::pair<int, float>> adjust;
+     std::vector<Yue2Candidate> candidates;
+     int                        step = 0;
+     for (;; step++) {
+@@ -144,6 +149,21 @@ static bool yue2_generate(Qwen3LM *                             lm,
+                     }
+                     logits = mixed.data();
+                 }
++                HarmonyTracker * tracker = steer && i < (int) steer->size() ? (*steer)[(size_t) i] : nullptr;
++                if (tracker && phase == YUE2_PHASE_ABC) {
++                    tracker->feed(g.tokens);
++                    tracker->bias(logits, &adjust);
++                    if (!adjust.empty()) {
++                        std::copy(logits, logits + rows, steered.begin());
++                        for (const auto & a : adjust) {
++                            int k = a.first - row0;
++                            if (k >= 0 && k < rows) {
++                                steered[(size_t) k] -= a.second;
++                            }
++                        }
++                        logits = steered.data();
++                    }
++                }
+                 yue2_distribution(logits, s, g.tokens, step, phase, candidates);
+                 int token = yue2_draw(candidates, seed + i, step);
+                 tokens[i] = token;
+diff --git a/src/harmony.h b/src/harmony.h
+new file mode 100644
+index 0000000..844742a
+--- /dev/null
++++ b/src/harmony.h
+@@ -0,0 +1,690 @@
++#pragma once
++// harmony.h: steering the score plan's chords and structure
++//
++// YuE2's planner tends to write one four-chord loop and use it for every
++// section. The stock repetition penalty cannot fix that: it pushes against
++// every recent token, bar lines and section names included, and breaks the
++// score long before the chords change. This pushes against recently used
++// chords only, while the planner writes a chord symbol ("Cmaj7"): a candidate
++// token that would spell a recently used chord loses logits in proportion to
++// that chord's share of recent chord changes. Holding the current chord is
++// free up to a limit; past it, staying on the same root costs more with every
++// bar. Two ways to name "the same chord": by exact spelling (Cmaj7 and C
++// differ), or by root (C, Cmaj7 and C/E are one).
++//
++// A section penalty keeps a section from opening the way the one before it
++// did. An outside bonus favours roots outside the key of the K: line while
++// few recent chords are outside it. A structure can be followed exactly: the
++// name written after a "%" must be the next of the given sections, no other
++// section may start once they are used, and the plan may not end before the
++// last has some chords. A hook (a tune's header and bars) can be held: the
++// plan opens with its header, and every section of its name holds its bars.
++//
++// Nothing is forbidden outright and no chord is chosen: the tracker only adds
++// to or takes from logits before the distribution. With nothing asked for it
++// is inactive and the plan is the stock planner's. A port of the Yeufonic
++// app's ComfyUI node (yue2_harmony), kept to its behaviour.
++
++#include "bpe.h"
++#include "prompt.h"
++
++#include <algorithm>
++#include <cctype>
++#include <map>
++#include <string>
++#include <unordered_map>
++#include <utility>
++#include <vector>
++
++struct Yue2Harmony {
++    std::string              chord_identity   = "root";  // "root" or "spelling"
++    float                    chord_strength   = 0.0f;    // logits taken for a chord's share of recent changes
++    int                      chord_window     = 16;      // recent chord changes remembered
++    int                      hold_limit       = 8;       // chords one root may hold before it costs, 0 no limit
++    float                    outside_bonus    = 0.0f;    // root mode: logits added to a root outside the key
++    float                    outside_limit    = 0.25f;   // the bonus stops at this share of recent chords outside
++    float                    section_strength = 0.0f;    // logits taken from copying the last section's opening
++    int                      section_open     = 4;       // opening chords compared between sections
++    std::vector<std::string> follow_sections;            // section names in order, empty is off
++    std::string              hook_head;                  // the header the plan opens with, through K:
++    std::string              hook_body;                  // the bars every hook section holds
++    std::string              hook_section;               // the section the hook fills
++
++    bool any() const {
++        return chord_strength > 0.0f || outside_bonus > 0.0f || section_strength > 0.0f ||
++               !follow_sections.empty() || !hook_head.empty() || (!hook_body.empty() && !hook_section.empty());
++    }
++};
++
++static const float HARMONY_FOLLOW_BOOST       = 50.0f;
++static const float HARMONY_HOOK_BOOST         = 100.0f;
++static const float HARMONY_HOOK_LONGEST       = 20.0f;
++static const int   HARMONY_FOLLOW_LAST_CHORDS = 4;
++
++// Decoded text of every planner token, built once per tokenizer
++static const std::vector<std::string> & harmony_vocab(const BPETokenizer * tok) {
++    static const BPETokenizer *     built_for = nullptr;
++    static std::vector<std::string> vocab;
++    if (built_for == tok) {
++        return vocab;
++    }
++    std::unordered_map<std::string, char> str2byte;
++    for (int b = 0; b < 256; b++) {
++        str2byte[tok->byte2str[b]] = (char) b;
++    }
++    vocab.assign((size_t) YUE2_EOD, std::string());
++    for (int id = 0; id < YUE2_EOD && id < (int) tok->id_to_str.size(); id++) {
++        const std::string & enc = tok->id_to_str[(size_t) id];
++        std::string         out;
++        size_t              pos = 0;
++        while (pos < enc.size()) {
++            unsigned char lead = (unsigned char) enc[pos];
++            size_t        len  = lead < 0x80 ? 1 : (lead < 0xE0 ? 2 : 3);
++            auto          it   = str2byte.find(enc.substr(pos, len));
++            if (it != str2byte.end()) {
++                out += it->second;
++            }
++            pos += len;
++        }
++        vocab[(size_t) id] = out;
++    }
++    built_for = tok;
++    return vocab;
++}
++
++static int harmony_note(char c) {
++    switch (c) {
++        case 'C': return 0;
++        case 'D': return 2;
++        case 'E': return 4;
++        case 'F': return 5;
++        case 'G': return 7;
++        case 'A': return 9;
++        case 'B': return 11;
++        default: return -1;
++    }
++}
++
++// Pitch class of a chord's root, or -1. A lone letter counts as the natural.
++static int harmony_root(const std::string & text) {
++    if (text.empty() || harmony_note(text[0]) < 0) {
++        return -1;
++    }
++    int pc = harmony_note(text[0]);
++    if (text.size() > 1 && text[1] == '#') {
++        pc += 1;
++    } else if (text.size() > 1 && text[1] == 'b') {
++        pc -= 1;
++    }
++    return ((pc % 12) + 12) % 12;
++}
++
++static bool harmony_is_header(const std::string & line) {
++    return line.size() >= 2 && std::isalpha((unsigned char) line[0]) && line[1] == ':';
++}
++
++// "% name" as a whole line: the name, lower case and trimmed, or empty
++static std::string harmony_section_name(const std::string & line) {
++    if (line.empty() || line[0] != '%') {
++        return "";
++    }
++    size_t i = 1;
++    while (i < line.size() && std::isspace((unsigned char) line[i])) {
++        i++;
++    }
++    if (i >= line.size() || !std::isalpha((unsigned char) line[i])) {
++        return "";
++    }
++    std::string name;
++    for (size_t j = i; j < line.size(); j++) {
++        unsigned char c = (unsigned char) line[j];
++        if (!(std::isalnum(c) || c == '_' || c == ' ' || c == '-')) {
++            return "";
++        }
++        name += (char) std::tolower(c);
++    }
++    while (!name.empty() && name.back() == ' ') {
++        name.pop_back();
++    }
++    return name;
++}
++
++static std::string harmony_lower_trim(const std::string & s) {
++    size_t a = 0, b = s.size();
++    while (a < b && std::isspace((unsigned char) s[a])) {
++        a++;
++    }
++    while (b > a && std::isspace((unsigned char) s[b - 1])) {
++        b--;
++    }
++    std::string out;
++    for (size_t i = a; i < b; i++) {
++        out += (char) std::tolower((unsigned char) s[i]);
++    }
++    return out;
++}
++
++static bool harmony_starts_with(const std::string & s, const std::string & prefix) {
++    return s.size() >= prefix.size() && s.compare(0, prefix.size(), prefix) == 0;
++}
++
++// The chord-symbol state over text. Quotes on header lines (V: name="...")
++// are not chords. partial_open says a symbol is being written.
++struct HarmonyWalk {
++    std::string              line;
++    bool                     open = false;
++    std::string              partial;
++    std::vector<std::string> done;
++};
++
++static void harmony_walk(const std::string & text, HarmonyWalk * w) {
++    w->done.clear();
++    for (char ch : text) {
++        if (ch == '\n') {
++            w->line.clear();
++            w->open = false;
++            w->partial.clear();
++            continue;
++        }
++        if (!w->open) {
++            if (ch == '"' && !harmony_is_header(w->line)) {
++                w->open = true;
++                w->partial.clear();
++            }
++        } else if (ch == '"') {
++            w->done.push_back(w->partial);
++            w->open = false;
++            w->partial.clear();
++        } else {
++            w->partial += ch;
++        }
++        w->line += ch;
++    }
++}
++
++class HarmonyTracker {
++  public:
++    HarmonyTracker(const std::vector<std::string> & vocab, const Yue2Harmony & h, int candidates) :
++        vocab_(vocab),
++        h_(h),
++        candidates_(std::max(64, candidates)) {
++        root_mode_     = h.chord_identity != "spelling";
++        outside_bonus_ = root_mode_ ? h.outside_bonus : 0.0f;
++        for (const std::string & name : h.follow_sections) {
++            std::string n = harmony_lower_trim(name);
++            if (!n.empty()) {
++                wanted_.push_back(n);
++            }
++        }
++        hook_body_    = h.hook_body;
++        hook_section_ = hook_body_.empty() ? "" : harmony_lower_trim(h.hook_section);
++        holding_      = h.hook_head;
++        for (int i = 0; i < (int) vocab_.size(); i++) {
++            const std::string & t = vocab_[(size_t) i];
++            if (t.size() >= 2 && t[0] == '"' && harmony_note(t[1]) >= 0) {
++                chord_starts_.push_back(i);
++            }
++        }
++    }
++
++    bool chord_active() const {
++        return h_.chord_strength > 0.0f || outside_bonus_ > 0.0f || h_.section_strength > 0.0f;
++    }
++
++    bool active() const { return chord_active() || !wanted_.empty() || !holding_.empty() || !hook_body_.empty(); }
++
++    int hooks() const { return hooks_; }
++
++    // Keep up with what the planner has written
++    void feed(const std::vector<int> & history) {
++        for (size_t k = (size_t) seen_; k < history.size(); k++) {
++            int                 token = history[k];
++            const std::string & text  = token >= 0 && token < (int) vocab_.size() ? vocab_[(size_t) token] : empty_;
++            if (!have_scale_ && root_mode_) {
++                head_ += text;
++                find_key();
++            }
++            follow_hook(text);
++            follow_sections(text);
++            harmony_walk(text, &walk_);
++            for (const std::string & symbol : walk_.done) {
++                int root = harmony_root(symbol);
++                if (root < 0) {
++                    continue;
++                }
++                section_chords_++;
++                if ((int) opening_.size() < h_.section_open && (opening_.empty() || opening_.back() != root)) {
++                    opening_.push_back(root);
++                }
++                if (root == last_root_) {
++                    held_++;
++                } else {
++                    last_root_ = root;
++                    held_      = 1;
++                }
++                std::string ident = identity(symbol);
++                if (changes_.empty() || changes_.back() != ident) {
++                    changes_.push_back(ident);
++                    if ((int) changes_.size() > h_.chord_window) {
++                        changes_.erase(changes_.begin());
++                    }
++                }
++            }
++        }
++        seen_ = (int) history.size();
++    }
++
++    // Logits for this step, as token -> value to subtract: the chords' and the
++    // structure's together, or the hook's alone while it holds the planner to
++    // its text. logits are the phase rows, indexed by token id.
++    void bias(const float * logits, std::vector<std::pair<int, float>> * out) {
++        out->clear();
++        if (hook_bias(out)) {
++            return;
++        }
++        std::map<int, float> merged;
++        if (chord_active()) {
++            chord_bias(logits, &merged);
++        }
++        if (!wanted_.empty()) {
++            follow_bias(logits, &merged);
++        }
++        out->assign(merged.begin(), merged.end());
++    }
++
++  private:
++    const std::vector<std::string> &  vocab_;
++    Yue2Harmony                       h_;
++    int                               candidates_;
++    bool                              root_mode_;
++    float                             outside_bonus_;
++    std::vector<std::string>          wanted_;
++    int                               section_count_  = 0;
++    int                               section_chords_ = 0;
++    std::vector<int>                  opening_, previous_;
++    int                               seen_ = 0;
++    HarmonyWalk                       walk_;
++    std::vector<std::string>          changes_;
++    int                               held_      = 0;
++    int                               last_root_ = -1;
++    std::string                       head_;
++    size_t                            key_scan_   = 0;  // where the next unread line of head_ starts
++    bool                              have_scale_ = false;
++    bool                              scale_[12]  = {};
++    std::vector<int>                  chord_starts_;
++    std::string                       hook_body_, hook_section_, holding_;
++    bool                              held_hook_  = false;
++    bool                              after_hook_ = false;
++    std::string                       hook_line_;
++    int                               hooks_ = 0;
++    std::map<char, std::vector<int>>  by_first_;
++    bool                              by_first_built_ = false;
++    std::vector<int>                  sections_start_;
++    bool                              sections_start_built_ = false;
++    std::map<std::string, std::vector<int>> spelling_;
++    std::string                       empty_;
++
++    std::string identity(const std::string & symbol) const {
++        return root_mode_ ? std::to_string(harmony_root(symbol)) : symbol;
++    }
++
++    // The key from the K: line, once the line is complete
++    void find_key() {
++        size_t & pos = key_scan_;
++        while (pos < head_.size()) {
++            size_t eol = head_.find('\n', pos);
++            if (eol == std::string::npos) {
++                return;
++            }
++            std::string line = head_.substr(pos, eol - pos);
++            if (line.size() >= 2 && line[0] == 'K' && line[1] == ':') {
++                size_t i = 2;
++                while (i < line.size() && std::isspace((unsigned char) line[i])) {
++                    i++;
++                }
++                if (i < line.size() && line[i] >= 'A' && line[i] <= 'G') {
++                    std::string note(1, line[i]);
++                    if (i + 1 < line.size() && (line[i + 1] == '#' || line[i + 1] == 'b')) {
++                        note += line[i + 1];
++                    }
++                    bool        minor = i + note.size() < line.size() && line[i + note.size()] == 'm';
++                    static const int major_steps[] = { 0, 2, 4, 5, 7, 9, 11 };
++                    static const int minor_steps[] = { 0, 2, 3, 5, 7, 8, 10 };
++                    int         tonic = harmony_root(note);
++                    for (int s : minor ? minor_steps : major_steps) {
++                        scale_[(tonic + s) % 12] = true;
++                    }
++                    have_scale_ = true;
++                    return;
++                }
++            }
++            pos = eol + 1;
++        }
++    }
++
++    void follow_hook(const std::string & text) {
++        for (char ch : text) {
++            if (!holding_.empty()) {
++                if (ch == holding_[0]) {
++                    holding_.erase(0, 1);
++                    if (holding_.empty()) {
++                        after_hook_ = held_hook_;
++                        held_hook_  = false;
++                        hook_line_.clear();
++                    }
++                    continue;
++                }
++                holding_.clear();
++                held_hook_ = false;
++            }
++            after_hook_ = false;
++            if (ch != '\n') {
++                hook_line_ += ch;
++                continue;
++            }
++            std::string found = harmony_section_name(hook_line_);
++            if (!hook_section_.empty() && !found.empty() && found == hook_section_) {
++                holding_   = hook_body_;
++                held_hook_ = true;
++                hooks_++;
++            }
++            hook_line_.clear();
++        }
++    }
++
++    void follow_sections(const std::string & text) {
++        std::string line = walk_.line;
++        for (char ch : text) {
++            if (ch != '\n') {
++                line += ch;
++                continue;
++            }
++            if (!harmony_section_name(line).empty()) {
++                previous_ = opening_;
++                opening_.clear();
++                section_count_++;
++                section_chords_ = 0;
++            }
++            line.clear();
++        }
++    }
++
++    // Every token that could be the next piece of text, by its first character
++    void tokens_starting(const std::string & text, std::vector<int> * out) {
++        if (!by_first_built_) {
++            for (int i = 0; i < (int) vocab_.size(); i++) {
++                if (!vocab_[(size_t) i].empty()) {
++                    by_first_[vocab_[(size_t) i][0]].push_back(i);
++                }
++            }
++            by_first_built_ = true;
++        }
++        out->clear();
++        if (text.empty()) {
++            return;
++        }
++        auto it = by_first_.find(text[0]);
++        if (it == by_first_.end()) {
++            return;
++        }
++        for (int i : it->second) {
++            if (harmony_starts_with(text, vocab_[(size_t) i])) {
++                out->push_back(i);
++            }
++        }
++    }
++
++    bool hook_bias(std::vector<std::pair<int, float>> * out) {
++        if (!holding_.empty()) {
++            std::vector<int> pieces;
++            tokens_starting(holding_, &pieces);
++            if (pieces.empty()) {
++                return false;
++            }
++            int longest = pieces[0];
++            for (int i : pieces) {
++                if (vocab_[(size_t) i].size() > vocab_[(size_t) longest].size()) {
++                    longest = i;
++                }
++            }
++            for (int i : pieces) {
++                out->push_back({ i, -(HARMONY_HOOK_BOOST + (i == longest ? HARMONY_HOOK_LONGEST : 0.0f)) });
++            }
++            return true;
++        }
++        if (!after_hook_) {
++            return false;
++        }
++        if (!sections_start_built_) {
++            for (int i = 0; i < (int) vocab_.size(); i++) {
++                const std::string & p = vocab_[(size_t) i];
++                if (!p.empty() && p[0] == '%' && !harmony_starts_with(p, "%%")) {
++                    sections_start_.push_back(i);
++                }
++            }
++            sections_start_built_ = true;
++        }
++        bool more = wanted_.empty() || section_count_ < (int) wanted_.size();
++        if (more) {
++            for (int i : sections_start_) {
++                out->push_back({ i, -HARMONY_HOOK_BOOST });
++            }
++        }
++        if (wanted_.empty() || !more) {
++            out->push_back({ YUE2_ABC_END, -HARMONY_HOOK_BOOST });
++        }
++        return !out->empty();
++    }
++
++    // The highest-scoring planner tokens, as the candidates a bias is worth computing for
++    void top_tokens(const float * logits, std::vector<int> * out) const {
++        out->clear();
++        std::vector<std::pair<float, int>> heap;
++        heap.reserve((size_t) candidates_ + 1);
++        for (int i = 0; i < YUE2_EOD; i++) {
++            float v = logits[i];
++            if ((int) heap.size() < candidates_) {
++                heap.push_back({ v, i });
++                std::push_heap(heap.begin(), heap.end(), std::greater<std::pair<float, int>>());
++            } else if (v > heap.front().first) {
++                std::pop_heap(heap.begin(), heap.end(), std::greater<std::pair<float, int>>());
++                heap.back() = { v, i };
++                std::push_heap(heap.begin(), heap.end(), std::greater<std::pair<float, int>>());
++            }
++        }
++        std::sort(heap.begin(), heap.end(), std::greater<std::pair<float, int>>());
++        for (auto & e : heap) {
++            out->push_back(e.second);
++        }
++    }
++
++    void follow_bias(const float * logits, std::map<int, float> * merged) {
++        follow_line(logits, merged);
++        // The plan may not end with sections still to write, or before the last has some chords
++        if (section_count_ < (int) wanted_.size() || section_chords_ < HARMONY_FOLLOW_LAST_CHORDS) {
++            if (merged->find(YUE2_ABC_END) == merged->end()) {
++                (*merged)[YUE2_ABC_END] = HARMONY_FOLLOW_BOOST;
++            }
++        }
++    }
++
++    void follow_line(const float * logits, std::map<int, float> * merged) {
++        const std::string & line = walk_.line;
++        if (harmony_starts_with(line, "%%")) {
++            return;
++        }
++        if (line.empty()) {
++            if (section_count_ < (int) wanted_.size()) {
++                return;
++            }
++            std::vector<int> top;
++            top_tokens(logits, &top);
++            for (int t : top) {
++                if (!vocab_[(size_t) t].empty() && vocab_[(size_t) t][0] == '%') {
++                    (*merged)[t] += HARMONY_FOLLOW_BOOST;
++                }
++            }
++            return;
++        }
++        if (line[0] != '%' || section_count_ >= (int) wanted_.size()) {
++            return;
++        }
++        std::string target  = " " + wanted_[(size_t) section_count_];
++        std::string content = line.substr(1);
++        if (!harmony_starts_with(target, content)) {
++            return;  // off the structure already
++        }
++        std::string remaining = target.substr(content.size()) + "\n";
++        auto        it        = spelling_.find(remaining);
++        if (it == spelling_.end()) {
++            std::vector<int> allowed;
++            for (int i = 0; i < (int) vocab_.size(); i++) {
++                const std::string & t = vocab_[(size_t) i];
++                if (!t.empty() && harmony_starts_with(remaining, t)) {
++                    allowed.push_back(i);
++                }
++            }
++            it = spelling_.emplace(remaining, allowed).first;
++        }
++        for (int t : it->second) {
++            (*merged)[t] += -HARMONY_FOLLOW_BOOST;
++        }
++    }
++
++    float outside_share() const {
++        if (!have_scale_ || changes_.empty()) {
++            return 0.0f;
++        }
++        int outside = 0;
++        for (const std::string & r : changes_) {
++            int pc = std::stoi(r);
++            outside += pc >= 0 && !scale_[pc];
++        }
++        return (float) outside / (float) changes_.size();
++    }
++
++    float section_penalty(int root) const {
++        if (h_.section_strength == 0.0f || previous_.empty()) {
++            return 0.0f;
++        }
++        int place = (int) opening_.size();
++        if (!opening_.empty() && root == opening_.back()) {
++            return 0.0f;  // holding the chord already chosen
++        }
++        if (place < (int) previous_.size() && place < h_.section_open && root == previous_[(size_t) place]) {
++            return h_.section_strength;
++        }
++        return 0.0f;
++    }
++
++    float hold_penalty(int root) const {
++        if (h_.hold_limit && root == last_root_ && held_ >= h_.hold_limit) {
++            return h_.chord_strength * (float) (1 + held_ - h_.hold_limit) / 4.0f;
++        }
++        return 0.0f;
++    }
++
++    float spelling_penalty(const std::vector<std::string> & completed, bool open, const std::string & partial) const {
++        const std::string &        current = changes_.back();
++        std::map<std::string, int> counts;
++        for (const std::string & c : changes_) {
++            counts[c]++;
++        }
++        float total = (float) changes_.size();
++        float score = 0.0f;
++        for (const std::string & symbol : completed) {
++            if (harmony_root(symbol) >= 0 && symbol != current) {
++                score += (float) counts[symbol] / total;
++            }
++        }
++        if (open && !partial.empty() && harmony_root(partial) >= 0 && !harmony_starts_with(current, partial)) {
++            int n = 0;
++            for (auto & kv : counts) {
++                if (harmony_starts_with(kv.first, partial) && kv.first != current) {
++                    n += kv.second;
++                }
++            }
++            score += (float) n / total;
++        }
++        return h_.chord_strength * score;
++    }
++
++    void chord_bias(const float * logits, std::map<int, float> * merged) {
++        if (changes_.empty()) {
++            return;
++        }
++        std::vector<int> top;
++        top_tokens(logits, &top);
++        if (outside_bonus_ > 0.0f && !walk_.open) {
++            bool any_quote = false;
++            for (int t : top) {
++                any_quote = any_quote || vocab_[(size_t) t].find('"') != std::string::npos;
++            }
++            if (any_quote) {
++                std::vector<bool> in(vocab_.size(), false);
++                for (int t : top) {
++                    in[(size_t) t] = true;
++                }
++                for (int t : chord_starts_) {
++                    if (!in[(size_t) t]) {
++                        top.push_back(t);
++                    }
++                }
++            }
++        }
++        std::string before = walk_.open ? walk_.partial : "";
++        bool        before_open = walk_.open;
++        std::map<std::string, int> counter;
++        for (const std::string & c : changes_) {
++            counter[c]++;
++        }
++        bool outside_allowed = outside_bonus_ > 0.0f && have_scale_ && outside_share() < h_.outside_limit;
++        float root_penalties[12];
++        for (int r = 0; r < 12; r++) {
++            const std::string & current = changes_.back();
++            std::string         ident   = std::to_string(r);
++            float               value;
++            if (ident == current) {
++                value = hold_penalty(r);
++            } else {
++                auto it = counter.find(ident);
++                int  n  = it == counter.end() ? 0 : it->second;
++                value   = h_.chord_strength * (float) n / (float) changes_.size();
++                if (outside_allowed && !scale_[r]) {
++                    value -= outside_bonus_;
++                }
++            }
++            root_penalties[r] = value;
++        }
++        for (int token : top) {
++            const std::string & text = vocab_[(size_t) token];
++            if (!before_open && text.find('"') == std::string::npos) {
++                continue;
++            }
++            HarmonyWalk w = walk_;
++            harmony_walk(text, &w);
++            std::string symbol = !w.done.empty() ? w.done[0] : (w.open ? w.partial : "");
++            int         r      = symbol.empty() ? -1 : harmony_root(symbol);
++            float       value  = 0.0f;
++            if (!root_mode_) {
++                if (w.done.empty() && !(w.open && !w.partial.empty())) {
++                    continue;
++                }
++                value = spelling_penalty(w.done, w.open, w.partial);
++                if (before.size() <= 1 && r >= 0) {
++                    value += hold_penalty(r) + section_penalty(r);
++                }
++            } else {
++                // The root is decided at its letter, and at the step after it,
++                // where an accidental or anything else settles it
++                if (symbol.empty() || r < 0 || before.size() >= 2) {
++                    continue;
++                }
++                value = root_penalties[r] + section_penalty(r);
++            }
++            if (value != 0.0f) {
++                (*merged)[token] += value;
++            }
++        }
++    }
++};
+diff --git a/src/pipeline.h b/src/pipeline.h
+index cbcd161..9181e72 100644
+--- a/src/pipeline.h
++++ b/src/pipeline.h
+@@ -17,6 +17,7 @@
+ // into the halves at load, a half under another adapter list being another
+ // module of the store.
+ 
++#include <memory>
+ #include "audio-resample.h"
+ #include "generate.h"
+ #include "model-store.h"
+@@ -346,6 +347,28 @@ struct KvScope {
+     }
+ };
+ 
++// The steering of a request's plan, one tracker per song, or none when it
++// asks for nothing (the stock planner)
++static std::vector<HarmonyTracker *> pipeline_steering(BPETokenizer *                                 tok,
++                                                       const Yue2Request &                            r,
++                                                       int                                            songs,
++                                                       std::vector<std::unique_ptr<HarmonyTracker>> * owned) {
++    std::vector<HarmonyTracker *> steer;
++    if (!r.harmony.any()) {
++        return steer;
++    }
++    const std::vector<std::string> & vocab = harmony_vocab(tok);
++    for (int i = 0; i < songs; i++) {
++        owned->emplace_back(new HarmonyTracker(vocab, r.harmony, r.abc_sampling.top_k));
++        steer.push_back(owned->back().get());
++    }
++    fprintf(stderr, "[Plan] Steering: %s %.1f, sections %.1f, outside %.1f, %zu sections to follow%s\n",
++            r.harmony.chord_identity.c_str(), (double) r.harmony.chord_strength, (double) r.harmony.section_strength,
++            (double) r.harmony.outside_bonus, r.harmony.follow_sections.size(),
++            r.harmony.hook_head.empty() ? "" : ", a hook");
++    return steer;
++}
++
+ // The score alone, the first stage of a generate: one plan drawn with
+ // lm_seed under the planner half of the request's adapters, nothing
+ // rendered. The score can be edited and sent back as the abc of a request.
+@@ -380,10 +403,15 @@ static bool pipeline_plan(Yue2Pipeline *      p,
+     ModelHandle                 hold(p->store, lm);
+     std::vector<int>            open = yue2_build_prompt_ids(encode, cot, r.style, r.lyrics, nullptr);
+     std::vector<Yue2Generation> plans;
++    std::vector<std::unique_ptr<HarmonyTracker>> trackers;
++    std::vector<HarmonyTracker *>                steer = pipeline_steering(tok, r, 1, &trackers);
+     if (!yue2_generate(lm, &p->kv, std::vector<std::vector<int>>(1, open), {}, 1.0f, r.abc_sampling, r.lm_seed,
+-                       YUE2_PHASE_ABC, &plans, cancelled, cancel_data)) {
++                       YUE2_PHASE_ABC, &plans, cancelled, cancel_data, steer.empty() ? nullptr : &steer)) {
+         return false;
+     }
++    if (!trackers.empty() && !r.harmony.hook_section.empty() && !r.harmony.hook_body.empty()) {
++        fprintf(stderr, "[Plan] The hook filled %d %s section(s)\n", trackers[0]->hooks(), r.harmony.hook_section.c_str());
++    }
+     *score     = bpe_decode(tok, plans[0].tokens);
+     *truncated = plans[0].truncated;
+     fprintf(stderr, "[Plan] Score %zu tokens%s, seed %lld\n", plans[0].tokens.size(),
+@@ -540,8 +568,10 @@ static bool pipeline_generate(Yue2Pipeline *          p,
+     } else if (has_score) {
+         std::vector<int>            open = yue2_build_prompt_ids(encode, cot, r.style, r.lyrics, nullptr);
+         std::vector<Yue2Generation> plans;
++        std::vector<std::unique_ptr<HarmonyTracker>> trackers;
++        std::vector<HarmonyTracker *>                steer = pipeline_steering(tok, r, B, &trackers);
+         if (!yue2_generate(lm, &p->kv, std::vector<std::vector<int>>(B, open), {}, 1.0f, r.abc_sampling, r.lm_seed,
+-                           YUE2_PHASE_ABC, &plans, cancelled, cancel_data)) {
++                           YUE2_PHASE_ABC, &plans, cancelled, cancel_data, steer.empty() ? nullptr : &steer)) {
+             return false;
+         }
+         for (int i = 0; i < B; i++) {
+diff --git a/src/request.cpp b/src/request.cpp
+index eee5f22..b5164f2 100644
+--- a/src/request.cpp
++++ b/src/request.cpp
+@@ -5,6 +5,7 @@
+ #include "task-types.h"
+ #include "yyjson.h"
+ 
++#include <algorithm>
+ #include <cstdio>
+ #include <cstring>
+ #include <random>
+@@ -37,6 +38,7 @@ void request_init(Yue2Request * r) {
+     r->output_format = OUTPUT_FORMAT_MP3;
+     r->mp3_bitrate   = 128;
+     r->adapters.clear();
++    r->harmony = Yue2Harmony();
+     r->source_tokens = "";
+     r->source_start  = 0.0f;
+     r->source_end    = -1.0f;
+@@ -175,6 +177,52 @@ static void request_parse_obj(yyjson_val * obj, Yue2Request * r) {
+     if ((v = yyjson_obj_get(obj, "source_end")) && yyjson_is_num(v)) {
+         r->source_end = (float) yyjson_get_num(v);
+     }
++    if ((v = yyjson_obj_get(obj, "harmony")) && yyjson_is_obj(v)) {
++        Yue2Harmony & h = r->harmony;
++        yyjson_val *  f;
++        if ((f = yyjson_obj_get(v, "chord_identity")) && yyjson_is_str(f)) {
++            h.chord_identity = yy_str(f);
++        }
++        if ((f = yyjson_obj_get(v, "chord_strength")) && yyjson_is_num(f)) {
++            h.chord_strength = (float) yyjson_get_num(f);
++        }
++        if ((f = yyjson_obj_get(v, "chord_window")) && yyjson_is_num(f)) {
++            h.chord_window = std::max(1, (int) yyjson_get_num(f));
++        }
++        if ((f = yyjson_obj_get(v, "hold_limit")) && yyjson_is_num(f)) {
++            h.hold_limit = std::max(0, (int) yyjson_get_num(f));
++        }
++        if ((f = yyjson_obj_get(v, "outside_bonus")) && yyjson_is_num(f)) {
++            h.outside_bonus = (float) yyjson_get_num(f);
++        }
++        if ((f = yyjson_obj_get(v, "outside_limit")) && yyjson_is_num(f)) {
++            h.outside_limit = (float) yyjson_get_num(f);
++        }
++        if ((f = yyjson_obj_get(v, "section_strength")) && yyjson_is_num(f)) {
++            h.section_strength = (float) yyjson_get_num(f);
++        }
++        if ((f = yyjson_obj_get(v, "section_open")) && yyjson_is_num(f)) {
++            h.section_open = std::max(1, (int) yyjson_get_num(f));
++        }
++        if ((f = yyjson_obj_get(v, "follow_sections")) && yyjson_is_arr(f)) {
++            size_t       i, n;
++            yyjson_val * item;
++            yyjson_arr_foreach(f, i, n, item) {
++                if (yyjson_is_str(item)) {
++                    h.follow_sections.push_back(yy_str(item));
++                }
++            }
++        }
++        if ((f = yyjson_obj_get(v, "hook_head")) && yyjson_is_str(f)) {
++            h.hook_head = yy_str(f);
++        }
++        if ((f = yyjson_obj_get(v, "hook_body")) && yyjson_is_str(f)) {
++            h.hook_body = yy_str(f);
++        }
++        if ((f = yyjson_obj_get(v, "hook_section")) && yyjson_is_str(f)) {
++            h.hook_section = yy_str(f);
++        }
++    }
+     if ((v = yyjson_obj_get(obj, "adapters")) && yyjson_is_arr(v)) {
+         size_t       i, n;
+         yyjson_val * item;
+diff --git a/src/request.h b/src/request.h
+index 623c5d4..2d783b0 100644
+--- a/src/request.h
++++ b/src/request.h
+@@ -27,6 +27,8 @@ struct Yue2Adapter {
+     float nar() const { return has_nar ? scale_nar : scale; }
+ };
+ 
++#include "harmony.h"
++
+ struct Yue2Request {
+     // text content
+     std::string style;   // ""
+@@ -91,6 +93,10 @@ struct Yue2Request {
+     // changes at its own strength
+     std::vector<Yue2Adapter> adapters;  // empty
+ 
++    // steering of the score plan (harmony.h): chords, sections, a structure
++    // to follow, a hook to hold. Nothing asked for leaves the stock planner.
++    Yue2Harmony harmony;
++
+     // continuation: the semantic stream of a source song, its section
+     // [source_start, source_end) in seconds opening the song the model then
+     // writes on from. source_end -1 is the end of the source.
+diff --git a/tools/yue-server.cpp b/tools/yue-server.cpp
+index 92687cd..0e27965 100644
+--- a/tools/yue-server.cpp
++++ b/tools/yue-server.cpp
+@@ -468,6 +468,13 @@ static void handle_props(const httplib::Request &, httplib::Response & res) {
+     yyjson_mut_obj_add_int(doc, root, "frame_rate", YUE2_FRAME_RATE);
+     yyjson_mut_obj_add_int(doc, root, "context", YUE2_CONTEXT);
+ 
++    // What this server can do beyond the upstream protocol, for a front end to ask
++    yyjson_mut_val * features = yyjson_mut_arr(doc);
++    for (const char * f : { "plan", "adapter_halves", "harmony", "adapters_rescan" }) {
++        yyjson_mut_arr_add_str(doc, features, f);
++    }
++    yyjson_mut_obj_add_val(doc, root, "features", features);
++
+     // The compute device and its memory, as the driver reports it now
+     ggml_backend_dev_t dev = g_pipeline.kv_backend.backend ? ggml_backend_get_device(g_pipeline.kv_backend.backend) : nullptr;
+     if (dev) {
+-- 
+2.43.0
+

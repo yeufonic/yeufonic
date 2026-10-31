@@ -40,7 +40,7 @@ def test_harmony_is_refused_when_the_engine_lacks_the_node(client, monkeypatch):
     monkeypatch.setitem(jobs.ENGINE.options, "harmony", False)
     monkeypatch.setattr(jobs.ENGINE, "options_loaded", True)
     refused = client.post("/api/songs", json={"lyrics": "la", "harmony": 2})
-    assert refused.status_code == 400 and "harmony node" in refused.json()["detail"]
+    assert refused.status_code == 400 and "harmony control" in refused.json()["detail"]
     assert client.post("/api/songs", json={"lyrics": "la", "harmony": 0}).status_code == 200
 
 

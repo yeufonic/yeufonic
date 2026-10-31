@@ -1461,8 +1461,7 @@ A Docker install can also run the **yue2.cpp** engine instead of ComfyUI, for gr
 memory, chosen when it is set up (`sh scripts/fetch-models.sh --cpp`); **About** says which engine is running.
 It makes songs, covers and instrumentals and transcribes recordings, with your style LoRAs; with
 `--gemma` Gemma drafts lyrics and describes pictures beside it, and with `--pictures` FLUX.2 klein draws
-them. Training and Harmony above Familiar need the ComfyUI engine: with yue2.cpp those controls are off
-and say so. The
+them. Training needs the ComfyUI engine: with yue2.cpp Corpora and training are not offered. The
 page [Choosing an engine](https://github.com/yeufonic/yeufonic/blob/main/docs/ENGINES.md) on GitHub has the
 whole list, and how to switch.
 

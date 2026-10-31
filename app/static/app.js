@@ -3769,7 +3769,7 @@ function paintSource() {
     var holdsTune = !State.options || State.options.hook_available !== false;
     $('source-expand-song').disabled = !source || !holdsTune;
     $('source-expand-song').title = !source ? 'Choose a recording first'
-      : !holdsTune ? 'Holding a tune in a plan needs the ComfyUI engine.'
+      : !holdsTune ? 'The engine cannot hold a tune in a plan: rebuild the engine to use this.'
       : (hasMelody
         ? 'Expand this melody motif into a full multi-section song structure'
         : 'Transcribe this recording first to get melody notes to expand');
@@ -6435,7 +6435,7 @@ function paintHarmony() {
     if (!available) { follow.checked = false; }
     if ($('follow-wrap')) {
       $('follow-wrap').classList.toggle('disabled', !available);
-      if (!available) { $('follow-wrap').title = 'Following a structure exactly needs the harmony control' + (cppEngine() ? ', on the ComfyUI engine.' : '.'); }
+      if (!available) { $('follow-wrap').title = 'Following a structure exactly needs the harmony control: rebuild the engine to use it.'; }
     }
   }
   ['adv-chord-hold-limit', 'adv-chord-outside-bonus', 'adv-chord-sections'].forEach(function (id) {
@@ -6443,8 +6443,7 @@ function paintHarmony() {
   });
   $('harmony-hint').textContent = available
     ? HARMONY_HINTS[step]
-    : (cppEngine() ? 'Plans are written by the stock planner: the harmony control needs the ComfyUI engine.'
-      : 'The engine has no harmony node. Rebuild the engine to use this.');
+    : 'The engine has no harmony control. Rebuild the engine to use this.';
   if ($('style-lora') && $('style-lora').value) { paintStyleLoraNote(); }
 }
 

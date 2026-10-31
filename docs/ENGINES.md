@@ -8,7 +8,7 @@ are the same whichever runs.
   card with 12 GB of video memory or more.
 - **yue2.cpp** is a smaller native engine, for graphics cards with less memory. It makes songs, covers
   and instrumentals, and with its two optional add-ons it drafts lyrics and draws take pictures on your
-  PC too. It does not train LoRAs, and it has no Harmony control.
+  PC too. It does not train LoRAs.
 
 ## What each one does
 
@@ -18,7 +18,7 @@ are the same whichever runs.
 | Score plans, and editing them before the render | Yes | Yes |
 | Transcribing a recording into a score | Yes | Yes |
 | Style LoRAs, the instrumental LoRA, production polish | Yes | Yes |
-| Harmony above Familiar, **Follow this structure exactly**, **Expand to full song** | Yes | No: plans come from YuE2's own planner |
+| Harmony, **Follow this structure exactly**, **Expand to full song** | Yes | Yes |
 | Corpora and LoRA training | Yes | No: use LoRAs trained elsewhere, or on a ComfyUI install |
 | Lyrics drafted on your PC (Gemma) | Yes | With the Gemma add-on |
 | Take pictures described and drawn on your PC (Gemma, FLUX.2 klein 4B or 9B) | Yes | With the Gemma and pictures add-ons |
@@ -37,8 +37,7 @@ running.
 
 ## Which one to choose
 
-- **A graphics card with 12 GB or more**, and you want to train LoRAs or use the Harmony control:
-  **ComfyUI**.
+- **A graphics card with 12 GB or more**, or you want to train LoRAs: **ComfyUI**.
 - **A card with less memory**, or you would rather keep the graphics card free between songs:
   **yue2.cpp**. Add Gemma and pictures if you want lyrics and pictures made on your PC; without them an
   external LLM, set up in Settings, can do both.
