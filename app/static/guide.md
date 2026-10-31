@@ -1223,7 +1223,7 @@ Pictures need something that can draw. There are two, and you can have either, b
 |---|---|---|
 | What it is | a small image model that runs on the engine, beside YuE2 | the provider's own image model, such as Gemini's |
 | What it costs | nothing; about 8 GB of disk | each picture is one request to the provider, which may be charged |
-| What leaves the PC | nothing: the description is made from the take itself, with no LLM | the take's title, style and opening words, and the description |
+| What leaves the PC | nothing: the description is written by Gemma on this PC, or made from the take itself | the take's title, style and opening words, and the description |
 | When it runs | on the GPU once no song is being made: after your song, never in its way | beside the renders, while they run |
 | What you set up | an install option | the external LLM in Settings, with a provider that lists an image model |
 
@@ -1291,14 +1291,14 @@ Set up either and they come on: pictures are then made for the takes you make fr
 | **Take pictures** | *Make one for each new take* (the default where something can draw), or *No pictures: the default background*, where none is made unless you ask for one in the editor. It is *No pictures* while nothing here can draw. |
 | **Take pictures: drawn by** | *This PC if FLUX.2 klein is installed, else the external LLM* (the default), *This PC (FLUX.2 klein)* or *The external LLM's image model*. |
 | **Take pictures: FLUX.2 klein model** | *4B* (the default), *9B*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B is never installed for you: see [FLUX.2 klein 9B](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. Either one asked for and not there, the other draws. |
-| **Take pictures: described by** | *From the take itself* (the default): made from the take's title, style and opening words with no LLM, whoever draws; the quickest, and nothing is sent out for it. Or *Local Gemma*, whose descriptions are more inventive but take far longer and need the Lyric drafts option, or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
+| **Take pictures: described by** | *Local Gemma if installed, else the take itself* (the default), whoever draws. *Local Gemma*: more inventive descriptions, written on this PC, that take longer and need the Lyric drafts option. *From the take itself*: made from the take's title, style and opening words with no LLM; the quickest, and nothing is sent out for it. Or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
 | **Take pictures: image model** | which of the provider's models draws. Only for pictures drawn by the external LLM (choose it under **Drawn by**; greyed out otherwise), and empty for the provider's usual one, which is nearly always what you want. |
 
 So with FLUX.2 klein installed and the settings as they come, pictures are made entirely on this PC, even
-when the external LLM writes your lyrics, and they need no LLM at all: a description made from the take takes no
-time, so a picture is ready a few seconds after its song. Choose *The external LLM's image model* to have the
-provider draw them instead, or set **described by** to *Local Gemma* or *External LLM* for their descriptions
-over the take's own, at the cost of time (and, for the provider, a request each).
+when the external LLM writes your lyrics: Gemma describes each one where Lyric drafts are installed, and without
+it the description is made from the take itself, with no LLM, which takes no time. Choose *The external LLM's
+image model* to have the provider draw them instead, or set **described by** to *From the take itself* for the
+quickest pictures, or to *External LLM* (a request each).
 
 #### A take's picture in the editor
 

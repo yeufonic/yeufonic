@@ -190,20 +190,21 @@ def gemma_ready() -> bool:
 
 
 def describer() -> str:
-    """Who writes the picture's description: "take" (made from the take itself, no LLM: quick, the default,
-    whoever draws), "gemma" (Gemma on the engine) or "external" (the external LLM).  The external LLM chosen but
-    not there (not set up, local for this session, or failed in the last two minutes) falls back to Gemma where
-    it is installed: the take's own description is only its title and style tags, and FLUX.2 klein given that
-    alone draws much the same landscape every time.  Gemma chosen but not there falls back to the take; so does
-    anything else on file ("auto" and "same", earlier names for a choice that followed the drawer)."""
-    chosen = (get_setting("art.words", "take") or "take").strip().lower()
-    if chosen == "local":
-        return "gemma" if gemma_ready() else "take"
+    """Who writes the picture's description: "gemma" (Gemma on the engine), "take" (made from the take itself, no
+    LLM: quick) or "external" (the external LLM).  The default, "auto", is Gemma where it is installed and the take
+    otherwise: Gemma's descriptions are more inventive, and it costs nothing.  "same", an earlier name for a choice
+    that followed the drawer, reads as "auto"; so does anything else on file.  The external LLM chosen but not
+    there (not set up, local for this session, or failed in the last two minutes) falls back to Gemma where it is
+    installed: the take's own description is only its title and style tags, and FLUX.2 klein given that alone draws
+    much the same landscape every time.  Gemma chosen but not there falls back to the take."""
+    chosen = (get_setting("art.words", "auto") or "auto").strip().lower()
+    if chosen == "take":
+        return "take"
     if chosen == "external":
         if llm.is_external_enabled() and not external_words_failed():
             return "external"
         return "gemma" if gemma_ready() else "take"
-    return "take"
+    return "gemma" if gemma_ready() else "take"
 
 
 def words_by_engine() -> bool:
@@ -522,7 +523,7 @@ def drawer() -> str | None:
 def words_passed_over() -> str | None:
     """Why the external LLM, chosen in Settings to describe pictures, is not asked this time; None when it is
     asked or was not chosen."""
-    if (get_setting("art.words", "take") or "take").strip().lower() != "external":
+    if (get_setting("art.words", "auto") or "auto").strip().lower() != "external":
         return None
     if llm.is_session_local_only():
         return "the external LLM is paused for this session (Resume in Settings)"

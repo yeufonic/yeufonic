@@ -415,17 +415,24 @@ def test_every_engine_job_kind_has_a_time_limit():
     assert kinds <= set(config.TIMEOUTS)
 
 
-def test_left_to_choose_a_picture_is_described_from_the_take(monkeypatch):
-    """The take's own description is the default whoever draws: quick, and nothing sent out for it.  Gemma or the
-    external LLM are kept when chosen, and fall back to the take when not there."""
+def test_left_to_choose_a_picture_is_described_by_gemma_where_it_is_installed(monkeypatch):
+    """Gemma is the default describer whoever draws, where it is installed, and the take's own description where it
+    is not.  The take itself, Gemma or the external LLM are kept when chosen; the last two fall back when not there."""
     external()
-    monkeypatch.setattr(artwork, "engine_options", lambda: {"lyrics": True})
-    for chosen in (None, "auto", "same", "take"):      # "auto" and "same": earlier choices, read as the take
+    gemma = {"lyrics": True}
+    monkeypatch.setattr(artwork, "engine_options", lambda: gemma)
+    for chosen in (None, "auto", "same"):              # "same": an earlier choice, read as the default
         if chosen:
             set_setting("art.words", chosen)
         for draws in ("local", "external"):
             monkeypatch.setattr(artwork, "drawer", lambda: draws)
+            gemma["lyrics"] = True
+            assert artwork.describer() == "gemma" and artwork.words_by_engine()
+            gemma["lyrics"] = False                    # Gemma not installed (no Lyric drafts)
             assert artwork.describer() == "take" and not artwork.words_by_engine()
+    gemma["lyrics"] = True
+    set_setting("art.words", "take")
+    assert artwork.describer() == "take" and not artwork.words_by_engine()
     set_setting("art.words", "external")
     assert artwork.describer() == "external"
     set_setting("art.words", "local")
@@ -531,7 +538,7 @@ def test_the_image_model_setting_only_applies_when_the_provider_draws(client):
     shown = next(s for s in client.get("/api/settings").json()["settings"] if s["key"] == "art.model")
     assert shown["requires"] == {"art.auto": "on", "art.drawer": "external"} and shown["requires_note"]
     words = next(s for s in client.get("/api/settings").json()["settings"] if s["key"] == "art.words")
-    assert words["default"] == "take" and [o["value"] for o in words["options"]] == ["take", "local", "external"]
+    assert words["default"] == "auto" and [o["value"] for o in words["options"]] == ["auto", "local", "take", "external"]
 
 
 def test_a_description_from_the_take_paints_its_look_and_letters_only_its_title():

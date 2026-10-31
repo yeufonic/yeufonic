@@ -439,16 +439,17 @@ SETTINGS_SPEC: list[dict] = [
         "group": "art",
         "label": "Take pictures: described by",
         "type": "select",
-        "default": "take",
+        "default": "auto",
         "options": [
-            {"value": "take", "label": "From the take itself (no LLM, quickest)"},
+            {"value": "auto", "label": "Local Gemma if installed, else the take itself"},
             {"value": "local", "label": "Local Gemma (slower; needs Lyric drafts)"},
+            {"value": "take", "label": "From the take itself (no LLM, quickest)"},
             {"value": "external", "label": "External LLM"},
         ],
         "help": "A take's picture is made in two steps: it is described from the take's title, style and opening "
                 "words, then drawn, and the app takes out its white background. This chooses who writes the "
-                "description. From the take itself needs no LLM: it is quick, and nothing is sent out for it. Gemma "
-                "or the external LLM write more inventive descriptions but take far longer (the external one a "
+                "description: by default Gemma, on this PC, where it is installed. From the take itself needs no "
+                "LLM: it is quick, and nothing is sent out for it. Gemma or the external LLM write more inventive descriptions but take far longer (the external one a "
                 "request each). The external LLM chosen and not there (or local for this session) falls back to "
                 "Gemma when it is installed; otherwise the take's own description is used.",
         "requires": {"pictures": "possible", "art.auto": "on"},
