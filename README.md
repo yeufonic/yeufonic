@@ -407,33 +407,11 @@ run out of memory.
 
 ## Choosing an engine
 
-YuE2 runs on one of two engines, chosen when you set up. **ComfyUI** is the default and does everything
-on this page. **yue2.cpp**, a smaller native engine built on GGML, is for graphics cards with less memory:
-its download is about 5.4 GB rather than 19 GB (6.1 GB more with Gemma), and it holds no model in memory
-between jobs. It writes
-plans, renders songs, covers and instrumentals, and transcribes recordings, with the same style LoRAs.
-What it does not do, the app leaves out, and says it needs the ComfyUI engine:
-
-| | ComfyUI | yue2.cpp |
-|---|---|---|
-| Songs, covers, instrumentals, score plans, transcription | yes | yes |
-| Style LoRAs, the instrumental LoRA, production polish | yes | yes |
-| Harmony above Familiar, Follow this structure exactly, Expand to full song | yes | no: plans come from YuE2's own planner |
-| Corpora and LoRA training | yes | no |
-| Lyrics drafted and pictures described on this PC (Gemma) | yes | with `--gemma` (below), which runs Gemma in Ollama beside it; otherwise an external LLM, set up in Settings |
-| Pictures drawn on this PC (FLUX.2 klein) | yes | with `--pictures` (below), in stable-diffusion.cpp beside it; otherwise an external image model |
-| Stems and lyric hearing | on the GPU | on the CPU |
-
-With Docker, `sh scripts/fetch-models.sh --cpp` fetches its models into `models/yue2cpp` and writes
-`COMPOSE_FILE=compose.yml:compose.cpp.yml` to `.env`, so `docker compose up -d --build` builds and runs
-yue2.cpp in place of ComfyUI. `sh scripts/fetch-models.sh --cpp --gemma` also fetches Gemma 4 E4B (6.1 GB)
-and writes `COMPOSE_PROFILES=gemma`, so Gemma runs beside it in Ollama, which lets go of the GPU as soon as
-it has answered. `--cpp --pictures` fetches FLUX.2 klein 4B (the same model and VAE as ComfyUI's, with its text
-encoder as GGUF, 6.9 GB) and adds `pictures` to `COMPOSE_PROFILES`, so stable-diffusion.cpp's server draws take
-pictures beside it, loading klein for each picture and letting go of it after. Both can be chosen together. Its YuE2 is the Q8 copy, near lossless; `YUE2CPP_MODEL=YuE2-3B-BF16.gguf`
-in `.env` (before fetching) picks the full-precision one, or `-Q6_K` / `-Q5_K_M` a smaller one. To go back,
-take the `COMPOSE_FILE` and `COMPOSE_PROFILES` lines out of `.env`, run `sh scripts/fetch-models.sh` and `docker compose up -d --build`.
-**About** says which engine is running. The Windows installer and the Mac app use ComfyUI.
+YuE2 runs on one of two engines, chosen when you set up. **ComfyUI** is the default and does everything on
+this page. **yue2.cpp**, a smaller native engine, is for graphics cards with less memory: it makes songs,
+covers and instrumentals, and with its add-ons drafts lyrics and draws take pictures on your PC, but it does
+not train LoRAs and has no Harmony control. [docs/ENGINES.md](docs/ENGINES.md) has a table of what each one
+does, how to choose, and how to switch, with Docker (`sh scripts/fetch-models.sh --cpp`).
 
 ## Quick start
 

@@ -1463,7 +1463,8 @@ It makes songs, covers and instrumentals and transcribes recordings, with your s
 `--gemma` Gemma drafts lyrics and describes pictures beside it, and with `--pictures` FLUX.2 klein draws
 them. Training and Harmony above Familiar need the ComfyUI engine: with yue2.cpp those controls are off
 and say so. The
-README's *Choosing an engine* has the whole list.
+page [Choosing an engine](https://github.com/yeufonic/yeufonic/blob/main/docs/ENGINES.md) on GitHub has the
+whole list, and how to switch.
 
 **Check for a new version** is the one thing here that uses the internet on its own account: every
 four hours the app asks yeufonic.com whether a later release is out, and says so with a pill beside the
