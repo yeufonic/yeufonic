@@ -375,6 +375,8 @@ Section "-Setup"
     ${AndIf} ${FileExists} "$INSTDIR\engine\ComfyUI\models\diffusion_models\flux-2-klein-4b-fp8.safetensors"
       DetailPrint "FLUX.2 klein is already here, so it is not downloaded again."
     ${EndIf}
+  ${ElseIf} ${SectionIsSelected} ${SecCpp}
+    DetailPrint "This takes a while: about 6 GB to download, more with lyric drafts or take pictures."
   ${Else}
     DetailPrint "This takes a while: about 24 GB to download."
   ${EndIf}
@@ -652,7 +654,7 @@ Function .onInit
     ${OrIf} ${FileExists} "$INSTDIR\data\*.*"
       StrCpy $WelcomeText "${APPNAME} writes and covers songs with the YuE2 music model, on this PC.$\r$\n$\r$\nWhat you kept when ${APPNAME} was uninstalled is in $INSTDIR, and this install picks it up: your library, and any models you kept are not downloaded again.$\r$\n$\r$\nIt checks that this PC can run YuE2, then downloads the rest from each part's publisher. A separate window shows the setup's progress; it may open behind this one."
     ${Else}
-      StrCpy $WelcomeText "${APPNAME} writes and covers songs with the YuE2 music model, on this PC.$\r$\n$\r$\nThis installer is small. It checks that this PC can run YuE2 (an NVIDIA RTX 30-series card or newer), then downloads the rest from each part's publisher: about 24 GB, most of it the models. A download that breaks off carries on where it stopped when you run the installer again.$\r$\n$\r$\nA separate window shows the setup's progress; it may open behind this one.$\r$\n$\r$\nYou need about 40 GB of free space."
+      StrCpy $WelcomeText "${APPNAME} writes and covers songs with the YuE2 music model, on this PC.$\r$\n$\r$\nThis installer is small. It checks that this PC can run YuE2 (an NVIDIA RTX 30-series card or newer), then downloads the rest from each part's publisher: about 24 GB with the ComfyUI engine (less with yue2.cpp), most of it the models. A download that breaks off carries on where it stopped when you run the installer again.$\r$\n$\r$\nA separate window shows the setup's progress; it may open behind this one.$\r$\n$\r$\nYou need about 40 GB of free space with ComfyUI, less with yue2.cpp."
     ${EndIf}
     StrCpy $InstHeader "Installing ${APPNAME}"
     StrCpy $InstSubtext "The setup window shows its progress, and may be behind this one."
