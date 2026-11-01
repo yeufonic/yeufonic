@@ -29,6 +29,14 @@ differ, the publisher's terms apply.
   the weights licence with the creator permission. (The repository's `LICENSE` file is Apache 2.0
   and covers YuE2's code, not the weights.)
 
+### YuE2, SheetSage2 and MERT as GGUF (the yue2.cpp engine)
+
+- Converted to GGUF by Serveurperso for yue2.cpp: YuE2-3B, its VAE, SheetSage2 and MERT-v2-FullSong. **CC BY-NC 4.0**,
+  with the same authors' terms as the originals above and below. Source:
+  [Serveurperso/YuE2-GGUF](https://huggingface.co/Serveurperso/YuE2-GGUF), fetched first from an unchanged copy,
+  [pshields/yue2-gguf-copies](https://huggingface.co/pshields/yue2-gguf-copies), at a pinned revision.
+- Fetched only when yue2.cpp is chosen at install (or with `fetch-models.sh --cpp`).
+
 ### SheetSage2 (transcription)
 
 - By HKUST M-A-P. Weights: **CC BY-NC 4.0**.
@@ -72,6 +80,8 @@ differ, the publisher's terms apply.
 - By Google. **Apache 2.0**.
   Source: [google/gemma-4-E4B-it](https://huggingface.co/google/gemma-4-E4B-it), repackaged for
   ComfyUI as [Comfy-Org/gemma-4](https://huggingface.co/Comfy-Org/gemma-4).
+- With yue2.cpp, the same model comes from Ollama's library as
+  [`gemma4:e4b-it-qat`](https://ollama.com/library/gemma4), under the same licence.
 - Official licence: [Google's Gemma 4 licence page](https://ai.google.dev/gemma/docs/gemma_4_license)
 
 ### FLUX.2 klein 4B and Qwen3 4B (take pictures, when chosen)
@@ -81,6 +91,8 @@ differ, the publisher's terms apply.
 - Its text encoder, Qwen3 4B by the Qwen team (Alibaba Cloud), and its VAE. **Apache 2.0**. Repackaged for
   ComfyUI as [Comfy-Org/Flux-2-Klein-4B](https://huggingface.co/Comfy-Org/Flux-2-Klein-4B).
 - Fetched only when chosen at install (or with `fetch-models.sh --pictures`).
+- With yue2.cpp, the text encoder is Qwen3 4B as GGUF, converted by Unsloth: **Apache 2.0**. Source:
+  [unsloth/Qwen3-4B-GGUF](https://huggingface.co/unsloth/Qwen3-4B-GGUF), at a pinned revision.
 - Official licence: [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0), as declared on each model card.
 
 ### Style LoRAs (when chosen)
@@ -127,6 +139,29 @@ differ, the publisher's terms apply.
 - It is not part of this repository. `engine/Dockerfile` builds it from its upstream source, and
   it runs as a separate container that the app talks to over HTTP.
 - Official licence: [ComfyUI LICENSE](https://github.com/comfyanonymous/ComfyUI/blob/master/LICENSE)
+
+### yue2.cpp (the other engine)
+
+- By ServeurpersoCom. **MIT**. Source: [ServeurpersoCom/yue2.cpp](https://github.com/ServeurpersoCom/yue2.cpp),
+  built on ggml (**MIT**).
+- It is not part of this repository. `engine-cpp/Dockerfile` builds its server from a pinned commit with the patches
+  in `engine-cpp/patches`; the ready-made image (`ghcr.io/yeufonic/yeufonic-engine-cpp`) and the Windows build are
+  made from that by this repository's workflows.
+- Official licence: [yue2.cpp LICENSE](https://github.com/ServeurpersoCom/yue2.cpp/blob/master/LICENSE)
+
+### stable-diffusion.cpp (take pictures beside yue2.cpp)
+
+- By leejet. **MIT**. Source: [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp), built
+  on ggml (**MIT**).
+- It is not part of this repository. `engine-pictures/Dockerfile` builds its server from a pinned commit (the
+  ready-made image is `ghcr.io/yeufonic/yeufonic-pictures`); the Windows install downloads its published build.
+- Official licence: [stable-diffusion.cpp LICENSE](https://github.com/leejet/stable-diffusion.cpp/blob/master/LICENSE)
+
+### Ollama (Gemma beside yue2.cpp)
+
+- **MIT**. Source: [ollama/ollama](https://github.com/ollama/ollama). Its published image (Docker) or Windows build
+  is downloaded at a pinned version; it is not part of this repository.
+- Official licence: [Ollama LICENSE](https://github.com/ollama/ollama/blob/main/LICENSE)
 
 ### ComfyUI-YuE2-Trainer (LoRA training)
 

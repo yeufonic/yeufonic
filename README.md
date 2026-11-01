@@ -33,7 +33,7 @@ external LLM for lyrics is optional.
     browser  ->  app  (this project)                 http://localhost:8090
                    |
                    v
-                 engine  (ComfyUI + the YuE2 nodes)  owns the GPU
+                 engine  (ComfyUI + the YuE2 nodes, or yue2.cpp)  owns the GPU
 
 If you enjoy using this app, then please give it a ⭐️, and if you want to buy me a coffee, then please use [Buy Me a Coffee](https://buymeacoffee.com/dynamohum).
 
@@ -267,12 +267,17 @@ The installer checks all of this before it downloads anything.
    Choose *More info*, then *Run anyway*.
 3. **Choose your options:**
    - Accept the terms.
+   - Choose the **engine**: *ComfyUI* (the default) does everything, LoRA training included; *yue2.cpp*
+     is smaller, for graphics cards with less memory, and does not train LoRAs.
+     [Choosing an engine](#choosing-an-engine) says how to decide. To switch later, run the installer
+     again and choose the other: your library, settings and LoRAs are kept.
    - Choose the **YuE2 model size**: *Full quality* (the default, and what we recommend) or *Low
-     memory*, a smaller model for graphics cards with little video memory. You get one or the other.
-     To change your mind later, run the installer again and pick the other on this page; it downloads
-     the new one and removes the old. [Choosing a model size](#choosing-a-model-size) says how to decide.
+     memory*, a smaller model for graphics cards with little video memory. To change your mind later,
+     run the installer again and pick the other on this page; it downloads the new one and keeps the
+     old, so changing back downloads nothing. These are ComfyUI's sizes: with yue2.cpp they are greyed
+     out. [Choosing a model size](#choosing-a-model-size) says how to decide.
    - Choose whether to include **Lyric drafts (Gemma 4)**. Leave it out if you will set up an
-     external LLM; that saves an 8 GB download.
+     external LLM; that saves a download of 8 GB (6 GB with yue2.cpp).
    - Choose whether to include **FLUX.2 [klein]**, unticked to begin with. It draws a
      picture of each take on this PC, about 8 GB to download. Leave it out if your external LLM can
      draw them (Gemini can), or if you do not want pictures.
@@ -339,7 +344,7 @@ are not downloaded again. Deleting that folder removes it.
 
 **If something goes wrong:**
 - **Logs:** the `logs` folder inside the install folder holds `install.log`, `engine.log` and
-  `app.log`.
+  `app.log`, and with yue2.cpp `gemma.log` and `pictures.log` for its add-ons.
 - **Repair:** *Repair Yeufonic* in the Start menu runs the setup again.
 - **Docker at the same time:** a Docker copy of Yeufonic uses the same ports and the same GPU,
   so stop one before starting the other.
@@ -353,18 +358,21 @@ are not downloaded again. Deleting that folder removes it.
   VRAM and 32 GB of system RAM is the practical minimum (the engine stages the 11.5 GB YuE2 weights
   and dataset caches in host memory; on WSL2, set `memory=32GB` in `.wslconfig`). An 8 GB card
   can be used to train LoRAs if you are using the INT8 model. Regardless, you can always use
-  LoRAs that have been trained elsewhere.
+  LoRAs that have been trained elsewhere. These figures are ComfyUI's: for a card with less memory,
+  the yue2.cpp engine is the one to choose (see [Choosing an engine](#choosing-an-engine)).
 - Docker with the NVIDIA container toolkit, so containers can see the GPU.
 - An NVIDIA driver that supports CUDA 13.0: the top line of `nvidia-smi` says `CUDA Version: 13.0` or higher.
   With an older driver, put `TORCH_CUDA=cu128` in `.env` before building the engine. Everything works on it,
-  but the low-memory model is much slower (see [Choosing a model size](#choosing-a-model-size)).
-- About 30 GB of disk, more as your library grows.
+  but the low-memory model is much slower (see [Choosing a model size](#choosing-a-model-size)). That is
+  ComfyUI's: yue2.cpp's ready-made images need CUDA 13.0.
+- About 30 GB of disk with ComfyUI (less with yue2.cpp), more as your library grows.
 - Linux, or Windows with WSL2 or Docker Desktop. WSL2 is what this was built on; Windows with
   Docker Desktop needs a few settings, below.  Alternatively, on Windows, [the installer](#on-windows-without-docker) needs none of this.
 
 ## Choosing a model size
 
-YuE2 comes in two sizes. An install has one of them: **full quality** (BF16, 7.8 GB), which is what
+YuE2 comes in two sizes for ComfyUI (yue2.cpp has its own, described in
+[docs/ENGINES.md](docs/ENGINES.md)). An install has one of them: **full quality** (BF16, 7.8 GB), which is what
 we recommend, or **low memory** (INT8, 4.0 GB), a smaller copy for graphics cards with little video
 memory. The Windows installer asks which on its components page; with Docker, `sh scripts/fetch-models.sh`
 fetches full quality and `sh scripts/fetch-models.sh --int8` the low-memory one; the app uses whichever
@@ -431,10 +439,10 @@ docker compose up -d --build
 
 Then open <http://localhost:8090>.
 
-The engine's own ComfyUI page is at <http://localhost:8189> (on Windows, <http://localhost:8188>),
+With ComfyUI, the engine's own ComfyUI page is at <http://localhost:8189> (on Windows, <http://localhost:8188>),
 on this machine only and with no login. It's the same engine and GPU the app uses: a job run there
 shows in the app's queue as coming from outside and holds up the app's own, and its History shows
-every graph the app sent. The guide says more.
+every graph the app sent. The guide says more. With yue2.cpp, the same address is yue2.cpp's own test page.
 
 ### Build options
 
@@ -446,8 +454,8 @@ These need a rebuild rather than a setting.
 | `YUE2_TRAINER_REF` | pinned commit | which commit of ComfyUI-YuE2-Trainer to use, if it is included |
 | `COMFYUI_REF` | pinned commit | which commit of ComfyUI the engine is built from. See Contributing for how far it has drifted |
 | `TORCH_CUDA` | `cu130` | on the **engine** service: PyTorch's CUDA build. `cu130` needs a driver that supports CUDA 13.0; `cu128` runs on older drivers, with the low-memory model and Gemma much slower. Read from `.env` (`TORCH_CUDA=cu128`), so an update never changes it |
-| `CUDA_ARCHITECTURES` | every recent card | on the **engine-cpp** service (yue2.cpp): which NVIDIA GPU generations to build for. One builds much faster: `YUE2CPP_CUDA_ARCH=89-real` in `.env` for an RTX 40, `86-real` for an RTX 30 |
-| `YUE2CPP_REF` | pinned commit | on the **engine-cpp** service: which commit of yue2.cpp to build, with the patches in `engine-cpp/patches` |
+| `CUDA_ARCHITECTURES` | every recent card | only when yue2.cpp's two servers are built here rather than downloaded ready-made (`YUE2CPP_BUILD=1 sh scripts/fetch-models.sh --cpp`): which NVIDIA GPU generations to build for. The script sets `YUE2CPP_CUDA_ARCH` in `.env` to this PC's card (`89` for an RTX 40), which builds much faster than every card |
+| `YUE2CPP_REF` | pinned commit | on the **engine-cpp** image, built here: which commit of yue2.cpp to build, with the patches in `engine-cpp/patches` |
 
 They are set under `build: args:` in `compose.yml`, or passed on the command line:
 
@@ -588,7 +596,7 @@ any browser and survive a rebuild.
 | Normalise to | How loud a normalised take is made: −16, −14 (the default) or −11 LUFS |
 | MCP server | Off by default. Turn it on to let an AI agent on this computer use Yeufonic: see [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp) |
 | Stem separation model | Which model a run starts with |
-| Use the GPU for stems and lyrics | On by default. Separating a vocal and hearing its words run on the engine's GPU when it has Demucs and Whisper, in its queue beside renders; off, or while a LoRA trains, the CPU does them |
+| Use the GPU for stems and lyrics | On by default. Separating a vocal and hearing its words run on the engine's GPU when it has Demucs and Whisper, in its queue beside renders; off, or while a LoRA trains, the CPU does them. With yue2.cpp the CPU always does them |
 | Stem save folder | Where stems are written. It must sit inside the data folder |
 | Take pictures | On by default, where something can draw them: FLUX.2 klein, chosen at install, or an external LLM whose provider lists an image model. **Drawn by** chooses between the two (this PC first, as it costs nothing), **Described by** what writes the picture's description (Gemma on this PC by default where it is installed, else the take itself with no LLM; or the external LLM), and **Image model** which of the provider's models draws, when it draws. **No pictures** where nothing can draw, saying how to have them |
 | External LLM & Lyrics | Choose between Local Gemma on GPU or an external OpenAI-compatible API for lyric drafting, corpus analysis, and audio transcription. Avoids GPU VRAM overhead. An API without billing applied (such as Google Gemini's free tier) is recommended if available to avoid usage charges |
@@ -666,18 +674,23 @@ Docker keeps its own images and build cache outside the project, so the Storage 
 
 ```
 compose.yml            engine + app, the one machine setup
+compose.cpp.yml        yue2.cpp in place of ComfyUI, with Gemma and pictures beside it
+compose.cpp-build.yml  yue2.cpp's servers built here rather than downloaded
 compose.override.yml.example
                        your own settings and music mounts: copy it to
                        compose.override.yml, which is git-ignored
 engine/Dockerfile      ComfyUI pinned to the commit this was built against, and the
                        WITH_TRAINER build arg, on, that builds the trainer in
 engine/custom_nodes/   yue2_harmony, the node behind the Harmony slider
+engine-cpp/            yue2.cpp's server, pinned, with our patches
+engine-pictures/       stable-diffusion.cpp's server, for take pictures beside yue2.cpp
 Dockerfile             the app: FastAPI, one static page, demucs
 app/                   the application
   main.py              the HTTP API
   jobs.py              the GPU and stem job lanes: submit, wait, cancel, collect
   lyrics.py            the lyric prompt, and tidying what the model writes
   engine.py            the ComfyUI client, progress relay, template validation
+  engine_cpp.py        the yue2.cpp client: reads the same graphs, answers as ComfyUI would
   db.py                SQLite: connection per thread, numbered migrations, settings
   library.py           the data folder: names, take.json, durations, waveform peaks
   stems.py             demucs
@@ -685,6 +698,7 @@ app/                   the application
   templates/           API-format graphs: transcribe, song_plan, render
   static/              the page. No build step
 tests/                 pytest: the API, the job lanes against a fake engine, migrations
+browser-tests/         the page in Chromium against a stand-in engine (Playwright)
 scripts/fetch-models.sh
 scripts/check-upstream.sh   how far ComfyUI, the trainer and the model repositories have moved,
                             and whether every download address still answers as pinned
@@ -735,7 +749,8 @@ is consistent.
 ## Other ways to run it
 
 The app and the engine are separate services that talk over HTTP and WebSocket, so they do not
-have to sit on the same machine. `ENGINE_URL` is the only setting that matters.
+have to sit on the same machine. `ENGINE_URL` is the only setting that matters (with `ENGINE_KIND=yue2cpp`
+for yue2.cpp).
 
 - **One machine** (this file): simplest, and what the quick start does.
 - **App on a NAS, engine on the GPU box**: keeps the library and the UI always on, even when the
@@ -745,7 +760,8 @@ have to sit on the same machine. `ENGINE_URL` is the only setting that matters.
 - **Docker Desktop on Windows**: works, with the settings in *Windows with Docker Desktop*
   above. It publishes ports onto the Windows host, so other devices can reach the UI once
   `ALLOWED_HOSTS` names them.
-- **Native Linux, no containers**: install ComfyUI with the YuE2 nodes and point `ENGINE_URL` at
+- **Native Linux, no containers**: install ComfyUI with the YuE2 nodes, or build yue2.cpp's server
+  with the patches in `engine-cpp/patches` and set `ENGINE_KIND=yue2cpp`, and point `ENGINE_URL` at
   it. Install `requirements.txt`, ffmpeg and demucs, then run the app from the repository with
   `DATA_DIR=./data VERSION_FILE=./VERSION uvicorn app.main:app --port 8090`. Without those two
   variables the app looks for `/data` and shows its version as unknown.
@@ -836,22 +852,22 @@ heard back to an earlier step with **Checkpoints**.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Header says *Engine offline* | the engine container is not running | `docker compose up -d engine`, then read `docker compose logs engine` |
+| Header says *Engine offline* | the engine container is not running | `docker compose up -d engine`, then read `docker compose logs engine` (with yue2.cpp the service is `engine-cpp`) |
 | Header says *Engine can't start: driver too old* | the NVIDIA driver does not support CUDA 13.0, which the engine is built for | update the driver, or put `TORCH_CUDA=cu128` in `.env` and run `docker compose up -d --build` |
-| Header names a missing node | ComfyUI was updated and a node was renamed | check `app/templates/*.json` against `/object_info` |
+| Header names a missing node | ComfyUI was updated and a node was renamed (ComfyUI only) | check `app/templates/*.json` against `/object_info` |
 | torchaudio fails to load its extension | torch, torchvision and torchaudio drifted apart | they are pinned together in both Dockerfiles; keep it that way |
 | `docker compose build` hangs with no output | the buildx plugin is missing | install `docker-buildx` for your Docker |
 | Engine runs but sees no GPU | the container has no GPU access | `docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi` should print the card |
 | A job fails with *the GPU ran out of memory* | another program is using the GPU, the card is small, or the song is long | close other GPU work, lower the length cap, or for training leave the longest songs out; see Requirements |
 | A job fails with *the engine stopped during this job* | the engine crashed and restarted | `docker compose logs engine` says why |
-| **Write score plan** is greyed out in Instrumental | the LoRA is not in `models/loras` | `sh scripts/fetch-models.sh`, then `docker compose restart engine` |
-| **Write lyrics** is greyed out | Gemma is not in `models/text_encoders` | `sh scripts/fetch-models.sh`, then `docker compose restart engine` |
-| **Corpora** is not in the menu | `TRAINING_ENABLED` is `0`, or the engine was built with `WITH_TRAINER=0` | set both back to `1`, rebuild the engine if it was the second; see Training a LoRA above |
-| Header says the checkpoint is missing | neither `yue2_3b_bf16.safetensors` nor `yue2_3b_int8_convrot.safetensors` is in `models/checkpoints` | `sh scripts/fetch-models.sh`, then `docker compose restart engine` |
+| **Write score plan** is greyed out in Instrumental | the LoRA is not in `models/loras` | `sh scripts/fetch-models.sh`, then `docker compose restart engine` (yue2.cpp sees it without a restart) |
+| **Write lyrics** is greyed out | Gemma is not in `models/text_encoders`; with yue2.cpp, its Gemma add-on is not set up | `sh scripts/fetch-models.sh`, then `docker compose restart engine`; with yue2.cpp, `sh scripts/fetch-models.sh --cpp --gemma`, then `docker compose up -d` |
+| **Corpora** is not in the menu | `TRAINING_ENABLED` is `0`, or the engine was built with `WITH_TRAINER=0`, or the engine is yue2.cpp, which does not train | set both back to `1`, rebuild the engine if it was the second; see Training a LoRA above. To train, switch to ComfyUI |
+| Header says the checkpoint is missing | neither `yue2_3b_bf16.safetensors` nor `yue2_3b_int8_convrot.safetensors` is in `models/checkpoints` (ComfyUI; yue2.cpp without its model does not start, and its log says so) | `sh scripts/fetch-models.sh` (with yue2.cpp, `--cpp`), then `docker compose restart engine` |
 | **Render this score** and **Write a new plan** are greyed out | no take's score is in the editor | press **Score** on a take in the library, or write a plan |
 | The app restarts, and its log says it cannot open the database | `data/` belongs to root, because Docker created it | `sudo chown -R "$(id -u):$(id -g)" data engine-state/output`, with your ids as `APP_UID` and `APP_GID` in `.env` |
 | The page says *This host name is not allowed* | you reached it by a name not in `ALLOWED_HOSTS` | add that name or address to `ALLOWED_HOSTS` in compose.yml |
-| The Harmony slider is greyed out | the engine image is older than the app and has no `yue2_harmony` node | `docker compose up -d --build engine` |
+| The Harmony slider is greyed out | the engine image is older than the app and has no `yue2_harmony` node (with yue2.cpp, no harmony patch) | `docker compose up -d --build` |
 
 ## Contributing
 
@@ -867,13 +883,21 @@ cut.
   LoRA and tokenizer head, and the training regularizer pack, by Mothersuperior. CC BY-NC 4.0. The installers fetch
   them from an unchanged copy, [pshields/yue2-mothersuperior-copies](https://huggingface.co/pshields/yue2-mothersuperior-copies),
   with the author's repositories as the fallback.
-- [Gemma 4](https://huggingface.co/Comfy-Org/gemma-4) by Google, for lyric drafts. Apache 2.0.
+- [Gemma 4](https://huggingface.co/Comfy-Org/gemma-4) by Google, for lyric drafts (with yue2.cpp, from
+  [Ollama's library](https://ollama.com/library/gemma4)). Apache 2.0.
 - [FLUX.2 klein 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8) by Black Forest Labs, with
   Qwen3 4B as its text encoder, for take pictures, when chosen. Apache 2.0.
 - The style LoRAs offered at install, by becausereasons, storagejuju, atomtanstudio and ntc-ai, gathered unchanged
   in [pshields/yue2-style-loras](https://huggingface.co/pshields/yue2-style-loras), whose README credits each one.
   CC BY-NC 4.0.
-- [ComfyUI](https://github.com/comfyanonymous/ComfyUI) as the engine.
+- [ComfyUI](https://github.com/comfyanonymous/ComfyUI) as the engine. GPL-3.0.
+- [yue2.cpp](https://github.com/ServeurpersoCom/yue2.cpp) by ServeurpersoCom as the other engine, with our patches.
+  MIT. Its [YuE2 GGUF models](https://huggingface.co/Serveurperso/YuE2-GGUF) by Serveurperso, CC BY-NC 4.0, fetched
+  from an unchanged copy, [pshields/yue2-gguf-copies](https://huggingface.co/pshields/yue2-gguf-copies), first.
+- [Ollama](https://github.com/ollama/ollama), to run Gemma beside yue2.cpp. MIT.
+- [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) by leejet, to draw take pictures beside
+  yue2.cpp, with [Qwen3 4B as GGUF](https://huggingface.co/unsloth/Qwen3-4B-GGUF) by Unsloth as its text encoder.
+  MIT; the encoder Apache 2.0.
 - [Demucs](https://github.com/facebookresearch/demucs) by Meta for stems. MIT.
 - [abcjs](https://github.com/paulrosen/abcjs) by Paul Rosen and Gregory Dyke, for staff notation.
   MIT, vendored in `app/static/` so it works offline.
