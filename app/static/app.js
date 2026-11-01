@@ -6538,6 +6538,8 @@ function setMode(mode) {
   show('variety-field', !cover);
   // A cover has no plan to write or render again, but its score can still be played as an instrumental.
   show('plan-actions', true);
+  // Its buttons wear the colour of the mode, as the editor's main button does.
+  if ($('plan-actions')) { $('plan-actions').dataset.mode = State.mode; }
   ['render-take', 'reroll'].forEach(function (id) { if ($(id)) { $(id).style.display = cover ? 'none' : ''; } });
   // An instrumental has no words and no voice; its structure takes the lyrics' place.
   show('lyrics-field', !inst);

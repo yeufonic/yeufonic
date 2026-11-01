@@ -823,6 +823,17 @@ button.primary {
 #create-cover { background: linear-gradient(90deg, var(--cover-a), var(--cover-b)); }
 #create-song { background: linear-gradient(90deg, var(--song-a), var(--song-b)); }
 #create-inst { background: linear-gradient(90deg, var(--inst-b), var(--inst-a)); color: #07140c; }
+/* What the score tab does with its score, under the chord chart and a little apart from it: the colour of the mode's
+   main button, smaller than it. */
+#plan-actions { margin-top: 22px; }
+#plan-length { margin-top: 10px; }
+#score-note { margin-top: 8px; }
+#plan-actions button { border: 0; color: #fff; font-weight: 600;
+  background: linear-gradient(90deg, var(--song-a), var(--song-b)); }
+#plan-actions[data-mode="cover"] button { background: linear-gradient(90deg, var(--cover-a), var(--cover-b)); }
+#plan-actions[data-mode="inst"] button { background: linear-gradient(90deg, var(--inst-b), var(--inst-a)); color: #07140c; }
+#plan-actions button:hover:not(:disabled) { filter: brightness(1.08); }
+#plan-actions button:disabled { opacity: 0.45; cursor: default; filter: none; }
 button.primary:hover { filter: brightness(1.08); }
 button.primary:disabled { opacity: 0.5; cursor: default; filter: none; }
 button.ghost {
