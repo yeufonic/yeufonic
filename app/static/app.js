@@ -3737,6 +3737,7 @@ function updateLyricsWriteVisibility() {
 function paintSource() {
   var source = currentSource();
   var badge = $('score-badge');
+  if (HEAR.shown && (!source || source.id !== HEAR.shown)) { clearHearError(); }
   paintHearButton();
   paintAudition();
   updateLyricsWriteVisibility();
@@ -5958,7 +5959,19 @@ function closeSettings() {
 /* Separating a vocal and listening to it takes minutes, so it is asked for, runs
    in the CPU lane beside stems, and shows how far along it is. A recording keeps
    what was heard, so asking twice costs nothing. */
-var HEAR = { id: null, timer: 0 };
+var HEAR = { id: null, timer: 0, misses: 0, shown: null };
+/* How long a job is waited for while the app cannot be reached, as when it restarts: the job goes on there. */
+var HEAR_PATIENCE = 40;
+
+/* A failure shown for one recording is not about the next thing done: choosing another recording, or making the
+   cover, takes it away. */
+function clearHearError() {
+  var box = $('lyrics-hear-job');
+  if (!box || !box.classList.contains('bad')) { return; }
+  box.classList.add('hidden');
+  box.classList.remove('bad');
+  HEAR.shown = null;
+}
 
 function paintHearButton() {
   var button = $('source-lyrics');
@@ -6087,6 +6100,7 @@ function paintHearJob(state) {
 /* A job that fails says so where the bar was, not only in the status line at the
    far end of the panel: a bar that stops at nought reads as a hang. */
 function showHearError(message) {
+  HEAR.shown = HEAR.id;
   clearInterval(HEAR.timer);
   HEAR.timer = 0;
   HEAR.id = null;
@@ -6122,9 +6136,17 @@ async function pollHear(id) {
   try {
     state = await api('/api/sources/' + id + '/lyrics');
   } catch (err) {
+    if (HEAR.id !== id) { return; }
+    // The app restarting, or a moment's loss of the network: the job carries on there, so keep asking.
+    if (++HEAR.misses < HEAR_PATIENCE) {
+      $('lyrics-hear-stage').textContent = 'Reaching the app again\u2026';
+      return;
+    }
     showHearError('Lost touch with the job: ' + err.message);
     return;
   }
+  if (HEAR.id !== id) { return; }
+  HEAR.misses = 0;
   paintHearJob(state);
   if (state.state === 'done') {
     stopHearPoll();
@@ -6185,6 +6207,8 @@ async function hearLyrics() {
   }
   await api('/api/sources/' + source.id + '/lyrics', { method: 'POST' });
   HEAR.id = source.id;
+  HEAR.misses = 0;
+  HEAR.shown = null;
   paintHearJob({ state: 'queued', progress: 0, stage: 'Waiting' });
   clearInterval(HEAR.timer);
   HEAR.timer = setInterval(function () { pollHear(source.id); }, 1500);
@@ -13770,6 +13794,7 @@ async function doRender() {
   if (problem) { status.textContent = problem; status.className = 'status bad'; return; }
   if (humCoverInEditor()) { await renderInPlace(); return; }
   var body = coverBody(pickSeed());
+  clearHearError();
   status.textContent = 'Queued\u2026';
   status.className = 'status';
   try {

@@ -65,6 +65,9 @@ cannot creep back in.
   mounted `data/models/whisper` on its own, so Docker made that folder as root and the app could not fetch Whisper
   into it. `data/` is mounted whole, as before. Where the folder is already root's, `sh scripts/fetch-models.sh` says
   how to make it yours.
+- **Getting a recording's words carries on through the app restarting.** The page used to give up at the first
+  request that failed, saying "Lost touch with the job: Failed to fetch" while the job went on; it now waits up to a
+  minute for the app to answer again. A failure shown there goes when you choose another recording or make the cover.
 - **When the engine or another program stops on Windows, `logs\launcher.log` says how.** It records the exit code
   and the last lines of that program's own log, which the next start would otherwise write over.
 - **The log says how a picture or a lyric draft was made, and how long it took.** Its "is ready" line names who
