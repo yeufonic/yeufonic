@@ -5,11 +5,12 @@ model. Write a song from a prompt, or cover your own recording. Create a local L
 a corpus of music. Edit the score either way, then pull the stems out of the result.
 
 - **Song from a prompt:** write a score plan from a style and lyrics, edit it, render it.
+- **Choose your engine:** ComfyUI with the YuE2 nodes, or yue2.cpp (GGUF) for smaller GPUs.
 - **Cover a recording:** transcribe your song, change its melody and chords, render a new version.
 - **Instrumentals:** build the structure section by section, or play a recording's score.
 - **Record a tune:** sing, hum or play one on an instrument, and expand a few bars into a whole song.
 - **MIDI import for covers and instrumentals:** MIDI editing with piano roll and sf2.
-- **Style LoRAs:** use published ones, or train your own from a folder of songs.
+- **Style LoRAs:** use published ones, or, with the ComfyUI engine, train your own from a folder of songs.
 - **Lyrics:** draft them from a sentence, or extract them from a recording.
 - **Duets:** cue a man, a woman or both for any lines of the lyrics, and the melody is set where that voice sings.
 - **Vintage mastering rack:** a skeuomorphic channel strip with a 1073-style EQ, a seven-band parametric equalizer you shape by dragging its bands on a graph over the live spectrum, vintage compressor, stereo imager, and master limiter with tube warmth to polish and master any take in real time.
@@ -354,7 +355,7 @@ are not downloaded again. Deleting that folder removes it.
 
 ## Requirements
 
-- An NVIDIA GPU with 12 GB of VRAM or more is recommended, with 16 GB of system RAM. An 8 GB card
+- On Windows or Linux, an NVIDIA GPU with 12 GB of VRAM or more is recommended, with 16 GB of system RAM. An 8 GB card
   is worth trying: ComfyUI moves what does not fit into system RAM, so it still works, though
   smaller cards are usually slower chips and renders take longer. Training a LoRA locally needs
   more: If using BF16 then about 12.5 GB of VRAM free while it prepares the songs, so 16 GB of GPU
@@ -371,6 +372,7 @@ are not downloaded again. Deleting that folder removes it.
 - About 30 GB of disk with ComfyUI (less with yue2.cpp), more as your library grows.
 - Linux, or Windows with WSL2 or Docker Desktop. WSL2 is what this was built on; Windows with
   Docker Desktop needs a few settings, below.  Alternatively, on Windows, [the installer](#on-windows-without-docker) needs none of this.
+- The macOS build has been tested on a Mac mini with an M4 and 24 GB of RAM, and found usable; a Pro or Max chip should give better results.
 
 ## Choosing a model size
 
