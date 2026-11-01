@@ -26,6 +26,8 @@
 #                                        compose.cpp.yml).  Training needs ComfyUI; Gemma and pictures drawn on this
 #                                        PC are the two add-ons below.  YUE2CPP_MODEL picks
 #                                        another size: YuE2-3B-BF16.gguf (7.2 GB), -Q6_K (2.9 GB), -Q5_K_M (2.6 GB).
+#                                        Its programs are ready-made images, downloaded by docker compose up;
+#                                        YUE2CPP_BUILD=1 builds them here instead (compose.cpp-build.yml).
 #   sh scripts/fetch-models.sh --cpp --gemma   also Gemma 4 E4B for that engine, 6.1 GB, to draft lyrics and
 #                                        describe pictures on this PC (models/ollama/, through Docker, and
 #                                        COMPOSE_PROFILES=gemma in .env).  Without it an external LLM does both.
@@ -130,16 +132,18 @@ if [ "$ENGINE" = cpp ]; then
   if ! grep -qs '^COMPOSE_FILE=' "$ROOT/.env"; then
     # Naming the files stops compose reading compose.override.yml by itself, so one that is there is named too.
     files=compose.yml:compose.cpp.yml
+    if [ "${YUE2CPP_BUILD:-}" = 1 ]; then files="$files:compose.cpp-build.yml"; fi
     if [ -f "$ROOT/compose.override.yml" ]; then files="$files:compose.override.yml"; fi
     if [ -s "$ROOT/.env" ] && [ -n "$(tail -c 1 "$ROOT/.env")" ]; then echo >> "$ROOT/.env"; fi
     echo "COMPOSE_FILE=$files" >> "$ROOT/.env"
     echo "wrote COMPOSE_FILE=$files to .env: docker compose now runs the yue2.cpp engine"
   fi
-  # yue2.cpp and the picture server are compiled when their images are built.  For every recent NVIDIA card that
+  # Built here (YUE2CPP_BUILD=1), yue2.cpp and the picture server are compiled: for every recent NVIDIA card that
   # takes the better part of an hour; for this PC's card alone, a fraction of it.  The bare number ("89", not
   # "89-real") also keeps the portable form of the code, so a newer card still runs it after a slow first start;
-  # rebuild for it (take the line out of .env, or set it) to have it at full speed.
-  if ! grep -qs '^YUE2CPP_CUDA_ARCH=' "$ROOT/.env" && command -v nvidia-smi >/dev/null 2>&1; then
+  # rebuild for it (take the line out of .env, or set it) to have it at full speed.  The ready-made images, the
+  # default, are built for every one already.
+  if [ "${YUE2CPP_BUILD:-}" = 1 ] && ! grep -qs '^YUE2CPP_CUDA_ARCH=' "$ROOT/.env" && command -v nvidia-smi >/dev/null 2>&1; then
     cap=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -1 | tr -d ' .\r')
     case "$cap" in
       [1-9][0-9]|[1-9][0-9][0-9])
@@ -365,7 +369,7 @@ fetch "https://archive.org/download/free-soundfonts-sf2-2019-04/Arachno_SoundFon
 # Back to ComfyUI: compose.cpp.yml and its add-ons' profiles come out of .env (a line left with nothing else to say
 # goes), so docker compose runs ComfyUI again.
 if [ "$ENGINE" = comfyui ] && [ "$CURRENT" = cpp ]; then
-  sed -i -e '/^COMPOSE_FILE=/s/:compose\.cpp\.yml//' \
+  sed -i -e '/^COMPOSE_FILE=/s/:compose\.cpp\(-build\)\{0,1\}\.yml//g' \
          -e '/^COMPOSE_FILE=compose\.yml\(:compose\.override\.yml\)\{0,1\}$/d' \
          -e '/^COMPOSE_PROFILES=/{s/\(=\|,\)\(gemma\|pictures\)\b/\1/g;s/,,*/,/g;s/=,/=/;s/,$//}' \
          -e '/^COMPOSE_PROFILES=$/d' "$ROOT/.env"

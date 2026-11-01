@@ -6,20 +6,19 @@
 # Chosen in .env, read by every docker compose command:
 #   COMPOSE_FILE=compose.yml:compose.cpp.yml       (and :compose.override.yml, if there is one)
 #   COMPOSE_PROFILES=gemma,pictures     (with Gemma, with pictures drawn here: either or both)
-# and its models fetched with scripts/fetch-models.sh --cpp [--gemma] [--pictures].  Take the lines out to go back.
+# and its models fetched with scripts/fetch-models.sh --cpp [--gemma] [--pictures]; --comfyui goes back.  The
+# engine and the picture server are ready-made images; YUE2CPP_BUILD=1 for that script adds compose.cpp-build.yml,
+# which builds them here from engine-cpp/ and engine-pictures/ instead.
 services:
   # Not started: the profile is never asked for.
   engine:
     profiles: ["comfyui"]
 
+  # Ready-made, from engine-cpp/ (.github/workflows/engine-images.yml), tagged by a hash of that folder
+  # (scripts/engine-image-tag.sh): a release that changes it names a new tag, which is downloaded once.
+  # compose.cpp-build.yml builds it here instead.
   engine-cpp:
-    build:
-      context: ./engine-cpp
-      args:
-        # Empty builds for every recent NVIDIA card; one architecture (89-real for an RTX 40,
-        # 86-real for an RTX 30) builds much faster.
-        CUDA_ARCHITECTURES: "${YUE2CPP_CUDA_ARCH:-}"
-    image: yeufonic-engine-cpp:latest
+    image: ghcr.io/yeufonic/yeufonic-engine-cpp:42342ab1c74d
     container_name: yeufonic-engine-cpp
     restart: unless-stopped
     # The backbone: Q8_0 (near lossless) by default; YUE2CPP_MODEL picks another,
@@ -80,11 +79,7 @@ services:
   # the models folder as ComfyUI's layout (diffusion_models/, text_encoders/, vae/); the app loads klein
   # for each picture and unloads it after, so it holds no video memory between pictures.
   pictures:
-    build:
-      context: ./engine-pictures
-      args:
-        CUDA_ARCHITECTURES: "${YUE2CPP_CUDA_ARCH:-}"
-    image: yeufonic-pictures:latest
+    image: ghcr.io/yeufonic/yeufonic-pictures:589749021043
     profiles: ["pictures"]
     container_name: yeufonic-pictures
     restart: unless-stopped

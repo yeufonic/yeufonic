@@ -46,7 +46,9 @@ cannot creep back in.
   beside it, in Ollama, for lyric drafts and picture descriptions on this PC, and FLUX.2 klein, in stable-diffusion.cpp,
   for take pictures. The Windows installer asks which engine to install, with lyric drafts and take pictures offered
   for either; on Docker, `sh scripts/fetch-models.sh --cpp` sets it up, with `--gemma` and `--pictures` for the two
-  add-ons, and `--comfyui` switches back, each followed by `docker compose up -d --build`. Training needs ComfyUI: with yue2.cpp the app leaves it out, and stems and lyric hearing run on the CPU.
+  add-ons, and `--comfyui` switches back, each followed by `docker compose up -d --build`. yue2.cpp's server and the
+  picture server come as ready-made images from GitHub's container registry, built by this repository's workflow
+  with a build attestation; `YUE2CPP_BUILD=1` builds them on your PC instead. Training needs ComfyUI: with yue2.cpp the app leaves it out, and stems and lyric hearing run on the CPU.
   **About** names the engine. [docs/ENGINES.md](docs/ENGINES.md) compares the two and says how to choose and switch.
   On Windows, `engine_args` in `settings.ini` stays ComfyUI's; yue2.cpp's own switches go in `cpp_engine_args`.
 

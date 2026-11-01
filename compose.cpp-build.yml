@@ -1,0 +1,20 @@
+# yue2.cpp's server and the picture server built on this PC from engine-cpp/ and engine-pictures/, in place of the
+# ready-made images compose.cpp.yml names: for changing them, or for a PC that cannot reach ghcr.io.  Added after
+# compose.cpp.yml in COMPOSE_FILE, which YUE2CPP_BUILD=1 sh scripts/fetch-models.sh --cpp does.
+#
+# The build compiles for YUE2CPP_CUDA_ARCH's generation of card (the script sets it to this PC's: 89 for an RTX 40,
+# 86 for an RTX 30), or for every recent one when it is empty, which takes the better part of an hour.
+services:
+  engine-cpp:
+    build:
+      context: ./engine-cpp
+      args:
+        CUDA_ARCHITECTURES: "${YUE2CPP_CUDA_ARCH:-}"
+    image: yeufonic-engine-cpp:local
+
+  pictures:
+    build:
+      context: ./engine-pictures
+      args:
+        CUDA_ARCHITECTURES: "${YUE2CPP_CUDA_ARCH:-}"
+    image: yeufonic-pictures:local

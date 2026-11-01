@@ -73,6 +73,20 @@ itself: add it to the line if you make one later), and with an add-on
 `COMPOSE_PROFILES=gemma,pictures` (the ones you chose). It fetches Gemma with Docker, so Docker must be
 running.
 
+yue2.cpp's server and the picture server are ready-made images, which `docker compose up` downloads from
+GitHub's container registry (`ghcr.io/yeufonic`) the first time, a few GB that the two share most of.
+They are built by this repository's own workflow, `.github/workflows/engine-images.yml`, from the
+`engine-cpp/` and `engine-pictures/` folders, for every NVIDIA generation from the RTX 20 on, and each carries a
+build attestation saying so, which you can check with GitHub's CLI:
+
+```sh
+gh attestation verify oci://ghcr.io/yeufonic/yeufonic-engine-cpp:<tag> --owner yeufonic
+```
+
+(the tag is the one `compose.cpp.yml` names). To build them on your PC instead, set `YUE2CPP_BUILD=1` for the
+script: `YUE2CPP_BUILD=1 sh scripts/fetch-models.sh --cpp`. It adds `compose.cpp-build.yml`, and the build is
+compiled for your card alone; it still takes a while.
+
 ### Switching
 
 One command each way, then start Yeufonic again. **From ComfyUI to yue2.cpp:**
@@ -93,20 +107,20 @@ The script fetches the models the engine needs, changes `.env`, and stops and re
 leaving, so it lets go of the graphics card before the other starts. Without `--cpp` or `--comfyui` it keeps
 the engine you have, so adding `--loras` later, say, changes nothing else.
 
-The first build of an engine takes a while (yue2.cpp is compiled for your graphics card); switching back to one
-you have used before does not.
+The first start of an engine takes a while (ComfyUI's image is built, yue2.cpp's downloaded); switching back to
+one you have used before does not.
 Each engine's models stay in `models/` when you switch away, so switching back downloads nothing. To
 free the space, remove them: `models/yue2cpp/`, `models/ollama/` and `models/text_encoders/Qwen3-*.gguf`
 are yue2.cpp's, Gemma's and its picture encoder's; `models/checkpoints/` and
-`models/text_encoders/gemma4_*` are ComfyUI's. The engine you left also keeps its Docker image
-(`docker image rm yeufonic-engine` removes ComfyUI's, `docker image rm yeufonic-engine-cpp` yue2.cpp's).
+`models/text_encoders/gemma4_*` are ComfyUI's. The engine you left also keeps its Docker images
+(`docker image rm yeufonic-engine` removes ComfyUI's; `docker images ghcr.io/yeufonic/*` lists yue2.cpp's).
 
 ### Settings
 
 | In `.env` | What it does |
 |---|---|
 | `YUE2CPP_MODEL` | Which size of YuE2 yue2.cpp uses: `YuE2-3B-Q8_0.gguf` (the default), `YuE2-3B-BF16.gguf` (full precision, 7.2 GB), `YuE2-3B-Q6_K.gguf` or `YuE2-3B-Q5_K_M.gguf` (smaller). Set it before `fetch-models.sh --cpp`, which fetches that one |
-| `YUE2CPP_CUDA_ARCH` | Which generation of NVIDIA card yue2.cpp and the picture server are built for. `fetch-models.sh --cpp` sets it to this PC's card (`89` for an RTX 40, `86` for an RTX 30), which builds far faster than for every card. A newer card still runs that build, after a slower first start; take the line out (or set it) and build again to have it at full speed |
+| `YUE2CPP_CUDA_ARCH` | Only when they are built here: which generation of NVIDIA card yue2.cpp and the picture server are built for. `YUE2CPP_BUILD=1 sh scripts/fetch-models.sh --cpp` sets it to this PC's card (`89` for an RTX 40, `86` for an RTX 30), which builds far faster than for every card. A newer card still runs that build, after a slower first start; take the line out (or set it) and build again to have it at full speed |
 | `GEMMA_MODEL` | The Gemma model, `gemma4:e4b-it-qat` unless set |
 
 The FLUX.2 klein 9B is never downloaded for you (it is under a non-commercial licence): the guide's

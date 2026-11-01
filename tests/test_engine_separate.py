@@ -244,7 +244,7 @@ def test_choosing_yue2cpp_keeps_a_compose_override(tmp_path):
         assert (tmp_path / ".env").read_text(encoding="utf-8").splitlines() == ["APP_UID=1000", f"COMPOSE_FILE={files}"]
 
 
-def _run_fetch(tmp_path, *args, env_text="", override=False, containers=(), gpu=""):
+def _run_fetch(tmp_path, *args, env_text="", override=False, containers=(), gpu="", build=False):
     """fetch-models.sh in a folder of its own, with curl and docker stood in for: nothing is downloaded or stopped."""
     import shutil, stat, subprocess
     root = tmp_path / "yeufonic"
@@ -270,7 +270,8 @@ def _run_fetch(tmp_path, *args, env_text="", override=False, containers=(), gpu=
             continue
         (bin_ / f).chmod((bin_ / f).stat().st_mode | stat.S_IEXEC)
     out = subprocess.run(["sh", str(root / "scripts" / "fetch-models.sh"), *args], capture_output=True, text=True,
-                         env={"PATH": f"{bin_}:/usr/bin:/bin", "HOME": str(tmp_path)})
+                         env={"PATH": f"{bin_}:/usr/bin:/bin", "HOME": str(tmp_path),
+                              **({"YUE2CPP_BUILD": "1"} if build else {})})
     assert out.returncode == 0, out.stderr
     log = tmp_path / "docker.log"
     return root, out.stdout, (log.read_text() if log.exists() else "")
@@ -311,11 +312,36 @@ def test_a_compose_file_line_of_your_own_keeps_its_other_files(tmp_path):
     assert (root / ".env").read_text().splitlines() == ["COMPOSE_FILE=compose.yml:compose.gpu2.yml"]
 
 
-def test_yue2cpp_is_built_for_this_pcs_card(tmp_path):
-    """Built for every card, the two images take the better part of an hour; for this one, a fraction of it."""
+def test_yue2cpp_built_here_is_built_for_this_pcs_card(tmp_path):
+    """The ready-made images need no build; one built here (YUE2CPP_BUILD=1) is compiled for this PC's card alone,
+    which takes a fraction of the time every card does."""
     root, said, _ = _run_fetch(tmp_path, "--cpp", env_text="APP_UID=1000\n", gpu="8.9")
-    assert "YUE2CPP_CUDA_ARCH=89" in (root / ".env").read_text().splitlines()
+    env = (root / ".env").read_text().splitlines()
+    assert "COMPOSE_FILE=compose.yml:compose.cpp.yml" in env and not any("CUDA_ARCH" in line for line in env)
+    built = tmp_path / "built"
+    built.mkdir()
+    root, _, _ = _run_fetch(built, "--cpp", env_text="APP_UID=1000\n", gpu="8.9", build=True)
+    env = (root / ".env").read_text().splitlines()
+    assert "COMPOSE_FILE=compose.yml:compose.cpp.yml:compose.cpp-build.yml" in env and "YUE2CPP_CUDA_ARCH=89" in env
+    root, _, _ = _run_fetch(built, "--comfyui")
+    assert not any(line.startswith("COMPOSE_FILE=") for line in (root / ".env").read_text().splitlines())
     other = tmp_path / "other"
     other.mkdir()
-    root, _, _ = _run_fetch(other, "--cpp", env_text="YUE2CPP_CUDA_ARCH=86-real\n", gpu="8.9")
+    root, _, _ = _run_fetch(other, "--cpp", env_text="YUE2CPP_CUDA_ARCH=86\n", gpu="8.9", build=True)
     assert (root / ".env").read_text().count("YUE2CPP_CUDA_ARCH") == 1          # a choice already made stays
+
+
+def test_the_ready_made_images_are_the_ones_their_folders_build():
+    """compose.cpp.yml names each image by a hash of the folder it is built from, so a change to that folder needs
+    the new tag here, and the workflow builds and publishes the image under it."""
+    import re, subprocess
+    root = Path(__file__).resolve().parent.parent
+    compose = (root / "compose.cpp.yml").read_text(encoding="utf-8")
+    for folder, name in (("engine-cpp", "yeufonic-engine-cpp"), ("engine-pictures", "yeufonic-pictures")):
+        tag = subprocess.run(["sh", str(root / "scripts" / "engine-image-tag.sh"), folder], capture_output=True,
+                             text=True, check=True).stdout.strip()
+        assert re.fullmatch(r"[0-9a-f]{12}", tag)
+        assert f"image: ghcr.io/yeufonic/{name}:{tag}\n" in compose, f"{folder}/ changed: name {name}:{tag}"
+    workflow = (root / ".github" / "workflows" / "engine-images.yml").read_text(encoding="utf-8")
+    assert "scripts/engine-image-tag.sh" in workflow and "push-to-registry: true" in workflow
+    assert "build:" not in compose                    # a build here belongs in compose.cpp-build.yml
