@@ -61,10 +61,12 @@ cannot creep back in.
   *From the take itself* is still there for the quickest pictures.
 - **An engine line that only mentions an error is no longer marked as one in the log.** The engine's own level is
   used where it gives one, so a start-up report of an optional part it skipped no longer shows as ERROR.
-- **On a new Docker install, hearing a recording's words no longer fails with "Permission denied".** `compose.yml`
-  mounted `data/models/whisper` on its own, so Docker made that folder as root and the app could not fetch Whisper
-  into it. `data/` is mounted whole, as before. Where the folder is already root's, `sh scripts/fetch-models.sh` says
-  how to make it yours.
+- **A new Docker install can hear a recording's words and train LoRAs.** Two folders the app writes in were made
+  by Docker, as root, on a new install, so the app could not use them: `data/models/whisper`, which `compose.yml`
+  mounted on its own (hearing the words failed with "Permission denied"), and `engine-state/input`, which
+  `fetch-models.sh` never made (a training set could not be staged). `data/` is now mounted whole and the script makes
+  both; where either is already root's, the script says how to make it yours. A new workflow runs the test suite on
+  every push and makes a new install from nothing for each engine, writing in every folder the app is given.
 - **Getting a recording's words carries on through the app restarting.** The page used to give up at the first
   request that failed, saying "Lost touch with the job: Failed to fetch" while the job went on; it now waits up to a
   minute for the app to answer again. A failure shown there goes when you choose another recording or make the cover.

@@ -1,0 +1,51 @@
+# The test suite, and a new Docker install made from nothing, on every push and pull request.
+#
+# The suite runs in the app's own image, as it does on a developer's PC.  The new install
+# (scripts/check-fresh-install.sh) catches what the suite cannot see: what a fresh checkout looks like when
+# fetch-models.sh has run and Docker starts the app, which an install that has been running for months never shows.
+name: Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: The page's script
+        run: node --check app/static/app.js
+
+      - name: The app's image
+        run: docker build -t yeufonic-app:tests .
+
+      # The piano roll and section tests run the page's code in node, so the runner's node is lent to the image.
+      - name: The test suite
+        run: |
+          docker run --rm -v "$PWD":/src -w /src \
+            -v "$(readlink -f "$(command -v node)")":/usr/local/bin/node:ro \
+            --entrypoint sh yeufonic-app:tests -c \
+            'pip install -q pytest anyio && python -m pytest -q -p no:cacheprovider'
+
+  new-install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [--comfyui, --cpp]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: A new install, and every folder the app writes in
+        run: sh scripts/check-fresh-install.sh ${{ matrix.engine }}

@@ -347,11 +347,48 @@ def test_the_ready_made_images_are_the_ones_their_folders_build():
     assert "build:" not in compose                    # a build here belongs in compose.cpp-build.yml
 
 
-def test_no_folder_inside_data_is_mounted_on_its_own():
-    """./data is mounted whole, and fetch-models.sh makes it as you.  A folder inside it mounted on its own is made by
-    Docker, as root, when it is not there yet, and the app cannot write in it (Whisper could not be fetched)."""
-    import re
-    root = Path(__file__).resolve().parent.parent
-    for compose in sorted(root.glob("compose*.yml")):
-        mounts = re.findall(r"^\s*-\s*\"?(\./data/[^:\"]*):", compose.read_text(encoding="utf-8"), re.M)
-        assert not mounts, f"{compose.name} mounts {mounts} on their own"
+
+def _compose(path):
+    """A compose file as data, with compose's own tags (!override, !reset) read as plain values."""
+    import yaml
+
+    class Loader(yaml.SafeLoader):
+        pass
+    for tag in ("!override", "!reset"):
+        Loader.add_constructor(tag, lambda loader, node: (loader.construct_sequence(node)
+                                                          if isinstance(node, yaml.SequenceNode) else
+                                                          loader.construct_mapping(node)
+                                                          if isinstance(node, yaml.MappingNode) else
+                                                          loader.construct_scalar(node)))
+    return yaml.load(path.read_text(encoding="utf-8"), Loader=Loader) or {}
+
+
+@pytest.mark.parametrize("engine", ["--comfyui", "--cpp"])
+def test_every_folder_the_app_writes_in_is_made_by_the_setup_script(tmp_path, engine):
+    """The app runs as you, not root.  A folder it mounts that is not there when Docker starts it is made by Docker,
+    as root, and the app cannot write in it: on a new install, Whisper could not be fetched (data/models/whisper was
+    mounted on its own) and a training set could not be staged (engine-state/input was never made).  An existing
+    install had the folders from long ago, so nothing showed there.  So: after fetch-models.sh on a new checkout,
+    every folder mounted read-write into a service that runs as a user must exist, or be part of the checkout."""
+    repo = Path(__file__).resolve().parent.parent
+    root, _, _ = _run_fetch(tmp_path, engine, env_text="APP_UID=1000\n")
+    files = ["compose.yml"] + (["compose.cpp.yml"] if engine == "--cpp" else [])
+    users, mounts = set(), {}
+    for name in files:
+        for service, spec in (_compose(repo / name).get("services") or {}).items():
+            if spec.get("user"):
+                users.add(service)
+            for volume in spec.get("volumes") or []:
+                source, _, rest = (volume if isinstance(volume, str) else
+                                   f"{volume.get('source')}:{volume.get('target')}"
+                                   f"{':ro' if volume.get('read_only') else ''}").partition(":")
+                if source.startswith("./") and not rest.endswith(":ro"):
+                    mounts.setdefault(service, set()).add(source[2:])
+    assert "app" in users
+    missing = []
+    for service in users:
+        for source in sorted(mounts.get(service, ())):
+            tracked = (repo / source).exists() and source.split("/")[0] in {"app", ".git", "VERSION"}
+            if not tracked and not (root / source).exists():
+                missing.append(f"{service}: ./{source}")
+    assert not missing, f"fetch-models.sh does not make these, so Docker would, as root: {missing}"
