@@ -14,6 +14,8 @@
   // The scenes drawn over the take's breathing picture, where it has one (the Yeufonic and Artwork scenes draw it
   // themselves).
   var OVER_ART = { kaleidoscope: true, grid: true, liquid: true, bars: true };
+  // What can move behind the picture in the Artwork scene (being tried out; B steps through them).
+  var ART_MOTIONS = ['breath', 'rays', 'ripples', 'dust', 'depth', 'halo'];
 
   var Visualizer = {
     isOpen: false,
@@ -1453,6 +1455,16 @@
             pctx.drawImage(scene.img, 0, 0, 8, 8);
             var corners = [[0, 0], [7, 0], [0, 7], [7, 7]].map(function (c) { return pctx.getImageData(c[0], c[1], 1, 1).data[3]; });
             scene.opaque = Math.min.apply(null, corners) > 240;
+            // A handful of the picture's own colours, brightened, for what moves behind it.
+            var pal = [];
+            for (var py = 0; py < 8; py += 2) {
+              for (var px2 = 0; px2 < 8; px2 += 2) {
+                var c = pctx.getImageData(px2, py, 1, 1).data;
+                var up = 255 / Math.max(90, c[0], c[1], c[2]);
+                pal.push([Math.min(255, Math.round(c[0] * up)), Math.min(255, Math.round(c[1] * up)), Math.min(255, Math.round(c[2] * up))]);
+              }
+            }
+            scene.palette = pal;
           } catch (err) { /* a picture that cannot be read keeps the brand colours */ }
           scene.ready = true;
         };
@@ -1534,6 +1546,9 @@
       var x = cx - pw / 2, y = top + (room - ph) / 2;
       var cy = y + ph / 2;
       var framed = art.opaque !== false;   // a whole picture, rather than one whose background was taken out
+
+      // What moves behind the picture, on top of the breathing backdrop: one of ART_MOTIONS, B for the next.
+      this.drawArtMotion(ctx, w, h, now, art, { cx: cx, cy: cy, side: Math.min(pw, ph), pw: pw, ph: ph }, swell, shift);
 
       // The light from behind the picture, breathing with it, in the picture's colour turned as far as the backdrop.
       var glowR = Math.max(w, h) * (0.40 + swell * 0.12);
@@ -1617,9 +1632,166 @@
       ctx.restore();
 
       this.drawSleeveTitle(ctx, take.title, cx, y + ph + titleGap + titleSize / 2, titleSize, w);
+      this.drawArtMotionLabel(ctx, w, now);
 
       this.loadWaveStrip(take);
       this.drawWaveStrip(ctx, w, h, now);
+    },
+
+    /* ---------------------------------------------------------------- what moves behind the picture
+       Being tried out (2026-11-01): the backdrop alone ("Breath"), or one of these over it.  B steps through them while
+       the Artwork scene is up, and the choice is kept in this browser. */
+    artMotionName: function () {
+      var names = { breath: 'Breath', rays: 'Light rays', ripples: 'Ripples', dust: 'Drifting colour', depth: 'Depth', halo: 'Spectrum halo' };
+      return names[this.artMotion()] || 'Breath';
+    },
+
+    artMotion: function () {
+      if (!this.motion) {
+        var kept = null;
+        try { kept = localStorage.getItem('yeufonic.artMotion'); } catch (err) { /* private mode */ }
+        this.motion = ART_MOTIONS.indexOf(kept) >= 0 ? kept : 'breath';
+      }
+      return this.motion;
+    },
+
+    cycleArtMotion: function () {
+      var next = ART_MOTIONS[(ART_MOTIONS.indexOf(this.artMotion()) + 1) % ART_MOTIONS.length];
+      this.motion = next;
+      try { localStorage.setItem('yeufonic.artMotion', next); } catch (err) { /* private mode */ }
+      this.motionLabelUntil = performance.now() + 2500;
+      this.motionState = null;
+    },
+
+    drawArtMotionLabel: function (ctx, w, now) {
+      if (!this.motionLabelUntil || now > this.motionLabelUntil) { return; }
+      var fade = Math.min(1, (this.motionLabelUntil - now) / 600);
+      ctx.save();
+      ctx.font = '600 14px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(230, 228, 222, ' + (0.85 * fade).toFixed(2) + ')';
+      ctx.fillText('Behind the picture: ' + this.artMotionName() + '   (B for the next)', w / 2, 84);
+      ctx.restore();
+    },
+
+    drawArtMotion: function (ctx, w, h, now, art, cover, swell, shift) {
+      var kind = this.artMotion();
+      if (kind === 'breath') { return; }
+      var t = now / 1000;
+      var bass = this.bassEnergy || 0, mid = this.midEnergy || 0, treble = this.trebleEnergy || 0;
+      var hue = ((art.hue + shift) % 360 + 360) % 360;
+      var pal = art.palette && art.palette.length ? art.palette : [[123, 92, 255]];
+      var st = this.motionState;
+      if (!st || st.kind !== kind) { st = this.motionState = { kind: kind, born: now, items: [], last: now, spin: 0 }; }
+      var dt = Math.min(0.1, (now - st.last) / 1000);
+      st.last = now;
+      var reach = Math.hypot(w, h) * 0.75;
+      ctx.save();
+
+      if (kind === 'rays') {
+        // Soft beams of the picture's colours turning slowly from behind it, brighter with the bass.
+        st.spin += dt * (0.05 + mid * 0.12);
+        ctx.globalCompositeOperation = 'lighter';
+        var beams = 12;
+        for (var b = 0; b < beams; b++) {
+          var a = st.spin + b * (2 * Math.PI / beams) + Math.sin(t * 0.3 + b) * 0.05;
+          var width = 0.07 + 0.04 * Math.sin(t * 0.5 + b * 1.7);
+          var c = pal[b % pal.length];
+          var alpha = (0.035 + bass * 0.10 + swell * 0.03);
+          var g = ctx.createRadialGradient(cover.cx, cover.cy, cover.side * 0.3, cover.cx, cover.cy, reach);
+          g.addColorStop(0, 'rgba(' + c.join(',') + ',' + alpha.toFixed(3) + ')');
+          g.addColorStop(1, 'rgba(' + c.join(',') + ',0)');
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.moveTo(cover.cx, cover.cy);
+          ctx.arc(cover.cx, cover.cy, reach, a - width, a + width);
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else if (kind === 'ripples') {
+        // A ring sent out from the picture on each beat, in one of its colours, widening and fading.
+        if (this.beatDetected || now - (st.lastRing || 0) > this.barSeconds(this.currentTake) * 1000) {
+          st.items.push({ born: now, c: pal[st.items.length % pal.length], strength: 0.4 + bass * 0.6 });
+          st.lastRing = now;
+        }
+        var life = 3600;
+        st.items = st.items.filter(function (r) { return now - r.born < life; });
+        ctx.globalCompositeOperation = 'lighter';
+        for (var i = 0; i < st.items.length; i++) {
+          var r = st.items[i], age = (now - r.born) / life;
+          var radius = cover.side * 0.55 + age * reach;
+          ctx.strokeStyle = 'rgba(' + r.c.join(',') + ',' + ((1 - age) * 0.35 * r.strength).toFixed(3) + ')';
+          ctx.lineWidth = Math.max(1.5, cover.side * 0.012 * (1 - age * 0.7));
+          ctx.beginPath();
+          ctx.arc(cover.cx, cover.cy, radius, 0, 2 * Math.PI);
+          ctx.stroke();
+        }
+      } else if (kind === 'dust') {
+        // Motes of the picture's colours drifting out from behind it, quicker with the music, twinkling with the treble.
+        while (st.items.length < 140) {
+          var ang = Math.random() * 2 * Math.PI;
+          st.items.push({ a: ang, d: cover.side * (0.35 + Math.random() * 0.4) + (st.items.length ? 0 : 0),
+                          v: 12 + Math.random() * 30, s: 0.8 + Math.random() * 2.2, c: pal[Math.floor(Math.random() * pal.length)],
+                          tw: Math.random() * 6.28, spin: (Math.random() - 0.5) * 0.15 });
+        }
+        ctx.globalCompositeOperation = 'lighter';
+        var push = 1 + mid * 3 + bass * 2;
+        for (var k = 0; k < st.items.length; k++) {
+          var m = st.items[k];
+          m.d += m.v * push * dt;
+          m.a += m.spin * dt;
+          if (m.d > reach) { m.d = cover.side * (0.35 + Math.random() * 0.2); m.a = Math.random() * 2 * Math.PI; }
+          var mx = cover.cx + Math.cos(m.a) * m.d, my = cover.cy + Math.sin(m.a) * m.d;
+          var tw = 0.45 + 0.55 * Math.abs(Math.sin(t * 2 + m.tw)) * (0.5 + treble);
+          var fadeIn = Math.min(1, (m.d - cover.side * 0.35) / (cover.side * 0.3));
+          ctx.fillStyle = 'rgba(' + m.c.join(',') + ',' + (0.55 * tw * Math.max(0, fadeIn)).toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.arc(mx, my, m.s * (1 + bass * 0.8), 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      } else if (kind === 'depth') {
+        // Two more copies of the blurred picture at other sizes, turning slowly against each other: the backdrop
+        // gains depth and keeps moving.
+        var layers = [[1.7, 0.010, 0.22], [1.1, -0.016, 0.16]];
+        ctx.globalCompositeOperation = 'screen';
+        for (var l = 0; l < layers.length; l++) {
+          var span = Math.max(w, h) * layers[l][0] * (1 + swell * 0.03);
+          ctx.save();
+          ctx.globalAlpha = layers[l][2] + bass * 0.08;
+          ctx.translate(cover.cx + Math.sin(t * 0.07 + l) * w * 0.04, cover.cy + Math.cos(t * 0.05 + l) * h * 0.04);
+          ctx.rotate(t * layers[l][1] * (1 + mid));
+          ctx.drawImage(art.blur, -span / 2, -span / 2, span, span);
+          ctx.restore();
+        }
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgba(5, 5, 8, 0.25)';
+        ctx.fillRect(0, 0, w, h);
+      } else if (kind === 'halo') {
+        // The spectrum as a ring of bars around the picture, in its colours, turning slowly.
+        var data = this.dataFreq;
+        if (data && data.length) {
+          var bars = 96, ring = Math.hypot(cover.pw, cover.ph) * 0.52;
+          st.spin += dt * 0.04;
+          st.levels = st.levels || new Float32Array(bars);
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.lineCap = 'round';
+          for (var q = 0; q < bars; q++) {
+            var bin = Math.floor(Math.pow(q / bars, 1.6) * data.length * 0.7);
+            var level = data[bin] / 255;
+            st.levels[q] += (level - st.levels[q]) * 0.25;
+            var len = cover.side * (0.015 + st.levels[q] * 0.14);
+            var ang2 = st.spin + q * 2 * Math.PI / bars;
+            var cc = pal[q % pal.length];
+            ctx.strokeStyle = 'rgba(' + cc.join(',') + ',' + (0.18 + st.levels[q] * 0.4).toFixed(3) + ')';
+            ctx.lineWidth = Math.max(2, ring * 2 * Math.PI / bars * 0.35);
+            ctx.beginPath();
+            ctx.moveTo(cover.cx + Math.cos(ang2) * ring, cover.cy + Math.sin(ang2) * ring);
+            ctx.lineTo(cover.cx + Math.cos(ang2) * (ring + len), cover.cy + Math.sin(ang2) * (ring + len));
+            ctx.stroke();
+          }
+        }
+      }
+      ctx.restore();
     },
 
     /* How long a bar of the take lasts, from its score's tempo and metre, or the tempo its style names in 4/4;
