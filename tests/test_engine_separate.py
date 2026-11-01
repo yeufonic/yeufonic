@@ -244,7 +244,7 @@ def test_choosing_yue2cpp_keeps_a_compose_override(tmp_path):
         assert (tmp_path / ".env").read_text(encoding="utf-8").splitlines() == ["APP_UID=1000", f"COMPOSE_FILE={files}"]
 
 
-def _run_fetch(tmp_path, *args, env_text="", override=False, containers=()):
+def _run_fetch(tmp_path, *args, env_text="", override=False, containers=(), gpu=""):
     """fetch-models.sh in a folder of its own, with curl and docker stood in for: nothing is downloaded or stopped."""
     import shutil, stat, subprocess
     root = tmp_path / "yeufonic"
@@ -257,13 +257,17 @@ def _run_fetch(tmp_path, *args, env_text="", override=False, containers=()):
         (root / "compose.override.yml").write_text("services: {}\n", encoding="utf-8")
     bin_ = tmp_path / "bin"
     bin_.mkdir(exist_ok=True)
+    if gpu:
+        (bin_ / "nvidia-smi").write_text(f'#!/bin/sh\necho "{gpu}"\n')
     (bin_ / "curl").write_text('#!/bin/sh\nwhile [ $# -gt 0 ]; do [ "$1" = -o ] && echo x > "$2"; shift; done\n')
     # docker: inspect answers this checkout's folder for the containers named; rm and the rest are recorded.
     (bin_ / "docker").write_text(
         '#!/bin/sh\necho "$@" >> "%s/docker.log"\n'
         'if [ "$1" = inspect ]; then for c in %s; do [ "$c" = "$4" ] && { echo "%s"; exit 0; }; done; exit 1; fi\n'
         % (tmp_path, " ".join(containers) or "none", root))
-    for f in ("curl", "docker"):
+    for f in ("curl", "docker", "nvidia-smi"):
+        if not (bin_ / f).exists():
+            continue
         (bin_ / f).chmod((bin_ / f).stat().st_mode | stat.S_IEXEC)
     out = subprocess.run(["sh", str(root / "scripts" / "fetch-models.sh"), *args], capture_output=True, text=True,
                          env={"PATH": f"{bin_}:/usr/bin:/bin", "HOME": str(tmp_path)})
@@ -305,3 +309,13 @@ def test_a_compose_file_line_of_your_own_keeps_its_other_files(tmp_path):
     root, _, _ = _run_fetch(tmp_path, "--comfyui",
                             env_text="COMPOSE_FILE=compose.yml:compose.cpp.yml:compose.gpu2.yml\nCOMPOSE_PROFILES=gemma\n")
     assert (root / ".env").read_text().splitlines() == ["COMPOSE_FILE=compose.yml:compose.gpu2.yml"]
+
+
+def test_yue2cpp_is_built_for_this_pcs_card(tmp_path):
+    """Built for every card, the two images take the better part of an hour; for this one, a fraction of it."""
+    root, said, _ = _run_fetch(tmp_path, "--cpp", env_text="APP_UID=1000\n", gpu="8.9")
+    assert "YUE2CPP_CUDA_ARCH=89-real" in (root / ".env").read_text().splitlines()
+    other = tmp_path / "other"
+    other.mkdir()
+    root, _, _ = _run_fetch(other, "--cpp", env_text="YUE2CPP_CUDA_ARCH=86-real\n", gpu="8.9")
+    assert (root / ".env").read_text().count("YUE2CPP_CUDA_ARCH") == 1          # a choice already made stays

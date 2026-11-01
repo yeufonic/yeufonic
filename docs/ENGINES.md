@@ -93,7 +93,8 @@ The script fetches the models the engine needs, changes `.env`, and stops and re
 leaving, so it lets go of the graphics card before the other starts. Without `--cpp` or `--comfyui` it keeps
 the engine you have, so adding `--loras` later, say, changes nothing else.
 
-The first build of an engine takes a while; switching back to one you have used before does not.
+The first build of an engine takes a while (yue2.cpp is compiled for your graphics card); switching back to one
+you have used before does not.
 Each engine's models stay in `models/` when you switch away, so switching back downloads nothing. To
 free the space, remove them: `models/yue2cpp/`, `models/ollama/` and `models/text_encoders/Qwen3-*.gguf`
 are yue2.cpp's, Gemma's and its picture encoder's; `models/checkpoints/` and
@@ -105,7 +106,7 @@ are yue2.cpp's, Gemma's and its picture encoder's; `models/checkpoints/` and
 | In `.env` | What it does |
 |---|---|
 | `YUE2CPP_MODEL` | Which size of YuE2 yue2.cpp uses: `YuE2-3B-Q8_0.gguf` (the default), `YuE2-3B-BF16.gguf` (full precision, 7.2 GB), `YuE2-3B-Q6_K.gguf` or `YuE2-3B-Q5_K_M.gguf` (smaller). Set it before `fetch-models.sh --cpp`, which fetches that one |
-| `YUE2CPP_CUDA_ARCH` | Builds yue2.cpp and the picture server for one generation of NVIDIA card, which builds much faster: `89-real` for an RTX 40, `86-real` for an RTX 30 |
+| `YUE2CPP_CUDA_ARCH` | Which generation of NVIDIA card yue2.cpp and the picture server are built for. `fetch-models.sh --cpp` sets it to this PC's card (`89-real` for an RTX 40, `86-real` for an RTX 30), which builds far faster than for every card. After changing to a card of another generation, take the line out (or set it) and build again |
 | `GEMMA_MODEL` | The Gemma model, `gemma4:e4b-it-qat` unless set |
 
 The FLUX.2 klein 9B is never downloaded for you (it is under a non-commercial licence): the guide's
