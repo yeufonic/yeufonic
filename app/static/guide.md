@@ -1187,10 +1187,21 @@ Takes made before this existed stay where they are, side by side in the list.
 ### Cards
 
 Each card names the settings that shaped it — Harmony, Interpretation, Plan variety, the LoRA and
-its strengths, the seed and its age — so a card reads as the recipe that made it.
+its strengths, the seed, the engine that rendered it and its age — so a card reads as the recipe that made it.
 
 **Save** asks which format to download the take in, FLAC, WAV or MP3, starting with the output
-audio format set in Settings.
+audio format set in Settings. **Take**, beside them, saves the take's recipe as well: a small file
+(`<title>.yeufonic.json`) holding its words, style and score, its seeds and settings, its LoRAs by name and
+the mastering rack's settings, but not its audio. With a format chosen too, both come in one zip; press the
+chosen format again to save the recipe alone. The file holds nothing of your install (no paths, ids or keys),
+so it can be kept, or shared with another Yeufonic user.
+
+**Import take**, beside the spaces, makes a new take in the space on show from such a file; dropping the file
+on the library does the same. The take holds the plan, ready to render, so it can be checked or changed first.
+Either engine can render it: the same score and seed on the same engine give a very similar take, on the other
+engine a different one. A LoRA it names that is not installed here is named when it is imported, so you can
+install it or choose another before rendering. A cover's recording is not in the file, so a shared cover comes
+in as a song with the cover's score and words.
 
 **Search takes** finds the takes with every word you type somewhere in the title, style, lyrics or
 LoRA name, in any case. It looks through the space on show; **All spaces**, beside it once you type,

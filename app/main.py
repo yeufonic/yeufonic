@@ -41,6 +41,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from . import recipe as recipes
 from . import aligner, artwork, autotune, composer, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 
@@ -4941,6 +4942,7 @@ def take_audio(
     format: str | None = None,
     raw: bool = False,
     fx: str | None = None,
+    recipe: bool = False,
 ) -> FileResponse:
     """The take's audio: inline to play, or as a file to save.  It is always the take as it is kept.  Mastering is
     never applied here: the rack renders a mastered file in the browser, with the chain that plays it, and sends it
@@ -4974,9 +4976,119 @@ def take_audio(
         out.unlink(missing_ok=True)
         log.warning("Could not convert take '%s' to %s: %s", take["title"] or take_id, fmt, exc)
         raise HTTPException(500, f"could not convert this take to {fmt.upper()}") from exc
+    if recipe:   # with the take's recipe beside it, in one zip
+        return _with_recipe(take_id, out, f"{safe}.{fmt}")
     return FileResponse(out, media_type=media, filename=f"{safe}.{fmt}",
                         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
                         background=BackgroundTask(out.unlink, missing_ok=True))
+
+
+# ------------------------------------------------------------------ a take's recipe (#58)
+def _recipe_of(take_id: str) -> dict:
+    take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
+    if not take:
+        raise HTTPException(404, "no such take")
+    return recipes.export(take, config.VERSION)
+
+
+@app.get("/api/takes/{take_id}/recipe")
+def take_recipe(take_id: str) -> Response:
+    """The take's recipe as a file to save: what made it, without its audio (app/recipe.py)."""
+    data = _recipe_of(take_id)
+    return Response(json.dumps(data, indent=2, ensure_ascii=False), media_type="application/json",
+                    headers={"Content-Disposition": f'attachment; filename="{recipes.filename(data["take"]["title"])}"',
+                             "Cache-Control": "no-cache, no-store, must-revalidate"})
+
+
+def _with_recipe(take_id: str, audio: Path, audio_name: str) -> FileResponse:
+    """A zip of the audio about to be sent and the take's recipe; the audio file is removed once it is in."""
+    data = _recipe_of(take_id)
+    stem = audio_name.rsplit(".", 1)[0]
+    out = config.WORK_DIR / f"save-{take_id}-{uuid.uuid4().hex[:8]}.zip"
+    try:
+        with zipfile.ZipFile(out, "w", zipfile.ZIP_STORED) as zf:
+            zf.write(audio, audio_name)
+            zf.writestr(recipes.filename(stem), json.dumps(data, indent=2, ensure_ascii=False))
+    finally:
+        audio.unlink(missing_ok=True)
+    return FileResponse(out, media_type="application/zip", filename=f"{stem}.zip",
+                        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+                        background=BackgroundTask(out.unlink, missing_ok=True))
+
+
+class ImportTakeIn(BaseModel):
+    recipe: dict
+    space_id: str = Field(DEFAULT_SPACE, max_length=64)
+
+
+class RecipeTakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
+    """What an imported take may hold: the same limits as a take made in the page."""
+    title: str | None = Field(None, max_length=200)
+    kind: Literal["song", "instrumental"] = "song"
+    style: str = Field(config.DEFAULT_STYLE, max_length=2000)
+    lyrics: str = Field("", max_length=20_000)
+    brief: str | None = Field(None, max_length=1000)
+    abc: str = Field(..., min_length=1, max_length=200_000)
+    mode: Literal["full", "melody"] = "full"
+    seed: int = Field(..., ge=0, le=MAX_SEED)
+    sound_seed: int | None = Field(None, ge=0, le=MAX_SEED)
+    max_duration: float | None = Field(None, ge=10, le=900)
+    cap_typed: int = Field(0, ge=0, le=1)
+    variety: str = "normal"
+    harmony: int = Field(0, ge=0, le=len(HARMONY_STEPS) - 1)
+    interpretation: str = "standard"
+    feel: str | None = Field("steady", max_length=40)
+    realaudio: int = Field(1, ge=0, le=1)
+    normalise: int = Field(0, ge=0, le=1)
+    hook_abc: str | None = Field(None, max_length=200_000)
+    hook_section: str | None = Field(None, max_length=200)
+    fx_chain: str | None = Field(None, max_length=200_000)
+
+
+@app.post("/api/takes/import")
+async def import_take(body: ImportTakeIn) -> dict:
+    """A take made from a recipe file: a new take holding the plan, ready to render, in the space asked for.  A LoRA
+    it names that is not installed is named in the answer, and the take is made anyway."""
+    if len(json.dumps(body.recipe)) > recipes.MAX_BYTES:
+        raise HTTPException(413, "this take file is too large")
+    try:
+        columns = recipes.read(body.recipe)
+    except recipes.RecipeError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    if not (columns.get("abc") or "").strip():
+        raise HTTPException(400, "this take file has no score to render")
+    try:
+        take = RecipeTakeIn(**{k: v for k, v in columns.items() if v is not None})
+    except ValueError as exc:
+        raise HTTPException(400, f"this take file has a setting Yeufonic cannot use: {exc}") from exc
+    _space(body.space_id)
+    _check_score(take.abc, take.kind)
+    record = take.model_dump()
+    record.update(
+        id=uuid.uuid4().hex[:12],
+        title=(take.title or "").strip() or "Imported take",
+        style=take.style.strip() or config.DEFAULT_STYLE,
+        variety=take.variety if take.variety in PLAN_VARIETY else "normal",
+        interpretation=_interpretation(take.interpretation if take.interpretation in INTERPRETATIONS else "standard"),
+        **_style_lora_of(take),
+        status="planned", created_at=time.time(), checkpoint=config.CHECKPOINT,
+        space_id=body.space_id, source_id=None, parent_id=None, auto_render=0,
+        identity_id=None, persona_id=None,
+        max_duration=take.max_duration or default_cap(),
+    )
+    columns_out = list(record)
+    execute(f"INSERT INTO takes({', '.join(columns_out)}) VALUES({', '.join(':' + c for c in columns_out)})", record)
+    installed = set(ENGINE.options.get("loras") or []) if ENGINE.options_loaded else set()
+    folder = loras.folder()
+    if folder and folder.is_dir():
+        installed |= {p.name for p in folder.iterdir() if p.is_file()}
+    missing = [name for name in recipes.loras_named(record) if name not in installed]
+    was = (body.recipe.get("take") or {}).get("kind")
+    log.info("Imported take '%s' (%s) from a take file%s%s", record["title"], record["id"],
+             ", a cover arriving as a song" if was == "cover" else "",
+             f"; not installed: {', '.join(missing)}" if missing else "")
+    return {"id": record["id"], "title": record["title"], "kind": record["kind"], "missing_loras": missing,
+            "was_cover": was == "cover"}
 
 
 _PENDING_EXPORTS: dict[str, dict] = {}
@@ -5044,12 +5156,15 @@ async def export_mastered_take(
 
 
 @app.get("/api/takes/{take_id}/download-mastered")
-def download_mastered_take(take_id: str, token: str = Query(...)) -> FileResponse:
-    """Serve prepared mastered export via direct HTTP GET, preserving native browser Save As prompts."""
+def download_mastered_take(take_id: str, token: str = Query(...), recipe: bool = False) -> FileResponse:
+    """Serve prepared mastered export via direct HTTP GET, preserving native browser Save As prompts.  With
+    `recipe`, in a zip beside the take's recipe."""
     entry = _PENDING_EXPORTS.pop(token, None)
     if not entry or not Path(entry["path"]).exists():
         raise HTTPException(404, "Export expired or not found")
     out_path = Path(entry["path"])
+    if recipe:
+        return _with_recipe(take_id, out_path, f"{entry['safe']}.{entry['fmt']}")
     return FileResponse(
         out_path,
         media_type=entry["media"],

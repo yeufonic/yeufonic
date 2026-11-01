@@ -52,6 +52,11 @@ cannot creep back in.
   the app leaves it out, and stems and lyric hearing run on the CPU.
   **About** names the engine, and a take's card which engine rendered it. [docs/ENGINES.md](docs/ENGINES.md) compares the two and says how to choose and switch.
   On Windows, `engine_args` in `settings.ini` stays ComfyUI's; yue2.cpp's own switches go in `cpp_engine_args`.
+- **Save a take's recipe, and import one.** **Save** has a **Take** toggle beside FLAC, WAV and MP3: it saves the
+  take's recipe as a small file (its words, style and score, seeds, settings, LoRAs by name and mastering, not its
+  audio), alone or in one zip with the audio. **Import take**, beside the spaces, or dropping the file on the library,
+  makes a new take from it holding the plan, ready to render on either engine. A LoRA it names that is not installed
+  is named; a cover comes in as a song with its score and words. Nothing of the install that saved it is in the file.
 - **Changing the model size on Windows keeps the other one.** The installer used to remove the size you left;
   it now keeps it, so switching back downloads nothing, and marks each size already downloaded. With
   yue2.cpp chosen the sizes are greyed out, as they are ComfyUI's. The components page's descriptions can be

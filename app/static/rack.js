@@ -2948,7 +2948,7 @@
       return audioBufferToWav(renderedBuffer);
     },
 
-    renderAndDownload: async function (takeId, format) {
+    renderAndDownload: async function (takeId, format, withRecipe) {
       var wavBlob = await this.renderMasterWav(takeId);
       var formData = new FormData();
       formData.append('audio_file', wavBlob, 'master.wav');
@@ -2964,7 +2964,7 @@
         throw new Error('Invalid export response');
       }
       var link = document.createElement('a');
-      link.href = data.download_url;
+      link.href = data.download_url + (withRecipe ? '&recipe=1' : '');
       link.download = '';
       document.body.appendChild(link);
       link.click();

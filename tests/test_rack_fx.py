@@ -329,7 +329,7 @@ def test_rack_js_and_app_js_mastered_features():
     # Save asks the rack, and a mastered take goes through the rack's own render
     save = app_js[app_js.index("function runSave()"):app_js.index("function statusLine(")]
     assert "window.Rack.hasActiveMastering" in save
-    assert "window.Rack.renderAndDownload(id, fmt)" in save
+    assert "window.Rack.renderAndDownload(id, fmt, withRecipe)" in save
     assert "fx=" not in save, "settings are not sent to the server to be applied there"
 
 

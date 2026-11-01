@@ -6343,16 +6343,46 @@ function openSaveModal(take) {
   State.saveTake = take;
   $('save-heading').textContent = 'Save \u201c' + take.title + '\u201d';
   pickSaveFormat(setting('stems.format', 'flac'));
+  var keep = false;
+  try { keep = localStorage.getItem(SAVE_RECIPE_KEY) === '1'; } catch (err) { /* private mode */ }
+  pickSaveRecipe(keep);
   $('save-modal').classList.remove('hidden');
   $('save-run').focus();
 }
 
+/* The audio format, or none: pressing the one chosen leaves the audio out, so the take's recipe can be saved alone. */
 function pickSaveFormat(format) {
   Array.prototype.forEach.call($('save-format').querySelectorAll('button'), function (b) {
     var on = b.dataset.format === format;
     b.classList.toggle('active', on);
     b.setAttribute('aria-checked', on ? 'true' : 'false');
   });
+  paintSaveChoice();
+}
+
+/* The take's recipe (#58), on or off beside the format; remembered in this browser. */
+var SAVE_RECIPE_KEY = 'yeufonic.saveRecipe';
+function pickSaveRecipe(on) {
+  var b = $('save-recipe');
+  if (!b) { return; }
+  b.classList.toggle('active', Boolean(on));
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  paintSaveChoice();
+}
+
+function saveChoice() {
+  var chosen = $('save-format') && $('save-format').querySelector('button.active');
+  return { fmt: chosen ? chosen.dataset.format : null,
+           recipe: Boolean($('save-recipe') && $('save-recipe').classList.contains('active')) };
+}
+
+function paintSaveChoice() {
+  var c = saveChoice(), note = $('save-note');
+  if ($('save-run')) { $('save-run').disabled = !c.fmt && !c.recipe; }
+  if (!note) { return; }
+  note.textContent = c.fmt && c.recipe ? 'The audio and the take\u2019s recipe, in one zip.'
+    : c.recipe ? 'The take\u2019s recipe: its words, score and settings, to keep, share or import. No audio.'
+    : !c.fmt ? 'Choose what to save.' : '';
 }
 
 function closeSaveModal() {
@@ -6370,10 +6400,21 @@ function runSave() {
     try { window.Rack.flushSave(); } catch (e) {}
   }
   var id = State.saveTakeId;
-  var chosen = $('save-format').querySelector('button.active');
-  if (!id || !chosen) { return; }
-  var fmt = chosen.dataset.format;
+  var choice = saveChoice();
+  if (!id || (!choice.fmt && !choice.recipe)) { return; }
+  var fmt = choice.fmt;
+  var withRecipe = choice.recipe;
+  try { localStorage.setItem(SAVE_RECIPE_KEY, withRecipe ? '1' : '0'); } catch (err) { /* private mode */ }
   closeSaveModal();
+  if (!fmt) {   // the recipe alone
+    var only = document.createElement('a');
+    only.href = '/api/takes/' + id + '/recipe';
+    only.download = '';
+    document.body.appendChild(only);
+    only.click();
+    only.remove();
+    return;
+  }
 
   (async function () {
     if (window.Rack && typeof window.Rack.flushSave === 'function') {
@@ -6394,7 +6435,7 @@ function runSave() {
     if (mastered) {
       statusLine('Mastering the file to save…', 'wait');
       try {
-        await window.Rack.renderAndDownload(id, fmt);
+        await window.Rack.renderAndDownload(id, fmt, withRecipe);
         statusLine('Mastered file ready to save.', 'good');
       } catch (err) {
         statusLine('Could not master the file, so nothing was saved: ' + ((err && err.message) || err), 'bad');
@@ -6403,7 +6444,7 @@ function runSave() {
     }
 
     var link = document.createElement('a');
-    link.href = '/api/takes/' + id + '/audio?download=1&format=' + fmt;
+    link.href = '/api/takes/' + id + '/audio?download=1&format=' + fmt + (withRecipe ? '&recipe=1' : '');
     link.download = '';
     document.body.appendChild(link);
     link.click();
@@ -15309,8 +15350,14 @@ function wire() {
   $('save-run').addEventListener('click', runSave);
   $('save-format').addEventListener('click', function (event) {
     var b = event.target.closest('button[data-format]');
-    if (b) { pickSaveFormat(b.dataset.format); }
+    if (b) { pickSaveFormat(b.classList.contains('active') ? null : b.dataset.format); }
   });
+  if ($('save-recipe')) {
+    $('save-recipe').addEventListener('click', function () {
+      pickSaveRecipe(!$('save-recipe').classList.contains('active'));
+    });
+  }
+  wireTakeImport();
   $('save-modal').addEventListener('click', function (event) {
     if (backdropClick(event, $('save-modal'))) { closeSaveModal(); }
   });
@@ -16428,6 +16475,68 @@ function npTitle(text, takeId) {
 /* Go to a take's card in the library, from a playlist, the job card or the player: its space, with nothing in the way.  A take
    inside another shows on that one's card while it is being made, and in its panel once it is finished.  A search or a
    filter that would hide the card is cleared, since the take was asked for by name. */
+/* ------------------------------------------------------------ importing a take (#58) */
+/* A take file (.yeufonic.json) someone saved becomes a new take in this space, holding its plan, ready to render:
+   from the Import take button, or dropped on the library. */
+async function importTakeFile(file) {
+  if (!file) { return; }
+  var data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch (err) {
+    await confirmModal({ title: 'Import take', message: '\u201c' + file.name + '\u201d is not a Yeufonic take file.',
+                         confirmText: 'OK' });
+    return;
+  }
+  var got;
+  try {
+    got = await api('/api/takes/import', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipe: data, space_id: State.spaceId || 'default' })
+    });
+  } catch (err) {
+    await confirmModal({ title: 'Import take', message: 'Could not import \u201c' + file.name + '\u201d: ' + err.message,
+                         confirmText: 'OK' });
+    return;
+  }
+  await loadTakes();
+  if (typeof openTakeInLibrary === 'function') { openTakeInLibrary(got.id); }
+  var notes = [];
+  if (got.was_cover) { notes.push('It was a cover: its recording is not in the file, so it comes in as a song with the cover\u2019s score and words.'); }
+  if (got.missing_loras && got.missing_loras.length) {
+    notes.push('Not installed here: ' + got.missing_loras.join(', ') + '. Install it, or choose another LoRA in the editor, before rendering.');
+  }
+  if (notes.length) {
+    await confirmModal({ title: 'Imported \u201c' + got.title + '\u201d', confirmText: 'OK',
+                         message: 'Its plan is ready to render. ' + notes.join(' ') });
+  }
+}
+
+function wireTakeImport() {
+  var button = $('take-import'), input = $('take-import-file'), list = $('takes');
+  if (!button || !input || !list) { return; }
+  button.addEventListener('click', function () { input.value = ''; input.click(); });
+  input.addEventListener('change', function () { importTakeFile(input.files && input.files[0]); });
+  var isTakeFile = function (event) {
+    var items = event.dataTransfer && event.dataTransfer.items;
+    return Boolean(items && items.length && items[0].kind === 'file' &&
+                   (!items[0].type || items[0].type === 'application/json'));
+  };
+  list.addEventListener('dragover', function (event) {
+    if (!isTakeFile(event)) { return; }
+    event.preventDefault();
+    list.classList.add('drop-take');
+  });
+  list.addEventListener('dragleave', function () { list.classList.remove('drop-take'); });
+  list.addEventListener('drop', function (event) {
+    list.classList.remove('drop-take');
+    var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+    if (!file || !/\.json$/i.test(file.name)) { return; }
+    event.preventDefault();
+    importTakeFile(file);
+  });
+}
+
 async function openTakeInLibrary(takeId) {
   var take = null;
   if (State.activePlaylist && State.activePlaylist.items) {

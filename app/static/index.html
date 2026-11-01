@@ -118,6 +118,8 @@
       <button id="space-new" class="chip action">New space</button>
       <button id="space-rename" class="chip action">Rename</button>
       <button id="space-delete" class="chip action">Delete</button>
+      <button id="take-import" class="chip action" title="Make a take from a take file (.yeufonic.json) someone saved: its plan, ready to render. You can also drop the file on the library">Import take</button>
+      <input type="file" id="take-import-file" accept=".json,application/json" hidden>
     </div>
     <div class="libhead">
       <h2 id="takes-heading">Your takes</h2>
@@ -1427,11 +1429,17 @@
     </div>
     <div class="field">
       <label>Format</label>
-      <div class="seg" id="save-format" role="radiogroup">
-        <button type="button" data-format="flac" role="radio">FLAC</button>
-        <button type="button" data-format="wav" role="radio">WAV</button>
-        <button type="button" data-format="mp3" role="radio">MP3, 320 kbps</button>
+      <div class="save-choices">
+        <div class="seg save-take" title="The take's recipe: its words, score and settings, as a file to keep, share or import. Not its audio">
+          <button type="button" id="save-recipe" aria-pressed="false">Take</button>
+        </div>
+        <div class="seg" id="save-format" role="radiogroup">
+          <button type="button" data-format="flac" role="radio">FLAC</button>
+          <button type="button" data-format="wav" role="radio">WAV</button>
+          <button type="button" data-format="mp3" role="radio">MP3, 320 kbps</button>
+        </div>
       </div>
+      <div class="hint" id="save-note"></div>
     </div>
     <button id="save-run" class="primary">Save</button>
   </div>
