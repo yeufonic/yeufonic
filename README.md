@@ -594,7 +594,7 @@ any browser and survive a rebuild.
 
 | Setting | What it does |
 |---|---|
-| Output audio format | FLAC (the default), WAV, or MP3 at 320 kbps. The format stems and a take's **Save** start with; each can choose another at the time |
+| Output audio format | FLAC (the default), WAV, or MP3 at 320 kbps. The format stems start with; they can choose another at the time. A take's **Save** starts with what it saved last |
 | Theme | Dark (the default), Light, Match the computer (dark or light, as the system is), Studio (warm and dark) or High contrast |
 | Normalise to | How loud a normalised take is made: −16, −14 (the default) or −11 LUFS |
 | MCP server | Off by default. Turn it on to let an AI agent on this computer use Yeufonic: see [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp) |

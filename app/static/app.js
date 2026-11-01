@@ -6333,8 +6333,8 @@ function playStem(setId, file) {
 }
 
 /* ---------------------------------------------------------------- save */
-/* Asks for the format, starting from the one set in Settings; the server converts
-   as it hands the file over. */
+/* Asks for the format and whether the take's recipe goes too, starting from what was saved last time (nothing, the
+   first time); the server converts as it hands the file over. */
 function openSaveModal(take) {
   if (window.Rack && typeof window.Rack.flushSave === 'function') {
     window.Rack.flushSave();
@@ -6342,10 +6342,11 @@ function openSaveModal(take) {
   State.saveTakeId = take.id;
   State.saveTake = take;
   $('save-heading').textContent = 'Save \u201c' + take.title + '\u201d';
-  pickSaveFormat(setting('stems.format', 'flac'));
-  var keep = false;
-  try { keep = localStorage.getItem(SAVE_RECIPE_KEY) === '1'; } catch (err) { /* private mode */ }
-  pickSaveRecipe(keep);
+  // What was saved last time in this browser; nothing chosen the first time.
+  var last = {};
+  try { last = JSON.parse(localStorage.getItem(SAVE_CHOICE_KEY) || '{}') || {}; } catch (err) { last = {}; }
+  pickSaveFormat(['flac', 'wav', 'mp3'].indexOf(last.fmt) >= 0 ? last.fmt : null);
+  pickSaveRecipe(Boolean(last.recipe));
   $('save-modal').classList.remove('hidden');
   $('save-run').focus();
 }
@@ -6360,8 +6361,9 @@ function pickSaveFormat(format) {
   paintSaveChoice();
 }
 
-/* The take's recipe (#58), on or off beside the format; remembered in this browser. */
-var SAVE_RECIPE_KEY = 'yeufonic.saveRecipe';
+/* The take's recipe (#58), on or off beside the format.  Both are remembered in this browser as they were last
+   saved, so the next Save starts there. */
+var SAVE_CHOICE_KEY = 'yeufonic.saveChoice';
 function pickSaveRecipe(on) {
   var b = $('save-recipe');
   if (!b) { return; }
@@ -6404,7 +6406,7 @@ function runSave() {
   if (!id || (!choice.fmt && !choice.recipe)) { return; }
   var fmt = choice.fmt;
   var withRecipe = choice.recipe;
-  try { localStorage.setItem(SAVE_RECIPE_KEY, withRecipe ? '1' : '0'); } catch (err) { /* private mode */ }
+  try { localStorage.setItem(SAVE_CHOICE_KEY, JSON.stringify({ fmt: fmt, recipe: withRecipe })); } catch (err) { /* private mode */ }
   closeSaveModal();
   if (!fmt) {   // the recipe alone
     var only = document.createElement('a');

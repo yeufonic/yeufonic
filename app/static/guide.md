@@ -1189,8 +1189,8 @@ Takes made before this existed stay where they are, side by side in the list.
 Each card names the settings that shaped it — Harmony, Interpretation, Plan variety, the LoRA and
 its strengths, the seed, the engine that rendered it and its age — so a card reads as the recipe that made it.
 
-**Save** asks which format to download the take in, FLAC, WAV or MP3, starting with the output
-audio format set in Settings. **Take**, beside them, saves the take's recipe as well: a small file
+**Save** asks which format to download the take in, FLAC, WAV or MP3. It starts with what you saved last
+time, and with nothing chosen the first time. **Take**, beside them, saves the take's recipe as well: a small file
 (`<title>.yeufonic.json`) holding its words, style and score, its seeds and settings, its LoRAs by name and
 the mastering rack's settings, but not its audio. With a format chosen too, both come in one zip; press the
 chosen format again to save the recipe alone. The file holds nothing of your install (no paths, ids or keys),

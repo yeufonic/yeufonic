@@ -17,9 +17,14 @@ def open_save(page, take_id):
 def test_the_recipe_is_saved_beside_the_audio_and_alone_and_comes_back_as_a_take(page, app_server, tmp_path):
     made = make_song(page, app_server, style="sea shanty, choir")
 
-    # Take with FLAC: one zip holding both.
+    # The first time, nothing is chosen: nothing to save.
     open_save(page, made["id"])
+    assert page.locator("#save-format button.active").count() == 0 and page.locator("#save-recipe.active").count() == 0
+    assert page.locator("#save-run").is_disabled() and "Choose what to save" in page.locator("#save-note").inner_text()
+
+    # Take with FLAC: one zip holding both.
     page.click("#save-recipe")
+    page.click('#save-format button[data-format="flac"]')
     assert "one zip" in page.locator("#save-note").inner_text()
     with page.expect_download() as got:
         page.click("#save-run")
@@ -29,11 +34,11 @@ def test_the_recipe_is_saved_beside_the_audio_and_alone_and_comes_back_as_a_take
     names = zipfile.ZipFile(zipped).namelist()
     assert any(n.endswith(".flac") for n in names) and any(n.endswith(".yeufonic.json") for n in names)
 
-    # The Take toggle is remembered; pressing FLAC again leaves the audio out: the recipe alone.
+    # Both are remembered; pressing FLAC again leaves the audio out: the recipe alone.
     open_save(page, made["id"])
     assert page.locator("#save-recipe.active").count() == 1
+    assert page.locator('#save-format button.active').get_attribute("data-format") == "flac"
     page.click('#save-format button.active')
-    assert page.locator("#save-format button.active").count() == 0
     with page.expect_download() as got:
         page.click("#save-run")
     alone = tmp_path / got.value.suggested_filename
@@ -42,11 +47,9 @@ def test_the_recipe_is_saved_beside_the_audio_and_alone_and_comes_back_as_a_take
     recipe = json.loads(alone.read_text())
     assert recipe["format"] == "yeufonic-take" and recipe["take"]["style"] == "sea shanty, choir"
 
-    # Nothing chosen (the window opens on the format in Settings): nothing to save.
+    # And next time it starts with the recipe alone, as last saved.
     open_save(page, made["id"])
-    page.click("#save-recipe")
-    page.click('#save-format button.active')
-    assert page.locator("#save-run").is_disabled() and "Choose what to save" in page.locator("#save-note").inner_text()
+    assert page.locator("#save-recipe.active").count() == 1 and page.locator("#save-format button.active").count() == 0
     page.click("#save-close")
 
     # Imported: a new take holding the same plan, ready to render.

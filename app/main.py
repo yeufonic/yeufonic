@@ -77,7 +77,7 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "wav", "label": "WAV, uncompressed"},
             {"value": "mp3", "label": "MP3, 320 kbps"},
         ],
-        "help": "The format for saving stems or takes.",
+        "help": "The format for saving stems, and takes saved without choosing one. The Save window starts with what it saved last.",
     },
     {
         "key": "normalise.level",
