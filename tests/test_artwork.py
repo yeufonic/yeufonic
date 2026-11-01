@@ -352,13 +352,14 @@ def test_the_flux_graph_is_comfyuis_own_klein_workflow():
     assert kinds["VAELoader"]["vae_name"] == "flux2-vae.safetensors"
     assert kinds["Flux2Scheduler"]["steps"] == 4 and kinds["RandomNoise"]["noise_seed"] == 7
     assert kinds["EmptyFlux2LatentImage"]["width"] % 16 == 0 and kinds["EmptyFlux2LatentImage"]["height"] % 16 == 0
-    # klein cannot spell: what it is sent describes the style without naming the design group or an
-    # album cover, and it is sampled as it was distilled, at cfg 1 with the negative zeroed (a real
-    # negative at cfg 3 burnt the pictures).  The external model, which letters reliably, keeps the
-    # named Hipgnosis prompt.
+    # klein cannot spell: what it is sent names the design group only as a style, with no branding, and
+    # never an album cover, and it is sampled as it was distilled, at cfg 1 with the negative zeroed (a
+    # real negative at cfg 3 burnt the pictures).  The external model, which letters reliably, keeps the
+    # named Hipgnosis album-cover prompt.
     local = graph["4"]["inputs"]["text"]
     assert local.startswith("A lantern.") and artwork.KLEIN_LOOK in local     # the scene leads
-    assert "Hipgnosis" not in local and "album cover" not in local.lower()
+    assert "Hipgnosis style, no Hipgnosis branding" in local and "album cover" not in local.lower()
+    assert "in the style of Hipgnosis" not in local
     assert kinds["ConditioningZeroOut"]["conditioning"] == ["4", 0] and kinds["CFGGuider"]["cfg"] == 1.0
     external = artwork.drawing_request("A lantern.")
     assert "Hipgnosis" in external and artwork.KLEIN_LOOK not in external

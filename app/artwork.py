@@ -25,14 +25,15 @@ DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-image"
 DEFAULT_OPENAI_MODEL = "gpt-image-1"
 ASPECT = "1:1"                  # square album cover
 OPENAI_SIZE = "1024x1024"       # square 1:1 album cover
-WORD_LINES = 12                 # the opening of the song the description is written from
+WORD_LINES = 24                 # the opening of the song the description is written from
 DRAW_TIMEOUT = 180.0
 
 # FLUX.2 [klein] on this PC cannot spell, and letters what it is led to: the words "album cover", the
 # design group's name, a "Song title:" label, a sign "reading" something.  So the picture drawn here is
-# described as a photograph in the house style, without the name, and the scene loses any quoted words
-# and signage, while an external image model, which renders lettering reliably, keeps the prompts as
-# they were.  It is sampled as it was distilled to be, at cfg 1 with no negative: a weighted negative at
+# described as a photograph in the house style, named as a style only, with no branding asked for (the
+# name alone, as an "album cover in the style of", was what got lettered), and the scene loses any quoted
+# words and signage, while an external image model, which renders lettering reliably, keeps the prompts
+# as they were.  It is sampled as it was distilled to be, at cfg 1 with no negative: a weighted negative at
 # cfg 3 kept the odd sign blank but burnt every picture (hard contrast, oversaturated, plastic), and
 # spelling out "no text" in the prompt only put text in mind.
 # What the scene is drawn as, after the scene: klein weighs the start of a prompt most, and a long fixed
@@ -40,8 +41,9 @@ DRAW_TIMEOUT = 180.0
 # landscape under every scene.  So the scene leads, and this asks only for the craft: staged for real,
 # sharp and detailed to the corners (an "old print" and "vintage film" brought a vignette and lost detail).
 KLEIN_LOOK = (
-    "Photographed for real, in camera, in the manner of classic British surrealist record-sleeve "
-    "photography: a bold, precise composition, sharp focus and rich detail from edge to edge, clean and "
+    "Photographed for real, Hipgnosis style, no Hipgnosis branding, in camera, in the manner of classic "
+    "British surrealist record-sleeve photography: a bold, precise composition, sharp focus and rich detail "
+    "from edge to edge, clean and "
     "evenly exposed, true colour."
 )
 # Gemma, who writes the scene klein draws, is asked to leave people out: klein 4B draws them badly close up

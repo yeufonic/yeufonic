@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.53 (2026-11-01)
 
 - **A second engine, yue2.cpp, for graphics cards with less memory.** A native engine in place of ComfyUI, with a
   download of about 5.4 GB, that holds nothing in video memory between jobs. It writes plans, renders songs, covers and
@@ -48,10 +48,10 @@ cannot creep back in.
   for either; on Docker, `sh scripts/fetch-models.sh --cpp` sets it up, with `--gemma` and `--pictures` for the two
   add-ons, and `--comfyui` switches back, each followed by `docker compose up -d --build`. yue2.cpp's server and the
   picture server come as ready-made images from GitHub's container registry, built by this repository's workflow
-  with a build attestation; `YUE2CPP_BUILD=1` builds them on your PC instead. Training needs ComfyUI: with yue2.cpp the app leaves it out, and stems and lyric hearing run on the CPU.
+  with a build attestation; `YUE2CPP_BUILD=1` builds them on your PC instead. Training needs ComfyUI: with yue2.cpp
+  the app leaves it out, and stems and lyric hearing run on the CPU.
   **About** names the engine. [docs/ENGINES.md](docs/ENGINES.md) compares the two and says how to choose and switch.
   On Windows, `engine_args` in `settings.ini` stays ComfyUI's; yue2.cpp's own switches go in `cpp_engine_args`.
-
 - **Changing the model size on Windows keeps the other one.** The installer used to remove the size you left;
   it now keeps it, so switching back downloads nothing, and marks each size already downloaded. With
   yue2.cpp chosen the sizes are greyed out, as they are ComfyUI's. The components page's descriptions can be
@@ -91,7 +91,8 @@ cannot creep back in.
   for FLUX.2 [klein], builds the scene from the song itself, its subject, objects and place from the title and words,
   so the same few settings (a swimming pool, an empty hall) no longer turn up across unrelated songs. It leaves people
   out and lets objects, the place and the light carry the picture; a person appears only where the idea needs one,
-  small and far off. Pictures already made are not changed.
+  small and far off. It reads twice as much of the words as before, and klein is asked for the Hipgnosis style by
+  name, with no branding. Pictures already made are not changed.
 - **Previous and next take from the visualizer, and Shift+Left / Shift+Right.** The visualizer has previous and next
   buttons, and Shift with an arrow key steps to the previous or next take anywhere the player's keys work; in the
   Playlists view both go through the playlist. The keys shown along the visualizer's foot can be clicked too.

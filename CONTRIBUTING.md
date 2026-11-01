@@ -35,7 +35,7 @@ every graph in a moment, on ports of its own, so a Yeufonic running on the same 
 the page, or an error in the app's log, fails the test it happened in.
 
 ```sh
-sh browser-tests/run.sh               # all of them, in a couple of minutes
+sh browser-tests/run.sh               # all of them
 sh browser-tests/run.sh -k cover      # the ones matching
 ```
 
