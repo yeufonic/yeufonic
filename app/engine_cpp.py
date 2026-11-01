@@ -49,6 +49,19 @@ LORA_NODE = "LoraLoader"
 FRAME_RATE = 25
 SEMANTIC_MAX = 9000
 SEMANTIC_CEILING = 22000
+CONTEXT = 24576
+# The server refuses a render whose prompt, budget and end token do not fit the context ("prefix 3016 + budget
+# 22000 + end exceeds context 24576"), so the budget leaves room for the prompt.  The prompt is not tokenised here:
+# its words and score in bytes are an upper bound on their tokens (a token is at least a byte), and PROMPT_FRAME
+# allows for the template around them.
+PROMPT_FRAME = 512
+
+
+def music_budget(duration: float, *texts: str) -> int:
+    """The music stage's token budget: the length cap's worth, at least SEMANTIC_MAX, never more than the context
+    leaves once the prompt is in it."""
+    room = CONTEXT - PROMPT_FRAME - sum(len((t or "").encode("utf-8")) for t in texts) - 1
+    return max(1, min(SEMANTIC_CEILING, room, max(SEMANTIC_MAX, int(math.ceil(duration * FRAME_RATE)))))
 
 # The stages of each kind of job as the progress bar has them: the names are the ComfyUI
 # nodes they stand for, so the labels and weights in engine.py serve both engines.
@@ -181,7 +194,7 @@ def translate(graph: dict) -> dict:
                 "repetition_penalty": float(inputs.get("repetition_penalty", 1.2)),
                 "penalty_window": 50,
                 "min_tokens": 200,
-                "max_tokens": min(SEMANTIC_CEILING, max(SEMANTIC_MAX, int(math.ceil(duration * FRAME_RATE)))),
+                "max_tokens": music_budget(duration, inputs.get("style"), inputs.get("lyrics"), inputs.get("abc")),
             },
             "adapters": adapters_for(graph, inputs.get("clip"), sampler_inputs.get("model")),
         }

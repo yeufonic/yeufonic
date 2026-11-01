@@ -39,6 +39,18 @@ def test_a_long_cap_raises_the_music_stage_budget_within_the_context():
     assert body["semantic_sampling"]["max_tokens"] == engine_cpp.SEMANTIC_CEILING
 
 
+def test_the_budget_leaves_room_in_the_context_for_the_prompt():
+    """A long score, words and style with the cap at 900 s: the server refused it ("prefix 3016 + budget 22000 + end
+    exceeds context 24576") until the budget left room for the prompt, whose bytes bound its tokens."""
+    take = {**TAKE, "max_duration": 900, "abc": "X:1\nK:C\n" + "c4d4e4f4|" * 370, "lyrics": "la " * 340,
+            "style": "s" * 205}
+    body = translate(build_render_graph(take))["body"]
+    prompt = sum(len(body[k].encode()) for k in ("style", "lyrics", "abc"))
+    assert prompt > engine_cpp.CONTEXT - engine_cpp.SEMANTIC_CEILING                 # the case that failed
+    assert body["semantic_sampling"]["max_tokens"] + prompt + engine_cpp.PROMPT_FRAME < engine_cpp.CONTEXT
+    assert body["semantic_sampling"]["max_tokens"] > 600 * 25                        # still room for a long song
+
+
 def test_each_lora_half_keeps_its_own_strength():
     take = {**TAKE, "style_lora": "style.safetensors", "style_lora_model": 0.7, "style_lora_clip": 0.5,
             "voice_lora": "voice.safetensors", "voice_lora_strength": 0.9}
