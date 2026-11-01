@@ -32,8 +32,8 @@ Both run the same YuE2 model and read the same scores, styles and lyrics. They d
 compress and sample it, so the same score and seed make a different take on each, not the same one.
 Some songs come out better on one, some on the other.
 
-A control that needs the other engine is greyed out and says so, and **About** says which engine is
-running.
+A control that needs the other engine is greyed out and says so, **About** says which engine is
+running, and each take's card says which engine rendered it.
 
 ## Which one to choose
 

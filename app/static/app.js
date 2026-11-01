@@ -11860,6 +11860,8 @@ function paintTakes() {
     if (take.realaudio) { meta.push('realaudio'); }
     meta.push('seed ' + take.seed);
     if (take.sound_seed) { meta.push('voice ' + take.sound_seed); }
+    // Which engine rendered it, where the app recorded one (renders from 0.0.53 on).
+    if (take.engine) { meta.push('Engine: ' + ({ comfyui: 'ComfyUI', yue2cpp: 'yue2.cpp' }[take.engine] || take.engine)); }
     meta.push(age(take.created_at));
     shortMeta.push(age(take.created_at));
     var live = '';

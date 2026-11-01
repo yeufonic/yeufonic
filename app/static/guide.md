@@ -1460,7 +1460,7 @@ model is installed. The README on GitHub has a section, *Choosing a model size*,
 
 Yeufonic can also run the **yue2.cpp** engine instead of ComfyUI, for graphics cards with less memory,
 chosen when it is set up: on the Windows installer's components page, or with Docker by
-`sh scripts/fetch-models.sh --cpp`. **About** says which engine is running. It makes songs, covers and
+`sh scripts/fetch-models.sh --cpp`. **About** says which engine is running, and a take's card which engine rendered it. It makes songs, covers and
 instrumentals and transcribes recordings, with your style LoRAs; Gemma can draft lyrics and describe pictures
 beside it (with Docker, `--gemma`), and FLUX.2 klein draw them (`--pictures`). Training needs the ComfyUI
 engine: with yue2.cpp Corpora and training are not offered. The page

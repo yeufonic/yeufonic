@@ -181,7 +181,8 @@ def test_render_saves_audio_note_peaks_and_drops_the_engine_copy(monkeypatch, da
     assert row["status"] == "done" and abs(row["duration"] - 1.0) < 0.05
     audio = config.TAKES_DIR / f"render-me-{take['id']}" / "render-me.flac"
     assert row["audio_path"] == str(audio) and audio.exists()
-    assert json.loads((audio.parent / "take.json").read_text())["seed"] == 1
+    note = json.loads((audio.parent / "take.json").read_text())
+    assert note["seed"] == 1 and note["engine"] == row["engine"] == "comfyui"     # which engine rendered it
     assert peaks_path(audio).exists()
     assert not engine_copy.exists()
 

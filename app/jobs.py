@@ -1128,8 +1128,10 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
     duration = rendered_for if rendered_for is not None else await asyncio.to_thread(audio_duration, dest)
     elapsed = time.time() - started
     execute(
-        "UPDATE takes SET status = 'done', stage = NULL, audio_path = ?, duration = ?, finished_at = ?, elapsed = ?, error = NULL, loudness = ?, normalised = ?, normalised_to = ?, weak_dismissed = 0 WHERE id = ?",
-        (str(playing), duration, time.time(), elapsed, level, normalised, normalised_to, ref_id),
+        "UPDATE takes SET status = 'done', stage = NULL, audio_path = ?, duration = ?, finished_at = ?, elapsed = ?, error = NULL, loudness = ?, normalised = ?, normalised_to = ?, weak_dismissed = 0, engine = ? WHERE id = ?",
+        # engine: which one rendered it (comfyui or yue2cpp), which the card shows.
+        (str(playing), duration, time.time(), elapsed, level, normalised, normalised_to,
+         getattr(ENGINE, "kind", "comfyui"), ref_id),
     )
     fresh = one("SELECT * FROM takes WHERE id = ?", (ref_id,))
     if fresh:

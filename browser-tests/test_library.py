@@ -19,6 +19,9 @@ def test_a_song_is_planned_rendered_and_plays(page, app_server):
     tile = card(page, made["id"])
     tile.wait_for()
     assert "Lights along the harbour wall" in tile.locator(".take-title").inner_text()
+    # Once the page has the finished take: which engine rendered it.
+    page.wait_for_function("(id) => /Engine: ComfyUI/.test(document.querySelector(`#takes article.take[data-id='${id}']"
+                           " .take-meta`).textContent)", arg=made["id"])
     tile.locator('[data-act="play"]').click()
     page.wait_for_function("() => { const a = document.getElementById('audio'); return a && !a.paused && a.currentTime > 0.3; }")
     assert "Lights along the harbour wall" in page.locator("#np-title").inner_text()

@@ -50,7 +50,7 @@ cannot creep back in.
   picture server come as ready-made images from GitHub's container registry, built by this repository's workflow
   with a build attestation; `YUE2CPP_BUILD=1` builds them on your PC instead. Training needs ComfyUI: with yue2.cpp
   the app leaves it out, and stems and lyric hearing run on the CPU.
-  **About** names the engine. [docs/ENGINES.md](docs/ENGINES.md) compares the two and says how to choose and switch.
+  **About** names the engine, and a take's card which engine rendered it. [docs/ENGINES.md](docs/ENGINES.md) compares the two and says how to choose and switch.
   On Windows, `engine_args` in `settings.ini` stays ComfyUI's; yue2.cpp's own switches go in `cpp_engine_args`.
 - **Changing the model size on Windows keeps the other one.** The installer used to remove the size you left;
   it now keeps it, so switching back downloads nothing, and marks each size already downloaded. With

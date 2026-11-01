@@ -542,9 +542,9 @@ def _weak_dismissed() -> None:
 
 
 def _engine() -> None:
-    """Which engine planned or rendered a take.  Added on a branch that tried another
-    engine beside ComfyUI; databases that ran it are at this version, so it stays here
-    to keep the numbering in step.  Nothing on main writes it."""
+    """Which engine rendered a take: comfyui or yue2cpp, written when a render lands (0.0.53).  Takes
+    rendered before that have none.  First added on a branch that tried another engine beside ComfyUI,
+    which is why it sits at this place in the numbering."""
     if "engine" not in _columns("takes"):
         execute("ALTER TABLE takes ADD COLUMN engine TEXT")
 
