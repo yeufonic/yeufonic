@@ -15701,7 +15701,7 @@ function wire() {
       if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
       return;
     }
-    // B, in a visualizer scene over the take's picture: the next thing to move behind it (being tried out).
+    // B, in a visualizer scene over the take's picture: the next thing to move behind it.
     if ((event.key === 'b' || event.key === 'B') && !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat &&
         window.Visualizer && window.Visualizer.isOpen && typeof window.Visualizer.cycleArtMotion === 'function' &&
         window.Visualizer.cycleArtMotion()) {

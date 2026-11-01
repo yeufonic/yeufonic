@@ -48,6 +48,11 @@ cannot creep back in.
   planner is told, and with a style LoRA trained at another tempo a new plan from the imported take kept coming out
   with no singing. Those are now left behind; the take's own score, and its render, are unchanged.
 
+- **More moves behind the visualizer's scenes.** Over the take's picture, the scenes that show it now have something
+  moving in its colours: drifting colour behind Artwork, a spectrum halo behind Mandala, light rays behind Grid and
+  ripples on the beat behind Liquid, with Yeufonic and Bars keeping the picture alone. **B** steps through the six for
+  the scene on show (Breath, Light rays, Ripples, Drifting colour, Depth, Spectrum halo), and the scene keeps the choice.
+
 ## 0.0.53 (2026-11-01)
 
 - **A second engine, yue2.cpp, for graphics cards with less memory.** A native engine in place of ComfyUI, with a

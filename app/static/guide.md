@@ -1362,7 +1362,7 @@ The stage renders real-time audio visualisations synchronized with playback:
   - *Particle Swarm:* Gravitational particle clusters that scatter on percussive hits.
   - *Hi-Fi Spectrum Bars:* Multi-band equalizer spectrum analyzer with physical floating peak decay caps.
   - *Artwork:* The take's picture, large, with its title under it, over a soft copy of itself that moves with the music. A take with no picture shows the Yeufonic scene until one is made.
-- **Behind the scenes:** the Yeufonic, Mandala, Grid, Liquid and Bars scenes play over the take's picture, softly moving with the music, where the take has one.
+- **Behind the scenes:** the Artwork, Yeufonic, Mandala, Grid, Liquid and Bars scenes play over the take's picture, softly moving with the music, where the take has one. Something can move over it too, in the picture's own colours: *Breath* (the picture alone), *Light rays* turning from the middle, *Ripples* sent out on the beat, *Drifting colour*, *Depth* (more copies of the picture turning against each other) or a *Spectrum halo*. Each scene starts with its own (drifting colour behind Artwork, the halo behind Mandala, rays behind Grid, ripples behind Liquid, the picture alone behind Yeufonic and Bars); press **B** to step through them, and the scene keeps your choice.
 - **The waveform:** under the Yeufonic and Artwork scenes, the take's waveform shows how far the song has played; click it to jump there.
 - **Album Artwork & Vinyl Dynamics:** Displays the take's Hipgnosis-style album cover in an interactive 3D sleeve that tilts and orbits with pointer movement. A realistic vinyl record spins at 33⅓ RPM and slides out of the sleeve on bass hits, accompanied by holographic sheen and beat-reactive shockwave rings. Cycle modes with the **Artwork** button: *Sleeve*, *Aura* (ambient blurred background), or *Off*.
 - **A new picture:** the picture button at the top right, in every scene, makes a new picture for the take playing, where this PC can make pictures. It pulses while the picture is made, and the new one takes over when it is ready.
@@ -1404,6 +1404,7 @@ bar saying why.
 | P | add the take to a playlist |
 | D | delete the take, after asking, as its bin does |
 | L | the logs; or toggle lyrics while the visualizer is open |
+| B | in the visualizer, what moves behind a scene over the take's picture |
 | F | toggle fullscreen |
 | ? | show or hide the hot keys; again to close |
 | Escape | close the window in front: the visualizer, the logs, the mastering rack over the editor, then the editor or any other window |

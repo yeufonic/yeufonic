@@ -14,9 +14,10 @@
   // The scenes drawn over the take's breathing picture, where it has one (the Yeufonic and Artwork scenes draw it
   // themselves).
   var OVER_ART = { kaleidoscope: true, grid: true, liquid: true, bars: true };
-  // What can move behind a scene over the take's picture: Artwork has drifting colour; the others are being tried
-  // (B steps through them).
+  // What can move behind a scene over the take's picture, in front of its breathing backdrop: B steps through them,
+  // and each scene starts on its own (chosen by the user, 2026-11-01).
   var ART_MOTIONS = ['breath', 'rays', 'ripples', 'dust', 'depth', 'halo'];
+  var ART_MOTION_DEFAULT = { artwork: 'dust', yeufonic: 'breath', kaleidoscope: 'halo', grid: 'rays', liquid: 'ripples', bars: 'breath' };
 
   var Visualizer = {
     isOpen: false,
@@ -1644,32 +1645,30 @@
     },
 
     /* ---------------------------------------------------------------- what moves behind the picture
-       Being tried out (2026-11-01): the backdrop alone ("Breath"), or one of these over it.  B steps through them while
-       the Artwork scene is up, and the choice is kept in this browser. */
+       The backdrop alone ("Breath"), or one of these over it, in the take's picture's own colours.  B steps through
+       them in a scene over the picture, and the choice is kept for that scene in this browser. */
     artMotionName: function () {
       var names = { breath: 'Breath', rays: 'Light rays', ripples: 'Ripples', dust: 'Drifting colour', depth: 'Depth', halo: 'Spectrum halo' };
       return names[this.artMotion()] || 'Breath';
     },
 
-    /* What moves behind the scene: in Artwork, drifting colour (chosen 2026-11-01); in the scenes that lie over the
-       breathing picture, the one being tried there, kept per scene in this browser. */
+    /* What moves behind the scene: the one chosen with B for this scene in this browser, else the scene's own. */
     artMotion: function () {
-      if (this.mode === 'artwork') { return 'dust'; }
       this.motions = this.motions || {};
       if (!this.motions[this.mode]) {
         var kept = null;
-        try { kept = localStorage.getItem('yeufonic.artMotion.' + this.mode); } catch (err) { /* private mode */ }
-        this.motions[this.mode] = ART_MOTIONS.indexOf(kept) >= 0 ? kept : 'breath';
+        try { kept = localStorage.getItem('yeufonic.backdrop.' + this.mode); } catch (err) { /* private mode */ }
+        this.motions[this.mode] = ART_MOTIONS.indexOf(kept) >= 0 ? kept : (ART_MOTION_DEFAULT[this.mode] || 'breath');
       }
       return this.motions[this.mode];
     },
 
-    /* B steps through them, in a scene over the breathing picture (Artwork's is settled). */
+    /* B steps through them, in a scene over the take's picture; the others have backgrounds of their own. */
     cycleArtMotion: function () {
-      if (!(OVER_ART[this.mode] || this.mode === 'yeufonic')) { return false; }
+      if (!ART_MOTION_DEFAULT[this.mode]) { return false; }
       var next = ART_MOTIONS[(ART_MOTIONS.indexOf(this.artMotion()) + 1) % ART_MOTIONS.length];
       this.motions[this.mode] = next;
-      try { localStorage.setItem('yeufonic.artMotion.' + this.mode, next); } catch (err) { /* private mode */ }
+      try { localStorage.setItem('yeufonic.backdrop.' + this.mode, next); } catch (err) { /* private mode */ }
       this.motionLabelUntil = performance.now() + 2500;
       this.motionState = null;
       return true;
