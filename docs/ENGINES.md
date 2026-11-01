@@ -106,7 +106,7 @@ are yue2.cpp's, Gemma's and its picture encoder's; `models/checkpoints/` and
 | In `.env` | What it does |
 |---|---|
 | `YUE2CPP_MODEL` | Which size of YuE2 yue2.cpp uses: `YuE2-3B-Q8_0.gguf` (the default), `YuE2-3B-BF16.gguf` (full precision, 7.2 GB), `YuE2-3B-Q6_K.gguf` or `YuE2-3B-Q5_K_M.gguf` (smaller). Set it before `fetch-models.sh --cpp`, which fetches that one |
-| `YUE2CPP_CUDA_ARCH` | Which generation of NVIDIA card yue2.cpp and the picture server are built for. `fetch-models.sh --cpp` sets it to this PC's card (`89-real` for an RTX 40, `86-real` for an RTX 30), which builds far faster than for every card. After changing to a card of another generation, take the line out (or set it) and build again |
+| `YUE2CPP_CUDA_ARCH` | Which generation of NVIDIA card yue2.cpp and the picture server are built for. `fetch-models.sh --cpp` sets it to this PC's card (`89` for an RTX 40, `86` for an RTX 30), which builds far faster than for every card. A newer card still runs that build, after a slower first start; take the line out (or set it) and build again to have it at full speed |
 | `GEMMA_MODEL` | The Gemma model, `gemma4:e4b-it-qat` unless set |
 
 The FLUX.2 klein 9B is never downloaded for you (it is under a non-commercial licence): the guide's

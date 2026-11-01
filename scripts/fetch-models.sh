@@ -136,14 +136,15 @@ if [ "$ENGINE" = cpp ]; then
     echo "wrote COMPOSE_FILE=$files to .env: docker compose now runs the yue2.cpp engine"
   fi
   # yue2.cpp and the picture server are compiled when their images are built.  For every recent NVIDIA card that
-  # takes the better part of an hour; for this PC's card alone, a fraction of it.  The image then needs rebuilding
-  # for a card of another generation: take the line out of .env (or set it) and build again.
+  # takes the better part of an hour; for this PC's card alone, a fraction of it.  The bare number ("89", not
+  # "89-real") also keeps the portable form of the code, so a newer card still runs it after a slow first start;
+  # rebuild for it (take the line out of .env, or set it) to have it at full speed.
   if ! grep -qs '^YUE2CPP_CUDA_ARCH=' "$ROOT/.env" && command -v nvidia-smi >/dev/null 2>&1; then
     cap=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -1 | tr -d ' .\r')
     case "$cap" in
       [1-9][0-9]|[1-9][0-9][0-9])
-        echo "YUE2CPP_CUDA_ARCH=$cap-real" >> "$ROOT/.env"
-        echo "wrote YUE2CPP_CUDA_ARCH=$cap-real to .env: the engine is built for this PC's graphics card only, which is much quicker" ;;
+        echo "YUE2CPP_CUDA_ARCH=$cap" >> "$ROOT/.env"
+        echo "wrote YUE2CPP_CUDA_ARCH=$cap to .env: the engine is built for this PC's graphics card, which is much quicker" ;;
     esac
   fi
   if [ -n "${YUE2CPP_MODEL:-}" ] && ! grep -qs '^YUE2CPP_MODEL=' "$ROOT/.env"; then

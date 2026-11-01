@@ -314,7 +314,7 @@ def test_a_compose_file_line_of_your_own_keeps_its_other_files(tmp_path):
 def test_yue2cpp_is_built_for_this_pcs_card(tmp_path):
     """Built for every card, the two images take the better part of an hour; for this one, a fraction of it."""
     root, said, _ = _run_fetch(tmp_path, "--cpp", env_text="APP_UID=1000\n", gpu="8.9")
-    assert "YUE2CPP_CUDA_ARCH=89-real" in (root / ".env").read_text().splitlines()
+    assert "YUE2CPP_CUDA_ARCH=89" in (root / ".env").read_text().splitlines()
     other = tmp_path / "other"
     other.mkdir()
     root, _, _ = _run_fetch(other, "--cpp", env_text="YUE2CPP_CUDA_ARCH=86-real\n", gpu="8.9")
