@@ -323,3 +323,23 @@ def test_a_program_that_stops_leaves_its_exit_code_and_last_lines_in_launcher_lo
     assert "The engine stopped unexpectedly (exit code 1)." in kept and f"The last lines of {engine}:" in kept
     assert "    Usage: yue-server.exe --model <gguf> --vae <gguf> [options]" in kept
     assert str(engine) in shown[0]
+
+
+def test_comfyui_is_given_one_card_so_it_does_not_warn_about_forcing_it(monkeypatch):
+    """ComfyUI on Windows sets CUDA_VISIBLE_DEVICES=0 itself when nothing else chose a card, and logs a WARNING saying
+    so at every start; the launcher chooses the same card, leaving a choice made in engine_args or the environment."""
+    import os, shlex
+    text = (Path(__file__).resolve().parent.parent / "windows" / "launcher.py").read_text(encoding="utf-8")
+    start = text.index("    def comfy_env(")
+    body = "\n".join(line[4:] for line in text[start:text.index("\n\n", start)].splitlines())
+    ns = {"os": os, "shlex": shlex}
+    exec(body, ns)
+    monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
+    me = type("L", (), {"app_port": 8091, "cfg": {}})()
+    assert ns["comfy_env"](me)["CUDA_VISIBLE_DEVICES"] == "0"
+    for args in ("--cuda-device all", "--cuda-device=1", "--default-device 1"):
+        me.cfg = {"engine_args": f"--disable-nvml-pressure {args}"}
+        assert "CUDA_VISIBLE_DEVICES" not in ns["comfy_env"](me)
+    me.cfg = {}
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "1")
+    assert ns["comfy_env"](me)["CUDA_VISIBLE_DEVICES"] == "1"

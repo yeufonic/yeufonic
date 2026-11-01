@@ -676,6 +676,16 @@ class Launcher:
             env["PICTURES_URL"] = f"http://127.0.0.1:{port}"
         return started
 
+    def comfy_env(self) -> dict:
+        """ComfyUI's environment.  On Windows ComfyUI keeps to the first card by itself, and logs a WARNING saying so
+        at every start, unless something else chose: the launcher chooses that same card.  A --cuda-device or
+        --default-device in engine_args, or CUDA_VISIBLE_DEVICES already set, is left to choose instead."""
+        env = dict(os.environ, YEUFONIC_APP_URL=f"http://127.0.0.1:{self.app_port}")
+        chosen = {a.split("=", 1)[0] for a in shlex.split(self.cfg.get("engine_args", ""))}
+        if not chosen & {"--cuda-device", "--default-device"}:
+            env.setdefault("CUDA_VISIBLE_DEVICES", "0")
+        return env
+
     def start(self, data: Path) -> None:
         """The engine and the app at once: the app is up in seconds and copes with an
         engine still starting, so the page need not wait for ComfyUI."""
@@ -692,7 +702,7 @@ class Launcher:
             cwd=str(COMFY), stdout=engine_log.open("w", encoding="utf-8"), stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW,
             # Its start-up message then sends people to the app, not the engine.
-            env=dict(os.environ, YEUFONIC_APP_URL=f"http://127.0.0.1:{self.app_port}"))
+            env=self.comfy_env())
 
         tools = HERE / "tools"
         env.update({
