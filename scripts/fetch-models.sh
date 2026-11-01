@@ -89,6 +89,12 @@ mkdir -p "$ROOT/models/whisper" "$ROOT/models/demucs" 2>/dev/null || true
 # The folders compose.yml mounts into the app.  Created here, as you, because a
 # folder Docker creates for a mount belongs to root, and the app cannot write to it.
 mkdir -p "$ROOT/data" "$ROOT/data/models/soundfonts/sf2" "$ROOT/engine-state/output"
+# Until 0.0.53 compose.yml also mounted data/models/whisper on its own, so on a new install Docker made that folder,
+# as root, and the app could not fetch Whisper into it to hear a recording's words.
+if [ -d "$ROOT/data/models/whisper" ] && [ ! -w "$ROOT/data/models/whisper" ]; then
+  echo "note  data/models/whisper is root's, so the app cannot fetch Whisper into it. To make it yours:" >&2
+  echo "      sudo chown -R $(id -u):$(id -g) data/models/whisper" >&2
+fi
 # The app runs as APP_UID:APP_GID, 1000:1000 unless set, and what it writes belongs
 # to those ids. Compose reads .env beside compose.yml, so record whoever is setting
 # this up, once. Linux only: Docker Desktop maps ownership itself, and root is

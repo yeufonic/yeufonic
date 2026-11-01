@@ -61,6 +61,10 @@ cannot creep back in.
   *From the take itself* is still there for the quickest pictures.
 - **An engine line that only mentions an error is no longer marked as one in the log.** The engine's own level is
   used where it gives one, so a start-up report of an optional part it skipped no longer shows as ERROR.
+- **On a new Docker install, hearing a recording's words no longer fails with "Permission denied".** `compose.yml`
+  mounted `data/models/whisper` on its own, so Docker made that folder as root and the app could not fetch Whisper
+  into it. `data/` is mounted whole, as before. Where the folder is already root's, `sh scripts/fetch-models.sh` says
+  how to make it yours.
 - **When the engine or another program stops on Windows, `logs\launcher.log` says how.** It records the exit code
   and the last lines of that program's own log, which the next start would otherwise write over.
 - **The log says how a picture or a lyric draft was made, and how long it took.** Its "is ready" line names who

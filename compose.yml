@@ -118,7 +118,6 @@ services:
       - ./models/loras:/app/models/loras
       # The engine's input folder, so a training set can be put where the engine reads.
       - ./engine-state/input:/engine-input
-      - ./data/models/whisper:/data/models/whisper
       # Optional: mount a local music library or external drive for corpus building.
       # The app only reads from it; nothing in it is changed. Best done in
       # compose.override.yml too: see compose.override.yml.example.

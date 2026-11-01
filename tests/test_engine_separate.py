@@ -345,3 +345,13 @@ def test_the_ready_made_images_are_the_ones_their_folders_build():
     workflow = (root / ".github" / "workflows" / "engine-images.yml").read_text(encoding="utf-8")
     assert "scripts/engine-image-tag.sh" in workflow and "push-to-registry: true" in workflow
     assert "build:" not in compose                    # a build here belongs in compose.cpp-build.yml
+
+
+def test_no_folder_inside_data_is_mounted_on_its_own():
+    """./data is mounted whole, and fetch-models.sh makes it as you.  A folder inside it mounted on its own is made by
+    Docker, as root, when it is not there yet, and the app cannot write in it (Whisper could not be fetched)."""
+    import re
+    root = Path(__file__).resolve().parent.parent
+    for compose in sorted(root.glob("compose*.yml")):
+        mounts = re.findall(r"^\s*-\s*\"?(\./data/[^:\"]*):", compose.read_text(encoding="utf-8"), re.M)
+        assert not mounts, f"{compose.name} mounts {mounts} on their own"
