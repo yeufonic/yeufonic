@@ -14,7 +14,8 @@
   // The scenes drawn over the take's breathing picture, where it has one (the Yeufonic and Artwork scenes draw it
   // themselves).
   var OVER_ART = { kaleidoscope: true, grid: true, liquid: true, bars: true };
-  // What can move behind the picture in the Artwork scene (being tried out; B steps through them).
+  // What can move behind a scene over the take's picture: Artwork has drifting colour; the others are being tried
+  // (B steps through them).
   var ART_MOTIONS = ['breath', 'rays', 'ripples', 'dust', 'depth', 'halo'];
 
   var Visualizer = {
@@ -964,7 +965,8 @@
       var overArt = OVER_ART[this.mode] ? this.loadArtScene(this.currentTake) : null;
       var target = ctx;
       if (overArt) {
-        this.drawArtBackdrop(ctx, w, h, now, overArt, this.currentTake);
+        var backOver = this.drawArtBackdrop(ctx, w, h, now, overArt, this.currentTake);
+        this.drawArtMotion(ctx, w, h, now, overArt, this.screenMiddle(w, h), backOver.swell, backOver.shift);
         target = this.sceneLayer(canvas, dpr);
         this.overArt = true;
       } else if (this.fxLayer) {
@@ -974,6 +976,7 @@
       if (overArt) {
         this.overArt = false;
         ctx.drawImage(target.canvas, 0, 0, w, h);
+        this.drawArtMotionLabel(ctx, w, now);
       }
 
       ctx.restore();
@@ -1242,7 +1245,9 @@
       // a little of each frame left behind.
       var art = this.loadArtScene(this.currentTake);
       if (art) {
-        this.drawArtBackdrop(ctx, w, h, now, art, this.currentTake);
+        var back = this.drawArtBackdrop(ctx, w, h, now, art, this.currentTake);
+        this.drawArtMotion(ctx, w, h, now, art, this.screenMiddle(w, h), back.swell, back.shift);
+        this.drawArtMotionLabel(ctx, w, now);
       } else {
         ctx.fillStyle = 'rgba(11, 11, 16, 0.32)';
         ctx.fillRect(0, 0, w, h);
@@ -1646,21 +1651,28 @@
       return names[this.artMotion()] || 'Breath';
     },
 
+    /* What moves behind the scene: in Artwork, drifting colour (chosen 2026-11-01); in the scenes that lie over the
+       breathing picture, the one being tried there, kept per scene in this browser. */
     artMotion: function () {
-      if (!this.motion) {
+      if (this.mode === 'artwork') { return 'dust'; }
+      this.motions = this.motions || {};
+      if (!this.motions[this.mode]) {
         var kept = null;
-        try { kept = localStorage.getItem('yeufonic.artMotion'); } catch (err) { /* private mode */ }
-        this.motion = ART_MOTIONS.indexOf(kept) >= 0 ? kept : 'breath';
+        try { kept = localStorage.getItem('yeufonic.artMotion.' + this.mode); } catch (err) { /* private mode */ }
+        this.motions[this.mode] = ART_MOTIONS.indexOf(kept) >= 0 ? kept : 'breath';
       }
-      return this.motion;
+      return this.motions[this.mode];
     },
 
+    /* B steps through them, in a scene over the breathing picture (Artwork's is settled). */
     cycleArtMotion: function () {
+      if (!(OVER_ART[this.mode] || this.mode === 'yeufonic')) { return false; }
       var next = ART_MOTIONS[(ART_MOTIONS.indexOf(this.artMotion()) + 1) % ART_MOTIONS.length];
-      this.motion = next;
-      try { localStorage.setItem('yeufonic.artMotion', next); } catch (err) { /* private mode */ }
+      this.motions[this.mode] = next;
+      try { localStorage.setItem('yeufonic.artMotion.' + this.mode, next); } catch (err) { /* private mode */ }
       this.motionLabelUntil = performance.now() + 2500;
       this.motionState = null;
+      return true;
     },
 
     drawArtMotionLabel: function (ctx, w, now) {
@@ -1670,8 +1682,14 @@
       ctx.font = '600 14px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(230, 228, 222, ' + (0.85 * fade).toFixed(2) + ')';
-      ctx.fillText('Behind the picture: ' + this.artMotionName() + '   (B for the next)', w / 2, 84);
+      ctx.fillText('Behind the scene: ' + this.artMotionName() + '   (B for the next)', w / 2, 84);
       ctx.restore();
+    },
+
+    /* Where a scene with no picture in front has its middle, as a cover would be for what moves behind it. */
+    screenMiddle: function (w, h) {
+      var side = Math.min(w, h) * 0.42;
+      return { cx: w / 2, cy: h / 2, side: side, pw: side, ph: side };
     },
 
     drawArtMotion: function (ctx, w, h, now, art, cover, swell, shift) {

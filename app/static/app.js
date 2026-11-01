@@ -15701,12 +15701,11 @@ function wire() {
       if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
       return;
     }
-    // B, in the visualizer's Artwork scene: the next thing to move behind the picture (being tried out).
+    // B, in a visualizer scene over the take's picture: the next thing to move behind it (being tried out).
     if ((event.key === 'b' || event.key === 'B') && !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat &&
-        window.Visualizer && window.Visualizer.isOpen && window.Visualizer.mode === 'artwork' &&
-        typeof window.Visualizer.cycleArtMotion === 'function') {
+        window.Visualizer && window.Visualizer.isOpen && typeof window.Visualizer.cycleArtMotion === 'function' &&
+        window.Visualizer.cycleArtMotion()) {
       event.preventDefault();
-      window.Visualizer.cycleArtMotion();
       return;
     }
     if ((event.key === 'v' || event.key === 'V') &&
