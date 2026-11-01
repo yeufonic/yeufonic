@@ -32,6 +32,10 @@
 #   sh scripts/fetch-models.sh --cpp --pictures   FLUX.2 klein 4B for that engine, 6.9 GB: the model and VAE
 #                                        --pictures fetches for ComfyUI, with Qwen 3 4B as GGUF (Q4_K_M), which
 #                                        its picture server reads (COMPOSE_PROFILES=pictures in .env).
+#   sh scripts/fetch-models.sh --comfyui   back to the ComfyUI engine from yue2.cpp: its models (any still here are
+#                                        kept), and yue2.cpp taken out of .env.
+#   Switching either way stops and removes the engine left behind; docker compose up -d --build then starts
+#   the other.  Without --cpp or --comfyui the engine stays as it is.  The models of the one left are kept.
 #   sh scripts/fetch-models.sh --loras      also 39 style LoRAs by their authors (CC BY-NC 4.0), 3.8 GB, with a
 #                                        description each, into models/loras/. One already there is kept as
 #                                        it is. The README of pshields/yue2-style-loras credits them.
@@ -43,7 +47,7 @@
 set -eu
 
 MODEL=bf16
-ENGINE=comfyui
+ENGINE=
 GEMMA=no
 PICTURES=no
 LORAS=no
@@ -51,6 +55,7 @@ for arg in "$@"; do
   case "$arg" in
     --int8) MODEL=int8 ;;
     --cpp) ENGINE=cpp ;;
+    --comfyui) ENGINE=comfyui ;;
     --gemma) GEMMA=yes ;;
     --pictures) PICTURES=yes ;;
     --loras) LORAS=yes ;;
@@ -60,8 +65,13 @@ for arg in "$@"; do
 done
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+# The engine this checkout runs now, from .env: the one kept unless --cpp or --comfyui asks for the other.
+CURRENT=comfyui
+if grep -qs '^COMPOSE_FILE=.*compose\.cpp\.yml' "$ROOT/.env"; then CURRENT=cpp; fi
+ENGINE="${ENGINE:-$CURRENT}"
+if [ "$ENGINE" != "$CURRENT" ]; then echo "switching the engine from $CURRENT to $ENGINE"; fi
 YUE2=https://huggingface.co/Comfy-Org/YuE2/resolve/main
-GEMMA=https://huggingface.co/Comfy-Org/gemma-4/resolve/main
+GEMMA_HF=https://huggingface.co/Comfy-Org/gemma-4/resolve/main
 INSTRUMENTAL=https://huggingface.co/Mothersuperior/YuE2-instrumental-cot-full-loras/resolve/main
 REAL_AUDIO=https://huggingface.co/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/main
 REGULARIZER=https://huggingface.co/Mothersuperior/YuE2-hum-to-song/resolve/main
@@ -178,7 +188,7 @@ if [ "$ENGINE" = comfyui ]; then
   fetch "$YUE2/audio_encoders/sheetsage2_bf16.safetensors" \
         "$ROOT/models/audio_encoders/sheetsage2_bf16.safetensors"
 
-  fetch "$GEMMA/text_encoders/gemma4_e4b_it_int8_convrot.safetensors" \
+  fetch "$GEMMA_HF/text_encoders/gemma4_e4b_it_int8_convrot.safetensors" \
         "$ROOT/models/text_encoders/gemma4_e4b_it_int8_convrot.safetensors"
 fi
 
@@ -339,6 +349,28 @@ fetch "https://raw.githubusercontent.com/wrightflyer/SF2_SoundFonts/master/Jnsgm
 
 fetch "https://archive.org/download/free-soundfonts-sf2-2019-04/Arachno_SoundFont_Version_1.0.sf2" \
       "$SF2_DIR/Arachno_SoundFont_Version_1.0.sf2"
+
+# Back to ComfyUI: compose.cpp.yml and its add-ons' profiles come out of .env (a line left with nothing else to say
+# goes), so docker compose runs ComfyUI again.
+if [ "$ENGINE" = comfyui ] && [ "$CURRENT" = cpp ]; then
+  sed -i -e '/^COMPOSE_FILE=/s/:compose\.cpp\.yml//' \
+         -e '/^COMPOSE_FILE=compose\.yml\(:compose\.override\.yml\)\{0,1\}$/d' \
+         -e '/^COMPOSE_PROFILES=/{s/\(=\|,\)\(gemma\|pictures\)\b/\1/g;s/,,*/,/g;s/=,/=/;s/,$//}' \
+         -e '/^COMPOSE_PROFILES=$/d' "$ROOT/.env"
+  echo "took yue2.cpp out of .env: docker compose now runs the ComfyUI engine"
+fi
+# The engine left behind is stopped and removed, so it lets go of the graphics card and its port before the next
+# docker compose up starts the other.  Only this checkout's, and only once its models are here.
+if [ "$ENGINE" != "$CURRENT" ] && command -v docker >/dev/null 2>&1; then
+  if [ "$ENGINE" = cpp ]; then old="yeufonic-engine"; else old="yeufonic-engine-cpp yeufonic-gemma yeufonic-pictures"; fi
+  for c in $old; do
+    dir=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' "$c" 2>/dev/null) || continue
+    if [ "$dir" = "$ROOT" ]; then
+      docker rm -f "$c" >/dev/null && echo "stopped and removed $c, the engine left behind"
+    fi
+  done
+  echo "next: docker compose up -d --build"
+fi
 
 echo "done.  models/ now holds:"
 if [ "$ENGINE" = cpp ]; then

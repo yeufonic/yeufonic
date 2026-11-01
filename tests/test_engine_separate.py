@@ -242,3 +242,66 @@ def test_choosing_yue2cpp_keeps_a_compose_override(tmp_path):
         subprocess.run(["sh", "-c", snippet], env={"ROOT": str(tmp_path), "PATH": "/usr/bin:/bin"}, check=True,
                        capture_output=True)
         assert (tmp_path / ".env").read_text(encoding="utf-8").splitlines() == ["APP_UID=1000", f"COMPOSE_FILE={files}"]
+
+
+def _run_fetch(tmp_path, *args, env_text="", override=False, containers=()):
+    """fetch-models.sh in a folder of its own, with curl and docker stood in for: nothing is downloaded or stopped."""
+    import shutil, stat, subprocess
+    root = tmp_path / "yeufonic"
+    if not root.exists():
+        (root / "scripts").mkdir(parents=True)
+        shutil.copy(Path(__file__).resolve().parent.parent / "scripts" / "fetch-models.sh", root / "scripts")
+        shutil.copy(Path(__file__).resolve().parent.parent / "compose.cpp.yml", root)
+        (root / ".env").write_text(env_text, encoding="utf-8")
+    if override:
+        (root / "compose.override.yml").write_text("services: {}\n", encoding="utf-8")
+    bin_ = tmp_path / "bin"
+    bin_.mkdir(exist_ok=True)
+    (bin_ / "curl").write_text('#!/bin/sh\nwhile [ $# -gt 0 ]; do [ "$1" = -o ] && echo x > "$2"; shift; done\n')
+    # docker: inspect answers this checkout's folder for the containers named; rm and the rest are recorded.
+    (bin_ / "docker").write_text(
+        '#!/bin/sh\necho "$@" >> "%s/docker.log"\n'
+        'if [ "$1" = inspect ]; then for c in %s; do [ "$c" = "$4" ] && { echo "%s"; exit 0; }; done; exit 1; fi\n'
+        % (tmp_path, " ".join(containers) or "none", root))
+    for f in ("curl", "docker"):
+        (bin_ / f).chmod((bin_ / f).stat().st_mode | stat.S_IEXEC)
+    out = subprocess.run(["sh", str(root / "scripts" / "fetch-models.sh"), *args], capture_output=True, text=True,
+                         env={"PATH": f"{bin_}:/usr/bin:/bin", "HOME": str(tmp_path)})
+    assert out.returncode == 0, out.stderr
+    log = tmp_path / "docker.log"
+    return root, out.stdout, (log.read_text() if log.exists() else "")
+
+
+def test_gemma_is_fetched_for_yue2cpp_when_asked(tmp_path):
+    """--gemma was read as the Gemma download address, so it never fetched Gemma or chose its service."""
+    root, said, docker = _run_fetch(tmp_path, "--cpp", "--gemma", "--pictures", env_text="APP_UID=1000\n")
+    assert "ollama pull gemma4:e4b-it-qat" in docker
+    assert "COMPOSE_PROFILES=gemma,pictures" in (root / ".env").read_text()
+
+
+def test_switching_engines_takes_one_command_each_way(tmp_path):
+    """--cpp chooses yue2.cpp and removes the ComfyUI engine left running; --comfyui takes yue2.cpp out of .env
+    again, keeping the rest of it, and removes yue2.cpp's three; a run with neither keeps the engine as it is."""
+    root, said, docker = _run_fetch(tmp_path, "--cpp", "--gemma", "--pictures", override=True,
+                                    env_text="APP_UID=1000\nAPP_GID=1024\nCOMPOSE_PROFILES=mine\n",
+                                    containers=("yeufonic-engine",))
+    env = (root / ".env").read_text().splitlines()
+    assert "COMPOSE_FILE=compose.yml:compose.cpp.yml:compose.override.yml" in env
+    assert "COMPOSE_PROFILES=mine,gemma,pictures" in env
+    assert "rm -f yeufonic-engine" in docker and "switching the engine from comfyui to cpp" in said
+
+    (tmp_path / "docker.log").unlink()
+    root, said, docker = _run_fetch(tmp_path)
+    assert "switching the engine" not in said and "rm -f" not in docker
+    assert "COMPOSE_FILE=compose.yml:compose.cpp.yml:compose.override.yml" in (root / ".env").read_text()
+
+    root, said, docker = _run_fetch(tmp_path, "--comfyui", containers=("yeufonic-engine-cpp", "yeufonic-gemma"))
+    assert (root / ".env").read_text().splitlines() == ["APP_UID=1000", "APP_GID=1024", "COMPOSE_PROFILES=mine"]
+    assert "rm -f yeufonic-engine-cpp" in docker and "rm -f yeufonic-gemma" in docker
+    assert "rm -f yeufonic-pictures" not in docker            # not this checkout's: left alone
+
+
+def test_a_compose_file_line_of_your_own_keeps_its_other_files(tmp_path):
+    root, _, _ = _run_fetch(tmp_path, "--comfyui",
+                            env_text="COMPOSE_FILE=compose.yml:compose.cpp.yml:compose.gpu2.yml\nCOMPOSE_PROFILES=gemma\n")
+    assert (root / ".env").read_text().splitlines() == ["COMPOSE_FILE=compose.yml:compose.gpu2.yml"]

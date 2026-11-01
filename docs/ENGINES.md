@@ -75,26 +75,23 @@ running.
 
 ### Switching
 
-Stop Yeufonic first, while the engine it runs is still the one `.env` names, so that engine is stopped
-too and does not keep the graphics card:
-
-```sh
-docker compose down
-```
-
-Then, **from ComfyUI to yue2.cpp:**
+One command each way, then start Yeufonic again. **From ComfyUI to yue2.cpp:**
 
 ```sh
 sh scripts/fetch-models.sh --cpp --gemma --pictures   # or without the add-ons you do not want
 docker compose up -d --build
 ```
 
-**From yue2.cpp to ComfyUI:** take the `COMPOSE_FILE=` and `COMPOSE_PROFILES=` lines out of `.env`, then
+**From yue2.cpp to ComfyUI:**
 
 ```sh
-sh scripts/fetch-models.sh                # add --pictures for take pictures
+sh scripts/fetch-models.sh --comfyui      # add --pictures for take pictures
 docker compose up -d --build
 ```
+
+The script fetches the models the engine needs, changes `.env`, and stops and removes the engine you are
+leaving, so it lets go of the graphics card before the other starts. Without `--cpp` or `--comfyui` it keeps
+the engine you have, so adding `--loras` later, say, changes nothing else.
 
 The first build of an engine takes a while; switching back to one you have used before does not.
 Each engine's models stay in `models/` when you switch away, so switching back downloads nothing. To
