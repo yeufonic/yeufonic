@@ -33,9 +33,17 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSD_CUDA=ON -DGGML_NATIVE=OF
     && cmake --build build --config Release -j "$(nproc)" --target sd-server \
     && mkdir -p /out/lib && cp build/bin/sd-server /out/ \
     && find build -name '*.so*' -exec cp -a {} /out/lib/ \;
+# The licences of stable-diffusion.cpp and of everything built into the server (ggml, its web page and the packages
+# bundled into it, and the libraries under thirdparty/), which travel with every copy of it: each licence file in
+# the tree, and the single-file libraries whose licence is in the file.
+RUN find . -path ./build -prune -o -path ./.git -prune -o -type f \( -iname 'LICENSE*' -o -iname 'COPYING*' \
+        -o -iname 'NOTICE*' -o -iname 'PATENTS*' \) -print | while read -r f; do install -D -m 644 "$f" "/out/licenses/$f"; done \
+    && for f in thirdparty/*.h thirdparty/*.hpp; do if [ -f "$f" ]; then install -D -m 644 "$f" "/out/licenses/$f"; fi; done \
+    && test -s /out/licenses/LICENSE
 
 FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu24.04
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 curl && rm -rf /var/lib/apt/lists/*
+COPY --from=build /out/licenses/ /usr/share/licenses/stable-diffusion.cpp/
 COPY --from=build /out/lib/ /usr/local/lib/
 COPY --from=build /out/sd-server /usr/local/bin/sd-server
 RUN ldconfig

@@ -146,7 +146,13 @@ differ, the publisher's terms apply.
   built on ggml (**MIT**).
 - It is not part of this repository. `engine-cpp/Dockerfile` builds its server from a pinned commit with the patches
   in `engine-cpp/patches`; the ready-made image (`ghcr.io/yeufonic/yeufonic-engine-cpp`) and the Windows build are
-  made from that by this repository's workflows.
+  made from that by this repository's workflows. Each carries the licences of yue2.cpp and of what is built into it
+  (ggml, cpp-httplib, yyjson, minimp3): in `/usr/share/licenses/yue2.cpp/` in the image, and in `licenses\` in the
+  Windows build.
+- The Windows build includes NVIDIA's CUDA runtime libraries (`cudart64_12.dll`, `cublas64_12.dll`,
+  `cublasLt64_12.dll`), redistributed unchanged under the
+  [NVIDIA CUDA Toolkit End User License Agreement](https://docs.nvidia.com/cuda/eula/); the images are built on
+  NVIDIA's CUDA runtime images, under the same terms.
 - Official licence: [yue2.cpp LICENSE](https://github.com/ServeurpersoCom/yue2.cpp/blob/master/LICENSE)
 
 ### stable-diffusion.cpp (take pictures beside yue2.cpp)
@@ -154,7 +160,9 @@ differ, the publisher's terms apply.
 - By leejet. **MIT**. Source: [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp), built
   on ggml (**MIT**).
 - It is not part of this repository. `engine-pictures/Dockerfile` builds its server from a pinned commit (the
-  ready-made image is `ghcr.io/yeufonic/yeufonic-pictures`); the Windows install downloads its published build.
+  ready-made image is `ghcr.io/yeufonic/yeufonic-pictures`, which carries the licences of stable-diffusion.cpp and of
+  what is built into it, in `/usr/share/licenses/stable-diffusion.cpp/`); the Windows install downloads its
+  published build.
 - Official licence: [stable-diffusion.cpp LICENSE](https://github.com/leejet/stable-diffusion.cpp/blob/master/LICENSE)
 
 ### Ollama (Gemma beside yue2.cpp)

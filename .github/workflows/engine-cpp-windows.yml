@@ -22,6 +22,9 @@ permissions:
   id-token: write
   attestations: write
 
+env:
+  PACKAGE: 2
+
 jobs:
   build:
     runs-on: windows-2022
@@ -35,7 +38,8 @@ jobs:
         run: |
           ref=$(sed -n 's/^ARG YUE2CPP_REF=//p' engine-cpp/Dockerfile)
           patches=$(cat engine-cpp/patches/*.patch | sha256sum | cut -c1-8)
-          tag="yue2cpp-windows-${ref:0:7}-${patches}"
+          # PACKAGE counts changes to what the zip holds beside the server (2: the licences), so a new one is made.
+          tag="yue2cpp-windows-${ref:0:7}-${patches}-p${PACKAGE}"
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           if gh release view "$tag" >/dev/null 2>&1; then
@@ -104,6 +108,31 @@ jobs:
           foreach ($dll in "cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll") {
             Copy-Item "$cuda\bin\$dll" $out
           }
+          # The licences, which travel with every copy: yue2.cpp's, and those of everything built into the server
+          # (ggml and the vendored libraries: each licence file in the tree, and the single-file libraries whose
+          # licence is in the file), and NVIDIA's terms for the CUDA runtime above.
+          $src = "$env:RUNNER_TEMP\yue2.cpp"
+          $lic = "$out\licenses"
+          Get-ChildItem -Recurse -File $src -Include LICENSE*, COPYING*, NOTICE*, PATENTS* |
+            Where-Object { $_.FullName -notmatch '\\(build|\.git)\\' } | ForEach-Object {
+              $rel = $_.FullName.Substring($src.Length + 1)
+              New-Item -ItemType Directory -Force -Path (Split-Path "$lic\$rel") | Out-Null
+              Copy-Item $_.FullName "$lic\$rel"
+            }
+          foreach ($rel in "vendor\yyjson\yyjson.h", "vendor\minimp3\minimp3.h") {
+            if (Test-Path "$src\$rel") {
+              New-Item -ItemType Directory -Force -Path (Split-Path "$lic\$rel") | Out-Null
+              Copy-Item "$src\$rel" "$lic\$rel"
+            }
+          }
+          New-Item -ItemType Directory -Force -Path "$lic\cuda" | Out-Null
+          $eula = Get-ChildItem -File $cuda -Filter "EULA*" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($eula) { Copy-Item $eula.FullName "$lic\cuda\$($eula.Name)" }
+          "cudart64_12.dll, cublas64_12.dll and cublasLt64_12.dll are NVIDIA CUDA 12.8 runtime libraries, redistributed " +
+            "unchanged under the NVIDIA CUDA Toolkit End User License Agreement: https://docs.nvidia.com/cuda/eula/" |
+            Out-File -Encoding utf8 "$lic\cuda\README.txt"
+          if (-not (Test-Path "$lic\LICENSE")) { throw "no LICENSE for yue2.cpp" }
+          Get-ChildItem -Recurse -File $lic | Select-Object FullName
           Get-ChildItem $out | Select-Object Name, Length
           if (-not (Test-Path "$out\yue-server.exe")) { throw "no yue-server.exe" }
           # No GPU here: the server only has to start far enough to print its usage.

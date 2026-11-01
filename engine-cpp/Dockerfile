@@ -35,10 +35,18 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DGGML_NATIVE=
     && mkdir -p /out/lib \
     && cp build/yue-server /out/ \
     && find build -name '*.so*' -exec cp -a {} /out/lib/ \;
+# The licences of yue2.cpp and of everything built into the server (ggml and the vendored libraries), which travel
+# with every copy of it: each licence file in the tree, and the single-file libraries whose licence is in the file.
+RUN find . -path ./build -prune -o -path ./.git -prune -o -type f \( -iname 'LICENSE*' -o -iname 'COPYING*' -o -iname 'NOTICE*' \
+        -o -iname 'PATENTS*' \) -print | while read -r f; do install -D -m 644 "$f" "/out/licenses/$f"; done \
+    && for f in vendor/yyjson/yyjson.h vendor/minimp3/minimp3.h; do \
+         if [ -f "$f" ]; then install -D -m 644 "$f" "/out/licenses/$f"; fi; done \
+    && test -s /out/licenses/LICENSE
 
 FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu24.04
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 curl \
     && rm -rf /var/lib/apt/lists/*
+COPY --from=build /out/licenses/ /usr/share/licenses/yue2.cpp/
 COPY --from=build /out/lib/ /usr/local/lib/
 COPY --from=build /out/yue-server /usr/local/bin/yue-server
 RUN ldconfig

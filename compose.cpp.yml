@@ -18,7 +18,7 @@ services:
   # (scripts/engine-image-tag.sh): a release that changes it names a new tag, which is downloaded once.
   # compose.cpp-build.yml builds it here instead.
   engine-cpp:
-    image: ghcr.io/yeufonic/yeufonic-engine-cpp:42342ab1c74d
+    image: ghcr.io/yeufonic/yeufonic-engine-cpp:31540c7baa08
     container_name: yeufonic-engine-cpp
     restart: unless-stopped
     # The backbone: Q8_0 (near lossless) by default; YUE2CPP_MODEL picks another,
@@ -79,7 +79,7 @@ services:
   # the models folder as ComfyUI's layout (diffusion_models/, text_encoders/, vae/); the app loads klein
   # for each picture and unloads it after, so it holds no video memory between pictures.
   pictures:
-    image: ghcr.io/yeufonic/yeufonic-pictures:589749021043
+    image: ghcr.io/yeufonic/yeufonic-pictures:5fe473ed8432
     profiles: ["pictures"]
     container_name: yeufonic-pictures
     restart: unless-stopped
