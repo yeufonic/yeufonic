@@ -16488,8 +16488,7 @@ async function importTakeFile(file) {
   try {
     data = JSON.parse(await file.text());
   } catch (err) {
-    await confirmModal({ title: 'Import take', message: '\u201c' + file.name + '\u201d is not a Yeufonic take file.',
-                         confirmText: 'OK' });
+    importNote('\u201c' + file.name + '\u201d is not a Yeufonic take file.', 'bad');
     return;
   }
   var got;
@@ -16499,21 +16498,25 @@ async function importTakeFile(file) {
       body: JSON.stringify({ recipe: data, space_id: State.spaceId || 'default' })
     });
   } catch (err) {
-    await confirmModal({ title: 'Import take', message: 'Could not import \u201c' + file.name + '\u201d: ' + err.message,
-                         confirmText: 'OK' });
+    importNote('Could not import \u201c' + file.name + '\u201d: ' + err.message, 'bad');
     return;
   }
   await loadTakes();
   if (typeof openTakeInLibrary === 'function') { openTakeInLibrary(got.id); }
-  var notes = [];
-  if (got.was_cover) { notes.push('It was a cover: its recording is not in the file, so it comes in as a song with the cover\u2019s score and words.'); }
+  var notes = ['Imported \u201c' + got.title + '\u201d: its plan is ready to render.'];
+  if (got.was_cover) { notes.push('It was a cover, so it comes in as a song with the cover\u2019s score and words.'); }
   if (got.missing_loras && got.missing_loras.length) {
-    notes.push('Not installed here: ' + got.missing_loras.join(', ') + '. Install it, or choose another LoRA in the editor, before rendering.');
+    notes.push('Not installed here: ' + got.missing_loras.join(', ') + '. Install it, or choose another LoRA, before rendering.');
   }
-  if (notes.length) {
-    await confirmModal({ title: 'Imported \u201c' + got.title + '\u201d', confirmText: 'OK',
-                         message: 'Its plan is ready to render. ' + notes.join(' ') });
-  }
+  importNote(notes.join(' '), got.missing_loras && got.missing_loras.length ? 'bad' : '');
+}
+
+/* What an import did, beside the Import take button: no window to answer, it stays until the next import. */
+function importNote(text, kind) {
+  var note = $('take-import-note');
+  if (!note) { return; }
+  note.textContent = text || '';
+  note.className = 'import-note' + (kind ? ' ' + kind : '');
 }
 
 function wireTakeImport() {

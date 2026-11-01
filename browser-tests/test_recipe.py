@@ -64,6 +64,9 @@ def test_the_recipe_is_saved_beside_the_audio_and_alone_and_comes_back_as_a_take
     assert imported["status"] == "planned" and imported["abc"] == original["abc"]
     assert imported["seed"] == original["seed"] and imported["style"] == original["style"]
     assert "plan ready" in card(page, new_id).inner_text()
+    # Imported at once, with no window to answer: the note beside the button says so.
+    assert page.locator("#confirm-modal.hidden").count() == 1
+    assert "ready to render" in page.locator("#take-import-note").inner_text()
 
     # And it renders.
     card(page, new_id).locator(".take-status, [data-act='render']").first.wait_for()
@@ -73,9 +76,14 @@ def test_the_recipe_is_saved_beside_the_audio_and_alone_and_comes_back_as_a_take
 
 @pytest.mark.console_allows("status of 400")
 def test_a_file_that_is_not_a_take_is_refused_and_says_so(page, app_server, tmp_path):
+    """No window to answer: the note beside Import take says why, and nothing is made."""
+    def count():
+        listed = api(app_server, "/api/takes")
+        return len(listed["takes"] if isinstance(listed, dict) else listed)
+    before = count()
     bad = tmp_path / "notes.json"
     bad.write_text('{"hello": "world"}')
     page.set_input_files("#take-import-file", str(bad))
-    page.wait_for_selector("#confirm-modal:not(.hidden)")
-    assert "not a Yeufonic take file" in page.locator("#confirm-message").inner_text()
-    page.click("#confirm-ok")
+    page.wait_for_function("() => /not a Yeufonic take file/.test(document.getElementById('take-import-note').textContent)")
+    assert page.locator("#confirm-modal.hidden").count() == 1
+    assert count() == before

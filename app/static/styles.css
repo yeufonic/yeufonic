@@ -2601,6 +2601,8 @@ label .lora-value:disabled { opacity: 0.6; }
 .save-choices .save-take button { padding-left: 18px; padding-right: 18px; }
 .save-choices #save-format { flex: 1; }
 #save-run:disabled { opacity: 0.5; cursor: default; }
+.import-note { font-size: 12.5px; color: var(--muted); align-self: center; }
+.import-note.bad { color: var(--bad, #f87171); }
 #takes.drop-take { outline: 2px dashed rgba(163, 230, 53, 0.55); outline-offset: 4px; border-radius: 12px; }
 .structure-total { font-size: 12px; }
 .structure-total.over { color: var(--bad); }
