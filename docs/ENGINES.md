@@ -67,7 +67,9 @@ sh scripts/fetch-models.sh --cpp --gemma --pictures   # with Gemma and take pict
 docker compose up -d --build
 ```
 
-With `--cpp` the script writes `COMPOSE_FILE=compose.yml:compose.cpp.yml` to `.env`, and with an add-on
+With `--cpp` the script writes `COMPOSE_FILE=compose.yml:compose.cpp.yml` to `.env`, ending in
+`:compose.override.yml` if you have one (once the files are named there, Docker no longer reads the override by
+itself: add it to the line if you make one later), and with an add-on
 `COMPOSE_PROFILES=gemma,pictures` (the ones you chose). It fetches Gemma with Docker, so Docker must be
 running.
 

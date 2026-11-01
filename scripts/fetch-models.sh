@@ -21,9 +21,10 @@
 #   sh scripts/fetch-models.sh --cpp     the yue2.cpp engine's models instead, about 5.4 GB, for GPUs with less
 #                                        memory (models/yue2cpp/): YuE2 at Q8 (near lossless), its VAE, SheetSage2
 #                                        and its audio encoder, with the two LoRAs above.  It records
-#                                        COMPOSE_FILE=compose.yml:compose.cpp.yml in .env, so docker compose runs
-#                                        that engine (see compose.cpp.yml).  Training, Gemma and pictures drawn on
-#                                        this PC need the ComfyUI engine and are left out.  YUE2CPP_MODEL picks
+#                                        COMPOSE_FILE=compose.yml:compose.cpp.yml in .env (with compose.override.yml
+#                                        when there is one), so docker compose runs that engine (see
+#                                        compose.cpp.yml).  Training needs ComfyUI; Gemma and pictures drawn on this
+#                                        PC are the two add-ons below.  YUE2CPP_MODEL picks
 #                                        another size: YuE2-3B-BF16.gguf (7.2 GB), -Q6_K (2.9 GB), -Q5_K_M (2.6 GB).
 #   sh scripts/fetch-models.sh --cpp --gemma   also Gemma 4 E4B for that engine, 6.1 GB, to draft lyrics and
 #                                        describe pictures on this PC (models/ollama/, through Docker, and
@@ -117,9 +118,12 @@ if [ "$ENGINE" = cpp ]; then
     fetch "$GGUF_COPIES/$f" "$ROOT/models/yue2cpp/$f" "$GGUF/$f"
   done
   if ! grep -qs '^COMPOSE_FILE=' "$ROOT/.env"; then
+    # Naming the files stops compose reading compose.override.yml by itself, so one that is there is named too.
+    files=compose.yml:compose.cpp.yml
+    if [ -f "$ROOT/compose.override.yml" ]; then files="$files:compose.override.yml"; fi
     if [ -s "$ROOT/.env" ] && [ -n "$(tail -c 1 "$ROOT/.env")" ]; then echo >> "$ROOT/.env"; fi
-    echo 'COMPOSE_FILE=compose.yml:compose.cpp.yml' >> "$ROOT/.env"
-    echo "wrote COMPOSE_FILE=compose.yml:compose.cpp.yml to .env: docker compose now runs the yue2.cpp engine"
+    echo "COMPOSE_FILE=$files" >> "$ROOT/.env"
+    echo "wrote COMPOSE_FILE=$files to .env: docker compose now runs the yue2.cpp engine"
   fi
   if [ -n "${YUE2CPP_MODEL:-}" ] && ! grep -qs '^YUE2CPP_MODEL=' "$ROOT/.env"; then
     echo "YUE2CPP_MODEL=$YUE2CPP_MODEL" >> "$ROOT/.env"

@@ -226,3 +226,19 @@ def test_the_worker_is_ended_when_the_job_is_stopped_and_a_failure_says_why(monk
     monkeypatch.setattr(hearing, "WORKER", broken)
     with pytest.raises(RuntimeError, match="cublas64_12.dll is not found"):
         hearing.hear(torch.zeros(1, 16000), 16000, "large-v3-turbo", "")
+
+
+def test_choosing_yue2cpp_keeps_a_compose_override(tmp_path):
+    """Naming the files in COMPOSE_FILE stops compose reading compose.override.yml by itself, so the line names it."""
+    import re, subprocess
+    script = (Path(__file__).resolve().parent.parent / "scripts" / "fetch-models.sh").read_text(encoding="utf-8")
+    snippet = re.search(r"^  if ! grep -qs '\^COMPOSE_FILE=' .*?^  fi$", script, re.S | re.M).group(0)
+    for override, files in ((False, "compose.yml:compose.cpp.yml"),
+                            (True, "compose.yml:compose.cpp.yml:compose.override.yml")):
+        (tmp_path / ".env").write_text("APP_UID=1000", encoding="utf-8")
+        (tmp_path / "compose.override.yml").unlink(missing_ok=True)
+        if override:
+            (tmp_path / "compose.override.yml").write_text("services: {}\n", encoding="utf-8")
+        subprocess.run(["sh", "-c", snippet], env={"ROOT": str(tmp_path), "PATH": "/usr/bin:/bin"}, check=True,
+                       capture_output=True)
+        assert (tmp_path / ".env").read_text(encoding="utf-8").splitlines() == ["APP_UID=1000", f"COMPOSE_FILE={files}"]

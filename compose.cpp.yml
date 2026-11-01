@@ -4,7 +4,7 @@
 # service), and FLUX.2 klein, for take pictures, in stable-diffusion.cpp's server (pictures).
 #
 # Chosen in .env, read by every docker compose command:
-#   COMPOSE_FILE=compose.yml:compose.cpp.yml
+#   COMPOSE_FILE=compose.yml:compose.cpp.yml       (and :compose.override.yml, if there is one)
 #   COMPOSE_PROFILES=gemma,pictures     (with Gemma, with pictures drawn here: either or both)
 # and its models fetched with scripts/fetch-models.sh --cpp [--gemma] [--pictures].  Take the lines out to go back.
 services:
