@@ -806,42 +806,11 @@ async def _wait_for(kind: str, ref_id: str, prompt_id: str) -> tuple[str, dict |
                 return "lost", None
 
 
-# Words YuE2 struggles to plan from nothing: this many sung lines in all, or in one section.  Told only once a plan
-# has really failed, so it explains a failure rather than predicting one.
-LONG_WORDS_LINES = 40
-LONG_SECTION_LINES = 16
-REPEATED_LINES = 6
-
-
-def word_shape(lyrics: str | None) -> dict:
-    """How long the words are: sung lines in all, the most in one section, and how many repeat an earlier line."""
-    sung, longest, current, seen, repeated = 0, 0, 0, set(), 0
-    for raw in (lyrics or "").splitlines():
-        line = raw.strip()
-        if not line:
-            continue
-        if line.startswith("["):
-            current = 0
-            continue
-        sung += 1
-        current += 1
-        longest = max(longest, current)
-        key = " ".join(line.lower().split())
-        if key in seen:
-            repeated += 1
-        seen.add(key)
-    return {"sung": sung, "longest_section": longest, "repeated": repeated}
-
-
 def _plan_failure_hints(record: dict, ref_id: str) -> str:
-    """What a failed plan's message adds, from facts about the take alone: words long enough that YuE2 struggles to plan
-    them, and another take with these words that already has a score, which Sing again keeps."""
+    """What a failed plan's message adds, from a fact about the take alone: another take with these words that already
+    has a score, which Sing again keeps.  (Nothing about the words themselves: neither their length nor their repeats
+    told a plan that would fail from one that would not, measured on the words that prompted this.)"""
     hints = []
-    shape = word_shape(record.get("lyrics"))
-    if shape["sung"] >= LONG_WORDS_LINES or shape["longest_section"] >= LONG_SECTION_LINES:
-        repeats = f", {shape['repeated']} of them repeats" if shape["repeated"] >= REPEATED_LINES else ""
-        hints.append(f"These words are long ({shape['sung']} sung lines{repeats}), which YuE2 finds hard to plan from "
-                     f"scratch: shorten them to a few verses and choruses, writing a repeated line once.")
     words = (record.get("lyrics") or "").strip()
     if words:
         # SQLite's TRIM takes only spaces unless told, and stored words often end in a newline.

@@ -39,11 +39,9 @@ cannot creep back in.
 
 ## Unreleased
 
-- **A plan that fails says more about why.** When a new plan comes out unreadable twice and the words are long (40
-  sung lines or more, or one section of 16), the message says so, with how many lines repeat, and suggests
-  shortening them to a few verses and choruses. When another take with the same words already has a score, such as
-  an imported cover, it names that take: **Sing again** on it keeps the score. Nothing is said before a plan is
-  written, since whether it fails is down to chance.
+- **A plan that fails twice names the take that already has a score for its words.** When another finished take
+  holds the same words with a score, such as an imported cover, the message names it: **Sing again** on it keeps
+  that score.
 
 ## 0.0.53 (2026-11-01)
 

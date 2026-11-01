@@ -301,32 +301,24 @@ def test_a_score_of_one_section_keeps_the_share_rule():
     assert not score.stopped_early(30.0, abc, 360)
 
 
-LONG_WORDS = "[verse]\n" + "\n".join(["Roll over like a big cloud"] * 12 + [f"line {i} of the song" for i in range(30)]) + "\n"
+WORDS = "[verse]\n" + "\n".join(["Roll over like a big cloud"] * 12 + [f"line {i} of the song" for i in range(30)]) + "\n"
 
 
-def test_a_failed_plan_says_when_the_words_are_long_and_which_take_has_their_score(monkeypatch):
-    """Told only once a plan has failed, and only what is true of the take: long words, repeats, and another take
-    holding a score for the same words."""
+def test_a_failed_plan_names_the_take_that_has_a_score_for_its_words(monkeypatch):
+    """Told only once a plan has failed, and only what is true: another take holding a score for the same words."""
     real_sleep = asyncio.sleep
     monkeypatch.setattr(jobs.asyncio, "sleep", lambda _s: real_sleep(0))
     monkeypatch.setattr(jobs, "ENGINE", PlanEngine(BROKEN))
     while not jobs.QUEUE.empty():
         jobs.QUEUE.get_nowait()
-    make_take(status="done", title="Big Sky cover", lyrics=LONG_WORDS, abc="X:1\nK:C\nV: Vocal\nc4|")
-    take = make_take(status="queued", lyrics=LONG_WORDS)
+    make_take(status="done", title="Big Sky cover", lyrics=WORDS, abc="X:1\nK:C\nV: Vocal\nc4|")
+    take = make_take(status="queued", lyrics=WORDS)
     plan_twice(take["id"])
     error = one("SELECT error FROM takes WHERE id = ?", (take["id"],))["error"]
-    assert "unreadable twice" in error
-    assert "These words are long (42 sung lines, 11 of them repeats)" in error
+    assert "unreadable twice" in error and "words are long" not in error
     assert "\u201cBig Sky cover\u201d already has a score for these words: Sing again" in error
 
-    short = make_take(status="queued", lyrics="[verse]\nLights along the wall\n[chorus]\nHold on\n")
-    plan_twice(short["id"])
-    error = one("SELECT error FROM takes WHERE id = ?", (short["id"],))["error"]
-    assert "unreadable twice" in error and "words are long" not in error and "already has a score" not in error
-
-
-def test_word_shape_counts_sung_lines_sections_and_repeats():
-    shape = jobs.word_shape("[verse]\nA b\na B\n\n[chorus]\nc\n[interlude]\n\nd\ne\nf\n")
-    assert shape == {"sung": 6, "longest_section": 3, "repeated": 1}
-
+    other = make_take(status="queued", lyrics="[verse]\nLights along the wall\n[chorus]\nHold on\n")
+    plan_twice(other["id"])
+    error = one("SELECT error FROM takes WHERE id = ?", (other["id"],))["error"]
+    assert "unreadable twice" in error and "already has a score" not in error
