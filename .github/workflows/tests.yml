@@ -1,6 +1,7 @@
-# The test suite, and a new Docker install made from nothing, on every push and pull request.
+# The test suite, the browser tests, and a new Docker install made from nothing, on every push and pull request.
 #
-# The suite runs in the app's own image, as it does on a developer's PC.  The new install
+# The suite runs in the app's own image, as it does on a developer's PC.  The browser tests (browser-tests/) drive the
+# page in Chromium as a person would, against a stand-in engine, through the main things people do.  The new install
 # (scripts/check-fresh-install.sh) catches what the suite cannot see: what a fresh checkout looks like when
 # fetch-models.sh has run and Docker starts the app, which an install that has been running for months never shows.
 name: Tests
@@ -36,6 +37,26 @@ jobs:
             -v "$(readlink -f "$(command -v node)")":/usr/local/bin/node:ro \
             --entrypoint sh yeufonic-app:tests -c \
             'pip install -q pytest anyio && python -m pytest -q -p no:cacheprovider'
+
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: The app's image
+        run: docker build -t yeufonic-app:tests .
+
+      - name: The browser tests
+        run: BASE=yeufonic-app:tests sh browser-tests/run.sh
+
+      - name: Screenshots of failures, and the app's log
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: browser-tests
+          path: browser-tests/artifacts/
+          retention-days: 14
 
   new-install:
     runs-on: ubuntu-24.04

@@ -27,6 +27,26 @@ node tools/selection-harness.mjs
 in about a second. `tools/ui-harness.mjs` drives the real page against a running deployment and
 creates takes, so delete them afterwards.
 
+**The browser tests** drive the page in Chromium as a person would, through the main things people do: a song, a
+cover from a recording (its words heard, its tune transcribed), an instrumental, playing a take, starring, renaming,
+deleting, a lyric draft, stems, a take's picture, a playlist, a new space, the score, and a setting kept. The app runs
+from this checkout with a library of its own, against a stand-in engine (`browser-tests/fake_engine.py`) that answers
+every graph in a moment, on ports of its own, so a Yeufonic running on the same PC is left alone. A script error on
+the page, or an error in the app's log, fails the test it happened in.
+
+```sh
+sh browser-tests/run.sh               # all of them, in a couple of minutes
+sh browser-tests/run.sh -k cover      # the ones matching
+```
+
+The first run builds `browser-tests/Dockerfile`: the app image with Playwright's Chromium added, under 1 GB more.
+Screenshots of failures and the app's log land in `browser-tests/artifacts/`.
+
+**On every push and pull request** GitHub runs the suite, the browser tests and a new Docker install for each engine
+(`.github/workflows/tests.yml`). The new install, `scripts/check-fresh-install.sh`, runs `fetch-models.sh` in a fresh
+checkout (without downloading the models), starts the app, and writes in every folder it is given, as its user: a
+folder Docker had to make for a mount belongs to root, which an install that has been running for a while never shows.
+
 ## Keys never go into git
 
 Run `sh tools/install-hooks.sh` once in each checkout. It points git at `tools/git-hooks`, whose

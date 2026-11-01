@@ -65,8 +65,12 @@ cannot creep back in.
   by Docker, as root, on a new install, so the app could not use them: `data/models/whisper`, which `compose.yml`
   mounted on its own (hearing the words failed with "Permission denied"), and `engine-state/input`, which
   `fetch-models.sh` never made (a training set could not be staged). `data/` is now mounted whole and the script makes
-  both; where either is already root's, the script says how to make it yours. A new workflow runs the test suite on
-  every push and makes a new install from nothing for each engine, writing in every folder the app is given.
+  both; where either is already root's, the script says how to make it yours.
+- **Every push is tested: the suite, the page in a browser, and a new install.** A new workflow runs the test suite,
+  browser tests that go through the main things people do in the page (a song, a cover, an instrumental, playing,
+  starring, renaming and deleting a take, lyric drafts, stems, pictures, playlists, spaces, the score and settings)
+  against a stand-in engine, and a new Docker install made from nothing for each engine, writing in every folder the
+  app is given. [CONTRIBUTING.md](CONTRIBUTING.md) says how to run them.
 - **Getting a recording's words carries on through the app restarting.** The page used to give up at the first
   request that failed, saying "Lost touch with the job: Failed to fetch" while the job went on; it now waits up to a
   minute for the app to answer again. A failure shown there goes when you choose another recording or make the cover.
