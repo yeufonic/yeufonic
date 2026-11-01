@@ -806,6 +806,53 @@ async def _wait_for(kind: str, ref_id: str, prompt_id: str) -> tuple[str, dict |
                 return "lost", None
 
 
+# Words YuE2 struggles to plan from nothing: this many sung lines in all, or in one section.  Told only once a plan
+# has really failed, so it explains a failure rather than predicting one.
+LONG_WORDS_LINES = 40
+LONG_SECTION_LINES = 16
+REPEATED_LINES = 6
+
+
+def word_shape(lyrics: str | None) -> dict:
+    """How long the words are: sung lines in all, the most in one section, and how many repeat an earlier line."""
+    sung, longest, current, seen, repeated = 0, 0, 0, set(), 0
+    for raw in (lyrics or "").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("["):
+            current = 0
+            continue
+        sung += 1
+        current += 1
+        longest = max(longest, current)
+        key = " ".join(line.lower().split())
+        if key in seen:
+            repeated += 1
+        seen.add(key)
+    return {"sung": sung, "longest_section": longest, "repeated": repeated}
+
+
+def _plan_failure_hints(record: dict, ref_id: str) -> str:
+    """What a failed plan's message adds, from facts about the take alone: words long enough that YuE2 struggles to plan
+    them, and another take with these words that already has a score, which Sing again keeps."""
+    hints = []
+    shape = word_shape(record.get("lyrics"))
+    if shape["sung"] >= LONG_WORDS_LINES or shape["longest_section"] >= LONG_SECTION_LINES:
+        repeats = f", {shape['repeated']} of them repeats" if shape["repeated"] >= REPEATED_LINES else ""
+        hints.append(f"These words are long ({shape['sung']} sung lines{repeats}), which YuE2 finds hard to plan from "
+                     f"scratch: shorten them to a few verses and choruses, writing a repeated line once.")
+    words = (record.get("lyrics") or "").strip()
+    if words:
+        # SQLite's TRIM takes only spaces unless told, and stored words often end in a newline.
+        scored = one("SELECT title FROM takes WHERE id != ? AND TRIM(lyrics, ' ' || char(9, 10, 13)) = ? AND status = 'done' "
+                     "AND COALESCE(abc, '') != '' ORDER BY created_at DESC LIMIT 1", (ref_id, words))
+        if scored:
+            hints.append(f"\u201c{scored['title']}\u201d already has a score for these words: Sing again on it keeps "
+                         f"that score and sings it anew.")
+    return "".join(" " + hint for hint in hints)
+
+
 async def run_job(kind: str, ref_id: str) -> None:
     started = time.time()
     record = None
@@ -1033,7 +1080,8 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             advice = f". Try to {', or '.join(advice_parts)}" if advice_parts else ""
             # A style LoRA's later checkpoints can collapse where an earlier one writes a readable plan.
             again = "Write a new plan or try a different checkpoint" if record.get("style_lora") else "Write a new plan"
-            fail(kind, ref_id, f"the plan came out unreadable twice ({', '.join(issues)}). {again}{advice}.")
+            fail(kind, ref_id, f"the plan came out unreadable twice ({', '.join(issues)}). {again}{advice}."
+                               + _plan_failure_hints(record, ref_id))
             return
         # A readable plan is set to the voices the lyrics cue before anyone sees it.
         abc = voiced({**record, "abc": abc})

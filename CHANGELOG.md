@@ -37,6 +37,14 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **A plan that fails says more about why.** When a new plan comes out unreadable twice and the words are long (40
+  sung lines or more, or one section of 16), the message says so, with how many lines repeat, and suggests
+  shortening them to a few verses and choruses. When another take with the same words already has a score, such as
+  an imported cover, it names that take: **Sing again** on it keeps the score. Nothing is said before a plan is
+  written, since whether it fails is down to chance.
+
 ## 0.0.53 (2026-11-01)
 
 - **A second engine, yue2.cpp, for graphics cards with less memory.** A native engine in place of ComfyUI, with a
