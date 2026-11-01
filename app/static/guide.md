@@ -1201,7 +1201,8 @@ on the library does the same. The take holds the plan, ready to render, so it ca
 Either engine can render it: the same score and seed on the same engine give a very similar take, on the other
 engine a different one. A LoRA it names that is not installed here is named when it is imported, so you can
 install it or choose another before rendering. A cover's recording is not in the file, so a shared cover comes
-in as a song with the cover's score and words.
+in as a song with the cover's score and words, leaving behind the settings that belonged to its recording (the
+tempo lock, Harmony, voice cues and the length cap): a new plan from it starts as a song from a prompt does.
 
 **Search takes** finds the takes with every word you type somewhere in the title, style, lyrics or
 LoRA name, in any case. It looks through the space on show; **All spaces**, beside it once you type,

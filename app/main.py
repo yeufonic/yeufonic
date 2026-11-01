@@ -5076,6 +5076,14 @@ async def import_take(body: ImportTakeIn) -> dict:
         identity_id=None, persona_id=None,
         max_duration=take.max_duration or default_cap(),
     )
+    was = (body.recipe.get("take") or {}).get("kind")
+    if was == "cover":
+        # What belonged to the cover's recording, and that a cover never used to write a plan, is left behind: a new
+        # plan from the imported take starts as a song from a prompt does.  The tempo lock above all, set to the
+        # recording's tempo: it rewrites the style's tempo for the planner, which then fought a style LoRA trained at
+        # another tempo and wrote plans with no singing.  The score keeps its own tempo, so its render is unchanged.
+        record.update(target_bpm=None, harmony=1, voice_cues=ADVANCED_DEFAULTS["voice_cues"],
+                      max_duration=default_cap(), cap_typed=0)
     columns_out = list(record)
     execute(f"INSERT INTO takes({', '.join(columns_out)}) VALUES({', '.join(':' + c for c in columns_out)})", record)
     installed = set(ENGINE.options.get("loras") or []) if ENGINE.options_loaded else set()
@@ -5083,7 +5091,6 @@ async def import_take(body: ImportTakeIn) -> dict:
     if folder and folder.is_dir():
         installed |= {p.name for p in folder.iterdir() if p.is_file()}
     missing = [name for name in recipes.loras_named(record) if name not in installed]
-    was = (body.recipe.get("take") or {}).get("kind")
     log.info("Imported take '%s' (%s) from a take file%s%s", record["title"], record["id"],
              ", a cover arriving as a song" if was == "cover" else "",
              f"; not installed: {', '.join(missing)}" if missing else "")

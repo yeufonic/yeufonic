@@ -69,6 +69,9 @@ def test_a_cover_arrives_as_a_song_with_its_score(client):
     got = client.post("/api/takes/import", json={"recipe": data}).json()
     row = one("SELECT * FROM takes WHERE id = ?", (got["id"],))
     assert got["was_cover"] and row["kind"] == "song" and row["source_id"] is None and row["abc"] == ABC
+    # What belonged to the recording is left behind, so a new plan from it starts as a song from a prompt does.
+    assert row["target_bpm"] is None and row["harmony"] == 1 and row["voice_cues"] == 1 and row["cap_typed"] == 0
+    assert row["target_key"] == cover["target_key"] and row["style"] == cover["style"]      # the rest is kept
 
 
 def test_a_file_that_is_not_a_recipe_or_is_from_a_later_yeufonic_is_refused(client):

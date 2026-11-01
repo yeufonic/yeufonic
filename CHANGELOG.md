@@ -43,6 +43,11 @@ cannot creep back in.
   holds the same words with a score, such as an imported cover, the message names it: **Sing again** on it keeps
   that score.
 
+- **A cover imported as a song plans like a song.** It used to bring the cover's tempo lock, set to the
+  recording's tempo, and the Harmony, voice cues and length cap the cover never used. The lock rewrites the tempo the
+  planner is told, and with a style LoRA trained at another tempo a new plan from the imported take kept coming out
+  with no singing. Those are now left behind; the take's own score, and its render, are unchanged.
+
 ## 0.0.53 (2026-11-01)
 
 - **A second engine, yue2.cpp, for graphics cards with less memory.** A native engine in place of ComfyUI, with a
