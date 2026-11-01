@@ -51,13 +51,16 @@ The engine is chosen by `scripts/fetch-models.sh`, which fetches its models and 
 
 ### Setting up
 
-ComfyUI is the default:
+On a new install, ComfyUI is the default:
 
 ```sh
 sh scripts/fetch-models.sh                # ComfyUI, with Gemma
 sh scripts/fetch-models.sh --pictures     # ... and FLUX.2 klein for take pictures
 docker compose up -d --build
 ```
+
+Without `--cpp` or `--comfyui` the script keeps the engine the install already has, so on an install running
+yue2.cpp these stay on yue2.cpp: to change engine, see [Switching](#switching).
 
 For yue2.cpp, add `--cpp`, and either add-on or both:
 
