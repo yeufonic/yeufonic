@@ -93,3 +93,20 @@ def test_logs_api_source_filter(client):
     assert res_app.status_code == 200
     for entry in res_app.json()["logs"]:
         assert entry.get("source") == "app"
+
+
+def test_an_engine_line_quoting_an_error_it_shrugged_off_is_not_an_error():
+    """comfy_kitchen reports a backend it cannot load with the exception's name mid-line; a real error still reads
+    as one."""
+    def level_of(message):
+        logging_setup.log_engine_entry(message, "2026-11-01T10:00:00")
+        return logging_setup.LOG_BUFFER[-1]["level"]
+    quiet = ("Found comfy_kitchen backend triton: {'available': False, 'disabled': True, "
+             "'unavailable_reason': \"ImportError: No module named 'triton'\", 'capabilities': []}")
+    assert level_of(quiet) == "INFO"
+    assert level_of("[INFO] " + quiet) == "INFO"
+    assert level_of("[WARNING] Ran out of memory, retrying") == "WARNING"
+    assert level_of("ImportError: No module named 'av'") == "ERROR"
+    assert level_of("CUDA error: out of memory") == "ERROR"
+    assert level_of("Traceback (most recent call last):") == "ERROR"
+    assert level_of("!!! Exception during processing !!! boom") == "ERROR"

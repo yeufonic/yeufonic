@@ -123,7 +123,14 @@ def log_engine_entry(
         line_level = level
         if not line_level:
             upper = cleaned_line.upper()
-            if "[ERROR]" in upper or "ERROR:" in upper or "TRACEBACK" in upper or "EXCEPTION" in upper:
+            tag = re.match(r"\[(INFO|WARNING|WARN|ERROR|DEBUG)\]", upper)
+            if tag:
+                # The engine's own level wins: an INFO line can quote an error it shrugged off (comfy_kitchen
+                # reports a backend it cannot load as "ImportError: No module named 'triton'").
+                line_level = {"WARN": "WARNING"}.get(tag.group(1), tag.group(1))
+            elif re.search(r"(^|[^A-Z])ERROR:|^\w+ERROR:", upper) or "TRACEBACK" in upper or "EXCEPTION" in upper:
+                # "Error:" on its own, or a line that starts with an exception's name; not one named mid-line in
+                # a report of what was found.
                 line_level = "ERROR"
             elif "[WARNING]" in upper or "WARNING:" in upper or "[WARN]" in upper:
                 line_level = "WARNING"
