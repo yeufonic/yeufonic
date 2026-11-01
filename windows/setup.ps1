@@ -106,8 +106,8 @@ $HF = 'https://huggingface.co'
 # and published as a pre-release named for the upstream commit and the patches; Ollama and stable-diffusion.cpp come
 # from their own releases.
 $CppPrograms = @{
-    Server  = @{ Url = 'https://github.com/yeufonic/yeufonic/releases/download/yue2cpp-windows-8af0174-133a0d60/yue2cpp-windows-8af0174-133a0d60.zip'
-                 Sha = '3331f713f2f4b1847ac82969d402dead9bafc1b98ccc48ddaf29d9370cfacb96'; Size = 646268083 }
+    Server  = @{ Url = 'https://github.com/yeufonic/yeufonic/releases/download/yue2cpp-windows-8af0174-133a0d60-p2/yue2cpp-windows-8af0174-133a0d60-p2.zip'
+                 Sha = '68a9bda53d44aebb92202d266ccf43b6580a8f05c8eb2999947882ebdc663564'; Size = 646305367 }
     Ollama  = @{ Url = 'https://github.com/ollama/ollama/releases/download/v0.40.13/ollama-windows-amd64.zip'
                  Sha = '7afa38624fa62ee5d8293422d0ab084c1bb4603134c7f4dafce11a033b57cc19'; Size = 1601969847 }
     Sdcpp   = @{ Url = 'https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1030-0a06712/sd-master-0a06712-bin-win-cuda12-x64.zip'
