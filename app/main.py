@@ -468,6 +468,21 @@ SETTINGS_SPEC: list[dict] = [
         "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
     },
     {
+        "key": "art.title",
+        "group": "art",
+        "label": "Take pictures: song title on the picture",
+        "type": "select",
+        "default": "off",
+        "options": [
+            {"value": "off", "label": "Off"},
+            {"value": "on", "label": "On: at the top or the bottom, either at random"},
+        ],
+        "help": "Letters the song's title on the picture, centred and bold, at the top or the bottom. The drawing on "
+                "this PC may spell it imperfectly.",
+        "requires": {"pictures": "possible", "art.auto": "on", "art.words": ["auto", "local", "external"]},
+        "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
+    },
+    {
         "key": "art.prompt",
         "group": "art",
         "label": "Take pictures: your own prompt",

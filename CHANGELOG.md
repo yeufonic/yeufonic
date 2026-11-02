@@ -43,7 +43,8 @@ cannot creep back in.
   for an album cover from the song's title, an album art style, the song's style and its words (up to 50 lines), as
   a staged photograph of real objects with one unexpected twist that stands for the song, and the prompt it writes is
   drawn as it is. About three in ten still show a sleeve with a little wear. **Take pictures: your own prompt** puts words of your
-  own, such as "big sky, doom-laden", at the start of every image prompt. The art style is a setting of its own, **Take pictures: art style**, with an
+  own, such as "big sky, doom-laden", at the start of every image prompt. **Take pictures: song title on the picture** letters the title on it, centred
+  and bold, at the top or the bottom. The art style is a setting of its own, **Take pictures: art style**, with an
   abstract, surrealist album-cover look by default.
 
 - **A plan that fails twice names the take that already has a score for its words.** When another finished take

@@ -547,12 +547,14 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
         worn = artwork.is_well_worn(take)
         # An LLM's image prompt is drawn as it is; the take's own description is made into the drawer's prompt.
         as_given = False
+        lettered = artwork.title_at(take) if writes in ("gemma", "external") else None
         if writes == "take":
             description = artwork.take_description(take, well_worn=worn)
             writer = "its own title, style and words"
         elif writes == "gemma":
             try:
-                job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31))
+                job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31,
+                                                                                lettered))
                 description = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
                 as_given = bool(description)
                 writer = f"Gemma on this PC{failed_words}"
@@ -565,7 +567,7 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
                 writer = "its own title, style and words (Gemma failed)"
         else:
             try:
-                description = await artwork.describe_external(take)
+                description = await artwork.describe_external(take, lettered)
                 as_given = bool(description)
                 writer = llm.get_config()["model"]
             except Exception as exc:
@@ -589,6 +591,8 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
             writer = "its own title, style and words"
         if as_given:
             full_prompt = artwork.with_own_words(description)
+            if lettered:
+                full_prompt = artwork.with_title(full_prompt, artwork.clean_cover_title(take), lettered)
             full_prompt = artwork.with_wear(full_prompt) if worn else full_prompt
         else:
             full_prompt = artwork.drawing_request(description, take, well_worn=worn)

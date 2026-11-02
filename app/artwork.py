@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import base64
 import io
+import random
 import logging
 import re
 import struct
@@ -237,6 +238,21 @@ def with_own_words(prompt: str) -> str:
     return f"{words}, {rest}"
 
 
+def title_at(take: dict) -> str | None:
+    """Where the song's title is lettered on the picture, when Settings ask for it: the top or the bottom, either at
+    random; None when they do not, or the take has no title to show."""
+    if (get_setting("art.title", "off") or "off").strip().lower() != "on" or not clean_cover_title(take):
+        return None
+    return random.choice(("top", "bottom"))
+
+
+def with_title(prompt: str, title: str, at: str) -> str:
+    """The image prompt with the song's title lettered on it, as Hipgnosis lettered theirs: centred and bold.  klein
+    spells best what it is given in quotes."""
+    return (f'{prompt.rstrip()}\n\nAt the {at} of the cover, centred, the title "{title}" in bold, clean sans-serif '
+            "capital letters.")
+
+
 def with_wear(prompt: str) -> str:
     """An image prompt for a sleeve that has been played: about three in ten (is_well_worn) get a little wear."""
     return f"{prompt.rstrip()}\n\n{KLEIN_WORN}"
@@ -267,9 +283,9 @@ def song_words(lyrics: str, limit: int = PROMPT_LINES) -> str:
     return "\n".join(out).strip()
 
 
-def description_request(take: dict) -> str:
+def description_request(take: dict, title_at: str | None = None) -> str:
     """What Gemma or the external LLM is asked: an image prompt from the title, the art style, the song's style and
-    its words."""
+    its words.  title_at ("top" or "bottom"): the title is to be lettered there, so that part is kept clear."""
     parts = ["create an image prompt for an album cover based on the following criteria:"]
     title = clean_cover_title(take)
     if title:
@@ -282,6 +298,9 @@ def description_request(take: dict) -> str:
     if words:
         parts.append(f"Lyrics:\n\n{words}")
     parts.append(PROMPT_BRIEF)
+    if title_at:
+        parts.append(f"Keep the {title_at} of the picture clear and uncluttered for the song's title, which is the only "
+                     "lettering on the cover.")
     parts.append("Reply with the image prompt only.")
     return "\n\n".join(parts)
 
@@ -671,18 +690,18 @@ def tidy_description(reply: str) -> str:
     return text.strip().strip('"').strip()
 
 
-async def describe_external(take: dict) -> str:
-    reply = await llm.chat_complete([{"role": "user", "content": description_request(take)}],
+async def describe_external(take: dict, title_at: str | None = None) -> str:
+    reply = await llm.chat_complete([{"role": "user", "content": description_request(take, title_at)}],
                                     temperature=0.9, max_tokens=2048, timeout=120)
     return tidy_description(reply)
 
 
-def describe_graph(take: dict, seed: int) -> dict:
+def describe_graph(take: dict, seed: int, title_at: str | None = None) -> dict:
     """Gemma on the engine writes the image prompt, through the same nodes as the lyrics."""
     return {
         "1": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.LYRICS_MODEL, "type": "stable_diffusion"}},
         "2": {"class_type": "TextGenerate", "inputs": {
-            "clip": ["1", 0], "prompt": description_request(take),
+            "clip": ["1", 0], "prompt": description_request(take, title_at),
             "max_length": 1024, "thinking": False,
             "sampling_mode": "on", "sampling_mode.temperature": 0.9, "sampling_mode.top_k": 64,
             "sampling_mode.top_p": 0.95, "sampling_mode.min_p": 0.05, "sampling_mode.repetition_penalty": 1.05,

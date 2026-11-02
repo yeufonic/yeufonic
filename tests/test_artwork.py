@@ -1089,7 +1089,7 @@ def test_about_three_in_ten_image_prompts_ask_for_a_little_wear(client, monkeypa
     monkeypatch.setattr(artwork, "is_well_worn", lambda take=None: True)
     drawn_with = []
 
-    async def describe(record):
+    async def describe(record, *args):
         return "A rowing boat full of lanterns on a black lake."
 
     async def on_engine(take_id, description, title='', as_given=False):
@@ -1121,7 +1121,7 @@ def test_your_own_prompt_leads_the_llms_image_prompt(client, monkeypatch):
     monkeypatch.setattr(artwork, "is_well_worn", lambda take=None: True)
     drawn_with = []
 
-    async def describe(record):
+    async def describe(record, *args):
         return "A rowing boat on a black lake."
 
     async def on_engine(take_id, description, title='', as_given=False):
@@ -1132,3 +1132,37 @@ def test_your_own_prompt_leads_the_llms_image_prompt(client, monkeypatch):
     monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
     asyncio.run(jobs.run_art(take["id"]))
     assert drawn_with == [f"big sky, doom-laden, a rowing boat on a black lake.\n\n{artwork.KLEIN_WORN}"]
+
+
+def test_the_song_title_can_be_lettered_at_the_top_or_the_bottom(client, monkeypatch):
+    take = a_take(title="Corner Shop · sung again")
+    assert artwork.title_at(take) is None                                    # off unless Settings ask
+    set_setting("art.title", "on")
+    assert {artwork.title_at(take) for _ in range(60)} == {"top", "bottom"}  # either, at random
+    assert artwork.title_at({"title": ""}) is None                           # nothing to letter
+    asked = artwork.description_request(take, "bottom")
+    assert "Keep the bottom of the picture clear and uncluttered for the song's title" in asked
+    assert asked.endswith("Reply with the image prompt only.") and "Keep the" not in artwork.description_request(take)
+    shown = {s["key"]: s for s in client.get("/api/settings").json()["settings"]}
+    assert shown["art.title"]["value"] == "on" and shown["art.title"]["default"] == "off"
+
+    monkeypatch.setattr(artwork, "describer", lambda: "external")
+    monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    monkeypatch.setattr(artwork, "is_well_worn", lambda take=None: True)
+    monkeypatch.setattr(artwork.random, "choice", lambda options: "top")
+    asked_with, drawn_with = [], []
+
+    async def describe(record, at=None):
+        asked_with.append(at)
+        return "A rowing boat on a black lake."
+
+    async def on_engine(take_id, description, title='', as_given=False):
+        drawn_with.append(description)
+        return as_file(drawing())
+
+    monkeypatch.setattr(artwork, "describe_external", describe)
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    asyncio.run(jobs.run_art(take["id"]))
+    assert asked_with == ["top"]
+    assert drawn_with == ['A rowing boat on a black lake.\n\nAt the top of the cover, centred, the title "Corner Shop" '
+                          f'in bold, clean sans-serif capital letters.\n\n{artwork.KLEIN_WORN}']
