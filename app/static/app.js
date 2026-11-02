@@ -4922,7 +4922,8 @@ function renderSettingRow(item) {
       '</div>' +
     '</div>';
   } else {
-    control = '<input type="text" spellcheck="false" data-key="' + esc(item.key) + '" value="' + esc(item.value) + '">';
+    control = '<input type="text" spellcheck="false" data-key="' + esc(item.key) + '" value="' + esc(item.value) + '"' +
+      (item.max_length ? ' maxlength="' + item.max_length + '"' : '') + '>';
   }
   // A setting that only means something when another one has a given value, such
   // as the lyrics method with an external LLM, carries a note saying what it needs.

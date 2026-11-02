@@ -588,7 +588,8 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
             description = artwork.take_description(take, well_worn=worn)
             writer = "its own title, style and words"
         if as_given:
-            full_prompt = artwork.with_wear(description) if worn else description
+            full_prompt = artwork.with_own_words(description)
+            full_prompt = artwork.with_wear(full_prompt) if worn else full_prompt
         else:
             full_prompt = artwork.drawing_request(description, take, well_worn=worn)
         description = full_prompt

@@ -1100,3 +1100,35 @@ def test_about_three_in_ten_image_prompts_ask_for_a_little_wear(client, monkeypa
     monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
     asyncio.run(jobs.run_art(take["id"]))
     assert drawn_with == [f"A rowing boat full of lanterns on a black lake.\n\n{artwork.KLEIN_WORN}"]
+
+
+def test_your_own_prompt_leads_the_llms_image_prompt(client, monkeypatch):
+    assert artwork.with_own_words("A barber chair in a desert.") == "A barber chair in a desert."     # none set
+    set_setting("art.prompt", "  big sky,  doom-laden,. ")
+    assert artwork.with_own_words("A barber chair in a desert.") == "big sky, doom-laden, a barber chair in a desert."
+    assert artwork.with_own_words("NASA photograph of a chair.") == "big sky, doom-laden, NASA photograph of a chair."
+    assert artwork.with_own_words("Paris at dusk, a chair.") == "big sky, doom-laden, paris at dusk, a chair."
+    shown = {s["key"]: s for s in client.get("/api/settings").json()["settings"]}
+    assert shown["art.prompt"]["value"] == "  big sky,  doom-laden,. " and shown["art.prompt"]["requires"]["art.words"]
+    assert shown["art.prompt"]["max_length"] == 512
+    assert client.put("/api/settings", json={"key": "art.prompt", "value": "x" * 513}).status_code == 400
+    assert client.put("/api/settings", json={"key": "art.prompt", "value": "x" * 512}).status_code == 200
+    set_setting("art.prompt", "  big sky,  doom-laden,. ")
+
+    take = a_take()
+    monkeypatch.setattr(artwork, "describer", lambda: "external")
+    monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    monkeypatch.setattr(artwork, "is_well_worn", lambda take=None: True)
+    drawn_with = []
+
+    async def describe(record):
+        return "A rowing boat on a black lake."
+
+    async def on_engine(take_id, description, title='', as_given=False):
+        drawn_with.append(description)
+        return as_file(drawing())
+
+    monkeypatch.setattr(artwork, "describe_external", describe)
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    asyncio.run(jobs.run_art(take["id"]))
+    assert drawn_with == [f"big sky, doom-laden, a rowing boat on a black lake.\n\n{artwork.KLEIN_WORN}"]

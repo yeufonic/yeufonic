@@ -109,5 +109,8 @@ def test_a_setting_is_kept(page, app_server):
     choice = open_settings(page)
     assert choice.input_value() == "take"
     choice.select_option("auto")
+    # Your own prompt for pictures: a text box that takes no more than 512 characters.
+    own = page.locator('#settings-list input[data-key="art.prompt"]')
+    assert own.get_attribute("maxlength") == "512"
     page.click("#settings-close")
     page.wait_for_selector("#settings-modal", state="hidden")

@@ -218,6 +218,25 @@ PROMPT_BRIEF = ("Build the picture around one unexpected twist on an everyday sc
 PROMPT_LINES = 50               # the most lines of the words given: enough for a song, not a whole libretto
 
 
+def own_words() -> str:
+    """The words Settings put at the start of every image prompt an LLM writes ("big sky, doom-laden"), tidied: no
+    spaces or punctuation left trailing."""
+    text = re.sub(r"\s+", " ", get_setting("art.prompt", "") or "").strip()
+    return text.rstrip(" ,.;:-\u2013\u2014").strip()
+
+
+def with_own_words(prompt: str) -> str:
+    """The image prompt led by the words from Settings, joined as one list: "big sky, doom-laden, a barber chair
+    ...".  A capital starting the prompt's first word is lowered to run on; an acronym ("NASA") keeps its capitals."""
+    words = own_words()
+    if not words:
+        return prompt
+    rest = prompt.lstrip()
+    if len(rest) > 1 and rest[0].isupper() and (rest[1].islower() or rest[1] == " ") and not rest.startswith("I "):
+        rest = rest[0].lower() + rest[1:]
+    return f"{words}, {rest}"
+
+
 def with_wear(prompt: str) -> str:
     """An image prompt for a sleeve that has been played: about three in ten (is_well_worn) get a little wear."""
     return f"{prompt.rstrip()}\n\n{KLEIN_WORN}"

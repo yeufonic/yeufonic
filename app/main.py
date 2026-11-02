@@ -468,6 +468,18 @@ SETTINGS_SPEC: list[dict] = [
         "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
     },
     {
+        "key": "art.prompt",
+        "group": "art",
+        "label": "Take pictures: your own prompt",
+        "type": "text",
+        "default": "",
+        "max_length": 512,
+        "help": "Words to start every picture's image prompt with, such as \"big sky, doom-laden\" (up to 512 "
+                "characters). The image prompt the LLM writes follows them. Empty: none.",
+        "requires": {"pictures": "possible", "art.auto": "on", "art.words": ["auto", "local", "external"]},
+        "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
+    },
+    {
         "key": "art.model",
         "group": "art",
         "label": "Take pictures: image model",
@@ -5537,6 +5549,9 @@ _ART_RECHECK: set = set()
 
 @app.put("/api/settings")
 async def put_setting(body: SettingIn) -> dict:
+    spec = next((item for item in SETTINGS_SPEC if item["key"] == body.key), None)
+    if spec and spec.get("max_length") and len(body.value) > spec["max_length"]:
+        raise HTTPException(400, f"{spec['label']}: at most {spec['max_length']} characters")
     save_setting(body.key, body.value)
     if body.key.startswith("llm."):
         llm.reset_session_state()
