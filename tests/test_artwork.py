@@ -416,9 +416,9 @@ def test_every_engine_job_kind_has_a_time_limit():
     assert kinds <= set(config.TIMEOUTS)
 
 
-def test_left_to_choose_a_picture_is_described_by_gemma_where_it_is_installed(monkeypatch):
-    """Gemma is the default describer whoever draws, where it is installed, and the take's own description where it
-    is not.  The take itself, Gemma or the external LLM are kept when chosen; the last two fall back when not there."""
+def test_left_to_choose_a_picture_is_drawn_from_the_song_itself(monkeypatch):
+    """The song itself is the default whoever draws, with Gemma installed or not.  The take itself, Gemma or the
+    external LLM are kept when chosen; the last two fall back when not there."""
     external()
     gemma = {"lyrics": True}
     monkeypatch.setattr(artwork, "engine_options", lambda: gemma)
@@ -427,10 +427,9 @@ def test_left_to_choose_a_picture_is_described_by_gemma_where_it_is_installed(mo
             set_setting("art.words", chosen)
         for draws in ("local", "external"):
             monkeypatch.setattr(artwork, "drawer", lambda: draws)
-            gemma["lyrics"] = True
-            assert artwork.describer() == "gemma" and artwork.words_by_engine()
-            gemma["lyrics"] = False                    # Gemma not installed (no Lyric drafts)
-            assert artwork.describer() == "take" and not artwork.words_by_engine()
+            for installed in (True, False):
+                gemma["lyrics"] = installed
+                assert artwork.describer() == "song" and not artwork.words_by_engine()
     gemma["lyrics"] = True
     set_setting("art.words", "take")
     assert artwork.describer() == "take" and not artwork.words_by_engine()
@@ -539,7 +538,7 @@ def test_the_image_model_setting_only_applies_when_the_provider_draws(client):
     shown = next(s for s in client.get("/api/settings").json()["settings"] if s["key"] == "art.model")
     assert shown["requires"] == {"art.auto": "on", "art.drawer": "external"} and shown["requires_note"]
     words = next(s for s in client.get("/api/settings").json()["settings"] if s["key"] == "art.words")
-    assert words["default"] == "auto" and [o["value"] for o in words["options"]] == ["auto", "local", "take", "song", "external"]
+    assert words["default"] == "auto" and [o["value"] for o in words["options"]] == ["auto", "local", "take", "external"]
 
 
 def test_a_description_from_the_take_paints_its_look_and_letters_only_its_title():
@@ -1045,7 +1044,7 @@ def test_a_clean_install_draws_with_the_4b():
 def test_the_song_itself_is_the_title_the_art_style_the_style_and_the_words():
     take = {"title": "Corner Shop · sung again", "style": "barbershop, close harmony", "lyrics": LYRICS, "seed": 1}
     prompt = artwork.song_request(take)
-    assert prompt.startswith("Create an image for an album cover based on the following criteria:")
+    assert prompt.startswith("create an image for an album cover based on the following criteria:")
     assert "Song title: Corner Shop\n" in prompt and "sung again" not in prompt
     assert f"Album art style: {artwork.DEFAULT_ART_STYLE}" in prompt
     assert "Song style: barbershop, close harmony" in prompt
@@ -1067,17 +1066,17 @@ def test_the_song_itself_gives_at_most_fifty_lines_of_words_and_none_for_an_inst
 
 def test_the_song_itself_is_chosen_in_settings_and_needs_no_llm(client, monkeypatch):
     monkeypatch.setattr(artwork, "engine_options", lambda: {"lyrics": True})
-    set_setting("art.words", "song")
+    set_setting("art.words", "auto")
     assert artwork.describer() == "song" and not artwork.words_by_engine()
     shown = {s["key"]: s for s in client.get("/api/settings").json()["settings"]}
-    assert any(o["value"] == "song" for o in shown["art.words"]["options"])
-    assert shown["art.style"]["requires"]["art.words"] == "song"
+    assert shown["art.words"]["default"] == "auto" and "song itself" in shown["art.words"]["options"][0]["label"]
+    assert shown["art.style"]["requires"]["art.words"] == "auto"
 
 
 def test_klein_is_given_the_song_as_it_is(client, monkeypatch):
     """No description is written, and klein's own prompt (its look, the wordless scene) is not made from it."""
     take = a_take(title="Night Fishing", lyrics="[verse]\nNight Fishing\nA boat at dusk")
-    set_setting("art.words", "song")
+    set_setting("art.words", "auto")
     monkeypatch.setattr(artwork, "drawer", lambda: "local")
     drawn_with = []
 

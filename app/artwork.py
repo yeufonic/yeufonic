@@ -192,21 +192,21 @@ def gemma_ready() -> bool:
 
 
 def describer() -> str:
-    """Who writes the picture's description: "gemma" (Gemma on the engine), "take" (made from the take itself, no
-    LLM: quick) or "external" (the external LLM).  The default, "auto", is Gemma where it is installed and the take
-    otherwise: Gemma's descriptions are more inventive, and it costs nothing.  "same", an earlier name for a choice
-    that followed the drawer, reads as "auto"; so does anything else on file.  The external LLM chosen but not
-    there (not set up, local for this session, or failed in the last two minutes) falls back to Gemma where it is
-    installed: the take's own description is only its title and style tags, and FLUX.2 klein given that alone draws
-    much the same landscape every time.  Gemma chosen but not there falls back to the take."""
+    """Who writes the picture's description: "song" (none is written: the song itself is the prompt, see
+    song_request), "gemma" (Gemma on the engine), "take" (made from the take itself, no LLM) or "external" (the
+    external LLM).  The default, "auto", is the song itself; so is anything else on file ("same", an earlier name).
+    The external LLM chosen but not there (not set up, local for this session, or failed in the last two minutes)
+    falls back to Gemma where it is installed, else the take.  Gemma chosen but not there falls back to the take."""
     chosen = (get_setting("art.words", "auto") or "auto").strip().lower()
-    if chosen in ("take", "song"):
-        return chosen
+    if chosen == "take":
+        return "take"
+    if chosen == "local":
+        return "gemma" if gemma_ready() else "take"
     if chosen == "external":
         if llm.is_external_enabled() and not external_words_failed():
             return "external"
         return "gemma" if gemma_ready() else "take"
-    return "gemma" if gemma_ready() else "take"
+    return "song"
 
 
 # ------------------------------------------------------------------ the song as the prompt
@@ -246,7 +246,7 @@ def song_words(lyrics: str, limit: int = SONG_LINES) -> str:
 
 def song_request(take: dict) -> str:
     """The prompt "the song itself" draws from: the title, the art style, the song's style and its words."""
-    parts = ["Create an image for an album cover based on the following criteria:"]
+    parts = ["create an image for an album cover based on the following criteria:"]
     title = clean_cover_title(take)
     if title:
         parts.append(f"Song title: {title}")
