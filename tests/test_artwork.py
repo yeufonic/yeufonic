@@ -47,11 +47,6 @@ def as_file(rgb):
 
 
 # ------------------------------------------------------------------ the words
-def test_the_opening_words_are_the_sung_lines_only():
-    assert artwork.opening_words(LYRICS) == ["Lanterns on the water", "Carry what we said", "And the river keeps it", "All night long"]
-    assert artwork.opening_words(LYRICS, 2) == ["Lanterns on the water", "Carry what we said"]
-
-
 def test_a_takes_title_loses_what_was_done_to_it():
     assert artwork.song_title("River lights · sung again") == "River lights"
     assert artwork.song_title("") == "Untitled"
@@ -59,11 +54,11 @@ def test_a_takes_title_loses_what_was_done_to_it():
 
 def test_the_description_is_asked_without_real_names():
     asked = artwork.description_request({"title": "River lights · step 400", "style": "folk, warm", "lyrics": LYRICS})
-    assert "Song title: River lights\n" in asked and "Style: folk, warm" in asked and "Carry what we said" in asked
-    assert "Hipgnosis" in asked
+    assert "Song title: River lights\n" in asked and "Song style: folk, warm" in asked and "Carry what we said" in asked
     drawn = artwork.drawing_request("A lantern.")
     assert "Hipgnosis" in drawn and "album cover" in drawn
     assert artwork.tidy_description('Here is the prompt:\n"A lantern on a river."') == "A lantern on a river."
+    assert artwork.tidy_description("**Image Prompt:**\n\nA lantern on a river.") == "A lantern on a river."
 
 
 def test_a_refusal_says_what_usually_causes_it():
@@ -317,7 +312,7 @@ def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
         return "A ring on white."
 
     async def on_engine(take_id, description, title='', as_given=False):
-        drawn_with.append((take_id, description))
+        drawn_with.append((take_id, description, as_given))
         return as_file(drawing())
 
     async def never(description, as_given=False):
@@ -327,16 +322,18 @@ def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
     monkeypatch.setattr(artwork, "draw", never)
     monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
     asyncio.run(jobs.run_art(take["id"]))
-    assert drawn_with[0][0] == take["id"] and "A ring on white." in drawn_with[0][1] and "folk, warm" in drawn_with[0][1]
+    # the LLM's image prompt is drawn as it is
+    assert drawn_with == [(take["id"], "A ring on white.", True)]
     got = artwork.info(take["id"])
     assert got["has"] and "drawn by FLUX.2 klein on this PC" in got["words"]
 
 
 def test_only_the_local_drawing_leaves_the_title_out():
-    """The brief keeps the title, as it always did; klein is drawn from no title, since it letters one."""
+    """The brief keeps the title; the take's own description, drawn on this PC, leaves it out, since klein letters
+    one."""
     take = {"title": "Night Fishing", "style": "folk, warm", "lyrics": "Night Fishing\nA boat at dusk", "seed": 1}
     assert "Song title: Night Fishing" in artwork.description_request(take)      # local and external
-    # the drawing on this PC strips it, from the description and from a brief that reached it anyway
+    # the drawing on this PC strips it from a description it makes into klein's prompt
     graph = artwork.picture_graph("Night Fishing floats on calm water.", 3, "yeufonic/p", title="Night Fishing")
     local = graph["4"]["inputs"]["text"]
     assert "Night Fishing" not in local and "floats on calm water" in local
@@ -416,9 +413,9 @@ def test_every_engine_job_kind_has_a_time_limit():
     assert kinds <= set(config.TIMEOUTS)
 
 
-def test_left_to_choose_a_picture_is_drawn_from_the_song_itself(monkeypatch):
-    """The song itself is the default whoever draws, with Gemma installed or not.  The take itself, Gemma or the
-    external LLM are kept when chosen; the last two fall back when not there."""
+def test_left_to_choose_a_picture_is_described_by_gemma_where_it_is_installed(monkeypatch):
+    """Gemma is the default describer whoever draws, where it is installed, and the take's own description where it
+    is not.  The take itself, Gemma or the external LLM are kept when chosen; the last two fall back when not there."""
     external()
     gemma = {"lyrics": True}
     monkeypatch.setattr(artwork, "engine_options", lambda: gemma)
@@ -427,9 +424,10 @@ def test_left_to_choose_a_picture_is_drawn_from_the_song_itself(monkeypatch):
             set_setting("art.words", chosen)
         for draws in ("local", "external"):
             monkeypatch.setattr(artwork, "drawer", lambda: draws)
-            for installed in (True, False):
-                gemma["lyrics"] = installed
-                assert artwork.describer() == "song" and not artwork.words_by_engine()
+            gemma["lyrics"] = True
+            assert artwork.describer() == "gemma" and artwork.words_by_engine()
+            gemma["lyrics"] = False                    # Gemma not installed (no Lyric drafts)
+            assert artwork.describer() == "take" and not artwork.words_by_engine()
     gemma["lyrics"] = True
     set_setting("art.words", "take")
     assert artwork.describer() == "take" and not artwork.words_by_engine()
@@ -743,7 +741,7 @@ def test_trigger_words_and_artist_names_are_stripped_from_cover_prompts():
     req = artwork.description_request({"title": "Bobby Dylan - Tangled", "style": "bobbydyln, folk rock", "lyrics": LYRICS})
     assert "bobbydyln" not in req
     assert "Song title: Tangled\n" in req
-    assert "Style: folk rock\n" in req
+    assert "Song style: folk rock\n" in req
 
     # drawing_request strips any stray artist names or trigger words from description prose
     drawn = artwork.drawing_request("A surreal photo of Bobby Dylan in a desert with bobbydyln guitar.")
@@ -799,16 +797,9 @@ def test_hipgnosis_attribution_and_year_rules():
     drawn = artwork.drawing_request("A solitary lighthouse.")
     assert "Do not use the name Hipgnosis in the image" in drawn
 
-    # 3. description_request does not hardcode 1970s or any year when not in style
-    req_no_year = artwork.description_request({"title": "Echoes", "style": "progressive rock"})
-    assert "1970s" not in req_no_year
-    assert "vintage film textures" in req_no_year
-    assert "Do not specify or add a year or decade unless one is explicitly stated in the style above" in req_no_year
-    assert "Do not use the name Hipgnosis in the image or description" in req_no_year
-
-    # 4. If a year is in the style prompt, it is included in Style / cover style
+    # 3. If a year is in the style prompt, it is included in Song style / cover style
     req_with_year = artwork.description_request({"title": "Neon Grid", "style": "1984 synthwave"})
-    assert "Style: 1984 synthwave" in req_with_year
+    assert "Song style: 1984 synthwave" in req_with_year
     desc_with_year = artwork.take_description({"title": "Neon Grid", "style": "1984 synthwave"})
     assert 'cover style:\n"1984 synthwave"' in desc_with_year
 
@@ -967,23 +958,13 @@ def test_a_picture_that_skips_the_external_models_says_why(client, monkeypatch, 
     assert artwork.info(take["id"])["has"]
 
 
-def test_gemma_is_asked_for_a_scene_klein_can_draw_and_klein_for_the_scene_first():
-    """klein weighs the start of its prompt most, so the scene leads.  Gemma, writing the scene klein draws,
-    is asked for a setting and light chosen for the song rather than a landscape, and to leave people out
-    (klein draws hands and faces badly up close); klein itself is told nothing about people, which put a
-    small figure in every picture.  The external LLM's brief is left as it was."""
-    take = {"title": "Night Fishing", "style": "folk", "lyrics": "A boat at dusk", "seed": 1}
+def test_klein_is_given_the_scene_first():
+    """klein weighs the start of its prompt most, so the scene leads; klein itself is told nothing about people,
+    which put a small figure in every picture."""
     klein = artwork.klein_request("A man rows a boat at dusk.")
     assert klein.startswith("A man rows a boat at dusk.")
     assert "person" not in klein.lower() and "figure" not in klein.lower() and "hand" not in klein.lower()
     assert "vast" not in klein and "empty space" not in klein and "muted" not in klein
-    brief = artwork.describe_graph(take, 1)["2"]["inputs"]["prompt"]
-    assert artwork.KLEIN_BRIEF in brief and artwork.PEOPLE_BRIEF in brief and "dramatic landscapes" not in brief
-    external = artwork.description_request(take)
-    assert artwork.EXTERNAL_BRIEF in external and artwork.PEOPLE_BRIEF not in external
-    assert artwork.PEOPLE_BRIEF.startswith("Leave people out")   # leading with it is what keeps them out
-    # No menu of settings, which Gemma took literally across unrelated songs: the scene comes from the song.
-    assert "swimming pool" not in artwork.KLEIN_BRIEF and "the title and the words" in artwork.KLEIN_BRIEF
 
 
 def test_klein_9b_is_found_when_its_files_are_put_in_and_drawn_with_as_settings_ask(monkeypatch):
@@ -1040,60 +1021,60 @@ def test_a_clean_install_draws_with_the_4b():
     assert spec["default"] == "4b" and spec["options"][0]["value"] == "4b"
 
 
-# ------------------------------------------------------------------ the song itself as the prompt
-def test_the_song_itself_is_the_title_the_art_style_the_style_and_the_words():
+# ------------------------------------------------------------------ the image prompt
+def test_the_llm_is_asked_for_an_image_prompt_from_the_title_the_art_style_the_style_and_the_words():
     take = {"title": "Corner Shop · sung again", "style": "barbershop, close harmony", "lyrics": LYRICS, "seed": 1}
-    prompt = artwork.song_request(take)
-    assert prompt.startswith("create an image for an album cover based on the following criteria:")
-    assert "Song title: Corner Shop\n" in prompt and "sung again" not in prompt
-    assert f"Album art style: {artwork.DEFAULT_ART_STYLE}" in prompt
-    assert "Song style: barbershop, close harmony" in prompt
+    asked = artwork.description_request(take)
+    assert asked.startswith("create an image prompt for an album cover based on the following criteria:\n\n")
+    assert "Song title: Corner Shop\n" in asked and "sung again" not in asked
+    assert f"Album art style: {artwork.DEFAULT_ART_STYLE}" in asked
+    assert "Song style: barbershop, close harmony" in asked
     # the words as written, headings and the gaps between sections kept, cue lines out
-    assert "Lyrics:\n\n[verse]\nLanterns on the water\nCarry what we said\n\n[chorus]\n\nAnd the river keeps it" in prompt
+    assert "Lyrics:\n\n[verse]\nLanterns on the water\nCarry what we said\n\n[chorus]\n\nAnd the river keeps it" in asked
+    assert asked.endswith("Reply with the image prompt only.")
+    assert artwork.describe_graph(take, 1)["2"]["inputs"]["prompt"] == asked          # Gemma is asked the same
     set_setting("art.style", "Bold geometric shapes in primary colours.")
-    assert "Album art style: Bold geometric shapes in primary colours." in artwork.song_request(take)
+    assert "Album art style: Bold geometric shapes in primary colours." in artwork.description_request(take)
     set_setting("art.style", "  ")
-    assert artwork.DEFAULT_ART_STYLE in artwork.song_request(take)          # emptied: the default again
+    assert artwork.DEFAULT_ART_STYLE in artwork.description_request(take)          # emptied: the default again
 
 
-def test_the_song_itself_gives_at_most_fifty_lines_of_words_and_none_for_an_instrumental():
+def test_at_most_fifty_lines_of_words_are_given_and_none_for_an_instrumental():
     long = "\n".join(f"line {n}" for n in range(1, 80))
     words = artwork.song_words("[verse]\n" + long)
-    assert words.count("\n") + 1 == artwork.SONG_LINES and words.endswith("line 49")
-    prompt = artwork.song_request({"title": "Tide", "style": "ambient", "lyrics": "", "seed": 1})
-    assert "Lyrics" not in prompt and "Song style: ambient" in prompt
+    assert words.count("\n") + 1 == artwork.PROMPT_LINES and words.endswith("line 49")
+    asked = artwork.description_request({"title": "Tide", "style": "ambient", "lyrics": "", "seed": 1})
+    assert "Lyrics" not in asked and "Song style: ambient" in asked
 
 
-def test_the_song_itself_is_chosen_in_settings_and_needs_no_llm(client, monkeypatch):
-    monkeypatch.setattr(artwork, "engine_options", lambda: {"lyrics": True})
-    set_setting("art.words", "auto")
-    assert artwork.describer() == "song" and not artwork.words_by_engine()
+def test_the_art_style_is_a_setting_for_when_an_llm_writes_the_prompt(client):
     shown = {s["key"]: s for s in client.get("/api/settings").json()["settings"]}
-    assert shown["art.words"]["default"] == "auto" and "song itself" in shown["art.words"]["options"][0]["label"]
-    assert shown["art.style"]["requires"]["art.words"] == "auto"
+    assert shown["art.style"]["value"] == artwork.DEFAULT_ART_STYLE
+    assert shown["art.style"]["requires"]["art.words"] == ["auto", "local", "external"]
 
 
-def test_klein_is_given_the_song_as_it_is(client, monkeypatch):
-    """No description is written, and klein's own prompt (its look, the wordless scene) is not made from it."""
+def test_gemmas_image_prompt_is_drawn_as_it_is(client, monkeypatch):
+    """klein draws what Gemma wrote, with nothing added: no house look, no wordless rewriting."""
     take = a_take(title="Night Fishing", lyrics="[verse]\nNight Fishing\nA boat at dusk")
-    set_setting("art.words", "auto")
+    monkeypatch.setattr(artwork, "describer", lambda: "gemma")
     monkeypatch.setattr(artwork, "drawer", lambda: "local")
-    drawn_with = []
+    asked, drawn_with = [], []
+
+    async def gemma(kind, take_id, graph):
+        asked.append(graph["2"]["inputs"]["prompt"])
+        return {"written": "**Image Prompt:**\n\nA rowing boat full of lanterns on a black lake."}
 
     async def on_engine(take_id, description, title='', as_given=False):
         drawn_with.append((description, as_given))
         return as_file(drawing())
 
-    async def never(*args, **kwargs):
-        raise AssertionError("an LLM was asked to describe it")
-
-    monkeypatch.setattr(artwork, "describe_external", never)
-    monkeypatch.setattr(jobs, "_run_graph", never)
+    monkeypatch.setattr(jobs, "_run_graph", gemma)
+    monkeypatch.setattr(jobs, "extract_text_output", lambda job, *kinds: job["written"])
     monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
-    asyncio.run(jobs.run_art(take["id"]))
-    (description, as_given), = drawn_with
-    assert as_given and description == artwork.song_request(take)
+    asyncio.run(jobs.run_art(take["id"], on_gpu=True))
+    assert asked == [artwork.description_request(take)]
+    assert drawn_with == [("A rowing boat full of lanterns on a black lake.", True)]
     got = artwork.info(take["id"])
-    assert got["has"] and "Described by the song itself" in got["words"]
-    graph = artwork.picture_graph(description, 3, "yeufonic/p", title="Night Fishing", as_given=True)
-    assert graph["4"]["inputs"]["text"] == description and "Song title: Night Fishing" in description
+    assert got["has"] and "Described by Gemma on this PC" in got["words"]
+    graph = artwork.picture_graph(drawn_with[0][0], 3, "yeufonic/p", title="Night Fishing", as_given=True)
+    assert graph["4"]["inputs"]["text"] == "A rowing boat full of lanterns on a black lake."

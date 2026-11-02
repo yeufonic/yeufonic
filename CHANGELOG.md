@@ -39,10 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
-- **Take pictures are drawn from the song itself.** By default no description is written: the drawer is given the
-  song's title, an album art style, the song's style and its words (up to 50 lines) as they are. The art style is a
-  setting of its own, **Take pictures: art style**, with an abstract, surrealist album-cover look by default. Gemma, the
-  external LLM or the take itself can still write a description, under **Take pictures: described by**.
+- **A take's picture starts from a simpler request.** Gemma, or the external LLM, is asked to create an image prompt
+  for an album cover from the song's title, an album art style, the song's style and its words (up to 50 lines), and
+  the prompt it writes is drawn as it is. The art style is a setting of its own, **Take pictures: art style**, with an
+  abstract, surrealist album-cover look by default.
 
 - **A plan that fails twice names the take that already has a score for its words.** When another finished take
   holds the same words with a score, such as an imported cover, the message names it: **Sing again** on it keeps

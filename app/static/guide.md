@@ -1303,14 +1303,15 @@ Set up either and they come on: pictures are then made for the takes you make fr
 | **Take pictures** | *Make one for each new take* (the default where something can draw), or *No pictures: the default background*, where none is made unless you ask for one in the editor. It is *No pictures* while nothing here can draw. |
 | **Take pictures: drawn by** | *This PC if FLUX.2 klein is installed, else the external LLM* (the default), *This PC (FLUX.2 klein)* or *The external LLM's image model*. |
 | **Take pictures: FLUX.2 klein model** | *4B* (the default), *9B*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B is never installed for you: see [FLUX.2 klein 9B](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. Either one asked for and not there, the other draws. |
-| **Take pictures: described by** | *The song itself* (the default): no description is written; the drawer is given the take's title, the art style below, its style and its words (up to 50 lines) as they are. *Local Gemma*: a description written on this PC, which takes longer and needs the Lyric drafts option. *From the take itself*: a description made from the take's title, style and opening words with no LLM. Or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
-| **Take pictures: art style** | how the picture should look, given with the song when pictures are drawn from *the song itself* (greyed out otherwise). By default an abstract, surrealist design in the manner of 1970s and 1980s album covers, with no text or people. Emptied, it goes back to that. |
+| **Take pictures: described by** | who writes the image prompt, from the take's title, the art style below, its style and its words (up to 50 lines). *Local Gemma if installed, else the take itself* (the default), whoever draws. *Local Gemma*: written on this PC; needs the Lyric drafts option. *From the take itself*: no LLM; a description made from the take's title, style and opening words, the quickest, and nothing is sent out for it. Or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
+| **Take pictures: art style** | how the picture should look, given to the LLM that writes the image prompt (greyed out when the take itself describes it). By default an abstract, surrealist design in the manner of 1970s and 1980s album covers, with no text or people. Emptied, it goes back to that. |
 | **Take pictures: image model** | which of the provider's models draws. Only for pictures drawn by the external LLM (choose it under **Drawn by**; greyed out otherwise), and empty for the provider's usual one, which is nearly always what you want. |
 
 So with FLUX.2 klein installed and the settings as they come, pictures are made entirely on this PC, even
-when the external LLM writes your lyrics: each is drawn from the song itself, with no LLM. Choose *The external
-LLM's image model* to have the provider draw them instead, or set **described by** to *Local Gemma* or *External
-LLM* (a request each) to have a description written first.
+when the external LLM writes your lyrics: Gemma writes each image prompt where Lyric drafts are installed, and
+without it the description is made from the take itself, with no LLM, which takes no time. Choose *The external
+LLM's image model* to have the provider draw them instead, or set **described by** to *From the take itself* for the
+quickest pictures, or to *External LLM* (a request each).
 
 #### A take's picture in the editor
 

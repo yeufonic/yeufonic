@@ -442,16 +442,17 @@ SETTINGS_SPEC: list[dict] = [
         "type": "select",
         "default": "auto",
         "options": [
-            {"value": "auto", "label": "The song itself: title, art style, style and words, drawn as given"},
-            {"value": "local", "label": "Local Gemma (slower; needs Lyric drafts)"},
+            {"value": "auto", "label": "Local Gemma if installed, else the take itself"},
+            {"value": "local", "label": "Local Gemma (needs Lyric drafts)"},
             {"value": "take", "label": "From the take itself (no LLM, quickest)"},
             {"value": "external", "label": "External LLM"},
         ],
-        "help": "By default no description is written: the drawer is given the take's title, the art style below, its "
-                "style and its words (up to 50 lines) as they are. Gemma, on this PC, or the external LLM (a request "
-                "each) can write a description instead, and From the take itself makes one with no LLM. The external "
-                "LLM chosen and not there (or local for this session) falls back to Gemma when it is installed; "
-                "otherwise the take's own description is used.",
+        "help": "A take's picture is made in two steps: an LLM writes an image prompt from the take's title, the art "
+                "style below, its style and its words (up to 50 lines), then the prompt is drawn, and the app takes "
+                "out its white background. This chooses who writes the prompt: by default Gemma, on this PC, where it "
+                "is installed, or the external LLM (a request each). From the take itself needs no LLM: it is quick, "
+                "and nothing is sent out for it. The external LLM chosen and not there (or local for this session) "
+                "falls back to Gemma when it is installed; otherwise the take's own description is used.",
         "requires": {"pictures": "possible", "art.auto": "on"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },
@@ -461,10 +462,10 @@ SETTINGS_SPEC: list[dict] = [
         "label": "Take pictures: art style",
         "type": "text",
         "default": artwork.DEFAULT_ART_STYLE,
-        "help": "How the picture should look, given with the song when it is described by the song itself. "
-                "Emptied, it goes back to this default.",
-        "requires": {"pictures": "possible", "art.auto": "on", "art.words": "auto"},
-        "requires_note": "Only for pictures drawn from the song itself: choose it under Take pictures: described by.",
+        "help": "How the picture should look, given to the LLM that writes its image prompt. Emptied, it goes back "
+                "to this default.",
+        "requires": {"pictures": "possible", "art.auto": "on", "art.words": ["auto", "local", "external"]},
+        "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
     },
     {
         "key": "art.model",

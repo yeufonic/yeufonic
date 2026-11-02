@@ -545,18 +545,16 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
                         take.get("title") or take_id, take_id, passed_over,
                         "Gemma on this PC" if writes == "gemma" else "the take's own scene")
         worn = artwork.is_well_worn(take)
-        as_given = writes == "song"
-        if writes == "song":
-            description = artwork.song_request(take)
-            writer = "the song itself"
-        elif writes == "take":
+        # An LLM's image prompt is drawn as it is; the take's own description is made into the drawer's prompt.
+        as_given = False
+        if writes == "take":
             description = artwork.take_description(take, well_worn=worn)
             writer = "its own title, style and words"
         elif writes == "gemma":
             try:
                 job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31))
-                scene = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
-                description = artwork.take_description(take, scene=scene, well_worn=worn)
+                description = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
+                as_given = bool(description)
                 writer = f"Gemma on this PC{failed_words}"
             except ArtYielded:
                 raise
@@ -567,8 +565,8 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
                 writer = "its own title, style and words (Gemma failed)"
         else:
             try:
-                scene = await artwork.describe_external(take, well_worn=worn)
-                description = artwork.take_description(take, scene=scene, well_worn=worn)
+                description = await artwork.describe_external(take)
+                as_given = bool(description)
                 writer = llm.get_config()["model"]
             except Exception as exc:
                 llm.record_alert_from_exception(exc)

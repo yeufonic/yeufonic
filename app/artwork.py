@@ -25,7 +25,6 @@ DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-image"
 DEFAULT_OPENAI_MODEL = "gpt-image-1"
 ASPECT = "1:1"                  # square album cover
 OPENAI_SIZE = "1024x1024"       # square 1:1 album cover
-WORD_LINES = 24                 # the opening of the song the description is written from
 DRAW_TIMEOUT = 180.0
 
 # FLUX.2 [klein] on this PC cannot spell, and letters what it is led to: the words "album cover", the
@@ -46,14 +45,6 @@ KLEIN_LOOK = (
     "from edge to edge, clean and "
     "evenly exposed, true colour."
 )
-# Gemma, who writes the scene klein draws, is asked to leave people out: klein 4B draws them badly close up
-# (a hand with four fingers, an arm too many), and asked only to keep them far off, Gemma put a distant
-# figure in many of its scenes.  Leading with "leave people out" keeps them out; saying nothing about people
-# let some back in.  klein itself is told nothing about people, since a sentence about them put a small
-# figure in every picture.
-PEOPLE_BRIEF = ("Leave people out: let the objects, the place and the light carry the picture. Only if the idea "
-                "cannot work without a person, make them one small figure far off, seen from behind; never a "
-                "close-up of hands or faces.")
 KLEIN_WORN = "The print shows light ring-wear and creased corners; its colour is still strong."
 KLEIN_WORDLESS = "A wordless image."
 # Words that put lettering in a scene, and the words after them: "a sign reading ...", "a boat named ...".
@@ -192,31 +183,28 @@ def gemma_ready() -> bool:
 
 
 def describer() -> str:
-    """Who writes the picture's description: "song" (none is written: the song itself is the prompt, see
-    song_request), "gemma" (Gemma on the engine), "take" (made from the take itself, no LLM) or "external" (the
-    external LLM).  The default, "auto", is the song itself; so is anything else on file ("same", an earlier name).
-    The external LLM chosen but not there (not set up, local for this session, or failed in the last two minutes)
-    falls back to Gemma where it is installed, else the take.  Gemma chosen but not there falls back to the take."""
+    """Who writes the image prompt: "gemma" (Gemma on the engine), "external" (the external LLM) or "take" (no LLM:
+    a description made from the take itself).  The default, "auto", is Gemma where it is installed and the take
+    otherwise; so is anything else on file ("same", an earlier name).  The external LLM chosen but not there (not
+    set up, local for this session, or failed in the last two minutes) falls back to Gemma where it is installed,
+    else the take.  Gemma chosen but not there falls back to the take."""
     chosen = (get_setting("art.words", "auto") or "auto").strip().lower()
     if chosen == "take":
         return "take"
-    if chosen == "local":
-        return "gemma" if gemma_ready() else "take"
     if chosen == "external":
         if llm.is_external_enabled() and not external_words_failed():
             return "external"
-        return "gemma" if gemma_ready() else "take"
-    return "song"
+    return "gemma" if gemma_ready() else "take"
 
 
-# ------------------------------------------------------------------ the song as the prompt
-# "The song itself" (art.words "song"): no description is written.  The drawer is given the song as it is, with the
-# album art style from Settings: its title, the art style, the song's style and its words, as a person would hand
-# them to an image model.  FLUX.2 klein reads this whole through its Qwen3 encoder, and the house prompts below
-# (KLEIN_LOOK, the wordless scene) are not added: the art style says what the picture should be.
+# ------------------------------------------------------------------ the image prompt
+# Gemma (or the external LLM) is asked for the image prompt as a person would ask Gemini for one: the song's title,
+# an album art style, the song's style and its words, and "create an image prompt" from them.  Its reply is drawn
+# as it is: the model has turned the song into things to see, which klein can draw, where klein given the song
+# itself letters the title and the words onto a printed sleeve and puts its singers in it.
 DEFAULT_ART_STYLE = ("Abstract surrealistic design reminiscent of Hipgnosis album covers from the 1970s/1980s. "
                      "No text or people to be rendered")
-SONG_LINES = 50                 # the most lines of the words given: enough for a song, not a whole libretto
+PROMPT_LINES = 50               # the most lines of the words given: enough for a song, not a whole libretto
 
 
 def art_style() -> str:
@@ -224,7 +212,7 @@ def art_style() -> str:
     return (get_setting("art.style", "") or "").strip() or DEFAULT_ART_STYLE
 
 
-def song_words(lyrics: str, limit: int = SONG_LINES) -> str:
+def song_words(lyrics: str, limit: int = PROMPT_LINES) -> str:
     """The words as written, section headings and the blank lines between sections kept, up to `limit` lines that
     are not blank.  Cue lines (starting %) are left out."""
     out: list[str] = []
@@ -244,9 +232,10 @@ def song_words(lyrics: str, limit: int = SONG_LINES) -> str:
     return "\n".join(out).strip()
 
 
-def song_request(take: dict) -> str:
-    """The prompt "the song itself" draws from: the title, the art style, the song's style and its words."""
-    parts = ["create an image for an album cover based on the following criteria:"]
+def description_request(take: dict) -> str:
+    """What Gemma or the external LLM is asked: an image prompt from the title, the art style, the song's style and
+    its words."""
+    parts = ["create an image prompt for an album cover based on the following criteria:"]
     title = clean_cover_title(take)
     if title:
         parts.append(f"Song title: {title}")
@@ -257,6 +246,7 @@ def song_request(take: dict) -> str:
     words = song_words(take.get("lyrics") or "")
     if words:
         parts.append(f"Lyrics:\n\n{words}")
+    parts.append("Reply with the image prompt only.")
     return "\n\n".join(parts)
 
 
@@ -628,19 +618,6 @@ def _is_gemini(url: str) -> bool:
 
 
 # ------------------------------------------------------------------ the description
-def opening_words(lyrics: str, limit: int = WORD_LINES) -> list[str]:
-    """The song's first lines as sung: no section headings, no cue lines, no blank lines."""
-    out = []
-    for line in (lyrics or "").splitlines():
-        line = line.strip()
-        if not line or re.fullmatch(r"\[[^\]]*\]", line) or line.startswith("%"):
-            continue
-        out.append(line)
-        if len(out) >= limit:
-            break
-    return out
-
-
 def without_title(text: str, title: str) -> str:
     """The text without the song's title, wherever it appears in it, as whole words in any case."""
     if not text or not title:
@@ -649,89 +626,28 @@ def without_title(text: str, title: str) -> str:
     return re.sub(r"  +", " ", pattern.sub("", text)).strip(" ,.;:-")
 
 
-EXTERNAL_BRIEF = (
-    "Describe a surreal, enigmatic photographic or painterly scene in the distinctive Hipgnosis style: "
-    "striking visual metaphors, unexpected juxtaposition, dramatic landscapes, and vintage film textures"
-)
-# The scene is built from the song: its subject, objects and place from the title and words, its light and
-# mood from the style.  An earlier brief listed settings to choose from ("a room, a studio, a swimming pool, a
-# beach ..."), and Gemma took them as a menu: the same pool and the same "A vast ..." opening turned up across
-# unrelated songs.  Asking for a pun that could belong to no other song, opening with its subject rather than
-# the place, gave scenes made of each song's own things.
-KLEIN_BRIEF = (
-    "Describe one surreal, enigmatic scene in the distinctive Hipgnosis style, staged and photographed for "
-    "real: a visual pun on this song that could belong to no other song. Take its subject, its objects and "
-    "its place from the title and the words above, using the things they name; take its light, colour and "
-    "mood from the style. Open with the song's own subject, not with the place. Name concrete details: "
-    "materials, colours, textures, what is near and what is far"
-)
-
-
-def description_request(take: dict, well_worn: bool | None = None, with_title: bool = True,
-                        for_klein: bool = False) -> str:
-    """The scene brief for the description model.
-
-    With with_title false the title is left out of the brief, and out of the words and the style as
-    well: a model given it works it into the scene ("a telephone box reading ..."), and klein then
-    letters it on the sleeve — the one text it went on drawing.  With for_klein (Gemma's brief) the
-    scene is asked for in what klein can draw from: a setting and light chosen for the song rather than
-    a landscape every time, concrete details, and people left out (PEOPLE_BRIEF).
-    """
-    raw_title = clean_cover_title(take)
-    title = raw_title if with_title else ""
-    style = clean_cover_style(take.get("style") or "", take)
-    words = opening_words(take.get("lyrics") or "")
-    if not with_title:
-        style = without_title(style, raw_title)
-        words = [without_title(word, raw_title) for word in words]
-        words = [word for word in words if word]
-    sung = "\n".join(words) if words else "(an instrumental: no words)"
-    title_line = f"Song title: {title}\n" if title else ""
-    worn = is_well_worn(take) if well_worn is None else well_worn
-    worn_intro = "a well-worn " if worn else "an "
-    # klein is given the wear in its own words (KLEIN_WORN), so Gemma's scene need not carry it.
-    worn_texture = " with well-worn album sleeve ring-wear and creased edges" if worn and not for_klein else ""
-    return (
-        "You are an art director in the style of Hipgnosis (the UK art design group). "
-        f"Write one scene description for {worn_intro}album cover inspired by this song.\n\n"
-        f"{title_line}"
-        f"Style: {style or 'not given'}\n"
-        f"The opening of the song:\n{sung}\n\n"
-        f"{KLEIN_BRIEF if for_klein else EXTERNAL_BRIEF}"
-        f"{worn_texture}. Do not use the name Hipgnosis in the image or description; "
-        "the image should only be influenced by that design group, not made to look like it was created by them. "
-        "Do not specify or add a year or decade unless one is explicitly stated in the style above. "
-        f"{PEOPLE_BRIEF + ' ' if for_klein else ''}"
-        "Between 40 and 90 words. Reply with the description only."
-    )
-
-
 def tidy_description(reply: str) -> str:
     text = (reply or "").strip()
     text = re.sub(r"^```[a-z]*\s*|\s*```$", "", text)
     text = re.sub(r"^(here is|here's)[^:\n]*:\s*", "", text, flags=re.I)
-    text = re.sub(r"^(prompt|image prompt)\s*:\s*", "", text, flags=re.I)
+    text = re.sub(r"^\W*(?:prompt|image prompt)\W*:\W*", "", text, flags=re.I)
     text = re.sub(r"^(?:in the style of )?(?:hipgnosis|hignosis)\s*[:\-]\s*", "", text, flags=re.I)
     return text.strip().strip('"').strip()
 
 
-async def describe_external(take: dict, well_worn: bool | None = None) -> str:
-    reply = await llm.chat_complete([{"role": "user", "content": description_request(take, well_worn=well_worn)}],
+async def describe_external(take: dict) -> str:
+    reply = await llm.chat_complete([{"role": "user", "content": description_request(take)}],
                                     temperature=0.9, max_tokens=2048, timeout=120)
     return tidy_description(reply)
 
 
-def describe_graph(take: dict, seed: int, with_title: bool = True) -> dict:
-    """Gemma on the engine writes the description, through the same nodes as the lyrics.
-
-    The title is in the brief, as it always was.  It is the *drawing* that leaves the title out when
-    the picture is drawn here: klein letters a title it is given, and klein_request strips it.
-    """
+def describe_graph(take: dict, seed: int) -> dict:
+    """Gemma on the engine writes the image prompt, through the same nodes as the lyrics."""
     return {
         "1": {"class_type": "CLIPLoader", "inputs": {"clip_name": config.LYRICS_MODEL, "type": "stable_diffusion"}},
         "2": {"class_type": "TextGenerate", "inputs": {
-            "clip": ["1", 0], "prompt": description_request(take, with_title=with_title, for_klein=True),
-            "max_length": 400, "thinking": False,
+            "clip": ["1", 0], "prompt": description_request(take),
+            "max_length": 1024, "thinking": False,
             "sampling_mode": "on", "sampling_mode.temperature": 0.9, "sampling_mode.top_k": 64,
             "sampling_mode.top_p": 0.95, "sampling_mode.min_p": 0.05, "sampling_mode.repetition_penalty": 1.05,
             "sampling_mode.seed": int(seed)}},
@@ -823,7 +739,7 @@ LOCAL_STEPS = 4               # klein is distilled for four
 def picture_graph(description: str, seed: int, prefix: str, title: str = "", as_given: bool = False) -> dict:
     """FLUX.2 klein on the engine, as ComfyUI's own workflow for it runs it: no guidance, four steps.  The 4B
     and the 9B are both distilled for that, so they share it; only the files differ.  as_given: the prompt is
-    drawn as it is (the song itself), not made into klein's own (klein_request)."""
+    drawn as it is (an LLM's image prompt), not made into klein's own (klein_request)."""
     model, encoder = klein_files()
     text = description if as_given else klein_request(description, title=title)
     return {
