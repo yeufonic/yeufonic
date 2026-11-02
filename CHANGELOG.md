@@ -40,8 +40,9 @@ cannot creep back in.
 ## Unreleased
 
 - **A take's picture starts from a simpler request.** Gemma, or the external LLM, is asked to create an image prompt
-  for an album cover from the song's title, an album art style, the song's style and its words (up to 50 lines), and
-  the prompt it writes is drawn as it is. The art style is a setting of its own, **Take pictures: art style**, with an
+  for an album cover from the song's title, an album art style, the song's style and its words (up to 50 lines), as
+  a staged photograph of real objects built around one impossible idea that stands for the song, and the prompt it
+  writes is drawn as it is. The art style is a setting of its own, **Take pictures: art style**, with an
   abstract, surrealist album-cover look by default.
 
 - **A plan that fails twice names the take that already has a score for its words.** When another finished take

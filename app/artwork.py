@@ -204,6 +204,13 @@ def describer() -> str:
 # itself letters the title and the words onto a printed sleeve and puts its singers in it.
 DEFAULT_ART_STYLE = ("Abstract surrealistic design reminiscent of Hipgnosis album covers from the 1970s/1980s. "
                      "No text or people to be rendered")
+# Asked only for the image prompt, Gemma took "abstract" in the art style at its word and wrote of swirling shapes and
+# stylised forms, which klein drew as a flat, illustrated sleeve.  Asked for a staged photograph of real objects it
+# named the song's things and their light, and klein drew them for real, but as a barbershop still life; asked as
+# well for one impossible idea standing for the song, it made a surreal scene of them.
+PROMPT_BRIEF = ("Build the picture around one impossible idea that stands for the song, as Hipgnosis covers do. "
+                "Describe a staged photograph of real objects: name each object, what it is made of, where it stands, "
+                "the sky and the light, and how it is photographed.")
 PROMPT_LINES = 50               # the most lines of the words given: enough for a song, not a whole libretto
 
 
@@ -246,6 +253,7 @@ def description_request(take: dict) -> str:
     words = song_words(take.get("lyrics") or "")
     if words:
         parts.append(f"Lyrics:\n\n{words}")
+    parts.append(PROMPT_BRIEF)
     parts.append("Reply with the image prompt only.")
     return "\n\n".join(parts)
 

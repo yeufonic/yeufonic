@@ -1031,7 +1031,7 @@ def test_the_llm_is_asked_for_an_image_prompt_from_the_title_the_art_style_the_s
     assert "Song style: barbershop, close harmony" in asked
     # the words as written, headings and the gaps between sections kept, cue lines out
     assert "Lyrics:\n\n[verse]\nLanterns on the water\nCarry what we said\n\n[chorus]\n\nAnd the river keeps it" in asked
-    assert asked.endswith("Reply with the image prompt only.")
+    assert asked.endswith(f"{artwork.PROMPT_BRIEF}\n\nReply with the image prompt only.")
     assert artwork.describe_graph(take, 1)["2"]["inputs"]["prompt"] == asked          # Gemma is asked the same
     set_setting("art.style", "Bold geometric shapes in primary colours.")
     assert "Album art style: Bold geometric shapes in primary colours." in artwork.description_request(take)
