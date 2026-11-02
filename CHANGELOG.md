@@ -45,8 +45,10 @@ cannot creep back in.
   drawn as it is. About three in ten still show a sleeve with a little wear. Three new settings under Take pictures:
   - **Art style:** the look asked for, an abstract, surrealist album-cover look by default.
   - **Your own prompt:** words of your own, such as "big sky, doom-laden", at the start of every image prompt.
-  - **Song title on the picture:** off by default; on, the title is lettered on the picture, centred and bold, at
-    the top or the bottom.
+  - **Song title on the picture:** off by default. On, the title is lettered in bold, in capitals or small letters.
+    Mostly it sits in a band of an off-white border at the top or the bottom, with a thin dark line framing the
+    picture, as on many 1970s sleeves. About one in five has no border and the title over the picture, at a corner or
+    centred.
 
 - **A plan that fails twice names the take that already has a score for its words.** When another finished take
   holds the same words with a score, such as an imported cover, the message names it: **Sing again** on it keeps

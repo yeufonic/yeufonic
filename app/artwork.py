@@ -238,23 +238,54 @@ def with_own_words(prompt: str) -> str:
     return f"{words}, {rest}"
 
 
+TITLE_OVER = 0.2               # how often the title goes over the picture instead of in a border
+TITLE_BANDS = ("top band", "bottom band")
+TITLE_CORNERS = ("top left", "top centre", "top right", "bottom left", "bottom centre", "bottom right")
+# The sleeve: the photograph framed by a thin dark line inside a wide off-white border, deeper on one side, where the
+# title is set, as on many 1970s sleeves.  The 9B tended to box the title in a panel of its own inside the band; told
+# the band is plain it did so less often.
+TITLE_BAND = ('The photograph is printed inside a wide off-white border, as on a 1970s album sleeve, with a thin dark '
+              'line framing the photograph: an even margin on three sides and a deeper band along the {side}. In that '
+              'band, centred, the title "{text}" in bold sans-serif letters, in a dark colour taken from the '
+              'photograph. The band is plain, with no box or line around the title.')
+# Over the picture: asked for nothing about its colour klein lettered in clean, pure white, which sat on the picture
+# like a caption, so a muted colour from the picture, worn as print on an old sleeve is.
+TITLE_ON_PICTURE = ('{where}, the title "{text}" in bold sans-serif letters, in a muted colour taken from the picture, '
+                    'with the slightly worn look of print on an old sleeve.')
+
+
 def title_at(take: dict) -> str | None:
-    """Where the song's title is lettered on the picture, when Settings ask for it: the top or the bottom, either at
-    random; None when they do not, or the take has no title to show."""
+    """Where the song's title is lettered, when Settings ask for it: mostly in a band of an off-white border at the top
+    or the bottom ("top band", "bottom band"), and about one in five (TITLE_OVER) over the picture itself, at a corner
+    or centred along the top or the bottom ("top left" ... "bottom right"), all at random.  None when Settings do not
+    ask, or the take has no title to show."""
     if (get_setting("art.title", "off") or "off").strip().lower() != "on" or not clean_cover_title(take):
         return None
-    return random.choice(("top", "bottom"))
+    return random.choice(TITLE_CORNERS if random.random() < TITLE_OVER else TITLE_BANDS)
+
+
+def title_clear_space(at: str | None) -> str:
+    """The part of the picture the LLM is asked to keep clear for a title lettered over it ("the top left corner",
+    "the bottom"); nothing for a title in the border's band, which is off the picture."""
+    if not at or at.endswith(" band"):
+        return ""
+    side, _, across = at.partition(" ")
+    return f"the {side}" if across == "centre" else f"the {at} corner"
 
 
 def with_title(prompt: str, title: str, at: str) -> str:
-    """The image prompt with the song's title lettered on it, centred and bold as Hipgnosis lettered theirs, in
-    capitals or in small letters, either at random.  klein copies the case of what it is given in quotes rather than
-    a "capital letters" asked for, so the title is given in the case wanted.  Asked for nothing about its colour it
-    lettered in clean, pure white, which sat on the picture like a caption: so a muted colour from the picture, worn
-    as print on an old sleeve is."""
+    """The image prompt with the song's title lettered on the cover, bold as Hipgnosis lettered theirs, in capitals or
+    in small letters, either at random: in the border's band (at "top band" or "bottom band"), or over the picture
+    (at "top left" and the like).  klein copies the case of what it is given in quotes rather than a "capital
+    letters" asked for, so the title is given in the case wanted."""
     text = title.upper() if random.random() < 0.5 else title.lower()
-    return (f'{prompt.rstrip()}\n\nAt the {at} of the cover, centred, the title "{text}" in bold sans-serif letters, '
-            "in a muted colour taken from the picture, with the slightly worn look of print on an old sleeve.")
+    if at.endswith(" band"):
+        line = TITLE_BAND.format(side=at.removesuffix(" band"), text=text)
+    else:
+        side, _, across = at.partition(" ")
+        where = f"At the {side} of the picture, centred" if across == "centre" else f"At the {at} of the picture"
+        line = TITLE_ON_PICTURE.format(where=where, text=text)
+    return f"{prompt.rstrip()}\n\n{line}"
 
 
 def with_wear(prompt: str) -> str:
@@ -289,7 +320,7 @@ def song_words(lyrics: str, limit: int = PROMPT_LINES) -> str:
 
 def description_request(take: dict, title_at: str | None = None) -> str:
     """What Gemma or the external LLM is asked: an image prompt from the title, the art style, the song's style and
-    its words.  title_at ("top" or "bottom"): the title is to be lettered there, so that part is kept clear."""
+    its words.  title_at: where the title is to be lettered (title_at()); over the picture, that part is kept clear."""
     parts = ["create an image prompt for an album cover based on the following criteria:"]
     title = clean_cover_title(take)
     if title:
@@ -302,8 +333,9 @@ def description_request(take: dict, title_at: str | None = None) -> str:
     if words:
         parts.append(f"Lyrics:\n\n{words}")
     parts.append(PROMPT_BRIEF)
-    if title_at:
-        parts.append(f"Keep the {title_at} of the picture clear and uncluttered for the song's title, which is the only "
+    clear = title_clear_space(title_at)
+    if clear:
+        parts.append(f"Keep {clear} of the picture clear and uncluttered for the song's title, which is the only "
                      "lettering on the cover.")
     parts.append("Reply with the image prompt only.")
     return "\n\n".join(parts)

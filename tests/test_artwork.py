@@ -1134,23 +1134,38 @@ def test_your_own_prompt_leads_the_llms_image_prompt(client, monkeypatch):
     assert drawn_with == [f"big sky, doom-laden, a rowing boat on a black lake.\n\n{artwork.KLEIN_WORN}"]
 
 
-def test_the_song_title_can_be_lettered_at_the_top_or_the_bottom(client, monkeypatch):
+def test_the_song_title_is_lettered_in_a_border_or_now_and_then_over_the_picture(client, monkeypatch):
     take = a_take(title="Corner Shop · sung again")
     assert artwork.title_at(take) is None                                    # off unless Settings ask
     set_setting("art.title", "on")
-    assert {artwork.title_at(take) for _ in range(60)} == {"top", "bottom"}  # either, at random
     assert artwork.title_at({"title": ""}) is None                           # nothing to letter
-    asked = artwork.description_request(take, "bottom")
-    assert "Keep the bottom of the picture clear and uncluttered for the song's title" in asked
-    assert asked.endswith("Reply with the image prompt only.") and "Keep the" not in artwork.description_request(take)
+    places = [artwork.title_at(take) for _ in range(400)]
+    assert set(places) == set(artwork.TITLE_BANDS) | set(artwork.TITLE_CORNERS)
+    assert 40 < sum(not p.endswith(" band") for p in places) < 130            # about one in five over the picture
     shown = {s["key"]: s for s in client.get("/api/settings").json()["settings"]}
     assert shown["art.title"]["value"] == "on" and shown["art.title"]["default"] == "off"
+
+    # The LLM keeps clear the part of the picture a title goes over; a title in the border needs nothing of it.
+    assert "Keep the" not in artwork.description_request(take, "bottom band")
+    assert "Keep the" not in artwork.description_request(take)
+    asked = artwork.description_request(take, "top left")
+    assert "Keep the top left corner of the picture clear and uncluttered for the song's title" in asked
+    assert asked.endswith("Reply with the image prompt only.")
+    assert "Keep the bottom of the picture clear" in artwork.description_request(take, "bottom centre")
+
+    monkeypatch.setattr(artwork.random, "random", lambda: 0.8)              # small letters
+    over = artwork.with_title("A boat.", "Corner Shop", "bottom centre")
+    assert over == ('A boat.\n\nAt the bottom of the picture, centred, the title "corner shop" in bold sans-serif '
+                    "letters, in a muted colour taken from the picture, with the slightly worn look of print on an old "
+                    "sleeve.")
+    assert artwork.with_title("A boat.", "Corner Shop", "top right").startswith(
+        'A boat.\n\nAt the top right of the picture, the title "corner shop"')
 
     monkeypatch.setattr(artwork, "describer", lambda: "external")
     monkeypatch.setattr(artwork, "drawer", lambda: "local")
     monkeypatch.setattr(artwork, "is_well_worn", lambda take=None: True)
-    monkeypatch.setattr(artwork.random, "choice", lambda options: "top")
-    monkeypatch.setattr(artwork.random, "random", lambda: 0.2)              # capitals
+    monkeypatch.setattr(artwork.random, "choice", lambda options: options[0])
+    monkeypatch.setattr(artwork.random, "random", lambda: 0.3)              # in the border; capitals
     asked_with, drawn_with = [], []
 
     async def describe(record, at=None):
@@ -1164,9 +1179,9 @@ def test_the_song_title_can_be_lettered_at_the_top_or_the_bottom(client, monkeyp
     monkeypatch.setattr(artwork, "describe_external", describe)
     monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
     asyncio.run(jobs.run_art(take["id"]))
-    assert asked_with == ["top"]
-    assert drawn_with == ['A rowing boat on a black lake.\n\nAt the top of the cover, centred, the title "CORNER SHOP" '
-                          'in bold sans-serif letters, in a muted colour taken from the picture, with the slightly worn '
-                          f'look of print on an old sleeve.\n\n{artwork.KLEIN_WORN}']
-    monkeypatch.setattr(artwork.random, "random", lambda: 0.8)              # small letters
-    assert '"corner shop"' in artwork.with_title("A boat.", "Corner Shop", "bottom")
+    assert asked_with == ["top band"]
+    assert drawn_with == ["A rowing boat on a black lake.\n\nThe photograph is printed inside a wide off-white border, "
+                          "as on a 1970s album sleeve, with a thin dark line framing the photograph: an even margin on "
+                          "three sides and a deeper band along the top. In that band, centred, the title "
+                          '"CORNER SHOP" in bold sans-serif letters, in a dark colour taken from the photograph. The '
+                          f"band is plain, with no box or line around the title.\n\n{artwork.KLEIN_WORN}"]

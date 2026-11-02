@@ -475,10 +475,10 @@ SETTINGS_SPEC: list[dict] = [
         "default": "off",
         "options": [
             {"value": "off", "label": "Off"},
-            {"value": "on", "label": "On: at the top or the bottom, either at random"},
+            {"value": "on", "label": "On: in a border, or now and then over the picture"},
         ],
-        "help": "Letters the song's title on the picture, centred and bold, at the top or the bottom. The drawing on "
-                "this PC may spell it imperfectly.",
+        "help": "Letters the song's title on the cover in bold: mostly in a band of an off-white border, as on a 1970s "
+                "sleeve, and sometimes over the picture itself. The drawing on this PC may spell it imperfectly.",
         "requires": {"pictures": "possible", "art.auto": "on", "art.words": ["auto", "local", "external"]},
         "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
     },
