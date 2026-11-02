@@ -109,8 +109,20 @@ def test_a_setting_is_kept(page, app_server):
     choice = open_settings(page)
     assert choice.input_value() == "take"
     choice.select_option("auto")
-    # Your own prompt for pictures: a text box that takes no more than 512 characters.
-    own = page.locator('#settings-list input[data-key="art.prompt"]')
+    # Your own prompt for pictures: a box of two lines or more that grows as it is typed into, no more than 512
+    # characters, saved when it is left.
+    own = page.locator('#settings-list textarea[data-key="art.prompt"]')
     assert own.get_attribute("maxlength") == "512"
+    before = own.bounding_box()["height"]
+    words = "big sky, doom-laden, " * 12
+    own.fill(words)
+    own.dispatch_event("input")
+    assert own.bounding_box()["height"] > before
+    page.screenshot(path="browser-tests/artifacts/settings-own-prompt.png", full_page=False)
+    own.blur()
+    deadline = time.time() + 10
+    while next(x for x in api(app_server, "/api/settings")["settings"] if x["key"] == "art.prompt")["value"] != words.strip():
+        assert time.time() < deadline, "your own prompt was not saved"
+        time.sleep(0.3)
     page.click("#settings-close")
     page.wait_for_selector("#settings-modal", state="hidden")

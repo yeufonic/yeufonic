@@ -460,7 +460,7 @@ SETTINGS_SPEC: list[dict] = [
         "key": "art.style",
         "group": "art",
         "label": "Take pictures: art style",
-        "type": "text",
+        "type": "textarea",
         "default": artwork.DEFAULT_ART_STYLE,
         "help": "How the picture should look, given to the LLM that writes its image prompt. Emptied, it goes back "
                 "to this default.",
@@ -471,7 +471,7 @@ SETTINGS_SPEC: list[dict] = [
         "key": "art.prompt",
         "group": "art",
         "label": "Take pictures: your own prompt",
-        "type": "text",
+        "type": "textarea",
         "default": "",
         "max_length": 512,
         "help": "Words to start every picture's image prompt with, such as \"big sky, doom-laden\" (up to 512 "

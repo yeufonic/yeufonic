@@ -4921,6 +4921,10 @@ function renderSettingRow(item) {
         (hasModels ? '\u2713 Loaded ' + models.length + ' models' : '') +
       '</div>' +
     '</div>';
+  } else if (item.type === 'textarea') {
+    // Words rather than a name: a box of two lines that grows with what is typed (fitSettingBox).
+    control = '<textarea rows="2" spellcheck="true" data-key="' + esc(item.key) + '"' +
+      (item.max_length ? ' maxlength="' + item.max_length + '"' : '') + '>' + esc(item.value || '') + '</textarea>';
   } else {
     control = '<input type="text" spellcheck="false" data-key="' + esc(item.key) + '" value="' + esc(item.value) + '"' +
       (item.max_length ? ' maxlength="' + item.max_length + '"' : '') + '>';
@@ -4940,6 +4944,17 @@ function renderSettingRow(item) {
     '</div>' +
     '<div class="setting-control">' + control + '<span class="saved" data-saved="' + esc(item.key) + '"></span></div>' +
   '</div>';
+}
+
+/* A settings text box as tall as its words, from two lines up to the CSS's max-height. */
+function fitSettingBox(box) {
+  if (!box || box.tagName !== 'TEXTAREA' || !box.offsetParent) { return; }
+  box.style.height = 'auto';
+  box.style.height = box.scrollHeight + 2 + 'px';
+}
+
+function fitSettingBoxes(root) {
+  Array.prototype.forEach.call((root || document).querySelectorAll('.setting-control textarea'), fitSettingBox);
 }
 
 function paintSettings() {
@@ -4996,6 +5011,7 @@ function paintSettings() {
   });
   paintSettingRequirements();
   paintBackdropRow();
+  fitSettingBoxes(container);
 }
 
 function renderLLMAlertBody(alert) {
@@ -15342,6 +15358,9 @@ function wire() {
       return;
     }
   });
+  $('settings-list').addEventListener('input', function (event) { fitSettingBox(event.target); });
+  // A group opened, or the window shown: its boxes are measured now they can be seen.
+  $('settings-list').addEventListener('toggle', function (event) { fitSettingBoxes(event.target); }, true);
   $('settings-list').addEventListener('blur', function (event) {
     if (event.target.dataset && event.target.dataset.key && event.target.tagName === 'INPUT') { saveSetting(event.target); }
   }, true);
