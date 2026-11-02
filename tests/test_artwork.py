@@ -131,7 +131,7 @@ def test_the_job_keeps_the_picture_and_its_description(client, monkeypatch):
         assert record["id"] == take["id"]
         return "A ring on white."
 
-    async def draw(description):
+    async def draw(description, as_given=False):
         return as_file(drawing())
 
     monkeypatch.setattr(artwork, "describe_external", describe)
@@ -153,7 +153,7 @@ def test_the_log_says_how_the_picture_was_made_and_how_long_it_took(client, monk
     monkeypatch.setattr(artwork, "drawer", lambda: "external")
     monkeypatch.setattr(artwork, "image_model", lambda: "an-image-model")
 
-    async def draw(description):
+    async def draw(description, as_given=False):
         return as_file(drawing())
 
     monkeypatch.setattr(artwork, "draw", draw)
@@ -175,7 +175,7 @@ def test_a_failed_picture_says_why_and_leaves_the_take_alone(client, monkeypatch
     monkeypatch.setattr(artwork, "describer", lambda: "take")
     monkeypatch.setattr(artwork, "drawer", lambda: "external")
 
-    async def draw(description):
+    async def draw(description, as_given=False):
         raise RuntimeError("the image model is away")
 
     monkeypatch.setattr(artwork, "draw", draw)
@@ -266,7 +266,7 @@ def test_back_to_the_default_background_stays_there(client, monkeypatch):
     async def describe(record, *args, **kwargs):
         return "A ring on white."
 
-    async def draw(description):
+    async def draw(description, as_given=False):
         return as_file(drawing())
 
     monkeypatch.setattr(artwork, "describe_external", describe)
@@ -316,11 +316,11 @@ def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
     async def describe(record, *args, **kwargs):
         return "A ring on white."
 
-    async def on_engine(take_id, description, title=''):
+    async def on_engine(take_id, description, title='', as_given=False):
         drawn_with.append((take_id, description))
         return as_file(drawing())
 
-    async def never(description):
+    async def never(description, as_given=False):
         raise AssertionError("the external model was asked")
 
     monkeypatch.setattr(artwork, "describe_external", describe)
@@ -480,7 +480,7 @@ def test_an_external_description_that_fails_is_written_by_gemma_in_the_gpu_lane(
         assert graph["2"]["class_type"] == "TextGenerate"
         return {"gemma": True}
 
-    async def on_engine(take_id, description, title=''):
+    async def on_engine(take_id, description, title='', as_given=False):
         drawn.append(description)
         return as_file(drawing())
 
@@ -521,7 +521,7 @@ def test_in_the_gpu_lane_a_failed_external_description_goes_straight_to_gemma(cl
         asked.append("gemma")
         return {}
 
-    async def on_engine(take_id, description, title=''):
+    async def on_engine(take_id, description, title='', as_given=False):
         return as_file(drawing())
 
     monkeypatch.setattr(artwork, "describe_external", fail_describe)
@@ -539,7 +539,7 @@ def test_the_image_model_setting_only_applies_when_the_provider_draws(client):
     shown = next(s for s in client.get("/api/settings").json()["settings"] if s["key"] == "art.model")
     assert shown["requires"] == {"art.auto": "on", "art.drawer": "external"} and shown["requires_note"]
     words = next(s for s in client.get("/api/settings").json()["settings"] if s["key"] == "art.words")
-    assert words["default"] == "auto" and [o["value"] for o in words["options"]] == ["auto", "local", "take", "external"]
+    assert words["default"] == "auto" and [o["value"] for o in words["options"]] == ["auto", "local", "take", "song", "external"]
 
 
 def test_a_description_from_the_take_paints_its_look_and_letters_only_its_title():
@@ -656,10 +656,10 @@ def test_external_draw_failure_falls_back_to_local_flux(client, monkeypatch):
     take = a_take()
     drawn_on_engine = []
 
-    async def fail_draw(description):
+    async def fail_draw(description, as_given=False):
         raise RuntimeError("the image model (gpt-image-1) said 429: rate limit exceeded")
 
-    async def on_engine(take_id, description, title=''):
+    async def on_engine(take_id, description, title='', as_given=False):
         drawn_on_engine.append((take_id, description))
         return as_file(drawing())
 
@@ -682,7 +682,7 @@ def test_external_words_failure_falls_back_to_take_description(client, monkeypat
     async def fail_describe(record, *args, **kwargs):
         raise RuntimeError("External LLM HTTP 429: quota exhausted")
 
-    async def on_engine(take_id, description, title=''):
+    async def on_engine(take_id, description, title='', as_given=False):
         return as_file(drawing())
 
     monkeypatch.setattr(artwork, "describe_external", fail_describe)
@@ -701,7 +701,7 @@ def test_external_draw_failure_without_flux_fails_job(client, monkeypatch):
     monkeypatch.setattr(artwork, "drawer", lambda: "external")
     take = a_take()
 
-    async def fail_draw(description):
+    async def fail_draw(description, as_given=False):
         raise RuntimeError("the image model said 429: rate limit exceeded")
 
     monkeypatch.setattr(artwork, "draw", fail_draw)
@@ -956,7 +956,7 @@ def test_a_picture_that_skips_the_external_models_says_why(client, monkeypatch, 
     artwork.record_external_draw_failure("HTTP 429")
     take = a_take()
 
-    async def on_engine(take_id, description, title=''):
+    async def on_engine(take_id, description, title='', as_given=False):
         return as_file(drawing())
 
     monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
@@ -1039,3 +1039,62 @@ def test_a_clean_install_draws_with_the_4b():
     from app.main import SETTINGS_BY_KEY
     spec = SETTINGS_BY_KEY["art.klein"]
     assert spec["default"] == "4b" and spec["options"][0]["value"] == "4b"
+
+
+# ------------------------------------------------------------------ the song itself as the prompt
+def test_the_song_itself_is_the_title_the_art_style_the_style_and_the_words():
+    take = {"title": "Corner Shop · sung again", "style": "barbershop, close harmony", "lyrics": LYRICS, "seed": 1}
+    prompt = artwork.song_request(take)
+    assert prompt.startswith("Create an image for an album cover based on the following criteria:")
+    assert "Song title: Corner Shop\n" in prompt and "sung again" not in prompt
+    assert f"Album art style: {artwork.DEFAULT_ART_STYLE}" in prompt
+    assert "Song style: barbershop, close harmony" in prompt
+    # the words as written, headings and the gaps between sections kept, cue lines out
+    assert "Lyrics:\n\n[verse]\nLanterns on the water\nCarry what we said\n\n[chorus]\n\nAnd the river keeps it" in prompt
+    set_setting("art.style", "Bold geometric shapes in primary colours.")
+    assert "Album art style: Bold geometric shapes in primary colours." in artwork.song_request(take)
+    set_setting("art.style", "  ")
+    assert artwork.DEFAULT_ART_STYLE in artwork.song_request(take)          # emptied: the default again
+
+
+def test_the_song_itself_gives_at_most_fifty_lines_of_words_and_none_for_an_instrumental():
+    long = "\n".join(f"line {n}" for n in range(1, 80))
+    words = artwork.song_words("[verse]\n" + long)
+    assert words.count("\n") + 1 == artwork.SONG_LINES and words.endswith("line 49")
+    prompt = artwork.song_request({"title": "Tide", "style": "ambient", "lyrics": "", "seed": 1})
+    assert "Lyrics" not in prompt and "Song style: ambient" in prompt
+
+
+def test_the_song_itself_is_chosen_in_settings_and_needs_no_llm(client, monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"lyrics": True})
+    set_setting("art.words", "song")
+    assert artwork.describer() == "song" and not artwork.words_by_engine()
+    shown = {s["key"]: s for s in client.get("/api/settings").json()["settings"]}
+    assert any(o["value"] == "song" for o in shown["art.words"]["options"])
+    assert shown["art.style"]["requires"]["art.words"] == "song"
+
+
+def test_klein_is_given_the_song_as_it_is(client, monkeypatch):
+    """No description is written, and klein's own prompt (its look, the wordless scene) is not made from it."""
+    take = a_take(title="Night Fishing", lyrics="[verse]\nNight Fishing\nA boat at dusk")
+    set_setting("art.words", "song")
+    monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    drawn_with = []
+
+    async def on_engine(take_id, description, title='', as_given=False):
+        drawn_with.append((description, as_given))
+        return as_file(drawing())
+
+    async def never(*args, **kwargs):
+        raise AssertionError("an LLM was asked to describe it")
+
+    monkeypatch.setattr(artwork, "describe_external", never)
+    monkeypatch.setattr(jobs, "_run_graph", never)
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    asyncio.run(jobs.run_art(take["id"]))
+    (description, as_given), = drawn_with
+    assert as_given and description == artwork.song_request(take)
+    got = artwork.info(take["id"])
+    assert got["has"] and "Described by the song itself" in got["words"]
+    graph = artwork.picture_graph(description, 3, "yeufonic/p", title="Night Fishing", as_given=True)
+    assert graph["4"]["inputs"]["text"] == description and "Song title: Night Fishing" in description

@@ -445,16 +445,29 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "auto", "label": "Local Gemma if installed, else the take itself"},
             {"value": "local", "label": "Local Gemma (slower; needs Lyric drafts)"},
             {"value": "take", "label": "From the take itself (no LLM, quickest)"},
+            {"value": "song", "label": "The song itself: title, art style, style and words, drawn as given"},
             {"value": "external", "label": "External LLM"},
         ],
         "help": "A take's picture is made in two steps: it is described from the take's title, style and opening "
                 "words, then drawn, and the app takes out its white background. This chooses who writes the "
                 "description: by default Gemma, on this PC, where it is installed. From the take itself needs no "
-                "LLM: it is quick, and nothing is sent out for it. Gemma or the external LLM write more inventive descriptions but take far longer (the external one a "
+                "LLM: it is quick, and nothing is sent out for it. The song itself writes no description: the drawer is given "
+                "the title, the art style below, the style and the words (up to 50 lines) as they are. Gemma or the external LLM write more inventive descriptions but take far longer (the external one a "
                 "request each). The external LLM chosen and not there (or local for this session) falls back to "
                 "Gemma when it is installed; otherwise the take's own description is used.",
         "requires": {"pictures": "possible", "art.auto": "on"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
+    },
+    {
+        "key": "art.style",
+        "group": "art",
+        "label": "Take pictures: art style",
+        "type": "text",
+        "default": artwork.DEFAULT_ART_STYLE,
+        "help": "How the picture should look, given with the song when it is described by the song itself. "
+                "Emptied, it goes back to this default.",
+        "requires": {"pictures": "possible", "art.auto": "on", "art.words": "song"},
+        "requires_note": "Only for pictures described by the song itself: choose it under Take pictures: described by.",
     },
     {
         "key": "art.model",

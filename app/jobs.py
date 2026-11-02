@@ -545,7 +545,11 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
                         take.get("title") or take_id, take_id, passed_over,
                         "Gemma on this PC" if writes == "gemma" else "the take's own scene")
         worn = artwork.is_well_worn(take)
-        if writes == "take":
+        as_given = writes == "song"
+        if writes == "song":
+            description = artwork.song_request(take)
+            writer = "the song itself"
+        elif writes == "take":
             description = artwork.take_description(take, well_worn=worn)
             writer = "its own title, style and words"
         elif writes == "gemma":
@@ -585,7 +589,7 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
         if not description:
             description = artwork.take_description(take, well_worn=worn)
             writer = "its own title, style and words"
-        full_prompt = artwork.drawing_request(description, take, well_worn=worn)
+        full_prompt = description if as_given else artwork.drawing_request(description, take, well_worn=worn)
         description = full_prompt
         described = time.time()
         drawer = artwork.drawer()
@@ -606,11 +610,12 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
                 if take_id not in ART_WAITING:
                     ART_WAITING.append(take_id)
                 return
-            drawn = await _draw_on_engine(take_id, description, title=artwork.clean_cover_title(take))
+            drawn = await _draw_on_engine(take_id, description, title=artwork.clean_cover_title(take),
+                                              as_given=as_given)
             painter = f"{artwork.klein_name()} on this PC"
         elif drawer == "external":
             try:
-                drawn = await artwork.draw(description)
+                drawn = await artwork.draw(description, as_given=as_given)
                 painter = artwork.image_model()
             except Exception as exc:
                 if artwork.local_ready():
@@ -624,7 +629,8 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
                         if take_id not in ART_WAITING:
                             ART_WAITING.append(take_id)
                         return
-                    drawn = await _draw_on_engine(take_id, description, title=artwork.clean_cover_title(take))
+                    drawn = await _draw_on_engine(take_id, description, title=artwork.clean_cover_title(take),
+                                              as_given=as_given)
                     painter = f"{artwork.klein_name()} on this PC ({artwork.image_model()} failed)"
                 else:
                     raise
@@ -662,10 +668,10 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
         artwork.STATE[take_id] = {"state": "failed", "error": str(exc)}
 
 
-async def _draw_on_engine(take_id: str, description: str, title: str = "") -> bytes:
+async def _draw_on_engine(take_id: str, description: str, title: str = "", as_given: bool = False) -> bytes:
     """FLUX.2 klein draws the picture on the engine; the app takes its copy and the engine's goes."""
     graph = artwork.picture_graph(description, int(time.time() * 1000) % 2**31, f"yeufonic/picture-{take_id}",
-                                 title=title)
+                                 title=title, as_given=as_given)
     job = await _run_graph("art", take_id, graph)
     item = next((out["images"][0] for out in _outputs_of(job, ("SaveImage",)) if out.get("images")), None)
     if not item:

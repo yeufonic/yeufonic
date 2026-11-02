@@ -200,13 +200,64 @@ def describer() -> str:
     installed: the take's own description is only its title and style tags, and FLUX.2 klein given that alone draws
     much the same landscape every time.  Gemma chosen but not there falls back to the take."""
     chosen = (get_setting("art.words", "auto") or "auto").strip().lower()
-    if chosen == "take":
-        return "take"
+    if chosen in ("take", "song"):
+        return chosen
     if chosen == "external":
         if llm.is_external_enabled() and not external_words_failed():
             return "external"
         return "gemma" if gemma_ready() else "take"
     return "gemma" if gemma_ready() else "take"
+
+
+# ------------------------------------------------------------------ the song as the prompt
+# "The song itself" (art.words "song"): no description is written.  The drawer is given the song as it is, with the
+# album art style from Settings: its title, the art style, the song's style and its words, as a person would hand
+# them to an image model.  FLUX.2 klein reads this whole through its Qwen3 encoder, and the house prompts below
+# (KLEIN_LOOK, the wordless scene) are not added: the art style says what the picture should be.
+DEFAULT_ART_STYLE = ("Abstract surrealistic design reminiscent of Hipgnosis album covers from the 1970s/1980s. "
+                     "No text or people to be rendered")
+SONG_LINES = 50                 # the most lines of the words given: enough for a song, not a whole libretto
+
+
+def art_style() -> str:
+    """The album art style from Settings, or the default when it is empty."""
+    return (get_setting("art.style", "") or "").strip() or DEFAULT_ART_STYLE
+
+
+def song_words(lyrics: str, limit: int = SONG_LINES) -> str:
+    """The words as written, section headings and the blank lines between sections kept, up to `limit` lines that
+    are not blank.  Cue lines (starting %) are left out."""
+    out: list[str] = []
+    kept = 0
+    for line in (lyrics or "").splitlines():
+        line = line.rstrip()
+        if line.lstrip().startswith("%"):
+            continue
+        if not line.strip():
+            if out and out[-1]:
+                out.append("")
+            continue
+        if kept >= limit:
+            break
+        out.append(line.strip())
+        kept += 1
+    return "\n".join(out).strip()
+
+
+def song_request(take: dict) -> str:
+    """The prompt "the song itself" draws from: the title, the art style, the song's style and its words."""
+    parts = ["Create an image for an album cover based on the following criteria:"]
+    title = clean_cover_title(take)
+    if title:
+        parts.append(f"Song title: {title}")
+    parts.append(f"Album art style: {art_style()}")
+    style = clean_cover_style(take.get("style") or "", take)
+    if style:
+        parts.append(f"Song style: {style}")
+    words = song_words(take.get("lyrics") or "")
+    if words:
+        parts.append(f"Lyrics:\n\n{words}")
+    return "\n\n".join(parts)
 
 
 def words_by_engine() -> bool:
@@ -769,16 +820,18 @@ WIDTH, HEIGHT = 1024, 1024     # square 1:1 album cover
 LOCAL_STEPS = 4               # klein is distilled for four
 
 
-def picture_graph(description: str, seed: int, prefix: str, title: str = "") -> dict:
+def picture_graph(description: str, seed: int, prefix: str, title: str = "", as_given: bool = False) -> dict:
     """FLUX.2 klein on the engine, as ComfyUI's own workflow for it runs it: no guidance, four steps.  The 4B
-    and the 9B are both distilled for that, so they share it; only the files differ."""
+    and the 9B are both distilled for that, so they share it; only the files differ.  as_given: the prompt is
+    drawn as it is (the song itself), not made into klein's own (klein_request)."""
     model, encoder = klein_files()
+    text = description if as_given else klein_request(description, title=title)
     return {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": model, "weight_dtype": "default"}},
         "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": encoder, "type": "flux2"}},
         "3": {"class_type": "VAELoader", "inputs": {"vae_name": config.PICTURE_VAE}},
         "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0],
-                                                           "text": klein_request(description, title=title)}},
+                                                           "text": text}},
         "5": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["4", 0]}},
         "6": {"class_type": "EmptyFlux2LatentImage", "inputs": {"width": WIDTH, "height": HEIGHT, "batch_size": 1}},
         "7": {"class_type": "Flux2Scheduler", "inputs": {"steps": LOCAL_STEPS, "width": WIDTH, "height": HEIGHT}},
@@ -793,11 +846,11 @@ def picture_graph(description: str, seed: int, prefix: str, title: str = "") -> 
     }
 
 
-async def draw(description: str) -> bytes:
-    """The external image model's picture, as the bytes of an image file."""
+async def draw(description: str, as_given: bool = False) -> bytes:
+    """The external image model's picture, as the bytes of an image file.  as_given: the prompt is sent as it is."""
     cfg = llm.get_config()
     model = image_model()
-    prompt = drawing_request(description)
+    prompt = description if as_given else drawing_request(description)
     started = time.time()
     async with httpx.AsyncClient(timeout=DRAW_TIMEOUT) as client:
         if _is_gemini(cfg["api_url"]):
