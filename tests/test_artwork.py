@@ -1150,6 +1150,7 @@ def test_the_song_title_can_be_lettered_at_the_top_or_the_bottom(client, monkeyp
     monkeypatch.setattr(artwork, "drawer", lambda: "local")
     monkeypatch.setattr(artwork, "is_well_worn", lambda take=None: True)
     monkeypatch.setattr(artwork.random, "choice", lambda options: "top")
+    monkeypatch.setattr(artwork.random, "random", lambda: 0.2)              # capitals
     asked_with, drawn_with = [], []
 
     async def describe(record, at=None):
@@ -1164,5 +1165,8 @@ def test_the_song_title_can_be_lettered_at_the_top_or_the_bottom(client, monkeyp
     monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
     asyncio.run(jobs.run_art(take["id"]))
     assert asked_with == ["top"]
-    assert drawn_with == ['A rowing boat on a black lake.\n\nAt the top of the cover, centred, the title "Corner Shop" '
-                          f'in bold, clean sans-serif capital letters.\n\n{artwork.KLEIN_WORN}']
+    assert drawn_with == ['A rowing boat on a black lake.\n\nAt the top of the cover, centred, the title "CORNER SHOP" '
+                          'in bold sans-serif letters, in a muted colour taken from the picture, with the slightly worn '
+                          f'look of print on an old sleeve.\n\n{artwork.KLEIN_WORN}']
+    monkeypatch.setattr(artwork.random, "random", lambda: 0.8)              # small letters
+    assert '"corner shop"' in artwork.with_title("A boat.", "Corner Shop", "bottom")

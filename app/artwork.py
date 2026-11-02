@@ -247,10 +247,14 @@ def title_at(take: dict) -> str | None:
 
 
 def with_title(prompt: str, title: str, at: str) -> str:
-    """The image prompt with the song's title lettered on it, as Hipgnosis lettered theirs: centred and bold.  klein
-    spells best what it is given in quotes."""
-    return (f'{prompt.rstrip()}\n\nAt the {at} of the cover, centred, the title "{title}" in bold, clean sans-serif '
-            "capital letters.")
+    """The image prompt with the song's title lettered on it, centred and bold as Hipgnosis lettered theirs, in
+    capitals or in small letters, either at random.  klein copies the case of what it is given in quotes rather than
+    a "capital letters" asked for, so the title is given in the case wanted.  Asked for nothing about its colour it
+    lettered in clean, pure white, which sat on the picture like a caption: so a muted colour from the picture, worn
+    as print on an old sleeve is."""
+    text = title.upper() if random.random() < 0.5 else title.lower()
+    return (f'{prompt.rstrip()}\n\nAt the {at} of the cover, centred, the title "{text}" in bold sans-serif letters, '
+            "in a muted colour taken from the picture, with the slightly worn look of print on an old sleeve.")
 
 
 def with_wear(prompt: str) -> str:
