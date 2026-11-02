@@ -306,6 +306,7 @@ def test_drawn_here_the_picture_waits_its_turn_in_the_gpu_lane(client, monkeypat
 def test_the_job_draws_on_the_engine_when_this_pc_draws(client, monkeypatch):
     monkeypatch.setattr(artwork, "engine_options", lambda: {"pictures": True})
     monkeypatch.setattr(artwork, "describer", lambda: "external")
+    monkeypatch.setattr(artwork, "is_well_worn", lambda take=None: False)
     take, drawn_with = a_take(), []
 
     async def describe(record, *args, **kwargs):
@@ -1058,6 +1059,7 @@ def test_gemmas_image_prompt_is_drawn_as_it_is(client, monkeypatch):
     take = a_take(title="Night Fishing", lyrics="[verse]\nNight Fishing\nA boat at dusk")
     monkeypatch.setattr(artwork, "describer", lambda: "gemma")
     monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    monkeypatch.setattr(artwork, "is_well_worn", lambda take=None: False)
     asked, drawn_with = [], []
 
     async def gemma(kind, take_id, graph):
@@ -1078,3 +1080,23 @@ def test_gemmas_image_prompt_is_drawn_as_it_is(client, monkeypatch):
     assert got["has"] and "Described by Gemma on this PC" in got["words"]
     graph = artwork.picture_graph(drawn_with[0][0], 3, "yeufonic/p", title="Night Fishing", as_given=True)
     assert graph["4"]["inputs"]["text"] == "A rowing boat full of lanterns on a black lake."
+
+
+def test_about_three_in_ten_image_prompts_ask_for_a_little_wear(client, monkeypatch):
+    take = a_take()
+    monkeypatch.setattr(artwork, "describer", lambda: "external")
+    monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    monkeypatch.setattr(artwork, "is_well_worn", lambda take=None: True)
+    drawn_with = []
+
+    async def describe(record):
+        return "A rowing boat full of lanterns on a black lake."
+
+    async def on_engine(take_id, description, title='', as_given=False):
+        drawn_with.append(description)
+        return as_file(drawing())
+
+    monkeypatch.setattr(artwork, "describe_external", describe)
+    monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
+    asyncio.run(jobs.run_art(take["id"]))
+    assert drawn_with == [f"A rowing boat full of lanterns on a black lake.\n\n{artwork.KLEIN_WORN}"]

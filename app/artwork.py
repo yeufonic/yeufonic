@@ -208,10 +208,19 @@ DEFAULT_ART_STYLE = ("Abstract surrealistic design reminiscent of Hipgnosis albu
 # stylised forms, which klein drew as a flat, illustrated sleeve.  Asked for a staged photograph of real objects it
 # named the song's things and their light, and klein drew them for real, but as a barbershop still life; asked as
 # well for one impossible idea standing for the song, it made a surreal scene of them.
-PROMPT_BRIEF = ("Build the picture around one impossible idea that stands for the song, as Hipgnosis covers do. "
+# Asked for one impossible idea, it made Dali's kind of picture (objects floating in a dream sky, glowing foam): Hipgnosis
+# is plainer, real things in a strange place or arrangement, photographed as if it really happened.
+PROMPT_BRIEF = ("Build the picture around one unexpected twist on an everyday scene that stands for the song, as "
+                "Hipgnosis covers do: real things in a strange place or arrangement, photographed plainly as if it "
+                "really happened. "
                 "Describe a staged photograph of real objects: name each object, what it is made of, where it stands, "
                 "the sky and the light, and how it is photographed.")
 PROMPT_LINES = 50               # the most lines of the words given: enough for a song, not a whole libretto
+
+
+def with_wear(prompt: str) -> str:
+    """An image prompt for a sleeve that has been played: about three in ten (is_well_worn) get a little wear."""
+    return f"{prompt.rstrip()}\n\n{KLEIN_WORN}"
 
 
 def art_style() -> str:
