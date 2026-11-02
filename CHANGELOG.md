@@ -39,6 +39,16 @@ cannot creep back in.
 
 ## Unreleased
 
+- **The engine's ComfyUI is newer.** It brings:
+  - faster YuE2 sampling when planning and rendering;
+  - keys and chords in transcribed scores spelled for the key (Bb rather than A#);
+  - a fix to how Gemma picks its words;
+  - FLUX.2 klein's fp8 files drawing at their full speed again, and a faster VAE for it;
+  - newer memory handling.
+
+  The Harmony node's steering works with the new sampler. With Docker, rebuild the engine
+  (`docker compose up -d --build`); an update of the Windows or Mac install fetches it.
+
 - **A take's picture starts from a simpler request.** Gemma, or the external LLM, is asked to create an image prompt
   for an album cover from the song's title, an album art style, the song's style and its words (up to 50 lines), as
   a staged photograph of real objects with one unexpected twist that stands for the song, and the prompt it writes is

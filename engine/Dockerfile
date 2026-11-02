@@ -15,8 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git ca-certificates curl ffmpeg libgl1 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# The master commit that added native YuE2 support and that we validated end to end.
-ARG COMFYUI_REF=36da3ff7
+# The master commit we validated end to end: native YuE2 since 36da3ff7 (2026-09-15); this one (2026-11-02) adds
+# FLUX 3 Image Klein and a faster YuE2 sampler.
+ARG COMFYUI_REF=bb878b9e
 
 WORKDIR /app
 RUN git clone --quiet https://github.com/comfyanonymous/ComfyUI.git /app \

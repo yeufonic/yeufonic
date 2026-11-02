@@ -68,7 +68,7 @@ echo "---- $(date -u +%Y-%m-%dT%H:%M:%SZ) setup.sh $*"
 # ------------------------------------------------------------------------ pins
 # What was tested together.  Change one deliberately, and test again.  The ComfyUI and
 # trainer commits are engine/Dockerfile's and windows/setup.ps1's.
-COMFY_COMMIT=36da3ff763687eab86a35e1019995dd1fb369b0d
+COMFY_COMMIT=bb878b9ee35274e67931634ba9e8c338f8c06035
 TRAINER_COMMIT=6a9355efff60589d93b41b569676f09d5db85d09
 PYTHON=3.13
 # The engine's torch: the version the Windows engine runs.  The macOS wheels carry Metal

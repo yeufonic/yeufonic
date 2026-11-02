@@ -395,13 +395,29 @@ class HarmonyTracker:
 
 @contextlib.contextmanager
 def steering(tracker):
+    """Steer the planner while it writes the ABC: each step, the tracker reads what has been written so far and
+    takes logits from the tokens it holds back.
+
+    ComfyUI's sampler has passed `distribution` either the whole history as a list (to September 2026) or, since
+    its sampling stays on the GPU (comfyanonymous/ComfyUI#16626), a window of recent tokens as a tensor, written
+    round-robin, with the newest at (step - 1) % window.  From the window, the tokens are read back one a step.  That
+    sampler also records the step as a CUDA graph once the end token is allowed, and a replayed graph would never
+    call this again: so while steering, that step's graph is turned off, and it runs as plain code."""
     import torch
+    import comfy.model_prefetch as prefetch
 
     original = yue2.distribution
+    original_pop = getattr(prefetch, "prefetch_queue_pop", None)
+    written = []
 
     def distribution(logits, history, step, phase, *args, **kwargs):
         if phase == "abc":
-            tracker.feed(history)
+            if isinstance(history, torch.Tensor):
+                if step > len(written):
+                    written.append(int(history[0, (step - 1) % history.shape[-1]]))
+                tracker.feed(written)
+            else:
+                tracker.feed(history)
             adjust = tracker.bias(logits)
             if adjust:
                 logits = logits.clone()
@@ -409,11 +425,22 @@ def steering(tracker):
                 logits[..., ids] -= torch.tensor(adjust[1], device=logits.device, dtype=logits.dtype)
         return original(logits, history, step, phase, *args, **kwargs)
 
+    def without_graph(*args, **kwargs):
+        # Only the sampling step (the "head" scope): the language model's own layers keep their graphs, and
+        # turning those off too made a steered plan about three times slower.
+        if kwargs.get("malloc_scope") == "head":
+            kwargs["enable_graph"] = False
+        return original_pop(*args, **kwargs)
+
     yue2.distribution = distribution
+    if original_pop is not None:
+        prefetch.prefetch_queue_pop = without_graph
     try:
         yield
     finally:
         yue2.distribution = original
+        if original_pop is not None:
+            prefetch.prefetch_queue_pop = original_pop
 
 
 class YuE2GenerateABCHarmony:
