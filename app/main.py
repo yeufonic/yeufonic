@@ -399,8 +399,8 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "off", "label": "No pictures: the default background"},
         ],
         "help": "Each new take gets a picture of the song, made while it renders and shown behind its card and the "
-                "editor. Takes made inside another show that one's. It is drawn on this PC by FLUX.2 klein, where it "
-                "was chosen when installing, or by the external LLM's image model, one request each, which may be "
+                "editor. Takes made inside another show that one's. It is drawn on this PC by klein, where FLUX.2 "
+                "klein was chosen when installing, or by the external LLM's image model, one request each, which may be "
                 "charged.",
     },
     {
@@ -410,12 +410,12 @@ SETTINGS_SPEC: list[dict] = [
         "type": "select",
         "default": "auto",
         "options": [
-            {"value": "auto", "label": "This PC if FLUX.2 klein is installed, else the external LLM"},
-            {"value": "local", "label": "This PC (FLUX.2 klein)"},
+            {"value": "auto", "label": "This PC if klein is installed, else the external LLM"},
+            {"value": "local", "label": "This PC (the klein model below)"},
             {"value": "external", "label": "The external LLM's image model"},
         ],
-        "help": "FLUX.2 klein draws on this PC once no song is being made, at no cost; the external LLM's image model "
-                "draws beside them, one request a picture.",
+        "help": "klein draws on this PC once no song is being made, at no cost: FLUX.2 klein 4B, 9B or FLUX 3 klein, "
+                "as chosen under klein model. The external LLM's image model draws beside them, one request a picture.",
         "requires": {"pictures": "possible", "art.auto": "on"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },
