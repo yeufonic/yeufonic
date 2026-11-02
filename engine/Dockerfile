@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # The master commit we validated end to end: native YuE2 since 36da3ff7 (2026-09-15); this one (2026-11-02) adds
 # FLUX 3 Image Klein and a faster YuE2 sampler.
-ARG COMFYUI_REF=bb878b9e
+ARG COMFYUI_REF=bb878b9ee35274e67931634ba9e8c338f8c06035
 
 WORKDIR /app
 RUN git clone --quiet https://github.com/comfyanonymous/ComfyUI.git /app \

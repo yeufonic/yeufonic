@@ -99,7 +99,7 @@ def test_the_engine_is_pinned_where_docker_and_windows_pin_it():
     trainer = re.search(r"^TRAINER_COMMIT=([0-9a-f]{40})$", mac, re.M).group(1)
     assert f"ComfyCommit       = '{comfy}'" in ps1
     assert f"Yue2TrainerCommit = '{trainer}'" in ps1
-    assert re.search(r"^ARG COMFYUI_REF=(\w+)$", dockerfile, re.M).group(1) == comfy[:8]
+    assert comfy.startswith(re.search(r"^ARG COMFYUI_REF=(\w{8,40})$", dockerfile, re.M).group(1))
     assert f"ARG YUE2_TRAINER_REF={trainer}" in dockerfile
 
 
