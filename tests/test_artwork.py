@@ -1016,6 +1016,56 @@ def test_klein_9b_is_found_when_its_files_are_put_in_and_drawn_with_as_settings_
     assert unet() == nine[0] and artwork.klein_name() == "FLUX.2 klein 9B"          # the 4B asked for, not there
 
 
+def test_flux3_klein_is_found_when_its_files_are_put_in_and_drawn_its_own_way(monkeypatch):
+    """FLUX 3 klein is never installed by Yeufonic either: its model and Qwen3-VL encoder put in by hand are found,
+    on a ComfyUI that knows its encoder type, and chosen in Settings it draws with the plain sampler, sixteen steps,
+    no guidance.  Asked for and not there, a FLUX.2 klein draws."""
+    import httpx
+
+    from app.engine import Engine
+    four = config.PICTURE_PAIRS[0]
+    three = ("flux3-image-klein-int8-convrot.safetensors", "qwen3vl_4b_int8_convrot.safetensors")
+    combo = lambda field, names: {"input": {"required": {field: [names]}}}
+
+    def options(unets, encoders, types=("flux2", "flux3")):
+        info = {"UNETLoader": combo("unet_name", unets),
+                "CLIPLoader": {"input": {"required": {"clip_name": [encoders], "type": [list(types)]}}},
+                "VAELoader": combo("vae_name", [config.PICTURE_VAE]), "CheckpointLoaderSimple": combo("ckpt_name", []),
+                **{node: {"input": {"required": {}}} for node in ("EmptyFlux2LatentImage", "Flux2Scheduler",
+                                                                 "SamplerCustomAdvanced", "CFGGuider", "KSampler")}}
+
+        async def run():
+            engine = Engine("http://engine")
+            engine.client = httpx.AsyncClient(base_url="http://engine",
+                                              transport=httpx.MockTransport(lambda r: httpx.Response(200, json=info)))
+            await engine.refresh_options()
+            await engine.client.aclose()
+            return engine.options
+        return asyncio.run(run())
+
+    both = options([four[0], three[0]], [four[1], three[1]])
+    assert both["klein"] == {"4b": list(four), "flux3": list(three)}
+    assert options([four[0], three[0]], [four[1], three[1]], types=("flux2",))["klein"] == {"4b": list(four)}
+    assert options([three[0]], [four[1]])["pictures"] is False          # the model without its encoder
+
+    chosen = {}
+    monkeypatch.setattr(artwork, "get_setting", lambda key, default=None: chosen.get(key, default))
+    monkeypatch.setattr(artwork, "engine_options", lambda: both)
+    assert artwork.picture_graph("a field", 1, "p")["1"]["inputs"]["unet_name"] == four[0]   # the 4B by default
+    chosen["art.klein"] = "flux3"
+    graph = artwork.picture_graph("a field", 7, "p", as_given=True)
+    assert graph["1"]["inputs"]["unet_name"] == three[0] and artwork.klein_name() == "FLUX 3 klein"
+    assert graph["2"]["inputs"] == {"clip_name": three[1], "type": "flux3"}
+    sampler = graph["7"]
+    assert sampler["class_type"] == "KSampler" and sampler["inputs"]["steps"] == 16 and sampler["inputs"]["cfg"] == 1.0
+    assert sampler["inputs"]["seed"] == 7 and graph["4"]["inputs"]["text"] == "a field"
+    assert graph["3"]["inputs"]["vae_name"] == config.PICTURE_VAE and graph["9"]["inputs"]["filename_prefix"] == "p"
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"klein": {"4b": list(four)}})
+    assert artwork.picture_graph("a", 1, "p")["1"]["inputs"]["unet_name"] == four[0]          # not there: the 4B
+    from app.main import SETTINGS_BY_KEY
+    assert "flux3" in [o["value"] for o in SETTINGS_BY_KEY["art.klein"]["options"]]
+
+
 def test_a_clean_install_draws_with_the_4b():
     from app.main import SETTINGS_BY_KEY
     spec = SETTINGS_BY_KEY["art.klein"]

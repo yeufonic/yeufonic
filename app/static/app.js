@@ -4870,7 +4870,7 @@ var SETTINGS_GROUPS = [
   { id: 'audio', title: 'Audio, Takes & Stems', summary: 'Output format, loudness, length cap, stem separation and SoundFonts' },
   { id: 'training', title: 'LoRA Training', summary: 'Planner and acoustic branches, prior preservation, semantic tokens and song limits' },
   { id: 'llm', title: 'External LLM & Lyrics', summary: 'Provider, API connection, model selection and recording transcription' },
-  { id: 'art', title: 'Take Pictures', summary: 'Automatic artwork generation, local FLUX.2 klein or external image model' },
+  { id: 'art', title: 'Take Pictures', summary: 'Automatic artwork generation, local klein or external image model' },
   { id: 'system', title: 'Appearance & System', summary: 'Theme, backdrop tint, update checks and MCP server' }
 ];
 
@@ -5100,22 +5100,25 @@ function paintSettingRequirements() {
   paintKleinFallback();
 }
 
-/* "The 9B is not installed here, so the 4B draws": when the size chosen in Settings cannot draw on
-   this PC and the other one does, rather than leaving the choice to look as if it had taken. */
+/* "The 9B is not installed here, so the 4B draws": when the klein chosen in Settings cannot draw on
+   this PC and another one does, rather than leaving the choice to look as if it had taken. */
+var KLEIN_NAMES = { '4b': 'FLUX.2 klein 4B', '9b': 'FLUX.2 klein 9B', flux3: 'FLUX 3 klein' };
 function paintKleinFallback() {
   var note = $('klein-fallback');
   if (!note) { return; }
   var klein = State.klein || {};
   var chosen = setting('art.klein', '4b');
   var have = klein.installed || [];
-  var shown = Boolean(have.length && (chosen === '4b' || chosen === '9b') && have.indexOf(chosen) < 0);
-  var drawing = have.indexOf('9b') >= 0 ? '9b' : (have[0] || '');
+  var shown = Boolean(have.length && KLEIN_NAMES[chosen] && have.indexOf(chosen) < 0);
+  // The server says which draws; an older server did not, and then the 9B came first.
+  var drawing = klein.drawing || (have.indexOf('9b') >= 0 ? '9b' : (have[0] || ''));
   if (shown) {
-    var name = chosen.toUpperCase();
     var why = chosen === '9b' && klein.engine === 'yue2cpp'
       ? 'The 9B is not set up here (it needs its model and Qwen 3 8B as GGUF in the models folder: see the guide)'
-      : 'The ' + name + '\u2019s files are not installed here';
-    note.textContent = why + ', so the ' + drawing.toUpperCase() + ' draws.';
+      : chosen === 'flux3' && klein.engine === 'yue2cpp'
+        ? 'FLUX 3 klein does not draw with the yue2.cpp engine yet'
+        : KLEIN_NAMES[chosen] + '\u2019s files are not installed here';
+    note.textContent = why + ', so ' + (KLEIN_NAMES[drawing] || 'another') + ' draws.';
   }
   note.classList.toggle('hidden', !shown);
 }

@@ -1278,12 +1278,38 @@ Labs' **non-commercial licence**, but put them in place and they are used.
    `engine\ComfyUI\models\` in the install folder on **Windows**; under `engine/ComfyUI/models/` in the
    install folder on a **Mac**.
 4. **Let the app see them, and choose it.** Restart Yeufonic (with Docker, `docker compose restart app`),
-   then set **Take pictures: FLUX.2 klein model** in Settings to *9B*. The 4B draws until you do, and
+   then set **Take pictures: klein model** in Settings to *FLUX.2 klein 9B*. The 4B draws until you do, and
    Settings say so when the 9B is chosen but cannot draw here. Choose
    *4B* to go back without removing anything. The picture's note in the editor says which drew it
    (*drawn by FLUX.2 klein 9B on this PC*).
 
 The model and its encoder are found by these names only, so keep the file names as they are downloaded.
+
+**FLUX 3 klein, for lettering and a 12 GB card or larger.** Black Forest Labs' FLUX 3 Image Klein draws from a
+full description of the scene, which is what the image prompts written by Gemma or the external LLM are, and it
+letters well, which suits **Song title on the picture**. Like the 9B, Yeufonic never downloads it: its files are
+gated on Hugging Face and under the **FLUX Kommunity License** (non-commercial use, and commercial use of what it
+draws for anyone under the licence's revenue limit; read it before you accept it). Put its files in place and it
+can be chosen.
+
+- **Disk:** about 11 GB for the int8 pair, beside the 4B's files. It uses the 4B's VAE (`flux2-vae.safetensors`),
+  so install the 4B first.
+- **Video memory:** about 11 GB while it draws. It takes several times the steps of the FLUX.2 kleins, so each
+  picture takes longer.
+- **Engine:** the ComfyUI engine only, for now; with the yue2.cpp engine it is not offered.
+
+1. **Sign in to Hugging Face** and accept the licence on
+   [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy).
+2. **The model,** into the `diffusion_models` folder: `flux3-image-klein-int8-convrot.safetensors` (5.8 GB, the usual
+   choice on an NVIDIA card), `flux3-image-klein-nvfp4.safetensors` (5.3 GB, for an RTX 50 card) or
+   `flux3-image-klein-bf16.safetensors` (11.1 GB, full precision, for a Mac).
+3. **Its text encoder,** into the `text_encoders` folder: `qwen3vl_4b_int8_convrot.safetensors` (4.9 GB) or
+   `qwen3vl_4b_bf16.safetensors` (8.9 GB, for a Mac).
+4. **Let the app see them, and choose it:** restart Yeufonic (with Docker, `docker compose restart app`), then set
+   **Take pictures: klein model** in Settings to *FLUX 3 klein*. The picture's note in the editor says *drawn by
+   FLUX 3 klein on this PC*.
+
+The folders are the same as for the 9B, and the files are found by these names only.
 
 **To draw with an external LLM,** open Settings and set **LLM for writing lyrics & style tags** to the
 [external LLM](#external-llm), with its **API URL**, **API Key** and **Model**, as for lyrics. The provider must have an image
@@ -1302,7 +1328,7 @@ Set up either and they come on: pictures are then made for the takes you make fr
 |---|---|
 | **Take pictures** | *Make one for each new take* (the default where something can draw), or *No pictures: the default background*, where none is made unless you ask for one in the editor. It is *No pictures* while nothing here can draw. |
 | **Take pictures: drawn by** | *This PC if FLUX.2 klein is installed, else the external LLM* (the default), *This PC (FLUX.2 klein)* or *The external LLM's image model*. |
-| **Take pictures: FLUX.2 klein model** | *4B* (the default), *9B*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B is never installed for you: see [FLUX.2 klein 9B](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. Either one asked for and not there, the other draws. |
+| **Take pictures: klein model** | *FLUX.2 klein 4B* (the default), *FLUX.2 klein 9B*, *FLUX 3 klein*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B and FLUX 3 are never installed for you: see [FLUX.2 klein 9B and FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. One asked for and not there, another draws, and Settings say which. |
 | **Take pictures: described by** | who writes the image prompt, from the take's title, the art style below, its style and its words (up to 50 lines). *Local Gemma if installed, else the take itself* (the default), whoever draws. *Local Gemma*: written on this PC; needs the Lyric drafts option. *From the take itself*: no LLM; a description made from the take's title, style and opening words, the quickest, and nothing is sent out for it. Or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
 | **Take pictures: art style** | how the picture should look, given to the LLM that writes the image prompt (greyed out when the take itself describes it). By default an abstract, surrealist design in the manner of 1970s and 1980s album covers, with no text or people. Emptied, it goes back to that. |
 | **Take pictures: your own prompt** | words to start every picture's image prompt with, such as *big sky, doom-laden*, up to 512 characters; the prompt the LLM writes follows them. Empty (the default): none. Only when an LLM writes the image prompt (greyed out when the take itself describes it). |

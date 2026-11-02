@@ -188,6 +188,15 @@ PICTURE_PAIRS_9B = (("flux-2-klein-9b-fp8.safetensors", "qwen_3_8b_fp8mixed.safe
                     ("flux-2-klein-9b.safetensors", "qwen_3_8b.safetensors"),
                     ("flux-2-klein-9b.safetensors", "qwen_3_8b_fp8mixed.safetensors"),
                     ("flux-2-klein-9b.safetensors", "qwen_3_8b_fp4mixed.safetensors"))
+# FLUX 3 Image Klein, which letters well and is drawn from a full scene caption: never installed by Yeufonic either
+# (gated on Hugging Face, under the FLUX Kommunity License), but used when its files are put in the models folder.
+# Its encoder is Qwen3-VL-4B, and it shares the FLUX.2 VAE.  Looked for in this order: the int8 model, then the
+# NVFP4 (an RTX 50 card), then full precision (a Mac), each with whichever encoder is there.
+PICTURE_FLUX3_MODELS = ("flux3-image-klein-int8-convrot.safetensors", "flux3-image-klein-nvfp4.safetensors",
+                        "flux3-image-klein-bf16.safetensors")
+PICTURE_FLUX3_ENCODERS = ("qwen3vl_4b_int8_convrot.safetensors", "qwen3vl_4b_fp8_scaled.safetensors",
+                          "qwen3vl_4b_bf16.safetensors")
+PICTURE_PAIRS_FLUX3 = tuple((m, e) for m in PICTURE_FLUX3_MODELS for e in PICTURE_FLUX3_ENCODERS)
 PICTURE_VAE = "flux2-vae.safetensors"
 # The engine's model folder, when this machine can see it.  The app only reads
 # from it, and only to say what a LoRA holds; the engine is what loads them.

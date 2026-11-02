@@ -422,16 +422,18 @@ SETTINGS_SPEC: list[dict] = [
     {
         "key": "art.klein",
         "group": "art",
-        "label": "Take pictures: FLUX.2 klein model",
+        "label": "Take pictures: klein model",
         "type": "select",
         "default": "4b",
         "options": [
-            {"value": "4b", "label": "4B (installed with Yeufonic)"},
-            {"value": "9b", "label": "9B (added by hand: see the guide)"},
+            {"value": "4b", "label": "FLUX.2 klein 4B (installed with Yeufonic)"},
+            {"value": "9b", "label": "FLUX.2 klein 9B (added by hand: see the guide)"},
+            {"value": "flux3", "label": "FLUX 3 klein (added by hand: see the guide)"},
             {"value": "auto", "label": "9B where its files are installed, else 4B"},
         ],
-        "help": "Which FLUX.2 klein draws on this PC. The 9B is higher quality, for graphics cards with more video "
-                "memory, and is added by hand: see the guide.",
+        "help": "Which klein draws on this PC. The FLUX.2 9B is higher quality, for graphics cards with more video "
+                "memory; FLUX 3 klein letters well and suits a 12 GB card or larger. Both are added by hand: see the "
+                "guide.",
         "requires": {"pictures": "possible", "art.auto": "on", "art.drawer": ["auto", "local"]},
         "requires_note": "Only for pictures drawn on this PC: choose This PC under Take pictures: drawn by.",
     },

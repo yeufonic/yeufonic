@@ -558,14 +558,15 @@ def image_model() -> str:
 
 
 def klein_size() -> str | None:
-    """Which FLUX.2 klein draws here: "4b" (the default) or "9b", as Settings ask where that one is installed,
-    else the other; "auto" takes the 9B where its files are there.  The 4B is the default, so the 9B draws
-    only once it is chosen, even where its files are in place.  None when the engine has not said."""
+    """Which klein draws here: "4b" (the default), "9b" or "flux3" (FLUX 3 Image Klein), as Settings ask where
+    that one is installed, else another, the 9B first; "auto" takes the 9B where its files are there.  The 4B is
+    the default, so the others draw only once chosen, even where their files are in place.  None when the engine
+    has not said."""
     have = (engine_options() or {}).get("klein") or {}
     chosen = (get_setting("art.klein", "4b") or "4b").strip().lower()
     if chosen in have:
         return chosen
-    return next((size for size in ("9b", "4b") if size in have), None)
+    return next((size for size in ("9b", "4b", "flux3") if size in have), None)
 
 
 def klein_files() -> tuple[str, str]:
@@ -579,6 +580,8 @@ def klein_files() -> tuple[str, str]:
 
 def klein_name() -> str:
     size = klein_size()
+    if size == "flux3":
+        return "FLUX 3 klein"
     return f"FLUX.2 klein {size.upper()}" if size else "FLUX.2 klein"
 
 
@@ -825,6 +828,7 @@ def klein_request(description: str, take: dict | None = None, title: str = "") -
 # ------------------------------------------------------------------ the drawing
 WIDTH, HEIGHT = 1024, 1024     # square 1:1 album cover
 LOCAL_STEPS = 4               # klein is distilled for four
+FLUX3_STEPS = 16              # FLUX 3 klein for sixteen, with its shift built into the model
 
 
 def picture_graph(description: str, seed: int, prefix: str, title: str = "", as_given: bool = False) -> dict:
@@ -833,6 +837,8 @@ def picture_graph(description: str, seed: int, prefix: str, title: str = "", as_
     drawn as it is (an LLM's image prompt), not made into klein's own (klein_request)."""
     model, encoder = klein_files()
     text = description if as_given else klein_request(description, title=title)
+    if klein_size() == "flux3":
+        return flux3_graph(model, encoder, text, seed, prefix)
     return {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": model, "weight_dtype": "default"}},
         "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": encoder, "type": "flux2"}},
@@ -850,6 +856,26 @@ def picture_graph(description: str, seed: int, prefix: str, title: str = "", as_
                                                                  "sigmas": ["7", 0], "latent_image": ["6", 0]}},
         "12": {"class_type": "VAEDecode", "inputs": {"samples": ["11", 0], "vae": ["3", 0]}},
         "13": {"class_type": "SaveImage", "inputs": {"images": ["12", 0], "filename_prefix": prefix}},
+    }
+
+
+def flux3_graph(model: str, encoder: str, text: str, seed: int, prefix: str) -> dict:
+    """FLUX 3 Image Klein on the engine, as ComfyUI runs it: its Qwen3-VL encoder, the FLUX.2 VAE, and the plain
+    sampler with euler, sixteen steps and no guidance (the step-distilled model takes its timing from the
+    sampler's sigmas, with the shift built in)."""
+    return {
+        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": model, "weight_dtype": "default"}},
+        "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": encoder, "type": "flux3"}},
+        "3": {"class_type": "VAELoader", "inputs": {"vae_name": config.PICTURE_VAE}},
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": text}},
+        "5": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["4", 0]}},
+        "6": {"class_type": "EmptyFlux2LatentImage", "inputs": {"width": WIDTH, "height": HEIGHT, "batch_size": 1}},
+        "7": {"class_type": "KSampler", "inputs": {"model": ["1", 0], "positive": ["4", 0], "negative": ["5", 0],
+                                                   "latent_image": ["6", 0], "seed": int(seed), "steps": FLUX3_STEPS,
+                                                   "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple",
+                                                   "denoise": 1.0}},
+        "8": {"class_type": "VAEDecode", "inputs": {"samples": ["7", 0], "vae": ["3", 0]}},
+        "9": {"class_type": "SaveImage", "inputs": {"images": ["8", 0], "filename_prefix": prefix}},
     }
 
 

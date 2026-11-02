@@ -39,6 +39,12 @@ cannot creep back in.
 
 ## Unreleased
 
+- **FLUX 3 klein can draw take pictures.** Black Forest Labs' FLUX 3 Image Klein is a third choice under **Take
+  pictures: klein model**, beside the FLUX.2 4B and 9B. It draws from a full description of the scene, as Gemma and
+  the external LLM now write, and letters titles well. Like the 9B it is never downloaded for you: its files are gated
+  on Hugging Face under the FLUX Kommunity License, and the guide says which to get and where they go. ComfyUI engine
+  only for now.
+
 - **The engine's ComfyUI is newer.** It brings:
   - faster YuE2 sampling when planning and rendering;
   - keys and chords in transcribed scores spelled for the key (Bb rather than A#);

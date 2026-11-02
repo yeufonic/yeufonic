@@ -451,10 +451,14 @@ class Engine:
         klein_parts = (config.PICTURE_VAE in combo_options(info, "VAELoader", "vae_name")
                        and all(n in info for n in ("EmptyFlux2LatentImage", "Flux2Scheduler",
                                                    "SamplerCustomAdvanced", "CFGGuider")))
-        # Each size of klein whose model and text encoder are both here: the 4B chosen at install, the 9B put in by hand.
-        klein = {size: list(pair) for size, pair in (
-            ("4b", config.installed_picture_pair(config.PICTURE_PAIRS, unets, text_models)),
-            ("9b", config.installed_picture_pair(config.PICTURE_PAIRS_9B, unets, text_models))) if pair and klein_parts}
+        # Each klein whose model and text encoder are both here: the 4B chosen at install, the 9B and FLUX 3 put in by
+        # hand.  FLUX 3 needs a ComfyUI that knows it (its text encoder type) and the plain sampler it is drawn with.
+        flux3_parts = klein_parts and "flux3" in combo_options(info, "CLIPLoader", "type") and "KSampler" in info
+        klein = {size: list(pair) for size, pair, parts in (
+            ("4b", config.installed_picture_pair(config.PICTURE_PAIRS, unets, text_models), klein_parts),
+            ("9b", config.installed_picture_pair(config.PICTURE_PAIRS_9B, unets, text_models), klein_parts),
+            ("flux3", config.installed_picture_pair(config.PICTURE_PAIRS_FLUX3, unets, text_models), flux3_parts))
+            if pair and parts}
         loras = combo_options(info, "LoraLoader", "lora_name")
         self.options = {"checkpoints": checkpoints, "audio_encoders": encoders,
                         "harmony": "YuE2GenerateABCHarmony" in info,
@@ -472,7 +476,7 @@ class Engine:
                         # An engine built with WITH_TRAINER=0 has no trainer, so the
                         # app can tell whether training is there to offer at all.
                         "trainer": any(n in info for n in ("YuE2TrainerAcousticLoRA", "YuE2TrainerPlannerLoRA")),
-                        # Take pictures drawn here: FLUX.2 klein (the 4B, the 9B or both) and its parts, and the nodes for them.
+                        # Take pictures drawn here: klein (FLUX.2 4B or 9B, FLUX 3) and its parts, and the nodes for them.
                         "pictures": bool(klein),
                         "klein": klein,
                         "loras": loras}
