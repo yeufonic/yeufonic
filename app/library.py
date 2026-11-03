@@ -589,6 +589,26 @@ def tagged_copy(src: Path, dest: Path, fmt: str, codec: list[str] | None, title:
     set_flac_comments(dest, fields + list(carried.items()))
 
 
+
+def video_copy(src: Path, picture: Path, dest: Path, title: str, lyrics: str | None) -> None:
+    """The take at src as an MP4 that shows its picture for the length of the song: a file that messaging apps
+    such as WhatsApp send and play as a video, where an audio file goes as a document.  H.264 and AAC, which
+    phones play everywhere.  The picture is one frame a second, with a keyframe every ten minutes: it never
+    changes, so the picture costs about as much as a cover image.  Transparent parts of an older picture (cut
+    out from its background) come out black."""
+    seconds = audio_duration(src)
+    length = ["-t", f"{seconds:.3f}"] if seconds else ["-shortest"]
+    tags = ["-metadata", f"title={title}", "-metadata", f"comment={MADE_WITH}"]
+    if lyrics:
+        tags += ["-metadata", f"lyrics={lyrics}"]
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", "1", "-i", str(picture),
+                    "-i", str(src), "-map", "0:v", "-map", "1:a", *length,
+                    "-vf", "premultiply=inplace=1,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
+                    "-c:v", "libx264", "-preset", "veryfast", "-tune", "stillimage", "-crf", "20", "-g", "600",
+                    "-c:a", "aac", "-b:a", "192k", "-map_metadata", "-1", *tags, "-movflags", "+faststart",
+                    str(dest)],
+                   capture_output=True, timeout=900, check=True)
+
 # The waveform the player draws.  Computed once on the server from an 8 kHz mono
 # decode, instead of the browser decoding the whole file to float PCM on every play.
 PEAK_COLUMNS = 1024

@@ -6365,7 +6365,11 @@ function openSaveModal(take) {
   // What was saved last time in this browser; nothing chosen the first time.
   var last = {};
   try { last = JSON.parse(localStorage.getItem(SAVE_CHOICE_KEY) || '{}') || {}; } catch (err) { last = {}; }
-  pickSaveFormat(['flac', 'wav', 'mp3'].indexOf(last.fmt) >= 0 ? last.fmt : null);
+  // A video only for a take with a picture: the picture its card shows.
+  var video = $('save-video');
+  if (video) { video.classList.toggle('hidden', !take.art); }
+  var offered = ['flac', 'wav', 'mp3'].concat(video && take.art ? ['mp4'] : []);
+  pickSaveFormat(offered.indexOf(last.fmt) >= 0 ? last.fmt : null);
   pickSaveRecipe(Boolean(last.recipe));
   $('save-modal').classList.remove('hidden');
   $('save-run').focus();
@@ -6404,7 +6408,8 @@ function paintSaveChoice() {
   if (!note) { return; }
   note.textContent = c.fmt && c.recipe ? 'The audio and the take\u2019s recipe, in one zip.'
     : c.recipe ? 'The take\u2019s recipe: its words, score and settings, to keep, share or import. No audio.'
-    : !c.fmt ? 'Choose what to save.' : '';
+    : !c.fmt ? 'Choose what to save.'
+    : c.fmt === 'mp4' ? 'The song with its picture, as an MP4 video that messaging apps send as a video.' : '';
 }
 
 function closeSaveModal() {

@@ -1191,7 +1191,10 @@ Each card names the settings that shaped it — Harmony, Interpretation, Plan va
 its strengths, the seed, the engine that rendered it and its age — so a card reads as the recipe that made it.
 
 **Save** asks which format to download the take in, FLAC, WAV or MP3. It starts with what you saved last
-time, and with nothing chosen the first time. **Take**, beside them, saves the take's recipe as well: a small file
+time, and with nothing chosen the first time. A take with a picture can also be saved as a **Video**: an MP4 of
+the song that shows the picture its card shows (H.264 video, AAC audio at 192 kbps). Messaging apps such as
+WhatsApp send and play it as a video, where an audio file goes as a document. With the mastering rack on, the
+video has the mastered sound, as the other formats do. **Take**, beside them, saves the take's recipe as well: a small file
 (`<title>.yeufonic.json`) holding its words, style and score, its seeds and settings, its LoRAs by name and
 the mastering rack's settings, but not its audio. With a format chosen too, both come in one zip; press the
 chosen format again to save the recipe alone. The file holds nothing of your install (no paths, ids or keys),

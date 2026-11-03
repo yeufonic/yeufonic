@@ -147,16 +147,25 @@ def info(take_id: str) -> dict[str, Any]:
     }
 
 
-def url_for(take_id: str, parent_id: str | None = None) -> str | None:
-    """Where the page finds the picture shown for a take: its own, or the one of the take it is inside."""
+def shown_path(take_id: str, parent_id: str | None = None) -> tuple[str, Path] | None:
+    """The picture shown for a take, and whose it is: its own, or the one of the take it is inside."""
     if plain_path(take_id).exists():
         return None
     for owner in (take_id, parent_id):
         if owner:
             png = png_path(owner)
             if png.exists():
-                return f"/api/takes/{owner}/art.png?v={int(png.stat().st_mtime)}"
+                return owner, png
     return None
+
+
+def url_for(take_id: str, parent_id: str | None = None) -> str | None:
+    """Where the page finds the picture shown for a take."""
+    shown = shown_path(take_id, parent_id)
+    if not shown:
+        return None
+    owner, png = shown
+    return f"/api/takes/{owner}/art.png?v={int(png.stat().st_mtime)}"
 
 
 def busy(take_id: str) -> bool:

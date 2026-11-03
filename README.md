@@ -141,6 +141,8 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 - **A take's recipe as a file.** Save a take's words, score, seeds and settings (not its audio) as a small
   file, alone or beside the audio, and import one as a new take ready to render, on either engine: to keep a
   recipe, or to share it with another Yeufonic user.
+- **Save a take as a video.** A take with a picture can be saved as an MP4 that shows the picture for the length
+  of the song, which messaging apps such as WhatsApp send and play as a video rather than as a file.
 - **Try more, and Compare.** Render a take again as a set of new seeds, or at other LoRA planner
   strengths, then play the ones you tick against each other from the same point in the song, with
   matched loudness and an optional blind listen.

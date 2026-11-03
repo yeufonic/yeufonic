@@ -4973,6 +4973,27 @@ SAVE_FORMATS = {
     "wav": ("audio/wav", ["-c:a", "pcm_s16le"]),
     "mp3": ("audio/mpeg", ["-c:a", "libmp3lame", "-b:a", "320k"]),
 }
+# And as a video: the take's picture for the length of the song, to send where a video travels better than audio.
+VIDEO_FORMAT = "mp4"
+
+
+def _save_copy(take_id: str, take, src: Path, out: Path, fmt: str) -> None:
+    """The file a Save hands over: the audio in an audio format with its tags, or the video with the take's
+    picture.  Raises HTTPException 409 for a video of a take with no picture."""
+    words = library.sung_words(take["kind"], take["lyrics"])
+    if fmt == VIDEO_FORMAT:
+        shown = artwork.shown_path(take_id, take["parent_id"])   # the picture its card shows
+        if not shown:
+            raise HTTPException(409, "this take has no picture, so there is no video to make")
+        library.video_copy(src, shown[1], out, take["title"] or "", words)
+        return
+    library.tagged_copy(src, out, fmt, SAVE_FORMATS[fmt][1], take["title"] or "", words)
+
+
+def _save_format(format: str | None) -> str | None:
+    if format and format not in SAVE_FORMATS and format != VIDEO_FORMAT:
+        raise HTTPException(400, "the format must be flac, wav, mp3 or mp4")
+    return format
 
 
 @app.get("/api/takes/{take_id}/audio")
@@ -4991,11 +5012,10 @@ def take_audio(
     `fx` is how a page from before that asked for mastering here.  Such a page is still open from before an
     update, and handing it the take without the mastering it asked for would look like a save that worked, so
     it is refused."""
-    if format and format not in SAVE_FORMATS:
-        raise HTTPException(400, "the format must be flac, wav or mp3")
+    _save_format(format)
     if download and fx:
         raise HTTPException(409, "this page is from before an update: reload it, then save again")
-    take = one("SELECT audio_path, title, kind, lyrics FROM takes WHERE id = ?", (take_id,))
+    take = one("SELECT audio_path, title, kind, lyrics, parent_id FROM takes WHERE id = ?", (take_id,))
     if not take or not take["audio_path"] or not Path(take["audio_path"]).exists():
         raise HTTPException(404, "no audio for this take")
     safe = "".join(ch for ch in (take["title"] or "take") if ch.isalnum() or ch in " -_")[:60].strip() or "take"
@@ -5004,14 +5024,13 @@ def take_audio(
                             content_disposition_type="inline")
     # A download is in the format asked for, else the one set in Settings.
     fmt = format or setting_value("stems.format")
-    fmt = fmt if fmt in SAVE_FORMATS else "flac"
-    media, codec = SAVE_FORMATS[fmt]
+    fmt = fmt if fmt in SAVE_FORMATS or fmt == VIDEO_FORMAT else "flac"
+    media = "video/mp4" if fmt == VIDEO_FORMAT else SAVE_FORMATS[fmt][0]
     # Made for this download only, with its tags, and removed once it has been sent.
     config.WORK_DIR.mkdir(parents=True, exist_ok=True)
     out = config.WORK_DIR / f"save-{take_id}-{uuid.uuid4().hex[:8]}.{fmt}"
     try:
-        library.tagged_copy(Path(take["audio_path"]), out, fmt, codec, take["title"] or "",
-                            library.sung_words(take["kind"], take["lyrics"]))
+        _save_copy(take_id, take, Path(take["audio_path"]), out, fmt)
     except (subprocess.SubprocessError, OSError) as exc:
         out.unlink(missing_ok=True)
         log.warning("Could not convert take '%s' to %s: %s", take["title"] or take_id, fmt, exc)
@@ -5151,14 +5170,12 @@ async def export_mastered_take(
     """Export take with exact mastering DSP rendered in browser via OfflineAudioContext,
     tagging and encoding to the requested format (FLAC, MP3, or WAV).
     If prepare=True, returns JSON {"download_url": ...} so browser triggers a native HTTP download prompt."""
-    fmt = format.lower()
-    if fmt not in SAVE_FORMATS:
-        raise HTTPException(400, "the format must be flac, wav or mp3")
-    take = one("SELECT audio_path, title, kind, lyrics FROM takes WHERE id = ?", (take_id,))
+    fmt = _save_format(format.lower())
+    take = one("SELECT audio_path, title, kind, lyrics, parent_id FROM takes WHERE id = ?", (take_id,))
     if not take or not take["audio_path"] or not Path(take["audio_path"]).exists():
         raise HTTPException(404, "no audio for this take")
 
-    media, codec = SAVE_FORMATS[fmt]
+    media = "video/mp4" if fmt == VIDEO_FORMAT else SAVE_FORMATS[fmt][0]
     safe = "".join(ch for ch in (take["title"] or "take") if ch.isalnum() or ch in " -_")[:60].strip() or "take"
 
     config.WORK_DIR.mkdir(parents=True, exist_ok=True)
@@ -5169,8 +5186,7 @@ async def export_mastered_take(
         content = await audio_file.read()
         temp_wav.write_bytes(content)
         # The upload was rendered by the rack's own chain: it is only tagged and encoded here.
-        library.tagged_copy(temp_wav, out, fmt, codec, take["title"] or "",
-                            library.sung_words(take["kind"], take["lyrics"]))
+        _save_copy(take_id, take, temp_wav, out, fmt)
     except (subprocess.SubprocessError, OSError) as exc:
         out.unlink(missing_ok=True)
         log.warning("Could not convert uploaded mastered audio for take '%s' to %s: %s", take["title"] or take_id, fmt, exc)
