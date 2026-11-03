@@ -40,6 +40,33 @@ def test_a_finished_take_gets_its_picture(page, app_server):
     assert loaded > 0
 
 
+def test_a_new_picture_replaces_the_whole_picture_in_place(page, app_server):
+    """From the take's square: its picture, the whole picture, then Make a new picture. The whole picture stays up
+    while the new one is made, saying so, and turns to the new one when it is done; Escape still puts it away."""
+    made = make_song(page, app_server, style="dream pop, tape hiss")
+    cover = card(page, made["id"]).locator(".cover")
+    page.wait_for_function("(id) => { const c = document.querySelector(`#takes article.take[data-id='${id}'] .cover`);"
+                           " return c && c.classList.contains('has-art'); }", arg=made["id"], timeout=60000)
+    time.sleep(1.2)                                   # a picture's address carries its time, to the second
+    cover.click()
+    page.wait_for_selector("#cover-popup:not(.hidden)")
+    page.click("#cover-popup .cover-popup-preview")
+    page.wait_for_selector("#picture-view")
+    before = page.get_attribute("#picture-view .picture-view-frame img", "src")
+    page.wait_for_selector('#picture-view [data-pic="make"]:not([disabled])')
+    page.click('#picture-view [data-pic="make"]')
+    page.wait_for_function("() => (document.querySelector('#picture-view .picture-view-note') || {}).textContent")
+    assert page.locator("#picture-view").count() == 1      # still up while the new picture is made
+    page.screenshot(path="browser-tests/artifacts/picture-view-making.png")
+    page.wait_for_function("(before) => { const i = document.querySelector('#picture-view .picture-view-frame img');"
+                           " return i && i.getAttribute('src') !== before; }", arg=before, timeout=60000)
+    page.wait_for_function("() => !document.querySelector('#picture-view .picture-view-note').textContent")
+    assert page.locator('#picture-view [data-pic="make"]').is_enabled()
+    page.screenshot(path="browser-tests/artifacts/picture-view-new.png")
+    page.keyboard.press("Escape")
+    page.wait_for_selector("#picture-view", state="detached")
+
+
 def test_a_take_goes_in_a_new_playlist_and_plays_from_it(page, app_server):
     made = make_song(page, app_server)
     card(page, made["id"]).locator('[data-act="playlist"]').click()

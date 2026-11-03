@@ -66,6 +66,10 @@ cannot creep back in.
     picture, as on many 1970s sleeves. About one in five has no border and the title over the picture, at a corner or
     centred.
 
+- **A new picture made from the whole picture appears in its place.** The whole picture stays up while the new
+  one is made, saying how far along it is, and turns to the new one once it is drawn. Escape or a click away still
+  puts it away.
+
 - **A plan that fails twice names the take that already has a score for its words.** When another finished take
   holds the same words with a score, such as an imported cover, the message names it: **Sing again** on it keeps
   that score.

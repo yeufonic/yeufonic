@@ -3229,6 +3229,8 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 .picture-view-bar .chip { background: rgb(var(--panel-rgb) / 0.9); }
 .picture-view-bar .chip:hover { color: var(--text); }
 .picture-view-bar .chip:disabled { opacity: 0.45; cursor: default; }
+.picture-view-note { flex: 1; text-align: center; font-size: 13px; color: var(--muted); }
+.picture-view-note.bad { color: var(--bad, #e57373); }
 /* Pop-up showing the take's album cover when hovering or clicking the cover initial square */
 .cover-popup {
   position: fixed;

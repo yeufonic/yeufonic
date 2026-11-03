@@ -1347,7 +1347,9 @@ The **Picture** icon in the editor window's top row, beside the take's other but
 with two choices: **Make a new picture**, which makes it again in the background, and **Use the default
 background**, which takes it away for good: no picture is made for that take again unless you ask for one.
 Click the picture there to see the whole of it, as large as the window allows; a click anywhere or Escape
-puts it away and leaves the editor as it was.
+puts it away and leaves the editor as it was. The whole picture has the same two choices under it. Choose
+**Make a new picture** there and the picture stays up while the new one is made, with what is happening shown
+between the buttons, then turns to the new one when it is done.
 
 On a take's card, the square at the top left shows the picture when you point at it. A take with no
 picture offers **Make a new picture** there instead, where this PC can make pictures.

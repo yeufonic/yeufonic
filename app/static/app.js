@@ -12985,7 +12985,12 @@ function showPicture(src, takeId) {
     plain.className = 'chip';
     plain.dataset.pic = 'plain';
     plain.textContent = 'Use the default background';
+    // What is happening while a new picture is made, between the two buttons.
+    var note = document.createElement('span');
+    note.className = 'picture-view-note';
+    note.setAttribute('aria-live', 'polite');
     bar.appendChild(make);
+    bar.appendChild(note);
     bar.appendChild(plain);
     bar.addEventListener('click', function (e) { e.stopPropagation(); });
     make.addEventListener('click', function () { pictureViewAction(takeId, 'make'); });
@@ -13001,13 +13006,59 @@ function showPicture(src, takeId) {
 }
 
 /* The same two questions the editor's picture menu answers: is a picture being made, can this PC
-   make one, and has this take the default background already. */
+   make one, and has this take the default background already.  One being made is watched, so the
+   view turns to it when it is done. */
 async function paintPictureViewButtons(takeId, make, plain) {
   var art;
   try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { return; }
   var making = Boolean(ART_STATES[art.state]);
   make.disabled = making || !State.pictures;
   plain.disabled = making || Boolean(art.plain);
+  if (making) { watchPictureView(takeId, art); }
+}
+
+/* A new picture asked for from the whole picture: the old one stays up while the new one is made,
+   with what is happening under it, and the view turns to the new one once it is there.  Escape or a
+   click away still closes it, and the watching stops with it. */
+function watchPictureView(takeId, art) {
+  var view = $('picture-view');
+  if (!view) { return; }
+  clearTimeout(view._artPoll);
+  var note = view.querySelector('.picture-view-note');
+  var img = view.querySelector('.picture-view-frame img');
+  var make = view.querySelector('[data-pic="make"]');
+  var plain = view.querySelector('[data-pic="plain"]');
+  var state = art && art.state;
+  if (ART_STATES[state] || !art) {
+    if (note) { note.textContent = ART_STATES[state] || ART_STATES.queued; note.classList.remove('bad'); }
+    view._artPoll = setTimeout(async function () {
+      var now = await api('/api/takes/' + takeId + '/art').catch(function () { return { state: 'queued' }; });
+      if ($('picture-view') === view) { watchPictureView(takeId, now); }
+    }, 2000);
+    return;
+  }
+  // Done, one way or the other.
+  if (state === 'failed') {
+    if (note) { note.textContent = 'The last try failed: ' + (art.error || 'no reason given'); note.classList.add('bad'); }
+    if (make && plain) { paintPictureViewButtons(takeId, make, plain); }
+    return;
+  }
+  (async function () {
+    await loadTakes();
+    if (typeof paintEdPicture === 'function') { paintEdPicture(); }
+    if ($('picture-view') !== view) { return; }
+    var src = (takeById(takeId) || {}).art;
+    var done = function () {
+      if (note) { note.textContent = ''; }
+      if (make && plain) { paintPictureViewButtons(takeId, make, plain); }
+    };
+    if (!src || !img || img.getAttribute('src') === src) { done(); return; }
+    // Loaded first, so the old picture gives way to the whole new one rather than to a half-drawn image.
+    var next = new Image();
+    next.onload = function () { if ($('picture-view') === view) { img.src = src; done(); } };
+    next.onerror = done;
+    next.src = src;
+  })();
 }
 
 async function pictureViewAction(takeId, kind) {
@@ -13018,12 +13069,16 @@ async function pictureViewAction(takeId, kind) {
     await api('/api/takes/' + takeId + '/art', { method: make ? 'POST' : 'DELETE' });
   } catch (err) {
     statusLine(err.message, 'bad');
+    if (view) { paintPictureViewButtons(takeId, view.querySelector('[data-pic="make"]'), view.querySelector('[data-pic="plain"]')); }
     return;                        // the picture stays up, so the action can be tried again
   }
-  if (!make) {
-    await loadTakes();
-    if (typeof paintEdPicture === 'function') { paintEdPicture(); }
+  if (make) {
+    pollState();
+    watchPictureView(takeId, null);   // the picture stays up until the new one replaces it
+    return;
   }
+  await loadTakes();
+  if (typeof paintEdPicture === 'function') { paintEdPicture(); }
   closePicture();
 }
 function pictureKey(event) {
@@ -13034,6 +13089,7 @@ function pictureKey(event) {
 }
 function closePicture() {
   var view = $('picture-view');
+  if (view) { clearTimeout(view._artPoll); }
   if (view) { if (view.remove) { view.remove(); } else if (view.parentNode) { view.parentNode.removeChild(view); } }
   window.removeEventListener('keydown', pictureKey, true);
 }
