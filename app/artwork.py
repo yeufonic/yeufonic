@@ -259,9 +259,17 @@ def title_at(take: dict) -> str | None:
     or the bottom ("top band", "bottom band"), and about one in five (TITLE_OVER) over the picture itself, at a corner
     or centred along the top or the bottom ("top left" ... "bottom right"), all at random.  None when Settings do not
     ask, or the take has no title to show."""
-    if (get_setting("art.title", "off") or "off").strip().lower() != "on" or not clean_cover_title(take):
+    if (get_setting("art.title", "off") or "off").strip().lower() != "on" or not lettered_title(take):
         return None
     return random.choice(TITLE_CORNERS if random.random() < TITLE_OVER else TITLE_BANDS)
+
+
+def lettered_title(take: dict) -> str:
+    """The title lettered on the cover: the song's title as the user wrote it, an artist's or a corpus's name in it
+    included, since that is their choice.  The description and the scene still leave those names out
+    (clean_cover_title), so nothing is drawn after a real band.  Nothing for an untitled take."""
+    title = song_title(take.get("title") or "")
+    return "" if title.lower() == "untitled" else title
 
 
 def title_clear_space(at: str | None) -> str:

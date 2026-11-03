@@ -730,6 +730,15 @@ def test_trigger_words_and_artist_names_are_stripped_from_cover_prompts():
     # But preserves actual song titles with artist prefix stripped
     assert artwork.clean_cover_title({"title": "Bobby Dylan - Like a Rolling Stone"}) == "Like a Rolling Stone"
 
+    # The title lettered on the cover is the user's own, an artist's name in it included; the description
+    # sent to the LLM still leaves it out.
+    assert artwork.lettered_title({"title": "Bobby Dylan · sung again"}) == "Bobby Dylan"
+    assert artwork.lettered_title({"title": "Untitled"}) == ""
+    set_setting("art.title", "on")
+    assert artwork.title_at({"title": "bobbydyln"}) is not None
+    assert "bobbydyln" not in artwork.description_request({"title": "bobbydyln", "style": "folk"}, "top band")
+    set_setting("art.title", "off")
+
     # take_description omits title if it was the trigger word, and strips triggers from cover style
     take = {"title": "bobbydyln", "style": "bobbydyln, 1970s rock, acoustic guitar", "lyrics": LYRICS}
     desc = artwork.take_description(take)

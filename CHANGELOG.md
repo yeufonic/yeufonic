@@ -64,7 +64,8 @@ cannot creep back in.
   - **Song title on the picture:** off by default. On, the title is lettered in bold, in capitals or small letters.
     Mostly it sits in a band of an off-white border at the top or the bottom, with a thin dark line framing the
     picture, as on many 1970s sleeves. About one in five has no border and the title over the picture, at a corner or
-    centred.
+    centred. The title is lettered as you wrote it, even when it is an artist's name; the picture itself is still
+    described without it.
 
 - **A new picture made from the whole picture appears in its place.** The whole picture stays up while the new
   one is made, saying how far along it is, and turns to the new one once it is drawn. Escape or a click away still
