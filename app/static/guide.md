@@ -326,9 +326,9 @@ The length of a song is set by its plan, and the render follows the plan's lengt
 - **Render this score** makes a new take whenever the open take already has audio, so a render never overwrites one
   you may want to compare. A take with no audio yet is filled in.
 - **Keep this tune** (after changing a take's words): sings the take's score with the new words, as a new take. The
-  tune cannot gain sections or notes, so if your words have more sections than the tune does, or far more syllables
-  than it has notes (as with **Long and flowing** lines on a tune made for short ones), the tick clears itself and a
-  new plan is written, with a line saying why. See [Same tune, new words](#same-tune-new-words).
+  tune cannot gain sections or notes, so if your words have more sections than the tune does, or far more or far fewer
+  syllables than it has notes (long lines on a tune made for short ones, or short lines on one made for long ones), the
+  tick clears itself and a new plan is written, with a line saying why. See [Same tune, new words](#same-tune-new-words).
 - **Filter the library.** The **Song**, **Cover** and **Instrumental** toggles beside the filters show only those
   kinds in the open space; pick more than one, or none for every kind.
 
@@ -606,8 +606,9 @@ then sung with the new words, as a new take beside the original, which stays as 
 ticked to keep the voice as close as it can be. Untick **Keep this tune** to write a new plan, and a
 new tune, for the words instead. New words that keep the old lines' syllable counts fit the melody
 best. When they do not, because there are more sections or far more syllables than the tune has notes (long lines on a tune
-made for short ones: the lines come out repeated or dropped), **Keep this tune** clears itself with a line saying
-why, and a new plan is written for the words.
+made for short ones: the lines come out repeated or dropped), or far fewer (short lines on a tune made for long ones:
+the singer fills the spare notes with words of its own), **Keep this tune** clears itself with a line saying why, and
+a new plan is written for the words. Tick it again to sing the tune anyway.
 
 ### Production polish
 

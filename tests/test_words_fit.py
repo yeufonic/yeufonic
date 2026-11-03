@@ -1,7 +1,8 @@
 """Keep this tune and words that do not fit (app.js: vocalNotes, lyricSyllables, tuneGap).
 
 A tune sings one syllable a note.  Words with far more syllables than its notes are crammed onto them and come out
-garbled, so past WORDS_PER_NOTE the editor unticks Keep this tune and writes a new plan, unless ticked again."""
+garbled; words with far fewer leave notes the singer fills with words of its own.  So past WORDS_PER_NOTE, or below
+FEWEST_WORDS_PER_NOTE, the editor unticks Keep this tune and writes a new plan, unless ticked again."""
 import json
 import re
 import subprocess
@@ -59,3 +60,25 @@ def test_the_tune_is_kept_up_to_one_point_three_syllables_a_note():
     assert value == 1.3
     gap = function("tuneGap")
     assert "syllables > notes * WORDS_PER_NOTE" in gap
+
+
+def gap_for(abc: str, lyrics: str):
+    """tuneGap() for a score and words, with the editor's boxes stood in for and a score of one section."""
+    values = re.search(r"var WORDS_PER_NOTE = [^\n]*\n(?:/\*[\s\S]*?\*/\n)?var FEWEST_WORDS_PER_NOTE = [^\n]*", APP_JS).group(0)
+    script = "\n".join([
+        values, function("vocalNotes"), function("lyricSyllables"), function("tuneGap"),
+        "function tuneSectionGap() { return null; }",
+        f"var boxes = {{abc: {{value: {json.dumps(abc)}}}, lyrics: {{value: {json.dumps(lyrics)}}}}};",
+        "function $(id) { return boxes[id]; }",
+        "console.log(JSON.stringify(tuneGap()));"])
+    return json.loads(subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout)
+
+
+def test_short_lines_on_a_long_tune_untick_keep_this_tune():
+    tune = "X:1\nM:4/4\nL:1/8\nV: Vocal\nK:C\n% verse\nV: Vocal\n" + "|".join(["cdef gabc"] * 10) + "|\n"   # 80 notes
+    fits = "\n".join(["The boardwalk lights are turning dim tonight"] * 8)                                 # 80 syllables
+    short = "\n".join(["Dust in the light"] * 8)                                                          # 32
+    assert gap_for(tune, fits) is None
+    gap = gap_for(tune, short)
+    assert "fills the rest with words of its own" in gap["keep"]
+    assert "A new plan is written to fit them" in gap["fresh"]

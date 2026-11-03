@@ -39,6 +39,11 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Keep this tune also clears for words far shorter than the tune.** Short lines on a tune written for long ones
+  leave notes with nothing to sing, and the singer fills them with words of its own. Below about three syllables to
+  four notes, **Keep this tune** is unticked with a line saying why, so a new plan is written to fit the words; tick
+  it again to sing the tune anyway.
+
 - **FLUX 3 klein can draw take pictures.** Black Forest Labs' FLUX 3 Image Klein is a third choice under **Take
   pictures: klein model**, beside the FLUX.2 4B and 9B. It draws from a full description of the scene, as Gemma and
   the external LLM now write, and letters titles well. Like the 9B it is never downloaded for you: its files are gated

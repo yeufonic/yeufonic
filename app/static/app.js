@@ -6957,12 +6957,16 @@ function lyricSyllables(text) {
   return total;
 }
 
-/* Why the take's tune cannot sing the words in the box, if it cannot: more sections than it has, or far more
-   syllables than it has notes (long lines on a tune made for short ones).  Songs written to fit run at about
+/* Why the take's tune cannot sing the words in the box, if it cannot: more sections than it has, far more
+   syllables than it has notes (long lines on a tune made for short ones), or far fewer (short lines on a tune made
+   for long ones, which leave notes for the singer to fill).  Songs written to fit run at about
    one syllable to a note; well beyond that the lines are repeated or dropped. */
 /* Past this many syllables a note, a tune cannot sing the words: they are crammed onto its notes and come out
    garbled, unless that is the style (rap can run past it): Keep this tune is unticked, and can be ticked again. */
 var WORDS_PER_NOTE = 1.3;
+/* Below this many syllables a note, the words leave much of the tune with nothing to sing, and the singer fills those
+   notes with words of its own: Keep this tune is unticked the same way.  Plans written to fit run at about one. */
+var FEWEST_WORDS_PER_NOTE = 0.75;
 
 function tuneGap() {
   var sections = tuneSectionGap();
@@ -6976,6 +6980,11 @@ function tuneGap() {
     var about = Math.round(syllables / 10) * 10;
     return { keep: 'Your words need about ' + about + ' syllables and this tune has ' + notes + ' notes, so they are crammed onto them: expect garbled or dropped words.',
              fresh: 'Your words need about ' + about + ' syllables and this tune has ' + notes + ' notes. A new plan is written to fit them.' };
+  }
+  if (notes >= 40 && syllables >= 20 && syllables < notes * FEWEST_WORDS_PER_NOTE) {
+    var few = Math.round(syllables / 10) * 10;
+    return { keep: 'Your words have about ' + few + ' syllables and this tune has ' + notes + ' notes, so the singer fills the rest with words of its own.',
+             fresh: 'Your words have about ' + few + ' syllables and this tune has ' + notes + ' notes. A new plan is written to fit them.' };
   }
   return null;
 }
