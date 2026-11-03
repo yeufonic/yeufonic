@@ -372,6 +372,7 @@ are not downloaded again. Deleting that folder removes it.
 - About 30 GB of disk with ComfyUI (less with yue2.cpp), more as your library grows.
 - Linux, or Windows with WSL2 or Docker Desktop. WSL2 is what this was built on; Windows with
   Docker Desktop needs a few settings, below.  Alternatively, on Windows, [the installer](#on-windows-without-docker) needs none of this.
+- Display resolution minimum 1920x1080, though Yeufonic works best with higher resolution displays
 - The macOS build has been tested on a Mac mini with an M4 and 24 GB of RAM, and found usable; a Pro or Max chip should give better results.
 
 ## Choosing a model size
