@@ -41,6 +41,22 @@ def source_path(digest: str, filename: str, fallback: str, ext: str, folder: str
     return base / f"{digest[:16]}-{name}{ext}"
 
 
+
+# A video brought in as a recording: only its sound is kept (`audio_from_video`).
+VIDEO_TYPES = {".mp4", ".m4v", ".mov", ".mkv", ".webm", ".avi", ".wmv", ".mpg", ".mpeg", ".3gp"}
+
+
+def audio_from_video(src: Path, dest: Path) -> bool:
+    """The first sound track of the video at src, as a FLAC at dest: the sound as the video carries it, without
+    being made worse by a second lossy encode.  False when the video has no sound."""
+    probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index",
+                            "-of", "csv=p=0", str(src)], capture_output=True, text=True, timeout=60)
+    if not probe.stdout.strip():
+        return False
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-map", "0:a:0", "-vn", "-c:a", "flac",
+                    "-map_metadata", "-1", str(dest)], capture_output=True, timeout=900, check=True)
+    return True
+
 def remove_tree(path: Path | None) -> None:
     """Delete a folder and everything in it.  A folder that is already gone is fine."""
     if path is None:

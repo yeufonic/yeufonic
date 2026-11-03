@@ -79,6 +79,7 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 
 - **Cover a recording.** Upload a song, transcribe it once, edit the melody and chords, render.
   Or pick a song from one of your corpora: its analysis already has the score and the words.
+  A video file works too: its sound is kept as the recording.
   The transcription is cached per recording, so re-rendering skips straight to the music.
 - **Hear what the recording sings.** A cover needs lyrics. **Extract lyrics** separates the vocal,
   listens to it and lays the lines under the sections of the score. It is asked for rather than

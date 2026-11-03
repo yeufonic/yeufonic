@@ -1786,9 +1786,22 @@ async def upload_source(
         ext = ".audio"
     source_id = uuid.uuid4().hex[:12]
     folder = "recordings" if origin == "recording" else None
-    dest = source_path(digest, file.filename or "", title or "source", ext, folder=folder)
+    video = ext in library.VIDEO_TYPES
+    dest = source_path(digest, file.filename or "", title or "source", ".flac" if video else ext, folder=folder)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    tmp.replace(dest)
+    if video:   # only its sound is kept, as a FLAC: the video itself is not needed for a cover or an instrumental
+        try:
+            has_sound = await asyncio.to_thread(library.audio_from_video, tmp, dest)
+        except (subprocess.SubprocessError, OSError) as exc:
+            dest.unlink(missing_ok=True)
+            log.warning("Could not take the sound from the video %s: %s", file.filename, exc)
+            raise HTTPException(400, "Could not read the sound in that video.") from exc
+        finally:
+            tmp.unlink(missing_ok=True)
+        if not has_sound:
+            raise HTTPException(400, "That video has no sound.")
+    else:
+        tmp.replace(dest)
 
     # Detect MIDI uploads by extension or binary header
     is_midi = ext in (".mid", ".midi")

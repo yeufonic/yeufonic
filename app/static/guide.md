@@ -639,8 +639,8 @@ last section: **Render** again for another try.
 
 ## Covering a recording
 
-1. Drop in an audio file, up to 300 MB. It is stored once and hashed, so the same file is never
-   held twice.
+1. Drop in an audio file, up to 2 GB. It is stored once and hashed, so the same file is never
+   held twice. A video file (MP4, MOV, MKV, WebM and the like) works too: only its sound is kept, as a FLAC.
 2. Press **Transcribe**. SheetSage2 writes the melody and the chords into the score box. This is
    cached per recording, so covering the same song again skips it.
 3. Fix anything it misheard.

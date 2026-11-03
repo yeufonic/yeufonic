@@ -42,6 +42,10 @@ cannot creep back in.
 - **A take can be saved as a video.** **Save** offers **Video** for a take with a picture: an MP4 of the song
   showing its picture throughout, which messaging apps send and play as a video rather than as a file.
 
+- **A video can be the recording for a cover or an instrumental.** Drop or choose an MP4, MOV, MKV, WebM or
+  similar file, and its sound is kept as the recording, as a FLAC; the picture is left behind. A video with no
+  sound is refused and says so.
+
 - **Keep this tune also clears for words far shorter than the tune.** Short lines on a tune written for long ones
   leave notes with nothing to sing, and the singer fills them with words of its own. Below about three syllables to
   four notes, **Keep this tune** is unticked with a line saying why, so a new plan is written to fit the words; tick
