@@ -49,6 +49,12 @@ def test_follow_the_style_is_set_in_advanced_and_kept_by_the_take(page, app_serv
     assert page.locator("#adv-reset-btn").is_enabled()
     page.locator("#advanced-take-modal .modal-box, #advanced-take-modal").first.screenshot(
         path="browser-tests/artifacts/follow-the-style.png")
+    # Past what the engines take: held at the end, and shown so.
+    page.fill("#adv-cfg-scale", "150")
+    page.locator("#adv-cfg-scale").dispatch_event("change")
+    assert page.input_value("#adv-cfg-scale") == "100"
+    page.fill("#adv-cfg-scale", "7.5")
+    page.locator("#adv-cfg-scale").dispatch_event("change")
     page.click("#adv-done-btn")
     page.select_option("#mode", "off")
     page.fill("#style", "garage rock")
@@ -56,6 +62,6 @@ def test_follow_the_style_is_set_in_advanced_and_kept_by_the_take(page, app_serv
     before = take_ids(page)
     page.click("#create-song")
     take_id = new_take_id(page, before)
-    assert wait_take(app_server, take_id)["cfg_scale"] == 1.5
+    assert wait_take(app_server, take_id)["cfg_scale"] == 7.5
     assert card(page, take_id).count() == 1
     assert api(app_server, f"/api/takes/{take_id}")["mode"] == "off"

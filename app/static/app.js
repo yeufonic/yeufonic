@@ -1303,8 +1303,9 @@ function readAdvancedSettings() {
   if (isNaN(lufs) || lufs < -30.0 || lufs > -4.0) { lufs = ADVANCED_DEFAULTS.target_lufs; }
   var fade = parseFloat($('adv-fade-out-seconds').value);
   if (isNaN(fade) || fade < 0.5 || fade > 15.0) { fade = ADVANCED_DEFAULTS.fade_out_seconds; }
+  // Any value the engines take (ComfyUI's node goes to 100): one past either end is held at that end, not dropped.
   var cfg = $('adv-cfg-scale') ? parseFloat($('adv-cfg-scale').value) : NaN;
-  if (isNaN(cfg) || cfg < 1.0 || cfg > 3.0) { cfg = ADVANCED_DEFAULTS.cfg_scale; }
+  cfg = isNaN(cfg) ? ADVANCED_DEFAULTS.cfg_scale : Math.min(100, Math.max(0, cfg));
   return {
     sampler_steps: steps,
     avoid: avoid,
@@ -1491,6 +1492,15 @@ function wireAdvancedSettings() {
   };
 
   syncRangeNum('adv-sampler-steps-range', 'adv-sampler-steps');
+  // Follow the style shows the value it will use once it is left: 150 becomes 100.
+  if ($('adv-cfg-scale')) {
+    $('adv-cfg-scale').addEventListener('change', function () {
+      var box = $('adv-cfg-scale');
+      if (box.value.trim() !== '') { box.value = String(readAdvancedSettings().cfg_scale); }
+      updateAdvancedButtonState();
+      saveForm();
+    });
+  }
 
   var inputs = [
     'adv-sampler-steps', 'adv-avoid', 'adv-target-key', 'adv-target-bpm',

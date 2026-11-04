@@ -51,8 +51,8 @@ cannot creep back in.
   score again. Both engines.
 
 - **Follow the style, in Advanced.** How firmly the music follows the style and the words (the music stage's
-  guidance, CFG), from 1.0, YuE2's own, to 3.0. The difference is subtle, and a render takes a little longer. Shown
-  when the engine has it: yue2.cpp, and the ComfyUI engine at its newer version (rebuild an older Docker engine).
+  guidance, CFG), 1.0 by default, YuE2's own, and anything from 0 to 100. The difference is subtle at small values,
+  and a render takes a little longer. Shown when the engine has it: yue2.cpp, and the ComfyUI engine at its newer version (rebuild an older Docker engine).
 
 - **A take can be saved as a video.** **Save** offers **Video** for a take with a picture: an MP4 of the song
   showing its picture throughout, which messaging apps send and play as a video rather than as a file.

@@ -1008,7 +1008,7 @@ class AdvancedRenderSettingsMixin(BaseModel):
     voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
-    cfg_scale: float | None = Field(None, ge=1.0, le=3.0)
+    cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
 
 
 class SongIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
@@ -1064,7 +1064,7 @@ class ReplanIn(BaseModel):
     voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
-    cfg_scale: float | None = Field(None, ge=1.0, le=3.0)
+    cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
 
 
 class TakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
@@ -1185,7 +1185,7 @@ class RenderIn(BaseModel):
     voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
-    cfg_scale: float | None = Field(None, ge=1.0, le=3.0)
+    cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
 
 
 class WordsIn(RenderIn):

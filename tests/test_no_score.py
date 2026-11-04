@@ -188,7 +188,8 @@ def test_follow_the_style_is_kept_and_reset(client):
     execute("UPDATE takes SET status = 'done' WHERE id = ?", (take["id"],))
     client.post(f"/api/takes/{take['id']}/render", json={"cfg_scale": None})
     assert one("SELECT cfg_scale FROM takes WHERE id = ?", (take["id"],))["cfg_scale"] is None
-    assert client.post("/api/songs", json={"lyrics": WORDS, "cfg_scale": 5}).status_code == 422
+    assert client.post("/api/songs", json={"lyrics": WORDS, "cfg_scale": 101}).status_code == 422
+    assert client.post("/api/songs", json={"lyrics": WORDS, "cfg_scale": 7.5}).status_code == 200
 
 
 def test_the_page_is_told_whether_the_engine_has_it(client, monkeypatch):

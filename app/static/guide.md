@@ -65,9 +65,10 @@ Some of these act on the plan, and some on the render and the finished file:
 
 - **Diffusion steps** (16–64, default 32): how many steps the audio decoder takes. More steps take
   longer to render.
-- **Follow the style** (1.0–3.0, default 1.0): how firmly the music follows the style and the words, the guidance
-  of the stage that turns the score into sound (CFG). Above 1.0 it leans further towards them. The difference is
-  subtle, and a render takes a little longer. It is shown when the engine has it: yue2.cpp, or the ComfyUI engine
+- **Follow the style** (0–100, default 1.0): how firmly the music follows the style and the words, the guidance
+  of the stage that turns the score into sound (CFG). Above 1.0 it leans further towards them; below it, away. The
+  difference is subtle at small values, and a render takes a little longer. Any value the engine takes can be
+  entered: very high guidance tends to sound harsh rather than closer. It is shown when the engine has it: yue2.cpp, or the ComfyUI engine
   at its newer version (rebuild an older Docker engine to get it).
 - **Avoid:** words to steer away from, such as "drums" or "rap vocals". They are added to the style
   as "avoid: …". It is a hint to the planner, not a guarantee: the renderer has no negative prompt.
