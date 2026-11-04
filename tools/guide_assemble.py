@@ -14,6 +14,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HEADING = re.compile(r'^(#{2,4}) (.+?)\s*$', re.M)
@@ -21,6 +22,33 @@ HEADING = re.compile(r'^(#{2,4}) (.+?)\s*$', re.M)
 
 def slug(text):
     return re.sub(r'^-|-$', '', re.sub(r'[^a-z0-9]+', '-', text.lower()))
+
+
+def _punct(ch):
+    return ch == '\x00' or unicodedata.category(ch)[0] in 'PS'
+
+
+def _fix_emphasis(text):
+    """CommonMark (and marked) only opens `**` when the run is followed by a letter or comes after a space or
+    punctuation, and only closes it in the mirror case. Chinese and Japanese put no spaces between words, so
+    `**+ 歌曲**` or `**无乐谱（仅限歌曲）**` sits straight against other letters and the asterisks show instead of bold.
+    Such spans become <strong> or <em>, which marked passes through. Code is kept out of it: each code span stands
+    in as one punctuation mark (a backtick is one to marked), and fenced blocks are not touched."""
+    codes = []
+    def keep(m):
+        codes.append(m.group(0))
+        return '\x00'
+    text = re.sub(r'```.*?```|`[^`\n]*`', keep, text, flags=re.S)
+    def one(m, tag):
+        before, inner, after = m.string[m.start() - 1:m.start()], m.group(1), m.string[m.end():m.end() + 1]
+        if (before and not before.isspace() and not _punct(before) and _punct(inner[0])) or \
+           (after and not after.isspace() and not _punct(after) and _punct(inner[-1])):
+            return f'<{tag}>{inner}</{tag}>'
+        return m.group(0)
+    span = r'((?:(?!\*)[^\n]|\n(?!\n))+?)'
+    text = re.sub(r'\*\*' + span + r'\*\*', lambda m: one(m, 'strong'), text)
+    text = re.sub(r'(?<!\*)\*(?=\S)' + span + r'(?<=\S)\*(?!\*)', lambda m: one(m, 'em'), text)
+    return re.sub('\x00', lambda m: codes.pop(0), text)
 
 
 def assemble(code, folder):
@@ -48,7 +76,10 @@ def assemble(code, folder):
         out += [text[last:m.start()], f'{m.group(1)} {re.sub(r"\s*\{#[^}]*\}$", "", m.group(2))} {{#{slug(head)}}}']
         last = m.end()
     out.append(text[last:])
-    return ''.join(out), sorted(set(missing)), problems, len(found)
+    text = ''.join(out)
+    if code[:2] in ('zh', 'ja', 'ko'):
+        text = _fix_emphasis(text)
+    return text, sorted(set(missing)), problems, len(found)
 
 
 if __name__ == '__main__':
