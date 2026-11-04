@@ -2553,6 +2553,11 @@ label .lora-value:disabled { opacity: 0.6; }
 .pbtn:hover { color: var(--text); background: rgb(var(--ink) / 0.07); }
 .pbtn:disabled { opacity: 0.35; cursor: default; background: none; }
 .pbtn.on { color: var(--good); }
+/* The player's star, lit, is the card's: a filled gold star on a gold tint, so a starred take reads as one. */
+#btn-star.on, #btn-star.on:hover { color: #facc15; background: rgba(250, 204, 21, 0.12); box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.45), 0 0 12px rgba(250, 204, 21, 0.22); }
+#btn-star.on svg { fill: currentColor; }
+:root[data-theme="light"] #btn-star.on, :root[data-theme="light"] #btn-star.on:hover { color: #b45309;
+  background: rgba(180, 83, 9, 0.12); box-shadow: inset 0 0 0 1px rgba(180, 83, 9, 0.40), 0 0 10px rgba(180, 83, 9, 0.20); }
 .pbtn.play {
   width: 44px; height: 44px; border-radius: 50%; background: var(--play-bg); color: var(--play-fg);
   margin: 0 4px; box-shadow: 0 2px 10px rgb(var(--shade) / 0.45);
