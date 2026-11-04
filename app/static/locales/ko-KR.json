@@ -2251,7 +2251,7 @@
  "The external provider's model that draws a take's picture, when the external LLM draws them (e.g. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 otherwise. Each picture is one image request to the provider, which may be charged.": "외부 LLM이 그릴 때 테이크 그림을 그리는 외부 제공자의 모델 (예: gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). 비우면 Gemini는 gemini-3.1-flash-image, 그 외는 gpt-image-1. 그림마다 제공자에게 이미지 요청을 한 번 하며 요금이 들 수 있습니다.",
  "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.": "외부 LLM이 그리는 그림에만 해당: ‘테이크 그림: 그리는 쪽’에서 고르세요.",
  "Language": "언어",
- "The language of the app's words. Your titles, styles and lyrics stay as you wrote them, and the guide is in English for now. The page reloads to change it.": "앱 문구의 언어. 제목, 스타일, 가사는 쓴 그대로 유지되며 가이드는 당분간 영어입니다. 바꾸면 페이지가 새로고침됩니다.",
+ "The language of the app's words, and of the guide where it has been translated. Your titles, styles and lyrics stay as you wrote them. The page reloads to change it.": "앱 문구의 언어이며, 번역된 경우 가이드의 언어이기도 합니다. 제목, 스타일, 가사는 쓴 그대로 유지됩니다. 바꾸면 페이지가 새로고침됩니다.",
  "Theme": "테마",
  "How the app looks.": "앱의 모양.",
  "Backdrop colour": "배경 색",

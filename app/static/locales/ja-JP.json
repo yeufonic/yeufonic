@@ -2251,7 +2251,7 @@
  "The external provider's model that draws a take's picture, when the external LLM draws them (e.g. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 otherwise. Each picture is one image request to the provider, which may be charged.": "外部 LLM が描くとき、テイクの画像を描く外部プロバイダーのモデル（例：gemini-3.1-flash-image、gemini-3-pro-image、gpt-image-1）。空欄：Gemini なら gemini-3.1-flash-image、それ以外は gpt-image-1。1枚ごとにプロバイダーへの画像リクエストが1回になり、料金がかかることがあります。",
  "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.": "外部 LLM が描く画像のみ：「テイクの画像：描くもの」で選んでください。",
  "Language": "言語",
- "The language of the app's words. Your titles, styles and lyrics stay as you wrote them, and the guide is in English for now. The page reloads to change it.": "アプリの文言の言語。タイトル、スタイル、歌詞は書いたままで、ガイドは当面英語です。変更するとページが再読み込みされます。",
+ "The language of the app's words, and of the guide where it has been translated. Your titles, styles and lyrics stay as you wrote them. The page reloads to change it.": "アプリの文言の言語と、翻訳済みであればガイドの言語。タイトル、スタイル、歌詞は書いたままです。変更するとページが再読み込みされます。",
  "Theme": "テーマ",
  "How the app looks.": "アプリの見た目。",
  "Backdrop colour": "背景色",

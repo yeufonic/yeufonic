@@ -2251,7 +2251,7 @@
  "The external provider's model that draws a take's picture, when the external LLM draws them (e.g. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 otherwise. Each picture is one image request to the provider, which may be charged.": "El modelo del proveedor externo que dibuja la imagen de una toma, cuando las dibuja el LLM externo (p. ej. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Vacío: gemini-3.1-flash-image con Gemini, gpt-image-1 en otro caso. Cada imagen es una solicitud de imagen al proveedor, que puede tener coste.",
  "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.": "Solo para imágenes dibujadas por el LLM externo: elígelo en Imágenes de las tomas: dibujadas por.",
  "Language": "Idioma",
- "The language of the app's words. Your titles, styles and lyrics stay as you wrote them, and the guide is in English for now. The page reloads to change it.": "El idioma de las palabras de la app. Tus títulos, estilos y letras quedan como los escribiste, y la guía está en inglés por ahora. La página se recarga para cambiarlo.",
+ "The language of the app's words, and of the guide where it has been translated. Your titles, styles and lyrics stay as you wrote them. The page reloads to change it.": "El idioma de las palabras de la app, y de la guía donde está traducida. Tus títulos, estilos y letras quedan como los escribiste. La página se recarga para cambiarlo.",
  "Theme": "Tema",
  "How the app looks.": "El aspecto de la app.",
  "Backdrop colour": "Color de fondo",

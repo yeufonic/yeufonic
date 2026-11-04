@@ -2251,7 +2251,7 @@
  "The external provider's model that draws a take's picture, when the external LLM draws them (e.g. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 otherwise. Each picture is one image request to the provider, which may be charged.": "Het model van de externe aanbieder dat de afbeelding van een take tekent, als de externe LLM ze tekent (bijv. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Leeg: gemini-3.1-flash-image bij Gemini, anders gpt-image-1. Elke afbeelding is één beeldverzoek aan de aanbieder, wat kosten kan meebrengen.",
  "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.": "Alleen voor afbeeldingen die door de externe LLM worden getekend: kies die bij Take-afbeeldingen: getekend door.",
  "Language": "Taal",
- "The language of the app's words. Your titles, styles and lyrics stay as you wrote them, and the guide is in English for now. The page reloads to change it.": "De taal van de woorden in de app. Je titels, stijlen en songteksten blijven zoals je ze schreef, en de handleiding is voorlopig in het Engels. De pagina wordt herladen om de taal te wijzigen.",
+ "The language of the app's words, and of the guide where it has been translated. Your titles, styles and lyrics stay as you wrote them. The page reloads to change it.": "De taal van de woorden in de app, en van de handleiding waar die vertaald is. Je titels, stijlen en songteksten blijven zoals je ze schreef. De pagina wordt herladen om de taal te wijzigen.",
  "Theme": "Thema",
  "How the app looks.": "Hoe de app eruitziet.",
  "Backdrop colour": "Achtergrondkleur",

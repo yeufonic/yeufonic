@@ -45,7 +45,9 @@ cannot creep back in.
   US English where none fits. Every button, label, tip, message and setting is translated, and so are the messages
   from the server that the page shows. Your titles, styles and lyrics stay as you wrote them, as do the style and
   voice chips (they are words the model reads) and the labels on the mastering rack's faceplates. The translations
-  are machine-made. The guide is in English for now. US English is the default, with US spellings; UK English is the
+  are machine-made. The guide is translated too, by machine, with its buttons named as the translated page names them:
+  so far into German, French, Spanish (both), Portuguese (both), Italian, Dutch and US English; in the other
+  languages it is the English. US English is the default, with US spellings; UK English is the
   text as it was.
 
 - **Choosing a take that uses a LoRA is quick again.** With many LoRAs installed, a click on such a take took a

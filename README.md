@@ -603,7 +603,7 @@ any browser and survive a rebuild.
 | Setting | What it does |
 |---|---|
 | Output audio format | FLAC (the default), WAV, or MP3 at 320 kbps. The format stems start with; they can choose another at the time. A take's **Save** starts with what it saved last |
-| Language | The language of the app's words: the browser's language (the default, the nearest of the fifteen), or one of English (US), English (UK), 简体中文, 繁體中文, 日本語, 한국어, Deutsch, Nederlands, Français, Italiano, Русский, Español (España), Español (Latinoamérica), Português (Brasil) or Português (Portugal). The translations are machine-made. Your titles, styles and lyrics stay as you wrote them, and the guide is in English for now. The page reloads to change it |
+| Language | The language of the app's words: the browser's language (the default, the nearest of the fifteen), or one of English (US), English (UK), 简体中文, 繁體中文, 日本語, 한국어, Deutsch, Nederlands, Français, Italiano, Русский, Español (España), Español (Latinoamérica), Português (Brasil) or Português (Portugal). The translations are machine-made. Your titles, styles and lyrics stay as you wrote them. The guide follows the language where it has been translated, also by machine. The page reloads to change it |
 | Theme | Dark (the default), Light, Match the computer (dark or light, as the system is), Studio (warm and dark) or High contrast |
 | Normalise to | How loud a normalised take is made: −16, −14 (the default) or −11 LUFS |
 | MCP server | Off by default. Turn it on to let an AI agent on this computer use Yeufonic: see [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp) |

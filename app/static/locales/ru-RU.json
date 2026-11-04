@@ -2251,7 +2251,7 @@
  "The external provider's model that draws a take's picture, when the external LLM draws them (e.g. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 otherwise. Each picture is one image request to the provider, which may be charged.": "Модель внешнего провайдера, которая рисует картинку дубля, когда рисует внешняя LLM (напр. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Пусто: gemini-3.1-flash-image с Gemini, иначе gpt-image-1. Каждая картинка — один запрос изображения к провайдеру, что может быть платным.",
  "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.": "Только для картинок, которые рисует внешняя LLM: выберите её в «Картинки дублей: рисует».",
  "Language": "Язык",
- "The language of the app's words. Your titles, styles and lyrics stay as you wrote them, and the guide is in English for now. The page reloads to change it.": "Язык надписей приложения. Ваши названия, стили и тексты остаются такими, как вы их написали, а руководство пока на английском. Для смены языка страница перезагрузится.",
+ "The language of the app's words, and of the guide where it has been translated. Your titles, styles and lyrics stay as you wrote them. The page reloads to change it.": "Язык надписей приложения и руководства, если оно переведено. Ваши названия, стили и тексты остаются такими, как вы их написали. Для смены языка страница перезагрузится.",
  "Theme": "Тема",
  "How the app looks.": "Как выглядит приложение.",
  "Backdrop colour": "Цвет фона",

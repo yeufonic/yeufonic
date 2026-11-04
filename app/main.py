@@ -519,8 +519,8 @@ SETTINGS_SPEC: list[dict] = [
         "default": "auto",
         "options": [{"value": "auto", "label": "The browser's language"}]
                    + [{"value": code, "label": name} for code, name in locales.LOCALES.items()],
-        "help": "The language of the app's words. Your titles, styles and lyrics stay as you wrote them, and the guide "
-                "is in English for now. The page reloads to change it.",
+        "help": "The language of the app's words, and of the guide where it has been translated. Your titles, styles "
+                "and lyrics stay as you wrote them. The page reloads to change it.",
     },
     {
         "key": "appearance.theme",

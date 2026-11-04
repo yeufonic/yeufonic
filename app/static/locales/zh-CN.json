@@ -2251,7 +2251,7 @@
  "The external provider's model that draws a take's picture, when the external LLM draws them (e.g. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 otherwise. Each picture is one image request to the provider, which may be charged.": "外部 LLM 绘图时，外部服务商用于绘制版本图片的模型（例如 gemini-3.1-flash-image、gemini-3-pro-image、gpt-image-1）。留空：Gemini 用 gemini-3.1-flash-image，其他用 gpt-image-1。每张图片是对服务商的一次图像请求，可能收费。",
  "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.": "仅用于外部 LLM 绘制的图片：在“版本图片：绘制者”中选择它。",
  "Language": "语言",
- "The language of the app's words. Your titles, styles and lyrics stay as you wrote them, and the guide is in English for now. The page reloads to change it.": "应用界面文字的语言。你的标题、风格和歌词保持原样，指南目前为英文。切换后页面会重新载入。",
+ "The language of the app's words, and of the guide where it has been translated. Your titles, styles and lyrics stay as you wrote them. The page reloads to change it.": "应用界面文字的语言，以及已翻译的指南的语言。你的标题、风格和歌词保持原样。切换后页面会重新载入。",
  "Theme": "主题",
  "How the app looks.": "应用的外观。",
  "Backdrop colour": "背景色",
