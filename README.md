@@ -89,6 +89,8 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   A new plan costs seconds, so a bad melody is cheap to discard.
 - **Same tune, new words.** Change the words of a take you like, keep **Keep this tune** ticked,
   and its score is sung with them as a new take with the same seed. A new plan would be a new tune.
+- **Or no score at all.** Mode's *No score* sings the words with no plan: YuE2 writes the tune and the chords as
+  it sings, as the original YuE did, for a song that moves differently from a planned one.
 - **Choose how adventurous the chords are.** YuE2 tends to write one four-chord loop for a whole
   song. The Harmony slider, from Familiar to Outside, pushes the planner towards chords it has not
   just used, without breaking the song's structure.

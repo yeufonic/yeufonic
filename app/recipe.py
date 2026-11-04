@@ -56,6 +56,7 @@ FIELDS = {
     "voice_cues": "voice_cues",
     "target_lufs": "target_lufs",
     "fade_out_seconds": "fade_out_seconds",
+    "cfg_scale": "cfg_scale",
     "hook_score": "hook_abc",
     "hook_section": "hook_section",
 }

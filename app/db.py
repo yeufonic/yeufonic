@@ -154,7 +154,8 @@ CREATE TABLE IF NOT EXISTS takes (
     fx_chain TEXT,
     parent_id TEXT,
     hook_abc TEXT,
-    hook_section TEXT
+    hook_section TEXT,
+    cfg_scale REAL
 );
 CREATE TABLE IF NOT EXISTS identities (
     id TEXT PRIMARY KEY,
@@ -700,6 +701,12 @@ def _take_fx_chain() -> None:
         execute("ALTER TABLE takes ADD COLUMN fx_chain TEXT")
 
 
+
+def _cfg_scale() -> None:
+    """The music stage's guidance towards the style and words, set in Advanced; NULL is the engine's own."""
+    if "cfg_scale" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN cfg_scale REAL")
+
 MIGRATIONS = [
     lambda: (conn().executescript(BASE_SCHEMA), _legacy_takes()),   # -> 1
     _indexes,                                                        # -> 2
@@ -743,6 +750,7 @@ MIGRATIONS = [
     _source_origin,                                                  # -> 40
     _hook,                                                           # -> 41
     _source_instrument,                                              # -> 42
+    _cfg_scale,                                                      # -> 43
 ]
 
 
@@ -771,6 +779,11 @@ def migrate() -> None:
                 log.info("database migration %d", number + 1)
                 MIGRATIONS[number]()
                 c.execute(f"PRAGMA user_version = {number + 1}")
+    # A database a branch has already taken past this version, with a migration of its own under the same
+    # number, still gets the columns added since.
+    if "cfg_scale" not in _columns("takes"):
+        with transaction():
+            _cfg_scale()
     with suppress(Exception):
         c.execute("UPDATE identity_songs SET flag = NULL WHERE flag LIKE 'longer than%' AND duration <= 1500")
         c.commit()

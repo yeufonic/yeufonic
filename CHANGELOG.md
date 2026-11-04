@@ -39,6 +39,16 @@ cannot creep back in.
 
 ## Unreleased
 
+- **A song can be sung with no score.** **Mode** has a third choice for songs, **No score**: no plan is written, and
+  YuE2 writes the tune and the chords as it sings, as the original YuE did. The song is rendered at once with **Sing
+  with no score**. Harmony, Plan variety, Keep this tune and Follow this structure exactly are greyed out while it is
+  chosen. Sing again, Variations, Try more, new words and take recipes keep it; Write a new plan gives the take a
+  score again. Both engines.
+
+- **Follow the style, in Advanced.** How firmly the music follows the style and the words (the music stage's
+  guidance, CFG), from 1.0, YuE2's own, to 3.0. The difference is subtle, and a render takes a little longer. Shown
+  when the engine has it: yue2.cpp, and the ComfyUI engine at its newer version (rebuild an older Docker engine).
+
 - **A take can be saved as a video.** **Save** offers **Video** for a take with a picture: an MP4 of the song
   showing its picture throughout, which messaging apps send and play as a video rather than as a file.
 

@@ -108,6 +108,10 @@ PLAN_VARIETY = {
 #   Adventurous  recently used roots are discouraged, so the harmony has to move;
 #                borrowed chords appear
 #   Outside      adventurous, plus a pull towards roots outside the key
+# A song sung with no score: no plan is written, and the music stage composes as it sings.  Stored as the take's
+# mode beside "full" and "melody"; a song only (a cover is its recording's score, an instrumental needs one).
+NO_SCORE = "off"
+
 HARMONY_NODE = "YuE2GenerateABCHarmony"
 HARMONY_STEPS = ["Familiar", "Varied", "Colourful", "Adventurous", "Outside"]
 HARMONY_OFF = {"chord_identity": "root", "chord_strength": 0.0, "chord_window": 16, "hold_limit": 8,
@@ -388,6 +392,14 @@ def build_render_graph(take: dict) -> dict:
     node["abc"] = lock_tempo(abc_clean, take.get("target_bpm"))
     node["seed"] = int(take["seed"])
     node["mode"] = take["mode"]
+    if take["mode"] == NO_SCORE:
+        # Sung with no score: YuE2 composes as it sings.  Both engines take an empty score as that (ComfyUI's
+        # node calls it "off"); its own mode stays one the node lists.  A score the take still holds is kept,
+        # unsent, for when it is rendered with one again.
+        node["abc"] = ""
+        node["mode"] = "full"
+    if take.get("cfg_scale") is not None and (getattr(ENGINE, "options", None) or {}).get("cfg"):
+        node["cfg_scale"] = float(take["cfg_scale"])
     node["max_duration"] = float(take.get("max_duration") or 360)
     # The notes come from the seed on node 11; the noise the decoder shapes into sound
     # comes from this one.  A sound seed of its own draws a new voice over the same notes.
@@ -1118,7 +1130,8 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
     rendered_for = None
     if kind == "render" and ref_id not in RETRIED_EARLY:
         rendered_for = await asyncio.to_thread(audio_duration, dest)
-        if score.stopped_early(rendered_for, record.get("abc"), float(record.get("max_duration") or 0)):
+        sung_score = "" if record.get("mode") == NO_SCORE else record.get("abc")   # no score, no early end to judge
+        if score.stopped_early(rendered_for, sung_score, float(record.get("max_duration") or 0)):
             RETRIED_EARLY.add(ref_id)
             with contextlib.suppress(OSError):
                 dest.unlink(missing_ok=True)

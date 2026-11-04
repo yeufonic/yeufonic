@@ -55,6 +55,7 @@ def object_info() -> dict:
     nodes["LoraLoader"]["input"]["required"]["lora_name"] = [[config.INSTRUMENTAL_LORA, config.REAL_AUDIO_LORA,
                                                               "bright-pop.safetensors"]]
     nodes["YuE2GenerateABCHarmony"]["input"]["optional"]["hook_body"] = ["STRING", {}]
+    nodes["YuE2GenerateMusic"]["input"]["optional"]["cfg_scale"] = ["FLOAT", {}]   # Follow the style
     return nodes
 
 

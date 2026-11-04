@@ -47,7 +47,7 @@ from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, on
 
 personas = identities
 from .engine import engine_build, model_slow, stage_label, start_problem
-from .jobs import (CURRENT, CURRENT_STEMS, ENGINE, HARMONY_STEPS, INTERPRETATION_NAMES, INTERPRETATIONS, LYRICS,
+from .jobs import (CURRENT, CURRENT_STEMS, ENGINE, HARMONY_STEPS, INTERPRETATION_NAMES, INTERPRETATIONS, LYRICS, NO_SCORE,
                    PLAN_VARIETY, QUEUE, STEM_QUEUE)
 from .library import (audio_duration, ensure_peaks, fill_loudness, inside, kept_beside, relayout, remove_tree,
                       slugify, source_path, take_folder, vocal_path)
@@ -807,13 +807,14 @@ async def lifespan(app: FastAPI):
 
 async def requeue_waiting() -> None:
     """Put jobs that were waiting at shutdown back in their queues, oldest first."""
-    waiting = [(row["created_at"], "take", row) for row in rows("SELECT id, abc, created_at FROM takes WHERE status = 'queued'")]
+    waiting = [(row["created_at"], "take", row) for row in rows("SELECT id, abc, mode, created_at FROM takes WHERE status = 'queued'")]
     waiting += [(row["created_at"], "source", row) for row in rows("SELECT id, created_at FROM sources WHERE transcribe_state = 'queued'")]
     for _, kind, row in sorted(waiting, key=lambda item: item[0]):
         if kind == "source":
             await QUEUE.put({"kind": "transcribe", "id": row["id"]})
         else:
-            await QUEUE.put({"kind": "render" if (row["abc"] or "").strip() else "plan", "id": row["id"]})
+            sings = (row["abc"] or "").strip() or row["mode"] == NO_SCORE   # a take with no score is rendered as it is
+            await QUEUE.put({"kind": "render" if sings else "plan", "id": row["id"]})
     for row in rows("SELECT id FROM stem_sets WHERE status = 'queued' ORDER BY created_at"):
         await STEM_QUEUE.put({"id": row["id"]})
     for row in rows("SELECT id FROM sources WHERE lyrics_state IN ('queued', 'running') ORDER BY created_at"):
@@ -937,6 +938,7 @@ class RetrackIn(BaseModel):
 ADVANCED_KEYS = (
     "sampler_steps", "avoid", "target_key", "target_bpm", "max_abc_tokens",
     "chord_hold_limit", "chord_outside_bonus", "chord_sections", "follow_structure", "voice_cues", "target_lufs", "fade_out_seconds",
+    "cfg_scale",
 )
 ADVANCED_DEFAULTS = {
     "sampler_steps": 32,
@@ -956,6 +958,8 @@ ADVANCED_DEFAULTS = {
     "voice_cues": 1,
     "target_lufs": None,
     "fade_out_seconds": 3.0,
+    # The music stage's guidance towards the style and words; None is the engine's own (1.0 with a score, 1.01 without).
+    "cfg_scale": None,
 }
 
 
@@ -1002,6 +1006,7 @@ class AdvancedRenderSettingsMixin(BaseModel):
     voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
+    cfg_scale: float | None = Field(None, ge=1.0, le=3.0)
 
 
 class SongIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
@@ -1025,6 +1030,8 @@ class SongIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     space_id: str = Field(DEFAULT_SPACE, max_length=64)
     realaudio: bool = True
     normalise: bool = False
+    # "off": no score.  The song is rendered at once, YuE2 composing as it sings.  Anything else writes a plan first.
+    mode: str | None = None
 
 
 def _style_lora_of(body) -> dict:
@@ -1055,6 +1062,7 @@ class ReplanIn(BaseModel):
     voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
+    cfg_scale: float | None = Field(None, ge=1.0, le=3.0)
 
 
 class TakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
@@ -1175,6 +1183,7 @@ class RenderIn(BaseModel):
     voice_cues: int | None = Field(None, ge=0, le=1)
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
+    cfg_scale: float | None = Field(None, ge=1.0, le=3.0)
 
 
 class WordsIn(RenderIn):
@@ -1694,6 +1703,8 @@ def state() -> dict:
             "harmony_steps": HARMONY_STEPS,
             # Unknown until the engine has been read, so only a confirmed absence disables it.
             "harmony_available": ENGINE.options.get("harmony", False) or not ENGINE.options_loaded,
+            # Follow the style (the music stage's guidance): yue2.cpp, and a ComfyUI from 2026-10 on.
+            "cfg_available": bool(ENGINE.options.get("cfg")),
             # A recorded tune held in a plan: the harmony node's newer inputs.
             "hook_available": ENGINE.options.get("hook", False) or not ENGINE.options_loaded,
             # Both switches and the engine's node, so the page never offers a button
@@ -2651,12 +2662,12 @@ async def create_take(body: TakeIn) -> dict:
                              space_id, parent_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
-                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds)
+                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale)
            VALUES(:id, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration, 'queued', :created_at,
                   :space_id, :parent_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
-                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds)""",
+                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale)""",
         record,
     )
     if record["mode"] == "full" and not record["abc"]:
@@ -2666,13 +2677,36 @@ async def create_take(body: TakeIn) -> dict:
     return {**record, "status": "queued"}
 
 
+def _scoreless(take: dict) -> bool:
+    """A take sung with no score: there is no plan to need, check or render (jobs.NO_SCORE)."""
+    return take.get("mode") == NO_SCORE
+
+
+def _no_score_wanted(mode: str | None, take: dict | None = None) -> bool:
+    """Whether a request asks for no score, and may have it: songs only.  A cover is its recording's score, and an
+    instrumental needs a score to keep its voice out."""
+    if mode != NO_SCORE:
+        return False
+    if take is not None and (take.get("kind") != "song" or take.get("source_id")):
+        raise HTTPException(400, "only a song from a prompt can be sung with no score")
+    return True
+
+
 @app.post("/api/songs")
 async def create_song(body: SongIn) -> dict:
     _gpu_free_for_rendering()
-    """Plan a song from style and lyrics alone. The take lands in the planned state."""
+    """Plan a song from style and lyrics alone. The take lands in the planned state.  With no score asked for,
+    there is no plan: the song is rendered at once."""
     if not body.lyrics.strip():
         raise HTTPException(400, "write some lyrics first. The planner needs words to shape the melody.")
     title = (body.title or "").strip() or guess_title(body.lyrics) or "Untitled song"
+    if _no_score_wanted(body.mode):
+        record = _new_take_record("song", title, body.lyrics, body)
+        record.update(mode=NO_SCORE, auto_render=0)
+        _insert_new_take(record)
+        await queue_take("render", record["id"])
+        log.info("Queued song with no score '%s' (%s)", title, record["id"])
+        return {**record, "status": "queued"}
     return await _plan_new_take("song", title, body.lyrics, body)
 
 
@@ -2788,14 +2822,14 @@ def _insert_new_take(record: dict) -> None:
                              normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
-                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds,
+                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale,
                              hook_abc, hook_section)
            VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :brief, :abc, :mode, :seed, :checkpoint,
                   :max_duration, :cap_typed, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :parent_id, :interpretation, :feel, :realaudio,
                   :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
-                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds,
+                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale,
                   :hook_abc, :hook_section)""",
         {"hook_abc": None, "hook_section": None, **record},
     )
@@ -3194,7 +3228,7 @@ def _render_settings(take: dict, body: RenderIn | None) -> dict:
     if body.max_duration is not None:
         got["max_duration"] = body.max_duration
     if body.mode is not None:
-        got["mode"] = body.mode if body.mode in ("full", "melody") else "full"
+        got["mode"] = body.mode if body.mode in ("full", "melody") or _no_score_wanted(body.mode, take) else "full"
     if body.style_lora is not None:
         got.update(_style_lora_of(body))
     return got
@@ -3205,9 +3239,11 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
     _gpu_free_for_rendering()
     """Render a take that already has a score, optionally in another interpretation."""
     take = _idle_take(take_id)
-    if not (take["abc"] or "").strip():
+    scoreless = _render_settings(take, body)["mode"] == NO_SCORE
+    if not scoreless and not (take["abc"] or "").strip():
         raise HTTPException(400, "this take has no score yet. Write a plan first.")
-    _check_score(take["abc"], take["kind"])
+    if not scoreless:
+        _check_score(take["abc"], take["kind"])
     if take["kind"] == "instrumental" and take.get("source_id"):
         # An edit to the score may have given it a sung melody, or changed its sections.
         abc = _unsung(take["abc"])
@@ -3241,12 +3277,12 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
         seed = int.from_bytes(os.urandom(4), "big")
     else:
         seed = take["seed"]
-    execute("UPDATE takes SET status = 'queued', error = NULL, stage = NULL, checkpoint = ?, interpretation = ?, realaudio = ?, normalise = ?, identity_id = ?, persona_id = ?, voice_lora = ?, voice_lora_strength = ?, style_lora = ?, style_lora_model = ?, style_lora_clip = ?, style = ?, max_duration = ?, mode = ?, seed = ?, sound_seed = ?, vocal_check = NULL, loudness = NULL, sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?, chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ? WHERE id = ?",
+    execute("UPDATE takes SET status = 'queued', error = NULL, stage = NULL, checkpoint = ?, interpretation = ?, realaudio = ?, normalise = ?, identity_id = ?, persona_id = ?, voice_lora = ?, voice_lora_strength = ?, style_lora = ?, style_lora_model = ?, style_lora_clip = ?, style = ?, max_duration = ?, mode = ?, seed = ?, sound_seed = ?, vocal_check = NULL, loudness = NULL, sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?, chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ?, cfg_scale = ? WHERE id = ?",
             (config.CHECKPOINT, interpretation, realaudio, normalise, identity_val, identity_val, voice_lora, voice_lora_strength, sl["style_lora"], sl["style_lora_model"], sl["style_lora_clip"],
              sl["style"], sl["max_duration"], sl["mode"], seed,
              take.get("sound_seed") if seed == take["seed"] else None,
              adv["sampler_steps"], adv["avoid"], adv["target_key"], adv["target_bpm"], adv["max_abc_tokens"],
-             adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], take_id))
+             adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], adv["cfg_scale"], take_id))
     await queue_take("render", take_id)
     log.info("Queued audio render for take '%s' (%s, seed=%d)", take.get("title") or take_id, take_id, seed)
     return {"queued": True, "seed": seed}
@@ -3288,13 +3324,14 @@ async def replan_take(take_id: str, body: ReplanIn | None = None) -> dict:
     seed = int.from_bytes(os.urandom(4), "big")
     execute(
         """UPDATE takes SET seed = ?, sound_seed = NULL, abc = '', status = 'queued', error = NULL, stage = NULL,
+                            mode = CASE WHEN mode = 'off' THEN 'full' ELSE mode END,
                             variety = ?, harmony = ?, checkpoint = ?,
                             sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?,
-                            chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ?
+                            chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ?, cfg_scale = ?
            WHERE id = ?""",
         (seed, variety, harmony, config.CHECKPOINT,
          adv["sampler_steps"], adv["avoid"], adv["target_key"], adv["target_bpm"], adv["max_abc_tokens"],
-         adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], take_id),
+         adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], adv["cfg_scale"], take_id),
     )
     await queue_take("plan", take_id)
     log.info("Queued replan for take '%s' (%s, variety=%s, harmony=%s, seed=%d)",
@@ -3329,9 +3366,10 @@ async def revoice(take_id: str) -> dict:
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         raise HTTPException(404, "no such take")
-    if not (take["abc"] or "").strip():
-        raise HTTPException(400, "this take has no score to render again. Write a plan first.")
-    _check_score(take["abc"], take["kind"])
+    if not _scoreless(take):
+        if not (take["abc"] or "").strip():
+            raise HTTPException(400, "this take has no score to render again. Write a plan first.")
+        _check_score(take["abc"], take["kind"])
     _checkpoint()
     record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
     seed = int.from_bytes(os.urandom(4), "big")
@@ -3404,14 +3442,18 @@ async def new_words(take_id: str, body: WordsIn) -> dict:
     if not words.strip():
         raise HTTPException(400, "write some lyrics first")
     abc = take["abc"] if body.abc is None else body.abc
-    if not (abc or "").strip():
+    scoreless = _render_settings(take, body)["mode"] == NO_SCORE
+    if scoreless:
+        abc = ""   # the new words are sung as the old were: with no score
+    elif not (abc or "").strip():
         raise HTTPException(400, "this take has no score to sing. Write a plan first.")
-    if body.abc is None and words and abc and ("\nw: " in abc or "\nw:" in abc or "\nW: " in abc) and ("V: Vocal" in abc or "V:Vocal" in abc):
+    if not scoreless and body.abc is None and words and abc and ("\nw: " in abc or "\nw:" in abc or "\nW: " in abc) and ("V: Vocal" in abc or "V:Vocal" in abc):
         try:
             abc = aligner.align_lyrics_to_abc(abc, words)
         except Exception as exc:
             log.warning("Could not auto-align lyrics to ABC for new words: %s", exc)
-    _check_score(abc, take["kind"])
+    if not scoreless:
+        _check_score(abc, take["kind"])
     _checkpoint()
     record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
     if body.brief is not None:
@@ -3454,9 +3496,13 @@ async def rearrange(take_id: str, body: RearrangeIn) -> dict:
         raise HTTPException(404, "no such take")
     if take["kind"] == "cover":
         raise HTTPException(400, "a cover is made again from its recording, not from a score")
-    if not (body.abc or "").strip():
+    scoreless = _render_settings(take, body)["mode"] == NO_SCORE
+    if scoreless:
+        body.abc = ""   # a new take with no score: none to keep
+    elif not (body.abc or "").strip():
         raise HTTPException(400, "this take has no score to render. Write a plan first.")
-    _check_score(body.abc, take["kind"])
+    else:
+        _check_score(body.abc, take["kind"])
     _checkpoint()
     record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
     # The title is the person's: a new render of a take keeps it.
@@ -3503,9 +3549,10 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         raise HTTPException(404, "no such take")
-    if not (take["abc"] or "").strip():
-        raise HTTPException(400, "this take has no score to render again. Write a plan first.")
-    _check_score(take["abc"], take["kind"])
+    if not _scoreless(take):
+        if not (take["abc"] or "").strip():
+            raise HTTPException(400, "this take has no score to render again. Write a plan first.")
+        _check_score(take["abc"], take["kind"])
     _checkpoint()
     mother = _mother(take)
     wanted = list(dict.fromkeys(_interpretation(name) for name in body.interpretations))
@@ -3544,6 +3591,7 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
             "voice_cues": take.get("voice_cues"),
             "target_lufs": take.get("target_lufs", -14.0),
             "fade_out_seconds": take.get("fade_out_seconds", 3.0),
+            "cfg_scale": take.get("cfg_scale"),
         }
         execute(
             """INSERT INTO takes(id, kind, source_id, parent_id, title, style, lyrics, abc, mode, seed, checkpoint, max_duration,
@@ -3551,13 +3599,13 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
                                  identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
                                  style_lora, style_lora_model, style_lora_clip, sound_seed,
                                  sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
-                                 chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds)
+                                 chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale)
                VALUES(:id, :kind, :source_id, :parent_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration,
                       'queued', :created_at, :variety, :harmony, :space_id, :interpretation, :feel, :realaudio, :normalise,
                       :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                       :style_lora, :style_lora_model, :style_lora_clip, :sound_seed,
                       :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
-                      :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds)""",
+                      :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale)""",
             record,
         )
         await queue_take("render", record["id"])
@@ -3735,9 +3783,10 @@ async def tries(take_id: str, body: TriesIn) -> dict:
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         raise HTTPException(404, "no such take")
-    if not (take["abc"] or "").strip():
-        raise HTTPException(400, "this take has no score to render again. Write a plan first.")
-    _check_score(take["abc"], take["kind"])
+    if not _scoreless(take):
+        if not (take["abc"] or "").strip():
+            raise HTTPException(400, "this take has no score to render again. Write a plan first.")
+        _check_score(take["abc"], take["kind"])
     _checkpoint()
     mother = _mother(take)
     base = _base_title(take["title"])
@@ -5100,8 +5149,8 @@ class RecipeTakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     style: str = Field(config.DEFAULT_STYLE, max_length=2000)
     lyrics: str = Field("", max_length=20_000)
     brief: str | None = Field(None, max_length=1000)
-    abc: str = Field(..., min_length=1, max_length=200_000)
-    mode: Literal["full", "melody"] = "full"
+    abc: str = Field("", max_length=200_000)
+    mode: Literal["full", "melody", "off"] = "full"
     seed: int = Field(..., ge=0, le=MAX_SEED)
     sound_seed: int | None = Field(None, ge=0, le=MAX_SEED)
     max_duration: float | None = Field(None, ge=10, le=900)
@@ -5127,14 +5176,17 @@ async def import_take(body: ImportTakeIn) -> dict:
         columns = recipes.read(body.recipe)
     except recipes.RecipeError as exc:
         raise HTTPException(400, str(exc)) from exc
-    if not (columns.get("abc") or "").strip():
+    if not (columns.get("abc") or "").strip() and columns.get("mode") != NO_SCORE:
         raise HTTPException(400, "this take file has no score to render")
     try:
         take = RecipeTakeIn(**{k: v for k, v in columns.items() if v is not None})
     except ValueError as exc:
         raise HTTPException(400, f"this take file has a setting Yeufonic cannot use: {exc}") from exc
     _space(body.space_id)
-    _check_score(take.abc, take.kind)
+    if take.mode == NO_SCORE:
+        _no_score_wanted(take.mode, {"kind": take.kind})
+    else:
+        _check_score(take.abc, take.kind)
     record = take.model_dump()
     record.update(
         id=uuid.uuid4().hex[:12],

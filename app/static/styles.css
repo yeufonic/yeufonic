@@ -6908,3 +6908,7 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 
 
 
+
+/* No score: what steers a plan has nothing to act on, so it is shown greyed out while it is chosen. */
+#harmony-field.disabled, #variety-field.disabled, label.check.disabled { opacity: 0.45; }
+#variety:disabled, #keep-tune:disabled, #follow-structure:disabled { cursor: not-allowed; }

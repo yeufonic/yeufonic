@@ -65,6 +65,10 @@ Some of these act on the plan, and some on the render and the finished file:
 
 - **Diffusion steps** (16–64, default 32): how many steps the audio decoder takes. More steps take
   longer to render.
+- **Follow the style** (1.0–3.0, default 1.0): how firmly the music follows the style and the words, the guidance
+  of the stage that turns the score into sound (CFG). Above 1.0 it leans further towards them. The difference is
+  subtle, and a render takes a little longer. It is shown when the engine has it: yue2.cpp, or the ComfyUI engine
+  at its newer version (rebuild an older Docker engine to get it).
 - **Avoid:** words to steer away from, such as "drums" or "rap vocals". They are added to the style
   as "avoid: …". It is a hint to the planner, not a guarantee: the renderer has no negative prompt.
 - **Key lock:** the plan is moved to this key once the planner has written it. The planner ignores
@@ -290,13 +294,14 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
 - **Plan variety.** How freely the planner writes everything else. See [Plan variety](#plan-variety).
 - **Interpretation.** How the notes are performed when rendered. See [Interpretation](#interpretation).
 - **Length cap.** The latest the song may stop. See [Length](#length).
-- **Mode.** *Full* keeps the chords of the plan; *melody* leaves the accompaniment free.
+- **Mode.** *Full* keeps the chords of the plan; *melody* leaves the accompaniment free. *No score*, for songs, writes
+  no plan at all: see [A song with no score](#a-song-with-no-score).
 - **Seed**, and **keep this seed**. See [Seed, and reproducing a take](#seed-and-reproducing-a-take).
 - **Production polish** and **Normalise volume.** See [Production polish](#production-polish).
 - **Render as soon as the plan is ready**, beside the button at the foot of the window, runs the plan and the render
   without stopping in between. It is ticked to begin with, and the editor remembers your choice. Untick it to read the
   plan first.
-- **Advanced** (the button in the header): diffusion steps, Avoid, Key lock, Tempo lock, the longest score,
+- **Advanced** (the button in the header): diffusion steps, Follow the style, Avoid, Key lock, Tempo lock, the longest score,
   chord hold limit, outside harmony bonus, Sections open differently, target loudness and the outro fade. See
   [Advanced settings](#advanced-settings).
 - **Mastering** (the button to its left, when the take has sound) opens the mastering rack over the editor for
@@ -535,6 +540,19 @@ chords, this acts on everything: melody, structure and length.
 - **Quirky:** restless. Chords keep changing, and the melody leaps between registers from one
   section to the next. For odd, off-the-wall songs.
 - **Wild:** the most restless of all, and it may change key partway through.
+
+### A song with no score
+
+**No score**, the third choice under **Mode**, sings the words with no plan at all: YuE2 writes the tune and
+the chords as it sings, as the original YuE did, and the song is rendered at once with **Sing with no score**.
+It often sounds quite different from a planned song.
+
+What steers a plan has nothing to act on, so **Harmony**, **Plan variety**, **Keep this tune** and **Follow
+this structure exactly** are greyed out while it is chosen, and there is no score to read or edit. YuE2 decides
+the length, up to the length cap. Key lock and Tempo lock reach it only as words in the style. Sing again,
+Variations, Try more and new words all work, each sung with no score again. **Write a new plan** gives the take a
+score, and Mode goes back to *full*. It is for songs from a prompt only: a cover is its recording's score, and an
+instrumental needs one to keep its voice out. Both engines can do it.
 
 ---
 

@@ -180,7 +180,10 @@ def translate(graph: dict) -> dict:
             "style": inputs.get("style") or "",
             "lyrics": inputs.get("lyrics") or "",
             "abc": inputs.get("abc") or "",
-            "cot": inputs.get("mode") if inputs.get("mode") in ("full", "melody") else "full",
+            # No score is the model composing as it sings ("off"); an empty score in full or melody would have the
+            # server write a plan first.
+            "cot": "off" if not (inputs.get("abc") or "").strip()
+            else inputs.get("mode") if inputs.get("mode") in ("full", "melody") else "full",
             "duration": duration,
             "lm_seed": int(inputs.get("seed") or 0),
             "seed": int(sampler_inputs.get("seed") if sampler_inputs.get("seed") is not None else inputs.get("seed") or 0),
@@ -198,6 +201,8 @@ def translate(graph: dict) -> dict:
             },
             "adapters": adapters_for(graph, inputs.get("clip"), sampler_inputs.get("model")),
         }
+        if inputs.get("cfg_scale") is not None:
+            body["cfg_scale"] = float(inputs["cfg_scale"])
         guard = next((n for n in graph.values() if n.get("class_type") == "Yue2PeakGuard"), None)
         return {"kind": "render", "path": "/synth", "body": body,
                 "output": _output_node(graph, "SaveAudioAdvanced", "SaveAudio") or "16",
@@ -554,6 +559,7 @@ class CppEngine(Engine):
             # Gemma and pictures are there when their services are; the harmony control when the build has it.
             "harmony": steering,
             "hook": steering,
+            "cfg": True,              # the music stage's guidance, cfg_scale on /synth
             "peak_guard": True,       # done by the app as the audio comes down (level_to_flac)
             "separate": False,
             "hear": False,

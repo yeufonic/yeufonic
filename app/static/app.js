@@ -564,6 +564,8 @@ function cppEngine() {
 
 function paintOptions() {
   paintHarmony();
+  if ($('adv-cfg-field')) { $('adv-cfg-field').classList.toggle('hidden', !State.options.cfg_available); }
+  paintNoScore();
   paintInterpretation();
   var canInst = State.options.instrumental_available !== false;
   $('create-inst').disabled = !canInst;
@@ -1272,7 +1274,8 @@ var ADVANCED_DEFAULTS = {
   follow_structure: null,
   voice_cues: 1,          // on for a new take; it only acts on lyrics that cue a voice
   target_lufs: -14.0,
-  fade_out_seconds: 3.0
+  fade_out_seconds: 3.0,
+  cfg_scale: 1.0          // shown as 1.0; sent as null (the engine's own) unless changed
 };
 
 function readAdvancedSettings() {
@@ -1298,6 +1301,8 @@ function readAdvancedSettings() {
   if (isNaN(lufs) || lufs < -30.0 || lufs > -4.0) { lufs = ADVANCED_DEFAULTS.target_lufs; }
   var fade = parseFloat($('adv-fade-out-seconds').value);
   if (isNaN(fade) || fade < 0.5 || fade > 15.0) { fade = ADVANCED_DEFAULTS.fade_out_seconds; }
+  var cfg = $('adv-cfg-scale') ? parseFloat($('adv-cfg-scale').value) : NaN;
+  if (isNaN(cfg) || cfg < 1.0 || cfg > 3.0) { cfg = ADVANCED_DEFAULTS.cfg_scale; }
   return {
     sampler_steps: steps,
     avoid: avoid,
@@ -1310,7 +1315,8 @@ function readAdvancedSettings() {
     follow_structure: follow,
     voice_cues: voiceCues,
     target_lufs: lufs,
-    fade_out_seconds: fade
+    fade_out_seconds: fade,
+    cfg_scale: cfg
   };
 }
 
@@ -1325,7 +1331,8 @@ function isAdvancedDirty() {
     Math.abs(cur.chord_outside_bonus - ADVANCED_DEFAULTS.chord_outside_bonus) > 0.001 ||
     cur.chord_sections !== ADVANCED_DEFAULTS.chord_sections ||
     Math.abs(cur.target_lufs - ADVANCED_DEFAULTS.target_lufs) > 0.001 ||
-    Math.abs(cur.fade_out_seconds - ADVANCED_DEFAULTS.fade_out_seconds) > 0.001;
+    Math.abs(cur.fade_out_seconds - ADVANCED_DEFAULTS.fade_out_seconds) > 0.001 ||
+    Math.abs(cur.cfg_scale - ADVANCED_DEFAULTS.cfg_scale) > 0.001;
 }
 
 function updateAdvancedButtonState() {
@@ -1364,6 +1371,7 @@ function writeAdvancedSettings(data) {
   if ($('voice-cues')) { $('voice-cues').checked = (data.voice_cues == null ? ADVANCED_DEFAULTS.voice_cues : data.voice_cues) === 1; }
   $('adv-target-lufs').value = data.target_lufs != null ? data.target_lufs : ADVANCED_DEFAULTS.target_lufs;
   $('adv-fade-out-seconds').value = data.fade_out_seconds != null ? data.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds;
+  if ($('adv-cfg-scale')) { $('adv-cfg-scale').value = data.cfg_scale != null ? data.cfg_scale : ADVANCED_DEFAULTS.cfg_scale; }
   updateAdvancedButtonState();
 }
 
@@ -1393,7 +1401,8 @@ function loadAdvancedTakeSettings(take) {
     follow_structure: take.follow_structure === 1 ? 1 : null,
     voice_cues: take.voice_cues === 1 ? 1 : 0,      // a take from before the tick was made without it
     target_lufs: take.target_lufs != null ? take.target_lufs : ADVANCED_DEFAULTS.target_lufs,
-    fade_out_seconds: take.fade_out_seconds != null ? take.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds
+    fade_out_seconds: take.fade_out_seconds != null ? take.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds,
+    cfg_scale: take.cfg_scale != null ? take.cfg_scale : ADVANCED_DEFAULTS.cfg_scale
   });
 }
 
@@ -1411,6 +1420,10 @@ function withAdvancedSettings(body) {
   body.voice_cues = adv.voice_cues;
   body.target_lufs = Math.abs(adv.target_lufs - ADVANCED_DEFAULTS.target_lufs) > 0.001 ? adv.target_lufs : null;
   body.fade_out_seconds = adv.fade_out_seconds;
+  // Left at 1.0 it is the engine's own guidance (1.01 with no score), so it is sent only when changed, and only to
+  // an engine that has it.
+  var cfgOn = State.options && State.options.cfg_available;
+  body.cfg_scale = cfgOn && Math.abs(adv.cfg_scale - ADVANCED_DEFAULTS.cfg_scale) > 0.001 ? adv.cfg_scale : null;
   return body;
 }
 
@@ -1480,7 +1493,8 @@ function wireAdvancedSettings() {
   var inputs = [
     'adv-sampler-steps', 'adv-avoid', 'adv-target-key', 'adv-target-bpm',
     'adv-max-abc-tokens', 'adv-chord-hold-limit',
-    'adv-chord-outside-bonus', 'adv-chord-sections', 'follow-structure', 'voice-cues', 'adv-target-lufs', 'adv-fade-out-seconds'
+    'adv-chord-outside-bonus', 'adv-chord-sections', 'follow-structure', 'voice-cues', 'adv-target-lufs', 'adv-fade-out-seconds',
+    'adv-cfg-scale'
   ];
   inputs.forEach(function (id) {
     var el = $(id);
@@ -5474,7 +5488,7 @@ function openBrandMenu() {
    be rebuilt, so the build (a commit and a date) is what pins a copy down. */
 /* ------------------------------------------------------------ what a take was made with
    Everything the take stores about how it was made, in words, for reading, comparing two takes or pasting into a message. */
-var MODE_WORDS = { full: 'full: keeps the chords', melody: 'melody: free accompaniment' };
+var MODE_WORDS = { full: 'full: keeps the chords', melody: 'melody: free accompaniment', off: 'no score: composed as it was sung' };
 
 /* What the take was asked to be, and what the planner wrote: the lyrics' tags, with how many lines each has, and the
    score's sections with where each begins.  A song planned from an instrumental's structure has tags only. */
@@ -5545,6 +5559,7 @@ function detailGroups(take) {
   set('Sections open differently', take.chord_sections, take.chord_sections === 1 ? 'always' : (take.chord_sections === 0 ? 'never' : ''));
   set('Loudness target', take.target_lufs, take.target_lufs != null ? take.target_lufs + ' LUFS' : '');
   set('Fade out', take.fade_out_seconds, take.fade_out_seconds != null ? take.fade_out_seconds + ' s' : '');
+  set('Follow the style', take.cfg_scale, take.cfg_scale != null ? Number(take.cfg_scale).toFixed(1) : '');
   groups.push(['Advanced', advanced.length ? advanced : [['', 'none changed']]]);
   if (take.style) { groups.push(['Style', [['', take.style]]]); }
   return groups;
@@ -6517,7 +6532,8 @@ function harmonyStep() {
 function paintHarmony() {
   var available = State.options.harmony_available !== false;
   var step = harmonyStep();
-  $('harmony').disabled = !available;
+  // With no score there is no plan for it to steer.
+  $('harmony').disabled = !available || noScore();
   if (!available) { $('harmony').value = '0'; }
   $('harmony-word').textContent = HARMONY_WORDS[step];
   // The same node follows a structure exactly and sets the chord details, so they go with it.
@@ -6537,6 +6553,40 @@ function paintHarmony() {
     ? HARMONY_HINTS[step]
     : 'The engine has no harmony control. Rebuild the engine to use this.';
   if ($('style-lora') && $('style-lora').value) { paintStyleLoraNote(); }
+}
+
+/* ---------------------------------------------------------------- no score ---
+   A song can be sung with no score: no plan is written, and YuE2 composes the tune and the chords as it sings.
+   It is the Mode list's third choice, for songs only: a cover is its recording's score, and an instrumental needs a
+   score to keep its voice out.  What steers a plan has nothing to act on, so it is greyed out while it is chosen. */
+function noScore() {
+  return State.mode === 'song' && Boolean($('mode')) && $('mode').value === 'off';
+}
+
+function paintNoScore() {
+  var option = $('mode-off');
+  if (!option || !$('mode')) { return; }
+  var song = State.mode === 'song';
+  option.hidden = !song;
+  option.disabled = !song;
+  if (!song && $('mode').value === 'off') { $('mode').value = 'full'; }
+  var off = noScore();
+  if ($('mode-hint')) {
+    $('mode-hint').classList.toggle('hidden', !off);
+    $('mode-hint').textContent = off
+      ? 'No plan: YuE2 writes the tune as it sings.'
+      : '';
+  }
+  if ($('variety')) { $('variety').disabled = off; }
+  if ($('variety-field')) { $('variety-field').classList.toggle('disabled', off); }
+  if ($('harmony-field')) { $('harmony-field').classList.toggle('disabled', off); }
+  if ($('words-changed')) { $('words-changed').classList.toggle('disabled', off); }
+  if ($('keep-tune')) { $('keep-tune').disabled = off; }
+  if ($('follow-structure')) {
+    $('follow-structure').disabled = off || State.options.harmony_available === false;
+    if ($('follow-wrap')) { $('follow-wrap').classList.toggle('disabled', $('follow-structure').disabled); }
+  }
+  paintHarmony();
 }
 
 function setMode(mode) {
@@ -6574,6 +6624,7 @@ function setMode(mode) {
   paintSongPlan();
   if (cover) { paintStructure(); }
   show('mode-field', !inst);
+  paintNoScore();
   $('headline').textContent = cover ? 'Cover a song' : (inst ? 'Write an instrumental' : 'Write a song');
   $('sub').textContent = cover
     ? 'Your own recording in. A new arrangement, new vocals, and an editable score out.'
@@ -6885,15 +6936,19 @@ function setScoreActions() {
   var keep = keepTune();
   // A cover's score is its recording's, so there is no plan to write again, unless the planner wrote it around the recording's tune.
   if (State.mode === 'cover' && $('reroll')) { $('reroll').style.display = owner && owner.hook_section ? '' : 'none'; }
-  $('render-take').textContent = fresh ? 'Sing with new words' : 'Render this score';
-  // Already an instrumental: nothing to make.
-  if ($('make-instrumental')) { $('make-instrumental').style.display = State.mode === 'inst' ? 'none' : ''; }
+  var off = noScore();
+  $('render-take').textContent = fresh ? 'Sing with new words' : (off ? 'Render with no score' : 'Render this score');
+  // Already an instrumental: nothing to make.  With no score, nothing to play on an instrument.
+  if ($('make-instrumental')) { $('make-instrumental').style.display = State.mode === 'inst' || off ? 'none' : ''; }
   // The switch is for a song: its main button would otherwise write a new tune.
   if ($('words-changed')) { $('words-changed').classList.toggle('hidden', !(fresh && State.mode === 'song')); }
-  $('create-song').textContent = keep ? 'Sing with new words' : 'Write score plan';
-  if ($('auto-wrap')) { $('auto-wrap').style.visibility = keep ? 'hidden' : ''; }
+  $('create-song').textContent = keep ? 'Sing with new words' : (off ? 'Sing with no score' : 'Write score plan');
+  // With no score there is no plan to wait for, so nothing to render once it is written.
+  if ($('auto-wrap')) { $('auto-wrap').style.visibility = keep || off ? 'hidden' : ''; }
   $('score-note').textContent = !enabled
-    ? 'Nothing to render yet. Write a score plan, or press Score on a take in the library.'
+    ? (off ? 'With no score, YuE2 writes the tune and the chords as it sings.'
+      : 'Nothing to render yet. Write a score plan, or press Score on a take in the library.')
+    : off ? 'With no score, YuE2 writes the tune as it sings. Render with no score sings these words again in a new take; Write a new plan writes a score for them.'
     : (State.mode === 'cover'
       ? 'Make an instrumental plays this score on an instrument, with no voice, in a new take; the cover stays as it is.'
       : (fresh
@@ -6905,7 +6960,7 @@ function setScoreActions() {
    sings the score with them rather than writing a new plan. A page from before the
    switch had a button in its place, which does the same. */
 function keepTune() {
-  if (State.mode !== 'song' || !wordsChanged()) { return false; }
+  if (State.mode !== 'song' || !wordsChanged() || noScore()) { return false; }
   return !$('keep-tune') || $('keep-tune').checked;
 }
 
@@ -7109,6 +7164,7 @@ function songBody(seed) {
     style: $('style').value,
     lyrics: $('lyrics').value,
     brief: $('write-brief') ? $('write-brief').value.trim() || null : null,
+    mode: noScore() ? 'off' : undefined,      // no score: rendered at once, with no plan
     seed: seed,
     interpretation: $('interpretation').value,
     max_duration: parseFloat($('max-duration').value) || 360,
@@ -7132,6 +7188,13 @@ async function doPlan() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(songBody(seed))
     });
+    if (noScore()) {   // no plan to wait for: it is rendered at once, as a cover is
+      setSelection({ formTakeId: take.id, boxKind: 'take', boxId: take.id });
+      statusLine('Singing it with no score\u2026');
+      loadTakes();
+      closeEditor();
+      return;
+    }
     setSelection({ formTakeId: take.id, boxKind: 'none', boxId: null, awaiting: take.id });
     statusLine('Writing the score plan…');
     loadTakes();
@@ -7172,10 +7235,12 @@ async function renderInPlace() {
   }
   if (wordsChanged()) { await doSingNewWords(); return; }
   try {
-    await api('/api/takes/' + id + '/score', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ abc: $('abc').value })
-    });
+    if (!noScore()) {   // with no score, none is sent, and the take keeps any it has
+      await api('/api/takes/' + id + '/score', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ abc: $('abc').value })
+      });
+    }
     var payload = editorRenderSettings();
     await api('/api/takes/' + id + '/render', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -7227,6 +7292,8 @@ async function doMakeInstrumental() {
 async function doReroll() {
   var id = takeIdInEditor();
   if (!id) { statusLine('Nothing to replan yet.', 'bad'); setScoreActions(); return; }
+  // A new plan is a score: a take sung with no score goes back to one (the server does the same).
+  if (noScore()) { $('mode').value = 'full'; paintNoScore(); }
   try {
     // The slider and the variety menu apply to the new plan.
     var payload = withAdvancedSettings({ harmony: harmonyStep(), variety: $('variety').value });
@@ -11457,6 +11524,7 @@ function selectTake(take) {
   $('abc').value = take.abc || '';
   scoreBaseline(take.abc || '');
   if (take.mode) { $('mode').value = take.mode; }
+  paintNoScore();
   if (isSong) {
     $('harmony').value = take.harmony || 0;
     if (take.variety) { $('variety').value = take.variety; }
@@ -11939,6 +12007,7 @@ function paintTakes() {
     if (take.realaudio) { meta.push('realaudio'); }
     meta.push('seed ' + take.seed);
     if (take.sound_seed) { meta.push('voice ' + take.sound_seed); }
+    if (take.mode === 'off') { meta.push('no score'); }
     // Which engine rendered it, where the app recorded one (renders from 0.0.53 on).
     if (take.engine) { meta.push('Engine: ' + ({ comfyui: 'ComfyUI', yue2cpp: 'yue2.cpp' }[take.engine] || take.engine)); }
     meta.push(age(take.created_at));
@@ -15272,6 +15341,7 @@ function wire() {
     });
     $(id).addEventListener('change', saveForm);
   });
+  $('mode').addEventListener('change', function () { paintNoScore(); setScoreActions(); });
   $('auto-render').addEventListener('change', saveForm);
   $('seed-fixed').addEventListener('change', saveForm);
   $('realaudio').addEventListener('change', saveForm);
