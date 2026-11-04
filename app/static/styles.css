@@ -307,6 +307,12 @@ a, .link {
   display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px 10px;
   min-height: 31px;
 }
+/* The name and the job on the left, the engine's state on the right: each side has half of what the view switch
+   leaves, so the switch stays in the middle and a job coming or going moves nothing else in the bar. */
+.topbar-left { display: flex; align-items: center; gap: 16px; min-width: 0; }
+@media (min-width: 1001px) {
+  .topbar-left, .topbar-right { flex: 1 1 0; }
+}
 .topbar-right > #engine-pill { order: 0; }
 .topbar-right > .corpora { order: 1; }
 .topbar-right > #gpu-stat { order: 2; margin-right: 0; }
@@ -897,10 +903,6 @@ button.icon { width: 42px; padding: 8px 0; text-align: center; }
   font-size: 12.5px; padding: 5px 11px; border-radius: 999px;
   border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer;
 }
-/* The two layout controls read green, like the other text that shows state. Their
-   border stays as every other chip's. */
-.filters .chip.layout { color: var(--good); }
-
 .chip:hover { color: var(--text); border-color: rgb(var(--accent-a-rgb) / 0.5); }
 .chip.active { color: var(--text); border-color: rgb(var(--accent-a-rgb) / 0.7); background: rgb(var(--accent-a-rgb) / 0.12); }
 /* A small action rather than a choice: a lighter fill and near-white text, so it reads
@@ -1920,22 +1922,72 @@ label .lora-value:disabled { opacity: 0.6; }
 
 /* ---------- library ---------- */
 .library { min-width: 0; }
-.libhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-/* The space's name, set in as far as the word Space and the list's text above it, off the margin. */
-.libhead #takes-heading { padding-left: 16px; }
-/* Spaces: one row above the takes, wrapping on a phone. */
-.spacebar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
-/* The word over the space list is a heading for it: a size up and bold, so it holds its own above the box,
-   and set in to start where the box's own text starts rather than on the margin. */
-.spacebar .space-label { font-size: 14px; font-weight: 650; color: var(--text); letter-spacing: 0.01em; padding-left: 16px; }
-.spacebar .chip:disabled, .filters .chip:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+.libhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+/* The space on show, as the heading: a click opens the list of spaces under it. */
+.space-pick { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.space-title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 520px; cursor: pointer;
+  font: inherit; color: var(--text); background: none; border: 1px solid transparent; border-radius: 12px; padding: 3px 10px 3px 16px; }
+.space-title:hover, .space-title[aria-expanded="true"] { border-color: var(--line); background: rgb(var(--ink) / 0.04); }
+.space-title .space-name { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.space-title svg { width: 17px; height: 17px; color: var(--muted); flex: 0 0 auto; }
+.space-count { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.space-menu { position: absolute; top: calc(100% + 6px); left: 4px; z-index: 40; width: 340px; padding: 8px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 16px 36px rgb(var(--shade) / 0.55), 0 2px 8px rgb(var(--shade) / 0.35); }
+.space-menu.hidden { display: none; }
+#space-find { width: 100%; box-sizing: border-box; font: inherit; font-size: 13.5px; padding: 7px 11px; border-radius: 9px;
+  border: 1px solid rgb(var(--accent-a-rgb) / 0.55); background: rgb(var(--ink) / 0.03); color: var(--text); outline: none; margin-bottom: 4px; }
+#space-find::-webkit-search-cancel-button { display: none; }
+.space-list { max-height: min(50vh, 420px); overflow-y: auto; }
+.space-list-head { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 8px 10px 3px; }
+.space-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 6px 10px;
+  font: inherit; font-size: 13.5px; color: var(--text); background: none; border: 0; border-radius: 8px; cursor: pointer; text-align: left; }
+.space-row .space-row-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.space-row .space-row-n { color: var(--muted); font-size: 12.5px; flex: 0 0 auto; }
+.space-row.hl { background: rgb(var(--ink) / 0.07); }
+.space-row.current { background: rgb(var(--accent-a-rgb) / 0.16); font-weight: 600; }
+.space-row.current.hl { background: rgb(var(--accent-a-rgb) / 0.24); }
+.space-none { color: var(--muted); font-size: 13px; padding: 8px 10px; margin: 0; }
+.space-menu-foot { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 6px; }
+.space-menu-foot .menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px;
+  font: inherit; font-size: 13.5px; color: var(--text); background: none; border: 0; border-radius: 8px; cursor: pointer; text-align: left; }
+.space-menu-foot .menu-item:hover { background: rgb(var(--ink) / 0.08); }
+.space-menu-foot .menu-item svg { width: 15px; height: 15px; color: var(--muted); flex: 0 0 auto; }
+.space-menu-foot .menu-item.danger { color: var(--danger-text); }
+.space-menu-foot .menu-item.danger svg { color: var(--danger-text); }
+.space-menu-foot .menu-item:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+.filters .chip:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
 .move-list { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
 .move-list button { text-align: left; display: flex; justify-content: space-between; gap: 10px; }
 .move-list button:disabled { opacity: 0.5; cursor: default; }
 .move-list .muted { font-size: 12px; }
 .move-new .source-row input { flex: 1; min-width: 0; }
 .filters { display: flex; align-items: center; gap: 7px; }
-.filters .kinds { display: inline-flex; gap: 5px; padding-right: 7px; margin-right: 1px; border-right: 1px solid var(--line); }
+.filters .show-tools, .filters .pick-tools { display: inline-flex; align-items: center; gap: 7px; }
+.filters .show-tools.hidden, .filters .pick-tools.hidden { display: none; }
+.filters .tool-sep { width: 1px; height: 20px; background: var(--line); margin: 0 2px; }
+.filters .tool-sep.inner { height: 16px; margin: 0 1px; }
+.filters .chip { display: inline-flex; align-items: center; gap: 6px; }
+.filters .chip.hidden { display: none; }
+.filters .chip svg { width: 13px; height: 13px; flex: 0 0 auto; }
+/* The kinds, one pill of three: each lit while it is shown, none lit showing every kind. */
+.filters .kinds, .filters .view-tools { display: inline-flex; align-items: center; gap: 2px; padding: 2px;
+  border: 1px solid var(--line); border-radius: 999px; }
+.filters .kinds button, .filters .view-tools button { display: inline-flex; align-items: center; gap: 6px; font: inherit;
+  font-size: 12.5px; color: var(--muted); background: none; border: 0; border-radius: 999px; padding: 3px 9px; cursor: pointer; }
+.filters .kinds button:hover, .filters .view-tools button:hover { color: var(--text); background: rgb(var(--ink) / 0.06); }
+.filters .kinds button.active { color: var(--text); background: rgb(var(--accent-a-rgb) / 0.18); }
+.filters .kind-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+.filters .kind-dot.song { background: var(--song-a); }
+.filters .kind-dot.cover { background: var(--cover-a); }
+.filters .kind-dot.inst { background: var(--inst-a); }
+/* How the takes are laid out: icons, green while on, as the other text that shows state. */
+.filters .view-tools button { padding: 4px 8px; }
+.filters .view-tools button svg { width: 15px; height: 15px; }
+.filters .view-tools button.active { color: var(--good); background: rgb(var(--good-rgb) / 0.12); }
+.filters .star-filter.active { color: var(--warn); border-color: rgb(var(--warn-rgb) / 0.55); background: rgb(var(--warn-rgb) / 0.10); }
+.filters .star-filter.active svg { fill: currentColor; }
+.filters .picked-count { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; margin-right: 2px; }
 /* On a narrow screen the filters wrap under the heading, rather than running off the side. */
 @media (max-width: 760px) {
   .libhead { flex-wrap: wrap; gap: 10px; }
@@ -2403,9 +2455,29 @@ label .lora-value:disabled { opacity: 0.6; }
 .empty { color: var(--muted); text-align: center; padding: 60px 20px; border: 1px dashed var(--line); border-radius: var(--radius); }
 
 /* ---------- job card ---------- */
-.job { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 16px; }
+/* ---------- the job, in the top bar ----------
+   A pill beside the engine's, so a job starting or ending moves nothing on the page; its card opens under it. */
+.job { position: relative; min-width: 0; }
 .job.hidden { display: none; }
-.job-top { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 9px; }
+.job-pill { display: flex; align-items: center; gap: 8px; max-width: 520px; position: relative; overflow: hidden;
+  cursor: pointer; font: inherit; font-size: 12.5px; color: var(--text); border-color: rgb(var(--accent-a-rgb) / 0.45); }
+.job-pill:hover, .job-pill[aria-expanded="true"] { border-color: rgb(var(--accent-a-rgb) / 0.8); }
+.job-pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-a); flex: 0 0 auto;
+  animation: corpora-pulse 1.5s ease-in-out infinite; }
+.job-pill-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.job-pill-time { color: var(--muted); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.job-pill-more { flex: 0 0 auto; font-size: 11.5px; color: var(--muted); border-left: 1px solid var(--line); padding-left: 8px; }
+.job-pill-more.hidden { display: none; }
+/* How far it has got: a line along the pill's foot. */
+.job-pill-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgb(var(--ink) / 0.06); }
+.job-pill-bar > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-a), var(--accent-b)); transition: width 0.5s ease; }
+@media (prefers-reduced-motion: reduce) { .job-pill-dot { animation: none; } }
+.job-panel { position: absolute; top: calc(100% + 8px); left: 0; z-index: 50; width: 420px; max-width: calc(100vw - 30px);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+  box-shadow: 0 16px 36px rgb(var(--shade) / 0.55), 0 2px 8px rgb(var(--shade) / 0.35); }
+.job-panel.hidden { display: none; }
+.job-top { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; margin-bottom: 9px; }
+.job-top #job-time { white-space: nowrap; flex: 0 0 auto; }
 .bar { height: 7px; border-radius: 999px; background: rgb(var(--ink) / 0.07); overflow: hidden; position: relative; }
 .bar > div { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--accent-a), var(--accent-b)); transition: width 0.5s ease; }
 .bar.indeterminate > div {

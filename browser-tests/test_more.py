@@ -90,11 +90,13 @@ def test_a_take_goes_in_a_new_playlist_and_plays_from_it(page, app_server):
 
 def test_a_new_space_holds_a_take_moved_into_it(page, app_server):
     made = make_song(page, app_server)
+    page.click("#space-pick")
     page.click("#space-new")
     confirm(page, "Sea songs")
-    page.wait_for_function("() => [...document.getElementById('space').options].some(o => o.text.startsWith('Sea songs'))")
-    page.select_option("#space", label=next(o for o in page.eval_on_selector_all("#space option", "os => os.map(o => o.text)")
-                                             if o.startswith("Default")))
+    page.wait_for_function("() => document.getElementById('takes-heading').textContent === 'Sea songs'")
+    page.click("#space-pick")
+    page.locator("#space-list .space-row", has_text="Default").first.click()
+    page.wait_for_function("() => document.getElementById('takes-heading').textContent.startsWith('Default')")
     card(page, made["id"]).locator('[data-act="move"]').click()
     page.wait_for_selector("#move-modal:not(.hidden)")
     page.locator("#move-list").get_by_text("Sea songs").first.click()

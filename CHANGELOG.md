@@ -39,6 +39,16 @@ cannot creep back in.
 
 ## Unreleased
 
+- **The row above the takes is one row.** The space on show is its heading: click it for a list of spaces that finds
+  one as you type, with the ones used lately first and each space's number of takes, and New space, Rename, Import
+  take and Delete at its foot. The kinds, Starred (one switch where All and Starred were two), and the layout as
+  icons lit while in use share the row with the search. Ticked takes swap the kinds and the layout for what can be
+  done with them, and **Done** unticks them. The takes start higher on the page.
+
+- **The job is a pill in the top bar.** What the engine is doing, its time, how far it has got and how many jobs
+  wait show in one line beside the name, and the job card, with stop and Up next, opens under it. A job starting or
+  ending no longer moves the takes down the page and back.
+
 - **A picture can be made for a take with Take pictures set not to make them.** The setting's second choice is now
   **Only when asked**: no picture is made for a new take, but a take's square and the editor's Picture button still
   offer to make one, as does the visualizer's picture button, and the picture settings stay on show to shape it.

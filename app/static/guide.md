@@ -1144,6 +1144,11 @@ a zip. They stay until you delete them.
 
 ## Stopping, deleting and starting again
 
+What the engine is working on shows in the top bar, beside the name: a pill with the job, its time, a line
+along its foot for how far it has got, and how many jobs wait after it. It changes nothing else on the page when a
+job starts or ends. Click it for the job card: the stage, **stop**, and **Up next**, the jobs waiting, each with
+**cancel**.
+
 A queued or running take shows **Cancel** on its card, and **stop** on the job card stops whatever
 the engine is working on. A take's title on the job card, in its **Up next** list, or in the player at the
 foot of the page takes you to the take: to its space, with any search or filter that hides it cleared. Deleting a take stops its job and removes its stems. **Delete** beside a
@@ -1163,8 +1168,11 @@ Words you had typed but not used are not thrown away: a bar offers to restore th
 
 ### Spaces
 
-Takes live in **spaces**: a space per song, per album, or for sketches. The menu above the takes
-chooses which is on show, and anything you make lands there. Deleting a space never deletes takes —
+Takes live in **spaces**: a space per song, per album, or for sketches. The space's name above the takes
+is the one on show, and anything you make lands there. Click it for the list of spaces: type to find one by
+name, or pick it with the arrow keys and Enter. The five you used last come first, then every space, each with
+how many takes it holds. **New space**, **Rename this space**, **Import take** and **Delete this space** are at
+the foot of the list. Deleting a space never deletes takes —
 they move to Default. Recordings are shared by every space, so one recording can be covered in
 several.
 
@@ -1219,7 +1227,7 @@ the mastering rack's settings, but not its audio. With a format chosen too, both
 chosen format again to save the recipe alone. The file holds nothing of your install (no paths, ids or keys),
 so it can be kept, or shared with another Yeufonic user.
 
-**Import take**, beside the spaces, makes a new take in the space on show from such a file; dropping the file
+**Import take**, in the list of spaces, makes a new take in the space on show from such a file; dropping the file
 on the library does the same. The take holds the plan, ready to render, so it can be checked or changed first.
 Either engine can render it: the same score and seed on the same engine give a very similar take, on the other
 engine a different one. A LoRA it names that is not installed here is named when it is imported, so you can
@@ -1233,9 +1241,15 @@ looks through every space, and a card from another space says which one. × or E
 box starts empty each time the page opens, and offers your last few searches that found something:
 click one, or pick it with the arrow keys and Enter.
 
-**Starred** shows only starred takes. Beside it, two buttons name what a click does: **Comfy** or **Compact**
-switches between wider cards with more of the prompt and three narrow cards across, and **Fit** or **Wide**
-between a centred column and the whole width of the window. A title always stays on one line, ending in … when it is long. Hover over a card's title, settings or style to read all of it.
+**Song**, **Cover** and **Instrumental** show takes of those kinds: light one or more, or none for every kind.
+**Starred** shows only starred takes; click it again to show them all. The icons beside them set how the takes are
+laid out, the ones in use lit green: wider **comfy** cards with more of the prompt or narrower **compact** ones,
+the **whole width** of the window or a centred column, and every take **folded** down to its head line. Hover over
+an icon to read what a click does.
+
+Tick takes and the row offers what can be done with them, in place of the kinds and the layout: how many are
+picked, **Compare**, **Delete** and **Done**, which unticks them. **Select all**, at the end of the row, ticks
+every take on show. A title always stays on one line, ending in … when it is long. Hover over a card's title, settings or style to read all of it.
 
 ### A picture for each take
 

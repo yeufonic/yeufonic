@@ -305,12 +305,12 @@ function applyLayout(mode) {
   State.layout = mode === 'comfy' ? 'comfy' : 'compact';
   var wide = State.layout === 'comfy';
   $('takes').classList.toggle('comfy', wide);
-  // The button names what a click does, not what is on show.
-  var button = $('layout-toggle');
-  button.textContent = wide ? 'Compact' : 'Comfy';
-  button.title = wide
-    ? 'Switch to compact cards, three across'
-    : 'Switch to comfy cards, wider, with more of the prompt';
+  // The two card sizes are icons side by side, the one on show lit.
+  Array.prototype.forEach.call(document.querySelectorAll('.view-tools [data-layout]'), function (button) {
+    var on = button.dataset.layout === State.layout;
+    button.classList.toggle('active', on);
+    button.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
   try { localStorage.setItem(LAYOUT_KEY, State.layout); } catch (err) { /* private mode */ }
 }
 
@@ -321,12 +321,13 @@ function applyWidth(mode) {
   State.width = mode === 'fit' ? 'fit' : 'wide';
   var fit = State.width === 'fit';
   document.querySelector('main').classList.toggle('fit', fit);
-  // The button names what a click does, not what is on show.
+  // An icon, lit while the takes fill the window; its tip says what a click does.
   var button = $('width-toggle');
-  button.textContent = fit ? 'Wide' : 'Fit';
+  button.classList.toggle('active', !fit);
+  button.setAttribute('aria-pressed', fit ? 'false' : 'true');
   button.title = fit
-    ? 'Switch to wide: fill the window, most cards at once'
-    : 'Switch to fit: a centred column';
+    ? 'Fill the window: the most cards at once'
+    : 'A centred column, rather than the whole window';
   try { localStorage.setItem(WIDTH_KEY, State.width); } catch (err) { /* private mode */ }
 }
 
@@ -3378,7 +3379,7 @@ function paintJob(current, queue, options) {
   if (!current && !queue.length) {
     if (State.training) {
       State.busy = true;
-      card.className = 'job';
+      card.classList.remove('hidden');
       $('job-stop').style.display = '';
       $('job-title').textContent = 'Training LoRA: ' + (State.training.lora_name || 'custom');
       $('job-title').dataset.take = '';
@@ -3392,14 +3393,16 @@ function paintJob(current, queue, options) {
       if (State.training.steps) { stageText += ' \u00b7 ' + State.training.steps + ' steps'; }
       $('job-stage').textContent = stageText;
       $('job-next').classList.add('hidden');
+      paintJobPill(0);
       return;
     }
     if (State.busy) { State.busy = false; loadTakes(); loadSources(); }
-    card.className = 'job hidden';
+    card.classList.add('hidden');
+    closeJobPanel();
     return;
   }
   if (current) { State.busy = true; }
-  card.className = 'job';
+  card.classList.remove('hidden');
   var head = queue[0] && queue[0].state === 'running' ? queue[0] : null;
   var mineRunning = current && head && !head.outside && head.id === current.id;
   var titles = { render: 'Rendering your song', plan: 'Writing the score plan', transcribe: 'Transcribing the recording',
@@ -3466,6 +3469,43 @@ function paintJob(current, queue, options) {
     $('job-queue').innerHTML = html;
     $('job-queue').dataset.html = html;
   }
+  paintJobPill(rest.length);
+}
+
+/* The pill in the top bar says what the card under it says, in one line: the job, its time, how far it has got,
+   and how many wait after it. */
+function paintJobPill(waiting) {
+  if (!$('job-pill')) { return; }
+  $('job-pill-text').textContent = $('job-title').textContent;
+  $('job-pill-time').textContent = $('job-time').textContent;
+  $('job-pill-fill').style.width = $('job-bar').style.width;
+  $('job-pill-more').textContent = waiting ? '+' + waiting + ' waiting' : '';
+  $('job-pill-more').classList.toggle('hidden', !waiting);
+}
+
+function closeJobPanel() {
+  if (!$('job-panel')) { return; }
+  $('job-panel').classList.add('hidden');
+  $('job-pill').setAttribute('aria-expanded', 'false');
+}
+
+function wireJobPill() {
+  if (!$('job-pill')) { return; }
+  $('job-pill').addEventListener('click', function () {
+    var open = $('job-panel').classList.contains('hidden');
+    $('job-panel').classList.toggle('hidden', !open);
+    $('job-pill').setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  document.addEventListener('mousedown', function (event) {
+    if (!$('job-card').contains(event.target)) { closeJobPanel(); }
+  });
+  $('job-card').addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !$('job-panel').classList.contains('hidden')) {
+      event.stopPropagation();
+      closeJobPanel();
+      $('job-pill').focus();
+    }
+  });
 }
 
 /* --------------------------------------------------------------- sources */
@@ -7427,13 +7467,131 @@ function paintSpaces() {
 
 function paintTakesHeading() {
   var space = currentSpace();
-  $('takes-heading').textContent = searchingEverywhere() ? 'All spaces' : (space ? space.name : 'Your takes');
+  var everywhere = searchingEverywhere();
+  $('takes-heading').textContent = everywhere ? 'All spaces' : (space ? space.name : 'Your takes');
+  if ($('space-count')) {
+    $('space-count').textContent = everywhere || !space ? '' : space.takes + (space.takes === 1 ? ' take' : ' takes');
+  }
+  if ($('space-menu') && !$('space-menu').classList.contains('hidden')) { paintSpaceList(); }
+}
+
+/* The spaces chosen lately, newest first, kept in this browser like the space on show. */
+var RECENT_SPACES_KEY = 'yue2.recentSpaces';
+function recentSpaceIds() {
+  try {
+    var got = JSON.parse(localStorage.getItem(RECENT_SPACES_KEY) || '[]');
+    return Array.isArray(got) ? got.filter(function (id) { return typeof id === 'string'; }) : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function rememberSpace(id) {
+  var kept = recentSpaceIds().filter(function (other) { return other !== id; });
+  kept.unshift(id);
+  try { localStorage.setItem(RECENT_SPACES_KEY, JSON.stringify(kept.slice(0, 12))); } catch (err) { /* private mode */ }
+}
+
+/* The list under the space's name: what is typed finds a space by name; with nothing typed, the five used
+   lately come first, then every space. */
+function paintSpaceList() {
+  var list = $('space-list');
+  if (!list) { return; }
+  var typed = $('space-find').value.trim().toLowerCase();
+  var spaces = Array.isArray(State.spaces) ? State.spaces : [];
+  var row = function (space) {
+    var current = space.id === State.spaceId;
+    return '<button type="button" class="space-row' + (current ? ' current' : '') + '" role="option" aria-selected="' +
+      (current ? 'true' : 'false') + '" data-space="' + esc(space.id) + '"><span class="space-row-name">' + esc(space.name) +
+      '</span><span class="space-row-n">' + space.takes + '</span></button>';
+  };
+  var html;
+  if (typed) {
+    var found = spaces.filter(function (space) { return space.name.toLowerCase().indexOf(typed) >= 0; });
+    html = found.length ? found.map(row).join('') : '<p class="space-none">No space has that in its name.</p>';
+  } else {
+    var byId = {};
+    spaces.forEach(function (space) { byId[space.id] = space; });
+    var recent = recentSpaceIds().map(function (id) { return byId[id]; }).filter(Boolean).slice(0, 5);
+    var head = function (text) { return '<div class="space-list-head">' + text + '</div>'; };
+    html = (recent.length > 1 && spaces.length > 6 ? head('Recent') + recent.map(row).join('') + head('All spaces') : '') +
+      spaces.map(row).join('');
+  }
+  list.innerHTML = html;
+  var rows = list.querySelectorAll('.space-row');
+  var first = typed ? rows[0] : list.querySelector('.space-row.current') || rows[0];
+  if (first) { first.classList.add('hl'); }
+}
+
+function openSpaceMenu() {
+  $('space-menu').classList.remove('hidden');
+  $('space-pick').setAttribute('aria-expanded', 'true');
+  $('space-find').value = '';
+  paintSpaceList();
+  $('space-find').focus();
+}
+
+function closeSpaceMenu() {
+  if (!$('space-menu') || $('space-menu').classList.contains('hidden')) { return; }
+  $('space-menu').classList.add('hidden');
+  $('space-pick').setAttribute('aria-expanded', 'false');
+}
+
+function chooseSpace(id) {
+  closeSpaceMenu();
+  if (!id) { return; }
+  $('space').value = id;
+  showSpace(id);
+}
+
+function wireSpaceMenu() {
+  var wrap = $('space-pick-wrap');
+  if (!wrap || !$('space-menu')) { return; }
+  $('space-pick').addEventListener('click', function () {
+    if ($('space-menu').classList.contains('hidden')) { openSpaceMenu(); } else { closeSpaceMenu(); }
+  });
+  $('space-find').addEventListener('input', paintSpaceList);
+  $('space-list').addEventListener('click', function (event) {
+    var row = event.target.closest('.space-row');
+    if (row) { chooseSpace(row.dataset.space); }
+  });
+  // New, Rename, Import and Delete do their own work; the list closes behind them.
+  wrap.querySelector('.space-menu-foot').addEventListener('click', function (event) {
+    if (event.target.closest('.menu-item')) { closeSpaceMenu(); }
+  });
+  wrap.addEventListener('keydown', function (event) {
+    if ($('space-menu').classList.contains('hidden')) { return; }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeSpaceMenu();
+      $('space-pick').focus();
+      return;
+    }
+    if (event.target !== $('space-find')) { return; }
+    var rows = Array.prototype.slice.call($('space-list').querySelectorAll('.space-row'));
+    var at = rows.findIndex(function (row) { return row.classList.contains('hl'); });
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!rows.length) { return; }
+      var next = event.key === 'ArrowDown' ? Math.min(rows.length - 1, at + 1) : Math.max(0, at - 1);
+      rows.forEach(function (row, i) { row.classList.toggle('hl', i === next); });
+      rows[next].scrollIntoView({ block: 'nearest' });
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (at >= 0) { chooseSpace(rows[at].dataset.space); }
+    }
+  });
+  document.addEventListener('mousedown', function (event) {
+    if (!wrap.contains(event.target)) { closeSpaceMenu(); }
+  });
 }
 
 function showSpace(id) {
   if (id === State.spaceId) { return; }
   State.spaceId = id;
   try { localStorage.setItem(SPACE_KEY, id); } catch (err) { /* private mode */ }
+  rememberSpace(id);
   State.takes = [];
   State.listed = [];
   State.inside = null;    // and so does an open take
@@ -7448,6 +7606,7 @@ function showSpace(id) {
 
 function loadSpaceChoice() {
   try { State.spaceId = localStorage.getItem(SPACE_KEY) || 'default'; } catch (err) { State.spaceId = 'default'; }
+  rememberSpace(State.spaceId);
 }
 
 async function newSpace() {
@@ -11827,6 +11986,13 @@ function insidePanel(mother, cardOf) {
 function paintBulk() {
   paintCompareButton();
   var count = pickedIds().length;
+  // While takes are picked, the row offers what can be done with them in place of what to show.
+  var tools = $('pick-tools');
+  if (tools) {
+    tools.classList.toggle('hidden', !count);
+    document.querySelector('.show-tools').classList.toggle('hidden', Boolean(count));
+    $('picked-count').textContent = count + ' picked';
+  }
   var button = $('bulk-delete');
   if (button) {
     button.classList.toggle('hidden', !count);
@@ -11840,7 +12006,8 @@ function paintBulk() {
       return !!State.picked[take.id];
     });
     selAll.disabled = visible.length === 0;
-    selAll.textContent = allPicked ? 'Deselect all' : 'Select all';
+    var label = selAll.querySelector('.lbl') || selAll;
+    label.textContent = allPicked ? 'Deselect all' : 'Select all';
     selAll.classList.toggle('active', allPicked);
     selAll.title = allPicked
       ? (insideOpen() ? 'Deselect all takes inside the open one' : 'Deselect all takes in this space')
@@ -11864,6 +12031,11 @@ function toggleSelectAll() {
       State.picked[take.id] = true;
     });
   }
+  markPickedCards();
+}
+
+/* The cards on the page ticked as State.picked says. */
+function markPickedCards() {
   var cards = document.querySelectorAll('#takes .take');
   Array.prototype.forEach.call(cards, function (card) {
     var id = card.dataset.id;
@@ -11953,12 +12125,13 @@ function foldCard(card, on) {
   if (card) { card.classList.toggle('collapsed', Boolean(on)); }
 }
 
-/* The chip names what a click does, as Comfy and Fit do. */
+/* An icon, lit while every take is folded; its tip says what a click does. */
 function paintFoldAll() {
   var button = $('fold-toggle');
   if (!button) { return; }
   var folded = foldedView();
-  button.textContent = folded ? 'Expand' : 'Collapse';
+  button.classList.toggle('active', folded);
+  button.setAttribute('aria-pressed', folded ? 'true' : 'false');
   button.title = folded ? 'Open every take again' : 'Fold every take down to its head line and its icons';
 }
 
@@ -14646,8 +14819,9 @@ function wire() {
     Array.prototype.forEach.call(document.querySelectorAll('#takes .take'), function (card) { foldCard(card, on); });
     paintFoldAll();
   });
-  $('layout-toggle').addEventListener('click', function () {
-    applyLayout(State.layout === 'comfy' ? 'compact' : 'comfy');
+  document.querySelector('.view-tools').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-layout]');
+    if (button) { applyLayout(button.dataset.layout); }
   });
 
   document.querySelector('.filters').addEventListener('click', function (event) {
@@ -14664,7 +14838,8 @@ function wire() {
     }
     var button = event.target.closest('[data-filter]');
     if (!button) { return; }
-    applyFilter(button.dataset.filter);
+    // Starred is one switch: on shows the starred takes only, off shows them all.
+    applyFilter(State.filter === button.dataset.filter ? 'all' : button.dataset.filter);
     State.takesRaw = '';
     clearPicked();
     loadTakes();
@@ -14690,6 +14865,7 @@ function wire() {
     paintBulk();
   });
   $('bulk-delete').addEventListener('click', function () { bulkDelete(); });
+  $('pick-done').addEventListener('click', function () { clearPicked(); markPickedCards(); });
 
   var lastTitleClick = { time: 0, id: null };
   var lastCardClick = { time: 0, id: null };
@@ -15018,6 +15194,7 @@ function wire() {
     });
   }
   $('space').addEventListener('change', function () { showSpace($('space').value); });
+  wireSpaceMenu();
   $('space-new').addEventListener('click', newSpace);
   $('space-rename').addEventListener('click', renameSpace);
   $('space-delete').addEventListener('click', deleteSpace);
@@ -15318,8 +15495,9 @@ function wire() {
   // A take's job, in the card's title or in Up next: go to the take, in whichever space it is in.
   $('job-card').addEventListener('click', function (event) {
     var link = event.target.closest('[data-take]');
-    if (link && link.dataset.take) { openTakeInLibrary(link.dataset.take); }
+    if (link && link.dataset.take) { closeJobPanel(); openTakeInLibrary(link.dataset.take); }
   });
+  wireJobPill();
 
   $('job-queue').addEventListener('click', function (event) {
     var button = event.target.closest('.q-cancel');

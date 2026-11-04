@@ -27,6 +27,7 @@
 </head>
 <body>
 <header class="topbar">
+  <div class="topbar-left">
   <div class="brand-wrap">
     <button class="brand" id="brand" title="Menu" aria-haspopup="menu" aria-expanded="false">
       <span class="wordmark" role="img" aria-label="Yeufonic"><svg class="y" viewBox="8 6 48 54" aria-hidden="true"><defs><linearGradient id="brand-y" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7b5cff"/><stop offset="1" stop-color="#8f5aef"/></linearGradient></defs><path d="M32 54 V36 M32 36 C32 26 19 23 14 12 M32 36 C32 26 45 23 50 12" fill="none" stroke="url(#brand-y)" stroke-width="11.5" stroke-linecap="round"/><circle cx="50" cy="12" r="6" fill="#a3e635"/></svg><span class="word">eufonic</span></span>
@@ -53,6 +54,26 @@
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         <span>About</span>
       </button>
+    </div>
+  </div>
+    <!-- What the engine is doing: a pill that changes nothing around it, its card opening under it on a click. -->
+    <div id="job-card" class="job hidden">
+      <button type="button" id="job-pill" class="pill job-pill" aria-expanded="false" aria-controls="job-panel" title="What the engine is doing, and what comes next">
+        <span class="job-pill-dot" aria-hidden="true"></span>
+        <span id="job-pill-text" class="job-pill-text">Working</span>
+        <span id="job-pill-time" class="job-pill-time"></span>
+        <span id="job-pill-more" class="job-pill-more hidden"></span>
+        <span class="job-pill-bar" aria-hidden="true"><span id="job-pill-fill"></span></span>
+      </button>
+      <div id="job-panel" class="job-panel hidden">
+        <div class="job-top"><span id="job-title">Working</span><span id="job-time" class="muted"></span></div>
+        <div class="bar"><div id="job-bar"></div></div>
+        <div class="job-bottom"><span id="job-stage" class="muted">Starting</span><button id="job-stop" class="link">stop</button></div>
+        <div id="job-next" class="job-next hidden">
+          <div class="job-next-head muted">Up next</div>
+          <ol id="job-queue" class="job-queue"></ol>
+        </div>
+      </div>
     </div>
   </div>
   <nav class="view-switch" role="tablist" aria-label="Views">
@@ -101,29 +122,30 @@
   </button>
 
   <section class="library">
-    <div id="job-card" class="job hidden">
-      <div class="job-top"><span id="job-title">Working</span><span id="job-time" class="muted"></span></div>
-      <div class="bar"><div id="job-bar"></div></div>
-      <div class="job-bottom"><span id="job-stage" class="muted">Starting</span><button id="job-stop" class="link">stop</button></div>
-      <div id="job-next" class="job-next hidden">
-        <div class="job-next-head muted">Up next</div>
-        <ol id="job-queue" class="job-queue"></ol>
-      </div>
-    </div>
-
     <div class="libsticky">
-    <div class="spacebar">
-      <label for="space" class="space-label">Space</label>
-      <select id="space" title="Each space holds its own takes"></select>
-      <button id="space-new" class="chip action">New space</button>
-      <button id="space-rename" class="chip action">Rename</button>
-      <button id="space-delete" class="chip action">Delete</button>
-      <button id="take-import" class="chip action" title="Make a take from a take file (.yeufonic.json) someone saved: its plan, ready to render. You can also drop the file on the library">Import take</button>
-      <input type="file" id="take-import-file" accept=".json,application/json" hidden>
-      <span id="take-import-note" class="import-note" role="status" aria-live="polite"></span>
-    </div>
     <div class="libhead">
-      <h2 id="takes-heading">Your takes</h2>
+      <!-- The space on show is the heading, and choosing it: the list finds a space as you type, the ones used
+           lately first, and holds what can be done with spaces. The select is the state the page reads. -->
+      <div class="space-pick" id="space-pick-wrap">
+        <button type="button" id="space-pick" class="space-title" aria-haspopup="listbox" aria-expanded="false" title="Choose a space: each space holds its own takes">
+          <span id="takes-heading" class="space-name">Your takes</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <span id="space-count" class="space-count"></span>
+        <select id="space" class="hidden" aria-hidden="true" tabindex="-1"></select>
+        <div id="space-menu" class="space-menu hidden">
+          <input type="search" id="space-find" placeholder="Find a space" autocomplete="off" spellcheck="false" aria-label="Find a space">
+          <div id="space-list" class="space-list" role="listbox" aria-label="Spaces"></div>
+          <div class="space-menu-foot">
+            <button type="button" id="space-new" class="menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New space</button>
+            <button type="button" id="space-rename" class="menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>Rename this space</button>
+            <button type="button" id="take-import" class="menu-item" title="Make a take from a take file (.yeufonic.json) someone saved: its plan, ready to render. You can also drop the file on the library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Import take&hellip;</button>
+            <button type="button" id="space-delete" class="menu-item danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Delete this space</button>
+          </div>
+        </div>
+        <input type="file" id="take-import-file" accept=".json,application/json" hidden>
+        <span id="take-import-note" class="import-note" role="status" aria-live="polite"></span>
+      </div>
       <div class="filters">
         <div class="take-search" id="take-search-wrap">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.8"/><path d="M10.6 10.6 14 14"/></svg>
@@ -134,19 +156,34 @@
           <div class="search-recent hidden" id="take-search-recent"></div>
         </div>
         <button id="search-all" class="chip hidden" title="Search every space, not just this one">All spaces</button>
-        <button id="select-all" class="chip" title="Select all takes in this space">Select all</button>
-        <span class="kinds" role="group" aria-label="Show takes of these kinds">
-          <button class="chip" data-takekind="song" title="Show songs from a prompt. Pick more than one, or none for every kind">Song</button>
-          <button class="chip" data-takekind="cover" title="Show covers of a recording. Pick more than one, or none for every kind">Cover</button>
-          <button class="chip" data-takekind="instrumental" title="Show instrumentals. Pick more than one, or none for every kind">Instrumental</button>
+        <!-- What to show: hidden while takes are picked, when the row offers what can be done with them. -->
+        <span class="show-tools">
+          <span class="tool-sep" aria-hidden="true"></span>
+          <span class="kinds" role="group" aria-label="Show takes of these kinds">
+            <button data-takekind="song" title="Show songs from a prompt. Pick more than one, or none for every kind"><i class="kind-dot song"></i>Song</button>
+            <button data-takekind="cover" title="Show covers of a recording. Pick more than one, or none for every kind"><i class="kind-dot cover"></i>Cover</button>
+            <button data-takekind="instrumental" title="Show instrumentals. Pick more than one, or none for every kind"><i class="kind-dot inst"></i>Instrumental</button>
+          </span>
+          <button class="chip star-filter" data-filter="favourite" title="Show starred takes only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>Starred</button>
+          <span class="tool-sep" aria-hidden="true"></span>
+          <span class="view-tools" role="group" aria-label="How the takes are laid out">
+            <button type="button" id="layout-comfy" data-layout="comfy" title="Comfy cards: wider, with more of the prompt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="7" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/><rect x="13" y="13" width="8" height="7" rx="1"/></svg></button>
+            <button type="button" id="layout-compact" data-layout="compact" title="Compact cards: narrower, more across"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="5" height="7" rx="1"/><rect x="9.5" y="4" width="5" height="7" rx="1"/><rect x="16.5" y="4" width="5" height="7" rx="1"/><rect x="2.5" y="13" width="5" height="7" rx="1"/><rect x="9.5" y="13" width="5" height="7" rx="1"/><rect x="16.5" y="13" width="5" height="7" rx="1"/></svg></button>
+            <span class="tool-sep inner" aria-hidden="true"></span>
+            <button type="button" id="width-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4"/></svg></button>
+            <button type="button" id="fold-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+          </span>
         </span>
-        <button class="chip active" data-filter="all">All</button>
-        <button class="chip" data-filter="favourite">Starred</button>
-        <button id="layout-toggle" class="chip layout" title="Switch card size">Comfy</button>
-        <button id="width-toggle" class="chip layout" title="Fill the window, or centre the column">Fit</button>
-        <button id="fold-toggle" class="chip layout" title="Fold every take down to its head line and its icons">Collapse</button>
-        <button id="compare-picked" class="chip hidden" title="Play the ticked takes against each other, from the same place in the song">Compare</button>
-        <button id="bulk-delete" class="chip danger hidden" title="Delete every selected take, with its audio and stems">Delete</button>
+        <!-- What can be done with the picked takes: shown in place of the above while any are picked. -->
+        <span class="pick-tools hidden" id="pick-tools">
+          <span class="tool-sep" aria-hidden="true"></span>
+          <span id="picked-count" class="picked-count"></span>
+          <button id="compare-picked" class="chip action hidden" title="Play the ticked takes against each other, from the same place in the song">Compare</button>
+          <button id="bulk-delete" class="chip danger hidden" title="Delete every selected take, with its audio and stems">Delete</button>
+          <button id="pick-done" class="chip" title="Untick every take">Done</button>
+        </span>
+        <span class="tool-sep" aria-hidden="true"></span>
+        <button id="select-all" class="chip" title="Select all takes in this space"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg><span class="lbl">Select all</span></button>
       </div>
     </div>
     </div>
