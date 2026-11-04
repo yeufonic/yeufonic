@@ -28,7 +28,8 @@ def open_in(browser, app_server, locale):
     return context, page, errors
 
 
-@pytest.mark.parametrize("locale, lang", [("de-DE", "de-DE"), ("ru", "ru-RU"), ("zh-CN", "zh-CN"), ("zh-HK", "zh-TW")])
+@pytest.mark.parametrize("locale, lang", [("de-DE", "de-DE"), ("ru", "ru-RU"), ("zh-CN", "zh-CN"), ("zh-HK", "zh-TW"),
+                                          ("ja", "ja-JP"), ("ko-KR", "ko-KR")])
 def test_the_page_comes_up_in_the_browsers_language(browser, app_server, locale, lang):
     search, song = said(lang, "Search takes"), said(lang, "Song")
     context, page, errors = open_in(browser, app_server, locale)
@@ -47,9 +48,10 @@ def test_the_page_comes_up_in_the_browsers_language(browser, app_server, locale,
         context.close()
 
 
-def test_a_chinese_label_stays_on_one_line(browser, app_server):
-    """Chinese may break between any two characters: the row's labels keep to one line instead."""
-    context, page, errors = open_in(browser, app_server, "zh-CN")
+@pytest.mark.parametrize("locale", ["zh-CN", "ja-JP", "ko-KR"])
+def test_a_cjk_label_stays_on_one_line(browser, app_server, locale):
+    """Chinese and Japanese may break between any two characters: the row's labels keep to one line instead."""
+    context, page, errors = open_in(browser, app_server, locale)
     try:
         for selector in ['.filters .kinds button[data-takekind="instrumental"]', ".filters .star-filter"]:
             box = page.locator(selector).bounding_box()

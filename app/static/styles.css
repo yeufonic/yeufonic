@@ -261,7 +261,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Chinese (i18n.js marks the page): the system's Chinese fonts after the Latin ones, Traditional forms for zh-TW,
+/* Chinese, Japanese and Korean (i18n.js marks the page): the system's Chinese fonts after the Latin ones, Traditional forms for zh-TW,
    a little more line height, and no letter-spacing, which pulls characters apart (the uppercase headings have no
    case to change).  The rack keeps its faceplate lettering. */
 html[data-script="cjk"] body {
@@ -274,6 +274,16 @@ html[lang="zh-TW"] body {
     "Noto Sans CJK TC", "Noto Sans TC", sans-serif;
 }
 html[data-script="cjk"] body *:not(#rack-panel, #rack-panel *) { letter-spacing: normal !important; }
+html[lang="ja-JP"] body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Yu Gothic UI", "Meiryo", "Noto Sans CJK JP", "Noto Sans JP", sans-serif;
+}
+/* Korean: its own fonts, and lines broken between words (it spaces them), not inside one. */
+html[lang="ko-KR"] body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Apple SD Gothic Neo", "Malgun Gothic",
+    "Noto Sans CJK KR", "Noto Sans KR", sans-serif;
+  word-break: keep-all;
+}
 
 h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.02em; }
 .create-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }

@@ -56,7 +56,7 @@ def test_the_page_is_in_the_browsers_language(client):
 
 
 def test_with_no_language_of_its_own_the_page_is_american_english(client):
-    for header in (None, "", "ja-JP,ko;q=0.8", "*"):
+    for header in (None, "", "tr-TR,pl;q=0.8", "*"):
         headers = {"Accept-Language": header} if header is not None else {}
         assert boot(client.get("/", headers=headers).text)["code"] == "en-US"
 
@@ -80,14 +80,14 @@ def test_british_english_is_the_text_as_written(client):
     ("zh", "zh-CN"), ("zh-SG", "zh-CN"), ("zh-HK", "zh-TW"), ("zh-Hant", "zh-TW"), ("zh-Hant-HK", "zh-TW"),
     ("zh-Hans-CN", "zh-CN"), ("es", "es-ES"), ("es-ES", "es-ES"), ("es-MX", "es-419"), ("es-419", "es-419"),
     ("pt", "pt-BR"), ("pt-BR", "pt-BR"), ("pt-PT", "pt-PT"), ("nl-BE", "nl-NL"), ("fr-CA", "fr-FR"),
-    ("it-CH", "it-IT"), ("ru", "ru-RU"), ("ja", None), ("", None), ("*", None),
+    ("it-CH", "it-IT"), ("ru", "ru-RU"), ("ja", "ja-JP"), ("ko", "ko-KR"), ("ko-KP", "ko-KR"), ("tr", None), ("", None), ("*", None),
 ])
 def test_a_browser_language_finds_its_table(asked, given):
     assert locales.match(asked) == given
 
 
 def test_the_browsers_languages_are_taken_in_the_order_of_their_weights():
-    assert locales.pick("ja;q=1, fr;q=0.4, it;q=0.8") == "it-IT"
+    assert locales.pick("tr;q=1, fr;q=0.4, it;q=0.8") == "it-IT"
     assert locales.pick("fr;q=0, nl") == "nl-NL"
     assert locales.pick(None) == "en-US"
 

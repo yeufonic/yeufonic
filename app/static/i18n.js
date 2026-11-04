@@ -228,7 +228,7 @@
   };
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.setAttribute('lang', LOCALE);
-    document.documentElement.setAttribute('data-script', /^zh/.test(LOCALE) ? 'cjk' : 'latin');
+    document.documentElement.setAttribute('data-script', /^(zh|ja|ko)/.test(LOCALE) ? 'cjk' : 'latin');
   }
   // Loaded by node (the tests do, before the scripts they run), it gives the same functions, in English.
   if (typeof module !== 'undefined' && module.exports) { module.exports = root.I18N; }

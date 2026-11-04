@@ -39,9 +39,9 @@ cannot creep back in.
 
 ## Unreleased
 
-- **The app in thirteen languages.** Settings → **Language** chooses the language of the app's words: English (US),
-  English (UK), Simplified and Traditional Chinese, German, Dutch, French, Italian, Russian, Spanish (Spain and Latin
-  America) and Portuguese (Brazil and Portugal). It starts as the browser's language, or the nearest of these, and
+- **The app in fifteen languages.** Settings → **Language** chooses the language of the app's words: English (US),
+  English (UK), Simplified and Traditional Chinese, Japanese, Korean, German, Dutch, French, Italian, Russian, Spanish
+  (Spain and Latin America) and Portuguese (Brazil and Portugal). It starts as the browser's language, or the nearest of these, and
   US English where none fits. Every button, label, tip, message and setting is translated, and so are the messages
   from the server that the page shows. Your titles, styles and lyrics stay as you wrote them, as do the style and
   voice chips (they are words the model reads) and the labels on the mastering rack's faceplates. The translations

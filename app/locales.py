@@ -28,6 +28,8 @@ LOCALES: dict[str, str] = {
     "en-GB": "English (UK)",
     "zh-CN": "简体中文",
     "zh-TW": "繁體中文",
+    "ja-JP": "日本語",
+    "ko-KR": "한국어",
     "de-DE": "Deutsch",
     "nl-NL": "Nederlands",
     "fr-FR": "Français",
@@ -43,7 +45,7 @@ LOCALES: dict[str, str] = {
 # and Macau read Traditional, as Taiwan does.  Spanish of any country but Spain is the Latin American table;
 # Portuguese of any country but Portugal is the Brazilian.
 _BY_LANGUAGE = {"en": "en-US", "zh": "zh-CN", "de": "de-DE", "nl": "nl-NL", "fr": "fr-FR", "it": "it-IT",
-                "ru": "ru-RU", "es": "es-ES", "pt": "pt-BR"}
+                "ru": "ru-RU", "es": "es-ES", "pt": "pt-BR", "ja": "ja-JP", "ko": "ko-KR"}
 _ALIASES = {"zh-hk": "zh-TW", "zh-mo": "zh-TW", "zh-hant": "zh-TW", "zh-hans": "zh-CN", "zh-sg": "zh-CN",
             "en-au": "en-GB", "en-nz": "en-GB", "en-ie": "en-GB", "en-za": "en-GB", "en-in": "en-GB"}
 
