@@ -1247,7 +1247,7 @@ von Black Forest Labs stehen, aber leg sie an ihren Platz, und sie werden benutz
    (5,0 GB) von [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF)
    (`-Q8_0.gguf`, 8,7 GB, geht auch) und leg es in denselben Ordner.
 3. **Wo die Ordner sind:** unter `models/` im Yeufonic-Ordner bei **Docker**; unter
-   `engine\ComfyUI\models\` im Installationsordner unter **Windows**; unter `engine/ComfyUI/models/` im
+   `engine\ComfyUI\models` im Installationsordner unter **Windows**; unter `engine/ComfyUI/models/` im
    Installationsordner auf einem **Mac**.
 4. **Lass die App sie sehen, und wähle es.** Starte Yeufonic neu (mit Docker `docker compose restart app`)
    und setze dann **Take-Bilder: klein-Modell** in den Einstellungen auf *FLUX.2 klein 9B*. Bis dahin zeichnet der 4B, und

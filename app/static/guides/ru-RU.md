@@ -1247,7 +1247,7 @@ Black Forest Labs, но положите их на место, и они буд�
    (5,0 ГБ) из [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF)
    (`-Q8_0.gguf`, 8,7 ГБ, тоже подходит) и положите в ту же папку.
 3. **Где эти папки:** в `models/` в папке Yeufonic для **Docker**; в
-   `engine\ComfyUI\models\` в папке установки в **Windows**; в `engine/ComfyUI/models/` в
+   `engine\ComfyUI\models` в папке установки в **Windows**; в `engine/ComfyUI/models/` в
    папке установки на **Mac**.
 4. **Дайте приложению их увидеть и выберите.** Перезапустите Yeufonic (с Docker — `docker compose restart app`),
    затем поставьте **Картинки дублей: модель klein** в Настройках на *FLUX.2 klein 9B*. До тех пор рисует 4B, а

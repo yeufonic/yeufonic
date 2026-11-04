@@ -1312,7 +1312,7 @@ Labs' **non-commercial licence**, but put them in place and they are used.
    (5.0 GB) from [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF) instead
    (`-Q8_0.gguf`, 8.7 GB, also works), and put it in the same folder.
 3. **Where the folders are:** under `models/` in the Yeufonic folder for **Docker**; under
-   `engine\ComfyUI\models\` in the install folder on **Windows**; under `engine/ComfyUI/models/` in the
+   `engine\ComfyUI\models` in the install folder on **Windows**; under `engine/ComfyUI/models/` in the
    install folder on a **Mac**.
 4. **Let the app see them, and choose it.** Restart Yeufonic (with Docker, `docker compose restart app`),
    then set **Take pictures: klein model** in Settings to *FLUX.2 klein 9B*. The 4B draws until you do, and

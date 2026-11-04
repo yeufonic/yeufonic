@@ -1247,7 +1247,7 @@ van Black Forest Labs vallen, maar zet ze op hun plek en ze worden gebruikt.
    (5,0 GB) van [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF)
    (`-Q8_0.gguf`, 8,7 GB, werkt ook), en zet hem in dezelfde map.
 3. **Waar de mappen zijn:** onder `models/` in de Yeufonic-map voor **Docker**; onder
-   `engine\ComfyUI\models\` in de installatiemap op **Windows**; onder `engine/ComfyUI/models/` in de
+   `engine\ComfyUI\models` in de installatiemap op **Windows**; onder `engine/ComfyUI/models/` in de
    installatiemap op een **Mac**.
 4. **Laat de app ze zien, en kies hem.** Herstart Yeufonic (met Docker, `docker compose restart app`),
    en zet dan **Take-afbeeldingen: klein-model** in Instellingen op *FLUX.2 klein 9B*. De 4B tekent tot je dat doet, en

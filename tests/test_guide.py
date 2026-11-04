@@ -1,5 +1,7 @@
 """The guide is a page in the app, so it has to be there when the app is."""
+import json
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -129,3 +131,21 @@ def test_a_translation_keeps_the_code_blocks(path):
     english = re.findall(r"^```.*?^```", GUIDE.read_text(encoding="utf-8"), re.M | re.S)
     theirs = re.findall(r"^```.*?^```", path.read_text(encoding="utf-8"), re.M | re.S)
     assert theirs == english
+
+
+MARKED = GUIDE.parent / "marked.min.js"
+
+
+@pytest.mark.parametrize("path", [GUIDE, *TRANSLATIONS], ids=["en-GB", *[p.stem for p in TRANSLATIONS]])
+def test_no_asterisks_show_when_the_guide_is_rendered(path):
+    """Rendered by the page's own marked, nothing meant as bold or italic shows its asterisks. Chinese and Japanese
+    put no spaces between words, where ** before or after punctuation does not open or close (the assembler writes
+    those spans as <strong>), and a run like ***or ****, from two spans meeting, breaks in any language."""
+    script = (f"const m=require({json.dumps(str(MARKED))});const p=(m.marked||m).parse;"
+              "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{"
+              "const h=p(s).replace(/<code>[\\s\\S]*?<\\/code>/g,'');"
+              "const out=[];let i=-1;while((i=h.indexOf('*',i+1))>=0)out.push(h.slice(Math.max(0,i-40),i+20));"
+              "console.log(JSON.stringify(out));})")
+    res = subprocess.run(["node", "-e", script], input=path.read_text(encoding="utf-8"), capture_output=True,
+                         text=True, check=True)
+    assert json.loads(res.stdout) == []

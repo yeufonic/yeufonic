@@ -1247,7 +1247,7 @@ de Black Forest Labs, pero ponlos en su sitio y se usan.
    (5,0 GB) de [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF)
    (`-Q8_0.gguf`, 8,7 GB, también funciona), y ponlo en la misma carpeta.
 3. **Dónde están las carpetas:** bajo `models/` en la carpeta de Yeufonic para **Docker**; bajo
-   `engine\ComfyUI\models\` en la carpeta de instalación en **Windows**; bajo `engine/ComfyUI/models/` en la
+   `engine\ComfyUI\models` en la carpeta de instalación en **Windows**; bajo `engine/ComfyUI/models/` en la
    carpeta de instalación en un **Mac**.
 4. **Deja que la aplicación los vea, y elígelo.** Reinicia Yeufonic (con Docker, `docker compose restart app`),
    y luego pon **Imágenes de las tomas: modelo klein** en Configuración en *FLUX.2 klein 9B*. El 4B dibuja hasta que lo hagas, y
