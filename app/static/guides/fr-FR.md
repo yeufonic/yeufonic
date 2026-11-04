@@ -11,6 +11,7 @@ jeté ; un rendu coûte des minutes. L’application vous laisse donc d’abord 
 ---
 
 ## Votre première chanson {#your-first-song}
+
 1. Appuyez sur **+ Chanson** en haut du panneau de gauche. La fenêtre de l’éditeur s’ouvre.
 2. **Saisissez un style.** Une phrase, pas une liste de tags : *« warm indie rock, expressive female lead, jangly
    guitars, 96 BPM »*. C’est l’influence la plus forte sur le résultat.
@@ -28,6 +29,7 @@ une prise que vous voudriez garder.
 La prise apparaît dans la bibliothèque à droite et se lit dans la barre du bas.
 
 ### Le panneau de prise et l’éditeur {#the-take-panel-and-the-editor}
+
 Le **panneau de gauche** montre la dernière prise cliquée, en lecture seule : son style, ses réglages de son, les
 premières lignes de ses paroles, et sa partition sous forme de tonalité, de tempo, de durée et des accords de chaque section.
 **+ Chanson**, **+ Reprise** et **+ Instrumental** en haut commencent quelque chose de nouveau ; celui du
@@ -53,6 +55,7 @@ tant que la prise est normalisée, et un clic la ramène alors au niveau de son 
 s’allume tant que la prise en contient d’autres, et ferme la fenêtre pour les montrer sous la prise.
 
 ### Réglages avancés {#advanced-settings}
+
 Le bouton **Avancé** dans l’en-tête de l’éditeur ouvre des réglages pour cette seule prise. La plupart des chansons
 n’en ont jamais besoin. Ils sont enregistrés avec la prise, si bien que *Modifier et relancer le rendu* les retrouve comme vous les avez laissés.
 Le bouton s’allume quand un réglage diffère de sa valeur par défaut, et **Rétablir les valeurs par défaut** les remet
@@ -98,6 +101,7 @@ Certains agissent sur le plan, d’autres sur le rendu et le fichier final :
   durée.
 
 ### Que mettre dans la zone Style {#what-to-put-in-the-style-box}
+
 YuE2 lit ceci comme la description d’un enregistrement : décrivez donc un enregistrement. Langue, genre, voix,
 instruments, ambiance, tempo et production, à peu près dans cet ordre, le tout en une phrase. Les simples listes de tags
 fonctionnent moins bien, et les marqueurs de section comme `[Verse]` vont dans les paroles, pas ici.
@@ -106,6 +110,7 @@ Les puces **Chant** en dessous écrivent dans le style pour vous : femme, homme 
 comme soufflé ou rauque. C’est un raccourci de saisie, et vous pouvez modifier le résultat à la main.
 
 ### Rédiger les paroles {#drafting-the-lyrics}
+
 **La structure.** Au-dessus de la zone des paroles, tant qu’elle ne contient pas de mots, une chanson a une **structure** à construire, comme
 un instrumental : une liste de sections que vous pouvez réordonner, supprimer et compléter (intro, couplet, pré-refrain, refrain, pont,
 interlude, outro). **Partir de…** la remplit avec une forme courante, et l’infobulle de chaque forme dit à quoi elle convient. Un
@@ -130,12 +135,14 @@ ne vérifie qu’une ligne n’appartient pas déjà à quelqu’un d’autre. L
 ---
 
 ## Écrire une chanson à partir d’un prompt : toutes les options {#writing-a-song-from-a-prompt-every-option}
+
 **+ Chanson** offre désormais beaucoup de choix. Aucun n’est obligatoire : un style et quelques paroles suffisent, comme dans
 [Votre première chanson](#your-first-song). Ce chapitre les passe tous en revue dans l’ordre où l’éditeur les montre,
 ses trois colonnes (la chanson, les paroles et le son), puis ce qu’il faut faire après le plan. Il se termine par un
 tableau des souhaits courants, comme une chanson plus longue ou un refrain qui sonne autrement que le couplet.
 
 ### La chanson {#the-song}
+
 - **Titre.** Facultatif. S’il est vide, la première ligne des paroles est utilisée.
 - **Style.** La liste **Choisir un style…** contient 200 points de départ, de l’afrobeats au zydeco, par ordre alphabétique.
   En choisir un remplit la zone Style d’une description complète, que vous pouvez ensuite modifier. Les puces en dessous sont dix départs
@@ -151,6 +158,7 @@ tableau des souhaits courants, comme une chanson plus longue ou un refrain qui s
 - **LoRA de style.** Sous la colonne du son. Voir [LoRA de style](#style-loras).
 
 ### Les paroles {#the-words}
+
 **La structure.** Au-dessus de la zone des paroles, tant qu’elle ne contient pas de mots, il y a une liste de sections : l’ordre que
 suivra la chanson. Chaque ligne peut être changée en une autre section, montée ou descendue (ou glissée), ou supprimée, et les
 puces sous la liste ajoutent une section. Les sections sont intro, couplet, pré-refrain, refrain, pont, interlude et outro.
@@ -263,6 +271,7 @@ refrain, pont, interlude, outro et instrumental. Une section est une ligne comme
 tag sans ligne en dessous, comme `[Interlude]`, est un passage instrumental.
 
 ### Le son {#the-sound}
+
 - **Harmonie** (le curseur) : à quel point les accords sont audacieux. Une nouvelle chanson démarre sur **Variée**, avec l’interprétation
   sur **Large** : dans nos propres essais, cette paire a donné les versions les plus intéressantes musicalement, c’est donc un bon point de départ. Réglez
   l’un ou l’autre à votre goût. Les prises existantes gardent ce avec quoi elles ont été faites. Livré à lui-même, le planificateur tend à écrire une boucle
@@ -307,6 +316,7 @@ tag sans ligne en dessous, comme `[Interlude]`, est un passage instrumental.
   le rack, puis l’éditeur.
 
 ### Allonger la chanson {#making-the-song-longer}
+
 La durée d’une chanson est fixée par son plan, et le rendu suit la durée du plan. Voici ce qui la fait varier :
 
 | Pour obtenir… | Faites ceci |
@@ -318,6 +328,7 @@ La durée d’une chanson est fixée par son plan, et le rendu suit la durée du
 | Une chanson qui s’arrête à la fin de ses paroles | Augmentez la limite de durée seulement si elle est coupée ; la limite est un plafond, pas une cible |
 
 ### Après le plan {#after-the-plan}
+
 - **Rendre cette partition** crée une nouvelle prise dès que la prise ouverte a déjà de l’audio, si bien qu’un rendu n’écrase jamais une prise
   que vous voudriez comparer. Une prise encore sans audio est complétée.
 - **Garder cet air** (après avoir changé les paroles d’une prise) : chante la partition de la prise avec les nouvelles paroles, en une nouvelle prise. La
@@ -330,6 +341,7 @@ La durée d’une chanson est fixée par son plan, et le rendu suit la durée du
 ---
 
 ## Lire et corriger le plan {#reading-and-fixing-the-plan}
+
 Le plan est écrit en **notation ABC** : de la musique en texte brut, des lettres au lieu de points sur une portée.
 Chris Walshaw l’a conçue au début des années 1990 pour envoyer des airs folk par e-mail, et elle est restée.
 
@@ -338,6 +350,7 @@ sur portée** sous l’éditeur, et **Agrandir** ouvre le tout en grand. Mais le
 a écrit et ce à partir de quoi il fait le rendu, il vaut donc la peine de savoir s’y repérer.
 
 ### Lire un plan {#reading-a-plan}
+
 Un plan commence par un en-tête, une lettre et deux-points par ligne :
 
 ```
@@ -386,6 +399,7 @@ les parties entre guillemets, et tout le reste peut rester tel quel. Et **si vou
 utilise ce que vous avez modifié**, donc corriger un plan est souvent plus rapide que d’en retirer jusqu’à en avoir un bon.
 
 ### L’écouter {#hearing-it}
+
 L’onglet **Notation** a un lecteur au-dessus des portées. Appuyez sur **Lire** pour entendre le plan tel que la zone
 le contient, modifications comprises, pour juger à l’oreille une mélodie dont vous doutez avant de lui consacrer un rendu.
 Les notes jouées sont mises en évidence au fur et à mesure, et son réglage de tempo ne change que l’aperçu,
@@ -426,11 +440,13 @@ qu’il fonctionne ensuite hors ligne. **Lire** récupère ce dont la partition 
 d’abord.
 
 ### Le piano roll {#the-piano-roll}
+
 Cliquez sur **Piano roll** dans la fenêtre de partition pour ouvrir l’éditeur MIDI visuel. Plutôt que de modifier des lettres ABC brutes, vous voyez et façonnez la mélodie directement sur une grille interactive de hauteur et de temps.
 
 L’éditeur affiche les deux voix de la partition à la fois — **Vocal** (la mélodie chantée principale en bleu ciel) et **Ins** (l’accompagnement instrumental en ambre chaud). Les deux voix sont toujours pleinement actives, visibles, sélectionnables et modifiables. Les boutons **Dessiner** en haut à gauche choisissent à quelle voix sont attribuées les nouvelles notes quand vous cliquez pour en ajouter.
 
 #### Modifier les notes {#editing-notes}
+
 - **Ajouter une note :** cliquez sur une case vide de la grille pour créer une note à cette hauteur et ce moment. La note sonne aussitôt pour que vous entendiez son ton.
 - **Sélectionner des notes :** cliquez sur une note pour la sélectionner. Maintenez <kbd>Shift</kbd> ou <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> en cliquant pour sélectionner plusieurs notes dans les parties vocale et instrumentale. Cliquez et faites glisser un **cadre de sélection** sur une zone vide de la grille pour sélectionner une phrase ou un passage dans toutes les voix. Appuyez sur <kbd>Ctrl</kbd>+<kbd>A</kbd> (<kbd>Cmd</kbd>+<kbd>A</kbd> sur macOS) ou cliquez sur **Tout sélectionner** pour sélectionner toutes les notes de la partition. Pour sélectionner toutes les notes depuis le curseur de lecture jusqu’à la fin de la chanson, appuyez sur <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> ou <kbd>Alt</kbd>+<kbd>A</kbd> (ou cliquez sur **Depuis le curseur ▶** dans la barre d’outils).
 - **Déplacer des notes :** faites glisser une note sélectionnée pour l’avancer ou la retarder, ou verticalement pour transposer sa hauteur. Quand plusieurs notes sont sélectionnées — vocales, instrumentales ou les deux — elles bougent toutes ensemble, en gardant leur timing relatif, leurs mélodies et leurs paroles.
@@ -441,6 +457,7 @@ L’éditeur affiche les deux voix de la partition à la fois — **Vocal** (la 
 - **Agrandir :** cliquez sur **Agrandir** dans la barre d’outils du haut pour étendre le piano roll à toute la largeur de votre fenêtre de navigateur.
 
 #### Chronologie, sections et accords {#timeline-sections-and-chords}
+
 Le long de la règle du haut, la chronologie affiche les numéros de mesure et les limites de section :
 - **Renommer des sections :** cliquez sur un repère de section (`intro`, `verse`, `chorus`, etc.) pour modifier son nom ou le réattribuer.
 - **Modifier les accords :** juste sous la règle des mesures, la piste d’accords montre la progression harmonique de la chanson. Cliquez sur un accord existant pour le renommer (par exemple changer `C` en `Am7` ou `G/B`), ou sur une mesure vide pour placer un nouvel accord.
@@ -448,6 +465,7 @@ Le long de la règle du haut, la chronologie affiche les numéros de mesure et l
 - **Supprimer les mesures vides (Compacter les vides) :** cliquez sur **Compacter les vides** pour supprimer les mesures vides et silencieuses dans les deux voix, en décalant vers la gauche les notes et accords suivants pour éliminer les trous indésirables de l’arrangement.
 
 #### Paroles et suivi karaoké {#lyrics-and-karaoke-tracking}
+
 En bas du piano roll, une piste de paroles dédiée aligne chaque syllabe sur la mélodie vocale :
 - **Correspondance par phrases :** cliquez sur **Associer les paroles** pour répartir les paroles sur la mélodie vocale. L’alignement détecte les respirations naturelles et les silences entre les phrases mélodiques, et attribue chaque ligne de paroles à sa phrase sans déborder par-dessus les silences sur les mesures suivantes. Les mots de plusieurs syllabes se répartissent proprement sur les notes.
 - **Modifier les syllabes :** cliquez sur une étiquette de paroles (ou sélectionnez une note vocale et appuyez sur <kbd>L</kbd>) pour modifier son texte. Si vous saisissez des syllabes séparées par des espaces ou des traits d’union (par exemple `Hel- lo world`), elles se répartissent automatiquement sur les notes vocales consécutives.
@@ -455,6 +473,7 @@ En bas du piano roll, une piste de paroles dédiée aligne chaque syllabe sur la
 - **Balle karaoké :** pendant la lecture, une balle animée rebondit sur chaque note au moment où elle est chantée, et la syllabe active et la note de la grille s’illuminent en temps réel.
 
 #### Lecture et accompagnement harmonique {#playback-and-harmony-accompaniment}
+
 Appuyez sur <kbd>Space</kbd> ou cliquez sur **▶ Lire** pour lancer la lecture depuis le curseur. La ligne de lecture balaie la grille et met à jour la mesure, le temps et le compteur de temps écoulé.
 
 - **Clic audible (métronome) :** la lecture comprend par défaut un clic audible, avec un clic de woodblock accentué sur le premier temps de chaque mesure et des clics plus doux sur les autres temps. Appuyez sur <kbd>C</kbd> ou <kbd>M</kbd> (ou cliquez sur **Clic** dans la barre de transport) pour activer ou couper le métronome à tout moment.
@@ -462,6 +481,7 @@ Appuyez sur <kbd>Space</kbd> ou cliquez sur **▶ Lire** pour lancer la lecture 
 - **Avancer par mesures :** appuyez sur <kbd>Flèche gauche</kbd> et <kbd>Flèche droite</kbd> pour reculer et avancer mesure par mesure, ou sur <kbd>Home</kbd> pour revenir directement au début.
 
 #### Raccourcis clavier {#keyboard-shortcuts}
+
 | Touche | Action |
 |---|---|
 | <kbd>Space</kbd> | Lecture / pause |
@@ -482,6 +502,7 @@ Appuyez sur <kbd>Space</kbd> ou cliquez sur **▶ Lire** pour lancer la lecture 
 | <kbd>Escape</kbd> | Effacer la sélection, ou fermer la fenêtre de partition |
 
 ### Harmonie {#harmony}
+
 Livré à lui-même, YuE2 tend à écrire une boucle de quatre accords et à s’y tenir. Le curseur **Harmonie** l’éloigne
 des accords qu’il vient d’utiliser, sans casser la structure de la chanson.
 
@@ -508,6 +529,7 @@ Chaque plan, à chaque cran, a gardé ses sections et des accords valides. Deman
 texte du style à la place — « jazz harmony », « borrowed chords » — n’a eu aucun effet mesurable.
 
 ### Variété du plan {#plan-variety}
+
 Dans *Avancé*, **Variété du plan** règle la liberté avec laquelle le planificateur écrit. Là où l’Harmonie agit sur les
 accords, ceci agit sur tout : mélodie, structure et durée.
 
@@ -521,6 +543,7 @@ accords, ceci agit sur tout : mélodie, structure et durée.
 - **Sauvage :** le plus agité de tous, et il peut changer de tonalité en cours de route.
 
 ### Une chanson sans partition {#a-song-with-no-score}
+
 **Sans partition**, le troisième choix sous **Mode**, chante les paroles sans aucun plan : YuE2 écrit la mélodie et
 les accords en chantant, comme le faisait le YuE d’origine, et la chanson est rendue aussitôt avec **Chanter sans partition**.
 Elle sonne souvent très différemment d’une chanson planifiée.
@@ -535,7 +558,9 @@ instrumental en a besoin pour tenir sa voix à l’écart. Les deux moteurs save
 ---
 
 ## Le rendu {#rendering}
+
 ### Interprétation {#interpretation}
+
 La partition fixe les notes. L’**interprétation** règle la manière de les jouer.
 
 | Interprétation | Ce que vous entendez |
@@ -548,6 +573,7 @@ La partition fixe les notes. L’**interprétation** règle la manière de les j
 | Large | va chercher des sons moins évidents |
 
 ### Variations {#variations}
+
 Le bouton étincelle d’une carte rend **la même partition et la même seed** dans les autres
 interprétations. Comme seule l’interprétation change, ce que vous entendez de l’une à l’autre est
 l’interprétation — pas un autre coup de dés. Chacune est une prise à part entière, intitulée
@@ -556,6 +582,7 @@ dans La bibliothèque). La fenêtre a sa propre limite de durée, qui part de ce
 qu’à ces prises.
 
 ### Essayer encore {#try-more}
+
 Le bouton dé d’une carte rend **la même partition et les mêmes paroles en plusieurs nouvelles prises**, à
 écouter ensemble. Variations ne change que l’interprétation et garde la seed ; ceci change le
 tirage :
@@ -571,6 +598,7 @@ entre elles, appuyez sur **Tout sélectionner** pendant que le panneau est ouver
 propre limite de durée, qui part de celle de la prise.
 
 ### La seed, et reproduire une prise {#seed-and-reproducing-a-take}
+
 Chaque prise enregistre sa seed et chaque réglage qui l’a façonnée. La carte les nomme, cliquer sur une carte
 les montre dans le panneau de prise, et l’ouvrir dans l’éditeur recharge le tout. **Encore** ouvre
 l’éditeur avec exactement cela, seed comprise, pour reproduire une prise qui vous a plu, et ajuster un réglage à la fois une prise
@@ -585,6 +613,7 @@ Un rendu utilise ce que montre l’éditeur : son style, la LoRA de style et ses
 l’interprétation et la seed, même quand on refait le rendu de la partition d’une prise.
 
 ### Même mélodie, nouvelles paroles {#same-tune-new-words}
+
 Le planificateur lit toutes les paroles avant d’écrire une note, donc la même seed ne donne le même plan que
 pour les mêmes paroles. Changez une ligne et le plan suivant est un nouvel air : une autre mélodie, souvent une autre
 tonalité et un autre tempo, et la voix change avec eux.
@@ -601,10 +630,12 @@ le chanteur remplit les notes en trop avec ses propres mots), **Garder cet air**
 un nouveau plan est écrit pour les paroles. Recochez-le pour chanter l’air quand même.
 
 ### Finition de production {#production-polish}
+
 **Finition de production** applique la LoRA de décodeur Realaudio de Mothersuperior. YuE2 tel quel sonne souvent étouffé
 dans les médiums ; ceci sépare plus nettement instruments et voix. Activé par défaut.
 
 ### Durée {#length}
+
 La limite de durée est un plafond ferme, pas une cible. YuE2 décide quand une chanson se termine, et finit généralement
 d’elle-même ; la limite arrête celle qui ne s’arrête pas. Elle part de 360 secondes, ou de ce qu’indique **Durée maximale d'une nouvelle prise**
 dans les Paramètres. Puis elle fait de la place à la musique, pour qu’une chanson longue ne soit pas coupée :
@@ -626,6 +657,7 @@ dernière section : refaites un **Rendu** pour un autre essai.
 ---
 
 ## Reprendre un enregistrement {#covering-a-recording}
+
 1. Déposez un fichier audio, jusqu’à 2 Go. Il est stocké une fois et haché, si bien que le même fichier n’est jamais
    gardé deux fois. Un fichier vidéo (MP4, MOV, MKV, WebM et autres) fonctionne aussi : seul son son est gardé, en FLAC.
 2. Appuyez sur **Transcrire**. SheetSage2 écrit la mélodie et les accords dans la zone de partition. C’est
@@ -637,6 +669,7 @@ Une reprise suit la mélodie et les accords de l’original tandis que le style 
 ce qui en fait une reprise plutôt qu’une copie.
 
 ### Enregistrer votre propre air {#recording-a-tune-of-your-own}
+
 > [!NOTE]
 > La qualité de la détection d’un air dépend de l’enregistrement, et un plan construit autour peut tout de même échouer ou
 > divaguer : écrivez un nouveau plan, ou réenregistrez l’air.
@@ -666,6 +699,7 @@ et coupez le **Retour** de l’enregistreur, pour vous entendre directement depu
 fois. Utilisez un casque filaire : le Bluetooth ajoute son propre délai.
 
 #### Développer en chanson complète {#expand-to-full-song}
+
 Un air enregistré ne fait souvent que quelques mesures. **Développer en chanson complète** fait planifier par YuE2 une chanson entière
 qui contient votre air : le plan est dans la tonalité, la mesure et le tempo de votre air, chaque refrain (ou chaque couplet,
 si vous le choisissez) contient votre air, et le reste de la chanson est écrit autour. Puis elle est rendue
@@ -685,6 +719,7 @@ comme une reprise de votre enregistrement.
   chanté, alors écrivez-les d’abord : **Écrire les paroles** les rédige pour vous.
 
 ### Fichiers MIDI et reprises {#midi-files-and-covers}
+
 > [!NOTE]
 > L’utilisation de fichiers MIDI est conçue pour générer des prises différentes, souvent décalées, d’airs originaux.
 
@@ -700,6 +735,7 @@ Quand un fichier MIDI est téléversé :
 - **Retouches dans le piano roll :** ouvrez le **Piano roll** pour inspecter ou modifier les notes, choisir quelle piste sert de mélodie vocale principale, harmoniser les trous de l’accompagnement avec **Combler les vides**, ou aligner des paroles fraîchement collées avec **Associer les paroles**.
 
 ### Reprendre une chanson d’un corpus {#covering-a-song-from-a-corpus}
+
 L’analyse d’un corpus a déjà fait ce dont une reprise a besoin : la partition, les paroles entendues dans la chanson, et
 sa voix séparée. Sous vos enregistrements, la liste propose donc **De vos corpus**, repliée par
 corpus, avec la tonalité et le tempo de chaque chanson, et un filtre pour un grand corpus. Choisissez une chanson et elle devient aussitôt l’un
@@ -729,6 +765,7 @@ partition complète avec ses accords.
    **Rechanter** donne une autre voix sur la même partition, comme pour toute prise.
 
 ### Extraire les paroles {#extracting-the-lyrics}
+
 **Extraire les paroles**, à côté de *Transcrire*, écrit ce que chante l’enregistrement : il sépare la
 voix, l’écoute, et place les lignes sous les sections de la partition. On le demande plutôt
 qu’il ne se fait à chaque transcription, car il prend quelques minutes là où transcrire une partition
@@ -771,6 +808,7 @@ qu’il a répété plus de huit fois d’affilée, comme un « la » tenu qu’
 ---
 
 ## Instrumentaux {#instrumentals}
+
 Le troisième mode écrit un morceau sans voix. Au lieu de paroles, il prend une **structure** :
 
 | Structure | Ce que reçoit YuE2 | Qui décide |
@@ -784,6 +822,7 @@ Ajoutez des sections avec les puces **+**, réordonnez-les avec les flèches, et
 section, ajouter un interlude, ou dépasser les durées données, la limite de durée reste donc le plafond ferme.
 
 ### Un instrumental à partir d’un enregistrement {#an-instrumental-from-a-recording}
+
 **À partir d'un enregistrement (facultatif)** en haut de l’éditeur prend l’un de vos enregistrements, comme une reprise. Sa
 transcription est la partition, il n’y a donc pas de plan à écrire, et le rendu joue sa mélodie et ses
 accords avec la LoRA instrumentale.
@@ -813,11 +852,13 @@ l’arrange en instrumental, attendez-vous donc à des parties à elle, comme de
 Choisissez **Pas d'enregistrement : écrire un plan de partition** dans la liste pour revenir à l’écriture d’un plan.
 
 ### Quand un instrumental chante {#when-an-instrumental-sings}
+
 Il arrive que le modèle mette une voix dans un instrumental. C’est un échec du modèle, pas un réglage
 que vous avez mal fait. Avant le rendu, si le plan met des notes dans la voix vocale, une boîte de dialogue propose un nouveau
 plan, une nouvelle seed, ou de faire le rendu quand même. Une prise terminée n’est pas vérifiée : écoutez-la.
 
 ### Un instrumental à partir de la partition d’une chanson {#an-instrumental-from-a-song-s-score}
+
 **Faire un instrumental**, sous la partition d’une chanson ou d’une reprise dans la page Partition de l’éditeur (à côté de **Rendre cette partition**
 pour une chanson), fait de la
 même partition un instrumental, dans une nouvelle prise : l’originale reste telle quelle. La mélodie chantée passe
@@ -829,6 +870,7 @@ suffit pas : le rendu d’une chanson chante quand même les mots qu’on lui do
 ---
 
 ## Voix {#voices}
+
 Les puces **Chant** fixent le sexe et le caractère du chanteur en écrivant dans le style, pour toute la chanson.
 
 Pour un duo, ou un chanteur pour les couplets et un autre pour le refrain, mettez des indications de voix dans les paroles et cochez
@@ -836,6 +878,7 @@ Pour un duo, ou un chanteur pour les couplets et un autre pour le refrain, mette
 paroles d’une reprise.
 
 ## Corpus et entraînement d’une LoRA {#corpora-and-training-a-lora}
+
 Un **corpus** est un dossier de chansons, préparé comme jeu d’entraînement pour une LoRA de style : en général un
 artiste, un genre, ou quelques artistes proches.
 Ouvrez **Corpus** depuis le menu. C’est activé par défaut ; `TRAINING_ENABLED=0` pour l’application, ou un
@@ -884,6 +927,7 @@ Une carte de 8 Go peut servir à l’entraînement avec le modèle à faible mé
    fermez donc d’abord tout ce qui utilise le GPU.
 
 ### Une exécution qui s’arrête tôt {#a-run-that-ends-early}
+
 Une exécution peut s’arrêter avant sa dernière étape : **Arrêter**, un plantage, ou le GPU à court de mémoire. La ligne
 sous les boutons dit alors quand et pourquoi, et après quelle étape. En chemin, l’entraîneur enregistre un
 checkpoint toutes les 50 étapes, et garde une copie du meilleur jusqu’ici selon sa perte de planificateur, si bien que l’essentiel
@@ -895,6 +939,7 @@ façon est en général proche d’une exécution complète ; **Checkpoints** fa
 comparer à l’oreille. Pour tout réentraîner à la place, appuyez sur **Entraîner un LoRA**.
 
 ### Tout lancer {#run-all}
+
 **Tout lancer**, à côté des trois, enchaîne Analyser, Exporter et Entraîner, pour un corpus que vous
 préférez ne pas surveiller : un grand corpus prend des heures à analyser. Il demande d’abord quoi faire d’une
 LoRA précédente, puis continue page fermée. Il n’analyse que ce qui en a encore besoin, et une
@@ -904,11 +949,13 @@ arrêté pendant l’export, il termine d’abord le jeu d’entraînement. Il a
 le moteur avant d’entraîner. Un redémarrage de l’application l’arrête, et **Tout lancer** à nouveau reprend.
 
 ### À court de mémoire GPU {#running-out-of-gpu-memory}
+
 Une tâche à court de mémoire GPU le dit, avec quoi essayer : fermer d’autres programmes qui utilisent le GPU,
 baisser la limite de durée, ou, pour l’entraînement, laisser de côté les chansons les plus longues. Si le moteur plante et
 redémarre, la tâche qu’il exécutait est perdue, et elle le dit aussi.
 
 ### La LoRA entraînée {#the-trained-lora}
+
 Quand l’entraînement se termine, la LoRA apparaît dans la liste **LoRA de style** avec son mot déclencheur. La choisir
 montre une puce pour chaque chanson dont elle a appris, sous la zone Style, et cliquer dessus met le style de cette chanson dans
 la zone.
@@ -927,6 +974,7 @@ les partitions. Le dossier que vous lui avez indiqué, et toute LoRA faite à pa
 ---
 
 ## Droit d’auteur et consentement {#copyright-and-consent}
+
 Ce sur quoi vous entraînez, et ce que vous faites du résultat, relève de votre responsabilité selon la loi de votre
 pays. L’application vous demande de le déclarer et ne le vérifie pas : créer un corpus exige de confirmer
 que vous avez le droit de vous entraîner sur ces enregistrements.
@@ -942,6 +990,7 @@ Les LoRA que vous n’avez pas entraînées vous-même ont leurs propres licence
 (voir **Où trouver des LoRA de style** dans LoRA de style).
 
 ## LoRA de style {#style-loras}
+
 Une LoRA est un petit fichier qui oriente le modèle vers un son. Placez-en une dans `models/loras/` et appuyez sur
 **Réanalyser** sous le sélecteur, ou utilisez **Installer**, et elle apparaît dans la liste **LoRA de style**.
 
@@ -955,6 +1004,7 @@ Une force que le fichier ne peut pas utiliser est grisée, et un fichier que ce 
 comme tel au lieu d’échouer en silence pendant un rendu.
 
 ### Où trouver des LoRA de style {#where-to-find-style-loras}
+
 Le plus rapide est à l’installation : cochez **LoRA de style** sur la page des composants de l’installateur (ou, avec Docker, lancez
 `sh scripts/fetch-models.sh --loras`). Cela récupère 39 LoRA de style auprès de leurs auteurs, 3,8 Go en tout, chacune avec une
 description donnant son mot déclencheur et des forces conseillées : les ensembles ci-dessous, deux d’atomtanstudio (dream pop
@@ -983,6 +1033,7 @@ commercial, comme les poids de YuE2 eux-mêmes. Lisez la licence sur la page d�
 qu’elle produit.
 
 ### Équilibrer Planificateur et Son {#balancing-planner-and-sound}
+
 - **Corpus homogènes :** une LoRA entraînée sur un seul album ou un son acoustique unifié (par ex. le folk rock des années 1960) supporte des forces plus élevées, en général autour de **Planificateur ~0.85 / Son ~0.80**.
 - **Corpus variés :** si le corpus d’entraînement couvre plusieurs genres, styles de production ou époques (par ex. folk acoustique, rock et synth-pop), des poids de Son élevés peuvent créer des conflits acoustiques. Jusqu’à environ **Planificateur 0.70 / Son 0.70**, l’audio reste propre tout en gardant le phrasé mélodique et le caractère vocal de l’artiste.
 - **Reprises :** votre enregistrement fixe la mélodie, la LoRA a donc moins à façonner et la moitié Son est davantage sollicitée. Gardez Son vers **0.50**.
@@ -998,12 +1049,14 @@ qu’elle produit.
   sélecteur. Choisir cette LoRA partira alors de ces valeurs, et elles voyagent avec elle quand vous la partagez.
 
 ### Mots déclencheurs {#trigger-words}
+
 La plupart des LoRA de style sont entraînées sur des légendes qui **commencent** par un mot déclencheur, et font très peu
 sans lui. L’application s’en charge : choisir une LoRA met son déclencheur en tête du Style,
 passer à une autre l’échange, choisir Aucune le retire, et un rendu le remet s’il a été
 supprimé. Vous verrez le mot apparaître dans la zone Style — libre à vous de le modifier ou de le déplacer.
 
 ### Descriptions {#descriptions}
+
 La liste est groupée par ensemble. Cliquez sur un titre pour l’ouvrir ou le replier ; le sélecteur se souvient de ceux que vous
 avez laissés ouverts, et le groupe qui contient votre choix actuel s’ouvre toujours avec lui.
 
@@ -1022,10 +1075,12 @@ description. Une LoRA à vous en obtient une si vous écrivez un `.txt` à côt�
 dossier donne leurs titres aux groupes, un `prefix = label` par ligne.
 
 ### LoRA entraînées sur un corpus {#loras-trained-from-a-corpus}
+
 Une LoRA entraînée sur l’un de vos corpus est une LoRA de style ordinaire : elle apparaît dans cette liste avec les
 autres, son mot déclencheur à côté, et les mêmes deux forces s’appliquent.
 
 ### Essayer les checkpoints {#trying-the-checkpoints}
+
 Une exécution d’entraînement enregistre un checkpoint toutes les 50 étapes, et les garde sous sa LoRA dans le sélecteur :
 **▸ 9 étapes** à côté du nom de la LoRA les ouvre (les Paramètres peuvent les supprimer à la place, pour gagner de
 la place). Un checkpoint dont la LoRA a été supprimée reste sous **Checkpoints d'entraînement**. Pour en
@@ -1055,6 +1110,7 @@ Les nouveaux fichiers apparaissent une fois que le moteur a réexaminé `models/
 options sont rechargées.
 
 ### Partager une LoRA {#sharing-a-lora}
+
 Choisissez une LoRA et appuyez sur **Télécharger** sous le sélecteur : vous obtenez un seul zip avec la LoRA et sa note.
 Pour une LoRA entraînée sur un corpus, la note contient ses styles appris, donc les puces viennent avec.
 
@@ -1066,6 +1122,7 @@ après que vous avez ajouté un fichier à la main.
 ---
 
 ## Stems {#stems}
+
 Appuyez sur **Stems** sur n’importe quelle prise. Choisissez un modèle, cochez les parties voulues — voix, batterie, basse, autres,
 et guitare et piano sur certains modèles — et lancez.
 
@@ -1086,6 +1143,7 @@ zip. Ils restent jusqu’à ce que vous les supprimiez.
 ---
 
 ## Arrêter, supprimer et recommencer {#stopping-deleting-and-starting-again}
+
 Ce sur quoi travaille le moteur s’affiche dans la barre du haut, à côté du nom : une pastille avec la tâche, son temps, une ligne
 en bas pour l’avancement, et le nombre de tâches qui attendent après elle. Elle ne change rien d’autre à la page quand une
 tâche commence ou finit. Cliquez dessus pour la carte de tâche : l’étape, **arrêter**, et **À suivre**, les tâches en attente, chacune avec
@@ -1107,7 +1165,9 @@ La prise affichée se détache de l’éditeur, pour que Rendu ne puisse pas agi
 Les mots que vous aviez saisis sans les utiliser ne sont pas jetés : une barre propose de les restaurer.
 
 ## La bibliothèque {#the-library}
+
 ### Espaces {#spaces}
+
 Les prises vivent dans des **espaces** : un espace par chanson, par album, ou pour des esquisses. Le nom de l’espace au-dessus des prises
 est celui affiché, et tout ce que vous créez y arrive. Cliquez dessus pour la liste des espaces : tapez pour en trouver un par
 nom, ou choisissez-le avec les flèches et Entrée. Les cinq derniers utilisés viennent en premier, puis tous les espaces, chacun avec
@@ -1119,6 +1179,7 @@ plusieurs.
 Le bouton dossier d’une carte déplace cette prise vers un autre espace, avec les prises qu’elle contient.
 
 ### Des prises dans une prise {#takes-inside-a-take}
+
 **Variations**, **Essayer encore** et **Checkpoints** créent chacun plusieurs prises d’une chanson. Elles sont gardées
 **dans** la prise d’où elles viennent, pour que l’espace liste vos chansons et non chaque rendu de chacune.
 Checkpoints se lance dans l’éditeur : avec une prise ouverte, ses prises vont dans cette prise ; pour
@@ -1151,6 +1212,7 @@ elle en fait partie) contient les autres.
 Les prises faites avant cette fonction restent où elles sont, côte à côte dans la liste.
 
 ### Cartes {#cards}
+
 Chaque carte nomme les réglages qui ont façonné sa prise — Harmonie, Interprétation, Variété du plan, la LoRA et
 ses forces, la seed, le moteur qui a fait le rendu et son âge — pour qu’une carte se lise comme la recette qui l’a faite.
 
@@ -1189,6 +1251,7 @@ choisies, **Comparer**, **Supprimer** et **Terminé**, qui les décoche. **Tout 
 chaque prise affichée. Un titre reste toujours sur une ligne, terminé par … s’il est long. Survolez le titre, les réglages ou le style d’une carte pour tout lire.
 
 ### Une image pour chaque prise {#a-picture-for-each-take}
+
 Chaque nouvelle prise reçoit une image de la chanson, affichée en transparence derrière sa carte, en haut du panneau de prise quand vous la choisissez, et derrière l’éditeur quand la prise y est
 ouverte. Dessinée sur ce PC, elle attend qu’aucune chanson ne soit en cours de création, donc elle ne retarde jamais un plan ou un rendu, et
 apparaît peu après que la chanson est terminée ; dessinée par un LLM externe, elle se fait pendant le rendu de la prise.
@@ -1201,6 +1264,7 @@ Un modèle d’image ne dessine pas un vrai groupe ou une vraie personne, donc l
 lettrage propre à l’image reste discret, pour ne pas concurrencer celui de la carte.
 
 #### Deux façons de dessiner : FLUX.2 klein sur ce PC, ou un LLM externe {#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm}
+
 Les images ont besoin de quelque chose qui sache dessiner. Il y en a deux, et vous pouvez avoir l’un, les deux ou aucun.
 
 | | FLUX.2 klein, sur ce PC | Le modèle d’image de votre LLM externe |
@@ -1295,6 +1359,7 @@ avoir, et le choix d’en créer ne peut pas être sélectionné.
 Configurez l’un ou l’autre et elles s’activent : des images sont alors créées pour les prises que vous faites à partir de ce moment.
 
 #### Gérer les images dans les Paramètres {#managing-pictures-in-settings}
+
 | Réglage | Effet |
 |---|---|
 | **Images des prises** | *En créer une pour chaque nouvelle prise* (par défaut quand quelque chose peut dessiner), ou *Seulement sur demande*, où une prise garde le fond par défaut jusqu’à ce que vous en créiez une depuis son carré ou le bouton Image de l’éditeur. Les réglages ci-dessous façonnent une image créée dans les deux cas. C’est *Pas d’images* tant que rien ici ne peut dessiner. |
@@ -1313,6 +1378,7 @@ LLM externe* pour que le fournisseur les dessine à la place, ou réglez **décr
 images les plus rapides, ou sur *LLM externe* (une requête par image).
 
 #### L’image d’une prise dans l’éditeur {#a-take-s-picture-in-the-editor}
+
 L’icône **Image** dans la rangée du haut de la fenêtre de l’éditeur, à côté des autres boutons de la prise, montre l’image
 avec deux choix : **Faire une nouvelle image**, qui la refait en arrière-plan, et **Utiliser l'arrière-plan par défaut**, qui la retire pour de bon : aucune image n’est plus créée pour cette prise à moins que vous n’en demandiez une.
 Cliquez sur l’image pour la voir en entier, aussi grande que la fenêtre le permet ; un clic n’importe où ou Échap
@@ -1324,6 +1390,7 @@ Sur la carte d’une prise, le carré en haut à gauche montre l’image quand v
 image propose **Faire une nouvelle image** à cet endroit à la place, là où ce PC peut créer des images.
 
 ### Comparer des prises {#comparing-takes}
+
 Cochez deux à six prises et appuyez sur **Comparer** (il apparaît à côté de Tout sélectionner dès que deux sont cochées, et
 attend les prises encore en rendu). Les prises s’empilent dans une fenêtre sur une position commune : appuyez sur **1** à
 **6** ou cliquez sur l’une pour basculer, et elle reprend au même moment de la chanson, en lecture ou
@@ -1332,6 +1399,7 @@ préférez. **Égaliser le volume** baisse les prises les plus fortes au niveau 
 à sembler meilleure ; **Masquer les noms** mélange les prises et les appelle Prise A, B, C pour une écoute à l’aveugle.
 
 ### Le lecteur {#the-player}
+
 Cliquez ou faites glisser sur la forme d’onde pour vous déplacer. Précédent et suivant parcourent les cartes dans l’ordre affiché.
 
 | Touche | Effet |
@@ -1344,6 +1412,7 @@ Cliquez ou faites glisser sur la forme d’onde pour vous déplacer. Précédent
 Les touches multimédia du système fonctionnent aussi. Les touches propres à la prise sont dans [Raccourcis clavier](#hot-keys).
 
 ### Le visualiseur audio et les paroles synchronisées {#the-audio-visualizer-and-synced-lyrics}
+
 Appuyez sur **Visualiseur** dans la barre de transport (ou sur **V** pendant la lecture) pour lancer la scène plein écran du visualiseur.
 
 La scène affiche des visualisations audio en temps réel synchronisées avec la lecture :
@@ -1367,6 +1436,7 @@ La scène affiche des visualisations audio en temps réel synchronisées avec la
 - **Ruban du mini-lecteur :** tant que le visualiseur plein écran est fermé, un mini-visualiseur à double onde réactif joue dans la barre de transport du bas. Il s’active ou se désactive dans **Paramètres → Apparence**.
 
 ### Playlists et favoris {#playlists-liked-songs}
+
 Cliquez sur **Playlists** dans la barre du haut pour passer à la vue Playlists.
 
 - **Disposition en deux colonnes :** la colonne de gauche liste vos playlists à côté de la playlist système épinglée **Coups de cœur**, avec le nombre total de chansons. La colonne principale montre l’en-tête de la playlist active (pochette haute résolution, titre, description, nombre total de chansons et durée) et la liste des pistes.
@@ -1378,6 +1448,7 @@ Cliquez sur **Playlists** dans la barre du haut pour passer à la vue Playlists.
 - **Lecture continue et aléatoire :** cliquez sur **Lire** dans l’en-tête de la playlist pour écouter depuis la piste 1, ou sur **Aléatoire** pour un ordre aléatoire. La lecture passe automatiquement à la piste suivante de la playlist à la fin de chaque chanson.
 
 ### Raccourcis clavier {#hot-keys}
+
 Sur la page principale, des touches seules agissent sur la **prise choisie** : celle du panneau de gauche. Cliquez sur sa carte pour
 la choisir. Chaque touche fait ce que fait son bouton, donc une touche qui supprimerait demande d’abord, et une prise
 qui ne peut pas faire ce que demande une touche (Variations sur une prise sans partition, par exemple) laisse une ligne dans la barre
@@ -1415,12 +1486,14 @@ et les touches de lettres ne valent que pour la page principale. Le piano roll a
 ---
 
 ## Paramètres {#settings}
+
 Appuyez sur **Yeufonic** en haut à gauche. Les paramètres sont stockés sur le serveur, ils vous suivent donc dans n’importe quel
 navigateur et survivent à une reconstruction : le format audio de sortie des stems et de l’enregistrement d’une prise, le
 modèle de séparation, l’endroit où les stems sont écrits, si les checkpoints d’entraînement sont gardés, et la manière dont
 on vérifie qu’un instrumental ne chante pas.
 
 ### Stockage {#storage}
+
 **Paramètres → Stockage** montre où part l’espace disque de Yeufonic et vous permet d’en récupérer. Entraîner un
 corpus laisse beaucoup de fichiers dont on n’a plus besoin : des copies faites pour le moteur pendant l’analyse des chansons,
 le jeu d’entraînement (chaque chanson réécrite en FLAC sans perte, plus grand que l’original), et les checkpoints
@@ -1447,6 +1520,7 @@ a alors besoin d’un nouvel **Export** avant de pouvoir s’entraîner à nouve
 Les images et le cache de construction de Docker sont hors de Yeufonic et ne sont pas couverts ici ; `docker system df` les montre.
 
 ### Le modèle YuE2 {#the-yue2-model}
+
 YuE2 existe en deux tailles, et une installation en a une : **pleine qualité**, que nous recommandons, ou **faible
 mémoire**, une copie plus petite pour les cartes graphiques avec peu de mémoire vidéo. **À propos**, dans le même menu,
 dit laquelle vous avez. Elle se choisit à l’installation de Yeufonic, pas ici :
@@ -1493,6 +1567,7 @@ faites glisser, et le choix est gardé quand vous relâchez. Les cartes de prise
 couleurs, et le thème à contraste élevé reste noir.
 
 ### LLM externe {#external-llm}
+
 Yeufonic peut rédiger des brouillons de paroles, transcrire des enregistrements, marquer les sections des chansons et analyser les styles des corpus avec un LLM externe plutôt qu’avec le modèle Gemma local.
 
 Utiliser un LLM externe a deux avantages nets :
@@ -1513,12 +1588,14 @@ Si vous utilisez une API mesurée ou payée au token (comme les paliers payants 
 ---
 
 ## Utiliser Yeufonic depuis un agent IA (MCP) {#using-yeufonic-from-an-ai-agent-mcp}
+
 Yeufonic peut servir de **serveur MCP**. Cela permet à un agent IA sur le même ordinateur, comme Claude Code ou Cursor, de l’utiliser pour vous :
 demander une chanson, une reprise ou un instrumental, l’attendre, la lire, l’essayer autrement, lui donner une image, la mettre dans une playlist et
 ranger la bibliothèque, le tout avec vos propres mots (« fais un instrumental EDM d’une minute dans l’espace EDM et lance-le »). L’agent fait ce que fait la page, par les mêmes routes, donc une prise qu’il lance est une
 prise ordinaire de votre bibliothèque.
 
 ### Configuration {#setting-it-up}
+
 1. **Activez-le.** Ouvrez les Paramètres et réglez **Serveur MCP** sur **Activé**. Il est désactivé par défaut, car une requête peut lancer un travail sur le GPU.
 2. **Connectez votre agent** à l’adresse de l’application avec `/mcp` à la fin : l’adresse à laquelle vous ouvrez Yeufonic, par exemple
    `http://localhost:8090/mcp`. Dans Claude Code :
@@ -1544,6 +1621,7 @@ Si votre agent dit que le serveur **demande une authentification**, c’est pres
 reconnectez l’agent (dans Claude Code, `/mcp`). Reconnectez-le aussi après un redémarrage de Yeufonic, car un redémarrage coupe la connexion.
 
 ### Ce que vous pouvez demander {#what-you-can-ask-for}
+
 | Demandez | Ce qui se passe |
 |---|---|
 | « Liste mes dernières prises », « montre les prises de l’espace EDM » | Liste les prises, les plus récentes d’abord, avec un id court, quand chacune a été faite, sa durée et son style |
@@ -1573,6 +1651,7 @@ reconnectez l’agent (dans Claude Code, `/mcp`). Reconnectez-le aussi après un
 Créer une prise prend des minutes. L’agent la lance et attend, en rendant compte de l’avancement, et vous pouvez demander la suite entre-temps.
 
 ### Comment ça peut se passer : un exemple {#how-it-can-work-an-example}
+
 Une conversation, d’une idée à une playlist. Vous parlez ; l’agent choisit les outils (la colonne du milieu n’est là que pour montrer ce qui
 se passe) et vous dit ce qui est revenu.
 
@@ -1592,6 +1671,7 @@ Quand une étape ne peut pas se faire, l’agent reçoit la raison de l’applic
 picture ») et la transmet, pour que vous entendiez la même réponse que donnerait la page.
 
 ### Tout ce qu’il sait faire {#everything-it-can-do}
+
 Vous n’avez pas besoin de ces noms : vous demandez avec vos propres mots et l’agent choisit. Ils sont là pour que vous voyiez ce qui existe, et pour que vous puissiez
 dire à votre agent lequel vous voulez.
 
@@ -1625,6 +1705,7 @@ dire à votre agent lequel vous voulez.
 | `status` | Si le moteur est prêt, ce qui tourne et attend, et si une LoRA s’entraîne |
 
 ### Idées d’utilisation {#ideas-for-using-it}
+
 - **Un lot d’idées, puis choisir.** « Fais cinq instrumentaux EDM d’une minute dans des styles différents, dans l’espace EDM. » Il les lance l’un après
   l’autre et vous prévient à mesure que chacun se termine. Vous écoutez, puis dites « mets une étoile au deuxième et au quatrième et supprime le reste. »
 - **Faire évoluer une idée.** « Fais un instrumental dans un style synthé rêveur et lance-le », puis « maintenant la même avec plus de batterie », et
@@ -1655,6 +1736,7 @@ L’agent ne peut pas entendre une prise, il ne peut donc pas juger de son son :
 raccourci autour du moteur : le GPU fait toujours une tâche à la fois, donc un gros lot est une longue file.
 
 ### À savoir {#things-to-know}
+
 - **Des prises peuvent partager un titre,** donc l’agent travaille avec l’**id** d’une prise et en montre un court (la colonne `short_id`) quand il liste les prises.
   Vous pouvez désigner une prise par le début de son id, quatre caractères ou plus, tant qu’une seule prise commence ainsi. Si deux le font, il vous le dit
   et en demande davantage.
@@ -1672,6 +1754,7 @@ raccourci autour du moteur : le GPU fait toujours une tâche à la fois, donc un
   quand vous ne l’utilisez pas, et n’exposez pas le port à un réseau auquel vous ne faites pas confiance.
 
 ## Journaux système {#system-logs}
+
 L’application écrit un journal consolidé et en temps réel de chaque action importante — planification de partition, rendu, transcription audio, séparation des stems et entraînement de LoRA — avec les préfixes `INFO`, `WARN` et `ERROR`.
 
 - **Console dans le navigateur :** cliquez sur le bouton **Journaux** dans la barre du haut (ou appuyez sur **L**) pour ouvrir une console flottante, déplaçable et redimensionnable. Elle reste ouverte sans bloquer la page, ce qui vous permet de mettre des prises en file et de suivre la génération en temps réel.
@@ -1682,6 +1765,7 @@ L’application écrit un journal consolidé et en temps réel de chaque action 
   ```
 
 ## La page propre au moteur {#the-engine-s-own-page}
+
 Le moteur est ComfyUI (sauf si cette installation fait tourner yue2.cpp, dont la page est un simple banc d’essai), et sa propre interface est accessible : <http://localhost:8189> avec Docker, ou
 <http://localhost:8188> avec l’installation Windows (le `engine_port` dans `settings.ini`). Il ne répond
 que sur cette machine, sans connexion.
@@ -1695,6 +1779,7 @@ que sur cette machine, sans connexion.
 ---
 
 ## Quand quelque chose ne va pas {#when-something-is-wrong}
+
 **L’en-tête dit que le moteur manque.** L’application tourne sans lui et le dit. Les rendus attendent.
 Vérifiez que le conteneur du moteur tourne.
 

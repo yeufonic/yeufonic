@@ -17,7 +17,7 @@ import sys
 import unicodedata
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HEADING = re.compile(r'^(#{2,4}) (.+?)\s*$', re.M)
+HEADING = re.compile(r'^(#{2,4}) (.+?)[ \t]*$', re.M)
 
 
 def slug(text):
