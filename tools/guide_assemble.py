@@ -52,6 +52,30 @@ def _fix_emphasis(text):
     return re.sub('\x00', lambda m: codes.pop(0), text)
 
 
+_WIDE = re.compile(r'[\u2014\u2026\u3000-\u30ff\u3400-\u9fff\uf900-\ufaff\uff00-\uffef]')
+_BLOCK = re.compile(r'\s*(#|\||[-*+] |\d+\. |>|```|$)')
+
+
+def _join_wide_lines(text):
+    """Chinese and Japanese put no spaces between words, but a browser turns the line break inside a paragraph into
+    a space (Chromium does not drop it between wide characters, as CSS allows), so a sentence wrapped in the source
+    showed a gap. A line that carries on a paragraph is joined to the one before when both sides of the break are
+    wide characters; headings, tables, list items and code are left alone."""
+    out, fenced = [], False
+    for line in text.split('\n'):
+        if line.lstrip().startswith('```'):
+            fenced = not fenced
+            out.append(line)
+            continue
+        prev = out[-1] if out else ''
+        if (not fenced and out and prev.strip() and not _BLOCK.match(line) and not re.match(r'\s*(#|\|)', prev)
+                and _WIDE.match(prev.rstrip().rstrip('*')[-1:] or ' ') and _WIDE.match(line.lstrip().lstrip('*')[:1] or ' ')):
+            out[-1] = prev.rstrip() + line.lstrip()
+        else:
+            out.append(line)
+    return '\n'.join(out)
+
+
 def assemble(code, folder):
     names = [n for n in os.listdir(folder) if re.fullmatch(re.escape(code) + r'\.\d+\.md', n)]
     names.sort(key=lambda n: int(n.rsplit('.', 2)[-2]))
@@ -78,6 +102,8 @@ def assemble(code, folder):
         last = m.end()
     out.append(text[last:])
     text = ''.join(out)
+    if code[:2] in ('zh', 'ja'):
+        text = _join_wide_lines(text)
     if code[:2] in ('zh', 'ja', 'ko'):
         text = _fix_emphasis(text)
     return text, sorted(set(missing)), problems, len(found)
