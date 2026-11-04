@@ -39,6 +39,7 @@ def _fix_emphasis(text):
         codes.append(m.group(0))
         return '\x00'
     text = re.sub(r'```.*?```|`[^`\n]*`', keep, text, flags=re.S)
+    text = text.replace('****', '** **')  # two bold spans meeting: `**a：****b**` would read as one run
     def one(m, tag):
         before, inner, after = m.string[m.start() - 1:m.start()], m.group(1), m.string[m.end():m.end() + 1]
         if (before and not before.isspace() and not _punct(before) and _punct(inner[0])) or \
