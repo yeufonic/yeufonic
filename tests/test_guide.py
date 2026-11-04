@@ -95,9 +95,16 @@ def test_the_english_links_only_to_sections_it_has():
     assert not dead, f"the guide links to {dead}"
 
 
-def test_a_language_with_no_guide_gets_the_english(client):
-    r = client.get("/guide", headers={"Accept-Language": "tr-TR"})
+def test_british_english_reads_the_guide_as_written(client):
+    """en-GB has no translated guide: it is guide.md itself (en-AU resolves to en-GB)."""
+    r = client.get("/guide", headers={"Accept-Language": "en-AU"})
     assert "/static/guide.md" in r.text and "/static/guides/" not in r.text
+
+
+def test_an_unsupported_language_gets_the_default_guide(client):
+    """Turkish has no table, so the page and the guide are the default language's (en-US)."""
+    r = client.get("/guide", headers={"Accept-Language": "tr-TR"})
+    assert "/static/guides/en-US.md" in r.text
 
 
 @pytest.mark.parametrize("path", TRANSLATIONS, ids=[p.stem for p in TRANSLATIONS])

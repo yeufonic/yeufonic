@@ -1,0 +1,1729 @@
+# Yeufonic — the guide
+
+This is about **using** the app. Installing it, and everything you need before it runs, is in the
+[README](https://github.com/yeufonic/yeufonic#readme).
+
+The app writes songs with YuE2, a model that works in two steps: first it writes a **score plan** —
+the melody, the chords and the sections, as text — and then it **renders** that plan into audio.
+Almost everything here follows from that split. A plan costs seconds and can be read, edited and
+thrown away; a render costs minutes. So the app lets you look at the plan first.
+
+---
+
+## Your first song {#your-first-song}
+1. Press **+ Song** at the top of the left panel. The editor window opens.
+2. **Type a style.** A sentence, not a tag list: *"warm indie rock, expressive female lead, jangly
+   guitars, 96 BPM"*. This is the single biggest influence on what comes out.
+3. **Add lyrics**, or press **Write lyrics** and let Gemma draft them from a description.
+4. Press **Write score plan**. The window closes and the take appears in the left panel. With
+   **Render as soon as the plan is ready** ticked beside the button, as it is to begin with, the plan
+   goes straight on to its render.
+
+To read the plan before anything is rendered, untick **Render as soon as the plan is ready** first. The
+take then stops at its plan: open it, and on its **Score** page **Write a new plan** rerolls a melody you
+do not like for the cost of a few seconds, and **Render this score** renders it. A take with no audio yet
+is filled in; one that already has audio is rendered as a new take beside it, so a render never
+overwrites one you may want to keep.
+
+The take appears in the library on the right, and plays in the bar at the bottom.
+
+### The take panel and the editor {#the-take-panel-and-the-editor}
+The **left panel** shows the take you last clicked, read-only: its style, its sound settings, the
+first lines of its words, and its score as a key, a tempo, a length and each section's chords.
+**+ Song**, **+ Cover** and **+ Instrumental** at the top start something new; the one for the
+take's own kind stands out. The chevron beside the panel folds it away, so the takes have the width,
+and brings it back. Single keys act on the take the panel shows (M for the mastering rack, E for
+the editor and more): see [Hot keys](#hot-keys).
+
+Making and changing a take happens in the **editor window**. Its main button on the panel says what
+fits: *Edit and render again*, or *Review the plan and render* when a plan is waiting. A card's
+**Score** and **Again** buttons open it too, and so does double-clicking a card. It has three
+columns (the song, the words and the sound), everything in view, with the score on a tab of its own.
+
+Closing the window, with **Close**, the cross or Escape, keeps what you typed.
+
+The button after **Close**, in the top right corner, makes the window fill the whole browser window, and
+a second click puts it back to its usual size. The window opens the way you last left it. Filling the window,
+the words column takes its full height: the lyrics box (once there are words in it) and the structure grow into
+the room, and the player stays at the foot of the column.
+
+The window's top row has the take's own small buttons from its card, larger: Sing again, Variations,
+Try more, Inside, Take out, Normalize and Move, each where the card would show it. Normalize is green
+while the take is normalized, and a click then puts it back to the level it was rendered at; Inside is
+lit while the take holds others, and closes the window to show them under the take.
+
+### Advanced settings {#advanced-settings}
+The **Advanced** button in the editor's header opens settings for this one take. Most songs never
+need them. They are saved with the take, so *Edit and render again* finds them as you left them.
+The button lights up when any setting differs from its default, and **Reset to defaults** puts
+them all back.
+
+Some of these act on the plan, and some on the render and the finished file:
+
+- **Diffusion steps** (16–64, default 32): how many steps the audio decoder takes. More steps take
+  longer to render.
+- **Follow the style** (0–100, default 1.0): how firmly the music follows the style and the words, the guidance
+  of the stage that turns the score into sound (CFG). Above 1.0 it leans further towards them; below it, away. The
+  difference is subtle at small values, and a render takes a little longer. Any value the engine takes can be
+  entered: very high guidance tends to sound harsh rather than closer. It is shown when the engine has it: yue2.cpp, or the ComfyUI engine
+  at its newer version (rebuild an older Docker engine to get it).
+- **Avoid:** words to steer away from, such as "drums" or "rap vocals". They are added to the style
+  as "avoid: …". It is a hint to the planner, not a guarantee: the renderer has no negative prompt.
+- **Key lock:** the plan is moved to this key once the planner has written it. The planner ignores
+  a key named in the style, so this is done to the score itself: every note and chord shifts by the
+  same interval and the key signature is rewritten. A minor plan stays minor, and only the tonic
+  moves. A plan the app cannot read with certainty, such as one in a modal key or with a key change
+  part way, is left in the planner's key and the log says so.
+- **Tempo lock** (BPM): the plan is set to this tempo, replacing any tempo in the style or in the
+  planner's own score, and the render follows it.
+- **Score token cap** (default 8192): the most the planner may write. A lower cap stops a short
+  song's plan running on.
+- **Chord hold limit** (bars, default 8): the most bars the planner stays on one chord root before
+  it must change.
+- **Outside harmony bonus** (0–10, default 0): how strongly the planner is pushed toward borrowed
+  chords and roots outside the home key. These two act on the planner's choices, so they show as a
+  difference in the chords of the plan rather than as a clear difference by ear. Compare the Score
+  window.
+- **Voices follow the cues** (a tick under the lyrics box, shown once the lyrics have a voice cue such as
+  `[male voice]`; on for a new take): the melody of each cued line is moved by octaves to where the voice its
+  cue names is sung. See [The words](#the-words).
+- **Follow this structure exactly** (a tick under the lyrics box, not in Advanced; songs; off by default): the plan writes exactly the sections the lyrics name, in
+  order, and no others. Left off, the planner shapes the song itself and often adds an intro, an outro or an
+  interlude, or leaves a section out. A plan can still end before the list does.
+- **Sections open differently** (Follow Harmony, Always, Never): whether a section may open on the same
+  chords as the one before it. *Follow Harmony* turns it on from Colorful up and leaves it off below; *Always* and
+  *Never* decide for this take at any step, so two plans can be compared with and without it.
+- **Target loudness:** the level a take is normalized to. It applies only when normalizing is on.
+- **Outro fade** (seconds, default 3): the length of the fade when a take is cut off at the length
+  cap.
+
+### What to put in the Style box {#what-to-put-in-the-style-box}
+YuE2 reads this as a description of a recording, so describe a recording. Language, genre, voice,
+instruments, mood, tempo and production, roughly in that order, all in one sentence. Bare tag lists
+work less well, and section markers such as `[Verse]` belong in the lyrics, not here.
+
+The **Vocal** chips below write into the style for you: female, male or duet, and a character such
+as breathy or raspy. They are a shortcut for typing, and you can edit the result by hand.
+
+### Drafting the lyrics {#drafting-the-lyrics}
+**The structure.** Above the lyrics box, while it holds no words, a song has a **structure** to build, as an
+instrumental has: a list of sections you can reorder, remove and add to (intro, verse, pre-chorus, chorus, bridge,
+interlude, outro). **Start from** fills it with a common shape, and each shape's tooltip says what it suits. An
+**interlude** is an instrumental passage: the writer puts its tag on a line of its own, and the planner plays it with
+the instrument voice. **Put sections in the lyrics box** drops the tags in as empty sections to write under by hand.
+Once the box has words, the lyrics are what is sung and the structure steps aside.
+
+**Write lyrics**, beside the lyrics box, asks what the song is about and writes words for the sections you built.
+**Lines in a verse or chorus** sets how long each is: more lines in a section make a longer song, because the
+planner writes about as much music as there are words. The Style above sets the mood. Gemma writes the draft on the same
+engine, and it lands in the box with a title if you had not given one; an [external LLM](#external-llm) can write them instead, configured in Settings. The window closes as soon as the draft starts, and the progress shows beside the lyrics box.
+The lyrics editor's buttons add any of these sections too, along with voice cues (+ Male, + Female, + Both).
+
+**How the lines sound** sets the rhythm and rhyme the writer aims for. *Natural* (the default) mixes short and long
+lines with some rhymes. *Regular rhyme* is the traditional shape of even lines that rhyme in pairs, which is what
+the writer produced before this choice existed. *Spoken rhythm* is conversational, like speech or rap; *Loose
+rhyme* rhymes only some lines; *Short and punchy* and *Long and flowing* set the length of the lines.
+
+It is a first draft. The lines scan and rhyme, but a model reaches for familiar images, and nothing
+checks whether a line is already someone else's. Read it and make it yours before you plan.
+
+---
+
+## Writing a song from a prompt: every option {#writing-a-song-from-a-prompt-every-option}
+**+ Song** has a lot of choices now. None of them is required: a style and some lyrics are enough, as in
+[Your first song](#your-first-song). This chapter goes through all of them in the order the editor shows them,
+its three columns (the song, the words and the sound), and then what to do after the plan. It ends with a
+table for the common wishes, such as a longer song or a chorus that sounds different from the verse.
+
+### The song {#the-song}
+- **Title.** Optional. Left blank, the first line of the lyrics is used.
+- **Style.** The **Choose a style…** list holds 200 starting points, from afrobeats to zydeco, in alphabetical order.
+  Picking one fills the Style box with a full description, which you can then edit. The chips under it are ten quick
+  starts for a song: warm indie rock, soulful jazz-pop, synthwave, acoustic ballad, heavy rock, modern pop,
+  country, hip hop, smooth R&B and dance pop. See [What to put in the Style box](#what-to-put-in-the-style-box).
+- **Saving a style of your own.** **Save**, beside the list, keeps what is in the Style box under a name you give
+  it. The list's first entry, **Saved styles**, opens onto the ones you kept; the bin beside one deletes it, and the
+  list's search finds them along with the 200. Saving under a name you have used replaces that style. A style
+  LoRA's trigger word is left out of what is kept, and put back for whichever LoRA is chosen when you use the style.
+- **A tempo in the style is only a hint.** The planner often picks its own. To fix the tempo, use **Tempo lock** in
+  Advanced.
+- **Vocal.** The chips write a voice (female, male, duet and a character) into the style for you.
+- **Style LoRA.** Under the sound column. See [Style LoRAs](#style-loras).
+
+### The words {#the-words}
+**The structure.** Above the lyrics box, while it holds no words, there is a list of sections: the order the
+song will go in. Each row can be changed to another section, moved up or down (or dragged), or removed, and the
+chips under the list add a section. The sections are intro, verse, pre-chorus, chorus, bridge, interlude and outro.
+An **interlude** is an instrumental passage: it has no words, and the planner plays it with the instrument voice.
+(`solo` is not a section the planner knows; interlude is the way to ask for one.)
+
+**Start from…** fills the list with a common shape. Hover an option to see what it suits:
+
+| Shape | Sections | Suits |
+|---|---|---|
+| Verse, chorus, bridge | verse, chorus, verse, chorus, bridge, chorus | the classic song: pop, rock, country |
+| Short | verse, chorus, verse, chorus | folk, punk, early rock and roll |
+| Intro and outro | intro, verse, chorus, verse, chorus, outro | ballads, soft rock, singer-songwriters |
+| Story | verse, verse, chorus, verse, chorus, outro | story songs, folk, country |
+| Pop with pre-chorus | verse, pre-chorus, chorus, verse, pre-chorus, chorus, bridge, chorus | modern pop, dance-pop, pop rock |
+| Hook first | chorus, verse, chorus, verse, chorus, bridge, chorus | streaming-era pop, indie pop |
+| Short and simple | verse, chorus, verse, chorus, chorus | punk, garage rock, rockabilly |
+| Hip-hop | intro, verse, chorus, verse, chorus, verse, outro | rap, hip-hop, trap, R&B |
+| Double bridge | verse, chorus, verse, chorus, bridge, bridge, chorus, chorus | power ballads, progressive and symphonic rock |
+| Interlude | verse, chorus, interlude, verse, chorus, bridge, chorus | rock, pop rock, indie |
+| Every part | intro, verse, pre-chorus, chorus, interlude, verse, pre-chorus, chorus, outro | pop, dance-pop |
+
+**How many sections.** The planner usually writes 8 to 10 sections whatever the lyrics ask for, so a list longer
+than 10 gets condensed and the words of the sections it drops are not sung. The builder says so when the list is
+that long. A song does not get longer by adding sections; each one just gets shorter. See
+[Making the song longer](#making-the-song-longer).
+
+**Put sections in the lyrics box** drops the sections in as empty tags, ready to write under by hand. Once the box has
+words, the lyrics are what is sung, and the builder steps aside.
+
+**Write lyrics.** Describe what the song is about and a model writes words for the sections you built. It asks for
+three things:
+
+- **Lines in a verse or chorus** (4, 6 or 8; 6 is the default). More lines in a section make a longer song,
+  because the planner writes about as much music as there are words. An intro, bridge or outro stays at 2 to 4 lines,
+  and an interlude has none.
+- **How the lines sound.** The list shows the syllables each line aims for. The old writer produced the same
+  eight-syllable rhymed lines nearly every time, so this changes that:
+
+| Choice | Aims for | What you get |
+|---|---|---|
+| Natural (the default) | 3-13 syllables | A mix of short and long lines, some rhymes, no steady beat |
+| Regular rhyme | 6-10 syllables | Even lines that rhyme in pairs: the traditional shape, and what the writer used to do |
+| Spoken rhythm | 5-14 syllables | Conversational and rhythmic, like speech or rap, with internal rhymes |
+| Loose rhyme | 4-13 syllables | Some rhymes, some slant rhymes, some none, and lines of different lengths |
+| Short and punchy | 3-6 syllables | Short lines and repeated phrases |
+| Long and flowing | 10-14 syllables | Long lines that run on like a thought |
+
+  The last choice is remembered. These are aims, not guarantees: a language model follows them closely for the
+  extremes (short and punchy, long and flowing) and more loosely for the subtle ones.
+- **The brief** itself, in your own words, and the Style above, which sets the mood. The brief is kept with the take,
+  so opening a take and pressing **Write lyrics** shows what it was asked to be about, ready to change and write again.
+
+The draft lands in the lyrics box, and the window closes as soon as it starts. It is a first draft: read it and make it
+yours.
+
+**Follow this structure exactly** (the tick under the lyrics box, off by default). The planner treats the section
+tags in the lyrics as guidance, and left alone it writes its own shape: it often adds an intro and an outro,
+swaps a bridge for an interlude and a verse, or condenses a long list. With this on, the plan writes exactly the
+sections the lyrics name, in that order, and no others. It cannot add an intro or an outro that you did not
+list. The planner still decides what the music is and when each section starts. It applies to songs only.
+
+**Who sings each line: voice cues.** A line on its own in square brackets that names a voice says who sings the
+lines under it, until the next cue or the next section:
+
+```
+[Verse 1]
+[male voice]
+The ferry leaves at half past nine
+I watch the harbour lights go by
+[female voice]
+I wait beside the ticket line
+
+[Chorus]
+[both voices]
+Carry me over, carry me home
+```
+
+Write a cue as `[male voice]`, `[female voice]` or `[both voices]`, each on a line of its own in square brackets.
+The expanded lyrics editor has **+ Male**, **+ Female** and **+ Both** buttons in its header to insert them at the cursor.
+These are the forms the feature was tried with, along with `vocal` for `voice` (`[female vocal]`) and
+`[male and female voices]` for both. You can add words of your own after a comma, as in
+`[female voice, soft and close]`; they do not change who sings. A section with no cue is left to the planner.
+
+Other spellings are read as well, so lyrics written elsewhere are not ignored: `[man]`, `[woman]`, `[duet]`, a cue
+inside a section's tag such as `[Verse 2 - female vocal]`, and a cue in parentheses, `(female voice)`. Square
+brackets are the safer habit: words in parentheses are usually backing vocals, and may be sung.
+
+A cue alone does not decide the voice. The singer comes mostly from how high the melody is written: the same
+line an octave up is sung by a woman, and the planner likes to write a verse in two octaves, changing every four
+lines or so, whoever was cued. **Voices follow the cues** (a tick under the lyrics box, shown once the lyrics have
+a cue; on for a new take) keeps the cues: when the plan is written, each cued stretch of the melody is moved by
+whole octaves to where that voice sings, low for a man and high for a woman. Nothing else in the plan changes. It
+is done again before each render, so it follows a change to the words or to the score. In the Score page,
+**Voices to cues** does the same once to the score in the box, for a take made without the tick; save the score
+and render it.
+
+Three things to know:
+
+- **Who sings a line is still partly chance.** With the melody in the right place most lines go to the voice
+  cued, but a render can give one to the other singer all the same. Render it again with another seed, or use
+  **Try more**.
+- **Both** puts the line where a woman sings and leaves the second voice to the render, which often brings one
+  in for a chorus. It asks for a duet rather than making one: how much of the second voice you hear varies from
+  render to render. There is no way yet to write two singers on one line without the words suffering.
+- A take made before this tick existed keeps its score as it was; tick it, or use **Voices to cues**, to fit it.
+
+**Writing by hand.** The Expand button opens a full-size editor with buttons for intro, verse, pre-chorus,
+chorus, bridge, interlude, outro and instrumental. A section is a line such as `[Verse]` followed by its lines; a
+tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
+
+### The sound {#the-sound}
+- **Harmony** (the slider): how adventurous the chords are. A new song starts at **Varied**, with the interpretation
+  set to **Wide**: in our own testing that pair gave the most musically interesting renditions, so it is a good place to start. Move
+  either to taste. Existing takes keep what they were made with. The planner left alone tends to write one four-chord
+  loop and use it for every section, and each step pushes it a little further from that. The steps build on each
+  other:
+
+  | Step | What it does to the chords | Reach for it when |
+  |---|---|---|
+  | Familiar | Nothing: YuE2's own chords, often one loop for the whole song | You like the planner's first idea, or want the plainest backing |
+  | Varied | Discourages repeating the exact chords it has just used, so it recolors them (an F, then an Fmaj7) but stays in the key | The loop feels too samey, and you want the song to stay conventional |
+  | Colorful | The same, harder: verse and chorus part ways, with richer chords. A section also may not open on the same chords as the one before it, so a chorus no longer starts the way its verse did | You want the chorus to feel like a lift, not a repeat. A good first step up |
+  | Adventurous | Discourages recently used *roots*, not just spellings, so the harmony has to travel, and it borrows chords from outside the key | You want movement and surprise, and will listen for a chord that sounds odd |
+  | Outside | Adventurous, with a pull towards chords outside the key | Experiments. Expect to reject some plans |
+
+  From Colorful up the chord choices come out more distinct from section to section: more different chords in a
+  song, more four-bar patterns that are not repeats, and less of the chorus copying the verse's opening. The plan is
+  still a normal song, so it is worth trying a step or two higher before reaching for a wilder Plan variety.
+  Under **Advanced**, **Sections open differently** can be set to *Always* or *Never* to try a plan with and without
+  the chorus rule; the default, *Follow Harmony*, is on from Colorful up. A style such as trap or ambient is often
+  loop-based by nature, so expect a smaller change there than in pop or rock. See [Harmony](#harmony) for the measurements.
+- **Plan variety.** How freely the planner writes everything else. See [Plan variety](#plan-variety).
+- **Interpretation.** How the notes are performed when rendered. See [Interpretation](#interpretation).
+- **Length cap.** The latest the song may stop. See [Length](#length).
+- **Mode.** *Full* keeps the chords of the plan; *melody* leaves the accompaniment free. *No score*, for songs, writes
+  no plan at all: see [A song with no score](#a-song-with-no-score).
+- **Seed**, and **keep this seed**. See [Seed, and reproducing a take](#seed-and-reproducing-a-take).
+- **Production polish** and **Normalize volume.** See [Production polish](#production-polish).
+- **Render as soon as the plan is ready**, beside the button at the foot of the window, runs the plan and the render
+  without stopping in between. It is ticked to begin with, and the editor remembers your choice. Untick it to read the
+  plan first.
+- **Advanced** (the button in the header): diffusion steps, Follow the style, Avoid, Key lock, Tempo lock, the longest score,
+  chord hold limit, outside harmony bonus, Sections open differently, target loudness and the outro fade. See
+  [Advanced settings](#advanced-settings).
+- **Mastering** (the button to its left, when the take has sound) opens the mastering rack over the editor for
+  the take in it. The rack is, in order, a 1073-style EQ, a parametric equalizer, a compressor, a stereo imager and
+  a limiter. On the parametric equalizer's graph each of the seven bands is a dot: drag it across for its frequency
+  and up or down for its gain, turn the wheel over it for its width, double-click it to put it back. The strip under
+  the graph sets the chosen band's kind (low cut, low shelf, bell, notch, high shelf, high cut) and switches it on
+  or off, **Flat** puts every band back to 0 dB, and the button in the graph's corner changes how many decibels the
+  graph shows. The button is green while the rack changes how the take sounds. With the rack open, space plays
+  and pauses the take and the arrow keys move through it and set the volume, as on the main page. Escape closes
+  the rack, and again closes the editor.
+
+### Making the song longer {#making-the-song-longer}
+The length of a song is set by its plan, and the render follows the plan's length. These are the things that move it:
+
+| To get… | Do this |
+|---|---|
+| A longer song | Give each section more lines (**Lines in a verse or chorus**: 6 or 8) |
+| A slower, longer song | Set a **Tempo lock** in Advanced. The same plan at a lower BPM runs longer |
+| A longer song by adding sections | This does not work: a plan has about 8 to 10 sections, so more just get shorter or are condensed |
+| More than the plan allows | Write a new plan; lengths vary a lot between runs on the same words |
+| A song that stops at the end of its words | Raise the length cap only if it is being cut short; the cap is a limit, not a target |
+
+### After the plan {#after-the-plan}
+- **Render this score** makes a new take whenever the open take already has audio, so a render never overwrites one
+  you may want to compare. A take with no audio yet is filled in.
+- **Keep this tune** (after changing a take's words): sings the take's score with the new words, as a new take. The
+  tune cannot gain sections or notes, so if your words have more sections than the tune does, or far more or far fewer
+  syllables than it has notes (long lines on a tune made for short ones, or short lines on one made for long ones), the
+  tick clears itself and a new plan is written, with a line saying why. See [Same tune, new words](#same-tune-new-words).
+- **Filter the library.** The **Song**, **Cover** and **Instrumental** toggles beside the filters show only those
+  kinds in the open space; pick more than one, or none for every kind.
+
+---
+
+## Reading and fixing the plan {#reading-and-fixing-the-plan}
+The plan is written in **ABC notation**: music as plain text, letters instead of dots on a stave.
+Chris Walshaw devised it in the early 1990s for sending folk tunes by email, and it stuck.
+
+You do not need to read it. The app renders the same plan as a **chord chart** and as real **staff
+notation** below the editor, and **Expand** opens all of it full size. But the text is what YuE2
+wrote and what it renders from, so it is worth being able to find your way around.
+
+### Reading a plan {#reading-a-plan}
+A plan begins with a header, one letter and a colon per line:
+
+```
+X:1
+M:4/4
+L:1/32
+Q:1/4=120
+V: Vocal clef=treble name="Vocal Melody"
+V: Ins   clef=treble name="Ins Melody"
+K:D#m
+```
+
+| Line | Means |
+|---|---|
+| `X:1` | the tune's number. Every ABC file starts with one |
+| `M:4/4` | the meter — four beats in a bar |
+| `L:1/32` | the unit length: a bare letter lasts a thirty-second note |
+| `Q:1/4=120` | the tempo — a quarter note at 120 beats per minute |
+| `V:` | declares a voice. YuE2 writes two, a vocal and an instrumental line |
+| `K:D#m` | the key, D sharp minor. `K:` always comes last in the header |
+
+Then the music itself:
+
+```
+% intro
+V: Vocal
+z24z4"D#m"z4|"D#m"z32|
+V: Ins
+Z|d16a16-|a16g8a8|
+```
+
+- **Notes are letters.** `d16` is a D lasting 16 units. Lowercase sits an octave above uppercase,
+  and `'` or `,` shift it further.
+- **`-` ties** a note into the next one, so they sound as one.
+- **`z` is a rest**, with a length like a note. A capital `Z` rests for a whole bar.
+- **Chords live in double quotes**, like `"D#m"`, and sit in front of the note they start on. These
+  are what **find and replace** edits.
+- **`|` is a bar line**, and **`%` starts a comment** — which is how the sections are marked:
+  `% intro`, `% verse`, `% chorus`.
+
+So that fragment says: D sharp minor, four four, 120 beats per minute, and through the intro the
+vocal rests while carrying the chord, while the instrument plays a tied D and A, then G and A.
+
+Two practical consequences. **Editing chords is safe** even if the notes look opaque — they are only
+the parts in quotes, and everything else can be left alone. And **if you edit the plan, the render
+uses what you edited**, so repairing one is usually faster than rerolling until a good one appears.
+
+### Hearing it {#hearing-it}
+The **Notation** tab has a player above the staves. Press **Play** to hear the plan as the box has
+it, edits and all, so a melody you are unsure of can be judged by ear before a render is spent on
+it. The notes it is playing are picked out as it goes, and its tempo control changes the preview
+only, not the score. Playing it stops whatever the player bar had, since two things at once is no
+use to anyone, and closing the window — or moving to Chart or Lyrics — stops it too, so nothing is
+left playing with no control in reach.
+
+**Instruments** plays each voice with an instrument the Style names, rather than a piano
+throughout: a style that says *electric guitar, drums* is heard with a guitar, its chords played by
+another, and a bass under them; a sung line is stood in for by a voice, and an instrumental's
+melody is not. A style that names drums gets a drum part too, written against the score's own
+meter — a backbeat for rock, four to the floor for dance, a ride for jazz, something sparser for a
+ballad — and it plays all the way through, since the score has no sections for it to sit out. The
+line beside the player says what it chose, and unticking it goes back to the piano you would
+otherwise hear. This is a reading of the style, not of the render: YuE2 decides the
+real performance and adds parts the score never had, so treat it as the plan played in the right
+colors rather than as what the take will sound like.
+
+**Download MIDI** saves the score for a DAW. Each part is a track of its own, on its own channel,
+with the instrument the preview used set on that channel: the vocal line, the instrument line and,
+unless you untick **Chords**, the chord symbols as a chord part with its bass beside it (the only
+place the harmony is written as notes), and drums on channel 10 when the style asks for them. The
+instruments are General MIDI program numbers, so your DAW plays them with its own sounds, and the
+tempo and meter are in the file. A plan that changes its meter part way is written in the meter it
+starts in — only that one is recorded — while the notes keep their own lengths. Clicking a note in
+the staves puts the cursor on the ABC that wrote it.
+
+A score with a note above what these instruments can play, or below it, is played shifted by whole
+octaves until it fits, and the line beside the player says how far; the staves, the MIDI file and
+the score itself are unchanged. The instruments are not all the same size — a bass stops well below
+a piano — which is why the line is there when a score is shifted. A score with no notes in it yet
+has nothing to play and says so.
+
+The player needs its note samples, which are not part of the app: each instrument is about 7 MB,
+fetched from its upstream home the first time a preview plays with it and kept in the library, so
+it works offline afterwards. **Play** fetches whatever the current score needs and then starts, and
+**Get the sounds** fetches the same without playing, for anyone who would rather have it ready
+first.
+
+### The Piano Roll {#the-piano-roll}
+Click **Piano Roll** in the score window to open the visual MIDI editor. Rather than editing raw ABC letters, you can see and shape the melody directly on an interactive pitch and time grid.
+
+The editor displays both score voices simultaneously — **Vocal** (the lead singing melody in sky blue) and **Ins** (the instrumental accompaniment in warm amber). Both voices are always fully active, visible, selectable, and editable. The **Draw** buttons at the top left choose which voice new notes will be assigned to when you click to add notes.
+
+#### Editing notes {#editing-notes}
+- **Add a note:** Click any empty cell on the grid to create a note at that pitch and time. The note auditions immediately so you can hear its tone.
+- **Select notes:** Click a note to select it. Hold <kbd>Shift</kbd> or <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> while clicking to select multiple notes across both vocal and instrumental parts. Click and drag a **marquee selection box** over empty grid space to select any phrase or passage across all voices. Press <kbd>Ctrl</kbd>+<kbd>A</kbd> (<kbd>Cmd</kbd>+<kbd>A</kbd> on macOS) or click **Select All** to select all notes across the entire score. To select all notes from the playhead cursor to the end of the song, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> or <kbd>Alt</kbd>+<kbd>A</kbd> (or click **From Cursor ▶** in the toolbar).
+- **Move notes:** Drag any selected note to shift its timing earlier or later, or drag vertically to transpose its pitch. When multiple notes are selected — whether vocal, instrumental, or a combination of both — they all move together in lockstep, preserving their relative timing, melodies, and lyrics.
+- **Resize and duration:** Drag the right-hand edge of a note to lengthen or shorten its duration. The **Snap** selector (1/16, 1/8, or 1/4 note) constrains movement and resizing to clean musical divisions.
+- **Delete notes:** Double-click any note to delete it, or select one or more notes and press <kbd>Delete</kbd> or <kbd>Backspace</kbd>.
+- **Undo and redo:** Every note edit, move, resize, addition, and deletion is recorded in the history stack. Press <kbd>Ctrl</kbd>+<kbd>Z</kbd> (<kbd>Cmd</kbd>+<kbd>Z</kbd>) to undo, and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> or <kbd>Ctrl</kbd>+<kbd>Y</kbd> to redo.
+- **Audition keys:** Click any key on the left-hand piano keyboard to hear its pitch.
+- **Maximize:** Click **Maximize** in the top toolbar to expand the piano roll to the full width of your browser window.
+
+#### Timeline, sections, and chords {#timeline-sections-and-chords}
+Along the top ruler, the timeline displays measure numbers and section boundaries:
+- **Rename sections:** Click any section marker badge (`intro`, `verse`, `chorus`, etc.) to edit its name or reassign it.
+- **Edit chords:** Directly below the bar ruler, the chord track displays the song's harmonic progression. Click an existing chord badge to rename it (for example, change `C` to `Am7` or `G/B`), or click an empty bar slot to place a new chord.
+- **Harmonize empty bars (Fill Gaps):** Click **Fill Gaps** in the toolbar to populate empty bars in the instrumental accompaniment track with musical notes generated from the chord progression.
+- **Remove empty bars (Compact Gaps):** Click **Compact Gaps** to remove silent empty bars across both voices, shifting subsequent notes and chords left to eliminate unwanted gaps in the arrangement.
+
+#### Lyrics and karaoke tracking {#lyrics-and-karaoke-tracking}
+At the bottom of the piano roll, a dedicated lyrics track aligns each syllable with the vocal melody:
+- **Phrase-aware matching:** Click **Match Lyrics** to distribute lyrics across the vocal melody. The alignment detects natural musical breath pauses and rest gaps between melodic phrases, assigning each lyric line to its intended phrase without spilling words across rests into subsequent measures. Multi-syllable words split cleanly across notes.
+- **Editing syllables:** Click any lyric tag (or select a vocal note and press <kbd>L</kbd>) to edit its text. If you enter space- or hyphen-separated syllables (for instance, `Hel- lo world`), they automatically flow across consecutive vocal notes.
+- **Hover highlighting:** Hovering over a lyric tag highlights the corresponding note on the piano roll grid, and hovering a vocal note highlights its lyric tag below.
+- **Karaoke dancing ball:** During playback, an animated dancing ball arcs across each note as it is sung, and the active syllable and grid note illuminate with a real-time glow.
+
+#### Playback and harmony accompaniment {#playback-and-harmony-accompaniment}
+Press <kbd>Space</kbd> or click **▶ Play** to start playback from the playhead cursor. The playhead line sweeps across the grid, updating the current bar, beat, and elapsed time counter.
+
+- **Audible click track (metronome):** Playback includes an audible click track by default, with an accented woodblock click on beat 1 of each bar and softer clicks on inner beats. Press <kbd>C</kbd> or <kbd>M</kbd> (or click **Click** in the transport bar) to toggle the metronome on or off at any moment.
+- **Harmonic chord accompaniment:** Playback synthesizes warm polyphonic chord accompaniment pads directly from the score's chord progression. Even when the vocal or instrumental tracks rest, the harmonic space remains musical and warm rather than dropping out into dead silence. Press <kbd>H</kbd> (or click **Chords** in the transport bar) to toggle chord accompaniment on or off.
+- **Stepping measures:** Press <kbd>Left Arrow</kbd> and <kbd>Right Arrow</kbd> to step backward and forward bar by bar, or press <kbd>Home</kbd> to jump straight back to the beginning.
+
+#### Keyboard shortcuts {#keyboard-shortcuts}
+| Key | Action |
+|---|---|
+| <kbd>Space</kbd> | Play / Pause playback |
+| <kbd>Left Arrow</kbd> | Step back one bar |
+| <kbd>Right Arrow</kbd> | Step forward one bar |
+| <kbd>Home</kbd> | Return playhead to start (bar 1) |
+| <kbd>C</kbd> or <kbd>M</kbd> | Toggle audible click track (metronome) on / off |
+| <kbd>H</kbd> | Toggle chord harmony accompaniment on / off |
+| <kbd>Delete</kbd> / <kbd>Backspace</kbd> | Delete selected note(s) |
+| <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Cmd</kbd>+<kbd>Z</kbd> | Undo last edit |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> | Redo edit |
+| <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd> | Select all notes across both voices |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> / <kbd>Alt</kbd>+<kbd>A</kbd> | Select all notes from playhead cursor to end across both voices |
+| <kbd>+</kbd> or <kbd>=</kbd> | Zoom in timeline horizontal scale |
+| <kbd>-</kbd> or <kbd>_</kbd> | Zoom out timeline horizontal scale |
+| <kbd>0</kbd> | Scroll to notes (Fit view) |
+| <kbd>L</kbd> | Edit lyric for selected vocal note |
+| <kbd>Escape</kbd> | Clear note selection, or close score window |
+
+### Harmony {#harmony}
+YuE2 left alone tends to write one four-chord loop and stay there. The **Harmony** slider pushes it
+away from chords it has just used, without breaking the song's structure.
+
+| Step | What you get |
+|---|---|
+| Familiar | YuE2's own chords. Often one loop for the whole song |
+| Varied | Avoids repeating the same chords. Stays in the key |
+| Colorful | Verse and chorus get different progressions, with richer chords. A section may not open the way the one before it did |
+| Adventurous | Keeps the harmony moving, and borrows chords from outside the key |
+| Outside | Adventurous, and reaches further outside the key |
+
+**Write a new plan** uses the slider's current position, so you can reroll the same words with more
+adventurous chords and compare.
+
+This was measured rather than guessed — one set of lyrics, two styles, three seeds each:
+
+| | Familiar | Varied | Colorful | Adventurous | Outside |
+|---|---|---|---|---|---|
+| Different chords in a song | 4.7 | 6.3 | 8.7 | 9.0 | 10.3 |
+| Bars using a chord from outside the key | 0% | 0% | 0% | 13% | 24% |
+| Four-bar patterns that are not repeats | 29% | 38% | 50% | 63% | 64% |
+
+Every plan at every step kept its sections and valid chords. Asking for adventurous harmony in the
+style text instead — "jazz harmony", "borrowed chords" — had no measurable effect at all.
+
+### Plan variety {#plan-variety}
+Under *Advanced*, **Plan variety** sets how freely the planner writes. Where Harmony acts on the
+chords, this acts on everything: melody, structure and length.
+
+- **Calm:** the steadiest. Few chords, and a melody that stays close to home.
+- **Normal:** the default.
+- **Lively:** a few more chords and turns.
+- **Bold:** richer harmony, about three times normal's chord vocabulary, while the tune stays
+  recognizably the same kind of tune.
+- **Quirky:** restless. Chords keep changing, and the melody leaps between registers from one
+  section to the next. For odd, off-the-wall songs.
+- **Wild:** the most restless of all, and it may change key partway through.
+
+### A song with no score {#a-song-with-no-score}
+**No score**, the third choice under **Mode**, sings the words with no plan at all: YuE2 writes the tune and
+the chords as it sings, as the original YuE did, and the song is rendered at once with **Sing with no score**.
+It often sounds quite different from a planned song.
+
+What steers a plan has nothing to act on, so **Harmony**, **Plan variety**, **Keep this tune** and **Follow
+this structure exactly** are grayed out while it is chosen, and there is no score to read or edit. YuE2 decides
+the length, up to the length cap. Key lock and Tempo lock reach it only as words in the style. Sing again,
+Variations, Try more and new words all work, each sung with no score again. **Write a new plan** gives the take a
+score, and Mode goes back to *full*. It is for songs from a prompt only: a cover is its recording's score, and an
+instrumental needs one to keep its voice out. Both engines can do it.
+
+---
+
+## Rendering {#rendering}
+### Interpretation {#interpretation}
+The score fixes the notes. The **interpretation** sets how they are performed.
+
+| Interpretation | What you hear |
+|---|---|
+| Standard | YuE2's usual reading |
+| Tight | more controlled and polished |
+| Loose | rougher and more spontaneous |
+| Settled | free to repeat a figure and sit in a groove |
+| Restless | keeps the parts moving, avoids repeating itself |
+| Wide | reaches for less obvious sounds |
+
+### Variations {#variations}
+The sparkle button on a card renders **the same score and the same seed** in the other
+interpretations. Because only the interpretation changes, what you hear between them is the
+interpretation — not a different roll of the dice. Each is a take of its own, titled
+*Night drive · Loose* and kept inside the take it was made from (see **Takes inside a take**,
+under The library). The window has its own length cap, which starts at the editor's and applies
+only to these takes.
+
+### Try more {#try-more}
+The dice button on a card renders **the same score and words again as several new takes**, to
+listen to together. Variations changes only the interpretation and keeps the seed; this changes the
+roll:
+
+- **New seeds:** a fresh seed for each, everything else kept.
+- **Planner strengths:** for a take with a style LoRA that has a planner half, the same seed at
+  other Planner strengths (its own is left out). Planner changes the performance itself, not only
+  the voice, so it works like another seed.
+
+The new takes are titled *Night drive · try 1* or *Night drive · planner 0.60* and are kept inside
+the take they were made from, whose panel opens to show them as they finish. To hear them against
+each other, press **Select all** while the panel is open and then **Compare**. The window has its
+own length cap, which starts at the take's own.
+
+### Seed, and reproducing a take {#seed-and-reproducing-a-take}
+Every take records its seed and every setting that shaped it. The card names them, clicking a card
+shows them in the take panel, and opening it in the editor loads all of it back. **Again** opens the
+editor with exactly that, seed included, so a take you liked can be reproduced, and a take you nearly
+liked can be nudged one setting at a time.
+
+In the editor's menus, hovering an interpretation shows what it does.
+
+Tick **keep this seed** to keep the same seed across renders; leave it off and each render rolls a
+new one.
+
+A render uses what the editor shows: its style, style LoRA and strengths, length cap, mode,
+interpretation and seed, even when rendering a take's own score again.
+
+### Same tune, new words {#same-tune-new-words}
+The planner reads all the lyrics before it writes a note, so the same seed gives the same plan only
+for the same words. Change one line and the next plan is a new tune: another melody, often another
+key and tempo, and the voice moves with them.
+
+To keep a tune you like, open the take and change its words. **Keep this tune** appears under the
+lyrics, ticked, and the main button becomes **Sing with new words**. Change anything else you want
+first: the style, the LoRA and its strengths, the length cap, the interpretation. The take's score is
+then sung with the new words, as a new take beside the original, which stays as it is. Keep the seed
+ticked to keep the voice as close as it can be. Untick **Keep this tune** to write a new plan, and a
+new tune, for the words instead. New words that keep the old lines' syllable counts fit the melody
+best. When they do not, because there are more sections or far more syllables than the tune has notes (long lines on a tune
+made for short ones: the lines come out repeated or dropped), or far fewer (short lines on a tune made for long ones:
+the singer fills the spare notes with words of its own), **Keep this tune** clears itself with a line saying why, and
+a new plan is written for the words. Tick it again to sing the tune anyway.
+
+### Production polish {#production-polish}
+**Production polish** applies Mothersuperior's Realaudio decoder LoRA. Stock YuE2 often sounds boxy
+in the mid-range; this separates instruments and vocals more cleanly. On by default.
+
+### Length {#length}
+The length cap is a firm limit, not a target. YuE2 decides when a song ends, and usually ends by
+itself; the cap stops one that will not. It starts at 360 seconds, or at what **Length cap for a new
+take** in Settings says. It then makes room for the music, so a long song is not cut short:
+
+- A **song or instrumental from a prompt** has its cap raised when its plan is written, if the plan
+  is longer: to the plan's length with about ten seconds to spare. It is never brought down.
+- With a **recording** chosen, for a cover or an instrumental, the cap follows the recording's score,
+  rounded up the same way.
+
+A cap you type yourself stays as you set it, and the Score page then says when a plan is longer than
+it. A plan much longer than its cap (more than a third over, and over eight minutes) is not taken
+for a song at all, and is written again. Now and then
+a render doesn't stop at the end of its score and plays on until the cap; such a take is faded out
+over its last few seconds rather than cut off, and its card says it ran to the cap. Rarer still, a
+render ends before the last section of its score begins. The app then renders it once more with a new
+seed before calling it finished, and if that one stops short too, the card says it stopped before the
+last section: **Render** again for another try.
+
+---
+
+## Covering a recording {#covering-a-recording}
+1. Drop in an audio file, up to 2 GB. It is stored once and hashed, so the same file is never
+   held twice. A video file (MP4, MOV, MKV, WebM and the like) works too: only its sound is kept, as a FLAC.
+2. Press **Transcribe**. SheetSage2 writes the melody and the chords into the score box. This is
+   cached per recording, so covering the same song again skips it.
+3. Fix anything it misheard.
+4. Add lyrics, choose a style, press **Create cover**.
+
+A cover follows the original's melody and chords while the style decides everything else, which is
+what makes it a cover rather than a copy.
+
+### Recording a tune of your own {#recording-a-tune-of-your-own}
+> [!NOTE]
+> How well a tune is heard depends on the recording, and a plan made around it can still fail or
+> wander: write a new plan, or record the tune again.
+
+In **Cover** mode, **Record melody** opens the recorder. Choose what you are recording under **Input**:
+
+- **Voice:** sing or hum into a microphone. **Autotune** can snap the take to a key and scale; the
+  button on a take switches between the tuned and raw versions so you can hear what it did.
+- **Instrument:** play the tune on an instrument, a guitar into an audio interface for example.
+  Play it **one note at a time**: the line you play becomes the tune that is sung, and strummed
+  chords give no tune to sing. Choose the interface under **Device**, and under **Channel** the side
+  your instrument is plugged into (an interface's input 1 is usually **Left**). Raise **Input Gain**
+  for a quiet instrument, keeping the meter out of CLIP. Autotune is not offered: an instrument is
+  already in tune. Yeufonic remembers these choices in this browser.
+
+The metronome, count-in and headphone monitoring work the same for both. **Use as Cover** keeps the
+take as a recording, marked **MIC** or **INST** in the list. Transcribe it as any recording; a
+recorded tune is transcribed as melody only, since chords guessed from a lone tune would be held in
+every chorus of a song made from it (a recording transcribed before this keeps its chords until it is
+transcribed again). Ten to thirty seconds of tune is plenty.
+**Extract lyrics** is not offered for an instrument take, since it has no words to hear: use
+**Write lyrics**.
+
+**Hearing yourself late?** The browser adds a short delay between what you sing or play and what
+you hear in your headphones. If your audio interface has direct (zero-latency) monitoring, use it
+and turn the recorder's **Monitor** off, so you hear yourself straight from the interface, and only
+once. Use wired headphones: Bluetooth adds a delay of its own.
+
+#### Expand to full song {#expand-to-full-song}
+A recorded tune is often only a few bars long. **Expand to full song** has YuE2 plan a whole song
+with your tune in it: the plan is in your tune's key, meter and tempo, every chorus (or every verse,
+if you choose) holds your tune, and the rest of the song is written around it. Then it is rendered
+as a cover of your recording.
+
+- **Sung by:** a man or a woman. Your tune is moved by whole octaves to where that voice sings,
+  since the octave the melody is written in decides who sings it. If the style names no singer,
+  the voice is added to it.
+- **Chords:** a tune on its own often comes back from the transcriber with no chords. Yeufonic then
+  gives it chords from its own notes, so the planner has a harmony to follow. Chords you write into
+  the recording's score are kept.
+- **Your tune** is always the recording's score, even when the editor is showing a take made from
+  it.
+- **Song structure:** used when the lyrics box is empty. With words in the box, their sections are
+  the structure, and they need a **[Chorus]** (or **[Verse]**) for your tune to be.
+- **Words:** a hum can be planned without words. A tune played on an instrument needs words to
+  sing, so write them first: **Write lyrics** drafts them for you.
+
+### MIDI files and covers {#midi-files-and-covers}
+> [!NOTE]
+> Using MIDI files is designed for generating different, often off-the-wall takes of original tunes.
+
+In addition to recorded audio files, you can drop or upload Standard MIDI files (`.mid`, `.midi`) directly into **Cover** mode.
+
+When a MIDI file is uploaded:
+- **Automatic score transcription:** Yeufonic analyzes tracks and channels to identify the lead vocal melody, accompaniment, and harmonic chord progression, transcribing them into ABC notation and loading them directly into the Piano Roll. Synth leads or vocal melodies sequenced in lower registers are automatically transposed to a natural singing octave.
+- **Embedded lyrics:** Any lyric or text events embedded within the MIDI sequence are extracted and aligned to the melody syllables.
+- **Where the bars fall:** a MIDI file has no bar lines of its own, and some start with the first word on the beat *before* the downbeat. Yeufonic reads the drums and bass to find the real bar line and, when the file starts with such a lead-in, puts the first words in a short bar of their own so the chords and bar markers land where the song's do. A file with no clear drum and bass pattern is left as it is.
+- **Pasted lyrics:** words you paste are fitted to the whole melody at once, a syllable to a note, with the notes left over held on the syllable before. Lines end where the melody rests and begin where a phrase begins, so a section that is longer or shorter than the lyrics' headings no longer pulls the rest out of step. If the words are longer than the melody can carry, the last lines are left out.
+- **Full audio audition with SoundFonts:** The audition player synthesizes the MIDI arrangement into high-fidelity audio using **FluidSynth** and General MIDI SoundFonts (`.sf2`). The output is peak-normalized so that quiet multi-track MIDI recordings audition with full presence and clarity without distortion.
+- **Select SoundFonts:** In **Settings**, you can choose your preferred active `.sf2` SoundFont bank (such as *Arachno SoundFont 1.0* or *JNS-GM 2.0*). Additional `.sf2` files placed in `data/models/soundfonts/sf2/` are picked up automatically.
+- **Piano Roll refinement:** Open the **Piano Roll** to inspect or modify notes, choose which track acts as the lead vocal melody, harmonize accompaniment gaps with **Fill Gaps**, or align newly pasted lyrics with **Match Lyrics**.
+
+### Covering a song from a corpus {#covering-a-song-from-a-corpus}
+A corpus's analysis has already done what a cover needs: the score, the words heard in the song, and
+its separated vocal. So below your recordings, the list offers **From your corpora**, folded by
+corpus, with each song's key and tempo, and a filter for a big one. Pick a song and it becomes one
+of your recordings at once, with its score and its words, and nothing runs again. The words are laid
+under the score's sections, as **Extract lyrics** lays them, unless you checked them in the corpus,
+when they come as you left them. They go into the Lyrics box, replacing words that came from
+another recording; words you typed or edited there are replaced only if you say so. The Style box takes the
+style the song was learned with in the corpus, the same as its chip under a LoRA trained from it.
+
+The file is linked rather than copied where the disk allows, so it takes no more space, and it stays
+if the corpus is deleted. A few songs are marked *score: melody only* or *score: first 4 min*: their
+full transcription failed during the analysis, which does for training. Press **Transcribe** for the
+whole score with its chords.
+
+**With a LoRA.** This is where corpus songs are most use: a song and a LoRA made from the same
+work, or from different ones.
+1. In **Cover** mode, open the recording list and pick the song under **From your corpora**. Its
+   score sets the melody and chords, and its words are in the box.
+2. Choose a **Style LoRA**. The corpus's own LoRA has its singer cover their own song, closest to
+   the original. Another corpus's LoRA covers it in that other style and voice.
+3. Set the strengths as for any cover: the recording already sets the melody, so keep **Sound**
+   near **0.50**, and raise it for more of the LoRA's voice and sound.
+4. The Style box already holds the song's own style, and choosing a LoRA puts its trigger word in
+   front. That keeps the song's genre and mood; another chip, or the filter's tags, moves it
+   somewhere else. The tempo and key come from the score, whatever the style says.
+5. Press **Create cover**. **Variations** then renders it in the other interpretations, and
+   **Sing again** gives another voice over the same score, as with any take.
+
+### Extracting the lyrics {#extracting-the-lyrics}
+**Extract lyrics**, beside *Transcribe*, writes down what the recording sings: it separates the
+vocal, listens to it, and lays the lines under the sections of the score. It is asked for rather
+than done with every transcription, because it takes a couple of minutes where transcribing a score
+takes seconds. The vocal is separated, and its words heard, on the GPU when the engine has Demucs and Whisper and on the CPU
+otherwise (Settings, **Use the GPU for stems and lyrics**), and the bar says which of the two stages it is on. Whisper on the GPU
+and on the CPU do not always write the same words for the same vocal, as neither is exact: a hard vocal, such as backing singers
+over a lead, can differ by a fifth of its words either way. The separated vocal is kept, so extracting the same recording again skips
+straight to the listening, which is most of the wait saved.
+
+The words are kept with the recording. Press **Extract lyrics** again and they go straight back in
+the box, and you're asked whether to extract them again, which is worth doing after changing the
+method in Settings. Choosing another recording takes its words in the same way, and a recording
+with none clears the last one's. Words you typed or edited stay unless you agree to replace them.
+
+Expect a good draft rather than a transcript. Measured against the real words of two songs, Whisper
+got **1.5% of words wrong** on one and **25%** on the other, where lead and backing vocals sing over
+each other in the last chorus. It listens to the whole vocal: it used to skip whatever its voice
+detector took for silence, which on sung vocals was most of the song. Read the draft and fix what it
+misheard, especially where voices overlap.
+
+**Letting an external LLM listen.** If an [external LLM](#external-llm) is your provider, Settings has a choice under
+*Lyrics from a recording*. Set it to **External LLM** and the separated vocal is sent to the model to
+hear the words, while Whisper still works out when each line is sung. On the same two songs Gemini
+got **1.5% and 23%**, so the two are close; try both on a song Whisper struggles with. It needs a
+model that accepts audio, such as Gemini. When the model's reply looks like lyrics, its words are
+used, even where they differ a good deal from Whisper's: a vocal buried in a mix is where Whisper
+struggles most, and the model does not. If the model refuses the audio, holds back (cutting lines
+short, or pointing you at a lyrics site, as a model may with a song it recognizes) or sends back
+almost nothing, you get Whisper's version instead. The message when it finishes names which one
+heard the words. The vocal leaves your machine for this; Whisper keeps it here.
+
+For a corpus song, **both versions are kept**. When both exist, the song's Review panel shows
+**Words from** with each version and its word count, the external model's in use by default. Pick
+the other and its words go in the box. The first time a version is chosen its words are drafted, which
+marks their sections with the external model; after that each version keeps its own words, edits and
+**checked** tick, so switching between them is instant and makes no call to the model. Whisper's own lines have any word
+it repeated more than eight times in a row, such as a held "la" it wrote hundreds of times, cut
+back to eight.
+
+---
+
+## Instrumentals {#instrumentals}
+The third mode writes a piece with no vocal. In place of lyrics it takes a **structure**:
+
+| Structure | What YuE2 gets | Who decides |
+|---|---|---|
+| Let YuE2 decide | `[instrumental]` | YuE2 chooses the sections and their lengths |
+| Sections | `[intro] [verse] [chorus] …` | you choose the sections, YuE2 their length |
+| Timed sections | `[intro 0:00-0:15] …` | you choose both |
+
+Add sections with the **+** chips, reorder them with the arrows, and give each a length when timed.
+**Sent to YuE2** shows exactly what the model receives. The structure is guidance: YuE2 may rename a
+section, add an interlude, or run past the times you gave, so the length cap is the firm limit.
+
+### An instrumental from a recording {#an-instrumental-from-a-recording}
+**From a recording** at the top of the editor takes one of your recordings, as a cover does. Its
+transcription is the score, so there is no plan to write, and the render plays its melody and
+chords with the instrumental LoRA.
+
+The sections come from the score too: one per section of the score, in the names the LoRA knows. An
+*interlude* becomes a bridge. A render pairs each section of the structure with one of the score,
+which is why the builder gives way to them. To rearrange the song, drag a section to a new place or move it with the arrows, add a
+**copy** of it after itself, or take it out with the **✕**: each change rewrites the score (the Score
+window shows it), and **Restore the original sections** puts it back until another score is loaded.
+While the take plays in the editor, the section it is at is lit, and double-clicking a section jumps to it. The times come from the score's bars and tempo, which the render follows closely for the first part of a take and for one that renders in full. A render that ends well short of its score has played less music than the score holds, so the list can drift out of step with the audio as the song goes on; a line under the list says so and says by how much. A cover shows the same list under its words, and its words are matched to the sections in order, so
+change them to suit: the list says what they need after you add, remove or rearrange sections. It also shows the total against the
+length cap, and offers to raise the cap when a longer song would be cut short. Press **Create instrumental** to render.
+
+An instrumental you wrote from a structure has a score too, and once it is planned its sections are listed in the same way. The
+structure builder is the brief for a plan not yet written, so it gives way to the list. Rearrange the sections and press
+**Render this score**: the render's section tags follow the edited score. A take that already has audio is rendered as a
+new take beside it, whatever you changed, so the original keeps its own. **Write a new plan** (under the score) still asks
+for a different melody from the structure the take was written with.
+
+**A song with vocals works too.** Its score has the sung melody in the vocal part, which would come
+out sung, so the tune is given to an instrument: wherever no instrument is playing, the sung notes
+move to one, and the vocal part keeps only its chords. The editor says so under the recording. It
+is usually the better choice for a song: without its voice, the transcriber tends to miss the
+difference between verse and chorus, and hears the whole song as one loop of chords. The LoRA
+arranges it as an instrumental, so expect parts of its own, such as extra guitar.
+
+Choose **No recording** in the list to go back to writing a plan.
+
+### When an instrumental sings {#when-an-instrumental-sings}
+Occasionally the model puts a voice into an instrumental. This is a model failure, not a setting
+you got wrong. Before rendering, if the plan puts notes in the vocal voice, a dialog offers a new
+plan, a new seed, or rendering anyway. A finished take is not checked for singing: listen to it.
+
+### An instrumental from a song's score {#an-instrumental-from-a-song-s-score}
+**Make an instrumental**, under a song's or cover's score on the editor's Score page (beside **Render this score**
+for a song), makes the
+same score as an instrumental, in a new take: the original is left as it was. The sung melody moves
+to an instrument, only the score's section tags are sent to the model in place of the words, the
+instrumental LoRA is used, and the style loses the tags that describe a voice ("soft male vocal").
+It is the way to get "this tune, no vocals". Emptying the Vocal part of a song's score by hand is
+not enough: a song's render still sings the words it is given.
+
+---
+
+## Voices {#voices}
+The **Vocal** chips set the singer's sex and character by writing into the style, for the whole song.
+
+For a duet, or one singer for the verses and another for the chorus, put voice cues in the lyrics and tick
+**Voices follow the cues**: see [The words](#the-words) under writing a song from a prompt. It works for a cover's
+words too.
+
+## Corpora and training a LoRA {#corpora-and-training-a-lora}
+A **corpus** is a folder of songs, prepared as a training set for a style LoRA: typically one
+artist, one genre, or a few similar artists.
+Open **Corpora** from the menu. It is on by default; `TRAINING_ENABLED=0` for the app, or an
+engine built with `WITH_TRAINER=0`, takes it out.
+
+Training is the most demanding thing the app does: with the recommended full-quality (BF16) model,
+a 16 GB graphics card and 32 GB of system RAM (on WSL2, `memory=32GB` in `.wslconfig`) is the practical minimum.
+An 8 GB card can be used for training when using the low-memory (INT8) model.
+
+1. **New corpus.** Give it a name and a **trigger word**, say whether the voice is male or female
+   (**none** for songs without vocals: see below), describe the sound shared by every song, and open the folder that holds the songs. Confirm you
+   have the right to train on them, then press **Scan the folder**. The folder is only read.
+   **A corpus without vocals.** Choose **none** for **Voice** when the songs are instrumental, such as
+   dance and electronic music. The app then does not separate a vocal or listen for words, so nothing
+   invents words over synths. Each song's lyrics are the section tags found in its score (or
+   `[instrumental]` when it has none), the caption leaves out the vocal clause, and there is no lyrics
+   review: the **Sections** box can be edited, and an edit is kept. The sound of each song is described
+   by the local model when it is installed, since the external one would only have a title to go on.
+   A LoRA trained this way may write notes in the Vocal part of a plan, which makes a render sing or hum;
+   a plan's "may sing" warning shows it. Changing the Voice of a corpus already analyzed changes its
+   lyrics to match.
+2. **Choose the songs.** Untick any you want left out. When a song is prepared, the app keeps its own copy of the full recording in internal corpus storage, so a corpus remains intact even if its source folder is later cleared or moved. A recording longer than 25 minutes is left out, since it is most likely a whole album or concert in one file. If a `.cue` sheet sits beside it, **Split into tracks** cuts it into its songs, which take its place in the corpus. The tracks go in the app's own folder; yours is not changed. (Songs longer than the trainer's GPU limit, such as 15-minute tracks, are safely cut and faded at a musical section boundary when exported.)
+3. **Analyze.** Each song's vocal is separated, its key, tempo and sections are found, and its lyrics are drafted, tagged by section. With an external LLM set in Settings, the sections are marked from the words as heard: choruses by their words coming back, new sections by the pauses. Only the lines and their timings are sent, and the words and their order are never changed. Without one, or if its answer does not hold every line, the tags come from the music analysis. **Redraft**, beside Save in a song's review, marks the sections again the same way without hearing the song again, for a song drafted before, and replaces what is in the box. A line under the buttons says what is running, and active analysis appears in the main screen's job card and queue. **Stop** ends it. Finished steps are kept, so **Analyze** carries on from where it stopped.
+
+   **Re-analyzing.** Once every song is analyzed, the button shows **Analyzed ✓**. Clicking it asks if you want to re-analyze style suggestions for all songs with the latest prompts and LLM settings (convenient after renaming a corpus or changing providers). Shift-clicking **Analyzed ✓** offers a complete re-analysis from scratch (re-running stem separation, key, tempo, transcription and styles). Individual songs can also be re-styled with **Re-analyze** in each song's review.
+4. **Review.** Open a song to check its lyrics and tick **checked**, and to describe its sound
+   where it differs from the rest. The style caption shows what the trainer will read.
+5. **Export training set.** Writes the audio, lyrics and caption for each song. A line under the
+   buttons shows how far it has got. The trainer takes only so much of a song, which the app works
+   out from your graphics card's free memory (about 5½ minutes on a 16 GB card; the Logs window
+   says what it chose). A longer song is cut at the end of its last section within that, faded
+   out, and keeps only the words still sung. Its row says "first 3:12 trained". If training
+   runs out of memory, set the `TRAIN_MAX_MINUTES` environment setting to a lower number, such
+   as 3.5: see the README.
+6. **Train a LoRA.** This takes a long time, and the GPU is not available to the app until it
+   finishes. Progress shows under the buttons and on the main screen, where you can stop it,
+   and the corpus's badge at the top of the page pulses while it trains. Training again keeps
+   the LoRA from the last run under a dated name, in **Previous runs**, or deletes it, as you
+   choose.
+   Training on the recommended full-quality (BF16) model needs at least about 12.5 GB of GPU memory
+   (at a 3½ minute cut; a longer cut takes more), most of it while it prepares the songs, so a 16 GB
+   card is the practical minimum, along with 32 GB of system RAM (ComfyUI stages the full YuE2 weights
+   and dataset caches in host memory; on WSL2, set `memory=32GB` in `.wslconfig`). An 8 GB card can
+   train when using the low-memory (INT8) model. Cards that cannot train can still use LoRAs trained
+   elsewhere (**Install a LoRA**). The Train window warns when less GPU or system memory is available,
+   so close anything else using the GPU first.
+
+### A run that ends early {#a-run-that-ends-early}
+A run can end before its last step: **Stop**, a crash, or the GPU running out of memory. The line
+under the buttons then says when and why, and after which step. Along the way the trainer saves a
+checkpoint every 50 steps, and keeps a copy of the best one so far by its planner loss, so most of
+the work is usually still there. **Finish with what it saved** does what a finished run does, from
+those files: the best copy, or failing that the last checkpoint, becomes the LoRA under the
+corpus's name, with its trigger word, and the checkpoints fold under it in the Style LoRA list. It
+takes seconds and no GPU time. The last steps of a run change the LoRA least, so one finished this
+way is usually close to a full run; **Checkpoints** renders a song once on each step if you want to
+compare by ear. To train the whole run again instead, press **Train a LoRA**.
+
+### Run all {#run-all}
+**Run all**, beside the three, does Analyze, Export and Train one after the other, for a corpus you
+would rather not wait on: a big one takes hours to analyze. It asks first what to do with an
+earlier LoRA, then carries on with the page closed. It analyzes only what still needs it, and a
+song whose analysis fails is left out of the training set and named under the buttons. Lyrics
+nobody has checked are used as drafted. **Stop** ends it where it is, keeping what is finished;
+stopped while it exports, it finishes the training set first. It waits for anything already using
+the engine before it trains. An app restart ends it, and **Run all** again carries on.
+
+### Running out of GPU memory {#running-out-of-gpu-memory}
+A job that runs out of GPU memory says so, with what to try: close other programs using the GPU,
+lower the length cap, or, for training, leave the longest songs out. If the engine crashes and
+restarts, the job it was running is lost, and it says that too.
+
+### The trained LoRA {#the-trained-lora}
+When training finishes, the LoRA appears in the **Style LoRA** list with its trigger word. Choosing
+it shows a chip for each song it learned from, under the Style box, and clicking one puts that song's style in
+the box.
+Past a dozen songs, a filter box and a row of the tags that recur across the corpus (its genres,
+moods and instruments) narrow them; click two tags to find songs with both. The list shows its
+first dozen until **Show all**. See **Balancing Planner and Sound** below for starting strengths. To share it, press **Download LoRA** on the corpus's page, or **Download** under
+the picker; see **Sharing a LoRA** below.
+
+To add a LoRA someone shared, press **Import LoRA** beside **New corpus** and choose their zip. To use a
+LoRA trained elsewhere from the exported set, press **Install a LoRA** and choose the
+file. It is added to the Style LoRA list with this corpus's trigger word.
+
+**Deleting a corpus** removes the app's copies of its songs, the separated vocals, the lyrics and
+the scores. The folder you pointed it at, and any LoRA made from it, are not touched.
+
+---
+
+## Copyright and consent {#copyright-and-consent}
+What you train on, and what you do with the result, is your responsibility under the law where you
+live. The app asks you to declare it and does not check it: creating a corpus requires you to confirm
+that you have the right to train on those recordings.
+
+Two facts are worth knowing:
+
+- The YuE2 weights are **CC BY-NC 4.0** — non-commercial use, whatever you train from them.
+- Training privately on a corpus and publishing the LoRA or its output are different acts. The second
+  is the one that usually needs permission: from whoever holds the rights in the recordings, and for
+  a recognizable voice, from the singer.
+
+LoRAs you did not train yourself carry their own licenses: read them on the page each one comes from
+(see **Where to find style LoRAs** under Style LoRAs).
+
+## Style LoRAs {#style-loras}
+A LoRA is a small file that leans the model towards a sound. Put one in `models/loras/` and press
+**Rescan** under the picker, or use **Install**, and it appears in the **Style LoRA** list.
+
+A style LoRA can hold two halves, and the picker shows which ones a file holds:
+
+- **Planner** shapes what is played — the score plan (form, harmony, phrasing), and then the music
+  the render writes from that score. It applies at both steps.
+- **Sound** shapes the audio — timbre and production.
+
+A strength the file cannot use is grayed out, and a file this engine cannot load at all is named as
+such rather than failing quietly inside a render.
+
+### Where to find style LoRAs {#where-to-find-style-loras}
+The quickest way is at install: tick **Style LoRAs** on the installer's components page (or, with Docker, run
+`sh scripts/fetch-models.sh --loras`). That fetches 39 style LoRAs by their authors, 3.8 GB in all, each with a
+description giving its trigger word and suggested strengths: the sets below, two from atomtanstudio (dream pop
+and old school hip-hop), and sixteen concept sliders from ntc-ai, which shape the score only (Sound does nothing,
+and they need no trigger word). They are gathered, unchanged, in
+[pshields/yue2-style-loras](https://huggingface.co/pshields/yue2-style-loras), whose README credits each author
+and links the page it came from. A LoRA already in your folder under the same name is left as it is.
+
+There are more on Hugging Face. These are the sets gathered there, each on its author's own page:
+
+- [Militant reggae](https://huggingface.co/becausereasons/yue2-mltnt-militant-reggae)
+- [Chanson française](https://huggingface.co/becausereasons/yue2-chnsn-chanson-francaise)
+- [Canzone italiana](https://huggingface.co/becausereasons/yue2-cnzn-canzone-italiana)
+- [Bulgarian voices](https://huggingface.co/becausereasons/yue2-blgr-bulgarian-voices)
+- [Qawwali, sufi and tabla](https://huggingface.co/becausereasons/yue2-qwwl-qawwali-sufi-tabla)
+- [J-pop](https://huggingface.co/storagejuju/yue2-jpop-t4-lora), a single LoRA with a Sound half only
+
+To add one, download its `.safetensors` file from the repository's **Files** tab, put it in `models/loras/`
+and press **Rescan**, or press **Install** and choose the file. The repository's page gives each LoRA's
+trigger word and suggested strengths: write them in a `.txt` beside the file (see **Descriptions** below) and
+the picker shows them, and puts the trigger word at the front of the Style for you. A LoRA from elsewhere
+may be saved in a layout this engine cannot load: the picker names it as such, and it does no harm.
+
+Each LoRA carries its author's license, which these sets give as CC BY-NC 4.0: personal and non-commercial
+use, the same as YuE2's own weights. Read the license on a LoRA's page before using it, or sharing what it
+makes.
+
+### Balancing Planner and Sound {#balancing-planner-and-sound}
+- **Cohesive corpora:** A LoRA trained on a single album or unified acoustic sound (e.g. 1960s folk rock) can run higher strengths, typically around **Planner ~0.85 / Sound ~0.80**.
+- **Diverse corpora:** If the training corpus spans multiple genres, production styles, or eras (e.g. acoustic folk, rock, and synth-pop), high Sound weights can cause acoustic clashing. Up to about **Planner 0.70 / Sound 0.70** keeps the audio clean while retaining the artist's melodic phrasing and vocal character.
+- **Covers:** your recording sets the melody, so there is less for the LoRA to shape and the Sound half is pushed harder. Keep Sound near **0.50**.
+- **Plan variety:** with a LoRA trained from a corpus, **Calm** or **Normal** gives the most recognizable result. **Calm** can loop with a style LoRA and a short style, and the plan then runs for
+  minutes with long repeated intros, or with nothing sung. Describe the style in more detail (genre, instruments and feel), or use **Normal**. A plan like that, or one far longer than a song, is written once more
+  with a new seed, and the take fails with advice if the second comes out the same.
+- **Finding a good take:** the LoRA's character depends on the roll as much as on the strengths.
+  Between about 0.3 and 0.6, **Sound** changes the voice little, so there is no need to push it.
+  **Planner** changes the performance itself, not only the voice, so a value that suits one song
+  can be the weakest for another. Treat it like the seed: try a few (say 0.6, 0.8 and 1.0) and a
+  few seeds with **Sing again**, and keep the take you like.
+- **Save strengths:** when you find the right pair for a LoRA, press **Save strengths** under the
+  picker. Choosing that LoRA then starts at them, and they travel with it when you share it.
+
+### Trigger words {#trigger-words}
+Most style LoRAs are trained on captions that **begin** with a trigger word, and do very little
+without it. The app handles this: choosing a LoRA puts its trigger at the front of the Style,
+changing to another swaps it, choosing None removes it, and a render puts it back if it was
+deleted. You will see the word appear in the Style box — it is yours to edit or move.
+
+### Descriptions {#descriptions}
+The list is grouped by set. Click a heading to open or fold it; the picker remembers which you
+left open, and the group holding your current choice always opens with it.
+
+Hover any entry to read what it is, in its author's words, with their suggested strengths. Those
+descriptions come from a text file beside the LoRA:
+
+```
+CHNSN Rive Gauche
+Trigger: chnsn
+Step 200, the decoder-loss minimum. The more supple of the two: acoustic
+narrative, yé-yé, female leads, waltz meters.
+```
+
+The first line names it, a `Trigger:` line becomes the trigger word, and the rest is the
+description. A LoRA of your own gets one by writing a `.txt` beside it. `families.txt` in the same
+folder gives the groups their headings, one `prefix = label` per line.
+
+### LoRAs trained from a corpus {#loras-trained-from-a-corpus}
+A LoRA trained from one of your corpora is an ordinary style LoRA: it appears in this list with the
+rest, its trigger word beside it, and the same two strengths apply.
+
+### Trying the checkpoints {#trying-the-checkpoints}
+A training run saves a checkpoint every 50 steps, and keeps them under its LoRA in the picker:
+**▸ 9 steps** beside the LoRA's name opens them (Settings can delete them instead, to save the
+space). A checkpoint whose LoRA has been deleted stays under **Training checkpoints**. To clear
+some out, press **Edit** on the corpus: **Training checkpoints** there lists each run's, this run's
+and any previous run's, with their sizes. Tick the ones to go and press **Delete**. The finished
+LoRA is not listed; it has **Delete LoRA** of its own. Each is the LoRA as it stood at
+that point in training. They sound about as good as each other, but each has its own weighting of
+what it learned, so each has its own taste while keeping the style and signature sound the LoRA
+was trained on.
+
+To hear them side by side, choose the LoRA, set up the editor as you would for one take, and press
+**Checkpoints** beside **Delete LoRA**. It is grayed out for a LoRA without checkpoints. Tick the
+steps you want, set a length cap for these takes if you like, and press **Render**. The editor's
+own action runs once on each checkpoint, all with one seed, and each take is named after its step:
+*Night drive · step 250*, *Night drive · full*. They are kept inside the take open in the editor,
+or, for a new song, inside the last of them (see **Takes inside a take**, under The library). The editor closes, so you are back at the library
+where the takes are being made. A song or an instrumental writes its plan and goes straight on to
+render.
+
+In a song or an instrumental the LoRA writes the tune as well as shaping the sound, so the same
+seed does not give the same song: each checkpoint writes its own melody and structure. The seed
+picks from what the model thinks likely, and each checkpoint thinks slightly differently from the
+first note, so the plans part ways within a few bars. What stays is the sound. To compare only the
+sound, load one plan with **Score** and press **Render this score** with each checkpoint in turn.
+
+New files appear once the engine has looked at `models/loras/` again, which it does when the
+options are reloaded.
+
+### Sharing a LoRA {#sharing-a-lora}
+Choose a LoRA and press **Download** under the picker: you get one zip with the LoRA and its note.
+For a LoRA trained from a corpus, the note carries its learned styles, so the chips come with it.
+
+To add one someone sent you, press **Install** and choose their zip, or a bare `.safetensors`
+file. It goes into `models/loras` under the heading **Installed**, with its name, trigger word and
+chips. **Delete LoRA** removes the chosen LoRA, its note and its group line; **Rescan** reads the folder
+again after you add a file by hand.
+
+---
+
+## Stems {#stems}
+Press **Stems** on any take. Choose a model, tick the parts you want — vocals, drums, bass, other,
+and guitar and piano on some models — and run.
+
+Separation runs on the **GPU** when the engine has Demucs, as a job in the engine's queue: it waits for a
+render that is running, then goes quickly, and a render queued behind it waits in turn. An engine built before
+this, a LoRA being trained (which holds the GPU), **Use the GPU for stems and lyrics** set to Off in Settings, or `STEMS_ON_GPU=0` leaves it on the **CPU**, which is slower
+and never holds up a render. *Fine tuned* runs four models in turn for a better split and takes about four times
+as long.
+
+For a backing track, choose **Vocals and instruments**. It splits the song in two: the vocal, and
+**instruments**, everything else as one stem. Untick **vocals** to keep only the instruments. It is
+the same separation as the four stems, added back together, so it takes as long and sounds as clean.
+The *fine tuned* one leaves the least of the voice behind.
+
+Stems land in `data/stems/<title>-<id>/`, play from the chips on the card, and download singly or as
+a zip. They stay until you delete them.
+
+---
+
+## Stopping, deleting and starting again {#stopping-deleting-and-starting-again}
+What the engine is working on shows in the top bar, beside the name: a pill with the job, its time, a line
+along its foot for how far it has got, and how many jobs wait after it. It changes nothing else on the page when a
+job starts or ends. Click it for the job card: the stage, **stop**, and **Up next**, the jobs waiting, each with
+**cancel**.
+
+A queued or running take shows **Cancel** on its card, and **stop** on the job card stops whatever
+the engine is working on. A take's title on the job card, in its **Up next** list, or in the player at the
+foot of the page takes you to the take: to its space, with any search or filter that hides it cleared. Deleting a take stops its job and removes its stems. **Delete** beside a
+recording removes the file and its stems; covers made from it keep their audio and score, but cannot
+be rendered again.
+
+**+ Song**, **+ Cover** and **+ Instrumental** on the take panel, or **New song** beside the
+editor's heading, start again from the take on show. They clear the title, the lyrics and the score,
+and start from the defaults: an empty style (with a chosen LoRA's trigger word), the usual length
+cap, Harmony Varied, plan variety normal, interpretation Wide, production polish on,
+normalizing off, and a new seed that is not held. A chosen LoRA and a chosen recording stay chosen.
+The take being shown lets go of the editor, so Render cannot act on it by mistake.
+
+Words you had typed but not used are not thrown away: a bar offers to restore them.
+
+## The library {#the-library}
+### Spaces {#spaces}
+Takes live in **spaces**: a space per song, per album, or for sketches. The space's name above the takes
+is the one on show, and anything you make lands there. Click it for the list of spaces: type to find one by
+name, or pick it with the arrow keys and Enter. The five you used last come first, then every space, each with
+how many takes it holds. **New space**, **Rename this space**, **Import take** and **Delete this space** are at
+the foot of the list. Deleting a space never deletes takes —
+they move to Default. Recordings are shared by every space, so one recording can be covered in
+several.
+
+The folder button on a card moves that take to another space, with any takes inside it.
+
+### Takes inside a take {#takes-inside-a-take}
+**Variations**, **Try more** and **Checkpoints** each make several takes of one song. They are kept
+**inside** the take they were made from, so the space lists your songs and not every render of each.
+Checkpoints is pressed in the editor: with a take open there, its takes go inside that take; for
+a new song, which has no take yet, the take on the last checkpoint ticked (the finished LoRA, when
+it is one of them) holds the others.
+
+- **The Inside button** appears among the small buttons at the top of a card once its take holds
+  takes, finished or still being made, and it is **lit orange**. Hover over it to read how many are
+  done and how many are to come. The card itself is plainly lighter than the others (in the
+  light theme, a warm tint), so a take with takes inside it stands out in a list. (The mastering rack's button beside it is lit green in
+  the same way, when the take is mastered.)
+- **Click it** and a panel opens under the card with the takes inside, each a card of its own. A
+  take shows there when it is finished; while it is being made only the take it belongs to shows.
+  Click the button again, or **Close**, to shut it.
+- **A take inside another is a take like any other.** Play it, star it, save it, split it into
+  stems, rename it, and double-click it to open its song and score.
+- **One level.** A take inside another holds none of its own, so its card has no Variations or Try
+  more, and **Checkpoints** in the editor is grayed out while it is the take open there. **Take
+  out** (the arrow leaving a box) makes it a take of its own in the space's list, and then it can.
+- **The list's tools follow the panel.** While one is open, **Select all**, **Starred**, the kind
+  buttons, **Compare**, **Delete** and the player's previous and next work on the takes in the
+  panel. The take whose panel is open stays on the page whatever the filters say.
+- **Something playing inside is shown outside.** If you shut the panel while a take in it is
+  playing, the Play button on the take that holds it glows gold, so you can see where the sound is
+  coming from. Green still means that take itself is playing.
+- **Search finds them** like any other take, wherever they are. While a search is on, what it
+  finds is shown as plain cards, and a take that is inside another says which.
+- **Deleting a take deletes the takes inside it.** The warning says how many. Take out any you want
+  to keep first.
+
+Takes made before this existed stay where they are, side by side in the list.
+
+### Cards {#cards}
+Each card names the settings that shaped it — Harmony, Interpretation, Plan variety, the LoRA and
+its strengths, the seed, the engine that rendered it and its age — so a card reads as the recipe that made it.
+
+**Save** asks which format to download the take in, FLAC, WAV or MP3. It starts with what you saved last
+time, and with nothing chosen the first time. A take with a picture can also be saved as a **Video**: an MP4 of
+the song that shows the picture its card shows (H.264 video, AAC audio at 192 kbps). Messaging apps such as
+WhatsApp send and play it as a video, where an audio file goes as a document. With the mastering rack on, the
+video has the mastered sound, as the other formats do. **Take**, beside them, saves the take's recipe as well: a small file
+(`<title>.yeufonic.json`) holding its words, style and score, its seeds and settings, its LoRAs by name and
+the mastering rack's settings, but not its audio. With a format chosen too, both come in one zip; press the
+chosen format again to save the recipe alone. The file holds nothing of your install (no paths, ids or keys),
+so it can be kept, or shared with another Yeufonic user.
+
+**Import take**, in the list of spaces, makes a new take in the space on show from such a file; dropping the file
+on the library does the same. The take holds the plan, ready to render, so it can be checked or changed first.
+Either engine can render it: the same score and seed on the same engine give a very similar take, on the other
+engine a different one. A LoRA it names that is not installed here is named when it is imported, so you can
+install it or choose another before rendering. A cover's recording is not in the file, so a shared cover comes
+in as a song with the cover's score and words, leaving behind the settings that belonged to its recording (the
+tempo lock, Harmony, voice cues and the length cap): a new plan from it starts as a song from a prompt does.
+
+**Search takes** finds the takes with every word you type somewhere in the title, style, lyrics or
+LoRA name, in any case. It looks through the space on show; **All spaces**, beside it once you type,
+looks through every space, and a card from another space says which one. × or Escape clears it. The
+box starts empty each time the page opens, and offers your last few searches that found something:
+click one, or pick it with the arrow keys and Enter.
+
+**Song**, **Cover** and **Instrumental** show takes of those kinds: light one or more, or none for every kind.
+**Starred** shows only starred takes; click it again to show them all. The icons beside them set how the takes are
+laid out, the ones in use lit green: wider **comfy** cards with more of the prompt or narrower **compact** ones,
+the **whole width** of the window or a centered column, and every take **folded** down to its head line. Hover over
+an icon to read what a click does.
+
+Tick takes and the row offers what can be done with them, in place of the kinds and the layout: how many are
+picked, **Compare**, **Delete** and **Done**, which unticks them. **Select all**, at the end of the row, ticks
+every take on show. A title always stays on one line, ending in … when it is long. Hover over a card's title, settings or style to read all of it.
+
+### A picture for each take {#a-picture-for-each-take}
+Each new take gets a picture of the song, shown faintly behind the take's card, across the top of the take panel when you choose it, and behind the editor when the take is open
+there. Drawn on this PC it waits until no song is being made, so it never holds up a plan or a render, and
+appears a little after the song is finished; drawn by an external LLM it is made while the take renders.
+It is made in two steps: the take's title, style and opening words are turned into a **description** of
+a picture, then an image model **draws** it on white, and the white is taken out, leaving the picture
+with a transparent background. A take made inside another (Try more, Variations, Checkpoints) shows the
+picture of the take it is inside rather than having one of its own.
+
+An image model will not draw a real band or person, so the description leaves names out; and the
+picture's own lettering is kept soft, so it does not fight the card's.
+
+#### Two ways to draw: FLUX.2 klein on this PC, or an external LLM {#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm}
+Pictures need something that can draw. There are two, and you can have either, both or neither.
+
+| | FLUX.2 klein, on this PC | Your external LLM's image model |
+|---|---|---|
+| What it is | a small image model that runs on the engine, beside YuE2 | the provider's own image model, such as Gemini's |
+| What it costs | nothing; about 8 GB of disk | each picture is one request to the provider, which may be charged |
+| What leaves the PC | nothing: the description is written by Gemma on this PC, or made from the take itself | the take's title, style and opening words, and the description |
+| When it runs | on the GPU once no song is being made: after your song, never in its way | beside the renders, while they run |
+| What you set up | an install option | the external LLM in Settings, with a provider that lists an image model |
+
+**To draw on this PC, install FLUX.2 klein.**
+
+- **Windows:** tick **FLUX.2 [klein]** on the installer's components page. It is not ticked
+  unless you choose it. An installed app gets the same page when it updates, or run the installer again
+  from the release page: the tick is remembered after that, and an update never downloads it twice. It
+  is three files, about 8 GB in all.
+- **Docker:** run `sh scripts/fetch-models.sh --pictures`, which puts the three files in `models/`
+  (`diffusion_models`, `text_encoders` and `vae`) and checks each one, then restart the app with
+  `docker compose restart app` so it finds them.
+
+**FLUX.2 klein 9B, if you have the graphics card for it.** klein comes in a larger size, a higher-quality
+model that draws more detail and better hands and faces, meant only for graphics cards with more video
+memory. Yeufonic never downloads it, because its files are gated on Hugging Face and under Black Forest
+Labs' **non-commercial license**, but put them in place and they are used.
+
+- **Disk:** about 18 GB for the usual pair, the FP8 model and its FP8 text encoder (16 GB with the FP4
+  encoder), beside the 4B's files. It needs the 4B's VAE (`flux2-vae.safetensors`), so install the 4B first.
+- **Video memory:** it works on a 16 GB card, but takes nearly all of it while it draws, with free memory
+  close to zero. Pictures wait until no song is being made, so this does not slow your songs, but other
+  programs using the graphics card at the same time may struggle. With less memory it still runs, more
+  slowly, as the engine moves the model in and out; the 4B is the better choice there.
+
+1. **The model.** Sign in to Hugging Face, accept the license on
+   [black-forest-labs/FLUX.2-klein-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8)
+   and download `flux-2-klein-9b-fp8.safetensors` (9.4 GB). Or take the full-precision
+   `flux-2-klein-9b.safetensors` from [black-forest-labs/FLUX.2-klein-9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B),
+   the one for a Mac, which is about twice the size and needs twice the memory.
+   It goes in the `diffusion_models` folder.
+2. **Its text encoder.** From [Comfy-Org/Flux-2-Klein-9B](https://huggingface.co/Comfy-Org/Flux-2-Klein-9B/tree/main/split_files/text_encoders),
+   which needs no sign-in, download one of these and put it in the `text_encoders` folder:
+   `qwen_3_8b_fp8mixed.safetensors` (8.7 GB, the usual choice on an NVIDIA card), `qwen_3_8b_fp4mixed.safetensors`
+   (6.8 GB, the smallest) or `qwen_3_8b.safetensors` (16.4 GB, full precision, for a Mac).
+   **With the yue2.cpp engine** the picture server cannot read those encoders: take `Qwen3-8B-Q4_K_M.gguf`
+   (5.0 GB) from [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF) instead
+   (`-Q8_0.gguf`, 8.7 GB, also works), and put it in the same folder.
+3. **Where the folders are:** under `models/` in the Yeufonic folder for **Docker**; under
+   `engine\ComfyUI\models\` in the install folder on **Windows**; under `engine/ComfyUI/models/` in the
+   install folder on a **Mac**.
+4. **Let the app see them, and choose it.** Restart Yeufonic (with Docker, `docker compose restart app`),
+   then set **Take pictures: klein model** in Settings to *FLUX.2 klein 9B*. The 4B draws until you do, and
+   Settings say so when the 9B is chosen but cannot draw here. Choose
+   *4B* to go back without removing anything. The picture's note in the editor says which drew it
+   (*drawn by FLUX.2 klein 9B on this PC*).
+
+The model and its encoder are found by these names only, so keep the file names as they are downloaded.
+
+**FLUX 3 klein, for lettering and a 12 GB card or larger.** Black Forest Labs' FLUX 3 Image Klein draws from a
+full description of the scene, which is what the image prompts written by Gemma or the external LLM are, and it
+letters well, which suits **Song title on the picture**. Like the 9B, Yeufonic never downloads it: its files are
+gated on Hugging Face and under the **FLUX Kommunity License** (non-commercial use, and commercial use of what it
+draws for anyone under the license's revenue limit; read it before you accept it). Put its files in place and it
+can be chosen.
+
+- **Disk:** about 11 GB for the int8 pair, beside the 4B's files. It uses the 4B's VAE (`flux2-vae.safetensors`),
+  so install the 4B first.
+- **Video memory:** about 11 GB while it draws. It takes several times the steps of the FLUX.2 kleins, so each
+  picture takes longer.
+- **Engine:** the ComfyUI engine only, for now; with the yue2.cpp engine it is not offered.
+
+1. **Sign in to Hugging Face** and accept the license on
+   [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy).
+2. **The model,** into the `diffusion_models` folder: `flux3-image-klein-int8-convrot.safetensors` (5.8 GB, the usual
+   choice on an NVIDIA card), `flux3-image-klein-nvfp4.safetensors` (5.3 GB, for an RTX 50 card) or
+   `flux3-image-klein-bf16.safetensors` (11.1 GB, full precision, for a Mac).
+3. **Its text encoder,** into the `text_encoders` folder: `qwen3vl_4b_int8_convrot.safetensors` (4.9 GB) or
+   `qwen3vl_4b_bf16.safetensors` (8.9 GB, for a Mac).
+4. **Let the app see them, and choose it:** restart Yeufonic (with Docker, `docker compose restart app`), then set
+   **Take pictures: klein model** in Settings to *FLUX 3 klein*. The picture's note in the editor says *drawn by
+   FLUX 3 klein on this PC*.
+
+The folders are the same as for the 9B, and the files are found by these names only.
+
+**To draw with an external LLM,** open Settings and set **LLM for writing lyrics & style tags** to the
+[external LLM](#external-llm), with its **API URL**, **API Key** and **Model**, as for lyrics. The provider must have an image
+model: Gemini does (`gemini-3.1-flash-image` is used unless you name another), and an OpenAI-compatible
+provider is asked for `gpt-image-1`. The app asks the provider for its list of models, in the background,
+when the app starts, when these settings change and every few hours, and draws there only once the list
+has the image model.
+
+With neither, **Take pictures** in Settings says **No pictures: the default background**, with a line on how to have
+them, and the choice to make them cannot be picked.
+Set up either and they come on: pictures are then made for the takes you make from then on.
+
+#### Managing pictures in Settings {#managing-pictures-in-settings}
+| Setting | Does |
+|---|---|
+| **Take pictures** | *Make one for each new take* (the default where something can draw), or *Only when asked*, where a take keeps the default background until you make one from its square or the editor's Picture button. The settings below shape a picture made either way. It is *No pictures* while nothing here can draw. |
+| **Take pictures: drawn by** | *This PC if klein is installed, else the external LLM* (the default), *This PC (the klein model below)* or *The external LLM's image model*. Which klein draws on this PC (FLUX.2 klein 4B or 9B, or FLUX 3 klein) is chosen under **klein model**. |
+| **Take pictures: klein model** | *FLUX.2 klein 4B* (the default), *FLUX.2 klein 9B*, *FLUX 3 klein*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B and FLUX 3 are never installed for you: see [FLUX.2 klein 9B and FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. One asked for and not there, another draws, and Settings say which. |
+| **Take pictures: described by** | who writes the image prompt, from the take's title, the art style below, its style and its words (up to 50 lines). *Local Gemma if installed, else the take itself* (the default), whoever draws. *Local Gemma*: written on this PC; needs the Lyric drafts option. *From the take itself*: no LLM; a description made from the take's title, style and opening words, the quickest, and nothing is sent out for it. Or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
+| **Take pictures: art style** | how the picture should look, given to the LLM that writes the image prompt (grayed out when the take itself describes it). By default an abstract, surrealist design in the manner of 1970s and 1980s album covers, with no text or people. Emptied, it goes back to that. |
+| **Take pictures: your own prompt** | words to start every picture's image prompt with, such as *big sky, doom-laden*, up to 512 characters; the prompt the LLM writes follows them. Empty (the default): none. Only when an LLM writes the image prompt (grayed out when the take itself describes it). |
+| **Take pictures: song title on the picture** | *Off* (the default) or *On*: the song's title is lettered on the cover in bold, in capitals or small letters, as you wrote it, even when it is an artist's name (the picture itself is still described without it). Mostly the picture is framed by a thin dark line inside an off-white border, as on many 1970s sleeves, with the title centered in a deeper band at the top or the bottom. About one in five has no border: the title goes over the picture, at a corner or centered along the top or the bottom, in a muted color from the picture, and the LLM is asked to keep that part of the picture clear for it. All of this is chosen at random for each picture. FLUX.2 klein may spell it imperfectly. Only when an LLM writes the image prompt. |
+| **Take pictures: image model** | which of the provider's models draws. Only for pictures drawn by the external LLM (choose it under **Drawn by**; grayed out otherwise), and empty for the provider's usual one, which is nearly always what you want. |
+
+So with FLUX.2 klein installed and the settings as they come, pictures are made entirely on this PC, even
+when the external LLM writes your lyrics: Gemma writes each image prompt where Lyric drafts are installed, and
+without it the description is made from the take itself, with no LLM, which takes no time. Choose *The external
+LLM's image model* to have the provider draw them instead, or set **described by** to *From the take itself* for the
+quickest pictures, or to *External LLM* (a request each).
+
+#### A take's picture in the editor {#a-take-s-picture-in-the-editor}
+The **Picture** icon in the editor window's top row, beside the take's other buttons, shows the picture
+with two choices: **Make a new picture**, which makes it again in the background, and **Use the default
+background**, which takes it away for good: no picture is made for that take again unless you ask for one.
+Click the picture there to see the whole of it, as large as the window allows; a click anywhere or Escape
+puts it away and leaves the editor as it was. The whole picture has the same two choices under it. Choose
+**Make a new picture** there and the picture stays up while the new one is made, with what is happening shown
+between the buttons, then turns to the new one when it is done.
+
+On a take's card, the square at the top left shows the picture when you point at it. A take with no
+picture offers **Make a new picture** there instead, where this PC can make pictures.
+
+### Comparing takes {#comparing-takes}
+Tick two to six takes and press **Compare** (it appears beside Select all once two are ticked, and
+waits for takes still rendering). The takes stack in one window on a shared position: press **1** to
+**6** or click one to switch, and it carries on from the same moment in the song, playing or
+paused. **Space** plays and pauses, the arrows move 5 seconds, and the star marks the one you
+prefer. **Match loudness** turns the louder takes down to the quietest, since a louder take tends
+to sound better; **Hide names** shuffles the takes and calls them Take A, B, C for a blind listen.
+
+### The player {#the-player}
+Click or drag the waveform to seek. Previous and next step through the cards in the order shown.
+
+| Key | Does |
+|---|---|
+| Space | play or pause |
+| Left, Right | back or forward five seconds |
+| Shift+Left, Shift+Right | the previous or next take; in the Playlists view, the playlist's previous or next song |
+| Up, Down | volume |
+
+The system media keys work too. The take's own keys are under [Hot keys](#hot-keys).
+
+### The Audio Visualizer and Synced Lyrics {#the-audio-visualizer-and-synced-lyrics}
+Press **Visualizer** on the transport bar (or press **V** while a track is playing) to launch the full-screen visualizer stage.
+
+The stage renders real-time audio visualizations synchronized with playback:
+
+- **Visualizer Modes:** Choose from ten distinct visualizer engines from the top toolbar:
+  - *Yeufonic:* The mark itself, breathing — the tile glowing with the bass and expanding on the beat, each fork arm a meter with its own half of the spectrum, and the green dot flaring on the beat.
+  - *Waveform Ribbon:* Floating harmonic dual-ribbon reactive waves.
+  - *Aurora Borealis:* Undulating curtains of ethereal northern lights reacting to mid and high frequencies.
+  - *Cosmic Nebula:* Starfield and swirling interstellar particle nebula pulsing to the beat.
+  - *Kaleidoscope:* Radial geometric symmetries pulsing with musical tempo.
+  - *Neon Grid:* Retro-futuristic synthwave perspective wireframe plane undulating to basslines.
+  - *Liquid Warp:* Fluid harmonic wave displacement surface.
+  - *Particle Swarm:* Gravitational particle clusters that scatter on percussive hits.
+  - *Hi-Fi Spectrum Bars:* Multi-band equalizer spectrum analyzer with physical floating peak decay caps.
+  - *Artwork:* The take's picture, large, with its title under it, over a soft copy of itself that moves with the music. A take with no picture shows the Yeufonic scene until one is made.
+- **Behind the scenes:** the Artwork, Yeufonic, Mandala, Grid, Liquid and Bars scenes play over the take's picture, softly moving with the music, where the take has one. Something can move over it too, in the picture's own colors: *Breath* (the picture alone), *Light rays* turning from the middle, *Ripples* sent out on the beat, *Drifting color*, *Depth* (more copies of the picture turning against each other) or a *Spectrum halo*. Each scene starts with its own (drifting color behind Artwork, the halo behind Mandala, rays behind Grid, ripples behind Liquid, the picture alone behind Yeufonic and Bars); press **B** to step through them, and the scene keeps your choice.
+- **The waveform:** under the Yeufonic and Artwork scenes, the take's waveform shows how far the song has played; click it to jump there.
+- **Album Artwork & Vinyl Dynamics:** Displays the take's Hipgnosis-style album cover in an interactive 3D sleeve that tilts and orbits with pointer movement. A realistic vinyl record spins at 33⅓ RPM and slides out of the sleeve on bass hits, accompanied by holographic sheen and beat-reactive shockwave rings. Cycle modes with the **Artwork** button: *Sleeve*, *Aura* (ambient blurred background), or *Off*.
+- **A new picture:** the picture button at the top right, in every scene, makes a new picture for the take playing, where this PC can make pictures. It pulses while the picture is made, and the new one takes over when it is ready.
+- **Lyrics Display:** Press **L** or click **Lyrics** to toggle the independent, scrollable lyrics panel. Drag it by the bar at its top to move it out of the way; it stays where you put it, and a double-click on the bar puts it back.
+- **Mini Player Ribbon:** While the full visualizer is closed, a reactive mini dual-wave visualizer ribbon plays inside the bottom transport bar. It can be toggled in **Settings → Appearance**.
+
+### Playlists & Liked Songs {#playlists-liked-songs}
+Click **Playlists** in the top bar to switch to the Playlists view.
+
+- **Two-Column Layout:** The left column lists your playlists alongside the pinned system **Liked** playlist with total song counts. The main column displays the active playlist's header (high-resolution artwork, title, description, total songs, and duration) and track table.
+- **Automatic Liked Synchronization:** Any take starred in the library across any space automatically appears in the Liked playlist. Removing a star removes it from the Liked playlist.
+- **Add to Playlist:** Press **P** or click the **Playlist** icon on any take card to open the playlist picker, toggle membership across playlists, or create a new playlist. Pressing **Escape** closes the picker pane.
+- **Interactive Column Sorting & Search:** Click any column header (**Title**, **Duration**, or **Added**) to sort with directional indicators and reverse order on click, and filter tracks with the search box.
+- **Jump to Space in Library:** Click any song's title in the playlist track table to immediately flip to the Library view, open the space where that take lives, and highlight its card.
+- **Hot Keys in Playlists:** Take-specific hot keys are ignored in the Playlists view to prevent unintentional modifications, except for **M** (Mastering Rack), which operates on the currently playing or loaded track alongside standard transport controls (**Space**, arrows, **?**, and **L**).
+- **Continuous Playback & Shuffle:** Click **Play** on the playlist header to listen from track 1, or click **Shuffle** to play in randomized order. Playback advances automatically to the next track in the playlist when each song finishes.
+
+### Hot keys {#hot-keys}
+On the main page, single keys act on the **chosen take**: the one in the left panel. Click its card to
+choose it. Each key does what the button for it does, so a key that would delete asks first, and a take
+that cannot do what a key asks (Variations on a take with no score, say) leaves a line in the status
+bar saying why.
+
+| Key | Does |
+|---|---|
+| Space | play or pause |
+| Left, Right | back or forward five seconds |
+| Shift+Left, Shift+Right | the previous or next take; in the Playlists view, the playlist's previous or next song |
+| Up, Down | volume |
+| M | open the mastering rack for the take; again to close it |
+| E | open the take in the editor |
+| I | the take's details: everything it was made with, in words, with **Copy** |
+| N | normalize the take, or undo it if it is normalized |
+| V | open or close the Visualizer while playing, or Variations when idle |
+| T | Try more |
+| S | star the take, or unstar it |
+| P | add the take to a playlist |
+| D | delete the take, after asking, as its bin does |
+| L | the logs; or toggle lyrics while the visualizer is open |
+| B | in the visualizer, what moves behind a scene over the take's picture |
+| F | toggle fullscreen |
+| ? | show or hide the hot keys; again to close |
+| Escape | close the window in front: the visualizer, the logs, the mastering rack over the editor, then the editor or any other window |
+
+The letter keys do nothing while you are typing in a box, while a window is open in front, or with Ctrl,
+Alt or the Windows or Command key held, so the browser's own shortcuts (Ctrl+L, Ctrl+S and the rest)
+still work. A button's tip names its key, as in **Variations (V)**. Press **?** at any time to display the list of hot keys.
+
+In the editor window, Space and the arrows work the window's player, for the take open there, whenever its player
+shows: on every step, and with the mastering rack open over it. They never act while you are typing in a box,
+and the letter keys are the main page's only. The piano roll has keys of its own: see [The Piano Roll](#the-piano-roll).
+
+---
+
+## Settings {#settings}
+Press **Yeufonic** in the top left. Settings live on the server, so they follow you to any
+browser and survive a rebuild: the output audio format for stems and a take's Save, the
+separation model, where stems are written, whether training checkpoints are kept, and how
+instrumentals are checked for singing.
+
+### Storage {#storage}
+**Settings → Storage** shows where Yeufonic's disk space is going and lets you give some back. Training a
+corpus leaves a lot of files that are not needed again: copies made for the engine while songs were analyzed,
+the training set (each song written again as lossless FLAC, larger than the original), and the checkpoints
+saved along the way. The window lists each of these with its size, **what it is** and **what removing it
+costs**, and removes only what you tick, after a last confirmation. **Tick the ones that cost nothing** ticks
+the copies that are simply made again when needed.
+
+Songs analyzed from now on keep their separated vocal as FLAC, the same audio in about half the room. The
+window can **convert the WAV vocals you already have**: each is converted, checked to decode to exactly the same
+audio, and only then is the WAV removed. It runs in the background and can be stopped.
+
+Training checkpoints deserve a second look before they go: each is an entry in the Style LoRA list that you
+can pick for new takes, so removing a corpus's checkpoints takes those entries out of the list for good. Its
+finished LoRA stays and keeps working. A corpus's training set is different: removing it leaves the LoRA and its
+checkpoints in the list, and only training that corpus again needs it.
+
+Your takes, songs, finished LoRAs and models are never listed for removal. Anything belonging to a corpus that is
+training, being exported or being analyzed is shown grayed and cannot be touched until it has finished.
+
+Below that, **Tidy up automatically** chooses what Yeufonic removes for you: the working copies of each song
+once its analysis ends (on by default), the training set once a LoRA has trained (off by default; the corpus
+then needs **Export** again before it can train again), and the training checkpoints (kept by default).
+
+Docker's own images and build cache are outside Yeufonic and not covered here; `docker system df` shows them.
+
+### The YuE2 model {#the-yue2-model}
+YuE2 comes in two sizes, and an install has one: **full quality**, which we recommend, or **low
+memory**, a smaller copy for graphics cards with little video memory. **About**, in the same menu,
+says which you have. It is chosen when Yeufonic is installed, not here:
+
+- **On Windows**, run the installer again. Its components page offers both sizes and marks the ones
+  already downloaded. Switching downloads the other the first time and keeps both, so switching back
+  downloads nothing.
+- **With Docker**, `sh scripts/fetch-models.sh` fetches full quality and
+  `sh scripts/fetch-models.sh --int8` the low-memory one. With both files in `models/checkpoints`, the
+  app uses full quality unless `YUE2_CHECKPOINT=int8` is set in `.env`.
+
+Try low memory if renders are very slow or the engine runs out of GPU memory. Training a LoRA works
+on both model sizes. The setting **Low-memory (int8) model training** chooses which: off, training uses
+the full-quality model; on, it uses the model the app renders with. It starts on when only the low-memory
+model is installed. The README on GitHub has a section, *Choosing a model size*, with what to expect from each.
+
+Yeufonic can also run the **yue2.cpp** engine instead of ComfyUI, for graphics cards with less memory,
+chosen when it is set up: on the Windows installer's components page, or with Docker by
+`sh scripts/fetch-models.sh --cpp`. **About** says which engine is running, and a take's card which engine rendered it. It makes songs, covers and
+instrumentals and transcribes recordings, with your style LoRAs; Gemma can draft lyrics and describe pictures
+beside it (with Docker, `--gemma`), and FLUX.2 klein draw them (`--pictures`). Training needs the ComfyUI
+engine: with yue2.cpp Corpora and training are not offered. The page
+[Choosing an engine](https://github.com/yeufonic/yeufonic/blob/main/docs/ENGINES.md) on GitHub has the
+whole list, and how to switch.
+
+**Check for a new version** is the one thing here that uses the internet on its own account: every
+four hours the app asks yeufonic.com whether a later release is out, and says so with a pill beside the
+version in the top right. That pill hands you the installer, or, for a Docker copy, the two commands
+that update it. It is one request and nothing else leaves the computer; **Do not check** turns it
+off. The menu's **Check for updates** asks then and there whether this is on or off, and answers in
+the menu: which version you are on, and whether it is the latest.
+
+When there is a newer one, the menu offers **Get x.y.z**, which downloads the installer on a Windows install or puts the two commands on the clipboard for a Docker copy.
+
+
+**Theme** sets how the app looks: **Dark**, **Light**, **Match the computer**, which follows your
+system's light or dark and changes with it, **Studio**, a warm dark with amber, or **High
+contrast**, black and white with strong outlines. It changes at once, and each browser remembers it
+so the page opens in it. The log window stays dark in every theme, like a terminal. The mastering rack follows the theme too: in the light theme its panels are brushed silver, while its knobs,
+meter windows and readouts keep the dark look of the hardware.
+
+**Backdrop color**, under Theme, tints the page behind the takes with a color you choose: tick **Tint**, then
+move **Hue** round the color wheel and **Strength** from a faint wash to a rich color. The page changes as you
+drag, and the choice is kept when you let go. The take cards, the panels and the windows keep their own
+colors, and the high contrast theme stays black.
+
+### External LLM {#external-llm}
+Yeufonic can write lyric drafts, transcribe recordings, mark song sections, and analyze corpus styles using an external LLM rather than the local Gemma model.
+
+Using an external LLM has two clear benefits:
+- **Saves GPU memory:** It avoids loading the Gemma 4 model into GPU VRAM (saving roughly 8 GB of video memory), leaving your graphics card entirely free for YuE2 audio planning and rendering.
+- **Richer drafts and analysis:** Larger cloud models often draft more nuanced lyrics and produce detailed style tags for your corpora.
+
+**Recommended provider:** We recommend choosing an external LLM provider that does not have billing applied to the API if that is available to you — **Google Gemini** is a good example to use. Gemini's API (via Google AI Studio) offers a generous free tier with no billing required, supports standard OpenAI-compatible endpoints (`https://generativelanguage.googleapis.com/v1beta/openai/`), and accepts audio directly for recording transcription.
+
+If you use a metered or pay-per-token API (such as paid tiers of OpenAI or Anthropic), analyzing an entire corpus with dozens of songs or generating descriptions for many takes can quickly consume API credits or trigger spending limits. If an external API returns a quota or rate limit error (HTTP 429), Yeufonic displays an alert and lets you switch to local models for the remainder of your session so other jobs continue uninterrupted. Using a provider without billing applied avoids unexpected costs.
+
+**Setting it up:**
+1. Open **Yeufonic → Settings → External LLM & Lyrics**.
+2. Set **LLM for writing lyrics & style tags** to **External LLM (OpenAI-compatible API)**.
+3. Enter your provider's **API URL**, **API Key**, and **Model** (for example, model `gemini-2.5-flash` or `gemini-1.5-flash` with the Google Gemini OpenAI-compatible base URL `https://generativelanguage.googleapis.com/v1beta/openai/`).
+4. Click **Test LLM Connection** to verify your credentials.
+5. If your chosen model supports audio input (like Gemini), you can also set **Lyrics from a recording** to **External LLM** to have it listen to separated vocals.
+
+---
+
+## Using Yeufonic from an AI agent (MCP) {#using-yeufonic-from-an-ai-agent-mcp}
+Yeufonic can act as an **MCP server**. That lets an AI agent on the same computer, such as Claude Code or Cursor, use it for you:
+ask for a song, a cover or an instrumental, wait for it, play it, try it another way, give it a picture, put it in a playlist and
+tidy the library, all in your own words ("make a one-minute EDM instrumental in the EDM space and play it"). The agent does what the page does, through the same routes, so a take it starts is an
+ordinary take in your library.
+
+### Setting it up {#setting-it-up}
+1. **Turn it on.** Open Settings and set **MCP server** to **On**. It is off by default, because a request can start work on the GPU.
+2. **Connect your agent** to the app's address with `/mcp` on the end: the address you open Yeufonic at, for example
+   `http://localhost:8090/mcp`. In Claude Code:
+
+   ```
+   claude mcp add --transport http yeufonic http://localhost:8090/mcp
+   ```
+
+   Other clients take the same address as an HTTP server. Those that read a settings file usually want something like
+   `{"mcpServers": {"yeufonic": {"url": "http://localhost:8090/mcp"}}}`. No login or key is needed.
+3. **Ask.** Start your agent from any folder and describe what you want.
+
+**Which address?** It is the address you open Yeufonic at, with `/mcp` on the end.
+- **Docker:** `http://localhost:8090/mcp`.
+- **The Windows install:** the app's port is in `settings.ini` (`app_port`, 8090 unless you changed it, for instance to run beside
+  a Docker copy). With `app_port = 8091` it is `http://localhost:8091/mcp`.
+- **Agent in WSL, app on Windows:** this does not connect. The Windows app listens only on Windows' own loopback address, which WSL cannot
+  reach (Docker running inside WSL is fine, as it is in WSL too). Run the agent from Windows (PowerShell or the Windows version of
+  your agent), or turn on WSL's mirrored networking (`networkingMode=mirrored` under `[wsl2]` in `.wslconfig`, then `wsl --shutdown`),
+  which makes `localhost` the same on both sides.
+
+If your agent says the server **needs authentication**, it is almost always because the setting is still Off: turn it on, then
+reconnect the agent (in Claude Code, `/mcp`). Reconnect after restarting Yeufonic too, because a restart ends the connection.
+
+### What you can ask for {#what-you-can-ask-for}
+| Ask for | What happens |
+|---|---|
+| "List my latest takes", "show the takes in the EDM space" | Lists takes, newest first, with a short id, when each was made, its length and style |
+| "Make a one-minute instrumental in a synthwave style" | Plans and renders an instrumental. A length, a space and a [style LoRA](#style-loras) can be named |
+| "Make a song in a folk style with these words" | The same for a song, from the lyrics you give |
+| "…with adventurous harmony, a tight interpretation, in F#, at 100 BPM" | Any of a new take's settings by the names the page uses: [Harmony](#harmony), [Plan variety](#plan-variety), the [interpretation](#interpretation), the key and tempo locks, and for a song **Follow this structure exactly** and **Voices follow the cues**. Left unsaid, a new take starts where the page's does: Varied and Wide |
+| "Write lyrics about a night train, in a spoken feel" | The app's own **Write lyrics**, with its song shapes, lines per section and feels. The agent can also write words itself |
+| "Make a cover of *the recording* in a jazz style" | Makes a cover from a recording already in your library. It needs a score (transcribe it in the app first). Without words of your own it uses the words heard in the recording |
+| "Play it" | Opens the take in your browser, where it plays |
+| "Star that one", "call it Sunrise", "move it to the Folk space" | Stars, renames or moves a take |
+| "Render it again with a new seed", "stop that" | Renders a take again, or cancels one in progress |
+| "Give me a few more like that one" | Renders the take again with new seeds, as several new takes to listen to together |
+| "Sing it again", "try it in every interpretation" | **Sing again** (a new voice for the same score) or **Variations** (the same score and seed, performed each way). Variations are kept inside the take, like Try more |
+| "Sing that tune with these words instead" | **New words**: the same melody, key and tempo with other lyrics, as a new take |
+| "Make an instrumental of it" | The same score with the tune on an instrument and no singing, as a new take |
+| "Write a new plan for it, more lively" | A new plan for a take that has no audio yet (one planned without rendering, or whose plan failed). A take that has audio is left alone: ask for a new take instead |
+| "Keep the loose one on its own" | **Take out**: a take kept inside another becomes a take of its own |
+| "Give it a picture" | Makes a new picture for the take, as the editor's **Picture** button does, and gives a link that opens it. A picture drawn on this computer waits until no song is being made |
+| "Put the best three in a playlist called Road trip" | Makes playlists, lists what is in them, and adds or removes takes. Putting a take in **Liked** stars it |
+| "Find me a synthwave style", "save that style as Night drive" | Looks through your saved styles and the built-in ones, and saves a style under a name for the style menu |
+| "Make a space called Drafts" | Makes a new space to keep takes in |
+| "Transcribe *the recording*" | Transcribes a recording into a score, so a cover can be made from it. It leaves a recording that already has a score alone unless asked |
+| "Split that into vocals and instruments" | Separates a finished take into its parts (four, six, or just vocals and instruments) and gives you a link to each file and one to the whole set as a zip |
+| "Is Yeufonic busy?" | Says whether the engine is ready, what is running and with what progress, what is waiting, and whether a LoRA is training |
+| "Delete that take" | Shows what would go and asks you first; see below |
+
+Making a take takes minutes. The agent starts it and waits, reporting progress, so you can ask for the next thing meanwhile.
+
+### How it can work: an example {#how-it-can-work-an-example}
+One conversation, from an idea to a playlist. You talk; the agent picks the tools (the middle column is only there to show what
+happens) and tells you what came back.
+
+| You say | The agent | What you get |
+|---|---|---|
+| "Write lyrics about a lighthouse keeper's last night, folk style, story shape. Then make a song of them in a new space called Coast." | `write_lyrics`, `create_space`, `make_song`, then `wait_for_take` until it is done | The words, titled *The Last Light*, shown to you; a space called Coast; a song planned and rendered there, with progress as it goes |
+| "Play it." | `get_take`, then opens its `listen_url` | It plays in your browser |
+| "Good tune. Try it looser and more restless, and give me one with no singing." | `make_variations` with loose and restless, `instrumental_from_take` | Two takes inside the song, and an instrumental beside it |
+| "Show me what we have." | `list_takes` in Coast, and with `inside` for the song | A list with a short id for each, so you can say "3f9a" rather than a title |
+| "Keep 3f9a on its own, star it and give it a picture." | `take_out`, `star_take`, `make_picture` | The loose one as a take of its own, starred (so in Liked too), with a link to its picture |
+| "Put that and the instrumental in a playlist called Coast demos." | `create_playlist`, `add_to_playlist` | A playlist holding the two |
+| "Save the style as Coastal folk." | `save_style` | **Coastal folk** in the app's style menu, ready the next time |
+| "Now a duet: these words, with [male voice] and [female voice] cues, every section as written." | `make_song` with `follow_structure` (a new plan, because the sections change) | A new song that plans exactly your sections, in order, with each cued line moved to where that voice sings |
+
+Everything it made is in the library as if you had made it in the page: open any take in the editor, master it, or carry on there.
+When a step cannot be done, the agent gets the app's own reason ("this take is an instrumental already", "nothing here can draw a
+picture") and passes it on, so you hear the same answer the page would give.
+
+### Everything it can do {#everything-it-can-do}
+You do not need these names: you ask in your own words and the agent picks. They are here so you can see what exists, and so you can
+tell your agent which one you mean.
+
+| Tool | What it does |
+|---|---|
+| `list_takes` | Lists takes, newest first, optionally only those matching words, in a named space, or starred. Shows a short id |
+| `get_take` | One take in full: how it was made, its status, any error and, once it has audio, a link that plays it. Can include the score |
+| `wait_for_take` | Waits (up to about a minute at a time) for a take that is being made, and says whether it has finished |
+| `make_instrumental` | Plans and renders an instrumental from a style, with a length, a space and a style LoRA if you name them, and sections if you give them |
+| `make_song` | The same for a song, from lyrics |
+| `make_cover` | A cover from a recording in the library, using its score and, unless you give others, its words |
+| `try_more` | Several more takes from an existing one, with new seeds |
+| `sing_again` | The same score sung again with a new seed: a new voice, as a new take |
+| `make_variations` | The same score and seed in each interpretation named (or all of them), kept inside the take |
+| `new_words` | The same score sung with other lyrics, as a new take |
+| `instrumental_from_take` | The same score as an instrumental, as a new take |
+| `replan_take` | A new plan for a take with no audio yet, optionally with other Harmony, Plan variety, key or tempo |
+| `take_out` | Makes a take kept inside another a take of its own |
+| `write_lyrics` | Lyrics from a brief, in a song shape and feel, written as the page's Write lyrics does |
+| `render_take` | Renders a planned take, or renders a finished one again (with a new seed if asked) |
+| `cancel_take` | Stops a take that is queued or running |
+| `make_stems`, `get_stems` | Splits a take into parts, then lists the parts with a link to each and to the whole set as a zip |
+| `list_recordings`, `transcribe_recording` | Shows the recordings in the library and whether each has a score; transcribes one that has none |
+| `list_style_loras` | The style LoRAs installed, with their trigger words and the strengths saved with them |
+| `list_spaces`, `move_take`, `create_space` | The spaces and what each holds; moves a take to another; makes a new space |
+| `list_playlists`, `create_playlist`, `add_to_playlist`, `remove_from_playlist` | The playlists and the takes in one; makes one; puts takes in or takes them out |
+| `make_picture` | A new picture for a take, with a link that opens it. `get_take` gives the link to a take's picture too |
+| `list_styles`, `save_style` | Your saved styles and the built-in ones, searched by words; keeps a style under a name |
+| `star_take`, `rename_take` | Stars or unstars a take; changes its title |
+| `delete_take` | Deletes a take for good, after showing it to you and being told to go ahead |
+| `status` | Whether the engine is ready, what is running and waiting, and whether a LoRA is training |
+
+### Ideas for using it {#ideas-for-using-it}
+- **A batch of ideas, then pick.** "Make five one-minute EDM instrumentals in different styles, in the EDM space." It starts them one after
+  another and tells you as each finishes. You listen, then say "star the second and fourth and delete the rest."
+- **Iterating on one idea.** "Make an instrumental in a dreamy synth style and play it", then "now the same with more drums", and
+  "give me four more like the second one." The agent keeps track of which take is which, so you can talk about them by position or
+  by what you said about them.
+- **Covers without clicking through.** "Transcribe *the demo*, then make three covers of it: folk, synthwave and jazz." It transcribes
+  the recording first if it has no score, then makes the covers in the space you name.
+- **Working a LoRA.** "List my style LoRAs, then make an instrumental with the jazz one." The trigger word and the saved strengths are
+  handled for you, which is easy to get wrong by hand.
+- **Words from the agent, or from the app.** The agent can write the lyrics itself: "Write lyrics about a night train and make a song
+  of them in a folk style." Yeufonic only sees the finished words. Or ask for the app's: "use Yeufonic's lyric writer, hip-hop shape,
+  spoken feel", which writes them as the page's **Write lyrics** does and hands them back for a song.
+- **Same tune, other words.** "Sing that one again with these words for the second verse": `new_words` keeps the melody, key and tempo,
+  where a new song from the words would write a new tune.
+- **Comparing settings.** "Make the same song twice, once at Familiar and once at Adventurous harmony, with the same seed", then
+  "now give the better one every interpretation." Settings are asked for by their names, so you can design a small test in a sentence.
+- **Playlists from listening.** "Put every starred take from this week in a playlist called Week 43", or "take the instrumentals out of
+  Road trip." Liked is the starred takes, so starring and Liked stay the same list.
+- **Stems for a whole set.** "Split my five newest takes into vocals and instruments and give me the links." They queue behind
+  one another, and behind any render the GPU is running.
+- **Library housekeeping.** "Find the takes with the same title, show me which is newest, and delete the older ones", or "move everything
+  I made today into a space called Drafts." It works from ids and asks before deleting.
+- **Checking before a long job.** "Is Yeufonic busy?" before you queue a long render or a batch, so you do not queue behind a training run.
+- **Part of a bigger task.** Because it is a tool the agent can call, it can sit inside something larger: make a track for a video and
+  write the note that goes with it, or build a playlist-sized batch and name the takes to match a list.
+
+The agent cannot hear a take, so it cannot judge how it sounds: you do the listening, and it does the legwork. It is also not a
+shortcut round the engine: the GPU still does one job at a time, so a large batch is a long queue.
+
+### Things to know {#things-to-know}
+- **Takes can share a title,** so the agent works from a take's **id** and shows a short one (the `short_id` column) when it lists takes.
+  You can name a take by the start of its id, four characters or more, as long as only one take begins that way. If two do, it tells you
+  and asks for more.
+- **Deleting asks twice.** The agent first shows you what it would delete, including any other take with the same title, and deletes
+  only after you say yes. A starred take needs you to say so explicitly. A deleted take, with its audio, cannot be got back.
+- **Spaces and style LoRAs are named,** not numbered: "in the EDM space", "using the jazz LoRA". A name that matches nothing gets the list of
+  what there is, and nothing is created. A LoRA's trigger word is added to the style for you, since a LoRA does very little without it.
+- **A new take starts where the page's does:** Harmony at Varied and the Wide interpretation, unless you name others. On an engine
+  without the harmony node it starts at Familiar, as Harmony cannot go higher there.
+- **Pictures and lyrics wait their turn.** A picture drawn or described on this computer waits until no song is being made, and lyrics
+  written on this computer queue with the other GPU work, so the agent may report "still being made" and look again later.
+- **An instrumental is always planned with a structure that has times,** worked out from the length you ask for (about two and a half
+  minutes when you do not say). Without times the planner writes plans too long to use. Name your own sections and they are used as given.
+- **Only on this computer.** The same host-name and cross-site checks apply as for the page, and there is no login, so turn the setting
+  off when you are not using it, and do not expose the port to a network you do not trust.
+
+## System Logs {#system-logs}
+The app writes a consolidated, real-time log of every major action — score planning, rendering, audio transcription, stem separation, and LoRA training — tagged with `INFO`, `WARN`, and `ERROR` prefixes.
+
+- **In-Browser Console:** Click the **Logs** button in the topbar (or press **L**) to open a floating, draggable, and resizable console. It stays open without blocking the page, allowing you to queue takes and monitor generation in real time.
+- **Standalone Window:** Click **↗ Pop out** in the console header (or navigate directly to `/logs`) to open a dedicated log viewer window.
+- **Terminal Tail:** Logs rotate automatically to `data/logs/yeufonic.log` on the host, where you can follow them live:
+  ```bash
+  tail -f data/logs/yeufonic.log
+  ```
+
+## The engine's own page {#the-engine-s-own-page}
+The engine is ComfyUI (unless this install runs yue2.cpp, whose page there is a plain test bench), and its own interface is reachable: <http://localhost:8189> with Docker, or
+<http://localhost:8188> with the Windows install (the `engine_port` in `settings.ini`). It answers
+on this machine only, with no login.
+
+- **It is the same engine and GPU as the app.** A job run there shows in the app's queue as coming
+  from outside, and the app's own jobs wait for it.
+- **Its History shows every graph the app sent**: the plan, the render and the transcriptions, with
+  every setting as the engine received it. It's a useful place to see exactly what a take was made
+  from.
+
+---
+
+## When something is wrong {#when-something-is-wrong}
+**The header says the engine is missing.** The app runs without it and will say so. Renders wait.
+Check the engine container is up.
+
+**A song will not end.** Usually too much planner strength. Drop the LoRA's Planner to 0.5. The
+length cap will stop it regardless.
+
+**A LoRA seems to do nothing.** Check the trigger word is in the Style, and that the strength you
+raised is one the file actually holds — the picker grays out the other.
+
+**A take says *Weak render*.** It came out far quieter than usual all the way through. Some takes
+like that are only quiet; others sound thin or distorted. Click the warning to normalize it, which
+brings it up to the usual loudness and marks it *Normalized*. If it still sounds wrong, try another
+seed, and keep that LoRA's Sound at 0.5 or below. It happens most in covers through a style LoRA
+trained here.
+
+**Normalize volume.** Tick it in the editor and each take made while it is ticked is brought to the
+usual loudness when it finishes, and marked *Normalized*. A take made without it can be normalized
+later with the speaker button at the top of its card. The file as rendered is kept beside it, and
+clicking *Normalized* goes back to it. How loud it is made is set in Settings, under *Normalize to*.
+Unticked, a take keeps the level it was rendered at.
+
+**An instrumental sang.** See *When an instrumental sings* above. It is a model failure; a new seed
+usually fixes it.
+
+**A take will not render again.** Its recording may have been deleted. Covers keep their audio and
+score, but cannot be re-rendered from a recording that is gone.
+
+**Nothing plays, but the waveform moves.** Check the volume slider and that a stem is not selected —
+the player follows whatever was last clicked.
