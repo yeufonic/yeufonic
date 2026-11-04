@@ -177,6 +177,14 @@ def test_with_pictures_off_for_new_takes_a_picture_is_made_when_asked(page, app_
         page.click("#cover-popup .cover-popup-make")
         page.wait_for_function("(id) => { const c = document.querySelector(`#takes article.take[data-id='${id}'] .cover`);"
                                " return c && c.classList.contains('has-art'); }", arg=made["id"], timeout=60000)
+        # And the visualizer's own button to make a new one.
+        page.keyboard.press("Escape")
+        card(page, made["id"]).locator('[data-act="play"]').click()
+        page.wait_for_function("() => !document.getElementById('audio').paused")
+        page.keyboard.press("v")
+        page.wait_for_function("() => window.Visualizer && Visualizer.isOpen")
+        page.wait_for_selector("#vis-btn-picture", state="visible")
+        page.evaluate("() => document.getElementById('audio').pause()")
     finally:
         urllib_put(app_server, "/api/settings", {"key": "art.auto", "value": "on"})
 

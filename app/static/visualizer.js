@@ -470,7 +470,9 @@
       var btn = $('vis-btn-picture');
       if (!btn) { return; }
       var take = this.currentTake;
-      var can = Boolean(take && take.id && window.State && window.State.pictures);
+      // Wherever a picture can be drawn, whether or not new takes get one by themselves (an older app.js says only that).
+      var drawable = window.State && (window.State.canDraw !== undefined ? window.State.canDraw : window.State.pictures);
+      var can = Boolean(take && take.id && drawable);
       btn.style.display = can ? '' : 'none';
       if (!can) { return; }
       var states = window.ART_STATES || {};

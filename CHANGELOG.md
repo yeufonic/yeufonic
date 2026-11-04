@@ -41,7 +41,8 @@ cannot creep back in.
 
 - **A picture can be made for a take with Take pictures set not to make them.** The setting's second choice is now
   **Only when asked**: no picture is made for a new take, but a take's square and the editor's Picture button still
-  offer to make one, and the picture settings stay on show to shape it. Before, both were hidden.
+  offer to make one, as does the visualizer's picture button, and the picture settings stay on show to shape it.
+  Before, all of them were hidden.
 
 - **A song can be sung with no score.** **Mode** has a third choice for songs, **No score**: no plan is written, and
   YuE2 writes the tune and the chords as it sings, as the original YuE did. The song is rendered at once with **Sing

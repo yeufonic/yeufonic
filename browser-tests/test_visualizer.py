@@ -19,7 +19,11 @@ def test_each_picture_scene_starts_on_its_own_backdrop_and_b_changes_it_for_good
     page.wait_for_function("() => window.Visualizer && Visualizer.isOpen")
     for mode, name in DEFAULTS.items():
         page.evaluate(f"() => Visualizer.setMode('{mode}')")
-        page.wait_for_timeout(300)                                             # a few frames of it drawn
+        # Once a frame of it is drawn, which on a busy machine can take more than a few hundred milliseconds.
+        try:
+            page.wait_for_function("(name) => Visualizer.artMotionName() === name", arg=name, timeout=5000)
+        except Exception:
+            pass
         assert page.evaluate("() => Visualizer.artMotionName()") == name, mode
     page.evaluate("() => Visualizer.setMode('artwork')")
     page.locator('.vis-bottom-hint kbd[data-key="b"]').click()                # the hint's B acts as the key
