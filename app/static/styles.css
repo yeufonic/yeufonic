@@ -3207,6 +3207,8 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
    The selected take, read-only: how it was made, in short. Making and changing takes
    happens in the editor window. */
 .sheet-new { display: flex; gap: 8px; margin-bottom: 14px; }
+/* A label stays on one line: a longer one (Russian's Instrumental) takes more of the row, the others share the rest. */
+.sheet-new .sheet-new-btn { white-space: nowrap; }
 .sheet-new-btn { flex: 1; border: 0; border-radius: 999px; padding: 10px 6px; font: inherit; font-size: 13.5px;
   font-weight: 650; cursor: pointer; color: #fff; }
 .sheet-new-btn:hover { filter: brightness(1.08); }
