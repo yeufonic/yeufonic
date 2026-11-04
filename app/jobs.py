@@ -373,6 +373,18 @@ def voiced(take: dict) -> str:
     return fitted
 
 
+def cfg_said(take: dict) -> str:
+    """Follow the style as a render's log line gives it: the value sent, or the engine's own (1.0 with a score, 1.01
+    with none), which neither engine logs for ComfyUI."""
+    own = "1.01" if take.get("mode") == NO_SCORE else "1.0"
+    cfg = take.get("cfg_scale")
+    if cfg is None:
+        return f"cfg={own} (the engine's own)"
+    if not (getattr(ENGINE, "options", None) or {}).get("cfg"):
+        return f"cfg={own} (the engine's own: {cfg:g} was asked for, and this engine has no such input)"
+    return f"cfg={cfg:g}"
+
+
 def build_render_graph(take: dict) -> dict:
     graph = load_template("render.json")
     graph["10"]["inputs"]["ckpt_name"] = config.CHECKPOINT
@@ -946,9 +958,9 @@ async def run_job(kind: str, ref_id: str) -> None:
         else:
             style_info = f", style_lora={record.get('style_lora')}" if record.get("style_lora") else ""
             voice_info = f", voice_lora={record.get('voice_lora')}" if record.get("voice_lora") else ""
-            log.info("Starting audio render for '%s' (%s, mode=%s%s%s)",
-                     title, ref_id, record.get("mode", "full"),
-                     style_info, voice_info)
+            log.info("Starting audio render for '%s' (%s, mode=%s, steps=%s, interpretation=%s, %s%s%s)",
+                     title, ref_id, record.get("mode", "full"), record.get("sampler_steps") or 32,
+                     record.get("interpretation") or "standard", cfg_said(record), style_info, voice_info)
 
     try:
         prompt_id = await ENGINE.submit(graph)

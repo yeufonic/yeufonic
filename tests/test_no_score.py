@@ -204,3 +204,13 @@ def test_a_database_a_branch_moved_on_still_gets_the_column(data_dir):
     db.conn().execute("PRAGMA user_version = 43")
     db.migrate()
     assert "cfg_scale" in db._columns("takes")
+
+
+def test_the_render_log_says_which_cfg_is_used(monkeypatch):
+    """ComfyUI does not log it, so the app does."""
+    options(monkeypatch, cfg=True)
+    assert jobs.cfg_said({"cfg_scale": 1.5}) == "cfg=1.5"
+    assert jobs.cfg_said({}) == "cfg=1.0 (the engine's own)"
+    assert jobs.cfg_said({"mode": "off"}) == "cfg=1.01 (the engine's own)"
+    options(monkeypatch, cfg=False)
+    assert "1.5 was asked for" in jobs.cfg_said({"cfg_scale": 1.5})
