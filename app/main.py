@@ -1990,7 +1990,11 @@ async def expand_melody_to_song(body: ComposerExpandIn) -> dict:
     section = composer.section_name(body.role)
     words = body.lyrics.strip() or "\n\n".join(f"[{name}]" for name in composer.PRESETS.get(body.preset, composer.PRESETS["standard"]))
     if section not in lyrics.plan_names(words):
-        raise HTTPException(400, f"The {'lyrics have' if body.lyrics.strip() else 'structure has'} no [{section.title()}] for the tune to be. "
+        # Two whole sentences rather than one with a part put in, so the page can show either in its language.
+        if body.lyrics.strip():
+            raise HTTPException(400, f"The lyrics have no [{section.title()}] for the tune to be. "
+                                     "Choose another structure or melody role, or add one.")
+        raise HTTPException(400, f"The structure has no [{section.title()}] for the tune to be. "
                                  "Choose another structure or melody role, or add one.")
     title = (body.title or "").strip() or f"{source['title']} (Full Song)"
     # Rendered as soon as the plan is written and passes its checks: the cover workflow ends in a cover.
