@@ -125,6 +125,15 @@
       toc.appendChild(link);
       links.push({ link: link, head: head });
     });
+    /* The smaller headings are not in the contents, but a link can still lead to one. */
+    Array.prototype.forEach.call(body.querySelectorAll('h4'), function (head) {
+      var given = head.textContent.match(ANCHOR);
+      if (given) {
+        head.id = given[1];
+        head.innerHTML = head.innerHTML.replace(ANCHOR, '');
+      }
+      head.id = head.id || slug(head.textContent);
+    });
     return links;
   }
 

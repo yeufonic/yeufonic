@@ -62,7 +62,7 @@ def test_the_guide_names_the_corpus_buttons():
 
 GUIDES = GUIDE.parent / "guides"
 TRANSLATIONS = sorted(GUIDES.glob("*.md")) if GUIDES.is_dir() else []
-HEADING = re.compile(r"^(#{2,3}) (.+?)\s*$", re.M)
+HEADING = re.compile(r"^(#{2,4}) (.+?)\s*$", re.M)
 ANCHOR = re.compile(r"\s*\{#([A-Za-z0-9_-]+)\}\s*$")
 FENCE = re.compile(r"^```", re.M)
 
@@ -73,7 +73,7 @@ def slug(text):
 
 
 def anchors(text):
-    """Each h2 and h3 as (level, anchor), the given {#anchor} where there is one."""
+    """Each h2, h3 and h4 as (level, anchor), the given {#anchor} where there is one."""
     found = []
     for level, head in HEADING.findall(text):
         given = ANCHOR.search(head)
@@ -86,6 +86,13 @@ def test_a_language_with_a_guide_of_its_own_gets_it(client):
         r = client.get("/guide", headers={"Accept-Language": path.stem})
         assert f"/static/guides/{path.stem}.md" in r.text, path.stem
         assert client.get(f"/static/guides/{path.stem}.md").status_code == 200
+
+
+def test_the_english_links_only_to_sections_it_has():
+    text = GUIDE.read_text(encoding="utf-8")
+    have = {anchor for _, anchor in anchors(text)}
+    dead = [target for target in re.findall(r"\]\(#([^)]+)\)", text) if target not in have]
+    assert not dead, f"the guide links to {dead}"
 
 
 def test_a_language_with_no_guide_gets_the_english(client):
