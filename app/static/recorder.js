@@ -114,11 +114,11 @@
       var hint = document.getElementById('rec-input-hint');
       if (hint) {
         hint.textContent = inst
-          ? 'Play the melody one note at a time: it becomes the sung tune, and Write lyrics gives it words. Strummed chords give no tune to sing.'
-          : 'Sing or hum your melody.';
+          ? t('Play the melody one note at a time: it becomes the sung tune, and Write lyrics gives it words. Strummed chords give no tune to sing.')
+          : t('Sing or hum your melody.');
       }
       var title = document.getElementById('recorder-modal-title');
-      if (title) { title.textContent = inst ? 'Record Instrument' : 'Record Melody'; }
+      if (title) { title.textContent = inst ? t('Record Instrument') : t('Record Melody'); }
     },
 
     setInputMode: function (mode) {
@@ -168,10 +168,10 @@
         inputs = (await navigator.mediaDevices.enumerateDevices()).filter(function (d) { return d.kind === 'audioinput'; });
       } catch (e) { return; }
       var self = this;
-      select.innerHTML = '<option value="">Default input</option>' + inputs
+      select.innerHTML = '<option value="">' + t('Default input') + '</option>' + inputs
         .filter(function (d) { return d.deviceId && d.deviceId !== 'default'; })
         .map(function (d, i) {
-          return '<option value="' + self.esc(d.deviceId) + '">' + self.esc(d.label || ('Input ' + (i + 1))) + '</option>';
+          return '<option value="' + self.esc(d.deviceId) + '">' + self.esc(d.label || (t('Input {value}', { value: i + 1 }))) + '</option>';
         }).join('');
       select.value = this.deviceId;
       if (select.value !== this.deviceId) { select.value = ''; }
@@ -294,7 +294,7 @@
         console.error('Failed to arm input:', err);
         var errEl = document.getElementById('rec-error-msg');
         if (errEl) {
-          errEl.textContent = 'Could not open the input: ' + (err.message || err);
+          errEl.textContent = t('Could not open the input: {value}', { value: err.message || err });
           errEl.classList.remove('hidden');
         }
         this.state = 'idle';
@@ -363,7 +363,7 @@
       var monBtn = document.getElementById('rec-monitor-btn');
       if (monBtn) {
         monBtn.classList.toggle('active', this.monitorEnabled);
-        monBtn.textContent = this.monitorEnabled ? 'On' : 'Off';
+        monBtn.textContent = this.monitorEnabled ? t('On') : t('Off');
       }
     },
 
@@ -465,7 +465,7 @@
       var noteEl = document.getElementById('rec-live-pitch');
       if (!noteEl) { return; }
       if (!freq) {
-        noteEl.textContent = this.state === 'recording' ? 'Listening…' : '—';
+        noteEl.textContent = this.state === 'recording' ? t('Listening…') : '—';
         return;
       }
       var noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -475,7 +475,7 @@
       var octave = Math.floor(roundMidi / 12) - 1;
       var cents = Math.round((midi - roundMidi) * 100);
       var sign = cents >= 0 ? '+' : '';
-      noteEl.textContent = noteName + octave + ' (' + Math.round(freq) + 'Hz ' + sign + cents + '¢)';
+      noteEl.textContent = t('{value} ({freq}Hz {sign}{cents}¢)', { value: noteName + octave, freq: Math.round(freq), sign: sign, cents: cents });
     },
 
     // ------------------------------------------------- Metronome & Count-In
@@ -586,7 +586,7 @@
       this.metronome.enabled = on;
       if (btn) {
         btn.classList.toggle('active', on);
-        btn.textContent = on ? 'On' : 'Off';
+        btn.textContent = on ? t('On') : t('Off');
       }
     },
 
@@ -596,7 +596,7 @@
       this.autotune.enabled = on;
       if (btn) {
         btn.classList.toggle('active', on);
-        btn.textContent = on ? 'On' : 'Off';
+        btn.textContent = on ? t('On') : t('Off');
       }
     },
 
@@ -613,9 +613,9 @@
       var bpb = this.metronome.beatsPerBar || 4;
       var curVal = select.value || '1';
       select.innerHTML =
-        '<option value="1">1 Bar (' + bpb + ' beats)</option>' +
-        '<option value="2">2 Bars (' + (bpb * 2) + ' beats)</option>' +
-        '<option value="0">None (Immediate)</option>';
+        '<option value="1">' + t('1 Bar ({bpb} beats)', { bpb: bpb }) + '</option>' +
+        '<option value="2">' + t('2 Bars ({n} beats)', { n: bpb * 2 }) + '</option>' +
+        '<option value="0">' + t('None (Immediate)') + '</option>';
       select.value = curVal;
     },
 
@@ -640,7 +640,7 @@
       if (overlay) { overlay.classList.remove('hidden'); }
       if (rootEl) {
         if (self.autotune && self.autotune.enabled) {
-          rootEl.textContent = 'Root: ' + (self.autotune.root || 'C');
+          rootEl.textContent = t('Root: {value}', { value: self.autotune.root || 'C' });
           rootEl.classList.remove('hidden');
         } else {
           rootEl.classList.add('hidden');
@@ -810,7 +810,7 @@
       var instrument = this.isInstrument();
       var take = {
         id: takeId,
-        title: (instrument ? 'Instrument Melody Take ' : 'Vocal Melody Take ') + takeNum,
+        title: (instrument ? t('Instrument Melody Take') + ' ' : t('Vocal Melody Take') + ' ') + takeNum,
         instrument: instrument,
         duration: durationSec,
         blob: wavBlob,
@@ -886,7 +886,7 @@
           body: formData
         });
         if (!resp.ok) {
-          throw new Error('Autotune server error ' + resp.status);
+          throw new Error(t('Autotune server error {status}', { status: resp.status }));
         }
         var tunedBlob = await resp.blob();
         take.tunedBlob = tunedBlob;
@@ -916,7 +916,7 @@
       } catch (err) {
         console.error('Autotune processing failed:', err);
         take.autotuneStatus = 'failed';
-        take.tuneError = err.message || 'Processing failed';
+        take.tuneError = err.message || t('Processing failed');
       }
       this.renderTakesList();
     },
@@ -987,7 +987,7 @@
       var take = this.takeById(takeId);
       if (!take) { return; }
       var blobToSave = (take.isTuned && take.tunedBlob) ? take.tunedBlob : take.blob;
-      var title = take.title || (take.instrument ? 'Instrument Melody' : 'Vocal Melody');
+      var title = take.title || (take.instrument ? t('Instrument Melody') : t('Vocal Melody'));
 
       var form = new FormData();
       form.append('file', blobToSave, 'melody.wav');
@@ -998,13 +998,13 @@
       var sendBtn = document.getElementById('rec-send-btn-' + takeId);
       if (sendBtn) {
         sendBtn.disabled = true;
-        sendBtn.textContent = 'Saving…';
+        sendBtn.textContent = t('Saving…');
       }
 
       try {
         var resp = await fetch('/api/sources', { method: 'POST', body: form });
         if (!resp.ok) {
-          throw new Error('Upload failed with status ' + resp.status);
+          throw new Error(t('Upload failed with status {status}', { status: resp.status }));
         }
         var newSource = await resp.json();
 
@@ -1025,16 +1025,16 @@
         if (coverBtn) { coverBtn.click(); }
 
         if (typeof window.statusLine === 'function') {
-          window.statusLine('Recorded melody saved as cover source: “' + title + '”. Ready to transcribe or generate cover.', 'good');
+          window.statusLine(t('Recorded melody saved as cover source: “{title}”. Ready to transcribe or generate cover.', { title: title }), 'good');
         }
 
         this.closeModal();
       } catch (err) {
         console.error('Failed to save recording to cover:', err);
-        alert('Could not save recording: ' + (err.message || err));
+        alert(t('Could not save recording: {value}', { value: err.message || err }));
         if (sendBtn) {
           sendBtn.disabled = false;
-          sendBtn.textContent = 'Use as Cover';
+          sendBtn.textContent = t('Use as Cover');
         }
       }
     },
@@ -1054,7 +1054,7 @@
       if (recBtn) {
         recBtn.classList.toggle('is-recording', isRec);
         recBtn.classList.toggle('is-countin', isCount);
-        recBtn.title = isRec ? 'Stop Recording (Space)' : 'Start Recording (Space)';
+        recBtn.title = isRec ? t('Stop Recording (Space)') : t('Start Recording (Space)');
       }
       if (stopBtn) {
         stopBtn.disabled = !isRec && !isCount;
@@ -1066,7 +1066,7 @@
         armBtn.classList.toggle('active', isArmed || isRec || isCount);
       }
       if (statusBadge) {
-        var text = 'Ready';
+        var text = t('Ready');
         var cls = 'status-ready';
         if (isRec) { text = '● RECORDING'; cls = 'status-rec'; }
         else if (isCount) { text = 'COUNT-IN'; cls = 'status-count'; }
@@ -1080,7 +1080,7 @@
       var container = document.getElementById('rec-takes-list');
       if (!container) { return; }
       if (this.sessionTakes.length === 0) {
-        container.innerHTML = '<div class="rec-no-takes">No recorded takes yet. Press Record or Space and sing, hum or play your melody.</div>';
+        container.innerHTML = '<div class="rec-no-takes">' + t('No recorded takes yet. Press Record or Space and sing, hum or play your melody.') + '</div>';
         return;
       }
 
@@ -1090,27 +1090,27 @@
         var durStr = Math.round(take.duration) + 's';
         var tuneBadge = '';
         if (take.instrument) {
-          tuneBadge = '<span class="rec-tune-tag" title="Played on an instrument">Instrument</span>';
+          tuneBadge = '<span class="rec-tune-tag" title="' + t('Played on an instrument') + '">' + t('Instrument') + '</span>';
         } else if (take.autotuneStatus === 'tuning') {
-          tuneBadge = '<span class="rec-tune-tag tuning">Tuning…</span>';
+          tuneBadge = '<span class="rec-tune-tag tuning">' + t('Tuning…') + '</span>';
         } else if (take.autotuneStatus === 'done') {
-          var label = take.isTuned ? '✓ Autotuned' : 'Raw Pitch';
-          var titleHint = take.isTuned ? 'Autotuned (click to audition Raw Pitch)' : 'Raw Pitch (click to audition Autotuned)';
+          var label = take.isTuned ? t('✓ Autotuned') : t('Raw Pitch');
+          var titleHint = take.isTuned ? t('Autotuned (click to audition Raw Pitch)') : t('Raw Pitch (click to audition Autotuned)');
           tuneBadge = '<button type="button" class="rec-tune-toggle' + (take.isTuned ? ' active' : '') + '" onclick="window.Recorder.toggleTakeTuning(\'' + take.id + '\')" title="' + titleHint + '">' + label + '</button>';
         } else if (take.autotuneStatus === 'no_voice') {
-          tuneBadge = '<span class="rec-tune-tag muted" title="Pitch detector found no singing or humming in this take">No voice detected</span>' +
-            '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="Retry autotune on this take">Retry</button>';
+          tuneBadge = '<span class="rec-tune-tag muted" title="' + t('Pitch detector found no singing or humming in this take') + '">' + t('No voice detected') + '</span>' +
+            '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="' + t('Retry autotune on this take') + '">' + t('Retry') + '</button>';
         } else if (take.autotuneStatus === 'failed') {
-          tuneBadge = '<span class="rec-tune-tag err" title="' + self.esc(take.tuneError || 'Error') + '">Error</span>' +
-            '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="Retry autotune">Retry</button>';
+          tuneBadge = '<span class="rec-tune-tag err" title="' + self.esc(take.tuneError || t('Error')) + '">' + t('Error') + '</span>' +
+            '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="' + t('Retry autotune') + '">' + t('Retry') + '</button>';
         } else {
-          tuneBadge = '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="Snap sung pitch to nearest semitones (plays tuned audio upon completion)">Autotune</button>';
+          tuneBadge = '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="' + t('Snap sung pitch to nearest semitones (plays tuned audio upon completion)') + '">' + t('Autotune') + '</button>';
         }
 
         var tuneInfo = '';
         if (take.autotuneStatus === 'done' && take.tuneStats) {
           var sName = take.tuneStats.scale ? (take.tuneStats.scale.charAt(0).toUpperCase() + take.tuneStats.scale.slice(1)) : '';
-          tuneInfo = '<span class="rec-tune-info" title="' + take.tuneStats.notesAdjusted + ' notes snapped to ' + take.tuneStats.root + ' ' + sName + '">(' + take.tuneStats.root + ' ' + sName + ' &middot; ' + take.tuneStats.notesAdjusted + ' tuned)</span>';
+          tuneInfo = '<span class="rec-tune-info" title="' + t('{notesAdjusted} notes snapped to {root} {sName}', { notesAdjusted: take.tuneStats.notesAdjusted, root: take.tuneStats.root, sName: sName }) + '">(' + take.tuneStats.root + ' ' + sName + ' &middot; ' + take.tuneStats.notesAdjusted + ' tuned)</span>';
         }
 
         return '<div class="rec-take-card' + (self.activeTakeId === take.id ? ' active' : '') + '">' +
@@ -1126,8 +1126,8 @@
           '</div>' +
           '<div class="rec-take-actions">' +
             tuneBadge +
-            '<button type="button" id="rec-send-btn-' + take.id + '" class="rec-btn-use" onclick="window.Recorder.sendToCover(\'' + take.id + '\')" title="Add to Cover Sources">Use as Cover</button>' +
-            '<button type="button" class="rec-btn-del" onclick="window.Recorder.deleteTake(\'' + take.id + '\')" title="Delete this take">&times;</button>' +
+            '<button type="button" id="rec-send-btn-' + take.id + '" class="rec-btn-use" onclick="window.Recorder.sendToCover(\'' + take.id + '\')" title="' + t('Add to Cover Sources') + '">' + t('Use as Cover') + '</button>' +
+            '<button type="button" class="rec-btn-del" onclick="window.Recorder.deleteTake(\'' + take.id + '\')" title="' + t('Delete this take') + '">&times;</button>' +
           '</div>' +
         '</div>';
       }).join('');

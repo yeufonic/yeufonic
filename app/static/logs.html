@@ -22,6 +22,8 @@
     window.addEventListener('storage', function (event) { if (event.key === 'yue2.theme') { apply(); } });
   })();
 </script>
+<!--{{LOCALE}}-->
+<script src="/static/i18n.js?v={{VERSION}}"></script>
 <link rel="stylesheet" href="/static/styles.css?v={{VERSION}}">
 <link rel="icon" type="image/svg+xml" href="/static/icon.svg?v={{VERSION}}">
 <style>
@@ -147,6 +149,7 @@
     <div class="logs-empty">Connecting to logs stream...</div>
   </div>
 </main>
+<script>I18N.translateDom(document.body);</script>
 <script>
 var LogsState = {
   level: 'ALL',
@@ -182,7 +185,7 @@ function renderLogs(logs) {
   var consoleEl = document.getElementById('logs-console');
   if (!consoleEl) { return; }
   if (!logs || !logs.length) {
-    consoleEl.innerHTML = '<div class="logs-empty">No logs matching filter.</div>';
+    consoleEl.innerHTML = '<div class="logs-empty">' + t('No logs matching filter.') + '</div>';
     return;
   }
   var html = logs.map(function (entry) {
@@ -238,7 +241,7 @@ var clearBtn = document.getElementById('logs-clear');
 if (clearBtn) {
   clearBtn.addEventListener('click', function () {
     var consoleEl = document.getElementById('logs-console');
-    if (consoleEl) { consoleEl.innerHTML = '<div class="logs-empty">Cleared.</div>'; }
+    if (consoleEl) { consoleEl.innerHTML = '<div class="logs-empty">' + t('Cleared.') + '</div>'; }
   });
 }
 

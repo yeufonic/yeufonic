@@ -414,7 +414,7 @@
       wrap.dataset.drag = '1';
       var grip = document.createElement('div');
       grip.className = 'vis-lyrics-grip';
-      grip.title = 'Drag to move \u2014 double-click to put it back';
+      grip.title = t('Drag to move — double-click to put it back');
       wrap.insertBefore(grip, wrap.firstChild);
       var self = this;
       try { this.lyricsAt = JSON.parse(localStorage.getItem('yue2.vis.lyricsAt') || 'null'); } catch (e) { this.lyricsAt = null; }
@@ -479,7 +479,7 @@
       var making = Boolean(art && states[art.state]);
       btn.disabled = making;
       btn.classList.toggle('making', making);
-      btn.title = making ? states[art.state] : (art && art.state === 'failed' ? 'The last try failed: ' + (art.error || 'no reason given') + ' \u2014 make a new picture' : 'Make a new picture');
+      btn.title = making ? states[art.state] : (art && art.state === 'failed' ? t('The last try failed: {value} — make a new picture', { value: tr(art.error) || t('no reason given') }) : t('Make a new picture'));
     },
 
     // Asks the server how the take's picture stands, and keeps asking while one is being made.
@@ -570,14 +570,14 @@
 
       var artBtn = $('vis-btn-art');
       if (artBtn) {
-        artBtn.textContent = 'Artwork: ' + (this.artMode === 'sleeve' ? 'Sleeve' : (this.artMode === 'aura' ? 'Aura' : 'Off'));
+        artBtn.textContent = t('Artwork: {value}', { value: this.artMode === 'sleeve' ? t('Sleeve') : (this.artMode === 'aura' ? t('Aura') : t('Off')) });
         artBtn.classList.toggle('active', this.artMode !== 'off');
         artBtn.style.display = this.mode === 'artwork' ? 'none' : '';
       }
 
       var lyricsBtn = $('vis-btn-lyrics');
       if (lyricsBtn) {
-        lyricsBtn.textContent = 'Lyrics: ' + (this.showLyrics ? 'On' : 'Off');
+        lyricsBtn.textContent = t('Lyrics: {value}', { value: this.showLyrics ? t('On') : t('Off') });
         lyricsBtn.classList.toggle('active', this.showLyrics);
       }
     },
@@ -682,7 +682,7 @@
       var titleEl = $('vis-title');
       var metaEl = $('vis-meta');
       if (titleEl) {
-        titleEl.textContent = take ? (take.title || 'Untitled Take') : 'Nothing playing';
+        titleEl.textContent = take ? (take.title || t('Untitled Take')) : t('Nothing playing');
       }
       if (metaEl) {
         metaEl.textContent = take && take.style ? take.style : '';
@@ -1650,8 +1650,8 @@
        The backdrop alone ("Breath"), or one of these over it, in the take's picture's own colours.  B steps through
        them in a scene over the picture, and the choice is kept for that scene in this browser. */
     artMotionName: function () {
-      var names = { breath: 'Breath', rays: 'Light rays', ripples: 'Ripples', dust: 'Drifting colour', depth: 'Depth', halo: 'Spectrum halo' };
-      return names[this.artMotion()] || 'Breath';
+      var names = { breath: t('Breath'), rays: t('Light rays'), ripples: t('Ripples'), dust: t('Drifting colour'), depth: t('Depth'), halo: t('Spectrum halo') };
+      return names[this.artMotion()] || t('Breath');
     },
 
     /* What moves behind the scene: the one chosen with B for this scene in this browser, else the scene's own. */
@@ -1683,7 +1683,7 @@
       ctx.font = '600 14px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(230, 228, 222, ' + (0.85 * fade).toFixed(2) + ')';
-      ctx.fillText('Behind the scene: ' + this.artMotionName() + '   (B for the next)', w / 2, 84);
+      ctx.fillText(t('Behind the scene: {artMotionName}   (B for the next)', { artMotionName: this.artMotionName() }), w / 2, 84);
       ctx.restore();
     },
 

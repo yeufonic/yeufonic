@@ -17,6 +17,9 @@
       } catch (err) { /* private mode: dark */ }
     })();
   </script>
+<!-- The page's language and its words (app/locales.py), before any script that writes them. -->
+<!--{{LOCALE}}-->
+<script src="/static/i18n.js?v={{VERSION}}"></script>
 <!-- abcjs's own audio-control styles, then ours: every colour below is set again by the theme. -->
 <link rel="stylesheet" href="/static/abcjs-audio.css?v={{VERSION}}">
 <link rel="stylesheet" href="/static/styles.css?v={{VERSION}}">
@@ -30,7 +33,7 @@
   <div class="topbar-left">
   <div class="brand-wrap">
     <button class="brand" id="brand" title="Menu" aria-haspopup="menu" aria-expanded="false">
-      <span class="wordmark" role="img" aria-label="Yeufonic"><svg class="y" viewBox="8 6 48 54" aria-hidden="true"><defs><linearGradient id="brand-y" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7b5cff"/><stop offset="1" stop-color="#8f5aef"/></linearGradient></defs><path d="M32 54 V36 M32 36 C32 26 19 23 14 12 M32 36 C32 26 45 23 50 12" fill="none" stroke="url(#brand-y)" stroke-width="11.5" stroke-linecap="round"/><circle cx="50" cy="12" r="6" fill="#a3e635"/></svg><span class="word">eufonic</span></span>
+      <span class="wordmark" role="img" aria-label="Yeufonic" translate="no"><svg class="y" viewBox="8 6 48 54" aria-hidden="true"><defs><linearGradient id="brand-y" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7b5cff"/><stop offset="1" stop-color="#8f5aef"/></linearGradient></defs><path d="M32 54 V36 M32 36 C32 26 19 23 14 12 M32 36 C32 26 45 23 50 12" fill="none" stroke="url(#brand-y)" stroke-width="11.5" stroke-linecap="round"/><circle cx="50" cy="12" r="6" fill="#a3e635"/></svg><span class="word">eufonic</span></span>
       <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
     </button>
     <div id="brand-menu" class="brand-menu hidden" role="menu">
@@ -1893,6 +1896,7 @@
   <audio id="audio" preload="metadata"></audio>
 </div>
 
+<script>I18N.translateDom(document.body);</script>
 <script src="/static/abcjs-basic-min.js?v={{VERSION}}"></script>
 <script src="/static/pianoroll.js?v={{VERSION}}"></script>
 <script src="/static/sectionedit.js?v={{VERSION}}"></script>

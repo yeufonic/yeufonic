@@ -17,6 +17,9 @@ os.environ.update({
     "MAX_UPLOAD_MB": "1",
 })
 sys.path.insert(0, str(ROOT))
+# The page's scripts look their words up with t(), tn() and tr() from i18n.js, which the page loads first.
+# A test that runs a script, or a piece of one, in node gets the same functions, in English.
+os.environ["NODE_OPTIONS"] = (os.environ.get("NODE_OPTIONS", "") + f' --require "{ROOT / "app" / "static" / "i18n.js"}"').strip()
 
 from app import config  # noqa: E402
 

@@ -1154,8 +1154,8 @@
           var selGroup = document.createElement('div');
           selGroup.className = 'roll-select';
           selGroup.innerHTML =
-            '<button id="roll-select-all" class="ghost compact" title="Select all notes across both Vocal and Instrument voices (Ctrl+A)">Select All</button>' +
-            '<button id="roll-select-right" class="ghost compact" title="Select all notes from cursor/playhead to right across both voices (Ctrl+Shift+A or Alt+A)">From Cursor ▶</button>';
+            '<button id="roll-select-all" class="ghost compact" title="' + t('Select all notes across both Vocal and Instrument voices (Ctrl+A)') + '">' + t('Select All') + '</button>' +
+            '<button id="roll-select-right" class="ghost compact" title="' + t('Select all notes from cursor/playhead to right across both voices (Ctrl+Shift+A or Alt+A)') + '">' + t('From Cursor ▶') + '</button>';
           snapEl.parentNode.insertBefore(selGroup, snapEl);
           selectAllBtn = document.getElementById('roll-select-all');
           selectRightBtn = document.getElementById('roll-select-right');
@@ -1179,9 +1179,9 @@
           rollVoices = document.createElement('div');
           rollVoices.className = 'roll-voices';
           rollVoices.innerHTML =
-            '<span class="roll-label" title="Active voice when adding new notes:">Voice:</span>' +
-            '<button class="chip compact active" id="roll-voice-vocal" data-voice="Vocal" title="Add Vocal notes (Blue) • or convert selected notes to Vocal (V)">● Vocal</button>' +
-            '<button class="chip compact" id="roll-voice-ins" data-voice="Ins" title="Add Instrument notes (Amber) • or convert selected notes to Instrument (V)">● Ins</button>';
+            '<span class="roll-label" title="' + t('Active voice when adding new notes:') + '">' + t('Voice:') + '</span>' +
+            '<button class="chip compact active" id="roll-voice-vocal" data-voice="Vocal" title="' + t('Add Vocal notes (Blue) • or convert selected notes to Vocal (V)') + '">' + t('● Vocal') + '</button>' +
+            '<button class="chip compact" id="roll-voice-ins" data-voice="Ins" title="' + t('Add Instrument notes (Amber) • or convert selected notes to Instrument (V)') + '">' + t('● Ins') + '</button>';
           toolbar.insertBefore(rollVoices, toolbar.firstChild);
         }
       } else {
@@ -1201,11 +1201,11 @@
 
       // Update zoom button tooltips
       var zOut = document.getElementById('roll-zoom-out');
-      if (zOut) { zOut.title = 'Zoom out (− or _)'; }
+      if (zOut) { zOut.title = t('Zoom out (− or _)'); }
       var zIn = document.getElementById('roll-zoom-in');
-      if (zIn) { zIn.title = 'Zoom in (+ or =)'; }
+      if (zIn) { zIn.title = t('Zoom in (+ or =)'); }
       var zFit = document.getElementById('roll-zoom-fit');
-      if (zFit) { zFit.title = 'Scroll to notes (F or 0)'; }
+      if (zFit) { zFit.title = t('Scroll to notes (F or 0)'); }
 
       var followBtn = document.getElementById('roll-follow');
       if (followBtn && !followBtn._bound) {
@@ -1216,7 +1216,7 @@
       // Update hint bar
       var hintBar = document.querySelector('.roll-hint-bar span');
       if (hintBar && hintBar.textContent.indexOf('Follow') === -1) {
-        hintBar.textContent = 'Click: add note • Drag: move note • Edge: resize • Marquee select • V: voice • +/−: zoom • L: lyric • C: click • H: chords • Follow: auto-scroll • Del: delete • Left/Right: step bar • Space: play';
+        hintBar.textContent = t('Click: add note • Drag: move note • Edge: resize • Marquee select • V: voice • +/−: zoom • L: lyric • C: click • H: chords • Follow: auto-scroll • Del: delete • Left/Right: step bar • Space: play');
       }
     },
 
@@ -1319,7 +1319,7 @@
           var modalBox = document.querySelector('.modal-box.score');
           if (modalBox) {
             modalBox.classList.toggle('show-split');
-            toggleTextBtn.textContent = modalBox.classList.contains('show-split') ? 'Hide ABC' : 'Show ABC';
+            toggleTextBtn.textContent = modalBox.classList.contains('show-split') ? t('Hide ABC') : t('Show ABC');
           }
         });
       }
@@ -1488,7 +1488,7 @@
     updateMetadata: function () {
       var metaEl = document.getElementById('roll-meta');
       if (metaEl && this.model) {
-        metaEl.textContent = 'Key ' + this.model.key + ' • ' + (this.model.meter || (this.model.ticksPerBar === 16 ? '4/4' : 'Metre')) + ' • ' + this.model.bpm + ' BPM';
+        metaEl.textContent = t('Key {key} • {value} • {bpm} BPM', { key: this.model.key, value: this.model.meter || (this.model.ticksPerBar === 16 ? '4/4' : t('Metre')), bpm: this.model.bpm });
       }
     },
 
@@ -1580,7 +1580,7 @@
           e.stopPropagation();
           var barIndex = parseInt(badge.dataset.bar, 10);
           var current = badge.textContent.trim();
-          var newName = window.prompt("Section name (e.g. intro, verse, chorus):", current);
+          var newName = window.prompt(t('Section name (e.g. intro, verse, chorus):'), current);
           if (newName !== null) {
             newName = newName.trim();
             for (var si = 0; si < self.model.sections.length; si++) {
@@ -1621,7 +1621,7 @@
         if (tag) {
           var idx = parseInt(tag.dataset.chordIdx, 10);
           var chord = self.model.chords[idx];
-          var newChord = window.prompt("Edit chord name (e.g. C, Dm7, G/B):", chord.name);
+          var newChord = window.prompt(t('Edit chord name (e.g. C, Dm7, G/B):'), chord.name);
           if (newChord !== null) {
             newChord = newChord.trim();
             if (newChord) {
@@ -1638,7 +1638,7 @@
           var bar = parseInt(slot.dataset.bar, 10);
           var rectS = slot.getBoundingClientRect();
           var offsetTick = Math.floor((e.clientX - rectS.left) / self.tickWidth);
-          var entered = window.prompt("Add chord for bar " + (bar + 1) + ":", "C");
+          var entered = window.prompt(t('Add chord for bar {value}:', { value: bar + 1 }), "C");
           if (entered && entered.trim()) {
             self.model.chords.push({
               voice: self.currentVoice,
@@ -1748,10 +1748,10 @@
         }
 
         var voiceClass = (note.voice === 'Ins') ? 'ins' : 'vocal';
-        var voiceLabel = (note.voice === 'Ins') ? 'Instrument' : 'Vocal';
+        var voiceLabel = (note.voice === 'Ins') ? t('Instrument') : t('Vocal');
         var selClass = isSelected ? 'selected' : '';
         var lyrClass = lyricText ? ' has-lyric' : '';
-        var noteTitle = voiceLabel + ' Note (' + noteName + ') • Press V to flip voice';
+        var noteTitle = t('{voiceLabel} Note ({noteName}) • Press V to flip voice', { voiceLabel: voiceLabel, noteName: noteName });
 
         html.push(
           '<div class="roll-note ' + voiceClass + ' ' + selClass + lyrClass + '" ' +
@@ -1818,8 +1818,8 @@
         var lyrText = hasLyr ? escapeHtml(rawText) : '+';
         var emptyClass = hasLyr ? '' : ' empty';
         var titleAttr = hasLyr
-          ? ('Lyric: "' + escapeHtml(rawText) + '" (' + midiToNoteName(vNote.pitch, self.model && self.model.key) + ') • Click to edit')
-          : ('Add lyric for ' + midiToNoteName(vNote.pitch, self.model && self.model.key) + ' • Click to edit');
+          ? (t('Lyric: "{rawText}" ({midiToNoteName}) • Click to edit', { rawText: escapeHtml(rawText), midiToNoteName: midiToNoteName(vNote.pitch, self.model && self.model.key) }))
+          : (t('Add lyric for {midiToNoteName} • Click to edit', { midiToNoteName: midiToNoteName(vNote.pitch, self.model && self.model.key) }));
 
         var itemWidth = Math.max(22, vnWidth);
         var maxW = Math.max(76, itemWidth + 24);
@@ -2390,15 +2390,15 @@
         if (btn) {
           if (this.metronomeEnabled) {
             btn.classList.add('active');
-            btn.title = 'Click track: ON (Press C or M to mute)';
+            btn.title = t('Click track: ON (Press C or M to mute)');
           } else {
             btn.classList.remove('active');
-            btn.title = 'Click track: OFF (Press C or M to enable)';
+            btn.title = t('Click track: OFF (Press C or M to enable)');
           }
         }
       }
       if (typeof window !== 'undefined' && window.toast) {
-        window.toast('Click track: ' + (this.metronomeEnabled ? 'ON' : 'OFF'));
+        window.toast(t('Click track: {value}', { value: this.metronomeEnabled ? 'ON' : 'OFF' }));
       }
       return this.metronomeEnabled;
     },
@@ -2410,15 +2410,15 @@
         if (btn) {
           if (this.chordsEnabled) {
             btn.classList.add('active');
-            btn.title = 'Chord accompaniment: ON (Press H to mute)';
+            btn.title = t('Chord accompaniment: ON (Press H to mute)');
           } else {
             btn.classList.remove('active');
-            btn.title = 'Chord accompaniment: OFF (Press H to enable)';
+            btn.title = t('Chord accompaniment: OFF (Press H to enable)');
           }
         }
       }
       if (typeof window !== 'undefined' && window.toast) {
-        window.toast('Chords playback: ' + (this.chordsEnabled ? 'ON' : 'OFF'));
+        window.toast(t('Chords playback: {value}', { value: this.chordsEnabled ? 'ON' : 'OFF' }));
       }
       return this.chordsEnabled;
     },
@@ -2457,7 +2457,7 @@
           }
         }
         if (missingPitches.length > 0) {
-          if (playBtn) { playBtn.textContent = '⏳ Loading...'; }
+          if (playBtn) { playBtn.textContent = t('⏳ Loading...'); }
           preloadSamplesForNotes(missingPitches, currentInstrument).then(function () {
             self._startPlayback(ctx);
           }).catch(function () {
@@ -2487,8 +2487,8 @@
       this.ensurePlayheadVisible(true);
       var playBtn = document.getElementById('roll-play');
       if (playBtn) {
-        playBtn.textContent = '⏸ Pause';
-        playBtn.title = 'Pause (Space)';
+        playBtn.textContent = t('⏸ Pause');
+        playBtn.title = t('Pause (Space)');
       }
 
       var self = this;
@@ -2644,8 +2644,8 @@
       if (typeof document !== 'undefined') {
         var playBtn = document.getElementById('roll-play');
         if (playBtn) {
-          playBtn.textContent = '▶ Play';
-          playBtn.title = 'Play (Space)';
+          playBtn.textContent = t('▶ Play');
+          playBtn.title = t('Play (Space)');
         }
         var ballEl = document.getElementById('roll-dancing-ball');
         if (ballEl) { ballEl.classList.add('hidden'); }
@@ -2989,11 +2989,11 @@
       if (filledBars > 0) {
         this.commitEdit();
         if (typeof window !== 'undefined' && window.toast) {
-          window.toast('Harmonized ' + filledBars + ' empty bar' + (filledBars > 1 ? 's' : '') + ' from chords in ' + targetVoice);
+          window.toast(tn(filledBars, 'Harmonized {n} empty bar from chords in {targetVoice}', 'Harmonized {n} empty bars from chords in {targetVoice}', { targetVoice: targetVoice }));
         }
       } else {
         if (typeof window !== 'undefined' && window.toast) {
-          window.toast('No empty bars found to harmonize in ' + targetVoice);
+          window.toast(t('No empty bars found to harmonize in {targetVoice}', { targetVoice: targetVoice }));
         }
       }
       return filledBars;
@@ -3031,7 +3031,7 @@
 
       if (emptyBars.length === 0) {
         if (typeof window !== 'undefined' && window.toast) {
-          window.toast('No empty bars to compact');
+          window.toast(t('No empty bars to compact'));
         }
         return 0;
       }
@@ -3065,7 +3065,7 @@
 
       this.commitEdit();
       if (typeof window !== 'undefined' && window.toast) {
-        window.toast('Removed ' + emptyBars.length + ' empty bar' + (emptyBars.length > 1 ? 's' : '') + ' and compacted score');
+        window.toast(tn(emptyBars.length, 'Removed {n} empty bar and compacted score', 'Removed {n} empty bars and compacted score'));
       }
       return emptyBars.length;
     },
@@ -3077,7 +3077,7 @@
       if (!note || note.voice !== 'Vocal') { return; }
       var currentVal = note.lyric || "";
       var pitchName = midiToNoteName(note.pitch, this.model && this.model.key);
-      var entered = window.prompt("Lyric syllable/word for note " + pitchName + "\n(Tip: enter space- or hyphen-separated syllables to fill subsequent notes):", currentVal);
+      var entered = window.prompt(I18N.t('Lyric syllable/word for note {pitchName}\n(Tip: enter space- or hyphen-separated syllables to fill subsequent notes):', { pitchName: pitchName }), currentVal);
       if (entered === null) { return; }
       entered = entered.trim();
 
@@ -3156,14 +3156,14 @@
 
       if (!lyricsText || !lyricsText.trim()) {
         if (silent) { return; }
-        var entered = window.prompt("No song lyrics found in editor. Paste lyrics below to match to vocal melody notes:");
+        var entered = window.prompt(t('No song lyrics found in editor. Paste lyrics below to match to vocal melody notes:'));
         if (!entered || !entered.trim()) { return; }
         lyricsText = entered.trim();
       }
 
       var vocalNotes = this.model.notes.filter(function (n) { return n.voice === 'Vocal'; });
       if (vocalNotes.length === 0) {
-        if (!silent && window.alert) { window.alert("No Vocal notes in this score to match lyrics to."); }
+        if (!silent && window.alert) { window.alert(t('No Vocal notes in this score to match lyrics to.')); }
         return;
       }
       vocalNotes.sort(function (a, b) { return a.startTick - b.startTick; });
@@ -3297,7 +3297,7 @@
 
       this.commitEdit();
       if (!silent && global.toast) {
-        global.toast('Matched ' + assignedCount + ' lyric words to vocal notes');
+        global.toast(t('Matched {assignedCount} lyric words to vocal notes', { assignedCount: assignedCount }));
       }
     },
 

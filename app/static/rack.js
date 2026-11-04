@@ -7,10 +7,18 @@
 (function (window, document) {
   'use strict';
 
+  // The page's words come from i18n.js; a rack loaded on its own, as the tests load it, keeps its English.
+  var I18N = window.I18N || {
+    t: function (text, vars) {
+      return vars ? text.replace(/\{(\w+)\}/g, function (whole, name) { return vars[name] !== undefined ? vars[name] : whole; }) : text;
+    }
+  };
+  var t = I18N.t;
+
   // ------------------------------------------------------------- Defaults & Presets
   var PRESETS = {
     'default': {
-      name: 'Flat / Transparent',
+      name: t('Flat / Transparent'),
       eq: {
         enabled: true,
         preGain: 0,
@@ -42,7 +50,7 @@
        about what its settings take off the loud parts, and no more.  Every ratio is one the rack has a
        button for, so the button is lit when the preset is chosen. */
     'vintage_warmth': {
-      name: 'Vintage Tube Warmth',
+      name: t('Vintage Tube Warmth'),
       eq: {
         enabled: true,
         preGain: -4,
@@ -63,7 +71,7 @@
       version: 3
     },
     'vocal_air': {
-      name: 'Vocal Air & Glue',
+      name: t('Vocal Air & Glue'),
       eq: {
         enabled: true,
         preGain: -3,
@@ -84,7 +92,7 @@
       version: 3
     },
     'radio_master': {
-      name: 'Radio Ready Master',
+      name: t('Radio Ready Master'),
       eq: {
         enabled: true,
         preGain: -3,
@@ -105,7 +113,7 @@
       version: 3
     },
     'punchy_bass': {
-      name: 'Punchy Club & Bass',
+      name: t('Punchy Club & Bass'),
       eq: {
         enabled: true,
         preGain: -5,
@@ -126,7 +134,7 @@
       version: 3
     },
     'acoustic_clarity': {
-      name: 'Acoustic Clarity',
+      name: t('Acoustic Clarity'),
       eq: {
         enabled: true,
         preGain: -2,
@@ -151,7 +159,7 @@
        out about 6 to 7.5 dB louder than it went in, and its loudest peaks pass full scale by 3 to 5 dB, where
        the output clips them: part of its sound, by choice. */
     'boost': {
-      name: 'Boost',
+      name: t('Boost'),
       eq: {
         enabled: true,
         preGain: 0,
@@ -1124,7 +1132,7 @@
         var emptyOpt = document.createElement('option');
         emptyOpt.value = '';
         emptyOpt.disabled = true;
-        emptyOpt.textContent = '(No user presets)';
+        emptyOpt.textContent = t('(No user presets)');
         group.appendChild(emptyOpt);
       } else {
         ids.forEach(function (id) {
@@ -1148,7 +1156,7 @@
       var label = document.getElementById('rack-preset-label');
       if (!select || !label) { return; }
       var opt = select.options[select.selectedIndex];
-      label.textContent = opt ? opt.textContent : 'Custom';
+      label.textContent = opt ? opt.textContent : t('Custom');
     },
 
     presetMenuOpen: function () {
@@ -1175,8 +1183,8 @@
           html.push('<div class="rack-preset-item' + (mine ? ' mine' : '') + (opt.value === select.value ? ' current' : '') +
             '" role="option" data-preset="' + esc(opt.value) + '" aria-selected="' + (opt.value === select.value) + '">' +
             '<span class="rack-preset-name">' + esc(opt.textContent) + '</span>' +
-            (mine ? '<button type="button" class="rack-preset-del" data-preset-del="' + esc(opt.value) + '" title="Delete this preset"' +
-              ' aria-label="Delete the preset ' + esc(opt.textContent) + '">' + TRASH_ICON + '</button>' : '') +
+            (mine ? '<button type="button" class="rack-preset-del" data-preset-del="' + esc(opt.value) + '" title="' + t('Delete this preset') + '"' +
+              ' aria-label="' + t('Delete the preset {textContent}', { textContent: esc(opt.textContent) }) + '">' + TRASH_ICON + '</button>' : '') +
             '</div>');
         });
       });
@@ -1200,19 +1208,19 @@
       var name = userPresets[key].name || 'preset';
       var confirmed = typeof window.confirmModal === 'function'
         ? await window.confirmModal({
-          title: 'Delete Preset',
-          message: 'Delete custom preset \u201c' + name + '\u201d?\n\nThis cannot be undone.',
-          confirmText: 'Delete',
+          title: t('Delete Preset'),
+          message: t('Delete custom preset “{name}”?\n\nThis cannot be undone.', { name: name }),
+          confirmText: t('Delete'),
           danger: true
         })
-        : window.confirm('Delete custom preset "' + name + '"?');
+        : window.confirm(t('Delete custom preset "{name}"?', { name: name }));
       if (!confirmed) { return; }
       userPresets = this.getUserPresets();   // as they are now: the question may have waited
       delete userPresets[key];
       this.saveUserPresets(userPresets);
       this.rebuildPresetDropdown();
       this.syncPresetSelect();
-      this.showToast('Deleted preset "' + name + '"');
+      this.showToast(t('Deleted preset "{name}"', { name: name }));
     },
 
     showToast: function (msg) {
@@ -1225,45 +1233,45 @@
       if (document.getElementById('rack-panel')) { return; }
 
       var html = [
-        '<div id="rack-panel" class="rack-panel" role="region" aria-label="Mastering Rack">',
+        '<div id="rack-panel" class="rack-panel" role="region" aria-label="' + t('Mastering Rack') + '">',
         '  <div class="rack-chassis">',
         '    <!-- Top Rack Header -->',
         '    <div class="rack-header">',
         '      <div class="rack-ears left"><span class="screw"></span><span class="screw"></span></div>',
         '      <div class="rack-title-block">',
-        '        <span class="rack-drag-grip" title="Drag to move rack"><svg viewBox="0 0 10 16" width="8" height="13" fill="currentColor" aria-hidden="true"><circle cx="2" cy="2" r="1.4"/><circle cx="8" cy="2" r="1.4"/><circle cx="2" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="2" cy="14" r="1.4"/><circle cx="8" cy="14" r="1.4"/></svg></span>',
+        '        <span class="rack-drag-grip" title="' + t('Drag to move rack') + '"><svg viewBox="0 0 10 16" width="8" height="13" fill="currentColor" aria-hidden="true"><circle cx="2" cy="2" r="1.4"/><circle cx="8" cy="2" r="1.4"/><circle cx="2" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="2" cy="14" r="1.4"/><circle cx="8" cy="14" r="1.4"/></svg></span>',
         '        <span class="rack-badge">STUDIO</span>',
         '        <strong class="rack-title">VINTAGE MASTERING RACK</strong>',
-        '        <span class="rack-take-label" id="rack-take-name">No take selected</span>',
+        '        <span class="rack-take-label" id="rack-take-name">' + t('No take selected') + '</span>',
         '      </div>',
         '      <div class="rack-header-tools">',
         '        <div class="rack-preset-wrap">',
         '          <span>PRESET:</span>',
-        '          <button type="button" id="rack-preset-btn" class="rack-select rack-preset-btn" title="Load mastering preset" aria-haspopup="listbox" aria-expanded="false"><span id="rack-preset-label">Flat / Transparent</span><span class="rack-preset-caret" aria-hidden="true">\u25BE</span></button>',
+        '          <button type="button" id="rack-preset-btn" class="rack-select rack-preset-btn" title="' + t('Load mastering preset') + '" aria-haspopup="listbox" aria-expanded="false"><span id="rack-preset-label">' + t('Flat / Transparent') + '</span><span class="rack-preset-caret" aria-hidden="true">▾</span></button>',
         '          <div id="rack-preset-menu" class="rack-preset-menu hidden" role="listbox"></div>',
         '          <select id="rack-preset-select" class="rack-select hidden" tabindex="-1" aria-hidden="true">',
-        '            <option value="custom" hidden disabled>Custom</option>',
-        '            <optgroup label="Factory Presets">',
-        '              <option value="default">Flat / Transparent</option>',
-        '              <option value="vintage_warmth">Vintage Tube Warmth</option>',
-        '              <option value="vocal_air">Vocal Air &amp; Glue</option>',
-        '              <option value="radio_master">Radio Ready Master</option>',
-        '              <option value="punchy_bass">Punchy Club &amp; Bass</option>',
-        '              <option value="acoustic_clarity">Acoustic Clarity</option>',
-        '              <option value="boost">Boost</option>',
+        '            <option value="custom" hidden disabled>' + t('Custom') + '</option>',
+        '            <optgroup label="' + t('Factory Presets') + '">',
+        '              <option value="default">' + t('Flat / Transparent') + '</option>',
+        '              <option value="vintage_warmth">' + t('Vintage Tube Warmth') + '</option>',
+        '              <option value="vocal_air">' + t('Vocal Air &amp; Glue') + '</option>',
+        '              <option value="radio_master">' + t('Radio Ready Master') + '</option>',
+        '              <option value="punchy_bass">' + t('Punchy Club &amp; Bass') + '</option>',
+        '              <option value="acoustic_clarity">' + t('Acoustic Clarity') + '</option>',
+        '              <option value="boost">' + t('Boost') + '</option>',
         '            </optgroup>',
-        '            <optgroup id="rack-user-presets-group" label="User Presets">',
+        '            <optgroup id="rack-user-presets-group" label="' + t('User Presets') + '">',
         '            </optgroup>',
         '          </select>',
         '        </div>',
-        '        <button type="button" class="rack-head-btn" id="rack-save-preset-btn" title="Save current settings as a user preset">+ Save Preset</button>',
-        '        <button type="button" class="rack-head-btn" id="rack-reset-btn" title="Reset all rack settings to flat">Reset</button>',
-        '        <button type="button" class="rack-head-btn bypass-btn" id="rack-master-bypass" title="Toggle Master Bypass (A/B audition)">',
+        '        <button type="button" class="rack-head-btn" id="rack-save-preset-btn" title="' + t('Save current settings as a user preset') + '">' + t('+ Save Preset') + '</button>',
+        '        <button type="button" class="rack-head-btn" id="rack-reset-btn" title="' + t('Reset all rack settings to flat') + '">' + t('Reset') + '</button>',
+        '        <button type="button" class="rack-head-btn bypass-btn" id="rack-master-bypass" title="' + t('Toggle Master Bypass (A/B audition)') + '">',
         '          <span class="led-dot" id="rack-master-led"></span> BYPASS',
         '        </button>',
-        '        <button type="button" class="rack-head-btn dock-btn" id="rack-dock-btn" title="Float window (or drag header to move)">Float</button>',
-        '        <button type="button" class="rack-head-btn" id="rack-fit-btn" title="Show the rack at full size, and scroll it">Full size</button>',
-        '        <button type="button" class="rack-head-btn close-btn" id="rack-close-btn" title="Close Rack (Esc)">&times;</button>',
+        '        <button type="button" class="rack-head-btn dock-btn" id="rack-dock-btn" title="' + t('Float window (or drag header to move)') + '">' + t('Float') + '</button>',
+        '        <button type="button" class="rack-head-btn" id="rack-fit-btn" title="' + t('Show the rack at full size, and scroll it') + '">' + t('Full size') + '</button>',
+        '        <button type="button" class="rack-head-btn close-btn" id="rack-close-btn" title="' + t('Close Rack (Esc)') + '">&times;</button>',
         '      </div>',
         '      <div class="rack-ears right"><span class="screw"></span><span class="screw"></span></div>',
         '    </div>',
@@ -1276,14 +1284,14 @@
         '        <div class="unit-bar">',
         '          <div class="unit-brand"><span class="screw-mini"></span> 1073 EQUALIZER <span class="screw-mini"></span></div>',
         '          <div class="unit-bar-right">',
-        '            <button type="button" class="unit-toggle on" id="toggle-eq" title="Toggle EQ in/out"><span class="led"></span> IN</button>',
+        '            <button type="button" class="unit-toggle on" id="toggle-eq" title="' + t('Toggle EQ in/out') + '"><span class="led"></span> IN</button>',
         '          </div>',
         '        </div>',
         '        <div class="unit-faceplate dpx-faceplate">',
 
         '          <!-- 1. Gain Knob -->',
         '          <div class="dpx-sec dpx-gain-sec">',
-        '            <div class="knob-wrap marconi-wrap" data-param="eq.preGain" data-min="-15" data-max="20" data-step="1" data-default="0" data-unit="dB" title="Gain / Drive: Preamp saturation stage (-15 dB to +20 dB)">',
+        '            <div class="knob-wrap marconi-wrap" data-param="eq.preGain" data-min="-15" data-max="20" data-step="1" data-default="0" data-unit="dB" title="' + t('Gain / Drive: Preamp saturation stage (-15 dB to +20 dB)') + '">',
         '              <div class="marconi-dial red"><div class="marconi-wing"></div><div class="marconi-stripe"></div><div class="marconi-cap"></div></div>',
         '              <span class="knob-name">GAIN</span>',
         '              <span class="knob-val">0 dB</span>',
@@ -1292,24 +1300,24 @@
 
         '          <!-- 2. High Shelf (12 kHz fixed) -->',
         '          <div class="dpx-sec dpx-hf-sec">',
-        '            <div class="filter-symbol high-shelf" title="High Shelf: Fixed 12 kHz boost/cut">&#x2500;&#x256D;</div>',
-        '            <div class="knob-wrap" data-param="eq.highGain" data-min="-16" data-max="16" data-step="0.5" data-default="0" data-unit="dB" title="High Shelf Gain: 12 kHz (&plusmn;16 dB)">',
+        '            <div class="filter-symbol high-shelf" title="' + t('High Shelf: Fixed 12 kHz boost/cut') + '">&#x2500;&#x256D;</div>',
+        '            <div class="knob-wrap" data-param="eq.highGain" data-min="-16" data-max="16" data-step="0.5" data-default="0" data-unit="dB" title="' + t('High Shelf Gain: 12 kHz (&plusmn;16 dB)') + '">',
         '              <div class="knob-dial knob-neve-grey"><div class="knob-cap"></div><div class="knob-line"></div></div>',
-        '              <span class="knob-name">HIGH 12k</span>',
+        '              <span class="knob-name">' + t('HIGH 12k') + '</span>',
         '              <span class="knob-val">0 dB</span>',
         '            </div>',
         '          </div>',
 
         '          <!-- 3. Mid Band (Stepped Frequency + Gain) -->',
         '          <div class="dpx-sec dpx-mid-sec">',
-        '            <div class="filter-symbol mid-bell" title="Mid Band: Parametric bell filter">&#x2500;&#x256D;&#x256E;&#x2500;</div>',
+        '            <div class="filter-symbol mid-bell" title="' + t('Mid Band: Parametric bell filter') + '">&#x2500;&#x256D;&#x256E;&#x2500;</div>',
         '            <div class="dpx-concentric-group">',
-        '              <div class="knob-wrap concentric-outer" data-param="eq.midFreq" data-default="3" data-values="OFF,360,700,1600,3200,4800,7200" data-labels="OFF,0.36k,0.7k,1.6k,3.2k,4.8k,7.2k" title="Mid Frequency: Stepped bell center (OFF, 0.36k to 7.2k Hz)">',
+        '              <div class="knob-wrap concentric-outer" data-param="eq.midFreq" data-default="3" data-values="OFF,360,700,1600,3200,4800,7200" data-labels="OFF,0.36k,0.7k,1.6k,3.2k,4.8k,7.2k" title="' + t('Mid Frequency: Stepped bell center (OFF, 0.36k to 7.2k Hz)') + '">',
         '                <div class="skirt-dial"><div class="skirt-ring"><div class="skirt-pointer"></div></div></div>',
         '                <span class="knob-name">FREQ</span>',
         '                <span class="knob-val">1.6 kHz</span>',
         '              </div>',
-        '              <div class="knob-wrap concentric-inner" data-param="eq.midGain" data-min="-18" data-max="18" data-step="0.5" data-default="0" data-unit="dB" title="Mid Gain: Peaking boost/cut (&plusmn;18 dB)">',
+        '              <div class="knob-wrap concentric-inner" data-param="eq.midGain" data-min="-18" data-max="18" data-step="0.5" data-default="0" data-unit="dB" title="' + t('Mid Gain: Peaking boost/cut (&plusmn;18 dB)') + '">',
         '                <div class="knob-dial knob-neve-grey small"><div class="knob-cap"></div><div class="knob-line"></div></div>',
         '                <span class="knob-name">GAIN</span>',
         '                <span class="knob-val">0 dB</span>',
@@ -1319,14 +1327,14 @@
 
         '          <!-- 4. Low Shelf (Stepped Frequency + Gain) -->',
         '          <div class="dpx-sec dpx-lf-sec">',
-        '            <div class="filter-symbol low-shelf" title="Low Shelf: Low frequency shelf filter">&#x256D;&#x2500;</div>',
+        '            <div class="filter-symbol low-shelf" title="' + t('Low Shelf: Low frequency shelf filter') + '">&#x256D;&#x2500;</div>',
         '            <div class="dpx-concentric-group">',
-        '              <div class="knob-wrap concentric-outer" data-param="eq.lowFreq" data-default="2" data-values="OFF,35,60,110,220" data-labels="OFF,35 Hz,60 Hz,110 Hz,220 Hz" title="Low Shelf Frequency: Stepped cutoff (OFF, 35 to 220 Hz)">',
+        '              <div class="knob-wrap concentric-outer" data-param="eq.lowFreq" data-default="2" data-values="OFF,35,60,110,220" data-labels="OFF,35 Hz,60 Hz,110 Hz,220 Hz" title="' + t('Low Shelf Frequency: Stepped cutoff (OFF, 35 to 220 Hz)') + '">',
         '                <div class="skirt-dial"><div class="skirt-ring"><div class="skirt-pointer"></div></div></div>',
         '                <span class="knob-name">FREQ</span>',
         '                <span class="knob-val">60 Hz</span>',
         '              </div>',
-        '              <div class="knob-wrap concentric-inner" data-param="eq.lowGain" data-min="-16" data-max="16" data-step="0.5" data-default="0" data-unit="dB" title="Low Shelf Gain: Low boost/cut (&plusmn;16 dB)">',
+        '              <div class="knob-wrap concentric-inner" data-param="eq.lowGain" data-min="-16" data-max="16" data-step="0.5" data-default="0" data-unit="dB" title="' + t('Low Shelf Gain: Low boost/cut (&plusmn;16 dB)') + '">',
         '                <div class="knob-dial knob-neve-grey small"><div class="knob-cap"></div><div class="knob-line"></div></div>',
         '                <span class="knob-name">GAIN</span>',
         '                <span class="knob-val">0 dB</span>',
@@ -1336,8 +1344,8 @@
 
         '          <!-- 5. High Pass Filter (Blue Fluted Marconi Knob) -->',
         '          <div class="dpx-sec dpx-hpf-sec">',
-        '            <div class="filter-symbol hpf-symbol" title="High Pass: Low cut filter">&#x250C;&#x2500;</div>',
-        '            <div class="knob-wrap marconi-wrap" data-param="eq.hp" data-default="0" data-values="20,50,80,160,300" data-labels="OFF,50 Hz,80 Hz,160 Hz,300 Hz" title="High Pass Filter: Stepped low cut (OFF, 50, 80, 160, 300 Hz)">',
+        '            <div class="filter-symbol hpf-symbol" title="' + t('High Pass: Low cut filter') + '">&#x250C;&#x2500;</div>',
+        '            <div class="knob-wrap marconi-wrap" data-param="eq.hp" data-default="0" data-values="20,50,80,160,300" data-labels="OFF,50 Hz,80 Hz,160 Hz,300 Hz" title="' + t('High Pass Filter: Stepped low cut (OFF, 50, 80, 160, 300 Hz)') + '">',
         '              <div class="marconi-dial blue"><div class="marconi-wing"></div><div class="marconi-stripe"></div><div class="marconi-cap"></div></div>',
         '              <span class="knob-name">HPF</span>',
         '              <span class="knob-val">OFF</span>',
@@ -1347,24 +1355,24 @@
         '          <!-- 6. Chiclet Switches (Phase, EQ) -->',
         '          <div class="dpx-sec dpx-switch-sec">',
         '            <div class="dpx-chiclets vertical">',
-        '              <button type="button" class="dpx-btn" id="dpx-btn-phase" title="Phase Invert (&Oslash;): Flips audio polarity 180&deg;"><span>&Oslash;</span></button>',
-        '              <button type="button" class="dpx-btn active" id="dpx-btn-eq" title="EQ In/Out (EQL): Toggles 1073 equalizer circuit on/off"><span class="btn-led amber"></span><span>EQL</span></button>',
+        '              <button type="button" class="dpx-btn" id="dpx-btn-phase" title="' + t('Phase Invert (&Oslash;): Flips audio polarity 180&deg;') + '"><span>&Oslash;</span></button>',
+        '              <button type="button" class="dpx-btn active" id="dpx-btn-eq" title="' + t('EQ In/Out (EQL): Toggles 1073 equalizer circuit on/off') + '"><span class="btn-led amber"></span><span>EQL</span></button>',
         '            </div>',
         '          </div>',
 
         '          <!-- 7. Output Level & 7-Segment LED Meter -->',
         '          <div class="dpx-sec dpx-output-sec">',
         '            <div class="dpx-status-leds">',
-        '              <div class="status-led-item" title="Input signal detected"><span class="mini-led red" id="dpx-led-ip"></span><span class="lbl">I/P</span></div>',
-        '              <div class="status-led-item" title="EQ circuit active"><span class="mini-led amber on" id="dpx-led-eq"></span><span class="lbl">EQ</span></div>',
-        '              <div class="status-led-item" title="Output signal present"><span class="mini-led green on" id="dpx-led-op"></span><span class="lbl">O/P</span></div>',
+        '              <div class="status-led-item" title="' + t('Input signal detected') + '"><span class="mini-led red" id="dpx-led-ip"></span><span class="lbl">I/P</span></div>',
+        '              <div class="status-led-item" title="' + t('EQ circuit active') + '"><span class="mini-led amber on" id="dpx-led-eq"></span><span class="lbl">EQ</span></div>',
+        '              <div class="status-led-item" title="' + t('Output signal present') + '"><span class="mini-led green on" id="dpx-led-op"></span><span class="lbl">O/P</span></div>',
         '            </div>',
-        '            <div class="knob-wrap" data-param="eq.outLevel" data-min="-12" data-max="12" data-step="0.5" data-default="0" data-unit="dB" title="Output Trim: Channel level adjustment (&plusmn;12 dB)">',
+        '            <div class="knob-wrap" data-param="eq.outLevel" data-min="-12" data-max="12" data-step="0.5" data-default="0" data-unit="dB" title="' + t('Output Trim: Channel level adjustment (&plusmn;12 dB)') + '">',
         '              <div class="knob-dial knob-neve-grey small"><div class="knob-cap"></div><div class="knob-line"></div></div>',
         '              <span class="knob-name">LEVEL</span>',
         '              <span class="knob-val">0 dB</span>',
         '            </div>',
-        '            <div class="dpx-ladder-wrap" title="Output Peak Meter (dB)">',
+        '            <div class="dpx-ladder-wrap" title="' + t('Output Peak Meter (dB)') + '">',
         '              <div class="dpx-ladder" id="dpx-led-ladder">',
         '                <div class="ladder-col"><span class="ladder-led green" data-db="-30"></span><span class="ladder-lbl">-30</span></div>',
         '                <div class="ladder-col"><span class="ladder-led green" data-db="-10"></span><span class="ladder-lbl">-10</span></div>',
@@ -1392,32 +1400,32 @@
         '      <div class="rack-unit unit-peq" id="unit-peq">',
         '        <div class="unit-bar">',
         '          <div class="unit-brand"><span class="screw-mini"></span> PARAMETRIC EQUALIZER <span class="screw-mini"></span></div>',
-        '          <button type="button" class="unit-toggle" id="toggle-peq" title="Toggle the parametric equalizer in/out"><span class="led"></span> OUT</button>',
+        '          <button type="button" class="unit-toggle" id="toggle-peq" title="' + t('Toggle the parametric equalizer in/out') + '"><span class="led"></span> OUT</button>',
         '        </div>',
         '        <div class="peq-screen">',
         '          <div class="peq-graph">',
-        '            <canvas id="peq-canvas" class="peq-canvas" title="Drag a band to set its frequency and gain. The wheel sets its width. Double-click to reset it."></canvas>',
-        '            <button type="button" class="peq-range" id="peq-range" title="How many decibels the graph shows">&plusmn;12 dB</button>',
+        '            <canvas id="peq-canvas" class="peq-canvas" title="' + t('Drag a band to set its frequency and gain. The wheel sets its width. Double-click to reset it.') + '"></canvas>',
+        '            <button type="button" class="peq-range" id="peq-range" title="' + t('How many decibels the graph shows') + '">&plusmn;12 dB</button>',
         '          </div>',
         '          <div class="peq-strip" id="peq-strip">',
-        '            <div class="peq-dots" id="peq-dots" role="group" aria-label="Band"></div>',
-        '            <button type="button" class="peq-power" id="peq-band-on" title="Switch this band on or off" aria-label="Band on or off">',
+        '            <div class="peq-dots" id="peq-dots" role="group" aria-label="' + t('Band') + '"></div>',
+        '            <button type="button" class="peq-power" id="peq-band-on" title="' + t('Switch this band on or off') + '" aria-label="' + t('Band on or off') + '">',
         '              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>',
         '            </button>',
-        '            <div class="peq-types" id="peq-types" role="group" aria-label="Kind of filter"></div>',
-        '            <button type="button" class="peq-flat" id="peq-flat" title="Flat: every band back to 0 dB, and the cuts and notches off. Each band stays where it is">',
+        '            <div class="peq-types" id="peq-types" role="group" aria-label="' + t('Kind of filter') + '"></div>',
+        '            <button type="button" class="peq-flat" id="peq-flat" title="' + t('Flat: every band back to 0 dB, and the cuts and notches off. Each band stays where it is') + '">',
         '              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12h18"/></svg>',
         '              <span>FLAT</span>',
         '            </button>',
-        '            <div class="knob-wrap dummy-knob peq-knob" data-peq="freq" title="Frequency">',
+        '            <div class="knob-wrap dummy-knob peq-knob" data-peq="freq" title="' + t('Frequency') + '">',
         '              <div class="knob-dial small"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">FREQ</span><span class="knob-val">1 kHz</span>',
         '            </div>',
-        '            <div class="knob-wrap dummy-knob peq-knob" data-peq="gain" title="Gain">',
+        '            <div class="knob-wrap dummy-knob peq-knob" data-peq="gain" title="' + t('Gain') + '">',
         '              <div class="knob-dial small"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">GAIN</span><span class="knob-val">0 dB</span>',
         '            </div>',
-        '            <div class="knob-wrap dummy-knob peq-knob" data-peq="q" title="Width (Q): higher is narrower">',
+        '            <div class="knob-wrap dummy-knob peq-knob" data-peq="q" title="' + t('Width (Q): higher is narrower') + '">',
         '              <div class="knob-dial small"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">Q</span><span class="knob-val">1.0</span>',
         '            </div>',
@@ -1429,7 +1437,7 @@
         '      <div class="rack-unit unit-comp" id="unit-comp">',
         '        <div class="unit-bar">',
         '          <div class="unit-brand"><span class="screw-mini"></span> 76-LN PEAK LIMITING AMPLIFIER <span class="screw-mini"></span></div>',
-        '          <button type="button" class="unit-toggle on" id="toggle-comp" title="Toggle Compressor on/off"><span class="led"></span> IN</button>',
+        '          <button type="button" class="unit-toggle on" id="toggle-comp" title="' + t('Toggle Compressor on/off') + '"><span class="led"></span> IN</button>',
         '        </div>',
         '        <div class="unit-faceplate">',
         '          <div class="knob-group">',
@@ -1438,7 +1446,7 @@
         '              <span class="knob-name">THRESHOLD</span>',
         '              <span class="knob-val">-18 dB</span>',
         '            </div>',
-        '            <div class="knob-wrap" data-param="comp.makeup" data-min="-6" data-max="30" data-step="0.5" data-default="6" data-unit="dB" title="Output: all the gain the compressor adds (-6 dB to +30 dB). Double-click for +6 dB, where Reset leaves it">',
+        '            <div class="knob-wrap" data-param="comp.makeup" data-min="-6" data-max="30" data-step="0.5" data-default="6" data-unit="dB" title="' + t('Output: all the gain the compressor adds (-6 dB to +30 dB). Double-click for +6 dB, where Reset leaves it') + '">',
         '              <div class="knob-dial large"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">OUTPUT</span>',
         '              <span class="knob-val">0 dB</span>',
@@ -1446,7 +1454,7 @@
         '          </div>',
 
         '          <!-- Backlit Analog VU Meter -->',
-        '          <div class="vu-meter-box" title="Analog Gain Reduction (dB)">',
+        '          <div class="vu-meter-box" title="' + t('Analog Gain Reduction (dB)') + '">',
         '            <div class="vu-glass">',
         '              <canvas id="vu-canvas" width="200" height="110"></canvas>',
         '              <div class="vu-label">GAIN REDUCTION</div>',
@@ -1490,16 +1498,16 @@
         '      <div class="rack-unit unit-imager" id="unit-imager">',
         '        <div class="unit-bar">',
         '          <div class="unit-brand"><span class="screw-mini"></span> VINTAGE STEREO IMAGER & SPATIAL PROCESSOR <span class="screw-mini"></span></div>',
-        '          <button type="button" class="unit-toggle on" id="toggle-imager" title="Toggle Stereo Imager on/off"><span class="led"></span> IN</button>',
+        '          <button type="button" class="unit-toggle on" id="toggle-imager" title="' + t('Toggle Stereo Imager on/off') + '"><span class="led"></span> IN</button>',
         '        </div>',
         '        <div class="unit-faceplate imager-faceplate">',
         '          <div class="knob-group">',
-        '            <div class="knob-wrap" data-param="imager.range" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (HIGH),2,3,4,5,6,7,8,9 (OPEN)" data-default="4" title="Process Frequency Band (High to Open)">',
+        '            <div class="knob-wrap" data-param="imager.range" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (HIGH),2,3,4,5,6,7,8,9 (OPEN)" data-default="4" title="' + t('Process Frequency Band (High to Open)') + '">',
         '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">RANGE</span>',
         '              <span class="knob-val">5</span>',
         '            </div>',
-        '            <div class="knob-wrap" data-param="imager.stage" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (BACK),2,3,4,5,6,7,8,9 (FRONT)" data-default="4" title="Stereo Stage Placement (Back to Front)">',
+        '            <div class="knob-wrap" data-param="imager.stage" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (BACK),2,3,4,5,6,7,8,9 (FRONT)" data-default="4" title="' + t('Stereo Stage Placement (Back to Front)') + '">',
         '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">STAGE</span>',
         '              <span class="knob-val">5</span>',
@@ -1507,13 +1515,13 @@
         '          </div>',
         '          <div class="imager-harmonics-sec">',
         '            <div class="imager-push-wrap">',
-        '              <span class="imager-hint-label">Tubes Warm-Up</span>',
-        '              <button type="button" class="imager-btn" id="toggle-imager-harmonics" title="Toggle Valve Tube Harmonics">',
+        '              <span class="imager-hint-label">' + t('Tubes Warm-Up') + '</span>',
+        '              <button type="button" class="imager-btn" id="toggle-imager-harmonics" title="' + t('Toggle Valve Tube Harmonics') + '">',
         '                <span class="imager-btn-led blue"></span>',
         '                <span class="imager-btn-txt">HARMONICS</span>',
         '              </button>',
         '            </div>',
-        '            <div class="knob-wrap" data-param="imager.tubeHarmonics" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (MIN),2,3,4,5,6,7,8,9 (MAX)" data-default="0" title="Tube Harmonic Saturation Drive">',
+        '            <div class="knob-wrap" data-param="imager.tubeHarmonics" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (MIN),2,3,4,5,6,7,8,9 (MAX)" data-default="0" title="' + t('Tube Harmonic Saturation Drive') + '">',
         '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">TUBE HARMONICS</span>',
         '              <span class="knob-val">1 (MIN)</span>',
@@ -1521,7 +1529,7 @@
         '          </div>',
         '          <div class="imager-center-box">',
         '            <span class="imager-window-title">STEREO IMAGE</span>',
-        '            <div class="imager-tube-window" title="Stereo Valve Spatial Circuit">',
+        '            <div class="imager-tube-window" title="' + t('Stereo Valve Spatial Circuit') + '">',
         '              <div class="tube-mesh-grille"></div>',
         '              <div class="tube-glow-core" id="imager-tube-glow"></div>',
         '              <div class="tube-filament"></div>',
@@ -1529,14 +1537,14 @@
         '            <span class="imager-window-sub">BIGGER MAKER</span>',
         '          </div>',
         '          <div class="knob-group">',
-        '            <div class="knob-wrap" data-param="imager.bigness" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (MIN),2,3,4,5,6,7,8,9 (MAX)" data-default="0" title="Stereo Width Intensity">',
+        '            <div class="knob-wrap" data-param="imager.bigness" data-values="1,2,3,4,5,6,7,8,9" data-labels="1 (MIN),2,3,4,5,6,7,8,9 (MAX)" data-default="0" title="' + t('Stereo Width Intensity') + '">',
         '              <div class="knob-dial large"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">BIGNESS</span>',
         '              <span class="knob-val">1 (MIN)</span>',
         '            </div>',
         '          </div>',
         '          <div class="imager-push-wrap">',
-        '            <button type="button" class="imager-btn" id="toggle-imager-bass" title="Active Bass Punch & Mono Sub Anchor">',
+        '            <button type="button" class="imager-btn" id="toggle-imager-bass" title="' + t('Active Bass Punch & Mono Sub Anchor') + '">',
         '              <span class="imager-btn-led blue"></span>',
         '              <span class="imager-btn-txt">BASS</span>',
         '            </button>',
@@ -1551,11 +1559,11 @@
         '                <span class="imager-pwr-led red on" id="imager-pwr-led"></span>',
         '                <span class="imager-pwr-lbl">PWR</span>',
         '              </div>',
-        '              <button type="button" class="imager-on-btn on" id="toggle-imager-pwr" title="Toggle Imager Module Power">',
+        '              <button type="button" class="imager-on-btn on" id="toggle-imager-pwr" title="' + t('Toggle Imager Module Power') + '">',
         '                <span class="pwr-lamp amber"></span>',
         '                <span class="pwr-txt">ON</span>',
         '              </button>',
-        '              <span class="imager-model-spec">Model 2420</span>',
+        '              <span class="imager-model-spec">' + t('Model 2420') + '</span>',
         '            </div>',
         '          </div>',
         '        </div>',
@@ -1565,7 +1573,7 @@
         '      <div class="rack-unit unit-limit" id="unit-limit">',
         '        <div class="unit-bar">',
         '          <div class="unit-brand"><span class="screw-mini"></span> 670 VARIABLE-MU MASTER LIMITER <span class="screw-mini"></span></div>',
-        '          <button type="button" class="unit-toggle on" id="toggle-limit" title="Toggle Limiter on/off"><span class="led"></span> IN</button>',
+        '          <button type="button" class="unit-toggle on" id="toggle-limit" title="' + t('Toggle Limiter on/off') + '"><span class="led"></span> IN</button>',
         '        </div>',
         '        <div class="unit-faceplate">',
         '          <div class="knob-group">',
@@ -1591,7 +1599,7 @@
 
         '          <div class="warmth-box">',
         '            <span class="warmth-title">TUBE WARMTH</span>',
-        '            <button type="button" class="switch-toggle" id="toggle-warmth" title="Toggle Analog Tube Saturation">',
+        '            <button type="button" class="switch-toggle" id="toggle-warmth" title="' + t('Toggle Analog Tube Saturation') + '">',
         '              <span class="switch-arm"></span>',
         '            </button>',
         '            <span class="warmth-status" id="warmth-status">OFF</span>',
@@ -1682,20 +1690,20 @@
         savePresetBtn.addEventListener('click', async function () {
           var userPresets = self.getUserPresets();
           var count = Object.keys(userPresets).length + 1;
-          var defaultName = 'My Preset ' + count;
+          var defaultName = t('My Preset {count}', { count: count });
           var name = null;
           if (typeof window.confirmModal === 'function') {
             name = await window.confirmModal({
-              title: 'Save Preset',
-              message: 'Enter a name for this custom preset:',
+              title: t('Save Preset'),
+              message: t('Enter a name for this custom preset:'),
               input: true,
               defaultValue: defaultName,
-              placeholder: 'Preset name',
-              confirmText: 'Save',
-              cancelText: 'Cancel'
+              placeholder: t('Preset name'),
+              confirmText: t('Save'),
+              cancelText: t('Cancel')
             });
           } else {
-            name = window.prompt('Enter name for your custom preset:', defaultName);
+            name = window.prompt(t('Enter name for your custom preset:'), defaultName);
           }
           if (!name || !name.trim()) { return; }
           name = name.trim().slice(0, 40);
@@ -1706,11 +1714,11 @@
             var kept = userPresets[same[0]].name || name;
             var replace = typeof window.confirmModal === 'function'
               ? await window.confirmModal({
-                title: 'Save Preset',
-                message: 'There is already a preset called \u201c' + kept + '\u201d. Replace it?',
-                confirmText: 'Replace'
+                title: t('Save Preset'),
+                message: t('There is already a preset called “{kept}”. Replace it?', { kept: kept }),
+                confirmText: t('Replace')
               })
-              : window.confirm('There is already a preset called "' + kept + '". Replace it?');
+              : window.confirm(t('There is already a preset called "{kept}". Replace it?', { kept: kept }));
             if (!replace) { return; }
             userPresets = self.getUserPresets();   // as they are now: the question may have waited
             same = self.userPresetsNamed(userPresets, name);
@@ -1722,7 +1730,7 @@
           userPresets[id] = snapshot;
           self.saveUserPresets(userPresets);
           self.rebuildPresetDropdown(id);
-          self.showToast((same.length ? 'Replaced' : 'Saved') + ' preset "' + name + '"');
+          self.showToast(t('{value} preset "{name}"', { value: same.length ? t('Replaced') : t('Saved'), name: name }));
         });
       }
 
@@ -1848,7 +1856,7 @@
           this.classList.toggle('on', self.settings.limit.warmth);
           if (self.settings.limit.warmth) { self.engage('limit'); }
           if (warmthStatus) {
-            warmthStatus.textContent = self.settings.limit.warmth ? 'TUBE ON' : 'OFF';
+            warmthStatus.textContent = self.settings.limit.warmth ? t('TUBE ON') : 'OFF';
             warmthStatus.classList.toggle('active', self.settings.limit.warmth);
           }
           Engine.applySettings(self.settings);
@@ -2133,7 +2141,7 @@
         var warm = Boolean(self.settings.limit.warmth);
         toggleWarmth.classList.toggle('on', warm);
         if (warmthStatus) {
-          warmthStatus.textContent = warm ? 'TUBE ON' : 'OFF';
+          warmthStatus.textContent = warm ? t('TUBE ON') : 'OFF';
           warmthStatus.classList.toggle('active', warm);
         }
       }
@@ -2156,12 +2164,12 @@
     PEQ_COLOURS: ['#22d3ee', '#a3e635', '#fbbf24', '#fb7185', '#c084fc', '#34d399', '#60a5fa'],
     PEQ_RANGES: [6, 12, 18],
     PEQ_KINDS: {
-      lowcut: ['Low cut', 'M3 17c5 0 6-10 10-10h8'],
-      lowshelf: ['Low shelf', 'M3 15h5c3 0 3-6 6-6h7'],
-      bell: ['Bell', 'M3 15h4c3 0 3-8 5-8s2 8 5 8h4'],
-      notch: ['Notch', 'M3 9h5c3 0 3 9 4 9s1-9 4-9h5'],
-      highshelf: ['High shelf', 'M3 9h7c3 0 3 6 6 6h5'],
-      highcut: ['High cut', 'M3 7h8c4 0 5 10 10 10']
+      lowcut: [t('Low cut'), 'M3 17c5 0 6-10 10-10h8'],
+      lowshelf: [t('Low shelf'), 'M3 15h5c3 0 3-6 6-6h7'],
+      bell: [t('Bell'), 'M3 15h4c3 0 3-8 5-8s2 8 5 8h4'],
+      notch: [t('Notch'), 'M3 9h5c3 0 3 9 4 9s1-9 4-9h5'],
+      highshelf: [t('High shelf'), 'M3 9h7c3 0 3 6 6 6h5'],
+      highcut: [t('High cut'), 'M3 7h8c4 0 5 10 10 10']
     },
     peqBand: 0,          // the band the strip's controls are for
 
@@ -2170,15 +2178,15 @@
     peqBandTip: function (band, i) {
       var hz = band.freq >= 1000 ? (Math.round(band.freq / 100) / 10) + ' kHz' : Math.round(band.freq) + ' Hz';
       var gain = Math.round(band.gain * 10) / 10, kind = this.PEQ_KINDS[band.type] ? this.PEQ_KINDS[band.type][0] : band.type;
-      var head = 'Band ' + (i + 1) + ': ' + kind + ' at ' + hz + (peqHasGain(band.type) ? ', ' + (gain > 0 ? '+' : '') + gain + ' dB' : '');
+      var head = t('Band {value}: {kind} at {hz}{value2}', { value: i + 1, kind: kind, hz: hz, value2: peqHasGain(band.type) ? ', ' + (gain > 0 ? '+' : '') + gain + ' dB' : '' });
       var how = gain > 0 ? 'raises' : 'lowers';
       var does = {
-        lowcut: 'takes away everything below ' + hz,
-        highcut: 'takes away everything above ' + hz,
-        notch: 'takes out a narrow slice at ' + hz,
-        lowshelf: gain ? how + ' everything below ' + hz : 'no change yet',
-        highshelf: gain ? how + ' everything above ' + hz : 'no change yet',
-        bell: gain ? how + ' the sound around ' + hz : 'no change yet'
+        lowcut: t('takes away everything below {hz}', { hz: hz }),
+        highcut: t('takes away everything above {hz}', { hz: hz }),
+        notch: t('takes out a narrow slice at {hz}', { hz: hz }),
+        lowshelf: gain ? t('{how} everything below {hz}', { how: how, hz: hz }) : t('no change yet'),
+        highshelf: gain ? t('{how} everything above {hz}', { how: how, hz: hz }) : t('no change yet'),
+        bell: gain ? t('{how} the sound around {hz}', { how: how, hz: hz }) : t('no change yet')
       }[band.type] || '';
       return head + (does ? ': ' + does : '') + (band.on === false ? ' (off)' : '');
     },
@@ -2254,7 +2262,7 @@
       if (!canvas || !dots || !types) { return; }
 
       dots.innerHTML = this.PEQ_COLOURS.map(function (colour, i) {
-        return '<button type="button" class="peq-dot" data-band="' + i + '" style="--band:' + colour + '" title="Band ' + (i + 1) + '">' + (i + 1) + '</button>';
+        return '<button type="button" class="peq-dot" data-band="' + i + '" style="--band:' + colour + '" title="' + t('Band {value}', { value: i + 1 }) + '">' + (i + 1) + '</button>';
       }).join('');
       types.innerHTML = PEQ_TYPES.map(function (kind) {
         return '<button type="button" class="peq-type" data-kind="' + kind + '" title="' + self.PEQ_KINDS[kind][0] + '" aria-label="' + self.PEQ_KINDS[kind][0] + '">' +
@@ -2615,7 +2623,7 @@
       var custom = select.querySelector('option[value="custom"]');
       if (!custom) {
         custom = document.createElement('option');
-        custom.value = 'custom'; custom.hidden = true; custom.disabled = true; custom.textContent = 'Custom';
+        custom.value = 'custom'; custom.hidden = true; custom.disabled = true; custom.textContent = t('Custom');
         select.insertBefore(custom, select.firstChild);
       }
       var key = this.presetOf(this.settings) || 'custom';
@@ -2737,7 +2745,7 @@
       this.flushSave();
       this.currentTakeId = take.id;
       var label = document.getElementById('rack-take-name');
-      if (label) { label.textContent = take.title || ('Take #' + take.id); }
+      if (label) { label.textContent = take.title || (t('Take #{id}', { id: take.id })); }
       this.updateTakeCardsUI();
 
       if (take.fx_chain) {
@@ -2809,7 +2817,7 @@
           self.currentTakeId = tid;
           var tObj = (typeof takeById === 'function') ? takeById(tid) : null;
           var label = document.getElementById('rack-take-name');
-          if (label && tObj) { label.textContent = tObj.title || ('Take #' + tObj.id); }
+          if (label && tObj) { label.textContent = tObj.title || (I18N.t('Take #{id}', { id: tObj.id })); }
           self.updateTakeCardsUI();
         }
       }
@@ -2920,7 +2928,7 @@
 
       var resp = await fetch('/api/takes/' + takeId + '/audio');
       if (!resp.ok) {
-        throw new Error('Failed to fetch audio for take ' + takeId);
+        throw new Error(t('Failed to fetch audio for take {takeId}', { takeId: takeId }));
       }
       var arrayBuf = await resp.arrayBuffer();
 
@@ -2957,11 +2965,11 @@
         body: formData
       });
       if (!res.ok) {
-        throw new Error('Server export failed: ' + res.status);
+        throw new Error(t('Server export failed: {status}', { status: res.status }));
       }
       var data = await res.json();
       if (!data || !data.download_url) {
-        throw new Error('Invalid export response');
+        throw new Error(t('Invalid export response'));
       }
       var link = document.createElement('a');
       link.href = data.download_url + (withRecipe ? '&recipe=1' : '');
@@ -2975,20 +2983,20 @@
 
     applyToTake: async function () {
       if (!this.currentTakeId) {
-        this.showToast('Select a take first');
+        this.showToast(t('Select a take first'));
         return;
       }
       var takeId = this.currentTakeId;
       if (!chainEngaged(this.settings)) {
-        this.showToast('Nothing to apply: the rack is flat');
+        this.showToast(t('Nothing to apply: the rack is flat'));
         return;
       }
       var applyBtn = document.getElementById('rack-apply-take-btn');
       if (applyBtn) {
         applyBtn.disabled = true;
-        applyBtn.textContent = 'Baking...';
+        applyBtn.textContent = t('Baking...');
       }
-      this.showToast('Rendering & baking master into take...', 'good');
+      this.showToast(t('Rendering & baking master into take...'), 'good');
 
       try {
         var wavBlob = await this.renderMasterWav(takeId);
@@ -3000,7 +3008,7 @@
         });
         if (!res.ok) {
           var errText = await res.text();
-          throw new Error('Failed to bake master: ' + errText);
+          throw new Error(t('Failed to bake master: {errText}', { errText: errText }));
         }
         var data = await res.json();
 
@@ -3035,14 +3043,14 @@
           }
         }
 
-        this.showToast('Mastered audio saved permanently to take!', 'good');
+        this.showToast(t('Mastered audio saved permanently to take!'), 'good');
       } catch (err) {
         console.error('Bake master failed:', err);
-        this.showToast('Could not bake master: ' + err.message, 'bad');
+        this.showToast(t('Could not bake master: {message}', { message: err.message }), 'bad');
       } finally {
         if (applyBtn) {
           applyBtn.disabled = false;
-          applyBtn.textContent = 'Apply to Take';
+          applyBtn.textContent = t('Apply to Take');
         }
       }
     },
@@ -3390,8 +3398,8 @@
       }
       var fitBtn = document.getElementById('rack-fit-btn');
       if (fitBtn) {
-        fitBtn.textContent = fits ? 'Full size' : 'Fit';
-        fitBtn.title = fits ? 'Show the rack at full size, and scroll it' : 'Fit the whole rack in the window';
+        fitBtn.textContent = fits ? t('Full size') : t('Fit');
+        fitBtn.title = fits ? t('Show the rack at full size, and scroll it') : t('Fit the whole rack in the window');
       }
       this.drawPeq();
     },
@@ -3505,8 +3513,8 @@
       var dockBtn = document.getElementById('rack-dock-btn');
       if (!dockBtn || !panel) { return; }
       var isFloating = panel.classList.contains('is-floating');
-      dockBtn.textContent = isFloating ? 'Dock' : 'Float';
-      dockBtn.title = isFloating ? 'Dock rack to bottom of window' : 'Float rack window, to drag it by its header';
+      dockBtn.textContent = isFloating ? t('Dock') : t('Float');
+      dockBtn.title = isFloating ? t('Dock rack to bottom of window') : t('Float rack window, to drag it by its header');
     },
 
     resume: function () {

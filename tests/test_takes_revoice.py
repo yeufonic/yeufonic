@@ -53,7 +53,7 @@ def test_sing_again_asks_before_it_renders():
     from pathlib import Path
     app_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "app.js").read_text(encoding="utf-8")
     action = extract_js_function(app_js, "if (act === 'revoice')")
-    assert "await confirmModal({" in action and "title: 'Sing again'" in action and "confirmText: 'Sing again'" in action
+    assert "await confirmModal({" in action and "title: t('Sing again')" in action and "confirmText: t('Sing again')" in action
     assert "{ return; }" in action
     assert action.index("confirmModal") < action.index("'/revoice'")
     assert "danger" not in action            # nothing is lost: it is a new take, and this one is kept

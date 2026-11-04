@@ -261,6 +261,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Chinese (i18n.js marks the page): the system's Chinese fonts after the Latin ones, Traditional forms for zh-TW,
+   a little more line height, and no letter-spacing, which pulls characters apart (the uppercase headings have no
+   case to change).  The rack keeps its faceplate lettering. */
+html[data-script="cjk"] body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "PingFang SC", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Noto Sans SC", sans-serif;
+  line-height: 1.6;
+}
+html[lang="zh-TW"] body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "PingFang TC", "Microsoft JhengHei",
+    "Noto Sans CJK TC", "Noto Sans TC", sans-serif;
+}
+html[data-script="cjk"] body *:not(#rack-panel, #rack-panel *) { letter-spacing: normal !important; }
+
 h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.02em; }
 .create-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .create-head h1 { margin-bottom: 4px; }

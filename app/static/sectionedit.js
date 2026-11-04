@@ -78,15 +78,15 @@
    */
   function wordsNote(before, after, reordered) {
     before = Number(before); after = Number(after);
-    var plural = function (n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); };
     if (after > before) {
-      return 'You added ' + plural(after - before, 'section') + ', and the words are matched to the sections in order, so the Words box needs ' +
-        plural(after - before, 'more block') + ' of words. Repeating the words of the section you copied works.';
+      return tn(after - before, 'You added {n} section, and the words are matched to the sections in order, so the Words box needs {n} more block of words. Repeating the words of the section you copied works.',
+        'You added {n} sections, and the words are matched to the sections in order, so the Words box needs {n} more blocks of words. Repeating the words of the section you copied works.');
     }
     if (after < before) {
-      return 'You took out ' + plural(before - after, 'section') + ', and the words are matched to the sections in order, so take their words out of the Words box too.';
+      return tn(before - after, 'You took out {n} section, and the words are matched to the sections in order, so take their words out of the Words box too.',
+        'You took out {n} sections, and the words are matched to the sections in order, so take their words out of the Words box too.');
     }
-    return reordered ? 'You rearranged the sections, and the words are matched to the sections in order, so rearrange their words in the Words box to match.' : null;
+    return reordered ? t('You rearranged the sections, and the words are matched to the sections in order, so rearrange their words in the Words box to match.') : null;
   }
 
   global.ScoreSections = { parse: parse, change: change, capCheck: capCheck, wordsNote: wordsNote };

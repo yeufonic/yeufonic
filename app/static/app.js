@@ -25,7 +25,7 @@
   });
   window.addEventListener('unhandledrejection', function (event) {
     var reason = event.reason;
-    report({ message: 'Unhandled promise: ' + String((reason && reason.message) || reason).slice(0, 300), source: '',
+    report({ message: t('Unhandled promise: {String}', { String: String((reason && reason.message) || reason).slice(0, 300) }), source: '',
              line: 0, column: 0, stack: reason && reason.stack ? String(reason.stack).slice(0, 1000) : '',
              page: window.location.pathname });
   });
@@ -116,7 +116,7 @@ var State = { normalising: {}, sources: [], takes: [], options: {}, filter: 'all
 var LAYOUT_KEY = 'yue2.layout';
 var SHEET_KEY = 'yue2.sheet';   // the take panel folded away, or not
 // Set here, before the page is wired, which happens partway through this file.
-var SHEET_KIND = { song: 'Song from a prompt', cover: 'Cover of a recording', instrumental: 'Instrumental' };
+var SHEET_KIND = { song: t('Song from a prompt'), cover: t('Cover of a recording'), instrumental: t('Instrumental') };
 var Editor = { page: 'song', step: 0 };   // the editor window's page and step
 var WIDTH_KEY = 'yue2.width';
 var SPACE_KEY = 'yue2.space';
@@ -157,7 +157,7 @@ function searchingEverywhere() {
 
 function spaceName(id) {
   var space = State.spaces.filter(function (s) { return s.id === id; })[0];
-  return space ? space.name : 'another space';
+  return space ? space.name : t('another space');
 }
 
 function recentSearches() {
@@ -183,7 +183,7 @@ function paintSearchCount() {
   if (!wrap) { return; }
   var on = !!State.search;
   wrap.classList.toggle('has-text', on || !!$('take-search').value);
-  $('take-search-count').textContent = on ? State.takesTotal + ' found' : '';
+  $('take-search-count').textContent = on ? t('{takesTotal} found', { takesTotal: State.takesTotal }) : '';
   paintTakesHeading();
   var all = $('search-all');
   if (all) {
@@ -207,11 +207,11 @@ function paintRecent() {
     list.classList.add('hidden');
     return;
   }
-  list.innerHTML = '<div class="search-recent-head">Recent searches</div>' +
+  list.innerHTML = '<div class="search-recent-head">' + t('Recent searches') + '</div>' +
     items.map(function (s, i) {
       return '<button type="button" class="search-recent-item" data-search="' + esc(s) + '" data-i="' + i + '">' + esc(s) + '</button>';
     }).join('') +
-    '<button type="button" class="search-recent-clear" data-clear-recent="1">Clear recent searches</button>';
+    '<button type="button" class="search-recent-clear" data-clear-recent="1">' + t('Clear recent searches') + '</button>';
   list.classList.remove('hidden');
 }
 
@@ -328,8 +328,8 @@ function applyWidth(mode) {
   button.classList.toggle('active', !fit);
   button.setAttribute('aria-pressed', fit ? 'false' : 'true');
   button.title = fit
-    ? 'Fill the window: the most cards at once'
-    : 'A centred column, rather than the whole window';
+    ? t('Fill the window: the most cards at once')
+    : t('A centred column, rather than the whole window');
   try { localStorage.setItem(WIDTH_KEY, State.width); } catch (err) { /* private mode */ }
 }
 
@@ -366,10 +366,10 @@ function secs(value) {
 }
 function age(ts) {
   var d = Math.floor(Date.now() / 1000 - ts);
-  if (d < 60) { return 'just now'; }
-  if (d < 3600) { return Math.floor(d / 60) + ' min ago'; }
-  if (d < 86400) { return Math.floor(d / 3600) + ' h ago'; }
-  return Math.floor(d / 86400) + ' d ago';
+  if (d < 60) { return t('just now'); }
+  if (d < 3600) { return t('{n} min ago', { n: Math.floor(d / 60) }); }
+  if (d < 86400) { return t('{n} h ago', { n: Math.floor(d / 3600) }); }
+  return t('{n} d ago', { n: Math.floor(d / 86400) });
 }
 function initials(text) {
   var clean = String(text || '?').trim();
@@ -391,7 +391,8 @@ async function api(path, options) {
         detail = parsed.detail.map(function (item) { return (item.loc || []).slice(-1)[0] + ': ' + item.msg; }).join('; ');
       }
     } catch (err) { /* plain text */ }
-    throw new Error(String(detail).slice(0, 300));
+    // The server writes English; the page shows its message in the page's language (i18n.js).
+    throw new Error(tr(String(detail)).slice(0, 300));
   }
   var type = response.headers.get('content-type') || '';
   return type.indexOf('application/json') >= 0 ? response.json() : response.text();
@@ -415,8 +416,8 @@ function paintStalePage(assets) {
   var pill = document.createElement('button');
   pill.id = 'reload-pill';
   pill.className = 'pill pill-wait reload';
-  pill.textContent = 'Reload to update';
-  pill.title = 'Yeufonic was updated after this page was opened. Reload the page to use the new version.';
+  pill.textContent = t('Reload to update');
+  pill.title = t('Yeufonic was updated after this page was opened. Reload the page to use the new version.');
   pill.addEventListener('click', function () { window.location.reload(); });
   right.insertBefore(pill, right.firstChild);
 }
@@ -452,8 +453,8 @@ async function pollState() {
     if (engine.stuck) {
       // Its job thread died and it stayed up: it takes jobs and never runs them.
       pill.className = 'pill pill-off';
-      pill.textContent = 'Engine needs a restart';
-      pill.title = 'A job ran out of GPU memory and the engine stopped running jobs. Restart the engine; jobs wait until then.';
+      pill.textContent = t('Engine needs a restart');
+      pill.title = t('A job ran out of GPU memory and the engine stopped running jobs. Restart the engine; jobs wait until then.');
     } else if (engine.online && engine.compat && engine.compat.ok) {
       if (State.training) {
         pill.className = 'pill pill-wait';
@@ -465,34 +466,34 @@ async function pollState() {
             var usedGb = Math.max(0, (engine.gpu.vram_total - engine.gpu.vram_free) / 1073741824);
             var totalGb = Math.round(engine.gpu.vram_total / 1073741824);
             vramInfo = ' \u00b7 ' + usedGb.toFixed(1).replace(/\.0$/, '') + ' / ' + totalGb + ' GB';
-            vramHover = ' (' + usedGb.toFixed(1) + ' GB used \u00b7 ' + freeGb.toFixed(1) + ' GB free of ' + totalGb + ' GB VRAM)';
+            vramHover = ' ' + t('({usedGb} GB used · {freeGb} GB free of {totalGb} GB VRAM)', { usedGb: usedGb.toFixed(1), freeGb: freeGb.toFixed(1), totalGb: totalGb });
           } else {
-            vramInfo = ' \u00b7 ' + Math.round(freeGb) + ' GB free';
+            vramInfo = ' ' + t('· {freeGb} GB free', { freeGb: Math.round(freeGb) });
           }
         }
-        pill.textContent = 'Training LoRA' + vramInfo;
-        pill.title = 'LoRA \u201c' + (State.training.lora_name || 'custom') + '\u201d is training and holds the GPU' + vramHover + '. Click to view in Corpora.';
+        pill.textContent = t('Training LoRA{vramInfo}', { vramInfo: vramInfo });
+        pill.title = t('LoRA “{value}” is training and holds the GPU{vramHover}. Click to view in Corpora.', { value: State.training.lora_name || t('custom'), vramHover: vramHover });
         pill.style.cursor = 'pointer';
       } else {
         pill.className = 'pill pill-on';
-        pill.textContent = 'Engine ready' + (engine.gpu ? ' \u00b7 ' + Math.round(engine.gpu.vram_free / 1073741824) + ' GB free' : '');
+        pill.textContent = t('Engine ready{value}', { value: engine.gpu ? ' ' + t('· {n} GB free', { n: Math.round(engine.gpu.vram_free / 1073741824) }) : '' });
         pill.style.cursor = '';
       }
     } else if (engine.problem) {
       // The engine's start script found it cannot run (a driver too old for its PyTorch) and is waiting.
       pill.className = 'pill pill-off';
-      pill.textContent = engine.problem.problem === 'driver' ? 'Engine can\u2019t start: driver too old' : 'Engine can\u2019t start';
-      pill.title = engine.problem.message || '';
+      pill.textContent = engine.problem.problem === 'driver' ? t('Engine can’t start: driver too old') : t('Engine can’t start');
+      pill.title = tr(engine.problem.message || '');
     } else if (engine.starting) {
       // Up before the engine: the page opens early, and a job asked for now waits.
       pill.className = 'pill pill-wait';
-      pill.textContent = 'Engine starting\u2026';
+      pill.textContent = t('Engine starting…');
     } else if (engine.online) {
       pill.className = 'pill pill-off';
-      pill.textContent = 'Engine incompatible: ' + ((engine.compat.missing || []).join(', ') || (engine.compat.notes || []).join('; '));
+      pill.textContent = t('Engine incompatible: {value}', { value: (engine.compat.missing || []).join(', ') || (engine.compat.notes || []).join('; ') });
     } else {
       pill.className = 'pill pill-off';
-      pill.textContent = 'Engine offline';
+      pill.textContent = t('Engine offline');
     }
     State.stemsOptions = data.stems || State.stemsOptions || {};
     if (data.settings) { adoptSettings(data.settings); }
@@ -511,7 +512,7 @@ async function pollState() {
   } catch (err) {
     paintSystemStats(null);
     $('engine-pill').className = 'pill pill-off';
-    $('engine-pill').textContent = 'App unreachable';
+    $('engine-pill').textContent = t('App unreachable');
   }
 }
 
@@ -521,7 +522,7 @@ function paintSystemStats(sys) {
   if (gpuEl && gpuText) {
     if (sys && typeof sys.gpu === 'number' && !isNaN(sys.gpu)) {
       gpuText.textContent = sys.gpu + '%';
-      gpuEl.title = 'GPU usage: ' + sys.gpu + '%';
+      gpuEl.title = t('GPU usage: {gpu}%', { gpu: sys.gpu });
       gpuEl.classList.remove('hidden');
     } else {
       gpuEl.classList.add('hidden');
@@ -532,7 +533,7 @@ function paintSystemStats(sys) {
   if (cpuEl && cpuText) {
     if (sys && typeof sys.cpu === 'number' && !isNaN(sys.cpu)) {
       cpuText.textContent = sys.cpu + '%';
-      cpuEl.title = 'CPU usage: ' + sys.cpu + '%';
+      cpuEl.title = t('CPU usage: {cpu}%', { cpu: sys.cpu });
       cpuEl.classList.remove('hidden');
     } else {
       cpuEl.classList.add('hidden');
@@ -542,12 +543,12 @@ function paintSystemStats(sys) {
 
 /* How the render reads the score.  The same six the server knows, by id. */
 var INTERPRETATIONS = {
-  standard: { name: 'Standard', hint: 'YuE2\u2019s usual reading of the score.' },
-  tight: { name: 'Tight', hint: 'More controlled and polished.' },
-  loose: { name: 'Loose', hint: 'Rougher and more spontaneous.' },
-  settled: { name: 'Settled', hint: 'Free to repeat a figure and sit in a groove.' },
-  restless: { name: 'Restless', hint: 'Keeps the parts moving and avoids repeating itself.' },
-  wide: { name: 'Wide', hint: 'Reaches for less obvious sounds.' }
+  standard: { name: t('Standard'), hint: t('YuE2’s usual reading of the score.') },
+  tight: { name: t('Tight'), hint: t('More controlled and polished.') },
+  loose: { name: t('Loose'), hint: t('Rougher and more spontaneous.') },
+  settled: { name: t('Settled'), hint: t('Free to repeat a figure and sit in a groove.') },
+  restless: { name: t('Restless'), hint: t('Keeps the parts moving and avoids repeating itself.') },
+  wide: { name: t('Wide'), hint: t('Reaches for less obvious sounds.') }
 };
 
 function paintInterpretation() {
@@ -575,25 +576,25 @@ function paintOptions() {
   var canInst = State.options.instrumental_available !== false;
   $('create-inst').disabled = !canInst;
   $('create-inst').title = canInst ? '' : (cppEngine()
-    ? 'The instrumental LoRA is not in the LoRA folder. Run scripts/fetch-models.sh.'
-    : 'The engine has no instrumental LoRA. Run scripts/fetch-models.sh, then restart the engine.');
+    ? t('The instrumental LoRA is not in the LoRA folder. Run scripts/fetch-models.sh.')
+    : t('The engine has no instrumental LoRA. Run scripts/fetch-models.sh, then restart the engine.'));
   var canWrite = State.options.lyrics_available !== false;
   $('lyrics-write').disabled = !canWrite;
   $('lyrics-write').title = canWrite
-    ? (WRITE.id ? 'Drafting lyrics in progress\u2026 Click to view status or stop' : 'Draft lyrics from a short description')
-    : (cppEngine() ? 'Gemma is not installed beside the yue2.cpp engine (scripts/fetch-models.sh --cpp --gemma). An external LLM, set up in Settings, can draft lyrics instead.'
-      : 'The engine has no lyric writer. Run scripts/fetch-models.sh, then restart the engine.');
+    ? (WRITE.id ? t('Drafting lyrics in progress… Click to view status or stop') : t('Draft lyrics from a short description'))
+    : (cppEngine() ? t('Gemma is not installed beside the yue2.cpp engine (scripts/fetch-models.sh --cpp --gemma). An external LLM, set up in Settings, can draft lyrics instead.')
+      : t('The engine has no lyric writer. Run scripts/fetch-models.sh, then restart the engine.'));
   if (canWrite) {
-    $('lyrics-write').textContent = WRITE.id ? 'Drafting\u2026' : 'Write lyrics';
+    $('lyrics-write').textContent = WRITE.id ? t('Drafting…') : t('Write lyrics');
   }
   var canRealaudio = State.options.realaudio !== false;
   $('realaudio').disabled = !canRealaudio;
   if (!canRealaudio) {
     $('realaudio').checked = false;
-    $('realaudio-field').title = cppEngine() ? 'The Realaudio LoRA is not in the LoRA folder. Run scripts/fetch-models.sh.'
-      : 'The engine has no Realaudio LoRA. Run scripts/fetch-models.sh, then restart the engine.';
+    $('realaudio-field').title = cppEngine() ? t('The Realaudio LoRA is not in the LoRA folder. Run scripts/fetch-models.sh.')
+      : t('The engine has no Realaudio LoRA. Run scripts/fetch-models.sh, then restart the engine.');
   } else {
-    var tip = 'Applies Mothersuperior v9 real-audio decoder LoRA for studio-grade acoustic clarity, frequency separation, and clean lead vocals.';
+    var tip = t('Applies Mothersuperior v9 real-audio decoder LoRA for studio-grade acoustic clarity, frequency separation, and clean lead vocals.');
     $('realaudio-field').title = tip;
     var raw = null;
     try { raw = localStorage.getItem(FORM_KEY); } catch (e) {}
@@ -607,8 +608,8 @@ function paintOptions() {
 /* The style LoRA picker: whatever the engine can load, minus the two the app
    applies itself.  A file tells us which halves it holds, so a strength that
    would do nothing is not offered. */
-var LORA_KINDS = { both: 'score and sound', planner: 'score only', decoder: 'sound only',
-  other: 'not a YuE2 LoRA', unknown: '' };
+var LORA_KINDS = { both: t('score and sound'), planner: t('score only'), decoder: t('sound only'),
+  other: t('not a YuE2 LoRA'), unknown: '' };
 
 /* Every LoRA that belongs to one of the Identities.  Those have a control of
    their own, where both of their strengths now live, so offering them here as
@@ -664,7 +665,7 @@ function loraGroupKey(item) {
   return item.family || loraFamily(item.name);
 }
 
-var LORA_CHECKPOINTS = 'Training checkpoints';
+var LORA_CHECKPOINTS = t('Training checkpoints');
 
 /* A training run's checkpoint (name_stepN) and the finished LoRA it belongs to. */
 function loraCheckpoint(name) {
@@ -725,7 +726,7 @@ function paintStyleLoras() {
     // The author's own name for it beats a file name every time.
     var label = item.title || loraShortLabel(item.name);
     // On the option itself, so the list can be read before anything is chosen.
-    var tip = [item.trigger ? 'Trigger: ' + item.trigger : '', plainNote(item.note), item.name]
+    var tip = [item.trigger ? t('Trigger: {trigger}', { trigger: item.trigger }) : '', plainNote(item.note), item.name]
       .filter(Boolean).join('\n\n');
     // A step keeps its full name here, for the picker's button, and a short one
     // for the menu, where its LoRA is the row above it.
@@ -739,14 +740,14 @@ function paintStyleLoras() {
     });
     return option(item) + steps.map(function (step) { return option(step, item.name); }).join('');
   };
-  select.innerHTML = '<option value="">None</option>' + names.map(function (family) {
+  select.innerHTML = '<option value="">' + t('None') + '</option>' + names.map(function (family) {
     var inner = groups[family].map(withSteps).join('');
     // One group and nothing to compare it with: the heading is noise.
     if (names.length < 2) { return inner; }
     // A named family is already its heading; an unnamed one is a bare file-name
     // prefix, and Other is a bag of odds and ends that must not borrow a name
     // from whichever of them happens to be first.
-    var heading = family === 'other' ? 'Other'
+    var heading = family === 'other' ? t('Other')
       : (groups[family][0].family ? family : family.charAt(0).toUpperCase() + family.slice(1));
     return '<optgroup label="' + esc(heading) + '">' + inner + '</optgroup>';
   }).join('');
@@ -836,7 +837,7 @@ function paintLoraPicker() {
   try {
     var chosen = select.value;
     var current = select.options[select.selectedIndex];
-    $('lora-picker-label').textContent = current ? current.textContent : 'None';
+    $('lora-picker-label').textContent = current ? current.textContent : t('None');
     var open = loraOpenGroups();
     // A LoRA with a run's checkpoints folds them under its own row, remembered
     // with the groups as "steps:" and its name.
@@ -850,8 +851,8 @@ function paintLoraPicker() {
       var count = stepCount[option.value];
       var stepsOpen = open.indexOf('steps:' + option.value) >= 0;
       var toggle = count ? '<span class="lora-steps-toggle" role="button" aria-expanded="' + stepsOpen + '" data-steps="' +
-        esc(option.value) + '" title="' + (stepsOpen ? 'Hide' : 'Show') + ' the checkpoints its training run kept">' +
-        (stepsOpen ? '\u25BE' : '\u25B8') + ' ' + count + ' step' + (count === 1 ? '' : 's') + '</span>' : '';
+        esc(option.value) + '" title="' + t('{value} the checkpoints its training run kept', { value: stepsOpen ? t('Hide') : t('Show') }) + '">' +
+        (stepsOpen ? '\u25BE' : '\u25B8') + ' ' + tn(count, '{n} step', '{n} steps') + '</span>' : '';
       return '<div class="source-picker-item lora-item' + (flat ? ' flat' : '') + (parent ? ' lora-step' : '') +
         (option.value === chosen ? ' selected' : '') +
         '" role="option" data-value="' + esc(option.value) + '" title="' + esc(option.title || '') + '">' +
@@ -931,9 +932,9 @@ function paintStepsButton(item) {
   var inside = editingTakeInside();
   steps.classList.toggle('hidden', !item);
   steps.disabled = !hasSteps || inside;
-  steps.title = !hasSteps ? 'This LoRA has no training checkpoints'
-    : inside ? 'This take is kept inside another, and a take inside another has no set of its own. Take it out first, then try the checkpoints from it'
-    : 'Render what this panel makes once on each training checkpoint of this LoRA, to compare them by ear';
+  steps.title = !hasSteps ? t('This LoRA has no training checkpoints')
+    : inside ? t('This take is kept inside another, and a take inside another has no set of its own. Take it out first, then try the checkpoints from it')
+    : t('Render what this panel makes once on each training checkpoint of this LoRA, to compare them by ear');
 }
 
 function paintStyleLoraNote() {
@@ -949,64 +950,64 @@ function paintStyleLoraNote() {
   if ($('lora-strengths')) { $('lora-strengths').classList.toggle('hidden', !item); }
   var label = document.querySelector('label[for="style-lora"]');
   if (label) {
-    label.textContent = loraTrainedHere(item && item.name) ? 'Style LoRA \u2014 custom' : 'Style LoRA';
+    label.textContent = loraTrainedHere(item && item.name) ? t('Style LoRA — custom') : t('Style LoRA');
   }
   // The list is read from the engine, so a file added by hand needs a nudge. The app
   // looks again every five minutes; this is for when five minutes is too long.
   var hint = $('style-lora-hint');
   if (!item) {
-    hint.innerHTML = 'Planner shapes what is played, Sound how it sounds.';
+    hint.innerHTML = t('Planner shapes what is played, Sound how it sounds.');
     return;
   }
   var parts = [];
   if (item.trigger) {
     parts.push(styleHas($('style').value, item.trigger)
-      ? 'Trigger word <b>' + esc(item.trigger) + '</b> is in the style.'
-      : '<b>' + esc(item.trigger) + '</b> goes in the style when you render.');
+      ? t('Trigger word <b>{trigger}</b> is in the style.', { trigger: esc(item.trigger) })
+      : t('<b>{trigger}</b> goes in the style when you render.', { trigger: esc(item.trigger) }));
   }
   if (item.strengths) {
-    var pair = 'Planner ' + Number(item.strengths.planner).toFixed(2) + ' / Sound ' + Number(item.strengths.sound).toFixed(2);
+    var pair = t('Planner {planner} / Sound {sound}', { planner: Number(item.strengths.planner).toFixed(2), sound: Number(item.strengths.sound).toFixed(2) });
     // Off its saved pair (a take made at other strengths, or the sliders moved): offer
     // the way back, here rather than as another button in the row.
     var held = loraKind(item.name);
     var off = ((held === 'both' || held === 'planner') && Math.abs(Number($('style-lora-clip').value) - item.strengths.planner) > 0.004) ||
               ((held === 'both' || held === 'decoder') && Math.abs(Number($('style-lora-model').value) - item.strengths.sound) > 0.004);
     parts.push(off
-      ? 'Saved: <b>' + pair + '</b> <button type="button" id="lora-use-saved" class="chip action compact" title="Put this LoRA\u2019s saved strengths back on the sliders">use</button>'
-      : 'Starts at <b>' + pair + '</b>.');
+      ? t('Saved: <b>{pair}</b>', { pair: pair }) + ' <button type="button" id="lora-use-saved" class="chip action compact" title="' + t('Put this LoRA’s saved strengths back on the sliders') + '">' + t('use') + '</button>'
+      : t('Starts at <b>{pair}</b>.', { pair: pair }));
   }
   if (item.styles && item.styles.length) {
-    parts.push('<b>Learned styles:</b> ' + item.styles.length + ' corpus songs. Click any style chip under the Style box to write in that sound.');
+    parts.push(t('<b>Learned styles:</b> {stylesCount} corpus songs. Click any style chip under the Style box to write in that sound.', { stylesCount: item.styles.length }));
   }
   if (item.note) { parts.push(esc(plainNote(item.note)).replace(/\n/g, '<br>')); }
   // What the file needs to do anything, and whether it currently is.
   var kind = loraKind(item.name);
   // A file with both halves is the usual case and needs no remark.
-  var holds = { planner: 'Planner only: Sound has no effect with this file.',
-                decoder: 'Sound only: Planner has no effect with this file.' }[kind];
+  var holds = { planner: t('Planner only: Sound has no effect with this file.'),
+                decoder: t('Sound only: Planner has no effect with this file.') }[kind];
   if (holds) { parts.push(holds); }
   var asleep = [];
-  if ((kind === 'both' || kind === 'planner') && Number($('style-lora-clip').value) === 0) { asleep.push('Planner'); }
-  if ((kind === 'both' || kind === 'decoder') && Number($('style-lora-model').value) === 0) { asleep.push('Sound'); }
+  if ((kind === 'both' || kind === 'planner') && Number($('style-lora-clip').value) === 0) { asleep.push(t('Planner')); }
+  if ((kind === 'both' || kind === 'decoder') && Number($('style-lora-model').value) === 0) { asleep.push(t('Sound')); }
   if (asleep.length) {
-    parts.push('<b>' + asleep.join(' and ') + ' at 0.00</b>, so this file is doing nothing.');
+    parts.push(t('<b>{value} at 0.00</b>, so this file is doing nothing.', { value: asleep.join(' and ') }));
   }
   if (State.mode === 'inst') {
     var clipVal = Number($('style-lora-clip') ? $('style-lora-clip').value : 0);
     var harmVal = Number($('harmony') ? $('harmony').value : 0);
     if (clipVal > 0.70 || harmVal > 0) {
       var warnings = [];
-      if (clipVal > 0.70) { warnings.push('Planner above 0.70 (' + clipVal.toFixed(2) + ')'); }
-      if (harmVal > 0) { warnings.push('Varied harmony'); }
-      parts.push('<span style="color: #f59e0b;">⚠️ <b>Instrumental note:</b> The instrumental model is already active on the planner. ' + warnings.join(' and ') + ' can cause token conflicts during score planning. Recommended: <b>Planner ~0.50–0.60</b> with <b>Familiar</b> harmony.</span>');
+      if (clipVal > 0.70) { warnings.push(t('Planner above 0.70 ({clipVal})', { clipVal: clipVal.toFixed(2) })); }
+      if (harmVal > 0) { warnings.push(t('Varied harmony')); }
+      parts.push('<span style="color: #f59e0b;">' + t('⚠️ <b>Instrumental note:</b> The instrumental model is already active on the planner. {value} can cause token conflicts during score planning. Recommended: <b>Planner ~0.50–0.60</b> with <b>Familiar</b> harmony.', { value: warnings.join(' and ') }) + '</span>');
     } else {
-      parts.push('<b>Instrumental note:</b> with the instrumental model active, keeping style Planner around <b>0.50–0.60</b> avoids score planner conflicts.');
+      parts.push(t('<b>Instrumental note:</b> with the instrumental model active, keeping style Planner around <b>0.50–0.60</b> avoids score planner conflicts.'));
     }
     if (loraTrainedHere(item.name)) {
-      parts.push('<b>Sound texture:</b> Sound strength around <b>~0.55–0.60</b> applies the corpus acoustic texture cleanly.');
+      parts.push(t('<b>Sound texture:</b> Sound strength around <b>~0.55–0.60</b> applies the corpus acoustic texture cleanly.'));
     }
   } else if (loraTrainedHere(item.name) && !item.strengths && State.mode === 'cover') {
-    parts.push('<b>In a cover</b>, keep Sound near 0.50: your recording sets the tune.');
+    parts.push(t('<b>In a cover</b>, keep Sound near 0.50: your recording sets the tune.'));
   }
   hint.innerHTML = parts.join('<br>');
 }
@@ -1015,16 +1016,16 @@ function paintStyleLoraNote() {
    added by hand can wait; this is for when it should not. */
 async function reloadLoras() {
   var button = $('lora-reload');
-  if (button) { button.textContent = 'Scanning\u2026'; }
+  if (button) { button.textContent = t('Scanning…'); }
   try {
     var found = await api('/api/engine/reload-options', { method: 'POST' });
     await pollState();
     paintStyleLoras();
-    statusLine('The engine lists ' + found.loras + ' LoRAs.', 'good');
+    statusLine(t('The engine lists {loras} LoRAs.', { loras: found.loras }), 'good');
   } catch (err) {
-    statusLine('Could not read the engine\u2019s list: ' + err.message, 'bad');
+    statusLine(t('Could not read the engine’s list: {message}', { message: err.message }), 'bad');
   }
-  if (button) { button.textContent = 'Rescan'; }
+  if (button) { button.textContent = t('Rescan'); }
 }
 
 /* A strength of zero on a half the file does hold is the same as not choosing the
@@ -1065,13 +1066,13 @@ function paintStrengthValue(sliderId, held, force) {
   if (!held) {
     box.value = '';
     box.placeholder = '\u2014';
-    box.title = 'This file holds no ' + (sliderId.indexOf('clip') >= 0 ? 'planner' : 'sound') + ' half';
+    box.title = t('This file holds no {value} half', { value: sliderId.indexOf('clip') >= 0 ? t('planner') : t('sound') });
     return;
   }
   // Skipped while the box has focus, so a half-typed number is not overwritten — but
   // not when the slider itself moved, which is the user saying the opposite.
   if (force || document.activeElement !== box) { box.value = Number(slider.value).toFixed(2); }
-  box.title = 'Type an exact strength';
+  box.title = t('Type an exact strength');
 }
 
 function setStrength(sliderId, value) {
@@ -1242,7 +1243,7 @@ function paintVoiceCues() {
 
 async function fitVoices() {
   var abc = $('abc').value;
-  if (!abc.trim()) { statusLine('There is no score yet.', 'bad'); return; }
+  if (!abc.trim()) { statusLine(t('There is no score yet.'), 'bad'); return; }
   var button = $('fit-voices');
   button.disabled = true;
   try {
@@ -1254,9 +1255,9 @@ async function fitVoices() {
       $('abc').value = answer.abc;
       if ($('chart').textContent) { setChart(chordChart(answer.abc)); }
       syncEditor();
-      statusLine(answer.message + ' Save the score, then render.', 'good');
+      statusLine(t('{message} Save the score, then render.', { message: tr(answer.message) }), 'good');
     } else {
-      statusLine(answer.cues ? answer.message : 'The lyrics have no voice cues: put [male voice], [female voice] or [both voices] on a line above the words.',
+      statusLine(answer.cues ? tr(answer.message) : t('The lyrics have no voice cues: put [male voice], [female voice] or [both voices] on a line above the words.'),
                  answer.cues ? 'good' : 'hint');
     }
   } catch (err) {
@@ -1350,12 +1351,12 @@ function updateAdvancedButtonState() {
   if (dirty) {
     btn.classList.add('is-active');
     if (dot) { dot.classList.remove('hidden'); }
-    btn.title = 'Advanced take settings (custom values active)';
+    btn.title = t('Advanced take settings (custom values active)');
     if (resetBtn) { resetBtn.disabled = false; }
   } else {
     btn.classList.remove('is-active');
     if (dot) { dot.classList.add('hidden'); }
-    btn.title = 'Advanced take settings (all defaults)';
+    btn.title = t('Advanced take settings (all defaults)');
     if (resetBtn) { resetBtn.disabled = true; }
   }
 }
@@ -1639,14 +1640,14 @@ function lyricsStats(text) {
 
 function updateLyricsCount() {
   var stats = lyricsStats($('lyrics-big').value);
-  $('lyrics-count').textContent = stats.words + ' words \u00b7 ' + stats.lines + ' lines \u00b7 ' + stats.chars + ' characters';
+  $('lyrics-count').textContent = t('{words} words · {lines} lines · {chars} characters', { words: stats.words, lines: stats.lines, chars: stats.chars });
 }
 
 /* The score gets the same full size editor as the lyrics, for long ABC. */
 function updateScoreCount() {
   var text = $('score-big').value;
   var bars = text.split('\n').length;
-  $('score-count').textContent = text.length + ' characters, ' + bars + ' lines';
+  $('score-count').textContent = t('{textCount} characters, {bars} lines', { textCount: text.length, bars: bars });
 }
 
 /* Three ways to read the score: the chord chart, real staves, and the lyrics
@@ -1815,74 +1816,74 @@ var PIANO_LOW = 21, PIANO_HIGH = 108;
    so the list runs from the most particular word to the most general.  The number is a
    General MIDI program and the id is the sample set of that name (app/soundfonts.py);
    the score, the staves and the box are untouched — this is how the preview sounds. */
-var PREVIEW_PIANO = { id: 'acoustic_grand_piano', label: 'piano', program: 0, words: ['piano', 'keys', 'ballad'] };
+var PREVIEW_PIANO = { id: 'acoustic_grand_piano', label: t('piano'), program: 0, words: ['piano', 'keys', 'ballad'] };
 var PREVIEW_INSTRUMENTS = [
-  { id: 'distortion_guitar', label: 'distorted guitar', program: 30,
+  { id: 'distortion_guitar', label: t('distorted guitar'), program: 30,
     words: ['distortion', 'distorted', 'heavy metal', 'hard rock', 'punk', 'grunge', 'metal'] },
-  { id: 'overdriven_guitar', label: 'overdriven guitar', program: 29, words: ['overdriven', 'fuzz', 'garage'] },
-  { id: 'acoustic_guitar_nylon', label: 'nylon guitar', program: 24,
+  { id: 'overdriven_guitar', label: t('overdriven guitar'), program: 29, words: ['overdriven', 'fuzz', 'garage'] },
+  { id: 'acoustic_guitar_nylon', label: t('nylon guitar'), program: 24,
     words: ['nylon', 'classical guitar', 'flamenco', 'spanish guitar'] },
-  { id: 'acoustic_guitar_steel', label: 'steel guitar', program: 25,
+  { id: 'acoustic_guitar_steel', label: t('steel guitar'), program: 25,
     words: ['acoustic guitar', 'fingerpick', 'fingerpicking', 'strummed', 'unplugged', 'singer-songwriter'] },
-  { id: 'banjo', label: 'banjo', program: 105, words: ['banjo', 'bluegrass'] },
-  { id: 'violin', label: 'violin', program: 40, words: ['violin', 'fiddle'] },
-  { id: 'cello', label: 'cello', program: 42, words: ['cello'] },
-  { id: 'string_ensemble_1', label: 'strings', program: 48,
+  { id: 'banjo', label: t('banjo'), program: 105, words: ['banjo', 'bluegrass'] },
+  { id: 'violin', label: t('violin'), program: 40, words: ['violin', 'fiddle'] },
+  { id: 'cello', label: t('cello'), program: 42, words: ['cello'] },
+  { id: 'string_ensemble_1', label: t('strings'), program: 48,
     words: ['string', 'orchestral', 'orchestra', 'chamber', 'cinematic', 'baroque'] },
-  { id: 'brass_section', label: 'brass', program: 61,
+  { id: 'brass_section', label: t('brass'), program: 61,
     words: ['brass', 'trumpet', 'trombone', 'horn section', 'big band'] },
-  { id: 'alto_sax', label: 'saxophone', program: 65, words: ['sax'] },
-  { id: 'flute', label: 'flute', program: 73, words: ['flute', 'whistle', 'recorder'] },
-  { id: 'marimba', label: 'marimba', program: 12, words: ['marimba', 'kalimba', 'mallet'] },
-  { id: 'vibraphone', label: 'vibraphone', program: 11, words: ['vibraphone', 'glockenspiel', 'xylophone', 'bells'] },
-  { id: 'drawbar_organ', label: 'organ', program: 16, words: ['organ', 'hammond', 'gospel', 'church'] },
-  { id: 'electric_piano_1', label: 'electric piano', program: 4,
+  { id: 'alto_sax', label: t('saxophone'), program: 65, words: ['sax'] },
+  { id: 'flute', label: t('flute'), program: 73, words: ['flute', 'whistle', 'recorder'] },
+  { id: 'marimba', label: t('marimba'), program: 12, words: ['marimba', 'kalimba', 'mallet'] },
+  { id: 'vibraphone', label: t('vibraphone'), program: 11, words: ['vibraphone', 'glockenspiel', 'xylophone', 'bells'] },
+  { id: 'drawbar_organ', label: t('organ'), program: 16, words: ['organ', 'hammond', 'gospel', 'church'] },
+  { id: 'electric_piano_1', label: t('electric piano'), program: 4,
     words: ['rhodes', 'wurlitzer', 'electric piano', 'lo-fi', 'lofi', 'lo fi'] },
-  { id: 'pad_2_warm', label: 'warm pad', program: 89, words: ['pad', 'ambient', 'atmospheric', 'shoegaze'] },
-  { id: 'lead_2_sawtooth', label: 'synth lead', program: 81,
+  { id: 'pad_2_warm', label: t('warm pad'), program: 89, words: ['pad', 'ambient', 'atmospheric', 'shoegaze'] },
+  { id: 'lead_2_sawtooth', label: t('synth lead'), program: 81,
     words: ['synth', 'synthesizer', 'electronic', 'edm', 'dance', 'techno', 'house'] },
-  { id: 'electric_guitar_clean', label: 'clean guitar', program: 27,
+  { id: 'electric_guitar_clean', label: t('clean guitar'), program: 27,
     words: ['electric guitar', 'jangly', 'jangle', 'twangy', 'guitar'] },
   PREVIEW_PIANO
 ];
 // What plays the chord symbols, and their bass notes.
 var PREVIEW_COMP = [
-  { id: 'electric_piano_1', label: 'electric piano', program: 4,
+  { id: 'electric_piano_1', label: t('electric piano'), program: 4,
     words: ['rhodes', 'electric piano', 'lo-fi', 'lofi', 'lo fi', 'soul'] },
-  { id: 'drawbar_organ', label: 'organ', program: 16, words: ['organ', 'hammond', 'gospel', 'church'] },
-  { id: 'pad_2_warm', label: 'warm pad', program: 89, words: ['synth', 'electronic', 'ambient', 'dream pop'] },
+  { id: 'drawbar_organ', label: t('organ'), program: 16, words: ['organ', 'hammond', 'gospel', 'church'] },
+  { id: 'pad_2_warm', label: t('warm pad'), program: 89, words: ['synth', 'electronic', 'ambient', 'dream pop'] },
   // The strummed ones come before the electric: "acoustic guitar" has "guitar" in it,
   // and a folk or country song wants the steel, not a clean electric.
-  { id: 'acoustic_guitar_steel', label: 'steel guitar', program: 25,
+  { id: 'acoustic_guitar_steel', label: t('steel guitar'), program: 25,
     words: ['acoustic guitar', 'folk', 'country', 'bluegrass', 'banjo', 'strummed', 'unplugged'] },
-  { id: 'electric_guitar_clean', label: 'clean guitar', program: 27,
+  { id: 'electric_guitar_clean', label: t('clean guitar'), program: 27,
     words: ['indie', 'rock', 'jangle', 'punk', 'grunge', 'guitar'] }
 ];
 var PREVIEW_BASS = [
-  { id: 'slap_bass_1', label: 'slap bass', program: 36, words: ['slap', 'funk'] },
-  { id: 'synth_bass_1', label: 'synth bass', program: 38,
+  { id: 'slap_bass_1', label: t('slap bass'), program: 36, words: ['slap', 'funk'] },
+  { id: 'synth_bass_1', label: t('synth bass'), program: 38,
     words: ['synth', 'electronic', 'edm', 'dance', 'techno', 'house', 'hip hop', 'hip-hop'] },
-  { id: 'acoustic_bass', label: 'upright bass', program: 32, words: ['jazz', 'upright', 'double bass', 'swing'] },
-  { id: 'electric_bass_pick', label: 'pick bass', program: 34, words: ['pick', 'punk', 'rock'] }
+  { id: 'acoustic_bass', label: t('upright bass'), program: 32, words: ['jazz', 'upright', 'double bass', 'swing'] },
+  { id: 'electric_bass_pick', label: t('pick bass'), program: 34, words: ['pick', 'punk', 'rock'] }
 ];
-var PREVIEW_BASS_DEFAULT = { id: 'electric_bass_finger', label: 'finger bass', program: 33 };
+var PREVIEW_BASS_DEFAULT = { id: 'electric_bass_finger', label: t('finger bass'), program: 33 };
 /* The drums, when the style names them.  abcjs writes the part itself from one of
    these: a rhythm of hits and rests, then a pitch and a volume for each hit, scaled to
    fit a bar of the score's own metre.  C2 is a kick, D2 a snare, Gb2 a closed hi-hat,
    F#3 a ride — the usual general-MIDI drum numbers. */
 var PREVIEW_DRUMS = [
-  { id: 'club', label: 'drums',
+  { id: 'club', label: t('drums'),
     words: ['dance', 'house', 'techno', 'edm', 'disco', 'electronic', 'trance', 'club', 'synth-pop', 'synthpop'],
     rhythm: 'd2d2d2d2d2d2d2d2', pitches: [36, 42, 36, 42, 36, 42, 36, 42],
     volumes: [104, 50, 100, 50, 104, 50, 100, 50] },
-  { id: 'jazz', label: 'drums', words: ['jazz', 'swing', 'bebop', 'big band', 'blues'],
+  { id: 'jazz', label: t('drums'), words: ['jazz', 'swing', 'bebop', 'big band', 'blues'],
     rhythm: 'd2d2d2d2d2d2d2d2', pitches: [51, 51, 38, 51, 51, 51, 38, 51],
     volumes: [70, 60, 90, 60, 70, 60, 90, 60] },
-  { id: 'sparse', label: 'drums',
+  { id: 'sparse', label: t('drums'),
     words: ['ballad', 'gentle', 'slow', 'soft', 'acoustic', 'singer-songwriter', 'lullaby', 'ambient'],
     rhythm: 'd2z2d2z2d2z2d2z2', pitches: [36, 38, 36, 38],
     volumes: [80, 76, 80, 76] },
-  { id: 'backbeat', label: 'drums', words: ['drum', 'percussion', 'breakbeat', 'shaker'],
+  { id: 'backbeat', label: t('drums'), words: ['drum', 'percussion', 'breakbeat', 'shaker'],
     rhythm: 'd2d2d2d2d2d2d2d2', pitches: [36, 42, 38, 42, 36, 42, 38, 42],
     volumes: [100, 52, 104, 52, 100, 52, 104, 52] }
 ];
@@ -1894,8 +1895,8 @@ var PREVIEW_DRUM_WORDS = ['drum', 'percussion', 'breakbeat', 'beat', 'shaker', '
 var PREVIEW_NO_DRUMS = ['no drums', 'no percussion', 'without drums', 'drumless', 'no beat', 'unaccompanied'];
 
 // A sung line wants a voice, and a style that asks for a choir gets one.
-var PREVIEW_VOICE = { id: 'voice_oohs', label: 'voice', program: 53 };
-var PREVIEW_CHOIR = { id: 'choir_aahs', label: 'choir', program: 52,
+var PREVIEW_VOICE = { id: 'voice_oohs', label: t('voice'), program: 53 };
+var PREVIEW_CHOIR = { id: 'choir_aahs', label: t('choir'), program: 52,
                       words: ['choir', 'choral', 'harmonies', 'backing vocals', 'vocal harmony'] };
 
 function notationStyleText() { return (($('style') && $('style').value) || '').toLowerCase(); }
@@ -2045,7 +2046,7 @@ function notationPlayable(chordsOff) {
 function notationAbc() {
   var raw = ($('score-big') && $('score-big').value) || '';
   var lead = raw.length - raw.replace(/^\s+/, '').length;
-  var title = (($('title') && $('title').value) || '').trim() || 'Score';
+  var title = (($('title') && $('title').value) || '').trim() || t('Score');
   var lines = raw.slice(lead).split('\n');
   var choice = notationChoice(raw);
   NOTATION.choice = choice;      // what the sounds and the hand-over read after this
@@ -2167,8 +2168,10 @@ function notationSoundsReady() { return Boolean(NOTATION.sounds) && notationMiss
 
 function notationTransposeWords(shift) {
   var octaves = Math.abs(shift) / 12;
-  var how = octaves === 1 ? 'an octave' : octaves + ' octaves';
-  return 'Played ' + how + (shift < 0 ? ' lower' : ' higher') + ', to fit what these instruments can play.';
+  if (shift < 0) {
+    return tn(octaves, 'Played an octave lower, to fit what these instruments can play.', 'Played {n} octaves lower, to fit what these instruments can play.');
+  }
+  return tn(octaves, 'Played an octave higher, to fit what these instruments can play.', 'Played {n} octaves higher, to fit what these instruments can play.');
 }
 
 /* What the line beside the player says.  Everything here is worked out from the state
@@ -2182,33 +2185,31 @@ function notationPaintNote() {
   if (NOTATION.busy) {
     var many = notationMissing().length;
     note.textContent = many > 1
-      ? 'Getting the note samples (' + NOTATION.fetching + ' of ' + many + ')…'
-      : 'Getting the note samples…';
+      ? t('Getting the note samples ({fetching} of {many})…', { fetching: NOTATION.fetching, many: many })
+      : t('Getting the note samples…');
     return;
   }
   // Building the song for the first time takes a moment — a whole score is prepared as one
   // buffer before any of it sounds — and a control that looks dead while that happens reads
   // as broken.
-  if (NOTATION.preparing) { note.textContent = 'Getting the preview ready…'; return; }
+  if (NOTATION.preparing) { note.textContent = t('Getting the preview ready…'); return; }
   if (NOTATION.empty) { note.textContent = ''; return; }        // the staves say "No score yet."
-  if (!NOTATION.hasScore) { note.textContent = 'This score has no notes in it yet.'; return; }
+  if (!NOTATION.hasScore) { note.textContent = t('This score has no notes in it yet.'); return; }
   if (NOTATION.playable && NOTATION.partial) {
-    note.textContent = 'Some notes exceed browser piano range. Use Studio Audio (SF2) for complete orchestral playback.';
+    note.textContent = t('Some notes exceed browser piano range. Use Studio Audio (SF2) for complete orchestral playback.');
     return;
   }
   if (!NOTATION.playable) {
-    note.textContent = 'Some notes exceed browser piano range. Use Studio Audio (SF2) for complete orchestral playback.';
+    note.textContent = t('Some notes exceed browser piano range. Use Studio Audio (SF2) for complete orchestral playback.');
     return;
   }
   if (!notationSoundsReady()) {
     var short = notationMissing().length;
-    note.textContent = 'Play, or Get the sounds, fetches ' +
-      (short === 1 ? 'one instrument' : short + ' instruments') + ' once — about ' +
-      notationSoundSize(short) + ' MB — and it works offline afterwards.';
+    note.textContent = t('Play, or Get the sounds, fetches {value} once — about {notationSoundSize} MB — and it works offline afterwards.', { value: short === 1 ? t('one instrument') : t('{short} instruments', { short: short }), notationSoundSize: notationSoundSize(short) });
     return;
   }
   var said = [];
-  if (NOTATION.choice) { said.push('Played as ' + NOTATION.choice.words + ', from the style.'); }
+  if (NOTATION.choice) { said.push(t('Played as {words}, from the style.', { words: NOTATION.choice.words })); }
   if (NOTATION.transpose) { said.push(notationTransposeWords(NOTATION.transpose)); }
   note.textContent = said.join(' ');
 }
@@ -2217,8 +2218,8 @@ function notationPaintBar() {
   var ready = notationSoundsReady();
   var button = $('notation-sounds');
   if (button) {
-    button.textContent = NOTATION.busy ? 'Getting the sounds…'
-      : 'Get the sounds (' + notationSoundSize() + ' MB)';
+    button.textContent = NOTATION.busy ? t('Getting the sounds…')
+      : t('Get the sounds ({notationSoundSize} MB)', { notationSoundSize: notationSoundSize() });
     button.classList.toggle('hidden', ready);
     button.disabled = NOTATION.busy;
   }
@@ -2261,7 +2262,7 @@ async function notationGetSounds(thenPlay, thenAt) {
     notationSetTune();          // they are here now: hand the score over
     if (thenPlay) { notationResume(thenAt || 0, true); }
   } catch (err) {
-    notationNote('Could not fetch the sounds: ' + err.message);
+    notationNote(t('Could not fetch the sounds: {message}', { message: err.message }));
   } finally {
     NOTATION.busy = false;
     notationPaintBar();
@@ -2336,10 +2337,10 @@ function notationMidiBytes(abc) {
 function notationDownloadMidi() {
   if (typeof ABCJS === 'undefined' || !ABCJS.synth || !ABCJS.synth.getMidiFile) { return; }
   var score = notationAbc();
-  if (!score.text.trim()) { notationNote('There is no score to save yet.'); return; }
+  if (!score.text.trim()) { notationNote(t('There is no score to save yet.')); return; }
   var bytes = null;
   try { bytes = notationMidiBytes(score.text); } catch (err) { bytes = null; }
-  if (!bytes || !bytes.length) { notationNote('This score could not be written as MIDI.'); return; }
+  if (!bytes || !bytes.length) { notationNote(t('This score could not be written as MIDI.')); return; }
   var name = (($('title') && $('title').value) || 'score').trim().toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'score';
   var url = URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' }));
@@ -2361,10 +2362,10 @@ async function initScoreSf2Select() {
     if (!data.soundfonts || data.soundfonts.length === 0) {
       var opt = document.createElement('option');
       opt.value = '';
-      opt.textContent = '(No .sf2 SoundFonts installed)';
+      opt.textContent = t('(No .sf2 SoundFonts installed)');
       sel.appendChild(opt);
       sel.disabled = true;
-      var hint = 'Place .sf2 files in data/models/soundfonts/sf2 to enable studio rendering';
+      var hint = t('Place .sf2 files in data/models/soundfonts/sf2 to enable studio rendering');
       if ($('score-render-sf2')) $('score-render-sf2').title = hint;
       if ($('notation-render-sf2')) $('notation-render-sf2').title = hint;
       return;
@@ -2373,7 +2374,7 @@ async function initScoreSf2Select() {
     data.soundfonts.forEach(function (sf) {
       var opt = document.createElement('option');
       opt.value = sf.filename;
-      opt.textContent = sf.name + ' (' + sf.size_mb + 'MB)';
+      opt.textContent = t('{name} ({size_mb}MB)', { name: sf.name, size_mb: sf.size_mb });
       if (sf.filename === data.selected) {
         opt.selected = true;
       }
@@ -2385,13 +2386,13 @@ async function initScoreSf2Select() {
         body: JSON.stringify({ filename: sel.value })
       }).then(function () {
         var opt = sel.selectedOptions && sel.selectedOptions[0];
-        statusLine('Active SoundFont set to ' + (opt ? opt.textContent : sel.value), 'ok');
+        statusLine(t('Active SoundFont set to {value}', { value: opt ? opt.textContent : sel.value }), 'ok');
       }).catch(function (err) {
-        statusLine('Could not select SoundFont: ' + err.message, 'bad');
+        statusLine(t('Could not select SoundFont: {message}', { message: err.message }), 'bad');
       });
     };
   } catch (err) {
-    sel.innerHTML = '<option value="">(SoundFonts unavailable)</option>';
+    sel.innerHTML = '<option value="">' + t('(SoundFonts unavailable)') + '</option>';
     sel.disabled = true;
   }
 }
@@ -2409,7 +2410,7 @@ async function renderScoreSf2() {
   var abc = studioScoreAbc();
 
   if (!abc.trim()) {
-    notationNote('There is no score to render yet.');
+    notationNote(t('There is no score to render yet.'));
     return;
   }
 
@@ -2430,13 +2431,13 @@ async function renderScoreSf2() {
   }
 
   var btns = [$('score-render-sf2'), $('notation-render-sf2')].filter(Boolean);
-  btns.forEach(function (b) { b.disabled = true; b.textContent = 'Rendering...'; });
+  btns.forEach(function (b) { b.disabled = true; b.textContent = t('Rendering...'); });
 
   try {
     var bytes = null;
     try { bytes = notationMidiBytes(abc); } catch (e) { bytes = null; }
     if (!bytes || !bytes.length) {
-      notationNote('Could not convert score to MIDI.');
+      notationNote(t('Could not convert score to MIDI.'));
       return;
     }
 
@@ -2453,7 +2454,7 @@ async function renderScoreSf2() {
     });
 
     if (res.status === 'unavailable') {
-      notationNote(res.detail || 'No SoundFonts installed. Place .sf2 files in data/models/soundfonts/sf2.');
+      notationNote(tr(res.detail) || t('No SoundFonts installed. Place .sf2 files in data/models/soundfonts/sf2.'));
       return;
     }
 
@@ -2471,22 +2472,22 @@ async function renderScoreSf2() {
         STUDIO.mode = true;
         audio.play().catch(function () {});
         var sfLabel = res.soundfont ? res.soundfont.replace(/_/g, ' ').replace(/\.sf2$/i, '') : 'SoundFont';
-        npTitle(($('title') && $('title').value) || 'Score');
-        $('np-meta').textContent = 'Score (Studio Audio: ' + sfLabel + ')';
+        npTitle(($('title') && $('title').value) || t('Score'));
+        $('np-meta').textContent = t('Score (Studio Audio: {sfLabel})', { sfLabel: sfLabel });
         $('np-cover').className = 'np-cover grad-cover';
         if (res.peaks_url) {
           loadWave(res.audio_url, res.peaks_url);
         }
-        notationNote('Playing studio audio rendered with ' + sfLabel);
+        notationNote(t('Playing studio audio rendered with {sfLabel}', { sfLabel: sfLabel }));
       }
     }
   } catch (err) {
-    notationNote('Render failed: ' + (err.message || err));
+    notationNote(t('Render failed: {value}', { value: err.message || err }));
   } finally {
     btns.forEach(function (b) {
       b.disabled = false;
-      if (b.id === 'score-render-sf2') b.textContent = 'Studio Audio';
-      else b.textContent = 'Studio Audio (SF2)';
+      if (b.id === 'score-render-sf2') b.textContent = t('Studio Audio');
+      else b.textContent = t('Studio Audio (SF2)');
     });
     paintRollStudio();
   }
@@ -2509,14 +2510,14 @@ function paintStudioButtons() {
     var el = $(id);
     if (!el) { return; }
     el.classList.toggle('active', STUDIO.mode);
-    el.title = STUDIO.mode ? 'Studio audio is on. Press to go back to the ordinary preview'
-                          : 'Render score with SoundFont via FluidSynth';
+    el.title = STUDIO.mode ? t('Studio audio is on. Press to go back to the ordinary preview')
+                          : t('Render score with SoundFont via FluidSynth');
   });
   // The roll's own instrument is not what is heard while the studio audio plays.
   var sound = $('roll-sound-val');
   if (sound) {
     sound.disabled = STUDIO.mode;
-    sound.title = STUDIO.mode ? 'Not used while studio audio is on' : 'Interactive piano roll preview instrument';
+    sound.title = STUDIO.mode ? t('Not used while studio audio is on') : t('Interactive piano roll preview instrument');
   }
 }
 
@@ -2536,13 +2537,13 @@ function paintRollStudio() {
   if (STUDIO.mode) {
     var playing = studioAudioPlaying();
     btn.dataset.studio = '1';
-    btn.textContent = playing ? '\u23f8 Pause' : '\u25b6 Play';
-    btn.title = playing ? 'Pause the studio audio (Space)' : 'Play the studio audio (Space)';
+    btn.textContent = playing ? t('⏸ Pause') : t('▶ Play');
+    btn.title = playing ? t('Pause the studio audio (Space)') : t('Play the studio audio (Space)');
   } else if (btn.dataset.studio === '1') {
     delete btn.dataset.studio;
     var rolling = window.PianoRoll && window.PianoRoll.isPlaying;
-    btn.textContent = rolling ? '\u23f8 Pause' : '\u25b6 Play';
-    btn.title = rolling ? 'Pause (Space)' : 'Play (Space)';
+    btn.textContent = rolling ? t('⏸ Pause') : t('▶ Play');
+    btn.title = rolling ? t('Pause (Space)') : t('Play (Space)');
   }
 }
 
@@ -2565,7 +2566,7 @@ window.studioAudio = {
     if (!audio) { return false; }
     if (STUDIO.abc !== studioScoreAbc()) {
       studioModeOff();
-      notationNote('The score has changed since the studio render, so this is the ordinary preview.');
+      notationNote(t('The score has changed since the studio render, so this is the ordinary preview.'));
       return false;
     }
     if (studioAudioPlaying()) {
@@ -2603,10 +2604,10 @@ function notationInit() {
     displayPlay: true, displayProgress: true, displayWarp: true, displayRestart: true, displayLoop: false
   });
   // abcjs's own words for these are not the app's: say what they do, in its voice.
-  var words = { '.abcjs-midi-start': 'Play the score, or pause it',
-                '.abcjs-midi-reset': 'Back to the beginning',
-                '.abcjs-midi-progress-background': 'Click or drag to move through the score',
-                '.abcjs-midi-tempo': 'Speed of this preview only: the score keeps its own tempo' };
+  var words = { '.abcjs-midi-start': t('Play the score, or pause it'),
+                '.abcjs-midi-reset': t('Back to the beginning'),
+                '.abcjs-midi-progress-background': t('Click or drag to move through the score'),
+                '.abcjs-midi-tempo': t('Speed of this preview only: the score keeps its own tempo') };
   Object.keys(words).forEach(function (selector) {
     var el = document.querySelector('#notation-audio ' + selector);
     if (el) { el.title = words[selector]; el.setAttribute('aria-label', words[selector]); }
@@ -2727,7 +2728,7 @@ function renderNotationView() {
   var score = notationAbc();
   var abc = score.text.trim();
   if (!box || !abc || typeof ABCJS === 'undefined') {
-    host.innerHTML = '<p class="hint">No score yet.</p>';
+    host.innerHTML = '<p class="hint">' + t('No score yet.') + '</p>';
     // Nothing to hand over, and nothing to leave behind from the last one either.
     NOTATION.tune = null;
     NOTATION.tuned = null;
@@ -2758,7 +2759,7 @@ function renderNotationView() {
       clickListener: notationPickNote
     });
   } catch (err) {
-    host.innerHTML = '<p class="hint">This score will not render as notation.</p>';
+    host.innerHTML = '<p class="hint">' + t('This score will not render as notation.') + '</p>';
     return;
   }
   NOTATION.tune = drawn && drawn[0] ? drawn[0] : null;
@@ -2773,12 +2774,12 @@ function renderNotationView() {
    lyrics box is hidden in this mode and may hold another take's words. */
 function renderSectionsView() {
   var sections = abcSections($('score-big').value || '');
-  $('score-view-note').textContent = 'Sections as the plan names them, with the chords of their bars.';
+  $('score-view-note').textContent = t('Sections as the plan names them, with the chords of their bars.');
   $('lyrics-view').innerHTML = sections.length ? sections.map(function (section) {
     var chords = sectionChords(section);
     return '<div class="lyric-section"><span class="lyric-head">' + esc(section.name) + '</span>' +
       (chords.length ? '<span class="lyric-chords">' + esc(chords.join('  ')) + '</span>' : '') + '</div>';
-  }).join('') : '<p class="hint">No sections in this score yet.</p>';
+  }).join('') : '<p class="hint">' + t('No sections in this score yet.') + '</p>';
 }
 
 function renderLyricsView() {
@@ -2786,7 +2787,7 @@ function renderLyricsView() {
   var host = $('lyrics-view');
   var lyrics = ($('lyrics-big').value || $('lyrics').value || '').trim();
   if (!lyrics) {
-    host.innerHTML = '<p class="hint">No lyrics yet.</p>';
+    host.innerHTML = '<p class="hint">' + t('No lyrics yet.') + '</p>';
     return;
   }
   var sections = abcSections($('score-big').value || '');
@@ -2812,13 +2813,13 @@ function renderLyricsView() {
     out.push('<div class="lyric-line">' + esc(line) + '</div>');
   });
   $('score-view-note').textContent =
-    'Chords are per section, from the bars of that section. The model does not place words on notes, so no word level alignment is claimed.';
+    t('Chords are per section, from the bars of that section. The model does not place words on notes, so no word level alignment is claimed.');
   host.innerHTML = out.join('');
 }
 
 function paintScoreView() {
   var view = scoreView();
-  $('score-views').querySelector('[data-view="lyrics"]').textContent = State.mode === 'inst' ? 'Sections' : 'Lyrics';
+  $('score-views').querySelector('[data-view="lyrics"]').textContent = State.mode === 'inst' ? t('Sections') : t('Lyrics');
   Array.prototype.forEach.call(document.querySelectorAll('#score-views .chip'), function (chip) {
     chip.classList.toggle('active', chip.dataset.view === view);
   });
@@ -2868,12 +2869,12 @@ function paintScoreMaximized() {
   var scoreMaxBtn = $('score-maximize');
   var rollMaxBtn = $('roll-maximize');
   if (scoreMaxBtn) {
-    scoreMaxBtn.textContent = isMax ? 'Restore' : 'Maximize';
-    scoreMaxBtn.title = isMax ? 'Restore standard size' : 'Maximize (Full width)';
+    scoreMaxBtn.textContent = isMax ? t('Restore') : t('Maximize');
+    scoreMaxBtn.title = isMax ? t('Restore standard size') : t('Maximize (Full width)');
   }
   if (rollMaxBtn) {
-    rollMaxBtn.textContent = isMax ? 'Restore' : 'Maximize';
-    rollMaxBtn.title = isMax ? 'Restore standard size' : 'Maximize to full browser width';
+    rollMaxBtn.textContent = isMax ? t('Restore') : t('Maximize');
+    rollMaxBtn.title = isMax ? t('Restore standard size') : t('Maximize to full browser width');
   }
 }
 
@@ -2992,10 +2993,10 @@ function confirmModal(options) {
     options = { message: options };
   }
   options = options || {};
-  var title = options.title || 'Confirm';
+  var title = options.title || t('Confirm');
   var message = options.message || '';
   var confirmText = options.confirmText || 'OK';
-  var cancelText = options.cancelText || 'Cancel';
+  var cancelText = options.cancelText || t('Cancel');
   var danger = Boolean(options.danger);
   var isInput = Boolean(options.input);
 
@@ -3094,14 +3095,14 @@ function insertTag(tag) {
 
 function refreshTitleHint() {
   // An instrumental has no words to borrow a title from.
-  if (State.mode === 'inst') { $('title').placeholder = 'Name the piece, or leave blank'; return; }
+  if (State.mode === 'inst') { $('title').placeholder = t('Name the piece, or leave blank'); return; }
   var guess = guessTitle($('lyrics').value);
-  $('title').placeholder = guess ? 'Leave blank to use: ' + guess : 'Leave blank and the first lyric line is used';
+  $('title').placeholder = guess ? t('Leave blank to use: {guess}', { guess: guess }) : t('Leave blank and the first lyric line is used');
 }
 
-var JOB_KINDS = { render: 'Render', plan: 'Score plan', transcribe: 'Transcription', separate: 'Stem separation', hear: 'Lyric hearing', lyrics: 'Lyrics', text: 'Text generation', train: 'LoRA training', other: 'Engine job',
-  identity_score: 'Corpus analysis', identity_style: 'Corpus analysis', persona_score: 'Corpus analysis', persona_style: 'Corpus analysis',
-  identity_prep: 'Corpus prep', persona_prep: 'Corpus prep', art: 'Picture' };
+var JOB_KINDS = { render: t('Render'), plan: t('Score plan'), transcribe: t('Transcription'), separate: t('Stem separation'), hear: t('Lyric hearing'), lyrics: t('Lyrics'), text: t('Text generation'), train: t('LoRA training'), other: t('Engine job'),
+  identity_score: t('Corpus analysis'), identity_style: t('Corpus analysis'), persona_score: t('Corpus analysis'), persona_style: t('Corpus analysis'),
+  identity_prep: t('Corpus prep'), persona_prep: t('Corpus prep'), art: t('Picture') };
 
 /* The take a job is for, where it is one of the app's own: a plan, a render or a picture.  Its title in the job card
    goes to that take. */
@@ -3118,7 +3119,7 @@ function jobTitle(item) {
 
 function jobTakeLink(item, text) {
   var id = jobTake(item);
-  return id ? '<button type="button" class="q-take" data-take="' + esc(id) + '" title="Show this take">' + esc(text) + '</button>' : esc(text);
+  return id ? '<button type="button" class="q-take" data-take="' + esc(id) + '" title="' + t('Show this take') + '">' + esc(text) + '</button>' : esc(text);
 }
 
 /* While a LoRA trains it holds the GPU — 12.5 GB of 16, measured — so everything
@@ -3126,9 +3127,9 @@ function jobTakeLink(item, text) {
    refuses them too; this is so nobody has to find out that way. */
 function lockGpuControls() {
   var training = Boolean(State.training);
-  var loraName = (State.training && State.training.lora_name) || 'a LoRA';
+  var loraName = (State.training && State.training.lora_name) || t('a LoRA');
   var title = training
-    ? 'LoRA \u201c' + loraName + '\u201d is currently training and holds the GPU. Planning and rendering are paused until training finishes or is stopped.'
+    ? t('LoRA “{loraName}” is currently training and holds the GPU. Planning and rendering are paused until training finishes or is stopped.', { loraName: loraName })
     : '';
 
   // The buttons' own tooltips are put back when training ends, not blanked: a button that says what it does
@@ -3163,9 +3164,8 @@ function paintEditorTrainingNotice(training) {
     var pct = State.training.progress ? Math.round(State.training.progress * 100) + '%' : '';
     status.dataset.training = '1';
     status.className = 'status wait';
-    var html = '<span class="status-training-msg">LoRA <strong>' + esc(name) + '</strong> is training' +
-      (pct ? ' (' + pct + ')' : '') + ' \u2014 GPU is reserved</span> ' +
-      '<button type="button" class="link status-training-view" id="ed-training-view">View / Stop</button>';
+    var html = '<span class="status-training-msg">' + t('LoRA <strong>{name}</strong> is training{value} — GPU is reserved', { name: esc(name), value: pct ? ' (' + pct + ')' : '' }) + '</span> ' +
+      '<button type="button" class="link status-training-view" id="ed-training-view">' + t('View / Stop') + '</button>';
     if (status.innerHTML !== html) {
       status.innerHTML = html;
       var viewBtn = $('ed-training-view');
@@ -3191,20 +3191,20 @@ function weakRender(take) {
 }
 
 function queueWhat(item) {
-  var kind = '<span class="q-kind">' + esc(JOB_KINDS[item.kind] || 'Engine job') + '</span>';
+  var kind = '<span class="q-kind">' + esc(JOB_KINDS[item.kind] || t('Engine job')) + '</span>';
   if (item.outside) {
-    return kind + ' <span class="q-outside">from outside the app' + (item.client ? ' (' + esc(item.client) + ')' : '') + '</span>';
+    return kind + ' <span class="q-outside">' + t('from outside the app{value}', { value: item.client ? ' (' + esc(item.client) + ')' : '' }) + '</span>';
   }
   if (!item.title) {
-    return kind + ' <span class="q-outside">' + esc(item.note || 'from the app') + '</span>';
+    return kind + ' <span class="q-outside">' + esc(tr(item.note) || t('from the app')) + '</span>';
   }
   return kind + ' \u00b7 ' + jobTakeLink(item, jobTitle(item));
 }
 
 function queueWhen(item) {
   if (item.state === 'running') { return 'running ' + secs(item.seconds || 0); }
-  if (item.state === 'pending') { return 'sent' + (item.seconds ? ', waiting ' + secs(item.seconds) : ''); }
-  return 'queued in the app';
+  if (item.state === 'pending') { return item.seconds ? t('sent, waiting {time}', { time: secs(item.seconds) }) : t('sent'); }
+  return t('queued in the app');
 }
 
 /* The card shows the job the GPU is on, whoever sent it, and lists what follows.
@@ -3223,7 +3223,7 @@ function paintTranscribeJob(current, queue) {
     box.id = 'transcribe-job';
     box.className = 'hear-job hidden';
     box.innerHTML = '<div class="bar"><div id="transcribe-bar"></div></div>' +
-      '<div class="hear-job-line"><span id="transcribe-stage" class="muted">Waiting</span><span id="transcribe-time" class="muted"></span></div>';
+      '<div class="hear-job-line"><span id="transcribe-stage" class="muted">' + t('Waiting') + '</span><span id="transcribe-time" class="muted"></span></div>';
     row.parentNode.insertBefore(box, row.nextSibling);
   }
   var mine = function (item) { return item && item.kind === 'transcribe' && source && item.id === source.id; };
@@ -3232,13 +3232,13 @@ function paintTranscribeJob(current, queue) {
   box.classList.toggle('hidden', !running && !waiting);
   if (running) {
     $('transcribe-bar').style.width = Math.max(3, Math.round((running.progress || 0) * 100)) + '%';
-    var label = running.label || 'Transcribing';
+    var label = tr(running.label) || t('Transcribing');
     if (running.value && running.max) { label += ' \u00b7 ' + running.value + '/' + running.max; }
     $('transcribe-stage').textContent = label;
     $('transcribe-time').textContent = secs(running.elapsed || 0);
   } else if (waiting) {
     $('transcribe-bar').style.width = '0%';
-    $('transcribe-stage').textContent = 'Queued behind another job';
+    $('transcribe-stage').textContent = t('Queued behind another job');
     $('transcribe-time').textContent = '';
   }
 }
@@ -3255,7 +3255,7 @@ function paintRenderJob(current, queue) {
     box.id = 'render-job';
     box.className = 'hear-job hidden';
     box.innerHTML = '<div class="bar"><div id="render-bar"></div></div>' +
-      '<div class="hear-job-line"><span id="render-stage" class="muted">Waiting</span><span id="render-time" class="muted"></span></div>';
+      '<div class="hear-job-line"><span id="render-stage" class="muted">' + t('Waiting') + '</span><span id="render-time" class="muted"></span></div>';
     status.parentNode.insertBefore(box, status);
   }
   var mine = function (item) {
@@ -3268,14 +3268,14 @@ function paintRenderJob(current, queue) {
   if ($('render-status')) { $('render-status').classList.toggle('hidden', shown); }
   if (running) {
     $('render-bar').style.width = Math.max(3, Math.round((running.progress || 0) * 100)) + '%';
-    var defaultLabel = running.kind === 'plan' ? 'Writing the score plan' : 'Rendering';
-    var label = running.label || defaultLabel;
+    var defaultLabel = running.kind === 'plan' ? t('Writing the score plan') : t('Rendering');
+    var label = tr(running.label) || defaultLabel;
     if (running.value && running.max) { label += ' \u00b7 ' + running.value + '/' + running.max; }
     $('render-stage').textContent = label;
     $('render-time').textContent = secs(running.elapsed || 0);
   } else if (waitingItem) {
     $('render-bar').style.width = '0%';
-    $('render-stage').textContent = (waitingItem.kind === 'plan' ? 'Score plan' : 'Render') + ' queued behind another job';
+    $('render-stage').textContent = t('{value} queued behind another job', { value: waitingItem.kind === 'plan' ? t('Score plan') : t('Render') });
     $('render-time').textContent = '';
   }
 }
@@ -3290,9 +3290,9 @@ function paintWriteJob(current, queue) {
     box.id = 'lyrics-write-job';
     box.className = 'hear-job hidden';
     box.innerHTML = '<div class="bar indeterminate"><div id="lyrics-write-bar"></div></div>' +
-      '<div class="hear-job-line"><span id="lyrics-write-stage" class="muted">Drafting lyrics\u2026</span>' +
+      '<div class="hear-job-line"><span id="lyrics-write-stage" class="muted">' + t('Drafting lyrics…') + '</span>' +
       '<span style="display:inline-flex;gap:8px;align-items:center"><span id="lyrics-write-time" class="muted"></span>' +
-      '<button type="button" id="lyrics-write-stop-btn" class="chip action compact">stop</button></span></div>';
+      '<button type="button" id="lyrics-write-stop-btn" class="chip action compact">' + t('stop') + '</button></span></div>';
     labelRow.parentNode.insertBefore(box, labelRow.nextSibling);
     var stopBtn = $('lyrics-write-stop-btn');
     if (stopBtn) { stopBtn.addEventListener('click', stopWrite); }
@@ -3330,19 +3330,19 @@ function paintWriteJob(current, queue) {
   if (running && running.progress && running.progress > 0) {
     if (bar) { bar.classList.remove('indeterminate'); }
     if (barFill) { barFill.style.width = Math.max(5, Math.round(running.progress * 100)) + '%'; }
-    var label = running.label || 'Writing lyrics';
+    var label = tr(running.label) || t('Writing lyrics');
     if (running.value && running.max) { label += ' \u00b7 ' + running.value + '/' + running.max; }
     if (stageEl) { stageEl.textContent = label; }
   } else if (waitingItem) {
     if (bar) { bar.classList.remove('indeterminate'); }
     if (barFill) { barFill.style.width = '0%'; }
-    if (stageEl) { stageEl.textContent = 'Queued behind another job'; }
+    if (stageEl) { stageEl.textContent = t('Queued behind another job'); }
   } else {
     if (bar) { bar.classList.add('indeterminate'); }
     if (barFill) { barFill.style.width = ''; }
     var text = (WRITE.status === 'running' || (running && running.stage))
-      ? 'Writing lyrics\u2026'
-      : 'Waiting for the engine\u2026';
+      ? t('Writing lyrics…')
+      : t('Waiting for the engine…');
     if (stageEl) { stageEl.textContent = text; }
   }
 }
@@ -3383,7 +3383,7 @@ function paintJob(current, queue, options) {
       State.busy = true;
       card.classList.remove('hidden');
       $('job-stop').style.display = '';
-      $('job-title').textContent = 'Training LoRA: ' + (State.training.lora_name || 'custom');
+      $('job-title').textContent = t('Training LoRA: {value}', { value: State.training.lora_name || t('custom') });
       $('job-title').dataset.take = '';
       $('job-title').classList.remove('job-take-link');
       var p = State.training.progress || 0;
@@ -3391,7 +3391,7 @@ function paintJob(current, queue, options) {
       var eta = p > 0.02 && elapsed ? Math.max(0, (elapsed / p) - elapsed) : 0;
       $('job-time').textContent = secs(elapsed) + (eta ? ' / about ' + secs(elapsed + eta) : '');
       $('job-bar').style.width = Math.max(3, Math.round(p * 100)) + '%';
-      var stageText = State.training.stage || 'Training';
+      var stageText = tr(State.training.stage) || t('Training');
       if (State.training.steps) { stageText += ' \u00b7 ' + State.training.steps + ' steps'; }
       $('job-stage').textContent = stageText;
       $('job-next').classList.add('hidden');
@@ -3407,10 +3407,10 @@ function paintJob(current, queue, options) {
   card.classList.remove('hidden');
   var head = queue[0] && queue[0].state === 'running' ? queue[0] : null;
   var mineRunning = current && head && !head.outside && head.id === current.id;
-  var titles = { render: 'Rendering your song', plan: 'Writing the score plan', transcribe: 'Transcribing the recording',
-    lyrics: 'Writing lyrics', train: 'Training the LoRA', identity_score: 'Analysing a corpus song',
-    identity_style: 'Analysing a corpus song', persona_score: 'Analysing a corpus song', persona_style: 'Analysing a corpus song',
-    identity_prep: 'Preparing corpus song', persona_prep: 'Preparing corpus song', art: 'Drawing a picture' };
+  var titles = { render: t('Rendering your song'), plan: t('Writing the score plan'), transcribe: t('Transcribing the recording'),
+    lyrics: t('Writing lyrics'), train: t('Training the LoRA'), identity_score: t('Analysing a corpus song'),
+    identity_style: t('Analysing a corpus song'), persona_score: t('Analysing a corpus song'), persona_style: t('Analysing a corpus song'),
+    identity_prep: t('Preparing corpus song'), persona_prep: t('Preparing corpus song'), art: t('Drawing a picture') };
   var shown = null;   // the job whose title the card shows, so a click on it can go to its take
   // Only the render has an average, measured from this machine's own history.
   // The others show the time they have taken and claim nothing about the rest.
@@ -3428,42 +3428,42 @@ function paintJob(current, queue, options) {
   if (current && (mineRunning || !head)) {
     rest = head ? queue.slice(1) : queue.filter(function (item) { return item.id !== current.id; });
     shown = head && head.title ? head : current;
-    $('job-title').textContent = (titles[current.kind] || 'Working') + (jobTitle(shown) ? ': ' + jobTitle(shown) : '');
+    $('job-title').textContent = (titles[current.kind] || t('Working')) + (jobTitle(shown) ? ': ' + jobTitle(shown) : '');
     var avg = average(current.kind);
     var eta = avg > 0 ? Math.max(0, avg - (current.elapsed || 0)) : 0;
     $('job-time').textContent = secs(current.elapsed) + (eta ? ' / about ' + secs(avg) : '');
     $('job-bar').style.width = Math.max(3, Math.round((current.progress || 0) * 100)) + '%';
-    var label = current.label || (head ? 'Starting' : 'Waiting for the engine');
+    var label = tr(current.label) || (head ? t('Starting') : t('Waiting for the engine'));
     if (current.value && current.max) { label += ' \u00b7 ' + current.value + '/' + current.max; }
     $('job-stage').textContent = label;
   } else if (head) {
     rest = queue.slice(1);
     $('job-title').textContent = head.outside
-      ? 'Engine busy: ' + (JOB_KINDS[head.kind] || 'Engine job').toLowerCase() + ' from outside the app'
-      : (titles[head.kind] || 'Working') + (jobTitle(head) ? ': ' + jobTitle(head) : '');
+      ? t('Engine busy: {toLowerCase} from outside the app', { toLowerCase: (JOB_KINDS[head.kind] || t('Engine job')).toLowerCase() })
+      : (titles[head.kind] || t('Working')) + (jobTitle(head) ? ': ' + jobTitle(head) : '');
     shown = head;
     var guess = average(head.kind);
     $('job-time').textContent = secs(head.seconds || 0) + (guess ? ' / about ' + secs(guess) : '');
     $('job-bar').style.width = (guess ? Math.max(3, Math.min(95, Math.round(100 * (head.seconds || 0) / guess))) : 3) + '%';
     $('job-stage').textContent = head.outside
-      ? 'Sent by ' + (head.client || 'another program') + '. Its progress is estimated from your average ' + (JOB_KINDS[head.kind] || 'job').toLowerCase() + ' time.'
-      : (head.note || 'Working');
+      ? t('Sent by {value}. Its progress is estimated from your average {toLowerCase} time.', { value: head.client || t('another program'), toLowerCase: (JOB_KINDS[head.kind] || 'job').toLowerCase() })
+      : (tr(head.note) || t('Working'));
   } else {
-    $('job-title').textContent = 'Queued';
+    $('job-title').textContent = t('Queued');
     $('job-time').textContent = '';
     $('job-bar').style.width = '0%';
-    $('job-stage').textContent = 'Waiting for the engine';
+    $('job-stage').textContent = t('Waiting for the engine');
   }
   var titleTake = jobTake(shown);
   $('job-title').dataset.take = titleTake;
   $('job-title').classList.toggle('job-take-link', Boolean(titleTake));
-  $('job-title').title = titleTake ? 'Show this take' : '';
+  $('job-title').title = titleTake ? t('Show this take') : '';
   $('job-next').classList.toggle('hidden', !rest.length);
   var html = rest.map(function (item) {
     // Only the app's own jobs that have not started can be taken back here; the one
     // running has the card's stop, and a job from outside the app is not ours.
     var cancel = item.state === 'waiting' && !item.outside && item.id
-      ? '<button class="link q-cancel" data-kind="' + esc(item.kind) + '" data-id="' + esc(item.id) + '" title="Take this job out of the queue">cancel</button>'
+      ? '<button class="link q-cancel" data-kind="' + esc(item.kind) + '" data-id="' + esc(item.id) + '" title="' + t('Take this job out of the queue') + '">' + t('cancel') + '</button>'
       : '';
     return '<li><span class="q-what">' + queueWhat(item) + '</span><span class="q-when">' + esc(queueWhen(item)) + '</span>' + cancel + '</li>';
   }).join('');
@@ -3481,7 +3481,7 @@ function paintJobPill(waiting) {
   $('job-pill-text').textContent = $('job-title').textContent;
   $('job-pill-time').textContent = $('job-time').textContent;
   $('job-pill-fill').style.width = $('job-bar').style.width;
-  $('job-pill-more').textContent = waiting ? '+' + waiting + ' waiting' : '';
+  $('job-pill-more').textContent = waiting ? t('+{waiting} waiting', { waiting: waiting }) : '';
   $('job-pill-more').classList.toggle('hidden', !waiting);
 }
 
@@ -3521,14 +3521,14 @@ async function loadSources() {
   var uploads = State.sources.filter(function (s) { return s.origin !== 'recording'; });
 
   function optionHtml(source) {
-    var mark = source.has_score ? ' \u2713 score' : '';
+    var mark = source.has_score ? ' \u2713 ' + t('score') : '';
     return '<option value="' + source.id + '">' + esc(source.title) + mark + '</option>';
   }
 
-  var optHtml = '<option value="">Choose a recording\u2026</option>';
+  var optHtml = '<option value="">' + t('Choose a recording…') + '</option>';
   if (recordings.length > 0 && uploads.length > 0) {
-    optHtml += '<optgroup label="Your Recordings">' + recordings.map(optionHtml).join('') + '</optgroup>';
-    optHtml += '<optgroup label="Uploaded Audio">' + uploads.map(optionHtml).join('') + '</optgroup>';
+    optHtml += '<optgroup label="' + t('Your Recordings') + '">' + recordings.map(optionHtml).join('') + '</optgroup>';
+    optHtml += '<optgroup label="' + t('Uploaded Audio') + '">' + uploads.map(optionHtml).join('') + '</optgroup>';
   } else {
     optHtml += State.sources.map(optionHtml).join('');
   }
@@ -3554,7 +3554,7 @@ function paintSourcePickerMenu() {
   var currentId = $('source-select') ? $('source-select').value : '';
   var itemsHtml = '<div class="source-picker-item' + (!currentId ? ' selected' : '') + '" data-id="" role="option">' +
     '<div class="source-item-main"><span class="source-item-title muted">' +
-      (State.mode === 'inst' ? 'No recording: write a score plan' : 'Choose a recording\u2026') + '</span></div>' +
+      (State.mode === 'inst' ? t('No recording: write a score plan') : t('Choose a recording…')) + '</span></div>' +
     '</div>';
 
   var recordings = State.sources.filter(function (s) { return s.origin === 'recording'; });
@@ -3567,16 +3567,16 @@ function paintSourcePickerMenu() {
       ? '<span class="source-item-score midi-tag">MIDI</span>'
       : (isRec
           ? (source.instrument
-              ? '<span class="source-item-score rec-tag" title="Played on an instrument">INST</span>'
-              : '<span class="source-item-score rec-tag" title="Sung or hummed">MIC</span>')
-          : (source.has_score ? '<span class="source-item-score">\u2713 score</span>' : ''));
+              ? '<span class="source-item-score rec-tag" title="' + t('Played on an instrument') + '">INST</span>'
+              : '<span class="source-item-score rec-tag" title="' + t('Sung or hummed') + '">MIC</span>')
+          : (source.has_score ? '<span class="source-item-score">\u2713 ' + t('score') + '</span>' : ''));
     var isSel = source.id === currentId ? ' selected' : '';
     return '<div class="source-picker-item' + isSel + '" data-id="' + esc(source.id) + '" role="option">' +
       '<div class="source-item-main">' +
         '<span class="source-item-title">' + esc(source.title) + '</span>' +
         scoreBadge +
       '</div>' +
-      '<button type="button" class="source-item-del" data-del="' + esc(source.id) + '" title="Delete this recording" aria-label="Delete ' + esc(source.title) + '">' +
+      '<button type="button" class="source-item-del" data-del="' + esc(source.id) + '" title="' + t('Delete this recording') + '" aria-label="' + t('Delete {title}', { title: esc(source.title) }) + '">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
           '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>' +
           '<line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>' +
@@ -3586,9 +3586,9 @@ function paintSourcePickerMenu() {
   }
 
   if (recordings.length > 0 && uploads.length > 0) {
-    itemsHtml += '<div class="source-picker-group-head">Voice Recordings</div>';
+    itemsHtml += '<div class="source-picker-group-head">' + t('Voice Recordings') + '</div>';
     itemsHtml += recordings.map(sourceItemHtml).join('');
-    itemsHtml += '<div class="source-picker-group-head">Uploaded Audio</div>';
+    itemsHtml += '<div class="source-picker-group-head">' + t('Uploaded Audio') + '</div>';
     itemsHtml += uploads.map(sourceItemHtml).join('');
   } else {
     itemsHtml += State.sources.map(sourceItemHtml).join('');
@@ -3634,8 +3634,8 @@ function corpusSongsHtml(currentId) {
   if (!total) { return ''; }
   var filter = (State.corpusFilter || '').trim().toLowerCase();
   var open = sourceCorporaOpen();
-  var html = '<div class="source-corpora-head"><span>From your corpora</span>' +
-    (total > 12 ? '<input id="source-corpus-filter" type="search" placeholder="Filter songs" value="' +
+  var html = '<div class="source-corpora-head"><span>' + t('From your corpora') + '</span>' +
+    (total > 12 ? '<input id="source-corpus-filter" type="search" placeholder="' + t('Filter songs') + '" value="' +
       esc(State.corpusFilter || '') + '">' : '') + '</div>';
   var shown = 0;
   groups.forEach(function (group) {
@@ -3649,19 +3649,18 @@ function corpusSongsHtml(currentId) {
     if (!isOpen) { return; }
     songs.forEach(function (song) {
       var meta = [song.key, song.tempo ? song.tempo + ' BPM' : ''].filter(Boolean).join(', ');
-      var tip = song.source_id ? 'Already one of your recordings' :
-        'Use this song as a recording: its score and words come from the corpus, with nothing run again';
+      var tip = song.source_id ? t('Already one of your recordings') :
+        t('Use this song as a recording: its score and words come from the corpus, with nothing run again');
       html += '<div class="source-picker-item corpus-song' + (song.source_id && song.source_id === currentId ? ' selected' : '') +
         '" role="option" data-corpus-song="' + esc(song.id) + '" title="' + esc(tip) + '">' +
         '<div class="source-item-main"><span class="source-item-title">' + esc(song.title) + '</span>' +
-        (song.source_id ? '<span class="source-item-score">\u2713 added</span>' : '') +
+        (song.source_id ? '<span class="source-item-score">\u2713 ' + t('added') + '</span>' : '') +
         (meta ? '<span class="source-item-meta">' + esc(meta) + '</span>' : '') +
-        (song.caveat ? '<span class="source-item-caveat" title="Transcribe it again for the whole score with its chords">score: ' +
-          esc(song.caveat) + '</span>' : '') +
+        (song.caveat ? '<span class="source-item-caveat" title="' + t('Transcribe it again for the whole score with its chords') + '">' + t('score: {caveat}', { caveat: esc(tr(song.caveat)) }) + '</span>' : '') +
         '</div></div>';
     });
   });
-  if (!shown) { html += '<div class="source-corpora-none muted">No corpus song matches.</div>'; }
+  if (!shown) { html += '<div class="source-corpora-none muted">' + t('No corpus song matches.') + '</div>'; }
   return html;
 }
 
@@ -3674,20 +3673,19 @@ async function useCorpusSong(songId) {
   closeSourcePicker();
   try {
     if (!id) {
-      statusLine('Adding \u201c' + (song ? song.title : 'the song') + '\u201d from its corpus\u2026');
+      statusLine(t('Adding “{value}” from its corpus…', { value: song ? song.title : t('the song') }));
       var made = await api('/api/sources/from-corpus/' + encodeURIComponent(songId), { method: 'POST' });
       id = made.id;
       await loadSources();
       loadCorpusSongs();
-      statusLine('Added \u201c' + made.title + '\u201d with its score' + (made.lyrics ? ' and words' : '') +
-        ' from the corpus.', 'good');
+      statusLine(t('Added “{title}” with its score{value} from the corpus.', { title: made.title, value: made.lyrics ? ' ' + t('and words') : '' }), 'good');
     }
     $('source-select').value = id;
     $('source-select').dispatchEvent(new Event('change'));
     fillCorpusSongStyle(songId, true);
     await takeRecordingWords(id);
   } catch (err) {
-    statusLine('Could not add it: ' + err.message, 'bad');
+    statusLine(t('Could not add it: {message}', { message: err.message }), 'bad');
   }
 }
 
@@ -3758,11 +3756,11 @@ async function takeRecordingWords(sourceId) {
   var theirs = !box.value.trim() || sameWords(box.value, recordingWords());
   if (!theirs) {
     if (!words) { return; }
-    var name = source && source.title ? '\u201c' + source.title + '\u201d' : 'this recording';
+    var name = source && source.title ? '\u201c' + source.title + '\u201d' : t('this recording');
     if (!await confirmModal({
-      title: 'Replace lyrics',
-      message: 'Replace the words in the box with the words of ' + name + '?',
-      confirmText: 'Replace',
+      title: t('Replace lyrics'),
+      message: t('Replace the words in the box with the words of {name}?', { name: name }),
+      confirmText: t('Replace'),
       danger: true
     })) { return; }
   }
@@ -3795,9 +3793,9 @@ function updateLyricsWriteVisibility() {
   if (btn) {
     btn.style.display = showBtn ? '' : 'none';
     if (showBtn && State.mode === 'cover') {
-      btn.title = 'Draft lyrics to fit what was hummed, sung or played';
+      btn.title = t('Draft lyrics to fit what was hummed, sung or played');
     } else if (showBtn) {
-      btn.title = 'Draft lyrics from a short description';
+      btn.title = t('Draft lyrics from a short description');
     }
   }
 }
@@ -3814,10 +3812,10 @@ function paintSource() {
   var isMidi = Boolean(source && source.filename && source.filename.match(/\.midi?$/i));
   var isRec = Boolean(source && source.origin === 'recording');
   if (pickerLabel) {
-    var tag = isMidi ? ' [MIDI]' : (isRec ? (source.instrument ? ' [INST]' : ' [MIC]') : (source && source.has_score ? ' \u2713 score' : ''));
+    var tag = isMidi ? ' [MIDI]' : (isRec ? (source.instrument ? ' [INST]' : ' [MIC]') : (source && source.has_score ? ' \u2713 ' + t('score') : ''));
     pickerLabel.textContent = source
       ? source.title + tag
-      : 'Choose a recording\u2026';
+      : t('Choose a recording…');
   }
   var items = document.querySelectorAll('.source-picker-item');
   items.forEach(function (el) {
@@ -3825,23 +3823,23 @@ function paintSource() {
   });
   if ($('transcribe')) {
     $('transcribe').disabled = !source || isMidi;
-    $('transcribe').title = isMidi ? 'MIDI files are converted to score on upload and do not need transcription' : '';
+    $('transcribe').title = isMidi ? t('MIDI files are converted to score on upload and do not need transcription') : '';
   }
   if ($('source-lyrics')) {
     $('source-lyrics').disabled = !source || isMidi || Boolean(source.instrument);
-    $('source-lyrics').title = isMidi ? 'MIDI files do not have audio vocals for lyric extraction'
-      : (source && source.instrument) ? 'Played on an instrument: there are no words to hear. Use Write lyrics.'
-      : 'Write down the words this recording sings';
+    $('source-lyrics').title = isMidi ? t('MIDI files do not have audio vocals for lyric extraction')
+      : (source && source.instrument) ? t('Played on an instrument: there are no words to hear. Use Write lyrics.')
+      : t('Write down the words this recording sings');
   }
   if ($('source-expand-song')) {
     var hasMelody = Boolean(source && (source.has_score || isMidi || $('abc').value.trim()));
     var holdsTune = !State.options || State.options.hook_available !== false;
     $('source-expand-song').disabled = !source || !holdsTune;
-    $('source-expand-song').title = !source ? 'Choose a recording first'
-      : !holdsTune ? 'The engine cannot hold a tune in a plan: rebuild the engine to use this.'
+    $('source-expand-song').title = !source ? t('Choose a recording first')
+      : !holdsTune ? t('The engine cannot hold a tune in a plan: rebuild the engine to use this.')
       : (hasMelody
-        ? 'Expand this melody motif into a full multi-section song structure'
-        : 'Transcribe this recording first to get melody notes to expand');
+        ? t('Expand this melody motif into a full multi-section song structure')
+        : t('Transcribe this recording first to get melody notes to expand'));
   }
   if ($('audition')) { $('audition').disabled = !source; }
   if ($('source-delete')) { $('source-delete').disabled = !source; }
@@ -3851,7 +3849,7 @@ function paintSource() {
   }
 
   if (!source) {
-    badge.textContent = 'no score';
+    badge.textContent = t('no score');
     badge.className = 'badge';
     paintSourceTempo(null);
     // An instrumental let go of its recording: the recording's score goes with it.
@@ -3859,29 +3857,29 @@ function paintSource() {
     followRecordingCap();
     paintInstSource();
     if (State.mode === 'cover') {
-      statusLine('Choose a recording to start a cover.');
+      statusLine(t('Choose a recording to start a cover.'));
     }
     return;
   }
   if (isMidi) {
     badge.className = 'badge ok';
-    badge.textContent = 'MIDI score';
+    badge.textContent = t('MIDI score');
     if (State.mode === 'cover') {
-      statusLine('Imported MIDI file. Score is ready to edit or cover.', 'good');
+      statusLine(t('Imported MIDI file. Score is ready to edit or cover.'), 'good');
     }
   } else {
     badge.className = 'badge' + (source.has_score ? ' ok' : '');
-    badge.textContent = source.has_score ? 'score ready' : 'no score';
+    badge.textContent = source.has_score ? t('score ready') : t('no score');
     if (State.mode === 'cover') {
       var map = {
-        none: 'Not transcribed yet. Transcribe it to get a score.',
-        queued: 'Queued for transcription.',
-        running: 'Transcribing\u2026',
-        done: 'Transcribed. The score is ready to edit.',
-        failed: 'Transcription failed: ' + (source.transcribe_error || 'unknown error')
+        none: t('Not transcribed yet. Transcribe it to get a score.'),
+        queued: t('Queued for transcription.'),
+        running: t('Transcribing…'),
+        done: t('Transcribed. The score is ready to edit.'),
+        failed: t('Transcription failed: {value}', { value: tr(source.transcribe_error) || t('unknown error') })
       };
       var kind = source.transcribe_state === 'failed' ? 'bad' : (source.transcribe_state === 'done' ? 'good' : (source.transcribe_state === 'running' || source.transcribe_state === 'queued' ? 'wait' : ''));
-      statusLine(map[source.transcribe_state] || (source.has_score ? 'Score ready to edit or cover.' : ''), kind);
+      statusLine(map[source.transcribe_state] || (source.has_score ? t('Score ready to edit or cover.') : ''), kind);
     }
   }
   paintSourceTempo(source);
@@ -3919,10 +3917,7 @@ function paintSourceTempo(source) {
   var ratio = estimate.seconds / seconds;
   if (ratio > 0.85 && ratio < 1.15) { node.textContent = ''; node.className = 'status'; return; }
   var fits = Math.round(estimate.bpm / ratio);
-  node.textContent = 'The score describes ' + Math.round(estimate.seconds) + 's of music for a '
-    + Math.round(seconds) + 's recording (' + ratio.toFixed(2) + 'x), so its tempo is probably wrong. '
-    + 'The score says ' + estimate.bpm + ' BPM and about ' + fits + ' fits the recording. '
-    + (State.mode === 'inst' ? 'An instrumental' : 'A cover') + ' follows the score, so it plays at that tempo. Expand the score to change it.';
+  node.textContent = t('The score describes {seconds}s of music for a {seconds2}s recording ({ratio}x), so its tempo is probably wrong. The score says {bpm} BPM and about {fits} fits the recording. {value} follows the score, so it plays at that tempo. Expand the score to change it.', { seconds: Math.round(estimate.seconds), seconds2: Math.round(seconds), ratio: ratio.toFixed(2), bpm: estimate.bpm, fits: fits, value: State.mode === 'inst' ? t('An instrumental') : t('A cover') });
   node.className = 'status bad';
 }
 
@@ -3935,17 +3930,17 @@ async function deleteSource() {
 async function deleteSourceById(id) {
   var source = sourceById(id);
   if (!source) { return; }
-  var covers = source.take_count ? ' Its ' + source.take_count + ' cover take(s) keep their audio and score, but cannot be rendered again from it.' : '';
+  var covers = source.take_count ? ' ' + t('Its {take_count} cover take(s) keep their audio and score, but cannot be rendered again from it.', { take_count: source.take_count }) : '';
   if (!await confirmModal({
-    title: 'Delete recording',
-    message: 'Delete the recording \u201c' + source.title + '\u201d and its stems?' + covers,
-    confirmText: 'Delete',
+    title: t('Delete recording'),
+    message: t('Delete the recording “{title}” and its stems?{covers}', { title: source.title, covers: covers }),
+    confirmText: t('Delete'),
     danger: true
   })) { return; }
   try {
     await api('/api/sources/' + id, { method: 'DELETE' });
   } catch (err) {
-    statusLine('Could not delete: ' + err.message, 'bad');
+    statusLine(t('Could not delete: {message}', { message: err.message }), 'bad');
     return;
   }
   if ($('source-select').value === id) {
@@ -4105,7 +4100,7 @@ function vocalNotes(abc) {
 }
 
 function instRecordingProblem() {
-  if (!$('abc').value.trim()) { return 'Transcribe this recording first: its score is what the instrumental plays.'; }
+  if (!$('abc').value.trim()) { return t('Transcribe this recording first: its score is what the instrumental plays.'); }
   return '';
 }
 
@@ -4118,16 +4113,16 @@ function paintInstSource() {
     if ($(id)) { $(id).style.display = fromRecording ? 'none' : ''; }
   });
   if ($('auto-wrap')) { $('auto-wrap').style.display = fromRecording ? 'none' : ''; }
-  if ($('create-inst')) { $('create-inst').textContent = fromRecording ? 'Create instrumental' : (instPlanned() ? 'Render this score' : 'Write score plan'); }
+  if ($('create-inst')) { $('create-inst').textContent = fromRecording ? t('Create instrumental') : (instPlanned() ? t('Render this score') : t('Write score plan')); }
   // The hint the mode switch left says to write a plan, which a recording does without.
-  var hint = 'Write a score plan to start a song from scratch.';
-  var played = 'Create instrumental plays the recording\'s score, with no vocal and no plan to write.';
+  var hint = t('Write a score plan to start a song from scratch.');
+  var played = t('Create instrumental plays the recording\'s score, with no vocal and no plan to write.');
   var shown = $('render-status') ? $('render-status').textContent : '';
   if (fromRecording && shown === hint) { statusLine(played); }
   if (!fromRecording && shown === played) { statusLine(hint); }
   // A sung melody is given to an instrument by the server, as the tune the render plays.
   if (fromRecording && $('abc').value.trim() && vocalNotes($('abc').value)) {
-    statusLine('The score has a sung melody: the instrumental plays it on an instrument.');
+    statusLine(t('The score has a sung melody: the instrumental plays it on an instrument.'));
   }
   paintStructure();
 }
@@ -4152,10 +4147,10 @@ function rememberSourceFor(before, after) {
    field, and a [Lyrics] block. So these chips edit the style text itself. That way
    the take stores the choice and a re-render reproduces it. */
 var VOCAL_SEX = [
-  { value: 'any', label: 'Any', phrase: '' },
-  { value: 'female', label: 'Female', phrase: 'female vocal' },
-  { value: 'male', label: 'Male', phrase: 'male vocal' },
-  { value: 'duet', label: 'Duet', phrase: 'duet, male and female voices' }
+  { value: 'any', label: t('Any'), phrase: '' },
+  { value: 'female', label: t('Female'), phrase: 'female vocal' },
+  { value: 'male', label: t('Male'), phrase: 'male vocal' },
+  { value: 'duet', label: t('Duet'), phrase: 'duet, male and female voices' }
 ];
 var VOCAL_TONE = ['breathy', 'raspy', 'powerful', 'soft', 'deep', 'youthful', 'airy', 'gritty'];
 
@@ -4301,9 +4296,9 @@ function corporaBadge() {
   button = document.createElement('button');
   button.id = 'corpora-badge';
   button.className = 'pill corpora hidden';
-  button.title = 'Corpora, and what the app is preparing';
+  button.title = t('Corpora, and what the app is preparing');
   button.innerHTML = '<span class="corpora-dot" aria-hidden="true"></span>' +
-    '<span id="corpora-text">Corpora</span>';
+    '<span id="corpora-text">' + t('Corpora') + '</span>';
   right.appendChild(button);
   wireCorporaBadge(button);
   return button;
@@ -4371,23 +4366,23 @@ function paintCorporaBadge() {
   // A settled failure is not work in progress, so it gets its own mark rather than
   // a pulse: the count alone would read as a corpus that never finished.
   button.classList.toggle('trouble', failed > 0 && !isBusy);
-  var name = shown ? shown.name : 'Corpora';
-  var text = esc(name || 'Corpora');
+  var name = shown ? shown.name : t('Corpora');
+  var text = esc(name || t('Corpora'));
   var job = training && State.currentJob && State.currentJob.kind === 'train' ? State.currentJob : null;
   var trainPct = job && job.progress ? ' ' + Math.round(job.progress * 100) + '%' : '';
   if (training) {
-    text += ' <span class="count">training' + trainPct + '</span>';
+    text += ' <span class="count">' + t('training') + trainPct + '</span>';
   } else if (shown && (shown.started || shown.total)) {
     text += ' <span class="count">' + shown.done + ' of ' + shown.total + '</span>';
   }
   if ($('corpora-text').innerHTML !== text) { $('corpora-text').innerHTML = text; }
-  var trouble = failed ? ' ' + failed + (failed === 1 ? ' song did not analyse.' : ' songs did not analyse.') : '';
+  var trouble = failed ? ' ' + tn(failed, '{n} song did not analyse.', '{n} songs did not analyse.') : '';
   button.title = training
-    ? training.name + ': training its LoRA' + (job && job.value && job.max ? ', step ' + job.value + ' of ' + job.max : '') + '. Click to open it.'
+    ? t('{name}: training its LoRA{value}. Click to open it.', { name: training.name, value: job && job.value && job.max ? t(', step {value} of {max}', { value: job.value, max: job.max }) : '' })
     : (shown && shown.busy)
-    ? shown.name + ': ' + shown.done + ' of ' + shown.total + ' songs settled, still working. Click to open it.'
-    : (shown ? shown.name + ': ' + shown.done + ' of ' + shown.total + ' settled.' + trouble + ' Click to open it.'
-             : 'Your corpora. Click to open them.');
+    ? t('{name}: {done} of {total} songs settled, still working. Click to open it.', { name: shown.name, done: shown.done, total: shown.total })
+    : (shown ? t('{name}: {done} of {total} settled.{trouble} Click to open it.', { name: shown.name, done: shown.done, total: shown.total, trouble: trouble })
+             : t('Your corpora. Click to open them.'));
 }
 
 async function pollCorpora() {
@@ -4456,7 +4451,7 @@ function updateMenuItem() {
     item.setAttribute('role', 'menuitem');
     item.innerHTML = '<svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><polyline points="21 3 21 9 15 9"/></svg>' +
-      '<span id="menu-update-text">Check for updates</span>';
+      '<span id="menu-update-text">' + t('Check for updates') + '</span>';
     menu.appendChild(item);
   }
   if (!item.dataset.wired) {
@@ -4498,9 +4493,9 @@ function updateLink() {
 }
 
 function updateAdvice(info) {
-  if (info.install === 'windows') { return 'Download the installer and run it over this one; your library and models are kept.'; }
-  if (info.install === 'macos') { return 'Download it, quit Yeufonic, and drag the new one into Applications; your library and models are kept.'; }
-  return 'Then ' + (info.line || 'git pull && docker compose up -d --build') + '.';
+  if (info.install === 'windows') { return t('Download the installer and run it over this one; your library and models are kept.'); }
+  if (info.install === 'macos') { return t('Download it, quit Yeufonic, and drag the new one into Applications; your library and models are kept.'); }
+  return t('Then {value}.', { value: info.line || 'git pull && docker compose up -d --build' });
 }
 
 /* The installer is not signed, so its hash is the one thing that says a download arrived
@@ -4528,7 +4523,7 @@ function copyForTerminal(text) {
   var copied = false;
   try { copied = document.execCommand('copy'); } catch (err) { copied = false; }
   document.body.removeChild(box);
-  return copied ? Promise.resolve() : Promise.reject(new Error('the browser refused the copy'));
+  return copied ? Promise.resolve() : Promise.reject(new Error(t('the browser refused the copy')));
 }
 
 var UPDATE_MODAL_POLL = null;
@@ -4564,35 +4559,35 @@ function openUpdateModal(info) {
   };
 
   function renderPrompt() {
-    titleEl.textContent = 'Update to Yeufonic ' + version;
-    closeBtn.textContent = 'Cancel';
+    titleEl.textContent = t('Update to Yeufonic {version}', { version: version });
+    closeBtn.textContent = t('Cancel');
     closeBtn.onclick = closeUpdateModal;
 
     bodyEl.innerHTML =
-      '<p class="update-modal-desc">A newer version of Yeufonic is available (<strong>v' + (info.current || '0.0.0') + '</strong> \u2192 <strong>v' + version + '</strong>).</p>' +
-      '<p class="update-modal-desc" style="margin-top: 8px;">Yeufonic will download the installer directly to your <strong>Downloads</strong> folder and verify it.</p>' +
-      '<p class="muted small" style="margin-top: 8px;">Your library, settings, LoRAs and models will all be kept.</p>';
+      '<p class="update-modal-desc">' + t('A newer version of Yeufonic is available (<strong>v{value}</strong> → <strong>v{version}</strong>).', { value: info.current || '0.0.0', version: version }) + '</p>' +
+      '<p class="update-modal-desc" style="margin-top: 8px;">' + t('Yeufonic will download the installer directly to your <strong>Downloads</strong> folder and verify it.') + '</p>' +
+      '<p class="muted small" style="margin-top: 8px;">' + t('Your library, settings, LoRAs and models will all be kept.') + '</p>';
 
     actionsEl.innerHTML = '';
 
     var cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'ghost';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('Cancel');
     cancelBtn.onclick = closeUpdateModal;
     actionsEl.appendChild(cancelBtn);
 
     var dlBtn = document.createElement('button');
     dlBtn.type = 'button';
     dlBtn.className = 'primary';
-    dlBtn.textContent = 'Download update';
+    dlBtn.textContent = t('Download update');
     dlBtn.onclick = function () { startDownloadFlow(); };
     actionsEl.appendChild(dlBtn);
   }
 
   function renderDownloading(dlState) {
-    titleEl.textContent = 'Downloading Yeufonic ' + version;
-    closeBtn.textContent = 'Cancel';
+    titleEl.textContent = t('Downloading Yeufonic {version}', { version: version });
+    closeBtn.textContent = t('Cancel');
     closeBtn.onclick = function () {
       api('/api/update/download/cancel', { method: 'POST' }).catch(function () {});
       closeUpdateModal();
@@ -4605,7 +4600,7 @@ function openUpdateModal(info) {
     }
 
     bodyEl.innerHTML =
-      '<p class="update-modal-desc">Downloading <code>' + (dlState.filename || ('Yeufonic-Setup-' + version + '.exe')) + '</code>...</p>' +
+      '<p class="update-modal-desc">' + t('Downloading <code>{value}</code>...', { value: dlState.filename || ('Yeufonic-Setup-' + version + '.exe') }) + '</p>' +
       '<div class="update-progress-wrap">' +
         '<div class="update-progress-bar">' +
           '<div class="update-progress-fill" style="width: ' + progress + '%;"></div>' +
@@ -4620,7 +4615,7 @@ function openUpdateModal(info) {
     var cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'ghost';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('Cancel');
     cancelBtn.onclick = function () {
       api('/api/update/download/cancel', { method: 'POST' }).catch(function () {});
       closeUpdateModal();
@@ -4633,7 +4628,7 @@ function openUpdateModal(info) {
       clearInterval(UPDATE_MODAL_POLL);
       UPDATE_MODAL_POLL = null;
     }
-    titleEl.textContent = 'Update ready to install';
+    titleEl.textContent = t('Update ready to install');
     closeBtn.textContent = '✕';
     closeBtn.onclick = closeUpdateModal;
 
@@ -4641,20 +4636,20 @@ function openUpdateModal(info) {
     bodyEl.innerHTML =
       '<div class="update-success-badge">' +
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
-        '<span>Download complete &amp; verified</span>' +
+        '<span>' + t('Download complete &amp; verified') + '</span>' +
       '</div>' +
-      '<p class="update-modal-desc"><strong>' + fname + '</strong> has been saved to your <strong>Downloads</strong> folder.</p>' +
-      '<p class="muted small" style="margin-top: 8px;">Click <strong>Run installer</strong> to start updating now. The installer will ask you to quit Yeufonic first (right-click its icon by the clock, then Quit), and carries on when you have.</p>';
+      '<p class="update-modal-desc">' + t('<strong>{fname}</strong> has been saved to your <strong>Downloads</strong> folder.', { fname: fname }) + '</p>' +
+      '<p class="muted small" style="margin-top: 8px;">' + t('Click <strong>Run installer</strong> to start updating now. The installer will ask you to quit Yeufonic first (right-click its icon by the clock, then Quit), and carries on when you have.') + '</p>';
 
     actionsEl.innerHTML = '';
 
     var revealBtn = document.createElement('button');
     revealBtn.type = 'button';
     revealBtn.className = 'ghost';
-    revealBtn.textContent = 'Show in folder';
+    revealBtn.textContent = t('Show in folder');
     revealBtn.onclick = function () {
       api('/api/update/reveal', { method: 'POST' }).catch(function (err) {
-        statusLine('Could not open folder: ' + (err.message || err), 'bad');
+        statusLine(t('Could not open folder: {value}', { value: err.message || err }), 'bad');
       });
     };
     actionsEl.appendChild(revealBtn);
@@ -4662,25 +4657,25 @@ function openUpdateModal(info) {
     var closeActionBtn = document.createElement('button');
     closeActionBtn.type = 'button';
     closeActionBtn.className = 'ghost';
-    closeActionBtn.textContent = 'Close';
+    closeActionBtn.textContent = t('Close');
     closeActionBtn.onclick = closeUpdateModal;
     actionsEl.appendChild(closeActionBtn);
 
     var installBtn = document.createElement('button');
     installBtn.type = 'button';
     installBtn.className = 'primary';
-    installBtn.textContent = 'Run installer';
+    installBtn.textContent = t('Run installer');
     installBtn.onclick = async function () {
       installBtn.disabled = true;
-      installBtn.textContent = 'Starting installer…';
+      installBtn.textContent = t('Starting installer…');
       try {
         await api('/api/update/launch', { method: 'POST' });
         bodyEl.innerHTML =
-          '<p class="update-modal-desc">Starting installer... You may close this Yeufonic window.</p>';
+          '<p class="update-modal-desc">' + t('Starting installer... You may close this Yeufonic window.') + '</p>';
       } catch (err) {
         installBtn.disabled = false;
-        installBtn.textContent = 'Run installer';
-        statusLine('Could not launch installer: ' + (err.message || err), 'bad');
+        installBtn.textContent = t('Run installer');
+        statusLine(t('Could not launch installer: {value}', { value: err.message || err }), 'bad');
       }
     };
     actionsEl.appendChild(installBtn);
@@ -4691,21 +4686,21 @@ function openUpdateModal(info) {
       clearInterval(UPDATE_MODAL_POLL);
       UPDATE_MODAL_POLL = null;
     }
-    titleEl.textContent = 'Download failed';
+    titleEl.textContent = t('Download failed');
     closeBtn.textContent = '✕';
     closeBtn.onclick = closeUpdateModal;
 
     bodyEl.innerHTML =
-      '<p class="update-error-text">Could not complete download:</p>' +
-      '<p class="muted small" style="margin-top: 6px; word-break: break-word;">' + (msg || 'Unknown error occurred.') + '</p>' +
-      '<p class="update-modal-desc" style="margin-top: 10px;">You can retry, or download the installer directly via your browser.</p>';
+      '<p class="update-error-text">' + t('Could not complete download:') + '</p>' +
+      '<p class="muted small" style="margin-top: 6px; word-break: break-word;">' + (msg || t('Unknown error occurred.')) + '</p>' +
+      '<p class="update-modal-desc" style="margin-top: 10px;">' + t('You can retry, or download the installer directly via your browser.') + '</p>';
 
     actionsEl.innerHTML = '';
 
     var browserBtn = document.createElement('button');
     browserBtn.type = 'button';
     browserBtn.className = 'ghost';
-    browserBtn.textContent = 'Download in browser';
+    browserBtn.textContent = t('Download in browser');
     browserBtn.onclick = function () {
       openExternal(info.installer || info.notes);
       closeUpdateModal();
@@ -4715,14 +4710,14 @@ function openUpdateModal(info) {
     var closeActionBtn = document.createElement('button');
     closeActionBtn.type = 'button';
     closeActionBtn.className = 'ghost';
-    closeActionBtn.textContent = 'Close';
+    closeActionBtn.textContent = t('Close');
     closeActionBtn.onclick = closeUpdateModal;
     actionsEl.appendChild(closeActionBtn);
 
     var retryBtn = document.createElement('button');
     retryBtn.type = 'button';
     retryBtn.className = 'primary';
-    retryBtn.textContent = 'Try again';
+    retryBtn.textContent = t('Try again');
     retryBtn.onclick = function () { startDownloadFlow(); };
     actionsEl.appendChild(retryBtn);
   }
@@ -4752,7 +4747,7 @@ function openUpdateModal(info) {
         return;
       }
     } catch (err) {
-      renderError(err.message || 'Could not initiate download.');
+      renderError(err.message || t('Could not initiate download.'));
       return;
     }
     if (UPDATE_MODAL_POLL) { clearInterval(UPDATE_MODAL_POLL); }
@@ -4783,13 +4778,13 @@ async function actOnUpdate() {
   var info = State.update || {};
   if (info.install !== 'windows' && info.line) {
     copyForTerminal(info.line).then(function () {
-      State.updateAnswer = 'Copied \u2014 paste it in a terminal';
+      State.updateAnswer = t('Copied — paste it in a terminal');
       paintUpdateMenuItem();
       seenUpdate();
     }).catch(function () {
       var url = updateLink();
       if (url) { openExternal(url); }
-      State.updateAnswer = 'Could not copy \u2014 here is the release page';
+      State.updateAnswer = t('Could not copy — here is the release page');
       paintUpdateMenuItem();
       seenUpdate();
     });
@@ -4821,13 +4816,13 @@ async function checkForUpdates() {
   if (State.updateChecking) { return; }
   State.updateChecking = true;
   var label = $('menu-update-text');
-  if (label) { label.textContent = 'Checking…'; }
+  if (label) { label.textContent = t('Checking…'); }
   try {
     var info = await api('/api/update/check', { method: 'POST' });
     State.updateAnswer = updateAnswerOf(info);
     paintUpdate(info);
   } catch (err) {
-    State.updateAnswer = 'Could not check for updates.';
+    State.updateAnswer = t('Could not check for updates.');
   } finally {
     State.updateChecking = false;
     paintUpdateMenuItem();
@@ -4835,9 +4830,9 @@ async function checkForUpdates() {
 }
 
 function updateAnswerOf(info) {
-  if (!info || !info.latest) { return 'Could not check for updates.'; }
-  if (!info.newer) { return 'Up to date (v' + info.current + ').'; }
-  return info.latest + ' is out — get it.';
+  if (!info || !info.latest) { return t('Could not check for updates.'); }
+  if (!info.newer) { return t('Up to date (v{current}).', { current: info.current }); }
+  return t('{latest} is out — get it.', { latest: info.latest });
 }
 
 function paintUpdateMenuItem() {
@@ -4846,11 +4841,11 @@ function paintUpdateMenuItem() {
   var info = State.update || {};
   if (State.updateAnswer) { label.textContent = State.updateAnswer; return; }
   // Something to get is an action, so it says so, in one line; otherwise the item asks.
-  label.textContent = (info.newer && info.latest) ? 'Get ' + info.latest : 'Check for updates';
+  label.textContent = (info.newer && info.latest) ? t('Get {latest}', { latest: info.latest }) : t('Check for updates');
   var item = $('menu-update');
   if (item) {
     if (info.newer && info.latest) {
-      item.title = 'Version ' + info.latest + ' is out. ' + updateAdvice(info) + updateHash(info);
+      item.title = t('Version {latest} is out. {updateAdvice}{updateHash}', { latest: info.latest, updateAdvice: updateAdvice(info), updateHash: updateHash(info) });
     } else {
       item.removeAttribute('title');
     }
@@ -4866,10 +4861,9 @@ function paintUpdate(info) {
     pill.classList.toggle('hidden', !show);
     pill.classList.toggle('shown', show);
     var text = $('update-text');
-    if (text && show) { text.textContent = known.latest + ' available'; }
+    if (text && show) { text.textContent = t('{latest} available', { latest: known.latest }); }
     if (show) {
-      pill.title = 'Version ' + known.latest + ' is out; this build is v' + known.current + '. ' +
-        updateAdvice(known) + updateHash(known);
+      pill.title = t('Version {latest} is out; this build is v{current}. {updateAdvice}{updateHash}', { latest: known.latest, current: known.current, updateAdvice: updateAdvice(known), updateHash: updateHash(known) });
     } else {
       pill.removeAttribute('title');
     }
@@ -4935,11 +4929,11 @@ var getPersonaLoRAs = getIdentityLoRAs;
 
 /* ---------------------------------------------------------------- settings */
 var SETTINGS_GROUPS = [
-  { id: 'audio', title: 'Audio, Takes & Stems', summary: 'Output format, loudness, length cap, stem separation and SoundFonts' },
-  { id: 'training', title: 'LoRA Training', summary: 'Planner and acoustic branches, prior preservation, semantic tokens and song limits' },
-  { id: 'llm', title: 'External LLM & Lyrics', summary: 'Provider, API connection, model selection and recording transcription' },
-  { id: 'art', title: 'Take Pictures', summary: 'Automatic artwork generation, local klein or external image model' },
-  { id: 'system', title: 'Appearance & System', summary: 'Theme, backdrop tint, update checks and MCP server' }
+  { id: 'audio', title: t('Audio, Takes & Stems'), summary: t('Output format, loudness, length cap, stem separation and SoundFonts') },
+  { id: 'training', title: t('LoRA Training'), summary: t('Planner and acoustic branches, prior preservation, semantic tokens and song limits') },
+  { id: 'llm', title: t('External LLM & Lyrics'), summary: t('Provider, API connection, model selection and recording transcription') },
+  { id: 'art', title: t('Take Pictures'), summary: t('Automatic artwork generation, local klein or external image model') },
+  { id: 'system', title: t('Appearance & System'), summary: t('Theme, backdrop tint, update checks and MCP server') }
 ];
 
 function setting(key, fallback) {
@@ -4952,7 +4946,7 @@ function renderSettingRow(item) {
   if (item.type === 'select') {
     control = '<select data-key="' + esc(item.key) + '">' + item.options.map(function (option) {
       return '<option value="' + esc(option.value) + '"' + (option.value === item.value ? ' selected' : '') +
-        (option.disabled ? ' disabled' : '') + '>' + esc(option.label) + '</option>';
+        (option.disabled ? ' disabled' : '') + '>' + esc(tr(option.label)) + '</option>';
     }).join('') + '</select>';
   } else if (item.type === 'password') {
     // The saved key never comes back from the server, only whether there is one,
@@ -4961,9 +4955,9 @@ function renderSettingRow(item) {
       '<input type="text" class="setting-masked-input" autocomplete="off" spellcheck="false" ' +
       'data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" ' +
       'data-secret="1" data-key="' + esc(item.key) + '" value="" placeholder="' +
-      (item.saved ? 'Saved. Type a new key to replace it' : 'Paste your key') + '">' +
-      '<button type="button" class="ghost small btn-toggle-mask" title="Reveal or hide what you type">Show</button>' +
-      (item.saved ? '<button type="button" class="ghost small btn-remove-secret" data-remove="' + esc(item.key) + '">Remove</button>' : '') +
+      (item.saved ? t('Saved. Type a new key to replace it') : t('Paste your key')) + '">' +
+      '<button type="button" class="ghost small btn-toggle-mask" title="' + t('Reveal or hide what you type') + '">' + t('Show') + '</button>' +
+      (item.saved ? '<button type="button" class="ghost small btn-remove-secret" data-remove="' + esc(item.key) + '">' + t('Remove') + '</button>' : '') +
     '</div>';
   } else if (item.type === 'backdrop') {
     control = backdropControl(item);
@@ -4972,7 +4966,7 @@ function renderSettingRow(item) {
     var hasModels = models.length > 0;
     var curVal = item.value || '';
     var selectHtml = '<select id="select-llm-model" class="llm-model-select' + (hasModels ? '' : ' hidden') + '" style="' + (hasModels ? 'display:block;' : 'display:none;') + '">' +
-      '<option value="">-- ' + (hasModels ? 'Select from ' + models.length + ' available models' : 'Select model') + ' --</option>' +
+      '<option value="">-- ' + (hasModels ? t('Select from {modelsCount} available models', { modelsCount: models.length }) : t('Select model')) + ' --</option>' +
       models.map(function (m) {
         var isSel = (m.id === curVal);
         return '<option value="' + esc(m.id) + '"' + (isSel ? ' selected' : '') + '>' + esc(m.label || m.name || m.id) + '</option>';
@@ -4981,12 +4975,12 @@ function renderSettingRow(item) {
 
     control = '<div class="llm-model-control">' +
       '<div class="llm-model-input-group">' +
-        '<input type="text" spellcheck="false" data-key="' + esc(item.key) + '" id="input-llm-model" value="' + esc(item.value) + '" placeholder="e.g. gemini-2.5-flash">' +
-        '<button type="button" id="btn-fetch-models" class="ghost small" title="Fetch available models from provider API">Fetch Models</button>' +
+        '<input type="text" spellcheck="false" data-key="' + esc(item.key) + '" id="input-llm-model" value="' + esc(item.value) + '" placeholder="' + t('e.g. gemini-2.5-flash') + '">' +
+        '<button type="button" id="btn-fetch-models" class="ghost small" title="' + t('Fetch available models from provider API') + '">' + t('Fetch Models') + '</button>' +
       '</div>' +
       selectHtml +
       '<div id="fetch-models-status" class="hint llm-models-status">' +
-        (hasModels ? '\u2713 Loaded ' + models.length + ' models' : '') +
+        (hasModels ? t('✓ Loaded {modelsCount} models', { modelsCount: models.length }) : '') +
       '</div>' +
     '</div>';
   } else if (item.type === 'textarea') {
@@ -5000,14 +4994,14 @@ function renderSettingRow(item) {
   // A setting that only means something when another one has a given value, such
   // as the lyrics method with an external LLM, carries a note saying what it needs.
   var needs = item.requires
-    ? '<div class="setting-help hidden" data-needs="' + esc(item.key) + '">' + esc(item.requires_note || '') + '</div>'
+    ? '<div class="setting-help hidden" data-needs="' + esc(item.key) + '">' + esc(tr(item.requires_note || '')) + '</div>'
     : '';
   // The klein size chosen may not be installed; the other then draws, and this says so.
   if (item.key === 'art.klein') { needs += '<div class="setting-help hidden" id="klein-fallback"></div>'; }
   return '<div class="setting-row">' +
     '<div class="setting-text">' +
-      '<div class="setting-label">' + esc(item.label) + '</div>' +
-      '<div class="setting-help">' + esc(item.help || '') + '</div>' +
+      '<div class="setting-label">' + esc(tr(item.label)) + '</div>' +
+      '<div class="setting-help">' + esc(tr(item.help || '')) + '</div>' +
       needs +
     '</div>' +
     '<div class="setting-control">' + control + '<span class="saved" data-saved="' + esc(item.key) + '"></span></div>' +
@@ -5050,13 +5044,13 @@ function paintSettings() {
     var sessionLocal = Boolean(State.llmStatus && State.llmStatus.session_local_only);
     var headBanner = group.id === 'llm'
       ? '<div id="settings-llm-session-banner" class="llm-session-banner' + (sessionLocal ? '' : ' hidden') + '">' +
-          '<span>Switched to <strong>local LLMs</strong> for this session after an external API error. Your saved External LLM settings remain intact for next restart.</span>' +
-          '<button type="button" id="btn-resume-external-llm" class="ghost small">Resume External LLM</button>' +
+          '<span>' + t('Switched to <strong>local LLMs</strong> for this session after an external API error. Your saved External LLM settings remain intact for next restart.') + '</span>' +
+          '<button type="button" id="btn-resume-external-llm" class="ghost small">' + t('Resume External LLM') + '</button>' +
         '</div>'
       : '';
     var foot = group.id === 'llm'
       ? '<div id="settings-llm-test" class="setting-group-foot">' +
-          '<button type="button" id="btn-test-llm" class="ghost small">Test LLM Connection</button>' +
+          '<button type="button" id="btn-test-llm" class="ghost small">' + t('Test LLM Connection') + '</button>' +
           '<span id="test-llm-status" class="hint"></span>' +
         '</div>'
       : '';
@@ -5083,20 +5077,20 @@ function paintSettings() {
 }
 
 function renderLLMAlertBody(alert) {
-  var model = alert.model || 'External LLM';
-  var code = alert.status_code ? 'HTTP ' + alert.status_code : 'Connection Error';
-  var countNote = alert.count > 1 ? ' (' + alert.count + ' failed requests)' : '';
-  return '<p class="hint">The external LLM (<strong>' + esc(model) + '</strong>) returned <strong>' + esc(code) + '</strong>' + esc(countNote) + ':</p>' +
-    '<div class="llm-alert-error">' + esc(alert.message || 'The external LLM request could not be completed.') + '</div>' +
-    '<p class="hint">The current task automatically fell back to local processing on this PC.</p>' +
-    '<p class="hint">You can switch to <strong>local LLMs for the rest of this session</strong> (until Yeufonic is restarted) so remaining tasks do not keep retrying the external API, or <strong>keep trying the external LLM</strong> if you have resolved the issue (for example, after increasing your API spending cap).</p>';
+  var model = alert.model || t('External LLM');
+  var code = alert.status_code ? 'HTTP ' + alert.status_code : t('Connection Error');
+  var countNote = alert.count > 1 ? ' ' + t('({count} failed requests)', { count: alert.count }) : '';
+  return '<p class="hint">' + t('The external LLM (<strong>{model}</strong>) returned <strong>{code}</strong>{countNote}:', { model: esc(model), code: esc(code), countNote: esc(countNote) }) + '</p>' +
+    '<div class="llm-alert-error">' + esc(tr(alert.message) || t('The external LLM request could not be completed.')) + '</div>' +
+    '<p class="hint">' + t('The current task automatically fell back to local processing on this PC.') + '</p>' +
+    '<p class="hint">' + t('You can switch to <strong>local LLMs for the rest of this session</strong> (until Yeufonic is restarted) so remaining tasks do not keep retrying the external API, or <strong>keep trying the external LLM</strong> if you have resolved the issue (for example, after increasing your API spending cap).') + '</p>';
 }
 
 function openLLMAlertModal(alert) {
   var modal = $('llm-alert-modal');
   if (!modal || !alert) { return; }
   State.seenLlmAlertId = alert.id;
-  var title = alert.status_code === 429 ? 'External LLM Quota / Spending Cap Reached' : 'External LLM Error';
+  var title = alert.status_code === 429 ? t('External LLM Quota / Spending Cap Reached') : t('External LLM Error');
   if ($('llm-alert-title')) { $('llm-alert-title').textContent = title; }
   if ($('llm-alert-body')) { $('llm-alert-body').innerHTML = renderLLMAlertBody(alert); }
   modal.classList.remove('hidden');
@@ -5170,7 +5164,7 @@ function paintSettingRequirements() {
 
 /* "The 9B is not installed here, so the 4B draws": when the klein chosen in Settings cannot draw on
    this PC and another one does, rather than leaving the choice to look as if it had taken. */
-var KLEIN_NAMES = { '4b': 'FLUX.2 klein 4B', '9b': 'FLUX.2 klein 9B', flux3: 'FLUX 3 klein' };
+var KLEIN_NAMES = { '4b': t('FLUX.2 klein 4B'), '9b': t('FLUX.2 klein 9B'), flux3: t('FLUX 3 klein') };
 function paintKleinFallback() {
   var note = $('klein-fallback');
   if (!note) { return; }
@@ -5182,11 +5176,11 @@ function paintKleinFallback() {
   var drawing = klein.drawing || (have.indexOf('9b') >= 0 ? '9b' : (have[0] || ''));
   if (shown) {
     var why = chosen === '9b' && klein.engine === 'yue2cpp'
-      ? 'The 9B is not set up here (it needs its model and Qwen 3 8B as GGUF in the models folder: see the guide)'
+      ? t('The 9B is not set up here (it needs its model and Qwen 3 8B as GGUF in the models folder: see the guide)')
       : chosen === 'flux3' && klein.engine === 'yue2cpp'
-        ? 'FLUX 3 klein does not draw with the yue2.cpp engine yet'
-        : KLEIN_NAMES[chosen] + '\u2019s files are not installed here';
-    note.textContent = why + ', so ' + (KLEIN_NAMES[drawing] || 'another') + ' draws.';
+        ? t('FLUX 3 klein does not draw with the yue2.cpp engine yet')
+        : t('{value}’s files are not installed here', { value: KLEIN_NAMES[chosen] });
+    note.textContent = t('{why}, so {value} draws.', { why: why, value: KLEIN_NAMES[drawing] || t('another') });
   }
   note.classList.toggle('hidden', !shown);
 }
@@ -5209,7 +5203,7 @@ async function fetchLLMModels(isBackground) {
   if (btn) { btn.disabled = true; }
   if (status) {
     status.style.color = 'var(--muted)';
-    status.textContent = 'Fetching models\u2026';
+    status.textContent = t('Fetching models…');
   }
 
   try {
@@ -5228,7 +5222,7 @@ async function fetchLLMModels(isBackground) {
 
     if (sel) {
       var currentVal = (modelInput ? modelInput.value.trim() : '') || setting('llm.model', '');
-      var optionsHtml = '<option value="">-- Select from ' + models.length + ' available models --</option>';
+      var optionsHtml = '<option value="">' + t('-- Select from {modelsCount} available models --', { modelsCount: models.length }) + '</option>';
       models.forEach(function (m) {
         var isSel = (m.id === currentVal);
         optionsHtml += '<option value="' + esc(m.id) + '"' + (isSel ? ' selected' : '') + '>' + esc(m.label || m.name || m.id) + '</option>';
@@ -5240,13 +5234,13 @@ async function fetchLLMModels(isBackground) {
 
     if (status) {
       status.style.color = 'var(--good, #4ade80)';
-      status.textContent = '\u2713 Found ' + models.length + ' models';
+      status.textContent = t('✓ Found {modelsCount} models', { modelsCount: models.length });
     }
   } catch (err) {
     if (!isBackground) {
       if (status) {
         status.style.color = 'var(--bad, #f87171)';
-        status.textContent = '\u2717 ' + (err.message || 'Could not fetch models');
+        status.textContent = '\u2717 ' + (err.message || t('Could not fetch models'));
       }
     } else {
       if (status) { status.textContent = ''; }
@@ -5262,7 +5256,7 @@ async function testLLMConnection() {
   if (!btn || !status) { return; }
   btn.disabled = true;
   status.style.color = 'var(--muted)';
-  status.textContent = 'Testing connection\u2026';
+  status.textContent = t('Testing connection…');
   try {
     var body = {};
     var urlEl = $('settings-list') ? $('settings-list').querySelector('input[data-key="llm.api_url"]') : null;
@@ -5279,10 +5273,10 @@ async function testLLMConnection() {
     });
     paintLLMStatus({ session_local_only: false, configured_external: setting('llm.provider') === 'external', alert: null });
     status.style.color = 'var(--good, #4ade80)';
-    status.textContent = '\u2713 Connected! (' + (res.model || '') + ', ' + (res.latency_ms || 0) + 'ms)';
+    status.textContent = t('✓ Connected! ({value}, {value2}ms)', { value: res.model || '', value2: res.latency_ms || 0 });
   } catch (err) {
     status.style.color = 'var(--bad, #f87171)';
-    status.textContent = '\u2717 ' + (err.message || 'Connection failed');
+    status.textContent = '\u2717 ' + (err.message || t('Connection failed'));
   } finally {
     btn.disabled = false;
   }
@@ -5301,19 +5295,21 @@ async function saveSetting(input) {
       body: JSON.stringify({ key: key, value: input.value })
     });
     adoptSettings(data.settings);
+    // The page's words come with the page (app/locales.py), so another language is another page.
+    if (key === 'ui.language') { window.location.reload(); return; }
     if (data.llm_status) { paintLLMStatus(data.llm_status); }
     paintSettingRequirements();
     if (input.dataset.secret) {
       // Saved, so it leaves the page: the box goes back to saying there is one.
       input.value = '';
-      input.placeholder = 'Saved. Type a new key to replace it';
+      input.placeholder = t('Saved. Type a new key to replace it');
     }
     if (key === 'llm.model') {
       var sel = $('select-llm-model');
       if (sel) { sel.value = input.value; }
     }
     if (mark) {
-      mark.textContent = 'saved';
+      mark.textContent = t('saved');
       setTimeout(function () { if (mark) { mark.textContent = ''; } }, 1800);
     }
   } catch (err) {
@@ -5477,9 +5473,9 @@ function saveBackdrop(text) {
 function backdropControl(item) {
   var choice = backdropFrom(item.value);
   return '<div class="backdrop-control" data-backdrop-row>' +
-    '<label class="backdrop-on"><input type="checkbox" data-backdrop="on"' + (choice.on ? ' checked' : '') + '> Tint</label>' +
-    '<label class="backdrop-slider">Hue <input type="range" class="backdrop-hue" data-backdrop="hue" min="0" max="359" step="1" value="' + choice.hue + '"></label>' +
-    '<label class="backdrop-slider">Strength <input type="range" class="backdrop-strength" data-backdrop="strength" min="0.1" max="1" step="0.05" value="' + choice.strength + '"></label>' +
+    '<label class="backdrop-on"><input type="checkbox" data-backdrop="on"' + (choice.on ? ' checked' : '') + '> ' + t('Tint') + '</label>' +
+    '<label class="backdrop-slider">' + t('Hue') + ' <input type="range" class="backdrop-hue" data-backdrop="hue" min="0" max="359" step="1" value="' + choice.hue + '"></label>' +
+    '<label class="backdrop-slider">' + t('Strength') + ' <input type="range" class="backdrop-strength" data-backdrop="strength" min="0.1" max="1" step="0.05" value="' + choice.strength + '"></label>' +
   '</div>';
 }
 
@@ -5542,7 +5538,7 @@ function openBrandMenu() {
    be rebuilt, so the build (a commit and a date) is what pins a copy down. */
 /* ------------------------------------------------------------ what a take was made with
    Everything the take stores about how it was made, in words, for reading, comparing two takes or pasting into a message. */
-var MODE_WORDS = { full: 'full: keeps the chords', melody: 'melody: free accompaniment', off: 'no score: composed as it was sung' };
+var MODE_WORDS = { full: t('full: keeps the chords'), melody: t('melody: free accompaniment'), off: t('no score: composed as it was sung') };
 
 /* What the take was asked to be, and what the planner wrote: the lyrics' tags, with how many lines each has, and the
    score's sections with where each begins.  A song planned from an instrumental's structure has tags only. */
@@ -5556,66 +5552,66 @@ function structureDetails(take) {
     var count = lines.slice(1).filter(function (line) { return line.trim(); }).length;
     asked.push(tag[1] + (take.kind === 'instrumental' || !count ? '' : ' (' + count + ')'));
   });
-  if (asked.length) { pairs.push([take.kind === 'instrumental' ? 'Structure sent' : 'Lyrics asked for', asked.join(', ')]); }
+  if (asked.length) { pairs.push([take.kind === 'instrumental' ? t('Structure sent') : t('Lyrics asked for'), asked.join(', ')]); }
   var spans = typeof scoreSectionSpans === 'function' ? scoreSectionSpans(take.abc) : [];
   if (spans.length) {
-    pairs.push(['Plan wrote', spans.map(function (span) { return (span.was || span.name) + ' ' + clock(span.start); }).join(', ')]);
-    pairs.push(['Plan length', clock(spans[spans.length - 1].end)]);
+    pairs.push([t('Plan wrote'), spans.map(function (span) { return (span.was || span.name) + ' ' + clock(span.start); }).join(', ')]);
+    pairs.push([t('Plan length'), clock(spans[spans.length - 1].end)]);
   }
   return pairs;
 }
 
 function detailGroups(take) {
   var yes = function (flag) { return flag ? 'yes' : 'no'; };
-  var kind = take.kind === 'song' ? 'Song from a prompt' : (take.kind === 'instrumental' ? 'Instrumental' : 'Cover');
-  var made = [['Kind', kind]];
-  if (take.created_at) { made.push(['Made', new Date(take.created_at * 1000).toLocaleString()]); }
-  if (take.duration) { made.push(['Length', secs(take.duration)]); }
-  if (take.max_duration) { made.push(['Length cap', secs(take.max_duration)]); }
-  if (take.checkpoint) { made.push(['Model', take.checkpoint.replace(/\.safetensors$/, '')]); }
-  if (take.kind !== 'cover' || take.mode) { made.push(['Mode', MODE_WORDS[take.mode] || take.mode || 'full']); }
-  if (take.seed != null) { made.push(['Seed', String(take.seed)]); }
-  if (take.sound_seed) { made.push(['Sound seed', String(take.sound_seed)]); }
+  var kind = take.kind === 'song' ? t('Song from a prompt') : (take.kind === 'instrumental' ? t('Instrumental') : t('Cover'));
+  var made = [[t('Kind'), kind]];
+  if (take.created_at) { made.push([t('Made'), new Date(take.created_at * 1000).toLocaleString()]); }
+  if (take.duration) { made.push([t('Length'), secs(take.duration)]); }
+  if (take.max_duration) { made.push([t('Length cap'), secs(take.max_duration)]); }
+  if (take.checkpoint) { made.push([t('Model'), take.checkpoint.replace(/\.safetensors$/, '')]); }
+  if (take.kind !== 'cover' || take.mode) { made.push([t('Mode'), MODE_WORDS[take.mode] || take.mode || 'full']); }
+  if (take.seed != null) { made.push([t('Seed'), String(take.seed)]); }
+  if (take.sound_seed) { made.push([t('Sound seed'), String(take.sound_seed)]); }
 
-  var sound = [['Interpretation', (INTERPRETATIONS[take.interpretation] || INTERPRETATIONS.standard).name]];
+  var sound = [[t('Interpretation'), (INTERPRETATIONS[take.interpretation] || INTERPRETATIONS.standard).name]];
   if (take.kind !== 'cover') {
-    sound.push(['Harmony', HARMONY_WORDS[take.harmony || 0] || HARMONY_WORDS[0]]);
-    sound.push(['Plan variety', take.variety || 'normal']);
+    sound.push([t('Harmony'), HARMONY_WORDS[take.harmony || 0] || HARMONY_WORDS[0]]);
+    sound.push([t('Plan variety'), take.variety || 'normal']);
   }
-  sound.push(['Production polish', yes(take.realaudio)]);
-  sound.push(['Normalise volume', yes(take.normalise)]);
+  sound.push([t('Production polish'), yes(take.realaudio)]);
+  sound.push([t('Normalise volume'), yes(take.normalise)]);
   if (take.normalised) {
     var level = take.normalised_to == null ? -14 : take.normalised_to;
-    sound.push(['Normalised to', (level < 0 ? '\u2212' : '') + Math.abs(level) + ' LUFS']);
+    sound.push([t('Normalised to'), (level < 0 ? '\u2212' : '') + Math.abs(level) + ' LUFS']);
   }
   if (take.style_lora) {
-    sound.push(['Style LoRA', take.style_lora.replace(/\.safetensors$/, '') + ' (planner ' + Number(take.style_lora_clip || 0).toFixed(2) +
-      ', sound ' + Number(take.style_lora_model || 0).toFixed(2) + ')']);
+    sound.push([t('Style LoRA'), take.style_lora.replace(/\.safetensors$/, '') + ' ' +
+      t('(planner {planner}, sound {sound})', { planner: Number(take.style_lora_clip || 0).toFixed(2), sound: Number(take.style_lora_model || 0).toFixed(2) })]);
   }
   if (take.voice_lora) {
-    sound.push(['Voice LoRA', take.voice_lora.replace(/\.safetensors$/, '') + ' (' + Number(take.voice_lora_strength || 0).toFixed(2) + ')']);
+    sound.push([t('Voice LoRA'), take.voice_lora.replace(/\.safetensors$/, '') + ' (' + Number(take.voice_lora_strength || 0).toFixed(2) + ')']);
   }
-  var groups = [['Made', made], ['Sound', sound]];
+  var groups = [[t('Made'), made], [t('Sound'), sound]];
   var structure = structureDetails(take);
-  if (structure.length) { groups.push(['Structure', structure]); }
+  if (structure.length) { groups.push([t('Structure'), structure]); }
 
   var advanced = [];
   var set = function (label, value, shown) { if (value != null && value !== '' && value !== false) { advanced.push([label, shown || String(value)]); } };
-  set('Sampler steps', take.sampler_steps);
-  set('Avoid', take.avoid);
-  set('Key lock', take.target_key);
-  set('Tempo lock', take.target_bpm, take.target_bpm ? take.target_bpm + ' BPM' : '');
-  set('Longest score', take.max_abc_tokens, take.max_abc_tokens ? take.max_abc_tokens + ' tokens' : '');
-  set('Chord hold limit', take.chord_hold_limit);
-  set('Out-of-key chord bonus', take.chord_outside_bonus);
-  set('Follow my structure', take.follow_structure === 1 ? 1 : null, 'exactly');
-  set('Voices', take.voice_cues === 1 && hasVoiceCues(take.lyrics) ? 1 : null, 'follow the cues');
-  set('Sections open differently', take.chord_sections, take.chord_sections === 1 ? 'always' : (take.chord_sections === 0 ? 'never' : ''));
-  set('Loudness target', take.target_lufs, take.target_lufs != null ? take.target_lufs + ' LUFS' : '');
-  set('Fade out', take.fade_out_seconds, take.fade_out_seconds != null ? take.fade_out_seconds + ' s' : '');
-  set('Follow the style', take.cfg_scale, take.cfg_scale != null ? Number(take.cfg_scale).toFixed(1) : '');
-  groups.push(['Advanced', advanced.length ? advanced : [['', 'none changed']]]);
-  if (take.style) { groups.push(['Style', [['', take.style]]]); }
+  set(t('Sampler steps'), take.sampler_steps);
+  set(t('Avoid'), take.avoid);
+  set(t('Key lock'), take.target_key);
+  set(t('Tempo lock'), take.target_bpm, take.target_bpm ? take.target_bpm + ' BPM' : '');
+  set(t('Longest score'), take.max_abc_tokens, take.max_abc_tokens ? take.max_abc_tokens + ' tokens' : '');
+  set(t('Chord hold limit'), take.chord_hold_limit);
+  set(t('Out-of-key chord bonus'), take.chord_outside_bonus);
+  set(t('Follow my structure'), take.follow_structure === 1 ? 1 : null, 'exactly');
+  set(t('Voices'), take.voice_cues === 1 && hasVoiceCues(take.lyrics) ? 1 : null, t('follow the cues'));
+  set(t('Sections open differently'), take.chord_sections, take.chord_sections === 1 ? 'always' : (take.chord_sections === 0 ? 'never' : ''));
+  set(t('Loudness target'), take.target_lufs, take.target_lufs != null ? take.target_lufs + ' LUFS' : '');
+  set(t('Fade out'), take.fade_out_seconds, take.fade_out_seconds != null ? take.fade_out_seconds + ' s' : '');
+  set(t('Follow the style'), take.cfg_scale, take.cfg_scale != null ? Number(take.cfg_scale).toFixed(1) : '');
+  groups.push([t('Advanced'), advanced.length ? advanced : [['', t('none changed')]]]);
+  if (take.style) { groups.push([t('Style'), [['', take.style]]]); }
   return groups;
 }
 
@@ -5628,7 +5624,7 @@ function detailsText(take) {
 function openDetails(take) {
   if (!take || !$('details-modal')) { return; }
   State.detailsTake = take;
-  $('details-title').textContent = take.title || 'Take';
+  $('details-title').textContent = take.title || t('Take');
   $('details-body').innerHTML = detailGroups(take).map(function (group) {
     return '<div class="sheet-blk"><h3>' + esc(group[0]) + '</h3><dl class="sheet-pairs">' + group[1].map(function (pair) {
       return pair[0] ? '<dt>' + esc(pair[0]) + '</dt><dd>' + esc(pair[1]) + '</dd>' : '<dd class="wide">' + esc(pair[1]) + '</dd>';
@@ -5646,7 +5642,7 @@ async function copyDetails() {
   var text = State.detailsTake ? detailsText(State.detailsTake) : '';
   try {
     await navigator.clipboard.writeText(text);
-    $('details-copied').textContent = 'Copied';
+    $('details-copied').textContent = t('Copied');
   } catch (err) {
     // No clipboard here: select the text so Ctrl+C takes it.
     var range = document.createRange();
@@ -5654,7 +5650,7 @@ async function copyDetails() {
     var picked = window.getSelection();
     picked.removeAllRanges();
     picked.addRange(range);
-    $('details-copied').textContent = 'Selected: press Ctrl+C';
+    $('details-copied').textContent = t('Selected: press Ctrl+C');
   }
 }
 
@@ -5667,8 +5663,8 @@ function wireDetails() {
 
 function openAbout() {
   var about = State.about || {};
-  var line = about.version ? 'Version ' + about.version : '';
-  if (about.build) { line += (line ? ' \u00b7 build ' : 'Build ') + about.build; }
+  var line = about.version ? t('Version {version}', { version: about.version }) : '';
+  if (about.build) { line += (line ? ' \u00b7 build ' : t('Build') + ' ') + about.build; }
   $('about-build').textContent = line;
   if ($('about-branch')) {
     if (about.branch && about.branch !== 'main' && about.branch !== 'master') {
@@ -5679,13 +5675,12 @@ function openAbout() {
       $('about-branch').style.display = 'none';
     }
   }
-  if ($('about-model')) { $('about-model').textContent = about.model ? 'Model: ' + about.model : ''; }
+  if ($('about-model')) { $('about-model').textContent = about.model ? t('Model: {model}', { model: about.model }) : ''; }
   if ($('about-engine')) {
     var built = about.engine;
     $('about-engine').textContent = about.engineName
-      ? 'Engine: ' + about.engineName + (about.engineVersion ? ' ' + about.engineVersion : '')
-      : !built ? '' : 'Engine: PyTorch ' + built.torch + (built.cuda ? ', CUDA ' + built.cuda : '') +
-      (about.modelSlow ? ' \u00b7 the low-memory model is slow on CUDA 12' : '');
+      ? t('Engine: {engineName}{value}', { engineName: about.engineName, value: about.engineVersion ? ' ' + about.engineVersion : '' })
+      : !built ? '' : t('Engine: PyTorch {torch}{value}{value2}', { torch: built.torch, value: built.cuda ? t(', CUDA {cuda}', { cuda: built.cuda }) : '', value2: about.modelSlow ? ' ' + t('· the low-memory model is slow on CUDA 12') : '' });
   }
   $('about-modal').classList.remove('hidden');
 }
@@ -5840,13 +5835,13 @@ function closeStorage() {
 }
 
 async function loadStorage() {
-  $('storage-summary').textContent = 'Measuring… a large library takes a few seconds.';
+  $('storage-summary').textContent = t('Measuring… a large library takes a few seconds.');
   $('storage-result').textContent = '';
   try {
     STORAGE.report = await api('/api/storage');
     paintStorage();
   } catch (err) {
-    $('storage-summary').textContent = 'Could not measure: ' + err.message;
+    $('storage-summary').textContent = t('Could not measure: {message}', { message: err.message });
   }
 }
 
@@ -5855,59 +5850,58 @@ function paintStorage() {
   if (!report) { return; }
   var total = report.areas.reduce(function (sum, area) { return sum + area.bytes; }, 0);
   var disk = report.disk && report.disk.free !== null
-    ? ' The disk has ' + sizeText(report.disk.free) + ' free of ' + sizeText(report.disk.total) + '.' : '';
-  $('storage-summary').textContent = 'Yeufonic is using ' + sizeText(total) + '.' + disk + ' ' +
-    sizeText(report.reclaimable) + ' of it can be given back.';
+    ? ' ' + t('The disk has {sizeText} free of {sizeText2}.', { sizeText: sizeText(report.disk.free), sizeText2: sizeText(report.disk.total) }) : '';
+  $('storage-summary').textContent = t('Yeufonic is using {sizeText}.{disk} {sizeText2} of it can be given back.', { sizeText: sizeText(total), disk: disk, sizeText2: sizeText(report.reclaimable) });
 
   $('storage-items').innerHTML = report.items.length ? report.items.map(function (item) {
     if (item.kind === 'compress') {
       // Not ticked and removed with the rest: it converts in the background and says how far it has got.
       return '<div class="storage-item' + (item.blocked ? ' blocked' : '') + '"><span></span>' +
-        '<span class="storage-title"><span>' + esc(item.title) + '</span><span class="storage-size">' +
-          sizeText(item.bytes) + ' \u00b7 ' + item.files + ' files</span></span>' +
-        '<p>' + esc(item.what) + ' It frees about ' + sizeText(item.saves) + '.</p><p><b>If you convert them:</b> ' + esc(item.consequence) + '</p>' +
+        '<span class="storage-title"><span>' + esc(tr(item.title)) + '</span><span class="storage-size">' +
+          sizeText(item.bytes) + ' · ' + item.files + ' files</span></span>' +
+        '<p>' + t('{what} It frees about {sizeText}.', { what: esc(tr(item.what)), sizeText: sizeText(item.saves) }) + '</p><p>' + t('<b>If you convert them:</b> {consequence}', { consequence: esc(tr(item.consequence)) }) + '</p>' +
         '<div class="storage-convert"><button type="button" id="storage-convert" class="ghost small"' +
-          (item.blocked ? ' disabled data-blocked="1"' : '') + '>Convert to FLAC</button>' +
-          '<button type="button" id="storage-convert-stop" class="ghost small hidden">Stop</button>' +
+          (item.blocked ? ' disabled data-blocked="1"' : '') + '>' + t('Convert to FLAC') + '</button>' +
+          '<button type="button" id="storage-convert-stop" class="ghost small hidden">' + t('Stop') + '</button>' +
           '<span id="storage-convert-status" class="hint"></span></div>' +
-        (item.blocked ? '<span class="storage-why">Not now: ' + esc(item.blocked) + '.</span>' : '') + '</div>';
+        (item.blocked ? '<span class="storage-why">' + t('Not now: {blocked}.', { blocked: esc(tr(item.blocked)) }) + '</span>' : '') + '</div>';
     }
     return '<label class="storage-item' + (item.blocked ? ' blocked' : '') + '">' +
       '<input type="checkbox" data-item="' + esc(item.id) + '"' + (item.blocked ? ' disabled' : '') + '>' +
-      '<span class="storage-title"><span>' + esc(item.title) + '</span><span class="storage-size">' +
-        sizeText(item.bytes) + ' · ' + item.files + (item.files === 1 ? ' file' : ' files') + '</span></span>' +
-      '<p>' + esc(item.what) + '</p>' +
-      '<p><b>If you remove it:</b> ' + esc(item.consequence) + '</p>' +
-      (item.blocked ? '<span class="storage-why">Not now: ' + esc(item.blocked) + '.</span>' : '') +
+      '<span class="storage-title"><span>' + esc(tr(item.title)) + '</span><span class="storage-size">' +
+        sizeText(item.bytes) + ' · ' + tn(item.files, '{n} file', '{n} files') + '</span></span>' +
+      '<p>' + esc(tr(item.what)) + '</p>' +
+      '<p>' + t('<b>If you remove it:</b> {consequence}', { consequence: esc(tr(item.consequence)) }) + '</p>' +
+      (item.blocked ? '<span class="storage-why">' + t('Not now: {blocked}.', { blocked: esc(tr(item.blocked)) }) + '</span>' : '') +
       '</label>';
-  }).join('') : '<p class="hint">Nothing here can be given back at the moment.</p>';
+  }).join('') : '<p class="hint">' + t('Nothing here can be given back at the moment.') + '</p>';
   paintStorageSelection();
   pollCompress();
 
   var spec = (State.settingSpec || []).filter(function (item) { return item.section === 'storage'; });
   $('storage-auto').innerHTML = spec.map(function (item) {
-    return '<div class="storage-auto-row"><label for="auto-' + esc(item.key) + '">' + esc(item.label) + '</label>' +
+    return '<div class="storage-auto-row"><label for="auto-' + esc(item.key) + '">' + esc(tr(item.label)) + '</label>' +
       '<select id="auto-' + esc(item.key) + '" data-storage-key="' + esc(item.key) + '">' +
       item.options.map(function (option) {
         return '<option value="' + esc(option.value) + '"' + (option.value === item.value ? ' selected' : '') + '>' +
-          esc(option.label) + '</option>';
-      }).join('') + '</select><p>' + esc(item.help || '') + '</p></div>';
+          esc(tr(option.label)) + '</option>';
+      }).join('') + '</select><p>' + esc(tr(item.help || '')) + '</p></div>';
   }).join('');
 
   var biggest = Math.max.apply(null, report.areas.map(function (a) { return a.bytes; }).concat([1]));
   $('storage-areas').innerHTML = report.areas.map(function (area) {
-    return '<div class="storage-area"><span>' + esc(area.name) + '</span>' +
+    return '<div class="storage-area"><span>' + esc(tr(area.name)) + '</span>' +
       '<span class="storage-bar"><i style="width:' + Math.max(1, Math.round(100 * area.bytes / biggest)) + '%"></i></span>' +
-      '<span style="text-align:right">' + sizeText(area.bytes) + '</span><small>' + esc(area.note) + '</small></div>';
+      '<span style="text-align:right">' + sizeText(area.bytes) + '</span><small>' + esc(tr(area.note)) + '</small></div>';
   }).join('');
 
   $('storage-corpora').innerHTML = report.corpora.length ?
-    '<table class="storage-table"><tr><th>Corpus</th><th>Songs and vocals</th><th>Working copies</th>' +
-    '<th>Training set</th><th>Checkpoints</th><th>Total</th></tr>' + report.corpora.map(function (c) {
+    '<table class="storage-table"><tr><th>' + t('Corpus') + '</th><th>' + t('Songs and vocals') + '</th><th>' + t('Working copies') + '</th>' +
+    '<th>' + t('Training set') + '</th><th>' + t('Checkpoints') + '</th><th>' + t('Total') + '</th></tr>' + report.corpora.map(function (c) {
       return '<tr><td>' + esc(c.name) + '</td><td>' + sizeText(c.songs) + '</td><td>' + sizeText(c.working_copies) +
         '</td><td>' + sizeText(c.training_set) + '</td><td>' + sizeText(c.checkpoints) + '</td><td>' +
         sizeText(c.songs + c.working_copies + c.training_set + c.checkpoints) + '</td></tr>';
-    }).join('') + '</table>' : '<p class="hint">No corpora yet.</p>';
+    }).join('') + '</table>' : '<p class="hint">' + t('No corpora yet.') + '</p>';
 }
 
 function storageChosen() {
@@ -5921,7 +5915,7 @@ function paintStorageSelection() {
   var bytes = items.filter(function (i) { return chosen.indexOf(i.id) >= 0; })
     .reduce(function (sum, i) { return sum + i.bytes; }, 0);
   $('storage-reclaim').disabled = !chosen.length;
-  $('storage-selected').textContent = chosen.length ? chosen.length + ' selected · ' + sizeText(bytes) : '';
+  $('storage-selected').textContent = chosen.length ? t('{chosenCount} selected · {sizeText}', { chosenCount: chosen.length, sizeText: sizeText(bytes) }) : '';
 }
 
 async function reclaimStorage() {
@@ -5929,24 +5923,22 @@ async function reclaimStorage() {
   var items = ((STORAGE.report && STORAGE.report.items) || []).filter(function (i) { return chosen.indexOf(i.id) >= 0; });
   if (!items.length) { return; }
   var total = items.reduce(function (sum, i) { return sum + i.bytes; }, 0);
-  var message = 'Remove ' + items.length + (items.length === 1 ? ' item' : ' items') + ', ' + sizeText(total) + '?\n\n' +
-    items.map(function (i) { return '• ' + i.title + ' (' + sizeText(i.bytes) + '): ' + i.consequence; }).join('\n\n') +
-    '\n\nThis cannot be undone.';
-  var yes = await confirmModal({ title: 'Remove these files?', message: message, confirmText: 'Remove', danger: true });
+  var message = tn(items.length, 'Remove {n} item, {sizeText}?\n\n{list}\n\nThis cannot be undone.', 'Remove {n} items, {sizeText}?\n\n{list}\n\nThis cannot be undone.', { sizeText: sizeText(total), list: items.map(function (i) { return '• ' + tr(i.title) + ' (' + sizeText(i.bytes) + '): ' + tr(i.consequence); }).join('\n\n') });
+  var yes = await confirmModal({ title: t('Remove these files?'), message: message, confirmText: t('Remove'), danger: true });
   if (!yes) { return; }
   $('storage-reclaim').disabled = true;
   try {
     var result = await api('/api/storage/reclaim', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: chosen })
     });
-    var text = 'Freed ' + sizeText(result.freed) + '.';
+    var text = t('Freed {sizeText}.', { sizeText: sizeText(result.freed) });
     if (result.skipped.length) {
-      text += ' Left alone: ' + result.skipped.map(function (s) { return s.reason; }).join('; ') + '.';
+      text += ' ' + t('Left alone: {value}.', { value: result.skipped.map(function (s) { return tr(s.reason); }).join('; ') });
     }
     await loadStorage();
     $('storage-result').textContent = text;
   } catch (err) {
-    $('storage-result').textContent = 'Could not remove: ' + err.message;
+    $('storage-result').textContent = t('Could not remove: {message}', { message: err.message });
     paintStorageSelection();
   }
 }
@@ -5963,16 +5955,15 @@ async function pollCompress() {
   $('storage-convert-stop').classList.toggle('hidden', !running);
   if (running) {
     STORAGE.watching = true;      // one that finishes while this window is open is announced; an old result is not
-    status.textContent = 'Converting ' + (state.done + 1) + ' of ' + state.total + '\u2026 ' + sizeText(state.saved) + ' saved so far.';
+    status.textContent = t('Converting {value} of {total}… {sizeText} saved so far.', { value: state.done + 1, total: state.total, sizeText: sizeText(state.saved) });
     STORAGE.timer = setTimeout(pollCompress, 2000);
   } else if ((state.state === 'done' || state.state === 'stopped') && STORAGE.watching) {
     STORAGE.watching = false;
-    var text = (state.state === 'stopped' ? 'Stopped. ' : 'Done. ') + state.done + ' converted, ' +
-      sizeText(state.saved) + ' saved' + (state.kept ? '; ' + state.kept + ' left as WAV because they did not check out' : '') + '.';
+    var text = t('{value} converted, {sizeText} saved{value2}.', { value: (state.state === 'stopped' ? t('Stopped.') + ' ' : t('Done.') + ' ') + state.done, sizeText: sizeText(state.saved), value2: state.kept ? t('; {kept} left as WAV because they did not check out', { kept: state.kept }) : '' });
     await loadStorage();
     $('storage-result').textContent = text;
   } else if (state.state === 'failed') {
-    status.textContent = 'Stopped by an error: ' + state.error;
+    status.textContent = t('Stopped by an error: {error}', { error: tr(state.error) });
   }
 }
 
@@ -5993,9 +5984,9 @@ async function saveStorageSetting(select) {
       body: JSON.stringify({ key: select.dataset.storageKey, value: select.value })
     });
     adoptSettings(data.settings);
-    $('storage-result').textContent = 'Saved.';
+    $('storage-result').textContent = t('Saved.');
   } catch (err) {
-    $('storage-result').textContent = 'Could not save: ' + err.message;
+    $('storage-result').textContent = t('Could not save: {message}', { message: err.message });
   }
 }
 
@@ -6069,12 +6060,11 @@ function paintHearButton() {
   button.disabled = !source;
   // The label stays an instruction. "Lyrics heard" read as a status, and a
   // status is not something anyone thinks to press.
-  button.title = !source ? 'Choose a recording first'
-    : source.instrument ? 'Played on an instrument: there are no words to hear. Use Write lyrics.'
-    : source.origin === 'recording' ? 'Extract words heard in recording (or use Write lyrics if you hummed)'
-    : source.has_lyrics ? 'Put the words heard earlier in the box, and offer to hear them again'
-    : 'Separate the vocal from this recording and write down what it sings. English recordings only: '
-      + 'Whisper hears nothing else, and would write down nonsense.';
+  button.title = !source ? t('Choose a recording first')
+    : source.instrument ? t('Played on an instrument: there are no words to hear. Use Write lyrics.')
+    : source.origin === 'recording' ? t('Extract words heard in recording (or use Write lyrics if you hummed)')
+    : source.has_lyrics ? t('Put the words heard earlier in the box, and offer to hear them again')
+    : t('Separate the vocal from this recording and write down what it sings. English recordings only: Whisper hears nothing else, and would write down nonsense.');
 }
 
 /* Auditioning the recording itself, through the player at the foot of the page.
@@ -6114,13 +6104,13 @@ function playRecording() {
       console.warn("MIDI audio audition play failed:", err);
       State.auditionLoading = false;
       paintAudition();
-      statusLine("Could not play MIDI audio: " + (err.message || err), "bad");
+      statusLine(t('Could not play MIDI audio: {value}', { value: err.message || err }), "bad");
     });
     npTitle(source.title);
-    $('np-meta').textContent = 'Synthesizing with ' + sfLabel + '…';
+    $('np-meta').textContent = t('Synthesizing with {sfLabel}…', { sfLabel: sfLabel });
     $('np-cover').className = 'np-cover grad-cover';
     updateMediaSession({ title: source.title, style: 'MIDI Recording (' + sfLabel + ')' });
-    statusLine('Preparing MIDI audio with ' + sfLabel + '…', 'hint');
+    statusLine(t('Preparing MIDI audio with {sfLabel}…', { sfLabel: sfLabel }), 'hint');
     loadWave(url, '/api/sources/' + source.id + '/peaks' + sf2Param);
     paintTakes();
     paintAudition();
@@ -6146,7 +6136,7 @@ function playRecording() {
   audio.src = url;
   audio.play().catch(function () {});
   npTitle(source.title);
-  $('np-meta').textContent = 'the recording being covered';
+  $('np-meta').textContent = t('the recording being covered');
   $('np-cover').className = 'np-cover grad-cover';
   updateMediaSession({ title: source.title, style: 'the recording being covered' });
   loadWave(url, '/api/sources/' + source.id + '/peaks');
@@ -6161,18 +6151,18 @@ function paintAudition() {
   var playing = Boolean(source && State.audition === source.id && !$('audio').paused);
   var loading = Boolean(source && State.audition === source.id && $('audio').paused && State.auditionLoading);
   button.disabled = !source || loading;
-  button.title = !source ? 'Choose a recording first'
-    : loading ? 'Synthesizing studio MIDI audio with SoundFont...'
-    : playing ? 'Pause this recording'
-    : 'Play this recording through the player, to hear what you are covering';
+  button.title = !source ? t('Choose a recording first')
+    : loading ? t('Synthesizing studio MIDI audio with SoundFont...')
+    : playing ? t('Pause this recording')
+    : t('Play this recording through the player, to hear what you are covering');
   button.classList.toggle('on', playing);
   button.classList.toggle('loading', loading);
   if (loading) {
-    button.textContent = '⏳ Preparing…';
+    button.textContent = t('⏳ Preparing…');
   } else if (playing) {
-    button.textContent = '⏸ Audition';
+    button.textContent = t('⏸ Audition');
   } else {
-    button.textContent = 'Audition';
+    button.textContent = t('Audition');
   }
 }
 
@@ -6183,7 +6173,7 @@ function paintHearJob(state) {
   box.classList.remove('bad');
   if (!running) { return; }
   $('lyrics-hear-bar').style.width = Math.round((state.progress || 0) * 100) + '%';
-  $('lyrics-hear-stage').textContent = state.stage || 'Waiting';
+  $('lyrics-hear-stage').textContent = tr(state.stage) || t('Waiting');
 }
 
 /* A job that fails says so where the bar was, not only in the status line at the
@@ -6207,9 +6197,9 @@ async function useHeardLyrics(text) {
   // Another recording's words, as the app put them in, go without asking.
   if (box.value.trim() && !sameWords(box.value, text) && !sameWords(box.value, recordingWords())) {
     if (!await confirmModal({
-      title: 'Replace lyrics',
-      message: 'Replace the lyrics in the box with the words heard in the recording?',
-      confirmText: 'Replace',
+      title: t('Replace lyrics'),
+      message: t('Replace the lyrics in the box with the words heard in the recording?'),
+      confirmText: t('Replace'),
       danger: true
     })) { return; }
   }
@@ -6228,10 +6218,10 @@ async function pollHear(id) {
     if (HEAR.id !== id) { return; }
     // The app restarting, or a moment's loss of the network: the job carries on there, so keep asking.
     if (++HEAR.misses < HEAR_PATIENCE) {
-      $('lyrics-hear-stage').textContent = 'Reaching the app again\u2026';
+      $('lyrics-hear-stage').textContent = t('Reaching the app again…');
       return;
     }
-    showHearError('Lost touch with the job: ' + err.message);
+    showHearError(t('Lost touch with the job: {message}', { message: err.message }));
     return;
   }
   if (HEAR.id !== id) { return; }
@@ -6242,15 +6232,13 @@ async function pollHear(id) {
     if (state.lyrics) { await useHeardLyrics(state.lyrics); }
     var isFallback = state.warning || (state.method && state.method.startsWith('Whisper (') && (state.method.indexOf('could not') !== -1 || state.method.indexOf('held back') !== -1 || state.method.indexOf('failed') !== -1));
     if (isFallback) {
-      statusLine('Wrote down what the recording sings' + (state.method ? ', heard by ' + state.method : '') +
-        '. Read it before you plan.', 'bad');
+      statusLine(t('Wrote down what the recording sings{value}. Read it before you plan.', { value: state.method ? t(', heard by {method}', { method: state.method }) : '' }), 'bad');
     } else {
-      statusLine('Wrote down what the recording sings' + (state.method ? ', heard by ' + state.method : '') +
-        '. Read it before you plan.', 'good');
+      statusLine(t('Wrote down what the recording sings{value}. Read it before you plan.', { value: state.method ? t(', heard by {method}', { method: state.method }) : '' }), 'good');
     }
     loadSources();
   } else if (state.state === 'failed') {
-    showHearError(state.error === 'cancelled' ? 'Stopped.' : 'Could not hear the words: ' + (state.error || 'unknown'));
+    showHearError(state.error === 'cancelled' ? t('Stopped.') : t('Could not hear the words: {value}', { value: tr(state.error) || t('unknown') }));
   }
 }
 
@@ -6268,7 +6256,7 @@ function stopHearPoll() {
 function hearMethodNow() {
   var wanted = setting('lyrics.transcriber', 'whisper') === 'llm';
   var external = setting('llm.provider', 'local') === 'external';
-  return wanted && external ? setting('llm.model', 'the external LLM') + ', timed by Whisper' : 'Whisper';
+  return wanted && external ? t('{setting}, timed by Whisper', { setting: setting('llm.model', t('the external LLM')) }) : t('Whisper');
 }
 
 async function hearLyrics() {
@@ -6283,14 +6271,14 @@ async function hearLyrics() {
   var busy = state.state === 'queued' || state.state === 'running';
   if (state.lyrics && !busy) {
     await useHeardLyrics(state.lyrics);
-    var before = state.method ? ' (heard by ' + state.method + ')' : '';
+    var before = state.method ? ' ' + t('(heard by {method})', { method: state.method }) : '';
     if (!await confirmModal({
-      title: 'Extract lyrics again',
-      message: 'Lyrics already present' + before + '. Extract again with ' + hearMethodNow() + '?',
-      confirmText: 'Extract again',
+      title: t('Extract lyrics again'),
+      message: t('Lyrics already present{before}. Extract again with {hearMethodNow}?', { before: before, hearMethodNow: hearMethodNow() }),
+      confirmText: t('Extract again'),
       danger: false
     })) {
-      statusLine('These words were heard in the recording earlier.', 'good');
+      statusLine(t('These words were heard in the recording earlier.'), 'good');
       return;
     }
   }
@@ -6298,7 +6286,7 @@ async function hearLyrics() {
   HEAR.id = source.id;
   HEAR.misses = 0;
   HEAR.shown = null;
-  paintHearJob({ state: 'queued', progress: 0, stage: 'Waiting' });
+  paintHearJob({ state: 'queued', progress: 0, stage: t('Waiting') });
   clearInterval(HEAR.timer);
   HEAR.timer = setInterval(function () { pollHear(source.id); }, 1500);
 }
@@ -6351,11 +6339,11 @@ function paintStemChoices(preferred) {
 function openStemsModal(target) {
   var options = State.stemsOptions || {};
   if (!options.available) {
-    statusLine('Stem separation is not available in this container.', 'bad');
+    statusLine(t('Stem separation is not available in this container.'), 'bad');
     return;
   }
   State.stemsTarget = target;
-  $('stems-heading').textContent = 'Extract stems: ' + target.title;
+  $('stems-heading').textContent = t('Extract stems: {title}', { title: target.title });
   // Settings decide what a new run starts with; the sheet can still override.
   $('stems-dir').value = setting('stems.folder', options.default_dir || '/data/stems');
   paintStemChoices({
@@ -6363,9 +6351,9 @@ function openStemsModal(target) {
     format: setting('stems.format', options.default_format || 'flac')
   });
   var estimate = options.avg_seconds
-    ? 'The last run took ' + Math.round(options.avg_seconds) + ' seconds.'
-    : 'A four minute song takes about three minutes.';
-  $('stems-note').textContent = 'Runs on this machine on ' + (options.threads || 4) + ' CPU threads, so the GPU stays free for renders. ' + estimate;
+    ? t('The last run took {avg_seconds} seconds.', { avg_seconds: Math.round(options.avg_seconds) })
+    : t('A four minute song takes about three minutes.');
+  $('stems-note').textContent = t('Runs on this machine on {value} CPU threads, so the GPU stays free for renders. {estimate}', { value: options.threads || 4, estimate: estimate });
   $('stems-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -6382,7 +6370,7 @@ async function runStems() {
   var wanted = Array.prototype.slice.call($('stems-list').querySelectorAll('input:checked'))
     .map(function (box) { return box.value; });
   if (!wanted.length) {
-    $('stems-note').textContent = 'Choose at least one stem.';
+    $('stems-note').textContent = t('Choose at least one stem.');
     return;
   }
   $('stems-run').disabled = true;
@@ -6401,7 +6389,7 @@ async function runStems() {
     closeStemsModal();
     loadTakes();
   } catch (err) {
-    $('stems-note').textContent = 'Could not start: ' + err.message;
+    $('stems-note').textContent = t('Could not start: {message}', { message: err.message });
   } finally {
     $('stems-run').disabled = false;
   }
@@ -6416,7 +6404,7 @@ function playStem(setId, file) {
   audio.src = '/api/stem-sets/' + setId + '/' + encodeURIComponent(file);
   audio.play().catch(function () {});
   npTitle(file.replace(/\.[a-z0-9]+$/i, ''));
-  $('np-meta').textContent = 'stem from take ' + setId;
+  $('np-meta').textContent = t('stem from take {setId}', { setId: setId });
   $('np-cover').className = 'np-cover grad-cover';
   loadWave(audio.src, '/api/stem-sets/' + setId + '/' + encodeURIComponent(file) + '/peaks');
 }
@@ -6430,7 +6418,7 @@ function openSaveModal(take) {
   }
   State.saveTakeId = take.id;
   State.saveTake = take;
-  $('save-heading').textContent = 'Save \u201c' + take.title + '\u201d';
+  $('save-heading').textContent = t('Save “{title}”', { title: take.title });
   // What was saved last time in this browser; nothing chosen the first time.
   var last = {};
   try { last = JSON.parse(localStorage.getItem(SAVE_CHOICE_KEY) || '{}') || {}; } catch (err) { last = {}; }
@@ -6475,10 +6463,10 @@ function paintSaveChoice() {
   var c = saveChoice(), note = $('save-note');
   if ($('save-run')) { $('save-run').disabled = !c.fmt && !c.recipe; }
   if (!note) { return; }
-  note.textContent = c.fmt && c.recipe ? 'The audio and the take\u2019s recipe, in one zip.'
-    : c.recipe ? 'The take\u2019s recipe: its words, score and settings, to keep, share or import. No audio.'
-    : !c.fmt ? 'Choose what to save.'
-    : c.fmt === 'mp4' ? 'The song with its picture, as an MP4 video that messaging apps send as a video.' : '';
+  note.textContent = c.fmt && c.recipe ? t('The audio and the take’s recipe, in one zip.')
+    : c.recipe ? t('The take’s recipe: its words, score and settings, to keep, share or import. No audio.')
+    : !c.fmt ? t('Choose what to save.')
+    : c.fmt === 'mp4' ? t('The song with its picture, as an MP4 video that messaging apps send as a video.') : '';
 }
 
 function closeSaveModal() {
@@ -6529,12 +6517,12 @@ function runSave() {
     } catch (e) {}
 
     if (mastered) {
-      statusLine('Mastering the file to save…', 'wait');
+      statusLine(t('Mastering the file to save…'), 'wait');
       try {
         await window.Rack.renderAndDownload(id, fmt, withRecipe);
-        statusLine('Mastered file ready to save.', 'good');
+        statusLine(t('Mastered file ready to save.'), 'good');
       } catch (err) {
-        statusLine('Could not master the file, so nothing was saved: ' + ((err && err.message) || err), 'bad');
+        statusLine(t('Could not master the file, so nothing was saved: {value}', { value: (err && err.message) || err }), 'bad');
       }
       return;
     }
@@ -6566,13 +6554,13 @@ if (typeof window !== 'undefined') {
    How predictable the chords of a score plan are. Each step is a setting of the
    engine's yue2_harmony node; the server holds the mapping, and these are only the
    words. Songs from a prompt only: a cover takes its chords from the recording. */
-var HARMONY_WORDS = ['Familiar', 'Varied', 'Colourful', 'Adventurous', 'Outside'];
+var HARMONY_WORDS = [t('Familiar'), t('Varied'), t('Colourful'), t('Adventurous'), t('Outside')];
 var HARMONY_HINTS = [
-  'YuE2\u2019s own chords. Often one four-chord loop for the whole song.',
-  'Avoids repeating the same chords. Stays in the key.',
-  'Verse and chorus get different progressions, with richer chords.',
-  'Keeps the harmony moving, and borrows chords from outside the key.',
-  'Adventurous, and reaches further outside the key.'
+  t('YuE2’s own chords. Often one four-chord loop for the whole song.'),
+  t('Avoids repeating the same chords. Stays in the key.'),
+  t('Verse and chorus get different progressions, with richer chords.'),
+  t('Keeps the harmony moving, and borrows chords from outside the key.'),
+  t('Adventurous, and reaches further outside the key.')
 ];
 
 /* Familiar on an engine without the harmony control, whatever the slider was left at: the form
@@ -6597,7 +6585,7 @@ function paintHarmony() {
     if (!available) { follow.checked = false; }
     if ($('follow-wrap')) {
       $('follow-wrap').classList.toggle('disabled', !available);
-      if (!available) { $('follow-wrap').title = 'Following a structure exactly needs the harmony control: rebuild the engine to use it.'; }
+      if (!available) { $('follow-wrap').title = t('Following a structure exactly needs the harmony control: rebuild the engine to use it.'); }
     }
   }
   ['adv-chord-hold-limit', 'adv-chord-outside-bonus', 'adv-chord-sections'].forEach(function (id) {
@@ -6605,7 +6593,7 @@ function paintHarmony() {
   });
   $('harmony-hint').textContent = available
     ? HARMONY_HINTS[step]
-    : 'The engine has no harmony control. Rebuild the engine to use this.';
+    : t('The engine has no harmony control. Rebuild the engine to use this.');
   if ($('style-lora') && $('style-lora').value) { paintStyleLoraNote(); }
 }
 
@@ -6628,7 +6616,7 @@ function paintNoScore() {
   if ($('mode-hint')) {
     $('mode-hint').classList.toggle('hidden', !off);
     $('mode-hint').textContent = off
-      ? 'No plan: YuE2 writes the tune as it sings.'
+      ? t('No plan: YuE2 writes the tune as it sings.')
       : '';
   }
   if ($('variety')) { $('variety').disabled = off; }
@@ -6656,7 +6644,7 @@ function setMode(mode) {
   show('cover-only', cover || inst);
   if ($('source-lyrics')) { show('source-lyrics', cover); }
   var sourceLabel = $('cover-only') ? $('cover-only').querySelector('label') : null;
-  if (sourceLabel) { sourceLabel.textContent = inst ? 'From a recording (optional)' : 'Source recording'; }
+  if (sourceLabel) { sourceLabel.textContent = inst ? t('From a recording (optional)') : t('Source recording'); }
   paintSourcePickerMenu();
   updateLyricsWriteVisibility();
   // It acts on a recording, so it lives with the recording's own buttons, which
@@ -6679,17 +6667,17 @@ function setMode(mode) {
   if (cover) { paintStructure(); }
   show('mode-field', !inst);
   paintNoScore();
-  $('headline').textContent = cover ? 'Cover a song' : (inst ? 'Write an instrumental' : 'Write a song');
+  $('headline').textContent = cover ? t('Cover a song') : (inst ? t('Write an instrumental') : t('Write a song'));
   $('sub').textContent = cover
-    ? 'Your own recording in. A new arrangement, new vocals, and an editable score out.'
-    : inst ? 'Style and structure in. YuE2 writes the melody and the chords, then plays it with no vocal.'
-    : 'Style and lyrics in. YuE2 writes the melody and the chords, then sings it.';
-  $('score-label').textContent = cover ? 'Score' : 'Score plan';
+    ? t('Your own recording in. A new arrangement, new vocals, and an editable score out.')
+    : inst ? t('Style and structure in. YuE2 writes the melody and the chords, then plays it with no vocal.')
+    : t('Style and lyrics in. YuE2 writes the melody and the chords, then sings it.');
+  $('score-label').textContent = cover ? t('Score') : t('Score plan');
   show('create-cover', cover);
   show('create-song', mode === 'song');
   show('create-inst', inst);
   var button = $('start-fresh');
-  button.textContent = cover ? 'New cover' : (inst ? 'New instrumental' : 'New song');
+  button.textContent = cover ? t('New cover') : (inst ? t('New instrumental') : t('New song'));
   button.classList.remove('type-cover', 'type-song', 'type-inst');
   button.classList.add(inst ? 'type-inst' : (cover ? 'type-cover' : 'type-song'));
   refreshTitleHint();
@@ -6706,7 +6694,7 @@ function setMode(mode) {
   var ownedByTake = Boolean(takeIdInEditor());
   if (cover) {
     claimEditorFor(null);
-    $('score-badge').textContent = 'no score';
+    $('score-badge').textContent = t('no score');
     $('score-badge').className = 'badge';
     paintSource();
   } else if (inst && currentSource()) {
@@ -6720,10 +6708,10 @@ function setMode(mode) {
     $('abc').value = '';
     scoreBaseline('');
     setSelection({});
-    $('score-badge').textContent = 'no plan yet';
+    $('score-badge').textContent = t('no plan yet');
     $('score-badge').className = 'badge';
     setChart('');
-    statusLine(inst ? 'Choose an instrument and structure to start an instrumental.' : 'Write a score plan to start a song from scratch.');
+    statusLine(inst ? t('Choose an instrument and structure to start an instrumental.') : t('Write a score plan to start a song from scratch.'));
   }
   followRecordingCap();
   if (inst) { paintInstSource(); }
@@ -6778,9 +6766,9 @@ function paintScoreDirty() {
     var button = $(id);
     if (!button || button.dataset.confirming === '1') { return; }
     button.classList.toggle('needs-save', dirty);
-    button.textContent = dirty ? (id === 'score-save' ? 'Save' : 'Save score') : 'Saved';
-    button.title = dirty ? 'This score has changes that are not saved yet'
-                         : 'No changes since the last save';
+    button.textContent = dirty ? (id === 'score-save' ? t('Save') : t('Save score')) : t('Saved');
+    button.title = dirty ? t('This score has changes that are not saved yet')
+                         : t('No changes since the last save');
     button.disabled = !dirty;
   });
 }
@@ -6791,7 +6779,7 @@ function confirmScoreSaved() {
     if (!button) { return; }
     button.dataset.confirming = '1';
     button.classList.remove('needs-save');
-    button.textContent = 'Saved';
+    button.textContent = t('Saved');
     button.disabled = true;
     setTimeout(function () {
       delete button.dataset.confirming;
@@ -6873,7 +6861,7 @@ async function saveTitleIfDirty() {
   paintTakes();
   paintSheet();
 
-  setTitleSaveStatus('Saving\u2026', 'saving');
+  setTitleSaveStatus(t('Saving…'), 'saving');
 
   try {
     var updated = await api('/api/takes/' + takeId + '/rename', {
@@ -6885,7 +6873,7 @@ async function saveTitleIfDirty() {
     if (State.formTake && State.formTake.id === takeId) {
       State.formTake.title = updated.title;
     }
-    setTitleSaveStatus('Saved', 'saved');
+    setTitleSaveStatus(t('Saved'), 'saved');
     setTimeout(function () {
       if (titleSaveStatusText() === 'Saved') {
         setTitleSaveStatus('');
@@ -6898,7 +6886,7 @@ async function saveTitleIfDirty() {
     }
     paintTakes();
     paintSheet();
-    setTitleSaveStatus('Could not save', 'error');
+    setTitleSaveStatus(t('Could not save'), 'error');
   } finally {
     titleSaveInProgress = false;
     var currentInput = ($('title').value || '').trim();
@@ -6929,8 +6917,8 @@ async function saveScore(silent) {
   if (!url) {
     if (!silent) {
       statusLine(State.mode !== 'cover'
-        ? 'A score plan is saved with its take. Write a score plan first.'
-        : 'Choose a recording to save this score to.', 'bad');
+        ? I18N.t('A score plan is saved with its take. Write a score plan first.')
+        : I18N.t('Choose a recording to save this score to.'), 'bad');
     }
     return false;
   }
@@ -6950,7 +6938,7 @@ async function saveScore(silent) {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ abc: abcVal })
     });
-    if (!silent) { statusLine('Score saved.', 'good'); }
+    if (!silent) { statusLine(I18N.t('Score saved.'), 'good'); }
     loadSources();
     loadTakes();
     return true;
@@ -6958,7 +6946,7 @@ async function saveScore(silent) {
     scoreBaseline(oldBaseline);
     if (t) { t.abc = oldTakeAbc; }
     paintScoreDirty();
-    statusLine('Could not save the score: ' + err.message, 'bad');
+    statusLine(I18N.t('Could not save the score: {message}', { message: err.message }), 'bad');
     return false;
   }
 }
@@ -6991,23 +6979,23 @@ function setScoreActions() {
   // A cover's score is its recording's, so there is no plan to write again, unless the planner wrote it around the recording's tune.
   if (State.mode === 'cover' && $('reroll')) { $('reroll').style.display = owner && owner.hook_section ? '' : 'none'; }
   var off = noScore();
-  $('render-take').textContent = fresh ? 'Sing with new words' : (off ? 'Render with no score' : 'Render this score');
+  $('render-take').textContent = fresh ? t('Sing with new words') : (off ? t('Render with no score') : t('Render this score'));
   // Already an instrumental: nothing to make.  With no score, nothing to play on an instrument.
   if ($('make-instrumental')) { $('make-instrumental').style.display = State.mode === 'inst' || off ? 'none' : ''; }
   // The switch is for a song: its main button would otherwise write a new tune.
   if ($('words-changed')) { $('words-changed').classList.toggle('hidden', !(fresh && State.mode === 'song')); }
-  $('create-song').textContent = keep ? 'Sing with new words' : (off ? 'Sing with no score' : 'Write score plan');
+  $('create-song').textContent = keep ? t('Sing with new words') : (off ? t('Sing with no score') : t('Write score plan'));
   // With no score there is no plan to wait for, so nothing to render once it is written.
   if ($('auto-wrap')) { $('auto-wrap').style.visibility = keep || off ? 'hidden' : ''; }
   $('score-note').textContent = !enabled
-    ? (off ? 'With no score, YuE2 writes the tune and the chords as it sings.'
-      : 'Nothing to render yet. Write a score plan, or press Score on a take in the library.')
-    : off ? 'With no score, YuE2 writes the tune as it sings. Render with no score sings these words again in a new take; Write a new plan writes a score for them.'
+    ? (off ? t('With no score, YuE2 writes the tune and the chords as it sings.')
+      : t('Nothing to render yet. Write a score plan, or press Score on a take in the library.'))
+    : off ? t('With no score, YuE2 writes the tune as it sings. Render with no score sings these words again in a new take; Write a new plan writes a score for them.')
     : (State.mode === 'cover'
-      ? 'Make an instrumental plays this score on an instrument, with no voice, in a new take; the cover stays as it is.'
+      ? t('Make an instrumental plays this score on an instrument, with no voice, in a new take; the cover stays as it is.')
       : (fresh
-        ? 'The words have changed. Sing with new words keeps this score\'s tune and makes a new take; the original stays as it is.'
-        : 'Render this score makes audio from the score above, keeping its melody and chords. Write a new plan asks YuE2 for a different melody, same words.'));
+        ? t('The words have changed. Sing with new words keeps this score\'s tune and makes a new take; the original stays as it is.')
+        : t('Render this score makes audio from the score above, keeping its melody and chords. Write a new plan asks YuE2 for a different melody, same words.')));
 }
 
 /* Changed words on a song with a score, and Keep this tune ticked: the main button
@@ -7085,20 +7073,20 @@ var FEWEST_WORDS_PER_NOTE = 0.75;
 function tuneGap() {
   var sections = tuneSectionGap();
   if (sections) {
-    return { keep: 'Your words have ' + sections.asked + ' sections and this tune has ' + sections.have + '. Keeping the tune sings only the first ' + sections.have + '.',
-             fresh: 'Your words have ' + sections.asked + ' sections and this tune has ' + sections.have + '. A new plan is written, so all of them are used.' };
+    return { keep: t('Your words have {asked} sections and this tune has {have}. Keeping the tune sings only the first {have}.', { asked: sections.asked, have: sections.have }),
+             fresh: t('Your words have {asked} sections and this tune has {have}. A new plan is written, so all of them are used.', { asked: sections.asked, have: sections.have }) };
   }
   var notes = vocalNotes($('abc').value);
   var syllables = lyricSyllables($('lyrics').value);
   if (notes >= 20 && syllables >= 40 && syllables > notes * WORDS_PER_NOTE) {
     var about = Math.round(syllables / 10) * 10;
-    return { keep: 'Your words need about ' + about + ' syllables and this tune has ' + notes + ' notes, so they are crammed onto them: expect garbled or dropped words.',
-             fresh: 'Your words need about ' + about + ' syllables and this tune has ' + notes + ' notes. A new plan is written to fit them.' };
+    return { keep: t('Your words need about {about} syllables and this tune has {notes} notes, so they are crammed onto them: expect garbled or dropped words.', { about: about, notes: notes }),
+             fresh: t('Your words need about {about} syllables and this tune has {notes} notes. A new plan is written to fit them.', { about: about, notes: notes }) };
   }
   if (notes >= 40 && syllables >= 20 && syllables < notes * FEWEST_WORDS_PER_NOTE) {
     var few = Math.round(syllables / 10) * 10;
-    return { keep: 'Your words have about ' + few + ' syllables and this tune has ' + notes + ' notes, so the singer fills the rest with words of its own.',
-             fresh: 'Your words have about ' + few + ' syllables and this tune has ' + notes + ' notes. A new plan is written to fit them.' };
+    return { keep: t('Your words have about {few} syllables and this tune has {notes} notes, so the singer fills the rest with words of its own.', { few: few, notes: notes }),
+             fresh: t('Your words have about {few} syllables and this tune has {notes} notes. A new plan is written to fit them.', { few: few, notes: notes }) };
   }
   return null;
 }
@@ -7114,7 +7102,7 @@ function wordsChanged() {
 
 async function doSingNewWords() {
   var take = scoreOwner();
-  if (!take) { statusLine('Nothing to sing yet. Write a score plan first.', 'bad'); return; }
+  if (!take) { statusLine(t('Nothing to sing yet. Write a score plan first.'), 'bad'); return; }
   var payload = editorRenderSettings();
   payload.lyrics = $('lyrics').value;
   payload.brief = $('write-brief') ? $('write-brief').value.trim() : undefined;
@@ -7132,11 +7120,11 @@ async function doSingNewWords() {
     setSelection({ formTakeId: made.id, boxKind: 'take', boxId: made.id });
     State.formEdited = false;
     saveForm();
-    statusLine('Singing the same tune with the new words\u2026');
+    statusLine(t('Singing the same tune with the new words…'));
     loadTakes();
     closeEditor();
   } catch (err) {
-    statusLine('Could not sing: ' + err.message, 'bad');
+    statusLine(t('Could not sing: {message}', { message: err.message }), 'bad');
   }
 }
 
@@ -7175,19 +7163,19 @@ async function watchPlan() {
     scoreBaseline(take.abc);
     // The plan is here, so the take owns the box from now on.
     setSelection({ formTakeId: take.id, boxKind: 'take', boxId: take.id });
-    $('score-badge').textContent = 'plan ready';
+    $('score-badge').textContent = t('plan ready');
     $('score-badge').className = 'badge ok';
     $('score-box').open = true;
     setChart(chordChart(take.abc));
     // The plan may have raised the take's cap to fit it; the box follows unless it was typed in.
     if (!State.capTyped && take.max_duration) { $('max-duration').value = Math.round(take.max_duration); }
     showPlanLength(take.abc);
-    statusLine('Plan ready. Edit it, or press render.', 'good');
+    statusLine(t('Plan ready. Edit it, or press render.'), 'good');
     loadTakes();
     return;
   }
   if (take.status === 'failed') {
-    statusLine('Plan failed: ' + (take.error || 'unknown error'), 'bad');
+    statusLine(t('Plan failed: {value}', { value: tr(take.error) || t('unknown error') }), 'bad');
     stopAwaiting();
     loadTakes();
   } else if (take.status === 'planned' || take.status === 'done') {
@@ -7209,7 +7197,7 @@ function pickSeed() {
 }
 
 function songProblem() {
-  return $('lyrics').value.trim() ? '' : 'Write some lyrics first. The planner needs words to shape the melody.';
+  return $('lyrics').value.trim() ? '' : t('Write some lyrics first. The planner needs words to shape the melody.');
 }
 
 function songBody(seed) {
@@ -7236,7 +7224,7 @@ async function doPlan() {
   var problem = songProblem();
   if (problem) { statusLine(problem, 'bad'); return; }
   var seed = pickSeed();
-  statusLine('Queued…');
+  statusLine(t('Queued…'));
   try {
     var take = await api('/api/songs', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -7244,17 +7232,17 @@ async function doPlan() {
     });
     if (noScore()) {   // no plan to wait for: it is rendered at once, as a cover is
       setSelection({ formTakeId: take.id, boxKind: 'take', boxId: take.id });
-      statusLine('Singing it with no score\u2026');
+      statusLine(t('Singing it with no score…'));
       loadTakes();
       closeEditor();
       return;
     }
     setSelection({ formTakeId: take.id, boxKind: 'none', boxId: null, awaiting: take.id });
-    statusLine('Writing the score plan…');
+    statusLine(t('Writing the score plan…'));
     loadTakes();
     editorAfterPlan();
   } catch (err) {
-    statusLine('Could not start: ' + err.message, 'bad');
+    statusLine(t('Could not start: {message}', { message: err.message }), 'bad');
   }
 }
 
@@ -7272,19 +7260,19 @@ async function doRenderTake() {
       body: JSON.stringify(payload)
     });
     setSelection({ formTakeId: made.id, boxKind: 'take', boxId: made.id });
-    statusLine('Rendering\u2026');
+    statusLine(t('Rendering…'));
     loadTakes();
     closeEditor();
   } catch (err) {
-    statusLine('Could not render: ' + err.message, 'bad');
+    statusLine(t('Could not render: {message}', { message: err.message }), 'bad');
   }
 }
 
 async function renderInPlace() {
   var id = takeIdInEditor();
   if (!id) {
-    statusLine('Nothing to render yet. Write a score plan first.', 'bad');
-    $('score-note').textContent = 'Nothing to render yet. Write a score plan, or press Score on a take in the library.';
+    statusLine(t('Nothing to render yet. Write a score plan first.'), 'bad');
+    $('score-note').textContent = t('Nothing to render yet. Write a score plan, or press Score on a take in the library.');
     return;
   }
   if (wordsChanged()) { await doSingNewWords(); return; }
@@ -7301,11 +7289,11 @@ async function renderInPlace() {
       body: JSON.stringify(payload)
     });
     setSelection({ formTakeId: takeIdInEditor() || selectedTakeId(), boxKind: 'take', boxId: takeIdInEditor() || selectedTakeId() });
-    statusLine('Rendering…');
+    statusLine(t('Rendering…'));
     loadTakes();
     closeEditor();
   } catch (err) {
-    statusLine('Could not render: ' + err.message, 'bad');
+    statusLine(t('Could not render: {message}', { message: err.message }), 'bad');
   }
 }
 
@@ -7317,7 +7305,7 @@ function awaitNewPlan(id) {
   scoreBaseline('');
   // The take is what the form describes, but it owns nothing until the plan lands.
   setSelection({ formTakeId: id, boxKind: 'none', boxId: null, awaiting: id });
-  $('score-badge').textContent = 'writing a new plan';
+  $('score-badge').textContent = t('writing a new plan');
   $('score-badge').className = 'badge';
   setChart('');
   showPlanLength('');
@@ -7326,7 +7314,7 @@ function awaitNewPlan(id) {
 async function doMakeInstrumental() {
   var id = takeIdInEditor();
   if (!id) {
-    statusLine('Nothing to make an instrumental of yet. Write a score plan first.', 'bad');
+    statusLine(t('Nothing to make an instrumental of yet. Write a score plan first.'), 'bad');
     return;
   }
   try {
@@ -7335,17 +7323,17 @@ async function doMakeInstrumental() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ abc: $('abc').value })
     });
-    statusLine('Making the instrumental\u2026', 'good');
+    statusLine(t('Making the instrumental…'), 'good');
     loadTakes();
     closeEditor();
   } catch (err) {
-    statusLine('Could not make it: ' + err.message, 'bad');
+    statusLine(t('Could not make it: {message}', { message: err.message }), 'bad');
   }
 }
 
 async function doReroll() {
   var id = takeIdInEditor();
-  if (!id) { statusLine('Nothing to replan yet.', 'bad'); setScoreActions(); return; }
+  if (!id) { statusLine(t('Nothing to replan yet.'), 'bad'); setScoreActions(); return; }
   // A new plan is a score: a take sung with no score goes back to one (the server does the same).
   if (noScore()) { $('mode').value = 'full'; paintNoScore(); }
   try {
@@ -7356,10 +7344,10 @@ async function doReroll() {
       body: JSON.stringify(payload)
     });
     awaitNewPlan(id);
-    statusLine('Writing a new plan for the same words\u2026');
+    statusLine(t('Writing a new plan for the same words…'));
     loadTakes();
   } catch (err) {
-    statusLine('Could not replan: ' + err.message, 'bad');
+    statusLine(t('Could not replan: {message}', { message: err.message }), 'bad');
   }
 }
 
@@ -7470,9 +7458,9 @@ function paintSpaces() {
 function paintTakesHeading() {
   var space = currentSpace();
   var everywhere = searchingEverywhere();
-  $('takes-heading').textContent = everywhere ? 'All spaces' : (space ? space.name : 'Your takes');
+  $('takes-heading').textContent = everywhere ? t('All spaces') : (space ? space.name : t('Your takes'));
   if ($('space-count')) {
-    $('space-count').textContent = everywhere || !space ? '' : space.takes + (space.takes === 1 ? ' take' : ' takes');
+    $('space-count').textContent = everywhere || !space ? '' : tn(space.takes, '{n} take', '{n} takes');
   }
   if ($('space-menu') && !$('space-menu').classList.contains('hidden')) { paintSpaceList(); }
 }
@@ -7510,13 +7498,13 @@ function paintSpaceList() {
   var html;
   if (typed) {
     var found = spaces.filter(function (space) { return space.name.toLowerCase().indexOf(typed) >= 0; });
-    html = found.length ? found.map(row).join('') : '<p class="space-none">No space has that in its name.</p>';
+    html = found.length ? found.map(row).join('') : '<p class="space-none">' + t('No space has that in its name.') + '</p>';
   } else {
     var byId = {};
     spaces.forEach(function (space) { byId[space.id] = space; });
     var recent = recentSpaceIds().map(function (id) { return byId[id]; }).filter(Boolean).slice(0, 5);
     var head = function (text) { return '<div class="space-list-head">' + text + '</div>'; };
-    html = (recent.length > 1 && spaces.length > 6 ? head('Recent') + recent.map(row).join('') + head('All spaces') : '') +
+    html = (recent.length > 1 && spaces.length > 6 ? head(t('Recent')) + recent.map(row).join('') + head(t('All spaces')) : '') +
       spaces.map(row).join('');
   }
   list.innerHTML = html;
@@ -7613,10 +7601,10 @@ function loadSpaceChoice() {
 
 async function newSpace() {
   var name = await confirmModal({
-    title: 'New space',
-    message: 'Name the new space:',
+    title: t('New space'),
+    message: t('Name the new space:'),
     input: true,
-    confirmText: 'Create space'
+    confirmText: t('Create space')
   });
   if (name === null || !name.trim()) { return; }
   try {
@@ -7626,9 +7614,9 @@ async function newSpace() {
     State.spaces.push(space);
     showSpace(space.id);
     await loadSpaces();
-    statusLine('New space ' + space.name + '. Takes you create now land here.', 'good');
+    statusLine(t('New space {name}. Takes you create now land here.', { name: space.name }), 'good');
   } catch (err) {
-    statusLine('Could not create the space: ' + err.message, 'bad');
+    statusLine(t('Could not create the space: {message}', { message: err.message }), 'bad');
   }
 }
 
@@ -7636,11 +7624,11 @@ async function renameSpace() {
   var space = currentSpace();
   if (!space) { return; }
   var name = await confirmModal({
-    title: 'Rename space',
-    message: 'Rename the space:',
+    title: t('Rename space'),
+    message: t('Rename the space:'),
     input: true,
     defaultValue: space.name,
-    confirmText: 'Rename'
+    confirmText: t('Rename')
   });
   if (name === null || !name.trim() || name.trim() === space.name) { return; }
   try {
@@ -7649,18 +7637,18 @@ async function renameSpace() {
     });
     await loadSpaces();
   } catch (err) {
-    statusLine('Could not rename the space: ' + err.message, 'bad');
+    statusLine(t('Could not rename the space: {message}', { message: err.message }), 'bad');
   }
 }
 
 async function deleteSpace() {
   var space = currentSpace();
   if (!space || space.id === 'default') { return; }
-  var held = space.takes ? ' Its ' + space.takes + ' take' + (space.takes === 1 ? '' : 's') + ' move to Default.' : '';
+  var held = space.takes ? ' ' + tn(space.takes, 'Its {n} take moves to Default.', 'Its {n} takes move to Default.') : '';
   if (!await confirmModal({
-    title: 'Delete space',
-    message: 'Delete the space \u201c' + space.name + '\u201d?' + held,
-    confirmText: 'Delete',
+    title: t('Delete space'),
+    message: t('Delete the space “{name}”?{held}', { name: space.name, held: held }),
+    confirmText: t('Delete'),
     danger: true
   })) { return; }
   try {
@@ -7668,20 +7656,20 @@ async function deleteSpace() {
     showSpace('default');
     await loadSpaces();
   } catch (err) {
-    statusLine('Could not delete the space: ' + err.message, 'bad');
+    statusLine(t('Could not delete the space: {message}', { message: err.message }), 'bad');
   }
 }
 
 function openMoveModal(take) {
   State.moveTakeId = take.id;
-  $('move-heading').textContent = 'Move \u201c' + take.title + '\u201d to';
+  $('move-heading').textContent = t('Move “{title}” to', { title: take.title });
   $('move-name').value = '';
   $('move-status').textContent = '';
   $('move-list').innerHTML = State.spaces.map(function (space) {
     var here = space.id === take.space_id;
     return '<button class="ghost" data-space="' + esc(space.id) + '"' + (here ? ' disabled' : '') + '>' +
       '<span>' + esc(space.name) + '</span><span class="muted">' +
-      (here ? 'here now' : space.takes + ' take' + (space.takes === 1 ? '' : 's')) + '</span></button>';
+      (here ? t('here now') : tn(space.takes, '{n} take', '{n} takes')) + '</span></button>';
   }).join('');
   $('move-modal').classList.remove('hidden');
 }
@@ -7698,7 +7686,7 @@ async function moveTake(spaceId) {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ space_id: spaceId })
   });
   closeMoveModal();
-  statusLine('Moved to ' + moved.name + '.', 'good');
+  statusLine(t('Moved to {name}.', { name: moved.name }), 'good');
   loadTakes();
   loadSpaces();
 }
@@ -8574,7 +8562,7 @@ function syncStylePickerLabel() {
   var lbl = $('style-picker-label');
   if (!lbl) { return; }
   var match = currentSavedStyle() || currentCannedStyle();
-  lbl.textContent = match ? match.name : 'Choose a style\u2026';
+  lbl.textContent = match ? match.name : t('Choose a style…');
   paintStyleSave();
 }
 
@@ -8626,27 +8614,27 @@ function paintStyleSave() {
   if (!btn) { return; }
   var kept = currentSavedStyle();
   btn.disabled = !styleToSave() || Boolean(kept);
-  btn.textContent = kept ? 'Saved' : 'Save';
-  btn.title = kept ? 'Saved as ' + kept.name : 'Save this style to use again';
+  btn.textContent = kept ? t('Saved') : t('Save');
+  btn.title = kept ? t('Saved as {name}', { name: kept.name }) : t('Save this style to use again');
 }
 
 async function saveCurrentStyle() {
   var prompt = styleToSave();
   if (!prompt) { return; }
   var name = await confirmModal({
-    title: 'Save style',
-    message: 'Name this style:',
+    title: t('Save style'),
+    message: t('Name this style:'),
     input: true,
     defaultValue: prompt.split(',')[0].trim().slice(0, 60),
-    confirmText: 'Save'
+    confirmText: t('Save')
   });
   if (name === null || !name.trim()) { return; }
   name = name.trim().replace(/\s+/g, ' ').slice(0, 60);
   var same = State.savedStyles.filter(function (s) { return s.name.toLowerCase() === name.toLowerCase(); })[0];
   if (same && !(await confirmModal({
-    title: 'Save style',
-    message: 'There is already a saved style called ' + same.name + '. Replace it?',
-    confirmText: 'Replace'
+    title: t('Save style'),
+    message: t('There is already a saved style called {name}. Replace it?', { name: same.name }),
+    confirmText: t('Replace')
   }))) { return; }
   try {
     await api('/api/styles', {
@@ -8655,7 +8643,7 @@ async function saveCurrentStyle() {
     await loadSavedStyles();
     try { localStorage.setItem(SAVED_STYLES_OPEN_KEY, '1'); } catch (err) { /* private mode */ }
   } catch (err) {
-    await confirmModal({ title: 'Save style', message: 'Could not save the style: ' + err.message, confirmText: 'OK' });
+    await confirmModal({ title: t('Save style'), message: t('Could not save the style: {message}', { message: err.message }), confirmText: 'OK' });
   }
 }
 
@@ -8663,9 +8651,9 @@ async function deleteSavedStyle(id) {
   var style = savedStyleById(id);
   if (!style) { return; }
   if (!(await confirmModal({
-    title: 'Delete saved style',
-    message: 'Delete the saved style ' + style.name + '?',
-    confirmText: 'Delete',
+    title: t('Delete saved style'),
+    message: t('Delete the saved style {name}?', { name: style.name }),
+    confirmText: t('Delete'),
     danger: true
   }))) { return; }
   try {
@@ -8694,15 +8682,15 @@ function paintStylePickerMenu(filterText) {
   if (!query || saved.length) {
     savedHtml = '<div class="style-picker-group' + (open ? ' open' : '') + '" data-style-group="saved" role="button" aria-expanded="' + open + '">' +
       '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>' +
-      '<span>Saved styles</span><span class="count">' + (query ? saved.length + ' of ' : '') + State.savedStyles.length + '</span></div>';
+      '<span>' + t('Saved styles') + '</span><span class="count">' + (query ? saved.length + ' of ' : '') + State.savedStyles.length + '</span></div>';
     if (open) {
       savedHtml += '<div class="style-picker-saved">' + (saved.length ? saved.map(function (s) {
         return '<div class="style-picker-item saved' + (kept && kept.id === s.id ? ' selected' : '') + '" role="option" data-style-saved="' + esc(s.id) + '" title="' + esc(s.prompt) + '">' +
           '<span class="style-item-name">' + esc(s.name) + '</span>' +
           '<span class="style-item-preview">' + esc(s.prompt) + '</span>' +
-          '<button type="button" class="style-item-del" data-style-del="' + esc(s.id) + '" title="Delete this saved style" aria-label="Delete the saved style ' + esc(s.name) + '">' + icon('trash') + '</button>' +
+          '<button type="button" class="style-item-del" data-style-del="' + esc(s.id) + '" title="' + t('Delete this saved style') + '" aria-label="' + t('Delete the saved style {name}', { name: esc(s.name) }) + '">' + icon('trash') + '</button>' +
           '</div>';
-      }).join('') : '<div class="style-picker-empty muted">None yet. Save keeps the style in the box here.</div>') + '</div>';
+      }).join('') : '<div class="style-picker-empty muted">' + t('None yet. Save keeps the style in the box here.') + '</div>') + '</div>';
     }
   }
 
@@ -8715,13 +8703,13 @@ function paintStylePickerMenu(filterText) {
   }).join('');
   var listHtml = savedHtml + cannedHtml;
   if (!filtered.length && !(query && saved.length)) {
-    listHtml += '<div class="style-picker-empty muted">No matching styles</div>';
+    listHtml += '<div class="style-picker-empty muted">' + t('No matching styles') + '</div>';
   }
 
   var listEl = menu.querySelector('.style-picker-list');
   if (!searchInput || !listEl) {
     menu.innerHTML = '<div class="style-picker-search-wrap">' +
-      '<input type="search" id="style-picker-search" class="style-picker-search" placeholder="Search styles\u2026" autocomplete="off" />' +
+      '<input type="search" id="style-picker-search" class="style-picker-search" placeholder="' + t('Search styles…') + '" autocomplete="off" />' +
       '</div>' +
       '<div class="style-picker-list" role="listbox">' + listHtml + '</div>';
   } else {
@@ -8879,10 +8867,9 @@ function loraStylesShown(lora, wrap, box) {
   var tagHtml = loraStyleTags(all).map(function (item) {
     var on = view.tags.indexOf(item.tag) >= 0;
     return '<button type="button" class="chip compact style-tag' + (on ? ' active' : '') + '" data-style-tag="' + esc(item.tag) +
-      '" title="' + item.count + ' songs">' + esc(item.tag) + '</button>';
+      '" title="' + t('{count} songs', { count: item.count }) + '">' + esc(item.tag) + '</button>';
   }).join('');
-  var head = '<div class="lora-style-find"><input id="lora-style-filter" type="search" placeholder="Filter ' + all.length +
-    ' styles" value="' + esc(view.text) + '"><span class="muted small">' +
+  var head = '<div class="lora-style-find"><input id="lora-style-filter" type="search" placeholder="' + t('Filter {allCount} styles', { allCount: all.length }) + '" value="' + esc(view.text) + '"><span class="muted small">' +
     (view.text || view.tags.length ? matching.length + ' of ' + all.length : '') + '</span></div>' +
     '<div class="chips style-tags">' + tagHtml + '</div>';
   // Rebuilt only when the tags change, so the filter box keeps its caret while typing.
@@ -8900,8 +8887,8 @@ function loraStylesShown(lora, wrap, box) {
   var narrowed = Boolean(view.text || view.tags.length);
   var shown = narrowed || view.all ? matching : matching.slice(0, LORA_STYLES_FOLD);
   var more = shown.length < matching.length
-    ? '<button type="button" class="chip action compact" data-style-more="1">Show all ' + matching.length + '</button>'
-    : (narrowed && !matching.length ? '<span class="muted small">No style matches.</span>' : '');
+    ? '<button type="button" class="chip action compact" data-style-more="1">' + t('Show all {matchingCount}', { matchingCount: matching.length }) + '</button>'
+    : (narrowed && !matching.length ? '<span class="muted small">' + t('No style matches.') + '</span>' : '');
   return { shown: shown, more: more };
 }
 
@@ -8977,7 +8964,7 @@ function paintPresets() {
       wrap.classList.remove('hidden');
       // Its own name: the group is shared by every corpus LoRA.
       var artistName = lora.title || lora.family || lora.name.replace(/\.safetensors$/, '');
-      labelEl.textContent = 'Learned styles for ' + artistName + ' (click to apply):';
+      labelEl.textContent = t('Learned styles for {artistName} (click to apply):', { artistName: artistName });
       var styles = loraStylesShown(lora, wrap, loraBox);
       var loraHtml = styles.shown.map(function (s) {
         var prompt = loraStylePrompt(s);
@@ -9016,7 +9003,7 @@ var SECTIONS = ['intro', 'verse', 'pre-chorus', 'chorus', 'bridge', 'outro'];
    the vocal back in, so it is gone: instrumentals always render at full
    strength. Takes made while it existed keep their saved feel, which now
    renders the same as Steady. */
-var FEELS = { steady: 'Sticks to its loop: repetitive and laid-back.' };
+var FEELS = { steady: t('Sticks to its loop: repetitive and laid-back.') };
 var FEEL = { value: 'steady' };
 
 function paintFeel() {}
@@ -9072,7 +9059,7 @@ function loadStructure(text) {
 }
 
 function instProblem() {
-  return STRUCTURE.kind !== 'free' && !STRUCTURE.sections.length ? 'Add at least one section, or choose Let YuE2 decide.' : '';
+  return STRUCTURE.kind !== 'free' && !STRUCTURE.sections.length ? t('Add at least one section, or choose Let YuE2 decide.') : '';
 }
 
 function instBody(seed) {
@@ -9099,18 +9086,18 @@ async function doInstrumental() {
   var problem = instProblem();
   if (problem) { statusLine(problem, 'bad'); return; }
   var seed = pickSeed();
-  statusLine('Queued\u2026');
+  statusLine(t('Queued…'));
   try {
     var take = await api('/api/instrumentals', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(instBody(seed))
     });
     setSelection({ formTakeId: take.id, boxKind: 'none', boxId: null, awaiting: take.id });
-    statusLine('Writing the score plan\u2026');
+    statusLine(t('Writing the score plan…'));
     loadTakes();
     editorAfterPlan();
   } catch (err) {
-    statusLine('Could not start: ' + err.message, 'bad');
+    statusLine(t('Could not start: {message}', { message: err.message }), 'bad');
   }
 }
 
@@ -9123,14 +9110,14 @@ async function doInstrumentalFromRecording() {
   body.source_id = currentSource().id;
   body.abc = $('abc').value;
   body.auto_render = false;
-  statusLine('Queued\u2026');
+  statusLine(t('Queued…'));
   try {
     await api('/api/instrumentals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    statusLine('Rendering\u2026');
+    statusLine(t('Rendering…'));
     loadTakes();
     closeEditor();
   } catch (err) {
-    statusLine('Could not start: ' + err.message, 'bad');
+    statusLine(t('Could not start: {message}', { message: err.message }), 'bad');
   }
 }
 
@@ -9160,7 +9147,7 @@ function endedShortNote(total) {
   if (!heard || !total) { return ''; }
   var gap = total - heard;
   if (gap < 6 || heard > total * 0.95) { return ''; }
-  return '<p class="struct-note over">This take ended ' + Math.round(gap) + ' s short of its score, so the list can be out of step with the audio, more so later in the song.</p>';
+  return '<p class="struct-note over">' + t('This take ended {gap} s short of its score, so the list can be out of step with the audio, more so later in the song.', { gap: Math.round(gap) }) + '</p>';
 }
 
 function paintStructure() {
@@ -9177,7 +9164,7 @@ function paintStructure() {
     var total = spans.length ? spans[spans.length - 1].end : 0;
     var cap = parseFloat($('max-duration').value) || 0;
     var fit = typeof ScoreSections !== 'undefined' ? ScoreSections.capCheck(total, cap) : { over: false };
-    $('structure-total').textContent = total ? clock(total) + ' in all' + (cap ? ' \u00b7 cap ' + clock(cap) : '') : '';
+    $('structure-total').textContent = total ? t('{time} in all{value}', { time: clock(total), value: cap ? ' ' + t('· cap {time}', { time: clock(cap) }) : '' }) : '';
     $('structure-total').classList.toggle('over', fit.over);
     var changed = Boolean(State.sectionsOriginal) && State.sectionsOriginal !== $('abc').value;
     var button = function (act, index, label, title, off) {
@@ -9186,24 +9173,21 @@ function paintStructure() {
     };
     $('structure-body').innerHTML = spans.length
       ? '<ol class="struct-list">' + spans.map(function (span, index) {
-          return '<li class="struct-row struct-fixed" draggable="true" data-i="' + index + '" title="Drag to move"><span class="struct-name">' + esc(span.name) +
-            (span.was !== span.name ? ' <span class="struct-was">' + esc(span.was) + ' in the score</span>' : '') + '</span>' +
-            '<span class="struct-time">' + clock(span.start) + '\u2013' + clock(span.end) + '</span>' +
+          return '<li class="struct-row struct-fixed" draggable="true" data-i="' + index + '" title="' + t('Drag to move') + '"><span class="struct-name">' + esc(span.name) +
+            (span.was !== span.name ? ' <span class="struct-was">' + t('{was} in the score', { was: esc(span.was) }) + '</span>' : '') + '</span>' +
+            '<span class="struct-time">' + clock(span.start) + '–' + clock(span.end) + '</span>' +
             '<span class="struct-acts">' +
-            button('up', index, '\u2191', 'Move up', index === 0) +
-            button('down', index, '\u2193', 'Move down', index === spans.length - 1) +
-            button('copy', index, 'copy', 'Add a copy of this section after it') +
-            button('remove', index, '\u2715', 'Take this section out', spans.length < 2) +
+            button('up', index, '\u2191', t('Move up'), index === 0) +
+            button('down', index, '\u2193', t('Move down'), index === spans.length - 1) +
+            button('copy', index, 'copy', t('Add a copy of this section after it')) +
+            button('remove', index, '\u2715', t('Take this section out'), spans.length < 2) +
             '</span></li>';
-        }).join('') + '</ol><p class="struct-note">The sections of the recording\'s score' +
-          (cover ? '. The words are matched to them in order, so change those to suit.' : '.') +
-          ' Moving, copying or removing one rewrites the score.</p>' +
+        }).join('') + '</ol><p class="struct-note">' + t('The sections of the recording\'s score{value} Moving, copying or removing one rewrites the score.', { value: cover ? t('. The words are matched to them in order, so change those to suit.') : '.' }) + '</p>' +
           (changed ? '' : endedShortNote(total)) +
-          (fit.over ? '<p class="struct-note over">The cap is ' + clock(cap) + ', so the render would stop ' + clock(fit.short) +
-            ' before the end of the score. <button type="button" class="chip action" data-sec-act="cap">Raise the cap to ' + clock(fit.raiseTo) + '</button></p>' : '') +
+          (fit.over ? '<p class="struct-note over">' + t('The cap is {time}, so the render would stop {time2} before the end of the score.', { time: clock(cap), time2: clock(fit.short) }) + ' <button type="button" class="chip action" data-sec-act="cap">' + t('Raise the cap to {time}', { time: clock(fit.raiseTo) }) + '</button></p>' : '') +
           (cover && changed ? sectionWordsNote(spans) : '') +
-          (changed ? '<p class="struct-note"><button type="button" class="chip action" data-sec-act="restore">Restore the original sections</button></p>' : '')
-      : '<p class="struct-note">The sections come from the recording\'s score once it is transcribed.</p>';
+          (changed ? '<p class="struct-note"><button type="button" class="chip action" data-sec-act="restore">' + t('Restore the original sections') + '</button></p>' : '')
+      : '<p class="struct-note">' + t('The sections come from the recording\'s score once it is transcribed.') + '</p>';
     if (!cover) { $('structure-preview').textContent = spans.length ? spans.map(function (span) { return '[' + span.name + ']'; }).join(' ') : '[instrumental]'; }
     paintEdTransport();
     return;
@@ -9214,10 +9198,10 @@ function paintStructure() {
   var body = $('structure-body');
   var total = STRUCTURE.sections.reduce(function (sum, item) { return sum + item.seconds; }, 0);
   var cap = parseFloat($('max-duration').value) || 360;
-  $('structure-total').textContent = STRUCTURE.kind === 'timed' ? clock(total) + ' in all' + (total > cap ? ', longer than the length cap' : '') : '';
+  $('structure-total').textContent = STRUCTURE.kind === 'timed' ? t('{time} in all{value}', { time: clock(total), value: total > cap ? t(', longer than the length cap') : '' }) : '';
   $('structure-total').classList.toggle('over', STRUCTURE.kind === 'timed' && total > cap);
   if (STRUCTURE.kind === 'free') {
-    body.innerHTML = '<p class="struct-note">YuE2 chooses the sections and how long each one runs.</p>';
+    body.innerHTML = '<p class="struct-note">' + t('YuE2 chooses the sections and how long each one runs.') + '</p>';
   } else {
     var at = 0;
     var rows = STRUCTURE.sections.map(function (item, index) {
@@ -9226,20 +9210,20 @@ function paintStructure() {
       }).join('');
       var timed = '';
       if (STRUCTURE.kind === 'timed') {
-        timed = '<input type="number" min="4" max="180" step="1" value="' + item.seconds + '" data-row="' + index + '" data-field="seconds" title="Seconds">' +
-          '<span class="struct-time">' + clock(at) + '\u2013' + clock(at + item.seconds) + '</span>';
+        timed = '<input type="number" min="4" max="180" step="1" value="' + item.seconds + '" data-row="' + index + '" data-field="seconds" title="' + t('Seconds') + '">' +
+          '<span class="struct-time">' + clock(at) + '–' + clock(at + item.seconds) + '</span>';
         at += item.seconds;
       }
       return '<li class="struct-row"><select data-row="' + index + '" data-field="name">' + options + '</select>' + timed +
-        '<button class="struct-btn" data-row="' + index + '" data-move="-1" title="Move up">\u2191</button>' +
-        '<button class="struct-btn" data-row="' + index + '" data-move="1" title="Move down">\u2193</button>' +
-        '<button class="struct-btn" data-row="' + index + '" data-remove="1" title="Remove">\u00d7</button></li>';
+        '<button class="struct-btn" data-row="' + index + '" data-move="-1" title="' + t('Move up') + '">↑</button>' +
+        '<button class="struct-btn" data-row="' + index + '" data-move="1" title="' + t('Move down') + '">↓</button>' +
+        '<button class="struct-btn" data-row="' + index + '" data-remove="1" title="' + t('Remove') + '">×</button></li>';
     }).join('');
     var adds = SECTIONS.map(function (name) {
       return '<button class="chip" data-add="' + name + '">+ ' + name + '</button>';
     }).join('');
     body.innerHTML = '<ol class="struct-list">' + rows + '</ol><div class="struct-add">' + adds + '</div>' +
-      (STRUCTURE.kind === 'sections' ? '<p class="struct-note">YuE2 chooses how long each section runs.</p>' : '');
+      (STRUCTURE.kind === 'sections' ? '<p class="struct-note">' + t('YuE2 chooses how long each section runs.') + '</p>' : '');
   }
   $('structure-preview').textContent = structureText().replace(/\n/g, ' ');
   saveForm();
@@ -9267,8 +9251,7 @@ function paintStructureNotice() {
   if (!node || !audio) { return; }
   var playing = Boolean(take && State.loadedId === take.id && !audio.paused && !audio.ended);
   var changed = Boolean(State.sectionsOriginal) && State.sectionsOriginal !== $('abc').value;
-  var message = 'Song structure has changed. ' + (State.mode === 'inst' ? 'Create instrumental' : 'Create cover') +
-    ' to render this into a take.';
+  var message = t('Song structure has changed. {value} to render this into a take.', { value: State.mode === 'inst' ? t('Create instrumental') : t('Create cover') });
   if (changed && (playing || State.sectionNotice)) {
     if (playing && node.textContent !== message) { statusLine(message, 'wait'); }
     State.sectionNotice = message;
@@ -9285,7 +9268,7 @@ function jumpToSection(index) {
   var take = editorTake();
   if (!take || !take.has_audio) { return; }
   if (State.sectionsOriginal && State.sectionsOriginal !== $('abc').value) {
-    statusLine('The sections have been rearranged; the take still plays in its first order.');
+    statusLine(t('The sections have been rearranged; the take still plays in its first order.'));
     return;
   }
   var spans = scoreSectionSpans($('abc').value);
@@ -9433,6 +9416,9 @@ var SONGPLAN = { sections: ['Verse', 'Chorus', 'Verse', 'Chorus', 'Bridge', 'Cho
 var SONGPLAN_USUAL = 10;               // measured: a plan comes out with 8 to 10 sections whatever the words ask for
 var SONGPLAN_USUAL_WORDS = '8 to 10';
 var SONG_SECTIONS = ['Intro', 'Verse', 'Pre-Chorus', 'Chorus', 'Bridge', 'Interlude', 'Outro'];
+// The sections by name on screen; the names above are what the plan and the lyrics hold.
+var SONG_SECTION_WORDS = { Intro: t('Intro'), Verse: t('Verse'), 'Pre-Chorus': t('Pre-Chorus'), Chorus: t('Chorus'), Bridge: t('Bridge'),
+  Interlude: t('Interlude'), Outro: t('Outro') };
 
 function lyricsHaveWords(text) {
   return String(text || '').split('\n').some(function (line) {
@@ -9451,26 +9437,25 @@ function paintSongPlan() {
   var preset = $('song-structure-preset');
   var shapes = (State.options && State.options.lyric_structures) || [];
   if (preset && shapes.length && preset.options.length !== shapes.length + 1) {
-    preset.innerHTML = '<option value="">Start from\u2026</option>' + shapes.map(function (shape) {
+    preset.innerHTML = '<option value="">' + t('Start from…') + '</option>' + shapes.map(function (shape) {
       return '<option value="' + esc(shape.id) + '" title="' + esc(shape.hint || '') + '">' + esc(shape.sections.join(', ')) + '</option>';
     }).join('');
   }
   var rows = SONGPLAN.sections.map(function (name, index) {
     var options = SONG_SECTIONS.map(function (item) {
-      return '<option value="' + item + '"' + (item === name ? ' selected' : '') + '>' + item + '</option>';
+      return '<option value="' + item + '"' + (item === name ? ' selected' : '') + '>' + (SONG_SECTION_WORDS[item] || item) + '</option>';
     }).join('');
     return '<li class="struct-row" draggable="true" data-sp="' + index + '"><select data-sp-row="' + index + '">' + options + '</select>' +
-      '<button type="button" class="struct-btn" data-sp-act="up" data-sp-row="' + index + '" title="Move up"' + (index === 0 ? ' disabled' : '') + '>\u2191</button>' +
-      '<button type="button" class="struct-btn" data-sp-act="down" data-sp-row="' + index + '" title="Move down"' + (index === SONGPLAN.sections.length - 1 ? ' disabled' : '') + '>\u2193</button>' +
-      '<button type="button" class="struct-btn" data-sp-act="remove" data-sp-row="' + index + '" title="Remove"' + (SONGPLAN.sections.length < 2 ? ' disabled' : '') + '>\u00d7</button></li>';
+      '<button type="button" class="struct-btn" data-sp-act="up" data-sp-row="' + index + '" title="' + t('Move up') + '"' + (index === 0 ? ' disabled' : '') + '>↑</button>' +
+      '<button type="button" class="struct-btn" data-sp-act="down" data-sp-row="' + index + '" title="' + t('Move down') + '"' + (index === SONGPLAN.sections.length - 1 ? ' disabled' : '') + '>↓</button>' +
+      '<button type="button" class="struct-btn" data-sp-act="remove" data-sp-row="' + index + '" title="' + t('Remove') + '"' + (SONGPLAN.sections.length < 2 ? ' disabled' : '') + '>×</button></li>';
   }).join('');
   var adds = SONG_SECTIONS.map(function (name) {
     return '<button type="button" class="chip" data-sp-add="' + name + '"' +
-      (name === 'Interlude' ? ' title="An instrumental passage: no lines are written under it"' : '') + '>+ ' + name.toLowerCase() + '</button>';
+      (name === 'Interlude' ? ' title="' + t('An instrumental passage: no lines are written under it') + '"' : '') + '>+ ' + (I18N.language === 'en' ? name.toLowerCase() : (SONG_SECTION_WORDS[name] || name)) + '</button>';
   }).join('');
   var long = SONGPLAN.sections.length > SONGPLAN_USUAL
-    ? '<p class="struct-note over">The planner usually writes ' + SONGPLAN_USUAL_WORDS + ' sections, so a longer list gets condensed and the words of the sections it drops are not sung. ' +
-      'For a longer song, give each section more lines when you write the lyrics.</p>' : '';
+    ? '<p class="struct-note over">' + t('The planner usually writes {SONGPLAN_USUAL_WORDS} sections, so a longer list gets condensed and the words of the sections it drops are not sung. For a longer song, give each section more lines when you write the lyrics.', { SONGPLAN_USUAL_WORDS: SONGPLAN_USUAL_WORDS }) + '</p>' : '';
   $('song-structure-body').innerHTML = '<ol class="struct-list">' + rows + '</ol><div class="struct-add">' + adds + '</div>' + long;
 }
 
@@ -9539,7 +9524,7 @@ var VARIATIONS = { take: null };
 
 function openVariations(take) {
   VARIATIONS.take = take;
-  $('variations-heading').textContent = 'Variations of \u201c' + take.title + '\u201d';
+  $('variations-heading').textContent = t('Variations of “{title}”', { title: take.title });
   var own = INTERPRETATIONS[take.interpretation] ? take.interpretation : 'standard';
   $('variations-list').innerHTML = Object.keys(INTERPRETATIONS).filter(function (key) { return key !== own; })
     .map(function (key) {
@@ -9566,8 +9551,8 @@ function paintVariationsEstimate() {
   var count = chosenVariations().length;
   var average = State.options.avg_render_seconds || 0;
   $('variations-go').disabled = !count;
-  $('variations-go').textContent = count === 1 ? 'Render 1 variation' : 'Render ' + count + ' variations';
-  $('variations-estimate').textContent = count && average ? 'about ' + Math.max(1, Math.round(count * average / 60)) + ' min of rendering' : '';
+  $('variations-go').textContent = count === 1 ? t('Render 1 variation') : t('Render {count} variations', { count: count });
+  $('variations-estimate').textContent = count && average ? t('about {Math} min of rendering', { Math: Math.max(1, Math.round(count * average / 60)) }) : '';
 }
 
 async function doVariations() {
@@ -9576,7 +9561,7 @@ async function doVariations() {
   if (!take || !chosen.length) { return; }
   var cap = parseFloat($('variations-cap').value);
   if (!(cap >= 10 && cap <= 900)) {
-    $('variations-status').textContent = 'The length cap must be between 10 and 900 seconds.';
+    $('variations-status').textContent = t('The length cap must be between 10 and 900 seconds.');
     $('variations-status').className = 'status bad';
     return;
   }
@@ -9588,11 +9573,10 @@ async function doVariations() {
     });
     closeVariations();
     openInside(take.id);
-    statusLine('Queued ' + reply.created.length + ' variation' + (reply.created.length === 1 ? '' : 's') + ' of ' + take.title +
-      '. They are kept inside it, and each shows there when it finishes.', 'good');
+    statusLine(tn(reply.created.length, 'Queued {n} variation of {title}. They are kept inside it, and each shows there when it finishes.', 'Queued {n} variations of {title}. They are kept inside it, and each shows there when it finishes.', { title: take.title }), 'good');
     loadTakes();
   } catch (err) {
-    $('variations-status').textContent = 'Could not queue: ' + err.message;
+    $('variations-status').textContent = t('Could not queue: {message}', { message: err.message });
     $('variations-status').className = 'status bad';
   }
 }
@@ -9605,31 +9589,31 @@ async function openTracksModal() {
   var statusEl = $('tracks-status');
   if (!modal || !listEl) { return; }
   modal.classList.remove('hidden');
-  statusEl.textContent = 'Loading MIDI tracks\u2026';
+  statusEl.textContent = t('Loading MIDI tracks…');
   statusEl.className = 'status';
   try {
     var res = await api('/api/sources/' + source.id + '/tracks');
     var tracks = res.tracks || [];
     if (!tracks.length) {
-      statusEl.textContent = 'No tracks found in this MIDI file.';
+      statusEl.textContent = t('No tracks found in this MIDI file.');
       listEl.innerHTML = '';
       return;
     }
     statusEl.textContent = '';
     listEl.innerHTML = tracks.map(function (t) {
       var isVocal = t.role === 'vocal';
-      var octNote = (isVocal && t.avg_pitch < 64) ? ' \u00b7 +1 oct vocal transposed' : '';
+      var octNote = (isVocal && t.avg_pitch < 64) ? ' ' + I18N.t('· +1 oct vocal transposed') : '';
       return '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--card-2); color:var(--text); border-radius:6px; border:1px solid ' + (isVocal ? 'var(--accent-a)' : 'var(--line)') + '">' +
-        '<div><strong>Track ' + t.track + ': ' + esc(t.name || 'Unnamed') + '</strong>' +
-        '<div class="muted small">' + t.note_count + ' notes \u00b7 ' + esc(t.role) + octNote + ' \u00b7 mono ' + Math.round(t.mono_ratio * 100) + '% \u00b7 score ' + t.vocal_score + '</div></div>' +
-        '<button class="chip action select-vocal-track" data-track="' + t.track + '">' + (isVocal ? 'Lead Vocal \u2713' : 'Set as Vocal') + '</button>' +
+        '<div>' + I18N.t('<strong>Track {track}: {esc}</strong>', { track: t.track, esc: esc(t.name || I18N.t('Unnamed')) }) +
+        '<div class="muted small">' + I18N.t('{count} notes', { count: t.note_count }) + ' · ' + esc(t.role) + octNote + ' · ' + I18N.t('mono {pct}%', { pct: Math.round(t.mono_ratio * 100) }) + ' · ' + I18N.t('score {score}', { score: t.vocal_score }) + '</div></div>' +
+        '<button class="chip action select-vocal-track" data-track="' + t.track + '">' + (isVocal ? I18N.t('Lead Vocal ✓') : I18N.t('Set as Vocal')) + '</button>' +
         '</div>';
     }).join('');
 
     listEl.querySelectorAll('.select-vocal-track').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         var trk = parseInt(btn.dataset.track, 10);
-        statusEl.textContent = 'Retracking with Track ' + trk + ' as Vocal\u2026';
+        statusEl.textContent = t('Retracking with Track {trk} as Vocal…', { trk: trk });
         statusEl.className = 'status';
         try {
           var updated = await api('/api/sources/' + source.id + '/retrack', {
@@ -9639,18 +9623,18 @@ async function openTracksModal() {
           });
           $('abc').value = updated.abc || '';
           scoreBaseline(updated.abc || '');
-          statusEl.textContent = 'Vocal track updated!';
+          statusEl.textContent = t('Vocal track updated!');
           statusEl.className = 'status good';
           source.abc = updated.abc;
           setTimeout(function () { closeTracksModal(); }, 600);
         } catch (err) {
-          statusEl.textContent = 'Error: ' + err.message;
+          statusEl.textContent = t('Error: {message}', { message: err.message });
           statusEl.className = 'status bad';
         }
       });
     });
   } catch (err) {
-    statusEl.textContent = 'Could not load tracks: ' + err.message;
+    statusEl.textContent = t('Could not load tracks: {message}', { message: err.message });
     statusEl.className = 'status bad';
   }
 }
@@ -9686,11 +9670,11 @@ function paintCompareButton() {
   if (!button) { return; }
   var picked = pickedIds().length, ready = comparable().length;
   button.classList.toggle('hidden', picked < 2);
-  button.textContent = 'Compare ' + ready;
+  button.textContent = t('Compare {ready}', { ready: ready });
   button.disabled = ready < 2 || ready > COMPARE_MOST;
-  button.title = ready > COMPARE_MOST ? 'Compare holds up to ' + COMPARE_MOST + ' takes: untick some'
-    : ready < 2 ? 'Waiting for two ticked takes to finish rendering'
-    : 'Play the ticked takes against each other, from the same place in the song';
+  button.title = ready > COMPARE_MOST ? t('Compare holds up to {COMPARE_MOST} takes: untick some', { COMPARE_MOST: COMPARE_MOST })
+    : ready < 2 ? t('Waiting for two ticked takes to finish rendering')
+    : t('Play the ticked takes against each other, from the same place in the song');
 }
 
 /* The level a take plays at, in dB, or null when the app has not read it. */
@@ -9751,7 +9735,7 @@ function shuffleInPlace(list) {
 
 function compareMeta(take) {
   var bits = ['seed ' + take.seed];
-  if (take.style_lora) { bits.push('Planner ' + Number(take.style_lora_clip != null ? take.style_lora_clip : 1).toFixed(2)); }
+  if (take.style_lora) { bits.push(t('Planner {Number}', { Number: Number(take.style_lora_clip != null ? take.style_lora_clip : 1).toFixed(2) })); }
   return bits.join(' \u00b7 ');
 }
 
@@ -9761,10 +9745,10 @@ function paintCompare() {
     var take = item.take;
     return '<div class="compare-item' + (i === COMPARE.active ? ' active' : '') + '" role="button" tabindex="0" data-i="' + i + '">' +
       '<kbd>' + (i + 1) + '</kbd>' +
-      '<span class="ci-name">' + (blind ? 'Take ' + String.fromCharCode(65 + i) : esc(take.title)) + '</span>' +
+      '<span class="ci-name">' + (blind ? t('Take {fromCharCode}', { fromCharCode: String.fromCharCode(65 + i) }) : esc(take.title)) + '</span>' +
       (blind ? '' : '<span class="ci-meta">' + esc(compareMeta(take)) + '</span>') +
       '<span class="ci-star' + (take.favourite ? ' on' : '') + '" role="button" data-star="' + i + '" title="' +
-        (take.favourite ? 'Starred. Click to remove the star' : 'Star this take') + '">' + (take.favourite ? '\u2605' : '\u2606') + '</span>' +
+        (take.favourite ? t('Starred. Click to remove the star') : t('Star this take')) + '">' + (take.favourite ? '\u2605' : '\u2606') + '</span>' +
     '</div>';
   }).join('');
   paintCompareTransport();
@@ -9774,7 +9758,7 @@ function paintCompareTransport() {
   if (!COMPARE.items.length) { return; }
   var audio = COMPARE.items[COMPARE.active].audio;
   var length = isFinite(audio.duration) ? audio.duration : 0;
-  $('compare-play').textContent = audio.paused ? 'Play' : 'Pause';
+  $('compare-play').textContent = audio.paused ? t('Play') : t('Pause');
   if (document.activeElement !== $('compare-seek')) {
     $('compare-seek').value = length ? Math.round(1000 * audio.currentTime / length) : 0;
   }
@@ -9818,7 +9802,7 @@ async function compareStar(i) {
     paintCompare();
     loadTakes();
   } catch (err) {
-    statusLine('Could not star that take: ' + err.message, 'bad');
+    statusLine(t('Could not star that take: {message}', { message: err.message }), 'bad');
   }
 }
 
@@ -9883,7 +9867,7 @@ function triesPlannerValues() {
 }
 
 function openTries(take) {
-  if (!$('tries-of')) { statusLine('Try more needs the app restarted: this page is from before it.', 'bad'); return; }
+  if (!$('tries-of')) { statusLine(t('Try more needs the app restarted: this page is from before it.'), 'bad'); return; }
   TRIES.take = take;
   $('tries-of').textContent = '\u201c' + take.title + '\u201d';
   // Planner strengths only make sense for a style LoRA with a planner half.
@@ -9893,8 +9877,8 @@ function openTries(take) {
   $('tries-planner-row').classList.toggle('off', !canPlan);
   $('tries-planner-row').querySelector('input').disabled = !canPlan;
   $('tries-planner-hint').textContent = canPlan
-    ? 'this seed, at other Planner strengths (this take: ' + own.toFixed(2) + ')'
-    : (take.style_lora ? 'this LoRA has no planner half' : 'needs a style LoRA');
+    ? t('this seed, at other Planner strengths (this take: {own})', { own: own.toFixed(2) })
+    : (take.style_lora ? t('this LoRA has no planner half') : t('needs a style LoRA'));
   $('tries-values').innerHTML = TRY_PLANNER.map(function (value) {
     var same = Math.abs(value - own) < 0.005;
     return '<label' + (same ? ' class="own"' : '') + '><input type="checkbox" value="' + value.toFixed(2) + '"' +
@@ -9926,8 +9910,8 @@ function paintTries() {
   var count = triesCount();
   var average = State.options.avg_render_seconds || 0;
   $('tries-go').disabled = !count;
-  $('tries-go').textContent = count === 1 ? 'Render 1 take' : 'Render ' + count + ' takes';
-  $('tries-estimate').textContent = count && average ? 'about ' + Math.max(1, Math.round(count * average / 60)) + ' min of rendering' : '';
+  $('tries-go').textContent = count === 1 ? t('Render 1 take') : t('Render {count} takes', { count: count });
+  $('tries-estimate').textContent = count && average ? t('about {Math} min of rendering', { Math: Math.max(1, Math.round(count * average / 60)) }) : '';
 }
 
 async function doTries() {
@@ -9935,7 +9919,7 @@ async function doTries() {
   if (!take || !triesCount()) { return; }
   var cap = parseFloat($('tries-cap').value);
   if (!(cap >= 10 && cap <= 900)) {
-    $('tries-status').textContent = 'The length cap must be between 10 and 900 seconds.';
+    $('tries-status').textContent = t('The length cap must be between 10 and 900 seconds.');
     $('tries-status').className = 'status bad';
     return;
   }
@@ -9950,11 +9934,10 @@ async function doTries() {
     // They used to be ticked with the original, ready for Compare.  Kept in a panel of their own they are
     // one Select all away from that, and a take that turns up ticked reads as marked for deleting.
     openInside(take.id);
-    statusLine('Queued ' + reply.created.length + ' take' + (reply.created.length === 1 ? '' : 's') + ' of ' + take.title +
-      ', kept inside it. Each shows there when it finishes.', 'good');
+    statusLine(tn(reply.created.length, 'Queued {n} take of {title}, kept inside it. Each shows there when it finishes.', 'Queued {n} takes of {title}, kept inside it. Each shows there when it finishes.', { title: take.title }), 'good');
     loadTakes();
   } catch (err) {
-    $('tries-status').textContent = 'Could not queue: ' + err.message;
+    $('tries-status').textContent = t('Could not queue: {message}', { message: err.message });
     $('tries-status').className = 'status bad';
   }
 }
@@ -9988,11 +9971,11 @@ function stepLabel(step) {
 
 var STEP_MODES = {
   cover: { problem: coverProblem, body: coverBody, url: '/api/takes',
-           hint: 'Covers this recording once on each checkpoint, with one seed.' },
+           hint: t('Covers this recording once on each checkpoint, with one seed.') },
   song: { problem: songProblem, body: songBody, url: '/api/songs',
-          hint: 'Writes and renders a plan on each checkpoint, with one seed. The LoRA shapes the plan too, so each has its own tune.' },
+          hint: t('Writes and renders a plan on each checkpoint, with one seed. The LoRA shapes the plan too, so each has its own tune.') },
   inst: { problem: instProblem, body: instBody, url: '/api/instrumentals',
-          hint: 'Writes and renders a plan on each checkpoint, with one seed. The LoRA shapes the plan too, so each has its own tune.' }
+          hint: t('Writes and renders a plan on each checkpoint, with one seed. The LoRA shapes the plan too, so each has its own tune.') }
 };
 
 /* The take that holds what Checkpoints makes: the one in the editor, when there is one, it is a take of
@@ -10007,23 +9990,22 @@ function openLoraSteps() {
   var steps = item ? loraSteps(item.name) : [];
   var mode = STEP_MODES[State.mode] ? State.mode : 'song';
   if (!steps.length) { return; }
-  if (editingTakeInside()) { statusLine('This take is kept inside another. Take it out first, then try the checkpoints from it.', 'bad'); return; }
+  if (editingTakeInside()) { statusLine(t('This take is kept inside another. Take it out first, then try the checkpoints from it.'), 'bad'); return; }
   var problem = STEP_MODES[mode].problem();
   if (problem) { statusLine(problem, 'bad'); return; }
   STEPS.mode = mode;
   // Named after the finished LoRA, whichever step is chosen.
   var finished = steps.filter(function (s) { return s.step === null; })[0];
   var named = finished && loraCatalogue().filter(function (e) { return e.name === finished.name; })[0];
-  $('steps-heading').textContent = 'Checkpoints of ' +
-    ((named && named.title) || item.name.replace(/\.safetensors$/i, '').replace(/_step\d+$/i, ''));
+  $('steps-heading').textContent = t('Checkpoints of {value}', { value: (named && named.title) || item.name.replace(/\.safetensors$/i, '').replace(/_step\d+$/i, '') });
   $('steps-hint').textContent = STEP_MODES[mode].hint + (checkpointsHolder()
-    ? ' Each is a take named after its step, kept inside this take.'
-    : ' Each is a take named after its step, and the last of them holds the others inside it.');
+    ? ' ' + t('Each is a take named after its step, kept inside this take.')
+    : ' ' + t('Each is a take named after its step, and the last of them holds the others inside it.'));
   $('steps-cap').value = parseFloat($('max-duration').value) || 360;
   $('steps-list').innerHTML = steps.map(function (s) {
     return '<label><input type="checkbox" value="' + esc(s.name) + '" data-label="' + stepLabel(s) + '" checked><strong>' +
-      (s.step === null ? 'Full' : 'Step ' + s.step) + '</strong><span class="muted">' +
-      (s.step === null ? 'The LoRA the training run kept' : '') + '</span></label>';
+      (s.step === null ? t('Full') : t('Step {step}', { step: s.step })) + '</strong><span class="muted">' +
+      (s.step === null ? t('The LoRA the training run kept') : '') + '</span></label>';
   }).join('');
   $('steps-status').textContent = '';
   paintStepsEstimate();
@@ -10043,8 +10025,8 @@ function paintStepsEstimate() {
   var count = chosenSteps().length;
   var average = (State.options.avg_render_seconds || 0) + (STEPS.mode === 'cover' ? 0 : State.options.avg_plan_seconds || 0);
   $('steps-go').disabled = !count;
-  $('steps-go').textContent = count === 1 ? 'Render 1 take' : 'Render ' + count + ' takes';
-  $('steps-estimate').textContent = count && average ? 'about ' + Math.max(1, Math.round(count * average / 60)) + ' min of rendering' : '';
+  $('steps-go').textContent = count === 1 ? t('Render 1 take') : t('Render {count} takes', { count: count });
+  $('steps-estimate').textContent = count && average ? t('about {Math} min of rendering', { Math: Math.max(1, Math.round(count * average / 60)) }) : '';
 }
 
 async function runLoraSteps() {
@@ -10053,7 +10035,7 @@ async function runLoraSteps() {
   if (!mode || !chosen.length) { return; }
   var cap = parseFloat($('steps-cap').value);
   if (!(cap >= 10 && cap <= 900)) {
-    $('steps-status').textContent = 'The length cap must be between 10 and 900 seconds.';
+    $('steps-status').textContent = t('The length cap must be between 10 and 900 seconds.');
     $('steps-status').className = 'status bad';
     return;
   }
@@ -10072,7 +10054,7 @@ async function runLoraSteps() {
     for (var i = 0; i < order.length; i++) {
       var body = mode.body(seed);
       body.style_lora = order[i].value;
-      body.title = (body.title || (STEPS.mode === 'inst' ? 'Untitled instrumental' : 'Untitled')) + ' \u00b7 ' + order[i].dataset.label;
+      body.title = (body.title || (STEPS.mode === 'inst' ? t('Untitled instrumental') : t('Untitled'))) + ' \u00b7 ' + order[i].dataset.label;
       body.max_duration = cap;
       // To be heard, so a plan goes straight on to its render.
       if (STEPS.mode !== 'cover') { body.auto_render = true; }
@@ -10083,13 +10065,12 @@ async function runLoraSteps() {
     }
     closeLoraSteps();
     if (origin) { openInside(origin.id); }
-    statusLine('Queued ' + queued + ' take' + (queued === 1 ? '' : 's') + ', one on each checkpoint, with seed ' + seed + '.' +
-      (origin ? ' They are kept inside \u201c' + origin.title + '\u201d.'
-        : (queued > 1 && holder ? ' The others are kept inside \u201c' + holder.title + '\u201d.' : '')), 'good');
+    statusLine(tn(queued, 'Queued {n} take, one on each checkpoint, with seed {seed}.{kept}', 'Queued {n} takes, one on each checkpoint, with seed {seed}.{kept}', { seed: seed, kept: origin ? ' ' + t('They are kept inside “{title}”.', { title: origin.title })
+        : (queued > 1 && holder ? ' ' + t('The others are kept inside “{title}”.', { title: holder.title }) : '') }), 'good');
     // Back to the library, where the takes are: the editor left open looked as if nothing had happened.
     closeEditor();
   } catch (err) {
-    $('steps-status').textContent = (queued ? 'Queued ' + queued + ', then could not queue the rest: ' : 'Could not queue: ') + err.message;
+    $('steps-status').textContent = (queued ? t('Queued {queued}, then could not queue the rest:', { queued: queued }) + ' ' : t('Could not queue:') + ' ') + err.message;
     $('steps-status').className = 'status bad';
   } finally {
     $('steps-go').disabled = false;
@@ -10127,8 +10108,8 @@ function openWrite() {
     if (State.mode === 'cover') {
       var source = currentSource();
       var isMidi = Boolean(source && source.filename && source.filename.match(/\.midi?$/i));
-      var srcType = isMidi ? 'MIDI melody' : 'recorded melody';
-      $('write-structure-sent').textContent = 'Fitting ' + srcType + ' (' + SONGPLAN.sections.join(', ') + ')';
+      var srcType = isMidi ? t('MIDI melody') : t('recorded melody');
+      $('write-structure-sent').textContent = t('Fitting {srcType} ({value})', { srcType: srcType, value: SONGPLAN.sections.join(', ') });
     } else {
       $('write-structure-sent').textContent = SONGPLAN.sections.join(', ');
     }
@@ -10147,7 +10128,7 @@ function setWriting(on) {
   $('write-stop').classList.toggle('hidden', !on);
   var btn = $('lyrics-write');
   if (btn) {
-    btn.textContent = on ? 'Drafting\u2026' : 'Write lyrics';
+    btn.textContent = on ? t('Drafting…') : t('Write lyrics');
     btn.classList.toggle('active', on);
   }
   if (!on) {
@@ -10165,11 +10146,11 @@ function writeStatus(text, tone) {
 
 async function doWrite() {
   var brief = $('write-brief').value.trim();
-  if (!brief) { writeStatus('Say in a few words what the song is about.', 'bad'); $('write-brief').focus(); return; }
+  if (!brief) { writeStatus(t('Say in a few words what the song is about.'), 'bad'); $('write-brief').focus(); return; }
   if ($('lyrics').value.trim() && !await confirmModal({
-    title: 'Replace lyrics',
-    message: 'The draft will replace the lyrics in the box. Write it?',
-    confirmText: 'Write lyrics',
+    title: t('Replace lyrics'),
+    message: t('The draft will replace the lyrics in the box. Write it?'),
+    confirmText: t('Write lyrics'),
     danger: true
   })) { return; }
   try {
@@ -10181,14 +10162,14 @@ async function doWrite() {
     WRITE.started = Date.now();
     WRITE.status = draft.status || 'queued';
     setWriting(true);
-    writeStatus('Waiting for the engine\u2026 The words land in the lyrics box.');
-    statusLine('Drafting lyrics\u2026 The words land in the lyrics box.', 'wait');
+    writeStatus(t('Waiting for the engine… The words land in the lyrics box.'));
+    statusLine(t('Drafting lyrics… The words land in the lyrics box.'), 'wait');
     paintWriteJob(State.currentJob, []);
     closeWrite();      // the progress is shown beside the lyrics box now
     clearTimeout(WRITE.timer);
     WRITE.timer = setTimeout(pollWrite, 1500);
   } catch (err) {
-    writeStatus('Could not start: ' + err.message, 'bad');
+    writeStatus(t('Could not start: {message}', { message: err.message }), 'bad');
   }
 }
 
@@ -10201,7 +10182,7 @@ async function pollWrite() {
     WRITE.id = null;
     WRITE.started = null;
     setWriting(false);
-    var errText = 'Lost the draft: ' + err.message;
+    var errText = t('Lost the draft: {message}', { message: err.message });
     writeStatus(errText, 'bad');
     statusLine(errText, 'bad');
     showWriteError(errText);
@@ -10217,15 +10198,15 @@ async function pollWrite() {
       if (box) { box.classList.add('hidden'); box.classList.remove('bad'); }
       landDraft(draft);
     } else {
-      var msg = draft.error === 'cancelled' ? 'Stopped drafting lyrics.' : ('Could not write the lyrics: ' + draft.error);
+      var msg = draft.error === 'cancelled' ? t('Stopped drafting lyrics.') : (t('Could not write the lyrics: {error}', { error: tr(draft.error) }));
       writeStatus(msg, 'bad');
       statusLine(msg, 'bad');
       showWriteError(msg);
     }
     return;
   }
-  var statusMsg = draft.status === 'running' ? 'Writing lyrics\u2026'
-    : 'Waiting for the engine\u2026 The words land in the lyrics box.';
+  var statusMsg = draft.status === 'running' ? t('Writing lyrics…')
+    : t('Waiting for the engine… The words land in the lyrics box.');
   writeStatus(statusMsg);
   paintWriteJob(State.currentJob, []);
   WRITE.timer = setTimeout(pollWrite, 2000);
@@ -10239,20 +10220,20 @@ function landDraft(draft) {
   saveForm();
   closeWrite();
   writeStatus('');
-  var nextStep = State.mode === 'cover' ? 'then Create cover.' : 'then Write score plan.';
+  var nextStep = State.mode === 'cover' ? t('then Create cover.') : t('then Write score plan.');
   if (draft.warning) {
-    statusLine('Draft lyrics are in the box (' + draft.warning + '). Read them and make them yours, ' + nextStep, 'bad');
+    statusLine(t('Draft lyrics are in the box ({warning}). Read them and make them yours, {nextStep}', { warning: tr(draft.warning), nextStep: nextStep }), 'bad');
   } else {
-    statusLine('Draft lyrics are in the box. Read them and make them yours, ' + nextStep, 'good');
+    statusLine(t('Draft lyrics are in the box. Read them and make them yours, {nextStep}', { nextStep: nextStep }), 'good');
   }
 }
 
 async function stopWrite() {
   if (!WRITE.id) { return; }
   var stageEl = $('lyrics-write-stage');
-  if (stageEl) { stageEl.textContent = 'Stopping\u2026'; }
-  writeStatus('Stopping\u2026');
-  statusLine('Stopping lyrics draft\u2026', 'wait');
+  if (stageEl) { stageEl.textContent = t('Stopping…'); }
+  writeStatus(t('Stopping…'));
+  statusLine(t('Stopping lyrics draft…'), 'wait');
   try { await api('/api/lyrics/' + WRITE.id + '/cancel', { method: 'POST' }); } catch (err) { /* the poll reports it */ }
 }
 
@@ -10296,17 +10277,17 @@ async function openExpandModal() {
 
   if (!motifAbc) {
     if (source && !source.has_score) {
-      statusLine('This recording has not been transcribed yet. Transcribe it first.', 'bad');
+      statusLine(t('This recording has not been transcribed yet. Transcribe it first.'), 'bad');
       return;
     }
-    statusLine('There is no tune to make a song from yet. Transcribe a recording first.', 'bad');
+    statusLine(t('There is no tune to make a song from yet. Transcribe a recording first.'), 'bad');
     return;
   }
 
   var keyMatch = motifAbc.match(/^K:\s*([^\n\r]+)/m);
   var bpmMatch = motifAbc.match(/^Q:\s*1\/4\s*=\s*(\d+)/m);
   if ($('expand-motif-summary')) {
-    $('expand-motif-summary').textContent = 'Your tune: ' + (keyMatch ? keyMatch[1].trim() : 'C') + ' \u00b7 ' + (bpmMatch ? bpmMatch[1] : '120') + ' BPM';
+    $('expand-motif-summary').textContent = t('Your tune: {value} · {value2} BPM', { value: keyMatch ? keyMatch[1].trim() : 'C', value2: bpmMatch ? bpmMatch[1] : '120' });
   }
   var words = ($('lyrics') ? $('lyrics').value : '').trim();
   // A tune played on an instrument has nothing to sing without words of its own.
@@ -10320,13 +10301,13 @@ async function openExpandModal() {
   }
   if ($('expand-structure-words')) {
     $('expand-structure-words').classList.toggle('hidden', !words);
-    $('expand-structure-words').textContent = fromWords.length ? fromWords.join(', ') : 'No sections in the lyrics';
+    $('expand-structure-words').textContent = fromWords.length ? fromWords.join(', ') : t('No sections in the lyrics');
   }
   if ($('expand-preset-hint')) {
     $('expand-preset-hint').textContent = words
-      ? 'From the lyrics in the box. Change their sections to change it.'
-      : needsWords ? 'Comes from the lyrics, once they are written.'
-      : 'No lyrics in the box, so the song is planned without words.';
+      ? t('From the lyrics in the box. Change their sections to change it.')
+      : needsWords ? t('Comes from the lyrics, once they are written.')
+      : t('No lyrics in the box, so the song is planned without words.');
   }
   if ($('expand-voice')) {
     var voice = '';
@@ -10335,7 +10316,7 @@ async function openExpandModal() {
   }
   if ($('expand-status')) {
     $('expand-status').textContent = needsWords
-      ? 'This tune was played on an instrument, so it needs words to sing. Write lyrics first.' : '';
+      ? t('This tune was played on an instrument, so it needs words to sing. Write lyrics first.') : '';
     $('expand-status').className = needsWords ? 'status bad' : 'status';
   }
   if ($('expand-go')) { $('expand-go').disabled = needsWords; }
@@ -10352,10 +10333,10 @@ async function doExpandToSong() {
   var voice = $('expand-voice') ? $('expand-voice').value : 'male';
   try { localStorage.setItem('yue2.expandVoice', voice); } catch (e) { /* no storage */ }
   var style = ($('expand-style') ? $('expand-style').value.trim() : '') || ($('style') ? $('style').value.trim() : '');
-  var title = ($('title') ? $('title').value.trim() : '') || (source ? source.title + ' (Full Song)' : '');
+  var title = ($('title') ? $('title').value.trim() : '') || (source ? t('{title} (Full Song)', { title: source.title }) : '');
 
   if ($('expand-status')) {
-    $('expand-status').textContent = 'Queuing the plan\u2026';
+    $('expand-status').textContent = t('Queuing the plan…');
     $('expand-status').className = 'status wait';
   }
   if ($('expand-go')) { $('expand-go').disabled = true; }
@@ -10380,12 +10361,12 @@ async function doExpandToSong() {
     setSelection({ formTakeId: res.take_id, boxKind: 'none', boxId: null, awaiting: res.take_id });
     editorAfterPlan();
     if (typeof loadTakes === 'function') { await loadTakes(); }
-    statusLine('Making a cover with your tune (' + res.bars + ' bars) in every ' + res.section + ', in ' + res.key + ' at ' + res.bpm + ' BPM'
-      + (res.octaves ? ', moved ' + Math.abs(res.octaves) + ' octave' + (Math.abs(res.octaves) > 1 ? 's ' : ' ') + (res.octaves > 0 ? 'up' : 'down') : '')
-      + ': the plan first, then the render.', 'good');
+    statusLine(t('Making a cover with your tune ({bars} bars) in every {section}, in {key} at {bpm} BPM{value}: the plan first, then the render.', { bars: res.bars, section: res.section, key: res.key, bpm: res.bpm, value: !res.octaves ? '' : res.octaves > 0
+      ? tn(Math.abs(res.octaves), ', moved {n} octave up', ', moved {n} octaves up')
+      : tn(Math.abs(res.octaves), ', moved {n} octave down', ', moved {n} octaves down') }), 'good');
   } catch (err) {
     if ($('expand-status')) {
-      $('expand-status').textContent = 'Could not plan it: ' + (err.message || err);
+      $('expand-status').textContent = t('Could not plan it: {value}', { value: err.message || err });
       $('expand-status').className = 'status bad';
     }
     if ($('expand-go')) { $('expand-go').disabled = false; }
@@ -10398,9 +10379,9 @@ async function doExpandToSong() {
    the app keeps its own copies, and the review happens here, song by song. */
 var IDENTITY = { view: 'list', id: null, data: null, open: {}, timer: null, browse: null };
 var PERSONA = IDENTITY;
-var STEP_NAMES_ALL = [['vocals_state', 'Vocal'], ['score_state', 'Key & tempo'], ['lyrics_state', 'Lyrics'], ['style_state', 'Style']];
+var STEP_NAMES_ALL = [['vocals_state', 'Vocal'], ['score_state', t('Key & tempo')], ['lyrics_state', t('Lyrics')], ['style_state', t('Style')]];
 var STEP_NAMES = STEP_NAMES_ALL;
-var STEP_MARKS = { none: '', queued: '· queued', running: '…', done: '✓', failed: '✕' };
+var STEP_MARKS = { none: '', queued: '· ' + t('queued'), running: '…', done: '✓', failed: '✕' };
 
 function getIdentityModal() { return $('identities-modal') || $('personas-modal'); }
 function getIdentityHeading() { return $('identities-heading') || $('personas-heading'); }
@@ -10436,7 +10417,7 @@ async function showIdentityList() {
   IDENTITY.id = null;
   clearTimeout(IDENTITY.timer);
   var heading = getIdentityHeading();
-  if (heading) { heading.textContent = 'Corpora'; }
+  if (heading) { heading.textContent = t('Corpora'); }
   var back = getIdentityBack();
   if (back) { back.classList.add('hidden'); }
   var list = [];
@@ -10446,11 +10427,9 @@ async function showIdentityList() {
   var body = getIdentityBody();
   if (!body) { return; }
   body.innerHTML =
-    '<p class="identity-intro persona-intro">A corpus is a folder of recordings, prepared as a training set. ' +
-    'Point at a folder: the app separates each vocal, finds its key and tempo, and drafts its lyrics for you ' +
-    'to check. Then export the set and train it' + (trainingAvailable() ? ' — here, or anywhere else' : ' with the trainer of your choice') + '.</p>' +
-    '<div class="row"><button id="identity-new" class="ghost">New corpus</button>' +
-    '<button id="identity-import" class="ghost" title="Add a LoRA someone shared: the zip from their Download LoRA, or a .safetensors file">Import LoRA</button>' +
+    '<p class="identity-intro persona-intro">' + t('A corpus is a folder of recordings, prepared as a training set. Point at a folder: the app separates each vocal, finds its key and tempo, and drafts its lyrics for you to check. Then export the set and train it{value}.', { value: trainingAvailable() ? ' ' + t('— here, or anywhere else') : ' ' + t('with the trainer of your choice') }) + '</p>' +
+    '<div class="row"><button id="identity-new" class="ghost">' + t('New corpus') + '</button>' +
+    '<button id="identity-import" class="ghost" title="' + t('Add a LoRA someone shared: the zip from their Download LoRA, or a .safetensors file') + '">' + t('Import LoRA') + '</button>' +
     '<input id="identity-import-file" type="file" accept=".zip,.safetensors" class="hidden">' +
     '<span id="identity-import-status" class="status"></span></div>' +
     '<div class="identity-cards persona-cards">' + list.map(function (item) {
@@ -10458,9 +10437,9 @@ async function showIdentityList() {
       // a card rather than redrawing the list, which would move it out from under a click.
       return '<div class="identity-card persona-card" data-identity="' + esc(item.id) + '" data-persona="' + esc(item.id) + '">' +
         '<strong><span class="corpus-dot" aria-hidden="true"></span>' + esc(item.name) + '</strong>' +
-        '<span class="muted">trigger <code>' + esc(item.trigger_word) + '</code> · ' + (item.included || 0) + ' of ' +
-        (item.songs || 0) + ' songs' + (item.exported_at ? ' · exported' : '') + '</span>' +
-        '<span class="corpus-preparing">preparing…</span></div>';
+        '<span class="muted">' + t('trigger') + ' <code>' + esc(item.trigger_word) + '</code> · ' +
+        t('{included} of {songs} songs', { included: item.included || 0, songs: item.songs || 0 }) + (item.exported_at ? ' · ' + t('exported') : '') + '</span>' +
+        '<span class="corpus-preparing">' + t('preparing…') + '</span></div>';
     }).join('') + '</div>';
   paintCorpusCards();
 }
@@ -10476,7 +10455,7 @@ function paintCorpusCards() {
     var busy = Boolean(item && item.busy);
     card.classList.toggle('busy', busy);
     if (busy) {
-      card.title = esc(item.name) + ': ' + item.done + ' of ' + item.total + ' songs settled, still working.';
+      card.title = t('{name}: {done} of {total} songs settled, still working.', { name: esc(item.name), done: item.done, total: item.total });
     } else if (card.title) {
       card.removeAttribute('title');
     }
@@ -10491,26 +10470,26 @@ function triggerFrom(name) {
 async function showIdentityNew() {
   IDENTITY.view = 'new';
   var heading = getIdentityHeading();
-  if (heading) { heading.textContent = 'New corpus'; }
+  if (heading) { heading.textContent = t('New corpus'); }
   var back = getIdentityBack();
   if (back) { back.classList.remove('hidden'); }
   var body = getIdentityBody();
   if (!body) { return; }
   body.innerHTML =
     '<div class="identity-form persona-form">' +
-      '<div class="field"><label for="pn-name">Name</label><input id="pn-name" type="text" maxlength="80" placeholder="Paul Shields"></div>' +
-      '<div class="field"><label for="pn-trigger">Trigger word</label><input id="pn-trigger" type="text" maxlength="40" placeholder="paulshields">' +
-        '<div class="hint">Starts every style caption, so a trained LoRA knows when to act. Letters and digits only.</div></div>' +
-      '<div class="field"><label for="pn-voice">Voice</label><select id="pn-voice"><option value="male">male</option>' +
-        '<option value="female">female</option><option value="">not stated</option><option value="none">none</option></select>' +
-        '<div class="hint">None is for songs without vocals: they are not separated or listened to for words.</div></div>' +
-      '<div class="field"><label for="pn-desc">The sound, for every song</label><input id="pn-desc" type="text" maxlength="400" ' +
+      '<div class="field"><label for="pn-name">' + t('Name') + '</label><input id="pn-name" type="text" maxlength="80" placeholder="' + t('Paul Shields') + '"></div>' +
+      '<div class="field"><label for="pn-trigger">' + t('Trigger word') + '</label><input id="pn-trigger" type="text" maxlength="40" placeholder="' + t('paulshields') + '">' +
+        '<div class="hint">' + t('Starts every style caption, so a trained LoRA knows when to act. Letters and digits only.') + '</div></div>' +
+      '<div class="field"><label for="pn-voice">' + t('Voice') + '</label><select id="pn-voice"><option value="male">' + t('male') + '</option>' +
+        '<option value="female">' + t('female') + '</option><option value="">' + t('not stated') + '</option><option value="none">' + t('none') + '</option></select>' +
+        '<div class="hint">' + t('None is for songs without vocals: they are not separated or listened to for words.') + '</div></div>' +
+      '<div class="field"><label for="pn-desc">' + t('The sound, for every song') + '</label><input id="pn-desc" type="text" maxlength="400" ' +
         'placeholder="pop rock, electric guitars, bass, drums">' +
-        '<div class="hint">Goes into each caption, with each song’s own key and tempo.</div></div>' +
-      '<div class="field wide"><label>Folder of songs</label><div id="pn-folder" class="folder-pick"></div>' +
-        '<div class="hint">Only read: nothing in it is changed.</div></div>' +
-      '<label class="check wide"><input id="pn-consent" type="checkbox"> I have the right to train on these recordings.</label>' +
-      '<div class="wide row" style="margin-top:10px"><button id="pn-scan" class="ghost">Scan the folder</button>' +
+        '<div class="hint">' + t('Goes into each caption, with each song’s own key and tempo.') + '</div></div>' +
+      '<div class="field wide"><label>' + t('Folder of songs') + '</label><div id="pn-folder" class="folder-pick"></div>' +
+        '<div class="hint">' + t('Only read: nothing in it is changed.') + '</div></div>' +
+      '<label class="check wide"><input id="pn-consent" type="checkbox"> ' + t('I have the right to train on these recordings.') + '</label>' +
+      '<div class="wide row" style="margin-top:10px"><button id="pn-scan" class="ghost">' + t('Scan the folder') + '</button>' +
         '<span id="pn-status" class="status"></span></div>' +
     '</div>';
   $('pn-name').addEventListener('input', function () {
@@ -10531,17 +10510,17 @@ async function browseFolder(path) {
     // server gives no parent there, and without this the only way back was to close
     // the window and start again. It sits in the header, apart from the folders, and
     // the header stays in view while the list scrolls.
-    var back = data.parent ? '<button class="folder-back" data-folder="' + esc(data.parent) + '">\u2190 up</button>'
-      : '<button class="folder-back" data-folder="">\u2190 all folders</button>';
-    var html = data.path ? '<div class="here"><span>' + esc(data.path) + ' · ' + data.songs + ' song' +
-      (data.songs === 1 ? '' : 's') + ' here</span>' + back + '</div>' : '';
+    var back = data.parent ? '<button class="folder-back" data-folder="' + esc(data.parent) + '">\u2190 ' + t('up') + '</button>'
+      : '<button class="folder-back" data-folder="">' + t('← all folders') + '</button>';
+    var html = data.path ? '<div class="here"><span>' + esc(data.path) + ' · ' +
+      tn(data.songs, '{n} song here', '{n} songs here') + '</span>' + back + '</div>' : '';
     html += data.folders.map(function (folder) {
       // The list of import folders shows them whole; inside one, a folder is its own
       // name. Windows paths use backslashes, which a split on "/" never found.
       var name = data.path ? folder.split(/[\\/]/).filter(Boolean).pop() || folder : folder;
       return '<button data-folder="' + esc(folder) + '">▸ ' + esc(name) + '</button>';
     }).join('');
-    if (!data.path && !data.folders.length) { html = '<div class="here">No import folders are mounted. See the README.</div>'; }
+    if (!data.path && !data.folders.length) { html = '<div class="here">' + t('No import folders are mounted. See the README.') + '</div>'; }
     host.innerHTML = html;
   } catch (err) {
     host.innerHTML = '<div class="here">' + esc(err.message) + '</div>';
@@ -10551,15 +10530,15 @@ async function browseFolder(path) {
 async function scanNewIdentity() {
   var status = $('pn-status');
   var folder = IDENTITY.browse && IDENTITY.browse.path;
-  if (!folder) { status.textContent = 'Open the folder that holds the songs.'; status.className = 'status bad'; return; }
-  if (!$('pn-consent').checked) { status.textContent = 'Confirm that the voice is yours, or that you have permission.'; status.className = 'status bad'; return; }
-  status.textContent = 'Scanning…';
+  if (!folder) { status.textContent = t('Open the folder that holds the songs.'); status.className = 'status bad'; return; }
+  if (!$('pn-consent').checked) { status.textContent = t('Confirm that the voice is yours, or that you have permission.'); status.className = 'status bad'; return; }
+  status.textContent = t('Scanning…');
   status.className = 'status';
   $('pn-scan').disabled = true;
   try {
     var made = await api('/api/identities', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: $('pn-name').value.trim() || 'My voice', trigger_word: $('pn-trigger').value || triggerFrom($('pn-name').value) || 'myvoice',
+      body: JSON.stringify({ name: $('pn-name').value.trim() || t('My voice'), trigger_word: $('pn-trigger').value || triggerFrom($('pn-name').value) || 'myvoice',
         voice: $('pn-voice').value, description: $('pn-desc').value, folder: folder, consent: true })
     });
     showIdentity(made.id, made);
@@ -10574,7 +10553,7 @@ var scanNewPersona = scanNewIdentity;
 function stepChips(song) {
   // A corpus without vocals has no vocal to separate, and its lyrics are section tags.
   var names = IDENTITY.data && IDENTITY.data.vocalless
-    ? [['score_state', 'Key & tempo'], ['lyrics_state', 'Sections'], ['style_state', 'Style']] : STEP_NAMES_ALL;
+    ? [['score_state', t('Key & tempo')], ['lyrics_state', t('Sections')], ['style_state', t('Style')]] : STEP_NAMES_ALL;
   return names.map(function (step) {
     var state = song[step[0]] || 'none';
     return '<span class="step ' + state + '">' + step[1] + (STEP_MARKS[state] ? ' ' + STEP_MARKS[state] : '') + '</span>';
@@ -10583,10 +10562,10 @@ function stepChips(song) {
 
 function identitySummary(data) {
   var sum = data.summary;
-  return '<span><strong>' + sum.included + '</strong> of ' + sum.songs + ' songs included · ' + sum.minutes + ' min</span>' +
-    '<span>' + sum.analysed + ' analysed' + (data.vocalless ? '' : ' · ' + sum.checked + ' lyrics checked') + '</span>' +
-    '<span class="muted">trigger <code>' + esc(data.trigger_word) + '</code> · ' + esc(data.vocalless ? 'no vocals' : (data.voice || 'voice not stated')) +
-    ' · ' + esc(data.description || 'no description') + '</span>';
+  return '<span>' + t('<strong>{included}</strong> of {songs} songs included · {minutes} min', { included: sum.included, songs: sum.songs, minutes: sum.minutes }) + '</span>' +
+    '<span>' + sum.analysed + ' analysed' + (data.vocalless ? '' : ' ' + t('· {checked} lyrics checked', { checked: sum.checked })) + '</span>' +
+    '<span class="muted">' + t('trigger') + ' <code>' + esc(data.trigger_word) + '</code> · ' + esc(data.vocalless ? t('no vocals') : (data.voice || t('voice not stated'))) +
+    ' · ' + esc(data.description || t('no description')) + '</span>';
 }
 var personaSummary = identitySummary;
 
@@ -10595,19 +10574,17 @@ function songRow(song) {
     ? '<tr class="identity-detail persona-detail" data-detail="' + song.id + '"><td colspan="5">' + songDetail(song) + '</td></tr>' : '';
   return '<tr data-song="' + song.id + '"' + (song.include ? '' : ' class="off"') + '>' +
     '<td><input type="checkbox" data-include="' + song.id + '"' + (song.include ? ' checked' : '') +
-      (song.too_long ? ' disabled title="Too long to analyse: split it into tracks first"' : ' title="Include in the training set"') + '></td>' +
+      (song.too_long ? ' disabled title="' + t('Too long to analyse: split it into tracks first') + '"' : ' title="' + t('Include in the training set') + '"') + '></td>' +
     // A track cut from an album is stored by its full path; its name is enough here.
     '<td>' + esc(song.title) + '<span class="file">' + esc(String(song.file).split('/').pop()) + '</span>' +
       (song.flag ? '<span class="flag">' + esc(song.flag) + '</span>' : '') +
-      (song.cue ? ' <button class="link" data-split="' + song.id + '" title="' + esc(song.cue.file) +
-        ' says where each track starts. Each becomes a song in this corpus; the folder is not changed">Split into ' +
-        song.cue.tracks + ' tracks</button>' : '') + '</td>' +
+      (song.cue ? ' <button class="link" data-split="' + song.id + '" title="' + t('{file} says where each track starts. Each becomes a song in this corpus; the folder is not changed', { file: esc(song.cue.file) }) + '">' + t('Split into {tracks} tracks', { tracks: song.cue.tracks }) + '</button>' : '') + '</td>' +
     '<td>' + secs(song.duration) + (song.trained_to
-      ? '<div class="muted" title="Songs longer than the training limit are cut for training, at the end of a section where one is near, and faded out. Its words stop there too.">first ' +
-        secs(song.trained_to) + ' trained</div>' : '') + '</td>' +
+      ? '<div class="muted" title="' + t('Songs longer than the training limit are cut for training, at the end of a section where one is near, and faded out. Its words stop there too.') + '">first ' +
+        t('{time} trained', { time: secs(song.trained_to) }) + '</div>' : '') + '</td>' +
     '<td data-steps="' + song.id + '">' + stepChips(song) + '<div class="muted" data-keytempo="' + song.id + '">' +
       esc([song.key, song.tempo ? song.tempo + ' BPM' : ''].filter(Boolean).join(', ')) + '</div></td>' +
-    '<td><button class="link" data-open="' + song.id + '">' + (IDENTITY.open[song.id] ? 'Close' : 'Review') + '</button></td>' +
+    '<td><button class="link" data-open="' + song.id + '">' + (IDENTITY.open[song.id] ? t('Close') : t('Review')) + '</button></td>' +
   '</tr>' + detail;
 }
 
@@ -10617,40 +10594,38 @@ function lyricsSourceRow(song) {
   if (!v || !v.llm || !v.whisper) { return ''; }
   var chip = function (key, label, words) {
     return '<button type="button" class="chip' + (v.active === key ? ' active' : '') + '" data-lyrics-source="' + key +
-      '" data-song="' + song.id + '" title="Use the words ' + (key === 'llm' ? 'the external model heard' : 'Whisper heard') +
-      '. They go in the box, replacing what is there">' + esc(label) + ' \u00b7 ' + words + ' words</button>';
+      '" data-song="' + song.id + '" title="' + t('Use the words {value}. They go in the box, replacing what is there', { value: key === 'llm' ? t('the external model heard') : t('Whisper heard') }) + '">' + esc(label) + ' · ' + tn(words, '{n} word', '{n} words') + '</button>';
   };
-  return '<div class="lyrics-source" data-for="' + song.id + '" data-active="' + esc(v.active || '') + '">Words from ' + chip('llm', v.llm.model || 'the external model', v.llm.words) +
-    chip('whisper', 'Whisper', v.whisper.words) + '</div>';
+  return '<div class="lyrics-source" data-for="' + song.id + '" data-active="' + esc(v.active || '') + '">' + t('Words from {chip}{chip2}', { chip: chip('llm', v.llm.model || t('the external model'), v.llm.words), chip2: chip('whisper', t('Whisper'), v.whisper.words) }) + '</div>';
 }
 
 function songDetail(song) {
   var vocalless = Boolean(IDENTITY.data && IDENTITY.data.vocalless);
   var base = '/api/identities/' + IDENTITY.id + '/songs/' + song.id + '/audio';
   var players = song.stored_path
-    ? '<div class="muted">Your recording</div><audio controls preload="none" src="' + base + '?which=original"></audio>' +
-      (song.vocals_state === 'done' && !vocalless ? '<div class="muted">The separated vocal</div><audio controls preload="none" src="' + base + '?which=vocals"></audio>' : '')
-    : '<p class="muted">Press Analyse to copy this song in.</p>';
+    ? '<div class="muted">' + t('Your recording') + '</div><audio controls preload="none" src="' + base + '?which=original"></audio>' +
+      (song.vocals_state === 'done' && !vocalless ? '<div class="muted">' + t('The separated vocal') + '</div><audio controls preload="none" src="' + base + '?which=vocals"></audio>' : '')
+    : '<p class="muted">' + t('Press Analyse to copy this song in.') + '</p>';
   return '<div class="grid"><div>' +
       (vocalless
-        ? '<div class="label-row"><label>Sections</label></div>'
-        : '<div class="label-row"><label>Lyrics' + (song.lyrics_state === 'done' && !song.lyrics_checked ? ' <span class="muted">(a draft)</span>' : '') +
-          '</label><label class="check"><input type="checkbox" data-checked="' + song.id + '"' + (song.lyrics_checked ? ' checked' : '') + '> checked</label></div>' +
+        ? '<div class="label-row"><label>' + t('Sections') + '</label></div>'
+        : '<div class="label-row"><label>' + t('Lyrics') + (song.lyrics_state === 'done' && !song.lyrics_checked ? ' <span class="muted">' + t('(a draft)') + '</span>' : '') +
+          '</label><label class="check"><input type="checkbox" data-checked="' + song.id + '"' + (song.lyrics_checked ? ' checked' : '') + '> ' + t('checked') + '</label></div>' +
           lyricsSourceRow(song)) +
       '<textarea data-lyrics="' + song.id + '" spellcheck="false" placeholder="[Verse]&#10;...">' + esc(song.lyrics || '') + '</textarea>' +
-      '<div class="row" style="margin-top:6px"><button class="ghost" data-save="' + song.id + '">Save</button>' +
+      '<div class="row" style="margin-top:6px"><button class="ghost" data-save="' + song.id + '">' + t('Save') + '</button>' +
       (song.lyrics_state === 'done' && !vocalless && IDENTITY.data && IDENTITY.data.external_llm
-        ? '<button class="ghost" data-redraft="' + song.id + '" title="Draft the lyrics again from what was heard: the same words, with the sections marked afresh. Replaces what is in the box">Redraft</button>'
+        ? '<button class="ghost" data-redraft="' + song.id + '" title="' + t('Draft the lyrics again from what was heard: the same words, with the sections marked afresh. Replaces what is in the box') + '">' + t('Redraft') + '</button>'
         : '') +
       '<span class="status" data-saved="' + song.id + '"></span></div>' +
     '</div><div>' + players +
-      '<div class="field" style="margin:10px 0 0"><label for="pd-' + song.id + '">This song\u2019s sound</label>' +
+      '<div class="field" style="margin:10px 0 0"><label for="pd-' + song.id + '">' + t('This song’s sound') + '</label>' +
       '<input id="pd-' + song.id + '" type="text" maxlength="400" data-description="' + song.id + '" value="' + esc(song.description || '') + '" ' +
       'placeholder="' + esc((IDENTITY.data && IDENTITY.data.description) || 'the corpus\u2019s description') + '">' +
-      '<div class="hint">Only where it differs from the rest, say stripped back or acoustic. Blank uses the corpus\u2019s. Saved with Save.</div></div>' +
-      '<div class="muted" style="margin-top:8px">Style caption</div><div class="caption" data-caption="' + song.id + '">' + esc(song.caption) + '</div>' +
-      (song.style_hint ? '<div class="muted" style="margin-top:8px; display:flex; justify-content:space-between; align-items:center"><span>Style suggestion</span><button class="restyle" data-restyle="' + song.id + '">Re-analyse</button></div><div class="caption">' + esc(song.style_hint) + '</div>' : '<div style="margin-top:8px"><button class="restyle" data-restyle="' + song.id + '">Analyse style</button></div>') +
-      (song.error ? '<div class="status bad" style="margin-top:8px">' + esc(song.error) + '</div>' : '') +
+      '<div class="hint">' + t('Only where it differs from the rest, say stripped back or acoustic. Blank uses the corpus’s. Saved with Save.') + '</div></div>' +
+      '<div class="muted" style="margin-top:8px">' + t('Style caption') + '</div><div class="caption" data-caption="' + song.id + '">' + esc(song.caption) + '</div>' +
+      (song.style_hint ? '<div class="muted" style="margin-top:8px; display:flex; justify-content:space-between; align-items:center"><span>' + t('Style suggestion') + '</span><button class="restyle" data-restyle="' + song.id + '">' + t('Re-analyse') + '</button></div><div class="caption">' + esc(song.style_hint) + '</div>' : '<div style="margin-top:8px"><button class="restyle" data-restyle="' + song.id + '">' + t('Analyse style') + '</button></div>') +
+      (song.error ? '<div class="status bad" style="margin-top:8px">' + esc(tr(song.error)) + '</div>' : '') +
     '</div></div>';
 }
 
@@ -10674,24 +10649,24 @@ function renderIdentityActions(data) {
   }
 
   // 1. Analyse button
-  var analyseLabel = isAnalysing ? 'Analysing\u2026' : (isAnalysed ? 'Analysed \u2713' : 'Analyse');
+  var analyseLabel = isAnalysing ? t('Analysing…') : (isAnalysed ? t('Analysed ✓') : t('Analyse'));
   var analyseClass = 'ghost' + (isAnalysed ? ' done' : (nextStep === 1 ? ' next-step' : ''));
-  var analyseTitle = isAnalysed ? 'All ' + included + ' songs analysed (click to re-analyse)' : 'Analyse vocals, chords, key, tempo and lyrics';
+  var analyseTitle = isAnalysed ? t('All {included} songs analysed (click to re-analyse)', { included: included }) : t('Analyse vocals, chords, key, tempo and lyrics');
 
   // 2. Export button
   var isExporting = Boolean(data.exporting);
-  var exportLabel = isExporting ? 'Exporting\u2026' : (isExported ? 'Exported \u2713' : 'Export training set');
+  var exportLabel = isExporting ? t('Exporting…') : (isExported ? t('Exported ✓') : t('Export training set'));
   var exportClass = 'ghost' + (isExported ? ' done' : (nextStep === 2 ? ' next-step' : ''));
   var exportDisabled = ((!isAnalysed && !isExported) || isExporting) ? ' disabled' : '';
-  var exportTitle = isExported ? 'Training set exported (click to export again)' : (isAnalysed ? 'Export audio and captions for training' : 'Analyse songs first');
+  var exportTitle = isExported ? t('Training set exported (click to export again)') : (isAnalysed ? t('Export audio and captions for training') : t('Analyse songs first'));
 
   // 3. Train button (if training available)
   var trainHtml = '';
   if (trainingAvailable()) {
-    var trainLabel = isTraining ? 'Training\u2026' : (isTrained ? 'Trained \u2713' : 'Train a LoRA');
+    var trainLabel = isTraining ? t('Training…') : (isTrained ? t('Trained ✓') : t('Train a LoRA'));
     var trainClass = 'ghost' + (isTrained ? ' done' : (nextStep === 3 ? ' next-step' : ''));
     var trainDisabled = (!isExported || isTraining || isExporting) ? ' disabled' : '';
-    var trainTitle = isTrained ? 'LoRA trained (' + esc(data.lora) + '). Click to re-train.' : (isExported ? 'Train a dual-branch LoRA from this corpus' : 'Export the training set first');
+    var trainTitle = isTrained ? t('LoRA trained ({lora}). Click to re-train.', { lora: esc(data.lora) }) : (isExported ? t('Train a dual-branch LoRA from this corpus') : t('Export the training set first'));
     trainHtml = '<span class="pipeline-sep">\u203a</span><button id="identity-train" class="' + trainClass + '"' + trainDisabled + ' title="' + trainTitle + '">' + trainLabel + '</button>';
   }
 
@@ -10703,23 +10678,23 @@ function renderIdentityActions(data) {
   if (trainingAvailable()) {
     var runAllBusy = chaining || isAnalysing || isExporting || Boolean(State.training);
     runAllHtml = '<button id="identity-run-all" class="ghost run-all"' + (runAllBusy ? ' disabled' : '') +
-      ' title="Analyse, export and train, one after the other, without waiting for each">' +
-      (chaining ? 'Running all\u2026' : 'Run all') + '</button>';
+      ' title="' + t('Analyse, export and train, one after the other, without waiting for each') + '">' +
+      (chaining ? t('Running all…') : t('Run all')) + '</button>';
   }
 
   return '<div class="identity-actions persona-actions">' +
     '<div class="identity-pipeline">' +
       '<button id="identity-analyse" class="' + analyseClass + '"' + (isAnalysing ? ' disabled' : '') + ' title="' + analyseTitle + '">' + analyseLabel + '</button>' +
-      (isAnalysing && !chaining ? '<button id="identity-stop" class="ghost small" title="Stop the analysis. Finished steps are kept, and Analyse carries on from here">Stop</button>' : '') +
-      '<span class="pipeline-sep">\u203a</span>' +
+      (isAnalysing && !chaining ? '<button id="identity-stop" class="ghost small" title="' + t('Stop the analysis. Finished steps are kept, and Analyse carries on from here') + '">' + t('Stop') + '</button>' : '') +
+      '<span class="pipeline-sep">›</span>' +
       '<button id="identity-export" class="' + exportClass + '"' + exportDisabled + ' title="' + exportTitle + '">' + exportLabel + '</button>' +
       trainHtml + runAllHtml +
     '</div>' +
     '<div class="identity-utils">' +
-      '<button id="identity-edit-open" class="ghost small">Edit</button>' +
-      '<button id="identity-install" class="ghost small" title="Install an external LoRA safetensors file">Install a LoRA</button>' +
-      (data.lora ? '<button id="identity-download" class="ghost small" title="This corpus\u2019s LoRA and its note, learned styles included, in one zip to give to someone else">Download LoRA</button>' : '') +
-      '<button id="identity-delete" class="ghost small danger">Delete corpus</button>' +
+      '<button id="identity-edit-open" class="ghost small">' + t('Edit') + '</button>' +
+      '<button id="identity-install" class="ghost small" title="' + t('Install an external LoRA safetensors file') + '">' + t('Install a LoRA') + '</button>' +
+      (data.lora ? '<button id="identity-download" class="ghost small" title="' + t('This corpus’s LoRA and its note, learned styles included, in one zip to give to someone else') + '">' + t('Download LoRA') + '</button>' : '') +
+      '<button id="identity-delete" class="ghost small danger">' + t('Delete corpus') + '</button>' +
     '</div>' +
     '<input id="identity-lora-file" type="file" accept=".safetensors" class="hidden">' +
     '<span id="identity-status" class="status"></span>' +
@@ -10746,15 +10721,14 @@ function identityLastRun(data) {
   };
   if (run.state === 'failed' || run.state === 'cancelled') {
     var saved = run.saved || {};
-    var why = run.state === 'cancelled' || run.error === 'cancelled' ? 'stopped' : (run.error || 'failed');
-    var after = saved.last_step ? ', after step ' + saved.last_step + ' of ' + run.steps : '';
-    return '<div class="identity-working bad">Training ended early' + when(run.finished_at) + ': ' + esc(why) + esc(after) + '.' +
-      (saved.finishable ? ' <button id="identity-finish-run" class="ghost small" data-run="' + esc(run.id) + '" title="' +
-        'Make what it saved the LoRA, as a finished run does, with its checkpoints under it. No GPU time.">' +
-        'Finish with what it saved</button>' : '') + '</div>';
+    var why = run.state === 'cancelled' || run.error === 'cancelled' ? t('stopped') : (tr(run.error) || t('failed'));
+    var after = saved.last_step ? t(', after step {last_step} of {steps}', { last_step: saved.last_step, steps: run.steps }) : '';
+    return '<div class="identity-working bad">' + t('Training ended early{when}: {why}{after}.{value}', { when: when(run.finished_at), why: esc(why), after: esc(after), value: saved.finishable ? ' <button id="identity-finish-run" class="ghost small" data-run="' + esc(run.id) + '" title="' +
+        t('Make what it saved the LoRA, as a finished run does, with its checkpoints under it. No GPU time.') + '">' +
+        t('Finish with what it saved') + '</button>' : '' }) + '</div>';
   }
   if (run.state === 'done' && run.stage && run.stage.indexOf('finished from') === 0) {
-    return '<div class="identity-working muted">The LoRA was ' + esc(run.stage) + when(run.finished_at) + '.</div>';
+    return '<div class="identity-working muted">' + t('The LoRA was {stage}{when}.', { stage: esc(tr(run.stage)), when: when(run.finished_at) }) + '</div>';
   }
   return '';
 }
@@ -10762,18 +10736,17 @@ function identityLastRun(data) {
 /* Where Run all has got to, with its Stop, and the songs it had to leave out. */
 function identityRunAll(run) {
   if (!run) { return ''; }
-  var next = { analysing: 'analysing, then export and train', exporting: 'exporting, then train',
-               waiting: 'waiting for the engine to be free, then train' }[run.stage];
+  var next = { analysing: t('analysing, then export and train'), exporting: t('exporting, then train'),
+               waiting: t('waiting for the engine to be free, then train') }[run.stage];
   var html = '';
   if (next) {
-    html += '<div class="identity-working">Run all: ' + next + '. ' +
-      '<button id="identity-run-all-stop" class="ghost small" title="Stop here. Finished steps are kept">Stop</button></div>';
+    html += '<div class="identity-working">' + t('Run all: {next}.', { next: next }) + ' ' +
+      '<button id="identity-run-all-stop" class="ghost small" title="' + t('Stop here. Finished steps are kept') + '">' + t('Stop') + '</button></div>';
   } else if (run.stage === 'failed') {
-    html += '<div class="identity-working bad">Run all stopped: ' + esc(run.error || 'unknown error') + '</div>';
+    html += '<div class="identity-working bad">' + t('Run all stopped: {esc}', { esc: esc(tr(run.error) || t('unknown error')) }) + '</div>';
   }
   if (run.left_out && run.left_out.length && run.stage !== 'analysing') {
-    html += '<div class="identity-working muted">Left out, as their analysis did not finish: ' +
-      esc(run.left_out.join(', ')) + '.</div>';
+    html += '<div class="identity-working muted">' + t('Left out, as their analysis did not finish: {esc}.', { esc: esc(run.left_out.join(', ')) }) + '</div>';
   }
   return html;
 }
@@ -10784,24 +10757,19 @@ async function openTrain(all) {
   var data = IDENTITY.data || {};
   var included = (data.songs || []).filter(function (song) { return song.include; }).length;
   State.trainAll = Boolean(all);
-  $('train-heading').textContent = (all ? 'Run all for ' : 'Train a LoRA from ') + (data.name || 'this corpus');
+  $('train-heading').textContent = (all ? t('Run all for') + ' ' : t('Train a LoRA from') + ' ') + (data.name || t('this corpus'));
   if (all) {
     var unchecked = data.vocalless ? 0 : included - ((data.summary && data.summary.checked) || 0);
-    $('train-about').textContent = 'Analyses the ' + included + ' included song' + (included === 1 ? '' : 's') +
-      ' where they still need it, writes the training set, then trains a LoRA from it, one after the other. It carries on ' +
-      'with this page closed. A song whose analysis fails is left out, and named.' +
-      (unchecked > 0 ? ' ' + unchecked + ' song' + (unchecked === 1 ? '\u2019s lyrics haven\u2019t' : 's\u2019 lyrics haven\u2019t') +
-        ' been checked: their drafts are used as they are.' : '');
+    $('train-about').textContent = tn(included, 'Analyses the {n} included song where it still needs it, writes the training set, then trains a LoRA from it, one after the other. It carries on with this page closed. A song whose analysis fails is left out, and named.{unchecked}', 'Analyses the {n} included songs where they still need it, writes the training set, then trains a LoRA from it, one after the other. It carries on with this page closed. A song whose analysis fails is left out, and named.{unchecked}', { unchecked: unchecked > 0 ? ' ' + tn(unchecked, '{n} song’s lyrics haven’t been checked: its draft is used as it is.', '{n} songs’ lyrics haven’t been checked: their drafts are used as they are.') : '' });
   } else {
-    $('train-about').textContent = 'From ' + included + ' song' + (included === 1 ? '' : 's') + '. It can take a long time, and the GPU ' +
-      'is not available to the app until it finishes. Progress shows here and on the main screen, where you can stop it.';
+    $('train-about').textContent = tn(included, 'From {n} song. It can take a long time, and the GPU is not available to the app until it finishes. Progress shows here and on the main screen, where you can stop it.', 'From {n} songs. It can take a long time, and the GPU is not available to the app until it finishes. Progress shows here and on the main screen, where you can stop it.');
   }
-  $('train-go').textContent = all ? 'Run all' : 'Train';
+  $('train-go').textContent = all ? t('Run all') : t('Train');
   var previous = data.previous_lora;
   $('train-previous').classList.toggle('hidden', !previous);
   if (previous) {
-    $('train-previous-label').textContent = 'This corpus already has a LoRA, trained ' + previous.day + '.';
-    $('train-keep-text').textContent = 'Keep it, as \u201c' + previous.keep_as + '\u201d';
+    $('train-previous-label').textContent = t('This corpus already has a LoRA, trained {day}.', { day: previous.day });
+    $('train-keep-text').textContent = t('Keep it, as “{keep_as}”', { keep_as: previous.keep_as });
     document.querySelector('input[name="train-previous"][value="keep"]').checked = true;
   }
   $('train-status').textContent = '';
@@ -10852,16 +10820,13 @@ function paintTrainMemory() {
     // What the engine holds itself, it lets go of before training.
     var usable = gb((gpu.vram_free || 0) + (gpu.engine_vram || 0));
     if (gb(gpu.vram_total) < needsGb) {
-      warnings.push('This GPU has ' + gb(gpu.vram_total).toFixed(1) + ' GB, and training needs about ' + needsGb +
-        ' GB. It may run out of memory.');
+      warnings.push(t('This GPU has {gb} GB, and training needs about {needsGb} GB. It may run out of memory.', { gb: gb(gpu.vram_total).toFixed(1), needsGb: needsGb }));
     } else if (usable < needsGb) {
-      warnings.push('Only ' + usable.toFixed(1) + ' GB of GPU memory is free, and training needs about ' + needsGb +
-        ' GB. Close anything else using the GPU first, or it may run out.');
+      warnings.push(t('Only {usable} GB of GPU memory is free, and training needs about {needsGb} GB. Close anything else using the GPU first, or it may run out.', { usable: usable.toFixed(1), needsGb: needsGb }));
     }
   }
   if (gpu && gpu.ram_total && gb(gpu.ram_total) < TRAIN_NEEDS_RAM_GB) {
-    warnings.push('System RAM visible to the engine is ' + gb(gpu.ram_total).toFixed(1) +
-      ' GB, and LoRA training recommends at least 32 GB, or the OS may stop the engine mid-run.');
+    warnings.push(t('System RAM visible to the engine is {gb} GB, and LoRA training recommends at least 32 GB, or the OS may stop the engine mid-run.', { gb: gb(gpu.ram_total).toFixed(1) }));
   }
   var text = warnings.join(' ');
   note.textContent = text;
@@ -10892,7 +10857,7 @@ async function runTrain() {
     pollIdentity();
     var note = $('identity-status');
     if (note) {
-      note.textContent = 'Training ' + started.lora_name + ' from ' + started.songs + ' songs, ' + started.steps + ' steps.';
+      note.textContent = t('Training {lora_name} from {songs} songs, {steps} steps.', { lora_name: started.lora_name, songs: started.songs, steps: started.steps });
       note.className = 'status good';
     }
   } catch (err) {
@@ -10905,28 +10870,28 @@ async function runTrain() {
 /* How far the training of this corpus's LoRA has got. */
 function identityTraining(run) {
   var job = State.currentJob && State.currentJob.kind === 'train' ? State.currentJob : null;
-  var what = (job && (job.label || job.stage)) || run.stage || (run.state === 'queued' ? 'Waiting for the engine' : 'Starting');
+  var what = tr((job && (job.label || job.stage)) || run.stage) || (run.state === 'queued' ? t('Waiting for the engine') : t('Starting'));
   var steps = job && job.value && job.max ? ' \u00b7 ' + job.value + ' of ' + job.max : '';
   var progress = job && job.progress ? job.progress : run.progress;
   var pct = progress > 0 ? ', ' + Math.round(progress * 100) + '%' : '';
   var elapsed = (job && job.elapsed) || run.elapsed;
   var since = elapsed ? ' \u00b7 ' + clock(elapsed) : '';
-  return 'Training ' + esc(run.lora_name || 'the LoRA') + ': ' + esc(what) + steps + pct + since;
+  return t('Training {esc}: {what}{steps}{pct}{since}', { esc: esc(run.lora_name || t('the LoRA')), what: esc(what), steps: steps, pct: pct, since: since });
 }
 
 /* How far writing the training set has got. */
 function identityExporting(e) {
   var since = e.since ? ' \u00b7 ' + clock(Math.max(0, Date.now() / 1000 - e.since)) : '';
-  return 'Exporting the training set: \u201c' + esc(e.song || '') + '\u201d, ' + Math.min(e.done + 1, e.total) + ' of ' + e.total + since;
+  return t('Exporting the training set: “{esc}”, {Math} of {total}{since}', { esc: esc(e.song || ''), Math: Math.min(e.done + 1, e.total), total: e.total, since: since });
 }
 
 /* What the analysis is doing right now, so a long step does not look stuck. */
 function identityWorking(data) {
   var w = data.working;
-  if (!w) { return 'Waiting for its turn behind other jobs\u2026'; }
+  if (!w) { return t('Waiting for its turn behind other jobs…'); }
   var pct = typeof w.progress === 'number' ? ', ' + Math.round(w.progress * 100) + '%' : '';
   var since = w.since ? ' \u00b7 ' + clock(Math.max(0, Date.now() / 1000 - w.since)) : '';
-  return esc(w.stage || 'Working') + ': \u201c' + esc(w.song || '') + '\u201d' + pct + since;
+  return esc(tr(w.stage) || t('Working')) + ': \u201c' + esc(w.song || '') + '\u201d' + pct + since;
 }
 
 async function showIdentity(id, preloaded) {
@@ -10949,18 +10914,13 @@ async function showIdentity(id, preloaded) {
     '<div id="identity-summary" class="identity-summary persona-summary">' + identitySummary(data) + '</div>' +
     '<div id="identity-edit" class="identity-form persona-form hidden"></div>' +
     renderIdentityActions(data) +
-    (data.lora ? '<p class="hint">LoRA installed from this corpus: <b>' + esc(data.lora) + '</b>. ' +
-      'Choose it in the Style LoRA list to write with it.</p>' : '') +
+    (data.lora ? '<p class="hint">' + t('LoRA installed from this corpus: <b>{lora}</b>. Choose it in the Style LoRA list to write with it.', { lora: esc(data.lora) }) + '</p>' : '') +
     (trainingAvailable()
-      ? '<p class="hint"><b>Dual-branch LoRA training:</b> Trains a combined Planner LoRA (musical structure and chords) and Sound LoRA (audio timbre). A single-era corpus can take Planner ~0.85 / Sound ~0.80; a mixed one up to about 0.70 / 0.70.</p>'
+      ? '<p class="hint">' + t('<b>Dual-branch LoRA training:</b> Trains a combined Planner LoRA (musical structure and chords) and Sound LoRA (audio timbre). A single-era corpus can take Planner ~0.85 / Sound ~0.80; a mixed one up to about 0.70 / 0.70.') + '</p>'
       : '') +
-    '<p class="hint"><b>Export training set</b> writes the audio, lyrics, and style caption per song — the layout a trainer ' +
-    'reads — and <b>Install a LoRA</b> takes a trained file back, naming it and giving it this corpus\u2019s ' +
-    'trigger word.</p>' +
-    '<p class="hint">Analyse separates each included song’s vocal, finds its key, tempo and sections with ' +
-    'SheetSage, and drafts its lyrics with Whisper, tagged by section. Songs with no detected vocals ' +
-    'are automatically tagged as <b>[instrumental]</b> so they train cleanly for instrumental workflows.</p>' +
-    '<table class="identity-songs persona-songs"><thead><tr><th></th><th>Song</th><th>Length</th><th>Progress</th><th></th></tr></thead>' +
+    '<p class="hint">' + t('<b>Export training set</b> writes the audio, lyrics, and style caption per song — the layout a trainer reads — and <b>Install a LoRA</b> takes a trained file back, naming it and giving it this corpus’s trigger word.') + '</p>' +
+    '<p class="hint">' + t('Analyse separates each included song’s vocal, finds its key, tempo and sections with SheetSage, and drafts its lyrics with Whisper, tagged by section. Songs with no detected vocals are automatically tagged as <b>[instrumental]</b> so they train cleanly for instrumental workflows.') + '</p>' +
+    '<table class="identity-songs persona-songs"><thead><tr><th></th><th>' + t('Song') + '</th><th>' + t('Length') + '</th><th>' + t('Progress') + '</th><th></th></tr></thead>' +
     '<tbody id="identity-rows">' + data.songs.map(songRow).join('') + '</tbody></table>' +
     '<div id="identity-export-result" class="identity-export persona-export"></div>';
   pollIdentity();
@@ -10993,7 +10953,7 @@ async function pollIdentity() {
       if (box && !box.dataset.edited && document.activeElement !== box && box.value !== (song.lyrics || '')) { box.value = song.lyrics || ''; }
       var drafting = document.querySelector('[data-saved="' + song.id + '"]');
       if (drafting && song.lyrics_state !== 'running' && drafting.textContent === 'Drafting\u2026') {
-        drafting.textContent = 'Redrafted.';
+        drafting.textContent = t('Redrafted.');
         drafting.className = 'status good';
       }
       var cap = document.querySelector('[data-caption="' + song.id + '"]');
@@ -11019,13 +10979,13 @@ function openIdentityEdit() {
   var box = $('identity-edit') || $('persona-edit');
   if (!box) { return; }
   box.innerHTML =
-    '<div class="field"><label for="pe-name">Name</label><input id="pe-name" type="text" maxlength="80" value="' + esc(data.name) + '"></div>' +
-    '<div class="field"><label for="pe-trigger">Trigger word</label><input id="pe-trigger" type="text" maxlength="40" value="' + esc(data.trigger_word) + '"></div>' +
-    '<div class="field"><label for="pe-voice">Voice</label><select id="pe-voice"><option value="male">male</option>' +
-      '<option value="female">female</option><option value="">not stated</option><option value="none">none</option></select></div>' +
-    '<div class="field"><label for="pe-desc">The sound, for every song</label><input id="pe-desc" type="text" maxlength="400" ' +
-      'value="' + esc(data.description || '') + '" placeholder="pop rock, electric guitars, bass, drums"></div>' +
-    '<div class="wide row"><button id="pe-save" class="ghost">Save</button><button id="pe-cancel" class="ghost">Cancel</button>' +
+    '<div class="field"><label for="pe-name">' + t('Name') + '</label><input id="pe-name" type="text" maxlength="80" value="' + esc(data.name) + '"></div>' +
+    '<div class="field"><label for="pe-trigger">' + t('Trigger word') + '</label><input id="pe-trigger" type="text" maxlength="40" value="' + esc(data.trigger_word) + '"></div>' +
+    '<div class="field"><label for="pe-voice">' + t('Voice') + '</label><select id="pe-voice"><option value="male">' + t('male') + '</option>' +
+      '<option value="female">' + t('female') + '</option><option value="">' + t('not stated') + '</option><option value="none">' + t('none') + '</option></select></div>' +
+    '<div class="field"><label for="pe-desc">' + t('The sound, for every song') + '</label><input id="pe-desc" type="text" maxlength="400" ' +
+      'value="' + esc(data.description || '') + '" placeholder="' + t('pop rock, electric guitars, bass, drums') + '"></div>' +
+    '<div class="wide row"><button id="pe-save" class="ghost">' + t('Save') + '</button><button id="pe-cancel" class="ghost">' + t('Cancel') + '</button>' +
       '<span id="pe-status" class="status"></span></div>' +
     '<div class="wide identity-checkpoints" id="pe-checkpoints"></div>';
   $('pe-voice').value = data.voice || '';
@@ -11049,7 +11009,7 @@ async function loadCorpusCheckpoints(note) {
   try {
     data = await api('/api/identities/' + IDENTITY.id + '/checkpoints');
   } catch (err) {
-    box.innerHTML = '<label>Training checkpoints</label><p class="status bad">' + esc(err.message) + '</p>';
+    box.innerHTML = '<label>' + t('Training checkpoints') + '</label><p class="status bad">' + esc(err.message) + '</p>';
     return;
   }
   var all = [];
@@ -11057,22 +11017,21 @@ async function loadCorpusCheckpoints(note) {
   var total = all.reduce(function (sum, item) { return sum + item.bytes; }, 0);
   var status = '<span id="pe-ck-status" class="status' + (note ? ' good' : '') + '">' + esc(note || '') + '</span>';
   if (!all.length) {
-    box.innerHTML = '<label>Training checkpoints</label><p class="hint">' +
-      (data.visible ? 'None kept.' : 'The app cannot see the LoRA folder, so it cannot list them.') + ' ' + status + '</p>';
+    box.innerHTML = '<label>' + t('Training checkpoints') + '</label><p class="hint">' +
+      (data.visible ? t('None kept.') : t('The app cannot see the LoRA folder, so it cannot list them.')) + ' ' + status + '</p>';
     return;
   }
   box.innerHTML =
-    '<div class="label-row"><label>Training checkpoints</label><span class="muted">' + all.length + ' kept, ' +
-      bytesLabel(total) + ' \u00b7 select <a href="#" data-ck-all="1">all</a> \u00b7 <a href="#" data-ck-all="0">none</a></span></div>' +
+    '<div class="label-row"><label>' + t('Training checkpoints') + '</label><span class="muted">' + t('{allCount} kept, {bytesLabel} · select', { allCount: all.length, bytesLabel: bytesLabel(total) }) + ' <a href="#" data-ck-all="1">' + t('all') + '</a> · <a href="#" data-ck-all="0">' + t('none') + '</a></span></div>' +
     data.runs.map(function (run) {
       return '<div class="ck-run"><div class="ck-run-head">' + esc(run.label) + ' <span class="muted">' +
         run.checkpoints.length + ' \u00d7 ' + bytesLabel(run.checkpoints[0].bytes) + '</span></div><div class="ck-steps">' +
         run.checkpoints.map(function (item) {
           return '<label class="ck-step"><input type="checkbox" class="ck-box" value="' + esc(item.name) + '" data-bytes="' +
-            item.bytes + '"> step ' + item.step + '</label>';
+            item.bytes + '"> ' + t('step {step}', { step: item.step }) + '</label>';
         }).join('') + '</div></div>';
     }).join('') +
-    '<div class="row"><button id="pe-ck-delete" class="ghost danger" disabled>Delete selected</button>' + status + '</div>';
+    '<div class="row"><button id="pe-ck-delete" class="ghost danger" disabled>' + t('Delete selected') + '</button>' + status + '</div>';
 }
 
 function checkpointsPicked() {
@@ -11086,32 +11045,30 @@ function paintCheckpointsPicked() {
   var bytes = picked.reduce(function (sum, box) { return sum + Number(box.dataset.bytes || 0); }, 0);
   button.disabled = !picked.length;
   button.textContent = picked.length
-    ? 'Delete ' + picked.length + ' checkpoint' + (picked.length === 1 ? '' : 's') + ' (' + bytesLabel(bytes) + ')'
-    : 'Delete selected';
+    ? tn(picked.length, 'Delete {n} checkpoint ({bytesLabel})', 'Delete {n} checkpoints ({bytesLabel})', { bytesLabel: bytesLabel(bytes) })
+    : t('Delete selected');
 }
 
 async function deleteCorpusCheckpoints() {
   var picked = checkpointsPicked();
   if (!picked.length) { return; }
   var bytes = picked.reduce(function (sum, box) { return sum + Number(box.dataset.bytes || 0); }, 0);
-  var what = picked.length + ' checkpoint' + (picked.length === 1 ? '' : 's');
+  var what = tn(picked.length, '{n} checkpoint', '{n} checkpoints');
   if (!await confirmModal({
-    title: 'Delete checkpoints',
-    message: 'Delete ' + what + ' of ' + (IDENTITY.data.name || 'this corpus') + ', ' + bytesLabel(bytes) + '?\n\n' +
-      'Takes made with them keep their audio but cannot be rendered with them again.',
-    confirmText: 'Delete',
+    title: t('Delete checkpoints'),
+    message: t('Delete {what} of {value}, {bytesLabel}?\n\nTakes made with them keep their audio but cannot be rendered with them again.', { what: what, value: IDENTITY.data.name || t('this corpus'), bytesLabel: bytesLabel(bytes) }),
+    confirmText: t('Delete'),
     danger: true
   })) { return; }
   var button = $('pe-ck-delete');
   button.disabled = true;
-  button.textContent = 'Deleting\u2026';
+  button.textContent = t('Deleting…');
   try {
     var done = await api('/api/identities/' + IDENTITY.id + '/checkpoints/delete', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ names: picked.map(function (box) { return box.value; }) })
     });
-    await loadCorpusCheckpoints('Deleted ' + done.deleted + ' checkpoint' + (done.deleted === 1 ? '' : 's') + ', ' +
-      bytesLabel(done.bytes) + ' freed.');
+    await loadCorpusCheckpoints(tn(done.deleted, 'Deleted {n} checkpoint, {bytesLabel} freed.', 'Deleted {n} checkpoints, {bytesLabel} freed.', { bytesLabel: bytesLabel(done.bytes) }));
     // The Style LoRA list loses them too.
     await pollState();
     paintStyleLoras();
@@ -11136,7 +11093,7 @@ async function saveIdentityEdit() {
     if (editBox) { editBox.classList.add('hidden'); }
     var status = $('identity-status') || $('persona-status');
     if (status) {
-      status.textContent = IDENTITY.data.exported_at ? 'Saved. Export again to update the training set.' : 'Saved.';
+      status.textContent = IDENTITY.data.exported_at ? t('Saved. Export again to update the training set.') : t('Saved.');
       status.className = 'status good';
     }
     pollIdentity();
@@ -11180,7 +11137,7 @@ async function identityClick(event) {
         body: JSON.stringify({ lyrics: box.value, description: sound ? sound.value : undefined })
       });
       delete box.dataset.edited;
-      note.textContent = 'Saved.';
+      note.textContent = t('Saved.');
       pollIdentity();
       note.className = 'status good';
     } catch (err) { note.textContent = err.message; note.className = 'status bad'; }
@@ -11196,9 +11153,9 @@ async function identityClick(event) {
     // What was saved comes back when this version does; only changes not yet saved would be lost.
     if (pickedBox && pickedBox.dataset.edited &&
         !await confirmModal({
-          title: 'Unsaved changes',
-          message: 'The box has changes that are not saved. Switch and lose them?',
-          confirmText: 'Switch',
+          title: t('Unsaved changes'),
+          message: t('The box has changes that are not saved. Switch and lose them?'),
+          confirmText: t('Switch'),
           danger: true
         })) { return; }
     picked.disabled = true;
@@ -11212,10 +11169,10 @@ async function identityClick(event) {
         // Drafted before: its words are back as they were left, with nothing to wait for.
         if (pickedBox) { pickedBox.value = reply.lyrics; }
         if (pickedTick) { pickedTick.checked = Boolean(reply.checked); }
-        if (pickedSaid) { pickedSaid.textContent = 'Words restored.'; pickedSaid.className = 'status good'; }
+        if (pickedSaid) { pickedSaid.textContent = t('Words restored.'); pickedSaid.className = 'status good'; }
       } else {
         if (pickedTick) { pickedTick.checked = false; }
-        if (pickedSaid) { pickedSaid.textContent = 'Drafting\u2026'; pickedSaid.className = 'status'; }
+        if (pickedSaid) { pickedSaid.textContent = t('Drafting…'); pickedSaid.className = 'status'; }
       }
       pollIdentity();
     } catch (err) {
@@ -11233,9 +11190,9 @@ async function identityClick(event) {
     var was = identitySong(redraftId);
     if (((was && was.lyrics_checked) || (box && box.dataset.edited)) &&
         !await confirmModal({
-          title: 'Replace lyrics',
-          message: 'Replace the lyrics in the box with a new draft?',
-          confirmText: 'Replace',
+          title: t('Replace lyrics'),
+          message: t('Replace the lyrics in the box with a new draft?'),
+          confirmText: t('Replace'),
           danger: true
         })) { return; }
     redraft.disabled = true;
@@ -11245,7 +11202,7 @@ async function identityClick(event) {
       if (box) { delete box.dataset.edited; }
       var tick = document.querySelector('[data-checked="' + redraftId + '"]');
       if (tick) { tick.checked = false; }
-      if (said) { said.textContent = 'Drafting\u2026'; said.className = 'status'; }
+      if (said) { said.textContent = t('Drafting…'); said.className = 'status'; }
       pollIdentity();
     } catch (err) {
       if (said) { said.textContent = err.message; said.className = 'status bad'; }
@@ -11259,7 +11216,7 @@ async function identityClick(event) {
     var restyleId = restyle.dataset.restyle;
     var label = restyle.textContent;
     restyle.disabled = true;
-    restyle.textContent = 'Queueing\u2026';
+    restyle.textContent = t('Queueing…');
     try {
       await api('/api/identities/' + IDENTITY.id + '/songs/' + restyleId + '/style', { method: 'POST' });
       pollIdentity();
@@ -11294,7 +11251,7 @@ async function identityClick(event) {
   if (target.closest('#identity-stop')) {
     try {
       await api('/api/identities/' + IDENTITY.id + '/stop', { method: 'POST' });
-      if (status) { status.textContent = 'Stopped. Finished steps are kept; Analyse carries on from here.'; status.className = 'status good'; }
+      if (status) { status.textContent = t('Stopped. Finished steps are kept; Analyse carries on from here.'); status.className = 'status good'; }
     } catch (err) { if (status) { status.textContent = err.message; status.className = 'status bad'; } }
     pollIdentity();
     return;
@@ -11304,19 +11261,19 @@ async function identityClick(event) {
     var album = identitySong(split.dataset.split);
     var before = (IDENTITY.data && IDENTITY.data.songs.length) || 1;
     split.disabled = true;
-    split.textContent = 'Splitting\u2026';
+    split.textContent = t('Splitting…');
     try {
       var after = await api('/api/identities/' + IDENTITY.id + '/songs/' + split.dataset.split + '/split', { method: 'POST' });
       showIdentity(IDENTITY.id, after);
       var note = $('identity-status');
       if (note) {
         var made = after.songs.length - before + 1;
-        note.textContent = (album ? album.title : 'The album') + ' is now ' + made + ' songs in this corpus. Press Analyse when ready.';
+        note.textContent = t('{value} is now {made} songs in this corpus. Press Analyse when ready.', { value: album ? album.title : t('The album'), made: made });
         note.className = 'status good';
       }
     } catch (err) {
       split.disabled = false;
-      split.textContent = 'Split into tracks';
+      split.textContent = t('Split into tracks');
       if (status) { status.textContent = err.message; status.className = 'status bad'; }
     }
     return;
@@ -11329,21 +11286,21 @@ async function identityClick(event) {
       if (isAnalysed) {
         var isShift = Boolean(event && event.shiftKey);
         var msg = isShift
-          ? 'Re-analyse all ' + sum.included + ' songs from scratch?\n\nThis will re-run stem separation, chords/key, transcription and style analysis.'
-          : 'All ' + sum.included + ' songs in this corpus are already analysed.\n\nRe-analyse style suggestions for all songs with the latest prompts?';
+          ? t('Re-analyse all {included} songs from scratch?\n\nThis will re-run stem separation, chords/key, transcription and style analysis.', { included: sum.included })
+          : t('All {included} songs in this corpus are already analysed.\n\nRe-analyse style suggestions for all songs with the latest prompts?', { included: sum.included });
         var ok = await confirmModal({
-          title: isShift ? 'Re-analyse entire corpus' : 'Re-analyse styles',
+          title: isShift ? t('Re-analyse entire corpus') : t('Re-analyse styles'),
           message: msg,
-          confirmText: isShift ? 'Re-analyse all' : 'Re-analyse styles',
-          cancelText: 'Cancel'
+          confirmText: isShift ? t('Re-analyse all') : t('Re-analyse styles'),
+          cancelText: t('Cancel')
         });
         if (!ok) { return; }
         query = isShift ? '?step=all' : '?step=style';
       }
       var queued = await api('/api/identities/' + IDENTITY.id + '/analyse' + query, { method: 'POST' });
       if (status) {
-        status.textContent = queued.queued ? 'Queued ' + queued.queued + ' step' + (queued.queued === 1 ? '' : 's') + '. It carries on if you close this window.'
-          : 'Nothing left to analyse.';
+        status.textContent = queued.queued ? tn(queued.queued, 'Queued {n} step. It carries on if you close this window.', 'Queued {n} steps. It carries on if you close this window.')
+          : t('Nothing left to analyse.');
         status.className = 'status good';
       }
       pollIdentity();
@@ -11371,14 +11328,7 @@ async function identityClick(event) {
       }
       var expRes = $('identity-export-result') || $('persona-export-result');
       if (expRes) {
-        expRes.innerHTML = 'Wrote ' + out.written.length + ' song' + (out.written.length === 1 ? '' : 's') +
-          ' to <code>' + esc(out.folder) + '</code>.' +
-          // Drafts are a fair choice, not a fault: said, not flagged.
-          (out.unchecked.length ? '<br><span class="muted">' + out.unchecked.length + ' song' + (out.unchecked.length === 1 ? ' uses its' : 's use their') +
-            ' lyric draft as drafted.</span>' : '') +
-          (out.cut && out.cut.length ? '<br><span class="muted">' + out.cut.length + ' song' + (out.cut.length === 1 ? ' is' : 's are') +
-            ' longer than the training limit, and cut to fit.</span>' : '') +
-          (out.skipped.length ? '<br><span class="muted">Skipped, not analysed or no lyrics: ' + esc(out.skipped.join(', ')) + '</span>' : '');
+        expRes.innerHTML = tn(out.written.length, 'Wrote {n} song to <code>{folder}</code>.{unchecked}{cut}{skipped}', 'Wrote {n} songs to <code>{folder}</code>.{unchecked}{cut}{skipped}', { folder: esc(out.folder), unchecked: out.unchecked.length ? '<br><span class="muted">' + tn(out.unchecked.length, '{n} song uses its lyric draft as drafted.', '{n} songs use their lyric draft as drafted.') + '</span>' : '', cut: out.cut && out.cut.length ? '<br><span class="muted">' + tn(out.cut.length, '{n} song is longer than the training limit, and cut to fit.', '{n} songs are longer than the training limit, and cut to fit.') + '</span>' : '', skipped: out.skipped.length ? '<br><span class="muted">' + t('Skipped, not analysed or no lyrics: {esc}', { esc: esc(out.skipped.join(', ')) }) + '</span>' : '' });
       }
     } catch (err) {
       IDENTITY.data.exporting = null;
@@ -11396,11 +11346,11 @@ async function identityClick(event) {
   var finishRun = target.closest('#identity-finish-run');
   if (finishRun) {
     finishRun.disabled = true;
-    finishRun.textContent = 'Finishing\u2026';
+    finishRun.textContent = t('Finishing…');
     try {
       var finished = await api('/api/lora-runs/' + encodeURIComponent(finishRun.dataset.run) + '/finish', { method: 'POST' });
       var said = $('identity-status');
-      if (said) { said.textContent = 'Finished: ' + finished.lora + ' is in the Style LoRA list.'; said.className = 'status good'; }
+      if (said) { said.textContent = t('Finished: {lora} is in the Style LoRA list.', { lora: finished.lora }); said.className = 'status good'; }
       await pollState();
       paintStyleLoras();
     } catch (err) {
@@ -11437,14 +11387,12 @@ async function identityClick(event) {
     // nothing here deletes those. So say which ones look like they came from it.
     var matching = getIdentityLoRAs(IDENTITY.data);
     var leftover = matching.length
-      ? '\n\nNot deleted: ' + matching.length + ' LoRA file' + (matching.length === 1 ? '' : 's') +
-        ' in models/loras that look like they came from this corpus —\n' + matching.slice(0, 6).join('\n')
+      ? '\n\n' + tn(matching.length, 'Not deleted: {n} LoRA file in models/loras that looks like it came from this corpus —\n{files}', 'Not deleted: {n} LoRA files in models/loras that look like they came from this corpus —\n{files}', { files: matching.slice(0, 6).join('\n') })
       : '';
     if (!await confirmModal({
-      title: 'Delete corpus',
-      message: 'Delete the corpus “' + IDENTITY.data.name + '” and the app’s copies of its songs?\n\n' +
-        'The original files are not touched.' + leftover,
-      confirmText: 'Delete',
+      title: t('Delete corpus'),
+      message: t('Delete the corpus “{name}” and the app’s copies of its songs?\n\nThe original files are not touched.{leftover}', { name: IDENTITY.data.name, leftover: leftover }),
+      confirmText: t('Delete'),
       danger: true
     })) { return; }
     try {
@@ -11468,7 +11416,7 @@ async function saveLoraStrengths() {
     });
     await pollState();
     paintStyleLoras();
-    status.textContent = 'Saved: it starts at Planner ' + planner.toFixed(2) + ' / Sound ' + sound.toFixed(2) + '.';
+    status.textContent = t('Saved: it starts at Planner {planner} / Sound {sound}.', { planner: planner.toFixed(2), sound: sound.toFixed(2) });
     status.className = 'status good';
   } catch (err) {
     status.textContent = err.message;
@@ -11481,10 +11429,9 @@ async function deleteLora() {
   if (!item) { return; }
   var label = item.title || loraLabel(item.name);
   if (!await confirmModal({
-    title: 'Delete LoRA',
-    message: 'Delete ' + label + '?\n\n' + item.name + ' and its note are removed from models/loras. ' +
-      'Takes made with it keep their audio but cannot be rendered with it again.',
-    confirmText: 'Delete',
+    title: t('Delete LoRA'),
+    message: t('Delete {label}?\n\n{name} and its note are removed from models/loras. Takes made with it keep their audio but cannot be rendered with it again.', { label: label, name: item.name }),
+    confirmText: t('Delete'),
     danger: true
   })) { return; }
   var status = $('lora-install-status');
@@ -11494,7 +11441,7 @@ async function deleteLora() {
     $('style-lora').dispatchEvent(new Event('change', { bubbles: true }));
     await pollState();
     paintStyleLoras();
-    status.textContent = 'Deleted ' + label + '.';
+    status.textContent = t('Deleted {label}.', { label: label });
     status.className = 'status good';
   } catch (err) {
     status.textContent = err.message;
@@ -11507,7 +11454,7 @@ async function installSharedLora(event) {
   event.target.value = '';
   if (!picked) { return; }
   var status = $('lora-install-status');
-  status.textContent = 'Installing ' + picked.name + '\u2026';
+  status.textContent = t('Installing {name}…', { name: picked.name });
   status.className = 'status';
   try {
     var form = new FormData();
@@ -11517,7 +11464,7 @@ async function installSharedLora(event) {
     paintStyleLoras();
     $('style-lora').value = done.name;
     $('style-lora').dispatchEvent(new Event('change', { bubbles: true }));
-    status.textContent = 'Installed' + (done.styles ? ', with ' + done.styles + ' learned styles.' : '.');
+    status.textContent = t('Installed{value}', { value: done.styles ? t(', with {styles} learned styles.', { styles: done.styles }) : '.' });
     status.className = 'status good';
   } catch (err) {
     status.textContent = err.message;
@@ -11532,14 +11479,14 @@ async function identityChange(event) {
     target.value = '';
     if (!chosen) { return; }
     var said = $('identity-import-status');
-    said.textContent = 'Installing ' + chosen.name + '\u2026';
+    said.textContent = t('Installing {name}…', { name: chosen.name });
     said.className = 'status';
     try {
       var data = new FormData();
       data.append('file', chosen);
       var made = await api('/api/loras/install', { method: 'POST', body: data });
       await pollState();
-      said.textContent = 'Installed ' + made.name + (made.styles ? ', with ' + made.styles + ' learned styles' : '') + '. It is in the Style LoRA list.';
+      said.textContent = t('Installed {name}{value}. It is in the Style LoRA list.', { name: made.name, value: made.styles ? t(', with {styles} learned styles', { styles: made.styles }) : '' });
       said.className = 'status good';
     } catch (err) {
       said.textContent = err.message;
@@ -11552,13 +11499,13 @@ async function identityChange(event) {
     target.value = '';
     if (!picked) { return; }
     var status = $('identity-status');
-    status.textContent = 'Installing ' + picked.name + '\u2026';
+    status.textContent = t('Installing {name}…', { name: picked.name });
     status.className = 'status';
     try {
       var form = new FormData();
       form.append('file', picked);
       var done = await api('/api/identities/' + IDENTITY.id + '/lora', { method: 'POST', body: form });
-      status.textContent = 'Installed ' + done.name + ' (' + done.kind + '). It is in the Style LoRA list.';
+      status.textContent = t('Installed {name} ({kind}). It is in the Style LoRA list.', { name: done.name, kind: done.kind });
       status.className = 'status good';
       await pollState();
       paintStyleLoras();
@@ -11625,7 +11572,7 @@ function tile(kind, iconName, label, attrs, title) {
 }
 
 function downloadTile(take) {
-  return tile('save', 'save', 'Save', 'data-act="save" data-id="' + take.id + '"', 'Save \u2014 Download the audio file (FLAC)');
+  return tile('save', 'save', t('Save'), 'data-act="save" data-id="' + take.id + '"', t('Save — Download the audio file (FLAC)'));
 }
 
 function stemsBlock(take) {
@@ -11634,21 +11581,20 @@ function stemsBlock(take) {
   var rows = sets.map(function (set) {
     var busy = set.status === 'queued' || set.status === 'running';
     var remove = '<button class="stem-chip" data-act="stem-del" data-set="' + set.id + '" title="' +
-      (busy ? 'Stop and delete these stems' : 'Delete these stems') + '">x</button>';
+      (busy ? t('Stop and delete these stems') : t('Delete these stems')) + '">x</button>';
     if (set.status === 'done') {
       var chips = (set.files || []).map(function (file) {
         return '<button class="stem-chip" data-act="stem-play" data-set="' + set.id + '" data-file="' + esc(file.file) + '">' +
           esc(file.name) + '</button>';
       }).join('');
-      return '<div class="stem-row"><span class="stem-label">stems</span>' + chips +
+      return '<div class="stem-row"><span class="stem-label">' + t('stems') + '</span>' + chips +
         '<a class="stem-chip" href="/api/stem-sets/' + set.id + '/zip" download>zip</a>' + remove + '</div>';
     }
     if (set.status === 'failed') {
-      return '<div class="stem-row"><span class="stem-label" style="color:var(--bad)">stems failed: ' +
-        esc((set.error || '').slice(0, 70)) + '</span>' + remove + '</div>';
+      return '<div class="stem-row"><span class="stem-label" style="color:var(--bad)">' + t('stems failed: {slice}', { slice: esc(tr(set.error || '').slice(0, 70)) }) + '</span>' + remove + '</div>';
     }
     var pct = Math.round((set.progress || 0) * 100);
-    return '<div class="stem-row"><span class="stem-label">stems: ' + esc(set.stage || set.status) + ' ' + pct + '%</span>' + remove + '</div>';
+    return '<div class="stem-row"><span class="stem-label">' + t('stems: {stage} {pct}%', { stage: esc(tr(set.stage) || set.status), pct: pct }) + '</span>' + remove + '</div>';
   });
   return '<div class="take-stems">' + rows.join('') + '</div>';
 }
@@ -11732,8 +11678,8 @@ function selectTake(take) {
     awaiting: planning ? take.id : null
   });
   $('score-badge').textContent = take.abc
-    ? (take.status === 'planned' ? 'plan ready' : 'saved score')
-    : 'no plan yet';
+    ? (take.status === 'planned' ? t('plan ready') : t('saved score'))
+    : t('no plan yet');
   $('score-badge').className = take.abc ? 'badge ok' : 'badge';
   if (take.abc) { $('score-box').open = true; }
   setChart(chordChart(take.abc || ''));
@@ -11782,7 +11728,7 @@ function paintDraft() {
   bar.classList.toggle('hidden', !State.draft);
   if (State.draft) {
     var words = (State.draft.title || State.draft.lyrics || '').trim().split('\n')[0].slice(0, 40);
-    $('draft-text').textContent = 'Your unsaved words were kept' + (words ? ': \u201c' + words + '\u201d' : '') + '.';
+    $('draft-text').textContent = t('Your unsaved words were kept{value}.', { value: words ? ': \u201c' + words + '\u201d' : '' });
   }
 }
 
@@ -11803,7 +11749,7 @@ function restoreDraft() {
   State.formEdited = true;
   saveForm();
   paintTakes();
-  statusLine('Your words are back.', 'good');
+  statusLine(t('Your words are back.'), 'good');
 }
 
 function dismissDraft() {
@@ -11819,9 +11765,9 @@ function dismissDraft() {
 async function startFresh() {
   var noun = { cover: 'cover', song: 'song', inst: 'instrumental' }[State.mode] || 'song';
   if (scoreIsDirty() && !await confirmModal({
-    title: 'Discard score changes',
-    message: 'The score has changes that are not saved. Start a new ' + noun + ' and discard them?',
-    confirmText: 'Discard changes',
+    title: t('Discard score changes'),
+    message: t('The score has changes that are not saved. Start a new {noun} and discard them?', { noun: noun }),
+    confirmText: t('Discard changes'),
     danger: true
   })) {
     return false;
@@ -11850,7 +11796,7 @@ async function startFresh() {
     paintSource();
     paintStructure();
   } else {
-    $('score-badge').textContent = 'no plan yet';
+    $('score-badge').textContent = t('no plan yet');
     $('score-badge').className = 'badge';
   }
   // A new take starts from the defaults, not from whatever the last one used.
@@ -11889,11 +11835,11 @@ async function startFresh() {
   saveForm();
   paintTakes();
   statusLine(cover
-    ? 'New cover. Choose a recording, then add a title and lyrics.'
+    ? t('New cover. Choose a recording, then add a title and lyrics.')
     : State.mode === 'inst' ? (instFromRecording()
-      ? 'New instrumental. The recording stays selected: choose a style, then Create instrumental.'
-      : 'New instrumental. Choose a style and a structure, then Write score plan.')
-    : 'New song. Write a title, style and lyrics, then Write score plan.', 'good');
+      ? t('New instrumental. The recording stays selected: choose a style, then Create instrumental.')
+      : t('New instrumental. Choose a style and a structure, then Write score plan.'))
+    : t('New song. Write a title, style and lyrics, then Write score plan.'), 'good');
   $('title').focus();
   return true;
 }
@@ -11963,11 +11909,17 @@ function heldBy(take) {
   return (take.children || 0) + (take.children_pending || 0);
 }
 
+/* The kinds of take a filter shows, in words: "song or cover". */
+function kindWordsOf(kinds) {
+  var words = { song: t('song'), cover: t('cover'), instrumental: t('instrumental') };
+  return kinds.map(function (kind) { return words[kind] || kind; }).join(' ' + t('or') + ' ');
+}
+
 function insideWords(take) {
   var done = take.children || 0, making = take.children_pending || 0;
-  if (!done && !making) { return 'Nothing inside this take yet'; }
-  return (done ? done + ' take' + (done === 1 ? '' : 's') : '') + (done && making ? ', and ' : '') +
-    (making ? making + (done ? ' more' : ' take' + (making === 1 ? '' : 's')) + ' being made' : '');
+  if (!done && !making) { return t('Nothing inside this take yet'); }
+  if (done && making) { return tn(done, '{n} take', '{n} takes') + ', ' + tn(making, 'and {n} more being made', 'and {n} more being made'); }
+  return done ? tn(done, '{n} take', '{n} takes') : tn(making, '{n} take being made', '{n} takes being made');
 }
 
 // The panel under a take's card: the takes inside it, as cards of their own.
@@ -11976,16 +11928,16 @@ function insidePanel(mother, cardOf) {
   var empty = '';
   if (!shown.length) {
     empty = all.length
-      ? 'No ' + (State.filter === 'favourite' ? 'starred ' : '') + (State.kinds && State.kinds.length ? State.kinds.join(' or ') + ' ' : '') + 'takes inside this one.'
-      : making ? 'Each take shows here when it is finished.'
-      : 'Variations, Try more and Checkpoints put the takes they make in here.';
+      ? t('No {value}{value2}takes inside this one.', { value: State.filter === 'favourite' ? t('starred') + ' ' : '', value2: State.kinds && State.kinds.length ? kindWordsOf(State.kinds) + ' ' : '' })
+      : making ? t('Each take shows here when it is finished.')
+      : t('Variations, Try more and Checkpoints put the takes they make in here.');
   }
   var fresh = State.inside && State.inside.fresh;
   if (State.inside) { State.inside.fresh = false; }
   return '<section class="take-inside' + (fresh ? ' opening' : '') + '" data-inside="' + mother.id + '">' +
-    '<header><strong>Inside \u201c' + esc(mother.title) + '\u201d</strong>' +
+    '<header>' + t('<strong>Inside “{title}”</strong>', { title: esc(mother.title) }) +
     '<span class="muted">' + esc(insideWords(mother)) + '</span>' +
-    '<button class="chip action compact" data-act="inside" data-id="' + mother.id + '" title="Close, and show the space\u2019s takes only">Close</button></header>' +
+    '<button class="chip action compact" data-act="inside" data-id="' + mother.id + '" title="' + t('Close, and show the space’s takes only') + '">' + t('Close') + '</button></header>' +
     (shown.length ? '<div class="take-inside-list">' + shown.map(cardOf).join('') + '</div>' : '<p class="hint">' + esc(empty) + '</p>') +
     '</section>';
 }
@@ -11998,12 +11950,12 @@ function paintBulk() {
   if (tools) {
     tools.classList.toggle('hidden', !count);
     document.querySelector('.show-tools').classList.toggle('hidden', Boolean(count));
-    $('picked-count').textContent = count + ' picked';
+    $('picked-count').textContent = t('{count} picked', { count: count });
   }
   var button = $('bulk-delete');
   if (button) {
     button.classList.toggle('hidden', !count);
-    button.textContent = count ? 'Delete ' + count : 'Delete';
+    button.textContent = count ? t('Delete {count}', { count: count }) : t('Delete');
     button.disabled = !count;
   }
   var selAll = $('select-all');
@@ -12014,12 +11966,12 @@ function paintBulk() {
     });
     selAll.disabled = visible.length === 0;
     var label = selAll.querySelector('.lbl') || selAll;
-    label.textContent = allPicked ? 'Deselect all' : 'Select all';
+    label.textContent = allPicked ? t('Deselect all') : t('Select all');
     selAll.classList.toggle('active', allPicked);
     selAll.title = allPicked
-      ? (insideOpen() ? 'Deselect all takes inside the open one' : 'Deselect all takes in this space')
-      : (visible.length === 0 ? 'No takes to select'
-        : 'Select all ' + visible.length + (State.search ? ' takes found' : (insideOpen() ? ' takes inside the open one' : ' takes in this space')));
+      ? (insideOpen() ? t('Deselect all takes inside the open one') : t('Deselect all takes in this space'))
+      : (visible.length === 0 ? t('No takes to select')
+        : t('Select all {visibleCount}{value}', { visibleCount: visible.length, value: State.search ? ' ' + t('takes found') : (insideOpen() ? ' ' + t('takes inside the open one') : ' ' + t('takes in this space')) }));
   }
 }
 
@@ -12067,15 +12019,13 @@ async function bulkDelete() {
     return take ? take.title : id;
   });
   var shown = names.slice(0, 8).map(function (name) { return '• ' + name; }).join('\n');
-  var more = names.length > 8 ? '\nand ' + (names.length - 8) + ' more' : '';
+  var more = names.length > 8 ? '\n' + t('and {n} more', { n: names.length - 8 }) : '';
   // A take goes with the takes inside it, so the warning counts those too.
   var within = ids.reduce(function (sum, id) { var take = takeById(id); return sum + (take ? heldBy(take) : 0); }, 0);
   if (!await confirmModal({
-    title: 'Delete ' + ids.length + ' take' + (ids.length === 1 ? '' : 's'),
-    message: 'Delete ' + ids.length + ' take' + (ids.length === 1 ? '' : 's') + '?\n\n' + shown + more
-      + (within ? '\n\nThe ' + within + ' take' + (within === 1 ? '' : 's') + ' inside ' + (ids.length === 1 ? 'it' : 'them') + ' will be deleted too.' : '')
-      + '\n\nTheir audio and stems go with them. This cannot be undone.',
-    confirmText: 'Delete',
+    title: tn(ids.length, 'Delete {n} take', 'Delete {n} takes'),
+    message: tn(ids.length, 'Delete {n} take?\n\n{shown}{more}{inside}\n\nIts audio and stems go with it. This cannot be undone.', 'Delete {n} takes?\n\n{shown}{more}{inside}\n\nTheir audio and stems go with them. This cannot be undone.', { shown: shown, more: more, inside: within ? '\n\n' + (ids.length === 1 ? tn(within, 'The {n} take inside it will be deleted too.', 'The {n} takes inside it will be deleted too.') : tn(within, 'The {n} take inside them will be deleted too.', 'The {n} takes inside them will be deleted too.')) : '' }),
+    confirmText: t('Delete'),
     danger: true
   })) {
     return;
@@ -12088,18 +12038,18 @@ async function bulkDelete() {
   }
   var done = 0;
   for (var i = 0; i < ids.length; i++) {
-    statusLine('Deleting ' + (done + 1) + ' of ' + ids.length + '…');
+    statusLine(t('Deleting {value} of {idsCount}…', { value: done + 1, idsCount: ids.length }));
     try {
       await api('/api/takes/' + ids[i], { method: 'DELETE' });
       done += 1;
     } catch (err) {
-      statusLine('Could not delete ' + (takeById(ids[i]) ? takeById(ids[i]).title : ids[i]) + ': ' + err.message, 'bad');
+      statusLine(t('Could not delete {value}: {message}', { value: takeById(ids[i]) ? takeById(ids[i]).title : ids[i], message: err.message }), 'bad');
       break;
     }
   }
   clearPicked();
   loadTakes();
-  statusLine('Deleted ' + done + ' take' + (done === 1 ? '' : 's') + '.', 'good');
+  statusLine(tn(done, 'Deleted {n} take.', 'Deleted {n} takes.'), 'good');
 }
 
 /* ------------------------------------------------------------- folding the takes ---
@@ -12139,7 +12089,7 @@ function paintFoldAll() {
   var folded = foldedView();
   button.classList.toggle('active', folded);
   button.setAttribute('aria-pressed', folded ? 'true' : 'false');
-  button.title = folded ? 'Open every take again' : 'Fold every take down to its head line and its icons';
+  button.title = folded ? t('Open every take again') : t('Fold every take down to its head line and its icons');
 }
 
 function paintTakes() {
@@ -12150,18 +12100,17 @@ function paintTakes() {
   paintEdTakeTools();
   $('empty').style.display = list.length ? 'none' : 'block';
   var others = State.spaces.some(function (space) { return space.id !== State.spaceId && space.takes; });
-  var kindWords = (State.kinds || []).map(function (kind) { return kind === 'instrumental' ? 'instrumental' : kind; }).join(' or ');
+  var kindWords = kindWordsOf(State.kinds || []);
   $('empty').textContent = State.kinds && State.kinds.length && !State.search
-    ? 'No ' + (State.filter === 'favourite' ? 'starred ' : '') + kindWords + ' takes in this space.'
+    ? t('No {value}{kindWords} takes in this space.', { value: State.filter === 'favourite' ? t('starred') + ' ' : '', kindWords: kindWords })
     : State.search
-    ? 'No ' + (State.filter === 'favourite' ? 'starred ' : '') + 'takes match \u201c' + State.search + '\u201d' +
-      (searchingEverywhere() ? ' in any space.' : ' in this space.')
-    : State.filter === 'favourite' ? 'No starred takes in this space.'
-    : others ? 'This space is empty. Create a take while it is on show, or move takes here with Move.'
-    : 'Nothing yet. Load a recording, write some lyrics, and press create.';
+    ? t('No {value}takes match “{search}”{value2}', { value: State.filter === 'favourite' ? t('starred') + ' ' : '', search: State.search, value2: searchingEverywhere() ? ' ' + t('in any space.') : ' ' + t('in this space.') })
+    : State.filter === 'favourite' ? t('No starred takes in this space.')
+    : others ? t('This space is empty. Create a take while it is on show, or move takes here with Move.')
+    : t('Nothing yet. Load a recording, write some lyrics, and press create.');
   var more = State.takesTotal - State.listed.length;
   $('takes-more').classList.toggle('hidden', more <= 0);
-  $('takes-more').textContent = 'Show ' + Math.min(more, 300) + ' more of ' + more + ' older takes';
+  $('takes-more').textContent = t('Show {more} more of {more2} older takes', { more: Math.min(more, 300), more2: more });
   var open = insideOpen();
   // The take that is playing, when it is one kept inside another: its card is only on show while that
   // take's panel is open, so with the panel shut the take that holds it says something inside is playing.
@@ -12170,10 +12119,10 @@ function paintTakes() {
     var status = take.status;
     var heardInside = Boolean(playingIn) && playingIn === take.id && take.id !== open;
     var meta = [];
-    if (take.space_id && take.space_id !== State.spaceId) { meta.push('In ' + spaceName(take.space_id)); }
+    if (take.space_id && take.space_id !== State.spaceId) { meta.push(t('In {spaceName}', { spaceName: spaceName(take.space_id) })); }
     // Found by a search, a take inside another says which: in its own panel that is plain to see.
-    if (take.parent_id && State.search) { meta.push('Inside ' + (take.parent_title || 'another take')); }
-    var kindWord = take.kind === 'song' ? 'from a prompt' : (take.kind === 'instrumental' ? 'instrumental' : 'cover');
+    if (take.parent_id && State.search) { meta.push(t('Inside {value}', { value: take.parent_title || t('another take') })); }
+    var kindWord = take.kind === 'song' ? t('from a prompt') : (take.kind === 'instrumental' ? t('instrumental') : t('cover'));
     meta.push(kindWord);
     // The same three things in short, for a folded card: what it is, how long, how old.
     var shortMeta = [kindWord];
@@ -12184,9 +12133,9 @@ function paintTakes() {
     // can be compared at a glance. A cover's plan is its recording, so Harmony and
     // Plan are only for takes whose plan was written.
     var written = take.kind === 'song' || take.kind === 'instrumental';
-    if (written) { meta.push('Harmony: ' + (HARMONY_WORDS[take.harmony || 0] || HARMONY_WORDS[0]).toLowerCase()); }
-    meta.push('Interpretation: ' + (INTERPRETATIONS[take.interpretation] || INTERPRETATIONS.standard).name.toLowerCase());
-    if (written) { meta.push('Plan: ' + (take.variety || 'normal')); }
+    if (written) { meta.push(t('Harmony: {toLowerCase}', { toLowerCase: (HARMONY_WORDS[take.harmony || 0] || HARMONY_WORDS[0]).toLowerCase() })); }
+    meta.push(t('Interpretation: {name}', { name: (INTERPRETATIONS[take.interpretation] || INTERPRETATIONS.standard).name.toLowerCase() }));
+    if (written) { meta.push(t('Plan: {value}', { value: take.variety || 'normal' })); }
     if (take.style_lora) {
       var kind = loraKind(take.style_lora);
       var clip = Number(take.style_lora_clip != null ? take.style_lora_clip : 1).toFixed(2);
@@ -12194,123 +12143,120 @@ function paintTakes() {
       var str = (kind === 'planner') ? ' (' + clip + ')'
               : (kind === 'decoder') ? ' (' + model + ')'
               : ' (' + clip + '/' + model + ')';
-      meta.push('Style: ' + loraLabel(take.style_lora) + str);
+      meta.push(t('Style: {loraLabel}{str}', { loraLabel: loraLabel(take.style_lora), str: str }));
     }
     if (take.realaudio) { meta.push('realaudio'); }
     meta.push('seed ' + take.seed);
     if (take.sound_seed) { meta.push('voice ' + take.sound_seed); }
-    if (take.mode === 'off') { meta.push('no score'); }
+    if (take.mode === 'off') { meta.push(t('no score')); }
     // Which engine rendered it, where the app recorded one (renders from 0.0.53 on).
-    if (take.engine) { meta.push('Engine: ' + ({ comfyui: 'ComfyUI', yue2cpp: 'yue2.cpp' }[take.engine] || take.engine)); }
+    if (take.engine) { meta.push(t('Engine: {value}', { value: { comfyui: 'ComfyUI', yue2cpp: 'yue2.cpp' }[take.engine] || take.engine })); }
     meta.push(age(take.created_at));
     shortMeta.push(age(take.created_at));
     var live = '';
     if (status === 'running' && take.live) {
-      live = '<div class="take-meta">' + esc(take.live.label || 'working') + ' \u00b7 ' + Math.round((take.live.progress || 0) * 100) + '%</div>';
+      live = '<div class="take-meta">' + esc(tr(take.live.label) || t('working')) + ' \u00b7 ' + Math.round((take.live.progress || 0) * 100) + '%</div>';
     } else if (status === 'failed') {
-      live = '<div class="take-status failed" title="' + esc(take.error || 'failed') + '">' + esc(take.error || 'failed') + '</div>';
+      live = '<div class="take-status failed" title="' + esc(tr(take.error) || t('failed')) + '">' + esc(tr(take.error) || t('failed')) + '</div>';
     } else if (status === 'planned') {
       // An instrumental whose plan holds a vocal line is flagged before it is
       // rendered, so the warning arrives while it still saves you something.
       live = take.error
-        ? '<button class="take-status sung" data-act="render" data-id="' + take.id + '">' + esc(take.error) + '</button>'
-        : '<div class="take-status ready">plan ready</div>';
+        ? '<button class="take-status sung" data-act="render" data-id="' + take.id + '">' + esc(tr(take.error)) + '</button>'
+        : '<div class="take-status ready">' + t('plan ready') + '</div>';
     } else if (status !== 'done') {
-      live = '<div class="take-meta">' + esc(status === 'queued' ? 'waiting for the engine' : status) + '</div>';
+      live = '<div class="take-meta">' + esc(status === 'queued' ? t('waiting for the engine') : status) + '</div>';
     } else if (State.normalising[take.id]) {
       // Takes a few seconds, and the cards are redrawn meanwhile, so the state is
       // kept here rather than on the button that was clicked.
-      live = '<div class="take-status working">Normalising\u2026</div>';
+      live = '<div class="take-status working">' + t('Normalising…') + '</div>';
     } else if (weakRender(take) && !(take.normalised && take.weak_dismissed)) {
       // A render that loses its footing comes out quiet from end to end, and
       // sounds thin or distorted. Another seed usually fixes it.
       // Normalising raises the level and nothing else, so a take that was quiet as
       // rendered keeps saying so, and a listen tells a good quiet take from a bad one.
       live = take.normalised
-        ? '<div class="take-status weak with-x" title="Came out at ' + take.loudness.toFixed(1) + ' dB as rendered, far below the usual level, and has been normalised. Takes like this often sound thin or distorted, and some were only quiet.">' +
-          '<button class="status-undo" data-act="unnormalise" data-id="' + take.id + '" title="' + normalisedTo(take) + ' Click to undo it.">' +
-          'Weak render, normalised: try another seed if it sounds thin</button>' +
-          '<button class="status-x" data-act="dismiss-weak" data-id="' + take.id + '" title="It sounds fine: dismiss" aria-label="Dismiss">\u00d7</button></div>'
-        : '<button class="take-status weak" data-act="normalise"' + ' data-id="' + take.id + '" title="Came out at ' + take.loudness.toFixed(1) +
-          ' dB, far below the usual level. Takes like this often sound thin or distorted, and some are only quiet. If it still sounds wrong once normalised, try another seed.">Weak render: click here to normalise, or try another seed</button>';
+        ? '<div class="take-status weak with-x" title="' + t('Came out at {loudness} dB as rendered, far below the usual level, and has been normalised. Takes like this often sound thin or distorted, and some were only quiet.', { loudness: take.loudness.toFixed(1) }) + '">' +
+          '<button class="status-undo" data-act="unnormalise" data-id="' + take.id + '" title="' + t('{normalisedTo} Click to undo it.', { normalisedTo: normalisedTo(take) }) + '">' +
+          t('Weak render, normalised: try another seed if it sounds thin') + '</button>' +
+          '<button class="status-x" data-act="dismiss-weak" data-id="' + take.id + '" title="' + t('It sounds fine: dismiss') + '" aria-label="' + t('Dismiss') + '">×</button></div>'
+        : '<button class="take-status weak" data-act="normalise" data-id="' + take.id + '" title="' + t('Came out at {loudness} dB, far below the usual level. Takes like this often sound thin or distorted, and some are only quiet. If it still sounds wrong once normalised, try another seed.', { loudness: take.loudness.toFixed(1) }) + '">' + t('Weak render: click here to normalise, or try another seed') + '</button>';
     } else if (take.stopped_early && !take.note_dismissed) {
       // The model wrote the song's end before its score's last section, twice: the app
       // had already tried once more with a new seed.
-      live = '<div class="take-status weak with-x" title="The render ended at ' + clock(take.duration || 0) +
-        ', before the last section of its score began, and did again when the app tried once more with a new seed. Render again for another try.">' +
-        '<span>Stopped before the last section: render again for the full song</span>' +
-        '<button class="status-x" data-act="dismiss-note" data-id="' + take.id + '" title="The end is fine: dismiss" aria-label="Dismiss">\u00d7</button></div>';
+      live = '<div class="take-status weak with-x" title="' + t('The render ended at {time}, before the last section of its score began, and did again when the app tried once more with a new seed. Render again for another try.', { time: clock(take.duration || 0) }) + '">' +
+        '<span>' + t('Stopped before the last section: render again for the full song') + '</span>' +
+        '<button class="status-x" data-act="dismiss-note" data-id="' + take.id + '" title="' + t('The end is fine: dismiss') + '" aria-label="' + t('Dismiss') + '">×</button></div>';
     } else if (take.ran_to_cap && !take.note_dismissed) {
       // The model never wrote the song's end, so it ran on until the Length cap, and was faded out there.
-      live = '<div class="take-status weak with-x" title="The score ends well before the ' + Math.round(take.max_duration) +
-        ' s cap, but the music kept going until the cap, where it was faded out. The end may loop or wander. Another seed usually ends properly.">' +
-        '<span>Ran to the length cap: may not end cleanly</span>' +
-        '<button class="status-x" data-act="dismiss-note" data-id="' + take.id + '" title="The end is fine: dismiss" aria-label="Dismiss">\u00d7</button></div>';
+      live = '<div class="take-status weak with-x" title="' + t('The score ends well before the {max_duration} s cap, but the music kept going until the cap, where it was faded out. The end may loop or wander. Another seed usually ends properly.', { max_duration: Math.round(take.max_duration) }) + '">' +
+        '<span>' + t('Ran to the length cap: may not end cleanly') + '</span>' +
+        '<button class="status-x" data-act="dismiss-note" data-id="' + take.id + '" title="' + t('The end is fine: dismiss') + '" aria-label="' + t('Dismiss') + '">×</button></div>';
     } else if (take.normalised) {
       live = '<button class="take-status normalised" data-act="unnormalise" data-id="' + take.id +
-        '" title="' + normalisedTo(take) + ' Click to go back to the level it was rendered at (N).">Normalised</button>';
+        '" title="' + t('{normalisedTo} Click to go back to the level it was rendered at (N).', { normalisedTo: normalisedTo(take) }) + '">' + t('Normalised') + '</button>';
     }
     var id = ' data-id="' + take.id + '"';
     var actions = '';
     if (status === 'queued' || status === 'running') {
-      actions += tile('del', 'stop', 'Cancel', 'data-act="cancel"' + id,
-                      'Cancel \u2014 Stop this job and remove from queue');
+      actions += tile('del', 'stop', t('Cancel'), 'data-act="cancel"' + id,
+                      t('Cancel — Stop this job and remove from queue'));
     }
     if (status === 'planned') {
-      actions += tile('go', 'render', 'Render', 'data-act="render"' + id,
-                      'Render \u2014 Synthesize audio for this take');
-      actions += tile('again', 'again', 'Replan', 'data-act="replan"' + id,
-                      'Replan \u2014 Generate a new song plan from prompt');
+      actions += tile('go', 'render', t('Render'), 'data-act="render"' + id,
+                      t('Render — Synthesize audio for this take'));
+      actions += tile('again', 'again', t('Replan'), 'data-act="replan"' + id,
+                      t('Replan — Generate a new song plan from prompt'));
     }
     if (status === 'failed') {
       // A failure leaves a dead end unless it can be retried. A take with a score
       // failed while rendering; one without failed while planning.
       if (take.abc && take.abc.length > 50) {
-        actions += tile('go', 'render', 'Render', 'data-act="render"' + id,
-                        'Render \u2014 Retry synthesizing audio for this take');
+        actions += tile('go', 'render', t('Render'), 'data-act="render"' + id,
+                        t('Render — Retry synthesizing audio for this take'));
       } else {
-        actions += tile('again', 'again', 'Replan', 'data-act="replan"' + id,
-                        'Replan \u2014 Try planning again from prompt');
+        actions += tile('again', 'again', t('Replan'), 'data-act="replan"' + id,
+                        t('Replan — Try planning again from prompt'));
       }
       // A restarted job leaves a take that often still holds its audio or its score.
       // Clear puts it back to whatever it reached, without another run.  A take that
       // failed while planning holds neither, so there is nothing to go back to: the
       // server refuses, and the button would only look broken.
       if (take.has_audio || (take.abc && take.abc.trim())) {
-        actions += tile('go', 'check', 'Clear', 'data-act="clear"' + id,
-                        'Clear \u2014 Reset failed state and restore take');
+        actions += tile('go', 'check', t('Clear'), 'data-act="clear"' + id,
+                        t('Clear — Reset failed state and restore take'));
       }
       // Again comes from the branches below when there is audio, and from here when
       // there is not, so a failed take never shows it twice.
       if (!take.has_audio) {
-        actions += tile('again', 'again', 'Again', 'data-act="again"' + id,
-                        'Again \u2014 Re-plan this song with a fresh seed');
+        actions += tile('again', 'again', t('Again'), 'data-act="again"' + id,
+                        t('Again — Re-plan this song with a fresh seed'));
       }
     }
     if (take.abc && take.abc.length > 50) {
-      actions += tile('score', 'score', 'Score', 'data-act="open"' + id,
-                      'Score \u2014 View and edit the ABC score notation and piano roll');
+      actions += tile('score', 'score', t('Score'), 'data-act="open"' + id,
+                      t('Score — View and edit the ABC score notation and piano roll'));
     }
     if (take.has_audio) {
       // Named carefully: `live` above already holds the status line for this card,
       // and var is function scoped, so reusing the name printed true or false there.
       var isLive = State.playing === take.id;
       actions += tile('play' + (isLive ? ' playing' : '') + (heardInside ? ' inside-playing' : ''), isLive ? 'pause' : 'play',
-                      isLive ? 'Pause' : 'Play', 'data-act="play"' + id,
-                      heardInside ? 'A take inside this one is playing: \u201c' + State.loadedTake.title + '\u201d. Open Inside to see it, or click to play this take instead'
-                        : (isLive ? 'Pause \u2014 Pause audio playback' : 'Play \u2014 Listen to this take (Spacebar)'));
+                      isLive ? t('Pause') : t('Play'), 'data-act="play"' + id,
+                      heardInside ? t('A take inside this one is playing: “{title}”. Open Inside to see it, or click to play this take instead', { title: State.loadedTake.title })
+                        : (isLive ? t('Pause — Pause audio playback') : t('Play — Listen to this take (Spacebar)')));
       actions += downloadTile(take);
-      actions += tile('stems', 'stems', 'Stems', 'data-act="stems"' + id,
-                      'Stems \u2014 Separate vocals, instruments, drums, and bass tracks');
-      actions += tile('again', 'again', 'Again', 'data-act="again"' + id,
-                      'Again \u2014 Re-plan this song with a fresh seed');
-      actions += tile('playlist', 'playlist', 'Playlist', 'data-act="playlist"' + id,
-                      'Add to playlist (P)');
+      actions += tile('stems', 'stems', t('Stems'), 'data-act="stems"' + id,
+                      t('Stems — Separate vocals, instruments, drums, and bass tracks'));
+      actions += tile('again', 'again', t('Again'), 'data-act="again"' + id,
+                      t('Again — Re-plan this song with a fresh seed'));
+      actions += tile('playlist', 'playlist', t('Playlist'), 'data-act="playlist"' + id,
+                      t('Add to playlist (P)'));
     }
-    actions += tile('star' + (take.favourite ? ' on' : ''), 'star', 'Star', 'data-act="star"' + id,
-                    take.favourite ? 'Starred (S) \u2014 Click to remove from favourites' : 'Star (S) \u2014 Add to favourites');
-    actions += tile('del', 'trash', 'Delete', 'data-act="del"' + id,
-                    'Delete (D) \u2014 Remove this take permanently');
+    actions += tile('star' + (take.favourite ? ' on' : ''), 'star', t('Star'), 'data-act="star"' + id,
+                    take.favourite ? t('Starred (S) — Click to remove from favourites') : t('Star (S) — Add to favourites'));
+    actions += tile('del', 'trash', t('Delete'), 'data-act="del"' + id,
+                    t('Delete (D) — Remove this take permanently'));
     var classes = 'take';
     if (State.picked[take.id]) { classes += ' picked'; }
     if (State.playing === take.id) { classes += ' playing'; }
@@ -12321,7 +12267,7 @@ function paintTakes() {
     var holds = !take.parent_id && !State.search && heldBy(take) > 0;
     var insideTile = holds
       ? '<button class="take-move inside lit' + (take.id === open ? ' active' : '') + (heardInside && !take.has_audio ? ' inside-playing' : '') +
-        '" data-act="inside"' + id + ' title="Inside \u2014 ' + esc(insideWords(take)) + '" aria-label="Takes inside this one"' +
+        '" data-act="inside"' + id + ' title="' + t('Inside — {insideWords}', { insideWords: esc(insideWords(take)) }) + '" aria-label="' + t('Takes inside this one') + '"' +
         ' aria-expanded="' + (take.id === open ? 'true' : 'false') + '">' + icon('inside') + '</button>'
       : '';
     // The rack's button is lit when the rack changes how this take sounds.
@@ -12333,39 +12279,36 @@ function paintTakes() {
       classes += ' editing ' + ({ song: 'tone-song', instrumental: 'tone-inst' }[take.kind] || 'tone-cover');
     }
     var coverTip = take.kind === 'song'
-      ? 'Song \u2014 written from a prompt'
+      ? t('Song — written from a prompt')
       : (take.kind === 'instrumental'
-          ? 'Instrumental \u2014 created without vocal tracks'
-          : 'Cover \u2014 reimagined from a source recording');
+          ? t('Instrumental — created without vocal tracks')
+          : t('Cover — reimagined from a source recording'));
     // The small buttons for what is done now and then.  They sit on the status line, to the right, and not
     // beside the title, which on a narrow card they left room for a letter or two of.
     var corner = '<div class="take-corner">' +
           (take.abc && take.abc.length > 50 && status !== 'queued' && status !== 'running'
-            ? '<button class="take-move" data-act="revoice"' + id + ' title="Sing again \u2014 The same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close"' +
-              ' aria-label="Sing again">' + icon('voice') + '</button>' +
-              // A take inside another holds none of its own, so these two are for takes of their own.
+            ? '<button class="take-move" data-act="revoice"' + id + ' title="' + t('Sing again — The same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close') + '"' +
+              ' aria-label="' + t('Sing again') + '">' + icon('voice') + '</button>' +
               (take.parent_id ? '' :
-              '<button class="take-move" data-act="variations"' + id + ' title="Variations (V) \u2014 Render this score in other interpretations. They are kept inside this take"' +
-              ' aria-label="Variations">' + icon('variations') + '</button>' +
-              '<button class="take-move" data-act="tries"' + id + ' title="Try more (T) \u2014 The same score and words again with new seeds, or at other Planner strengths. They are kept inside this take"' +
-              ' aria-label="Try more">' + icon('dice') + '</button>')
+              '<button class="take-move" data-act="variations"' + id + ' title="' + t('Variations (V) — Render this score in other interpretations. They are kept inside this take') + '"' +
+              ' aria-label="' + t('Variations') + '">' + icon('variations') + '</button>' +
+              '<button class="take-move" data-act="tries"' + id + ' title="' + t('Try more (T) — The same score and words again with new seeds, or at other Planner strengths. They are kept inside this take') + '"' +
+              ' aria-label="' + t('Try more') + '">' + icon('dice') + '</button>')
             : '') +
           insideTile +
           (take.parent_id
-            ? '<button class="take-move" data-act="promote"' + id + ' title="Take out \u2014 Make this a take of its own, in the space\u2019s list"' +
-              ' aria-label="Take out">' + icon('out') + '</button>'
+            ? '<button class="take-move" data-act="promote"' + id + ' title="' + t('Take out — Make this a take of its own, in the space’s list') + '"' +
+              ' aria-label="' + t('Take out') + '">' + icon('out') + '</button>'
             : '') +
-          // Once normalised it has nothing left to offer, so it goes.
           (status === 'done' && take.has_audio && !take.normalised && !State.normalising[take.id]
-            ? '<button class="take-move" data-act="normalise"' + id + ' title="Normalise (N) \u2014 Bring this take to the usual loudness. The file as rendered is kept"' +
-              ' aria-label="Normalise">' + icon('level') + '</button>'
+            ? '<button class="take-move" data-act="normalise"' + id + ' title="' + t('Normalise (N) — Bring this take to the usual loudness. The file as rendered is kept') + '"' +
+              ' aria-label="' + t('Normalise') + '">' + icon('level') + '</button>'
             : '') +
           '<button class="take-move' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + (mastered ? ' mastered' : '') +
-            '" data-act="mastering"' + id + ' title="Mastering Rack (M) \u2014 Vintage EQ, Compressor, Limiter' + (mastered ? '. This take is mastered' : '') + '" aria-label="Mastering Rack">' +
+            '" data-act="mastering"' + id + ' title="' + t('Mastering Rack (M) — Vintage EQ, Compressor, Limiter{value}', { value: mastered ? t('. This take is mastered') : '' }) + '" aria-label="' + t('Mastering Rack') + '">' +
             icon('mastering') + '</button>' +
-          // A take inside another goes where that one goes.
           (take.parent_id ? '' :
-          '<button class="take-move" data-act="move"' + id + ' title="Move \u2014 Move to another space' + (heldBy(take) ? ', with the takes inside it' : '') + '" aria-label="Move">' +
+          '<button class="take-move" data-act="move"' + id + ' title="' + t('Move — Move to another space{value}', { value: heldBy(take) ? t(', with the takes inside it') : '' }) + '" aria-label="' + t('Move') + '">' +
             icon('move') + '</button>') +
         '</div>';
     // The take's picture, made while it rendered, lies faintly behind the card.
@@ -12377,7 +12320,7 @@ function paintTakes() {
     var hasArt = Boolean(take.art);
     var coverCls = 'cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[take.kind] || 'grad-cover') + (hasArt ? ' has-art' : '');
     var coverTipText = hasArt
-      ? (take.title ? esc(take.title) + ' \u2014 ' : '') + 'Album cover (hover or click to view)'
+      ? t('{value}Album cover (hover or click to view)', { value: take.title ? esc(take.title) + ' \u2014 ' : '' })
       : esc(coverTip);
     var coverAttr = hasArt
       ? ' data-act="cover-pic" data-id="' + take.id + '" data-art="' + esc(take.art) + '" data-title="' + esc(take.title) + '" role="button" tabindex="0" title="' + coverTipText + '" aria-label="' + coverTipText + '"'
@@ -12387,12 +12330,12 @@ function paintTakes() {
       '<div class="take-head">' +
         '<div class="take-icon">' +
           '<div class="' + coverCls + '"' + coverAttr + '>' + initials(take.title) + '</div>' +
-          '<label class="pick" title="Select this take for bulk actions or batch deleting">' +
+          '<label class="pick" title="' + t('Select this take for bulk actions or batch deleting') + '">' +
             '<input type="checkbox" data-act="pick"' + id + (State.picked[take.id] ? ' checked' : '') + '>' +
           '</label>' +
         '</div>' +
         '<div class="take-headtext">' +
-          '<div class="take-title" data-act="rename" data-id="' + take.id + '" title="' + esc(take.title) + ' \u2014 double-click to rename">' + esc(take.title) + '</div>' +
+          '<div class="take-title" data-act="rename" data-id="' + take.id + '" title="' + t('{title} — double-click to rename', { title: esc(take.title) }) + '">' + esc(take.title) + '</div>' +
           '<div class="take-meta" title="' + esc(meta.join(' \u00b7 ')) + '">' + esc(meta.join(' \u00b7 ')) + '</div>' +
           '<div class="take-meta take-meta-short" title="' + esc(meta.join(' \u00b7 ')) + '">' + esc(shortMeta.join(' \u00b7 ')) + '</div>' +
         '</div>' +
@@ -12446,7 +12389,7 @@ function keepBeat() {
 
 function normalisedTo(take) {
   var level = take.normalised_to == null ? -14 : take.normalised_to;
-  return 'Normalised to ' + (level < 0 ? '\u2212' : '') + Math.abs(level) + ' LUFS.';
+  return t('Normalised to {value}{level} LUFS.', { value: level < 0 ? '\u2212' : '', level: Math.abs(level) });
 }
 
 function startRenameTake(titleEl, takeId) {
@@ -12460,7 +12403,7 @@ function startRenameTake(titleEl, takeId) {
   input.className = 'take-title-input';
   input.value = currentTitle;
   input.maxLength = 200;
-  input.title = 'Press Enter to save, Esc to cancel';
+  input.title = t('Press Enter to save, Esc to cancel');
 
   titleEl.textContent = '';
   titleEl.appendChild(input);
@@ -12496,14 +12439,14 @@ function startRenameTake(titleEl, takeId) {
             cover.textContent = initials(updated.title);
             if (cover.dataset.art) {
               cover.dataset.title = updated.title;
-              cover.title = updated.title + ' \u2014 Album cover (hover or click to view)';
-              cover.setAttribute('aria-label', updated.title + ' \u2014 Album cover');
+              cover.title = t('{title} — Album cover (hover or click to view)', { title: updated.title });
+              cover.setAttribute('aria-label', t('{title} — Album cover', { title: updated.title }));
             }
           }
         }
-        statusLine('Renamed take to \u201c' + updated.title + '\u201d.', 'good');
+        statusLine(t('Renamed take to “{title}”.', { title: updated.title }), 'good');
       } catch (err) {
-        statusLine('Could not rename take: ' + err.message, 'bad');
+        statusLine(t('Could not rename take: {message}', { message: err.message }), 'bad');
       }
     }
     titleEl.textContent = take.title;
@@ -12609,7 +12552,7 @@ function playTake(id) {
   }
   npTitle(take.title, id);
   var position = takePosition(id);
-  $('np-meta').textContent = (position ? 'take ' + position.index + ' of ' + position.total + ' \u00b7 ' : '') +
+  $('np-meta').textContent = (position ? t('take {index} of {total} ·', { index: position.index, total: position.total }) + ' ' : '') +
     (take.duration ? secs(take.duration) : take.style.slice(0, 60));
   paintNpCover(take);
   updateMediaSession(take);
@@ -12689,7 +12632,7 @@ function activateTakeRecording(take) {
     }
     npTitle(take.title, take.id);
     var position = takePosition(take.id);
-    $('np-meta').textContent = (position ? 'take ' + position.index + ' of ' + position.total + ' \u00b7 ' : '') +
+    $('np-meta').textContent = (position ? t('take {index} of {total} ·', { index: position.index, total: position.total }) + ' ' : '') +
       (take.duration ? secs(take.duration) : (take.style || '').slice(0, 60));
     paintNpCover(take);
     $('t-now').textContent = secs(audio.currentTime || 0);
@@ -12736,7 +12679,7 @@ function activateTakeRecording(take) {
         loadWave(url, peaksUrl);
       }
       npTitle(source.title);
-      $('np-meta').textContent = isMidi ? ('MIDI Recording (' + sfLabel + ')') : 'the recording being covered';
+      $('np-meta').textContent = isMidi ? (t('MIDI Recording ({sfLabel})', { sfLabel: sfLabel })) : t('the recording being covered');
       $('np-cover').className = 'np-cover grad-cover';
       updateMediaSession({ title: source.title, style: isMidi ? ('MIDI Recording (' + sfLabel + ')') : 'the recording being covered' });
       paintTransport();
@@ -12758,8 +12701,8 @@ function activateTakeRecording(take) {
   wave.rmss = null;
   wave.ratio = 0;
   drawWave();
-  npTitle(take.title || 'Untitled take', take.id);
-  $('np-meta').textContent = take.status === 'planned' ? 'plan ready (no audio yet)' : (take.status ? take.status + ' (no audio yet)' : 'no audio yet');
+  npTitle(take.title || t('Untitled take'), take.id);
+  $('np-meta').textContent = take.status === 'planned' ? t('plan ready (no audio yet)') : (take.status ? t('{status} (no audio yet)', { status: take.status }) : t('no audio yet'));
   paintNpCover(take);
   $('t-now').textContent = '0:00';
   $('t-total').textContent = '--:--';
@@ -12844,7 +12787,7 @@ function paintTransport() {
   var playSvg = playing
     ? '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 5h2.6v14H9zM13.4 5H16v14h-2.6z"/></svg>'
     : '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.4v13.2L19 12z"/></svg>';
-  var playTitle = playing ? 'Pause' : 'Play';
+  var playTitle = playing ? t('Pause') : t('Play');
   if (playBtn) {
     if (playBtn.dataset.state !== playState) {
       playBtn.dataset.state = playState;
@@ -12879,29 +12822,29 @@ function edTakeTools(take) {
   };
   var html = '';
   if (take.abc && take.abc.length > 50 && status !== 'queued' && status !== 'running') {
-    html += tool('revoice', 'voice', 'Sing again', 'Sing again \u2014 The same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close');
+    html += tool('revoice', 'voice', t('Sing again'), t('Sing again — The same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close'));
     if (!take.parent_id) {
-      html += tool('variations', 'variations', 'Variations', 'Variations \u2014 Render this score in other interpretations. They are kept inside this take');
-      html += tool('tries', 'dice', 'Try more', 'Try more \u2014 The same score and words again with new seeds, or at other Planner strengths. They are kept inside this take');
+      html += tool('variations', 'variations', t('Variations'), t('Variations — Render this score in other interpretations. They are kept inside this take'));
+      html += tool('tries', 'dice', t('Try more'), t('Try more — The same score and words again with new seeds, or at other Planner strengths. They are kept inside this take'));
     }
   }
   if (!take.parent_id && heldBy(take) > 0) {
-    html += tool('inside', 'inside', 'Takes inside this one', 'Inside \u2014 ' + insideWords(take) + '. Closes this window and opens them under the take', 'lit');
+    html += tool('inside', 'inside', t('Takes inside this one'), t('Inside — {insideWords}. Closes this window and opens them under the take', { insideWords: insideWords(take) }), 'lit');
   }
   if (take.parent_id) {
-    html += tool('promote', 'out', 'Take out', 'Take out \u2014 Make this a take of its own, in the space\u2019s list');
+    html += tool('promote', 'out', t('Take out'), t('Take out — Make this a take of its own, in the space’s list'));
   }
   if (status === 'done' && take.has_audio) {
     if (State.normalising[take.id]) {
-      html += tool('normalise', 'level', 'Normalising', 'Normalising\u2026', 'busy', true);
+      html += tool('normalise', 'level', t('Normalising'), t('Normalising…'), 'busy', true);
     } else if (take.normalised) {
-      html += tool('unnormalise', 'level', 'Normalised', normalisedTo(take) + ' Click to go back to the level it was rendered at', 'on');
+      html += tool('unnormalise', 'level', t('Normalised'), t('{normalisedTo} Click to go back to the level it was rendered at', { normalisedTo: normalisedTo(take) }), 'on');
     } else {
-      html += tool('normalise', 'level', 'Normalise', 'Normalise \u2014 Bring this take to the usual loudness. The file as rendered is kept');
+      html += tool('normalise', 'level', t('Normalise'), t('Normalise — Bring this take to the usual loudness. The file as rendered is kept'));
     }
   }
   if (!take.parent_id) {
-    html += tool('move', 'move', 'Move', 'Move \u2014 Move to another space' + (heldBy(take) ? ', with the takes inside it' : ''));
+    html += tool('move', 'move', t('Move'), t('Move — Move to another space{value}', { value: heldBy(take) ? t(', with the takes inside it') : '' }));
   }
   return html;
 }
@@ -12934,7 +12877,7 @@ function takeKey(event) {
   }
   if (!take) {
     if (State.activeView !== 'playlists') {
-      statusLine('Choose a take first: click its card.', 'bad');
+      statusLine(t('Choose a take first: click its card.'), 'bad');
     }
     return true;
   }
@@ -12942,7 +12885,7 @@ function takeKey(event) {
   var says = function (why) { statusLine(why, 'bad'); return true; };
   if (key === 'm') {
     if (window.Rack && window.Rack.isOpen && String(window.Rack.currentTakeId) === String(take.id)) { window.Rack.toggle(false); return true; }
-    runTakeAction('mastering', take.id, 'open the mastering rack');
+    runTakeAction('mastering', take.id, t('open the mastering rack'));
   } else if (key === 'e') {
     selectTake(take);
     openEditor(take.status === 'planned' ? 'score' : 'song');
@@ -12951,17 +12894,17 @@ function takeKey(event) {
   } else if (key === 's') {
     runTakeAction('star', take.id, take.favourite ? 'unstar' : 'star');
   } else if (key === 'p') {
-    runTakeAction('playlist', take.id, 'add to playlist');
+    runTakeAction('playlist', take.id, t('add to playlist'));
   } else if (key === 'd') {
-    runTakeAction('del', take.id, 'delete the take');     // asks first, as the card's bin does
+    runTakeAction('del', take.id, t('delete the take'));     // asks first, as the card's bin does
   } else if (key === 'n') {
-    if (take.status !== 'done' || !take.has_audio) { return says('Only a finished take can be normalised.'); }
+    if (take.status !== 'done' || !take.has_audio) { return says(t('Only a finished take can be normalised.')); }
     if (State.normalising[take.id]) { return true; }
-    runTakeAction(take.normalised ? 'unnormalise' : 'normalise', take.id, take.normalised ? 'undo the normalise' : 'normalise');
+    runTakeAction(take.normalised ? 'unnormalise' : 'normalise', take.id, take.normalised ? t('undo the normalise') : 'normalise');
   } else if (key === 'v' || key === 't') {
-    var what = key === 'v' ? 'Variations' : 'Try more';
-    if (!scored) { return says(what + ' needs a take with a score, and not one being made.'); }
-    if (take.parent_id) { return says(what + ' is for a take of its own: this one is inside another.'); }
+    var what = key === 'v' ? t('Variations') : t('Try more');
+    if (!scored) { return says(t('{what} needs a take with a score, and not one being made.', { what: what })); }
+    if (take.parent_id) { return says(t('{what} is for a take of its own: this one is inside another.', { what: what })); }
     runTakeAction(key === 'v' ? 'variations' : 'tries', take.id, what);
   }
   return true;
@@ -12977,7 +12920,7 @@ function paintEdTakeTools() {
     box.id = 'ed-take-tools';
     box.className = 'ed-take-tools';
     box.setAttribute('role', 'toolbar');
-    box.setAttribute('aria-label', 'This take');
+    box.setAttribute('aria-label', t('This take'));
     picture.parentNode.insertBefore(box, picture);
   }
   var shown = editorOpen() ? editorTake() : null;
@@ -13001,14 +12944,14 @@ function paintEdMastering() {
   if (!show) { return; }
   var mastered = rack.hasActiveMastering(take.id);
   btn.classList.toggle('mastered', mastered);
-  btn.title = 'Mastering Rack' + (mastered ? '. This take is mastered' : '');
+  btn.title = t('Mastering Rack{value}', { value: mastered ? t('. This take is mastered') : '' });
 }
 
 /* ------------------------------------------------------------ a take's picture
    Made by itself while a take renders, where an image model is set up, and shown behind the take's card.  The
    editor's Picture button has the two things to do about it: make it again, or go back to the default background. */
-var ART_STATES = { queued: 'Waiting its turn\u2026', writing: 'Writing the description\u2026', drawing: 'Drawing\u2026',
-  cutting: 'Taking out the background\u2026' };
+var ART_STATES = { queued: t('Waiting its turn…'), writing: t('Writing the description…'), drawing: t('Drawing…'),
+  cutting: t('Taking out the background…') };
 
 function paintEdPicture() {
   var btn = $('ed-btn-picture');
@@ -13020,8 +12963,8 @@ function paintEdPicture() {
   btn.classList.toggle('has-art', Boolean(show && take.art));
   // An icon among the take's others since it lost its word: its tip says what it holds, as theirs do.
   btn.title = show && take.art
-    ? 'Picture \u2014 The take\u2019s picture, behind its card and this window: make a new one, or use the default background'
-    : 'Picture \u2014 None yet: make one for this take';
+    ? t('Picture — The take’s picture, behind its card and this window: make a new one, or use the default background')
+    : t('Picture — None yet: make one for this take');
   // A page from before the icon has the old button, with its word: it takes the icon's look.
   if (!btn.classList.contains('ed-tool')) {
     btn.classList.remove('ed-advanced-btn');
@@ -13058,17 +13001,17 @@ function ensureCoverPopup() {
     pop.id = 'cover-popup';
     pop.className = 'cover-popup hidden';
     pop.setAttribute('role', 'dialog');
-    pop.setAttribute('aria-label', 'Album cover preview');
+    pop.setAttribute('aria-label', t('Album cover preview'));
     pop.innerHTML =
       '<div class="cover-popup-card">' +
         '<div class="cover-popup-preview">' +
-          '<img class="cover-popup-img" alt="Album cover" />' +
+          '<img class="cover-popup-img" alt="' + t('Album cover') + '" />' +
         '</div>' +
         '<div class="cover-popup-meta">' +
           '<div class="cover-popup-title"></div>' +
-          '<div class="cover-popup-hint">Click for full view</div>' +
-          '<div class="cover-popup-none">No picture yet.</div>' +
-          '<button type="button" class="chip cover-popup-make">Make a new picture</button>' +
+          '<div class="cover-popup-hint">' + t('Click for full view') + '</div>' +
+          '<div class="cover-popup-none">' + t('No picture yet.') + '</div>' +
+          '<button type="button" class="chip cover-popup-make">' + t('Make a new picture') + '</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(pop);
@@ -13130,11 +13073,11 @@ function showCoverPopup(anchorEl, artSrc, title, pin) {
     if (img.src !== artSrc) {
       img.src = artSrc;
     }
-    img.alt = title ? title + ' album cover' : 'Album cover';
+    img.alt = title ? t('{title} album cover', { title: title }) : t('Album cover');
   }
   var titleEl = pop.querySelector('.cover-popup-title');
   if (titleEl) {
-    titleEl.textContent = title || 'Album cover';
+    titleEl.textContent = title || t('Album cover');
     titleEl.title = title || '';
   }
 
@@ -13196,7 +13139,7 @@ async function paintCoverMake(pop, takeId) {
   var note = pop.querySelector('.cover-popup-none');
   if (!make || !note) { return; }
   make.disabled = !State.canDraw;
-  note.textContent = 'No picture yet.';
+  note.textContent = t('No picture yet.');
   if (!takeId) { return; }
   var art;
   try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { return; }
@@ -13204,8 +13147,8 @@ async function paintCoverMake(pop, takeId) {
   var making = Boolean(ART_STATES[art.state]);
   make.disabled = making || !State.canDraw;
   note.textContent = making ? ART_STATES[art.state]
-    : art.state === 'failed' ? 'The last try failed: ' + (art.error || 'no reason given')
-    : art.plain ? 'This take has the default background.' : 'No picture yet.';
+    : art.state === 'failed' ? t('The last try failed: {value}', { value: tr(art.error) || t('no reason given') })
+    : art.plain ? t('This take has the default background.') : t('No picture yet.');
 }
 
 async function makeCoverPicture(pop) {
@@ -13234,14 +13177,14 @@ function showPicture(src, takeId) {
   view.id = 'picture-view';
   view.className = 'picture-view';
   view.setAttribute('role', 'dialog');
-  view.setAttribute('aria-label', 'The take\'s picture');
-  view.title = 'Click or press Escape to close';
+  view.setAttribute('aria-label', t('The take\'s picture'));
+  view.title = t('Click or press Escape to close');
 
   var frame = document.createElement('div');
   frame.className = 'picture-view-frame';
   var img = document.createElement('img');
   img.src = src;
-  img.alt = 'The take\'s picture';
+  img.alt = t('The take\'s picture');
   frame.appendChild(img);
 
   // The two picture actions the editor's menu offers, under the picture itself: a new one at the
@@ -13254,12 +13197,12 @@ function showPicture(src, takeId) {
     make.type = 'button';
     make.className = 'chip';
     make.dataset.pic = 'make';
-    make.textContent = 'Make a new picture';
+    make.textContent = t('Make a new picture');
     var plain = document.createElement('button');
     plain.type = 'button';
     plain.className = 'chip';
     plain.dataset.pic = 'plain';
-    plain.textContent = 'Use the default background';
+    plain.textContent = t('Use the default background');
     // What is happening while a new picture is made, between the two buttons.
     var note = document.createElement('span');
     note.className = 'picture-view-note';
@@ -13314,7 +13257,7 @@ function watchPictureView(takeId, art) {
   }
   // Done, one way or the other.
   if (state === 'failed') {
-    if (note) { note.textContent = 'The last try failed: ' + (art.error || 'no reason given'); note.classList.add('bad'); }
+    if (note) { note.textContent = t('The last try failed: {value}', { value: tr(art.error) || t('no reason given') }); note.classList.add('bad'); }
     if (make && plain) { paintPictureViewButtons(takeId, make, plain); }
     return;
   }
@@ -13399,14 +13342,14 @@ async function paintPictureMenu(takeId) {
   if (!menu) { return; }
   var making = Boolean(ART_STATES[art.state]);
   var take = takeById(takeId) || {};
-  var shown = take.art && !art.has ? 'Showing the picture of the take it is inside.' : '';
+  var shown = take.art && !art.has ? t('Showing the picture of the take it is inside.') : '';
   var note = making ? ART_STATES[art.state]
-    : art.state === 'failed' ? 'The last try failed: ' + (art.error || 'no reason given')
-    : art.plain ? 'This take has the default background.' : (art.has ? '' : (shown || 'No picture yet.'));
-  menu.innerHTML = (take.art ? '<img class="ed-picture-thumb" src="' + esc(take.art) + '" alt="The take\'s picture" title="Show the whole picture" role="button" tabindex="0">' : '') +
-    (note ? '<p class="ed-picture-note' + (art.state === 'failed' ? ' bad' : '') + '">' + esc(note) + '</p>' : '') +
-    '<button type="button" role="menuitem" data-pic="make"' + (making || !State.canDraw ? ' disabled' : '') + '>Make a new picture</button>' +
-    '<button type="button" role="menuitem" data-pic="plain"' + (making || art.plain ? ' disabled' : '') + '>Use the default background</button>';
+    : art.state === 'failed' ? t('The last try failed: {value}', { value: tr(art.error) || t('no reason given') })
+    : art.plain ? t('This take has the default background.') : (art.has ? '' : (shown || t('No picture yet.')));
+  menu.innerHTML = ((take.art ? '<img class="ed-picture-thumb" src="' + esc(take.art) + '" alt="' + t('The take\'s picture') + '" title="' + t('Show the whole picture') + '" role="button" tabindex="0">' : '') +
+    (note ? '<p class="ed-picture-note' + (art.state === 'failed' ? ' bad' : '') + '">' + esc(note) + '</p>' : '')) +
+    '<button type="button" role="menuitem" data-pic="make"' + (making || !State.canDraw ? ' disabled' : '') + '>' + t('Make a new picture') + '</button>' +
+    '<button type="button" role="menuitem" data-pic="plain"' + (making || art.plain ? ' disabled' : '') + '>' + t('Use the default background') + '</button>';
   var thumb = menu.querySelector('.ed-picture-thumb');
   if (thumb) {
     var whole = function () { var src = take.art; closePictureMenu(); showPicture(src, takeId); };
@@ -13488,16 +13431,16 @@ function paintEdTransport() {
       edPlayBtn.innerHTML = isPlaying
         ? '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 5h2.6v14H9zM13.4 5H16v14h-2.6z"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.4v13.2L19 12z"/></svg>';
-      edPlayBtn.title = isPlaying ? 'Pause' : 'Play';
-      edPlayBtn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+      edPlayBtn.title = isPlaying ? t('Pause') : t('Play');
+      edPlayBtn.setAttribute('aria-label', isPlaying ? t('Pause') : t('Play'));
     }
   }
 
   var titleEl = $('ed-np-title');
   if (titleEl && take) {
     var pos = takePosition(take.id);
-    var label = take.title || 'Untitled take';
-    if (pos) { label += ' \u00b7 take ' + pos.index + ' of ' + pos.total; }
+    var label = take.title || t('Untitled take');
+    if (pos) { label += ' \u00b7 ' + t('take {index} of {total}', { index: pos.index, total: pos.total }); }
     titleEl.textContent = label;
     titleEl.title = label;
   }
@@ -13859,7 +13802,7 @@ function wireTransport() {
           return;
         }
       }
-      statusLine('This take has not been rendered yet.', 'hint');
+      statusLine(t('This take has not been rendered yet.'), 'hint');
       return;
     }
 
@@ -14034,8 +13977,8 @@ function wireTransport() {
         State.auditionLoading = false;
         var sel = $('score-sf2-select');
         var sfLabel = (sel && sel.selectedOptions && sel.selectedOptions[0]) ? sel.selectedOptions[0].textContent : 'SoundFont';
-        $('np-meta').textContent = 'MIDI Recording (SoundFont: ' + sfLabel + ')';
-        statusLine('Playing MIDI audio (' + sfLabel + ')', 'ok');
+        $('np-meta').textContent = t('MIDI Recording (SoundFont: {sfLabel})', { sfLabel: sfLabel });
+        statusLine(t('Playing MIDI audio ({sfLabel})', { sfLabel: sfLabel }), 'ok');
       }
       if (name === 'error' || name === 'ended' || name === 'pause') {
         State.auditionLoading = false;
@@ -14114,7 +14057,7 @@ function wireWave() {
 /* ------------------------------------------------------------------- form */
 async function uploadFile(file) {
   if (!file) { return; }
-  statusLine('Uploading ' + file.name + '\u2026', 'wait');
+  statusLine(t('Uploading {name}…', { name: file.name }), 'wait');
   var form = new FormData();
   form.append('file', file);
   try {
@@ -14124,38 +14067,37 @@ async function uploadFile(file) {
     setSelection({ formTakeId: Selection.formTakeId });
     paintSource();
     var msg = source.duplicate
-      ? 'That recording is already in the library.'
+      ? t('That recording is already in the library.')
       : (source.transcribe_state === 'done'
-         ? 'Uploaded MIDI file. Score is ready.'
-         : 'Uploaded. Transcribe it to get a score.');
+         ? t('Uploaded MIDI file. Score is ready.')
+         : t('Uploaded. Transcribe it to get a score.'));
     statusLine(msg, 'good');
   } catch (err) {
-    statusLine('Upload failed: ' + err.message, 'bad');
+    statusLine(t('Upload failed: {message}', { message: err.message }), 'bad');
   }
 }
 
 async function doTranscribe() {
   var source = currentSource();
-  if (!source) { statusLine('Choose a recording first.', 'bad'); return; }
+  if (!source) { statusLine(t('Choose a recording first.'), 'bad'); return; }
   try {
     await api('/api/sources/' + source.id + '/transcribe', { method: 'POST' });
     source.transcribe_state = 'queued';
     paintSource();
   } catch (err) {
-    statusLine('Could not start: ' + err.message, 'bad');
+    statusLine(t('Could not start: {message}', { message: err.message }), 'bad');
   }
 }
 
 function coverProblem() {
   var source = currentSource();
-  if (!source) { return 'Choose a recording first.'; }
+  if (!source) { return t('Choose a recording first.'); }
   // A cover follows the recording's own melody, so it needs a score: the one
   // transcribed from it, or one in the box. With neither, rendering used to go
   // ahead and the model wrote its own melody, which is not a cover and sounded
   // like a different song.
   if (!source.has_score && !$('abc').value.trim()) {
-    return 'This recording has not been transcribed, so there is no melody to cover. '
-      + 'Press Transcribe first. For a melody YuE2 writes itself, use Song from a prompt.';
+    return t('This recording has not been transcribed, so there is no melody to cover. Press Transcribe first. For a melody YuE2 writes itself, use Song from a prompt.');
   }
   return '';
 }
@@ -14193,7 +14135,7 @@ async function doRender() {
   if (humCoverInEditor()) { await renderInPlace(); return; }
   var body = coverBody(pickSeed());
   clearHearError();
-  status.textContent = 'Queued\u2026';
+  status.textContent = t('Queued…');
   status.className = 'status';
   try {
     await api('/api/takes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -14201,7 +14143,7 @@ async function doRender() {
     loadTakes();
     closeEditor();
   } catch (err) {
-    status.textContent = 'Could not queue: ' + err.message;
+    status.textContent = t('Could not queue: {message}', { message: err.message });
     status.className = 'status bad';
   }
 }
@@ -14248,7 +14190,7 @@ function planLength(abc) {
 function setChart(text) {
   var hasChart = Boolean(text);
   $('chart').textContent = hasChart ? text : '';
-  $('chord-chart').textContent = hasChart ? 'Hide chart' : 'Chord chart';
+  $('chord-chart').textContent = hasChart ? t('Hide chart') : t('Chord chart');
 }
 
 function showPlanLength(abc) {
@@ -14257,11 +14199,11 @@ function showPlanLength(abc) {
   var info = planLength(abc);
   if (!info) { node.textContent = ''; return; }
   var cap = parseFloat($('max-duration').value) || 360;
-  var text = 'Score is ' + info.bars + ' bars at ' + info.bpm + ' BPM, so about ' + secs(info.seconds);
+  var text = t('Score is {bars} bars at {bpm} BPM, so about {time}', { bars: info.bars, bpm: info.bpm, time: secs(info.seconds) });
   if (info.seconds > cap) {
-    text += '. Your cap of ' + secs(cap) + ' will cut it short.';
+    text += t('. Your cap of {time} will cut it short.', { time: secs(cap) });
   } else {
-    text += '. Cap ' + secs(cap) + ', so it will fit.';
+    text += t('. Cap {time}, so it will fit.', { time: secs(cap) });
   }
   node.textContent = text;
 }
@@ -14293,8 +14235,8 @@ function chordChart(abc) {
   });
   if (!order.length) {
     return State.mode !== 'cover'
-      ? 'No chord symbols in this score. The plan may have come out broken: write a new plan, or choose a calmer Plan variety.'
-      : 'No chord symbols in this score. Use full mode when you transcribe to get chords.';
+      ? t('No chord symbols in this score. The plan may have come out broken: write a new plan, or choose a calmer Plan variety.')
+      : t('No chord symbols in this score. Use full mode when you transcribe to get chords.');
   }
   var total = 0;
   var lines = order.map(function (name) {
@@ -14312,9 +14254,9 @@ function chordChart(abc) {
   var distinct = {};
   order.forEach(function (name) { chart[name].forEach(function (chord) { distinct[chord] = 1; }); });
   lines.push('');
-  lines.push(total + ' bars, ' + Object.keys(distinct).length + ' different chords. ' + (State.mode !== 'cover'
-    ? 'A short loop that repeats all song is the model being lazy. Raise Harmony, or edit the symbols.'
-    : 'These are the recording\u2019s chords. Edit the symbols, or render in melody mode to let YuE2 choose its own.'));
+  lines.push(t('{total} bars, {keysCount} different chords. {value}', { total: total, keysCount: Object.keys(distinct).length, value: State.mode !== 'cover'
+    ? t('A short loop that repeats all song is the model being lazy. Raise Harmony, or edit the symbols.')
+    : t('These are the recording’s chords. Edit the symbols, or render in melody mode to let YuE2 choose its own.') }));
   return lines.join('\n');
 }
 
@@ -14324,13 +14266,13 @@ function chordChart(abc) {
    rather than refuses. */
 function openSungWarning(take) {
   State.sungTakeId = take.id;
-  $('sung-title').textContent = 'This plan may sing';
+  $('sung-title').textContent = t('This plan may sing');
   // The same sentence is a status line on the card and the opening line here,
   // so it starts a sentence properly in the window.
-  var why = take.error || 'The plan has a melody in the vocal part.';
+  var why = tr(take.error) || t('The plan has a melody in the vocal part.');
   $('sung-text').textContent = why.charAt(0).toUpperCase() + why.slice(1) + '.';
-  $('sung-advice').textContent = 'It may be fine. A new plan is quick, and uses a new seed.';
-  $('sung-render').textContent = 'Render anyway';
+  $('sung-advice').textContent = t('It may be fine. A new plan is quick, and uses a new seed.');
+  $('sung-render').textContent = t('Render anyway');
   $('sung-variety').value = take.variety || 'normal';
   $('sung-modal').classList.remove('hidden');
 }
@@ -14363,7 +14305,7 @@ async function replanInstead() {
     body: JSON.stringify({ variety: variety })
   });
   awaitNewPlan(id);
-  statusLine('Writing a new plan, with a new seed\u2026');
+  statusLine(t('Writing a new plan, with a new seed…'));
   loadTakes();
 }
 
@@ -14389,7 +14331,7 @@ function openLogsModal() {
   }
   if ($('open-logs')) { $('open-logs').classList.add('active'); }
   var consoleEl = $('logs-console');
-  if (consoleEl && !consoleEl.children.length) { consoleEl.innerHTML = '<div class="logs-empty">Loading logs\u2026</div>'; }
+  if (consoleEl && !consoleEl.children.length) { consoleEl.innerHTML = '<div class="logs-empty">' + t('Loading logs…') + '</div>'; }
   fetchLogs();
   if (LogsState.timer) { clearInterval(LogsState.timer); }
   // Live off pauses the panel, so the lines stay put while they are read. A filter or a
@@ -14503,7 +14445,7 @@ function renderLogs(logs) {
   var consoleEl = $('logs-console');
   if (!consoleEl) { return; }
   if (!logs || !logs.length) {
-    consoleEl.innerHTML = '<div class="logs-empty">No logs matching filter.</div>';
+    consoleEl.innerHTML = '<div class="logs-empty">' + t('No logs matching filter.') + '</div>';
     return;
   }
   var html = logs.map(function (entry) {
@@ -14544,7 +14486,7 @@ function wireLogs() {
   if (clearBtn) {
     clearBtn.addEventListener('click', function () {
       var consoleEl = $('logs-console');
-      if (consoleEl) { consoleEl.innerHTML = '<div class="logs-empty">Cleared.</div>'; }
+      if (consoleEl) { consoleEl.innerHTML = '<div class="logs-empty">' + t('Cleared.') + '</div>'; }
     });
   }
   var popoutBtn = $('logs-popout');
@@ -14790,15 +14732,15 @@ function wire() {
   $('do-replace').addEventListener('click', function () {
     var find = $('find-chord').value.trim();
     var replace = $('replace-chord').value.trim();
-    if (!find) { statusLine('Type the chord to find first.', 'bad'); return; }
+    if (!find) { statusLine(t('Type the chord to find first.'), 'bad'); return; }
     var text = $('abc').value;
     var quoted = '"' + find + '"';
     var count = text.split(quoted).length - 1;
-    if (!count) { statusLine('This score has no chord "' + find + '".', 'bad'); return; }
+    if (!count) { statusLine(t('This score has no chord "{find}".', { find: find }), 'bad'); return; }
     $('abc').value = text.split(quoted).join('"' + replace + '"');
     setChart(chordChart($('abc').value));
     syncEditor();
-    statusLine('Replaced ' + count + ' with "' + replace + '". Now save the score, then render.', 'good');
+    statusLine(t('Replaced {count} with "{replace}". Now save the score, then render.', { count: count, replace: replace }), 'good');
   });
 
   // Wired with care: the page is read apart from this script, and an older page has neither.
@@ -14947,7 +14889,7 @@ function wire() {
     var button = event.target.closest('button[data-act]');
     if (!button) { return; }
     takeAction(button).catch(function (err) {
-      statusLine('Could not ' + button.textContent.trim().toLowerCase() + ': ' + err.message, 'bad');
+      statusLine(t('Could not {textContent}: {message}', { textContent: button.textContent.trim().toLowerCase(), message: err.message }), 'bad');
       loadTakes();
     });
   });
@@ -14983,7 +14925,7 @@ function wire() {
   // A take's action from the editor's row or a key: the card's own, by name.
   runTakeAction = function (act, id, label) {
     return takeAction({ dataset: { act: act, id: id } }).catch(function (err) {
-      statusLine('Could not ' + (label || act).toLowerCase() + ': ' + err.message, 'bad');
+      statusLine(t('Could not {toLowerCase}: {message}', { toLowerCase: (label || act).toLowerCase(), message: err.message }), 'bad');
       loadTakes();
     });
   };
@@ -14995,7 +14937,7 @@ function wire() {
     if (button.dataset.act === 'inside') {
       // Its takes are shown in the list, under the take, so the window makes way for them.
       closeEditor();
-      if (!(State.inside && State.inside.id === id)) { runTakeAction('inside', id, 'open the takes inside'); }
+      if (!(State.inside && State.inside.id === id)) { runTakeAction('inside', id, t('open the takes inside')); }
       return;
     }
     runTakeAction(button.dataset.act, id, button.getAttribute('aria-label'));
@@ -15131,7 +15073,7 @@ function wire() {
   $('lyrics-write').addEventListener('click', openWrite);
   $('audition').addEventListener('click', function () { playRecording(); });
   $('source-lyrics').addEventListener('click', function () {
-    hearLyrics().catch(function (err) { statusLine('Could not start: ' + err.message, 'bad'); });
+    hearLyrics().catch(function (err) { statusLine(t('Could not start: {message}', { message: err.message }), 'bad'); });
   });
   if ($('source-expand-song')) { $('source-expand-song').addEventListener('click', openExpandModal); }
   if ($('expand-close')) { $('expand-close').addEventListener('click', closeExpandModal); }
@@ -15258,12 +15200,11 @@ function wire() {
     if (act === 'del') {
       var doomed = takeById(id), holding = doomed ? heldBy(doomed) : 0;
       if (await confirmModal({
-        title: 'Delete take',
+        title: t('Delete take'),
         message: holding
-          ? 'Delete this take and its audio, and the ' + holding + ' take' + (holding === 1 ? '' : 's') + ' inside it?\n\n' +
-            'Takes made from it with Variations, Try more or Checkpoints are kept inside it and go with it. Take out any you want to keep first. This cannot be undone.'
-          : 'Delete this take and its audio?',
-        confirmText: holding ? 'Delete all ' + (holding + 1) : 'Delete',
+          ? tn(holding, 'Delete this take and its audio, and the {n} take inside it?\n\nTakes made from it with Variations, Try more or Checkpoints are kept inside it and go with it. Take out any you want to keep first. This cannot be undone.', 'Delete this take and its audio, and the {n} takes inside it?\n\nTakes made from it with Variations, Try more or Checkpoints are kept inside it and go with it. Take out any you want to keep first. This cannot be undone.')
+          : t('Delete this take and its audio?'),
+        confirmText: holding ? t('Delete all {value}', { value: holding + 1 }) : t('Delete'),
         danger: true
       })) {
         await api('/api/takes/' + id, { method: 'DELETE' });
@@ -15282,7 +15223,7 @@ function wire() {
       var leaving = takeById(id);
       await api('/api/takes/' + id + '/promote', { method: 'POST' });
       delete State.picked[id];
-      statusLine((leaving ? '\u201c' + leaving.title + '\u201d' : 'The take') + ' is a take of its own now, in this space\u2019s list.', 'good');
+      statusLine(t('{value} is a take of its own now, in this space’s list.', { value: leaving ? '\u201c' + leaving.title + '\u201d' : t('The take') }), 'good');
       State.takesRaw = '';
       // What it could not do inside another it can do now: the editor's Checkpoints button says so.
       loadTakes().then(function () { if (State.formTake && State.formTake.id === id) { State.formTake.parent_id = null; } paintStepsButton(); });
@@ -15292,7 +15233,7 @@ function wire() {
       var opened = takeById(id);
       if (!opened) { return; }
       selectTake(opened);
-      statusLine('Showing the score for ' + opened.title + '.', 'good');
+      statusLine(t('Showing the score for {title}.', { title: opened.title }), 'good');
       if ($('editor-modal')) { openEditor('score'); } else { $('score-box').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     }
     if (act === 'save') {
@@ -15322,7 +15263,7 @@ function wire() {
       try {
         await api('/api/takes/' + id + '/note/dismiss', { method: 'POST' });
       } catch (err) {
-        statusLine('Could not dismiss the note: ' + err.message, 'bad');
+        statusLine(t('Could not dismiss the note: {message}', { message: err.message }), 'bad');
       }
       loadTakes();
       return;
@@ -15333,7 +15274,7 @@ function wire() {
       try {
         await api('/api/takes/' + id + '/weak/dismiss', { method: 'POST' });
       } catch (err) {
-        statusLine('Could not dismiss the note: ' + err.message, 'bad');
+        statusLine(t('Could not dismiss the note: {message}', { message: err.message }), 'bad');
       }
       loadTakes();
       return;
@@ -15352,14 +15293,14 @@ function wire() {
         State.loadedId = null;
       }
       paintTakes();
-      statusLine(undo ? 'Undoing the normalise\u2026' : 'Normalising\u2026');
+      statusLine(undo ? t('Undoing the normalise…') : t('Normalising…'));
       try {
         await api('/api/takes/' + id + '/normalise' + (undo ? '?undo=true' : ''), { method: 'POST' });
         // The same take loaded in the player would carry on with the old file.
         if (State.loadedId === id) { State.loadedId = null; }
-        statusLine(undo ? 'Back to the level it was rendered at.' : 'Normalised.', 'good');
+        statusLine(undo ? t('Back to the level it was rendered at.') : t('Normalised.'), 'good');
       } catch (err) {
-        statusLine((undo ? 'Could not undo the normalise: ' : 'Could not normalise the take: ') + err.message, 'bad');
+        statusLine((undo ? t('Could not undo the normalise:') + ' ' : t('Could not normalise the take:') + ' ') + err.message, 'bad');
       }
       delete State.normalising[id];
       await loadTakes();
@@ -15394,7 +15335,7 @@ function wire() {
     if (act === 'clear') {
       try {
         var cleared = await api('/api/takes/' + id + '/clear', { method: 'POST' });
-        statusLine('Cleared. The take is back to ' + (cleared.status === 'done' ? 'its audio.' : 'its score.'), 'good');
+        statusLine(t('Cleared. The take is back to {value}', { value: cleared.status === 'done' ? t('its audio.') : t('its score.') }), 'good');
       } catch (err) {
         statusLine(err.message, 'bad');
       }
@@ -15417,20 +15358,19 @@ function wire() {
       selectTake(takeById(id));
       await api('/api/takes/' + id + '/replan', { method: 'POST' });
       awaitNewPlan(id);
-      statusLine('Writing a new plan for the same words\u2026');
+      statusLine(t('Writing a new plan for the same words…'));
       loadTakes();
     }
     if (act === 'revoice') {
       var voiced = takeById(id);
       // One click on a small button would otherwise start a whole render: asked first, as a delete is.
       if (!(await confirmModal({
-        title: 'Sing again',
-        message: 'Render ' + (voiced && voiced.title ? '\u201c' + voiced.title + '\u201d' : 'this take') + ' again with a new seed?\n\n' +
-          'The score is the same; the backing and phrasing come out new. It is made as a new take, and this one is kept.',
-        confirmText: 'Sing again'
+        title: t('Sing again'),
+        message: t('Render {value} again with a new seed?\n\nThe score is the same; the backing and phrasing come out new. It is made as a new take, and this one is kept.', { value: voiced && voiced.title ? '\u201c' + voiced.title + '\u201d' : t('this take') }),
+        confirmText: t('Sing again')
       }))) { return; }
       await api('/api/takes/' + id + '/revoice', { method: 'POST' });
-      statusLine('Singing ' + (voiced ? voiced.title : 'this take') + ' again with a new seed\u2026', 'good');
+      statusLine(t('Singing {value} again with a new seed…', { value: voiced ? voiced.title : t('this take') }), 'good');
       loadTakes();
     }
     if (act === 'variations') {
@@ -15449,11 +15389,11 @@ function wire() {
       var targetTake = takeById(id);
       if (!targetTake) { return; }
       var newTitle = await confirmModal({
-        title: 'Rename take',
-        message: 'Rename take:',
+        title: t('Rename take'),
+        message: t('Rename take:'),
         input: true,
         defaultValue: targetTake.title,
-        confirmText: 'Rename'
+        confirmText: t('Rename')
       });
       if (newTitle && newTitle.trim() && newTitle.trim() !== targetTake.title) {
         try {
@@ -15466,7 +15406,7 @@ function wire() {
           if (selectedTakeId() === id) { $('title').value = updated.title; }
           paintTakes();
         } catch (err) {
-          statusLine('Could not rename take: ' + err.message, 'bad');
+          statusLine(t('Could not rename take: {message}', { message: err.message }), 'bad');
         }
       }
     }
@@ -15484,7 +15424,7 @@ function wire() {
       $('seed').dispatchEvent(new Event('change', { bubbles: true }));
       $('seed-fixed').dispatchEvent(new Event('change', { bubbles: true }));
       saveForm();
-      statusLine('Loaded settings and seed ' + previous.seed + ' (fixed) from ' + (previous.title || 'take') + '.', 'good');
+      statusLine(t('Loaded settings and seed {seed} (fixed) from {value}.', { seed: previous.seed, value: previous.title || t('take') }), 'good');
       if ($('editor-modal')) {
         openEditor('sound');
       } else {
@@ -15514,13 +15454,13 @@ function wire() {
       .then(function () { loadTakes(); pollState(); })
       .catch(function (err) {
         button.disabled = false;
-        statusLine('Could not cancel the job: ' + err.message, 'bad');
+        statusLine(t('Could not cancel the job: {message}', { message: err.message }), 'bad');
       });
   });
 
   $('job-stop').addEventListener('click', function () {
     api('/api/jobs/current/cancel', { method: 'POST' }).then(function () { loadTakes(); pollState(); }).catch(function (err) {
-      statusLine('Could not stop the job: ' + err.message, 'bad');
+      statusLine(t('Could not stop the job: {message}', { message: err.message }), 'bad');
     });
   });
 
@@ -15666,9 +15606,9 @@ function wire() {
     if (event.target && event.target.dataset && event.target.dataset.remove) {
       event.preventDefault();
       if (!await confirmModal({
-        title: 'Remove API key',
-        message: 'Remove the saved key?',
-        confirmText: 'Remove',
+        title: t('Remove API key'),
+        message: t('Remove the saved key?'),
+        confirmText: t('Remove'),
         danger: true
       })) { return; }
       var removeKey = event.target.dataset.remove;
@@ -15692,7 +15632,7 @@ function wire() {
         var inp = wrap.querySelector('input');
         if (inp) {
           var isMasked = inp.classList.toggle('setting-masked-input');
-          event.target.textContent = isMasked ? 'Show' : 'Hide';
+          event.target.textContent = isMasked ? t('Show') : t('Hide');
         }
       }
       return;
@@ -15845,10 +15785,10 @@ function wire() {
   if ($('llm-session-pill')) {
     $('llm-session-pill').addEventListener('click', async function () {
       var resume = await confirmModal({
-        title: 'Using Local LLMs for This Session',
-        message: 'Yeufonic switched to local LLMs for this session after an external LLM error. Your saved External LLM settings are unchanged.\n\nIf you have resolved the external LLM issue (for example, increased your spending cap), would you like to resume using the external LLM now?',
-        confirmText: 'Resume External LLM',
-        cancelText: 'Stay on Local'
+        title: t('Using Local LLMs for This Session'),
+        message: t('Yeufonic switched to local LLMs for this session after an external LLM error. Your saved External LLM settings are unchanged.\n\nIf you have resolved the external LLM issue (for example, increased your spending cap), would you like to resume using the external LLM now?'),
+        confirmText: t('Resume External LLM'),
+        cancelText: t('Stay on Local')
       });
       if (resume) {
         handleLLMSessionAction('resume_external');
@@ -16156,9 +16096,9 @@ function sheetTake() {
 
 function sheetAgo(when) {
   var gone = Date.now() / 1000 - when;
-  if (gone < 3600) { return Math.max(1, Math.round(gone / 60)) + ' min ago'; }
-  if (gone < 86400) { return Math.round(gone / 3600) + ' h ago'; }
-  return Math.round(gone / 86400) + ' d ago';
+  if (gone < 3600) { return t('{Math} min ago', { Math: Math.max(1, Math.round(gone / 60)) }); }
+  if (gone < 86400) { return t('{n} h ago', { n: Math.round(gone / 3600) }); }
+  return t('{n} d ago', { n: Math.round(gone / 86400) });
 }
 
 /* The score's key facts and each section's chords, in the order they come. */
@@ -16186,7 +16126,7 @@ function sheetScore(abc) {
 
 function sheetHTML(take) {
   if (!take) {
-    return '<p class="sub">Choose a take to see how it was made, or start something new above.</p>';
+    return '<p class="sub">' + t('Choose a take to see how it was made, or start something new above.') + '</p>';
   }
   var kind = take.kind || 'cover';
   var busy = take.status === 'queued' || take.status === 'running';
@@ -16196,54 +16136,53 @@ function sheetHTML(take) {
     '<div class="meta">' + [take.duration ? secs(take.duration) : '', take.created_at ? sheetAgo(take.created_at) : '']
       .filter(Boolean).join(' · ') + '</div>';
   if (busy) {
-    html += '<div class="note">' + (take.status === 'running' ? 'Being made now.' : 'Waiting in the queue.') + '</div>';
+    html += '<div class="note">' + (take.status === 'running' ? t('Being made now.') : t('Waiting in the queue.')) + '</div>';
   } else if (take.status === 'failed') {
-    html += '<div class="note bad">It did not finish' + (take.error ? ': ' + esc(take.error) : '.') + '</div>';
+    html += '<div class="note bad">' + t('It did not finish{value}', { value: take.error ? ': ' + esc(tr(take.error)) : '.' }) + '</div>';
   }
-  var main = busy ? 'Open' : (take.status === 'planned' || (hasScore && !take.has_audio) ? 'Review the plan and render' : 'Edit and render again');
+  var main = busy ? t('Open') : (take.status === 'planned' || (hasScore && !take.has_audio) ? t('Review the plan and render') : t('Edit and render again'));
   html += '<div class="acts"><button type="button" class="primary tone-' + kind + '" data-sheet="' +
     (take.status === 'planned' ? 'score' : 'edit') + '">' + main + '</button>' +
-    (take.has_audio ? '<button type="button" class="ghost" data-sheet="play">' + (State.playing === take.id ? 'Pause' : 'Play') + '</button>' : '') +
+    (take.has_audio ? '<button type="button" class="ghost" data-sheet="play">' + (State.playing === take.id ? t('Pause') : t('Play')) + '</button>' : '') +
     '</div>';
 
   if (kind === 'cover') {
     var source = take.source_id ? sourceById(take.source_id) : null;
-    html += '<div class="sheet-blk"><h3>Recording</h3><div class="sheet-facts">' +
-      (source ? esc(source.title || source.filename || 'a recording') : '<span class="muted">not in this library any more</span>') + '</div></div>';
+    html += '<div class="sheet-blk"><h3>' + t('Recording') + '</h3><div class="sheet-facts">' +
+      (source ? esc(source.title || source.filename || 'a recording') : '<span class="muted">' + t('not in this library any more') + '</span>') + '</div></div>';
   }
   var tags = (take.style || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
   if (tags.length) {
-    html += '<div class="sheet-blk"><h3>Style</h3><div class="sheet-tags">' +
+    html += '<div class="sheet-blk"><h3>' + t('Style') + '</h3><div class="sheet-tags">' +
       tags.map(function (tag) { return '<span class="sheet-tag">' + esc(tag) + '</span>'; }).join('') + '</div></div>';
   }
 
   var sound = [];
   if (kind !== 'cover') {
-    sound.push(['Harmony', HARMONY_WORDS[take.harmony || 0] || 'Familiar']);
-    sound.push(['Plan variety', take.variety || 'normal']);
+    sound.push([t('Harmony'), HARMONY_WORDS[take.harmony || 0] || t('Familiar')]);
+    sound.push([t('Plan variety'), take.variety || 'normal']);
   }
-  sound.push(['Interpretation', (INTERPRETATIONS[take.interpretation] || INTERPRETATIONS.standard).name]);
+  sound.push([t('Interpretation'), (INTERPRETATIONS[take.interpretation] || INTERPRETATIONS.standard).name]);
   if (take.style_lora) {
-    sound.push(['Style LoRA', esc(take.style_lora.replace(/\.safetensors$/, '')) + ' <span class="muted">(planner ' +
-      Number(take.style_lora_clip || 0).toFixed(2) + ', sound ' + Number(take.style_lora_model || 0).toFixed(2) + ')</span>']);
+    sound.push([t('Style LoRA'), esc(take.style_lora.replace(/\.safetensors$/, '')) + ' <span class="muted">' + t('(planner {planner}, sound {sound})', { planner: Number(take.style_lora_clip || 0).toFixed(2), sound: Number(take.style_lora_model || 0).toFixed(2) }) + '</span>']);
   }
-  sound.push(['Production polish', take.realaudio ? 'on' : 'off']);
+  sound.push([t('Production polish'), take.realaudio ? 'on' : 'off']);
   if (take.normalised) {
     var level = take.normalised_to == null ? -14 : take.normalised_to;
-    sound.push(['Normalised', (level < 0 ? '−' : '') + Math.abs(level) + ' LUFS']);
+    sound.push([t('Normalised'), (level < 0 ? '−' : '') + Math.abs(level) + ' LUFS']);
   }
-  if (take.max_duration) { sound.push(['Length cap', secs(take.max_duration)]); }
-  if (take.seed != null) { sound.push(['Seed', take.seed]); }
-  html += '<div class="sheet-blk"><h3>Sound</h3><dl class="sheet-pairs">' +
+  if (take.max_duration) { sound.push([t('Length cap'), secs(take.max_duration)]); }
+  if (take.seed != null) { sound.push([t('Seed'), take.seed]); }
+  html += '<div class="sheet-blk"><h3>' + t('Sound') + '</h3><dl class="sheet-pairs">' +
     sound.map(function (pair) { return '<dt>' + pair[0] + '</dt><dd>' + pair[1] + '</dd>'; }).join('') + '</dl></div>';
 
   var lines = (take.lyrics || '').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
   var isTag = function (line) { return /^\[.*\]$/.test(line); };
   if (kind === 'instrumental') {
     var parts = lines.filter(isTag).map(function (l) { return l.slice(1, -1); });
-    html += '<div class="sheet-blk"><h3>Structure</h3><div class="sheet-tags">' + (parts.length
+    html += '<div class="sheet-blk"><h3>' + t('Structure') + '</h3><div class="sheet-tags">' + (parts.length
       ? parts.map(function (p) { return '<span class="sheet-tag">' + esc(p) + '</span>'; }).join('')
-      : '<span class="muted">YuE2 decides</span>') + '</div></div>';
+      : '<span class="muted">' + t('YuE2 decides') + '</span>') + '</div></div>';
   } else if (lines.length) {
     var shown = [], sung = 0;
     for (var i = 0; i < lines.length && sung < 5; i++) {
@@ -16251,22 +16190,22 @@ function sheetHTML(take) {
       else { shown.push('<div>' + esc(lines[i]) + '</div>'); sung += 1; }
     }
     var rest = lines.filter(function (l) { return !isTag(l); }).length - sung;
-    html += '<div class="sheet-blk"><h3>Words <button type="button" class="link" data-sheet="words">Open</button></h3>' +
-      '<div class="sheet-words">' + shown.join('') + (rest > 0 ? '<div class="more">and ' + rest + ' more lines</div>' : '') + '</div></div>';
+    html += '<div class="sheet-blk"><h3>' + t('Words') + ' <button type="button" class="link" data-sheet="words">' + t('Open') + '</button></h3>' +
+      '<div class="sheet-words">' + shown.join('') + (rest > 0 ? '<div class="more">' + t('and {rest} more lines', { rest: rest }) + '</div>' : '') + '</div></div>';
   }
 
   if (hasScore) {
     var facts = sheetScore(take.abc);
-    html += '<div class="sheet-blk"><h3>Score <button type="button" class="link" data-sheet="score">Open</button></h3>' +
-      '<div class="sheet-facts">' + [facts.key && ('Key ' + esc(facts.key)), facts.tempo && (facts.tempo + ' BPM'),
+    html += '<div class="sheet-blk"><h3>' + t('Score') + ' <button type="button" class="link" data-sheet="score">' + t('Open') + '</button></h3>' +
+      '<div class="sheet-facts">' + [facts.key && (t('Key {key}', { key: esc(facts.key) })), facts.tempo && (facts.tempo + ' BPM'),
         facts.bars && (facts.bars + ' bars')].filter(Boolean).join(' · ') + '</div>' +
       '<div class="sheet-chart">' + facts.sections.slice(0, 10).map(function (s) {
         return '<span class="s">' + esc(s.name) + '</span><span class="c">' + esc(s.chords.slice(0, 8).join(' ')) +
           (s.chords.length > 8 ? ' …' : '') + '</span>';
       }).join('') + (facts.sections.length > 10 ? '<span class="s">…</span><span></span>' : '') + '</div></div>';
   } else {
-    html += '<div class="sheet-blk"><h3>Score</h3><div class="muted small">' + (busy && kind !== 'cover'
-      ? 'The plan is being written.' : 'No score yet.') + '</div></div>';
+    html += '<div class="sheet-blk"><h3>' + t('Score') + '</h3><div class="muted small">' + (busy && kind !== 'cover'
+      ? t('The plan is being written.') : t('No score yet.')) + '</div></div>';
   }
   return html;
 }
@@ -16317,7 +16256,7 @@ function setEditorMax(on) {
   if (!modal || !button) { return; }
   modal.classList.toggle('editor-max', on);
   button.setAttribute('aria-pressed', on ? 'true' : 'false');
-  button.title = on ? 'Back to the usual size' : 'Fill the window';
+  button.title = on ? t('Back to the usual size') : t('Fill the window');
   button.setAttribute('aria-label', button.title);
   if (button.blur) { button.blur(); }
   try { localStorage.setItem('yue2.editorMax', on ? '1' : '0'); } catch (e) {}
@@ -16360,7 +16299,7 @@ function paintEditor() {
   Array.prototype.forEach.call(ed.querySelectorAll('#ed-tabs [data-edtab]'), function (b) {
     b.classList.toggle('on', b.dataset.edtab === Editor.page);
   });
-  if ($('ed-words-head')) { $('ed-words-head').textContent = State.mode === 'inst' ? 'The structure' : 'The words'; }
+  if ($('ed-words-head')) { $('ed-words-head').textContent = State.mode === 'inst' ? t('The structure') : t('The words'); }
   if ($('ed-bar')) { $('ed-bar').className = 'ed-bar ' + ({ song: 'song', inst: 'inst' }[State.mode] || 'cover'); }
   if (page === 'score') { $('score-box').open = true; }
   paintWriteJob(State.currentJob, []);
@@ -16423,7 +16362,7 @@ function setSheetCollapsed(collapsed, animate) {
   if (!main || !toggle) { return; }
   setSheetCollapsed.wanted = collapsed;   // what was asked for, which a fade may not have reached yet
   toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-  toggle.title = collapsed ? 'Show the take panel' : 'Hide the take panel';
+  toggle.title = collapsed ? t('Show the take panel') : t('Hide the take panel');
   try { localStorage.setItem(SHEET_KEY, collapsed ? 'collapsed' : 'open'); } catch (err) { /* private mode */ }
   var still = !animate || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   clearTimeout(setSheetCollapsed.timer);
@@ -16539,7 +16478,7 @@ function formatDurationMinutes(seconds) {
 function formatDateShort(ts) {
   if (!ts) { return ''; }
   var d = new Date(ts * 1000);
-  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var months = [t('Jan'), t('Feb'), t('Mar'), t('Apr'), t('May'), t('Jun'), t('Jul'), t('Aug'), t('Sep'), t('Oct'), t('Nov'), t('Dec')];
   return months[d.getMonth()] + ' ' + d.getDate();
 }
 
@@ -16549,7 +16488,7 @@ function paintPlaylists() {
   var filter = (State.playlistFilter || '').toLowerCase();
 
   var liked = State.playlists.filter(function (p) { return p.id === 'liked'; })[0] || {
-    id: 'liked', name: 'Liked', description: 'Songs you have starred', is_system: true, count: 0, total_duration: 0
+    id: 'liked', name: t('Liked'), description: t('Songs you have starred'), is_system: true, count: 0, total_duration: 0
   };
   var custom = State.playlists.filter(function (p) {
     return p.id !== 'liked' && (!filter || p.name.toLowerCase().indexOf(filter) >= 0);
@@ -16610,9 +16549,9 @@ function paintActivePlaylist() {
   if (!pl) { return; }
 
   $('playlist-title').textContent = pl.name;
-  $('playlist-badge').textContent = pl.is_system ? 'SYSTEM PLAYLIST' : 'PLAYLIST';
-  $('playlist-desc').textContent = pl.description || (pl.is_system ? 'Songs you have starred' : '');
-  $('playlist-track-count').textContent = pl.count + ' ' + (pl.count === 1 ? 'song' : 'songs');
+  $('playlist-badge').textContent = pl.is_system ? t('SYSTEM PLAYLIST') : 'PLAYLIST';
+  $('playlist-desc').textContent = pl.description || (pl.is_system ? t('Songs you have starred') : '');
+  $('playlist-track-count').textContent = pl.count + ' ' + (pl.count === 1 ? t('song') : t('songs'));
   $('playlist-duration').textContent = formatDurationMinutes(pl.total_duration);
 
   var coverImg = $('playlist-hero-cover');
@@ -16662,7 +16601,7 @@ function paintActivePlaylist() {
       : '<div class="row-thumb-fallback">' + icon('score') + '</div>';
 
     var playOverlay =
-      '<button type="button" class="row-play-overlay' + (isPlaying ? ' is-playing' : '') + '" data-act="playlist-row-play" data-id="' + esc(take.id) + '" title="' + (isPlaying ? 'Pause' : 'Play') + '" aria-label="' + (isPlaying ? 'Pause' : 'Play') + '">' +
+      '<button type="button" class="row-play-overlay' + (isPlaying ? ' is-playing' : '') + '" data-act="playlist-row-play" data-id="' + esc(take.id) + '" title="' + (isPlaying ? t('Pause') : t('Play')) + '" aria-label="' + (isPlaying ? t('Pause') : t('Play')) + '">' +
         '<span class="row-play-circle">' +
           icon(isPlaying ? 'pause' : 'play') +
         '</span>' +
@@ -16670,13 +16609,13 @@ function paintActivePlaylist() {
 
     html += '<tr class="playlist-track-row' + (isPlaying ? ' playing' : '') + '" data-id="' + esc(take.id) + '">' +
       '<td class="td-title">' +
-        '<div class="playlist-thumb-wrap' + (take.art ? ' has-art' : ' no-art') + '" data-act="playlist-row-play" data-id="' + esc(take.id) + '" title="' + (isPlaying ? 'Pause' : 'Play') + '">' +
+        '<div class="playlist-thumb-wrap' + (take.art ? ' has-art' : ' no-art') + '" data-act="playlist-row-play" data-id="' + esc(take.id) + '" title="' + (isPlaying ? t('Pause') : t('Play')) + '">' +
           artHtml +
           playOverlay +
         '</div>' +
         '<div class="row-text">' +
           '<div class="row-title-line">' +
-            '<span class="row-title" data-act="playlist-open-take" data-id="' + esc(take.id) + '" title="Click to open in Library">' + esc(take.title) + '</span>' +
+            '<span class="row-title" data-act="playlist-open-take" data-id="' + esc(take.id) + '" title="' + t('Click to open in Library') + '">' + esc(take.title) + '</span>' +
             '<span class="row-badge' + kindClass + '">' + esc(take.kind || 'song') + '</span>' +
           '</div>' +
           '<div class="row-style">' + esc(take.style || '') + '</div>' +
@@ -16685,13 +16624,13 @@ function paintActivePlaylist() {
       '<td class="td-duration">' + secs(take.duration) + '</td>' +
       '<td class="td-added">' + formatDateShort(take.added_at) + '</td>' +
       '<td class="td-actions">' +
-        '<button type="button" class="row-star-btn' + (take.favourite ? ' on' : '') + '" data-act="playlist-row-star" data-id="' + esc(take.id) + '" title="' + (take.favourite ? 'Starred' : 'Star') + '">' +
+        '<button type="button" class="row-star-btn' + (take.favourite ? ' on' : '') + '" data-act="playlist-row-star" data-id="' + esc(take.id) + '" title="' + (take.favourite ? t('Starred') : t('Star')) + '">' +
           (take.favourite ? '\u2605' : '\u2606') +
         '</button>' +
-        '<button type="button" class="row-add-btn" data-act="playlist-row-add-to" data-id="' + esc(take.id) + '" title="Add to another playlist">' +
+        '<button type="button" class="row-add-btn" data-act="playlist-row-add-to" data-id="' + esc(take.id) + '" title="' + t('Add to another playlist') + '">' +
           icon('playlist') +
         '</button>' +
-        '<button type="button" class="row-remove-btn" data-act="playlist-row-remove" data-id="' + esc(take.id) + '" title="Remove from playlist">&times;</button>' +
+        '<button type="button" class="row-remove-btn" data-act="playlist-row-remove" data-id="' + esc(take.id) + '" title="' + t('Remove from playlist') + '">&times;</button>' +
       '</td>' +
     '</tr>';
   });
@@ -16788,12 +16727,12 @@ function paintPlaylistActiveRow() {
       if (circle) {
         circle.innerHTML = icon(isPlaying ? 'pause' : 'play');
       }
-      overlay.title = isPlaying ? 'Pause' : 'Play';
-      overlay.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+      overlay.title = isPlaying ? t('Pause') : t('Play');
+      overlay.setAttribute('aria-label', isPlaying ? t('Pause') : t('Play'));
     }
     var wrap = row.querySelector('.playlist-thumb-wrap');
     if (wrap) {
-      wrap.title = isPlaying ? 'Pause' : 'Play';
+      wrap.title = isPlaying ? t('Pause') : t('Play');
     }
   }
 }
@@ -16840,7 +16779,7 @@ function npTitle(text, takeId) {
   el.textContent = text;
   el.dataset.take = takeId || '';
   el.classList.toggle('np-take-link', Boolean(takeId));
-  el.title = takeId ? 'Show this take' : '';
+  el.title = takeId ? t('Show this take') : '';
 }
 
 /* Go to a take's card in the library, from a playlist, the job card or the player: its space, with nothing in the way.  A take
@@ -16855,7 +16794,7 @@ async function importTakeFile(file) {
   try {
     data = JSON.parse(await file.text());
   } catch (err) {
-    importNote('\u201c' + file.name + '\u201d is not a Yeufonic take file.', 'bad');
+    importNote(t('“{name}” is not a Yeufonic take file.', { name: file.name }), 'bad');
     return;
   }
   var got;
@@ -16865,15 +16804,15 @@ async function importTakeFile(file) {
       body: JSON.stringify({ recipe: data, space_id: State.spaceId || 'default' })
     });
   } catch (err) {
-    importNote('Could not import \u201c' + file.name + '\u201d: ' + err.message, 'bad');
+    importNote(t('Could not import “{name}”: {message}', { name: file.name, message: err.message }), 'bad');
     return;
   }
   await loadTakes();
   if (typeof openTakeInLibrary === 'function') { openTakeInLibrary(got.id); }
-  var notes = ['Imported \u201c' + got.title + '\u201d: its plan is ready to render.'];
-  if (got.was_cover) { notes.push('It was a cover, so it comes in as a song with the cover\u2019s score and words.'); }
+  var notes = [t('Imported “{title}”: its plan is ready to render.', { title: got.title })];
+  if (got.was_cover) { notes.push(t('It was a cover, so it comes in as a song with the cover’s score and words.')); }
   if (got.missing_loras && got.missing_loras.length) {
-    notes.push('Not installed here: ' + got.missing_loras.join(', ') + '. Install it, or choose another LoRA, before rendering.');
+    notes.push(t('Not installed here: {value}. Install it, or choose another LoRA, before rendering.', { value: got.missing_loras.join(', ') }));
   }
   importNote(notes.join(' '), got.missing_loras && got.missing_loras.length ? 'bad' : '');
 }
@@ -17012,7 +16951,7 @@ async function refreshPlaylistPicker() {
   if (!takeId) { return; }
   var listEl = $('playlist-picker-list');
   if (!listEl) { return; }
-  listEl.innerHTML = '<p class="muted" style="padding: 12px; text-align: center;">Loading playlists\u2026</p>';
+  listEl.innerHTML = '<p class="muted" style="padding: 12px; text-align: center;">' + t('Loading playlists…') + '</p>';
 
   try {
     var res = await Promise.all([
@@ -17031,7 +16970,7 @@ async function refreshPlaylistPicker() {
           '<input type="checkbox" class="playlist-picker-checkbox" ' + (inThis ? 'checked' : '') + ' tabindex="-1">' +
           '<div>' +
             '<span class="playlist-picker-name">' + esc(pl.name) + '</span>' +
-            (pl.is_system ? ' <span class="muted" style="font-size:11px;">(Starred)</span>' : '') +
+            (pl.is_system ? ' <span class="muted" style="font-size:11px;">' + t('(Starred)') + '</span>' : '') +
           '</div>' +
         '</div>' +
         '<span class="playlist-picker-count">' + pl.count + ' ' + (pl.count === 1 ? 'song' : 'songs') + '</span>' +
@@ -17039,7 +16978,7 @@ async function refreshPlaylistPicker() {
     });
     listEl.innerHTML = html;
   } catch (err) {
-    listEl.innerHTML = '<p class="status err">Failed to load playlists.</p>';
+    listEl.innerHTML = '<p class="status err">' + t('Failed to load playlists.') + '</p>';
   }
 }
 
@@ -17070,7 +17009,7 @@ async function togglePlaylistMembership(playlistId) {
     await refreshPlaylistPicker();
   } catch (err) {
     var stat = $('playlist-picker-status');
-    if (stat) { stat.textContent = 'Error updating playlist.'; }
+    if (stat) { stat.textContent = t('Error updating playlist.'); }
   }
 }
 
@@ -17089,14 +17028,14 @@ async function createAndAddToPlaylist() {
     await refreshPlaylistPicker();
   } catch (err) {
     var stat = $('playlist-picker-status');
-    if (stat) { stat.textContent = 'Could not create playlist.'; }
+    if (stat) { stat.textContent = t('Could not create playlist.'); }
   }
 }
 
 /* Edit / Create playlist modal */
 function openCreatePlaylistModal() {
   State.playlistEditingId = null;
-  $('playlist-edit-heading').textContent = 'New Playlist';
+  $('playlist-edit-heading').textContent = t('New Playlist');
   $('playlist-edit-name').value = '';
   $('playlist-edit-desc').value = '';
   $('playlist-edit-status').textContent = '';
@@ -17106,7 +17045,7 @@ function openCreatePlaylistModal() {
 
 function openEditPlaylistModal(pl) {
   State.playlistEditingId = pl.id;
-  $('playlist-edit-heading').textContent = 'Edit Playlist';
+  $('playlist-edit-heading').textContent = t('Edit Playlist');
   $('playlist-edit-name').value = pl.name;
   $('playlist-edit-desc').value = pl.description || '';
   $('playlist-edit-status').textContent = '';
@@ -17124,7 +17063,7 @@ async function savePlaylistEdit() {
   var name = $('playlist-edit-name').value.trim();
   var desc = $('playlist-edit-desc').value.trim();
   if (!name) {
-    $('playlist-edit-status').textContent = 'Please enter a name.';
+    $('playlist-edit-status').textContent = t('Please enter a name.');
     return;
   }
   try {
@@ -17148,7 +17087,7 @@ async function savePlaylistEdit() {
       loadActivePlaylist();
     }
   } catch (err) {
-    $('playlist-edit-status').textContent = 'Error saving playlist.';
+    $('playlist-edit-status').textContent = t('Error saving playlist.');
   }
 }
 
@@ -17156,9 +17095,9 @@ async function deleteActivePlaylist() {
   var pl = State.activePlaylist;
   if (!pl || pl.is_system) { return; }
   if (await confirmModal({
-    title: 'Delete playlist',
-    message: 'Delete playlist \u201c' + pl.name + '\u201d? The tracks inside it will remain in your library.',
-    confirmText: 'Delete',
+    title: t('Delete playlist'),
+    message: t('Delete playlist “{name}”? The tracks inside it will remain in your library.', { name: pl.name }),
+    confirmText: t('Delete'),
     danger: true
   })) {
     await api('/api/playlists/' + pl.id, { method: 'DELETE' });
@@ -17243,7 +17182,7 @@ function wirePlaylists() {
   var heroTitle = $('playlist-title');
   if (heroTitle) {
     heroTitle.style.cursor = 'pointer';
-    heroTitle.title = 'Switch to Library view';
+    heroTitle.title = t('Switch to Library view');
     heroTitle.addEventListener('click', function () { switchView('library'); });
   }
 

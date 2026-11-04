@@ -42,7 +42,7 @@ from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import recipe as recipes
-from . import aligner, artwork, autotune, composer, config, identities, instrumental, jobs, library, llm, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
+from . import aligner, artwork, autotune, composer, config, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 
 personas = identities
@@ -509,6 +509,18 @@ SETTINGS_SPEC: list[dict] = [
                 "otherwise. Each picture is one image request to the provider, which may be charged.",
         "requires": {"art.drawer": "external"},
         "requires_note": "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.",
+    },
+    {
+        # The app's own words; what the user writes, and what is sung, stay as written (app/locales.py).
+        "key": "ui.language",
+        "group": "system",
+        "label": "Language",
+        "type": "select",
+        "default": "auto",
+        "options": [{"value": "auto", "label": "The browser's language"}]
+                   + [{"value": code, "label": name} for code, name in locales.LOCALES.items()],
+        "help": "The language of the app's words. Your titles, styles and lyrics stay as you wrote them, and the guide "
+                "is in English for now. The page reloads to change it.",
     },
     {
         "key": "appearance.theme",
@@ -1259,16 +1271,24 @@ def _asset_version() -> str:
     so browsers automatically fetch updated scripts without needing manual hard-reloads."""
     try:
         # Every script and the style sheet: one changed alone (the visualizer's, say) must still reach the browser.
-        stamp = max(int(p.stat().st_mtime) for p in [*STATIC_DIR.glob("*.js"), STATIC_DIR / "styles.css"] if p.exists())
+        # The string tables as well: a page holding an old one would keep the old words.
+        stamp = max(int(p.stat().st_mtime) for p in [*STATIC_DIR.glob("*.js"), STATIC_DIR / "styles.css",
+                                                      *STATIC_DIR.glob("locales/*.json")] if p.exists())
         return f"{config.VERSION}.{stamp}"
     except (OSError, ValueError):
         return config.VERSION
 
 
+def _page(name: str, request: Request) -> HTMLResponse:
+    """A page with its asset versions and its language (app/locales.py)."""
+    content = (STATIC_DIR / name).read_text(encoding="utf-8").replace("{{VERSION}}", _asset_version())
+    code = locales.resolve(setting_value("ui.language"), request.headers.get("accept-language"))
+    return HTMLResponse(locales.localise_page(content, code))
+
+
 @app.get("/")
-def index() -> HTMLResponse:
-    content = (STATIC_DIR / "index.html").read_text(encoding="utf-8").replace("{{VERSION}}", _asset_version())
-    return HTMLResponse(content)
+def index(request: Request) -> HTMLResponse:
+    return _page("index.html", request)
 
 
 @app.get("/guide")
@@ -1283,10 +1303,9 @@ def guide() -> HTMLResponse:
 
 
 @app.get("/logs")
-def logs_page() -> HTMLResponse:
+def logs_page(request: Request) -> HTMLResponse:
     """Standalone live logs viewer in its own window or tab."""
-    content = (STATIC_DIR / "logs.html").read_text(encoding="utf-8").replace("{{VERSION}}", _asset_version())
-    return HTMLResponse(content)
+    return _page("logs.html", request)
 
 
 @app.get("/api/health")
