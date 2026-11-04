@@ -133,8 +133,18 @@ def boot_script(code: str) -> str:
     return f"<script>window.YEUFONIC_LOCALE = {payload};</script>"
 
 
-def localise_page(html: str, code: str) -> str:
+def localise_page(html: str, code: str, chosen: bool = False) -> str:
     """A page with its language set and the locale's table in its head.  ``<html lang>`` lets the browser
-    pick the right forms of Chinese characters, and its hyphenation."""
-    html = html.replace('<html lang="en">', f'<html lang="{code}">', 1)
-    return html.replace("<!--{{LOCALE}}-->", boot_script(code), 1)
+    pick the right forms of Chinese characters, and its hyphenation.
+
+    A language chosen in Settings is the page's to keep: the browser is told not to translate it, or Chrome
+    offers to put a page in another language into the browser's own, and its machine translation of the
+    app's words then sits over the app's (a French "il y a 11 j" came back as "11 years ago") and stays on
+    in that tab after the setting is changed back.  Left to follow the browser, the page may still be
+    translated, so a language the app has no table for can be read through the browser's."""
+    marks = f' lang="{code}" translate="no"' if chosen else f' lang="{code}"'
+    html = html.replace('<html lang="en">', f'<html{marks}>', 1)
+    boot = boot_script(code)
+    if chosen:
+        boot = '<meta name="google" content="notranslate">' + boot
+    return html.replace("<!--{{LOCALE}}-->", boot, 1)

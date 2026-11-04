@@ -65,9 +65,29 @@ def test_a_chosen_language_wins_over_the_browsers(client):
     client.put("/api/settings", json={"key": "ui.language", "value": "pt-PT"})
     html = client.get("/", headers={"Accept-Language": "de-DE"}).text
     assert boot(html)["code"] == "pt-PT"
-    assert '<html lang="pt-PT">' in html
+    assert '<html lang="pt-PT" translate="no">' in html
     # the logs window follows it too
     assert boot(client.get("/logs").text)["code"] == "pt-PT"
+
+
+def test_a_chosen_language_is_not_translated_by_the_browser(client):
+    """Chrome's own translation laid its English over a French page, and stayed on in the tab after English was
+    chosen again ("il y a 11 j" read "11 years ago"). A page in a chosen language says not to translate it."""
+    client.put("/api/settings", json={"key": "ui.language", "value": "fr-FR"})
+    for path in ("/", "/guide", "/logs"):
+        html = client.get(path, headers={"Accept-Language": "en-GB"}).text
+        assert '<html lang="fr-FR" translate="no">' in html
+        assert '<meta name="google" content="notranslate">' in html
+    client.put("/api/settings", json={"key": "ui.language", "value": "en-GB"})
+    assert '<html lang="en-GB" translate="no">' in client.get("/").text
+
+
+def test_a_page_following_the_browser_may_be_translated(client):
+    """A language with no table of its own can still be read through the browser's translation."""
+    client.put("/api/settings", json={"key": "ui.language", "value": "auto"})
+    html = client.get("/", headers={"Accept-Language": "pl-PL"}).text
+    assert '<html lang="en-US">' in html
+    assert "notranslate" not in html
 
 
 def test_british_english_is_the_text_as_written(client):

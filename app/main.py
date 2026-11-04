@@ -1282,8 +1282,9 @@ def _asset_version() -> str:
 def _page(name: str, request: Request) -> HTMLResponse:
     """A page with its asset versions and its language (app/locales.py)."""
     content = (STATIC_DIR / name).read_text(encoding="utf-8").replace("{{VERSION}}", _asset_version())
-    code = locales.resolve(setting_value("ui.language"), request.headers.get("accept-language"))
-    return HTMLResponse(locales.localise_page(content, code))
+    chosen = setting_value("ui.language")
+    code = locales.resolve(chosen, request.headers.get("accept-language"))
+    return HTMLResponse(locales.localise_page(content, code, chosen in locales.LOCALES))
 
 
 @app.get("/")
@@ -1299,11 +1300,12 @@ def guide(request: Request) -> HTMLResponse:
     page people are sent to, and because the markdown itself stays readable in
     the repository and on GitHub.  In the app's language where the guide has
     been translated (``static/guides/<code>.md``), else the English as written."""
-    code = locales.resolve(setting_value("ui.language"), request.headers.get("accept-language"))
+    chosen = setting_value("ui.language")
+    code = locales.resolve(chosen, request.headers.get("accept-language"))
     translated = STATIC_DIR / "guides" / f"{code}.md"
     source = f"/static/guides/{code}.md" if translated.is_file() else "/static/guide.md"
     content = (STATIC_DIR / "guide.html").read_text(encoding="utf-8").replace("{{VERSION}}", _asset_version())
-    return HTMLResponse(locales.localise_page(content.replace("{{GUIDE}}", source), code))
+    return HTMLResponse(locales.localise_page(content.replace("{{GUIDE}}", source), code, chosen in locales.LOCALES))
 
 
 @app.get("/logs")
