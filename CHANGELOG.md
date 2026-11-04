@@ -39,6 +39,15 @@ cannot creep back in.
 
 ## Unreleased
 
+- **The app in thirteen languages.** Settings → **Language** chooses the language of the app's words: English (US),
+  English (UK), Simplified and Traditional Chinese, German, Dutch, French, Italian, Russian, Spanish (Spain and Latin
+  America) and Portuguese (Brazil and Portugal). It starts as the browser's language, or the nearest of these, and
+  US English where none fits. Every button, label, tip, message and setting is translated, and so are the messages
+  from the server that the page shows. Your titles, styles and lyrics stay as you wrote them, as do the style and
+  voice chips (they are words the model reads) and the labels on the mastering rack's faceplates. The translations
+  are machine-made. The guide is in English for now. US English is the default, with US spellings; UK English is the
+  text as it was.
+
 - **Choosing a take that uses a LoRA is quick again.** With many LoRAs installed, a click on such a take took a
   noticeable moment before the take panel and the player followed it: matching the style against the menu's ready-made
   styles looked up the chosen LoRA once for each of them. It is looked up once.
