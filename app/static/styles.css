@@ -429,7 +429,7 @@ textarea { resize: vertical; min-height: 78px; }
 textarea.style-box { min-height: 0; height: calc(1.45em + 22px); line-height: 1.45; resize: vertical; overflow-y: auto; }
 textarea.lyrics { min-height: 200px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 .label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.label-row label { font-size: 12.5px; color: var(--muted); }
+.label-row label { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
 .label-row .link { font-size: 12px; }
 .title-save-status {
   font-size: 12px;
@@ -874,7 +874,7 @@ button.icon { width: 42px; padding: 8px 0; text-align: center; }
 .modes { display: flex; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; margin-bottom: 18px; }
 .mode {
   flex: 1; padding: 9px 12px; border: 0; border-radius: 999px; background: transparent;
-  color: var(--muted); font: inherit; font-size: 13.5px; cursor: pointer;
+  color: var(--muted); font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap;
 }
 .mode.active { color: #fff; font-weight: 600; }
 .mode.active[data-mode="cover"] { background: linear-gradient(90deg, var(--cover-a), var(--cover-b)); }
@@ -1936,7 +1936,9 @@ label .lora-value:disabled { opacity: 0.6; }
 
 /* ---------- library ---------- */
 .library { min-width: 0; }
-.libhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+/* The heading and the tools share a row while they fit, and the tools go under the heading when they do not
+   (a narrow window, or a language with longer words), rather than squeezing the space's name away. */
+.libhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; margin-bottom: 14px; }
 /* The space on show, as the heading: a click opens the list of spaces under it. */
 .space-pick { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; }
 .space-title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 520px; cursor: pointer;
@@ -1982,6 +1984,8 @@ label .lora-value:disabled { opacity: 0.6; }
 .filters .tool-sep { width: 1px; height: 20px; background: var(--line); margin: 0 2px; }
 .filters .tool-sep.inner { height: 16px; margin: 0 1px; }
 .filters .chip { display: inline-flex; align-items: center; gap: 6px; }
+/* One line each: Chinese can otherwise break a two-character label between its characters. */
+.filters .chip, .filters .kinds button, .filters .picked-count { white-space: nowrap; }
 .filters .chip.hidden { display: none; }
 .filters .chip svg { width: 13px; height: 13px; flex: 0 0 auto; }
 /* The kinds, one pill of three: each lit while it is shown, none lit showing every kind. */

@@ -96,7 +96,9 @@ def browser():
 @pytest.fixture
 def page(browser, app_server, request):
     """A fresh browser context on the app, failing the test on any script error the page logs."""
-    context = browser.new_context(viewport={"width": 1600, "height": 1000})
+    # In UK English, the text as written in the page and the scripts, which the tests look for; a browser's own
+    # language would otherwise choose the app's (US English, where the tests' browser says nothing else).
+    context = browser.new_context(viewport={"width": 1600, "height": 1000}, locale="en-GB")
     page = context.new_page()
     page.set_default_timeout(15000)
     errors = []
