@@ -15,6 +15,8 @@
     } catch (err) { /* private mode: dark */ }
   })();
 </script>
+<!--{{LOCALE}}-->
+<script src="/static/i18n.js?v={{VERSION}}"></script>
 <link rel="stylesheet" href="/static/styles.css?v={{VERSION}}">
 <link rel="icon" type="image/svg+xml" href="/static/icon.svg?v={{VERSION}}">
 <style>
@@ -90,6 +92,7 @@
   <main class="guide-body" id="body">Loading the guide&hellip;</main>
 </div>
 
+<script>I18N.translateDom(document.body); document.title = I18N.t('Yeufonic — the guide');</script>
 <script src="/static/marked.min.js?v={{VERSION}}"></script>
 <script>
 /* The guide is markdown on disk so it stays diffable and readable on GitHub;
@@ -101,10 +104,19 @@
     return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   }
 
+  /* A translated heading keeps the English one's anchor, written after it as {#the-anchor}, so links into the
+     guide (its own, the README's) find the same section in every language. */
+  var ANCHOR = /\s*\{#([A-Za-z0-9_-]+)\}\s*$/;
+
   function buildToc(body, toc) {
     var links = [];
     var heads = body.querySelectorAll('h2, h3');
     Array.prototype.forEach.call(heads, function (head) {
+      var given = head.textContent.match(ANCHOR);
+      if (given) {
+        head.id = given[1];
+        head.innerHTML = head.innerHTML.replace(ANCHOR, '');
+      }
       head.id = head.id || slug(head.textContent);
       var link = document.createElement('a');
       link.href = '#' + head.id;
@@ -132,9 +144,9 @@
     mark();
   }
 
-  fetch('/static/guide.md?v=' + Date.now())
+  fetch('{{GUIDE}}?v=' + Date.now())
     .then(function (r) {
-      if (!r.ok) { throw new Error('the guide is missing (' + r.status + ')'); }
+      if (!r.ok) { throw new Error(I18N.t('the guide is missing ({status})', { status: r.status })); }
       return r.text();
     })
     .then(function (text) {
@@ -147,7 +159,7 @@
       }
     })
     .catch(function (err) {
-      document.getElementById('body').textContent = 'Could not load the guide: ' + err.message;
+      document.getElementById('body').textContent = I18N.t('Could not load the guide: {message}', { message: err.message });
     });
 
   function lockEscape() {

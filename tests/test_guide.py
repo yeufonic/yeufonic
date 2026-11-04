@@ -2,13 +2,15 @@
 import re
 from pathlib import Path
 
+import pytest
+
 GUIDE = Path(__file__).resolve().parent.parent / "app" / "static" / "guide.md"
 
 
 def test_the_guide_is_served(client):
-    r = client.get("/guide")
+    r = client.get("/guide", headers={"Accept-Language": "en-GB"})
     assert r.status_code == 200
-    assert "guide.md" in r.text, "the page has to fetch the markdown it renders"
+    assert "/static/guide.md" in r.text, "the page has to fetch the markdown it renders"
     assert "{{VERSION}}" not in r.text, "the version has to be stamped, or caching lies"
 
 
@@ -54,3 +56,62 @@ def test_the_guide_names_the_corpus_buttons():
     text = GUIDE.read_text(encoding="utf-8")
     for button in ("Scan the folder", "Analyse", "Export training set", "Train a LoRA", "Install a LoRA"):
         assert button in text, f"the guide does not name {button}"
+
+
+# ---- The guide in other languages: app/static/guides/<code>.md, one file per locale.
+
+GUIDES = GUIDE.parent / "guides"
+TRANSLATIONS = sorted(GUIDES.glob("*.md")) if GUIDES.is_dir() else []
+HEADING = re.compile(r"^(#{2,3}) (.+?)\s*$", re.M)
+ANCHOR = re.compile(r"\s*\{#([A-Za-z0-9_-]+)\}\s*$")
+FENCE = re.compile(r"^```", re.M)
+
+
+def slug(text):
+    """As guide.html makes an anchor from a heading."""
+    return re.sub(r"^-|-$", "", re.sub(r"[^a-z0-9]+", "-", text.lower()))
+
+
+def anchors(text):
+    """Each h2 and h3 as (level, anchor), the given {#anchor} where there is one."""
+    found = []
+    for level, head in HEADING.findall(text):
+        given = ANCHOR.search(head)
+        found.append((level, given.group(1) if given else slug(head)))
+    return found
+
+
+def test_a_language_with_a_guide_of_its_own_gets_it(client):
+    for path in TRANSLATIONS:
+        r = client.get("/guide", headers={"Accept-Language": path.stem})
+        assert f"/static/guides/{path.stem}.md" in r.text, path.stem
+        assert client.get(f"/static/guides/{path.stem}.md").status_code == 200
+
+
+def test_a_language_with_no_guide_gets_the_english(client):
+    r = client.get("/guide", headers={"Accept-Language": "tr-TR"})
+    assert "/static/guide.md" in r.text and "/static/guides/" not in r.text
+
+
+@pytest.mark.parametrize("path", TRANSLATIONS, ids=[p.stem for p in TRANSLATIONS])
+def test_a_translation_has_the_english_sections_and_anchors(path):
+    """The same chapters in the same order, each under the English heading's anchor, so a link into the guide
+    (its own, or the README's) lands on the same section in every language."""
+    english = anchors(GUIDE.read_text(encoding="utf-8"))
+    assert anchors(path.read_text(encoding="utf-8")) == english
+
+
+@pytest.mark.parametrize("path", TRANSLATIONS, ids=[p.stem for p in TRANSLATIONS])
+def test_a_translation_links_only_to_sections_it_has(path):
+    text = path.read_text(encoding="utf-8")
+    have = {anchor for _, anchor in anchors(text)}
+    dead = [target for target in re.findall(r"\]\(#([^)]+)\)", text) if target not in have]
+    assert not dead, f"{path.stem} links to {dead}"
+
+
+@pytest.mark.parametrize("path", TRANSLATIONS, ids=[p.stem for p in TRANSLATIONS])
+def test_a_translation_keeps_the_code_blocks(path):
+    """Commands and settings are typed as written: a translation has every fenced block of the English."""
+    english = re.findall(r"^```.*?^```", GUIDE.read_text(encoding="utf-8"), re.M | re.S)
+    theirs = re.findall(r"^```.*?^```", path.read_text(encoding="utf-8"), re.M | re.S)
+    assert theirs == english

@@ -1292,14 +1292,18 @@ def index(request: Request) -> HTMLResponse:
 
 
 @app.get("/guide")
-def guide() -> HTMLResponse:
+def guide(request: Request) -> HTMLResponse:
     """The user guide, which is markdown on disk and rendered in the browser.
 
     It is served from a tidy path rather than /static/guide.html because it is a
     page people are sent to, and because the markdown itself stays readable in
-    the repository and on GitHub."""
+    the repository and on GitHub.  In the app's language where the guide has
+    been translated (``static/guides/<code>.md``), else the English as written."""
+    code = locales.resolve(setting_value("ui.language"), request.headers.get("accept-language"))
+    translated = STATIC_DIR / "guides" / f"{code}.md"
+    source = f"/static/guides/{code}.md" if translated.is_file() else "/static/guide.md"
     content = (STATIC_DIR / "guide.html").read_text(encoding="utf-8").replace("{{VERSION}}", _asset_version())
-    return HTMLResponse(content)
+    return HTMLResponse(locales.localise_page(content.replace("{{GUIDE}}", source), code))
 
 
 @app.get("/logs")
