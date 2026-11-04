@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Choosing a take that uses a LoRA is quick again.** With many LoRAs installed, a click on such a take took a
+  noticeable moment before the take panel and the player followed it: matching the style against the menu's ready-made
+  styles looked up the chosen LoRA once for each of them. It is looked up once.
+
 - **The row above the takes is one row.** The space on show is its heading: click it for a list of spaces that finds
   one as you type, with the ones used lately first and each space's number of takes, and New space, Rename, Import
   take and Delete at its foot. The kinds, Starred (one switch where All and Starred were two), and the layout as

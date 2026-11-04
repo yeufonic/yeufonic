@@ -8540,12 +8540,12 @@ var CANNED_STYLES = [
   }
 ];
 
-function formatCannedStyle(prompt) {
-  var item = typeof loraChosen === 'function' ? loraChosen() : null;
-  if (item && item.trigger) {
-    return item.trigger + ', ' + prompt;
+function formatCannedStyle(prompt, trigger) {
+  if (trigger === undefined) {
+    var item = typeof loraChosen === 'function' ? loraChosen() : null;
+    trigger = (item && item.trigger) || '';
   }
-  return prompt;
+  return trigger ? trigger + ', ' + prompt : prompt;
 }
 
 function currentCannedStyle() {
@@ -8556,9 +8556,14 @@ function currentCannedStyle() {
     allKnownLoraTriggers().forEach(function (t) { cleanVal = removeStyleWord(cleanVal, t); });
     cleanVal = tidyStyle(cleanVal);
   }
+  // The LoRA chosen is looked up once, not once for each canned style: with a few hundred LoRAs installed, that
+  // lookup two hundred times over took most of half a second on every click on a take that uses one.
+  var chosen = typeof loraChosen === 'function' ? loraChosen() : null;
+  var trigger = (chosen && chosen.trigger) || '';
   for (var i = 0; i < CANNED_STYLES.length; i++) {
     var s = CANNED_STYLES[i];
-    if (tidyStyle(s.prompt) === val || tidyStyle(s.prompt) === cleanVal || tidyStyle(formatCannedStyle(s.prompt)) === val) {
+    var tidy = tidyStyle(s.prompt);
+    if (tidy === val || tidy === cleanVal || tidyStyle(formatCannedStyle(s.prompt, trigger)) === val) {
       return s;
     }
   }
