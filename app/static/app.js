@@ -423,6 +423,8 @@ async function pollState() {
     var data = await api('/api/state');
     try { paintStalePage(data.assets); } catch (e) {}
     State.pictures = Boolean(data.pictures);
+    // Made when asked for, whether or not each new take gets one by itself (a server from before says only that).
+    State.canDraw = data.pictures_drawable === undefined ? Boolean(data.pictures) : Boolean(data.pictures_drawable);
     State.klein = data.klein || State.klein || null;
     paintKleinFallback();
     if (Boolean(data.pictures_possible) !== Boolean(State.picturesPossible)) {
@@ -12823,7 +12825,7 @@ function paintEdPicture() {
   if (!btn) { return; }   // a page from before the button
   var take = editorTake();
   // Wherever something can draw, even with pictures off for new takes: one can still be made for this take.
-  var show = Boolean(editorOpen() && take && take.id && (State.pictures || State.picturesPossible || take.art));
+  var show = Boolean(editorOpen() && take && take.id && (State.canDraw || State.picturesPossible || take.art));
   btn.classList.toggle('hidden', !show);
   btn.classList.toggle('has-art', Boolean(show && take.art));
   // An icon among the take's others since it lost its word: its tip says what it holds, as theirs do.
@@ -13003,14 +13005,14 @@ async function paintCoverMake(pop, takeId) {
   var make = pop.querySelector('.cover-popup-make');
   var note = pop.querySelector('.cover-popup-none');
   if (!make || !note) { return; }
-  make.disabled = !State.pictures;
+  make.disabled = !State.canDraw;
   note.textContent = 'No picture yet.';
   if (!takeId) { return; }
   var art;
   try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { return; }
   if (pop.dataset.take !== takeId) { return; }   // the popup has moved to another take since
   var making = Boolean(ART_STATES[art.state]);
-  make.disabled = making || !State.pictures;
+  make.disabled = making || !State.canDraw;
   note.textContent = making ? ART_STATES[art.state]
     : art.state === 'failed' ? 'The last try failed: ' + (art.error || 'no reason given')
     : art.plain ? 'This take has the default background.' : 'No picture yet.';
@@ -13095,7 +13097,7 @@ async function paintPictureViewButtons(takeId, make, plain) {
   var art;
   try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { return; }
   var making = Boolean(ART_STATES[art.state]);
-  make.disabled = making || !State.pictures;
+  make.disabled = making || !State.canDraw;
   plain.disabled = making || Boolean(art.plain);
   if (making) { watchPictureView(takeId, art); }
 }
@@ -13213,7 +13215,7 @@ async function paintPictureMenu(takeId) {
     : art.plain ? 'This take has the default background.' : (art.has ? '' : (shown || 'No picture yet.'));
   menu.innerHTML = (take.art ? '<img class="ed-picture-thumb" src="' + esc(take.art) + '" alt="The take\'s picture" title="Show the whole picture" role="button" tabindex="0">' : '') +
     (note ? '<p class="ed-picture-note' + (art.state === 'failed' ? ' bad' : '') + '">' + esc(note) + '</p>' : '') +
-    '<button type="button" role="menuitem" data-pic="make"' + (making || !State.pictures ? ' disabled' : '') + '>Make a new picture</button>' +
+    '<button type="button" role="menuitem" data-pic="make"' + (making || !State.canDraw ? ' disabled' : '') + '>Make a new picture</button>' +
     '<button type="button" role="menuitem" data-pic="plain"' + (making || art.plain ? ' disabled' : '') + '>Use the default background</button>';
   var thumb = menu.querySelector('.ed-picture-thumb');
   if (thumb) {
@@ -14683,10 +14685,10 @@ function wire() {
   var lastCardClick = { time: 0, id: null };
   $('takes').addEventListener('click', function (event) {
     var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"], [data-act="cover-make"]');
-    if (coverEl && (coverEl.dataset.art || State.pictures)) {
+    if (coverEl && (coverEl.dataset.art || State.canDraw)) {
       event.preventDefault();
       event.stopPropagation();
-      var art = coverEl.dataset.art;
+      var art = coverEl.dataset.art || '';   // none yet: the popup offers to make one
       var title = coverEl.dataset.title;
       showCoverPopup(coverEl, art, title, true);
       return;
@@ -14762,7 +14764,7 @@ function wire() {
     if (!coverEl) { return; }
     if (event.relatedTarget && coverEl.contains(event.relatedTarget)) { return; }
     // A square with no picture offers to make one, where this PC can make pictures.
-    if (!coverEl.dataset.art && !State.pictures) { return; }
+    if (!coverEl.dataset.art && !State.canDraw) { return; }
     showCoverPopup(coverEl, coverEl.dataset.art || '', coverEl.dataset.title, false);
   });
 
@@ -14776,10 +14778,10 @@ function wire() {
   $('takes').addEventListener('keydown', function (event) {
     if (event.key === 'Enter' || event.key === ' ') {
       var coverEl = event.target.closest('.cover.has-art, [data-act="cover-pic"], [data-act="cover-make"]');
-      if (coverEl && (coverEl.dataset.art || State.pictures)) {
+      if (coverEl && (coverEl.dataset.art || State.canDraw)) {
         event.preventDefault();
         event.stopPropagation();
-        var art = coverEl.dataset.art;
+        var art = coverEl.dataset.art || '';   // none yet: the popup offers to make one
         var title = coverEl.dataset.title;
         showCoverPopup(coverEl, art, title, true);
       }

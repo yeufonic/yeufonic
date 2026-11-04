@@ -153,3 +153,37 @@ def test_a_setting_is_kept(page, app_server):
         time.sleep(0.3)
     page.click("#settings-close")
     page.wait_for_selector("#settings-modal", state="hidden")
+
+
+def test_with_pictures_off_for_new_takes_a_picture_is_made_when_asked(page, app_server):
+    """Take pictures set to make none by itself: a new take has none, its square still offers to make one, and the
+    settings for how pictures are made stay on show."""
+    choice = open_settings(page)
+    page.locator('#settings-list [data-key="art.auto"]').select_option("off")
+    deadline = time.time() + 10
+    while next(x for x in api(app_server, "/api/settings")["settings"] if x["key"] == "art.auto")["value"] != "off":
+        assert time.time() < deadline, "the setting was not saved"
+        time.sleep(0.3)
+    assert choice.is_visible()                        # how pictures are made, still shown
+    page.keyboard.press("Escape")
+    page.wait_for_function("() => window.State && State.pictures === false && State.canDraw === true", timeout=10000)
+    try:
+        made = make_song(page, app_server, style="lo-fi, rainy window")
+        time.sleep(2)
+        assert not api(app_server, f"/api/takes/{made['id']}/art")["has"]
+        square = card(page, made["id"]).locator(".cover")
+        square.click()
+        page.wait_for_selector("#cover-popup:not(.hidden) .cover-popup-make:not([disabled])")
+        page.click("#cover-popup .cover-popup-make")
+        page.wait_for_function("(id) => { const c = document.querySelector(`#takes article.take[data-id='${id}'] .cover`);"
+                               " return c && c.classList.contains('has-art'); }", arg=made["id"], timeout=60000)
+    finally:
+        urllib_put(app_server, "/api/settings", {"key": "art.auto", "value": "on"})
+
+
+def urllib_put(app_server, path, body):
+    import json
+    import urllib.request
+    request = urllib.request.Request(app_server["url"] + path, data=json.dumps(body).encode(), method="PUT",
+                                     headers={"Content-Type": "application/json", "Origin": app_server["url"]})
+    urllib.request.urlopen(request, timeout=10).read()

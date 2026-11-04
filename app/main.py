@@ -396,12 +396,13 @@ SETTINGS_SPEC: list[dict] = [
         "default": "on",
         "options": [
             {"value": "on", "label": "Make one for each new take"},
-            {"value": "off", "label": "No pictures: the default background"},
+            {"value": "off", "label": "Only when asked: the default background until one is made"},
         ],
         "help": "Each new take gets a picture of the song, made while it renders and shown behind its card and the "
                 "editor. Takes made inside another show that one's. It is drawn on this PC by klein, where FLUX.2 "
                 "klein was chosen when installing, or by the external LLM's image model, one request each, which may be "
-                "charged.",
+                "charged. Either way a picture can be made for any take from its square or the editor's Picture "
+                "button, with the settings below.",
     },
     {
         "key": "art.drawer",
@@ -416,7 +417,7 @@ SETTINGS_SPEC: list[dict] = [
         ],
         "help": "klein draws on this PC once no song is being made, at no cost: FLUX.2 klein 4B, 9B or FLUX 3 klein, "
                 "as chosen under klein model. The external LLM's image model draws beside them, one request a picture.",
-        "requires": {"pictures": "possible", "art.auto": "on"},
+        "requires": {"pictures": "possible"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },
     {
@@ -434,7 +435,7 @@ SETTINGS_SPEC: list[dict] = [
         "help": "Which klein draws on this PC. The FLUX.2 9B is higher quality, for graphics cards with more video "
                 "memory; FLUX 3 klein letters well and suits a 12 GB card or larger. Both are added by hand: see the "
                 "guide.",
-        "requires": {"pictures": "possible", "art.auto": "on", "art.drawer": ["auto", "local"]},
+        "requires": {"pictures": "possible", "art.drawer": ["auto", "local"]},
         "requires_note": "Only for pictures drawn on this PC: choose This PC under Take pictures: drawn by.",
     },
     {
@@ -455,7 +456,7 @@ SETTINGS_SPEC: list[dict] = [
                 "is installed, or the external LLM (a request each). From the take itself needs no LLM: it is quick, "
                 "and nothing is sent out for it. The external LLM chosen and not there (or local for this session) "
                 "falls back to Gemma when it is installed; otherwise the take's own description is used.",
-        "requires": {"pictures": "possible", "art.auto": "on"},
+        "requires": {"pictures": "possible"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
     },
     {
@@ -466,7 +467,7 @@ SETTINGS_SPEC: list[dict] = [
         "default": artwork.DEFAULT_ART_STYLE,
         "help": "How the picture should look, given to the LLM that writes its image prompt. Emptied, it goes back "
                 "to this default.",
-        "requires": {"pictures": "possible", "art.auto": "on", "art.words": ["auto", "local", "external"]},
+        "requires": {"pictures": "possible", "art.words": ["auto", "local", "external"]},
         "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
     },
     {
@@ -481,7 +482,7 @@ SETTINGS_SPEC: list[dict] = [
         ],
         "help": "Letters the song's title on the cover in bold: mostly in a band of an off-white border, as on a 1970s "
                 "sleeve, and sometimes over the picture itself. The drawing on this PC may spell it imperfectly.",
-        "requires": {"pictures": "possible", "art.auto": "on", "art.words": ["auto", "local", "external"]},
+        "requires": {"pictures": "possible", "art.words": ["auto", "local", "external"]},
         "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
     },
     {
@@ -493,7 +494,7 @@ SETTINGS_SPEC: list[dict] = [
         "max_length": 512,
         "help": "Words to start every picture's image prompt with, such as \"big sky, doom-laden\" (up to 512 "
                 "characters). The image prompt the LLM writes follows them. Empty: none.",
-        "requires": {"pictures": "possible", "art.auto": "on", "art.words": ["auto", "local", "external"]},
+        "requires": {"pictures": "possible", "art.words": ["auto", "local", "external"]},
         "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
     },
     {
@@ -506,7 +507,7 @@ SETTINGS_SPEC: list[dict] = [
                 "gemini-3.1-flash-image, "
                 "gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 "
                 "otherwise. Each picture is one image request to the provider, which may be charged.",
-        "requires": {"art.auto": "on", "art.drawer": "external"},
+        "requires": {"art.drawer": "external"},
         "requires_note": "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.",
     },
     {
@@ -641,7 +642,8 @@ def settings_payload() -> list[dict]:
             value = "off"
             spec = {**spec,
                     "options": [{**option, "disabled": True, "label": option["label"] + " (nothing here can draw them yet)"}
-                                if option["value"] == "on" else option for option in spec["options"]],
+                                if option["value"] == "on" else {**option, "label": "No pictures: the default background"}
+                                for option in spec["options"]],
                     "help": "Nothing here can draw a take's picture yet, so takes keep the default background. To have "
                             "pictures, choose FLUX.2 [klein] when installing or updating (a large download, which draws "
                             "them on this PC), or set up an external LLM whose provider has an image model (Gemini has)."}
@@ -1627,6 +1629,8 @@ def state() -> dict:
         "assets": _asset_version(),
         "pictures": artwork.automatic(),
         "pictures_possible": artwork.possible(),
+        # Whether a picture can be made now when asked for, with pictures for new takes on or off.
+        "pictures_drawable": artwork.drawing_problem() is None,
         # Which sizes of FLUX.2 klein this PC can draw with, and the one that draws: Settings say when the size
         # chosen is not there and the other draws instead.
         "klein": {"installed": sorted((ENGINE.options or {}).get("klein") or {}), "drawing": artwork.klein_size(),

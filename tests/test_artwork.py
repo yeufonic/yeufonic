@@ -535,7 +535,7 @@ def test_in_the_gpu_lane_a_failed_external_description_goes_straight_to_gemma(cl
 
 def test_the_image_model_setting_only_applies_when_the_provider_draws(client):
     shown = next(s for s in client.get("/api/settings").json()["settings"] if s["key"] == "art.model")
-    assert shown["requires"] == {"art.auto": "on", "art.drawer": "external"} and shown["requires_note"]
+    assert shown["requires"] == {"art.drawer": "external"} and shown["requires_note"]
     words = next(s for s in client.get("/api/settings").json()["settings"] if s["key"] == "art.words")
     assert words["default"] == "auto" and [o["value"] for o in words["options"]] == ["auto", "local", "take", "external"]
 
@@ -572,6 +572,20 @@ def test_with_nothing_to_draw_take_pictures_says_no_pictures(client, monkeypatch
     assert artwork.automatic()
     set_setting("art.auto", "off")                        # chosen off: kept off
     assert picture_setting()["value"] == "off" and not artwork.automatic()
+
+
+def test_with_pictures_off_for_new_takes_one_can_still_be_made_when_asked(client, monkeypatch):
+    """Off means none by itself: the page still offers Make a picture, and Settings still show how it is made."""
+    external()
+    set_setting("art.auto", "off")
+    state = client.get("/api/state").json()
+    assert state["pictures"] is False and state["pictures_drawable"] is True
+    settings = {s["key"]: s for s in client.get("/api/settings").json()["settings"]}
+    assert all("art.auto" not in (settings[key].get("requires") or {})
+               for key in ("art.drawer", "art.klein", "art.words", "art.style", "art.title", "art.prompt", "art.model"))
+    take = a_take()
+    monkeypatch.setattr(jobs, "start_art", lambda take_id: None)
+    assert client.post(f"/api/takes/{take['id']}/art").status_code == 200
 
 
 def test_a_picture_waits_until_no_song_is_being_made(client, monkeypatch):
