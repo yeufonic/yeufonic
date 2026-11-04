@@ -2508,7 +2508,19 @@ label .lora-value:disabled { opacity: 0.6; }
 /* How far it has got: a line along the pill's foot. */
 .job-pill-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgb(var(--ink) / 0.06); }
 .job-pill-bar > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-a), var(--accent-b)); transition: width 0.5s ease; }
-@media (prefers-reduced-motion: reduce) { .job-pill-dot { animation: none; } }
+/* While a job runs the pill breathes: its edge and a tint of the accent swell and fade together, slowly enough to
+   read as working rather than as an alert. Pointed at or open, it holds at its brightest. */
+.job-pill { animation: job-pill-breathe 2s ease-in-out infinite; }
+.job-pill:hover, .job-pill[aria-expanded="true"] { animation: none; background: rgb(var(--accent-a-rgb) / 0.16); }
+@keyframes job-pill-breathe {
+  0%, 100% { border-color: rgb(var(--accent-a-rgb) / 0.35); background-color: var(--panel); box-shadow: 0 0 0 0 rgb(var(--accent-a-rgb) / 0); }
+  50% { border-color: rgb(var(--accent-a-rgb) / 0.95); background-color: rgb(var(--accent-a-rgb) / 0.18); box-shadow: 0 0 10px 1px rgb(var(--accent-a-rgb) / 0.35); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .job-pill-dot { animation: none; }
+  /* No motion: the pill keeps the accent it would breathe to, so it still stands out. */
+  .job-pill { animation: none; border-color: rgb(var(--accent-a-rgb) / 0.85); background: rgb(var(--accent-a-rgb) / 0.14); }
+}
 .job-panel { position: absolute; top: calc(100% + 8px); left: 0; z-index: 50; width: 420px; max-width: calc(100vw - 30px);
   background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px;
   box-shadow: 0 16px 36px rgb(var(--shade) / 0.55), 0 2px 8px rgb(var(--shade) / 0.35); }
