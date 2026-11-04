@@ -143,6 +143,8 @@ function applyKinds(kinds) {
     chip.classList.toggle('active', on);
     chip.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
+  var group = document.querySelector('.filters .kinds');
+  if (group) { group.classList.toggle('some', State.kinds.length > 0); }
   try { localStorage.setItem(KINDS_KEY, JSON.stringify(State.kinds)); } catch (err) { /* private mode */ }
 }
 

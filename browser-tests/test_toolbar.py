@@ -69,6 +69,18 @@ def test_the_view_icons_show_which_layout_is_on(page, app_server):
     page.click("#fold-toggle")
     assert page.locator("#fold-toggle").get_attribute("aria-pressed") == "true"
     page.click("#fold-toggle")
+    # A kind shown is lit, and the others fade; clicking it again shows every kind.
+    page.locator(".filters .kinds").screenshot(path="browser-tests/artifacts/kinds-none.png")
+    page.click('[data-takekind="cover"]')
+    assert page.locator('[data-takekind="cover"]').get_attribute("aria-pressed") == "true"
+    assert "some" in page.locator(".filters .kinds").get_attribute("class")
+    page.locator(".filters .kinds").screenshot(path="browser-tests/artifacts/kinds-one.png")
+    page.click('[data-takekind="song"]')
+    page.mouse.move(5, 600)
+    page.locator(".filters .kinds").screenshot(path="browser-tests/artifacts/kinds-two.png")
+    page.click('[data-takekind="song"]')
+    page.click('[data-takekind="cover"]')
+    assert "some" not in page.locator(".filters .kinds").get_attribute("class")
     # Starred is one switch.
     page.click('[data-filter="favourite"]')
     page.wait_for_function("() => State.filter === 'favourite'")
