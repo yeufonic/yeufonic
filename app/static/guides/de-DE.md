@@ -1314,7 +1314,7 @@ von Black Forest Labs stehen, aber leg sie an ihren Platz, und sie werden benutz
    `engine\ComfyUI\models` im Installationsordner unter **Windows**; unter `engine/ComfyUI/models/` im
    Installationsordner auf einem **Mac**.
 4. **Lass die App sie sehen, und wähle es.** Starte Yeufonic neu (mit Docker `docker compose restart app`)
-   und setze dann **Take-Bilder: klein-Modell** in den Einstellungen auf *FLUX.2 klein 9B*. Bis dahin zeichnet der 4B, und
+   und setze dann **Take-Bilder: Modell** in den Einstellungen auf *FLUX.2 klein 9B*. Bis dahin zeichnet der 4B, und
    die Einstellungen sagen es, wenn der 9B gewählt ist, hier aber nicht zeichnen kann. Wähle
    *4B*, um zurückzugehen, ohne etwas zu entfernen. Die Notiz zum Bild im Editor sagt, wer es gezeichnet hat
    (*drawn by FLUX.2 klein 9B on this PC*).
@@ -1342,7 +1342,7 @@ kann gewählt werden.
 3. **Sein Textencoder,** in den Ordner `text_encoders`: `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB) oder
    `qwen3vl_4b_bf16.safetensors` (8,9 GB, für einen Mac).
 4. **Lass die App sie sehen, und wähle es:** Starte Yeufonic neu (mit Docker `docker compose restart app`) und setze dann
-   **Take-Bilder: klein-Modell** in den Einstellungen auf *FLUX 3 klein*. Die Notiz zum Bild im Editor sagt *drawn by
+   **Take-Bilder: Modell** in den Einstellungen auf *FLUX 3 klein*. Die Notiz zum Bild im Editor sagt *drawn by
    FLUX 3 klein on this PC*.
 
 Die Ordner sind dieselben wie beim 9B, und die Dateien werden nur unter diesen Namen gefunden.
@@ -1372,7 +1372,7 @@ Song, den du verkaufst, eine Vereinbarung mit Bria. Lies die Lizenz, bevor du es
 3. **Sein Textencoder,** falls FLUX 3 nicht installiert ist: `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB) oder
    `qwen3vl_4b_bf16.safetensors` (8,9 GB, für einen Mac), von derselben Seite, in den Ordner `text_encoders`.
 4. **Lass die App sie sehen, und wähle es:** Starte Yeufonic neu (mit Docker `docker compose restart app`) und setze dann
-   **Take-Bilder: klein-Modell** in den Einstellungen auf *FIBO 2.0*. Die Notiz zum Bild im Editor sagt *drawn by FIBO 2.0
+   **Take-Bilder: Modell** in den Einstellungen auf *FIBO 2.0*. Die Notiz zum Bild im Editor sagt *drawn by FIBO 2.0
    on this PC*.
 
 **Um mit einer externen LLM zu zeichnen,** öffne die Einstellungen und setze **LLM für Songtexte & Stil-Tags** auf die
@@ -1391,8 +1391,8 @@ Richte eines ein, und sie gehen an: Bilder werden dann für die Takes gemacht, d
 | Einstellung | Bewirkt |
 |---|---|
 | **Take-Bilder** | *Für jeden neuen Take eins machen* (der Standard, wo etwas zeichnen kann) oder *Nur auf Anfrage*, wo ein Take den Standardhintergrund behält, bis du eins über sein Quadrat oder die Schaltfläche Bild im Editor machst. Die Einstellungen darunter formen ein Bild in beiden Fällen. Es heißt *Keine Bilder*, solange hier nichts zeichnen kann. |
-| **Take-Bilder: gezeichnet von** | *Dieser PC, wenn klein installiert ist, sonst die externe LLM* (der Standard), *Dieser PC (das klein-Modell unten)* oder *Das Bildmodell der externen LLM*. Welches klein auf diesem PC zeichnet (FLUX.2 klein 4B oder 9B oder FLUX 3 klein), wird unter **klein-Modell** gewählt. FIBO 2.0 wird ebenfalls dort gewählt. |
-| **Take-Bilder: klein-Modell** | *FLUX.2 klein 4B* (der Standard), *FLUX.2 klein 9B*, *FLUX 3 klein* oder *9B, wo seine Dateien installiert sind, sonst 4B*. Nur für auf diesem PC gezeichnete Bilder. Der 9B und FLUX 3 werden nie für dich installiert: siehe [FLUX.2 klein 9B und FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) oben. Wird eines verlangt, ist aber nicht da, zeichnet ein anderes, und die Einstellungen sagen, welches. *FIBO 2.0* wird ebenfalls von Hand hinzugefügt und ist nur für nichtkommerzielle Nutzung: siehe oben. |
+| **Take-Bilder: gezeichnet von** | *Dieser PC, wenn klein installiert ist, sonst die externe LLM* (der Standard), *Dieser PC (das Modell unten)* oder *Das Bildmodell der externen LLM*. Welches klein auf diesem PC zeichnet (FLUX.2 klein 4B oder 9B oder FLUX 3 klein), wird unter **Modell** gewählt. FIBO 2.0 wird ebenfalls dort gewählt. |
+| **Take-Bilder: Modell** | *FLUX.2 klein 4B* (der Standard), *FLUX.2 klein 9B*, *FLUX 3 klein* oder *9B, wo seine Dateien installiert sind, sonst 4B*. Nur für auf diesem PC gezeichnete Bilder. Der 9B und FLUX 3 werden nie für dich installiert: siehe [FLUX.2 klein 9B und FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) oben. Wird eines verlangt, ist aber nicht da, zeichnet ein anderes, und die Einstellungen sagen, welches. *FIBO 2.0* wird ebenfalls von Hand hinzugefügt und ist nur für nichtkommerzielle Nutzung: siehe oben. |
 | **Take-Bilder: beschrieben von** | wer den Bild-Prompt schreibt, aus dem Titel des Takes, dem Kunststil unten, seinem Stil und seinem Text (bis zu 50 Zeilen). *Lokales Gemma, wenn installiert, sonst der Take selbst* (der Standard), egal wer zeichnet. *Lokales Gemma*: auf diesem PC geschrieben; braucht die Option Songtext-Entwürfe. *Aus dem Take selbst*: keine LLM; eine Beschreibung aus Titel, Stil und ersten Worten des Takes, am schnellsten, und nichts wird dafür verschickt. Oder die *Externe LLM*, eine Anfrage pro Bild; ist sie nicht erreichbar oder wechselst du für die Sitzung zu lokalen LLMs, schreibt Gemma sie stattdessen, wenn es installiert ist. |
 | **Take-Bilder: Kunststil** | wie das Bild aussehen soll, an die LLM gegeben, die den Bild-Prompt schreibt (ausgegraut, wenn der Take sich selbst beschreibt). Standardmäßig ein abstraktes, surrealistisches Design im Stil von Albumcovern der 1970er und 1980er, ohne Text oder Menschen. Geleert geht es dorthin zurück. |
 | **Take-Bilder: dein eigener Prompt** | Wörter, mit denen der Bild-Prompt jedes Bildes beginnt, etwa *big sky, doom-laden*, bis zu 512 Zeichen; der Prompt, den die LLM schreibt, folgt darauf. Leer (der Standard): keine. Nur, wenn eine LLM den Bild-Prompt schreibt (ausgegraut, wenn der Take sich selbst beschreibt). |

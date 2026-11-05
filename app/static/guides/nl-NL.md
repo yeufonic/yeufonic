@@ -1314,7 +1314,7 @@ van Black Forest Labs vallen, maar zet ze op hun plek en ze worden gebruikt.
    `engine\ComfyUI\models` in de installatiemap op **Windows**; onder `engine/ComfyUI/models/` in de
    installatiemap op een **Mac**.
 4. **Laat de app ze zien, en kies hem.** Herstart Yeufonic (met Docker, `docker compose restart app`),
-   en zet dan **Take-afbeeldingen: klein-model** in Instellingen op *FLUX.2 klein 9B*. De 4B tekent tot je dat doet, en
+   en zet dan **Take-afbeeldingen: model** in Instellingen op *FLUX.2 klein 9B*. De 4B tekent tot je dat doet, en
    Instellingen zegt het als de 9B gekozen is maar hier niet kan tekenen. Kies
    *4B* om terug te gaan zonder iets weg te halen. De notitie bij de afbeelding in de editor zegt welke hem tekende
    (*drawn by FLUX.2 klein 9B on this PC*).
@@ -1342,7 +1342,7 @@ wordt kiesbaar.
 3. **Zijn tekstencoder,** in de map `text_encoders`: `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB) of
    `qwen3vl_4b_bf16.safetensors` (8,9 GB, voor een Mac).
 4. **Laat de app ze zien, en kies het:** herstart Yeufonic (met Docker, `docker compose restart app`), en zet dan
-   **Take-afbeeldingen: klein-model** in Instellingen op *FLUX 3 klein*. De notitie bij de afbeelding in de editor zegt *drawn by
+   **Take-afbeeldingen: model** in Instellingen op *FLUX 3 klein*. De notitie bij de afbeelding in de editor zegt *drawn by
    FLUX 3 klein on this PC*.
 
 De mappen zijn dezelfde als voor de 9B, en de bestanden worden alleen onder deze namen gevonden.
@@ -1372,7 +1372,7 @@ Bria nodig. Lees de licentie voordat je het gebruikt.
 3. **De tekstencoder,** als FLUX 3 niet geïnstalleerd is: `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB) of
    `qwen3vl_4b_bf16.safetensors` (8,9 GB, voor een Mac), van dezelfde pagina, in de map `text_encoders`.
 4. **Laat de app ze zien, en kies het:** start Yeufonic opnieuw (met Docker `docker compose restart app`) en zet dan
-   **Take-afbeeldingen: klein-model** in de Instellingen op *FIBO 2.0*. De notitie bij de afbeelding in de editor zegt
+   **Take-afbeeldingen: model** in de Instellingen op *FIBO 2.0*. De notitie bij de afbeelding in de editor zegt
    *drawn by FIBO 2.0 on this PC*.
 
 **Om met een externe LLM te tekenen,** open je Instellingen en zet je **LLM voor het schrijven van songteksten & stijltags** op de
@@ -1391,8 +1391,8 @@ Stel een van beide in en ze gaan aan: vanaf dan worden er afbeeldingen gemaakt v
 | Instelling | Doet |
 |---|---|
 | **Take-afbeeldingen** | *Maak er een voor elke nieuwe take* (de standaard als iets kan tekenen), of *Alleen op verzoek*, waarbij een take de standaardachtergrond houdt tot je er een maakt via zijn vierkantje of de knop Afbeelding in de editor. De instellingen hieronder vormen een afbeelding die op een van beide manieren is gemaakt. Staat op *Geen afbeeldingen* zolang niets hier kan tekenen. |
-| **Take-afbeeldingen: getekend door** | *Deze pc als klein geïnstalleerd is, anders de externe LLM* (standaard), *Deze pc (het klein-model hieronder)* of *Het afbeeldingsmodel van de externe LLM*. Welke klein op deze pc tekent (FLUX.2 klein 4B of 9B, of FLUX 3 klein) kies je bij **klein-model**. FIBO 2.0 wordt daar ook gekozen. |
-| **Take-afbeeldingen: klein-model** | *FLUX.2 klein 4B* (standaard), *FLUX.2 klein 9B*, *FLUX 3 klein*, of *9B waar zijn bestanden geïnstalleerd zijn, anders 4B*. Alleen voor afbeeldingen getekend op deze pc. De 9B en FLUX 3 worden nooit voor je geïnstalleerd: zie [FLUX.2 klein 9B en FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) hierboven. Als de gevraagde er niet is, tekent een andere, en Instellingen zegt welke. *FIBO 2.0* wordt ook met de hand toegevoegd en is alleen voor niet-commercieel gebruik: zie hierboven. |
+| **Take-afbeeldingen: getekend door** | *Deze pc als klein geïnstalleerd is, anders de externe LLM* (standaard), *Deze pc (het model hieronder)* of *Het afbeeldingsmodel van de externe LLM*. Welke klein op deze pc tekent (FLUX.2 klein 4B of 9B, of FLUX 3 klein) kies je bij **model**. FIBO 2.0 wordt daar ook gekozen. |
+| **Take-afbeeldingen: model** | *FLUX.2 klein 4B* (standaard), *FLUX.2 klein 9B*, *FLUX 3 klein*, of *9B waar zijn bestanden geïnstalleerd zijn, anders 4B*. Alleen voor afbeeldingen getekend op deze pc. De 9B en FLUX 3 worden nooit voor je geïnstalleerd: zie [FLUX.2 klein 9B en FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) hierboven. Als de gevraagde er niet is, tekent een andere, en Instellingen zegt welke. *FIBO 2.0* wordt ook met de hand toegevoegd en is alleen voor niet-commercieel gebruik: zie hierboven. |
 | **Take-afbeeldingen: beschreven door** | wie de afbeeldingsprompt schrijft, uit de titel van de take, de kunststijl hieronder, zijn stijl en zijn tekst (tot 50 regels). *Lokale Gemma als die geïnstalleerd is, anders de take zelf* (standaard), wie er ook tekent. *Lokale Gemma*: geschreven op deze pc; heeft de optie Tekstconcepten nodig. *Uit de take zelf*: geen LLM; een beschrijving gemaakt uit de titel, stijl en eerste woorden van de take, de snelste, en er wordt niets verstuurd. Of de *externe LLM*, één verzoek per afbeelding; als die niet beschikbaar is, of je voor de sessie naar lokale LLM's overschakelt, schrijft Gemma ze in plaats daarvan als die geïnstalleerd is. |
 | **Take-afbeeldingen: kunststijl** | hoe de afbeelding eruit moet zien, gegeven aan de LLM die de afbeeldingsprompt schrijft (gedimd als de take zichzelf beschrijft). Standaard een abstract, surrealistisch ontwerp in de stijl van hoezen uit de jaren zeventig en tachtig, zonder tekst of mensen. Leeggemaakt gaat het daarnaar terug. |
 | **Take-afbeeldingen: je eigen prompt** | woorden waarmee de afbeeldingsprompt van elke afbeelding begint, zoals *big sky, doom-laden*, tot 512 tekens; de prompt die de LLM schrijft volgt erna. Leeg (standaard): geen. Alleen als een LLM de afbeeldingsprompt schrijft (gedimd als de take zichzelf beschrijft). |

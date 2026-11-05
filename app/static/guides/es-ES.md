@@ -1314,7 +1314,7 @@ de Black Forest Labs, pero ponlos en su sitio y se usan.
    `engine\ComfyUI\models` en la carpeta de instalación en **Windows**; bajo `engine/ComfyUI/models/` en la
    carpeta de instalación en un **Mac**.
 4. **Deja que la aplicación los vea, y elígelo.** Reinicia Yeufonic (con Docker, `docker compose restart app`),
-   y luego pon **Imágenes de las tomas: modelo klein** en Configuración en *FLUX.2 klein 9B*. El 4B dibuja hasta que lo hagas, y
+   y luego pon **Imágenes de las tomas: modelo** en Configuración en *FLUX.2 klein 9B*. El 4B dibuja hasta que lo hagas, y
    Configuración lo indica cuando el 9B está elegido pero no puede dibujar aquí. Elige
    *4B* para volver atrás sin quitar nada. La nota de la imagen en el editor dice cuál la dibujó
    (*drawn by FLUX.2 klein 9B on this PC*).
@@ -1342,7 +1342,7 @@ puede elegir.
 3. **Su codificador de texto,** en la carpeta `text_encoders`: `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB) o
    `qwen3vl_4b_bf16.safetensors` (8,9 GB, para un Mac).
 4. **Deja que la aplicación los vea, y elígelo:** reinicia Yeufonic (con Docker, `docker compose restart app`), y luego pon
-   **Imágenes de las tomas: modelo klein** en Configuración en *FLUX 3 klein*. La nota de la imagen en el editor dice *drawn by
+   **Imágenes de las tomas: modelo** en Configuración en *FLUX 3 klein*. La nota de la imagen en el editor dice *drawn by
    FLUX 3 klein on this PC*.
 
 Las carpetas son las mismas que para el 9B, y los archivos solo se encuentran con estos nombres.
@@ -1372,7 +1372,7 @@ vendas, necesita un acuerdo con Bria. Lee la licencia antes de usarlo.
 3. **Su codificador de texto,** si FLUX 3 no está instalado: `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB) o
    `qwen3vl_4b_bf16.safetensors` (8,9 GB, para un Mac), de la misma página, en la carpeta `text_encoders`.
 4. **Deja que la app los vea, y elígelo:** reinicia Yeufonic (con Docker, `docker compose restart app`) y después pon
-   **Imágenes de las tomas: modelo klein** en Ajustes en *FIBO 2.0*. La nota de la imagen en el editor dice *drawn by
+   **Imágenes de las tomas: modelo** en Ajustes en *FIBO 2.0*. La nota de la imagen en el editor dice *drawn by
    FIBO 2.0 on this PC*.
 
 **Para dibujar con un LLM externo,** abre Configuración y pon **LLM para escribir letras y etiquetas de estilo** en el
@@ -1391,8 +1391,8 @@ Configura cualquiera de los dos y se activan: a partir de entonces se hacen imá
 | Ajuste | Hace |
 |---|---|
 | **Imágenes de las tomas** | *Hacer una para cada toma nueva* (por defecto cuando algo puede dibujar), o *Solo cuando se pida*, donde una toma mantiene el fondo por defecto hasta que hagas una desde su cuadrado o el botón Imagen del editor. Los ajustes de abajo dan forma a una imagen hecha de cualquiera de las dos maneras. Es *Sin imágenes* mientras nada aquí pueda dibujar. |
-| **Imágenes de las tomas: dibujadas por** | *Este PC si klein está instalado, si no el LLM externo* (por defecto), *Este PC (el modelo klein de abajo)* o *El modelo de imagen del LLM externo*. Qué klein dibuja en este PC (FLUX.2 klein 4B o 9B, o FLUX 3 klein) se elige en **modelo klein**. FIBO 2.0 también se elige ahí. |
-| **Imágenes de las tomas: modelo klein** | *FLUX.2 klein 4B* (por defecto), *FLUX.2 klein 9B*, *FLUX 3 klein*, o *9B donde estén instalados sus archivos, si no 4B*. Solo para imágenes dibujadas en este PC. El 9B y FLUX 3 nunca se instalan por ti: consulta [FLUX.2 klein 9B y FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) más arriba. Si el pedido no está, dibuja otro, y Configuración dice cuál. *FIBO 2.0* también se añade a mano y es solo para uso no comercial: consulta más arriba. |
+| **Imágenes de las tomas: dibujadas por** | *Este PC si klein está instalado, si no el LLM externo* (por defecto), *Este PC (el modelo de abajo)* o *El modelo de imagen del LLM externo*. Qué klein dibuja en este PC (FLUX.2 klein 4B o 9B, o FLUX 3 klein) se elige en **modelo**. FIBO 2.0 también se elige ahí. |
+| **Imágenes de las tomas: modelo** | *FLUX.2 klein 4B* (por defecto), *FLUX.2 klein 9B*, *FLUX 3 klein*, o *9B donde estén instalados sus archivos, si no 4B*. Solo para imágenes dibujadas en este PC. El 9B y FLUX 3 nunca se instalan por ti: consulta [FLUX.2 klein 9B y FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) más arriba. Si el pedido no está, dibuja otro, y Configuración dice cuál. *FIBO 2.0* también se añade a mano y es solo para uso no comercial: consulta más arriba. |
 | **Imágenes de las tomas: descritas por** | quién escribe el prompt de imagen, a partir del título de la toma, el estilo artístico de abajo, su estilo y su letra (hasta 50 líneas). *Gemma local si está instalado, si no la propia toma* (por defecto), dibuje quien dibuje. *Gemma local*: escrito en este PC; necesita la opción Borradores de letra. *A partir de la propia toma*: sin LLM; una descripción hecha con el título, el estilo y las primeras palabras de la toma, la más rápida, y no se envía nada. O el *LLM externo*, una petición por imagen; cuando no está disponible, o pasas a LLM locales para la sesión, Gemma las escribe en su lugar si está instalado. |
 | **Imágenes de las tomas: estilo artístico** | cómo debe verse la imagen, dado al LLM que escribe el prompt de imagen (atenuado cuando la toma se describe a sí misma). Por defecto un diseño abstracto y surrealista al estilo de las portadas de los años setenta y ochenta, sin texto ni personas. Vaciado, vuelve a eso. |
 | **Imágenes de las tomas: tu propio prompt** | palabras con las que empieza el prompt de imagen de cada imagen, como *big sky, doom-laden*, hasta 512 caracteres; el prompt que escribe el LLM va detrás. Vacío (por defecto): ninguna. Solo cuando un LLM escribe el prompt de imagen (atenuado cuando la toma se describe a sí misma). |

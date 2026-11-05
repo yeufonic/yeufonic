@@ -1315,7 +1315,7 @@ Labs' **non-commercial license**, but put them in place and they are used.
    `engine\ComfyUI\models` in the install folder on **Windows**; under `engine/ComfyUI/models/` in the
    install folder on a **Mac**.
 4. **Let the app see them, and choose it.** Restart Yeufonic (with Docker, `docker compose restart app`),
-   then set **Take pictures: klein model** in Settings to *FLUX.2 klein 9B*. The 4B draws until you do, and
+   then set **Take pictures: model** in Settings to *FLUX.2 klein 9B*. The 4B draws until you do, and
    Settings say so when the 9B is chosen but cannot draw here. Choose
    *4B* to go back without removing anything. The picture's note in the editor says which drew it
    (*drawn by FLUX.2 klein 9B on this PC*).
@@ -1343,7 +1343,7 @@ can be chosen.
 3. **Its text encoder,** into the `text_encoders` folder: `qwen3vl_4b_int8_convrot.safetensors` (4.9 GB) or
    `qwen3vl_4b_bf16.safetensors` (8.9 GB, for a Mac).
 4. **Let the app see them, and choose it:** restart Yeufonic (with Docker, `docker compose restart app`), then set
-   **Take pictures: klein model** in Settings to *FLUX 3 klein*. The picture's note in the editor says *drawn by
+   **Take pictures: model** in Settings to *FLUX 3 klein*. The picture's note in the editor says *drawn by
    FLUX 3 klein on this PC*.
 
 The folders are the same as for the 9B, and the files are found by these names only.
@@ -1372,7 +1372,7 @@ commercial use, a cover for a song you sell included, needs an agreement with Br
 3. **Its text encoder,** if FLUX 3 is not installed: `qwen3vl_4b_int8_convrot.safetensors` (4.9 GB) or
    `qwen3vl_4b_bf16.safetensors` (8.9 GB, for a Mac), from the same page, into the `text_encoders` folder.
 4. **Let the app see them, and choose it:** restart Yeufonic (with Docker, `docker compose restart app`), then set
-   **Take pictures: klein model** in Settings to *FIBO 2.0*. The picture's note in the editor says *drawn by FIBO 2.0
+   **Take pictures: model** in Settings to *FIBO 2.0*. The picture's note in the editor says *drawn by FIBO 2.0
    on this PC*.
 
 **To draw with an external LLM,** open Settings and set **LLM for writing lyrics & style tags** to the
@@ -1391,8 +1391,8 @@ Set up either and they come on: pictures are then made for the takes you make fr
 | Setting | Does |
 |---|---|
 | **Take pictures** | *Make one for each new take* (the default where something can draw), or *Only when asked*, where a take keeps the default background until you make one from its square or the editor's Picture button. The settings below shape a picture made either way. It is *No pictures* while nothing here can draw. |
-| **Take pictures: drawn by** | *This PC if klein is installed, else the external LLM* (the default), *This PC (the klein model below)* or *The external LLM's image model*. Which model draws on this PC (FLUX.2 klein 4B or 9B, FLUX 3 klein or FIBO 2.0) is chosen under **klein model**. |
-| **Take pictures: klein model** | *FLUX.2 klein 4B* (the default), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B, FLUX 3 and FIBO 2.0 are never installed for you (FIBO is for non-commercial use only): see [FLUX.2 klein 9B and FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. One asked for and not there, another draws, and Settings say which. |
+| **Take pictures: drawn by** | *This PC if klein is installed, else the external LLM* (the default), *This PC (the model below)* or *The external LLM's image model*. Which model draws on this PC (FLUX.2 klein 4B or 9B, FLUX 3 klein or FIBO 2.0) is chosen under **Take pictures: model**. |
+| **Take pictures: model** | *FLUX.2 klein 4B* (the default), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B, FLUX 3 and FIBO 2.0 are never installed for you (FIBO is for non-commercial use only): see [FLUX.2 klein 9B and FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. One asked for and not there, another draws, and Settings say which. |
 | **Take pictures: described by** | who writes the image prompt, from the take's title, the art style below, its style and its words (up to 50 lines). *Local Gemma if installed, else the take itself* (the default), whoever draws. *Local Gemma*: written on this PC; needs the Lyric drafts option. *From the take itself*: no LLM; a description made from the take's title, style and opening words, the quickest, and nothing is sent out for it. Or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
 | **Take pictures: art style** | how the picture should look, given to the LLM that writes the image prompt (grayed out when the take itself describes it). By default an abstract, surrealist design in the manner of 1970s and 1980s album covers, with no text or people. Emptied, it goes back to that. |
 | **Take pictures: your own prompt** | words to start every picture's image prompt with, such as *big sky, doom-laden*, up to 512 characters; the prompt the LLM writes follows them. Empty (the default): none. Only when an LLM writes the image prompt (grayed out when the take itself describes it). |

@@ -1310,7 +1310,7 @@ Yeufonic은 이것을 결코 내려받지 않습니다. 파일이 Hugging Face�
 3. **폴더의 위치:** **Docker**는 Yeufonic 폴더의 `models/`, **Windows**는 설치 폴더의
    `engine\ComfyUI\models`, **Mac**은 설치 폴더의 `engine/ComfyUI/models/`입니다.
 4. **앱이 찾게 하고, 고르세요.** Yeufonic을 다시 시작한 뒤(Docker라면 `docker compose restart app`),
-   설정에서 **테이크 그림: klein 모델** 항목을 *FLUX.2 klein 9B*로 둡니다. 그러기 전까지는 4B가 그리며,
+   설정에서 **테이크 그림: 모델** 항목을 *FLUX.2 klein 9B*로 둡니다. 그러기 전까지는 4B가 그리며,
    9B를 골랐는데 여기서 그릴 수 없으면 설정이 알려 줍니다. *4B*를 고르면 아무것도 없애지 않고
    되돌릴 수 있습니다. 편집기의 그림 메모가 어느 것이 그렸는지 알려 줍니다
    (*drawn by FLUX.2 klein 9B on this PC*).
@@ -1338,7 +1338,7 @@ Hugging Face에서 접근 신청이 필요하고 **FLUX Kommunity License**를 �
 3. **그 텍스트 인코더**를 `text_encoders` 폴더에 넣습니다. `qwen3vl_4b_int8_convrot.safetensors`(4.9 GB)나
    `qwen3vl_4b_bf16.safetensors`(8.9 GB, Mac용)입니다.
 4. **앱이 찾게 하고, 고르세요.** Yeufonic을 다시 시작한 뒤(Docker라면 `docker compose restart app`), 설정에서
-   **테이크 그림: klein 모델** 항목을 *FLUX 3 klein*으로 둡니다. 편집기의 그림 메모에는 *drawn by
+   **테이크 그림: 모델** 항목을 *FLUX 3 klein*으로 둡니다. 편집기의 그림 메모에는 *drawn by
    FLUX 3 klein on this PC*라고 나옵니다.
 
 폴더는 9B와 같고, 파일도 이 이름으로만 찾습니다.
@@ -1354,7 +1354,7 @@ Hugging Face에서 접근 신청이 필요하고 **FLUX Kommunity License**를 �
 1. <strong>모델</strong>은 [Comfy-Org/Fibo-2.0](https://huggingface.co/Comfy-Org/Fibo-2.0)(로그인 불필요)에서 `diffusion_models` 폴더로: `fibo2_dev_int8_convrot.safetensors`(8.4 GB, NVIDIA 카드의 일반적인 선택) 또는 `fibo2_dev_bf16.safetensors`(16.5 GB, 전체 정밀도, Mac용).
 2. <strong>그 turbo 추가 기능</strong>은 같은 페이지에서 `loras` 폴더로: `fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors`(2 GB). 스타일 LoRA가 아니며 스타일 LoRA로 제공되지 않습니다.
 3. <strong>그 텍스트 인코더</strong>는 FLUX 3이 설치되어 있지 않다면 같은 페이지에서 `text_encoders` 폴더로: `qwen3vl_4b_int8_convrot.safetensors`(4.9 GB) 또는 `qwen3vl_4b_bf16.safetensors`(8.9 GB, Mac용).
-4. <strong>앱이 찾게 하고, 고르세요.</strong> Yeufonic을 다시 시작한 뒤(Docker라면 `docker compose restart app`), 설정에서 <strong>테이크 그림: klein 모델</strong> 항목을 *FIBO 2.0*으로 둡니다. 편집기의 그림 메모에는 *drawn by FIBO 2.0 on this PC*라고 나옵니다.
+4. <strong>앱이 찾게 하고, 고르세요.</strong> Yeufonic을 다시 시작한 뒤(Docker라면 `docker compose restart app`), 설정에서 <strong>테이크 그림: 모델</strong> 항목을 *FIBO 2.0*으로 둡니다. 편집기의 그림 메모에는 *drawn by FIBO 2.0 on this PC*라고 나옵니다.
 
 **외부 LLM으로 그리려면,** 설정을 열어 **가사와 스타일 태그를 쓰는 LLM** 항목을
 [외부 LLM](#external-llm)으로 두고, 가사를 쓸 때처럼 **API URL**, **API 키**, **모델**을 넣습니다. 제공자에게는
@@ -1372,8 +1372,8 @@ Hugging Face에서 접근 신청이 필요하고 **FLUX Kommunity License**를 �
 | 설정 | 하는 일 |
 |---|---|
 | **테이크 그림** | *새 테이크마다 하나씩 만들기*(그릴 수 있는 것이 있을 때의 기본값), 또는 *요청할 때만*. 후자에서는 테이크의 네모나 편집기의 그림 버튼으로 만들 때까지 테이크가 기본 배경을 유지합니다. 아래 설정은 어느 방식으로 만든 그림에든 적용됩니다. 여기서 그릴 수 있는 것이 없는 동안에는 *그림 없음*입니다. |
-| **테이크 그림: 그리는 쪽** | *klein이 설치되어 있으면 이 PC, 아니면 외부 LLM*(기본값), *이 PC(아래의 klein 모델)*, *외부 LLM의 이미지 모델*. 이 PC에서 어느 klein이 그릴지(FLUX.2 klein 4B나 9B, 또는 FLUX 3 klein)는 **klein 모델**에서 고릅니다. FIBO 2.0도 여기서 고릅니다. |
-| **테이크 그림: klein 모델** | *FLUX.2 klein 4B*(기본값), *FLUX.2 klein 9B*, *FLUX 3 klein*, 또는 *9B 파일이 있으면 9B, 없으면 4B*. 이 PC에서 그리는 그림에만 쓰입니다. 9B와 FLUX 3은 결코 대신 설치되지 않습니다. 위의 [FLUX.2 klein 9B와 FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm)을 참고하세요. 요청한 것이 없으면 다른 것이 그리고, 설정이 무엇인지 알려 줍니다. *FIBO 2.0*도 직접 추가하며 비상업적 용도로만 쓸 수 있습니다: 위를 참조하세요. |
+| **테이크 그림: 그리는 쪽** | *klein이 설치되어 있으면 이 PC, 아니면 외부 LLM*(기본값), *이 PC(아래의 모델)*, *외부 LLM의 이미지 모델*. 이 PC에서 어느 klein이 그릴지(FLUX.2 klein 4B나 9B, 또는 FLUX 3 klein)는 **모델**에서 고릅니다. FIBO 2.0도 여기서 고릅니다. |
+| **테이크 그림: 모델** | *FLUX.2 klein 4B*(기본값), *FLUX.2 klein 9B*, *FLUX 3 klein*, 또는 *9B 파일이 있으면 9B, 없으면 4B*. 이 PC에서 그리는 그림에만 쓰입니다. 9B와 FLUX 3은 결코 대신 설치되지 않습니다. 위의 [FLUX.2 klein 9B와 FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm)을 참고하세요. 요청한 것이 없으면 다른 것이 그리고, 설정이 무엇인지 알려 줍니다. *FIBO 2.0*도 직접 추가하며 비상업적 용도로만 쓸 수 있습니다: 위를 참조하세요. |
 | **테이크 그림: 설명하는 쪽** | 누가 그림 프롬프트를 쓰는지. 테이크의 제목, 아래의 아트 스타일, 테이크의 스타일과 가사(최대 50줄)로 씁니다. *로컬 Gemma가 설치되어 있으면 그것, 아니면 테이크 자체*(기본값)이며, 누가 그리든 같습니다. *로컬 Gemma*: 이 PC에서 씁니다. 가사 초안 옵션이 필요합니다. *테이크 자체에서*: LLM 없이 테이크의 제목, 스타일, 첫 단어들로 설명을 만듭니다. 가장 빠르고 아무것도 보내지 않습니다. 또는 *외부 LLM*으로, 그림 하나에 요청 하나입니다. 그것을 쓸 수 없을 때나 그 세션에서 로컬 LLM으로 바꿨을 때는, Gemma가 설치되어 있으면 대신 씁니다. |
 | **테이크 그림: 아트 스타일** | 그림이 어떻게 보여야 하는지. 그림 프롬프트를 쓰는 LLM에 전합니다(테이크가 스스로 설명할 때는 흐리게 표시). 기본값은 70~80년대 앨범 커버 풍의 추상적이고 초현실적인 디자인이며, 글자와 사람은 없습니다. 비우면 기본값으로 돌아갑니다. |
 | **테이크 그림: 나만의 프롬프트** | 그림마다 프롬프트를 시작하는 단어. 예: *big sky, doom-laden*, 최대 512자이며, LLM이 쓴 프롬프트가 그 뒤에 옵니다. 비어 있음(기본값): 없음. LLM이 그림 프롬프트를 쓸 때만 쓰입니다(테이크가 스스로 설명할 때는 흐리게 표시). |

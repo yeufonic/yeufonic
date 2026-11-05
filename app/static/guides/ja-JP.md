@@ -814,7 +814,7 @@ Yeufonic はこれを決してダウンロードしません。ファイルは H
    （5.0 GB）を入手し（`-Q8_0.gguf`、8.7 GB でも動きます）、同じフォルダーに入れます。
 3. **フォルダーの場所：** **Docker** では Yeufonic フォルダーの `models/`、**Windows** ではインストールフォルダーの `engine\ComfyUI\models`、**Mac** ではインストールフォルダーの
    `engine/ComfyUI/models/` です。
-4. <strong>アプリに見つけさせて、選びます。</strong>Yeufonic を再起動し（Docker なら `docker compose restart app`）、設定で**テイクの画像：klein モデル**を *FLUX.2 klein 9B* にします。そうするまでは 4B が描きます。
+4. <strong>アプリに見つけさせて、選びます。</strong>Yeufonic を再起動し（Docker なら `docker compose restart app`）、設定で**テイクの画像：モデル**を *FLUX.2 klein 9B* にします。そうするまでは 4B が描きます。
    9B を選んでいてもここで描けないときは、設定がそう表示します。*4B* を選べば、何も取り除かずに元に戻せます。エディターの画像のメモに、どれが描いたかが表示されます（*drawn by FLUX.2 klein 9B on this PC*）。
 
 モデルとエンコーダーはこの名前でしか見つからないので、ダウンロードしたときのファイル名のままにしておいてください。
@@ -832,7 +832,7 @@ Hugging Face でアクセス申請が必要で、**FLUX Kommunity License** の�
    `flux3-image-klein-bf16.safetensors`（11.1 GB、フル精度、Mac 用）のいずれかです。
 3. **そのテキストエンコーダー**を `text_encoders` フォルダーに入れます。`qwen3vl_4b_int8_convrot.safetensors`（4.9 GB）か
    `qwen3vl_4b_bf16.safetensors`（8.9 GB、Mac 用）です。
-4. <strong>アプリに見つけさせて、選びます。</strong>Yeufonic を再起動し（Docker なら `docker compose restart app`）、設定で**テイクの画像：klein モデル**を *FLUX 3 klein* にします。エディターの画像のメモには *drawn by
+4. <strong>アプリに見つけさせて、選びます。</strong>Yeufonic を再起動し（Docker なら `docker compose restart app`）、設定で**テイクの画像：モデル**を *FLUX 3 klein* にします。エディターの画像のメモには *drawn by
    FLUX 3 klein on this PC* と表示されます。
 
 フォルダーは 9B と同じで、ファイルもこの名前でしか見つかりません。
@@ -848,7 +848,7 @@ Hugging Face でアクセス申請が必要で、**FLUX Kommunity License** の�
 1. <strong>モデル</strong>を [Comfy-Org/Fibo-2.0](https://huggingface.co/Comfy-Org/Fibo-2.0)（サインイン不要）から `diffusion_models` フォルダーに入れます。`fibo2_dev_int8_convrot.safetensors`（8.4 GB、NVIDIA カードでの通常の選択）か `fibo2_dev_bf16.safetensors`（16.5 GB、フル精度、Mac 用）です。
 2. <strong>その turbo アドオン</strong>を同じページから `loras` フォルダーに入れます。`fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors`（2 GB）です。スタイル LoRA ではなく、スタイル LoRA としては表示されません。
 3. <strong>そのテキストエンコーダー</strong>を、FLUX 3 がインストールされていなければ、同じページから `text_encoders` フォルダーに入れます。`qwen3vl_4b_int8_convrot.safetensors`（4.9 GB）か `qwen3vl_4b_bf16.safetensors`（8.9 GB、Mac 用）です。
-4. <strong>アプリに見つけさせて、選びます。</strong>Yeufonic を再起動し（Docker なら `docker compose restart app`）、設定で<strong>テイクの画像：klein モデル</strong>を *FIBO 2.0* にします。エディターの画像のメモには *drawn by FIBO 2.0 on this PC* と表示されます。
+4. <strong>アプリに見つけさせて、選びます。</strong>Yeufonic を再起動し（Docker なら `docker compose restart app`）、設定で<strong>テイクの画像：モデル</strong>を *FIBO 2.0* にします。エディターの画像のメモには *drawn by FIBO 2.0 on this PC* と表示されます。
 
 <strong>外部 LLM で描くには、</strong>設定を開いて**歌詞とスタイルタグを書く LLM**を
 [外部 LLM](#external-llm) にし、歌詞のときと同じように **API URL**、**API キー**、**モデル**を入れます。プロバイダーには画像モデルが必要です。Gemini にはあり（別のものを指定しない限り `gemini-3.1-flash-image` を使います）、OpenAI 互換のプロバイダーには `gpt-image-1` を求めます。アプリはバックグラウンドでプロバイダーにモデルの一覧を尋ねます。起動時、これらの設定が変わったとき、そして数時間ごとです。一覧に画像モデルがあるときだけ、そこで描きます。
@@ -860,8 +860,8 @@ Hugging Face でアクセス申請が必要で、**FLUX Kommunity License** の�
 | 設定 | 何をするか |
 |---|---|
 | **テイクの画像** | *新しいテイクごとに作る*（描けるものがあるときの既定）、または*頼んだときだけ*。後者では、テイクの四角かエディターの「画像」ボタンで作るまで、テイクは既定の背景のままです。下の設定は、どちらの方法で作った画像にも効きます。ここで描けるものが何もないあいだは*画像なし*です。 |
-| **テイクの画像：描くもの** | *klein がインストールされていればこの PC、なければ外部 LLM*（既定）、*この PC（下の klein モデル）*、*外部 LLM の画像モデル*。この PC でどの klein が描くか（FLUX.2 klein 4B か 9B、または FLUX 3 klein）は **klein モデル**で選びます。FIBO 2.0 もここで選びます。 |
-| **テイクの画像：klein モデル** | *FLUX.2 klein 4B*（既定）、*FLUX.2 klein 9B*、*FLUX 3 klein*、*9B のファイルがあれば 9B、なければ 4B*。この PC で描く画像だけに使います。9B と FLUX 3 は決して自動ではインストールされません。上の [FLUX.2 klein 9B と FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) を参照してください。指定したものがなければ別のものが描き、設定がどれかを表示します。*FIBO 2.0* も手動で追加し、非商用に限られます。上を参照してください。 |
+| **テイクの画像：描くもの** | *klein がインストールされていればこの PC、なければ外部 LLM*（既定）、*この PC（下のモデル）*、*外部 LLM の画像モデル*。この PC でどの klein が描くか（FLUX.2 klein 4B か 9B、または FLUX 3 klein）は **モデル**で選びます。FIBO 2.0 もここで選びます。 |
+| **テイクの画像：モデル** | *FLUX.2 klein 4B*（既定）、*FLUX.2 klein 9B*、*FLUX 3 klein*、*9B のファイルがあれば 9B、なければ 4B*。この PC で描く画像だけに使います。9B と FLUX 3 は決して自動ではインストールされません。上の [FLUX.2 klein 9B と FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) を参照してください。指定したものがなければ別のものが描き、設定がどれかを表示します。*FIBO 2.0* も手動で追加し、非商用に限られます。上を参照してください。 |
 | **テイクの画像：説明するもの** | 誰が画像プロンプトを書くか。テイクのタイトル、下のアートスタイル、テイクのスタイルと歌詞（最大 50 行）から書きます。*ローカルの Gemma があればそれ、なければテイク自体*（既定）。誰が描くかに関係ありません。*ローカルの Gemma*：この PC で書きます。歌詞の下書きのオプションが必要です。*テイク自体から*：LLM を使わず、テイクのタイトル、スタイル、最初の言葉から説明を作ります。いちばん速く、何も送りません。または*外部 LLM*。画像 1 枚につき 1 リクエストです。使えないとき、またはそのセッションでローカル LLM に切り替えたときは、Gemma がインストールされていれば代わりに書きます。 |
 | **テイクの画像：アートスタイル** | 画像がどう見えるべきか。画像プロンプトを書く LLM に渡します（テイクが自分で説明するときはグレー表示）。既定は 70 年代と 80 年代のアルバムジャケット風の、抽象的でシュールなデザインで、文字も人物もありません。空にすると既定に戻ります。 |
 | **テイクの画像：自分のプロンプト** | 各画像のプロンプトの最初に入る言葉。たとえば *big sky, doom-laden* で、512 文字までです。LLM が書いたプロンプトがそのあとに続きます。空（既定）：なし。LLM が画像プロンプトを書くときだけ使います（テイクが自分で説明するときはグレー表示）。 |

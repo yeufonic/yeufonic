@@ -412,11 +412,11 @@ SETTINGS_SPEC: list[dict] = [
         "default": "auto",
         "options": [
             {"value": "auto", "label": "This PC if klein is installed, else the external LLM"},
-            {"value": "local", "label": "This PC (the klein model below)"},
+            {"value": "local", "label": "This PC (the model below)"},
             {"value": "external", "label": "The external LLM's image model"},
         ],
         "help": "klein draws on this PC once no song is being made, at no cost: FLUX.2 klein 4B, 9B, FLUX 3 klein or "
-                "FIBO 2.0, as chosen under klein model. The external LLM's image model draws beside them, one request a "
+                "FIBO 2.0, as chosen under Take pictures: model. The external LLM's image model draws beside them, one request a "
                 "picture.",
         "requires": {"pictures": "possible"},
         "requires_note": "Needs FLUX.2 klein, chosen when installing, or an external LLM with an image model.",
@@ -424,7 +424,7 @@ SETTINGS_SPEC: list[dict] = [
     {
         "key": "art.klein",
         "group": "art",
-        "label": "Take pictures: klein model",
+        "label": "Take pictures: model",
         "type": "select",
         "default": "4b",
         "options": [

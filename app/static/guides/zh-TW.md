@@ -811,7 +811,7 @@ Yeufonic 從不下載它，因為它的檔案在 Hugging Face 上需要申請訪
    （5.0 GB）（`-Q8_0.gguf`，8.7 GB，也可以），放在同一個資料夾裡。
 3. **資料夾在哪裡：** **Docker** 是 Yeufonic 資料夾中的 `models/`；**Windows** 是安裝資料夾中的 `engine\ComfyUI\models`；**Mac** 是安裝資料夾中的
    `engine/ComfyUI/models/`。
-4. <strong>讓應用看到它們，並選擇它。</strong>重啟 Yeufonic（使用 Docker 時為 `docker compose restart app`），然後在設定中把**版本圖片：klein 模型**設為 *FLUX.2 klein 9B*。在此之前由 4B 繪製，如果選了 9B 卻無法在這裡繪製，設定會提示你。選擇
+4. <strong>讓應用看到它們，並選擇它。</strong>重啟 Yeufonic（使用 Docker 時為 `docker compose restart app`），然後在設定中把**版本圖片：模型**設為 *FLUX.2 klein 9B*。在此之前由 4B 繪製，如果選了 9B 卻無法在這裡繪製，設定會提示你。選擇
    *4B* 即可退回，無需刪除任何東西。編輯器中圖片的備註會說明是哪一個畫的（*drawn by FLUX.2 klein 9B on this PC*）。
 
 模型和它的編碼器只能以這些名稱被找到，所以請保持下載時的檔名。
@@ -829,7 +829,7 @@ Hugging Face 上需要申請訪問，並採用 **FLUX Kommunity License**（非�
    `flux3-image-klein-bf16.safetensors`（11.1 GB，全精度，給 Mac 用）。
 3. **它的文字編碼器**，放進 `text_encoders` 資料夾：`qwen3vl_4b_int8_convrot.safetensors`（4.9 GB）或
    `qwen3vl_4b_bf16.safetensors`（8.9 GB，給 Mac 用）。
-4. <strong>讓應用看到它們，並選擇它：</strong>重啟 Yeufonic（使用 Docker 時為 `docker compose restart app`），然後在設定中把**版本圖片：klein 模型**設為 *FLUX 3 klein*。編輯器中圖片的備註會寫著 *drawn by
+4. <strong>讓應用看到它們，並選擇它：</strong>重啟 Yeufonic（使用 Docker 時為 `docker compose restart app`），然後在設定中把**版本圖片：模型**設為 *FLUX 3 klein*。編輯器中圖片的備註會寫著 *drawn by
    FLUX 3 klein on this PC*。
 
 資料夾和 9B 的相同，檔案也只能以這些名稱被找到。
@@ -845,7 +845,7 @@ Hugging Face 上需要申請訪問，並採用 **FLUX Kommunity License**（非�
 1. <strong>模型，</strong>從 [Comfy-Org/Fibo-2.0](https://huggingface.co/Comfy-Org/Fibo-2.0)（無需登入）下載，放入 `diffusion_models` 資料夾：`fibo2_dev_int8_convrot.safetensors`（8.4 GB，NVIDIA 顯示卡的常用選擇）或 `fibo2_dev_bf16.safetensors`（16.5 GB，全精度，適用於 Mac）。
 2. <strong>它的 turbo 附加元件，</strong>從同一頁面下載，放入 `loras` 資料夾：`fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors`（2 GB）。它不是風格 LoRA，也不會作為風格 LoRA 提供。
 3. <strong>它的文字編碼器，</strong>如果未安裝 FLUX 3：從同一頁面下載 `qwen3vl_4b_int8_convrot.safetensors`（4.9 GB）或 `qwen3vl_4b_bf16.safetensors`（8.9 GB，適用於 Mac），放入 `text_encoders` 資料夾。
-4. <strong>讓應用程式看到它們，並選擇它：</strong>重新啟動 Yeufonic（使用 Docker 時為 `docker compose restart app`），然後在設定中把<strong>版本圖片：klein 模型</strong>設為 *FIBO 2.0*。編輯器中圖片的備註會寫著 *drawn by FIBO 2.0 on this PC*。
+4. <strong>讓應用程式看到它們，並選擇它：</strong>重新啟動 Yeufonic（使用 Docker 時為 `docker compose restart app`），然後在設定中把<strong>版本圖片：模型</strong>設為 *FIBO 2.0*。編輯器中圖片的備註會寫著 *drawn by FIBO 2.0 on this PC*。
 
 <strong>要用外部 LLM 繪製，</strong>開啟設定，把**用於寫歌詞和風格標籤的 LLM**設為
 [外部 LLM](#external-llm)，填上它的 **API 地址**、**API 金鑰**和**模型**，和寫歌詞時一樣。提供商必須有影象模型：Gemini 有（除非你指定別的，否則使用 `gemini-3.1-flash-image`），對於相容 OpenAI 的提供商，則會請求 `gpt-image-1`。應用會在後臺向提供商查詢它的模型列表——在啟動時、這些設定改變時以及每隔幾小時——只有當列表裡有影象模型時，才會在那裡繪製。
@@ -857,8 +857,8 @@ Hugging Face 上需要申請訪問，並採用 **FLUX Kommunity License**（非�
 | 設定 | 作用 |
 |---|---|
 | **版本圖片** | *為每個新版本生成一張*（能繪製時的預設值），或*僅在請求時*，此時版本會保留預設背景，直到你透過它的小方塊或編輯器的「圖片」按鈕生成一張。下面的設定會塑造用任何一種方式生成的圖片。只要這裡沒有東西能繪製，它就是*無圖片*。 |
-| **版本圖片：繪製者** | *如果已安裝 klein 則用這臺電腦，否則用外部 LLM*（預設）、<em>這臺電腦（下面的 klein 模型）</em>或*外部 LLM 的影象模型*。這臺電腦上由哪個 klein 繪製（FLUX.2 klein 4B 或 9B，或 FLUX 3 klein）在 **klein 模型**中選擇。FIBO 2.0 也在那裡選擇。 |
-| **版本圖片：klein 模型** | *FLUX.2 klein 4B*（預設）、*FLUX.2 klein 9B*、*FLUX 3 klein*，或*已安裝 9B 檔案時用 9B，否則用 4B*。只用於在這臺電腦上繪製的圖片。9B 和 FLUX 3 永遠不會替你安裝：參見上文的 [FLUX.2 klein 9B 和 FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm)。如果請求的那個不在，會由另一個繪製，設定會說明是哪個。*FIBO 2.0* 同樣需手動新增，且僅限非商業用途：見上文。 |
+| **版本圖片：繪製者** | *如果已安裝 klein 則用這臺電腦，否則用外部 LLM*（預設）、<em>這臺電腦（下面的模型）</em>或*外部 LLM 的影象模型*。這臺電腦上由哪個 klein 繪製（FLUX.2 klein 4B 或 9B，或 FLUX 3 klein）在 **模型**中選擇。FIBO 2.0 也在那裡選擇。 |
+| **版本圖片：模型** | *FLUX.2 klein 4B*（預設）、*FLUX.2 klein 9B*、*FLUX 3 klein*，或*已安裝 9B 檔案時用 9B，否則用 4B*。只用於在這臺電腦上繪製的圖片。9B 和 FLUX 3 永遠不會替你安裝：參見上文的 [FLUX.2 klein 9B 和 FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm)。如果請求的那個不在，會由另一個繪製，設定會說明是哪個。*FIBO 2.0* 同樣需手動新增，且僅限非商業用途：見上文。 |
 | **版本圖片：描述者** | 由誰根據版本的標題、下面的藝術風格、它的風格和歌詞（最多 50 行）來寫圖片提示詞。*已安裝本地 Gemma 時用它，否則用版本本身*（預設），不管由誰繪製。*本地 Gemma*：在這臺電腦上寫；需要「歌詞草稿」選項。*根據版本本身*：不用 LLM；用版本的標題、風格和開頭的詞生成描述，最快，也不傳送任何內容。或者*外部 LLM*，每張圖片一次請求；它不可用時，或你在本次會話中切換到本地 LLM 時，如果已安裝 Gemma，就改由 Gemma 來寫。 |
 | **版本圖片：藝術風格** | 圖片應該是什麼樣子，交給寫圖片提示詞的 LLM（版本自行描述時會變灰）。預設是七八十年代唱片封面風格的抽象超現實設計，不帶文字和人物。清空後會恢復為這個預設值。 |
 | **版本圖片：你自己的提示詞** | 每張圖片的提示詞開頭的詞，例如 *big sky, doom-laden*，最多 512 個字元；LLM 寫的提示詞跟在後面。空（預設）：沒有。只在由 LLM 寫圖片提示詞時有效（版本自行描述時會變灰）。 |

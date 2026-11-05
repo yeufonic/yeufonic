@@ -91,12 +91,12 @@ cannot creep back in.
   it again to sing the tune anyway.
 
 - **FLUX 3 klein can draw take pictures.** Black Forest Labs' FLUX 3 Image Klein is a third choice under **Take
-  pictures: klein model**, beside the FLUX.2 4B and 9B. It draws from a full description of the scene, as Gemma and
+  pictures: model**, beside the FLUX.2 4B and 9B. It draws from a full description of the scene, as Gemma and
   the external LLM now write, and letters titles well. Like the 9B it is never downloaded for you: its files are gated
   on Hugging Face under the FLUX Kommunity License, and the guide says which to get and where they go. ComfyUI engine
   only for now.
 
-- **FIBO 2.0 can draw take pictures.** Bria's FIBO 2.0 is a fourth choice under **Take pictures: klein model**: it
+- **FIBO 2.0 can draw take pictures.** Bria's FIBO 2.0 is a fourth choice under **Take pictures: model**: it
   draws closest to a photograph of the 1970s sleeves the pictures are after, with natural depth of field and the
   colour of film, and follows the description closely. With its turbo add-on it draws in a few steps, about as quickly
   as FLUX 3; without it, at its own far slower settings. It is put in by hand, needs a 16 GB card and is for
