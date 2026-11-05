@@ -2246,7 +2246,7 @@
  "Take pictures: song title on the picture": "테이크 그림: 그림에 노래 제목",
  "Letters the song's title on the cover in bold: mostly in a band of an off-white border, as on a 1970s sleeve, and sometimes over the picture itself. The drawing on this PC may spell it imperfectly.": "노래 제목을 커버에 굵게 씁니다: 대개 1970년대 슬리브처럼 미색 테두리의 띠 안에, 가끔은 그림 위에. 이 PC의 그림은 철자를 조금 틀릴 수 있습니다.",
  "Take pictures: your own prompt": "테이크 그림: 나만의 프롬프트",
- "Words to start every picture's image prompt with, such as \"big sky, doom-laden\" (up to 512 characters). The image prompt the LLM writes follows them. Empty: none.": "모든 그림의 이미지 프롬프트를 시작할 단어, 예: \"big sky, doom-laden\"(최대 512자). LLM이 쓴 이미지 프롬프트가 그 뒤에 붙습니다. 비우면 없음.",
+ "Words to start every picture's image prompt with, such as \"salt marsh, overcast\" (up to 512 characters). The image prompt the LLM writes follows them. Empty: none.": "모든 그림의 이미지 프롬프트를 시작할 단어, 예: \"salt marsh, overcast\"(최대 512자). LLM이 쓴 이미지 프롬프트가 그 뒤에 붙습니다. 비우면 없음.",
  "Take pictures: image model": "테이크 그림: 이미지 모델",
  "The external provider's model that draws a take's picture, when the external LLM draws them (e.g. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 otherwise. Each picture is one image request to the provider, which may be charged.": "외부 LLM이 그릴 때 테이크 그림을 그리는 외부 제공자의 모델 (예: gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). 비우면 Gemini는 gemini-3.1-flash-image, 그 외는 gpt-image-1. 그림마다 제공자에게 이미지 요청을 한 번 하며 요금이 들 수 있습니다.",
  "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.": "외부 LLM이 그리는 그림에만 해당: ‘테이크 그림: 그리는 쪽’에서 고르세요.",

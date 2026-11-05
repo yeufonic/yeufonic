@@ -85,7 +85,7 @@ cannot creep back in.
   a staged photograph of real objects with one unexpected twist that stands for the song, and the prompt it writes is
   drawn as it is. About three in ten still show a sleeve with a little wear. Three new settings under Take pictures:
   - **Art style:** the look asked for, an abstract, surrealist album-cover look by default.
-  - **Your own prompt:** words of your own, such as "big sky, doom-laden", at the start of every image prompt.
+  - **Your own prompt:** words of your own, such as "salt marsh, overcast", at the start of every image prompt.
   - **Song title on the picture:** off by default. On, the title is lettered in bold, in capitals or small letters.
     Mostly it sits in a band of an off-white border at the top or the bottom, with a thin dark line framing the
     picture, as on many 1970s sleeves. About one in five has no border and the title over the picture, at a corner or

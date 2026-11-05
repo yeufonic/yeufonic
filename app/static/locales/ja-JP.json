@@ -2246,7 +2246,7 @@
  "Take pictures: song title on the picture": "テイクの画像：画像に曲名",
  "Letters the song's title on the cover in bold: mostly in a band of an off-white border, as on a 1970s sleeve, and sometimes over the picture itself. The drawing on this PC may spell it imperfectly.": "曲名をカバーに太字で入れます：たいていは 1970 年代のスリーブのようなオフホワイトの縁の帯の中に、ときどき画像の上に直接。この PC での描画では綴りが少し崩れることがあります。",
  "Take pictures: your own prompt": "テイクの画像：自分のプロンプト",
- "Words to start every picture's image prompt with, such as \"big sky, doom-laden\" (up to 512 characters). The image prompt the LLM writes follows them. Empty: none.": "すべての画像の画像プロンプトの冒頭に置く言葉。例：\"big sky, doom-laden\"（最大 512 文字）。LLM が書く画像プロンプトがその後に続きます。空欄：なし。",
+ "Words to start every picture's image prompt with, such as \"salt marsh, overcast\" (up to 512 characters). The image prompt the LLM writes follows them. Empty: none.": "すべての画像の画像プロンプトの冒頭に置く言葉。例：\"salt marsh, overcast\"（最大 512 文字）。LLM が書く画像プロンプトがその後に続きます。空欄：なし。",
  "Take pictures: image model": "テイクの画像：画像モデル",
  "The external provider's model that draws a take's picture, when the external LLM draws them (e.g. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 otherwise. Each picture is one image request to the provider, which may be charged.": "外部 LLM が描くとき、テイクの画像を描く外部プロバイダーのモデル（例：gemini-3.1-flash-image、gemini-3-pro-image、gpt-image-1）。空欄：Gemini なら gemini-3.1-flash-image、それ以外は gpt-image-1。1枚ごとにプロバイダーへの画像リクエストが1回になり、料金がかかることがあります。",
  "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.": "外部 LLM が描く画像のみ：「テイクの画像：描くもの」で選んでください。",

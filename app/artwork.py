@@ -229,14 +229,14 @@ PROMPT_LINES = 50               # the most lines of the words given: enough for 
 
 
 def own_words() -> str:
-    """The words Settings put at the start of every image prompt an LLM writes ("big sky, doom-laden"), tidied: no
+    """The words Settings put at the start of every image prompt an LLM writes ("salt marsh, overcast"), tidied: no
     spaces or punctuation left trailing."""
     text = re.sub(r"\s+", " ", get_setting("art.prompt", "") or "").strip()
     return text.rstrip(" ,.;:-\u2013\u2014").strip()
 
 
 def with_own_words(prompt: str) -> str:
-    """The image prompt led by the words from Settings, joined as one list: "big sky, doom-laden, a barber chair
+    """The image prompt led by the words from Settings, joined as one list: "salt marsh, overcast, a barber chair
     ...".  A capital starting the prompt's first word is lowered to run on; an acronym ("NASA") keeps its capitals."""
     words = own_words()
     if not words:

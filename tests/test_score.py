@@ -311,12 +311,12 @@ def test_a_failed_plan_names_the_take_that_has_a_score_for_its_words(monkeypatch
     monkeypatch.setattr(jobs, "ENGINE", PlanEngine(BROKEN))
     while not jobs.QUEUE.empty():
         jobs.QUEUE.get_nowait()
-    make_take(status="done", title="Big Sky cover", lyrics=WORDS, abc="X:1\nK:C\nV: Vocal\nc4|")
+    make_take(status="done", title="Night Ferry cover", lyrics=WORDS, abc="X:1\nK:C\nV: Vocal\nc4|")
     take = make_take(status="queued", lyrics=WORDS)
     plan_twice(take["id"])
     error = one("SELECT error FROM takes WHERE id = ?", (take["id"],))["error"]
     assert "unreadable twice" in error and "words are long" not in error
-    assert "\u201cBig Sky cover\u201d already has a score for these words: Sing again" in error
+    assert "\u201cNight Ferry cover\u201d already has a score for these words: Sing again" in error
 
     other = make_take(status="queued", lyrics="[verse]\nLights along the wall\n[chorus]\nHold on\n")
     plan_twice(other["id"])

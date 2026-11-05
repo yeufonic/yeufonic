@@ -2246,7 +2246,7 @@
  "Take pictures: song title on the picture": "版本圖片：在圖片上顯示歌名",
  "Letters the song's title on the cover in bold: mostly in a band of an off-white border, as on a 1970s sleeve, and sometimes over the picture itself. The drawing on this PC may spell it imperfectly.": "以粗體把歌名寫在封面上：大多在米白色邊框的條帶中，像 1970 年代的唱片套，有時直接寫在圖片上。本機繪製可能會拼寫不準。",
  "Take pictures: your own prompt": "版本圖片：你自己的提示詞",
- "Words to start every picture's image prompt with, such as \"big sky, doom-laden\" (up to 512 characters). The image prompt the LLM writes follows them. Empty: none.": "每張圖片的影象提示詞開頭的文字，例如 \"big sky, doom-laden\"（最多 512 個字元）。LLM 寫的影象提示詞接在後面。留空：無。",
+ "Words to start every picture's image prompt with, such as \"salt marsh, overcast\" (up to 512 characters). The image prompt the LLM writes follows them. Empty: none.": "每張圖片的影象提示詞開頭的文字，例如 \"salt marsh, overcast\"（最多 512 個字元）。LLM 寫的影象提示詞接在後面。留空：無。",
  "Take pictures: image model": "版本圖片：影象模型",
  "The external provider's model that draws a take's picture, when the external LLM draws them (e.g. gemini-3.1-flash-image, gemini-3-pro-image, gpt-image-1). Empty: gemini-3.1-flash-image with Gemini, gpt-image-1 otherwise. Each picture is one image request to the provider, which may be charged.": "外部 LLM 繪圖時，外部服務商用於繪製版本圖片的模型（例如 gemini-3.1-flash-image、gemini-3-pro-image、gpt-image-1）。留空：Gemini 用 gemini-3.1-flash-image，其他用 gpt-image-1。每張圖片是對服務商的一次影象請求，可能收費。",
  "Only for pictures drawn by the external LLM: choose it under Take pictures: drawn by.": "僅用於外部 LLM 繪製的圖片：在「版本圖片：繪製者」中選擇它。",

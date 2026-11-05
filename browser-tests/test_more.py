@@ -143,7 +143,7 @@ def test_a_setting_is_kept(page, app_server):
     own = page.locator('#settings-list textarea[data-key="art.prompt"]')
     assert own.get_attribute("maxlength") == "512"
     before = own.bounding_box()["height"]
-    words = "big sky, doom-laden, " * 12
+    words = "salt marsh, overcast, " * 12
     own.fill(words)
     own.dispatch_event("input")
     assert own.bounding_box()["height"] > before

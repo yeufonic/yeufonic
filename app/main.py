@@ -495,7 +495,7 @@ SETTINGS_SPEC: list[dict] = [
         "type": "textarea",
         "default": "",
         "max_length": 512,
-        "help": "Words to start every picture's image prompt with, such as \"big sky, doom-laden\" (up to 512 "
+        "help": "Words to start every picture's image prompt with, such as \"salt marsh, overcast\" (up to 512 "
                 "characters). The image prompt the LLM writes follows them. Empty: none.",
         "requires": {"pictures": "possible", "art.words": ["auto", "local", "external"]},
         "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",

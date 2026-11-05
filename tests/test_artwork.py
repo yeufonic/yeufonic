@@ -1150,14 +1150,14 @@ def test_fibo2_gets_a_sleeve_with_no_frame_line(monkeypatch):
     monkeypatch.setattr(artwork.random, "random", lambda: 0.9)          # lower case
     monkeypatch.setattr(artwork, "drawer", lambda: "local")
     monkeypatch.setattr(artwork, "klein_size", lambda: "fibo2")
-    fibo = artwork.with_title("A scene.", "Big Sky", "bottom band")
-    assert 'the title "big sky" is printed directly on the paper' in fibo and "line" not in fibo and "box" not in fibo
+    fibo = artwork.with_title("A scene.", "Night Ferry", "bottom band")
+    assert 'the title "night ferry" is printed directly on the paper' in fibo and "line" not in fibo and "box" not in fibo
     assert "deeper margin along the bottom" in fibo
     monkeypatch.setattr(artwork, "klein_size", lambda: "flux3")
-    assert "thin dark line" in artwork.with_title("A scene.", "Big Sky", "bottom band")
+    assert "thin dark line" in artwork.with_title("A scene.", "Night Ferry", "bottom band")
     monkeypatch.setattr(artwork, "klein_size", lambda: "fibo2")
     monkeypatch.setattr(artwork, "drawer", lambda: "external")
-    assert "thin dark line" in artwork.with_title("A scene.", "Big Sky", "bottom band")
+    assert "thin dark line" in artwork.with_title("A scene.", "Night Ferry", "bottom band")
 
 
 def test_a_clean_install_draws_with_the_4b():
@@ -1248,16 +1248,16 @@ def test_about_three_in_ten_image_prompts_ask_for_a_little_wear(client, monkeypa
 
 def test_your_own_prompt_leads_the_llms_image_prompt(client, monkeypatch):
     assert artwork.with_own_words("A barber chair in a desert.") == "A barber chair in a desert."     # none set
-    set_setting("art.prompt", "  big sky,  doom-laden,. ")
-    assert artwork.with_own_words("A barber chair in a desert.") == "big sky, doom-laden, a barber chair in a desert."
-    assert artwork.with_own_words("NASA photograph of a chair.") == "big sky, doom-laden, NASA photograph of a chair."
-    assert artwork.with_own_words("Paris at dusk, a chair.") == "big sky, doom-laden, paris at dusk, a chair."
+    set_setting("art.prompt", "  salt marsh,  overcast,. ")
+    assert artwork.with_own_words("A barber chair in a desert.") == "salt marsh, overcast, a barber chair in a desert."
+    assert artwork.with_own_words("NASA photograph of a chair.") == "salt marsh, overcast, NASA photograph of a chair."
+    assert artwork.with_own_words("Paris at dusk, a chair.") == "salt marsh, overcast, paris at dusk, a chair."
     shown = {s["key"]: s for s in client.get("/api/settings").json()["settings"]}
-    assert shown["art.prompt"]["value"] == "  big sky,  doom-laden,. " and shown["art.prompt"]["requires"]["art.words"]
+    assert shown["art.prompt"]["value"] == "  salt marsh,  overcast,. " and shown["art.prompt"]["requires"]["art.words"]
     assert shown["art.prompt"]["max_length"] == 512
     assert client.put("/api/settings", json={"key": "art.prompt", "value": "x" * 513}).status_code == 400
     assert client.put("/api/settings", json={"key": "art.prompt", "value": "x" * 512}).status_code == 200
-    set_setting("art.prompt", "  big sky,  doom-laden,. ")
+    set_setting("art.prompt", "  salt marsh,  overcast,. ")
 
     take = a_take()
     monkeypatch.setattr(artwork, "describer", lambda: "external")
@@ -1275,7 +1275,7 @@ def test_your_own_prompt_leads_the_llms_image_prompt(client, monkeypatch):
     monkeypatch.setattr(artwork, "describe_external", describe)
     monkeypatch.setattr(jobs, "_draw_on_engine", on_engine)
     asyncio.run(jobs.run_art(take["id"]))
-    assert drawn_with == [f"big sky, doom-laden, a rowing boat on a black lake.\n\n{artwork.KLEIN_WORN}"]
+    assert drawn_with == [f"salt marsh, overcast, a rowing boat on a black lake.\n\n{artwork.KLEIN_WORN}"]
 
 
 def test_the_song_title_is_lettered_in_a_border_or_now_and_then_over_the_picture(client, monkeypatch):
