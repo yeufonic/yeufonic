@@ -1343,6 +1343,19 @@ Hugging Face에서 접근 신청이 필요하고 **FLUX Kommunity License**를 �
 
 폴더는 9B와 같고, 파일도 이 이름으로만 찾습니다.
 
+<strong>FIBO 2.0, 사진 같은 느낌과 16 GB 카드를 위해.</strong> Bria의 FIBO 2.0은 그림이 본뜨는 레코드 재킷의 실제 사진에 가장 가깝게 그립니다. 디테일이 더 선명하고, 피사계 심도가 자연스럽고, 필름의 색을 띠며, 설명이 요구하는 것을 더 많이 담습니다. Yeufonic은 이것도 절대 내려받지 않습니다. <strong>라이선스는 CC BY-NC 4.0으로, 비상업적 용도로만 쓸 수 있습니다.</strong> FLUX 3의 라이선스는 매출 한도 아래인 사람이 그린 것을 상업적으로 쓰도록 허용하지만, FIBO로는 판매하는 노래의 커버를 포함한 모든 상업적 사용에 Bria와의 계약이 필요합니다. 쓰기 전에 라이선스를 읽으세요.
+
+- <strong>디스크:</strong> 약 10.4 GB, 모델과 그 turbo 추가 기능입니다. FLUX 3의 텍스트 인코더와 4B의 VAE를 읽으므로, FLUX 3이 설치되어 있으면 더 필요한 것이 없습니다.
+- <strong>비디오 메모리:</strong> 그리는 동안 약 12.5 GB이므로 16 GB 카드가 필요합니다. 더 작은 카드는 일부를 내보내므로 훨씬 느립니다.
+- <strong>시간:</strong> turbo 추가 기능이 있으면 FLUX 3과 비슷합니다. 없으면 FIBO는 자체 설정으로 그리며 약 여덟 배 걸립니다.
+- <strong>재킷:</strong> FIBO가 그릴 때는 사진 둘레의 테두리에 가는 어두운 선이 없습니다. FIBO가 그 선을 굵은 띠로 그리고 제목에 상자를 둘렀기 때문입니다.
+- <strong>엔진:</strong> ComfyUI 엔진만 됩니다.
+
+1. <strong>모델</strong>은 [Comfy-Org/Fibo-2.0](https://huggingface.co/Comfy-Org/Fibo-2.0)(로그인 불필요)에서 `diffusion_models` 폴더로: `fibo2_dev_int8_convrot.safetensors`(8.4 GB, NVIDIA 카드의 일반적인 선택) 또는 `fibo2_dev_bf16.safetensors`(16.5 GB, 전체 정밀도, Mac용).
+2. <strong>그 turbo 추가 기능</strong>은 같은 페이지에서 `loras` 폴더로: `fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors`(2 GB). 스타일 LoRA가 아니며 스타일 LoRA로 제공되지 않습니다.
+3. <strong>그 텍스트 인코더</strong>는 FLUX 3이 설치되어 있지 않다면 같은 페이지에서 `text_encoders` 폴더로: `qwen3vl_4b_int8_convrot.safetensors`(4.9 GB) 또는 `qwen3vl_4b_bf16.safetensors`(8.9 GB, Mac용).
+4. <strong>앱이 찾게 하고, 고르세요.</strong> Yeufonic을 다시 시작한 뒤(Docker라면 `docker compose restart app`), 설정에서 <strong>테이크 그림: klein 모델</strong> 항목을 *FIBO 2.0*으로 둡니다. 편집기의 그림 메모에는 *drawn by FIBO 2.0 on this PC*라고 나옵니다.
+
 **외부 LLM으로 그리려면,** 설정을 열어 **가사와 스타일 태그를 쓰는 LLM** 항목을
 [외부 LLM](#external-llm)으로 두고, 가사를 쓸 때처럼 **API URL**, **API 키**, **모델**을 넣습니다. 제공자에게는
 이미지 모델이 있어야 합니다. Gemini에는 있으며(다른 것을 지정하지 않으면 `gemini-3.1-flash-image`를 씀), OpenAI 호환
@@ -1359,8 +1372,8 @@ Hugging Face에서 접근 신청이 필요하고 **FLUX Kommunity License**를 �
 | 설정 | 하는 일 |
 |---|---|
 | **테이크 그림** | *새 테이크마다 하나씩 만들기*(그릴 수 있는 것이 있을 때의 기본값), 또는 *요청할 때만*. 후자에서는 테이크의 네모나 편집기의 그림 버튼으로 만들 때까지 테이크가 기본 배경을 유지합니다. 아래 설정은 어느 방식으로 만든 그림에든 적용됩니다. 여기서 그릴 수 있는 것이 없는 동안에는 *그림 없음*입니다. |
-| **테이크 그림: 그리는 쪽** | *klein이 설치되어 있으면 이 PC, 아니면 외부 LLM*(기본값), *이 PC(아래의 klein 모델)*, *외부 LLM의 이미지 모델*. 이 PC에서 어느 klein이 그릴지(FLUX.2 klein 4B나 9B, 또는 FLUX 3 klein)는 **klein 모델**에서 고릅니다. |
-| **테이크 그림: klein 모델** | *FLUX.2 klein 4B*(기본값), *FLUX.2 klein 9B*, *FLUX 3 klein*, 또는 *9B 파일이 있으면 9B, 없으면 4B*. 이 PC에서 그리는 그림에만 쓰입니다. 9B와 FLUX 3은 결코 대신 설치되지 않습니다. 위의 [FLUX.2 klein 9B와 FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm)을 참고하세요. 요청한 것이 없으면 다른 것이 그리고, 설정이 무엇인지 알려 줍니다. |
+| **테이크 그림: 그리는 쪽** | *klein이 설치되어 있으면 이 PC, 아니면 외부 LLM*(기본값), *이 PC(아래의 klein 모델)*, *외부 LLM의 이미지 모델*. 이 PC에서 어느 klein이 그릴지(FLUX.2 klein 4B나 9B, 또는 FLUX 3 klein)는 **klein 모델**에서 고릅니다. FIBO 2.0도 여기서 고릅니다. |
+| **테이크 그림: klein 모델** | *FLUX.2 klein 4B*(기본값), *FLUX.2 klein 9B*, *FLUX 3 klein*, 또는 *9B 파일이 있으면 9B, 없으면 4B*. 이 PC에서 그리는 그림에만 쓰입니다. 9B와 FLUX 3은 결코 대신 설치되지 않습니다. 위의 [FLUX.2 klein 9B와 FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm)을 참고하세요. 요청한 것이 없으면 다른 것이 그리고, 설정이 무엇인지 알려 줍니다. *FIBO 2.0*도 직접 추가하며 비상업적 용도로만 쓸 수 있습니다: 위를 참조하세요. |
 | **테이크 그림: 설명하는 쪽** | 누가 그림 프롬프트를 쓰는지. 테이크의 제목, 아래의 아트 스타일, 테이크의 스타일과 가사(최대 50줄)로 씁니다. *로컬 Gemma가 설치되어 있으면 그것, 아니면 테이크 자체*(기본값)이며, 누가 그리든 같습니다. *로컬 Gemma*: 이 PC에서 씁니다. 가사 초안 옵션이 필요합니다. *테이크 자체에서*: LLM 없이 테이크의 제목, 스타일, 첫 단어들로 설명을 만듭니다. 가장 빠르고 아무것도 보내지 않습니다. 또는 *외부 LLM*으로, 그림 하나에 요청 하나입니다. 그것을 쓸 수 없을 때나 그 세션에서 로컬 LLM으로 바꿨을 때는, Gemma가 설치되어 있으면 대신 씁니다. |
 | **테이크 그림: 아트 스타일** | 그림이 어떻게 보여야 하는지. 그림 프롬프트를 쓰는 LLM에 전합니다(테이크가 스스로 설명할 때는 흐리게 표시). 기본값은 70~80년대 앨범 커버 풍의 추상적이고 초현실적인 디자인이며, 글자와 사람은 없습니다. 비우면 기본값으로 돌아갑니다. |
 | **테이크 그림: 나만의 프롬프트** | 그림마다 프롬프트를 시작하는 단어. 예: *big sky, doom-laden*, 최대 512자이며, LLM이 쓴 프롬프트가 그 뒤에 옵니다. 비어 있음(기본값): 없음. LLM이 그림 프롬프트를 쓸 때만 쓰입니다(테이크가 스스로 설명할 때는 흐리게 표시). |

@@ -1089,6 +1089,77 @@ def test_flux3_klein_is_found_when_its_files_are_put_in_and_drawn_its_own_way(mo
     assert "flux3" in [o["value"] for o in SETTINGS_BY_KEY["art.klein"]["options"]]
 
 
+def test_fibo2_is_found_when_its_files_are_put_in_and_drawn_its_own_way(monkeypatch):
+    """FIBO 2.0 is never installed by Yeufonic: its model, put in by hand beside FLUX 3's encoder, is found on a ComfyUI
+    with its prompt node, and chosen in Settings it draws through that node: with its turbo add-on in eight steps and
+    no guidance, without it at Dev's own fifty steps and a guidance of five."""
+    import httpx
+
+    from app.engine import Engine
+    four = config.PICTURE_PAIRS[0]
+    fibo = ("fibo2_dev_int8_convrot.safetensors", "qwen3vl_4b_int8_convrot.safetensors")
+    combo = lambda field, names: {"input": {"required": {field: [names]}}}
+
+    def options(unets, encoders, loras=(), nodes=("TextEncodeFibo2", "LoraLoaderModelOnly"), types=("flux2", "fibo2")):
+        info = {"UNETLoader": combo("unet_name", unets),
+                "CLIPLoader": {"input": {"required": {"clip_name": [encoders], "type": [list(types)]}}},
+                "VAELoader": combo("vae_name", [config.PICTURE_VAE]), "CheckpointLoaderSimple": combo("ckpt_name", []),
+                **{node: {"input": {"required": {}}} for node in ("EmptyFlux2LatentImage", "Flux2Scheduler",
+                                                                 "SamplerCustomAdvanced", "CFGGuider", "KSampler", *nodes)}}
+        if "LoraLoaderModelOnly" in nodes:
+            info["LoraLoaderModelOnly"] = combo("lora_name", list(loras))
+
+        async def run():
+            engine = Engine("http://engine")
+            engine.client = httpx.AsyncClient(base_url="http://engine",
+                                              transport=httpx.MockTransport(lambda r: httpx.Response(200, json=info)))
+            await engine.refresh_options()
+            await engine.client.aclose()
+            return engine.options
+        return asyncio.run(run())
+
+    turbo = options([four[0], fibo[0]], [four[1], fibo[1]], loras=[config.PICTURE_FIBO2_TURBO])
+    assert turbo["klein"] == {"4b": list(four), "fibo2": list(fibo)} and turbo["fibo2_turbo"] is True
+    plain = options([four[0], fibo[0]], [four[1], fibo[1]])
+    assert plain["klein"]["fibo2"] == list(fibo) and plain["fibo2_turbo"] is False
+    assert "fibo2" not in options([four[0], fibo[0]], [four[1], fibo[1]], nodes=("LoraLoaderModelOnly",))["klein"]
+    assert "fibo2" not in options([four[0], fibo[0]], [four[1], fibo[1]], types=("flux2",))["klein"]
+
+    chosen = {"art.klein": "fibo2"}
+    monkeypatch.setattr(artwork, "get_setting", lambda key, default=None: chosen.get(key, default))
+    monkeypatch.setattr(artwork, "engine_options", lambda: turbo)
+    graph = artwork.picture_graph("a field", 7, "p", as_given=True)
+    assert graph["1"]["inputs"]["unet_name"] == fibo[0] and artwork.klein_name() == "FIBO 2.0"
+    assert graph["2"]["inputs"] == {"clip_name": fibo[1], "type": "fibo2"}
+    assert graph["4"]["class_type"] == "TextEncodeFibo2" and graph["4"]["inputs"]["prompt"] == "a field"
+    assert graph["5"]["inputs"]["lora_name"] == config.PICTURE_FIBO2_TURBO and graph["7"]["inputs"]["model"] == ["5", 0]
+    sampler = graph["7"]["inputs"]
+    assert (sampler["steps"], sampler["cfg"], sampler["seed"]) == (8, 1.0, 7)
+    assert sampler["latent_image"] == ["4", 2] and sampler["negative"] == ["4", 1]
+    monkeypatch.setattr(artwork, "engine_options", lambda: plain)
+    graph = artwork.picture_graph("a field", 7, "p", as_given=True)
+    assert "5" not in graph and graph["7"]["inputs"]["model"] == ["1", 0]
+    assert (graph["7"]["inputs"]["steps"], graph["7"]["inputs"]["cfg"]) == (50, 5.0)
+    from app.main import SETTINGS_BY_KEY
+    assert "fibo2" in [o["value"] for o in SETTINGS_BY_KEY["art.klein"]["options"]]
+
+
+def test_fibo2_gets_a_sleeve_with_no_frame_line(monkeypatch):
+    """FIBO 2.0 boxed the title and barred the frame line on the sleeve klein draws well; drawn by FIBO on this PC, the
+    band is worded without the line and the title printed on the paper.  Anything else keeps the sleeve as it was."""
+    monkeypatch.setattr(artwork.random, "random", lambda: 0.9)          # lower case
+    monkeypatch.setattr(artwork, "drawer", lambda: "local")
+    monkeypatch.setattr(artwork, "klein_size", lambda: "fibo2")
+    fibo = artwork.with_title("A scene.", "Big Sky", "bottom band")
+    assert 'the title "big sky" is printed directly on the paper' in fibo and "line" not in fibo and "box" not in fibo
+    assert "deeper margin along the bottom" in fibo
+    monkeypatch.setattr(artwork, "klein_size", lambda: "flux3")
+    assert "thin dark line" in artwork.with_title("A scene.", "Big Sky", "bottom band")
+    monkeypatch.setattr(artwork, "klein_size", lambda: "fibo2")
+    monkeypatch.setattr(artwork, "drawer", lambda: "external")
+    assert "thin dark line" in artwork.with_title("A scene.", "Big Sky", "bottom band")
+
+
 def test_a_clean_install_draws_with_the_4b():
     from app.main import SETTINGS_BY_KEY
     spec = SETTINGS_BY_KEY["art.klein"]

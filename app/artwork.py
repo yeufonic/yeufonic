@@ -257,6 +257,13 @@ TITLE_BAND = ('The photograph is printed inside a wide off-white border, as on a
               'line framing the photograph: an even margin on three sides and a deeper band along the {side}. In that '
               'band, centred, the title "{text}" in bold sans-serif letters, in a dark colour taken from the '
               'photograph. The band is plain, with no box or line around the title.')
+# FIBO 2.0 turned the thin dark line into heavy bars, and still boxed the title however plainly the band was said to
+# be plain; with a hairline edge it lettered the title twice.  With no line at all, and the title said to be printed
+# on the paper, it set the title once, on the side asked, with no box (in all of a test of ten).
+TITLE_BAND_FIBO = ('The photograph is printed inside a wide off-white border, as on a 1970s album sleeve: an even margin '
+                   'on three sides and a deeper margin along the {side}. On that off-white margin, centred, the title '
+                   '"{text}" is printed directly on the paper in bold sans-serif letters, in a dark colour taken from '
+                   'the photograph.')
 # Over the picture: asked for nothing about its colour klein lettered in clean, pure white, which sat on the picture
 # like a caption, so a muted colour from the picture, worn as print on an old sleeve is.
 TITLE_ON_PICTURE = ('{where}, the title "{text}" in bold sans-serif letters, in a muted colour taken from the picture, '
@@ -297,12 +304,18 @@ def with_title(prompt: str, title: str, at: str) -> str:
     letters" asked for, so the title is given in the case wanted."""
     text = title.upper() if random.random() < 0.5 else title.lower()
     if at.endswith(" band"):
-        line = TITLE_BAND.format(side=at.removesuffix(" band"), text=text)
+        band = TITLE_BAND_FIBO if draws_with_fibo() else TITLE_BAND
+        line = band.format(side=at.removesuffix(" band"), text=text)
     else:
         side, _, across = at.partition(" ")
         where = f"At the {side} of the picture, centred" if across == "centre" else f"At the {at} of the picture"
         line = TITLE_ON_PICTURE.format(where=where, text=text)
     return f"{prompt.rstrip()}\n\n{line}"
+
+
+def draws_with_fibo() -> bool:
+    """The picture is to be drawn by FIBO 2.0 on this PC, so its prompt is worded for FIBO."""
+    return drawer() == "local" and klein_size() == "fibo2"
 
 
 def with_wear(prompt: str) -> str:
@@ -575,7 +588,8 @@ def image_model() -> str:
 
 
 def klein_size() -> str | None:
-    """Which klein draws here: "4b" (the default), "9b" or "flux3" (FLUX 3 Image Klein), as Settings ask where
+    """Which klein draws here: "4b" (the default), "9b", "flux3" (FLUX 3 Image Klein) or "fibo2" (FIBO 2.0, not a
+    klein but drawn in its place), as Settings ask where
     that one is installed, else another, the 9B first; "auto" takes the 9B where its files are there.  The 4B is
     the default, so the others draw only once chosen, even where their files are in place.  None when the engine
     has not said."""
@@ -583,7 +597,7 @@ def klein_size() -> str | None:
     chosen = (get_setting("art.klein", "4b") or "4b").strip().lower()
     if chosen in have:
         return chosen
-    return next((size for size in ("9b", "4b", "flux3") if size in have), None)
+    return next((size for size in ("9b", "4b", "flux3", "fibo2") if size in have), None)
 
 
 def klein_files() -> tuple[str, str]:
@@ -599,6 +613,8 @@ def klein_name() -> str:
     size = klein_size()
     if size == "flux3":
         return "FLUX 3 klein"
+    if size == "fibo2":
+        return "FIBO 2.0"
     return f"FLUX.2 klein {size.upper()}" if size else "FLUX.2 klein"
 
 
@@ -846,6 +862,10 @@ def klein_request(description: str, take: dict | None = None, title: str = "") -
 WIDTH, HEIGHT = 1024, 1024     # square 1:1 album cover
 LOCAL_STEPS = 4               # klein is distilled for four
 FLUX3_STEPS = 16              # FLUX 3 klein for sixteen, with its shift built into the model
+# FIBO 2.0 Dev with its turbo add-on: eight steps, no guidance (four were a touch less fine and hardly quicker).
+# Without the add-on Dev draws at Bria's own settings, fifty steps at a guidance of five: about eight times as long.
+FIBO2_TURBO_STEPS, FIBO2_TURBO_CFG = 8, 1.0
+FIBO2_STEPS, FIBO2_CFG = 50, 5.0
 
 
 def picture_graph(description: str, seed: int, prefix: str, title: str = "", as_given: bool = False) -> dict:
@@ -856,6 +876,8 @@ def picture_graph(description: str, seed: int, prefix: str, title: str = "", as_
     text = description if as_given else klein_request(description, title=title)
     if klein_size() == "flux3":
         return flux3_graph(model, encoder, text, seed, prefix)
+    if klein_size() == "fibo2":
+        return fibo2_graph(model, encoder, text, seed, prefix, turbo=bool((engine_options() or {}).get("fibo2_turbo")))
     return {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": model, "weight_dtype": "default"}},
         "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": encoder, "type": "flux2"}},
@@ -894,6 +916,31 @@ def flux3_graph(model: str, encoder: str, text: str, seed: int, prefix: str) -> 
         "8": {"class_type": "VAEDecode", "inputs": {"samples": ["7", 0], "vae": ["3", 0]}},
         "9": {"class_type": "SaveImage", "inputs": {"images": ["8", 0], "filename_prefix": prefix}},
     }
+
+
+def fibo2_graph(model: str, encoder: str, text: str, seed: int, prefix: str, turbo: bool = True) -> dict:
+    """FIBO 2.0 Dev on the engine, as ComfyUI's own workflow runs it: Qwen3-VL read through FIBO's prompt node (which
+    makes the latent too, 1024 square), the FLUX.2 VAE, euler on the simple schedule.  With the turbo add-on, a LoRA on
+    the model, it draws in a few steps without guidance; without it, at Dev's own settings."""
+    graph = {
+        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": model, "weight_dtype": "default"}},
+        "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": encoder, "type": "fibo2"}},
+        "3": {"class_type": "VAELoader", "inputs": {"vae_name": config.PICTURE_VAE}},
+        "4": {"class_type": "TextEncodeFibo2", "inputs": {"clip": ["2", 0], "prompt": text, "negative_prompt": "",
+                                                          "width": WIDTH, "height": HEIGHT, "batch_size": 1}},
+        "7": {"class_type": "KSampler", "inputs": {"model": ["1", 0], "positive": ["4", 0], "negative": ["4", 1],
+                                                   "latent_image": ["4", 2], "seed": int(seed),
+                                                   "steps": FIBO2_TURBO_STEPS if turbo else FIBO2_STEPS,
+                                                   "cfg": FIBO2_TURBO_CFG if turbo else FIBO2_CFG,
+                                                   "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}},
+        "8": {"class_type": "VAEDecode", "inputs": {"samples": ["7", 0], "vae": ["3", 0]}},
+        "9": {"class_type": "SaveImage", "inputs": {"images": ["8", 0], "filename_prefix": prefix}},
+    }
+    if turbo:
+        graph["5"] = {"class_type": "LoraLoaderModelOnly", "inputs": {"model": ["1", 0], "strength_model": 1.0,
+                                                                      "lora_name": config.PICTURE_FIBO2_TURBO}}
+        graph["7"]["inputs"]["model"] = ["5", 0]
+    return graph
 
 
 async def draw(description: str, as_given: bool = False) -> bytes:

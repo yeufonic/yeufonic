@@ -96,6 +96,14 @@ cannot creep back in.
   on Hugging Face under the FLUX Kommunity License, and the guide says which to get and where they go. ComfyUI engine
   only for now.
 
+- **FIBO 2.0 can draw take pictures.** Bria's FIBO 2.0 is a fourth choice under **Take pictures: klein model**: it
+  draws closest to a photograph of the 1970s sleeves the pictures are after, with natural depth of field and the
+  colour of film, and follows the description closely. With its turbo add-on it draws in a few steps, about as quickly
+  as FLUX 3; without it, at its own far slower settings. It is put in by hand, needs a 16 GB card and is for
+  non-commercial use only (CC BY-NC 4.0): the guide sets out the licence beside FLUX 3's and says which files to get.
+  Drawn by FIBO, the sleeve's border has no thin line round the photograph, which FIBO drew as heavy bars and a box
+  round the title. ComfyUI engine only.
+
 - **The engine's ComfyUI is newer.** It brings:
   - faster YuE2 sampling when planning and rendering;
   - keys and chords in transcribed scores spelled for the key (Bb rather than A#);

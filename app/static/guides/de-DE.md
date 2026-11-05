@@ -1347,6 +1347,34 @@ kann gewählt werden.
 
 Die Ordner sind dieselben wie beim 9B, und die Dateien werden nur unter diesen Namen gefunden.
 
+**FIBO 2.0, für den Look einer Fotografie und eine 16-GB-Karte.** Brias FIBO 2.0 zeichnet am nächsten an einer echten
+Fotografie der Plattenhüllen, nach denen die Bilder gestaltet sind: schärfere Details, eine natürliche Schärfentiefe,
+die Farben eines Films und mehr von dem, was die Beschreibung verlangt. Auch FIBO lädt Yeufonic nie herunter. **Seine
+Lizenz ist CC BY-NC 4.0: nur nichtkommerzielle Nutzung.** Die Lizenz von FLUX 3 erlaubt jemandem unter ihrer
+Umsatzgrenze, das Gezeichnete kommerziell zu nutzen; bei FIBO braucht jede kommerzielle Nutzung, auch ein Cover für einen
+Song, den du verkaufst, eine Vereinbarung mit Bria. Lies die Lizenz, bevor du es nutzt.
+
+- **Festplatte:** etwa 10,4 GB, das Modell und sein Turbo-Zusatz. Es liest den Textencoder von FLUX 3 und das VAE des
+  4B; mit installiertem FLUX 3 wird also nichts weiter gebraucht.
+- **Videospeicher:** etwa 12,5 GB beim Zeichnen, also eine 16-GB-Karte. Eine kleinere Karte lagert einen Teil aus, was
+  viel langsamer ist.
+- **Zeit:** mit dem Turbo-Zusatz etwa so lange wie FLUX 3. Ohne ihn zeichnet FIBO mit seinen eigenen Einstellungen,
+  etwa achtmal so lange.
+- **Die Hülle:** von FIBO gezeichnet hat der Rand um die Fotografie keine dünne dunkle Linie; FIBO zeichnete sie als
+  dicke Balken und einen Kasten um den Titel.
+- **Engine:** nur die ComfyUI-Engine.
+
+1. **Das Modell,** von [Comfy-Org/Fibo-2.0](https://huggingface.co/Comfy-Org/Fibo-2.0), ohne Anmeldung, in den Ordner
+   `diffusion_models`: `fibo2_dev_int8_convrot.safetensors` (8,4 GB, die übliche Wahl bei einer NVIDIA-Karte) oder
+   `fibo2_dev_bf16.safetensors` (16,5 GB, volle Genauigkeit, für einen Mac).
+2. **Sein Turbo-Zusatz,** von derselben Seite, in den Ordner `loras`:
+   `fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors` (2 GB). Er ist kein Stil-LoRA und wird nicht als solches angeboten.
+3. **Sein Textencoder,** falls FLUX 3 nicht installiert ist: `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB) oder
+   `qwen3vl_4b_bf16.safetensors` (8,9 GB, für einen Mac), von derselben Seite, in den Ordner `text_encoders`.
+4. **Lass die App sie sehen, und wähle es:** Starte Yeufonic neu (mit Docker `docker compose restart app`) und setze dann
+   **Take-Bilder: klein-Modell** in den Einstellungen auf *FIBO 2.0*. Die Notiz zum Bild im Editor sagt *drawn by FIBO 2.0
+   on this PC*.
+
 **Um mit einer externen LLM zu zeichnen,** öffne die Einstellungen und setze **LLM für Songtexte & Stil-Tags** auf die
 [externe LLM](#external-llm), mit ihrer **API-URL**, ihrem **API-Schlüssel** und ihrem **Modell**, wie für Songtexte. Der Anbieter muss ein Bild-
 modell haben: Gemini hat eines (`gemini-3.1-flash-image` wird benutzt, wenn du kein anderes nennst), und ein OpenAI-kompatibler
@@ -1363,8 +1391,8 @@ Richte eines ein, und sie gehen an: Bilder werden dann für die Takes gemacht, d
 | Einstellung | Bewirkt |
 |---|---|
 | **Take-Bilder** | *Für jeden neuen Take eins machen* (der Standard, wo etwas zeichnen kann) oder *Nur auf Anfrage*, wo ein Take den Standardhintergrund behält, bis du eins über sein Quadrat oder die Schaltfläche Bild im Editor machst. Die Einstellungen darunter formen ein Bild in beiden Fällen. Es heißt *Keine Bilder*, solange hier nichts zeichnen kann. |
-| **Take-Bilder: gezeichnet von** | *Dieser PC, wenn klein installiert ist, sonst die externe LLM* (der Standard), *Dieser PC (das klein-Modell unten)* oder *Das Bildmodell der externen LLM*. Welches klein auf diesem PC zeichnet (FLUX.2 klein 4B oder 9B oder FLUX 3 klein), wird unter **klein-Modell** gewählt. |
-| **Take-Bilder: klein-Modell** | *FLUX.2 klein 4B* (der Standard), *FLUX.2 klein 9B*, *FLUX 3 klein* oder *9B, wo seine Dateien installiert sind, sonst 4B*. Nur für auf diesem PC gezeichnete Bilder. Der 9B und FLUX 3 werden nie für dich installiert: siehe [FLUX.2 klein 9B und FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) oben. Wird eines verlangt, ist aber nicht da, zeichnet ein anderes, und die Einstellungen sagen, welches. |
+| **Take-Bilder: gezeichnet von** | *Dieser PC, wenn klein installiert ist, sonst die externe LLM* (der Standard), *Dieser PC (das klein-Modell unten)* oder *Das Bildmodell der externen LLM*. Welches klein auf diesem PC zeichnet (FLUX.2 klein 4B oder 9B oder FLUX 3 klein), wird unter **klein-Modell** gewählt. FIBO 2.0 wird ebenfalls dort gewählt. |
+| **Take-Bilder: klein-Modell** | *FLUX.2 klein 4B* (der Standard), *FLUX.2 klein 9B*, *FLUX 3 klein* oder *9B, wo seine Dateien installiert sind, sonst 4B*. Nur für auf diesem PC gezeichnete Bilder. Der 9B und FLUX 3 werden nie für dich installiert: siehe [FLUX.2 klein 9B und FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) oben. Wird eines verlangt, ist aber nicht da, zeichnet ein anderes, und die Einstellungen sagen, welches. *FIBO 2.0* wird ebenfalls von Hand hinzugefügt und ist nur für nichtkommerzielle Nutzung: siehe oben. |
 | **Take-Bilder: beschrieben von** | wer den Bild-Prompt schreibt, aus dem Titel des Takes, dem Kunststil unten, seinem Stil und seinem Text (bis zu 50 Zeilen). *Lokales Gemma, wenn installiert, sonst der Take selbst* (der Standard), egal wer zeichnet. *Lokales Gemma*: auf diesem PC geschrieben; braucht die Option Songtext-Entwürfe. *Aus dem Take selbst*: keine LLM; eine Beschreibung aus Titel, Stil und ersten Worten des Takes, am schnellsten, und nichts wird dafür verschickt. Oder die *Externe LLM*, eine Anfrage pro Bild; ist sie nicht erreichbar oder wechselst du für die Sitzung zu lokalen LLMs, schreibt Gemma sie stattdessen, wenn es installiert ist. |
 | **Take-Bilder: Kunststil** | wie das Bild aussehen soll, an die LLM gegeben, die den Bild-Prompt schreibt (ausgegraut, wenn der Take sich selbst beschreibt). Standardmäßig ein abstraktes, surrealistisches Design im Stil von Albumcovern der 1970er und 1980er, ohne Text oder Menschen. Geleert geht es dorthin zurück. |
 | **Take-Bilder: dein eigener Prompt** | Wörter, mit denen der Bild-Prompt jedes Bildes beginnt, etwa *big sky, doom-laden*, bis zu 512 Zeichen; der Prompt, den die LLM schreibt, folgt darauf. Leer (der Standard): keine. Nur, wenn eine LLM den Bild-Prompt schreibt (ausgegraut, wenn der Take sich selbst beschreibt). |

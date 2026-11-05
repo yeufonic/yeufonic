@@ -197,6 +197,13 @@ PICTURE_FLUX3_MODELS = ("flux3-image-klein-int8-convrot.safetensors", "flux3-ima
 PICTURE_FLUX3_ENCODERS = ("qwen3vl_4b_int8_convrot.safetensors", "qwen3vl_4b_fp8_scaled.safetensors",
                           "qwen3vl_4b_bf16.safetensors")
 PICTURE_PAIRS_FLUX3 = tuple((m, e) for m in PICTURE_FLUX3_MODELS for e in PICTURE_FLUX3_ENCODERS)
+# Bria's FIBO 2.0 Dev, which draws closest to a photograph of the 1970s sleeves: never installed by Yeufonic either
+# (CC BY-NC 4.0, non-commercial only), but used when its files are put in the models folder.  It shares FLUX 3's
+# Qwen3-VL-4B encoder and the FLUX.2 VAE.  Looked for in this order: Comfy-Org's int8 model, then full precision (a
+# Mac).  Its turbo add-on, a LoRA, draws it in a few steps; without it Dev draws at its own, far slower, settings.
+PICTURE_FIBO2_MODELS = ("fibo2_dev_int8_convrot.safetensors", "fibo2_dev_bf16.safetensors")
+PICTURE_PAIRS_FIBO2 = tuple((m, e) for m in PICTURE_FIBO2_MODELS for e in PICTURE_FLUX3_ENCODERS)
+PICTURE_FIBO2_TURBO = "fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors"
 PICTURE_VAE = "flux2-vae.safetensors"
 # The engine's model folder, when this machine can see it.  The app only reads
 # from it, and only to say what a LoRA holds; the engine is what loads them.

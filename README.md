@@ -157,7 +157,7 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   atop the take panel and behind the editor (drawn on this PC, it waits until the song is made, so it never
   holds it up): a description is made from the title, style and opening words, with no LLM, then
   FLUX.2 klein draws it on this PC in a few seconds (an install option, and all a
-  picture drawn here needs) or the external LLM's image model does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
+  picture drawn here needs; the 9B, FLUX 3 klein and FIBO 2.0 can be added by hand) or the external LLM's image model does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
   to the plain background. Without either way to draw, there are no pictures.
 - **A library.** Every take keeps its score, style, lyrics, seed and settings, so it can be
   reproduced, reworked, starred or deleted. Search by title, style, lyrics or LoRA, in one space or

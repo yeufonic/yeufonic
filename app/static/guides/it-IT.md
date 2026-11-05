@@ -1347,6 +1347,34 @@ diventa selezionabile.
 
 Le cartelle sono le stesse del 9B, e i file vengono trovati solo con questi nomi.
 
+**FIBO 2.0, per l’aspetto di una fotografia e una scheda da 16 GB.** FIBO 2.0 di Bria disegna il più vicino a una vera
+fotografia delle copertine a cui si ispirano le immagini: dettagli più nitidi, una profondità di campo naturale, i colori
+della pellicola e più di ciò che chiede la descrizione. Neanche FIBO viene mai scaricato da Yeufonic. **La sua licenza è
+CC BY-NC 4.0: solo uso non commerciale.** La licenza di FLUX 3 permette a chi sta sotto il suo limite di fatturato di usare
+commercialmente ciò che disegna; con FIBO, qualsiasi uso commerciale, compresa la copertina di una canzone che vendi,
+richiede un accordo con Bria. Leggi la licenza prima di usarlo.
+
+- **Disco:** circa 10,4 GB, il modello e il suo componente turbo. Legge l’encoder di testo di FLUX 3 e il VAE del 4B,
+  quindi con FLUX 3 installato non serve altro.
+- **Memoria video:** circa 12,5 GB mentre disegna, quindi una scheda da 16 GB. Una scheda più piccola ne sposta una parte
+  altrove, il che è molto più lento.
+- **Tempo:** con il componente turbo, più o meno quanto FLUX 3. Senza, FIBO disegna con le sue impostazioni, circa otto
+  volte tanto.
+- **La copertina:** disegnata da FIBO, la cornice attorno alla fotografia non ha la sottile linea scura, che FIBO
+  disegnava come barre spesse e un riquadro attorno al titolo.
+- **Motore:** solo il motore ComfyUI.
+
+1. **Il modello,** da [Comfy-Org/Fibo-2.0](https://huggingface.co/Comfy-Org/Fibo-2.0), senza accesso, nella cartella
+   `diffusion_models`: `fibo2_dev_int8_convrot.safetensors` (8,4 GB, la scelta abituale su una scheda NVIDIA) o
+   `fibo2_dev_bf16.safetensors` (16,5 GB, piena precisione, per un Mac).
+2. **Il suo componente turbo,** dalla stessa pagina, nella cartella `loras`:
+   `fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors` (2 GB). Non è un LoRA di stile e non viene proposto come tale.
+3. **Il suo encoder di testo,** se FLUX 3 non è installato: `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB) o
+   `qwen3vl_4b_bf16.safetensors` (8,9 GB, per un Mac), dalla stessa pagina, nella cartella `text_encoders`.
+4. **Lascia che l’app li veda, e sceglilo:** riavvia Yeufonic (con Docker, `docker compose restart app`), poi imposta
+   **Immagini dei take: modello klein** nelle Impostazioni su *FIBO 2.0*. La nota dell’immagine nell’editor dice *drawn by
+   FIBO 2.0 on this PC*.
+
 **Per disegnare con un LLM esterno,** apri Impostazioni e imposta **LLM per scrivere testi e tag di stile** sull'[LLM esterno](#external-llm),
 con il suo **URL dell'API**, la sua **chiave API** e il suo **modello**, come per i testi. Il fornitore deve avere un modello
 di immagini: Gemini ce l'ha (si usa `gemini-3.1-flash-image` a meno che tu non ne nomini un altro), e a un fornitore compatibile con OpenAI
@@ -1363,8 +1391,8 @@ Imposta l'uno o l'altro e si attivano: da lì in poi vengono fatte immagini per 
 | Impostazione | Cosa fa |
 |---|---|
 | **Immagini dei take** | *Fanne una per ogni take nuovo* (predefinito quando qualcosa può disegnare), o *Solo su richiesta*, dove un take mantiene lo sfondo predefinito finché non ne fai una dal suo quadrato o dal pulsante Immagine dell'editor. Le impostazioni qui sotto danno forma a un'immagine fatta in entrambi i modi. È *Nessuna immagine* finché nulla qui può disegnare. |
-| **Immagini dei take: disegnate da** | *Questo PC se klein è installato, altrimenti l'LLM esterno* (predefinito), *Questo PC (il modello klein qui sotto)* o *Il modello di immagini dell'LLM esterno*. Quale klein disegna su questo PC (FLUX.2 klein 4B o 9B, o FLUX 3 klein) si sceglie in **modello klein**. |
-| **Immagini dei take: modello klein** | *FLUX.2 klein 4B* (predefinito), *FLUX.2 klein 9B*, *FLUX 3 klein*, o *9B dove i suoi file sono installati, altrimenti 4B*. Solo per immagini disegnate su questo PC. Il 9B e FLUX 3 non vengono mai installati per te: vedi [FLUX.2 klein 9B e FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) più sopra. Se quello chiesto non c'è, ne disegna un altro, e Impostazioni dice quale. |
+| **Immagini dei take: disegnate da** | *Questo PC se klein è installato, altrimenti l'LLM esterno* (predefinito), *Questo PC (il modello klein qui sotto)* o *Il modello di immagini dell'LLM esterno*. Quale klein disegna su questo PC (FLUX.2 klein 4B o 9B, o FLUX 3 klein) si sceglie in **modello klein**. Anche FIBO 2.0 si sceglie lì. |
+| **Immagini dei take: modello klein** | *FLUX.2 klein 4B* (predefinito), *FLUX.2 klein 9B*, *FLUX 3 klein*, o *9B dove i suoi file sono installati, altrimenti 4B*. Solo per immagini disegnate su questo PC. Il 9B e FLUX 3 non vengono mai installati per te: vedi [FLUX.2 klein 9B e FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) più sopra. Se quello chiesto non c'è, ne disegna un altro, e Impostazioni dice quale. Anche *FIBO 2.0* si aggiunge a mano ed è solo per uso non commerciale: vedi sopra. |
 | **Immagini dei take: descritte da** | chi scrive il prompt di immagine, dal titolo del take, dallo stile artistico qui sotto, dal suo stile e dal suo testo (fino a 50 righe). *Gemma locale se installato, altrimenti il take stesso* (predefinito), chiunque disegni. *Gemma locale*: scritto su questo PC; richiede l'opzione Bozze dei testi. *Dal take stesso*: nessun LLM; una descrizione fatta con il titolo, lo stile e le prime parole del take, la più rapida, e non viene inviato nulla. Oppure l'*LLM esterno*, una richiesta per immagine; quando non è disponibile, o passi agli LLM locali per la sessione, Gemma le scrive al suo posto se è installato. |
 | **Immagini dei take: stile artistico** | come deve apparire l'immagine, dato all'LLM che scrive il prompt di immagine (attenuato quando il take si descrive da sé). Per impostazione predefinita un design astratto e surreale nello stile delle copertine degli anni Settanta e Ottanta, senza testo né persone. Svuotato, torna a quello. |
 | **Immagini dei take: il tuo prompt** | parole con cui inizia il prompt di ogni immagine, come *big sky, doom-laden*, fino a 512 caratteri; il prompt scritto dall'LLM viene dopo. Vuoto (predefinito): nessuna. Solo quando un LLM scrive il prompt di immagine (attenuato quando il take si descrive da sé). |

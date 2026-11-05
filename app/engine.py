@@ -454,10 +454,14 @@ class Engine:
         # Each klein whose model and text encoder are both here: the 4B chosen at install, the 9B and FLUX 3 put in by
         # hand.  FLUX 3 needs a ComfyUI that knows it (its text encoder type) and the plain sampler it is drawn with.
         flux3_parts = klein_parts and "flux3" in combo_options(info, "CLIPLoader", "type") and "KSampler" in info
+        # FIBO 2.0 the same way, with its own prompt node; its turbo add-on is looked for beside the style LoRAs.
+        fibo2_parts = (klein_parts and "fibo2" in combo_options(info, "CLIPLoader", "type")
+                       and all(n in info for n in ("KSampler", "TextEncodeFibo2", "LoraLoaderModelOnly")))
         klein = {size: list(pair) for size, pair, parts in (
             ("4b", config.installed_picture_pair(config.PICTURE_PAIRS, unets, text_models), klein_parts),
             ("9b", config.installed_picture_pair(config.PICTURE_PAIRS_9B, unets, text_models), klein_parts),
-            ("flux3", config.installed_picture_pair(config.PICTURE_PAIRS_FLUX3, unets, text_models), flux3_parts))
+            ("flux3", config.installed_picture_pair(config.PICTURE_PAIRS_FLUX3, unets, text_models), flux3_parts),
+            ("fibo2", config.installed_picture_pair(config.PICTURE_PAIRS_FIBO2, unets, text_models), fibo2_parts))
             if pair and parts}
         loras = combo_options(info, "LoraLoader", "lora_name")
         self.options = {"checkpoints": checkpoints, "audio_encoders": encoders,
@@ -478,9 +482,11 @@ class Engine:
                         # An engine built with WITH_TRAINER=0 has no trainer, so the
                         # app can tell whether training is there to offer at all.
                         "trainer": any(n in info for n in ("YuE2TrainerAcousticLoRA", "YuE2TrainerPlannerLoRA")),
-                        # Take pictures drawn here: klein (FLUX.2 4B or 9B, FLUX 3) and its parts, and the nodes for them.
+                        # Take pictures drawn here: klein (FLUX.2 4B or 9B, FLUX 3, FIBO 2.0) and its parts, and the nodes for them.
                         "pictures": bool(klein),
                         "klein": klein,
+                        # FIBO 2.0's turbo add-on: with it FIBO draws in a few steps, without it at Dev's own fifty.
+                        "fibo2_turbo": config.PICTURE_FIBO2_TURBO in combo_options(info, "LoraLoaderModelOnly", "lora_name"),
                         "loras": loras}
 
         # Which size of the model is installed decides which one the graphs ask for, and the same for klein.

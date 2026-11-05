@@ -1347,6 +1347,34 @@ wordt kiesbaar.
 
 De mappen zijn dezelfde als voor de 9B, en de bestanden worden alleen onder deze namen gevonden.
 
+**FIBO 2.0, voor de uitstraling van een foto en een kaart van 16 GB.** Bria's FIBO 2.0 tekent het dichtst bij een echte
+foto van de hoezen waarop de afbeeldingen zijn gebaseerd: scherpere details, een natuurlijke scherptediepte, de kleuren
+van film en meer van wat de beschrijving vraagt. Ook FIBO downloadt Yeufonic nooit. **De licentie is CC BY-NC 4.0:
+alleen niet-commercieel gebruik.** De licentie van FLUX 3 laat iemand onder de omzetgrens wat het tekent commercieel
+gebruiken; bij FIBO heeft elk commercieel gebruik, ook een hoes voor een nummer dat je verkoopt, een overeenkomst met
+Bria nodig. Lees de licentie voordat je het gebruikt.
+
+- **Schijf:** ongeveer 10,4 GB, het model en zijn turbo-toevoeging. Het leest de tekstencoder van FLUX 3 en de VAE van
+  de 4B, dus met FLUX 3 geïnstalleerd is er verder niets nodig.
+- **Videogeheugen:** ongeveer 12,5 GB tijdens het tekenen, dus een kaart van 16 GB. Een kleinere kaart lagert een deel
+  uit, wat veel trager is.
+- **Tijd:** met de turbo-toevoeging ongeveer even lang als FLUX 3. Zonder tekent FIBO met zijn eigen instellingen,
+  ongeveer acht keer zo lang.
+- **De hoes:** getekend door FIBO heeft de rand om de foto geen dunne donkere lijn; FIBO tekende die als dikke balken
+  en een kader om de titel.
+- **Engine:** alleen de ComfyUI-engine.
+
+1. **Het model,** van [Comfy-Org/Fibo-2.0](https://huggingface.co/Comfy-Org/Fibo-2.0), zonder aanmelden, in de map
+   `diffusion_models`: `fibo2_dev_int8_convrot.safetensors` (8,4 GB, de gebruikelijke keuze op een NVIDIA-kaart) of
+   `fibo2_dev_bf16.safetensors` (16,5 GB, volle precisie, voor een Mac).
+2. **De turbo-toevoeging,** van dezelfde pagina, in de map `loras`:
+   `fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors` (2 GB). Het is geen stijl-LoRA en wordt niet als zodanig aangeboden.
+3. **De tekstencoder,** als FLUX 3 niet geïnstalleerd is: `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB) of
+   `qwen3vl_4b_bf16.safetensors` (8,9 GB, voor een Mac), van dezelfde pagina, in de map `text_encoders`.
+4. **Laat de app ze zien, en kies het:** start Yeufonic opnieuw (met Docker `docker compose restart app`) en zet dan
+   **Take-afbeeldingen: klein-model** in de Instellingen op *FIBO 2.0*. De notitie bij de afbeelding in de editor zegt
+   *drawn by FIBO 2.0 on this PC*.
+
 **Om met een externe LLM te tekenen,** open je Instellingen en zet je **LLM voor het schrijven van songteksten & stijltags** op de
 [externe LLM](#external-llm), met zijn **API-URL**, **API-sleutel** en **model**, zoals voor teksten. De provider moet een
 afbeeldingsmodel hebben: Gemini heeft er een (`gemini-3.1-flash-image` wordt gebruikt tenzij je een ander noemt), en aan een OpenAI-compatibele provider
@@ -1363,8 +1391,8 @@ Stel een van beide in en ze gaan aan: vanaf dan worden er afbeeldingen gemaakt v
 | Instelling | Doet |
 |---|---|
 | **Take-afbeeldingen** | *Maak er een voor elke nieuwe take* (de standaard als iets kan tekenen), of *Alleen op verzoek*, waarbij een take de standaardachtergrond houdt tot je er een maakt via zijn vierkantje of de knop Afbeelding in de editor. De instellingen hieronder vormen een afbeelding die op een van beide manieren is gemaakt. Staat op *Geen afbeeldingen* zolang niets hier kan tekenen. |
-| **Take-afbeeldingen: getekend door** | *Deze pc als klein geïnstalleerd is, anders de externe LLM* (standaard), *Deze pc (het klein-model hieronder)* of *Het afbeeldingsmodel van de externe LLM*. Welke klein op deze pc tekent (FLUX.2 klein 4B of 9B, of FLUX 3 klein) kies je bij **klein-model**. |
-| **Take-afbeeldingen: klein-model** | *FLUX.2 klein 4B* (standaard), *FLUX.2 klein 9B*, *FLUX 3 klein*, of *9B waar zijn bestanden geïnstalleerd zijn, anders 4B*. Alleen voor afbeeldingen getekend op deze pc. De 9B en FLUX 3 worden nooit voor je geïnstalleerd: zie [FLUX.2 klein 9B en FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) hierboven. Als de gevraagde er niet is, tekent een andere, en Instellingen zegt welke. |
+| **Take-afbeeldingen: getekend door** | *Deze pc als klein geïnstalleerd is, anders de externe LLM* (standaard), *Deze pc (het klein-model hieronder)* of *Het afbeeldingsmodel van de externe LLM*. Welke klein op deze pc tekent (FLUX.2 klein 4B of 9B, of FLUX 3 klein) kies je bij **klein-model**. FIBO 2.0 wordt daar ook gekozen. |
+| **Take-afbeeldingen: klein-model** | *FLUX.2 klein 4B* (standaard), *FLUX.2 klein 9B*, *FLUX 3 klein*, of *9B waar zijn bestanden geïnstalleerd zijn, anders 4B*. Alleen voor afbeeldingen getekend op deze pc. De 9B en FLUX 3 worden nooit voor je geïnstalleerd: zie [FLUX.2 klein 9B en FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) hierboven. Als de gevraagde er niet is, tekent een andere, en Instellingen zegt welke. *FIBO 2.0* wordt ook met de hand toegevoegd en is alleen voor niet-commercieel gebruik: zie hierboven. |
 | **Take-afbeeldingen: beschreven door** | wie de afbeeldingsprompt schrijft, uit de titel van de take, de kunststijl hieronder, zijn stijl en zijn tekst (tot 50 regels). *Lokale Gemma als die geïnstalleerd is, anders de take zelf* (standaard), wie er ook tekent. *Lokale Gemma*: geschreven op deze pc; heeft de optie Tekstconcepten nodig. *Uit de take zelf*: geen LLM; een beschrijving gemaakt uit de titel, stijl en eerste woorden van de take, de snelste, en er wordt niets verstuurd. Of de *externe LLM*, één verzoek per afbeelding; als die niet beschikbaar is, of je voor de sessie naar lokale LLM's overschakelt, schrijft Gemma ze in plaats daarvan als die geïnstalleerd is. |
 | **Take-afbeeldingen: kunststijl** | hoe de afbeelding eruit moet zien, gegeven aan de LLM die de afbeeldingsprompt schrijft (gedimd als de take zichzelf beschrijft). Standaard een abstract, surrealistisch ontwerp in de stijl van hoezen uit de jaren zeventig en tachtig, zonder tekst of mensen. Leeggemaakt gaat het daarnaar terug. |
 | **Take-afbeeldingen: je eigen prompt** | woorden waarmee de afbeeldingsprompt van elke afbeelding begint, zoals *big sky, doom-laden*, tot 512 tekens; de prompt die de LLM schrijft volgt erna. Leeg (standaard): geen. Alleen als een LLM de afbeeldingsprompt schrijft (gedimd als de take zichzelf beschrijft). |

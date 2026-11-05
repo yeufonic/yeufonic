@@ -1347,6 +1347,34 @@ peut être choisi.
 
 Les dossiers sont les mêmes que pour le 9B, et les fichiers ne sont trouvés que sous ces noms.
 
+**FIBO 2.0, pour l’aspect d’une photographie et une carte de 16 Go.** FIBO 2.0 de Bria dessine au plus près d’une vraie
+photographie des pochettes dont s’inspirent les images : des détails plus nets, une profondeur de champ naturelle, les
+couleurs d’un film, et davantage de ce que demande la description. Yeufonic ne le télécharge jamais non plus. **Sa
+licence est CC BY-NC 4.0 : usage non commercial uniquement.** La licence de FLUX 3 permet à quelqu’un sous son plafond
+de revenus d’utiliser commercialement ce qu’il dessine ; avec FIBO, tout usage commercial, y compris une pochette pour
+une chanson que vous vendez, demande un accord avec Bria. Lisez la licence avant de l’utiliser.
+
+- **Disque :** environ 10,4 Go, le modèle et son module turbo. Il lit l’encodeur de texte de FLUX 3 et le VAE du 4B ;
+  avec FLUX 3 installé, il ne faut donc rien d’autre.
+- **Mémoire vidéo :** environ 12,5 Go pendant qu’il dessine, donc une carte de 16 Go. Une carte plus petite en déplace
+  une partie ailleurs, ce qui est bien plus lent.
+- **Temps :** avec le module turbo, à peu près autant que FLUX 3. Sans lui, FIBO dessine avec ses propres réglages,
+  environ huit fois plus longtemps.
+- **La pochette :** dessinée par FIBO, la bordure autour de la photographie n’a pas de fine ligne sombre, que FIBO
+  dessinait en grosses barres et en cadre autour du titre.
+- **Moteur :** seulement le moteur ComfyUI.
+
+1. **Le modèle,** depuis [Comfy-Org/Fibo-2.0](https://huggingface.co/Comfy-Org/Fibo-2.0), sans connexion, dans le dossier
+   `diffusion_models` : `fibo2_dev_int8_convrot.safetensors` (8,4 Go, le choix habituel sur une carte NVIDIA) ou
+   `fibo2_dev_bf16.safetensors` (16,5 Go, pleine précision, pour un Mac).
+2. **Son module turbo,** depuis la même page, dans le dossier `loras` :
+   `fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors` (2 Go). Ce n’est pas un LoRA de style, et il n’est pas proposé comme tel.
+3. **Son encodeur de texte,** si FLUX 3 n’est pas installé : `qwen3vl_4b_int8_convrot.safetensors` (4,9 Go) ou
+   `qwen3vl_4b_bf16.safetensors` (8,9 Go, pour un Mac), depuis la même page, dans le dossier `text_encoders`.
+4. **Laissez l’application les voir, et choisissez-le :** redémarrez Yeufonic (avec Docker, `docker compose restart app`), puis réglez
+   **Images des prises : modèle klein** dans les Paramètres sur *FIBO 2.0*. La note de l’image dans l’éditeur dit *drawn by
+   FIBO 2.0 on this PC*.
+
 **Pour dessiner avec un LLM externe,** ouvrez les Paramètres et réglez **LLM pour écrire les paroles et les tags de style** sur le
 [LLM externe](#external-llm), avec son **URL d’API**, sa **clé d’API** et son **modèle**, comme pour les paroles. Le fournisseur doit avoir un modèle
 d’image : Gemini en a un (`gemini-3.1-flash-image` est utilisé sauf si vous en nommez un autre), et à un fournisseur compatible OpenAI
@@ -1363,8 +1391,8 @@ Configurez l’un ou l’autre et elles s’activent : des images sont alors cr�
 | Réglage | Effet |
 |---|---|
 | **Images des prises** | *En créer une pour chaque nouvelle prise* (par défaut quand quelque chose peut dessiner), ou *Seulement sur demande*, où une prise garde le fond par défaut jusqu’à ce que vous en créiez une depuis son carré ou le bouton Image de l’éditeur. Les réglages ci-dessous façonnent une image créée dans les deux cas. C’est *Pas d’images* tant que rien ici ne peut dessiner. |
-| **Images des prises : dessinées par** | *Ce PC si klein est installé, sinon le LLM externe* (par défaut), *Ce PC (le modèle klein ci-dessous)* ou *Le modèle d’image du LLM externe*. Le klein qui dessine sur ce PC (FLUX.2 klein 4B ou 9B, ou FLUX 3 klein) se choisit sous **modèle klein**. |
-| **Images des prises : modèle klein** | *FLUX.2 klein 4B* (par défaut), *FLUX.2 klein 9B*, *FLUX 3 klein*, ou *9B là où ses fichiers sont installés, sinon 4B*. Seulement pour les images dessinées sur ce PC. Le 9B et FLUX 3 ne sont jamais installés pour vous : voir [FLUX.2 klein 9B et FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) plus haut. Si celui demandé n’est pas là, un autre dessine, et les Paramètres disent lequel. |
+| **Images des prises : dessinées par** | *Ce PC si klein est installé, sinon le LLM externe* (par défaut), *Ce PC (le modèle klein ci-dessous)* ou *Le modèle d’image du LLM externe*. Le klein qui dessine sur ce PC (FLUX.2 klein 4B ou 9B, ou FLUX 3 klein) se choisit sous **modèle klein**. FIBO 2.0 s’y choisit aussi. |
+| **Images des prises : modèle klein** | *FLUX.2 klein 4B* (par défaut), *FLUX.2 klein 9B*, *FLUX 3 klein*, ou *9B là où ses fichiers sont installés, sinon 4B*. Seulement pour les images dessinées sur ce PC. Le 9B et FLUX 3 ne sont jamais installés pour vous : voir [FLUX.2 klein 9B et FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) plus haut. Si celui demandé n’est pas là, un autre dessine, et les Paramètres disent lequel. *FIBO 2.0* s’ajoute aussi à la main et n’est que pour un usage non commercial : voir plus haut. |
 | **Images des prises : décrites par** | qui écrit le prompt d’image, à partir du titre de la prise, du style artistique ci-dessous, de son style et de ses paroles (jusqu’à 50 lignes). *Gemma local s’il est installé, sinon la prise elle-même* (par défaut), quel que soit celui qui dessine. *Gemma local* : écrit sur ce PC ; nécessite l’option Brouillons de paroles. *À partir de la prise elle-même* : pas de LLM ; une description faite à partir du titre, du style et des premiers mots de la prise, la plus rapide, et rien n’est envoyé. Ou le *LLM externe*, une requête par image ; quand il est injoignable, ou si vous passez aux LLM locaux pour la session, Gemma les écrit à la place s’il est installé. |
 | **Images des prises : style artistique** | à quoi l’image doit ressembler, donné au LLM qui écrit le prompt d’image (grisé quand la prise se décrit elle-même). Par défaut un design abstrait et surréaliste à la manière des pochettes d’album des années 1970 et 1980, sans texte ni personnes. Vidé, il revient à cela. |
 | **Images des prises : votre propre prompt** | des mots par lesquels commence le prompt d’image de chaque image, comme *big sky, doom-laden*, jusqu’à 512 caractères ; le prompt écrit par le LLM les suit. Vide (par défaut) : aucun. Seulement quand un LLM écrit le prompt d’image (grisé quand la prise se décrit elle-même). |
