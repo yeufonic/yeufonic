@@ -19,9 +19,11 @@ are the same whichever runs.
 | Transcribing a recording into a score | Yes | Yes |
 | Style LoRAs, the instrumental LoRA, production polish | Yes | Yes |
 | Harmony, **Follow this structure exactly**, **Expand to full song** | Yes | Yes |
+| A song with no score, **Follow the style** in Advanced | Yes | Yes |
 | Corpora and LoRA training | Yes | No: use LoRAs trained elsewhere, or on a ComfyUI install |
 | Lyrics drafted on your PC (Gemma) | Yes | With the Gemma add-on |
 | Take pictures described and drawn on your PC (Gemma, FLUX.2 klein 4B or 9B) | Yes | With the Gemma and pictures add-ons |
+| Take pictures by FLUX 3 klein or FIBO 2.0, added by hand | Yes | No: FLUX.2 klein 4B or 9B only |
 | An external LLM for lyrics, styles and pictures | Yes | Yes |
 | Stems, and hearing the words of a recording | On the graphics card | On the processor |
 | Models to download | About 19 GB, 27 GB with pictures | About 5.4 GB; 6.1 GB more for Gemma, 6.9 GB for pictures |
