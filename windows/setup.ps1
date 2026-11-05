@@ -777,7 +777,12 @@ if (-not (IsDone "yue2_trainer-$($Pins.Yue2TrainerCommit.Substring(0, 8))") -or 
 # Stem separation on the GPU: the engine's CUDA torch runs Demucs, so a vocal is separated in the engine's queue
 # beside plans and renders. It adds demucs and a few small packages and leaves torch alone. Without it the node is
 # not there and the app separates on the CPU as before. A step of its own, so an update does it without more.
-if (-not (IsDone 'engine-demucs')) {
+# These go into the engine's own Python, which a new ComfyUI replaces whole (the portable build is unpacked again), so
+# each is put back when its package is missing, not only when its mark is: 0.0.54 was the first update to move ComfyUI
+# since they came in, and with the marks alone it would have left the engine without them, stems and lyric hearing
+# going back to the CPU without a word.
+$sitePackages = Join-Path $Engine 'python_embeded\Lib\site-packages'
+if (-not (IsDone 'engine-demucs') -or -not (Test-Path (Join-Path $sitePackages 'demucs'))) {
     Invoke-Checked "Demucs for the engine" $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', 'demucs==4.1.0')
     Done 'engine-demucs'
 }
@@ -786,7 +791,8 @@ if (-not (IsDone 'engine-demucs')) {
 # packages (a little over a gigabyte); the node puts their folders on PATH. faster-whisper goes in without its
 # dependencies, which would hold PyAV to a version of their choosing. Without all this the node is not there and the app
 # hears words on the CPU as before.
-if (-not (IsDone 'engine-whisper')) {
+$whisperThere = @('faster_whisper', 'ctranslate2', 'nvidia\cublas', 'nvidia\cudnn') | ForEach-Object { Test-Path (Join-Path $sitePackages $_) }
+if (-not (IsDone 'engine-whisper') -or ($whisperThere -contains $false)) {
     # --no-warn-conflicts: pip would say in red that faster-whisper wants onnxruntime, which is only for the voice detector
     # that is switched off, and the line looks like a failure.
     Invoke-Checked 'Whisper for the engine' $py @('-s', '-m', 'pip', 'install', '--no-warn-script-location', '--no-warn-conflicts', '--no-deps', 'faster-whisper==1.2.1')

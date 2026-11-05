@@ -343,3 +343,15 @@ def test_comfyui_is_given_one_card_so_it_does_not_warn_about_forcing_it(monkeypa
     me.cfg = {}
     monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "1")
     assert ns["comfy_env"](me)["CUDA_VISIBLE_DEVICES"] == "1"
+
+
+def test_a_new_comfyui_gets_demucs_and_whisper_back():
+    """A new ComfyUI on Windows unpacks the portable build again, a new Python with it, so demucs and Whisper's packages are
+    put back when they are missing, whatever the marks say; with the marks alone an update dropped them silently."""
+    setup = (Path(__file__).resolve().parent.parent / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    assert "$sitePackages = Join-Path $Engine 'python_embeded\\Lib\\site-packages'" in setup
+    assert "if (-not (IsDone 'engine-demucs') -or -not (Test-Path (Join-Path $sitePackages 'demucs')))" in setup
+    assert "@('faster_whisper', 'ctranslate2', 'nvidia\\cublas', 'nvidia\\cudnn')" in setup
+    assert "if (-not (IsDone 'engine-whisper') -or ($whisperThere -contains $false))" in setup
+    # the engine itself is replaced whole when ComfyUI moves: that is why the check is needed
+    assert "if (Test-Path $Engine) { Remove-Item -Recurse -Force $Engine }" in setup
