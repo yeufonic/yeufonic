@@ -624,3 +624,5 @@ def test_settings_say_when_the_chosen_klein_cannot_draw():
     note = js[js.index("function paintKleinFallback() {"):]
     note = note[:note.index("\n}\n")]
     assert "have.indexOf(chosen) < 0" in note and "draws." in note
+    # FIBO 2.0 is named too, and said not to draw with yue2.cpp
+    assert "fibo2: t('FIBO 2.0')" in js and "FIBO 2.0 does not draw with the yue2.cpp engine" in note

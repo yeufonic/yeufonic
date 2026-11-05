@@ -5164,7 +5164,7 @@ function paintSettingRequirements() {
 
 /* "The 9B is not installed here, so the 4B draws": when the klein chosen in Settings cannot draw on
    this PC and another one does, rather than leaving the choice to look as if it had taken. */
-var KLEIN_NAMES = { '4b': t('FLUX.2 klein 4B'), '9b': t('FLUX.2 klein 9B'), flux3: t('FLUX 3 klein') };
+var KLEIN_NAMES = { '4b': t('FLUX.2 klein 4B'), '9b': t('FLUX.2 klein 9B'), flux3: t('FLUX 3 klein'), fibo2: t('FIBO 2.0') };
 function paintKleinFallback() {
   var note = $('klein-fallback');
   if (!note) { return; }
@@ -5179,7 +5179,9 @@ function paintKleinFallback() {
       ? t('The 9B is not set up here (it needs its model and Qwen 3 8B as GGUF in the models folder: see the guide)')
       : chosen === 'flux3' && klein.engine === 'yue2cpp'
         ? t('FLUX 3 klein does not draw with the yue2.cpp engine yet')
-        : t('{value}’s files are not installed here', { value: KLEIN_NAMES[chosen] });
+        : chosen === 'fibo2' && klein.engine === 'yue2cpp'
+          ? t('FIBO 2.0 does not draw with the yue2.cpp engine')
+          : t('{value}’s files are not installed here', { value: KLEIN_NAMES[chosen] });
     note.textContent = t('{why}, so {value} draws.', { why: why, value: KLEIN_NAMES[drawing] || t('another') });
   }
   note.classList.toggle('hidden', !shown);
