@@ -19,6 +19,8 @@ import time
 from pathlib import Path
 from typing import Any, Awaitable, Callable
 
+from . import recipe as recipes
+
 PROTOCOL_VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
 Api = Callable[..., Awaitable[Any]]      # api(method, path, json=None, params=None) -> the route's JSON
 
@@ -204,8 +206,9 @@ TOOLS: list[dict] = [
     },
     {
         "name": "status",
-        "description": "How busy Yeufonic is: whether the engine is online, what is running now and with what progress, what is waiting, "
-                       "and whether a LoRA is being trained (which holds the GPU). Check this before queuing something long.",
+        "description": "How busy Yeufonic is: which engine it runs (ComfyUI or yue2.cpp), whether that is online, what is running now "
+                       "and with what progress, what is waiting, and whether a LoRA is being trained (which holds the GPU). Check "
+                       "this before queuing something long. get_take says which engine rendered a take.",
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
@@ -440,6 +443,35 @@ TOOLS: list[dict] = [
             "wait_seconds": {"type": "integer", "description": f"How long to wait for the words, at most {MOST_WAIT}. Default 45."},
         }},
     },
+    {
+        "name": "save_take_recipe",
+        "description": "A take's recipe, as the app's Save > Take gives it: what made the take (title, style, words, score, seeds, "
+                       "settings, LoRAs by name, the mastering rack's settings) but not its audio. Returns the `recipe` itself, "
+                       "which you can show, keep, change or write to a file named `file_name`, and links a person's browser "
+                       "downloads: `recipe_url` (the recipe alone) and, once the take has audio, `with_audio_url` (the audio in "
+                       "the format asked, with the recipe, as one zip). A recipe holds nothing of this install, so it can be "
+                       "shared; import_take makes a new take from it here or on another Yeufonic.",
+        "inputSchema": {"type": "object", "required": ["take_id"], "properties": {
+            "take_id": {"type": "string"},
+            "format": {"type": "string", "enum": ["flac", "wav", "mp3", "mp4"],
+                       "description": "The audio's format in with_audio_url. Default flac. mp4 is a video of the take's picture, "
+                                      "for a take that has one."},
+        }},
+    },
+    {
+        "name": "import_take",
+        "description": "Make a new take from a recipe (a take file, `*.yeufonic.json`, as save_take_recipe or the app's Save gives it), "
+                       "in a space if one is named. The take holds the plan, ready to render, and is not rendered: call "
+                       "render_take with its id, or change it first. To change a recipe before importing it (another style or "
+                       "LoRA, the same score and seed), edit its `take` object: the take's title, style, lyrics, seed and "
+                       "settings are there. A LoRA it names that is not installed here is listed in `missing_loras`; a cover "
+                       "comes in as a song (its recording is not in the file), which `was_cover` says.",
+        "inputSchema": {"type": "object", "properties": {
+            "recipe": {"type": "object", "description": "The recipe, as a JSON object."},
+            "recipe_text": {"type": "string", "description": "Or the recipe file's text, when that is what you have."},
+            "space": {"type": "string", "description": "The space to put it in, by name (see list_spaces). Default: Default."},
+        }},
+    },
 ]
 
 # Without times the planner writes plans of ten minutes and more for an instrumental, which the app rejects as
@@ -476,7 +508,7 @@ def timed_structure(total: int) -> str:
 
 TAKE_TOOLS = ("try_more", "make_stems", "get_stems", "get_take", "wait_for_take", "move_take", "delete_take", "render_take", "cancel_take",
               "star_take", "rename_take", "sing_again", "make_variations", "new_words", "instrumental_from_take", "replan_take",
-              "take_out", "make_picture")
+              "take_out", "make_picture", "save_take_recipe")
 _BRIEF = ("id", "title", "kind", "status", "duration", "style", "favourite", "error")
 
 
@@ -849,7 +881,8 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
             state = await api("GET", "/api/state")
             engine, current = state.get("engine") or {}, state.get("current")
             training = state.get("training")
-            out = {"version": state.get("version"), "engine_online": bool(engine.get("online")),
+            out = {"version": state.get("version"), "engine": engine.get("name"), "engine_version": engine.get("version"),
+                   "engine_online": bool(engine.get("online")),
                    "engine_starting": bool(engine.get("starting")), "engine_error": engine.get("error"),
                    "running_now": ({"id": current.get("id"), "kind": current.get("kind"), "label": current.get("label"),
                                     "seconds": current.get("elapsed"), "progress": current.get("progress")} if current else None),
@@ -861,6 +894,48 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
             if not out["engine_online"]:
                 out["advice"] = "The engine is not online, so nothing can be planned or rendered yet."
             return _text({key: value for key, value in out.items() if value not in (None, [], "")})
+        if name == "save_take_recipe":
+            take = await api("GET", f"/api/takes/{args['take_id']}")
+            recipe = await api("GET", f"/api/takes/{args['take_id']}/recipe")
+            fmt = args.get("format") or "flac"
+            if fmt not in ("flac", "wav", "mp3", "mp4"):
+                raise ApiRefused("the format must be flac, wav, mp3 or mp4")
+            out = {"take_id": take["id"], "short_id": take["id"][:6], "title": take.get("title"),
+                   "file_name": recipes.filename(take.get("title")),
+                   "recipe_url": f"{base}/api/takes/{take['id']}/recipe", "recipe": recipe}
+            if take.get("has_audio") and fmt == "mp4" and not take.get("art"):
+                out["note"] = "This take has no picture, so it cannot be saved as a video: ask for flac, wav or mp3."
+            elif take.get("has_audio"):
+                out["with_audio_url"] = f"{base}/api/takes/{take['id']}/audio?download=true&format={fmt}&recipe=true"
+            else:
+                out["note"] = "This take has no audio yet, so there is only the recipe to save."
+            return _text(out)
+        if name == "import_take":
+            recipe = args.get("recipe")
+            if recipe is None and args.get("recipe_text"):
+                try:
+                    recipe = json.loads(args["recipe_text"])
+                except ValueError as exc:
+                    raise ApiRefused(f"recipe_text is not JSON: {exc}") from exc
+            if not isinstance(recipe, dict):
+                raise ApiRefused("give the recipe, as an object in `recipe` or as the file's text in `recipe_text`")
+            body = {"recipe": recipe}
+            space = await _space_of(api, args.get("space"))
+            if space:
+                body["space_id"] = space
+            made = await api("POST", "/api/takes/import", json=body)
+            out = {"id": made["id"], "short_id": made["id"][:6], "title": made.get("title"), "kind": made.get("kind"),
+                   "status": "planned"}
+            if made.get("missing_loras"):
+                out["missing_loras"] = made["missing_loras"]
+                out["about_loras"] = ("These LoRAs, named in the file, are not installed here. Rendering without them sounds "
+                                      "different: install them (list_style_loras shows what is here) or change the take first.")
+            if made.get("was_cover"):
+                out["was_cover"] = True
+                out["about_cover"] = ("It was a cover. Its recording is not in the file, so it came in as a song with the "
+                                      "cover's score and words.")
+            out["next"] = "It holds the plan and is not rendered. Use render_take with its id, then wait_for_take."
+            return _text(out)
         if name == "transcribe_recording":
             ident = args["recording_id"]
             before = await api("GET", f"/api/sources/{ident}")

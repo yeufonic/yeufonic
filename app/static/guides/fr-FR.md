@@ -1673,6 +1673,10 @@ reconnectez l’agent (dans Claude Code, `/mcp`). Reconnectez-le aussi après un
 | « Crée un espace appelé Drafts » | Crée un nouvel espace pour y garder des prises |
 | « Transcris *l’enregistrement* » | Transcrit un enregistrement en partition, pour qu’on puisse en faire une reprise. Il laisse tranquille un enregistrement qui a déjà une partition, sauf demande |
 | « Sépare ça en voix et instruments » | Sépare une prise terminée en ses parties (quatre, six, ou juste voix et instruments) et vous donne un lien vers chaque fichier et un vers l’ensemble en zip |
+| « Enregistre la recette de cette prise », « …et la prise avec, en zip MP3 » | Donne la recette de la prise (ce qui l’a faite, pas son audio) à montrer, modifier ou garder comme fichier, avec des liens pour la télécharger seule ou avec l’audio dans un zip |
+| « Importe *Night Ferry.yeufonic.json* dans Drafts et fais-en le rendu » | Une nouvelle prise depuis un fichier de prise, avec le plan, rendue quand vous le demandez. Il dit quels LoRA nommés dans le fichier ne sont pas installés, et quand une reprise est arrivée comme chanson |
+| « Importe-la de nouveau dans un style dream pop, même partition et même graine » | Modifie la recette avant de l’importer, pour que seul ce que vous nommez change |
+| « Quel moteur a fait cette prise ? », « quel moteur tourne ? » | Dit quel moteur a fait le rendu d’une prise, et lequel Yeufonic utilise maintenant (ComfyUI ou yue2.cpp) |
 | « Yeufonic est-il occupé ? » | Dit si le moteur est prêt, ce qui tourne et avec quel avancement, ce qui attend, et si une LoRA s’entraîne |
 | « Supprime cette prise » | Montre ce qui partirait et vous demande d’abord ; voir plus bas |
 
@@ -1730,7 +1734,9 @@ dire à votre agent lequel vous voulez.
 | `list_styles`, `save_style` | Vos styles enregistrés et ceux intégrés, cherchés par mots ; garde un style sous un nom |
 | `star_take`, `rename_take` | Met ou retire l’étoile d’une prise ; change son titre |
 | `delete_take` | Supprime une prise pour de bon, après vous l’avoir montrée et avoir reçu votre accord |
-| `status` | Si le moteur est prêt, ce qui tourne et attend, et si une LoRA s’entraîne |
+| `save_take_recipe` | La recette d’une prise, avec des liens pour la télécharger seule ou avec l’audio dans un zip, au format demandé |
+| `import_take` | Une nouvelle prise depuis une recette, dans un espace s’il est nommé, prête au rendu ; dit quels LoRA ne sont pas installés et quand une reprise est arrivée comme chanson |
+| `status` | Si le moteur est prêt, ce qui tourne et attend, et si une LoRA s’entraîne ; nomme le moteur utilisé (ComfyUI ou yue2.cpp) |
 
 ### Idées d’utilisation {#ideas-for-using-it}
 
@@ -1762,6 +1768,9 @@ dire à votre agent lequel vous voulez.
 
 L’agent ne peut pas entendre une prise, il ne peut donc pas juger de son son : vous écoutez, et il fait le travail de fond. Ce n’est pas non plus un
 raccourci autour du moteur : le GPU fait toujours une tâche à la fois, donc un gros lot est une longue file.
+- **Partager une prise.** « Enregistre ma prise étoilée avec sa recette en zip FLAC » donne un fichier qu’un autre peut écouter et refaire :
+  il demande à son agent « d’importer ce fichier de prise et d’en faire le rendu ». Ou « importe-la de nouveau avec le LoRA jazz, même
+  partition et même graine », pour entendre le même plan autrement.
 
 ### À savoir {#things-to-know}
 

@@ -1673,6 +1673,10 @@ reconecte o agente (no Claude Code, `/mcp`). Reconecte também depois de reinici
 | “Crie um espaço chamado Drafts” | Cria um espaço novo para guardar takes |
 | “Transcreva *a gravação*” | Transcreve uma gravação em partitura, para poder fazer um cover. Deixa em paz uma gravação que já tem partitura, a menos que pedido |
 | “Separe isso em voz e instrumentos” | Separa um take pronto nas partes dele (quatro, seis, ou só voz e instrumentos) e dá um link para cada ficheiro e outro para o conjunto inteiro em zip |
+| “Salve a receita desse take”, “…e o take junto, num zip MP3” | Dá a receita do take (o que o fez, não o áudio) para mostrar, mudar ou guardar como ficheiro, com links para transferi-la sozinha ou com o áudio num só zip |
+| “Importe *Night Ferry.yeufonic.json* em Drafts e renderize” | Um take novo a partir de um ficheiro de take, com o plano, renderizado quando pedir. Diz quais LoRAs citados no ficheiro não estão instalados, e quando um cover chegou como música |
+| “Importe de novo num estilo dream pop, mesma partitura e seed” | Muda a receita antes de importá-la, então só muda o que citar |
+| “Qual motor fez esse take?”, “qual motor está a funcionar?” | Diz qual motor renderizou um take, e qual o Yeufonic usa agora (ComfyUI ou yue2.cpp) |
 | “O Yeufonic está ocupado?” | Diz se o motor está pronto, o que está a rodar e com que progresso, o que espera, e se um LoRA está a ser treinado |
 | “Elimine esse take” | Mostra o que sairia e pergunta antes; veja abaixo |
 
@@ -1730,7 +1734,9 @@ dizer ao seu agente qual quer.
 | `list_styles`, `save_style` | Seus estilos guardados e os embutidos, buscados por palavras; guardada um estilo com um nome |
 | `star_take`, `rename_take` | Põe ou tira a estrela de um take; muda o título dele |
 | `delete_take` | Exclui um take para sempre, depois de mostrá-lo a você e receber seu ok |
-| `status` | Se o motor está pronto, o que roda e o que espera, e se um LoRA está a ser treinado |
+| `save_take_recipe` | A receita de um take, com links para transferi-la sozinha ou com o áudio num só zip, no formato pedido |
+| `import_take` | Um take novo a partir de uma receita, num espaço se citado, pronto para renderizar; diz quais LoRAs não estão instalados e quando um cover chegou como música |
+| `status` | Se o motor está pronto, o que roda e o que espera, e se um LoRA está a ser treinado; diz qual motor está em uso (ComfyUI ou yue2.cpp) |
 
 ### Ideias de uso {#ideas-for-using-it}
 
@@ -1762,6 +1768,9 @@ dizer ao seu agente qual quer.
 
 O agente não consegue ouvir um take, então não pode julgar como ele soa: você ouve, e ele faz o trabalho pesado. Também não é um
 atalho para pular o motor: a GPU continua a fazer um trabalho por vez, então um lote grande é uma fila longa.
+- **Partilhar um take.** “Salve meu take com estrela com sua receita num zip FLAC” dá um ficheiro que outra pessoa pode ouvir e refazer:
+  pede ao seu agente para “importar este ficheiro de take e renderizar”. Ou “importe de novo com o LoRA de jazz, mesma partitura e
+  seed”, para ouvir o mesmo plano de outra maneira.
 
 ### Vale saber {#things-to-know}
 

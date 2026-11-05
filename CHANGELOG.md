@@ -39,6 +39,13 @@ cannot creep back in.
 
 ## Unreleased
 
+- **An AI agent can save and import take recipes.** Through the MCP server, `save_take_recipe` gives a take's recipe,
+  to show, change or keep as a file, with links to download it alone or with the audio as one zip; `import_take`
+  makes a new take from a recipe (as an object or the file's text), in a named space, ready to render, and says which
+  LoRAs named in it are not installed and when a cover came in as a song. So an agent can change a recipe, another
+  style or LoRA with the same score and seed, before importing it. `status` names the engine running (ComfyUI or
+  yue2.cpp). The guide's examples cover all of it.
+
 - **The app in fifteen languages.** Settings → **Language** chooses the language of the app's words: English (US),
   English (UK), Simplified and Traditional Chinese, Japanese, Korean, German, Dutch, French, Italian, Russian, Spanish
   (Spain and Latin America) and Portuguese (Brazil and Portugal). It starts as the browser's language, or the nearest of these, and

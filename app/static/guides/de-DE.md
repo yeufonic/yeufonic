@@ -1673,6 +1673,10 @@ verbinde den Agenten neu (in Claude Code `/mcp`). Verbinde auch nach einem Neust
 | „Mach einen Bereich namens Drafts“ | Macht einen neuen Bereich für Takes |
 | „Transkribiere *die Aufnahme*“ | Transkribiert eine Aufnahme in eine Partitur, damit ein Cover daraus gemacht werden kann. Eine Aufnahme, die schon eine Partitur hat, lässt es in Ruhe, sofern nicht gefragt |
 | „Teil das in Gesang und Instrumente“ | Trennt einen fertigen Take in seine Teile (vier, sechs oder nur Gesang und Instrumente) und gibt dir einen Link zu jeder Datei und einen zum ganzen Set als Zip |
+| „Speichere das Rezept dieses Takes“, „…und den Take dazu als MP3-Zip“ | Gibt das Rezept des Takes (was ihn gemacht hat, nicht sein Audio) zum Zeigen, Ändern oder Aufbewahren als Datei, mit Links, um es allein oder mit dem Audio als ein Zip herunterzuladen |
+| „Importiere *Night Ferry.yeufonic.json* in Drafts und rendere es“ | Ein neuer Take aus einer Take-Datei, mit dem Plan, gerendert, wenn du es sagst. Er sagt, welche in der Datei genannten LoRAs nicht installiert sind und wann ein Cover als Song kam |
+| „Importiere es noch einmal im Dream-Pop-Stil, gleiche Partitur und Seed“ | Ändert das Rezept vor dem Import, sodass nur das anders ist, was du nennst |
+| „Welche Engine hat diesen Take gemacht?“, „welche Engine läuft?“ | Sagt, welche Engine einen Take gerendert hat und welche Yeufonic gerade nutzt (ComfyUI oder yue2.cpp) |
 | „Ist Yeufonic beschäftigt?“ | Sagt, ob die Engine bereit ist, was läuft und mit welchem Fortschritt, was wartet und ob eine LoRA trainiert |
 | „Lösch diesen Take“ | Zeigt, was gehen würde, und fragt dich zuerst; siehe unten |
 
@@ -1730,7 +1734,9 @@ deinem Agenten sagen kannst, welches du meinst.
 | `list_styles`, `save_style` | Deine gespeicherten Stile und die eingebauten, nach Wörtern durchsucht; behält einen Stil unter einem Namen |
 | `star_take`, `rename_take` | Gibt einem Take einen Stern oder nimmt ihn weg; ändert seinen Titel |
 | `delete_take` | Löscht einen Take endgültig, nachdem er ihn dir gezeigt hat und du zugestimmt hast |
-| `status` | Ob die Engine bereit ist, was läuft und wartet und ob eine LoRA trainiert |
+| `save_take_recipe` | Das Rezept eines Takes, mit Links, um es allein oder mit dem Audio als ein Zip im gewünschten Format herunterzuladen |
+| `import_take` | Ein neuer Take aus einem Rezept, in einem Bereich, falls genannt, bereit zum Rendern; sagt, welche LoRAs nicht installiert sind und wann ein Cover als Song kam |
+| `status` | Ob die Engine bereit ist, was läuft und wartet und ob eine LoRA trainiert; nennt die laufende Engine (ComfyUI oder yue2.cpp) |
 
 ### Ideen zur Nutzung {#ideas-for-using-it}
 
@@ -1762,6 +1768,9 @@ deinem Agenten sagen kannst, welches du meinst.
 
 Der Agent kann einen Take nicht hören, also kann er nicht beurteilen, wie er klingt: Du hörst zu, und er erledigt die Laufarbeit. Er ist auch keine
 Abkürzung an der Engine vorbei: Die GPU macht weiterhin einen Auftrag nach dem anderen, also ist ein großer Stapel eine lange Warteschlange.
+- **Einen Take teilen.** „Speichere meinen markierten Take mit seinem Rezept als FLAC-Zip“ gibt eine Datei, die jemand anderes hören und nachbauen
+  kann: Er bittet seinen Agenten, „diese Take-Datei zu importieren und zu rendern“. Oder „importiere es noch einmal mit der Jazz-LoRA, gleiche
+  Partitur und Seed“, um denselben Plan anders zu hören.
 
 ### Gut zu wissen {#things-to-know}
 

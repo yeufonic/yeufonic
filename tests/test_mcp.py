@@ -750,3 +750,54 @@ def test_write_lyrics_asks_for_a_draft_and_returns_it_when_written(client, on, e
     assert not error and (done["title"], done["lyrics"]) == ("Night train", "[Verse]\nrails at night") and "next" not in done
     error, text = call(client, "write_lyrics", brief="x", feel="sad")
     assert error and "natural" in text
+
+
+RECIPE_ABC = ('X:1\nM:4/4\nL:1/8\nQ:1/4=100\nV: Vocal clef=treble name="Vocal Melody" snm="Vocal"\nK:C\n'
+              '% verse\nV: Vocal\n' + '"C"c4|"Am"A4|"F"F4|"G"G4|' * 4 + '\n')
+
+
+def test_a_takes_recipe_is_saved_with_links_to_download_it(client, on, tmp_path):
+    from conftest import tone
+    take = make_take(title="Night Ferry", style="indie folk", lyrics="[verse]\nLights along the quay", abc=RECIPE_ABC,
+                     seed=4242, audio_path=str(tone(tmp_path / "ferry.flac", 1.0)))
+    error, saved = call(client, "save_take_recipe", take_id=take["id"][:6], format="mp3")
+    assert not error and saved["take_id"] == take["id"] and saved["file_name"] == "Night Ferry.yeufonic.json"
+    assert saved["recipe"]["take"]["title"] == "Night Ferry" and saved["recipe"]["take"]["seed"] == 4242
+    assert saved["recipe_url"].endswith(f"/api/takes/{take['id']}/recipe")
+    assert saved["with_audio_url"].endswith(f"/api/takes/{take['id']}/audio?download=true&format=mp3&recipe=true")
+    error, video = call(client, "save_take_recipe", take_id=take["id"], format="mp4")
+    assert not error and "with_audio_url" not in video and "no picture" in video["note"]     # no picture, no video
+    plan = make_take(title="Only a plan", abc=RECIPE_ABC, status="planned")
+    error, bare = call(client, "save_take_recipe", take_id=plan["id"])
+    assert not error and "with_audio_url" not in bare and "no audio" in bare["note"]
+
+
+def test_a_recipe_changed_by_an_agent_is_imported_into_a_space_ready_to_render(client, on):
+    import json
+    from app.db import one
+    take = make_take(title="Night Ferry", style="indie folk", abc=RECIPE_ABC, seed=4242)
+    error, saved = call(client, "save_take_recipe", take_id=take["id"])
+    recipe = saved["recipe"]
+    recipe["take"]["style"] = "dream pop, airy vocal"                  # another style, the same score and seed
+    client.post("/api/spaces", json={"name": "Night drafts"})
+    error, made = call(client, "import_take", recipe=recipe, space="Night drafts")
+    assert not error and made["status"] == "planned" and "render_take" in made["next"]
+    row = one("SELECT * FROM takes WHERE id = ?", (made["id"],))
+    assert row["style"] == "dream pop, airy vocal" and row["seed"] == 4242 and row["abc"] == RECIPE_ABC
+    assert one("SELECT name FROM spaces WHERE id = ?", (row["space_id"],))["name"] == "Night drafts"
+    assert row["status"] == "planned" and QUEUE.empty()               # imported, not rendered
+    # The file's text will do, and a LoRA that is not here, or a cover, is said.
+    recipe["take"]["style_lora"] = "not-here.safetensors"
+    recipe["take"]["kind"] = "cover"
+    error, again = call(client, "import_take", recipe_text=json.dumps(recipe))
+    assert not error and again["missing_loras"] == ["not-here.safetensors"] and "install" in again["about_loras"]
+    assert again["was_cover"] is True and "song" in again["about_cover"]
+    error, message = call(client, "import_take", recipe_text="{not json")
+    assert error and "not JSON" in message
+    error, message = call(client, "import_take")
+    assert error and "recipe" in message
+
+
+def test_status_names_the_engine(client, on):
+    error, status = call(client, "status")
+    assert not error and status["engine"] in ("ComfyUI", "yue2.cpp")

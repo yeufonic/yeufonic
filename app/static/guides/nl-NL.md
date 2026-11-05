@@ -1673,6 +1673,10 @@ verbind de agent daarna opnieuw (in Claude Code, `/mcp`). Verbind ook opnieuw na
 | “Maak een ruimte met de naam Drafts” | Maakt een nieuwe ruimte om takes in te bewaren |
 | “Transcribeer *de opname*” | Transcribeert een opname naar een partituur, zodat er een cover van kan worden gemaakt. Laat een opname die al een partituur heeft met rust tenzij erom gevraagd wordt |
 | “Splits die in zang en instrumenten” | Splitst een klare take in partijen (vier, zes, of alleen zang en instrumenten) en geeft je een link naar elk bestand en een naar de hele set als zip |
+| “Bewaar het recept van die take”, “…en de take erbij als MP3-zip” | Geeft het recept van de take (wat hem maakte, niet zijn audio) om te tonen, te wijzigen of als bestand te bewaren, met links om het alleen of met de audio als één zip te downloaden |
+| “Importeer *Night Ferry.yeufonic.json* in Drafts en render het” | Een nieuwe take uit een takebestand, met het plan, gerenderd wanneer je het vraagt. Hij zegt welke LoRA's in het bestand niet geïnstalleerd zijn, en wanneer een cover als nummer binnenkwam |
+| “Importeer het opnieuw in een dreampopstijl, zelfde partituur en seed” | Wijzigt het recept voor het importeren, zodat alleen anders is wat je noemt |
+| “Welke engine maakte die take?”, “welke engine draait er?” | Zegt welke engine een take renderde, en welke Yeufonic nu gebruikt (ComfyUI of yue2.cpp) |
 | “Is Yeufonic bezig?” | Zegt of de engine klaar is, wat er loopt en met welke voortgang, wat er wacht, en of er een LoRA wordt getraind |
 | “Verwijder die take” | Toont wat er weg zou gaan en vraagt het je eerst; zie hieronder |
 
@@ -1730,7 +1734,9 @@ agent kunt zeggen welke je wilt.
 | `list_styles`, `save_style` | Je bewaarde en de ingebouwde stijlen, doorzocht op woorden; bewaart een stijl onder een naam |
 | `star_take`, `rename_take` | Geeft een take een ster of haalt die weg; verandert zijn titel |
 | `delete_take` | Verwijdert een take voorgoed, nadat hij hem je heeft getoond en je akkoord heeft gekregen |
-| `status` | Of de engine klaar is, wat er loopt en wat er wacht, en of er een LoRA wordt getraind |
+| `save_take_recipe` | Het recept van een take, met links om het alleen of met de audio als één zip te downloaden, in het gevraagde formaat |
+| `import_take` | Een nieuwe take uit een recept, in een ruimte als die genoemd is, klaar om te renderen; zegt welke LoRA's niet geïnstalleerd zijn en wanneer een cover als nummer binnenkwam |
+| `status` | Of de engine klaar is, wat er loopt en wat er wacht, en of er een LoRA wordt getraind; noemt de engine die draait (ComfyUI of yue2.cpp) |
 
 ### Ideeën om het te gebruiken {#ideas-for-using-it}
 
@@ -1762,6 +1768,9 @@ agent kunt zeggen welke je wilt.
 
 De agent kan een take niet horen, dus hij kan niet beoordelen hoe hij klinkt: jij luistert, en hij doet het zware werk. Het is ook geen
 manier om de engine over te slaan: de GPU doet nog steeds één taak tegelijk, dus een grote reeks is een lange wachtrij.
+- **Een take delen.** “Bewaar mijn take met ster met zijn recept als FLAC-zip” geeft een bestand dat een ander kan horen en opnieuw maken: die vraagt
+  zijn agent om “dit takebestand te importeren en te renderen”. Of “importeer het opnieuw met de jazz-LoRA, zelfde partituur en seed”, om
+  hetzelfde plan anders te horen.
 
 ### Goed om te weten {#things-to-know}
 
