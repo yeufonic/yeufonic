@@ -46,8 +46,7 @@ cannot creep back in.
   from the server that the page shows. Your titles, styles and lyrics stay as you wrote them, as do the style and
   voice chips (they are words the model reads) and the labels on the mastering rack's faceplates. The translations
   are machine-made, and so is the guide, which comes in every one of them with its buttons named as the
-  translated page names them. US English is the default, with US spellings; UK English is the
-  text as it was.
+  translated page names them. US English is the default.
 
 - **A song can be sung with no score.** **Mode** has a third choice for songs, **No score**: no plan is written, and
   YuE2 writes the tune and the chords as it sings, as the original YuE did. The song is rendered at once with **Sing
@@ -67,12 +66,11 @@ cannot creep back in.
   yue2.cpp). The guide's examples cover all of it.
 
 - **FIBO 2.0 can draw take pictures.** Bria's FIBO 2.0 is a fourth choice under **Take pictures: model**: it
-  draws closest to a photograph of the 1970s sleeves the pictures are after, with natural depth of field and the
+  draws closest to a photograph of the sleeves the pictures are after, with natural depth of field and the
   colour of film, and follows the description closely. With its turbo add-on it draws in a few steps, about as quickly
   as FLUX 3; without it, at its own far slower settings. It is put in by hand, needs a 16 GB card and is for
   non-commercial use only (CC BY-NC 4.0): the guide sets out the licence beside FLUX 3's and says which files to get.
-  Drawn by FIBO, the sleeve's border has no thin line round the photograph, which FIBO drew as heavy bars and a box
-  round the title. ComfyUI engine only.
+  ComfyUI engine only.
 
 - **FLUX 3 klein can draw take pictures.** Black Forest Labs' FLUX 3 Image Klein is a third choice under **Take
   pictures: model**, beside the FLUX.2 4B and 9B. It draws from a full description of the scene, as Gemma and
@@ -88,7 +86,7 @@ cannot creep back in.
   - **Your own prompt:** words of your own, such as "salt marsh, overcast", at the start of every image prompt.
   - **Song title on the picture:** off by default. On, the title is lettered in bold, in capitals or small letters.
     Mostly it sits in a band of an off-white border at the top or the bottom, with a thin dark line framing the
-    picture, as on many 1970s sleeves. About one in five has no border and the title over the picture, at a corner or
+    picture. About one in five has no border and the title over the picture, at a corner or
     centred. The title is lettered as you wrote it, even when it is an artist's name; the picture itself is still
     described without it.
 

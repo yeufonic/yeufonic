@@ -13,6 +13,7 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **Style LoRAs:** use published ones, or, with the ComfyUI engine, train your own from a folder of songs.
 - **Lyrics:** draft them from a sentence, or extract them from a recording.
 - **Duets:** cue a man, a woman or both for any lines of the lyrics, and the melody is set where that voice sings.
+- **Languages:** the app and its user guide in fifteen languages, machine-translated: English (US and UK), Simplified and Traditional Chinese, Japanese, Korean, German, Dutch, French, Italian, Russian, Spanish (Spain and Latin America) and Portuguese (Brazil and Portugal).
 - **Vintage mastering rack:** a skeuomorphic channel strip with a 1073-style EQ, a seven-band parametric equalizer you shape by dragging its bands on a graph over the live spectrum, vintage compressor, stereo imager, and master limiter with tube warmth to polish and master any take in real time.
 - **An MCP server (off by default):** let an AI agent such as Claude Code make songs, covers and instrumentals, try them other ways, give them pictures, gather them into playlists and tidy the library, in your own words. See [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp).
 - **Stems:** split any take into vocals, drums, bass and more, or into vocals and a backing track.
