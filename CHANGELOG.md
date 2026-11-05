@@ -37,14 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
-
-- **An AI agent can save and import take recipes.** Through the MCP server, `save_take_recipe` gives a take's recipe,
-  to show, change or keep as a file, with links to download it alone or with the audio as one zip; `import_take`
-  makes a new take from a recipe (as an object or the file's text), in a named space, ready to render, and says which
-  LoRAs named in it are not installed and when a cover came in as a song. So an agent can change a recipe, another
-  style or LoRA with the same score and seed, before importing it. `status` names the engine running (ComfyUI or
-  yue2.cpp). The guide's examples cover all of it.
+## 0.0.54 (2026-11-05)
 
 - **The app in fifteen languages.** Settings → **Language** chooses the language of the app's words: English (US),
   English (UK), Simplified and Traditional Chinese, Japanese, Korean, German, Dutch, French, Italian, Russian, Spanish
@@ -56,9 +49,55 @@ cannot creep back in.
   translated page names them. US English is the default, with US spellings; UK English is the
   text as it was.
 
-- **Choosing a take that uses a LoRA is quick again.** With many LoRAs installed, a click on such a take took a
-  noticeable moment before the take panel and the player followed it: matching the style against the menu's ready-made
-  styles looked up the chosen LoRA once for each of them. It is looked up once.
+- **A song can be sung with no score.** **Mode** has a third choice for songs, **No score**: no plan is written, and
+  YuE2 writes the tune and the chords as it sings, as the original YuE did. The song is rendered at once with **Sing
+  with no score**. Harmony, Plan variety, Keep this tune and Follow this structure exactly are greyed out while it is
+  chosen. Sing again, Variations, Try more, new words and take recipes keep it; Write a new plan gives the take a
+  score again. Both engines.
+
+- **Follow the style, in Advanced.** How firmly the music follows the style and the words (the music stage's
+  guidance, CFG), 1.0 by default, YuE2's own, and anything from 0 to 100. The difference is subtle at small values,
+  and a render takes a little longer. Shown when the engine has it: yue2.cpp, and the ComfyUI engine at its newer version (rebuild an older Docker engine).
+
+- **An AI agent can save and import take recipes.** Through the MCP server, `save_take_recipe` gives a take's recipe,
+  to show, change or keep as a file, with links to download it alone or with the audio as one zip; `import_take`
+  makes a new take from a recipe (as an object or the file's text), in a named space, ready to render, and says which
+  LoRAs named in it are not installed and when a cover came in as a song. So an agent can change a recipe, another
+  style or LoRA with the same score and seed, before importing it. `status` names the engine running (ComfyUI or
+  yue2.cpp). The guide's examples cover all of it.
+
+- **FIBO 2.0 can draw take pictures.** Bria's FIBO 2.0 is a fourth choice under **Take pictures: model**: it
+  draws closest to a photograph of the 1970s sleeves the pictures are after, with natural depth of field and the
+  colour of film, and follows the description closely. With its turbo add-on it draws in a few steps, about as quickly
+  as FLUX 3; without it, at its own far slower settings. It is put in by hand, needs a 16 GB card and is for
+  non-commercial use only (CC BY-NC 4.0): the guide sets out the licence beside FLUX 3's and says which files to get.
+  Drawn by FIBO, the sleeve's border has no thin line round the photograph, which FIBO drew as heavy bars and a box
+  round the title. ComfyUI engine only.
+
+- **FLUX 3 klein can draw take pictures.** Black Forest Labs' FLUX 3 Image Klein is a third choice under **Take
+  pictures: model**, beside the FLUX.2 4B and 9B. It draws from a full description of the scene, as Gemma and
+  the external LLM now write, and letters titles well. Like the 9B it is never downloaded for you: its files are gated
+  on Hugging Face under the FLUX Kommunity License, and the guide says which to get and where they go. ComfyUI engine
+  only for now.
+
+- **A take's picture starts from a simpler request.** Gemma, or the external LLM, is asked to create an image prompt
+  for an album cover from the song's title, an album art style, the song's style and its words (up to 50 lines), as
+  a staged photograph of real objects with one unexpected twist that stands for the song, and the prompt it writes is
+  drawn as it is. About three in ten still show a sleeve with a little wear. Three new settings under Take pictures:
+  - **Art style:** the look asked for, an abstract, surrealist album-cover look by default.
+  - **Your own prompt:** words of your own, such as "big sky, doom-laden", at the start of every image prompt.
+  - **Song title on the picture:** off by default. On, the title is lettered in bold, in capitals or small letters.
+    Mostly it sits in a band of an off-white border at the top or the bottom, with a thin dark line framing the
+    picture, as on many 1970s sleeves. About one in five has no border and the title over the picture, at a corner or
+    centred. The title is lettered as you wrote it, even when it is an artist's name; the picture itself is still
+    described without it.
+
+- **A take can be saved as a video.** **Save** offers **Video** for a take with a picture: an MP4 of the song
+  showing its picture throughout, which messaging apps send and play as a video rather than as a file.
+
+- **A video can be the recording for a cover or an instrumental.** Drop or choose an MP4, MOV, MKV, WebM or
+  similar file, and its sound is kept as the recording, as a FLAC; the picture is left behind. A video with no
+  sound is refused and says so.
 
 - **The row above the takes is one row.** The space on show is its heading: click it for a list of spaces that finds
   one as you type, with the ones used lately first and each space's number of takes, and New space, Rename, Import
@@ -75,41 +114,14 @@ cannot creep back in.
   offer to make one, as does the visualizer's picture button, and the picture settings stay on show to shape it.
   Before, all of them were hidden.
 
-- **A song can be sung with no score.** **Mode** has a third choice for songs, **No score**: no plan is written, and
-  YuE2 writes the tune and the chords as it sings, as the original YuE did. The song is rendered at once with **Sing
-  with no score**. Harmony, Plan variety, Keep this tune and Follow this structure exactly are greyed out while it is
-  chosen. Sing again, Variations, Try more, new words and take recipes keep it; Write a new plan gives the take a
-  score again. Both engines.
+- **A new picture made from the whole picture appears in its place.** The whole picture stays up while the new
+  one is made, saying how far along it is, and turns to the new one once it is drawn. Escape or a click away still
+  puts it away.
 
-- **Follow the style, in Advanced.** How firmly the music follows the style and the words (the music stage's
-  guidance, CFG), 1.0 by default, YuE2's own, and anything from 0 to 100. The difference is subtle at small values,
-  and a render takes a little longer. Shown when the engine has it: yue2.cpp, and the ComfyUI engine at its newer version (rebuild an older Docker engine).
-
-- **A take can be saved as a video.** **Save** offers **Video** for a take with a picture: an MP4 of the song
-  showing its picture throughout, which messaging apps send and play as a video rather than as a file.
-
-- **A video can be the recording for a cover or an instrumental.** Drop or choose an MP4, MOV, MKV, WebM or
-  similar file, and its sound is kept as the recording, as a FLAC; the picture is left behind. A video with no
-  sound is refused and says so.
-
-- **Keep this tune also clears for words far shorter than the tune.** Short lines on a tune written for long ones
-  leave notes with nothing to sing, and the singer fills them with words of its own. Below about three syllables to
-  four notes, **Keep this tune** is unticked with a line saying why, so a new plan is written to fit the words; tick
-  it again to sing the tune anyway.
-
-- **FLUX 3 klein can draw take pictures.** Black Forest Labs' FLUX 3 Image Klein is a third choice under **Take
-  pictures: model**, beside the FLUX.2 4B and 9B. It draws from a full description of the scene, as Gemma and
-  the external LLM now write, and letters titles well. Like the 9B it is never downloaded for you: its files are gated
-  on Hugging Face under the FLUX Kommunity License, and the guide says which to get and where they go. ComfyUI engine
-  only for now.
-
-- **FIBO 2.0 can draw take pictures.** Bria's FIBO 2.0 is a fourth choice under **Take pictures: model**: it
-  draws closest to a photograph of the 1970s sleeves the pictures are after, with natural depth of field and the
-  colour of film, and follows the description closely. With its turbo add-on it draws in a few steps, about as quickly
-  as FLUX 3; without it, at its own far slower settings. It is put in by hand, needs a 16 GB card and is for
-  non-commercial use only (CC BY-NC 4.0): the guide sets out the licence beside FLUX 3's and says which files to get.
-  Drawn by FIBO, the sleeve's border has no thin line round the photograph, which FIBO drew as heavy bars and a box
-  round the title. ComfyUI engine only.
+- **More moves behind the visualizer's scenes.** Over the take's picture, the scenes that show it now have something
+  moving in its colours: drifting colour behind Artwork, a spectrum halo behind Mandala, light rays behind Grid and
+  ripples on the beat behind Liquid, with Yeufonic and Bars keeping the picture alone. **B** steps through the six for
+  the scene on show (Breath, Light rays, Ripples, Drifting colour, Depth, Spectrum halo), and the scene keeps the choice.
 
 - **The engine's ComfyUI is newer.** It brings:
   - faster YuE2 sampling when planning and rendering;
@@ -121,35 +133,27 @@ cannot creep back in.
   The Harmony node's steering works with the new sampler. With Docker, rebuild the engine
   (`docker compose up -d --build`); an update of the Windows or Mac install fetches it.
 
-- **A take's picture starts from a simpler request.** Gemma, or the external LLM, is asked to create an image prompt
-  for an album cover from the song's title, an album art style, the song's style and its words (up to 50 lines), as
-  a staged photograph of real objects with one unexpected twist that stands for the song, and the prompt it writes is
-  drawn as it is. About three in ten still show a sleeve with a little wear. Three new settings under Take pictures:
-  - **Art style:** the look asked for, an abstract, surrealist album-cover look by default.
-  - **Your own prompt:** words of your own, such as "big sky, doom-laden", at the start of every image prompt.
-  - **Song title on the picture:** off by default. On, the title is lettered in bold, in capitals or small letters.
-    Mostly it sits in a band of an off-white border at the top or the bottom, with a thin dark line framing the
-    picture, as on many 1970s sleeves. About one in five has no border and the title over the picture, at a corner or
-    centred. The title is lettered as you wrote it, even when it is an artist's name; the picture itself is still
-    described without it.
+- **Choosing a take that uses a LoRA is quick again.** With many LoRAs installed, a click on such a take took a
+  noticeable moment before the take panel and the player followed it: matching the style against the menu's ready-made
+  styles looked up the chosen LoRA once for each of them. It is looked up once.
 
-- **A new picture made from the whole picture appears in its place.** The whole picture stays up while the new
-  one is made, saying how far along it is, and turns to the new one once it is drawn. Escape or a click away still
-  puts it away.
-
-- **A plan that fails twice names the take that already has a score for its words.** When another finished take
-  holds the same words with a score, such as an imported cover, the message names it: **Sing again** on it keeps
-  that score.
+- **Keep this tune also clears for words far shorter than the tune.** Short lines on a tune written for long ones
+  leave notes with nothing to sing, and the singer fills them with words of its own. Below about three syllables to
+  four notes, **Keep this tune** is unticked with a line saying why, so a new plan is written to fit the words; tick
+  it again to sing the tune anyway.
 
 - **A cover imported as a song plans like a song.** It used to bring the cover's tempo lock, set to the
   recording's tempo, and the Harmony, voice cues and length cap the cover never used. The lock rewrites the tempo the
   planner is told, and with a style LoRA trained at another tempo a new plan from the imported take kept coming out
   with no singing. Those are now left behind; the take's own score, and its render, are unchanged.
 
-- **More moves behind the visualizer's scenes.** Over the take's picture, the scenes that show it now have something
-  moving in its colours: drifting colour behind Artwork, a spectrum halo behind Mandala, light rays behind Grid and
-  ripples on the beat behind Liquid, with Yeufonic and Bars keeping the picture alone. **B** steps through the six for
-  the scene on show (Breath, Light rays, Ripples, Drifting colour, Depth, Spectrum halo), and the scene keeps the choice.
+- **A plan that fails twice names the take that already has a score for its words.** When another finished take
+  holds the same words with a score, such as an imported cover, the message names it: **Sing again** on it keeps
+  that score.
+
+- **A long structure in the editor no longer covers the lyrics' switches.** With the editor filling the window and a
+  cover's long list of sections, the Structure heading was drawn over **Voices follow the cues**, which could not then be
+  clicked. The lyrics keep their room and the list scrolls.
 
 ## 0.0.53 (2026-11-01)
 
