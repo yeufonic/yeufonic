@@ -2599,5 +2599,9 @@
  "That is not an audio file the app can read.": "这不是应用能读取的音频文件。",
  "That recording is empty.": "这段录音是空的。",
  "no such persona": "没有这个音色",
- "There is no recording left to tokenise.": "没有剩余录音可转换。"
+ "There is no recording left to tokenise.": "没有剩余录音可转换。",
+ "Make a voice…": "创建音色…",
+ "this corpus has no separated vocals to make a voice from": "该语料库没有可用于创建音色的分离人声",
+ "none of this corpus's vocals could be read": "该语料库的人声都无法读取",
+ "the excerpts could not be joined": "无法拼接这些片段"
 }

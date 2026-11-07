@@ -3267,3 +3267,67 @@ async def _tokenise_persona(engine, persona, persona_id: str, source: Path) -> d
     persona.ready(persona_id, target, head=config.TOKENIZER_HEAD)
     log.info("persona %s tokenised: %s", persona_id, target)
     return {"tokens_path": target}
+
+# A collage: a few seconds from several of a corpus's songs, joined into one recording.  The voice is what
+# those excerpts share, and it drags less of one tune's shape along than a single song's opening does.
+COLLAGE_SONG_SECONDS = 12.0
+COLLAGE_SONGS = 4
+
+
+def _excerpt(src: Path, dest: Path, seconds: float) -> bool:
+    """Some seconds from the middle of a recording, as 48 kHz stereo WAV."""
+    try:
+        total = audio_duration(str(src)) or 0.0
+    except Exception:  # noqa: BLE001 - an unreadable file is simply skipped
+        return False
+    if total <= 1.0:
+        return False
+    take = min(seconds, max(1.0, total - 1.0))
+    start = max(0.0, (total - take) / 2)
+    done = subprocess.run(
+        ["ffmpeg", "-v", "error", "-y", "-ss", f"{start:.2f}", "-t", f"{take:.2f}", "-i", str(src),
+         "-ac", "2", "-ar", "48000", str(dest)],
+        capture_output=True)
+    return done.returncode == 0 and dest.exists() and dest.stat().st_size > 0
+
+
+def collage_from_corpus(identity_id: str, seconds_per_song: float = COLLAGE_SONG_SECONDS,
+                        songs: int = COLLAGE_SONGS) -> Path:
+    """Join an excerpt from several of a corpus's separated vocals into one recording.
+
+    Needs the corpus's vocals, which analysis separates per song; a corpus without them cannot make a voice
+    and says so in words the page shows.
+    """
+    wanted = max(1, min(int(songs or COLLAGE_SONGS), 12))
+    rows_ = rows("SELECT * FROM identity_songs WHERE identity_id = ? AND include = 1 ORDER BY position, title",
+                 (identity_id,))
+    sources: list[Path] = []
+    for song in rows_:
+        found = identities.vocals_file(identities.song_dir(identity_id, song))
+        if found is not None:
+            sources.append(found)
+        if len(sources) >= wanted:
+            break
+    if not sources:
+        raise ValueError("this corpus has no separated vocals to make a voice from")
+    work = Path(tempfile.mkdtemp(prefix="persona-collage-"))
+    try:
+        parts = []
+        for index, src in enumerate(sources):
+            part = work / f"{index:02d}.wav"
+            if _excerpt(src, part, float(seconds_per_song)):
+                parts.append(part)
+        if not parts:
+            raise ValueError("none of this corpus's vocals could be read")
+        listing = work / "list.txt"
+        listing.write_text("".join(f"file '{p}'\n" for p in parts), encoding="utf-8")
+        out = work / "collage.wav"
+        done = subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(listing),
+                               "-c", "copy", str(out)], capture_output=True)
+        if done.returncode != 0 or not out.exists():
+            raise ValueError("the excerpts could not be joined")
+        keep = config.WORK_DIR / f"collage-{identity_id}-{int(time.time())}.wav"
+        shutil.copy2(out, keep)
+        return keep
+    finally:
+        shutil.rmtree(work, ignore_errors=True)

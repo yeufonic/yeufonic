@@ -2599,5 +2599,9 @@
  "That is not an audio file the app can read.": "Dat is geen audiobestand dat de app kan lezen.",
  "That recording is empty.": "Die opname is leeg.",
  "no such persona": "Die stem bestaat niet",
- "There is no recording left to tokenise.": "Er is geen opname meer om te tokeniseren."
+ "There is no recording left to tokenise.": "Er is geen opname meer om te tokeniseren.",
+ "Make a voice…": "Stem maken…",
+ "this corpus has no separated vocals to make a voice from": "Dit corpus heeft geen gescheiden vocalen om een stem van te maken",
+ "none of this corpus's vocals could be read": "Geen van de vocalen van dit corpus was leesbaar",
+ "the excerpts could not be joined": "De fragmenten konden niet worden samengevoegd"
 }

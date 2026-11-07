@@ -2599,5 +2599,9 @@
  "That is not an audio file the app can read.": "앱이 읽을 수 있는 오디오 파일이 아닙니다.",
  "That recording is empty.": "그 녹음이 비어 있습니다.",
  "no such persona": "그런 목소리가 없습니다",
- "There is no recording left to tokenise.": "토큰화할 녹음이 남아 있지 않습니다."
+ "There is no recording left to tokenise.": "토큰화할 녹음이 남아 있지 않습니다.",
+ "Make a voice…": "목소리 만들기…",
+ "this corpus has no separated vocals to make a voice from": "이 코퍼스에는 목소리를 만들 분리된 보컬이 없습니다",
+ "none of this corpus's vocals could be read": "이 코퍼스의 보컬을 하나도 읽을 수 없었습니다",
+ "the excerpts could not be joined": "조각들을 이어 붙이지 못했습니다"
 }

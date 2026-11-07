@@ -65,8 +65,12 @@ def clamp_seconds(seconds) -> float:
 
 
 def create(name: str, source: Path | None = None, prefix_seconds: float = DEFAULT_PREFIX_SECONDS,
-           head: str = "") -> dict:
-    """A persona with a name and a source recording; its token file arrives when tokenising finishes."""
+           head: str = "", origin_identity: str | None = None) -> dict:
+    """A persona with a name and a source recording; its token file arrives when tokenising finishes.
+
+    ``origin_identity`` names the corpus a persona was collaged from, so regenerating it can rebuild that
+    collage from the corpus as it is now rather than keep a stale copy.
+    """
     name = (name or "").strip() or "Untitled voice"
     persona_id = uuid.uuid4().hex[:12]
     target = folder(persona_id)
@@ -77,9 +81,9 @@ def create(name: str, source: Path | None = None, prefix_seconds: float = DEFAUL
         if Path(source).resolve() != stored.resolve():
             shutil.copy2(source, stored)
         source_path = str(stored)
-    db.execute("INSERT INTO voices (id, name, tokens_path, source_path, prefix_seconds, head, state, created_at) "
-               "VALUES (?, ?, NULL, ?, ?, ?, 'preparing', ?)",
-               (persona_id, name, source_path, clamp_seconds(prefix_seconds), head or "", time.time()))
+    db.execute("INSERT INTO voices (id, name, tokens_path, source_path, origin_identity, prefix_seconds, head, state, created_at) "
+               "VALUES (?, ?, NULL, ?, ?, ?, ?, 'preparing', ?)",
+               (persona_id, name, source_path, origin_identity, clamp_seconds(prefix_seconds), head or "", time.time()))
     log.info("persona %s created from %s", name, source_path or "(no recording)")
     return one(persona_id)
 

@@ -2599,5 +2599,9 @@
  "That is not an audio file the app can read.": "Ce n'est pas un fichier audio que l'app peut lire.",
  "That recording is empty.": "Cet enregistrement est vide.",
  "no such persona": "Cette voix n'existe pas",
- "There is no recording left to tokenise.": "Il ne reste aucun enregistrement à tokeniser."
+ "There is no recording left to tokenise.": "Il ne reste aucun enregistrement à tokeniser.",
+ "Make a voice…": "Créer une voix…",
+ "this corpus has no separated vocals to make a voice from": "Ce corpus n'a pas de voix séparées pour en faire une voix",
+ "none of this corpus's vocals could be read": "Aucune des voix de ce corpus n'a pu être lue",
+ "the excerpts could not be joined": "Les extraits n'ont pas pu être assemblés"
 }

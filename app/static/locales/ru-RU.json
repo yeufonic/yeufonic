@@ -2599,5 +2599,9 @@
  "That is not an audio file the app can read.": "Это не аудиофайл, который умеет читать приложение.",
  "That recording is empty.": "Эта запись пуста.",
  "no such persona": "Такого голоса нет",
- "There is no recording left to tokenise.": "Не осталось записи для токенизации."
+ "There is no recording left to tokenise.": "Не осталось записи для токенизации.",
+ "Make a voice…": "Создать голос…",
+ "this corpus has no separated vocals to make a voice from": "В этом корпусе нет отделённого вокала, из которого можно сделать голос",
+ "none of this corpus's vocals could be read": "Ни один вокал этого корпуса не удалось прочитать",
+ "the excerpts could not be joined": "Не удалось соединить фрагменты"
 }

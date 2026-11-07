@@ -10443,6 +10443,9 @@ async function showIdentityList() {
         '<strong><span class="corpus-dot" aria-hidden="true"></span>' + esc(item.name) + '</strong>' +
         '<span class="muted">' + t('trigger') + ' <code>' + esc(item.trigger_word) + '</code> · ' +
         t('{included} of {songs} songs', { included: item.included || 0, songs: item.songs || 0 }) + (item.exported_at ? ' · ' + t('exported') : '') + '</span>' +
+        '<span class="corpus-actions">' +
+        '<button type="button" class="ghost" data-voice-from="' + esc(item.id) + '" data-voice-name="' + esc(item.name) + '">' +
+        t('Make a voice…') + '</button></span>' +
         '<span class="corpus-preparing">' + t('preparing…') + '</span></div>';
     }).join('') + '</div>';
   paintCorpusCards();
@@ -17286,7 +17289,8 @@ function paintPersonaField() {
   });
   host.innerHTML = '<label for="persona-select">Recorded voice</label>' +
     '<select id="persona-select">' + options.join("") + "</select>" +
-    '<button type="button" id="persona-make" class="ghost">Make a voice…</button>' +
+    '<button type="button" id="persona-make" class="ghost">' + t("Make a voice…") + '</button>' +
+    '<button type="button" id="persona-regen" class="ghost hidden">Regenerate</button>' +
     '<p class="sub" id="persona-hint">A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.</p>';
   var select = $("persona-select");
   if (select) {
@@ -17295,13 +17299,30 @@ function paintPersonaField() {
   }
   var make = $("persona-make");
   if (make) { make.addEventListener("click", askForVoice); }
+  var regen = $("persona-regen");
+  if (regen) { regen.addEventListener("click", regeneratePersona); }
   refreshPersonaHint();
+}
+
+/* Build the selected voice again: a corpus voice re-cuts its collage from the corpus as it is now, so a
+   corpus that has gained or lost songs is picked up without making a new voice. */
+async function regeneratePersona() {
+  if (!PERSONA.id) { return; }
+  try {
+    await api("/api/voices/" + PERSONA.id + "/regenerate", { method: "POST" });
+    await loadPersonas();
+    toast(t("Tokenising that voice: it will be ready in a few seconds."));
+  } catch (err) {
+    toast(err && err.message ? err.message : t("no such persona"));
+  }
 }
 
 function refreshPersonaHint() {
   var hint = $("persona-hint");
   if (!hint) { return; }
   var selected = PERSONA.list.filter(function (v) { return v.id === PERSONA.id; })[0];
+  var regen = $("persona-regen");
+  if (regen) { regen.classList.toggle("hidden", !selected); }
   hint.textContent = selected
     ? t("This render uses about") + " " + Math.round(Number(selected.prefix_seconds) || 0) +
       " " + t("seconds of that voice before the new song.")
@@ -17352,6 +17373,32 @@ function installPersonaField() {
   holder.id = "persona-field";
   vocal.parentNode.insertBefore(holder, vocal.nextSibling);
   loadPersonas();
+}
+
+/* A corpus makes a voice where corpora are listed: the button on its card takes a few seconds from several
+   of its songs, joins them, and lets the same tokenise job run on the result. */
+document.addEventListener("click", function (event) {
+  var button = event.target.closest && event.target.closest("[data-voice-from]");
+  if (!button) { return; }
+  event.preventDefault();
+  makeVoiceFromCorpus(button.getAttribute("data-voice-from"), button.getAttribute("data-voice-name") || "");
+});
+
+async function makeVoiceFromCorpus(identityId, name) {
+  if (!identityId) { return; }
+  var said = window.prompt(t("What is this voice called?"), name ? name + " voice" : "");
+  if (said === null) { return; }
+  var form = new FormData();
+  form.append("identity_id", identityId);
+  form.append("name", said.trim());
+  try {
+    var made = await api("/api/voices/from-identity", { method: "POST", body: form });
+    PERSONA.id = made.id;
+    await loadPersonas();
+    toast(t("Tokenising that voice: it will be ready in a few seconds."));
+  } catch (err) {
+    toast(err && err.message ? err.message : t("That recording is empty."));
+  }
 }
 
 if (document.readyState === "loading") {

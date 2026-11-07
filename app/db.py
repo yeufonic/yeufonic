@@ -201,6 +201,7 @@ CREATE TABLE IF NOT EXISTS voices (
     name TEXT NOT NULL,
     tokens_path TEXT,
     source_path TEXT,
+    origin_identity TEXT,
     prefix_seconds REAL NOT NULL DEFAULT 48.0,
     head TEXT,
     state TEXT NOT NULL DEFAULT 'ready',
@@ -725,6 +726,7 @@ def _voices() -> None:
         name TEXT NOT NULL,
         tokens_path TEXT,
         source_path TEXT,
+        origin_identity TEXT,
         prefix_seconds REAL NOT NULL DEFAULT 48.0,
         head TEXT,
         state TEXT NOT NULL DEFAULT 'ready',
@@ -733,6 +735,8 @@ def _voices() -> None:
     )""")
     if "voice_id" not in _columns("takes"):
         execute("ALTER TABLE takes ADD COLUMN voice_id TEXT")
+    if "origin_identity" not in _columns("voices"):
+        execute("ALTER TABLE voices ADD COLUMN origin_identity TEXT")
 
 
 def _cfg_scale() -> None:

@@ -2599,5 +2599,9 @@
  "That is not an audio file the app can read.": "アプリが読める音声ファイルではありません。",
  "That recording is empty.": "その録音は空です。",
  "no such persona": "その声はありません",
- "There is no recording left to tokenise.": "トークン化する録音が残っていません。"
+ "There is no recording left to tokenise.": "トークン化する録音が残っていません。",
+ "Make a voice…": "声を作成…",
+ "this corpus has no separated vocals to make a voice from": "このコーパスには声を作れる分離ボーカルがありません",
+ "none of this corpus's vocals could be read": "このコーパスのボーカルはどれも読めませんでした",
+ "the excerpts could not be joined": "断片を結合できませんでした"
 }

@@ -6080,3 +6080,50 @@ async def remove_persona(persona_id: str) -> dict:
         raise HTTPException(404, "no such persona")
     persona.delete(persona_id)
     return {"deleted": persona_id}
+
+@app.post("/api/voices/from-identity")
+async def make_voice_from_corpus(
+    identity_id: str = Form(..., max_length=64),
+    name: str = Form("", max_length=80),
+    prefix_seconds: float = Form(persona.DEFAULT_PREFIX_SECONDS),
+    seconds_per_song: float = Form(jobs.COLLAGE_SONG_SECONDS),
+    songs: int = Form(jobs.COLLAGE_SONGS, ge=1, le=12),
+) -> dict:
+    """A voice taken from a corpus: a collage of a few seconds from several of its songs, tokenised once."""
+    corpus = one("SELECT id, name FROM identities WHERE id = ?", (identity_id,))
+    if not corpus:
+        raise HTTPException(404, "no such corpus")
+    try:
+        collage = await asyncio.to_thread(jobs.collage_from_corpus, identity_id, seconds_per_song, songs)
+    except ValueError as err:
+        raise HTTPException(400, str(err))
+    try:
+        made = persona.create(name or f"{corpus['name']} (corpus)", source=collage,
+                              prefix_seconds=prefix_seconds, origin_identity=identity_id)
+    finally:
+        collage.unlink(missing_ok=True)
+    _tokenise_in_background(made["id"])
+    return made
+
+
+@app.post("/api/voices/{persona_id}/regenerate")
+async def regenerate_voice(persona_id: str) -> dict:
+    """Build the voice again: a corpus voice re-cuts its collage from the corpus as it is now, then tokenises."""
+    record = persona.one(persona_id)
+    if record is None:
+        raise HTTPException(404, "no such persona")
+    origin = record.get("origin_identity")
+    if origin:
+        try:
+            collage = await asyncio.to_thread(jobs.collage_from_corpus, origin)
+        except ValueError as err:
+            raise HTTPException(400, str(err))
+        keep = persona.folder(persona_id) / "source.wav"
+        shutil.copy2(collage, keep)
+        collage.unlink(missing_ok=True)
+        execute("UPDATE voices SET source_path = ?, state = 'preparing', error = NULL WHERE id = ?",
+                (str(keep), persona_id))
+    elif not Path(record.get("source_path") or "").exists():
+        raise HTTPException(400, "There is no recording left to tokenise.")
+    _tokenise_in_background(persona_id)
+    return {"queued": True}
