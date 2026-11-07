@@ -3196,3 +3196,61 @@ def cancel_stems(item: dict) -> None:
         execute("UPDATE stem_sets SET status = 'failed', error = 'cancelled' WHERE id = ? AND status = 'queued'", (item["id"],))
     elif item["status"] == "running" and CURRENT_STEMS.get("id") == item["id"]:
         CURRENT_STEMS["task"].cancel()
+
+# ---------------------------------------------------------------------- vocal personas
+
+
+PERSONA_POLL_SECONDS = 2.0
+PERSONA_TIMEOUT_SECONDS = 600
+
+
+async def tokenise_persona(persona_id: str) -> dict:
+    """Turn a persona's source recording into its token stream, on the engine.
+
+    The engine writes the stream into /data/personas/<id>/, the folder it shares with the app, so what is
+    left to do here is mark the persona usable.  Everything this needs already exists: the trainer's
+    tokenizer head, MERT, and the upload/submit/history the render path uses.
+    """
+    from . import persona  # noqa: PLC0415 - avoids a cycle at import time
+
+    record = persona.one(persona_id)
+    if record is None:
+        raise ValueError(f"no persona {persona_id}")
+    source = Path(record.get("source_path") or "")
+    if not source.exists():
+        raise ValueError("this persona has no recording left to tokenise")
+    engine = ENGINE                     # read here, not at import, so a stub can stand in
+    try:
+        return await _tokenise_persona(engine, persona, persona_id, source)
+    except Exception as err:
+        persona.failed(persona_id, str(err))
+        raise
+
+
+async def _tokenise_persona(engine, persona, persona_id: str, source: Path) -> dict:
+    """The half that talks to the engine; tokenise_persona marks the persona failed if this raises."""
+    upload = await engine.upload(f"persona-{persona_id}{source.suffix or '.wav'}", source.read_bytes())
+    name = upload.get("name") or upload.get("filename") or ""
+    target = f"/data/personas/{persona_id}/tokens.semantic.npy"
+    graph = {"1": {"class_type": "Yue2PersonaTokens", "inputs": {
+        "audio": name, "out": target, "head": config.TOKENIZER_HEAD,
+        "mert": "m-a-p/MERT-v2-FullSong", "device": "auto"}}}
+    prompt_id = await engine.submit(graph)
+    deadline = time.time() + PERSONA_TIMEOUT_SECONDS
+    while time.time() < deadline:
+        await asyncio.sleep(PERSONA_POLL_SECONDS)
+        entry = await engine.history(prompt_id)
+        if not entry:
+            continue
+        status = (entry.get("status") or {}).get("status_str")
+        if status == "error":
+            raise RuntimeError("the engine could not tokenise this recording")
+        if status == "success":
+            break
+    else:
+        raise TimeoutError("tokenising took too long")
+    if not Path(target).exists():
+        raise RuntimeError(f"the engine reported success but wrote no tokens to {target}")
+    persona.ready(persona_id, target, head=config.TOKENIZER_HEAD)
+    log.info("persona %s tokenised: %s", persona_id, target)
+    return {"tokens_path": target}

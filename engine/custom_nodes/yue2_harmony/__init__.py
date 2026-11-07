@@ -581,3 +581,15 @@ try:
         NODE_DISPLAY_NAME_MAPPINGS["Yue2Hear"] = "Yeufonic lyric hearing (Whisper)"
 except Exception:  # noqa: BLE001
     pass
+# Vocal personas (VOICE-PERSONA.md 8.6): a recording tokenised into semantic tokens, applied at render as a
+# prefix.  The tokenise half needs the trainer's tokenizer head, which is a sibling custom node.
+try:
+    from .persona import Yue2PersonaGenerate
+    from .persona_tokens import Yue2PersonaTokens
+
+    NODE_CLASS_MAPPINGS["Yue2PersonaTokens"] = Yue2PersonaTokens
+    NODE_DISPLAY_NAME_MAPPINGS["Yue2PersonaTokens"] = "Yeufonic persona: tokenise a recording"
+    NODE_CLASS_MAPPINGS["Yue2PersonaGenerate"] = Yue2PersonaGenerate
+    NODE_DISPLAY_NAME_MAPPINGS["Yue2PersonaGenerate"] = "YuE2 Generate with a voice prefix"
+except Exception:  # noqa: BLE001
+    pass
