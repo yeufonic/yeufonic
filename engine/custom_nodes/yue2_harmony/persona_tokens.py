@@ -15,6 +15,24 @@ import torch
 
 DEFAULT_MERT = "m-a-p/MERT-v2-FullSong"
 DEFAULT_HEAD = "tokenizer_head_joint_v9.safetensors"
+# The app's own copy of MERT, kept in models/hf by the corpus pipeline.  Handed to the tokenizer as a local
+# folder when it is there, so tokenising a voice does not go to the network for weights this machine has.
+MERT_CACHE = "hf/models--m-a-p--MERT-v2-FullSong/snapshots"
+MERT_REVISION = "7001f7657276238629e61c7746ce70735e0604c0"
+
+
+def local_mert(source: str) -> str:
+    """The local snapshot of MERT when there is one, else whatever was asked for."""
+    if source and source != DEFAULT_MERT:
+        return source
+    base = Path(folder_paths.models_dir) / MERT_CACHE
+    if not base.is_dir():
+        return source
+    pinned = base / MERT_REVISION
+    if pinned.is_dir():
+        return str(pinned)
+    found = sorted(p for p in base.iterdir() if p.is_dir())
+    return str(found[-1]) if found else source
 
 
 def _tokenizer():
@@ -54,7 +72,8 @@ class Yue2PersonaTokens:
         target.parent.mkdir(parents=True, exist_ok=True)
         wanted = device
         if wanted == "auto":
-            wanted = "cuda" if comfy.model_management.should_use_gpu() else "cpu"
+            wanted = "cuda" if comfy.model_management.get_torch_device().type == "cuda" else "cpu"
+        mert = local_mert(mert)
         comfy.model_management.unload_all_models()
         comfy.model_management.soft_empty_cache()
         with torch.inference_mode(), SemanticTokenizer(head_path, mert, wanted) as tokenizer:
