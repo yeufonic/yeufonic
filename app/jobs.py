@@ -997,6 +997,9 @@ async def run_job(kind: str, ref_id: str) -> None:
         else:
             style_info = f", style_lora={record.get('style_lora')}" if record.get("style_lora") else ""
             voice_info = f", voice_lora={record.get('voice_lora')}" if record.get("voice_lora") else ""
+            sung_by = render_voice(record)
+            if sung_by:
+                voice_info += f", recorded voice={sung_by['name']} ({sung_by['prefix_seconds']:.0f} s)"
             log.info("Starting audio render for '%s' (%s, mode=%s, steps=%s, interpretation=%s, %s%s%s)",
                      title, ref_id, record.get("mode", "full"), record.get("sampler_steps") or 32,
                      record.get("interpretation") or "standard", cfg_said(record), style_info, voice_info)

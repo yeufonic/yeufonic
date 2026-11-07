@@ -5590,6 +5590,9 @@ function detailGroups(take) {
     sound.push([t('Style LoRA'), take.style_lora.replace(/\.safetensors$/, '') + ' ' +
       t('(planner {planner}, sound {sound})', { planner: Number(take.style_lora_clip || 0).toFixed(2), sound: Number(take.style_lora_model || 0).toFixed(2) })]);
   }
+  if (take.voice_id) {
+    sound.push([t('Recorded voice'), personaNameOf(take.voice_id) || take.voice_id]);
+  }
   if (take.voice_lora) {
     sound.push([t('Voice LoRA'), take.voice_lora.replace(/\.safetensors$/, '') + ' (' + Number(take.voice_lora_strength || 0).toFixed(2) + ')']);
   }
@@ -7019,6 +7022,8 @@ function editorRenderSettings() {
     interpretation: $('interpretation').value,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   });
+  // The voice the editor shows, none included: a voice chosen for a planned take is sung by its render.
+  if ($('persona-select')) { data.voice_id = PERSONA.id || ''; }
   if ($('style-lora') && !data.style_lora) {
     // None, chosen from a list that holds the take's LoRA, turns it off. A list
     // without it, not loaded yet or with the file gone, is no choice at all.
@@ -17388,6 +17393,9 @@ async function loadPersonas() {
 
 /* The editor shows the voice of the take open in it, or none: a voice is the take's, like its LoRAs. */
 function setPersonaFromTake(take) {
+  // The same take shown again (a refresh, a card clicked twice) keeps a voice chosen for it and not yet sung.
+  if (take && take.id && take.id === PERSONA.takeId) { return; }
+  PERSONA.takeId = take && take.id;
   var id = take && take.voice_id;
   PERSONA.id = id || null;     // a list still loading keeps it; loadPersonas drops an id it does not have
   var select = $("persona-select");
