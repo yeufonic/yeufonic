@@ -42,7 +42,7 @@ from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import recipe as recipes
-from . import aligner, artwork, autotune, composer, config, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
+from . import aligner, artwork, autotune, composer, config, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 
 personas = identities
@@ -1002,6 +1002,8 @@ def _advanced_of(body, fallback: dict | None = None) -> dict:
 class LoraSettingsMixin(BaseModel):
     identity_id: str | None = Field(None, max_length=64)
     persona_id: str | None = Field(None, max_length=64)
+    # A recorded voice, applied as a prefix of its tokens at render time (VOICE-PERSONA.md 8.6).
+    voice_id: str | None = Field(None, max_length=64)
     voice_lora: str | None = Field(None, max_length=200)
     voice_lora_strength: float = 1.0
     voice_lora_clip: float = Field(0.0, ge=0.0, le=3.0)
@@ -2687,6 +2689,7 @@ async def create_take(body: TakeIn) -> dict:
         "normalise": 1 if body.normalise else 0,
         "identity_id": body.identity_id or body.persona_id,
         "persona_id": body.identity_id or body.persona_id,
+        "voice_id": body.voice_id,
         "voice_lora": body.voice_lora,
         "voice_lora_strength": body.voice_lora_strength,
         "voice_lora_clip": body.voice_lora_clip,
@@ -2695,12 +2698,12 @@ async def create_take(body: TakeIn) -> dict:
     }
     execute(
         """INSERT INTO takes(id, source_id, title, style, lyrics, abc, mode, seed, checkpoint, max_duration, status, created_at,
-                             space_id, parent_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
+                             space_id, parent_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                              chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale)
            VALUES(:id, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration, 'queued', :created_at,
-                  :space_id, :parent_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
+                  :space_id, :parent_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
                   :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale)""",
@@ -5145,7 +5148,8 @@ def _recipe_of(take_id: str) -> dict:
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         raise HTTPException(404, "no such take")
-    return recipes.export(take, config.VERSION)
+    voice = persona.one(take["voice_id"]) if take.get("voice_id") else None
+    return recipes.export(take, config.VERSION, voice=voice["name"] if voice else None)
 
 
 @app.get("/api/takes/{take_id}/recipe")
@@ -5994,3 +5998,132 @@ async def delete_stem_set(set_id: str) -> dict:
     if item["folder"]:
         await asyncio.to_thread(remove_folders, [(Path(item["folder"]), config.DATA_DIR)])
     return {"deleted": True}
+
+# ---------------------------------------------------------------------- vocal personas
+
+_PERSONA_TASKS: set = set()
+
+
+@app.get("/api/voices")
+async def list_personas() -> list[dict]:
+    """Recorded voices, for the editor's Vocal identity picker."""
+    return persona.all()
+
+
+def _tokenise_in_background(persona_id: str) -> None:
+    """Fire the tokenise job and hold a reference to it, so the task is not collected mid-flight."""
+    task = asyncio.create_task(jobs.tokenise_persona(persona_id))
+    _PERSONA_TASKS.add(task)
+
+    def done(finished):
+        _PERSONA_TASKS.discard(finished)
+        with suppress(Exception):
+            error = finished.exception()
+        if error is not None:
+            log.warning("tokenising a persona failed: %s", error)
+
+    task.add_done_callback(done)
+
+
+@app.post("/api/voices")
+async def make_persona(
+    file: UploadFile = File(...),
+    name: str = Form("", max_length=80),
+    prefix_seconds: float = Form(persona.DEFAULT_PREFIX_SECONDS),
+) -> dict:
+    """One recording becomes one persona; the engine tokenises it in the background."""
+    suffix = Path(file.filename or "voice.wav").suffix.lower() or ".wav"
+    if suffix not in identities.AUDIO_TYPES:
+        raise HTTPException(400, "That is not an audio file the app can read.")
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    temp = config.WORK_DIR / f"persona-source-{uuid.uuid4().hex[:8]}{suffix}"
+    with temp.open("wb") as out:
+        shutil.copyfileobj(file.file, out)
+    if not temp.stat().st_size:
+        temp.unlink(missing_ok=True)
+        raise HTTPException(400, "That recording is empty.")
+    try:
+        made = persona.create(name or Path(file.filename or "voice").stem, source=temp,
+                              prefix_seconds=prefix_seconds)
+    finally:
+        temp.unlink(missing_ok=True)
+    _tokenise_in_background(made["id"])
+    return made
+
+
+@app.patch("/api/voices/{persona_id}")
+async def edit_persona(persona_id: str, name: str | None = Form(None),
+                       prefix_seconds: float | None = Form(None)) -> dict:
+    """Rename a persona, or change how much of its stream a render uses."""
+    record = persona.update(persona_id, **{k: v for k, v in (("name", name),
+                                                                   ("prefix_seconds", prefix_seconds)) if v is not None})
+    if record is None:
+        raise HTTPException(404, "no such persona")
+    return record
+
+
+@app.post("/api/voices/{persona_id}/tokenise")
+async def retokenise_persona(persona_id: str) -> dict:
+    """Try again, after a failed tokenise or a new tokenizer head."""
+    record = persona.one(persona_id)
+    if record is None:
+        raise HTTPException(404, "no such persona")
+    if not Path(record.get("source_path") or "").exists():
+        raise HTTPException(400, "There is no recording left to tokenise.")
+    _tokenise_in_background(persona_id)
+    return {"queued": True}
+
+
+@app.delete("/api/voices/{persona_id}")
+async def remove_persona(persona_id: str) -> dict:
+    if persona.one(persona_id) is None:
+        raise HTTPException(404, "no such persona")
+    persona.delete(persona_id)
+    return {"deleted": persona_id}
+
+@app.post("/api/voices/from-identity")
+async def make_voice_from_corpus(
+    identity_id: str = Form(..., max_length=64),
+    name: str = Form("", max_length=80),
+    prefix_seconds: float = Form(persona.DEFAULT_PREFIX_SECONDS),
+    seconds_per_song: float = Form(jobs.COLLAGE_SONG_SECONDS),
+    songs: int = Form(jobs.COLLAGE_SONGS, ge=1, le=12),
+) -> dict:
+    """A voice taken from a corpus: a collage of a few seconds from several of its songs, tokenised once."""
+    corpus = one("SELECT id, name FROM identities WHERE id = ?", (identity_id,))
+    if not corpus:
+        raise HTTPException(404, "no such corpus")
+    try:
+        collage = await asyncio.to_thread(jobs.collage_from_corpus, identity_id, seconds_per_song, songs)
+    except ValueError as err:
+        raise HTTPException(400, str(err))
+    try:
+        made = persona.create(name or f"{corpus['name']} (corpus)", source=collage,
+                              prefix_seconds=prefix_seconds, origin_identity=identity_id)
+    finally:
+        collage.unlink(missing_ok=True)
+    _tokenise_in_background(made["id"])
+    return made
+
+
+@app.post("/api/voices/{persona_id}/regenerate")
+async def regenerate_voice(persona_id: str) -> dict:
+    """Build the voice again: a corpus voice re-cuts its collage from the corpus as it is now, then tokenises."""
+    record = persona.one(persona_id)
+    if record is None:
+        raise HTTPException(404, "no such persona")
+    origin = record.get("origin_identity")
+    if origin:
+        try:
+            collage = await asyncio.to_thread(jobs.collage_from_corpus, origin)
+        except ValueError as err:
+            raise HTTPException(400, str(err))
+        keep = persona.folder(persona_id) / "source.wav"
+        shutil.copy2(collage, keep)
+        collage.unlink(missing_ok=True)
+        execute("UPDATE voices SET source_path = ?, state = 'preparing', error = NULL WHERE id = ?",
+                (str(keep), persona_id))
+    elif not Path(record.get("source_path") or "").exists():
+        raise HTTPException(400, "There is no recording left to tokenise.")
+    _tokenise_in_background(persona_id)
+    return {"queued": True}

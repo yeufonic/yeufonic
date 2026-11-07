@@ -7217,6 +7217,7 @@ function songBody(seed) {
     variety: $('variety').value,
     harmony: harmonyStep(),
     space_id: State.spaceId,
+    voice_id: PERSONA.id || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -9078,6 +9079,7 @@ function instBody(seed) {
     variety: $('variety').value,
     harmony: harmonyStep(),
     space_id: State.spaceId,
+    voice_id: PERSONA.id || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -10441,6 +10443,9 @@ async function showIdentityList() {
         '<strong><span class="corpus-dot" aria-hidden="true"></span>' + esc(item.name) + '</strong>' +
         '<span class="muted">' + t('trigger') + ' <code>' + esc(item.trigger_word) + '</code> · ' +
         t('{included} of {songs} songs', { included: item.included || 0, songs: item.songs || 0 }) + (item.exported_at ? ' · ' + t('exported') : '') + '</span>' +
+        '<span class="corpus-actions">' +
+        '<button type="button" class="ghost" data-voice-from="' + esc(item.id) + '" data-voice-name="' + esc(item.name) + '">' +
+        t('Make a voice…') + '</button></span>' +
         '<span class="corpus-preparing">' + t('preparing…') + '</span></div>';
     }).join('') + '</div>';
   paintCorpusCards();
@@ -14117,6 +14122,7 @@ function coverBody(seed) {
     interpretation: $('interpretation').value,
     max_duration: parseFloat($('max-duration').value) || 360,
     space_id: State.spaceId,
+    voice_id: PERSONA.id || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -17254,4 +17260,180 @@ function wirePlaylists() {
       savePlaylistEdit();
     });
   }
+}
+
+/* ------------------------------------------------------------------ a recorded voice
+   A persona from a recording: tokenised once, and applied at render as a prefix of its own tokens
+   (VOICE-PERSONA.md 8.6).  The list is built into the page rather than the markup, so a new install and an
+   old page both work after a refresh. */
+var PERSONA = { list: [], id: null };
+
+function personaNameOf(id) {
+  var found = PERSONA.list.filter(function (v) { return v.id === id; })[0];
+  return found ? found.name : "";
+}
+
+function paintPersonaField() {
+  var host = $("persona-field");
+  if (!host) { return; }
+  var ready = PERSONA.list.filter(function (v) { return v.state === "ready"; });
+  var busy = PERSONA.list.filter(function (v) { return v.state !== "ready"; });
+  var options = ["<option value=''>None</option>"];
+  ready.forEach(function (v) {
+    options.push("<option value='" + esc(v.id) + "'>" + esc(v.name) + " · " +
+      Math.round(Number(v.prefix_seconds) || 0) + " s</option>");
+  });
+  busy.forEach(function (v) {
+    var why = v.state === "failed" ? "failed" : "preparing…";
+    options.push("<option value='" + esc(v.id) + "' disabled>" + esc(v.name) + " · " + why + "</option>");
+  });
+  host.innerHTML = '<label for="persona-select">Recorded voice</label>' +
+    '<select id="persona-select">' + options.join("") + "</select>" +
+    '<span class="persona-picks">' +
+    '<label class="persona-seconds hidden" id="persona-seconds-wrap">' + t("Seconds") +
+    '<input type="number" id="persona-seconds" min="4" max="120" step="4"></label></span>' +
+    '<button type="button" id="persona-make" class="ghost">' + t("Make a voice…") + '</button>' +
+    '<button type="button" id="persona-regen" class="ghost hidden">' + t("Regenerate") + '</button>' +
+    '<p class="sub" id="persona-hint">A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.</p>';
+  var select = $("persona-select");
+  if (select) {
+    select.value = PERSONA.id || "";
+    select.addEventListener("change", function () { PERSONA.id = select.value || null; refreshPersonaHint(); });
+  }
+  var make = $("persona-make");
+  if (make) { make.addEventListener("click", askForVoice); }
+  var regen = $("persona-regen");
+  if (regen) { regen.addEventListener("click", regeneratePersona); }
+  var seconds = $("persona-seconds");
+  if (seconds) {
+    seconds.addEventListener("change", function () { setPersonaSeconds(seconds.value); });
+  }
+  refreshPersonaHint();
+}
+
+/* How much of the voice a render uses.  Saved on the voice rather than the take, so every take that picks it
+   gets the same length until it is changed here. */
+async function setPersonaSeconds(value) {
+  if (!PERSONA.id) { return; }
+  try {
+    var changed = await api("/api/voices/" + PERSONA.id, {
+      method: "PATCH",
+      body: new URLSearchParams({ prefix_seconds: String(value) })
+    });
+    PERSONA.list = PERSONA.list.map(function (v) { return v.id === changed.id ? changed : v; });
+    await loadPersonas();
+    toast(t("This render uses about") + " " + Math.round(Number(changed.prefix_seconds) || 0) + " " +
+          t("seconds of that voice before the new song."));
+  } catch (err) {
+    toast(err && err.message ? err.message : t("no such persona"));
+  }
+}
+
+/* Build the selected voice again: a corpus voice re-cuts its collage from the corpus as it is now, so a
+   corpus that has gained or lost songs is picked up without making a new voice. */
+async function regeneratePersona() {
+  if (!PERSONA.id) { return; }
+  try {
+    await api("/api/voices/" + PERSONA.id + "/regenerate", { method: "POST" });
+    await loadPersonas();
+    toast(t("Tokenising that voice: it will be ready in a few seconds."));
+  } catch (err) {
+    toast(err && err.message ? err.message : t("no such persona"));
+  }
+}
+
+function refreshPersonaHint() {
+  var hint = $("persona-hint");
+  if (!hint) { return; }
+  var selected = PERSONA.list.filter(function (v) { return v.id === PERSONA.id; })[0];
+  var regen = $("persona-regen");
+  if (regen) { regen.classList.toggle("hidden", !selected); }
+  var wrap = $("persona-seconds-wrap");
+  var field = $("persona-seconds");
+  if (wrap) { wrap.classList.toggle("hidden", !selected); }
+  if (field && selected && document.activeElement !== field) {
+    field.value = String(Math.round(Number(selected.prefix_seconds) || 0));
+  }
+  hint.textContent = selected
+    ? t("This render uses about") + " " + Math.round(Number(selected.prefix_seconds) || 0) +
+      " " + t("seconds of that voice before the new song.")
+    : t("A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.");
+}
+
+async function loadPersonas() {
+  try {
+    PERSONA.list = await api("/api/voices");
+  } catch (err) {
+    PERSONA.list = [];
+  }
+  if (PERSONA.id && !PERSONA.list.some(function (v) { return v.id === PERSONA.id; })) {
+    PERSONA.id = null;
+  }
+  paintPersonaField();
+}
+
+function askForVoice() {
+  var input = document.createElement("input");
+  input.type = "file";
+  input.accept = "audio/*";
+  input.addEventListener("change", function () {
+    var file = input.files && input.files[0];
+    if (file) { makePersona(file); }
+  });
+  input.click();
+}
+
+async function makePersona(file) {
+  var name = (file.name || "").replace(/\.[^.]+$/, "") || t("My voice");
+  var said = window.prompt(t("What is this voice called?"), name);
+  if (said === null) { return; }
+  var form = new FormData();
+  form.append("file", file, file.name || "voice.wav");
+  form.append("name", said.trim() || name);
+  var made = await api("/api/voices", { method: "POST", body: form });
+  PERSONA.id = made.id;
+  await loadPersonas();
+  toast(t("Tokenising that voice: it will be ready in a few seconds."));
+}
+
+function installPersonaField() {
+  var vocal = $("vocal-field");
+  if (!vocal || $("persona-field")) { return; }
+  var holder = document.createElement("div");
+  holder.className = "field";
+  holder.id = "persona-field";
+  vocal.parentNode.insertBefore(holder, vocal.nextSibling);
+  loadPersonas();
+}
+
+/* A corpus makes a voice where corpora are listed: the button on its card takes a few seconds from several
+   of its songs, joins them, and lets the same tokenise job run on the result. */
+document.addEventListener("click", function (event) {
+  var button = event.target.closest && event.target.closest("[data-voice-from]");
+  if (!button) { return; }
+  event.preventDefault();
+  makeVoiceFromCorpus(button.getAttribute("data-voice-from"), button.getAttribute("data-voice-name") || "");
+});
+
+async function makeVoiceFromCorpus(identityId, name) {
+  if (!identityId) { return; }
+  var said = window.prompt(t("What is this voice called?"), name ? name + " voice" : "");
+  if (said === null) { return; }
+  var form = new FormData();
+  form.append("identity_id", identityId);
+  form.append("name", said.trim());
+  try {
+    var made = await api("/api/voices/from-identity", { method: "POST", body: form });
+    PERSONA.id = made.id;
+    await loadPersonas();
+    toast(t("Tokenising that voice: it will be ready in a few seconds."));
+  } catch (err) {
+    toast(err && err.message ? err.message : t("That recording is empty."));
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", installPersonaField);
+} else {
+  installPersonaField();
 }

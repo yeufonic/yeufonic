@@ -112,6 +112,11 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 - **Train a LoRA from your own songs.** Prepare a corpus from a folder of songs, by one artist,
   in one genre or by a few similar artists, and train a style LoRA from it. It works best in a
   song from a prompt, where the LoRA writes the tune. See Training a LoRA below.
+- **Give a take a recorded voice.** The other route to a singer's character, and the one with nothing
+  trained: a recording of a voice — yours, or a corpus's singer — is tokenised once, and a render
+  continues from a few seconds of that stream, so new words and a new score come out in that voice.
+  Make one in the editor's **Recorded voice** field from any audio file. See "A recorded voice" in
+  the guide.
 - **Hear every step of a LoRA's training.** A training run keeps a checkpoint every 50 steps.
   **Checkpoints** renders the same song once on each of them, with one seed, as takes named after
   their step. Each has its own taste in melody and structure, while keeping the style and sound

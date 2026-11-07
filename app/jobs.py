@@ -17,7 +17,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import artwork, config, engine_cpp, identities, instrumental, llm, loras, lyrics, score, stems, storage, trainsize, transpose, voices
+from . import artwork, config, engine_cpp, identities, instrumental, llm, loras, lyrics, persona, score, stems, storage, trainsize, transpose, voices
 from .db import bump_average, execute, get_setting, one, rows
 from .engine import OUT_OF_MEMORY, Engine, load_template
 from .library import (audio_duration, ensure_peaks, fade_out_end, loudness, inside, normal_target, normalise, normalised_path, original_path, remove_tree,
@@ -445,6 +445,19 @@ def build_render_graph(take: dict) -> dict:
                         strength_clip=float(take.get("style_lora_clip") or 0.0))
     if config.PEAK_GUARD and (getattr(ENGINE, "options", None) or {}).get("peak_guard"):
         with_peak_guard(graph)
+    # A persona stands in for the music node: the AR continues from the persona's own tokens and the
+    # decoder renders that continuation, so the take comes out in that voice with nothing trained.
+    # The persona's own inputs are a superset of the template's, so nothing else changes.
+    person = persona.one(take["voice_id"]) if take.get("voice_id") else None
+    if person and person.get("state") == "ready" and person.get("tokens_path"):
+        graph["11"]["class_type"] = "Yue2PersonaGenerate"
+        node.update({
+            "persona_tokens": person["tokens_path"],
+            "persona_seconds": float(person.get("prefix_seconds") or persona.DEFAULT_PREFIX_SECONDS),
+        })
+    elif take.get("voice_id"):
+        log.warning("take %s names voice %s, which is not ready; rendering without it",
+                    take.get("id"), take.get("voice_id"))
     return graph
 
 
@@ -3196,3 +3209,125 @@ def cancel_stems(item: dict) -> None:
         execute("UPDATE stem_sets SET status = 'failed', error = 'cancelled' WHERE id = ? AND status = 'queued'", (item["id"],))
     elif item["status"] == "running" and CURRENT_STEMS.get("id") == item["id"]:
         CURRENT_STEMS["task"].cancel()
+
+# ---------------------------------------------------------------------- vocal personas
+
+
+PERSONA_POLL_SECONDS = 2.0
+PERSONA_TIMEOUT_SECONDS = 600
+
+
+async def tokenise_persona(persona_id: str) -> dict:
+    """Turn a persona's source recording into its token stream, on the engine.
+
+    The engine writes the stream into /data/personas/<id>/, the folder it shares with the app, so what is
+    left to do here is mark the persona usable.  Everything this needs already exists: the trainer's
+    tokenizer head, MERT, and the upload/submit/history the render path uses.
+    """
+    from . import persona  # noqa: PLC0415 - avoids a cycle at import time
+
+    record = persona.one(persona_id)
+    if record is None:
+        raise ValueError(f"no persona {persona_id}")
+    source = Path(record.get("source_path") or "")
+    if not source.exists():
+        raise ValueError("this persona has no recording left to tokenise")
+    engine = ENGINE                     # read here, not at import, so a stub can stand in
+    try:
+        return await _tokenise_persona(engine, persona, persona_id, source)
+    except Exception as err:
+        persona.failed(persona_id, str(err))
+        raise
+
+
+async def _tokenise_persona(engine, persona, persona_id: str, source: Path) -> dict:
+    """The half that talks to the engine; tokenise_persona marks the persona failed if this raises."""
+    upload = await engine.upload(f"persona-{persona_id}{source.suffix or '.wav'}", source.read_bytes())
+    name = upload.get("name") or upload.get("filename") or ""
+    target = f"/data/personas/{persona_id}/tokens.semantic.npy"
+    graph = {"1": {"class_type": "Yue2PersonaTokens", "inputs": {
+        "audio": name, "out": target, "head": config.TOKENIZER_HEAD,
+        "mert": "m-a-p/MERT-v2-FullSong", "device": "auto"}}}
+    prompt_id = await engine.submit(graph)
+    deadline = time.time() + PERSONA_TIMEOUT_SECONDS
+    while time.time() < deadline:
+        await asyncio.sleep(PERSONA_POLL_SECONDS)
+        entry = await engine.history(prompt_id)
+        if not entry:
+            continue
+        status = (entry.get("status") or {}).get("status_str")
+        if status == "error":
+            raise RuntimeError("the engine could not tokenise this recording")
+        if status == "success":
+            break
+    else:
+        raise TimeoutError("tokenising took too long")
+    if not Path(target).exists():
+        raise RuntimeError(f"the engine reported success but wrote no tokens to {target}")
+    persona.ready(persona_id, target, head=config.TOKENIZER_HEAD)
+    log.info("persona %s tokenised: %s", persona_id, target)
+    return {"tokens_path": target}
+
+# A collage: a few seconds from several of a corpus's songs, joined into one recording.  The voice is what
+# those excerpts share, and it drags less of one tune's shape along than a single song's opening does.
+COLLAGE_SONG_SECONDS = 12.0
+COLLAGE_SONGS = 4
+
+
+def _excerpt(src: Path, dest: Path, seconds: float) -> bool:
+    """Some seconds from the middle of a recording, as 48 kHz stereo WAV."""
+    try:
+        total = audio_duration(str(src)) or 0.0
+    except Exception:  # noqa: BLE001 - an unreadable file is simply skipped
+        return False
+    if total <= 1.0:
+        return False
+    take = min(seconds, max(1.0, total - 1.0))
+    start = max(0.0, (total - take) / 2)
+    done = subprocess.run(
+        ["ffmpeg", "-v", "error", "-y", "-ss", f"{start:.2f}", "-t", f"{take:.2f}", "-i", str(src),
+         "-ac", "2", "-ar", "48000", str(dest)],
+        capture_output=True)
+    return done.returncode == 0 and dest.exists() and dest.stat().st_size > 0
+
+
+def collage_from_corpus(identity_id: str, seconds_per_song: float = COLLAGE_SONG_SECONDS,
+                        songs: int = COLLAGE_SONGS) -> Path:
+    """Join an excerpt from several of a corpus's separated vocals into one recording.
+
+    Needs the corpus's vocals, which analysis separates per song; a corpus without them cannot make a voice
+    and says so in words the page shows.
+    """
+    wanted = max(1, min(int(songs or COLLAGE_SONGS), 12))
+    rows_ = rows("SELECT * FROM identity_songs WHERE identity_id = ? AND include = 1 ORDER BY position, title",
+                 (identity_id,))
+    sources: list[Path] = []
+    for song in rows_:
+        found = identities.vocals_file(identities.song_dir(identity_id, song))
+        if found is not None:
+            sources.append(found)
+        if len(sources) >= wanted:
+            break
+    if not sources:
+        raise ValueError("this corpus has no separated vocals to make a voice from")
+    work = Path(tempfile.mkdtemp(prefix="persona-collage-"))
+    try:
+        parts = []
+        for index, src in enumerate(sources):
+            part = work / f"{index:02d}.wav"
+            if _excerpt(src, part, float(seconds_per_song)):
+                parts.append(part)
+        if not parts:
+            raise ValueError("none of this corpus's vocals could be read")
+        listing = work / "list.txt"
+        listing.write_text("".join(f"file '{p}'\n" for p in parts), encoding="utf-8")
+        out = work / "collage.wav"
+        done = subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(listing),
+                               "-c", "copy", str(out)], capture_output=True)
+        if done.returncode != 0 or not out.exists():
+            raise ValueError("the excerpts could not be joined")
+        keep = config.WORK_DIR / f"collage-{identity_id}-{int(time.time())}.wav"
+        shutil.copy2(out, keep)
+        return keep
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
