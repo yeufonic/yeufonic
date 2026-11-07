@@ -3302,7 +3302,7 @@ async def run_voice_train(persona_id: str) -> None:
         log.info("Recorded voice '%s' trained on %d recording(s) in %.0f s", record["name"], len(sources),
                  time.time() - started)
     except Exception as err:  # noqa: BLE001
-        log.warning("Training the recorded voice '%s' failed: %s", record["name"], err)
+        log.error("Training the recorded voice '%s' failed: %s", record["name"], err)
         persona.failed(persona_id, str(err))
     finally:
         CURRENT.clear()

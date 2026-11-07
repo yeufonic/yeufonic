@@ -17,6 +17,7 @@ import glob
 import json
 import os
 import random
+import re
 import shutil
 import subprocess
 import tempfile
@@ -60,8 +61,16 @@ def run(args: list[str], job: dict | None = None, log: Path | None = None) -> No
         if log:
             out.close()
     if done.returncode != 0:
-        tail = log.read_text(encoding="utf-8", errors="replace")[-1500:] if log else ""
-        raise RuntimeError(f"{args[0]} failed: {tail}")
+        raise RuntimeError(f"{Path(args[0]).name} failed: {_reason(log)}")
+
+
+def _reason(log: Path | None) -> str:
+    """The last error line of a step's log, rather than a traceback's tail: what the app shows and logs."""
+    if not log or not log.exists():
+        return "no log"
+    lines = [line.strip() for line in log.read_text(encoding="utf-8", errors="replace").splitlines()]
+    errors = [line for line in lines if re.match(r"^[\w.]*(Error|Exception)\b", line) and "Warning" not in line]
+    return (errors[-1] if errors else next((line for line in reversed(lines) if line), "no output"))[:300]
 
 
 def separate(source: Path, out_dir: Path) -> tuple[Path, Path]:

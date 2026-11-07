@@ -2605,5 +2605,6 @@
  "set by TRAIN_MAX_MINUTES": "由 TRAIN_MAX_MINUTES 设置",
  "No installer URL available for this update": "此更新没有可用的安装程序 URL",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校验和不匹配：预期 {expected_hash}，实际 {actual_hash}",
- "This voice has no trained model: Regenerate trains it.": "这个音色还没有训练好的模型：点“重新生成”来训练。"
+ "This voice has no trained model: Regenerate trains it.": "这个音色还没有训练好的模型：点“重新生成”来训练。",
+ "Training failed: {value}": "训练失败：{value}"
 }

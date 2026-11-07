@@ -2605,5 +2605,6 @@
  "set by TRAIN_MAX_MINUTES": "fixé par TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Aucune URL d'installateur disponible pour cette mise à jour",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Somme de contrôle incorrecte : attendu {expected_hash}, obtenu {actual_hash}",
- "This voice has no trained model: Regenerate trains it.": "Cette voix n’a pas de modèle entraîné : Régénérer l’entraîne."
+ "This voice has no trained model: Regenerate trains it.": "Cette voix n’a pas de modèle entraîné : Régénérer l’entraîne.",
+ "Training failed: {value}": "Échec de l’entraînement : {value}"
 }

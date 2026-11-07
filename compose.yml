@@ -144,6 +144,9 @@ services:
     image: yeufonic-voice:latest
     container_name: yeufonic-voice
     restart: unless-stopped
+    # Training's data loader passes clips between processes through shared memory; Docker's default 64 MB ran out
+    # on a few minutes of singing and the run died ("DataLoader worker exited unexpectedly").
+    shm_size: "2gb"
     user: "${APP_UID:-1000}:${APP_GID:-1000}"
     environment:
       HOME: /tmp

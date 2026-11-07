@@ -17362,8 +17362,10 @@ function refreshPersonaHint() {
   if (wrap) { wrap.classList.toggle("hidden", !selected || selected.state !== "ready"); }
   var octave = $("persona-octave");
   if (octave && selected) { octave.value = String(selected.octave || 0); }
+  var why = selected && selected.state === "failed" && selected.error && !/^made before voices/.test(selected.error)
+    ? t("Training failed: {value}", { value: tr(selected.error) }) + " " : "";
   hint.textContent = selected && selected.state === "failed"
-    ? t("This voice has no trained model: Regenerate trains it.")
+    ? why + t("This voice has no trained model: Regenerate trains it.")
     : selected
     ? t("The take is sung as usual, then its vocal is sung again in this voice.")
     : t("Train a voice from a recording of someone singing, or from a corpus, and a take can be sung in it.");
