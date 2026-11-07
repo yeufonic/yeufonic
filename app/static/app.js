@@ -11118,6 +11118,8 @@ var personaSong = identitySong;
 
 async function identityClick(event) {
   var target = event.target;
+  // Make a voice… sits on the card, and is handled on its own (makeVoiceFromCorpus): it does not open the corpus.
+  if (target.closest('[data-voice-from]')) { return; }
   var card = target.closest('[data-identity]') || target.closest('[data-persona]');
   if (card) { showIdentity(card.dataset.identity || card.dataset.persona); return; }
   if (target.closest('#identity-new') || target.closest('#persona-new')) { showIdentityNew(); return; }

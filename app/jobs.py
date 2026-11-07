@@ -3326,7 +3326,7 @@ COLLAGE_SONGS = 4
 def _excerpt(src: Path, dest: Path, seconds: float) -> bool:
     """Some seconds from the middle of a recording, as 48 kHz stereo WAV."""
     try:
-        total = audio_duration(str(src)) or 0.0
+        total = audio_duration(Path(src)) or 0.0
     except Exception:  # noqa: BLE001 - an unreadable file is simply skipped
         return False
     if total <= 1.0:

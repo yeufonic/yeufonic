@@ -68,3 +68,15 @@ def _collage(identity_id: str) -> pathlib.Path:
     path = config.WORK_DIR / f"collage-{identity_id}.wav"
     path.write_bytes(b"RIFF....")
     return path
+
+
+def test_an_excerpt_is_cut_from_a_real_vocal_file(tmp_path):
+    """The collage's excerpts, on real FLAC and WAV files: the corpus tests above stand the collage in, so this is
+    the one that runs ffmpeg and reads the length."""
+    from conftest import tone
+
+    for name in ("vocals.flac", "vocals.wav"):
+        src = tone(tmp_path / name, seconds=6.0)
+        out = tmp_path / f"part-{name}.wav"
+        assert jobs._excerpt(src, out, 3.0)
+        assert 2.5 < (jobs.audio_duration(out) or 0) < 3.5
