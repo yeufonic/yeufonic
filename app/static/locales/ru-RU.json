@@ -2585,5 +2585,19 @@
  "the card's memory could not be read": "не удалось прочитать память карты",
  "set by TRAIN_MAX_MINUTES": "задано TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Для этого обновления нет URL установщика",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Контрольная сумма не совпадает: ожидалось {expected_hash}, получено {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Контрольная сумма не совпадает: ожидалось {expected_hash}, получено {actual_hash}",
+ "This render uses about": "Этот рендер использует около",
+ "seconds of that voice before the new song.": "секунд этого голоса перед новой песней.",
+ "A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.": "Записанный здесь голос токенизируется один раз и используется как префикс при рендере: достаточно около минуты пения.",
+ "What is this voice called?": "Как называется этот голос?",
+ "Tokenising that voice: it will be ready in a few seconds.": "Голос токенизируется: будет готов через несколько секунд.",
+ "no persona {persona_id}": "Нет голоса {persona_id}",
+ "this persona has no recording left to tokenise": "У этого голоса не осталось записи для токенизации",
+ "tokenising took too long": "Токенизация заняла слишком много времени",
+ "the engine reported success but wrote no tokens to {target}": "Движок сообщил об успехе, но не записал токены в {target}",
+ "the engine could not tokenise this recording": "Движок не смог токенизировать эту запись",
+ "That is not an audio file the app can read.": "Это не аудиофайл, который умеет читать приложение.",
+ "That recording is empty.": "Эта запись пуста.",
+ "no such persona": "Такого голоса нет",
+ "There is no recording left to tokenise.": "Не осталось записи для токенизации."
 }

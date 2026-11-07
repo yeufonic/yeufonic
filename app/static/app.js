@@ -17305,8 +17305,7 @@ function refreshPersonaHint() {
   hint.textContent = selected
     ? t("This render uses about") + " " + Math.round(Number(selected.prefix_seconds) || 0) +
       " " + t("seconds of that voice before the new song.")
-    : t("A voice recorded here is tokenised once and used as a prefix of the render: about a minute of singing " +
-        "is plenty, and none of it is trained.");
+    : t("A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.");
 }
 
 async function loadPersonas() {

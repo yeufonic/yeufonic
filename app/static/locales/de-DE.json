@@ -2585,5 +2585,19 @@
  "the card's memory could not be read": "der Speicher der Karte konnte nicht gelesen werden",
  "set by TRAIN_MAX_MINUTES": "durch TRAIN_MAX_MINUTES festgelegt",
  "No installer URL available for this update": "Keine Installer-URL für dieses Update verfügbar",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Prüfsummen stimmen nicht überein: erwartet {expected_hash}, erhalten {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Prüfsummen stimmen nicht überein: erwartet {expected_hash}, erhalten {actual_hash}",
+ "This render uses about": "Dieser Render nutzt etwa",
+ "seconds of that voice before the new song.": "Sekunden dieser Stimme vor dem neuen Song.",
+ "A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.": "Eine hier aufgenommene Stimme wird einmal tokenisiert und als Präfix beim Rendern verwendet: etwa eine Minute Gesang genügt.",
+ "What is this voice called?": "Wie soll diese Stimme heißen?",
+ "Tokenising that voice: it will be ready in a few seconds.": "Stimme wird tokenisiert: gleich fertig.",
+ "no persona {persona_id}": "Keine Stimme {persona_id}",
+ "this persona has no recording left to tokenise": "Diese Stimme hat keine Aufnahme mehr zum Tokenisieren",
+ "tokenising took too long": "Tokenisieren hat zu lange gedauert",
+ "the engine reported success but wrote no tokens to {target}": "Die Engine meldete Erfolg, schrieb aber keine Tokens nach {target}",
+ "the engine could not tokenise this recording": "Die Engine konnte diese Aufnahme nicht tokenisieren",
+ "That is not an audio file the app can read.": "Das ist keine Audiodatei, die die App lesen kann.",
+ "That recording is empty.": "Diese Aufnahme ist leer.",
+ "no such persona": "Diese Stimme gibt es nicht",
+ "There is no recording left to tokenise.": "Es gibt keine Aufnahme mehr zum Tokenisieren."
 }

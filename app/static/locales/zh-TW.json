@@ -2585,5 +2585,19 @@
  "the card's memory could not be read": "無法讀取顯示卡的顯示記憶體",
  "set by TRAIN_MAX_MINUTES": "由 TRAIN_MAX_MINUTES 設定",
  "No installer URL available for this update": "此更新沒有可用的安裝程式 URL",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校驗和不匹配：預期 {expected_hash}，實際 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校驗和不匹配：預期 {expected_hash}，實際 {actual_hash}",
+ "This render uses about": "此算圖使用約",
+ "seconds of that voice before the new song.": "秒該聲音放在新歌之前。",
+ "A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.": "此處錄製的音色會一次性轉換為權杖，用作算圖的前綴：約一分鐘的演唱即可。",
+ "What is this voice called?": "這個音色叫什麼？",
+ "Tokenising that voice: it will be ready in a few seconds.": "正在轉換該音色：幾秒後即可使用。",
+ "no persona {persona_id}": "沒有音色 {persona_id}",
+ "this persona has no recording left to tokenise": "該音色沒有可轉換的錄音了",
+ "tokenising took too long": "轉換耗時過長",
+ "the engine reported success but wrote no tokens to {target}": "引擎回報成功，但沒有把權杖寫入 {target}",
+ "the engine could not tokenise this recording": "引擎無法轉換這段錄音",
+ "That is not an audio file the app can read.": "這不是應用能讀取的音訊檔案。",
+ "That recording is empty.": "這段錄音是空的。",
+ "no such persona": "沒有這個音色",
+ "There is no recording left to tokenise.": "沒有剩餘錄音可轉換。"
 }

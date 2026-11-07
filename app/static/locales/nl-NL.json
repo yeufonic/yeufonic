@@ -2585,5 +2585,19 @@
  "the card's memory could not be read": "het geheugen van de kaart kon niet worden gelezen",
  "set by TRAIN_MAX_MINUTES": "ingesteld door TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Geen URL voor het installatieprogramma beschikbaar voor deze update",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum komt niet overeen: verwacht {expected_hash}, kreeg {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum komt niet overeen: verwacht {expected_hash}, kreeg {actual_hash}",
+ "This render uses about": "Deze render gebruikt ongeveer",
+ "seconds of that voice before the new song.": "seconden van die stem voor het nieuwe nummer.",
+ "A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.": "Een hier opgenomen stem wordt één keer getokeniseerd en als prefix bij het renderen gebruikt: ongeveer een minuut zingen is genoeg.",
+ "What is this voice called?": "Hoe heet deze stem?",
+ "Tokenising that voice: it will be ready in a few seconds.": "Stem wordt getokeniseerd: zo klaar.",
+ "no persona {persona_id}": "Geen stem {persona_id}",
+ "this persona has no recording left to tokenise": "Deze stem heeft geen opname meer om te tokeniseren",
+ "tokenising took too long": "Tokeniseren duurde te lang",
+ "the engine reported success but wrote no tokens to {target}": "De engine meldde succes maar schreef geen tokens naar {target}",
+ "the engine could not tokenise this recording": "De engine kon deze opname niet tokeniseren",
+ "That is not an audio file the app can read.": "Dat is geen audiobestand dat de app kan lezen.",
+ "That recording is empty.": "Die opname is leeg.",
+ "no such persona": "Die stem bestaat niet",
+ "There is no recording left to tokenise.": "Er is geen opname meer om te tokeniseren."
 }
