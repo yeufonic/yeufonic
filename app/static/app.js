@@ -7217,6 +7217,7 @@ function songBody(seed) {
     variety: $('variety').value,
     harmony: harmonyStep(),
     space_id: State.spaceId,
+    voice_id: PERSONA.id || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -9078,6 +9079,7 @@ function instBody(seed) {
     variety: $('variety').value,
     harmony: harmonyStep(),
     space_id: State.spaceId,
+    voice_id: PERSONA.id || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -14117,6 +14119,7 @@ function coverBody(seed) {
     interpretation: $('interpretation').value,
     max_duration: parseFloat($('max-duration').value) || 360,
     space_id: State.spaceId,
+    voice_id: PERSONA.id || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -17254,4 +17257,106 @@ function wirePlaylists() {
       savePlaylistEdit();
     });
   }
+}
+
+/* ------------------------------------------------------------------ a recorded voice
+   A persona from a recording: tokenised once, and applied at render as a prefix of its own tokens
+   (VOICE-PERSONA.md 8.6).  The list is built into the page rather than the markup, so a new install and an
+   old page both work after a refresh. */
+var PERSONA = { list: [], id: null };
+
+function personaNameOf(id) {
+  var found = PERSONA.list.filter(function (v) { return v.id === id; })[0];
+  return found ? found.name : "";
+}
+
+function paintPersonaField() {
+  var host = $("persona-field");
+  if (!host) { return; }
+  var ready = PERSONA.list.filter(function (v) { return v.state === "ready"; });
+  var busy = PERSONA.list.filter(function (v) { return v.state !== "ready"; });
+  var options = ["<option value=''>None</option>"];
+  ready.forEach(function (v) {
+    options.push("<option value='" + esc(v.id) + "'>" + esc(v.name) + " · " +
+      Math.round(Number(v.prefix_seconds) || 0) + " s</option>");
+  });
+  busy.forEach(function (v) {
+    var why = v.state === "failed" ? "failed" : "preparing…";
+    options.push("<option value='" + esc(v.id) + "' disabled>" + esc(v.name) + " · " + why + "</option>");
+  });
+  host.innerHTML = '<label for="persona-select">Recorded voice</label>' +
+    '<select id="persona-select">' + options.join("") + "</select>" +
+    '<button type="button" id="persona-make" class="ghost">Make a voice…</button>' +
+    '<p class="sub" id="persona-hint">A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.</p>';
+  var select = $("persona-select");
+  if (select) {
+    select.value = PERSONA.id || "";
+    select.addEventListener("change", function () { PERSONA.id = select.value || null; refreshPersonaHint(); });
+  }
+  var make = $("persona-make");
+  if (make) { make.addEventListener("click", askForVoice); }
+  refreshPersonaHint();
+}
+
+function refreshPersonaHint() {
+  var hint = $("persona-hint");
+  if (!hint) { return; }
+  var selected = PERSONA.list.filter(function (v) { return v.id === PERSONA.id; })[0];
+  hint.textContent = selected
+    ? t("This render uses about") + " " + Math.round(Number(selected.prefix_seconds) || 0) +
+      " " + t("seconds of that voice before the new song.")
+    : t("A voice recorded here is tokenised once and used as a prefix of the render: about a minute of singing " +
+        "is plenty, and none of it is trained.");
+}
+
+async function loadPersonas() {
+  try {
+    PERSONA.list = await api("/api/voices");
+  } catch (err) {
+    PERSONA.list = [];
+  }
+  if (PERSONA.id && !PERSONA.list.some(function (v) { return v.id === PERSONA.id; })) {
+    PERSONA.id = null;
+  }
+  paintPersonaField();
+}
+
+function askForVoice() {
+  var input = document.createElement("input");
+  input.type = "file";
+  input.accept = "audio/*";
+  input.addEventListener("change", function () {
+    var file = input.files && input.files[0];
+    if (file) { makePersona(file); }
+  });
+  input.click();
+}
+
+async function makePersona(file) {
+  var name = (file.name || "").replace(/\.[^.]+$/, "") || t("My voice");
+  var said = window.prompt(t("What is this voice called?"), name);
+  if (said === null) { return; }
+  var form = new FormData();
+  form.append("file", file, file.name || "voice.wav");
+  form.append("name", said.trim() || name);
+  var made = await api("/api/voices", { method: "POST", body: form });
+  PERSONA.id = made.id;
+  await loadPersonas();
+  toast(t("Tokenising that voice: it will be ready in a few seconds."));
+}
+
+function installPersonaField() {
+  var vocal = $("vocal-field");
+  if (!vocal || $("persona-field")) { return; }
+  var holder = document.createElement("div");
+  holder.className = "field";
+  holder.id = "persona-field";
+  vocal.parentNode.insertBefore(holder, vocal.nextSibling);
+  loadPersonas();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", installPersonaField);
+} else {
+  installPersonaField();
 }
