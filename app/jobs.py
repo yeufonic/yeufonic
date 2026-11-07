@@ -448,17 +448,37 @@ def build_render_graph(take: dict) -> dict:
     # A persona stands in for the music node: the AR continues from the persona's own tokens and the
     # decoder renders that continuation, so the take comes out in that voice with nothing trained.
     # The persona's own inputs are a superset of the template's, so nothing else changes.
-    person = persona.one(take["voice_id"]) if take.get("voice_id") else None
-    if person and person.get("state") == "ready" and person.get("tokens_path"):
+    # The tokens go by their name in the engine's input folder; the render job uploads them before it submits
+    # (voice_for_render).  yue2.cpp has no such node, so there a take renders without its voice.
+    person = render_voice(take)
+    if person:
         graph["11"]["class_type"] = "Yue2PersonaGenerate"
         node.update({
-            "persona_tokens": person["tokens_path"],
+            "persona_tokens": persona.engine_name(person["id"]),
             "persona_seconds": float(person.get("prefix_seconds") or persona.DEFAULT_PREFIX_SECONDS),
         })
     elif take.get("voice_id"):
-        log.warning("take %s names voice %s, which is not ready; rendering without it",
-                    take.get("id"), take.get("voice_id"))
+        log.warning("take %s names voice %s, which is not ready%s; rendering without it",
+                    take.get("id"), take.get("voice_id"),
+                    " or not on this engine" if config.ENGINE_KIND == "yue2cpp" else "")
     return graph
+
+
+def render_voice(take: dict) -> dict | None:
+    """The recorded voice a render uses: the take's, when it is ready and this engine can apply it."""
+    if not take.get("voice_id") or config.ENGINE_KIND == "yue2cpp":
+        return None
+    person = persona.one(take["voice_id"])
+    if person and person.get("state") == "ready" and Path(person.get("tokens_path") or "").is_file():
+        return person
+    return None
+
+
+async def voice_for_render(take: dict) -> None:
+    """Put the take's voice tokens in the engine's input folder, under the name the render graph gives them."""
+    person = render_voice(take)
+    if person:
+        await ENGINE.upload(persona.engine_name(person["id"]), Path(person["tokens_path"]).read_bytes())
 
 
 def build_lyrics_graph(record: dict) -> dict:
@@ -962,6 +982,12 @@ async def run_job(kind: str, ref_id: str) -> None:
                 execute("UPDATE takes SET abc = ? WHERE id = ?", (fitted, ref_id))
                 record["abc"] = fitted
         graph = build_plan_graph(record) if kind == "plan" else build_render_graph(record)
+        if kind == "render":
+            try:
+                await voice_for_render(record)
+            except Exception as exc:  # noqa: BLE001
+                fail(kind, ref_id, f"could not send the recorded voice to the engine: {exc}")
+                return
         execute("UPDATE takes SET status = 'running', error = NULL, stage = NULL WHERE id = ?", (ref_id,))
         title = record.get("title") or ref_id
         if kind == "plan":
@@ -3215,14 +3241,16 @@ def cancel_stems(item: dict) -> None:
 
 PERSONA_POLL_SECONDS = 2.0
 PERSONA_TIMEOUT_SECONDS = 600
+PERSONA_CLOCK = time.monotonic
 
 
 async def tokenise_persona(persona_id: str) -> dict:
     """Turn a persona's source recording into its token stream, on the engine.
 
-    The engine writes the stream into /data/personas/<id>/, the folder it shares with the app, so what is
-    left to do here is mark the persona usable.  Everything this needs already exists: the trainer's
-    tokenizer head, MERT, and the upload/submit/history the render path uses.
+    The recording goes up to the engine's input folder, the node writes the stream beside it, and the app fetches
+    it back into the voice's own folder: nothing is shared but HTTP, so a native or a remote engine works as the
+    Docker one does.  Everything this needs already exists: the trainer's tokenizer head, MERT, and the
+    upload/submit/history/view the render path uses.
     """
     from . import persona  # noqa: PLC0415 - avoids a cycle at import time
 
@@ -3234,6 +3262,8 @@ async def tokenise_persona(persona_id: str) -> dict:
         raise ValueError("this persona has no recording left to tokenise")
     engine = ENGINE                     # read here, not at import, so a stub can stand in
     try:
+        if config.ENGINE_KIND == "yue2cpp":
+            raise RuntimeError("the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine")
         return await _tokenise_persona(engine, persona, persona_id, source)
     except Exception as err:
         persona.failed(persona_id, str(err))
@@ -3241,32 +3271,45 @@ async def tokenise_persona(persona_id: str) -> dict:
 
 
 async def _tokenise_persona(engine, persona, persona_id: str, source: Path) -> dict:
-    """The half that talks to the engine; tokenise_persona marks the persona failed if this raises."""
+    """The half that talks to the engine; tokenise_persona marks the persona failed if this raises.
+
+    The engine runs one job at a time, so this one may wait behind a render or a training run: only the time it
+    spends running counts against the timeout.
+    """
     upload = await engine.upload(f"persona-{persona_id}{source.suffix or '.wav'}", source.read_bytes())
     name = upload.get("name") or upload.get("filename") or ""
-    target = f"/data/personas/{persona_id}/tokens.semantic.npy"
+    made = str(Path(name).with_suffix(".semantic.npy"))       # the node writes beside the audio when out is blank
     graph = {"1": {"class_type": "Yue2PersonaTokens", "inputs": {
-        "audio": name, "out": target, "head": config.TOKENIZER_HEAD,
+        "audio": name, "out": "", "head": config.TOKENIZER_HEAD,
         "mert": "m-a-p/MERT-v2-FullSong", "device": "auto"}}}
     prompt_id = await engine.submit(graph)
-    deadline = time.time() + PERSONA_TIMEOUT_SECONDS
-    while time.time() < deadline:
+    running, last = 0.0, PERSONA_CLOCK()
+    while True:
         await asyncio.sleep(PERSONA_POLL_SECONDS)
         entry = await engine.history(prompt_id)
-        if not entry:
-            continue
-        status = (entry.get("status") or {}).get("status_str")
-        if status == "error":
-            raise RuntimeError("the engine could not tokenise this recording")
-        if status == "success":
-            break
-    else:
-        raise TimeoutError("tokenising took too long")
-    if not Path(target).exists():
-        raise RuntimeError(f"the engine reported success but wrote no tokens to {target}")
-    persona.ready(persona_id, target, head=config.TOKENIZER_HEAD)
+        if entry:
+            status = (entry.get("status") or {}).get("status_str")
+            if status == "error":
+                raise RuntimeError("the engine could not tokenise this recording")
+            if status == "success":
+                break
+        now = PERSONA_CLOCK()
+        if await engine.prompt_state(prompt_id) != "pending":
+            running += now - last
+        last = now
+        if running > PERSONA_TIMEOUT_SECONDS:
+            with contextlib.suppress(Exception):
+                await engine.cancel(prompt_id)
+            raise TimeoutError("tokenising took too long")
+    target = persona.tokens_file(persona_id)
+    await engine.download({"filename": made, "subfolder": "", "type": "input"}, target)
+    for left in (name, made):           # the engine's copies, when the app can reach its input folder
+        if config.ENGINE_INPUT_DIR and left:
+            with contextlib.suppress(OSError):
+                (config.ENGINE_INPUT_DIR / left).unlink(missing_ok=True)
+    persona.ready(persona_id, str(target), head=config.TOKENIZER_HEAD)
     log.info("persona %s tokenised: %s", persona_id, target)
-    return {"tokens_path": target}
+    return {"tokens_path": str(target)}
 
 # A collage: a few seconds from several of a corpus's songs, joined into one recording.  The voice is what
 # those excerpts share, and it drags less of one tune's shape along than a single song's opening does.

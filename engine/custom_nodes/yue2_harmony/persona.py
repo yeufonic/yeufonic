@@ -1,16 +1,19 @@
-"""Prototype: a vocal persona as a prefix of its own semantic tokens.
+"""A recorded voice: the render continues from a prefix of that voice's own semantic tokens.
 
-Lives in the mounted yue2_harmony directory so a compose restart keeps it. Not part of the app; the
-design it tests is in VOICE-PERSONA.md section 8.6. yue2.py's encode_token_weights is reimplemented
-here with one addition - the persona's tokens after [MUSIC_START] - because the engine pin ships that
-method without a hook.
+Stands in for YuE2 Generate Music when a take names a voice (app/jobs.py, build_render_graph). The app uploads
+the voice's tokens into the input folder before each render and names the file here. yue2.py's
+encode_token_weights is reimplemented with one addition - the voice's tokens after [MUSIC_START] - because the
+engine pin ships that method without a hook. The design and the listening tests are in VOICE-PERSONA.md 8.6.
 """
 from __future__ import annotations
+
+from pathlib import Path
 
 import numpy
 import torch
 
 import comfy.model_management
+import folder_paths
 from comfy.text_encoders.yue2 import (ABC_END, ABC_START, MUSIC_START, YuE2TEModel)
 
 CODEC_OFFSET = 151853
@@ -55,6 +58,17 @@ def install_hook():
     YuE2TEModel.encode_token_weights = _encode_token_weights_with_persona
 
 
+def tokens_path(name: str) -> str:
+    """A token file named as the app uploads it (into the input folder), or a full path as a script passes it."""
+    path = Path(name)
+    if path.is_absolute():
+        return str(path)
+    found = folder_paths.get_annotated_filepath(name)
+    if not found or not Path(found).exists():
+        raise ValueError(f"no such voice tokens in the input folder: {name!r}")
+    return found
+
+
 class Yue2PersonaGenerate:
     """YuE2 Generate Music with a persona: the AR continues from a voice's own tokens."""
 
@@ -65,7 +79,7 @@ class Yue2PersonaGenerate:
             "style": ("STRING", {"multiline": True, "default": ""}),
             "lyrics": ("STRING", {"multiline": True, "default": ""}),
             "persona_tokens": ("STRING", {"default": "",
-                                          "tooltip": "A .semantic.npy of the persona's tokens."}),
+                                          "tooltip": "A .semantic.npy of the persona's tokens: a file in the input folder, or a full path."}),
             "persona_seconds": ("FLOAT", {"default": 48.0, "min": 0.0, "max": 120.0, "step": 0.04,
                                           "tooltip": "How much of the persona's stream goes before the new material."}),
             "abc": ("STRING", {"multiline": True, "default": ""}),
@@ -98,7 +112,7 @@ class Yue2PersonaGenerate:
                                repetition_penalty=repetition_penalty, cfg_scale=cfg_scale)
         ids = []
         if persona_tokens.strip() and persona_seconds > 0:
-            codes = numpy.load(persona_tokens.strip())
+            codes = numpy.load(tokens_path(persona_tokens.strip()))
             ids = [CODEC_OFFSET + int(code) for code in codes[: int(persona_seconds * FRAMES_PER_SECOND)]]
         tokens["persona_ids"] = ids
         conditioning = clip.encode_from_tokens_scheduled(tokens)

@@ -5,7 +5,8 @@ at by measurement: nothing is trained. The recordings are tokenised once into Yu
 and the render continues from a few seconds of that stream -- so the material that follows comes out in that
 voice. Four seconds did not register by ear; forty-eight did.
 
-One folder per persona under the data directory:
+One folder per persona, ``data/voices/<id>/``, the app's own (the engine never writes there: tokens come back
+over HTTP, and go to the engine's input folder for each render, so a native or remote engine works too):
 
     tokens.semantic.npy   the token stream, one code per 25th of a second
     source.*              the recording the persona came from, kept for reference
@@ -32,13 +33,19 @@ MAX_PREFIX_SECONDS = 120.0
 
 def folder(persona_id: str) -> Path:
     """Where a persona's files live.  Created on demand."""
-    path = config.DATA_DIR / "personas" / persona_id
+    # Not data/personas: on an install that began as YuE2 Studio that name is a link to the corpora.
+    path = config.DATA_DIR / "voices" / persona_id
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def tokens_file(persona_id: str) -> Path:
     return folder(persona_id) / "tokens.semantic.npy"
+
+
+def engine_name(persona_id: str) -> str:
+    """What a voice's tokens are called in the engine's input folder, where each render uploads them."""
+    return f"voice-{persona_id}.semantic.npy"
 
 
 def _shape(row) -> dict:
@@ -112,6 +119,8 @@ def delete(persona_id: str) -> None:
     db.execute("UPDATE takes SET voice_id = NULL WHERE voice_id = ?", (persona_id,))
     db.execute("DELETE FROM voices WHERE id = ?", (persona_id,))
     shutil.rmtree(folder(persona_id), ignore_errors=True)
+    if config.ENGINE_INPUT_DIR:          # the copy the last render with this voice left on the engine
+        (config.ENGINE_INPUT_DIR / engine_name(persona_id)).unlink(missing_ok=True)
 
 
 def describe(persona: dict | None) -> str:

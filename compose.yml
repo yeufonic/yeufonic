@@ -37,9 +37,6 @@ services:
       - "127.0.0.1:8189:8188"
     volumes:
       - ./models:/app/models
-      # Vocal personas: a recording is tokenised on the engine, and the token stream has to land where the
-      # app can read it.  /data/personas is the same folder the app has as /data/personas (VOICE-PERSONA 8.6).
-      - ./data/personas:/data/personas
       - ./engine-state/input:/app/input
       - ./engine-state/output:/app/output
       - ./engine-state/user:/app/user

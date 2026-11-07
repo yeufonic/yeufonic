@@ -22,11 +22,13 @@ def test_a_ready_persona_replaces_the_music_node(tmp_path):
     source = pathlib.Path(persona.folder("rendertest") / "source.wav")
     source.write_bytes(b"RIFF....")
     made = persona.create("In the render", source=source, prefix_seconds=36)
-    persona.ready(made["id"], "/data/personas/x/tokens.semantic.npy")
+    persona.tokens_file(made["id"]).write_bytes(b"tokens")
+    persona.ready(made["id"], str(persona.tokens_file(made["id"])))
     graph = jobs.build_render_graph(_take(voice_id=made["id"]))
     node = graph["11"]
     assert node["class_type"] == "Yue2PersonaGenerate"
-    assert node["inputs"]["persona_tokens"] == "/data/personas/x/tokens.semantic.npy"
+    # By its name in the engine's input folder, where the render job uploads it: no path the engine must share.
+    assert node["inputs"]["persona_tokens"] == persona.engine_name(made["id"])
     assert node["inputs"]["persona_seconds"] == 36.0
     assert node["inputs"]["style"] == "rock" and node["inputs"]["seed"] == 7
     persona.delete(made["id"])
@@ -36,6 +38,42 @@ def test_a_persona_still_preparing_is_not_used(tmp_path):
     source = pathlib.Path(persona.folder("preptest") / "source.wav")
     source.write_bytes(b"RIFF....")
     made = persona.create("Not ready", source=source)
+    graph = jobs.build_render_graph(_take(voice_id=made["id"]))
+    assert graph["11"]["class_type"] == "YuE2GenerateMusic"
+    persona.delete(made["id"])
+
+
+class Uploads:
+    def __init__(self):
+        self.sent = {}
+
+    async def upload(self, filename, data):
+        self.sent[filename] = data
+        return {"name": filename}
+
+
+def test_the_render_job_uploads_the_tokens_the_graph_names(monkeypatch):
+    import asyncio
+    source = pathlib.Path(persona.folder("uploadtest") / "source.wav")
+    source.write_bytes(b"RIFF....")
+    made = persona.create("Sent along", source=source)
+    persona.tokens_file(made["id"]).write_bytes(b"the stream")
+    persona.ready(made["id"], str(persona.tokens_file(made["id"])))
+    engine = Uploads()
+    monkeypatch.setattr(jobs, "ENGINE", engine)
+    asyncio.run(jobs.voice_for_render(_take(voice_id=made["id"])))
+    assert engine.sent == {persona.engine_name(made["id"]): b"the stream"}
+    persona.delete(made["id"])
+
+
+def test_the_cpp_engine_renders_without_the_voice(monkeypatch):
+    from app import config
+    source = pathlib.Path(persona.folder("cpptest") / "source.wav")
+    source.write_bytes(b"RIFF....")
+    made = persona.create("Not here", source=source)
+    persona.tokens_file(made["id"]).write_bytes(b"tokens")
+    persona.ready(made["id"], str(persona.tokens_file(made["id"])))
+    monkeypatch.setattr(config, "ENGINE_KIND", "yue2cpp")
     graph = jobs.build_render_graph(_take(voice_id=made["id"]))
     assert graph["11"]["class_type"] == "YuE2GenerateMusic"
     persona.delete(made["id"])
