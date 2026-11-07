@@ -2594,7 +2594,6 @@
  "no persona {persona_id}": "声 {persona_id} はありません",
  "this persona has no recording left to tokenise": "この声にはトークン化する録音が残っていません",
  "tokenising took too long": "トークン化に時間がかかりすぎました",
- "the engine reported success but wrote no tokens to {target}": "エンジンは成功を返しましたが、{target} にトークンを書きませんでした",
  "the engine could not tokenise this recording": "エンジンはこの録音をトークン化できませんでした",
  "That is not an audio file the app can read.": "アプリが読める音声ファイルではありません。",
  "That recording is empty.": "その録音は空です。",
@@ -2604,5 +2603,8 @@
  "this corpus has no separated vocals to make a voice from": "このコーパスには声を作れる分離ボーカルがありません",
  "none of this corpus's vocals could be read": "このコーパスのボーカルはどれも読めませんでした",
  "the excerpts could not be joined": "断片を結合できませんでした",
- "Regenerate": "再生成"
+ "Regenerate": "再生成",
+ "Recorded voice": "録音した声",
+ "No recorded voice called {value} here: it renders without one until you choose a voice.": "{value} という録音した声はここにありません。声を選ぶまでは声なしでレンダリングします。",
+ "the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine": "yue2.cpp エンジンでは声をトークン化できません。ComfyUI エンジンが必要です"
 }

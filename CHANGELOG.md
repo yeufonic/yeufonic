@@ -44,8 +44,7 @@ cannot creep back in.
   render continues from a few seconds of that stream, so the new words and score come out in that voice.  The editor's
   **Recorded voice** field makes one from a file or from a corpus (a collage of a few seconds from several of
   its songs), sets how much of it a render uses, rebuilds it on demand, and travels in a take's recipe by
-  name.  Measured and listened to before it was built: a whole song's tokens render as that singer (0.88–0.92, against a
-  YuE2 take's 0.03), and 48 seconds in front of another song's words carried the voice by ear where 4 seconds did not.
+  name: an imported take picks up the voice of that name, or says there is none.  It needs the ComfyUI engine.
 
 ## 0.0.54 (2026-11-05)
 

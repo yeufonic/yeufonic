@@ -2594,7 +2594,6 @@
  "no persona {persona_id}": "Geen stem {persona_id}",
  "this persona has no recording left to tokenise": "Deze stem heeft geen opname meer om te tokeniseren",
  "tokenising took too long": "Tokeniseren duurde te lang",
- "the engine reported success but wrote no tokens to {target}": "De engine meldde succes maar schreef geen tokens naar {target}",
  "the engine could not tokenise this recording": "De engine kon deze opname niet tokeniseren",
  "That is not an audio file the app can read.": "Dat is geen audiobestand dat de app kan lezen.",
  "That recording is empty.": "Die opname is leeg.",
@@ -2604,5 +2603,8 @@
  "this corpus has no separated vocals to make a voice from": "Dit corpus heeft geen gescheiden vocalen om een stem van te maken",
  "none of this corpus's vocals could be read": "Geen van de vocalen van dit corpus was leesbaar",
  "the excerpts could not be joined": "De fragmenten konden niet worden samengevoegd",
- "Regenerate": "Opnieuw maken"
+ "Regenerate": "Opnieuw maken",
+ "Recorded voice": "Opgenomen stem",
+ "No recorded voice called {value} here: it renders without one until you choose a voice.": "Geen opgenomen stem met de naam {value} hier: er wordt zonder stem gerenderd tot je er een kiest.",
+ "the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine": "de yue2.cpp-engine kan geen stem tokeniseren: daarvoor is de ComfyUI-engine nodig"
 }

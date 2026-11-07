@@ -80,5 +80,8 @@
  "this persona has no recording left to tokenise": "this persona has no recording left to tokenize",
  "tokenising took too long": "tokenizing took too long",
  "the engine could not tokenise this recording": "the engine could not tokenize this recording",
- "There is no recording left to tokenise.": "There is no recording left to tokenize."
+ "There is no recording left to tokenise.": "There is no recording left to tokenize.",
+ "Recorded voice": "Recorded voice",
+ "No recorded voice called {value} here: it renders without one until you choose a voice.": "No recorded voice called {value} here: it renders without one until you choose a voice.",
+ "the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine": "the yue2.cpp engine cannot tokenize a voice: that needs the ComfyUI engine"
 }

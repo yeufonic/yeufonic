@@ -2594,7 +2594,6 @@
  "no persona {persona_id}": "Нет голоса {persona_id}",
  "this persona has no recording left to tokenise": "У этого голоса не осталось записи для токенизации",
  "tokenising took too long": "Токенизация заняла слишком много времени",
- "the engine reported success but wrote no tokens to {target}": "Движок сообщил об успехе, но не записал токены в {target}",
  "the engine could not tokenise this recording": "Движок не смог токенизировать эту запись",
  "That is not an audio file the app can read.": "Это не аудиофайл, который умеет читать приложение.",
  "That recording is empty.": "Эта запись пуста.",
@@ -2604,5 +2603,8 @@
  "this corpus has no separated vocals to make a voice from": "В этом корпусе нет отделённого вокала, из которого можно сделать голос",
  "none of this corpus's vocals could be read": "Ни один вокал этого корпуса не удалось прочитать",
  "the excerpts could not be joined": "Не удалось соединить фрагменты",
- "Regenerate": "Пересоздать"
+ "Regenerate": "Пересоздать",
+ "Recorded voice": "Записанный голос",
+ "No recorded voice called {value} here: it renders without one until you choose a voice.": "Здесь нет записанного голоса с именем {value}: рендер идёт без голоса, пока вы не выберете голос.",
+ "the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine": "движок yue2.cpp не может токенизировать голос: для этого нужен движок ComfyUI"
 }

@@ -58,7 +58,7 @@ lit while the take holds others, and closes the window to show them under the ta
 
 A take can be given a singer's character from a **recording** rather than a trained LoRA.  Choose a *Recorded voice*
 in the editor, or make one with **Make a voice…** from a file — a minute or two of singing is plenty, and nothing is
-trained.
+trained.  Recorded voices need the ComfyUI engine; with yue2.cpp the field is not shown.
 
 What happens is simple, and not like a LoRA.  The recording is turned once into the model's **semantic tokens** — the
 stream the model writes for the music it sings, at 25 per second — and a render that uses that voice starts from a few
@@ -71,7 +71,7 @@ song can pull the melody with it.  A reason to make the recording from several s
 voice is what those excerpts share, and a collaged voice dragged less of one tune's shape along.
 
 **From a corpus.**  Where corpora are listed, each one has a **Make a voice…** button: it takes a few seconds
-from the middle of several of that corpus's songs — six by default — joins them into one recording and tokenises
+from the middle of several of that corpus's songs — four by default — joins them into one recording and tokenises
 that.  This is the shape that worked best, because the voice is what those excerpts share, and one song's opening
 drags more of its own melody along.  It needs the corpus's vocals, so a corpus that has not been analysed cannot
 make one yet.

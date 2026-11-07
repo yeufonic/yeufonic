@@ -2594,7 +2594,6 @@
  "no persona {persona_id}": "{persona_id} 목소리가 없습니다",
  "this persona has no recording left to tokenise": "이 목소리에는 토큰화할 녹음이 남아 있지 않습니다",
  "tokenising took too long": "토큰화에 시간이 너무 오래 걸렸습니다",
- "the engine reported success but wrote no tokens to {target}": "엔진이 성공을 보고했지만 {target}에 토큰을 쓰지 않았습니다",
  "the engine could not tokenise this recording": "엔진이 이 녹음을 토큰화하지 못했습니다",
  "That is not an audio file the app can read.": "앱이 읽을 수 있는 오디오 파일이 아닙니다.",
  "That recording is empty.": "그 녹음이 비어 있습니다.",
@@ -2604,5 +2603,8 @@
  "this corpus has no separated vocals to make a voice from": "이 코퍼스에는 목소리를 만들 분리된 보컬이 없습니다",
  "none of this corpus's vocals could be read": "이 코퍼스의 보컬을 하나도 읽을 수 없었습니다",
  "the excerpts could not be joined": "조각들을 이어 붙이지 못했습니다",
- "Regenerate": "다시 만들기"
+ "Regenerate": "다시 만들기",
+ "Recorded voice": "녹음한 목소리",
+ "No recorded voice called {value} here: it renders without one until you choose a voice.": "여기에는 {value}(이)라는 녹음한 목소리가 없습니다. 목소리를 고를 때까지 목소리 없이 렌더링합니다.",
+ "the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine": "yue2.cpp 엔진은 목소리를 토큰화할 수 없습니다. ComfyUI 엔진이 필요합니다"
 }

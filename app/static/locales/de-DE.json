@@ -2594,7 +2594,6 @@
  "no persona {persona_id}": "Keine Stimme {persona_id}",
  "this persona has no recording left to tokenise": "Diese Stimme hat keine Aufnahme mehr zum Tokenisieren",
  "tokenising took too long": "Tokenisieren hat zu lange gedauert",
- "the engine reported success but wrote no tokens to {target}": "Die Engine meldete Erfolg, schrieb aber keine Tokens nach {target}",
  "the engine could not tokenise this recording": "Die Engine konnte diese Aufnahme nicht tokenisieren",
  "That is not an audio file the app can read.": "Das ist keine Audiodatei, die die App lesen kann.",
  "That recording is empty.": "Diese Aufnahme ist leer.",
@@ -2604,5 +2603,8 @@
  "this corpus has no separated vocals to make a voice from": "Dieser Korpus hat keine getrennten Vocals, aus denen eine Stimme entstehen könnte",
  "none of this corpus's vocals could be read": "Keine der Vocals dieses Korpus war lesbar",
  "the excerpts could not be joined": "Die Ausschnitte konnten nicht verbunden werden",
- "Regenerate": "Neu erzeugen"
+ "Regenerate": "Neu erzeugen",
+ "Recorded voice": "Aufgenommene Stimme",
+ "No recorded voice called {value} here: it renders without one until you choose a voice.": "Keine aufgenommene Stimme namens {value} hier: Gerendert wird ohne, bis du eine Stimme wählst.",
+ "the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine": "Die yue2.cpp-Engine kann keine Stimme tokenisieren: Dafür braucht es die ComfyUI-Engine"
 }

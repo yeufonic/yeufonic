@@ -5248,6 +5248,11 @@ async def import_take(body: ImportTakeIn) -> dict:
         # another tempo and wrote plans with no singing.  The score keeps its own tempo, so its render is unchanged.
         record.update(target_bpm=None, harmony=1, voice_cues=ADVANCED_DEFAULTS["voice_cues"],
                       max_duration=default_cap(), cap_typed=0)
+    # A recorded voice travels by name (app/recipe.py): matched against this install's voices, and named in the
+    # answer when there is none of that name, as a LoRA that is not installed is.
+    voice_name = str((body.recipe.get("take") or {}).get("voice") or "").strip()
+    voice = next((v for v in persona.all() if v["name"] == voice_name), None) if voice_name else None
+    record["voice_id"] = voice["id"] if voice else None
     columns_out = list(record)
     execute(f"INSERT INTO takes({', '.join(columns_out)}) VALUES({', '.join(':' + c for c in columns_out)})", record)
     installed = set(ENGINE.options.get("loras") or []) if ENGINE.options_loaded else set()
@@ -5259,7 +5264,7 @@ async def import_take(body: ImportTakeIn) -> dict:
              ", a cover arriving as a song" if was == "cover" else "",
              f"; not installed: {', '.join(missing)}" if missing else "")
     return {"id": record["id"], "title": record["title"], "kind": record["kind"], "missing_loras": missing,
-            "was_cover": was == "cover"}
+            "missing_voice": voice_name if voice_name and not voice else None, "was_cover": was == "cover"}
 
 
 _PENDING_EXPORTS: dict[str, dict] = {}

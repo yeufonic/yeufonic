@@ -2594,7 +2594,6 @@
  "no persona {persona_id}": "No existe la voz {persona_id}",
  "this persona has no recording left to tokenise": "Esta voz ya no tiene grabación que tokenizar",
  "tokenising took too long": "La tokenización tardó demasiado",
- "the engine reported success but wrote no tokens to {target}": "El motor informó de éxito pero no escribió tokens en {target}",
  "the engine could not tokenise this recording": "El motor no pudo tokenizar esta grabación",
  "That is not an audio file the app can read.": "Ese no es un archivo de audio que la app pueda leer.",
  "That recording is empty.": "Esa grabación está vacía.",
@@ -2604,5 +2603,8 @@
  "this corpus has no separated vocals to make a voice from": "Este corpus no tiene voces separadas con las que crear una voz",
  "none of this corpus's vocals could be read": "No se pudo leer ninguna de las voces de este corpus",
  "the excerpts could not be joined": "No se pudieron unir los fragmentos",
- "Regenerate": "Regenerar"
+ "Regenerate": "Regenerar",
+ "Recorded voice": "Voz grabada",
+ "No recorded voice called {value} here: it renders without one until you choose a voice.": "Aquí no hay ninguna voz grabada llamada {value}: se renderiza sin voz hasta que elijas una.",
+ "the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine": "el motor yue2.cpp no puede tokenizar una voz: para eso se necesita el motor ComfyUI"
 }

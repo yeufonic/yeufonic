@@ -2594,7 +2594,6 @@
  "no persona {persona_id}": "沒有音色 {persona_id}",
  "this persona has no recording left to tokenise": "該音色沒有可轉換的錄音了",
  "tokenising took too long": "轉換耗時過長",
- "the engine reported success but wrote no tokens to {target}": "引擎回報成功，但沒有把權杖寫入 {target}",
  "the engine could not tokenise this recording": "引擎無法轉換這段錄音",
  "That is not an audio file the app can read.": "這不是應用能讀取的音訊檔案。",
  "That recording is empty.": "這段錄音是空的。",
@@ -2604,5 +2603,8 @@
  "this corpus has no separated vocals to make a voice from": "該語料庫沒有可用於建立音色的分離人聲",
  "none of this corpus's vocals could be read": "該語料庫的人聲都無法讀取",
  "the excerpts could not be joined": "無法拼接這些片段",
- "Regenerate": "重新產生"
+ "Regenerate": "重新產生",
+ "Recorded voice": "錄製的音色",
+ "No recorded voice called {value} here: it renders without one until you choose a voice.": "這裡沒有名為 {value} 的錄製音色：在你選擇音色之前，渲染時不使用音色。",
+ "the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine": "yue2.cpp 引擎無法轉換音色：這需要 ComfyUI 引擎"
 }

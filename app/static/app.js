@@ -10443,9 +10443,9 @@ async function showIdentityList() {
         '<strong><span class="corpus-dot" aria-hidden="true"></span>' + esc(item.name) + '</strong>' +
         '<span class="muted">' + t('trigger') + ' <code>' + esc(item.trigger_word) + '</code> · ' +
         t('{included} of {songs} songs', { included: item.included || 0, songs: item.songs || 0 }) + (item.exported_at ? ' · ' + t('exported') : '') + '</span>' +
-        '<span class="corpus-actions">' +
+        '<span class="corpus-actions">' + (cppEngine() ? '' :
         '<button type="button" class="ghost" data-voice-from="' + esc(item.id) + '" data-voice-name="' + esc(item.name) + '">' +
-        t('Make a voice…') + '</button></span>' +
+        t('Make a voice…') + '</button>') + '</span>' +
         '<span class="corpus-preparing">' + t('preparing…') + '</span></div>';
     }).join('') + '</div>';
   paintCorpusCards();
@@ -11672,6 +11672,7 @@ function selectTake(take) {
     $('seed-fixed').checked = true;
   }
   if (take.style_lora !== undefined) { showStyleLora(take); }
+  if (typeof setPersonaFromTake === 'function') { setPersonaFromTake(take); }
   $('interpretation').value = INTERPRETATIONS[take.interpretation] ? take.interpretation : 'standard';
   paintInterpretation();
   loadAdvancedTakeSettings(take);
@@ -16822,7 +16823,10 @@ async function importTakeFile(file) {
   if (got.missing_loras && got.missing_loras.length) {
     notes.push(t('Not installed here: {value}. Install it, or choose another LoRA, before rendering.', { value: got.missing_loras.join(', ') }));
   }
-  importNote(notes.join(' '), got.missing_loras && got.missing_loras.length ? 'bad' : '');
+  if (got.missing_voice) {
+    notes.push(t('No recorded voice called {value} here: it renders without one until you choose a voice.', { value: got.missing_voice }));
+  }
+  importNote(notes.join(' '), (got.missing_loras && got.missing_loras.length) || got.missing_voice ? 'bad' : '');
 }
 
 /* What an import did, beside the Import take button: no window to answer, it stays until the next import. */
@@ -17266,7 +17270,7 @@ function wirePlaylists() {
    A persona from a recording: tokenised once, and applied at render as a prefix of its own tokens
    (VOICE-PERSONA.md 8.6).  The list is built into the page rather than the markup, so a new install and an
    old page both work after a refresh. */
-var PERSONA = { list: [], id: null };
+var PERSONA = { list: [], id: null, poll: null };
 
 function personaNameOf(id) {
   var found = PERSONA.list.filter(function (v) { return v.id === id; })[0];
@@ -17278,23 +17282,24 @@ function paintPersonaField() {
   if (!host) { return; }
   var ready = PERSONA.list.filter(function (v) { return v.state === "ready"; });
   var busy = PERSONA.list.filter(function (v) { return v.state !== "ready"; });
-  var options = ["<option value=''>None</option>"];
+  var options = ["<option value=''>" + esc(t("None")) + "</option>"];
   ready.forEach(function (v) {
     options.push("<option value='" + esc(v.id) + "'>" + esc(v.name) + " · " +
       Math.round(Number(v.prefix_seconds) || 0) + " s</option>");
   });
   busy.forEach(function (v) {
-    var why = v.state === "failed" ? "failed" : "preparing…";
+    var why = v.state === "failed" ? t("failed") : t("preparing…");
     options.push("<option value='" + esc(v.id) + "' disabled>" + esc(v.name) + " · " + why + "</option>");
   });
-  host.innerHTML = '<label for="persona-select">Recorded voice</label>' +
+  host.classList.toggle("hidden", cppEngine());     // yue2.cpp has no voice node: a take renders without one
+  host.innerHTML = '<label for="persona-select">' + t("Recorded voice") + '</label>' +
     '<select id="persona-select">' + options.join("") + "</select>" +
     '<span class="persona-picks">' +
     '<label class="persona-seconds hidden" id="persona-seconds-wrap">' + t("Seconds") +
     '<input type="number" id="persona-seconds" min="4" max="120" step="4"></label></span>' +
     '<button type="button" id="persona-make" class="ghost">' + t("Make a voice…") + '</button>' +
     '<button type="button" id="persona-regen" class="ghost hidden">' + t("Regenerate") + '</button>' +
-    '<p class="sub" id="persona-hint">A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.</p>';
+    '<p class="sub" id="persona-hint"></p>';
   var select = $("persona-select");
   if (select) {
     select.value = PERSONA.id || "";
@@ -17361,6 +17366,7 @@ function refreshPersonaHint() {
 }
 
 async function loadPersonas() {
+  var was = JSON.stringify(PERSONA.list);
   try {
     PERSONA.list = await api("/api/voices");
   } catch (err) {
@@ -17369,7 +17375,22 @@ async function loadPersonas() {
   if (PERSONA.id && !PERSONA.list.some(function (v) { return v.id === PERSONA.id; })) {
     PERSONA.id = null;
   }
-  paintPersonaField();
+  // Redrawn only when something changed, so the poll below does not close a list someone has open.
+  if (JSON.stringify(PERSONA.list) !== was || !$("persona-select")) { paintPersonaField(); }
+  // A voice being tokenised is looked at again until it is ready or has failed.
+  clearTimeout(PERSONA.poll);
+  if (PERSONA.list.some(function (v) { return v.state === "preparing"; })) {
+    PERSONA.poll = setTimeout(loadPersonas, 3000);
+  }
+}
+
+/* The editor shows the voice of the take open in it, or none: a voice is the take's, like its LoRAs. */
+function setPersonaFromTake(take) {
+  var id = take && take.voice_id;
+  PERSONA.id = id || null;     // a list still loading keeps it; loadPersonas drops an id it does not have
+  var select = $("persona-select");
+  if (select) { select.value = PERSONA.id || ""; }
+  refreshPersonaHint();
 }
 
 function askForVoice() {
