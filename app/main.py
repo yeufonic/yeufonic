@@ -42,7 +42,7 @@ from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import recipe as recipes
-from . import aligner, artwork, autotune, composer, config, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
+from . import aligner, artwork, autotune, composer, config, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 
 personas = identities
@@ -5994,3 +5994,85 @@ async def delete_stem_set(set_id: str) -> dict:
     if item["folder"]:
         await asyncio.to_thread(remove_folders, [(Path(item["folder"]), config.DATA_DIR)])
     return {"deleted": True}
+
+# ---------------------------------------------------------------------- vocal personas
+
+_PERSONA_TASKS: set = set()
+
+
+@app.get("/api/voices")
+async def list_personas() -> list[dict]:
+    """Recorded voices, for the editor's Vocal identity picker."""
+    return persona.all()
+
+
+def _tokenise_in_background(persona_id: str) -> None:
+    """Fire the tokenise job and hold a reference to it, so the task is not collected mid-flight."""
+    task = asyncio.create_task(jobs.tokenise_persona(persona_id))
+    _PERSONA_TASKS.add(task)
+
+    def done(finished):
+        _PERSONA_TASKS.discard(finished)
+        with suppress(Exception):
+            error = finished.exception()
+        if error is not None:
+            log.warning("tokenising a persona failed: %s", error)
+
+    task.add_done_callback(done)
+
+
+@app.post("/api/voices")
+async def make_persona(
+    file: UploadFile = File(...),
+    name: str = Form("", max_length=80),
+    prefix_seconds: float = Form(persona.DEFAULT_PREFIX_SECONDS),
+) -> dict:
+    """One recording becomes one persona; the engine tokenises it in the background."""
+    suffix = Path(file.filename or "voice.wav").suffix.lower() or ".wav"
+    if suffix not in identities.AUDIO_TYPES:
+        raise HTTPException(400, "That is not an audio file the app can read.")
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    temp = config.WORK_DIR / f"persona-source-{uuid.uuid4().hex[:8]}{suffix}"
+    with temp.open("wb") as out:
+        shutil.copyfileobj(file.file, out)
+    if not temp.stat().st_size:
+        temp.unlink(missing_ok=True)
+        raise HTTPException(400, "That recording is empty.")
+    try:
+        made = persona.create(name or Path(file.filename or "voice").stem, source=temp,
+                              prefix_seconds=prefix_seconds)
+    finally:
+        temp.unlink(missing_ok=True)
+    _tokenise_in_background(made["id"])
+    return made
+
+
+@app.patch("/api/voices/{persona_id}")
+async def edit_persona(persona_id: str, name: str | None = Form(None),
+                       prefix_seconds: float | None = Form(None)) -> dict:
+    """Rename a persona, or change how much of its stream a render uses."""
+    record = persona.update(persona_id, **{k: v for k, v in (("name", name),
+                                                                   ("prefix_seconds", prefix_seconds)) if v is not None})
+    if record is None:
+        raise HTTPException(404, "no such persona")
+    return record
+
+
+@app.post("/api/voices/{persona_id}/tokenise")
+async def retokenise_persona(persona_id: str) -> dict:
+    """Try again, after a failed tokenise or a new tokenizer head."""
+    record = persona.one(persona_id)
+    if record is None:
+        raise HTTPException(404, "no such persona")
+    if not Path(record.get("source_path") or "").exists():
+        raise HTTPException(400, "There is no recording left to tokenise.")
+    _tokenise_in_background(persona_id)
+    return {"queued": True}
+
+
+@app.delete("/api/voices/{persona_id}")
+async def remove_persona(persona_id: str) -> dict:
+    if persona.one(persona_id) is None:
+        raise HTTPException(404, "no such persona")
+    persona.delete(persona_id)
+    return {"deleted": persona_id}
