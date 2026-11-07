@@ -1301,7 +1301,7 @@
  "The sections come from the recording's score once it is transcribed.": "Части берутся из партитуры записи после транскрипции.",
  ", longer than the length cap": ", длиннее предела длины",
  "YuE2 chooses the sections and how long each one runs.": "YuE2 выбирает части и длительность каждой.",
- "Seconds": "Секунды",
+ "Seconds": "Секунд",
  "YuE2 chooses how long each section runs.": "YuE2 выбирает длительность каждой части.",
  "Song structure has changed. {value} to render this into a take.": "Структура песни изменилась. {value}, чтобы отрендерить это в дубль.",
  "The sections have been rearranged; the take still plays in its first order.": "Части переставлены; дубль всё ещё играет в первоначальном порядке.",
@@ -2603,5 +2603,6 @@
  "Make a voice…": "Создать голос…",
  "this corpus has no separated vocals to make a voice from": "В этом корпусе нет отделённого вокала, из которого можно сделать голос",
  "none of this corpus's vocals could be read": "Ни один вокал этого корпуса не удалось прочитать",
- "the excerpts could not be joined": "Не удалось соединить фрагменты"
+ "the excerpts could not be joined": "Не удалось соединить фрагменты",
+ "Regenerate": "Пересоздать"
 }

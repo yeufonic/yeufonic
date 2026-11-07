@@ -2603,5 +2603,6 @@
  "Make a voice…": "Stem maken…",
  "this corpus has no separated vocals to make a voice from": "Dit corpus heeft geen gescheiden vocalen om een stem van te maken",
  "none of this corpus's vocals could be read": "Geen van de vocalen van dit corpus was leesbaar",
- "the excerpts could not be joined": "De fragmenten konden niet worden samengevoegd"
+ "the excerpts could not be joined": "De fragmenten konden niet worden samengevoegd",
+ "Regenerate": "Opnieuw maken"
 }

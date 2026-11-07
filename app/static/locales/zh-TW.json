@@ -1301,7 +1301,7 @@
  "The sections come from the recording's score once it is transcribed.": "錄音轉錄後，段落來自其樂譜。",
  ", longer than the length cap": "，超過時長上限",
  "YuE2 chooses the sections and how long each one runs.": "YuE2 選擇段落以及每段的時長。",
- "Seconds": "秒",
+ "Seconds": "秒數",
  "YuE2 chooses how long each section runs.": "YuE2 選擇每段的時長。",
  "Song structure has changed. {value} to render this into a take.": "歌曲結構已更改。{value}，將其渲染為版本。",
  "The sections have been rearranged; the take still plays in its first order.": "段落已重新排列；版本仍按原先的順序播放。",
@@ -2603,5 +2603,6 @@
  "Make a voice…": "建立音色…",
  "this corpus has no separated vocals to make a voice from": "該語料庫沒有可用於建立音色的分離人聲",
  "none of this corpus's vocals could be read": "該語料庫的人聲都無法讀取",
- "the excerpts could not be joined": "無法拼接這些片段"
+ "the excerpts could not be joined": "無法拼接這些片段",
+ "Regenerate": "重新產生"
 }

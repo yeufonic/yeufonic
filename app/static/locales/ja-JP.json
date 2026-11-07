@@ -1301,7 +1301,7 @@
  "The sections come from the recording's score once it is transcribed.": "録音を採譜すると、セクションはその楽譜から取られます。",
  ", longer than the length cap": "、長さの上限より長い",
  "YuE2 chooses the sections and how long each one runs.": "YuE2 がセクションとそれぞれの長さを決めます。",
- "Seconds": "秒",
+ "Seconds": "秒数",
  "YuE2 chooses how long each section runs.": "YuE2 が各セクションの長さを決めます。",
  "Song structure has changed. {value} to render this into a take.": "曲の構成が変わりました。これをテイクにレンダリングするには {value}。",
  "The sections have been rearranged; the take still plays in its first order.": "セクションの順序が変わりましたが、テイクは最初の順序のまま再生されます。",
@@ -2603,5 +2603,6 @@
  "Make a voice…": "声を作成…",
  "this corpus has no separated vocals to make a voice from": "このコーパスには声を作れる分離ボーカルがありません",
  "none of this corpus's vocals could be read": "このコーパスのボーカルはどれも読めませんでした",
- "the excerpts could not be joined": "断片を結合できませんでした"
+ "the excerpts could not be joined": "断片を結合できませんでした",
+ "Regenerate": "再生成"
 }

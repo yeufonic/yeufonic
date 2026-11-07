@@ -70,6 +70,20 @@ is what carried a voice in testing; four seconds did not, and longer is not alwa
 song can pull the melody with it.  A reason to make the recording from several short excerpts rather than one song: the
 voice is what those excerpts share, and a collaged voice dragged less of one tune's shape along.
 
+**From a corpus.**  Where corpora are listed, each one has a **Make a voice…** button: it takes a few seconds
+from the middle of several of that corpus's songs — six by default — joins them into one recording and tokenises
+that.  This is the shape that worked best, because the voice is what those excerpts share, and one song's opening
+drags more of its own melody along.  It needs the corpus's vocals, so a corpus that has not been analysed cannot
+make one yet.
+
+**Regenerate.**  A voice can be built again from the editor: a corpus voice is recut from the corpus as it is
+now, so songs added or excluded since are picked up, and a recorded voice is tokenised again.  Use it after a
+corpus changes, or if tokenising failed.
+
+**How long.**  The **Seconds** box sets how much of the voice a render uses — the default 48 is what carried a
+voice in testing, and the box goes from 4 to 120.  It is saved on the voice, so every take that picks it uses
+the same length.
+
 A recording is a small thing to keep: the token stream and the source file, in the app's data folder.  A take's recipe
 names its voice, so an import can match it against the voices that machine has.
 ### Advanced settings

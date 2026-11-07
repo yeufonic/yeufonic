@@ -17289,8 +17289,11 @@ function paintPersonaField() {
   });
   host.innerHTML = '<label for="persona-select">Recorded voice</label>' +
     '<select id="persona-select">' + options.join("") + "</select>" +
+    '<span class="persona-picks">' +
+    '<label class="persona-seconds hidden" id="persona-seconds-wrap">' + t("Seconds") +
+    '<input type="number" id="persona-seconds" min="4" max="120" step="4"></label></span>' +
     '<button type="button" id="persona-make" class="ghost">' + t("Make a voice…") + '</button>' +
-    '<button type="button" id="persona-regen" class="ghost hidden">Regenerate</button>' +
+    '<button type="button" id="persona-regen" class="ghost hidden">' + t("Regenerate") + '</button>' +
     '<p class="sub" id="persona-hint">A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.</p>';
   var select = $("persona-select");
   if (select) {
@@ -17301,7 +17304,29 @@ function paintPersonaField() {
   if (make) { make.addEventListener("click", askForVoice); }
   var regen = $("persona-regen");
   if (regen) { regen.addEventListener("click", regeneratePersona); }
+  var seconds = $("persona-seconds");
+  if (seconds) {
+    seconds.addEventListener("change", function () { setPersonaSeconds(seconds.value); });
+  }
   refreshPersonaHint();
+}
+
+/* How much of the voice a render uses.  Saved on the voice rather than the take, so every take that picks it
+   gets the same length until it is changed here. */
+async function setPersonaSeconds(value) {
+  if (!PERSONA.id) { return; }
+  try {
+    var changed = await api("/api/voices/" + PERSONA.id, {
+      method: "PATCH",
+      body: new URLSearchParams({ prefix_seconds: String(value) })
+    });
+    PERSONA.list = PERSONA.list.map(function (v) { return v.id === changed.id ? changed : v; });
+    await loadPersonas();
+    toast(t("This render uses about") + " " + Math.round(Number(changed.prefix_seconds) || 0) + " " +
+          t("seconds of that voice before the new song."));
+  } catch (err) {
+    toast(err && err.message ? err.message : t("no such persona"));
+  }
 }
 
 /* Build the selected voice again: a corpus voice re-cuts its collage from the corpus as it is now, so a
@@ -17323,6 +17348,12 @@ function refreshPersonaHint() {
   var selected = PERSONA.list.filter(function (v) { return v.id === PERSONA.id; })[0];
   var regen = $("persona-regen");
   if (regen) { regen.classList.toggle("hidden", !selected); }
+  var wrap = $("persona-seconds-wrap");
+  var field = $("persona-seconds");
+  if (wrap) { wrap.classList.toggle("hidden", !selected); }
+  if (field && selected && document.activeElement !== field) {
+    field.value = String(Math.round(Number(selected.prefix_seconds) || 0));
+  }
   hint.textContent = selected
     ? t("This render uses about") + " " + Math.round(Number(selected.prefix_seconds) || 0) +
       " " + t("seconds of that voice before the new song.")

@@ -2603,5 +2603,6 @@
  "Make a voice…": "Crea una voce…",
  "this corpus has no separated vocals to make a voice from": "Questo corpus non ha voci separate da cui ricavare una voce",
  "none of this corpus's vocals could be read": "Nessuna voce di questo corpus è stata leggibile",
- "the excerpts could not be joined": "I frammenti non hanno potuto essere uniti"
+ "the excerpts could not be joined": "I frammenti non hanno potuto essere uniti",
+ "Regenerate": "Rigenera"
 }
