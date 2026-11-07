@@ -146,3 +146,15 @@ def test_a_half_cleared_job_does_not_break_the_page_poll(client, monkeypatch):
         assert client.get("/api/state").status_code == 200
     finally:
         jobs.CURRENT.clear()
+
+
+def test_a_voice_training_shows_its_own_time_and_progress(client):
+    import time as clock
+    jobs.CURRENT.clear()
+    jobs.CURRENT.update({"kind": "voice", "id": "vprog", "prompt_id": None, "started": clock.time() - 65,
+                         "label": "Training a voice", "progress": 0.21})
+    try:
+        current = client.get("/api/state").json()["current"]
+        assert current["progress"] == 0.21 and current["elapsed"] >= 64
+    finally:
+        jobs.CURRENT.clear()

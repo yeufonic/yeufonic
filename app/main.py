@@ -1638,11 +1638,16 @@ def state() -> dict:
     current = None
     if CURRENT.get("kind") and CURRENT.get("id"):   # a job half-cleared by a stop is no job, not a failed poll
         current = {
+            **ENGINE.snapshot(CURRENT.get("prompt_id")),
             "kind": CURRENT["kind"],
             "id": CURRENT["id"],
-            "elapsed": round(time.time() - CURRENT["started"], 1),
-            **ENGINE.snapshot(CURRENT.get("prompt_id")),
         }
+        # A job the engine is not running (a voice training, an external LLM) has no snapshot of its own: its time
+        # and progress are the app's, and the empty snapshot's 0 must not stand in for them.
+        if not CURRENT.get("prompt_id"):
+            current["elapsed"] = round(time.time() - CURRENT.get("started", time.time()), 1)
+            if CURRENT.get("progress") is not None:
+                current["progress"] = CURRENT["progress"]
         if CURRENT.get("label"):
             current["label"] = CURRENT["label"]
         elif current.get("stage"):
