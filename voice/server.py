@@ -112,8 +112,8 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int) -
     log = work / "train.log"
     for index, name in enumerate(sources):
         job.update(stage="separating" if split else "preparing", progress=0.1 * index / max(1, len(sources)))
-        print(f"[{voice}] {job['stage']} {index + 1}/{len(sources)}: {source.name}", flush=True)
         source = Path(name)
+        print(f"[{voice}] {job['stage']} {index + 1}/{len(sources)}: {source.name}", flush=True)
         if job.get("stop"):
             raise Stopped()
         vocal = separate(source, work / "sep")[0] if split else source
