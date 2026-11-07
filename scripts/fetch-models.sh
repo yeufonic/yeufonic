@@ -41,6 +41,9 @@
 #   sh scripts/fetch-models.sh --loras      also 39 style LoRAs by their authors (CC BY-NC 4.0), 3.8 GB, with a
 #                                        description each, into models/loras/. One already there is kept as
 #                                        it is. The README of pshields/yue2-style-loras credits them.
+#   sh scripts/fetch-models.sh --voice      also what recorded voices need, 1.1 GB, into models/voice/: RVC's content
+#                                        encoder, pitch tracker and 48 kHz base weights (MIT) and a BS-Roformer
+#                                        separator. Then COMPOSE_PROFILES=voice in .env starts the voice service.
 #
 # One size or the other: with both in models/checkpoints the app uses the full-quality one.
 # A file that is already there is kept, and an interrupted download resumes.
@@ -53,6 +56,7 @@ ENGINE=
 GEMMA=no
 PICTURES=no
 LORAS=no
+VOICE=no
 for arg in "$@"; do
   case "$arg" in
     --int8) MODEL=int8 ;;
@@ -61,6 +65,7 @@ for arg in "$@"; do
     --gemma) GEMMA=yes ;;
     --pictures) PICTURES=yes ;;
     --loras) LORAS=yes ;;
+    --voice) VOICE=yes ;;
     -h|--help) sed -n '2,/^set -eu/p' "$0" | sed '$d'; exit 0 ;;
     *) echo "unknown option: $arg (see --help)" >&2; exit 1 ;;
   esac
@@ -86,6 +91,9 @@ mkdir -p "$ROOT/models/checkpoints" "$ROOT/models/audio_encoders" "$ROOT/models/
 # this script, run as you, cannot write in it.  Made here first, as you, they are yours; where they are already root's
 # the failure is ignored, and the Whisper step below says what to do.
 mkdir -p "$ROOT/models/whisper" "$ROOT/models/demucs" 2>/dev/null || true
+# The voice service's folders, made here even without --voice: that service runs as you, and a folder Docker made
+# for its mount would be root's.
+mkdir -p "$ROOT/models/voice/assets" "$ROOT/models/voice/logs" 2>/dev/null || true
 # The folders compose.yml mounts into the app.  Created here, as you, because a
 # folder Docker creates for a mount belongs to root, and the app cannot write to it.
 mkdir -p "$ROOT/data" "$ROOT/data/models/soundfonts/sf2" "$ROOT/engine-state/output" "$ROOT/engine-state/input" \
@@ -260,6 +268,27 @@ fi
 # Style LoRAs by their authors, gathered unchanged in one Hugging Face repository: only when asked for.  A file already
 # here is left alone (it may be your own copy, or a description you have written over); a new one is checked against
 # its SHA-256 and removed if it does not match.
+if [ "$VOICE" = yes ]; then
+  RVC_HF=https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main
+  PYMSS_HF=https://huggingface.co/baicai1145/pymss/resolve/main/vocal/vocal_extraction
+  V="$ROOT/models/voice"
+  mkdir -p "$V/assets/hubert_base" "$V/assets/rmvpe" "$V/assets/pretrained_v2" "$V/assets/weights" \
+    "$V/assets/indices" "$V/assets/pymss/vocal/vocal_extraction" "$V/logs"
+  for f in config.json preprocessor_config.json pytorch_model.bin; do
+    fetch "$RVC_HF/hubert_base/$f" "$V/assets/hubert_base/$f"
+  done
+  fetch "$RVC_HF/rmvpe.pt" "$V/assets/rmvpe/rmvpe.pt"
+  fetch "$RVC_HF/pretrained_v2/f0G48k.pth" "$V/assets/pretrained_v2/f0G48k.pth"
+  fetch "$RVC_HF/pretrained_v2/f0D48k.pth" "$V/assets/pretrained_v2/f0D48k.pth"
+  for f in model_bs_roformer_ep_317_sdr_12.9755.ckpt model_bs_roformer_ep_317_sdr_12.9755.yaml; do
+    fetch "$PYMSS_HF/$f" "$V/assets/pymss/vocal/vocal_extraction/$f"
+  done
+  if [ ! -d "$V/logs/mute" ]; then
+    fetch "$RVC_HF/mute.zip" "$V/mute.zip"
+    python3 -m zipfile -e "$V/mute.zip" "$V/logs" && rm -f "$V/mute.zip"
+  fi
+fi
+
 if [ "$LORAS" = yes ]; then
   mkdir -p "$ROOT/models/loras"
   STYLE_LORAS=https://huggingface.co/pshields/yue2-style-loras/resolve/main

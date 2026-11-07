@@ -104,6 +104,8 @@ services:
       # When the engine is asked to unload its models: auto (after a picture, and on a Mac whenever the GPU's
       # line runs dry), 1 whenever it runs dry, 0 never. Set UNLOAD_WHEN_IDLE in .env.
       UNLOAD_WHEN_IDLE: "${UNLOAD_WHEN_IDLE:-auto}"
+      # The voice service, when it runs (the "voice" profile below): recorded voices are trained and sung there.
+      VOICE_URL: http://voice:8190
     volumes:
       - ./data:/data
       - ./engine-state/output:/engine-output
@@ -127,3 +129,35 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # Recorded voices: trains a voice from recordings (RVC) and sings a take's vocal in it, after a BS-Roformer
+  # separation.  Optional and off by default: COMPOSE_PROFILES=voice in .env starts it, once
+  # scripts/fetch-models.sh --voice has put its models (about 1 GB) in models/voice.  The app hides the
+  # Recorded voice field while it is not running.  It shares the GPU with the engine; the app frees the
+  # engine before it sends anything here.
+  voice:
+    profiles: ["voice"]
+    build:
+      context: ./voice
+      args:
+        TORCH_CUDA: "${VOICE_TORCH_CUDA:-cu128}"
+    image: yeufonic-voice:latest
+    container_name: yeufonic-voice
+    restart: unless-stopped
+    user: "${APP_UID:-1000}:${APP_GID:-1000}"
+    environment:
+      HOME: /tmp
+      NUMBA_CACHE_DIR: /tmp
+      MPLCONFIGDIR: /tmp
+    volumes:
+      - ./data:/data
+      - ./models/voice/assets:/opt/rvc/assets
+      - ./models/voice/logs:/opt/rvc/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+

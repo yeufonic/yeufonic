@@ -1,0 +1,24 @@
+# RVC's own pins (requirments_cu128_py312.txt at the pinned commit), less its web UI, realtime GUI and audio devices.
+setuptools>=75.0,<81
+wheel>=0.45,<1
+packaging>=24.0
+av>=15.1.0,<16
+einops>=0.8.0,<1
+faiss-cpu>=1.13.0,<2
+ffmpeg-python>=0.2.0,<1
+librosa>=0.10.2,<0.11
+local-attention>=1.11.0,<2
+matplotlib>=3.8.2,<4
+numpy>=1.26.4,<2
+pymss==2.0.14
+pymss-core==0.1.4
+coloredlogs>=15.0,<16
+praat-parselmouth>=0.4.5,<1
+PyYAML>=6.0.1
+scikit-learn>=1.6.0,<2
+scipy>=1.13.1,<2
+soundfile>=0.13.0,<1
+tensorboard>=2.19.0
+torchfcpe>=0.0.4,<0.1
+tqdm>=4.67.0,<5
+transformers>=4.49.0,<4.50
