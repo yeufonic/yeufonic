@@ -17,7 +17,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import artwork, config, engine_cpp, identities, instrumental, llm, loras, lyrics, score, stems, storage, trainsize, transpose, voices
+from . import artwork, config, engine_cpp, identities, instrumental, llm, loras, lyrics, persona, score, stems, storage, trainsize, transpose, voices
 from .db import bump_average, execute, get_setting, one, rows
 from .engine import OUT_OF_MEMORY, Engine, load_template
 from .library import (audio_duration, ensure_peaks, fade_out_end, loudness, inside, normal_target, normalise, normalised_path, original_path, remove_tree,
@@ -445,6 +445,19 @@ def build_render_graph(take: dict) -> dict:
                         strength_clip=float(take.get("style_lora_clip") or 0.0))
     if config.PEAK_GUARD and (getattr(ENGINE, "options", None) or {}).get("peak_guard"):
         with_peak_guard(graph)
+    # A persona stands in for the music node: the AR continues from the persona's own tokens and the
+    # decoder renders that continuation, so the take comes out in that voice with nothing trained.
+    # The persona's own inputs are a superset of the template's, so nothing else changes.
+    person = persona.one(take["voice_id"]) if take.get("voice_id") else None
+    if person and person.get("state") == "ready" and person.get("tokens_path"):
+        graph["11"]["class_type"] = "Yue2PersonaGenerate"
+        node.update({
+            "persona_tokens": person["tokens_path"],
+            "persona_seconds": float(person.get("prefix_seconds") or persona.DEFAULT_PREFIX_SECONDS),
+        })
+    elif take.get("voice_id"):
+        log.warning("take %s names voice %s, which is not ready; rendering without it",
+                    take.get("id"), take.get("voice_id"))
     return graph
 
 

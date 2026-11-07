@@ -66,11 +66,18 @@ class Yue2PersonaGenerate:
             "lyrics": ("STRING", {"multiline": True, "default": ""}),
             "persona_tokens": ("STRING", {"default": "",
                                           "tooltip": "A .semantic.npy of the persona's tokens."}),
-            "persona_seconds": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 60.0, "step": 0.04}),
+            "persona_seconds": ("FLOAT", {"default": 48.0, "min": 0.0, "max": 120.0, "step": 0.04,
+                                          "tooltip": "How much of the persona's stream goes before the new material."}),
             "abc": ("STRING", {"multiline": True, "default": ""}),
             "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF}),
             "mode": (["full", "melody", "off"], {"default": "full"}),
             "max_duration": ("FLOAT", {"default": 360.0, "min": 0.04, "max": 900.0, "step": 0.04}),
+            # The same samplers YuE2 Generate Music takes, so this node can stand in for it unchanged.
+            "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 5.0, "step": 0.05}),
+            "top_p": ("FLOAT", {"default": 0.95, "min": 0.01, "max": 1.0, "step": 0.01}),
+            "top_k": ("INT", {"default": 100, "min": 1, "max": 32768}),
+            "repetition_penalty": ("FLOAT", {"default": 1.2, "min": 0.01, "max": 10.0, "step": 0.01}),
+            "cfg_scale": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step": 0.01}),
         }}
 
     RETURN_TYPES = ("CONDITIONING", "FLOAT")
@@ -78,15 +85,17 @@ class Yue2PersonaGenerate:
     FUNCTION = "generate"
     CATEGORY = "model/conditioning/yue2"
 
-    def generate(self, clip, style, lyrics, persona_tokens, persona_seconds, abc, seed, mode, max_duration):
+    def generate(self, clip, style, lyrics, persona_tokens, persona_seconds, abc, seed, mode, max_duration,
+                 temperature=1.0, top_p=0.95, top_k=100, repetition_penalty=1.2, cfg_scale=None):
         install_hook()
         if not abc.strip():
             mode = "off"
-        cfg_scale = 1.01 if mode == "off" else 1.0
+        if cfg_scale is None:
+            cfg_scale = 1.01 if mode == "off" else 1.0
         tokens = clip.tokenize(style, lyrics=lyrics, cot=mode, seed=seed, abc=abc,
                                max_tokens=max(1, round(max_duration * FRAMES_PER_SECOND)),
-                               temperature=1.0, top_p=0.95, top_k=100, repetition_penalty=1.2,
-                               cfg_scale=cfg_scale)
+                               temperature=temperature, top_p=top_p, top_k=top_k,
+                               repetition_penalty=repetition_penalty, cfg_scale=cfg_scale)
         ids = []
         if persona_tokens.strip() and persona_seconds > 0:
             codes = numpy.load(persona_tokens.strip())
