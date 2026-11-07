@@ -112,6 +112,7 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int) -
     log = work / "train.log"
     for index, name in enumerate(sources):
         job.update(stage="separating" if split else "preparing", progress=0.1 * index / max(1, len(sources)))
+        print(f"[{voice}] {job['stage']} {index + 1}/{len(sources)}: {source.name}", flush=True)
         source = Path(name)
         if job.get("stop"):
             raise Stopped()
@@ -139,6 +140,7 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int) -
     shutil.copy(RVC / "configs" / "v2" / f"{SR}.json", logs / "config.json")
     (ASSETS / "weights").mkdir(parents=True, exist_ok=True)
     job.update(stage="training", progress=0.15, clips=len(names))
+    print(f"[{voice}] training on {len(names)} clips, {epochs} passes", flush=True)
     watcher = threading.Thread(target=_follow_epochs, args=(job, log, epochs), daemon=True)
     watcher.start()
     # Batch 4 rather than RVC's usual 8: the engine is freed first, but a smaller batch leaves room on a 12 GB card.
@@ -151,6 +153,7 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int) -
         run(["-c", "from train.process_ckpt import extract_small_model as x; import sys; "
                    f"print(x('{logs}/G_2333333.pth', '{exp}', '{SR}', 1, 'Yeufonic voice', 'v2'))"], log=log)
     job.update(stage="indexing", progress=0.97)
+    print(f"[{voice}] building the index", flush=True)
     run(["train/train_index.py", exp, "v2", str(ASSETS / "indices"), str(max(1, (os.cpu_count() or 4) // 2)), "single"],
         log=log)
     index = next(iter(sorted(logs.glob("added_*.index"))), None)
@@ -210,6 +213,7 @@ def _train_job(job_id: str, body: dict) -> None:
             train(job, body["id"], list(body.get("sources") or []), bool(body.get("separate", True)),
                   int(body.get("epochs") or 100))
             job.update(state="done", progress=1.0, stage=None)
+            print(f"[{body['id']}] trained", flush=True)
         except Stopped:
             job.update(state="stopped", stage=None)
             shutil.rmtree(VOICES / body["id"] / "work", ignore_errors=True)

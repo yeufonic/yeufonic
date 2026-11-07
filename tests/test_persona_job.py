@@ -158,3 +158,18 @@ def test_a_voice_training_shows_its_own_time_and_progress(client):
         assert current["progress"] == 0.21 and current["elapsed"] >= 64
     finally:
         jobs.CURRENT.clear()
+
+
+def test_the_log_says_each_step_of_a_voice_training(caplog):
+    said = {"stage": None, "quarter": 0}
+    with caplog.at_level("INFO", logger="yue2.jobs"):
+        for state in ({"stage": "separating", "progress": 0.02}, {"stage": "separating", "progress": 0.05},
+                      {"stage": "training", "progress": 0.15, "clips": 139}, {"stage": "training", "progress": 0.4},
+                      {"stage": "training", "progress": 0.56}, {"stage": "indexing", "progress": 0.97}):
+            jobs._log_voice_step("Mine", state, said)
+    lines = [r.getMessage() for r in caplog.records]
+    assert lines == ["Recorded voice 'Mine': separating the vocals",
+                     "Recorded voice 'Mine': training (139 clips of singing)",
+                     "Recorded voice 'Mine': training 25% done",
+                     "Recorded voice 'Mine': training 50% done",
+                     "Recorded voice 'Mine': building its index"]

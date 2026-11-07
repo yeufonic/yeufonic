@@ -3276,6 +3276,10 @@ async def run_voice_train(persona_id: str) -> None:
     CURRENT.clear()
     CURRENT.update({"kind": "voice", "id": persona_id, "prompt_id": None, "started": started,
                     "label": "Training a voice"})
+    origin = f"the corpus {record['origin_identity']}" if record.get("origin_identity") else "its recording"
+    log.info("Training the recorded voice '%s' (%s) on %d recording(s) from %s, %d passes", record["name"],
+             persona_id, len(sources), origin, persona.TRAIN_EPOCHS)
+    said = {"stage": None, "quarter": 0}
     try:
         with contextlib.suppress(Exception):
             await ENGINE.free()
@@ -3295,6 +3299,7 @@ async def run_voice_train(persona_id: str) -> None:
                     return
                 state = (await client.get(f"{config.VOICE_URL}/jobs/{job}")).json()
                 CURRENT["progress"] = state.get("progress")
+                _log_voice_step(record["name"], state, said)
                 persona.training(persona_id, float(state.get("progress") or 0.0))
                 if state.get("state") == "failed":
                     raise RuntimeError(state.get("error") or "training failed")
@@ -3315,6 +3320,26 @@ async def run_voice_train(persona_id: str) -> None:
         CANCELLED.discard(persona_id)
         if CURRENT.get("id") == persona_id:
             CURRENT.clear()
+
+
+VOICE_STAGES = {"separating": "separating the vocals", "preparing": "preparing the recordings",
+                "analysing": "reading pitch and features", "training": "training", "indexing": "building its index"}
+
+
+def _log_voice_step(name: str, state: dict, said: dict) -> None:
+    """A line in the log when a voice's training moves to a new step, and at each quarter of the training itself."""
+    stage = state.get("stage")
+    if stage and stage != said["stage"]:
+        said["stage"] = stage
+        clips = f" ({state['clips']} clips of singing)" if stage == "training" and state.get("clips") else ""
+        log.info("Recorded voice '%s': %s%s", name, VOICE_STAGES.get(stage, stage), clips)
+    if stage == "training":
+        # Training is 15% to 95% of the job's progress: report it as its own 0-100%.
+        part = max(0.0, min(1.0, ((state.get("progress") or 0.0) - 0.15) / 0.8))
+        quarter = int(part * 4)
+        if 0 < quarter < 4 and quarter > said["quarter"]:
+            said["quarter"] = quarter
+            log.info("Recorded voice '%s': training %d%% done", name, quarter * 25)
 
 
 async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
