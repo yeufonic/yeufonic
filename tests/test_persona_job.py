@@ -115,3 +115,34 @@ def test_a_failed_conversion_keeps_the_take_as_rendered(monkeypatch, tmp_path):
     assert take.read_bytes() == b"as rendered"
     assert not list(tmp_path.glob("*.voice.*"))
     persona.delete(made["id"])
+
+
+def test_stopping_a_training_run_stops_it_on_the_service(monkeypatch):
+    made = _voice("trainstop")
+    asked = []
+
+    def handler(request):
+        asked.append(request.url.path)
+        if request.url.path == "/health":
+            return httpx.Response(200, json={"ok": True, "models": {}})
+        if request.url.path == "/train":
+            jobs.CANCELLED.add(made["id"])        # the job card's Stop, pressed while it trains
+            return httpx.Response(200, json={"job": "j3"})
+        return httpx.Response(200, json={"state": "running", "progress": 0.3})
+
+    _service(monkeypatch, handler)
+    asyncio.run(jobs.run_voice_train(made["id"]))
+    assert "/jobs/j3/stop" in asked
+    assert persona.one(made["id"])["state"] == "failed"
+    assert made["id"] not in jobs.CANCELLED and not jobs.CURRENT
+    persona.delete(made["id"])
+
+
+def test_a_half_cleared_job_does_not_break_the_page_poll(client, monkeypatch):
+    monkeypatch.setattr(jobs, "CURRENT", jobs.CURRENT)
+    jobs.CURRENT.clear()
+    jobs.CURRENT.update({"progress": 0.5})       # what a stop left behind before
+    try:
+        assert client.get("/api/state").status_code == 200
+    finally:
+        jobs.CURRENT.clear()

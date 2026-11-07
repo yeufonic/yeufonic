@@ -6,6 +6,7 @@ GPU schedule: it frees the engine before it asks for anything here, so this neve
     GET  /health                    {"ok": true, "models": {...}}
     POST /train    {"id", "sources": [paths], "separate": bool, "epochs": int}    -> {"job": id}
     GET  /jobs/<id>                 {"state": queued|running|done|failed, "progress": 0..1, "stage", "error"}
+    POST /jobs/<id>/stop            ends a training run: the step under way is terminated, its files removed
     POST /convert  {"id", "input", "output", "octave": int}                        -> {"ok": true} when written
 
 Paths are the app's own (/data/...): this container mounts the same data folder.  A voice's files go to
@@ -37,6 +38,11 @@ PY = "python"
 
 JOBS: dict[str, dict] = {}
 LOCK = threading.Lock()                  # one GPU job at a time: a training run or a conversion
+RUNNING: dict = {}                       # the step under way, so a stop can end it: {"job": id, "proc": Popen}
+
+
+class Stopped(Exception):
+    pass
 
 
 def needed() -> dict:
@@ -54,13 +60,20 @@ def needed() -> dict:
 
 def run(args: list[str], job: dict | None = None, log: Path | None = None) -> None:
     """One RVC step.  Its output goes to the job's log, which training reads its epoch from."""
+    if job is not None and job.get("stop"):
+        raise Stopped()
     out = open(log, "a", encoding="utf-8") if log else subprocess.DEVNULL
     try:
-        done = subprocess.run([PY, *args], cwd=RVC, stdout=out, stderr=subprocess.STDOUT)
+        proc = subprocess.Popen([PY, *args], cwd=RVC, stdout=out, stderr=subprocess.STDOUT)
+        RUNNING.update(job=job, proc=proc)
+        proc.wait()
     finally:
+        RUNNING.clear()
         if log:
             out.close()
-    if done.returncode != 0:
+    if job is not None and job.get("stop"):
+        raise Stopped()
+    if proc.returncode != 0:
         raise RuntimeError(f"{Path(args[0]).name} failed: {_reason(log)}")
 
 
@@ -100,6 +113,8 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int) -
     for index, name in enumerate(sources):
         job.update(stage="separating" if split else "preparing", progress=0.1 * index / max(1, len(sources)))
         source = Path(name)
+        if job.get("stop"):
+            raise Stopped()
         vocal = separate(source, work / "sep")[0] if split else source
         mono(vocal, trainset / f"{index:03d}.wav")
     exp = f"v-{voice}"
@@ -108,9 +123,9 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int) -
     logs.mkdir(parents=True)
     job.update(stage="analysing", progress=0.1)
     run(["train/preprocess.py", str(trainset), HZ, str(max(1, (os.cpu_count() or 4) // 2)), str(logs), "False", "3.7"],
-        log=log)
-    run(["train/dataset/extract_f0.py", "cuda", "1", "0", "0", str(logs), "True"], log=log)
-    run(["train/dataset/extract_hubert_feature.py", "cuda:0", "1", "0", "0", str(logs), "v2", "True"], log=log)
+        job=job, log=log)
+    run(["train/dataset/extract_f0.py", "cuda", "1", "0", "0", str(logs), "True"], job=job, log=log)
+    run(["train/dataset/extract_hubert_feature.py", "cuda:0", "1", "0", "0", str(logs), "v2", "True"], job=job, log=log)
     gt, fea, f0, f0n = (logs / d for d in ("0_gt_wavs", "3_feature768", "2a_f0", "2b-f0nsf"))
     stems = lambda d: {n.split(".")[0] for n in os.listdir(d)}  # noqa: E731
     names = stems(gt) & stems(fea) & stems(f0) & stems(f0n)
@@ -129,7 +144,7 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int) -
     # Batch 4 rather than RVC's usual 8: the engine is freed first, but a smaller batch leaves room on a 12 GB card.
     run(["train/train.py", "-e", exp, "-sr", SR, "-f0", "1", "-bs", "4", "-g", "0", "-te", str(epochs),
          "-se", str(epochs), "-pg", f"assets/pretrained_v2/f0G{SR}.pth", "-pd", f"assets/pretrained_v2/f0D{SR}.pth",
-         "-l", "1", "-c", "0", "-sw", "0", "-v", "v2"], log=log)
+         "-l", "1", "-c", "0", "-sw", "0", "-v", "v2"], job=job, log=log)
     job["epochs_done"] = epochs
     small = ASSETS / "weights" / f"{exp}.pth"
     if not small.exists():   # RVC's final save can fail on its own; the last checkpoint holds the same weights
@@ -187,11 +202,18 @@ def convert(voice: str, source: Path, output: Path, octave: int) -> None:
 def _train_job(job_id: str, body: dict) -> None:
     job = JOBS[job_id]
     with LOCK:
+        if job.get("stop"):
+            job["state"] = "stopped"
+            return
         job["state"] = "running"
         try:
             train(job, body["id"], list(body.get("sources") or []), bool(body.get("separate", True)),
                   int(body.get("epochs") or 100))
             job.update(state="done", progress=1.0, stage=None)
+        except Stopped:
+            job.update(state="stopped", stage=None)
+            shutil.rmtree(VOICES / body["id"] / "work", ignore_errors=True)
+            shutil.rmtree(LOGS / f"v-{body['id']}", ignore_errors=True)
         except Exception as err:  # noqa: BLE001 - every failure is reported to the app
             traceback.print_exc()
             job.update(state="failed", error=str(err)[-800:])
@@ -228,6 +250,17 @@ class Handler(BaseHTTPRequestHandler):
             JOBS[job_id] = {"state": "queued", "progress": 0.0, "stage": None, "error": None}
             threading.Thread(target=_train_job, args=(job_id, body), daemon=True).start()
             return self._send(200, {"job": job_id})
+        if self.path.startswith("/jobs/") and self.path.endswith("/stop"):
+            job = JOBS.get(self.path.split("/")[2])
+            if not job:
+                return self._send(404, {"error": "no such job"})
+            job["stop"] = True
+            if job.get("state") == "queued":
+                job["state"] = "stopped"
+            proc = RUNNING.get("proc") if RUNNING.get("job") is job else None
+            if proc is not None:
+                proc.terminate()
+            return self._send(200, {"stopping": True})
         if self.path == "/convert":
             with LOCK:
                 try:

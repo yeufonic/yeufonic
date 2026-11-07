@@ -1431,7 +1431,7 @@ def queue_view() -> list[dict]:
         elif entry["mine"] and not entry["client"].startswith(ENGINE.client_id):
             item["note"] = "sent before the app restarted"
         items.append(item)
-    if CURRENT.get("id") and not CURRENT.get("prompt_id"):
+    if CURRENT.get("id") and CURRENT.get("kind") and not CURRENT.get("prompt_id"):
         items.append({
             "state": "running",
             "kind": CURRENT["kind"],
@@ -1636,7 +1636,7 @@ def state() -> dict:
     """Served from what the keeper last saw, so a page poll never waits on the engine."""
     training = _training_run()
     current = None
-    if CURRENT:
+    if CURRENT.get("kind") and CURRENT.get("id"):   # a job half-cleared by a stop is no job, not a failed poll
         current = {
             "kind": CURRENT["kind"],
             "id": CURRENT["id"],

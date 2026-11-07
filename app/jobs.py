@@ -3284,8 +3284,15 @@ async def run_voice_train(persona_id: str) -> None:
                 "id": persona_id, "sources": sources, "separate": True, "epochs": persona.TRAIN_EPOCHS})).json()["job"]
             while time.time() - started < VOICE_TRAIN_TIMEOUT:
                 await asyncio.sleep(VOICE_POLL_SECONDS)
-                if not persona.one(persona_id):
-                    return   # deleted while it trained; the service finishes and its folder goes with the voice
+                stopped = persona_id in CANCELLED or CURRENT.get("id") != persona_id
+                if stopped or not persona.one(persona_id):
+                    # Stopped from the job card, or the voice deleted: the service ends the run and tidies it.
+                    with contextlib.suppress(Exception):
+                        await client.post(f"{config.VOICE_URL}/jobs/{job}/stop")
+                    if persona.one(persona_id):
+                        persona.failed(persona_id, "training was stopped")
+                    log.info("Training the recorded voice '%s' was stopped", record["name"])
+                    return
                 state = (await client.get(f"{config.VOICE_URL}/jobs/{job}")).json()
                 CURRENT["progress"] = state.get("progress")
                 persona.training(persona_id, float(state.get("progress") or 0.0))
@@ -3305,7 +3312,9 @@ async def run_voice_train(persona_id: str) -> None:
         log.error("Training the recorded voice '%s' failed: %s", record["name"], err)
         persona.failed(persona_id, str(err))
     finally:
-        CURRENT.clear()
+        CANCELLED.discard(persona_id)
+        if CURRENT.get("id") == persona_id:
+            CURRENT.clear()
 
 
 async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
