@@ -1886,6 +1886,8 @@
  "Regenerate": "다시 만들기",
  "no such persona": "그런 목소리가 없습니다",
  "Training that voice: it can take an hour, and waits for the songs ahead of it.": "그 목소리를 학습하고 있습니다. 한 시간쯤 걸릴 수 있고, 앞에 있는 곡들 다음에 시작합니다.",
+ "Training failed: {value}": "학습 실패: {value}",
+ "This voice has no trained model: Regenerate trains it.": "이 목소리에는 학습된 모델이 없습니다. 다시 만들기로 학습합니다.",
  "The take is sung as usual, then its vocal is sung again in this voice.": "테이크는 평소대로 불린 뒤, 보컬을 이 목소리로 다시 부릅니다.",
  "Train a voice from a recording of someone singing, or from a corpus, and a take can be sung in it.": "누군가 노래하는 녹음이나 코퍼스로 목소리를 학습하면 테이크를 그 목소리로 부를 수 있습니다.",
  "What is this voice called?": "이 목소리의 이름은?",
@@ -2604,7 +2606,5 @@
  "the card's memory could not be read": "카드 메모리를 읽을 수 없었습니다",
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES로 설정됨",
  "No installer URL available for this update": "이 업데이트의 설치 프로그램 URL이 없습니다",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}",
- "This voice has no trained model: Regenerate trains it.": "이 목소리에는 학습된 모델이 없습니다. 다시 만들기로 학습합니다.",
- "Training failed: {value}": "학습 실패: {value}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}"
 }

@@ -1886,6 +1886,8 @@
  "Regenerate": "重新產生",
  "no such persona": "沒有這個音色",
  "Training that voice: it can take an hour, and waits for the songs ahead of it.": "正在訓練該音色：可能需要一小時，並排在前面的歌曲之後。",
+ "Training failed: {value}": "訓練失敗：{value}",
+ "This voice has no trained model: Regenerate trains it.": "這個音色還沒有訓練好的模型：點「重新產生」來訓練。",
  "The take is sung as usual, then its vocal is sung again in this voice.": "版本照常演唱，然後用這個音色重新演唱人聲。",
  "Train a voice from a recording of someone singing, or from a corpus, and a take can be sung in it.": "用某人演唱的錄音或語料庫訓練一個音色，版本就可以用它來演唱。",
  "What is this voice called?": "這個音色叫什麼？",
@@ -2604,7 +2606,5 @@
  "the card's memory could not be read": "無法讀取顯示卡的顯示記憶體",
  "set by TRAIN_MAX_MINUTES": "由 TRAIN_MAX_MINUTES 設定",
  "No installer URL available for this update": "此更新沒有可用的安裝程式 URL",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校驗和不匹配：預期 {expected_hash}，實際 {actual_hash}",
- "This voice has no trained model: Regenerate trains it.": "這個音色還沒有訓練好的模型：點「重新產生」來訓練。",
- "Training failed: {value}": "訓練失敗：{value}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校驗和不匹配：預期 {expected_hash}，實際 {actual_hash}"
 }

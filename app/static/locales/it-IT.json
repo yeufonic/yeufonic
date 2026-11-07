@@ -1886,6 +1886,8 @@
  "Regenerate": "Rigenera",
  "no such persona": "Questa voce non esiste",
  "Training that voice: it can take an hour, and waits for the songs ahead of it.": "Addestramento della voce: può richiedere un’ora e attende le canzoni prima.",
+ "Training failed: {value}": "Addestramento non riuscito: {value}",
+ "This voice has no trained model: Regenerate trains it.": "Questa voce non ha un modello addestrato: Rigenera la addestra.",
  "The take is sung as usual, then its vocal is sung again in this voice.": "Il take viene cantato come al solito, poi la sua voce viene ricantata con questa voce.",
  "Train a voice from a recording of someone singing, or from a corpus, and a take can be sung in it.": "Addestra una voce da una registrazione di qualcuno che canta, o da un corpus, e un take potrà essere cantato con essa.",
  "What is this voice called?": "Come si chiama questa voce?",
@@ -2604,7 +2606,5 @@
  "the card's memory could not be read": "impossibile leggere la memoria della scheda",
  "set by TRAIN_MAX_MINUTES": "impostato da TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Nessun URL dell'installer disponibile per questo aggiornamento",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum non corrispondente: previsto {expected_hash}, ottenuto {actual_hash}",
- "This voice has no trained model: Regenerate trains it.": "Questa voce non ha un modello addestrato: Rigenera la addestra.",
- "Training failed: {value}": "Addestramento non riuscito: {value}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum non corrispondente: previsto {expected_hash}, ottenuto {actual_hash}"
 }

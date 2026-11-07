@@ -1886,6 +1886,8 @@
  "Regenerate": "Neu erzeugen",
  "no such persona": "Diese Stimme gibt es nicht",
  "Training that voice: it can take an hour, and waits for the songs ahead of it.": "Die Stimme wird trainiert: Das kann eine Stunde dauern und wartet auf die Songs davor.",
+ "Training failed: {value}": "Training fehlgeschlagen: {value}",
+ "This voice has no trained model: Regenerate trains it.": "Diese Stimme hat kein trainiertes Modell: „Neu erzeugen“ trainiert sie.",
  "The take is sung as usual, then its vocal is sung again in this voice.": "Der Take wird wie gewohnt gesungen, dann wird sein Gesang in dieser Stimme neu gesungen.",
  "Train a voice from a recording of someone singing, or from a corpus, and a take can be sung in it.": "Trainiere eine Stimme aus einer Aufnahme von jemandem, der singt, oder aus einem Korpus, und ein Take kann in ihr gesungen werden.",
  "What is this voice called?": "Wie soll diese Stimme heißen?",
@@ -2604,7 +2606,5 @@
  "the card's memory could not be read": "der Speicher der Karte konnte nicht gelesen werden",
  "set by TRAIN_MAX_MINUTES": "durch TRAIN_MAX_MINUTES festgelegt",
  "No installer URL available for this update": "Keine Installer-URL für dieses Update verfügbar",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Prüfsummen stimmen nicht überein: erwartet {expected_hash}, erhalten {actual_hash}",
- "This voice has no trained model: Regenerate trains it.": "Diese Stimme hat kein trainiertes Modell: „Neu erzeugen“ trainiert sie.",
- "Training failed: {value}": "Training fehlgeschlagen: {value}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Prüfsummen stimmen nicht überein: erwartet {expected_hash}, erhalten {actual_hash}"
 }

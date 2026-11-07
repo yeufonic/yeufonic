@@ -1886,6 +1886,8 @@
  "Regenerate": "Régénérer",
  "no such persona": "Cette voix n'existe pas",
  "Training that voice: it can take an hour, and waits for the songs ahead of it.": "Entraînement de cette voix : cela peut prendre une heure, après les chansons qui la précèdent.",
+ "Training failed: {value}": "Échec de l’entraînement : {value}",
+ "This voice has no trained model: Regenerate trains it.": "Cette voix n’a pas de modèle entraîné : Régénérer l’entraîne.",
  "The take is sung as usual, then its vocal is sung again in this voice.": "La prise est chantée comme d’habitude, puis sa voix est rechantée avec cette voix.",
  "Train a voice from a recording of someone singing, or from a corpus, and a take can be sung in it.": "Entraînez une voix à partir d’un enregistrement de quelqu’un qui chante, ou d’un corpus, et une prise pourra être chantée avec.",
  "What is this voice called?": "Comment s'appelle cette voix ?",
@@ -2604,7 +2606,5 @@
  "the card's memory could not be read": "la mémoire de la carte n'a pas pu être lue",
  "set by TRAIN_MAX_MINUTES": "fixé par TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Aucune URL d'installateur disponible pour cette mise à jour",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Somme de contrôle incorrecte : attendu {expected_hash}, obtenu {actual_hash}",
- "This voice has no trained model: Regenerate trains it.": "Cette voix n’a pas de modèle entraîné : Régénérer l’entraîne.",
- "Training failed: {value}": "Échec de l’entraînement : {value}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Somme de contrôle incorrecte : attendu {expected_hash}, obtenu {actual_hash}"
 }
