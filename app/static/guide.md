@@ -54,6 +54,24 @@ Try more, Inside, Take out, Normalise and Move, each where the card would show i
 while the take is normalised, and a click then puts it back to the level it was rendered at; Inside is
 lit while the take holds others, and closes the window to show them under the take.
 
+### A recorded voice
+
+A take can be given a singer's character from a **recording** rather than a trained LoRA.  Choose a *Recorded voice*
+in the editor, or make one with **Make a voice…** from a file — a minute or two of singing is plenty, and nothing is
+trained.
+
+What happens is simple, and not like a LoRA.  The recording is turned once into the model's **semantic tokens** — the
+stream the model writes for the music it sings, at 25 per second — and a render that uses that voice starts from a few
+seconds of the same stream before it sings your words and score.  So the voice carries over without any training, and
+the rest of the song is made in the usual way.
+
+**How much of it** is the one dial worth understanding.  The editor uses about **48 seconds** of the recording, which
+is what carried a voice in testing; four seconds did not, and longer is not always better, because the beginning of a
+song can pull the melody with it.  A reason to make the recording from several short excerpts rather than one song: the
+voice is what those excerpts share, and a collaged voice dragged less of one tune's shape along.
+
+A recording is a small thing to keep: the token stream and the source file, in the app's data folder.  A take's recipe
+names its voice, so an import can match it against the voices that machine has.
 ### Advanced settings
 
 The **Advanced** button in the editor's header opens settings for this one take. Most songs never

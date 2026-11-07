@@ -37,6 +37,15 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **A recorded voice**: the other way to give a take a singer's character, and the one with nothing trained.  A
+  recording of a voice — your own, or a corpus's singer — is tokenised once into the model's semantic tokens, and a
+  render continues from a few seconds of that stream, so the new words and score come out in that voice.  The editor's
+  **Recorded voice** field makes one from a file, shows how much of it a render uses, and travels in a take's recipe by
+  name.  Measured and listened to before it was built: a whole song's tokens render as that singer (0.88–0.92, against a
+  YuE2 take's 0.03), and 48 seconds in front of another song's words carried the voice by ear where 4 seconds did not.
+
 ## 0.0.54 (2026-11-05)
 
 - **The app in fifteen languages.** Settings → **Language** chooses the language of the app's words: English (US),
