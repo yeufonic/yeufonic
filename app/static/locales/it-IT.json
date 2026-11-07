@@ -2604,5 +2604,6 @@
  "the card's memory could not be read": "impossibile leggere la memoria della scheda",
  "set by TRAIN_MAX_MINUTES": "impostato da TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Nessun URL dell'installer disponibile per questo aggiornamento",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum non corrispondente: previsto {expected_hash}, ottenuto {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum non corrispondente: previsto {expected_hash}, ottenuto {actual_hash}",
+ "This voice has no trained model: Regenerate trains it.": "Questa voce non ha un modello addestrato: Rigenera la addestra."
 }

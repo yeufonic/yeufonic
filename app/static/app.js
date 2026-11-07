@@ -17299,7 +17299,9 @@ function paintPersonaField() {
   var options = ["<option value=''>" + esc(t("None")) + "</option>"];
   ready.forEach(function (v) { options.push("<option value='" + esc(v.id) + "'>" + esc(v.name) + "</option>"); });
   busy.forEach(function (v) {
-    options.push("<option value='" + esc(v.id) + "' disabled>" + esc(v.name) + " · " + esc(voiceState(v)) + "</option>");
+    // A failed voice can be chosen, so Regenerate can train it again; one in training waits.
+    options.push("<option value='" + esc(v.id) + "'" + (v.state === "failed" ? "" : " disabled") + ">" + esc(v.name) +
+      " · " + esc(voiceState(v)) + "</option>");
   });
   host.innerHTML = '<label for="persona-select">' + t("Recorded voice") + '</label>' +
     '<select id="persona-select">' + options.join("") + "</select>" +
@@ -17357,10 +17359,12 @@ function refreshPersonaHint() {
   var regen = $("persona-regen");
   if (regen) { regen.classList.toggle("hidden", !selected); }
   var wrap = $("persona-octave-wrap");
-  if (wrap) { wrap.classList.toggle("hidden", !selected); }
+  if (wrap) { wrap.classList.toggle("hidden", !selected || selected.state !== "ready"); }
   var octave = $("persona-octave");
   if (octave && selected) { octave.value = String(selected.octave || 0); }
-  hint.textContent = selected
+  hint.textContent = selected && selected.state === "failed"
+    ? t("This voice has no trained model: Regenerate trains it.")
+    : selected
     ? t("The take is sung as usual, then its vocal is sung again in this voice.")
     : t("Train a voice from a recording of someone singing, or from a corpus, and a take can be sung in it.");
 }

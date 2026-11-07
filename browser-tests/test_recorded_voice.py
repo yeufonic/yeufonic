@@ -69,3 +69,17 @@ def test_make_a_voice_asks_in_the_apps_own_dialog_then_goes_back_to_the_main_pag
     page.click("#confirm-ok")
     page.wait_for_selector("#identities-modal.hidden", state="attached")
     assert page.is_hidden("#confirm-modal")
+
+
+def test_a_failed_voice_can_be_chosen_to_train_it_again(page, app_server):
+    page.route("**/api/voices/service", lambda route: route.fulfill(json=SERVICE))
+    page.route("**/api/voices", lambda route: route.fulfill(json=[
+        {"id": "dddddddddddd", "name": "Old", "state": "failed", "octave": 0, "progress": 0}]))
+    page.evaluate("() => loadPersonas()")
+    open_new(page, "Song")
+    page.wait_for_selector("#persona-select option[value=dddddddddddd]", state="attached")
+    assert not page.is_disabled("#persona-select option[value=dddddddddddd]")
+    page.select_option("#persona-select", "dddddddddddd")
+    assert not page.is_hidden("#persona-regen")
+    assert page.is_hidden("#persona-octave-wrap")
+    assert "Regenerate" in page.inner_text("#persona-hint")

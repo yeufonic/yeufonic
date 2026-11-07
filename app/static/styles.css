@@ -428,6 +428,8 @@ main.fit { max-width: 1500px; margin: 0 auto; }
 /* ---------- form ---------- */
 .field { margin-bottom: 14px; }
 .field > label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.01em; }
+/* The recorded voice field's Octave is a label too, and the rule above would show it while it is hidden. */
+.field > label.hidden { display: none; }
 input[type="text"], input[type="number"], select, textarea {
   width: 100%; background: var(--card); color: var(--text);
   border: 1px solid var(--line); border-radius: 12px;
