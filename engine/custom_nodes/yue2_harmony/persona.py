@@ -91,6 +91,9 @@ class Yue2PersonaGenerate:
             "top_p": ("FLOAT", {"default": 0.95, "min": 0.01, "max": 1.0, "step": 0.01}),
             "top_k": ("INT", {"default": 100, "min": 1, "max": 32768}),
             "repetition_penalty": ("FLOAT", {"default": 1.2, "min": 0.01, "max": 10.0, "step": 0.01}),
+        }, "optional": {
+            # Optional as in YuE2 Generate Music, whose graphs (the app's render template among them) leave it
+            # out: unset, it is 1.01 with no score and 1.0 with one, as generate() works out.
             "cfg_scale": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step": 0.01}),
         }}
 
