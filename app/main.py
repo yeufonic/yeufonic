@@ -832,6 +832,9 @@ async def requeue_waiting() -> None:
         else:
             sings = (row["abc"] or "").strip() or row["mode"] == NO_SCORE   # a take with no score is rendered as it is
             await QUEUE.put({"kind": "render" if sings else "plan", "id": row["id"]})
+    # A voice whose training was cut off by the restart trains again from the start: the service keeps nothing.
+    for row in rows("SELECT id FROM voices WHERE state = 'training' ORDER BY created_at"):
+        await jobs.queue_voice_training(row["id"])
     for row in rows("SELECT id FROM stem_sets WHERE status = 'queued' ORDER BY created_at"):
         await STEM_QUEUE.put({"id": row["id"]})
     for row in rows("SELECT id FROM sources WHERE lyrics_state IN ('queued', 'running') ORDER BY created_at"):
@@ -1399,6 +1402,9 @@ def _job_title(kind: str, ref_id: str) -> str | None:
     if kind == "art":
         row = one("SELECT title FROM takes WHERE id = ?", (ref_id,))
         return f"Picture: {row['title']}" if row else None
+    if kind == "voice":
+        voice = persona.one(ref_id)
+        return f"Voice: {voice['name']}" if voice else None
     if kind == "transcribe":
         row = one("SELECT title FROM sources WHERE id = ?", (ref_id,))
     else:
@@ -1435,6 +1441,7 @@ def queue_view() -> list[dict]:
             "id": CURRENT["id"],
             "title": _job_title(CURRENT["kind"], CURRENT["id"]),
             "label": CURRENT.get("label") or "External LLM",
+            "progress": CURRENT.get("progress"),
         })
     elif not CURRENT.get("id") and jobs.CURRENT_IDENTITY.get("id"):
         cid = jobs.CURRENT_IDENTITY["id"]
@@ -1464,6 +1471,10 @@ def queue_view() -> list[dict]:
             row = one("SELECT title, transcribe_state AS status FROM sources WHERE id = ?", (job["id"],))
         elif job["kind"] == "art":
             row = {"title": _job_title("art", job["id"]), "status": artwork.info(job["id"])["state"]}
+        elif job["kind"] == "voice":
+            voice = persona.one(job["id"])
+            row = {"title": _job_title("voice", job["id"]),
+                   "status": "queued" if voice and voice["state"] == "training" else "done"} if voice else None
         else:
             row = one("SELECT title, status FROM takes WHERE id = ?", (job["id"],))
         if not row or row["status"] != "queued":
@@ -6010,39 +6021,28 @@ async def delete_stem_set(set_id: str) -> dict:
         await asyncio.to_thread(remove_folders, [(Path(item["folder"]), config.DATA_DIR)])
     return {"deleted": True}
 
-# ---------------------------------------------------------------------- vocal personas
-
-_PERSONA_TASKS: set = set()
+# ---------------------------------------------------------------------- recorded voices
 
 
 @app.get("/api/voices")
 async def list_personas() -> list[dict]:
-    """Recorded voices, for the editor's Vocal identity picker."""
+    """Recorded voices, for the editor's Recorded voice picker."""
     return persona.all()
 
 
-def _tokenise_in_background(persona_id: str) -> None:
-    """Fire the tokenise job and hold a reference to it, so the task is not collected mid-flight."""
-    task = asyncio.create_task(jobs.tokenise_persona(persona_id))
-    _PERSONA_TASKS.add(task)
-
-    def done(finished):
-        _PERSONA_TASKS.discard(finished)
-        with suppress(Exception):
-            error = finished.exception()
-        if error is not None:
-            log.warning("tokenising a persona failed: %s", error)
-
-    task.add_done_callback(done)
+@app.get("/api/voices/service")
+async def voice_service_state() -> dict:
+    """Whether recorded voices can be made and used here: the voice service running, with its models."""
+    return await jobs.voice_service()
 
 
 @app.post("/api/voices")
 async def make_persona(
     file: UploadFile = File(...),
     name: str = Form("", max_length=80),
-    prefix_seconds: float = Form(persona.DEFAULT_PREFIX_SECONDS),
+    octave: int = Form(0),
 ) -> dict:
-    """One recording becomes one persona; the engine tokenises it in the background."""
+    """One recording of a voice becomes a trained voice; training waits its turn on the GPU."""
     suffix = Path(file.filename or "voice.wav").suffix.lower() or ".wav"
     if suffix not in identities.AUDIO_TYPES:
         raise HTTPException(400, "That is not an audio file the app can read.")
@@ -6054,35 +6054,20 @@ async def make_persona(
         temp.unlink(missing_ok=True)
         raise HTTPException(400, "That recording is empty.")
     try:
-        made = persona.create(name or Path(file.filename or "voice").stem, source=temp,
-                              prefix_seconds=prefix_seconds)
+        made = persona.create(name or Path(file.filename or "voice").stem, source=temp, octave=octave)
     finally:
         temp.unlink(missing_ok=True)
-    _tokenise_in_background(made["id"])
-    return made
+    await jobs.queue_voice_training(made["id"])
+    return persona.one(made["id"])
 
 
 @app.patch("/api/voices/{persona_id}")
-async def edit_persona(persona_id: str, name: str | None = Form(None),
-                       prefix_seconds: float | None = Form(None)) -> dict:
-    """Rename a persona, or change how much of its stream a render uses."""
-    record = persona.update(persona_id, **{k: v for k, v in (("name", name),
-                                                                   ("prefix_seconds", prefix_seconds)) if v is not None})
+async def edit_persona(persona_id: str, name: str | None = Form(None), octave: int | None = Form(None)) -> dict:
+    """Rename a voice, or move it up or down an octave."""
+    record = persona.update(persona_id, **{k: v for k, v in (("name", name), ("octave", octave)) if v is not None})
     if record is None:
         raise HTTPException(404, "no such persona")
     return record
-
-
-@app.post("/api/voices/{persona_id}/tokenise")
-async def retokenise_persona(persona_id: str) -> dict:
-    """Try again, after a failed tokenise or a new tokenizer head."""
-    record = persona.one(persona_id)
-    if record is None:
-        raise HTTPException(404, "no such persona")
-    if not Path(record.get("source_path") or "").exists():
-        raise HTTPException(400, "There is no recording left to tokenise.")
-    _tokenise_in_background(persona_id)
-    return {"queued": True}
 
 
 @app.delete("/api/voices/{persona_id}")
@@ -6092,49 +6077,31 @@ async def remove_persona(persona_id: str) -> dict:
     persona.delete(persona_id)
     return {"deleted": persona_id}
 
+
 @app.post("/api/voices/from-identity")
 async def make_voice_from_corpus(
     identity_id: str = Form(..., max_length=64),
     name: str = Form("", max_length=80),
-    prefix_seconds: float = Form(persona.DEFAULT_PREFIX_SECONDS),
-    seconds_per_song: float = Form(jobs.COLLAGE_SONG_SECONDS),
-    songs: int = Form(jobs.COLLAGE_SONGS, ge=1, le=12),
+    octave: int = Form(0),
 ) -> dict:
-    """A voice taken from a corpus: a collage of a few seconds from several of its songs, tokenised once."""
+    """A voice trained on a corpus's songs, each separated again with a cleaner separator than analysis uses."""
     corpus = one("SELECT id, name FROM identities WHERE id = ?", (identity_id,))
     if not corpus:
         raise HTTPException(404, "no such corpus")
-    try:
-        collage = await asyncio.to_thread(jobs.collage_from_corpus, identity_id, seconds_per_song, songs)
-    except ValueError as err:
-        raise HTTPException(400, str(err))
-    try:
-        made = persona.create(name or f"{corpus['name']} (corpus)", source=collage,
-                              prefix_seconds=prefix_seconds, origin_identity=identity_id)
-    finally:
-        collage.unlink(missing_ok=True)
-    _tokenise_in_background(made["id"])
-    return made
+    if not jobs.voice_sources({"origin_identity": identity_id}):
+        raise HTTPException(400, "this corpus has no songs to make a voice from")
+    made = persona.create(name or f"{corpus['name']} (corpus)", octave=octave, origin_identity=identity_id)
+    await jobs.queue_voice_training(made["id"])
+    return persona.one(made["id"])
 
 
 @app.post("/api/voices/{persona_id}/regenerate")
 async def regenerate_voice(persona_id: str) -> dict:
-    """Build the voice again: a corpus voice re-cuts its collage from the corpus as it is now, then tokenises."""
+    """Train the voice again: a corpus voice from the corpus's songs as they are now, a recording from itself."""
     record = persona.one(persona_id)
     if record is None:
         raise HTTPException(404, "no such persona")
-    origin = record.get("origin_identity")
-    if origin:
-        try:
-            collage = await asyncio.to_thread(jobs.collage_from_corpus, origin)
-        except ValueError as err:
-            raise HTTPException(400, str(err))
-        keep = persona.folder(persona_id) / "source.wav"
-        shutil.copy2(collage, keep)
-        collage.unlink(missing_ok=True)
-        execute("UPDATE voices SET source_path = ?, state = 'preparing', error = NULL WHERE id = ?",
-                (str(keep), persona_id))
-    elif not Path(record.get("source_path") or "").exists():
-        raise HTTPException(400, "There is no recording left to tokenise.")
-    _tokenise_in_background(persona_id)
+    if not jobs.voice_sources(record):
+        raise HTTPException(400, "There is no recording left to train on.")
+    await jobs.queue_voice_training(persona_id)
     return {"queued": True}

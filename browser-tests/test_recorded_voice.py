@@ -6,39 +6,56 @@ pytest.importorskip("playwright.sync_api")
 from helpers import open_new  # noqa: E402
 
 
-def test_the_field_follows_the_take_and_polls_a_voice_being_made(page, app_server):
-    open_new(page, "Song")
-    page.wait_for_selector("#persona-select")
-    assert page.inner_text("label[for=persona-select]") == "Recorded voice"
-    # Two voices, as /api/voices lists them: one ready, one still being tokenised.
-    page.evaluate("""() => {
-      PERSONA.list = [
-        { id: 'aaaaaaaaaaaa', name: 'Mine', state: 'ready', prefix_seconds: 48 },
-        { id: 'bbbbbbbbbbbb', name: 'Busy', state: 'preparing', prefix_seconds: 48 }];
-      paintPersonaField();
-    }""")
-    assert page.is_disabled("#persona-select option[value=bbbbbbbbbbbb]")
-    # A take with a voice selects it; a take without one clears it, rather than inheriting the last take's.
-    page.evaluate("() => setPersonaFromTake({ voice_id: 'aaaaaaaaaaaa' })")
-    assert page.input_value("#persona-select") == "aaaaaaaaaaaa"
-    assert not page.is_hidden("#persona-seconds-wrap")
-    page.evaluate("() => setPersonaFromTake({ voice_id: null })")
-    assert page.input_value("#persona-select") == ""
-    # While the server lists a voice as preparing, the list is asked again; once it is ready it stops.
-    calls = []
-    page.route("**/api/voices", lambda route: (calls.append(1), route.fulfill(
-        json=[{"id": "bbbbbbbbbbbb", "name": "Busy", "state": "preparing" if len(calls) < 2 else "ready",
-               "prefix_seconds": 48}])))
+SERVICE = {"ok": True, "running": True, "models": {}}
+
+
+def test_the_field_is_hidden_without_the_voice_service(page, app_server):
+    page.route("**/api/voices/service", lambda route: route.fulfill(json={"ok": False, "running": False, "models": {}}))
+    page.route("**/api/voices", lambda route: route.fulfill(json=[]))
     page.evaluate("() => loadPersonas()")
+    open_new(page, "Song")
+    page.wait_for_selector("#persona-field", state="attached")
+    assert page.is_hidden("#persona-field")
+
+
+def test_the_field_follows_the_take_shows_training_and_moves_an_octave(page, app_server):
+    page.route("**/api/voices/service", lambda route: route.fulfill(json=SERVICE))
+    calls = []
+    def voices(route):
+        calls.append(1)
+        busy = len(calls) < 2
+        route.fulfill(json=[
+            {"id": "aaaaaaaaaaaa", "name": "Mine", "state": "ready", "octave": 0, "progress": 1},
+            {"id": "bbbbbbbbbbbb", "name": "Busy", "state": "training" if busy else "ready", "octave": 0,
+             "progress": 0.4 if busy else 1}])
+    page.route("**/api/voices", voices)
+    patched = []
+    page.route("**/api/voices/aaaaaaaaaaaa", lambda route: (patched.append(route.request.post_data), route.fulfill(
+        json={"id": "aaaaaaaaaaaa", "name": "Mine", "state": "ready", "octave": 1, "progress": 1})))
+    page.evaluate("() => loadPersonas()")
+    open_new(page, "Song")
+    page.wait_for_selector("#persona-select option[value=bbbbbbbbbbbb]", state="attached")
+    assert page.inner_text("label[for=persona-select]") == "Recorded voice"
+    busy = page.locator("#persona-select option[value=bbbbbbbbbbbb]")
+    assert busy.is_disabled() and "40%" in busy.inner_text()
+    # A take with a voice selects it, and the octave shows; a take without one clears it.
+    page.evaluate("() => setPersonaFromTake({ id: 't1', voice_id: 'aaaaaaaaaaaa' })")
+    assert page.input_value("#persona-select") == "aaaaaaaaaaaa"
+    assert not page.is_hidden("#persona-octave-wrap")
+    page.select_option("#persona-octave", "1")
+    page.wait_for_function("() => PERSONA.list[0].octave === 1")
+    assert "octave=1" in patched[0]
+    page.evaluate("() => setPersonaFromTake({ id: 't2', voice_id: null })")
+    assert page.input_value("#persona-select") == ""
+    # While a voice trains the list is asked again; once it is ready the option can be chosen.
     page.wait_for_function("() => !document.querySelector('#persona-select option[value=bbbbbbbbbbbb]').disabled",
-                           timeout=10000)
-    page.wait_for_timeout(3500)
-    assert len(calls) == 2
+                           timeout=15000)
 
 
 def test_make_a_voice_asks_in_the_apps_own_dialog_then_goes_back_to_the_main_page(page, app_server):
     page.route("**/api/voices/from-identity", lambda route: route.fulfill(
-        json={"id": "cccccccccccc", "name": "Band voice", "state": "preparing", "prefix_seconds": 48}))
+        json={"id": "cccccccccccc", "name": "Band voice", "state": "training", "octave": 0, "progress": 0}))
+    page.route("**/api/voices/service", lambda route: route.fulfill(json=SERVICE))
     page.route("**/api/voices", lambda route: route.fulfill(json=[]))
     page.evaluate("() => openIdentities()")
     page.wait_for_selector("#identities-modal:not(.hidden)")

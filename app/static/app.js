@@ -3102,7 +3102,7 @@ function refreshTitleHint() {
 
 var JOB_KINDS = { render: t('Render'), plan: t('Score plan'), transcribe: t('Transcription'), separate: t('Stem separation'), hear: t('Lyric hearing'), lyrics: t('Lyrics'), text: t('Text generation'), train: t('LoRA training'), other: t('Engine job'),
   identity_score: t('Corpus analysis'), identity_style: t('Corpus analysis'), persona_score: t('Corpus analysis'), persona_style: t('Corpus analysis'),
-  identity_prep: t('Corpus prep'), persona_prep: t('Corpus prep'), art: t('Picture') };
+  identity_prep: t('Corpus prep'), persona_prep: t('Corpus prep'), art: t('Picture'), voice: t('Recorded voice') };
 
 /* The take a job is for, where it is one of the app's own: a plan, a render or a picture.  Its title in the job card
    goes to that take. */
@@ -3410,7 +3410,7 @@ function paintJob(current, queue, options) {
   var titles = { render: t('Rendering your song'), plan: t('Writing the score plan'), transcribe: t('Transcribing the recording'),
     lyrics: t('Writing lyrics'), train: t('Training the LoRA'), identity_score: t('Analysing a corpus song'),
     identity_style: t('Analysing a corpus song'), persona_score: t('Analysing a corpus song'), persona_style: t('Analysing a corpus song'),
-    identity_prep: t('Preparing corpus song'), persona_prep: t('Preparing corpus song'), art: t('Drawing a picture') };
+    identity_prep: t('Preparing corpus song'), persona_prep: t('Preparing corpus song'), art: t('Drawing a picture'), voice: t('Training a voice') };
   var shown = null;   // the job whose title the card shows, so a click on it can go to its take
   // Only the render has an average, measured from this machine's own history.
   // The others show the time they have taken and claim nothing about the rest.
@@ -10387,7 +10387,6 @@ async function doExpandToSong() {
    training a style LoRA.  The folder is only read;
    the app keeps its own copies, and the review happens here, song by song. */
 var IDENTITY = { view: 'list', id: null, data: null, open: {}, timer: null, browse: null };
-var PERSONA = IDENTITY;
 var STEP_NAMES_ALL = [['vocals_state', 'Vocal'], ['score_state', t('Key & tempo')], ['lyrics_state', t('Lyrics')], ['style_state', t('Style')]];
 var STEP_NAMES = STEP_NAMES_ALL;
 var STEP_MARKS = { none: '', queued: '· ' + t('queued'), running: '…', done: '✓', failed: '✕' };
@@ -10448,9 +10447,9 @@ async function showIdentityList() {
         '<strong><span class="corpus-dot" aria-hidden="true"></span>' + esc(item.name) + '</strong>' +
         '<span class="muted">' + t('trigger') + ' <code>' + esc(item.trigger_word) + '</code> · ' +
         t('{included} of {songs} songs', { included: item.included || 0, songs: item.songs || 0 }) + (item.exported_at ? ' · ' + t('exported') : '') + '</span>' +
-        '<span class="corpus-actions">' + (cppEngine() ? '' :
-        '<button type="button" class="ghost" data-voice-from="' + esc(item.id) + '" data-voice-name="' + esc(item.name) + '">' +
-        t('Make a voice…') + '</button>') + '</span>' +
+        '<span class="corpus-actions">' +
+        '<button type="button" class="ghost' + (PERSONA.service && PERSONA.service.ok ? '' : ' hidden') + '" data-voice-from="' + esc(item.id) + '" data-voice-name="' + esc(item.name) + '">' +
+        t('Make a voice…') + '</button></span>' +
         '<span class="corpus-preparing">' + t('preparing…') + '</span></div>';
     }).join('') + '</div>';
   paintCorpusCards();
@@ -17274,36 +17273,39 @@ function wirePlaylists() {
 }
 
 /* ------------------------------------------------------------------ a recorded voice
-   A persona from a recording: tokenised once, and applied at render as a prefix of its own tokens
-   (VOICE-PERSONA.md 8.6).  The list is built into the page rather than the markup, so a new install and an
-   old page both work after a refresh. */
-var PERSONA = { list: [], id: null, poll: null };
+   A voice model trained from someone's singing; a take that names one is rendered as usual and its vocal is then
+   sung again in that voice (VOICE-PERSONA.md).  The field is built here rather than in the markup, so a new install
+   and an old page both work after a refresh, and it is hidden while the voice service is not running. */
+var PERSONA = { list: [], id: null, poll: null, takeId: null, service: null };
 
 function personaNameOf(id) {
   var found = PERSONA.list.filter(function (v) { return v.id === id; })[0];
   return found ? found.name : "";
 }
 
+function voiceState(v) {
+  if (v.state === "failed") { return t("failed"); }
+  return t("training… {value}%", { value: Math.round((Number(v.progress) || 0) * 100) });
+}
+
 function paintPersonaField() {
   var host = $("persona-field");
   if (!host) { return; }
+  var usable = PERSONA.service && PERSONA.service.ok;
+  host.classList.toggle("hidden", !usable);
+  if (!usable) { return; }
   var ready = PERSONA.list.filter(function (v) { return v.state === "ready"; });
   var busy = PERSONA.list.filter(function (v) { return v.state !== "ready"; });
   var options = ["<option value=''>" + esc(t("None")) + "</option>"];
-  ready.forEach(function (v) {
-    options.push("<option value='" + esc(v.id) + "'>" + esc(v.name) + " · " +
-      Math.round(Number(v.prefix_seconds) || 0) + " s</option>");
-  });
+  ready.forEach(function (v) { options.push("<option value='" + esc(v.id) + "'>" + esc(v.name) + "</option>"); });
   busy.forEach(function (v) {
-    var why = v.state === "failed" ? t("failed") : t("preparing…");
-    options.push("<option value='" + esc(v.id) + "' disabled>" + esc(v.name) + " · " + why + "</option>");
+    options.push("<option value='" + esc(v.id) + "' disabled>" + esc(v.name) + " · " + esc(voiceState(v)) + "</option>");
   });
-  host.classList.toggle("hidden", cppEngine());     // yue2.cpp has no voice node: a take renders without one
   host.innerHTML = '<label for="persona-select">' + t("Recorded voice") + '</label>' +
     '<select id="persona-select">' + options.join("") + "</select>" +
-    '<span class="persona-picks">' +
-    '<label class="persona-seconds hidden" id="persona-seconds-wrap">' + t("Seconds") +
-    '<input type="number" id="persona-seconds" min="4" max="120" step="4"></label></span>' +
+    '<label class="persona-octave hidden" id="persona-octave-wrap">' + t("Octave") +
+    ' <select id="persona-octave"><option value="-1">−1</option><option value="0">0</option>' +
+    '<option value="1">+1</option></select></label>' +
     '<button type="button" id="persona-make" class="ghost">' + t("Make a voice…") + '</button>' +
     '<button type="button" id="persona-regen" class="ghost hidden">' + t("Regenerate") + '</button>' +
     '<p class="sub" id="persona-hint"></p>';
@@ -17316,39 +17318,33 @@ function paintPersonaField() {
   if (make) { make.addEventListener("click", askForVoice); }
   var regen = $("persona-regen");
   if (regen) { regen.addEventListener("click", regeneratePersona); }
-  var seconds = $("persona-seconds");
-  if (seconds) {
-    seconds.addEventListener("change", function () { setPersonaSeconds(seconds.value); });
-  }
+  var octave = $("persona-octave");
+  if (octave) { octave.addEventListener("change", function () { setPersonaOctave(octave.value); }); }
   refreshPersonaHint();
 }
 
-/* How much of the voice a render uses.  Saved on the voice rather than the take, so every take that picks it
-   gets the same length until it is changed here. */
-async function setPersonaSeconds(value) {
+/* A voice sung in another range sounds wrong, and only whole octaves keep it in the backing's key.  Saved on the
+   voice, so every take that picks it is sung at the same octave until it is changed here. */
+async function setPersonaOctave(value) {
   if (!PERSONA.id) { return; }
   try {
     var changed = await api("/api/voices/" + PERSONA.id, {
-      method: "PATCH",
-      body: new URLSearchParams({ prefix_seconds: String(value) })
+      method: "PATCH", body: new URLSearchParams({ octave: String(value) })
     });
     PERSONA.list = PERSONA.list.map(function (v) { return v.id === changed.id ? changed : v; });
-    await loadPersonas();
-    toast(t("This render uses about") + " " + Math.round(Number(changed.prefix_seconds) || 0) + " " +
-          t("seconds of that voice before the new song."));
+    refreshPersonaHint();
   } catch (err) {
     toast(err && err.message ? err.message : t("no such persona"));
   }
 }
 
-/* Build the selected voice again: a corpus voice re-cuts its collage from the corpus as it is now, so a
-   corpus that has gained or lost songs is picked up without making a new voice. */
+/* Train the selected voice again: a corpus voice from the corpus's songs as they are now. */
 async function regeneratePersona() {
   if (!PERSONA.id) { return; }
   try {
     await api("/api/voices/" + PERSONA.id + "/regenerate", { method: "POST" });
     await loadPersonas();
-    toast(t("Tokenising that voice: it will be ready in a few seconds."));
+    toast(t("Training that voice: it can take an hour, and waits for the songs ahead of it."));
   } catch (err) {
     toast(err && err.message ? err.message : t("no such persona"));
   }
@@ -17360,35 +17356,36 @@ function refreshPersonaHint() {
   var selected = PERSONA.list.filter(function (v) { return v.id === PERSONA.id; })[0];
   var regen = $("persona-regen");
   if (regen) { regen.classList.toggle("hidden", !selected); }
-  var wrap = $("persona-seconds-wrap");
-  var field = $("persona-seconds");
+  var wrap = $("persona-octave-wrap");
   if (wrap) { wrap.classList.toggle("hidden", !selected); }
-  if (field && selected && document.activeElement !== field) {
-    field.value = String(Math.round(Number(selected.prefix_seconds) || 0));
-  }
+  var octave = $("persona-octave");
+  if (octave && selected) { octave.value = String(selected.octave || 0); }
   hint.textContent = selected
-    ? t("This render uses about") + " " + Math.round(Number(selected.prefix_seconds) || 0) +
-      " " + t("seconds of that voice before the new song.")
-    : t("A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.");
+    ? t("The take is sung as usual, then its vocal is sung again in this voice.")
+    : t("Train a voice from a recording of someone singing, or from a corpus, and a take can be sung in it.");
 }
 
 async function loadPersonas() {
-  var was = JSON.stringify(PERSONA.list);
+  var was = JSON.stringify([PERSONA.list, PERSONA.service]);
   try {
-    PERSONA.list = await api("/api/voices");
+    var answers = await Promise.all([api("/api/voices"), api("/api/voices/service")]);
+    PERSONA.list = answers[0];
+    PERSONA.service = answers[1];
   } catch (err) {
     PERSONA.list = [];
+    PERSONA.service = null;
   }
   if (PERSONA.id && !PERSONA.list.some(function (v) { return v.id === PERSONA.id; })) {
     PERSONA.id = null;
   }
   // Redrawn only when something changed, so the poll below does not close a list someone has open.
-  if (JSON.stringify(PERSONA.list) !== was || !$("persona-select")) { paintPersonaField(); }
-  // A voice being tokenised is looked at again until it is ready or has failed.
+  if (JSON.stringify([PERSONA.list, PERSONA.service]) !== was || !$("persona-select")) { paintPersonaField(); }
+  // A voice in training is looked at again until it is ready or has failed.
   clearTimeout(PERSONA.poll);
-  if (PERSONA.list.some(function (v) { return v.state === "preparing"; })) {
-    PERSONA.poll = setTimeout(loadPersonas, 3000);
+  if (PERSONA.list.some(function (v) { return v.state === "training"; })) {
+    PERSONA.poll = setTimeout(loadPersonas, 10000);
   }
+  paintCorpusVoiceButtons();
 }
 
 /* The editor shows the voice of the take open in it, or none: a voice is the take's, like its LoRAs. */
@@ -17427,24 +17424,34 @@ async function makePersona(file) {
   var form = new FormData();
   form.append("file", file, file.name || "voice.wav");
   form.append("name", said.trim() || name);
-  var made = await api("/api/voices", { method: "POST", body: form });
-  PERSONA.id = made.id;
-  await loadPersonas();
-  toast(t("Tokenising that voice: it will be ready in a few seconds."));
+  try {
+    await api("/api/voices", { method: "POST", body: form });
+    await loadPersonas();
+    toast(t("Training that voice: it can take an hour, and waits for the songs ahead of it."));
+  } catch (err) {
+    toast(err && err.message ? err.message : t("That recording is empty."));
+  }
 }
 
 function installPersonaField() {
   var vocal = $("vocal-field");
   if (!vocal || $("persona-field")) { return; }
   var holder = document.createElement("div");
-  holder.className = "field";
+  holder.className = "field hidden";
   holder.id = "persona-field";
   vocal.parentNode.insertBefore(holder, vocal.nextSibling);
   loadPersonas();
 }
 
-/* A corpus makes a voice where corpora are listed: the button on its card takes a few seconds from several
-   of its songs, joins them, and lets the same tokenise job run on the result. */
+/* A corpus's Make a voice… button shows only where voices can be made. */
+function paintCorpusVoiceButtons() {
+  var usable = Boolean(PERSONA.service && PERSONA.service.ok);
+  Array.prototype.forEach.call(document.querySelectorAll("[data-voice-from]"), function (button) {
+    button.classList.toggle("hidden", !usable);
+  });
+}
+
+/* A corpus makes a voice where corpora are listed: the button on its card trains one on the corpus's songs. */
 document.addEventListener("click", function (event) {
   var button = event.target.closest && event.target.closest("[data-voice-from]");
   if (!button) { return; }
@@ -17456,16 +17463,15 @@ async function makeVoiceFromCorpus(identityId, name) {
   if (!identityId) { return; }
   var said = await askVoiceName(name ? name + " voice" : "");
   if (said === null) { return; }
-  // Nothing more happens on the corpus: the voice is made in the background and chosen in the editor.
+  // Nothing more happens on the corpus: the voice trains in the background and is chosen in the editor.
   closeIdentities();
   var form = new FormData();
   form.append("identity_id", identityId);
   form.append("name", said.trim());
   try {
-    var made = await api("/api/voices/from-identity", { method: "POST", body: form });
-    PERSONA.id = made.id;
+    await api("/api/voices/from-identity", { method: "POST", body: form });
     await loadPersonas();
-    toast(t("Tokenising that voice: it will be ready in a few seconds."));
+    toast(t("Training that voice: it can take an hour, and waits for the songs ahead of it."));
   } catch (err) {
     toast(err && err.message ? err.message : t("That recording is empty."));
   }

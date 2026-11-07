@@ -17,6 +17,8 @@ import threading
 import time
 from pathlib import Path
 
+import httpx
+
 from . import artwork, config, engine_cpp, identities, instrumental, llm, loras, lyrics, persona, score, stems, storage, trainsize, transpose, voices
 from .db import bump_average, execute, get_setting, one, rows
 from .engine import OUT_OF_MEMORY, Engine, load_template
@@ -448,37 +450,7 @@ def build_render_graph(take: dict) -> dict:
     # A persona stands in for the music node: the AR continues from the persona's own tokens and the
     # decoder renders that continuation, so the take comes out in that voice with nothing trained.
     # The persona's own inputs are a superset of the template's, so nothing else changes.
-    # The tokens go by their name in the engine's input folder; the render job uploads them before it submits
-    # (voice_for_render).  yue2.cpp has no such node, so there a take renders without its voice.
-    person = render_voice(take)
-    if person:
-        graph["11"]["class_type"] = "Yue2PersonaGenerate"
-        node.update({
-            "persona_tokens": persona.engine_name(person["id"]),
-            "persona_seconds": float(person.get("prefix_seconds") or persona.DEFAULT_PREFIX_SECONDS),
-        })
-    elif take.get("voice_id"):
-        log.warning("take %s names voice %s, which is not ready%s; rendering without it",
-                    take.get("id"), take.get("voice_id"),
-                    " or not on this engine" if config.ENGINE_KIND == "yue2cpp" else "")
     return graph
-
-
-def render_voice(take: dict) -> dict | None:
-    """The recorded voice a render uses: the take's, when it is ready and this engine can apply it."""
-    if not take.get("voice_id") or config.ENGINE_KIND == "yue2cpp":
-        return None
-    person = persona.one(take["voice_id"])
-    if person and person.get("state") == "ready" and Path(person.get("tokens_path") or "").is_file():
-        return person
-    return None
-
-
-async def voice_for_render(take: dict) -> None:
-    """Put the take's voice tokens in the engine's input folder, under the name the render graph gives them."""
-    person = render_voice(take)
-    if person:
-        await ENGINE.upload(persona.engine_name(person["id"]), Path(person["tokens_path"]).read_bytes())
 
 
 def build_lyrics_graph(record: dict) -> dict:
@@ -909,6 +881,9 @@ async def run_job(kind: str, ref_id: str) -> None:
     if kind == "art":
         await run_art(ref_id, on_gpu=True)
         return
+    if kind == "voice":
+        await run_voice_train(ref_id)
+        return
     if kind == "lyrics":
         record = LYRICS.get(ref_id)
         if not record or record["status"] != "queued":
@@ -982,12 +957,6 @@ async def run_job(kind: str, ref_id: str) -> None:
                 execute("UPDATE takes SET abc = ? WHERE id = ?", (fitted, ref_id))
                 record["abc"] = fitted
         graph = build_plan_graph(record) if kind == "plan" else build_render_graph(record)
-        if kind == "render":
-            try:
-                await voice_for_render(record)
-            except Exception as exc:  # noqa: BLE001
-                fail(kind, ref_id, f"could not send the recorded voice to the engine: {exc}")
-                return
         execute("UPDATE takes SET status = 'running', error = NULL, stage = NULL WHERE id = ?", (ref_id,))
         title = record.get("title") or ref_id
         if kind == "plan":
@@ -997,9 +966,9 @@ async def run_job(kind: str, ref_id: str) -> None:
         else:
             style_info = f", style_lora={record.get('style_lora')}" if record.get("style_lora") else ""
             voice_info = f", voice_lora={record.get('voice_lora')}" if record.get("voice_lora") else ""
-            sung_by = render_voice(record)
-            if sung_by:
-                voice_info += f", recorded voice={sung_by['name']} ({sung_by['prefix_seconds']:.0f} s)"
+            sung_by = persona.one(record["voice_id"]) if record.get("voice_id") else None
+            if persona.usable(sung_by):
+                voice_info += f", then sung by the recorded voice {persona.describe(sung_by)}"
             log.info("Starting audio render for '%s' (%s, mode=%s, steps=%s, interpretation=%s, %s%s%s)",
                      title, ref_id, record.get("mode", "full"), record.get("sampler_steps") or 32,
                      record.get("interpretation") or "standard", cfg_said(record), style_info, voice_info)
@@ -1208,6 +1177,9 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
                 await asyncio.to_thread(fade_out_end, dest, fade_seconds, rendered_for)
             except Exception as exc:  # noqa: BLE001
                 log.warning("Could not fade out '%s' at its length cap: %s", record.get("title") or ref_id, exc)
+    # A recorded voice sings the vocal again, before the level is read: what is measured and normalised is what plays.
+    if kind == "render" and record.get("voice_id"):
+        await _sing_in_voice(ref_id, record, dest)
     # The level as rendered, before any normalising: a render far quieter than usual
     # has often gone wrong, and a louder copy of it has not been put right.
     level = await asyncio.to_thread(loudness, dest)
@@ -3242,144 +3214,121 @@ def cancel_stems(item: dict) -> None:
 # ---------------------------------------------------------------------- vocal personas
 
 
-PERSONA_POLL_SECONDS = 2.0
-PERSONA_TIMEOUT_SECONDS = 600
-PERSONA_CLOCK = time.monotonic
+VOICE_POLL_SECONDS = 5.0
+VOICE_CONVERT_TIMEOUT = 900
+VOICE_TRAIN_TIMEOUT = 6 * 3600
 
 
-async def tokenise_persona(persona_id: str) -> dict:
-    """Turn a persona's source recording into its token stream, on the engine.
-
-    The recording goes up to the engine's input folder, the node writes the stream beside it, and the app fetches
-    it back into the voice's own folder: nothing is shared but HTTP, so a native or a remote engine works as the
-    Docker one does.  Everything this needs already exists: the trainer's tokenizer head, MERT, and the
-    upload/submit/history/view the render path uses.
-    """
-    from . import persona  # noqa: PLC0415 - avoids a cycle at import time
-
-    record = persona.one(persona_id)
-    if record is None:
-        raise ValueError(f"no persona {persona_id}")
-    source = Path(record.get("source_path") or "")
-    if not source.exists():
-        raise ValueError("this persona has no recording left to tokenise")
-    engine = ENGINE                     # read here, not at import, so a stub can stand in
+async def voice_service() -> dict:
+    """What the voice service says about itself: {"ok": bool, "models": {...}}, or not running."""
+    if not config.VOICE_URL:
+        return {"ok": False, "running": False, "models": {}}
     try:
-        if config.ENGINE_KIND == "yue2cpp":
-            raise RuntimeError("the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine")
-        return await _tokenise_persona(engine, persona, persona_id, source)
-    except Exception as err:
-        persona.failed(persona_id, str(err))
-        raise
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            got = (await client.get(config.VOICE_URL + "/health")).json()
+        return {"running": True, **got}
+    except Exception:  # noqa: BLE001 - not running is an answer, not an error
+        return {"ok": False, "running": False, "models": {}}
 
 
-async def _tokenise_persona(engine, persona, persona_id: str, source: Path) -> dict:
-    """The half that talks to the engine; tokenise_persona marks the persona failed if this raises.
-
-    The engine runs one job at a time, so this one may wait behind a render or a training run: only the time it
-    spends running counts against the timeout.
-    """
-    upload = await engine.upload(f"persona-{persona_id}{source.suffix or '.wav'}", source.read_bytes())
-    name = upload.get("name") or upload.get("filename") or ""
-    made = str(Path(name).with_suffix(".semantic.npy"))       # the node writes beside the audio when out is blank
-    try:
-        return await _run_tokeniser(engine, persona, persona_id, name, made)
-    finally:
-        for left in (name, made):       # the engine's copies, when the app can reach its input folder
-            if config.ENGINE_INPUT_DIR and left:
-                with contextlib.suppress(OSError):
-                    (config.ENGINE_INPUT_DIR / left).unlink(missing_ok=True)
-
-
-async def _run_tokeniser(engine, persona, persona_id: str, name: str, made: str) -> dict:
-    graph = {"1": {"class_type": "Yue2PersonaTokens", "inputs": {
-        "audio": name, "out": "", "head": config.TOKENIZER_HEAD,
-        "mert": "m-a-p/MERT-v2-FullSong", "device": "auto"}}}
-    prompt_id = await engine.submit(graph)
-    running, last = 0.0, PERSONA_CLOCK()
-    while True:
-        await asyncio.sleep(PERSONA_POLL_SECONDS)
-        entry = await engine.history(prompt_id)
-        if entry:
-            status = (entry.get("status") or {}).get("status_str")
-            if status == "error":
-                raise RuntimeError("the engine could not tokenise this recording")
-            if status == "success":
+def voice_sources(record: dict) -> list[str]:
+    """What a voice trains on: its own recording, or a corpus's included songs (their full mixes, separated there)."""
+    if record.get("origin_identity"):
+        songs = rows("SELECT * FROM identity_songs WHERE identity_id = ? AND include = 1 ORDER BY position, title",
+                     (record["origin_identity"],))
+        found = []
+        for song in songs:
+            path = _corpus_original(record["origin_identity"], song)
+            if path:
+                found.append(str(path))
+            if len(found) >= persona.CORPUS_SONGS:
                 break
-        now = PERSONA_CLOCK()
-        if await engine.prompt_state(prompt_id) != "pending":
-            running += now - last
-        last = now
-        if running > PERSONA_TIMEOUT_SECONDS:
-            with contextlib.suppress(Exception):
-                await engine.cancel(prompt_id)
-            raise TimeoutError("tokenising took too long")
-    target = persona.tokens_file(persona_id)
-    await engine.download({"filename": made, "subfolder": "", "type": "input"}, target)
-    persona.ready(persona_id, str(target), head=config.TOKENIZER_HEAD)
-    log.info("persona %s tokenised: %s", persona_id, target)
-    return {"tokens_path": str(target)}
-
-# A collage: a few seconds from several of a corpus's songs, joined into one recording.  The voice is what
-# those excerpts share, and it drags less of one tune's shape along than a single song's opening does.
-COLLAGE_SONG_SECONDS = 12.0
-COLLAGE_SONGS = 4
+        return found
+    return [record["source_path"]] if record.get("source_path") and Path(record["source_path"]).exists() else []
 
 
-def _excerpt(src: Path, dest: Path, seconds: float) -> bool:
-    """Some seconds from the middle of a recording, as 48 kHz stereo WAV."""
-    try:
-        total = audio_duration(Path(src)) or 0.0
-    except Exception:  # noqa: BLE001 - an unreadable file is simply skipped
-        return False
-    if total <= 1.0:
-        return False
-    take = min(seconds, max(1.0, total - 1.0))
-    start = max(0.0, (total - take) / 2)
-    done = subprocess.run(
-        ["ffmpeg", "-v", "error", "-y", "-ss", f"{start:.2f}", "-t", f"{take:.2f}", "-i", str(src),
-         "-ac", "2", "-ar", "48000", str(dest)],
-        capture_output=True)
-    return done.returncode == 0 and dest.exists() and dest.stat().st_size > 0
+def _corpus_original(identity_id: str, song: dict) -> Path | None:
+    folder = identities.song_dir(identity_id, song)
+    for path in sorted(folder.glob("original.*")) if folder.is_dir() else []:
+        if path.suffix.lower() in identities.AUDIO_TYPES:
+            return path
+    return None
 
 
-def collage_from_corpus(identity_id: str, seconds_per_song: float = COLLAGE_SONG_SECONDS,
-                        songs: int = COLLAGE_SONGS) -> Path:
-    """Join an excerpt from several of a corpus's separated vocals into one recording.
+async def queue_voice_training(persona_id: str) -> None:
+    persona.training(persona_id, 0.0)
+    await QUEUE.put({"kind": "voice", "id": persona_id})
 
-    Needs the corpus's vocals, which analysis separates per song; a corpus without them cannot make a voice
-    and says so in words the page shows.
-    """
-    wanted = max(1, min(int(songs or COLLAGE_SONGS), 12))
-    rows_ = rows("SELECT * FROM identity_songs WHERE identity_id = ? AND include = 1 ORDER BY position, title",
-                 (identity_id,))
-    sources: list[Path] = []
-    for song in rows_:
-        found = identities.vocals_file(identities.song_dir(identity_id, song))
-        if found is not None:
-            sources.append(found)
-        if len(sources) >= wanted:
-            break
+
+async def run_voice_train(persona_id: str) -> None:
+    """Train a recorded voice on the voice service, holding the GPU line while it does: the engine is freed first."""
+    record = persona.one(persona_id)
+    if not record or record["state"] != "training":
+        return   # deleted while it waited
+    sources = voice_sources(record)
     if not sources:
-        raise ValueError("this corpus has no separated vocals to make a voice from")
-    work = Path(tempfile.mkdtemp(prefix="persona-collage-"))
+        persona.failed(persona_id, "there is nothing to train this voice on")
+        return
+    if not (await voice_service()).get("ok"):
+        persona.failed(persona_id, "the voice service is not running, or is missing its models")
+        return
+    started = time.time()
+    CURRENT.clear()
+    CURRENT.update({"kind": "voice", "id": persona_id, "prompt_id": None, "started": started,
+                    "label": "Training a voice"})
     try:
-        parts = []
-        for index, src in enumerate(sources):
-            part = work / f"{index:02d}.wav"
-            if _excerpt(src, part, float(seconds_per_song)):
-                parts.append(part)
-        if not parts:
-            raise ValueError("none of this corpus's vocals could be read")
-        listing = work / "list.txt"
-        listing.write_text("".join(f"file '{p}'\n" for p in parts), encoding="utf-8")
-        out = work / "collage.wav"
-        done = subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(listing),
-                               "-c", "copy", str(out)], capture_output=True)
-        if done.returncode != 0 or not out.exists():
-            raise ValueError("the excerpts could not be joined")
-        keep = config.WORK_DIR / f"collage-{identity_id}-{int(time.time())}.wav"
-        shutil.copy2(out, keep)
-        return keep
+        with contextlib.suppress(Exception):
+            await ENGINE.free()
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            job = (await client.post(config.VOICE_URL + "/train", json={
+                "id": persona_id, "sources": sources, "separate": True, "epochs": persona.TRAIN_EPOCHS})).json()["job"]
+            while time.time() - started < VOICE_TRAIN_TIMEOUT:
+                await asyncio.sleep(VOICE_POLL_SECONDS)
+                if not persona.one(persona_id):
+                    return   # deleted while it trained; the service finishes and its folder goes with the voice
+                state = (await client.get(f"{config.VOICE_URL}/jobs/{job}")).json()
+                CURRENT["progress"] = state.get("progress")
+                persona.training(persona_id, float(state.get("progress") or 0.0))
+                if state.get("state") == "failed":
+                    raise RuntimeError(state.get("error") or "training failed")
+                if state.get("state") == "done":
+                    break
+            else:
+                raise TimeoutError("training took too long")
+        model = persona.model_file(persona_id)
+        if not model.is_file():
+            raise RuntimeError("training finished without a model")
+        persona.ready(persona_id, str(model))
+        log.info("Recorded voice '%s' trained on %d recording(s) in %.0f s", record["name"], len(sources),
+                 time.time() - started)
+    except Exception as err:  # noqa: BLE001
+        log.warning("Training the recorded voice '%s' failed: %s", record["name"], err)
+        persona.failed(persona_id, str(err))
     finally:
-        shutil.rmtree(work, ignore_errors=True)
+        CURRENT.clear()
+
+
+async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
+    """The take's vocal sung again in its recorded voice, in place.  A failure keeps the take as rendered, and says so."""
+    voice = persona.one(record["voice_id"])
+    if not persona.usable(voice):
+        log.warning("Take '%s' names a recorded voice that is not ready; it keeps the vocal it was rendered with",
+                    record.get("title") or take_id)
+        return
+    execute("UPDATE takes SET stage = 'voice' WHERE id = ?", (take_id,))
+    CURRENT.update({"prompt_id": None, "label": "Singing in a recorded voice", "progress": None})
+    sung = dest.with_name(dest.stem + ".voice" + dest.suffix)
+    try:
+        with contextlib.suppress(Exception):
+            await ENGINE.free()
+        async with httpx.AsyncClient(timeout=VOICE_CONVERT_TIMEOUT) as client:
+            answer = await client.post(config.VOICE_URL + "/convert", json={
+                "id": voice["id"], "input": str(dest), "output": str(sung), "octave": voice["octave"]})
+        if answer.status_code != 200 or not sung.is_file():
+            raise RuntimeError((answer.json() or {}).get("error") or f"answered {answer.status_code}")
+        sung.replace(dest)
+        log.info("Take '%s' sung by the recorded voice %s", record.get("title") or take_id, persona.describe(voice))
+    except Exception as err:  # noqa: BLE001
+        sung.unlink(missing_ok=True)
+        log.warning("Could not sing '%s' in the recorded voice %s; it keeps the vocal it was rendered with: %s",
+                    record.get("title") or take_id, voice["name"], err)

@@ -206,7 +206,10 @@ CREATE TABLE IF NOT EXISTS voices (
     head TEXT,
     state TEXT NOT NULL DEFAULT 'ready',
     error TEXT,
-    created_at REAL NOT NULL
+    created_at REAL NOT NULL,
+    model_path TEXT,
+    octave INTEGER NOT NULL DEFAULT 0,
+    progress REAL NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS spaces (
     id TEXT PRIMARY KEY,
@@ -739,6 +742,20 @@ def _voices() -> None:
         execute("ALTER TABLE voices ADD COLUMN origin_identity TEXT")
 
 
+def _voices_trained() -> None:
+    """Recorded voices became trained voice models (RVC): a model file, an octave and training progress.
+
+    A voice made for the token route has no model: it is marked failed, and Regenerate trains it.
+    """
+    have = _columns("voices")
+    for column, kind in (("model_path", "TEXT"), ("octave", "INTEGER NOT NULL DEFAULT 0"),
+                         ("progress", "REAL NOT NULL DEFAULT 0")):
+        if column not in have:
+            execute(f"ALTER TABLE voices ADD COLUMN {column} {kind}")
+    execute("UPDATE voices SET state = 'failed', error = 'made before voices were trained: Regenerate trains it' "
+            "WHERE model_path IS NULL AND state != 'training'")
+
+
 def _cfg_scale() -> None:
     """The music stage's guidance towards the style and words, set in Advanced; NULL is the engine's own."""
     if "cfg_scale" not in _columns("takes"):
@@ -789,6 +806,7 @@ MIGRATIONS = [
     _source_instrument,                                              # -> 42
     _cfg_scale,                                                      # -> 43
     _voices,                                                         # -> 44
+    _voices_trained,                                                 # -> 45
 ]
 
 

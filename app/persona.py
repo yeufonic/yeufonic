@@ -1,15 +1,13 @@
-"""Vocal personas: one person's recordings tokenised, applied at render as a prefix of its own tokens.
+"""Recorded voices: a voice model trained from someone's singing, and a take's vocal sung again in it.
 
-This is the other route to a singer's character than a corpus LoRA, and the one VOICE-PERSONA.md arrived
-at by measurement: nothing is trained. The recordings are tokenised once into YuE2's semantic token stream,
-and the render continues from a few seconds of that stream -- so the material that follows comes out in that
-voice. Four seconds did not register by ear; forty-eight did.
+The route VOICE-PERSONA.md arrived at after the token prefix failed in use: a take is rendered as usual, its vocal is
+separated (BS-Roformer), converted to the voice (RVC), and mixed back over the rest.  The voice service does the
+training and the conversion (voice/server.py, the "voice" compose profile); this module is the app's record of them.
 
-One folder per persona, ``data/voices/<id>/``, the app's own (the engine never writes there: tokens come back
-over HTTP, and go to the engine's input folder for each render, so a native or remote engine works too):
+One folder per voice, ``data/voices/<id>/``:
 
-    tokens.semantic.npy   the token stream, one code per 25th of a second
-    source.*              the recording the persona came from, kept for reference
+    model.pth, model.index   the trained voice, written by the voice service
+    source.*                 the recording a voice was made from (none for a corpus voice: its songs are used)
 
 (``voices.py`` is the score's two voices; this module is the sung one.)
 """
@@ -25,32 +23,31 @@ from . import config, db
 
 log = logging.getLogger("yue2.persona")
 
-# Prefices measured by ear: 4 s did not carry the voice, 48 s did (VOICE-PERSONA.md 7.8, 7.9).
-DEFAULT_PREFIX_SECONDS = 48.0
-MIN_PREFIX_SECONDS = 4.0
-MAX_PREFIX_SECONDS = 120.0
+# A voice in another range sounds wrong at the take's pitch, and only whole octaves keep the vocal in the backing's
+# key: so the one pitch setting is an octave, up or down.
+MIN_OCTAVE, MAX_OCTAVE = -1, 1
+# Training passes over the voice's recordings: enough for a few minutes of singing to settle (100 by ear).
+TRAIN_EPOCHS = 100
+# A corpus voice trains on at most this many of the corpus's songs: more adds time, not much voice.
+CORPUS_SONGS = 15
 
 
 def folder(persona_id: str) -> Path:
-    """Where a persona's files live.  Created on demand."""
+    """Where a voice's files live.  Created on demand."""
     # Not data/personas: on an install that began as YuE2 Studio that name is a link to the corpora.
     path = config.DATA_DIR / "voices" / persona_id
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def tokens_file(persona_id: str) -> Path:
-    return folder(persona_id) / "tokens.semantic.npy"
-
-
-def engine_name(persona_id: str) -> str:
-    """What a voice's tokens are called in the engine's input folder, where each render uploads them."""
-    return f"voice-{persona_id}.semantic.npy"
+def model_file(persona_id: str) -> Path:
+    return folder(persona_id) / "model.pth"
 
 
 def _shape(row) -> dict:
     out = dict(row)
-    out["prefix_seconds"] = float(out.get("prefix_seconds") or DEFAULT_PREFIX_SECONDS)
+    out["octave"] = clamp_octave(out.get("octave"))
+    out["progress"] = float(out.get("progress") or 0.0)
     return out
 
 
@@ -63,21 +60,16 @@ def one(persona_id: str) -> dict | None:
     return _shape(found[0]) if found else None
 
 
-def clamp_seconds(seconds) -> float:
+def clamp_octave(value) -> int:
     try:
-        value = float(seconds)
+        number = int(round(float(value)))
     except (TypeError, ValueError):
-        return DEFAULT_PREFIX_SECONDS
-    return max(MIN_PREFIX_SECONDS, min(MAX_PREFIX_SECONDS, value))
+        return 0
+    return max(MIN_OCTAVE, min(MAX_OCTAVE, number))
 
 
-def create(name: str, source: Path | None = None, prefix_seconds: float = DEFAULT_PREFIX_SECONDS,
-           head: str = "", origin_identity: str | None = None) -> dict:
-    """A persona with a name and a source recording; its token file arrives when tokenising finishes.
-
-    ``origin_identity`` names the corpus a persona was collaged from, so regenerating it can rebuild that
-    collage from the corpus as it is now rather than keep a stale copy.
-    """
+def create(name: str, source: Path | None = None, octave: int = 0, origin_identity: str | None = None) -> dict:
+    """A voice with a name and what it is trained from: a recording, or a corpus (``origin_identity``)."""
     name = (name or "").strip() or "Untitled voice"
     persona_id = uuid.uuid4().hex[:12]
     target = folder(persona_id)
@@ -88,27 +80,36 @@ def create(name: str, source: Path | None = None, prefix_seconds: float = DEFAUL
         if Path(source).resolve() != stored.resolve():
             shutil.copy2(source, stored)
         source_path = str(stored)
-    db.execute("INSERT INTO voices (id, name, tokens_path, source_path, origin_identity, prefix_seconds, head, state, created_at) "
-               "VALUES (?, ?, NULL, ?, ?, ?, ?, 'preparing', ?)",
-               (persona_id, name, source_path, origin_identity, clamp_seconds(prefix_seconds), head or "", time.time()))
-    log.info("persona %s created from %s", name, source_path or "(no recording)")
+    db.execute("INSERT INTO voices (id, name, source_path, origin_identity, octave, state, progress, created_at) "
+               "VALUES (?, ?, ?, ?, ?, 'training', 0, ?)",
+               (persona_id, name, source_path, origin_identity, clamp_octave(octave), time.time()))
+    log.info("voice %s created from %s", name, source_path or f"corpus {origin_identity}")
     return one(persona_id)
 
 
-def ready(persona_id: str, tokens_path: str, head: str = "") -> None:
-    db.execute("UPDATE voices SET tokens_path = ?, head = ?, state = 'ready', error = NULL WHERE id = ?",
-               (tokens_path, head, persona_id))
+def training(persona_id: str, progress: float = 0.0) -> None:
+    db.execute("UPDATE voices SET state = 'training', progress = ?, error = NULL WHERE id = ?",
+               (float(progress), persona_id))
+
+
+def ready(persona_id: str, model_path: str) -> None:
+    db.execute("UPDATE voices SET model_path = ?, state = 'ready', progress = 1, error = NULL WHERE id = ?",
+               (model_path, persona_id))
 
 
 def failed(persona_id: str, error: str) -> None:
     db.execute("UPDATE voices SET state = 'failed', error = ? WHERE id = ?", (error[:500], persona_id))
 
 
+def usable(persona: dict | None) -> bool:
+    return bool(persona) and persona.get("state") == "ready" and Path(persona.get("model_path") or "").is_file()
+
+
 def update(persona_id: str, **fields) -> dict | None:
-    allowed = {"name", "prefix_seconds"}
+    allowed = {"name", "octave"}
     wanted = {k: v for k, v in fields.items() if k in allowed}
-    if "prefix_seconds" in wanted:
-        wanted["prefix_seconds"] = clamp_seconds(wanted["prefix_seconds"])
+    if "octave" in wanted:
+        wanted["octave"] = clamp_octave(wanted["octave"])
     if wanted:
         sets = ", ".join(f"{key} = ?" for key in wanted)
         db.execute(f"UPDATE voices SET {sets} WHERE id = ?", (*wanted.values(), persona_id))
@@ -119,12 +120,11 @@ def delete(persona_id: str) -> None:
     db.execute("UPDATE takes SET voice_id = NULL WHERE voice_id = ?", (persona_id,))
     db.execute("DELETE FROM voices WHERE id = ?", (persona_id,))
     shutil.rmtree(folder(persona_id), ignore_errors=True)
-    if config.ENGINE_INPUT_DIR:          # the copy the last render with this voice left on the engine
-        (config.ENGINE_INPUT_DIR / engine_name(persona_id)).unlink(missing_ok=True)
 
 
 def describe(persona: dict | None) -> str:
-    """A short line for logs and the take list."""
+    """A short line for logs."""
     if not persona:
         return ""
-    return f"{persona['name']} · {persona['prefix_seconds']:.0f} s"
+    octave = persona.get("octave") or 0
+    return persona["name"] + (f", {octave:+d} octave" if octave else "")

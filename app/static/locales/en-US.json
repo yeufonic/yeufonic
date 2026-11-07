@@ -74,12 +74,5 @@
  "Working copies made while analysing songs": "Working copies made while analyzing songs",
  "To analyse a song, Yeufonic makes copies for the engine to read: the song with its tags stripped, a padded copy for the transcriber, and a short clip for describing its style. Nothing reads them again once the analysis has finished.": "To analyze a song, Yeufonic makes copies for the engine to read: the song with its tags stripped, a padded copy for the transcriber, and a short clip for describing its style. Nothing reads them again once the analysis has finished.",
  "Nothing you will notice. If a song is analysed again, they are made again.": "Nothing you will notice. If a song is analyzed again, they are made again.",
- "Each corpus song's separated vocal was written as an uncompressed WAV. Songs analysed from now on are written as FLAC, which holds exactly the same audio in about half the room. This converts the WAVs you already have.": "Each corpus song's separated vocal was written as an uncompressed WAV. Songs analyzed from now on are written as FLAC, which holds exactly the same audio in about half the room. This converts the WAVs you already have.",
- "A voice recorded here is tokenised once and used as a render prefix: about a minute of singing is plenty.": "A voice recorded here is tokenized once and used as a render prefix: about a minute of singing is plenty.",
- "Tokenising that voice: it will be ready in a few seconds.": "Tokenizing that voice: it will be ready in a few seconds.",
- "this persona has no recording left to tokenise": "this persona has no recording left to tokenize",
- "tokenising took too long": "tokenizing took too long",
- "the engine could not tokenise this recording": "the engine could not tokenize this recording",
- "There is no recording left to tokenise.": "There is no recording left to tokenize.",
- "the yue2.cpp engine cannot tokenise a voice: that needs the ComfyUI engine": "the yue2.cpp engine cannot tokenize a voice: that needs the ComfyUI engine"
+ "Each corpus song's separated vocal was written as an uncompressed WAV. Songs analysed from now on are written as FLAC, which holds exactly the same audio in about half the room. This converts the WAVs you already have.": "Each corpus song's separated vocal was written as an uncompressed WAV. Songs analyzed from now on are written as FLAC, which holds exactly the same audio in about half the room. This converts the WAVs you already have."
 }
