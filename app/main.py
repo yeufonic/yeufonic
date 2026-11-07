@@ -1002,6 +1002,8 @@ def _advanced_of(body, fallback: dict | None = None) -> dict:
 class LoraSettingsMixin(BaseModel):
     identity_id: str | None = Field(None, max_length=64)
     persona_id: str | None = Field(None, max_length=64)
+    # A recorded voice, applied as a prefix of its tokens at render time (VOICE-PERSONA.md 8.6).
+    voice_id: str | None = Field(None, max_length=64)
     voice_lora: str | None = Field(None, max_length=200)
     voice_lora_strength: float = 1.0
     voice_lora_clip: float = Field(0.0, ge=0.0, le=3.0)
@@ -2687,6 +2689,7 @@ async def create_take(body: TakeIn) -> dict:
         "normalise": 1 if body.normalise else 0,
         "identity_id": body.identity_id or body.persona_id,
         "persona_id": body.identity_id or body.persona_id,
+        "voice_id": body.voice_id,
         "voice_lora": body.voice_lora,
         "voice_lora_strength": body.voice_lora_strength,
         "voice_lora_clip": body.voice_lora_clip,
@@ -2695,12 +2698,12 @@ async def create_take(body: TakeIn) -> dict:
     }
     execute(
         """INSERT INTO takes(id, source_id, title, style, lyrics, abc, mode, seed, checkpoint, max_duration, status, created_at,
-                             space_id, parent_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_lora, voice_lora_strength, voice_lora_clip,
+                             space_id, parent_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_id, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                              chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale)
            VALUES(:id, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration, 'queued', :created_at,
-                  :space_id, :parent_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
+                  :space_id, :parent_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
                   :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale)""",
