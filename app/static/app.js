@@ -3483,6 +3483,42 @@ function paintJobPill(waiting) {
   $('job-pill-fill').style.width = $('job-bar').style.width;
   $('job-pill-more').textContent = waiting ? t('+{waiting} waiting', { waiting: waiting }) : '';
   $('job-pill-more').classList.toggle('hidden', !waiting);
+  paintEditorJobPill();
+}
+
+/* The editor covers the top bar, so it carries a copy of the pill: the same line, time and bar, shown while the
+   pill is.  Built here rather than in the markup, so an old page picks it up on a refresh.  A click closes the
+   editor and opens the job card, where a job can be stopped. */
+function editorJobPill() {
+  var made = $('ed-job');
+  if (made || !$('job-card')) { return made; }
+  var head = document.querySelector('#editor .ed-head');
+  if (!head) { return null; }
+  made = document.createElement('button');
+  made.type = 'button';
+  made.id = 'ed-job';
+  made.className = 'pill job-pill ed-job';
+  made.innerHTML = '<span class="job-pill-dot" aria-hidden="true"></span><span class="job-pill-text"></span>' +
+    '<span class="job-pill-time"></span><span class="job-pill-bar" aria-hidden="true"><span></span></span>';
+  made.title = t('What the engine is doing, and what comes next');
+  head.insertBefore(made, $('ed-btn-picture') || $('btn-advanced-toggle'));
+  made.addEventListener('click', function () {
+    closeEditor();
+    $('job-panel').classList.remove('hidden');
+    $('job-pill').setAttribute('aria-expanded', 'true');
+  });
+  var mirror = function () { made.classList.toggle('hidden', $('job-card').classList.contains('hidden')); };
+  new MutationObserver(mirror).observe($('job-card'), { attributes: true, attributeFilter: ['class'] });
+  mirror();
+  return made;
+}
+
+function paintEditorJobPill() {
+  var pill = editorJobPill();
+  if (!pill) { return; }
+  pill.querySelector('.job-pill-text').textContent = $('job-pill-text').textContent;
+  pill.querySelector('.job-pill-time').textContent = $('job-pill-time').textContent;
+  pill.querySelector('.job-pill-bar > span').style.width = $('job-pill-fill').style.width;
 }
 
 function closeJobPanel() {

@@ -1404,7 +1404,7 @@ def _job_title(kind: str, ref_id: str) -> str | None:
         return f"Picture: {row['title']}" if row else None
     if kind == "voice":
         voice = persona.one(ref_id)
-        return f"Voice: {voice['name']}" if voice else None
+        return voice["name"] if voice else None   # the job's own label says it is a voice
     if kind == "transcribe":
         row = one("SELECT title FROM sources WHERE id = ?", (ref_id,))
     else:
