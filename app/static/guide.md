@@ -56,26 +56,23 @@ lit while the take holds others, and closes the window to show them under the ta
 
 ### A recorded voice
 
-A take can sing in a voice taken from a **recording** rather than from a trained LoRA.  Choose one in the editor's
-*Recorded voice* field, or make one with **Make a voice…** from an audio file: a minute or two of singing is plenty, and nothing
-is trained.  Recorded voices need the ComfyUI engine; with yue2.cpp the field is not shown.
+A take can be sung in a voice trained from a **recording** of someone singing: yours, or a corpus's singer.
+Choose one in the editor's *Recorded voice* field, or train one with **Make a voice…** from an audio file of singing. A few
+minutes is plenty, and a recording with a backing track is separated first. Each corpus's card has a **Make a voice…**
+button too, which trains one on the corpus's songs. The field shows only when the optional voice service is
+running (the README's "Recorded voices").
 
-The recording is turned once into the model's **semantic tokens**, the stream it writes for the music it sings.  A
-render with that voice starts from some seconds of that stream and then sings your words and score, so the voice
-carries on into the new song.
+Training waits its turn on the GPU and can take an hour; the list shows its progress. A take that uses a voice
+is rendered as usual, then its vocal is separated, sung again in the voice, and mixed back over the rest, before
+its level is read.
 
-**Seconds** sets how much of the voice a render uses: 48 by default, from 4 to 120.  Too little may not carry the
-voice, and too much can pull the recording's melody along.  It is saved on the voice, so every take that uses it gets
-the same length.
+**Octave** moves a voice up or down a whole octave. A voice sung far from its singer's range sounds wrong, and only
+a whole octave keeps the vocal in the backing's key. It is saved on the voice. **Regenerate** trains the voice
+again: a corpus voice from the corpus's songs as they are now.
 
-**From a corpus.**  Each corpus has a **Make a voice…** button.  It takes a few seconds from the middle of four of the
-corpus's separated vocals and joins them into one recording: the voice is what the excerpts share, and no one song's
-melody leads.  The corpus's songs must have been analysed first.
-
-**Regenerate** builds the voice again: a corpus voice is cut again from the corpus as it is now, and a recording is
-tokenised again.
-
-A take's recipe names its voice, and importing it picks up the voice of that name on this install, if there is one.
+The result is a converted vocal over a separated backing, so it is less seamless than a vocal the model sang
+itself. Cleaner recordings, lossless rather than MP3, make a cleaner voice. A take's recipe names its voice, and
+importing it picks up the voice of that name on this install, if there is one.
 
 ### Advanced settings
 

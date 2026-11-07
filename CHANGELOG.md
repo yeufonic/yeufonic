@@ -39,12 +39,13 @@ cannot creep back in.
 
 ## Unreleased
 
-- **A recorded voice**: the other way to give a take a singer's character, and the one with nothing trained.  A
-  recording of a voice — your own, or a corpus's singer — is tokenised once into the model's semantic tokens, and a
-  render continues from a few seconds of that stream, so the new words and score come out in that voice.  The editor's
-  **Recorded voice** field makes one from a file or from a corpus (a collage of a few seconds from several of
-  its songs), sets how much of it a render uses, rebuilds it on demand, and travels in a take's recipe by
-  name: an imported take picks up the voice of that name, or says there is none.  It needs the ComfyUI engine.
+- **A recorded voice**: a take can be sung in a voice trained from a recording of someone singing, your own or
+  a corpus's singer.  The take is rendered as usual; its vocal is then separated (BS-Roformer), converted to the
+  voice (RVC) and mixed back over the rest, before its level is read.  **Make a voice…** in the editor trains
+  one from an audio file, and on a corpus's card from the corpus's songs; training waits its turn on the GPU and
+  shows its progress.  **Octave** moves a voice up or down to sit in its singer's range.  Recorded voices run in
+  an optional container (`COMPOSE_PROFILES=voice`, models from `scripts/fetch-models.sh --voice`); without it
+  the field is hidden.  A take's recipe names its voice, and an import picks up the voice of that name.
 
 ## 0.0.54 (2026-11-05)
 

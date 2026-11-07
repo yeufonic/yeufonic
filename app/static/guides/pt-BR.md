@@ -56,25 +56,23 @@ acende enquanto o take contém outros, e fecha a janela para mostrá-los sob o t
 
 ### Uma voz gravada {#a-recorded-voice}
 
-Um take pode cantar com uma voz tirada de uma **gravação** em vez de uma LoRA treinada.  Escolha uma no campo
-*Voz gravada* do editor, ou crie uma com **Criar uma voz…** a partir de um arquivo de áudio: um ou dois minutos de canto bastam, e
-nada é treinado.  As vozes gravadas precisam do motor ComfyUI; com o yue2.cpp o campo não aparece.
+Um take pode ser cantado com uma voz treinada a partir de uma **gravação** de alguém cantando: a sua, ou a de um corpus.
+Escolha uma no campo *Voz gravada* do editor, ou treine uma com **Criar uma voz…** a partir de um arquivo de áudio de canto. Alguns minutos
+bastam; uma gravação com acompanhamento é separada primeiro. Cada cartão de corpus também tem um botão **Criar uma voz…**, que
+treina uma voz com as músicas do corpus. O campo só aparece quando o serviço de voz opcional está rodando
+("Recorded voices" no README).
 
-A gravação é convertida uma vez nos **tokens semânticos** do modelo, o fluxo que ele escreve para a música que canta.
-Uma renderização com essa voz começa com alguns segundos desse fluxo e depois canta a sua letra e a sua partitura, e
-assim a voz continua na nova música.
+O treinamento espera sua vez na GPU e pode levar uma hora; a lista mostra o progresso. Um take com uma voz é renderizado
+como sempre; depois o vocal é separado, cantado de novo na voz e mixado de volta sobre o resto, antes de o nível ser
+medido.
 
-**Segundos** define quanto da voz uma renderização usa: 48 por padrão, de 4 a 120.  Pouco demais pode não levar a voz, e
-demais pode arrastar a melodia da gravação.  O valor fica salvo na voz, então todo take que a usa tem a mesma duração.
+**Oitava** sobe ou desce uma voz uma oitava inteira. Uma voz cantada longe da extensão do cantor soa errada, e só uma
+oitava inteira mantém o canto no tom do acompanhamento. O valor fica salvo na voz. **Regenerar** treina a voz de novo: uma
+voz de corpus com as músicas do corpus como estão agora.
 
-**De um corpus.**  Cada corpus tem um botão **Criar uma voz…**.  Ele pega alguns segundos do meio de quatro vocais separados do
-corpus e os junta numa gravação: a voz é o que os trechos têm em comum, e nenhuma melodia domina.  As músicas do
-corpus precisam ter sido analisadas antes.
-
-**Regenerar** constrói a voz de novo: uma voz de corpus é recortada de novo do corpus como ele está agora, e uma
-gravação é convertida em tokens de novo.
-
-A receita de um take nomeia a sua voz, e ao importá-la usa-se a voz com esse nome nesta instalação, se houver.
+O resultado é um vocal convertido sobre um acompanhamento separado, então é menos uniforme que um vocal que o modelo
+cantou sozinho. Gravações mais limpas, sem perdas em vez de MP3, dão uma voz mais limpa. A receita de um take nomeia a
+sua voz, e ao importá-la usa-se a voz com esse nome nesta instalação, se houver.
 
 ### Ajustes avançados {#advanced-settings}
 

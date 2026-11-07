@@ -56,26 +56,23 @@ si accende finché il take ne contiene altri, e chiude la finestra per mostrarli
 
 ### Una voce registrata {#a-recorded-voice}
 
-Un take può cantare con una voce presa da una **registrazione** invece che da una LoRA addestrata.  Sceglila nel
-campo *Voce registrata* dell’editor, oppure creane una con **Crea una voce…** da un file audio: bastano un paio di minuti di canto, e
-non si addestra nulla.  Le voci registrate richiedono il motore ComfyUI; con yue2.cpp il campo non viene mostrato.
+Un take può essere cantato con una voce addestrata su una **registrazione** di qualcuno che canta: la tua, o quella di un
+corpus. Sceglila nel campo *Voce registrata* dell’editor, oppure addestrane una con **Crea una voce…** da un file audio di canto. Bastano pochi
+minuti; una registrazione con accompagnamento viene prima separata. Anche ogni scheda di corpus ha un pulsante **Crea una voce…**,
+che addestra una voce sulle canzoni del corpus. Il campo compare solo se il servizio voce opzionale è in funzione
+("Recorded voices" nel README).
 
-La registrazione viene convertita una volta nei **token semantici** del modello, il flusso che scrive per la musica che
-canta.  Un render con quella voce parte da alcuni secondi di quel flusso e poi canta il tuo testo e la tua partitura,
-così la voce prosegue nella nuova canzone.
+L’addestramento attende il suo turno sulla GPU e può richiedere un’ora; l’elenco ne mostra l’avanzamento. Un take con una
+voce viene renderizzato come al solito, poi la sua voce viene separata, ricantata con la voce e rimixata sul resto, prima
+che ne venga misurato il livello.
 
-**Secondi** stabilisce quanta parte della voce usa un render: 48 di default, da 4 a 120.  Troppo poco può non portare la
-voce, troppo può trascinare la melodia della registrazione.  Il valore resta salvato sulla voce, quindi ogni take che
-la usa ha la stessa durata.
+**Ottava** sposta una voce in su o in giù di un’ottava intera. Una voce cantata lontano dalla sua estensione suona male, e
+solo un’ottava intera mantiene il canto nella tonalità dell’accompagnamento. Il valore resta salvato sulla voce.
+**Rigenera** addestra di nuovo la voce: una voce da corpus sulle canzoni del corpus come sono ora.
 
-**Da un corpus.**  Ogni corpus ha un pulsante **Crea una voce…**.  Prende qualche secondo dal centro di quattro voci separate del
-corpus e le unisce in una registrazione: la voce è ciò che gli estratti hanno in comune, e nessuna melodia prevale.  Le
-canzoni del corpus devono essere già state analizzate.
-
-**Rigenera** ricostruisce la voce: una voce da corpus viene ritagliata di nuovo dal corpus com’è ora, e una
-registrazione viene di nuovo convertita in token.
-
-La ricetta di un take nomina la sua voce, e importandola si usa la voce con quel nome su questa installazione, se c’è.
+Il risultato è un canto convertito su un accompagnamento separato, quindi meno uniforme di un canto che il modello ha
+cantato da sé. Registrazioni più pulite, senza perdita invece che MP3, danno una voce più pulita. La ricetta di un take
+nomina la sua voce, e importandola si usa la voce con quel nome su questa installazione, se c’è.
 
 ### Impostazioni avanzate {#advanced-settings}
 

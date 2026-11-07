@@ -56,26 +56,23 @@ se ilumina mientras la toma contiene otras, y cierra la ventana para mostrarlas 
 
 ### Una voz grabada {#a-recorded-voice}
 
-Una toma puede cantar con una voz sacada de una **grabación** en lugar de una LoRA entrenada.  Elige una en el campo
-*Voz grabada* del editor, o crea una con **Crear una voz…** a partir de un archivo de audio: basta con uno o dos minutos de canto, y
-no se entrena nada.  Las voces grabadas necesitan el motor ComfyUI; con yue2.cpp el campo no se muestra.
+Una toma puede cantarse con una voz entrenada a partir de una **grabación** de alguien cantando: la tuya, o la de un corpus.
+Elígela en el campo *Voz grabada* del editor, o entrena una con **Crear una voz…** a partir de un archivo de audio de canto. Bastan unos
+minutos; una grabación con acompañamiento se separa primero. Cada tarjeta de corpus también tiene un botón **Crear una voz…**, que
+entrena una voz con las canciones del corpus. El campo solo aparece si el servicio de voces opcional está en marcha
+("Recorded voices" en el README).
 
-La grabación se convierte una vez en los **tokens semánticos** del modelo, el flujo que escribe para la música que
-canta.  Un render con esa voz empieza con unos segundos de ese flujo y luego canta tu letra y tu partitura, así que la
-voz continúa en la canción nueva.
+El entrenamiento espera su turno en la GPU y puede tardar una hora; la lista muestra su progreso. Una toma con una voz se
+renderiza como siempre; luego su voz se separa, se vuelve a cantar con la voz y se mezcla de nuevo sobre el resto, antes
+de medir su nivel.
 
-**Segundos** fija cuánta parte de la voz usa un render: 48 por defecto, de 4 a 120.  Muy poco puede no llevar la voz, y
-demasiado puede arrastrar la melodía de la grabación.  Se guarda en la voz, así que cada toma que la usa tiene la misma
-duración.
+**Octava** sube o baja una voz una octava entera. Una voz cantada lejos de su registro suena mal, y solo una octava entera
+mantiene el canto en la tonalidad del acompañamiento. Se guarda en la voz. **Regenerar** vuelve a entrenar la voz: una voz
+de corpus con las canciones del corpus tal como están ahora.
 
-**Desde un corpus.**  Cada corpus tiene un botón **Crear una voz…**.  Toma unos segundos del centro de cuatro voces separadas del
-corpus y las une en una grabación: la voz es lo que los fragmentos comparten, y ninguna melodía manda.  Las canciones
-del corpus tienen que estar analizadas antes.
-
-**Regenerar** vuelve a construir la voz: una voz de corpus se recorta de nuevo del corpus tal como está ahora, y una
-grabación se vuelve a convertir en tokens.
-
-La receta de una toma nombra su voz, y al importarla se usa la voz con ese nombre en esta instalación, si la hay.
+El resultado es un canto convertido sobre un acompañamiento separado, así que es menos uniforme que un canto que el modelo
+cantó por sí mismo. Grabaciones más limpias, sin pérdida en lugar de MP3, dan una voz más limpia. La receta de una toma
+nombra su voz, y al importarla se usa la voz con ese nombre en esta instalación, si la hay.
 
 ### Ajustes avanzados {#advanced-settings}
 

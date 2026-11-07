@@ -56,27 +56,23 @@ leuchtet, solange der Take andere enthält, und schließt das Fenster, um sie un
 
 ### Eine aufgenommene Stimme {#a-recorded-voice}
 
-Ein Take kann mit einer Stimme aus einer **Aufnahme** singen statt mit einer trainierten LoRA.  Wähle sie im Feld
-*Aufgenommene Stimme* des Editors, oder erstelle eine mit **Stimme erstellen…** aus einer Audiodatei: ein, zwei Minuten Gesang reichen, und
-es wird nichts trainiert.  Aufgenommene Stimmen brauchen die ComfyUI-Engine; mit yue2.cpp wird das Feld nicht gezeigt.
+Ein Take kann in einer Stimme gesungen werden, die aus einer **Aufnahme** von jemandem trainiert wurde, der singt: deiner
+oder der Stimme aus einem Korpus. Wähle sie im Feld *Aufgenommene Stimme* des Editors, oder trainiere eine mit **Stimme erstellen…** aus einer Audiodatei
+mit Gesang. Ein paar Minuten reichen; eine Aufnahme mit Begleitung wird zuerst getrennt. Auch jede Korpus-Karte hat eine
+Schaltfläche **Stimme erstellen…**, die eine Stimme aus den Songs des Korpus trainiert. Das Feld erscheint nur, wenn der optionale
+Stimmendienst läuft („Recorded voices“ in der README).
 
-Die Aufnahme wird einmal in die **semantischen Tokens** des Modells umgewandelt, den Strom, den es für die Musik
-schreibt, die es singt.  Ein Render mit dieser Stimme beginnt mit einigen Sekunden dieses Stroms und singt dann deinen
-Text und deine Partitur, sodass die Stimme in den neuen Song übergeht.
+Das Training wartet auf seinen Platz auf der GPU und kann eine Stunde dauern; die Liste zeigt den Fortschritt. Ein Take mit
+Stimme wird wie gewohnt gerendert, dann wird sein Gesang getrennt, in der Stimme neu gesungen und wieder über den Rest
+gemischt, bevor seine Lautstärke gemessen wird.
 
-**Sekunden** legt fest, wie viel der Stimme ein Render nutzt: standardmäßig 48, von 4 bis 120.  Zu wenig trägt die Stimme
-vielleicht nicht, zu viel kann die Melodie der Aufnahme mitziehen.  Der Wert wird bei der Stimme gespeichert, also
-bekommt jeder Take, der sie nutzt, dieselbe Länge.
+**Oktave** verschiebt eine Stimme um eine ganze Oktave nach oben oder unten. Eine Stimme weit außerhalb ihres Umfangs klingt
+falsch, und nur eine ganze Oktave hält den Gesang in der Tonart der Begleitung. Der Wert wird bei der Stimme gespeichert.
+**Neu erzeugen** trainiert die Stimme neu: eine Korpus-Stimme aus den Songs des Korpus in ihrem jetzigen Stand.
 
-**Aus einem Korpus.**  Jeder Korpus hat eine Schaltfläche **Stimme erstellen…**.  Sie nimmt einige Sekunden aus der Mitte von vier
-getrennten Vocals des Korpus und fügt sie zu einer Aufnahme zusammen: Die Stimme ist das, was die Ausschnitte gemeinsam
-haben, und keine einzelne Melodie führt.  Die Songs des Korpus müssen vorher analysiert sein.
-
-**Neu erzeugen** baut die Stimme neu: Eine Korpus-Stimme wird aus dem Korpus in seinem jetzigen Stand neu geschnitten, eine
-Aufnahme wird neu tokenisiert.
-
-Das Rezept eines Takes nennt seine Stimme, und beim Import wird die gleichnamige Stimme dieser Installation übernommen,
-falls es eine gibt.
+Das Ergebnis ist ein umgewandelter Gesang über einer getrennten Begleitung, also weniger nahtlos als ein Gesang, den das
+Modell selbst gesungen hat. Sauberere Aufnahmen, verlustfrei statt MP3, ergeben eine sauberere Stimme. Das Rezept eines
+Takes nennt seine Stimme, und beim Import wird die gleichnamige Stimme dieser Installation übernommen, falls es eine gibt.
 
 ### Erweiterte Einstellungen {#advanced-settings}
 

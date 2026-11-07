@@ -56,27 +56,23 @@ s’allume tant que la prise en contient d’autres, et ferme la fenêtre pour l
 
 ### Une voix enregistrée {#a-recorded-voice}
 
-Une prise peut chanter avec une voix tirée d’un **enregistrement** plutôt que d’une LoRA entraînée.  Choisissez-en
-une dans le champ *Voix enregistrée* de l’éditeur, ou créez-en une avec **Créer une voix…** à partir d’un fichier audio : une minute ou
-deux de chant suffisent, et rien n’est entraîné.  Les voix enregistrées demandent le moteur ComfyUI ; avec yue2.cpp,
-le champ n’est pas affiché.
+Une prise peut être chantée avec une voix entraînée sur un **enregistrement** de quelqu’un qui chante : la vôtre, ou celle
+d’un corpus. Choisissez-la dans le champ *Voix enregistrée* de l’éditeur, ou entraînez-en une avec **Créer une voix…** à partir d’un fichier audio
+de chant. Quelques minutes suffisent ; un enregistrement avec accompagnement est d’abord séparé. Chaque carte de corpus a
+aussi un bouton **Créer une voix…**, qui entraîne une voix sur les chansons du corpus. Le champ n’apparaît que si le service de voix
+optionnel tourne (« Recorded voices » dans le README).
 
-L’enregistrement est converti une fois en **jetons sémantiques** du modèle, le flux qu’il écrit pour la musique qu’il
-chante.  Un rendu avec cette voix commence par quelques secondes de ce flux, puis chante vos paroles et votre
-partition, si bien que la voix se prolonge dans la nouvelle chanson.
+L’entraînement attend son tour sur le GPU et peut prendre une heure ; la liste montre sa progression. Une prise avec une
+voix est rendue comme d’habitude, puis sa voix est séparée, rechantée avec la voix et remixée sur le reste, avant que son
+niveau soit mesuré.
 
-**Secondes** règle la part de la voix qu’un rendu utilise : 48 par défaut, de 4 à 120.  Trop peu risque de ne pas porter
-la voix, trop peut entraîner la mélodie de l’enregistrement.  La valeur est enregistrée avec la voix : toutes les
-prises qui l’utilisent ont la même durée.
+**Octave** monte ou descend une voix d’une octave entière. Une voix chantée loin de sa tessiture sonne faux, et seule une
+octave entière garde le chant dans la tonalité de l’accompagnement. La valeur est enregistrée avec la voix. **Régénérer**
+entraîne de nouveau la voix : une voix de corpus sur les chansons du corpus telles qu’elles sont maintenant.
 
-**Depuis un corpus.**  Chaque corpus a un bouton **Créer une voix…**.  Il prend quelques secondes au milieu de quatre voix
-séparées du corpus et les assemble en un seul enregistrement : la voix est ce que les extraits ont en commun, et
-aucune mélodie ne domine.  Les chansons du corpus doivent avoir été analysées.
-
-**Régénérer** reconstruit la voix : une voix de corpus est recoupée à partir du corpus tel qu’il est maintenant, et un
-enregistrement est de nouveau converti en jetons.
-
-La recette d’une prise nomme sa voix, et son import reprend la voix de ce nom sur cette installation, s’il y en a une.
+Le résultat est un chant converti sur un accompagnement séparé, donc moins homogène qu’un chant que le modèle a chanté
+lui-même. Des enregistrements plus propres, sans perte plutôt qu’en MP3, donnent une voix plus propre. La recette d’une
+prise nomme sa voix, et son import reprend la voix de ce nom sur cette installation, s’il y en a une.
 
 ### Réglages avancés {#advanced-settings}
 

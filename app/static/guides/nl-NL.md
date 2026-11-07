@@ -56,27 +56,23 @@ licht op zolang de take andere takes bevat, en sluit het venster om ze onder de 
 
 ### Een opgenomen stem {#a-recorded-voice}
 
-Een take kan zingen met een stem uit een **opname** in plaats van uit een getrainde LoRA.  Kies er een in het veld
-*Opgenomen stem* van de editor, of maak er een met **Stem maken…** van een audiobestand: een minuut of twee zang is genoeg, en er
-wordt niets getraind.  Opgenomen stemmen hebben de ComfyUI-engine nodig; met yue2.cpp wordt het veld niet getoond.
+Een take kan gezongen worden in een stem die getraind is op een **opname** van iemand die zingt: jouw stem, of die van
+een corpus. Kies er een in het veld *Opgenomen stem* van de editor, of train er een met **Stem maken…** uit een audiobestand met zang. Een
+paar minuten is genoeg; een opname met begeleiding wordt eerst gescheiden. Elke corpuskaart heeft ook een knop **Stem maken…**,
+die een stem traint op de nummers van het corpus. Het veld verschijnt alleen als de optionele stemdienst draait
+("Recorded voices" in de README).
 
-De opname wordt één keer omgezet in de **semantische tokens** van het model, de stroom die het schrijft voor de muziek
-die het zingt.  Een render met die stem begint met een aantal seconden van die stroom en zingt dan jouw tekst en
-partituur, zodat de stem doorloopt in het nieuwe nummer.
+Het trainen wacht op zijn beurt op de GPU en kan een uur duren; de lijst toont de voortgang. Een take met een stem wordt
+gewoon gerenderd, daarna wordt de zang gescheiden, opnieuw in de stem gezongen en terug over de rest gemixt, voordat het
+niveau wordt gemeten.
 
-**Seconden** bepaalt hoeveel van de stem een render gebruikt: standaard 48, van 4 tot 120.  Te weinig draagt de stem
-misschien niet, te veel kan de melodie van de opname meetrekken.  Het wordt bij de stem bewaard, dus elke take die
-hem gebruikt krijgt dezelfde lengte.
+**Octaaf** zet een stem een heel octaaf hoger of lager. Een stem ver buiten het bereik van de zanger klinkt verkeerd, en
+alleen een heel octaaf houdt de zang in de toonsoort van de begeleiding. Het wordt bij de stem bewaard. **Opnieuw maken**
+traint de stem opnieuw: een corpusstem op de nummers van het corpus zoals het nu is.
 
-**Uit een corpus.**  Elk corpus heeft een knop **Stem maken…**.  Die neemt een paar seconden uit het midden van vier
-gescheiden vocals van het corpus en voegt ze samen tot één opname: de stem is wat de fragmenten gemeen hebben, en geen
-enkele melodie voert de boventoon.  De nummers van het corpus moeten eerst geanalyseerd zijn.
-
-**Opnieuw maken** bouwt de stem opnieuw: een corpusstem wordt opnieuw uit het corpus geknipt zoals het nu is, en een opname
-wordt opnieuw getokeniseerd.
-
-Het recept van een take noemt zijn stem, en bij importeren wordt de stem met die naam op deze installatie gebruikt, als
-die er is.
+Het resultaat is omgezette zang over een gescheiden begeleiding, dus minder naadloos dan zang die het model zelf zong.
+Schonere opnamen, verliesvrij in plaats van MP3, geven een schonere stem. Het recept van een take noemt zijn stem, en bij
+importeren wordt de stem met die naam op deze installatie gebruikt, als die er is.
 
 ### Geavanceerde instellingen {#advanced-settings}
 

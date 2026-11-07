@@ -112,11 +112,10 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 - **Train a LoRA from your own songs.** Prepare a corpus from a folder of songs, by one artist,
   in one genre or by a few similar artists, and train a style LoRA from it. It works best in a
   song from a prompt, where the LoRA writes the tune. See Training a LoRA below.
-- **Give a take a recorded voice.** The other route to a singer's character, and the one with nothing
-  trained: a recording of a voice — yours, or a corpus's singer — is tokenised once, and a render
-  continues from a few seconds of that stream, so new words and a new score come out in that voice.
-  Make one in the editor's **Recorded voice** field from any audio file. See "A recorded voice" in
-  the guide.
+- **Sing a take in a recorded voice.** Train a voice from a recording of someone singing — yours, or a
+  corpus's singer — and a take that uses it is rendered as usual, then its vocal is separated and sung again
+  in that voice over the rest. Optional: it runs in its own container (see "Recorded voices" below and
+  "A recorded voice" in the guide).
 - **Hear every step of a LoRA's training.** A training run keeps a checkpoint every 50 steps.
   **Checkpoints** renders the same song once on each of them, with one seed, as takes named after
   their step. Each has its own taste in melody and structure, while keeping the style and sound
@@ -251,6 +250,28 @@ How many steps a run trains for, and how much it can learn, can be changed: see
 
 It is on by default. `TRAINING_ENABLED: "0"` on the app takes it out, and `WITH_TRAINER=0` leaves
 the trainer out of the engine image.
+
+## Recorded voices
+
+A take can be sung in a voice trained from a recording of someone singing: yours, or a corpus's singer. It is
+optional, and runs in a container of its own beside the engine:
+
+```sh
+sh scripts/fetch-models.sh --voice      # about 1.1 GB into models/voice/
+echo COMPOSE_PROFILES=voice >> .env
+docker compose up --build
+```
+
+Then the editor has a **Recorded voice** field. **Make a voice…** trains one from an audio file of singing
+(a few minutes is plenty; one that has a backing track is separated first), and each corpus's card has a
+**Make a voice…** that trains one from the corpus's songs. Training waits its turn on the GPU, as a LoRA does,
+and shows its progress there. A take that uses a voice is rendered as usual; then its vocal is separated with
+BS-Roformer, sung again in the voice with RVC, and mixed back over the rest. **Octave** moves a voice up or
+down a whole octave, for a singer whose range is far from the take's.
+
+The result is a converted vocal over a separated backing, so it does not sound as seamless as a vocal YuE2 sang
+itself; cleaner source recordings (lossless rather than MP3) give a cleaner voice. Recorded voices are not in
+the Windows install without Docker.
 
 ## On Windows, without Docker
 
@@ -844,6 +865,7 @@ built from, and the ports itself: change those in its `settings.ini` instead (se
 | `PEAK_CEILING_DB` | `-0.5` | the highest a peak may reach with the guard on, in dB below full scale |
 | `YUE2_CHECKPOINT` | unset | which YuE2 model the app asks the engine for: `bf16`, `int8`, or a file name. Unset, it uses the full-quality model if it is installed, else the low-memory one. Put it in `.env` (`YUE2_CHECKPOINT=int8`) or in `compose.override.yml`. See Choosing a model size |
 | `UNLOAD_WHEN_IDLE` | `auto` | whether the engine is asked to unload its models whenever no more GPU work is waiting. `auto` does it after a take's picture on any GPU (unless another picture is next), so FLUX.2 klein does not sit in video memory under the songs, the app's stems and other programs; and on a Mac, where the GPU shares the computer's memory, whenever the GPU's work runs out. `1` whenever it runs out, `0` never, not even after a picture. The next job loads its models again. Put it in `.env` (`UNLOAD_WHEN_IDLE=1`) |
+| `VOICE_URL` | `http://voice:8190` in `compose.yml` | where the voice service answers, for recorded voices. It runs only with `COMPOSE_PROFILES=voice` in `.env`; while it is not answering, the app hides recorded voices. See Recorded voices |
 | `TRAINING_ENABLED` | `1` | corpora and LoRA training; `0` takes them out of the app. Training also needs `WITH_TRAINER` on the engine. See Training a LoRA |
 | `DATA_DIR` | `/data` | the library. Only needed when running without the containers |
 
@@ -918,6 +940,10 @@ cut.
   yue2.cpp, with [Qwen3 4B as GGUF](https://huggingface.co/unsloth/Qwen3-4B-GGUF) by Unsloth as its text encoder.
   MIT; the encoder Apache 2.0.
 - [Demucs](https://github.com/facebookresearch/demucs) by Meta for stems. MIT.
+- [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) by the RVC Project, with its
+  content encoder, pitch tracker (RMVPE) and base weights, for recorded voices. MIT.
+- [pymss](https://github.com/KitsuneX07/pymss) by KitsuneX07, bundled with RVC, and the BS-Roformer vocal model
+  by viperx it runs, to separate a vocal for a recorded voice. MIT.
 - [abcjs](https://github.com/paulrosen/abcjs) by Paul Rosen and Gregory Dyke, for staff notation.
   MIT, vendored in `app/static/` so it works offline.
 
