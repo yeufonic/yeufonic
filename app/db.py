@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS takes (
     realaudio INTEGER NOT NULL DEFAULT 0,
     identity_id TEXT,
     persona_id TEXT,
+    voice_id TEXT,
     voice_lora TEXT,
     voice_lora_strength REAL NOT NULL DEFAULT 1.0,
     voice_lora_clip REAL NOT NULL DEFAULT 0.0,
@@ -194,6 +195,17 @@ CREATE TABLE IF NOT EXISTS identity_songs (
     position INTEGER NOT NULL DEFAULT 0,
     description TEXT NOT NULL DEFAULT '',
     lyrics_versions TEXT
+);
+CREATE TABLE IF NOT EXISTS voices (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    tokens_path TEXT,
+    source_path TEXT,
+    prefix_seconds REAL NOT NULL DEFAULT 48.0,
+    head TEXT,
+    state TEXT NOT NULL DEFAULT 'ready',
+    error TEXT,
+    created_at REAL NOT NULL
 );
 CREATE TABLE IF NOT EXISTS spaces (
     id TEXT PRIMARY KEY,
@@ -702,6 +714,27 @@ def _take_fx_chain() -> None:
 
 
 
+def _voices() -> None:
+    """A voice: one person's recordings tokenised into a semantic token stream, applied at render as a prefix.
+
+    Named voices, not personas: this database used to call a corpus a persona, and that name now means the
+    songs-to-LoRA route.  A voice is the other route -- the tokens themselves, with no training.
+    """
+    execute("""CREATE TABLE IF NOT EXISTS voices (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        tokens_path TEXT,
+        source_path TEXT,
+        prefix_seconds REAL NOT NULL DEFAULT 48.0,
+        head TEXT,
+        state TEXT NOT NULL DEFAULT 'ready',
+        error TEXT,
+        created_at REAL NOT NULL
+    )""")
+    if "voice_id" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN voice_id TEXT")
+
+
 def _cfg_scale() -> None:
     """The music stage's guidance towards the style and words, set in Advanced; NULL is the engine's own."""
     if "cfg_scale" not in _columns("takes"):
@@ -751,6 +784,7 @@ MIGRATIONS = [
     _hook,                                                           # -> 41
     _source_instrument,                                              # -> 42
     _cfg_scale,                                                      # -> 43
+    _voices,                                                         # -> 44
 ]
 
 
