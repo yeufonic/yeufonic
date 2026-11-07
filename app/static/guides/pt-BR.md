@@ -54,6 +54,28 @@ Tentar mais, Dentro, Tirar, Normalizar e Mover, cada um onde o cartão o mostrar
 enquanto o take está normalizado, e um clique então o devolve ao nível em que foi renderizado; Dentro
 acende enquanto o take contém outros, e fecha a janela para mostrá-los sob o take.
 
+### Uma voz gravada {#a-recorded-voice}
+
+Um take pode cantar com uma voz tirada de uma **gravação** em vez de uma LoRA treinada.  Escolha uma no campo
+*Voz gravada* do editor, ou crie uma com **Criar uma voz…** a partir de um arquivo de áudio: um ou dois minutos de canto bastam, e
+nada é treinado.  As vozes gravadas precisam do motor ComfyUI; com o yue2.cpp o campo não aparece.
+
+A gravação é convertida uma vez nos **tokens semânticos** do modelo, o fluxo que ele escreve para a música que canta.
+Uma renderização com essa voz começa com alguns segundos desse fluxo e depois canta a sua letra e a sua partitura, e
+assim a voz continua na nova música.
+
+**Segundos** define quanto da voz uma renderização usa: 48 por padrão, de 4 a 120.  Pouco demais pode não levar a voz, e
+demais pode arrastar a melodia da gravação.  O valor fica salvo na voz, então todo take que a usa tem a mesma duração.
+
+**De um corpus.**  Cada corpus tem um botão **Criar uma voz…**.  Ele pega alguns segundos do meio de quatro vocais separados do
+corpus e os junta numa gravação: a voz é o que os trechos têm em comum, e nenhuma melodia domina.  As músicas do
+corpus precisam ter sido analisadas antes.
+
+**Regenerar** constrói a voz de novo: uma voz de corpus é recortada de novo do corpus como ele está agora, e uma
+gravação é convertida em tokens de novo.
+
+A receita de um take nomeia a sua voz, e ao importá-la usa-se a voz com esse nome nesta instalação, se houver.
+
 ### Ajustes avançados {#advanced-settings}
 
 O botão **Avançado** no cabeçalho do editor abre ajustes só para este take. A maioria das músicas

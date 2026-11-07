@@ -2,10 +2,12 @@
 
 A persona is a recording of a voice, tokenised once and passed to the render as a prefix (VOICE-PERSONA.md
 8.6).  This is the tokenise half: it takes an audio file from ComfyUI's input folder, runs the
-Mothersuperior tokenizer head the trainer ships with, and writes the stream where the app can read it.
+Mothersuperior tokenizer head the trainer ships with, and writes the stream beside the audio, where the app
+fetches it.
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import comfy.model_management
@@ -36,8 +38,19 @@ def local_mert(source: str) -> str:
 
 
 def _tokenizer():
-    """The trainer's own tokeniser, which is a sibling custom node."""
-    from yue2_trainer.semantic import SemanticTokenizer  # noqa: PLC0415 - loaded at call time
+    """The trainer's own tokeniser, which is a sibling custom node.
+
+    ComfyUI loads a custom node by its folder and puts none of them on sys.path, so the trainer's package is
+    importable only once its folder is added.
+    """
+    try:
+        from yue2_trainer.semantic import SemanticTokenizer  # noqa: PLC0415 - loaded at call time
+    except ModuleNotFoundError:
+        for base in folder_paths.get_folder_paths("custom_nodes") or [str(Path(__file__).resolve().parent.parent)]:
+            trainer = Path(base) / "ComfyUI-YuE2-Trainer"
+            if (trainer / "yue2_trainer").is_dir() and str(trainer) not in sys.path:
+                sys.path.insert(0, str(trainer))
+        from yue2_trainer.semantic import SemanticTokenizer  # noqa: PLC0415
 
     return SemanticTokenizer
 
@@ -61,6 +74,8 @@ class Yue2PersonaTokens:
     RETURN_NAMES = ("tokens", "seconds", "report")
     FUNCTION = "tokenise"
     CATEGORY = "model/conditioning/yue2"
+    # Its work is the file it writes: without this ComfyUI refuses a graph of this node alone ("no outputs").
+    OUTPUT_NODE = True
 
     def tokenise(self, audio, out, head, mert, device):
         SemanticTokenizer = _tokenizer()

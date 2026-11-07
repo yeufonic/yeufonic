@@ -54,6 +54,29 @@ Probar más, Dentro, Sacar, Normalizar y Mover, cada uno donde lo mostraría la 
 mientras la toma está normalizada, y un clic la devuelve entonces al nivel con que se renderizó; Dentro
 se ilumina mientras la toma contiene otras, y cierra la ventana para mostrarlas bajo la toma.
 
+### Una voz grabada {#a-recorded-voice}
+
+Una toma puede cantar con una voz sacada de una **grabación** en lugar de una LoRA entrenada.  Elige una en el campo
+*Voz grabada* del editor, o crea una con **Crear una voz…** a partir de un archivo de audio: basta con uno o dos minutos de canto, y
+no se entrena nada.  Las voces grabadas necesitan el motor ComfyUI; con yue2.cpp el campo no se muestra.
+
+La grabación se convierte una vez en los **tokens semánticos** del modelo, el flujo que escribe para la música que
+canta.  Un render con esa voz empieza con unos segundos de ese flujo y luego canta tu letra y tu partitura, así que la
+voz continúa en la canción nueva.
+
+**Segundos** fija cuánta parte de la voz usa un render: 48 por defecto, de 4 a 120.  Muy poco puede no llevar la voz, y
+demasiado puede arrastrar la melodía de la grabación.  Se guarda en la voz, así que cada toma que la usa tiene la misma
+duración.
+
+**Desde un corpus.**  Cada corpus tiene un botón **Crear una voz…**.  Toma unos segundos del centro de cuatro voces separadas del
+corpus y las une en una grabación: la voz es lo que los fragmentos comparten, y ninguna melodía manda.  Las canciones
+del corpus tienen que estar analizadas antes.
+
+**Regenerar** vuelve a construir la voz: una voz de corpus se recorta de nuevo del corpus tal como está ahora, y una
+grabación se vuelve a convertir en tokens.
+
+La receta de una toma nombra su voz, y al importarla se usa la voz con ese nombre en esta instalación, si la hay.
+
 ### Ajustes avanzados {#advanced-settings}
 
 El botón **Avanzado** en la cabecera del editor abre ajustes solo para esta toma. La mayoría de las canciones

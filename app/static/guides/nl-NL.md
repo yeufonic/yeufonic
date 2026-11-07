@@ -54,6 +54,30 @@ Meer proberen, Binnenin, Eruit halen, Normaliseren en Verplaatsen, elk waar de k
 zolang de take genormaliseerd is, en een klik zet hem dan terug op het niveau waarop hij werd gerenderd; Binnenin
 licht op zolang de take andere takes bevat, en sluit het venster om ze onder de take te tonen.
 
+### Een opgenomen stem {#a-recorded-voice}
+
+Een take kan zingen met een stem uit een **opname** in plaats van uit een getrainde LoRA.  Kies er een in het veld
+*Opgenomen stem* van de editor, of maak er een met **Stem maken…** van een audiobestand: een minuut of twee zang is genoeg, en er
+wordt niets getraind.  Opgenomen stemmen hebben de ComfyUI-engine nodig; met yue2.cpp wordt het veld niet getoond.
+
+De opname wordt één keer omgezet in de **semantische tokens** van het model, de stroom die het schrijft voor de muziek
+die het zingt.  Een render met die stem begint met een aantal seconden van die stroom en zingt dan jouw tekst en
+partituur, zodat de stem doorloopt in het nieuwe nummer.
+
+**Seconden** bepaalt hoeveel van de stem een render gebruikt: standaard 48, van 4 tot 120.  Te weinig draagt de stem
+misschien niet, te veel kan de melodie van de opname meetrekken.  Het wordt bij de stem bewaard, dus elke take die
+hem gebruikt krijgt dezelfde lengte.
+
+**Uit een corpus.**  Elk corpus heeft een knop **Stem maken…**.  Die neemt een paar seconden uit het midden van vier
+gescheiden vocals van het corpus en voegt ze samen tot één opname: de stem is wat de fragmenten gemeen hebben, en geen
+enkele melodie voert de boventoon.  De nummers van het corpus moeten eerst geanalyseerd zijn.
+
+**Opnieuw maken** bouwt de stem opnieuw: een corpusstem wordt opnieuw uit het corpus geknipt zoals het nu is, en een opname
+wordt opnieuw getokeniseerd.
+
+Het recept van een take noemt zijn stem, en bij importeren wordt de stem met die naam op deze installatie gebruikt, als
+die er is.
+
 ### Geavanceerde instellingen {#advanced-settings}
 
 De knop **Geavanceerd** in de kop van de editor opent instellingen alleen voor deze take. De meeste nummers

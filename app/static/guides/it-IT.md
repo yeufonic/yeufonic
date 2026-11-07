@@ -54,6 +54,29 @@ Prova ancora, Dentro, Estrai, Normalizza e Sposta, ciascuno dove lo mostrerebbe 
 finché il take è normalizzato, e un clic lo riporta allora al livello con cui è stato renderizzato; Dentro
 si accende finché il take ne contiene altri, e chiude la finestra per mostrarli sotto il take.
 
+### Una voce registrata {#a-recorded-voice}
+
+Un take può cantare con una voce presa da una **registrazione** invece che da una LoRA addestrata.  Sceglila nel
+campo *Voce registrata* dell’editor, oppure creane una con **Crea una voce…** da un file audio: bastano un paio di minuti di canto, e
+non si addestra nulla.  Le voci registrate richiedono il motore ComfyUI; con yue2.cpp il campo non viene mostrato.
+
+La registrazione viene convertita una volta nei **token semantici** del modello, il flusso che scrive per la musica che
+canta.  Un render con quella voce parte da alcuni secondi di quel flusso e poi canta il tuo testo e la tua partitura,
+così la voce prosegue nella nuova canzone.
+
+**Secondi** stabilisce quanta parte della voce usa un render: 48 di default, da 4 a 120.  Troppo poco può non portare la
+voce, troppo può trascinare la melodia della registrazione.  Il valore resta salvato sulla voce, quindi ogni take che
+la usa ha la stessa durata.
+
+**Da un corpus.**  Ogni corpus ha un pulsante **Crea una voce…**.  Prende qualche secondo dal centro di quattro voci separate del
+corpus e le unisce in una registrazione: la voce è ciò che gli estratti hanno in comune, e nessuna melodia prevale.  Le
+canzoni del corpus devono essere già state analizzate.
+
+**Rigenera** ricostruisce la voce: una voce da corpus viene ritagliata di nuovo dal corpus com’è ora, e una
+registrazione viene di nuovo convertita in token.
+
+La ricetta di un take nomina la sua voce, e importandola si usa la voce con quel nome su questa installazione, se c’è.
+
 ### Impostazioni avanzate {#advanced-settings}
 
 Il pulsante **Avanzate** nell'intestazione dell'editor apre impostazioni solo per questo take. La maggior parte delle canzoni

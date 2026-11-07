@@ -56,36 +56,27 @@ lit while the take holds others, and closes the window to show them under the ta
 
 ### A recorded voice
 
-A take can be given a singer's character from a **recording** rather than a trained LoRA.  Choose a *Recorded voice*
-in the editor, or make one with **Make a voice…** from a file — a minute or two of singing is plenty, and nothing is
-trained.  Recorded voices need the ComfyUI engine; with yue2.cpp the field is not shown.
+A take can sing in a voice taken from a **recording** rather than from a trained LoRA.  Choose one in the editor's
+*Recorded voice* field, or make one with **Make a voice…** from an audio file: a minute or two of singing is plenty, and nothing
+is trained.  Recorded voices need the ComfyUI engine; with yue2.cpp the field is not shown.
 
-What happens is simple, and not like a LoRA.  The recording is turned once into the model's **semantic tokens** — the
-stream the model writes for the music it sings, at 25 per second — and a render that uses that voice starts from a few
-seconds of the same stream before it sings your words and score.  So the voice carries over without any training, and
-the rest of the song is made in the usual way.
+The recording is turned once into the model's **semantic tokens**, the stream it writes for the music it sings.  A
+render with that voice starts from some seconds of that stream and then sings your words and score, so the voice
+carries on into the new song.
 
-**How much of it** is the one dial worth understanding.  The editor uses about **48 seconds** of the recording, which
-is what carried a voice in testing; four seconds did not, and longer is not always better, because the beginning of a
-song can pull the melody with it.  A reason to make the recording from several short excerpts rather than one song: the
-voice is what those excerpts share, and a collaged voice dragged less of one tune's shape along.
-
-**From a corpus.**  Where corpora are listed, each one has a **Make a voice…** button: it takes a few seconds
-from the middle of several of that corpus's songs — four by default — joins them into one recording and tokenises
-that.  This is the shape that worked best, because the voice is what those excerpts share, and one song's opening
-drags more of its own melody along.  It needs the corpus's vocals, so a corpus that has not been analysed cannot
-make one yet.
-
-**Regenerate.**  A voice can be built again from the editor: a corpus voice is recut from the corpus as it is
-now, so songs added or excluded since are picked up, and a recorded voice is tokenised again.  Use it after a
-corpus changes, or if tokenising failed.
-
-**How long.**  The **Seconds** box sets how much of the voice a render uses — the default 48 is what carried a
-voice in testing, and the box goes from 4 to 120.  It is saved on the voice, so every take that picks it uses
+**Seconds** sets how much of the voice a render uses: 48 by default, from 4 to 120.  Too little may not carry the
+voice, and too much can pull the recording's melody along.  It is saved on the voice, so every take that uses it gets
 the same length.
 
-A recording is a small thing to keep: the token stream and the source file, in the app's data folder.  A take's recipe
-names its voice, so an import can match it against the voices that machine has.
+**From a corpus.**  Each corpus has a **Make a voice…** button.  It takes a few seconds from the middle of four of the
+corpus's separated vocals and joins them into one recording: the voice is what the excerpts share, and no one song's
+melody leads.  The corpus's songs must have been analysed first.
+
+**Regenerate** builds the voice again: a corpus voice is cut again from the corpus as it is now, and a recording is
+tokenised again.
+
+A take's recipe names its voice, and importing it picks up the voice of that name on this install, if there is one.
+
 ### Advanced settings
 
 The **Advanced** button in the editor's header opens settings for this one take. Most songs never

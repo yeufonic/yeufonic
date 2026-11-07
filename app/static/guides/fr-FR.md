@@ -54,6 +54,30 @@ Essayer encore, Contenu, Sortir, Normaliser et Déplacer, chacun là où la cart
 tant que la prise est normalisée, et un clic la ramène alors au niveau de son rendu ; Contenu
 s’allume tant que la prise en contient d’autres, et ferme la fenêtre pour les montrer sous la prise.
 
+### Une voix enregistrée {#a-recorded-voice}
+
+Une prise peut chanter avec une voix tirée d’un **enregistrement** plutôt que d’une LoRA entraînée.  Choisissez-en
+une dans le champ *Voix enregistrée* de l’éditeur, ou créez-en une avec **Créer une voix…** à partir d’un fichier audio : une minute ou
+deux de chant suffisent, et rien n’est entraîné.  Les voix enregistrées demandent le moteur ComfyUI ; avec yue2.cpp,
+le champ n’est pas affiché.
+
+L’enregistrement est converti une fois en **jetons sémantiques** du modèle, le flux qu’il écrit pour la musique qu’il
+chante.  Un rendu avec cette voix commence par quelques secondes de ce flux, puis chante vos paroles et votre
+partition, si bien que la voix se prolonge dans la nouvelle chanson.
+
+**Secondes** règle la part de la voix qu’un rendu utilise : 48 par défaut, de 4 à 120.  Trop peu risque de ne pas porter
+la voix, trop peut entraîner la mélodie de l’enregistrement.  La valeur est enregistrée avec la voix : toutes les
+prises qui l’utilisent ont la même durée.
+
+**Depuis un corpus.**  Chaque corpus a un bouton **Créer une voix…**.  Il prend quelques secondes au milieu de quatre voix
+séparées du corpus et les assemble en un seul enregistrement : la voix est ce que les extraits ont en commun, et
+aucune mélodie ne domine.  Les chansons du corpus doivent avoir été analysées.
+
+**Régénérer** reconstruit la voix : une voix de corpus est recoupée à partir du corpus tel qu’il est maintenant, et un
+enregistrement est de nouveau converti en jetons.
+
+La recette d’une prise nomme sa voix, et son import reprend la voix de ce nom sur cette installation, s’il y en a une.
+
 ### Réglages avancés {#advanced-settings}
 
 Le bouton **Avancé** dans l’en-tête de l’éditeur ouvre des réglages pour cette seule prise. La plupart des chansons

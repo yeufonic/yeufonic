@@ -54,6 +54,29 @@ Try more, Inside, Take out, Normalize and Move, each where the card would show i
 while the take is normalized, and a click then puts it back to the level it was rendered at; Inside is
 lit while the take holds others, and closes the window to show them under the take.
 
+### A recorded voice {#a-recorded-voice}
+
+A take can sing in a voice taken from a **recording** rather than from a trained LoRA.  Choose one in the editor's
+*Recorded voice* field, or make one with **Make a voice…** from an audio file: a minute or two of singing is plenty, and nothing
+is trained.  Recorded voices need the ComfyUI engine; with yue2.cpp the field is not shown.
+
+The recording is turned once into the model's **semantic tokens**, the stream it writes for the music it sings.  A
+render with that voice starts from some seconds of that stream and then sings your words and score, so the voice
+carries on into the new song.
+
+**Seconds** sets how much of the voice a render uses: 48 by default, from 4 to 120.  Too little may not carry the
+voice, and too much can pull the recording's melody along.  It is saved on the voice, so every take that uses it gets
+the same length.
+
+**From a corpus.**  Each corpus has a **Make a voice…** button.  It takes a few seconds from the middle of four of the
+corpus's separated vocals and joins them into one recording: the voice is what the excerpts share, and no one song's
+melody leads.  The corpus's songs must have been analyzed first.
+
+**Regenerate** builds the voice again: a corpus voice is cut again from the corpus as it is now, and a recording is
+tokenized again.
+
+A take's recipe names its voice, and importing it picks up the voice of that name on this install, if there is one.
+
 ### Advanced settings {#advanced-settings}
 
 The **Advanced** button in the editor's header opens settings for this one take. Most songs never

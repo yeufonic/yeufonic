@@ -3279,6 +3279,16 @@ async def _tokenise_persona(engine, persona, persona_id: str, source: Path) -> d
     upload = await engine.upload(f"persona-{persona_id}{source.suffix or '.wav'}", source.read_bytes())
     name = upload.get("name") or upload.get("filename") or ""
     made = str(Path(name).with_suffix(".semantic.npy"))       # the node writes beside the audio when out is blank
+    try:
+        return await _run_tokeniser(engine, persona, persona_id, name, made)
+    finally:
+        for left in (name, made):       # the engine's copies, when the app can reach its input folder
+            if config.ENGINE_INPUT_DIR and left:
+                with contextlib.suppress(OSError):
+                    (config.ENGINE_INPUT_DIR / left).unlink(missing_ok=True)
+
+
+async def _run_tokeniser(engine, persona, persona_id: str, name: str, made: str) -> dict:
     graph = {"1": {"class_type": "Yue2PersonaTokens", "inputs": {
         "audio": name, "out": "", "head": config.TOKENIZER_HEAD,
         "mert": "m-a-p/MERT-v2-FullSong", "device": "auto"}}}
@@ -3303,10 +3313,6 @@ async def _tokenise_persona(engine, persona, persona_id: str, source: Path) -> d
             raise TimeoutError("tokenising took too long")
     target = persona.tokens_file(persona_id)
     await engine.download({"filename": made, "subfolder": "", "type": "input"}, target)
-    for left in (name, made):           # the engine's copies, when the app can reach its input folder
-        if config.ENGINE_INPUT_DIR and left:
-            with contextlib.suppress(OSError):
-                (config.ENGINE_INPUT_DIR / left).unlink(missing_ok=True)
     persona.ready(persona_id, str(target), head=config.TOKENIZER_HEAD)
     log.info("persona %s tokenised: %s", persona_id, target)
     return {"tokens_path": str(target)}

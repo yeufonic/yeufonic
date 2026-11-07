@@ -54,6 +54,30 @@ Mehr ausprobieren, Inhalt, Herausnehmen, Normalisieren und Verschieben, jede dor
 solange der Take normalisiert ist, und ein Klick bringt ihn dann auf den Pegel zurück, mit dem er gerendert wurde; Inhalt
 leuchtet, solange der Take andere enthält, und schließt das Fenster, um sie unter dem Take zu zeigen.
 
+### Eine aufgenommene Stimme {#a-recorded-voice}
+
+Ein Take kann mit einer Stimme aus einer **Aufnahme** singen statt mit einer trainierten LoRA.  Wähle sie im Feld
+*Aufgenommene Stimme* des Editors, oder erstelle eine mit **Stimme erstellen…** aus einer Audiodatei: ein, zwei Minuten Gesang reichen, und
+es wird nichts trainiert.  Aufgenommene Stimmen brauchen die ComfyUI-Engine; mit yue2.cpp wird das Feld nicht gezeigt.
+
+Die Aufnahme wird einmal in die **semantischen Tokens** des Modells umgewandelt, den Strom, den es für die Musik
+schreibt, die es singt.  Ein Render mit dieser Stimme beginnt mit einigen Sekunden dieses Stroms und singt dann deinen
+Text und deine Partitur, sodass die Stimme in den neuen Song übergeht.
+
+**Sekunden** legt fest, wie viel der Stimme ein Render nutzt: standardmäßig 48, von 4 bis 120.  Zu wenig trägt die Stimme
+vielleicht nicht, zu viel kann die Melodie der Aufnahme mitziehen.  Der Wert wird bei der Stimme gespeichert, also
+bekommt jeder Take, der sie nutzt, dieselbe Länge.
+
+**Aus einem Korpus.**  Jeder Korpus hat eine Schaltfläche **Stimme erstellen…**.  Sie nimmt einige Sekunden aus der Mitte von vier
+getrennten Vocals des Korpus und fügt sie zu einer Aufnahme zusammen: Die Stimme ist das, was die Ausschnitte gemeinsam
+haben, und keine einzelne Melodie führt.  Die Songs des Korpus müssen vorher analysiert sein.
+
+**Neu erzeugen** baut die Stimme neu: Eine Korpus-Stimme wird aus dem Korpus in seinem jetzigen Stand neu geschnitten, eine
+Aufnahme wird neu tokenisiert.
+
+Das Rezept eines Takes nennt seine Stimme, und beim Import wird die gleichnamige Stimme dieser Installation übernommen,
+falls es eine gibt.
+
 ### Erweiterte Einstellungen {#advanced-settings}
 
 Die Schaltfläche **Erweitert** in der Kopfzeile des Editors öffnet Einstellungen nur für diesen Take. Die meisten Songs
