@@ -34,3 +34,21 @@ def test_the_field_follows_the_take_and_polls_a_voice_being_made(page, app_serve
                            timeout=10000)
     page.wait_for_timeout(3500)
     assert len(calls) == 2
+
+
+def test_make_a_voice_asks_in_the_apps_own_dialog_then_goes_back_to_the_main_page(page, app_server):
+    page.route("**/api/voices/from-identity", lambda route: route.fulfill(
+        json={"id": "cccccccccccc", "name": "Band voice", "state": "preparing", "prefix_seconds": 48}))
+    page.route("**/api/voices", lambda route: route.fulfill(json=[]))
+    page.evaluate("() => openIdentities()")
+    page.wait_for_selector("#identities-modal:not(.hidden)")
+    page.evaluate("() => { makeVoiceFromCorpus('abcdefabcdef', 'Band'); }")
+    # The name is asked in the app's centred dialog, over Corpora, not in the browser's prompt.
+    page.wait_for_selector("#confirm-modal:not(.hidden) #confirm-input:not(.hidden)")
+    assert page.input_value("#confirm-input") == "Band voice"
+    box = page.locator("#confirm-modal .modal-box, #confirm-modal > div").first.bounding_box()
+    centre = box["x"] + box["width"] / 2
+    assert abs(centre - 800) < 40
+    page.click("#confirm-ok")
+    page.wait_for_selector("#identities-modal.hidden", state="attached")
+    assert page.is_hidden("#confirm-modal")

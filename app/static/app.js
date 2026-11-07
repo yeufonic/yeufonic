@@ -17395,6 +17395,12 @@ function setPersonaFromTake(take) {
   refreshPersonaHint();
 }
 
+/* The app's own dialog, as every other question it asks: null when cancelled. */
+function askVoiceName(suggested) {
+  return confirmModal({ title: t("Make a voice…"), message: t("What is this voice called?"), input: true,
+                        defaultValue: suggested || "", confirmText: t("OK") });
+}
+
 function askForVoice() {
   var input = document.createElement("input");
   input.type = "file";
@@ -17408,7 +17414,7 @@ function askForVoice() {
 
 async function makePersona(file) {
   var name = (file.name || "").replace(/\.[^.]+$/, "") || t("My voice");
-  var said = window.prompt(t("What is this voice called?"), name);
+  var said = await askVoiceName(name);
   if (said === null) { return; }
   var form = new FormData();
   form.append("file", file, file.name || "voice.wav");
@@ -17440,8 +17446,10 @@ document.addEventListener("click", function (event) {
 
 async function makeVoiceFromCorpus(identityId, name) {
   if (!identityId) { return; }
-  var said = window.prompt(t("What is this voice called?"), name ? name + " voice" : "");
+  var said = await askVoiceName(name ? name + " voice" : "");
   if (said === null) { return; }
+  // Nothing more happens on the corpus: the voice is made in the background and chosen in the editor.
+  closeIdentities();
   var form = new FormData();
   form.append("identity_id", identityId);
   form.append("name", said.trim());
