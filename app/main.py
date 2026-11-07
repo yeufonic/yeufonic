@@ -5145,7 +5145,8 @@ def _recipe_of(take_id: str) -> dict:
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         raise HTTPException(404, "no such take")
-    return recipes.export(take, config.VERSION)
+    voice = persona.one(take["voice_id"]) if take.get("voice_id") else None
+    return recipes.export(take, config.VERSION, voice=voice["name"] if voice else None)
 
 
 @app.get("/api/takes/{take_id}/recipe")

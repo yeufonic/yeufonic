@@ -63,12 +63,18 @@ FIELDS = {
 FLAGS = {"length_cap_set", "production_polish", "normalise"}
 
 
-def export(take: dict, version: str) -> dict:
-    """The recipe of a take, as the file holds it."""
+def export(take: dict, version: str, voice: str | None = None) -> dict:
+    """The recipe of a take, as the file holds it.
+
+    ``voice`` is a recorded voice's *name*, not its id: a recipe holds nothing that belongs to one install, and
+    an import matches the name against the voices that install has.
+    """
     out: dict[str, Any] = {}
     for name, column in FIELDS.items():
         value = take.get(column)
         out[name] = bool(value) if name in FLAGS else value
+    if voice:
+        out["voice"] = voice
     if take.get("kind") == "cover" or take.get("source_id"):
         out["recording"] = "not included"
     mastering = None
