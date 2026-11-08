@@ -3255,6 +3255,14 @@ def _corpus_original(identity_id: str, song: dict) -> Path | None:
     return None
 
 
+def voice_minutes() -> float:
+    """Settings → Recorded voice: minutes of singing; 0 is all of it."""
+    try:
+        return max(0.0, float(get_setting("voice.minutes", None) or 10))
+    except ValueError:
+        return 10.0
+
+
 async def queue_voice_training(persona_id: str) -> None:
     persona.training(persona_id, 0.0)
     await QUEUE.put({"kind": "voice", "id": persona_id})
@@ -3277,15 +3285,18 @@ async def run_voice_train(persona_id: str) -> None:
     CURRENT.update({"kind": "voice", "id": persona_id, "prompt_id": None, "started": started,
                     "label": "Training a voice"})
     origin = f"the corpus {record['origin_identity']}" if record.get("origin_identity") else "its recording"
-    log.info("Training the recorded voice '%s' (%s) on %d recording(s) from %s, %d passes", record["name"],
-             persona_id, len(sources), origin, persona.TRAIN_EPOCHS)
+    minutes = voice_minutes()
+    log.info("Training the recorded voice '%s' (%s) on %s of singing from %d recording(s) from %s, %d passes",
+             record["name"], persona_id, f"{minutes:g} minutes" if minutes else "all", len(sources), origin,
+             persona.TRAIN_EPOCHS)
     said = {"stage": None, "quarter": 0}
     try:
         with contextlib.suppress(Exception):
             await ENGINE.free()
         async with httpx.AsyncClient(timeout=30.0) as client:
             job = (await client.post(config.VOICE_URL + "/train", json={
-                "id": persona_id, "sources": sources, "separate": True, "epochs": persona.TRAIN_EPOCHS})).json()["job"]
+                "id": persona_id, "sources": sources, "separate": True, "epochs": persona.TRAIN_EPOCHS,
+                "minutes": voice_minutes()})).json()["job"]
             while time.time() - started < VOICE_TRAIN_TIMEOUT:
                 await asyncio.sleep(VOICE_POLL_SECONDS)
                 stopped = persona_id in CANCELLED or CURRENT.get("id") != persona_id
@@ -3332,6 +3343,9 @@ def _log_voice_step(name: str, state: dict, said: dict) -> None:
     if stage and stage != said["stage"]:
         said["stage"] = stage
         clips = f" ({state['clips']} clips of singing)" if stage == "training" and state.get("clips") else ""
+        if stage == "analysing" and state.get("singing_seconds") is not None:
+            clips = (f" ({state['singing_seconds'] / 60:.1f} of {state.get('available_seconds', 0) / 60:.1f} "
+                     "minutes of singing)")
         log.info("Recorded voice '%s': %s%s", name, VOICE_STAGES.get(stage, stage), clips)
     if stage == "training":
         # Training is 15% to 95% of the job's progress: report it as its own 0-100%.

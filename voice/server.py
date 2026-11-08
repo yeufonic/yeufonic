@@ -41,6 +41,20 @@ LOCK = threading.Lock()                  # one GPU job at a time: a training run
 RUNNING: dict = {}                       # the step under way, so a stop can end it: {"job": id, "proc": Popen}
 
 
+def batch_size() -> int:
+    """Clips trained on at once, by the card's memory (the engine is unloaded while a voice trains)."""
+    try:
+        got = subprocess.run([PY, "-c", "import torch; print(torch.cuda.get_device_properties(0).total_memory)"],
+                             capture_output=True, text=True, timeout=60)
+        gib = int(got.stdout.strip()) / 2**30
+    except Exception:  # noqa: BLE001 - no card to ask: the cautious size
+        return 4
+    return 2 if gib < 7 else 4 if gib < 11 else 8 if gib < 20 else 12
+
+
+BATCH = 4
+
+
 class Stopped(Exception):
     pass
 
@@ -103,13 +117,66 @@ def mono(source: Path, dest: Path) -> None:
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(source), "-ac", "1", "-ar", "44100", str(dest)], check=True)
 
 
-def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int) -> None:
+FRAME_SECONDS = 0.05
+SINGING_BELOW_LOUD_DB = 25.0      # a frame counts as singing within this many dB of the vocal's loud passages
+
+
+def singing_frames(samples, rate: int):
+    """Which 50 ms frames of a separated vocal hold singing: within 25 dB of its loud passages (95th percentile)."""
+    import numpy as np  # noqa: PLC0415 - only the training path needs it
+
+    hop = max(1, int(rate * FRAME_SECONDS))
+    count = len(samples) // hop
+    if count == 0:
+        return np.zeros(0, dtype=bool)
+    frames = samples[: count * hop].reshape(count, hop)
+    rms = np.sqrt((frames.astype("float64") ** 2).mean(axis=1)) + 1e-9
+    loud = np.percentile(rms, 95)
+    return rms > loud * 10 ** (-SINGING_BELOW_LOUD_DB / 20)
+
+
+def share_out(singing: list[float], total: float) -> list[float]:
+    """How many seconds of singing to take from each song: an equal share of the total, and what a song lacks of its
+    share goes to the others."""
+    shares = [0.0] * len(singing)
+    open_ = [i for i, have in enumerate(singing) if have > 0]
+    left = total
+    while open_ and left > 1e-6:
+        each = left / len(open_)
+        short = [i for i in open_ if singing[i] - shares[i] <= each]
+        if not short:
+            for i in open_:
+                shares[i] += each
+            break
+        for i in short:
+            left -= singing[i] - shares[i]
+            shares[i] = singing[i]
+        open_ = [i for i in open_ if i not in short]
+    return shares
+
+
+def excerpt_with(mask, need_frames: int) -> tuple[int, int]:
+    """The frames [a, b) around the middle of a vocal that hold `need_frames` of singing (all of it if it has less)."""
+    a = b = len(mask) // 2
+    have = 0
+    while have < need_frames and (a > 0 or b < len(mask)):
+        if b < len(mask):
+            have += int(mask[b])
+            b += 1
+        if have < need_frames and a > 0:
+            a -= 1
+            have += int(mask[a])
+    return a, b
+
+
+def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int, minutes: float = 0.0) -> None:
     folder = VOICES / voice
     work = folder / "work"
     shutil.rmtree(work, ignore_errors=True)
     trainset = work / "trainset"
     trainset.mkdir(parents=True)
     log = work / "train.log"
+    vocals = []
     for index, name in enumerate(sources):
         job.update(stage="separating" if split else "preparing", progress=0.1 * index / max(1, len(sources)))
         source = Path(name)
@@ -117,7 +184,29 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int) -
         if job.get("stop"):
             raise Stopped()
         vocal = separate(source, work / "sep")[0] if split else source
-        mono(vocal, trainset / f"{index:03d}.wav")
+        staged = work / "mono" / f"{index:03d}.wav"
+        staged.parent.mkdir(parents=True, exist_ok=True)
+        mono(vocal, staged)
+        vocals.append(staged)
+    # The singing asked for, shared across the songs: each gives the stretch around its middle that holds its share.
+    import soundfile  # noqa: PLC0415 - only training needs it, and only from here on
+
+    loaded = [soundfile.read(str(path), dtype="float32") for path in vocals]
+    masks = [singing_frames(samples, rate) for samples, rate in loaded]
+    singing = [float(mask.sum()) * FRAME_SECONDS for mask in masks]
+    shares = share_out(singing, minutes * 60) if minutes > 0 else singing
+    for index, ((samples, rate), mask, share) in enumerate(zip(loaded, masks, shares)):
+        if share <= 0:
+            continue
+        a, b = excerpt_with(mask, int(round(share / FRAME_SECONDS)))
+        hop = max(1, int(rate * FRAME_SECONDS))
+        soundfile.write(str(trainset / f"{index:03d}.wav"), samples[a * hop: b * hop], rate)
+    job.update(singing_seconds=round(sum(shares)), available_seconds=round(sum(singing)))
+    print(f"[{voice}] {sum(shares) / 60:.1f} of {sum(singing) / 60:.1f} minutes of singing, from {len(vocals)} "
+          f"recording(s)", flush=True)
+    shutil.rmtree(work / "mono", ignore_errors=True)
+    if not any(trainset.iterdir()):
+        raise RuntimeError("no singing was found in these recordings")
     exp = f"v-{voice}"
     logs = LOGS / exp
     shutil.rmtree(logs, ignore_errors=True)
@@ -143,8 +232,8 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int) -
     print(f"[{voice}] training on {len(names)} clips, {epochs} passes", flush=True)
     watcher = threading.Thread(target=_follow_epochs, args=(job, log, epochs), daemon=True)
     watcher.start()
-    # Batch 4 rather than RVC's usual 8: the engine is freed first, but a smaller batch leaves room on a 12 GB card.
-    run(["train/train.py", "-e", exp, "-sr", SR, "-f0", "1", "-bs", "4", "-g", "0", "-te", str(epochs),
+    # The batch follows the card's memory (batch_size): the engine is freed first, so the card is the voice's.
+    run(["train/train.py", "-e", exp, "-sr", SR, "-f0", "1", "-bs", str(BATCH), "-g", "0", "-te", str(epochs),
          "-se", str(epochs), "-pg", f"assets/pretrained_v2/f0G{SR}.pth", "-pd", f"assets/pretrained_v2/f0D{SR}.pth",
          "-l", "1", "-c", "0", "-sw", "0", "-v", "v2"], job=job, log=log)
     job["epochs_done"] = epochs
@@ -211,7 +300,7 @@ def _train_job(job_id: str, body: dict) -> None:
         job["state"] = "running"
         try:
             train(job, body["id"], list(body.get("sources") or []), bool(body.get("separate", True)),
-                  int(body.get("epochs") or 100))
+                  int(body.get("epochs") or 100), float(body.get("minutes") or 0))
             job.update(state="done", progress=1.0, stage=None)
             print(f"[{body['id']}] trained", flush=True)
         except Stopped:
@@ -238,7 +327,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802
         if self.path == "/health":
             models = needed()
-            return self._send(200, {"ok": all(models.values()), "models": models})
+            return self._send(200, {"ok": all(models.values()), "models": models, "batch": BATCH})
         if self.path.startswith("/jobs/"):
             job = JOBS.get(self.path.split("/", 2)[2])
             return self._send(200, job) if job else self._send(404, {"error": "no such job"})
@@ -278,5 +367,6 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     VOICES.mkdir(parents=True, exist_ok=True)
-    print("voice service on :8190; models:", needed(), flush=True)
+    BATCH = batch_size()
+    print(f"voice service on :8190; batch {BATCH}; models:", needed(), flush=True)
     ThreadingHTTPServer(("0.0.0.0", 8190), Handler).serve_forever()

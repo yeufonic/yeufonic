@@ -478,6 +478,7 @@ def test_settings_groups_and_lora_training_options(client, monkeypatch, tmp_path
         "training.conditioning",
         "training.max_minutes",
         "training.allow_int8",
+        "voice.minutes",          # how much singing a recorded voice trains on
     }
     assert by_key["training.regularization"]["requires"] == {"training.branches": ["both", "planner"]}
     assert by_key["training.conditioning"]["requires"] == {"training.branches": ["both", "acoustic"]}

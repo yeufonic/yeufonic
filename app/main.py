@@ -17,6 +17,7 @@ import collections
 import contextlib
 import hashlib
 import httpx
+import io
 import json
 import logging
 import os
@@ -187,6 +188,23 @@ SETTINGS_SPEC: list[dict] = [
         "help": "Generates reference scores from the frozen base model before planner training (cached on disk for "
                 "reuse) and mixes them into training steps so the LoRA keeps natural song endings and phrasing. "
                 "Sampling a percentage of prompts scales naturally with any corpus size, or choose Off to skip.",
+    },
+    {
+        "key": "voice.minutes",
+        "group": "training",
+        "label": "Recorded voice: minutes of singing",
+        "type": "select",
+        "default": "10",
+        "options": [
+            {"value": "5", "label": "5 minutes"},
+            {"value": "10", "label": "10 minutes"},
+            {"value": "20", "label": "20 minutes"},
+            {"value": "30", "label": "30 minutes"},
+            {"value": "0", "label": "All of it"},
+        ],
+        "help": "How much singing a recorded voice is trained on, shared equally across a corpus's songs (a song with "
+                "less gives all it has, and the others make up the rest). About ten minutes is plenty; more takes "
+                "longer to train and adds little.",
     },
     {
         "key": "training.semantic_tokens",
@@ -6110,3 +6128,80 @@ async def regenerate_voice(persona_id: str) -> dict:
         raise HTTPException(400, "There is no recording left to train on.")
     await jobs.queue_voice_training(persona_id)
     return {"queued": True}
+
+
+# A voice to give to someone, or one someone gave: its model and index in a zip, with its name and octave.  An RVC
+# model from elsewhere (a .pth, or a zip holding one and its .index) imports the same way.
+VOICE_IMPORT_MAX_BYTES = 1536 * 1024 * 1024
+
+
+@app.get("/api/voices/{persona_id}/export")
+def export_voice(persona_id: str) -> Response:
+    record = persona.one(persona_id)
+    if not persona.usable(record):
+        raise HTTPException(400, "This voice has no trained model to export.")
+    folder = persona.folder(persona_id)
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as archive:
+        archive.write(folder / "model.pth", "model.pth")
+        if (folder / "model.index").is_file():
+            archive.write(folder / "model.index", "model.index")
+        archive.writestr("voice.json", json.dumps({"name": record["name"], "octave": record["octave"],
+                                                   "made_with": f"Yeufonic {config.VERSION}"}, indent=2))
+    safe = "".join(ch for ch in record["name"] if ch.isalnum() or ch in " -_").strip() or "voice"
+    return Response(buffer.getvalue(), media_type="application/zip",
+                    headers={"Content-Disposition": f'attachment; filename="{safe}.voice.zip"'})
+
+
+@app.post("/api/voices/import")
+async def import_voice(file: UploadFile = File(...)) -> dict:
+    """A voice from a zip (Yeufonic's export, or an RVC model with its index) or a bare RVC .pth."""
+    name = Path(file.filename or "voice").name
+    lower = name.lower()
+    if not (lower.endswith(".zip") or lower.endswith(".pth")):
+        raise HTTPException(400, "That is not a voice: a .zip or an RVC .pth file.")
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    temp = config.WORK_DIR / f"voice-import-{uuid.uuid4().hex[:8]}{Path(lower).suffix}"
+    with temp.open("wb") as out:
+        shutil.copyfileobj(file.file, out)
+    try:
+        if temp.stat().st_size > VOICE_IMPORT_MAX_BYTES:
+            raise HTTPException(400, "That file is too large to be a voice.")
+        title, octave, model, index = Path(name).stem.removesuffix(".voice"), 0, None, None
+        if lower.endswith(".pth"):
+            model = temp.read_bytes()
+        else:
+            try:
+                archive = zipfile.ZipFile(temp)
+            except zipfile.BadZipFile as err:
+                raise HTTPException(400, "That zip could not be read.") from err
+            with archive:
+                members = [m for m in archive.infolist() if not m.is_dir()]
+                if sum(m.file_size for m in members) > VOICE_IMPORT_MAX_BYTES:
+                    raise HTTPException(400, "That file is too large to be a voice.")
+                pth = sorted((m for m in members if m.filename.lower().endswith(".pth")), key=lambda m: -m.file_size)
+                idx = sorted((m for m in members if m.filename.lower().endswith(".index")),
+                             key=lambda m: ("added" not in m.filename.lower(), -m.file_size))
+                if not pth:
+                    raise HTTPException(400, "That zip holds no voice model (.pth).")
+                model = archive.read(pth[0])
+                index = archive.read(idx[0]) if idx else None
+                about = next((m for m in members if Path(m.filename).name == "voice.json"), None)
+                if about:
+                    with contextlib.suppress(ValueError, KeyError, TypeError):
+                        meta = json.loads(archive.read(about))
+                        title = str(meta.get("name") or title)[:80]
+                        octave = persona.clamp_octave(meta.get("octave"))
+        if not model or model[:2] != b"PK":       # torch.save writes a zip: anything else is not a model
+            raise HTTPException(400, "That file is not a voice model.")
+        made = persona.create(title, octave=octave)
+        folder = persona.folder(made["id"])
+        (folder / "model.pth").write_bytes(model)
+        if index:
+            (folder / "model.index").write_bytes(index)
+        persona.ready(made["id"], str(folder / "model.pth"))
+        log.info("Imported the recorded voice '%s' (%s) from %s", title, made["id"], name)
+        return persona.one(made["id"])
+    finally:
+        temp.unlink(missing_ok=True)
+

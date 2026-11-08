@@ -28,8 +28,9 @@ log = logging.getLogger("yue2.persona")
 MIN_OCTAVE, MAX_OCTAVE = -1, 1
 # Training passes over the voice's recordings: enough for a few minutes of singing to settle (100 by ear).
 TRAIN_EPOCHS = 100
-# A corpus voice trains on at most this many of the corpus's songs: more adds time, not much voice.
-CORPUS_SONGS = 15
+# A corpus voice samples at most this many of the corpus's songs: each is separated before the minutes of singing
+# (Settings) are shared across them, and separating more adds time for little.
+CORPUS_SONGS = 30
 
 
 def folder(persona_id: str) -> Path:
