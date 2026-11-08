@@ -23,6 +23,7 @@ import random
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -30,13 +31,22 @@ import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RVC = Path("/opt/rvc")
-ASSETS = RVC / "assets"                  # mounted from models/voice/assets
-LOGS = RVC / "logs"                      # mounted from models/voice/logs (holds RVC's "mute" samples)
+# Where RVC is: /opt/rvc in the container; the Windows install sets RVC_DIR to its own copy.  Its scripts read their
+# models from assets/ and write to logs/ beside them, relative to where they run.
+RVC = Path(os.environ.get("RVC_DIR", "/opt/rvc"))
+ASSETS = RVC / "assets"                  # in the container, mounted from models/voice/assets
+LOGS = RVC / "logs"                      # in the container, mounted from models/voice/logs (holds RVC's "mute" samples)
 VOICES = Path(os.environ.get("VOICES_DIR", "/data/voices"))
 SEPARATOR = "model_bs_roformer_ep_317_sdr_12.9755.ckpt"
 SR, HZ = "48k", "48000"
-PY = "python"
+PY = sys.executable                      # RVC's steps run in this service's own Python
+HOST = os.environ.get("VOICE_HOST", "0.0.0.0")
+PORT = int(os.environ.get("VOICE_PORT", "8190"))
+# What RVC's scripts need wherever they run: their imports from the repository root, without this file's folder
+# shadowing RVC's own "train" package, and no CUDA graphs (they failed in the container's first runs).
+for key, value in (("PYTHONPATH", str(RVC)), ("PYTHONSAFEPATH", "1"), ("RVC_CUDA_GRAPH", "0"), ("PYTHONUNBUFFERED", "1"),
+                   ("PYTHONUTF8", "1")):
+    os.environ.setdefault(key, value)
 
 JOBS: dict[str, dict] = {}
 LOCK = threading.Lock()                  # one GPU job at a time: a training run or a conversion
@@ -250,8 +260,9 @@ def train(job: dict, voice: str, sources: list, default_split: bool, epochs: int
     job["epochs_done"] = epochs
     small = ASSETS / "weights" / f"{exp}.pth"
     if not small.exists():   # RVC's final save can fail on its own; the last checkpoint holds the same weights
+        # Paths as Python literals (repr): a Windows path's backslashes would be read as escapes.
         run(["-c", "from train.process_ckpt import extract_small_model as x; import sys; "
-                   f"print(x('{logs}/G_2333333.pth', '{exp}', '{SR}', 1, 'Yeufonic voice', 'v2'))"], log=log)
+                   f"print(x({str(logs / 'G_2333333.pth')!r}, {exp!r}, {SR!r}, 1, 'Yeufonic voice', 'v2'))"], log=log)
     job.update(stage="indexing", progress=0.97)
     print(f"[{voice}] building the index", flush=True)
     run(["train/train_index.py", exp, "v2", str(ASSETS / "indices"), str(max(1, (os.cpu_count() or 4) // 2)), "single"],
@@ -499,5 +510,5 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     VOICES.mkdir(parents=True, exist_ok=True)
     BATCH = batch_size()
-    print(f"voice service on :8190; batch {BATCH}; models:", needed(), flush=True)
-    ThreadingHTTPServer(("0.0.0.0", 8190), Handler).serve_forever()
+    print(f"voice service on {HOST}:{PORT}; batch {BATCH}; models:", needed(), flush=True)
+    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

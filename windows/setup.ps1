@@ -3,13 +3,15 @@
 # version and checked by sha256 where the publisher gives one.  Safe to run again:
 # whatever is already in place is kept, and an interrupted download carries on.
 #
-#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-NoLyrics] [-Int8] [-Pictures] [-Loras]
+#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-NoLyrics] [-Int8] [-Pictures] [-Loras] [-Voices]
 #   ... -Engine           comfyui (everything, the default) or yue2cpp (yue2.cpp's server, for less video memory: no
 #                         training; Gemma in Ollama and pictures in stable-diffusion.cpp beside it).  Left out, the
 #                         engine settings.ini names, so Repair keeps it.
 #   ... -Int8             the smaller, low-memory YuE2 model instead of the full-quality one (ComfyUI)
 #   ... -Pictures         FLUX.2 klein, which draws each take's picture on this PC (about 8.3 GB)
 #   ... -Loras            39 style LoRAs by their authors, CC BY-NC 4.0, gathered on Hugging Face (about 3.8 GB)
+#   ... -Voices           recorded voices: the voice service (RVC and a BS-Roformer separator) in a Python of its own,
+#                         and its models (about 4 GB to download)
 #   ... -CheckOnly        only the system check
 #   ... -SkipModels       everything but the 18 GB of models (for testing)
 
@@ -20,6 +22,7 @@ param(
     [switch]$Int8,
     [switch]$Pictures,
     [switch]$Loras,
+    [switch]$Voices,
     [switch]$CheckOnly,
     [switch]$SkipModels
 )
@@ -30,7 +33,7 @@ if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProces
     $native = Join-Path $env:WINDIR 'Sysnative\WindowsPowerShell\v1.0\powershell.exe'
     $again = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-InstallDir', $InstallDir)
     if ($Engine) { $again += @('-Engine', $Engine) }
-    foreach ($flag in @('NoLyrics', 'Int8', 'Pictures', 'Loras', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
+    foreach ($flag in @('NoLyrics', 'Int8', 'Pictures', 'Loras', 'Voices', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
     & $native @again
     exit $LASTEXITCODE
 }
@@ -82,6 +85,10 @@ $Pins = @{
     ComfyCommit       = 'bb878b9ee35274e67931634ba9e8c338f8c06035'   # the commit engine/Dockerfile builds
     Yue2TrainerCommit = '6a9355efff60589d93b41b569676f09d5db85d09'
     AppPython         = '3.13'
+    # Recorded voices: RVC, MIT, driven by its scripts' argument positions, so pinned as voice/Dockerfile pins it.
+    RvcCommit         = '81eed5e8f68b6bed1789f682fe78cdd324495afc'
+    VoicePython       = '3.12'
+    VoiceTorch        = '2.7.1'
 }
 # ComfyUI's own Windows build: its embedded Python and CUDA torch.  The default wants
 # an NVIDIA driver of 580 or later (CUDA 13.0); the cu126 build serves older ones.
@@ -102,6 +109,31 @@ $Files = @{
                   Sha = 'fab7a2e4b85675b66970f97a39bbc239729c5e0f237198b5922a6a73cbc8677c'; Size = 2727529 }
 }
 $HF = 'https://huggingface.co'
+# What the voice service reads, as scripts/fetch-models.sh --voice fetches it for the Docker install.
+$RvcHF = "$HF/lj1995/VoiceConversionWebUI/resolve/main"
+$PymssHF = "$HF/baicai1145/pymss/resolve/main/vocal/vocal_extraction"
+$VoiceFiles = @(
+    @{ Dir = 'assets\hubert_base'; File = 'config.json'; Url = "$RvcHF/hubert_base/config.json"
+       Sha = '0346950779dfb7f9316fa74ed846e2b8a22a08eedfdc5387b73f327cb1a4a7cf'; Size = 1492 }
+    @{ Dir = 'assets\hubert_base'; File = 'preprocessor_config.json'; Url = "$RvcHF/hubert_base/preprocessor_config.json"
+       Sha = '7c1976a680fb7acc757cd36fb08eef878fa36c70b4c9d2d595df9c608bbbbf0e'; Size = 225 }
+    @{ Dir = 'assets\hubert_base'; File = 'pytorch_model.bin'; Url = "$RvcHF/hubert_base/pytorch_model.bin"
+       Sha = 'cc8c20f4b90a520757260197a3ff2505705a7adbd20ad9eeaa4e1a9b38442ef5'; Size = 189206711 }
+    @{ Dir = 'assets\rmvpe'; File = 'rmvpe.pt'; Url = "$RvcHF/rmvpe.pt"
+       Sha = '6d62215f4306e3ca278246188607209f09af3dc77ed4232efdd069798c4ec193'; Size = 181184272 }
+    @{ Dir = 'assets\pretrained_v2'; File = 'f0G48k.pth'; Url = "$RvcHF/pretrained_v2/f0G48k.pth"
+       Sha = 'b5d51f589cc3632d4eae36a315b4179397695042edc01d15312e1bddc2b764a4'; Size = 75465569 }
+    @{ Dir = 'assets\pretrained_v2'; File = 'f0D48k.pth'; Url = "$RvcHF/pretrained_v2/f0D48k.pth"
+       Sha = '2269b73c7a4cf34da09aea99274dabf99b2ddb8a42cbfb065fb3c0aa9a2fc748'; Size = 142875703 }
+    @{ Dir = 'assets\pymss\vocal\vocal_extraction'; File = 'model_bs_roformer_ep_317_sdr_12.9755.ckpt'
+       Url = "$PymssHF/model_bs_roformer_ep_317_sdr_12.9755.ckpt"
+       Sha = '5b84f37e8d444c8cb30c79d77f613a41c05868ff9c9ac6c7049c00aefae115aa'; Size = 639331213 }
+    @{ Dir = 'assets\pymss\vocal\vocal_extraction'; File = 'model_bs_roformer_ep_317_sdr_12.9755.yaml'
+       Url = "$PymssHF/model_bs_roformer_ep_317_sdr_12.9755.yaml"
+       Sha = '3dae086b481bc6adecccb6bdfd2386ffd78708e11c221876a146972cab5b2afe'; Size = 2279 }
+    @{ Dir = ''; File = 'mute.zip'; Url = "$RvcHF/mute.zip"
+       Sha = 'ee948e85213e4ed2f2ba2f8dfcee810bfd0b63131d91450e920bbe1cbd0321d0'; Size = 312273 }
+)
 # The yue2.cpp engine.  Its server is built for Windows with Yeufonic's patches by .github/workflows/engine-cpp-windows.yml
 # and published as a pre-release named for the upstream commit and the patches; Ollama and stable-diffusion.cpp come
 # from their own releases.
@@ -877,6 +909,65 @@ if (-not $SkipModels -and -not (IsDone 'app-models')) {
     Say 'demucs htdemucs (about 80 MB)'
     Invoke-Checked 'demucs' $appPy @('-c', "from demucs.pretrained import get_model; get_model('htdemucs')")
     Done 'app-models'
+}
+
+# ----------------------------------------------------------- recorded voices
+# The voice service runs in a Python of its own (RVC pins an older transformers, numpy and librosa than ComfyUI's), and
+# the launcher starts it where it finds it.  RVC's scripts read assets\ and write logs\ beside themselves, so those are
+# junctions into voice\models, which a new RVC commit leaves in place.
+if ($Voices) {
+    Step 'Recorded voices (the voice service)'
+    $voiceDir = Join-Path $InstallDir 'voice'
+    $rvcDir = Join-Path $voiceDir 'rvc'
+    $voiceModels = Join-Path $voiceDir 'models'
+    $voiceVenv = Join-Path $voiceDir 'venv'
+    $voicePy = Join-Path $voiceVenv 'Scripts\python.exe'
+    foreach ($d in @($voiceDir, (Join-Path $voiceModels 'assets'), (Join-Path $voiceModels 'logs'))) {
+        New-Item -ItemType Directory -Force -Path $d | Out-Null
+    }
+    $rvcMark = 'rvc-' + $Pins.RvcCommit.Substring(0, 12)
+    if (-not (IsDone $rvcMark) -or -not (Test-Path (Join-Path $rvcDir 'infer'))) {
+        # Its junctions go first, on their own: removing a folder with Remove-Item could follow one into the models.
+        foreach ($j in @('assets', 'logs')) {
+            $link = Join-Path $rvcDir $j
+            if (Test-Path $link) { [System.IO.Directory]::Delete($link, $false) 2>$null; if (Test-Path $link) { Remove-Item -Recurse -Force $link } }
+        }
+        Get-Commit 'RVC-Project/Retrieval-based-Voice-Conversion-WebUI' $Pins.RvcCommit $rvcDir
+        Done $rvcMark
+    }
+    foreach ($j in @('assets', 'logs')) {
+        $link = Join-Path $rvcDir $j
+        $item = Get-Item $link -ErrorAction SilentlyContinue
+        if ($item -and -not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { Remove-Item -Recurse -Force $link }
+        if (-not (Test-Path $link)) {
+            & cmd.exe /c mklink /J "$link" "$(Join-Path $voiceModels $j)" | Out-Null
+            if ($LASTEXITCODE -ne 0) { Stop-Setup "could not link RVC's $j folder" }
+        }
+    }
+    $voiceReqs = Join-Path $InstallDir 'studio\voice\requirements.txt'
+    # CUDA 12.8 for a driver of 570 or later, else 12.6: torch 2.7 has no 13.0 build.
+    $voiceCuda = if ($driver -and [int]($driver.Split('.')[0]) -ge 570) { 'cu128' } else { 'cu126' }
+    $voiceMark = "voice-env-$voiceCuda-" + (Get-FileHash -Algorithm SHA256 $voiceReqs).Hash.Substring(0, 12).ToLower()
+    if (-not (IsDone $voiceMark) -or -not (Test-Path $voicePy)) {
+        Invoke-Checked 'Python for the voice service' $uv @('python', 'install', '--no-bin', $Pins.VoicePython)
+        if (-not (Test-Path $voicePy)) { Invoke-Checked 'The voice service environment' $uv @('venv', '--python', $Pins.VoicePython, $voiceVenv) }
+        Invoke-Checked 'Torch for the voice service' $uv @('pip', 'install', '--python', $voicePy, "torch==$($Pins.VoiceTorch)", "torchaudio==$($Pins.VoiceTorch)", '--index-url', "https://download.pytorch.org/whl/$voiceCuda")
+        Invoke-Checked "The voice service's packages" $uv @('pip', 'install', '--python', $voicePy, '-r', $voiceReqs)
+        Done $voiceMark
+    }
+    if (-not $SkipModels) {
+        foreach ($f in $VoiceFiles) {
+            $dir = if ($f.Dir) { Join-Path $voiceModels $f.Dir } else { $voiceModels }
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+            Get-Verified $f (Join-Path $dir $f.File)
+        }
+        foreach ($d in @('weights', 'indices')) { New-Item -ItemType Directory -Force -Path (Join-Path $voiceModels "assets\$d") | Out-Null }
+        $mute = Join-Path $voiceModels 'logs\mute'
+        if (-not (Test-Path (Join-Path $mute '0_gt_wavs'))) {
+            Expand-Archive -Path (Join-Path $voiceModels 'mute.zip') -DestinationPath (Join-Path $voiceModels 'logs') -Force
+        }
+    }
+    Set-IniValue $settingsIni 'voices' 'yes'
 }
 
 # The engine's own copy of the Whisper model (the app keeps its own, for the CPU), as a plain folder the node uses as it

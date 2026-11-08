@@ -36,6 +36,7 @@ ENGINE = HERE / "engine"
 COMFY = ENGINE / "ComfyUI"
 MODELS = COMFY / "models"      # the models folder, for either engine
 CPP = HERE / "engine-cpp"      # yue2.cpp's server, Ollama and stable-diffusion.cpp's server
+VOICE = HERE / "voice"         # recorded voices: RVC (rvc\), its Python (venv\) and its models, where installed
 LOGS = HERE / "logs"
 STATE = HERE / "state"
 ICON = HERE / "yeufonic.ico"
@@ -55,7 +56,7 @@ def settings() -> dict:
     values = {"app_port": "8090", "engine_port": "8188", "engine_args": "", "data_dir": str(HERE / "data"),
               "import_roots": str(Path.home()), "open_browser": "yes", "window": "app", "unload_when_idle": "auto",
               "engine": "comfyui", "gemma_port": "11435", "pictures_port": "8187", "gemma_model": "gemma4:e4b-it-qat",
-              "yue2cpp_model": "YuE2-3B-Q8_0.gguf", "cpp_engine_args": ""}
+              "yue2cpp_model": "YuE2-3B-Q8_0.gguf", "cpp_engine_args": "", "voice_port": "8190"}
     ini = HERE / "settings.ini"
     if ini.exists():
         parser = configparser.ConfigParser()
@@ -676,6 +677,25 @@ class Launcher:
             env["PICTURES_URL"] = f"http://127.0.0.1:{port}"
         return started
 
+    def start_voice(self, data: Path, env: dict) -> list:
+        """The voice service, where recorded voices are installed (setup.ps1 -Voices): its own Python and RVC, its
+        models through RVC's assets and logs folders, the library's voices folder.  The app is told where it answers."""
+        python = VOICE / "venv" / "Scripts" / "python.exe"
+        server = HERE / "studio" / "voice" / "server.py"
+        if not (python.exists() and (VOICE / "rvc" / "infer").is_dir() and server.exists()):
+            return []
+        port = self.cfg["voice_port"]
+        log = LOGS / "voice.log"
+        voice_env = dict(os.environ, RVC_DIR=str(VOICE / "rvc"), VOICES_DIR=str(data / "voices"),
+                         VOICE_HOST="127.0.0.1", VOICE_PORT=str(port), PYTHONUTF8="1",
+                         PATH=os.pathsep.join([str(HERE / "tools" / "ffmpeg" / "bin"), os.environ.get("PATH", "")]))
+        voice_env.setdefault("CUDA_VISIBLE_DEVICES", "0")   # the card the engine uses, as comfy_env chooses it
+        process = subprocess.Popen([str(python), str(server)], cwd=str(VOICE / "rvc"), env=voice_env,
+                                   stdout=log.open("w", encoding="utf-8"), stderr=subprocess.STDOUT,
+                                   stdin=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
+        env["VOICE_URL"] = f"http://127.0.0.1:{port}"
+        return [("voice service", process, log)]
+
     def comfy_env(self) -> dict:
         """ComfyUI's environment.  On Windows ComfyUI keeps to the first card by itself, and logs a WARNING saying so
         at every start, unless something else chose: the launcher chooses that same card.  A --cuda-device or
@@ -730,13 +750,14 @@ class Launcher:
             # and says so every time.
             "HF_HUB_DISABLE_SYMLINKS_WARNING": "1",
         })
+        voices = self.start_voice(data, env)
         app_log = LOGS / "app.log"
         app = subprocess.Popen(
             [str(HERE / "venv" / "Scripts" / "python.exe"), "-m", "uvicorn", "app.main:app",
              "--host", "127.0.0.1", "--port", str(self.app_port), "--no-access-log"],
             cwd=str(HERE / "studio"), env=env, stdout=app_log.open("w", encoding="utf-8"),
             stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
-        self.programs = tuple(engines or [("engine", engine, engine_log)]) + (("app", app, app_log),)
+        self.programs = tuple(engines or [("engine", engine, engine_log)]) + tuple(voices) + (("app", app, app_log),)
         say(f"{APP} opens at {self.url} once the app answers. Quit it from the icon by the clock.")
 
 
@@ -756,7 +777,10 @@ def main() -> int:
         # Started some other way, such as by an older launcher: just open the page.
         webbrowser.open(f"http://localhost:{app_port}")
         return 0
-    for port, what in ((app_port, "the app"), (engine_port, "the engine")):
+    ports = [(app_port, "the app"), (engine_port, "the engine")]
+    if (VOICE / "venv" / "Scripts" / "python.exe").exists():
+        ports.append((int(cfg["voice_port"]), "the voice service"))
+    for port, what in ports:
         if port_taken(port):
             fail(f"Port {port}, which {what} uses, is taken by another program. If Docker Desktop is "
                  f"running Yeufonic or ComfyUI, stop it first. The ports can be changed in "

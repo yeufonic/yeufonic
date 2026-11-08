@@ -87,6 +87,7 @@ Var SmallSize      ; put back when ComfyUI is chosen again after yue2.cpp, which
 Var LyricsText      ; the Gemma option's description, which says when it is already here
 Var PicturesText    ; the same for FLUX.2 klein
 Var LorasText       ; the same for the style LoRAs
+Var VoicesText      ; the same for recorded voices
 
 !define MUI_WELCOMEPAGE_TITLE "$WelcomeTitle"
 !define MUI_WELCOMEPAGE_TEXT "$WelcomeText"
@@ -327,6 +328,12 @@ Section /o "Style LoRAs" SecLoras
   ; picker holds the user's own and any they import.
 SectionEnd
 
+Section /o "Recorded voices" SecVoices
+  AddSize 7000000
+  ; No files: setup.ps1 is told whether to set up the voice service (RVC and its separator, in a Python of their
+  ; own) and fetch its models.  Without it the editor has no Recorded voice field.
+SectionEnd
+
 Section "-Setup"
   ${If} ${SectionIsSelected} ${SecLyrics}
     StrCpy $1 ""
@@ -351,6 +358,12 @@ Section "-Setup"
     WriteRegDWORD HKCU "Software\${REGNAME}" "Pictures" 1
   ${Else}
     WriteRegDWORD HKCU "Software\${REGNAME}" "Pictures" 0
+  ${EndIf}
+  ${If} ${SectionIsSelected} ${SecVoices}
+    StrCpy $1 "$1 -Voices"
+    WriteRegDWORD HKCU "Software\${REGNAME}" "Voices" 1
+  ${Else}
+    WriteRegDWORD HKCU "Software\${REGNAME}" "Voices" 0
   ${EndIf}
   ${If} ${SectionIsSelected} ${SecLoras}
     StrCpy $1 "$1 -Loras"
@@ -407,6 +420,7 @@ LangString DESC_Full ${LANG_ENGLISH} "The full-quality YuE2 model (BF16), 7.8 GB
 LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for graphics cards with 6 GB of memory or less, or if the full one is too slow on this PC. LoRA training works on both sizes. A size already downloaded is kept, so changing back costs nothing."
 LangString DESC_Pictures ${LANG_ENGLISH} "FLUX.2 klein, which draws a picture of each take on this PC, shown behind its card. Leave it out if your external LLM can draw them, or if you do not want pictures. Download size: 8.2 GB."
 LangString DESC_Loras ${LANG_ENGLISH} "39 style LoRAs by their authors: chanson, canzone, Bulgarian voices, qawwali, militant reggae, J-pop, dream pop, old school hip-hop and 16 concept sliders, each with its trigger word and suggested strengths. CC BY-NC 4.0, credited in the guide. Download size: 3.8 GB."
+LangString DESC_Voices ${LANG_ENGLISH} "Recorded voices: train a singer's voice from recordings, your own sung into the built-in recorder or a corpus's songs, and have a take sung in it. Runs beside the engine, on the graphics card. Download size: about 4 GB."
 LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analysis on this PC. Leave it out if you intend to configure an external LLM. This will save an 8 GB download."
 ; The section of the item highlighted in the list (the one last clicked, or moved to with the keys), or -1.
 ; The installer keeps each item's section in its lParam.
@@ -448,6 +462,7 @@ Function .onMouseOverSection
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLyrics} $LyricsText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPictures} $PicturesText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLoras} $LorasText
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecVoices} $VoicesText
   ${EndIf}
 FunctionEnd
 
@@ -588,6 +603,17 @@ Function .onInit
     StrCpy $LyricsText "$(DESC_Lyrics)"
     StrCpy $PicturesText "$(DESC_Pictures)"
     StrCpy $LorasText "$(DESC_Loras)"
+    StrCpy $VoicesText "$(DESC_Voices)"
+    ; Recorded voices as chosen last time: kept, and brought up to date, if they are here.
+    ReadRegDWORD $2 HKCU "Software\$R9" "Voices"
+    ${If} ${FileExists} "$INSTDIR\voice\venv\Scripts\python.exe"
+      !insertmacro SelectSection ${SecVoices}
+      SectionSetSize ${SecVoices} 0
+      SectionSetText ${SecVoices} "Recorded voices (installed)"
+      StrCpy $VoicesText "Recorded voices are already on this PC: only what has changed is downloaded. Leave it ticked to keep them up to date. Unticking it does not remove them."
+    ${ElseIf} $2 == 1
+      !insertmacro SelectSection ${SecVoices}
+    ${EndIf}
     ; The style LoRAs as chosen last time: ticked again if they were chosen, and nothing downloaded for those here.
     ReadRegDWORD $2 HKCU "Software\$R9" "Loras"
     ${If} $2 == 1
@@ -650,6 +676,7 @@ Function .onInit
     StrCpy $LyricsText "$(DESC_Lyrics)"
     StrCpy $PicturesText "$(DESC_Pictures)"
     StrCpy $LorasText "$(DESC_Loras)"
+    StrCpy $VoicesText "$(DESC_Voices)"
     ${If} ${FileExists} "$INSTDIR\models-kept\*.*"
     ${OrIf} ${FileExists} "$INSTDIR\data\*.*"
       StrCpy $WelcomeText "${APPNAME} writes and covers songs with the YuE2 music model, on this PC.$\r$\n$\r$\nWhat you kept when ${APPNAME} was uninstalled is in $INSTDIR, and this install picks it up: your library, and any models you kept are not downloaded again.$\r$\n$\r$\nIt checks that this PC can run YuE2, then downloads the rest from each part's publisher. A separate window shows the setup's progress; it may open behind this one."
@@ -734,6 +761,7 @@ Section "Uninstall"
     ${EndIf}
     RMDir /r "$INSTDIR\engine"
     RMDir /r "$INSTDIR\engine-cpp"
+    RMDir /r "$INSTDIR\voice"
     RMDir /r "$INSTDIR\venv"
     RMDir /r "$INSTDIR\python"
     RMDir /r "$INSTDIR\tools"

@@ -23,6 +23,9 @@ mkdir -p "$STAGE/studio/engine-nodes"
 tar -C "$ROOT" --exclude='__pycache__' --exclude='static/__*' --exclude='.branch' --exclude='BRANCH' -cf - app | tar -C "$STAGE/studio" -xf -
 rm -f "$STAGE/studio/app/.branch" "$STAGE/studio/app/BRANCH"
 cp "$ROOT/requirements.txt" "$STAGE/studio/"
+# The voice service, for recorded voices (setup.ps1 -Voices puts its Python and RVC beside it).
+mkdir -p "$STAGE/studio/voice"
+cp "$ROOT/voice/server.py" "$ROOT/voice/requirements.txt" "$STAGE/studio/voice/"
 echo "$VERSION" > "$STAGE/studio/VERSION"
 # Which build of this version it is, for the About window: the commit, whether the tree had
 # uncommitted changes, and when it was built.
