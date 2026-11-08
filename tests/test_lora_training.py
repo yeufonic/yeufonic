@@ -466,7 +466,7 @@ def test_settings_groups_and_lora_training_options(client, monkeypatch, tmp_path
 
     # Every non-storage setting belongs to one of the five Settings sub-folders
     non_storage = [item for item in items if item.get("section") != "storage"]
-    assert all(item.get("group") in ("audio", "training", "llm", "art", "system") for item in non_storage)
+    assert all(item.get("group") in ("audio", "training", "voice", "llm", "art", "system") for item in non_storage)
 
     training_keys = {item["key"] for item in non_storage if item.get("group") == "training"}
     assert training_keys == {
@@ -478,7 +478,6 @@ def test_settings_groups_and_lora_training_options(client, monkeypatch, tmp_path
         "training.conditioning",
         "training.max_minutes",
         "training.allow_int8",
-        "voice.minutes",          # how much singing a recorded voice trains on
     }
     assert by_key["training.regularization"]["requires"] == {"training.branches": ["both", "planner"]}
     assert by_key["training.conditioning"]["requires"] == {"training.branches": ["both", "acoustic"]}

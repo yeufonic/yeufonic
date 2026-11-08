@@ -30,6 +30,8 @@ MIN_OCTAVE, MAX_OCTAVE = -1, 1
 LEVELS_DB = (-3.0, 0.0, 3.0, 6.0)
 # Training passes over the voice's recordings: enough for a few minutes of singing to settle (100 by ear).
 TRAIN_EPOCHS = 100
+LIKENESS = (0.25, 0.5, 0.75, 1.0)   # RVC's index rate: higher keeps closer to the singer's own sounds
+PASSES = (25, 50, 100, 200)
 # A corpus voice samples at most this many of the corpus's songs: each is separated before the minutes of singing
 # (Settings) are shared across them, and separating more adds time for little.
 CORPUS_SONGS = 30
@@ -51,6 +53,7 @@ def _shape(row) -> dict:
     out = dict(row)
     out["octave"] = clamp_octave(out.get("octave"))
     out["level_db"] = clamp_level(out.get("level_db"))
+    out["likeness"] = clamp_likeness(out.get("likeness"))
     out["progress"] = float(out.get("progress") or 0.0)
     return out
 
@@ -78,6 +81,14 @@ def clamp_level(value) -> float:
     except (TypeError, ValueError):
         return 0.0
     return min(LEVELS_DB, key=lambda level: abs(level - number))
+
+
+def clamp_likeness(value) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0.75
+    return min(LIKENESS, key=lambda step: abs(step - number))
 
 
 def create(name: str, source: Path | None = None, octave: int = 0, origin_identity: str | None = None) -> dict:
@@ -118,12 +129,14 @@ def usable(persona: dict | None) -> bool:
 
 
 def update(persona_id: str, **fields) -> dict | None:
-    allowed = {"name", "octave", "level_db"}
+    allowed = {"name", "octave", "level_db", "likeness"}
     wanted = {k: v for k, v in fields.items() if k in allowed}
     if "octave" in wanted:
         wanted["octave"] = clamp_octave(wanted["octave"])
     if "level_db" in wanted:
         wanted["level_db"] = clamp_level(wanted["level_db"])
+    if "likeness" in wanted:
+        wanted["likeness"] = clamp_likeness(wanted["likeness"])
     if wanted:
         sets = ", ".join(f"{key} = ?" for key in wanted)
         db.execute(f"UPDATE voices SET {sets} WHERE id = ?", (*wanted.values(), persona_id))

@@ -4969,6 +4969,7 @@ var getPersonaLoRAs = getIdentityLoRAs;
 var SETTINGS_GROUPS = [
   { id: 'audio', title: t('Audio, Takes & Stems'), summary: t('Output format, loudness, length cap, stem separation and SoundFonts') },
   { id: 'training', title: t('LoRA Training'), summary: t('Planner and acoustic branches, prior preservation, semantic tokens and song limits') },
+  { id: 'voice', title: t('Voice Training'), summary: t('How much singing a recorded voice learns from, and for how long') },
   { id: 'llm', title: t('External LLM & Lyrics'), summary: t('Provider, API connection, model selection and recording transcription') },
   { id: 'art', title: t('Take Pictures'), summary: t('Automatic artwork generation, local klein or external image model') },
   { id: 'system', title: t('Appearance & System'), summary: t('Theme, backdrop tint, update checks and MCP server') }
@@ -17431,7 +17432,7 @@ function showVoiceNew() {
         '<option value="file">' + t('A recording of someone singing') + '</option></select></div>' +
       '<div class="field' + (corpora ? '' : ' hidden') + '" id="vn-corpus-wrap"><label for="vn-corpus">' + t('Corpus') + '</label>' +
         '<select id="vn-corpus">' + corpora + '</select>' +
-        '<p class="sub">' + t('Each song is separated again with a cleaner separator, and the singing shared out across them (Settings, training).') + '</p></div>' +
+        '<p class="sub">' + t('Each song is separated again with a cleaner separator, and the singing shared out across them (Settings, Voice Training).') + '</p></div>' +
       '<div class="field' + (corpora ? ' hidden' : '') + '" id="vn-file-wrap"><label for="vn-file">' + t('Recording') + '</label>' +
         '<input id="vn-file" type="file" accept="audio/*"></div>' +
       '<div class="row"><button id="vn-train" class="chip action">' + t('Train') + '</button>' +
@@ -17489,6 +17490,12 @@ function levelOptions(v) {
   }).join('');
 }
 
+function likenessOptions(v) {
+  return [0.25, 0.5, 0.75, 1].map(function (x) {
+    return '<option value="' + x + '"' + (Math.abs((Number(v.likeness) || 0.75) - x) < 0.01 ? ' selected' : '') + '>' + Math.round(x * 100) + '%</option>';
+  }).join('');
+}
+
 function octaveOptions(v) {
   return [-1, 0, 1].map(function (o) {
     return '<option value="' + o + '"' + ((v.octave || 0) === o ? ' selected' : '') + '>' + (o > 0 ? '+1' : o < 0 ? '−1' : '0') + '</option>';
@@ -17513,6 +17520,8 @@ async function showVoice(id) {
         '<label>' + t('Octave') + ' <select id="voice-octave">' + octaveOptions(v) + '</select></label>' +
         '<label title="' + t("The converted vocal against the rendered one's level in the mix") + '">' + t('Vocal level') +
           ' <select id="voice-level">' + levelOptions(v) + '</select></label>' +
+        '<label title="' + t("How closely it keeps to the singer's own sounds: higher sounds more like them, and can sound more processed") + '">' + t('Likeness') +
+          ' <select id="voice-likeness">' + likenessOptions(v) + '</select></label>' +
       '</div>'
       : '') +
     '<h4>' + t('What it learned from') + '</h4><div id="voice-heard" class="muted">…</div>' +
@@ -17658,7 +17667,7 @@ function wireVoices() {
       voicesClick(event).catch(function (err) { toast(err.message); });
     });
     body.addEventListener('change', function (event) {
-      var field = event.target.id === 'voice-octave' ? 'octave' : event.target.id === 'voice-level' ? 'level_db' : null;
+      var field = { 'voice-octave': 'octave', 'voice-level': 'level_db', 'voice-likeness': 'likeness' }[event.target.id] || null;
       if (field) { voiceChange(field, event.target.value).catch(function (err) { toast(err.message); }); }
     });
   }

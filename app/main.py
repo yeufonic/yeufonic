@@ -191,8 +191,8 @@ SETTINGS_SPEC: list[dict] = [
     },
     {
         "key": "voice.minutes",
-        "group": "training",
-        "label": "Recorded voice: minutes of singing",
+        "group": "voice",
+        "label": "Minutes of singing",
         "type": "select",
         "default": "10",
         "options": [
@@ -205,6 +205,16 @@ SETTINGS_SPEC: list[dict] = [
         "help": "How much singing a recorded voice is trained on, shared equally across a corpus's songs (a song with "
                 "less gives all it has, and the others make up the rest). About ten minutes is plenty; more takes "
                 "longer to train and adds little.",
+    },
+    {
+        "key": "voice.passes",
+        "group": "voice",
+        "label": "Training passes",
+        "type": "select",
+        "default": "100",
+        "options": [{"value": str(n), "label": f"{n} passes"} for n in persona.PASSES],
+        "help": "How many times a voice goes over its singing while it trains. Fewer is quicker; more can sharpen a "
+                "voice trained on little singing.",
     },
     {
         "key": "training.semantic_tokens",
@@ -6086,10 +6096,11 @@ async def make_persona(
 
 @app.patch("/api/voices/{persona_id}")
 async def edit_persona(persona_id: str, name: str | None = Form(None), octave: int | None = Form(None),
-                       level_db: float | None = Form(None)) -> dict:
-    """Rename a voice, move it up or down an octave, or set its vocal level in the mix."""
-    record = persona.update(persona_id, **{k: v for k, v in (("name", name), ("octave", octave), ("level_db", level_db))
-                                           if v is not None})
+                       level_db: float | None = Form(None), likeness: float | None = Form(None)) -> dict:
+    """Rename a voice, move it up or down an octave, set its vocal level in the mix, or how closely it keeps to its
+    singer's own sounds."""
+    record = persona.update(persona_id, **{k: v for k, v in (("name", name), ("octave", octave), ("level_db", level_db),
+                                                             ("likeness", likeness)) if v is not None})
     if record is None:
         raise HTTPException(404, "no such persona")
     return record

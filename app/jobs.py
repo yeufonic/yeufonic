@@ -3263,6 +3263,14 @@ def voice_minutes() -> float:
         return 10.0
 
 
+def voice_passes() -> int:
+    """Settings → Voice training: training passes."""
+    try:
+        return max(1, int(get_setting("voice.passes", None) or persona.TRAIN_EPOCHS))
+    except ValueError:
+        return persona.TRAIN_EPOCHS
+
+
 async def queue_voice_training(persona_id: str) -> None:
     persona.training(persona_id, 0.0)
     await QUEUE.put({"kind": "voice", "id": persona_id})
@@ -3288,14 +3296,14 @@ async def run_voice_train(persona_id: str) -> None:
     minutes = voice_minutes()
     log.info("Training the recorded voice '%s' (%s) on %s of singing from %d recording(s) from %s, %d passes",
              record["name"], persona_id, f"{minutes:g} minutes" if minutes else "all", len(sources), origin,
-             persona.TRAIN_EPOCHS)
+             voice_passes())
     said = {"stage": None, "quarter": 0}
     try:
         with contextlib.suppress(Exception):
             await ENGINE.free()
         async with httpx.AsyncClient(timeout=30.0) as client:
             job = (await client.post(config.VOICE_URL + "/train", json={
-                "id": persona_id, "sources": sources, "separate": True, "epochs": persona.TRAIN_EPOCHS,
+                "id": persona_id, "sources": sources, "separate": True, "epochs": voice_passes(),
                 "minutes": voice_minutes()})).json()["job"]
             while time.time() - started < VOICE_TRAIN_TIMEOUT:
                 await asyncio.sleep(VOICE_POLL_SECONDS)
@@ -3372,7 +3380,7 @@ async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
         async with httpx.AsyncClient(timeout=VOICE_CONVERT_TIMEOUT) as client:
             answer = await client.post(config.VOICE_URL + "/convert", json={
                 "id": voice["id"], "input": str(dest), "output": str(sung), "octave": voice["octave"],
-                "level_db": voice["level_db"]})
+                "level_db": voice["level_db"], "likeness": voice["likeness"]})
         if answer.status_code != 200 or not sung.is_file():
             raise RuntimeError((answer.json() or {}).get("error") or f"answered {answer.status_code}")
         sung.replace(dest)

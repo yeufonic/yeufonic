@@ -377,7 +377,7 @@ def settle(original: Path, sung: Path, voice: str = "", level_db: float = 0.0) -
           flush=True)
 
 
-def convert(voice: str, source: Path, output: Path, octave: int, level_db: float = 0.0) -> None:
+def convert(voice: str, source: Path, output: Path, octave: int, level_db: float = 0.0, likeness: float = 0.75) -> None:
     folder = VOICES / voice
     model, index = folder / "model.pth", folder / "model.index"
     if not model.exists():
@@ -388,7 +388,7 @@ def convert(voice: str, source: Path, output: Path, octave: int, level_db: float
         sung = work / "sung.wav"
         run(["infer/cli.py", "--model", str(model), "--input", str(vocals), "--output", str(sung), "--format", "wav",
              "--f0-method", "rmvpe", "--pitch", str(12 * int(octave)), *(["--index", str(index)] if index.exists() else []),
-             "--index-rate", "0.75", "--protect", "0.33", "--rms-mix-rate", "0.25", "--overwrite"])
+             "--index-rate", f"{min(1.0, max(0.0, likeness)):.2f}", "--protect", "0.33", "--rms-mix-rate", "0.25", "--overwrite"])
         if not sung.exists():
             raise RuntimeError("the conversion wrote nothing")
         settle(vocals, sung, voice, level_db)
@@ -468,7 +468,7 @@ class Handler(BaseHTTPRequestHandler):
             with LOCK:
                 try:
                     convert(body["id"], Path(body["input"]), Path(body["output"]), int(body.get("octave") or 0),
-                            float(body.get("level_db") or 0))
+                            float(body.get("level_db") or 0), float(body.get("likeness", 0.75)))
                 except Exception as err:  # noqa: BLE001
                     traceback.print_exc()
                     return self._send(500, {"error": str(err)[-800:]})
