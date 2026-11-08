@@ -101,7 +101,8 @@ def clamp_likeness(value) -> float:
     return min(LIKENESS, key=lambda step: abs(step - number))
 
 
-def create(name: str, source: Path | None = None, octave: int = 0, origin_identity: str | None = None) -> dict:
+def create(name: str, source: Path | None = None, octave: int = 0, origin_identity: str | None = None,
+           vocals_only: bool = False) -> dict:
     """A voice with a name and what it is trained from: a recording, or a corpus (``origin_identity``)."""
     name = (name or "").strip() or "Untitled voice"
     persona_id = uuid.uuid4().hex[:12]
@@ -113,9 +114,10 @@ def create(name: str, source: Path | None = None, octave: int = 0, origin_identi
         if Path(source).resolve() != stored.resolve():
             shutil.copy2(source, stored)
         source_path = str(stored)
-    db.execute("INSERT INTO voices (id, name, source_path, origin_identity, octave, state, progress, created_at) "
-               "VALUES (?, ?, ?, ?, ?, 'training', 0, ?)",
-               (persona_id, name, source_path, origin_identity, clamp_octave(octave), time.time()))
+    db.execute("INSERT INTO voices (id, name, source_path, origin_identity, octave, vocals_only, state, progress, "
+               "created_at) VALUES (?, ?, ?, ?, ?, ?, 'training', 0, ?)",
+               (persona_id, name, source_path, origin_identity, clamp_octave(octave), 1 if vocals_only else 0,
+                time.time()))
     log.info("voice %s created from %s", name, source_path or f"corpus {origin_identity}")
     return one(persona_id)
 

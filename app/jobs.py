@@ -3294,16 +3294,16 @@ async def run_voice_train(persona_id: str) -> None:
                     "label": "Training a voice"})
     origin = f"the corpus {record['origin_identity']}" if record.get("origin_identity") else "its recording"
     minutes = voice_minutes()
-    log.info("Training the recorded voice '%s' (%s) on %s of singing from %d recording(s) from %s, %d passes",
+    log.info("Training the recorded voice '%s' (%s) on %s of singing from %d recording(s) from %s, %d passes%s",
              record["name"], persona_id, f"{minutes:g} minutes" if minutes else "all", len(sources), origin,
-             voice_passes())
+             voice_passes(), ", vocals only (not separated)" if record.get("vocals_only") else "")
     said = {"stage": None, "quarter": 0}
     try:
         with contextlib.suppress(Exception):
             await ENGINE.free()
         async with httpx.AsyncClient(timeout=30.0) as client:
             job = (await client.post(config.VOICE_URL + "/train", json={
-                "id": persona_id, "sources": sources, "separate": True, "epochs": voice_passes(),
+                "id": persona_id, "sources": sources, "separate": not record.get("vocals_only"), "epochs": voice_passes(),
                 "minutes": voice_minutes()})).json()["job"]
             while time.time() - started < VOICE_TRAIN_TIMEOUT:
                 await asyncio.sleep(VOICE_POLL_SECONDS)

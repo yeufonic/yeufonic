@@ -213,7 +213,8 @@ CREATE TABLE IF NOT EXISTS voices (
     progress REAL NOT NULL DEFAULT 0,
     level_db REAL NOT NULL DEFAULT 0,
     likeness REAL NOT NULL DEFAULT 0.75,
-    backing_db REAL NOT NULL DEFAULT 0
+    backing_db REAL NOT NULL DEFAULT 0,
+    vocals_only INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS spaces (
     id TEXT PRIMARY KEY,
@@ -784,6 +785,12 @@ def _take_voice_mix() -> None:
         execute("ALTER TABLE takes ADD COLUMN voice_mix TEXT")
 
 
+def _voice_vocals_only() -> None:
+    """A recorded voice whose recordings are vocals alone: trained without separating them first."""
+    if "vocals_only" not in _columns("voices"):
+        execute("ALTER TABLE voices ADD COLUMN vocals_only INTEGER NOT NULL DEFAULT 0")
+
+
 def _cfg_scale() -> None:
     """The music stage's guidance towards the style and words, set in Advanced; NULL is the engine's own."""
     if "cfg_scale" not in _columns("takes"):
@@ -839,6 +846,7 @@ MIGRATIONS = [
     _voice_likeness,                                                 # -> 47
     _voice_backing,                                                  # -> 48
     _take_voice_mix,                                                 # -> 49
+    _voice_vocals_only,                                              # -> 50
 ]
 
 

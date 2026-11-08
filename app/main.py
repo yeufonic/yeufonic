@@ -6091,6 +6091,7 @@ async def make_persona(
     file: UploadFile = File(...),
     name: str = Form("", max_length=80),
     octave: int = Form(0),
+    vocals_only: bool = Form(False),
 ) -> dict:
     """One recording of a voice becomes a trained voice; training waits its turn on the GPU."""
     suffix = Path(file.filename or "voice.wav").suffix.lower() or ".wav"
@@ -6104,7 +6105,8 @@ async def make_persona(
         temp.unlink(missing_ok=True)
         raise HTTPException(400, "That recording is empty.")
     try:
-        made = persona.create(name or Path(file.filename or "voice").stem, source=temp, octave=octave)
+        made = persona.create(name or Path(file.filename or "voice").stem, source=temp, octave=octave,
+                              vocals_only=vocals_only)
     finally:
         temp.unlink(missing_ok=True)
     await jobs.queue_voice_training(made["id"])
@@ -6138,14 +6140,17 @@ async def make_voice_from_corpus(
     identity_id: str = Form(..., max_length=64),
     name: str = Form("", max_length=80),
     octave: int = Form(0),
+    vocals_only: bool = Form(False),
 ) -> dict:
-    """A voice trained on a corpus's songs, each separated again with a cleaner separator than analysis uses."""
+    """A voice trained on a corpus's songs, each separated again with a cleaner separator than analysis uses, unless
+    they are vocals alone."""
     corpus = one("SELECT id, name FROM identities WHERE id = ?", (identity_id,))
     if not corpus:
         raise HTTPException(404, "no such corpus")
     if not jobs.voice_sources({"origin_identity": identity_id}):
         raise HTTPException(400, "this corpus has no songs to make a voice from")
-    made = persona.create(name or f"{corpus['name']} (corpus)", octave=octave, origin_identity=identity_id)
+    made = persona.create(name or f"{corpus['name']} (corpus)", octave=octave, origin_identity=identity_id,
+                          vocals_only=vocals_only)
     await jobs.queue_voice_training(made["id"])
     return persona.one(made["id"])
 

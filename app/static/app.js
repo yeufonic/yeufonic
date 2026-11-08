@@ -17336,6 +17336,10 @@ function voiceOrigin(v) {
   return v.source_path ? t('from a recording') : t('imported');
 }
 
+function voiceOriginText(v) {
+  return voiceOrigin(v) + (v.vocals_only ? ' · ' + t('vocals only') : '');
+}
+
 async function loadVoices() {
   try {
     var answers = await Promise.all([api('/api/voices'), api('/api/voices/service')]);
@@ -17436,9 +17440,10 @@ function showVoiceNew() {
         '<option value="file">' + t('A recording of someone singing') + '</option></select></div>' +
       '<div class="field' + (corpora ? '' : ' hidden') + '" id="vn-corpus-wrap"><label for="vn-corpus">' + t('Corpus') + '</label>' +
         '<select id="vn-corpus">' + corpora + '</select>' +
-        '<p class="sub">' + t('Each song is separated again with a cleaner separator, and the singing shared out across them (Settings, Voice Training).') + '</p></div>' +
+        '<p class="sub">' + t('The singing is shared out across the songs (Settings, Voice Training). Unless they are vocals only, each is separated again with a cleaner separator first.') + '</p></div>' +
       '<div class="field' + (corpora ? ' hidden' : '') + '" id="vn-file-wrap"><label for="vn-file">' + t('Recording') + '</label>' +
         '<input id="vn-file" type="file" accept="audio/*"></div>' +
+      '<label class="check"><input id="vn-vocals-only" type="checkbox"> ' + t('Vocals only: the recordings have no instruments, so they are not separated first') + '</label>' +
       '<div class="row"><button id="vn-train" class="chip action">' + t('Train') + '</button>' +
         '<span id="vn-status" class="status"></span></div>' +
     '</div>';
@@ -17466,6 +17471,7 @@ async function trainNewVoice() {
   var status = $('vn-status');
   var form = new FormData();
   form.append('name', $('vn-name').value.trim());
+  form.append('vocals_only', $('vn-vocals-only').checked ? 'true' : 'false');
   var path = '/api/voices';
   if ($('vn-from').value === 'corpus') {
     form.append('identity_id', $('vn-corpus').value);
@@ -17524,7 +17530,7 @@ async function showVoice(id) {
   var why = v.state === 'failed' && v.error && !/^made before voices/.test(v.error)
     ? '<p class="hint bad">' + esc(t('Training failed: {value}', { value: tr(v.error) })) + '</p>' : '';
   $('voices-body').innerHTML =
-    '<p><span id="voice-state" data-state="' + esc(v.state) + '">' + esc(voiceStateText(v)) + '</span> · ' + esc(voiceOrigin(v)) + '</p>' +
+    '<p><span id="voice-state" data-state="' + esc(v.state) + '">' + esc(voiceStateText(v)) + '</span> · ' + esc(voiceOriginText(v)) + '</p>' +
     why + serviceNote() +
     (ready ?
       '<div class="row">' +
