@@ -74,6 +74,8 @@ Het resultaat is omgezette zang over een gescheiden begeleiding, dus minder naad
 Schonere opnamen, verliesvrij in plaats van MP3, geven een schonere stem. Het recept van een take noemt zijn stem, en bij
 importeren wordt de stem met die naam op deze installatie gebruikt, als die er is.
 
+**Stem downloaden** bewaart een getrainde stem als zip om aan iemand te geven, en **Stem importeren…** voegt er een toe: die zip, of een RVC-model van elders (een .pth, of een zip met de index). Hoeveel zang een stem krijgt om op te trainen stel je in bij Instellingen, *Opgenomen stem: minuten zang*: het wordt gelijk verdeeld over de nummers van een corpus, en zo'n tien minuten is genoeg.
+
 ### Geavanceerde instellingen {#advanced-settings}
 
 De knop **Geavanceerd** in de kop van de editor opent instellingen alleen voor deze take. De meeste nummers

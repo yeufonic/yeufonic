@@ -74,6 +74,8 @@ El resultado es un canto convertido sobre un acompañamiento separado, así que 
 cantó por sí mismo. Grabaciones más limpias, sin pérdida en lugar de MP3, dan una voz más limpia. La receta de una toma
 nombra su voz, y al importarla se usa la voz con ese nombre en esta instalación, si la hay.
 
+**Descargar voz** guarda una voz entrenada en un zip para dársela a alguien, e **Importar una voz…** añade una: ese zip, o un modelo RVC de otro sitio (un .pth, o un zip con su índice). Cuánto canto se usa para entrenar se ajusta en Ajustes, *Voz grabada: minutos de canto*: se reparte por igual entre las canciones de un corpus, y unos diez minutos bastan.
+
 ### Ajustes avanzados {#advanced-settings}
 
 El botón **Avanzado** en la cabecera del editor abre ajustes solo para esta toma. La mayoría de las canciones

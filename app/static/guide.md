@@ -74,6 +74,8 @@ The result is a converted vocal over a separated backing, so it is less seamless
 itself. Cleaner recordings, lossless rather than MP3, make a cleaner voice. A take's recipe names its voice, and
 importing it picks up the voice of that name on this install, if there is one.
 
+**Download voice** saves a trained voice as a zip to give to someone, and **Import a voice…** adds one: that zip, or an RVC model from elsewhere (a .pth, or a zip with its index). How much singing a voice trains on is set in Settings, *Recorded voice: minutes of singing*: it is shared equally across a corpus's songs, and about ten minutes is plenty.
+
 ### Advanced settings
 
 The **Advanced** button in the editor's header opens settings for this one take. Most songs never

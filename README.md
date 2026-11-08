@@ -267,7 +267,10 @@ Then the editor has a **Recorded voice** field. **Make a voice…** trains one f
 **Make a voice…** that trains one from the corpus's songs. Training waits its turn on the GPU, as a LoRA does,
 and shows its progress there. A take that uses a voice is rendered as usual; then its vocal is separated with
 BS-Roformer, sung again in the voice with RVC, and mixed back over the rest. **Octave** moves a voice up or
-down a whole octave, for a singer whose range is far from the take's.
+down a whole octave, for a singer whose range is far from the take's. **Download voice** saves a trained voice as a zip to give
+to someone, and **Import a voice…** adds one, or an RVC model from elsewhere (a `.pth`, or a zip with its index).
+Settings → *Recorded voice: minutes of singing* sets how much singing a voice trains on (ten minutes by default),
+shared equally across a corpus's songs; the training batch follows the GPU's memory.
 
 The result is a converted vocal over a separated backing, so it does not sound as seamless as a vocal YuE2 sang
 itself; cleaner source recordings (lossless rather than MP3) give a cleaner voice. Recorded voices are not in

@@ -3501,7 +3501,9 @@ function editorJobPill() {
   made.innerHTML = '<span class="job-pill-dot" aria-hidden="true"></span><span class="job-pill-text"></span>' +
     '<span class="job-pill-time"></span><span class="job-pill-bar" aria-hidden="true"><span></span></span>';
   made.title = t('What the engine is doing, and what comes next');
-  head.insertBefore(made, $('ed-btn-picture') || $('btn-advanced-toggle'));
+  // Straight after the Song / Cover / Instrumental switch, so a take's own tools, which come and go, do not move it.
+  var modes = head.querySelector('.modes');
+  head.insertBefore(made, modes ? modes.nextSibling : $('btn-advanced-toggle'));
   made.addEventListener('click', function () {
     closeEditor();
     $('job-panel').classList.remove('hidden');
@@ -17346,6 +17348,11 @@ function paintPersonaField() {
     '<option value="1">+1</option></select></label>' +
     '<button type="button" id="persona-make" class="ghost">' + t("Make a voice…") + '</button>' +
     '<button type="button" id="persona-regen" class="ghost hidden">' + t("Regenerate") + '</button>' +
+    '<button type="button" id="persona-export" class="ghost hidden" title="' +
+      t("This voice's model in one zip, to give to someone else") + '">' + t("Download voice") + '</button>' +
+    '<button type="button" id="persona-import" class="ghost" title="' +
+      t("Add a voice someone shared: the zip from their Download voice, or an RVC model (.pth, or a zip with its index)") +
+      '">' + t("Import a voice…") + '</button>' +
     '<p class="sub" id="persona-hint"></p>';
   var select = $("persona-select");
   if (select) {
@@ -17356,6 +17363,14 @@ function paintPersonaField() {
   if (make) { make.addEventListener("click", askForVoice); }
   var regen = $("persona-regen");
   if (regen) { regen.addEventListener("click", regeneratePersona); }
+  var exportButton = $("persona-export");
+  if (exportButton) {
+    exportButton.addEventListener("click", function () {
+      if (PERSONA.id) { window.location.href = "/api/voices/" + PERSONA.id + "/export"; }
+    });
+  }
+  var importButton = $("persona-import");
+  if (importButton) { importButton.addEventListener("click", askForVoiceFile); }
   var octave = $("persona-octave");
   if (octave) { octave.addEventListener("change", function () { setPersonaOctave(octave.value); }); }
   refreshPersonaHint();
@@ -17394,6 +17409,8 @@ function refreshPersonaHint() {
   var selected = PERSONA.list.filter(function (v) { return v.id === PERSONA.id; })[0];
   var regen = $("persona-regen");
   if (regen) { regen.classList.toggle("hidden", !selected); }
+  var exportButton = $("persona-export");
+  if (exportButton) { exportButton.classList.toggle("hidden", !selected || selected.state !== "ready"); }
   var wrap = $("persona-octave-wrap");
   if (wrap) { wrap.classList.toggle("hidden", !selected || selected.state !== "ready"); }
   var octave = $("persona-octave");
@@ -17446,6 +17463,28 @@ function setPersonaFromTake(take) {
 function askVoiceName(suggested) {
   return confirmModal({ title: t("Make a voice…"), message: t("What is this voice called?"), input: true,
                         defaultValue: suggested || "", confirmText: t("OK") });
+}
+
+/* A voice someone gave: Yeufonic's own zip, or an RVC model.  It is ready at once: nothing to train. */
+function askForVoiceFile() {
+  var input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".zip,.pth";
+  input.addEventListener("change", async function () {
+    var file = input.files && input.files[0];
+    if (!file) { return; }
+    var form = new FormData();
+    form.append("file", file, file.name);
+    try {
+      var made = await api("/api/voices/import", { method: "POST", body: form });
+      PERSONA.id = made.id;
+      await loadPersonas();
+      toast(t("Imported the voice {value}.", { value: made.name }));
+    } catch (err) {
+      toast(err && err.message ? err.message : t("That file is not a voice model."));
+    }
+  });
+  input.click();
 }
 
 function askForVoice() {

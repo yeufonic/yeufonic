@@ -83,3 +83,16 @@ def test_a_failed_voice_can_be_chosen_to_train_it_again(page, app_server):
     assert not page.is_hidden("#persona-regen")
     assert page.is_hidden("#persona-octave-wrap")
     assert "Regenerate" in page.inner_text("#persona-hint")
+
+
+def test_a_ready_voice_can_be_downloaded_and_a_voice_imported(page, app_server):
+    page.route("**/api/voices/service", lambda route: route.fulfill(json=SERVICE))
+    page.route("**/api/voices", lambda route: route.fulfill(json=[
+        {"id": "eeeeeeeeeeee", "name": "Ready", "state": "ready", "octave": 0, "progress": 1}]))
+    page.evaluate("() => loadPersonas()")
+    open_new(page, "Song")
+    page.wait_for_selector("#persona-import", state="attached")
+    assert not page.is_hidden("#persona-import")
+    assert page.is_hidden("#persona-export")
+    page.select_option("#persona-select", "eeeeeeeeeeee")
+    assert not page.is_hidden("#persona-export")

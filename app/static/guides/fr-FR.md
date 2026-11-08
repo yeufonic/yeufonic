@@ -74,6 +74,8 @@ Le résultat est un chant converti sur un accompagnement séparé, donc moins ho
 lui-même. Des enregistrements plus propres, sans perte plutôt qu’en MP3, donnent une voix plus propre. La recette d’une
 prise nomme sa voix, et son import reprend la voix de ce nom sur cette installation, s’il y en a une.
 
+**Télécharger la voix** enregistre une voix entraînée dans un zip à donner à quelqu’un, et **Importer une voix…** en ajoute une : ce zip, ou un modèle RVC venu d’ailleurs (un .pth, ou un zip avec son index). La quantité de chant d’entraînement se règle dans les Réglages, *Voix enregistrée : minutes de chant* : elle est répartie également entre les chansons d’un corpus, et une dizaine de minutes suffit.
+
 ### Réglages avancés {#advanced-settings}
 
 Le bouton **Avancé** dans l’en-tête de l’éditeur ouvre des réglages pour cette seule prise. La plupart des chansons

@@ -2606,5 +2606,22 @@
  "the card's memory could not be read": "impossibile leggere la memoria della scheda",
  "set by TRAIN_MAX_MINUTES": "impostato da TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Nessun URL dell'installer disponibile per questo aggiornamento",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum non corrispondente: previsto {expected_hash}, ottenuto {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum non corrispondente: previsto {expected_hash}, ottenuto {actual_hash}",
+ "This voice's model in one zip, to give to someone else": "Il modello di questa voce in uno zip, da dare a qualcuno",
+ "Download voice": "Scarica voce",
+ "Add a voice someone shared: the zip from their Download voice, or an RVC model (.pth, or a zip with its index)": "Aggiungi una voce condivisa: lo zip del loro Scarica voce, o un modello RVC (.pth, o uno zip con il suo indice)",
+ "Import a voice…": "Importa una voce…",
+ "Imported the voice {value}.": "Voce {value} importata.",
+ "That file is not a voice model.": "Questo file non è un modello di voce.",
+ "Recorded voice: minutes of singing": "Voce registrata: minuti di canto",
+ "How much singing a recorded voice is trained on, shared equally across a corpus's songs (a song with less gives all it has, and the others make up the rest). About ten minutes is plenty; more takes longer to train and adds little.": "Quanto canto usa l’addestramento di una voce registrata, diviso in parti uguali tra le canzoni di un corpus (una canzone con meno dà tutto, le altre compensano). Una decina di minuti basta; di più richiede più tempo e aggiunge poco.",
+ "This voice has no trained model to export.": "Questa voce non ha un modello addestrato da esportare.",
+ "That is not a voice: a .zip or an RVC .pth file.": "Non è una voce: un file .zip o .pth RVC.",
+ "5 minutes": "5 minuti",
+ "20 minutes": "20 minuti",
+ "30 minutes": "30 minuti",
+ "All of it": "Tutto",
+ "That file is too large to be a voice.": "Questo file è troppo grande per essere una voce.",
+ "That zip could not be read.": "Impossibile leggere questo zip.",
+ "That zip holds no voice model (.pth).": "Questo zip non contiene un modello di voce (.pth)."
 }

@@ -74,6 +74,8 @@ O resultado é um vocal convertido sobre um acompanhamento separado, por isso é
 cantou sozinho. Gravações mais limpas, sem perdas em vez de MP3, dão uma voz mais limpa. A receita de um take nomeia a
 sua voz, e ao importá-la usa-se a voz com esse nome nesta instalação, se houver.
 
+**Transferir voz** guarda uma voz treinada num zip para dar a outra pessoa, e **Importar uma voz…** adiciona uma: esse zip, ou um modelo RVC de outro lado (um .pth, ou um zip com o índice). Quanto canto é usado no treino define-se nas Definições, *Voz gravada: minutos de canto*: é dividido igualmente entre as músicas de um corpus, e uns dez minutos bastam.
+
 ### Ajustes avançados {#advanced-settings}
 
 O botão **Avançado** no cabeçalho do editor abre ajustes só para este take. A maioria das músicas

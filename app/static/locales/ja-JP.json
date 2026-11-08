@@ -2606,5 +2606,22 @@
  "the card's memory could not be read": "カードのメモリを読めませんでした",
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES で設定",
  "No installer URL available for this update": "このアップデートにはインストーラーの URL がありません",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}",
+ "This voice's model in one zip, to give to someone else": "この声のモデルを 1 つの zip にして、ほかの人に渡せます",
+ "Download voice": "声をダウンロード",
+ "Add a voice someone shared: the zip from their Download voice, or an RVC model (.pth, or a zip with its index)": "共有された声を追加: 「声をダウンロード」の zip、または RVC モデル (.pth、またはインデックス付きの zip)",
+ "Import a voice…": "声をインポート…",
+ "Imported the voice {value}.": "声 {value} をインポートしました。",
+ "That file is not a voice model.": "このファイルは声のモデルではありません。",
+ "Recorded voice: minutes of singing": "録音した声: 歌の分数",
+ "How much singing a recorded voice is trained on, shared equally across a corpus's songs (a song with less gives all it has, and the others make up the rest). About ten minutes is plenty; more takes longer to train and adds little.": "録音した声の学習に使う歌の長さ。コーパスの曲に均等に割り振ります (少ない曲はすべてを使い、残りをほかの曲で補います)。10 分ほどで十分で、それ以上は時間がかかるわりに効果は小さめです。",
+ "This voice has no trained model to export.": "この声には書き出せる学習済みモデルがありません。",
+ "That is not a voice: a .zip or an RVC .pth file.": "声ではありません: .zip か RVC の .pth ファイルです。",
+ "5 minutes": "5 分",
+ "20 minutes": "20 分",
+ "30 minutes": "30 分",
+ "All of it": "すべて",
+ "That file is too large to be a voice.": "このファイルは声としては大きすぎます。",
+ "That zip could not be read.": "この zip を読み込めませんでした。",
+ "That zip holds no voice model (.pth).": "この zip には声のモデル (.pth) がありません。"
 }

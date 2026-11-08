@@ -2606,5 +2606,22 @@
  "the card's memory could not be read": "无法读取显卡的显存",
  "set by TRAIN_MAX_MINUTES": "由 TRAIN_MAX_MINUTES 设置",
  "No installer URL available for this update": "此更新没有可用的安装程序 URL",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校验和不匹配：预期 {expected_hash}，实际 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校验和不匹配：预期 {expected_hash}，实际 {actual_hash}",
+ "This voice's model in one zip, to give to someone else": "把这个音色的模型打包成一个 zip，分享给别人",
+ "Download voice": "下载音色",
+ "Add a voice someone shared: the zip from their Download voice, or an RVC model (.pth, or a zip with its index)": "添加别人分享的音色：对方“下载音色”得到的 zip，或 RVC 模型（.pth，或带索引的 zip）",
+ "Import a voice…": "导入音色…",
+ "Imported the voice {value}.": "已导入音色 {value}。",
+ "That file is not a voice model.": "这个文件不是音色模型。",
+ "Recorded voice: minutes of singing": "录制的音色：演唱分钟数",
+ "How much singing a recorded voice is trained on, shared equally across a corpus's songs (a song with less gives all it has, and the others make up the rest). About ten minutes is plenty; more takes longer to train and adds little.": "训练录制的音色时使用多少演唱，在语料库的歌曲之间平均分配（演唱较少的歌曲全部使用，其余由其他歌曲补足）。大约十分钟就够了；再多会更慢，收效也小。",
+ "This voice has no trained model to export.": "这个音色没有可导出的训练模型。",
+ "That is not a voice: a .zip or an RVC .pth file.": "这不是音色：需要 .zip 或 RVC 的 .pth 文件。",
+ "5 minutes": "5 分钟",
+ "20 minutes": "20 分钟",
+ "30 minutes": "30 分钟",
+ "All of it": "全部",
+ "That file is too large to be a voice.": "这个文件太大，不像是音色。",
+ "That zip could not be read.": "无法读取这个 zip。",
+ "That zip holds no voice model (.pth).": "这个 zip 里没有音色模型（.pth）。"
 }

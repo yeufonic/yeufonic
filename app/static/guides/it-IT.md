@@ -74,6 +74,8 @@ Il risultato è un canto convertito su un accompagnamento separato, quindi meno 
 cantato da sé. Registrazioni più pulite, senza perdita invece che MP3, danno una voce più pulita. La ricetta di un take
 nomina la sua voce, e importandola si usa la voce con quel nome su questa installazione, se c’è.
 
+**Scarica voce** salva una voce addestrata in uno zip da dare a qualcuno, e **Importa una voce…** ne aggiunge una: quello zip, o un modello RVC preso altrove (un .pth, o uno zip con il suo indice). Quanto canto usa l’addestramento si imposta nelle Impostazioni, *Voce registrata: minuti di canto*: viene diviso in parti uguali tra le canzoni di un corpus, e una decina di minuti basta.
+
 ### Impostazioni avanzate {#advanced-settings}
 
 Il pulsante **Avanzate** nell'intestazione dell'editor apre impostazioni solo per questo take. La maggior parte delle canzoni

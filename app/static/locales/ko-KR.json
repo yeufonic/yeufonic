@@ -2606,5 +2606,22 @@
  "the card's memory could not be read": "카드 메모리를 읽을 수 없었습니다",
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES로 설정됨",
  "No installer URL available for this update": "이 업데이트의 설치 프로그램 URL이 없습니다",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}",
+ "This voice's model in one zip, to give to someone else": "이 목소리의 모델을 zip 하나로 묶어 다른 사람에게 줄 수 있습니다",
+ "Download voice": "목소리 다운로드",
+ "Add a voice someone shared: the zip from their Download voice, or an RVC model (.pth, or a zip with its index)": "공유받은 목소리 추가: 그 사람의 목소리 다운로드 zip, 또는 RVC 모델 (.pth, 또는 인덱스가 든 zip)",
+ "Import a voice…": "목소리 가져오기…",
+ "Imported the voice {value}.": "목소리 {value}을(를) 가져왔습니다.",
+ "That file is not a voice model.": "이 파일은 목소리 모델이 아닙니다.",
+ "Recorded voice: minutes of singing": "녹음한 목소리: 노래 분량(분)",
+ "How much singing a recorded voice is trained on, shared equally across a corpus's songs (a song with less gives all it has, and the others make up the rest). About ten minutes is plenty; more takes longer to train and adds little.": "녹음한 목소리를 학습할 노래 분량입니다. 코퍼스의 곡에 고르게 나눕니다 (분량이 적은 곡은 전부를 쓰고 나머지 곡이 채웁니다). 10분 정도면 충분하고, 더 많으면 시간만 길어지고 효과는 적습니다.",
+ "This voice has no trained model to export.": "이 목소리에는 내보낼 학습된 모델이 없습니다.",
+ "That is not a voice: a .zip or an RVC .pth file.": "목소리가 아닙니다: .zip 또는 RVC .pth 파일이어야 합니다.",
+ "5 minutes": "5분",
+ "20 minutes": "20분",
+ "30 minutes": "30분",
+ "All of it": "전부",
+ "That file is too large to be a voice.": "이 파일은 목소리로 쓰기에 너무 큽니다.",
+ "That zip could not be read.": "이 zip을 읽을 수 없습니다.",
+ "That zip holds no voice model (.pth).": "이 zip에는 목소리 모델(.pth)이 없습니다."
 }

@@ -2606,5 +2606,22 @@
  "the card's memory could not be read": "het geheugen van de kaart kon niet worden gelezen",
  "set by TRAIN_MAX_MINUTES": "ingesteld door TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Geen URL voor het installatieprogramma beschikbaar voor deze update",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum komt niet overeen: verwacht {expected_hash}, kreeg {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum komt niet overeen: verwacht {expected_hash}, kreeg {actual_hash}",
+ "This voice's model in one zip, to give to someone else": "Het model van deze stem in één zip, om aan iemand te geven",
+ "Download voice": "Stem downloaden",
+ "Add a voice someone shared: the zip from their Download voice, or an RVC model (.pth, or a zip with its index)": "Een gedeelde stem toevoegen: de zip van hun Stem downloaden, of een RVC-model (.pth, of een zip met de index)",
+ "Import a voice…": "Stem importeren…",
+ "Imported the voice {value}.": "Stem {value} geïmporteerd.",
+ "That file is not a voice model.": "Dit bestand is geen stemmodel.",
+ "Recorded voice: minutes of singing": "Opgenomen stem: minuten zang",
+ "How much singing a recorded voice is trained on, shared equally across a corpus's songs (a song with less gives all it has, and the others make up the rest). About ten minutes is plenty; more takes longer to train and adds little.": "Hoeveel zang een opgenomen stem krijgt om op te trainen, gelijk verdeeld over de nummers van een corpus (een nummer met minder geeft alles, de andere vullen aan). Zo'n tien minuten is genoeg; meer duurt langer en voegt weinig toe.",
+ "This voice has no trained model to export.": "Deze stem heeft geen getraind model om te exporteren.",
+ "That is not a voice: a .zip or an RVC .pth file.": "Dat is geen stem: een .zip of een RVC-.pth-bestand.",
+ "5 minutes": "5 minuten",
+ "20 minutes": "20 minuten",
+ "30 minutes": "30 minuten",
+ "All of it": "Alles",
+ "That file is too large to be a voice.": "Dit bestand is te groot voor een stem.",
+ "That zip could not be read.": "Die zip kon niet gelezen worden.",
+ "That zip holds no voice model (.pth).": "Die zip bevat geen stemmodel (.pth)."
 }

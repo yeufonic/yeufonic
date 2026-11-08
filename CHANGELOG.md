@@ -46,6 +46,9 @@ cannot creep back in.
   shows its progress.  **Octave** moves a voice up or down to sit in its singer's range.  Recorded voices run in
   an optional container (`COMPOSE_PROFILES=voice`, models from `scripts/fetch-models.sh --voice`); without it
   the field is hidden.  A take's recipe names its voice, and an import picks up the voice of that name.
+  **Download voice** gives a trained voice to someone as a zip, and **Import a voice…** adds one, or an RVC model
+  from elsewhere.  Settings → *Recorded voice: minutes of singing* sets how much singing a voice trains on, shared
+  across a corpus's songs; the training batch follows the card's memory.
 
 ## 0.0.54 (2026-11-05)
 
