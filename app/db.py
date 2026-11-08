@@ -211,7 +211,8 @@ CREATE TABLE IF NOT EXISTS voices (
     octave INTEGER NOT NULL DEFAULT 0,
     progress REAL NOT NULL DEFAULT 0,
     level_db REAL NOT NULL DEFAULT 0,
-    likeness REAL NOT NULL DEFAULT 0.75
+    likeness REAL NOT NULL DEFAULT 0.75,
+    backing_db REAL NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS spaces (
     id TEXT PRIMARY KEY,
@@ -770,6 +771,12 @@ def _voice_likeness() -> None:
         execute("ALTER TABLE voices ADD COLUMN likeness REAL NOT NULL DEFAULT 0.75")
 
 
+def _voice_backing() -> None:
+    """The backing's level under a recorded voice, in dB, set on the Voices page."""
+    if "backing_db" not in _columns("voices"):
+        execute("ALTER TABLE voices ADD COLUMN backing_db REAL NOT NULL DEFAULT 0")
+
+
 def _cfg_scale() -> None:
     """The music stage's guidance towards the style and words, set in Advanced; NULL is the engine's own."""
     if "cfg_scale" not in _columns("takes"):
@@ -823,6 +830,7 @@ MIGRATIONS = [
     _voices_trained,                                                 # -> 45
     _voice_level,                                                    # -> 46
     _voice_likeness,                                                 # -> 47
+    _voice_backing,                                                  # -> 48
 ]
 
 

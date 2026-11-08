@@ -17490,6 +17490,13 @@ function levelOptions(v) {
   }).join('');
 }
 
+function backingOptions(v) {
+  return [-9, -6, -3, 0].map(function (db) {
+    return '<option value="' + db + '"' + (Math.round(Number(v.backing_db) || 0) === db ? ' selected' : '') + '>' +
+      (db < 0 ? '−' + Math.abs(db) : '0') + ' dB</option>';
+  }).join('');
+}
+
 function likenessOptions(v) {
   return [0.25, 0.5, 0.75, 1].map(function (x) {
     return '<option value="' + x + '"' + (Math.abs((Number(v.likeness) || 0.75) - x) < 0.01 ? ' selected' : '') + '>' + Math.round(x * 100) + '%</option>';
@@ -17520,6 +17527,8 @@ async function showVoice(id) {
         '<label>' + t('Octave') + ' <select id="voice-octave">' + octaveOptions(v) + '</select></label>' +
         '<label title="' + t("The converted vocal against the rendered one's level in the mix") + '">' + t('Vocal level') +
           ' <select id="voice-level">' + levelOptions(v) + '</select></label>' +
+        '<label title="' + t('The backing under the converted vocal') + '">' + t('Instrument level') +
+          ' <select id="voice-backing">' + backingOptions(v) + '</select></label>' +
         '<label title="' + t("How closely it keeps to the singer's own sounds: higher sounds more like them, and can sound more processed") + '">' + t('Likeness') +
           ' <select id="voice-likeness">' + likenessOptions(v) + '</select></label>' +
       '</div>'
@@ -17667,7 +17676,7 @@ function wireVoices() {
       voicesClick(event).catch(function (err) { toast(err.message); });
     });
     body.addEventListener('change', function (event) {
-      var field = { 'voice-octave': 'octave', 'voice-level': 'level_db', 'voice-likeness': 'likeness' }[event.target.id] || null;
+      var field = { 'voice-octave': 'octave', 'voice-level': 'level_db', 'voice-likeness': 'likeness', 'voice-backing': 'backing_db' }[event.target.id] || null;
       if (field) { voiceChange(field, event.target.value).catch(function (err) { toast(err.message); }); }
     });
   }

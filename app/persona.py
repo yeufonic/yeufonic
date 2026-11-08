@@ -28,6 +28,7 @@ log = logging.getLogger("yue2.persona")
 MIN_OCTAVE, MAX_OCTAVE = -1, 1
 # How far a voice's vocal can be set above or below the rendered vocal's level in the mix, in dB.
 LEVELS_DB = (-3.0, 0.0, 3.0, 6.0)
+BACKING_DB = (-9.0, -6.0, -3.0, 0.0)
 # Training passes over the voice's recordings: enough for a few minutes of singing to settle (100 by ear).
 TRAIN_EPOCHS = 100
 LIKENESS = (0.25, 0.5, 0.75, 1.0)   # RVC's index rate: higher keeps closer to the singer's own sounds
@@ -54,6 +55,7 @@ def _shape(row) -> dict:
     out["octave"] = clamp_octave(out.get("octave"))
     out["level_db"] = clamp_level(out.get("level_db"))
     out["likeness"] = clamp_likeness(out.get("likeness"))
+    out["backing_db"] = clamp_backing(out.get("backing_db"))
     out["progress"] = float(out.get("progress") or 0.0)
     return out
 
@@ -81,6 +83,14 @@ def clamp_level(value) -> float:
     except (TypeError, ValueError):
         return 0.0
     return min(LEVELS_DB, key=lambda level: abs(level - number))
+
+
+def clamp_backing(value) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return min(BACKING_DB, key=lambda level: abs(level - number))
 
 
 def clamp_likeness(value) -> float:
@@ -129,12 +139,14 @@ def usable(persona: dict | None) -> bool:
 
 
 def update(persona_id: str, **fields) -> dict | None:
-    allowed = {"name", "octave", "level_db", "likeness"}
+    allowed = {"name", "octave", "level_db", "likeness", "backing_db"}
     wanted = {k: v for k, v in fields.items() if k in allowed}
     if "octave" in wanted:
         wanted["octave"] = clamp_octave(wanted["octave"])
     if "level_db" in wanted:
         wanted["level_db"] = clamp_level(wanted["level_db"])
+    if "backing_db" in wanted:
+        wanted["backing_db"] = clamp_backing(wanted["backing_db"])
     if "likeness" in wanted:
         wanted["likeness"] = clamp_likeness(wanted["likeness"])
     if wanted:

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import glob
 import json
+import math
 import os
 import random
 import re
@@ -369,15 +370,15 @@ def settle(original: Path, sung: Path, voice: str = "", level_db: float = 0.0) -
     tail[: int(rate * 0.012)] = 0                        # a short gap before the room answers
     tail /= np.sqrt((tail ** 2).sum())
     mixed = dry + ROOM_WET * fftconvolve(dry, tail)[: len(dry)]
-    peak = float(np.abs(mixed).max())
-    if peak > 0.98:                                      # never clip: the mix's own limiter is not here
-        mixed *= 0.98 / peak
-    soundfile.write(str(sung), mixed.astype("float32"), rate)
+    # Kept in float, peaks and all: scaling the vocal alone to stop it clipping undid the level set above.  The
+    # finished mix is brought under full scale as a whole instead (convert), which keeps the balance.
+    soundfile.write(str(sung), mixed.astype("float32"), rate, subtype="FLOAT")
     print(f"[{voice}] converted vocal: presence {lift:+.1f} dB, level {gain_db:+.1f} dB to the rendered vocal's",
           flush=True)
 
 
-def convert(voice: str, source: Path, output: Path, octave: int, level_db: float = 0.0, likeness: float = 0.75) -> None:
+def convert(voice: str, source: Path, output: Path, octave: int, level_db: float = 0.0, likeness: float = 0.75,
+            backing_db: float = 0.0) -> None:
     folder = VOICES / voice
     model, index = folder / "model.pth", folder / "model.index"
     if not model.exists():
@@ -392,11 +393,23 @@ def convert(voice: str, source: Path, output: Path, octave: int, level_db: float
         if not sung.exists():
             raise RuntimeError("the conversion wrote nothing")
         settle(vocals, sung, voice, level_db)
-        mixed = work / f"mixed{output.suffix or '.flac'}"
+        mixed = work / "mixed.wav"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(rest), "-i", str(sung), "-filter_complex",
-                        "[1:a]aresample=44100,aformat=channel_layouts=stereo[v];[0:a]aresample=44100[i];"
-                        "[i][v]amix=inputs=2:normalize=0[m]", "-map", "[m]", str(mixed)], check=True)
-        shutil.move(str(mixed), output)
+                        "[1:a]aresample=44100,aformat=sample_fmts=flt:channel_layouts=stereo[v];"
+                        f"[0:a]aresample=44100,aformat=sample_fmts=flt,volume={float(backing_db):.1f}dB[i];"
+                        "[i][v]amix=inputs=2:normalize=0[m]", "-map", "[m]", "-c:a", "pcm_f32le", str(mixed)], check=True)
+        import soundfile  # noqa: PLC0415
+
+        samples, rate = soundfile.read(str(mixed), dtype="float32")
+        peak = float(abs(samples).max()) if samples.size else 0.0
+        if peak > 0.98:     # the whole mix down, vocal and backing together, so the balance set holds
+            samples *= 0.98 / peak
+        final = work / f"final{output.suffix or '.flac'}"
+        soundfile.write(str(final), samples, rate)
+        print(f"[{voice}] mixed: vocal {level_db:+.0f} dB, backing {backing_db:+.0f} dB"
+              + (f", whole mix {20 * math.log10(0.98 / peak):+.1f} dB to stay under full scale" if peak > 0.98 else ""),
+              flush=True)
+        shutil.move(str(final), output)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -468,7 +481,8 @@ class Handler(BaseHTTPRequestHandler):
             with LOCK:
                 try:
                     convert(body["id"], Path(body["input"]), Path(body["output"]), int(body.get("octave") or 0),
-                            float(body.get("level_db") or 0), float(body.get("likeness", 0.75)))
+                            float(body.get("level_db") or 0), float(body.get("likeness", 0.75)),
+                            float(body.get("backing_db") or 0))
                 except Exception as err:  # noqa: BLE001
                     traceback.print_exc()
                     return self._send(500, {"error": str(err)[-800:]})
