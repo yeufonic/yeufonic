@@ -13795,8 +13795,11 @@ function syncWaveRatio() {
 
 function waveLoop() {
   syncWaveRatio();
-  drawWave();
-  updateTimes();
+  // Not under the full-screen visualizer, which covers it (it redraws the waveform on closing).
+  if (!document.body.classList.contains('visualizer-open')) {
+    drawWave();
+    updateTimes();
+  }
   if (!$('audio').paused && !$('audio').ended) {
     wave.raf = requestAnimationFrame(waveLoop);
   } else {

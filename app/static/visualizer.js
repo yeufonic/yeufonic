@@ -19,6 +19,32 @@
   var ART_MOTIONS = ['breath', 'rays', 'ripples', 'dust', 'depth', 'halo'];
   var ART_MOTION_DEFAULT = { artwork: 'dust', yeufonic: 'breath', kaleidoscope: 'halo', grid: 'rays', liquid: 'ripples', bars: 'breath' };
 
+  // How many pixels a canvas is drawn at, for each pixel of the page.  The scenes repaint every pixel every frame, so
+  // the cost follows the pixel count: a Retina screen (density 2) has four times a PC monitor's pixels for the same
+  // page.  So the canvas is drawn at no more than 1.25 and no more than a 1080p screen's worth of pixels, and the
+  // browser stretches it to the screen; never below one pixel per pixel of the page.  Nearly everything drawn is
+  // blurred or glowing, so the loss is slight.
+  var PIXEL_BUDGET = 1920 * 1080;
+  var MAX_SCALE = 1.25;
+  function backingScale(w, h) {
+    var dpr = window.devicePixelRatio || 1;
+    var fit = Math.sqrt(PIXEL_BUDGET / Math.max(1, w * h));
+    return Math.min(dpr, MAX_SCALE, Math.max(1, fit));
+  }
+
+  // At most about 60 paints a second.  A 120 Hz screen asks for twice that, which doubles the work for no visible
+  // gain and runs motion tuned per frame at twice its pace.  A frame is skipped while painting it would come sooner
+  // after the last one than 1/60 s less half the screen's own frame: 120 Hz and 240 Hz screens paint 60 a second,
+  // 144 Hz about 70, 60 Hz and 75 Hz every frame.
+  var PAINT_INTERVAL = 1000 / 60;
+  function paintDue(clock, now) {
+    var tick = clock.prev ? now - clock.prev : 0;
+    clock.prev = now;
+    if (clock.last && now - clock.last + tick / 2 < PAINT_INTERVAL) { return false; }
+    clock.last = now;
+    return true;
+  }
+
   var Visualizer = {
     isOpen: false,
     currentTake: null,
@@ -388,6 +414,8 @@
         this.startFull();
       } else {
         this.stopFull();
+        // The player's waveform is not drawn while this covers it (app.js waveLoop): bring it up to date.
+        if (typeof window.drawWave === 'function') { window.drawWave(); }
       }
     },
 
@@ -720,11 +748,39 @@
       }
       if (aura) {
         aura.classList.toggle('hidden', this.artMode !== 'aura');
-        var auraCss = 'url("' + artUrl.replace(/"/g, '') + '")';
-        if (aura.style.backgroundImage.indexOf(artUrl) === -1) {
-          aura.style.backgroundImage = auraCss;
+        if (aura.dataset.src !== artUrl) {
+          aura.dataset.src = artUrl;
+          aura.style.filter = '';
+          aura.style.backgroundImage = 'url("' + artUrl.replace(/"/g, '') + '")';
+          this.blurAura(aura, artUrl);
         }
       }
+    },
+
+    /* Aura's glow is the picture blurred over the whole screen.  Blurred by the page (CSS) it is blurred again on
+       every frame it changes, at the screen's full density; so it is blurred once here, small (a blur needs no detail),
+       and each frame moves only its size and opacity, which cost nothing.  Where a canvas cannot filter, the CSS blur
+       stays. */
+    blurAura: function (aura, artUrl) {
+      var probe = document.createElement('canvas').getContext('2d');
+      if (!probe || typeof probe.filter !== 'string') { return; }
+      var img = new Image();
+      img.onload = function () {
+        if (aura.dataset.src !== artUrl) { return; }   // another picture since
+        try {
+          var size = 256;
+          var c = document.createElement('canvas');
+          c.width = c.height = size;
+          var g = c.getContext('2d');
+          // Close to the CSS it replaces: blur(75px) on a picture stretched to about ten times this size,
+          // saturated and dimmed; drawn a little larger than the canvas so the blur does not fade at the edges.
+          g.filter = 'blur(11px) saturate(1.7) brightness(0.75)';
+          g.drawImage(img, -size * 0.1, -size * 0.1, size * 1.2, size * 1.2);
+          aura.style.backgroundImage = 'url("' + c.toDataURL('image/jpeg', 0.92) + '")';
+          aura.style.filter = 'none';
+        } catch (err) { /* a picture the canvas may not read keeps the CSS blur */ }
+      };
+      img.src = artUrl;
     },
 
     parseLyrics: function () {
@@ -905,19 +961,21 @@
     resizeFull: function () {
       var canvas = $('visualizer-canvas');
       if (!canvas) { return; }
-      var dpr = window.devicePixelRatio || 1;
       var w = window.innerWidth;
       var h = window.innerHeight;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
+      var scale = backingScale(w, h);
+      this.fullScale = scale;
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
     },
 
     startFull: function () {
       if (this.fullAnimId) { cancelAnimationFrame(this.fullAnimId); }
       var self = this;
+      var clock = {};
       function loop(now) {
         if (!self.isOpen) { return; }
-        self.renderFullFrame(now);
+        if (paintDue(clock, now)) { self.renderFullFrame(now); }
         self.fullAnimId = requestAnimationFrame(loop);
       }
       this.fullAnimId = requestAnimationFrame(loop);
@@ -956,7 +1014,8 @@
       var ctx = canvas.getContext('2d');
       if (!ctx) { return; }
 
-      var dpr = window.devicePixelRatio || 1;
+      // The canvas's own scale (resizeFull), not the screen's density.
+      var dpr = this.fullScale || 1;
       var w = canvas.width / dpr;
       var h = canvas.height / dpr;
 
@@ -975,7 +1034,11 @@
       } else if (this.fxLayer) {
         this.fxLayer = null;   // a scene starting again over its own ground begins without the old trails
       }
+      this.frontShown = false;
       this.renderScene(target, w, h, now);
+      if (this.frontLayer && !this.frontShown && this.frontLayer.style.display !== 'none') {
+        this.frontLayer.style.display = 'none';
+      }
       if (overArt) {
         this.overArt = false;
         ctx.drawImage(target.canvas, 0, 0, w, h);
@@ -1097,7 +1160,12 @@
         var auraSat = 1.6 + this.bassEnergy * 0.8;
         var auraBright = 0.5 + this.bassEnergy * 0.25;
         aura.style.transform = 'scale(' + auraScale.toFixed(3) + ')';
-        aura.style.filter = 'blur(75px) saturate(' + auraSat.toFixed(2) + ') brightness(' + auraBright.toFixed(2) + ')';
+        if (aura.style.filter === 'none') {
+          // Blurred once (blurAura) at its brightest: the brightness moves as opacity over the dark ground instead.
+          aura.style.opacity = (0.65 * auraBright / 0.75).toFixed(3);
+        } else {
+          aura.style.filter = 'blur(75px) saturate(' + auraSat.toFixed(2) + ') brightness(' + auraBright.toFixed(2) + ')';
+        }
         return;
       }
 
@@ -1176,11 +1244,11 @@
       // 3D perspective tilt, rotation, and spring-scale on sleeve
       sleeve.style.transform = 'perspective(900px) rotateX(' + rotX.toFixed(2) + 'deg) rotateY(' + rotY.toFixed(2) + 'deg) rotateZ(' + rotZ.toFixed(2) + 'deg) scale(' + kickScale.toFixed(3) + ')';
 
-      // Audio-reactive shadow depth and colored glow
-      var shadowBlur = 24 + this.bassEnergy * 45;
-      var shadowSpread = 4 + this.bassEnergy * 14;
-      var glowAlpha = (0.2 + this.bassEnergy * 0.55).toFixed(2);
-      sleeve.style.boxShadow = '0 25px ' + shadowBlur.toFixed(1) + 'px ' + shadowSpread.toFixed(1) + 'px rgba(0, 0, 0, 0.85), 0 0 ' + (shadowBlur * 1.3).toFixed(1) + 'px rgba(56, 189, 248, ' + glowAlpha + ')';
+      // The deeper shadow and the coloured glow with the bass: the opacity of each, drawn once (styles.css,
+      // .vis-art-sleeve::before and ::after).
+      var bassNow = Math.min(1, this.bassEnergy || 0);
+      sleeve.style.setProperty('--sleeve-depth', bassNow.toFixed(2));
+      sleeve.style.setProperty('--sleeve-glow', ((0.2 + bassNow * 0.55) / 0.75).toFixed(2));
 
       // Holographic glare tracking 3D tilt
       if (glare) {
@@ -1241,6 +1309,46 @@
       var sum = 0;
       for (var i = start; i < end; i++) { sum += data[i]; }
       return sum / ((end - start) * 255);
+    },
+
+    /* The picture in front, in the Artwork scene, on a canvas of its own at the screen's full density: the
+       scene behind it is drawn at less (backingScale), and the picture should be as sharp as the screen allows.  It is
+       drawn again only when the picture or its place changes; its breathing is the layer's opacity, which costs
+       nothing.  draw(g, x, y) draws it with its top left at x, y in the layer's own CSS pixels. */
+    frontPicture: function (img, x, y, pw, ph, margin, opacity, draw) {
+      var modal = $('visualizer-modal');
+      if (!modal) { return; }
+      var layer = this.frontLayer;
+      if (!layer) {
+        layer = this.frontLayer = document.createElement('canvas');
+        layer.className = 'vis-art-front';
+        layer.setAttribute('aria-hidden', 'true');
+        var main = $('visualizer-canvas');
+        modal.insertBefore(layer, main ? main.nextSibling : modal.firstChild);
+      }
+      var dpr = Math.min(window.devicePixelRatio || 1, 3);
+      var left = Math.floor(x - margin), top = Math.floor(y - margin);
+      var cw = Math.ceil(x + pw + margin) - left, ch = Math.ceil(y + ph + margin) - top;
+      var key = [left, top, cw, ch, dpr, (x - left).toFixed(2), (y - top).toFixed(2)].join(' ');
+      if (layer.drawnImg !== img || layer.drawnKey !== key) {
+        layer.drawnImg = img;
+        layer.drawnKey = key;
+        layer.style.left = left + 'px';
+        layer.style.top = top + 'px';
+        layer.style.width = cw + 'px';
+        layer.style.height = ch + 'px';
+        layer.width = Math.round(cw * dpr);
+        layer.height = Math.round(ch * dpr);
+        var g = layer.getContext('2d');
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        g.imageSmoothingEnabled = true;
+        g.imageSmoothingQuality = 'high';
+        draw(g, x - left, y - top);
+      }
+      var shown = opacity.toFixed(3);
+      if (layer.style.opacity !== shown) { layer.style.opacity = shown; }
+      if (layer.style.display) { layer.style.display = ''; }
+      this.frontShown = true;
     },
 
     renderYeufonic: function (ctx, w, h, now) {
@@ -1494,7 +1602,10 @@
       var at = audio && isFinite(audio.currentTime) ? audio.currentTime : t;
       var breath = 0.5 + 0.5 * Math.cos(2 * Math.PI * ((at % bar) / bar));
       var loud = Math.min(1, (this.bassEnergy || 0) * 0.7 + (this.midEnergy || 0) * 0.6);
-      this.artLevel = (this.artLevel || 0) + (loud - (this.artLevel || 0)) * 0.025;
+      // Taken slowly: about 1.5 a second, the 0.025 a frame it was tuned at on a 60 Hz screen, whatever the screen.
+      var since = this.artLevelAt ? Math.min(0.25, Math.max(0, (now - this.artLevelAt) / 1000)) : 1 / 60;
+      this.artLevelAt = now;
+      this.artLevel = (this.artLevel || 0) + (loud - (this.artLevel || 0)) * (1 - Math.exp(-1.52 * since));
       var swell = breath * (0.30 + this.artLevel * 0.70);
 
       // The backdrop's colours sway well either side of the picture's own, over about two minutes; recoloured only
@@ -1516,7 +1627,7 @@
       var driftX = Math.sin(t * 0.043) * w * 0.03, driftY = Math.cos(t * 0.031) * h * 0.03;
       ctx.save();
       ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
+      ctx.imageSmoothingQuality = 'medium';   // blurred already: 'high' costs more over the whole screen for nothing
       ctx.drawImage(art.blur, w / 2 - span / 2 + driftX, h / 2 - span / 2 + driftY, span, span);
       ctx.restore();
       // Dimmed, so what is in front stands out; each breath lifts it.
@@ -1605,37 +1716,40 @@
         }
         ctx.restore();
 
-        ctx.globalAlpha = seeThrough;
-        ctx.drawImage(img, x, y, pw, ph);
-
-        // Its surface: the edges shaded a touch inwards, light caught along the top and left, a dark line along the
-        // bottom and right.
-        var shade = side * 0.035;
-        var edges = [
-          [x, y, x + shade, y, x, y, shade, ph], [x + pw, y, x + pw - shade, y, x + pw - shade, y, shade, ph],
-          [x, y, x, y + shade, x, y, pw, shade], [x, y + ph, x, y + ph - shade, x, y + ph - shade, pw, shade],
-        ];
-        for (var e = 0; e < edges.length; e++) {
-          var g = ctx.createLinearGradient(edges[e][0], edges[e][1], edges[e][2], edges[e][3]);
-          g.addColorStop(0, 'rgba(0, 0, 0, 0.16)');
-          g.addColorStop(1, 'rgba(0, 0, 0, 0)');
-          ctx.fillStyle = g;
-          ctx.fillRect(edges[e][4], edges[e][5], edges[e][6], edges[e][7]);
-        }
-        var line = Math.max(1, side * 0.0015);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
-        ctx.fillRect(x, y, pw, line);
-        ctx.fillRect(x, y, line, ph);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.30)';
-        ctx.fillRect(x, y + ph - line, pw, line);
-        ctx.fillRect(x + pw - line, y, line, ph);
+        // The picture, on its layer (frontPicture), with its surface: the edges shaded a touch inwards, light caught
+        // along the top and left, a dark line along the bottom and right.
+        this.frontPicture(img, x, y, pw, ph, 0, seeThrough, function (g, x0, y0) {
+          g.drawImage(img, x0, y0, pw, ph);
+          var shade = side * 0.035;
+          var edges = [
+            [x0, y0, x0 + shade, y0, x0, y0, shade, ph], [x0 + pw, y0, x0 + pw - shade, y0, x0 + pw - shade, y0, shade, ph],
+            [x0, y0, x0, y0 + shade, x0, y0, pw, shade], [x0, y0 + ph, x0, y0 + ph - shade, x0, y0 + ph - shade, pw, shade],
+          ];
+          for (var e = 0; e < edges.length; e++) {
+            var eg = g.createLinearGradient(edges[e][0], edges[e][1], edges[e][2], edges[e][3]);
+            eg.addColorStop(0, 'rgba(0, 0, 0, 0.16)');
+            eg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            g.fillStyle = eg;
+            g.fillRect(edges[e][4], edges[e][5], edges[e][6], edges[e][7]);
+          }
+          var line = Math.max(1, side * 0.0015);
+          g.fillStyle = 'rgba(255, 255, 255, 0.16)';
+          g.fillRect(x0, y0, pw, line);
+          g.fillRect(x0, y0, line, ph);
+          g.fillStyle = 'rgba(0, 0, 0, 0.30)';
+          g.fillRect(x0, y0 + ph - line, pw, line);
+          g.fillRect(x0 + pw - line, y0, line, ph);
+        });
       } else {
-        // A picture whose background was taken out: its shadow follows its outline.
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
-        ctx.shadowBlur = side * 0.08;
-        ctx.shadowOffsetY = side * 0.02;
-        ctx.globalAlpha = seeThrough;
-        ctx.drawImage(img, x, y, pw, ph);
+        // A picture whose background was taken out: its shadow follows its outline, on the layer with it.
+        var margin = side * 0.2;
+        this.frontPicture(img, x, y, pw, ph, margin, seeThrough, function (g, x0, y0) {
+          var k = g.getTransform ? g.getTransform().a : 1;   // shadows ignore the layer's scaling
+          g.shadowColor = 'rgba(0, 0, 0, 0.55)';
+          g.shadowBlur = side * 0.08 * k;
+          g.shadowOffsetY = side * 0.02 * k;
+          g.drawImage(img, x0, y0, pw, ph);
+        });
       }
       ctx.restore();
 
@@ -2545,10 +2659,10 @@
     resizeMini: function () {
       var canvas = $('mini-vis');
       if (!canvas) { return; }
-      var dpr = window.devicePixelRatio || 1;
       var rect = canvas.getBoundingClientRect();
       var w = Math.max(200, Math.round(rect.width || canvas.clientWidth || window.innerWidth || 1200));
       var h = Math.max(30, Math.round(rect.height || canvas.clientHeight || 64));
+      var dpr = backingScale(w, h);
       var targetW = Math.round(w * dpr);
       var targetH = Math.round(h * dpr);
       if (canvas.width !== targetW || canvas.height !== targetH) {
@@ -2561,8 +2675,10 @@
       if (this.miniAnimId) { return; }
       this.resizeMini();
       var self = this;
+      var clock = {};
       function loop(now) {
-        self.renderMiniFrame(now);
+        // Not while the full-screen visualizer covers the player.
+        if (!self.isOpen && paintDue(clock, now)) { self.renderMiniFrame(now); }
         self.miniAnimId = requestAnimationFrame(loop);
       }
       this.miniAnimId = requestAnimationFrame(loop);
@@ -2596,10 +2712,10 @@
         return;
       }
 
-      var dpr = window.devicePixelRatio || 1;
       var rect = canvas.getBoundingClientRect();
       var w = Math.max(200, Math.round(rect.width || canvas.clientWidth || window.innerWidth || 1200));
       var h = Math.max(30, Math.round(rect.height || canvas.clientHeight || 64));
+      var dpr = backingScale(w, h);
       var targetW = Math.round(w * dpr);
       var targetH = Math.round(h * dpr);
       if (canvas.width !== targetW || canvas.height !== targetH) {

@@ -37,6 +37,14 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **The visualizer asks less of the computer.** The page under it is no longer drawn while it is open, its canvas is
+  drawn at no more than a 1080p screen's worth of pixels and stretched to fit (the take's picture stays at the
+  screen's full sharpness), at most about 60 frames a second; Aura's glow is blurred once rather than on every frame,
+  the sleeve's shadows no longer change size on every frame, and its toolbar and lyrics panel are solid rather than
+  frosted. It keeps up on high-density and 120 Hz screens.
+
 ## 0.0.55 (2026-11-08)
 
 - **Recorded voices.** A take can be sung in a voice trained from recordings of someone singing: your own, or a

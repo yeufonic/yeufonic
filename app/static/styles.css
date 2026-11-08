@@ -4759,6 +4759,10 @@ main.view-playlists > .library {
   user-select: none;
 }
 .visualizer-modal.hidden { display: none !important; }
+/* The page under it is not painted while it is open: covered, it still cost the browser its compositing and its
+   moving parts (the playing card, the player's waveform), as much as the visualizer itself on a weak GPU.  Hidden
+   rather than removed, so its layout and scroll position are kept. */
+body.visualizer-open > *:not(#visualizer-modal) { visibility: hidden; }
 
 .visualizer-canvas {
   position: absolute;
@@ -4767,6 +4771,15 @@ main.view-playlists > .library {
   height: 100%;
   z-index: 1;
   display: block;
+}
+
+/* The picture in front in the Artwork scene, at the screen's full density over the scene (visualizer.js
+   frontPicture); placed and sized by the script. */
+.vis-art-front {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  will-change: opacity;
 }
 
 .vis-art-aura {
@@ -4778,7 +4791,8 @@ main.view-playlists > .library {
   opacity: 0.65;
   z-index: 2;
   pointer-events: none;
-  transition: opacity 0.5s ease;
+  /* Its size and opacity move every frame (visualizer.js): a layer of its own, and no easing behind them. */
+  will-change: transform, opacity;
 }
 .vis-art-aura.hidden { display: none; }
 
@@ -4835,11 +4849,12 @@ main.view-playlists > .library {
   display: flex;
   align-items: center;
   gap: 2px;
-  background: rgba(15, 23, 42, 0.7);
+  /* Solid rather than frosted: a blur of the moving scene behind it is redone on every frame, which a weak GPU
+     cannot keep up with.  The same for the buttons and the lyrics. */
+  background: rgba(15, 23, 42, 0.84);
   padding: 3px 4px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
   overflow-x: auto;
   max-width: 100%;
   scrollbar-width: none;
@@ -4877,10 +4892,9 @@ main.view-playlists > .library {
   padding: 6px 12px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(15, 23, 42, 0.82);
   color: #cbd5e1;
   cursor: pointer;
-  backdrop-filter: blur(12px);
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .vis-tool-btn:hover {
@@ -4934,8 +4948,28 @@ main.view-playlists > .library {
   height: 435px;
   border-radius: 14px;
   transform-style: preserve-3d;
-  will-change: transform, box-shadow;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.85);
+  will-change: transform;
+  /* Shadows that stay put: drawn again at a new size on every frame, they cost a weak GPU dearly.  The quiet shadow
+     is the sleeve's own; the deeper one and the coloured glow that come with the bass are drawn once, under it, and
+     only their opacity moves (--sleeve-depth, --sleeve-glow, set by visualizer.js), which costs nothing. */
+  box-shadow: 0 25px 24px 4px rgba(0, 0, 0, 0.85);
+}
+.vis-art-sleeve::before,
+.vis-art-sleeve::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  pointer-events: none;
+  will-change: opacity;
+}
+.vis-art-sleeve::before {
+  box-shadow: 0 0 80px rgba(56, 189, 248, 0.75);
+  opacity: var(--sleeve-glow, 0.27);
+}
+.vis-art-sleeve::after {
+  box-shadow: 0 25px 69px 18px rgba(0, 0, 0, 0.85);
+  opacity: var(--sleeve-depth, 0);
 }
 
 .vis-cover-frame {
@@ -4962,8 +4996,9 @@ main.view-playlists > .library {
   width: 220%;
   height: 220%;
   pointer-events: none;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.08) 32%, transparent 60%);
-  mix-blend-mode: overlay;
+  /* Laid over the cover plainly, not blended (a blend mode costs the GPU a pass of its own every frame): fainter to
+     match. */
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.05) 32%, transparent 60%);
   opacity: 0.22;
   will-change: transform, opacity;
 }
@@ -5049,10 +5084,8 @@ main.view-playlists > .library {
   overflow: hidden;
   pointer-events: auto;
   border-radius: 18px;
-  background: rgba(15, 23, 42, 0.52);
+  background: rgba(12, 18, 34, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   padding: 24px 28px;
 }
