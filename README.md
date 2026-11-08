@@ -112,10 +112,10 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 - **Train a LoRA from your own songs.** Prepare a corpus from a folder of songs, by one artist,
   in one genre or by a few similar artists, and train a style LoRA from it. It works best in a
   song from a prompt, where the LoRA writes the tune. See Training a LoRA below.
-- **Sing a take in a recorded voice.** Train a voice from a recording of someone singing — yours, or a
-  corpus's singer — and a take that uses it is rendered as usual, then its vocal is separated and sung again
-  in that voice over the rest. Optional: it runs in its own container (see "Recorded voices" below and
-  "A recorded voice" in the guide).
+- **Sing a take in a recorded voice.** Train a voice from recordings of someone singing — yours, sung into the
+  built-in recorder, or a corpus's singer — and a take that uses it is rendered as usual, then its vocal is
+  separated and sung again in that voice over the rest. Optional: it runs in its own container (see Recorded
+  voices below).
 - **Hear every step of a LoRA's training.** A training run keeps a checkpoint every 50 steps.
   **Checkpoints** renders the same song once on each of them, with one seed, as takes named after
   their step. Each has its own taste in melody and structure, while keeping the style and sound
@@ -208,6 +208,44 @@ the app's job is to make them usable without knowing how they are put together:
 The [user guide](app/static/guide.md#style-loras) has the detail, including links to third-party LoRAs
 that you can import to Yeufonic.
 
+## Recorded voices
+
+A recorded voice is a singer's voice, trained from recordings of them singing: yours, or a corpus's singer. Open
+**Voices** from the menu to make one, then choose it in the editor's **Recorded voice** field, in all three modes. A
+take that uses it is rendered as usual; then its vocal is separated from the backing, sung again in the voice, and
+mixed back in. Here is a voice of someone's own recordings, trained, with its settings and what it learned from:
+
+[![Recorded voices](docs/screenshots/voices.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/voices.png)
+
+It is optional, and runs in a container of its own beside the engine:
+
+```sh
+sh scripts/fetch-models.sh --voice      # about 1.1 GB into models/voice/
+echo COMPOSE_PROFILES=voice >> .env
+docker compose up --build
+```
+
+- **Your own voice, or a corpus's singer.** **New voice** makes either a voice of recordings or one trained on a
+  corpus's songs. A voice of recordings gathers them on its page: **Record…** opens the built-in recorder and adds
+  each take as it is sung, never autotuned; **Upload…** takes audio files; **From the library…** adds recordings
+  you already have, such as a vocal you recorded for a cover, without copying them. About ten minutes of singing
+  across your range is plenty, and the page counts it up.
+- **Only what needs separating is separated.** Each recording says whether it is a voice alone or a song with a
+  backing. A voice alone, such as one sung into the recorder, is used as it is, which is quicker and gives a
+  cleaner voice; a song is separated with BS-Roformer first.
+- **Settings that belong to the voice, and to the take.** **Octave** moves the voice up or down for a singer whose
+  range is far from the take's, **Vocal level** and **Instrument level** set the balance of the remix, and
+  **Likeness** how closely it keeps to the singer's own sounds (higher sounds more like them, and can sound more
+  processed). They are the voice's defaults on its page; the editor shows them under the voice, to change for one
+  take, and a take file carries them.
+- **Training waits its turn on the GPU**, as a LoRA's does, and shows its progress in the job pill. Settings →
+  *Voice Training* sets how much singing a voice learns from and for how many passes; the batch follows the GPU's
+  memory. **Download voice** saves a trained voice to give to someone, and **Import a voice…** adds one, or an RVC
+  model from elsewhere (a `.pth`, or a zip with its index).
+
+The result is a converted vocal over a separated backing, so it does not sound as seamless as a vocal YuE2 sang
+itself; clean, dry recordings give the cleanest voice. Recorded voices are not in the Windows install without Docker.
+
 ## Training a LoRA
 
 Open **Corpora** from the menu. The app prepares a **corpus**: a folder of songs. Typically this
@@ -250,32 +288,6 @@ How many steps a run trains for, and how much it can learn, can be changed: see
 
 It is on by default. `TRAINING_ENABLED: "0"` on the app takes it out, and `WITH_TRAINER=0` leaves
 the trainer out of the engine image.
-
-## Recorded voices
-
-A take can be sung in a voice trained from a recording of someone singing: yours, or a corpus's singer. It is
-optional, and runs in a container of its own beside the engine:
-
-```sh
-sh scripts/fetch-models.sh --voice      # about 1.1 GB into models/voice/
-echo COMPOSE_PROFILES=voice >> .env
-docker compose up --build
-```
-
-Then the editor has a **Recorded voice** field. **Make a voice…** trains one from an audio file of singing
-(a few minutes is plenty; one that has a backing track is separated first), and each corpus's card has a
-**Make a voice…** that trains one from the corpus's songs. Training waits its turn on the GPU, as a LoRA does,
-and shows its progress there. A take that uses a voice is rendered as usual; then its vocal is separated with
-BS-Roformer, sung again in the voice with RVC, and mixed back over the rest. **Octave** moves a voice up or
-down a whole octave, for a singer whose range is far from the take's. Before the remix the converted vocal is matched to the
-rendered one's presence and loudness and given a little room; **Vocal level** sets it higher or lower in the mix. **Download voice** saves a trained voice as a zip to give
-to someone, and **Import a voice…** adds one, or an RVC model from elsewhere (a `.pth`, or a zip with its index).
-Settings → *Recorded voice: minutes of singing* sets how much singing a voice trains on (ten minutes by default),
-shared equally across a corpus's songs; the training batch follows the GPU's memory.
-
-The result is a converted vocal over a separated backing, so it does not sound as seamless as a vocal YuE2 sang
-itself; cleaner source recordings (lossless rather than MP3) give a cleaner voice. Recorded voices are not in
-the Windows install without Docker.
 
 ## On Windows, without Docker
 
@@ -651,7 +663,7 @@ server-side change only.
 ### Storage
 
 A corpus takes a lot of room, and some of it is not needed again. **Settings → Storage** shows where the
-space is (takes, corpora, recordings, stems, LoRAs, the models, the engine's folders) and, for each corpus,
+space is (takes, corpora, recordings, stems, voices, LoRAs, the models, the engine's folders) and, for each corpus,
 what it holds. Above that it lists what can be **given back**: files Yeufonic made along the way and can make
 again. Each item says what it is and what removing it costs, and nothing is removed until you tick it and
 confirm. What it can list:
@@ -671,12 +683,15 @@ confirm. What it can list:
   audio in about half the room. A **Convert to FLAC** button does the same for the WAVs you already have: it
   converts each one, checks that the FLAC decodes to exactly the same audio, and only then removes the WAV
   (one that does not check out is left as it was). It runs in the background and can be stopped.
+- **What a voice learned from.** Each song's separated vocal and the excerpts a recorded voice trained on, kept
+  to listen to on its page. The voice does not need them; its own recordings are not touched.
 
 Your takes, your songs, your recordings, the finished LoRAs and the models are never listed for removal. A corpus that is training, being exported or being analysed is shown but cannot be
 touched until it has finished. The window also lets you choose what is tidied **automatically**: working
 copies are removed as each song's analysis ends (on by default, since nothing reads them again), and you can
-have the training set removed when training ends and the checkpoints deleted when training ends (both off by
-default).
+have the training set removed when training ends, the checkpoints deleted when training ends, and what a voice
+learned from removed when it has trained (all off by default). A voice that uses a library recording points at it
+rather than keeping a copy.
 
 Docker keeps its own images and build cache outside the project, so the Storage window does not cover them;
 `docker system df` shows what they take.

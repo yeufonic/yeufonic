@@ -10,7 +10,9 @@
      Scenes: cover (the editor's Score page), comfy (Wide + Comfy, the take panel), light (Light theme),
      song (the editor), instrumental, lora (the editor with a style LoRA), corpora, corpus,
      mastering (the rack on its own, floating at 30,24: the shot is cropped to it; it reports the
-     rack's box to /__r, which the app's log shows, for the crop), playlists (the playlists view). -->
+     rack's box to /__r, which the app's log shows, for the crop), playlists (the playlists view),
+     voices (a voice's page, 1900x1100: needs a demo voice 'demovoice001' with recordings, added to the shot's
+     copy of the library by hand; cropped to the window by scanning for its edges, 28 px margin at 2x). -->
 <html><body style="margin:0;background:#08080b">
 <iframe id="f" style="width:100vw;height:100vh;border:0;display:block"></iframe>
 <script>
@@ -101,6 +103,12 @@ f.onload = function () {
                                                                  preset: d.getElementById('rack-preset-select').value, spectrum: Boolean(E.spectrum && E.spectrum.staged) })));
         });
       }, 900);
+    } else if (scene === 'voices') {
+      // A voice of recordings on its own page.  The voice service is not run for the shot: it is said to be.
+      w.openVoices().then(function () {
+        w.VOICES.service = { ok: true, running: true };
+        w.showVoice('demovoice001');
+      });
     } else if (scene === 'corpora' || scene === 'corpus') {
       w.State.options.training_available = true;   // the trainer is in the engine; say so without waiting on it
       w.openIdentities(); if (scene === 'corpus') { w.showIdentity('glassorchard'); }
