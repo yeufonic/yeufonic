@@ -3102,7 +3102,7 @@ function refreshTitleHint() {
 
 var JOB_KINDS = { render: t('Render'), plan: t('Score plan'), transcribe: t('Transcription'), separate: t('Stem separation'), hear: t('Lyric hearing'), lyrics: t('Lyrics'), text: t('Text generation'), train: t('LoRA training'), other: t('Engine job'),
   identity_score: t('Corpus analysis'), identity_style: t('Corpus analysis'), persona_score: t('Corpus analysis'), persona_style: t('Corpus analysis'),
-  identity_prep: t('Corpus prep'), persona_prep: t('Corpus prep'), art: t('Picture'), voice: t('Recorded voice'), sing: t('Recorded voice') };
+  identity_prep: t('Corpus prep'), persona_prep: t('Corpus prep'), art: t('Picture'), voice: t('Recorded voice') };
 
 /* The take a job is for, where it is one of the app's own: a plan, a render or a picture.  Its title in the job card
    goes to that take. */
@@ -3410,7 +3410,7 @@ function paintJob(current, queue, options) {
   var titles = { render: t('Rendering your song'), plan: t('Writing the score plan'), transcribe: t('Transcribing the recording'),
     lyrics: t('Writing lyrics'), train: t('Training the LoRA'), identity_score: t('Analysing a corpus song'),
     identity_style: t('Analysing a corpus song'), persona_score: t('Analysing a corpus song'), persona_style: t('Analysing a corpus song'),
-    identity_prep: t('Preparing corpus song'), persona_prep: t('Preparing corpus song'), art: t('Drawing a picture'), voice: t('Training a voice'), sing: t('Singing in a voice') };
+    identity_prep: t('Preparing corpus song'), persona_prep: t('Preparing corpus song'), art: t('Drawing a picture'), voice: t('Training a voice') };
   var shown = null;   // the job whose title the card shows, so a click on it can go to its take
   // Only the render has an average, measured from this machine's own history.
   // The others show the time they have taken and claim nothing about the rest.
@@ -7060,6 +7060,8 @@ function editorRenderSettings() {
     interpretation: $('interpretation').value,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   });
+  // The voice the editor shows, none included: a voice chosen for a planned take is sung by its render.
+  if ($('persona-select')) { data.voice_id = VOICES.pick || ''; }
   if ($('style-lora') && !data.style_lora) {
     // None, chosen from a list that holds the take's LoRA, turns it off. A list
     // without it, not loaded yet or with the file gone, is no choice at all.
@@ -7258,6 +7260,7 @@ function songBody(seed) {
     variety: $('variety').value,
     harmony: harmonyStep(),
     space_id: State.spaceId,
+    voice_id: VOICES.pick || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -9119,6 +9122,7 @@ function instBody(seed) {
     variety: $('variety').value,
     harmony: harmonyStep(),
     space_id: State.spaceId,
+    voice_id: VOICES.pick || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -11734,6 +11738,7 @@ function selectTake(take) {
   saveForm();
   paintTakeHighlights();
   activateTakeRecording(take);
+  if (typeof setPersonaFromTake === 'function') { setPersonaFromTake(take); }
 }
 
 /* One click on a card replaces the form.  If the form holds words that are not
@@ -14157,6 +14162,7 @@ function coverBody(seed) {
     interpretation: $('interpretation').value,
     max_duration: parseFloat($('max-duration').value) || 360,
     space_id: State.spaceId,
+    voice_id: VOICES.pick || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -17301,9 +17307,9 @@ function wirePlaylists() {
 
 /* ------------------------------------------------------------------ voices
    A recorded voice: an RVC model trained from someone's singing (a corpus's songs or one recording), on the voice
-   service.  Its own page, opened from the menu: make, train, rename, hear what it learned from, and sing any
-   finished take in it, which makes a new take beside that one (VOICE-PERSONA.md). */
-var VOICES = { list: [], service: null, view: 'list', id: null, poll: null };
+   service.  Managed on its own page, opened from the menu; the editor only picks one for a take, whose render is
+   then sung again in it (VOICE-PERSONA.md). */
+var VOICES = { list: [], service: null, view: 'list', id: null, poll: null, pick: null, takeId: null };
 
 function personaNameOf(id) {
   var found = VOICES.list.filter(function (v) { return v.id === id; })[0];
@@ -17334,6 +17340,7 @@ async function loadVoices() {
     VOICES.list = [];
     VOICES.service = null;
   }
+  paintPersonaField();
   clearTimeout(VOICES.poll);
   if (VOICES.list.some(function (v) { return v.state === 'training'; })) {
     VOICES.poll = setTimeout(function () {
@@ -17396,7 +17403,7 @@ function showVoiceList() {
   voicesHead(t('Voices'), false);
   var usable = VOICES.service && VOICES.service.ok;
   $('voices-body').innerHTML =
-    '<p class="identity-intro">' + t('A voice is trained from someone singing: the songs of a corpus, or one recording. Any finished take can then be sung in it, as a new take beside the original.') + '</p>' +
+    '<p class="identity-intro">' + t('A voice is trained from someone singing: the songs of a corpus, or one recording. Pick it in the editor when making a take, and the take is sung in it.') + '</p>' +
     serviceNote() +
     '<div class="row">' +
       '<button id="voice-new" class="ghost"' + (usable ? '' : ' disabled') + '>' + t('New voice') + '</button>' +
@@ -17488,12 +17495,6 @@ function octaveOptions(v) {
   }).join('');
 }
 
-function singableTakes() {
-  return (State.takes || []).filter(function (take) {
-    return take.status === 'done' && take.kind !== 'instrumental' && take.has_audio;
-  });
-}
-
 async function showVoice(id) {
   var v = VOICES.list.filter(function (x) { return x.id === id; })[0];
   if (!v) { showVoiceList(); return; }
@@ -17504,9 +17505,6 @@ async function showVoice(id) {
   var usable = VOICES.service && VOICES.service.ok;
   var why = v.state === 'failed' && v.error && !/^made before voices/.test(v.error)
     ? '<p class="hint bad">' + esc(t('Training failed: {value}', { value: tr(v.error) })) + '</p>' : '';
-  var takes = singableTakes().map(function (take) {
-    return '<option value="' + esc(take.id) + '">' + esc(take.title || take.id) + '</option>';
-  }).join('');
   $('voices-body').innerHTML =
     '<p><span id="voice-state" data-state="' + esc(v.state) + '">' + esc(voiceStateText(v)) + '</span> · ' + esc(voiceOrigin(v)) + '</p>' +
     why + serviceNote() +
@@ -17515,13 +17513,7 @@ async function showVoice(id) {
         '<label>' + t('Octave') + ' <select id="voice-octave">' + octaveOptions(v) + '</select></label>' +
         '<label title="' + t("The converted vocal against the rendered one's level in the mix") + '">' + t('Vocal level') +
           ' <select id="voice-level">' + levelOptions(v) + '</select></label>' +
-      '</div>' +
-      '<h4>' + t('Sing a take in this voice') + '</h4>' +
-      (takes
-        ? '<div class="row"><select id="voice-take">' + takes + '</select>' +
-          '<button id="voice-sing" class="chip action"' + (usable ? '' : ' disabled') + '>' + t('Sing') + '</button></div>' +
-          '<p class="sub">' + t('A new take is made beside it, with its vocal sung in this voice. Takes listed are those in the library now.') + '</p>'
-        : '<p class="muted">' + t('No finished takes with a vocal in the library now.') + '</p>')
+      '</div>'
       : '') +
     '<h4>' + t('What it learned from') + '</h4><div id="voice-heard" class="muted">…</div>' +
     '<div class="row identity-actions">' +
@@ -17568,16 +17560,6 @@ async function voicesClick(event) {
   var id = VOICES.id;
   var v = VOICES.list.filter(function (x) { return x.id === id; })[0];
   if (!v) { return; }
-  if (target.closest('#voice-sing')) {
-    var take = $('voice-take').value;
-    target.disabled = true;
-    try {
-      var made = await api('/api/voices/' + id + '/sing', { method: 'POST', body: JSON.stringify({ take_id: take }) });
-      toast(t('Queued: {value}', { value: made.title }));
-      if (typeof loadTakes === 'function') { loadTakes(); }
-    } finally { target.disabled = false; }
-    return;
-  }
   if (target.closest('#voice-rename')) {
     var name = await confirmModal({ title: t('Rename'), message: t('What is this voice called?'), input: true,
                                     defaultValue: v.name, confirmText: t('OK') });
@@ -17625,6 +17607,44 @@ function importVoiceFile() {
   input.click();
 }
 
+
+/* The editor's Recorded voice: a pick for the take, nothing more.  Ready voices only; hidden without the service. */
+function paintPersonaField() {
+  var host = $('persona-field');
+  if (!host) { return; }
+  var ready = VOICES.list.filter(function (v) { return v.state === 'ready'; });
+  var usable = Boolean(VOICES.service && VOICES.service.ok && ready.length);
+  host.classList.toggle('hidden', !usable);
+  if (!usable) { return; }
+  var options = ['<option value="">' + esc(t('None')) + '</option>'].concat(ready.map(function (v) {
+    return '<option value="' + esc(v.id) + '">' + esc(v.name) + '</option>';
+  }));
+  host.innerHTML = '<label for="persona-select">' + t('Recorded voice') + '</label>' +
+    '<select id="persona-select">' + options.join('') + '</select>';
+  var select = $('persona-select');
+  if (VOICES.pick && !ready.some(function (v) { return v.id === VOICES.pick; })) { VOICES.pick = null; }
+  select.value = VOICES.pick || '';
+  select.addEventListener('change', function () { VOICES.pick = select.value || null; });
+}
+
+/* The editor shows the voice of the take open in it, or none: a voice is the take's, like its LoRAs. */
+function setPersonaFromTake(take) {
+  if (take && take.id && take.id === VOICES.takeId) { return; }
+  VOICES.takeId = take && take.id;
+  VOICES.pick = (take && take.voice_id) || null;
+  var select = $('persona-select');
+  if (select) { select.value = VOICES.pick || ''; }
+}
+
+function installPersonaField() {
+  var vocal = $('vocal-field');
+  if (!vocal || $('persona-field')) { return; }
+  var holder = document.createElement('div');
+  holder.className = 'field hidden';
+  holder.id = 'persona-field';
+  vocal.parentNode.insertBefore(holder, vocal.nextSibling);
+}
+
 function wireVoices() {
   var menu = $('menu-voices');
   if (menu) { menu.addEventListener('click', function (event) { event.stopPropagation(); openVoices(); }); }
@@ -17647,7 +17667,8 @@ function wireVoices() {
       closeVoices();
     }
   });
-  loadVoices();   // the take details name a take's voice
+  installPersonaField();
+  loadVoices();   // the editor's picker, and the take details name a take's voice
 }
 
 if (document.readyState === 'loading') {
