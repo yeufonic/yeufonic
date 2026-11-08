@@ -328,7 +328,7 @@ Section /o "Style LoRAs" SecLoras
   ; picker holds the user's own and any they import.
 SectionEnd
 
-Section /o "Recorded voices" SecVoices
+Section "Recorded voices" SecVoices
   AddSize 7000000
   ; No files: setup.ps1 is told whether to set up the voice service (RVC and its separator, in a Python of their
   ; own) and fetch its models.  Without it the editor has no Recorded voice field.
@@ -389,9 +389,9 @@ Section "-Setup"
       DetailPrint "FLUX.2 klein is already here, so it is not downloaded again."
     ${EndIf}
   ${ElseIf} ${SectionIsSelected} ${SecCpp}
-    DetailPrint "This takes a while: about 6 GB to download, more with lyric drafts or take pictures."
+    DetailPrint "This takes a while: about 10 GB to download with recorded voices, more with lyric drafts or take pictures."
   ${Else}
-    DetailPrint "This takes a while: about 24 GB to download."
+    DetailPrint "This takes a while: about 28 GB to download."
   ${EndIf}
   ExecWait '"$PowerShell" -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\setup.ps1" -InstallDir "$INSTDIR" $1 ${SETUP_ARGS}' $0
   ${If} $0 != 0
@@ -611,8 +611,10 @@ Function .onInit
       SectionSetSize ${SecVoices} 0
       SectionSetText ${SecVoices} "Recorded voices (installed)"
       StrCpy $VoicesText "Recorded voices are already on this PC: only what has changed is downloaded. Leave it ticked to keep them up to date. Unticking it does not remove them."
-    ${ElseIf} $2 == 1
-      !insertmacro SelectSection ${SecVoices}
+    ${ElseIf} $2 == "0"
+      ; Left out when last installed: it stays out unless ticked now.  An install from before the option has no
+      ; value at all, and gets the default, ticked.
+      !insertmacro UnselectSection ${SecVoices}
     ${EndIf}
     ; The style LoRAs as chosen last time: ticked again if they were chosen, and nothing downloaded for those here.
     ReadRegDWORD $2 HKCU "Software\$R9" "Loras"
@@ -681,7 +683,7 @@ Function .onInit
     ${OrIf} ${FileExists} "$INSTDIR\data\*.*"
       StrCpy $WelcomeText "${APPNAME} writes and covers songs with the YuE2 music model, on this PC.$\r$\n$\r$\nWhat you kept when ${APPNAME} was uninstalled is in $INSTDIR, and this install picks it up: your library, and any models you kept are not downloaded again.$\r$\n$\r$\nIt checks that this PC can run YuE2, then downloads the rest from each part's publisher. A separate window shows the setup's progress; it may open behind this one."
     ${Else}
-      StrCpy $WelcomeText "${APPNAME} writes and covers songs with the YuE2 music model, on this PC.$\r$\n$\r$\nThis installer is small. It checks that this PC can run YuE2 (an NVIDIA RTX 30-series card or newer), then downloads the rest from each part's publisher: about 24 GB with the ComfyUI engine (less with yue2.cpp), most of it the models. A download that breaks off carries on where it stopped when you run the installer again.$\r$\n$\r$\nA separate window shows the setup's progress; it may open behind this one.$\r$\n$\r$\nYou need about 40 GB of free space with ComfyUI, less with yue2.cpp."
+      StrCpy $WelcomeText "${APPNAME} writes and covers songs with the YuE2 music model, on this PC.$\r$\n$\r$\nThis installer is small. It checks that this PC can run YuE2 (an NVIDIA RTX 30-series card or newer), then downloads the rest from each part's publisher: about 28 GB with the ComfyUI engine (less with yue2.cpp), most of it the models. A download that breaks off carries on where it stopped when you run the installer again.$\r$\n$\r$\nA separate window shows the setup's progress; it may open behind this one.$\r$\n$\r$\nYou need about 47 GB of free space with ComfyUI, less with yue2.cpp."
     ${EndIf}
     StrCpy $InstHeader "Installing ${APPNAME}"
     StrCpy $InstSubtext "The setup window shows its progress, and may be behind this one."

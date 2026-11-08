@@ -217,7 +217,7 @@ mixed back in. Here is a voice of someone's own recordings, trained, with its se
 
 [![Recorded voices](docs/screenshots/voices.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/voices.png)
 
-It is optional, and runs in a container of its own beside the engine:
+It is optional. With Docker it runs in a container of its own beside the engine:
 
 ```sh
 sh scripts/fetch-models.sh --voice      # about 1.1 GB into models/voice/
@@ -244,7 +244,8 @@ docker compose up --build
   model from elsewhere (a `.pth`, or a zip with its index).
 
 The result is a converted vocal over a separated backing, so it does not sound as seamless as a vocal YuE2 sang
-itself; clean, dry recordings give the cleanest voice. Recorded voices are not in the Windows install without Docker.
+itself; clean, dry recordings give the cleanest voice. In the Windows install it is a component of the installer,
+**Recorded voices**, rather than a container. It is not on macOS yet.
 
 ## Training a LoRA
 
@@ -338,6 +339,9 @@ The installer checks all of this before it downloads anything.
      hip-hop and 16 concept sliders), each with its trigger word and suggested strengths, 3.8 GB to
      download. They are CC BY-NC 4.0; [their repository](https://huggingface.co/pshields/yue2-style-loras)
      credits each author.
+   - Choose whether to include **Recorded voices**, ticked to begin with: train a singer's voice from
+     recordings, your own or a corpus's songs, and have a take sung in it (see [Recorded voices](#recorded-voices)).
+     About 4 GB to download; untick it if you will not use it.
    - Keep or change the folder. The default is `%LOCALAPPDATA%\Programs\Yeufonic`.
 4. **Wait for setup.** A setup window checks the PC, then downloads each part from its own
    publisher and checks it against its published checksum. The window may open behind the
