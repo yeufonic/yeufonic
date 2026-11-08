@@ -48,7 +48,9 @@ cannot creep back in.
   the field is hidden.  A take's recipe names its voice, and an import picks up the voice of that name.
   **Download voice** gives a trained voice to someone as a zip, and **Import a voice…** adds one, or an RVC model
   from elsewhere.  Settings → *Recorded voice: minutes of singing* sets how much singing a voice trains on, shared
-  across a corpus's songs; the training batch follows the card's memory.
+  across a corpus's songs; the training batch follows the card's memory.  The converted vocal is matched to the rendered one's
+  presence and loudness and given a little room before the remix, and **Vocal level** (−3 to +6 dB) sets it in the
+  mix for each voice.
 
 ## 0.0.54 (2026-11-05)
 

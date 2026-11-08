@@ -76,6 +76,8 @@ nomina la sua voce, e importandola si usa la voce con quel nome su questa instal
 
 **Scarica voce** salva una voce addestrata in uno zip da dare a qualcuno, e **Importa una voce…** ne aggiunge una: quello zip, o un modello RVC preso altrove (un .pth, o uno zip con il suo indice). Quanto canto usa l’addestramento si imposta nelle Impostazioni, *Voce registrata: minuti di canto*: viene diviso in parti uguali tra le canzoni di un corpus, e una decina di minuti basta.
 
+**Livello della voce** regola la voce convertita rispetto al livello di quella renderizzata nel mix, da −3 a +6 dB; anche questo resta salvato sulla voce.
+
 ### Impostazioni avanzate {#advanced-settings}
 
 Il pulsante **Avanzate** nell'intestazione dell'editor apre impostazioni solo per questo take. La maggior parte delle canzoni

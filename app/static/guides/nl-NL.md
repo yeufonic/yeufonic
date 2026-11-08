@@ -76,6 +76,8 @@ importeren wordt de stem met die naam op deze installatie gebruikt, als die er i
 
 **Stem downloaden** bewaart een getrainde stem als zip om aan iemand te geven, en **Stem importeren…** voegt er een toe: die zip, of een RVC-model van elders (een .pth, of een zip met de index). Hoeveel zang een stem krijgt om op te trainen stel je in bij Instellingen, *Opgenomen stem: minuten zang*: het wordt gelijk verdeeld over de nummers van een corpus, en zo'n tien minuten is genoeg.
 
+**Zangniveau** zet de omgezette zang ten opzichte van het niveau van de gerenderde in de mix, van −3 tot +6 dB; ook dat wordt bij de stem bewaard.
+
 ### Geavanceerde instellingen {#advanced-settings}
 
 De knop **Geavanceerd** in de kop van de editor opent instellingen alleen voor deze take. De meeste nummers

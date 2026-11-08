@@ -76,6 +76,8 @@ sua voz, e ao importá-la usa-se a voz com esse nome nesta instalação, se houv
 
 **Transferir voz** guarda uma voz treinada num zip para dar a outra pessoa, e **Importar uma voz…** adiciona uma: esse zip, ou um modelo RVC de outro lado (um .pth, ou um zip com o índice). Quanto canto é usado no treino define-se nas Definições, *Voz gravada: minutos de canto*: é dividido igualmente entre as músicas de um corpus, e uns dez minutos bastam.
 
+**Nível do vocal** ajusta o vocal convertido em relação ao nível do renderizado na mistura, de −3 a +6 dB; também fica guardado na voz.
+
 ### Ajustes avançados {#advanced-settings}
 
 O botão **Avançado** no cabeçalho do editor abre ajustes só para este take. A maioria das músicas

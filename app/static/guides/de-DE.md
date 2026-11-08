@@ -76,6 +76,8 @@ Takes nennt seine Stimme, und beim Import wird die gleichnamige Stimme dieser In
 
 **Stimme herunterladen** speichert eine trainierte Stimme als ZIP-Datei zum Weitergeben, und **Stimme importieren…** fügt eine hinzu: diese ZIP-Datei oder ein RVC-Modell von anderswo (eine .pth oder eine ZIP mit ihrem Index). Wie viel Gesang eine Stimme zum Training bekommt, legt *Aufgenommene Stimme: Minuten Gesang* in den Einstellungen fest: Er wird gleich auf die Songs eines Korpus verteilt, und etwa zehn Minuten reichen.
 
+**Gesangspegel** stellt den umgewandelten Gesang gegenüber dem Pegel des gerenderten im Mix ein, von −3 bis +6 dB; auch das wird bei der Stimme gespeichert.
+
 ### Erweiterte Einstellungen {#advanced-settings}
 
 Die Schaltfläche **Erweitert** in der Kopfzeile des Editors öffnet Einstellungen nur für diesen Take. Die meisten Songs

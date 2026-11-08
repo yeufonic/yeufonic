@@ -76,6 +76,8 @@ prise nomme sa voix, et son import reprend la voix de ce nom sur cette installat
 
 **Télécharger la voix** enregistre une voix entraînée dans un zip à donner à quelqu’un, et **Importer une voix…** en ajoute une : ce zip, ou un modèle RVC venu d’ailleurs (un .pth, ou un zip avec son index). La quantité de chant d’entraînement se règle dans les Réglages, *Voix enregistrée : minutes de chant* : elle est répartie également entre les chansons d’un corpus, et une dizaine de minutes suffit.
 
+**Niveau du chant** règle le chant converti par rapport au niveau du chant rendu dans le mix, de −3 à +6 dB ; la valeur est aussi enregistrée avec la voix.
+
 ### Réglages avancés {#advanced-settings}
 
 Le bouton **Avancé** dans l’en-tête de l’éditeur ouvre des réglages pour cette seule prise. La plupart des chansons

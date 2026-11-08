@@ -76,6 +76,8 @@ importing it picks up the voice of that name on this install, if there is one.
 
 **Download voice** saves a trained voice as a zip to give to someone, and **Import a voice…** adds one: that zip, or an RVC model from elsewhere (a .pth, or a zip with its index). How much singing a voice trains on is set in Settings, *Recorded voice: minutes of singing*: it is shared equally across a corpus's songs, and about ten minutes is plenty.
 
+**Vocal level** sets the converted vocal against the rendered one's level in the mix, from −3 to +6 dB; it is saved on the voice too.
+
 ### Advanced settings {#advanced-settings}
 
 The **Advanced** button in the editor's header opens settings for this one take. Most songs never
