@@ -75,6 +75,13 @@ def export(take: dict, version: str, voice: str | None = None) -> dict:
         out[name] = bool(value) if name in FLAGS else value
     if voice:
         out["voice"] = voice
+        # The take's own octave, levels and likeness for that voice.
+        try:
+            settings = json.loads(take.get("voice_mix") or "null")
+        except (TypeError, ValueError):
+            settings = None
+        if isinstance(settings, dict) and settings:
+            out["voice_settings"] = settings
     if take.get("kind") == "cover" or take.get("source_id"):
         out["recording"] = "not included"
     mastering = None

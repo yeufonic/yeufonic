@@ -7061,3 +7061,4 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 #voice-take { max-width: 360px; }
 .voice-mix { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .voice-mix label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.job-panel.floating { position: fixed; z-index: 90; }

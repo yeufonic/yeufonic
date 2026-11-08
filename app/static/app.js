@@ -3504,12 +3504,24 @@ function editorJobPill() {
   // Straight after the Song / Cover / Instrumental switch, so a take's own tools, which come and go, do not move it.
   var modes = head.querySelector('.modes');
   head.insertBefore(made, modes ? modes.nextSibling : $('btn-advanced-toggle'));
+  // The queue opens here, under this pill, over the editor: the panel is lent to the page's body while it is open
+  // (the top bar's own card sits behind the editor) and goes back to its card when it closes.
   made.addEventListener('click', function () {
-    closeEditor();
-    $('job-panel').classList.remove('hidden');
-    $('job-pill').setAttribute('aria-expanded', 'true');
+    var panel = $('job-panel');
+    if (!panel.classList.contains('hidden') && panel.classList.contains('floating')) { closeJobPanel(); return; }
+    var box = made.getBoundingClientRect();
+    panel.classList.add('floating');
+    document.body.appendChild(panel);
+    panel.style.top = Math.round(box.bottom + 8) + 'px';
+    panel.style.left = Math.round(Math.max(15, Math.min(box.left, window.innerWidth - panel.offsetWidth - 15))) + 'px';
+    panel.classList.remove('hidden');
+    panel.style.left = Math.round(Math.max(15, Math.min(box.left, window.innerWidth - panel.offsetWidth - 15))) + 'px';
   });
-  var mirror = function () { made.classList.toggle('hidden', $('job-card').classList.contains('hidden')); };
+  var mirror = function () {
+    var idle = $('job-card').classList.contains('hidden');
+    made.classList.toggle('hidden', idle);
+    if (idle && $('job-panel').classList.contains('floating')) { closeJobPanel(); }
+  };
   new MutationObserver(mirror).observe($('job-card'), { attributes: true, attributeFilter: ['class'] });
   mirror();
   return made;
@@ -3524,8 +3536,14 @@ function paintEditorJobPill() {
 }
 
 function closeJobPanel() {
-  if (!$('job-panel')) { return; }
-  $('job-panel').classList.add('hidden');
+  var panel = $('job-panel');
+  if (!panel) { return; }
+  panel.classList.add('hidden');
+  if (panel.classList.contains('floating')) {     // lent to the editor's pill: back to its own card
+    panel.classList.remove('floating');
+    panel.style.top = panel.style.left = '';
+    $('job-pill').insertAdjacentElement('afterend', panel);
+  }
   $('job-pill').setAttribute('aria-expanded', 'false');
 }
 
@@ -3537,8 +3555,19 @@ function wireJobPill() {
     $('job-pill').setAttribute('aria-expanded', open ? 'true' : 'false');
   });
   document.addEventListener('mousedown', function (event) {
-    if (!$('job-card').contains(event.target)) { closeJobPanel(); }
+    var inside = $('job-card').contains(event.target) || $('job-panel').contains(event.target) ||
+      Boolean(event.target.closest && event.target.closest('.ed-job'));
+    if (!inside) { closeJobPanel(); }
   });
+  // Open under the editor's pill, the panel is out of its card: Escape closes it before the editor sees the key.
+  document.addEventListener('keydown', function (event) {
+    var panel = $('job-panel');
+    if (event.key === 'Escape' && panel.classList.contains('floating') && !panel.classList.contains('hidden')) {
+      event.stopPropagation();
+      event.preventDefault();
+      closeJobPanel();
+    }
+  }, true);
   $('job-card').addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && !$('job-panel').classList.contains('hidden')) {
       event.stopPropagation();

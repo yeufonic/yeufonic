@@ -5320,6 +5320,8 @@ async def import_take(body: ImportTakeIn) -> dict:
     voice_name = str((body.recipe.get("take") or {}).get("voice") or "").strip()
     voice = next((v for v in persona.all() if v["name"] == voice_name), None) if voice_name else None
     record["voice_id"] = voice["id"] if voice else None
+    settings = (body.recipe.get("take") or {}).get("voice_settings")
+    record["voice_mix"] = _voice_mix(settings) if voice and isinstance(settings, dict) else None
     columns_out = list(record)
     execute(f"INSERT INTO takes({', '.join(columns_out)}) VALUES({', '.join(':' + c for c in columns_out)})", record)
     installed = set(ENGINE.options.get("loras") or []) if ENGINE.options_loaded else set()
