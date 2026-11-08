@@ -56,27 +56,36 @@ licht op zolang de take andere takes bevat, en sluit het venster om ze onder de 
 
 ### Een opgenomen stem {#a-recorded-voice}
 
-Een take kan gezongen worden in een stem die getraind is op een **opname** van iemand die zingt: jouw stem, of die van
-een corpus. Kies er een in het veld *Opgenomen stem* van de editor, of train er een met **Stem maken…** uit een audiobestand met zang. Een
-paar minuten is genoeg; een opname met begeleiding wordt eerst gescheiden. Elke corpuskaart heeft ook een knop **Stem maken…**,
-die een stem traint op de nummers van het corpus. Het veld verschijnt alleen als de optionele stemdienst draait
-("Recorded voices" in de README).
+Een take kan gezongen worden met een stem die getraind is op opnamen van iemand die zingt: jijzelf, of de zanger van
+een corpus. Stemmen maak en beheer je op de pagina **Stemmen**, in het menu, en je kiest er een in het veld *Opgenomen stem*
+van de editor als je een take maakt. Een take met een stem wordt gewoon gerenderd; daarna wordt de zang gescheiden, opnieuw
+gezongen in de stem en weer over de rest gemixt, voordat het niveau wordt gemeten. Daarvoor is de optionele stemservice nodig
+("Recorded voices" in de README); zonder die is het veld verborgen.
 
-Het trainen wacht op zijn beurt op de GPU en kan een uur duren; de lijst toont de voortgang. Een take met een stem wordt
-gewoon gerenderd, daarna wordt de zang gescheiden, opnieuw in de stem gezongen en terug over de rest gemixt, voordat het
-niveau wordt gemeten.
+**Nieuwe stem** maakt een stem van je eigen opnamen of een die getraind wordt op de nummers van een corpus. Een stem van
+opnamen begint leeg, en zijn pagina verzamelt ze: **Opnemen…** opent de recorder, en elke take die je bewaart gaat naar de stem
+zoals hij gezongen is, nooit met autotune; **Uploaden…** neemt audiobestanden; **Uit de bibliotheek…** voegt opnamen toe die je al
+hebt, zoals een zangpartij die je voor een cover opnam, met een speler bij elke om hem eerst te beluisteren. Een opname uit de
+bibliotheek wordt aangewezen, niet gekopieerd. De pagina telt de zang af tegen de minuten waarop een stem traint: ongeveer tien
+minuten over je hele bereik is genoeg, en een korte opname geeft al een herkenbare stem. Elke opname zegt of hij alleen een stem
+is (**alleen zang**, aangevinkt bij wat je hier opnam) of een nummer, dat eerst gescheiden wordt. Druk dan op **Trainen**.
 
-**Octaaf** zet een stem een heel octaaf hoger of lager. Een stem ver buiten het bereik van de zanger klinkt verkeerd, en
-alleen een heel octaaf houdt de zang in de toonsoort van de begeleiding. Het wordt bij de stem bewaard. **Opnieuw maken**
-traint de stem opnieuw: een corpusstem op de nummers van het corpus zoals het nu is.
+Het trainen wacht zijn beurt af op de GPU en toont de voortgang in de taakpil en het logboek. **Opnieuw trainen** traint opnieuw
+op de opnamen zoals ze nu zijn, of op de nummers van het corpus. Een opname die inmiddels uit de bibliotheek is verwijderd, wordt
+overgeslagen. De pagina bewaart **Waarvan hij leerde**, de gescheiden zang van elk nummer en de getrainde fragmenten, om te
+beluisteren.
 
-Het resultaat is omgezette zang over een gescheiden begeleiding, dus minder naadloos dan zang die het model zelf zong.
-Schonere opnamen, verliesvrij in plaats van MP3, geven een schonere stem. Het recept van een take noemt zijn stem, en bij
-importeren wordt de stem met die naam op deze installatie gebruikt, als die er is.
+**Octaaf** zet de stem een heel octaaf hoger of lager, voor een zanger wiens bereik ver van dat van de take ligt. **Zangniveau**
+en **Instrumentniveau** bepalen de balans van de nieuwe mix, en **Gelijkenis** hoe dicht de stem bij de eigen klank van de zanger
+blijft: hoger klinkt meer als die zanger, en kan bewerkter klinken. Dit zijn de standaardwaarden van de stem; de editor toont ze
+onder de stem, om voor één take aan te passen, en de take houdt ze. Instellingen → *Stemtraining* bepaalt van hoeveel zang een
+stem leert en hoeveel rondes.
 
-**Stem downloaden** bewaart een getrainde stem als zip om aan iemand te geven, en **Stem importeren…** voegt er een toe: die zip, of een RVC-model van elders (een .pth, of een zip met de index). Hoeveel zang een stem krijgt om op te trainen stel je in bij Instellingen, *Opgenomen stem: minuten zang*: het wordt gelijk verdeeld over de nummers van een corpus, en zo'n tien minuten is genoeg.
-
-**Zangniveau** zet de omgezette zang ten opzichte van het niveau van de gerenderde in de mix, van −3 tot +6 dB; ook dat wordt bij de stem bewaard.
+Het resultaat is omgezette zang over een gescheiden begeleiding, dus minder naadloos dan zang die het model zelf zong. Schone,
+droge opnamen geven de schoonste stem. **Stem downloaden** slaat een getrainde stem op als zip om aan iemand te geven, en **Stem
+importeren…** voegt er een toe: die zip, of een RVC-model van elders (een .pth, of een zip met zijn index). Het recept van een
+take noemt zijn stem en de instellingen van de take ervoor, en bij het importeren wordt de stem met die naam op deze installatie
+gebruikt, als die er is.
 
 ### Geavanceerde instellingen {#advanced-settings}
 

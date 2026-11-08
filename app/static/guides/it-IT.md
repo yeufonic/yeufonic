@@ -56,27 +56,36 @@ si accende finché il take ne contiene altri, e chiude la finestra per mostrarli
 
 ### Una voce registrata {#a-recorded-voice}
 
-Un take può essere cantato con una voce addestrata su una **registrazione** di qualcuno che canta: la tua, o quella di un
-corpus. Sceglila nel campo *Voce registrata* dell’editor, oppure addestrane una con **Crea una voce…** da un file audio di canto. Bastano pochi
-minuti; una registrazione con accompagnamento viene prima separata. Anche ogni scheda di corpus ha un pulsante **Crea una voce…**,
-che addestra una voce sulle canzoni del corpus. Il campo compare solo se il servizio voce opzionale è in funzione
-("Recorded voices" nel README).
+Una take può essere cantata con una voce addestrata su registrazioni di qualcuno che canta: tu, o il cantante di un
+corpus. Crea e gestisci le voci nella pagina **Voci**, dal menu, e scegline una nel campo *Voce registrata* dell'editor quando
+crei una take. Una take che usa una voce viene renderizzata come al solito; poi la sua voce viene separata, cantata di nuovo con
+la voce scelta e rimixata sul resto, prima che se ne misuri il livello. Serve il servizio delle voci facoltativo ("Recorded
+voices" nel README); senza di esso il campo è nascosto.
 
-L’addestramento attende il suo turno sulla GPU e può richiedere un’ora; l’elenco ne mostra l’avanzamento. Un take con una
-voce viene renderizzato come al solito, poi la sua voce viene separata, ricantata con la voce e rimixata sul resto, prima
-che ne venga misurato il livello.
+**Nuova voce** crea una voce delle tue registrazioni oppure una addestrata sulle canzoni di un corpus. Una voce di registrazioni
+parte vuota, e la sua pagina le raccoglie: **Registra…** apre il registratore, e ogni take che tieni va alla voce così come è stata
+cantata, mai con l'autotune; **Carica…** accetta file audio; **Dalla libreria…** aggiunge registrazioni che hai già, come una voce
+registrata per una cover, con un lettore su ognuna per ascoltarla prima. Una registrazione della libreria viene collegata, non
+copiata. La pagina conta il canto rispetto ai minuti su cui si addestra una voce: circa dieci minuti su tutta la tua estensione
+bastano, e già una registrazione breve dà una voce riconoscibile. Ogni registrazione dice se è solo una voce (**solo voce**,
+spuntato per ciò che hai registrato qui) o una canzone, che viene prima separata. Poi premi **Addestra**.
 
-**Ottava** sposta una voce in su o in giù di un’ottava intera. Una voce cantata lontano dalla sua estensione suona male, e
-solo un’ottava intera mantiene il canto nella tonalità dell’accompagnamento. Il valore resta salvato sulla voce.
-**Rigenera** addestra di nuovo la voce: una voce da corpus sulle canzoni del corpus come sono ora.
+L'addestramento aspetta il suo turno sulla GPU e mostra l'avanzamento nella pillola dei lavori e nel registro. **Addestra di
+nuovo** riaddestra sulle registrazioni come sono ora, o sulle canzoni del corpus. Una registrazione eliminata nel frattempo dalla
+libreria viene esclusa. La pagina conserva **Da che cosa ha imparato**, la voce separata di ogni canzone e gli estratti
+addestrati, da ascoltare.
 
-Il risultato è un canto convertito su un accompagnamento separato, quindi meno uniforme di un canto che il modello ha
-cantato da sé. Registrazioni più pulite, senza perdita invece che MP3, danno una voce più pulita. La ricetta di un take
-nomina la sua voce, e importandola si usa la voce con quel nome su questa installazione, se c’è.
+**Ottava** sposta la voce su o giù di un'ottava intera, per un cantante la cui estensione è lontana da quella della take.
+**Livello della voce** e **Livello degli strumenti** regolano l'equilibrio del remix, e **Somiglianza** quanto la voce resta fedele
+al timbro del cantante: più alto somiglia di più a lui, e può suonare più elaborato. Sono i valori predefiniti della voce;
+l'editor li mostra sotto la voce, da cambiare per una take, e la take li conserva. Impostazioni → *Addestramento delle voci*
+stabilisce da quanto canto impara una voce e con quante passate.
 
-**Scarica voce** salva una voce addestrata in uno zip da dare a qualcuno, e **Importa una voce…** ne aggiunge una: quello zip, o un modello RVC preso altrove (un .pth, o uno zip con il suo indice). Quanto canto usa l’addestramento si imposta nelle Impostazioni, *Voce registrata: minuti di canto*: viene diviso in parti uguali tra le canzoni di un corpus, e una decina di minuti basta.
-
-**Livello della voce** regola la voce convertita rispetto al livello di quella renderizzata nel mix, da −3 a +6 dB; anche questo resta salvato sulla voce.
+Il risultato è una voce convertita su un accompagnamento separato, quindi meno uniforme di una voce cantata dal modello stesso.
+Registrazioni pulite e asciutte danno la voce più pulita. **Scarica voce** salva una voce addestrata come zip da dare a qualcuno,
+e **Importa una voce…** ne aggiunge una: quello zip, o un modello RVC da altrove (un .pth, o uno zip con il suo indice). La ricetta
+di una take nomina la sua voce e le impostazioni della take per essa, e importarla riprende la voce con quel nome su questa
+installazione, se c'è.
 
 ### Impostazioni avanzate {#advanced-settings}
 

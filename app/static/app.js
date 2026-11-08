@@ -5691,7 +5691,7 @@ function detailGroups(take) {
   set(t('Chord hold limit'), take.chord_hold_limit);
   set(t('Out-of-key chord bonus'), take.chord_outside_bonus);
   set(t('Follow my structure'), take.follow_structure === 1 ? 1 : null, 'exactly');
-  set(t('Voices'), take.voice_cues === 1 && hasVoiceCues(take.lyrics) ? 1 : null, t('follow the cues'));
+  set(t('Voice cues'), take.voice_cues === 1 && hasVoiceCues(take.lyrics) ? 1 : null, t('follow the cues'));
   set(t('Sections open differently'), take.chord_sections, take.chord_sections === 1 ? 'always' : (take.chord_sections === 0 ? 'never' : ''));
   set(t('Loudness target'), take.target_lufs, take.target_lufs != null ? take.target_lufs + ' LUFS' : '');
   set(t('Fade out'), take.fade_out_seconds, take.fade_out_seconds != null ? take.fade_out_seconds + ' s' : '');
@@ -17458,7 +17458,7 @@ function showVoiceList() {
   voicesHead(t('Voices'), false);
   var usable = VOICES.service && VOICES.service.ok;
   $('voices-body').innerHTML =
-    '<p class="identity-intro">' + t('A voice is trained from someone singing: the songs of a corpus, or one recording. Pick it in the editor when making a take, and the take is sung in it.') + '</p>' +
+    '<p class="identity-intro">' + t('A voice is trained from someone singing: your own recordings, or the songs of a corpus. Pick it in the editor when making a take, and the take is sung in it.') + '</p>' +
     serviceNote() +
     '<div class="row">' +
       '<button id="voice-new" class="ghost"' + (usable ? '' : ' disabled') + '>' + t('New voice') + '</button>' +

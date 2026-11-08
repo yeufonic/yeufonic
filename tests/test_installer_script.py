@@ -123,7 +123,7 @@ def test_take_pictures_are_chosen_at_install():
     assert 'Section /o "FLUX.2 [klein]" SecPictures' in nsi
     assert 'StrCpy $1 "$1 -Pictures"' in nsi and '"Pictures" 1' in nsi and 'ReadRegDWORD $2 HKCU "Software\\$R9" "Pictures"' in nsi
     assert "[switch]$Pictures," in setup and "if ($Pictures) { $ModelFiles = @($ModelFiles) + $PictureFiles }" in setup
-    assert "'Pictures', 'Loras', 'CheckOnly'" in setup       # carried across the 64-bit restart
+    assert "'Pictures', 'Loras', 'Voices', 'CheckOnly'" in setup       # carried across the 64-bit restart
     for name, sha in (("flux-2-klein-4b-fp8.safetensors", "97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6"),
                       ("qwen_3_4b_fp4_flux2.safetensors", "3eab03a77adb0ee5304a4e677d5c10ac22f9049c1d7c894adca4f8bb39206ca8"),
                       ("flux2-vae.safetensors", "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3")):

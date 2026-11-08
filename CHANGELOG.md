@@ -37,20 +37,40 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.55 (2026-11-08)
 
-- **A recorded voice**: a take can be sung in a voice trained from a recording of someone singing, your own or
-  a corpus's singer.  The take is rendered as usual; its vocal is then separated (BS-Roformer), converted to the
-  voice (RVC) and mixed back over the rest, before its level is read.  **Make a voice…** in the editor trains
-  one from an audio file, and on a corpus's card from the corpus's songs; training waits its turn on the GPU and
-  shows its progress.  **Octave** moves a voice up or down to sit in its singer's range.  Recorded voices run in
-  an optional container (`COMPOSE_PROFILES=voice`, models from `scripts/fetch-models.sh --voice`); without it
-  the field is hidden.  A take's recipe names its voice, and an import picks up the voice of that name.
-  **Download voice** gives a trained voice to someone as a zip, and **Import a voice…** adds one, or an RVC model
-  from elsewhere.  Settings → *Recorded voice: minutes of singing* sets how much singing a voice trains on, shared
-  across a corpus's songs; the training batch follows the card's memory.  The converted vocal is matched to the rendered one's
-  presence and loudness and given a little room before the remix, and **Vocal level** (−3 to +6 dB) sets it in the
-  mix for each voice.
+- **Recorded voices.** A take can be sung in a voice trained from recordings of someone singing: your own, or a
+  corpus's singer. The take is rendered as usual; its vocal is then separated (BS-Roformer), sung again in the voice
+  (RVC) and mixed back over the rest, before its level is read. Choose a voice in the editor's **Recorded voice**
+  field, in all three modes. Optional: on Docker it runs in a container of its own (`COMPOSE_PROFILES=voice`, models
+  from `scripts/fetch-models.sh --voice`); on Windows it is a component of the installer, **Recorded voices**, about
+  4 GB to download. Without it the field is hidden.
+
+- **A Voices page**, from the menu, makes and manages voices. **New voice** makes a voice of your own recordings, or
+  one trained on a corpus's songs. A voice of recordings gathers them on its page: **Record…** with the built-in
+  recorder (each take kept as sung, never autotuned), **Upload…** for audio files, and **From the library…** for
+  recordings you already have, such as a cover's vocal, pointed at rather than copied, with a player on each. The page
+  counts the singing against the minutes a voice trains on. Each recording is either a voice alone, used as it is, or
+  a song, separated first. **Train** and **Train again**, **Rename**, **Download voice**, **Import a voice…** (that
+  zip, or an RVC model from elsewhere) and **Delete**, and **What it learned from**: each song's separated vocal and
+  the excerpts trained on, to listen to.
+
+- **A voice's settings, and a take's.** **Octave** moves a voice up or down for a singer whose range is far from the
+  take's; **Vocal level** and **Instrument level** set the balance of the remix; **Likeness** how closely it keeps to
+  the singer's own sounds. They are the voice's defaults on its page; the editor shows them under the voice, to change
+  for one take, and the take keeps them, as does its take file. The converted vocal is matched to the rendered one's
+  presence and loudness and given a little room before the remix.
+
+- **Voice training** waits its turn on the GPU and shows its progress in the job pill and the log, and can be
+  stopped. Settings → **Voice Training** sets the minutes of singing a voice learns from, shared across a corpus's
+  songs, and how many passes it trains for; the batch follows the card's memory. Settings → **Storage** lists the
+  space voices take, can give back what a voice learned from, and can remove it when training ends.
+
+### UI enhancements
+
+- The editor shows what the engine is doing: the job pill sits in its header, and opens the queue there.
+- The take card's **Details** (i) button is back, beside the mastering button.
+- A take's details name its recorded voice and the settings it was sung at.
 
 ## 0.0.54 (2026-11-05)
 

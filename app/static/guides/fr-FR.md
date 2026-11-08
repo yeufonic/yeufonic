@@ -56,27 +56,37 @@ s’allume tant que la prise en contient d’autres, et ferme la fenêtre pour l
 
 ### Une voix enregistrée {#a-recorded-voice}
 
-Une prise peut être chantée avec une voix entraînée sur un **enregistrement** de quelqu’un qui chante : la vôtre, ou celle
-d’un corpus. Choisissez-la dans le champ *Voix enregistrée* de l’éditeur, ou entraînez-en une avec **Créer une voix…** à partir d’un fichier audio
-de chant. Quelques minutes suffisent ; un enregistrement avec accompagnement est d’abord séparé. Chaque carte de corpus a
-aussi un bouton **Créer une voix…**, qui entraîne une voix sur les chansons du corpus. Le champ n’apparaît que si le service de voix
-optionnel tourne (« Recorded voices » dans le README).
+Une prise peut être chantée avec une voix entraînée sur des enregistrements de quelqu'un qui chante : vous, ou le
+chanteur d'un corpus. Créez et gérez les voix sur la page **Voix**, depuis le menu, et choisissez-en une dans le champ *Voix
+enregistrée* de l'éditeur en créant une prise. Une prise qui utilise une voix est rendue comme d'habitude ; son chant est ensuite
+séparé, chanté de nouveau avec la voix et remixé sur le reste, avant que son niveau soit mesuré. Il faut pour cela le service de
+voix facultatif (« Recorded voices » dans le README) ; sans lui, le champ est masqué.
 
-L’entraînement attend son tour sur le GPU et peut prendre une heure ; la liste montre sa progression. Une prise avec une
-voix est rendue comme d’habitude, puis sa voix est séparée, rechantée avec la voix et remixée sur le reste, avant que son
-niveau soit mesuré.
+**Nouvelle voix** crée soit une voix de vos propres enregistrements, soit une voix entraînée sur les chansons d'un corpus. Une voix
+d'enregistrements commence vide, et sa page les rassemble : **Enregistrer…** ouvre l'enregistreur, et chaque prise que vous gardez
+va à la voix telle qu'elle a été chantée, jamais passée à l'autotune ; **Importer…** prend des fichiers audio ; **Depuis la
+bibliothèque…** ajoute des enregistrements que vous avez déjà, comme un chant enregistré pour une reprise, avec un lecteur sur
+chacun pour l'écouter d'abord. Un enregistrement de la bibliothèque est référencé, pas copié. La page compte le chant par rapport
+aux minutes sur lesquelles une voix s'entraîne : une dizaine de minutes sur toute votre tessiture suffit, et un court enregistrement
+donne déjà une voix reconnaissable. Chaque enregistrement indique s'il s'agit d'une voix seule (**voix seule**, cochée pour ce que
+vous avez enregistré ici) ou d'une chanson, séparée d'abord. Appuyez ensuite sur **Entraîner**.
 
-**Octave** monte ou descend une voix d’une octave entière. Une voix chantée loin de sa tessiture sonne faux, et seule une
-octave entière garde le chant dans la tonalité de l’accompagnement. La valeur est enregistrée avec la voix. **Régénérer**
-entraîne de nouveau la voix : une voix de corpus sur les chansons du corpus telles qu’elles sont maintenant.
+L'entraînement attend son tour sur le GPU et montre sa progression dans la pastille des tâches et le journal. **Réentraîner**
+entraîne de nouveau sur les enregistrements tels qu'ils sont maintenant, ou sur les chansons du corpus. Un enregistrement supprimé
+depuis de la bibliothèque est laissé de côté. La page garde **Ce dont elle a appris**, le chant séparé de chaque chanson et les
+extraits entraînés, à écouter.
 
-Le résultat est un chant converti sur un accompagnement séparé, donc moins homogène qu’un chant que le modèle a chanté
-lui-même. Des enregistrements plus propres, sans perte plutôt qu’en MP3, donnent une voix plus propre. La recette d’une
-prise nomme sa voix, et son import reprend la voix de ce nom sur cette installation, s’il y en a une.
+**Octave** monte ou descend la voix d'une octave entière, pour un chanteur dont la tessiture est loin de celle de la prise.
+**Niveau du chant** et **Niveau des instruments** règlent l'équilibre du remix, et **Ressemblance** à quel point la voix reste fidèle
+au timbre propre du chanteur : plus haut ressemble davantage à lui, et peut sonner plus traité. Ce sont les réglages par défaut de
+la voix ; l'éditeur les montre sous la voix, pour les changer pour une prise, et la prise les garde. Paramètres → *Entraînement des
+voix* fixe combien de chant une voix apprend et en combien de passes.
 
-**Télécharger la voix** enregistre une voix entraînée dans un zip à donner à quelqu’un, et **Importer une voix…** en ajoute une : ce zip, ou un modèle RVC venu d’ailleurs (un .pth, ou un zip avec son index). La quantité de chant d’entraînement se règle dans les Réglages, *Voix enregistrée : minutes de chant* : elle est répartie également entre les chansons d’un corpus, et une dizaine de minutes suffit.
-
-**Niveau du chant** règle le chant converti par rapport au niveau du chant rendu dans le mix, de −3 à +6 dB ; la valeur est aussi enregistrée avec la voix.
+Le résultat est un chant converti sur un accompagnement séparé, donc moins homogène qu'un chant que le modèle a chanté lui-même.
+Des enregistrements propres et secs donnent la voix la plus propre. **Télécharger la voix** enregistre une voix entraînée dans un
+zip à donner à quelqu'un, et **Importer une voix…** en ajoute une : ce zip, ou un modèle RVC venu d'ailleurs (un .pth, ou un zip avec
+son index). La recette d'une prise nomme sa voix et ses réglages pour elle, et l'importer reprend la voix de ce nom sur cette
+installation, s'il y en a une.
 
 ### Réglages avancés {#advanced-settings}
 

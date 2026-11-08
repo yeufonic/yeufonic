@@ -56,27 +56,37 @@ leuchtet, solange der Take andere enthält, und schließt das Fenster, um sie un
 
 ### Eine aufgenommene Stimme {#a-recorded-voice}
 
-Ein Take kann in einer Stimme gesungen werden, die aus einer **Aufnahme** von jemandem trainiert wurde, der singt: deiner
-oder der Stimme aus einem Korpus. Wähle sie im Feld *Aufgenommene Stimme* des Editors, oder trainiere eine mit **Stimme erstellen…** aus einer Audiodatei
-mit Gesang. Ein paar Minuten reichen; eine Aufnahme mit Begleitung wird zuerst getrennt. Auch jede Korpus-Karte hat eine
-Schaltfläche **Stimme erstellen…**, die eine Stimme aus den Songs des Korpus trainiert. Das Feld erscheint nur, wenn der optionale
-Stimmendienst läuft („Recorded voices“ in der README).
+Ein Take kann mit einer Stimme gesungen werden, die aus Aufnahmen eines Menschen trainiert wurde: deiner eigenen
+oder der des Sängers eines Korpus. Stimmen legst du auf der Seite **Stimmen** im Menü an und verwaltest sie dort; im Feld
+*Aufgenommene Stimme* des Editors wählst du eine, wenn du einen Take machst. Ein Take mit Stimme wird wie gewohnt gerendert;
+dann wird sein Gesang getrennt, mit der Stimme neu gesungen und wieder über den Rest gemischt, bevor sein Pegel gemessen wird.
+Dafür braucht es den optionalen Stimmendienst („Recorded voices“ in der README); ohne ihn ist das Feld ausgeblendet.
 
-Das Training wartet auf seinen Platz auf der GPU und kann eine Stunde dauern; die Liste zeigt den Fortschritt. Ein Take mit
-Stimme wird wie gewohnt gerendert, dann wird sein Gesang getrennt, in der Stimme neu gesungen und wieder über den Rest
-gemischt, bevor seine Lautstärke gemessen wird.
+**Neue Stimme** legt entweder eine Stimme aus deinen eigenen Aufnahmen an oder eine, die mit den Songs eines Korpus
+trainiert wird. Eine Stimme aus Aufnahmen beginnt leer, und ihre Seite sammelt sie: **Aufnehmen…** öffnet den Recorder, und
+jeder Take, den du behältst, kommt so zur Stimme, wie er gesungen wurde, nie mit Autotune; **Hochladen…** nimmt Audiodateien;
+**Aus der Bibliothek…** fügt Aufnahmen hinzu, die du schon hast, etwa einen Gesang, den du für ein Cover aufgenommen hast, mit
+einem Player an jeder, um sie vorher anzuhören. Eine Aufnahme aus der Bibliothek wird verknüpft, nicht kopiert. Die Seite zählt
+den Gesang gegen die Minuten, mit denen eine Stimme trainiert: etwa zehn Minuten über deinen ganzen Umfang reichen, und schon
+eine kurze Aufnahme ergibt eine erkennbare Stimme. Jede Aufnahme sagt, ob sie reiner Gesang ist (**nur Gesang**, angehakt bei
+dem, was du hier aufgenommen hast) oder ein Song, der zuerst getrennt wird. Dann drückst du **Trainieren**.
 
-**Oktave** verschiebt eine Stimme um eine ganze Oktave nach oben oder unten. Eine Stimme weit außerhalb ihres Umfangs klingt
-falsch, und nur eine ganze Oktave hält den Gesang in der Tonart der Begleitung. Der Wert wird bei der Stimme gespeichert.
-**Neu erzeugen** trainiert die Stimme neu: eine Korpus-Stimme aus den Songs des Korpus in ihrem jetzigen Stand.
+Das Training wartet auf der GPU, bis es an der Reihe ist, und zeigt seinen Fortschritt in der Job-Pille und im Protokoll.
+**Erneut trainieren** trainiert mit den Aufnahmen, wie sie jetzt sind, oder mit den Songs des Korpus. Eine inzwischen aus der
+Bibliothek gelöschte Aufnahme bleibt außen vor. Die Seite bewahrt **Woraus sie gelernt hat** auf, den getrennten Gesang jedes
+Songs und die trainierten Ausschnitte, zum Anhören.
 
-Das Ergebnis ist ein umgewandelter Gesang über einer getrennten Begleitung, also weniger nahtlos als ein Gesang, den das
-Modell selbst gesungen hat. Sauberere Aufnahmen, verlustfrei statt MP3, ergeben eine sauberere Stimme. Das Rezept eines
-Takes nennt seine Stimme, und beim Import wird die gleichnamige Stimme dieser Installation übernommen, falls es eine gibt.
+**Oktave** verschiebt die Stimme um eine ganze Oktave nach oben oder unten, für einen Sänger, dessen Umfang weit von dem des
+Takes entfernt ist. **Gesangspegel** und **Instrumentenpegel** stellen das Verhältnis im neuen Mix ein, und **Ähnlichkeit**, wie
+eng die Stimme beim eigenen Klang des Sängers bleibt: höher klingt ihm ähnlicher und kann bearbeiteter klingen. Das sind die
+Voreinstellungen der Stimme; der Editor zeigt sie unter der Stimme, um sie für einen Take zu ändern, und der Take behält sie.
+Einstellungen → *Stimmentraining* legt fest, aus wie viel Gesang eine Stimme lernt und mit wie vielen Durchläufen.
 
-**Stimme herunterladen** speichert eine trainierte Stimme als ZIP-Datei zum Weitergeben, und **Stimme importieren…** fügt eine hinzu: diese ZIP-Datei oder ein RVC-Modell von anderswo (eine .pth oder eine ZIP mit ihrem Index). Wie viel Gesang eine Stimme zum Training bekommt, legt *Aufgenommene Stimme: Minuten Gesang* in den Einstellungen fest: Er wird gleich auf die Songs eines Korpus verteilt, und etwa zehn Minuten reichen.
-
-**Gesangspegel** stellt den umgewandelten Gesang gegenüber dem Pegel des gerenderten im Mix ein, von −3 bis +6 dB; auch das wird bei der Stimme gespeichert.
+Das Ergebnis ist ein umgewandelter Gesang über einer getrennten Begleitung, also weniger nahtlos als ein Gesang, den das Modell
+selbst gesungen hat. Saubere, trockene Aufnahmen ergeben die sauberste Stimme. **Stimme herunterladen** speichert eine
+trainierte Stimme als ZIP, um sie weiterzugeben, und **Stimme importieren…** fügt eine hinzu: diese ZIP oder ein RVC-Modell von
+anderswo (eine .pth oder eine ZIP mit ihrem Index). Das Rezept eines Takes nennt seine Stimme und die Einstellungen des Takes
+dafür, und beim Import wird die Stimme dieses Namens auf dieser Installation verwendet, falls es sie gibt.
 
 ### Erweiterte Einstellungen {#advanced-settings}
 

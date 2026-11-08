@@ -56,27 +56,32 @@ acende enquanto o take contém outros, e fecha a janela para mostrá-los sob o t
 
 ### Uma voz gravada {#a-recorded-voice}
 
-Um take pode ser cantado com uma voz treinada a partir de uma **gravação** de alguém cantando: a sua, ou a de um corpus.
-Escolha uma no campo *Voz gravada* do editor, ou treine uma com **Criar uma voz…** a partir de um arquivo de áudio de canto. Alguns minutos
-bastam; uma gravação com acompanhamento é separada primeiro. Cada cartão de corpus também tem um botão **Criar uma voz…**, que
-treina uma voz com as músicas do corpus. O campo só aparece quando o serviço de voz opcional está rodando
-("Recorded voices" no README).
+Um take pode ser cantado com uma voz treinada com gravações de alguém cantando: você, ou o cantor de um corpus. Crie e
+gerencie as vozes na página **Vozes**, no menu, e escolha uma no campo *Voz gravada* do editor ao criar um take. Um take que usa
+uma voz é renderizado como sempre; depois o vocal é separado, cantado de novo com a voz e mixado de volta sobre o resto, antes de o
+nível ser medido. É preciso o serviço de vozes opcional ("Recorded voices" no README); sem ele, o campo fica oculto.
 
-O treinamento espera sua vez na GPU e pode levar uma hora; a lista mostra o progresso. Um take com uma voz é renderizado
-como sempre; depois o vocal é separado, cantado de novo na voz e mixado de volta sobre o resto, antes de o nível ser
-medido.
+**Nova voz** cria uma voz com as suas próprias gravações ou uma treinada com as músicas de um corpus. Uma voz de gravações começa
+vazia, e a página dela as reúne: **Gravar…** abre o gravador, e cada take que você mantém vai para a voz do jeito que foi cantado,
+nunca com autotune; **Enviar…** aceita arquivos de áudio; **Da biblioteca…** adiciona gravações que você já tem, como um vocal que
+gravou para um cover, com um player em cada uma para ouvir antes. Uma gravação da biblioteca é referenciada, não copiada. A página
+conta o canto em relação aos minutos com que uma voz treina: cerca de dez minutos por toda a sua extensão bastam, e uma gravação
+curta já dá uma voz reconhecível. Cada gravação diz se é só uma voz (**só vocal**, marcado no que você gravou aqui) ou uma música,
+que é separada antes. Depois clique em **Treinar**.
 
-**Oitava** sobe ou desce uma voz uma oitava inteira. Uma voz cantada longe da extensão do cantor soa errada, e só uma
-oitava inteira mantém o canto no tom do acompanhamento. O valor fica salvo na voz. **Regenerar** treina a voz de novo: uma
-voz de corpus com as músicas do corpus como estão agora.
+O treinamento espera a vez na GPU e mostra o progresso na pílula de tarefas e no log. **Treinar de novo** treina outra vez com as
+gravações como estão agora, ou com as músicas do corpus. Uma gravação excluída depois da biblioteca fica de fora. A página guarda
+**Do que ela aprendeu**, o vocal separado de cada música e os trechos treinados, para ouvir.
 
-O resultado é um vocal convertido sobre um acompanhamento separado, então é menos uniforme que um vocal que o modelo
-cantou sozinho. Gravações mais limpas, sem perdas em vez de MP3, dão uma voz mais limpa. A receita de um take nomeia a
-sua voz, e ao importá-la usa-se a voz com esse nome nesta instalação, se houver.
+**Oitava** sobe ou desce a voz uma oitava inteira, para um cantor cuja extensão fica longe da do take. **Nível do vocal** e **Nível
+dos instrumentos** ajustam o equilíbrio da nova mixagem, e **Semelhança** o quanto a voz se mantém fiel ao timbre do cantor: mais
+alto soa mais como ele, e pode soar mais processado. São os padrões da voz; o editor os mostra sob a voz, para mudar num take, e o
+take os mantém. Configurações → *Treinamento de vozes* define de quanto canto uma voz aprende e com quantas passadas.
 
-**Baixar voz** salva uma voz treinada num zip para dar a outra pessoa, e **Importar uma voz…** adiciona uma: esse zip, ou um modelo RVC de outro lugar (um .pth, ou um zip com o índice). Quanto canto é usado no treino fica em Configurações, *Voz gravada: minutos de canto*: é dividido igualmente entre as músicas de um corpus, e uns dez minutos bastam.
-
-**Nível do vocal** ajusta o vocal convertido em relação ao nível do renderizado na mistura, de −3 a +6 dB; também fica guardado na voz.
+O resultado é um vocal convertido sobre um acompanhamento separado, então é menos uniforme que um vocal que o próprio modelo
+cantou. Gravações limpas e secas dão a voz mais limpa. **Baixar voz** salva uma voz treinada como zip para dar a alguém, e
+**Importar uma voz…** adiciona uma: esse zip, ou um modelo RVC de outro lugar (um .pth, ou um zip com o índice). A receita de um take
+cita a voz e as configurações do take para ela, e importá-la usa a voz com esse nome nesta instalação, se houver.
 
 ### Ajustes avançados {#advanced-settings}
 

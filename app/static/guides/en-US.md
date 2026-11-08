@@ -56,27 +56,35 @@ lit while the take holds others, and closes the window to show them under the ta
 
 ### A recorded voice {#a-recorded-voice}
 
-A take can be sung in a voice trained from a **recording** of someone singing: yours, or a corpus's singer.
-Choose one in the editor's *Recorded voice* field, or train one with **Make a voice…** from an audio file of singing. A few
-minutes is plenty, and a recording with a backing track is separated first. Each corpus's card has a **Make a voice…**
-button too, which trains one on the corpus's songs. The field shows only when the optional voice service is
-running (the README's "Recorded voices").
+A take can be sung in a voice trained from recordings of someone singing: yours, or a corpus's singer. Make and
+manage voices on the **Voices** page, from the menu, and choose one in the editor's *Recorded voice* field when you
+make a take. A take that uses a voice is rendered as usual; then its vocal is separated, sung again in the voice, and
+mixed back over the rest, before its level is read. It needs the optional voice service (the README's "Recorded
+voices"); without it the field is hidden.
 
-Training waits its turn on the GPU and can take an hour; the list shows its progress. A take that uses a voice
-is rendered as usual, then its vocal is separated, sung again in the voice, and mixed back over the rest, before
-its level is read.
+**New voice** makes either a voice of your own recordings or one trained on a corpus's songs. A voice of recordings
+starts empty, and its page gathers them: **Record…** opens the recorder, and each take you keep goes to the voice as
+it was sung, never autotuned; **Upload…** takes audio files; **From the library…** adds recordings you already have,
+such as a vocal you recorded for a cover, with a player on each to hear it first. A library recording is pointed at,
+not copied. The page counts the singing against the minutes a voice trains on: about ten minutes across your range
+is plenty, and a short recording already gives a recognizable voice. Each recording says whether it is a voice alone
+(**vocals only**, ticked for what you recorded here) or a song, which is separated first. Then press **Train**.
 
-**Octave** moves a voice up or down a whole octave. A voice sung far from its singer's range sounds wrong, and only
-a whole octave keeps the vocal in the backing's key. It is saved on the voice. **Regenerate** trains the voice
-again: a corpus voice from the corpus's songs as they are now.
+Training waits its turn on the GPU and shows its progress in the job pill and the log. **Train again** retrains on the
+recordings as they are now, or on the corpus's songs. A recording since deleted from the library is left out. The
+page keeps **What it learned from**, each song's separated vocal and the excerpts trained on, to listen to.
 
-The result is a converted vocal over a separated backing, so it is less seamless than a vocal the model sang
-itself. Cleaner recordings, lossless rather than MP3, make a cleaner voice. A take's recipe names its voice, and
-importing it picks up the voice of that name on this install, if there is one.
+**Octave** moves the voice up or down a whole octave, for a singer whose range is far from the take's. **Vocal level**
+and **Instrument level** set the balance of the remix, and **Likeness** how closely the voice keeps to the singer's own
+sounds: higher sounds more like them, and can sound more processed. These are the voice's defaults; the editor shows
+them under the voice, to change for one take, and the take keeps them. Settings → *Voice Training* sets how much
+singing a voice learns from and for how many passes.
 
-**Download voice** saves a trained voice as a zip to give to someone, and **Import a voice…** adds one: that zip, or an RVC model from elsewhere (a .pth, or a zip with its index). How much singing a voice trains on is set in Settings, *Recorded voice: minutes of singing*: it is shared equally across a corpus's songs, and about ten minutes is plenty.
-
-**Vocal level** sets the converted vocal against the rendered one's level in the mix, from −3 to +6 dB; it is saved on the voice too.
+The result is a converted vocal over a separated backing, so it is less seamless than a vocal the model sang itself.
+Clean, dry recordings make the cleanest voice. **Download voice** saves a trained voice as a zip to give to someone,
+and **Import a voice…** adds one: that zip, or an RVC model from elsewhere (a .pth, or a zip with its index). A take's
+recipe names its voice and the take's settings for it, and importing it picks up the voice of that name on this
+install, if there is one.
 
 ### Advanced settings {#advanced-settings}
 
