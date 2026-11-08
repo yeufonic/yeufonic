@@ -48,7 +48,8 @@ def test_training_frees_the_engine_and_marks_the_voice_ready(monkeypatch):
     asyncio.run(jobs.run_voice_train(made["id"]))
     ready = persona.one(made["id"])
     assert ready["state"] == "ready" and persona.usable(ready)
-    assert asked["id"] == made["id"] and asked["sources"] == [made["source_path"]] and asked["separate"] is True
+    stored = persona.recordings(made["id"])[0]["file"]
+    assert asked["id"] == made["id"] and asked["sources"] == [{"path": stored, "separate": True}]
     assert FakeEngine.freed >= 1
     persona.delete(made["id"])
 

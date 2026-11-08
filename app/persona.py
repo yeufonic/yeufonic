@@ -7,7 +7,9 @@ training and the conversion (voice/server.py, the "voice" compose profile); this
 One folder per voice, ``data/voices/<id>/``:
 
     model.pth, model.index   the trained voice, written by the voice service
-    source.*                 the recording a voice was made from (none for a corpus voice: its songs are used)
+    recordings/              recordings made with the recorder or uploaded for it (table voice_recordings, which
+                             also references library recordings by id; a corpus voice uses the corpus's songs)
+    vocals/, excerpts/       what training learned from, kept to listen to (Settings → Storage can drop them)
 
 (``voices.py`` is the score's two voices; this module is the sung one.)
 """
@@ -52,6 +54,7 @@ def model_file(persona_id: str) -> Path:
 
 def _shape(row) -> dict:
     out = dict(row)
+    out["recordings"] = db.rows("SELECT COUNT(*) AS n FROM voice_recordings WHERE voice_id = ?", (out["id"],))[0]["n"]
     out["octave"] = clamp_octave(out.get("octave"))
     out["level_db"] = clamp_level(out.get("level_db"))
     out["likeness"] = clamp_likeness(out.get("likeness"))
@@ -102,24 +105,98 @@ def clamp_likeness(value) -> float:
 
 
 def create(name: str, source: Path | None = None, octave: int = 0, origin_identity: str | None = None,
-           vocals_only: bool = False) -> dict:
-    """A voice with a name and what it is trained from: a recording, or a corpus (``origin_identity``)."""
+           vocals_only: bool = False, state: str = "training") -> dict:
+    """A voice with a name and what it is trained from: recordings (``source`` is a first one), or a corpus
+    (``origin_identity``).  A voice of recordings can start empty (state "new"), and trains when asked."""
     name = (name or "").strip() or "Untitled voice"
     persona_id = uuid.uuid4().hex[:12]
     target = folder(persona_id)
-    source_path = None
+    target.mkdir(parents=True, exist_ok=True)
+    db.execute("INSERT INTO voices (id, name, origin_identity, octave, vocals_only, state, progress, "
+               "created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?)",
+               (persona_id, name, origin_identity, clamp_octave(octave), 1 if vocals_only else 0, state, time.time()))
     if source is not None and Path(source).exists():
-        suffix = Path(source).suffix or ".wav"
-        stored = target / f"source{suffix}"
-        if Path(source).resolve() != stored.resolve():
-            shutil.copy2(source, stored)
-        source_path = str(stored)
-    db.execute("INSERT INTO voices (id, name, source_path, origin_identity, octave, vocals_only, state, progress, "
-               "created_at) VALUES (?, ?, ?, ?, ?, ?, 'training', 0, ?)",
-               (persona_id, name, source_path, origin_identity, clamp_octave(octave), 1 if vocals_only else 0,
-                time.time()))
-    log.info("voice %s created from %s", name, source_path or f"corpus {origin_identity}")
+        add_file(persona_id, Path(source), "uploaded", Path(source).name, vocals_only)
+    log.info("voice %s created from %s", name, f"corpus {origin_identity}" if origin_identity else "recordings")
     return one(persona_id)
+
+
+# ---------------------------------------------------------------- a voice's recordings
+
+def _seconds(path: Path) -> float | None:
+    from .library import audio_duration  # noqa: PLC0415 - library imports a great deal; only this needs it
+
+    try:
+        return audio_duration(path)
+    except Exception:  # noqa: BLE001 - a length it cannot read is shown as unknown
+        return None
+
+
+def add_file(persona_id: str, source: Path, kind: str, title: str, vocals_only: bool) -> dict:
+    """A recording made with the recorder or uploaded, copied into the voice's own folder."""
+    rid = uuid.uuid4().hex[:12]
+    stored = folder(persona_id) / "recordings" / f"{rid}{source.suffix.lower() or '.wav'}"
+    stored.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, stored)
+    db.execute("INSERT INTO voice_recordings (id, voice_id, kind, path, title, vocals_only, seconds, created_at) "
+               "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+               (rid, persona_id, kind, str(stored), (title or stored.name)[:200], 1 if vocals_only else 0,
+                _seconds(stored), time.time()))
+    return recording(persona_id, rid)
+
+
+def add_library(persona_id: str, source: dict, vocals_only: bool) -> dict:
+    """A library recording, referenced by id: nothing is copied, and deleting it from the library later leaves the
+    trained voice as it is (the row then shows it missing)."""
+    rid = uuid.uuid4().hex[:12]
+    db.execute("INSERT INTO voice_recordings (id, voice_id, kind, source_id, title, vocals_only, seconds, created_at) "
+               "VALUES (?, ?, 'library', ?, ?, ?, ?, ?)",
+               (rid, persona_id, source["id"], (source.get("title") or source.get("filename") or "")[:200],
+                1 if vocals_only else 0, source.get("duration"), time.time()))
+    return recording(persona_id, rid)
+
+
+def _resolve(row: dict) -> dict:
+    out = dict(row)
+    path = None
+    if row["kind"] == "library":
+        source = db.rows("SELECT stored_path FROM sources WHERE id = ?", (row["source_id"],))
+        path = source[0]["stored_path"] if source else None
+    else:
+        path = row["path"]
+    out["file"] = path if path and Path(path).is_file() else None
+    out["missing"] = out["file"] is None
+    if out["seconds"] is None and out["file"]:     # a recording kept from before lengths were measured
+        out["seconds"] = _seconds(Path(out["file"]))
+        if out["seconds"] is not None:
+            db.execute("UPDATE voice_recordings SET seconds = ? WHERE id = ?", (out["seconds"], row["id"]))
+    return out
+
+
+def recordings(persona_id: str) -> list[dict]:
+    return [_resolve(row) for row in db.rows("SELECT * FROM voice_recordings WHERE voice_id = ? ORDER BY created_at",
+                                             (persona_id,))]
+
+
+def recording(persona_id: str, rid: str) -> dict | None:
+    found = db.rows("SELECT * FROM voice_recordings WHERE voice_id = ? AND id = ?", (persona_id, rid))
+    return _resolve(found[0]) if found else None
+
+
+def set_vocals_only(persona_id: str, rid: str, value: bool) -> dict | None:
+    db.execute("UPDATE voice_recordings SET vocals_only = ? WHERE voice_id = ? AND id = ?",
+               (1 if value else 0, persona_id, rid))
+    return recording(persona_id, rid)
+
+
+def remove_recording(persona_id: str, rid: str) -> None:
+    """Out of the voice's list; its own copy is deleted, a library recording is left in the library."""
+    found = recording(persona_id, rid)
+    if not found:
+        return
+    if found["kind"] != "library" and found.get("path"):
+        Path(found["path"]).unlink(missing_ok=True)
+    db.execute("DELETE FROM voice_recordings WHERE voice_id = ? AND id = ?", (persona_id, rid))
 
 
 def training(persona_id: str, progress: float = 0.0) -> None:
@@ -160,6 +237,7 @@ def update(persona_id: str, **fields) -> dict | None:
 def delete(persona_id: str) -> None:
     db.execute("UPDATE takes SET voice_id = NULL WHERE voice_id = ?", (persona_id,))
     db.execute("DELETE FROM voices WHERE id = ?", (persona_id,))
+    db.execute("DELETE FROM voice_recordings WHERE voice_id = ?", (persona_id,))
     shutil.rmtree(folder(persona_id), ignore_errors=True)
 
 

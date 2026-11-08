@@ -352,6 +352,19 @@ SETTINGS_SPEC: list[dict] = [
                 "the corpus can train again, which takes a few minutes. LoRAs already trained are not affected.",
     },
     {
+        "key": "storage.voice_heard",
+        "section": "storage",
+        "label": "What a voice learned from",
+        "type": "select",
+        "default": "keep",
+        "options": [
+            {"value": "keep", "label": "Keep it"},
+            {"value": "delete", "label": "Remove when training ends"},
+        ],
+        "help": "Training a voice keeps each song's separated vocal and the excerpts it trained on, to listen to on "
+                "the Voices page. The voice does not need them. Training it again makes them again.",
+    },
+    {
         "key": "llm.provider",
         "group": "llm",
         "label": "LLM for writing lyrics & style tags",
@@ -6135,6 +6148,94 @@ async def remove_persona(persona_id: str) -> dict:
         raise HTTPException(404, "no such persona")
     persona.delete(persona_id)
     return {"deleted": persona_id}
+
+
+@app.post("/api/voices/own")
+async def make_own_voice(name: str = Form("", max_length=80)) -> dict:
+    """A voice of recordings, empty to begin with: recordings are added on its page, and it trains when asked."""
+    return persona.create(name or "My voice", state="new")
+
+
+def _voice_or_404(persona_id: str) -> dict:
+    record = persona.one(persona_id)
+    if record is None:
+        raise HTTPException(404, "no such persona")
+    return record
+
+
+def _recording_view(persona_id: str, item: dict) -> dict:
+    out = {k: v for k, v in item.items() if k not in ("path", "file")}
+    out["url"] = f"/api/voices/{persona_id}/recordings/{item['id']}/audio" if item["file"] else None
+    return out
+
+
+@app.get("/api/voices/{persona_id}/recordings")
+def voice_recordings(persona_id: str) -> list[dict]:
+    _voice_or_404(persona_id)
+    return [_recording_view(persona_id, item) for item in persona.recordings(persona_id)]
+
+
+@app.post("/api/voices/{persona_id}/recordings")
+async def add_voice_recordings(persona_id: str, files: list[UploadFile] = File(...), kind: str = Form("uploaded"),
+                               vocals_only: bool = Form(False)) -> list[dict]:
+    """Recordings made with the recorder (vocals only) or uploaded, copied into the voice's folder."""
+    _voice_or_404(persona_id)
+    kind = "recorded" if kind == "recorded" else "uploaded"
+    added = []
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    for upload in files:
+        suffix = Path(upload.filename or "voice.wav").suffix.lower() or ".wav"
+        if suffix not in identities.AUDIO_TYPES:
+            raise HTTPException(400, f"{upload.filename} is not an audio file the app can read.")
+        temp = config.WORK_DIR / f"voice-recording-{uuid.uuid4().hex[:8]}{suffix}"
+        with temp.open("wb") as out:
+            shutil.copyfileobj(upload.file, out)
+        try:
+            if temp.stat().st_size:
+                title = Path(upload.filename or "").stem or ("Recorded" if kind == "recorded" else "Recording")
+                added.append(persona.add_file(persona_id, temp, kind, title, vocals_only or kind == "recorded"))
+        finally:
+            temp.unlink(missing_ok=True)
+    return [_recording_view(persona_id, item) for item in added]
+
+
+class VoiceLibraryIn(BaseModel):
+    source_id: str = Field(..., max_length=64)
+
+
+@app.post("/api/voices/{persona_id}/recordings/library")
+def add_voice_library_recording(persona_id: str, body: VoiceLibraryIn) -> dict:
+    _voice_or_404(persona_id)
+    source = one("SELECT * FROM sources WHERE id = ?", (body.source_id,))
+    if not source:
+        raise HTTPException(404, "no such recording")
+    if any(item["source_id"] == source["id"] for item in persona.recordings(persona_id)):
+        raise HTTPException(400, "That recording is already in this voice.")
+    # One made with the recorder is a voice alone; anything else is taken to be a song, and separated.
+    sung_here = source.get("origin") == "recording" and not source.get("instrument")
+    return _recording_view(persona_id, persona.add_library(persona_id, source, sung_here))
+
+
+@app.patch("/api/voices/{persona_id}/recordings/{rid}")
+def edit_voice_recording(persona_id: str, rid: str, vocals_only: bool = Form(...)) -> dict:
+    found = persona.set_vocals_only(persona_id, rid, vocals_only)
+    if not found:
+        raise HTTPException(404, "no such recording")
+    return _recording_view(persona_id, found)
+
+
+@app.delete("/api/voices/{persona_id}/recordings/{rid}")
+def remove_voice_recording(persona_id: str, rid: str) -> dict:
+    persona.remove_recording(persona_id, rid)
+    return {"removed": rid}
+
+
+@app.get("/api/voices/{persona_id}/recordings/{rid}/audio")
+def voice_recording_audio(persona_id: str, rid: str) -> FileResponse:
+    found = persona.recording(persona_id, rid)
+    if not found or not found["file"]:
+        raise HTTPException(404, "no such recording")
+    return FileResponse(found["file"])
 
 
 @app.post("/api/voices/from-identity")

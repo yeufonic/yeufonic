@@ -221,6 +221,24 @@
         this.stopRecording();
       }
       this.disarmRecorder();
+      // Lent to a voice (app.js, recordForVoice) for this opening only: next time it makes a cover's recording again.
+      this.target = null;
+      this.renderTakesList();
+    },
+
+    // A take for whoever borrowed the recorder (a voice): the raw take, never autotuned, as a voice learns from it.
+    sendToTarget: async function (takeId) {
+      var take = this.takeById(takeId);
+      if (!take || !this.target) { return; }
+      var button = document.getElementById('rec-send-btn-' + takeId);
+      if (button) { button.disabled = true; button.textContent = t('Saving…'); }
+      try {
+        await this.target.save(take.blob, take.title || t('Vocal Melody'));
+        this.deleteTake(takeId);
+      } catch (err) {
+        if (button) { button.disabled = false; button.textContent = this.target.label; }
+        if (typeof window.toast === 'function') { window.toast(err && err.message ? err.message : String(err)); }
+      }
     },
 
     // ------------------------------------------------- Hardware Audio & Monitoring
@@ -1107,6 +1125,7 @@
           tuneBadge = '<button type="button" class="rec-tune-action" onclick="window.Recorder.applyAutotune(\'' + take.id + '\')" title="' + t('Snap sung pitch to nearest semitones (plays tuned audio upon completion)') + '">' + t('Autotune') + '</button>';
         }
 
+        if (self.target) { tuneBadge = ''; }   // a voice learns from the raw take
         var tuneInfo = '';
         if (take.autotuneStatus === 'done' && take.tuneStats) {
           var sName = take.tuneStats.scale ? (take.tuneStats.scale.charAt(0).toUpperCase() + take.tuneStats.scale.slice(1)) : '';
@@ -1126,7 +1145,9 @@
           '</div>' +
           '<div class="rec-take-actions">' +
             tuneBadge +
-            '<button type="button" id="rec-send-btn-' + take.id + '" class="rec-btn-use" onclick="window.Recorder.sendToCover(\'' + take.id + '\')" title="' + t('Add to Cover Sources') + '">' + t('Use as Cover') + '</button>' +
+            (self.target
+              ? '<button type="button" id="rec-send-btn-' + take.id + '" class="rec-btn-use" onclick="window.Recorder.sendToTarget(\'' + take.id + '\')">' + self.esc(self.target.label) + '</button>'
+              : '<button type="button" id="rec-send-btn-' + take.id + '" class="rec-btn-use" onclick="window.Recorder.sendToCover(\'' + take.id + '\')" title="' + t('Add to Cover Sources') + '">' + t('Use as Cover') + '</button>') +
             '<button type="button" class="rec-btn-del" onclick="window.Recorder.deleteTake(\'' + take.id + '\')" title="' + t('Delete this take') + '">&times;</button>' +
           '</div>' +
         '</div>';

@@ -171,7 +171,7 @@ def excerpt_with(mask, need_frames: int) -> tuple[int, int]:
     return a, b
 
 
-def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int, minutes: float = 0.0) -> None:
+def train(job: dict, voice: str, sources: list, default_split: bool, epochs: int, minutes: float = 0.0) -> None:
     folder = VOICES / voice
     work = folder / "work"
     shutil.rmtree(work, ignore_errors=True)
@@ -181,7 +181,10 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int, m
     kept = work / "vocals"   # each song's separated vocal, kept with the voice once it has trained
     kept.mkdir()
     vocals = []
-    for index, name in enumerate(sources):
+    for index, item in enumerate(sources):
+        # Each source says whether it is separated first (a full song) or used as it is (vocals alone); a plain path
+        # follows the request's own "separate".
+        name, split = (item["path"], bool(item.get("separate", True))) if isinstance(item, dict) else (item, default_split)
         job.update(stage="separating" if split else "preparing", progress=0.1 * index / max(1, len(sources)))
         source = Path(name)
         print(f"[{voice}] {job['stage']} {index + 1}/{len(sources)}: {source.name}", flush=True)
@@ -433,6 +436,9 @@ def _train_job(job_id: str, body: dict) -> None:
         except Exception as err:  # noqa: BLE001 - every failure is reported to the app
             traceback.print_exc()
             job.update(state="failed", error=str(err)[-800:])
+            # The reason is in the job; what a failed run left (half a gigabyte of checkpoints) is not kept.
+            shutil.rmtree(VOICES / body["id"] / "work", ignore_errors=True)
+            shutil.rmtree(LOGS / f"v-{body['id']}", ignore_errors=True)
 
 
 class Handler(BaseHTTPRequestHandler):

@@ -38,7 +38,7 @@ def test_a_corpus_voice_trains_on_the_corpus_songs(client, tmp_path):
     (folder / "original.flac").write_bytes(b"fLaC")
     made = client.post("/api/voices/from-identity", data={"identity_id": "corpusv"}).json()
     assert made["origin_identity"] == "corpusv" and made["state"] == "training"
-    assert jobs.voice_sources(persona.one(made["id"])) == [str(folder / "original.flac")]
+    assert jobs.voice_sources(persona.one(made["id"])) == [{"path": str(folder / "original.flac"), "separate": True}]
     _queued()
     persona.delete(made["id"])
 

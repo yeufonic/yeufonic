@@ -17353,6 +17353,7 @@ function personaNameOf(id) {
 function voiceStateText(v) {
   if (v.state === 'ready') { return t('ready'); }
   if (v.state === 'failed') { return t('failed'); }
+  if (v.state === 'new') { return t('not trained yet'); }
   var pct = Math.round((Number(v.progress) || 0) * 100);
   return pct ? t('training… {value}%', { value: pct }) : t('waiting to train');
 }
@@ -17362,7 +17363,8 @@ function voiceOrigin(v) {
     var corpus = (IDENTITIES_LIST || []).filter(function (c) { return c.id === v.origin_identity; })[0];
     return t('from the corpus {value}', { value: corpus ? corpus.name : v.origin_identity });
   }
-  return v.source_path ? t('from a recording') : t('imported');
+  if (v.recordings) { return tn(v.recordings, '{n} recording', '{n} recordings'); }
+  return v.state === 'new' ? t('no recordings yet') : t('imported');
 }
 
 function voiceOriginText(v) {
@@ -17465,34 +17467,30 @@ function showVoiceNew() {
     '<div class="identity-form">' +
       '<div class="field"><label for="vn-name">' + t('Name') + '</label><input id="vn-name" type="text" maxlength="80"></div>' +
       '<div class="field"><label for="vn-from">' + t('Trained on') + '</label><select id="vn-from">' +
-        (corpora ? '<option value="corpus">' + t('The songs of a corpus') + '</option>' : '') +
-        '<option value="file">' + t('A recording of someone singing') + '</option></select></div>' +
-      '<div class="field' + (corpora ? '' : ' hidden') + '" id="vn-corpus-wrap"><label for="vn-corpus">' + t('Corpus') + '</label>' +
+        '<option value="own">' + t('My own recordings: record, upload or pick from the library') + '</option>' +
+        (corpora ? '<option value="corpus">' + t('The songs of a corpus') + '</option>' : '') + '</select></div>' +
+      '<div class="field hidden" id="vn-corpus-wrap"><label for="vn-corpus">' + t('Corpus') + '</label>' +
         '<select id="vn-corpus">' + corpora + '</select>' +
-        '<p class="sub">' + t('The singing is shared out across the songs (Settings, Voice Training). Unless they are vocals only, each is separated again with a cleaner separator first.') + '</p></div>' +
-      '<div class="field' + (corpora ? ' hidden' : '') + '" id="vn-file-wrap"><label for="vn-file">' + t('Recording') + '</label>' +
-        '<input id="vn-file" type="file" accept="audio/*"></div>' +
-      '<label class="check"><input id="vn-vocals-only" type="checkbox"> ' + t('Vocals only: the recordings have no instruments, so they are not separated first') + '</label>' +
-      '<div class="row"><button id="vn-train" class="chip action">' + t('Train') + '</button>' +
+        '<p class="sub">' + t('The singing is shared out across the songs (Settings, Voice Training). Unless they are vocals only, each is separated again with a cleaner separator first.') + '</p>' +
+        '<label class="check"><input id="vn-vocals-only" type="checkbox"> ' + t('Vocals only: the songs have no instruments, so they are not separated first') + '</label></div>' +
+      '<p class="sub" id="vn-own-note">' + t('The voice is made empty: add recordings on its page, then train it.') + '</p>' +
+      '<div class="row"><button id="vn-train" class="chip action">' + t('Make the voice') + '</button>' +
         '<span id="vn-status" class="status"></span></div>' +
     '</div>';
   var from = $('vn-from');
   var name = $('vn-name');
   function suggest() {
+    var corpus = from.value === 'corpus';
+    $('vn-corpus-wrap').classList.toggle('hidden', !corpus);
+    $('vn-own-note').classList.toggle('hidden', corpus);
+    $('vn-train').textContent = corpus ? t('Train') : t('Make the voice');
     if (name.dataset.edited) { return; }
-    var corpus = $('vn-corpus');
-    if (from.value === 'corpus' && corpus && corpus.selectedOptions[0]) { name.value = corpus.selectedOptions[0].textContent + ' voice'; }
-    var file = $('vn-file').files[0];
-    if (from.value === 'file' && file) { name.value = file.name.replace(/\.[^.]+$/, ''); }
+    var pick = $('vn-corpus');
+    name.value = corpus && pick && pick.selectedOptions[0] ? pick.selectedOptions[0].textContent + ' voice' : t('My voice');
   }
   name.addEventListener('input', function () { name.dataset.edited = '1'; });
-  from.addEventListener('change', function () {
-    $('vn-corpus-wrap').classList.toggle('hidden', from.value !== 'corpus');
-    $('vn-file-wrap').classList.toggle('hidden', from.value !== 'file');
-    suggest();
-  });
+  from.addEventListener('change', suggest);
   if ($('vn-corpus')) { $('vn-corpus').addEventListener('change', suggest); }
-  $('vn-file').addEventListener('change', suggest);
   suggest();
 }
 
@@ -17500,22 +17498,17 @@ async function trainNewVoice() {
   var status = $('vn-status');
   var form = new FormData();
   form.append('name', $('vn-name').value.trim());
-  form.append('vocals_only', $('vn-vocals-only').checked ? 'true' : 'false');
-  var path = '/api/voices';
-  if ($('vn-from').value === 'corpus') {
+  var corpus = $('vn-from').value === 'corpus';
+  if (corpus) {
     form.append('identity_id', $('vn-corpus').value);
-    path = '/api/voices/from-identity';
-  } else {
-    var file = $('vn-file').files[0];
-    if (!file) { status.textContent = t('Choose a recording first.'); return; }
-    form.append('file', file, file.name);
+    form.append('vocals_only', $('vn-vocals-only').checked ? 'true' : 'false');
   }
   $('vn-train').disabled = true;
   try {
-    var made = await api(path, { method: 'POST', body: form });
+    var made = await api(corpus ? '/api/voices/from-identity' : '/api/voices/own', { method: 'POST', body: form });
     await loadVoices();
     showVoice(made.id);
-    toast(t('Training that voice: it can take an hour, and waits for the songs ahead of it.'));
+    if (corpus) { toast(t('Training that voice: it can take an hour, and waits for the songs ahead of it.')); }
   } catch (err) {
     $('vn-train').disabled = false;
     status.textContent = err.message;
@@ -17572,14 +17565,99 @@ async function showVoice(id) {
           ' <select id="voice-likeness">' + likenessOptions(v) + '</select></label>' +
       '</div>'
       : '') +
+    (v.origin_identity ? '' :
+      '<h4>' + t('Recordings') + ' <span class="muted" id="voice-rec-total"></span></h4>' +
+      '<div id="voice-recordings" class="muted">…</div>' +
+      '<div class="row">' +
+        '<button id="voice-rec-record" class="ghost">' + t('Record…') + '</button>' +
+        '<button id="voice-rec-upload" class="ghost">' + t('Upload…') + '</button>' +
+        '<button id="voice-rec-library" class="ghost">' + t('From the library…') + '</button>' +
+      '</div><div id="voice-library-pick" class="hidden"></div>') +
     '<div id="voice-heard"></div>' +
     '<div class="row identity-actions">' +
       '<button id="voice-rename" class="ghost">' + t('Rename') + '</button>' +
-      '<button id="voice-regen" class="ghost"' + (usable ? '' : ' disabled') + '>' + t(ready ? 'Train again' : 'Train') + '</button>' +
+      '<button id="voice-regen" class="' + (ready ? 'ghost' : 'chip action') + '"' + (usable && v.state !== 'training' ? '' : ' disabled') + '>' + (ready ? t('Train again') : t('Train')) + '</button>' +
       (ready ? '<button id="voice-export" class="ghost">' + t('Download voice') + '</button>' : '') +
       '<button id="voice-delete" class="ghost danger">' + t('Delete') + '</button>' +
     '</div>';
   paintVoiceHeard(id);
+  if (!v.origin_identity) { paintVoiceRecordings(id); }
+}
+
+/* A voice's recordings: its own (recorded here or uploaded) and library recordings it points at.  Each says whether
+   it is a voice alone, or a song the service separates first. */
+async function paintVoiceRecordings(id) {
+  var box = $('voice-recordings');
+  var list;
+  try { list = await api('/api/voices/' + id + '/recordings'); } catch (err) { list = []; }
+  if (!box || VOICES.id !== id) { return; }
+  VOICES.recordings = list;
+  var seconds = list.reduce(function (sum, r) { return sum + (r.missing ? 0 : Number(r.seconds) || 0); }, 0);
+  var wanted = Number(setting('voice.minutes', '10')) || 0;
+  var total = $('voice-rec-total');
+  if (total) {
+    total.textContent = list.length ? (wanted ? t('{have} of {want} minutes', { have: (seconds / 60).toFixed(1), want: wanted })
+      : t('{have} minutes', { have: (seconds / 60).toFixed(1) })) : '';
+  }
+  var from = { recorded: t('recorded here'), uploaded: t('uploaded') };
+  box.classList.toggle('muted', !list.length);
+  box.innerHTML = list.length ? list.map(function (r) {
+    var where = r.kind === 'library' ? t('from the library') : from[r.kind] || '';
+    var length = r.seconds ? Math.floor(r.seconds / 60) + ':' + String(Math.round(r.seconds % 60)).padStart(2, '0') : '';
+    return '<div class="voice-rec-row' + (r.missing ? ' missing' : '') + '" data-rec="' + esc(r.id) + '">' +
+      '<span class="voice-rec-title">' + esc(r.title || '') + '<span class="muted"> · ' + esc(where) +
+        (length ? ' · ' + length : '') + (r.missing ? ' · ' + esc(t('missing: deleted from the library')) : '') + '</span></span>' +
+      (r.url ? '<audio controls preload="none" src="' + esc(r.url) + '"></audio>' : '') +
+      '<label class="check" title="' + esc(t('A voice alone is used as it is; a song is separated first')) + '"><input type="checkbox" data-rec-vocals' +
+        (r.vocals_only ? ' checked' : '') + (r.kind === 'recorded' ? ' disabled' : '') + '> ' + t('vocals only') + '</label>' +
+      '<button class="ghost compact" data-rec-remove title="' + esc(r.kind === 'library' ? t('Out of this voice; the recording stays in the library') : t('Delete this recording')) + '">×</button>' +
+    '</div>';
+  }).join('') : t('No recordings yet. Record yourself singing, upload recordings, or pick ones from the library. About ten minutes of singing across your range is plenty.');
+}
+
+async function uploadVoiceFiles(id, files, kind) {
+  var form = new FormData();
+  Array.prototype.forEach.call(files, function (file) { form.append('files', file, file.name || 'recording.wav'); });
+  form.append('kind', kind);
+  await api('/api/voices/' + id + '/recordings', { method: 'POST', body: form });
+  await loadVoices();
+  if (VOICES.id === id) { paintVoiceRecordings(id); repaintVoiceOrigin(id); }
+}
+
+function repaintVoiceOrigin(id) {
+  var v = VOICES.list.filter(function (x) { return x.id === id; })[0];
+  var state = $('voice-state');
+  if (v && state && state.nextSibling) { state.nextSibling.textContent = ' · ' + voiceOriginText(v); }
+}
+
+async function showVoiceLibraryPick(id) {
+  var box = $('voice-library-pick');
+  if (!box) { return; }
+  if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
+  var sources = [];
+  try { sources = await api('/api/sources'); } catch (err) { sources = []; }
+  var have = (VOICES.recordings || []).map(function (r) { return r.source_id; });
+  sources = sources.filter(function (src) { return have.indexOf(src.id) < 0 && !src.instrument; });
+  // Ones sung with the recorder first: a voice alone, the best a voice can learn from.
+  sources.sort(function (a, b) { return (b.origin === 'recording') - (a.origin === 'recording') || b.created_at - a.created_at; });
+  box.innerHTML = sources.length ? '<div class="voice-library-list">' + sources.map(function (src) {
+    return '<div class="voice-rec-row"><span class="voice-rec-title">' + esc(src.title || src.filename || '') +
+      '<span class="muted"> · ' + esc(src.origin === 'recording' ? t('sung with the recorder') : t('a song')) + '</span></span>' +
+      '<button class="ghost compact" data-lib-add="' + esc(src.id) + '">' + t('Add') + '</button></div>';
+  }).join('') + '</div>' : '<p class="muted">' + t('No recordings in the library that this voice does not have.') + '</p>';
+  box.classList.remove('hidden');
+}
+
+/* The built-in recorder, lent to a voice: its takes are added to the voice instead of becoming a cover's recording. */
+function recordForVoice(id) {
+  if (!window.Recorder) { toast(t('The recorder is not available.')); return; }
+  window.Recorder.target = {
+    label: t('Add to voice'),
+    save: async function (blob, title) {
+      await uploadVoiceFiles(id, [new File([blob], (title || 'Recorded') + '.wav', { type: 'audio/wav' })], 'recorded');
+    }
+  };
+  window.Recorder.openModal();
 }
 
 async function paintVoiceHeard(id) {
@@ -17614,6 +17692,39 @@ async function voicesClick(event) {
   if (target.closest('#voice-new')) { showVoiceNew(); return; }
   if (target.closest('#voice-import')) { importVoiceFile(); return; }
   if (target.closest('#vn-train')) { await trainNewVoice(); return; }
+  if (target.closest('#voice-rec-record')) { recordForVoice(VOICES.id); return; }
+  if (target.closest('#voice-rec-upload')) {
+    var picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = 'audio/*';
+    picker.multiple = true;
+    var forVoice = VOICES.id;
+    picker.addEventListener('change', function () {
+      if (picker.files && picker.files.length) {
+        uploadVoiceFiles(forVoice, picker.files, 'uploaded').catch(function (err) { toast(err.message); });
+      }
+    });
+    picker.click();
+    return;
+  }
+  if (target.closest('#voice-rec-library')) { await showVoiceLibraryPick(VOICES.id); return; }
+  var libAdd = target.closest('[data-lib-add]');
+  if (libAdd) {
+    await api('/api/voices/' + VOICES.id + '/recordings/library', { method: 'POST', body: JSON.stringify({ source_id: libAdd.dataset.libAdd }) });
+    libAdd.closest('.voice-rec-row').remove();
+    await loadVoices();
+    paintVoiceRecordings(VOICES.id);
+    repaintVoiceOrigin(VOICES.id);
+    return;
+  }
+  var recRow = target.closest('[data-rec]');
+  if (recRow && target.closest('[data-rec-remove]')) {
+    await api('/api/voices/' + VOICES.id + '/recordings/' + recRow.dataset.rec, { method: 'DELETE' });
+    await loadVoices();
+    paintVoiceRecordings(VOICES.id);
+    repaintVoiceOrigin(VOICES.id);
+    return;
+  }
   var id = VOICES.id;
   var v = VOICES.list.filter(function (x) { return x.id === id; })[0];
   if (!v) { return; }
@@ -17754,12 +17865,19 @@ function wireVoices() {
       voicesClick(event).catch(function (err) { toast(err.message); });
     });
     body.addEventListener('change', function (event) {
+      var row = event.target.matches('[data-rec-vocals]') && event.target.closest('[data-rec]');
+      if (row) {
+        api('/api/voices/' + VOICES.id + '/recordings/' + row.dataset.rec, { method: 'PATCH',
+          body: new URLSearchParams({ vocals_only: event.target.checked ? 'true' : 'false' }) }).catch(function (err) { toast(err.message); });
+        return;
+      }
       var field = { 'voice-octave': 'octave', 'voice-level': 'level_db', 'voice-likeness': 'likeness', 'voice-backing': 'backing_db' }[event.target.id] || null;
       if (field) { voiceChange(field, event.target.value).catch(function (err) { toast(err.message); }); }
     });
   }
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && voicesOpen() && !($('confirm-modal') && !$('confirm-modal').classList.contains('hidden'))) {
+    var over = ['confirm-modal', 'recorder-modal'].some(function (m) { return $(m) && !$(m).classList.contains('hidden'); });
+    if (event.key === 'Escape' && voicesOpen() && !over) {
       closeVoices();
     }
   });

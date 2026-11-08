@@ -3231,8 +3231,10 @@ async def voice_service() -> dict:
         return {"ok": False, "running": False, "models": {}}
 
 
-def voice_sources(record: dict) -> list[str]:
-    """What a voice trains on: its own recording, or a corpus's included songs (their full mixes, separated there)."""
+def voice_sources(record: dict) -> list[dict]:
+    """What a voice trains on, each with whether the service separates it first: a corpus's included songs (their full
+    mixes, unless the voice says they are vocals only), or the voice's recordings, each saying for itself.  A library
+    recording since deleted is left out."""
     if record.get("origin_identity"):
         songs = rows("SELECT * FROM identity_songs WHERE identity_id = ? AND include = 1 ORDER BY position, title",
                      (record["origin_identity"],))
@@ -3240,11 +3242,14 @@ def voice_sources(record: dict) -> list[str]:
         for song in songs:
             path = _corpus_original(record["origin_identity"], song)
             if path:
-                found.append(str(path))
+                found.append({"path": str(path), "separate": not record.get("vocals_only")})
             if len(found) >= persona.CORPUS_SONGS:
                 break
         return found
-    return [record["source_path"]] if record.get("source_path") and Path(record["source_path"]).exists() else []
+    if not record.get("id"):
+        return []
+    return [{"path": item["file"], "separate": not item["vocals_only"]}
+            for item in persona.recordings(record["id"]) if item["file"]]
 
 
 def _corpus_original(identity_id: str, song: dict) -> Path | None:
@@ -3303,7 +3308,7 @@ async def run_voice_train(persona_id: str) -> None:
             await ENGINE.free()
         async with httpx.AsyncClient(timeout=30.0) as client:
             job = (await client.post(config.VOICE_URL + "/train", json={
-                "id": persona_id, "sources": sources, "separate": not record.get("vocals_only"), "epochs": voice_passes(),
+                "id": persona_id, "sources": sources, "epochs": voice_passes(),
                 "minutes": voice_minutes()})).json()["job"]
             while time.time() - started < VOICE_TRAIN_TIMEOUT:
                 await asyncio.sleep(VOICE_POLL_SECONDS)
@@ -3332,6 +3337,9 @@ async def run_voice_train(persona_id: str) -> None:
         persona.ready(persona_id, str(model))
         log.info("Recorded voice '%s' trained on %d recording(s) in %.0f s", record["name"], len(sources),
                  time.time() - started)
+        if get_setting("storage.voice_heard", "keep") == "delete":   # Settings → Storage: not kept to listen to
+            for part in ("vocals", "excerpts"):
+                shutil.rmtree(persona.folder(persona_id) / part, ignore_errors=True)
     except Exception as err:  # noqa: BLE001
         log.error("Training the recorded voice '%s' failed: %s", record["name"], err)
         persona.failed(persona_id, str(err))

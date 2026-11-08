@@ -216,6 +216,17 @@ CREATE TABLE IF NOT EXISTS voices (
     backing_db REAL NOT NULL DEFAULT 0,
     vocals_only INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS voice_recordings (
+    id TEXT PRIMARY KEY,
+    voice_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    source_id TEXT,
+    path TEXT,
+    title TEXT,
+    vocals_only INTEGER NOT NULL DEFAULT 0,
+    seconds REAL,
+    created_at REAL NOT NULL
+);
 CREATE TABLE IF NOT EXISTS spaces (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -791,6 +802,28 @@ def _voice_vocals_only() -> None:
         execute("ALTER TABLE voices ADD COLUMN vocals_only INTEGER NOT NULL DEFAULT 0")
 
 
+def _voice_recordings() -> None:
+    """A voice trained on recordings holds several: made with the recorder, uploaded (both in its own folder), or a
+    library recording, referenced by id.  A voice made from one uploaded recording keeps it as its first."""
+    execute("""CREATE TABLE IF NOT EXISTS voice_recordings (
+    id TEXT PRIMARY KEY,
+    voice_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    source_id TEXT,
+    path TEXT,
+    title TEXT,
+    vocals_only INTEGER NOT NULL DEFAULT 0,
+    seconds REAL,
+    created_at REAL NOT NULL
+);""")
+    for row in rows("SELECT id, source_path, vocals_only, created_at FROM voices "
+                    "WHERE source_path IS NOT NULL AND origin_identity IS NULL"):
+        execute("INSERT INTO voice_recordings (id, voice_id, kind, path, title, vocals_only, created_at) "
+                "VALUES (?, ?, 'uploaded', ?, ?, ?, ?)",
+                (row["id"] + "r0", row["id"], row["source_path"], Path(row["source_path"]).name, row["vocals_only"],
+                 row["created_at"]))
+
+
 def _cfg_scale() -> None:
     """The music stage's guidance towards the style and words, set in Advanced; NULL is the engine's own."""
     if "cfg_scale" not in _columns("takes"):
@@ -847,6 +880,7 @@ MIGRATIONS = [
     _voice_backing,                                                  # -> 48
     _take_voice_mix,                                                 # -> 49
     _voice_vocals_only,                                              # -> 50
+    _voice_recordings,                                               # -> 51
 ]
 
 

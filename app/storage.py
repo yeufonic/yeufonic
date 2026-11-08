@@ -225,6 +225,21 @@ def items(busy: Busy, lora_base: Callable[[dict], str]) -> list[dict]:
                            "minutes for every hundred songs, and runs in the background.",
         })
 
+    for voice in rows("SELECT id, name, state FROM voices ORDER BY name"):
+        base = config.DATA_DIR / "voices" / voice["id"]
+        heard = [p for p in (base / "vocals", base / "excerpts") if p.exists()]
+        size = sum(tree(p)[0] for p in heard)
+        if size:
+            out.append({
+                "id": f"voice-heard:{voice['id']}", "title": f"What a voice learned from: {voice['name']}",
+                "bytes": size, "files": sum(tree(p)[1] for p in heard), "_paths": heard,
+                "blocked": "it is training now" if voice["state"] == "training" else None,
+                "what": "Each song's separated vocal and the excerpts the voice trained on, kept to listen to on the "
+                        "Voices page. The voice does not use them.",
+                "consequence": "The voice keeps working. You can no longer listen to what it learned from until it "
+                               "is trained again. Its own recordings are not touched.",
+            })
+
     for identity in rows("SELECT id, name FROM identities ORDER BY name"):
         name = identity["name"] or "corpus"
         dataset = _corpus_dir(identity["id"]) / "dataset"
@@ -272,8 +287,11 @@ def areas() -> list[dict]:
          tree(config.TAKES_DIR)),
         ("Corpora", "Each corpus's copy of its songs, their separated vocals, scores, and the training set. "
                     "Delete a corpus, or songs in it, from the Corpora window.", tree(data / "identities")),
-        ("Recordings", "Recordings you loaded to cover or transcribe.", tree(config.SOURCES_DIR)),
+        ("Recordings", "Recordings you loaded to cover or transcribe. A voice that uses one points at it here "
+                       "rather than keeping a copy.", tree(config.SOURCES_DIR)),
         ("Stems", "Stems you have separated and kept.", tree(config.STEMS_DIR)),
+        ("Voices", "Each recorded voice's model, the recordings made or uploaded for it, and what it learned from "
+                   "(listed above). Delete a voice, or its recordings, on the Voices page.", tree(data / "voices")),
         ("LoRAs", "Finished LoRAs, and the checkpoints training saved along the way (listed above). Remove "
                   "a LoRA from the Style LoRA list.", (lora_total, lora_files)),
         ("Models", "The models Yeufonic runs on, which it needs: the YuE2 model, Gemma, the transcriber, and the "
@@ -282,12 +300,13 @@ def areas() -> list[dict]:
     inbox, outbox = tree(config.ENGINE_INPUT_DIR), tree(config.ENGINE_OUTPUT_DIR)
     out.append(("The engine's working folders", "What the engine was sent and what it wrote on the way. Mostly "
                 "copies the app has taken back.", (inbox[0] + outbox[0], inbox[1] + outbox[1])))
-    counted = sum(tree(p)[0] for p in (config.TAKES_DIR, data / "identities", config.SOURCES_DIR, config.STEMS_DIR))
+    counted = sum(tree(p)[0] for p in (config.TAKES_DIR, data / "identities", config.SOURCES_DIR, config.STEMS_DIR,
+                                       data / "voices"))
     whole = tree(data)
     out.append(("Everything else here", "The database, logs and temporary files.",
                 (max(0, whole[0] - counted), max(0, whole[1]))))
     result = [{"name": n, "note": note, "bytes": b, "files": f} for n, note, (b, f) in out]
-    result[4]["checkpoint_bytes"] = mark_bytes
+    result[5]["checkpoint_bytes"] = mark_bytes
     return result
 
 
