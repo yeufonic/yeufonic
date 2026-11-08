@@ -166,4 +166,6 @@ def describe(persona: dict | None) -> str:
     if not persona:
         return ""
     octave = persona.get("octave") or 0
-    return persona["name"] + (f", {octave:+d} octave" if octave else "")
+    return (persona["name"] + (f", {octave:+d} octave" if octave else "")
+            + f", vocal {persona.get('level_db') or 0:+g} dB, instruments {persona.get('backing_db') or 0:+g} dB"
+            + f", likeness {round(100 * float(persona.get('likeness', 0.75)))}%")

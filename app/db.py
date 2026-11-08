@@ -156,7 +156,8 @@ CREATE TABLE IF NOT EXISTS takes (
     parent_id TEXT,
     hook_abc TEXT,
     hook_section TEXT,
-    cfg_scale REAL
+    cfg_scale REAL,
+    voice_mix TEXT
 );
 CREATE TABLE IF NOT EXISTS identities (
     id TEXT PRIMARY KEY,
@@ -777,6 +778,12 @@ def _voice_backing() -> None:
         execute("ALTER TABLE voices ADD COLUMN backing_db REAL NOT NULL DEFAULT 0")
 
 
+def _take_voice_mix() -> None:
+    """A take's own octave, levels and likeness for its recorded voice, as JSON over the voice's defaults."""
+    if "voice_mix" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN voice_mix TEXT")
+
+
 def _cfg_scale() -> None:
     """The music stage's guidance towards the style and words, set in Advanced; NULL is the engine's own."""
     if "cfg_scale" not in _columns("takes"):
@@ -831,6 +838,7 @@ MIGRATIONS = [
     _voice_level,                                                    # -> 46
     _voice_likeness,                                                 # -> 47
     _voice_backing,                                                  # -> 48
+    _take_voice_mix,                                                 # -> 49
 ]
 
 

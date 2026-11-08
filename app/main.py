@@ -1033,8 +1033,9 @@ def _advanced_of(body, fallback: dict | None = None) -> dict:
 class LoraSettingsMixin(BaseModel):
     identity_id: str | None = Field(None, max_length=64)
     persona_id: str | None = Field(None, max_length=64)
-    # A recorded voice, applied as a prefix of its tokens at render time (VOICE-PERSONA.md 8.6).
+    # A recorded voice: the take is rendered, then its vocal sung again in it (VOICE-PERSONA.md).
     voice_id: str | None = Field(None, max_length=64)
+    voice_mix: dict | None = None   # the take's own octave, levels and likeness over the voice's defaults
     voice_lora: str | None = Field(None, max_length=200)
     voice_lora_strength: float = 1.0
     voice_lora_clip: float = Field(0.0, ge=0.0, le=3.0)
@@ -1236,6 +1237,7 @@ class RenderIn(BaseModel):
     cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
     # The recorded voice the editor shows: "" for none, omitted to keep the take's own.
     voice_id: str | None = Field(None, max_length=64)
+    voice_mix: dict | None = None
 
 
 class WordsIn(RenderIn):
@@ -2736,6 +2738,7 @@ async def create_take(body: TakeIn) -> dict:
         "identity_id": body.identity_id or body.persona_id,
         "persona_id": body.identity_id or body.persona_id,
         "voice_id": body.voice_id,
+        "voice_mix": _voice_mix(body.voice_mix),
         "voice_lora": body.voice_lora,
         "voice_lora_strength": body.voice_lora_strength,
         "voice_lora_clip": body.voice_lora_clip,
@@ -2744,12 +2747,12 @@ async def create_take(body: TakeIn) -> dict:
     }
     execute(
         """INSERT INTO takes(id, source_id, title, style, lyrics, abc, mode, seed, checkpoint, max_duration, status, created_at,
-                             space_id, parent_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_id, voice_lora, voice_lora_strength, voice_lora_clip,
+                             space_id, parent_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_id, voice_mix, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                              chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale)
            VALUES(:id, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration, 'queued', :created_at,
-                  :space_id, :parent_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
+                  :space_id, :parent_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_id, :voice_mix, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
                   :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale)""",
@@ -2891,6 +2894,7 @@ def _new_take_record(kind: str, title: str, words: str, body: SongIn | Instrumen
         "identity_id": getattr(body, "identity_id", None) or getattr(body, "persona_id", None),
         "persona_id": getattr(body, "identity_id", None) or getattr(body, "persona_id", None),
         "voice_id": getattr(body, "voice_id", None),
+        "voice_mix": _voice_mix(getattr(body, "voice_mix", None)),
         "voice_lora": getattr(body, "voice_lora", None),
         "voice_lora_strength": getattr(body, "voice_lora_strength", 1.0),
         "voice_lora_clip": getattr(body, "voice_lora_clip", 0.0),
@@ -2905,19 +2909,19 @@ def _insert_new_take(record: dict) -> None:
     execute(
         """INSERT INTO takes(id, kind, source_id, title, style, lyrics, brief, abc, mode, seed, checkpoint,
                              max_duration, cap_typed, status, created_at, auto_render, variety, harmony, space_id, parent_id, interpretation, feel, realaudio,
-                             normalise, identity_id, persona_id, voice_id, voice_lora, voice_lora_strength, voice_lora_clip,
+                             normalise, identity_id, persona_id, voice_id, voice_mix, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                              chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale,
                              hook_abc, hook_section)
            VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :brief, :abc, :mode, :seed, :checkpoint,
                   :max_duration, :cap_typed, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :parent_id, :interpretation, :feel, :realaudio,
-                  :normalise, :identity_id, :persona_id, :voice_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
+                  :normalise, :identity_id, :persona_id, :voice_id, :voice_mix, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
                   :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale,
                   :hook_abc, :hook_section)""",
-        {"hook_abc": None, "hook_section": None, "voice_id": None, **record},
+        {"hook_abc": None, "hook_section": None, "voice_id": None, "voice_mix": None, **record},
     )
 
 
@@ -3301,6 +3305,7 @@ def _render_settings(take: dict, body: RenderIn | None) -> dict:
     back to the take's own when the request leaves it out."""
     got = {
         "voice_id": take.get("voice_id"),
+        "voice_mix": take.get("voice_mix"),
         "style": take["style"],
         "max_duration": take["max_duration"],
         "mode": take["mode"],
@@ -3320,7 +3325,19 @@ def _render_settings(take: dict, body: RenderIn | None) -> dict:
         got.update(_style_lora_of(body))
     if body.voice_id is not None:
         got["voice_id"] = body.voice_id or None
+    if body.voice_mix is not None:
+        got["voice_mix"] = _voice_mix(body.voice_mix)
     return got
+
+
+def _voice_mix(wanted: dict | None) -> str | None:
+    """A take's own settings for its recorded voice, each kept in the voice's steps; JSON, or None for the voice's."""
+    if not wanted:
+        return None
+    clamps = {"octave": persona.clamp_octave, "level_db": persona.clamp_level, "backing_db": persona.clamp_backing,
+              "likeness": persona.clamp_likeness}
+    kept = {key: clamp(wanted[key]) for key, clamp in clamps.items() if wanted.get(key) is not None}
+    return json.dumps(kept) if kept else None
 
 
 @app.post("/api/takes/{take_id}/render")
@@ -3366,8 +3383,8 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
         seed = int.from_bytes(os.urandom(4), "big")
     else:
         seed = take["seed"]
-    execute("UPDATE takes SET status = 'queued', error = NULL, stage = NULL, checkpoint = ?, interpretation = ?, realaudio = ?, normalise = ?, identity_id = ?, persona_id = ?, voice_id = ?, voice_lora = ?, voice_lora_strength = ?, style_lora = ?, style_lora_model = ?, style_lora_clip = ?, style = ?, max_duration = ?, mode = ?, seed = ?, sound_seed = ?, vocal_check = NULL, loudness = NULL, sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?, chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ?, cfg_scale = ? WHERE id = ?",
-            (config.CHECKPOINT, interpretation, realaudio, normalise, identity_val, identity_val, sl["voice_id"], voice_lora, voice_lora_strength, sl["style_lora"], sl["style_lora_model"], sl["style_lora_clip"],
+    execute("UPDATE takes SET status = 'queued', error = NULL, stage = NULL, checkpoint = ?, interpretation = ?, realaudio = ?, normalise = ?, identity_id = ?, persona_id = ?, voice_id = ?, voice_mix = ?, voice_lora = ?, voice_lora_strength = ?, style_lora = ?, style_lora_model = ?, style_lora_clip = ?, style = ?, max_duration = ?, mode = ?, seed = ?, sound_seed = ?, vocal_check = NULL, loudness = NULL, sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?, chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ?, cfg_scale = ? WHERE id = ?",
+            (config.CHECKPOINT, interpretation, realaudio, normalise, identity_val, identity_val, sl["voice_id"], sl["voice_mix"], voice_lora, voice_lora_strength, sl["style_lora"], sl["style_lora_model"], sl["style_lora_clip"],
              sl["style"], sl["max_duration"], sl["mode"], seed,
              take.get("sound_seed") if seed == take["seed"] else None,
              adv["sampler_steps"], adv["avoid"], adv["target_key"], adv["target_bpm"], adv["max_abc_tokens"],
@@ -3662,7 +3679,7 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
             "variety": take["variety"],
             "harmony": take["harmony"], "space_id": take["space_id"], "interpretation": name, "feel": take["feel"],
             "realaudio": realaudio, "normalise": normalise, "identity_id": identity_val, "persona_id": identity_val,
-            "voice_id": take.get("voice_id"), "voice_lora": voice_lora, "voice_lora_strength": voice_lora_strength,
+            "voice_id": take.get("voice_id"), "voice_mix": take.get("voice_mix"), "voice_lora": voice_lora, "voice_lora_strength": voice_lora_strength,
             "voice_lora_clip": take.get("voice_lora_clip", 0.0),
             "style_lora": take.get("style_lora"),
             "style_lora_model": take.get("style_lora_model", 1.0),
@@ -3685,13 +3702,13 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
         execute(
             """INSERT INTO takes(id, kind, source_id, parent_id, title, style, lyrics, abc, mode, seed, checkpoint, max_duration,
                                  status, created_at, variety, harmony, space_id, interpretation, feel, realaudio, normalise,
-                                 identity_id, persona_id, voice_id, voice_lora, voice_lora_strength, voice_lora_clip,
+                                 identity_id, persona_id, voice_id, voice_mix, voice_lora, voice_lora_strength, voice_lora_clip,
                                  style_lora, style_lora_model, style_lora_clip, sound_seed,
                                  sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                                  chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale)
                VALUES(:id, :kind, :source_id, :parent_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration,
                       'queued', :created_at, :variety, :harmony, :space_id, :interpretation, :feel, :realaudio, :normalise,
-                      :identity_id, :persona_id, :voice_id, :voice_lora, :voice_lora_strength, :voice_lora_clip,
+                      :identity_id, :persona_id, :voice_id, :voice_mix, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                       :style_lora, :style_lora_model, :style_lora_clip, :sound_seed,
                       :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
                       :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale)""",

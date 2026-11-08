@@ -7062,7 +7062,7 @@ function editorRenderSettings() {
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   });
   // The voice the editor shows, none included: a voice chosen for a planned take is sung by its render.
-  if ($('persona-select')) { data.voice_id = VOICES.pick || ''; }
+  if ($('persona-select')) { data.voice_id = VOICES.pick || ''; data.voice_mix = voiceMixWanted() || {}; }
   if ($('style-lora') && !data.style_lora) {
     // None, chosen from a list that holds the take's LoRA, turns it off. A list
     // without it, not loaded yet or with the file gone, is no choice at all.
@@ -7262,6 +7262,7 @@ function songBody(seed) {
     harmony: harmonyStep(),
     space_id: State.spaceId,
     voice_id: VOICES.pick || null,
+    voice_mix: voiceMixWanted(),
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -9124,6 +9125,7 @@ function instBody(seed) {
     harmony: harmonyStep(),
     space_id: State.spaceId,
     voice_id: VOICES.pick || null,
+    voice_mix: voiceMixWanted(),
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -11852,6 +11854,7 @@ async function startFresh() {
   delete $('style').dataset.touched;
   // No style LoRA either: one chosen for the last take would bring its trigger word back into the style.
   showStyleLora({});
+  if (typeof clearPersonaPick === 'function') { clearPersonaPick(); }
   $('max-duration').value = defaultCap();
   State.capTyped = false;
   State.capFromScore = false;
@@ -14164,6 +14167,7 @@ function coverBody(seed) {
     max_duration: parseFloat($('max-duration').value) || 360,
     space_id: State.spaceId,
     voice_id: VOICES.pick || null,
+    voice_mix: voiceMixWanted(),
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -17310,7 +17314,7 @@ function wirePlaylists() {
    A recorded voice: an RVC model trained from someone's singing (a corpus's songs or one recording), on the voice
    service.  Managed on its own page, opened from the menu; the editor only picks one for a take, whose render is
    then sung again in it (VOICE-PERSONA.md). */
-var VOICES = { list: [], service: null, view: 'list', id: null, poll: null, pick: null, takeId: null };
+var VOICES = { list: [], service: null, view: 'list', id: null, poll: null, pick: null, takeId: null, takeMix: {} };
 
 function personaNameOf(id) {
   var found = VOICES.list.filter(function (v) { return v.id === id; })[0];
@@ -17533,7 +17537,7 @@ async function showVoice(id) {
           ' <select id="voice-likeness">' + likenessOptions(v) + '</select></label>' +
       '</div>'
       : '') +
-    '<h4>' + t('What it learned from') + '</h4><div id="voice-heard" class="muted">…</div>' +
+    '<div id="voice-heard"></div>' +
     '<div class="row identity-actions">' +
       '<button id="voice-rename" class="ghost">' + t('Rename') + '</button>' +
       '<button id="voice-regen" class="ghost"' + (usable ? '' : ' disabled') + '>' + t(ready ? 'Train again' : 'Train') + '</button>' +
@@ -17557,7 +17561,7 @@ async function paintVoiceHeard(id) {
     }).join('') + '</details>';
   }
   var html = list('vocals', t('Each song’s separated vocal')) + list('excerpts', t('The excerpts it trained on'));
-  box.innerHTML = html || t('Nothing kept: voices trained before this was added keep only their model.');
+  box.innerHTML = html ? '<h4>' + t('What it learned from') + '</h4>' + html : '';
 }
 
 async function voiceChange(field, value) {
@@ -17626,7 +17630,19 @@ function importVoiceFile() {
 }
 
 
-/* The editor's Recorded voice: a pick for the take, nothing more.  Ready voices only; hidden without the service. */
+/* The editor's Recorded voice: a pick for the take, and the take's own octave, levels and likeness, which start
+   from the voice's defaults (set on the Voices page).  Ready voices only; hidden without the service. */
+function pickedVoiceMix() {
+  var v = VOICES.list.filter(function (x) { return x.id === VOICES.pick; })[0];
+  if (!v) { return null; }
+  return Object.assign({ octave: v.octave, level_db: v.level_db, backing_db: v.backing_db, likeness: v.likeness }, VOICES.takeMix || {});
+}
+
+/* What a new take or a render sends: the editor's settings for the picked voice, or null with none picked. */
+function voiceMixWanted() {
+  return VOICES.pick ? pickedVoiceMix() : null;
+}
+
 function paintPersonaField() {
   var host = $('persona-field');
   if (!host) { return; }
@@ -17634,24 +17650,51 @@ function paintPersonaField() {
   var usable = Boolean(VOICES.service && VOICES.service.ok && ready.length);
   host.classList.toggle('hidden', !usable);
   if (!usable) { return; }
+  if (VOICES.pick && !ready.some(function (v) { return v.id === VOICES.pick; })) { VOICES.pick = null; }
   var options = ['<option value="">' + esc(t('None')) + '</option>'].concat(ready.map(function (v) {
     return '<option value="' + esc(v.id) + '">' + esc(v.name) + '</option>';
   }));
+  var mix = pickedVoiceMix();
   host.innerHTML = '<label for="persona-select">' + t('Recorded voice') + '</label>' +
-    '<select id="persona-select">' + options.join('') + '</select>';
+    '<select id="persona-select">' + options.join('') + '</select>' +
+    (mix ? '<div class="voice-mix">' +
+      '<label>' + t('Octave') + ' <select data-mix="octave">' + octaveOptions(mix) + '</select></label>' +
+      '<label>' + t('Vocal') + ' <select data-mix="level_db">' + levelOptions(mix) + '</select></label>' +
+      '<label>' + t('Instruments') + ' <select data-mix="backing_db">' + backingOptions(mix) + '</select></label>' +
+      '<label>' + t('Likeness') + ' <select data-mix="likeness">' + likenessOptions(mix) + '</select></label>' +
+      '</div>' : '');
   var select = $('persona-select');
-  if (VOICES.pick && !ready.some(function (v) { return v.id === VOICES.pick; })) { VOICES.pick = null; }
   select.value = VOICES.pick || '';
-  select.addEventListener('change', function () { VOICES.pick = select.value || null; });
+  select.addEventListener('change', function () {
+    VOICES.pick = select.value || null;
+    VOICES.takeMix = {};          // another voice starts from its own defaults
+    paintPersonaField();
+  });
+  Array.prototype.forEach.call(host.querySelectorAll('[data-mix]'), function (control) {
+    control.addEventListener('change', function () {
+      VOICES.takeMix = Object.assign({}, VOICES.takeMix || {});
+      VOICES.takeMix[control.dataset.mix] = Number(control.value);
+    });
+  });
 }
 
-/* The editor shows the voice of the take open in it, or none: a voice is the take's, like its LoRAs. */
+/* The editor shows the voice of the take open in it, with the take's own settings, or none. */
 function setPersonaFromTake(take) {
   if (take && take.id && take.id === VOICES.takeId) { return; }
   VOICES.takeId = take && take.id;
   VOICES.pick = (take && take.voice_id) || null;
-  var select = $('persona-select');
-  if (select) { select.value = VOICES.pick || ''; }
+  var mix = {};
+  try { mix = take && take.voice_mix ? (typeof take.voice_mix === 'string' ? JSON.parse(take.voice_mix) : take.voice_mix) : {}; } catch (err) { mix = {}; }
+  VOICES.takeMix = mix || {};
+  paintPersonaField();
+}
+
+/* A new take starts with no recorded voice, like no style LoRA. */
+function clearPersonaPick() {
+  VOICES.pick = null;
+  VOICES.takeId = null;
+  VOICES.takeMix = {};
+  paintPersonaField();
 }
 
 function installPersonaField() {

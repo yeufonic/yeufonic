@@ -3371,6 +3371,8 @@ async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
         log.warning("Take '%s' names a recorded voice that is not ready; it keeps the vocal it was rendered with",
                     record.get("title") or take_id)
         return
+    with contextlib.suppress(ValueError, TypeError):   # the take's own octave, levels and likeness over the voice's
+        voice = {**voice, **json.loads(record.get("voice_mix") or "{}")}
     execute("UPDATE takes SET stage = 'voice' WHERE id = ?", (take_id,))
     CURRENT.update({"prompt_id": None, "label": "Singing in a recorded voice", "progress": None})
     sung = dest.with_name(dest.stem + ".voice" + dest.suffix)
