@@ -22,7 +22,7 @@ import httpx
 from . import artwork, config, engine_cpp, identities, instrumental, llm, loras, lyrics, persona, score, stems, storage, trainsize, transpose, voices
 from .db import bump_average, execute, get_setting, one, rows
 from .engine import OUT_OF_MEMORY, Engine, load_template
-from .library import (audio_duration, ensure_peaks, fade_out_end, loudness, inside, normal_target, normalise, normalised_path, original_path, remove_tree,
+from .library import (audio_duration, ensure_peaks, fade_out_end, loudness, inside, normal_target, normalise, normalised_path, original_path, remove_tree, rendered_path,
                       take_audio_path, vocal_path, write_take_note)
 
 personas = identities
@@ -754,7 +754,7 @@ def extract_audio_item(job: dict, class_type: str) -> dict | None:
 # ----------------------------------------------------------------------- GPU lane
 def fail(kind: str, ref_id: str, message: str) -> None:
     title = None
-    if kind in ("plan", "render"):
+    if kind in ("plan", "render", "sing"):
         row = one("SELECT title FROM takes WHERE id = ?", (ref_id,))
         title = row["title"] if row else None
     elif kind in ("transcribe", "lyrics"):
@@ -883,6 +883,9 @@ async def run_job(kind: str, ref_id: str) -> None:
         return
     if kind == "voice":
         await run_voice_train(ref_id)
+        return
+    if kind == "sing":
+        await run_voice_sing(ref_id)
         return
     if kind == "lyrics":
         record = LYRICS.get(ref_id)
@@ -2806,7 +2809,7 @@ async def cancel_waiting(kind: str, ref_id: str, whole_song: bool = True) -> boo
                 (state, ref_id))
         log.info("Cancelled waiting transcription for source '%s'", source["title"] or ref_id)
         return True
-    if kind in ("render", "plan"):
+    if kind in ("render", "plan", "sing"):
         take = one("SELECT * FROM takes WHERE id = ?", (ref_id,))
         if not take or take["status"] != "queued":
             return False
@@ -3356,13 +3359,14 @@ def _log_voice_step(name: str, state: dict, said: dict) -> None:
             log.info("Recorded voice '%s': training %d%% done", name, quarter * 25)
 
 
-async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
-    """The take's vocal sung again in its recorded voice, in place.  A failure keeps the take as rendered, and says so."""
+async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> str | None:
+    """The take's vocal sung again in its recorded voice, in place.  A failure keeps the take as rendered, says so,
+    and is returned."""
     voice = persona.one(record["voice_id"])
     if not persona.usable(voice):
         log.warning("Take '%s' names a recorded voice that is not ready; it keeps the vocal it was rendered with",
                     record.get("title") or take_id)
-        return
+        return "that voice is not ready"
     execute("UPDATE takes SET stage = 'voice' WHERE id = ?", (take_id,))
     CURRENT.update({"prompt_id": None, "label": "Singing in a recorded voice", "progress": None})
     sung = dest.with_name(dest.stem + ".voice" + dest.suffix)
@@ -3377,7 +3381,66 @@ async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
             raise RuntimeError((answer.json() or {}).get("error") or f"answered {answer.status_code}")
         sung.replace(dest)
         log.info("Take '%s' sung by the recorded voice %s", record.get("title") or take_id, persona.describe(voice))
+        return None
     except Exception as err:  # noqa: BLE001
         sung.unlink(missing_ok=True)
         log.warning("Could not sing '%s' in the recorded voice %s; it keeps the vocal it was rendered with: %s",
                     record.get("title") or take_id, voice["name"], err)
+        return str(err)
+
+
+async def run_voice_sing(take_id: str) -> None:
+    """A take made from another one's audio, its vocal sung in a recorded voice: no render, only the conversion."""
+    started = time.time()
+    record = one("SELECT * FROM takes WHERE id = ?", (take_id,))
+    if not record or record["status"] != "queued":
+        return
+    parent = one("SELECT audio_path FROM takes WHERE id = ?", (record.get("parent_id"),)) if record.get("parent_id") else None
+    source = rendered_path(Path(parent["audio_path"])) if parent and parent["audio_path"] else None
+    if not source or not source.is_file():
+        fail("sing", take_id, "the take it was made from has no audio")
+        return
+    execute("UPDATE takes SET status = 'running', error = NULL, stage = 'voice' WHERE id = ?", (take_id,))
+    CURRENT.clear()
+    CURRENT.update({"kind": "sing", "id": take_id, "prompt_id": None, "started": started,
+                    "label": "Singing in a recorded voice"})
+    title = record.get("title") or take_id
+    dest = take_audio_path(take_id, title)
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        await asyncio.to_thread(shutil.copyfile, source, dest)
+        log.info("Singing '%s' in a recorded voice", title)
+        problem = await _sing_in_voice(take_id, record, dest)
+        if take_id in CANCELLED or not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
+            remove_tree(dest.parent)
+            if take_id in CANCELLED:
+                fail("sing", take_id, "cancelled")
+            return
+        if problem:
+            remove_tree(dest.parent)
+            fail("sing", take_id, f"could not sing it in that voice: {problem}")
+            return
+        level = await asyncio.to_thread(loudness, dest)
+        normalised, normalised_to, playing = 0, None, dest
+        if record.get("normalise"):
+            with contextlib.suppress(Exception):
+                target = float(record["target_lufs"]) if record.get("target_lufs") is not None else normal_target()
+                playing = await asyncio.to_thread(normalise, dest, target)
+                normalised, normalised_to = 1, target
+        duration = await asyncio.to_thread(audio_duration, dest)
+        execute(
+            "UPDATE takes SET status = 'done', stage = NULL, audio_path = ?, duration = ?, finished_at = ?, elapsed = ?, "
+            "error = NULL, loudness = ?, normalised = ?, normalised_to = ? WHERE id = ?",
+            (str(playing), duration, time.time(), time.time() - started, level, normalised, normalised_to, take_id))
+        fresh = one("SELECT * FROM takes WHERE id = ?", (take_id,))
+        if fresh:
+            await asyncio.to_thread(write_take_note, fresh, dest)
+        await asyncio.to_thread(ensure_peaks, playing)
+        log.info("'%s' sung in a recorded voice in %s", title, took(time.time() - started))
+    except Exception as err:  # noqa: BLE001
+        remove_tree(dest.parent)
+        fail("sing", take_id, f"could not sing it in that voice: {err}")
+    finally:
+        if CURRENT.get("id") == take_id:
+            CURRENT.clear()
+        CANCELLED.discard(take_id)

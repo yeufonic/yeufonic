@@ -842,11 +842,13 @@ async def lifespan(app: FastAPI):
 
 async def requeue_waiting() -> None:
     """Put jobs that were waiting at shutdown back in their queues, oldest first."""
-    waiting = [(row["created_at"], "take", row) for row in rows("SELECT id, abc, mode, created_at FROM takes WHERE status = 'queued'")]
+    waiting = [(row["created_at"], "take", row) for row in rows("SELECT id, abc, mode, stage, created_at FROM takes WHERE status = 'queued'")]
     waiting += [(row["created_at"], "source", row) for row in rows("SELECT id, created_at FROM sources WHERE transcribe_state = 'queued'")]
     for _, kind, row in sorted(waiting, key=lambda item: item[0]):
         if kind == "source":
             await QUEUE.put({"kind": "transcribe", "id": row["id"]})
+        elif row["stage"] == "sing":   # waiting to be sung in a recorded voice, from its parent's audio
+            await QUEUE.put({"kind": "sing", "id": row["id"]})
         else:
             sings = (row["abc"] or "").strip() or row["mode"] == NO_SCORE   # a take with no score is rendered as it is
             await QUEUE.put({"kind": "render" if sings else "plan", "id": row["id"]})
@@ -6130,6 +6132,54 @@ async def regenerate_voice(persona_id: str) -> dict:
         raise HTTPException(400, "There is no recording left to train on.")
     await jobs.queue_voice_training(persona_id)
     return {"queued": True}
+
+
+VOICE_HEARD = ("vocals", "excerpts")   # what a voice learned from: each song's vocal whole, and the stretches trained on
+
+
+@app.get("/api/voices/{persona_id}/heard")
+def voice_heard(persona_id: str) -> dict:
+    if persona.one(persona_id) is None:
+        raise HTTPException(404, "no such persona")
+    folder = persona.folder(persona_id)
+    return {part: sorted(p.name for p in (folder / part).glob("*") if p.is_file()) for part in VOICE_HEARD}
+
+
+@app.get("/api/voices/{persona_id}/heard/{part}/{name}")
+def voice_heard_file(persona_id: str, part: str, name: str) -> FileResponse:
+    root = persona.folder(persona_id) / part
+    path = root / name
+    if part not in VOICE_HEARD or not inside(path, root) or not path.is_file():
+        raise HTTPException(404, "no such file")
+    return FileResponse(path)
+
+
+class SingIn(BaseModel):
+    take_id: str = Field(..., max_length=64)
+
+
+@app.post("/api/voices/{persona_id}/sing")
+async def sing_in_voice(persona_id: str, body: SingIn) -> dict:
+    """A finished take sung in this voice: a new take beside it, its vocal converted, nothing rendered again."""
+    voice = persona.one(persona_id)
+    if not persona.usable(voice):
+        raise HTTPException(400, "This voice has no trained model yet.")
+    take = one("SELECT * FROM takes WHERE id = ?", (body.take_id,))
+    if not take:
+        raise HTTPException(404, "no such take")
+    if take["kind"] == "instrumental":
+        raise HTTPException(400, "An instrumental has no vocal to sing in a voice.")
+    if take["status"] != "done" or not take["audio_path"] or not Path(take["audio_path"]).exists():
+        raise HTTPException(400, "That take has no audio yet.")
+    record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
+    record.update(id=uuid.uuid4().hex[:12], title=f"{_base_title(take['title'])} \u00b7 {voice['name']}",
+                  status="queued", stage="sing", created_at=time.time(), parent_id=take["id"], voice_id=persona_id)
+    columns = list(record)
+    execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)
+    await queue_take("sing", record["id"])
+    log.info("Queued '%s' to be sung in the recorded voice %s (%s -> %s)", take.get("title") or take["id"],
+             voice["name"], take["id"], record["id"])
+    return {"id": record["id"], "title": record["title"]}
 
 
 # A voice to give to someone, or one someone gave: its model and index in a zip, with its name and octave.  An RVC

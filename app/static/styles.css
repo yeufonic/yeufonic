@@ -7049,3 +7049,13 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 /* No score: what steers a plan has nothing to act on, so it is shown greyed out while it is chosen. */
 #harmony-field.disabled, #variety-field.disabled, label.check.disabled { opacity: 0.45; }
 #variety:disabled, #keep-tune:disabled, #follow-structure:disabled { cursor: not-allowed; }
+
+/* Voices page */
+.voices h4 { margin: 18px 0 6px; }
+.voices .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+.voice-card.failed strong { color: var(--bad, #d55); }
+.voice-card.training { border-style: dashed; }
+.voice-heard-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+.voice-heard-row span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.voice-heard-row audio { height: 32px; flex: 0 0 280px; }
+#voice-take { max-width: 360px; }

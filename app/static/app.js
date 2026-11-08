@@ -3102,7 +3102,7 @@ function refreshTitleHint() {
 
 var JOB_KINDS = { render: t('Render'), plan: t('Score plan'), transcribe: t('Transcription'), separate: t('Stem separation'), hear: t('Lyric hearing'), lyrics: t('Lyrics'), text: t('Text generation'), train: t('LoRA training'), other: t('Engine job'),
   identity_score: t('Corpus analysis'), identity_style: t('Corpus analysis'), persona_score: t('Corpus analysis'), persona_style: t('Corpus analysis'),
-  identity_prep: t('Corpus prep'), persona_prep: t('Corpus prep'), art: t('Picture'), voice: t('Recorded voice') };
+  identity_prep: t('Corpus prep'), persona_prep: t('Corpus prep'), art: t('Picture'), voice: t('Recorded voice'), sing: t('Recorded voice') };
 
 /* The take a job is for, where it is one of the app's own: a plan, a render or a picture.  Its title in the job card
    goes to that take. */
@@ -3410,7 +3410,7 @@ function paintJob(current, queue, options) {
   var titles = { render: t('Rendering your song'), plan: t('Writing the score plan'), transcribe: t('Transcribing the recording'),
     lyrics: t('Writing lyrics'), train: t('Training the LoRA'), identity_score: t('Analysing a corpus song'),
     identity_style: t('Analysing a corpus song'), persona_score: t('Analysing a corpus song'), persona_style: t('Analysing a corpus song'),
-    identity_prep: t('Preparing corpus song'), persona_prep: t('Preparing corpus song'), art: t('Drawing a picture'), voice: t('Training a voice') };
+    identity_prep: t('Preparing corpus song'), persona_prep: t('Preparing corpus song'), art: t('Drawing a picture'), voice: t('Training a voice'), sing: t('Singing in a voice') };
   var shown = null;   // the job whose title the card shows, so a click on it can go to its take
   // Only the render has an average, measured from this machine's own history.
   // The others show the time they have taken and claim nothing about the rest.
@@ -7060,8 +7060,6 @@ function editorRenderSettings() {
     interpretation: $('interpretation').value,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   });
-  // The voice the editor shows, none included: a voice chosen for a planned take is sung by its render.
-  if ($('persona-select')) { data.voice_id = PERSONA.id || ''; }
   if ($('style-lora') && !data.style_lora) {
     // None, chosen from a list that holds the take's LoRA, turns it off. A list
     // without it, not loaded yet or with the file gone, is no choice at all.
@@ -7260,7 +7258,6 @@ function songBody(seed) {
     variety: $('variety').value,
     harmony: harmonyStep(),
     space_id: State.spaceId,
-    voice_id: PERSONA.id || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -9122,7 +9119,6 @@ function instBody(seed) {
     variety: $('variety').value,
     harmony: harmonyStep(),
     space_id: State.spaceId,
-    voice_id: PERSONA.id || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -10485,9 +10481,6 @@ async function showIdentityList() {
         '<strong><span class="corpus-dot" aria-hidden="true"></span>' + esc(item.name) + '</strong>' +
         '<span class="muted">' + t('trigger') + ' <code>' + esc(item.trigger_word) + '</code> · ' +
         t('{included} of {songs} songs', { included: item.included || 0, songs: item.songs || 0 }) + (item.exported_at ? ' · ' + t('exported') : '') + '</span>' +
-        '<span class="corpus-actions">' +
-        '<button type="button" class="ghost' + (PERSONA.service && PERSONA.service.ok ? '' : ' hidden') + '" data-voice-from="' + esc(item.id) + '" data-voice-name="' + esc(item.name) + '">' +
-        t('Make a voice…') + '</button></span>' +
         '<span class="corpus-preparing">' + t('preparing…') + '</span></div>';
     }).join('') + '</div>';
   paintCorpusCards();
@@ -11160,8 +11153,6 @@ var personaSong = identitySong;
 
 async function identityClick(event) {
   var target = event.target;
-  // Make a voice… sits on the card, and is handled on its own (makeVoiceFromCorpus): it does not open the corpus.
-  if (target.closest('[data-voice-from]')) { return; }
   var card = target.closest('[data-identity]') || target.closest('[data-persona]');
   if (card) { showIdentity(card.dataset.identity || card.dataset.persona); return; }
   if (target.closest('#identity-new') || target.closest('#persona-new')) { showIdentityNew(); return; }
@@ -11716,7 +11707,6 @@ function selectTake(take) {
     $('seed-fixed').checked = true;
   }
   if (take.style_lora !== undefined) { showStyleLora(take); }
-  if (typeof setPersonaFromTake === 'function') { setPersonaFromTake(take); }
   $('interpretation').value = INTERPRETATIONS[take.interpretation] ? take.interpretation : 'standard';
   paintInterpretation();
   loadAdvancedTakeSettings(take);
@@ -14167,7 +14157,6 @@ function coverBody(seed) {
     interpretation: $('interpretation').value,
     max_duration: parseFloat($('max-duration').value) || 360,
     space_id: State.spaceId,
-    voice_id: PERSONA.id || null,
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   }));
 }
@@ -17310,269 +17299,359 @@ function wirePlaylists() {
   }
 }
 
-/* ------------------------------------------------------------------ a recorded voice
-   A voice model trained from someone's singing; a take that names one is rendered as usual and its vocal is then
-   sung again in that voice (VOICE-PERSONA.md).  The field is built here rather than in the markup, so a new install
-   and an old page both work after a refresh, and it is hidden while the voice service is not running. */
-var PERSONA = { list: [], id: null, poll: null, takeId: null, service: null };
+/* ------------------------------------------------------------------ voices
+   A recorded voice: an RVC model trained from someone's singing (a corpus's songs or one recording), on the voice
+   service.  Its own page, opened from the menu: make, train, rename, hear what it learned from, and sing any
+   finished take in it, which makes a new take beside that one (VOICE-PERSONA.md). */
+var VOICES = { list: [], service: null, view: 'list', id: null, poll: null };
 
 function personaNameOf(id) {
-  var found = PERSONA.list.filter(function (v) { return v.id === id; })[0];
-  return found ? found.name : "";
+  var found = VOICES.list.filter(function (v) { return v.id === id; })[0];
+  return found ? found.name : '';
 }
 
-function voiceState(v) {
-  if (v.state === "failed") { return t("failed"); }
-  return t("training… {value}%", { value: Math.round((Number(v.progress) || 0) * 100) });
+function voiceStateText(v) {
+  if (v.state === 'ready') { return t('ready'); }
+  if (v.state === 'failed') { return t('failed'); }
+  var pct = Math.round((Number(v.progress) || 0) * 100);
+  return pct ? t('training… {value}%', { value: pct }) : t('waiting to train');
 }
 
-function paintPersonaField() {
-  var host = $("persona-field");
-  if (!host) { return; }
-  var usable = PERSONA.service && PERSONA.service.ok;
-  host.classList.toggle("hidden", !usable);
-  if (!usable) { return; }
-  var ready = PERSONA.list.filter(function (v) { return v.state === "ready"; });
-  var busy = PERSONA.list.filter(function (v) { return v.state !== "ready"; });
-  var options = ["<option value=''>" + esc(t("None")) + "</option>"];
-  ready.forEach(function (v) { options.push("<option value='" + esc(v.id) + "'>" + esc(v.name) + "</option>"); });
-  busy.forEach(function (v) {
-    // A failed voice can be chosen, so Regenerate can train it again; one in training waits.
-    options.push("<option value='" + esc(v.id) + "'" + (v.state === "failed" ? "" : " disabled") + ">" + esc(v.name) +
-      " · " + esc(voiceState(v)) + "</option>");
+function voiceOrigin(v) {
+  if (v.origin_identity) {
+    var corpus = (IDENTITIES_LIST || []).filter(function (c) { return c.id === v.origin_identity; })[0];
+    return t('from the corpus {value}', { value: corpus ? corpus.name : v.origin_identity });
+  }
+  return v.source_path ? t('from a recording') : t('imported');
+}
+
+async function loadVoices() {
+  try {
+    var answers = await Promise.all([api('/api/voices'), api('/api/voices/service')]);
+    VOICES.list = answers[0];
+    VOICES.service = answers[1];
+  } catch (err) {
+    VOICES.list = [];
+    VOICES.service = null;
+  }
+  clearTimeout(VOICES.poll);
+  if (VOICES.list.some(function (v) { return v.state === 'training'; })) {
+    VOICES.poll = setTimeout(function () {
+      loadVoices().then(function () { if (voicesOpen()) { repaintVoices(); } });
+    }, 10000);
+  }
+}
+
+function voicesOpen() { var m = $('voices-modal'); return Boolean(m && !m.classList.contains('hidden')); }
+
+async function openVoices() {
+  if (typeof closeBrandMenu === 'function') { closeBrandMenu(); }
+  var modal = $('voices-modal');
+  if (!modal) { return; }
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  if (!IDENTITIES_LIST || !IDENTITIES_LIST.length) {
+    try { IDENTITIES_LIST = await api('/api/identities'); } catch (err) { /* no corpora */ }
+  }
+  await loadVoices();
+  showVoiceList();
+}
+
+function closeVoices() {
+  var modal = $('voices-modal');
+  if (!modal) { return; }
+  modal.classList.add('hidden');
+  Array.prototype.forEach.call(modal.querySelectorAll('audio'), function (audio) { audio.pause(); });
+  document.body.style.overflow = '';
+}
+
+/* The poll redraws only a list, or a voice whose state moved: an open player or a half-typed form stays. */
+function repaintVoices() {
+  if (VOICES.view === 'list') { showVoiceList(); return; }
+  if (VOICES.view === 'voice') {
+    var v = VOICES.list.filter(function (x) { return x.id === VOICES.id; })[0];
+    var box = $('voice-state');
+    if (!v) { showVoiceList(); return; }
+    if (box && box.dataset.state !== v.state) { showVoice(v.id); return; }
+    if (box) { box.textContent = voiceStateText(v); }
+  }
+}
+
+function voicesHead(title, back) {
+  $('voices-heading').textContent = title;
+  $('voices-back').classList.toggle('hidden', !back);
+}
+
+function serviceNote() {
+  var s = VOICES.service;
+  if (s && s.ok) { return ''; }
+  return '<p class="hint bad">' + esc(s && s.running
+    ? t('The voice service is missing its models: run scripts/fetch-models.sh --voice.')
+    : t('The voice service is not running. Start it with the compose profile "voice" (COMPOSE_PROFILES=voice).')) + '</p>';
+}
+
+function showVoiceList() {
+  VOICES.view = 'list';
+  VOICES.id = null;
+  voicesHead(t('Voices'), false);
+  var usable = VOICES.service && VOICES.service.ok;
+  $('voices-body').innerHTML =
+    '<p class="identity-intro">' + t('A voice is trained from someone singing: the songs of a corpus, or one recording. Any finished take can then be sung in it, as a new take beside the original.') + '</p>' +
+    serviceNote() +
+    '<div class="row">' +
+      '<button id="voice-new" class="ghost"' + (usable ? '' : ' disabled') + '>' + t('New voice') + '</button>' +
+      '<button id="voice-import" class="ghost" title="' + t('Add a voice someone shared: the zip from their Download voice, or an RVC model (.pth, or a zip with its index)') + '">' + t('Import a voice…') + '</button>' +
+    '</div>' +
+    (VOICES.list.length ? '' : '<p class="muted">' + t('No voices yet.') + '</p>') +
+    '<div class="identity-cards">' + VOICES.list.map(function (v) {
+      return '<div class="identity-card voice-card ' + esc(v.state) + '" data-voice="' + esc(v.id) + '">' +
+        '<strong>' + esc(v.name) + '</strong>' +
+        '<span class="muted">' + esc(voiceStateText(v)) + ' · ' + esc(voiceOrigin(v)) + '</span></div>';
+    }).join('') + '</div>';
+}
+
+function showVoiceNew() {
+  VOICES.view = 'new';
+  voicesHead(t('New voice'), true);
+  var corpora = (IDENTITIES_LIST || []).map(function (c) {
+    return '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>';
+  }).join('');
+  $('voices-body').innerHTML =
+    '<div class="identity-form">' +
+      '<div class="field"><label for="vn-name">' + t('Name') + '</label><input id="vn-name" type="text" maxlength="80"></div>' +
+      '<div class="field"><label for="vn-from">' + t('Trained on') + '</label><select id="vn-from">' +
+        (corpora ? '<option value="corpus">' + t('The songs of a corpus') + '</option>' : '') +
+        '<option value="file">' + t('A recording of someone singing') + '</option></select></div>' +
+      '<div class="field' + (corpora ? '' : ' hidden') + '" id="vn-corpus-wrap"><label for="vn-corpus">' + t('Corpus') + '</label>' +
+        '<select id="vn-corpus">' + corpora + '</select>' +
+        '<p class="sub">' + t('Each song is separated again with a cleaner separator, and the singing shared out across them (Settings, training).') + '</p></div>' +
+      '<div class="field' + (corpora ? ' hidden' : '') + '" id="vn-file-wrap"><label for="vn-file">' + t('Recording') + '</label>' +
+        '<input id="vn-file" type="file" accept="audio/*"></div>' +
+      '<div class="row"><button id="vn-train" class="chip action">' + t('Train') + '</button>' +
+        '<span id="vn-status" class="status"></span></div>' +
+    '</div>';
+  var from = $('vn-from');
+  var name = $('vn-name');
+  function suggest() {
+    if (name.dataset.edited) { return; }
+    var corpus = $('vn-corpus');
+    if (from.value === 'corpus' && corpus && corpus.selectedOptions[0]) { name.value = corpus.selectedOptions[0].textContent + ' voice'; }
+    var file = $('vn-file').files[0];
+    if (from.value === 'file' && file) { name.value = file.name.replace(/\.[^.]+$/, ''); }
+  }
+  name.addEventListener('input', function () { name.dataset.edited = '1'; });
+  from.addEventListener('change', function () {
+    $('vn-corpus-wrap').classList.toggle('hidden', from.value !== 'corpus');
+    $('vn-file-wrap').classList.toggle('hidden', from.value !== 'file');
+    suggest();
   });
-  host.innerHTML = '<label for="persona-select">' + t("Recorded voice") + '</label>' +
-    '<select id="persona-select">' + options.join("") + "</select>" +
-    '<label class="persona-octave hidden" id="persona-octave-wrap">' + t("Octave") +
-    ' <select id="persona-octave"><option value="-1">−1</option><option value="0">0</option>' +
-    '<option value="1">+1</option></select></label>' +
-    '<label class="persona-octave hidden" id="persona-level-wrap" title="' +
-      t("The converted vocal against the rendered one's level in the mix") + '">' + t("Vocal level") +
-    ' <select id="persona-level"><option value="-3">−3 dB</option><option value="0">0 dB</option>' +
-    '<option value="3">+3 dB</option><option value="6">+6 dB</option></select></label>' +
-    '<button type="button" id="persona-make" class="ghost">' + t("Make a voice…") + '</button>' +
-    '<button type="button" id="persona-regen" class="ghost hidden">' + t("Regenerate") + '</button>' +
-    '<button type="button" id="persona-export" class="ghost hidden" title="' +
-      t("This voice's model in one zip, to give to someone else") + '">' + t("Download voice") + '</button>' +
-    '<button type="button" id="persona-import" class="ghost" title="' +
-      t("Add a voice someone shared: the zip from their Download voice, or an RVC model (.pth, or a zip with its index)") +
-      '">' + t("Import a voice…") + '</button>' +
-    '<p class="sub" id="persona-hint"></p>';
-  var select = $("persona-select");
-  if (select) {
-    select.value = PERSONA.id || "";
-    select.addEventListener("change", function () { PERSONA.id = select.value || null; refreshPersonaHint(); });
-  }
-  var make = $("persona-make");
-  if (make) { make.addEventListener("click", askForVoice); }
-  var regen = $("persona-regen");
-  if (regen) { regen.addEventListener("click", regeneratePersona); }
-  var exportButton = $("persona-export");
-  if (exportButton) {
-    exportButton.addEventListener("click", function () {
-      if (PERSONA.id) { window.location.href = "/api/voices/" + PERSONA.id + "/export"; }
-    });
-  }
-  var importButton = $("persona-import");
-  if (importButton) { importButton.addEventListener("click", askForVoiceFile); }
-  var octave = $("persona-octave");
-  if (octave) { octave.addEventListener("change", function () { setPersonaOctave(octave.value); }); }
-  var level = $("persona-level");
-  if (level) { level.addEventListener("change", function () { setPersonaField("level_db", level.value); }); }
-  refreshPersonaHint();
+  if ($('vn-corpus')) { $('vn-corpus').addEventListener('change', suggest); }
+  $('vn-file').addEventListener('change', suggest);
+  suggest();
 }
 
-/* A voice sung in another range sounds wrong, and only whole octaves keep it in the backing's key.  Saved on the
-   voice, so every take that picks it is sung at the same octave until it is changed here. */
-async function setPersonaOctave(value) { await setPersonaField("octave", value); }
-
-/* A voice's own setting, saved on the voice: every take that picks it is sung with it until it is changed. */
-async function setPersonaField(field, value) {
-  if (!PERSONA.id) { return; }
+async function trainNewVoice() {
+  var status = $('vn-status');
+  var form = new FormData();
+  form.append('name', $('vn-name').value.trim());
+  var path = '/api/voices';
+  if ($('vn-from').value === 'corpus') {
+    form.append('identity_id', $('vn-corpus').value);
+    path = '/api/voices/from-identity';
+  } else {
+    var file = $('vn-file').files[0];
+    if (!file) { status.textContent = t('Choose a recording first.'); return; }
+    form.append('file', file, file.name);
+  }
+  $('vn-train').disabled = true;
   try {
-    var body = {};
-    body[field] = String(value);
-    var changed = await api("/api/voices/" + PERSONA.id, { method: "PATCH", body: new URLSearchParams(body) });
-    PERSONA.list = PERSONA.list.map(function (v) { return v.id === changed.id ? changed : v; });
-    refreshPersonaHint();
+    var made = await api(path, { method: 'POST', body: form });
+    await loadVoices();
+    showVoice(made.id);
+    toast(t('Training that voice: it can take an hour, and waits for the songs ahead of it.'));
   } catch (err) {
-    toast(err && err.message ? err.message : t("no such persona"));
+    $('vn-train').disabled = false;
+    status.textContent = err.message;
   }
 }
 
-/* Train the selected voice again: a corpus voice from the corpus's songs as they are now. */
-async function regeneratePersona() {
-  if (!PERSONA.id) { return; }
-  try {
-    await api("/api/voices/" + PERSONA.id + "/regenerate", { method: "POST" });
-    await loadPersonas();
-    toast(t("Training that voice: it can take an hour, and waits for the songs ahead of it."));
-  } catch (err) {
-    toast(err && err.message ? err.message : t("no such persona"));
+function levelOptions(v) {
+  return [-3, 0, 3, 6].map(function (db) {
+    return '<option value="' + db + '"' + (Math.round(Number(v.level_db) || 0) === db ? ' selected' : '') + '>' +
+      (db > 0 ? '+' : db < 0 ? '−' : '') + Math.abs(db) + ' dB</option>';
+  }).join('');
+}
+
+function octaveOptions(v) {
+  return [-1, 0, 1].map(function (o) {
+    return '<option value="' + o + '"' + ((v.octave || 0) === o ? ' selected' : '') + '>' + (o > 0 ? '+1' : o < 0 ? '−1' : '0') + '</option>';
+  }).join('');
+}
+
+function singableTakes() {
+  return (State.takes || []).filter(function (take) {
+    return take.status === 'done' && take.kind !== 'instrumental' && take.has_audio;
+  });
+}
+
+async function showVoice(id) {
+  var v = VOICES.list.filter(function (x) { return x.id === id; })[0];
+  if (!v) { showVoiceList(); return; }
+  VOICES.view = 'voice';
+  VOICES.id = id;
+  voicesHead(v.name, true);
+  var ready = v.state === 'ready';
+  var usable = VOICES.service && VOICES.service.ok;
+  var why = v.state === 'failed' && v.error && !/^made before voices/.test(v.error)
+    ? '<p class="hint bad">' + esc(t('Training failed: {value}', { value: tr(v.error) })) + '</p>' : '';
+  var takes = singableTakes().map(function (take) {
+    return '<option value="' + esc(take.id) + '">' + esc(take.title || take.id) + '</option>';
+  }).join('');
+  $('voices-body').innerHTML =
+    '<p><span id="voice-state" data-state="' + esc(v.state) + '">' + esc(voiceStateText(v)) + '</span> · ' + esc(voiceOrigin(v)) + '</p>' +
+    why + serviceNote() +
+    (ready ?
+      '<div class="row">' +
+        '<label>' + t('Octave') + ' <select id="voice-octave">' + octaveOptions(v) + '</select></label>' +
+        '<label title="' + t("The converted vocal against the rendered one's level in the mix") + '">' + t('Vocal level') +
+          ' <select id="voice-level">' + levelOptions(v) + '</select></label>' +
+      '</div>' +
+      '<h4>' + t('Sing a take in this voice') + '</h4>' +
+      (takes
+        ? '<div class="row"><select id="voice-take">' + takes + '</select>' +
+          '<button id="voice-sing" class="chip action"' + (usable ? '' : ' disabled') + '>' + t('Sing') + '</button></div>' +
+          '<p class="sub">' + t('A new take is made beside it, with its vocal sung in this voice. Takes listed are those in the library now.') + '</p>'
+        : '<p class="muted">' + t('No finished takes with a vocal in the library now.') + '</p>')
+      : '') +
+    '<h4>' + t('What it learned from') + '</h4><div id="voice-heard" class="muted">…</div>' +
+    '<div class="row identity-actions">' +
+      '<button id="voice-rename" class="ghost">' + t('Rename') + '</button>' +
+      '<button id="voice-regen" class="ghost"' + (usable ? '' : ' disabled') + '>' + t(ready ? 'Train again' : 'Train') + '</button>' +
+      (ready ? '<button id="voice-export" class="ghost">' + t('Download voice') + '</button>' : '') +
+      '<button id="voice-delete" class="ghost danger">' + t('Delete') + '</button>' +
+    '</div>';
+  paintVoiceHeard(id);
+}
+
+async function paintVoiceHeard(id) {
+  var box = $('voice-heard');
+  var heard;
+  try { heard = await api('/api/voices/' + id + '/heard'); } catch (err) { heard = {}; }
+  if (!box || VOICES.id !== id) { return; }
+  function list(part, label) {
+    var names = heard[part] || [];
+    if (!names.length) { return ''; }
+    return '<details><summary>' + esc(label) + ' (' + names.length + ')</summary>' + names.map(function (name) {
+      return '<div class="voice-heard-row"><span>' + esc(name) + '</span><audio controls preload="none" src="/api/voices/' +
+        encodeURIComponent(id) + '/heard/' + part + '/' + encodeURIComponent(name) + '"></audio></div>';
+    }).join('') + '</details>';
+  }
+  var html = list('vocals', t('Each song’s separated vocal')) + list('excerpts', t('The excerpts it trained on'));
+  box.innerHTML = html || t('Nothing kept: voices trained before this was added keep only their model.');
+}
+
+async function voiceChange(field, value) {
+  var body = {};
+  body[field] = String(value);
+  var changed = await api('/api/voices/' + VOICES.id, { method: 'PATCH', body: new URLSearchParams(body) });
+  VOICES.list = VOICES.list.map(function (v) { return v.id === changed.id ? changed : v; });
+  return changed;
+}
+
+async function voicesClick(event) {
+  var target = event.target;
+  var card = target.closest('[data-voice]');
+  if (card) { showVoice(card.dataset.voice); return; }
+  if (target.closest('#voice-new')) { showVoiceNew(); return; }
+  if (target.closest('#voice-import')) { importVoiceFile(); return; }
+  if (target.closest('#vn-train')) { await trainNewVoice(); return; }
+  var id = VOICES.id;
+  var v = VOICES.list.filter(function (x) { return x.id === id; })[0];
+  if (!v) { return; }
+  if (target.closest('#voice-sing')) {
+    var take = $('voice-take').value;
+    target.disabled = true;
+    try {
+      var made = await api('/api/voices/' + id + '/sing', { method: 'POST', body: JSON.stringify({ take_id: take }) });
+      toast(t('Queued: {value}', { value: made.title }));
+      if (typeof loadTakes === 'function') { loadTakes(); }
+    } finally { target.disabled = false; }
+    return;
+  }
+  if (target.closest('#voice-rename')) {
+    var name = await confirmModal({ title: t('Rename'), message: t('What is this voice called?'), input: true,
+                                    defaultValue: v.name, confirmText: t('OK') });
+    if (name === null || !name.trim()) { return; }
+    await voiceChange('name', name.trim());
+    showVoice(id);
+    return;
+  }
+  if (target.closest('#voice-regen')) {
+    await api('/api/voices/' + id + '/regenerate', { method: 'POST' });
+    await loadVoices();
+    showVoice(id);
+    toast(t('Training that voice: it can take an hour, and waits for the songs ahead of it.'));
+    return;
+  }
+  if (target.closest('#voice-export')) { window.location.href = '/api/voices/' + id + '/export'; return; }
+  if (target.closest('#voice-delete')) {
+    var sure = await confirmModal({ title: t('Delete'), message: t('Delete the voice {value}? Takes already sung in it keep their audio.', { value: v.name }),
+                                    confirmText: t('Delete'), danger: true });
+    if (!sure) { return; }
+    await api('/api/voices/' + id, { method: 'DELETE' });
+    await loadVoices();
+    showVoiceList();
   }
 }
 
-function refreshPersonaHint() {
-  var hint = $("persona-hint");
-  if (!hint) { return; }
-  var selected = PERSONA.list.filter(function (v) { return v.id === PERSONA.id; })[0];
-  var regen = $("persona-regen");
-  if (regen) { regen.classList.toggle("hidden", !selected); }
-  var exportButton = $("persona-export");
-  if (exportButton) { exportButton.classList.toggle("hidden", !selected || selected.state !== "ready"); }
-  var wrap = $("persona-octave-wrap");
-  if (wrap) { wrap.classList.toggle("hidden", !selected || selected.state !== "ready"); }
-  var octave = $("persona-octave");
-  if (octave && selected) { octave.value = String(selected.octave || 0); }
-  var levelWrap = $("persona-level-wrap");
-  if (levelWrap) { levelWrap.classList.toggle("hidden", !selected || selected.state !== "ready"); }
-  var level = $("persona-level");
-  if (level && selected) { level.value = String(Math.round(Number(selected.level_db) || 0)); }
-  var why = selected && selected.state === "failed" && selected.error && !/^made before voices/.test(selected.error)
-    ? t("Training failed: {value}", { value: tr(selected.error) }) + " " : "";
-  hint.textContent = selected && selected.state === "failed"
-    ? why + t("This voice has no trained model: Regenerate trains it.")
-    : selected
-    ? t("The take is sung as usual, then its vocal is sung again in this voice.")
-    : t("Train a voice from a recording of someone singing, or from a corpus, and a take can be sung in it.");
-}
-
-async function loadPersonas() {
-  var was = JSON.stringify([PERSONA.list, PERSONA.service]);
-  try {
-    var answers = await Promise.all([api("/api/voices"), api("/api/voices/service")]);
-    PERSONA.list = answers[0];
-    PERSONA.service = answers[1];
-  } catch (err) {
-    PERSONA.list = [];
-    PERSONA.service = null;
-  }
-  if (PERSONA.id && !PERSONA.list.some(function (v) { return v.id === PERSONA.id; })) {
-    PERSONA.id = null;
-  }
-  // Redrawn only when something changed, so the poll below does not close a list someone has open.
-  if (JSON.stringify([PERSONA.list, PERSONA.service]) !== was || !$("persona-select")) { paintPersonaField(); }
-  // A voice in training is looked at again until it is ready or has failed.
-  clearTimeout(PERSONA.poll);
-  if (PERSONA.list.some(function (v) { return v.state === "training"; })) {
-    PERSONA.poll = setTimeout(loadPersonas, 10000);
-  }
-  paintCorpusVoiceButtons();
-}
-
-/* The editor shows the voice of the take open in it, or none: a voice is the take's, like its LoRAs. */
-function setPersonaFromTake(take) {
-  // The same take shown again (a refresh, a card clicked twice) keeps a voice chosen for it and not yet sung.
-  if (take && take.id && take.id === PERSONA.takeId) { return; }
-  PERSONA.takeId = take && take.id;
-  var id = take && take.voice_id;
-  PERSONA.id = id || null;     // a list still loading keeps it; loadPersonas drops an id it does not have
-  var select = $("persona-select");
-  if (select) { select.value = PERSONA.id || ""; }
-  refreshPersonaHint();
-}
-
-/* The app's own dialog, as every other question it asks: null when cancelled. */
-function askVoiceName(suggested) {
-  return confirmModal({ title: t("Make a voice…"), message: t("What is this voice called?"), input: true,
-                        defaultValue: suggested || "", confirmText: t("OK") });
-}
-
-/* A voice someone gave: Yeufonic's own zip, or an RVC model.  It is ready at once: nothing to train. */
-function askForVoiceFile() {
-  var input = document.createElement("input");
-  input.type = "file";
-  input.accept = ".zip,.pth";
-  input.addEventListener("change", async function () {
+function importVoiceFile() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.zip,.pth';
+  input.addEventListener('change', async function () {
     var file = input.files && input.files[0];
     if (!file) { return; }
     var form = new FormData();
-    form.append("file", file, file.name);
+    form.append('file', file, file.name);
     try {
-      var made = await api("/api/voices/import", { method: "POST", body: form });
-      PERSONA.id = made.id;
-      await loadPersonas();
-      toast(t("Imported the voice {value}.", { value: made.name }));
+      var made = await api('/api/voices/import', { method: 'POST', body: form });
+      await loadVoices();
+      showVoice(made.id);
+      toast(t('Imported the voice {value}.', { value: made.name }));
     } catch (err) {
-      toast(err && err.message ? err.message : t("That file is not a voice model."));
+      toast(err && err.message ? err.message : t('That file is not a voice model.'));
     }
   });
   input.click();
 }
 
-function askForVoice() {
-  var input = document.createElement("input");
-  input.type = "file";
-  input.accept = "audio/*";
-  input.addEventListener("change", function () {
-    var file = input.files && input.files[0];
-    if (file) { makePersona(file); }
-  });
-  input.click();
-}
-
-async function makePersona(file) {
-  var name = (file.name || "").replace(/\.[^.]+$/, "") || t("My voice");
-  var said = await askVoiceName(name);
-  if (said === null) { return; }
-  var form = new FormData();
-  form.append("file", file, file.name || "voice.wav");
-  form.append("name", said.trim() || name);
-  try {
-    await api("/api/voices", { method: "POST", body: form });
-    await loadPersonas();
-    toast(t("Training that voice: it can take an hour, and waits for the songs ahead of it."));
-  } catch (err) {
-    toast(err && err.message ? err.message : t("That recording is empty."));
+function wireVoices() {
+  var menu = $('menu-voices');
+  if (menu) { menu.addEventListener('click', function (event) { event.stopPropagation(); openVoices(); }); }
+  var close = $('voices-close');
+  if (close) { close.addEventListener('click', closeVoices); }
+  var back = $('voices-back');
+  if (back) { back.addEventListener('click', showVoiceList); }
+  var body = $('voices-body');
+  if (body) {
+    body.addEventListener('click', function (event) {
+      voicesClick(event).catch(function (err) { toast(err.message); });
+    });
+    body.addEventListener('change', function (event) {
+      var field = event.target.id === 'voice-octave' ? 'octave' : event.target.id === 'voice-level' ? 'level_db' : null;
+      if (field) { voiceChange(field, event.target.value).catch(function (err) { toast(err.message); }); }
+    });
   }
-}
-
-function installPersonaField() {
-  var vocal = $("vocal-field");
-  if (!vocal || $("persona-field")) { return; }
-  var holder = document.createElement("div");
-  holder.className = "field hidden";
-  holder.id = "persona-field";
-  vocal.parentNode.insertBefore(holder, vocal.nextSibling);
-  loadPersonas();
-}
-
-/* A corpus's Make a voice… button shows only where voices can be made. */
-function paintCorpusVoiceButtons() {
-  var usable = Boolean(PERSONA.service && PERSONA.service.ok);
-  Array.prototype.forEach.call(document.querySelectorAll("[data-voice-from]"), function (button) {
-    button.classList.toggle("hidden", !usable);
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && voicesOpen() && !($('confirm-modal') && !$('confirm-modal').classList.contains('hidden'))) {
+      closeVoices();
+    }
   });
+  loadVoices();   // the take details name a take's voice
 }
 
-/* A corpus makes a voice where corpora are listed: the button on its card trains one on the corpus's songs. */
-document.addEventListener("click", function (event) {
-  var button = event.target.closest && event.target.closest("[data-voice-from]");
-  if (!button) { return; }
-  event.preventDefault();
-  makeVoiceFromCorpus(button.getAttribute("data-voice-from"), button.getAttribute("data-voice-name") || "");
-});
-
-async function makeVoiceFromCorpus(identityId, name) {
-  if (!identityId) { return; }
-  var said = await askVoiceName(name ? name + " voice" : "");
-  if (said === null) { return; }
-  // Nothing more happens on the corpus: the voice trains in the background and is chosen in the editor.
-  closeIdentities();
-  var form = new FormData();
-  form.append("identity_id", identityId);
-  form.append("name", said.trim());
-  try {
-    await api("/api/voices/from-identity", { method: "POST", body: form });
-    await loadPersonas();
-    toast(t("Training that voice: it can take an hour, and waits for the songs ahead of it."));
-  } catch (err) {
-    toast(err && err.message ? err.message : t("That recording is empty."));
-  }
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", installPersonaField);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', wireVoices);
 } else {
-  installPersonaField();
+  wireVoices();
 }
