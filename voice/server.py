@@ -71,6 +71,16 @@ class Stopped(Exception):
     pass
 
 
+def remove_tree(path: Path) -> None:
+    """A folder and what is in it.  On Windows a file a step has just closed can stay locked for a moment (a child
+    process still exiting, a virus scanner reading it), so a refusal is tried again before it is left for the next run."""
+    for attempt in range(6):
+        shutil.rmtree(path, ignore_errors=True)
+        if not path.exists():
+            return
+        time.sleep(1 + attempt)
+
+
 def needed() -> dict:
     """The model files this service cannot work without, and whether each is there."""
     files = {
@@ -276,10 +286,10 @@ def train(job: dict, voice: str, sources: list, default_split: bool, epochs: int
         shutil.rmtree(folder / name, ignore_errors=True)
         if any(made.iterdir()):
             shutil.move(str(made), folder / name)
-    shutil.rmtree(logs, ignore_errors=True)          # the checkpoints are half a gigabyte; the model is all that is used
+    remove_tree(logs)                                # the checkpoints are half a gigabyte; the model is all that is used
     for linked in (ASSETS / "indices").glob(f"*{exp}*"):
         linked.unlink(missing_ok=True)
-    shutil.rmtree(work, ignore_errors=True)
+    remove_tree(work)
 
 
 def _follow_epochs(job: dict, log: Path, epochs: int) -> None:

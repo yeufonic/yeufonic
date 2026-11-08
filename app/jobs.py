@@ -3297,7 +3297,7 @@ async def run_voice_train(persona_id: str) -> None:
     CURRENT.clear()
     CURRENT.update({"kind": "voice", "id": persona_id, "prompt_id": None, "started": started,
                     "label": "Training a voice"})
-    origin = f"the corpus {record['origin_identity']}" if record.get("origin_identity") else "its recording"
+    origin = f"the corpus {record['origin_identity']}" if record.get("origin_identity") else "its recordings"
     minutes = voice_minutes()
     log.info("Training the recorded voice '%s' (%s) on %s of singing from %d recording(s) from %s, %d passes%s",
              record["name"], persona_id, f"{minutes:g} minutes" if minutes else "all", len(sources), origin,
