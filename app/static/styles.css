@@ -2508,7 +2508,9 @@ label .lora-value:disabled { opacity: 0.6; }
 .job-pill-more { flex: 0 0 auto; font-size: 11.5px; color: var(--muted); border-left: 1px solid var(--line); padding-left: 8px; }
 .job-pill-more.hidden { display: none; }
 /* The editor's copy of the pill, in its header: narrower, and gone with the pill. */
-.ed-job { max-width: 340px; font-size: 13px; padding: 6px 12px; }
+/* Its basis is nothing, so it never pushes the row onto a second line: it takes what room there is, up to 340px,
+   and its words shorten with an ellipsis before that. */
+.ed-job { flex: 1 1 0; min-width: 90px; max-width: 340px; font-size: 13px; padding: 6px 12px; }
 .ed-job.hidden { display: none; }
 /* How far it has got: a line along the pill's foot. */
 .job-pill-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgb(var(--ink) / 0.06); }
