@@ -5631,6 +5631,19 @@ function structureDetails(take) {
   return pairs;
 }
 
+/* The take's recorded voice with what it was sung at: the take's own settings over the voice's defaults. */
+function voiceDetail(take) {
+  var v = VOICES.list.filter(function (x) { return x.id === take.voice_id; })[0];
+  if (!v) { return t('a voice since deleted'); }
+  var mix = {};
+  try { mix = typeof take.voice_mix === 'string' ? JSON.parse(take.voice_mix || '{}') : (take.voice_mix || {}); } catch (err) { mix = {}; }
+  var m = Object.assign({ octave: v.octave, level_db: v.level_db, backing_db: v.backing_db, likeness: v.likeness }, mix || {});
+  var signed = function (n) { n = Number(n) || 0; return (n > 0 ? '+' : n < 0 ? '\u2212' : '') + Math.abs(n); };
+  return v.name + ' ' + t('(octave {octave}, vocal {vocal} dB, instruments {backing} dB, likeness {likeness}%)', {
+    octave: signed(m.octave), vocal: signed(m.level_db), backing: signed(m.backing_db),
+    likeness: Math.round((m.likeness == null ? 0.75 : Number(m.likeness)) * 100) });
+}
+
 function detailGroups(take) {
   var yes = function (flag) { return flag ? 'yes' : 'no'; };
   var kind = take.kind === 'song' ? t('Song from a prompt') : (take.kind === 'instrumental' ? t('Instrumental') : t('Cover'));
@@ -5659,7 +5672,7 @@ function detailGroups(take) {
       t('(planner {planner}, sound {sound})', { planner: Number(take.style_lora_clip || 0).toFixed(2), sound: Number(take.style_lora_model || 0).toFixed(2) })]);
   }
   if (take.voice_id) {
-    sound.push([t('Recorded voice'), personaNameOf(take.voice_id) || take.voice_id]);
+    sound.push([t('Recorded voice'), voiceDetail(take)]);
   }
   if (take.voice_lora) {
     sound.push([t('Voice LoRA'), take.voice_lora.replace(/\.safetensors$/, '') + ' (' + Number(take.voice_lora_strength || 0).toFixed(2) + ')']);
@@ -12387,6 +12400,8 @@ function paintTakes() {
           '<button class="take-move' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + (mastered ? ' mastered' : '') +
             '" data-act="mastering"' + id + ' title="' + t('Mastering Rack (M) — Vintage EQ, Compressor, Limiter{value}', { value: mastered ? t('. This take is mastered') : '' }) + '" aria-label="' + t('Mastering Rack') + '">' +
             icon('mastering') + '</button>' +
+          '<button class="take-move" data-act="details"' + id + ' title="' + t('Details (I) — What this take was made with') + '" aria-label="' + t('Details') + '">' +
+            icon('info') + '</button>' +
           (take.parent_id ? '' :
           '<button class="take-move" data-act="move"' + id + ' title="' + t('Move — Move to another space{value}', { value: heldBy(take) ? t(', with the takes inside it') : '' }) + '" aria-label="' + t('Move') + '">' +
             icon('move') + '</button>') +
@@ -17643,6 +17658,7 @@ async function showVoiceLibraryPick(id) {
   box.innerHTML = sources.length ? '<div class="voice-library-list">' + sources.map(function (src) {
     return '<div class="voice-rec-row"><span class="voice-rec-title">' + esc(src.title || src.filename || '') +
       '<span class="muted"> · ' + esc(src.origin === 'recording' ? t('sung with the recorder') : t('a song')) + '</span></span>' +
+      '<audio controls preload="none" src="/api/sources/' + encodeURIComponent(src.id) + '/audio"></audio>' +
       '<button class="ghost compact" data-lib-add="' + esc(src.id) + '">' + t('Add') + '</button></div>';
   }).join('') + '</div>' : '<p class="muted">' + t('No recordings in the library that this voice does not have.') + '</p>';
   box.classList.remove('hidden');
@@ -17861,6 +17877,9 @@ function wireVoices() {
   if (back) { back.addEventListener('click', showVoiceList); }
   var body = $('voices-body');
   if (body) {
+    body.addEventListener('play', function (event) {   // one recording heard at a time
+      Array.prototype.forEach.call(body.querySelectorAll('audio'), function (a) { if (a !== event.target) { a.pause(); } });
+    }, true);
     body.addEventListener('click', function (event) {
       voicesClick(event).catch(function (err) { toast(err.message); });
     });
