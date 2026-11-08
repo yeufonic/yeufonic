@@ -11,6 +11,7 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **Record a tune:** sing, hum or play one on an instrument, and expand a few bars into a whole song.
 - **MIDI import for covers and instrumentals:** MIDI editing with piano roll and sf2.
 - **Style LoRAs:** use published ones, or, with the ComfyUI engine, train your own from a folder of songs.
+- **Recorded voices:** train a voice from your own singing or a corpus's singer, and have any take sung in it (Docker and Windows); see [Recorded voices](#recorded-voices).
 - **Lyrics:** draft them from a sentence, or extract them from a recording.
 - **Duets:** cue a man, a woman or both for any lines of the lyrics, and the melody is set where that voice sings.
 - **Languages:** the app and its user guide in fifteen languages, machine-translated: English (US and UK), Simplified and Traditional Chinese, Japanese, Korean, German, Dutch, French, Italian, Russian, Spanish (Spain and Latin America) and Portuguese (Brazil and Portugal).
