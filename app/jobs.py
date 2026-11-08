@@ -3371,7 +3371,8 @@ async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
             await ENGINE.free()
         async with httpx.AsyncClient(timeout=VOICE_CONVERT_TIMEOUT) as client:
             answer = await client.post(config.VOICE_URL + "/convert", json={
-                "id": voice["id"], "input": str(dest), "output": str(sung), "octave": voice["octave"]})
+                "id": voice["id"], "input": str(dest), "output": str(sung), "octave": voice["octave"],
+                "level_db": voice["level_db"]})
         if answer.status_code != 200 or not sung.is_file():
             raise RuntimeError((answer.json() or {}).get("error") or f"answered {answer.status_code}")
         sung.replace(dest)

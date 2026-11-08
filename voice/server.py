@@ -268,7 +268,105 @@ def _follow_epochs(job: dict, log: Path, epochs: int) -> None:
         time.sleep(5)
 
 
-def convert(voice: str, source: Path, output: Path, octave: int) -> None:
+MAX_LEVEL_DB = 12.0       # the most the converted vocal is moved to meet the original's level
+MAX_PRESENCE_DB = 6.0     # the most its presence (2 kHz and up) is lifted to meet the original's
+ROOM_WET = 0.14           # how much of a short synthetic room goes under the converted vocal
+ROOM_SECONDS = 1.2
+
+
+def _biquad(kind: str, f0: float, rate: int, q: float, gain_db: float = 0.0):
+    """RBJ cookbook coefficients (b, a) for a high shelf or a high pass."""
+    import numpy as np  # noqa: PLC0415
+
+    amp = 10 ** (gain_db / 40)
+    w0 = 2 * np.pi * f0 / rate
+    alpha = np.sin(w0) / (2 * q)
+    cos = np.cos(w0)
+    if kind == "highshelf":
+        sq = 2 * np.sqrt(amp) * alpha
+        b = [amp * ((amp + 1) + (amp - 1) * cos + sq), -2 * amp * ((amp - 1) + (amp + 1) * cos),
+             amp * ((amp + 1) + (amp - 1) * cos - sq)]
+        a = [(amp + 1) - (amp - 1) * cos + sq, 2 * ((amp - 1) - (amp + 1) * cos), (amp + 1) - (amp - 1) * cos - sq]
+    else:
+        b = [(1 + cos) / 2, -(1 + cos), (1 + cos) / 2]
+        a = [1 + alpha, -2 * cos, 1 - alpha]
+    return np.array(b) / a[0], np.array(a) / a[0]
+
+
+def _mono(samples):
+    return samples.mean(axis=1) if samples.ndim > 1 else samples
+
+
+def _loudness(samples, rate: int) -> float:
+    """The vocal's loudness over its singing as the ear weighs it (BS.1770's K-weighting), not its plain RMS: a
+    converted vocal with less presence sounds quieter at the same RMS."""
+    from scipy.signal import lfilter  # noqa: PLC0415
+
+    x = _mono(samples).astype("float64")
+    x = lfilter(*_biquad("highshelf", 1681.97, rate, 0.7072, 4.0), x)
+    x = lfilter(*_biquad("highpass", 38.135, rate, 0.5003), x)
+    return _singing_rms(x, rate, _mono(samples))
+
+
+def _singing_rms(samples, rate: int, gate=None) -> float:
+    import numpy as np  # noqa: PLC0415
+
+    mono = _mono(samples)
+    mask = singing_frames(_mono(gate) if gate is not None else mono, rate)
+    hop = max(1, int(rate * FRAME_SECONDS))
+    count = min(len(mask), len(mono) // hop)
+    frames = mono[: count * hop].reshape(count, hop)[mask[:count]] if mask[:count].any() else mono[None, :]
+    return float(np.sqrt((frames.astype("float64") ** 2).mean()) + 1e-9)
+
+
+def _presence(samples, rate: int) -> float:
+    """How much of the vocal's energy lies at 2-8 kHz against 300 Hz-2 kHz, in dB: where its words and edge are."""
+    import numpy as np  # noqa: PLC0415
+
+    x = _mono(samples)[: rate * 90]
+    spectrum = np.abs(np.fft.rfft(x)) ** 2
+    freqs = np.fft.rfftfreq(len(x), 1 / rate)
+    high = spectrum[(freqs >= 2000) & (freqs < 8000)].sum()
+    body = spectrum[(freqs >= 300) & (freqs < 2000)].sum()
+    return float(10 * np.log10((high + 1e-12) / (body + 1e-12)))
+
+
+def settle(original: Path, sung: Path, voice: str = "", level_db: float = 0.0) -> None:
+    """Put the converted vocal where the rendered one sat: its presence, its loudness, and a little room.
+
+    RVC returns a vocal with less presence than the one it was given, and dry, so it sounded low and apart from the
+    backing even at the same level. Its 2 kHz-and-up is lifted towards the original's balance (up to 6 dB, never
+    cut), its loudness over the singing matched to the original's as the ear weighs it, and a short decaying room
+    mixed under it so it shares a space with the mix rather than lying on top of it.
+    """
+    import numpy as np  # noqa: PLC0415
+    import soundfile  # noqa: PLC0415
+    from scipy.signal import fftconvolve, lfilter  # noqa: PLC0415
+
+    before, before_rate = soundfile.read(str(original), dtype="float32")
+    after, rate = soundfile.read(str(sung), dtype="float32")
+    dry = _mono(after).astype("float64")
+    lift = float(np.clip(_presence(before, before_rate) - _presence(dry, rate), 0.0, MAX_PRESENCE_DB))
+    if lift > 0.5:
+        dry = lfilter(*_biquad("highshelf", 2500.0, rate, 0.7, lift), dry)
+    gain_db = 20 * np.log10(_loudness(before, before_rate) / _loudness(dry, rate))
+    gain_db = float(np.clip(gain_db, -MAX_LEVEL_DB, MAX_LEVEL_DB)) + float(level_db)   # then the voice's own setting
+    dry = dry * 10 ** (gain_db / 20)
+    rng = np.random.default_rng(7)                       # the same room every time
+    length = int(rate * ROOM_SECONDS)
+    tail = rng.standard_normal(length) * np.exp(-np.arange(length) / (rate * ROOM_SECONDS / 6))
+    tail[: int(rate * 0.012)] = 0                        # a short gap before the room answers
+    tail /= np.sqrt((tail ** 2).sum())
+    mixed = dry + ROOM_WET * fftconvolve(dry, tail)[: len(dry)]
+    peak = float(np.abs(mixed).max())
+    if peak > 0.98:                                      # never clip: the mix's own limiter is not here
+        mixed *= 0.98 / peak
+    soundfile.write(str(sung), mixed.astype("float32"), rate)
+    print(f"[{voice}] converted vocal: presence {lift:+.1f} dB, level {gain_db:+.1f} dB to the rendered vocal's",
+          flush=True)
+
+
+def convert(voice: str, source: Path, output: Path, octave: int, level_db: float = 0.0) -> None:
     folder = VOICES / voice
     model, index = folder / "model.pth", folder / "model.index"
     if not model.exists():
@@ -282,6 +380,7 @@ def convert(voice: str, source: Path, output: Path, octave: int) -> None:
              "--index-rate", "0.75", "--protect", "0.33", "--rms-mix-rate", "0.25", "--overwrite"])
         if not sung.exists():
             raise RuntimeError("the conversion wrote nothing")
+        settle(vocals, sung, voice, level_db)
         mixed = work / f"mixed{output.suffix or '.flac'}"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(rest), "-i", str(sung), "-filter_complex",
                         "[1:a]aresample=44100,aformat=channel_layouts=stereo[v];[0:a]aresample=44100[i];"
@@ -357,7 +456,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/convert":
             with LOCK:
                 try:
-                    convert(body["id"], Path(body["input"]), Path(body["output"]), int(body.get("octave") or 0))
+                    convert(body["id"], Path(body["input"]), Path(body["output"]), int(body.get("octave") or 0),
+                            float(body.get("level_db") or 0))
                 except Exception as err:  # noqa: BLE001
                     traceback.print_exc()
                     return self._send(500, {"error": str(err)[-800:]})

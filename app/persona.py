@@ -26,6 +26,8 @@ log = logging.getLogger("yue2.persona")
 # A voice in another range sounds wrong at the take's pitch, and only whole octaves keep the vocal in the backing's
 # key: so the one pitch setting is an octave, up or down.
 MIN_OCTAVE, MAX_OCTAVE = -1, 1
+# How far a voice's vocal can be set above or below the rendered vocal's level in the mix, in dB.
+LEVELS_DB = (-3.0, 0.0, 3.0, 6.0)
 # Training passes over the voice's recordings: enough for a few minutes of singing to settle (100 by ear).
 TRAIN_EPOCHS = 100
 # A corpus voice samples at most this many of the corpus's songs: each is separated before the minutes of singing
@@ -48,6 +50,7 @@ def model_file(persona_id: str) -> Path:
 def _shape(row) -> dict:
     out = dict(row)
     out["octave"] = clamp_octave(out.get("octave"))
+    out["level_db"] = clamp_level(out.get("level_db"))
     out["progress"] = float(out.get("progress") or 0.0)
     return out
 
@@ -67,6 +70,14 @@ def clamp_octave(value) -> int:
     except (TypeError, ValueError):
         return 0
     return max(MIN_OCTAVE, min(MAX_OCTAVE, number))
+
+
+def clamp_level(value) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return min(LEVELS_DB, key=lambda level: abs(level - number))
 
 
 def create(name: str, source: Path | None = None, octave: int = 0, origin_identity: str | None = None) -> dict:
@@ -107,10 +118,12 @@ def usable(persona: dict | None) -> bool:
 
 
 def update(persona_id: str, **fields) -> dict | None:
-    allowed = {"name", "octave"}
+    allowed = {"name", "octave", "level_db"}
     wanted = {k: v for k, v in fields.items() if k in allowed}
     if "octave" in wanted:
         wanted["octave"] = clamp_octave(wanted["octave"])
+    if "level_db" in wanted:
+        wanted["level_db"] = clamp_level(wanted["level_db"])
     if wanted:
         sets = ", ".join(f"{key} = ?" for key in wanted)
         db.execute(f"UPDATE voices SET {sets} WHERE id = ?", (*wanted.values(), persona_id))

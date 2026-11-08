@@ -2623,5 +2623,7 @@
  "All of it": "すべて",
  "That file is too large to be a voice.": "このファイルは声としては大きすぎます。",
  "That zip could not be read.": "この zip を読み込めませんでした。",
- "That zip holds no voice model (.pth).": "この zip には声のモデル (.pth) がありません。"
+ "That zip holds no voice model (.pth).": "この zip には声のモデル (.pth) がありません。",
+ "Vocal level": "ボーカルの音量",
+ "The converted vocal against the rendered one's level in the mix": "ミックスの中で、変換したボーカルをレンダリングしたボーカルの音量と比べた値"
 }

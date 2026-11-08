@@ -2623,5 +2623,7 @@
  "All of it": "Tudo",
  "That file is too large to be a voice.": "Este ficheiro é grande demais para ser uma voz.",
  "That zip could not be read.": "Não foi possível ler esse zip.",
- "That zip holds no voice model (.pth).": "Esse zip não contém nenhum modelo de voz (.pth)."
+ "That zip holds no voice model (.pth).": "Esse zip não contém nenhum modelo de voz (.pth).",
+ "Vocal level": "Nível do vocal",
+ "The converted vocal against the rendered one's level in the mix": "O vocal convertido em relação ao nível do renderizado na mistura"
 }

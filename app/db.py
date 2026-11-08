@@ -209,7 +209,8 @@ CREATE TABLE IF NOT EXISTS voices (
     created_at REAL NOT NULL,
     model_path TEXT,
     octave INTEGER NOT NULL DEFAULT 0,
-    progress REAL NOT NULL DEFAULT 0
+    progress REAL NOT NULL DEFAULT 0,
+    level_db REAL NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS spaces (
     id TEXT PRIMARY KEY,
@@ -756,6 +757,12 @@ def _voices_trained() -> None:
             "WHERE model_path IS NULL AND state != 'training'")
 
 
+def _voice_level() -> None:
+    """A recorded voice's vocal level in the mix, in dB over the rendered vocal's (set in the editor)."""
+    if "level_db" not in _columns("voices"):
+        execute("ALTER TABLE voices ADD COLUMN level_db REAL NOT NULL DEFAULT 0")
+
+
 def _cfg_scale() -> None:
     """The music stage's guidance towards the style and words, set in Advanced; NULL is the engine's own."""
     if "cfg_scale" not in _columns("takes"):
@@ -807,6 +814,7 @@ MIGRATIONS = [
     _cfg_scale,                                                      # -> 43
     _voices,                                                         # -> 44
     _voices_trained,                                                 # -> 45
+    _voice_level,                                                    # -> 46
 ]
 
 

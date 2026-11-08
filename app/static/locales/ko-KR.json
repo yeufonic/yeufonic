@@ -2623,5 +2623,7 @@
  "All of it": "전부",
  "That file is too large to be a voice.": "이 파일은 목소리로 쓰기에 너무 큽니다.",
  "That zip could not be read.": "이 zip을 읽을 수 없습니다.",
- "That zip holds no voice model (.pth).": "이 zip에는 목소리 모델(.pth)이 없습니다."
+ "That zip holds no voice model (.pth).": "이 zip에는 목소리 모델(.pth)이 없습니다.",
+ "Vocal level": "보컬 음량",
+ "The converted vocal against the rendered one's level in the mix": "믹스에서 변환한 보컬을 렌더한 보컬의 음량과 비교한 값"
 }

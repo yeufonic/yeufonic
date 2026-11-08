@@ -2623,5 +2623,7 @@
  "All of it": "全部",
  "That file is too large to be a voice.": "这个文件太大，不像是音色。",
  "That zip could not be read.": "无法读取这个 zip。",
- "That zip holds no voice model (.pth).": "这个 zip 里没有音色模型（.pth）。"
+ "That zip holds no voice model (.pth).": "这个 zip 里没有音色模型（.pth）。",
+ "Vocal level": "人声音量",
+ "The converted vocal against the rendered one's level in the mix": "转换后的人声相对于渲染人声在混音中的音量"
 }

@@ -2623,5 +2623,7 @@
  "All of it": "Всё",
  "That file is too large to be a voice.": "Этот файл слишком велик для голоса.",
  "That zip could not be read.": "Этот zip не удалось прочитать.",
- "That zip holds no voice model (.pth).": "В этом zip нет модели голоса (.pth)."
+ "That zip holds no voice model (.pth).": "В этом zip нет модели голоса (.pth).",
+ "Vocal level": "Уровень вокала",
+ "The converted vocal against the rendered one's level in the mix": "Преобразованный вокал относительно уровня отрендеренного в миксе"
 }

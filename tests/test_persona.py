@@ -29,3 +29,11 @@ def test_the_migration_gives_voices_a_model_and_an_octave():
     version = con.execute("PRAGMA user_version").fetchone()[0]
     con.close()
     assert version >= 45
+
+
+def test_a_voice_keeps_a_vocal_level_from_the_steps_offered():
+    made = persona.create("Level")
+    assert made["level_db"] == 0.0
+    assert persona.update(made["id"], level_db=4)["level_db"] == 3.0      # the nearest step
+    assert persona.update(made["id"], level_db=99)["level_db"] == 6.0
+    persona.delete(made["id"])

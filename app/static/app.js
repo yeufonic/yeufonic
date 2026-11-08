@@ -17346,6 +17346,10 @@ function paintPersonaField() {
     '<label class="persona-octave hidden" id="persona-octave-wrap">' + t("Octave") +
     ' <select id="persona-octave"><option value="-1">−1</option><option value="0">0</option>' +
     '<option value="1">+1</option></select></label>' +
+    '<label class="persona-octave hidden" id="persona-level-wrap" title="' +
+      t("The converted vocal against the rendered one's level in the mix") + '">' + t("Vocal level") +
+    ' <select id="persona-level"><option value="-3">−3 dB</option><option value="0">0 dB</option>' +
+    '<option value="3">+3 dB</option><option value="6">+6 dB</option></select></label>' +
     '<button type="button" id="persona-make" class="ghost">' + t("Make a voice…") + '</button>' +
     '<button type="button" id="persona-regen" class="ghost hidden">' + t("Regenerate") + '</button>' +
     '<button type="button" id="persona-export" class="ghost hidden" title="' +
@@ -17373,17 +17377,22 @@ function paintPersonaField() {
   if (importButton) { importButton.addEventListener("click", askForVoiceFile); }
   var octave = $("persona-octave");
   if (octave) { octave.addEventListener("change", function () { setPersonaOctave(octave.value); }); }
+  var level = $("persona-level");
+  if (level) { level.addEventListener("change", function () { setPersonaField("level_db", level.value); }); }
   refreshPersonaHint();
 }
 
 /* A voice sung in another range sounds wrong, and only whole octaves keep it in the backing's key.  Saved on the
    voice, so every take that picks it is sung at the same octave until it is changed here. */
-async function setPersonaOctave(value) {
+async function setPersonaOctave(value) { await setPersonaField("octave", value); }
+
+/* A voice's own setting, saved on the voice: every take that picks it is sung with it until it is changed. */
+async function setPersonaField(field, value) {
   if (!PERSONA.id) { return; }
   try {
-    var changed = await api("/api/voices/" + PERSONA.id, {
-      method: "PATCH", body: new URLSearchParams({ octave: String(value) })
-    });
+    var body = {};
+    body[field] = String(value);
+    var changed = await api("/api/voices/" + PERSONA.id, { method: "PATCH", body: new URLSearchParams(body) });
     PERSONA.list = PERSONA.list.map(function (v) { return v.id === changed.id ? changed : v; });
     refreshPersonaHint();
   } catch (err) {
@@ -17415,6 +17424,10 @@ function refreshPersonaHint() {
   if (wrap) { wrap.classList.toggle("hidden", !selected || selected.state !== "ready"); }
   var octave = $("persona-octave");
   if (octave && selected) { octave.value = String(selected.octave || 0); }
+  var levelWrap = $("persona-level-wrap");
+  if (levelWrap) { levelWrap.classList.toggle("hidden", !selected || selected.state !== "ready"); }
+  var level = $("persona-level");
+  if (level && selected) { level.value = String(Math.round(Number(selected.level_db) || 0)); }
   var why = selected && selected.state === "failed" && selected.error && !/^made before voices/.test(selected.error)
     ? t("Training failed: {value}", { value: tr(selected.error) }) + " " : "";
   hint.textContent = selected && selected.state === "failed"

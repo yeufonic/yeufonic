@@ -6085,9 +6085,11 @@ async def make_persona(
 
 
 @app.patch("/api/voices/{persona_id}")
-async def edit_persona(persona_id: str, name: str | None = Form(None), octave: int | None = Form(None)) -> dict:
-    """Rename a voice, or move it up or down an octave."""
-    record = persona.update(persona_id, **{k: v for k, v in (("name", name), ("octave", octave)) if v is not None})
+async def edit_persona(persona_id: str, name: str | None = Form(None), octave: int | None = Form(None),
+                       level_db: float | None = Form(None)) -> dict:
+    """Rename a voice, move it up or down an octave, or set its vocal level in the mix."""
+    record = persona.update(persona_id, **{k: v for k, v in (("name", name), ("octave", octave), ("level_db", level_db))
+                                           if v is not None})
     if record is None:
         raise HTTPException(404, "no such persona")
     return record

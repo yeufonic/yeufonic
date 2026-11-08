@@ -80,3 +80,19 @@ def test_the_reason_is_the_last_error_line(server, tmp_path):
     log.write_text("starting\nTraceback (most recent call last):\n  File x\nRuntimeError: DataLoader worker exited\n"
                    "UserWarning: something\n")
     assert server._reason(log) == "RuntimeError: DataLoader worker exited"
+
+
+def test_the_converted_vocal_is_lifted_to_the_rendered_ones_presence_and_level(server, tmp_path):
+    np = pytest.importorskip("numpy")
+    soundfile = pytest.importorskip("soundfile")
+    pytest.importorskip("scipy")
+    rate = 44100
+    t = np.arange(rate * 4) / rate
+    bright = (0.3 * np.sin(2 * np.pi * 400 * t) + 0.15 * np.sin(2 * np.pi * 4000 * t)).astype("float32")
+    dull = (0.1 * np.sin(2 * np.pi * 400 * t) + 0.01 * np.sin(2 * np.pi * 4000 * t)).astype("float32")
+    soundfile.write(str(tmp_path / "rendered.wav"), bright, rate)
+    soundfile.write(str(tmp_path / "sung.wav"), dull, rate)
+    server.settle(tmp_path / "rendered.wav", tmp_path / "sung.wav")
+    settled, _ = soundfile.read(str(tmp_path / "sung.wav"), dtype="float32")
+    assert server._presence(settled, rate) > server._presence(dull, rate) + 3
+    assert abs(20 * np.log10(server._loudness(settled, rate) / server._loudness(bright, rate))) < 1.5

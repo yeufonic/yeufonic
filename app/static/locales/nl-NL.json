@@ -2623,5 +2623,7 @@
  "All of it": "Alles",
  "That file is too large to be a voice.": "Dit bestand is te groot voor een stem.",
  "That zip could not be read.": "Die zip kon niet gelezen worden.",
- "That zip holds no voice model (.pth).": "Die zip bevat geen stemmodel (.pth)."
+ "That zip holds no voice model (.pth).": "Die zip bevat geen stemmodel (.pth).",
+ "Vocal level": "Zangniveau",
+ "The converted vocal against the rendered one's level in the mix": "De omgezette zang ten opzichte van het niveau van de gerenderde in de mix"
 }
