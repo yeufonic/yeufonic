@@ -4773,7 +4773,7 @@ body.visualizer-open > *:not(#visualizer-modal) { visibility: hidden; }
   display: block;
 }
 
-/* The picture in front in the Artwork scene, at the screen's full density over the scene (visualizer.js
+/* The picture in front in the Artwork and None scenes, at the screen's full density over the scene (visualizer.js
    frontPicture); placed and sized by the script. */
 .vis-art-front {
   position: absolute;

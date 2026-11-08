@@ -2689,5 +2689,7 @@
  "the card's memory could not be read": "無法讀取顯示卡的顯示記憶體",
  "set by TRAIN_MAX_MINUTES": "由 TRAIN_MAX_MINUTES 設定",
  "No installer URL available for this update": "此更新沒有可用的安裝程式 URL",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校驗和不匹配：預期 {expected_hash}，實際 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校驗和不匹配：預期 {expected_hash}，實際 {actual_hash}",
+ "The take's picture, still": "版本圖片，靜止",
+ "None (the take's picture, still)": "無（版本的圖片，靜止）"
 }

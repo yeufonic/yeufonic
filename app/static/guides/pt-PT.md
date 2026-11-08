@@ -1475,7 +1475,7 @@ Clique em **Visualizador** na barra de transporte (ou **V** enquanto uma faixa t
 
 O palco mostra visualizações de áudio em tempo real sincronizadas com a reprodução:
 
-- **Modos do visualizador:** escolha entre dez visualizadores na barra de cima:
+- **Modos do visualizador:** escolha entre onze visualizadores na barra de cima:
   - *Yeufonic:* o próprio logotipo, a respirar — o ladrilho brilha com os graves e se expande com a batida, cada braço do diapasão é um medidor com a metade dele do espectro, e o ponto verde acende com a batida.
   - *Fita de onda:* duas fitas harmónicas flutuantes que reagem ao som.
   - *Aurora boreal:* cortinas ondulantes de aurora etérea que reagem aos médios e agudos.
@@ -1486,6 +1486,7 @@ O palco mostra visualizações de áudio em tempo real sincronizadas com a repro
   - *Enxame de partículas:* aglomerados de partículas gravitacionais que se dispersam com as batidas de percussão.
   - *Barras de espectro hi-fi:* um analisador de espectro multibanda com picos flutuantes que caem.
   - *Arte:* a imagem do take, grande, com o título embaixo, sobre uma cópia desfocada de si mesma que se move com a música. Um take sem imagem mostra a cena Yeufonic até que uma seja feita.
+  - *Nenhum:* só a imagem do take, parada, sobre um fundo escuro, ou o símbolo do Yeufonic quando não há imagem. Nada se mexe: para um computador a que as outras cenas custam.
 - **Atrás das cenas:** as cenas Arte, Yeufonic, Mandala, Grelha, Líquido e Barras tocam sobre a imagem do take, que se move suavemente com a música, quando o take tem uma. Por cima também pode se mover algo, nas cores da imagem: *Respiração* (só a imagem), *Raios de luz* a girar a partir do centro, *Ondulações* lançadas com a batida, *Cor à deriva*, *Profundidade* (mais cópias da imagem a girar umas contra as outras) ou um *Halo espectral*. Cada cena começa com o seu (cor à deriva atrás de Arte, o halo atrás de Mandala, raios atrás de Grelha, ondulações atrás de Líquido, só a imagem atrás de Yeufonic e Barras); prima **B** para percorrê-los, e a cena lembra sua escolha.
 - **A forma de onda:** sob as cenas Yeufonic e Arte, a forma de onda do take mostra quanto da música já tocou; clique nela para pular para lá.
 - **Arte e dinâmica do vinil:** mostra a capa do take no estilo Hipgnosis em uma capa 3D interativa que se inclina e gira com o ponteiro. Um disco de vinil realista gira a 33⅓ RPM e sai da capa com as batidas de baixo, com um brilho holográfico e anéis de onda de choque que reagem ao ritmo. Mude de modo com o botão **Capa**: *Capa*, *Aura* (fundo desfocado) ou *Desligado*.

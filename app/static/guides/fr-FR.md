@@ -1479,7 +1479,7 @@ Appuyez sur **Visualiseur** dans la barre de transport (ou sur **V** pendant la 
 
 La scène affiche des visualisations audio en temps réel synchronisées avec la lecture :
 
-- **Modes du visualiseur :** choisissez parmi dix visualiseurs dans la barre du haut :
+- **Modes du visualiseur :** choisissez parmi onze visualiseurs dans la barre du haut :
   - *Yeufonic :* le logo lui-même, qui respire — la tuile brille avec les basses et s’étend sur le temps, chaque branche de la fourche est un vumètre avec sa moitié du spectre, et le point vert s’embrase sur le temps.
   - *Ruban d’onde :* deux rubans harmoniques flottants qui réagissent au son.
   - *Aurore boréale :* des rideaux ondulants d’aurore boréale éthérée qui réagissent aux médiums et aux aigus.
@@ -1490,6 +1490,7 @@ La scène affiche des visualisations audio en temps réel synchronisées avec la
   - *Essaim de particules :* des amas de particules gravitationnels qui se dispersent sur les frappes de percussion.
   - *Barres de spectre hi-fi :* un analyseur de spectre multibande avec des crêtes flottantes qui retombent.
   - *Pochette :* l’image de la prise, en grand, avec son titre en dessous, sur une copie floue d’elle-même qui bouge avec la musique. Une prise sans image montre la scène Yeufonic jusqu’à ce qu’une soit créée.
+  - *Aucun :* l’image de la prise seule, immobile, sur un fond sombre, ou le symbole Yeufonic si elle n’en a pas. Rien ne bouge : pour un ordinateur que les autres scènes mettent à la peine.
 - **Derrière les scènes :** les scènes Pochette, Yeufonic, Mandala, Grille, Liquide et Barres se jouent sur l’image de la prise, qui bouge doucement avec la musique, quand la prise en a une. Quelque chose peut aussi bouger par-dessus, dans les couleurs de l’image : *Souffle* (l’image seule), des *Rayons de lumière* qui tournent depuis le centre, des *Ondulations* lancées sur le temps, une *Couleur dérivante*, de la *Profondeur* (d’autres copies de l’image qui tournent l’une contre l’autre) ou un *Halo spectral*. Chaque scène commence avec le sien (couleur dérivante derrière Pochette, le halo derrière Mandala, les rayons derrière Grille, les ondulations derrière Liquide, l’image seule derrière Yeufonic et Barres) ; appuyez sur **B** pour les parcourir, et la scène retient votre choix.
 - **La forme d’onde :** sous les scènes Yeufonic et Pochette, la forme d’onde de la prise montre où en est la chanson ; cliquez dessus pour y sauter.
 - **Pochette d’album et dynamique du vinyle :** affiche la pochette de la prise façon Hipgnosis dans une pochette 3D interactive qui s’incline et tourne avec le pointeur. Un disque vinyle réaliste tourne à 33⅓ tours et sort de la pochette sur les coups de basse, avec un reflet holographique et des anneaux d’onde de choc qui réagissent au rythme. Changez de mode avec le bouton **Pochette** : *Pochette*, *Aura* (fond flouté) ou *Désactivé*.

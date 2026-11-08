@@ -2689,5 +2689,7 @@
  "the card's memory could not be read": "카드 메모리를 읽을 수 없었습니다",
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES로 설정됨",
  "No installer URL available for this update": "이 업데이트의 설치 프로그램 URL이 없습니다",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}",
+ "The take's picture, still": "테이크 그림, 정지",
+ "None (the take's picture, still)": "없음 (테이크 그림, 정지)"
 }

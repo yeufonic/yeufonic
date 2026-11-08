@@ -1478,7 +1478,7 @@ Klik op **Visualizer** in de transportbalk (of **V** terwijl er een track speelt
 
 Het podium toont realtime audiovisualisaties die met het afspelen zijn gesynchroniseerd:
 
-- **Visualizermodi:** kies uit tien visualizers in de bovenbalk:
+- **Visualizermodi:** kies uit elf visualizers in de bovenbalk:
   - *Yeufonic:* het logo zelf, ademend — de tegel gloeit met de bas en zwelt aan met de beat, elke arm van de stemvork is een meter met zijn helft van het spectrum, en de groene stip licht op met de beat.
   - *Golflint:* twee zwevende harmonische linten die op het geluid reageren.
   - *Noorderlicht:* golvende gordijnen van etherisch poollicht die op midden en hoog reageren.
@@ -1489,6 +1489,7 @@ Het podium toont realtime audiovisualisaties die met het afspelen zijn gesynchro
   - *Deeltjeszwerm:* zwaartekrachtige deeltjeswolken die uiteenspatten op slagwerkaccenten.
   - *Hifi-spectrumbalken:* een spectrumanalyzer met meerdere banden en zwevende, vallende pieken.
   - *Hoes:* de afbeelding van de take, groot, met de titel eronder, op een vervaagde kopie van zichzelf die met de muziek meebeweegt. Een take zonder afbeelding toont de Yeufonic-scène tot er een is gemaakt.
+  - *Geen:* alleen de afbeelding van de take, stilstaand, op een donkere ondergrond, of het Yeufonic-teken als die er geen heeft. Er beweegt niets: voor een computer die de andere scènes niet bijhoudt.
 - **Achter de scènes:** de scènes Hoes, Yeufonic, Mandala, Raster, Vloeibaar en Balken spelen over de afbeelding van de take, die zachtjes met de muziek meebeweegt, als de take er een heeft. Erbovenop kan ook iets bewegen, in de kleuren van de afbeelding: *Ademen* (alleen de afbeelding), *Lichtstralen* die vanuit het midden draaien, *Rimpelingen* die met de beat worden uitgezonden, *Kleurdrift*, *Diepte* (meer kopieën van de afbeelding die tegen elkaar in draaien) of een *Spectrale halo*. Elke scène begint met zijn eigen (kleurdrift achter Hoes, de halo achter Mandala, stralen achter Raster, rimpelingen achter Vloeibaar, alleen de afbeelding achter Yeufonic en Balken); druk op **B** om ze door te lopen, en de scène onthoudt je keuze.
 - **De golfvorm:** onder de scènes Yeufonic en Hoes laat de golfvorm van de take zien hoeveel van het nummer al gespeeld is; klik erop om erheen te springen.
 - **Hoes en vinyldynamiek:** toont de hoes van de take in Hipgnosis-stijl in een interactieve 3D-hoes die kantelt en draait met de aanwijzer. Een realistische vinylplaat draait op 33⅓ toeren en schuift uit de hoes op basslagen, met een holografische glans en schokgolfringen die op het ritme reageren. Wissel van modus met de knop **Hoes**: *Hoes*, *Aura* (vervaagde achtergrond) of *Uit*.

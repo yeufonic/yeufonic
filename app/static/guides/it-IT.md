@@ -1478,7 +1478,7 @@ Premi **Visualizzatore** nella barra di trasporto (o **V** mentre suona una trac
 
 Il palco mostra visualizzazioni audio in tempo reale sincronizzate con la riproduzione:
 
-- **Modalità del visualizzatore:** scegli tra dieci visualizzatori nella barra in alto:
+- **Modalità del visualizzatore:** scegli tra undici visualizzatori nella barra in alto:
   - *Yeufonic:* il logo stesso, che respira — la piastrella brilla con i bassi e si espande con il battito, ogni braccio del diapason è un misuratore con la sua metà dello spettro, e il punto verde si accende con il battito.
   - *Nastro d'onda:* due nastri armonici fluttuanti che reagiscono al suono.
   - *Aurora boreale:* tende ondeggianti di aurora eterea che reagiscono a medi e acuti.
@@ -1489,6 +1489,7 @@ Il palco mostra visualizzazioni audio in tempo reale sincronizzate con la riprod
   - *Sciame di particelle:* ammassi di particelle gravitazionali che si disperdono sui colpi di percussione.
   - *Barre di spettro hi-fi:* un analizzatore di spettro multibanda con picchi fluttuanti che ricadono.
   - *Copertina:* l'immagine del take, grande, con il suo titolo sotto, su una copia sfocata di sé che si muove con la musica. Un take senza immagine mostra la scena Yeufonic finché non ne viene fatta una.
+  - *Nessuno:* solo l'immagine del take, ferma, su uno sfondo scuro, o il simbolo di Yeufonic se non ne ha. Non si muove nulla: per un computer che fatica con le altre scene.
 - **Dietro le scene:** le scene Copertina, Yeufonic, Mandala, Griglia, Liquido e Barre suonano sopra l'immagine del take, che si muove dolcemente con la musica, quando il take ne ha una. Sopra può muoversi anche qualcosa, nei colori dell'immagine: *Respiro* (solo l'immagine), *Raggi di luce* che ruotano dal centro, *Increspature* lanciate dal battito, *Colore alla deriva*, *Profondità* (altre copie dell'immagine che ruotano l'una contro l'altra) o un *Alone spettrale*. Ogni scena parte dal suo (colore alla deriva dietro Copertina, l'alone dietro Mandala, i raggi dietro Griglia, le increspature dietro Liquido, solo l'immagine dietro Yeufonic e Barre); premi **B** per scorrerli, e la scena ricorda la tua scelta.
 - **La forma d'onda:** sotto le scene Yeufonic e Copertina, la forma d'onda del take mostra quanto della canzone ha suonato; cliccala per saltare lì.
 - **Copertina e dinamica del vinile:** mostra la copertina del take in stile Hipgnosis in una busta 3D interattiva che si inclina e ruota con il puntatore. Un disco in vinile realistico gira a 33⅓ giri e scivola fuori dalla busta sui colpi di basso, con un bagliore olografico e anelli d'onda d'urto che reagiscono al ritmo. Cambia modalità con il pulsante **Copertina**: *Busta*, *Aura* (sfondo sfocato) o *Spento*.

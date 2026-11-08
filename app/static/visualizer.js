@@ -564,6 +564,7 @@
     setMode: function (mode) {
       if (!mode || this.mode === mode) { return; }
       this.mode = mode;
+      this.nonePainted = null;   // another scene has drawn over None's still picture
       this.saveSettings('mode');
       this.updateButtonsState();
       this.updateArtworkDisplay();   // the Artwork scene draws the picture itself, so the sleeve steps aside
@@ -733,7 +734,7 @@
       var take = this.currentTake;
       var artUrl = take && take.art ? take.art : null;
 
-      if (!artUrl || this.artMode === 'off' || this.mode === 'artwork') {
+      if (!artUrl || this.artMode === 'off' || this.mode === 'artwork' || this.mode === 'none') {
         wrap.classList.add('hidden');
         if (aura) { aura.classList.add('hidden'); }
         return;
@@ -965,6 +966,7 @@
       var h = window.innerHeight;
       var scale = backingScale(w, h);
       this.fullScale = scale;
+      this.nonePainted = null;   // setting the size clears the canvas
       canvas.width = Math.round(w * scale);
       canvas.height = Math.round(h * scale);
     },
@@ -1047,8 +1049,8 @@
 
       ctx.restore();
 
-      // Dynamic reactive transform, 3D tilt, and wandering on Vinyl Sleeve
-      this.applyArtworkDynamics(now);
+      // Dynamic reactive transform, 3D tilt, and wandering on Vinyl Sleeve (None shows neither)
+      if (this.mode !== 'none') { this.applyArtworkDynamics(now); }
     },
 
     /* The layer a scene draws on over the picture: the canvas's own size, cleared when the scene or the size
@@ -1086,6 +1088,9 @@
           break;
         case 'artwork':
           this.renderArtwork(ctx, w, h, now);
+          break;
+        case 'none':
+          this.renderNone(ctx, w, h);
           break;
         case 'aurora':
           this.renderAurora(ctx, w, h, now);
@@ -1311,7 +1316,7 @@
       return sum / ((end - start) * 255);
     },
 
-    /* The picture in front, in the Artwork scene, on a canvas of its own at the screen's full density: the
+    /* The picture in front, in the Artwork and None scenes, on a canvas of its own at the screen's full density: the
        scene behind it is drawn at less (backingScale), and the picture should be as sharp as the screen allows.  It is
        drawn again only when the picture or its place changes; its breathing is the layer's opacity, which costs
        nothing.  draw(g, x, y) draws it with its top left at x, y in the layer's own CSS pixels. */
@@ -1349,6 +1354,37 @@
       if (layer.style.opacity !== shown) { layer.style.opacity = shown; }
       if (layer.style.display) { layer.style.display = ''; }
       this.frontShown = true;
+    },
+
+    /* None: the take's picture alone, still, on the dark ground, or the Yeufonic mark where it has no picture (yet).
+       Nothing moves, so it is drawn only when the picture, the size or the scene changes: for a computer the other
+       scenes are too much for. */
+    renderNone: function (ctx, w, h) {
+      var art = this.loadArtScene(this.currentTake);
+      if (!art && !this.markImg) {
+        var self = this;
+        this.markImg = new Image();
+        this.markImg.onload = function () { self.nonePainted = null; };
+        this.markImg.src = '/static/icon.svg';
+      }
+      var mark = !art && this.markImg && this.markImg.complete && this.markImg.naturalWidth ? this.markImg : null;
+      var img = art ? art.img : mark;
+      if (img) {
+        // As large as the screen allows under the bar at the top and above the hint at the bottom, its own shape
+        // kept; the mark smaller, as a sign rather than a picture.
+        var side = Math.min(w * 0.8, h * 0.62) * (art ? 1 : 0.55);
+        var iw = img.naturalWidth || 1, ih = img.naturalHeight || 1;
+        var scale = side / Math.max(iw, ih);
+        var dw = iw * scale, dh = ih * scale;
+        this.frontPicture(img, (w - dw) / 2, (h - dh) / 2 - h * 0.02, dw, dh, 0, 1, function (g, x, y) {
+          g.drawImage(img, x, y, dw, dh);
+        });
+      }
+      var key = w + 'x' + h;
+      if (this.nonePainted === key) { return; }
+      this.nonePainted = key;
+      ctx.fillStyle = '#050509';
+      ctx.fillRect(0, 0, w, h);
     },
 
     renderYeufonic: function (ctx, w, h, now) {

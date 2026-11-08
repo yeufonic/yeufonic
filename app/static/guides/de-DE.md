@@ -1479,7 +1479,7 @@ Drücke **Visualizer** in der Transportleiste (oder **V**, während ein Track sp
 
 Die Bühne zeigt Audio-Visualisierungen in Echtzeit, synchron zum Abspielen:
 
-- **Visualizer-Modi:** Wähle in der oberen Leiste aus zehn verschiedenen Visualizern:
+- **Visualizer-Modi:** Wähle in der oberen Leiste aus elf verschiedenen Visualizern:
   - *Yeufonic:* Das Logo selbst, atmend — die Kachel glüht mit dem Bass und weitet sich auf dem Schlag, jeder Gabelarm ist eine Anzeige mit seiner eigenen Hälfte des Spektrums, und der grüne Punkt flammt auf dem Schlag auf.
   - *Wellenband:* Schwebende harmonische Doppelbänder als reaktive Wellen.
   - *Polarlicht:* Wogende Vorhänge ätherischen Nordlichts, die auf mittlere und hohe Frequenzen reagieren.
@@ -1490,6 +1490,7 @@ Die Bühne zeigt Audio-Visualisierungen in Echtzeit, synchron zum Abspielen:
   - *Partikelschwarm:* Gravitative Partikelhaufen, die bei Schlagzeugtreffern zerstreuen.
   - *Hi-Fi-Spektrumbalken:* Mehrband-Spektrumanalysator mit physikalisch schwebenden, abklingenden Spitzenkappen.
   - *Artwork:* Das Bild des Takes, groß, mit seinem Titel darunter, über einer weichen Kopie seiner selbst, die sich mit der Musik bewegt. Ein Take ohne Bild zeigt die Yeufonic-Szene, bis eins gemacht ist.
+  - *Keins:* Nur das Bild des Takes, unbewegt, auf dunklem Grund, oder das Yeufonic-Zeichen, wenn er keins hat. Nichts bewegt sich: für einen Computer, dem die anderen Szenen zu viel sind.
 - **Hinter den Szenen:** Die Szenen Artwork, Yeufonic, Mandala, Gitter, Flüssig und Balken spielen über dem Bild des Takes, sanft mit der Musik bewegt, wo der Take eines hat. Darüber kann sich auch etwas bewegen, in den eigenen Farben des Bildes: *Atem* (das Bild allein), *Lichtstrahlen*, die sich aus der Mitte drehen, *Wellen*, die auf dem Schlag ausgesandt werden, *Treibende Farbe*, *Tiefe* (weitere Kopien des Bildes, die sich gegeneinander drehen) oder ein *Spektrum-Halo*. Jede Szene beginnt mit ihrem eigenen (treibende Farbe hinter Artwork, der Halo hinter Mandala, Strahlen hinter Gitter, Wellen hinter Flüssig, das Bild allein hinter Yeufonic und Balken); drücke **B**, um sie durchzugehen, und die Szene merkt sich deine Wahl.
 - **Die Wellenform:** Unter den Szenen Yeufonic und Artwork zeigt die Wellenform des Takes, wie weit der Song gespielt hat; klicke darauf, um dorthin zu springen.
 - **Albumcover und Vinyl-Dynamik:** Zeigt das Albumcover des Takes im Stil von Hipgnosis in einer interaktiven 3D-Hülle, die sich mit der Zeigerbewegung neigt und kreist. Eine realistische Vinylplatte dreht sich mit 33⅓ U/min und gleitet bei Basstreffern aus der Hülle, begleitet von holografischem Schimmer und schlagreaktiven Schockwellenringen. Wechsle die Modi mit der Schaltfläche **Artwork**: *Hülle*, *Aura* (verschwommener Hintergrund) oder *Aus*.

@@ -2689,5 +2689,7 @@
  "the card's memory could not be read": "no se pudo leer la memoria de la tarjeta",
  "set by TRAIN_MAX_MINUTES": "fijado por TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "No hay URL de instalador disponible para esta actualización",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "La suma de comprobación no coincide: se esperaba {expected_hash}, se obtuvo {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "La suma de comprobación no coincide: se esperaba {expected_hash}, se obtuvo {actual_hash}",
+ "The take's picture, still": "La imagen de la toma, quieta",
+ "None (the take's picture, still)": "Ninguno (la imagen de la toma, quieta)"
 }

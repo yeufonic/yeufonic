@@ -44,6 +44,9 @@ cannot creep back in.
   screen's full sharpness), at most about 60 frames a second; Aura's glow is blurred once rather than on every frame,
   the sleeve's shadows no longer change size on every frame, and its toolbar and lyrics panel are solid rather than
   frosted. It keeps up on high-density and 120 Hz screens.
+- **A still visualizer scene, None:** the take's picture alone on a dark ground, or the Yeufonic mark where it has
+  none, with nothing moving, for a computer the other scenes are too much for. It is kept as your choice like the
+  others.
 
 ## 0.0.55 (2026-11-08)
 
