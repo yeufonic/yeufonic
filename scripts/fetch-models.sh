@@ -271,20 +271,22 @@ fi
 if [ "$VOICE" = yes ]; then
   RVC_HF=https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main
   PYMSS_HF=https://huggingface.co/baicai1145/pymss/resolve/main/vocal/vocal_extraction
+  # Unchanged copies, tried first (both originals are single accounts), with the originals as the fallback.
+  VC=https://github.com/yeufonic/yeufonic/releases/download/voice-models-1
   V="$ROOT/models/voice"
   mkdir -p "$V/assets/hubert_base" "$V/assets/rmvpe" "$V/assets/pretrained_v2" "$V/assets/weights" \
     "$V/assets/indices" "$V/assets/pymss/vocal/vocal_extraction" "$V/logs"
   for f in config.json preprocessor_config.json pytorch_model.bin; do
-    fetch "$RVC_HF/hubert_base/$f" "$V/assets/hubert_base/$f"
+    fetch "$VC/hubert_base.$f" "$V/assets/hubert_base/$f" "$RVC_HF/hubert_base/$f"
   done
-  fetch "$RVC_HF/rmvpe.pt" "$V/assets/rmvpe/rmvpe.pt"
-  fetch "$RVC_HF/pretrained_v2/f0G48k.pth" "$V/assets/pretrained_v2/f0G48k.pth"
-  fetch "$RVC_HF/pretrained_v2/f0D48k.pth" "$V/assets/pretrained_v2/f0D48k.pth"
+  fetch "$VC/rmvpe.pt" "$V/assets/rmvpe/rmvpe.pt" "$RVC_HF/rmvpe.pt"
+  fetch "$VC/f0G48k.pth" "$V/assets/pretrained_v2/f0G48k.pth" "$RVC_HF/pretrained_v2/f0G48k.pth"
+  fetch "$VC/f0D48k.pth" "$V/assets/pretrained_v2/f0D48k.pth" "$RVC_HF/pretrained_v2/f0D48k.pth"
   for f in model_bs_roformer_ep_317_sdr_12.9755.ckpt model_bs_roformer_ep_317_sdr_12.9755.yaml; do
-    fetch "$PYMSS_HF/$f" "$V/assets/pymss/vocal/vocal_extraction/$f"
+    fetch "$VC/$f" "$V/assets/pymss/vocal/vocal_extraction/$f" "$PYMSS_HF/$f"
   done
   if [ ! -d "$V/logs/mute" ]; then
-    fetch "$RVC_HF/mute.zip" "$V/mute.zip"
+    fetch "$VC/mute.zip" "$V/mute.zip" "$RVC_HF/mute.zip"
     python3 -m zipfile -e "$V/mute.zip" "$V/logs" && rm -f "$V/mute.zip"
   fi
 fi

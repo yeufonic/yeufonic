@@ -112,26 +112,28 @@ $HF = 'https://huggingface.co'
 # What the voice service reads, as scripts/fetch-models.sh --voice fetches it for the Docker install.
 $RvcHF = "$HF/lj1995/VoiceConversionWebUI/resolve/main"
 $PymssHF = "$HF/baicai1145/pymss/resolve/main/vocal/vocal_extraction"
+# Unchanged copies of the same files, tried first (the originals are single accounts): a pre-release of Yeufonic's own.
+$VoiceCopies = 'https://github.com/yeufonic/yeufonic/releases/download/voice-models-1'
 $VoiceFiles = @(
-    @{ Dir = 'assets\hubert_base'; File = 'config.json'; Url = "$RvcHF/hubert_base/config.json"
+    @{ Dir = 'assets\hubert_base'; File = 'config.json'; Copy = "$VoiceCopies/hubert_base.config.json"; Url = "$RvcHF/hubert_base/config.json"
        Sha = '0346950779dfb7f9316fa74ed846e2b8a22a08eedfdc5387b73f327cb1a4a7cf'; Size = 1492 }
-    @{ Dir = 'assets\hubert_base'; File = 'preprocessor_config.json'; Url = "$RvcHF/hubert_base/preprocessor_config.json"
+    @{ Dir = 'assets\hubert_base'; File = 'preprocessor_config.json'; Copy = "$VoiceCopies/hubert_base.preprocessor_config.json"; Url = "$RvcHF/hubert_base/preprocessor_config.json"
        Sha = '7c1976a680fb7acc757cd36fb08eef878fa36c70b4c9d2d595df9c608bbbbf0e'; Size = 225 }
-    @{ Dir = 'assets\hubert_base'; File = 'pytorch_model.bin'; Url = "$RvcHF/hubert_base/pytorch_model.bin"
+    @{ Dir = 'assets\hubert_base'; File = 'pytorch_model.bin'; Copy = "$VoiceCopies/hubert_base.pytorch_model.bin"; Url = "$RvcHF/hubert_base/pytorch_model.bin"
        Sha = 'cc8c20f4b90a520757260197a3ff2505705a7adbd20ad9eeaa4e1a9b38442ef5'; Size = 189206711 }
-    @{ Dir = 'assets\rmvpe'; File = 'rmvpe.pt'; Url = "$RvcHF/rmvpe.pt"
+    @{ Dir = 'assets\rmvpe'; File = 'rmvpe.pt'; Copy = "$VoiceCopies/rmvpe.pt"; Url = "$RvcHF/rmvpe.pt"
        Sha = '6d62215f4306e3ca278246188607209f09af3dc77ed4232efdd069798c4ec193'; Size = 181184272 }
-    @{ Dir = 'assets\pretrained_v2'; File = 'f0G48k.pth'; Url = "$RvcHF/pretrained_v2/f0G48k.pth"
+    @{ Dir = 'assets\pretrained_v2'; File = 'f0G48k.pth'; Copy = "$VoiceCopies/f0G48k.pth"; Url = "$RvcHF/pretrained_v2/f0G48k.pth"
        Sha = 'b5d51f589cc3632d4eae36a315b4179397695042edc01d15312e1bddc2b764a4'; Size = 75465569 }
-    @{ Dir = 'assets\pretrained_v2'; File = 'f0D48k.pth'; Url = "$RvcHF/pretrained_v2/f0D48k.pth"
+    @{ Dir = 'assets\pretrained_v2'; File = 'f0D48k.pth'; Copy = "$VoiceCopies/f0D48k.pth"; Url = "$RvcHF/pretrained_v2/f0D48k.pth"
        Sha = '2269b73c7a4cf34da09aea99274dabf99b2ddb8a42cbfb065fb3c0aa9a2fc748'; Size = 142875703 }
     @{ Dir = 'assets\pymss\vocal\vocal_extraction'; File = 'model_bs_roformer_ep_317_sdr_12.9755.ckpt'
-       Url = "$PymssHF/model_bs_roformer_ep_317_sdr_12.9755.ckpt"
+       Copy = "$VoiceCopies/model_bs_roformer_ep_317_sdr_12.9755.ckpt"; Url = "$PymssHF/model_bs_roformer_ep_317_sdr_12.9755.ckpt"
        Sha = '5b84f37e8d444c8cb30c79d77f613a41c05868ff9c9ac6c7049c00aefae115aa'; Size = 639331213 }
     @{ Dir = 'assets\pymss\vocal\vocal_extraction'; File = 'model_bs_roformer_ep_317_sdr_12.9755.yaml'
-       Url = "$PymssHF/model_bs_roformer_ep_317_sdr_12.9755.yaml"
+       Copy = "$VoiceCopies/model_bs_roformer_ep_317_sdr_12.9755.yaml"; Url = "$PymssHF/model_bs_roformer_ep_317_sdr_12.9755.yaml"
        Sha = '3dae086b481bc6adecccb6bdfd2386ffd78708e11c221876a146972cab5b2afe'; Size = 2279 }
-    @{ Dir = ''; File = 'mute.zip'; Url = "$RvcHF/mute.zip"
+    @{ Dir = ''; File = 'mute.zip'; Copy = "$VoiceCopies/mute.zip"; Url = "$RvcHF/mute.zip"
        Sha = 'ee948e85213e4ed2f2ba2f8dfcee810bfd0b63131d91450e920bbe1cbd0321d0'; Size = 312273 }
 )
 # The yue2.cpp engine.  Its server is built for Windows with Yeufonic's patches by .github/workflows/engine-cpp-windows.yml
@@ -549,11 +551,16 @@ function Expand-Zip([string]$zip, [string]$to) {
 
 # An archive of one commit from GitHub.  GitHub builds these on request, so they have
 # no fixed checksum; the commit id pins the contents.
-function Get-Commit([string]$repo, [string]$commit, [string]$dest) {
+function Get-Commit([string]$repo, [string]$commit, [string]$dest, [string]$fallback = '') {
     $zip = Join-Path $Downloads "$($repo.Replace('/', '_'))-$($commit.Substring(0, 8)).zip"
     if (-not (Test-Path $zip)) {
         Say "Downloading $repo at $($commit.Substring(0, 8))"
         & curl.exe -L --fail --retry 5 -# -o "$zip.part" "https://codeload.github.com/$repo/zip/$commit"
+        # A mirror first, the original after: the same commit either way.
+        if ($LASTEXITCODE -ne 0 -and $fallback) {
+            Say "  could not download it from $repo; trying $fallback" 'Yellow'
+            & curl.exe -L --fail --retry 5 -# -o "$zip.part" "https://codeload.github.com/$fallback/zip/$commit"
+        }
         if ($LASTEXITCODE -ne 0) { Stop-Setup "could not download $repo" }
         Move-Item -Force "$zip.part" $zip
     }
@@ -932,7 +939,8 @@ if ($Voices) {
             $link = Join-Path $rvcDir $j
             if (Test-Path $link) { [System.IO.Directory]::Delete($link, $false) 2>$null; if (Test-Path $link) { Remove-Item -Recurse -Force $link } }
         }
-        Get-Commit 'RVC-Project/Retrieval-based-Voice-Conversion-WebUI' $Pins.RvcCommit $rvcDir
+        # Our unchanged mirror first (#52: a repository a setup needs can vanish), RVC-Project's own after.
+        Get-Commit 'yeufonic/Retrieval-based-Voice-Conversion-WebUI' $Pins.RvcCommit $rvcDir 'RVC-Project/Retrieval-based-Voice-Conversion-WebUI'
         Done $rvcMark
     }
     foreach ($j in @('assets', 'logs')) {

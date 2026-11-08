@@ -8,7 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ffmpeg buil
 
 # RVC, MIT.  Pinned: its training scripts are driven by argument position, so a newer commit can break them.
 ARG RVC_COMMIT=81eed5e8f68b6bed1789f682fe78cdd324495afc
-RUN git clone https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI /opt/rvc \
+# Our unchanged mirror first (a repository a build needs can vanish), RVC-Project's own after: the same commit.
+RUN (git clone https://github.com/yeufonic/Retrieval-based-Voice-Conversion-WebUI /opt/rvc \
+     || git clone https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI /opt/rvc) \
     && git -C /opt/rvc checkout "$RVC_COMMIT" && rm -rf /opt/rvc/.git
 
 ARG TORCH_CUDA=cu128
