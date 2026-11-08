@@ -10,7 +10,8 @@ GPU schedule: it frees the engine before it asks for anything here, so this neve
     POST /convert  {"id", "input", "output", "octave": int}                        -> {"ok": true} when written
 
 Paths are the app's own (/data/...): this container mounts the same data folder.  A voice's files go to
-/data/voices/<id>/: model.pth and model.index, and a work folder that is removed once training succeeds.
+/data/voices/<id>/: model.pth and model.index, vocals/ (each song separated) and excerpts/ (what was trained on), and a
+work folder that is removed once training succeeds.
 """
 from __future__ import annotations
 
@@ -176,6 +177,8 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int, m
     trainset = work / "trainset"
     trainset.mkdir(parents=True)
     log = work / "train.log"
+    kept = work / "vocals"   # each song's separated vocal, kept with the voice once it has trained
+    kept.mkdir()
     vocals = []
     for index, name in enumerate(sources):
         job.update(stage="separating" if split else "preparing", progress=0.1 * index / max(1, len(sources)))
@@ -184,6 +187,10 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int, m
         if job.get("stop"):
             raise Stopped()
         vocal = separate(source, work / "sep")[0] if split else source
+        if split:   # corpus songs are all "original.*", so the song's folder names it
+            label = source.parent.name if source.stem == "original" else source.stem
+            shutil.move(str(vocal), kept / f"{index:03d} {label}.flac")
+            vocal = kept / f"{index:03d} {label}.flac"
         staged = work / "mono" / f"{index:03d}.wav"
         staged.parent.mkdir(parents=True, exist_ok=True)
         mono(vocal, staged)
@@ -250,6 +257,10 @@ def train(job: dict, voice: str, sources: list[str], split: bool, epochs: int, m
         raise RuntimeError("training finished without a model")
     shutil.move(str(small), folder / "model.pth")
     shutil.copy(index, folder / "model.index")
+    for name, made in (("vocals", kept), ("excerpts", trainset)):   # what it learned from: whole, and as trained
+        shutil.rmtree(folder / name, ignore_errors=True)
+        if any(made.iterdir()):
+            shutil.move(str(made), folder / name)
     shutil.rmtree(logs, ignore_errors=True)          # the checkpoints are half a gigabyte; the model is all that is used
     for linked in (ASSETS / "indices").glob(f"*{exp}*"):
         linked.unlink(missing_ok=True)
