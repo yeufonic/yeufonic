@@ -2113,6 +2113,8 @@
  "Rendering 5.1 ({format})": "正在渲染 5.1（{format}）",
  "Could not make the 5.1: {message}": "无法生成 5.1：{message}",
  "FRONT": "前方",
+ "Drag to set the width": "拖动以设置宽度",
+ "Drag to move the rear pair; SURROUND sets how much plays from it": "拖动以移动后方一对音箱；从中发出多少由 SURROUND 决定",
  "From the mix": "来自混音",
  "Loading stems…": "正在加载分轨…",
  "Choose a stem, then drag round the circle to place it; the wheel spreads it": "先选一条分轨，再沿圆圈拖动来放置；滚轮调宽度",

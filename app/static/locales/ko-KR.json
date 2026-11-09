@@ -2113,6 +2113,8 @@
  "Rendering 5.1 ({format})": "5.1 렌더링 중 ({format})",
  "Could not make the 5.1: {message}": "5.1을 만들지 못했습니다: {message}",
  "FRONT": "앞",
+ "Drag to set the width": "끌어서 너비 설정",
+ "Drag to move the rear pair; SURROUND sets how much plays from it": "끌어서 뒤쪽 쌍을 옮깁니다. 거기서 나오는 양은 SURROUND로 정합니다",
  "From the mix": "믹스에서",
  "Loading stems…": "스템 불러오는 중…",
  "Choose a stem, then drag round the circle to place it; the wheel spreads it": "스템을 고른 뒤 원을 따라 끌어 배치하세요. 휠로 넓이를 바꿉니다",

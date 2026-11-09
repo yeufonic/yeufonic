@@ -377,7 +377,7 @@
               guitar: { az: -110, spread: 20 }, piano: { az: 110, spread: 20 }, instruments: { az: 0, spread: 220 } },
   };
   function defaultSpace() {
-    return { enabled: false, width: 30, surround: 0, height: 0, room: 0, output: 0, source: 'mix',
+    return { enabled: false, width: 30, surround: 0, height: 0, room: 0, output: 0, source: 'mix', rear: 110,
              stems: JSON.parse(JSON.stringify(SPACE_STEMS)) };
   }
   function stemPlace(space, name) {
@@ -487,6 +487,9 @@
   };
   var SPACE_REAR = 110;            // the rear speakers' angle either side, as a 5.1 layout puts its surrounds
   var SPACE_REAR_DELAY = 0.018;    // and their sound a little later, so it reads as room rather than a second source
+  // The rear pair can be moved on the stage, from beside the ears to nearly behind; the 5.1 file keeps its speakers
+  // where a 5.1 room has them.
+  function spaceRearAngle(sp) { return Math.max(90, Math.min(170, Number(sp && sp.rear) || SPACE_REAR)); }
 
   /* A stem's name as the page shows it. */
   function stemLabel(name) {
@@ -677,7 +680,7 @@
        n(i.tubeHarmonics, 1), Boolean(i.bass)],
       [l.enabled !== false, n(l.drive, 0), n(l.ceiling, -0.1), n(l.release, 0.08), Boolean(l.warmth)],
       (function (sp) {
-        return [Boolean(sp.enabled), n(sp.width, 30), n(sp.surround, 0), n(sp.height, 0), n(sp.room, 0), n(sp.output, 0)];
+        return [Boolean(sp.enabled), n(sp.width, 30), n(sp.surround, 0), n(sp.height, 0), n(sp.room, 0), n(sp.output, 0), n(sp.rear, SPACE_REAR)];
       })(s.space || {}),
       // the equaliser by what its filters do: a band that changes nothing is nothing, wherever it sits,
       // and so is the whole unit when it is out
@@ -1360,8 +1363,9 @@
         }
         place(this.spaceFront[0], -width, height);
         place(this.spaceFront[1], width, height);
-        place(this.spaceRear[0], -SPACE_REAR, height);
-        place(this.spaceRear[1], SPACE_REAR, height);
+        var rearAt = spaceRearAngle(sp);
+        place(this.spaceRear[0], -rearAt, height);
+        place(this.spaceRear[1], rearAt, height);
         set(this.spaceRearGain.gain, useStems ? 0 : Math.max(0, Math.min(1, Number(sp.surround) || 0)) * 1.4);
         set(this.spaceRoomGain.gain, Math.max(0, Math.min(1, Number(sp.room) || 0)) * 0.45);
         // measured on finished takes: +6.5 dB with the speakers 30 degrees out, +5.3 dB at 90; and the rear pair and
@@ -3755,10 +3759,16 @@
                    '<text x="64" y="83" font-size="8" class="space-mark">L</text><text x="96" y="83" font-size="8" class="space-mark">R</text>'];
       if (!stems) {
         var spk = [-sp.width, sp.width], rear = Number(sp.surround) || 0;
-        spk.forEach(function (az) { var q = pt(az, R); parts.push('<rect x="' + (q[0] - 5) + '" y="' + (q[1] - 5) + '" width="10" height="10" rx="2" class="space-speaker"/>'); });
-        [-SPACE_REAR, SPACE_REAR].forEach(function (az) {
+        spk.forEach(function (az) {
           var q = pt(az, R);
-          parts.push('<rect x="' + (q[0] - 5) + '" y="' + (q[1] - 5) + '" width="10" height="10" rx="2" class="space-speaker" style="opacity:' + (0.15 + rear * 0.85).toFixed(2) + '"/>');
+          parts.push('<rect x="' + (q[0] - 6) + '" y="' + (q[1] - 6) + '" width="12" height="12" rx="2" class="space-speaker" data-speaker="front"><title>' +
+                     escHtml(t('Drag to set the width')) + '</title></rect>');
+        });
+        var rearAt = spaceRearAngle(sp);
+        [-rearAt, rearAt].forEach(function (az) {
+          var q = pt(az, R);
+          parts.push('<rect x="' + (q[0] - 6) + '" y="' + (q[1] - 6) + '" width="12" height="12" rx="2" class="space-speaker" data-speaker="rear" style="opacity:' +
+                     (0.35 + rear * 0.65).toFixed(2) + '"><title>' + escHtml(t('Drag to move the rear pair; SURROUND sets how much plays from it')) + '</title></rect>');
         });
       } else {
         var names = player.names.length ? player.names : ['vocals', 'drums', 'bass', 'other'];
@@ -3833,8 +3843,28 @@
         stems()[name] = Object.assign({}, stemPlace(self.settings.space, name), { az: angleAt(e) });
         changed();
       }
+      var speaker = null;
+      function dragSpeaker(e) {
+        var az = Math.abs(angleAt(e));
+        self.settings.space = Object.assign(defaultSpace(), self.settings.space || {});
+        if (speaker === 'front') {
+          self.settings.space.width = Math.max(5, Math.min(90, az));
+          var knob = document.querySelector('.knob-wrap[data-param="space.width"]');
+          if (knob && knob._updateDisplay) { knob._updateDisplay(self.settings.space.width); }
+        } else {
+          self.settings.space.rear = Math.max(90, Math.min(170, az));
+        }
+        changed();
+      }
       svg.addEventListener('pointerdown', function (e) {
-        if (!svg.classList.contains('stems')) { return; }
+        if (!svg.classList.contains('stems')) {
+          var handle = e.target.closest('[data-speaker]');
+          if (!handle) { return; }
+          speaker = handle.dataset.speaker;
+          svg.setPointerCapture(e.pointerId);
+          e.preventDefault();
+          return;
+        }
         var dot = e.target.closest('[data-stem]');
         if (dot) { self.spaceChosen = dot.dataset.stem; self.paintSpaceStage(); return startDrag(e, false); }
         startDrag(e, true);
@@ -3845,9 +3875,9 @@
         e.preventDefault();
         if (placeNow) { placeChosen(e); }
       }
-      svg.addEventListener('pointermove', function (e) { if (dragging) { placeChosen(e); } });
-      svg.addEventListener('pointerup', function () { dragging = false; });
-      svg.addEventListener('pointercancel', function () { dragging = false; });
+      svg.addEventListener('pointermove', function (e) { if (dragging) { placeChosen(e); } else if (speaker) { dragSpeaker(e); } });
+      svg.addEventListener('pointerup', function () { dragging = false; if (speaker) { speaker = null; self.syncKnobsToState(); } });
+      svg.addEventListener('pointercancel', function () { dragging = false; speaker = null; });
       svg.addEventListener('wheel', function (e) {
         if (!svg.classList.contains('stems') || !self.spaceChosen) { return; }
         e.preventDefault();

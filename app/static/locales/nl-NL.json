@@ -2113,6 +2113,8 @@
  "Rendering 5.1 ({format})": "5.1 renderen ({format})",
  "Could not make the 5.1: {message}": "Kon de 5.1 niet maken: {message}",
  "FRONT": "VOOR",
+ "Drag to set the width": "Sleep om de breedte in te stellen",
+ "Drag to move the rear pair; SURROUND sets how much plays from it": "Sleep om het achterste paar te verplaatsen; SURROUND bepaalt hoeveel eruit komt",
  "From the mix": "Uit de mix",
  "Loading stems…": "Stems laden…",
  "Choose a stem, then drag round the circle to place it; the wheel spreads it": "Kies een stem en sleep dan rond de cirkel om hem te plaatsen; het scrollwiel spreidt hem",

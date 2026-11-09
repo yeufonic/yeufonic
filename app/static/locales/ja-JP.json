@@ -2113,6 +2113,8 @@
  "Rendering 5.1 ({format})": "5.1 をレンダリング中（{format}）",
  "Could not make the 5.1: {message}": "5.1 を作成できませんでした: {message}",
  "FRONT": "前",
+ "Drag to set the width": "ドラッグして幅を設定",
+ "Drag to move the rear pair; SURROUND sets how much plays from it": "ドラッグして後方のペアを動かします。そこから出る量は SURROUND で決まります",
  "From the mix": "ミックスから",
  "Loading stems…": "ステムを読み込み中…",
  "Choose a stem, then drag round the circle to place it; the wheel spreads it": "ステムを選び、円に沿ってドラッグして配置します。ホイールで広がりを変えます",

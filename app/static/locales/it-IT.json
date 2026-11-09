@@ -2113,6 +2113,8 @@
  "Rendering 5.1 ({format})": "Rendering 5.1 ({format})",
  "Could not make the 5.1: {message}": "Impossibile creare il 5.1: {message}",
  "FRONT": "FRONTE",
+ "Drag to set the width": "Trascina per impostare l'ampiezza",
+ "Drag to move the rear pair; SURROUND sets how much plays from it": "Trascina per spostare la coppia posteriore; SURROUND stabilisce quanto ne esce",
  "From the mix": "Dal mix",
  "Loading stems…": "Caricamento stem…",
  "Choose a stem, then drag round the circle to place it; the wheel spreads it": "Scegli uno stem, poi trascina lungo il cerchio per collocarlo; la rotella lo allarga",

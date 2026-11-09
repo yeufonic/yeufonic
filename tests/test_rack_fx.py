@@ -930,7 +930,7 @@ def test_space_is_heard_but_never_in_the_takes_own_file(flat):
     render leaves it out unless asked for it (the module's own download)."""
     from pathlib import Path
     assert {k: v for k, v in flat["space"].items() if k != "stems"} == \
-        {"enabled": False, "width": 30, "surround": 0, "height": 0, "room": 0, "output": 0, "source": "mix"}
+        {"enabled": False, "width": 30, "surround": 0, "height": 0, "room": 0, "output": 0, "source": "mix", "rear": 110}
     assert flat["space"]["stems"]["vocals"] == {"az": 0, "spread": 10}
     out = rack([changed(flat, space={"enabled": True, "width": 45, "surround": 0.5})])
     assert out["engaged"] == [False]

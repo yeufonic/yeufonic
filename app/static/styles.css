@@ -5591,7 +5591,10 @@ body.visualizer-open > *:not(#visualizer-modal) { visibility: hidden; }
 .space-stage-box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .space-source { display: flex; gap: 4px; }
 .space-source .space-scene { min-width: 54px; }
-.space-stage { width: calc(170px * var(--rack-type, 1)); height: calc(170px * var(--rack-type, 1)); touch-action: none; cursor: crosshair; }
+.space-stage { width: calc(170px * var(--rack-type, 1)); height: calc(170px * var(--rack-type, 1)); touch-action: none; user-select: none; -webkit-user-select: none; }
+.space-stage.stems { cursor: crosshair; }
+.space-stage [data-speaker] { cursor: grab; }
+.space-stage [data-speaker]:hover { stroke: #f5f3ff; stroke-width: 1.6; }
 .space-chosen { fill: none; stroke: #f8fafc; stroke-width: 1.6; }
 .space-stem-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: calc(220px * var(--rack-type, 1)); }
 .space-stem-chips.hidden { display: none; }

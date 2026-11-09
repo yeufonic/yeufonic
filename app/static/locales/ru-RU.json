@@ -2113,6 +2113,8 @@
  "Rendering 5.1 ({format})": "Рендер 5.1 ({format})",
  "Could not make the 5.1: {message}": "Не удалось сделать 5.1: {message}",
  "FRONT": "ВПЕРЕДИ",
+ "Drag to set the width": "Тяните, чтобы задать ширину",
+ "Drag to move the rear pair; SURROUND sets how much plays from it": "Тяните, чтобы сдвинуть задние колонки; сколько звучит из них, задаёт SURROUND",
  "From the mix": "Из микса",
  "Loading stems…": "Загружаются стемы…",
  "Choose a stem, then drag round the circle to place it; the wheel spreads it": "Выберите стем и тяните по кругу, чтобы разместить его; колесо меняет ширину",
