@@ -119,6 +119,9 @@ ENGINE_INPUT_DIR = Path(os.environ["ENGINE_INPUT_DIR"]) if os.environ.get("ENGIN
 # The voice service (voice/, the "voice" compose profile): trains recorded voices and sings a take's vocal in one.
 # Empty, or not answering, and the app hides recorded voices.
 VOICE_URL = os.environ.get("VOICE_URL", "").strip().rstrip("/")
+# A developer's switch, off unless set: keep a voiced take's two halves as they were mixed, the vocal sung in the voice
+# and the backing under it, in a "voice" folder beside the take's audio (vocal.flac, backing.flac).
+VOICE_KEEP_PARTS = os.environ.get("VOICE_KEEP_PARTS", "").strip().lower() in ("1", "true", "yes", "on")
 
 # The largest recording the app will take.  Two gigabytes is a long lossless source:
 # an eleven minute 24/96 FLAC is around 260 MB.  The engine has its own ceiling for

@@ -402,7 +402,10 @@ def settle(original: Path, sung: Path, voice: str = "", level_db: float = 0.0) -
 
 
 def convert(voice: str, source: Path, output: Path, octave: int, level_db: float = 0.0, likeness: float = 0.75,
-            backing_db: float = 0.0) -> None:
+            backing_db: float = 0.0, parts: Path | None = None) -> None:
+    """The take at `source` with its vocal sung in `voice`, written to `output`.  With `parts`, the two halves as they
+    were mixed are kept there too: vocal.flac (the sung vocal at its level) and backing.flac (the rest at its level),
+    both brought down with the mix where it would clip, so together they are the finished take."""
     folder = VOICES / voice
     model, index = folder / "model.pth", folder / "model.index"
     if not model.exists():
@@ -418,21 +421,34 @@ def convert(voice: str, source: Path, output: Path, octave: int, level_db: float
             raise RuntimeError("the conversion wrote nothing")
         settle(vocals, sung, voice, level_db)
         mixed = work / "mixed.wav"
+        halves = [work / "vocal.wav", work / "backing.wav"]
+        # The same two streams the mix sums, written out as they go into it when the halves are to be kept.
+        split = parts is not None
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(rest), "-i", str(sung), "-filter_complex",
-                        "[1:a]aresample=44100,aformat=sample_fmts=flt:channel_layouts=stereo[v];"
-                        f"[0:a]aresample=44100,aformat=sample_fmts=flt,volume={float(backing_db):.1f}dB[i];"
-                        "[i][v]amix=inputs=2:normalize=0[m]", "-map", "[m]", "-c:a", "pcm_f32le", str(mixed)], check=True)
+                        "[1:a]aresample=44100,aformat=sample_fmts=flt:channel_layouts=stereo" + (",asplit=2[v][vk];" if split else "[v];")
+                        + f"[0:a]aresample=44100,aformat=sample_fmts=flt,volume={float(backing_db):.1f}dB"
+                        + (",asplit=2[i][ik];" if split else "[i];")
+                        + "[i][v]amix=inputs=2:normalize=0[m]", "-map", "[m]", "-c:a", "pcm_f32le", str(mixed),
+                        *(["-map", "[vk]", "-c:a", "pcm_f32le", str(halves[0]),
+                           "-map", "[ik]", "-c:a", "pcm_f32le", str(halves[1])] if split else [])], check=True)
         import soundfile  # noqa: PLC0415
 
         samples, rate = soundfile.read(str(mixed), dtype="float32")
         peak = float(abs(samples).max()) if samples.size else 0.0
+        scale = 0.98 / peak if peak > 0.98 else 1.0
         if peak > 0.98:     # the whole mix down, vocal and backing together, so the balance set holds
-            samples *= 0.98 / peak
+            samples *= scale
         final = work / f"final{output.suffix or '.flac'}"
         soundfile.write(str(final), samples, rate)
         print(f"[{voice}] mixed: vocal {level_db:+.0f} dB, backing {backing_db:+.0f} dB"
               + (f", whole mix {20 * math.log10(0.98 / peak):+.1f} dB to stay under full scale" if peak > 0.98 else ""),
               flush=True)
+        if split:
+            parts.mkdir(parents=True, exist_ok=True)
+            for half, name in zip(halves, ("vocal.flac", "backing.flac")):
+                part, part_rate = soundfile.read(str(half), dtype="float32")
+                soundfile.write(str(parts / name), part * scale, part_rate, subtype="PCM_24")
+            print(f"[{voice}] kept the vocal and the backing as mixed in {parts}", flush=True)
         shutil.move(str(final), output)
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -509,7 +525,7 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     convert(body["id"], Path(body["input"]), Path(body["output"]), int(body.get("octave") or 0),
                             float(body.get("level_db") or 0), float(body.get("likeness", 0.75)),
-                            float(body.get("backing_db") or 0))
+                            float(body.get("backing_db") or 0), Path(body["parts"]) if body.get("parts") else None)
                 except Exception as err:  # noqa: BLE001
                     traceback.print_exc()
                     return self._send(500, {"error": str(err)[-800:]})

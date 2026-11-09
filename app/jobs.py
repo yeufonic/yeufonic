@@ -3372,6 +3372,11 @@ def _log_voice_step(name: str, state: dict, said: dict) -> None:
             log.info("Recorded voice '%s': training %d%% done", name, quarter * 25)
 
 
+def voice_parts_folder(audio: Path) -> Path:
+    """Where a voiced take's two halves are kept when VOICE_KEEP_PARTS is set: beside its audio."""
+    return audio.parent / "voice"
+
+
 async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
     """The take's vocal sung again in its recorded voice, in place.  A failure keeps the take as rendered, and says so."""
     voice = persona.one(record["voice_id"])
@@ -3384,6 +3389,9 @@ async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
     execute("UPDATE takes SET stage = 'voice' WHERE id = ?", (take_id,))
     CURRENT.update({"prompt_id": None, "label": "Singing in a recorded voice", "progress": None})
     sung = dest.with_name(dest.stem + ".voice" + dest.suffix)
+    # The halves kept from an earlier singing of this take no longer match it (VOICE_KEEP_PARTS).
+    parts = voice_parts_folder(dest)
+    shutil.rmtree(parts, ignore_errors=True)
     try:
         with contextlib.suppress(Exception):
             await ENGINE.free()
@@ -3391,11 +3399,13 @@ async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
             answer = await client.post(config.VOICE_URL + "/convert", json={
                 "id": voice["id"], "input": str(dest), "output": str(sung), "octave": voice["octave"],
                 "level_db": voice["level_db"], "likeness": voice["likeness"],
-                "backing_db": voice["backing_db"]})
+                "backing_db": voice["backing_db"], **({"parts": str(parts)} if config.VOICE_KEEP_PARTS else {})})
         if answer.status_code != 200 or not sung.is_file():
             raise RuntimeError((answer.json() or {}).get("error") or f"answered {answer.status_code}")
         sung.replace(dest)
         log.info("Take '%s' sung by the recorded voice %s", record.get("title") or take_id, persona.describe(voice))
+        if config.VOICE_KEEP_PARTS:
+            log.info("Kept the sung vocal and the backing it was mixed onto in %s", parts)
     except Exception as err:  # noqa: BLE001
         sung.unlink(missing_ok=True)
         log.warning("Could not sing '%s' in the recorded voice %s; it keeps the vocal it was rendered with: %s",

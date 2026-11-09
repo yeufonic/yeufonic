@@ -45,6 +45,10 @@ services:
       # The average level, in dB, below which a take is marked "Weak render".
       # WEAK_RENDER_DB: "-24"
 
+      # For developers: keep a voiced take's sung vocal and the backing it was mixed onto, in a
+      # "voice" folder beside the take's audio. Off unless set.
+      # VOICE_KEEP_PARTS: "1"
+
       # Turn a render down around the peaks that would clip when it is saved (needs an engine
       # built since the peak guard was added), and how high a peak may reach, in dB below full scale.
       # PEAK_GUARD: "1"

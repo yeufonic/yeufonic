@@ -174,3 +174,43 @@ def test_the_log_says_each_step_of_a_voice_training(caplog):
                      "Recorded voice 'Mine': training 25% done",
                      "Recorded voice 'Mine': training 50% done",
                      "Recorded voice 'Mine': building its index"]
+
+
+def test_the_halves_are_asked_for_only_with_the_developer_switch_and_old_ones_go(monkeypatch, tmp_path):
+    made = _voice("singparts")
+    persona.model_file(made["id"]).write_bytes(b"weights")
+    persona.ready(made["id"], str(persona.model_file(made["id"])))
+    take = tmp_path / "take.flac"
+    asked = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        asked.append(body)
+        pathlib.Path(body["output"]).write_bytes(b"sung in the voice")
+        if body.get("parts"):
+            pathlib.Path(body["parts"]).mkdir()
+            (pathlib.Path(body["parts"]) / "vocal.flac").write_bytes(b"the vocal")
+        return httpx.Response(200, json={"ok": True})
+
+    _service(monkeypatch, handler)
+    from app.db import execute
+    execute("INSERT INTO takes (id, kind, title, style, lyrics, abc, mode, seed, checkpoint, max_duration, status, created_at) "
+            "VALUES ('tv3', 'song', 't', 's', 'l', '', 'full', 1, 'c', 60, 'running', 0)")
+    parts = jobs.voice_parts_folder(take)
+    assert parts == tmp_path / "voice"
+
+    take.write_bytes(b"as rendered")
+    asyncio.run(jobs._sing_in_voice("tv3", {"voice_id": made["id"], "title": "t"}, take))
+    assert "parts" not in asked[-1] and not parts.exists()            # off, as it is by default
+
+    monkeypatch.setattr(config, "VOICE_KEEP_PARTS", True)
+    take.write_bytes(b"as rendered")
+    asyncio.run(jobs._sing_in_voice("tv3", {"voice_id": made["id"], "title": "t"}, take))
+    assert asked[-1]["parts"] == str(parts) and (parts / "vocal.flac").exists()
+
+    # Sung again without the switch: the halves of the earlier singing no longer match the take, so they go.
+    monkeypatch.setattr(config, "VOICE_KEEP_PARTS", False)
+    take.write_bytes(b"as rendered")
+    asyncio.run(jobs._sing_in_voice("tv3", {"voice_id": made["id"], "title": "t"}, take))
+    assert not parts.exists()
+    persona.delete(made["id"])

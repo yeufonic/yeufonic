@@ -129,6 +129,10 @@ def _bring_along(have: Path, want: Path) -> None:
     for old, new in ((rendered_path(have), rendered_path(want)), (original_path(have), original_path(want)), (premaster_path(have), premaster_path(want))):
         if old != have and old.exists() and not new.exists():
             shutil.move(str(old), str(new))
+    # The halves of a voiced take, where they were kept (jobs.voice_parts_folder, VOICE_KEEP_PARTS).
+    parts, moved_to = have.parent / "voice", want.parent / "voice"
+    if have.parent != want.parent and parts.is_dir() and not moved_to.exists():
+        shutil.move(str(parts), str(moved_to))
     _clear_remade(have.parent)
 
 
