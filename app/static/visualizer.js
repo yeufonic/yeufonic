@@ -1370,13 +1370,22 @@
       var mark = !art && this.markImg && this.markImg.complete && this.markImg.naturalWidth ? this.markImg : null;
       var img = art ? art.img : mark;
       if (img) {
-        // As large as the screen allows under the bar at the top and above the hint at the bottom, its own shape
-        // kept; the mark smaller, as a sign rather than a picture.
-        var side = Math.min(w * 0.8, h * 0.62) * (art ? 1 : 0.55);
-        var iw = img.naturalWidth || 1, ih = img.naturalHeight || 1;
-        var scale = side / Math.max(iw, ih);
+        var iw = img.naturalWidth || 1, ih = img.naturalHeight || 1, scale;
+        if (art) {
+          // The size the take card's picture opens at when clicked (styles.css, .picture-view): as large as the
+          // window allows less its margins, never larger than the picture itself, with the same rounded corners.
+          scale = Math.min((w - 56) / iw, (h - 130) / ih, 1);
+        } else {
+          scale = Math.min(w * 0.8, h * 0.62) * 0.55 / Math.max(iw, ih);   // the mark: a sign, not a picture
+        }
         var dw = iw * scale, dh = ih * scale;
-        this.frontPicture(img, (w - dw) / 2, (h - dh) / 2 - h * 0.02, dw, dh, 0, 1, function (g, x, y) {
+        var corner = art ? 12 : 0;
+        this.frontPicture(img, (w - dw) / 2, (h - dh) / 2, dw, dh, 0, 1, function (g, x, y) {
+          if (corner) {
+            g.beginPath();
+            if (g.roundRect) { g.roundRect(x, y, dw, dh, corner); } else { g.rect(x, y, dw, dh); }
+            g.clip();
+          }
           g.drawImage(img, x, y, dw, dh);
         });
       }
