@@ -350,6 +350,7 @@ tag sem linhas embaixo, como `[Interlude]`, é uma passagem instrumental.
   gráfico mostra. O botão fica verde enquanto o rack muda como o take soa. Com o rack aberto, a barra de espaço toca
   e pausa o take e as setas se movem por ele e ajustam o volume, como na página principal. Esc fecha
   o rack, e de novo fecha o editor.
+- **Espaço 3D**, um módulo do rack entre o imager e o limitador, posiciona o take ao seu redor para fones. Da **mixagem**: dois alto-falantes virtuais na frente (**Width**) e dois atrás (**Rear**), com **Surround** definindo quanto da largura e da ambiência da mixagem sai pelos de trás; os alto-falantes também podem ser arrastados no círculo. **Height** eleva todos e **Room** acrescenta uma sala curta. Dos **stems**: cada stem do take é posicionado à parte; escolha um abaixo do círculo, arraste pelo círculo para posicioná-lo, e a roda o abre (**Criar stems** abre a janela de stems quando o take não tem). **Front**, **Wide** e **Around** ajustam tudo de uma vez. O que você ouve é para fones e nunca faz parte do arquivo do próprio take: **Baixar** em Fones salva em WAV, e **FLAC** e **AC-3** em Alto-falantes 5.1 salvam o take para alto-falantes surround (dos stems, cada um vai aos alto-falantes dos dois lados de onde está). A janela Salvar do take oferece os mesmos downloads enquanto o espaço dele está ligado. Cada módulo se recolhe na sua barra com a seta à esquerda, e o take lembra quais estão recolhidos.
 
 ### Deixar a música mais longa {#making-the-song-longer}
 

@@ -5412,6 +5412,46 @@ async def export_mastered_take(
                         background=BackgroundTask(out.unlink, missing_ok=True))
 
 
+# 5.1 as written by the rack's Space module: six channels in WAV order (front left, front right, centre, LFE, back left,
+# back right), encoded here as six-channel FLAC (players) or AC-3 at 640 kbps (TVs, soundbars, receivers).
+SURROUND_FORMATS = {"flac": ("audio/flac", ["-c:a", "flac", "-compression_level", "8"]),
+                    "ac3": ("audio/ac3", ["-c:a", "ac3", "-b:a", "640k"])}
+
+
+@app.post("/api/takes/{take_id}/export-surround")
+async def export_surround_take(take_id: str, format: str = Query("flac"), audio_file: UploadFile = File(...)) -> dict:
+    """A take in 5.1, rendered in the browser by the rack (Space), encoded here.  Answers where to download it, as
+    export-mastered does."""
+    fmt = format.lower()
+    if fmt not in SURROUND_FORMATS:
+        raise HTTPException(400, f"format must be one of {', '.join(SURROUND_FORMATS)}")
+    take = one("SELECT title FROM takes WHERE id = ?", (take_id,))
+    if not take:
+        raise HTTPException(404, "no such take")
+    media, codec = SURROUND_FORMATS[fmt]
+    safe = "".join(ch for ch in (take["title"] or "take") if ch.isalnum() or ch in " -_.")[:60].strip() or "take"
+    safe = f"{safe} (5.1)"
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    temp_wav = config.WORK_DIR / f"upload-surround-{take_id}-{uuid.uuid4().hex[:8]}.wav"
+    out = config.WORK_DIR / f"surround-{take_id}-{uuid.uuid4().hex[:8]}.{fmt}"
+    try:
+        temp_wav.write_bytes(await audio_file.read())
+        # The channels are taken in the order written, whatever layout the WAV header would suggest.
+        await asyncio.to_thread(subprocess.run, [
+            "ffmpeg", "-v", "error", "-y", "-i", str(temp_wav), "-map_metadata", "-1",
+            "-af", "channelmap=map=0|1|2|3|4|5:channel_layout=5.1", *codec,
+            "-metadata", f"title={take['title'] or ''}", str(out)], capture_output=True, timeout=900, check=True)
+    except (subprocess.SubprocessError, OSError) as exc:
+        out.unlink(missing_ok=True)
+        log.warning("Could not encode the 5.1 of '%s' as %s: %s", take["title"] or take_id, fmt, exc)
+        raise HTTPException(500, f"could not encode the 5.1 as {fmt.upper()}") from exc
+    finally:
+        temp_wav.unlink(missing_ok=True)
+    token = uuid.uuid4().hex
+    _PENDING_EXPORTS[token] = {"path": out, "media": media, "safe": safe, "fmt": fmt, "time": time.time()}
+    return {"download_url": f"/api/takes/{take_id}/download-mastered?token={token}"}
+
+
 @app.get("/api/takes/{take_id}/download-mastered")
 def download_mastered_take(take_id: str, token: str = Query(...), recipe: bool = False) -> FileResponse:
     """Serve prepared mastered export via direct HTTP GET, preserving native browser Save As prompts.  With
