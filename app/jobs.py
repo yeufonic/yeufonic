@@ -3404,8 +3404,11 @@ async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
             raise RuntimeError((answer.json() or {}).get("error") or f"answered {answer.status_code}")
         sung.replace(dest)
         log.info("Take '%s' sung by the recorded voice %s", record.get("title") or take_id, persona.describe(voice))
-        if config.VOICE_KEEP_PARTS:
+        if config.VOICE_KEEP_PARTS and (parts / "vocal.flac").is_file():
             log.info("Kept the sung vocal and the backing it was mixed onto in %s", parts)
+        elif config.VOICE_KEEP_PARTS:
+            log.warning("VOICE_KEEP_PARTS is set but the voice service kept nothing for '%s': it is older than the "
+                        "setting (with Docker: docker compose build voice)", record.get("title") or take_id)
     except Exception as err:  # noqa: BLE001
         sung.unlink(missing_ok=True)
         log.warning("Could not sing '%s' in the recorded voice %s; it keeps the vocal it was rendered with: %s",

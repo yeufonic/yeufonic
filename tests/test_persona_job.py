@@ -176,18 +176,19 @@ def test_the_log_says_each_step_of_a_voice_training(caplog):
                      "Recorded voice 'Mine': building its index"]
 
 
-def test_the_halves_are_asked_for_only_with_the_developer_switch_and_old_ones_go(monkeypatch, tmp_path):
+def test_the_halves_are_asked_for_only_with_the_developer_switch_and_old_ones_go(monkeypatch, tmp_path, caplog):
     made = _voice("singparts")
     persona.model_file(made["id"]).write_bytes(b"weights")
     persona.ready(made["id"], str(persona.model_file(made["id"])))
     take = tmp_path / "take.flac"
     asked = []
+    older = {"service": False}
 
     def handler(request):
         body = json.loads(request.content)
         asked.append(body)
         pathlib.Path(body["output"]).write_bytes(b"sung in the voice")
-        if body.get("parts"):
+        if body.get("parts") and not older["service"]:
             pathlib.Path(body["parts"]).mkdir()
             (pathlib.Path(body["parts"]) / "vocal.flac").write_bytes(b"the vocal")
         return httpx.Response(200, json={"ok": True})
@@ -207,6 +208,15 @@ def test_the_halves_are_asked_for_only_with_the_developer_switch_and_old_ones_go
     take.write_bytes(b"as rendered")
     asyncio.run(jobs._sing_in_voice("tv3", {"voice_id": made["id"], "title": "t"}, take))
     assert asked[-1]["parts"] == str(parts) and (parts / "vocal.flac").exists()
+
+    # A voice service older than the switch ignores it: said plainly, not reported as kept.
+    older["service"] = True
+    take.write_bytes(b"as rendered")
+    caplog.clear()
+    with caplog.at_level("INFO", logger="yue2.jobs"):
+        asyncio.run(jobs._sing_in_voice("tv3", {"voice_id": made["id"], "title": "t"}, take))
+    assert "kept nothing" in caplog.text and "Kept the sung vocal" not in caplog.text
+    older["service"] = False
 
     # Sung again without the switch: the halves of the earlier singing no longer match the take, so they go.
     monkeypatch.setattr(config, "VOICE_KEEP_PARTS", False)
