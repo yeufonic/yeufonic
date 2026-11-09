@@ -3535,8 +3535,8 @@
        two channels go to the speakers either side of where they are placed; from the mix, the take through the rack
        (Space out) to the front pair, its side signal to the back pair as much as SURROUND, and in both the bass,
        below 120 Hz, to the LFE.  The rack's other modules shape the mix; placed stems go to the speakers as they are. */
-    renderSurroundBuffer: async function (takeId) {
-      var s = JSON.parse(JSON.stringify(this.settings));
+    renderSurroundBuffer: async function (takeId, settings) {
+      var s = JSON.parse(JSON.stringify(settings || this.settings));
       s.space = Object.assign(defaultSpace(), s.space || {});
       var OfflineContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
       var fromStems = s.space.source === 'stems';
@@ -3608,17 +3608,17 @@
       return out;
     },
 
-    downloadSurround: async function (format) {
-      var takeId = this.currentTakeId;
-      if (!takeId) { this.showToast(t('Select a take first')); return; }
+    downloadSurround: async function (format, takeId, title) {
+      var target = await this.spaceTarget(takeId, title);
+      if (!target) { this.showToast(t('Select a take first')); return; }
       var buttons = document.querySelectorAll('[data-surround]');
       Array.prototype.forEach.call(buttons, function (b) { b.disabled = true; });
-      var work = this.pageWork(t('Rendering 5.1 ({format})', { format: format === 'ac3' ? 'AC-3' : 'FLAC' }));
+      var work = this.pageWork(t('Rendering 5.1 ({format})', { format: format === 'ac3' ? 'AC-3' : 'FLAC' }), target.title);
       try {
-        var wav = audioBufferToWav(await this.renderSurroundBuffer(takeId));
+        var wav = audioBufferToWav(await this.renderSurroundBuffer(target.id, target.settings));
         var form = new FormData();
         form.append('audio_file', wav, 'surround.wav');
-        var res = await fetch('/api/takes/' + takeId + '/export-surround?format=' + encodeURIComponent(format),
+        var res = await fetch('/api/takes/' + target.id + '/export-surround?format=' + encodeURIComponent(format),
                               { method: 'POST', body: form });
         if (!res.ok) { throw new Error(await res.text()); }
         var data = await res.json();
@@ -3736,9 +3736,9 @@
 
     /* A render in this browser, shown in the job pill and card like the app's own jobs (app.js pageWork), with the
        take's name; done() takes it away. */
-    pageWork: function (title) {
+    pageWork: function (title, takeTitle) {
       var label = document.getElementById('rack-take-name');
-      var take = label && this.currentTakeId ? label.textContent : '';
+      var take = takeTitle || (label && this.currentTakeId ? label.textContent : '');
       if (typeof window.pageWork === 'function') { return window.pageWork(title + (take ? ': ' + take : ''), t('Rendering in this browser')); }
       this.showToast(title + '…', 'good');
       return { done: function () {} };
@@ -3746,19 +3746,35 @@
 
     /* The take with Space, for headphones: rendered here with every module as set, Space in, and saved as a WAV named
        after the take.  Nothing on the server changes. */
-    downloadForHeadphones: async function () {
-      var takeId = this.currentTakeId;
-      if (!takeId) { this.showToast(t('Select a take first')); return; }
-      var settings = JSON.parse(JSON.stringify(this.settings));
+    /* The rack's take, or another (the Save window): `takeId` and its title, with the settings kept for it. */
+    spaceTarget: async function (takeId, title) {
+      var id = takeId || this.currentTakeId;
+      if (!id) { return null; }
+      var mine = String(id) === String(this.currentTakeId);
+      var label = document.getElementById('rack-take-name');
+      var s = mine ? this.settings : await this.resolveSettings(id);
+      return { id: id, title: title || (mine && label ? label.textContent : '') || 'take',
+               settings: JSON.parse(JSON.stringify(s || PRESETS['default'])) };
+    },
+
+    /* Whether a take's kept settings have Space in: the Save window offers its downloads then. */
+    spaceOnFor: async function (takeId) {
+      var s = String(takeId) === String(this.currentTakeId) ? this.settings : await this.resolveSettings(takeId);
+      return spaceOn(s);
+    },
+
+    downloadForHeadphones: async function (takeId, title) {
+      var target = await this.spaceTarget(takeId, title);
+      if (!target) { this.showToast(t('Select a take first')); return; }
+      var settings = target.settings;
       settings.space = Object.assign(defaultSpace(), settings.space || {}, { enabled: true });
       settings.masterBypass = false;
       var button = document.getElementById('space-download');
       if (button) { button.disabled = true; }
-      var work = this.pageWork(t('Rendering for headphones'));
+      var work = this.pageWork(t('Rendering for headphones'), target.title);
       try {
-        var wav = await this.renderMasterWav(takeId, settings, true);
-        var label = document.getElementById('rack-take-name');
-        var name = ((label && label.textContent) || 'take').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'take';
+        var wav = await this.renderMasterWav(target.id, settings, true);
+        var name = String(target.title).replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'take';
         var link = document.createElement('a');
         link.href = URL.createObjectURL(wav);
         link.download = name + ' (headphones 3D).wav';

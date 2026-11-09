@@ -934,7 +934,7 @@ def test_space_is_heard_but_never_in_the_takes_own_file(flat):
     rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
     render = rack_js[rack_js.index("    renderMasterBuffer: async function"):rack_js.index("    renderMasterWav: async function")]
     assert "if (!withSpace) { s = withoutSpace(s); }" in render
-    assert "this.renderMasterWav(takeId, settings, true)" in rack_js      # the headphones download, and only it
+    assert "this.renderMasterWav(target.id, settings, true)" in rack_js   # the headphones download, and only it
     assert rack_js.count("renderMasterWav(") == 3                      # Apply, Download, and the headphones download
     # the 5.1 renders the take through the rack with Space out, and places stems itself
     assert "await this.renderMasterBuffer(takeId, s, false)" in rack_js
