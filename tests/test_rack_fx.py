@@ -669,7 +669,7 @@ def test_the_factory_presets_leave_room_for_what_they_add():
     rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
     block = rack_js[rack_js.index("var PRESETS = {"):rack_js.index("// ------------------------------------------------------------- DSP Helpers")]
     names = re.findall(r"^    '(\w+)': \{", block, flags=re.M)
-    assert names == ["default", "vintage_warmth", "vocal_air", "radio_master", "punchy_bass", "acoustic_clarity", "boost"]
+    assert names == ["default", "vintage_warmth", "vocal_air", "radio_master", "punchy_bass", "acoustic_clarity", "surround"]
     sum_of_the_node = rack_js[rack_js.index("  function nodeMakeupDb("):rack_js.index("  // ------------------------------------------------------------- Parametric equaliser")]
     bodies = re.split(r"^    '\w+': \{", block, flags=re.M)[1:]
     for name, body in zip(names, bodies):
@@ -679,7 +679,7 @@ def test_the_factory_presets_leave_room_for_what_they_add():
             return float(re.search(r"\b" + key + r": (-?[0-9.]+)", body).group(1))
         # a ratio the rack has a button for, or no button is lit when the preset is chosen
         assert 'data-ratio="%g"' % value("ratio") in rack_js, name
-        if name == "boost":     # made by ear and kept as saved: loud and clipping by choice, not to these rules
+        if name == "surround":  # made by ear and kept as saved, as Boost before it: not to these rules
             continue
         # OUTPUT gives back about what the compressor's own curve takes off full scale, and no more
         own = float(subprocess.run(["node", "-e", sum_of_the_node + "console.log(nodeMakeupDb(%s, %s, %s))" % (
@@ -925,12 +925,61 @@ def test_space_is_heard_but_never_in_the_takes_own_file(flat):
     something the take's own file needs: Apply and the normal downloads ask chainEngaged, which leaves it out, and a
     render leaves it out unless asked for it (the module's own download)."""
     from pathlib import Path
-    assert flat["space"] == {"enabled": False, "width": 30, "surround": 0, "height": 0, "room": 0, "output": 0}
+    assert {k: v for k, v in flat["space"].items() if k != "stems"} == \
+        {"enabled": False, "width": 30, "surround": 0, "height": 0, "room": 0, "output": 0, "source": "mix"}
+    assert flat["space"]["stems"]["vocals"] == {"az": 0, "spread": 10}
     out = rack([changed(flat, space={"enabled": True, "width": 45, "surround": 0.5})])
     assert out["engaged"] == [False]
     assert out["cases"][0]["masterWet"] == 1 and out["cases"][0]["masterDry"] == 0
     rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
-    render = rack_js[rack_js.index("    renderMasterWav: async function"):rack_js.index("    renderAndDownload: async function")]
+    render = rack_js[rack_js.index("    renderMasterBuffer: async function"):rack_js.index("    renderMasterWav: async function")]
     assert "if (!withSpace) { s = withoutSpace(s); }" in render
-    assert "this.renderMasterWav(takeId, settings, true)" in render      # the headphones download, and only it
+    assert "this.renderMasterWav(takeId, settings, true)" in rack_js      # the headphones download, and only it
     assert rack_js.count("renderMasterWav(") == 3                      # Apply, Download, and the headphones download
+    # the 5.1 renders the take through the rack with Space out, and places stems itself
+    assert "await this.renderMasterBuffer(takeId, s, false)" in rack_js
+
+
+def test_a_direction_goes_to_the_two_speakers_either_side_of_it():
+    """5.1 from placed stems: constant-power panning between neighbouring speakers, in WAV channel order (front left,
+    front right, centre, LFE, back left, back right)."""
+    rack_js = (STATIC / "rack.js").read_text(encoding="utf-8")
+    part = rack_js[rack_js.index("  var SURROUND_SPEAKERS"):rack_js.index("    return gains;\n  }") + len("    return gains;\n  }")]
+    script = part + """
+      const r = (g) => g.map((x) => Math.round(x * 1000) / 1000);
+      console.log(JSON.stringify({ c: r(surroundGains(0)), fr: r(surroundGains(30)), half: r(surroundGains(15)),
+                                   behind: r(surroundGains(180)), left: r(surroundGains(-70)), wrap: r(surroundGains(540)) }));"""
+    got = json.loads(subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout)
+    assert got["c"] == [0, 0, 1, 0, 0, 0] and got["fr"] == [0, 1, 0, 0, 0, 0]
+    assert got["half"] == [0, 0.707, 0.707, 0, 0, 0]
+    assert got["behind"] == [0, 0, 0, 0, 0.707, 0.707] == got["wrap"]
+    assert got["left"] == [0.707, 0, 0, 0, 0.707, 0]
+    assert all(g[3] == 0 for g in got.values())               # the LFE is fed apart, from the bass
+
+
+def test_the_rack_s_six_channels_come_back_as_5_1_flac_or_ac3(client, tmp_path):
+    import struct
+    import wave
+    from app.db import execute
+    execute("INSERT INTO takes (id, kind, title, style, lyrics, abc, mode, seed, checkpoint, max_duration, status, created_at) "
+            "VALUES ('sur1', 'song', 'Paper Lanterns', 's', 'l', '', 'full', 1, 'c', 60, 'done', 0)")
+    path = tmp_path / "six.wav"
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(6); w.setsampwidth(2); w.setframerate(48000)
+        w.writeframes(b"".join(struct.pack("<6h", *[(i * 37 * (ch + 1)) % 2000 - 1000 for ch in range(6)]) for i in range(4800)))
+    for fmt, codec in (("flac", "flac"), ("ac3", "ac3")):
+        res = client.post(f"/api/takes/sur1/export-surround?format={fmt}", files={"audio_file": ("s.wav", path.read_bytes(), "audio/wav")})
+        assert res.status_code == 200, res.text
+        got = client.get(res.json()["download_url"])
+        from urllib.parse import unquote
+        assert got.status_code == 200 and f"Paper Lanterns (5.1).{fmt}" in unquote(got.headers["content-disposition"])
+        out = tmp_path / f"out.{fmt}"
+        out.write_bytes(got.content)
+        probe = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(out)],
+                                          capture_output=True, text=True, check=True).stdout)["streams"][0]
+        assert probe["codec_name"] == codec and probe["channels"] == 6 and probe["channel_layout"].startswith("5.1")
+    assert client.post("/api/takes/sur1/export-surround?format=mp3",
+                       files={"audio_file": ("s.wav", path.read_bytes(), "audio/wav")}).status_code == 400
+    test = client.post("/api/takes/sur1/export-surround?format=flac&test=1", files={"audio_file": ("s.wav", path.read_bytes(), "audio/wav")})
+    from urllib.parse import unquote
+    assert "5.1 channel test.flac" in unquote(client.get(test.json()["download_url"]).headers["content-disposition"])

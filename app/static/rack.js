@@ -154,40 +154,28 @@
       masterBypass: false,
       version: 3
     },
-    /* Made by ear in the rack and kept as it was saved, not to the rules above: a strong lift of the lows and
-       highs, the compressor catching only what passes full scale, and no limiter.  On finished takes it comes
-       out about 6 to 7.5 dB louder than it went in, and its loudest peaks pass full scale by 3 to 5 dB, where
-       the output clips them: part of its sound, by choice. */
-    'boost': {
-      name: t('Boost'),
+    /* Made by ear in the rack and kept as it was saved, not to the rules above (it replaced Boost, 2026-11-09): the
+       mids and highs lifted, a slow gentle compressor, no limiter, and Space in, wide and high, with all of the
+       ambience behind and a little room.  Space is for headphones and never in the take's own file; the rest is. */
+    'surround': {
+      name: t('Surround'),
       eq: {
         enabled: true,
-        preGain: 0,
-        hp: 50,
-        lowFreq: 110,
-        lowGain: 9.5,
-        midFreq: 7200,
-        midGain: 13.5,
-        highGain: 6.5,
-        outLevel: 3.5,
+        preGain: 3,
+        hp: 20,
+        lowFreq: 60,
+        lowGain: 0,
+        midFreq: 3200,
+        midGain: 8,
+        highGain: 5.5,
+        outLevel: 1,
         phase: false,
-        mid1Freq: 4800, mid1Gain: 1.5, highFreq: 12000, airGain: 2
+        mid1Freq: 1600, mid1Gain: 0, highFreq: 12000, airGain: 0
       },
-      comp: { enabled: true, threshold: 0, ratio: 20, attack: 0.002, release: 0.75, makeup: 1, mix: 1.0, knee: 0 },
-      imager: { enabled: false, bigness: 1, range: 1, stage: 1, harmonics: true, tubeHarmonics: 1, bass: false },
-      limit: { enabled: false, drive: 0.5, ceiling: -0.2, release: 0.10, warmth: false },
-      peq: {
-        enabled: true,
-        bands: [
-          { on: false, type: 'lowcut', freq: 30, gain: 0, q: 0.71 },
-          { on: true, type: 'lowshelf', freq: 90, gain: 0, q: 1 },
-          { on: true, type: 'bell', freq: 250, gain: 0, q: 1 },
-          { on: true, type: 'bell', freq: 992, gain: 4.3, q: 1 },
-          { on: true, type: 'bell', freq: 4000, gain: 0, q: 1 },
-          { on: true, type: 'highshelf', freq: 10000, gain: 0, q: 1 },
-          { on: true, type: 'lowshelf', freq: 13040, gain: 1.4, q: 1 }
-        ]
-      },
+      comp: { enabled: true, threshold: -9, ratio: 2, attack: 0.015, release: 1.2, makeup: 2.5, mix: 1.0, knee: 10 },
+      imager: { enabled: false, bigness: 1, range: 5, stage: 5, harmonics: false, tubeHarmonics: 1, bass: false },
+      limit: { enabled: false, drive: 0, ceiling: -0.1, release: 0.08, warmth: false },
+      space: { enabled: true, width: 90, surround: 1, height: 45, room: 0.1, output: 0 },
       masterBypass: false,
       version: 3
     }
@@ -375,8 +363,51 @@
      diffuse room over it.  Each speaker is a Web Audio panner with the browser's own HRTF set, so what is heard is what
      a render writes.  It is for headphones only, so it is never part of the take's own file: Apply and the normal
      downloads leave it out, and it has a download of its own. */
-  function defaultSpace() { return { enabled: false, width: 30, surround: 0, height: 0, room: 0, output: 0 }; }
-  Object.keys(PRESETS).forEach(function (key) { PRESETS[key].space = PRESETS[key].space || defaultSpace(); });
+  /* With stems (SOURCE: STEMS) each stem of the take is placed on its own: its left and right channels as a pair of
+     speakers SPREAD degrees apart, centred at AZ (0 in front, positive to the right, 180 behind). */
+  var SPACE_STEMS = {
+    vocals: { az: 0, spread: 10 }, drums: { az: 0, spread: 50 }, bass: { az: 0, spread: 10 }, other: { az: 0, spread: 100 },
+    guitar: { az: -40, spread: 20 }, piano: { az: 40, spread: 20 }, instruments: { az: 0, spread: 90 },
+  };
+  var SPACE_STEM_SCENES = {
+    front: SPACE_STEMS,
+    wide: { vocals: { az: 0, spread: 10 }, drums: { az: 0, spread: 90 }, bass: { az: 0, spread: 20 }, other: { az: 0, spread: 160 },
+            guitar: { az: -70, spread: 30 }, piano: { az: 70, spread: 30 }, instruments: { az: 0, spread: 160 } },
+    around: { vocals: { az: 0, spread: 10 }, drums: { az: 180, spread: 80 }, bass: { az: 0, spread: 10 }, other: { az: 0, spread: 220 },
+              guitar: { az: -110, spread: 20 }, piano: { az: 110, spread: 20 }, instruments: { az: 0, spread: 220 } },
+  };
+  function defaultSpace() {
+    return { enabled: false, width: 30, surround: 0, height: 0, room: 0, output: 0, source: 'mix',
+             stems: JSON.parse(JSON.stringify(SPACE_STEMS)) };
+  }
+  function stemPlace(space, name) {
+    var kept = (space && space.stems && space.stems[name]) || SPACE_STEMS[name] || { az: 0, spread: 30 };
+    return { az: Number(kept.az) || 0, spread: Math.max(0, Math.min(300, Number(kept.spread) || 0)) };
+  }
+  /* What a pair of speakers sharing most of what they play adds at the ears (see the front pair, below), taken off. */
+  function pairTrimDb(spread) { return -6.5 + (Math.min(90, Math.max(5, spread)) - 30) * 0.02; }
+
+  /* 5.1: the speakers' angles, in WAV channel order (front left, front right, centre, LFE, back left, back right), and a
+     direction's share of each by constant-power panning between the two speakers either side of it. */
+  var SURROUND_SPEAKERS = [{ ch: 0, az: -30 }, { ch: 1, az: 30 }, { ch: 2, az: 0 }, { ch: 4, az: -110 }, { ch: 5, az: 110 }];
+  function surroundGains(az) {
+    var a = ((az % 360) + 540) % 360 - 180;                  // -180 .. 180
+    var ring = SURROUND_SPEAKERS.slice().sort(function (x, y) { return x.az - y.az; });
+    var gains = [0, 0, 0, 0, 0, 0];
+    for (var i = 0; i < ring.length; i++) {
+      var from = ring[i], to = ring[(i + 1) % ring.length];
+      var start = from.az, end = to.az <= from.az ? to.az + 360 : to.az, at = a < start ? a + 360 : a;
+      if (at >= start && at <= end) {
+        var f = (at - start) / (end - start);
+        gains[from.ch] += Math.cos(f * Math.PI / 2);
+        gains[to.ch] += Math.sin(f * Math.PI / 2);
+        return gains;
+      }
+    }
+    gains[2] = 1;
+    return gains;
+  }
+  Object.keys(PRESETS).forEach(function (key) { PRESETS[key].space = Object.assign(defaultSpace(), PRESETS[key].space || {}); });
   var SPACE_SCENES = {
     front:  { width: 30, surround: 0,    height: 0,  room: 0.15 },   // a pair of speakers in front of you
     wide:   { width: 60, surround: 0.25, height: 5,  room: 0.2 },    // a wider stage, a little around you
@@ -384,6 +415,10 @@
   };
   var SPACE_REAR = 110;            // the rear speakers' angle either side, as a 5.1 layout puts its surrounds
   var SPACE_REAR_DELAY = 0.018;    // and their sound a little later, so it reads as room rather than a second source
+
+  function escHtml(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
 
   function spaceOn(s) { return Boolean(s && !s.masterBypass && s.space && s.space.enabled); }
 
@@ -585,7 +620,7 @@
     chain.ctx = ctx;
     chain.build(ctx, entry, out);
     chain.applySettings(s || PRESETS['default'], true);
-    return { inputNode: entry, outputNode: out };
+    return { inputNode: entry, outputNode: out, chain: chain };
   }
 
   // ------------------------------------------------------------- DSP Engine
@@ -630,7 +665,11 @@
     imagerShaperOut: null,
     imagerMerger: null,
 
-    // Space (headphones 3D)
+    // Space (headphones 3D); and the take's stems, placed one by one, in place of the take when SOURCE is STEMS
+    sourceToChain: null,
+    stemBus: null,
+    stemNodes: null,
+    stemsReady: false,
     spaceDryGain: null,
     spaceWetGain: null,
     spaceFront: null,
@@ -1012,7 +1051,14 @@
       this.spectrum.fftSize = 4096;
       this.spectrum.smoothingTimeConstant = 0.82;
 
-      source.connect(this.inputGain);
+      this.sourceToChain = ctx.createGain();
+      this.sourceToChain.gain.value = 1.0;
+      this.stemBus = ctx.createGain();
+      this.stemBus.gain.value = 0.0;
+      this.stemNodes = {};
+      source.connect(this.sourceToChain);
+      this.sourceToChain.connect(this.inputGain);
+      this.stemBus.connect(this.inputGain);
       source.connect(this.masterDryGain);
 
       limitSum.connect(this.masterWetGain);
@@ -1025,6 +1071,27 @@
 
     makeTubeCurve: function () {
       return makeTubeCurve();
+    },
+
+    /* A stem's place: its stereo input split to two HRTF panners, a trim, into the stem bus (which feeds the chain where
+       the take would). */
+    stemNode: function (name) {
+      if (this.stemNodes[name]) { return this.stemNodes[name]; }
+      var ctx = this.ctx, bus = this.stemBus;
+      var node = { input: ctx.createGain(), trim: ctx.createGain(), pans: [] };
+      var split = ctx.createChannelSplitter(2);
+      node.input.connect(split);
+      for (var side = 0; side < 2; side++) {
+        var p = ctx.createPanner();
+        p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = 1; p.rolloffFactor = 0;
+        p.channelCount = 1; p.channelCountMode = 'explicit';
+        split.connect(p, side);
+        p.connect(node.trim);
+        node.pans.push(p);
+      }
+      node.trim.connect(bus);
+      this.stemNodes[name] = node;
+      return node;
     },
 
     /* A shaper as the tube stage, or as nothing.  Its curve is given only when that changes: a turned
@@ -1051,6 +1118,12 @@
       function set(param, value) {
         if (atOnce) { param.value = value; } else { param.setTargetAtTime(value, now, ramp); }
       }
+
+      // The take's stems in place of the take: placed before the chain, so Space's own placing and the imager (whose
+      // widening would undo the placing) stay out of the path.
+      var useStems = Boolean(spaceOn(s) && s.space.source === 'stems' && this.stemsReady);
+      set(this.sourceToChain.gain, useStems ? 0.0 : 1.0);
+      set(this.stemBus.gain, useStems ? 1.0 : 0.0);
 
       // 1073 EQ Stage
       if (s.eq) {
@@ -1125,7 +1198,7 @@
 
       // Vintage Stereo Imager Stage (Placed before Master Limiter)
       if (s.imager) {
-        var imagerOn = s.imager.enabled !== false;
+        var imagerOn = s.imager.enabled !== false && !useStems;
         set(this.imagerDryGain.gain, imagerOn ? 0.0 : 1.0);
         set(this.imagerWetGain.gain, imagerOn ? 1.0 : 0.0);
 
@@ -1188,9 +1261,10 @@
       // Space
       if (s.space) {
         var sp = s.space;
-        var spOn = Boolean(sp.enabled);
+        // With stems the placing is done before the chain: here only the room is added, over the placed stems
+        var spOn = Boolean(sp.enabled) && !useStems;
         set(this.spaceDryGain.gain, spOn ? 0.0 : 1.0);
-        set(this.spaceWetGain.gain, spOn ? 1.0 : 0.0);
+        set(this.spaceWetGain.gain, spOn || useStems ? 1.0 : 0.0);
         var width = Math.max(5, Math.min(90, Number(sp.width) || 30));
         var height = Math.max(0, Math.min(45, Number(sp.height) || 0));
         function place(p, az, el) {
@@ -1202,13 +1276,22 @@
         place(this.spaceFront[1], width, height);
         place(this.spaceRear[0], -SPACE_REAR, height);
         place(this.spaceRear[1], SPACE_REAR, height);
-        set(this.spaceRearGain.gain, Math.max(0, Math.min(1, Number(sp.surround) || 0)) * 1.4);
+        set(this.spaceRearGain.gain, useStems ? 0 : Math.max(0, Math.min(1, Number(sp.surround) || 0)) * 1.4);
         set(this.spaceRoomGain.gain, Math.max(0, Math.min(1, Number(sp.room) || 0)) * 0.45);
         // measured on finished takes: +6.5 dB with the speakers 30 degrees out, +5.3 dB at 90; and the rear pair and
         // the room add up to 0.4 and 0.7 dB at full, which OUTPUT at 0 takes off too
-        set(this.spacePanGain.gain, Math.pow(10, (-6.5 + (width - 30) * 0.02) / 20));
-        var spaceExtraDb = 0.4 * Math.max(0, Math.min(1, Number(sp.surround) || 0)) + 0.7 * Math.max(0, Math.min(1, Number(sp.room) || 0));
-        set(this.spaceOutput.gain, Math.pow(10, ((Number(sp.output) || 0) - spaceExtraDb) / 20));
+        set(this.spacePanGain.gain, useStems ? 0 : Math.pow(10, (-6.5 + (width - 30) * 0.02) / 20));
+        var spaceExtraDb = (useStems ? 0 : 0.4 * Math.max(0, Math.min(1, Number(sp.surround) || 0))) + 0.7 * Math.max(0, Math.min(1, Number(sp.room) || 0));
+        // OUTPUT is in each stem's trim when stems are placed; here it would be on the room alone
+        set(this.spaceOutput.gain, Math.pow(10, ((useStems ? 0 : Number(sp.output) || 0) - spaceExtraDb) / 20));
+        // each stem's pair, at its own angle and spread, all at HEIGHT
+        for (var stemName in this.stemNodes) {
+          if (!this.stemNodes.hasOwnProperty(stemName)) { continue; }
+          var at = stemPlace(sp, stemName), node = this.stemNodes[stemName];
+          place(node.pans[0], at.az - at.spread / 2, height);
+          place(node.pans[1], at.az + at.spread / 2, height);
+          set(node.trim.gain, Math.pow(10, (pairTrimDb(at.spread) + (Number(sp.output) || 0)) / 20));
+        }
       }
 
       // Master: the chain is in the path only when something in it changes the sound, so a
@@ -1235,6 +1318,7 @@
 
   // ------------------------------------------------------------- UI Controller
   var USER_PRESETS_KEY = 'yeufonic.mastering_user_presets';
+  var FOLDED_KEY = 'yeufonic.rack.folded';
   var TRASH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
     'stroke-linejoin="round" aria-hidden="true"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l1 12.2h9l1-12.2"/></svg>';
 
@@ -1271,11 +1355,45 @@
 
     init: function () {
       this.renderMarkup();
+      this.installFolds();
       this.rebuildPresetDropdown('default');
       this.bindEvents();
       this.bindPeq();
       this.initDraggable();
       this.startMeterLoop();
+    },
+
+    /* Each module folds to its bar and opens again with the arrow at the left of the bar; which are folded is kept in
+       this browser.  Folded or not, a module sounds the same. */
+    installFolds: function () {
+      var self = this;
+      var folded = [];
+      try { folded = JSON.parse(localStorage.getItem(FOLDED_KEY) || '[]') || []; } catch (e) { folded = []; }
+      Array.prototype.forEach.call(document.querySelectorAll('#rack-panel .rack-unit'), function (unit) {
+        var bar = unit.querySelector('.unit-bar');
+        if (!bar || !unit.id || bar.querySelector('.unit-fold')) { return; }
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'unit-fold';
+        button.innerHTML = '<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.25 6 7.75l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        bar.insertBefore(button, bar.firstChild);
+        function paint() {
+          var shut = unit.classList.contains('folded');
+          button.setAttribute('aria-expanded', shut ? 'false' : 'true');
+          button.title = shut ? t('Open this module') : t('Fold this module');
+        }
+        unit.classList.toggle('folded', folded.indexOf(unit.id) !== -1);
+        paint();
+        button.addEventListener('click', function (e) {
+          e.stopPropagation();
+          unit.classList.toggle('folded');
+          paint();
+          var now = Array.prototype.filter.call(document.querySelectorAll('#rack-panel .rack-unit.folded'), function (u) { return u.id; })
+            .map(function (u) { return u.id; });
+          try { localStorage.setItem(FOLDED_KEY, JSON.stringify(now)); } catch (err) { /* private mode */ }
+          if (typeof self.fitToWindow === 'function') { self.fitToWindow(); }
+        });
+      });
     },
 
     rebuildPresetDropdown: function (selectedKey) {
@@ -1417,7 +1535,7 @@
         '              <option value="radio_master">' + t('Radio Ready Master') + '</option>',
         '              <option value="punchy_bass">' + t('Punchy Club &amp; Bass') + '</option>',
         '              <option value="acoustic_clarity">' + t('Acoustic Clarity') + '</option>',
-        '              <option value="boost">' + t('Boost') + '</option>',
+        '              <option value="surround">' + t('Surround') + '</option>',
         '            </optgroup>',
         '            <optgroup id="rack-user-presets-group" label="' + t('User Presets') + '">',
         '            </optgroup>',
@@ -1740,6 +1858,15 @@
         '            <button type="button" class="space-scene" data-scene="wide" title="' + t('A wider stage, a little around you') + '">WIDE</button>',
         '            <button type="button" class="space-scene" data-scene="around" title="' + t('Inside the band') + '">AROUND</button>',
         '          </div>',
+        '          <div class="space-stage-box">',
+        '            <div class="space-source" id="space-source" role="group" aria-label="' + t('What Space places') + '">',
+        '              <button type="button" class="space-scene" data-source="mix" title="' + t('The finished mix, from virtual speakers') + '">MIX</button>',
+        '              <button type="button" class="space-scene" data-source="stems" title="' + t('The take\'s stems, each placed on its own') + '">STEMS</button>',
+        '            </div>',
+        '            <svg id="space-stage" class="space-stage" viewBox="0 0 140 140" role="img" aria-label="' + t('Where the sound comes from, seen from above') + '"></svg>',
+        '            <span class="space-stage-note" id="space-stage-note"></span>',
+        '            <button type="button" class="rack-head-btn hidden" id="space-make-stems">' + t('Make stems') + '</button>',
+        '          </div>',
         '          <div class="knob-group">',
         '            <div class="knob-wrap" data-param="space.width" data-min="5" data-max="90" data-step="5" data-default="30" data-unit="°" title="' + t('How far either side the two front speakers stand') + '">',
         '              <div class="knob-dial large"><div class="knob-pointer"></div></div>',
@@ -1772,6 +1899,12 @@
         '          <div class="space-export">',
         '            <span class="space-note">' + t('Headphones only') + '</span>',
         '            <button type="button" class="rack-head-btn" id="space-download" title="' + t('Download this take with 3D Space, for headphones, as a WAV') + '">' + t('Download for headphones') + '</button>',
+        '            <span class="space-note">5.1</span>',
+        '            <div class="space-surround">',
+        '              <button type="button" class="rack-head-btn" data-surround="flac" title="' + t('Six-channel FLAC, for computers and media players') + '">FLAC</button>',
+        '              <button type="button" class="rack-head-btn" data-surround="ac3" title="' + t('AC-3 (Dolby Digital), for TVs, soundbars and receivers') + '">AC-3</button>',
+        '              <button type="button" class="rack-head-btn" data-surround="flac" data-surround-test="1" title="' + t('A channel test: a sound from each speaker in turn, to check a 5.1 player or a virtualiser') + '">' + t('Test') + '</button>',
+        '            </div>',
         '          </div>',
         '        </div>',
         '      </div>',
@@ -2062,6 +2195,7 @@
           self.settings.space.enabled = !self.settings.space.enabled;
           self.syncKnobsToState();
           Engine.applySettings(self.settings);
+          self.syncStems();
           self.debouncedSave();
         });
       }
@@ -2071,8 +2205,10 @@
           var button = e.target.closest('[data-scene]');
           if (!button || !SPACE_SCENES[button.dataset.scene]) { return; }
           self.settings.space = Object.assign(defaultSpace(), self.settings.space || {}, SPACE_SCENES[button.dataset.scene], { enabled: true });
+          self.settings.space.stems = JSON.parse(JSON.stringify(SPACE_STEM_SCENES[button.dataset.scene]));
           self.syncKnobsToState();
           Engine.applySettings(self.settings);
+          self.syncStems();
           self.debouncedSave();
         });
       }
@@ -2080,6 +2216,40 @@
       if (spaceDownload) {
         spaceDownload.addEventListener('click', function () { self.downloadForHeadphones(); });
       }
+      var spaceSource = document.getElementById('space-source');
+      if (spaceSource) {
+        spaceSource.addEventListener('click', function (e) {
+          var button = e.target.closest('[data-source]');
+          if (!button) { return; }
+          self.settings.space = Object.assign(defaultSpace(), self.settings.space || {}, { source: button.dataset.source, enabled: true });
+          self.syncKnobsToState();
+          self.syncStems();
+          self.debouncedSave();
+        });
+      }
+      var makeStems = document.getElementById('space-make-stems');
+      if (makeStems) {
+        makeStems.addEventListener('click', async function () {
+          var takeId = self.currentTakeId;
+          if (!takeId) { return; }
+          makeStems.disabled = true;
+          try {
+            var res = await fetch('/api/takes/' + takeId + '/stems', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            if (!res.ok) { throw new Error(await res.text()); }
+            self.showToast(t('Making the stems: Space will use them when they are ready'), 'good');
+            self.waitForStems(takeId);
+          } catch (err) {
+            self.showToast(err.message, 'bad');
+          } finally {
+            makeStems.disabled = false;
+          }
+        });
+      }
+      Array.prototype.forEach.call(document.querySelectorAll('[data-surround]'), function (button) {
+        button.addEventListener('click', function () { self.downloadSurround(button.dataset.surround, Boolean(button.dataset.surroundTest)); });
+      });
+      this.bindSpaceStage();
+      this.hookStemPlayback();
 
       // Tube Warmth switch
       var toggleWarmth = document.getElementById('toggle-warmth');
@@ -2369,6 +2539,7 @@
         toggleLimit.innerHTML = '<span class="led"></span> ' + (limOn ? 'IN' : 'OUT');
       }
 
+      self.syncStems();      // the stems in step with the settings, and the stage drawn
       var toggleSpaceBtn = document.getElementById('toggle-space');
       if (toggleSpaceBtn) {
         var spaceIn = spaceOn(self.settings) || Boolean(self.settings.space && self.settings.space.enabled);
@@ -3002,6 +3173,7 @@
             this.keptPayload = JSON.stringify(this.settings);
             this.syncKnobsToState();
             Engine.applySettings(this.settings);
+            this.syncStems();
             return;
           }
         } catch (e) {}
@@ -3020,6 +3192,7 @@
           self.keptPayload = JSON.stringify(self.settings);
           self.syncKnobsToState();
           Engine.applySettings(self.settings);
+          self.syncStems();
         })
         .catch(function () {});
     },
@@ -3172,7 +3345,10 @@
 
     /* The take through the chain, as a WAV: the same nodes and settings as playback, rendered
        offline at the file's own sample rate. */
-    renderMasterWav: async function (takeId, customSettings, withSpace) {
+    /* The take through the chain, as an AudioBuffer: the same nodes and settings as playback, rendered offline at the
+       file's own sample rate.  Space only when asked (the headphones download); with SOURCE: STEMS, the take's stems,
+       placed. */
+    renderMasterBuffer: async function (takeId, customSettings, withSpace) {
       var s = customSettings || (await this.resolveSettings(takeId)) || PRESETS['default'];
       if (!withSpace) { s = withoutSpace(s); }     // the take's own file never has Space: it is for headphones
 
@@ -3187,6 +3363,7 @@
       var rate = fileSampleRate(arrayBuf);
       var decodeCtx = new OfflineContextClass(2, 1, rate);
       var decodedBuffer = await decodeCtx.decodeAudioData(arrayBuf);
+      var stems = spaceOn(s) && s.space.source === 'stems' ? await this.stemBuffers(takeId, decodeCtx) : null;
 
       var offlineCtx = new OfflineContextClass(
         decodedBuffer.numberOfChannels,
@@ -3200,10 +3377,362 @@
       var graph = buildMasteringDspGraph(offlineCtx, s);
       src.connect(graph.inputNode);
       graph.outputNode.connect(offlineCtx.destination);
+      if (stems) {
+        graph.chain.stemsReady = true;
+        Object.keys(stems).forEach(function (name) {
+          var stemSrc = offlineCtx.createBufferSource();
+          stemSrc.buffer = stems[name];
+          stemSrc.connect(graph.chain.stemNode(name).input);
+          stemSrc.start(0);
+        });
+        graph.chain.applySettings(s, true);
+      }
 
       src.start(0);
-      var renderedBuffer = await offlineCtx.startRendering();
-      return audioBufferToWav(renderedBuffer);
+      return await offlineCtx.startRendering();
+    },
+
+    renderMasterWav: async function (takeId, customSettings, withSpace) {
+      return audioBufferToWav(await this.renderMasterBuffer(takeId, customSettings, withSpace));
+    },
+
+    /* The newest finished set of stems the take has, decoded on `ctx`: { name: AudioBuffer }.  An error says so when
+       there are none. */
+    stemBuffers: async function (takeId, ctx) {
+      var sets = await (await fetch('/api/stem-sets?take_id=' + encodeURIComponent(takeId))).json();
+      var set = (sets || []).filter(function (x) { return x.status === 'done' && x.files && x.files.length; })[0];
+      if (!set) { throw new Error(t('This take has no stems yet: make them first')); }
+      var out = {};
+      await Promise.all(set.files.map(async function (f) {
+        var res = await fetch('/api/stem-sets/' + set.id + '/' + encodeURIComponent(f.file));
+        if (!res.ok) { throw new Error(t('Could not read the stem {name}', { name: f.name })); }
+        out[f.name] = await ctx.decodeAudioData(await res.arrayBuffer());
+      }));
+      return out;
+    },
+
+    /* ------------------------------------------------------------ Space: the take's stems while it plays
+       Decoded once per take on the page's own context and started with the take, from where it is, on play and seek;
+       the take keeps playing (it is what the page follows) but out of the chain while the stems stand in for it. */
+    stemPlayer: { takeId: null, names: [], buffers: null, sources: [], startedAt: 0, rate: 1, loading: null, error: '' },
+
+    stemsWanted: function () {
+      return Boolean(spaceOn(this.settings) && this.settings.space.source === 'stems');
+    },
+
+    syncStems: function () {
+      var player = this.stemPlayer, takeId = this.currentTakeId;
+      if (player.takeId !== takeId) {       // another take: what was loaded is not its stems
+        this.stopLiveStems();
+        player.takeId = takeId; player.buffers = null; player.names = []; player.error = ''; player.loading = null;
+        if (Engine.ctx) { Engine.stemsReady = false; }
+      }
+      if (this.stemsWanted() && !player.buffers && !player.loading && takeId) { this.loadLiveStems(takeId); }
+      if (!Engine.ctx) { return; }
+      Engine.stemsReady = Boolean(player.buffers);
+      Engine.applySettings(this.settings);
+      var audio = document.getElementById('audio');
+      if (this.stemsWanted() && player.buffers && audio && !audio.paused) { this.startLiveStems(); } else { this.stopLiveStems(); }
+      this.paintSpaceStage();
+    },
+
+    /* Stems asked for from the rack: looked for every few seconds until the set is done, then used. */
+    waitForStems: function (takeId) {
+      var self = this;
+      clearTimeout(this.stemWait);
+      this.stemWait = setTimeout(async function () {
+        if (self.currentTakeId !== takeId) { return; }
+        try {
+          var sets = await (await fetch('/api/stem-sets?take_id=' + encodeURIComponent(takeId))).json();
+          var newest = (sets || [])[0];
+          if (newest && newest.status === 'done') {
+            self.stemPlayer.error = ''; self.stemPlayer.buffers = null; self.stemPlayer.loading = null;
+            self.syncStems();
+            return;
+          }
+          if (newest && newest.status !== 'failed' && newest.status !== 'cancelled') { self.waitForStems(takeId); }
+        } catch (e) { self.waitForStems(takeId); }
+      }, 4000);
+    },
+
+    loadLiveStems: function (takeId) {
+      var self = this, player = this.stemPlayer;
+      if (!Engine.init()) { return; }
+      player.error = '';
+      player.loading = this.stemBuffers(takeId, Engine.ctx).then(function (buffers) {
+        if (player.takeId !== takeId) { return; }
+        player.buffers = buffers;
+        player.names = Object.keys(buffers);
+        player.names.forEach(function (name) { Engine.stemNode(name); });
+        player.loading = null;
+        self.syncStems();
+      }).catch(function (err) {
+        if (player.takeId !== takeId) { return; }
+        player.loading = null;
+        player.error = err && err.message ? err.message : String(err);
+        self.paintSpaceStage();
+      });
+      this.paintSpaceStage();
+    },
+
+    startLiveStems: function () {
+      var player = this.stemPlayer, audio = document.getElementById('audio'), ctx = Engine.ctx;
+      this.stopLiveStems();
+      if (!player.buffers || !audio || !ctx) { return; }
+      var when = ctx.currentTime + 0.03, offset = audio.currentTime + 0.03 * (audio.playbackRate || 1);
+      player.rate = audio.playbackRate || 1;
+      player.startedAt = when - offset / player.rate;
+      player.sources = player.names.map(function (name) {
+        var src = ctx.createBufferSource();
+        src.buffer = player.buffers[name];
+        src.playbackRate.value = player.rate;
+        src.connect(Engine.stemNode(name).input);
+        if (offset < src.buffer.duration) { src.start(when, Math.max(0, offset)); }
+        return src;
+      });
+    },
+
+    stopLiveStems: function () {
+      this.stemPlayer.sources.forEach(function (src) { try { src.stop(); } catch (e) { /* not started */ } try { src.disconnect(); } catch (e) {} });
+      this.stemPlayer.sources = [];
+    },
+
+    /* The stems follow the take: started on play and seek, stopped on pause, and started again should they drift. */
+    hookStemPlayback: function () {
+      var self = this, audio = document.getElementById('audio');
+      if (!audio || audio.dataset.stemsHooked) { return; }
+      audio.dataset.stemsHooked = '1';
+      function restart() { if (self.stemsWanted() && self.stemPlayer.buffers && !audio.paused) { self.startLiveStems(); } }
+      ['playing', 'seeked', 'ratechange'].forEach(function (name) { audio.addEventListener(name, restart); });
+      ['pause', 'ended', 'emptied'].forEach(function (name) { audio.addEventListener(name, function () { self.stopLiveStems(); }); });
+      audio.addEventListener('timeupdate', function () {
+        var player = self.stemPlayer;
+        if (!player.sources.length || audio.paused || !Engine.ctx) { return; }
+        var heard = (Engine.ctx.currentTime - player.startedAt) * player.rate;
+        if (Math.abs(heard - audio.currentTime) > 0.06) { self.startLiveStems(); }
+      });
+    },
+
+    /* ------------------------------------------------------------ Space: 5.1
+       Six channels in WAV order (front left, front right, centre, LFE, back left, back right).  With stems, each stem's
+       two channels go to the speakers either side of where they are placed; from the mix, the take through the rack
+       (Space out) to the front pair, its side signal to the back pair as much as SURROUND, and in both the bass,
+       below 120 Hz, to the LFE.  The rack's other modules shape the mix; placed stems go to the speakers as they are. */
+    renderSurroundBuffer: async function (takeId) {
+      var s = JSON.parse(JSON.stringify(this.settings));
+      s.space = Object.assign(defaultSpace(), s.space || {});
+      var OfflineContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      var fromStems = s.space.source === 'stems';
+      var stereo = await this.renderMasterBuffer(takeId, s, false);
+      var rate = stereo.sampleRate, length = stereo.length;
+      var stems = fromStems ? await this.stemBuffers(takeId, new OfflineContextClass(2, 1, rate)) : null;
+      var ctx = new OfflineContextClass(6, length, rate);
+      ctx.destination.channelCount = 6;
+      ctx.destination.channelInterpretation = 'discrete';
+      var merger = ctx.createChannelMerger(6);
+      merger.connect(ctx.destination);
+      function lfeFrom(node, level) {
+        var a = ctx.createBiquadFilter(), b = ctx.createBiquadFilter(), g = ctx.createGain();
+        a.type = b.type = 'lowpass'; a.frequency.value = b.frequency.value = 120;
+        g.gain.value = level;
+        g.channelCount = 1; g.channelCountMode = 'explicit';     // both sides, as one
+        node.connect(a); a.connect(b); b.connect(g); g.connect(merger, 0, 3);
+      }
+      function toSpeakers(mono, az) {
+        surroundGains(az).forEach(function (gain, ch) {
+          if (gain < 1e-4) { return; }
+          var g = ctx.createGain(); g.gain.value = gain;
+          mono.connect(g); g.connect(merger, 0, ch);
+        });
+      }
+      if (stems) {
+        Object.keys(stems).forEach(function (name) {
+          var src = ctx.createBufferSource(); src.buffer = stems[name];
+          var split = ctx.createChannelSplitter(2), at = stemPlace(s.space, name);
+          src.connect(split);
+          [0, 1].forEach(function (side) {
+            var mono = ctx.createGain();
+            split.connect(mono, side);
+            toSpeakers(mono, at.az + (side ? 1 : -1) * at.spread / 2);
+          });
+          if (name === 'bass' || name === 'drums') { lfeFrom(src, 0.316); }
+          src.start(0);
+        });
+      } else {
+        var src = ctx.createBufferSource(); src.buffer = stereo;
+        var split = ctx.createChannelSplitter(2);
+        src.connect(split);
+        split.connect(merger, 0, 0);
+        split.connect(merger, 1, 1);
+        var sideL = ctx.createGain(), sideR = ctx.createGain(), side = ctx.createGain();
+        sideL.gain.value = 0.5; sideR.gain.value = -0.5;
+        split.connect(sideL, 0); split.connect(sideR, 1); sideL.connect(side); sideR.connect(side);
+        var hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 150;
+        var delay = ctx.createDelay(0.1); delay.delayTime.value = SPACE_REAR_DELAY;
+        var amount = Math.max(0, Math.min(1, Number(s.space.surround) || 0)) * 1.4;
+        var back = ctx.createGain(); back.gain.value = amount;
+        var invert = ctx.createGain(); invert.gain.value = -amount;
+        side.connect(hp); hp.connect(delay); delay.connect(back); delay.connect(invert);
+        back.connect(merger, 0, 4); invert.connect(merger, 0, 5);
+        lfeFrom(src, 0.316);
+        src.start(0);
+      }
+      var out = await ctx.startRendering();
+      // under -1 dBFS on every channel, all turned down together so the balance holds
+      var peak = 0;
+      for (var ch = 0; ch < out.numberOfChannels; ch++) {
+        var d = out.getChannelData(ch);
+        for (var i = 0; i < d.length; i++) { var v = Math.abs(d[i]); if (v > peak) { peak = v; } }
+      }
+      if (peak > 0.891) {
+        var k = 0.891 / peak;
+        for (var c2 = 0; c2 < out.numberOfChannels; c2++) { var d2 = out.getChannelData(c2); for (var j = 0; j < d2.length; j++) { d2[j] *= k; } }
+      }
+      return out;
+    },
+
+    /* A channel test: a burst of noise from each speaker in turn, the way round a room (front left, centre, front
+       right, back right, back left), then a low tone from the LFE; twice.  For checking a 5.1 player or a virtualiser. */
+    surroundTestBuffer: function () {
+      var rate = 48000, order = [0, 2, 1, 5, 4, 3], burst = 1.2, gap = 0.4;
+      var length = Math.ceil(rate * (burst + gap) * order.length * 2 + rate);
+      var Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      var buf = new Ctx(6, 1, rate).createBuffer(6, length, rate);
+      var seed = 3, b0 = 0, b1 = 0, b2 = 0;
+      function pink() {
+        seed = (seed * 16807) % 2147483647;
+        var w = seed / 2147483647 * 2 - 1;
+        b0 = 0.99765 * b0 + w * 0.099; b1 = 0.963 * b1 + w * 0.2965; b2 = 0.57 * b2 + w * 1.0527;
+        return (b0 + b1 + b2 + w * 0.1848) * 0.11;
+      }
+      for (var round = 0; round < 2; round++) {
+        order.forEach(function (ch, n) {
+          var start = Math.floor(rate * ((round * order.length + n) * (burst + gap) + 0.5)), data = buf.getChannelData(ch);
+          for (var i = 0; i < rate * burst; i++) {
+            var fade = Math.min(1, i / 2400, (rate * burst - i) / 2400);
+            data[start + i] = 0.35 * fade * (ch === 3 ? Math.sin(2 * Math.PI * 50 * i / rate) : pink());
+          }
+        });
+      }
+      return buf;
+    },
+
+    downloadSurround: async function (format, test) {
+      var takeId = this.currentTakeId;
+      if (!takeId) { this.showToast(t('Select a take first')); return; }
+      var buttons = document.querySelectorAll('[data-surround]');
+      Array.prototype.forEach.call(buttons, function (b) { b.disabled = true; });
+      this.showToast(test ? t('Making the 5.1 channel test…') : t('Rendering 5.1…'), 'good');
+      try {
+        var wav = audioBufferToWav(test ? this.surroundTestBuffer() : await this.renderSurroundBuffer(takeId));
+        var form = new FormData();
+        form.append('audio_file', wav, 'surround.wav');
+        var res = await fetch('/api/takes/' + takeId + '/export-surround?format=' + encodeURIComponent(format) + (test ? '&test=1' : ''),
+                              { method: 'POST', body: form });
+        if (!res.ok) { throw new Error(await res.text()); }
+        var data = await res.json();
+        var link = document.createElement('a');
+        link.href = data.download_url;
+        link.download = '';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(function () { link.remove(); }, 1000);
+      } catch (err) {
+        this.showToast(t('Could not make the 5.1: {message}', { message: err.message }), 'bad');
+      } finally {
+        Array.prototype.forEach.call(buttons, function (b) { b.disabled = false; });
+      }
+    },
+
+    /* ------------------------------------------------------------ Space: the stage
+       Seen from above, the listener in the middle facing up.  From the mix: the speakers it plays from.  From stems:
+       a dot for each, dragged round the circle to place it; the wheel over a dot spreads or narrows its pair. */
+    paintSpaceStage: function () {
+      var svg = document.getElementById('space-stage');
+      if (!svg) { return; }
+      var sp = Object.assign(defaultSpace(), this.settings.space || {});
+      var stems = sp.source === 'stems', player = this.stemPlayer;
+      var R = 52, C = 70;
+      function pt(az, r) { var a = az * Math.PI / 180; return [C + Math.sin(a) * r, C - Math.cos(a) * r]; }
+      var parts = ['<circle cx="70" cy="70" r="' + R + '" class="space-ring"/>',
+                   '<circle cx="70" cy="70" r="11" class="space-head"/><path d="M66 60 70 54 74 60" class="space-nose"/>'];
+      if (!stems) {
+        var spk = [-sp.width, sp.width], rear = Number(sp.surround) || 0;
+        spk.forEach(function (az) { var q = pt(az, R); parts.push('<rect x="' + (q[0] - 5) + '" y="' + (q[1] - 5) + '" width="10" height="10" rx="2" class="space-speaker"/>'); });
+        [-SPACE_REAR, SPACE_REAR].forEach(function (az) {
+          var q = pt(az, R);
+          parts.push('<rect x="' + (q[0] - 5) + '" y="' + (q[1] - 5) + '" width="10" height="10" rx="2" class="space-speaker" style="opacity:' + (0.15 + rear * 0.85).toFixed(2) + '"/>');
+        });
+      } else {
+        var names = player.names.length ? player.names : ['vocals', 'drums', 'bass', 'other'];
+        // each stem on a ring of its own, so stems placed alike stay apart on the drawing (it is the angle that counts)
+        var step = names.length > 1 ? Math.min(10, 28 / (names.length - 1)) : 0;
+        names.forEach(function (name, n) {
+          var at = stemPlace(sp, name), r = R - n * step;
+          var a0 = pt(at.az - at.spread / 2, r), a1 = pt(at.az + at.spread / 2, r), big = at.spread > 180 ? 1 : 0;
+          if (at.spread > 0) {
+            parts.push('<path d="M' + a0[0].toFixed(1) + ' ' + a0[1].toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + big + ' 1 ' + a1[0].toFixed(1) + ' ' + a1[1].toFixed(1) + '" class="space-arc space-' + escHtml(name) + '"/>');
+          }
+          var q = pt(at.az, r);
+          parts.push('<g class="space-dot space-' + escHtml(name) + '" data-stem="' + escHtml(name) + '"><circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="7"/>' +
+                     '<text x="' + q[0].toFixed(1) + '" y="' + (q[1] + 3).toFixed(1) + '" font-size="8">' + escHtml(name.charAt(0).toUpperCase()) + '</text><title>' + escHtml(name) + '</title></g>');
+        });
+      }
+      svg.innerHTML = parts.join('');
+      svg.classList.toggle('stems', stems);
+      var unit = document.getElementById('unit-space');
+      if (unit) { unit.classList.toggle('stems-mode', stems); }      // WIDTH and SURROUND are the mix's: dimmed
+      var note = document.getElementById('space-stage-note');
+      if (note) {
+        var text = !stems ? t('From the mix') : player.loading ? t('Loading stems…') : player.error ? player.error
+          : player.names.length ? t('{n} stems: drag to place, wheel to spread', { n: player.names.length }) : (this.stemsWanted() ? '' : t('Stems, when Space is in'));
+        note.textContent = text;
+        note.classList.toggle('bad', Boolean(stems && player.error));
+      }
+      var make = document.getElementById('space-make-stems');
+      if (make) { make.classList.toggle('hidden', !(stems && player.error)); }
+      Array.prototype.forEach.call(document.querySelectorAll('#space-source [data-source]'), function (b) {
+        b.classList.toggle('active', b.dataset.source === sp.source);
+      });
+    },
+
+    bindSpaceStage: function () {
+      var self = this, svg = document.getElementById('space-stage');
+      if (!svg) { return; }
+      var dragging = null;
+      function angleAt(e) {
+        var box = svg.getBoundingClientRect();
+        var x = (e.clientX - box.left) / box.width * 140 - 70, y = (e.clientY - box.top) / box.height * 140 - 70;
+        return Math.round(Math.atan2(x, -y) * 180 / Math.PI / 5) * 5;
+      }
+      function stems() {
+        self.settings.space = Object.assign(defaultSpace(), self.settings.space || {});
+        self.settings.space.stems = Object.assign(JSON.parse(JSON.stringify(SPACE_STEMS)), self.settings.space.stems || {});
+        return self.settings.space.stems;
+      }
+      function changed() { self.engage('space'); Engine.applySettings(self.settings); self.paintSpaceStage(); self.syncKnobsToState(); self.debouncedSave(); }
+      svg.addEventListener('pointerdown', function (e) {
+        var dot = e.target.closest('[data-stem]');
+        if (!dot) { return; }
+        dragging = dot.dataset.stem;
+        svg.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+      svg.addEventListener('pointermove', function (e) {
+        if (!dragging) { return; }
+        var all = stems();
+        all[dragging] = Object.assign({}, stemPlace(self.settings.space, dragging), { az: angleAt(e) });
+        changed();
+      });
+      svg.addEventListener('pointerup', function () { dragging = null; });
+      svg.addEventListener('wheel', function (e) {
+        var dot = e.target.closest('[data-stem]');
+        if (!dot) { return; }
+        e.preventDefault();
+        var all = stems(), name = dot.dataset.stem, at = stemPlace(self.settings.space, name);
+        all[name] = { az: at.az, spread: Math.max(0, Math.min(300, at.spread + (e.deltaY < 0 ? 10 : -10))) };
+        changed();
+      }, { passive: false });
     },
 
     /* The take with Space, for headphones: rendered here with every module as set, Space in, and saved as a WAV named
