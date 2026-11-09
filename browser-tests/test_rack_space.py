@@ -33,21 +33,18 @@ def test_a_scene_puts_space_in_and_the_left_channel_reaches_both_ears(page, app_
     assert on[0] > on[1]                                  # and nearer the left
 
 
-def test_a_module_folds_to_its_bar_and_stays_folded(page, app_server):
-    page.evaluate("() => Rack.toggle(true)")
+def test_a_module_folds_to_its_bar_and_the_take_keeps_it(page, app_server):
+    # two takes that exist only here: what the rack keeps for them is answered, not stored
+    page.route("**/api/takes/fold*/fx", lambda route: route.fulfill(json={"status": "ok"} if route.request.method == "PUT" else {}))
+    page.evaluate("() => { Rack.toggle(true); Rack.onTake({ id: 'fold1', title: 'Folding' }); }")
     page.locator("#unit-comp .unit-fold").click()
     assert page.evaluate("() => document.getElementById('unit-comp').classList.contains('folded')")
     assert not page.locator("#unit-comp .unit-faceplate").is_visible()
-    page.reload()
-    page.wait_for_function("() => window.Rack")
-    page.evaluate("() => Rack.toggle(true)")
-    assert page.evaluate("() => document.getElementById('unit-comp').classList.contains('folded')")     # this browser keeps it
+    assert page.evaluate("() => Rack.settings.folded") == ["unit-comp"]          # kept with the take's settings
+    page.evaluate("() => { Rack.currentTakeId = null; Rack.onTake({ id: 'fold2', title: 'Another' }); }")
+    page.wait_for_function("() => !document.getElementById('unit-comp').classList.contains('folded')")   # none kept: all open
+    page.evaluate("() => { Rack.currentTakeId = null; Rack.onTake({ id: 'fold1', title: 'Folding', fx_chain: JSON.stringify(Object.assign({}, Rack.settings, { folded: ['unit-comp'] })) }); }")
+    assert page.evaluate("() => document.getElementById('unit-comp').classList.contains('folded')")
     page.locator("#unit-comp .unit-fold").click()
     assert page.locator("#unit-comp .unit-faceplate").is_visible()
 
-
-def test_the_5_1_channel_test_has_a_sound_on_each_of_six_channels(page, app_server):
-    loud = page.evaluate("""() => { const b = Rack.surroundTestBuffer();
-      return Array.from({ length: b.numberOfChannels }, (_, ch) => { const d = b.getChannelData(ch); let p = 0;
-        for (let i = 0; i < d.length; i++) p = Math.max(p, Math.abs(d[i])); return p; }); }""")
-    assert len(loud) == 6 and all(0.05 < x < 0.9 for x in loud)

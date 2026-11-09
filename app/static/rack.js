@@ -1318,7 +1318,6 @@
 
   // ------------------------------------------------------------- UI Controller
   var USER_PRESETS_KEY = 'yeufonic.mastering_user_presets';
-  var FOLDED_KEY = 'yeufonic.rack.folded';
   var TRASH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
     'stroke-linejoin="round" aria-hidden="true"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l1 12.2h9l1-12.2"/></svg>';
 
@@ -1363,12 +1362,11 @@
       this.startMeterLoop();
     },
 
-    /* Each module folds to its bar and opens again with the arrow at the left of the bar; which are folded is kept in
-       this browser.  Folded or not, a module sounds the same. */
+    /* Each module folds to its bar and opens again with the arrow at the left of the bar.  Which are folded is kept
+       with the take, beside its settings (settings.folded); a take with none kept has every module open.  Folded or
+       not, a module sounds the same. */
     installFolds: function () {
       var self = this;
-      var folded = [];
-      try { folded = JSON.parse(localStorage.getItem(FOLDED_KEY) || '[]') || []; } catch (e) { folded = []; }
       Array.prototype.forEach.call(document.querySelectorAll('#rack-panel .rack-unit'), function (unit) {
         var bar = unit.querySelector('.unit-bar');
         if (!bar || !unit.id || bar.querySelector('.unit-fold')) { return; }
@@ -1377,23 +1375,35 @@
         button.className = 'unit-fold';
         button.innerHTML = '<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.25 6 7.75l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
         bar.insertBefore(button, bar.firstChild);
-        function paint() {
-          var shut = unit.classList.contains('folded');
-          button.setAttribute('aria-expanded', shut ? 'false' : 'true');
-          button.title = shut ? t('Open this module') : t('Fold this module');
-        }
-        unit.classList.toggle('folded', folded.indexOf(unit.id) !== -1);
-        paint();
         button.addEventListener('click', function (e) {
           e.stopPropagation();
           unit.classList.toggle('folded');
-          paint();
-          var now = Array.prototype.filter.call(document.querySelectorAll('#rack-panel .rack-unit.folded'), function (u) { return u.id; })
-            .map(function (u) { return u.id; });
-          try { localStorage.setItem(FOLDED_KEY, JSON.stringify(now)); } catch (err) { /* private mode */ }
-          if (typeof self.fitToWindow === 'function') { self.fitToWindow(); }
+          self.settings.folded = Array.prototype.map.call(document.querySelectorAll('#rack-panel .rack-unit.folded'), function (u) { return u.id; });
+          self.applyFolds(self.settings.folded);
+          self.debouncedSave();
         });
       });
+      this.applyFolds([]);
+    },
+
+    applyFolds: function (folded) {
+      var list = Array.isArray(folded) ? folded : [];
+      Array.prototype.forEach.call(document.querySelectorAll('#rack-panel .rack-unit'), function (unit) {
+        var shut = list.indexOf(unit.id) !== -1;
+        unit.classList.toggle('folded', shut);
+        var button = unit.querySelector('.unit-fold');
+        if (button) {
+          button.setAttribute('aria-expanded', shut ? 'false' : 'true');
+          button.title = shut ? t('Open this module') : t('Fold this module');
+        }
+      });
+      if (typeof this.fitToWindow === 'function' && document.getElementById('rack-panel')) { this.fitToWindow(); }
+    },
+
+    /* Settings put in place of the rack's whole (a preset, Reset, after Apply): the take's folds stay as they are. */
+    keepFolds: function (settings) {
+      if (Array.isArray(this.settings && this.settings.folded)) { settings.folded = this.settings.folded.slice(); }
+      return settings;
     },
 
     rebuildPresetDropdown: function (selectedKey) {
@@ -1903,7 +1913,6 @@
         '            <div class="space-surround">',
         '              <button type="button" class="rack-head-btn" data-surround="flac" title="' + t('Six-channel FLAC, for computers and media players') + '">FLAC</button>',
         '              <button type="button" class="rack-head-btn" data-surround="ac3" title="' + t('AC-3 (Dolby Digital), for TVs, soundbars and receivers') + '">AC-3</button>',
-        '              <button type="button" class="rack-head-btn" data-surround="flac" data-surround-test="1" title="' + t('A channel test: a sound from each speaker in turn, to check a 5.1 player or a virtualiser') + '">' + t('Test') + '</button>',
         '            </div>',
         '          </div>',
         '        </div>',
@@ -2013,9 +2022,9 @@
           var key = this.value;
           var userPresets = self.getUserPresets();
           if (PRESETS[key]) {
-            self.settings = JSON.parse(JSON.stringify(PRESETS[key]));
+            self.settings = self.keepFolds(JSON.parse(JSON.stringify(PRESETS[key])));
           } else if (userPresets[key]) {
-            self.settings = self.mergeSettings(PRESETS['default'], upgradeSettings(userPresets[key]));
+            self.settings = self.keepFolds(self.mergeSettings(PRESETS['default'], upgradeSettings(userPresets[key])));
           }
           self.paintPresetButton();
           self.syncKnobsToState();
@@ -2078,7 +2087,7 @@
       var resetBtn = document.getElementById('rack-reset-btn');
       if (resetBtn) {
         resetBtn.addEventListener('click', function () {
-          self.settings = JSON.parse(JSON.stringify(PRESETS['default']));
+          self.settings = self.keepFolds(JSON.parse(JSON.stringify(PRESETS['default'])));
           if (presetSelect) { presetSelect.value = 'default'; }
           self.paintPresetButton();
           self.syncKnobsToState();
@@ -2246,7 +2255,7 @@
         });
       }
       Array.prototype.forEach.call(document.querySelectorAll('[data-surround]'), function (button) {
-        button.addEventListener('click', function () { self.downloadSurround(button.dataset.surround, Boolean(button.dataset.surroundTest)); });
+        button.addEventListener('click', function () { self.downloadSurround(button.dataset.surround); });
       });
       this.bindSpaceStage();
       this.hookStemPlayback();
@@ -3174,6 +3183,7 @@
             this.syncKnobsToState();
             Engine.applySettings(this.settings);
             this.syncStems();
+            this.applyFolds(this.settings.folded);
             return;
           }
         } catch (e) {}
@@ -3193,6 +3203,7 @@
           self.syncKnobsToState();
           Engine.applySettings(self.settings);
           self.syncStems();
+          self.applyFolds(self.settings.folded);
         })
         .catch(function () {});
     },
@@ -3597,43 +3608,17 @@
       return out;
     },
 
-    /* A channel test: a burst of noise from each speaker in turn, the way round a room (front left, centre, front
-       right, back right, back left), then a low tone from the LFE; twice.  For checking a 5.1 player or a virtualiser. */
-    surroundTestBuffer: function () {
-      var rate = 48000, order = [0, 2, 1, 5, 4, 3], burst = 1.2, gap = 0.4;
-      var length = Math.ceil(rate * (burst + gap) * order.length * 2 + rate);
-      var Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-      var buf = new Ctx(6, 1, rate).createBuffer(6, length, rate);
-      var seed = 3, b0 = 0, b1 = 0, b2 = 0;
-      function pink() {
-        seed = (seed * 16807) % 2147483647;
-        var w = seed / 2147483647 * 2 - 1;
-        b0 = 0.99765 * b0 + w * 0.099; b1 = 0.963 * b1 + w * 0.2965; b2 = 0.57 * b2 + w * 1.0527;
-        return (b0 + b1 + b2 + w * 0.1848) * 0.11;
-      }
-      for (var round = 0; round < 2; round++) {
-        order.forEach(function (ch, n) {
-          var start = Math.floor(rate * ((round * order.length + n) * (burst + gap) + 0.5)), data = buf.getChannelData(ch);
-          for (var i = 0; i < rate * burst; i++) {
-            var fade = Math.min(1, i / 2400, (rate * burst - i) / 2400);
-            data[start + i] = 0.35 * fade * (ch === 3 ? Math.sin(2 * Math.PI * 50 * i / rate) : pink());
-          }
-        });
-      }
-      return buf;
-    },
-
-    downloadSurround: async function (format, test) {
+    downloadSurround: async function (format) {
       var takeId = this.currentTakeId;
       if (!takeId) { this.showToast(t('Select a take first')); return; }
       var buttons = document.querySelectorAll('[data-surround]');
       Array.prototype.forEach.call(buttons, function (b) { b.disabled = true; });
-      var work = this.pageWork(test ? t('Making the 5.1 channel test') : t('Rendering 5.1 ({format})', { format: format === 'ac3' ? 'AC-3' : 'FLAC' }));
+      var work = this.pageWork(t('Rendering 5.1 ({format})', { format: format === 'ac3' ? 'AC-3' : 'FLAC' }));
       try {
-        var wav = audioBufferToWav(test ? this.surroundTestBuffer() : await this.renderSurroundBuffer(takeId));
+        var wav = audioBufferToWav(await this.renderSurroundBuffer(takeId));
         var form = new FormData();
         form.append('audio_file', wav, 'surround.wav');
-        var res = await fetch('/api/takes/' + takeId + '/export-surround?format=' + encodeURIComponent(format) + (test ? '&test=1' : ''),
+        var res = await fetch('/api/takes/' + takeId + '/export-surround?format=' + encodeURIComponent(format),
                               { method: 'POST', body: form });
         if (!res.ok) { throw new Error(await res.text()); }
         var data = await res.json();
@@ -3847,7 +3832,7 @@
         // Reset rack settings for this take to default transparent so it is not double-processed; Space, which
         // was not baked in, stays as it was
         var keptSpace = this.settings.space;
-        this.settings = JSON.parse(JSON.stringify(PRESETS['default']));
+        this.settings = this.keepFolds(JSON.parse(JSON.stringify(PRESETS['default'])));
         if (keptSpace) { this.settings.space = keptSpace; }
         this.syncKnobsToState();
         Engine.applySettings(this.settings);

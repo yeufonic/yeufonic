@@ -980,6 +980,3 @@ def test_the_rack_s_six_channels_come_back_as_5_1_flac_or_ac3(client, tmp_path):
         assert probe["codec_name"] == codec and probe["channels"] == 6 and probe["channel_layout"].startswith("5.1")
     assert client.post("/api/takes/sur1/export-surround?format=mp3",
                        files={"audio_file": ("s.wav", path.read_bytes(), "audio/wav")}).status_code == 400
-    test = client.post("/api/takes/sur1/export-surround?format=flac&test=1", files={"audio_file": ("s.wav", path.read_bytes(), "audio/wav")})
-    from urllib.parse import unquote
-    assert "5.1 channel test.flac" in unquote(client.get(test.json()["download_url"]).headers["content-disposition"])

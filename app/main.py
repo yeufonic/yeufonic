@@ -5419,10 +5419,9 @@ SURROUND_FORMATS = {"flac": ("audio/flac", ["-c:a", "flac", "-compression_level"
 
 
 @app.post("/api/takes/{take_id}/export-surround")
-async def export_surround_take(take_id: str, format: str = Query("flac"), test: bool = Query(False),
-                               audio_file: UploadFile = File(...)) -> dict:
-    """A take in 5.1, rendered in the browser by the rack (Space), encoded here; or with `test`, the rack's channel
-    test.  Answers where to download it, as export-mastered does."""
+async def export_surround_take(take_id: str, format: str = Query("flac"), audio_file: UploadFile = File(...)) -> dict:
+    """A take in 5.1, rendered in the browser by the rack (Space), encoded here.  Answers where to download it, as
+    export-mastered does."""
     fmt = format.lower()
     if fmt not in SURROUND_FORMATS:
         raise HTTPException(400, f"format must be one of {', '.join(SURROUND_FORMATS)}")
@@ -5430,9 +5429,8 @@ async def export_surround_take(take_id: str, format: str = Query("flac"), test: 
     if not take:
         raise HTTPException(404, "no such take")
     media, codec = SURROUND_FORMATS[fmt]
-    title = "5.1 channel test" if test else (take["title"] or "take")
-    safe = "".join(ch for ch in title if ch.isalnum() or ch in " -_.")[:60].strip() or "take"
-    safe = safe if test else f"{safe} (5.1)"
+    safe = "".join(ch for ch in (take["title"] or "take") if ch.isalnum() or ch in " -_.")[:60].strip() or "take"
+    safe = f"{safe} (5.1)"
     config.WORK_DIR.mkdir(parents=True, exist_ok=True)
     temp_wav = config.WORK_DIR / f"upload-surround-{take_id}-{uuid.uuid4().hex[:8]}.wav"
     out = config.WORK_DIR / f"surround-{take_id}-{uuid.uuid4().hex[:8]}.{fmt}"
