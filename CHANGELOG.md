@@ -52,6 +52,22 @@ cannot creep back in.
   **Recorded voice** button, marked when the take has its own settings. Needs the voice service from this version.
 - **A developer's switch to keep a voiced take's halves:** with `VOICE_KEEP_PARTS=1`, the vocal sung in the voice and
   the backing under it are kept as they were mixed, beside the take's audio. Off by default.
+- **3D Space, a new module of the mastering rack** (between the imager and the limiter), places the take around you
+  on headphones. From the mix: two virtual speakers in front (**Width**) and two behind (**Rear**), **Surround**
+  setting how much of the mix's width and ambience plays from those behind, **Height** and **Room**. From stems: each
+  of the take's stems placed on its own on a circle seen from above (choose a stem, then drag round the circle; the
+  wheel spreads it), with **Make stems** opening the Stems window when there are none. **Front**, **Wide** and
+  **Around** set it all at once. The speakers are the browser's own HRTF set, with its colour measured and undone, so
+  the take keeps its brightness and its loudness. What it makes is for headphones and never goes into the take's own
+  file: **Download** saves it as a WAV, and **FLAC** and **AC-3** save the take in 5.1 for surround speakers (placed
+  stems go to the speakers either side of them; from the mix, the front pair, the rear pair as much as Surround, and
+  the bass to the LFE). The take's Save window offers the same downloads while its Space is in, and work rendered in
+  the page now shows in the job pill.
+- **The rack's modules fold** to their bars with an arrow at the left, and each take keeps which are folded (all open
+  for a take with none kept).
+- **The Surround preset replaces Boost**: lifted mids and highs, a slow gentle compressor, and 3D Space in, wide and
+  high.
+- **The None scene's picture** is shown at the size it opens at from the take's card.
 - **A still visualizer scene, None:** the take's picture alone on a dark ground, or the Yeufonic mark where it has
   none, with nothing moving, for a computer the other scenes are too much for. It is kept as your choice like the
   others.

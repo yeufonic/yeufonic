@@ -16,6 +16,7 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **Duets:** cue a man, a woman or both for any lines of the lyrics, and the melody is set where that voice sings.
 - **Languages:** the app and its user guide in fifteen languages, machine-translated: English (US and UK), Simplified and Traditional Chinese, Japanese, Korean, German, Dutch, French, Italian, Russian, Spanish (Spain and Latin America) and Portuguese (Brazil and Portugal).
 - **Vintage mastering rack:** a skeuomorphic channel strip with a 1073-style EQ, a seven-band parametric equalizer you shape by dragging its bands on a graph over the live spectrum, vintage compressor, stereo imager, and master limiter with tube warmth to polish and master any take in real time.
+- **3D Space:** a module of the mastering rack that places a take around you on headphones, from the mix or stem by stem, and saves it for headphones or as 5.1 (FLAC or AC-3) for surround speakers.
 - **An MCP server (off by default):** let an AI agent such as Claude Code make songs, covers and instrumentals, try them other ways, give them pictures, gather them into playlists and tidy the library, in your own words. See [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp).
 - **Stems:** split any take into vocals, drums, bass and more, or into vocals and a backing track.
 - **A library:** spaces, stars, and every take's settings kept so it can be made again.

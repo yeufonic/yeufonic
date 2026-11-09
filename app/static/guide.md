@@ -355,6 +355,16 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
   graph shows. The button is green while the rack changes how the take sounds. With the rack open, space plays
   and pauses the take and the arrow keys move through it and set the volume, as on the main page. Escape closes
   the rack, and again closes the editor.
+- **3D Space**, a module of the rack between the imager and the limiter, places the take around you for headphones.
+  From the **Mix**: two virtual speakers in front (**Width**) and two behind (**Rear**), with **Surround** setting how
+  much of the mix's width and ambience plays from those behind; drag the speakers on the circle as well. **Height**
+  lifts them all and **Room** adds a short room. From **Stems**: each of the take's stems is placed on its own; choose
+  one under the circle, then drag round the circle to place it, and the wheel spreads it (**Make stems** opens the
+  Stems window when the take has none). **Front**, **Wide** and **Around** set it all at once. What you hear is for
+  headphones and is never part of the take's own file: **Download** under Headphones saves it as a WAV, and **FLAC**
+  and **AC-3** under 5.1 Speakers save the take for surround speakers (from stems, each goes to the speakers either
+  side of where it is placed). The take's Save window offers the same downloads while its Space is in. Each module
+  folds to its bar with the arrow at its left, and the take keeps which are folded.
 
 ### Making the song longer
 
