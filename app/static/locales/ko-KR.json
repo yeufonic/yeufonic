@@ -2106,6 +2106,7 @@
  "Select a take first": "먼저 테이크를 선택하세요",
  "Rendering 5.1 ({format})": "5.1 렌더링 중 ({format})",
  "Could not make the 5.1: {message}": "5.1을 만들지 못했습니다: {message}",
+ "FRONT": "앞",
  "From the mix": "믹스에서",
  "Loading stems…": "스템 불러오는 중…",
  "{n} stems: drag to place, wheel to spread": "스템 {n}개: 끌어서 배치, 휠로 넓이 조절",

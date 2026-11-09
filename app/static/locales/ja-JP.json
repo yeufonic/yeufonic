@@ -2106,6 +2106,7 @@
  "Select a take first": "先にテイクを選んでください",
  "Rendering 5.1 ({format})": "5.1 をレンダリング中（{format}）",
  "Could not make the 5.1: {message}": "5.1 を作成できませんでした: {message}",
+ "FRONT": "前",
  "From the mix": "ミックスから",
  "Loading stems…": "ステムを読み込み中…",
  "{n} stems: drag to place, wheel to spread": "ステム {n} 本：ドラッグで配置、ホイールで広がり",

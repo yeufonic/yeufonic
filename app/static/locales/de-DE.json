@@ -2106,6 +2106,7 @@
  "Select a take first": "Wähle zuerst einen Take",
  "Rendering 5.1 ({format})": "5.1 wird gerendert ({format})",
  "Could not make the 5.1: {message}": "5.1 konnte nicht erstellt werden: {message}",
+ "FRONT": "VORN",
  "From the mix": "Aus dem Mix",
  "Loading stems…": "Stems werden geladen…",
  "{n} stems: drag to place, wheel to spread": "{n} Stems: ziehen zum Platzieren, Mausrad zum Auffächern",

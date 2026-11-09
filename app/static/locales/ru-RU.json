@@ -2106,6 +2106,7 @@
  "Select a take first": "Сначала выберите дубль",
  "Rendering 5.1 ({format})": "Рендер 5.1 ({format})",
  "Could not make the 5.1: {message}": "Не удалось сделать 5.1: {message}",
+ "FRONT": "ВПЕРЕДИ",
  "From the mix": "Из микса",
  "Loading stems…": "Загружаются стемы…",
  "{n} stems: drag to place, wheel to spread": "Стемов: {n}. Тяните, чтобы разместить, колесо — ширина",

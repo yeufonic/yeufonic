@@ -2106,6 +2106,7 @@
  "Select a take first": "請先選擇一個版本",
  "Rendering 5.1 ({format})": "正在算繪 5.1（{format}）",
  "Could not make the 5.1: {message}": "無法產生 5.1：{message}",
+ "FRONT": "前方",
  "From the mix": "來自混音",
  "Loading stems…": "正在載入分軌…",
  "{n} stems: drag to place, wheel to spread": "{n} 條分軌：拖曳放置，滾輪調寬度",

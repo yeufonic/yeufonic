@@ -2106,6 +2106,7 @@
  "Select a take first": "Selecteer eerst een take",
  "Rendering 5.1 ({format})": "5.1 renderen ({format})",
  "Could not make the 5.1: {message}": "Kon de 5.1 niet maken: {message}",
+ "FRONT": "VOOR",
  "From the mix": "Uit de mix",
  "Loading stems…": "Stems laden…",
  "{n} stems: drag to place, wheel to spread": "{n} stems: sleep om te plaatsen, scrollwiel om te spreiden",

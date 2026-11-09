@@ -3739,8 +3739,11 @@
       var stems = sp.source === 'stems', player = this.stemPlayer;
       var R = 52, C = 70;
       function pt(az, r) { var a = az * Math.PI / 180; return [C + Math.sin(a) * r, C - Math.cos(a) * r]; }
+      // seen from above, facing the top: the ears marked, so the drawing cannot be read as a face looking out
       var parts = ['<circle cx="70" cy="70" r="' + R + '" class="space-ring"/>',
-                   '<circle cx="70" cy="70" r="11" class="space-head"/><path d="M66 60 70 54 74 60" class="space-nose"/>'];
+                   '<text x="70" y="12" font-size="7" class="space-mark">' + escHtml(t('FRONT')) + '</text>',
+                   '<circle cx="70" cy="70" r="11" class="space-head"/><path d="M66 60 70 54 74 60" class="space-nose"/>',
+                   '<text x="54" y="73" font-size="8" class="space-mark">L</text><text x="86" y="73" font-size="8" class="space-mark">R</text>'];
       if (!stems) {
         var spk = [-sp.width, sp.width], rear = Number(sp.surround) || 0;
         spk.forEach(function (az) { var q = pt(az, R); parts.push('<rect x="' + (q[0] - 5) + '" y="' + (q[1] - 5) + '" width="10" height="10" rx="2" class="space-speaker"/>'); });
