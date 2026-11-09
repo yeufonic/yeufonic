@@ -488,6 +488,13 @@
   var SPACE_REAR = 110;            // the rear speakers' angle either side, as a 5.1 layout puts its surrounds
   var SPACE_REAR_DELAY = 0.018;    // and their sound a little later, so it reads as room rather than a second source
 
+  /* A stem's name as the page shows it. */
+  function stemLabel(name) {
+    var names = { vocals: t('Vocals'), drums: t('Drums'), bass: t('Bass'), other: t('Other'), guitar: t('Guitar'),
+                  piano: t('Piano'), instruments: t('Instruments') };
+    return names[name] || name;
+  }
+
   function escHtml(v) {
     return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
@@ -1964,7 +1971,8 @@
         '              <button type="button" class="space-scene" data-source="mix" title="' + t('The finished mix, from virtual speakers') + '">MIX</button>',
         '              <button type="button" class="space-scene" data-source="stems" title="' + t('The take\'s stems, each placed on its own') + '">STEMS</button>',
         '            </div>',
-        '            <svg id="space-stage" class="space-stage" viewBox="0 0 140 140" role="img" aria-label="' + t('Where the sound comes from, seen from above') + '"></svg>',
+        '            <svg id="space-stage" class="space-stage" viewBox="0 0 160 160" role="img" aria-label="' + t('Where the sound comes from, seen from above') + '"></svg>',
+        '            <div class="space-stem-chips" id="space-stem-chips" role="radiogroup" aria-label="' + t('The stem to place') + '"></div>',
         '            <span class="space-stage-note" id="space-stage-note"></span>',
         '            <button type="button" class="rack-head-btn hidden" id="space-make-stems">' + t('Make stems') + '</button>',
         '          </div>',
@@ -3735,15 +3743,16 @@
     paintSpaceStage: function () {
       var svg = document.getElementById('space-stage');
       if (!svg) { return; }
+      var self = this;
       var sp = Object.assign(defaultSpace(), this.settings.space || {});
       var stems = sp.source === 'stems', player = this.stemPlayer;
-      var R = 52, C = 70;
+      var R = 58, C = 80;
       function pt(az, r) { var a = az * Math.PI / 180; return [C + Math.sin(a) * r, C - Math.cos(a) * r]; }
       // seen from above, facing the top: the ears marked, so the drawing cannot be read as a face looking out
-      var parts = ['<circle cx="70" cy="70" r="' + R + '" class="space-ring"/>',
-                   '<text x="70" y="12" font-size="7" class="space-mark">' + escHtml(t('FRONT')) + '</text>',
-                   '<circle cx="70" cy="70" r="11" class="space-head"/><path d="M66 60 70 54 74 60" class="space-nose"/>',
-                   '<text x="54" y="73" font-size="8" class="space-mark">L</text><text x="86" y="73" font-size="8" class="space-mark">R</text>'];
+      var parts = ['<circle cx="80" cy="80" r="' + R + '" class="space-ring"/>',
+                   '<text x="80" y="9" font-size="7" class="space-mark">' + escHtml(t('FRONT')) + '</text>',
+                   '<circle cx="80" cy="80" r="11" class="space-head"/><path d="M76 70 80 64 84 70" class="space-nose"/>',
+                   '<text x="64" y="83" font-size="8" class="space-mark">L</text><text x="96" y="83" font-size="8" class="space-mark">R</text>'];
       if (!stems) {
         var spk = [-sp.width, sp.width], rear = Number(sp.surround) || 0;
         spk.forEach(function (az) { var q = pt(az, R); parts.push('<rect x="' + (q[0] - 5) + '" y="' + (q[1] - 5) + '" width="10" height="10" rx="2" class="space-speaker"/>'); });
@@ -3753,8 +3762,10 @@
         });
       } else {
         var names = player.names.length ? player.names : ['vocals', 'drums', 'bass', 'other'];
+        if (names.indexOf(this.spaceChosen) === -1) { this.spaceChosen = names[0]; }
+        var chosen = this.spaceChosen;
         // each stem on a ring of its own, so stems placed alike stay apart on the drawing (it is the angle that counts)
-        var step = names.length > 1 ? Math.min(10, 28 / (names.length - 1)) : 0;
+        var step = names.length > 1 ? Math.min(12, 36 / (names.length - 1)) : 0;
         names.forEach(function (name, n) {
           var at = stemPlace(sp, name), r = R - n * step;
           var a0 = pt(at.az - at.spread / 2, r), a1 = pt(at.az + at.spread / 2, r), big = at.spread > 180 ? 1 : 0;
@@ -3762,7 +3773,8 @@
             parts.push('<path d="M' + a0[0].toFixed(1) + ' ' + a0[1].toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + big + ' 1 ' + a1[0].toFixed(1) + ' ' + a1[1].toFixed(1) + '" class="space-arc space-' + escHtml(name) + '"/>');
           }
           var q = pt(at.az, r);
-          parts.push('<g class="space-dot space-' + escHtml(name) + '" data-stem="' + escHtml(name) + '"><circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="7"/>' +
+          if (name === chosen) { parts.push('<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="11.5" class="space-chosen"/>'); }
+          parts.push('<g class="space-dot space-' + escHtml(name) + '" data-stem="' + escHtml(name) + '"><circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="8.5"/>' +
                      '<text x="' + q[0].toFixed(1) + '" y="' + (q[1] + 3).toFixed(1) + '" font-size="8">' + escHtml(name.charAt(0).toUpperCase()) + '</text><title>' + escHtml(name) + '</title></g>');
         });
       }
@@ -3773,9 +3785,18 @@
       var note = document.getElementById('space-stage-note');
       if (note) {
         var text = !stems ? t('From the mix') : player.loading ? t('Loading stems…') : player.error ? player.error
-          : player.names.length ? t('{n} stems: drag to place, wheel to spread', { n: player.names.length }) : (this.stemsWanted() ? '' : t('Stems, when Space is in'));
+          : player.names.length ? t('Choose a stem, then drag round the circle to place it; the wheel spreads it') : (this.stemsWanted() ? '' : t('Stems, when Space is in'));
         note.textContent = text;
         note.classList.toggle('bad', Boolean(stems && player.error));
+      }
+      var chips = document.getElementById('space-stem-chips');
+      if (chips) {
+        var shown = stems && player.names.length ? player.names : [];
+        chips.innerHTML = shown.map(function (name) {
+          return '<button type="button" role="radio" aria-checked="' + (name === self.spaceChosen) + '" class="space-chip' + (name === self.spaceChosen ? ' active' : '') +
+            '" data-chip="' + escHtml(name) + '"><span class="space-swatch space-' + escHtml(name) + '"></span>' + escHtml(stemLabel(name)) + '</button>';
+        }).join('');
+        chips.classList.toggle('hidden', !shown.length);
       }
       var make = document.getElementById('space-make-stems');
       if (make) { make.classList.toggle('hidden', !(stems && player.error)); }
@@ -3787,10 +3808,10 @@
     bindSpaceStage: function () {
       var self = this, svg = document.getElementById('space-stage');
       if (!svg) { return; }
-      var dragging = null;
+      var dragging = false;
       function angleAt(e) {
         var box = svg.getBoundingClientRect();
-        var x = (e.clientX - box.left) / box.width * 140 - 70, y = (e.clientY - box.top) / box.height * 140 - 70;
+        var x = (e.clientX - box.left) / box.width * 160 - 80, y = (e.clientY - box.top) / box.height * 160 - 80;
         return Math.round(Math.atan2(x, -y) * 180 / Math.PI / 5) * 5;
       }
       function stems() {
@@ -3806,28 +3827,41 @@
         if (wasOut) { self.syncKnobsToState(); }
         self.debouncedSave();
       }
+      function placeChosen(e) {
+        var name = self.spaceChosen;
+        if (!name) { return; }
+        stems()[name] = Object.assign({}, stemPlace(self.settings.space, name), { az: angleAt(e) });
+        changed();
+      }
       svg.addEventListener('pointerdown', function (e) {
+        if (!svg.classList.contains('stems')) { return; }
         var dot = e.target.closest('[data-stem]');
-        if (!dot) { return; }
-        dragging = dot.dataset.stem;
+        if (dot) { self.spaceChosen = dot.dataset.stem; self.paintSpaceStage(); return startDrag(e, false); }
+        startDrag(e, true);
+      });
+      function startDrag(e, placeNow) {
+        dragging = true;
         svg.setPointerCapture(e.pointerId);
         e.preventDefault();
-      });
-      svg.addEventListener('pointermove', function (e) {
-        if (!dragging) { return; }
-        var all = stems();
-        all[dragging] = Object.assign({}, stemPlace(self.settings.space, dragging), { az: angleAt(e) });
-        changed();
-      });
-      svg.addEventListener('pointerup', function () { dragging = null; });
+        if (placeNow) { placeChosen(e); }
+      }
+      svg.addEventListener('pointermove', function (e) { if (dragging) { placeChosen(e); } });
+      svg.addEventListener('pointerup', function () { dragging = false; });
+      svg.addEventListener('pointercancel', function () { dragging = false; });
       svg.addEventListener('wheel', function (e) {
-        var dot = e.target.closest('[data-stem]');
-        if (!dot) { return; }
+        if (!svg.classList.contains('stems') || !self.spaceChosen) { return; }
         e.preventDefault();
-        var all = stems(), name = dot.dataset.stem, at = stemPlace(self.settings.space, name);
+        var all = stems(), name = self.spaceChosen, at = stemPlace(self.settings.space, name);
         all[name] = { az: at.az, spread: Math.max(0, Math.min(300, at.spread + (e.deltaY < 0 ? 10 : -10))) };
         changed();
       }, { passive: false });
+      var chips = document.getElementById('space-stem-chips');
+      if (chips) {
+        chips.addEventListener('click', function (e) {
+          var chip = e.target.closest('[data-chip]');
+          if (chip) { self.spaceChosen = chip.dataset.chip; self.paintSpaceStage(); }
+        });
+      }
     },
 
     /* A render in this browser, shown in the job pill and card like the app's own jobs (app.js pageWork), with the
