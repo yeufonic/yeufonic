@@ -3222,7 +3222,7 @@ VOICE_TRAIN_TIMEOUT = 6 * 3600
 async def voice_service() -> dict:
     """What the voice service says about itself: {"ok": bool, "models": {...}}, or not running."""
     if not config.VOICE_URL:
-        return {"ok": False, "running": False, "models": {}}
+        return {"ok": False, "running": False, "models": {}, "configured": False}   # none here: the page stops asking
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
             got = (await client.get(config.VOICE_URL + "/health")).json()

@@ -17488,7 +17488,14 @@ async function loadVoices() {
   }
   paintPersonaField();
   clearTimeout(VOICES.poll);
-  if (VOICES.list.some(function (v) { return v.state === 'training'; })) {
+  // Asked again while a voice trains, and while the voice service is not answering yet: on Windows it starts with the
+  // app and can take a minute to load its models, after the page has already asked (it was then never asked again,
+  // and the editor went without the Recorded voice field until a reload).  Every 10 s, for up to five minutes.
+  var waiting = !(VOICES.service && VOICES.service.ok) && !(VOICES.service && VOICES.service.configured === false) &&
+    (VOICES.serviceTries || 0) < 30;
+  if (VOICES.service && VOICES.service.ok) { VOICES.serviceTries = 0; }
+  if (VOICES.list.some(function (v) { return v.state === 'training'; }) || waiting) {
+    if (waiting) { VOICES.serviceTries = (VOICES.serviceTries || 0) + 1; }
     VOICES.poll = setTimeout(function () {
       loadVoices().then(function () { if (voicesOpen()) { repaintVoices(); } });
     }, 10000);
