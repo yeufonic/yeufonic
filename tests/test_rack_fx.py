@@ -450,7 +450,8 @@ function context(rate) {
 const offline = [];
 const window = {
   addEventListener() {},
-  AudioContext: function () { return context(44100); },
+  // playback at the rate the file is rendered at, as the HRTF colour is measured at the context's own rate
+  AudioContext: function () { return context(input.rate || 44100); },
   OfflineAudioContext: function (channels, length, rate) { const c = context(rate); c.length = length; offline.push(c); return c; },
   State: { takes: [] },
 };
@@ -484,15 +485,18 @@ function values(made, live) {
   out.presets = input.settings.map((s) => Rack.presetOf(s));
   for (const s of input.settings) {
     Engine.applySettings(s);
+    await Engine.toneReady;          // the HRTF colour's bands are set when their measure comes back
     const live = values(Engine.ctx.made, true);
     offline.length = 0;
     await Rack.renderMasterWav('take1', s);
-    const render = offline[offline.length - 1];
+    // the contexts of the take's decode and render: not those that measure the HRTF set's colour (8192 frames)
+    const ours = offline.filter((c) => c.length !== 8192);
+    const render = ours[ours.length - 1];
     out.cases.push({
       // past playback's media element, and the render's buffer source and the two nodes it joins on by
       live: live.slice(1), render: values(render.made.slice(3)), ends: [live[0].kind, render.made[0].kind],
       liveNodes: live.length, masterDry: heading(Engine.masterDryGain.gain), masterWet: heading(Engine.masterWetGain.gain),
-      rates: offline.map((c) => c.sampleRate),
+      rates: ours.map((c) => c.sampleRate),
     });
   }
   console.log(JSON.stringify(out));

@@ -387,6 +387,78 @@
   /* What a pair of speakers sharing most of what they play adds at the ears (see the front pair, below), taken off. */
   function pairTrimDb(spread) { return -6.5 + (Math.min(90, Math.max(5, spread)) - 30) * 0.02; }
 
+  /* The browser's HRTF set colours what passes through it: measured on a finished take's kind of sound (most of it
+     shared by both speakers), the low end comes out a few dB up and the presence and air 8 to 15 dB down, whatever
+     the settings; the take sounds dull.  So the panners are measured (an impulse through the same speakers, both ears
+     averaged, octave by octave) and an equaliser of octave bands after them puts the octaves back where they were.
+     Only the broad colour is undone: the narrow notches inside an octave, which tell the ear height and front from
+     back, are left as they are.  Measured once for each speaker layout, offline, in a few milliseconds. */
+  var TONE_BANDS = [63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  var TONE_Q = 1.41;
+  var TONE_MOST_DB = 15;
+  var toneMeasured = {};
+
+  function toneMeasure(rate, speakers, trimDb) {
+    var key = rate + '|' + speakers.map(function (sp) { return sp.join(','); }).join(';') + '|' + trimDb.toFixed(2);
+    if (toneMeasured[key]) { return toneMeasured[key]; }
+    var Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var length = 8192, ctx = new Ctx(2, length, rate);
+    var impulse = ctx.createBuffer(1, length, rate);
+    impulse.getChannelData(0)[0] = 1;
+    var src = ctx.createBufferSource();
+    src.buffer = impulse;
+    var trim = ctx.createGain();
+    trim.gain.value = Math.pow(10, trimDb / 20);
+    trim.connect(ctx.destination);
+    speakers.forEach(function (sp) {
+      var p = ctx.createPanner();
+      p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = 1; p.rolloffFactor = 0;
+      p.channelCount = 1; p.channelCountMode = 'explicit';
+      var at = spacePosition(sp[0], sp[1]);
+      if (p.positionX) { p.positionX.value = at.x; p.positionY.value = at.y; p.positionZ.value = at.z; } else { p.setPosition(at.x, at.y, at.z); }
+      src.connect(p);
+      p.connect(trim);
+    });
+    src.start(0);
+    toneMeasured[key] = ctx.startRendering().then(function (out) {
+      var ears = [out.getChannelData(0), out.getChannelData(1)];
+      var response = TONE_BANDS.map(function (fc) {
+        var power = 0, n = 0;
+        for (var k = 0; k < 8; k++) {
+          var hz = fc * Math.pow(2, (k - 3.5) / 8);
+          if (hz >= rate / 2) { continue; }
+          ears.forEach(function (ear) {
+            var re = 0, im = 0, w = 2 * Math.PI * hz / rate;
+            for (var i = 0; i < Math.min(2048, ear.length); i++) { re += ear[i] * Math.cos(w * i); im -= ear[i] * Math.sin(w * i); }
+            power += re * re + im * im; n++;
+          });
+        }
+        return 10 * Math.log10(Math.max(power / Math.max(n, 1), 1e-12));
+      });
+      // the bands' gains: the opposite of what was measured, made good where neighbouring bands overlap
+      var want = response.map(function (db) { return isFinite(db) ? Math.max(-TONE_MOST_DB, Math.min(TONE_MOST_DB, -db)) : 0; });
+      var gains = want.slice();
+      for (var round = 0; round < 4; round++) {
+        var got = TONE_BANDS.map(function (hz) {
+          return gains.reduce(function (sum, g, b) { return sum + biquadDb({ type: 'peaking', frequency: TONE_BANDS[b], Q: TONE_Q, gain: g }, hz, rate); }, 0);
+        });
+        gains = gains.map(function (g, b) { return Math.max(-TONE_MOST_DB, Math.min(TONE_MOST_DB, g + 0.8 * (want[b] - got[b]))); });
+      }
+      return gains;
+    });
+    return toneMeasured[key];
+  }
+
+  function makeToneBands(ctx) {
+    var bands = TONE_BANDS.map(function (hz) {
+      var f = ctx.createBiquadFilter();
+      f.type = 'peaking'; f.frequency.value = hz; f.Q.value = TONE_Q; f.gain.value = 0;
+      return f;
+    });
+    for (var i = 1; i < bands.length; i++) { bands[i - 1].connect(bands[i]); }
+    return bands;
+  }
+
   /* 5.1: the speakers' angles, in WAV channel order (front left, front right, centre, LFE, back left, back right), and a
      direction's share of each by constant-power panning between the two speakers either side of it. */
   var SURROUND_SPEAKERS = [{ ch: 0, az: -30 }, { ch: 1, az: 30 }, { ch: 2, az: 0 }, { ch: 4, az: -110 }, { ch: 5, az: 110 }];
@@ -677,6 +749,9 @@
     spaceRearGain: null,
     spaceRoomGain: null,
     spacePanGain: null,
+    spaceTone: null,
+    stemTone: null,
+    toneReady: null,
     spaceOutput: null,
 
     // Limiter
@@ -1017,8 +1092,10 @@
       imagerSum.connect(room);
       room.connect(this.spaceRoomGain);
       this.spaceRoomGain.connect(this.spaceOutput);
+      this.spaceTone = makeToneBands(ctx);
       spaceBus.connect(this.spacePanGain);
-      this.spacePanGain.connect(this.spaceOutput);
+      this.spacePanGain.connect(this.spaceTone[0]);
+      this.spaceTone[this.spaceTone.length - 1].connect(this.spaceOutput);
       this.spaceOutput.connect(this.spaceWetGain);
       imagerSum.connect(this.spaceDryGain);
       var spaceSum = ctx.createGain();
@@ -1056,9 +1133,11 @@
       this.stemBus = ctx.createGain();
       this.stemBus.gain.value = 0.0;
       this.stemNodes = {};
+      this.stemTone = makeToneBands(ctx);
       source.connect(this.sourceToChain);
       this.sourceToChain.connect(this.inputGain);
-      this.stemBus.connect(this.inputGain);
+      this.stemBus.connect(this.stemTone[0]);
+      this.stemTone[this.stemTone.length - 1].connect(this.inputGain);
       source.connect(this.masterDryGain);
 
       limitSum.connect(this.masterWetGain);
@@ -1284,6 +1363,18 @@
         var spaceExtraDb = (useStems ? 0 : 0.4 * Math.max(0, Math.min(1, Number(sp.surround) || 0))) + 0.7 * Math.max(0, Math.min(1, Number(sp.room) || 0));
         // OUTPUT is in each stem's trim when stems are placed; here it would be on the room alone
         set(this.spaceOutput.gain, Math.pow(10, ((useStems ? 0 : Number(sp.output) || 0) - spaceExtraDb) / 20));
+        // the HRTF set's colour, undone: for the mix, its two front speakers as set; for stems, a pair in front
+        var chain = this, rate = this.ctx.sampleRate;
+        function setBands(bands, gains) {
+          bands.forEach(function (f, b) { if (atOnce) { f.gain.value = gains[b]; } else { f.gain.setTargetAtTime(gains[b], chain.ctx.currentTime, 0.05); } });
+        }
+        var mixTone = toneMeasure(rate, [[-width, height], [width, height]], -6.5 + (width - 30) * 0.02);
+        var stemsTone = toneMeasure(rate, [[-5, height], [5, height]], pairTrimDb(10));
+        this.toneReady = Promise.all([mixTone, stemsTone]).then(function (both) {
+          setBands(chain.spaceTone, both[0]);
+          setBands(chain.stemTone, both[1]);
+        }).catch(function () { /* the colour stays: the sound is still placed */ });
+
         // each stem's pair, at its own angle and spread, all at HEIGHT
         for (var stemName in this.stemNodes) {
           if (!this.stemNodes.hasOwnProperty(stemName)) { continue; }
@@ -3388,6 +3479,7 @@
       var graph = buildMasteringDspGraph(offlineCtx, s);
       src.connect(graph.inputNode);
       graph.outputNode.connect(offlineCtx.destination);
+      await graph.chain.toneReady;
       if (stems) {
         graph.chain.stemsReady = true;
         Object.keys(stems).forEach(function (name) {
@@ -3397,6 +3489,7 @@
           stemSrc.start(0);
         });
         graph.chain.applySettings(s, true);
+        await graph.chain.toneReady;
       }
 
       src.start(0);

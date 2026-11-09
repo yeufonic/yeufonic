@@ -48,3 +48,31 @@ def test_a_module_folds_to_its_bar_and_the_take_keeps_it(page, app_server):
     page.locator("#unit-comp .unit-fold").click()
     assert page.locator("#unit-comp .unit-faceplate").is_visible()
 
+
+
+BAND = """async ([space, hz]) => {
+  const rate = 48000, len = rate * 3;
+  const ctx = new OfflineAudioContext(2, len, rate);
+  const buf = ctx.createBuffer(2, len, rate);
+  let seed = 5; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 * 2 - 1; };
+  const L = buf.getChannelData(0), R = buf.getChannelData(1);
+  for (let i = 0; i < len; i++) { const c = rnd(); L[i] = 0.12 * (0.8 * c + 0.2 * rnd()); R[i] = 0.12 * (0.8 * c + 0.2 * rnd()); }
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const s = JSON.parse(JSON.stringify(Rack.settings)); s.space = Object.assign(Rack.defaultSpace(), space);
+  const g = Rack.buildGraph(ctx, s);
+  await g.chain.toneReady;
+  const band = ctx.createBiquadFilter(); band.type = 'bandpass'; band.frequency.value = hz; band.Q.value = 1.4;
+  src.connect(g.inputNode); g.outputNode.connect(band); band.connect(ctx.destination); src.start(0);
+  const out = await ctx.startRendering();
+  let t = 0; for (let ch = 0; ch < 2; ch++) { const d = out.getChannelData(ch); for (let i = rate; i < len; i++) t += d[i] * d[i]; }
+  return 10 * Math.log10(t);
+}"""
+
+
+def test_space_keeps_the_takes_tone(page, app_server):
+    """The browser's HRTF set dulls what passes through it (presence and air 8 to 15 dB down); Space undoes the broad
+    colour, octave by octave, so the take keeps its brightness."""
+    for hz in (125, 1000, 4000):
+        off = page.evaluate(BAND, [{"enabled": False}, hz])
+        on = page.evaluate(BAND, [{"enabled": True, "width": 30}, hz])
+        assert abs(on - off) < 3, (hz, on - off)
