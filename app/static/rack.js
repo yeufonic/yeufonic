@@ -2365,9 +2365,17 @@
       }
       var makeStems = document.getElementById('space-make-stems');
       if (makeStems) {
+        // The take's own Stems window, so the model (four stems, or six with guitar and piano) is chosen there; Space
+        // then takes up the set when it is done.  Without that window (an older page), the default model.
         makeStems.addEventListener('click', async function () {
           var takeId = self.currentTakeId;
           if (!takeId) { return; }
+          var label = document.getElementById('rack-take-name');
+          if (typeof window.openStemsModal === 'function') {
+            window.openStemsModal({ kind: 'take', id: takeId, title: label ? label.textContent : '' });
+            self.waitForStems(takeId);
+            return;
+          }
           makeStems.disabled = true;
           try {
             var res = await fetch('/api/takes/' + takeId + '/stems', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
@@ -3583,9 +3591,10 @@
     },
 
     /* Stems asked for from the rack: looked for every few seconds until the set is done, then used. */
-    waitForStems: function (takeId) {
-      var self = this;
+    waitForStems: function (takeId, tries) {
+      var self = this, left = tries === undefined ? 300 : tries;     // about twenty minutes
       clearTimeout(this.stemWait);
+      if (left <= 0) { return; }
       this.stemWait = setTimeout(async function () {
         if (self.currentTakeId !== takeId) { return; }
         try {
@@ -3596,8 +3605,10 @@
             self.syncStems();
             return;
           }
-          if (newest && newest.status !== 'failed' && newest.status !== 'cancelled') { self.waitForStems(takeId); }
-        } catch (e) { self.waitForStems(takeId); }
+          // none yet (the Stems window may still be open) or still separating: look again; a failed or cancelled
+          // run ends the wait
+          if (!newest || (newest.status !== 'failed' && newest.status !== 'cancelled')) { self.waitForStems(takeId, left - 1); }
+        } catch (e) { self.waitForStems(takeId, left - 1); }
       }, 4000);
     },
 
