@@ -78,7 +78,7 @@ extraits entraînés, à écouter.
 
 **Octave** monte ou descend la voix d'une octave entière, pour un chanteur dont la tessiture est loin de celle de la prise. **Niveau
 du chant** et **Niveau des instruments** règlent l'équilibre du remix, et **Ressemblance** à quel point la voix reste fidèle au
-timbre propre du chanteur : plus haut ressemble davantage à lui, et peut sonner plus traité. **Pièce** ajoute une courte pièce sous
+timbre propre du chanteur : plus haut ressemble davantage à lui, et peut sonner plus traité. À 100 %, la voix peut perdre les paroles : elle ne garde que les sons qu'elle a appris, si bien que des mots que le chanteur n'a jamais chantés peuvent sortir déformés ; l'éditeur le signale. **Pièce** ajoute une courte pièce sous
 le chant converti (*Sec*, *Discrète* ou *Plus*) pour qu'il s'intègre au mixage, et **Brillance** sur *Auto* relève ses aigus au
 niveau de ceux du chant rendu ; *Désactivé* les laisse tels que convertis. **Souffles et consonnes** règle à quel point ils gardent
 les sons du chant rendu : *Gardées*, ils restent nets mais en portent une trace ; *Converties*, ils peuvent se déchirer.

@@ -2759,5 +2759,6 @@
  "the card's memory could not be read": "カードのメモリを読めませんでした",
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES で設定",
  "No installer URL available for this update": "このアップデートにはインストーラーの URL がありません",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}",
+ "At 100%, the voice can lose the words: it sounds more like the singer, but words it never heard them sing can come out garbled.": "100% では歌詞が失われることがあります。歌い手により似ますが、歌うのを聞いたことのない言葉は崩れて聞こえることがあります。"
 }

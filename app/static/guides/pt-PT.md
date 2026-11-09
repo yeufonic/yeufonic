@@ -76,7 +76,7 @@ página guarda **Do que aprendeu**, a voz separada de cada música e os excertos
 
 **Oitava** sobe ou desce a voz uma oitava inteira, para um cantor cuja extensão está longe da do take. **Nível do vocal** e **Nível
 dos instrumentos** acertam o equilíbrio da nova mistura, e **Semelhança** quão fiel a voz se mantém ao timbre do cantor: mais alto
-soa mais como ele, e pode soar mais processado. **Sala** coloca uma sala curta por baixo da voz convertida (*Seca*, *Subtil* ou
+soa mais como ele, e pode soar mais processado. A 100% a voz pode perder a letra: mantém só os sons que aprendeu, por isso palavras que o cantor nunca foi ouvido a cantar podem sair baralhadas, e o editor avisa. **Sala** coloca uma sala curta por baixo da voz convertida (*Seca*, *Subtil* ou
 *Mais*) para que se integre na mistura, e **Brilho** em *Auto* eleva os agudos aos da voz gerada; *Desligado* deixa-os como
 convertidos. **Respirações e consoantes** define quanto mantêm os sons da voz gerada: *Mantidas* ficam nítidas mas guardam um
 vestígio dela, *Convertidas* podem rasgar. **Dinâmica** define de quem a voz segue o volume de frase em frase: do take, tal como

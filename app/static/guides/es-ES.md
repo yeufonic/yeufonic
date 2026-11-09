@@ -77,7 +77,7 @@ escucharlos.
 
 **Octava** sube o baja la voz una octava entera, para un cantante cuya tesitura está lejos de la de la toma. **Nivel de la voz** y
 **Nivel de los instrumentos** fijan el equilibrio de la nueva mezcla, y **Parecido** cuánto se ciñe la voz al timbre propio del
-cantante: más alto se parece más a él, y puede sonar más procesado. **Sala** pone una sala breve bajo la voz convertida (*Seca*,
+cantante: más alto se parece más a él, y puede sonar más procesado. Al 100 % la voz puede perder la letra: solo conserva los sonidos que aprendió, así que las palabras que nunca se oyó cantar al cantante pueden salir confusas, y el editor lo avisa. **Sala** pone una sala breve bajo la voz convertida (*Seca*,
 *Sutil* o *Más*) para que se integre en la mezcla, y **Brillo** en *Auto* eleva sus agudos a los de la voz renderizada;
 *Desactivado* los deja como salen de la conversión. **Respiraciones y consonantes** fija cuánto conservan estas los sonidos de la
 voz renderizada: *Conservadas* quedan claras pero llevan un rastro de ella, *Convertidas* pueden romperse. **Dinámica** fija de

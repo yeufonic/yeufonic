@@ -77,7 +77,7 @@ beluisteren.
 
 **Octaaf** zet de stem een heel octaaf hoger of lager, voor een zanger wiens bereik ver van dat van de take ligt. **Zangniveau**
 en **Instrumentniveau** bepalen de balans van de nieuwe mix, en **Gelijkenis** hoe dicht de stem bij de eigen klank van de zanger
-blijft: hoger klinkt meer als die zanger, en kan bewerkter klinken. **Ruimte** legt een korte ruimte onder de omgezette zang
+blijft: hoger klinkt meer als die zanger, en kan bewerkter klinken. Op 100% kan de stem de woorden kwijtraken: ze houdt alleen de klanken die ze geleerd heeft, dus woorden die de zanger nooit heeft gezongen kunnen verhaspeld klinken; de editor waarschuwt daarvoor. **Ruimte** legt een korte ruimte onder de omgezette zang
 (*Droog*, *Subtiel* of *Meer*) zodat die in de mix zit, en **Helderheid** op *Auto* tilt het hoog op tot dat van de gerenderde
 zang; *Uit* laat het zoals omgezet. **Adem en medeklinkers** bepaalt hoeveel die de klanken van de gerenderde zang houden:
 *Behouden* blijft helder maar draagt er een spoor van, *Omgezet* kan scheuren. **Dynamiek** bepaalt wiens volume de zang van

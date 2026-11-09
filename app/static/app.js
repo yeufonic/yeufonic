@@ -17648,6 +17648,12 @@ function likenessOptions(v) {
   }).join('');
 }
 
+/* At 100% Likeness the voice keeps only the sounds it learned, so words it never heard can come out garbled. */
+function likenessCaution(likeness) {
+  return '<p class="hint likeness-caution' + (Number(likeness) >= 1 ? '' : ' hidden') + '">' +
+    esc(t('At 100%, the voice can lose the words: it sounds more like the singer, but words it never heard them sing can come out garbled.')) + '</p>';
+}
+
 function roomOptions(v) {
   var have = v.room == null ? 0.14 : Number(v.room);
   return [[0, t('Dry')], [0.14, t('Subtle')], [0.28, t('More')]].map(function (o) {
@@ -17727,7 +17733,7 @@ async function showVoice(id) {
     '<p><span id="voice-state" data-state="' + esc(v.state) + '">' + esc(voiceStateText(v)) + '</span> · ' + esc(voiceOriginText(v)) + '</p>' +
     why + serviceNote() +
     (ready ?
-      '<div class="row voice-settings">' + voiceControls(v, true) + '</div>'
+      '<div class="row voice-settings">' + voiceControls(v, true) + '</div>' + likenessCaution(v.likeness)
       : '') +
     (v.origin_identity ? '' :
       '<h4>' + t('Recordings') + ' <span class="muted" id="voice-rec-total"></span></h4>' +
@@ -17985,7 +17991,7 @@ function paintPersonaField() {
       '<span class="voice-toggle-caret" aria-hidden="true">▾</span></button>' +
     '<div id="persona-panel" class="voice-panel' + (VOICES.open ? '' : ' hidden') + '">' +
       '<select id="persona-select">' + options.join('') + '</select>' +
-      (mix ? '<div class="voice-mix">' + voiceControls(mix, false) + '</div>' : '') +
+      (mix ? '<div class="voice-mix">' + voiceControls(mix, false) + '</div>' + likenessCaution(mix.likeness) : '') +
     '</div>';
   $('persona-toggle').addEventListener('click', function () {
     VOICES.open = !VOICES.open;
@@ -18062,6 +18068,10 @@ function wireVoices() {
       var field = { 'voice-octave': 'octave', 'voice-level': 'level_db', 'voice-likeness': 'likeness', 'voice-backing': 'backing_db',
                     'voice-room': 'room', 'voice-brightness': 'brightness', 'voice-protect': 'protect',
                     'voice-dynamics': 'dynamics' }[event.target.id] || null;
+      if (field === 'likeness') {
+        var caution = body.querySelector('.likeness-caution');
+        if (caution) { caution.classList.toggle('hidden', Number(event.target.value) < 1); }
+      }
       if (field) { voiceChange(field, event.target.value).catch(function (err) { toast(err.message); }); }
     });
   }

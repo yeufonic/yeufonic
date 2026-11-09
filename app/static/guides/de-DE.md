@@ -78,7 +78,7 @@ Songs und die trainierten Ausschnitte, zum Anhören.
 
 **Oktave** verschiebt die Stimme um eine ganze Oktave nach oben oder unten, für einen Sänger, dessen Umfang weit von dem des
 Takes entfernt ist. **Gesangspegel** und **Instrumentenpegel** stellen das Verhältnis im neuen Mix ein, und **Ähnlichkeit**, wie
-eng die Stimme beim eigenen Klang des Sängers bleibt: höher klingt ihm ähnlicher und kann bearbeiteter klingen. **Raum** legt
+eng die Stimme beim eigenen Klang des Sängers bleibt: höher klingt ihm ähnlicher und kann bearbeiteter klingen. Bei 100 % kann die Stimme die Wörter verlieren: Sie behält nur die gelernten Laute, sodass Wörter, die der Sänger nie gesungen hat, verstümmelt herauskommen können; der Editor weist darauf hin. **Raum** legt
 einen kurzen Raum unter den umgewandelten Gesang (*Trocken*, *Dezent* oder *Mehr*), damit er im Mix sitzt, und **Brillanz** auf
 *Auto* hebt seine Höhen auf die des gerenderten Gesangs an; *Aus* lässt sie wie umgewandelt. **Atem und Konsonanten** legt fest,
 wie weit diese die Laute des gerenderten Gesangs behalten: *Bewahrt* bleibt klar, trägt aber eine Spur davon, *Umgewandelt* kann

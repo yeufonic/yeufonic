@@ -968,6 +968,8 @@ async def run_job(kind: str, ref_id: str) -> None:
             voice_info = f", voice_lora={record.get('voice_lora')}" if record.get("voice_lora") else ""
             sung_by = persona.one(record["voice_id"]) if record.get("voice_id") else None
             if persona.usable(sung_by):
+                with contextlib.suppress(ValueError, TypeError):   # the take's own settings, as it will be sung
+                    sung_by = {**sung_by, **json.loads(record.get("voice_mix") or "{}")}
                 voice_info += f", then sung by the recorded voice {persona.describe(sung_by)}"
             log.info("Starting audio render for '%s' (%s, mode=%s, steps=%s, interpretation=%s, %s%s%s)",
                      title, ref_id, record.get("mode", "full"), record.get("sampler_steps") or 32,

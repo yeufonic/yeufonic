@@ -239,7 +239,7 @@ docker compose up --build
 - **Settings that belong to the voice, and to the take.** **Octave** moves the voice up or down for a singer whose
   range is far from the take's, **Vocal level** and **Instrument level** set the balance of the remix, and
   **Likeness** how closely it keeps to the singer's own sounds (higher sounds more like them, and can sound more
-  processed). They are the voice's defaults on its page; the editor shows them under the voice, to change for one
+  processed; at 100% words the singer was never heard singing can come out garbled, and a line under it says so). They are the voice's defaults on its page; the editor shows them under the voice, to change for one
   take, and a take file carries them.
 - **Training waits its turn on the GPU**, as a LoRA's does, and shows its progress in the job pill. Settings →
   *Voice Training* sets how much singing a voice learns from and for how many passes; the batch follows the GPU's

@@ -2759,5 +2759,6 @@
  "the card's memory could not be read": "der Speicher der Karte konnte nicht gelesen werden",
  "set by TRAIN_MAX_MINUTES": "durch TRAIN_MAX_MINUTES festgelegt",
  "No installer URL available for this update": "Keine Installer-URL für dieses Update verfügbar",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Prüfsummen stimmen nicht überein: erwartet {expected_hash}, erhalten {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Prüfsummen stimmen nicht überein: erwartet {expected_hash}, erhalten {actual_hash}",
+ "At 100%, the voice can lose the words: it sounds more like the singer, but words it never heard them sing can come out garbled.": "Bei 100 % kann die Stimme die Wörter verlieren: Sie klingt dem Sänger ähnlicher, aber Wörter, die sie ihn nie singen hörte, können verstümmelt herauskommen."
 }

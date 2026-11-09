@@ -77,7 +77,7 @@ addestrati, da ascoltare.
 
 **Ottava** sposta la voce su o giù di un'ottava intera, per un cantante la cui estensione è lontana da quella della take. **Livello
 della voce** e **Livello degli strumenti** regolano l'equilibrio del remix, e **Somiglianza** quanto la voce resta fedele al timbro
-del cantante: più alto somiglia di più a lui, e può suonare più elaborato. **Ambiente** aggiunge un breve ambiente sotto la voce
+del cantante: più alto somiglia di più a lui, e può suonare più elaborato. Al 100% la voce può perdere le parole: tiene solo i suoni che ha imparato, quindi le parole che il cantante non ha mai cantato possono uscire storpiate, e l'editor lo segnala. **Ambiente** aggiunge un breve ambiente sotto la voce
 convertita (*Asciutta*, *Discreta* o *Di più*) perché stia nel mix, e **Brillantezza** su *Auto* alza i suoi acuti fino a quelli
 della voce generata; *Spento* li lascia come convertiti. **Respiri e consonanti** stabilisce quanto mantengono i suoni della voce
 generata: *Conservati* restano chiari ma ne portano una traccia, *Convertiti* possono strapparsi. **Dinamica** stabilisce di chi la

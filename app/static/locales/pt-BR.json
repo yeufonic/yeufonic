@@ -2759,5 +2759,6 @@
  "the card's memory could not be read": "não foi possível ler a memória da placa",
  "set by TRAIN_MAX_MINUTES": "definido por TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Nenhuma URL de instalador disponível para esta atualização",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum não confere: esperado {expected_hash}, obtido {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum não confere: esperado {expected_hash}, obtido {actual_hash}",
+ "At 100%, the voice can lose the words: it sounds more like the singer, but words it never heard them sing can come out garbled.": "Em 100%, a voz pode perder a letra: soa mais como o cantor, mas palavras que nunca o ouviu cantar podem sair embaralhadas."
 }

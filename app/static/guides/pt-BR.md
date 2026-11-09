@@ -75,7 +75,7 @@ gravações como estão agora, ou com as músicas do corpus. Uma gravação excl
 
 **Oitava** sobe ou desce a voz uma oitava inteira, para um cantor cuja extensão fica longe da do take. **Nível do vocal** e **Nível
 dos instrumentos** ajustam o equilíbrio da nova mixagem, e **Semelhança** o quanto a voz se mantém fiel ao timbre do cantor: mais
-alto soa mais como ele, e pode soar mais processado. **Sala** coloca uma sala curta sob o vocal convertido (*Seco*, *Sutil* ou
+alto soa mais como ele, e pode soar mais processado. Em 100% a voz pode perder a letra: ela mantém só os sons que aprendeu, então palavras que o cantor nunca foi ouvido cantando podem sair embaralhadas, e o editor avisa. **Sala** coloca uma sala curta sob o vocal convertido (*Seco*, *Sutil* ou
 *Mais*) para que ele se encaixe na mixagem, e **Brilho** em *Auto* eleva seus agudos aos do vocal renderizado; *Desligado* os deixa
 como convertidos. **Respirações e consoantes** define o quanto elas mantêm os sons do vocal renderizado: *Mantidas* ficam claras
 mas guardam um traço dele, *Convertidas* podem rasgar. **Dinâmica** define de quem o vocal segue o volume de frase em frase: do

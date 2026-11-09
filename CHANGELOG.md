@@ -37,6 +37,13 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **A caution at 100% Likeness.** At its highest a recorded voice keeps only the sounds it learned, so words the singer
+  was never heard singing can come out garbled; a line under the voice's settings says so, on the Voices page and in
+  the editor, and the guide explains it. The value is still yours to choose.
+- **The log names the voice settings a take is sung at** when its render starts (it showed the voice's defaults).
+
 ## 0.0.56 (2026-11-09)
 
 - **3D Space, a new module of the mastering rack** (between the imager and the limiter), places the take around you
