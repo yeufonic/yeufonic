@@ -5624,7 +5624,8 @@ body.visualizer-open > *:not(#visualizer-modal) { visibility: hidden; }
 .space-stage-note { font-size: calc(10px * var(--rack-type, 1)); color: #94a3b8; max-width: calc(170px * var(--rack-type, 1)); text-align: center; }
 .space-stage-note.bad { color: #f87171; }
 .space-surround { display: flex; gap: 4px; }
-.unit-space.stems-mode .knob-wrap[data-param="space.width"], .unit-space.stems-mode .knob-wrap[data-param="space.surround"] { opacity: 0.35; }
+.unit-space.stems-mode .knob-wrap[data-param="space.width"], .unit-space.stems-mode .knob-wrap[data-param="space.surround"],
+.unit-space.stems-mode .knob-wrap[data-param="space.rear"] { opacity: 0.35; }
 
 /* 1073 DPX Horizontal Layout */
 .dpx-faceplate {

@@ -449,6 +449,40 @@
     return toneMeasured[key];
   }
 
+  /* What plays from behind: the side signal (L - R, where a mix keeps its width and ambience), above the bass and a
+     little late, opposite in the two rear speakers; and, because many takes are close to mono and have little side
+     signal, the shared part too, made diffuse: each rear speaker gets it through a different chain of all-pass
+     filters and a different short delay, softened above 7 kHz, so it reads as the room behind rather than a second
+     band.  Returns the two rear feeds and the gains SURROUND sets. */
+  function makeRearFeeds(ctx, split) {
+    function gain(v) { var g = ctx.createGain(); g.gain.value = v; return g; }
+    function filter(type, hz, q) { var f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = hz; if (q) { f.Q.value = q; } return f; }
+    var feeds = [gain(1), gain(1)];
+    var side = gain(1), sideL = gain(0.5), sideR = gain(-0.5);
+    split.connect(sideL, 0); split.connect(sideR, 1); sideL.connect(side); sideR.connect(side);
+    var sideHP = filter('highpass', 150), sideDelay = ctx.createDelay(0.1), sideGain = gain(0), invert = gain(-1);
+    sideDelay.delayTime.value = SPACE_REAR_DELAY;
+    side.connect(sideHP); sideHP.connect(sideDelay); sideDelay.connect(sideGain);
+    sideGain.connect(feeds[0]); sideGain.connect(invert); invert.connect(feeds[1]);
+    var mid = gain(1), midL = gain(0.5), midR = gain(0.5);
+    split.connect(midL, 0); split.connect(midR, 1); midL.connect(mid); midR.connect(mid);
+    var midHP = filter('highpass', 200), ambGain = gain(0);
+    mid.connect(midHP); midHP.connect(ambGain);
+    [[[300, 1100, 4300], 0.023], [[470, 1700, 6100], 0.031]].forEach(function (chain, n) {
+      var node = ambGain;
+      chain[0].forEach(function (hz) { var a = filter('allpass', hz, 0.7); node.connect(a); node = a; });
+      var d = ctx.createDelay(0.1); d.delayTime.value = chain[1];
+      var soft = filter('lowpass', 7000, 0.7);
+      node.connect(d); d.connect(soft); soft.connect(feeds[n]);
+    });
+    return { feeds: feeds, side: sideGain, ambience: ambGain };
+  }
+  function setRearFeeds(rear, surround, set) {
+    var amount = Math.max(0, Math.min(1, Number(surround) || 0));
+    set(rear.side.gain, amount * 1.4);
+    set(rear.ambience.gain, amount * 1.1);
+  }
+
   function makeToneBands(ctx) {
     var bands = TONE_BANDS.map(function (hz) {
       var f = ctx.createBiquadFilter();
@@ -756,7 +790,7 @@
     spaceWetGain: null,
     spaceFront: null,
     spaceRear: null,
-    spaceRearGain: null,
+    spaceRearFeeds: null,
     spaceRoomGain: null,
     spacePanGain: null,
     spaceTone: null,
@@ -1062,29 +1096,11 @@
       this.spaceFront = [panner(), panner()];
       spaceSplit.connect(this.spaceFront[0], 0);
       spaceSplit.connect(this.spaceFront[1], 1);
-      // the side signal, (L - R) / 2, above the bass, a little later, to the rear pair (the right one inverted)
-      var sideL = ctx.createGain(); sideL.gain.value = 0.5;
-      var sideR = ctx.createGain(); sideR.gain.value = -0.5;
-      var side = ctx.createGain();
-      spaceSplit.connect(sideL, 0);
-      spaceSplit.connect(sideR, 1);
-      sideL.connect(side);
-      sideR.connect(side);
-      var sideHP = ctx.createBiquadFilter();
-      sideHP.type = 'highpass';
-      sideHP.frequency.value = 150;
-      var sideDelay = ctx.createDelay(0.1);
-      sideDelay.delayTime.value = SPACE_REAR_DELAY;
-      this.spaceRearGain = ctx.createGain();
-      this.spaceRearGain.gain.value = 0;
-      side.connect(sideHP);
-      sideHP.connect(sideDelay);
-      sideDelay.connect(this.spaceRearGain);
+      // what plays from behind (makeRearFeeds), to the rear pair
+      this.spaceRearFeeds = makeRearFeeds(ctx, spaceSplit);
       this.spaceRear = [panner(), panner()];
-      var invert = ctx.createGain(); invert.gain.value = -1;
-      this.spaceRearGain.connect(this.spaceRear[0]);
-      this.spaceRearGain.connect(invert);
-      invert.connect(this.spaceRear[1]);
+      this.spaceRearFeeds.feeds[0].connect(this.spaceRear[0]);
+      this.spaceRearFeeds.feeds[1].connect(this.spaceRear[1]);
       // the room, over the whole
       var room = ctx.createConvolver();
       room.normalize = false;      // the impulse is scaled already (makeRoomImpulse)
@@ -1366,12 +1382,12 @@
         var rearAt = spaceRearAngle(sp);
         place(this.spaceRear[0], -rearAt, height);
         place(this.spaceRear[1], rearAt, height);
-        set(this.spaceRearGain.gain, useStems ? 0 : Math.max(0, Math.min(1, Number(sp.surround) || 0)) * 1.4);
+        setRearFeeds(this.spaceRearFeeds, useStems ? 0 : sp.surround, set);
         set(this.spaceRoomGain.gain, Math.max(0, Math.min(1, Number(sp.room) || 0)) * 0.45);
         // measured on finished takes: +6.5 dB with the speakers 30 degrees out, +5.3 dB at 90; and the rear pair and
-        // the room add up to 0.4 and 0.7 dB at full, which OUTPUT at 0 takes off too
+        // the room add up to 2.5 and 0.7 dB at full, which OUTPUT at 0 takes off too
         set(this.spacePanGain.gain, useStems ? 0 : Math.pow(10, (-6.5 + (width - 30) * 0.02) / 20));
-        var spaceExtraDb = (useStems ? 0 : 0.4 * Math.max(0, Math.min(1, Number(sp.surround) || 0))) + 0.7 * Math.max(0, Math.min(1, Number(sp.room) || 0));
+        var spaceExtraDb = (useStems ? 0 : 2.5 * Math.max(0, Math.min(1, Number(sp.surround) || 0))) + 0.7 * Math.max(0, Math.min(1, Number(sp.room) || 0));
         // OUTPUT is in each stem's trim when stems are placed; here it would be on the room alone
         set(this.spaceOutput.gain, Math.pow(10, ((useStems ? 0 : Number(sp.output) || 0) - spaceExtraDb) / 20));
         // the HRTF set's colour, undone: for the mix, its two front speakers as set; for stems, a pair in front
@@ -1985,6 +2001,11 @@
         '              <div class="knob-dial large"><div class="knob-pointer"></div></div>',
         '              <span class="knob-name">WIDTH</span>',
         '              <span class="knob-val">30 °</span>',
+        '            </div>',
+        '            <div class="knob-wrap" data-param="space.rear" data-min="90" data-max="170" data-step="5" data-default="110" data-unit="°" title="' + t('How far round behind you the two rear speakers stand') + '">',
+        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">REAR</span>',
+        '              <span class="knob-val">110 °</span>',
         '            </div>',
         '            <div class="knob-wrap" data-param="space.surround" data-min="0" data-max="1" data-step="0.05" data-default="0" data-display="pct" title="' + t('How much of the mix\'s ambience comes from behind you') + '">',
         '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
@@ -3686,16 +3707,9 @@
         src.connect(split);
         split.connect(merger, 0, 0);
         split.connect(merger, 1, 1);
-        var sideL = ctx.createGain(), sideR = ctx.createGain(), side = ctx.createGain();
-        sideL.gain.value = 0.5; sideR.gain.value = -0.5;
-        split.connect(sideL, 0); split.connect(sideR, 1); sideL.connect(side); sideR.connect(side);
-        var hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 150;
-        var delay = ctx.createDelay(0.1); delay.delayTime.value = SPACE_REAR_DELAY;
-        var amount = Math.max(0, Math.min(1, Number(s.space.surround) || 0)) * 1.4;
-        var back = ctx.createGain(); back.gain.value = amount;
-        var invert = ctx.createGain(); invert.gain.value = -amount;
-        side.connect(hp); hp.connect(delay); delay.connect(back); delay.connect(invert);
-        back.connect(merger, 0, 4); invert.connect(merger, 0, 5);
+        var rearFeeds = makeRearFeeds(ctx, split);
+        setRearFeeds(rearFeeds, s.space.surround, function (param, v) { param.value = v; });
+        rearFeeds.feeds[0].connect(merger, 0, 4); rearFeeds.feeds[1].connect(merger, 0, 5);
         lfeFrom(src, 0.316);
         src.start(0);
       }
@@ -3768,7 +3782,7 @@
         [-rearAt, rearAt].forEach(function (az) {
           var q = pt(az, R);
           parts.push('<rect x="' + (q[0] - 6) + '" y="' + (q[1] - 6) + '" width="12" height="12" rx="2" class="space-speaker" data-speaker="rear" style="opacity:' +
-                     (0.35 + rear * 0.65).toFixed(2) + '"><title>' + escHtml(t('Drag to move the rear pair; SURROUND sets how much plays from it')) + '</title></rect>');
+                     (0.35 + rear * 0.65).toFixed(2) + '"><title>' + escHtml(t('Drag to move the rear pair (REAR); SURROUND sets how much plays from it')) + '</title></rect>');
         });
       } else {
         var names = player.names.length ? player.names : ['vocals', 'drums', 'bass', 'other'];
@@ -3853,6 +3867,8 @@
           if (knob && knob._updateDisplay) { knob._updateDisplay(self.settings.space.width); }
         } else {
           self.settings.space.rear = Math.max(90, Math.min(170, az));
+          var rearKnob = document.querySelector('.knob-wrap[data-param="space.rear"]');
+          if (rearKnob && rearKnob._updateDisplay) { rearKnob._updateDisplay(self.settings.space.rear); }
         }
         changed();
       }
