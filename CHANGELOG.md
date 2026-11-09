@@ -44,6 +44,12 @@ cannot creep back in.
   screen's full sharpness), at most about 60 frames a second; Aura's glow is blurred once rather than on every frame,
   the sleeve's shadows no longer change size on every frame, and its toolbar and lyrics panel are solid rather than
   frosted. It keeps up on high-density and 120 Hz screens.
+- **More say over a recorded voice's sound:** besides octave, levels and likeness, a voice now has **Room** (the short
+  room under the converted vocal: dry, subtle or more), **Brightness** (whether its upper range is lifted to match the
+  rendered vocal), **Breaths and consonants** (how far they keep the rendered vocal's own sounds, so they do not tear)
+  and **Dynamics** (whose loudness the vocal follows: the take's, or the voice's own). Each is a default on the voice's
+  page and can be changed for one take. In the editor, the recorded voice and its settings now sit behind one
+  **Recorded voice** button, marked when the take has its own settings. Needs the voice service from this version.
 - **A developer's switch to keep a voiced take's halves:** with `VOICE_KEEP_PARTS=1`, the vocal sung in the voice and
   the backing under it are kept as they were mixed, beside the take's audio. Off by default.
 - **A still visualizer scene, None:** the take's picture alone on a dark ground, or the Yeufonic mark where it has

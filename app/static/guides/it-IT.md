@@ -75,17 +75,24 @@ nuovo** riaddestra sulle registrazioni come sono ora, o sulle canzoni del corpus
 libreria viene esclusa. La pagina conserva **Da che cosa ha imparato**, la voce separata di ogni canzone e gli estratti
 addestrati, da ascoltare.
 
-**Ottava** sposta la voce su o giù di un'ottava intera, per un cantante la cui estensione è lontana da quella della take.
-**Livello della voce** e **Livello degli strumenti** regolano l'equilibrio del remix, e **Somiglianza** quanto la voce resta fedele
-al timbro del cantante: più alto somiglia di più a lui, e può suonare più elaborato. Sono i valori predefiniti della voce;
-l'editor li mostra sotto la voce, da cambiare per una take, e la take li conserva. Impostazioni → *Addestramento delle voci*
-stabilisce da quanto canto impara una voce e con quante passate.
+**Ottava** sposta la voce su o giù di un'ottava intera, per un cantante la cui estensione è lontana da quella della take. **Livello
+della voce** e **Livello degli strumenti** regolano l'equilibrio del remix, e **Somiglianza** quanto la voce resta fedele al timbro
+del cantante: più alto somiglia di più a lui, e può suonare più elaborato. **Ambiente** aggiunge un breve ambiente sotto la voce
+convertita (*Asciutta*, *Discreta* o *Di più*) perché stia nel mix, e **Brillantezza** su *Auto* alza i suoi acuti fino a quelli
+della voce generata; *Spento* li lascia come convertiti. **Respiri e consonanti** stabilisce quanto mantengono i suoni della voce
+generata: *Conservati* restano chiari ma ne portano una traccia, *Convertiti* possono strapparsi. **Dinamica** stabilisce di chi la
+voce segue il volume da una frase all'altra: della take, come generata, o dei crescendo propri della voce. Sono i valori
+predefiniti della voce. Nell'editor, il pulsante **Voce registrata** si apre sulla voce e su queste impostazioni, da cambiare per
+una take; la take le conserva, e il pulsante indica quando ha le sue. Impostazioni → *Addestramento delle voci* stabilisce da
+quanto canto impara una voce e con quante passate.
 
 Il risultato è una voce convertita su un accompagnamento separato, quindi meno uniforme di una voce cantata dal modello stesso.
 Registrazioni pulite e asciutte danno la voce più pulita. **Scarica voce** salva una voce addestrata come zip da dare a qualcuno,
 e **Importa una voce…** ne aggiunge una: quello zip, o un modello RVC da altrove (un .pth, o uno zip con il suo indice). La ricetta
 di una take nomina la sua voce e le impostazioni della take per essa, e importarla riprende la voce con quel nome su questa
 installazione, se c'è.
+
+Nelle nostre prove, una voce addestrata su una sola canzone con una voce principale pulita a volte è venuta meglio di una addestrata su un intero corpus: una voce impara il riverbero e la produzione della registrazione insieme al cantante. Se una voce viene ruvida, prova ad addestrarne una su un'altra canzone.
 
 ### Impostazioni avanzate {#advanced-settings}
 

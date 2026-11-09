@@ -5637,11 +5637,16 @@ function voiceDetail(take) {
   if (!v) { return t('a voice since deleted'); }
   var mix = {};
   try { mix = typeof take.voice_mix === 'string' ? JSON.parse(take.voice_mix || '{}') : (take.voice_mix || {}); } catch (err) { mix = {}; }
-  var m = Object.assign({ octave: v.octave, level_db: v.level_db, backing_db: v.backing_db, likeness: v.likeness }, mix || {});
+  var m = Object.assign(voiceDefaults(v), mix || {});
   var signed = function (n) { n = Number(n) || 0; return (n > 0 ? '+' : n < 0 ? '\u2212' : '') + Math.abs(n); };
-  return v.name + ' ' + t('(octave {octave}, vocal {vocal} dB, instruments {backing} dB, likeness {likeness}%)', {
+  var room = Number(m.room) < 0.07 ? t('Dry') : (Number(m.room) > 0.21 ? t('More') : t('Subtle'));
+  var protect = Number(m.protect) < 0.24 ? t('Kept') : (Number(m.protect) > 0.42 ? t('Converted') : t('Balanced'));
+  var dynamics = Number(m.dynamics) < 0.37 ? t('Follow the take') : (Number(m.dynamics) > 0.75 ? t("The voice's own") : t('Even'));
+  return v.name + ' ' + t('(octave {octave}, vocal {vocal} dB, instruments {backing} dB, likeness {likeness}%, room {room}, brightness {brightness}, breaths and consonants {protect}, dynamics {dynamics})', {
     octave: signed(m.octave), vocal: signed(m.level_db), backing: signed(m.backing_db),
-    likeness: Math.round((m.likeness == null ? 0.75 : Number(m.likeness)) * 100) });
+    likeness: Math.round((m.likeness == null ? 0.75 : Number(m.likeness)) * 100),
+    room: room.toLowerCase(), brightness: (Number(m.brightness) ? t('Auto') : t('Off')).toLowerCase(),
+    protect: protect.toLowerCase(), dynamics: dynamics.toLowerCase() });
 }
 
 function detailGroups(take) {
@@ -17553,6 +17558,65 @@ function likenessOptions(v) {
   }).join('');
 }
 
+function roomOptions(v) {
+  var have = v.room == null ? 0.14 : Number(v.room);
+  return [[0, t('Dry')], [0.14, t('Subtle')], [0.28, t('More')]].map(function (o) {
+    return '<option value="' + o[0] + '"' + (Math.abs(have - o[0]) < 0.01 ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+  }).join('');
+}
+
+function stepOptions(have, steps) {
+  return steps.map(function (o) {
+    return '<option value="' + o[0] + '"' + (Math.abs(have - o[0]) < 0.01 ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+  }).join('');
+}
+
+function protectOptions(v) {
+  return stepOptions(v.protect == null ? 0.33 : Number(v.protect), [[0.15, t('Kept')], [0.33, t('Balanced')], [0.5, t('Converted')]]);
+}
+
+function dynamicsOptions(v) {
+  return stepOptions(v.dynamics == null ? 0.25 : Number(v.dynamics), [[0.25, t('Follow the take')], [0.5, t('Even')], [1, t("The voice's own")]]);
+}
+
+function brightnessOptions(v) {
+  var on = v.brightness == null ? true : Boolean(Number(v.brightness));
+  return '<option value="1"' + (on ? ' selected' : '') + '>' + esc(t('Auto')) + '</option>' +
+    '<option value="0"' + (on ? '' : ' selected') + '>' + esc(t('Off')) + '</option>';
+}
+
+/* A voice's settings as controls, the same on the Voices page and in the editor.  `id` gives each an id (the page);
+   otherwise each carries data-mix with its field (the editor). */
+function voiceTitle(field) {
+  switch (field) {
+    case 'level_db': return t("The converted vocal against the rendered one's level in the mix");
+    case 'backing_db': return t('The backing under the converted vocal');
+    case 'likeness': return t("How closely it keeps to the singer's own sounds: higher sounds more like them, and can sound more processed");
+    case 'room': return t('A short room under the converted vocal, so it sits in the mix rather than on top of it');
+    case 'brightness': return t("Auto lifts the converted vocal's upper range to match the rendered one's; Off leaves it as converted");
+    case 'protect': return t("How far breaths and consonants keep the rendered vocal's sounds: kept, they stay clear but carry a trace of it; converted, they can tear");
+    case 'dynamics': return t("Whose loudness the vocal follows from phrase to phrase: the take's, as rendered, or the voice's own swells");
+    default: return '';
+  }
+}
+
+function voiceControls(v, ids) {
+  var rows = [
+    ['octave', t('Octave'), octaveOptions(v), 'voice-octave'],
+    ['level_db', ids ? t('Vocal level') : t('Vocal'), levelOptions(v), 'voice-level'],
+    ['backing_db', ids ? t('Instrument level') : t('Instruments'), backingOptions(v), 'voice-backing'],
+    ['likeness', t('Likeness'), likenessOptions(v), 'voice-likeness'],
+    ['room', t('Room'), roomOptions(v), 'voice-room'],
+    ['brightness', t('Brightness'), brightnessOptions(v), 'voice-brightness'],
+    ['protect', t('Breaths and consonants'), protectOptions(v), 'voice-protect'],
+    ['dynamics', t('Dynamics'), dynamicsOptions(v), 'voice-dynamics'],
+  ];
+  return rows.map(function (r) {
+    var title = voiceTitle(r[0]) ? ' title="' + esc(voiceTitle(r[0])) + '"' : '';
+    return '<label' + title + '>' + r[1] + ' <select ' + (ids ? 'id="' + r[3] + '"' : 'data-mix="' + r[0] + '"') + '>' + r[2] + '</select></label>';
+  }).join('');
+}
+
 function octaveOptions(v) {
   return [-1, 0, 1].map(function (o) {
     return '<option value="' + o + '"' + ((v.octave || 0) === o ? ' selected' : '') + '>' + (o > 0 ? '+1' : o < 0 ? '−1' : '0') + '</option>';
@@ -17573,15 +17637,7 @@ async function showVoice(id) {
     '<p><span id="voice-state" data-state="' + esc(v.state) + '">' + esc(voiceStateText(v)) + '</span> · ' + esc(voiceOriginText(v)) + '</p>' +
     why + serviceNote() +
     (ready ?
-      '<div class="row">' +
-        '<label>' + t('Octave') + ' <select id="voice-octave">' + octaveOptions(v) + '</select></label>' +
-        '<label title="' + t("The converted vocal against the rendered one's level in the mix") + '">' + t('Vocal level') +
-          ' <select id="voice-level">' + levelOptions(v) + '</select></label>' +
-        '<label title="' + t('The backing under the converted vocal') + '">' + t('Instrument level') +
-          ' <select id="voice-backing">' + backingOptions(v) + '</select></label>' +
-        '<label title="' + t("How closely it keeps to the singer's own sounds: higher sounds more like them, and can sound more processed") + '">' + t('Likeness') +
-          ' <select id="voice-likeness">' + likenessOptions(v) + '</select></label>' +
-      '</div>'
+      '<div class="row voice-settings">' + voiceControls(v, true) + '</div>'
       : '') +
     (v.origin_identity ? '' :
       '<h4>' + t('Recordings') + ' <span class="muted" id="voice-rec-total"></span></h4>' +
@@ -17800,7 +17856,13 @@ function importVoiceFile() {
 function pickedVoiceMix() {
   var v = VOICES.list.filter(function (x) { return x.id === VOICES.pick; })[0];
   if (!v) { return null; }
-  return Object.assign({ octave: v.octave, level_db: v.level_db, backing_db: v.backing_db, likeness: v.likeness }, VOICES.takeMix || {});
+  return Object.assign(voiceDefaults(v), VOICES.takeMix || {});
+}
+
+function voiceDefaults(v) {
+  return { octave: v.octave, level_db: v.level_db, backing_db: v.backing_db, likeness: v.likeness,
+           room: v.room == null ? 0.14 : v.room, brightness: v.brightness == null ? 1 : v.brightness,
+           protect: v.protect == null ? 0.33 : v.protect, dynamics: v.dynamics == null ? 0.25 : v.dynamics };
 }
 
 /* What a new take or a render sends: the editor's settings for the picked voice, or null with none picked. */
@@ -17808,6 +17870,8 @@ function voiceMixWanted() {
   return VOICES.pick ? pickedVoiceMix() : null;
 }
 
+/* One row in the editor: a button naming the take's voice (or None), which opens to the voice picker and the take's
+   own settings for it.  The button is marked when the take's settings differ from the voice's defaults. */
 function paintPersonaField() {
   var host = $('persona-field');
   if (!host) { return; }
@@ -17819,15 +17883,24 @@ function paintPersonaField() {
   var options = ['<option value="">' + esc(t('None')) + '</option>'].concat(ready.map(function (v) {
     return '<option value="' + esc(v.id) + '">' + esc(v.name) + '</option>';
   }));
+  var picked = ready.filter(function (v) { return v.id === VOICES.pick; })[0];
   var mix = pickedVoiceMix();
-  host.innerHTML = '<label for="persona-select">' + t('Recorded voice') + '</label>' +
-    '<select id="persona-select">' + options.join('') + '</select>' +
-    (mix ? '<div class="voice-mix">' +
-      '<label>' + t('Octave') + ' <select data-mix="octave">' + octaveOptions(mix) + '</select></label>' +
-      '<label>' + t('Vocal') + ' <select data-mix="level_db">' + levelOptions(mix) + '</select></label>' +
-      '<label>' + t('Instruments') + ' <select data-mix="backing_db">' + backingOptions(mix) + '</select></label>' +
-      '<label>' + t('Likeness') + ' <select data-mix="likeness">' + likenessOptions(mix) + '</select></label>' +
-      '</div>' : '');
+  var own = picked ? voiceDefaults(picked) : {};
+  var changed = mix && Object.keys(own).some(function (k) { return mix[k] != null && Number(mix[k]) !== Number(own[k]); });
+  host.innerHTML = '<label for="persona-toggle">' + t('Recorded voice') + '</label>' +
+    '<button type="button" id="persona-toggle" class="voice-toggle' + (changed ? ' changed' : '') + '" aria-expanded="' + (VOICES.open ? 'true' : 'false') + '"' +
+      ' title="' + esc(t('The recorded voice for this take, and its settings')) + '">' +
+      '<span class="voice-toggle-name">' + esc(picked ? picked.name : t('None')) + '</span>' +
+      (changed ? '<span class="voice-toggle-note">' + esc(t('own settings')) + '</span>' : '') +
+      '<span class="voice-toggle-caret" aria-hidden="true">▾</span></button>' +
+    '<div id="persona-panel" class="voice-panel' + (VOICES.open ? '' : ' hidden') + '">' +
+      '<select id="persona-select">' + options.join('') + '</select>' +
+      (mix ? '<div class="voice-mix">' + voiceControls(mix, false) + '</div>' : '') +
+    '</div>';
+  $('persona-toggle').addEventListener('click', function () {
+    VOICES.open = !VOICES.open;
+    paintPersonaField();
+  });
   var select = $('persona-select');
   select.value = VOICES.pick || '';
   select.addEventListener('change', function () {
@@ -17839,6 +17912,9 @@ function paintPersonaField() {
     control.addEventListener('change', function () {
       VOICES.takeMix = Object.assign({}, VOICES.takeMix || {});
       VOICES.takeMix[control.dataset.mix] = Number(control.value);
+      paintPersonaField();
+      var again = host.querySelector('[data-mix="' + control.dataset.mix + '"]');
+      if (again) { again.focus(); }
     });
   });
 }
@@ -17893,7 +17969,9 @@ function wireVoices() {
           body: new URLSearchParams({ vocals_only: event.target.checked ? 'true' : 'false' }) }).catch(function (err) { toast(err.message); });
         return;
       }
-      var field = { 'voice-octave': 'octave', 'voice-level': 'level_db', 'voice-likeness': 'likeness', 'voice-backing': 'backing_db' }[event.target.id] || null;
+      var field = { 'voice-octave': 'octave', 'voice-level': 'level_db', 'voice-likeness': 'likeness', 'voice-backing': 'backing_db',
+                    'voice-room': 'room', 'voice-brightness': 'brightness', 'voice-protect': 'protect',
+                    'voice-dynamics': 'dynamics' }[event.target.id] || null;
       if (field) { voiceChange(field, event.target.value).catch(function (err) { toast(err.message); }); }
     });
   }

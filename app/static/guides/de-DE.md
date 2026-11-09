@@ -78,15 +78,23 @@ Songs und die trainierten Ausschnitte, zum Anhören.
 
 **Oktave** verschiebt die Stimme um eine ganze Oktave nach oben oder unten, für einen Sänger, dessen Umfang weit von dem des
 Takes entfernt ist. **Gesangspegel** und **Instrumentenpegel** stellen das Verhältnis im neuen Mix ein, und **Ähnlichkeit**, wie
-eng die Stimme beim eigenen Klang des Sängers bleibt: höher klingt ihm ähnlicher und kann bearbeiteter klingen. Das sind die
-Voreinstellungen der Stimme; der Editor zeigt sie unter der Stimme, um sie für einen Take zu ändern, und der Take behält sie.
-Einstellungen → *Stimmentraining* legt fest, aus wie viel Gesang eine Stimme lernt und mit wie vielen Durchläufen.
+eng die Stimme beim eigenen Klang des Sängers bleibt: höher klingt ihm ähnlicher und kann bearbeiteter klingen. **Raum** legt
+einen kurzen Raum unter den umgewandelten Gesang (*Trocken*, *Dezent* oder *Mehr*), damit er im Mix sitzt, und **Brillanz** auf
+*Auto* hebt seine Höhen auf die des gerenderten Gesangs an; *Aus* lässt sie wie umgewandelt. **Atem und Konsonanten** legt fest,
+wie weit diese die Laute des gerenderten Gesangs behalten: *Bewahrt* bleibt klar, trägt aber eine Spur davon, *Umgewandelt* kann
+reißen. **Dynamik** legt fest, wessen Lautstärke der Gesang von Phrase zu Phrase folgt: der des Takes, wie gerendert, oder den
+eigenen Schwellungen der Stimme. Das sind die Voreinstellungen der Stimme. Im Editor öffnet die Schaltfläche **Aufgenommene
+Stimme** die Stimme und diese Einstellungen, um sie für einen Take zu ändern; der Take behält sie, und die Schaltfläche zeigt
+an, wenn er eigene hat. Einstellungen → *Stimmentraining* legt fest, aus wie viel Gesang eine Stimme lernt und mit wie vielen
+Durchläufen.
 
 Das Ergebnis ist ein umgewandelter Gesang über einer getrennten Begleitung, also weniger nahtlos als ein Gesang, den das Modell
 selbst gesungen hat. Saubere, trockene Aufnahmen ergeben die sauberste Stimme. **Stimme herunterladen** speichert eine
 trainierte Stimme als ZIP, um sie weiterzugeben, und **Stimme importieren…** fügt eine hinzu: diese ZIP oder ein RVC-Modell von
 anderswo (eine .pth oder eine ZIP mit ihrem Index). Das Rezept eines Takes nennt seine Stimme und die Einstellungen des Takes
 dafür, und beim Import wird die Stimme dieses Namens auf dieser Installation verwendet, falls es sie gibt.
+
+In unseren Tests klang eine Stimme, die auf einem einzigen Lied mit klarem Leadgesang trainiert wurde, manchmal besser als eine, die auf einem ganzen Korpus trainiert wurde: Eine Stimme lernt den Hall und die Produktion der Aufnahme mit dem Sänger zusammen. Klingt eine Stimme rau, trainiere eine auf einem anderen Lied.
 
 ### Erweiterte Einstellungen {#advanced-settings}
 

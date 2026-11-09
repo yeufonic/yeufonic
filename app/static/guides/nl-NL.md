@@ -77,8 +77,13 @@ beluisteren.
 
 **Octaaf** zet de stem een heel octaaf hoger of lager, voor een zanger wiens bereik ver van dat van de take ligt. **Zangniveau**
 en **Instrumentniveau** bepalen de balans van de nieuwe mix, en **Gelijkenis** hoe dicht de stem bij de eigen klank van de zanger
-blijft: hoger klinkt meer als die zanger, en kan bewerkter klinken. Dit zijn de standaardwaarden van de stem; de editor toont ze
-onder de stem, om voor één take aan te passen, en de take houdt ze. Instellingen → *Stemtraining* bepaalt van hoeveel zang een
+blijft: hoger klinkt meer als die zanger, en kan bewerkter klinken. **Ruimte** legt een korte ruimte onder de omgezette zang
+(*Droog*, *Subtiel* of *Meer*) zodat die in de mix zit, en **Helderheid** op *Auto* tilt het hoog op tot dat van de gerenderde
+zang; *Uit* laat het zoals omgezet. **Adem en medeklinkers** bepaalt hoeveel die de klanken van de gerenderde zang houden:
+*Behouden* blijft helder maar draagt er een spoor van, *Omgezet* kan scheuren. **Dynamiek** bepaalt wiens volume de zang van
+frase tot frase volgt: dat van de take, zoals gerenderd, of de eigen aanzwellingen van de stem. Dit zijn de standaardwaarden van
+de stem. In de editor opent de knop **Opgenomen stem** de stem en deze instellingen, om voor één take aan te passen; de take
+houdt ze, en de knop laat zien wanneer die eigen instellingen heeft. Instellingen → *Stemtraining* bepaalt van hoeveel zang een
 stem leert en hoeveel rondes.
 
 Het resultaat is omgezette zang over een gescheiden begeleiding, dus minder naadloos dan zang die het model zelf zong. Schone,
@@ -86,6 +91,8 @@ droge opnamen geven de schoonste stem. **Stem downloaden** slaat een getrainde s
 importeren…** voegt er een toe: die zip, of een RVC-model van elders (een .pth, of een zip met zijn index). Het recept van een
 take noemt zijn stem en de instellingen van de take ervoor, en bij het importeren wordt de stem met die naam op deze installatie
 gebruikt, als die er is.
+
+In onze tests klonk een stem die op één nummer met een heldere leadzang was getraind soms beter dan een stem die op een heel corpus was getraind: een stem leert de galm en de productie van de opname mee met de zanger. Klinkt een stem ruw, train er dan een op een ander nummer.
 
 ### Geavanceerde instellingen {#advanced-settings}
 

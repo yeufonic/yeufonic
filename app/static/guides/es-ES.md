@@ -77,14 +77,21 @@ escucharlos.
 
 **Octava** sube o baja la voz una octava entera, para un cantante cuya tesitura está lejos de la de la toma. **Nivel de la voz** y
 **Nivel de los instrumentos** fijan el equilibrio de la nueva mezcla, y **Parecido** cuánto se ciñe la voz al timbre propio del
-cantante: más alto se parece más a él, y puede sonar más procesado. Son los valores por defecto de la voz; el editor los muestra
-bajo la voz, para cambiarlos en una toma, y la toma los conserva. Configuración → *Entrenamiento de voces* fija de cuánto canto
-aprende una voz y con cuántas pasadas.
+cantante: más alto se parece más a él, y puede sonar más procesado. **Sala** pone una sala breve bajo la voz convertida (*Seca*,
+*Sutil* o *Más*) para que se integre en la mezcla, y **Brillo** en *Auto* eleva sus agudos a los de la voz renderizada;
+*Desactivado* los deja como salen de la conversión. **Respiraciones y consonantes** fija cuánto conservan estas los sonidos de la
+voz renderizada: *Conservadas* quedan claras pero llevan un rastro de ella, *Convertidas* pueden romperse. **Dinámica** fija de
+quién sigue la voz el volumen de frase en frase: de la toma, tal como se renderizó, o de los propios crescendos de la voz. Son los
+valores por defecto de la voz. En el editor, el botón **Voz grabada** se abre a la voz y a estos ajustes, para cambiarlos en una
+toma; la toma los conserva, y el botón indica cuando tiene los suyos. Configuración → *Entrenamiento de voces* fija de cuánto
+canto aprende una voz y con cuántas pasadas.
 
 El resultado es una voz convertida sobre un acompañamiento separado, así que es menos uniforme que una voz que cantó el propio
 modelo. Las grabaciones limpias y secas dan la voz más limpia. **Descargar voz** guarda una voz entrenada como zip para dársela a
 alguien, e **Importar una voz…** añade una: ese zip, o un modelo RVC de otra parte (un .pth, o un zip con su índice). La receta de
 una toma nombra su voz y los ajustes de la toma para ella, e importarla recoge la voz con ese nombre en esta instalación, si la hay.
+
+En nuestras pruebas, una voz entrenada con una sola canción con una voz principal clara a veces resultó mejor que una entrenada con un corpus entero: una voz aprende la reverberación y la producción de la grabación junto con el cantante. Si una voz sale áspera, prueba a entrenar una con otra canción.
 
 ### Ajustes avanzados {#advanced-settings}
 

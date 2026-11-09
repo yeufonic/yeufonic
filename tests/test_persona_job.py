@@ -99,6 +99,8 @@ def test_a_take_is_sung_in_its_voice_in_place(monkeypatch, tmp_path):
     asyncio.run(jobs._sing_in_voice("tv1", {"voice_id": made["id"], "title": "t"}, take))
     assert take.read_bytes() == b"sung in the voice"
     assert asked["id"] == made["id"] and asked["input"] == str(take) and asked["octave"] == 1
+    # The voice's finishing goes with it: as it always was, unless set otherwise.
+    assert (asked["room"], asked["brightness"], asked["protect"], asked["dynamics"]) == (0.14, 1, 0.33, 0.25)
     persona.delete(made["id"])
 
 

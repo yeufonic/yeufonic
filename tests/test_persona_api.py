@@ -106,3 +106,18 @@ def test_what_is_not_a_voice_is_refused(client):
     made = persona.create("Untrained")
     assert client.get(f"/api/voices/{made['id']}/export").status_code == 400
     persona.delete(made["id"])
+
+
+def test_a_voices_sound_settings_are_kept_in_their_steps_and_a_take_can_change_them(client):
+    made = client.post("/api/voices", files={"file": ("a.wav", io.BytesIO(b"RIFF...."), "audio/wav")},
+                       data={"name": "Settings"}).json()
+    assert (made["room"], made["brightness"], made["protect"], made["dynamics"]) == (0.14, 1, 0.33, 0.25)
+    changed = client.patch(f"/api/voices/{made['id']}", data={"room": "0.3", "brightness": "0", "protect": "0.1",
+                                                               "dynamics": "0.9", "likeness": "0.5"}).json()
+    assert (changed["room"], changed["brightness"], changed["protect"], changed["dynamics"]) == (0.28, 0, 0.15, 1.0)
+    assert changed["likeness"] == 0.5
+    from app.main import _voice_mix
+    import json
+    assert json.loads(_voice_mix({"room": 0, "brightness": 1, "protect": 0.5, "dynamics": 0.5, "nonsense": 3})) == \
+        {"room": 0.0, "brightness": 1, "protect": 0.5, "dynamics": 0.5}
+    client.delete(f"/api/voices/{made['id']}")

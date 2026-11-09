@@ -76,13 +76,20 @@ página guarda **Do que aprendeu**, a voz separada de cada música e os excertos
 
 **Oitava** sobe ou desce a voz uma oitava inteira, para um cantor cuja extensão está longe da do take. **Nível do vocal** e **Nível
 dos instrumentos** acertam o equilíbrio da nova mistura, e **Semelhança** quão fiel a voz se mantém ao timbre do cantor: mais alto
-soa mais como ele, e pode soar mais processado. São as predefinições da voz; o editor mostra-as sob a voz, para mudar num take, e o
-take guarda-as. Definições → *Treino de vozes* define de quanto canto uma voz aprende e com quantas passagens.
+soa mais como ele, e pode soar mais processado. **Sala** coloca uma sala curta por baixo da voz convertida (*Seca*, *Subtil* ou
+*Mais*) para que se integre na mistura, e **Brilho** em *Auto* eleva os agudos aos da voz gerada; *Desligado* deixa-os como
+convertidos. **Respirações e consoantes** define quanto mantêm os sons da voz gerada: *Mantidas* ficam nítidas mas guardam um
+vestígio dela, *Convertidas* podem rasgar. **Dinâmica** define de quem a voz segue o volume de frase em frase: do take, tal como
+gerado, ou das próprias variações da voz. São as predefinições da voz. No editor, o botão **Voz gravada** abre-se para a voz e
+estas definições, para mudar num take; o take guarda-as, e o botão indica quando tem as suas. Definições → *Treino de vozes* define
+de quanto canto uma voz aprende e com quantas passagens.
 
 O resultado é uma voz convertida sobre um acompanhamento separado, por isso menos uniforme do que uma voz que o próprio modelo
 cantou. Gravações limpas e secas dão a voz mais limpa. **Transferir voz** guarda uma voz treinada como zip para dar a alguém, e
 **Importar uma voz…** adiciona uma: esse zip, ou um modelo RVC de outro lado (um .pth, ou um zip com o seu índice). A receita de um
 take indica a sua voz e as definições do take para ela, e importá-la usa a voz com esse nome nesta instalação, se existir.
+
+Nos nossos testes, uma voz treinada com uma única canção com uma voz principal limpa por vezes saiu melhor do que uma treinada com um corpus inteiro: uma voz aprende a reverberação e a produção da gravação juntamente com o cantor. Se uma voz sair áspera, experimente treinar uma com outra canção.
 
 ### Ajustes avançados {#advanced-settings}
 

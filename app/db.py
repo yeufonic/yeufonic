@@ -214,7 +214,11 @@ CREATE TABLE IF NOT EXISTS voices (
     level_db REAL NOT NULL DEFAULT 0,
     likeness REAL NOT NULL DEFAULT 0.75,
     backing_db REAL NOT NULL DEFAULT 0,
-    vocals_only INTEGER NOT NULL DEFAULT 0
+    vocals_only INTEGER NOT NULL DEFAULT 0,
+    room REAL NOT NULL DEFAULT 0.14,
+    brightness INTEGER NOT NULL DEFAULT 1,
+    protect REAL NOT NULL DEFAULT 0.33,
+    dynamics REAL NOT NULL DEFAULT 0.25
 );
 CREATE TABLE IF NOT EXISTS voice_recordings (
     id TEXT PRIMARY KEY,
@@ -790,6 +794,17 @@ def _voice_backing() -> None:
         execute("ALTER TABLE voices ADD COLUMN backing_db REAL NOT NULL DEFAULT 0")
 
 
+def _voice_sound() -> None:
+    """A recorded voice's finishing, set on the Voices page: the room under its converted vocal, whether its upper
+    range is lifted, how far breaths and consonants are protected (RVC's protect), and whose loudness contour it
+    follows (RVC's RMS mix rate)."""
+    have = _columns("voices")
+    for column, kind in (("room", "REAL NOT NULL DEFAULT 0.14"), ("brightness", "INTEGER NOT NULL DEFAULT 1"),
+                         ("protect", "REAL NOT NULL DEFAULT 0.33"), ("dynamics", "REAL NOT NULL DEFAULT 0.25")):
+        if column not in have:
+            execute(f"ALTER TABLE voices ADD COLUMN {column} {kind}")
+
+
 def _take_voice_mix() -> None:
     """A take's own octave, levels and likeness for its recorded voice, as JSON over the voice's defaults."""
     if "voice_mix" not in _columns("takes"):
@@ -881,6 +896,7 @@ MIGRATIONS = [
     _take_voice_mix,                                                 # -> 49
     _voice_vocals_only,                                              # -> 50
     _voice_recordings,                                               # -> 51
+    _voice_sound,                                                    # -> 52
 ]
 
 

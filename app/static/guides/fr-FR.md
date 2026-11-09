@@ -76,10 +76,15 @@ entraîne de nouveau sur les enregistrements tels qu'ils sont maintenant, ou sur
 depuis de la bibliothèque est laissé de côté. La page garde **Ce dont elle a appris**, le chant séparé de chaque chanson et les
 extraits entraînés, à écouter.
 
-**Octave** monte ou descend la voix d'une octave entière, pour un chanteur dont la tessiture est loin de celle de la prise.
-**Niveau du chant** et **Niveau des instruments** règlent l'équilibre du remix, et **Ressemblance** à quel point la voix reste fidèle
-au timbre propre du chanteur : plus haut ressemble davantage à lui, et peut sonner plus traité. Ce sont les réglages par défaut de
-la voix ; l'éditeur les montre sous la voix, pour les changer pour une prise, et la prise les garde. Paramètres → *Entraînement des
+**Octave** monte ou descend la voix d'une octave entière, pour un chanteur dont la tessiture est loin de celle de la prise. **Niveau
+du chant** et **Niveau des instruments** règlent l'équilibre du remix, et **Ressemblance** à quel point la voix reste fidèle au
+timbre propre du chanteur : plus haut ressemble davantage à lui, et peut sonner plus traité. **Pièce** ajoute une courte pièce sous
+le chant converti (*Sec*, *Discrète* ou *Plus*) pour qu'il s'intègre au mixage, et **Brillance** sur *Auto* relève ses aigus au
+niveau de ceux du chant rendu ; *Désactivé* les laisse tels que convertis. **Souffles et consonnes** règle à quel point ils gardent
+les sons du chant rendu : *Gardées*, ils restent nets mais en portent une trace ; *Converties*, ils peuvent se déchirer.
+**Dynamique** règle de qui le chant suit le volume d'une phrase à l'autre : de la prise, telle que rendue, ou des propres élans de
+la voix. Ce sont les réglages par défaut de la voix. Dans l'éditeur, le bouton **Voix enregistrée** s'ouvre sur la voix et ces
+réglages, à changer pour une prise ; la prise les garde, et le bouton indique quand elle a les siens. Paramètres → *Entraînement des
 voix* fixe combien de chant une voix apprend et en combien de passes.
 
 Le résultat est un chant converti sur un accompagnement séparé, donc moins homogène qu'un chant que le modèle a chanté lui-même.
@@ -87,6 +92,8 @@ Des enregistrements propres et secs donnent la voix la plus propre. **Téléchar
 zip à donner à quelqu'un, et **Importer une voix…** en ajoute une : ce zip, ou un modèle RVC venu d'ailleurs (un .pth, ou un zip avec
 son index). La recette d'une prise nomme sa voix et ses réglages pour elle, et l'importer reprend la voix de ce nom sur cette
 installation, s'il y en a une.
+
+Dans nos essais, une voix entraînée sur une seule chanson au chant principal net a parfois donné un meilleur résultat qu'une voix entraînée sur tout un corpus : une voix apprend la réverbération et la production de l'enregistrement en même temps que le chanteur. Si une voix sort rugueuse, essayez d'en entraîner une sur une autre chanson.
 
 ### Réglages avancés {#advanced-settings}
 

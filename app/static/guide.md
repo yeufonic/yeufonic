@@ -76,15 +76,24 @@ page keeps **What it learned from**, each song's separated vocal and the excerpt
 
 **Octave** moves the voice up or down a whole octave, for a singer whose range is far from the take's. **Vocal level**
 and **Instrument level** set the balance of the remix, and **Likeness** how closely the voice keeps to the singer's own
-sounds: higher sounds more like them, and can sound more processed. These are the voice's defaults; the editor shows
-them under the voice, to change for one take, and the take keeps them. Settings → *Voice Training* sets how much
-singing a voice learns from and for how many passes.
+sounds: higher sounds more like them, and can sound more processed. **Room** puts a short room under the converted
+vocal (*Dry*, *Subtle* or *More*) so it sits in the mix, and **Brightness** on *Auto* lifts its upper range to match
+the rendered vocal's; *Off* leaves it as converted. **Breaths and consonants** sets how far those keep the rendered
+vocal's own sounds: *Kept* stays clear but carries a trace of it, *Converted* can tear. **Dynamics** sets whose
+loudness the vocal follows from phrase to phrase: the take's as rendered, or the voice's own swells. These are the
+voice's defaults. In the editor, the **Recorded voice** button opens to the voice and these settings, to change for one
+take; the take keeps them, and the button says when it has its own. Settings → *Voice Training* sets how much singing a
+voice learns from and for how many passes.
 
 The result is a converted vocal over a separated backing, so it is less seamless than a vocal the model sang itself.
 Clean, dry recordings make the cleanest voice. **Download voice** saves a trained voice as a zip to give to someone,
 and **Import a voice…** adds one: that zip, or an RVC model from elsewhere (a .pth, or a zip with its index). A take's
 recipe names its voice and the take's settings for it, and importing it picks up the voice of that name on this
 install, if there is one.
+
+In our testing, a voice trained on a single song with a clear lead vocal sometimes came out better than one trained on
+a whole corpus: a voice learns the recording's reverb and production along with the singer. If a voice comes out
+rough, try training one on another song.
 
 ### Advanced settings
 

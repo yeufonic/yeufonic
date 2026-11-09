@@ -7093,7 +7093,17 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 .voice-heard-row audio { height: 32px; flex: 0 0 280px; }
 #voice-take { max-width: 360px; }
 .voice-mix { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.voice-mix label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.voice-mix label, .voice-settings label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+/* The editor's Recorded voice: one row, like a select, that opens to the picker and the take's settings for it. */
+.voice-toggle { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+  background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: inherit; }
+.voice-toggle:hover, .voice-toggle:focus-visible { border-color: rgb(var(--accent-a-rgb) / 0.6); outline: none; }
+.voice-toggle-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voice-toggle-note { font-size: 12px; color: rgb(var(--accent-a-rgb)); }
+.voice-toggle-caret { color: var(--muted); transition: transform 0.15s ease; }
+.voice-toggle[aria-expanded="true"] .voice-toggle-caret { transform: rotate(180deg); }
+.voice-panel { margin-top: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; }
+.voice-panel.hidden { display: none; }
 .job-panel.floating { position: fixed; z-index: 90; }
 .voice-rec-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; flex-wrap: wrap; }
 .voice-rec-row .voice-rec-title { flex: 1 1 220px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }

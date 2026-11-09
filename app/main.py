@@ -3349,7 +3349,8 @@ def _voice_mix(wanted: dict | None) -> str | None:
     if not wanted:
         return None
     clamps = {"octave": persona.clamp_octave, "level_db": persona.clamp_level, "backing_db": persona.clamp_backing,
-              "likeness": persona.clamp_likeness}
+              "likeness": persona.clamp_likeness, "room": persona.clamp_room, "brightness": persona.clamp_brightness,
+              "protect": persona.clamp_protect, "dynamics": persona.clamp_dynamics}
     kept = {key: clamp(wanted[key]) for key, clamp in clamps.items() if wanted.get(key) is not None}
     return json.dumps(kept) if kept else None
 
@@ -6132,11 +6133,16 @@ async def make_persona(
 @app.patch("/api/voices/{persona_id}")
 async def edit_persona(persona_id: str, name: str | None = Form(None), octave: int | None = Form(None),
                        level_db: float | None = Form(None), likeness: float | None = Form(None),
-                       backing_db: float | None = Form(None)) -> dict:
-    """Rename a voice, move it up or down an octave, set its vocal level in the mix, or how closely it keeps to its
-    singer's own sounds."""
+                       backing_db: float | None = Form(None), room: float | None = Form(None),
+                       brightness: str | None = Form(None), protect: float | None = Form(None),
+                       dynamics: float | None = Form(None)) -> dict:
+    """Rename a voice, move it up or down an octave, set its vocal and backing levels in the mix, how closely it keeps
+    to its singer's own sounds, the room under it, whether its upper range is lifted, how far its breaths and
+    consonants are protected, and whose loudness contour it follows."""
     record = persona.update(persona_id, **{k: v for k, v in (("name", name), ("octave", octave), ("level_db", level_db),
-                                                             ("likeness", likeness), ("backing_db", backing_db))
+                                                             ("likeness", likeness), ("backing_db", backing_db),
+                                                             ("room", room), ("brightness", brightness),
+                                                             ("protect", protect), ("dynamics", dynamics))
                                            if v is not None})
     if record is None:
         raise HTTPException(404, "no such persona")

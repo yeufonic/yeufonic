@@ -34,6 +34,14 @@ BACKING_DB = (-9.0, -6.0, -3.0, 0.0)
 # Training passes over the voice's recordings: enough for a few minutes of singing to settle (100 by ear).
 TRAIN_EPOCHS = 100
 LIKENESS = (0.25, 0.5, 0.75, 1.0)   # RVC's index rate: higher keeps closer to the singer's own sounds
+# How much of a short room goes under the converted vocal (voice/server.py settle): dry, subtle (as it always was), more.
+ROOMS = (0.0, 0.14, 0.28)
+ROOM_NAMES = {0.0: "dry", 0.14: "subtle", 0.28: "more"}
+# RVC's protect: how far breaths and consonants keep the rendered vocal's own sounds rather than the singer's, which
+# can tear them (0.5 converts them like the rest).  And its RMS mix rate: whose loudness contour the vocal follows,
+# the rendered vocal's (low) or the converted one's own (1).
+PROTECT = (0.15, 0.33, 0.5)
+DYNAMICS = (0.25, 0.5, 1.0)
 PASSES = (25, 50, 100, 200)
 # A corpus voice samples at most this many of the corpus's songs: each is separated before the minutes of singing
 # (Settings) are shared across them, and separating more adds time for little.
@@ -59,6 +67,10 @@ def _shape(row) -> dict:
     out["level_db"] = clamp_level(out.get("level_db"))
     out["likeness"] = clamp_likeness(out.get("likeness"))
     out["backing_db"] = clamp_backing(out.get("backing_db"))
+    out["room"] = clamp_room(out.get("room"))
+    out["brightness"] = clamp_brightness(out.get("brightness"))
+    out["protect"] = clamp_protect(out.get("protect"))
+    out["dynamics"] = clamp_dynamics(out.get("dynamics"))
     out["progress"] = float(out.get("progress") or 0.0)
     return out
 
@@ -94,6 +106,37 @@ def clamp_backing(value) -> float:
     except (TypeError, ValueError):
         return 0.0
     return min(BACKING_DB, key=lambda level: abs(level - number))
+
+
+def clamp_room(value) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return ROOMS[1]
+    return min(ROOMS, key=lambda step: abs(step - number))
+
+
+def _step(steps, value, fallback):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return fallback
+    return min(steps, key=lambda step: abs(step - number))
+
+
+def clamp_protect(value) -> float:
+    return _step(PROTECT, value, 0.33)
+
+
+def clamp_dynamics(value) -> float:
+    return _step(DYNAMICS, value, 0.25)
+
+
+def clamp_brightness(value) -> int:
+    """1: the converted vocal's upper range is lifted to the rendered one's (as it always was); 0: left as converted."""
+    if isinstance(value, str):
+        return 0 if value.strip().lower() in ("0", "off", "false", "no") else 1
+    return 0 if value is not None and not value else 1
 
 
 def clamp_likeness(value) -> float:
@@ -218,7 +261,7 @@ def usable(persona: dict | None) -> bool:
 
 
 def update(persona_id: str, **fields) -> dict | None:
-    allowed = {"name", "octave", "level_db", "likeness", "backing_db"}
+    allowed = {"name", "octave", "level_db", "likeness", "backing_db", "room", "brightness", "protect", "dynamics"}
     wanted = {k: v for k, v in fields.items() if k in allowed}
     if "octave" in wanted:
         wanted["octave"] = clamp_octave(wanted["octave"])
@@ -228,6 +271,14 @@ def update(persona_id: str, **fields) -> dict | None:
         wanted["backing_db"] = clamp_backing(wanted["backing_db"])
     if "likeness" in wanted:
         wanted["likeness"] = clamp_likeness(wanted["likeness"])
+    if "room" in wanted:
+        wanted["room"] = clamp_room(wanted["room"])
+    if "brightness" in wanted:
+        wanted["brightness"] = clamp_brightness(wanted["brightness"])
+    if "protect" in wanted:
+        wanted["protect"] = clamp_protect(wanted["protect"])
+    if "dynamics" in wanted:
+        wanted["dynamics"] = clamp_dynamics(wanted["dynamics"])
     if wanted:
         sets = ", ".join(f"{key} = ?" for key in wanted)
         db.execute(f"UPDATE voices SET {sets} WHERE id = ?", (*wanted.values(), persona_id))
@@ -248,4 +299,7 @@ def describe(persona: dict | None) -> str:
     octave = persona.get("octave") or 0
     return (persona["name"] + (f", {octave:+d} octave" if octave else "")
             + f", vocal {persona.get('level_db') or 0:+g} dB, instruments {persona.get('backing_db') or 0:+g} dB"
-            + f", likeness {round(100 * float(persona.get('likeness', 0.75)))}%")
+            + f", likeness {round(100 * float(persona.get('likeness', 0.75)))}%"
+            + f", room {ROOM_NAMES.get(clamp_room(persona.get('room')), 'subtle')}"
+            + (", brightness off" if not clamp_brightness(persona.get("brightness")) else "")
+            + f", protect {clamp_protect(persona.get('protect')):g}, dynamics {clamp_dynamics(persona.get('dynamics')):g}")

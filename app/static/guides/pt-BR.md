@@ -75,13 +75,20 @@ gravações como estão agora, ou com as músicas do corpus. Uma gravação excl
 
 **Oitava** sobe ou desce a voz uma oitava inteira, para um cantor cuja extensão fica longe da do take. **Nível do vocal** e **Nível
 dos instrumentos** ajustam o equilíbrio da nova mixagem, e **Semelhança** o quanto a voz se mantém fiel ao timbre do cantor: mais
-alto soa mais como ele, e pode soar mais processado. São os padrões da voz; o editor os mostra sob a voz, para mudar num take, e o
-take os mantém. Configurações → *Treinamento de vozes* define de quanto canto uma voz aprende e com quantas passadas.
+alto soa mais como ele, e pode soar mais processado. **Sala** coloca uma sala curta sob o vocal convertido (*Seco*, *Sutil* ou
+*Mais*) para que ele se encaixe na mixagem, e **Brilho** em *Auto* eleva seus agudos aos do vocal renderizado; *Desligado* os deixa
+como convertidos. **Respirações e consoantes** define o quanto elas mantêm os sons do vocal renderizado: *Mantidas* ficam claras
+mas guardam um traço dele, *Convertidas* podem rasgar. **Dinâmica** define de quem o vocal segue o volume de frase em frase: do
+take, como renderizado, ou das próprias variações da voz. São os padrões da voz. No editor, o botão **Voz gravada** se abre para a
+voz e essas configurações, para mudar num take; o take as mantém, e o botão indica quando ele tem as próprias. Configurações →
+*Treinamento de vozes* define de quanto canto uma voz aprende e com quantas passadas.
 
 O resultado é um vocal convertido sobre um acompanhamento separado, então é menos uniforme que um vocal que o próprio modelo
 cantou. Gravações limpas e secas dão a voz mais limpa. **Baixar voz** salva uma voz treinada como zip para dar a alguém, e
 **Importar uma voz…** adiciona uma: esse zip, ou um modelo RVC de outro lugar (um .pth, ou um zip com o índice). A receita de um take
 cita a voz e as configurações do take para ela, e importá-la usa a voz com esse nome nesta instalação, se houver.
+
+Nos nossos testes, uma voz treinada com uma única música com um vocal principal limpo às vezes saiu melhor do que uma treinada com um corpus inteiro: uma voz aprende a reverberação e a produção da gravação junto com o cantor. Se uma voz sair áspera, tente treinar uma com outra música.
 
 ### Ajustes avançados {#advanced-settings}
 

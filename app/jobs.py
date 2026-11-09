@@ -3399,7 +3399,10 @@ async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
             answer = await client.post(config.VOICE_URL + "/convert", json={
                 "id": voice["id"], "input": str(dest), "output": str(sung), "octave": voice["octave"],
                 "level_db": voice["level_db"], "likeness": voice["likeness"],
-                "backing_db": voice["backing_db"], **({"parts": str(parts)} if config.VOICE_KEEP_PARTS else {})})
+                "backing_db": voice["backing_db"], "room": persona.clamp_room(voice.get("room")),
+                "brightness": persona.clamp_brightness(voice.get("brightness")),
+                "protect": persona.clamp_protect(voice.get("protect")), "dynamics": persona.clamp_dynamics(voice.get("dynamics")),
+                **({"parts": str(parts)} if config.VOICE_KEEP_PARTS else {})})
         if answer.status_code != 200 or not sung.is_file():
             raise RuntimeError((answer.json() or {}).get("error") or f"answered {answer.status_code}")
         sung.replace(dest)

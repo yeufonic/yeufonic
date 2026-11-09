@@ -367,13 +367,15 @@ def _presence(samples, rate: int) -> float:
     return float(10 * np.log10((high + 1e-12) / (body + 1e-12)))
 
 
-def settle(original: Path, sung: Path, voice: str = "", level_db: float = 0.0) -> None:
+def settle(original: Path, sung: Path, voice: str = "", level_db: float = 0.0, room: float = ROOM_WET,
+           brightness: bool = True) -> None:
     """Put the converted vocal where the rendered one sat: its presence, its loudness, and a little room.
 
     RVC returns a vocal with less presence than the one it was given, and dry, so it sounded low and apart from the
     backing even at the same level. Its 2 kHz-and-up is lifted towards the original's balance (up to 6 dB, never
     cut), its loudness over the singing matched to the original's as the ear weighs it, and a short decaying room
-    mixed under it so it shares a space with the mix rather than lying on top of it.
+    mixed under it so it shares a space with the mix rather than lying on top of it.  The voice's Room sets how much
+    of that room (none at 0), and Brightness off leaves its upper range as converted.
     """
     import numpy as np  # noqa: PLC0415
     import soundfile  # noqa: PLC0415
@@ -382,7 +384,7 @@ def settle(original: Path, sung: Path, voice: str = "", level_db: float = 0.0) -
     before, before_rate = soundfile.read(str(original), dtype="float32")
     after, rate = soundfile.read(str(sung), dtype="float32")
     dry = _mono(after).astype("float64")
-    lift = float(np.clip(_presence(before, before_rate) - _presence(dry, rate), 0.0, MAX_PRESENCE_DB))
+    lift = float(np.clip(_presence(before, before_rate) - _presence(dry, rate), 0.0, MAX_PRESENCE_DB)) if brightness else 0.0
     if lift > 0.5:
         dry = lfilter(*_biquad("highshelf", 2500.0, rate, 0.7, lift), dry)
     gain_db = 20 * np.log10(_loudness(before, before_rate) / _loudness(dry, rate))
@@ -393,16 +395,17 @@ def settle(original: Path, sung: Path, voice: str = "", level_db: float = 0.0) -
     tail = rng.standard_normal(length) * np.exp(-np.arange(length) / (rate * ROOM_SECONDS / 6))
     tail[: int(rate * 0.012)] = 0                        # a short gap before the room answers
     tail /= np.sqrt((tail ** 2).sum())
-    mixed = dry + ROOM_WET * fftconvolve(dry, tail)[: len(dry)]
+    mixed = dry + max(0.0, float(room)) * fftconvolve(dry, tail)[: len(dry)] if room else dry
     # Kept in float, peaks and all: scaling the vocal alone to stop it clipping undid the level set above.  The
     # finished mix is brought under full scale as a whole instead (convert), which keeps the balance.
     soundfile.write(str(sung), mixed.astype("float32"), rate, subtype="FLOAT")
-    print(f"[{voice}] converted vocal: presence {lift:+.1f} dB, level {gain_db:+.1f} dB to the rendered vocal's",
-          flush=True)
+    print(f"[{voice}] converted vocal: presence {lift:+.1f} dB" + ("" if brightness else " (brightness off)")
+          + f", level {gain_db:+.1f} dB to the rendered vocal's, room {float(room):.2f}", flush=True)
 
 
 def convert(voice: str, source: Path, output: Path, octave: int, level_db: float = 0.0, likeness: float = 0.75,
-            backing_db: float = 0.0, parts: Path | None = None) -> None:
+            backing_db: float = 0.0, parts: Path | None = None, room: float = ROOM_WET, brightness: bool = True,
+            protect: float = 0.33, dynamics: float = 0.25) -> None:
     """The take at `source` with its vocal sung in `voice`, written to `output`.  With `parts`, the two halves as they
     were mixed are kept there too: vocal.flac (the sung vocal at its level) and backing.flac (the rest at its level),
     both brought down with the mix where it would clip, so together they are the finished take."""
@@ -416,10 +419,11 @@ def convert(voice: str, source: Path, output: Path, octave: int, level_db: float
         sung = work / "sung.wav"
         run(["infer/cli.py", "--model", str(model), "--input", str(vocals), "--output", str(sung), "--format", "wav",
              "--f0-method", "rmvpe", "--pitch", str(12 * int(octave)), *(["--index", str(index)] if index.exists() else []),
-             "--index-rate", f"{min(1.0, max(0.0, likeness)):.2f}", "--protect", "0.33", "--rms-mix-rate", "0.25", "--overwrite"])
+             "--index-rate", f"{min(1.0, max(0.0, likeness)):.2f}", "--protect", f"{min(0.5, max(0.0, protect)):.2f}",
+             "--rms-mix-rate", f"{min(1.0, max(0.0, dynamics)):.2f}", "--overwrite"])
         if not sung.exists():
             raise RuntimeError("the conversion wrote nothing")
-        settle(vocals, sung, voice, level_db)
+        settle(vocals, sung, voice, level_db, room, brightness)
         mixed = work / "mixed.wav"
         halves = [work / "vocal.wav", work / "backing.wav"]
         # The same two streams the mix sums, written out as they go into it when the halves are to be kept.
@@ -525,7 +529,10 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     convert(body["id"], Path(body["input"]), Path(body["output"]), int(body.get("octave") or 0),
                             float(body.get("level_db") or 0), float(body.get("likeness", 0.75)),
-                            float(body.get("backing_db") or 0), Path(body["parts"]) if body.get("parts") else None)
+                            float(body.get("backing_db") or 0), Path(body["parts"]) if body.get("parts") else None,
+                            float(body["room"]) if body.get("room") is not None else ROOM_WET,
+                            bool(int(body.get("brightness", 1))),
+                            float(body.get("protect", 0.33)), float(body.get("dynamics", 0.25)))
                 except Exception as err:  # noqa: BLE001
                     traceback.print_exc()
                     return self._send(500, {"error": str(err)[-800:]})
