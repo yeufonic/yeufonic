@@ -1849,7 +1849,7 @@
         '      <!-- MODULE 3b: SPACE (HEADPHONES 3D) -->',
         '      <div class="rack-unit unit-space" id="unit-space">',
         '        <div class="unit-bar">',
-        '          <div class="unit-brand"><span class="screw-mini"></span> 3D SPACE · FOR HEADPHONES <span class="screw-mini"></span></div>',
+        '          <div class="unit-brand"><span class="screw-mini"></span> 3D SPACE <span class="screw-mini"></span></div>',
         '          <button type="button" class="unit-toggle" id="toggle-space" title="' + t('Toggle 3D Space on/off. For headphones: it is never part of the take\'s own file') + '"><span class="led"></span> OUT</button>',
         '        </div>',
         '        <div class="unit-faceplate space-faceplate">',
@@ -1897,9 +1897,9 @@
         '            </div>',
         '          </div>',
         '          <div class="space-export">',
-        '            <span class="space-note">' + t('Headphones only') + '</span>',
-        '            <button type="button" class="rack-head-btn" id="space-download" title="' + t('Download this take with 3D Space, for headphones, as a WAV') + '">' + t('Download for headphones') + '</button>',
-        '            <span class="space-note">5.1</span>',
+        '            <span class="space-note" title="' + t('What you hear in the rack, and this download, are for headphones') + '">' + t('Headphones') + '</span>',
+        '            <button type="button" class="rack-head-btn" id="space-download" title="' + t('Download this take with 3D Space, for headphones, as a WAV') + '">' + t('Download') + '</button>',
+        '            <span class="space-note">' + t('5.1 speakers') + '</span>',
         '            <div class="space-surround">',
         '              <button type="button" class="rack-head-btn" data-surround="flac" title="' + t('Six-channel FLAC, for computers and media players') + '">FLAC</button>',
         '              <button type="button" class="rack-head-btn" data-surround="ac3" title="' + t('AC-3 (Dolby Digital), for TVs, soundbars and receivers') + '">AC-3</button>',
@@ -3431,8 +3431,14 @@
       if (!Engine.ctx) { return; }
       Engine.stemsReady = Boolean(player.buffers);
       Engine.applySettings(this.settings);
+      // Started only when they are not already playing: a dot dragged, a knob turned, changes where they sit, and
+      // starting them again for that would break the sound on every move.
       var audio = document.getElementById('audio');
-      if (this.stemsWanted() && player.buffers && audio && !audio.paused) { this.startLiveStems(); } else { this.stopLiveStems(); }
+      if (this.stemsWanted() && player.buffers && audio && !audio.paused) {
+        if (!player.sources.length) { this.startLiveStems(); }
+      } else {
+        this.stopLiveStems();
+      }
       this.paintSpaceStage();
     },
 
@@ -3622,7 +3628,7 @@
       if (!takeId) { this.showToast(t('Select a take first')); return; }
       var buttons = document.querySelectorAll('[data-surround]');
       Array.prototype.forEach.call(buttons, function (b) { b.disabled = true; });
-      this.showToast(test ? t('Making the 5.1 channel test…') : t('Rendering 5.1…'), 'good');
+      var work = this.pageWork(test ? t('Making the 5.1 channel test') : t('Rendering 5.1 ({format})', { format: format === 'ac3' ? 'AC-3' : 'FLAC' }));
       try {
         var wav = audioBufferToWav(test ? this.surroundTestBuffer() : await this.renderSurroundBuffer(takeId));
         var form = new FormData();
@@ -3641,6 +3647,7 @@
         this.showToast(t('Could not make the 5.1: {message}', { message: err.message }), 'bad');
       } finally {
         Array.prototype.forEach.call(buttons, function (b) { b.disabled = false; });
+        work.done();
       }
     },
 
@@ -3710,7 +3717,14 @@
         self.settings.space.stems = Object.assign(JSON.parse(JSON.stringify(SPACE_STEMS)), self.settings.space.stems || {});
         return self.settings.space.stems;
       }
-      function changed() { self.engage('space'); Engine.applySettings(self.settings); self.paintSpaceStage(); self.syncKnobsToState(); self.debouncedSave(); }
+      function changed() {
+        var wasOut = !(self.settings.space && self.settings.space.enabled);
+        self.settings.space.enabled = true;
+        Engine.applySettings(self.settings);
+        self.paintSpaceStage();
+        if (wasOut) { self.syncKnobsToState(); }
+        self.debouncedSave();
+      }
       svg.addEventListener('pointerdown', function (e) {
         var dot = e.target.closest('[data-stem]');
         if (!dot) { return; }
@@ -3735,6 +3749,16 @@
       }, { passive: false });
     },
 
+    /* A render in this browser, shown in the job pill and card like the app's own jobs (app.js pageWork), with the
+       take's name; done() takes it away. */
+    pageWork: function (title) {
+      var label = document.getElementById('rack-take-name');
+      var take = label && this.currentTakeId ? label.textContent : '';
+      if (typeof window.pageWork === 'function') { return window.pageWork(title + (take ? ': ' + take : ''), t('Rendering in this browser')); }
+      this.showToast(title + '…', 'good');
+      return { done: function () {} };
+    },
+
     /* The take with Space, for headphones: rendered here with every module as set, Space in, and saved as a WAV named
        after the take.  Nothing on the server changes. */
     downloadForHeadphones: async function () {
@@ -3745,7 +3769,7 @@
       settings.masterBypass = false;
       var button = document.getElementById('space-download');
       if (button) { button.disabled = true; }
-      this.showToast(t('Rendering for headphones…'), 'good');
+      var work = this.pageWork(t('Rendering for headphones'));
       try {
         var wav = await this.renderMasterWav(takeId, settings, true);
         var label = document.getElementById('rack-take-name');
@@ -3760,6 +3784,7 @@
         this.showToast(t('Could not render for headphones: {message}', { message: err.message }), 'bad');
       } finally {
         if (button) { button.disabled = false; }
+        work.done();
       }
     },
 

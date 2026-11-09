@@ -5484,10 +5484,12 @@ body.visualizer-open > *:not(#visualizer-modal) { visibility: hidden; }
 }
 /* A module's fold: the arrow at the left of its bar; folded, only the bar shows. */
 .unit-bar { gap: 10px; }
-.unit-fold { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px;
-  padding: 0; border-radius: 5px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.25); color: #94a3b8; cursor: pointer; }
-.unit-fold:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.28); }
-.unit-fold svg { transition: transform 0.15s ease; }
+/* As plain to see as the IN / OUT button at the other end of the bar, and the same size. */
+.unit-fold { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  min-width: calc(30px * var(--rack-type, 1)); padding: 4px 8px; border-radius: 5px; cursor: pointer;
+  background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.4); color: #f8fafc; }
+.unit-fold:hover { border-color: rgba(56, 189, 248, 0.8); box-shadow: 0 0 8px rgba(56, 189, 248, 0.3); }
+.unit-fold svg { width: calc(14px * var(--rack-type, 1)); height: calc(14px * var(--rack-type, 1)); transition: transform 0.15s ease; }
 .unit-fold[aria-expanded="false"] svg { transform: rotate(-90deg); }
 .unit-bar .unit-brand { flex: 1 1 auto; }
 .rack-unit.folded > :not(.unit-bar) { display: none !important; }
@@ -6187,7 +6189,7 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 }
 :root[data-theme="light"] .unit-bar { background: rgba(255, 255, 255, 0.55); border-bottom-color: rgba(15, 23, 42, 0.08); }
 :root[data-theme="light"] .unit-brand { color: #334155; }
-:root[data-theme="light"] .unit-fold { background: #fff; color: #64748b; border-color: rgba(15, 23, 42, 0.18); }
+:root[data-theme="light"] .unit-fold { background: #fff; color: #0f172a; border-color: rgba(2, 132, 199, 0.55); }
 :root[data-theme="light"] .unit-toggle { background: #fff; color: #64748b; border-color: rgba(15, 23, 42, 0.18); }
 :root[data-theme="light"] .unit-toggle.on { color: #0f172a; border-color: rgba(2, 132, 199, 0.55); }
 :root[data-theme="light"] .knob-name,

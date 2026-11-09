@@ -3371,7 +3371,24 @@ function showWriteError(message) {
   }, 6000);
 }
 
+/* Work done in this page rather than by the server (the rack rendering a download): shown in the job card and pill
+   while nothing on the server is, with its time, and gone when done.  window.pageWork(title, stage) starts it and
+   answers { done }. */
+var LAST_JOB = [null, [], {}];
+
+window.pageWork = function (title, stage) {
+  var work = { title: title, stage: stage, started: Date.now() };
+  State.pageWork = work;
+  var tick = setInterval(function () { if (State.pageWork === work) { paintJob.apply(null, LAST_JOB); } }, 1000);
+  paintJob.apply(null, LAST_JOB);
+  return { done: function () {
+    clearInterval(tick);
+    if (State.pageWork === work) { State.pageWork = null; paintJob.apply(null, LAST_JOB); }
+  } };
+};
+
 function paintJob(current, queue, options) {
+  LAST_JOB = [current, queue || [], options || {}];
   var oldPlanBox = $('plan-job');
   if (oldPlanBox) { oldPlanBox.remove(); }
   paintTranscribeJob(current, queue);
@@ -3394,6 +3411,20 @@ function paintJob(current, queue, options) {
       var stageText = tr(State.training.stage) || t('Training');
       if (State.training.steps) { stageText += ' \u00b7 ' + State.training.steps + ' steps'; }
       $('job-stage').textContent = stageText;
+      $('job-next').classList.add('hidden');
+      paintJobPill(0);
+      return;
+    }
+    if (State.pageWork) {
+      var work = State.pageWork, seconds = (Date.now() - work.started) / 1000;
+      card.classList.remove('hidden');
+      $('job-stop').style.display = 'none';
+      $('job-title').textContent = work.title;
+      $('job-title').dataset.take = '';
+      $('job-title').classList.remove('job-take-link');
+      $('job-time').textContent = secs(seconds);
+      $('job-bar').style.width = Math.min(90, 3 + seconds * 3) + '%';
+      $('job-stage').textContent = work.stage || '';
       $('job-next').classList.add('hidden');
       paintJobPill(0);
       return;
