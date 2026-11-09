@@ -37,21 +37,8 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.56 (2026-11-09)
 
-- **The visualizer asks less of the computer.** The page under it is no longer drawn while it is open, its canvas is
-  drawn at no more than a 1080p screen's worth of pixels and stretched to fit (the take's picture stays at the
-  screen's full sharpness), at most about 60 frames a second; Aura's glow is blurred once rather than on every frame,
-  the sleeve's shadows no longer change size on every frame, and its toolbar and lyrics panel are solid rather than
-  frosted. It keeps up on high-density and 120 Hz screens.
-- **More say over a recorded voice's sound:** besides octave, levels and likeness, a voice now has **Room** (the short
-  room under the converted vocal: dry, subtle or more), **Brightness** (whether its upper range is lifted to match the
-  rendered vocal), **Breaths and consonants** (how far they keep the rendered vocal's own sounds, so they do not tear)
-  and **Dynamics** (whose loudness the vocal follows: the take's, or the voice's own). Each is a default on the voice's
-  page and can be changed for one take. In the editor, the recorded voice and its settings now sit behind one
-  **Recorded voice** button, marked when the take has its own settings. Needs the voice service from this version.
-- **A developer's switch to keep a voiced take's halves:** with `VOICE_KEEP_PARTS=1`, the vocal sung in the voice and
-  the backing under it are kept as they were mixed, beside the take's audio. Off by default.
 - **3D Space, a new module of the mastering rack** (between the imager and the limiter), places the take around you
   on headphones. From the mix: two virtual speakers in front (**Width**) and two behind (**Rear**), **Surround**
   setting how much of the mix's width and ambience plays from those behind, **Height** and **Room**. From stems: each
@@ -67,10 +54,26 @@ cannot creep back in.
   for a take with none kept).
 - **The Surround preset replaces Boost**: lifted mids and highs, a slow gentle compressor, and 3D Space in, wide and
   high.
-- **The None scene's picture** is shown at the size it opens at from the take's card.
+- **More say over a recorded voice's sound:** besides octave, levels and likeness, a voice now has **Room** (the short
+  room under the converted vocal: dry, subtle or more), **Brightness** (whether its upper range is lifted to match the
+  rendered vocal), **Breaths and consonants** (how far they keep the rendered vocal's own sounds, so they do not tear)
+  and **Dynamics** (whose loudness the vocal follows: the take's, or the voice's own). Each is a default on the voice's
+  page and can be changed for one take. In the editor, the recorded voice and its settings now sit behind one
+  **Recorded voice** button, marked when the take has its own settings. Needs the voice service from this version.
+- **The Recorded voice field no longer goes missing on Windows.** The voice service starts with the app and can
+  take a minute to load; a page that opened first asked once, found it not answering, and hid the field until it was
+  reloaded. It now asks again until the service answers.
+- **The visualizer asks less of the computer.** The page under it is no longer drawn while it is open, its canvas is
+  drawn at no more than a 1080p screen's worth of pixels and stretched to fit (the take's picture stays at the
+  screen's full sharpness), at most about 60 frames a second; Aura's glow is blurred once rather than on every frame,
+  the sleeve's shadows no longer change size on every frame, and its toolbar and lyrics panel are solid rather than
+  frosted. It keeps up on high-density and 120 Hz screens.
 - **A still visualizer scene, None:** the take's picture alone on a dark ground, or the Yeufonic mark where it has
   none, with nothing moving, for a computer the other scenes are too much for. It is kept as your choice like the
   others.
+- **The None scene's picture** is shown at the size it opens at from the take's card.
+- **A developer's switch to keep a voiced take's halves:** with `VOICE_KEEP_PARTS=1`, the vocal sung in the voice and
+  the backing under it are kept as they were mixed, beside the take's audio. Off by default.
 
 ## 0.0.55 (2026-11-08)
 
