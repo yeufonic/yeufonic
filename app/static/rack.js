@@ -369,6 +369,55 @@
   // a preset that sets the equaliser keeps its bands; the rest start from the default layout
   Object.keys(PRESETS).forEach(function (key) { PRESETS[key].peq = PRESETS[key].peq || defaultPeq(); });
 
+  /* Space: the mix around the listener's head, for headphones (issue #65).  The left and right channels play from two
+     virtual speakers in front, WIDTH degrees either side; what differs between them (the side signal, where a mix
+     keeps its ambience) plays from two more behind, as much as SURROUND; HEIGHT lifts them all; ROOM lays a short
+     diffuse room over it.  Each speaker is a Web Audio panner with the browser's own HRTF set, so what is heard is what
+     a render writes.  It is for headphones only, so it is never part of the take's own file: Apply and the normal
+     downloads leave it out, and it has a download of its own. */
+  function defaultSpace() { return { enabled: false, width: 30, surround: 0, height: 0, room: 0, output: 0 }; }
+  Object.keys(PRESETS).forEach(function (key) { PRESETS[key].space = PRESETS[key].space || defaultSpace(); });
+  var SPACE_SCENES = {
+    front:  { width: 30, surround: 0,    height: 0,  room: 0.15 },   // a pair of speakers in front of you
+    wide:   { width: 60, surround: 0.25, height: 5,  room: 0.2 },    // a wider stage, a little around you
+    around: { width: 45, surround: 0.6,  height: 10, room: 0.3 },    // inside the band
+  };
+  var SPACE_REAR = 110;            // the rear speakers' angle either side, as a 5.1 layout puts its surrounds
+  var SPACE_REAR_DELAY = 0.018;    // and their sound a little later, so it reads as room rather than a second source
+
+  function spaceOn(s) { return Boolean(s && !s.masterBypass && s.space && s.space.enabled); }
+
+  /* Settings as the take's own file has them: Space out. */
+  function withoutSpace(s) {
+    var copy = JSON.parse(JSON.stringify(s || {}));
+    if (copy.space) { copy.space.enabled = false; }
+    return copy;
+  }
+
+  /* Where a virtual speaker sits: azimuth (degrees, right of centre is positive) and elevation, a metre away; the
+     listener faces -z. */
+  function spacePosition(azimuthDeg, elevationDeg) {
+    var az = azimuthDeg * Math.PI / 180, el = elevationDeg * Math.PI / 180;
+    return { x: Math.sin(az) * Math.cos(el), y: Math.sin(el), z: -Math.cos(az) * Math.cos(el) };
+  }
+
+  /* A short diffuse room: decaying noise, different in each ear, after a few milliseconds' gap, scaled to carry as
+     much energy as it is given (so ROOM's level is the room's level against the music). */
+  function makeRoomImpulse(ctx) {
+    var seconds = 1.4, gap = Math.floor(0.008 * ctx.sampleRate);
+    var length = Math.floor(seconds * ctx.sampleRate);
+    var impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+    var seed = 7;
+    function random() { seed = (seed * 16807) % 2147483647; return seed / 2147483647 * 2 - 1; }
+    for (var ch = 0; ch < 2; ch++) {
+      var data = impulse.getChannelData(ch), energy = 0, i;
+      for (i = gap; i < length; i++) { data[i] = random() * Math.exp(-(i - gap) / (ctx.sampleRate * seconds / 6)); energy += data[i] * data[i]; }
+      var scale = 1 / Math.sqrt(energy || 1);
+      for (i = gap; i < length; i++) { data[i] *= scale; }
+    }
+    return impulse;
+  }
+
   /* The sample rate a FLAC or WAV file says it has; 48000, what a take is made at, when the
      header is neither. */
   function fileSampleRate(arrayBuf) {
@@ -513,6 +562,9 @@
       [i.enabled !== false, n(i.bigness, 1), n(i.range, 5), n(i.stage, 5), Boolean(i.harmonics),
        n(i.tubeHarmonics, 1), Boolean(i.bass)],
       [l.enabled !== false, n(l.drive, 0), n(l.ceiling, -0.1), n(l.release, 0.08), Boolean(l.warmth)],
+      (function (sp) {
+        return [Boolean(sp.enabled), n(sp.width, 30), n(sp.surround, 0), n(sp.height, 0), n(sp.room, 0), n(sp.output, 0)];
+      })(s.space || {}),
       // the equaliser by what its filters do: a band that changes nothing is nothing, wherever it sits,
       // and so is the whole unit when it is out
       (function (p) {
@@ -577,6 +629,16 @@
     imagerShaperIn: null,
     imagerShaperOut: null,
     imagerMerger: null,
+
+    // Space (headphones 3D)
+    spaceDryGain: null,
+    spaceWetGain: null,
+    spaceFront: null,
+    spaceRear: null,
+    spaceRearGain: null,
+    spaceRoomGain: null,
+    spacePanGain: null,
+    spaceOutput: null,
 
     // Limiter
     limitDrive: null,
@@ -854,8 +916,78 @@
       this.limitWetGain.gain.value = 0.0;
       var limitSum = ctx.createGain();
 
-      imagerSum.connect(this.limitDryGain);
-      imagerSum.connect(this.limitDrive);
+      // 4b. Space: four HRTF panners (a front pair from left and right, a rear pair from the side signal) and a room,
+      // with a dry path of its own like the other modules.
+      this.spaceDryGain = ctx.createGain();
+      this.spaceWetGain = ctx.createGain();
+      this.spaceDryGain.gain.value = 1.0;
+      this.spaceWetGain.gain.value = 0.0;
+      var spaceSplit = ctx.createChannelSplitter(2);
+      var spaceBus = ctx.createGain();
+      function panner() {
+        var p = ctx.createPanner();
+        p.panningModel = 'HRTF';
+        p.distanceModel = 'inverse';
+        p.refDistance = 1;
+        p.rolloffFactor = 0;          // the angle places it; the distance does not turn it down
+        p.channelCount = 1;
+        p.channelCountMode = 'explicit';
+        p.connect(spaceBus);
+        return p;
+      }
+      this.spaceFront = [panner(), panner()];
+      spaceSplit.connect(this.spaceFront[0], 0);
+      spaceSplit.connect(this.spaceFront[1], 1);
+      // the side signal, (L - R) / 2, above the bass, a little later, to the rear pair (the right one inverted)
+      var sideL = ctx.createGain(); sideL.gain.value = 0.5;
+      var sideR = ctx.createGain(); sideR.gain.value = -0.5;
+      var side = ctx.createGain();
+      spaceSplit.connect(sideL, 0);
+      spaceSplit.connect(sideR, 1);
+      sideL.connect(side);
+      sideR.connect(side);
+      var sideHP = ctx.createBiquadFilter();
+      sideHP.type = 'highpass';
+      sideHP.frequency.value = 150;
+      var sideDelay = ctx.createDelay(0.1);
+      sideDelay.delayTime.value = SPACE_REAR_DELAY;
+      this.spaceRearGain = ctx.createGain();
+      this.spaceRearGain.gain.value = 0;
+      side.connect(sideHP);
+      sideHP.connect(sideDelay);
+      sideDelay.connect(this.spaceRearGain);
+      this.spaceRear = [panner(), panner()];
+      var invert = ctx.createGain(); invert.gain.value = -1;
+      this.spaceRearGain.connect(this.spaceRear[0]);
+      this.spaceRearGain.connect(invert);
+      invert.connect(this.spaceRear[1]);
+      // the room, over the whole
+      var room = ctx.createConvolver();
+      room.normalize = false;      // the impulse is scaled already (makeRoomImpulse)
+      room.buffer = makeRoomImpulse(ctx);
+      this.spaceRoomGain = ctx.createGain();
+      this.spaceRoomGain.gain.value = 0;
+      this.spaceOutput = ctx.createGain();
+      this.spaceOutput.gain.value = 1.0;
+      // What the two front speakers share (most of a mix) reaches each ear from both and adds up, as it does from real
+      // speakers: about 6 dB more on a finished take, less the wider they stand.  It is taken off again here, so Space
+      // keeps the take's loudness and its peaks where they were, and the room is set against the music as heard.
+      this.spacePanGain = ctx.createGain();
+      this.spacePanGain.gain.value = 1.0;
+      imagerSum.connect(spaceSplit);
+      imagerSum.connect(room);
+      room.connect(this.spaceRoomGain);
+      this.spaceRoomGain.connect(this.spaceOutput);
+      spaceBus.connect(this.spacePanGain);
+      this.spacePanGain.connect(this.spaceOutput);
+      this.spaceOutput.connect(this.spaceWetGain);
+      imagerSum.connect(this.spaceDryGain);
+      var spaceSum = ctx.createGain();
+      this.spaceDryGain.connect(spaceSum);
+      this.spaceWetGain.connect(spaceSum);
+
+      spaceSum.connect(this.limitDryGain);
+      spaceSum.connect(this.limitDrive);
       // Drive, then the tube stage when it is in, then the limiter: an over reaches the limiter whole.
       this.limitDrive.connect(this.limitShaperIn);
       this.limitShaperIn.connect(this.limitShaper);
@@ -1053,9 +1185,36 @@
         }
       }
 
+      // Space
+      if (s.space) {
+        var sp = s.space;
+        var spOn = Boolean(sp.enabled);
+        set(this.spaceDryGain.gain, spOn ? 0.0 : 1.0);
+        set(this.spaceWetGain.gain, spOn ? 1.0 : 0.0);
+        var width = Math.max(5, Math.min(90, Number(sp.width) || 30));
+        var height = Math.max(0, Math.min(45, Number(sp.height) || 0));
+        function place(p, az, el) {
+          var at = spacePosition(az, el);
+          if (p.positionX) { set(p.positionX, at.x); set(p.positionY, at.y); set(p.positionZ, at.z); }
+          else { p.setPosition(at.x, at.y, at.z); }
+        }
+        place(this.spaceFront[0], -width, height);
+        place(this.spaceFront[1], width, height);
+        place(this.spaceRear[0], -SPACE_REAR, height);
+        place(this.spaceRear[1], SPACE_REAR, height);
+        set(this.spaceRearGain.gain, Math.max(0, Math.min(1, Number(sp.surround) || 0)) * 1.4);
+        set(this.spaceRoomGain.gain, Math.max(0, Math.min(1, Number(sp.room) || 0)) * 0.45);
+        // measured on finished takes: +6.5 dB with the speakers 30 degrees out, +5.3 dB at 90; and the rear pair and
+        // the room add up to 0.4 and 0.7 dB at full, which OUTPUT at 0 takes off too
+        set(this.spacePanGain.gain, Math.pow(10, (-6.5 + (width - 30) * 0.02) / 20));
+        var spaceExtraDb = 0.4 * Math.max(0, Math.min(1, Number(sp.surround) || 0)) + 0.7 * Math.max(0, Math.min(1, Number(sp.room) || 0));
+        set(this.spaceOutput.gain, Math.pow(10, ((Number(sp.output) || 0) - spaceExtraDb) / 20));
+      }
+
       // Master: the chain is in the path only when something in it changes the sound, so a
-      // rack left flat plays the take as it is, and so does Bypass
-      if (!chainEngaged(s)) {
+      // rack left flat plays the take as it is, and so does Bypass; Space, which the take's own file
+      // never has, puts it in the path too
+      if (!chainEngaged(s) && !spaceOn(s)) {
         set(this.masterDryGain.gain, 1.0);
         set(this.masterWetGain.gain, 0.0);
       } else {
@@ -1569,6 +1728,54 @@
         '        </div>',
         '      </div>',
 
+        '      <!-- MODULE 3b: SPACE (HEADPHONES 3D) -->',
+        '      <div class="rack-unit unit-space" id="unit-space">',
+        '        <div class="unit-bar">',
+        '          <div class="unit-brand"><span class="screw-mini"></span> 3D SPACE · FOR HEADPHONES <span class="screw-mini"></span></div>',
+        '          <button type="button" class="unit-toggle" id="toggle-space" title="' + t('Toggle 3D Space on/off. For headphones: it is never part of the take\'s own file') + '"><span class="led"></span> OUT</button>',
+        '        </div>',
+        '        <div class="unit-faceplate space-faceplate">',
+        '          <div class="space-scenes" id="space-scenes" role="group" aria-label="' + t('Space scenes') + '">',
+        '            <button type="button" class="space-scene" data-scene="front" title="' + t('A pair of speakers in front of you') + '">FRONT</button>',
+        '            <button type="button" class="space-scene" data-scene="wide" title="' + t('A wider stage, a little around you') + '">WIDE</button>',
+        '            <button type="button" class="space-scene" data-scene="around" title="' + t('Inside the band') + '">AROUND</button>',
+        '          </div>',
+        '          <div class="knob-group">',
+        '            <div class="knob-wrap" data-param="space.width" data-min="5" data-max="90" data-step="5" data-default="30" data-unit="°" title="' + t('How far either side the two front speakers stand') + '">',
+        '              <div class="knob-dial large"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">WIDTH</span>',
+        '              <span class="knob-val">30 °</span>',
+        '            </div>',
+        '            <div class="knob-wrap" data-param="space.surround" data-min="0" data-max="1" data-step="0.05" data-default="0" data-display="pct" title="' + t('How much of the mix\'s ambience comes from behind you') + '">',
+        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">SURROUND</span>',
+        '              <span class="knob-val">0%</span>',
+        '            </div>',
+        '            <div class="knob-wrap" data-param="space.height" data-min="0" data-max="45" data-step="5" data-default="0" data-unit="°" title="' + t('How far above your ears the speakers are') + '">',
+        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">HEIGHT</span>',
+        '              <span class="knob-val">0 °</span>',
+        '            </div>',
+        '          </div>',
+        '          <div class="knob-group separator">',
+        '            <div class="knob-wrap" data-param="space.room" data-min="0" data-max="1" data-step="0.05" data-default="0" data-display="pct" title="' + t('A short room around it all') + '">',
+        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">ROOM</span>',
+        '              <span class="knob-val">0%</span>',
+        '            </div>',
+        '            <div class="knob-wrap" data-param="space.output" data-min="-6" data-max="6" data-step="0.5" data-default="0" data-unit="dB">',
+        '              <div class="knob-dial"><div class="knob-pointer"></div></div>',
+        '              <span class="knob-name">OUTPUT</span>',
+        '              <span class="knob-val">0 dB</span>',
+        '            </div>',
+        '          </div>',
+        '          <div class="space-export">',
+        '            <span class="space-note">' + t('Headphones only') + '</span>',
+        '            <button type="button" class="rack-head-btn" id="space-download" title="' + t('Download this take with 3D Space, for headphones, as a WAV') + '">' + t('Download for headphones') + '</button>',
+        '          </div>',
+        '        </div>',
+        '      </div>',
+
         '      <!-- MODULE 4: MASTER LIMITER -->',
         '      <div class="rack-unit unit-limit" id="unit-limit">',
         '        <div class="unit-bar">',
@@ -1845,6 +2052,33 @@
           Engine.applySettings(self.settings);
           self.debouncedSave();
         });
+      }
+
+      // Space: in or out, a scene, and its own download
+      var toggleSpace = document.getElementById('toggle-space');
+      if (toggleSpace) {
+        toggleSpace.addEventListener('click', function () {
+          self.settings.space = Object.assign(defaultSpace(), self.settings.space || {});
+          self.settings.space.enabled = !self.settings.space.enabled;
+          self.syncKnobsToState();
+          Engine.applySettings(self.settings);
+          self.debouncedSave();
+        });
+      }
+      var spaceScenes = document.getElementById('space-scenes');
+      if (spaceScenes) {
+        spaceScenes.addEventListener('click', function (e) {
+          var button = e.target.closest('[data-scene]');
+          if (!button || !SPACE_SCENES[button.dataset.scene]) { return; }
+          self.settings.space = Object.assign(defaultSpace(), self.settings.space || {}, SPACE_SCENES[button.dataset.scene], { enabled: true });
+          self.syncKnobsToState();
+          Engine.applySettings(self.settings);
+          self.debouncedSave();
+        });
+      }
+      var spaceDownload = document.getElementById('space-download');
+      if (spaceDownload) {
+        spaceDownload.addEventListener('click', function () { self.downloadForHeadphones(); });
       }
 
       // Tube Warmth switch
@@ -2134,6 +2368,18 @@
         toggleLimit.classList.toggle('on', limOn);
         toggleLimit.innerHTML = '<span class="led"></span> ' + (limOn ? 'IN' : 'OUT');
       }
+
+      var toggleSpaceBtn = document.getElementById('toggle-space');
+      if (toggleSpaceBtn) {
+        var spaceIn = spaceOn(self.settings) || Boolean(self.settings.space && self.settings.space.enabled);
+        toggleSpaceBtn.classList.toggle('on', spaceIn);
+        toggleSpaceBtn.innerHTML = '<span class="led"></span> ' + (spaceIn ? 'IN' : 'OUT');
+      }
+      Array.prototype.forEach.call(document.querySelectorAll('#space-scenes [data-scene]'), function (button) {
+        var scene = SPACE_SCENES[button.dataset.scene], sp = self.settings.space || {};
+        var lit = Boolean(sp.enabled) && Object.keys(scene).every(function (k) { return Math.abs(Number(sp[k]) - scene[k]) < 1e-6; });
+        button.classList.toggle('active', lit);
+      });
 
       var toggleWarmth = document.getElementById('toggle-warmth');
       var warmthStatus = document.getElementById('warmth-status');
@@ -2912,6 +3158,9 @@
     },
 
     chainEngaged: chainEngaged,
+    spaceOn: spaceOn,
+    defaultSpace: defaultSpace,
+    buildGraph: buildMasteringDspGraph,     // the chain on any context, for renders and for checks
     nodeMakeupDb: nodeMakeupDb,
     defaultPeq: defaultPeq,
     peqOf: peqOf,
@@ -2923,8 +3172,9 @@
 
     /* The take through the chain, as a WAV: the same nodes and settings as playback, rendered
        offline at the file's own sample rate. */
-    renderMasterWav: async function (takeId, customSettings) {
+    renderMasterWav: async function (takeId, customSettings, withSpace) {
       var s = customSettings || (await this.resolveSettings(takeId)) || PRESETS['default'];
+      if (!withSpace) { s = withoutSpace(s); }     // the take's own file never has Space: it is for headphones
 
       var resp = await fetch('/api/takes/' + takeId + '/audio');
       if (!resp.ok) {
@@ -2954,6 +3204,34 @@
       src.start(0);
       var renderedBuffer = await offlineCtx.startRendering();
       return audioBufferToWav(renderedBuffer);
+    },
+
+    /* The take with Space, for headphones: rendered here with every module as set, Space in, and saved as a WAV named
+       after the take.  Nothing on the server changes. */
+    downloadForHeadphones: async function () {
+      var takeId = this.currentTakeId;
+      if (!takeId) { this.showToast(t('Select a take first')); return; }
+      var settings = JSON.parse(JSON.stringify(this.settings));
+      settings.space = Object.assign(defaultSpace(), settings.space || {}, { enabled: true });
+      settings.masterBypass = false;
+      var button = document.getElementById('space-download');
+      if (button) { button.disabled = true; }
+      this.showToast(t('Rendering for headphones…'), 'good');
+      try {
+        var wav = await this.renderMasterWav(takeId, settings, true);
+        var label = document.getElementById('rack-take-name');
+        var name = ((label && label.textContent) || 'take').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'take';
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(wav);
+        link.download = name + ' (headphones 3D).wav';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(function () { URL.revokeObjectURL(link.href); link.remove(); }, 2000);
+      } catch (err) {
+        this.showToast(t('Could not render for headphones: {message}', { message: err.message }), 'bad');
+      } finally {
+        if (button) { button.disabled = false; }
+      }
     },
 
     renderAndDownload: async function (takeId, format, withRecipe) {
@@ -3012,8 +3290,11 @@
         }
         var data = await res.json();
 
-        // Reset rack settings for this take to default transparent so it is not double-processed
+        // Reset rack settings for this take to default transparent so it is not double-processed; Space, which
+        // was not baked in, stays as it was
+        var keptSpace = this.settings.space;
         this.settings = JSON.parse(JSON.stringify(PRESETS['default']));
+        if (keptSpace) { this.settings.space = keptSpace; }
         this.syncKnobsToState();
         Engine.applySettings(this.settings);
         await this.flushSave();

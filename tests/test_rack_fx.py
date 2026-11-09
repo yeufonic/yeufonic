@@ -122,7 +122,9 @@ def test_rack_stereo_imager_components_present():
     # Web Audio graph connections
     assert "this.imagerSplitter = ctx.createChannelSplitter(2)" in rack_js
     assert "this.imagerMerger = ctx.createChannelMerger(2)" in rack_js
-    assert "imagerSum.connect(this.limitDrive)" in rack_js, "Imager output must connect directly into Limit Drive"
+    # the imager feeds Space (dry and wet), and Space feeds the limiter
+    assert "imagerSum.connect(this.spaceDryGain)" in rack_js and "imagerSum.connect(spaceSplit)" in rack_js
+    assert "spaceSum.connect(this.limitDrive)" in rack_js, "Space's output must connect directly into Limit Drive"
 
     # styles.css classes
     assert ".unit-imager" in styles_css
@@ -433,6 +435,9 @@ function context(rate) {
     createChannelSplitter: () => node('splitter'),
     createChannelMerger: () => node('merger'),
     createAnalyser: () => node('analyser', { fftSize: 2048 }),
+    createPanner: () => node('panner', { positionX: param(0), positionY: param(0), positionZ: param(-1) }),
+    createConvolver: () => node('convolver', { buffer: null, normalize: true }),
+    createBuffer: (channels, length) => ({ getChannelData: () => new Float32Array(length) }),
     createMediaElementSource: () => node('element'),
     createBufferSource: () => node('buffer', { start() {} }),
     resume: () => Promise.resolve(),
@@ -913,3 +918,19 @@ def test_a_double_click_on_the_compressors_output_goes_where_reset_leaves_it(fla
     rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
     knob = re.search(r'data-param="comp.makeup"[^>]*data-default="(-?[0-9.]+)"', rack_js)
     assert knob and float(knob.group(1)) == flat["comp"]["makeup"] == 6.0
+
+
+def test_space_is_heard_but_never_in_the_takes_own_file(flat):
+    """Space (headphones 3D, issue #65) puts the chain in the path when it is in, so it can be heard; but it is not
+    something the take's own file needs: Apply and the normal downloads ask chainEngaged, which leaves it out, and a
+    render leaves it out unless asked for it (the module's own download)."""
+    from pathlib import Path
+    assert flat["space"] == {"enabled": False, "width": 30, "surround": 0, "height": 0, "room": 0, "output": 0}
+    out = rack([changed(flat, space={"enabled": True, "width": 45, "surround": 0.5})])
+    assert out["engaged"] == [False]
+    assert out["cases"][0]["masterWet"] == 1 and out["cases"][0]["masterDry"] == 0
+    rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
+    render = rack_js[rack_js.index("    renderMasterWav: async function"):rack_js.index("    renderAndDownload: async function")]
+    assert "if (!withSpace) { s = withoutSpace(s); }" in render
+    assert "this.renderMasterWav(takeId, settings, true)" in render      # the headphones download, and only it
+    assert rack_js.count("renderMasterWav(") == 3                      # Apply, Download, and the headphones download
