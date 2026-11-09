@@ -365,16 +365,19 @@
      downloads leave it out, and it has a download of its own. */
   /* With stems (SOURCE: STEMS) each stem of the take is placed on its own: its left and right channels as a pair of
      speakers SPREAD degrees apart, centred at AZ (0 in front, positive to the right, 180 behind). */
+  /* The scenes for stems, as a band would stand.  FRONT: a stage in front of you, the singer in the middle, the drums
+     behind them and a little wide, the bass just right of centre, the rest (other, guitar, piano) spread left and
+     right.  WIDE: the same stage, wider.  AROUND: you in the band, the drums behind you, the rest round your sides. */
   var SPACE_STEMS = {
-    vocals: { az: 0, spread: 10 }, drums: { az: 0, spread: 50 }, bass: { az: 0, spread: 10 }, other: { az: 0, spread: 100 },
-    guitar: { az: -40, spread: 20 }, piano: { az: 40, spread: 20 }, instruments: { az: 0, spread: 90 },
+    vocals: { az: 0, spread: 10 }, drums: { az: 0, spread: 50 }, bass: { az: 15, spread: 10 }, other: { az: -20, spread: 70 },
+    guitar: { az: -35, spread: 20 }, piano: { az: 35, spread: 20 }, instruments: { az: 0, spread: 80 },
   };
   var SPACE_STEM_SCENES = {
     front: SPACE_STEMS,
-    wide: { vocals: { az: 0, spread: 10 }, drums: { az: 0, spread: 90 }, bass: { az: 0, spread: 20 }, other: { az: 0, spread: 160 },
-            guitar: { az: -70, spread: 30 }, piano: { az: 70, spread: 30 }, instruments: { az: 0, spread: 160 } },
-    around: { vocals: { az: 0, spread: 10 }, drums: { az: 180, spread: 80 }, bass: { az: 0, spread: 10 }, other: { az: 0, spread: 220 },
-              guitar: { az: -110, spread: 20 }, piano: { az: 110, spread: 20 }, instruments: { az: 0, spread: 220 } },
+    wide: { vocals: { az: 0, spread: 10 }, drums: { az: 0, spread: 100 }, bass: { az: 25, spread: 20 }, other: { az: -35, spread: 110 },
+            guitar: { az: -65, spread: 30 }, piano: { az: 65, spread: 30 }, instruments: { az: 0, spread: 150 } },
+    around: { vocals: { az: 0, spread: 10 }, drums: { az: 180, spread: 80 }, bass: { az: 0, spread: 20 }, other: { az: -90, spread: 120 },
+              guitar: { az: -110, spread: 30 }, piano: { az: 110, spread: 30 }, instruments: { az: 0, spread: 240 } },
   };
   function defaultSpace() {
     return { enabled: false, width: 30, surround: 0, height: 0, room: 0, output: 0, source: 'mix', rear: 110,
