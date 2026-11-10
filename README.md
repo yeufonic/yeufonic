@@ -244,7 +244,10 @@ docker compose up --build
 - **Training waits its turn on the GPU**, as a LoRA's does, and shows its progress in the job pill. Settings →
   *Voice Training* sets how much singing a voice learns from and for how many passes; the batch follows the GPU's
   memory. **Download voice** saves a trained voice to give to someone, and **Import a voice…** adds one, or an RVC
-  model from elsewhere (a `.pth`, or a zip with its index).
+  model from elsewhere (its zip, or its `.pth` and `.index` chosen together). A voice imported without its index
+  can take it later with **Add its index…**, since Likeness draws on it.
+- **Ready-made voices.** Example AI voices, RVC models made by other people, can be obtained from sites such as
+  [voice-models.com](https://voice-models.com/). **Import a voice…** takes the zip as it is downloaded.
 
 The result is a converted vocal over a separated backing, so it does not sound as seamless as a vocal YuE2 sang
 itself; clean, dry recordings give the cleanest voice. In the Windows install it is a component of the installer,

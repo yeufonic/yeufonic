@@ -89,8 +89,7 @@ voix* fixe combien de chant une voix apprend et en combien de passes.
 
 Le résultat est un chant converti sur un accompagnement séparé, donc moins homogène qu'un chant que le modèle a chanté lui-même.
 Des enregistrements propres et secs donnent la voix la plus propre. **Télécharger la voix** enregistre une voix entraînée dans un
-zip à donner à quelqu'un, et **Importer une voix…** en ajoute une : ce zip, ou un modèle RVC venu d'ailleurs (un .pth, ou un zip avec
-son index). La recette d'une prise nomme sa voix et ses réglages pour elle, et l'importer reprend la voix de ce nom sur cette
+zip à donner à quelqu'un, et **Importer une voix…** en ajoute une : ce zip, ou un modèle RVC venu d'ailleurs (son zip, ou son .pth et son .index choisis ensemble). Une voix importée sans son index peut le recevoir plus tard avec **Ajouter son index…** : Ressemblance s'appuie dessus. Des voix toutes prêtes, des modèles RVC entraînés par d'autres, se trouvent sur des sites comme [voice-models.com](https://voice-models.com/) : **Importer une voix…** prend le zip tel qu'il a été téléchargé. La recette d'une prise nomme sa voix et ses réglages pour elle, et l'importer reprend la voix de ce nom sur cette
 installation, s'il y en a une.
 
 Dans nos essais, une voix entraînée sur une seule chanson au chant principal net a parfois donné un meilleur résultat qu'une voix entraînée sur tout un corpus : une voix apprend la réverbération et la production de l'enregistrement en même temps que le chanteur. Si une voix sort rugueuse, essayez d'en entraîner une sur une autre chanson.

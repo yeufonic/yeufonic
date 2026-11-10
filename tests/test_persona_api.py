@@ -99,6 +99,40 @@ def test_an_rvc_model_from_elsewhere_imports(client):
     persona.delete(bare["id"])
 
 
+INDEX = b"IwFl" + b"\x00" * 40        # a faiss IVF-Flat index's tag, which is what RVC writes
+
+
+def test_an_rvc_models_loose_files_import_together(client):
+    got = client.post("/api/voices/import", files=[("file", ("Loose.pth", _model_bytes(), "application/octet-stream")),
+                                                  ("file", ("Loose.index", INDEX, "application/octet-stream"))]).json()
+    assert got["name"] == "Loose" and got["state"] == "ready" and got["has_index"] is True
+    assert (persona.folder(got["id"]) / "model.index").read_bytes() == INDEX
+    persona.delete(got["id"])
+
+
+def test_a_voice_without_an_index_takes_one_later(client):
+    bare = client.post("/api/voices/import", files={"file": ("Bare.pth", _model_bytes(), "application/octet-stream")}).json()
+    assert bare["has_index"] is False
+    assert client.post(f"/api/voices/{bare['id']}/index", files={"file": ("x.index", b"not an index at all", "x")}).status_code == 400
+    assert client.post(f"/api/voices/{bare['id']}/index", files={"file": ("x.txt", INDEX, "x")}).status_code == 400
+    got = client.post(f"/api/voices/{bare['id']}/index", files={"file": ("Bare.index", INDEX, "x")}).json()
+    assert got["has_index"] is True and (persona.folder(bare["id"]) / "model.index").read_bytes() == INDEX
+    untrained = persona.create("Untrained")
+    assert client.post(f"/api/voices/{untrained['id']}/index", files={"file": ("u.index", INDEX, "x")}).status_code == 400
+    persona.delete(bare["id"])
+    persona.delete(untrained["id"])
+
+
+def test_loose_files_that_do_not_make_one_voice_are_refused(client):
+    pth, index = ("file", ("A.pth", _model_bytes(), "x")), ("file", ("A.index", INDEX, "x"))
+    before = len(persona.all())
+    for files in ([index], [pth, ("file", ("B.pth", _model_bytes(), "x"))], [pth, index, ("file", ("B.index", INDEX, "x"))],
+                  [("file", ("A.zip", b"PK", "x")), index], [pth, ("file", ("A.index", b"garbage here", "x"))],
+                  [pth, ("file", ("notes.txt", b"hi", "x"))]):
+        assert client.post("/api/voices/import", files=files).status_code == 400
+    assert len(persona.all()) == before
+
+
 def test_what_is_not_a_voice_is_refused(client):
     assert client.post("/api/voices/import", files={"file": ("notes.txt", b"hi", "text/plain")}).status_code == 400
     assert client.post("/api/voices/import", files={"file": ("fake.pth", b"not a model", "x")}).status_code == 400

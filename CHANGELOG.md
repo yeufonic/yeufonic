@@ -42,6 +42,11 @@ cannot creep back in.
 - **A caution at 100% Likeness.** At its highest a recorded voice keeps only the sounds it learned, so words the singer
   was never heard singing can come out garbled; a line under the voice's settings says so, on the Voices page and in
   the editor, and the guide explains it. The value is still yours to choose.
+- **An RVC model's loose files import together.** Import a voice… takes a `.pth` and its `.index` chosen at once, as
+  well as a zip; a voice imported from a `.pth` alone says it has no index, and **Add its index…** gives it one, so
+  Likeness has something to draw on.
+- **Where to find ready-made voices.** The Voices page, the README and the guide point to sites such as
+  voice-models.com, whose RVC models import as downloaded.
 - **The log names the voice settings a take is sung at** when its render starts (it showed the voice's defaults).
 
 ## 0.0.56 (2026-11-09)

@@ -88,7 +88,7 @@ its own. Settings → *Voice Training* sets how much singing a voice learns from
 
 The result is a converted vocal over a separated backing, so it is less seamless than a vocal the model sang itself.
 Clean, dry recordings make the cleanest voice. **Download voice** saves a trained voice as a zip to give to someone,
-and **Import a voice…** adds one: that zip, or an RVC model from elsewhere (a .pth, or a zip with its index). A take's
+and **Import a voice…** adds one: that zip, or an RVC model from elsewhere (its zip, or its .pth and .index chosen together). A voice imported without its index can take it later with **Add its index…**: Likeness draws on it. Ready-made voices, RVC models trained by others, can be found on sites such as [voice-models.com](https://voice-models.com/): **Import a voice…** takes the zip as downloaded. A take's
 recipe names its voice and the take's settings for it, and importing it picks up the voice of that name on this
 install, if there is one.
 

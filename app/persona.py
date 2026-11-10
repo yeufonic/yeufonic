@@ -63,6 +63,8 @@ def model_file(persona_id: str) -> Path:
 def _shape(row) -> dict:
     out = dict(row)
     out["recordings"] = db.rows("SELECT COUNT(*) AS n FROM voice_recordings WHERE voice_id = ?", (out["id"],))[0]["n"]
+    # Without its index, Likeness has nothing to draw on (a voice imported from a .pth alone).
+    out["has_index"] = (config.DATA_DIR / "voices" / out["id"] / "model.index").is_file()
     out["octave"] = clamp_octave(out.get("octave"))
     out["level_db"] = clamp_level(out.get("level_db"))
     out["likeness"] = clamp_likeness(out.get("likeness"))

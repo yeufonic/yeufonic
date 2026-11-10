@@ -6360,23 +6360,51 @@ def export_voice(persona_id: str) -> Response:
                     headers={"Content-Disposition": f'attachment; filename="{safe}.voice.zip"'})
 
 
-@app.post("/api/voices/import")
-async def import_voice(file: UploadFile = File(...)) -> dict:
-    """A voice from a zip (Yeufonic's export, or an RVC model with its index) or a bare RVC .pth."""
-    name = Path(file.filename or "voice").name
-    lower = name.lower()
-    if not (lower.endswith(".zip") or lower.endswith(".pth")):
-        raise HTTPException(400, "That is not a voice: a .zip or an RVC .pth file.")
+def _is_index(data: bytes) -> bool:
+    """An RVC index is a faiss index, which starts with a four-character tag beginning with I (IwFl for the IVF-Flat
+    RVC writes).  Enough to turn away a file picked by mistake."""
+    return len(data) > 8 and data[:1] == b"I" and data[:4].isalnum()
+
+
+async def _upload_to_work(file: UploadFile, suffix: str) -> Path:
     config.WORK_DIR.mkdir(parents=True, exist_ok=True)
-    temp = config.WORK_DIR / f"voice-import-{uuid.uuid4().hex[:8]}{Path(lower).suffix}"
+    temp = config.WORK_DIR / f"voice-import-{uuid.uuid4().hex[:8]}{suffix}"
     with temp.open("wb") as out:
         shutil.copyfileobj(file.file, out)
+    if temp.stat().st_size > VOICE_IMPORT_MAX_BYTES:
+        temp.unlink(missing_ok=True)
+        raise HTTPException(400, "That file is too large to be a voice.")
+    return temp
+
+
+@app.post("/api/voices/import")
+async def import_voice(file: list[UploadFile] = File(...)) -> dict:
+    """A voice from a zip (Yeufonic's export, or an RVC model with its index), or an RVC .pth on its own or with
+    its .index, chosen together."""
+    names = [Path(item.filename or "voice").name for item in file]
+    lowers = [name.lower() for name in names]
+    zips = [i for i, low in enumerate(lowers) if low.endswith(".zip")]
+    pths = [i for i, low in enumerate(lowers) if low.endswith(".pth")]
+    idxs = [i for i, low in enumerate(lowers) if low.endswith(".index")]
+    if len(zips) + len(pths) + len(idxs) != len(file) or not (zips or pths):
+        raise HTTPException(400, "That is not a voice: a .zip, or an RVC .pth with its .index if it has one.")
+    if zips and len(file) > 1:
+        raise HTTPException(400, "Import a zip on its own.")
+    if len(pths) > 1 or len(idxs) > 1:
+        raise HTTPException(400, "Choose one .pth, and its .index if it has one.")
+    first = zips[0] if zips else pths[0]
+    name, lower = names[first], lowers[first]
+    temps = []
     try:
-        if temp.stat().st_size > VOICE_IMPORT_MAX_BYTES:
-            raise HTTPException(400, "That file is too large to be a voice.")
+        temps.append(temp := await _upload_to_work(file[first], Path(lower).suffix))
         title, octave, model, index = Path(name).stem.removesuffix(".voice"), 0, None, None
         if lower.endswith(".pth"):
             model = temp.read_bytes()
+            if idxs:
+                temps.append(loose := await _upload_to_work(file[idxs[0]], ".index"))
+                index = loose.read_bytes()
+                if not _is_index(index):
+                    raise HTTPException(400, "That .index is not a voice index.")
         else:
             try:
                 archive = zipfile.ZipFile(temp)
@@ -6407,8 +6435,29 @@ async def import_voice(file: UploadFile = File(...)) -> dict:
         if index:
             (folder / "model.index").write_bytes(index)
         persona.ready(made["id"], str(folder / "model.pth"))
-        log.info("Imported the recorded voice '%s' (%s) from %s", title, made["id"], name)
+        log.info("Imported the recorded voice '%s' (%s) from %s", title, made["id"], ", ".join(names))
         return persona.one(made["id"])
     finally:
+        for temp in temps:
+            temp.unlink(missing_ok=True)
+
+
+@app.post("/api/voices/{persona_id}/index")
+async def add_voice_index(persona_id: str, file: UploadFile = File(...)) -> dict:
+    """An RVC index for a voice that has a model: what Likeness draws on, for a voice imported from a .pth alone."""
+    record = persona.one(persona_id)
+    if not persona.usable(record):
+        raise HTTPException(400, "This voice has no trained model to add an index to.")
+    if not (file.filename or "").lower().endswith(".index"):
+        raise HTTPException(400, "That is not a voice index (.index).")
+    temp = await _upload_to_work(file, ".index")
+    try:
+        with temp.open("rb") as head:
+            if not _is_index(head.read(16)):
+                raise HTTPException(400, "That .index is not a voice index.")
+        shutil.move(str(temp), persona.folder(persona_id) / "model.index")
+    finally:
         temp.unlink(missing_ok=True)
+    log.info("Added an index to the recorded voice '%s' (%s)", record["name"], persona_id)
+    return persona.one(persona_id)
 

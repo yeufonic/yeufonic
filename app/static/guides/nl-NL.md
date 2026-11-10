@@ -88,7 +88,7 @@ stem leert en hoeveel rondes.
 
 Het resultaat is omgezette zang over een gescheiden begeleiding, dus minder naadloos dan zang die het model zelf zong. Schone,
 droge opnamen geven de schoonste stem. **Stem downloaden** slaat een getrainde stem op als zip om aan iemand te geven, en **Stem
-importeren…** voegt er een toe: die zip, of een RVC-model van elders (een .pth, of een zip met zijn index). Het recept van een
+importeren…** voegt er een toe: die zip, of een RVC-model van elders (de zip, of de .pth en .index samen gekozen). Een stem die zonder index is geïmporteerd, krijgt die later met **Index toevoegen…**: Gelijkenis steunt erop. Kant-en-klare stemmen, RVC-modellen die anderen hebben getraind, zijn te vinden op sites zoals [voice-models.com](https://voice-models.com/): **Stem importeren…** neemt de zip zoals die is gedownload. Het recept van een
 take noemt zijn stem en de instellingen van de take ervoor, en bij het importeren wordt de stem met die naam op deze installatie
 gebruikt, als die er is.
 

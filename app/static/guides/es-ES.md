@@ -88,7 +88,7 @@ canto aprende una voz y con cuántas pasadas.
 
 El resultado es una voz convertida sobre un acompañamiento separado, así que es menos uniforme que una voz que cantó el propio
 modelo. Las grabaciones limpias y secas dan la voz más limpia. **Descargar voz** guarda una voz entrenada como zip para dársela a
-alguien, e **Importar una voz…** añade una: ese zip, o un modelo RVC de otra parte (un .pth, o un zip con su índice). La receta de
+alguien, e **Importar una voz…** añade una: ese zip, o un modelo RVC de otra parte (su zip, o su .pth y .index elegidos juntos). Una voz importada sin su índice puede recibirlo después con **Añadir su índice…**: Parecido se basa en él. Hay voces listas para usar, modelos RVC entrenados por otras personas, en sitios como [voice-models.com](https://voice-models.com/): **Importar una voz…** acepta el zip tal como se descarga. La receta de
 una toma nombra su voz y los ajustes de la toma para ella, e importarla recoge la voz con ese nombre en esta instalación, si la hay.
 
 En nuestras pruebas, una voz entrenada con una sola canción con una voz principal clara a veces resultó mejor que una entrenada con un corpus entero: una voz aprende la reverberación y la producción de la grabación junto con el cantante. Si una voz sale áspera, prueba a entrenar una con otra canción.

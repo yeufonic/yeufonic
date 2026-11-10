@@ -85,7 +85,7 @@ voz e essas configurações, para mudar num take; o take as mantém, e o botão 
 
 O resultado é um vocal convertido sobre um acompanhamento separado, então é menos uniforme que um vocal que o próprio modelo
 cantou. Gravações limpas e secas dão a voz mais limpa. **Baixar voz** salva uma voz treinada como zip para dar a alguém, e
-**Importar uma voz…** adiciona uma: esse zip, ou um modelo RVC de outro lugar (um .pth, ou um zip com o índice). A receita de um take
+**Importar uma voz…** adiciona uma: esse zip, ou um modelo RVC de outro lugar (o zip dele, ou o .pth e o .index escolhidos juntos). Uma voz importada sem o índice pode recebê-lo depois com **Adicionar o índice…**: Semelhança se baseia nele. Vozes prontas, modelos RVC treinados por outras pessoas, podem ser encontradas em sites como [voice-models.com](https://voice-models.com/): **Importar uma voz…** aceita o zip como foi baixado. A receita de um take
 cita a voz e as configurações do take para ela, e importá-la usa a voz com esse nome nesta instalação, se houver.
 
 Nos nossos testes, uma voz treinada com uma única música com um vocal principal limpo às vezes saiu melhor do que uma treinada com um corpus inteiro: uma voz aprende a reverberação e a produção da gravação junto com o cantor. Se uma voz sair áspera, tente treinar uma com outra música.

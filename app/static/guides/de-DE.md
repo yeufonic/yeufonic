@@ -91,7 +91,7 @@ Durchläufen.
 Das Ergebnis ist ein umgewandelter Gesang über einer getrennten Begleitung, also weniger nahtlos als ein Gesang, den das Modell
 selbst gesungen hat. Saubere, trockene Aufnahmen ergeben die sauberste Stimme. **Stimme herunterladen** speichert eine
 trainierte Stimme als ZIP, um sie weiterzugeben, und **Stimme importieren…** fügt eine hinzu: diese ZIP oder ein RVC-Modell von
-anderswo (eine .pth oder eine ZIP mit ihrem Index). Das Rezept eines Takes nennt seine Stimme und die Einstellungen des Takes
+anderswo (seine ZIP oder seine .pth und .index zusammen ausgewählt). Eine ohne Index importierte Stimme bekommt ihn später mit **Index hinzufügen…**: Ähnlichkeit greift darauf zurück. Fertige Stimmen, von anderen trainierte RVC-Modelle, gibt es auf Seiten wie [voice-models.com](https://voice-models.com/): **Stimme importieren…** nimmt die ZIP so, wie sie heruntergeladen wurde. Das Rezept eines Takes nennt seine Stimme und die Einstellungen des Takes
 dafür, und beim Import wird die Stimme dieses Namens auf dieser Installation verwendet, falls es sie gibt.
 
 In unseren Tests klang eine Stimme, die auf einem einzigen Lied mit klarem Leadgesang trainiert wurde, manchmal besser als eine, die auf einem ganzen Korpus trainiert wurde: Eine Stimme lernt den Hall und die Produktion der Aufnahme mit dem Sänger zusammen. Klingt eine Stimme rau, trainiere eine auf einem anderen Lied.

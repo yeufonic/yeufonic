@@ -7190,6 +7190,7 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 .voice-panel.hidden { display: none; }
 .likeness-caution { color: var(--warn); margin: 8px 0 0; }
 .likeness-caution.hidden { display: none; }
+.voice-no-index { margin: 8px 0 0; }
 .job-panel.floating { position: fixed; z-index: 90; }
 .voice-rec-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; flex-wrap: wrap; }
 .voice-rec-row .voice-rec-title { flex: 1 1 220px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }

@@ -88,7 +88,7 @@ quanto canto impara una voce e con quante passate.
 
 Il risultato è una voce convertita su un accompagnamento separato, quindi meno uniforme di una voce cantata dal modello stesso.
 Registrazioni pulite e asciutte danno la voce più pulita. **Scarica voce** salva una voce addestrata come zip da dare a qualcuno,
-e **Importa una voce…** ne aggiunge una: quello zip, o un modello RVC da altrove (un .pth, o uno zip con il suo indice). La ricetta
+e **Importa una voce…** ne aggiunge una: quello zip, o un modello RVC da altrove (il suo zip, o il suo .pth e .index scelti insieme). Una voce importata senza il suo indice può riceverlo dopo con **Aggiungi il suo indice…**: Somiglianza si basa su di esso. Voci già pronte, modelli RVC addestrati da altri, si trovano su siti come [voice-models.com](https://voice-models.com/): **Importa una voce…** accetta lo zip così come è stato scaricato. La ricetta
 di una take nomina la sua voce e le impostazioni della take per essa, e importarla riprende la voce con quel nome su questa
 installazione, se c'è.
 

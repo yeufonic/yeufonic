@@ -17560,8 +17560,11 @@ function showVoiceList() {
     serviceNote() +
     '<div class="row">' +
       '<button id="voice-new" class="ghost"' + (usable ? '' : ' disabled') + '>' + t('New voice') + '</button>' +
-      '<button id="voice-import" class="ghost" title="' + t('Add a voice someone shared: the zip from their Download voice, or an RVC model (.pth, or a zip with its index)') + '">' + t('Import a voice…') + '</button>' +
+      '<button id="voice-import" class="ghost" title="' + t('Add a voice someone shared: the zip from their Download voice, or an RVC model (its zip, or its .pth and .index chosen together)') + '">' + t('Import a voice…') + '</button>' +
     '</div>' +
+    // Ready-made voices: a well-trained one from elsewhere can sound better than a few minutes of singing gives.
+    '<p class="hint voice-sources">' + esc(t('Ready-made voices, RVC models trained by others, can be found on sites such as {site}: Import a voice… takes the zip as downloaded.'))
+      .replace('{site}', '<a href="https://voice-models.com/" target="_blank" rel="noopener">voice-models.com</a>') + '</p>' +
     (VOICES.list.length ? '' : '<p class="muted">' + t('No voices yet.') + '</p>') +
     '<div class="identity-cards">' + VOICES.list.map(function (v) {
       return '<div class="identity-card voice-card ' + esc(v.state) + '" data-voice="' + esc(v.id) + '">' +
@@ -17733,7 +17736,10 @@ async function showVoice(id) {
     '<p><span id="voice-state" data-state="' + esc(v.state) + '">' + esc(voiceStateText(v)) + '</span> · ' + esc(voiceOriginText(v)) + '</p>' +
     why + serviceNote() +
     (ready ?
-      '<div class="row voice-settings">' + voiceControls(v, true) + '</div>' + likenessCaution(v.likeness)
+      '<div class="row voice-settings">' + voiceControls(v, true) + '</div>' + likenessCaution(v.likeness) +
+      (v.has_index === false ?
+        '<p class="hint voice-no-index">' + t('This voice has no index, so Likeness has nothing to draw on.') +
+        ' <button id="voice-add-index" class="ghost compact">' + t('Add its index…') + '</button></p>' : '')
       : '') +
     (v.origin_identity ? '' :
       '<h4>' + t('Recordings') + ' <span class="muted" id="voice-rec-total"></span></h4>' +
@@ -17862,6 +17868,7 @@ async function voicesClick(event) {
   if (card) { showVoice(card.dataset.voice); return; }
   if (target.closest('#voice-new')) { showVoiceNew(); return; }
   if (target.closest('#voice-import')) { importVoiceFile(); return; }
+  if (target.closest('#voice-add-index')) { addVoiceIndex(VOICES.id); return; }
   if (target.closest('#vn-train')) { await trainNewVoice(); return; }
   if (target.closest('#voice-rec-record')) { recordForVoice(VOICES.id); return; }
   if (target.closest('#voice-rec-upload')) {
@@ -17928,12 +17935,13 @@ async function voicesClick(event) {
 function importVoiceFile() {
   var input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.zip,.pth';
+  input.accept = '.zip,.pth,.index';
+  input.multiple = true;      // an RVC model's .pth and .index, chosen together
   input.addEventListener('change', async function () {
-    var file = input.files && input.files[0];
-    if (!file) { return; }
+    var files = input.files ? Array.prototype.slice.call(input.files) : [];
+    if (!files.length) { return; }
     var form = new FormData();
-    form.append('file', file, file.name);
+    files.forEach(function (file) { form.append('file', file, file.name); });
     try {
       var made = await api('/api/voices/import', { method: 'POST', body: form });
       await loadVoices();
@@ -17941,6 +17949,29 @@ function importVoiceFile() {
       toast(t('Imported the voice {value}.', { value: made.name }));
     } catch (err) {
       toast(err && err.message ? err.message : t('That file is not a voice model.'));
+    }
+  });
+  input.click();
+}
+
+
+/* An index for a voice imported from its .pth alone: what Likeness draws on. */
+function addVoiceIndex(id) {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.index';
+  input.addEventListener('change', async function () {
+    var file = input.files && input.files[0];
+    if (!file) { return; }
+    var form = new FormData();
+    form.append('file', file, file.name);
+    try {
+      await api('/api/voices/' + encodeURIComponent(id) + '/index', { method: 'POST', body: form });
+      await loadVoices();
+      if (VOICES.view === 'voice' && VOICES.id === id) { showVoice(id); }
+      toast(t('Added the index.'));
+    } catch (err) {
+      toast(err && err.message ? err.message : t('That .index is not a voice index.'));
     }
   });
   input.click();
