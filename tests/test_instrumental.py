@@ -360,3 +360,42 @@ def test_an_instrumental_is_made_from_a_covers_score_too(client, monkeypatch):
     assert new["style"] == "pop, piano" and instrumental.sings(new["abc"]) == 0 and "la la" not in new["lyrics"]
     assert one("SELECT kind FROM takes WHERE id = ?", (cover["id"],))["kind"] == "cover"
     drain()
+
+
+# The silence added before transcribing: the rest bars it became come off the end of the score.
+PADDED = """X:1
+M:4/4
+L:1/16
+Q:1/4=120
+V: Vocal
+V: Ins
+K:C
+% verse
+V: Vocal
+"C"c4d4e4f4|"F"f8e8|
+V: Ins
+C4E4G4c4|F8A8|
+% outro
+V: Vocal
+"C"z16|"C"z16|"C"z16|"C"z16|
+V: Ins
+Z4|"""
+
+
+def test_the_rest_bars_the_added_silence_became_come_off():
+    # At 120 a bar of 4/4 is 2 s, so 5 s of silence fills at most three bars: three of the four go.
+    trimmed = instrumental.trim_added_silence(PADDED, 5)
+    assert trimmed.endswith('% outro\nV: Vocal\n"C"z16|\nV: Ins\nZ|')
+    assert len(score.vocal_bars(trimmed)) == 3
+    # Enough silence to cover every rest bar: the outro goes, heading and all; the bars that sound stay.
+    whole = instrumental.trim_added_silence(PADDED, 20)
+    assert whole.endswith("V: Ins\nC4E4G4c4|F8A8|") and "% outro" not in whole
+
+
+def test_a_score_that_ends_on_notes_or_cannot_be_read_is_left_alone():
+    sounding = PADDED.replace("V: Ins\nZ4|", "V: Ins\nZ3|c16|")
+    assert instrumental.trim_added_silence(sounding, 5) == sounding
+    assert instrumental.trim_added_silence(PADDED.replace("Q:1/4=120\n", ""), 5) == PADDED.replace("Q:1/4=120\n", "")
+    uneven = PADDED.replace("V: Ins\nZ4|", "V: Ins\nZ3|")       # the voices disagree on the bars
+    assert instrumental.trim_added_silence(uneven, 5) == uneven
+    assert instrumental.trim_added_silence("", 5) == ""

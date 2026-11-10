@@ -333,6 +333,70 @@ def tune_on_voice(abc: str) -> str:
     return "\n".join(out)
 
 
+# ------------------------------------------------ the silence added before transcribing
+# A recording is transcribed with silence after its end (jobs._ended_copy), and the transcriber writes that
+# silence as bars of rest at the end of the score: bars the song does not have, which a render would play.
+
+def _bar_seconds(abc: str) -> float | None:
+    """A bar's length from the score's last metre and its tempo, or None where they cannot be read."""
+    meters = re.findall(r"^M:\s*(\d+)/(\d+)\s*$", abc, re.M)
+    tempo = re.search(r"^Q:\s*(?:(\d+)/(\d+)\s*=\s*)?(\d+(?:\.\d+)?)\s*$", abc, re.M)
+    if not meters or not tempo or not float(tempo.group(3)):
+        return None
+    beat = Fraction(int(tempo.group(1)), int(tempo.group(2))) if tempo.group(1) else Fraction(1, 4)
+    bar = Fraction(int(meters[-1][0]), int(meters[-1][1]))
+    return float(bar / beat) * 60 / float(tempo.group(3))
+
+
+def trim_added_silence(abc: str, seconds: float) -> str:
+    """The score without the bars of rest at its end that the added silence became: bars where every voice
+    rests, at most as many as `seconds` of silence fill.  Bars that sound, or that the voices do not agree on,
+    are left as they are, and so is every block the cut does not reach."""
+    lines = (abc or "").split("\n")
+    body = next((i + 1 for i, line in enumerate(lines) if line.startswith("K:")), None)
+    bar = _bar_seconds(abc or "")
+    if body is None or not bar or seconds <= 0:
+        return abc
+    blocks = _voice_blocks(lines[body:])
+    bars: dict[str, list[str]] = {}
+    for block in blocks:
+        if isinstance(block, list):
+            bars.setdefault(block[0], []).extend(text for kind, text in _tokens(block[2]) if kind == "bar")
+    counts = {len(found) for found in bars.values()}
+    if len(counts) != 1:
+        return abc
+    total = counts.pop()
+    limit = int(-(-seconds // bar))      # whole bars, rounded up
+    cut = 0
+    while cut < min(limit, total - 1) and not any(_has_notes(found[total - 1 - cut]) for found in bars.values()):
+        cut += 1
+    if not cut:
+        return abc
+    keep, seen, out = total - cut, {name: 0 for name in bars}, lines[:body]
+    for block in blocks:
+        if not isinstance(block, list):
+            out.append(block)
+            continue
+        tokens = _tokens(block[2])
+        count = sum(1 for kind, _ in tokens if kind == "bar")
+        start = seen[block[0]]
+        seen[block[0]] += count
+        if start + count <= keep:
+            out += [block[1], *block[2]]
+        elif start < keep:
+            kept, index = [], start
+            for kind, text in tokens:
+                if kind == "bar":
+                    if index >= keep:
+                        continue
+                    index += 1
+                kept.append((kind, text))
+            out += [block[1], *_lines(kept)]
+    while len(out) > body and (out[-1].startswith("%") or not out[-1].strip()):
+        out.pop()                         # a section heading left with nothing under it
+    return "\n".join(out)
+
+
 def duration_of(src: Path) -> float:
     out = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(src)],

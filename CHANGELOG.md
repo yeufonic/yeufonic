@@ -51,6 +51,10 @@ cannot creep back in.
   wants longer training.
 - **The guide's advice on what a voice learns from** now says what a single song or a short recording gives, and
   what more singing and more passes add.
+- **A transcribed score no longer ends in bars of silence.** A recording is transcribed with a few seconds of
+  silence after its end, so that a song still ringing as it stops is not refused; the rest bars that silence became
+  are now taken off the end of the score, for covers and corpus songs alike. Scores already made keep them until
+  they are transcribed again.
 - **The log names the voice settings a take is sung at** when its render starts (it showed the voice's defaults).
 
 ## 0.0.56 (2026-11-09)

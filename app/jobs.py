@@ -1035,6 +1035,11 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
         if not abc:
             fail(kind, ref_id, "the engine returned no score")
             return
+        trimmed = instrumental.trim_added_silence(abc, PAD_SECONDS)
+        if trimmed != abc:
+            log.info("Transcription of '%s': took off the rest bars at the end that the added silence became",
+                     record.get("title") or ref_id)
+            abc = trimmed
         if record.get("origin") == "recording":
             sung = instrumental.tune_on_voice(abc)
             if sung != abc:
@@ -1772,7 +1777,9 @@ async def _transcribe_corpus_song(kind: str, song_id: str, staged: Path, folder:
             log.info("Transcription of corpus song %s failed (%s%s), trying another way: %s", song_id, mode,
                      f", first {seconds}s" if seconds else "", str(exc)[:160])
             continue
-        abc = extract_text_output(job, "SheetSage2AudioToABC", "PreviewAny") or ""
+        # Without the rest bars the silence after the song became (see _ended_copy).
+        abc = instrumental.trim_added_silence(extract_text_output(job, "SheetSage2AudioToABC", "PreviewAny") or "",
+                                              PAD_SECONDS)
         if abc.count("|") >= 4:
             if (mode, seconds) == TRANSCRIBE_TRIES[0]:
                 return abc, ""
