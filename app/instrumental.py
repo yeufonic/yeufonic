@@ -394,7 +394,7 @@ def trim_added_silence(abc: str, seconds: float) -> str:
             out += [block[1], *_lines(kept)]
     while len(out) > body and (out[-1].startswith("%") or not out[-1].strip()):
         out.pop()                         # a section heading left with nothing under it
-    return "\n".join(out)
+    return "\n".join(out) + ("\n" if abc.endswith("\n") else "")
 
 
 def duration_of(src: Path) -> float:

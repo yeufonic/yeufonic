@@ -82,11 +82,12 @@ def _transcribed(source_id: str, origin: str, abc: str) -> str:
 
 def test_a_microphone_recording_is_transcribed_with_its_tune_in_the_vocal_voice():
     stored = _transcribed("mic1", "recording", HUM)
-    assert stored == instrumental.tune_on_voice(HUM) != HUM
+    # The last bar, a rest in both voices, is the silence added before transcribing.
+    assert stored == instrumental.tune_on_voice(instrumental.trim_added_silence(HUM, jobs.PAD_SECONDS)) != HUM
 
 
 def test_an_uploaded_file_keeps_the_voices_the_transcriber_gave_it():
-    assert _transcribed("up1", "upload", HUM) == HUM
+    assert _transcribed("up1", "upload", HUM) == instrumental.trim_added_silence(HUM, jobs.PAD_SECONDS) != HUM
 
 
 def test_a_hum_transcribed_before_the_change_still_makes_a_hook():
