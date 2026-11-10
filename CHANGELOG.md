@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.57 (2026-11-10)
 
 - **A caution at 100% Likeness.** At its highest a recorded voice keeps only the sounds it learned, so words the singer
   was never heard singing can come out garbled; a line under the voice's settings says so, on the Voices page and in
