@@ -42,7 +42,7 @@ ROOM_NAMES = {0.0: "dry", 0.14: "subtle", 0.28: "more"}
 # the rendered vocal's (low) or the converted one's own (1).
 PROTECT = (0.15, 0.33, 0.5)
 DYNAMICS = (0.25, 0.5, 1.0)
-PASSES = (25, 50, 100, 200)
+PASSES = (25, 50, 100, 200, 400, 800)
 # A corpus voice samples at most this many of the corpus's songs: each is separated before the minutes of singing
 # (Settings) are shared across them, and separating more adds time for little.
 CORPUS_SONGS = 30

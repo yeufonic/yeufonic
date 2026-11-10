@@ -88,7 +88,7 @@ cantou. Gravações limpas e secas dão a voz mais limpa. **Baixar voz** salva u
 **Importar uma voz…** adiciona uma: esse zip, ou um modelo RVC de outro lugar (o zip dele, ou o .pth e o .index escolhidos juntos). Uma voz importada sem o índice pode recebê-lo depois com **Adicionar o índice…**: Semelhança se baseia nele. Vozes prontas, modelos RVC treinados por outras pessoas, podem ser encontradas em sites como [voice-models.com](https://voice-models.com/): **Importar uma voz…** aceita o zip como foi baixado. A receita de um take
 cita a voz e as configurações do take para ela, e importá-la usa a voz com esse nome nesta instalação, se houver.
 
-Nos nossos testes, uma voz treinada com uma única música com um vocal principal limpo às vezes saiu melhor do que uma treinada com um corpus inteiro: uma voz aprende a reverberação e a produção da gravação junto com o cantor. Se uma voz sair áspera, tente treinar uma com outra música.
+Uma voz aprende a reverberação e a produção da gravação junto com o cantor, então um canto limpo com um vocal principal claro dá uma voz mais limpa do que um corpus de músicas mixadas. Uma única música ou uma gravação curta dá uma voz reconhecível, mas que pode borrar palavras que nunca ouviu cantadas. Uma voz treinada com muito mais canto, por muito mais passadas, como costumam ser as vozes prontas, mantém as palavras mesmo com uma Semelhança alta.
 
 ### Ajustes avançados {#advanced-settings}
 

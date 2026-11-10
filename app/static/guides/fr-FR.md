@@ -92,7 +92,7 @@ Des enregistrements propres et secs donnent la voix la plus propre. **Téléchar
 zip à donner à quelqu'un, et **Importer une voix…** en ajoute une : ce zip, ou un modèle RVC venu d'ailleurs (son zip, ou son .pth et son .index choisis ensemble). Une voix importée sans son index peut le recevoir plus tard avec **Ajouter son index…** : Ressemblance s'appuie dessus. Des voix toutes prêtes, des modèles RVC entraînés par d'autres, se trouvent sur des sites comme [voice-models.com](https://voice-models.com/) : **Importer une voix…** prend le zip tel qu'il a été téléchargé. La recette d'une prise nomme sa voix et ses réglages pour elle, et l'importer reprend la voix de ce nom sur cette
 installation, s'il y en a une.
 
-Dans nos essais, une voix entraînée sur une seule chanson au chant principal net a parfois donné un meilleur résultat qu'une voix entraînée sur tout un corpus : une voix apprend la réverbération et la production de l'enregistrement en même temps que le chanteur. Si une voix sort rugueuse, essayez d'en entraîner une sur une autre chanson.
+Une voix apprend la réverbération et la production de l'enregistrement en même temps que le chanteur : un chant propre au chant principal net donne donc une voix plus propre qu'un corpus de chansons mixées. Une seule chanson ou un court enregistrement donne une voix reconnaissable, mais qui peut brouiller les mots qu'elle n'a jamais entendu chanter. Une voix entraînée sur beaucoup plus de chant, avec beaucoup plus de passes, comme le sont souvent les voix toutes prêtes, garde les mots même avec une Ressemblance élevée.
 
 ### Réglages avancés {#advanced-settings}
 

@@ -92,7 +92,7 @@ e **Importa una voce…** ne aggiunge una: quello zip, o un modello RVC da altro
 di una take nomina la sua voce e le impostazioni della take per essa, e importarla riprende la voce con quel nome su questa
 installazione, se c'è.
 
-Nelle nostre prove, una voce addestrata su una sola canzone con una voce principale pulita a volte è venuta meglio di una addestrata su un intero corpus: una voce impara il riverbero e la produzione della registrazione insieme al cantante. Se una voce viene ruvida, prova ad addestrarne una su un'altra canzone.
+Una voce impara il riverbero e la produzione della registrazione insieme al cantante, quindi un canto pulito con una voce principale chiara dà una voce più pulita di un corpus di canzoni mixate. Una sola canzone o una registrazione breve dà una voce riconoscibile, ma che può confondere le parole che non ha mai sentito cantare. Una voce addestrata su molto più canto, con molti più passaggi, come spesso sono le voci già pronte, mantiene le parole anche con una Somiglianza alta.
 
 ### Impostazioni avanzate {#advanced-settings}
 

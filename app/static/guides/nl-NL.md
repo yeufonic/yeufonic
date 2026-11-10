@@ -92,7 +92,7 @@ importeren…** voegt er een toe: die zip, of een RVC-model van elders (de zip, 
 take noemt zijn stem en de instellingen van de take ervoor, en bij het importeren wordt de stem met die naam op deze installatie
 gebruikt, als die er is.
 
-In onze tests klonk een stem die op één nummer met een heldere leadzang was getraind soms beter dan een stem die op een heel corpus was getraind: een stem leert de galm en de productie van de opname mee met de zanger. Klinkt een stem ruw, train er dan een op een ander nummer.
+Een stem leert de galm en de productie van de opname mee met de zanger, dus schone zang met een heldere leadzang geeft een schonere stem dan een corpus van gemixte nummers. Eén nummer of een korte opname geeft een herkenbare stem, maar een die woorden kan vervagen die hij nooit gezongen heeft gehoord. Een stem die op veel meer zang en met veel meer rondes is getraind, zoals kant-en-klare stemmen vaak zijn, houdt de woorden ook bij een hoge Gelijkenis.
 
 ### Geavanceerde instellingen {#advanced-settings}
 

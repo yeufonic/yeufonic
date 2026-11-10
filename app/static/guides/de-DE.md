@@ -94,7 +94,7 @@ trainierte Stimme als ZIP, um sie weiterzugeben, und **Stimme importieren…** f
 anderswo (seine ZIP oder seine .pth und .index zusammen ausgewählt). Eine ohne Index importierte Stimme bekommt ihn später mit **Index hinzufügen…**: Ähnlichkeit greift darauf zurück. Fertige Stimmen, von anderen trainierte RVC-Modelle, gibt es auf Seiten wie [voice-models.com](https://voice-models.com/): **Stimme importieren…** nimmt die ZIP so, wie sie heruntergeladen wurde. Das Rezept eines Takes nennt seine Stimme und die Einstellungen des Takes
 dafür, und beim Import wird die Stimme dieses Namens auf dieser Installation verwendet, falls es sie gibt.
 
-In unseren Tests klang eine Stimme, die auf einem einzigen Lied mit klarem Leadgesang trainiert wurde, manchmal besser als eine, die auf einem ganzen Korpus trainiert wurde: Eine Stimme lernt den Hall und die Produktion der Aufnahme mit dem Sänger zusammen. Klingt eine Stimme rau, trainiere eine auf einem anderen Lied.
+Eine Stimme lernt den Hall und die Produktion der Aufnahme mit dem Sänger zusammen, daher ergibt sauberer Gesang mit klarem Leadgesang eine sauberere Stimme als ein Korpus gemischter Lieder. Ein einzelnes Lied oder eine kurze Aufnahme ergibt eine erkennbare Stimme, die aber Wörter verwischen kann, die sie nie gesungen gehört hat. Eine Stimme, die auf viel mehr Gesang und mit viel mehr Durchgängen trainiert wurde, wie es fertige Stimmen oft sind, behält die Wörter auch bei hoher Ähnlichkeit.
 
 ### Erweiterte Einstellungen {#advanced-settings}
 

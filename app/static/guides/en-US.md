@@ -92,9 +92,10 @@ and **Import a voice…** adds one: that zip, or an RVC model from elsewhere (it
 recipe names its voice and the take's settings for it, and importing it picks up the voice of that name on this
 install, if there is one.
 
-In our testing, a voice trained on a single song with a clear lead vocal sometimes came out better than one trained on
-a whole corpus: a voice learns the recording's reverb and production along with the singer. If a voice comes out
-rough, try training one on another song.
+A voice learns the recording's reverb and production along with the singer, so clean singing with a clear lead
+vocal makes a cleaner voice than a corpus of mixed songs. A single song or a short recording gives a recognizable voice,
+but one that can blur words it never heard sung. A voice trained on far more singing, for many more passes, as
+ready-made voices often are, keeps the words even at a high Likeness.
 
 ### Advanced settings {#advanced-settings}
 

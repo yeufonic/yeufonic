@@ -47,6 +47,10 @@ cannot creep back in.
   Likeness has something to draw on.
 - **Where to find ready-made voices.** The Voices page, the README and the guide point to sites such as
   voice-models.com, whose RVC models import as downloaded.
+- **Voice training goes up to 800 passes** (Settings → Voice Training), as well as 25 to 200, for a voice that
+  wants longer training.
+- **The guide's advice on what a voice learns from** now says what a single song or a short recording gives, and
+  what more singing and more passes add.
 - **The log names the voice settings a take is sung at** when its render starts (it showed the voice's defaults).
 
 ## 0.0.56 (2026-11-09)
