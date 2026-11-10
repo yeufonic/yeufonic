@@ -218,7 +218,9 @@ CREATE TABLE IF NOT EXISTS voices (
     room REAL NOT NULL DEFAULT 0.14,
     brightness INTEGER NOT NULL DEFAULT 1,
     protect REAL NOT NULL DEFAULT 0.33,
-    dynamics REAL NOT NULL DEFAULT 0.25
+    dynamics REAL NOT NULL DEFAULT 0.25,
+    formant REAL NOT NULL DEFAULT 1.0,
+    wet REAL NOT NULL DEFAULT 1.0
 );
 CREATE TABLE IF NOT EXISTS voice_recordings (
     id TEXT PRIMARY KEY,
@@ -805,6 +807,15 @@ def _voice_sound() -> None:
             execute(f"ALTER TABLE voices ADD COLUMN {column} {kind}")
 
 
+def _voice_formant_wet() -> None:
+    """A recorded voice's formant shift (below 1 deeper, above 1 brighter) and how much of the vocal it sings, the rest
+    being the rendered vocal it was made from: 1.0 each, as every voice sounded before."""
+    have = _columns("voices")
+    for column in ("formant", "wet"):
+        if column not in have:
+            execute(f"ALTER TABLE voices ADD COLUMN {column} REAL NOT NULL DEFAULT 1.0")
+
+
 def _take_voice_mix() -> None:
     """A take's own octave, levels and likeness for its recorded voice, as JSON over the voice's defaults."""
     if "voice_mix" not in _columns("takes"):
@@ -897,6 +908,7 @@ MIGRATIONS = [
     _voice_vocals_only,                                              # -> 50
     _voice_recordings,                                               # -> 51
     _voice_sound,                                                    # -> 52
+    _voice_formant_wet,                                              # -> 53
 ]
 
 

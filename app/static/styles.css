@@ -7191,6 +7191,13 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 .likeness-caution { color: var(--warn); margin: 8px 0 0; }
 .likeness-caution.hidden { display: none; }
 .voice-no-index { margin: 8px 0 0; }
+.voice-audition { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.voice-audition #audition-play.on { color: var(--accent-a); border-color: var(--accent-a); }
+.voice-audition #audition-state { font-size: 12px; flex: 1 1 auto; }
+.voice-audition select { width: auto; flex: 1 1 140px; min-width: 0; }
+#voice-keep-form { display: flex; gap: 8px; margin-top: 8px; }
+#voice-keep-form.hidden { display: none; }
+#voice-keep-form input { flex: 1 1 auto; min-width: 0; }
 .job-panel.floating { position: fixed; z-index: 90; }
 .voice-rec-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; flex-wrap: wrap; }
 .voice-rec-row .voice-rec-title { flex: 1 1 220px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }

@@ -35,3 +35,6 @@ compose.override.yml
 docker-compose.override.yml
 # A checkout of yue2.cpp kept here for work on its engine: engine-cpp/ builds from its own pinned copy.
 yue2.cpp/
+
+# The loops the editor's Hear it plays a voice on, shipped with the app
+!app/voice_loops/*.flac

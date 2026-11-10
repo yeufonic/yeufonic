@@ -88,3 +88,6 @@ macos/dist/
 
 # What a browser test run leaves: screenshots of failures and the app's log
 browser-tests/artifacts/
+
+# The loops the editor's Hear it plays a voice on, shipped with the app
+!app/voice_loops/*.flac

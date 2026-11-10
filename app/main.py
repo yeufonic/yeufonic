@@ -3350,7 +3350,8 @@ def _voice_mix(wanted: dict | None) -> str | None:
         return None
     clamps = {"octave": persona.clamp_octave, "level_db": persona.clamp_level, "backing_db": persona.clamp_backing,
               "likeness": persona.clamp_likeness, "room": persona.clamp_room, "brightness": persona.clamp_brightness,
-              "protect": persona.clamp_protect, "dynamics": persona.clamp_dynamics}
+              "protect": persona.clamp_protect, "dynamics": persona.clamp_dynamics,
+              "formant": persona.clamp_formant, "wet": persona.clamp_wet}
     kept = {key: clamp(wanted[key]) for key, clamp in clamps.items() if wanted.get(key) is not None}
     return json.dumps(kept) if kept else None
 
@@ -6175,18 +6176,114 @@ async def edit_persona(persona_id: str, name: str | None = Form(None), octave: i
                        level_db: float | None = Form(None), likeness: float | None = Form(None),
                        backing_db: float | None = Form(None), room: float | None = Form(None),
                        brightness: str | None = Form(None), protect: float | None = Form(None),
-                       dynamics: float | None = Form(None)) -> dict:
+                       dynamics: float | None = Form(None), formant: float | None = Form(None),
+                       wet: float | None = Form(None)) -> dict:
     """Rename a voice, move it up or down an octave, set its vocal and backing levels in the mix, how closely it keeps
     to its singer's own sounds, the room under it, whether its upper range is lifted, how far its breaths and
-    consonants are protected, and whose loudness contour it follows."""
+    consonants are protected, whose loudness contour it follows, its formants, and how much of the vocal it sings."""
     record = persona.update(persona_id, **{k: v for k, v in (("name", name), ("octave", octave), ("level_db", level_db),
                                                              ("likeness", likeness), ("backing_db", backing_db),
                                                              ("room", room), ("brightness", brightness),
-                                                             ("protect", protect), ("dynamics", dynamics))
+                                                             ("protect", protect), ("dynamics", dynamics),
+                                                             ("formant", formant), ("wet", wet))
                                            if v is not None})
     if record is None:
         raise HTTPException(404, "no such persona")
     return record
+
+
+# Hearing a voice before a take is made with it: a short sung loop, shipped with the app (app/voice_loops), sung in
+# the voice with the editor's settings by the voice service, which keeps the voice loaded so a change is heard in
+# under a second.  The page plays the loop itself as the dry half of Blend.
+VOICE_LOOPS = {"male": "A man singing", "female": "A woman singing"}
+VOICE_LOOP_DIR = Path(__file__).parent / "voice_loops"
+
+
+class AuditionIn(BaseModel):
+    loop: str = "male"
+    octave: int = 0
+    likeness: float = 0.75
+    protect: float = 0.33
+    dynamics: float = 0.25
+    room: float = 0.14
+    brightness: int = 1
+    formant: float = 1.0
+
+
+class VoiceCopyIn(BaseModel):
+    name: str = Field("", max_length=80)
+    settings: dict = Field(default_factory=dict)
+
+
+@app.get("/api/voices/loops")
+def voice_loops() -> list[dict]:
+    return [{"id": key, "name": name, "url": f"/api/voices/loops/{key}.flac"} for key, name in VOICE_LOOPS.items()
+            if (VOICE_LOOP_DIR / f"{key}.flac").is_file()]
+
+
+@app.get("/api/voices/loops/{key}.flac")
+def voice_loop_audio(key: str) -> FileResponse:
+    if key not in VOICE_LOOPS or not (VOICE_LOOP_DIR / f"{key}.flac").is_file():
+        raise HTTPException(404, "no such loop")
+    return FileResponse(VOICE_LOOP_DIR / f"{key}.flac", media_type="audio/flac")
+
+
+def _loop_for_service(key: str) -> Path:
+    """The loop where the voice service can read it: the library's folder, which it shares."""
+    shipped = VOICE_LOOP_DIR / f"{key}.flac"
+    here = config.DATA_DIR / "voice-loops" / shipped.name
+    if not here.is_file() or here.stat().st_size != shipped.stat().st_size:
+        here.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(shipped, here)
+    return here
+
+
+@app.post("/api/voices/{persona_id}/audition")
+async def audition_voice(persona_id: str, body: AuditionIn) -> FileResponse:
+    """The loop sung in this voice with these settings, as WAV: the converted half of what the editor plays."""
+    record = persona.one(persona_id)
+    if not persona.usable(record):
+        raise HTTPException(400, "This voice has no trained model to hear.")
+    if body.loop not in VOICE_LOOPS or not (VOICE_LOOP_DIR / f"{body.loop}.flac").is_file():
+        raise HTTPException(400, "There is no such loop.")
+    if not config.VOICE_URL:
+        raise HTTPException(503, "The voice service is not running.")
+    if jobs.gpu_busy():
+        raise HTTPException(409, "The GPU is busy: listen again when the job under way is done.")
+    loop = await asyncio.to_thread(_loop_for_service, body.loop)
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    out = config.WORK_DIR / f"audition-{uuid.uuid4().hex[:8]}.wav"
+    jobs.AUDITION_HELD["at"] = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            answer = await client.post(config.VOICE_URL + "/audition", json={
+                "id": persona_id, "loop": str(loop), "output": str(out), "octave": persona.clamp_octave(body.octave),
+                "likeness": persona.clamp_likeness(body.likeness), "protect": persona.clamp_protect(body.protect),
+                "dynamics": persona.clamp_dynamics(body.dynamics), "room": persona.clamp_room(body.room),
+                "brightness": persona.clamp_brightness(body.brightness), "formant": persona.clamp_formant(body.formant)})
+    except httpx.HTTPError as err:
+        raise HTTPException(503, "The voice service did not answer.") from err
+    if answer.status_code == 404:
+        raise HTTPException(503, "The voice service is older than this app: rebuild it to hear voices.")
+    if answer.status_code == 409:
+        raise HTTPException(409, "The voice service is busy: listen again when its job is done.")
+    if answer.status_code != 200 or not out.is_file():
+        out.unlink(missing_ok=True)
+        detail = ""
+        with contextlib.suppress(Exception):
+            detail = answer.json().get("error") or ""
+        raise HTTPException(502, f"The voice could not be heard: {detail[-200:]}" if detail else "The voice could not be heard.")
+    return FileResponse(out, media_type="audio/wav", headers={"Cache-Control": "no-store"},
+                        background=BackgroundTask(out.unlink, missing_ok=True))
+
+
+@app.post("/api/voices/{persona_id}/copy")
+async def copy_voice(persona_id: str, body: VoiceCopyIn) -> dict:
+    """A new voice with this one's model and these settings as its own: what was heard, kept as a voice."""
+    made = persona.copy(persona_id, body.name, body.settings)
+    if made is None:
+        raise HTTPException(400, "This voice has no trained model to copy.")
+    return made
 
 
 @app.delete("/api/voices/{persona_id}")
