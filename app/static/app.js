@@ -18029,21 +18029,26 @@ function paintPersonaField() {
   var mix = pickedVoiceMix();
   var own = picked ? voiceDefaults(picked) : {};
   var changed = mix && Object.keys(own).some(function (k) { return mix[k] != null && Number(mix[k]) !== Number(own[k]); });
-  host.innerHTML = '<label for="persona-toggle">' + t('Recorded voice') + '</label>' +
-    '<button type="button" id="persona-toggle" class="voice-toggle' + (changed ? ' changed' : '') + '" aria-expanded="' + (VOICES.open ? 'true' : 'false') + '"' +
-      ' title="' + esc(t('The recorded voice for this take, and its settings')) + '">' +
-      '<span class="voice-toggle-name">' + esc(picked ? picked.name : t('None')) + '</span>' +
-      (changed ? '<span class="voice-toggle-note">' + esc(t('own settings')) + '</span>' : '') +
-      '<span class="voice-toggle-caret" aria-hidden="true">▾</span></button>' +
-    '<div id="persona-panel" class="voice-panel' + (VOICES.open ? '' : ' hidden') + '">' +
-      '<select id="persona-select">' + options.join('') + '</select>' +
-      (mix ? '<div class="voice-mix">' + voiceControls(mix, false) + '</div>' + likenessCaution(mix.likeness) + auditionRow() : '') +
-    '</div>';
-  $('persona-toggle').addEventListener('click', function () {
-    VOICES.open = !VOICES.open;
-    if (!VOICES.open && AUD.playing) { auditionStop(); }
-    paintPersonaField();
-  });
+  // The picker is the field itself; with a voice picked, a button beside it opens the take's settings for it.
+  host.innerHTML = '<label for="persona-select">' + t('Recorded voice') + '</label>' +
+    '<div class="voice-pick-row">' +
+      '<select id="persona-select" title="' + esc(t('The recorded voice for this take')) + '">' + options.join('') + '</select>' +
+      (picked ? '<button type="button" id="persona-toggle" class="voice-toggle' + (changed ? ' changed' : '') + '" aria-expanded="' + (VOICES.open ? 'true' : 'false') + '"' +
+        ' title="' + esc(t("This take's settings for the voice")) + '">' +
+        '<span class="voice-toggle-name">' + esc(t('Settings')) + '</span>' +
+        (changed ? '<span class="voice-toggle-note">' + esc(t('own settings')) + '</span>' : '') +
+        '<span class="voice-toggle-caret" aria-hidden="true">▾</span></button>' : '') +
+    '</div>' +
+    (picked ? '<div id="persona-panel" class="voice-panel' + (VOICES.open ? '' : ' hidden') + '">' +
+      '<div class="voice-mix">' + voiceControls(mix, false) + '</div>' + likenessCaution(mix.likeness) + auditionRow() +
+    '</div>' : '');
+  if ($('persona-toggle')) {
+    $('persona-toggle').addEventListener('click', function () {
+      VOICES.open = !VOICES.open;
+      if (!VOICES.open && AUD.playing) { auditionStop(); }
+      paintPersonaField();
+    });
+  }
   var select = $('persona-select');
   select.value = VOICES.pick || '';
   select.addEventListener('change', function () {
