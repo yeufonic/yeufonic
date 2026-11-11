@@ -2943,6 +2943,13 @@ button.take-status.normalised:hover { background: rgb(var(--good-rgb) / 0.15); }
 .take-status.stems-pill svg { width: 14px; height: 14px; }
 .take-status.stems-pill:hover { background: rgba(148, 163, 184, 0.16); }
 .take.collapsed .take-status.stems-pill, .take.opened .take-status.stems-pill { display: inline-flex; }
+/* Folded, the status pills and the small buttons keep to one line, so a pill never adds a row: the pills are
+   smaller, and give way (their words cut short) before the buttons would go under. */
+.take.collapsed .take-live { flex-wrap: nowrap; min-height: 26px; column-gap: 6px; }
+.take.collapsed .take-live > :not(.take-corner) { flex: 0 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.take.collapsed .take-status { padding: 2px 7px; font-size: 11px; gap: 4px; }
+.take.collapsed .take-status.stems-pill svg { width: 12px; height: 12px; flex: none; }
+.take.collapsed .take-corner { flex: none; }
 :root[data-theme="light"] .take-status.stems-pill { color: #475569; background: rgba(71, 85, 105, 0.08); border-color: rgba(71, 85, 105, 0.3); }
 .status-undo { flex: 1; min-width: 0; border: 0; background: none; color: inherit; font: inherit; font-size: 12px;
   text-align: left; padding: 0; cursor: pointer; }
