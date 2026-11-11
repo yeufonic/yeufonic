@@ -2886,9 +2886,29 @@ def unload_when_idle(kind: str = "") -> bool:
     return wanted and QUEUE.empty() and not ART_WAITING
 
 
+# An audition (the editor's Hear it) keeps a voice loaded on the voice service, about a gigabyte of the card: it is
+# let go before any other GPU work starts here, and the editor does not audition while such work runs.
+AUDITION_HELD = {"at": 0.0}
+
+
+async def release_audition() -> None:
+    if not AUDITION_HELD["at"] or not config.VOICE_URL:
+        return
+    AUDITION_HELD["at"] = 0.0
+    with contextlib.suppress(Exception):
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            await client.post(config.VOICE_URL + "/audition/free")
+
+
+def gpu_busy() -> bool:
+    """Whether GPU work is under way here (a render, a plan, training), which an audition must not share the card with."""
+    return bool(CURRENT)
+
+
 async def worker() -> None:
     while True:
         job, queued = await next_gpu_job()
+        await release_audition()
         try:
             await wait_for_engine()
             await run_job(job["kind"], job["id"])
@@ -3411,6 +3431,7 @@ async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
                 "backing_db": voice["backing_db"], "room": persona.clamp_room(voice.get("room")),
                 "brightness": persona.clamp_brightness(voice.get("brightness")),
                 "protect": persona.clamp_protect(voice.get("protect")), "dynamics": persona.clamp_dynamics(voice.get("dynamics")),
+                "formant": persona.clamp_formant(voice.get("formant")), "wet": persona.clamp_wet(voice.get("wet")),
                 **({"parts": str(parts)} if config.VOICE_KEEP_PARTS else {})})
         if answer.status_code != 200 or not sung.is_file():
             raise RuntimeError((answer.json() or {}).get("error") or f"answered {answer.status_code}")

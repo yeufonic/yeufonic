@@ -16492,6 +16492,7 @@ function closeEditor() {
   if (!editorOpen()) { return; }
   saveTitleIfDirty();
   notationStop();
+  if (typeof auditionStop === 'function' && AUD.playing) { auditionStop(); }
   if (window.PianoRoll) { window.PianoRoll.stop(); }
   if (scoreIsDirty() && (takeIdInEditor() || (State.mode === 'cover' && currentSource()))) {
     saveScore(true);
@@ -17704,6 +17705,15 @@ function dynamicsOptions(v) {
   return stepOptions(v.dynamics == null ? 0.25 : Number(v.dynamics), [[0.25, t('Follow the take')], [0.5, t('Even')], [1, t("The voice's own")]]);
 }
 
+function formantOptions(v) {
+  return stepOptions(v.formant == null ? 1 : Number(v.formant),
+    [[0.88, t('Deeper')], [0.94, t('A little deeper')], [1, t('As sung')], [1.06, t('A little brighter')], [1.12, t('Brighter')]]);
+}
+
+function wetOptions(v) {
+  return stepOptions(v.wet == null ? 1 : Number(v.wet), [[1, '100%'], [0.75, '75%'], [0.5, '50%'], [0.25, '25%']]);
+}
+
 function brightnessOptions(v) {
   var on = v.brightness == null ? true : Boolean(Number(v.brightness));
   return '<option value="1"' + (on ? ' selected' : '') + '>' + esc(t('Auto')) + '</option>' +
@@ -17721,6 +17731,8 @@ function voiceTitle(field) {
     case 'brightness': return t("Auto lifts the converted vocal's upper range to match the rendered one's; Off leaves it as converted");
     case 'protect': return t("How far breaths and consonants keep the rendered vocal's sounds: kept, they stay clear but carry a trace of it; converted, they can tear");
     case 'dynamics': return t("Whose loudness the vocal follows from phrase to phrase: the take's, as rendered, or the voice's own swells");
+    case 'formant': return t('The size of the voice, its pitch kept: deeper sounds larger, brighter smaller');
+    case 'wet': return t('How much of the vocal the voice sings; the rest is the rendered vocal it was made from');
     default: return '';
   }
 }
@@ -17735,6 +17747,8 @@ function voiceControls(v, ids) {
     ['brightness', t('Brightness'), brightnessOptions(v), 'voice-brightness'],
     ['protect', t('Breaths and consonants'), protectOptions(v), 'voice-protect'],
     ['dynamics', t('Dynamics'), dynamicsOptions(v), 'voice-dynamics'],
+    ['formant', t('Formant'), formantOptions(v), 'voice-formant'],
+    ['wet', t('Blend'), wetOptions(v), 'voice-wet'],
   ];
   return rows.map(function (r) {
     var title = voiceTitle(r[0]) ? ' title="' + esc(voiceTitle(r[0])) + '"' : '';
@@ -18015,7 +18029,8 @@ function pickedVoiceMix() {
 function voiceDefaults(v) {
   return { octave: v.octave, level_db: v.level_db, backing_db: v.backing_db, likeness: v.likeness,
            room: v.room == null ? 0.14 : v.room, brightness: v.brightness == null ? 1 : v.brightness,
-           protect: v.protect == null ? 0.33 : v.protect, dynamics: v.dynamics == null ? 0.25 : v.dynamics };
+           protect: v.protect == null ? 0.33 : v.protect, dynamics: v.dynamics == null ? 0.25 : v.dynamics,
+           formant: v.formant == null ? 1 : v.formant, wet: v.wet == null ? 1 : v.wet };
 }
 
 /* What a new take or a render sends: the editor's settings for the picked voice, or null with none picked. */
@@ -18040,27 +18055,36 @@ function paintPersonaField() {
   var mix = pickedVoiceMix();
   var own = picked ? voiceDefaults(picked) : {};
   var changed = mix && Object.keys(own).some(function (k) { return mix[k] != null && Number(mix[k]) !== Number(own[k]); });
-  host.innerHTML = '<label for="persona-toggle">' + t('Recorded voice') + '</label>' +
-    '<button type="button" id="persona-toggle" class="voice-toggle' + (changed ? ' changed' : '') + '" aria-expanded="' + (VOICES.open ? 'true' : 'false') + '"' +
-      ' title="' + esc(t('The recorded voice for this take, and its settings')) + '">' +
-      '<span class="voice-toggle-name">' + esc(picked ? picked.name : t('None')) + '</span>' +
-      (changed ? '<span class="voice-toggle-note">' + esc(t('own settings')) + '</span>' : '') +
-      '<span class="voice-toggle-caret" aria-hidden="true">▾</span></button>' +
-    '<div id="persona-panel" class="voice-panel' + (VOICES.open ? '' : ' hidden') + '">' +
-      '<select id="persona-select">' + options.join('') + '</select>' +
-      (mix ? '<div class="voice-mix">' + voiceControls(mix, false) + '</div>' + likenessCaution(mix.likeness) : '') +
-    '</div>';
-  $('persona-toggle').addEventListener('click', function () {
-    VOICES.open = !VOICES.open;
-    paintPersonaField();
-  });
+  // The picker is the field itself; with a voice picked, a button beside it opens the take's settings for it.
+  host.innerHTML = '<label for="persona-select">' + t('Recorded voice') + '</label>' +
+    '<div class="voice-pick-row">' +
+      '<select id="persona-select" title="' + esc(t('The recorded voice for this take')) + '">' + options.join('') + '</select>' +
+      (picked ? '<button type="button" id="persona-toggle" class="voice-toggle' + (changed ? ' changed' : '') + '" aria-expanded="' + (VOICES.open ? 'true' : 'false') + '"' +
+        ' title="' + esc(t("This take's settings for the voice")) + '">' +
+        '<span class="voice-toggle-name">' + esc(t('Settings')) + '</span>' +
+        (changed ? '<span class="voice-toggle-note">' + esc(t('own settings')) + '</span>' : '') +
+        '<span class="voice-toggle-caret" aria-hidden="true">▾</span></button>' : '') +
+    '</div>' +
+    (picked ? '<div id="persona-panel" class="voice-panel' + (VOICES.open ? '' : ' hidden') + '">' +
+      '<div class="voice-mix">' + voiceControls(mix, false) + '</div>' + likenessCaution(mix.likeness) + auditionRow() +
+    '</div>' : '');
+  if ($('persona-toggle')) {
+    $('persona-toggle').addEventListener('click', function () {
+      VOICES.open = !VOICES.open;
+      if (!VOICES.open && AUD.playing) { auditionStop(); }
+      paintPersonaField();
+    });
+  }
   var select = $('persona-select');
   select.value = VOICES.pick || '';
   select.addEventListener('change', function () {
     VOICES.pick = select.value || null;
     VOICES.takeMix = {};          // another voice starts from its own defaults
+    AUD.wetKey = '';
+    if (!VOICES.pick && AUD.playing) { auditionStop(); }
     paintPersonaField();
   });
+  wireAudition(host);
   Array.prototype.forEach.call(host.querySelectorAll('[data-mix]'), function (control) {
     control.addEventListener('change', function () {
       VOICES.takeMix = Object.assign({}, VOICES.takeMix || {});
@@ -18070,6 +18094,197 @@ function paintPersonaField() {
       if (again) { again.focus(); }
     });
   });
+}
+
+/* Hear it: the picked voice singing a short loop with the editor's settings, played round and round while they
+   change.  The voice service sings the loop (the wet half, in under a second once the voice is loaded); the page plays
+   the loop itself as the dry half, so Blend moves at once.  Only the newest request is played: a change made while
+   one is out is asked for when it comes back. */
+var AUD = { ctx: null, playing: false, loop: 'male', loops: null, dry: {}, wetBuf: null, wetKey: '', wantKey: '',
+            busy: false, again: false, start: 0, nodes: null, state: '', keepOpen: false };
+
+function auditionRow() {
+  var loops = AUD.loops || [];
+  if (!loops.length) {
+    if (!AUD.loops) { auditionLoops().then(function (got) { if (got.length) { paintPersonaField(); } }); }
+    return '';
+  }
+  return '<div class="voice-audition row">' +
+      '<button type="button" id="audition-play" class="ghost' + (AUD.playing ? ' on' : '') + '" title="' +
+        esc(t('Hear the voice sing a short loop with these settings, while you change them')) + '">' +
+        esc(AUD.playing ? t('Stop') : t('Hear it')) + '</button>' +
+      '<select id="audition-loop" title="' + esc(t('The loop the voice sings')) + '">' + loops.map(function (l) {
+        return '<option value="' + esc(l.id) + '"' + (l.id === AUD.loop ? ' selected' : '') + '>' + esc(l.id === 'female' ? t('A woman singing') : t('A man singing')) + '</option>';
+      }).join('') + '</select>' +
+      '<span id="audition-state" class="muted">' + esc(AUD.state) + '</span>' +
+      '<button type="button" id="voice-keep" class="ghost" title="' + esc(t('Keep these settings as a voice of their own, on the same model')) + '">' +
+        esc(t('Save as a new voice…')) + '</button>' +
+    '</div>' +
+    '<div id="voice-keep-form" class="row' + (AUD.keepOpen ? '' : ' hidden') + '">' +
+      '<input id="voice-keep-name" maxlength="80" placeholder="' + esc(t('Name of the new voice')) + '">' +
+      '<button type="button" id="voice-keep-save" class="chip action">' + esc(t('Save')) + '</button>' +
+    '</div>';
+}
+
+async function auditionLoops() {
+  if (AUD.loops) { return AUD.loops; }
+  try { AUD.loops = await api('/api/voices/loops'); } catch (err) { AUD.loops = []; }
+  return AUD.loops;
+}
+
+function auditionSay(text) {
+  AUD.state = text || '';
+  var el = $('audition-state');
+  if (el) { el.textContent = AUD.state; }
+}
+
+function wireAudition(host) {
+  var play = host.querySelector('#audition-play');
+  if (play) { play.addEventListener('click', function () { if (AUD.playing) { auditionStop(); } else { auditionStart(); } }); }
+  var loop = host.querySelector('#audition-loop');
+  if (loop) {
+    loop.addEventListener('change', function () {
+      AUD.loop = loop.value;
+      AUD.wetKey = '';
+      if (AUD.playing) { auditionStop(); auditionStart(); }
+    });
+  }
+  var keep = host.querySelector('#voice-keep');
+  if (keep) {
+    keep.addEventListener('click', function () {
+      AUD.keepOpen = !AUD.keepOpen;
+      var form = $('voice-keep-form');
+      if (form) { form.classList.toggle('hidden', !AUD.keepOpen); }
+      var name = $('voice-keep-name');
+      if (AUD.keepOpen && name) { name.focus(); }
+    });
+  }
+  var save = host.querySelector('#voice-keep-save');
+  if (save) { save.addEventListener('click', function () { keepAsVoice().catch(function (err) { toast(err.message); }); }); }
+  if (AUD.playing) { auditionRefresh(); }
+}
+
+function auditionKey(mix) {
+  return [VOICES.pick, AUD.loop, mix.octave, mix.likeness, mix.protect, mix.dynamics, mix.room, mix.brightness, mix.formant].join('|');
+}
+
+async function auditionDry(loop) {
+  if (AUD.dry[loop]) { return AUD.dry[loop]; }
+  var found = (AUD.loops || []).filter(function (l) { return l.id === loop; })[0];
+  if (!found) { throw new Error(t('There is no such loop.')); }
+  var data = await (await fetch(found.url)).arrayBuffer();
+  AUD.dry[loop] = await AUD.ctx.decodeAudioData(data);
+  return AUD.dry[loop];
+}
+
+async function auditionStart() {
+  if (!VOICES.pick) { return; }
+  var Context = window.AudioContext || window.webkitAudioContext;
+  if (!AUD.ctx) { AUD.ctx = new Context(); }
+  if (AUD.ctx.state === 'suspended') { await AUD.ctx.resume(); }
+  AUD.playing = true;
+  paintPersonaField();
+  auditionRefresh();
+}
+
+function auditionStop() {
+  AUD.playing = false;
+  AUD.wantKey = '';
+  if (AUD.nodes) {
+    AUD.nodes.forEach(function (node) { try { node.stop(); } catch (err) { /* not started */ } });
+    AUD.nodes = null;
+  }
+  auditionSay('');
+  var play = $('audition-play');
+  if (play) { play.textContent = t('Hear it'); play.classList.remove('on'); }
+}
+
+/* Blend at once, from the page: the voice's share of the vocal, the rest the loop as sung. */
+function auditionGains(wet) {
+  if (!AUD.gains) { return; }
+  var share = wet == null ? 1 : Number(wet);
+  AUD.gains.wet.gain.value = share;
+  AUD.gains.dry.gain.value = 1 - share;
+}
+
+async function auditionRefresh() {
+  if (!AUD.playing || !VOICES.pick) { return; }
+  var mix = pickedVoiceMix();
+  if (!mix) { auditionStop(); return; }
+  auditionGains(mix.wet);
+  var key = auditionKey(mix);
+  if (key === AUD.wetKey || key === AUD.wantKey) { return; }
+  if (AUD.busy) { AUD.again = true; return; }
+  AUD.busy = true;
+  AUD.wantKey = key;
+  auditionSay(AUD.wetBuf && AUD.nodes ? t('Changing…') : t('Loading the voice…'));
+  try {
+    var dry = await auditionDry(AUD.loop);
+    var response = await fetch('/api/voices/' + encodeURIComponent(VOICES.pick) + '/audition', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ loop: AUD.loop, octave: mix.octave, likeness: mix.likeness, protect: mix.protect,
+                             dynamics: mix.dynamics, room: mix.room, brightness: Number(mix.brightness), formant: mix.formant }) });
+    if (!response.ok) {
+      var detail = '';
+      try { detail = (await response.json()).detail || ''; } catch (err) { /* not JSON */ }
+      throw new Error(detail ? tr(String(detail)) : t('The voice could not be heard.'));
+    }
+    var wet = await AUD.ctx.decodeAudioData(await response.arrayBuffer());
+    if (AUD.playing && key === AUD.wantKey) {
+      AUD.wetBuf = wet;
+      AUD.wetKey = key;
+      auditionPlay(dry, wet);
+      auditionSay('');
+    }
+  } catch (err) {
+    AUD.wantKey = '';
+    auditionSay(err.message);
+  } finally {
+    AUD.busy = false;
+    if (AUD.again) { AUD.again = false; auditionRefresh(); }
+  }
+}
+
+/* Both halves round and round, the same length, the new wet half taking over where the loop has got to. */
+function auditionPlay(dry, wet) {
+  var ctx = AUD.ctx;
+  var length = Math.min(dry.duration, wet.duration);
+  var at = AUD.nodes ? (ctx.currentTime - AUD.start) % length : 0;
+  if (AUD.nodes) { AUD.nodes.forEach(function (node) { try { node.stop(); } catch (err) { /* ended */ } }); }
+  if (!AUD.gains) {
+    AUD.gains = { wet: ctx.createGain(), dry: ctx.createGain() };
+    AUD.gains.wet.connect(ctx.destination);
+    AUD.gains.dry.connect(ctx.destination);
+  }
+  var mix = pickedVoiceMix();
+  auditionGains(mix ? mix.wet : 1);
+  AUD.nodes = [[dry, AUD.gains.dry], [wet, AUD.gains.wet]].map(function (pair) {
+    var source = ctx.createBufferSource();
+    source.buffer = pair[0];
+    source.loop = true;
+    source.loopStart = 0;
+    source.loopEnd = length;
+    source.connect(pair[1]);
+    source.start(ctx.currentTime + 0.02, at);
+    return source;
+  });
+  AUD.start = ctx.currentTime + 0.02 - at;
+}
+
+/* What was heard, kept: a new voice on the same model with these settings as its own, picked for the take. */
+async function keepAsVoice() {
+  var mix = pickedVoiceMix();
+  if (!mix) { return; }
+  var name = ($('voice-keep-name') && $('voice-keep-name').value || '').trim();
+  var made = await api('/api/voices/' + encodeURIComponent(VOICES.pick) + '/copy', {
+    method: 'POST', body: JSON.stringify({ name: name, settings: mix }) });
+  AUD.keepOpen = false;
+  await loadVoices();
+  VOICES.pick = made.id;
+  VOICES.takeMix = {};
+  AUD.wetKey = '';
+  paintPersonaField();
+  toast(t('Saved the voice {value}.', { value: made.name }));
 }
 
 /* The editor shows the voice of the take open in it, with the take's own settings, or none. */
@@ -18124,7 +18339,7 @@ function wireVoices() {
       }
       var field = { 'voice-octave': 'octave', 'voice-level': 'level_db', 'voice-likeness': 'likeness', 'voice-backing': 'backing_db',
                     'voice-room': 'room', 'voice-brightness': 'brightness', 'voice-protect': 'protect',
-                    'voice-dynamics': 'dynamics' }[event.target.id] || null;
+                    'voice-dynamics': 'dynamics', 'voice-formant': 'formant', 'voice-wet': 'wet' }[event.target.id] || null;
       if (field === 'likeness') {
         var caution = body.querySelector('.likeness-caution');
         if (caution) { caution.classList.toggle('hidden', Number(event.target.value) < 1); }

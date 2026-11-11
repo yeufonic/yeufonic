@@ -8,6 +8,8 @@ GPU schedule: it frees the engine before it asks for anything here, so this neve
     GET  /jobs/<id>                 {"state": queued|running|done|failed, "progress": 0..1, "stage", "error"}
     POST /jobs/<id>/stop            ends a training run: the step under way is terminated, its files removed
     POST /convert  {"id", "input", "output", "octave": int}                        -> {"ok": true} when written
+    POST /audition {"id", "loop", "output", "octave", "likeness", ...}             -> {"ok": true, "seconds"}
+    POST /audition/free             lets go of the voice an audition holds on the card
 
 Paths are the app's own (/data/...): this container mounts the same data folder.  A voice's files go to
 /data/voices/<id>/: model.pth and model.index, vocals/ (each song separated) and excerpts/ (what was trained on), and a
@@ -403,9 +405,181 @@ def settle(original: Path, sung: Path, voice: str = "", level_db: float = 0.0, r
           + f", level {gain_db:+.1f} dB to the rendered vocal's, room {float(room):.2f}", flush=True)
 
 
+FORMANT_FLOOR, FORMANT_CEILING = 75.0, 600.0    # the pitch range Praat looks for the voice in
+
+
+def shift_formants(sung: Path, ratio: float) -> None:
+    """The converted vocal with its formants moved by `ratio`, its pitch and timing kept: below 1 a larger, deeper
+    voice, above 1 a smaller, brighter one.  Praat's Change gender, through parselmouth (installed with RVC)."""
+    if not ratio or abs(ratio - 1.0) < 0.005:
+        return
+    import parselmouth  # noqa: PLC0415
+    import soundfile  # noqa: PLC0415
+    from parselmouth.praat import call  # noqa: PLC0415
+
+    samples, rate = soundfile.read(str(sung), dtype="float64")
+    sound = parselmouth.Sound(_mono(samples), sampling_frequency=rate)
+    moved = call(sound, "Change gender", FORMANT_FLOOR, FORMANT_CEILING, float(ratio), 0.0, 1.0, 1.0)
+    out = moved.values[0][: len(samples)]
+    soundfile.write(str(sung), out.astype("float32"), rate, subtype="FLOAT")
+
+
+def blend(original: Path, sung: Path, wet: float) -> None:
+    """The converted vocal mixed with the rendered vocal it was made from: `wet` of the one, the rest of the other.
+    The two are at the same level by now (settle matched them), so the blend keeps the vocal's level."""
+    if wet >= 0.995:
+        return
+    import numpy as np  # noqa: PLC0415
+    import soundfile  # noqa: PLC0415
+    from scipy.signal import resample_poly  # noqa: PLC0415
+
+    dry, dry_rate = soundfile.read(str(original), dtype="float64")
+    wet_part, rate = soundfile.read(str(sung), dtype="float64")
+    dry = _mono(dry)
+    if dry_rate != rate:
+        g = math.gcd(int(rate), int(dry_rate))
+        dry = resample_poly(dry, int(rate) // g, int(dry_rate) // g)
+    dry = np.pad(dry, (0, max(0, len(wet_part) - len(dry))))[: len(wet_part)]
+    mixed = max(0.0, float(wet)) * _mono(wet_part) + (1 - max(0.0, float(wet))) * dry
+    soundfile.write(str(sung), mixed.astype("float32"), rate, subtype="FLOAT")
+
+
+# ---------------------------------------------------------------- auditions
+# A voice heard on a short loop while its settings change.  A conversion run as a script loads RVC and its models
+# every time (seconds); an audition keeps them loaded here, and keeps what does not depend on the settings: the
+# loop's pitch (RMVPE) and its sound features (HuBERT) are worked out once and reused, so a change of octave,
+# likeness or protect runs only the index blend and the synthesis.  It holds about a gigabyte of the card, so it
+# is let go when the app starts other GPU work (/audition/free), when this service trains or converts, and after
+# AUDITION_IDLE seconds unused.
+AUDITION_IDLE = 120
+AUDITION: dict = {}          # "vc": RVC's VC, "voice": its id, "used": time
+_CACHE: dict = {}            # input digest -> result, for the two analyses (a few loops' worth)
+
+
+def _digest(array) -> str:
+    import hashlib  # noqa: PLC0415
+
+    data = array.detach().float().cpu().numpy().tobytes() if hasattr(array, "detach") else array.tobytes()
+    return hashlib.blake2b(data, digest_size=16).hexdigest() + str(len(data))
+
+
+def _cached(kind: str, key: str, make):
+    found = _CACHE.get((kind, key))
+    if found is None:
+        found = make()
+        if len(_CACHE) > 8:
+            _CACHE.pop(next(iter(_CACHE)))
+        _CACHE[(kind, key)] = found
+    return found
+
+
+def _audition_setup() -> None:
+    """RVC importable in this process, as its scripts find it, with the two analyses remembered by their input."""
+    if AUDITION.get("ready"):
+        return
+    if str(RVC) not in sys.path:
+        sys.path.insert(0, str(RVC))
+    os.chdir(RVC)                      # RVC reads its assets by relative path; the service already runs here
+    for key, value in (("weight_root", str(ASSETS / "weights")), ("index_root", str(LOGS)),
+                       ("outside_index_root", str(ASSETS / "indices")), ("rmvpe_root", str(ASSETS / "rmvpe"))):
+        os.environ.setdefault(key, value)
+    import infer.rmvpe as rmvpe  # noqa: PLC0415
+    import infer.vc.pipeline as pipeline  # noqa: PLC0415
+
+    infer_f0 = rmvpe.RMVPE.infer_from_audio
+    rmvpe.RMVPE.infer_from_audio = lambda self, audio, thred=0.03: _cached(
+        "f0", _digest(audio) + str(thred), lambda: infer_f0(self, audio, thred=thred)).copy()
+    features = pipeline.extract_hubert_features
+    pipeline.extract_hubert_features = lambda model, feats, version, padding_mask=None: _cached(
+        "hubert", _digest(feats) + version, lambda: features(model, feats, version, padding_mask=padding_mask)).clone()
+    AUDITION["ready"] = True
+
+
+def audition_free() -> None:
+    """Let go of the auditioned voice and RVC's models, and the card's memory with them."""
+    vc = AUDITION.pop("vc", None)
+    AUDITION.pop("voice", None)
+    _CACHE.clear()
+    if vc is not None:
+        del vc
+        import gc  # noqa: PLC0415
+
+        gc.collect()
+        try:
+            import torch  # noqa: PLC0415
+
+            torch.cuda.empty_cache()
+        except Exception:  # noqa: BLE001 - nothing to free without a card
+            pass
+        print("audition: let go of the voice", flush=True)
+
+
+def _audition_idle() -> None:
+    while True:
+        time.sleep(15)
+        if AUDITION.get("vc") is not None and time.time() - AUDITION.get("used", 0) > AUDITION_IDLE and LOCK.acquire(False):
+            try:
+                audition_free()
+            finally:
+                LOCK.release()
+
+
+def audition(voice: str, loop: Path, output: Path, octave: int = 0, likeness: float = 0.75, protect: float = 0.33,
+             dynamics: float = 0.25, room: float = ROOM_WET, brightness: bool = True, formant: float = 1.0) -> float:
+    """`loop` sung in `voice` with these settings, finished as a take's vocal is (formants, presence, level, room)
+    and written to `output` as WAV; the seconds it took.  The blend with the dry loop is left to the page, which
+    plays both."""
+    started = time.time()
+    folder = VOICES / voice
+    model, index = folder / "model.pth", folder / "model.index"
+    if not model.exists():
+        raise RuntimeError("this voice has no trained model")
+    _audition_setup()
+    if AUDITION.get("voice") != voice:
+        audition_free()
+        import sys as _sys  # noqa: PLC0415
+        from configs.config import Config  # noqa: PLC0415
+        from infer.vc.modules import VC  # noqa: PLC0415
+
+        argv, _sys.argv = _sys.argv, [_sys.argv[0]]     # RVC's Config reads the command line
+        try:
+            vc = VC(Config())
+        finally:
+            _sys.argv = argv
+        os.environ["weight_root"] = str(folder)
+        vc.get_vc(model.name)
+        AUDITION.update(vc=vc, voice=voice)
+        print(f"[{voice}] audition: voice loaded in {time.time() - started:.1f} s", flush=True)
+    vc = AUDITION["vc"]
+    status, result = vc.vc_single(0, str(loop), 12 * int(octave), "rmvpe", str(index) if index.exists() else "",
+                                  min(1.0, max(0.0, likeness)), 0, min(1.0, max(0.0, dynamics)),
+                                  min(0.5, max(0.0, protect)))
+    if not result or result[1] is None:
+        raise RuntimeError(f"the audition failed: {status[-300:]}")
+    import soundfile  # noqa: PLC0415
+
+    rate, samples = result
+    converted = time.time()
+    work = Path(tempfile.mkdtemp(prefix="audition-", dir=str(VOICES)))
+    try:
+        sung = work / "sung.wav"
+        soundfile.write(str(sung), samples, rate)
+        shift_formants(sung, formant)
+        shifted = time.time()
+        settle(loop, sung, voice, 0.0, room, brightness)
+        shutil.move(str(sung), output)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    AUDITION["used"] = time.time()
+    times = re.findall(r"(\d+\.\d+)s", status)
+    print(f"[{voice}] audition: converted in {converted - started:.2f} s (" + "/".join(times) + "), formants "
+          f"{shifted - converted:.2f} s, finished {time.time() - shifted:.2f} s", flush=True)
+    return time.time() - started
+
+
 def convert(voice: str, source: Path, output: Path, octave: int, level_db: float = 0.0, likeness: float = 0.75,
             backing_db: float = 0.0, parts: Path | None = None, room: float = ROOM_WET, brightness: bool = True,
-            protect: float = 0.33, dynamics: float = 0.25) -> None:
+            protect: float = 0.33, dynamics: float = 0.25, formant: float = 1.0, wet: float = 1.0) -> None:
     """The take at `source` with its vocal sung in `voice`, written to `output`.  With `parts`, the two halves as they
     were mixed are kept there too: vocal.flac (the sung vocal at its level) and backing.flac (the rest at its level),
     both brought down with the mix where it would clip, so together they are the finished take."""
@@ -423,7 +597,9 @@ def convert(voice: str, source: Path, output: Path, octave: int, level_db: float
              "--rms-mix-rate", f"{min(1.0, max(0.0, dynamics)):.2f}", "--overwrite"])
         if not sung.exists():
             raise RuntimeError("the conversion wrote nothing")
+        shift_formants(sung, formant)
         settle(vocals, sung, voice, level_db, room, brightness)
+        blend(vocals, sung, wet)
         mixed = work / "mixed.wav"
         halves = [work / "vocal.wav", work / "backing.wav"]
         # The same two streams the mix sums, written out as they go into it when the halves are to be kept.
@@ -461,6 +637,7 @@ def convert(voice: str, source: Path, output: Path, octave: int, level_db: float
 def _train_job(job_id: str, body: dict) -> None:
     job = JOBS[job_id]
     with LOCK:
+        audition_free()
         if job.get("stop"):
             job["state"] = "stopped"
             return
@@ -524,15 +701,36 @@ class Handler(BaseHTTPRequestHandler):
             if proc is not None:
                 proc.terminate()
             return self._send(200, {"stopping": True})
+        if self.path == "/audition/free":
+            with LOCK:
+                audition_free()
+            return self._send(200, {"ok": True})
+        if self.path == "/audition":
+            if not LOCK.acquire(timeout=1.0):        # training or a take's conversion has the card
+                return self._send(409, {"error": "the voice service is busy"})
+            try:
+                seconds = audition(body["id"], Path(body["loop"]), Path(body["output"]), int(body.get("octave") or 0),
+                                   float(body.get("likeness", 0.75)), float(body.get("protect", 0.33)),
+                                   float(body.get("dynamics", 0.25)),
+                                   float(body["room"]) if body.get("room") is not None else ROOM_WET,
+                                   bool(int(body.get("brightness", 1))), float(body.get("formant", 1.0)))
+            except Exception as err:  # noqa: BLE001
+                traceback.print_exc()
+                return self._send(500, {"error": str(err)[-800:]})
+            finally:
+                LOCK.release()
+            return self._send(200, {"ok": True, "seconds": round(seconds, 3)})
         if self.path == "/convert":
             with LOCK:
+                audition_free()
                 try:
                     convert(body["id"], Path(body["input"]), Path(body["output"]), int(body.get("octave") or 0),
                             float(body.get("level_db") or 0), float(body.get("likeness", 0.75)),
                             float(body.get("backing_db") or 0), Path(body["parts"]) if body.get("parts") else None,
                             float(body["room"]) if body.get("room") is not None else ROOM_WET,
                             bool(int(body.get("brightness", 1))),
-                            float(body.get("protect", 0.33)), float(body.get("dynamics", 0.25)))
+                            float(body.get("protect", 0.33)), float(body.get("dynamics", 0.25)),
+                            float(body.get("formant", 1.0)), float(body.get("wet", 1.0)))
                 except Exception as err:  # noqa: BLE001
                     traceback.print_exc()
                     return self._send(500, {"error": str(err)[-800:]})
@@ -543,5 +741,6 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     VOICES.mkdir(parents=True, exist_ok=True)
     BATCH = batch_size()
+    threading.Thread(target=_audition_idle, daemon=True).start()
     print(f"voice service on {HOST}:{PORT}; batch {BATCH}; models:", needed(), flush=True)
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

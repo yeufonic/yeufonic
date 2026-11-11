@@ -81,9 +81,7 @@ del cantante: più alto somiglia di più a lui, e può suonare più elaborato. A
 convertita (*Asciutta*, *Discreta* o *Di più*) perché stia nel mix, e **Brillantezza** su *Auto* alza i suoi acuti fino a quelli
 della voce generata; *Spento* li lascia come convertiti. **Respiri e consonanti** stabilisce quanto mantengono i suoni della voce
 generata: *Conservati* restano chiari ma ne portano una traccia, *Convertiti* possono strapparsi. **Dinamica** stabilisce di chi la
-voce segue il volume da una frase all'altra: della take, come generata, o dei crescendo propri della voce. Sono i valori
-predefiniti della voce. Nell'editor, il pulsante **Voce registrata** si apre sulla voce e su queste impostazioni, da cambiare per
-una take; la take le conserva, e il pulsante indica quando ha le sue. Impostazioni → *Addestramento delle voci* stabilisce da
+voce segue il volume da una frase all'altra: della take, come generata, o dei crescendo propri della voce. **Formante** cambia la dimensione della voce mantenendone l'intonazione: *Più profonda* suona più grande, *Più brillante* più piccola. **Miscela** stabilisce quanta parte del canto è la voce registrata; il resto è il canto generato da cui è nata. Sono i valori predefiniti della voce. Nell'editor, scegli la voce in **Voce registrata**; **Impostazioni**, accanto, apre queste impostazioni da cambiare per una take, e indica quando la take ha le sue. **Ascolta** fa cantare lì alla voce un breve loop, di un uomo o di una donna, con le impostazioni come sono, a ripetizione mentre le cambi, e **Salva come nuova voce…** tiene ciò che senti come una voce a sé, sullo stesso modello. Impostazioni → *Addestramento delle voci* stabilisce da
 quanto canto impara una voce e con quante passate.
 
 Il risultato è una voce convertita su un accompagnamento separato, quindi meno uniforme di una voce cantata dal modello stesso.

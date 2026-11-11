@@ -42,6 +42,11 @@ ROOM_NAMES = {0.0: "dry", 0.14: "subtle", 0.28: "more"}
 # the rendered vocal's (low) or the converted one's own (1).
 PROTECT = (0.15, 0.33, 0.5)
 DYNAMICS = (0.25, 0.5, 1.0)
+# The converted vocal's formants, moved with its pitch kept (voice/server.py shift_formants): below 1 a larger, deeper
+# voice, above 1 a smaller, brighter one.  And how much of the vocal the voice sings, the rest being the rendered
+# vocal it was made from (wet against dry).
+FORMANTS = (0.88, 0.94, 1.0, 1.06, 1.12)
+WETS = (0.25, 0.5, 0.75, 1.0)
 PASSES = (25, 50, 100, 200, 400, 800)
 # A corpus voice samples at most this many of the corpus's songs: each is separated before the minutes of singing
 # (Settings) are shared across them, and separating more adds time for little.
@@ -73,6 +78,8 @@ def _shape(row) -> dict:
     out["brightness"] = clamp_brightness(out.get("brightness"))
     out["protect"] = clamp_protect(out.get("protect"))
     out["dynamics"] = clamp_dynamics(out.get("dynamics"))
+    out["formant"] = clamp_formant(out.get("formant"))
+    out["wet"] = clamp_wet(out.get("wet"))
     out["progress"] = float(out.get("progress") or 0.0)
     return out
 
@@ -132,6 +139,14 @@ def clamp_protect(value) -> float:
 
 def clamp_dynamics(value) -> float:
     return _step(DYNAMICS, value, 0.25)
+
+
+def clamp_formant(value) -> float:
+    return _step(FORMANTS, value, 1.0)
+
+
+def clamp_wet(value) -> float:
+    return _step(WETS, value, 1.0)
 
 
 def clamp_brightness(value) -> int:
@@ -263,7 +278,8 @@ def usable(persona: dict | None) -> bool:
 
 
 def update(persona_id: str, **fields) -> dict | None:
-    allowed = {"name", "octave", "level_db", "likeness", "backing_db", "room", "brightness", "protect", "dynamics"}
+    allowed = {"name", "octave", "level_db", "likeness", "backing_db", "room", "brightness", "protect", "dynamics",
+               "formant", "wet"}
     wanted = {k: v for k, v in fields.items() if k in allowed}
     if "octave" in wanted:
         wanted["octave"] = clamp_octave(wanted["octave"])
@@ -281,10 +297,41 @@ def update(persona_id: str, **fields) -> dict | None:
         wanted["protect"] = clamp_protect(wanted["protect"])
     if "dynamics" in wanted:
         wanted["dynamics"] = clamp_dynamics(wanted["dynamics"])
+    if "formant" in wanted:
+        wanted["formant"] = clamp_formant(wanted["formant"])
+    if "wet" in wanted:
+        wanted["wet"] = clamp_wet(wanted["wet"])
     if wanted:
         sets = ", ".join(f"{key} = ?" for key in wanted)
         db.execute(f"UPDATE voices SET {sets} WHERE id = ?", (*wanted.values(), persona_id))
     return one(persona_id)
+
+
+SETTINGS = ("octave", "level_db", "likeness", "backing_db", "room", "brightness", "protect", "dynamics", "formant", "wet")
+
+
+def copy(persona_id: str, name: str, settings: dict | None = None) -> dict | None:
+    """A new voice that sings with the same model as `persona_id`, under its own name and with `settings` as its
+    defaults (the source's where not given): a voice auditioned into a sound of its own, kept.  The model files are
+    linked where the filesystem allows, so a copy costs no space; deleting either voice leaves the other whole."""
+    source = one(persona_id)
+    if not usable(source):
+        return None
+    new_id = uuid.uuid4().hex[:12]
+    target = folder(new_id)
+    for file in ("model.pth", "model.index"):
+        found = folder(persona_id) / file
+        if found.is_file():
+            try:
+                (target / file).hardlink_to(found)
+            except OSError:
+                shutil.copy2(found, target / file)
+    db.execute("INSERT INTO voices (id, name, state, progress, model_path, created_at) VALUES (?, ?, 'ready', 1, ?, ?)",
+               (new_id, (name or "").strip()[:80] or f"{source['name']} (copy)", str(target / "model.pth"), time.time()))
+    wanted = {key: (settings or {}).get(key, source.get(key)) for key in SETTINGS}
+    made = update(new_id, **{k: v for k, v in wanted.items() if v is not None})
+    log.info("voice %s made from %s with its own settings", made["name"], source["name"])
+    return made
 
 
 def delete(persona_id: str) -> None:
@@ -304,4 +351,6 @@ def describe(persona: dict | None) -> str:
             + f", likeness {round(100 * float(persona.get('likeness', 0.75)))}%"
             + f", room {ROOM_NAMES.get(clamp_room(persona.get('room')), 'subtle')}"
             + (", brightness off" if not clamp_brightness(persona.get("brightness")) else "")
-            + f", protect {clamp_protect(persona.get('protect')):g}, dynamics {clamp_dynamics(persona.get('dynamics')):g}")
+            + f", protect {clamp_protect(persona.get('protect')):g}, dynamics {clamp_dynamics(persona.get('dynamics')):g}"
+            + (f", formant {clamp_formant(persona.get('formant')):g}" if clamp_formant(persona.get("formant")) != 1.0 else "")
+            + (f", {round(100 * clamp_wet(persona.get('wet')))}% wet" if clamp_wet(persona.get("wet")) != 1.0 else ""))

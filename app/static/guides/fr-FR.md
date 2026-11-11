@@ -83,8 +83,7 @@ le chant converti (*Sec*, *Discrète* ou *Plus*) pour qu'il s'intègre au mixage
 niveau de ceux du chant rendu ; *Désactivé* les laisse tels que convertis. **Souffles et consonnes** règle à quel point ils gardent
 les sons du chant rendu : *Gardées*, ils restent nets mais en portent une trace ; *Converties*, ils peuvent se déchirer.
 **Dynamique** règle de qui le chant suit le volume d'une phrase à l'autre : de la prise, telle que rendue, ou des propres élans de
-la voix. Ce sont les réglages par défaut de la voix. Dans l'éditeur, le bouton **Voix enregistrée** s'ouvre sur la voix et ces
-réglages, à changer pour une prise ; la prise les garde, et le bouton indique quand elle a les siens. Paramètres → *Entraînement des
+la voix. **Formant** change la taille de la voix sans changer sa hauteur : *Plus grave* sonne plus grand, *Plus clair* plus petit. **Mélange** règle la part du chant que chante la voix ; le reste est le chant rendu dont elle est issue. Ce sont les réglages par défaut de la voix. Dans l'éditeur, choisissez la voix sous **Voix enregistrée** ; **Paramètres**, à côté, ouvre ces réglages, à changer pour une prise, et indique quand la prise a les siens. **Écouter** y fait chanter à la voix une courte boucle, d'un homme ou d'une femme, avec les réglages tels quels, en boucle pendant que vous les changez, et **Enregistrer comme nouvelle voix…** garde ce que vous entendez comme une voix à part entière, sur le même modèle. Paramètres → *Entraînement des
 voix* fixe combien de chant une voix apprend et en combien de passes.
 
 Le résultat est un chant converti sur un accompagnement séparé, donc moins homogène qu'un chant que le modèle a chanté lui-même.

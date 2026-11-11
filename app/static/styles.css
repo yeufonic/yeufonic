@@ -7186,7 +7186,11 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 #voice-take { max-width: 360px; }
 .voice-mix { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .voice-mix label, .voice-settings label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
-/* The editor's Recorded voice: one row, like a select, that opens to the picker and the take's settings for it. */
+/* The editor's Recorded voice: the picker, and beside it, once a voice is picked, a button that opens the take's
+   settings for it. */
+.voice-pick-row { display: flex; gap: 8px; align-items: stretch; }
+.voice-pick-row select { flex: 1 1 auto; min-width: 0; }
+.voice-pick-row .voice-toggle { width: auto; flex: 0 0 auto; }
 .voice-toggle { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
   background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: inherit; }
 .voice-toggle:hover, .voice-toggle:focus-visible { border-color: rgb(var(--accent-a-rgb) / 0.6); outline: none; }
@@ -7199,6 +7203,13 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 .likeness-caution { color: var(--warn); margin: 8px 0 0; }
 .likeness-caution.hidden { display: none; }
 .voice-no-index { margin: 8px 0 0; }
+.voice-audition { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.voice-audition #audition-play.on { color: var(--accent-a); border-color: var(--accent-a); }
+.voice-audition #audition-state { font-size: 12px; flex: 1 1 auto; }
+.voice-audition select { width: auto; flex: 1 1 140px; min-width: 0; }
+#voice-keep-form { display: flex; gap: 8px; margin-top: 8px; }
+#voice-keep-form.hidden { display: none; }
+#voice-keep-form input { flex: 1 1 auto; min-width: 0; }
 .job-panel.floating { position: fixed; z-index: 90; }
 .voice-rec-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; flex-wrap: wrap; }
 .voice-rec-row .voice-rec-title { flex: 1 1 220px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
