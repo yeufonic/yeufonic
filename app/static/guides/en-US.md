@@ -82,9 +82,7 @@ only the sounds it learned, so words the singer was never heard singing can come
 **Brightness** on *Auto* lifts its upper range to match the rendered vocal's; *Off* leaves it as converted. **Breaths
 and consonants** sets how far those keep the rendered vocal's own sounds: *Kept* stays clear but carries a trace of
 it, *Converted* can tear. **Dynamics** sets whose loudness the vocal follows from phrase to phrase: the take's as
-rendered, or the voice's own swells. These are the voice's defaults. In the editor, the **Recorded voice** button
-opens to the voice and these settings, to change for one take; the take keeps them, and the button says when it has
-its own. Settings → *Voice Training* sets how much singing a voice learns from and for how many passes.
+rendered, or the voice's own swells. **Formant** changes the size of the voice with its pitch kept: *Deeper* sounds larger, *Brighter* smaller. **Blend** sets how much of the vocal the voice sings; the rest is the rendered vocal it was made from. These are the voice's defaults. In the editor, pick the voice under **Recorded voice**; **Settings** beside it opens these settings, to change for one take, and says when the take has its own. **Hear it** there plays the voice singing a short loop, a man's or a woman's, with the settings as they are, round and round while you change them, and **Save as a new voice…** keeps what you hear as a voice of its own, on the same model. Settings → *Voice Training* sets how much singing a voice learns from and for how many passes.
 
 The result is a converted vocal over a separated backing, so it is less seamless than a vocal the model sang itself.
 Clean, dry recordings make the cleanest voice. **Download voice** saves a trained voice as a zip to give to someone,

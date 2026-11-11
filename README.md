@@ -241,6 +241,11 @@ docker compose up --build
   **Likeness** how closely it keeps to the singer's own sounds (higher sounds more like them, and can sound more
   processed; at 100% words the singer was never heard singing can come out garbled, and a line under it says so). They are the voice's defaults on its page; the editor shows them under the voice, to change for one
   take, and a take file carries them.
+- **Hear it before the take is made.** **Formant** makes the voice larger and deeper or smaller and brighter, its
+  pitch kept, and **Blend** mixes it with the rendered vocal it was made from. In the editor, **Settings** beside the
+  picked voice opens all of these, and **Hear it** plays the voice singing a short loop, a man's or a woman's, made
+  with Yeufonic, round and round while the settings change. **Save as a new voice…** keeps what you hear as a voice of
+  its own, sharing the model. Docker installs rebuild the voice service for it (`docker compose up -d --build`).
 - **Training waits its turn on the GPU**, as a LoRA's does, and shows its progress in the job pill. Settings →
   *Voice Training* sets how much singing a voice learns from and for how many passes; the batch follows the GPU's
   memory. **Download voice** saves a trained voice to give to someone, and **Import a voice…** adds one, or an RVC

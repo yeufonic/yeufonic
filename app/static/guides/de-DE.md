@@ -83,9 +83,7 @@ einen kurzen Raum unter den umgewandelten Gesang (*Trocken*, *Dezent* oder *Mehr
 *Auto* hebt seine Höhen auf die des gerenderten Gesangs an; *Aus* lässt sie wie umgewandelt. **Atem und Konsonanten** legt fest,
 wie weit diese die Laute des gerenderten Gesangs behalten: *Bewahrt* bleibt klar, trägt aber eine Spur davon, *Umgewandelt* kann
 reißen. **Dynamik** legt fest, wessen Lautstärke der Gesang von Phrase zu Phrase folgt: der des Takes, wie gerendert, oder den
-eigenen Schwellungen der Stimme. Das sind die Voreinstellungen der Stimme. Im Editor öffnet die Schaltfläche **Aufgenommene
-Stimme** die Stimme und diese Einstellungen, um sie für einen Take zu ändern; der Take behält sie, und die Schaltfläche zeigt
-an, wenn er eigene hat. Einstellungen → *Stimmentraining* legt fest, aus wie viel Gesang eine Stimme lernt und mit wie vielen
+eigenen Schwellungen der Stimme. **Formant** ändert die Größe der Stimme bei gleicher Tonhöhe: *Tiefer* klingt größer, *Heller* kleiner. **Mischung** legt fest, wie viel des Gesangs die Stimme singt; der Rest ist der gerenderte Gesang, aus dem sie entstand. Das sind die Voreinstellungen der Stimme. Im Editor wählst du die Stimme unter **Aufgenommene Stimme**; **Einstellungen** daneben öffnet diese Einstellungen, um sie für einen Take zu ändern, und zeigt an, wenn der Take eigene hat. **Anhören** spielt dort die Stimme, die eine kurze Schleife singt, einen Mann oder eine Frau, mit den Einstellungen, wie sie sind, immer wieder, während du sie änderst, und **Als neue Stimme speichern…** behält, was du hörst, als eigene Stimme mit demselben Modell. Einstellungen → *Stimmentraining* legt fest, aus wie viel Gesang eine Stimme lernt und mit wie vielen
 Durchläufen.
 
 Das Ergebnis ist ein umgewandelter Gesang über einer getrennten Begleitung, also weniger nahtlos als ein Gesang, den das Modell

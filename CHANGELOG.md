@@ -37,6 +37,20 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **Hear a recorded voice before making a take with it.** In the editor, the voice's **Settings** gain **Hear it**: the
+  voice sings a short loop, a man's or a woman's, made with Yeufonic, round and round while its settings change, each
+  change heard as soon as the voice service has sung it again. The voice service keeps the voice loaded while you
+  listen, and lets it go before any other GPU work. Needs the voice service from this version (Docker: `--build`).
+- **Formant and Blend,** two more settings for a voice and for a take: Formant makes the voice larger and deeper or
+  smaller and brighter with its pitch kept; Blend mixes it with the rendered vocal it was made from.
+- **Save as a new voice…** keeps what was heard as a voice of its own, with these settings as its defaults, sharing the
+  model files rather than copying them.
+- **The Recorded voice picker is the field itself,** with a Settings button beside it once a voice is picked; it no
+  longer shows the voice twice.
+- **A folded take card with stems says so:** a Stems pill, which opens that card to its stems.
+
 ## 0.0.57 (2026-11-10)
 
 - **A caution at 100% Likeness.** At its highest a recorded voice keeps only the sounds it learned, so words the singer
