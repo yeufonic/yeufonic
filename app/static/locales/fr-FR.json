@@ -2803,5 +2803,6 @@
  "No installer URL available for this update": "Aucune URL d'installateur disponible pour cette mise à jour",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Somme de contrôle incorrecte : attendu {expected_hash}, obtenu {actual_hash}",
  "Fold this take again": "Replier de nouveau cette prise",
- "This take has stems: open it to see them": "Cette prise a des stems : ouvrez-la pour les voir"
+ "This take has stems: open it to see them": "Cette prise a des stems : ouvrez-la pour les voir",
+ "Open this take": "Ouvrir cette prise"
 }

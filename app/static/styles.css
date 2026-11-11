@@ -2950,6 +2950,17 @@ button.take-status.normalised:hover { background: rgb(var(--good-rgb) / 0.15); }
 .take.collapsed .take-status { padding: 2px 7px; font-size: 11px; gap: 4px; }
 .take.collapsed .take-status.stems-pill svg { width: 12px; height: 12px; flex: none; }
 .take.collapsed .take-corner { flex: none; }
+/* A folded card's own open button, top right; on an open card only when it was opened that way, to fold it again. */
+.take-unfold { display: none; position: absolute; top: 8px; right: 8px; z-index: 2; width: 26px; height: 26px; padding: 4px;
+  border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
+.take-unfold svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.take-unfold:hover, .take-unfold:focus-visible { color: var(--text); background: rgb(255 255 255 / 0.06); outline: none; }
+.take.collapsed .take-unfold, .take.opened .take-unfold { display: block; }
+.take-unfold:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+/* In a grid, a card opened on its own makes its row taller: the folded cards beside it keep their own height at
+   the top of the row rather than stretching to it, so only the opened one looks open. */
+.take.collapsed, .take.opened { align-self: start; }
+.take.collapsed .take-head, .take.opened .take-head { padding-right: 26px; }
 :root[data-theme="light"] .take-status.stems-pill { color: #475569; background: rgba(71, 85, 105, 0.08); border-color: rgba(71, 85, 105, 0.3); }
 .status-undo { flex: 1; min-width: 0; border: 0; background: none; color: inherit; font: inherit; font-size: 12px;
   text-align: left; padding: 0; cursor: pointer; }

@@ -11716,6 +11716,8 @@ var personaChange = identityChange;
 /* Action tiles. Colour carries meaning: green acts, violet inspects, blue keeps,
    amber reworks, gold remembers, red removes. */
 var ICONS = {
+  unfold: '<path d="M7 9l5-5 5 5"/><path d="M7 15l5 5 5-5"/>',
+  refold: '<path d="M7 4l5 5 5-5"/><path d="M7 20l5-5 5 5"/>',
   play: '<path d="M8 5.4v13.2L19 12z" fill="currentColor" stroke="none"/>',
   pause: '<path d="M9 5.5v13M15 5.5v13" stroke-width="2.4" stroke-linecap="round"/>',
   render: '<path d="M12 3.5v11m0 0l-4-4m4 4l4-4M5 19.5h14"/>',
@@ -12266,6 +12268,37 @@ function foldCard(card, on) {
   if (card) { card.classList.toggle('collapsed', Boolean(on)); }
 }
 
+/* A card opened on its own folds again at a click anywhere outside it. */
+document.addEventListener('click', function (event) {
+  // The path as the click went down: the button that opened the card redraws its icon, so the element clicked may
+  // no longer be inside it by now.
+  var path = event.composedPath ? event.composedPath() : [event.target];
+  Array.prototype.forEach.call(document.querySelectorAll('#takes .take.opened'), function (card) {
+    if (path.indexOf(card) < 0) { openOneCard(card, card.dataset.id, false); }
+  });
+});
+
+/* One card opened, or folded again, while every card is folded: from its button top right, or its Stems pill. */
+function openOneCard(card, id, open) {
+  UNFOLDED[id] = Boolean(open);
+  if (!card) { return; }
+  foldCard(card, isFolded(id));
+  card.classList.toggle('opened', Boolean(open) && foldedView());
+  var pill = card.querySelector('.stems-pill');
+  if (pill) {
+    pill.setAttribute('aria-expanded', open ? 'true' : 'false');
+    pill.title = open ? t('Fold this take again') : t('This take has stems: open it to see them');
+  }
+  var button = card.querySelector('.take-unfold');
+  if (button) {
+    var tip = open ? t('Fold this take again') : t('Open this take');
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    button.title = tip;
+    button.setAttribute('aria-label', tip);
+    button.innerHTML = icon(open ? 'refold' : 'unfold');
+  }
+}
+
 /* An icon, lit while every take is folded; its tip says what a click does. */
 function paintFoldAll() {
   var button = $('fold-toggle');
@@ -12528,6 +12561,10 @@ function paintTakes() {
             '<input type="checkbox" data-act="pick"' + id + (State.picked[take.id] ? ' checked' : '') + '>' +
           '</label>' +
         '</div>' +
+        // Folded, a card can open on its own: this button, top right, shown only while cards are folded.
+        '<button class="take-unfold" data-act="unfold" data-id="' + take.id + '" aria-expanded="' + Boolean(UNFOLDED[take.id]) + '"' +
+          ' title="' + esc(UNFOLDED[take.id] ? t('Fold this take again') : t('Open this take')) + '" aria-label="' +
+          esc(UNFOLDED[take.id] ? t('Fold this take again') : t('Open this take')) + '">' + icon(UNFOLDED[take.id] ? 'refold' : 'unfold') + '</button>' +
         '<div class="take-headtext">' +
           '<div class="take-title" data-act="rename" data-id="' + take.id + '" title="' + t('{title} — double-click to rename', { title: esc(take.title) }) + '">' + esc(take.title) + '</div>' +
           '<div class="take-meta" title="' + esc(meta.join(' \u00b7 ')) + '">' + esc(meta.join(' \u00b7 ')) + '</div>' +
@@ -14966,10 +15003,8 @@ function wire() {
     saveFolded(on);
     UNFOLDED = {};
     Array.prototype.forEach.call(document.querySelectorAll('#takes .take'), function (card) {
+      openOneCard(card, card.dataset.id, false);
       foldCard(card, on);
-      card.classList.remove('opened');
-      var pill = card.querySelector('.stems-pill');
-      if (pill) { pill.setAttribute('aria-expanded', 'false'); pill.title = t('This take has stems: open it to see them'); }
     });
     paintFoldAll();
   });
@@ -15448,13 +15483,8 @@ function wire() {
         openSaveModal(saveTake);
       }
     }
-    if (act === 'stems-open') {
-      UNFOLDED[id] = !UNFOLDED[id];
-      var stemsCard = button.closest('.take');
-      foldCard(stemsCard, isFolded(id));
-      if (stemsCard) { stemsCard.classList.toggle('opened', Boolean(UNFOLDED[id])); }
-      button.setAttribute('aria-expanded', UNFOLDED[id] ? 'true' : 'false');
-      button.title = UNFOLDED[id] ? t('Fold this take again') : t('This take has stems: open it to see them');
+    if (act === 'stems-open' || act === 'unfold') {
+      openOneCard(button.closest('.take'), id, !UNFOLDED[id]);
       return;
     }
     if (act === 'stems') {
