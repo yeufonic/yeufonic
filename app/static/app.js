@@ -18055,7 +18055,11 @@ function paintPersonaField() {
   host.classList.toggle('hidden', !usable);
   if (!usable) { return; }
   if (VOICES.pick && !ready.some(function (v) { return v.id === VOICES.pick; })) { VOICES.pick = null; }
-  var options = ['<option value="">' + esc(t('None')) + '</option>'].concat(ready.map(function (v) {
+  // By name, as a reader looks for one, whatever order they were made in.
+  var byName = ready.slice().sort(function (a, b) {
+    return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base', numeric: true });
+  });
+  var options = ['<option value="">' + esc(t('None')) + '</option>'].concat(byName.map(function (v) {
     return '<option value="' + esc(v.id) + '">' + esc(v.name) + '</option>';
   }));
   var picked = ready.filter(function (v) { return v.id === VOICES.pick; })[0];
