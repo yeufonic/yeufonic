@@ -2956,6 +2956,8 @@ button.take-status.normalised:hover { background: rgb(var(--good-rgb) / 0.15); }
 .take-unfold svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 .take-unfold:hover, .take-unfold:focus-visible { color: var(--text); background: rgb(255 255 255 / 0.06); outline: none; }
 .take.collapsed .take-unfold, .take.opened .take-unfold { display: block; }
+/* Its corner is the card's own: a card without a picture is not positioned otherwise. */
+.take.collapsed, .take.opened { position: relative; }
 .take-unfold:focus:not(:focus-visible) { outline: none; box-shadow: none; }
 /* In a grid, a card opened on its own makes its row taller: the folded cards beside it keep their own height at
    the top of the row rather than stretching to it, so only the opened one looks open. */
