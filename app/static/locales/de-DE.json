@@ -1991,7 +1991,6 @@
  "own settings": "eigene Einstellungen",
  "Hear the voice sing a short loop with these settings, while you change them": "Die Stimme eine kurze Schleife mit diesen Einstellungen singen hören, während du sie änderst",
  "Hear it": "Anhören",
- "The loop the voice sings": "Die Schleife, die die Stimme singt",
  "A woman singing": "Eine Frau singt",
  "A man singing": "Ein Mann singt",
  "Keep these settings as a voice of their own, on the same model": "Diese Einstellungen als eigene Stimme behalten, mit demselben Modell",
@@ -2805,5 +2804,6 @@
  "Fold this take again": "Diesen Take wieder einklappen",
  "This take has stems: open it to see them": "Dieser Take hat Stems: aufklappen, um sie zu sehen",
  "Open this take": "Diesen Take aufklappen",
- "Voice: {name}": "Stimme: {name}"
+ "Voice: {name}": "Stimme: {name}",
+ "The loop the voice sings. Your own go in the voice-loops folder of your library": "Die Schleife, die die Stimme singt. Eigene kommen in den Ordner voice-loops deiner Bibliothek"
 }

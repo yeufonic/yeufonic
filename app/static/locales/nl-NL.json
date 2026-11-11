@@ -1991,7 +1991,6 @@
  "own settings": "eigen instellingen",
  "Hear the voice sing a short loop with these settings, while you change them": "Hoor de stem een korte loop zingen met deze instellingen terwijl je ze verandert",
  "Hear it": "Beluisteren",
- "The loop the voice sings": "De loop die de stem zingt",
  "A woman singing": "Een zingende vrouw",
  "A man singing": "Een zingende man",
  "Keep these settings as a voice of their own, on the same model": "Deze instellingen bewaren als een eigen stem, op hetzelfde model",
@@ -2805,5 +2804,6 @@
  "Fold this take again": "Deze take weer inklappen",
  "This take has stems: open it to see them": "Deze take heeft stems: klap hem open om ze te zien",
  "Open this take": "Deze take openklappen",
- "Voice: {name}": "Stem: {name}"
+ "Voice: {name}": "Stem: {name}",
+ "The loop the voice sings. Your own go in the voice-loops folder of your library": "De loop die de stem zingt. Je eigen loops gaan in de map voice-loops van je bibliotheek"
 }

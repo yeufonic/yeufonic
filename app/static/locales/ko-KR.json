@@ -1991,7 +1991,6 @@
  "own settings": "개별 설정",
  "Hear the voice sing a short loop with these settings, while you change them": "설정을 바꾸는 동안 이 설정으로 목소리가 짧은 루프를 부르는 것을 들어 봅니다",
  "Hear it": "들어 보기",
- "The loop the voice sings": "목소리가 부르는 루프",
  "A woman singing": "여자가 부르는 노래",
  "A man singing": "남자가 부르는 노래",
  "Keep these settings as a voice of their own, on the same model": "이 설정을 같은 모델을 쓰는 별도의 목소리로 남깁니다",
@@ -2805,5 +2804,6 @@
  "Fold this take again": "이 테이크를 다시 접기",
  "This take has stems: open it to see them": "이 테이크에는 스템이 있습니다. 펼쳐서 보세요",
  "Open this take": "이 테이크 펼치기",
- "Voice: {name}": "목소리: {name}"
+ "Voice: {name}": "목소리: {name}",
+ "The loop the voice sings. Your own go in the voice-loops folder of your library": "목소리가 부르는 루프. 직접 만든 루프는 라이브러리의 voice-loops 폴더에 넣습니다"
 }

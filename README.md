@@ -247,8 +247,8 @@ docker compose up --build
   with Yeufonic, round and round while the settings change. **Save as a new voice…** keeps what you hear as a voice of
   its own, sharing the model. Docker installs rebuild the voice service for it (`docker compose up -d --build`).
   Loops of your own join the two: a short recording of one voice singing alone and dry, 15 to 30 seconds, put in the
-  library's `voice-loops` folder (`data/voice-loops` here), is listed by its file name (FLAC, WAV, MP3, M4A, OGG or
-  Opus).
+  library's `voice-loops` folder (`data/voice-loops` here; in the Windows install, inside its `data` folder unless
+  `data_dir` names another), is listed by its file name (FLAC, WAV, MP3, M4A, OGG or Opus).
 - **Training waits its turn on the GPU**, as a LoRA's does, and shows its progress in the job pill. Settings →
   *Voice Training* sets how much singing a voice learns from and for how many passes; the batch follows the GPU's
   memory. **Download voice** saves a trained voice to give to someone, and **Import a voice…** adds one, or an RVC

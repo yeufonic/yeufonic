@@ -1991,7 +1991,6 @@
  "own settings": "свои настройки",
  "Hear the voice sing a short loop with these settings, while you change them": "Послушайте, как голос поёт короткую петлю с этими настройками, пока вы их меняете",
  "Hear it": "Послушать",
- "The loop the voice sings": "Петля, которую поёт голос",
  "A woman singing": "Поёт женщина",
  "A man singing": "Поёт мужчина",
  "Keep these settings as a voice of their own, on the same model": "Сохранить эти настройки как отдельный голос на той же модели",
@@ -2805,5 +2804,6 @@
  "Fold this take again": "Снова свернуть этот дубль",
  "This take has stems: open it to see them": "У этого дубля есть стемы: разверните его, чтобы их увидеть",
  "Open this take": "Развернуть этот дубль",
- "Voice: {name}": "Голос: {name}"
+ "Voice: {name}": "Голос: {name}",
+ "The loop the voice sings. Your own go in the voice-loops folder of your library": "Петля, которую поёт голос. Свои кладите в папку voice-loops вашей библиотеки"
 }

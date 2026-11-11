@@ -18168,7 +18168,7 @@ function auditionRow() {
       '<button type="button" id="audition-play" class="ghost' + (AUD.playing ? ' on' : '') + '" title="' +
         esc(t('Hear the voice sing a short loop with these settings, while you change them')) + '">' +
         esc(AUD.playing ? t('Stop') : t('Hear it')) + '</button>' +
-      '<select id="audition-loop" title="' + esc(t('The loop the voice sings')) + '">' + loops.map(function (l) {
+      '<select id="audition-loop" title="' + esc(t('The loop the voice sings. Your own go in the voice-loops folder of your library')) + '">' + loops.map(function (l) {
         var name = l.own ? l.name : (l.id === 'female' ? t('A woman singing') : t('A man singing'));   // your own by file name
         return '<option value="' + esc(l.id) + '"' + (l.id === AUD.loop ? ' selected' : '') + '>' + esc(name) + '</option>';
       }).join('') + '</select>' +

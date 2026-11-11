@@ -1991,7 +1991,6 @@
  "own settings": "单独设置",
  "Hear the voice sing a short loop with these settings, while you change them": "在你更改设置时，听该音色用这些设置演唱一段短循环",
  "Hear it": "试听",
- "The loop the voice sings": "音色演唱的循环",
  "A woman singing": "女声演唱",
  "A man singing": "男声演唱",
  "Keep these settings as a voice of their own, on the same model": "把这些设置保存为一个独立的音色，使用同一模型",
@@ -2805,5 +2804,6 @@
  "Fold this take again": "重新折叠此录音",
  "This take has stems: open it to see them": "此录音有分轨：展开即可查看",
  "Open this take": "展开此录音",
- "Voice: {name}": "音色：{name}"
+ "Voice: {name}": "音色：{name}",
+ "The loop the voice sings. Your own go in the voice-loops folder of your library": "音色演唱的循环。你自己的循环放在资料库的 voice-loops 文件夹中"
 }
