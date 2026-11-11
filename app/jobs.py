@@ -1185,7 +1185,7 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             except Exception as exc:  # noqa: BLE001
                 log.warning("Could not fade out '%s' at its length cap: %s", record.get("title") or ref_id, exc)
     # A recorded voice sings the vocal again, before the level is read: what is measured and normalised is what plays.
-    if kind == "render" and record.get("voice_id"):
+    if kind == "render" and record.get("voice_id") and record.get("kind") != "instrumental":   # no vocal to sing
         await _sing_in_voice(ref_id, record, dest)
     # The level as rendered, before any normalising: a render far quieter than usual
     # has often gone wrong, and a louder copy of it has not been put right.

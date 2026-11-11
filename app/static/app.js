@@ -6835,6 +6835,7 @@ function setMode(mode) {
   // An instrumental has no words and no voice; its structure takes the lyrics' place.
   show('lyrics-field', !inst);
   show('vocal-field', !inst);
+  if (typeof paintPersonaField === 'function') { paintPersonaField(); }   // nor a recorded voice
   show('structure-field', inst);
   show('follow-wrap', State.mode === 'song');
   paintSongPlan();
@@ -7192,7 +7193,11 @@ function editorRenderSettings() {
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
   });
   // The voice the editor shows, none included: a voice chosen for a planned take is sung by its render.
-  if ($('persona-select')) { data.voice_id = VOICES.pick || ''; data.voice_mix = voiceMixWanted() || {}; }
+  if ($('persona-select')) {
+    var sung = State.mode !== 'inst';      // an instrumental is never sung in a recorded voice
+    data.voice_id = sung ? VOICES.pick || '' : '';
+    data.voice_mix = sung ? voiceMixWanted() || {} : {};
+  }
   if ($('style-lora') && !data.style_lora) {
     // None, chosen from a list that holds the take's LoRA, turns it off. A list
     // without it, not loaded yet or with the file gone, is no choice at all.
@@ -18081,9 +18086,13 @@ function paintPersonaField() {
   var host = $('persona-field');
   if (!host) { return; }
   var ready = VOICES.list.filter(function (v) { return v.state === 'ready'; });
-  var usable = Boolean(VOICES.service && VOICES.service.ok && ready.length);
+  // An instrumental has no vocal to sing in a voice.
+  var usable = Boolean(VOICES.service && VOICES.service.ok && ready.length) && State.mode !== 'inst';
   host.classList.toggle('hidden', !usable);
-  if (!usable) { return; }
+  if (!usable) {
+    if (typeof AUD !== 'undefined' && AUD.playing) { auditionStop(); }
+    return;
+  }
   if (VOICES.pick && !ready.some(function (v) { return v.id === VOICES.pick; })) { VOICES.pick = null; }
   // By name, as a reader looks for one, whatever order they were made in.
   var byName = ready.slice().sort(function (a, b) {

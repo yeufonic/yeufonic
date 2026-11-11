@@ -4,8 +4,15 @@ import asyncio
 import json
 
 import httpx
+import pytest
 
 from app import config, jobs, main, persona
+
+
+@pytest.fixture(autouse=True)
+def idle_gpu(monkeypatch):
+    """No GPU work under way, whatever an earlier test left in jobs.CURRENT: an audition is refused while there is."""
+    monkeypatch.setattr(jobs, "CURRENT", {})
 
 
 def _ready(name="A voice", **settings):
