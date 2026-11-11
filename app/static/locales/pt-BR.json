@@ -2804,5 +2804,6 @@
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum não confere: esperado {expected_hash}, obtido {actual_hash}",
  "Fold this take again": "Recolher este take de novo",
  "This take has stems: open it to see them": "Este take tem stems: abra-o para vê-los",
- "Open this take": "Abrir este take"
+ "Open this take": "Abrir este take",
+ "Voice: {name}": "Voz: {name}"
 }

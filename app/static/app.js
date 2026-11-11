@@ -12357,6 +12357,10 @@ function paintTakes() {
     var written = take.kind === 'song' || take.kind === 'instrumental';
     if (written) { meta.push(t('Harmony: {toLowerCase}', { toLowerCase: (HARMONY_WORDS[take.harmony || 0] || HARMONY_WORDS[0]).toLowerCase() })); }
     meta.push(t('Interpretation: {name}', { name: (INTERPRETATIONS[take.interpretation] || INTERPRETATIONS.standard).name.toLowerCase() }));
+    // The recorded voice that sang it, by its name as it is now (none once the voice is deleted).
+    var sungBy = take.voice_id && typeof VOICES !== 'undefined' && VOICES.list
+      ? VOICES.list.filter(function (v) { return v.id === take.voice_id; })[0] : null;
+    if (sungBy) { meta.push(t('Voice: {name}', { name: sungBy.name })); }
     if (written) { meta.push(t('Plan: {value}', { value: take.variety || 'normal' })); }
     if (take.style_lora) {
       var kind = loraKind(take.style_lora);

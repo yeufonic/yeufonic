@@ -2804,5 +2804,6 @@
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校验和不匹配：预期 {expected_hash}，实际 {actual_hash}",
  "Fold this take again": "重新折叠此录音",
  "This take has stems: open it to see them": "此录音有分轨：展开即可查看",
- "Open this take": "展开此录音"
+ "Open this take": "展开此录音",
+ "Voice: {name}": "音色：{name}"
 }

@@ -2804,5 +2804,6 @@
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}",
  "Fold this take again": "이 테이크를 다시 접기",
  "This take has stems: open it to see them": "이 테이크에는 스템이 있습니다. 펼쳐서 보세요",
- "Open this take": "이 테이크 펼치기"
+ "Open this take": "이 테이크 펼치기",
+ "Voice: {name}": "목소리: {name}"
 }
