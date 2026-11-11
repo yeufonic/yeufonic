@@ -12252,7 +12252,10 @@ function foldedView() {
   return FOLDED;
 }
 
-function isFolded() { return foldedView(); }
+/* Cards opened on their own while every card is folded: a folded card with stems opens from its Stems pill. */
+var UNFOLDED = {};
+
+function isFolded(id) { return foldedView() && !(id && UNFOLDED[id]); }
 
 function saveFolded(on) {
   FOLDED = Boolean(on);
@@ -12376,6 +12379,13 @@ function paintTakes() {
     } else if (take.normalised) {
       live = '<button class="take-status normalised" data-act="unnormalise" data-id="' + take.id +
         '" title="' + t('{normalisedTo} Click to go back to the level it was rendered at (N).', { normalisedTo: normalisedTo(take) }) + '">' + t('Normalised') + '</button>';
+    }
+    // While cards are folded, a take with stems says so, and the pill opens its card to them (the pill is shown
+    // only on a folded card, or one it opened: styles.css).
+    if ((take.stem_sets || []).length) {
+      var stemsOpen = Boolean(UNFOLDED[take.id]);
+      live += '<button class="take-status stems-pill" data-act="stems-open" data-id="' + take.id + '" aria-expanded="' + stemsOpen + '"' +
+        ' title="' + esc(stemsOpen ? t('Fold this take again') : t('This take has stems: open it to see them')) + '">' + icon('stems') + t('Stems') + '</button>';
     }
     var id = ' data-id="' + take.id + '"';
     var actions = '';
@@ -12509,7 +12519,8 @@ function paintTakes() {
       ? ' data-act="cover-pic" data-id="' + take.id + '" data-art="' + esc(take.art) + '" data-title="' + esc(take.title) + '" role="button" tabindex="0" title="' + coverTipText + '" aria-label="' + coverTipText + '"'
       : ' data-act="cover-make" data-id="' + take.id + '" data-title="' + esc(take.title) + '" title="' + coverTipText + '" aria-label="' + coverTipText + '"';
     var folded = isFolded(take.id);
-    return '<article class="' + classes + (take.art ? ' with-art' : '') + (folded ? ' collapsed' : '') + '" data-id="' + take.id + '"' + art + '>' +
+    return '<article class="' + classes + (take.art ? ' with-art' : '') + (folded ? ' collapsed' : '') +
+      (foldedView() && UNFOLDED[take.id] ? ' opened' : '') + '" data-id="' + take.id + '"' + art + '>' +
       '<div class="take-head">' +
         '<div class="take-icon">' +
           '<div class="' + coverCls + '"' + coverAttr + '>' + initials(take.title) + '</div>' +
@@ -14953,7 +14964,13 @@ function wire() {
   $('fold-toggle').addEventListener('click', function () {
     var on = !foldedView();
     saveFolded(on);
-    Array.prototype.forEach.call(document.querySelectorAll('#takes .take'), function (card) { foldCard(card, on); });
+    UNFOLDED = {};
+    Array.prototype.forEach.call(document.querySelectorAll('#takes .take'), function (card) {
+      foldCard(card, on);
+      card.classList.remove('opened');
+      var pill = card.querySelector('.stems-pill');
+      if (pill) { pill.setAttribute('aria-expanded', 'false'); pill.title = t('This take has stems: open it to see them'); }
+    });
     paintFoldAll();
   });
   document.querySelector('.view-tools').addEventListener('click', function (event) {
@@ -15430,6 +15447,15 @@ function wire() {
         selectTake(saveTake);
         openSaveModal(saveTake);
       }
+    }
+    if (act === 'stems-open') {
+      UNFOLDED[id] = !UNFOLDED[id];
+      var stemsCard = button.closest('.take');
+      foldCard(stemsCard, isFolded(id));
+      if (stemsCard) { stemsCard.classList.toggle('opened', Boolean(UNFOLDED[id])); }
+      button.setAttribute('aria-expanded', UNFOLDED[id] ? 'true' : 'false');
+      button.title = UNFOLDED[id] ? t('Fold this take again') : t('This take has stems: open it to see them');
+      return;
     }
     if (act === 'stems') {
       var stemTake = takeById(id);

@@ -2769,5 +2769,7 @@
  "set by TRAIN_MAX_MINUTES": "durch TRAIN_MAX_MINUTES festgelegt",
  "No installer URL available for this update": "Keine Installer-URL für dieses Update verfügbar",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Prüfsummen stimmen nicht überein: erwartet {expected_hash}, erhalten {actual_hash}",
- "Ready-made voices, RVC models trained by others, can be found on sites such as {site}: Import a voice… takes the zip as downloaded.": "Fertige Stimmen, von anderen trainierte RVC-Modelle, gibt es auf Seiten wie {site}: Stimme importieren… nimmt die ZIP so, wie sie heruntergeladen wurde."
+ "Ready-made voices, RVC models trained by others, can be found on sites such as {site}: Import a voice… takes the zip as downloaded.": "Fertige Stimmen, von anderen trainierte RVC-Modelle, gibt es auf Seiten wie {site}: Stimme importieren… nimmt die ZIP so, wie sie heruntergeladen wurde.",
+ "Fold this take again": "Diesen Take wieder einklappen",
+ "This take has stems: open it to see them": "Dieser Take hat Stems: aufklappen, um sie zu sehen"
 }

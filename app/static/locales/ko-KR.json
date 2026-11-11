@@ -2769,5 +2769,7 @@
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES로 설정됨",
  "No installer URL available for this update": "이 업데이트의 설치 프로그램 URL이 없습니다",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}",
- "Ready-made voices, RVC models trained by others, can be found on sites such as {site}: Import a voice… takes the zip as downloaded.": "다른 사람이 학습시킨 RVC 모델인 기성 목소리는 {site} 같은 사이트에서 구할 수 있습니다. 목소리 가져오기…는 받은 zip을 그대로 받습니다."
+ "Ready-made voices, RVC models trained by others, can be found on sites such as {site}: Import a voice… takes the zip as downloaded.": "다른 사람이 학습시킨 RVC 모델인 기성 목소리는 {site} 같은 사이트에서 구할 수 있습니다. 목소리 가져오기…는 받은 zip을 그대로 받습니다.",
+ "Fold this take again": "이 테이크를 다시 접기",
+ "This take has stems: open it to see them": "이 테이크에는 스템이 있습니다. 펼쳐서 보세요"
 }

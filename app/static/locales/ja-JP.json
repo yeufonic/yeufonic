@@ -2769,5 +2769,7 @@
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES で設定",
  "No installer URL available for this update": "このアップデートにはインストーラーの URL がありません",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}",
- "Ready-made voices, RVC models trained by others, can be found on sites such as {site}: Import a voice… takes the zip as downloaded.": "他の人が学習させた RVC モデルの既製の声は、{site} などのサイトで入手できます。声をインポート… はダウンロードした zip をそのまま受け付けます。"
+ "Ready-made voices, RVC models trained by others, can be found on sites such as {site}: Import a voice… takes the zip as downloaded.": "他の人が学習させた RVC モデルの既製の声は、{site} などのサイトで入手できます。声をインポート… はダウンロードした zip をそのまま受け付けます。",
+ "Fold this take again": "このテイクをもう一度たたむ",
+ "This take has stems: open it to see them": "このテイクにはステムがあります。開くと表示されます"
 }

@@ -2936,6 +2936,14 @@ button.take-status.weak:hover { background: rgb(var(--warn-rgb) / 0.16); }
 /* Both normalised labels undo it when clicked. */
 button.take-status.normalised { font: inherit; font-size: 12px; cursor: pointer; }
 button.take-status.normalised:hover { background: rgb(var(--good-rgb) / 0.15); }
+/* A folded card's sign that the take has stems, which opens the card to them; on an open card it is not needed,
+   unless the pill opened it, when it folds the card again. */
+.take-status.stems-pill { display: none; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; color: #94a3b8;
+  background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.3); }
+.take-status.stems-pill svg { width: 14px; height: 14px; }
+.take-status.stems-pill:hover { background: rgba(148, 163, 184, 0.16); }
+.take.collapsed .take-status.stems-pill, .take.opened .take-status.stems-pill { display: inline-flex; }
+:root[data-theme="light"] .take-status.stems-pill { color: #475569; background: rgba(71, 85, 105, 0.08); border-color: rgba(71, 85, 105, 0.3); }
 .status-undo { flex: 1; min-width: 0; border: 0; background: none; color: inherit; font: inherit; font-size: 12px;
   text-align: left; padding: 0; cursor: pointer; }
 .status-undo:hover { text-decoration: underline; }
