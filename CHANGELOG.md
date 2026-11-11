@@ -37,24 +37,28 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.58 (2026-11-11)
 
 - **Hear a recorded voice before making a take with it.** In the editor, the voice's **Settings** gain **Hear it**: the
   voice sings a short loop, a man's or a woman's, made with Yeufonic, round and round while its settings change, each
   change heard as soon as the voice service has sung it again. The voice service keeps the voice loaded while you
   listen, and lets it go before any other GPU work. Needs the voice service from this version (Docker: `--build`).
-- **Recorded voices through MCP.** `list_voices` lists them with their default settings; `make_song`, `make_cover`
-  and `render_take` take a voice by name, with settings of its own for that take (formant, blend, likeness and the
-  rest, by the editor's words), and `render_take` can drop one; `get_take` and `list_takes` say which voice sang a take.
 - **Your own loops to hear a voice on:** a short recording of one voice singing alone, put in the library's
   `voice-loops` folder, is listed beside the two that come with the app, by its file name.
 - **Formant and Blend,** two more settings for a voice and for a take: Formant makes the voice larger and deeper or
   smaller and brighter with its pitch kept; Blend mixes it with the rendered vocal it was made from.
 - **Save as a new voice…** keeps what was heard as a voice of its own, with these settings as its defaults, sharing the
   model files rather than copying them.
+- **Recorded voices through MCP.** `list_voices` lists them with their default settings; `make_song`, `make_cover`
+  and `render_take` take a voice by name, with settings of its own for that take (formant, blend, likeness and the
+  rest, by the editor's words), and `render_take` can drop one; `get_take` and `list_takes` say which voice sang a take.
 - **The Recorded voice picker is the field itself,** with a Settings button beside it once a voice is picked; it no
-  longer shows the voice twice.
-- **A folded take card with stems says so:** a Stems pill, which opens that card to its stems.
+  longer shows the voice twice, and lists the voices by name.
+- **A take card names the recorded voice that sang it,** after its Interpretation.
+- **An instrumental has no Recorded voice field,** and is never sung in a voice.
+- **A quick peek at a folded card:** while the cards are folded, a button top right opens one card alone, and a click
+  anywhere outside folds it again. A folded card with stems shows a Stems pill, which opens it the same way, and its
+  pills and small buttons keep to one line.
 
 ## 0.0.57 (2026-11-10)
 
