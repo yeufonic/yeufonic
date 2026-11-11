@@ -16492,7 +16492,14 @@ function closeEditor() {
   if (!editorOpen()) { return; }
   saveTitleIfDirty();
   notationStop();
-  if (typeof auditionStop === 'function' && AUD.playing) { auditionStop(); }
+  if (typeof auditionStop === 'function') {
+    if (AUD.playing) { auditionStop(); }
+    AUD.keepOpen = false;            // the editor opens next time without the half-made voice's name box
+    var keepForm = $('voice-keep-form');
+    if (keepForm) { keepForm.classList.add('hidden'); }
+    var keepName = $('voice-keep-name');
+    if (keepName) { keepName.value = ''; }
+  }
   if (window.PianoRoll) { window.PianoRoll.stop(); }
   if (scoreIsDirty() && (takeIdInEditor() || (State.mode === 'cover' && currentSource()))) {
     saveScore(true);
@@ -18292,6 +18299,7 @@ function setPersonaFromTake(take) {
   if (take && take.id && take.id === VOICES.takeId) { return; }
   VOICES.takeId = take && take.id;
   VOICES.pick = (take && take.voice_id) || null;
+  AUD.keepOpen = false;
   var mix = {};
   try { mix = take && take.voice_mix ? (typeof take.voice_mix === 'string' ? JSON.parse(take.voice_mix) : take.voice_mix) : {}; } catch (err) { mix = {}; }
   VOICES.takeMix = mix || {};
@@ -18300,6 +18308,7 @@ function setPersonaFromTake(take) {
 
 /* A new take starts with no recorded voice, like no style LoRA. */
 function clearPersonaPick() {
+  AUD.keepOpen = false;
   VOICES.pick = null;
   VOICES.takeId = null;
   VOICES.takeMix = {};
