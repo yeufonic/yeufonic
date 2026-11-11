@@ -1698,6 +1698,7 @@ ricollega l'agente (in Claude Code, `/mcp`). Ricollegalo anche dopo aver riavvia
 | “…con armonia avventurosa, interpretazione controllata, in fa diesis, a 100 BPM” | Qualsiasi impostazione di un take nuovo con i nomi usati dalla pagina: [Armonia](#harmony), [Varietà del piano](#plan-variety), l'[interpretazione](#interpretation), blocco di tonalità e tempo, e per una canzone **Segui esattamente questa struttura** e **Le voci seguono le indicazioni**. Se non si dice nulla, un take nuovo parte da dove parte quello della pagina: Varia e Ampia |
 | “Scrivi un testo su un treno notturno, in tono parlato” | Il **Scrivi testo** dell'app stessa, con le sue forme di canzone, righe per sezione e toni. L'agente può anche scrivere il testo da sé |
 | “Fai una cover di *la registrazione* in stile jazz” | Fa una cover da una registrazione già nella tua libreria. Serve una partitura (trascrivila prima nell'app). Senza un testo tuo, usa le parole sentite nella registrazione |
+| “Quali voci ho?”, “cantala con la mia voce Night Singer, un po’ più profonda” | Elenca le tue voci registrate e fa una canzone o una cover cantata con una di esse, o rigenera un take con una, con impostazioni proprie per quel take (formante, miscela, somiglianza e il resto), come le **impostazioni** della voce nell’editor |
 | “Riproducilo” | Apre il take nel tuo browser, dove suona |
 | “Metti la stella a quello”, “chiamalo Sunrise”, “spostalo nello spazio Folk” | Mette la stella, rinomina o sposta un take |
 | “Renderizzalo di nuovo con un seed nuovo”, “ferma quello” | Renderizza di nuovo un take, o ne annulla uno in corso |
@@ -1768,6 +1769,7 @@ dire al tuo agente quale vuoi.
 | `make_stems`, `get_stems` | Separa un take in parti, poi elenca le parti con un link a ciascuna e all'intero set in uno zip |
 | `list_recordings`, `transcribe_recording` | Mostra le registrazioni della libreria e se ciascuna ha una partitura; trascrive quella che non ce l'ha |
 | `list_style_loras` | Le LoRA di stile installate, con le loro parole chiave e le intensità salvate con esse |
+| `list_voices` | Le tue voci registrate, se ognuna è pronta e le sue impostazioni predefinite. `make_song`, `make_cover` e `render_take` ne prendono una per nome, con impostazioni proprie per quel take; `get_take` dice quale voce ha cantato un take |
 | `list_spaces`, `move_take`, `create_space` | Gli spazi e cosa contiene ciascuno; sposta un take in un altro; crea uno spazio nuovo |
 | `list_playlists`, `create_playlist`, `add_to_playlist`, `remove_from_playlist` | Le playlist e i take di una; ne crea una; mette o toglie take |
 | `make_picture` | Un'immagine nuova per un take, con un link che la apre. Anche `get_take` dà il link all'immagine di un take |

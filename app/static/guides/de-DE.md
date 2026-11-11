@@ -1700,6 +1700,7 @@ verbinde den Agenten neu (in Claude Code `/mcp`). Verbinde auch nach einem Neust
 | „…mit abenteuerlicher Harmonie, enger Interpretation, in Fis, mit 100 BPM“ | Jede Einstellung eines neuen Takes unter den Namen, die die Seite benutzt: [Harmonie](#harmony), [Planvielfalt](#plan-variety), die [Interpretation](#interpretation), die Fixierung von Tonart und Tempo und für einen Song **Dieser Struktur genau folgen** und **Stimmen folgen den Hinweisen**. Ungesagt beginnt ein neuer Take dort, wo der der Seite beginnt: Abwechslungsreich und Weit |
 | „Schreib einen Text über einen Nachtzug, gesprochen“ | Das eigene **Songtext schreiben** der App, mit seinen Songformen, Zeilen pro Abschnitt und Klangarten. Der Agent kann Texte auch selbst schreiben |
 | „Mach ein Cover von *der Aufnahme* im Jazz-Stil“ | Macht ein Cover aus einer Aufnahme, die schon in deiner Bibliothek ist. Es braucht eine Partitur (transkribiere sie zuerst in der App). Ohne eigenen Text nutzt es die in der Aufnahme gehörten Wörter |
+| „Welche Stimmen habe ich?“, „sing es mit meiner Stimme Night Singer, etwas tiefer“ | Listet deine aufgenommenen Stimmen auf und macht einen Song oder ein Cover, gesungen in einer davon, oder rendert einen Take neu in einer, mit eigenen Einstellungen für diesen Take (Formant, Mischung, Ähnlichkeit und der Rest), wie die **Einstellungen** der Stimme im Editor |
 | „Spiel es ab“ | Öffnet den Take in deinem Browser, wo er spielt |
 | „Gib dem einen Stern“, „nenn es Sunrise“, „verschieb es in den Bereich Folk“ | Gibt einem Take einen Stern, benennt ihn um oder verschiebt ihn |
 | „Render es neu mit einem neuen Seed“, „stopp das“ | Rendert einen Take erneut oder bricht einen laufenden ab |
@@ -1770,6 +1771,7 @@ deinem Agenten sagen kannst, welches du meinst.
 | `make_stems`, `get_stems` | Teilt einen Take in Teile und listet dann die Teile mit einem Link zu jedem und zum ganzen Set als Zip |
 | `list_recordings`, `transcribe_recording` | Zeigt die Aufnahmen in der Bibliothek und ob jede eine Partitur hat; transkribiert eine ohne |
 | `list_style_loras` | Die installierten Stil-LoRAs, mit ihren Triggerwörtern und den mit ihnen gespeicherten Stärken |
+| `list_voices` | Deine aufgenommenen Stimmen, ob jede bereit ist, und ihre Voreinstellungen. `make_song`, `make_cover` und `render_take` nehmen eine beim Namen, mit eigenen Einstellungen für diesen Take; `get_take` sagt, welche Stimme einen Take gesungen hat |
 | `list_spaces`, `move_take`, `create_space` | Die Bereiche und was jeder enthält; verschiebt einen Take in einen anderen; macht einen neuen Bereich |
 | `list_playlists`, `create_playlist`, `add_to_playlist`, `remove_from_playlist` | Die Playlists und die Takes in einer; macht eine; legt Takes hinein oder nimmt sie heraus |
 | `make_picture` | Ein neues Bild für einen Take, mit einem Link, der es öffnet. `get_take` gibt auch den Link zum Bild eines Takes |

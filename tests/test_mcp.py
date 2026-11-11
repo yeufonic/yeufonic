@@ -801,3 +801,88 @@ def test_a_recipe_changed_by_an_agent_is_imported_into_a_space_ready_to_render(c
 def test_status_names_the_engine(client, on):
     error, status = call(client, "status")
     assert not error and status["engine"] in ("ComfyUI", "yue2.cpp")
+
+
+def _ready_voice(name, **settings):
+    from app import persona
+    made = persona.create(name, state="new")
+    persona.model_file(made["id"]).write_bytes(b"PK weights")
+    persona.ready(made["id"], str(persona.model_file(made["id"])))
+    return persona.update(made["id"], **settings) if settings else persona.one(made["id"])
+
+
+@pytest.fixture
+def voice_service(monkeypatch):
+    """The voice service answering that it is ready, without one running."""
+    from app import jobs
+
+    async def ready():
+        return {"ok": True, "running": True, "models": {}}
+    monkeypatch.setattr(jobs, "voice_service", ready)
+
+
+def test_list_voices_gives_names_and_defaults_by_the_editors_words(client, on, voice_service):
+    from app import persona
+    voice = _ready_voice("Night Singer", formant=0.94, protect=0.15, wet=0.75)
+    error, voices = call(client, "list_voices")
+    mine = next(v for v in voices if v["name"] == "Night Singer")
+    assert not error and mine["ready"] and mine["defaults"]["formant"] == "a little deeper"
+    assert mine["defaults"]["breaths"] == "kept" and mine["defaults"]["blend"] == 0.75
+    persona.delete(voice["id"])
+
+
+def test_without_the_voice_service_there_are_no_voices(client, on, monkeypatch):
+    from app import config
+    monkeypatch.setattr(config, "VOICE_URL", "")
+    assert call(client, "list_voices") == (False, [])
+    error, refused = call(client, "make_song", style="folk", lyrics="[Verse]\nla", voice="Anyone")
+    assert error and "voice service" in refused
+
+
+def test_a_song_is_sung_in_a_voice_named_with_its_own_settings(client, on, voice_service, monkeypatch):
+    from app import jobs, persona
+    from app.db import one
+    monkeypatch.setitem(jobs.ENGINE.options, "checkpoints", ["yue2_3b_bf16.safetensors"])
+    monkeypatch.setattr(jobs.ENGINE, "options_loaded", True)
+    voice = _ready_voice("Night Singer")
+    error, made = call(client, "make_song", style="folk", lyrics="[Verse]\nla la la", voice="night singer",
+                       voice_settings={"formant": "brighter", "blend": 0.5, "octave": 1, "breaths": "converted"})
+    assert not error
+    row = one("SELECT voice_id, voice_mix FROM takes WHERE id = ?", (made["id"],))
+    import json
+    assert row["voice_id"] == voice["id"]
+    assert json.loads(row["voice_mix"]) == {"octave": 1, "wet": 0.5, "protect": 0.5, "formant": 1.12}
+    error, got = call(client, "get_take", take_id=made["id"])
+    assert got["voice"] == "Night Singer" and got["voice_settings"]["formant"] == "brighter" and "voice_mix" not in got
+    error, listed = call(client, "list_takes")
+    assert next(t for t in listed if t["id"] == made["id"])["voice"] == "Night Singer"
+    error, refused = call(client, "make_song", style="folk", lyrics="[Verse]\nla", voice="Nobody")
+    assert error and "Night Singer" in refused                       # the voices there are, named
+    error, refused = call(client, "make_song", style="folk", lyrics="[Verse]\nla", voice="Night Singer",
+                          voice_settings={"formant": "huge"})
+    assert error and "formant" in refused
+    while not QUEUE.empty():
+        QUEUE.get_nowait()
+    persona.delete(voice["id"])
+
+
+def test_render_take_can_change_the_voice_or_drop_it(client, on, voice_service, monkeypatch):
+    from app import persona
+    voice = _ready_voice("Night Singer")
+    sent = []
+
+    async def fake_api(method, path, json=None, params=None):
+        if path == "/api/voices/service":
+            return {"ok": True}
+        if path == "/api/voices":
+            return [persona.one(voice["id"])]
+        sent.append((path, json))
+        return {"ok": True}
+
+    import asyncio
+    from app import mcp
+    asyncio.run(mcp.call_tool("render_take", {"take_id": "abcdef123456", "voice": "Night Singer"}, fake_api))
+    asyncio.run(mcp.call_tool("render_take", {"take_id": "abcdef123456", "voice": "none"}, fake_api))
+    renders = [body for path, body in sent if path.endswith("/render")]
+    assert renders[0]["voice_id"] == voice["id"] and renders[1] == {"reseed": False, "voice_id": "", "voice_mix": {}}
+    persona.delete(voice["id"])

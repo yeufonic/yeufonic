@@ -1699,6 +1699,7 @@ reconnectez l’agent (dans Claude Code, `/mcp`). Reconnectez-le aussi après un
 | « …avec une harmonie audacieuse, une interprétation serrée, en fa dièse, à 100 BPM » | N’importe quel réglage d’une nouvelle prise sous les noms qu’utilise la page : [Harmonie](#harmony), [Variété du plan](#plan-variety), l’[interprétation](#interpretation), les verrouillages de tonalité et de tempo, et pour une chanson **Suivre exactement cette structure** et **Les voix suivent les repères**. Sans précision, une nouvelle prise part de là où part celle de la page : Varié et Large |
 | « Écris des paroles sur un train de nuit, façon parlée » | Le **Écrire les paroles** de l’application, avec ses formes de chanson, ses lignes par section et ses façons. L’agent peut aussi écrire les paroles lui-même |
 | « Fais une reprise de *l’enregistrement* dans un style jazz » | Fait une reprise à partir d’un enregistrement déjà dans votre bibliothèque. Il faut une partition (transcrivez-le d’abord dans l’application). Sans paroles de votre part, il utilise les mots entendus dans l’enregistrement |
+| « Quelles voix ai-je ? », « chante-la avec ma voix Night Singer, un peu plus grave » | Liste vos voix enregistrées et fait une chanson ou une reprise chantée avec l’une d’elles, ou refait le rendu d’une prise avec l’une d’elles, avec des réglages propres à cette prise (formant, mélange, ressemblance et le reste), comme les **paramètres** de la voix dans l’éditeur |
 | « Lance-la » | Ouvre la prise dans votre navigateur, où elle se lit |
 | « Mets une étoile à celle-là », « appelle-la Sunrise », « déplace-la dans l’espace Folk » | Met une étoile, renomme ou déplace une prise |
 | « Refais le rendu avec une nouvelle seed », « arrête ça » | Refait le rendu d’une prise, ou en annule une en cours |
@@ -1769,6 +1770,7 @@ dire à votre agent lequel vous voulez.
 | `make_stems`, `get_stems` | Sépare une prise en parties, puis liste les parties avec un lien vers chacune et vers l’ensemble en zip |
 | `list_recordings`, `transcribe_recording` | Montre les enregistrements de la bibliothèque et si chacun a une partition ; transcrit celui qui n’en a pas |
 | `list_style_loras` | Les LoRA de style installées, avec leurs mots déclencheurs et les forces enregistrées avec elles |
+| `list_voices` | Vos voix enregistrées, si chacune est prête, et ses réglages par défaut. `make_song`, `make_cover` et `render_take` en prennent une par son nom, avec des réglages propres à cette prise ; `get_take` dit quelle voix a chanté une prise |
 | `list_spaces`, `move_take`, `create_space` | Les espaces et ce que chacun contient ; déplace une prise vers un autre ; crée un nouvel espace |
 | `list_playlists`, `create_playlist`, `add_to_playlist`, `remove_from_playlist` | Les playlists et les prises d’une playlist ; en crée une ; y ajoute ou en retire des prises |
 | `make_picture` | Une nouvelle image pour une prise, avec un lien qui l’ouvre. `get_take` donne aussi le lien vers l’image d’une prise |

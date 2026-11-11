@@ -1697,6 +1697,7 @@ vuelve a conectar el agente (en Claude Code, `/mcp`). Vuelve a conectar también
 | «…con armonía atrevida, interpretación ajustada, en fa sostenido, a 100 BPM» | Cualquier ajuste de una toma nueva con los nombres que usa la página: [Armonía](#harmony), [Variedad del plan](#plan-variety), la [interpretación](#interpretation), fijar tonalidad y tempo, y para una canción **Seguir esta estructura exactamente** y **Las voces siguen las indicaciones**. Si no se dice, una toma nueva empieza donde empieza la de la página: Variada y Amplia |
 | «Escribe una letra sobre un tren nocturno, en tono hablado» | El **Escribir letra** de la propia aplicación, con sus formas de canción, líneas por sección y tonos. El agente también puede escribir la letra por su cuenta |
 | «Haz una versión de *la grabación* en estilo jazz» | Hace una versión a partir de una grabación que ya está en tu biblioteca. Necesita una partitura (transcríbela antes en la aplicación). Sin letra tuya, usa las palabras oídas en la grabación |
+| “¿Qué voces tengo?”, “cántala con mi voz Night Singer, un poco más grave” | Lista tus voces grabadas y hace una canción o versión cantada con una, o vuelve a renderizar una toma con una, con ajustes propios para esa toma (formante, mezcla, parecido y el resto), como los **ajustes** de la voz en el editor |
 | «Reprodúcela» | Abre la toma en tu navegador, donde suena |
 | «Ponle estrella a esa», «llámala Sunrise», «muévela al espacio Folk» | Pone estrella, renombra o mueve una toma |
 | «Vuelve a renderizarla con una semilla nueva», «para eso» | Vuelve a renderizar una toma, o cancela una en curso |
@@ -1767,6 +1768,7 @@ decirle a tu agente cuál quieres.
 | `make_stems`, `get_stems` | Separa una toma en partes, y luego lista las partes con un enlace a cada una y al conjunto entero en zip |
 | `list_recordings`, `transcribe_recording` | Muestra las grabaciones de la biblioteca y si cada una tiene partitura; transcribe la que no la tiene |
 | `list_style_loras` | Las LoRA de estilo instaladas, con sus palabras disparadoras y las fuerzas guardadas con ellas |
+| `list_voices` | Tus voces grabadas, si cada una está lista y sus ajustes por defecto. `make_song`, `make_cover` y `render_take` toman una por su nombre, con ajustes propios para esa toma; `get_take` dice qué voz cantó una toma |
 | `list_spaces`, `move_take`, `create_space` | Los espacios y lo que contiene cada uno; mueve una toma a otro; crea un espacio nuevo |
 | `list_playlists`, `create_playlist`, `add_to_playlist`, `remove_from_playlist` | Las listas y las tomas de una; crea una; mete o saca tomas |
 | `make_picture` | Una imagen nueva para una toma, con un enlace que la abre. `get_take` también da el enlace a la imagen de una toma |

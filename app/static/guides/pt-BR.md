@@ -1695,6 +1695,7 @@ reconecte o agente (no Claude Code, `/mcp`). Reconecte também depois de reinici
 | “…com harmonia ousada, interpretação controlada, em fá sustenido, a 100 BPM” | Qualquer ajuste de um take novo com os nomes que a página usa: [Harmonia](#harmony), [Variedade do plano](#plan-variety), a [interpretação](#interpretation), fixar tom e andamento, e para uma música **Seguir esta estrutura exatamente** e **As vozes seguem as indicações**. Se nada for dito, um take novo começa onde o da página começa: Variada e Ampla |
 | “Escreva uma letra sobre um trem noturno, em tom falado” | O **Escrever letra** do próprio app, com as formas de música, linhas por seção e tons dele. O agente também pode escrever a letra por conta própria |
 | “Faça um cover de *a gravação* no estilo jazz” | Faz um cover a partir de uma gravação que já está na sua biblioteca. Precisa de uma partitura (transcreva-a antes no app). Sem letra sua, usa as palavras ouvidas na gravação |
+| “Que vozes eu tenho?”, “cante com a minha voz Night Singer, um pouco mais grave” | Lista suas vozes gravadas e faz uma música ou cover cantada com uma delas, ou renderiza um take de novo com uma, com configurações próprias para esse take (formante, mistura, semelhança e o resto), como as **configurações** da voz no editor |
 | “Toque” | Abre o take no seu navegador, onde ele toca |
 | “Ponha estrela nesse”, “chame de Sunrise”, “mova para o espaço Folk” | Põe estrela, renomeia ou move um take |
 | “Renderize de novo com uma seed nova”, “pare isso” | Renderiza um take de novo, ou cancela um em andamento |
@@ -1765,6 +1766,7 @@ dizer ao seu agente qual quer.
 | `make_stems`, `get_stems` | Separa um take em partes, e depois lista as partes com um link para cada uma e para o conjunto inteiro em zip |
 | `list_recordings`, `transcribe_recording` | Mostra as gravações da biblioteca e se cada uma tem partitura; transcreve a que não tem |
 | `list_style_loras` | Os LoRAs de estilo instalados, com as palavras-gatilho e as forças salvas com eles |
+| `list_voices` | Suas vozes gravadas, se cada uma está pronta e seus padrões. `make_song`, `make_cover` e `render_take` recebem uma pelo nome, com configurações próprias para esse take; `get_take` diz qual voz cantou um take |
 | `list_spaces`, `move_take`, `create_space` | Os espaços e o que cada um contém; move um take para outro; cria um espaço novo |
 | `list_playlists`, `create_playlist`, `add_to_playlist`, `remove_from_playlist` | As playlists e os takes de uma; cria uma; põe ou tira takes |
 | `make_picture` | Uma imagem nova para um take, com um link que a abre. `get_take` também dá o link para a imagem de um take |

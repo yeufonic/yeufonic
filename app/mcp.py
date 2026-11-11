@@ -59,6 +59,34 @@ _LOCKS = {
     "tempo": {"type": "integer", "description": "Lock the tempo, in beats a minute (40 to 240). A tempo in the style is a hint; this "
                                                 "is kept to."},
 }
+# A recorded voice (the Voices page): the take is rendered, then its vocal sung again in the voice.  Its settings by the
+# words the editor shows; any left out are the voice's own defaults.
+ROOMS = {"dry": 0.0, "subtle": 0.14, "more": 0.28}
+BREATHS = {"kept": 0.15, "balanced": 0.33, "converted": 0.5}
+DYNAMICS = {"take": 0.25, "even": 0.5, "voice": 1.0}
+FORMANTS = {"deeper": 0.88, "a little deeper": 0.94, "as sung": 1.0, "a little brighter": 1.06, "brighter": 1.12}
+_VOICE_SETTINGS = {"type": "object", "description": "This take's own settings for the voice; any left out are the voice's defaults "
+                   "(see list_voices).", "properties": {
+    "octave": {"type": "integer", "description": "-1, 0 or 1: a whole octave down or up, for a singer whose range is far from the take's."},
+    "likeness": {"type": "number", "description": "0.25 to 1: how closely it keeps to the singer's own sounds. At 1 words the singer was "
+                                                  "never heard singing can come out garbled."},
+    "formant": {"type": "string", "enum": list(FORMANTS), "description": "The size of the voice, its pitch kept: deeper sounds larger, "
+                                                                        "brighter smaller."},
+    "blend": {"type": "number", "description": "0.25 to 1: how much of the vocal the voice sings; the rest is the rendered vocal."},
+    "vocal_db": {"type": "number", "description": "The sung vocal's level in the mix, -3 to +6 dB."},
+    "instruments_db": {"type": "number", "description": "The backing's level under it, -9 to 0 dB."},
+    "room": {"type": "string", "enum": list(ROOMS), "description": "A short room under the vocal."},
+    "brightness": {"type": "string", "enum": ["auto", "off"], "description": "auto lifts its upper range to match the rendered vocal's."},
+    "breaths": {"type": "string", "enum": list(BREATHS), "description": "How far breaths and consonants keep the rendered vocal's "
+                                                                        "sounds: kept stay clear, converted can tear."},
+    "dynamics": {"type": "string", "enum": list(DYNAMICS), "description": "Whose loudness it follows from phrase to phrase: the take's, "
+                                                                         "even, or the voice's own."},
+}}
+_VOICE = {
+    "voice": {"type": "string", "description": "A recorded voice to sing it, by name (see list_voices): the take is rendered, then "
+                                               "its vocal sung again in that voice."},
+    "voice_settings": _VOICE_SETTINGS,
+}
 _SONG_ONLY = {
     "follow_structure": {"type": "boolean", "description": "Plan exactly the sections the lyrics name, in order, and no others. "
                                                           "Default false: the planner may add an intro, an outro or an interlude, or "
@@ -157,7 +185,7 @@ TOOLS: list[dict] = [
             "lora_planner": {"type": "number", "description": "How strongly it shapes the plan, 0 to 3. Default: the strength saved with it."},
             "lora_sound": {"type": "number", "description": "How strongly it shapes the sound, 0 to 3. Default: the strength saved with it."},
             "render": {"type": "boolean", "description": "Render as well as plan. Default true."},
-            **_INTERPRETATION, **_PLANNING, **_LOCKS, **_SONG_ONLY}},
+            **_INTERPRETATION, **_PLANNING, **_LOCKS, **_SONG_ONLY, **_VOICE}},
     },
     {
         "name": "list_recordings",
@@ -185,7 +213,14 @@ TOOLS: list[dict] = [
                                                            "trigger word is added to the style for you."},
             "lora_planner": {"type": "number", "description": "How strongly it shapes the plan, 0 to 3. Default: the strength saved with it."},
             "lora_sound": {"type": "number", "description": "How strongly it shapes the sound, 0 to 3. Default: the strength saved with it."},
-            **_INTERPRETATION, **_LOCKS}},
+            **_INTERPRETATION, **_LOCKS, **_VOICE}},
+    },
+    {
+        "name": "list_voices",
+        "description": "The recorded voices on the Voices page that a song or cover can be sung in (the voice option of make_song, "
+                       "make_cover and render_take): each one's name, whether it is ready, and its default settings. Empty when "
+                       "the voice service is not running here.",
+        "inputSchema": {"type": "object", "properties": {}},
     },
     {
         "name": "list_style_loras",
@@ -284,10 +319,13 @@ TOOLS: list[dict] = [
     },
     {
         "name": "render_take",
-        "description": "Render a planned take, or render a finished one again (with new_seed for a different result).",
+        "description": "Render a planned take, or render a finished one again (with new_seed for a different result). With "
+                       "voice, it is sung in that recorded voice this time (\"none\" for the model's own singing); left out, it "
+                       "keeps the voice it had.",
         "inputSchema": {"type": "object", "required": ["take_id"], "properties": {
             "take_id": {"type": "string"},
             "new_seed": {"type": "boolean"},
+            **_VOICE,
         }},
     },
     {
@@ -542,7 +580,7 @@ async def _space_names(api: Api) -> dict:
 
 def _full(take: dict, include_score: bool, spaces: dict | None = None, base: str = "") -> dict:
     out = {key: value for key, value in take.items()
-           if value is not None and key not in ("abc", "audio_path", "prompt_id", "live", "weak_dismissed")}
+           if value is not None and key not in ("abc", "audio_path", "prompt_id", "live", "weak_dismissed", "voice_mix")}
     if spaces and take.get("space_id") in spaces:
         out["space"] = spaces[take["space_id"]]
     if take.get("live"):
@@ -653,6 +691,92 @@ async def _with_lora(api: Api, args: dict, body: dict) -> None:
     trigger = (item.get("trigger") or "").strip()
     if trigger and not _has_tag(body.get("style", ""), trigger):
         body["style"] = trigger + (", " + body["style"] if body.get("style") else "")
+
+
+def _voice_words(voice: dict) -> dict:
+    """A voice's settings (its defaults, or a take's own) by the names the voice options use."""
+    out = {}
+    for key, name in (("octave", "octave"), ("likeness", "likeness"), ("wet", "blend"), ("level_db", "vocal_db"),
+                      ("backing_db", "instruments_db")):
+        if voice.get(key) is not None:
+            out[name] = voice[key]
+    for key, name, table in (("room", "room", ROOMS), ("protect", "breaths", BREATHS), ("dynamics", "dynamics", DYNAMICS),
+                             ("formant", "formant", FORMANTS)):
+        if voice.get(key) is not None:
+            out[name] = min(table, key=lambda word: abs(table[word] - float(voice[key])))
+    if voice.get("brightness") is not None:
+        out["brightness"] = "auto" if voice["brightness"] else "off"
+    return out
+
+
+async def _voices(api: Api) -> list[dict]:
+    if not (await api("GET", "/api/voices/service")).get("ok"):
+        return []
+    return await api("GET", "/api/voices")
+
+
+async def _with_voice(api: Api, args: dict, body: dict, none_allowed: bool = False) -> None:
+    """The recorded voice an agent named, by name (any case) or id, and the take's own settings for it, into a request."""
+    asked = str(args.get("voice") or "").strip()
+    if not asked:
+        if args.get("voice_settings"):
+            raise ApiRefused("voice_settings needs a voice to apply to.")
+        return
+    if none_allowed and asked.lower() == "none":
+        body["voice_id"], body["voice_mix"] = "", {}
+        return
+    voices = [v for v in await _voices(api) if v.get("state") == "ready"]
+    if not voices:
+        raise ApiRefused("No recorded voice can sing here: the voice service is not running, or no voice is ready.")
+    found = [v for v in voices if v["id"] == asked] or [v for v in voices if v["name"].strip().lower() == asked.lower()]
+    if len(found) != 1:
+        names = ", ".join(v["name"] for v in voices)
+        raise ApiRefused(f"{'More than one voice is' if found else 'No ready voice is'} called '{asked}'. The voices are: {names}.")
+    settings = args.get("voice_settings") or {}
+    if not isinstance(settings, dict):
+        raise ApiRefused("voice_settings must be an object.")
+    mix: dict = {}
+    for name, key in (("octave", "octave"), ("likeness", "likeness"), ("blend", "wet"), ("vocal_db", "level_db"),
+                      ("instruments_db", "backing_db")):
+        if settings.get(name) is not None:
+            try:
+                mix[key] = float(settings[name])
+            except (TypeError, ValueError):
+                raise ApiRefused(f"voice_settings.{name} must be a number.") from None
+    for name, key, table in (("room", "room", ROOMS), ("breaths", "protect", BREATHS), ("dynamics", "dynamics", DYNAMICS),
+                             ("formant", "formant", FORMANTS)):
+        if settings.get(name) is not None:
+            word = str(settings[name]).strip().lower()
+            if word not in table:
+                raise ApiRefused(f"voice_settings.{name} must be one of: {', '.join(table)}")
+            mix[key] = table[word]
+    if settings.get("brightness") is not None:
+        word = str(settings["brightness"]).strip().lower()
+        if word not in ("auto", "off"):
+            raise ApiRefused("voice_settings.brightness must be auto or off")
+        mix["brightness"] = 1 if word == "auto" else 0
+    body["voice_id"] = found[0]["id"]
+    body["voice_mix"] = mix
+
+
+async def _voice_of_take(api: Api, take: dict, voices: list[dict] | None = None) -> dict:
+    """What a take says about its recorded voice: the name, and its own settings where it has them."""
+    if not take.get("voice_id"):
+        return {}
+    voices = voices if voices is not None else await _voices(api)
+    found = next((v for v in voices if v["id"] == take["voice_id"]), None)
+    if not found:
+        return {}
+    out = {"voice": found["name"]}
+    own = take.get("voice_mix")
+    if isinstance(own, str):
+        try:
+            own = json.loads(own or "{}")
+        except ValueError:
+            own = {}
+    if own:
+        out["voice_settings"] = _voice_words(own)
+    return out
 
 
 def _one_of(args: dict, key: str, choices: tuple, default: str | None = None) -> str | None:
@@ -785,7 +909,10 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
             if args.get("inside"):
                 params["inside"] = await _take_id(api, args["inside"])
             spaces = await _space_names(api)
-            found = [_brief(take, spaces) for take in await api("GET", "/api/takes", params=params)]
+            takes = await api("GET", "/api/takes", params=params)
+            voices = await _voices(api) if any(take.get("voice_id") for take in takes) else []
+            found = [{**_brief(take, spaces), **{k: v for k, v in (await _voice_of_take(api, take, voices)).items() if k == "voice"}}
+                     for take in takes]
             same = {}
             for item in found:
                 same[item.get("title")] = same.get(item.get("title"), 0) + 1
@@ -796,6 +923,7 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
         if name == "get_take":
             take = await api("GET", f"/api/takes/{args['take_id']}")
             result = _full(take, bool(args.get("include_score")), await _space_names(api), base)
+            result.update(await _voice_of_take(api, take))
             result["picture_url"] = await _picture_url(api, take, base)
             return _text({key: value for key, value in result.items() if value is not None})
         if name == "wait_for_take":
@@ -807,6 +935,7 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                     break
                 await asyncio.sleep(min(POLL, max(0.05, deadline - time.monotonic())))
             result = _full(take, False, await _space_names(api), base)
+            result.update(await _voice_of_take(api, take))
             picture = await _picture_url(api, take, base)
             if picture:
                 result["picture_url"] = picture
@@ -825,6 +954,8 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                     body[key] = args[key]
             await _with_lora(api, args, body)
             await _shape(api, args, body, planning=True, song=name == "make_song")
+            if name == "make_song":
+                await _with_voice(api, args, body)
             if name == "make_instrumental":
                 # What the person asked for, or a timed structure for the length: never bare, which fails.
                 body["structure"] = str(args.get("structure") or "").strip() or timed_structure(
@@ -867,6 +998,7 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                 body["space_id"] = space
             await _with_lora(api, args, body)
             await _shape(api, args, body)
+            await _with_voice(api, args, body)
             made = await api("POST", "/api/takes", json=body)
             if isinstance(made, dict) and "id" in made:
                 return _text({"kind": "cover", **_brief(made, await _space_names(api))})     # the route's reply does not say
@@ -1145,8 +1277,13 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                 out["next"] = "Still writing: call write_lyrics again with this draft_id."
             return _text({key: value for key, value in out.items() if value not in (None, "")})
         if name == "render_take":
-            made = await api("POST", f"/api/takes/{args['take_id']}/render", json={"reseed": bool(args.get("new_seed"))})
+            body = {"reseed": bool(args.get("new_seed"))}
+            await _with_voice(api, args, body, none_allowed=True)
+            made = await api("POST", f"/api/takes/{args['take_id']}/render", json=body)
             return _text(made)
+        if name == "list_voices":
+            return _text([{"name": v["name"], "id": v["id"], "short_id": v["id"][:6], "ready": v.get("state") == "ready",
+                           "state": v.get("state"), "defaults": _voice_words(v)} for v in await _voices(api)])
         if name == "cancel_take":
             return _text(await api("POST", f"/api/takes/{args['take_id']}/cancel"))
     except KeyError as missing:

@@ -43,6 +43,9 @@ cannot creep back in.
   voice sings a short loop, a man's or a woman's, made with Yeufonic, round and round while its settings change, each
   change heard as soon as the voice service has sung it again. The voice service keeps the voice loaded while you
   listen, and lets it go before any other GPU work. Needs the voice service from this version (Docker: `--build`).
+- **Recorded voices through MCP.** `list_voices` lists them with their default settings; `make_song`, `make_cover`
+  and `render_take` take a voice by name, with settings of its own for that take (formant, blend, likeness and the
+  rest, by the editor's words), and `render_take` can drop one; `get_take` and `list_takes` say which voice sang a take.
 - **Your own loops to hear a voice on:** a short recording of one voice singing alone, put in the library's
   `voice-loops` folder, is listed beside the two that come with the app, by its file name.
 - **Formant and Blend,** two more settings for a voice and for a take: Formant makes the voice larger and deeper or

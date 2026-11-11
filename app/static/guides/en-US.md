@@ -1712,6 +1712,7 @@ reconnect the agent (in Claude Code, `/mcp`). Reconnect after restarting Yeufoni
 | "…with adventurous harmony, a tight interpretation, in F#, at 100 BPM" | Any of a new take's settings by the names the page uses: [Harmony](#harmony), [Plan variety](#plan-variety), the [interpretation](#interpretation), the key and tempo locks, and for a song **Follow this structure exactly** and **Voices follow the cues**. Left unsaid, a new take starts where the page's does: Varied and Wide |
 | "Write lyrics about a night train, in a spoken feel" | The app's own **Write lyrics**, with its song shapes, lines per section and feels. The agent can also write words itself |
 | "Make a cover of *the recording* in a jazz style" | Makes a cover from a recording already in your library. It needs a score (transcribe it in the app first). Without words of your own it uses the words heard in the recording |
+| "Which voices do I have?", "sing it in my Night Singer voice, a little deeper" | Lists your recorded voices and makes a song or cover sung in one, or renders a take again in one, with settings of its own for that take (formant, blend, likeness and the rest), as the editor's voice **Settings** do |
 | "Play it" | Opens the take in your browser, where it plays |
 | "Star that one", "call it Sunrise", "move it to the Folk space" | Stars, renames or moves a take |
 | "Render it again with a new seed", "stop that" | Renders a take again, or cancels one in progress |
@@ -1782,6 +1783,7 @@ tell your agent which one you mean.
 | `make_stems`, `get_stems` | Splits a take into parts, then lists the parts with a link to each and to the whole set as a zip |
 | `list_recordings`, `transcribe_recording` | Shows the recordings in the library and whether each has a score; transcribes one that has none |
 | `list_style_loras` | The style LoRAs installed, with their trigger words and the strengths saved with them |
+| `list_voices` | Your recorded voices, whether each is ready, and its default settings. `make_song`, `make_cover` and `render_take` take one by name, with settings of its own for that take; `get_take` says which voice sang a take |
 | `list_spaces`, `move_take`, `create_space` | The spaces and what each holds; moves a take to another; makes a new space |
 | `list_playlists`, `create_playlist`, `add_to_playlist`, `remove_from_playlist` | The playlists and the takes in one; makes one; puts takes in or takes them out |
 | `make_picture` | A new picture for a take, with a link that opens it. `get_take` gives the link to a take's picture too |

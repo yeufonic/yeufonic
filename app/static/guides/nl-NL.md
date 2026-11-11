@@ -1698,6 +1698,7 @@ verbind de agent daarna opnieuw (in Claude Code, `/mcp`). Verbind ook opnieuw na
 | “…met avontuurlijke harmonie, strakke interpretatie, in Fis, op 100 BPM” | Elke instelling van een nieuwe take met de namen die de pagina gebruikt: [Harmonie](#harmony), [Variatie van het plan](#plan-variety), de [interpretatie](#interpretation), toonsoort en tempo vastzetten, en voor een nummer **Deze structuur precies volgen** en **Stemmen volgen de aanwijzingen**. Als niets gezegd wordt, begint een nieuwe take waar die van de pagina begint: Gevarieerd en Breed |
 | “Schrijf een tekst over een nachttrein, in spreektoon” | De eigen **Songtekst schrijven** van de app, met zijn nummervormen, regels per sectie en tonen. De agent kan de tekst ook zelf schrijven |
 | “Maak een cover van *de opname* in jazzstijl” | Maakt een cover van een opname die al in je bibliotheek staat. Heeft een partituur nodig (transcribeer hem eerst in de app). Zonder eigen tekst gebruikt hij de woorden die in de opname gehoord zijn |
+| “Welke stemmen heb ik?”, “zing het met mijn stem Night Singer, iets dieper” | Somt je opgenomen stemmen op en maakt een nummer of cover gezongen met een ervan, of rendert een take opnieuw met een ervan, met eigen instellingen voor die take (formant, mengverhouding, gelijkenis en de rest), zoals de **instellingen** van de stem in de editor |
 | “Speel het af” | Opent de take in je browser, waar hij speelt |
 | “Geef die een ster”, “noem hem Sunrise”, “verplaats hem naar de ruimte Folk” | Geeft een ster, hernoemt of verplaatst een take |
 | “Render hem opnieuw met een nieuwe seed”, “stop daarmee” | Rendert een take opnieuw, of annuleert een lopende |
@@ -1768,6 +1769,7 @@ agent kunt zeggen welke je wilt.
 | `make_stems`, `get_stems` | Splitst een take in partijen, en toont dan de partijen met een link naar elk en naar de hele set als zip |
 | `list_recordings`, `transcribe_recording` | Toont de opnames in de bibliotheek en of elk een partituur heeft; transcribeert er een die er geen heeft |
 | `list_style_loras` | De geïnstalleerde stijl-LoRA's, met hun triggerwoorden en de sterktes die ermee bewaard zijn |
+| `list_voices` | Je opgenomen stemmen, of elke klaar is, en de standaardinstellingen ervan. `make_song`, `make_cover` en `render_take` nemen er een bij naam, met eigen instellingen voor die take; `get_take` zegt welke stem een take zong |
 | `list_spaces`, `move_take`, `create_space` | De ruimtes en wat erin zit; verplaatst een take naar een andere; maakt een nieuwe ruimte |
 | `list_playlists`, `create_playlist`, `add_to_playlist`, `remove_from_playlist` | Afspeellijsten en de takes in een lijst; maakt er een; zet takes erin of haalt ze eruit |
 | `make_picture` | Een nieuwe afbeelding voor een take, met een link die hem opent. `get_take` geeft ook de link naar de afbeelding van een take |
