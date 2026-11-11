@@ -37,6 +37,13 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **A phrase moved to its voice's octave keeps the key's sharps and flats.** Fitting a phrase to its voice cue wrote
+  every note without a sign of its own back as a natural, so in any key with sharps or flats those notes were sung a
+  semitone off the chords. Takes fitted before keep their notes until fitted again. (The first outside contribution,
+  #69.)
+
 ## 0.0.58 (2026-11-11)
 
 - **Hear a recorded voice before making a take with it.** In the editor, the voice's **Settings** gain **Hear it**: the
