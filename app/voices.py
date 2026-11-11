@@ -478,7 +478,9 @@ def _rewrite(line: str, notes: list[dict[str, Any]], wanted: dict[int, int], key
             note = at[found.start()]
             for part in note["parts"]:
                 letter, octave = part["letter"].upper(), _height(part["letter"], part["marks"])
-                said = _ACC.get(part["acc"])
+                # No sign written: the note means what the key, or a sign earlier in the bar, makes it.
+                # ACCIDENTAL_DELTA reads "" as 0, a natural, which would mark every moved C of F# minor =C.
+                said = _ACC.get(part["acc"]) if part["acc"] else None
                 part["meant"] = said if said is not None else heard.get((letter, octave), key.get(letter, 0))
                 if said is not None:
                     heard[(letter, octave)] = said

@@ -226,6 +226,23 @@ def test_an_accidental_still_means_what_it_meant():
     assert pitches(fitted) == pitches(abc)
 
 
+@pytest.mark.parametrize("key", ["F#m", "E", "Bb", "Ebm"])
+def test_a_moved_note_keeps_the_key_signature(key):
+    """A note written without an accidental of its own takes the key's, and still does once it is
+    moved: in F sharp minor a c brought down an octave is C, a C sharp, never =C."""
+    abc = plan(("verse", [HIGH] * 2)).replace("K:C\n", f"K:{key}\n")
+    fitted, _ = voices.fit(abc, words(("[Verse]", 0), ("[male voice]", 2)))
+    assert fitted.split("V: Vocal\n")[-1].split("\n")[0] == '"C"CDEFGAz2|"C"CDEFGAz2|'
+
+
+def test_a_sign_in_a_moved_bar_still_holds_against_the_key():
+    """In a key with sharps, a natural written in the bar holds for the notes after it, and a note
+    before it keeps the key's sharp, wherever the bar is moved to."""
+    abc = (HEAD.replace("K:C\n", "K:F#m\n") + "% verse\nV: Vocal\n" + '"F#m"c=ccBAGz2|' + "\nV: Ins\nZ1|\n")
+    fitted, _ = voices.fit(abc, words(("[Verse]", 0), ("[male voice]", 1)))
+    assert fitted.split("V: Vocal\n")[-1].split("\n")[0] == '"F#m"C=CCB,A,G,z2|'
+
+
 def test_lines_the_plan_never_reached_are_not_pushed_onto_other_phrases():
     """A plan can stop before the lyrics do.  The lines it has no phrases for are left out;
     the outro's cue does not land on the last chorus."""
