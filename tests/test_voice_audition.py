@@ -55,8 +55,8 @@ def test_an_audition_asks_the_service_and_returns_what_it_sang(client, monkeypat
     assert got.status_code == 200 and got.content == b"RIFF sung" and got.headers["content-type"] == "audio/wav"
     # Each setting in the voice's own steps; the loop where the service can read it.
     assert (asked["octave"], asked["likeness"], asked["formant"], asked["brightness"]) == (1, 0.5, 0.88, 0)
-    assert asked["loop"] == str(config.DATA_DIR / "voice-loops" / "female.flac")
-    assert (config.DATA_DIR / "voice-loops" / "female.flac").read_bytes()[:4] == b"fLaC"
+    assert asked["loop"] == str(config.DATA_DIR / "voice-loops" / ".app" / "female.flac")
+    assert (config.DATA_DIR / "voice-loops" / ".app" / "female.flac").read_bytes()[:4] == b"fLaC"
     assert not list(config.WORK_DIR.glob("audition-*")), "the sung loop is not kept once sent"
     assert jobs.AUDITION_HELD["at"] > 0
     persona.delete(voice["id"])
@@ -111,4 +111,36 @@ def test_formant_and_blend_are_a_voices_settings_and_a_takes():
     assert json.loads(main._voice_mix({"formant": 0.95, "wet": 0.6})) == {"formant": 0.94, "wet": 0.5}
     assert "formant 1.12" in persona.describe(voice) and "25% wet" in persona.describe(voice)
     assert "formant" not in persona.describe(persona.update(voice["id"], formant=1, wet=1))
+    persona.delete(voice["id"])
+
+
+def test_your_own_loops_come_from_the_librarys_folder(client, monkeypatch):
+    folder = config.DATA_DIR / "voice-loops"
+    (folder / ".app").mkdir(parents=True)
+    (folder / "My Phrase.wav").write_bytes(b"RIFF mine")
+    (folder / "notes.txt").write_text("not a loop")
+    (folder / ".app" / "male.flac").write_bytes(b"fLaC the app's copy")
+    loops = client.get("/api/voices/loops").json()
+    assert [loop["id"] for loop in loops] == ["male", "female", "own:My Phrase.wav"]
+    mine = loops[-1]
+    assert mine["name"] == "My Phrase" and mine["own"] and client.get(mine["url"]).content == b"RIFF mine"
+    assert client.get("/api/voices/loops/own/notes.txt").status_code == 404
+    assert client.get("/api/voices/loops/own/..%2Fyue2.sqlite").status_code == 404
+
+    voice = _ready()
+    asked = {}
+
+    def handler(request):
+        asked.update(json.loads(request.content))
+        with open(asked["output"], "wb") as out:
+            out.write(b"RIFF sung")
+        return httpx.Response(200, json={"ok": True})
+
+    _service(monkeypatch, handler)
+    assert client.post(f"/api/voices/{voice['id']}/audition", json={"loop": "own:My Phrase.wav"}).status_code == 200
+    assert asked["loop"] == str(folder / "My Phrase.wav")
+    assert client.post(f"/api/voices/{voice['id']}/audition", json={"loop": "own:notes.txt"}).status_code == 400
+    assert client.post(f"/api/voices/{voice['id']}/audition", json={"loop": "own:../yue2.sqlite"}).status_code == 400
+    client.post(f"/api/voices/{voice['id']}/audition", json={"loop": "female"})
+    assert asked["loop"] == str(folder / ".app" / "female.flac"), "the shipped loops are copied out of the list's way"
     persona.delete(voice["id"])

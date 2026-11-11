@@ -31,7 +31,7 @@ import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
@@ -6192,11 +6192,25 @@ async def edit_persona(persona_id: str, name: str | None = Form(None), octave: i
     return record
 
 
-# Hearing a voice before a take is made with it: a short sung loop, shipped with the app (app/voice_loops), sung in
-# the voice with the editor's settings by the voice service, which keeps the voice loaded so a change is heard in
-# under a second.  The page plays the loop itself as the dry half of Blend.
+# Hearing a voice before a take is made with it: a short sung loop, shipped with the app (app/voice_loops), or one of
+# the user's own, put in the library's voice-loops folder; sung in the voice with the editor's settings by the voice
+# service, which keeps the voice loaded so a change is heard in under a second.  The page plays the loop itself as the
+# dry half of Blend.
 VOICE_LOOPS = {"male": "A man singing", "female": "A woman singing"}
 VOICE_LOOP_DIR = Path(__file__).parent / "voice_loops"
+OWN_LOOP_TYPES = {".flac", ".wav", ".mp3", ".m4a", ".ogg", ".opus"}   # what the page can play as well
+
+
+def _own_loops_dir() -> Path:
+    return config.DATA_DIR / "voice-loops"
+
+
+def _own_loop(name: str) -> Path | None:
+    """One of the user's loops, by its file name, or None: only a plain name, in that folder, of a type both sides read."""
+    if not name or name != Path(name).name or name.startswith("."):
+        return None
+    found = _own_loops_dir() / name
+    return found if found.suffix.lower() in OWN_LOOP_TYPES and found.is_file() else None
 
 
 class AuditionIn(BaseModel):
@@ -6217,8 +6231,21 @@ class VoiceCopyIn(BaseModel):
 
 @app.get("/api/voices/loops")
 def voice_loops() -> list[dict]:
-    return [{"id": key, "name": name, "url": f"/api/voices/loops/{key}.flac"} for key, name in VOICE_LOOPS.items()
-            if (VOICE_LOOP_DIR / f"{key}.flac").is_file()]
+    """The shipped loops, then the user's own from the library's voice-loops folder, by name."""
+    shipped = [{"id": key, "name": name, "url": f"/api/voices/loops/{key}.flac"} for key, name in VOICE_LOOPS.items()
+               if (VOICE_LOOP_DIR / f"{key}.flac").is_file()]
+    folder = _own_loops_dir()
+    own = sorted((f for f in folder.iterdir() if _own_loop(f.name)), key=lambda f: f.name.lower()) if folder.is_dir() else []
+    return shipped + [{"id": f"own:{f.name}", "name": f.stem, "own": True,
+                       "url": f"/api/voices/loops/own/{quote(f.name)}"} for f in own]
+
+
+@app.get("/api/voices/loops/own/{name}")
+def own_loop_audio(name: str) -> FileResponse:
+    found = _own_loop(name)
+    if found is None:
+        raise HTTPException(404, "no such loop")
+    return FileResponse(found)
 
 
 @app.get("/api/voices/loops/{key}.flac")
@@ -6229,9 +6256,12 @@ def voice_loop_audio(key: str) -> FileResponse:
 
 
 def _loop_for_service(key: str) -> Path:
-    """The loop where the voice service can read it: the library's folder, which it shares."""
+    """The loop where the voice service can read it: the library's folder, which it shares.  A user's own is there
+    already; a shipped one is copied beside them, in a folder of the app's own that the list leaves out."""
+    if key.startswith("own:"):
+        return _own_loop(key[4:])
     shipped = VOICE_LOOP_DIR / f"{key}.flac"
-    here = config.DATA_DIR / "voice-loops" / shipped.name
+    here = _own_loops_dir() / ".app" / shipped.name
     if not here.is_file() or here.stat().st_size != shipped.stat().st_size:
         here.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(shipped, here)
@@ -6244,7 +6274,9 @@ async def audition_voice(persona_id: str, body: AuditionIn) -> FileResponse:
     record = persona.one(persona_id)
     if not persona.usable(record):
         raise HTTPException(400, "This voice has no trained model to hear.")
-    if body.loop not in VOICE_LOOPS or not (VOICE_LOOP_DIR / f"{body.loop}.flac").is_file():
+    own = body.loop.startswith("own:")
+    if (own and _own_loop(body.loop[4:]) is None) or (
+            not own and (body.loop not in VOICE_LOOPS or not (VOICE_LOOP_DIR / f"{body.loop}.flac").is_file())):
         raise HTTPException(400, "There is no such loop.")
     if not config.VOICE_URL:
         raise HTTPException(503, "The voice service is not running.")

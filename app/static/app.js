@@ -18122,6 +18122,7 @@ function paintPersonaField() {
     $('persona-toggle').addEventListener('click', function () {
       VOICES.open = !VOICES.open;
       if (!VOICES.open && AUD.playing) { auditionStop(); }
+      if (VOICES.open && !AUD.playing) { AUD.loops = null; }    // a loop of your own added since shows up
       paintPersonaField();
     });
   }
@@ -18164,7 +18165,8 @@ function auditionRow() {
         esc(t('Hear the voice sing a short loop with these settings, while you change them')) + '">' +
         esc(AUD.playing ? t('Stop') : t('Hear it')) + '</button>' +
       '<select id="audition-loop" title="' + esc(t('The loop the voice sings')) + '">' + loops.map(function (l) {
-        return '<option value="' + esc(l.id) + '"' + (l.id === AUD.loop ? ' selected' : '') + '>' + esc(l.id === 'female' ? t('A woman singing') : t('A man singing')) + '</option>';
+        var name = l.own ? l.name : (l.id === 'female' ? t('A woman singing') : t('A man singing'));   // your own by file name
+        return '<option value="' + esc(l.id) + '"' + (l.id === AUD.loop ? ' selected' : '') + '>' + esc(name) + '</option>';
       }).join('') + '</select>' +
       '<span id="audition-state" class="muted">' + esc(AUD.state) + '</span>' +
       '<button type="button" id="voice-keep" class="ghost" title="' + esc(t('Keep these settings as a voice of their own, on the same model')) + '">' +
