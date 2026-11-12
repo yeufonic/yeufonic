@@ -56,44 +56,84 @@ lit while the take holds others, and closes the window to show them under the ta
 
 ### A recorded voice
 
-A take can be sung in a voice trained from recordings of someone singing: yours, or a corpus's singer. Make and
-manage voices on the **Voices** page, from the menu, and choose one in the editor's *Recorded voice* field when you
-make a take. A take that uses a voice is rendered as usual; then its vocal is separated, sung again in the voice, and
-mixed back over the rest, before its level is read. It needs the optional voice service (the README's "Recorded
-voices"); without it the field is hidden.
+A take can be sung in a voice trained from recordings of someone singing: yours, or a corpus's singer. The take is
+rendered as usual; then its vocal is separated, sung again in the voice, and mixed back over the rest. Voices are made
+and managed on the **Voices** page, from the menu. It needs the optional voice service (the README's "Recorded
+voices"); without it, the voice fields are hidden.
 
-**New voice** makes either a voice of your own recordings or one trained on a corpus's songs. A voice of recordings
-starts empty, and its page gathers them: **Record…** opens the recorder, and each take you keep goes to the voice as
-it was sung, never autotuned; **Upload…** takes audio files; **From the library…** adds recordings you already have,
-such as a vocal you recorded for a cover, with a player on each to hear it first. A library recording is pointed at,
-not copied. The page counts the singing against the minutes a voice trains on: about ten minutes across your range
-is plenty, and a short recording already gives a recognisable voice. Each recording says whether it is a voice alone
-(**vocals only**, ticked for what you recorded here) or a song, which is separated first. Then press **Train**.
+#### Making a voice
+
+**New voice** makes a voice from your own recordings, or one trained on a corpus's songs. A voice of recordings starts
+empty, and its page gathers them:
+
+- **Record…** opens the recorder. Each take you keep goes to the voice as it was sung, never autotuned.
+- **Upload…** takes audio files.
+- **From the library…** adds recordings you already have, such as a vocal you recorded for a cover. Each has a player
+  to hear it first, and is pointed at, not copied.
+
+Each recording says whether it is a voice alone (**vocals only**, ticked for what you recorded here) or a song, which
+is separated first. The page counts the singing: about ten minutes across your range is plenty, and a short recording
+already gives a recognisable voice. Then press **Train**.
 
 Training waits its turn on the GPU and shows its progress in the job pill and the log. **Train again** retrains on the
-recordings as they are now, or on the corpus's songs. A recording since deleted from the library is left out. The
-page keeps **What it learned from**, each song's separated vocal and the excerpts trained on, to listen to.
+recordings as they are now, or on the corpus's songs. **What it learned from** keeps each song's separated vocal and
+the excerpts trained on, to listen to. Settings → *Voice Training* sets how much singing a voice learns from and for
+how many passes.
 
-**Octave** moves the voice up or down a whole octave, for a singer whose range is far from the take's. **Vocal level**
-and **Instrument level** set the balance of the remix, and **Likeness** how closely the voice keeps to the singer's
-own sounds: higher sounds more like them, and can sound more processed. At 100% the voice can lose the words: it keeps
-only the sounds it learned, so words the singer was never heard singing can come out garbled, and the editor says so.
-**Room** puts a short room under the converted vocal (*Dry*, *Subtle* or *More*) so it sits in the mix, and
-**Brightness** on *Auto* lifts its upper range to match the rendered vocal's; *Off* leaves it as converted. **Breaths
-and consonants** sets how far those keep the rendered vocal's own sounds: *Kept* stays clear but carries a trace of
-it, *Converted* can tear. **Dynamics** sets whose loudness the vocal follows from phrase to phrase: the take's as
-rendered, or the voice's own swells. **Formant** changes the size of the voice with its pitch kept: *Deeper* sounds larger, *Brighter* smaller. **Blend** sets how much of the vocal the voice sings; the rest is the rendered vocal it was made from. These are the voice's defaults. In the editor, pick the voice under **Recorded voice**; **Settings** beside it opens these settings, to change for one take, and says when the take has its own. **Hear it** there plays the voice singing a short loop, a man's or a woman's, with the settings as they are, round and round while you change them, and **Save as a new voice…** keeps what you hear as a voice of its own, on the same model. Loops of your own join them: put a short recording of one voice singing alone and dry, 15 to 30 seconds, in the library's *voice-loops* folder (`data/voice-loops` with Docker; on Windows, inside the `data` folder of the install, unless `data_dir` in `settings.ini` names another library folder), and it is listed by its file name the next time **Settings** is opened. FLAC, WAV, MP3, M4A, OGG and Opus files are read. Settings → *Voice Training* sets how much singing a voice learns from and for how many passes.
+#### Settings for a voice
+
+These are the voice's defaults, set on its page. A take can have its own (below).
+
+| Setting | What it does |
+|---|---|
+| **Octave** | Moves the voice a whole octave up or down, for a singer whose range is far from the take's. |
+| **Vocal level**, **Instrument level** | The balance of the remix. |
+| **Likeness** | How closely the voice keeps to the singer's own sounds. Higher sounds more like them, and can sound more processed. At 100% the voice can lose the words: words the singer was never heard singing can come out garbled, and the editor says so. |
+| **Formant** | The size of the voice, its pitch kept: *Deeper* sounds larger, *Brighter* smaller. |
+| **Blend** | How much of the vocal the voice sings; the rest is the rendered vocal it was made from. |
+| **Room** | A short room under the converted vocal (*Dry*, *Subtle* or *More*), so it sits in the mix. |
+| **Brightness** | *Auto* lifts its upper range to match the rendered vocal's; *Off* leaves it as converted. |
+| **Breaths and consonants** | How far they keep the rendered vocal's own sounds: *Kept* stays clear but carries a trace of it, *Converted* can tear. |
+| **Dynamics** | Whose loudness the vocal follows from phrase to phrase: the take's as rendered, or the voice's own swells. |
+
+#### Using a voice in a take
+
+In the editor, pick the voice under **Recorded voice**. **Settings** beside it opens the settings above for this take
+only; the take keeps them, and the button says *own settings* when they differ from the voice's.
+
+#### Hearing a voice before you use it
+
+**Hear it**, in those settings, plays the voice singing a short loop, *A man singing* or *A woman singing*, round and
+round while you change the settings, so you hear each change as you make it. **Save as a new voice…** keeps what you
+hear as a voice of its own, on the same model.
+
+**Your own loops.** The two loops come with the app; you can add your own:
+
+1. Find or record 15 to 30 seconds of one voice singing alone: dry, with no backing, reverb or harmonies.
+2. Save it as FLAC, WAV, MP3, M4A, OGG or Opus, under the name you want listed.
+3. Put it in the library's *voice-loops* folder: `data/voice-loops` with Docker; on Windows, inside the `data` folder
+   of the install, unless `data_dir` in `settings.ini` names another library folder.
+4. Open **Settings** again: it is listed by its file name.
+
+#### Sharing and importing voices
+
+- **Download voice** saves a trained voice as a zip to give to someone.
+- **Import a voice…** adds one: that zip, or an RVC model from elsewhere (its zip, or its .pth and .index chosen
+  together). A voice imported without its index can take it later with **Add its index…**: Likeness draws on it.
+- **Ready-made voices**, RVC models trained by others, can be found on sites such as
+  [voice-models.com](https://voice-models.com/): **Import a voice…** takes the zip as downloaded.
+- A take's recipe names its voice and the take's settings for it, and importing it picks up the voice of that name on
+  this install, if there is one.
+
+#### Getting a clean voice
 
 The result is a converted vocal over a separated backing, so it is less seamless than a vocal the model sang itself.
-Clean, dry recordings make the cleanest voice. **Download voice** saves a trained voice as a zip to give to someone,
-and **Import a voice…** adds one: that zip, or an RVC model from elsewhere (its zip, or its .pth and .index chosen together). A voice imported without its index can take it later with **Add its index…**: Likeness draws on it. Ready-made voices, RVC models trained by others, can be found on sites such as [voice-models.com](https://voice-models.com/): **Import a voice…** takes the zip as downloaded. A take's
-recipe names its voice and the take's settings for it, and importing it picks up the voice of that name on this
-install, if there is one.
 
-A voice learns the recording's reverb and production along with the singer, so clean singing with a clear lead
-vocal makes a cleaner voice than a corpus of mixed songs. A single song or a short recording gives a recognisable voice,
-but one that can blur words it never heard sung. A voice trained on far more singing, for many more passes, as
-ready-made voices often are, keeps the words even at a high Likeness.
+- A voice learns the recording's reverb and production along with the singer, so clean, dry singing with a clear lead
+  vocal makes a cleaner voice than a corpus of mixed songs.
+- A single song or a short recording gives a recognisable voice, but one that can blur words it never heard sung.
+- A voice trained on far more singing, for many more passes, as ready-made voices often are, keeps the words even at a
+  high Likeness.
 
 ### Advanced settings
 
@@ -154,21 +194,27 @@ as breathy or raspy. They are a shortcut for typing, and you can edit the result
 
 **The structure.** Above the lyrics box, while it holds no words, a song has a **structure** to build, as an
 instrumental has: a list of sections you can reorder, remove and add to (intro, verse, pre-chorus, chorus, bridge,
-interlude, outro). **Start from** fills it with a common shape, and each shape's tooltip says what it suits. An
-**interlude** is an instrumental passage: the writer puts its tag on a line of its own, and the planner plays it with
-the instrument voice. **Put sections in the lyrics box** drops the tags in as empty sections to write under by hand.
-Once the box has words, the lyrics are what is sung and the structure steps aside.
+interlude, outro).
+
+- **Start from** fills it with a common shape, and each shape's tooltip says what it suits.
+- An **interlude** is an instrumental passage: the writer puts its tag on a line of its own, and the planner plays it
+  with the instrument voice.
+- **Put sections in the lyrics box** drops the tags in as empty sections to write under by hand.
+- Once the box has words, the lyrics are what is sung and the structure steps aside.
 
 **Write lyrics**, beside the lyrics box, asks what the song is about and writes words for the sections you built.
-**Lines in a verse or chorus** sets how long each is: more lines in a section make a longer song, because the
-planner writes about as much music as there are words. The Style above sets the mood. Gemma writes the draft on the same
-engine, and it lands in the box with a title if you had not given one; an [external LLM](#external-llm) can write them instead, configured in Settings. The window closes as soon as the draft starts, and the progress shows beside the lyrics box.
+
+- **Lines in a verse or chorus** sets how long each is: more lines in a section make a longer song, because the
+  planner writes about as much music as there are words.
+- The Style above sets the mood.
+- Gemma writes the draft on the same engine, and it lands in the box with a title if you had not given one; an
+  [external LLM](#external-llm) can write them instead, configured in Settings.
+- The window closes as soon as the draft starts, and the progress shows beside the lyrics box.
+
 The lyrics editor's buttons add any of these sections too, along with voice cues (+ Male, + Female, + Both).
 
-**How the lines sound** sets the rhythm and rhyme the writer aims for. *Natural* (the default) mixes short and long
-lines with some rhymes. *Regular rhyme* is the traditional shape of even lines that rhyme in pairs, which is what
-the writer produced before this choice existed. *Spoken rhythm* is conversational, like speech or rap; *Loose
-rhyme* rhymes only some lines; *Short and punchy* and *Long and flowing* set the length of the lines.
+**How the lines sound** sets the rhythm and rhyme the writer aims for, from *Natural* (the default) to *Short and
+punchy* or *Long and flowing*: [The words](#the-words) lists each.
 
 It is a first draft. The lines scan and rhyme, but a model reaches for familiar images, and nothing
 checks whether a line is already someone else's. Read it and make it yours before you plan.
@@ -279,23 +325,27 @@ Carry me over, carry me home
 ```
 
 Write a cue as `[male voice]`, `[female voice]` or `[both voices]`, each on a line of its own in square brackets.
-The expanded lyrics editor has **+ Male**, **+ Female** and **+ Both** buttons in its header to insert them at the cursor.
-These are the forms the feature was tried with, along with `vocal` for `voice` (`[female vocal]`) and
-`[male and female voices]` for both. You can add words of your own after a comma, as in
-`[female voice, soft and close]`; they do not change who sings. A section with no cue is left to the planner.
 
-Other spellings are read as well, so lyrics written elsewhere are not ignored: `[man]`, `[woman]`, `[duet]`, a cue
-inside a section's tag such as `[Verse 2 - female vocal]`, and a cue in parentheses, `(female voice)`. Square
-brackets are the safer habit: words in parentheses are usually backing vocals, and may be sung.
+- The expanded lyrics editor has **+ Male**, **+ Female** and **+ Both** buttons in its header to insert them at the
+  cursor.
+- These are the forms the feature was tried with, along with `vocal` for `voice` (`[female vocal]`) and
+  `[male and female voices]` for both.
+- You can add words of your own after a comma, as in `[female voice, soft and close]`; they do not change who sings.
+- A section with no cue is left to the planner.
+- Other spellings are read as well, so lyrics written elsewhere are not ignored: `[man]`, `[woman]`, `[duet]`, a cue
+  inside a section's tag such as `[Verse 2 - female vocal]`, and a cue in parentheses, `(female voice)`. Square
+  brackets are the safer habit: words in parentheses are usually backing vocals, and may be sung.
 
-A cue alone does not decide the voice. The singer comes mostly from how high the melody is written: the same
-line an octave up is sung by a woman, and the planner likes to write a verse in two octaves, changing every four
-lines or so, whoever was cued. **Voices follow the cues** (a tick under the lyrics box, shown once the lyrics have
-a cue; on for a new take) keeps the cues: when the plan is written, each cued stretch of the melody is moved by
-whole octaves to where that voice sings, low for a man and high for a woman. Nothing else in the plan changes. It
-is done again before each render, so it follows a change to the words or to the score. In the Score page,
-**Voices to cues** does the same once to the score in the box, for a take made without the tick; save the score
-and render it.
+**A cue alone does not decide the voice.** The singer comes mostly from how high the melody is written: the same line
+an octave up is sung by a woman, and the planner likes to write a verse in two octaves, changing every four lines or
+so, whoever was cued.
+
+- **Voices follow the cues** (a tick under the lyrics box, shown once the lyrics have a cue; on for a new take) keeps
+  the cues: when the plan is written, each cued stretch of the melody is moved by whole octaves to where that voice
+  sings, low for a man and high for a woman. Nothing else in the plan changes.
+- It is done again before each render, so it follows a change to the words or to the score.
+- In the Score page, **Voices to cues** does the same once to the score in the box, for a take made without the tick;
+  save the score and render it.
 
 Three things to know:
 
@@ -346,25 +396,45 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
 - **Advanced** (the button in the header): diffusion steps, Follow the style, Avoid, Key lock, Tempo lock, the longest score,
   chord hold limit, outside harmony bonus, Sections open differently, target loudness and the outro fade. See
   [Advanced settings](#advanced-settings).
-- **Mastering** (the button to its left, when the take has sound) opens the mastering rack over the editor for
-  the take in it. The rack is, in order, a 1073-style EQ, a parametric equalizer, a compressor, a stereo imager and
-  a limiter. On the parametric equalizer's graph each of the seven bands is a dot: drag it across for its frequency
-  and up or down for its gain, turn the wheel over it for its width, double-click it to put it back. The strip under
-  the graph sets the chosen band's kind (low cut, low shelf, bell, notch, high shelf, high cut) and switches it on
-  or off, **Flat** puts every band back to 0 dB, and the button in the graph's corner changes how many decibels the
-  graph shows. The button is green while the rack changes how the take sounds. With the rack open, space plays
-  and pauses the take and the arrow keys move through it and set the volume, as on the main page. Escape closes
-  the rack, and again closes the editor.
-- **3D Space**, a module of the rack between the imager and the limiter, places the take around you for headphones.
-  From the **Mix**: two virtual speakers in front (**Width**) and two behind (**Rear**), with **Surround** setting how
-  much of the mix's width and ambience plays from those behind; drag the speakers on the circle as well. **Height**
-  lifts them all and **Room** adds a short room. From **Stems**: each of the take's stems is placed on its own; choose
-  one under the circle, then drag round the circle to place it, and the wheel spreads it (**Make stems** opens the
-  Stems window when the take has none). **Front**, **Wide** and **Around** set it all at once. What you hear is for
-  headphones and is never part of the take's own file: **Download** under Headphones saves it as a WAV, and **FLAC**
-  and **AC-3** under 5.1 Speakers save the take for surround speakers (from stems, each goes to the speakers either
-  side of where it is placed). The take's Save window offers the same downloads while its Space is in. Each module
-  folds to its bar with the arrow at its left, and the take keeps which are folded.
+- **Mastering** (the button to its left, when the take has sound) opens the mastering rack over the editor for the
+  take in it. The button is green while the rack changes how the take sounds. The rack's modules, in order:
+
+  1. A 1073-style EQ
+  2. A parametric equalizer
+  3. A compressor
+  4. A stereo imager
+  5. **3D Space** (below)
+  6. A limiter
+
+  Each module folds to its bar with the arrow at its left, and the take keeps which are folded.
+
+  **The parametric equalizer.** Each of its seven bands is a dot on the graph:
+
+  - Drag a dot across for its frequency, and up or down for its gain.
+  - Turn the wheel over it for its width; double-click it to put it back.
+  - The strip under the graph sets the chosen band's kind (low cut, low shelf, bell, notch, high shelf, high cut) and
+    switches it on or off.
+  - **Flat** puts every band back to 0 dB, and the button in the graph's corner changes how many decibels the graph
+    shows.
+
+  **Keys.** With the rack open, space plays and pauses the take and the arrow keys move through it and set the volume,
+  as on the main page. Escape closes the rack, and again closes the editor.
+
+- **3D Space**, a module of the rack between the imager and the limiter, places the take around you for headphones,
+  in one of two ways:
+
+  | From | What you set |
+  |---|---|
+  | **Mix** | Two virtual speakers in front (**Width**) and two behind (**Rear**), with **Surround** setting how much of the mix's width and ambience plays from those behind; drag the speakers on the circle as well. **Height** lifts them all and **Room** adds a short room. |
+  | **Stems** | Each of the take's stems is placed on its own: choose one under the circle, then drag round the circle to place it, and the wheel spreads it. **Make stems** opens the Stems window when the take has none. |
+
+  **Front**, **Wide** and **Around** set it all at once. What you hear is for headphones and is never part of the
+  take's own file. To keep it:
+
+  - **Download**, under Headphones, saves it as a WAV.
+  - **FLAC** and **AC-3**, under 5.1 Speakers, save the take for surround speakers (from stems, each goes to the
+    speakers either side of where it is placed).
+  - The take's Save window offers the same downloads while its Space is in.
 
 ### Making the song longer
 
@@ -458,37 +528,39 @@ only, not the score. Playing it stops whatever the player bar had, since two thi
 use to anyone, and closing the window — or moving to Chart or Lyrics — stops it too, so nothing is
 left playing with no control in reach.
 
-**Instruments** plays each voice with an instrument the Style names, rather than a piano
-throughout: a style that says *electric guitar, drums* is heard with a guitar, its chords played by
-another, and a bass under them; a sung line is stood in for by a voice, and an instrumental's
-melody is not. A style that names drums gets a drum part too, written against the score's own
-metre — a backbeat for rock, four to the floor for dance, a ride for jazz, something sparser for a
-ballad — and it plays all the way through, since the score has no sections for it to sit out. The
-line beside the player says what it chose, and unticking it goes back to the piano you would
-otherwise hear. This is a reading of the style, not of the render: YuE2 decides the
-real performance and adds parts the score never had, so treat it as the plan played in the right
-colours rather than as what the take will sound like.
+**Instruments** plays each voice with an instrument the Style names, rather than a piano throughout:
 
-**Download MIDI** saves the score for a DAW. Each part is a track of its own, on its own channel,
-with the instrument the preview used set on that channel: the vocal line, the instrument line and,
-unless you untick **Chords**, the chord symbols as a chord part with its bass beside it (the only
-place the harmony is written as notes), and drums on channel 10 when the style asks for them. The
-instruments are General MIDI program numbers, so your DAW plays them with its own sounds, and the
-tempo and metre are in the file. A plan that changes its metre part way is written in the metre it
-starts in — only that one is recorded — while the notes keep their own lengths. Clicking a note in
-the staves puts the cursor on the ABC that wrote it.
+- A style that says *electric guitar, drums* is heard with a guitar, its chords played by another, and a bass under
+  them. A sung line is stood in for by a voice, and an instrumental's melody is not.
+- A style that names drums gets a drum part too, written against the score's own metre — a backbeat for rock, four to
+  the floor for dance, a ride for jazz, something sparser for a ballad — and it plays all the way through, since the
+  score has no sections for it to sit out.
+- The line beside the player says what it chose, and unticking it goes back to the piano you would otherwise hear.
 
-A score with a note above what these instruments can play, or below it, is played shifted by whole
-octaves until it fits, and the line beside the player says how far; the staves, the MIDI file and
-the score itself are unchanged. The instruments are not all the same size — a bass stops well below
-a piano — which is why the line is there when a score is shifted. A score with no notes in it yet
-has nothing to play and says so.
+This is a reading of the style, not of the render: YuE2 decides the real performance and adds parts the score never
+had, so treat it as the plan played in the right colours rather than as what the take will sound like.
 
-The player needs its note samples, which are not part of the app: each instrument is about 7 MB,
-fetched from its upstream home the first time a preview plays with it and kept in the library, so
-it works offline afterwards. **Play** fetches whatever the current score needs and then starts, and
-**Get the sounds** fetches the same without playing, for anyone who would rather have it ready
-first.
+**Download MIDI** saves the score for a DAW:
+
+- Each part is a track of its own, on its own channel, with the instrument the preview used set on that channel: the
+  vocal line, the instrument line and, unless you untick **Chords**, the chord symbols as a chord part with its bass
+  beside it (the only place the harmony is written as notes), and drums on channel 10 when the style asks for them.
+- The instruments are General MIDI program numbers, so your DAW plays them with its own sounds, and the tempo and
+  metre are in the file.
+- A plan that changes its metre part way is written in the metre it starts in — only that one is recorded — while the
+  notes keep their own lengths.
+
+Clicking a note in the staves puts the cursor on the ABC that wrote it.
+
+**Out of range.** A score with a note above what these instruments can play, or below it, is played shifted by whole
+octaves until it fits, and the line beside the player says how far; the staves, the MIDI file and the score itself are
+unchanged. The instruments are not all the same size — a bass stops well below a piano — which is why the line is there
+when a score is shifted. A score with no notes in it yet has nothing to play and says so.
+
+**The sounds.** The player needs its note samples, which are not part of the app: each instrument is about 7 MB,
+fetched from its upstream home the first time a preview plays with it and kept in the library, so it works offline
+afterwards. **Play** fetches whatever the current score needs and then starts, and **Get the sounds** fetches the same
+without playing, for anyone who would rather have it ready first.
 
 ### The Piano Roll
 
@@ -669,16 +741,25 @@ The planner reads all the lyrics before it writes a note, so the same seed gives
 for the same words. Change one line and the next plan is a new tune: another melody, often another
 key and tempo, and the voice moves with them.
 
-To keep a tune you like, open the take and change its words. **Keep this tune** appears under the
-lyrics, ticked, and the main button becomes **Sing with new words**. Change anything else you want
-first: the style, the LoRA and its strengths, the length cap, the interpretation. The take's score is
-then sung with the new words, as a new take beside the original, which stays as it is. Keep the seed
-ticked to keep the voice as close as it can be. Untick **Keep this tune** to write a new plan, and a
-new tune, for the words instead. New words that keep the old lines' syllable counts fit the melody
-best. When they do not, because there are more sections or far more syllables than the tune has notes (long lines on a tune
-made for short ones: the lines come out repeated or dropped), or far fewer (short lines on a tune made for long ones:
-the singer fills the spare notes with words of its own), **Keep this tune** clears itself with a line saying why, and
-a new plan is written for the words. Tick it again to sing the tune anyway.
+To keep a tune you like:
+
+1. Open the take and change its words. **Keep this tune** appears under the lyrics, ticked, and the main button
+   becomes **Sing with new words**.
+2. Change anything else you want first: the style, the LoRA and its strengths, the length cap, the interpretation.
+   Keep the seed ticked to keep the voice as close as it can be.
+3. Press **Sing with new words**. The take's score is sung with the new words, as a new take beside the original,
+   which stays as it is.
+
+Untick **Keep this tune** to write a new plan, and a new tune, for the words instead.
+
+New words that keep the old lines' syllable counts fit the melody best. When they do not fit, **Keep this tune**
+clears itself with a line saying why, and a new plan is written for the words. Tick it again to sing the tune anyway.
+The words do not fit when there are:
+
+- **More sections, or far more syllables than the tune has notes:** long lines on a tune made for short ones come out
+  repeated or dropped.
+- **Far fewer syllables:** short lines on a tune made for long ones leave spare notes, which the singer fills with
+  words of its own.
 
 ### Production polish
 
@@ -696,14 +777,17 @@ take** in Settings says. It then makes room for the music, so a long song is not
 - With a **recording** chosen, for a cover or an instrumental, the cap follows the recording's score,
   rounded up the same way.
 
-A cap you type yourself stays as you set it, and the Score page then says when a plan is longer than
-it. A plan much longer than its cap (more than a third over, and over eight minutes) is not taken
-for a song at all, and is written again. Now and then
-a render doesn't stop at the end of its score and plays on until the cap; such a take is faded out
-over its last few seconds rather than cut off, and its card says it ran to the cap. Rarer still, a
-render ends before the last section of its score begins. The app then renders it once more with a new
-seed before calling it finished, and if that one stops short too, the card says it stopped before the
-last section: **Render** again for another try.
+A cap you type yourself stays as you set it, and the Score page then says when a plan is longer than it.
+
+When a song does not end as it should:
+
+- **A plan much longer than its cap** (more than a third over, and over eight minutes) is not taken for a song at all,
+  and is written again.
+- **A render that plays on past its score** until the cap is faded out over its last few seconds rather than cut off,
+  and its card says it ran to the cap.
+- **A render that ends before the last section of its score begins** (rarer still) is rendered once more with a new
+  seed before it is called finished. If that one stops short too, the card says it stopped before the last section:
+  **Render** again for another try.
 
 ---
 
@@ -817,44 +901,45 @@ work, or from different ones.
 
 ### Extracting the lyrics
 
-**Extract lyrics**, beside *Transcribe*, writes down what the recording sings: it separates the
-vocal, listens to it, and lays the lines under the sections of the score. It is asked for rather
-than done with every transcription, because it takes a couple of minutes where transcribing a score
-takes seconds. The vocal is separated, and its words heard, on the GPU when the engine has Demucs and Whisper and on the CPU
-otherwise (Settings, **Use the GPU for stems and lyrics**), and the bar says which of the two stages it is on. Whisper on the GPU
-and on the CPU do not always write the same words for the same vocal, as neither is exact: a hard vocal, such as backing singers
-over a lead, can differ by a fifth of its words either way. The separated vocal is kept, so extracting the same recording again skips
-straight to the listening, which is most of the wait saved.
+**Extract lyrics**, beside *Transcribe*, writes down what the recording sings: it separates the vocal, listens to it,
+and lays the lines under the sections of the score. It is asked for rather than done with every transcription, because
+it takes a couple of minutes where transcribing a score takes seconds.
 
-The words are kept with the recording. Press **Extract lyrics** again and they go straight back in
-the box, and you're asked whether to extract them again, which is worth doing after changing the
-method in Settings. Choosing another recording takes its words in the same way, and a recording
-with none clears the last one's. Words you typed or edited stay unless you agree to replace them.
+- **Where it runs.** The vocal is separated, and its words heard, on the GPU when the engine has Demucs and Whisper and
+  on the CPU otherwise (Settings, **Use the GPU for stems and lyrics**). The bar says which of the two stages it is on.
+  Whisper on the GPU and on the CPU do not always write the same words for the same vocal, as neither is exact: a hard
+  vocal, such as backing singers over a lead, can differ by a fifth of its words either way.
+- **Doing it again.** The separated vocal is kept, so extracting the same recording again skips straight to the
+  listening, which is most of the wait saved.
+- **The words are kept with the recording.** Press **Extract lyrics** again and they go straight back in the box, and
+  you're asked whether to extract them again, which is worth doing after changing the method in Settings. Choosing
+  another recording takes its words in the same way, and a recording with none clears the last one's. Words you typed
+  or edited stay unless you agree to replace them.
 
-Expect a good draft rather than a transcript. Measured against the real words of two songs, Whisper
-got **1.5% of words wrong** on one and **25%** on the other, where lead and backing vocals sing over
-each other in the last chorus. It listens to the whole vocal: it used to skip whatever its voice
-detector took for silence, which on sung vocals was most of the song. Read the draft and fix what it
-misheard, especially where voices overlap.
+Expect a good draft rather than a transcript. Measured against the real words of two songs, Whisper got **1.5% of
+words wrong** on one and **25%** on the other, where lead and backing vocals sing over each other in the last chorus.
+It listens to the whole vocal: it used to skip whatever its voice detector took for silence, which on sung vocals was
+most of the song. Read the draft and fix what it misheard, especially where voices overlap.
 
 **Letting an external LLM listen.** If an [external LLM](#external-llm) is your provider, Settings has a choice under
-*Lyrics from a recording*. Set it to **External LLM** and the separated vocal is sent to the model to
-hear the words, while Whisper still works out when each line is sung. On the same two songs Gemini
-got **1.5% and 23%**, so the two are close; try both on a song Whisper struggles with. It needs a
-model that accepts audio, such as Gemini. When the model's reply looks like lyrics, its words are
-used, even where they differ a good deal from Whisper's: a vocal buried in a mix is where Whisper
-struggles most, and the model does not. If the model refuses the audio, holds back (cutting lines
-short, or pointing you at a lyrics site, as a model may with a song it recognises) or sends back
-almost nothing, you get Whisper's version instead. The message when it finishes names which one
-heard the words. The vocal leaves your machine for this; Whisper keeps it here.
+*Lyrics from a recording*. Set it to **External LLM** and the separated vocal is sent to the model to hear the words,
+while Whisper still works out when each line is sung.
 
-For a corpus song, **both versions are kept**. When both exist, the song's Review panel shows
-**Words from** with each version and its word count, the external model's in use by default. Pick
-the other and its words go in the box. The first time a version is chosen its words are drafted, which
-marks their sections with the external model; after that each version keeps its own words, edits and
-**checked** tick, so switching between them is instant and makes no call to the model. Whisper's own lines have any word
-it repeated more than eight times in a row, such as a held "la" it wrote hundreds of times, cut
-back to eight.
+- It needs a model that accepts audio, such as Gemini. On the same two songs Gemini got **1.5% and 23%**, so the two
+  are close; try both on a song Whisper struggles with.
+- When the model's reply looks like lyrics, its words are used, even where they differ a good deal from Whisper's: a
+  vocal buried in a mix is where Whisper struggles most, and the model does not.
+- If the model refuses the audio, holds back (cutting lines short, or pointing you at a lyrics site, as a model may
+  with a song it recognises) or sends back almost nothing, you get Whisper's version instead.
+- The message when it finishes names which one heard the words.
+- The vocal leaves your machine for this; Whisper keeps it here.
+
+**For a corpus song, both versions are kept.** When both exist, the song's Review panel shows **Words from** with each
+version and its word count, the external model's in use by default. Pick the other and its words go in the box. The
+first time a version is chosen its words are drafted, which marks their sections with the external model; after that
+each version keeps its own words, edits and **checked** tick, so switching between them is instant and makes no call to
+the model. Whisper's own lines have any word it repeated more than eight times in a row, such as a held "la" it wrote
+hundreds of times, cut back to eight.
 
 ---
 
@@ -878,14 +963,27 @@ section, add an interlude, or run past the times you gave, so the length cap is 
 transcription is the score, so there is no plan to write, and the render plays its melody and
 chords with the instrumental LoRA.
 
-The sections come from the score too: one per section of the score, in the names the LoRA knows. An
-*interlude* becomes a bridge. A render pairs each section of the structure with one of the score,
-which is why the builder gives way to them. To rearrange the song, drag a section to a new place or move it with the arrows, add a
-**copy** of it after itself, or take it out with the **✕**: each change rewrites the score (the Score
-window shows it), and **Restore the original sections** puts it back until another score is loaded.
-While the take plays in the editor, the section it is at is lit, and double-clicking a section jumps to it. The times come from the score's bars and tempo, which the render follows closely for the first part of a take and for one that renders in full. A render that ends well short of its score has played less music than the score holds, so the list can drift out of step with the audio as the song goes on; a line under the list says so and says by how much. A cover shows the same list under its words, and its words are matched to the sections in order, so
-change them to suit: the list says what they need after you add, remove or rearrange sections. It also shows the total against the
-length cap, and offers to raise the cap when a longer song would be cut short. Press **Create instrumental** to render.
+The sections come from the score too: one per section of the score, in the names the LoRA knows (an *interlude*
+becomes a bridge). A render pairs each section of the structure with one of the score, which is why the builder gives
+way to them.
+
+**Rearranging the song.** Each change rewrites the score (the Score window shows it):
+
+- Drag a section to a new place, or move it with the arrows.
+- Add a **copy** of a section after itself.
+- Take a section out with the **✕**.
+- **Restore the original sections** puts them back, until another score is loaded.
+
+**Following along.** While the take plays in the editor, the section it is at is lit, and double-clicking a section
+jumps to it. The times come from the score's bars and tempo, which the render follows closely for the first part of a
+take and for one that renders in full. A render that ends well short of its score has played less music than the
+score holds, so the list can drift out of step with the audio as the song goes on; a line under the list says so, and
+by how much.
+
+**The words and the length.** A cover shows the same list under its words, and its words are matched to the sections
+in order, so change them to suit: the list says what they need after you add, remove or rearrange sections. The list
+also shows the total against the length cap, and offers to raise the cap when a longer song would be cut short. Press
+**Create instrumental** to render.
 
 An instrumental you wrote from a structure has a score too, and once it is planned its sections are listed in the same way. The
 structure builder is the brief for a plan not yet written, so it gives way to the list. Rearrange the sections and press
@@ -935,69 +1033,98 @@ artist, one genre, or a few similar artists.
 Open **Corpora** from the menu. It is on by default; `TRAINING_ENABLED=0` for the app, or an
 engine built with `WITH_TRAINER=0`, takes it out.
 
-Training is the most demanding thing the app does: with the recommended full-quality (BF16) model,
-a 16 GB graphics card and 32 GB of system RAM (on WSL2, `memory=32GB` in `.wslconfig`) is the practical minimum.
-An 8 GB card can be used for training when using the low-memory (INT8) model.
+**What training needs.** It is the most demanding thing the app does:
 
-1. **New corpus.** Give it a name and a **trigger word**, say whether the voice is male or female
-   (**none** for songs without vocals: see below), describe the sound shared by every song, and open the folder that holds the songs. Confirm you
-   have the right to train on them, then press **Scan the folder**. The folder is only read.
-   **A corpus without vocals.** Choose **none** for **Voice** when the songs are instrumental, such as
-   dance and electronic music. The app then does not separate a vocal or listen for words, so nothing
-   invents words over synths. Each song's lyrics are the section tags found in its score (or
-   `[instrumental]` when it has none), the caption leaves out the vocal clause, and there is no lyrics
-   review: the **Sections** box can be edited, and an edit is kept. The sound of each song is described
-   by the local model when it is installed, since the external one would only have a title to go on.
-   A LoRA trained this way may write notes in the Vocal part of a plan, which makes a render sing or hum;
-   a plan's "may sing" warning shows it. Changing the Voice of a corpus already analysed changes its
-   lyrics to match.
-2. **Choose the songs.** Untick any you want left out. When a song is prepared, the app keeps its own copy of the full recording in internal corpus storage, so a corpus remains intact even if its source folder is later cleared or moved. A recording longer than 25 minutes is left out, since it is most likely a whole album or concert in one file. If a `.cue` sheet sits beside it, **Split into tracks** cuts it into its songs, which take its place in the corpus. The tracks go in the app's own folder; yours is not changed. (Songs longer than the trainer's GPU limit, such as 15-minute tracks, are safely cut and faded at a musical section boundary when exported.)
-3. **Analyse.** Each song's vocal is separated, its key, tempo and sections are found, and its lyrics are drafted, tagged by section. With an external LLM set in Settings, the sections are marked from the words as heard: choruses by their words coming back, new sections by the pauses. Only the lines and their timings are sent, and the words and their order are never changed. Without one, or if its answer does not hold every line, the tags come from the music analysis. **Redraft**, beside Save in a song's review, marks the sections again the same way without hearing the song again, for a song drafted before, and replaces what is in the box. A line under the buttons says what is running, and active analysis appears in the main screen's job card and queue. **Stop** ends it. Finished steps are kept, so **Analyse** carries on from where it stopped.
+- **The full-quality (BF16) model**, the one recommended, needs at least about 12.5 GB of GPU memory (at a 3½ minute
+  cut; a longer cut takes more), most of it while it prepares the songs. So a 16 GB card is the practical minimum,
+  with 32 GB of system RAM: ComfyUI stages the full YuE2 weights and dataset caches in host memory (on WSL2, set
+  `memory=32GB` in `.wslconfig`).
+- **The low-memory (INT8) model** lets an 8 GB card train.
+- **A card that cannot train** can still use LoRAs trained elsewhere (**Install a LoRA**).
+- The Train window warns when less GPU or system memory is available, so close anything else using the GPU first.
 
-   **Re-analysing.** Once every song is analysed, the button shows **Analysed ✓**. Clicking it asks if you want to re-analyse style suggestions for all songs with the latest prompts and LLM settings (convenient after renaming a corpus or changing providers). Shift-clicking **Analysed ✓** offers a complete re-analysis from scratch (re-running stem separation, key, tempo, transcription and styles). Individual songs can also be re-styled with **Re-analyse** in each song's review.
-4. **Review.** Open a song to check its lyrics and tick **checked**, and to describe its sound
-   where it differs from the rest. The style caption shows what the trainer will read.
-5. **Export training set.** Writes the audio, lyrics and caption for each song. A line under the
-   buttons shows how far it has got. The trainer takes only so much of a song, which the app works
-   out from your graphics card's free memory (about 5½ minutes on a 16 GB card; the Logs window
-   says what it chose). A longer song is cut at the end of its last section within that, faded
-   out, and keeps only the words still sung. Its row says "first 3:12 trained". If training
-   runs out of memory, set the `TRAIN_MAX_MINUTES` environment setting to a lower number, such
-   as 3.5: see the README.
-6. **Train a LoRA.** This takes a long time, and the GPU is not available to the app until it
-   finishes. Progress shows under the buttons and on the main screen, where you can stop it,
-   and the corpus's badge at the top of the page pulses while it trains. Training again keeps
-   the LoRA from the last run under a dated name, in **Previous runs**, or deletes it, as you
-   choose.
-   Training on the recommended full-quality (BF16) model needs at least about 12.5 GB of GPU memory
-   (at a 3½ minute cut; a longer cut takes more), most of it while it prepares the songs, so a 16 GB
-   card is the practical minimum, along with 32 GB of system RAM (ComfyUI stages the full YuE2 weights
-   and dataset caches in host memory; on WSL2, set `memory=32GB` in `.wslconfig`). An 8 GB card can
-   train when using the low-memory (INT8) model. Cards that cannot train can still use LoRAs trained
-   elsewhere (**Install a LoRA**). The Train window warns when less GPU or system memory is available,
-   so close anything else using the GPU first.
+**The steps:**
+
+1. **New corpus.** Give it a name and a **trigger word**, say whether the voice is male or female (**none** for songs
+   without vocals: see below), describe the sound shared by every song, and open the folder that holds the songs.
+   Confirm you have the right to train on them, then press **Scan the folder**. The folder is only read.
+
+   **A corpus without vocals.** Choose **none** for **Voice** when the songs are instrumental, such as dance and
+   electronic music:
+
+   - The app does not separate a vocal or listen for words, so nothing invents words over synths.
+   - Each song's lyrics are the section tags found in its score (or `[instrumental]` when it has none), the caption
+     leaves out the vocal clause, and there is no lyrics review: the **Sections** box can be edited, and an edit is
+     kept.
+   - The sound of each song is described by the local model when it is installed, since the external one would only
+     have a title to go on.
+   - A LoRA trained this way may write notes in the Vocal part of a plan, which makes a render sing or hum; a plan's
+     "may sing" warning shows it.
+   - Changing the Voice of a corpus already analysed changes its lyrics to match.
+2. **Choose the songs.** Untick any you want left out.
+   - When a song is prepared, the app keeps its own copy of the full recording in internal corpus storage, so a
+     corpus remains intact even if its source folder is later cleared or moved.
+   - A recording longer than 25 minutes is left out, since it is most likely a whole album or concert in one file.
+     If a `.cue` sheet sits beside it, **Split into tracks** cuts it into its songs, which take its place in the
+     corpus. The tracks go in the app's own folder; yours is not changed.
+   - Songs longer than the trainer's GPU limit, such as 15-minute tracks, are safely cut and faded at a musical
+     section boundary when exported.
+3. **Analyse.** Each song's vocal is separated, its key, tempo and sections are found, and its lyrics are drafted,
+   tagged by section.
+   - With an external LLM set in Settings, the sections are marked from the words as heard: choruses by their words
+     coming back, new sections by the pauses. Only the lines and their timings are sent, and the words and their
+     order are never changed. Without one, or if its answer does not hold every line, the tags come from the music
+     analysis.
+   - **Redraft**, beside Save in a song's review, marks the sections again the same way without hearing the song
+     again, for a song drafted before, and replaces what is in the box.
+   - A line under the buttons says what is running, and active analysis appears in the main screen's job card and
+     queue. **Stop** ends it. Finished steps are kept, so **Analyse** carries on from where it stopped.
+   - **Re-analysing.** Once every song is analysed, the button shows **Analysed ✓**. Clicking it asks if you want to
+     re-analyse style suggestions for all songs with the latest prompts and LLM settings (convenient after renaming a
+     corpus or changing providers). Shift-clicking **Analysed ✓** offers a complete re-analysis from scratch
+     (re-running stem separation, key, tempo, transcription and styles). Individual songs can also be re-styled with
+     **Re-analyse** in each song's review.
+4. **Review.** Open a song to check its lyrics and tick **checked**, and to describe its sound where it differs from
+   the rest. The style caption shows what the trainer will read.
+5. **Export training set.** Writes the audio, lyrics and caption for each song. A line under the buttons shows how
+   far it has got.
+   - The trainer takes only so much of a song, which the app works out from your graphics card's free memory (about
+     5½ minutes on a 16 GB card; the Logs window says what it chose).
+   - A longer song is cut at the end of its last section within that, faded out, and keeps only the words still
+     sung. Its row says "first 3:12 trained".
+   - If training runs out of memory, set the `TRAIN_MAX_MINUTES` environment setting to a lower number, such as 3.5:
+     see the README.
+6. **Train a LoRA.** This takes a long time, and the GPU is not available to the app until it finishes.
+   - Progress shows under the buttons and on the main screen, where you can stop it, and the corpus's badge at the
+     top of the page pulses while it trains.
+   - Training again keeps the LoRA from the last run under a dated name, in **Previous runs**, or deletes it, as you
+     choose.
 
 ### A run that ends early
 
-A run can end before its last step: **Stop**, a crash, or the GPU running out of memory. The line
-under the buttons then says when and why, and after which step. Along the way the trainer saves a
-checkpoint every 50 steps, and keeps a copy of the best one so far by its planner loss, so most of
-the work is usually still there. **Finish with what it saved** does what a finished run does, from
-those files: the best copy, or failing that the last checkpoint, becomes the LoRA under the
-corpus's name, with its trigger word, and the checkpoints fold under it in the Style LoRA list. It
-takes seconds and no GPU time. The last steps of a run change the LoRA least, so one finished this
-way is usually close to a full run; **Checkpoints** renders a song once on each step if you want to
-compare by ear. To train the whole run again instead, press **Train a LoRA**.
+A run can end before its last step: **Stop**, a crash, or the GPU running out of memory. The line under the buttons
+then says when and why, and after which step. Most of the work is usually still there: along the way the trainer
+saves a checkpoint every 50 steps, and keeps a copy of the best one so far by its planner loss.
+
+- **Finish with what it saved** does what a finished run does, from those files: the best copy, or failing that the
+  last checkpoint, becomes the LoRA under the corpus's name, with its trigger word, and the checkpoints fold under it
+  in the Style LoRA list. It takes seconds and no GPU time.
+- The last steps of a run change the LoRA least, so one finished this way is usually close to a full run;
+  **Checkpoints** renders a song once on each step if you want to compare by ear.
+- To train the whole run again instead, press **Train a LoRA**.
 
 ### Run all
 
-**Run all**, beside the three, does Analyse, Export and Train one after the other, for a corpus you
-would rather not wait on: a big one takes hours to analyse. It asks first what to do with an
-earlier LoRA, then carries on with the page closed. It analyses only what still needs it, and a
-song whose analysis fails is left out of the training set and named under the buttons. Lyrics
-nobody has checked are used as drafted. **Stop** ends it where it is, keeping what is finished;
-stopped while it exports, it finishes the training set first. It waits for anything already using
-the engine before it trains. An app restart ends it, and **Run all** again carries on.
+**Run all**, beside the three, does Analyse, Export and Train one after the other, for a corpus you would rather not
+wait on: a big one takes hours to analyse. It asks first what to do with an earlier LoRA, then carries on with the page
+closed.
+
+- It analyses only what still needs it. A song whose analysis fails is left out of the training set and named under
+  the buttons, and lyrics nobody has checked are used as drafted.
+- It waits for anything already using the engine before it trains.
+- **Stop** ends it where it is, keeping what is finished; stopped while it exports, it finishes the training set
+  first.
+- An app restart ends it, and **Run all** again carries on.
 
 ### Running out of GPU memory
 
@@ -1007,17 +1134,18 @@ restarts, the job it was running is lost, and it says that too.
 
 ### The trained LoRA
 
-When training finishes, the LoRA appears in the **Style LoRA** list with its trigger word. Choosing
-it shows a chip for each song it learned from, under the Style box, and clicking one puts that song's style in
-the box.
-Past a dozen songs, a filter box and a row of the tags that recur across the corpus (its genres,
-moods and instruments) narrow them; click two tags to find songs with both. The list shows its
-first dozen until **Show all**. See **Balancing Planner and Sound** below for starting strengths. To share it, press **Download LoRA** on the corpus's page, or **Download** under
-the picker; see **Sharing a LoRA** below.
+When training finishes, the LoRA appears in the **Style LoRA** list with its trigger word.
 
-To add a LoRA someone shared, press **Import LoRA** beside **New corpus** and choose their zip. To use a
-LoRA trained elsewhere from the exported set, press **Install a LoRA** and choose the
-file. It is added to the Style LoRA list with this corpus's trigger word.
+- **Its songs.** Choosing it shows a chip for each song it learned from, under the Style box, and clicking one puts
+  that song's style in the box. Past a dozen songs, a filter box and a row of the tags that recur across the corpus
+  (its genres, moods and instruments) narrow them; click two tags to find songs with both. The list shows its first
+  dozen until **Show all**.
+- **Starting strengths:** see **Balancing Planner and Sound** below.
+- **Sharing it:** press **Download LoRA** on the corpus's page, or **Download** under the picker; see **Sharing a
+  LoRA** below.
+- **A LoRA from someone else:** press **Import LoRA** beside **New corpus** and choose their zip.
+- **A LoRA trained elsewhere from the exported set:** press **Install a LoRA** and choose the file. It is added to the
+  Style LoRA list with this corpus's trigger word.
 
 **Deleting a corpus** removes the app's copies of its songs, the separated vocals, the lyrics and
 the scores. The folder you pointed it at, and any LoRA made from it, are not touched.
@@ -1132,24 +1260,28 @@ rest, its trigger word beside it, and the same two strengths apply.
 
 ### Trying the checkpoints
 
-A training run saves a checkpoint every 50 steps, and keeps them under its LoRA in the picker:
-**▸ 9 steps** beside the LoRA's name opens them (Settings can delete them instead, to save the
-space). A checkpoint whose LoRA has been deleted stays under **Training checkpoints**. To clear
-some out, press **Edit** on the corpus: **Training checkpoints** there lists each run's, this run's
-and any previous run's, with their sizes. Tick the ones to go and press **Delete**. The finished
-LoRA is not listed; it has **Delete LoRA** of its own. Each is the LoRA as it stood at
-that point in training. They sound about as good as each other, but each has its own weighting of
-what it learned, so each has its own taste while keeping the style and signature sound the LoRA
-was trained on.
+A training run saves a checkpoint every 50 steps: each is the LoRA as it stood at that point in training. They sound
+about as good as each other, but each has its own weighting of what it learned, so each has its own taste while keeping
+the style and signature sound the LoRA was trained on.
 
-To hear them side by side, choose the LoRA, set up the editor as you would for one take, and press
-**Checkpoints** beside **Delete LoRA**. It is greyed out for a LoRA without checkpoints. Tick the
-steps you want, set a length cap for these takes if you like, and press **Render**. The editor's
-own action runs once on each checkpoint, all with one seed, and each take is named after its step:
-*Night drive · step 250*, *Night drive · full*. They are kept inside the take open in the editor,
-or, for a new song, inside the last of them (see **Takes inside a take**, under The library). The editor closes, so you are back at the library
-where the takes are being made. A song or an instrumental writes its plan and goes straight on to
-render.
+**Where they are.** They are kept under their LoRA in the picker: **▸ 9 steps** beside the LoRA's name opens them
+(Settings can delete them instead, to save the space). A checkpoint whose LoRA has been deleted stays under **Training
+checkpoints**.
+
+**Clearing some out.** Press **Edit** on the corpus: **Training checkpoints** there lists each run's, this run's and any
+previous run's, with their sizes. Tick the ones to go and press **Delete**. The finished LoRA is not listed; it has
+**Delete LoRA** of its own.
+
+**Hearing them side by side:**
+
+1. Choose the LoRA, and set up the editor as you would for one take.
+2. Press **Checkpoints**, beside **Delete LoRA** (greyed out for a LoRA without checkpoints).
+3. Tick the steps you want, set a length cap for these takes if you like, and press **Render**.
+
+The editor's own action runs once on each checkpoint, all with one seed, and each take is named after its step:
+*Night drive · step 250*, *Night drive · full*. They are kept inside the take open in the editor, or, for a new song,
+inside the last of them (see **Takes inside a take**, under The library). The editor closes, so you are back at the
+library where the takes are being made. A song or an instrumental writes its plan and goes straight on to render.
 
 In a song or an instrumental the LoRA writes the tune as well as shaping the sound, so the same
 seed does not give the same song: each checkpoint writes its own melody and structure. The seed
@@ -1219,15 +1351,15 @@ Words you had typed but not used are not thrown away: a bar offers to restore th
 
 ### Spaces
 
-Takes live in **spaces**: a space per song, per album, or for sketches. The space's name above the takes
-is the one on show, and anything you make lands there. Click it for the list of spaces: type to find one by
-name, or pick it with the arrow keys and Enter. The five you used last come first, then every space, each with
-how many takes it holds. **New space**, **Rename this space**, **Import take** and **Delete this space** are at
-the foot of the list. Deleting a space never deletes takes —
-they move to Default. Recordings are shared by every space, so one recording can be covered in
-several.
+Takes live in **spaces**: a space per song, per album, or for sketches. The space's name above the takes is the one
+on show, and anything you make lands there.
 
-The folder button on a card moves that take to another space, with any takes inside it.
+- **Choosing one:** click the name for the list of spaces. Type to find one by name, or pick it with the arrow keys
+  and Enter. The five you used last come first, then every space, each with how many takes it holds.
+- **New space**, **Rename this space**, **Import take** and **Delete this space** are at the foot of the list.
+  Deleting a space never deletes takes — they move to Default.
+- **Moving a take:** the folder button on a card moves that take to another space, with any takes inside it.
+- Recordings are shared by every space, so one recording can be covered in several.
 
 ### Takes inside a take
 
@@ -1265,55 +1397,70 @@ Takes made before this existed stay where they are, side by side in the list.
 
 ### Cards
 
-Each card names the settings that shaped it — Harmony, Interpretation, Plan variety, the LoRA and
-its strengths, the seed, the engine that rendered it and its age — so a card reads as the recipe that made it.
+Each card names the settings that shaped it — Harmony, Interpretation, the recorded voice, Plan variety, the LoRA and
+its strengths, the seed, the engine that rendered it and its age — so a card reads as the recipe that made it. A title
+always stays on one line, ending in … when it is long; hover over a card's title, settings or style to read all of it.
 
-**Save** asks which format to download the take in, FLAC, WAV or MP3. It starts with what you saved last
-time, and with nothing chosen the first time. A take with a picture can also be saved as a **Video**: an MP4 of
-the song that shows the picture its card shows (H.264 video, AAC audio at 192 kbps). Messaging apps such as
-WhatsApp send and play it as a video, where an audio file goes as a document. With the mastering rack on, the
-video has the mastered sound, as the other formats do. **Take**, beside them, saves the take's recipe as well: a small file
-(`<title>.yeufonic.json`) holding its words, style and score, its seeds and settings, its LoRAs by name and
-the mastering rack's settings, but not its audio. With a format chosen too, both come in one zip; press the
-chosen format again to save the recipe alone. The file holds nothing of your install (no paths, ids or keys),
-so it can be kept, or shared with another Yeufonic user.
+**Save** asks which format to download the take in. It starts with what you saved last time, and with nothing chosen
+the first time.
 
-**Import take**, in the list of spaces, makes a new take in the space on show from such a file; dropping the file
-on the library does the same. The take holds the plan, ready to render, so it can be checked or changed first.
-Either engine can render it: the same score and seed on the same engine give a very similar take, on the other
-engine a different one. A LoRA it names that is not installed here is named when it is imported, so you can
-install it or choose another before rendering. A cover's recording is not in the file, so a shared cover comes
-in as a song with the cover's score and words, leaving behind the settings that belonged to its recording (the
-tempo lock, Harmony, voice cues and the length cap): a new plan from it starts as a song from a prompt does.
+- **FLAC, WAV or MP3:** the audio.
+- **Video**, for a take with a picture: an MP4 of the song that shows the picture its card shows (H.264 video, AAC
+  audio at 192 kbps). Messaging apps such as WhatsApp send and play it as a video, where an audio file goes as a
+  document.
+- **Take**, beside them: the take's recipe, a small file (`<title>.yeufonic.json`) holding its words, style and score,
+  its seeds and settings, its LoRAs by name and the mastering rack's settings, but not its audio. With a format chosen
+  too, both come in one zip; press the chosen format again to save the recipe alone. The file holds nothing of your
+  install (no paths, ids or keys), so it can be kept, or shared with another Yeufonic user.
+- With the mastering rack on, every format has the mastered sound.
 
-**Search takes** finds the takes with every word you type somewhere in the title, style, lyrics or
-LoRA name, in any case. It looks through the space on show; **All spaces**, beside it once you type,
-looks through every space, and a card from another space says which one. × or Escape clears it. The
-box starts empty each time the page opens, and offers your last few searches that found something:
-click one, or pick it with the arrow keys and Enter.
+**Import take**, in the list of spaces, makes a new take in the space on show from such a file; dropping the file on
+the library does the same. The take holds the plan, ready to render, so it can be checked or changed first.
 
-**Song**, **Cover** and **Instrumental** show takes of those kinds: light one or more, or none for every kind.
-**Starred** shows only starred takes; click it again to show them all. The icons beside them set how the takes are
-laid out, the ones in use lit green: wider **comfy** cards with more of the prompt or narrower **compact** ones,
-the **whole width** of the window or a centred column, and every take **folded** down to its head line. Hover over
-an icon to read what a click does.
+- Either engine can render it: the same score and seed on the same engine give a very similar take, on the other
+  engine a different one.
+- A LoRA it names that is not installed here is named when it is imported, so you can install it or choose another
+  before rendering.
+- A cover's recording is not in the file, so a shared cover comes in as a song with the cover's score and words,
+  leaving behind the settings that belonged to its recording (the tempo lock, Harmony, voice cues and the length
+  cap): a new plan from it starts as a song from a prompt does.
 
-Tick takes and the row offers what can be done with them, in place of the kinds and the layout: how many are
-picked, **Compare**, **Delete** and **Done**, which unticks them. **Select all**, at the end of the row, ticks
-every take on show. A title always stays on one line, ending in … when it is long. Hover over a card's title, settings or style to read all of it.
+**Search takes** finds the takes with every word you type somewhere in the title, style, lyrics or LoRA name, in any
+case. It looks through the space on show; **All spaces**, beside it once you type, looks through every space, and a
+card from another space says which one. × or Escape clears it. The box starts empty each time the page opens, and
+offers your last few searches that found something: click one, or pick it with the arrow keys and Enter.
+
+**Choosing what shows, and how:**
+
+| Control | What it does |
+|---|---|
+| **Song**, **Cover**, **Instrumental** | Show takes of those kinds: light one or more, or none for every kind. |
+| **Starred** | Shows only starred takes; click it again to show them all. |
+| The layout icons | Wider **comfy** cards with more of the prompt, or narrower **compact** ones; the **whole width** of the window or a centred column; every take **folded** down to its head line. The ones in use are lit green; hover over an icon to read what a click does. |
+
+While the takes are folded, the button at a card's top right opens that card alone, and a click anywhere outside it
+folds it again. A folded card with stems shows a **Stems** pill, which opens it the same way.
+
+**Selecting takes.** Tick takes and the row offers what can be done with them, in place of the kinds and the layout:
+how many are picked, **Compare**, **Delete** and **Done**, which unticks them. **Select all**, at the end of the row,
+ticks every take on show.
 
 ### A picture for each take
 
-Each new take gets a picture of the song, shown faintly behind the take's card, across the top of the take panel when you choose it, and behind the editor when the take is open
-there. Drawn on this PC it waits until no song is being made, so it never holds up a plan or a render, and
-appears a little after the song is finished; drawn by an external LLM it is made while the take renders.
-It is made in two steps: the take's title, style and opening words are turned into a **description** of
-a picture, then an image model **draws** it on white, and the white is taken out, leaving the picture
-with a transparent background. A take made inside another (Try more, Variations, Checkpoints) shows the
-picture of the take it is inside rather than having one of its own.
+Each new take gets a picture of the song.
 
-An image model will not draw a real band or person, so the description leaves names out; and the
-picture's own lettering is kept soft, so it does not fight the card's.
+- **Where it shows:** faintly behind the take's card, across the top of the take panel when you choose it, and behind
+  the editor when the take is open there.
+- **When it is made:** drawn on this PC, it waits until no song is being made, so it never holds up a plan or a
+  render, and appears a little after the song is finished. Drawn by an external LLM, it is made while the take
+  renders.
+- **How it is made,** in two steps: the take's title, style and opening words are turned into a **description** of a
+  picture, then an image model **draws** it on white, and the white is taken out, leaving the picture with a
+  transparent background.
+- **A take made inside another** (Try more, Variations, Checkpoints) shows the picture of the take it is inside rather
+  than having one of its own.
+- An image model will not draw a real band or person, so the description leaves names out; and the picture's own
+  lettering is kept soft, so it does not fight the card's.
 
 #### Two ways to draw: FLUX.2 klein on this PC, or an external LLM
 
@@ -1458,25 +1605,31 @@ quickest pictures, or to *External LLM* (a request each).
 
 #### A take's picture in the editor
 
-The **Picture** icon in the editor window's top row, beside the take's other buttons, shows the picture
-with two choices: **Make a new picture**, which makes it again in the background, and **Use the default
-background**, which takes it away for good: no picture is made for that take again unless you ask for one.
-Click the picture there to see the whole of it, as large as the window allows; a click anywhere or Escape
-puts it away and leaves the editor as it was. The whole picture has the same two choices under it. Choose
-**Make a new picture** there and the picture stays up while the new one is made, with what is happening shown
-between the buttons, then turns to the new one when it is done.
+The **Picture** icon in the editor window's top row, beside the take's other buttons, shows the picture with two
+choices:
 
-On a take's card, the square at the top left shows the picture when you point at it. A take with no
-picture offers **Make a new picture** there instead, where this PC can make pictures.
+- **Make a new picture** makes it again in the background.
+- **Use the default background** takes it away for good: no picture is made for that take again unless you ask for
+  one.
+
+Click the picture there to see the whole of it, as large as the window allows; a click anywhere or Escape puts it away
+and leaves the editor as it was. The whole picture has the same two choices under it: choose **Make a new picture**
+there and the picture stays up while the new one is made, with what is happening shown between the buttons, then turns
+to the new one when it is done.
+
+On a take's card, the square at the top left shows the picture when you point at it. A take with no picture offers
+**Make a new picture** there instead, where this PC can make pictures.
 
 ### Comparing takes
 
-Tick two to six takes and press **Compare** (it appears beside Select all once two are ticked, and
-waits for takes still rendering). The takes stack in one window on a shared position: press **1** to
-**6** or click one to switch, and it carries on from the same moment in the song, playing or
-paused. **Space** plays and pauses, the arrows move 5 seconds, and the star marks the one you
-prefer. **Match loudness** turns the louder takes down to the quietest, since a louder take tends
-to sound better; **Hide names** shuffles the takes and calls them Take A, B, C for a blind listen.
+Tick two to six takes and press **Compare** (it appears beside Select all once two are ticked, and waits for takes
+still rendering). The takes stack in one window on a shared position:
+
+- Press **1** to **6**, or click one, to switch: it carries on from the same moment in the song, playing or paused.
+- **Space** plays and pauses, and the arrows move 5 seconds.
+- The star marks the one you prefer.
+- **Match loudness** turns the louder takes down to the quietest, since a louder take tends to sound better.
+- **Hide names** shuffles the takes and calls them Take A, B, C for a blind listen.
 
 ### The player
 
@@ -1637,11 +1790,17 @@ the menu: which version you are on, and whether it is the latest.
 When there is a newer one, the menu offers **Get x.y.z**, which downloads the installer on a Windows install or puts the two commands on the clipboard for a Docker copy.
 
 
-**Theme** sets how the app looks: **Dark**, **Light**, **Match the computer**, which follows your
-system's light or dark and changes with it, **Studio**, a warm dark with amber, or **High
-contrast**, black and white with strong outlines. It changes at once, and each browser remembers it
-so the page opens in it. The log window stays dark in every theme, like a terminal. The mastering rack follows the theme too: in the light theme its panels are brushed silver, while its knobs,
-meter windows and readouts keep the dark look of the hardware.
+**Theme** sets how the app looks. It changes at once, and each browser remembers it so the page opens in it.
+
+| Theme | Looks |
+|---|---|
+| **Dark** | The app's own dark look. |
+| **Light** | Light panels; the mastering rack's panels are brushed silver, while its knobs, meter windows and readouts keep the dark look of the hardware. |
+| **Match the computer** | Follows your system's light or dark, and changes with it. |
+| **Studio** | A warm dark with amber. |
+| **High contrast** | Black and white, with strong outlines. |
+
+The log window stays dark in every theme, like a terminal, and the mastering rack follows the theme too.
 
 **Backdrop colour**, under Theme, tints the page behind the takes with a colour you choose: tick **Tint**, then
 move **Hue** round the colour wheel and **Strength** from a faint wash to a rich colour. The page changes as you

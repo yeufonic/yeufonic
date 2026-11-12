@@ -56,41 +56,65 @@ licht op zolang de take andere takes bevat, en sluit het venster om ze onder de 
 
 ### Een opgenomen stem {#a-recorded-voice}
 
-Een take kan gezongen worden met een stem die getraind is op opnamen van iemand die zingt: jijzelf, of de zanger van
-een corpus. Stemmen maak en beheer je op de pagina **Stemmen**, in het menu, en je kiest er een in het veld *Opgenomen stem*
-van de editor als je een take maakt. Een take met een stem wordt gewoon gerenderd; daarna wordt de zang gescheiden, opnieuw
-gezongen in de stem en weer over de rest gemixt, voordat het niveau wordt gemeten. Daarvoor is de optionele stemservice nodig
-("Recorded voices" in de README); zonder die is het veld verborgen.
+Een take kan gezongen worden met een stem die getraind is op opnames van iemand die zingt: jijzelf, of de zanger of zangeres van een corpus. De take wordt zoals altijd gerenderd; daarna wordt de zang gescheiden, opnieuw gezongen met de stem en terug over de rest gemixt. Stemmen maak en beheer je op de pagina **Stemmen**, vanuit het menu. Daarvoor is de optionele stemdienst nodig (in de README „Recorded voices”); zonder die dienst zijn de stemvelden verborgen.
 
-**Nieuwe stem** maakt een stem van je eigen opnamen of een die getraind wordt op de nummers van een corpus. Een stem van
-opnamen begint leeg, en zijn pagina verzamelt ze: **Opnemen…** opent de recorder, en elke take die je bewaart gaat naar de stem
-zoals hij gezongen is, nooit met autotune; **Uploaden…** neemt audiobestanden; **Uit de bibliotheek…** voegt opnamen toe die je al
-hebt, zoals een zangpartij die je voor een cover opnam, met een speler bij elke om hem eerst te beluisteren. Een opname uit de
-bibliotheek wordt aangewezen, niet gekopieerd. De pagina telt de zang af tegen de minuten waarop een stem traint: ongeveer tien
-minuten over je hele bereik is genoeg, en een korte opname geeft al een herkenbare stem. Elke opname zegt of hij alleen een stem
-is (**alleen zang**, aangevinkt bij wat je hier opnam) of een nummer, dat eerst gescheiden wordt. Druk dan op **Trainen**.
+#### Een stem maken {#making-a-voice}
 
-Het trainen wacht zijn beurt af op de GPU en toont de voortgang in de taakpil en het logboek. **Opnieuw trainen** traint opnieuw
-op de opnamen zoals ze nu zijn, of op de nummers van het corpus. Een opname die inmiddels uit de bibliotheek is verwijderd, wordt
-overgeslagen. De pagina bewaart **Waarvan hij leerde**, de gescheiden zang van elk nummer en de getrainde fragmenten, om te
-beluisteren.
+**Nieuwe stem** maakt een stem van je eigen opnames, of een die getraind wordt op de nummers van een corpus. Een stem van opnames begint leeg, en de pagina verzamelt ze:
 
-**Octaaf** zet de stem een heel octaaf hoger of lager, voor een zanger wiens bereik ver van dat van de take ligt. **Zangniveau**
-en **Instrumentniveau** bepalen de balans van de nieuwe mix, en **Gelijkenis** hoe dicht de stem bij de eigen klank van de zanger
-blijft: hoger klinkt meer als die zanger, en kan bewerkter klinken. Op 100% kan de stem de woorden kwijtraken: ze houdt alleen de klanken die ze geleerd heeft, dus woorden die de zanger nooit heeft gezongen kunnen verhaspeld klinken; de editor waarschuwt daarvoor. **Ruimte** legt een korte ruimte onder de omgezette zang
-(*Droog*, *Subtiel* of *Meer*) zodat die in de mix zit, en **Helderheid** op *Auto* tilt het hoog op tot dat van de gerenderde
-zang; *Uit* laat het zoals omgezet. **Adem en medeklinkers** bepaalt hoeveel die de klanken van de gerenderde zang houden:
-*Behouden* blijft helder maar draagt er een spoor van, *Omgezet* kan scheuren. **Dynamiek** bepaalt wiens volume de zang van
-frase tot frase volgt: dat van de take, zoals gerenderd, of de eigen aanzwellingen van de stem. **Formant** verandert de grootte van de stem met dezelfde toonhoogte: *Dieper* klinkt groter, *Helderder* kleiner. **Mengverhouding** bepaalt hoeveel van de zang de stem zingt; de rest is de gerenderde zang waaruit hij ontstond. Dit zijn de standaardwaarden van de stem. In de editor kies je de stem onder **Opgenomen stem**; **Instellingen** ernaast opent deze instellingen, om voor één take aan te passen, en laat zien wanneer de take eigen instellingen heeft. **Beluisteren** laat daar de stem een korte loop zingen, van een man of een vrouw, met de instellingen zoals ze zijn, steeds opnieuw terwijl je ze verandert, en **Opslaan als nieuwe stem…** bewaart wat je hoort als een eigen stem, op hetzelfde model. Eigen loops kunnen erbij: zet een korte opname van één stem die alleen en droog zingt, 15 tot 30 seconden, in de map *voice-loops* van de bibliotheek (`data/voice-loops` met Docker; op Windows in de map `data` van de installatie, tenzij `data_dir` in `settings.ini` een andere bibliotheekmap noemt), en hij verschijnt met zijn bestandsnaam wanneer **Instellingen** de volgende keer wordt geopend. FLAC-, WAV-, MP3-, M4A-, OGG- en Opus-bestanden worden gelezen. Instellingen → *Stemtraining* bepaalt van hoeveel zang een
-stem leert en hoeveel rondes.
+- **Opnemen…** opent de recorder. Elke take die je houdt, gaat naar de stem zoals hij gezongen is, nooit met autotune bijgewerkt.
+- **Uploaden…** neemt audiobestanden.
+- **Uit de bibliotheek…** voegt opnames toe die je al hebt, zoals zang die je voor een cover hebt opgenomen. Elke opname heeft een speler om eerst te luisteren, en wordt gekoppeld, niet gekopieerd.
 
-Het resultaat is omgezette zang over een gescheiden begeleiding, dus minder naadloos dan zang die het model zelf zong. Schone,
-droge opnamen geven de schoonste stem. **Stem downloaden** slaat een getrainde stem op als zip om aan iemand te geven, en **Stem
-importeren…** voegt er een toe: die zip, of een RVC-model van elders (de zip, of de .pth en .index samen gekozen). Een stem die zonder index is geïmporteerd, krijgt die later met **Index toevoegen…**: Gelijkenis steunt erop. Kant-en-klare stemmen, RVC-modellen die anderen hebben getraind, zijn te vinden op sites zoals [voice-models.com](https://voice-models.com/): **Stem importeren…** neemt de zip zoals die is gedownload. Het recept van een
-take noemt zijn stem en de instellingen van de take ervoor, en bij het importeren wordt de stem met die naam op deze installatie
-gebruikt, als die er is.
+Bij elke opname staat of het een stem alleen is (**alleen zang**, aangevinkt voor wat je hier hebt opgenomen) of een nummer, dat eerst gescheiden wordt. De pagina telt de zang: ongeveer tien minuten over je hele bereik is ruim genoeg, en een korte opname geeft al een herkenbare stem. Druk dan op **Trainen**.
 
-Een stem leert de galm en de productie van de opname mee met de zanger, dus schone zang met een heldere leadzang geeft een schonere stem dan een corpus van gemixte nummers. Eén nummer of een korte opname geeft een herkenbare stem, maar een die woorden kan vervagen die hij nooit gezongen heeft gehoord. Een stem die op veel meer zang en met veel meer rondes is getraind, zoals kant-en-klare stemmen vaak zijn, houdt de woorden ook bij een hoge Gelijkenis.
+Het trainen wacht op zijn beurt op de GPU en toont de voortgang in de taakindicator en het logboek. **Opnieuw trainen** traint opnieuw op de opnames zoals ze nu zijn, of op de nummers van het corpus. **Waarvan hij leerde** bewaart de gescheiden zang van elk nummer en de getrainde fragmenten, om te beluisteren. Instellingen → *Stemtraining* bepaalt van hoeveel zang een stem leert en hoeveel rondes.
+
+#### Instellingen van een stem {#settings-for-a-voice}
+
+Dit zijn de standaardwaarden van de stem, ingesteld op zijn pagina. Een take kan eigen instellingen hebben (hieronder).
+
+| Instelling | Wat ze doet |
+|---|---|
+| **Octaaf** | Zet de stem een heel octaaf hoger of lager, voor iemand wiens bereik ver van dat van de take ligt. |
+| **Zangniveau**, **Instrumentniveau** | De balans van de remix. |
+| **Gelijkenis** | Hoe dicht de stem bij de eigen klanken van de zanger blijft. Hoger lijkt meer, en kan bewerkter klinken. Op 100% kan de stem de woorden verliezen: woorden die hij de zanger nooit hoorde zingen, kunnen verminkt klinken, en de editor zegt dat. |
+| **Formant** | De grootte van de stem, met dezelfde toonhoogte: *Dieper* klinkt groter, *Helderder* kleiner. |
+| **Mengverhouding** | Hoeveel van de zang de stem zingt; de rest is de gerenderde zang waaruit hij ontstond. |
+| **Ruimte** | Een korte ruimte onder de omgezette zang (*Droog*, *Subtiel* of *Meer*), zodat hij in de mix zit. |
+| **Helderheid** | *Auto* tilt het hoge deel op naar dat van de gerenderde zang; *Uit* laat het zoals omgezet. |
+| **Adem en medeklinkers** | Hoeveel ze de eigen klanken van de gerenderde zang houden: *Behouden* blijft helder maar draagt er een spoor van, *Omgezet* kan scheuren. |
+| **Dynamiek** | Wiens volume de zang van frase tot frase volgt: dat van de take, zoals gerenderd, of de eigen aanzwellingen van de stem. |
+
+#### Een stem in een take gebruiken {#using-a-voice-in-a-take}
+
+Kies in de editor de stem onder **Opgenomen stem**. **Instellingen** ernaast opent de instellingen hierboven voor alleen deze take; de take houdt ze, en de knop meldt *eigen instellingen* als ze afwijken van die van de stem.
+
+#### Een stem beluisteren voordat je hem gebruikt {#hearing-a-voice-before-you-use-it}
+
+**Beluisteren**, in die instellingen, laat de stem een korte loop zingen, *Een zingende man* of *Een zingende vrouw*, steeds opnieuw terwijl je de instellingen verandert, zodat je elke wijziging hoort terwijl je hem maakt. **Opslaan als nieuwe stem…** bewaart wat je hoort als een eigen stem, op hetzelfde model.
+
+**Je eigen loops.** De twee loops komen met de app; je kunt er zelf bij zetten:
+
+1. Zoek of neem 15 tot 30 seconden op van één stem die alleen zingt: droog, zonder begeleiding, galm of harmonieën.
+2. Sla hem op als FLAC, WAV, MP3, M4A, OGG of Opus, met de naam die je in de lijst wilt zien.
+3. Zet hem in de map *voice-loops* van de bibliotheek: `data/voice-loops` met Docker; op Windows in de map `data` van de installatie, tenzij `data_dir` in `settings.ini` een andere bibliotheekmap noemt.
+4. Open **Instellingen** opnieuw: hij staat erbij onder zijn bestandsnaam.
+
+#### Stemmen delen en importeren {#sharing-and-importing-voices}
+
+- **Stem downloaden** slaat een getrainde stem op als zip om aan iemand te geven.
+- **Stem importeren…** voegt er een toe: die zip, of een RVC-model van elders (de zip, of de .pth en .index samen gekozen). Een stem die zonder index is geïmporteerd, krijgt die later met **Index toevoegen…**: Gelijkenis steunt erop.
+- **Kant-en-klare stemmen**, RVC-modellen die anderen hebben getraind, zijn te vinden op sites zoals [voice-models.com](https://voice-models.com/): **Stem importeren…** neemt de zip zoals die is gedownload.
+- Het recept van een take noemt zijn stem en de instellingen van de take ervoor, en bij het importeren wordt de stem met die naam op deze installatie gebruikt, als die er is.
+
+#### Een schone stem krijgen {#getting-a-clean-voice}
+
+Het resultaat is omgezette zang over een gescheiden begeleiding, dus minder naadloos dan zang die het model zelf zong.
+
+- Een stem leert de galm en de productie van de opname mee met de zanger, dus schone, droge zang met een heldere leadzang geeft een schonere stem dan een corpus van gemixte nummers.
+- Eén nummer of een korte opname geeft een herkenbare stem, maar een die woorden kan vervagen die hij nooit gezongen heeft gehoord.
+- Een stem die op veel meer zang en met veel meer rondes is getraind, zoals kant-en-klare stemmen vaak zijn, houdt de woorden ook bij een hoge Gelijkenis.
 
 ### Geavanceerde instellingen {#advanced-settings}
 
@@ -149,26 +173,25 @@ zoals ademend of rauw. Ze zijn een typsnelkoppeling, en je kunt het resultaat me
 
 ### De tekst opzetten {#drafting-the-lyrics}
 
-**De structuur.** Boven het tekstvak heeft een nummer, zolang het geen woorden heeft, een **structuur** om op te bouwen, net als
-een instrumentaal: een lijst met secties die je kunt herschikken, verwijderen en uitbreiden (intro, couplet, pre-refrein, refrein, bridge,
-interlude, outro). **Beginnen met…** vult hem met een gangbare vorm, en de tooltip van elke vorm zegt waarvoor die dient. Een
-**interlude** is een instrumentale passage: de schrijver zet de tag op een eigen regel, en de planner speelt hem met
-de instrumentale stem. **Delen in het tekstvak zetten** plaatst de tags als lege secties om er met de hand onder te schrijven.
-Zodra het vak woorden heeft, wordt de tekst gezongen en gaat de structuur opzij.
+**De structuur.** Boven het tekstvak heeft een nummer, zolang het geen woorden bevat, een **structuur** om op te bouwen, zoals een instrumentaal nummer: een lijst delen die je kunt herschikken, weghalen en aanvullen (intro, couplet, pre-chorus, refrein, brug, tussenspel, outro).
 
-**Songtekst schrijven**, naast het tekstvak, vraagt waar het nummer over gaat en schrijft woorden voor de secties die je hebt opgebouwd.
-**Regels in een couplet of refrein** bepaalt hoe lang elke sectie is: meer regels in een sectie geven een langer nummer, omdat de
-planner ongeveer zoveel muziek schrijft als er woorden zijn. De stijl hierboven zet de sfeer. Gemma schrijft het concept in dezelfde
-engine, en het komt in het vak aan met een titel als je er nog geen had gegeven; een [externe LLM](#external-llm) kan het in plaats daarvan schrijven, ingesteld in Instellingen. Het venster sluit zodra het concept begint, en de voortgang verschijnt naast het tekstvak.
-De knoppen van de teksteditor voegen ook elk van deze secties toe, plus stemaanwijzingen (+ Man, + Vrouw, + Beide).
+- **Beginnen met…** vult hem met een gangbare vorm, en de tooltip van elke vorm zegt waarvoor hij geschikt is.
+- Een **tussenspel** is een instrumentale passage: de schrijver zet zijn tag op een eigen regel, en de planner speelt hem met de instrumentstem.
+- **Delen in het tekstvak zetten** zet de tags erin als lege delen om met de hand onder te schrijven.
+- Zodra het vak woorden heeft, is de songtekst wat er gezongen wordt en stapt de structuur opzij.
 
-**Hoe de regels klinken** bepaalt het ritme en het rijm waar de schrijver op mikt. *Natuurlijk* (standaard) mengt korte en lange regels
-met wat rijm. *Regelmatig rijm* is de traditionele vorm van gelijke regels die per twee rijmen, wat de
-schrijver maakte voordat deze keuze bestond. *Gesproken ritme* is spreektalig, als spreken of rap; *Los
-rijm* laat maar sommige regels rijmen; *Kort en krachtig* en *Lang en vloeiend* bepalen de lengte van de regels.
+**Songtekst schrijven**, naast het tekstvak, vraagt waar het nummer over gaat en schrijft woorden voor de delen die je hebt opgebouwd.
 
-Het is een eerste concept. De regels hebben ritme en rijmen, maar een model grijpt naar bekende beelden, en niets
-controleert of een regel al van iemand anders is. Lees het en maak het je eigen voordat je plant.
+- **Regels in een couplet of refrein** bepaalt hoe lang elk is: meer regels in een deel maken een langer nummer, omdat de planner ongeveer zoveel muziek schrijft als er woorden zijn.
+- De stijl erboven bepaalt de sfeer.
+- Gemma schrijft het concept op dezelfde engine, en het komt in het vak met een titel als je er geen had gegeven; een [externe LLM](#external-llm) kan het in plaats daarvan schrijven, in te stellen bij Instellingen.
+- Het venster sluit zodra het concept begint, en de voortgang staat naast het tekstvak.
+
+De knoppen van de teksteditor voegen elk van deze delen ook toe, plus stemaanwijzingen (+ Man, + Vrouw, + Beide).
+
+**Hoe de regels klinken** bepaalt het ritme en rijm waar de schrijver naar streeft, van *Natuurlijk* (standaard) tot *Kort en krachtig* of *Lang en vloeiend*: [De woorden](#the-words) zet elke keuze op een rij.
+
+Het is een eerste versie. De regels lopen en rijmen, maar een model grijpt naar bekende beelden, en niets controleert of een regel al van iemand anders is. Lees het en maak het van jezelf voordat je plant.
 
 ---
 
@@ -276,23 +299,18 @@ Carry me over, carry me home
 ```
 
 Schrijf een aanwijzing als `[male voice]`, `[female voice]` of `[both voices]`, elk op een eigen regel tussen vierkante haken.
-De vergrote teksteditor heeft de knoppen **+ Man**, **+ Vrouw** en **+ Beide** in de kop om ze bij de cursor in te voegen.
-Dit zijn de vormen waarmee de functie is getest, plus `vocal` in plaats van `voice` (`[female vocal]`) en
-`[male and female voices]` voor beide. Je kunt eigen woorden toevoegen na een komma, zoals
-`[female voice, soft and close]`; die veranderen niet wie zingt. Een sectie zonder aanwijzing wordt aan de planner overgelaten.
 
-Andere schrijfwijzen worden ook gelezen, zodat elders geschreven teksten niet worden genegeerd: `[man]`, `[woman]`, `[duet]`, een aanwijzing
-in de tag van een sectie zoals `[Verse 2 - female vocal]`, en een aanwijzing tussen ronde haken, `(female voice)`. Vierkante haken
-zijn de veiligste gewoonte: woorden tussen ronde haken zijn vaak achtergrondzang, en kunnen gezongen worden.
+- De uitgevouwen teksteditor heeft de knoppen **+ Man**, **+ Vrouw** en **+ Beide** in de kop om ze bij de cursor in te voegen.
+- Dit zijn de vormen waarmee de functie is uitgeprobeerd, plus `vocal` voor `voice` (`[female vocal]`) en `[male and female voices]` voor beide.
+- Je kunt na een komma eigen woorden toevoegen, zoals in `[female voice, soft and close]`; ze veranderen niet wie er zingt.
+- Een deel zonder aanwijzing wordt aan de planner overgelaten.
+- Andere schrijfwijzen worden ook gelezen, zodat elders geschreven teksten niet worden genegeerd: `[man]`, `[woman]`, `[duet]`, een aanwijzing in de tag van een deel zoals `[Verse 2 - female vocal]`, en een aanwijzing tussen ronde haken, `(female voice)`. Vierkante haken zijn de veiligere gewoonte: woorden tussen ronde haken zijn meestal achtergrondzang, en worden misschien gezongen.
 
-Een aanwijzing alleen beslist de stem niet. Wie zingt hangt vooral af van hoe hoog de melodie is geschreven: dezelfde
-regel een octaaf hoger wordt door een vrouw gezongen, en de planner schrijft een couplet graag over twee octaven, wisselend om de vier
-regels of zo, wat er ook is aangewezen. **Stemmen volgen de aanwijzingen** (een vinkje onder het tekstvak, dat verschijnt als de tekst
-een aanwijzing heeft; aan voor een nieuwe take) houdt zich aan de aanwijzingen: als het plan wordt geschreven, schuift elk aangewezen stuk melodie per
-heel octaaf naar waar die stem zingt, laag voor een man en hoog voor een vrouw. Verder verandert er niets aan het plan. Het wordt
-voor elke render opnieuw gedaan, dus het volgt een wijziging in de tekst of de partituur. Op de pagina Partituur doet
-**Stemmen naar aanwijzingen** hetzelfde één keer met de partituur in het vak, voor een take gemaakt zonder het vinkje; bewaar de partituur
-en render hem.
+**Een aanwijzing alleen beslist de stem niet.** Wie er zingt, hangt vooral af van hoe hoog de melodie geschreven is: dezelfde regel een octaaf hoger wordt door een vrouw gezongen, en de planner schrijft een couplet graag in twee octaven en wisselt ongeveer elke vier regels, wie er ook is aangewezen.
+
+- **Stemmen volgen de aanwijzingen** (een vinkje onder het tekstvak, zichtbaar zodra de tekst een aanwijzing heeft; aan voor een nieuwe take) houdt de aanwijzingen aan: als het plan wordt geschreven, wordt elk aangewezen stuk melodie met hele octaven verplaatst naar waar die stem zingt, laag voor een man en hoog voor een vrouw. Verder verandert er niets aan het plan.
+- Het gebeurt opnieuw voor elke render, dus het volgt een wijziging in de woorden of in de partituur.
+- Op de pagina Partituur doet **Stemmen naar aanwijzingen** hetzelfde één keer met de partituur in het vak, voor een take die zonder het vinkje is gemaakt; sla de partituur op en render hem.
 
 Drie dingen om te weten:
 
@@ -343,16 +361,38 @@ tag zonder regels eronder, zoals `[Interlude]`, is een instrumentale passage.
 - **Geavanceerd** (de knop in de kop): diffusiestappen, De stijl volgen, Vermijden, Toonsoort vastzetten, Tempo vastzetten, de langste partituur,
   akkoordduur, bonus voor harmonie van buiten, Secties die anders openen, doelluidheid en de eindfade. Zie
   [Geavanceerde instellingen](#advanced-settings).
-- **Mastering** (de knop links ervan, als de take klank heeft) opent het masteringrack boven de editor voor
-  de take die erin staat. Het rack is, op volgorde, een eq in 1073-stijl, een parametrische eq, een compressor, een stereoverbreder en
-  een limiter. In de grafiek van de parametrische eq is elk van de zeven banden een punt: sleep het opzij voor de frequentie
-  en omhoog of omlaag voor de versterking, draai het scrollwiel erboven voor de breedte, dubbelklik om het terug te zetten. De strook onder
-  de grafiek stelt het type van de gekozen band in (laag afsnijden, laag shelf, klok, notch, hoog shelf, hoog afsnijden) en zet hem aan
-  of uit, **Vlak** zet elke band terug op 0 dB, en de knop in de hoek van de grafiek verandert hoeveel decibel de
-  grafiek toont. De knop is groen zolang het rack verandert hoe de take klinkt. Met het rack open speelt de spatiebalk
-  de take af en pauzeert hem, en bewegen de pijltjes erdoorheen en regelen het volume, zoals op de hoofdpagina. Escape sluit
-  het rack, en nog eens sluit de editor.
-- **3D-ruimte**, een module van het rack tussen de imager en de limiter, zet de take voor koptelefoon om je heen. Uit de **mix**: twee virtuele luidsprekers voor (**Width**) en twee achter (**Rear**), waarbij **Surround** bepaalt hoeveel van de breedte en ambiance van de mix uit de achterste komt; de luidsprekers kun je ook over de cirkel slepen. **Height** tilt ze allemaal op en **Room** voegt een korte ruimte toe. Uit **stems**: elke stem van de take wordt apart geplaatst; kies er een onder de cirkel, sleep dan rond de cirkel om hem te plaatsen, en het scrollwiel spreidt hem (**Stems maken** opent het stemsvenster als de take er geen heeft). **Front**, **Wide** en **Around** stellen alles tegelijk in. Wat je hoort is voor koptelefoon en nooit onderdeel van het eigen bestand van de take: **Downloaden** onder Koptelefoon bewaart het als WAV, en **FLAC** en **AC-3** onder 5.1-luidsprekers bewaren de take voor surroundluidsprekers (uit stems gaat elk naar de luidsprekers aan weerszijden van zijn plek). Het venster Opslaan van de take biedt dezelfde downloads zolang de ruimte aan staat. Elke module klapt in tot zijn balk met de pijl links, en de take onthoudt welke ingeklapt zijn.
+- **Mastering** (de knop links ervan, als de take geluid heeft) opent het masteringrack boven de editor voor de take die erin staat. De knop is groen zolang het rack verandert hoe de take klinkt. De modules van het rack, op volgorde:
+
+  1. Een EQ in 1073-stijl
+  2. Een parametrische equalizer
+  3. Een compressor
+  4. Een stereo-imager
+  5. **3D-ruimte** (hieronder)
+  6. Een limiter
+
+  Elke module klapt in tot zijn balk met de pijl links ervan, en de take onthoudt welke ingeklapt zijn.
+
+  **De parametrische equalizer.** Elk van zijn zeven banden is een punt in de grafiek:
+
+  - Sleep een punt opzij voor de frequentie, en omhoog of omlaag voor de versterking.
+  - Draai het scrollwiel erboven voor de breedte; dubbelklik om hem terug te zetten.
+  - De strook onder de grafiek stelt het soort van de gekozen band in (lage afsnijding, lage shelf, bel, notch, hoge shelf, hoge afsnijding) en zet hem aan of uit.
+  - **Vlak** zet elke band terug op 0 dB, en de knop in de hoek van de grafiek verandert hoeveel decibel hij toont.
+
+  **Toetsen.** Met het rack open speelt en pauzeert de spatiebalk de take, en verplaatsen de pijltjestoetsen je erin en stellen ze het volume in, zoals op de hoofdpagina. Escape sluit het rack, en nog eens de editor.
+
+- **3D-ruimte**, een module van het rack tussen de imager en de limiter, plaatst de take om je heen voor een koptelefoon, op een van twee manieren:
+
+  | Vanuit | Wat je instelt |
+  |---|---|
+  | **Mix** | Twee virtuele luidsprekers voor (**Breedte**) en twee achter (**Achter**), met **Surround** voor hoeveel van de breedte en sfeer van de mix uit die achter komt; sleep de luidsprekers ook over de cirkel. **Hoogte** tilt ze allemaal op en **Ruimte** voegt een korte ruimte toe. |
+  | **Stems** | Elke stem van de take wordt apart geplaatst: kies er een onder de cirkel, sleep hem dan rond de cirkel om hem te plaatsen, en het scrollwiel spreidt hem. **Stems maken** opent het venster Stems als de take er geen heeft. |
+
+  **Voor**, **Breed** en **Rondom** stellen alles in één keer in. Wat je hoort is voor een koptelefoon en nooit deel van het eigen bestand van de take. Om het te bewaren:
+
+  - **Downloaden**, onder Koptelefoon, slaat het op als WAV.
+  - **FLAC** en **AC-3**, onder 5.1-luidsprekers, slaan de take op voor surroundluidsprekers (vanuit stems gaat elk naar de luidsprekers aan weerszijden van zijn plek).
+  - Het venster Opslaan van de take biedt dezelfde downloads zolang zijn Ruimte aan staat.
 
 ### Het nummer langer maken {#making-the-song-longer}
 
@@ -446,37 +486,25 @@ niet de partituur. Afspelen stopt wat de spelerbalk speelde, omdat twee dingen t
 helpen, en het venster sluiten — of naar Akkoorden of Tekst gaan — stopt het ook, zodat niets blijft
 spelen zonder een knop binnen handbereik.
 
-**Instrumenten** speelt elke stem op een instrument dat de stijl noemt, in plaats van een piano
-voor alles: een stijl die *electric guitar, drums* zegt klinkt met een gitaar, de akkoorden gespeeld door
-een tweede, en een bas eronder; een gezongen lijn wordt door een stem vervangen, en de melodie van een instrumentaal
-niet. Een stijl die drums noemt krijgt ook een drumpartij, geschreven in de maatsoort van de partituur
-zelf — een backbeat voor rock, four-on-the-floor voor dance, een ride voor jazz, iets karigers voor een
-ballade — en die speelt van begin tot eind, omdat de partituur geen secties heeft om in te zwijgen. De
-regel naast de speler zegt wat hij koos, en uitvinken gaat terug naar de piano die je anders
-zou horen. Het is een lezing van de stijl, niet van de render: YuE2 beslist de
-echte uitvoering en voegt partijen toe die de partituur nooit had, dus zie het als het plan gespeeld in de juiste
-kleuren, meer dan als hoe de take zal klinken.
+**Instrumenten** speelt elke partij met een instrument dat de stijl noemt, in plaats van de hele tijd een piano:
 
-**MIDI downloaden** bewaart de partituur voor een DAW. Elke partij is een eigen spoor, op een eigen kanaal,
-met het instrument dat het voorbeeld gebruikte aan dat kanaal toegewezen: de zanglijn, de instrumentale lijn en,
-tenzij je **Akkoorden** uitvinkt, de akkoordsymbolen als akkoordpartij met de bas ernaast (de enige
-plek waar de harmonie in noten is uitgeschreven), en de drums op kanaal 10 als de stijl erom vraagt. De
-instrumenten zijn General MIDI-programmanummers, dus je DAW speelt ze met zijn eigen klanken, en het
-tempo en de maatsoort staan in het bestand. Een plan dat halverwege van maatsoort wisselt wordt geschreven in de maatsoort waarmee het
-begint — alleen die wordt vastgelegd — terwijl de noten hun eigen lengtes houden. Op een noot in de
-notenbalken klikken zet de cursor op de ABC die hem schreef.
+- Een stijl die *electric guitar, drums* zegt, klinkt met een gitaar, zijn akkoorden gespeeld door een tweede, en een bas eronder. Een gezongen lijn wordt door een stem vervangen, de melodie van een instrumentaal nummer niet.
+- Een stijl die drums noemt, krijgt ook een drumpartij, geschreven op de eigen maatsoort van de partituur — een backbeat voor rock, four-on-the-floor voor dance, een ride voor jazz, iets spaarzamers voor een ballade — en die speelt van begin tot eind, omdat de partituur geen delen heeft om te zwijgen.
+- De regel naast de speler zegt wat er gekozen is, en het vinkje weghalen gaat terug naar de piano die je anders zou horen.
 
-Een partituur met een noot boven wat deze instrumenten kunnen spelen, of eronder, wordt per hele octaaf verschoven gespeeld
-tot hij past, en de regel naast de speler zegt hoeveel; de notenbalken, het MIDI-bestand en
-de partituur zelf veranderen niet. Instrumenten hebben niet allemaal hetzelfde bereik — een bas ligt ver onder
-een piano — daarom verschijnt de regel als een partituur wordt verschoven. Een partituur die nog geen noten heeft
-heeft niets om te spelen en zegt dat.
+Dit is een lezing van de stijl, niet van de render: YuE2 bepaalt de echte uitvoering en voegt partijen toe die de partituur nooit had, dus zie het als het plan gespeeld in de juiste kleuren en niet als hoe de take zal klinken.
 
-De speler heeft zijn nootsamples nodig, die geen deel van de app zijn: elk instrument is zo'n 7 MB,
-wordt de eerste keer dat een voorbeeld het gebruikt bij de bron gedownload en in de bibliotheek bewaard, dus
-daarna werkt het offline. **Afspelen** downloadt wat de huidige partituur nodig heeft en begint dan, en
-**Klanken ophalen** downloadt hetzelfde zonder te spelen, voor wie het liever van tevoren
-klaar heeft.
+**MIDI downloaden** slaat de partituur op voor een DAW:
+
+- Elke partij is een eigen track, op een eigen kanaal, met het instrument dat de voorvertoning gebruikte op dat kanaal: de zanglijn, de instrumentlijn en, tenzij je **Akkoorden** uitvinkt, de akkoordsymbolen als akkoordpartij met de bas ernaast (de enige plek waar de harmonie als noten is geschreven), en drums op kanaal 10 als de stijl erom vraagt.
+- De instrumenten zijn General MIDI-programmanummers, dus je DAW speelt ze met zijn eigen klanken, en het tempo en de maatsoort staan in het bestand.
+- Een plan dat halverwege van maatsoort wisselt, wordt geschreven in de maatsoort waarmee het begint — alleen die wordt vastgelegd — terwijl de noten hun eigen lengtes houden.
+
+Klikken op een noot in de notenbalken zet de cursor op de ABC die hem schreef.
+
+**Buiten het bereik.** Een partituur met een noot boven of onder wat deze instrumenten kunnen spelen, wordt met hele octaven verschoven gespeeld tot hij past, en de regel naast de speler zegt hoeveel; de notenbalken, het MIDI-bestand en de partituur zelf blijven ongewijzigd. De instrumenten zijn niet allemaal even groot — een bas gaat veel lager dan een piano —, daarom staat de regel er als een partituur verschoven wordt. Een partituur zonder noten heeft niets te spelen en zegt dat.
+
+**De klanken.** De speler heeft zijn notensamples nodig, die geen deel van de app zijn: elk instrument is ongeveer 7 MB, wordt de eerste keer dat een voorvertoning het gebruikt van zijn bron gehaald en in de bibliotheek bewaard, zodat het daarna offline werkt. **Afspelen** haalt wat de huidige partituur nodig heeft en begint dan, en **Klanken ophalen** haalt hetzelfde zonder af te spelen, voor wie het liever vooraf klaar heeft.
 
 ### De pianorol {#the-piano-roll}
 
@@ -657,16 +685,18 @@ De planner leest de hele tekst voordat hij een noot schrijft, dus dezelfde seed 
 met dezelfde tekst. Verander één regel en het volgende plan is een nieuwe melodie: een andere melodie, vaak een andere
 toonsoort en een ander tempo, en de stem verandert mee.
 
-Om een melodie te houden die je bevalt, open je de take en verander je zijn tekst. **Deze melodie houden** verschijnt onder de
-tekst, aangevinkt, en de hoofdknop wordt **Zingen met nieuwe woorden**. Verander eerst al het andere dat je
-wilt: de stijl, de LoRA en zijn sterktes, de lengtegrens, de interpretatie. De partituur van de take wordt
-dan met de nieuwe tekst gezongen, als nieuwe take naast het origineel, dat blijft zoals het is. Laat de seed
-aangevinkt om de stem zo gelijk mogelijk te houden. Vink **Deze melodie houden** uit om in plaats daarvan een nieuw plan, en een
-nieuwe melodie, voor de tekst te schrijven. Een nieuwe tekst die het aantal lettergrepen van de oude regels houdt past het best
-op de melodie. Als dat niet zo is, omdat er meer secties zijn of veel meer lettergrepen dan de melodie noten heeft (lange regels op een melodie
-gemaakt voor korte: regels komen herhaald uit of vallen weg), of veel minder (korte regels op een melodie gemaakt voor lange:
-de zanger vult de overgebleven noten met eigen woorden), vinkt **Deze melodie houden** zichzelf uit met een regel die zegt waarom, en
-wordt er een nieuw plan voor de tekst geschreven. Vink het weer aan om de melodie toch te zingen.
+Om een melodie te houden die je goed vindt:
+
+1. Open de take en verander zijn tekst. **Deze melodie houden** verschijnt onder de tekst, aangevinkt, en de hoofdknop wordt **Zingen met nieuwe woorden**.
+2. Verander eerst al het andere dat je wilt: de stijl, de LoRA en zijn sterktes, de lengtegrens, de interpretatie. Laat de seed aangevinkt om de stem zo dichtbij mogelijk te houden.
+3. Druk op **Zingen met nieuwe woorden**. De partituur van de take wordt gezongen met de nieuwe woorden, als nieuwe take naast het origineel, dat blijft zoals het is.
+
+Vink **Deze melodie houden** uit om in plaats daarvan een nieuw plan, en een nieuwe melodie, voor de woorden te schrijven.
+
+Nieuwe woorden die het aantal lettergrepen van de oude regels aanhouden, passen het best op de melodie. Als ze niet passen, vinkt **Deze melodie houden** zichzelf uit met een regel die zegt waarom, en wordt een nieuw plan voor de woorden geschreven. Vink het opnieuw aan om de melodie toch te zingen. De woorden passen niet als er zijn:
+
+- **Meer delen, of veel meer lettergrepen dan de melodie noten heeft:** lange regels op een melodie voor korte komen herhaald of weggelaten uit.
+- **Veel minder lettergrepen:** korte regels op een melodie voor lange laten noten over, die de zanger met eigen woorden vult.
 
 ### Productieafwerking {#production-polish}
 
@@ -684,14 +714,13 @@ in Instellingen zegt. Daarna maakt hij plaats voor de muziek, zodat een lang num
 - Met een **opname** gekozen, voor een cover of een instrumentaal, volgt de grens de partituur van de opname,
   op dezelfde manier naar boven afgerond.
 
-Een grens die je zelf typt blijft zoals je hem zette, en de pagina Partituur waarschuwt dan als een plan langer is
-dan die grens. Een plan dat veel langer is dan zijn grens (meer dan een derde erboven, en langer dan acht minuten) wordt helemaal niet
-voor een nummer aangezien, en wordt opnieuw geschreven. Af en toe
-stopt een render niet aan het eind van zijn partituur en loopt door tot de grens; die take fadet
-in zijn laatste seconden in plaats van af te kappen, en zijn kaart zegt dat hij de grens bereikte. Nog zeldzamer eindigt een
-render voordat de laatste sectie van zijn partituur begint. De app rendert hem dan opnieuw met een
-nieuwe seed voordat hij hem klaar noemt, en als die ook te kort uitvalt, zegt de kaart dat hij stopte voor de
-laatste sectie: **Renderen** nog eens voor een nieuwe poging.
+Een grens die je zelf intypt, blijft zoals je hem instelde, en de pagina Partituur zegt dan wanneer een plan langer is.
+
+Als een nummer niet eindigt zoals het zou moeten:
+
+- **Een plan dat veel langer is dan zijn grens** (meer dan een derde erboven, en langer dan acht minuten) wordt helemaal niet als nummer genomen en opnieuw geschreven.
+- **Een render die voorbij zijn partituur doorspeelt** tot de grens, wordt over zijn laatste seconden uitgefaded in plaats van afgekapt, en zijn kaart zegt dat hij tot de grens liep.
+- **Een render die eindigt voordat het laatste deel van zijn partituur begint** (nog zeldzamer) wordt nog een keer gerenderd met een nieuwe seed voordat hij klaar heet. Stopt ook die te vroeg, dan zegt de kaart dat hij voor het laatste deel stopte: druk opnieuw op **Renderen** voor een nieuwe poging.
 
 ---
 
@@ -805,44 +834,23 @@ werk, of uit verschillend werk.
 
 ### De tekst eruit halen {#extracting-the-lyrics}
 
-**Songtekst eruit halen**, naast *Transcriberen*, schrijft op wat de opname zingt: het scheidt de
-stem af, luistert ernaar en zet de regels onder de secties van de partituur. Je vraagt erom in plaats van dat het
-bij elke transcriptie gebeurt, omdat het een paar minuten duurt waar een partituur transcriberen
-seconden duurt. De stem wordt afgescheiden, en de woorden gehoord, op de GPU als de engine Demucs en Whisper heeft, en anders op de CPU
-(Instellingen, **De GPU gebruiken voor stems en songteksten**), en de balk zegt in welke van de twee stappen hij is. Whisper op de GPU
-en op de CPU schrijven niet altijd dezelfde woorden voor dezelfde stem, omdat geen van beide exact is: een lastige stem, zoals achtergrondzang
-over een leadstem, kan een vijfde van zijn woorden de ene of de andere kant op verschillen. De afgescheiden stem wordt bewaard, dus dezelfde opname opnieuw uitlezen gaat
-meteen naar het luisteren, wat het grootste deel van het wachten scheelt.
+**Songtekst eruit halen**, naast *Transcriberen*, schrijft op wat de opname zingt: het scheidt de zang, luistert ernaar en zet de regels onder de delen van de partituur. Het gebeurt op verzoek in plaats van bij elke transcriptie, omdat het een paar minuten duurt waar het transcriberen van een partituur seconden kost.
 
-De woorden worden met de opname bewaard. Klik nog eens op **Songtekst eruit halen** en ze komen meteen terug in het
-vak, en je wordt gevraagd of je ze opnieuw wilt uitlezen, wat de moeite waard is na het veranderen van de
-methode in Instellingen. Een andere opname kiezen haalt op dezelfde manier haar woorden op, en een opname
-zonder woorden wist die van de vorige. Woorden die je zelf typte of bewerkte blijven, tenzij je instemt ze te vervangen.
+- **Waar het draait.** De zang wordt gescheiden, en de woorden gehoord, op de GPU als de engine Demucs en Whisper heeft, en anders op de CPU (Instellingen, **De GPU gebruiken voor stems en teksten**). De balk zegt in welke van de twee fases het is. Whisper op de GPU en op de CPU schrijft niet altijd dezelfde woorden voor dezelfde zang, omdat geen van beide exact is: moeilijke zang, zoals achtergrondzangers over een leadstem, kan een vijfde van de woorden verschillen.
+- **Opnieuw doen.** De gescheiden zang wordt bewaard, dus dezelfde opname opnieuw eruit halen gaat meteen naar het luisteren, wat het grootste deel van het wachten scheelt.
+- **De woorden blijven bij de opname.** Druk opnieuw op **Songtekst eruit halen** en ze gaan meteen terug in het vak, en je wordt gevraagd of ze opnieuw eruit gehaald moeten worden, wat de moeite waard is na het veranderen van de methode in Instellingen. Een andere opname kiezen neemt diens woorden op dezelfde manier over, en een opname zonder woorden wist die van de vorige. Woorden die je typte of bewerkte, blijven staan, tenzij je instemt met vervangen.
 
-Verwacht eerder een goed concept dan een transcriptie. Gemeten tegen de echte tekst van twee nummers zat Whisper
-bij **1,5% van de woorden** ernaast in het ene en bij **25%** in het andere, waar leadstem en achtergrondzang elkaar overlappen
-in het laatste refrein. Het luistert naar de hele stem: vroeger sloeg het over wat zijn stemdetector
-voor stilte hield, wat bij gezongen stemmen het grootste deel van het nummer was. Lees het concept en verbeter wat
-het verkeerd hoorde, vooral waar stemmen overlappen.
+Verwacht een goed concept in plaats van een transcriptie. Gemeten tegen de echte woorden van twee nummers zat Whisper bij het ene op **1,5% van de woorden fout** en bij het andere op **25%**, waar lead- en achtergrondzang elkaar in het laatste refrein overlappen. Het luistert naar de hele zang: vroeger sloeg het over wat zijn stemdetector voor stilte hield, en dat was bij gezongen zang het grootste deel van het nummer. Lees het concept en verbeter wat het verkeerd hoorde, vooral waar stemmen elkaar overlappen.
 
-**Een externe LLM laten luisteren.** Als een [externe LLM](#external-llm) je provider is, biedt Instellingen een keuze bij
-*Songtekst uit een opname*. Zet die op **Externe LLM** en de afgescheiden stem wordt naar het model gestuurd om
-de woorden te horen, terwijl Whisper blijft uitrekenen wanneer elke regel wordt gezongen. Op dezelfde twee nummers haalde Gemini
-**1,5% en 23%**, dus ze liggen dicht bij elkaar; probeer beide op een nummer waar Whisper moeite mee heeft. Het heeft een
-model nodig dat audio aanneemt, zoals Gemini. Als het antwoord van het model op een tekst lijkt, worden zijn woorden gebruikt,
-ook waar ze flink van die van Whisper verschillen: een stem die diep in een mix zit is waar Whisper
-het meest worstelt, en het model niet. Als het model de audio weigert, zich inhoudt (regels inkort,
-of je naar een tekstensite verwijst, zoals een model kan doen met een nummer dat het herkent) of
-bijna niets teruggeeft, krijg je in plaats daarvan de versie van Whisper. De melding aan het eind zegt welke
-de woorden hoorde. De stem verlaat hiervoor je computer; Whisper houdt hem hier.
+**Een externe LLM laten luisteren.** Als een [externe LLM](#external-llm) je aanbieder is, hebben de Instellingen een keuze onder *Songtekst uit een opname*. Zet die op **Externe LLM** en de gescheiden zang wordt naar het model gestuurd om de woorden te horen, terwijl Whisper nog steeds bepaalt wanneer elke regel gezongen wordt.
 
-Voor een corpusnummer **worden beide versies bewaard**. Als ze allebei bestaan, toont het reviewpaneel van het nummer
-**Woorden van** met elke versie en het aantal woorden, standaard die van het externe model. Kies
-de andere en haar woorden gaan in het vak. De eerste keer dat een versie gekozen wordt, worden haar woorden opgezet, wat
-haar secties markeert met het externe model; daarna houdt elke versie haar eigen woorden, bewerkingen en
-vinkje **gecontroleerd**, dus wisselen tussen beide gaat direct en doet geen enkele aanroep naar het model. In de regels van Whisper wordt elk woord
-dat het meer dan acht keer achter elkaar herhaalde, zoals een aangehouden “la” dat het honderden keren schreef, ingekort
-tot acht.
+- Er is een model nodig dat audio accepteert, zoals Gemini. Op dezelfde twee nummers haalde Gemini **1,5% en 23%**, dus de twee liggen dicht bij elkaar; probeer beide op een nummer waar Whisper moeite mee heeft.
+- Als het antwoord van het model op een songtekst lijkt, worden zijn woorden gebruikt, ook waar ze flink van die van Whisper afwijken: zang die diep in een mix zit, is waar Whisper het meest worstelt, en het model niet.
+- Als het model de audio weigert, zich inhoudt (regels inkort, of je naar een songtekstsite verwijst, zoals een model kan doen bij een nummer dat het herkent) of bijna niets terugstuurt, krijg je in plaats daarvan de versie van Whisper.
+- De melding aan het eind zegt wie de woorden hoorde.
+- De zang verlaat hiervoor je machine; Whisper houdt hem hier.
+
+**Bij een corpusnummer worden beide versies bewaard.** Als ze allebei bestaan, toont het controlepaneel van het nummer **Woorden van** met elke versie en het aantal woorden, standaard die van het externe model in gebruik. Kies de andere en de woorden ervan gaan in het vak. De eerste keer dat een versie gekozen wordt, worden de woorden opgesteld, wat de delen met het externe model markeert; daarna houdt elke versie haar eigen woorden, bewerkingen en vinkje **gecontroleerd**, dus wisselen gaat meteen en roept het model niet aan. In de eigen regels van Whisper wordt elk woord dat het meer dan acht keer achter elkaar herhaalde, zoals een aangehouden „la” dat het honderden keren schreef, ingekort tot acht.
 
 ---
 
@@ -866,14 +874,18 @@ sectie hernoemen, een interlude toevoegen, of over de tijden heen gaan die je ga
 transcriptie is de partituur, dus er is geen plan te schrijven, en de render speelt zijn melodie en
 akkoorden met de instrumentale LoRA.
 
-De secties komen ook uit de partituur: één per sectie van de partituur, met de namen die de LoRA kent. Een
-*interlude* wordt een bridge. Een render koppelt elke sectie van de structuur aan een van de partituur,
-daarom wijkt de bouwer voor ze. Om het nummer te herschikken, sleep je een sectie naar een andere plek of verplaats je hem met de pijltjes, voeg je er direct na een
-**kopie** van toe, of haal je hem weg met de **✕**: elke wijziging herschrijft de partituur (het venster Partituur
-toont het), en **De oorspronkelijke secties herstellen** zet hem terug tot er een andere partituur wordt geladen.
-Terwijl de take in de editor speelt, licht de sectie op waarin hij is, en dubbelklikken op een sectie springt erheen. De tijden komen uit de maten en het tempo van de partituur, die de render nauw volgt aan het begin van een take en in een take die helemaal wordt gerenderd. Een render die flink voor zijn partituur eindigt heeft minder muziek gespeeld dan de partituur bevat, dus de lijst kan naarmate het nummer vordert van de audio afdrijven; een regel onder de lijst zegt dat en hoeveel. Een cover toont dezelfde lijst onder zijn tekst, en zijn tekst wordt op volgorde aan de secties gekoppeld, dus
-pas hem aan: de lijst zegt wat hij nodig heeft na het toevoegen, weghalen of herschikken van secties. Hij toont ook het totaal tegen de
-lengtegrens, en biedt aan de grens te verhogen als een langer nummer zou worden afgekapt. Klik op **Instrumentaal maken** om te renderen.
+De delen komen ook uit de partituur: één per deel van de partituur, met de namen die de LoRA kent (een *tussenspel* wordt een brug). Een render koppelt elk deel van de structuur aan een van de partituur, daarom stapt de bouwer voor ze opzij.
+
+**Het nummer herschikken.** Elke wijziging herschrijft de partituur (het venster Partituur toont het):
+
+- Sleep een deel naar een nieuwe plek, of verplaats het met de pijlen.
+- Voeg een **kopie** van een deel toe na zichzelf.
+- Haal een deel weg met de **✕**.
+- **De oorspronkelijke secties herstellen** zet ze terug, tot er een andere partituur wordt geladen.
+
+**Meevolgen.** Terwijl de take in de editor speelt, licht het deel op waar hij is, en dubbelklikken op een deel springt erheen. De tijden komen uit de maten en het tempo van de partituur, die de render nauw volgt in het eerste deel van een take en bij een take die volledig rendert. Een render die ruim voor zijn partituur eindigt, heeft minder muziek gespeeld dan de partituur bevat, dus de lijst kan uit de pas raken met de audio naarmate het nummer vordert; een regel onder de lijst zegt dat, en hoeveel.
+
+**De woorden en de lengte.** Een cover toont dezelfde lijst onder zijn woorden, en zijn woorden worden op volgorde aan de delen gekoppeld, dus pas ze aan: de lijst zegt wat ze nodig hebben nadat je delen toevoegt, weghaalt of herschikt. De lijst toont ook het totaal tegenover de lengtegrens, en biedt aan de grens te verhogen als een langer nummer afgekapt zou worden. Druk op **Instrumentaal maken** om te renderen.
 
 Een instrumentaal geschreven vanuit een structuur heeft ook een partituur, en na het plannen worden zijn secties op dezelfde manier getoond. De
 structuurbouwer is de opdracht voor een plan dat nog niet geschreven is, dus hij wijkt voor de lijst. Herschik de secties en klik op
@@ -923,69 +935,58 @@ artiest, één genre of een paar vergelijkbare artiesten.
 Open **Corpora** vanuit het menu. Het staat standaard aan; `TRAINING_ENABLED=0` voor de app, of een
 engine gebouwd met `WITH_TRAINER=0`, haalt het weg.
 
-Trainen is het zwaarste wat de app doet: met het aanbevolen model van volle kwaliteit (BF16) zijn
-een grafische kaart van 16 GB en 32 GB systeem-RAM (onder WSL2, `memory=32GB` in `.wslconfig`) het praktische minimum.
-Een kaart van 8 GB kan volstaan om te trainen met het model voor weinig geheugen (INT8).
+**Wat trainen nodig heeft.** Het is het zwaarste wat de app doet:
 
-1. **Nieuw corpus.** Geef het een naam en een **triggerwoord**, zeg of de stem mannelijk of vrouwelijk is
-   (**geen** voor nummers zonder stem: zie hieronder), beschrijf de klank die alle nummers delen, en open de map waarin ze staan. Bevestig dat
-   je het recht hebt erop te trainen, en klik op **De map scannen**. De map wordt alleen gelezen.
-   **Een corpus zonder stem.** Kies **geen** bij **Stem** als de nummers instrumentaal zijn, zoals
-   dance en elektronische muziek. De app scheidt dan geen stem af en luistert niet naar woorden, dus niets
-   verzint teksten over synthesizers. De tekst van elk nummer zijn de sectietags in zijn partituur (of
-   `[instrumental]` als er geen zijn), de beschrijving laat de zangpartij weg, en er is geen review van
-   de tekst: het vak **Delen** is te bewerken, en de bewerking wordt bewaard. De klank van elk nummer wordt beschreven
-   door het lokale model als dat geïnstalleerd is, omdat het externe alleen een titel zou hebben om op te bouwen.
-   Een LoRA die zo getraind is kan noten in de Vocal-partij van een plan schrijven, waardoor een render gaat zingen of neuriën;
-   de waarschuwing “kan zingen” van een plan laat dat zien. De Stem van een al geanalyseerd corpus veranderen past zijn
-   tekst navenant aan.
-2. **Kies de nummers.** Vink uit wat je wilt weglaten. Als een nummer wordt voorbereid, bewaart de app een eigen kopie van de volledige opname in de interne corpusopslag, dus een corpus blijft intact ook als de bronmap later wordt leeggemaakt of verplaatst. Een opname van meer dan 25 minuten wordt weggelaten, omdat het waarschijnlijk een heel album of een concert in één bestand is. Als er een `.cue`-blad naast staat, knipt **Splitsen in tracks** hem in zijn nummers, die zijn plaats in het corpus innemen. De tracks gaan naar de eigen map van de app; die van jou verandert niet. (Nummers langer dan de GPU-grens van de trainer, zoals tracks van 15 minuten, worden bij het exporteren veilig ingekort en uitgefadet op een muzikale sectiegrens.)
-3. **Analyseren.** De stem van elk nummer wordt afgescheiden, de toonsoort, het tempo en de secties worden gevonden, en de tekst wordt opgezet, gemarkeerd per sectie. Met een externe LLM ingesteld worden de secties gemarkeerd uit de gehoorde woorden: refreinen omdat hun woorden terugkomen, nieuwe secties aan de pauzes. Alleen de regels en hun tijden worden verstuurd, en de woorden en hun volgorde worden nooit veranderd. Zonder externe LLM, of als zijn antwoord niet alle regels bevat, komen de tags uit de muzikale analyse. **Opnieuw opstellen**, naast Bewaren in de review van een nummer, markeert de secties opnieuw op dezelfde manier zonder het nummer opnieuw te beluisteren, voor een nummer dat eerder is opgezet, en vervangt wat er in het vak staat. Een regel onder de knoppen zegt wat er loopt, en de lopende analyse verschijnt in de takenkaart en de wachtrij op het hoofdscherm. **Stop** stopt hem. Afgeronde stappen blijven bewaard, dus **Analyseren** gaat verder waar hij was.
+- **Het model in volle kwaliteit (BF16)**, het aanbevolen model, heeft minstens ongeveer 12,5 GB GPU-geheugen nodig (bij een knip van 3½ minuut; een langere knip vraagt meer), het meeste terwijl het de nummers voorbereidt. Een kaart van 16 GB is dus het praktische minimum, met 32 GB systeemgeheugen: ComfyUI zet de volledige YuE2-gewichten en de datasetcaches in het hoofdgeheugen (op WSL2 zet je `memory=32GB` in `.wslconfig`).
+- **Het zuinige model (INT8)** laat een kaart van 8 GB trainen.
+- **Een kaart die niet kan trainen,** kan nog steeds elders getrainde LoRA's gebruiken (**Een LoRA installeren**).
+- Het venster Trainen waarschuwt als er minder GPU- of systeemgeheugen vrij is, dus sluit eerst al het andere dat de GPU gebruikt.
 
-   **Opnieuw analyseren.** Als alle nummers geanalyseerd zijn, toont de knop **Geanalyseerd ✓**. Erop klikken vraagt of je de stijlsuggesties van alle nummers opnieuw wilt analyseren met de nieuwste LLM-prompts en -instellingen (handig na het hernoemen van een corpus of het wisselen van provider). Shift+klik op **Geanalyseerd ✓** biedt een volledige nieuwe analyse vanaf nul (scheiding, toonsoort, tempo, transcriptie en stijlen opnieuw). Elk nummer kan ook een nieuwe stijl krijgen met **Opnieuw analyseren** in zijn review.
-4. **Nakijken** Open een nummer om de tekst na te kijken en **gecontroleerd** aan te vinken, en om de klank te beschrijven
-   waar die van de rest verschilt. De stijlbeschrijving toont wat de trainer zal lezen.
-5. **Trainingsset exporteren.** Schrijft de audio, tekst en beschrijving van elk nummer. Een regel onder de
-   knoppen toont hoe ver hij is. De trainer neemt maar een deel van elk nummer, dat de app berekent
-   uit het vrije geheugen van je grafische kaart (zo'n 5½ minuut op een kaart van 16 GB; het venster Logs
-   zegt wat hij koos). Een langer nummer wordt afgeknipt aan het eind van zijn laatste sectie binnen die marge, uitgefadet,
-   en houdt alleen de woorden die nog gezongen worden. Zijn rij zegt “first 3:12 trained”. Als het trainen
-   te weinig geheugen heeft, zet de omgevingsvariabele `TRAIN_MAX_MINUTES` op een lager getal, zoals
-   3.5: zie de README.
-6. **Een LoRA trainen.** Dit duurt lang, en de GPU is niet beschikbaar voor de app tot het
-   klaar is. De voortgang staat onder de knoppen en op het hoofdscherm, waar je het kunt stoppen,
-   en de corpusbadge bovenaan de pagina pulseert tijdens het trainen. Opnieuw trainen houdt
-   de LoRA van de vorige run onder een gedateerde naam, onder **Vorige runs**, of verwijdert hem, zoals
-   je kiest.
-   Trainen met het aanbevolen model van volle kwaliteit (BF16) heeft minstens zo'n 12,5 GB GPU-geheugen nodig
-   (bij een knip van 3½ minuut; een langere knip heeft meer nodig), vooral tijdens het voorbereiden van de nummers, dus een kaart van 16 GB
-   is het praktische minimum, samen met 32 GB systeem-RAM (ComfyUI houdt de volledige gewichten van YuE2
-   en de datasetcaches in het hostgeheugen; onder WSL2, zet `memory=32GB` in `.wslconfig`). Een kaart van 8 GB kan
-   trainen met het model voor weinig geheugen (INT8). Kaarten die niet kunnen trainen kunnen nog steeds LoRA's gebruiken die
-   elders getraind zijn (**Een LoRA installeren**). Het venster Trainen waarschuwt als er minder GPU- of systeemgeheugen vrij is,
-   dus sluit eerst al het andere dat de GPU gebruikt.
+**De stappen:**
+
+1. **Nieuw corpus.** Geef het een naam en een **triggerwoord**, zeg of de stem mannelijk of vrouwelijk is (**geen** voor nummers zonder zang: zie hieronder), beschrijf de klank die alle nummers delen en open de map met de nummers. Bevestig dat je erop mag trainen en druk dan op **De map scannen**. De map wordt alleen gelezen.
+
+   **Een corpus zonder zang.** Kies **geen** bij **Stem** als de nummers instrumentaal zijn, zoals dance en elektronische muziek:
+
+   - De app scheidt geen zang en luistert niet naar woorden, dus niets verzint woorden over synths.
+   - De tekst van elk nummer zijn de deeltags uit zijn partituur (of `[instrumental]` als die er geen heeft), het bijschrift laat het zangdeel weg, en er is geen tekstcontrole: het vak **Delen** kan bewerkt worden, en een bewerking blijft.
+   - De klank van elk nummer wordt beschreven door het lokale model als dat is geïnstalleerd, omdat het externe alleen een titel zou hebben.
+   - Een LoRA die zo is getraind, kan noten in de Vocal-partij van een plan schrijven, waardoor een render gaat zingen of neuriën; de waarschuwing „kan zingen” van een plan laat het zien.
+   - De Stem van een al geanalyseerd corpus veranderen, past de teksten daarop aan.
+2. **De nummers kiezen.** Vink de nummers uit die je wilt weglaten.
+   - Als een nummer wordt voorbereid, bewaart de app een eigen kopie van de volledige opname in de interne corpusopslag, zodat een corpus heel blijft, ook als de bronmap later wordt geleegd of verplaatst.
+   - Een opname van meer dan 25 minuten wordt weggelaten, omdat het waarschijnlijk een heel album of concert in één bestand is. Ligt er een `.cue`-bestand naast, dan knipt **Splitsen in tracks** hem in zijn nummers, die zijn plaats in het corpus innemen. De tracks gaan in de eigen map van de app; die van jou wordt niet veranderd.
+   - Nummers die langer zijn dan de GPU-grens van de trainer, zoals tracks van 15 minuten, worden bij het exporteren veilig geknipt en uitgefaded op een muzikale deelgrens.
+3. **Analyseren.** De zang van elk nummer wordt gescheiden, toonsoort, tempo en delen worden bepaald, en de tekst wordt opgesteld, getagd per deel.
+   - Met een externe LLM ingesteld in Instellingen worden de delen gemarkeerd aan de hand van de gehoorde woorden: refreinen doordat hun woorden terugkomen, nieuwe delen aan de pauzes. Alleen de regels en hun tijden worden verstuurd, en de woorden en hun volgorde worden nooit veranderd. Zonder, of als het antwoord niet elke regel bevat, komen de tags uit de muziekanalyse.
+   - **Opnieuw opstellen**, naast Opslaan in de controle van een nummer, markeert de delen opnieuw op dezelfde manier zonder het nummer opnieuw te beluisteren, voor een eerder opgesteld nummer, en vervangt wat er in het vak staat.
+   - Een regel onder de knoppen zegt wat er loopt, en een lopende analyse staat in de taakkaart en wachtrij van het hoofdscherm. **Stop** beëindigt hem. Afgemaakte stappen blijven bewaard, dus **Analyseren** gaat verder waar het stopte.
+   - **Opnieuw analyseren.** Zijn alle nummers geanalyseerd, dan toont de knop **Geanalyseerd ✓**. Klikken vraagt of je de stijlsuggesties van alle nummers opnieuw wilt analyseren met de nieuwste prompts en LLM-instellingen (handig na het hernoemen van een corpus of het wisselen van aanbieder). Shift-klikken op **Geanalyseerd ✓** biedt een volledige heranalyse vanaf nul (opnieuw stemscheiding, toonsoort, tempo, transcriptie en stijlen). Losse nummers kunnen ook opnieuw gestyled worden met **Opnieuw analyseren** in hun controle.
+4. **Controleren.** Open een nummer om de tekst te controleren en **gecontroleerd** aan te vinken, en om de klank te beschrijven waar die van de rest afwijkt. Het stijlbijschrift laat zien wat de trainer zal lezen.
+5. **Trainingsset exporteren.** Schrijft de audio, tekst en het bijschrift van elk nummer. Een regel onder de knoppen laat zien hoe ver het is.
+   - De trainer neemt maar zoveel van een nummer, wat de app berekent uit het vrije geheugen van je videokaart (ongeveer 5½ minuut op een kaart van 16 GB; het logvenster zegt wat er gekozen is).
+   - Een langer nummer wordt aan het eind van zijn laatste deel daarbinnen geknipt, uitgefaded, en houdt alleen de woorden die nog gezongen worden. Zijn rij zegt „eerste 3:12 getraind”.
+   - Raakt het trainen door zijn geheugen heen, zet dan de omgevingsinstelling `TRAIN_MAX_MINUTES` op een lager getal, zoals 3.5: zie de README.
+6. **Een LoRA trainen.** Dit duurt lang, en de GPU is niet beschikbaar voor de app tot het klaar is.
+   - De voortgang staat onder de knoppen en op het hoofdscherm, waar je het kunt stoppen, en de badge van het corpus bovenaan de pagina pulseert tijdens het trainen.
+   - Opnieuw trainen bewaart de LoRA van de laatste run onder een gedateerde naam, in **Eerdere runs**, of verwijdert hem, zoals je kiest.
 
 ### Een run die vroeg eindigt {#a-run-that-ends-early}
 
-Een run kan eindigen voor zijn laatste stap: **Stop**, een crash, of de GPU die zonder geheugen raakt. De regel
-onder de knoppen zegt dan wanneer en waarom, en na welke stap. Onderweg bewaart de trainer elke 50 stappen een
-checkpoint, en houdt hij een kopie van de beste tot dan toe volgens zijn plannerverlies, dus het meeste
-werk is meestal nog aanwezig. **Afronden met wat er is opgeslagen** doet wat een afgeronde run doet, vanuit
-die bestanden: de beste kopie, of anders het laatste checkpoint, wordt de LoRA met de
-naam van het corpus, met zijn triggerwoord, en de checkpoints klappen eronder in in de lijst met stijl-LoRA's. Het duurt
-seconden en kost geen GPU-tijd. De laatste stappen van een run veranderen de LoRA het minst, dus een die zo
-is afgerond ligt meestal dicht bij een volledige run; **Checkpoints** rendert een nummer één keer bij elke stap als je
-op het gehoor wilt vergelijken. Om de hele run opnieuw te trainen, klik op **Een LoRA trainen**.
+Een run kan eindigen voor zijn laatste stap: **Stop**, een crash, of de GPU die zonder geheugen raakt. De regel onder de knoppen zegt dan wanneer en waarom, en na welke stap. Het meeste werk is meestal nog aanwezig: onderweg slaat de trainer elke 50 stappen een checkpoint op, en houdt een kopie van de beste tot dan toe op basis van zijn planner-loss.
+
+- **Afronden met wat er is opgeslagen** doet uit die bestanden wat een afgemaakte run doet: de beste kopie, of anders het laatste checkpoint, wordt de LoRA onder de naam van het corpus, met zijn triggerwoord, en de checkpoints klappen eronder in de lijst met stijl-LoRA's. Het duurt seconden en kost geen GPU-tijd.
+- De laatste stappen van een run veranderen de LoRA het minst, dus een die zo is afgerond, ligt meestal dicht bij een volledige run; **Checkpoints** rendert een nummer één keer op elke stap als je op het gehoor wilt vergelijken.
+- Om in plaats daarvan de hele run opnieuw te trainen, druk je op **Een LoRA trainen**.
 
 ### Alles uitvoeren {#run-all}
 
-**Alles uitvoeren**, naast de drie, doet Analyseren, Exporteren en Trainen na elkaar, voor een corpus waar je
-liever niet op wacht: een groot corpus analyseren duurt uren. Het vraagt eerst wat er met een
-vorige LoRA moet gebeuren, en gaat dan door met de pagina dicht. Het analyseert alleen wat dat nog nodig heeft, en een
-nummer waarvan de analyse mislukt wordt uit de trainingsset gelaten en onder de knoppen genoemd. Teksten
-die niemand heeft nagekeken worden gebruikt zoals ze zijn opgezet. **Stop** stopt het waar het is, en houdt wat klaar is;
-gestopt tijdens het exporteren maakt het eerst de trainingsset af. Het wacht op alles wat de engine al
-gebruikt voordat het traint. De app herstarten stopt het, en **Alles uitvoeren** opnieuw gaat verder.
+**Alles uitvoeren**, naast de drie, doet Analyseren, Exporteren en Trainen na elkaar, voor een corpus waar je liever niet op wacht: een groot corpus kost uren om te analyseren. Het vraagt eerst wat er met een eerdere LoRA moet gebeuren, en gaat dan door met de pagina gesloten.
+
+- Het analyseert alleen wat dat nog nodig heeft. Een nummer waarvan de analyse mislukt, wordt uit de trainingsset gelaten en onder de knoppen genoemd, en teksten die niemand heeft gecontroleerd, worden gebruikt zoals opgesteld.
+- Het wacht op alles wat de engine al gebruikt, voordat het traint.
+- **Stop** beëindigt het waar het is, en houdt wat klaar is; gestopt tijdens het exporteren, maakt het eerst de trainingsset af.
+- Een herstart van de app beëindigt het, en **Alles uitvoeren** nog eens gaat verder.
 
 ### Als het GPU-geheugen op is {#running-out-of-gpu-memory}
 
@@ -995,17 +996,13 @@ herstart, gaat de taak die liep verloren, en dat wordt ook gezegd.
 
 ### De getrainde LoRA {#the-trained-lora}
 
-Als het trainen klaar is, verschijnt de LoRA in de lijst **Stijl-LoRA** met zijn triggerwoord. Hem kiezen
-toont een chip voor elk nummer waarvan hij leerde, onder het vak Stijl, en op een chip klikken zet de stijl van dat nummer in
-het vak.
-Vanaf een dozijn nummers maken een filtervak en een rij met de tags die in het corpus terugkomen (zijn genres,
-sferen en instrumenten) de keuze kleiner; klik op twee tags om nummers met beide te vinden. De lijst toont zijn
-eerste dozijn tot **Alles tonen**. Zie **Planner en Klank in balans** hieronder voor de beginsterktes. Om hem te delen, klik op **LoRA downloaden** op de corpuspagina, of op **Downloaden** onder
-de kiezer; zie **Een LoRA delen** hieronder.
+Als het trainen klaar is, verschijnt de LoRA in de lijst **Stijl-LoRA** met zijn triggerwoord.
 
-Om een LoRA toe te voegen die iemand deelde, klik op **LoRA importeren** naast **Nieuw corpus** en kies zijn zip. Om een
-LoRA te gebruiken die elders uit de geëxporteerde set is getraind, klik op **Een LoRA installeren** en kies het
-bestand. Hij wordt aan de lijst met stijl-LoRA's toegevoegd met het triggerwoord van dit corpus.
+- **Zijn nummers.** Kies je hem, dan staat er onder het stijlvak een chip voor elk nummer waarvan hij leerde, en een klik op een chip zet de stijl van dat nummer in het vak. Boven een dozijn nummers beperken een filtervak en een rij van de tags die in het corpus terugkomen (zijn genres, sferen en instrumenten) de keuze; klik twee tags aan om nummers met allebei te vinden. De lijst toont zijn eerste dozijn tot **Alles tonen**.
+- **Startsterktes:** zie **Planner en Klank in balans** hieronder.
+- **Hem delen:** druk op **LoRA downloaden** op de pagina van het corpus, of **Downloaden** onder de kiezer; zie **Een LoRA delen** hieronder.
+- **Een LoRA van iemand anders:** druk op **LoRA importeren** naast **Nieuw corpus** en kies zijn zip.
+- **Een LoRA die elders op de geëxporteerde set is getraind:** druk op **Een LoRA installeren** en kies het bestand. Hij wordt aan de lijst met stijl-LoRA's toegevoegd met het triggerwoord van dit corpus.
 
 **Een corpus verwijderen** haalt de kopieën van zijn nummers weg die de app maakte, de afgescheiden stemmen, de teksten en
 de partituren. De map die je opgaf, en elke LoRA die ervan is gemaakt, blijven onaangeroerd.
@@ -1120,24 +1117,19 @@ andere, met zijn triggerwoord ernaast, en dezelfde twee sterktes gelden.
 
 ### De checkpoints uitproberen {#trying-the-checkpoints}
 
-Een trainingsrun bewaart elke 50 stappen een checkpoint, en houdt ze onder zijn LoRA in de kiezer:
-**▸ 9 stappen** naast de naam van de LoRA klapt ze open (Instellingen kan ze in plaats daarvan verwijderen, om
-ruimte te sparen). Een checkpoint waarvan de LoRA is verwijderd blijft onder **Trainingscheckpoints**. Om
-er een paar weg te halen, klik op **Bewerken** bij het corpus: **Trainingscheckpoints** daar toont die van elke run, deze
-en eerdere, met hun grootte. Vink aan wat weg moet en klik op **Verwijderen**. De afgeronde
-LoRA wordt niet getoond; die heeft zijn eigen **LoRA verwijderen**. Elk checkpoint is de LoRA zoals hij was op
-dat punt in de training. Ze klinken ongeveer even goed, maar elk weegt op zijn eigen manier
-wat het leerde, dus elk heeft zijn eigen smaak zonder de stijl en de kenmerkende klank te verliezen waarop de LoRA
-getraind is.
+Een trainingsrun slaat elke 50 stappen een checkpoint op: elk is de LoRA zoals hij op dat punt in de training stond. Ze klinken ongeveer even goed, maar elk weegt anders wat hij leerde, dus elk heeft zijn eigen smaak en houdt toch de stijl en de kenmerkende klank waarop de LoRA is getraind.
 
-Om ze naast elkaar te horen, kies je de LoRA, stel je de editor in zoals voor één take, en klik je op
-**Checkpoints** naast **LoRA verwijderen**. Het is gedimd voor een LoRA zonder checkpoints. Vink de
-stappen aan die je wilt, stel als je wilt een lengtegrens voor deze takes in, en klik op **Renderen**. De eigen
-actie van de editor draait één keer op elk checkpoint, allemaal met één seed, en elke take krijgt de naam van zijn stap:
-*Night drive · step 250*, *Night drive · full*. Ze worden bewaard in de take die in de editor open is,
-of, voor een nieuw nummer, in de laatste ervan (zie **Takes in een take**, onder De bibliotheek). De editor sluit, dus je komt terug in de bibliotheek
-waar de takes worden gemaakt. Een nummer of instrumentaal schrijft zijn plan en gaat meteen door naar
-renderen.
+**Waar ze staan.** Ze staan onder hun LoRA in de kiezer: **▸ 9 stappen** naast de naam van de LoRA opent ze (Instellingen kan ze in plaats daarvan verwijderen, om ruimte te sparen). Een checkpoint waarvan de LoRA is verwijderd, blijft onder **Trainingscheckpoints**.
+
+**Er een paar opruimen.** Druk op **Bewerken** bij het corpus: **Trainingscheckpoints** daar toont die van elke run, van deze en van eerdere, met hun grootte. Vink aan wat weg mag en druk op **Verwijderen**. De afgemaakte LoRA staat er niet bij; die heeft een eigen **LoRA verwijderen**.
+
+**Ze naast elkaar horen:**
+
+1. Kies de LoRA en zet de editor klaar zoals voor één take.
+2. Druk op **Checkpoints**, naast **LoRA verwijderen** (grijs bij een LoRA zonder checkpoints).
+3. Vink de stappen aan die je wilt, stel als je wilt een lengtegrens voor deze takes in, en druk op **Renderen**.
+
+De eigen actie van de editor draait één keer op elk checkpoint, allemaal met één seed, en elke take heet naar zijn stap: *Night drive · step 250*, *Night drive · full*. Ze worden bewaard in de take die open staat in de editor of, bij een nieuw nummer, in de laatste ervan (zie **Takes in een take**, onder De bibliotheek). De editor sluit, dus je bent terug in de bibliotheek waar de takes gemaakt worden. Een nummer of een instrumentaal nummer schrijft zijn plan en gaat meteen door naar renderen.
 
 Bij een nummer of instrumentaal schrijft de LoRA ook de melodie, naast het vormen van de klank, dus dezelfde
 seed geeft niet hetzelfde nummer: elk checkpoint schrijft zijn eigen melodie en structuur. De seed
@@ -1207,15 +1199,12 @@ Woorden die je had getypt maar niet gebruikte worden niet weggegooid: een balk b
 
 ### Ruimtes {#spaces}
 
-Takes wonen in **ruimtes**: een ruimte per nummer, per album, of voor schetsen. De naam van de ruimte boven de takes
-is degene die getoond wordt, en alles wat je doet komt daar terecht. Klik erop voor de lijst met ruimtes: typ om er een op
-naam te vinden, of kies hem met de pijltjes en Enter. De vijf die je het laatst gebruikte komen eerst, daarna alle ruimtes, elk met
-hoeveel takes erin zitten. **Nieuwe ruimte**, **Deze ruimte hernoemen**, **Take importeren…** en **Deze ruimte verwijderen** staan
-onderaan de lijst. Een ruimte verwijderen verwijdert nooit takes —
-ze gaan naar Default. Opnames worden door alle ruimtes gedeeld, dus één opname kan in
-meerdere worden gecoverd.
+Takes wonen in **ruimtes**: een ruimte per nummer, per album, of voor schetsen. De naam van de ruimte boven de takes is de getoonde, en alles wat je maakt, komt daar terecht.
 
-De mapknop op een kaart verplaatst die take naar een andere ruimte, met de takes die erin zitten.
+- **Er een kiezen:** klik op de naam voor de lijst van ruimtes. Typ om er een op naam te vinden, of kies hem met de pijltjestoetsen en Enter. De vijf die je het laatst gebruikte, komen eerst, dan elke ruimte, elk met hoeveel takes erin zitten.
+- **Nieuwe ruimte**, **Deze ruimte hernoemen**, **Take importeren** en **Deze ruimte verwijderen** staan onderaan de lijst. Een ruimte verwijderen verwijdert nooit takes — die gaan naar Default.
+- **Een take verplaatsen:** de mapknop op een kaart verplaatst die take naar een andere ruimte, met alle takes erin.
+- Opnames worden door alle ruimtes gedeeld, dus één opname kan in meerdere ruimtes gecoverd worden.
 
 ### Takes in een take {#takes-inside-a-take}
 
@@ -1252,55 +1241,44 @@ Takes die gemaakt zijn voordat dit bestond blijven waar ze zijn, naast elkaar in
 
 ### Kaarten {#cards}
 
-Elke kaart noemt de instellingen die hem vormden — Harmonie, Interpretatie, Variatie van het plan, de LoRA en
-zijn sterktes, de seed, de engine die hem renderde en hoe oud hij is — zodat een kaart leest als het recept waarmee hij werd gemaakt.
+Elke kaart noemt de instellingen die de take vormden — Harmonie, Interpretatie, de opgenomen stem, Planvariatie, de LoRA en zijn sterktes, de seed, de engine die hem renderde en zijn leeftijd —, zodat een kaart leest als het recept dat hem maakte. Een titel blijft altijd op één regel en eindigt met … als hij lang is; beweeg over de titel, instellingen of stijl van een kaart om alles te lezen.
 
-**Opslaan** vraagt in welk formaat je de take wilt downloaden, FLAC, WAV of MP3. Het begint bij wat je de vorige
-keer bewaarde, en de eerste keer met niets gekozen. Een take met een afbeelding kan ook als **Video** worden bewaard: een MP4 van
-het nummer met de afbeelding van zijn kaart (H.264-video, AAC-audio op 192 kbps). Berichtenapps zoals
-WhatsApp versturen en spelen dat af als video, waar een audiobestand als document gaat. Met het masteringrack aan heeft de
-video de gemasterde klank, zoals de andere formaten. **Take**, ernaast, bewaart ook het recept van de take: een klein bestand
-(`<title>.yeufonic.json`) met zijn tekst, stijl en partituur, zijn seeds en instellingen, zijn LoRA's op naam en
-de instellingen van het masteringrack, maar niet zijn audio. Met ook een formaat gekozen gaan beide in een zip; klik nog eens op het
-gekozen formaat om alleen het recept te bewaren. Het bestand bevat niets van je installatie (geen paden, id's of sleutels),
-dus het kan bewaard worden, of gedeeld met een andere Yeufonic-gebruiker.
+**Opslaan** vraagt in welk formaat de take gedownload moet worden. Het begint met wat je de vorige keer opsloeg, en zonder keuze de eerste keer.
 
-**Take importeren…**, in de lijst met ruimtes, maakt van zo'n bestand een nieuwe take in de getoonde ruimte; het bestand
-op de bibliotheek slepen doet hetzelfde. De take bevat het plan, klaar om te renderen, zodat je het eerst kunt nakijken of veranderen.
-Beide engines kunnen hem renderen: dezelfde partituur en seed op dezelfde engine geven een heel vergelijkbare take, op de andere
-engine een andere. Een LoRA die hij noemt en die hier niet geïnstalleerd is wordt bij het importeren gemeld, zodat je
-hem kunt installeren of een andere kunt kiezen voor het renderen. De opname van een cover zit niet in het bestand, dus een gedeelde cover komt binnen
-als een nummer met de partituur en tekst van de cover, zonder de instellingen die bij zijn opname hoorden (het
-vastgezette tempo, Harmonie, stemaanwijzingen en de lengtegrens): een nieuw plan ervan begint als een nummer vanuit een prompt.
+- **FLAC, WAV of MP3:** de audio.
+- **Video**, voor een take met een afbeelding: een MP4 van het nummer met de afbeelding die zijn kaart toont (H.264-video, AAC-audio op 192 kbps). Berichtenapps zoals WhatsApp sturen en spelen het als video, waar een audiobestand als document gaat.
+- **Take**, ernaast: het recept van de take, een klein bestand (`<title>.yeufonic.json`) met zijn tekst, stijl en partituur, zijn seeds en instellingen, zijn LoRA's op naam en de instellingen van het masteringrack, maar niet zijn audio. Met ook een formaat gekozen komen beide in één zip; druk nog eens op het gekozen formaat om alleen het recept op te slaan. Het bestand bevat niets van je installatie (geen paden, id's of sleutels), dus het kan bewaard of gedeeld worden met een andere Yeufonic-gebruiker.
+- Met het masteringrack aan heeft elk formaat de gemasterde klank.
 
-**Takes zoeken** vindt de takes waarin alle woorden die je typt ergens voorkomen in de titel, stijl, tekst of
-LoRA-naam, ongeacht hoofdletters. Het zoekt in de getoonde ruimte; **Alle ruimtes**, ernaast zodra je typt,
-zoekt in elke ruimte, en een kaart uit een andere ruimte zegt uit welke. × of Escape wist het. Het
-vak is leeg elke keer dat de pagina opent, en biedt je laatste zoekopdrachten die iets vonden:
-klik op een, of kies hem met de pijltjes en Enter.
+**Take importeren**, in de lijst van ruimtes, maakt van zo'n bestand een nieuwe take in de getoonde ruimte; het bestand op de bibliotheek slepen doet hetzelfde. De take bevat het plan, klaar om te renderen, dus hij kan eerst gecontroleerd of veranderd worden.
 
-**Nummer**, **Cover** en **Instrumentaal** tonen takes van die soorten: zet er een of meer aan, of geen voor alle soorten.
-**Met ster** toont alleen takes met een ster; klik nog eens om alles te tonen. De pictogrammen ernaast bepalen hoe
-de takes worden opgemaakt, de gebruikte groen verlicht: bredere **ruime** kaarten met meer van de prompt of smallere **compacte**,
-de **volle breedte** van het venster of een gecentreerde kolom, en elke take **ingeklapt** tot zijn titelregel. Beweeg de muis over
-een pictogram om te lezen wat een klik doet.
+- Beide engines kunnen hem renderen: dezelfde partituur en seed op dezelfde engine geven een zeer vergelijkbare take, op de andere engine een andere.
+- Een LoRA die hij noemt en die hier niet geïnstalleerd is, wordt bij het importeren genoemd, zodat je hem kunt installeren of een andere kiezen voor het renderen.
+- De opname van een cover zit niet in het bestand, dus een gedeelde cover komt binnen als nummer met de partituur en tekst van de cover, zonder de instellingen die bij zijn opname hoorden (de tempovergrendeling, Harmonie, stemaanwijzingen en de lengtegrens): een nieuw plan ervan begint zoals een nummer uit een prompt.
 
-Vink takes aan en de rij biedt wat je ermee kunt doen, in plaats van de soorten en de opmaak: hoeveel er
-gekozen zijn, **Vergelijken**, **Verwijderen** en **Klaar**, dat ze weer uitvinkt. **Alles selecteren**, aan het eind van de rij, vinkt
-elke getoonde take aan. Een titel blijft altijd op één regel, eindigend op … als hij lang is. Beweeg de muis over de titel, instellingen of stijl van een kaart om hem helemaal te lezen.
+**Takes zoeken** vindt de takes met elk woord dat je typt ergens in de titel, stijl, tekst of LoRA-naam, hoofdletterongevoelig. Het zoekt in de getoonde ruimte; **Alle ruimtes**, ernaast zodra je typt, zoekt in elke ruimte, en een kaart uit een andere ruimte zegt uit welke. × of Escape maakt het leeg. Het vak begint elke keer dat de pagina opent leeg, en biedt je laatste zoekopdrachten aan die iets vonden: klik er een aan, of kies hem met de pijltjestoetsen en Enter.
+
+**Kiezen wat je ziet, en hoe:**
+
+| Knop | Wat hij doet |
+|---|---|
+| **Nummer**, **Cover**, **Instrumentaal** | Tonen takes van die soorten: zet er een of meer aan, of geen voor alle soorten. |
+| **Met ster** | Toont alleen takes met een ster; klik nog eens om ze allemaal te tonen. |
+| De indelingspictogrammen | Bredere **ruime** kaarten met meer van de prompt, of smallere **compacte**; de **volle breedte** van het venster of een gecentreerde kolom; elke take **ingeklapt** tot zijn kopregel. De gebruikte lichten groen op; beweeg over een pictogram om te lezen wat een klik doet. |
+
+Zolang de takes ingeklapt zijn, opent de knop rechtsboven op een kaart alleen die kaart, en een klik ergens buiten de kaart klapt hem weer in. Een ingeklapte kaart met stems toont een **Stems**-label, dat hem op dezelfde manier opent.
+
+**Takes selecteren.** Vink takes aan en de rij biedt wat je ermee kunt doen, in plaats van de soorten en de indeling: hoeveel er gekozen zijn, **Vergelijken**, **Verwijderen** en **Klaar**, dat ze uitvinkt. **Alles selecteren**, aan het eind van de rij, vinkt elke getoonde take aan.
 
 ### Een afbeelding voor elke take {#a-picture-for-each-take}
 
-Elke nieuwe take krijgt een afbeelding van het nummer, vaag te zien achter zijn kaart, bovenaan het takepaneel als je hem kiest, en achter de editor als de take daar
-open is. Getekend op deze pc wacht hij tot er geen nummer wordt gemaakt, dus hij houdt nooit een plan of render op, en
-verschijnt kort nadat het nummer klaar is; getekend door een externe LLM wordt hij gemaakt terwijl de take rendert.
-Hij wordt in twee stappen gemaakt: de titel, stijl en eerste woorden van de take worden een **beschrijving** van
-een afbeelding, dan **tekent** een afbeeldingsmodel die op wit, en het wit wordt weggehaald, waardoor de afbeelding
-op een transparante achtergrond overblijft. Een take die in een andere is gemaakt (Meer proberen, Variaties, Checkpoints) toont de
-afbeelding van de take waarin hij zit in plaats van een eigen.
+Elke nieuwe take krijgt een afbeelding van het nummer.
 
-Een afbeeldingsmodel tekent geen echte band of persoon, dus de beschrijving laat namen weg; en de eigen
-letters van de afbeelding worden zacht gehouden, zodat ze niet concurreren met die van de kaart.
+- **Waar hij te zien is:** vaag achter de kaart van de take, bovenaan het takepaneel als je hem kiest, en achter de editor als de take daar open staat.
+- **Wanneer hij gemaakt wordt:** getekend op deze pc wacht hij tot er geen nummer gemaakt wordt, dus hij houdt nooit een plan of render op, en verschijnt kort nadat het nummer klaar is. Getekend door een externe LLM wordt hij gemaakt terwijl de take rendert.
+- **Hoe hij gemaakt wordt,** in twee stappen: de titel, stijl en eerste woorden van de take worden een **beschrijving** van een afbeelding, dan **tekent** een beeldmodel hem op wit, en het wit wordt eruit gehaald, zodat de afbeelding een transparante achtergrond heeft.
+- **Een take die in een andere is gemaakt** (Meer proberen, Variaties, Checkpoints) toont de afbeelding van de take waarin hij zit, in plaats van een eigen.
+- Een beeldmodel tekent geen echte band of persoon, dus de beschrijving laat namen weg; en de eigen belettering van de afbeelding blijft zacht, zodat die niet botst met die van de kaart.
 
 #### Twee manieren van tekenen: FLUX.2 klein op deze pc, of een externe LLM {#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm}
 
@@ -1446,24 +1424,24 @@ snelste afbeeldingen, of op *Externe LLM* (één verzoek per afbeelding).
 
 #### De afbeelding van een take in de editor {#a-take-s-picture-in-the-editor}
 
-Het pictogram **Afbeelding** in de bovenste rij van het editorvenster, naast de andere knoppen van de take, toont de afbeelding
-met twee keuzes: **Een nieuwe afbeelding maken**, die hem op de achtergrond opnieuw maakt, en **De standaardachtergrond gebruiken**, die hem voorgoed weghaalt: er wordt geen afbeelding meer gemaakt voor die take tenzij je erom vraagt.
-Klik op de afbeelding om hem helemaal te zien, zo groot als het venster toelaat; een klik ergens of Escape
-haalt hem weg en laat de editor zoals hij was. De volledige afbeelding heeft dezelfde twee keuzes eronder. Kies
-daar **Een nieuwe afbeelding maken** en de afbeelding blijft in beeld terwijl de nieuwe wordt gemaakt, met wat er gebeurt getoond
-tussen de knoppen, en wisselt naar de nieuwe als die klaar is.
+Het pictogram **Afbeelding** in de bovenste rij van het editorvenster, naast de andere knoppen van de take, toont de afbeelding met twee keuzes:
 
-Op de kaart van een take toont het vierkantje linksboven de afbeelding als je de muis erover beweegt. Een take zonder
-afbeelding biedt daar in plaats daarvan **Een nieuwe afbeelding maken**, waar deze pc afbeeldingen kan maken.
+- **Een nieuwe afbeelding maken** maakt hem opnieuw op de achtergrond.
+- **De standaardachtergrond gebruiken** haalt hem voorgoed weg: voor die take wordt geen afbeelding meer gemaakt, tenzij je erom vraagt.
+
+Klik daar op de afbeelding om hem helemaal te zien, zo groot als het venster toestaat; een klik ergens of Escape legt hem weg en laat de editor zoals hij was. De hele afbeelding heeft dezelfde twee keuzes eronder: kies daar **Een nieuwe afbeelding maken** en de afbeelding blijft staan terwijl de nieuwe gemaakt wordt, met wat er gebeurt tussen de knoppen, en wisselt dan naar de nieuwe als die klaar is.
+
+Op de kaart van een take toont het vierkantje linksboven de afbeelding als je erop wijst. Een take zonder afbeelding biedt daar in plaats daarvan **Een nieuwe afbeelding maken** aan, waar deze pc afbeeldingen kan maken.
 
 ### Takes vergelijken {#comparing-takes}
 
-Vink twee tot zes takes aan en klik op **Vergelijken** (het verschijnt naast Alles selecteren als er twee zijn aangevinkt, en
-wacht op takes die nog renderen). De takes worden in een venster gestapeld op een gedeelde positie: druk op **1** tot
-**6** of klik op een om te wisselen, en speel verder vanaf hetzelfde moment in het nummer, spelend of
-gepauzeerd. **Spatie** speelt en pauzeert, de pijltjes springen 5 seconden, en de ster markeert de take die
-je verkiest. **Luidheid gelijktrekken** brengt luidere takes omlaag naar de zachtste, omdat een luidere take vaak
-beter klinkt; **Namen verbergen** schudt de takes en noemt ze Take A, B, C voor een blinde luistertest.
+Vink twee tot zes takes aan en druk op **Vergelijken** (dat verschijnt naast Alles selecteren zodra er twee aangevinkt zijn, en wacht op takes die nog renderen). De takes stapelen in één venster op een gedeelde positie:
+
+- Druk op **1** tot **6**, of klik er een aan, om te wisselen: hij gaat verder vanaf hetzelfde moment in het nummer, spelend of gepauzeerd.
+- De **spatiebalk** speelt en pauzeert, en de pijlen verspringen 5 seconden.
+- De ster markeert de take die je het liefst hebt.
+- **Luidheid gelijktrekken** zet de luidere takes zachter, tot het niveau van de zachtste, omdat een luidere take vaak beter lijkt te klinken.
+- **Namen verbergen** schudt de takes en noemt ze Take A, B, C voor een blinde luistertest.
 
 ### De speler {#the-player}
 
@@ -1623,11 +1601,17 @@ het menu: welke versie je hebt, en of het de nieuwste is.
 
 Als er een nieuwere is, biedt het menu **x.y.z ophalen**, dat het installatieprogramma downloadt op een Windows-installatie of de twee opdrachten op het klembord zet voor een Docker-kopie.
 
-**Thema** bepaalt hoe de app eruitziet: **Donker**, **Licht**, **Zoals de computer (donker of licht)**, dat het licht of donker van je
-systeem volgt en ermee meewisselt, **Studio**, een warm donker met amber, of **Hoog contrast**, zwart en wit
-met duidelijke randen. Het verandert meteen, en elke browser onthoudt het
-zodat de pagina zo opent. Het logvenster blijft in elk thema donker, zoals een terminal. Het masteringrack volgt ook het thema: in het lichte thema zijn zijn panelen geborsteld zilver, terwijl zijn knoppen,
-meterschermpjes en displays de donkere hardwarelook houden.
+**Thema** bepaalt hoe de app eruitziet. Het verandert meteen, en elke browser onthoudt het, zodat de pagina erin opent.
+
+| Thema | Uiterlijk |
+|---|---|
+| **Donker** | Het eigen donkere uiterlijk van de app. |
+| **Licht** | Lichte panelen; de panelen van het masteringrack zijn geborsteld zilver, terwijl de knoppen, meterruitjes en displays de donkere look van de hardware houden. |
+| **Zoals de computer** | Volgt licht of donker van je systeem, en wisselt mee. |
+| **Studio** | Een warm donker met amber. |
+| **Hoog contrast** | Zwart en wit, met sterke omtrekken. |
+
+Het logvenster blijft in elk thema donker, zoals een terminal, en het masteringrack volgt ook het thema.
 
 **Achtergrondkleur**, onder Thema, kleurt de pagina achter de takes met een kleur die je kiest: vink **Tint** aan, en
 beweeg dan **Kleurtoon** rond het kleurenwiel en **Sterkte** van een lichte waas naar een volle kleur. De pagina verandert terwijl

@@ -56,40 +56,65 @@ se ilumina mientras la toma contiene otras, y cierra la ventana para mostrarlas 
 
 ### Una voz grabada {#a-recorded-voice}
 
-Una toma puede cantarse con una voz entrenada con grabaciones de alguien cantando: tú, o el cantante de un corpus.
-Crea y gestiona las voces en la página **Voces**, desde el menú, y elige una en el campo *Voz grabada* del editor al crear una
-toma. Una toma que usa una voz se renderiza como siempre; luego su voz se separa, se canta de nuevo con la voz elegida y se mezcla
-otra vez sobre el resto, antes de medir su nivel. Hace falta el servicio de voces opcional («Recorded voices» en el README); sin él,
-el campo está oculto.
+Una toma puede cantarse con una voz entrenada a partir de grabaciones de alguien cantando: la tuya o la de quien canta en un corpus. La toma se renderiza como siempre; después su voz se separa, se vuelve a cantar con la voz y se mezcla de nuevo sobre el resto. Las voces se crean y gestionan en la página **Voces**, desde el menú. Necesita el servicio de voz opcional (en el README, «Recorded voices»); sin él, los campos de voz están ocultos.
 
-**Nueva voz** crea una voz con tus propias grabaciones o una entrenada con las canciones de un corpus. Una voz de grabaciones
-empieza vacía, y su página las reúne: **Grabar…** abre la grabadora, y cada toma que conservas va a la voz tal como se cantó, nunca
-con autotune; **Subir…** admite archivos de audio; **De la biblioteca…** añade grabaciones que ya tienes, como una voz que grabaste
-para una versión, con un reproductor en cada una para escucharla antes. Una grabación de la biblioteca se enlaza, no se copia. La
-página cuenta el canto frente a los minutos con los que se entrena una voz: unos diez minutos por toda tu tesitura bastan, y una
-grabación corta ya da una voz reconocible. Cada grabación indica si es solo una voz (**solo voz**, marcado en lo que grabaste aquí)
-o una canción, que se separa antes. Después pulsa **Entrenar**.
+#### Crear una voz {#making-a-voice}
 
-El entrenamiento espera su turno en la GPU y muestra su progreso en la píldora de trabajos y en el registro. **Entrenar de nuevo**
-vuelve a entrenar con las grabaciones tal como están ahora, o con las canciones del corpus. Una grabación eliminada después de la
-biblioteca se deja fuera. La página guarda **De qué aprendió**, la voz separada de cada canción y los fragmentos entrenados, para
-escucharlos.
+**Nueva voz** crea una voz a partir de tus propias grabaciones, o una entrenada con las canciones de un corpus. Una voz de grabaciones empieza vacía, y su página las reúne:
 
-**Octava** sube o baja la voz una octava entera, para un cantante cuya tesitura está lejos de la de la toma. **Nivel de la voz** y
-**Nivel de los instrumentos** fijan el equilibrio de la nueva mezcla, y **Parecido** cuánto se ciñe la voz al timbre propio del
-cantante: más alto se parece más a él, y puede sonar más procesado. Al 100 % la voz puede perder la letra: solo conserva los sonidos que aprendió, así que las palabras que nunca se oyó cantar al cantante pueden salir confusas, y el editor lo avisa. **Sala** pone una sala breve bajo la voz convertida (*Seca*,
-*Sutil* o *Más*) para que se integre en la mezcla, y **Brillo** en *Auto* eleva sus agudos a los de la voz renderizada;
-*Desactivado* los deja como salen de la conversión. **Respiraciones y consonantes** fija cuánto conservan estas los sonidos de la
-voz renderizada: *Conservadas* quedan claras pero llevan un rastro de ella, *Convertidas* pueden romperse. **Dinámica** fija de
-quién sigue la voz el volumen de frase en frase: de la toma, tal como se renderizó, o de los propios crescendos de la voz. **Formante** cambia el tamaño de la voz sin cambiar la altura: *Más grave* suena más grande, *Más brillante* más pequeña. **Mezcla** fija cuánto de la voz canta la voz grabada; el resto es la voz renderizada de la que salió. Son los valores por defecto de la voz. En el editor, elige la voz en **Voz grabada**; **Configuración**, a su lado, abre estos ajustes para cambiarlos en una toma, e indica cuando la toma tiene los suyos. **Escuchar** reproduce allí la voz cantando un bucle corto, de un hombre o de una mujer, con los ajustes tal como están, una y otra vez mientras los cambias, y **Guardar como voz nueva…** guarda lo que oyes como una voz propia, con el mismo modelo. También puedes usar bucles propios: pon una grabación corta de una sola voz cantando sola y seca, de 15 a 30 segundos, en la carpeta *voice-loops* de la biblioteca (`data/voice-loops` con Docker; en Windows, dentro de la carpeta `data` de la instalación, salvo que `data_dir` en `settings.ini` indique otra carpeta de biblioteca), y aparecerá con su nombre de archivo la próxima vez que abras **Configuración**. Se leen archivos FLAC, WAV, MP3, M4A, OGG y Opus. Configuración → *Entrenamiento de voces* fija de cuánto
-canto aprende una voz y con cuántas pasadas.
+- **Grabar…** abre la grabadora. Cada toma que conservas va a la voz tal como se cantó, nunca afinada automáticamente.
+- **Subir…** acepta archivos de audio.
+- **De la biblioteca…** añade grabaciones que ya tienes, como una voz que grabaste para una versión. Cada una tiene un reproductor para escucharla antes, y se enlaza, no se copia.
 
-El resultado es una voz convertida sobre un acompañamiento separado, así que es menos uniforme que una voz que cantó el propio
-modelo. Las grabaciones limpias y secas dan la voz más limpia. **Descargar voz** guarda una voz entrenada como zip para dársela a
-alguien, e **Importar una voz…** añade una: ese zip, o un modelo RVC de otra parte (su zip, o su .pth y .index elegidos juntos). Una voz importada sin su índice puede recibirlo después con **Añadir su índice…**: Parecido se basa en él. Hay voces listas para usar, modelos RVC entrenados por otras personas, en sitios como [voice-models.com](https://voice-models.com/): **Importar una voz…** acepta el zip tal como se descarga. La receta de
-una toma nombra su voz y los ajustes de la toma para ella, e importarla recoge la voz con ese nombre en esta instalación, si la hay.
+Cada grabación indica si es una voz sola (**solo voz**, marcado en lo que grabaste aquí) o una canción, que se separa primero. La página cuenta el canto: unos diez minutos a lo largo de tu registro son de sobra, y una grabación corta ya da una voz reconocible. Después pulsa **Entrenar**.
 
-Una voz aprende la reverberación y la producción de la grabación junto con el cantante, así que un canto limpio con una voz principal clara da una voz más limpia que un corpus de canciones mezcladas. Una sola canción o una grabación corta da una voz reconocible, pero que puede desdibujar palabras que nunca oyó cantar. Una voz entrenada con mucho más canto y muchas más pasadas, como suelen estarlo las voces listas para usar, conserva las palabras incluso con un Parecido alto.
+El entrenamiento espera su turno en la GPU y muestra su progreso en el indicador de trabajos y en el registro. **Entrenar de nuevo** vuelve a entrenar con las grabaciones tal como están ahora, o con las canciones del corpus. **De qué aprendió** guarda la voz separada de cada canción y los fragmentos entrenados, para escucharlos. Configuración → *Entrenamiento de voces* fija de cuánto canto aprende una voz y con cuántas pasadas.
+
+#### Ajustes de una voz {#settings-for-a-voice}
+
+Son los valores por defecto de la voz, fijados en su página. Una toma puede tener los suyos (abajo).
+
+| Ajuste | Qué hace |
+|---|---|
+| **Octava** | Sube o baja la voz una octava entera, para quien canta en un registro muy lejano al de la toma. |
+| **Nivel de la voz**, **Nivel de los instrumentos** | El equilibrio de la remezcla. |
+| **Parecido** | Cuánto se ciñe la voz a los sonidos propios de quien canta. Más alto suena más parecido y puede sonar más procesado. Al 100 % la voz puede perder la letra: las palabras que nunca le oyó cantar pueden salir confusas, y el editor lo avisa. |
+| **Formante** | El tamaño de la voz, sin cambiar la altura: *Más grave* suena más grande, *Más brillante* más pequeña. |
+| **Mezcla** | Cuánto de la voz canta la voz grabada; el resto es la voz renderizada de la que salió. |
+| **Sala** | Una sala corta bajo la voz convertida (*Seca*, *Sutil* o *Más*), para que se asiente en la mezcla. |
+| **Brillo** | *Auto* sube su parte alta para igualar la de la voz renderizada; *Desactivado* la deja como salió de la conversión. |
+| **Respiraciones y consonantes** | Cuánto conservan los sonidos de la voz renderizada: *Conservadas* quedan nítidas pero llevan un rastro de ella, *Convertidas* pueden romperse. |
+| **Dinámica** | A quién sigue el volumen de la voz de frase en frase: a la toma, tal como se renderizó, o a los propios crescendos de la voz. |
+
+#### Usar una voz en una toma {#using-a-voice-in-a-take}
+
+En el editor, elige la voz en **Voz grabada**. **Configuración**, a su lado, abre los ajustes de arriba solo para esta toma; la toma los conserva, y el botón indica *ajustes propios* cuando difieren de los de la voz.
+
+#### Escuchar una voz antes de usarla {#hearing-a-voice-before-you-use-it}
+
+**Escuchar**, en esos ajustes, reproduce la voz cantando un bucle corto, *Un hombre cantando* o *Una mujer cantando*, una y otra vez mientras cambias los ajustes, así oyes cada cambio al hacerlo. **Guardar como voz nueva…** guarda lo que oyes como una voz propia, con el mismo modelo.
+
+**Tus propios bucles.** Los dos bucles vienen con la app; puedes añadir los tuyos:
+
+1. Busca o graba de 15 a 30 segundos de una sola voz cantando sola: seca, sin acompañamiento, reverberación ni armonías.
+2. Guárdalo como FLAC, WAV, MP3, M4A, OGG u Opus, con el nombre que quieres que aparezca.
+3. Ponlo en la carpeta *voice-loops* de la biblioteca: `data/voice-loops` con Docker; en Windows, dentro de la carpeta `data` de la instalación, salvo que `data_dir` en `settings.ini` indique otra carpeta de biblioteca.
+4. Abre de nuevo **Configuración**: aparece con su nombre de archivo.
+
+#### Compartir e importar voces {#sharing-and-importing-voices}
+
+- **Descargar voz** guarda una voz entrenada como zip para dársela a alguien.
+- **Importar una voz…** añade una: ese zip, o un modelo RVC de otra parte (su zip, o su .pth y .index elegidos juntos). Una voz importada sin su índice puede recibirlo después con **Añadir su índice…**: Parecido se basa en él.
+- **Voces listas para usar**, modelos RVC entrenados por otras personas, en sitios como [voice-models.com](https://voice-models.com/): **Importar una voz…** acepta el zip tal como se descarga.
+- La receta de una toma nombra su voz y los ajustes de la toma para ella, e importarla recupera la voz con ese nombre en esta instalación, si existe.
+
+#### Conseguir una voz limpia {#getting-a-clean-voice}
+
+El resultado es una voz convertida sobre un acompañamiento separado, así que encaja con menos naturalidad que una voz que el modelo cantó por sí mismo.
+
+- Una voz aprende la reverberación y la producción de la grabación junto con quien canta, así que un canto limpio y seco con una voz principal clara da una voz más limpia que un corpus de canciones mezcladas.
+- Una sola canción o una grabación corta da una voz reconocible, pero que puede desdibujar palabras que nunca oyó cantar.
+- Una voz entrenada con mucho más canto y muchas más pasadas, como suelen estarlo las voces listas para usar, conserva las palabras incluso con un Parecido alto.
 
 ### Ajustes avanzados {#advanced-settings}
 
@@ -148,26 +173,25 @@ como aireada o rasgada. Son un atajo para escribir, y puedes editar el resultado
 
 ### Redactar la letra {#drafting-the-lyrics}
 
-**La estructura.** Encima del cuadro de la letra, mientras no tenga palabras, una canción tiene una **estructura** que construir, como
-un instrumental: una lista de secciones que puedes reordenar, quitar y ampliar (intro, estrofa, preestribillo, estribillo, puente,
-interludio, outro). **Empezar con…** la llena con una forma habitual, y la descripción emergente de cada forma dice para qué sirve. Un
-**interludio** es un pasaje instrumental: el autor pone su etiqueta en una línea propia, y el planificador lo toca con
-la voz instrumental. **Poner secciones en el cuadro de la letra** inserta las etiquetas como secciones vacías bajo las que escribir a mano.
-En cuanto el cuadro tiene palabras, se canta la letra y la estructura se aparta.
+**La estructura.** Sobre el cuadro de la letra, mientras no tiene palabras, una canción tiene una **estructura** que construir, como una instrumental: una lista de secciones que puedes reordenar, quitar y ampliar (intro, estrofa, preestribillo, estribillo, puente, interludio, outro).
+
+- **Empezar con…** la llena con una forma habitual, y la descripción de cada forma dice para qué sirve.
+- Un **interludio** es un pasaje instrumental: el redactor pone su etiqueta en una línea propia, y el planificador lo toca con la voz instrumental.
+- **Poner secciones en el cuadro de la letra** coloca las etiquetas como secciones vacías para escribir debajo a mano.
+- En cuanto el cuadro tiene palabras, la letra es lo que se canta y la estructura se aparta.
 
 **Escribir letra**, junto al cuadro de la letra, pregunta de qué trata la canción y escribe palabras para las secciones que construiste.
-**Versos por estrofa o estribillo** fija lo larga que es cada una: más líneas en una sección dan una canción más larga, porque el
-planificador escribe más o menos tanta música como palabras hay. El estilo de arriba marca el ambiente. Gemma escribe el borrador en el mismo
-motor, y llega al cuadro con un título si no habías dado uno; un [LLM externo](#external-llm) puede escribirla en su lugar, configurado en Configuración. La ventana se cierra en cuanto empieza el borrador, y el progreso aparece junto al cuadro de la letra.
-Los botones del editor de letra también añaden cualquiera de estas secciones, además de indicaciones de voz (+ Hombre, + Mujer, + Ambas).
 
-**Cómo suenan los versos** fija el ritmo y la rima que busca el autor. *Natural* (por defecto) mezcla líneas cortas y largas
-con algunas rimas. *Rima regular* es la forma tradicional de líneas iguales que riman de dos en dos, que es lo que
-producía el autor antes de que existiera esta opción. *Ritmo hablado* es conversacional, como el habla o el rap; *Rima
-suelta* solo hace rimar algunas líneas; *Corto y contundente* y *Largo y fluido* fijan la longitud de las líneas.
+- **Versos por estrofa o estribillo** fija cuánto dura cada una: más versos en una sección dan una canción más larga, porque el planificador escribe más o menos tanta música como palabras hay.
+- El estilo de arriba marca el ambiente.
+- Gemma escribe el borrador en el mismo motor, y llega al cuadro con un título si no habías puesto uno; un [LLM externo](#external-llm) puede escribirlo en su lugar, configurado en Configuración.
+- La ventana se cierra en cuanto empieza el borrador, y el progreso aparece junto al cuadro de la letra.
 
-Es un primer borrador. Las líneas tienen ritmo y riman, pero un modelo recurre a imágenes conocidas, y nada
-comprueba si una línea ya es de otra persona. Léelo y hazlo tuyo antes de planificar.
+Los botones del editor de letras también añaden cualquiera de estas secciones, además de indicaciones de voz (+ Hombre, + Mujer, + Ambas).
+
+**Cómo suenan los versos** fija el ritmo y la rima que busca el redactor, de *Natural* (por defecto) a *Corto y contundente* o *Largo y fluido*: [La letra](#the-words) enumera cada opción.
+
+Es un primer borrador. Los versos tienen métrica y rima, pero un modelo recurre a imágenes conocidas, y nada comprueba si un verso ya es de otra persona. Léelo y hazlo tuyo antes de planificar.
 
 ---
 
@@ -274,24 +298,19 @@ I wait beside the ticket line
 Carry me over, carry me home
 ```
 
-Escribe una indicación como `[male voice]`, `[female voice]` o `[both voices]`, cada una en su propia línea entre corchetes.
-El editor de letra ampliado tiene los botones **+ Hombre**, **+ Mujer** y **+ Ambas** en su cabecera para insertarlas en el cursor.
-Estas son las formas con las que se probó la función, además de `vocal` por `voice` (`[female vocal]`) y
-`[male and female voices]` para ambas. Puedes añadir palabras propias tras una coma, como en
-`[female voice, soft and close]`; no cambian quién canta. Una sección sin indicación queda en manos del planificador.
+Escribe una indicación como `[male voice]`, `[female voice]` o `[both voices]`, cada una en una línea propia entre corchetes.
 
-También se leen otras grafías, para que no se ignoren letras escritas en otra parte: `[man]`, `[woman]`, `[duet]`, una indicación
-dentro de la etiqueta de una sección como `[Verse 2 - female vocal]`, y una indicación entre paréntesis, `(female voice)`. Los corchetes
-son la costumbre más segura: las palabras entre paréntesis suelen ser coros, y pueden cantarse.
+- El editor de letras ampliado tiene los botones **+ Hombre**, **+ Mujer** y **+ Ambas** en su cabecera para insertarlas en el cursor.
+- Son las formas con las que se probó la función, junto con `vocal` por `voice` (`[female vocal]`) y `[male and female voices]` para ambas.
+- Puedes añadir palabras propias después de una coma, como en `[female voice, soft and close]`; no cambian quién canta.
+- Una sección sin indicación se deja al planificador.
+- También se leen otras formas, para que no se ignoren letras escritas en otra parte: `[man]`, `[woman]`, `[duet]`, una indicación dentro de la etiqueta de una sección como `[Verse 2 - female vocal]`, y una indicación entre paréntesis, `(female voice)`. Los corchetes son la costumbre más segura: las palabras entre paréntesis suelen ser coros, y puede que se canten.
 
-Una indicación sola no decide la voz. Quién canta depende sobre todo de lo aguda que esté escrita la melodía: la misma
-línea una octava más arriba la canta una mujer, y al planificador le gusta escribir una estrofa en dos octavas, cambiando cada cuatro
-líneas más o menos, se haya indicado lo que se haya indicado. **Las voces siguen las indicaciones** (una casilla bajo el cuadro de la letra, que aparece cuando la letra tiene
-una indicación; activada para una toma nueva) respeta las indicaciones: cuando se escribe el plan, cada tramo indicado de la melodía se mueve por
-octavas enteras a donde canta esa voz, grave para un hombre y aguda para una mujer. Nada más cambia en el plan. Se
-vuelve a hacer antes de cada render, así que sigue un cambio en la letra o en la partitura. En la página Partitura,
-**Voces según indicaciones** hace lo mismo una vez sobre la partitura del cuadro, para una toma hecha sin la casilla; guarda la partitura
-y renderízala.
+**Una indicación sola no decide la voz.** Quién canta depende sobre todo de lo aguda que esté escrita la melodía: el mismo verso una octava más arriba lo canta una mujer, y al planificador le gusta escribir una estrofa en dos octavas, cambiando cada cuatro versos o así, sea quien sea el indicado.
+
+- **Las voces siguen las indicaciones** (una casilla bajo el cuadro de la letra, visible en cuanto la letra tiene una indicación; activada en una toma nueva) mantiene las indicaciones: al escribir el plan, cada tramo indicado de la melodía se mueve por octavas enteras hasta donde canta esa voz, grave para un hombre y aguda para una mujer. Nada más cambia en el plan.
+- Se vuelve a hacer antes de cada renderizado, así que sigue un cambio en la letra o en la partitura.
+- En la página de la partitura, **Voces según indicaciones** hace lo mismo una vez con la partitura del cuadro, para una toma hecha sin la casilla; guarda la partitura y renderízala.
 
 Tres cosas que conviene saber:
 
@@ -342,16 +361,38 @@ etiqueta sin líneas debajo, como `[Interlude]`, es un pasaje instrumental.
 - **Avanzado** (el botón de la cabecera): pasos de difusión, Seguir el estilo, Evitar, Fijar tonalidad, Fijar tempo, la partitura más larga,
   límite de permanencia en un acorde, bonificación de armonía externa, Secciones que empiezan distinto, sonoridad objetivo y el fundido final. Consulta
   [Ajustes avanzados](#advanced-settings).
-- **Masterización** (el botón a su izquierda, cuando la toma tiene sonido) abre el rack de masterización sobre el editor para
-  la toma que contiene. El rack es, por orden, un ecualizador estilo 1073, un ecualizador paramétrico, un compresor, un ampliador estéreo y
-  un limitador. En la gráfica del ecualizador paramétrico, cada una de las siete bandas es un punto: arrástralo a los lados para su frecuencia
-  y arriba o abajo para su ganancia, gira la rueda sobre él para su anchura, haz doble clic para restablecerlo. La franja bajo
-  la gráfica fija el tipo de la banda elegida (corte de graves, estante de graves, campana, rechazo de banda, estante de agudos, corte de agudos) y la activa
-  o desactiva, **Plano** devuelve cada banda a 0 dB, y el botón en la esquina de la gráfica cambia cuántos decibelios muestra la
-  gráfica. El botón está en verde mientras el rack cambia cómo suena la toma. Con el rack abierto, la barra espaciadora reproduce
-  y pausa la toma y las flechas se mueven por ella y ajustan el volumen, como en la página principal. Escape cierra
-  el rack, y otra vez cierra el editor.
-- **Espacio 3D**, un módulo del rack entre el imager y el limitador, coloca la toma a tu alrededor para auriculares. Desde la **mezcla**: dos altavoces virtuales delante (**Width**) y dos detrás (**Rear**), y **Surround** fija cuánto del ancho y el ambiente de la mezcla suena por los de detrás; los altavoces también se pueden arrastrar por el círculo. **Height** los eleva y **Room** añade una sala breve. Desde los **stems**: cada stem de la toma se coloca por separado; elige uno bajo el círculo y arrastra por el círculo para colocarlo, y la rueda lo abre (**Crear stems** abre la ventana de stems si la toma no tiene). **Front**, **Wide** y **Around** lo ajustan todo de una vez. Lo que oyes es para auriculares y nunca forma parte del archivo propio de la toma: **Descargar** en Auriculares lo guarda en WAV, y **FLAC** y **AC-3** en Altavoces 5.1 guardan la toma para altavoces envolventes (desde stems, cada uno va a los altavoces a ambos lados de su posición). La ventana Guardar de la toma ofrece las mismas descargas mientras su espacio está activado. Cada módulo se pliega a su barra con la flecha de la izquierda, y la toma recuerda cuáles están plegados.
+- **Masterización** (el botón a su izquierda, cuando la toma tiene sonido) abre el rack de masterización sobre el editor para la toma que contiene. El botón está en verde mientras el rack cambia cómo suena la toma. Los módulos del rack, en orden:
+
+  1. Un ecualizador estilo 1073
+  2. Un ecualizador paramétrico
+  3. Un compresor
+  4. Un ampliador estéreo
+  5. **Espacio 3D** (abajo)
+  6. Un limitador
+
+  Cada módulo se pliega a su barra con la flecha de su izquierda, y la toma recuerda cuáles están plegados.
+
+  **El ecualizador paramétrico.** Cada una de sus siete bandas es un punto en la gráfica:
+
+  - Arrastra un punto en horizontal para su frecuencia, y arriba o abajo para su ganancia.
+  - Gira la rueda sobre él para su anchura; haz doble clic para devolverlo a su sitio.
+  - La franja bajo la gráfica fija el tipo de la banda elegida (corte de graves, estante de graves, campana, muesca, estante de agudos, corte de agudos) y la activa o desactiva.
+  - **Plano** devuelve todas las bandas a 0 dB, y el botón de la esquina de la gráfica cambia cuántos decibelios muestra.
+
+  **Teclas.** Con el rack abierto, la barra espaciadora reproduce y pausa la toma, y las flechas se mueven por ella y ajustan el volumen, como en la página principal. Escape cierra el rack, y otra vez cierra el editor.
+
+- **Espacio 3D**, un módulo del rack entre el ampliador y el limitador, coloca la toma a tu alrededor para auriculares, de una de dos maneras:
+
+  | Desde | Qué ajustas |
+  |---|---|
+  | **Mezcla** | Dos altavoces virtuales delante (**Anchura**) y dos detrás (**Trasero**), con **Envolvente** fijando cuánto de la anchura y el ambiente de la mezcla suena desde los de detrás; arrastra también los altavoces por el círculo. **Altura** los eleva todos y **Sala** añade una sala corta. |
+  | **Stems** | Cada stem de la toma se coloca por separado: elige uno bajo el círculo, arrastra luego alrededor del círculo para colocarlo, y la rueda lo abre. **Crear stems** abre la ventana Stems cuando la toma no tiene. |
+
+  **Delante**, **Amplia** y **Alrededor** lo ajustan todo de una vez. Lo que oyes es para auriculares y nunca forma parte del archivo de la toma. Para conservarlo:
+
+  - **Descargar**, en Auriculares, lo guarda como WAV.
+  - **FLAC** y **AC-3**, en Altavoces 5.1, guardan la toma para altavoces envolventes (desde stems, cada uno va a los altavoces a ambos lados de donde está colocado).
+  - La ventana Guardar de la toma ofrece las mismas descargas mientras su Espacio está activo.
 
 ### Alargar la canción {#making-the-song-longer}
 
@@ -445,37 +486,25 @@ no la partitura. Reproducirlo detiene lo que tuviera la barra del reproductor, p
 sirven a nadie, y cerrar la ventana — o pasar a Cifrado o Letra — también lo detiene, para que nada quede
 sonando sin un control a mano.
 
-**Instrumentos** toca cada voz con un instrumento que nombra el estilo, en lugar de un piano
-en todo: un estilo que dice *electric guitar, drums* se oye con una guitarra, sus acordes tocados por
-otra, y un bajo debajo; una línea cantada la sustituye una voz, y la melodía de un instrumental
-no. Un estilo que nombra batería recibe también una parte de batería, escrita en el compás de la propia
-partitura — un backbeat para el rock, el four-on-the-floor para el dance, un ride para el jazz, algo más escueto para una
-balada — y suena de principio a fin, ya que la partitura no tiene secciones en las que callar. La
-línea junto al reproductor dice qué eligió, y desmarcarlo vuelve al piano que oirías
-si no. Es una lectura del estilo, no del render: YuE2 decide la
-interpretación real y añade partes que la partitura nunca tuvo, así que tómalo como el plan tocado con los colores
-adecuados más que como lo que sonará la toma.
+**Instrumentos** toca cada voz con un instrumento que nombra el estilo, en lugar de un piano todo el rato:
 
-**Descargar MIDI** guarda la partitura para un DAW. Cada parte es una pista propia, en su propio canal,
-con el instrumento que usó la vista previa asignado a ese canal: la línea vocal, la línea instrumental y,
-salvo que desmarques **Acordes**, los símbolos de acordes como una parte de acordes con su bajo al lado (el único
-lugar donde la armonía está escrita en notas), y la batería en el canal 10 cuando el estilo la pide. Los
-instrumentos son números de programa General MIDI, así que tu DAW los toca con sus propios sonidos, y el
-tempo y el compás están en el archivo. Un plan que cambia de compás a mitad se escribe en el compás con el que
-empieza — solo se registra ese — mientras las notas conservan sus propias duraciones. Hacer clic en una nota de
-los pentagramas pone el cursor en el ABC que la escribió.
+- Un estilo que dice *electric guitar, drums* se oye con una guitarra, sus acordes tocados por otra, y un bajo debajo. Una línea cantada se sustituye por una voz, y la melodía de una instrumental no.
+- Un estilo que nombra batería recibe también una parte de batería, escrita sobre el compás de la partitura — un backbeat para el rock, el cuatro por cuatro para la música de baile, un ride para el jazz, algo más escaso para una balada — y suena de principio a fin, ya que la partitura no tiene secciones en las que pueda callar.
+- La línea junto al reproductor dice qué eligió, y desmarcarlo vuelve al piano que oirías de otro modo.
 
-Una partitura con una nota por encima de lo que pueden tocar estos instrumentos, o por debajo, se toca desplazada por octavas
-enteras hasta que cabe, y la línea junto al reproductor dice cuánto; los pentagramas, el archivo MIDI y
-la propia partitura no cambian. Los instrumentos no tienen todos el mismo registro — un bajo se queda muy por debajo
-de un piano — por eso aparece la línea cuando se desplaza una partitura. Una partitura que aún no tiene notas
-no tiene nada que tocar y lo dice.
+Es una lectura del estilo, no del renderizado: YuE2 decide la interpretación real y añade partes que la partitura nunca tuvo, así que tómalo como el plan tocado con los colores adecuados y no como lo que sonará la toma.
 
-El reproductor necesita sus muestras de notas, que no forman parte de la aplicación: cada instrumento ocupa unos 7 MB,
-se descarga de su origen la primera vez que una vista previa lo usa y se guarda en la biblioteca, así que
-después funciona sin conexión. **Reproducir** descarga lo que necesita la partitura actual y luego empieza, y
-**Obtener los sonidos** descarga lo mismo sin reproducir, para quien prefiera tenerlo listo
-antes.
+**Descargar MIDI** guarda la partitura para un DAW:
+
+- Cada parte es una pista propia, en su propio canal, con el instrumento que usó la vista previa en ese canal: la línea vocal, la línea instrumental y, salvo que desmarques **Acordes**, los cifrados como una parte de acordes con su bajo al lado (el único lugar donde la armonía se escribe como notas), y batería en el canal 10 cuando el estilo la pide.
+- Los instrumentos son números de programa General MIDI, así que tu DAW los toca con sus propios sonidos, y el tempo y el compás están en el archivo.
+- Un plan que cambia de compás a mitad se escribe en el compás con el que empieza — solo ese queda registrado — mientras las notas conservan sus duraciones.
+
+Hacer clic en una nota del pentagrama pone el cursor en el ABC que la escribió.
+
+**Fuera de registro.** Una partitura con una nota por encima o por debajo de lo que pueden tocar estos instrumentos se toca desplazada por octavas enteras hasta que cabe, y la línea junto al reproductor dice cuánto; el pentagrama, el archivo MIDI y la propia partitura no cambian. Los instrumentos no tienen todos el mismo tamaño — un bajo llega mucho más abajo que un piano —, por eso está la línea cuando se desplaza una partitura. Una partitura sin notas no tiene nada que tocar y lo dice.
+
+**Los sonidos.** El reproductor necesita sus muestras de notas, que no forman parte de la app: cada instrumento ocupa unos 7 MB, se descarga de su origen la primera vez que una vista previa lo usa y se guarda en la biblioteca, así que después funciona sin conexión. **Reproducir** descarga lo que necesita la partitura actual y luego empieza, y **Obtener los sonidos** descarga lo mismo sin reproducir, para quien prefiera tenerlo listo antes.
 
 ### El piano roll {#the-piano-roll}
 
@@ -656,16 +685,18 @@ El planificador lee toda la letra antes de escribir una nota, así que la misma 
 con la misma letra. Cambia una línea y el siguiente plan es una melodía nueva: otra melodía, a menudo otra
 tonalidad y otro tempo, y la voz cambia con ellos.
 
-Para conservar una melodía que te gusta, abre la toma y cambia su letra. **Conservar esta melodía** aparece bajo la
-letra, marcado, y el botón principal pasa a ser **Cantar con la letra nueva**. Cambia antes todo lo demás que
-quieras: el estilo, la LoRA y sus fuerzas, el límite de duración, la interpretación. La partitura de la toma se
-canta entonces con la nueva letra, como toma nueva junto a la original, que queda como está. Deja la semilla
-marcada para mantener la voz lo más parecida posible. Desmarca **Conservar esta melodía** para escribir en su lugar un plan nuevo, y una
-melodía nueva, para la letra. Una letra nueva que conserva el número de sílabas de las líneas antiguas encaja mejor
-con la melodía. Cuando no lo hace, porque hay más secciones o muchas más sílabas que notas tiene la melodía (líneas largas en una melodía
-hecha para cortas: las líneas salen repetidas o se pierden), o muchas menos (líneas cortas en una melodía hecha para largas:
-el cantante llena las notas sobrantes con palabras suyas), **Conservar esta melodía** se desmarca solo con una línea que dice por qué, y
-se escribe un plan nuevo para la letra. Vuelve a marcarlo para cantar la melodía de todos modos.
+Para conservar una melodía que te gusta:
+
+1. Abre la toma y cambia su letra. **Conservar esta melodía** aparece marcada bajo la letra, y el botón principal pasa a ser **Cantar con la letra nueva**.
+2. Cambia antes todo lo demás que quieras: el estilo, el LoRA y sus intensidades, el límite de duración, la interpretación. Deja marcada la semilla para que la voz se parezca lo más posible.
+3. Pulsa **Cantar con la letra nueva**. La partitura de la toma se canta con la letra nueva, como una toma nueva junto a la original, que se queda como está.
+
+Desmarca **Conservar esta melodía** para escribir en su lugar un plan nuevo, y una melodía nueva, para la letra.
+
+Una letra nueva que mantiene el número de sílabas de los versos anteriores encaja mejor con la melodía. Cuando no encaja, **Conservar esta melodía** se desmarca sola con una línea que explica por qué, y se escribe un plan nuevo para la letra. Márcala de nuevo para cantar la melodía de todos modos. La letra no encaja cuando hay:
+
+- **Más secciones, o muchas más sílabas que notas tiene la melodía:** versos largos sobre una melodía hecha para cortos salen repetidos o recortados.
+- **Muchas menos sílabas:** versos cortos sobre una melodía hecha para largos dejan notas sobrantes, que quien canta llena con palabras propias.
 
 ### Pulido de producción {#production-polish}
 
@@ -683,14 +714,13 @@ en Configuración. Después hace sitio a la música, para que una canción larga
 - Con una **grabación** elegida, para una versión o un instrumental, el límite sigue la partitura de la grabación,
   redondeado hacia arriba del mismo modo.
 
-Un límite que escribes tú se queda como lo pusiste, y la página Partitura avisa entonces cuando un plan es más largo
-que él. Un plan mucho más largo que su límite (más de un tercio por encima, y de más de ocho minutos) no se toma
-por una canción en absoluto, y se vuelve a escribir. De vez en cuando
-un render no se detiene al final de su partitura y sigue hasta el límite; esa toma se funde
-en sus últimos segundos en lugar de cortarse, y su tarjeta dice que llegó al límite. Más raro aún, un
-render termina antes de que empiece la última sección de su partitura. La aplicación lo vuelve a renderizar entonces con una
-semilla nueva antes de darlo por terminado, y si ese también se queda corto, la tarjeta dice que se detuvo antes de la
-última sección: **Renderizar** otra vez para otro intento.
+Un límite que escribes tú se queda como lo pusiste, y la página de la partitura avisa entonces cuando un plan es más largo.
+
+Cuando una canción no termina como debería:
+
+- **Un plan mucho más largo que su límite** (más de un tercio por encima, y de más de ocho minutos) no se toma como canción y se vuelve a escribir.
+- **Un renderizado que sigue más allá de su partitura** hasta el límite se desvanece en sus últimos segundos en lugar de cortarse, y su tarjeta dice que llegó al límite.
+- **Un renderizado que termina antes de que empiece la última sección de su partitura** (más raro aún) se renderiza otra vez con una semilla nueva antes de darse por terminado. Si ese también se queda corto, la tarjeta dice que se detuvo antes de la última sección: pulsa **Renderizar** de nuevo para otro intento.
 
 ---
 
@@ -804,44 +834,23 @@ obra, o de obras distintas.
 
 ### Extraer la letra {#extracting-the-lyrics}
 
-**Extraer la letra**, junto a *Transcribir*, escribe lo que canta la grabación: separa la
-voz, la escucha y coloca las líneas bajo las secciones de la partitura. Se pide en lugar de
-hacerse con cada transcripción, porque tarda un par de minutos donde transcribir una partitura
-tarda segundos. La voz se separa, y se oyen sus palabras, en la GPU cuando el motor tiene Demucs y Whisper, y en la CPU
-si no (Configuración, **Usar la GPU para stems y letras**), y la barra indica en cuál de las dos etapas está. Whisper en la GPU
-y en la CPU no siempre escriben las mismas palabras para la misma voz, ya que ninguno es exacto: una voz difícil, como coros
-sobre una voz principal, puede diferir en una quinta parte de sus palabras en un sentido u otro. La voz separada se guarda, así que extraer la misma grabación otra vez salta
-directamente a la escucha, lo que ahorra la mayor parte de la espera.
+**Extraer la letra**, junto a *Transcribir*, escribe lo que canta la grabación: separa la voz, la escucha y coloca los versos bajo las secciones de la partitura. Se hace cuando lo pides en vez de con cada transcripción, porque tarda un par de minutos donde transcribir una partitura tarda segundos.
 
-Las palabras se guardan con la grabación. Pulsa **Extraer la letra** otra vez y vuelven directamente al
-cuadro, y se te pregunta si extraerlas de nuevo, cosa que vale la pena tras cambiar el
-método en Configuración. Elegir otra grabación toma sus palabras del mismo modo, y una grabación
-sin palabras borra las de la anterior. Las palabras que escribiste o editaste se quedan salvo que aceptes sustituirlas.
+- **Dónde se ejecuta.** La voz se separa, y sus palabras se oyen, en la GPU cuando el motor tiene Demucs y Whisper, y en la CPU si no (Configuración, **Usar la GPU para stems y letras**). La barra dice en cuál de las dos etapas está. Whisper en la GPU y en la CPU no siempre escribe las mismas palabras para la misma voz, ya que ninguno es exacto: una voz difícil, como coros sobre una voz principal, puede diferir en una quinta parte de sus palabras.
+- **Repetirlo.** La voz separada se guarda, así que extraer de nuevo la misma grabación pasa directamente a la escucha, lo que ahorra la mayor parte de la espera.
+- **La letra se guarda con la grabación.** Pulsa **Extraer la letra** otra vez y vuelve directamente al cuadro, y se te pregunta si quieres extraerla de nuevo, lo que vale la pena tras cambiar el método en Configuración. Elegir otra grabación recoge su letra del mismo modo, y una grabación sin letra borra la de la anterior. Las palabras que escribiste o editaste se quedan salvo que aceptes reemplazarlas.
 
-Espera un buen borrador más que una transcripción. Medido contra la letra real de dos canciones, Whisper
-falló en **el 1,5 % de las palabras** en una y en **el 25 %** en la otra, donde la voz principal y los coros se pisan
-en el último estribillo. Escucha toda la voz: antes se saltaba lo que su detector de voz
-tomaba por silencio, que en voces cantadas era la mayor parte de la canción. Lee el borrador y corrige lo que
-oyó mal, sobre todo donde las voces se solapan.
+Espera un buen borrador más que una transcripción. Comparado con la letra real de dos canciones, Whisper se equivocó en el **1,5 % de las palabras** en una y en el **25 %** en la otra, donde la voz principal y los coros se superponen en el último estribillo. Escucha toda la voz: antes se saltaba lo que su detector de voz tomaba por silencio, que en voces cantadas era casi toda la canción. Lee el borrador y corrige lo que oyó mal, sobre todo donde las voces se superponen.
 
-**Dejar que escuche un LLM externo.** Si un [LLM externo](#external-llm) es tu proveedor, Configuración ofrece una opción en
-*Letra a partir de una grabación*. Ponla en **LLM externo** y la voz separada se envía al modelo para
-oír las palabras, mientras Whisper sigue calculando cuándo se canta cada línea. En las mismas dos canciones, Gemini
-obtuvo **1,5 % y 23 %**, así que están cerca; prueba ambos en una canción que a Whisper se le resista. Necesita un
-modelo que acepte audio, como Gemini. Cuando la respuesta del modelo parece una letra, se usan sus palabras,
-incluso donde difieren bastante de las de Whisper: una voz enterrada en una mezcla es donde Whisper
-más sufre, y el modelo no. Si el modelo rechaza el audio, se contiene (acortando líneas,
-o remitiéndote a una web de letras, como puede hacer un modelo con una canción que reconoce) o devuelve
-casi nada, obtienes la versión de Whisper en su lugar. El mensaje al terminar dice cuál
-oyó las palabras. La voz sale de tu equipo para esto; Whisper la mantiene aquí.
+**Dejar que escuche un LLM externo.** Si un [LLM externo](#external-llm) es tu proveedor, Configuración tiene una opción en *Letra de una grabación*. Ponla en **LLM externo** y la voz separada se envía al modelo para que oiga las palabras, mientras Whisper sigue calculando cuándo se canta cada verso.
 
-Para una canción de corpus, **se guardan las dos versiones**. Cuando existen ambas, el panel de revisión de la canción muestra
-**Palabras de** con cada versión y su número de palabras, la del modelo externo en uso por defecto. Elige
-la otra y sus palabras van al cuadro. La primera vez que se elige una versión se redactan sus palabras, lo que
-marca sus secciones con el modelo externo; después cada versión conserva sus propias palabras, ediciones y
-casilla **revisada**, así que cambiar entre ellas es instantáneo y no hace ninguna llamada al modelo. En las líneas de Whisper, cualquier palabra
-que repitió más de ocho veces seguidas, como un «la» sostenido que escribió cientos de veces, se recorta
-a ocho.
+- Necesita un modelo que acepte audio, como Gemini. En las mismas dos canciones Gemini obtuvo **1,5 % y 23 %**, así que los dos están cerca; prueba ambos con una canción que a Whisper se le resista.
+- Cuando la respuesta del modelo parece una letra, se usan sus palabras, incluso donde difieren bastante de las de Whisper: una voz enterrada en una mezcla es donde Whisper más sufre, y el modelo no.
+- Si el modelo rechaza el audio, se contiene (recortando versos, o remitiéndote a una web de letras, como puede hacer un modelo con una canción que reconoce) o devuelve casi nada, recibes la versión de Whisper.
+- El mensaje al terminar dice quién oyó las palabras.
+- Para esto la voz sale de tu equipo; Whisper la mantiene aquí.
+
+**En una canción de corpus se guardan ambas versiones.** Cuando existen las dos, el panel de revisión de la canción muestra **Palabras de** con cada versión y su número de palabras, la del modelo externo en uso por defecto. Elige la otra y sus palabras van al cuadro. La primera vez que se elige una versión se redacta su letra, lo que marca sus secciones con el modelo externo; después cada versión guarda sus propias palabras, ediciones y casilla **revisada**, así que cambiar entre ellas es inmediato y no llama al modelo. En los versos propios de Whisper, cualquier palabra que repitió más de ocho veces seguidas, como un «la» sostenido que escribió cientos de veces, se recorta a ocho.
 
 ---
 
@@ -865,14 +874,18 @@ sección, añadir un interludio, o pasarse de los tiempos que diste, así que el
 transcripción es la partitura, así que no hay plan que escribir, y el render toca su melodía y sus
 acordes con la LoRA instrumental.
 
-Las secciones también vienen de la partitura: una por cada sección de la partitura, con los nombres que conoce la LoRA. Un
-*interludio* se convierte en un puente. Un render empareja cada sección de la estructura con una de la partitura,
-por eso el constructor les cede el paso. Para reordenar la canción, arrastra una sección a otro sitio o muévela con las flechas, añade una
-**copia** de ella detrás, o quítala con la **✕**: cada cambio reescribe la partitura (la ventana Partitura
-lo muestra), y **Restaurar las secciones originales** la devuelve hasta que se cargue otra partitura.
-Mientras la toma suena en el editor, se ilumina la sección en la que está, y un doble clic en una sección salta a ella. Los tiempos vienen de los compases y el tempo de la partitura, que el render sigue de cerca al principio de una toma y en una que se renderiza entera. Un render que termina bastante antes que su partitura ha tocado menos música de la que contiene la partitura, así que la lista puede desfasarse respecto al audio a medida que avanza la canción; una línea bajo la lista lo indica y dice cuánto. Una versión muestra la misma lista bajo su letra, y su letra se asocia con las secciones en orden, así que
-adáptala: la lista dice lo que necesita después de añadir, quitar o reordenar secciones. También muestra el total frente al
-límite de duración, y ofrece subir el límite cuando una canción más larga se cortaría. Pulsa **Crear instrumental** para renderizar.
+Las secciones también vienen de la partitura: una por cada sección de la partitura, con los nombres que conoce el LoRA (un *interludio* pasa a ser un puente). Un renderizado empareja cada sección de la estructura con una de la partitura, por eso el constructor se aparta ante ellas.
+
+**Reorganizar la canción.** Cada cambio reescribe la partitura (la ventana Partitura lo muestra):
+
+- Arrastra una sección a otro lugar, o muévela con las flechas.
+- Añade una **copia** de una sección tras ella misma.
+- Quita una sección con la **✕**.
+- **Restaurar las secciones originales** las devuelve, hasta que se cargue otra partitura.
+
+**Seguir la canción.** Mientras la toma suena en el editor, la sección en la que está se ilumina, y hacer doble clic en una sección salta a ella. Los tiempos salen de los compases y el tempo de la partitura, que el renderizado sigue de cerca en la primera parte de una toma y en una que se renderiza completa. Un renderizado que termina bastante antes que su partitura ha tocado menos música de la que contiene la partitura, así que la lista puede desfasarse del audio a medida que avanza la canción; una línea bajo la lista lo dice, y en cuánto.
+
+**La letra y la duración.** Una versión muestra la misma lista bajo su letra, y su letra se asigna a las secciones en orden, así que cámbiala a tu gusto: la lista dice lo que necesita después de añadir, quitar o reordenar secciones. La lista también muestra el total frente al límite de duración, y ofrece subir el límite cuando una canción más larga quedaría cortada. Pulsa **Crear instrumental** para renderizar.
 
 Un instrumental escrito a partir de una estructura también tiene partitura, y una vez planificado sus secciones se listan del mismo modo. El
 constructor de estructura es el encargo de un plan aún no escrito, así que cede el paso a la lista. Reordena las secciones y pulsa
@@ -922,69 +935,58 @@ artista, un género o unos cuantos artistas parecidos.
 Abre **Corpus** desde el menú. Está activado por defecto; `TRAINING_ENABLED=0` para la aplicación, o un
 motor construido con `WITH_TRAINER=0`, lo quita.
 
-Entrenar es lo más exigente que hace la aplicación: con el modelo de calidad completa (BF16) recomendado,
-una tarjeta gráfica de 16 GB y 32 GB de RAM del sistema (en WSL2, `memory=32GB` en `.wslconfig`) son el mínimo práctico.
-Una tarjeta de 8 GB puede servir para entrenar usando el modelo de poca memoria (INT8).
+**Lo que necesita el entrenamiento.** Es lo más exigente que hace la app:
 
-1. **Corpus nuevo.** Dale un nombre y una **palabra disparadora**, di si la voz es masculina o femenina
-   (**ninguna** para canciones sin voz: ver más abajo), describe el sonido que comparten todas las canciones, y abre la carpeta que las contiene. Confirma que
-   tienes derecho a entrenar con ellas, y pulsa **Examinar la carpeta**. La carpeta solo se lee.
-   **Un corpus sin voz.** Elige **ninguna** en **Voz** cuando las canciones sean instrumentales, como
-   la música dance y electrónica. La aplicación no separa entonces ninguna voz ni escucha palabras, así que nada
-   inventa letras sobre sintetizadores. La letra de cada canción son las etiquetas de sección que hay en su partitura (o
-   `[instrumental]` si no tiene ninguna), la descripción omite la parte vocal, y no hay revisión de la
-   letra: el cuadro **Secciones** se puede editar, y la edición se guarda. El sonido de cada canción lo describe
-   el modelo local cuando está instalado, ya que el externo solo tendría un título en el que basarse.
-   Una LoRA entrenada así puede escribir notas en la parte Vocal de un plan, lo que hace que un render cante o tararee;
-   el aviso «puede cantar» de un plan lo muestra. Cambiar la Voz de un corpus ya analizado cambia su
-   letra en consecuencia.
-2. **Elige las canciones.** Desmarca las que quieras dejar fuera. Cuando se prepara una canción, la aplicación guarda su propia copia de la grabación completa en el almacenamiento interno de corpus, así que un corpus sigue intacto aunque su carpeta de origen se vacíe o se mueva más tarde. Una grabación de más de 25 minutos se deja fuera, porque lo más probable es que sea un álbum entero o un concierto en un solo archivo. Si hay una hoja `.cue` al lado, **Dividir en pistas** la corta en sus canciones, que ocupan su lugar en el corpus. Las pistas van a la carpeta propia de la aplicación; la tuya no cambia. (Las canciones más largas que el límite de GPU del entrenador, como pistas de 15 minutos, se cortan con seguridad y se funden en un límite de sección musical al exportar.)
-3. **Analizar.** Se separa la voz de cada canción, se encuentran su tonalidad, su tempo y sus secciones, y se redacta su letra, marcada por secciones. Con un LLM externo configurado, las secciones se marcan a partir de las palabras oídas: los estribillos porque sus palabras vuelven, las secciones nuevas por las pausas. Solo se envían las líneas y sus tiempos, y las palabras y su orden nunca se cambian. Sin él, o si su respuesta no contiene todas las líneas, las etiquetas salen del análisis musical. **Reesbozar**, junto a Guardar en la revisión de una canción, vuelve a marcar las secciones del mismo modo sin volver a escuchar la canción, para una canción redactada antes, y sustituye lo que hay en el cuadro. Una línea bajo los botones dice qué se está ejecutando, y el análisis en curso aparece en la tarjeta de trabajos y la cola de la pantalla principal. **Detener** lo detiene. Los pasos terminados se conservan, así que **Analizar** sigue donde lo dejó.
+- **El modelo de calidad completa (BF16)**, el recomendado, necesita al menos unos 12,5 GB de memoria de GPU (con un corte de 3½ minutos; un corte más largo necesita más), casi toda mientras prepara las canciones. Así que una tarjeta de 16 GB es el mínimo práctico, con 32 GB de RAM: ComfyUI carga los pesos completos de YuE2 y las cachés del conjunto de datos en la memoria del sistema (en WSL2, pon `memory=32GB` en `.wslconfig`).
+- **El modelo de poca memoria (INT8)** permite entrenar con una tarjeta de 8 GB.
+- **Una tarjeta que no puede entrenar** puede usar igualmente LoRAs entrenados en otra parte (**Instalar un LoRA**).
+- La ventana Entrenar avisa cuando hay menos memoria de GPU o del sistema disponible, así que cierra antes todo lo demás que use la GPU.
 
-   **Volver a analizar.** Cuando todas las canciones están analizadas, el botón muestra **Analizado ✓**. Al hacer clic pregunta si quieres volver a analizar las sugerencias de estilo de todas las canciones con los prompts y ajustes de LLM más recientes (útil tras renombrar un corpus o cambiar de proveedor). Mayús+clic en **Analizado ✓** ofrece un nuevo análisis completo desde cero (separación, tonalidad, tempo, transcripción y estilos otra vez). Cada canción también se puede volver a estilizar con **Volver a analizar** en su revisión.
-4. **Revisar** Abre una canción para revisar su letra y marcar **revisada**, y para describir su sonido
-   donde difiera del resto. La descripción de estilo muestra lo que leerá el entrenador.
-5. **Exportar el conjunto de entrenamiento.** Escribe el audio, la letra y la descripción de cada canción. Una línea bajo los
-   botones muestra cuánto lleva. El entrenador toma solo una parte de cada canción, que la aplicación calcula
-   según la memoria libre de tu tarjeta gráfica (unos 5½ minutos en una tarjeta de 16 GB; la ventana Registros
-   dice lo que eligió). Una canción más larga se corta al final de su última sección dentro de ese margen, se funde,
-   y conserva solo las palabras que aún se cantan. Su fila dice «first 3:12 trained». Si el entrenamiento
-   se queda sin memoria, pon la variable de entorno `TRAIN_MAX_MINUTES` en un número más bajo, como
-   3.5: consulta el README.
-6. **Entrenar un LoRA.** Tarda mucho, y la GPU no está disponible para la aplicación hasta que
-   termina. El progreso se ve bajo los botones y en la pantalla principal, donde puedes detenerlo,
-   y la insignia del corpus en la parte superior de la página palpita mientras entrena. Entrenar de nuevo conserva
-   la LoRA de la ejecución anterior con un nombre fechado, en **Ejecuciones anteriores**, o la borra, como
-   elijas.
-   Entrenar con el modelo de calidad completa (BF16) recomendado necesita al menos unos 12,5 GB de memoria de GPU
-   (con un corte de 3½ minutos; un corte más largo necesita más), la mayor parte mientras prepara las canciones, así que una tarjeta de 16 GB
-   es el mínimo práctico, junto con 32 GB de RAM del sistema (ComfyUI deja los pesos completos de YuE2
-   y las cachés del conjunto de datos en la memoria del anfitrión; en WSL2, pon `memory=32GB` en `.wslconfig`). Una tarjeta de 8 GB puede
-   entrenar usando el modelo de poca memoria (INT8). Las tarjetas que no pueden entrenar pueden usar igualmente LoRA entrenadas
-   en otra parte (**Instalar un LoRA**). La ventana Entrenar avisa cuando hay menos memoria de GPU o del sistema disponible,
-   así que cierra antes todo lo demás que use la GPU.
+**Los pasos:**
+
+1. **Corpus nuevo.** Dale un nombre y una **palabra activadora**, di si la voz es masculina o femenina (**ninguna** para canciones sin voz: ver abajo), describe el sonido que comparten todas las canciones y abre la carpeta que las contiene. Confirma que tienes derecho a entrenar con ellas y pulsa **Examinar la carpeta**. La carpeta solo se lee.
+
+   **Un corpus sin voz.** Elige **ninguna** en **Voz** cuando las canciones son instrumentales, como la música de baile y electrónica:
+
+   - La app no separa ninguna voz ni escucha palabras, así que nada inventa palabras sobre los sintetizadores.
+   - La letra de cada canción son las etiquetas de sección de su partitura (o `[instrumental]` cuando no tiene), la descripción omite la parte de la voz y no hay revisión de la letra: el cuadro **Secciones** puede editarse, y una edición se conserva.
+   - El sonido de cada canción lo describe el modelo local cuando está instalado, ya que el externo solo tendría un título.
+   - Un LoRA entrenado así puede escribir notas en la parte Vocal de un plan, lo que hace que un renderizado cante o tararee; el aviso «puede cantar» de un plan lo muestra.
+   - Cambiar la Voz de un corpus ya analizado cambia su letra en consecuencia.
+2. **Elegir las canciones.** Desmarca las que quieras dejar fuera.
+   - Cuando se prepara una canción, la app guarda su propia copia de la grabación completa en el almacenamiento interno de corpus, así que un corpus sigue intacto aunque su carpeta de origen se vacíe o se mueva más tarde.
+   - Una grabación de más de 25 minutos se deja fuera, ya que lo más probable es que sea un álbum o un concierto entero en un archivo. Si hay una hoja `.cue` a su lado, **Dividir en pistas** la corta en sus canciones, que ocupan su lugar en el corpus. Las pistas van a la carpeta propia de la app; la tuya no se cambia.
+   - Las canciones más largas que el límite de GPU del entrenador, como pistas de 15 minutos, se cortan y desvanecen con seguridad en un límite de sección musical al exportar.
+3. **Analizar.** Se separa la voz de cada canción, se hallan su tonalidad, tempo y secciones, y se redacta su letra, etiquetada por sección.
+   - Con un LLM externo configurado, las secciones se marcan a partir de las palabras oídas: los estribillos porque sus palabras vuelven, las secciones nuevas por las pausas. Solo se envían los versos y sus tiempos, y las palabras y su orden nunca se cambian. Sin uno, o si su respuesta no contiene todos los versos, las etiquetas salen del análisis musical.
+   - **Reesbozar**, junto a Guardar en la revisión de una canción, vuelve a marcar las secciones del mismo modo sin volver a oír la canción, para una canción redactada antes, y reemplaza lo que hay en el cuadro.
+   - Una línea bajo los botones dice qué se está ejecutando, y el análisis activo aparece en la tarjeta de trabajos y la cola de la pantalla principal. **Detener** lo termina. Los pasos acabados se conservan, así que **Analizar** sigue donde se quedó.
+   - **Volver a analizar.** Cuando todas las canciones están analizadas, el botón muestra **Analizado ✓**. Al hacer clic pregunta si quieres volver a analizar las sugerencias de estilo de todas las canciones con las indicaciones y la configuración de LLM más recientes (útil tras renombrar un corpus o cambiar de proveedor). Mayús-clic en **Analizado ✓** ofrece un análisis completo desde cero (separación de stems, tonalidad, tempo, transcripción y estilos de nuevo). Cada canción puede volver a estilizarse con **Volver a analizar** en su revisión.
+4. **Revisar.** Abre una canción para comprobar su letra y marcar **revisada**, y para describir su sonido donde difiera del resto. La descripción de estilo muestra lo que leerá el entrenador.
+5. **Exportar el conjunto de entrenamiento.** Escribe el audio, la letra y la descripción de cada canción. Una línea bajo los botones muestra cuánto lleva.
+   - El entrenador toma solo una parte de cada canción, que la app calcula a partir de la memoria libre de tu tarjeta gráfica (unos 5½ minutos en una tarjeta de 16 GB; la ventana de registros dice qué eligió).
+   - Una canción más larga se corta al final de su última sección dentro de ese tiempo, se desvanece y conserva solo las palabras que aún se cantan. Su fila dice «primeros 3:12 entrenados».
+   - Si el entrenamiento se queda sin memoria, pon el ajuste de entorno `TRAIN_MAX_MINUTES` en un número más bajo, como 3.5: ver el README.
+6. **Entrenar un LoRA.** Tarda mucho, y la GPU no está disponible para la app hasta que termina.
+   - El progreso aparece bajo los botones y en la pantalla principal, donde puedes detenerlo, y la insignia del corpus en lo alto de la página late mientras entrena.
+   - Entrenar de nuevo conserva el LoRA de la última ejecución con un nombre fechado, en **Ejecuciones anteriores**, o lo elimina, como elijas.
 
 ### Una ejecución que termina antes de tiempo {#a-run-that-ends-early}
 
-Una ejecución puede terminar antes de su último paso: **Detener**, un fallo, o la GPU que se queda sin memoria. La línea
-bajo los botones dice entonces cuándo y por qué, y tras qué paso. Por el camino, el entrenador guarda un
-checkpoint cada 50 pasos, y conserva una copia del mejor hasta el momento según su pérdida de planificador, así que la mayor parte del
-trabajo suele seguir ahí. **Terminar con lo que guardó** hace lo que hace una ejecución terminada, a partir de
-esos archivos: la mejor copia, o si no el último checkpoint, se convierte en la LoRA con el
-nombre del corpus, con su palabra disparadora, y los checkpoints se pliegan debajo en la lista de LoRA de estilo. Tarda
-segundos y nada de tiempo de GPU. Los últimos pasos de una ejecución son los que menos cambian la LoRA, así que una terminada de este
-modo suele estar cerca de una ejecución completa; **Checkpoints** renderiza una canción una vez en cada paso si quieres
-comparar de oído. Para entrenar de nuevo toda la ejecución, pulsa **Entrenar un LoRA**.
+Una ejecución puede terminar antes de su último paso: **Detener**, un fallo o la GPU sin memoria. La línea bajo los botones dice entonces cuándo y por qué, y tras qué paso. Casi todo el trabajo suele seguir ahí: por el camino el entrenador guarda un checkpoint cada 50 pasos, y conserva una copia del mejor hasta el momento según su pérdida de planificador.
+
+- **Terminar con lo que guardó** hace lo que hace una ejecución completa, a partir de esos archivos: la mejor copia, o si no el último checkpoint, pasa a ser el LoRA con el nombre del corpus, con su palabra activadora, y los checkpoints se pliegan bajo él en la lista de LoRAs de estilo. Tarda segundos y nada de tiempo de GPU.
+- Los últimos pasos de una ejecución son los que menos cambian el LoRA, así que uno terminado así suele estar cerca de una ejecución completa; **Checkpoints** renderiza una canción una vez en cada paso si quieres comparar de oído.
+- Para entrenar de nuevo toda la ejecución, pulsa **Entrenar un LoRA**.
 
 ### Ejecutar todo {#run-all}
 
-**Ejecutar todo**, junto a los tres, hace Analizar, Exportar y Entrenar uno tras otro, para un corpus por el que
-prefieres no esperar: uno grande tarda horas en analizarse. Primero pregunta qué hacer con una
-LoRA anterior, y luego sigue con la página cerrada. Solo analiza lo que aún lo necesita, y una
-canción cuyo análisis falla se deja fuera del conjunto de entrenamiento y se nombra bajo los botones. Las letras
-que nadie ha revisado se usan tal como se redactaron. **Detener** lo detiene donde esté, conservando lo terminado;
-detenido mientras exporta, termina primero el conjunto de entrenamiento. Espera a todo lo que ya esté usando
-el motor antes de entrenar. Reiniciar la aplicación lo detiene, y **Ejecutar todo** otra vez lo continúa.
+**Ejecutar todo**, junto a los tres, hace Analizar, Exportar y Entrenar uno tras otro, para un corpus que prefieres no esperar: uno grande tarda horas en analizarse. Pregunta primero qué hacer con un LoRA anterior y luego sigue con la página cerrada.
+
+- Solo analiza lo que aún lo necesita. Una canción cuyo análisis falla queda fuera del conjunto de entrenamiento y se nombra bajo los botones, y las letras que nadie ha revisado se usan tal como se redactaron.
+- Espera a cualquier cosa que ya esté usando el motor antes de entrenar.
+- **Detener** lo termina donde está, conservando lo acabado; detenido mientras exporta, termina primero el conjunto de entrenamiento.
+- Un reinicio de la app lo termina, y **Ejecutar todo** de nuevo continúa.
 
 ### Cuando se acaba la memoria de la GPU {#running-out-of-gpu-memory}
 
@@ -994,17 +996,13 @@ se reinicia, el trabajo que estaba ejecutando se pierde, y también lo dice.
 
 ### La LoRA entrenada {#the-trained-lora}
 
-Cuando termina el entrenamiento, la LoRA aparece en la lista **LoRA de estilo** con su palabra disparadora. Elegirla
-muestra un chip por cada canción de la que aprendió, bajo el cuadro Estilo, y hacer clic en uno pone el estilo de esa canción en
-el cuadro.
-A partir de una docena de canciones, un cuadro de filtro y una fila de las etiquetas que se repiten en el corpus (sus géneros,
-ambientes e instrumentos) las acotan; haz clic en dos etiquetas para encontrar canciones con ambas. La lista muestra su
-primera docena hasta **Mostrar todo**. Consulta **Equilibrar Planificador y Sonido** más abajo para las fuerzas iniciales. Para compartirla, pulsa **Descargar LoRA** en la página del corpus, o **Descargar** bajo
-el selector; consulta **Compartir una LoRA** más abajo.
+Cuando termina el entrenamiento, el LoRA aparece en la lista **LoRA de estilo** con su palabra activadora.
 
-Para añadir una LoRA que alguien compartió, pulsa **Importar LoRA** junto a **Corpus nuevo** y elige su zip. Para usar una
-LoRA entrenada en otra parte a partir del conjunto exportado, pulsa **Instalar un LoRA** y elige el
-archivo. Se añade a la lista de LoRA de estilo con la palabra disparadora de este corpus.
+- **Sus canciones.** Al elegirlo aparece una ficha por cada canción de la que aprendió, bajo el cuadro de estilo, y al hacer clic en una se pone el estilo de esa canción en el cuadro. A partir de una docena de canciones, un cuadro de filtro y una fila de las etiquetas que se repiten en el corpus (sus géneros, ambientes e instrumentos) las acotan; haz clic en dos etiquetas para encontrar canciones con ambas. La lista muestra su primera docena hasta **Mostrar todo**.
+- **Intensidades iniciales:** ver **Equilibrar Planificador y Sonido** abajo.
+- **Compartirlo:** pulsa **Descargar LoRA** en la página del corpus, o **Descargar** bajo el selector; ver **Compartir un LoRA** abajo.
+- **Un LoRA de otra persona:** pulsa **Importar LoRA** junto a **Corpus nuevo** y elige su zip.
+- **Un LoRA entrenado en otra parte con el conjunto exportado:** pulsa **Instalar un LoRA** y elige el archivo. Se añade a la lista de LoRAs de estilo con la palabra activadora de este corpus.
 
 **Borrar un corpus** quita las copias de sus canciones que hizo la aplicación, las voces separadas, las letras y
 las partituras. La carpeta que le indicaste, y cualquier LoRA hecha con él, no se tocan.
@@ -1119,24 +1117,19 @@ demás, con su palabra disparadora al lado, y se aplican las mismas dos fuerzas.
 
 ### Probar los checkpoints {#trying-the-checkpoints}
 
-Una ejecución de entrenamiento guarda un checkpoint cada 50 pasos, y los conserva bajo su LoRA en el selector:
-**▸ 9 pasos** junto al nombre de la LoRA los abre (Configuración puede borrarlos en su lugar, para ahorrar
-espacio). Un checkpoint cuya LoRA se ha borrado se queda en **Checkpoints de entrenamiento**. Para
-quitar algunos, pulsa **Editar** en el corpus: **Checkpoints de entrenamiento** allí lista los de cada ejecución, esta
-y las anteriores, con sus tamaños. Marca los que deban irse y pulsa **Eliminar**. La LoRA
-terminada no aparece; tiene su propio **Eliminar LoRA**. Cada uno es la LoRA tal como estaba en
-ese punto del entrenamiento. Suenan más o menos igual de bien, pero cada uno pondera a su manera
-lo que aprendió, así que cada uno tiene su propio gusto sin perder el estilo y el sonido característico con los que se entrenó
-la LoRA.
+Una ejecución de entrenamiento guarda un checkpoint cada 50 pasos: cada uno es el LoRA tal como estaba en ese punto del entrenamiento. Suenan más o menos igual de bien, pero cada uno pondera de forma distinta lo que aprendió, así que cada uno tiene su propio gusto sin perder el estilo y el sonido característico con el que se entrenó el LoRA.
 
-Para oírlos uno junto a otro, elige la LoRA, prepara el editor como para una sola toma, y pulsa
-**Checkpoints** junto a **Eliminar LoRA**. Está atenuado para una LoRA sin checkpoints. Marca los
-pasos que quieras, pon un límite de duración para estas tomas si quieres, y pulsa **Renderizar**. La acción
-propia del editor se ejecuta una vez en cada checkpoint, todas con una misma semilla, y cada toma lleva el nombre de su paso:
-*Night drive · step 250*, *Night drive · full*. Se guardan dentro de la toma abierta en el editor,
-o, para una canción nueva, dentro de la última de ellas (consulta **Tomas dentro de una toma**, en La biblioteca). El editor se cierra, así que vuelves a la biblioteca
-donde se están haciendo las tomas. Una canción o un instrumental escribe su plan y pasa directamente a
-renderizar.
+**Dónde están.** Se guardan bajo su LoRA en el selector: **▸ 9 pasos** junto al nombre del LoRA los abre (Configuración puede eliminarlos en su lugar, para ahorrar espacio). Un checkpoint cuyo LoRA se eliminó queda en **Checkpoints de entrenamiento**.
+
+**Quitar algunos.** Pulsa **Editar** en el corpus: **Checkpoints de entrenamiento** allí enumera los de cada ejecución, esta y las anteriores, con sus tamaños. Marca los que sobran y pulsa **Eliminar**. El LoRA terminado no aparece; tiene su propio **Eliminar LoRA**.
+
+**Escucharlos uno junto a otro:**
+
+1. Elige el LoRA y prepara el editor como lo harías para una toma.
+2. Pulsa **Checkpoints**, junto a **Eliminar LoRA** (en gris para un LoRA sin checkpoints).
+3. Marca los pasos que quieres, pon un límite de duración para estas tomas si quieres, y pulsa **Renderizar**.
+
+La propia acción del editor se ejecuta una vez en cada checkpoint, todas con una semilla, y cada toma lleva el nombre de su paso: *Night drive · step 250*, *Night drive · full*. Se guardan dentro de la toma abierta en el editor o, para una canción nueva, dentro de la última de ellas (ver **Tomas dentro de una toma**, en La biblioteca). El editor se cierra, así que vuelves a la biblioteca donde se están haciendo las tomas. Una canción o una instrumental escribe su plan y pasa directamente a renderizar.
 
 En una canción o un instrumental, la LoRA escribe la melodía además de dar forma al sonido, así que la misma
 semilla no da la misma canción: cada checkpoint escribe su propia melodía y estructura. La semilla
@@ -1206,15 +1199,12 @@ Las palabras que habías escrito pero no usaste no se tiran: una barra ofrece re
 
 ### Espacios {#spaces}
 
-Las tomas viven en **espacios**: un espacio por canción, por álbum, o para bocetos. El nombre del espacio sobre las tomas
-es el que se muestra, y todo lo que haces llega ahí. Haz clic en él para la lista de espacios: escribe para encontrar uno por
-nombre, o elígelo con las flechas e Intro. Los cinco que usaste últimamente van primero, y luego todos los espacios, cada uno con
-cuántas tomas tiene. **Espacio nuevo**, **Renombrar este espacio**, **Importar toma…** y **Eliminar este espacio** están al
-pie de la lista. Borrar un espacio nunca borra tomas —
-pasan a Default. Las grabaciones las comparten todos los espacios, así que una misma grabación puede versionarse en
-varios.
+Las tomas viven en **espacios**: un espacio por canción, por álbum o para bocetos. El nombre del espacio sobre las tomas es el que se muestra, y todo lo que haces va allí.
 
-El botón de carpeta de una tarjeta mueve esa toma a otro espacio, con las tomas que contenga.
+- **Elegir uno:** haz clic en el nombre para ver la lista de espacios. Escribe para encontrar uno por nombre, o elígelo con las flechas e Intro. Los cinco que usaste por última vez van primero, luego todos los espacios, cada uno con cuántas tomas tiene.
+- **Espacio nuevo**, **Renombrar este espacio**, **Importar toma** y **Eliminar este espacio** están al pie de la lista. Eliminar un espacio nunca elimina tomas: pasan a Default.
+- **Mover una toma:** el botón de carpeta de una tarjeta mueve esa toma a otro espacio, con las tomas que contenga.
+- Las grabaciones son comunes a todos los espacios, así que una grabación puede versionarse en varios.
 
 ### Tomas dentro de una toma {#takes-inside-a-take}
 
@@ -1251,55 +1241,44 @@ Las tomas hechas antes de que existiera esto se quedan donde están, una al lado
 
 ### Tarjetas {#cards}
 
-Cada tarjeta nombra los ajustes que le dieron forma — Armonía, Interpretación, Variedad del plan, la LoRA y
-sus fuerzas, la semilla, el motor que la renderizó y su antigüedad — para que una tarjeta se lea como la receta que la hizo.
+Cada tarjeta nombra los ajustes que dieron forma a la toma — Armonía, Interpretación, la voz grabada, Variedad del plan, el LoRA y sus intensidades, la semilla, el motor que la renderizó y su antigüedad —, así que una tarjeta se lee como la receta que la hizo. Un título se queda siempre en una línea y termina en … cuando es largo; pasa el puntero por el título, los ajustes o el estilo de una tarjeta para leerlo entero.
 
-**Guardar** pregunta en qué formato descargar la toma, FLAC, WAV o MP3. Empieza con lo que guardaste la última
-vez, y sin nada elegido la primera vez. Una toma con imagen también se puede guardar como **Vídeo**: un MP4 de
-la canción que muestra la imagen de su tarjeta (vídeo H.264, audio AAC a 192 kbps). Las aplicaciones de mensajería como
-WhatsApp lo envían y reproducen como vídeo, donde un archivo de audio va como documento. Con el rack de masterización activo, el
-vídeo tiene el sonido masterizado, como los demás formatos. **Toma**, a su lado, guarda además la receta de la toma: un archivo pequeño
-(`<title>.yeufonic.json`) con su letra, su estilo y su partitura, sus semillas y ajustes, sus LoRA por nombre y
-los ajustes del rack de masterización, pero no su audio. Con un formato elegido también, ambos van en un zip; pulsa de nuevo el
-formato elegido para guardar solo la receta. El archivo no contiene nada de tu instalación (ni rutas, ni identificadores, ni claves),
-así que se puede conservar, o compartir con otro usuario de Yeufonic.
+**Guardar** pregunta en qué formato descargar la toma. Empieza con lo que guardaste la última vez, y sin nada elegido la primera vez.
 
-**Importar toma…**, en la lista de espacios, crea a partir de un archivo así una toma nueva en el espacio mostrado; soltar el archivo
-en la biblioteca hace lo mismo. La toma contiene el plan, listo para renderizar, para poder revisarlo o cambiarlo antes.
-Cualquiera de los dos motores puede renderizarla: la misma partitura y la misma semilla en el mismo motor dan una toma muy parecida, en el otro
-motor una distinta. Una LoRA que nombra y que no está instalada aquí se señala al importar, para que puedas
-instalarla o elegir otra antes de renderizar. La grabación de una versión no está en el archivo, así que una versión compartida llega
-como una canción con la partitura y la letra de la versión, dejando atrás los ajustes que pertenecían a su grabación (el
-tempo fijado, la Armonía, las indicaciones de voz y el límite de duración): un plan nuevo a partir de ella empieza como una canción a partir de un prompt.
+- **FLAC, WAV o MP3:** el audio.
+- **Vídeo**, para una toma con imagen: un MP4 de la canción que muestra la imagen que muestra su tarjeta (vídeo H.264, audio AAC a 192 kbps). Las apps de mensajería como WhatsApp lo envían y reproducen como vídeo, donde un archivo de audio va como documento.
+- **Toma**, junto a ellos: la receta de la toma, un archivo pequeño (`<title>.yeufonic.json`) con su letra, estilo y partitura, sus semillas y ajustes, sus LoRAs por nombre y los ajustes del rack de masterización, pero no su audio. Con un formato elegido también, ambos llegan en un zip; pulsa otra vez el formato elegido para guardar solo la receta. El archivo no contiene nada de tu instalación (ni rutas, ni ids, ni claves), así que puede guardarse o compartirse con otra persona que use Yeufonic.
+- Con el rack de masterización activo, todos los formatos tienen el sonido masterizado.
 
-**Buscar tomas** encuentra las tomas en las que todas las palabras que escribes aparecen en algún lugar del título, el estilo, la letra o el
-nombre de la LoRA, sin distinguir mayúsculas. Busca en el espacio mostrado; **Todos los espacios**, a su lado en cuanto escribes,
-busca en todos los espacios, y una tarjeta de otro espacio dice de cuál. × o Escape la borra. El
-cuadro empieza vacío cada vez que se abre la página, y ofrece tus últimas búsquedas que encontraron algo:
-haz clic en una, o elígela con las flechas e Intro.
+**Importar toma**, en la lista de espacios, crea una toma nueva en el espacio mostrado a partir de un archivo así; soltar el archivo en la biblioteca hace lo mismo. La toma contiene el plan, listo para renderizar, así que puede revisarse o cambiarse antes.
 
-**Canción**, **Versión** e **Instrumental** muestran tomas de esos tipos: enciende uno o más, o ninguno para todos los tipos.
-**Favoritas** muestra solo las tomas con estrella; haz clic otra vez para mostrarlas todas. Los iconos de al lado fijan cómo se disponen
-las tomas, los que están en uso iluminados en verde: tarjetas **cómodas** más anchas con más del prompt o **compactas** más estrechas,
-**todo el ancho** de la ventana o una columna centrada, y cada toma **plegada** a su línea de título. Pasa el ratón por
-un icono para leer lo que hace un clic.
+- Cualquiera de los dos motores puede renderizarla: la misma partitura y semilla en el mismo motor dan una toma muy parecida, en el otro motor una distinta.
+- Un LoRA que nombra y no está instalado aquí se nombra al importarla, para que puedas instalarlo o elegir otro antes de renderizar.
+- La grabación de una versión no va en el archivo, así que una versión compartida llega como canción con la partitura y la letra de la versión, dejando atrás los ajustes que pertenecían a su grabación (el bloqueo de tempo, Armonía, las indicaciones de voz y el límite de duración): un plan nuevo a partir de ella empieza como una canción desde un prompt.
 
-Marca tomas y la fila ofrece lo que se puede hacer con ellas, en lugar de los tipos y la disposición: cuántas están
-elegidas, **Comparar**, **Eliminar** y **Hecho**, que las desmarca. **Seleccionar todo**, al final de la fila, marca
-cada toma mostrada. Un título siempre se queda en una línea, terminado en … si es largo. Pasa el ratón por el título, los ajustes o el estilo de una tarjeta para leerlo entero.
+**Buscar tomas** encuentra las tomas que tienen cada palabra que escribes en algún lugar del título, el estilo, la letra o el nombre del LoRA, sin distinguir mayúsculas. Busca en el espacio mostrado; **Todos los espacios**, a su lado en cuanto escribes, busca en todos, y una tarjeta de otro espacio dice de cuál. × o Escape lo vacían. El cuadro empieza vacío cada vez que se abre la página, y ofrece tus últimas búsquedas que encontraron algo: haz clic en una, o elígela con las flechas e Intro.
+
+**Elegir qué se muestra y cómo:**
+
+| Control | Qué hace |
+|---|---|
+| **Canción**, **Versión**, **Instrumental** | Muestran tomas de esos tipos: enciende uno o varios, o ninguno para todos. |
+| **Favoritas** | Muestra solo las tomas marcadas con estrella; haz clic otra vez para verlas todas. |
+| Los iconos de diseño | Tarjetas **cómodas** más anchas con más del prompt, o **compactas** más estrechas; **todo el ancho** de la ventana o una columna centrada; cada toma **plegada** a su línea de cabecera. Los que están en uso se iluminan en verde; pasa el puntero por un icono para leer qué hace un clic. |
+
+Mientras las tomas están plegadas, el botón de arriba a la derecha de una tarjeta abre solo esa tarjeta, y un clic en cualquier sitio fuera de ella la vuelve a plegar. Una tarjeta plegada con stems muestra una pastilla **Stems**, que la abre del mismo modo.
+
+**Seleccionar tomas.** Marca tomas y la fila ofrece lo que se puede hacer con ellas, en lugar de los tipos y el diseño: cuántas hay elegidas, **Comparar**, **Eliminar** y **Hecho**, que las desmarca. **Seleccionar todo**, al final de la fila, marca todas las tomas mostradas.
 
 ### Una imagen para cada toma {#a-picture-for-each-take}
 
-Cada toma nueva recibe una imagen de la canción, que se ve tenue detrás de su tarjeta, en la parte superior del panel de la toma cuando la eliges, y detrás del editor cuando la toma está abierta
-allí. Dibujada en este PC, espera a que no se esté haciendo ninguna canción, así que nunca retrasa un plan o un render, y
-aparece poco después de que la canción termine; dibujada por un LLM externo, se hace mientras la toma se renderiza.
-Se hace en dos pasos: el título, el estilo y las primeras palabras de la toma se convierten en una **descripción** de
-una imagen, luego un modelo de imagen la **dibuja** sobre blanco, y se quita el blanco, dejando la imagen
-con un fondo transparente. Una toma hecha dentro de otra (Probar más, Variaciones, Checkpoints) muestra la
-imagen de la toma en la que está en lugar de tener una propia.
+Cada toma nueva recibe una imagen de la canción.
 
-Un modelo de imagen no dibuja un grupo o una persona reales, así que la descripción omite los nombres; y las
-letras propias de la imagen se mantienen suaves, para que no compitan con las de la tarjeta.
+- **Dónde se muestra:** tenue detrás de la tarjeta de la toma, en lo alto del panel de la toma cuando la eliges, y detrás del editor cuando la toma está abierta allí.
+- **Cuándo se hace:** dibujada en este PC, espera a que no se esté haciendo ninguna canción, así que nunca retrasa un plan ni un renderizado, y aparece poco después de que la canción termine. Dibujada por un LLM externo, se hace mientras la toma se renderiza.
+- **Cómo se hace,** en dos pasos: el título, el estilo y las primeras palabras de la toma se convierten en una **descripción** de una imagen, luego un modelo de imagen la **dibuja** sobre blanco, y el blanco se quita, dejando la imagen con fondo transparente.
+- **Una toma hecha dentro de otra** (Probar más, Variaciones, Checkpoints) muestra la imagen de la toma en la que está en lugar de tener una propia.
+- Un modelo de imagen no dibuja un grupo ni una persona reales, así que la descripción deja fuera los nombres; y las letras propias de la imagen se mantienen suaves, para que no compitan con las de la tarjeta.
 
 #### Dos formas de dibujar: FLUX.2 klein en este PC, o un LLM externo {#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm}
 
@@ -1445,24 +1424,24 @@ imágenes más rápidas, o en *LLM externo* (una petición por imagen).
 
 #### La imagen de una toma en el editor {#a-take-s-picture-in-the-editor}
 
-El icono **Imagen** en la fila superior de la ventana del editor, junto a los demás botones de la toma, muestra la imagen
-con dos opciones: **Hacer una imagen nueva**, que la vuelve a hacer en segundo plano, y **Usar el fondo por defecto**, que la quita para siempre: no se vuelve a hacer imagen para esa toma salvo que pidas una.
-Haz clic en la imagen para verla entera, tan grande como permita la ventana; un clic en cualquier sitio o Escape
-la retira y deja el editor como estaba. La imagen entera tiene las mismas dos opciones debajo. Elige
-ahí **Hacer una imagen nueva** y la imagen se queda a la vista mientras se hace la nueva, con lo que está pasando mostrado
-entre los botones, y luego cambia a la nueva cuando está lista.
+El icono **Imagen** en la fila superior de la ventana del editor, junto a los demás botones de la toma, muestra la imagen con dos opciones:
 
-En la tarjeta de una toma, el cuadrado de arriba a la izquierda muestra la imagen cuando pasas el ratón por él. Una toma sin
-imagen ofrece ahí **Hacer una imagen nueva** en su lugar, donde este PC puede hacer imágenes.
+- **Hacer una imagen nueva** la vuelve a hacer en segundo plano.
+- **Usar el fondo por defecto** la quita para siempre: no se vuelve a hacer ninguna imagen para esa toma salvo que la pidas.
+
+Haz clic en la imagen allí para verla entera, tan grande como permite la ventana; un clic en cualquier sitio o Escape la quita y deja el editor como estaba. La imagen entera tiene las mismas dos opciones debajo: elige allí **Hacer una imagen nueva** y la imagen se queda mientras se hace la nueva, con lo que está pasando entre los botones, y luego cambia a la nueva cuando está lista.
+
+En la tarjeta de una toma, el cuadrado de arriba a la izquierda muestra la imagen cuando pasas el puntero por encima. Una toma sin imagen ofrece ahí **Hacer una imagen nueva**, donde este PC puede hacer imágenes.
 
 ### Comparar tomas {#comparing-takes}
 
-Marca de dos a seis tomas y pulsa **Comparar** (aparece junto a Seleccionar todo cuando hay dos marcadas, y
-espera a las tomas que aún se renderizan). Las tomas se apilan en una ventana sobre una posición compartida: pulsa de **1** a
-**6** o haz clic en una para cambiar, y sigue desde el mismo momento de la canción, sonando o
-en pausa. **Espacio** reproduce y pausa, las flechas avanzan 5 segundos, y la estrella marca la que
-prefieres. **Igualar el volumen** baja las tomas más fuertes hasta la más suave, ya que una toma más fuerte tiende
-a sonar mejor; **Ocultar nombres** baraja las tomas y las llama Toma A, B, C para una escucha a ciegas.
+Marca de dos a seis tomas y pulsa **Comparar** (aparece junto a Seleccionar todo en cuanto hay dos marcadas, y espera a las tomas que aún se renderizan). Las tomas se apilan en una ventana sobre una posición compartida:
+
+- Pulsa **1** a **6**, o haz clic en una, para cambiar: sigue desde el mismo momento de la canción, sonando o en pausa.
+- La **barra espaciadora** reproduce y pausa, y las flechas avanzan 5 segundos.
+- La estrella marca la que prefieres.
+- **Igualar el volumen** baja las tomas más fuertes al nivel de la más baja, ya que una toma más fuerte tiende a sonar mejor.
+- **Ocultar nombres** baraja las tomas y las llama Toma A, B, C para una escucha a ciegas.
 
 ### El reproductor {#the-player}
 
@@ -1622,11 +1601,17 @@ el menú: qué versión tienes, y si es la última.
 
 Cuando hay una más nueva, el menú ofrece **Obtener x.y.z**, que descarga el instalador en una instalación de Windows o pone los dos comandos en el portapapeles para una copia Docker.
 
-**Tema** fija el aspecto de la aplicación: **Oscuro**, **Claro**, **Como el ordenador (oscuro o claro)**, que sigue el claro u oscuro de tu
-sistema y cambia con él, **Estudio**, un oscuro cálido con ámbar, o **Alto contraste**, blanco y negro
-con contornos marcados. Cambia al momento, y cada navegador lo recuerda
-para que la página se abra así. La ventana de registros sigue oscura en todos los temas, como un terminal. El rack de masterización también sigue el tema: en el tema claro sus paneles son de plata cepillada, mientras sus mandos,
-ventanas de medidores y pantallas mantienen el aspecto oscuro del hardware.
+**Tema** fija el aspecto de la app. Cambia al instante, y cada navegador lo recuerda para que la página se abra con él.
+
+| Tema | Aspecto |
+|---|---|
+| **Oscuro** | El aspecto oscuro propio de la app. |
+| **Claro** | Paneles claros; los paneles del rack de masterización son de plata cepillada, mientras sus mandos, ventanas de medidores e indicadores mantienen el aspecto oscuro del hardware. |
+| **Como el ordenador** | Sigue el claro u oscuro de tu sistema, y cambia con él. |
+| **Estudio** | Un oscuro cálido con ámbar. |
+| **Alto contraste** | Blanco y negro, con contornos marcados. |
+
+La ventana de registros se queda oscura en todos los temas, como una terminal, y el rack de masterización también sigue el tema.
 
 **Color de fondo**, bajo Tema, tiñe la página detrás de las tomas con un color que elijas: marca **Tinte**, luego
 mueve **Tono** por la rueda de colores y **Intensidad** de un leve velo a un color intenso. La página cambia mientras

@@ -56,43 +56,65 @@ leuchtet, solange der Take andere enthält, und schließt das Fenster, um sie un
 
 ### Eine aufgenommene Stimme {#a-recorded-voice}
 
-Ein Take kann mit einer Stimme gesungen werden, die aus Aufnahmen eines Menschen trainiert wurde: deiner eigenen
-oder der des Sängers eines Korpus. Stimmen legst du auf der Seite **Stimmen** im Menü an und verwaltest sie dort; im Feld
-*Aufgenommene Stimme* des Editors wählst du eine, wenn du einen Take machst. Ein Take mit Stimme wird wie gewohnt gerendert;
-dann wird sein Gesang getrennt, mit der Stimme neu gesungen und wieder über den Rest gemischt, bevor sein Pegel gemessen wird.
-Dafür braucht es den optionalen Stimmendienst („Recorded voices“ in der README); ohne ihn ist das Feld ausgeblendet.
+Ein Take kann mit einer Stimme gesungen werden, die aus Aufnahmen von jemandem trainiert wurde, der singt: deine eigene oder die Sängerin oder der Sänger eines Korpus. Der Take wird wie üblich gerendert; dann wird sein Gesang getrennt, mit der Stimme neu gesungen und wieder über den Rest gemischt. Stimmen werden auf der Seite **Stimmen** im Menü erstellt und verwaltet. Dafür braucht es den optionalen Stimmdienst (in der README „Recorded voices“); ohne ihn sind die Stimmfelder ausgeblendet.
 
-**Neue Stimme** legt entweder eine Stimme aus deinen eigenen Aufnahmen an oder eine, die mit den Songs eines Korpus
-trainiert wird. Eine Stimme aus Aufnahmen beginnt leer, und ihre Seite sammelt sie: **Aufnehmen…** öffnet den Recorder, und
-jeder Take, den du behältst, kommt so zur Stimme, wie er gesungen wurde, nie mit Autotune; **Hochladen…** nimmt Audiodateien;
-**Aus der Bibliothek…** fügt Aufnahmen hinzu, die du schon hast, etwa einen Gesang, den du für ein Cover aufgenommen hast, mit
-einem Player an jeder, um sie vorher anzuhören. Eine Aufnahme aus der Bibliothek wird verknüpft, nicht kopiert. Die Seite zählt
-den Gesang gegen die Minuten, mit denen eine Stimme trainiert: etwa zehn Minuten über deinen ganzen Umfang reichen, und schon
-eine kurze Aufnahme ergibt eine erkennbare Stimme. Jede Aufnahme sagt, ob sie reiner Gesang ist (**nur Gesang**, angehakt bei
-dem, was du hier aufgenommen hast) oder ein Song, der zuerst getrennt wird. Dann drückst du **Trainieren**.
+#### Eine Stimme erstellen {#making-a-voice}
 
-Das Training wartet auf der GPU, bis es an der Reihe ist, und zeigt seinen Fortschritt in der Job-Pille und im Protokoll.
-**Erneut trainieren** trainiert mit den Aufnahmen, wie sie jetzt sind, oder mit den Songs des Korpus. Eine inzwischen aus der
-Bibliothek gelöschte Aufnahme bleibt außen vor. Die Seite bewahrt **Woraus sie gelernt hat** auf, den getrennten Gesang jedes
-Songs und die trainierten Ausschnitte, zum Anhören.
+**Neue Stimme** erstellt eine Stimme aus deinen eigenen Aufnahmen oder eine, die auf den Songs eines Korpus trainiert wird. Eine Stimme aus Aufnahmen beginnt leer, und ihre Seite sammelt sie:
 
-**Oktave** verschiebt die Stimme um eine ganze Oktave nach oben oder unten, für einen Sänger, dessen Umfang weit von dem des
-Takes entfernt ist. **Gesangspegel** und **Instrumentenpegel** stellen das Verhältnis im neuen Mix ein, und **Ähnlichkeit**, wie
-eng die Stimme beim eigenen Klang des Sängers bleibt: höher klingt ihm ähnlicher und kann bearbeiteter klingen. Bei 100 % kann die Stimme die Wörter verlieren: Sie behält nur die gelernten Laute, sodass Wörter, die der Sänger nie gesungen hat, verstümmelt herauskommen können; der Editor weist darauf hin. **Raum** legt
-einen kurzen Raum unter den umgewandelten Gesang (*Trocken*, *Dezent* oder *Mehr*), damit er im Mix sitzt, und **Brillanz** auf
-*Auto* hebt seine Höhen auf die des gerenderten Gesangs an; *Aus* lässt sie wie umgewandelt. **Atem und Konsonanten** legt fest,
-wie weit diese die Laute des gerenderten Gesangs behalten: *Bewahrt* bleibt klar, trägt aber eine Spur davon, *Umgewandelt* kann
-reißen. **Dynamik** legt fest, wessen Lautstärke der Gesang von Phrase zu Phrase folgt: der des Takes, wie gerendert, oder den
-eigenen Schwellungen der Stimme. **Formant** ändert die Größe der Stimme bei gleicher Tonhöhe: *Tiefer* klingt größer, *Heller* kleiner. **Mischung** legt fest, wie viel des Gesangs die Stimme singt; der Rest ist der gerenderte Gesang, aus dem sie entstand. Das sind die Voreinstellungen der Stimme. Im Editor wählst du die Stimme unter **Aufgenommene Stimme**; **Einstellungen** daneben öffnet diese Einstellungen, um sie für einen Take zu ändern, und zeigt an, wenn der Take eigene hat. **Anhören** spielt dort die Stimme, die eine kurze Schleife singt, einen Mann oder eine Frau, mit den Einstellungen, wie sie sind, immer wieder, während du sie änderst, und **Als neue Stimme speichern…** behält, was du hörst, als eigene Stimme mit demselben Modell. Eigene Schleifen kommen dazu: Lege eine kurze Aufnahme einer einzelnen Stimme, trocken gesungen, 15 bis 30 Sekunden, in den Ordner *voice-loops* der Bibliothek (`data/voice-loops` mit Docker; unter Windows im Ordner `data` der Installation, sofern `data_dir` in `settings.ini` keinen anderen Bibliotheksordner nennt); sie erscheint mit ihrem Dateinamen, wenn **Einstellungen** das nächste Mal geöffnet wird. Gelesen werden FLAC, WAV, MP3, M4A, OGG und Opus. Einstellungen → *Stimmentraining* legt fest, aus wie viel Gesang eine Stimme lernt und mit wie vielen
-Durchläufen.
+- **Aufnehmen…** öffnet den Rekorder. Jeder Take, den du behältst, geht so an die Stimme, wie er gesungen wurde, nie per Autotune korrigiert.
+- **Hochladen…** nimmt Audiodateien.
+- **Aus der Bibliothek…** fügt Aufnahmen hinzu, die du schon hast, etwa einen Gesang, den du für ein Cover aufgenommen hast. Jede hat einen Player, um sie vorher anzuhören, und wird verknüpft, nicht kopiert.
 
-Das Ergebnis ist ein umgewandelter Gesang über einer getrennten Begleitung, also weniger nahtlos als ein Gesang, den das Modell
-selbst gesungen hat. Saubere, trockene Aufnahmen ergeben die sauberste Stimme. **Stimme herunterladen** speichert eine
-trainierte Stimme als ZIP, um sie weiterzugeben, und **Stimme importieren…** fügt eine hinzu: diese ZIP oder ein RVC-Modell von
-anderswo (seine ZIP oder seine .pth und .index zusammen ausgewählt). Eine ohne Index importierte Stimme bekommt ihn später mit **Index hinzufügen…**: Ähnlichkeit greift darauf zurück. Fertige Stimmen, von anderen trainierte RVC-Modelle, gibt es auf Seiten wie [voice-models.com](https://voice-models.com/): **Stimme importieren…** nimmt die ZIP so, wie sie heruntergeladen wurde. Das Rezept eines Takes nennt seine Stimme und die Einstellungen des Takes
-dafür, und beim Import wird die Stimme dieses Namens auf dieser Installation verwendet, falls es sie gibt.
+Jede Aufnahme sagt, ob sie eine Stimme allein ist (**nur Gesang**, angehakt für das, was du hier aufgenommen hast) oder ein Song, der zuerst getrennt wird. Die Seite zählt den Gesang: etwa zehn Minuten über deinen Tonumfang sind reichlich, und schon eine kurze Aufnahme ergibt eine erkennbare Stimme. Dann drücke **Trainieren**.
 
-Eine Stimme lernt den Hall und die Produktion der Aufnahme mit dem Sänger zusammen, daher ergibt sauberer Gesang mit klarem Leadgesang eine sauberere Stimme als ein Korpus gemischter Lieder. Ein einzelnes Lied oder eine kurze Aufnahme ergibt eine erkennbare Stimme, die aber Wörter verwischen kann, die sie nie gesungen gehört hat. Eine Stimme, die auf viel mehr Gesang und mit viel mehr Durchgängen trainiert wurde, wie es fertige Stimmen oft sind, behält die Wörter auch bei hoher Ähnlichkeit.
+Das Training wartet, bis die GPU frei ist, und zeigt seinen Fortschritt in der Job-Anzeige und im Protokoll. **Erneut trainieren** trainiert mit den Aufnahmen, wie sie jetzt sind, oder mit den Songs des Korpus. **Woraus sie gelernt hat** bewahrt den getrennten Gesang jedes Songs und die trainierten Ausschnitte zum Anhören auf. Einstellungen → *Stimmentraining* legt fest, aus wie viel Gesang eine Stimme lernt und mit wie vielen Durchläufen.
+
+#### Einstellungen einer Stimme {#settings-for-a-voice}
+
+Das sind die Voreinstellungen der Stimme, auf ihrer Seite festgelegt. Ein Take kann eigene haben (unten).
+
+| Einstellung | Was sie tut |
+|---|---|
+| **Oktave** | Verschiebt die Stimme um eine ganze Oktave nach oben oder unten, für jemanden, dessen Tonumfang weit von dem des Takes entfernt ist. |
+| **Gesangspegel**, **Instrumentenpegel** | Die Balance des Remixes. |
+| **Ähnlichkeit** | Wie nah die Stimme an den eigenen Klängen der singenden Person bleibt. Höher klingt ähnlicher und kann bearbeiteter klingen. Bei 100 % kann die Stimme die Wörter verlieren: Wörter, die sie die Person nie singen hörte, können verstümmelt herauskommen, und der Editor sagt es. |
+| **Formant** | Die Größe der Stimme bei gleicher Tonhöhe: *Tiefer* klingt größer, *Heller* kleiner. |
+| **Mischung** | Wie viel des Gesangs die Stimme singt; der Rest ist der gerenderte Gesang, aus dem sie entstand. |
+| **Raum** | Ein kurzer Raum unter dem umgewandelten Gesang (*Trocken*, *Dezent* oder *Mehr*), damit er im Mix sitzt. |
+| **Brillanz** | *Auto* hebt seinen oberen Bereich an den des gerenderten Gesangs an; *Aus* lässt ihn wie umgewandelt. |
+| **Atem und Konsonanten** | Wie weit sie die eigenen Klänge des gerenderten Gesangs behalten: *Bewahrt* bleibt klar, trägt aber eine Spur davon, *Umgewandelt* kann reißen. |
+| **Dynamik** | Wessen Lautstärke der Gesang von Phrase zu Phrase folgt: der des Takes, wie gerendert, oder den eigenen Schwellungen der Stimme. |
+
+#### Eine Stimme in einem Take verwenden {#using-a-voice-in-a-take}
+
+Wähle im Editor die Stimme unter **Aufgenommene Stimme**. **Einstellungen** daneben öffnet die Einstellungen oben nur für diesen Take; der Take behält sie, und die Schaltfläche zeigt *eigene Einstellungen*, wenn sie von denen der Stimme abweichen.
+
+#### Eine Stimme anhören, bevor du sie verwendest {#hearing-a-voice-before-you-use-it}
+
+**Anhören**, in diesen Einstellungen, spielt die Stimme, die eine kurze Schleife singt, *Ein Mann singt* oder *Eine Frau singt*, immer wieder, während du die Einstellungen änderst, sodass du jede Änderung hörst, während du sie machst. **Als neue Stimme speichern…** behält, was du hörst, als eigene Stimme mit demselben Modell.
+
+**Eigene Schleifen.** Die beiden Schleifen kommen mit der App; du kannst eigene hinzufügen:
+
+1. Finde oder nimm 15 bis 30 Sekunden einer einzelnen Stimme auf, die allein singt: trocken, ohne Begleitung, Hall oder Harmonien.
+2. Speichere sie als FLAC, WAV, MP3, M4A, OGG oder Opus, unter dem Namen, der angezeigt werden soll.
+3. Lege sie in den Ordner *voice-loops* der Bibliothek: `data/voice-loops` mit Docker; unter Windows im Ordner `data` der Installation, sofern `data_dir` in `settings.ini` keinen anderen Bibliotheksordner nennt.
+4. Öffne **Einstellungen** erneut: Sie erscheint mit ihrem Dateinamen.
+
+#### Stimmen teilen und importieren {#sharing-and-importing-voices}
+
+- **Stimme herunterladen** speichert eine trainierte Stimme als ZIP, um sie weiterzugeben.
+- **Stimme importieren…** fügt eine hinzu: diese ZIP oder ein RVC-Modell von anderswo (seine ZIP oder seine .pth und .index zusammen ausgewählt). Eine ohne Index importierte Stimme bekommt ihn später mit **Index hinzufügen…**: Ähnlichkeit greift darauf zurück.
+- **Fertige Stimmen**, von anderen trainierte RVC-Modelle, gibt es auf Seiten wie [voice-models.com](https://voice-models.com/): **Stimme importieren…** nimmt die ZIP so, wie sie heruntergeladen wurde.
+- Das Rezept eines Takes nennt seine Stimme und die Einstellungen des Takes dafür, und beim Import wird die Stimme dieses Namens auf dieser Installation verwendet, falls es sie gibt.
+
+#### Eine saubere Stimme bekommen {#getting-a-clean-voice}
+
+Das Ergebnis ist ein umgewandelter Gesang über einer getrennten Begleitung, daher ist es weniger nahtlos als ein Gesang, den das Modell selbst gesungen hat.
+
+- Eine Stimme lernt den Hall und die Produktion der Aufnahme mit der singenden Person zusammen, daher ergibt sauberer, trockener Gesang mit klarem Leadgesang eine sauberere Stimme als ein Korpus gemischter Lieder.
+- Ein einzelnes Lied oder eine kurze Aufnahme ergibt eine erkennbare Stimme, die aber Wörter verwischen kann, die sie nie gesungen gehört hat.
+- Eine Stimme, die auf viel mehr Gesang und mit viel mehr Durchläufen trainiert wurde, wie es fertige Stimmen oft sind, behält die Wörter auch bei hoher Ähnlichkeit.
 
 ### Erweiterte Einstellungen {#advanced-settings}
 
@@ -151,26 +173,25 @@ wie hauchig oder rau. Sie sind eine Abkürzung zum Tippen, und du kannst das Erg
 
 ### Den Songtext entwerfen {#drafting-the-lyrics}
 
-**Die Struktur.** Über dem Textfeld hat ein Song, solange es keine Wörter enthält, eine **Struktur** zum Bauen, wie
-ein Instrumental: eine Liste von Abschnitten, die du umsortieren, entfernen und ergänzen kannst (Intro, Strophe, Pre-Chorus, Refrain, Bridge,
-Zwischenspiel, Outro). **Beginnen mit…** füllt sie mit einer gängigen Form, und der Tooltip jeder Form sagt, wozu sie passt. Ein
-**Zwischenspiel** ist eine instrumentale Passage: Der Schreiber setzt seinen Tag auf eine eigene Zeile, und der Planner spielt es mit
-der Instrumentenstimme. **Teile ins Songtextfeld setzen** setzt die Tags als leere Abschnitte ein, unter die du von Hand schreibst.
-Sobald das Feld Wörter hat, wird der Text gesungen und die Struktur tritt zurück.
+**Die Struktur.** Über dem Songtextfeld hat ein Song, solange es keine Wörter enthält, eine **Struktur** zum Aufbauen, wie ein Instrumental: eine Liste von Teilen, die du umordnen, entfernen und ergänzen kannst (Intro, Strophe, Pre-Chorus, Refrain, Bridge, Zwischenspiel, Outro).
 
-**Songtext schreiben** neben dem Textfeld fragt, worum es im Song geht, und schreibt Wörter für die Abschnitte, die du gebaut hast.
-**Zeilen in einer Strophe oder einem Refrain** legt fest, wie lang jeder ist: Mehr Zeilen in einem Abschnitt ergeben einen längeren Song, weil der
-Planner ungefähr so viel Musik schreibt, wie es Wörter gibt. Der Stil darüber bestimmt die Stimmung. Gemma schreibt den Entwurf auf derselben
-Engine, und er landet im Feld, mit einem Titel, falls du keinen angegeben hattest; eine [externe LLM](#external-llm) kann ihn stattdessen schreiben, eingerichtet in den Einstellungen. Das Fenster schließt sich, sobald der Entwurf beginnt, und der Fortschritt erscheint neben dem Textfeld.
-Die Schaltflächen des Texteditors fügen diese Abschnitte ebenfalls ein, dazu Stimmanweisungen (+ Männlich, + Weiblich, + Beide).
+- **Beginnen mit…** füllt sie mit einer gängigen Form, und der Tooltip jeder Form sagt, wozu sie passt.
+- Ein **Zwischenspiel** ist ein instrumentaler Abschnitt: Der Schreiber setzt seinen Tag in eine eigene Zeile, und der Planer spielt ihn mit der Instrumentenstimme.
+- **Teile ins Songtextfeld setzen** fügt die Tags als leere Teile ein, um darunter von Hand zu schreiben.
+- Sobald das Feld Wörter hat, ist der Songtext das, was gesungen wird, und die Struktur tritt zurück.
 
-**Wie die Zeilen klingen** legt Rhythmus und Reim fest, die der Schreiber anstrebt. *Natürlich* (der Standard) mischt kurze und lange
-Zeilen mit einigen Reimen. *Regelmäßiger Reim* ist die traditionelle Form gleichmäßiger Zeilen, die sich paarweise reimen, also das,
-was der Schreiber vor dieser Wahl erzeugt hat. *Gesprochener Rhythmus* ist gesprächig, wie Sprache oder Rap; *Lockerer
-Reim* reimt nur einige Zeilen; *Kurz und prägnant* und *Lang und fließend* bestimmen die Zeilenlänge.
+**Songtext schreiben**, neben dem Songtextfeld, fragt, worum es im Song geht, und schreibt Wörter für die Teile, die du aufgebaut hast.
 
-Es ist ein erster Entwurf. Die Zeilen haben Metrum und Reim, aber ein Modell greift zu vertrauten Bildern, und nichts
-prüft, ob eine Zeile schon jemand anderem gehört. Lies ihn und mach ihn zu deinem, bevor du planst.
+- **Zeilen in einer Strophe oder einem Refrain** legt fest, wie lang jeder ist: Mehr Zeilen in einem Teil ergeben einen längeren Song, weil der Planer etwa so viel Musik schreibt, wie es Wörter gibt.
+- Der Stil darüber bestimmt die Stimmung.
+- Gemma schreibt den Entwurf auf derselben Engine, und er landet mit einem Titel im Feld, falls du keinen angegeben hattest; ein [externes LLM](#external-llm) kann ihn stattdessen schreiben, eingerichtet in den Einstellungen.
+- Das Fenster schließt sich, sobald der Entwurf beginnt, und der Fortschritt erscheint neben dem Songtextfeld.
+
+Die Schaltflächen des Songtext-Editors fügen jeden dieser Teile ebenfalls ein, dazu Stimmhinweise (+ Mann, + Frau, + Beide).
+
+**Wie die Zeilen klingen** legt Rhythmus und Reim fest, die der Schreiber anstrebt, von *Natürlich* (der Standard) bis *Kurz und knackig* oder *Lang und fließend*: [Die Wörter](#the-words) listet jede Wahl auf.
+
+Es ist ein erster Entwurf. Die Zeilen haben Metrum und Reim, aber ein Modell greift zu vertrauten Bildern, und nichts prüft, ob eine Zeile schon jemand anderem gehört. Lies ihn und mach ihn zu deinem, bevor du planst.
 
 ---
 
@@ -277,24 +298,19 @@ I wait beside the ticket line
 Carry me over, carry me home
 ```
 
-Schreibe eine Anweisung als `[male voice]`, `[female voice]` oder `[both voices]`, jede auf einer eigenen Zeile in eckigen Klammern.
-Der erweiterte Texteditor hat die Schaltflächen **+ Männlich**, **+ Weiblich** und **+ Beide** in seiner Kopfzeile, um sie am Cursor einzufügen.
-Das sind die Formen, mit denen die Funktion erprobt wurde, dazu `vocal` für `voice` (`[female vocal]`) und
-`[male and female voices]` für beide. Du kannst nach einem Komma eigene Wörter anfügen, wie in
-`[female voice, soft and close]`; sie ändern nicht, wer singt. Ein Abschnitt ohne Anweisung bleibt dem Planner überlassen.
+Schreibe einen Hinweis als `[male voice]`, `[female voice]` oder `[both voices]`, jeweils in einer eigenen Zeile in eckigen Klammern.
 
-Andere Schreibweisen werden ebenfalls gelesen, damit anderswo geschriebene Texte nicht ignoriert werden: `[man]`, `[woman]`, `[duet]`, eine Anweisung
-im Tag eines Abschnitts wie `[Verse 2 - female vocal]` und eine Anweisung in runden Klammern, `(female voice)`. Eckige
-Klammern sind die sicherere Gewohnheit: Wörter in runden Klammern sind meist Backgroundgesang und werden womöglich gesungen.
+- Der erweiterte Songtext-Editor hat die Schaltflächen **+ Mann**, **+ Frau** und **+ Beide** in seiner Kopfzeile, um sie am Cursor einzufügen.
+- Das sind die Formen, mit denen die Funktion erprobt wurde, dazu `vocal` für `voice` (`[female vocal]`) und `[male and female voices]` für beide.
+- Du kannst nach einem Komma eigene Wörter anfügen, wie in `[female voice, soft and close]`; sie ändern nicht, wer singt.
+- Ein Teil ohne Hinweis bleibt dem Planer überlassen.
+- Andere Schreibweisen werden ebenfalls gelesen, damit anderswo geschriebene Songtexte nicht ignoriert werden: `[man]`, `[woman]`, `[duet]`, ein Hinweis im Tag eines Teils wie `[Verse 2 - female vocal]` und ein Hinweis in runden Klammern, `(female voice)`. Eckige Klammern sind die sicherere Gewohnheit: Wörter in runden Klammern sind meist Backgroundgesang und werden vielleicht gesungen.
 
-Eine Anweisung allein bestimmt die Stimme nicht. Wer singt, ergibt sich vor allem daraus, wie hoch die Melodie geschrieben ist: Dieselbe
-Zeile eine Oktave höher singt eine Frau, und der Planner schreibt eine Strophe gern in zwei Oktaven, mit Wechsel etwa alle vier
-Zeilen, egal wer angewiesen wurde. **Stimmen folgen den Hinweisen** (ein Haken unter dem Textfeld, gezeigt, sobald der Text
-eine Anweisung hat; für einen neuen Take an) hält die Anweisungen ein: Wenn der Plan geschrieben wird, wird jede angewiesene Strecke der Melodie um
-ganze Oktaven dorthin verschoben, wo diese Stimme singt, tief für einen Mann und hoch für eine Frau. Sonst ändert sich nichts am Plan. Es
-geschieht vor jedem Rendering erneut, folgt also einer Änderung am Text oder an der Partitur. Auf der Seite Partitur
-tut **Stimmen nach Hinweisen** dasselbe einmal an der Partitur im Feld, für einen Take, der ohne den Haken gemacht wurde; speichere die Partitur
-und rendere sie.
+**Ein Hinweis allein entscheidet nicht über die Stimme.** Wer singt, hängt vor allem davon ab, wie hoch die Melodie geschrieben ist: Dieselbe Zeile eine Oktave höher wird von einer Frau gesungen, und der Planer schreibt eine Strophe gern in zwei Oktaven und wechselt etwa alle vier Zeilen, egal, wer angegeben wurde.
+
+- **Stimmen folgen den Hinweisen** (ein Haken unter dem Songtextfeld, sichtbar, sobald der Songtext einen Hinweis hat; bei einem neuen Take an) bewahrt die Hinweise: Beim Schreiben des Plans wird jeder angegebene Abschnitt der Melodie um ganze Oktaven dorthin verschoben, wo diese Stimme singt, tief für einen Mann und hoch für eine Frau. Sonst ändert sich nichts am Plan.
+- Das geschieht vor jedem Rendern erneut, folgt also einer Änderung an den Wörtern oder an der Partitur.
+- Auf der Seite Partitur macht **Stimmen nach Hinweisen** dasselbe einmal für die Partitur im Feld, für einen Take ohne den Haken; speichere die Partitur und rendere sie.
 
 Drei Dinge, die man wissen sollte:
 
@@ -345,16 +361,38 @@ Tag ohne Zeilen darunter, wie `[Interlude]`, ist eine instrumentale Passage.
 - **Erweitert** (die Schaltfläche in der Kopfzeile): Diffusionsschritte, Dem Stil folgen, Vermeiden, Tonart fixieren, Tempo fixieren, die längste Partitur,
   Akkord-Haltegrenze, Bonus für Harmonie außerhalb, Abschnitte beginnen unterschiedlich, Ziellautheit und die Ausblendung am Ende. Siehe
   [Erweiterte Einstellungen](#advanced-settings).
-- **Mastering** (die Schaltfläche links davon, wenn der Take Klang hat) öffnet das Mastering-Rack über dem Editor für
-  den Take darin. Das Rack ist, in dieser Reihenfolge, ein EQ im Stil des 1073, ein parametrischer Equalizer, ein Kompressor, ein Stereo-Imager und
-  ein Limiter. Im Diagramm des parametrischen Equalizers ist jedes der sieben Bänder ein Punkt: Zieh ihn seitlich für seine Frequenz
-  und hoch oder runter für seine Verstärkung, dreh das Mausrad darüber für seine Breite, doppelklicke, um ihn zurückzusetzen. Die Leiste unter
-  dem Diagramm legt die Art des gewählten Bands fest (Low Cut, Low Shelf, Glocke, Notch, High Shelf, High Cut) und schaltet es ein
-  oder aus, **Flach** setzt jedes Band auf 0 dB zurück, und die Schaltfläche in der Ecke des Diagramms ändert, wie viele Dezibel das
-  Diagramm zeigt. Die Schaltfläche ist grün, solange das Rack den Klang des Takes verändert. Bei offenem Rack spielt die Leertaste
-  den Take und pausiert ihn, und die Pfeiltasten bewegen sich darin und stellen die Lautstärke ein, wie auf der Hauptseite. Escape schließt
-  das Rack, und erneut den Editor.
-- **3D-Raum**, ein Modul des Racks zwischen Imager und Limiter, setzt den Take für Kopfhörer um dich herum. Aus dem **Mix**: zwei virtuelle Lautsprecher vorn (**Width**) und zwei hinten (**Rear**); **Surround** bestimmt, wie viel von der Breite und dem Raumanteil des Mixes aus den hinteren kommt; die Lautsprecher lassen sich auch auf dem Kreis ziehen. **Height** hebt sie alle an, **Room** fügt einen kurzen Raum hinzu. Aus **Stems**: Jeder Stem des Takes wird für sich platziert; wähle einen unter dem Kreis, ziehe dann rund um den Kreis, um ihn zu platzieren, und das Mausrad fächert ihn auf (**Stems erstellen** öffnet das Stems-Fenster, wenn der Take keine hat). **Front**, **Wide** und **Around** stellen alles auf einmal ein. Was du hörst, ist für Kopfhörer und nie Teil der eigenen Datei des Takes: **Herunterladen** unter Kopfhörer speichert es als WAV, und **FLAC** und **AC-3** unter 5.1-Lautsprecher speichern den Take für Surround-Lautsprecher (aus Stems geht jeder an die Lautsprecher beiderseits seiner Position). Das Speichern-Fenster des Takes bietet dieselben Downloads, solange sein Raum an ist. Jedes Modul lässt sich mit dem Pfeil links in seiner Leiste einklappen, und der Take merkt sich, welche eingeklappt sind.
+- **Mastering** (die Schaltfläche links davon, wenn der Take Klang hat) öffnet das Mastering-Rack über dem Editor für den Take darin. Die Schaltfläche ist grün, solange das Rack verändert, wie der Take klingt. Die Module des Racks, der Reihe nach:
+
+  1. Ein EQ im Stil des 1073
+  2. Ein parametrischer Equalizer
+  3. Ein Kompressor
+  4. Ein Stereo-Imager
+  5. **3D-Raum** (unten)
+  6. Ein Limiter
+
+  Jedes Modul klappt mit dem Pfeil links auf seine Leiste zusammen, und der Take merkt sich, welche eingeklappt sind.
+
+  **Der parametrische Equalizer.** Jedes seiner sieben Bänder ist ein Punkt im Diagramm:
+
+  - Ziehe einen Punkt seitwärts für seine Frequenz und nach oben oder unten für seine Verstärkung.
+  - Drehe das Mausrad darüber für seine Breite; ein Doppelklick setzt ihn zurück.
+  - Die Leiste unter dem Diagramm legt die Art des gewählten Bands fest (Tiefensperre, Tiefenregal, Glocke, Kerbe, Höhenregal, Höhensperre) und schaltet es ein oder aus.
+  - **Flach** setzt jedes Band auf 0 dB zurück, und die Schaltfläche in der Ecke des Diagramms ändert, wie viele Dezibel es zeigt.
+
+  **Tasten.** Bei offenem Rack spielt die Leertaste den Take ab und pausiert ihn, und die Pfeiltasten bewegen sich darin und stellen die Lautstärke ein, wie auf der Hauptseite. Escape schließt das Rack und ein zweites Mal den Editor.
+
+- **3D-Raum**, ein Modul des Racks zwischen Imager und Limiter, platziert den Take für Kopfhörer um dich herum, auf eine von zwei Arten:
+
+  | Aus | Was du einstellst |
+  |---|---|
+  | **Mix** | Zwei virtuelle Lautsprecher vorn (**Breite**) und zwei hinten (**Hinten**), wobei **Surround** festlegt, wie viel von Breite und Atmosphäre des Mixes von denen hinten kommt; ziehe die Lautsprecher auch auf dem Kreis. **Höhe** hebt sie alle an und **Raum** fügt einen kurzen Raum hinzu. |
+  | **Stems** | Jeder Stem des Takes wird einzeln platziert: Wähle einen unter dem Kreis, ziehe dann um den Kreis, um ihn zu platzieren, und das Mausrad verbreitert ihn. **Stems erstellen** öffnet das Fenster Stems, wenn der Take keine hat. |
+
+  **Vorn**, **Weit** und **Rundum** stellen alles auf einmal ein. Was du hörst, ist für Kopfhörer und nie Teil der eigenen Datei des Takes. Um es zu behalten:
+
+  - **Herunterladen**, unter Kopfhörer, speichert es als WAV.
+  - **FLAC** und **AC-3**, unter 5.1-Lautsprecher, speichern den Take für Surround-Lautsprecher (aus Stems geht jeder an die Lautsprecher beiderseits seiner Position).
+  - Das Speichern-Fenster des Takes bietet dieselben Downloads, solange sein Raum aktiv ist.
 
 ### Den Song länger machen {#making-the-song-longer}
 
@@ -448,37 +486,25 @@ nicht die Partitur. Das Abspielen stoppt, was die Player-Leiste hatte, da zwei D
 nützen, und das Schließen des Fensters — oder der Wechsel zu Akkorde oder Text — stoppt ihn auch, damit nichts
 weiterspielt, ohne dass ein Regler erreichbar ist.
 
-**Instrumente** spielt jede Stimme mit einem Instrument, das der Stil nennt, statt durchgehend mit einem Klavier:
-Ein Stil, der *electric guitar, drums* sagt, wird mit einer Gitarre gehört, ihre Akkorde von
-einer anderen gespielt und ein Bass darunter; eine gesungene Linie wird durch eine Stimme vertreten, die Melodie eines Instrumentals
-nicht. Ein Stil, der Schlagzeug nennt, bekommt auch eine Schlagzeugspur, geschrieben im eigenen Metrum der Partitur
-— ein Backbeat für Rock, Four-on-the-floor für Dance, ein Ride für Jazz, etwas Spärlicheres für eine
-Ballade — und sie spielt durchgehend, da die Partitur keine Abschnitte hat, in denen sie aussetzen könnte. Die
-Zeile neben dem Player sagt, was er gewählt hat, und das Entfernen des Hakens kehrt zu dem Klavier zurück, das du
-sonst hören würdest. Das ist eine Lesart des Stils, nicht des Renderings: YuE2 entscheidet die
-echte Darbietung und fügt Stimmen hinzu, die die Partitur nie hatte, also betrachte es als den Plan in den richtigen
-Farben gespielt, nicht als das, wie der Take klingen wird.
+**Instrumente** spielt jede Stimme mit einem Instrument, das der Stil nennt, statt durchgehend Klavier:
 
-**MIDI herunterladen** speichert die Partitur für eine DAW. Jede Stimme ist eine eigene Spur, auf ihrem eigenen Kanal,
-mit dem Instrument, das die Vorschau benutzt hat, auf diesem Kanal eingestellt: die Gesangslinie, die Instrumentallinie und,
-sofern du den Haken bei **Akkorde** nicht entfernst, die Akkordsymbole als Akkordstimme mit ihrem Bass daneben (die einzige
-Stelle, an der die Harmonie als Noten geschrieben ist), und Schlagzeug auf Kanal 10, wenn der Stil danach fragt. Die
-Instrumente sind General-MIDI-Programmnummern, also spielt deine DAW sie mit ihren eigenen Klängen, und
-Tempo und Metrum stehen in der Datei. Ein Plan, der sein Metrum mittendrin ändert, wird im Metrum geschrieben, mit dem er
-beginnt — nur dieses wird festgehalten —, während die Noten ihre eigenen Längen behalten. Ein Klick auf eine Note in
-den Notenzeilen setzt den Cursor auf das ABC, das sie geschrieben hat.
+- Ein Stil, der *electric guitar, drums* sagt, ist mit einer Gitarre zu hören, seine Akkorde von einer weiteren gespielt und ein Bass darunter. Eine gesungene Linie wird durch eine Stimme vertreten, die Melodie eines Instrumentals nicht.
+- Ein Stil, der Schlagzeug nennt, bekommt auch eine Schlagzeugspur, gegen das eigene Metrum der Partitur geschrieben — ein Backbeat für Rock, Four-to-the-Floor für Dance, ein Ride für Jazz, etwas Sparsameres für eine Ballade — und sie spielt durchgehend, da die Partitur keine Teile hat, in denen sie aussetzen könnte.
+- Die Zeile neben dem Player sagt, was gewählt wurde, und das Abwählen kehrt zum Klavier zurück, das du sonst hören würdest.
 
-Eine Partitur mit einer Note über dem, was diese Instrumente spielen können, oder darunter, wird um ganze
-Oktaven verschoben gespielt, bis sie passt, und die Zeile neben dem Player sagt, wie weit; die Notenzeilen, die MIDI-Datei und
-die Partitur selbst bleiben unverändert. Die Instrumente sind nicht alle gleich groß — ein Bass endet weit unter
-einem Klavier —, deshalb gibt es die Zeile, wenn eine Partitur verschoben wird. Eine Partitur, die noch keine Noten hat,
-hat nichts zu spielen und sagt es.
+Das ist eine Lesart des Stils, nicht des Renderns: YuE2 bestimmt die eigentliche Darbietung und fügt Stimmen hinzu, die die Partitur nie hatte, also nimm es als den Plan in den richtigen Farben gespielt und nicht als das, wie der Take klingen wird.
 
-Der Player braucht seine Notensamples, die nicht Teil der App sind: Jedes Instrument hat etwa 7 MB,
-wird beim ersten Abspielen einer Vorschau damit von seiner ursprünglichen Quelle geholt und in der Bibliothek behalten, sodass
-es danach offline funktioniert. **Abspielen** holt, was die aktuelle Partitur braucht, und startet dann, und
-**Klänge laden** holt dasselbe, ohne abzuspielen, für alle, die es lieber vorher bereit
-haben.
+**MIDI herunterladen** speichert die Partitur für eine DAW:
+
+- Jede Stimme ist eine eigene Spur auf einem eigenen Kanal, mit dem Instrument, das die Vorschau verwendet hat, auf diesem Kanal: die Gesangslinie, die Instrumentallinie und, sofern du **Akkorde** nicht abwählst, die Akkordsymbole als Akkordstimme mit ihrem Bass daneben (die einzige Stelle, an der die Harmonie als Noten geschrieben ist), und Schlagzeug auf Kanal 10, wenn der Stil danach verlangt.
+- Die Instrumente sind General-MIDI-Programmnummern, also spielt deine DAW sie mit ihren eigenen Klängen, und Tempo und Metrum stehen in der Datei.
+- Ein Plan, der sein Metrum unterwegs wechselt, wird im Metrum geschrieben, in dem er beginnt — nur dieses wird festgehalten —, während die Noten ihre eigenen Längen behalten.
+
+Ein Klick auf eine Note in den Notenzeilen setzt den Cursor auf das ABC, das sie geschrieben hat.
+
+**Außerhalb des Umfangs.** Eine Partitur mit einer Note über oder unter dem, was diese Instrumente spielen können, wird um ganze Oktaven verschoben gespielt, bis sie passt, und die Zeile neben dem Player sagt, um wie viel; die Notenzeilen, die MIDI-Datei und die Partitur selbst bleiben unverändert. Die Instrumente sind nicht alle gleich groß — ein Bass endet weit unter einem Klavier —, deshalb steht die Zeile da, wenn eine Partitur verschoben wird. Eine Partitur ohne Noten hat nichts zu spielen und sagt das.
+
+**Die Klänge.** Der Player braucht seine Notensamples, die nicht Teil der App sind: Jedes Instrument hat etwa 7 MB, wird beim ersten Abspielen einer Vorschau damit von seiner Quelle geholt und in der Bibliothek behalten, sodass es danach offline funktioniert. **Abspielen** holt, was die aktuelle Partitur braucht, und startet dann, und **Klänge laden** holt dasselbe ohne abzuspielen, für alle, die es lieber vorher bereit haben.
 
 ### Die Pianorolle {#the-piano-roll}
 
@@ -659,16 +685,18 @@ Der Planner liest den ganzen Text, bevor er eine Note schreibt, also ergibt ders
 für denselben Text denselben Plan. Ändere eine Zeile, und der nächste Plan ist eine neue Melodie: eine andere Melodie, oft eine andere
 Tonart und ein anderes Tempo, und die Stimme wandert mit.
 
-Um eine Melodie zu behalten, die dir gefällt, öffne den Take und ändere seinen Text. **Diese Melodie behalten** erscheint unter dem
-Text, angehakt, und die Hauptschaltfläche wird zu **Mit neuem Text singen**. Ändere zuerst alles andere, was du
-willst: den Stil, die LoRA und ihre Stärken, die Längengrenze, die Interpretation. Die Partitur des Takes wird
-dann mit dem neuen Text gesungen, als neuer Take neben dem Original, das bleibt, wie es ist. Lass den Seed
-angehakt, um die Stimme so nah wie möglich zu halten. Entferne den Haken bei **Diese Melodie behalten**, um stattdessen einen neuen Plan und eine
-neue Melodie für den Text zu schreiben. Neuer Text, der die Silbenzahlen der alten Zeilen beibehält, passt am besten
-zur Melodie. Wenn nicht, weil es mehr Abschnitte gibt oder viel mehr Silben, als die Melodie Noten hat (lange Zeilen auf einer Melodie
-für kurze: die Zeilen werden wiederholt oder fallen weg), oder viel weniger (kurze Zeilen auf einer Melodie für lange:
-der Sänger füllt die übrigen Noten mit eigenen Wörtern), entfernt sich der Haken bei **Diese Melodie behalten** selbst mit einer Zeile, die sagt warum, und
-ein neuer Plan wird für den Text geschrieben. Setze ihn wieder, um die Melodie trotzdem zu singen.
+Um eine Melodie zu behalten, die dir gefällt:
+
+1. Öffne den Take und ändere seinen Text. **Diese Melodie behalten** erscheint angehakt unter dem Songtext, und die Hauptschaltfläche wird zu **Mit neuem Text singen**.
+2. Ändere vorher alles andere, was du möchtest: den Stil, das LoRA und seine Stärken, die Längengrenze, die Interpretation. Lass den Seed angehakt, damit die Stimme so nah wie möglich bleibt.
+3. Drücke **Mit neuem Text singen**. Die Partitur des Takes wird mit dem neuen Text gesungen, als neuer Take neben dem Original, das bleibt, wie es ist.
+
+Wähle **Diese Melodie behalten** ab, um stattdessen einen neuen Plan und eine neue Melodie für den Text zu schreiben.
+
+Neuer Text, der die Silbenzahlen der alten Zeilen beibehält, passt am besten zur Melodie. Wenn er nicht passt, hebt sich **Diese Melodie behalten** mit einer Zeile auf, die den Grund nennt, und ein neuer Plan wird für den Text geschrieben. Hake es erneut an, um die Melodie trotzdem zu singen. Der Text passt nicht, wenn es Folgendes gibt:
+
+- **Mehr Teile oder weit mehr Silben, als die Melodie Noten hat:** Lange Zeilen auf einer Melodie für kurze kommen wiederholt oder weggelassen heraus.
+- **Weit weniger Silben:** Kurze Zeilen auf einer Melodie für lange lassen Noten übrig, die die singende Stimme mit eigenen Wörtern füllt.
 
 ### Produktionsschliff {#production-polish}
 
@@ -686,14 +714,13 @@ in den Einstellungen sagt. Dann macht sie Platz für die Musik, damit ein langer
 - Mit einer gewählten **Aufnahme**, für ein Cover oder ein Instrumental, folgt die Grenze der Partitur der Aufnahme,
   auf dieselbe Weise aufgerundet.
 
-Eine Grenze, die du selbst eintippst, bleibt, wie du sie gesetzt hast, und die Seite Partitur sagt dann, wenn ein Plan länger ist als
-sie. Ein Plan, der viel länger ist als seine Grenze (mehr als ein Drittel darüber und über acht Minuten), wird gar nicht
-als Song angenommen und neu geschrieben. Hin und wieder
-hört ein Rendering nicht am Ende seiner Partitur auf und spielt bis zur Grenze weiter; ein solcher Take wird über
-seine letzten Sekunden ausgeblendet statt abgeschnitten, und seine Karte sagt, dass er bis zur Grenze lief. Noch seltener endet ein
-Rendering, bevor der letzte Abschnitt seiner Partitur beginnt. Die App rendert es dann noch einmal mit einem neuen
-Seed, bevor sie es für fertig erklärt, und wenn auch das zu früh aufhört, sagt die Karte, dass es vor dem
-letzten Abschnitt aufgehört hat: **Rendern** erneut für einen weiteren Versuch.
+Eine Grenze, die du selbst eintippst, bleibt, wie du sie gesetzt hast, und die Seite Partitur sagt dann, wenn ein Plan länger ist.
+
+Wenn ein Song nicht endet, wie er sollte:
+
+- **Ein Plan, der viel länger als seine Grenze ist** (mehr als ein Drittel darüber und über acht Minuten), wird gar nicht als Song genommen und neu geschrieben.
+- **Ein Rendering, das über seine Partitur hinaus** bis zur Grenze weiterspielt, wird über seine letzten Sekunden ausgeblendet statt abgeschnitten, und seine Karte sagt, dass es bis zur Grenze lief.
+- **Ein Rendering, das endet, bevor der letzte Teil seiner Partitur beginnt** (noch seltener), wird mit einem neuen Seed noch einmal gerendert, bevor es als fertig gilt. Endet auch dieses zu früh, sagt die Karte, dass es vor dem letzten Teil endete: Drücke **Rendern** erneut für einen weiteren Versuch.
 
 ---
 
@@ -807,44 +834,23 @@ Werk oder aus verschiedenen.
 
 ### Den Text extrahieren {#extracting-the-lyrics}
 
-**Songtext extrahieren**, neben *Transkribieren*, schreibt auf, was die Aufnahme singt: Es trennt den
-Gesang, hört ihn an und legt die Zeilen unter die Abschnitte der Partitur. Man fordert es an,
-statt dass es bei jeder Transkription passiert, weil es ein paar Minuten dauert, während das Transkribieren einer Partitur
-Sekunden braucht. Der Gesang wird auf der GPU getrennt und seine Wörter gehört, wenn die Engine Demucs und Whisper hat, sonst auf der CPU
-(Einstellungen, **Die GPU für Stems und Songtexte nutzen**), und die Leiste sagt, in welcher der beiden Stufen es ist. Whisper auf der GPU
-und auf der CPU schreiben für denselben Gesang nicht immer dieselben Wörter, da keines exakt ist: Ein schwieriger Gesang, etwa Backgroundsänger
-über einer Hauptstimme, kann sich um ein Fünftel seiner Wörter in die eine oder andere Richtung unterscheiden. Der getrennte Gesang wird behalten, sodass eine erneute Extraktion derselben Aufnahme
-direkt zum Hören springt, womit der größte Teil der Wartezeit gespart ist.
+**Songtext extrahieren**, neben *Transkribieren*, schreibt auf, was die Aufnahme singt: Es trennt den Gesang, hört ihn an und legt die Zeilen unter die Teile der Partitur. Es wird auf Wunsch gemacht statt bei jeder Transkription, weil es ein paar Minuten dauert, wo das Transkribieren einer Partitur Sekunden braucht.
 
-Die Wörter werden mit der Aufnahme behalten. Drücke **Songtext extrahieren** erneut, und sie kommen direkt zurück ins
-Feld, und du wirst gefragt, ob sie erneut extrahiert werden sollen, was sich nach einer Änderung der
-Methode in den Einstellungen lohnt. Eine andere Aufnahme zu wählen übernimmt deren Wörter auf dieselbe Weise, und eine Aufnahme
-ohne Wörter leert die der vorigen. Wörter, die du getippt oder bearbeitet hast, bleiben, es sei denn, du stimmst zu, sie zu ersetzen.
+- **Wo es läuft.** Der Gesang wird getrennt und seine Wörter gehört, auf der GPU, wenn die Engine Demucs und Whisper hat, sonst auf der CPU (Einstellungen, **GPU für Stems und Songtexte verwenden**). Der Balken sagt, in welcher der beiden Phasen es ist. Whisper auf der GPU und auf der CPU schreibt für denselben Gesang nicht immer dieselben Wörter, da keins von beiden genau ist: Ein schwieriger Gesang, etwa Backgroundsänger über einer Leadstimme, kann sich um ein Fünftel seiner Wörter unterscheiden.
+- **Noch einmal.** Der getrennte Gesang wird aufbewahrt, sodass das erneute Extrahieren derselben Aufnahme direkt zum Zuhören springt, was den Großteil der Wartezeit spart.
+- **Die Wörter bleiben bei der Aufnahme.** Drücke **Songtext extrahieren** erneut, und sie gehen direkt zurück ins Feld, und du wirst gefragt, ob sie neu extrahiert werden sollen, was sich nach einer Änderung der Methode in den Einstellungen lohnt. Eine andere Aufnahme zu wählen übernimmt deren Wörter auf dieselbe Weise, und eine Aufnahme ohne Wörter leert die der letzten. Wörter, die du getippt oder bearbeitet hast, bleiben, es sei denn, du stimmst zu, sie zu ersetzen.
 
-Erwarte einen guten Entwurf statt einer Abschrift. Gemessen am echten Text zweier Songs hatte Whisper
-bei einem **1,5 % der Wörter falsch** und beim anderen **25 %**, wo Haupt- und Backgroundgesang sich im
-letzten Refrain überlagern. Es hört den ganzen Gesang: Früher übersprang es, was sein Stimmdetektor
-für Stille hielt, was bei gesungenem Gesang den größten Teil des Songs ausmachte. Lies den Entwurf und korrigiere, was es
-falsch gehört hat, besonders wo Stimmen sich überlagern.
+Erwarte einen guten Entwurf statt einer Abschrift. Gemessen an den echten Wörtern zweier Songs lag Whisper bei **1,5 % der Wörter falsch** bei dem einen und bei **25 %** bei dem anderen, wo sich Lead- und Backgroundgesang im letzten Refrain überlagern. Es hört den ganzen Gesang: Früher übersprang es, was sein Stimmerkenner für Stille hielt, und das war bei gesungenem Gesang der größte Teil des Songs. Lies den Entwurf und korrigiere, was es falsch gehört hat, besonders wo sich Stimmen überlagern.
 
-**Eine externe LLM hören lassen.** Ist eine [externe LLM](#external-llm) dein Anbieter, haben die Einstellungen eine Wahl unter
-*Songtext aus einer Aufnahme*. Stell sie auf **Externes LLM**, und der getrennte Gesang wird an das Modell geschickt, um
-die Wörter zu hören, während Whisper weiterhin ermittelt, wann jede Zeile gesungen wird. Bei denselben zwei Songs hatte Gemini
-**1,5 % und 23 %**, die beiden liegen also nah beieinander; probiere beide bei einem Song, mit dem Whisper kämpft. Es braucht ein
-Modell, das Audio annimmt, wie Gemini. Sieht die Antwort des Modells wie ein Songtext aus, werden seine Wörter
-benutzt, selbst wo sie sich deutlich von denen von Whisper unterscheiden: Ein im Mix vergrabener Gesang ist, wo Whisper
-am meisten kämpft, und das Modell nicht. Lehnt das Modell das Audio ab, hält es sich zurück (kürzt Zeilen
-oder verweist dich auf eine Lyrics-Seite, wie es ein Modell bei einem erkannten Song tun kann) oder schickt
-fast nichts zurück, bekommst du stattdessen die Version von Whisper. Die Meldung am Ende nennt, wer
-die Wörter gehört hat. Der Gesang verlässt dafür deinen Rechner; Whisper behält ihn hier.
+**Ein externes LLM zuhören lassen.** Wenn ein [externes LLM](#external-llm) dein Anbieter ist, haben die Einstellungen eine Wahl unter *Songtext aus einer Aufnahme*. Stelle sie auf **Externes LLM**, und der getrennte Gesang wird an das Modell geschickt, um die Wörter zu hören, während Whisper weiterhin bestimmt, wann jede Zeile gesungen wird.
 
-Für einen Korpus-Song werden **beide Versionen behalten**. Gibt es beide, zeigt der Prüfbereich des Songs
-**Wörter von** mit jeder Version und ihrer Wortzahl, standardmäßig die des externen Modells. Wähle
-die andere, und ihre Wörter kommen ins Feld. Beim ersten Wählen einer Version werden ihre Wörter entworfen, was
-ihre Abschnitte mit dem externen Modell markiert; danach behält jede Version ihre eigenen Wörter, Änderungen und
-den Haken **geprüft**, sodass das Wechseln sofort geht und keinen Aufruf des Modells braucht. In den eigenen Zeilen von Whisper wird jedes Wort,
-das es mehr als achtmal hintereinander wiederholt hat, etwa ein gehaltenes „la“, das es hunderte Male schrieb, auf acht
-gekürzt.
+- Es braucht ein Modell, das Audio annimmt, etwa Gemini. Bei denselben zwei Songs kam Gemini auf **1,5 % und 23 %**, die beiden liegen also nah beieinander; probiere beide bei einem Song, mit dem Whisper kämpft.
+- Wenn die Antwort des Modells wie ein Songtext aussieht, werden seine Wörter verwendet, auch wo sie deutlich von denen von Whisper abweichen: Ein im Mix vergrabener Gesang ist dort, wo Whisper am meisten kämpft, und das Modell nicht.
+- Wenn das Modell den Ton ablehnt, sich zurückhält (Zeilen kürzt oder auf eine Songtextseite verweist, wie ein Modell es bei einem Song tun kann, den es erkennt) oder fast nichts zurückschickt, bekommst du stattdessen die Version von Whisper.
+- Die Meldung am Ende nennt, wer die Wörter gehört hat.
+- Der Gesang verlässt dafür deinen Rechner; Whisper behält ihn hier.
+
+**Bei einem Korpus-Song werden beide Versionen aufbewahrt.** Wenn beide vorhanden sind, zeigt das Prüffenster des Songs **Wörter aus** mit jeder Version und ihrer Wortzahl, standardmäßig die des externen Modells. Wähle die andere, und ihre Wörter kommen ins Feld. Beim ersten Mal, wenn eine Version gewählt wird, werden ihre Wörter entworfen, was ihre Teile mit dem externen Modell markiert; danach behält jede Version ihre eigenen Wörter, Änderungen und ihren Haken **geprüft**, sodass das Wechseln sofort geht und das Modell nicht aufruft. In den eigenen Zeilen von Whisper wird jedes Wort, das es mehr als achtmal hintereinander wiederholt hat, etwa ein gehaltenes „la“, das es hunderte Male schrieb, auf acht gekürzt.
 
 ---
 
@@ -868,14 +874,18 @@ Abschnitt umbenennen, ein Zwischenspiel hinzufügen oder über die angegebenen Z
 Transkription ist die Partitur, also gibt es keinen Plan zu schreiben, und das Rendering spielt ihre Melodie und
 Akkorde mit der Instrumental-LoRA.
 
-Auch die Abschnitte kommen aus der Partitur: einer pro Abschnitt der Partitur, mit den Namen, die die LoRA kennt. Ein
-*Zwischenspiel* wird zu einer Bridge. Ein Rendering paart jeden Abschnitt der Struktur mit einem der Partitur,
-deshalb weicht der Baukasten ihnen. Um den Song umzustellen, zieh einen Abschnitt an eine neue Stelle oder verschiebe ihn mit den Pfeilen, füge eine
-**Kopie** davon hinter ihm ein oder nimm ihn mit dem **✕** heraus: Jede Änderung schreibt die Partitur neu (das Partitur-
-fenster zeigt es), und **Ursprüngliche Teile wiederherstellen** stellt sie wieder her, bis eine andere Partitur geladen wird.
-Während der Take im Editor spielt, leuchtet der Abschnitt, bei dem er ist, und ein Doppelklick auf einen Abschnitt springt dorthin. Die Zeiten kommen aus den Takten und dem Tempo der Partitur, denen das Rendering im ersten Teil eines Takes und bei einem vollständig gerenderten eng folgt. Ein Rendering, das deutlich vor seiner Partitur endet, hat weniger Musik gespielt, als die Partitur enthält, also kann die Liste im Lauf des Songs aus dem Takt mit dem Audio geraten; eine Zeile unter der Liste sagt es und um wie viel. Ein Cover zeigt dieselbe Liste unter seinem Text, und sein Text wird den Abschnitten in Reihenfolge zugeordnet, also
-passe ihn an: Die Liste sagt, was er braucht, nachdem du Abschnitte hinzugefügt, entfernt oder umgestellt hast. Sie zeigt auch die Gesamtlänge gegenüber der
-Längengrenze und bietet an, die Grenze zu erhöhen, wenn ein längerer Song abgeschnitten würde. Drücke **Instrumental erstellen**, um zu rendern.
+Auch die Teile kommen aus der Partitur: einer pro Teil der Partitur, mit den Namen, die das LoRA kennt (ein *Zwischenspiel* wird zur Bridge). Ein Rendering ordnet jedem Teil der Struktur einen der Partitur zu, deshalb tritt der Baukasten hinter sie zurück.
+
+**Den Song umstellen.** Jede Änderung schreibt die Partitur neu (das Fenster Partitur zeigt es):
+
+- Ziehe einen Teil an eine neue Stelle oder verschiebe ihn mit den Pfeilen.
+- Füge eine **Kopie** eines Teils hinter ihm ein.
+- Nimm einen Teil mit dem **✕** heraus.
+- **Ursprüngliche Teile wiederherstellen** stellt sie zurück, bis eine andere Partitur geladen wird.
+
+**Mitverfolgen.** Während der Take im Editor spielt, ist der Teil hervorgehoben, an dem er ist, und ein Doppelklick auf einen Teil springt dorthin. Die Zeiten kommen aus den Takten und dem Tempo der Partitur, denen das Rendering im ersten Teil eines Takes und bei einem vollständig gerenderten eng folgt. Ein Rendering, das deutlich vor seiner Partitur endet, hat weniger Musik gespielt, als die Partitur enthält, sodass die Liste im Lauf des Songs aus dem Takt mit dem Ton geraten kann; eine Zeile unter der Liste sagt das, und um wie viel.
+
+**Der Text und die Länge.** Ein Cover zeigt dieselbe Liste unter seinem Text, und sein Text wird den Teilen der Reihe nach zugeordnet, also passe ihn an: Die Liste sagt, was er braucht, nachdem du Teile hinzugefügt, entfernt oder umgestellt hast. Die Liste zeigt auch die Gesamtlänge gegenüber der Längengrenze und bietet an, die Grenze anzuheben, wenn ein längerer Song abgeschnitten würde. Drücke **Instrumental erstellen**, um zu rendern.
 
 Ein Instrumental, das du aus einer Struktur geschrieben hast, hat auch eine Partitur, und sobald es geplant ist, werden seine Abschnitte genauso aufgelistet. Der
 Struktur-Baukasten ist die Vorgabe für einen noch nicht geschriebenen Plan, also weicht er der Liste. Stelle die Abschnitte um und drücke
@@ -925,69 +935,58 @@ Künstler, ein Genre oder einige ähnliche Künstler.
 Öffne **Korpora** im Menü. Es ist standardmäßig an; `TRAINING_ENABLED=0` für die App oder eine
 Engine, die mit `WITH_TRAINER=0` gebaut wurde, nimmt es heraus.
 
-Training ist das Anspruchsvollste, was die App tut: Mit dem empfohlenen Modell in voller Qualität (BF16)
-sind eine Grafikkarte mit 16 GB und 32 GB Arbeitsspeicher (unter WSL2 `memory=32GB` in `.wslconfig`) das praktische Minimum.
-Eine Karte mit 8 GB kann zum Training benutzt werden, wenn das Modell mit wenig Speicher (INT8) verwendet wird.
+**Was das Training braucht.** Es ist das Anspruchsvollste, was die App tut:
 
-1. **Neues Korpus.** Gib ihm einen Namen und ein **Triggerwort**, sag, ob die Stimme männlich oder weiblich ist
-   (**keine** für Songs ohne Gesang: siehe unten), beschreibe den Klang, den alle Songs teilen, und öffne den Ordner mit den Songs. Bestätige, dass du
-   das Recht hast, mit ihnen zu trainieren, und drücke dann **Ordner einlesen**. Der Ordner wird nur gelesen.
-   **Ein Korpus ohne Gesang.** Wähle **keine** für **Stimme**, wenn die Songs instrumental sind, etwa
-   Dance und elektronische Musik. Die App trennt dann keinen Gesang und hört nicht nach Wörtern, sodass nichts
-   Wörter über Synths erfindet. Der Text jedes Songs sind die Abschnitts-Tags aus seiner Partitur (oder
-   `[instrumental]`, wenn sie keine hat), die Beschreibung lässt den Gesangsteil weg, und es gibt keine Text-
-   prüfung: Das Feld **Teile** kann bearbeitet werden, und eine Änderung bleibt. Der Klang jedes Songs wird
-   vom lokalen Modell beschrieben, wenn es installiert ist, da das externe nur einen Titel hätte.
-   Eine so trainierte LoRA kann Noten in die Gesangsstimme eines Plans schreiben, was ein Rendering singen oder summen lässt;
-   die Warnung „kann singen“ eines Plans zeigt es. Die Stimme eines schon analysierten Korpus zu ändern passt seinen
-   Text entsprechend an.
-2. **Die Songs wählen.** Entferne den Haken bei allen, die draußen bleiben sollen. Wenn ein Song vorbereitet wird, behält die App eine eigene Kopie der vollen Aufnahme im internen Korpus-Speicher, sodass ein Korpus intakt bleibt, auch wenn sein Quellordner später geleert oder verschoben wird. Eine Aufnahme über 25 Minuten wird weggelassen, da sie höchstwahrscheinlich ein ganzes Album oder Konzert in einer Datei ist. Liegt ein `.cue`-Sheet daneben, schneidet **In Tracks teilen** sie in ihre Songs, die ihren Platz im Korpus einnehmen. Die Tracks kommen in den eigenen Ordner der App; deiner bleibt unverändert. (Songs, die länger sind als das GPU-Limit des Trainers, etwa 15-minütige Tracks, werden beim Export sicher an einer musikalischen Abschnittsgrenze gekürzt und ausgeblendet.)
-3. **Analysieren.** Der Gesang jedes Songs wird getrennt, Tonart, Tempo und Abschnitte werden gefunden, und sein Text wird entworfen, nach Abschnitten markiert. Mit einer externen LLM in den Einstellungen werden die Abschnitte aus den gehörten Wörtern markiert: Refrains daran, dass ihre Wörter wiederkehren, neue Abschnitte an den Pausen. Nur die Zeilen und ihre Zeiten werden geschickt, und die Wörter und ihre Reihenfolge werden nie geändert. Ohne eine, oder wenn ihre Antwort nicht jede Zeile enthält, kommen die Tags aus der Musikanalyse. **Neu entwerfen**, neben Speichern in der Prüfung eines Songs, markiert die Abschnitte erneut auf dieselbe Weise, ohne den Song erneut zu hören, für einen früher entworfenen Song, und ersetzt, was im Feld steht. Eine Zeile unter den Schaltflächen sagt, was läuft, und eine laufende Analyse erscheint in der Auftragskarte und Warteschlange des Hauptbildschirms. **Stopp** beendet sie. Fertige Schritte bleiben, also macht **Analysieren** dort weiter, wo es aufgehört hat.
+- **Das Modell in voller Qualität (BF16)**, das empfohlene, braucht mindestens etwa 12,5 GB GPU-Speicher (bei einem Schnitt von 3½ Minuten; ein längerer Schnitt braucht mehr), das meiste davon, während es die Songs vorbereitet. Eine 16-GB-Karte ist also das praktische Minimum, dazu 32 GB Arbeitsspeicher: ComfyUI legt die vollen YuE2-Gewichte und die Datensatz-Caches im Hauptspeicher ab (unter WSL2 setze `memory=32GB` in `.wslconfig`).
+- **Das speichersparende Modell (INT8)** lässt eine 8-GB-Karte trainieren.
+- **Eine Karte, die nicht trainieren kann,** kann trotzdem anderswo trainierte LoRAs verwenden (**Ein LoRA installieren**).
+- Das Trainingsfenster warnt, wenn weniger GPU- oder Arbeitsspeicher frei ist, also schließe vorher alles andere, das die GPU benutzt.
 
-   **Erneut analysieren.** Sobald jeder Song analysiert ist, zeigt die Schaltfläche **Analysiert ✓**. Ein Klick darauf fragt, ob du die Stilvorschläge aller Songs mit den neuesten Prompts und LLM-Einstellungen erneut analysieren willst (praktisch nach dem Umbenennen eines Korpus oder einem Anbieterwechsel). Ein Shift-Klick auf **Analysiert ✓** bietet eine vollständige Neuanalyse von Grund auf an (Stem-Trennung, Tonart, Tempo, Transkription und Stile laufen erneut). Einzelne Songs können auch mit **Neu analysieren** in ihrer Prüfung neu beschrieben werden.
-4. **Prüfen** Öffne einen Song, um seinen Text zu prüfen und **geprüft** anzuhaken, und um seinen Klang zu beschreiben,
-   wo er sich vom Rest unterscheidet. Die Stilbeschreibung zeigt, was der Trainer lesen wird.
-5. **Trainingsset exportieren.** Schreibt Audio, Text und Beschreibung für jeden Song. Eine Zeile unter den
-   Schaltflächen zeigt, wie weit es ist. Der Trainer nimmt nur so viel von einem Song, wie die App
-   aus dem freien Speicher deiner Grafikkarte errechnet (etwa 5½ Minuten bei einer 16-GB-Karte; das Fenster Logs
-   sagt, was es gewählt hat). Ein längerer Song wird am Ende seines letzten Abschnitts innerhalb davon gekürzt, ausgeblendet,
-   und behält nur die Wörter, die noch gesungen werden. Seine Zeile sagt „first 3:12 trained“. Läuft dem Training
-   der Speicher aus, setze die Umgebungsvariable `TRAIN_MAX_MINUTES` auf eine kleinere Zahl, etwa
-   3.5: siehe die README.
-6. **Ein LoRA trainieren.** Das dauert lange, und die GPU steht der App nicht zur Verfügung, bis es
-   fertig ist. Der Fortschritt erscheint unter den Schaltflächen und auf dem Hauptbildschirm, wo du es stoppen kannst,
-   und das Abzeichen des Korpus oben auf der Seite pulsiert, während es trainiert. Erneutes Training behält
-   die LoRA des letzten Laufs unter einem datierten Namen, in **Frühere Läufe**, oder löscht sie, wie du
-   wählst.
-   Training mit dem empfohlenen Modell in voller Qualität (BF16) braucht mindestens etwa 12,5 GB GPU-Speicher
-   (bei einem Schnitt von 3½ Minuten; ein längerer Schnitt braucht mehr), das meiste davon, während es die Songs vorbereitet, also ist eine 16-GB-
-   Karte das praktische Minimum, zusammen mit 32 GB Arbeitsspeicher (ComfyUI legt die vollen YuE2-Gewichte
-   und Dataset-Caches im Hauptspeicher ab; unter WSL2 setze `memory=32GB` in `.wslconfig`). Eine 8-GB-Karte kann
-   trainieren, wenn das Modell mit wenig Speicher (INT8) verwendet wird. Karten, die nicht trainieren können, können trotzdem anderswo trainierte LoRAs
-   benutzen (**Ein LoRA installieren**). Das Fenster Trainieren warnt, wenn weniger GPU- oder Arbeitsspeicher verfügbar ist,
-   also schließe vorher alles andere, das die GPU benutzt.
+**Die Schritte:**
+
+1. **Neues Korpus.** Gib ihm einen Namen und ein **Triggerwort**, sag, ob die Stimme männlich oder weiblich ist (**keine** für Songs ohne Gesang: siehe unten), beschreibe den Klang, den alle Songs teilen, und öffne den Ordner mit den Songs. Bestätige, dass du darauf trainieren darfst, und drücke dann **Ordner einlesen**. Der Ordner wird nur gelesen.
+
+   **Ein Korpus ohne Gesang.** Wähle **keine** für **Stimme**, wenn die Songs instrumental sind, etwa Dance und elektronische Musik:
+
+   - Die App trennt keinen Gesang und hört nicht auf Wörter, sodass nichts Wörter über Synthesizer erfindet.
+   - Der Songtext jedes Songs sind die Teil-Tags aus seiner Partitur (oder `[instrumental]`, wenn sie keine hat), die Beschreibung lässt den Gesangsteil weg, und es gibt keine Songtextprüfung: Das Feld **Teile** kann bearbeitet werden, und eine Änderung bleibt.
+   - Der Klang jedes Songs wird vom lokalen Modell beschrieben, wenn es installiert ist, da das externe nur einen Titel hätte.
+   - Ein so trainiertes LoRA kann Noten in die Gesangsstimme eines Plans schreiben, was ein Rendering singen oder summen lässt; die Warnung „kann singen“ eines Plans zeigt es.
+   - Die Stimme eines schon analysierten Korpus zu ändern, ändert seinen Songtext passend.
+2. **Die Songs auswählen.** Wähle alle ab, die du weglassen willst.
+   - Wenn ein Song vorbereitet wird, bewahrt die App eine eigene Kopie der vollen Aufnahme in ihrem internen Korpusspeicher auf, sodass ein Korpus intakt bleibt, auch wenn sein Quellordner später geleert oder verschoben wird.
+   - Eine Aufnahme über 25 Minuten wird weggelassen, da sie höchstwahrscheinlich ein ganzes Album oder Konzert in einer Datei ist. Liegt ein `.cue`-Blatt daneben, zerlegt **In Tracks teilen** sie in ihre Songs, die ihren Platz im Korpus einnehmen. Die Tracks kommen in den eigenen Ordner der App; deiner wird nicht verändert.
+   - Songs, die länger sind als die GPU-Grenze des Trainers, etwa 15-minütige Tracks, werden beim Export sicher an einer musikalischen Teilgrenze geschnitten und ausgeblendet.
+3. **Analysieren.** Der Gesang jedes Songs wird getrennt, Tonart, Tempo und Teile werden bestimmt, und sein Songtext wird entworfen, nach Teilen getaggt.
+   - Mit einem externen LLM in den Einstellungen werden die Teile aus den gehörten Wörtern markiert: Refrains daran, dass ihre Wörter wiederkehren, neue Teile an den Pausen. Nur die Zeilen und ihre Zeiten werden gesendet, und die Wörter und ihre Reihenfolge werden nie verändert. Ohne eins, oder wenn seine Antwort nicht jede Zeile enthält, kommen die Tags aus der Musikanalyse.
+   - **Neu entwerfen**, neben Speichern in der Prüfung eines Songs, markiert die Teile auf dieselbe Weise neu, ohne den Song erneut anzuhören, für einen früher entworfenen Song, und ersetzt, was im Feld steht.
+   - Eine Zeile unter den Schaltflächen sagt, was läuft, und eine laufende Analyse erscheint in der Job-Karte und Warteschlange des Hauptbildschirms. **Stopp** beendet sie. Fertige Schritte bleiben erhalten, sodass **Analysieren** dort weitermacht, wo es aufgehört hat.
+   - **Neu analysieren.** Sind alle Songs analysiert, zeigt die Schaltfläche **Analysiert ✓**. Ein Klick fragt, ob du die Stilvorschläge aller Songs mit den neuesten Prompts und LLM-Einstellungen neu analysieren willst (praktisch nach dem Umbenennen eines Korpus oder einem Anbieterwechsel). Umschalt-Klick auf **Analysiert ✓** bietet eine vollständige Neuanalyse von Grund auf (Stem-Trennung, Tonart, Tempo, Transkription und Stile erneut). Einzelne Songs können auch mit **Neu analysieren** in ihrer Prüfung neu gestylt werden.
+4. **Prüfen.** Öffne einen Song, um seinen Songtext zu prüfen und **geprüft** anzuhaken, und um seinen Klang zu beschreiben, wo er sich vom Rest unterscheidet. Die Stilbeschreibung zeigt, was der Trainer lesen wird.
+5. **Trainingsset exportieren.** Schreibt Audio, Songtext und Beschreibung für jeden Song. Eine Zeile unter den Schaltflächen zeigt, wie weit es ist.
+   - Der Trainer nimmt nur so viel von einem Song, wie die App aus dem freien Speicher deiner Grafikkarte berechnet (etwa 5½ Minuten bei einer 16-GB-Karte; das Protokollfenster sagt, was gewählt wurde).
+   - Ein längerer Song wird am Ende seines letzten Teils innerhalb davon geschnitten, ausgeblendet und behält nur die noch gesungenen Wörter. Seine Zeile sagt „erste 3:12 trainiert“.
+   - Läuft dem Training der Speicher aus, setze die Umgebungseinstellung `TRAIN_MAX_MINUTES` auf eine kleinere Zahl, etwa 3.5: siehe die README.
+6. **Ein LoRA trainieren.** Das dauert lange, und die GPU steht der App erst wieder zur Verfügung, wenn es fertig ist.
+   - Der Fortschritt erscheint unter den Schaltflächen und auf dem Hauptbildschirm, wo du es stoppen kannst, und das Abzeichen des Korpus oben auf der Seite pulsiert, während es trainiert.
+   - Erneutes Training behält das LoRA aus dem letzten Lauf unter einem datierten Namen in **Vorherige Läufe** oder löscht es, wie du wählst.
 
 ### Ein Lauf, der früh endet {#a-run-that-ends-early}
 
-Ein Lauf kann vor seinem letzten Schritt enden: **Stopp**, ein Absturz oder die GPU, der der Speicher ausgeht. Die Zeile
-unter den Schaltflächen sagt dann, wann und warum und nach welchem Schritt. Unterwegs speichert der Trainer alle 50 Schritte einen
-Checkpoint und behält eine Kopie des bisher besten nach seinem Planner-Verlust, sodass meist der größte Teil
-der Arbeit noch da ist. **Mit dem Gespeicherten abschließen** tut, was ein fertiger Lauf tut, aus
-diesen Dateien: Die beste Kopie, oder ersatzweise der letzte Checkpoint, wird zur LoRA unter dem
-Namen des Korpus, mit seinem Triggerwort, und die Checkpoints falten sich darunter in der Liste der Stil-LoRAs. Es
-dauert Sekunden und keine GPU-Zeit. Die letzten Schritte eines Laufs ändern die LoRA am wenigsten, also ist eine so fertiggestellte
-meist nah an einem vollen Lauf; **Checkpoints** rendert einen Song einmal auf jedem Schritt, wenn du nach Gehör
-vergleichen willst. Um stattdessen den ganzen Lauf neu zu trainieren, drücke **Ein LoRA trainieren**.
+Ein Lauf kann vor seinem letzten Schritt enden: **Stopp**, ein Absturz oder die GPU, der der Speicher ausgeht. Die Zeile unter den Schaltflächen sagt dann, wann und warum, und nach welchem Schritt. Der Großteil der Arbeit ist meist noch da: Unterwegs speichert der Trainer alle 50 Schritte einen Checkpoint und behält eine Kopie des bisher besten nach seinem Planer-Verlust.
+
+- **Mit dem Gespeicherten abschließen** macht aus diesen Dateien, was ein fertiger Lauf macht: Die beste Kopie, oder sonst der letzte Checkpoint, wird zum LoRA unter dem Namen des Korpus, mit seinem Triggerwort, und die Checkpoints klappen in der Liste der Stil-LoRAs darunter zusammen. Es dauert Sekunden und keine GPU-Zeit.
+- Die letzten Schritte eines Laufs verändern das LoRA am wenigsten, daher ist eines, das so abgeschlossen wurde, meist nah an einem vollständigen Lauf; **Checkpoints** rendert einen Song einmal auf jedem Schritt, wenn du nach Gehör vergleichen willst.
+- Um stattdessen den ganzen Lauf neu zu trainieren, drücke **Ein LoRA trainieren**.
 
 ### Alles ausführen {#run-all}
 
-**Alles ausführen**, neben den dreien, führt Analysieren, Exportieren und Trainieren nacheinander aus, für einen Korpus, auf den du
-lieber nicht wartest: Ein großer braucht Stunden zum Analysieren. Es fragt zuerst, was mit einer
-früheren LoRA geschehen soll, und läuft dann bei geschlossener Seite weiter. Es analysiert nur, was es noch braucht, und ein
-Song, dessen Analyse scheitert, wird aus dem Trainingsset herausgelassen und unter den Schaltflächen genannt. Texte,
-die niemand geprüft hat, werden wie entworfen benutzt. **Stopp** beendet es, wo es ist, und behält, was fertig ist;
-während des Exports gestoppt, stellt es zuerst das Trainingsset fertig. Es wartet auf alles, was die
-Engine schon benutzt, bevor es trainiert. Ein Neustart der App beendet es, und **Alles ausführen** erneut macht weiter.
+**Alles ausführen**, neben den dreien, führt Analysieren, Exportieren und Trainieren nacheinander aus, für ein Korpus, auf das du lieber nicht wartest: Ein großes braucht Stunden zum Analysieren. Es fragt zuerst, was mit einem früheren LoRA geschehen soll, und macht dann bei geschlossener Seite weiter.
+
+- Es analysiert nur, was es noch braucht. Ein Song, dessen Analyse scheitert, wird aus dem Trainingsset gelassen und unter den Schaltflächen genannt, und ungeprüfte Songtexte werden wie entworfen verwendet.
+- Es wartet auf alles, was die Engine schon benutzt, bevor es trainiert.
+- **Stopp** beendet es, wo es ist, und behält, was fertig ist; beim Exportieren gestoppt, macht es das Trainingsset noch fertig.
+- Ein Neustart der App beendet es, und **Alles ausführen** erneut macht weiter.
 
 ### Wenn der GPU-Speicher ausgeht {#running-out-of-gpu-memory}
 
@@ -997,17 +996,13 @@ startet neu, ist der Auftrag, den sie ausführte, verloren, und das sagt er auch
 
 ### Die trainierte LoRA {#the-trained-lora}
 
-Wenn das Training fertig ist, erscheint die LoRA mit ihrem Triggerwort in der Liste **Stil-LoRA**. Wählst du
-sie, zeigt sie unter dem Stilfeld einen Chip für jeden Song, aus dem sie gelernt hat, und ein Klick setzt den Stil dieses Songs in
-das Feld.
-Ab einem Dutzend Songs grenzen ein Filterfeld und eine Reihe von Tags, die im Korpus wiederkehren (seine Genres,
-Stimmungen und Instrumente), sie ein; klicke zwei Tags, um Songs mit beiden zu finden. Die Liste zeigt ihr
-erstes Dutzend bis **Alle anzeigen**. Siehe **Planner und Klang ausbalancieren** unten für Startstärken. Um sie zu teilen, drücke **LoRA herunterladen** auf der Seite des Korpus oder **Herunterladen** unter
-der Auswahl; siehe **Eine LoRA teilen** unten.
+Wenn das Training fertig ist, erscheint das LoRA mit seinem Triggerwort in der Liste **Stil-LoRA**.
 
-Um eine LoRA hinzuzufügen, die jemand geteilt hat, drücke **LoRA importieren** neben **Neues Korpus** und wähle dessen Zip. Um eine
-anderswo aus dem exportierten Set trainierte LoRA zu benutzen, drücke **Ein LoRA installieren** und wähle die
-Datei. Sie wird mit dem Triggerwort dieses Korpus zur Liste der Stil-LoRAs hinzugefügt.
+- **Seine Songs.** Wählst du es, erscheint unter dem Stilfeld ein Chip für jeden Song, aus dem es gelernt hat, und ein Klick auf einen setzt den Stil dieses Songs ins Feld. Ab einem Dutzend Songs grenzen ein Filterfeld und eine Reihe der Tags, die im Korpus wiederkehren (seine Genres, Stimmungen und Instrumente), sie ein; klicke zwei Tags an, um Songs mit beiden zu finden. Die Liste zeigt ihr erstes Dutzend bis **Alle anzeigen**.
+- **Startstärken:** siehe **Planer und Klang ausbalancieren** unten.
+- **Teilen:** Drücke **LoRA herunterladen** auf der Seite des Korpus oder **Herunterladen** unter der Auswahl; siehe **Ein LoRA teilen** unten.
+- **Ein LoRA von jemand anderem:** Drücke **LoRA importieren** neben **Neues Korpus** und wähle seine ZIP.
+- **Ein anderswo aus dem exportierten Set trainiertes LoRA:** Drücke **Ein LoRA installieren** und wähle die Datei. Es wird mit dem Triggerwort dieses Korpus zur Liste der Stil-LoRAs hinzugefügt.
 
 **Einen Korpus löschen** entfernt die Kopien der App von seinen Songs, die getrennten Gesänge, die Texte und
 die Partituren. Der Ordner, auf den du ihn gerichtet hast, und jede daraus gemachte LoRA bleiben unberührt.
@@ -1122,24 +1117,19 @@ Eine aus einem deiner Korpora trainierte LoRA ist eine gewöhnliche Stil-LoRA: S
 
 ### Die Checkpoints ausprobieren {#trying-the-checkpoints}
 
-Ein Trainingslauf speichert alle 50 Schritte einen Checkpoint und behält sie unter seiner LoRA in der Auswahl:
-**▸ 9 Schritte** neben dem Namen der LoRA öffnet sie (die Einstellungen können sie stattdessen löschen, um
-Platz zu sparen). Ein Checkpoint, dessen LoRA gelöscht wurde, bleibt unter **Trainings-Checkpoints**. Um
-einige zu entfernen, drücke **Bearbeiten** beim Korpus: **Trainings-Checkpoints** dort listet die jedes Laufs, dieses Laufs
-und früherer Läufe, mit ihren Größen. Hake die zu entfernenden an und drücke **Löschen**. Die fertige
-LoRA wird nicht aufgeführt; sie hat ihr eigenes **LoRA löschen**. Jeder ist die LoRA so, wie sie an
-diesem Punkt des Trainings stand. Sie klingen etwa gleich gut, aber jeder gewichtet das Gelernte auf seine Weise,
-sodass jeder seinen eigenen Geschmack hat und dabei den Stil und den charakteristischen Klang behält, auf die die LoRA
-trainiert wurde.
+Ein Trainingslauf speichert alle 50 Schritte einen Checkpoint: Jeder ist das LoRA, wie es an diesem Punkt des Trainings stand. Sie klingen etwa gleich gut, aber jeder gewichtet anders, was er gelernt hat, also hat jeder seinen eigenen Geschmack und behält dabei den Stil und den charakteristischen Klang, auf den das LoRA trainiert wurde.
 
-Um sie nebeneinander zu hören, wähle die LoRA, richte den Editor ein wie für einen Take und drücke
-**Checkpoints** neben **LoRA löschen**. Bei einer LoRA ohne Checkpoints ist es ausgegraut. Hake die
-gewünschten Schritte an, setze bei Bedarf eine Längengrenze für diese Takes und drücke **Rendern**. Die eigene
-Aktion des Editors läuft einmal auf jedem Checkpoint, alle mit einem Seed, und jeder Take ist nach seinem Schritt benannt:
-*Night drive · step 250*, *Night drive · full*. Sie werden in dem Take aufbewahrt, der im Editor offen ist,
-oder, bei einem neuen Song, im letzten von ihnen (siehe **Takes in einem Take** unter Die Bibliothek). Der Editor schließt sich, sodass du wieder bei der Bibliothek bist,
-wo die Takes entstehen. Ein Song oder ein Instrumental schreibt seinen Plan und geht direkt weiter zum
-Rendern.
+**Wo sie sind.** Sie liegen in der Auswahl unter ihrem LoRA: **▸ 9 Schritte** neben dem Namen des LoRA öffnet sie (die Einstellungen können sie stattdessen löschen, um Platz zu sparen). Ein Checkpoint, dessen LoRA gelöscht wurde, bleibt unter **Trainings-Checkpoints**.
+
+**Einige entfernen.** Drücke **Bearbeiten** beim Korpus: **Trainings-Checkpoints** dort listet die jedes Laufs, dieses Laufs und früherer Läufe, mit ihrer Größe. Hake die an, die weg sollen, und drücke **Löschen**. Das fertige LoRA steht nicht in der Liste; es hat ein eigenes **LoRA löschen**.
+
+**Sie nebeneinander hören:**
+
+1. Wähle das LoRA und richte den Editor ein wie für einen einzelnen Take.
+2. Drücke **Checkpoints**, neben **LoRA löschen** (ausgegraut bei einem LoRA ohne Checkpoints).
+3. Hake die gewünschten Schritte an, setze bei Bedarf eine Längengrenze für diese Takes und drücke **Rendern**.
+
+Die eigene Aktion des Editors läuft einmal auf jedem Checkpoint, alle mit einem Seed, und jeder Take ist nach seinem Schritt benannt: *Night drive · step 250*, *Night drive · full*. Sie werden im Take aufbewahrt, der im Editor offen ist, oder bei einem neuen Song im letzten von ihnen (siehe **Takes in einem Take** unter Die Bibliothek). Der Editor schließt sich, sodass du wieder in der Bibliothek bist, wo die Takes entstehen. Ein Song oder ein Instrumental schreibt seinen Plan und geht direkt weiter zum Rendern.
 
 Bei einem Song oder Instrumental schreibt die LoRA die Melodie und formt den Klang, also ergibt derselbe
 Seed nicht denselben Song: Jeder Checkpoint schreibt seine eigene Melodie und Struktur. Der Seed
@@ -1209,15 +1199,12 @@ Wörter, die du getippt, aber nicht benutzt hast, werden nicht weggeworfen: Eine
 
 ### Bereiche {#spaces}
 
-Takes leben in **Bereichen**: ein Bereich pro Song, pro Album oder für Skizzen. Der Name des Bereichs über den Takes
-ist der gezeigte, und alles, was du machst, landet dort. Klicke darauf für die Liste der Bereiche: Tippe, um einen nach
-Namen zu finden, oder wähle ihn mit den Pfeiltasten und Enter. Die fünf zuletzt benutzten kommen zuerst, dann jeder Bereich, jeder mit
-der Zahl seiner Takes. **Neuer Bereich**, **Diesen Bereich umbenennen**, **Take importieren…** und **Diesen Bereich löschen** stehen am
-Fuß der Liste. Einen Bereich zu löschen löscht nie Takes —
-sie wandern nach Default. Aufnahmen teilen sich alle Bereiche, sodass eine Aufnahme in
-mehreren gecovert werden kann.
+Takes leben in **Bereichen**: ein Bereich pro Song, pro Album oder für Skizzen. Der Name des Bereichs über den Takes ist der angezeigte, und alles, was du erstellst, landet dort.
 
-Die Ordner-Schaltfläche auf einer Karte verschiebt diesen Take in einen anderen Bereich, mit den Takes darin.
+- **Einen wählen:** Klicke auf den Namen für die Liste der Bereiche. Tippe, um einen nach Namen zu finden, oder wähle ihn mit den Pfeiltasten und Enter. Die fünf zuletzt benutzten kommen zuerst, dann alle Bereiche, jeder mit der Zahl seiner Takes.
+- **Neuer Bereich**, **Diesen Bereich umbenennen**, **Take importieren** und **Diesen Bereich löschen** stehen am Fuß der Liste. Einen Bereich zu löschen löscht nie Takes — sie wandern nach Default.
+- **Einen Take verschieben:** Die Ordner-Schaltfläche auf einer Karte verschiebt diesen Take in einen anderen Bereich, mit allen Takes darin.
+- Aufnahmen werden von allen Bereichen geteilt, sodass eine Aufnahme in mehreren gecovert werden kann.
 
 ### Takes in einem Take {#takes-inside-a-take}
 
@@ -1254,55 +1241,44 @@ Takes, die vor dieser Funktion gemacht wurden, bleiben, wo sie sind, nebeneinand
 
 ### Karten {#cards}
 
-Jede Karte nennt die Einstellungen, die den Take geformt haben — Harmonie, Interpretation, Planvielfalt, die LoRA und
-ihre Stärken, den Seed, die Engine, die ihn gerendert hat, und sein Alter —, sodass eine Karte sich wie das Rezept liest, das ihn gemacht hat.
+Jede Karte nennt die Einstellungen, die den Take geformt haben — Harmonie, Interpretation, die aufgenommene Stimme, Planvielfalt, das LoRA und seine Stärken, den Seed, die Engine, die ihn gerendert hat, und sein Alter —, sodass eine Karte sich wie das Rezept liest, aus dem er entstand. Ein Titel bleibt immer auf einer Zeile und endet mit …, wenn er lang ist; fahre über Titel, Einstellungen oder Stil einer Karte, um alles zu lesen.
 
-**Speichern** fragt, in welchem Format der Take heruntergeladen werden soll, FLAC, WAV oder MP3. Es beginnt mit dem, was du zuletzt gespeichert
-hast, und beim ersten Mal ist nichts gewählt. Ein Take mit Bild kann auch als **Video** gespeichert werden: ein MP4 des
-Songs, das das Bild zeigt, das seine Karte zeigt (H.264-Video, AAC-Audio mit 192 kbps). Messenger-Apps wie
-WhatsApp senden und spielen es als Video, wo eine Audiodatei als Dokument geht. Mit eingeschaltetem Mastering-Rack hat das
-Video den gemasterten Klang, wie die anderen Formate. **Take** daneben speichert zusätzlich das Rezept des Takes: eine kleine Datei
-(`<title>.yeufonic.json`) mit seinem Text, Stil und seiner Partitur, seinen Seeds und Einstellungen, seinen LoRAs nach Namen und
-den Einstellungen des Mastering-Racks, aber nicht seinem Audio. Ist auch ein Format gewählt, kommt beides in einem Zip; drücke das
-gewählte Format erneut, um nur das Rezept zu speichern. Die Datei enthält nichts von deiner Installation (keine Pfade, IDs oder Schlüssel),
-also kann sie behalten oder mit einem anderen Yeufonic-Nutzer geteilt werden.
+**Speichern** fragt, in welchem Format der Take heruntergeladen werden soll. Es beginnt mit dem, was du zuletzt gespeichert hast, und beim ersten Mal ohne Auswahl.
 
-**Take importieren…** in der Liste der Bereiche macht aus einer solchen Datei einen neuen Take im gezeigten Bereich; die Datei
-auf die Bibliothek zu ziehen tut dasselbe. Der Take enthält den Plan, bereit zum Rendern, sodass er vorher geprüft oder geändert werden kann.
-Beide Engines können ihn rendern: Dieselbe Partitur und derselbe Seed auf derselben Engine ergeben einen sehr ähnlichen Take, auf der anderen
-Engine einen anderen. Eine genannte LoRA, die hier nicht installiert ist, wird beim Import genannt, sodass du
-sie installieren oder vor dem Rendern eine andere wählen kannst. Die Aufnahme eines Covers ist nicht in der Datei, also kommt ein geteiltes Cover
-als Song mit der Partitur und dem Text des Covers herein und lässt die Einstellungen zurück, die zu seiner Aufnahme gehörten (die
-Tempo-Fixierung, Harmonie, Stimmanweisungen und die Längengrenze): Ein neuer Plan daraus beginnt wie ein Song aus einem Prompt.
+- **FLAC, WAV oder MP3:** der Ton.
+- **Video**, für einen Take mit Bild: ein MP4 des Songs, das das Bild seiner Karte zeigt (H.264-Video, AAC-Ton mit 192 kbps). Messenger wie WhatsApp senden und spielen es als Video, wo eine Audiodatei als Dokument geht.
+- **Take**, daneben: das Rezept des Takes, eine kleine Datei (`<title>.yeufonic.json`) mit seinem Text, Stil und seiner Partitur, seinen Seeds und Einstellungen, seinen LoRAs nach Namen und den Einstellungen des Mastering-Racks, aber nicht seinem Ton. Mit einem gewählten Format kommen beide in einer ZIP; drücke das gewählte Format erneut, um nur das Rezept zu speichern. Die Datei enthält nichts von deiner Installation (keine Pfade, IDs oder Schlüssel), kann also aufbewahrt oder mit anderen Yeufonic-Nutzern geteilt werden.
+- Mit eingeschaltetem Mastering-Rack hat jedes Format den gemasterten Klang.
 
-**Takes durchsuchen** findet die Takes, bei denen jedes eingetippte Wort irgendwo im Titel, Stil, Text oder
-LoRA-Namen steht, unabhängig von Groß- und Kleinschreibung. Sie durchsucht den gezeigten Bereich; **Alle Bereiche**, daneben, sobald du tippst,
-durchsucht jeden Bereich, und eine Karte aus einem anderen Bereich sagt, aus welchem. × oder Escape leert sie. Das
-Feld beginnt bei jedem Öffnen der Seite leer und bietet deine letzten Suchen an, die etwas gefunden haben:
-Klicke eine an oder wähle sie mit den Pfeiltasten und Enter.
+**Take importieren**, in der Liste der Bereiche, macht aus einer solchen Datei einen neuen Take im angezeigten Bereich; die Datei auf die Bibliothek zu ziehen, macht dasselbe. Der Take enthält den Plan, bereit zum Rendern, kann also vorher geprüft oder geändert werden.
 
-**Song**, **Cover** und **Instrumental** zeigen Takes dieser Arten: Lass einen oder mehrere leuchten, oder keinen für alle Arten.
-**Markiert** zeigt nur Takes mit Stern; klicke erneut, um alle zu zeigen. Die Symbole daneben legen fest, wie die Takes
-angeordnet sind, die benutzten grün leuchtend: breitere **komfortable** Karten mit mehr vom Prompt oder schmalere **kompakte**,
-die **ganze Breite** des Fensters oder eine zentrierte Spalte, und jeder Take auf seine Kopfzeile **eingeklappt**. Fahre über
-ein Symbol, um zu lesen, was ein Klick tut.
+- Jede Engine kann ihn rendern: Dieselbe Partitur und derselbe Seed auf derselben Engine ergeben einen sehr ähnlichen Take, auf der anderen Engine einen anderen.
+- Ein genanntes LoRA, das hier nicht installiert ist, wird beim Import genannt, sodass du es installieren oder vor dem Rendern ein anderes wählen kannst.
+- Die Aufnahme eines Covers ist nicht in der Datei, also kommt ein geteiltes Cover als Song mit der Partitur und dem Text des Covers herein und lässt die Einstellungen zurück, die zu seiner Aufnahme gehörten (die Tempo-Sperre, Harmonie, Stimmhinweise und die Längengrenze): Ein neuer Plan daraus beginnt wie ein Song aus einem Prompt.
 
-Hake Takes an, und die Zeile bietet statt der Arten und der Anordnung an, was mit ihnen getan werden kann: wie viele
-gewählt sind, **Vergleichen**, **Löschen** und **Fertig**, das die Haken entfernt. **Alle auswählen** am Ende der Zeile hakt
-jeden gezeigten Take an. Ein Titel bleibt immer auf einer Zeile und endet mit …, wenn er lang ist. Fahre über Titel, Einstellungen oder Stil einer Karte, um alles zu lesen.
+**Takes durchsuchen** findet die Takes mit jedem eingetippten Wort irgendwo in Titel, Stil, Songtext oder LoRA-Namen, unabhängig von Groß- und Kleinschreibung. Es sucht im angezeigten Bereich; **Alle Bereiche**, daneben, sobald du tippst, sucht in jedem Bereich, und eine Karte aus einem anderen Bereich sagt, aus welchem. × oder Escape leert es. Das Feld beginnt bei jedem Öffnen der Seite leer und bietet deine letzten Suchen an, die etwas gefunden haben: Klicke eine an oder wähle sie mit den Pfeiltasten und Enter.
+
+**Wählen, was gezeigt wird, und wie:**
+
+| Schalter | Was er tut |
+|---|---|
+| **Song**, **Cover**, **Instrumental** | Zeigen Takes dieser Arten: Schalte eine oder mehrere ein, oder keine für alle Arten. |
+| **Markiert** | Zeigt nur markierte Takes; ein erneuter Klick zeigt wieder alle. |
+| Die Layout-Symbole | Breitere **komfortable** Karten mit mehr vom Prompt oder schmalere **kompakte**; die **ganze Breite** des Fensters oder eine zentrierte Spalte; jeder Take **eingeklappt** auf seine Kopfzeile. Die verwendeten leuchten grün; fahre über ein Symbol, um zu lesen, was ein Klick tut. |
+
+Solange die Takes eingeklappt sind, öffnet die Schaltfläche oben rechts auf einer Karte nur diese Karte, und ein Klick irgendwo außerhalb klappt sie wieder ein. Eine eingeklappte Karte mit Stems zeigt eine **Stems**-Plakette, die sie auf dieselbe Weise öffnet.
+
+**Takes auswählen.** Hake Takes an, und die Leiste bietet an, was man mit ihnen tun kann, anstelle der Arten und des Layouts: wie viele gewählt sind, **Vergleichen**, **Löschen** und **Fertig**, das sie abwählt. **Alle auswählen**, am Ende der Leiste, hakt jeden angezeigten Take an.
 
 ### Ein Bild für jeden Take {#a-picture-for-each-take}
 
-Jeder neue Take bekommt ein Bild des Songs, blass hinter der Karte des Takes gezeigt, oben im Take-Bereich, wenn du ihn wählst, und hinter dem Editor, wenn der Take dort
-offen ist. Auf diesem PC gezeichnet, wartet es, bis kein Song entsteht, hält also nie einen Plan oder ein Rendering auf, und
-erscheint kurz nachdem der Song fertig ist; von einer externen LLM gezeichnet, entsteht es, während der Take rendert.
-Es entsteht in zwei Schritten: Titel, Stil und erste Worte des Takes werden zu einer **Beschreibung**
-eines Bildes, dann **zeichnet** ein Bildmodell es auf Weiß, und das Weiß wird herausgenommen, sodass das Bild
-einen transparenten Hintergrund hat. Ein Take, der in einem anderen entstand (Mehr ausprobieren, Variationen, Checkpoints), zeigt das
-Bild des Takes, in dem er steckt, statt ein eigenes zu haben.
+Jeder neue Take bekommt ein Bild des Songs.
 
-Ein Bildmodell zeichnet keine echte Band oder Person, also lässt die Beschreibung Namen weg; und die
-eigene Schrift des Bildes bleibt weich, damit sie nicht mit der der Karte kämpft.
+- **Wo es erscheint:** blass hinter der Karte des Takes, oben im Take-Bereich, wenn du ihn wählst, und hinter dem Editor, wenn der Take dort offen ist.
+- **Wann es entsteht:** Auf diesem PC gezeichnet, wartet es, bis kein Song entsteht, hält also nie einen Plan oder ein Rendering auf und erscheint kurz nachdem der Song fertig ist. Von einem externen LLM gezeichnet, entsteht es, während der Take rendert.
+- **Wie es entsteht,** in zwei Schritten: Titel, Stil und erste Wörter des Takes werden zu einer **Beschreibung** eines Bildes, dann **zeichnet** ein Bildmodell es auf Weiß, und das Weiß wird entfernt, sodass das Bild einen transparenten Hintergrund hat.
+- **Ein Take, der in einem anderen entstand** (Mehr probieren, Variationen, Checkpoints), zeigt das Bild des Takes, in dem er liegt, statt ein eigenes zu haben.
+- Ein Bildmodell zeichnet keine echte Band oder Person, daher lässt die Beschreibung Namen weg; und die eigene Schrift des Bildes bleibt weich, damit sie nicht mit der der Karte kämpft.
 
 #### Zwei Wege zu zeichnen: FLUX.2 klein auf diesem PC oder eine externe LLM {#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm}
 
@@ -1448,24 +1424,24 @@ schnellsten Bilder oder auf *Externe LLM* (eine Anfrage pro Bild).
 
 #### Das Bild eines Takes im Editor {#a-take-s-picture-in-the-editor}
 
-Das Symbol **Bild** in der oberen Zeile des Editorfensters, neben den anderen Schaltflächen des Takes, zeigt das Bild
-mit zwei Möglichkeiten: **Ein neues Bild machen**, das es im Hintergrund neu macht, und **Den Standardhintergrund verwenden**, das es endgültig entfernt: Für diesen Take wird kein Bild mehr gemacht, es sei denn, du bittest darum.
-Klicke dort auf das Bild, um es ganz zu sehen, so groß, wie das Fenster erlaubt; ein Klick irgendwo oder Escape
-legt es weg und lässt den Editor, wie er war. Das ganze Bild hat dieselben zwei Möglichkeiten darunter. Wähle
-dort **Ein neues Bild machen**, und das Bild bleibt stehen, während das neue entsteht, mit dem, was gerade passiert, zwischen
-den Schaltflächen angezeigt, und wechselt dann zum neuen, wenn es fertig ist.
+Das Symbol **Bild** in der oberen Zeile des Editorfensters, neben den anderen Schaltflächen des Takes, zeigt das Bild mit zwei Möglichkeiten:
 
-Auf der Karte eines Takes zeigt das Quadrat oben links das Bild, wenn du darauf zeigst. Ein Take ohne
-Bild bietet dort stattdessen **Ein neues Bild machen** an, wo dieser PC Bilder machen kann.
+- **Ein neues Bild machen** macht es im Hintergrund neu.
+- **Den Standardhintergrund verwenden** nimmt es endgültig weg: Für diesen Take wird kein Bild mehr gemacht, außer du bittest darum.
+
+Klicke dort auf das Bild, um es ganz zu sehen, so groß, wie das Fenster erlaubt; ein Klick irgendwo oder Escape legt es weg und lässt den Editor, wie er war. Das ganze Bild hat dieselben zwei Möglichkeiten darunter: Wähle dort **Ein neues Bild machen**, und das Bild bleibt stehen, während das neue entsteht, mit dem, was gerade passiert, zwischen den Schaltflächen, und wechselt dann zum neuen, wenn es fertig ist.
+
+Auf der Karte eines Takes zeigt das Quadrat oben links das Bild, wenn du darauf zeigst. Ein Take ohne Bild bietet dort stattdessen **Ein neues Bild machen** an, wo dieser PC Bilder machen kann.
 
 ### Takes vergleichen {#comparing-takes}
 
-Hake zwei bis sechs Takes an und drücke **Vergleichen** (es erscheint neben Alle auswählen, sobald zwei angehakt sind, und
-wartet auf Takes, die noch rendern). Die Takes stapeln sich in einem Fenster auf einer gemeinsamen Position: Drücke **1** bis
-**6** oder klicke einen an, um zu wechseln, und er macht vom selben Moment im Song aus weiter, spielend oder
-pausiert. **Leertaste** spielt und pausiert, die Pfeile springen 5 Sekunden, und der Stern markiert den, der dir
-lieber ist. **Lautheit angleichen** dreht die lauteren Takes auf den leisesten herunter, da ein lauterer Take dazu neigt,
-besser zu klingen; **Namen verbergen** mischt die Takes und nennt sie Take A, B, C für einen Blindtest.
+Hake zwei bis sechs Takes an und drücke **Vergleichen** (es erscheint neben Alle auswählen, sobald zwei angehakt sind, und wartet auf Takes, die noch rendern). Die Takes stapeln sich in einem Fenster an einer gemeinsamen Position:
+
+- Drücke **1** bis **6** oder klicke einen an, um zu wechseln: Er macht an derselben Stelle im Song weiter, spielend oder pausiert.
+- **Leertaste** spielt und pausiert, und die Pfeile springen 5 Sekunden.
+- Der Stern markiert den, der dir lieber ist.
+- **Lautheit angleichen** dreht die lauteren Takes auf den leisesten herunter, da ein lauterer Take meist besser klingt.
+- **Namen verbergen** mischt die Takes und nennt sie Take A, B, C für einen Blindtest.
 
 ### Der Player {#the-player}
 
@@ -1625,11 +1601,17 @@ Menü: welche Version du hast und ob es die neueste ist.
 
 Gibt es eine neuere, bietet das Menü **x.y.z holen** an, was bei einer Windows-Installation den Installer herunterlädt oder bei einer Docker-Kopie die zwei Befehle in die Zwischenablage legt.
 
-**Design** legt fest, wie die App aussieht: **Dunkel**, **Hell**, **Wie der Computer (dunkel oder hell)**, das dem Hell oder Dunkel deines
-Systems folgt und mit ihm wechselt, **Studio**, ein warmes Dunkel mit Bernstein, oder **Hoher Kontrast**, Schwarz und Weiß
-mit kräftigen Umrissen. Es wechselt sofort, und jeder Browser merkt es sich,
-damit die Seite darin öffnet. Das Log-Fenster bleibt in jedem Design dunkel, wie ein Terminal. Auch das Mastering-Rack folgt dem Design: Im hellen Design sind seine Paneele gebürstetes Silber, während seine Knöpfe,
-Anzeigefenster und Displays den dunklen Look der Hardware behalten.
+**Design** legt fest, wie die App aussieht. Es ändert sich sofort, und jeder Browser merkt es sich, sodass die Seite darin öffnet.
+
+| Design | Aussehen |
+|---|---|
+| **Dunkel** | Das eigene dunkle Aussehen der App. |
+| **Hell** | Helle Flächen; die Flächen des Mastering-Racks sind gebürstetes Silber, während seine Regler, Messfenster und Anzeigen den dunklen Look der Hardware behalten. |
+| **Wie der Computer** | Folgt Hell oder Dunkel deines Systems und wechselt mit. |
+| **Studio** | Ein warmes Dunkel mit Bernstein. |
+| **Hoher Kontrast** | Schwarz und Weiß, mit kräftigen Umrissen. |
+
+Das Protokollfenster bleibt in jedem Design dunkel, wie ein Terminal, und das Mastering-Rack folgt ebenfalls dem Design.
 
 **Hintergrundfarbe**, unter Design, tönt die Seite hinter den Takes mit einer Farbe deiner Wahl: Hake **Tönung** an, dann
 bewege **Farbton** um den Farbkreis und **Stärke** von einem zarten Hauch bis zu einer satten Farbe. Die Seite ändert sich, während du

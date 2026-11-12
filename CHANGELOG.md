@@ -43,6 +43,10 @@ cannot creep back in.
   every note without a sign of its own back as a natural, so in any key with sharps or flats those notes were sung a
   semitone off the chords. Takes fitted before keep their notes until fitted again. (The first outside contribution,
   #69.)
+- **The guide is easier to scan.** Its densest parts are now steps, lists and tables: recorded voices (with a heading
+  for each part, and steps for adding your own Hear it loops), the lyric drafter and voice cues, the mastering rack and
+  3D Space, the score preview, lyrics from a recording, corpora and training, checkpoints, spaces, cards, pictures,
+  comparing takes and themes. In every language.
 
 ## 0.0.58 (2026-11-11)
 
