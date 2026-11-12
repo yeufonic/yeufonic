@@ -18269,7 +18269,12 @@ async function auditionRefresh() {
   if (!mix) { auditionStop(); return; }
   auditionGains(mix.wet);
   var key = auditionKey(mix);
-  if (key === AUD.wetKey || key === AUD.wantKey) { return; }
+  if (key === AUD.wetKey) {
+    // Started again with nothing changed since it was last heard: the voice's take is still here, so play it.
+    if (!AUD.nodes && AUD.wetBuf && AUD.dry[AUD.loop]) { auditionPlay(AUD.dry[AUD.loop], AUD.wetBuf); auditionSay(''); }
+    return;
+  }
+  if (key === AUD.wantKey) { return; }
   if (AUD.busy) { AUD.again = true; return; }
   AUD.busy = true;
   AUD.wantKey = key;

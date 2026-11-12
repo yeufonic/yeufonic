@@ -37,6 +37,11 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **Hear it plays again after a stop.** Stopped and started with no setting changed, it stayed silent, because
+  it took the voice it had already sung as playing; it now plays it again at once.
+
 ## 0.0.59 (2026-11-12)
 
 - **A phrase moved to its voice's octave keeps the key's sharps and flats.** Fitting a phrase to its voice cue wrote
