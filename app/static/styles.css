@@ -2129,7 +2129,7 @@ label .lora-value:disabled { opacity: 0.6; }
 .take.with-art { position: relative; isolation: isolate; }
 .take.with-art::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
-  background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.10);
+  background: var(--take-art) center / cover no-repeat; opacity: var(--take-art-strength, 0.0375);
   filter: saturate(var(--take-art-colour, 0.6));   /* its colour toned back: behind the card, not competing with it */
 }
 /* The muted grey lifted towards the text colour: the lettering over a picture.  Worked out here, on the page's root,
@@ -2139,7 +2139,7 @@ label .lora-value:disabled { opacity: 0.6; }
 #editor.with-art { position: relative; isolation: isolate; }
 #editor.with-art::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
-  background: var(--take-art) center / cover no-repeat; opacity: var(--editor-art-strength, 0.10);
+  background: var(--take-art) center / cover no-repeat; opacity: var(--editor-art-strength, 0.0375);
 }
 /* The editor's small lettering, with the card's definition (below): its grey lifted towards the text colour, a
    little more weight, and the tight edge in the window's own colour.  The edge is inherited, and the browser
@@ -3753,7 +3753,7 @@ main > .sheet-panel { transition: opacity 0.22s ease, transform 0.22s ease; }
 .sheet-panel.with-art::before {
   content: ""; position: absolute; left: 0; right: 0; top: 0; height: 420px; z-index: -1; pointer-events: none;
   border-radius: inherit; background: var(--take-art) center top / cover no-repeat;
-  opacity: var(--sheet-art-strength, 0.20); filter: saturate(var(--take-art-colour, 0.6));
+  opacity: var(--sheet-art-strength, 0.075); filter: saturate(var(--take-art-colour, 0.6));
   -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent); mask-image: linear-gradient(to bottom, #000 45%, transparent);
 }
 .sheet-panel.with-art .take-sheet {
@@ -7236,3 +7236,176 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 .voice-rec-row audio { height: 32px; flex: 0 0 240px; }
 .voice-rec-row.missing .voice-rec-title { opacity: 0.6; }
 .voice-library-list { max-height: 240px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+
+/* ============================================================================
+   UI STYLE (Classic / Studio Slate)
+   Selected via [data-ui-style="slate"] on <html> and designed to work with any
+   [data-theme] (dark, light, studio, contrast). Classic leaves everything as-is.
+   ============================================================================ */
+
+/* Extra card affordances stay invisible in Classic so Classic is 100% unchanged. */
+.grid-filter,
+.corpus-avatar,
+.corpus-ratio,
+.corpus-progress,
+.voice-icon,
+.voice-badge { display: none; }
+.card-main { min-width: 0; flex: 1 1 auto; }
+.card-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* Shared layout enhancements active across all 3 refreshed directions */
+:root[data-ui-style] .grid-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+:root[data-ui-style] .grid-filter {
+  display: block;
+  margin-left: auto;
+  width: min(260px, 100%);
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--ui-input-bg, var(--bg-2));
+  color: var(--text);
+  font-size: 13px;
+}
+:root[data-ui-style] .identity-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
+}
+:root[data-ui-style] .identity-card:hover { transform: translateY(-1px); }
+:root[data-ui-style] .identity-card code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgb(var(--ink) / 0.08);
+  color: var(--text);
+  font-size: 11.5px;
+}
+:root[data-ui-style] .ed-col {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--ui-panel-bg, var(--panel));
+  border: 1px solid var(--line);
+}
+:root[data-ui-style] .ed-col > h4 {
+  letter-spacing: 0.09em;
+  font-size: 11.5px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+:root[data-ui-style] .ed-col input[type="text"],
+:root[data-ui-style] .ed-col input[type="number"],
+:root[data-ui-style] .ed-col textarea,
+:root[data-ui-style] .ed-col select {
+  background: var(--ui-input-bg, var(--bg));
+}
+
+/* ---------- Colour-Blocked Studio Slate ---------- */
+:root[data-ui-style="slate"] {
+  --ui-panel-bg: var(--panel);
+  --ui-input-bg: var(--bg);
+}
+:root[data-ui-style="slate"]:not([data-theme="light"]):not([data-theme="studio"]):not([data-theme="contrast"]) {
+  --bg: #15171c;
+  --bg-2: #191c22;
+  --panel: #1c2028;
+  --card: #20242d;
+  --card-2: #272c37;
+  --muted: #94a3b8;
+}
+:root[data-ui-style="slate"][data-theme="light"] {
+  --ui-panel-bg: #ffffff;
+  --ui-input-bg: #f8fafc;
+}
+
+/* Song Edit columns */
+:root[data-ui-style="slate"] .ed-cols > .ed-col:nth-child(1) { border-top: 3px solid var(--song-a); }
+:root[data-ui-style="slate"] .ed-cols > .ed-col:nth-child(1) > h4 { color: var(--song-a); }
+:root[data-ui-style="slate"] .ed-cols > .ed-col:nth-child(2) { border-top: 3px solid var(--cover-a); }
+:root[data-ui-style="slate"] .ed-cols > .ed-col:nth-child(2) > h4 { color: var(--cover-a); }
+:root[data-ui-style="slate"] .ed-cols > .ed-col:nth-child(3) { border-top: 3px solid var(--good); }
+:root[data-ui-style="slate"] .ed-cols > .ed-col:nth-child(3) > h4 { color: var(--good); }
+
+/* Corpora & Voices cards */
+:root[data-ui-style="slate"] .identity-card[data-identity] {
+  background: var(--ui-panel-bg);
+  border-left: 3px solid rgb(var(--ink) / 0.22);
+}
+:root[data-ui-style="slate"] .voice-card {
+  background: var(--ui-panel-bg);
+  border-left: 3px solid var(--accent-a);
+}
+:root[data-ui-style="slate"] .voice-card[data-origin="imported"] { border-left-color: var(--good); }
+:root[data-ui-style="slate"] .voice-card[data-origin="corpus"] { border-left-color: var(--warn); }
+:root[data-ui-style="slate"] .voice-card.new { border-left-color: var(--bad); }
+
+:root[data-ui-style="slate"] .corpus-ratio,
+:root[data-ui-style="slate"] .voice-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+:root[data-ui-style="slate"] .corpus-ratio {
+  background: rgb(var(--ink) / 0.08);
+  color: var(--muted);
+}
+:root[data-ui-style="slate"] .identity-card[data-complete="true"] .corpus-ratio {
+  background: rgb(var(--warn-rgb) / 0.16);
+  color: var(--warn);
+}
+:root[data-ui-style="slate"] .voice-badge {
+  background: rgb(var(--accent-a-rgb) / 0.16);
+  color: var(--accent-a);
+}
+:root[data-ui-style="slate"] .voice-card[data-origin="imported"] .voice-badge {
+  background: rgb(var(--good-rgb) / 0.15);
+  color: var(--good);
+}
+:root[data-ui-style="slate"] .voice-card[data-origin="corpus"] .voice-badge {
+  background: rgb(var(--warn-rgb) / 0.16);
+  color: var(--warn);
+}
+:root[data-ui-style="slate"] .voice-card.new .voice-badge {
+  background: rgb(var(--bad-rgb) / 0.16);
+  color: var(--bad);
+}
+
+/* Light-theme contrast refinements for tinted labels */
+:root[data-theme="light"][data-ui-style="slate"] .ed-cols > .ed-col:nth-child(1) > h4 { color: #0369a1; }
+:root[data-theme="light"][data-ui-style="slate"] .ed-cols > .ed-col:nth-child(2) > h4 { color: #be123c; }
+:root[data-theme="light"][data-ui-style="slate"] .ed-cols > .ed-col:nth-child(3) > h4 { color: #047857; }
+
+/* Main Page (Topbar, Sheet Panel, Library, Take Cards, Player) */
+:root[data-ui-style="slate"] .topbar {
+  border-bottom: 2px solid rgb(var(--song-a-rgb) / 0.35);
+}
+:root[data-ui-style="slate"] .player {
+  border-top: 2px solid rgb(var(--good-rgb) / 0.35);
+}
+:root[data-ui-style="slate"] .sheet-panel {
+  background: var(--ui-panel-bg);
+  border-top: 3px solid var(--accent-a);
+}
+:root[data-ui-style="slate"] .take:not(.editing):not(.playing) {
+  background: var(--ui-panel-bg);
+  border-left: 2px solid rgb(var(--song-a-rgb) / 0.16);
+}
+:root[data-ui-style="slate"] .take[data-kind="cover"]:not(.editing):not(.playing) {
+  border-left-color: rgb(var(--accent-b-rgb) / 0.16);
+}
+:root[data-ui-style="slate"] .take[data-kind="inst"]:not(.editing):not(.playing) {
+  border-left-color: rgb(var(--good-rgb) / 0.16);
+}
+:root[data-ui-style="slate"] .take-search input {
+  background: var(--ui-input-bg);
+  border-color: rgb(var(--ink) / 0.14);
+}
+
+

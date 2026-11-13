@@ -571,15 +571,27 @@ SETTINGS_SPEC: list[dict] = [
         "group": "system",
         "label": "Theme",
         "type": "select",
-        "default": "dark",
+        "default": "studio",
         "options": [
+            {"value": "studio", "label": "Studio (warm, dark)"},
             {"value": "dark", "label": "Dark"},
             {"value": "light", "label": "Light"},
             {"value": "system", "label": "Match the computer (dark or light)"},
-            {"value": "studio", "label": "Studio (warm, dark)"},
             {"value": "contrast", "label": "High contrast"},
         ],
         "help": "How the app looks.",
+    },
+    {
+        "key": "appearance.ui_style",
+        "group": "system",
+        "label": "UI style",
+        "type": "select",
+        "default": "slate",
+        "options": [
+            {"value": "slate", "label": "Studio Slate"},
+            {"value": "default", "label": "Classic"},
+        ],
+        "help": "Visual layout and colour treatment across the editor, Corpora, Voices, and cards. Works alongside any theme.",
     },
     {
         # The page behind the takes in a hue of the user's choosing.  Drawn by the page with sliders of its own

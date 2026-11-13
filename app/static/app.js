@@ -5432,6 +5432,7 @@ function adoptSettings(spec) {
     box.value = defaultCap();
   }
   applyTheme();
+  applyUiStyle();
   adoptBackdrop();
   adoptVisualizerSettings();
   if (typeof editorOpen === 'function' && editorOpen()) { paintEditor(); }
@@ -5484,9 +5485,9 @@ var THEMES = ['dark', 'light', 'studio', 'contrast'];
 var SYSTEM_LIGHT = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
 
 function applyTheme() {
-  var chosen = setting('appearance.theme', 'dark');
+  var chosen = setting('appearance.theme', 'studio');
   var theme = chosen === 'system' ? (SYSTEM_LIGHT && SYSTEM_LIGHT.matches ? 'light' : 'dark') : chosen;
-  if (THEMES.indexOf(theme) < 0) { theme = 'dark'; }
+  if (THEMES.indexOf(theme) < 0) { theme = 'studio'; }
   try { localStorage.setItem('yue2.theme', chosen); } catch (err) { /* private mode */ }
   var root = document.documentElement;
   var before = root.dataset.theme || 'dark';
@@ -5496,8 +5497,18 @@ function applyTheme() {
 
 if (SYSTEM_LIGHT && SYSTEM_LIGHT.addEventListener) {
   SYSTEM_LIGHT.addEventListener('change', function () {
-    if (setting('appearance.theme', 'dark') === 'system') { applyTheme(); }
+    if (setting('appearance.theme', 'studio') === 'system') { applyTheme(); }
   });
+}
+
+var UI_STYLES = ['slate', 'default'];
+
+function applyUiStyle() {
+  var chosen = setting('appearance.ui_style', 'slate');
+  if (UI_STYLES.indexOf(chosen) < 0) { chosen = 'slate'; }
+  try { localStorage.setItem('yue2.uiStyle', chosen); } catch (err) { /* private mode */ }
+  var root = document.documentElement;
+  if (chosen === 'default') { delete root.dataset.uiStyle; } else { root.dataset.uiStyle = chosen; }
 }
 
 /* ------------------------------------------------------- the backdrop's colour
@@ -10612,19 +10623,44 @@ async function showIdentityList() {
   if (!body) { return; }
   body.innerHTML =
     '<p class="identity-intro persona-intro">' + t('A corpus is a folder of recordings, prepared as a training set. Point at a folder: the app separates each vocal, finds its key and tempo, and drafts its lyrics for you to check. Then export the set and train it{value}.', { value: trainingAvailable() ? ' ' + t('— here, or anywhere else') : ' ' + t('with the trainer of your choice') }) + '</p>' +
-    '<div class="row"><button id="identity-new" class="ghost">' + t('New corpus') + '</button>' +
+    '<div class="row grid-toolbar"><button id="identity-new" class="ghost">' + t('New corpus') + '</button>' +
     '<button id="identity-import" class="ghost" title="' + t('Add a LoRA someone shared: the zip from their Download LoRA, or a .safetensors file') + '">' + t('Import LoRA') + '</button>' +
     '<input id="identity-import-file" type="file" accept=".zip,.safetensors" class="hidden">' +
-    '<span id="identity-import-status" class="status"></span></div>' +
+    '<span id="identity-import-status" class="status"></span>' +
+    '<input id="identity-filter" class="grid-filter" type="search" placeholder="' + esc(t('Filter corpora…')) + '" aria-label="' + esc(t('Filter corpora')) + '"></div>' +
     '<div class="identity-cards persona-cards">' + list.map(function (item) {
+      var inc = Number(item.included) || 0;
+      var total = Number(item.songs) || 0;
+      var complete = total > 0 && inc >= total;
+      var pct = total > 0 ? Math.min(100, Math.round((inc / total) * 100)) : 0;
+      var words = String(item.name || '?').trim().split(/\s+/);
+      var initials = (words.length > 1 ? words[0][0] + words[1][0] : String(item.name || '?').slice(0, 2)).toUpperCase();
       // The dot and the word are always here and shown by the card's class: the poll marks
       // a card rather than redrawing the list, which would move it out from under a click.
-      return '<div class="identity-card persona-card" data-identity="' + esc(item.id) + '" data-persona="' + esc(item.id) + '">' +
-        '<strong><span class="corpus-dot" aria-hidden="true"></span>' + esc(item.name) + '</strong>' +
-        '<span class="muted">' + t('trigger') + ' <code>' + esc(item.trigger_word) + '</code> · ' +
-        t('{included} of {songs} songs', { included: item.included || 0, songs: item.songs || 0 }) + (item.exported_at ? ' · ' + t('exported') : '') + '</span>' +
-        '<span class="corpus-preparing">' + t('preparing…') + '</span></div>';
+      return '<div class="identity-card persona-card" data-identity="' + esc(item.id) + '" data-persona="' + esc(item.id) + '" data-complete="' + (complete ? 'true' : 'false') + '" data-filter="' + esc((item.name + ' ' + (item.trigger_word || '')).toLowerCase()) + '">' +
+        '<span class="corpus-avatar" aria-hidden="true">' + esc(initials) + '</span>' +
+        '<div class="card-main">' +
+          '<div class="card-head-row">' +
+            '<strong><span class="corpus-dot" aria-hidden="true"></span>' + esc(item.name) + '</strong>' +
+            '<span class="corpus-ratio">' + inc + '/' + total + '</span>' +
+          '</div>' +
+          '<span class="muted">' + t('trigger') + ' <code>' + esc(item.trigger_word) + '</code> · ' +
+          t('{included} of {songs} songs', { included: inc, songs: total }) + (item.exported_at ? ' · ' + t('exported') : '') + '</span>' +
+          '<span class="corpus-preparing">' + t('preparing…') + '</span>' +
+        '</div>' +
+        '<span class="corpus-progress" aria-hidden="true"><span style="width:' + pct + '%"></span></span>' +
+      '</div>';
     }).join('') + '</div>';
+  var cFilter = $('identity-filter');
+  if (cFilter) {
+    cFilter.addEventListener('input', function () {
+      var q = cFilter.value.trim().toLowerCase();
+      Array.prototype.forEach.call(body.querySelectorAll('.identity-card[data-identity]'), function (card) {
+        var hay = card.getAttribute('data-filter') || '';
+        card.classList.toggle('hidden', Boolean(q && hay.indexOf(q) < 0));
+      });
+    });
+  }
   paintCorpusCards();
 }
 
@@ -17631,19 +17667,44 @@ function showVoiceList() {
   $('voices-body').innerHTML =
     '<p class="identity-intro">' + t('A voice is trained from someone singing: your own recordings, or the songs of a corpus. Pick it in the editor when making a take, and the take is sung in it.') + '</p>' +
     serviceNote() +
-    '<div class="row">' +
+    '<div class="row grid-toolbar">' +
       '<button id="voice-new" class="ghost"' + (usable ? '' : ' disabled') + '>' + t('New voice') + '</button>' +
       '<button id="voice-import" class="ghost" title="' + t('Add a voice someone shared: the zip from their Download voice, or an RVC model (its zip, or its .pth and .index chosen together)') + '">' + t('Import a voice…') + '</button>' +
+      '<input id="voice-filter" class="grid-filter" type="search" placeholder="' + esc(t('Filter voices…')) + '" aria-label="' + esc(t('Filter voices')) + '">' +
     '</div>' +
     // Ready-made voices: a well-trained one from elsewhere can sound better than a few minutes of singing gives.
     '<p class="hint voice-sources">' + esc(t('Ready-made voices, RVC models trained by others, can be found on sites such as {site}: Import a voice… takes the zip as downloaded.'))
       .replace('{site}', '<a href="https://voice-models.com/" target="_blank" rel="noopener">voice-models.com</a>') + '</p>' +
     (VOICES.list.length ? '' : '<p class="muted">' + t('No voices yet.') + '</p>') +
     '<div class="identity-cards">' + VOICES.list.map(function (v) {
-      return '<div class="identity-card voice-card ' + esc(v.state) + '" data-voice="' + esc(v.id) + '">' +
-        '<strong>' + esc(v.name) + '</strong>' +
-        '<span class="muted">' + esc(voiceStateText(v)) + ' · ' + esc(voiceOrigin(v)) + '</span></div>';
+      var originKind = v.origin_identity ? 'corpus' : (v.recordings || v.state === 'new' ? 'own' : 'imported');
+      var badgeLabel = v.state === 'new' ? t('Untrained') : (v.state === 'failed' ? t('Failed') : (originKind === 'imported' ? t('Imported') : (originKind === 'corpus' ? t('Corpus') : t('Ready'))));
+      var iconSvg = originKind === 'corpus'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>'
+        : (originKind === 'imported'
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>');
+      return '<div class="identity-card voice-card ' + esc(v.state) + '" data-voice="' + esc(v.id) + '" data-origin="' + originKind + '" data-filter="' + esc(v.name.toLowerCase()) + '">' +
+        '<span class="voice-icon" aria-hidden="true">' + iconSvg + '</span>' +
+        '<div class="card-main">' +
+          '<div class="card-head-row">' +
+            '<strong>' + esc(v.name) + '</strong>' +
+            '<span class="voice-badge">' + esc(badgeLabel) + '</span>' +
+          '</div>' +
+          '<span class="muted">' + esc(voiceStateText(v)) + ' · ' + esc(voiceOrigin(v)) + '</span>' +
+        '</div>' +
+      '</div>';
     }).join('') + '</div>';
+  var vFilter = $('voice-filter');
+  if (vFilter) {
+    vFilter.addEventListener('input', function () {
+      var q = vFilter.value.trim().toLowerCase();
+      Array.prototype.forEach.call($('voices-body').querySelectorAll('.voice-card[data-voice]'), function (card) {
+        var hay = card.getAttribute('data-filter') || '';
+        card.classList.toggle('hidden', Boolean(q && hay.indexOf(q) < 0));
+      });
+    });
+  }
 }
 
 function showVoiceNew() {

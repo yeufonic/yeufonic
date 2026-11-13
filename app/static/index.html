@@ -9,11 +9,13 @@
     // theme does not flash dark on every load. The settings confirm it once they arrive.
     (function () {
       try {
-        var chosen = localStorage.getItem('yue2.theme') || 'dark';
+        var chosen = localStorage.getItem('yue2.theme') || 'studio';
         var theme = chosen === 'system'
           ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
           : chosen;
         if (theme !== 'dark') { document.documentElement.dataset.theme = theme; }
+        var uiStyle = localStorage.getItem('yue2.uiStyle') || 'slate';
+        if (uiStyle !== 'default') { document.documentElement.dataset.uiStyle = uiStyle; }
       } catch (err) { /* private mode: dark */ }
     })();
   </script>
