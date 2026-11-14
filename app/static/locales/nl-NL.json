@@ -2823,5 +2823,9 @@
  "Could not put the take together for a DAW: {message}": "De take kon niet worden klaargemaakt voor een DAW: {message}",
  "could not make the DAW bundle": "het DAW-pakket kon niet worden gemaakt",
  "the mastered audio is too large": "de gemasterde audio is te groot",
- "that is not a MIDI file": "dat is geen MIDI-bestand"
+ "that is not a MIDI file": "dat is geen MIDI-bestand",
+ "Time signature": "Maatsoort",
+ "The plan is written in this time signature, and the render follows the plan. Auto leaves it to the planner, which mostly writes in four. Songs and instrumentals from a prompt; a cover keeps its recording's.": "De partituur wordt in deze maatsoort geschreven en de render volgt haar. Auto laat het aan de planner, die meestal in vieren schrijft. Voor nummers en instrumentals vanuit een prompt; een cover houdt die van zijn opname.",
+ "(default: Auto)": "(standaard: Auto)",
+ "3/4 (waltz)": "3/4 (wals)"
 }

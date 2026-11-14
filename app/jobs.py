@@ -115,6 +115,7 @@ PLAN_VARIETY = {
 NO_SCORE = "off"
 
 HARMONY_NODE = "YuE2GenerateABCHarmony"
+METERS = ("4/4", "3/4", "6/8")   # the time signatures a plan can be held to (Advanced → Time)
 HARMONY_STEPS = ["Familiar", "Varied", "Colourful", "Adventurous", "Outside"]
 HARMONY_OFF = {"chord_identity": "root", "chord_strength": 0.0, "chord_window": 16, "hold_limit": 8,
                "outside_bonus": 0.0, "outside_limit": 0.25, "section_strength": 0.0, "section_open": 4}
@@ -204,13 +205,18 @@ def build_plan_graph(take: dict) -> dict:
     sections = take.get("chord_sections")      # None follows the step; 1 forces sections to open differently, 0 does not
     hook = take.get("hook_abc") or ""
     follow = lyrics.plan_names(take.get("lyrics") or "") if take.get("follow_structure") and (take.get("kind") == "song" or hook) else []
-    if step in HARMONY or hold_limit != 8 or outside_bonus != 0.0 or sections or follow or hook:
+    # A time signature asked for (Advanced → Time): the score is made to open with its M: line, which the planner
+    # then keeps to.  It knows 4/4, 3/4 and 6/8 well enough for that; a recorded tune brings a header of its own.
+    meter = take.get("target_meter") if take.get("target_meter") in METERS else None
+    if step in HARMONY or hold_limit != 8 or outside_bonus != 0.0 or sections or follow or hook or meter:
         graph["2"]["class_type"] = HARMONY_NODE
         node.update({**HARMONY_OFF, **HARMONY.get(step, {})})
         if sections is not None:
             node["section_strength"] = SECTION_STRENGTH if sections else 0.0
         if follow:
             node["follow_sections"] = ",".join(follow)
+        if meter and not hook:
+            node["hook_head"] = f"X:1\nT:\nM:{meter}\n"
         if hook:
             # A tune recorded for this song, held in every section of its name (composer.py): the
             # plan opens with the tune's header, through its K: line, and those sections hold its bars.

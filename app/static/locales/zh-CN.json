@@ -2823,5 +2823,9 @@
  "Could not put the take together for a DAW: {message}": "无法为 DAW 打包版本：{message}",
  "could not make the DAW bundle": "无法生成 DAW 包",
  "the mastered audio is too large": "母带处理后的音频太大",
- "that is not a MIDI file": "这不是 MIDI 文件"
+ "that is not a MIDI file": "这不是 MIDI 文件",
+ "Time signature": "拍号",
+ "The plan is written in this time signature, and the render follows the plan. Auto leaves it to the planner, which mostly writes in four. Songs and instrumentals from a prompt; a cover keeps its recording's.": "方案按这个拍号写出，渲染也跟随它。自动则交给规划器，它多半写成四拍。适用于从提示词做的歌曲和纯音乐；翻唱保留其录音的拍号。",
+ "(default: Auto)": "（默认：自动）",
+ "3/4 (waltz)": "3/4（华尔兹）"
 }

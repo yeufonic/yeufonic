@@ -2823,5 +2823,9 @@
  "Could not put the take together for a DAW: {message}": "Не удалось собрать дубль для DAW: {message}",
  "could not make the DAW bundle": "не удалось собрать пакет для DAW",
  "the mastered audio is too large": "мастеринговый звук слишком большой",
- "that is not a MIDI file": "это не MIDI-файл"
+ "that is not a MIDI file": "это не MIDI-файл",
+ "Time signature": "Размер",
+ "The plan is written in this time signature, and the render follows the plan. Auto leaves it to the planner, which mostly writes in four. Songs and instrumentals from a prompt; a cover keeps its recording's.": "Партитура пишется в этом размере, и рендер ей следует. «Авто» оставляет выбор планировщику, который чаще всего пишет на четыре. Для песен и инструменталов по промпту; кавер сохраняет размер своей записи.",
+ "(default: Auto)": "(по умолчанию: Авто)",
+ "3/4 (waltz)": "3/4 (вальс)"
 }

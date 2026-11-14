@@ -141,6 +141,7 @@ Alcune agiscono sul piano, altre sul render e sul file finale:
   a metà, resta nella tonalità del pianificatore e il log lo dice.
 - **Blocca tempo** (BPM): il piano viene fissato a questo tempo, che sostituisce qualsiasi tempo dello stile o della
   partitura stessa del pianificatore, e il render lo segue.
+- **Tempo in chiave** (Auto, 4/4, 3/4 o 6/8): la partitura è scritta in questo tempo e il rendering la segue: 3/4 per un valzer, 6/8 per un andamento cullante. Auto lo lascia al pianificatore, che scrive per lo più in quattro. Non per una cover, che tiene quello della sua registrazione.
 - **Limite di token della partitura** (predefinito 8192): il massimo che il pianificatore può scrivere. Un limite più basso impedisce al piano di una canzone breve
   di allungarsi.
 - **Limite di accordo tenuto** (battute, predefinito 8): il massimo di battute che il pianificatore resta su una stessa fondamentale prima

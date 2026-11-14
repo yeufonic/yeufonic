@@ -2823,5 +2823,9 @@
  "Could not put the take together for a DAW: {message}": "Impossible de préparer la prise pour une DAW : {message}",
  "could not make the DAW bundle": "impossible de créer le paquet pour la DAW",
  "the mastered audio is too large": "l'audio masterisé est trop volumineux",
- "that is not a MIDI file": "ce n'est pas un fichier MIDI"
+ "that is not a MIDI file": "ce n'est pas un fichier MIDI",
+ "Time signature": "Mesure",
+ "The plan is written in this time signature, and the render follows the plan. Auto leaves it to the planner, which mostly writes in four. Songs and instrumentals from a prompt; a cover keeps its recording's.": "La partition est écrite dans cette mesure, et le rendu la suit. Auto la laisse au planificateur, qui écrit surtout à quatre temps. Pour les chansons et instrumentaux à partir d'un prompt ; une reprise garde celle de son enregistrement.",
+ "(default: Auto)": "(par défaut : Auto)",
+ "3/4 (waltz)": "3/4 (valse)"
 }

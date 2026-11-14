@@ -2823,5 +2823,9 @@
  "Could not put the take together for a DAW: {message}": "Der Take ließ sich nicht für eine DAW zusammenstellen: {message}",
  "could not make the DAW bundle": "das DAW-Paket konnte nicht erstellt werden",
  "the mastered audio is too large": "das gemasterte Audio ist zu groß",
- "that is not a MIDI file": "das ist keine MIDI-Datei"
+ "that is not a MIDI file": "das ist keine MIDI-Datei",
+ "Time signature": "Taktart",
+ "The plan is written in this time signature, and the render follows the plan. Auto leaves it to the planner, which mostly writes in four. Songs and instrumentals from a prompt; a cover keeps its recording's.": "Die Partitur wird in dieser Taktart geschrieben, und das Rendern folgt ihr. Auto überlässt es dem Planer, der meist im Vierertakt schreibt. Für Songs und Instrumentals aus einem Prompt; ein Cover behält die seiner Aufnahme.",
+ "(default: Auto)": "(Voreinstellung: Auto)",
+ "3/4 (waltz)": "3/4 (Walzer)"
 }

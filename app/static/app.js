@@ -1273,6 +1273,7 @@ var ADVANCED_DEFAULTS = {
   avoid: '',
   target_key: '',
   target_bpm: null,
+  target_meter: '',        // Auto: the planner's own time signature
   max_abc_tokens: 8192,
   chord_hold_limit: 8,
   chord_outside_bonus: 0.0,
@@ -1292,6 +1293,8 @@ function readAdvancedSettings() {
   var targetKey = ($('adv-target-key').value || '').trim();
   var bpmRaw = parseInt($('adv-target-bpm').value, 10);
   var targetBpm = (!isNaN(bpmRaw) && bpmRaw >= 20 && bpmRaw <= 400) ? bpmRaw : null;
+  var meter = $('adv-target-meter') ? $('adv-target-meter').value : '';
+  if (['4/4', '3/4', '6/8'].indexOf(meter) < 0) { meter = ''; }
   var tokens = parseInt($('adv-max-abc-tokens').value, 10);
   if (isNaN(tokens) || tokens < 512 || tokens > 8192) { tokens = ADVANCED_DEFAULTS.max_abc_tokens; }
   var hold = parseInt($('adv-chord-hold-limit').value, 10);
@@ -1315,6 +1318,7 @@ function readAdvancedSettings() {
     avoid: avoid,
     target_key: targetKey,
     target_bpm: targetBpm,
+    target_meter: meter,
     max_abc_tokens: tokens,
     chord_hold_limit: hold,
     chord_outside_bonus: outside,
@@ -1333,6 +1337,7 @@ function isAdvancedDirty() {
     cur.avoid !== ADVANCED_DEFAULTS.avoid ||
     cur.target_key !== ADVANCED_DEFAULTS.target_key ||
     cur.target_bpm !== ADVANCED_DEFAULTS.target_bpm ||
+    cur.target_meter !== ADVANCED_DEFAULTS.target_meter ||
     cur.max_abc_tokens !== ADVANCED_DEFAULTS.max_abc_tokens ||
     cur.chord_hold_limit !== ADVANCED_DEFAULTS.chord_hold_limit ||
     Math.abs(cur.chord_outside_bonus - ADVANCED_DEFAULTS.chord_outside_bonus) > 0.001 ||
@@ -1370,6 +1375,7 @@ function writeAdvancedSettings(data) {
   $('adv-avoid').value = data.avoid || '';
   $('adv-target-key').value = data.target_key || '';
   $('adv-target-bpm').value = data.target_bpm != null ? data.target_bpm : '';
+  if ($('adv-target-meter')) { $('adv-target-meter').value = data.target_meter || ''; }
   $('adv-max-abc-tokens').value = data.max_abc_tokens != null ? data.max_abc_tokens : ADVANCED_DEFAULTS.max_abc_tokens;
   $('adv-chord-hold-limit').value = data.chord_hold_limit != null ? data.chord_hold_limit : ADVANCED_DEFAULTS.chord_hold_limit;
   $('adv-chord-outside-bonus').value = data.chord_outside_bonus != null ? data.chord_outside_bonus : ADVANCED_DEFAULTS.chord_outside_bonus;
@@ -1401,6 +1407,7 @@ function loadAdvancedTakeSettings(take) {
     avoid: take.avoid || '',
     target_key: take.target_key || '',
     target_bpm: take.target_bpm != null ? take.target_bpm : null,
+    target_meter: take.target_meter || '',
     max_abc_tokens: take.max_abc_tokens != null ? take.max_abc_tokens : ADVANCED_DEFAULTS.max_abc_tokens,
     chord_hold_limit: take.chord_hold_limit != null ? take.chord_hold_limit : ADVANCED_DEFAULTS.chord_hold_limit,
     chord_outside_bonus: take.chord_outside_bonus != null ? take.chord_outside_bonus : ADVANCED_DEFAULTS.chord_outside_bonus,
@@ -1419,6 +1426,7 @@ function withAdvancedSettings(body) {
   body.avoid = adv.avoid || null;
   body.target_key = adv.target_key || null;
   body.target_bpm = adv.target_bpm != null ? adv.target_bpm : null;
+  body.target_meter = adv.target_meter || null;
   body.max_abc_tokens = adv.max_abc_tokens;
   body.chord_hold_limit = adv.chord_hold_limit;
   body.chord_outside_bonus = adv.chord_outside_bonus;
@@ -5735,6 +5743,7 @@ function detailGroups(take) {
   set(t('Avoid'), take.avoid);
   set(t('Key lock'), take.target_key);
   set(t('Tempo lock'), take.target_bpm, take.target_bpm ? take.target_bpm + ' BPM' : '');
+  set(t('Time signature'), take.target_meter, take.target_meter || '');
   set(t('Longest score'), take.max_abc_tokens, take.max_abc_tokens ? take.max_abc_tokens + ' tokens' : '');
   set(t('Chord hold limit'), take.chord_hold_limit);
   set(t('Out-of-key chord bonus'), take.chord_outside_bonus);

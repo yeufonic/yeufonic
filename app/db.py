@@ -141,6 +141,7 @@ CREATE TABLE IF NOT EXISTS takes (
     avoid TEXT,
     target_key TEXT,
     target_bpm INTEGER,
+    target_meter TEXT,
     max_abc_tokens INTEGER DEFAULT 8192,
     chord_hold_limit INTEGER DEFAULT 8,
     chord_outside_bonus REAL DEFAULT 0.0,
@@ -855,6 +856,12 @@ def _cfg_scale() -> None:
     if "cfg_scale" not in _columns("takes"):
         execute("ALTER TABLE takes ADD COLUMN cfg_scale REAL")
 
+def _target_meter() -> None:
+    """A time signature the plan is held to (Advanced → Time): the score opens with that M: line.  NULL is Auto."""
+    if "target_meter" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN target_meter TEXT")
+
+
 def _keep_the_look() -> None:
     """Studio with the Studio Slate style became the default look; a library from before keeps the look it had,
     Dark and Classic, unless a theme or style was chosen.  A new database never runs this: it starts at the
@@ -917,6 +924,7 @@ MIGRATIONS = [
     _voice_sound,                                                    # -> 52
     _voice_formant_wet,                                              # -> 53
     _keep_the_look,                                                  # -> 54
+    _target_meter,                                                   # -> 55
 ]
 
 

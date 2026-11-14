@@ -968,6 +968,17 @@
         <input type="number" id="adv-target-bpm" min="40" max="240" step="1" placeholder="Auto">
       </div>
 
+      <!-- Time Lock -->
+      <div class="field" title="The plan is written in this time signature, and the render follows the plan. Auto leaves it to the planner, which mostly writes in four. Songs and instrumentals from a prompt; a cover keeps its recording's.">
+        <label for="adv-target-meter">Time signature <span class="muted">(default: Auto)</span></label>
+        <select id="adv-target-meter">
+          <option value="">Auto</option>
+          <option value="4/4">4/4</option>
+          <option value="3/4">3/4 (waltz)</option>
+          <option value="6/8">6/8</option>
+        </select>
+      </div>
+
       <!-- Token Cap -->
       <div class="field" title="Maximum tokens the ABC score planner can generate. Lower values limit runaway scores for short songs. Default: 8192.">
         <label for="adv-max-abc-tokens">Score token cap <span class="muted">(512–8192, default: 8192)</span></label>

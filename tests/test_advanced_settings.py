@@ -304,3 +304,26 @@ def test_following_the_structure_is_kept_with_the_take(client):
     assert take["follow_structure"] == 1
     assert client.post("/api/songs", json={k: v for k, v in body.items() if k != "follow_structure"}).json()["follow_structure"] is None
     assert client.post("/api/songs", json={**body, "follow_structure": 2}).status_code == 422
+
+
+# ------------------------------------------------------------------- time signature
+
+def test_a_time_signature_opens_the_plan_with_its_meter():
+    from app import jobs
+    from conftest import make_take
+    plan = lambda **f: jobs.build_plan_graph(make_take(**f))["2"]
+    assert plan()["class_type"] != jobs.HARMONY_NODE                       # Auto: the stock planner
+    waltz = plan(target_meter="3/4")
+    assert waltz["class_type"] == jobs.HARMONY_NODE
+    assert waltz["inputs"]["hook_head"] == "X:1\nT:\nM:3/4\n"
+    assert plan(target_meter="5/4")["class_type"] != jobs.HARMONY_NODE     # not one it can be held to: Auto
+    tune = "X:1\nT:\nM:4/4\nL:1/8\nK:C\n"
+    held = plan(target_meter="6/8", hook_abc=tune + "cdef|\n", hook_section="chorus")["inputs"]
+    assert held["hook_head"] == tune, "a recorded tune's own header wins"
+
+
+def test_a_time_signature_is_kept_with_the_take(client):
+    res = client.post("/api/songs", json={"style": "folk pop", "lyrics": "[verse]\nla la la", "target_meter": "6/8"})
+    assert res.status_code == 200
+    assert one("SELECT target_meter FROM takes WHERE id = ?", (res.json()["id"],))["target_meter"] == "6/8"
+    assert client.post("/api/songs", json={"style": "folk pop", "lyrics": "[verse]\nla", "target_meter": "5/4"}).status_code == 422

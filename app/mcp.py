@@ -58,6 +58,9 @@ _LOCKS = {
                                              "this is the way to choose one."},
     "tempo": {"type": "integer", "description": "Lock the tempo, in beats a minute (40 to 240). A tempo in the style is a hint; this "
                                                 "is kept to."},
+    "time": {"type": "string", "enum": ["4/4", "3/4", "6/8"],
+             "description": "The time signature the plan is written in: 3/4 for a waltz, 6/8 for a lilt. Left out, the planner "
+                            "chooses, mostly in four. Not for a cover, which keeps its recording's."},
 }
 # A recorded voice (the Voices page): the take is rendered, then its vocal sung again in the voice.  Its settings by the
 # words the editor shows; any left out are the voice's own defaults.
@@ -816,6 +819,8 @@ async def _shape(api: Api, args: dict, body: dict, planning: bool = False, song:
         body["target_key"] = str(args["key"]).strip()
     if args.get("tempo") not in (None, ""):
         body["target_bpm"] = _whole(args, "tempo")
+    if args.get("time") in ("4/4", "3/4", "6/8"):
+        body["target_meter"] = args["time"]
     if song:
         for asked, field in (("follow_structure", "follow_structure"), ("voices_follow_cues", "voice_cues")):
             if args.get(asked) is not None:

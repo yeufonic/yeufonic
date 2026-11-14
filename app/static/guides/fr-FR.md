@@ -141,6 +141,7 @@ Certains agissent sur le plan, d’autres sur le rendu et le fichier final :
   en cours de route, reste dans la tonalité du planificateur, et le journal le signale.
 - **Tempo imposé** (BPM) : le plan prend ce tempo, qui remplace tout tempo du style ou de la
   partition du planificateur, et le rendu le suit.
+- **Mesure** (Auto, 4/4, 3/4 ou 6/8) : la partition est écrite dans cette mesure, et le rendu la suit : 3/4 pour une valse, 6/8 pour un balancement. Auto la laisse au planificateur, qui écrit surtout à quatre temps. Pas pour une reprise, qui garde celle de son enregistrement.
 - **Limite de tokens de la partition** (par défaut 8192) : le maximum que le planificateur peut écrire. Une limite plus basse empêche le plan d’une chanson courte
   de s’éterniser.
 - **Limite de tenue d'accord** (mesures, par défaut 8) : le nombre maximal de mesures que le planificateur reste sur une même fondamentale avant

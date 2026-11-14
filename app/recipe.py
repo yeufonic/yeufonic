@@ -48,6 +48,7 @@ FIELDS = {
     "avoid": "avoid",
     "target_key": "target_key",
     "target_bpm": "target_bpm",
+    "target_meter": "target_meter",
     "max_score_tokens": "max_abc_tokens",
     "chord_hold_limit": "chord_hold_limit",
     "chord_outside_bonus": "chord_outside_bonus",

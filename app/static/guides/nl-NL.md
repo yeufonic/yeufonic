@@ -141,6 +141,7 @@ Sommige werken op het plan, andere op de render en het uiteindelijke bestand:
   halverwege, blijft in de toonsoort van de planner en het log zegt dat.
 - **Tempo vastzetten** (BPM): het plan wordt op dit tempo vastgezet, dat elk tempo in de stijl of in de
   eigen partituur van de planner vervangt, en de render volgt het.
+- **Maatsoort** (Auto, 4/4, 3/4 of 6/8): de partituur wordt in deze maatsoort geschreven en de render volgt haar: 3/4 voor een wals, 6/8 voor een wiegend ritme. Auto laat het aan de planner, die meestal in vieren schrijft. Niet voor een cover, die de maatsoort van zijn opname houdt.
 - **Tokenlimiet van de partituur** (standaard 8192): het meeste dat de planner mag schrijven. Een lagere grens voorkomt dat het plan van een kort nummer
   uitdijt.
 - **Limiet voor aangehouden akkoord** (maten, standaard 8): het maximale aantal maten dat de planner op één grondtoon blijft voordat

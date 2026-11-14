@@ -2823,5 +2823,9 @@
  "Could not put the take together for a DAW: {message}": "DAW용으로 테이크를 모을 수 없습니다: {message}",
  "could not make the DAW bundle": "DAW용 패키지를 만들 수 없습니다",
  "the mastered audio is too large": "마스터링한 오디오가 너무 큽니다",
- "that is not a MIDI file": "MIDI 파일이 아닙니다"
+ "that is not a MIDI file": "MIDI 파일이 아닙니다",
+ "Time signature": "박자",
+ "The plan is written in this time signature, and the render follows the plan. Auto leaves it to the planner, which mostly writes in four. Songs and instrumentals from a prompt; a cover keeps its recording's.": "플랜이 이 박자로 쓰이고, 렌더링이 그것을 따릅니다. 자동은 플래너에게 맡기며, 대개 4박자로 씁니다. 프롬프트로 만드는 노래와 연주곡용이며, 커버는 녹음의 박자를 유지합니다.",
+ "(default: Auto)": "(기본값: 자동)",
+ "3/4 (waltz)": "3/4 (왈츠)"
 }

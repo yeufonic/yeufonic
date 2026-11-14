@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Choose the time signature.** Advanced → **Time signature** writes the plan in 4/4, 3/4 or 6/8, and the render
+  follows it; Auto leaves it to the planner, which mostly writes in four. For songs and instrumentals from a prompt,
+  and through MCP (`time`). A style that says "3/4" is not enough on its own: the planner ignores the number, so the
+  plan is made to open with the time signature instead.
 - **Save a take for a DAW.** A new choice in Save makes one zip: the take as a 24-bit WAV (mastered, when the rack
   is on), its newest stems, the score as MIDI and as ABC, a chord chart with the tempo, key, time and each section's
   chords, and the recipe.

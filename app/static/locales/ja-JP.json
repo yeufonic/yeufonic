@@ -2823,5 +2823,9 @@
  "Could not put the take together for a DAW: {message}": "DAW 用にテイクをまとめられませんでした：{message}",
  "could not make the DAW bundle": "DAW 用のパッケージを作れませんでした",
  "the mastered audio is too large": "マスタリングした音声が大きすぎます",
- "that is not a MIDI file": "MIDI ファイルではありません"
+ "that is not a MIDI file": "MIDI ファイルではありません",
+ "Time signature": "拍子",
+ "The plan is written in this time signature, and the render follows the plan. Auto leaves it to the planner, which mostly writes in four. Songs and instrumentals from a prompt; a cover keeps its recording's.": "プランはこの拍子で書かれ、レンダリングはそれに従います。自動ではプランナーに任せ、たいてい 4 拍子になります。プロンプトからの曲とインスト用。カバーは録音の拍子のままです。",
+ "(default: Auto)": "（既定：自動）",
+ "3/4 (waltz)": "3/4（ワルツ）"
 }
