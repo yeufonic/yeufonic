@@ -1294,7 +1294,7 @@ function readAdvancedSettings() {
   var bpmRaw = parseInt($('adv-target-bpm').value, 10);
   var targetBpm = (!isNaN(bpmRaw) && bpmRaw >= 20 && bpmRaw <= 400) ? bpmRaw : null;
   var meter = $('adv-target-meter') ? $('adv-target-meter').value : '';
-  if (['4/4', '2/4', '3/4', '6/8', '5/4', '7/4', '9/8', '12/8'].indexOf(meter) < 0) { meter = ''; }
+  if (['4/4', '2/4', '3/4', '6/8'].indexOf(meter) < 0) { meter = ''; }
   var tokens = parseInt($('adv-max-abc-tokens').value, 10);
   if (isNaN(tokens) || tokens < 512 || tokens > 8192) { tokens = ADVANCED_DEFAULTS.max_abc_tokens; }
   var hold = parseInt($('adv-chord-hold-limit').value, 10);

@@ -142,7 +142,7 @@ Certains agissent sur le plan, d’autres sur le rendu et le fichier final :
   On ne peut pas demander un mode au planificateur, donc le verrou ne nomme que la note ; pour une chanson en mineur, faites-en quelques-unes et gardez-en une en mineur (**Essayer encore** en fait plusieurs à la fois).
 - **Tempo imposé** (BPM) : le plan prend ce tempo, qui remplace tout tempo du style ou de la
   partition du planificateur, et le rendu le suit.
-- **Mesure** (Auto, 4/4, 2/4, 3/4, 6/8, 5/4, 7/4, 9/8 ou 12/8) : la partition est écrite dans cette mesure, et le rendu la suit : 3/4 pour une valse, 6/8 pour un balancement. Auto la laisse au planificateur, qui écrit surtout à quatre temps. Pas pour une reprise, qui garde celle de son enregistrement.
+- **Mesure** (Auto, 4/4, 2/4, 3/4 ou 6/8) : la partition est écrite dans cette mesure, et le rendu la suit : 3/4 pour une valse, 6/8 pour un balancement. Auto la laisse au planificateur, qui écrit surtout à quatre temps. Pas pour une reprise, qui garde celle de son enregistrement.
 - **Limite de tokens de la partition** (par défaut 8192) : le maximum que le planificateur peut écrire. Une limite plus basse empêche le plan d’une chanson courte
   de s’éterniser.
 - **Limite de tenue d'accord** (mesures, par défaut 8) : le nombre maximal de mesures que le planificateur reste sur une même fondamentale avant

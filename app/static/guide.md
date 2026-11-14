@@ -161,7 +161,7 @@ Some of these act on the plan, and some on the render and the finished file:
   The planner cannot be asked for a mode, so the lock names only the note; for a song in minor, make a few and keep a minor one (**Try more** makes several at once).
 - **Tempo lock** (BPM): the plan is set to this tempo, replacing any tempo in the style or in the
   planner's own score, and the render follows it.
-- **Time signature** (Auto, 4/4, 2/4, 3/4, 6/8, 5/4, 7/4, 9/8 or 12/8): the plan is written in this time signature, and the render follows it: 3/4 for a waltz, 6/8 for a lilt. Auto leaves it to the planner, which mostly writes in four. Not for a cover, which keeps its recording's.
+- **Time signature** (Auto, 4/4, 2/4, 3/4 or 6/8): the plan is written in this time signature, and the render follows it: 3/4 for a waltz, 6/8 for a lilt. Auto leaves it to the planner, which mostly writes in four. Not for a cover, which keeps its recording's.
 - **Score token cap** (default 8192): the most the planner may write. A lower cap stops a short
   song's plan running on.
 - **Chord hold limit** (bars, default 8): the most bars the planner stays on one chord root before

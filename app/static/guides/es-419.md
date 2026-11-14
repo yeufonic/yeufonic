@@ -142,7 +142,7 @@ Algunos actúan sobre el plan, y otros sobre el render y el archivo final:
   Al planificador no se le puede pedir un modo, así que el bloqueo solo nombra la nota; para una canción en menor, haz unas cuantas y quédate con una en menor (**Probar más** hace varias a la vez).
 - **Fijar tempo** (BPM): el plan se fija a este tempo, que sustituye a cualquier tempo del estilo o de la
   propia partitura del planificador, y el render lo sigue.
-- **Compás** (Auto, 4/4, 2/4, 3/4, 6/8, 5/4, 7/4, 9/8 o 12/8): la partitura se escribe en este compás y el render la sigue: 3/4 para un vals, 6/8 para un ritmo mecido. Auto lo deja al planificador, que casi siempre escribe en cuatro. No sirve para una versión, que mantiene el de su grabación.
+- **Compás** (Auto, 4/4, 2/4, 3/4 o 6/8): la partitura se escribe en este compás y el render la sigue: 3/4 para un vals, 6/8 para un ritmo mecido. Auto lo deja al planificador, que casi siempre escribe en cuatro. No sirve para una versión, que mantiene el de su grabación.
 - **Límite de tokens de la partitura** (por defecto 8192): lo máximo que puede escribir el planificador. Un límite más bajo impide que el plan de una canción corta
   se alargue.
 - **Límite de acorde sostenido** (compases, por defecto 8): el máximo de compases que el planificador se queda en una misma fundamental antes

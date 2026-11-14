@@ -115,7 +115,7 @@ PLAN_VARIETY = {
 NO_SCORE = "off"
 
 HARMONY_NODE = "YuE2GenerateABCHarmony"
-METERS = ("4/4", "2/4", "3/4", "6/8", "5/4", "7/4", "9/8", "12/8")   # what a plan can be held to (Advanced → Time signature)
+METERS = ("4/4", "2/4", "3/4", "6/8")   # what a plan can be held to (Advanced → Time signature); 5/4, 7/4, 9/8, 12/8 never held
 HARMONY_STEPS = ["Familiar", "Varied", "Colourful", "Adventurous", "Outside"]
 HARMONY_OFF = {"chord_identity": "root", "chord_strength": 0.0, "chord_window": 16, "hold_limit": 8,
                "outside_bonus": 0.0, "outside_limit": 0.25, "section_strength": 0.0, "section_open": 4}

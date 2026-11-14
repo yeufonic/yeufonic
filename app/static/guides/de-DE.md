@@ -142,7 +142,7 @@ Manche wirken auf den Plan, manche auf das Rendering und die fertige Datei:
   Der Planer lässt sich nicht nach einem Tongeschlecht fragen, daher nennt die Sperre nur den Grundton; für einen Song in Moll mach ein paar und behalte einen in Moll (**Mehr versuchen** macht mehrere auf einmal).
 - **Tempo festlegen** (BPM): Der Plan wird auf dieses Tempo gesetzt, das jedes Tempo im Stil oder in der
   eigenen Partitur des Planners ersetzt, und das Rendering folgt ihm.
-- **Taktart** (Auto, 4/4, 2/4, 3/4, 6/8, 5/4, 7/4, 9/8 oder 12/8): Die Partitur wird in dieser Taktart geschrieben, und das Rendern folgt ihr: 3/4 für einen Walzer, 6/8 für einen wiegenden Rhythmus. Auto überlässt sie dem Planer, der meist im Vierertakt schreibt. Nicht für ein Cover, das die Taktart seiner Aufnahme behält.
+- **Taktart** (Auto, 4/4, 2/4, 3/4 oder 6/8): Die Partitur wird in dieser Taktart geschrieben, und das Rendern folgt ihr: 3/4 für einen Walzer, 6/8 für einen wiegenden Rhythmus. Auto überlässt sie dem Planer, der meist im Vierertakt schreibt. Nicht für ein Cover, das die Taktart seiner Aufnahme behält.
 - **Token-Grenze der Partitur** (Standard 8192): das Meiste, was der Planner schreiben darf. Eine niedrigere Grenze verhindert, dass der Plan eines kurzen
   Songs weiterläuft.
 - **Grenze für gehaltene Akkorde** (Takte, Standard 8): die meisten Takte, die der Planner auf einem Akkordgrundton bleibt, bevor

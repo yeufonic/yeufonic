@@ -43,12 +43,12 @@ cannot creep back in.
   naming one, or a score made to open with a minor key line, still came back in the plan's own mode. So the lock
   moves the plan to the note chosen and keeps its mode, as it always did, and now says so; a key lock set before to
   a minor key keeps working.
-- **Choose the time signature.** Advanced → **Time signature** writes the plan in 4/4, 2/4, 3/4, 6/8, 5/4, 7/4, 9/8
-  or 12/8, and the render follows it; Auto leaves it to the planner, which mostly writes in four. For songs and
+- **Choose the time signature.** Advanced → **Time signature** writes the plan in 4/4, 2/4, 3/4 or 6/8, and the
+  render follows it; Auto leaves it to the planner, which mostly writes in four. For songs and
   instrumentals from a prompt, and through MCP (`time`). A style that names the metre is not enough on its own, so
   the plan is made to open with the time signature and kept from changing it (with the engine rebuilt). A plan that
   still leaves it, or whose bars are not that long, is written once more; a second miss is kept, and its score says
-  the time signature its bars actually make. The planner holds 4/4, 2/4, 3/4 and 6/8 well; the rarer ones it may not.
+  the time signature its bars actually make.
 - **Save a take for a DAW.** A new choice in Save makes one zip: the take as a 24-bit WAV (mastered, when the rack
   is on), its newest stems, the score as MIDI and as ABC, a chord chart with the tempo, key, time and each section's
   chords, and the recipe.
