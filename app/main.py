@@ -1086,7 +1086,7 @@ class AdvancedRenderSettingsMixin(BaseModel):
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
     cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
-    target_meter: str | None = Field(None, pattern=r"^(4/4|3/4|6/8)?$")
+    target_meter: str | None = Field(None, pattern=r"^(4/4|2/4|3/4|6/8|5/4|7/4|9/8|12/8)?$")
 
 
 class SongIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
@@ -1143,7 +1143,7 @@ class ReplanIn(BaseModel):
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
     cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
-    target_meter: str | None = Field(None, pattern=r"^(4/4|3/4|6/8)?$")
+    target_meter: str | None = Field(None, pattern=r"^(4/4|2/4|3/4|6/8|5/4|7/4|9/8|12/8)?$")
 
 
 class TakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
@@ -1265,7 +1265,7 @@ class RenderIn(BaseModel):
     target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
     cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
-    target_meter: str | None = Field(None, pattern=r"^(4/4|3/4|6/8)?$")
+    target_meter: str | None = Field(None, pattern=r"^(4/4|2/4|3/4|6/8|5/4|7/4|9/8|12/8)?$")
     # The recorded voice the editor shows: "" for none, omitted to keep the take's own.
     voice_id: str | None = Field(None, max_length=64)
     voice_mix: dict | None = None

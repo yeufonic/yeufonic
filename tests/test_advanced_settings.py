@@ -316,7 +316,7 @@ def test_a_time_signature_opens_the_plan_with_its_meter():
     waltz = plan(target_meter="3/4")
     assert waltz["class_type"] == jobs.HARMONY_NODE
     assert waltz["inputs"]["hook_head"] == "X:1\nT:\nM:3/4\n"
-    assert plan(target_meter="5/4")["class_type"] != jobs.HARMONY_NODE     # not one it can be held to: Auto
+    assert plan(target_meter="11/8")["class_type"] != jobs.HARMONY_NODE    # not one it can be held to: Auto
     tune = "X:1\nT:\nM:4/4\nL:1/8\nK:C\n"
     held = plan(target_meter="6/8", hook_abc=tune + "cdef|\n", hook_section="chorus")["inputs"]
     assert held["hook_head"] == tune, "a recorded tune's own header wins"
@@ -326,7 +326,7 @@ def test_a_time_signature_is_kept_with_the_take(client):
     res = client.post("/api/songs", json={"style": "folk pop", "lyrics": "[verse]\nla la la", "target_meter": "6/8"})
     assert res.status_code == 200
     assert one("SELECT target_meter FROM takes WHERE id = ?", (res.json()["id"],))["target_meter"] == "6/8"
-    assert client.post("/api/songs", json={"style": "folk pop", "lyrics": "[verse]\nla", "target_meter": "5/4"}).status_code == 422
+    assert client.post("/api/songs", json={"style": "folk pop", "lyrics": "[verse]\nla", "target_meter": "11/8"}).status_code == 422
 
 
 def test_an_engine_that_can_keep_the_time_signature_is_told_to(monkeypatch):
@@ -362,3 +362,20 @@ def test_a_plan_that_leaves_its_time_signature_is_written_once_more_then_kept(mo
     use(monkeypatch, FakeEngine([None, done({"3": {"text": [wandered]}}, PLAN_GRAPH)]))
     asyncio.run(jobs.run_job("plan", take["id"]))
     assert one("SELECT status FROM takes WHERE id = ?", (take["id"],))["status"] == "planned", "the second is kept"
+
+
+def test_a_plan_whose_bars_are_not_the_meters_length_left_it():
+    from app.jobs import bars_fit, meter_left
+    five = "X:1\nM:5/4\nL:1/16\nK:D\nV: Vocal\n" + '"D"d16|' * 6 + "\n"         # bars of four under a 5/4 head
+    assert bars_fit(five, "5/4") == 0.0 and meter_left(five, "5/4")
+    kept = "X:1\nM:5/4\nL:1/16\nK:D\nV: Vocal\nZ2|\n" + '"D"d16e4|' * 6 + "\n"
+    assert bars_fit(kept, "5/4") == 1.0 and not meter_left(kept, "5/4")
+    eighths = "X:1\nM:12/8\nL:1/8\nK:D\nV: Vocal\n" + "d3e3f3g3|" * 4 + "\n"
+    assert not meter_left(eighths, "12/8")
+
+
+def test_the_meter_the_bars_make():
+    from app.jobs import meter_written
+    assert meter_written("X:1\nM:5/4\nL:1/16\nK:D\nV: Vocal\n" + '"D"d16|' * 6) == "4/4"
+    assert meter_written("X:1\nL:1/8\nK:D\nV: Vocal\n" + "d3e4|" * 5) == "7/8"
+    assert meter_written("X:1\nL:1/8\nK:D\n") is None

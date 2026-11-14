@@ -58,7 +58,7 @@ _LOCKS = {
                                              "this is the way to choose one."},
     "tempo": {"type": "integer", "description": "Lock the tempo, in beats a minute (40 to 240). A tempo in the style is a hint; this "
                                                 "is kept to."},
-    "time": {"type": "string", "enum": ["4/4", "3/4", "6/8"],
+    "time": {"type": "string", "enum": ["4/4", "2/4", "3/4", "6/8", "5/4", "7/4", "9/8", "12/8"],
              "description": "The time signature the plan is written in: 3/4 for a waltz, 6/8 for a lilt. Left out, the planner "
                             "chooses, mostly in four. Not for a cover, which keeps its recording's."},
 }
@@ -819,7 +819,7 @@ async def _shape(api: Api, args: dict, body: dict, planning: bool = False, song:
         body["target_key"] = str(args["key"]).strip()
     if args.get("tempo") not in (None, ""):
         body["target_bpm"] = _whole(args, "tempo")
-    if args.get("time") in ("4/4", "3/4", "6/8"):
+    if args.get("time") in ("4/4", "2/4", "3/4", "6/8", "5/4", "7/4", "9/8", "12/8"):
         body["target_meter"] = args["time"]
     if song:
         for asked, field in (("follow_structure", "follow_structure"), ("voices_follow_cues", "voice_cues")):

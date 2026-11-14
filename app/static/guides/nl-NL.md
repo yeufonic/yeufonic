@@ -142,7 +142,7 @@ Sommige werken op het plan, andere op de render en het uiteindelijke bestand:
   De planner kan niet om een toongeslacht gevraagd worden, dus de vergrendeling noemt alleen de toon; voor een nummer in mineur maak je er een paar en hou je een mineurversie (**Meer proberen** maakt er meerdere tegelijk).
 - **Tempo vastzetten** (BPM): het plan wordt op dit tempo vastgezet, dat elk tempo in de stijl of in de
   eigen partituur van de planner vervangt, en de render volgt het.
-- **Maatsoort** (Auto, 4/4, 3/4 of 6/8): de partituur wordt in deze maatsoort geschreven en de render volgt haar: 3/4 voor een wals, 6/8 voor een wiegend ritme. Auto laat het aan de planner, die meestal in vieren schrijft. Niet voor een cover, die de maatsoort van zijn opname houdt.
+- **Maatsoort** (Auto, 4/4, 2/4, 3/4, 6/8, 5/4, 7/4, 9/8 of 12/8): de partituur wordt in deze maatsoort geschreven en de render volgt haar: 3/4 voor een wals, 6/8 voor een wiegend ritme. Auto laat het aan de planner, die meestal in vieren schrijft. Niet voor een cover, die de maatsoort van zijn opname houdt.
 - **Tokenlimiet van de partituur** (standaard 8192): het meeste dat de planner mag schrijven. Een lagere grens voorkomt dat het plan van een kort nummer
   uitdijt.
 - **Limiet voor aangehouden akkoord** (maten, standaard 8): het maximale aantal maten dat de planner op één grondtoon blijft voordat

@@ -142,7 +142,7 @@ Alguns agem sobre o plano, e outros sobre o render e o arquivo final:
   Não dá para pedir um modo ao planejador, então a trava só nomeia a nota; para uma música em menor, faça algumas e fique com uma em menor (**Tentar mais** faz várias de uma vez).
 - **Fixar andamento** (BPM): o plano é fixado neste andamento, que substitui qualquer andamento do estilo ou da
   própria partitura do planejador, e o render o segue.
-- **Fórmula de compasso** (Auto, 4/4, 3/4 ou 6/8): a partitura é escrita nesta fórmula e a renderização a segue: 3/4 para uma valsa, 6/8 para um balanço. Auto deixa a escolha ao planejador, que quase sempre escreve em quatro. Não vale para um cover, que mantém a da sua gravação.
+- **Fórmula de compasso** (Auto, 4/4, 2/4, 3/4, 6/8, 5/4, 7/4, 9/8 ou 12/8): a partitura é escrita nesta fórmula e a renderização a segue: 3/4 para uma valsa, 6/8 para um balanço. Auto deixa a escolha ao planejador, que quase sempre escreve em quatro. Não vale para um cover, que mantém a da sua gravação.
 - **Limite de tokens da partitura** (padrão 8192): o máximo que o planejador pode escrever. Um limite menor impede que o plano de uma música curta
   se estenda.
 - **Limite de acorde sustentado** (compassos, padrão 8): o máximo de compassos que o planejador fica em uma mesma fundamental antes

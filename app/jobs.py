@@ -115,7 +115,7 @@ PLAN_VARIETY = {
 NO_SCORE = "off"
 
 HARMONY_NODE = "YuE2GenerateABCHarmony"
-METERS = ("4/4", "3/4", "6/8")   # the time signatures a plan can be held to (Advanced → Time)
+METERS = ("4/4", "2/4", "3/4", "6/8", "5/4", "7/4", "9/8", "12/8")   # what a plan can be held to (Advanced → Time signature)
 HARMONY_STEPS = ["Familiar", "Varied", "Colourful", "Adventurous", "Outside"]
 HARMONY_OFF = {"chord_identity": "root", "chord_strength": 0.0, "chord_window": 16, "hold_limit": 8,
                "outside_bonus": 0.0, "outside_limit": 0.25, "section_strength": 0.0, "section_open": 4}
@@ -188,11 +188,68 @@ def effective_style(style: str, target_key: str | None = None, target_bpm: int |
     return text
 
 
+_NOTE_LENGTH = re.compile(r"(\[[^\]]*\]|[_=^]*[A-Ga-gz][,']*)(\d*)(/*)(\d*)")
+
+
+def _bar_length(bar: str) -> float | None:
+    """A bar's length in the score's unit notes (L:), or None for a bar of rests standing for several (Z4)."""
+    bar = re.sub(r'"[^"]*"|![^!]*!', "", bar)
+    if re.fullmatch(r"\s*Z\d*\s*", bar):
+        return None
+    total = 0.0
+    for found in _NOTE_LENGTH.finditer(bar):
+        top = int(found.group(2)) if found.group(2) else 1
+        slashes, under = found.group(3), found.group(4)
+        total += top / ((int(under) if under else 2 ** len(slashes)) if slashes else 1)
+    return total
+
+
+def bars_fit(abc: str, meter: str) -> float:
+    """The share of the sung voice's bars that are as long as the meter says (1.0 when there are none to count).
+    A header can say 5/4 while the planner goes on writing bars of four."""
+    unit = re.search(r"^L:\s*1/(\d+)", abc or "", re.M)
+    top, under = (int(part) for part in meter.split("/"))
+    want = top * (int(unit.group(1)) if unit else 8) / under
+    voice, lengths = None, []
+    for line in (abc or "").splitlines():
+        named = re.match(r"^V:\s*(\S+)", line.strip())
+        if named:
+            voice = named.group(1)
+            continue
+        if voice == "Vocal" and line.strip() and not re.match(r"^[A-Za-z]:|%", line.strip()):
+            lengths += [n for n in (_bar_length(bar) for bar in re.split(r"\|+", line) if bar.strip()) if n]
+    return sum(1 for n in lengths if abs(n - want) < 0.01) / len(lengths) if lengths else 1.0
+
+
+def meter_written(abc: str) -> str | None:
+    """The time signature the sung voice's bars actually make, from their commonest length: '4/4', '7/8'."""
+    unit = re.search(r"^L:\s*1/(\d+)", abc or "", re.M)
+    per = int(unit.group(1)) if unit else 8
+    voice, lengths = None, []
+    for line in (abc or "").splitlines():
+        named = re.match(r"^V:\s*(\S+)", line.strip())
+        if named:
+            voice = named.group(1)
+            continue
+        if voice == "Vocal" and line.strip() and not re.match(r"^[A-Za-z]:|%", line.strip()):
+            lengths += [round(n, 3) for n in (_bar_length(bar) for bar in re.split(r"\|+", line) if bar.strip()) if n]
+    if not lengths:
+        return None
+    common = max(set(lengths), key=lengths.count)
+    quarters, eighths = common * 4 / per, common * 8 / per
+    if abs(quarters - round(quarters)) < 0.01:
+        return f"{round(quarters)}/4"
+    return f"{round(eighths)}/8" if abs(eighths - round(eighths)) < 0.01 else None
+
+
 def meter_left(abc: str, meter: str | None) -> bool:
-    """Whether a plan held to a time signature changed it: an M: line or an inline [M: naming another."""
+    """Whether a plan held to a time signature left it: an M: line or an inline [M: naming another, or bars that
+    for the most part are not the meter's length."""
     if not meter:
         return False
-    return any(found != meter for found in re.findall(r"(?:^|\[)M:\s*(\d+/\d+)", abc or "", re.M))
+    if any(found != meter for found in re.findall(r"(?:^|\[)M:\s*(\d+/\d+)", abc or "", re.M)):
+        return True
+    return bars_fit(abc, meter) < 0.6
 
 
 def build_plan_graph(take: dict) -> dict:
@@ -1106,7 +1163,13 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             await QUEUE.put({"kind": "plan", "id": ref_id})
             return
         if wandered and not issues:
-            log.warning("Plan for '%s' left %s again: kept as written", record.get("title") or ref_id, record.get("target_meter"))
+            # Kept as written, and saying what it is: a header still naming the meter asked for over bars of
+            # another would mislabel the song.
+            actual = meter_written(abc) if bars_fit(abc, record["target_meter"]) < 0.6 else None
+            if actual and actual != record["target_meter"]:
+                abc = re.sub(r"^M:\s*\S+", f"M:{actual}", abc, count=1, flags=re.M)
+            log.warning("Plan for '%s' left %s again: kept as written%s", record.get("title") or ref_id,
+                        record.get("target_meter"), f", in {actual}" if actual else "")
         # A plan that lost its thread is written once more with a new seed before anyone
         # is told; a second in a row fails, with advice on the settings (#5).
         if issues and ref_id not in RETRIED_PLANS:
