@@ -855,6 +855,13 @@ def _cfg_scale() -> None:
     if "cfg_scale" not in _columns("takes"):
         execute("ALTER TABLE takes ADD COLUMN cfg_scale REAL")
 
+def _keep_the_look() -> None:
+    """Studio with the Studio Slate style became the default look; a library from before keeps the look it had,
+    Dark and Classic, unless a theme or style was chosen.  A new database never runs this: it starts at the
+    latest version, and so with the new default."""
+    execute("INSERT OR IGNORE INTO settings(key, value) VALUES('appearance.theme', 'dark')")
+    execute("INSERT OR IGNORE INTO settings(key, value) VALUES('appearance.ui_style', 'default')")
+
 MIGRATIONS = [
     lambda: (conn().executescript(BASE_SCHEMA), _legacy_takes()),   # -> 1
     _indexes,                                                        # -> 2
@@ -909,6 +916,7 @@ MIGRATIONS = [
     _voice_recordings,                                               # -> 51
     _voice_sound,                                                    # -> 52
     _voice_formant_wet,                                              # -> 53
+    _keep_the_look,                                                  # -> 54
 ]
 
 

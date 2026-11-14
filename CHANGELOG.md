@@ -43,7 +43,8 @@ cannot creep back in.
   is new: Studio Slate gives each of the editor's three columns a colour of its own, and shows Corpora and Voices as
   cards with a filter box, each corpus with a bar of how many of its songs are included and each voice marked with
   where it came from and whether it is trained. **Classic** keeps the earlier look, and either goes with any theme.
-  Studio (warm and dark) is now the default theme.
+  Studio (warm and dark) is now the default theme. An existing library keeps the look it had (Dark and Classic, or
+  whatever was chosen) until another is picked in Settings.
 - **Hear it plays again after a stop.** Stopped and started with no setting changed, it stayed silent, because
   it took the voice it had already sung as playing; it now plays it again at once.
 - **A mastered save keeps 24 bits.** The rack renders in floating point, but it handed the server a 16-bit file, so a

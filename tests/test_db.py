@@ -51,3 +51,30 @@ def test_settings_cache_follows_writes():
     assert db.get_setting("x", "fallback") == "fallback"
     db.set_setting("x", "1")
     assert db.get_setting("x") == "1"
+
+
+def _at_version_53(tmp_path, monkeypatch, settings=()):
+    """A library from before the new look: the latest schema, its version set back to 53."""
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "before.sqlite")
+    db.migrate()
+    c = db.conn()
+    c.execute("DELETE FROM settings")
+    for key, value in settings:
+        c.execute("INSERT INTO settings(key, value) VALUES(?, ?)", (key, value))
+    c.execute("PRAGMA user_version = 53")
+    c.commit()
+    db.migrate()
+    return {r["key"]: r["value"] for r in db.rows("SELECT key, value FROM settings WHERE key LIKE 'appearance.%'")}
+
+
+def test_a_new_library_starts_with_the_new_look():
+    assert db.one("SELECT 1 FROM settings WHERE key IN ('appearance.theme', 'appearance.ui_style')") is None
+
+
+def test_a_library_from_before_keeps_its_look(tmp_path, monkeypatch):
+    assert _at_version_53(tmp_path, monkeypatch) == {"appearance.theme": "dark", "appearance.ui_style": "default"}
+
+
+def test_a_chosen_theme_is_never_changed(tmp_path, monkeypatch):
+    kept = _at_version_53(tmp_path, monkeypatch, [("appearance.theme", "light"), ("appearance.ui_style", "slate")])
+    assert kept == {"appearance.theme": "light", "appearance.ui_style": "slate"}
