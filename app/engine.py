@@ -468,6 +468,8 @@ class Engine:
                         "harmony": "YuE2GenerateABCHarmony" in info,
                         # A harmony node from before it could hold a recorded tune in the plan ignores the tune.
                         "hook": "hook_body" in (((info.get("YuE2GenerateABCHarmony") or {}).get("input") or {}).get("optional") or {}),
+                        # And one from before it could keep a time signature lets the planner change it.
+                        "hold_meter": "hold_meter" in (((info.get("YuE2GenerateABCHarmony") or {}).get("input") or {}).get("optional") or {}),
                         # A ComfyUI from before 2026-10 has no guidance input on its music node (Follow the style).
                         "cfg": "cfg_scale" in (((info.get("YuE2GenerateMusic") or {}).get("input") or {}).get("optional") or {}),
                         # Optional too: an engine from before it saves renders as they were.

@@ -290,3 +290,30 @@ def test_no_hook_is_no_change(harmony):
     assert t.active is False and t.hook_bias() is None
     t = harmony.HarmonyTracker(HOOK_VOCAB, "root", 0.0, hook_body=BODY, hook_section="chorus")
     assert t.active is True
+
+
+# --------------------------------------------------------------- the time signature held
+METER_VOCAB = ['X:1\nT:\nM:3/4\n', 'L:1/16\n', 'K:D\n', 'V: Vocal\n', 'M:4/4\n', 'M', ':4/4\n', '[M:4/4]', 'z12|', '"D"',
+               'd4', '[', 'ce]', '% verse\n', '\n']
+
+
+def test_once_the_head_sets_the_time_signature_nothing_may_change_it(harmony):
+    t = harmony.HarmonyTracker(METER_VOCAB, "root", 0.0, hook_head='X:1\nT:\nM:3/4\n', hold_meter=True)
+    assert t.active
+    ids = lambda text: [METER_VOCAB.index(p) for p in text]
+    t.feed(ids(['X:1\nT:\nM:3/4\n', 'L:1/16\n', 'K:D\n', 'V: Vocal\n']))       # at the start of a body line
+    banned, values = t.bias(Logits(len(METER_VOCAB)))
+    names = {METER_VOCAB[i] for i in banned}
+    assert names == {'M:4/4\n', 'M', '[M:4/4]'} and all(v > 0 for v in values)
+    t.feed(ids(['X:1\nT:\nM:3/4\n', 'L:1/16\n', 'K:D\n', 'V: Vocal\n', '"D"', 'd4']))   # inside a bar
+    banned, _ = t.bias(Logits(len(METER_VOCAB)))
+    assert {METER_VOCAB[i] for i in banned} == {'[M:4/4]'}, "a note or chord is never held back, only an inline change"
+
+
+def test_the_time_signature_is_free_while_the_head_is_still_held_or_when_not_asked(harmony):
+    t = harmony.HarmonyTracker(METER_VOCAB, "root", 0.0, hook_head='X:1\nT:\nM:3/4\n', hold_meter=True)
+    assert t.meter_bias(Logits(len(METER_VOCAB))) is None, "the head itself writes an M: line"
+    assert not harmony.HarmonyTracker(METER_VOCAB, "root", 0.0, hold_meter=True).active, "no head, nothing to hold"
+    t = harmony.HarmonyTracker(METER_VOCAB, "root", 0.0, hook_head='X:1\nT:\nM:3/4\n')
+    t.feed([METER_VOCAB.index('X:1\nT:\nM:3/4\n')])
+    assert t.meter_bias(Logits(len(METER_VOCAB))) is None

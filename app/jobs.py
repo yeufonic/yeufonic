@@ -188,6 +188,13 @@ def effective_style(style: str, target_key: str | None = None, target_bpm: int |
     return text
 
 
+def meter_left(abc: str, meter: str | None) -> bool:
+    """Whether a plan held to a time signature changed it: an M: line or an inline [M: naming another."""
+    if not meter:
+        return False
+    return any(found != meter for found in re.findall(r"(?:^|\[)M:\s*(\d+/\d+)", abc or "", re.M))
+
+
 def build_plan_graph(take: dict) -> dict:
     """Write a score plan from the style and lyrics alone. No recording involved."""
     graph = load_template("song_plan.json")
@@ -220,6 +227,10 @@ def build_plan_graph(take: dict) -> dict:
             node["follow_sections"] = ",".join(follow)
         if meter and not hook:
             node["hook_head"] = f"X:1\nT:\nM:{meter}\n"
+            # Held to the head alone, the planner often wrote M:4/4 at the top of the body; an engine whose node
+            # can keep the time signature is told to.  Any other is caught after the plan (meter_left).
+            if (getattr(ENGINE, "options", None) or {}).get("hold_meter"):
+                node["hold_meter"] = True
         if hook:
             # A tune recorded for this song, held in every section of its name (composer.py): the
             # plan opens with the tune's header, through its K: line, and those sections hold its bars.
@@ -1083,6 +1094,19 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
         has_words = any(line.strip() and not line.strip().startswith("[") for line in (record.get("lyrics") or "").splitlines())
         issues = score.problems(abc, instrumental=is_inst) or score.runaway(
             abc, instrumental=is_inst, cap=float(record.get("max_duration") or 0), vocal=has_words)
+        # A plan asked for a time signature that wandered off it is written once more too; a second is kept,
+        # and the log says so, rather than failing a song over its metre.
+        wandered = meter_left(abc, record.get("target_meter"))
+        if wandered and not issues and ref_id not in RETRIED_PLANS:
+            RETRIED_PLANS.add(ref_id)
+            seed = int.from_bytes(os.urandom(4), "big")
+            execute("UPDATE takes SET status = 'queued', stage = NULL, seed = ?, sound_seed = NULL WHERE id = ?", (seed, ref_id))
+            log.info("Plan for '%s' left %s for another time signature; writing it once more with seed %d",
+                     record.get("title") or ref_id, record.get("target_meter"), seed)
+            await QUEUE.put({"kind": "plan", "id": ref_id})
+            return
+        if wandered and not issues:
+            log.warning("Plan for '%s' left %s again: kept as written", record.get("title") or ref_id, record.get("target_meter"))
         # A plan that lost its thread is written once more with a new seed before anyone
         # is told; a second in a row fails, with advice on the settings (#5).
         if issues and ref_id not in RETRIED_PLANS:

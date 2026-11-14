@@ -327,3 +327,38 @@ def test_a_time_signature_is_kept_with_the_take(client):
     assert res.status_code == 200
     assert one("SELECT target_meter FROM takes WHERE id = ?", (res.json()["id"],))["target_meter"] == "6/8"
     assert client.post("/api/songs", json={"style": "folk pop", "lyrics": "[verse]\nla", "target_meter": "5/4"}).status_code == 422
+
+
+def test_an_engine_that_can_keep_the_time_signature_is_told_to(monkeypatch):
+    from app import jobs
+    from conftest import make_take
+    monkeypatch.setattr(jobs.ENGINE, "options", {"hold_meter": True}, raising=False)
+    assert jobs.build_plan_graph(make_take(target_meter="3/4"))["2"]["inputs"]["hold_meter"] is True
+    monkeypatch.setattr(jobs.ENGINE, "options", {}, raising=False)
+    assert "hold_meter" not in jobs.build_plan_graph(make_take(target_meter="3/4"))["2"]["inputs"]
+
+
+def test_meter_left():
+    from app.jobs import meter_left
+    assert meter_left("X:1\nM:3/4\nK:D\nV: Vocal\nM:4/4\nz16|", "3/4")
+    assert meter_left("X:1\nM:3/4\nK:D\nz12|[M:4/4]z16|", "3/4")
+    assert not meter_left("X:1\nM:3/4\nK:D\nz12|", "3/4")
+    assert not meter_left("X:1\nM:4/4\nK:D\nz16|", None)
+
+
+def test_a_plan_that_leaves_its_time_signature_is_written_once_more_then_kept(monkeypatch):
+    import asyncio
+    from app import jobs
+    from conftest import make_take
+    from test_jobs import ABC, PLAN_GRAPH, FakeEngine, done, use
+    take = make_take(status="queued")
+    execute("UPDATE takes SET target_meter = '3/4' WHERE id = ?", (take["id"],))
+    wandered = ABC.replace("K:", "M:4/4\nK:", 1) if "M:" not in ABC else ABC
+    use(monkeypatch, FakeEngine([None, done({"3": {"text": [wandered]}}, PLAN_GRAPH)]))
+    asyncio.run(jobs.run_job("plan", take["id"]))
+    assert one("SELECT status FROM takes WHERE id = ?", (take["id"],))["status"] == "queued", "written once more"
+    assert jobs.QUEUE.get_nowait() == {"kind": "plan", "id": take["id"]}
+    execute("UPDATE takes SET status = 'queued' WHERE id = ?", (take["id"],))
+    use(monkeypatch, FakeEngine([None, done({"3": {"text": [wandered]}}, PLAN_GRAPH)]))
+    asyncio.run(jobs.run_job("plan", take["id"]))
+    assert one("SELECT status FROM takes WHERE id = ?", (take["id"],))["status"] == "planned", "the second is kept"

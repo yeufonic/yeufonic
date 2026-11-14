@@ -55,6 +55,7 @@ HEADER = re.compile(r"^[A-Za-z]:")
 FOLLOW_LAST_CHORDS = 4  # chord symbols the last section needs before the plan may end
 FOLLOW_BOOST = 50.0     # logits added to the tokens that spell the section the structure asks for next
 HOOK_BOOST = 100.0      # logits added to the tokens that spell the hook's text; the longest gets HOOK_LONGEST more
+METER_BAN = 100.0      # logits taken from a token that would change the time signature held
 HOOK_LONGEST = 20.0
 SECTION_LINE = re.compile(r"^%\s*([A-Za-z][\w -]*?)\s*$")
 KEY_LINE = re.compile(r"^K:\s*([A-G][#b]?)(m?)", re.M)
@@ -107,7 +108,7 @@ def walk(text, line, partial):
 class HarmonyTracker:
     def __init__(self, vocab, mode="root", strength=0.0, window=16, hold_limit=8,
                  outside_bonus=0.0, outside_limit=0.25, candidates=64, section_strength=0.0, section_open=4,
-                 sections=None, hook_head="", hook_body="", hook_section=""):
+                 sections=None, hook_head="", hook_body="", hook_section="", hold_meter=False):
         self.vocab = vocab
         self.mode = mode
         self.strength = strength
@@ -136,6 +137,9 @@ class HarmonyTracker:
         self.hook_body = hook_body or ""
         self.hook_section = (hook_section or "").strip().lower() if self.hook_body else ""
         self.holding = hook_head or ""     # what is still to be written of the text being held
+        # The time signature the head set is kept to: once it is written, no line may start another (M:) and no
+        # bar may change it inline ([M:).  Held to a head alone, the planner would often switch to 4/4 at once.
+        self.hold_meter = bool(hold_meter and hook_head)
         self.held_hook = False             # the text being held is the hook's bars, not the header
         self.after_hook = False            # the hook's bars are written: next is the next section or the end
         self.hook_line = ""
@@ -149,7 +153,7 @@ class HarmonyTracker:
 
     @property
     def active(self):
-        return self.chord_active or bool(self.wanted) or bool(self.holding or self.hook_body)
+        return self.chord_active or bool(self.wanted) or bool(self.holding or self.hook_body) or self.hold_meter
 
     # ------------------------------------------------------------- following
     def identity(self, symbol):
@@ -302,16 +306,26 @@ class HarmonyTracker:
         hook = self.hook_bias()
         if hook:
             return hook
-        chords = self.chord_bias(logits) if self.chord_active else None
-        follow = self.follow_bias(logits) if self.wanted else None
-        if not follow:
-            return chords
-        if not chords:
-            return follow
-        merged = dict(zip(*chords))
-        for token, value in zip(*follow):
-            merged[token] = merged.get(token, 0.0) + value
+        parts = [part for part in (self.chord_bias(logits) if self.chord_active else None,
+                                   self.follow_bias(logits) if self.wanted else None,
+                                   self.meter_bias(logits)) if part]
+        if len(parts) <= 1:
+            return parts[0] if parts else None
+        merged = {}
+        for ids, values in parts:
+            for token, value in zip(ids, values):
+                merged[token] = merged.get(token, 0.0) + value
         return list(merged), list(merged.values())
+
+    def meter_bias(self, logits):
+        """Hold the time signature: at the start of a line no token may begin an M: line, and none may open an
+        inline [M: anywhere.  No line of the body starts with an M otherwise (notes are A to G)."""
+        if not self.hold_meter or self.holding:
+            return None
+        top = logits[0, :yue2.EOD].topk(self.candidates).indices.tolist()
+        banned = [t for t in top if "[M" in self.vocab[t]
+                  or (self.vocab[t].startswith("M") and (self.line == "" or self.line.endswith("[")))]
+        return (banned, [METER_BAN] * len(banned)) if banned else None
 
     def tokens_spelling(self, remaining):
         """Every token that could be the next piece of the text `remaining`, computed once for each."""
@@ -484,17 +498,21 @@ class YuE2GenerateABCHarmony:
             "hook_body": ("STRING", {"default": "", "multiline": True,
                                      "tooltip": "The hook's bars as V: Vocal and V: Ins blocks, written into every section named below."}),
             "hook_section": ("STRING", {"default": "", "tooltip": "The section the hook fills, as the plan names it (chorus, verse). Empty is off."}),
+            "hold_meter": ("BOOLEAN", {"default": False,
+                                       "tooltip": "Keep the time signature the header sets: no M: line or inline [M: after it."}),
         }}
 
     def execute(self, clip, style, lyrics, seed, mode, max_abc_tokens, temperature, top_p, top_k, repetition_penalty,
                 penalty_window, chord_identity, chord_strength, chord_window, hold_limit, outside_bonus, outside_limit,
-                section_strength=0.0, section_open=4, follow_sections="", hook_head="", hook_body="", hook_section=""):
+                section_strength=0.0, section_open=4, follow_sections="", hook_head="", hook_body="", hook_section="",
+                hold_meter=False):
         tokens = clip.tokenize(style, lyrics=lyrics, cot=mode, seed=seed, max_tokens=max_abc_tokens, penalty_window=penalty_window)
         tracker = HarmonyTracker(vocabulary(clip), chord_identity, chord_strength, chord_window, hold_limit,
                                  outside_bonus, outside_limit, candidates=max(64, top_k),
                                  section_strength=section_strength, section_open=section_open,
                                  sections=[part for part in str(follow_sections or "").split(",") if part.strip()],
-                                 hook_head=hook_head, hook_body=hook_body, hook_section=hook_section)
+                                 hook_head=hook_head, hook_body=hook_body, hook_section=hook_section,
+                                 hold_meter=hold_meter)
         generate = lambda: clip.generate(tokens, max_length=max_abc_tokens, temperature=temperature, top_p=top_p,
                                          top_k=top_k, repetition_penalty=repetition_penalty, seed=seed)
         if tracker.active:
