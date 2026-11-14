@@ -294,10 +294,10 @@
     <div class="ed-head">
       <span class="ed-bar" id="ed-bar"></span>
       <div class="create-head">
-        <h1 id="headline">Cover a song</h1>
-        <button id="start-fresh" class="ghost" title="Clear the title, lyrics and score, and keep your settings">New cover</button>
+        <h1 id="headline">Write a song</h1>
+        <button id="start-fresh" class="ghost" title="Clear the title, lyrics and score, and keep your settings">New song</button>
       </div>
-      <p class="sub" id="sub">Your own recording in. A new arrangement, new vocals, and an editable score out.</p>
+      <p class="sub" id="sub">Style and lyrics in. YuE2 writes the melody and the chords, then sings it.</p>
 
       <div class="modes">
         <button class="mode" data-mode="song" title="Song from a prompt"><span class="dot"></span>Song</button>
@@ -821,7 +821,8 @@
           <div class="hotkey-row"><span class="hk-keys"><kbd>Shift</kbd>+<kbd>&larr;</kbd> <kbd>&rarr;</kbd></span><span class="hk-desc">Previous or next take (in a playlist, its songs)</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>&uarr;</kbd> <kbd>&darr;</kbd></span><span class="hk-desc">Volume up or down 5%</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>M</kbd></span><span class="hk-desc">Mastering rack for chosen take; again to close</span></div>
-          <div class="hotkey-row"><span class="hk-keys"><kbd>V</kbd></span><span class="hk-desc">Audio visualizer while playing; Variations when stopped</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>V</kbd></span><span class="hk-desc">Audio visualizer; again to close</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Shift</kbd>+<kbd>V</kbd></span><span class="hk-desc">Variations of chosen take</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>E</kbd></span><span class="hk-desc">Open chosen take in editor</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>I</kbd></span><span class="hk-desc">Take details: prompt, seed, tags, with Copy</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>N</kbd></span><span class="hk-desc">Normalise take, or undo normalisation</span></div>
@@ -829,7 +830,8 @@
           <div class="hotkey-row"><span class="hk-keys"><kbd>S</kbd></span><span class="hk-desc">Star or unstar chosen take</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>P</kbd></span><span class="hk-desc">Add chosen take to playlist</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>D</kbd></span><span class="hk-desc">Delete chosen take, after asking</span></div>
-          <div class="hotkey-row"><span class="hk-keys"><kbd>L</kbd></span><span class="hk-desc">System logs; toggle lyrics in visualizer</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>L</kbd></span><span class="hk-desc">System logs; again to close</span></div>
+          <div class="hotkey-row"><span class="hk-keys"><kbd>Shift</kbd>+<kbd>L</kbd></span><span class="hk-desc">Lyrics in the visualizer</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>F</kbd></span><span class="hk-desc">Toggle fullscreen</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>?</kbd></span><span class="hk-desc">Show or hide these hot keys</span></div>
           <div class="hotkey-row"><span class="hk-keys"><kbd>Esc</kbd></span><span class="hk-desc">Close window, rack, menu, or modal in front</span></div>
@@ -1849,7 +1851,7 @@
       </div>
 
       <div id="vis-lyrics-wrap" class="vis-lyrics-wrap hidden">
-        <button type="button" id="vis-lyrics-close" class="vis-lyrics-close" title="Close lyrics (L)" aria-label="Close lyrics">&times;</button>
+        <button type="button" id="vis-lyrics-close" class="vis-lyrics-close" title="Close lyrics (Shift+L)" aria-label="Close lyrics">&times;</button>
         <div id="vis-lyrics-list" class="vis-lyrics-list"></div>
       </div>
     </main>

@@ -1458,7 +1458,7 @@ Funzionano anche i tasti multimediali del sistema. I tasti propri del take sono 
 
 ### Il visualizzatore audio e il testo sincronizzato {#the-audio-visualizer-and-synced-lyrics}
 
-Premi **Visualizzatore** nella barra di trasporto (o **V** mentre suona una traccia) per aprire il palco del visualizzatore a schermo intero.
+Premi **Visualizzatore** nella barra di trasporto (o **V**) per aprire il palco del visualizzatore a schermo intero.
 
 Il palco mostra visualizzazioni audio in tempo reale sincronizzate con la riproduzione:
 
@@ -1478,7 +1478,7 @@ Il palco mostra visualizzazioni audio in tempo reale sincronizzate con la riprod
 - **La forma d'onda:** sotto le scene Yeufonic e Copertina, la forma d'onda del take mostra quanto della canzone ha suonato; cliccala per saltare lì.
 - **Copertina e dinamica del vinile:** mostra la copertina del take in stile Hipgnosis in una busta 3D interattiva che si inclina e ruota con il puntatore. Un disco in vinile realistico gira a 33⅓ giri e scivola fuori dalla busta sui colpi di basso, con un bagliore olografico e anelli d'onda d'urto che reagiscono al ritmo. Cambia modalità con il pulsante **Copertina**: *Busta*, *Aura* (sfondo sfocato) o *Spento*.
 - **Un'immagine nuova:** il pulsante immagine in alto a destra, in ogni scena, fa un'immagine nuova per il take in riproduzione, dove questo PC può fare immagini. Pulsa mentre l'immagine viene fatta, e quella nuova subentra quando è pronta.
-- **Testo sullo schermo:** premi **L** o clicca **Testo** per mostrare o nascondere il pannello del testo indipendente e scorrevole. Trascinalo per la barra in alto per spostarlo; resta dove lo metti, e un doppio clic sulla barra lo rimette a posto.
+- **Testo sullo schermo:** premi **Shift+L** o clicca **Testo** per mostrare o nascondere il pannello del testo indipendente e scorrevole. Trascinalo per la barra in alto per spostarlo; resta dove lo metti, e un doppio clic sulla barra lo rimette a posto.
 - **Nastro del mini-lettore:** mentre il visualizzatore completo è chiuso, un mini-visualizzatore reattivo a doppia onda suona dentro la barra di trasporto in basso. Si attiva o disattiva in **Impostazioni → Aspetto**.
 
 ### Playlist e preferiti {#playlists-liked-songs}
@@ -1510,12 +1510,14 @@ di stato che dice perché.
 | E | apri il take nell'editor |
 | I | i dettagli del take: tutto ciò con cui è stato fatto, a parole, con **Copia** |
 | N | normalizza il take, o annulla se è normalizzato |
-| V | apri o chiudi il visualizzatore durante la riproduzione, o Variazioni da fermo |
+| V | apri o chiudi il visualizzatore |
+| Shift+V | Variazioni |
 | T | Prova ancora |
 | S | metti o togli la stella al take |
 | P | aggiungi il take a una playlist |
 | D | elimina il take, dopo aver chiesto, come il suo cestino |
-| L | i log; oppure mostra il testo con il visualizzatore aperto |
+| L | i log; di nuovo per chiuderli |
+| Shift+L | il testo nel visualizzatore |
 | B | nel visualizzatore, ciò che si muove dietro una scena sopra l'immagine del take |
 | F | schermo intero |
 | ? | mostra o nascondi le scorciatoie; di nuovo per chiudere |
@@ -1523,7 +1525,7 @@ di stato che dice perché.
 
 I tasti con lettere non fanno nulla mentre scrivi in un riquadro, mentre c'è una finestra aperta davanti, o con Ctrl,
 Alt o il tasto Windows o Comando premuto, così le scorciatoie del browser (Ctrl+L, Ctrl+S e le altre)
-continuano a funzionare. Il suggerimento di un pulsante nomina il suo tasto, come in **Variazioni (V)**. Premi **?** in qualsiasi momento per vedere l'elenco delle scorciatoie.
+continuano a funzionare. Il suggerimento di un pulsante nomina il suo tasto, come in **Variazioni (Shift+V)**. Premi **?** in qualsiasi momento per vedere l'elenco delle scorciatoie.
 
 Nella finestra dell'editor, Spazio e le frecce comandano il lettore della finestra, per il take aperto lì, ogni volta che il suo lettore
 è visibile: in ogni passo, e con il rack di mastering aperto sopra. Non agiscono mai mentre scrivi in un riquadro,

@@ -1458,7 +1458,7 @@ Die Medientasten des Systems funktionieren auch. Die eigenen Tasten des Takes st
 
 ### Der Audio-Visualizer und synchronisierter Text {#the-audio-visualizer-and-synced-lyrics}
 
-Drücke **Visualizer** in der Transportleiste (oder **V**, während ein Track spielt), um die Vollbild-Bühne des Visualizers zu öffnen.
+Drücke **Visualizer** in der Transportleiste (oder **V**), um die Vollbild-Bühne des Visualizers zu öffnen.
 
 Die Bühne zeigt Audio-Visualisierungen in Echtzeit, synchron zum Abspielen:
 
@@ -1478,7 +1478,7 @@ Die Bühne zeigt Audio-Visualisierungen in Echtzeit, synchron zum Abspielen:
 - **Die Wellenform:** Unter den Szenen Yeufonic und Artwork zeigt die Wellenform des Takes, wie weit der Song gespielt hat; klicke darauf, um dorthin zu springen.
 - **Albumcover und Vinyl-Dynamik:** Zeigt das Albumcover des Takes im Stil von Hipgnosis in einer interaktiven 3D-Hülle, die sich mit der Zeigerbewegung neigt und kreist. Eine realistische Vinylplatte dreht sich mit 33⅓ U/min und gleitet bei Basstreffern aus der Hülle, begleitet von holografischem Schimmer und schlagreaktiven Schockwellenringen. Wechsle die Modi mit der Schaltfläche **Artwork**: *Hülle*, *Aura* (verschwommener Hintergrund) oder *Aus*.
 - **Ein neues Bild:** Die Bild-Schaltfläche oben rechts macht in jeder Szene ein neues Bild für den spielenden Take, wo dieser PC Bilder machen kann. Sie pulsiert, während das Bild entsteht, und das neue übernimmt, wenn es fertig ist.
-- **Textanzeige:** Drücke **L** oder klicke **Text**, um das eigenständige, scrollbare Textfeld ein- und auszublenden. Zieh es an der Leiste oben aus dem Weg; es bleibt, wo du es hinlegst, und ein Doppelklick auf die Leiste legt es zurück.
+- **Textanzeige:** Drücke **Shift+L** oder klicke **Text**, um das eigenständige, scrollbare Textfeld ein- und auszublenden. Zieh es an der Leiste oben aus dem Weg; es bleibt, wo du es hinlegst, und ein Doppelklick auf die Leiste legt es zurück.
 - **Mini-Player-Band:** Während der volle Visualizer geschlossen ist, spielt ein reaktives Mini-Doppelwellen-Band in der unteren Transportleiste. Es lässt sich in **Einstellungen → Darstellung** umschalten.
 
 ### Playlists und Lieblingssongs {#playlists-liked-songs}
@@ -1510,12 +1510,14 @@ leiste, die sagt, warum.
 | E | den Take im Editor öffnen |
 | I | die Details des Takes: alles, womit er gemacht wurde, in Worten, mit **Kopieren** |
 | N | den Take normalisieren oder es rückgängig machen, wenn er normalisiert ist |
-| V | den Visualizer beim Abspielen öffnen oder schließen, oder Variationen im Ruhezustand |
+| V | den Visualizer öffnen oder schließen |
+| Shift+V | Variationen |
 | T | Mehr ausprobieren |
 | S | dem Take einen Stern geben oder ihn entfernen |
 | P | den Take zu einer Playlist hinzufügen |
 | D | den Take löschen, nach Rückfrage, wie sein Papierkorb |
-| L | die Logs; oder den Text ein- und ausblenden, während der Visualizer offen ist |
+| L | die Logs; erneut zum Schließen |
+| Shift+L | den Text im Visualizer ein- und ausblenden |
 | B | im Visualizer, was sich hinter einer Szene über dem Bild des Takes bewegt |
 | F | Vollbild umschalten |
 | ? | die Tastenkürzel zeigen oder verbergen; erneut, um zu schließen |
@@ -1523,7 +1525,7 @@ leiste, die sagt, warum.
 
 Die Buchstabentasten tun nichts, während du in einem Feld tippst, während ein Fenster vorne offen ist, oder wenn Ctrl,
 Alt oder die Windows- oder Befehlstaste gedrückt ist, sodass die eigenen Kürzel des Browsers (Ctrl+L, Ctrl+S und die übrigen)
-weiter funktionieren. Der Tipp einer Schaltfläche nennt ihre Taste, wie in **Variationen (V)**. Drücke jederzeit **?**, um die Liste der Tastenkürzel anzuzeigen.
+weiter funktionieren. Der Tipp einer Schaltfläche nennt ihre Taste, wie in **Variationen (Shift+V)**. Drücke jederzeit **?**, um die Liste der Tastenkürzel anzuzeigen.
 
 Im Editorfenster bedienen Leertaste und Pfeile den Player des Fensters, für den dort offenen Take, wann immer sein Player
 erscheint: auf jedem Schritt und mit dem Mastering-Rack darüber. Sie wirken nie, während du in einem Feld tippst,

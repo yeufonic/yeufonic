@@ -1458,7 +1458,7 @@ Mediatoetsen van het systeem werken ook. De eigen toetsen van de take staan bij 
 
 ### De audiovisualizer en de gesynchroniseerde tekst {#the-audio-visualizer-and-synced-lyrics}
 
-Klik op **Visualizer** in de transportbalk (of **V** terwijl er een track speelt) om het visualizerpodium schermvullend te openen.
+Klik op **Visualizer** in de transportbalk (of **V**) om het visualizerpodium schermvullend te openen.
 
 Het podium toont realtime audiovisualisaties die met het afspelen zijn gesynchroniseerd:
 
@@ -1478,7 +1478,7 @@ Het podium toont realtime audiovisualisaties die met het afspelen zijn gesynchro
 - **De golfvorm:** onder de scènes Yeufonic en Hoes laat de golfvorm van de take zien hoeveel van het nummer al gespeeld is; klik erop om erheen te springen.
 - **Hoes en vinyldynamiek:** toont de hoes van de take in Hipgnosis-stijl in een interactieve 3D-hoes die kantelt en draait met de aanwijzer. Een realistische vinylplaat draait op 33⅓ toeren en schuift uit de hoes op basslagen, met een holografische glans en schokgolfringen die op het ritme reageren. Wissel van modus met de knop **Hoes**: *Hoes*, *Aura* (vervaagde achtergrond) of *Uit*.
 - **Een nieuwe afbeelding:** de afbeeldingsknop rechtsboven, in elke scène, maakt een nieuwe afbeelding voor de spelende take, waar deze pc afbeeldingen kan maken. Hij pulseert terwijl de afbeelding wordt gemaakt, en de nieuwe neemt het over als hij klaar is.
-- **Tekst op het scherm:** druk op **L** of klik op **Tekst** om het losse, scrollbare tekstpaneel te tonen of te verbergen. Sleep het aan de balk bovenaan uit de weg; het blijft waar je het neerzet, en dubbelklikken op de balk zet het terug.
+- **Tekst op het scherm:** druk op **Shift+L** of klik op **Tekst** om het losse, scrollbare tekstpaneel te tonen of te verbergen. Sleep het aan de balk bovenaan uit de weg; het blijft waar je het neerzet, en dubbelklikken op de balk zet het terug.
 - **Lint van de minispeler:** zolang de volledige visualizer dicht is, speelt een reactieve minivisualizer met dubbele golf in de onderste transportbalk. Zet hem aan of uit in **Instellingen → Weergave**.
 
 ### Afspeellijsten en favorieten {#playlists-liked-songs}
@@ -1510,12 +1510,14 @@ statusbalk die zegt waarom.
 | E | de take in de editor openen |
 | I | de details van de take: alles waarmee hij gemaakt is, in woorden, met **Kopiëren** |
 | N | de take normaliseren, of dat ongedaan maken als hij genormaliseerd is |
-| V | de visualizer openen of sluiten tijdens het afspelen, of Variaties als er niets speelt |
+| V | de visualizer openen of sluiten |
+| Shift+V | Variaties |
 | T | Meer proberen |
 | S | de take een ster geven of die weghalen |
 | P | de take aan een afspeellijst toevoegen |
 | D | de take verwijderen, na een vraag, zoals zijn prullenbak |
-| L | de logs; of de tekst tonen als de visualizer open is |
+| L | de logs; nogmaals om ze te sluiten |
+| Shift+L | de tekst in de visualizer |
 | B | in de visualizer, wat er achter een scène beweegt over de afbeelding van de take |
 | F | schermvullend |
 | ? | de sneltoetsen tonen of verbergen; nog eens om te sluiten |
@@ -1523,7 +1525,7 @@ statusbalk die zegt waarom.
 
 Lettertoetsen doen niets terwijl je in een vak typt, terwijl er een venster voor open is, of met Ctrl,
 Alt of de Windows- of Command-toets ingedrukt, zodat de eigen sneltoetsen van de browser (Ctrl+L, Ctrl+S en de rest)
-blijven werken. De tooltip van een knop noemt zijn toets, zoals bij **Variaties (V)**. Druk op elk moment op **?** om de lijst met sneltoetsen te zien.
+blijven werken. De tooltip van een knop noemt zijn toets, zoals bij **Variaties (Shift+V)**. Druk op elk moment op **?** om de lijst met sneltoetsen te zien.
 
 In het editorvenster bedienen Spatie en de pijltjes de speler van het venster, voor de take die daar open is, zolang zijn speler
 zichtbaar is: in elke stap, en met het masteringrack erboven open. Ze werken nooit terwijl je in een vak typt,

@@ -62,6 +62,7 @@
  "Normalise to": "Normalize to",
  "How loud a normalised take is made. Louder squeezes its peaks harder.": "How loud a normalized take is made. Louder squeezes its peaks harder.",
  "Analysing a corpus song makes copies for the engine to read: the song with its tags stripped, a padded copy for the transcriber and a short clip for its style. Nothing reads them again. If a song is analysed again they are made again.": "Analyzing a corpus song makes copies for the engine to read: the song with its tags stripped, a padded copy for the transcriber and a short clip for its style. Nothing reads them again. If a song is analyzed again they are made again.",
+ "Visual layout and colour treatment across the editor, Corpora, Voices, and cards. Works alongside any theme.": "Visual layout and color treatment across the editor, Corpora, Voices, and cards. Works alongside any theme.",
  "Backdrop colour": "Backdrop color",
  "A tint for the page behind the takes. The cards keep their own colours; the high contrast theme stays black.": "A tint for the page behind the takes. The cards keep their own colors; the high contrast theme stays black.",
  "analysing": "analyzing",
@@ -74,6 +75,5 @@
  "Working copies made while analysing songs": "Working copies made while analyzing songs",
  "To analyse a song, Yeufonic makes copies for the engine to read: the song with its tags stripped, a padded copy for the transcriber, and a short clip for describing its style. Nothing reads them again once the analysis has finished.": "To analyze a song, Yeufonic makes copies for the engine to read: the song with its tags stripped, a padded copy for the transcriber, and a short clip for describing its style. Nothing reads them again once the analysis has finished.",
  "Nothing you will notice. If a song is analysed again, they are made again.": "Nothing you will notice. If a song is analyzed again, they are made again.",
- "Each corpus song's separated vocal was written as an uncompressed WAV. Songs analysed from now on are written as FLAC, which holds exactly the same audio in about half the room. This converts the WAVs you already have.": "Each corpus song's separated vocal was written as an uncompressed WAV. Songs analyzed from now on are written as FLAC, which holds exactly the same audio in about half the room. This converts the WAVs you already have.",
- "Visual layout and colour treatment across the editor, Corpora, Voices, and cards. Works alongside any theme.": "Visual layout and color treatment across the editor, Corpora, Voices, and cards. Works alongside any theme."
+ "Each corpus song's separated vocal was written as an uncompressed WAV. Songs analysed from now on are written as FLAC, which holds exactly the same audio in about half the room. This converts the WAVs you already have.": "Each corpus song's separated vocal was written as an uncompressed WAV. Songs analyzed from now on are written as FLAC, which holds exactly the same audio in about half the room. This converts the WAVs you already have."
 }

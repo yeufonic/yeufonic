@@ -1458,7 +1458,7 @@ As teclas de mídia do sistema também funcionam. As teclas próprias do take es
 
 ### O visualizador de áudio e a letra sincronizada {#the-audio-visualizer-and-synced-lyrics}
 
-Clique em **Visualizador** na barra de transporte (ou **V** enquanto uma faixa toca) para abrir o palco do visualizador em tela cheia.
+Clique em **Visualizador** na barra de transporte (ou **V**) para abrir o palco do visualizador em tela cheia.
 
 O palco mostra visualizações de áudio em tempo real sincronizadas com a reprodução:
 
@@ -1478,7 +1478,7 @@ O palco mostra visualizações de áudio em tempo real sincronizadas com a repro
 - **A forma de onda:** sob as cenas Yeufonic e Arte, a forma de onda do take mostra quanto da música já tocou; clique nela para pular para lá.
 - **Arte e dinâmica do vinil:** mostra a capa do take no estilo Hipgnosis em uma capa 3D interativa que se inclina e gira com o ponteiro. Um disco de vinil realista gira a 33⅓ RPM e sai da capa com as batidas de baixo, com um brilho holográfico e anéis de onda de choque que reagem ao ritmo. Mude de modo com o botão **Capa**: *Capa*, *Aura* (fundo desfocado) ou *Desligado*.
 - **Uma imagem nova:** o botão de imagem no canto superior direito, em cada cena, faz uma imagem nova para o take que está tocando, onde este PC consegue fazer imagens. Ele pulsa enquanto a imagem é feita, e a nova assume quando fica pronta.
-- **Letra na tela:** pressione **L** ou clique em **Letra** para mostrar ou esconder o painel de letra independente e rolável. Arraste-o pela barra de cima para tirá-lo do caminho; ele fica onde você o puser, e um clique duplo na barra o devolve ao lugar.
+- **Letra na tela:** pressione **Shift+L** ou clique em **Letra** para mostrar ou esconder o painel de letra independente e rolável. Arraste-o pela barra de cima para tirá-lo do caminho; ele fica onde você o puser, e um clique duplo na barra o devolve ao lugar.
 - **Fita do miniplayer:** enquanto o visualizador completo está fechado, um minivisualizador reativo de onda dupla toca dentro da barra de transporte de baixo. Liga e desliga em **Configurações → Aparência**.
 
 ### Playlists e curtidas {#playlists-liked-songs}
@@ -1510,12 +1510,14 @@ de status dizendo por quê.
 | E | abrir o take no editor |
 | I | os detalhes do take: tudo com que ele foi feito, em palavras, com **Copiar** |
 | N | normalizar o take, ou desfazer se estiver normalizado |
-| V | abrir ou fechar o visualizador enquanto toca, ou Variações quando parado |
+| V | abrir ou fechar o visualizador |
+| Shift+V | Variações |
 | T | Tentar mais |
 | S | pôr ou tirar a estrela do take |
 | P | adicionar o take a uma playlist |
 | D | excluir o take, depois de perguntar, como a lixeira dele |
-| L | os registros; ou mostrar a letra com o visualizador aberto |
+| L | os registros; de novo para fechar |
+| Shift+L | a letra no visualizador |
 | B | no visualizador, o que se move atrás de uma cena sobre a imagem do take |
 | F | tela cheia |
 | ? | mostrar ou esconder os atalhos; de novo para fechar |
@@ -1523,7 +1525,7 @@ de status dizendo por quê.
 
 As teclas de letra não fazem nada enquanto você digita em uma caixa, enquanto há uma janela aberta na frente, ou com Ctrl,
 Alt ou a tecla Windows ou Command pressionada, para que os atalhos do próprio navegador (Ctrl+L, Ctrl+S e os outros)
-continuem funcionando. A dica de um botão nomeia a tecla dele, como em **Variações (V)**. Pressione **?** a qualquer momento para ver a lista de atalhos.
+continuem funcionando. A dica de um botão nomeia a tecla dele, como em **Variações (Shift+V)**. Pressione **?** a qualquer momento para ver a lista de atalhos.
 
 Na janela do editor, Espaço e as setas controlam o player da janela, para o take aberto ali, sempre que o player
 estiver à vista: em cada etapa, e com o rack de masterização aberto por cima. Elas nunca agem enquanto você digita em uma caixa,

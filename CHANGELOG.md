@@ -39,6 +39,12 @@ cannot creep back in.
 
 ## Unreleased
 
+- **A first visit starts on Song**, which needs only words and a style, rather than Cover, which needs a recording
+  first; an empty library points to **+ Song**, **+ Cover** and **+ Instrumental**. A page that was left on another
+  kind still opens on it.
+- **Each letter key means one thing.** **V** opens and closes the visualizer whether or not anything is playing, and
+  **Shift+V** is Variations; **L** is the logs and **Shift+L** the visualizer's lyrics. They used to change with what
+  was playing or showing.
 - **A new look, the default on new installs: the Studio theme with the Studio Slate style.** Settings → **UI style**
   is new: Studio Slate gives each of the editor's three columns a colour of its own, and shows Corpora and Voices as
   cards with a filter box, each corpus with a bar of how many of its songs are included and each voice marked with

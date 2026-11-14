@@ -1646,7 +1646,7 @@ The system media keys work too. The take's own keys are under [Hot keys](#hot-ke
 
 ### The Audio Visualizer and Synced Lyrics
 
-Press **Visualizer** on the transport bar (or press **V** while a track is playing) to launch the full-screen visualizer stage.
+Press **Visualizer** on the transport bar (or press **V**) to launch the full-screen visualizer stage.
 
 The stage renders real-time audio visualisations synchronized with playback:
 
@@ -1666,7 +1666,7 @@ The stage renders real-time audio visualisations synchronized with playback:
 - **The waveform:** under the Yeufonic and Artwork scenes, the take's waveform shows how far the song has played; click it to jump there.
 - **Album Artwork & Vinyl Dynamics:** Displays the take's Hipgnosis-style album cover in an interactive 3D sleeve that tilts and orbits with pointer movement. A realistic vinyl record spins at 33⅓ RPM and slides out of the sleeve on bass hits, accompanied by holographic sheen and beat-reactive shockwave rings. Cycle modes with the **Artwork** button: *Sleeve*, *Aura* (ambient blurred background), or *Off*.
 - **A new picture:** the picture button at the top right, in every scene, makes a new picture for the take playing, where this PC can make pictures. It pulses while the picture is made, and the new one takes over when it is ready.
-- **Lyrics Display:** Press **L** or click **Lyrics** to toggle the independent, scrollable lyrics panel. Drag it by the bar at its top to move it out of the way; it stays where you put it, and a double-click on the bar puts it back.
+- **Lyrics Display:** Press **Shift+L** or click **Lyrics** to toggle the independent, scrollable lyrics panel. Drag it by the bar at its top to move it out of the way; it stays where you put it, and a double-click on the bar puts it back.
 - **Mini Player Ribbon:** While the full visualizer is closed, a reactive mini dual-wave visualizer ribbon plays inside the bottom transport bar. It can be toggled in **Settings → Appearance**.
 
 ### Playlists & Liked Songs
@@ -1698,12 +1698,14 @@ bar saying why.
 | E | open the take in the editor |
 | I | the take's details: everything it was made with, in words, with **Copy** |
 | N | normalise the take, or undo it if it is normalised |
-| V | open or close the Visualizer while playing, or Variations when idle |
+| V | open or close the Visualizer |
+| Shift+V | Variations |
 | T | Try more |
 | S | star the take, or unstar it |
 | P | add the take to a playlist |
 | D | delete the take, after asking, as its bin does |
-| L | the logs; or toggle lyrics while the visualizer is open |
+| L | the logs; again to close them |
+| Shift+L | the lyrics in the visualizer |
 | B | in the visualizer, what moves behind a scene over the take's picture |
 | F | toggle fullscreen |
 | ? | show or hide the hot keys; again to close |
@@ -1711,7 +1713,7 @@ bar saying why.
 
 The letter keys do nothing while you are typing in a box, while a window is open in front, or with Ctrl,
 Alt or the Windows or Command key held, so the browser's own shortcuts (Ctrl+L, Ctrl+S and the rest)
-still work. A button's tip names its key, as in **Variations (V)**. Press **?** at any time to display the list of hot keys.
+still work. A button's tip names its key, as in **Variations (Shift+V)**. Press **?** at any time to display the list of hot keys.
 
 In the editor window, Space and the arrows work the window's player, for the take open there, whenever its player
 shows: on every step, and with the mastering rack open over it. They never act while you are typing in a box,

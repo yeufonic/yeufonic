@@ -104,7 +104,7 @@ function boxShowsSource(sourceId) {
   return false;
 }
 
-var State = { normalising: {}, sources: [], takes: [], options: {}, filter: 'all', playing: null, busy: false, mode: 'cover',
+var State = { normalising: {}, sources: [], takes: [], options: {}, filter: 'all', playing: null, busy: false, mode: 'song',
   layout: 'compact',
   takesRaw: '', takesTotal: 0, takeLimit: 300, takesAt: 0, paintedAt: 0, draft: null, audition: null,
   // The list the space shows, and the take whose insides are open: { id, takes, fresh }.  `takes` above is both together.
@@ -1568,12 +1568,13 @@ function saveForm() {
   } catch (err) { /* private mode, or storage full. Not worth a message. */ }
 }
 
-/* Cover, Song or Instrumental, as the page was left.  Cover the first time. */
+/* Cover, Song or Instrumental, as the page was left.  A song the first time: it needs nothing but words and a
+   style, where a cover needs a recording first. */
 function savedMode() {
   try {
     var mode = JSON.parse(localStorage.getItem(FORM_KEY) || '{}').ui_mode;
-    return ['cover', 'song', 'inst'].indexOf(mode) >= 0 ? mode : 'cover';
-  } catch (err) { return 'cover'; }
+    return ['cover', 'song', 'inst'].indexOf(mode) >= 0 ? mode : 'song';
+  } catch (err) { return 'song'; }
 }
 
 function loadForm() {
@@ -12365,7 +12366,7 @@ function paintTakes() {
     ? t('No {value}takes match “{search}”{value2}', { value: State.filter === 'favourite' ? t('starred') + ' ' : '', search: State.search, value2: searchingEverywhere() ? ' ' + t('in any space.') : ' ' + t('in this space.') })
     : State.filter === 'favourite' ? t('No starred takes in this space.')
     : others ? t('This space is empty. Create a take while it is on show, or move takes here with Move.')
-    : t('Nothing yet. Load a recording, write some lyrics, and press create.');
+    : t('Nothing yet. Start one with + Song, + Cover or + Instrumental.');
   var more = State.takesTotal - State.listed.length;
   $('takes-more').classList.toggle('hidden', more <= 0);
   $('takes-more').textContent = t('Show {more} more of {more2} older takes', { more: Math.min(more, 300), more2: more });
@@ -12559,7 +12560,7 @@ function paintTakes() {
             ? '<button class="take-move" data-act="revoice"' + id + ' title="' + t('Sing again — The same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close') + '"' +
               ' aria-label="' + t('Sing again') + '">' + icon('voice') + '</button>' +
               (take.parent_id ? '' :
-              '<button class="take-move" data-act="variations"' + id + ' title="' + t('Variations (V) — Render this score in other interpretations. They are kept inside this take') + '"' +
+              '<button class="take-move" data-act="variations"' + id + ' title="' + t('Variations (Shift+V) — Render this score in other interpretations. They are kept inside this take') + '"' +
               ' aria-label="' + t('Variations') + '">' + icon('variations') + '</button>' +
               '<button class="take-move" data-act="tries"' + id + ' title="' + t('Try more (T) — The same score and words again with new seeds, or at other Planner strengths. They are kept inside this take') + '"' +
               ' aria-label="' + t('Try more') + '">' + icon('dice') + '</button>')
@@ -13136,11 +13137,8 @@ function takeKey(event) {
     toggleHotkeys();
     return true;
   }
-  if (key.length !== 1 || 'meivntsdl'.indexOf(key) < 0) { return false; }
-  if (key === 'l') {            // the logs: no take needed; again to close them
-    if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
-    return true;
-  }
+  if (key.length !== 1 || 'meivntsd'.indexOf(key) < 0) { return false; }
+  if (key === 'v' && !event.shiftKey) { return false; }     // V alone is the visualizer; Shift+V is Variations
   // In playlist view, ignore any take-specific hot keys apart from M for Mastering:
   if (State.activeView === 'playlists' && key !== 'm') {
     return false;
@@ -16283,10 +16281,14 @@ function wire() {
       toggleHotkeys();
       return;
     }
+    // L is the logs and Shift+L the visualizer's lyrics, whatever is showing: one key, one meaning.
     if ((event.key === 'l' || event.key === 'L') &&
         !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
       event.preventDefault();
-      if (window.Visualizer && window.Visualizer.isOpen) { window.Visualizer.toggleLyrics(); return; }
+      if (event.shiftKey) {
+        if (window.Visualizer && window.Visualizer.isOpen) { window.Visualizer.toggleLyrics(); }
+        return;
+      }
       if (LogsState.open) { closeLogsModal(); } else { showLogs(); }
       return;
     }
@@ -16297,16 +16299,12 @@ function wire() {
       event.preventDefault();
       return;
     }
-    if ((event.key === 'v' || event.key === 'V') &&
+    // V is the visualizer, playing or not; Shift+V is Variations, with the take keys below.
+    if ((event.key === 'v' || event.key === 'V') && !event.shiftKey &&
         !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
-      var audio = $('audio');
-      var isPlaying = audio && !audio.paused && !audio.ended;
-      var visOpen = window.Visualizer && window.Visualizer.isOpen;
-      if (isPlaying || visOpen) {
-        event.preventDefault();
-        if (window.Visualizer) { window.Visualizer.toggle(); }
-        return;
-      }
+      event.preventDefault();
+      if (window.Visualizer) { window.Visualizer.toggle(); }
+      return;
     }
     // The editor window, alone (or with the mastering rack over it), has the player's keys too, for the take in
     // the window, whenever its player shows: typing is already left alone above.  Any other window in front

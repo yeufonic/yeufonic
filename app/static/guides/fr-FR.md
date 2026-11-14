@@ -1458,7 +1458,7 @@ Les touches multimédia du système fonctionnent aussi. Les touches propres à l
 
 ### Le visualiseur audio et les paroles synchronisées {#the-audio-visualizer-and-synced-lyrics}
 
-Appuyez sur **Visualiseur** dans la barre de transport (ou sur **V** pendant la lecture) pour lancer la scène plein écran du visualiseur.
+Appuyez sur **Visualiseur** dans la barre de transport (ou sur **V**) pour lancer la scène plein écran du visualiseur.
 
 La scène affiche des visualisations audio en temps réel synchronisées avec la lecture :
 
@@ -1478,7 +1478,7 @@ La scène affiche des visualisations audio en temps réel synchronisées avec la
 - **La forme d’onde :** sous les scènes Yeufonic et Pochette, la forme d’onde de la prise montre où en est la chanson ; cliquez dessus pour y sauter.
 - **Pochette d’album et dynamique du vinyle :** affiche la pochette de la prise façon Hipgnosis dans une pochette 3D interactive qui s’incline et tourne avec le pointeur. Un disque vinyle réaliste tourne à 33⅓ tours et sort de la pochette sur les coups de basse, avec un reflet holographique et des anneaux d’onde de choc qui réagissent au rythme. Changez de mode avec le bouton **Pochette** : *Pochette*, *Aura* (fond flouté) ou *Désactivé*.
 - **Une nouvelle image :** le bouton image en haut à droite, dans chaque scène, crée une nouvelle image pour la prise en lecture, là où ce PC peut créer des images. Il pulse pendant la création, et la nouvelle prend le relais quand elle est prête.
-- **Affichage des paroles :** appuyez sur **L** ou cliquez sur **Paroles** pour afficher ou masquer le panneau de paroles indépendant et défilant. Faites-le glisser par la barre du haut pour le déplacer ; il reste où vous le posez, et un double-clic sur la barre le remet en place.
+- **Affichage des paroles :** appuyez sur **Shift+L** ou cliquez sur **Paroles** pour afficher ou masquer le panneau de paroles indépendant et défilant. Faites-le glisser par la barre du haut pour le déplacer ; il reste où vous le posez, et un double-clic sur la barre le remet en place.
 - **Ruban du mini-lecteur :** tant que le visualiseur plein écran est fermé, un mini-visualiseur à double onde réactif joue dans la barre de transport du bas. Il s’active ou se désactive dans **Paramètres → Apparence**.
 
 ### Playlists et favoris {#playlists-liked-songs}
@@ -1510,12 +1510,14 @@ d’état qui dit pourquoi.
 | E | ouvrir la prise dans l’éditeur |
 | I | les détails de la prise : tout ce avec quoi elle a été faite, en mots, avec **Copier** |
 | N | normaliser la prise, ou annuler si elle est normalisée |
-| V | ouvrir ou fermer le visualiseur pendant la lecture, ou Variations à l’arrêt |
+| V | ouvrir ou fermer le visualiseur |
+| Shift+V | Variations |
 | T | Essayer encore |
 | S | mettre ou retirer l’étoile de la prise |
 | P | ajouter la prise à une playlist |
 | D | supprimer la prise, après confirmation, comme sa corbeille |
-| L | les journaux ; ou afficher les paroles quand le visualiseur est ouvert |
+| L | les journaux ; encore pour les fermer |
+| Shift+L | les paroles dans le visualiseur |
 | B | dans le visualiseur, ce qui bouge derrière une scène sur l’image de la prise |
 | F | basculer en plein écran |
 | ? | afficher ou masquer les raccourcis ; à nouveau pour fermer |
@@ -1523,7 +1525,7 @@ d’état qui dit pourquoi.
 
 Les touches de lettres ne font rien pendant que vous tapez dans une zone, quand une fenêtre est ouverte au premier plan, ou avec Ctrl,
 Alt ou la touche Windows ou Commande enfoncée, pour que les raccourcis du navigateur (Ctrl+L, Ctrl+S et les autres)
-fonctionnent toujours. L’infobulle d’un bouton nomme sa touche, comme dans **Variations (V)**. Appuyez sur **?** à tout moment pour afficher la liste des raccourcis.
+fonctionnent toujours. L’infobulle d’un bouton nomme sa touche, comme dans **Variations (Shift+V)**. Appuyez sur **?** à tout moment pour afficher la liste des raccourcis.
 
 Dans la fenêtre de l’éditeur, Espace et les flèches pilotent le lecteur de la fenêtre, pour la prise qui y est ouverte, chaque fois que son lecteur
 s’affiche : à chaque étape, et avec le rack de mastering ouvert par-dessus. Elles n’agissent jamais pendant que vous tapez dans une zone,
