@@ -21,8 +21,8 @@ def make_folder(tmp_path, monkeypatch):
     songs = root / "Under"
     songs.mkdir(parents=True)
     monkeypatch.setattr(config, "IMPORT_ROOTS", [str(root)])
-    tone(songs / "01 Modern Girl.wav", 100)
-    (songs / "Modern Girl copy.wav").write_bytes((songs / "01 Modern Girl.wav").read_bytes())
+    tone(songs / "01 Paper Boat.wav", 100)
+    (songs / "Paper Boat copy.wav").write_bytes((songs / "01 Paper Boat.wav").read_bytes())
     tone(songs / "02 Falling.wav", 95)
     tone(songs / "09 Falling (acoustic).wav", 96)
     tone(songs / "14. Did It Ever (Ft. Alan Williams on vocals).wav", 101)
@@ -37,12 +37,12 @@ def test_scan_flags_copies_versions_other_singers_and_short_files(tmp_path, monk
     found = {s["file"]: s for s in identities.scan(folder)}
     assert "cover.jpg" not in found and len(found) == 7
     assert "names another singer" in found["did_it_ever.wav"]["flag"]
-    assert found["01 Modern Girl.wav"]["include"] and found["01 Modern Girl.wav"]["title"] == "Modern Girl"
-    assert "exact copy" in found["Modern Girl copy.wav"]["flag"]
+    assert found["01 Paper Boat.wav"]["include"] and found["01 Paper Boat.wav"]["title"] == "Paper Boat"
+    assert "exact copy" in found["Paper Boat copy.wav"]["flag"]
     assert "another version" in found["09 Falling (acoustic).wav"]["flag"]
     assert "another singer" in found["14. Did It Ever (Ft. Alan Williams on vocals).wav"]["flag"]
     assert "shorter" in found["08 It's Only Love Short.wav"]["flag"]
-    assert [s["file"] for s in found.values() if s["include"]] == ["01 Modern Girl.wav", "02 Falling.wav"]
+    assert [s["file"] for s in found.values() if s["include"]] == ["01 Paper Boat.wav", "02 Falling.wav"]
 
 
 def test_scan_reads_opus_and_other_formats_ffmpeg_decodes(tmp_path, monkeypatch):
@@ -168,8 +168,8 @@ def test_the_export_cuts_a_long_song_with_a_fade_and_the_words_still_sung(client
     import json as _json
     _, folder = make_folder(tmp_path, monkeypatch)
     made = client.post("/api/identities", json={"name": "Me", "trigger_word": "me", "voice": "male", "folder": str(folder), "consent": True}).json()
-    song = next(s for s in made["songs"] if s["file"] == "01 Modern Girl.wav")
-    jobs.set_song(song["id"], stored_path=str(folder / "01 Modern Girl.wav"), lyrics=TAGGED)
+    song = next(s for s in made["songs"] if s["file"] == "01 Paper Boat.wav")
+    jobs.set_song(song["id"], stored_path=str(folder / "01 Paper Boat.wav"), lyrics=TAGGED)
     (folder / "whisper.json").write_text(_json.dumps(CUT_LINES))
     (folder / "score.abc").write_text(
         "X:1\nM:4/4\nL:1/4\nQ:1/4=120\nV: Vocal\nK:C\n% intro\n" + "z4|" * 2 + "\n% verse\n" + "c4|" * 3 +
@@ -180,12 +180,12 @@ def test_the_export_cuts_a_long_song_with_a_fade_and_the_words_still_sung(client
     assert next(s for s in view["songs"] if s["id"] == song["id"])["trained_to"] == 50.0
     assert next(s for s in view["songs"] if s["file"] == "02 Falling.wav")["trained_to"] is None    # under the limit
     out = client.post(f"/api/identities/{made['id']}/export").json()
-    assert out["cut"] == [{"title": "Modern Girl", "seconds": 50.0, "at_section": True}]
+    assert out["cut"] == [{"title": "Paper Boat", "seconds": 50.0, "at_section": True}]
     dataset = config.DATA_DIR / "identities" / made["id"] / "dataset"
     audio = next(dataset.glob("*.flac"))
     assert abs(identities.probe(audio)["duration"] - 50.0) < 0.5
     assert next(dataset.glob("*.lyrics.txt")).read_text().strip() == "[Intro]\n\n[Verse]\nfirst verse"
-    assert _json.loads((dataset / "manifest.json").read_text())["cut_for_training"][0]["title"] == "Modern Girl"
+    assert _json.loads((dataset / "manifest.json").read_text())["cut_for_training"][0]["title"] == "Paper Boat"
 
 
 def test_api_needs_consent_scans_and_queues(client, tmp_path, monkeypatch):
@@ -222,7 +222,7 @@ def test_api_needs_consent_scans_and_queues(client, tmp_path, monkeypatch):
     while not IDENTITY_QUEUE.empty():
         IDENTITY_QUEUE.get_nowait()
     assert client.delete(f"/api/identities/{made['id']}").json() == {"deleted": True}
-    assert (folder / "01 Modern Girl.wav").exists()           # the original folder is untouched
+    assert (folder / "01 Paper Boat.wav").exists()           # the original folder is untouched
 
 
 def test_a_song_unticked_while_it_waits_is_skipped(client, tmp_path, monkeypatch):
@@ -243,7 +243,7 @@ def test_editing_the_identity_changes_captions_and_export_names_the_host_folder(
     edited = client.put(f"/api/identities/{made['id']}", json={"description": "pop rock, electric guitars, bass, drums"}).json()
     assert all(s["caption"].startswith("me, pop rock, electric guitars, bass, drums, male vocal") for s in edited["songs"])
     song = next(s for s in edited["songs"] if s["include"])
-    jobs.set_song(song["id"], stored_path=str(folder / "01 Modern Girl.wav"), lyrics="[Verse]\nla")
+    jobs.set_song(song["id"], stored_path=str(folder / "01 Paper Boat.wav"), lyrics="[Verse]\nla")
     monkeypatch.setattr(config, "DATA_DIR_HOST", "/home/me/yue2/data")
     out = client.post(f"/api/identities/{made['id']}/export").json()
     assert out["folder"] == f"/home/me/yue2/data/identities/{made['id']}/dataset" and len(out["written"]) == 1

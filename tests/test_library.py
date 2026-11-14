@@ -7,14 +7,14 @@ from conftest import tone
 
 
 def test_slugify():
-    assert slugify("Modern Girl (demo)!") == "modern-girl-demo"
+    assert slugify("Paper Boat (demo)!") == "paper-boat-demo"
     assert slugify("") == "untitled"
     assert len(slugify("x" * 100)) == 40
 
 
 def test_source_path_keeps_the_name_after_the_hash():
-    path = source_path("f72ac22518a9ea05ffff", "Modern Girl.wav", "fallback", ".wav")
-    assert path == config.SOURCES_DIR / "f72ac22518a9ea05-modern-girl.wav"
+    path = source_path("f72ac22518a9ea05ffff", "Paper Boat.wav", "fallback", ".wav")
+    assert path == config.SOURCES_DIR / "f72ac22518a9ea05-paper-boat.wav"
 
 
 def test_inside():

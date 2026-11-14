@@ -1,8 +1,8 @@
 """Hearing a recording's lyrics with an external LLM, and Whisper keeping the time.
 
-Measured on Modern Girl against its real lyrics: Whisper 8.8% of words wrong,
-nearly all of them lines it missed; Gemini 1.5%, the same in three runs. These
-pin how the two are combined and every way back to Whisper.
+Whisper's mistakes on a sung vocal are mostly lines it misses, which a model that
+hears the audio can fill.  These pin how the two are combined and every way back to
+Whisper.
 """
 import asyncio
 import time
@@ -14,16 +14,16 @@ from app import identities, jobs, llm
 from app.db import execute, one, set_setting
 
 WHISPER = [
-    {"start": 10.0, "end": 14.0, "text": "I walked into a trap I set myself"},
-    # "Always the last to know" is sung here, and Whisper misses it.
-    {"start": 30.0, "end": 33.0, "text": "Modern girl"},
+    {"start": 10.0, "end": 14.0, "text": "I left the porch light on for you"},
+    # "Counting cars along the bridge" is sung here, and Whisper misses it.
+    {"start": 30.0, "end": 33.0, "text": "Paper boat"},
 ]
-HEARD = ["I walked into a trap I set myself", "Always the last to know", "Modern girl"]
+HEARD = ["I left the porch light on for you", "Counting cars along the bridge", "Paper boat"]
 
 
 def test_matched_lines_take_whispers_times():
     timed = identities.time_lines(WHISPER, HEARD)
-    assert timed[0]["text"] == "I walked into a trap I set myself"
+    assert timed[0]["text"] == "I left the porch light on for you"
     assert 10.0 <= timed[0]["start"] <= timed[0]["end"] <= 14.0
     assert 30.0 <= timed[2]["start"] <= 33.0
 
@@ -32,7 +32,7 @@ def test_a_line_whisper_missed_is_placed_between_its_neighbours():
     """The whole point: the lines an LLM recovers are the ones with no time."""
     timed = identities.time_lines(WHISPER, HEARD)
     missed = timed[1]
-    assert missed["text"] == "Always the last to know"
+    assert missed["text"] == "Counting cars along the bridge"
     assert timed[0]["end"] < missed["start"] < timed[2]["start"]
 
 
@@ -43,8 +43,8 @@ def test_words_that_are_not_this_recording_are_refused():
 
 
 def test_the_reply_loses_labels_fences_and_markup():
-    reply = "```\n[Verse]\n**I walked into a trap**\nModern girl\n(instrumental)\n\n```"
-    assert llm._hear_lines(reply) == ["I walked into a trap", "Modern girl"]
+    reply = "```\n[Verse]\n**I left the porch light on**\nPaper boat\n(instrumental)\n\n```"
+    assert llm._hear_lines(reply) == ["I left the porch light on", "Paper boat"]
 
 
 # ------------------------------------------------------------ choosing a method
@@ -55,7 +55,7 @@ def whisper(monkeypatch):
 
 
 def hear():
-    return asyncio.run(jobs.hear(Path("/nowhere/vocals.wav"), 40.0, title="Silly Love Songs"))
+    return asyncio.run(jobs.hear(Path("/nowhere/vocals.wav"), 40.0, title="Harbour Wind"))
 
 
 def refuse(*args, **kwargs):
@@ -141,8 +141,8 @@ def test_the_setting_takes_only_its_own_values(client):
 
 def test_the_lyrics_endpoint_says_who_heard_them(client):
     execute("""INSERT INTO sources (id, title, filename, stored_path, sha256, created_at, lyrics,
-               lyrics_state, lyrics_method) VALUES ('s1', 'Modern Girl', 'mg.flac', '/data/mg.flac',
-               '0', ?, '[Verse]\nModern girl', 'done', 'gemini-3.8-flash, timed by Whisper')""", (time.time(),))
+               lyrics_state, lyrics_method) VALUES ('s1', 'Paper Boat', 'mg.flac', '/data/mg.flac',
+               '0', ?, '[Verse]\nPaper boat', 'done', 'gemini-3.8-flash, timed by Whisper')""", (time.time(),))
     got = client.get("/api/sources/s1/lyrics").json()
     assert got["method"] == "gemini-3.8-flash, timed by Whisper"
 
@@ -162,7 +162,7 @@ def test_the_log_says_up_front_when_the_llm_will_listen(whisper, monkeypatch, ca
     set_setting("lyrics.transcriber", "llm")
     caplog.set_level("INFO")
     hear()
-    assert first_line(caplog) == ("Lyrics for 'Silly Love Songs': the external LLM (gemini-3.8-flash) "
+    assert first_line(caplog) == ("Lyrics for 'Harbour Wind': the external LLM (gemini-3.8-flash) "
                                   "will hear the words; Whisper runs first to time the lines")
     said = " ".join(r.getMessage() for r in caplog.records)
     assert "sending the vocal to gemini-3.8-flash" in said
@@ -174,7 +174,7 @@ def test_the_log_says_when_whisper_is_the_setting(whisper, monkeypatch, caplog):
     external()
     caplog.set_level("INFO")
     hear()
-    assert first_line(caplog) == "Lyrics for 'Silly Love Songs': Whisper, as set in Settings"
+    assert first_line(caplog) == "Lyrics for 'Harbour Wind': Whisper, as set in Settings"
 
 
 def test_the_log_says_why_the_llm_setting_was_not_used(whisper, monkeypatch, caplog):
@@ -189,7 +189,7 @@ def test_the_log_says_why_the_llm_setting_was_not_used(whisper, monkeypatch, cap
 # ------------------------------------------------- a reply that is not the whole song
 
 def test_a_trailing_line_is_not_a_held_back_reply():
-    assert llm.held_back(["Hold on…", "Modern girl"]) is None
+    assert llm.held_back(["Hold on…", "Paper boat"]) is None
 
 
 def test_lines_cut_short_are_held_back():
@@ -212,7 +212,7 @@ def test_sung_words_that_look_like_a_notice_are_not():
 def test_a_held_back_reply_falls_back_and_says_why(whisper, monkeypatch):
     """The agreement check would pass it: every word it does give is in the song."""
     async def cut(vocal):
-        return ["I walked into a trap...", "Modern girl..."]
+        return ["I left the porch light on...", "Paper boat..."]
     monkeypatch.setattr(llm, "hear_lyrics", cut)
     external()
     set_setting("lyrics.transcriber", "llm")
@@ -225,7 +225,7 @@ def test_a_reply_that_is_almost_nothing_falls_back_but_fewer_words_than_whisper_
     """Looking like lyrics is what counts, not matching Whisper's count: Whisper can inflate its own
     (a held "la" written a hundred times), and an LLM's shorter, right words must not lose to it."""
     async def short(vocal):
-        return ["Modern girl"]
+        return ["Paper boat"]
     monkeypatch.setattr(llm, "hear_lyrics", short)
     external()
     set_setting("lyrics.transcriber", "llm")
@@ -233,12 +233,12 @@ def test_a_reply_that_is_almost_nothing_falls_back_but_fewer_words_than_whisper_
     assert lines == WHISPER and method == "Whisper (gemini-3.8-flash returned only 2 words)"
 
     async def fewer(vocal):                     # 12 words against Whisper's 10 + a long vocalise
-        return ["I walked into a trap I set myself", "Always the last to know now"]
+        return ["I left the porch light on for you", "Counting cars along the bridge now"]
     monkeypatch.setattr(identities, "transcribe", lambda vocal, on_progress=None, duration=0.0, should_stop=None:
                         WHISPER + [{"start": 40.0, "end": 70.0, "text": "la " * 40}])
     monkeypatch.setattr(llm, "hear_lyrics", fewer)
     lines, method = hear()
-    assert [l["text"] for l in lines] == ["I walked into a trap I set myself", "Always the last to know now"]
+    assert [l["text"] for l in lines] == ["I left the porch light on for you", "Counting cars along the bridge now"]
     assert method.startswith("gemini-3.8-flash")
 
 

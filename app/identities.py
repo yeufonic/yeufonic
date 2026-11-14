@@ -89,7 +89,7 @@ def probe(path: Path) -> dict:
 
 
 def title_from_name(name: str) -> str:
-    """'03 Modern Girl.mp3' -> 'Modern Girl'; 'a_man_like_you.mp3' -> 'A Man Like You'."""
+    """'03 Paper Boat.mp3' -> 'Paper Boat'; 'a_man_like_you.mp3' -> 'A Man Like You'."""
     stem = Path(name).stem.replace("_", " ")
     stem = re.sub(r"^\s*\d+\s*[.\-_)]?\s*", "", stem).strip()
     return stem[:1].upper() + stem[1:] if stem else name

@@ -10,7 +10,7 @@ import app.jobs as jobs
 from app import config, instrumental, library, stems
 from app.db import execute, one
 
-LINES = [{"start": 1.0, "end": 2.0, "text": "Modern girl"}]
+LINES = [{"start": 1.0, "end": 2.0, "text": "Paper boat"}]
 
 
 @pytest.fixture(autouse=True)
@@ -45,11 +45,11 @@ def separations(monkeypatch):
 
 
 def a_recording(client):
-    path = config.SOURCES_DIR / "0123456789abcdef-modern-girl.wav"
+    path = config.SOURCES_DIR / "0123456789abcdef-paper-boat.wav"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"RIFF" + b"\0" * 64)
     execute("""INSERT INTO sources(id, title, filename, stored_path, sha256, created_at, abc, lyrics_state)
-               VALUES('src1', 'Modern Girl', 'mg.wav', ?, 'x', ?, '% verse\n', 'queued')""",
+               VALUES('src1', 'Paper Boat', 'mg.wav', ?, 'x', ?, '% verse\n', 'queued')""",
             (str(path), time.time()))
     return path
 
@@ -60,8 +60,8 @@ def run():
 
 
 def test_the_vocal_is_named_beside_its_recording():
-    rec = config.SOURCES_DIR / "0123456789abcdef-modern-girl.wav"
-    assert library.vocal_path(rec).name == "0123456789abcdef-modern-girl.vocals.flac"
+    rec = config.SOURCES_DIR / "0123456789abcdef-paper-boat.wav"
+    assert library.vocal_path(rec).name == "0123456789abcdef-paper-boat.vocals.flac"
 
 
 def test_the_first_run_separates_and_keeps_the_vocal(client, listening, separations):
@@ -75,7 +75,7 @@ def test_a_second_run_reuses_it_and_does_not_separate(client, listening, separat
     rec = a_recording(client)
     library.vocal_path(rec).write_bytes(b"fLaC" + b"\0" * 32)
     result = run()
-    assert result["lyrics_state"] == "done" and "Modern girl" in result["lyrics"]
+    assert result["lyrics_state"] == "done" and "Paper boat" in result["lyrics"]
     assert separations == [], "separating again would give the same file"
 
 

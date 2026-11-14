@@ -3008,8 +3008,7 @@ def fail_cover_lyrics(source_id: str, message: str) -> None:
             (message, source_id))
 
 
-# An LLM that heard the whole song writes about as many words as Whisper, or more:
-# 204 against 205 on Modern Girl, 281 against about 250 on Silly Love Songs.  Well
+# An LLM that heard the whole song writes about as many words as Whisper, or more.  Well
 # under that, it left something out.
 # A reply with fewer words than this is not a song's lyrics, whatever it says.
 MIN_HEARD_WORDS = 8

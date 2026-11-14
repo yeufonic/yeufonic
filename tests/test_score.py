@@ -235,7 +235,7 @@ def run_plan_job(monkeypatch, abc, **fields):
 
 
 def test_a_plan_that_runs_away_is_written_once_more_then_fails_with_advice(monkeypatch):
-    first, row = run_plan_job(monkeypatch, long_plan(11), style="dylan, blues", variety="calm", style_lora="folk.safetensors")
+    first, row = run_plan_job(monkeypatch, long_plan(11), style="marlowe, blues", variety="calm", style_lora="folk.safetensors")
     assert first["status"] == "queued"                                 # tried once more, as any unreadable plan
     assert row["status"] == "failed" and not row["abc"]
     assert "a plan 11 minutes long" in row["error"]

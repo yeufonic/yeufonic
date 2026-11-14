@@ -493,7 +493,7 @@ async def test_style_tags_have_room_for_a_thinking_model():
     """A thinking model spends max_tokens on its thought too; 150 left it one token."""
     with patch("app.llm.chat_complete", new_callable=AsyncMock) as mock_chat:
         mock_chat.return_value = "celtic folk, a cappella, ethereal"
-        await llm.describe_song_style(title="My Lagan Love")
+        await llm.describe_song_style(title="Winter Orchard")
         assert mock_chat.call_args.kwargs["max_tokens"] >= 2048
 
 
@@ -503,7 +503,7 @@ async def test_a_style_reply_with_no_words_is_a_failure_not_a_style():
         with patch("app.llm.chat_complete", new_callable=AsyncMock) as mock_chat:
             mock_chat.return_value = junk
             with pytest.raises(RuntimeError):
-                await llm.describe_song_style(title="My Lagan Love")
+                await llm.describe_song_style(title="Winter Orchard")
 
 
 @pytest.mark.anyio

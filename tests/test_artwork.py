@@ -725,52 +725,52 @@ def test_external_draw_failure_without_flux_fails_job(client, monkeypatch):
 
 def test_trigger_words_and_artist_names_are_stripped_from_cover_prompts():
     execute("INSERT OR REPLACE INTO identities (id, name, trigger_word, folder, created_at) VALUES (?, ?, ?, ?, ?)",
-            ("id-test-dylan", "Bobby Dylan", "bobbydyln", "bob", 12345.0))
+            ("id-test-marlowe", "Johnny Marlowe", "jmarlowe", "jm", 12345.0))
     triggers = artwork.take_triggers()
-    assert "bobbydyln" in triggers
-    assert "Bobby Dylan" in triggers
+    assert "jmarlowe" in triggers
+    assert "Johnny Marlowe" in triggers
 
     # Style cleaning removes both the trigger word and the artist name
-    style = "bobbydyln, mid-1970s soft rock, Bobby Dylan, acoustic rhythm guitar, male vocal"
+    style = "jmarlowe, mid-1970s soft rock, Johnny Marlowe, acoustic rhythm guitar, male vocal"
     cleaned_style = artwork.clean_cover_style(style)
-    assert "bobbydyln" not in cleaned_style
-    assert "Bobby Dylan" not in cleaned_style
+    assert "jmarlowe" not in cleaned_style
+    assert "Johnny Marlowe" not in cleaned_style
     assert "mid-1970s soft rock" in cleaned_style
     assert "acoustic rhythm guitar" in cleaned_style
 
     # Title cleaning drops titles that are solely the trigger word or artist name
-    assert artwork.clean_cover_title({"title": "bobbydyln"}) == ""
-    assert artwork.clean_cover_title({"title": "Bobby Dylan"}) == ""
+    assert artwork.clean_cover_title({"title": "jmarlowe"}) == ""
+    assert artwork.clean_cover_title({"title": "Johnny Marlowe"}) == ""
     # But preserves actual song titles with artist prefix stripped
-    assert artwork.clean_cover_title({"title": "Bobby Dylan - Like a Rolling Stone"}) == "Like a Rolling Stone"
+    assert artwork.clean_cover_title({"title": "Johnny Marlowe - Rain on the Viaduct"}) == "Rain on the Viaduct"
 
     # The title lettered on the cover is the user's own, an artist's name in it included; the description
     # sent to the LLM still leaves it out.
-    assert artwork.lettered_title({"title": "Bobby Dylan · sung again"}) == "Bobby Dylan"
+    assert artwork.lettered_title({"title": "Johnny Marlowe · sung again"}) == "Johnny Marlowe"
     assert artwork.lettered_title({"title": "Untitled"}) == ""
     set_setting("art.title", "on")
-    assert artwork.title_at({"title": "bobbydyln"}) is not None
-    assert "bobbydyln" not in artwork.description_request({"title": "bobbydyln", "style": "folk"}, "top band")
+    assert artwork.title_at({"title": "jmarlowe"}) is not None
+    assert "jmarlowe" not in artwork.description_request({"title": "jmarlowe", "style": "folk"}, "top band")
     set_setting("art.title", "off")
 
     # take_description omits title if it was the trigger word, and strips triggers from cover style
-    take = {"title": "bobbydyln", "style": "bobbydyln, 1970s rock, acoustic guitar", "lyrics": LYRICS}
+    take = {"title": "jmarlowe", "style": "jmarlowe, 1970s rock, acoustic guitar", "lyrics": LYRICS}
     desc = artwork.take_description(take)
-    assert "bobbydyln" not in desc
-    assert "Bobby Dylan" not in desc
+    assert "jmarlowe" not in desc
+    assert "Johnny Marlowe" not in desc
     assert "Song title:" not in desc
     assert 'cover style:\n"1970s rock, acoustic guitar"' in desc
 
     # description_request omits trigger words and artist name from Style and Song title
-    req = artwork.description_request({"title": "Bobby Dylan - Tangled", "style": "bobbydyln, folk rock", "lyrics": LYRICS})
-    assert "bobbydyln" not in req
-    assert "Song title: Tangled\n" in req
+    req = artwork.description_request({"title": "Johnny Marlowe - Copper Wire", "style": "jmarlowe, folk rock", "lyrics": LYRICS})
+    assert "jmarlowe" not in req
+    assert "Song title: Copper Wire\n" in req
     assert "Song style: folk rock\n" in req
 
     # drawing_request strips any stray artist names or trigger words from description prose
-    drawn = artwork.drawing_request("A surreal photo of Bobby Dylan in a desert with bobbydyln guitar.")
-    assert "Bobby Dylan" not in drawn
-    assert "bobbydyln" not in drawn
+    drawn = artwork.drawing_request("A surreal photo of Johnny Marlowe in a desert with jmarlowe guitar.")
+    assert "Johnny Marlowe" not in drawn
+    assert "jmarlowe" not in drawn
     assert "Hipgnosis" in drawn
 
 
@@ -782,19 +782,19 @@ def test_well_worn_randomization_and_scene_inclusion():
     assert artwork.is_well_worn({"seed": 7}) is False
 
     # take_description with well_worn=False produces "an album cover" without "well worn"
-    clean_desc = artwork.take_description({"title": "Old Man", "style": "soft rock, 118 BPM"}, well_worn=False)
+    clean_desc = artwork.take_description({"title": "Lamplighter", "style": "soft rock, 118 BPM"}, well_worn=False)
     assert "Create an image in the shape of an album cover" in clean_desc
     assert "well worn" not in clean_desc
-    assert "Song title: Old Man\n" in clean_desc
+    assert "Song title: Lamplighter\n" in clean_desc
     assert 'cover style:\n"soft rock, 118 BPM"' in clean_desc
 
     # take_description with well_worn=True produces "a well worn album cover"
-    worn_desc = artwork.take_description({"title": "Old Man", "style": "soft rock, 118 BPM"}, well_worn=True)
+    worn_desc = artwork.take_description({"title": "Lamplighter", "style": "soft rock, 118 BPM"}, well_worn=True)
     assert "Create an image in the shape of a well worn album cover" in worn_desc
 
     # take_description includes visual scene when passed
-    scene_desc = artwork.take_description({"title": "Old Man", "style": "soft rock"}, scene="A pear on a crate.", well_worn=False)
-    assert "Song title: Old Man\n" in scene_desc
+    scene_desc = artwork.take_description({"title": "Lamplighter", "style": "soft rock"}, scene="A pear on a crate.", well_worn=False)
+    assert "Song title: Lamplighter\n" in scene_desc
     assert 'cover style:\n"soft rock"' in scene_desc
     assert 'visual scene:\n"A pear on a crate."' in scene_desc
 
