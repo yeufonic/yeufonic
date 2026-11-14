@@ -2807,5 +2807,10 @@
  "the card's memory could not be read": "カードのメモリを読めませんでした",
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES で設定",
  "No installer URL available for this update": "このアップデートにはインストーラーの URL がありません",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}",
+ "Loop a part: press at its start, then at its end": "一部分をループ：頭で押し、終わりでもう一度",
+ "Press again at the end of the part": "部分の終わりでもう一度押す",
+ "Looping {from} to {to}: press to stop": "{from} から {to} をループ中：押すと停止",
+ "Play on a little, then press A–B again at the end of the part.": "少し再生を進めてから、部分の終わりでもう一度 A–B を押してください。",
+ "Loop a part": "一部分をループ"
 }

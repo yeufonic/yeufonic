@@ -2807,5 +2807,10 @@
  "the card's memory could not be read": "het geheugen van de kaart kon niet worden gelezen",
  "set by TRAIN_MAX_MINUTES": "ingesteld door TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Geen URL voor het installatieprogramma beschikbaar voor deze update",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum komt niet overeen: verwacht {expected_hash}, kreeg {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum komt niet overeen: verwacht {expected_hash}, kreeg {actual_hash}",
+ "Loop a part: press at its start, then at its end": "Een stuk herhalen: druk aan het begin, dan aan het eind",
+ "Press again at the end of the part": "Druk nog eens aan het eind van het stuk",
+ "Looping {from} to {to}: press to stop": "Herhaalt {from} tot {to}: druk om te stoppen",
+ "Play on a little, then press A–B again at the end of the part.": "Laat het nog even spelen en druk dan aan het eind van het stuk nog eens op A–B.",
+ "Loop a part": "Een stuk herhalen"
 }

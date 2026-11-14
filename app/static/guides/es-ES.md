@@ -1447,6 +1447,8 @@ Marca de dos a seis tomas y pulsa **Comparar** (aparece junto a Seleccionar todo
 
 Haz clic o arrastra en la forma de onda para desplazarte. Anterior y siguiente recorren las tarjetas en el orden mostrado.
 
+**Repetir una parte.** Pulsa **A–B** al principio de una parte, como un estribillo, y otra vez al final: la parte se sombrea en la forma de onda y suena una y otra vez. Pulsa **A–B** una vez más para soltarla. Otra toma empieza sin ninguna parte marcada.
+
 | Tecla | Hace |
 |---|---|
 | Espacio | reproducir o pausar |

@@ -13781,6 +13781,63 @@ window.updateMediaSession = updateMediaSession;
    part fills in as the song runs. */
 var audioCtx = null;
 var wave = { peaks: null, ratio: 0, raf: null, seeking: false };
+
+/* A part of the take played round and round: A, its start, and B, its end, set by pressing the A–B button at
+   each.  Playing on into B goes back to A; a seek past B plays on from there, as a seek anywhere does.  `last` is
+   where the audio was when last looked at, so the crossing is seen however the time moved. */
+var ABLOOP = { a: null, b: null, last: 0 };
+
+function abLoopCheck() {
+  var audio = $('audio');
+  var cur = audio.currentTime || 0;
+  if (ABLOOP.a !== null && ABLOOP.b !== null && ABLOOP.last < ABLOOP.b && cur >= ABLOOP.b && !audio.paused) {
+    audio.currentTime = ABLOOP.a;
+    cur = ABLOOP.a;
+  }
+  ABLOOP.last = cur;
+}
+
+function abLoopClear() {
+  ABLOOP.a = null;
+  ABLOOP.b = null;
+  paintAbLoop();
+}
+
+function abLoopPress() {
+  var audio = $('audio');
+  if (!audio.duration || !isFinite(audio.duration)) { return; }
+  var at = audio.currentTime || 0;
+  if (ABLOOP.a === null) {
+    ABLOOP.a = at;
+  } else if (ABLOOP.b === null) {
+    if (Math.abs(at - ABLOOP.a) < 0.5) { statusLine(t('Play on a little, then press A–B again at the end of the part.'), 'bad'); return; }
+    var start = Math.min(at, ABLOOP.a);
+    ABLOOP.b = Math.min(Math.max(at, ABLOOP.a), audio.duration - 0.05);
+    ABLOOP.a = start;
+    ABLOOP.last = at;
+    // Set at the end, it plays the part from its start, as a loop pedal does.
+    if (at >= ABLOOP.b - 0.05) { audio.currentTime = ABLOOP.a; ABLOOP.last = ABLOOP.a; }
+  } else {
+    ABLOOP.a = null;
+    ABLOOP.b = null;
+  }
+  paintAbLoop();
+}
+
+function paintAbLoop() {
+  var button = $('btn-abloop');
+  if (button) {
+    var looping = ABLOOP.b !== null;
+    button.classList.toggle('on', looping);
+    button.classList.toggle('half', ABLOOP.a !== null && !looping);
+    button.textContent = looping ? 'A–B' : (ABLOOP.a !== null ? 'A–' : 'A–B');
+    button.title = looping ? t('Looping {from} to {to}: press to stop', { from: secs(ABLOOP.a), to: secs(ABLOOP.b) })
+      : ABLOOP.a !== null ? t('Press again at the end of the part')
+      : t('Loop a part: press at its start, then at its end');
+    button.setAttribute('aria-pressed', looping ? 'true' : 'false');
+  }
+  if (typeof drawWave === 'function') { drawWave(); }
+}
 // One column per device pixel at draw time, sampled from a fixed 1024 column
 // analysis, so a window resize does not re-decode the audio.
 var WAVE_COLS = 1024;
@@ -13880,6 +13937,18 @@ function drawWave() {
   paint(true);
   ctx.restore();
 
+  // The A–B part: shaded between its ends, or a line at A while B is still to come.
+  var loopAudio = $('audio');
+  if (ABLOOP.a !== null && loopAudio && loopAudio.duration && isFinite(loopAudio.duration)) {
+    var ax = Math.round(ABLOOP.a / loopAudio.duration * w);
+    var bx = ABLOOP.b !== null ? Math.round(ABLOOP.b / loopAudio.duration * w) : ax;
+    ctx.fillStyle = 'rgb(' + ink + ' / 0.10)';
+    if (bx > ax) { ctx.fillRect(ax, 0, bx - ax, h); }
+    ctx.fillStyle = 'rgb(' + ink + ' / 0.55)';
+    ctx.fillRect(ax, 0, Math.max(1, dpr), h);
+    if (bx > ax) { ctx.fillRect(Math.max(0, bx - Math.max(1, dpr)), 0, Math.max(1, dpr), h); }
+  }
+
   // The theme's text colour, so the playhead shows on a pink waveform as well as a
   // blue one, in any theme.
   ctx.fillStyle = wave._cachedColors.text;
@@ -13910,6 +13979,7 @@ function normalise(values) {
 /* The server computes the waveform once and caches it.  Decoding the file here is
    the fallback, for a server that cannot. */
 async function loadWave(url, peaksUrl) {
+  if (ABLOOP.a !== null) { abLoopClear(); }   // a part belongs to the take it was set on
   wave.peaks = null;
   wave.rmss = null;
   wave.ratio = 0;
@@ -13973,6 +14043,7 @@ function syncWaveRatio() {
 }
 
 function waveLoop() {
+  abLoopCheck();
   syncWaveRatio();
   // Not under the full-screen visualizer, which covers it (it redraws the waveform on closing).
   if (!document.body.classList.contains('visualizer-open')) {
@@ -14263,7 +14334,10 @@ function wireTransport() {
       updateTimes(); paintTransport(); paintAudition();
     });
   });
-  audio.addEventListener('timeupdate', updateTimes);
+  audio.addEventListener('timeupdate', function () { abLoopCheck(); updateTimes(); });
+  audio.addEventListener('seeked', function () { ABLOOP.last = audio.currentTime || 0; });
+  if ($('btn-abloop')) { $('btn-abloop').addEventListener('click', abLoopPress); }
+  paintAbLoop();
   paintTransport();
 }
 

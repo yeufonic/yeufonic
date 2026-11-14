@@ -1447,6 +1447,8 @@ Marque de dois a seis takes e pressione **Comparar** (aparece ao lado de Selecio
 
 Clique ou arraste na forma de onda para navegar. Anterior e próximo percorrem os cartões na ordem mostrada.
 
+**Repetir um trecho.** Pressione **A–B** no início de um trecho, como um refrão, e de novo no fim: o trecho fica sombreado na forma de onda e toca em ciclo. Pressione **A–B** mais uma vez para soltá-lo. Outro take começa sem trecho marcado.
+
 | Tecla | Faz |
 |---|---|
 | Espaço | tocar ou pausar |

@@ -1447,6 +1447,8 @@ Hake zwei bis sechs Takes an und drücke **Vergleichen** (es erscheint neben All
 
 Klicke oder ziehe auf der Wellenform, um zu springen. Zurück und Weiter gehen die Karten in der angezeigten Reihenfolge durch.
 
+**Einen Teil wiederholen.** Drücke **A–B** am Anfang eines Teils, etwa eines Refrains, und noch einmal an seinem Ende: Der Teil wird in der Wellenform hinterlegt und läuft in Schleife. Ein weiteres **A–B** gibt ihn wieder frei. Ein anderer Take beginnt ohne gesetzten Teil.
+
 | Taste | Bewirkt |
 |---|---|
 | Leertaste | abspielen oder pausieren |

@@ -2618,12 +2618,14 @@ label .lora-value:disabled { opacity: 0.6; }
   border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; cursor: pointer; flex: 0 0 auto;
 }
 .speed:hover { color: var(--text); border-color: rgb(var(--accent-a-rgb) / 0.5); }
+.ab-loop.on { color: var(--good); border-color: rgb(var(--good-rgb) / 0.45); }
+.ab-loop.half { color: var(--text); border-color: rgb(var(--accent-a-rgb) / 0.5); }
 .vol { width: 74px; accent-color: var(--accent-a); flex: 0 0 auto; }
 .player audio { display: none; }
 
 @media (max-width: 900px) {
   .np-text { flex: 0 0 120px; }
-  .speed, .vol, #btn-mute, #btn-star { display: none; }
+  .speed:not(.ab-loop), .vol, #btn-mute, #btn-star { display: none; }
 }
 @media (max-width: 680px) {
   .np-text { display: none; }

@@ -1447,6 +1447,8 @@ Spunta da due a sei take e premi **Confronta** (compare accanto a Seleziona tutt
 
 Clicca o trascina sulla forma d'onda per spostarti. Precedente e successivo scorrono le schede nell'ordine mostrato.
 
+**Ripetere una parte.** Premi **A–B** all'inizio di una parte, per esempio un ritornello, e di nuovo alla fine: la parte viene ombreggiata sulla forma d'onda e suona a ciclo. Premi **A–B** ancora una volta per lasciarla. Un altro take parte senza nessuna parte impostata.
+
 | Tasto | Cosa fa |
 |---|---|
 | Spazio | riproduci o pausa |

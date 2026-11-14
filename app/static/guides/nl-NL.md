@@ -1447,6 +1447,8 @@ Vink twee tot zes takes aan en druk op **Vergelijken** (dat verschijnt naast All
 
 Klik of sleep in de golfvorm om te zoeken. Vorige en volgende lopen door de kaarten in de getoonde volgorde.
 
+**Een stuk herhalen.** Druk op **A–B** aan het begin van een stuk, zoals een refrein, en nog eens aan het eind: het stuk wordt gearceerd in de golfvorm en speelt rond en rond. Druk nog één keer op **A–B** om het los te laten. Een andere take begint zonder ingesteld stuk.
+
 | Toets | Doet |
 |---|---|
 | Spatie | afspelen of pauzeren |

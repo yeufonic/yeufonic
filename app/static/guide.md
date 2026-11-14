@@ -1635,6 +1635,8 @@ still rendering). The takes stack in one window on a shared position:
 
 Click or drag the waveform to seek. Previous and next step through the cards in the order shown.
 
+**Loop a part.** Press **A–B** at the start of a part, such as a chorus, and again at its end: the part is shaded on the waveform and plays round and round. Press **A–B** once more to let it go. Another take starts with no part set.
+
 | Key | Does |
 |---|---|
 | Space | play or pause |

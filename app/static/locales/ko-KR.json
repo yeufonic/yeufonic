@@ -2807,5 +2807,10 @@
  "the card's memory could not be read": "카드 메모리를 읽을 수 없었습니다",
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES로 설정됨",
  "No installer URL available for this update": "이 업데이트의 설치 프로그램 URL이 없습니다",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}",
+ "Loop a part: press at its start, then at its end": "한 부분 반복: 시작에서 누르고 끝에서 다시 누르기",
+ "Press again at the end of the part": "부분의 끝에서 한 번 더 누르기",
+ "Looping {from} to {to}: press to stop": "{from}부터 {to}까지 반복 중: 누르면 멈춤",
+ "Play on a little, then press A–B again at the end of the part.": "조금 더 재생한 다음, 부분의 끝에서 A–B를 한 번 더 누르세요.",
+ "Loop a part": "한 부분 반복"
 }

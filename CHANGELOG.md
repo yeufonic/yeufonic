@@ -39,6 +39,9 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Loop a part with A–B** on the player: pressed at the start of a part, such as a chorus, and again at its end, it
+  plays that part round and round, shaded on the waveform, until pressed once more. Another take starts with no part
+  set.
 - **A first visit starts on Song**, which needs only words and a style, rather than Cover, which needs a recording
   first; an empty library points to **+ Song**, **+ Cover** and **+ Instrumental**. A page that was left on another
   kind still opens on it.

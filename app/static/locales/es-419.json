@@ -2807,5 +2807,10 @@
  "the card's memory could not be read": "no se pudo leer la memoria de la tarjeta",
  "set by TRAIN_MAX_MINUTES": "fijado por TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "No hay URL de instalador disponible para esta actualización",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "La suma de comprobación no coincide: se esperaba {expected_hash}, se obtuvo {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "La suma de comprobación no coincide: se esperaba {expected_hash}, se obtuvo {actual_hash}",
+ "Loop a part: press at its start, then at its end": "Repetir una parte: presiona al principio y luego al final",
+ "Press again at the end of the part": "Presiona otra vez al final de la parte",
+ "Looping {from} to {to}: press to stop": "Repitiendo de {from} a {to}: presiona para parar",
+ "Play on a little, then press A–B again at the end of the part.": "Deja que suene un poco más y presiona A–B otra vez al final de la parte.",
+ "Loop a part": "Repetir una parte"
 }

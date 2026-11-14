@@ -1447,6 +1447,8 @@ Cochez de deux à six prises et appuyez sur **Comparer** (il apparaît à côté
 
 Cliquez ou faites glisser sur la forme d’onde pour vous déplacer. Précédent et suivant parcourent les cartes dans l’ordre affiché.
 
+**Boucler un passage.** Appuyez sur **A–B** au début d'un passage, un refrain par exemple, puis à sa fin : le passage est grisé sur la forme d'onde et tourne en boucle. Un nouvel appui sur **A–B** le libère. Une autre prise commence sans passage défini.
+
 | Touche | Effet |
 |---|---|
 | Espace | lecture ou pause |
