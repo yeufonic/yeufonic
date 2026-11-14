@@ -2803,5 +2803,9 @@
  "set by TRAIN_MAX_MINUTES": "durch TRAIN_MAX_MINUTES festgelegt",
  "No installer URL available for this update": "Keine Installer-URL für dieses Update verfügbar",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Prüfsummen stimmen nicht überein: erwartet {expected_hash}, erhalten {actual_hash}",
- "The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.": "Die Partitur wird nach dem Schreiben in diese Tonart verschoben und landet so immer hier. Ihr Tongeschlecht, Dur oder Moll, bleibt, wie das Modell es schrieb: Der Planer lässt sich nicht danach fragen. Auto lässt die Tonart des Modells. Voreinstellung: Auto."
+ "The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.": "Die Partitur wird nach dem Schreiben in diese Tonart verschoben und landet so immer hier. Ihr Tongeschlecht, Dur oder Moll, bleibt, wie das Modell es schrieb: Der Planer lässt sich nicht danach fragen. Auto lässt die Tonart des Modells. Voreinstellung: Auto.",
+ "{n} bar": "{n} Takt",
+ "{n} bars": "{n} Takte",
+ "2/4 (duple)": "2/4 (Zweiertakt)",
+ "6/8 (compound duple)": "6/8 (zusammengesetzter Zweiertakt)"
 }

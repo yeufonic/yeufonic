@@ -2803,5 +2803,9 @@
  "set by TRAIN_MAX_MINUTES": "задано TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Для этого обновления нет URL установщика",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Контрольная сумма не совпадает: ожидалось {expected_hash}, получено {actual_hash}",
- "The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.": "Партитура переносится в эту тональность после того, как модель её напишет, поэтому всегда оказывается здесь. Лад, мажор или минор, остаётся таким, как написала модель: планировщика нельзя об этом попросить. «Авто» оставляет тональность модели. По умолчанию: Авто."
+ "The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.": "Партитура переносится в эту тональность после того, как модель её напишет, поэтому всегда оказывается здесь. Лад, мажор или минор, остаётся таким, как написала модель: планировщика нельзя об этом попросить. «Авто» оставляет тональность модели. По умолчанию: Авто.",
+ "{n} bar": "{n} такт",
+ "{n} bars": "{n} такт | {n} такта | {n} тактов | {n} такта",
+ "2/4 (duple)": "2/4 (двудольный)",
+ "6/8 (compound duple)": "6/8 (сложный двудольный)"
 }

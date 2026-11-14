@@ -2803,5 +2803,9 @@
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES で設定",
  "No installer URL available for this update": "このアップデートにはインストーラーの URL がありません",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}",
- "The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.": "モデルが書いたあと、プランはこのキーに移されるので、必ずここに収まります。長調か短調かはモデルが書いたままです。プランナーに指定することはできません。自動ではモデル自身のキーのままです。既定：自動。"
+ "The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.": "モデルが書いたあと、プランはこのキーに移されるので、必ずここに収まります。長調か短調かはモデルが書いたままです。プランナーに指定することはできません。自動ではモデル自身のキーのままです。既定：自動。",
+ "{n} bar": "{n} 小節",
+ "{n} bars": "{n} 小節",
+ "2/4 (duple)": "2/4（2 拍子）",
+ "6/8 (compound duple)": "6/8（複合 2 拍子）"
 }

@@ -2803,5 +2803,9 @@
  "set by TRAIN_MAX_MINUTES": "由 TRAIN_MAX_MINUTES 設定",
  "No installer URL available for this update": "此更新沒有可用的安裝程式 URL",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校驗和不匹配：預期 {expected_hash}，實際 {actual_hash}",
- "The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.": "模型寫完後，方案會被移到這個調，所以總是落在這裡。它的調式（大調或小調）保持模型寫的樣子：無法要求規劃器寫某種調式。自動則保留模型自己的調。預設：自動。"
+ "The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.": "模型寫完後，方案會被移到這個調，所以總是落在這裡。它的調式（大調或小調）保持模型寫的樣子：無法要求規劃器寫某種調式。自動則保留模型自己的調。預設：自動。",
+ "{n} bar": "{n} 小節",
+ "{n} bars": "{n} 小節",
+ "2/4 (duple)": "2/4（二拍子）",
+ "6/8 (compound duple)": "6/8（複二拍子）"
 }

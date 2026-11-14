@@ -2803,5 +2803,9 @@
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES로 설정됨",
  "No installer URL available for this update": "이 업데이트의 설치 프로그램 URL이 없습니다",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}",
- "The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.": "모델이 쓴 뒤 플랜을 이 키로 옮기므로 항상 여기에 맞춰집니다. 장조인지 단조인지는 모델이 쓴 그대로입니다. 플래너에게 요청할 수 없습니다. 자동은 모델 자체의 키를 둡니다. 기본값: 자동."
+ "The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.": "모델이 쓴 뒤 플랜을 이 키로 옮기므로 항상 여기에 맞춰집니다. 장조인지 단조인지는 모델이 쓴 그대로입니다. 플래너에게 요청할 수 없습니다. 자동은 모델 자체의 키를 둡니다. 기본값: 자동.",
+ "{n} bar": "{n}마디",
+ "{n} bars": "{n}마디",
+ "2/4 (duple)": "2/4 (2박자)",
+ "6/8 (compound duple)": "6/8 (겹2박자)"
 }

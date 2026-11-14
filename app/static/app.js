@@ -1294,7 +1294,7 @@ function readAdvancedSettings() {
   var bpmRaw = parseInt($('adv-target-bpm').value, 10);
   var targetBpm = (!isNaN(bpmRaw) && bpmRaw >= 20 && bpmRaw <= 400) ? bpmRaw : null;
   var meter = $('adv-target-meter') ? $('adv-target-meter').value : '';
-  if (['4/4', '3/4', '6/8'].indexOf(meter) < 0) { meter = ''; }
+  if (['4/4', '2/4', '3/4', '6/8', '5/4', '7/4', '9/8', '12/8'].indexOf(meter) < 0) { meter = ''; }
   var tokens = parseInt($('adv-max-abc-tokens').value, 10);
   if (isNaN(tokens) || tokens < 512 || tokens > 8192) { tokens = ADVANCED_DEFAULTS.max_abc_tokens; }
   var hold = parseInt($('adv-chord-hold-limit').value, 10);
@@ -16637,7 +16637,13 @@ function sheetAgo(when) {
 function sheetScore(abc) {
   var pick = function (key) { var m = abc.match(new RegExp('^' + key + ':\\s*(.*)$', 'm')); return m ? m[1].trim() : ''; };
   var tempo = (pick('Q').match(/=(\d+)/) || [])[1] || '';
-  var sections = [], current = null, voice = null, bars = 0;
+  var sections = [], current = null, voice = null, bars = 0, meters = [];
+  // Every time signature the score names, in order: its header's, then any it changes to on the way (an M: line,
+  // or [M:...] inside a line), so a plan that left the one it was asked for shows it.
+  (abc.match(/(?:^|\[)M:\s*[^\s\]]+/gm) || []).forEach(function (found) {
+    var meter = found.replace(/^\[?M:\s*/, '');
+    if (meters[meters.length - 1] !== meter) { meters.push(meter); }
+  });
   abc.split('\n').forEach(function (raw) {
     var line = raw.trim();
     if (line.charAt(0) === '%') { current = { name: line.replace(/^%\s*/, '') || 'section', chords: [] }; sections.push(current); return; }
@@ -16653,7 +16659,8 @@ function sheetScore(abc) {
       });
     });
   });
-  return { key: pick('K'), tempo: tempo, bars: bars, sections: sections.filter(function (s) { return s.chords.length; }) };
+  return { key: pick('K'), tempo: tempo, bars: bars, meters: meters,
+           sections: sections.filter(function (s) { return s.chords.length; }) };
 }
 
 function sheetHTML(take) {
@@ -16730,7 +16737,8 @@ function sheetHTML(take) {
     var facts = sheetScore(take.abc);
     html += '<div class="sheet-blk"><h3>' + t('Score') + ' <button type="button" class="link" data-sheet="score">' + t('Open') + '</button></h3>' +
       '<div class="sheet-facts">' + [facts.key && (t('Key {key}', { key: esc(facts.key) })), facts.tempo && (facts.tempo + ' BPM'),
-        facts.bars && (facts.bars + ' bars')].filter(Boolean).join(' · ') + '</div>' +
+        facts.bars && tn(facts.bars, '{n} bar', '{n} bars'),
+        facts.meters.length && esc(facts.meters.join(' → '))].filter(Boolean).join(' · ') + '</div>' +
       '<div class="sheet-chart">' + facts.sections.slice(0, 10).map(function (s) {
         return '<span class="s">' + esc(s.name) + '</span><span class="c">' + esc(s.chords.slice(0, 8).join(' ')) +
           (s.chords.length > 8 ? ' …' : '') + '</span>';
