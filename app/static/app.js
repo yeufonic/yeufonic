@@ -3662,13 +3662,22 @@ function paintSourcePickerMenu() {
   var menu = $('source-picker-menu');
   if (!menu) { return; }
   var currentId = $('source-select') ? $('source-select').value : '';
-  var itemsHtml = '<div class="source-picker-item' + (!currentId ? ' selected' : '') + '" data-id="" role="option">' +
+  // One search for everything the menu lists: recordings, uploads and corpus songs, by every word typed.
+  var words = (State.sourceFilter || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  var matches = function (title) {
+    var text = String(title || '').toLowerCase();
+    return words.every(function (word) { return text.indexOf(word) >= 0; });
+  };
+  var itemsHtml = '<div class="source-find"><input id="source-filter" type="search" autocomplete="off" placeholder="' +
+    esc(t('Search recordings')) + '" aria-label="' + esc(t('Search recordings')) + '" value="' + esc(State.sourceFilter || '') + '"></div>';
+  itemsHtml += words.length ? '' : '<div class="source-picker-item' + (!currentId ? ' selected' : '') + '" data-id="" role="option">' +
     '<div class="source-item-main"><span class="source-item-title muted">' +
       (State.mode === 'inst' ? t('No recording: write a score plan') : t('Choose a recording…')) + '</span></div>' +
     '</div>';
 
-  var recordings = State.sources.filter(function (s) { return s.origin === 'recording'; });
-  var uploads = State.sources.filter(function (s) { return s.origin !== 'recording'; });
+  var listed = State.sources.filter(function (s) { return matches(s.title); });
+  var recordings = listed.filter(function (s) { return s.origin === 'recording'; });
+  var uploads = listed.filter(function (s) { return s.origin !== 'recording'; });
 
   function sourceItemHtml(source) {
     var isMidi = Boolean(source.filename && source.filename.match(/\.midi?$/i));
@@ -3701,15 +3710,18 @@ function paintSourcePickerMenu() {
     itemsHtml += '<div class="source-picker-group-head">' + t('Uploaded Audio') + '</div>';
     itemsHtml += uploads.map(sourceItemHtml).join('');
   } else {
-    itemsHtml += State.sources.map(sourceItemHtml).join('');
+    itemsHtml += listed.map(sourceItemHtml).join('');
   }
-
-  itemsHtml += corpusSongsHtml(currentId);
-  // Typing in the filter redraws the menu; the box it redraws keeps the caret.
-  var typing = document.activeElement && document.activeElement.id === 'source-corpus-filter';
+  var corpora = corpusSongsHtml(currentId, matches, words.length > 0);
+  if (words.length && !listed.length && !corpora) {
+    itemsHtml += '<div class="source-corpora-none muted">' + t('No recording matches.') + '</div>';
+  }
+  itemsHtml += corpora;
+  // Typing in the search redraws the menu; the box it redraws keeps the caret.
+  var typing = document.activeElement && document.activeElement.id === 'source-filter';
   menu.innerHTML = itemsHtml;
-  if (typing && $('source-corpus-filter')) {
-    var box = $('source-corpus-filter');
+  if (typing && $('source-filter')) {
+    var box = $('source-filter');
     box.focus();
     box.setSelectionRange(box.value.length, box.value.length);
   }
@@ -3738,21 +3750,19 @@ async function loadCorpusSongs() {
   paintSourcePickerMenu();
 }
 
-function corpusSongsHtml(currentId) {
+function corpusSongsHtml(currentId, matches, searching) {
   var groups = State.corpusSongs || [];
   var total = groups.reduce(function (sum, group) { return sum + group.songs.length; }, 0);
   if (!total) { return ''; }
-  var filter = (State.corpusFilter || '').trim().toLowerCase();
+  matches = matches || function () { return true; };
   var open = sourceCorporaOpen();
-  var html = '<div class="source-corpora-head"><span>' + t('From your corpora') + '</span>' +
-    (total > 12 ? '<input id="source-corpus-filter" type="search" placeholder="' + t('Filter songs') + '" value="' +
-      esc(State.corpusFilter || '') + '">' : '') + '</div>';
+  var html = '<div class="source-corpora-head"><span>' + t('From your corpora') + '</span></div>';
   var shown = 0;
   groups.forEach(function (group) {
-    var songs = group.songs.filter(function (song) { return !filter || song.title.toLowerCase().indexOf(filter) >= 0; });
+    var songs = group.songs.filter(function (song) { return matches(song.title); });
     if (!songs.length) { return; }
     shown += songs.length;
-    var isOpen = Boolean(filter) || open.indexOf(group.id) >= 0;
+    var isOpen = Boolean(searching) || open.indexOf(group.id) >= 0;
     html += '<div class="lora-group" role="button" aria-expanded="' + isOpen + '" data-cgroup="' + esc(group.id) + '">' +
       '<span class="fold">' + (isOpen ? '\u25BE' : '\u25B8') + '</span><span>' + esc(group.name) + '</span>' +
       '<span class="count">' + songs.length + '</span></div>';
@@ -3770,7 +3780,7 @@ function corpusSongsHtml(currentId) {
         '</div></div>';
     });
   });
-  if (!shown) { html += '<div class="source-corpora-none muted">' + t('No corpus song matches.') + '</div>'; }
+  if (!shown) { return searching ? '' : html + '<div class="source-corpora-none muted">' + t('No corpus song matches.') + '</div>'; }
   return html;
 }
 
@@ -3805,6 +3815,9 @@ function openSourcePicker() {
   if (!menu || !btn) { return; }
   menu.classList.remove('hidden');
   btn.setAttribute('aria-expanded', 'true');
+  State.sourceFilter = '';
+  paintSourcePickerMenu();
+  if ($('source-filter')) { $('source-filter').focus(); }
   loadCorpusSongs();
 }
 
@@ -15479,14 +15492,23 @@ function wire() {
   }
   if ($('source-picker-menu')) {
     $('source-picker-menu').addEventListener('input', function (event) {
-      if (event.target.id !== 'source-corpus-filter') { return; }
-      State.corpusFilter = event.target.value;
+      if (event.target.id !== 'source-filter') { return; }
+      State.sourceFilter = event.target.value;
       paintSourcePickerMenu();
+    });
+    // Enter takes the first thing listed; Escape closes the menu.
+    $('source-picker-menu').addEventListener('keydown', function (event) {
+      if (event.target.id !== 'source-filter') { return; }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeSourcePicker(); return; }
+      if (event.key !== 'Enter') { return; }
+      event.preventDefault();
+      var first = $('source-picker-menu').querySelector('.source-picker-item[data-id]:not([data-id=""]), .source-picker-item[data-corpus-song]');
+      if (first) { first.click(); }
     });
     $('source-picker-menu').addEventListener('click', function (event) {
       // Folding and filtering redraw the menu, which detaches what was clicked; left
       // to bubble, the outside-click check would no longer find it and close the menu.
-      if (event.target.closest('#source-corpus-filter')) { event.stopPropagation(); return; }
+      if (event.target.closest('#source-filter')) { event.stopPropagation(); return; }
       var fold = event.target.closest('[data-cgroup]');
       if (fold) {
         event.stopPropagation();
@@ -16663,6 +16685,24 @@ function sheetScore(abc) {
            sections: sections.filter(function (s) { return s.chords.length; }) };
 }
 
+/* The panel's blocks fold to their heading; which are folded is kept in this browser. */
+var SHEET_FOLDED_KEY = 'yeufonic.sheetFolded';
+function sheetFolded() {
+  try { return JSON.parse(localStorage.getItem(SHEET_FOLDED_KEY) || '[]') || []; } catch (err) { return []; }
+}
+function sheetBlk(key) {
+  var folded = sheetFolded().indexOf(key) >= 0;
+  return '<div class="sheet-blk' + (folded ? ' folded' : '') + '" data-fold="' + key + '"><h3 class="fold-head" role="button" tabindex="0" ' +
+    'aria-expanded="' + (folded ? 'false' : 'true') + '" title="' + esc(folded ? t('Show this') : t('Fold this away')) + '">' +
+    '<span class="fold-arrow" aria-hidden="true">' + (folded ? '\u25B8' : '\u25BE') + '</span>';
+}
+function toggleSheetBlk(blk) {
+  var key = blk.dataset.fold, list = sheetFolded(), at = list.indexOf(key);
+  if (at >= 0) { list.splice(at, 1); } else { list.push(key); }
+  try { localStorage.setItem(SHEET_FOLDED_KEY, JSON.stringify(list)); } catch (err) { /* private mode */ }
+  paintSheet();
+}
+
 function sheetHTML(take) {
   if (!take) {
     return '<p class="sub">' + t('Choose a take to see how it was made, or start something new above.') + '</p>';
@@ -16687,12 +16727,12 @@ function sheetHTML(take) {
 
   if (kind === 'cover') {
     var source = take.source_id ? sourceById(take.source_id) : null;
-    html += '<div class="sheet-blk"><h3>' + t('Recording') + '</h3><div class="sheet-facts">' +
+    html += sheetBlk('recording') + t('Recording') + '</h3><div class="sheet-facts">' +
       (source ? esc(source.title || source.filename || 'a recording') : '<span class="muted">' + t('not in this library any more') + '</span>') + '</div></div>';
   }
   var tags = (take.style || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
   if (tags.length) {
-    html += '<div class="sheet-blk"><h3>' + t('Style') + '</h3><div class="sheet-tags">' +
+    html += sheetBlk('style') + t('Style') + '</h3><div class="sheet-tags">' +
       tags.map(function (tag) { return '<span class="sheet-tag">' + esc(tag) + '</span>'; }).join('') + '</div></div>';
   }
 
@@ -16712,14 +16752,14 @@ function sheetHTML(take) {
   }
   if (take.max_duration) { sound.push([t('Length cap'), secs(take.max_duration)]); }
   if (take.seed != null) { sound.push([t('Seed'), take.seed]); }
-  html += '<div class="sheet-blk"><h3>' + t('Sound') + '</h3><dl class="sheet-pairs">' +
+  html += sheetBlk('sound') + t('Sound') + '</h3><dl class="sheet-pairs">' +
     sound.map(function (pair) { return '<dt>' + pair[0] + '</dt><dd>' + pair[1] + '</dd>'; }).join('') + '</dl></div>';
 
   var lines = (take.lyrics || '').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
   var isTag = function (line) { return /^\[.*\]$/.test(line); };
   if (kind === 'instrumental') {
     var parts = lines.filter(isTag).map(function (l) { return l.slice(1, -1); });
-    html += '<div class="sheet-blk"><h3>' + t('Structure') + '</h3><div class="sheet-tags">' + (parts.length
+    html += sheetBlk('structure') + t('Structure') + '</h3><div class="sheet-tags">' + (parts.length
       ? parts.map(function (p) { return '<span class="sheet-tag">' + esc(p) + '</span>'; }).join('')
       : '<span class="muted">' + t('YuE2 decides') + '</span>') + '</div></div>';
   } else if (lines.length) {
@@ -16729,13 +16769,13 @@ function sheetHTML(take) {
       else { shown.push('<div>' + esc(lines[i]) + '</div>'); sung += 1; }
     }
     var rest = lines.filter(function (l) { return !isTag(l); }).length - sung;
-    html += '<div class="sheet-blk"><h3>' + t('Words') + ' <button type="button" class="link" data-sheet="words">' + t('Open') + '</button></h3>' +
+    html += sheetBlk('words') + t('Words') + ' <button type="button" class="link" data-sheet="words">' + t('Open') + '</button></h3>' +
       '<div class="sheet-words">' + shown.join('') + (rest > 0 ? '<div class="more">' + t('and {rest} more lines', { rest: rest }) + '</div>' : '') + '</div></div>';
   }
 
   if (hasScore) {
     var facts = sheetScore(take.abc);
-    html += '<div class="sheet-blk"><h3>' + t('Score') + ' <button type="button" class="link" data-sheet="score">' + t('Open') + '</button></h3>' +
+    html += sheetBlk('score') + t('Score') + ' <button type="button" class="link" data-sheet="score">' + t('Open') + '</button></h3>' +
       '<div class="sheet-facts">' + [facts.key && (t('Key {key}', { key: esc(facts.key) })), facts.tempo && (facts.tempo + ' BPM'),
         facts.bars && tn(facts.bars, '{n} bar', '{n} bars'),
         facts.meters.length && esc(facts.meters.join(' → '))].filter(Boolean).join(' · ') + '</div>' +
@@ -16744,7 +16784,7 @@ function sheetHTML(take) {
           (s.chords.length > 8 ? ' …' : '') + '</span>';
       }).join('') + (facts.sections.length > 10 ? '<span class="s">…</span><span></span>' : '') + '</div></div>';
   } else {
-    html += '<div class="sheet-blk"><h3>' + t('Score') + '</h3><div class="muted small">' + (busy && kind !== 'cover'
+    html += sheetBlk('score') + t('Score') + '</h3><div class="muted small">' + (busy && kind !== 'cover'
       ? t('The plan is being written.') : t('No score yet.')) + '</div></div>';
   }
   return html;
@@ -16870,8 +16910,18 @@ async function newTake(kind) {
 
 function wireEditor() {
   if (!$('editor-modal') || !$('sheet-panel')) { return; }   // a page from before the editor window
+  $('sheet-panel').addEventListener('keydown', function (event) {
+    var fold = event.target.closest && event.target.closest('.fold-head');
+    if (fold && event.target === fold && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      event.stopPropagation();       // Space here folds; it does not play
+      toggleSheetBlk(fold.closest('[data-fold]'));
+    }
+  });
   $('sheet-panel').addEventListener('click', function (event) {
     var button = event.target.closest('[data-new],[data-sheet]');
+    var fold = !button && event.target.closest('.fold-head');
+    if (fold) { toggleSheetBlk(fold.closest('[data-fold]')); return; }
     if (!button) { return; }
     if (button.dataset.new) { newTake(button.dataset.new); return; }
     var take = sheetTake();

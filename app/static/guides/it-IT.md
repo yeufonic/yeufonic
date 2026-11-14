@@ -35,7 +35,7 @@ prime righe del testo, e la partitura come tonalità, tempo, durata e gli accord
 **+ Canzone**, **+ Cover** e **+ Strumentale** in alto avviano qualcosa di nuovo; quello del tipo
 del take è evidenziato. La freccia accanto al pannello lo richiude, così i take hanno la larghezza,
 e lo riapre. Singoli tasti agiscono sul take mostrato dal pannello (M per il rack di mastering, E per
-l'editor e altri): vedi [Scorciatoie da tastiera](#hot-keys).
+l'editor e altri): vedi [Scorciatoie da tastiera](#hot-keys). Fai clic sul titolo di un blocco (Stile, Suono, Testo, Partitura) per comprimerlo fino al titolo; il pannello lo ricorda in questo browser.
 
 Creare e cambiare un take avviene nella **finestra dell'editor**. Il suo pulsante principale nel pannello dice cosa
 fa al caso: *Modifica e renderizza di nuovo*, oppure *Rivedi il piano e renderizza* quando c'è un piano in attesa. Anche i pulsanti
@@ -734,6 +734,8 @@ Quando una canzone non finisce come dovrebbe:
    messo in cache per registrazione, così fare un'altra cover della stessa canzone lo salta.
 3. Correggi ciò che ha sentito male.
 4. Aggiungi un testo, scegli uno stile, premi **Crea cover**.
+
+Per fare la cover di una registrazione che hai già, apri l'elenco delle registrazioni e scrivi parte del suo nome: la ricerca trova registrazioni e canzoni dei corpus allo stesso modo, e Invio sceglie la prima.
 
 Una cover segue la melodia e gli accordi dell'originale mentre lo stile decide tutto il resto, ed è
 ciò che la rende una cover e non una copia.

@@ -35,7 +35,7 @@ premières lignes de ses paroles, et sa partition sous forme de tonalité, de te
 **+ Chanson**, **+ Reprise** et **+ Instrumental** en haut commencent quelque chose de nouveau ; celui du
 type de la prise est mis en valeur. Le chevron à côté du panneau le replie, pour que les prises aient la largeur,
 et le fait revenir. Des touches seules agissent sur la prise que montre le panneau (M pour le rack de mastering, E pour
-l’éditeur, etc.) : voir [Raccourcis clavier](#hot-keys).
+l’éditeur, etc.) : voir [Raccourcis clavier](#hot-keys). Cliquez sur le titre d'un bloc (Style, Son, Paroles, Partition) pour le replier jusqu'à son titre ; le panneau s'en souvient dans ce navigateur.
 
 Créer et modifier une prise se fait dans la **fenêtre de l’éditeur**. Son bouton principal dans le panneau dit ce qui
 convient : *Modifier et relancer le rendu*, ou *Revoir le plan et lancer le rendu* quand un plan attend. Les boutons
@@ -734,6 +734,8 @@ Quand une chanson ne finit pas comme elle devrait :
    mis en cache par enregistrement, donc reprendre à nouveau la même chanson saute cette étape.
 3. Corrigez ce qu’il a mal entendu.
 4. Ajoutez des paroles, choisissez un style, appuyez sur **Créer la reprise**.
+
+Pour reprendre un enregistrement que vous avez déjà, ouvrez la liste des enregistrements et tapez une partie de son nom : la recherche trouve aussi bien les enregistrements que les chansons des corpus, et Entrée choisit le premier.
 
 Une reprise suit la mélodie et les accords de l’original tandis que le style décide de tout le reste, et c’est
 ce qui en fait une reprise plutôt qu’une copie.

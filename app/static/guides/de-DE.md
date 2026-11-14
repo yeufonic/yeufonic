@@ -35,7 +35,7 @@ ersten Zeilen seines Textes und seine Partitur als Tonart, Tempo, Länge und die
 **+ Song**, **+ Cover** und **+ Instrumental** oben beginnen etwas Neues; die Schaltfläche für die
 Art des Takes ist hervorgehoben. Der Pfeil neben dem Bereich klappt ihn weg, damit die Takes die Breite haben,
 und holt ihn zurück. Einzelne Tasten wirken auf den Take, den der Bereich zeigt (M für das Mastering-Rack, E für
-den Editor und mehr): siehe [Tastenkürzel](#hot-keys).
+den Editor und mehr): siehe [Tastenkürzel](#hot-keys). Ein Klick auf die Überschrift eines Blocks (Stil, Klang, Text, Partitur) klappt ihn bis auf die Überschrift ein; das Panel behält das in diesem Browser bei.
 
 Einen Take erstellen und ändern geschieht im **Editorfenster**. Seine Hauptschaltfläche im Bereich sagt, was
 passt: *Bearbeiten und erneut rendern*, oder *Plan prüfen und rendern*, wenn ein Plan wartet. Die Schaltflächen
@@ -734,6 +734,8 @@ Wenn ein Song nicht endet, wie er sollte:
    pro Aufnahme zwischengespeichert, sodass ein erneutes Covern desselben Songs es überspringt.
 3. Korrigiere, was es falsch gehört hat.
 4. Füge Text hinzu, wähle einen Stil, drücke **Cover erstellen**.
+
+Um eine schon vorhandene Aufnahme zu covern, öffne die Aufnahmeliste und tippe einen Teil ihres Namens: Die Suche findet Aufnahmen und Korpus-Songs gleichermaßen, und Enter wählt die erste.
 
 Ein Cover folgt Melodie und Akkorden des Originals, während der Stil alles andere entscheidet, und genau
 das macht es zu einem Cover statt einer Kopie.

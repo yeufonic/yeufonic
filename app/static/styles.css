@@ -3297,6 +3297,11 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
   /* a solid strip, so the headings stand out, over a picture too */
   padding: 5px 10px; border-radius: 8px; background: color-mix(in srgb, color-mix(in srgb, var(--panel) 86%, var(--text) 14%) 70%, transparent); text-shadow: none; }
 .sheet-blk h3 .link { text-transform: none; letter-spacing: 0; font-size: 12px; }
+.sheet-blk .fold-head { cursor: pointer; justify-content: flex-start; gap: 8px; }
+.sheet-blk .fold-head .link { margin-left: auto; }
+.sheet-blk .fold-arrow { font-size: 10px; opacity: 0.7; width: 10px; }
+.sheet-blk.folded > :not(h3) { display: none; }
+.sheet-blk.folded h3 { margin-bottom: 0; }
 .sheet-pairs { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; font-size: 13px; margin: 0; }
 .sheet-pairs dt { color: var(--muted); }
 .sheet-pairs dd { margin: 0; overflow-wrap: anywhere; }
@@ -7118,6 +7123,8 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   letter-spacing: 0.05em;
 }
 
+.source-find { padding: 6px 8px; position: sticky; top: 0; background: var(--panel, #181824); z-index: 1; }
+.source-find input { width: 100%; box-sizing: border-box; }
 .source-picker-group-head {
   padding: 8px 10px 4px 10px;
   color: var(--muted);

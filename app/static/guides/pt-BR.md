@@ -35,7 +35,7 @@ primeiras linhas da letra e a partitura como tom, andamento, duração e os acor
 **+ Música**, **+ Cover** e **+ Instrumental** no topo começam algo novo; o do tipo
 do take fica em destaque. A seta ao lado do painel o recolhe, para que os takes fiquem com a largura,
 e o traz de volta. Teclas simples agem sobre o take que o painel mostra (M para o rack de masterização, E para
-o editor e outras): veja [Atalhos de teclado](#hot-keys).
+o editor e outras): veja [Atalhos de teclado](#hot-keys). Clique no título de um bloco (Estilo, Som, Letra, Partitura) para recolhê-lo até o título; o painel lembra disso neste navegador.
 
 Criar e mudar um take acontece na **janela do editor**. O botão principal dele no painel diz o que
 cabe: *Editar e renderizar de novo*, ou *Revisar o plano e renderizar* quando há um plano esperando. Os botões
@@ -734,6 +734,8 @@ Quando uma música não termina como deveria:
    em cache por gravação, então fazer outro cover da mesma música pula essa etapa.
 3. Corrija o que ele tiver ouvido errado.
 4. Adicione uma letra, escolha um estilo, clique em **Criar cover**.
+
+Para fazer cover de uma gravação que você já tem, abra a lista de gravações e digite parte do nome: a busca encontra gravações e músicas dos corpus, e Enter escolhe a primeira.
 
 Um cover segue a melodia e os acordes do original enquanto o estilo decide todo o resto, que é
 o que faz dele um cover e não uma cópia.

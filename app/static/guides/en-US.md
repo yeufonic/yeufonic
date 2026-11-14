@@ -35,7 +35,7 @@ first lines of its words, and its score as a key, a tempo, a length and each sec
 **+ Song**, **+ Cover** and **+ Instrumental** at the top start something new; the one for the
 take's own kind stands out. The chevron beside the panel folds it away, so the takes have the width,
 and brings it back. Single keys act on the take the panel shows (M for the mastering rack, E for
-the editor and more): see [Hot keys](#hot-keys).
+the editor and more): see [Hot keys](#hot-keys). Click a block's heading (Style, Sound, Words, Score) to fold it to that heading; the panel keeps it folded in this browser.
 
 Making and changing a take happens in the **editor window**. Its main button on the panel says what
 fits: *Edit and render again*, or *Review the plan and render* when a plan is waiting. A card's
@@ -801,6 +801,8 @@ When a song does not end as it should:
    cached per recording, so covering the same song again skips it.
 3. Fix anything it misheard.
 4. Add lyrics, choose a style, press **Create cover**.
+
+To cover one you already have, open the recording list and type part of its name: the search finds recordings and corpus songs alike, and Enter picks the first.
 
 A cover follows the original's melody and chords while the style decides everything else, which is
 what makes it a cover rather than a copy.

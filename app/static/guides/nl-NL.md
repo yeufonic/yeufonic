@@ -35,7 +35,7 @@ eerste regels van de tekst, en de partituur als toonsoort, tempo, lengte en de a
 **+ Nummer**, **+ Cover** en **+ Instrumentaal** bovenaan beginnen iets nieuws; die van het soort
 take is gemarkeerd. Het pijltje naast het paneel klapt het in, zodat de takes de breedte krijgen,
 en weer uit. Losse toetsen werken op de take die het paneel toont (M voor het masteringrack, E voor
-de editor en meer): zie [Sneltoetsen](#hot-keys).
+de editor en meer): zie [Sneltoetsen](#hot-keys). Klik op de kop van een blok (Stijl, Klank, Tekst, Partituur) om het tot die kop in te klappen; het paneel onthoudt dat in deze browser.
 
 Een take maken en veranderen gebeurt in het **editorvenster**. De hoofdknop in het paneel zegt wat
 past: *Bewerken en opnieuw renderen*, of *Het plan nakijken en renderen* als er een plan klaarstaat. De knoppen
@@ -734,6 +734,8 @@ Als een nummer niet eindigt zoals het zou moeten:
    per opname gecachet, dus een volgende cover van hetzelfde nummer slaat het over.
 3. Verbeter wat het verkeerd hoorde.
 4. Voeg een tekst toe, kies een stijl, klik op **Cover maken**.
+
+Om een opname te coveren die je al hebt, open je de lijst met opnames en typ je een deel van de naam: de zoekfunctie vindt opnames en corpusnummers allebei, en Enter kiest de eerste.
 
 Een cover volgt de melodie en de akkoorden van het origineel terwijl de stijl al het andere bepaalt, en dat
 maakt het een cover en geen kopie.

@@ -39,6 +39,11 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Search the recordings** when choosing one for a cover: a box at the top of the list finds recordings, uploads and
+  corpus songs by every word typed, and Enter picks the first. It replaces the corpus songs' own filter.
+- **The take panel's blocks fold.** Click Style, Sound, Words or Score to fold it to its heading; the panel keeps it
+  folded in this browser.
+- **The take panel's score line names the time signature,** and any the plan changes to on the way (3/4 → 4/4).
 - **Key lock names the note.** It offered major and minor keys, but the planner cannot be asked for a mode: a style
   naming one, or a score made to open with a minor key line, still came back in the plan's own mode. So the lock
   moves the plan to the note chosen and keeps its mode, as it always did, and now says so; a key lock set before to

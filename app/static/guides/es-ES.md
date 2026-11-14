@@ -35,7 +35,7 @@ primeras líneas de su letra, y su partitura como tonalidad, tempo, duración y 
 **+ Canción**, **+ Versión** y **+ Instrumental** arriba empiezan algo nuevo; el del tipo de
 la toma destaca. El chevrón junto al panel lo pliega, para que las tomas tengan el ancho,
 y lo trae de vuelta. Teclas sueltas actúan sobre la toma que muestra el panel (M para el rack de masterización, E para
-el editor y más): consulta [Atajos de teclado](#hot-keys).
+el editor y más): consulta [Atajos de teclado](#hot-keys). Haz clic en el título de un bloque (Estilo, Sonido, Letra, Partitura) para plegarlo hasta el título; el panel lo recuerda en este navegador.
 
 Crear y cambiar una toma se hace en la **ventana del editor**. Su botón principal en el panel dice lo que
 corresponde: *Editar y renderizar de nuevo*, o *Revisar el plan y renderizar* cuando hay un plan esperando. Los botones
@@ -734,6 +734,8 @@ Cuando una canción no termina como debería:
    guarda en caché por grabación, así que hacer otra versión de la misma canción se lo salta.
 3. Corrige lo que haya oído mal.
 4. Añade una letra, elige un estilo, pulsa **Crear versión**.
+
+Para versionar una grabación que ya tienes, abre la lista de grabaciones y escribe parte de su nombre: la búsqueda encuentra grabaciones y canciones de corpus por igual, e Intro elige la primera.
 
 Una versión sigue la melodía y los acordes del original mientras el estilo decide todo lo demás, que es
 lo que la convierte en una versión y no en una copia.
