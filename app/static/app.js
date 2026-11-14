@@ -9849,7 +9849,8 @@ function closeTracksModal() {
    up front, and only the chosen one plays.  Levels can be matched (quieter takes always
    sound better to the ear, so the louder ones are turned down to the quietest), and the
    names hidden, for a blind listen. */
-var COMPARE = { items: [], active: 0, timer: null };
+var COMPARE = { items: [], active: 0, timer: null, ctx: null, sources: null, startedAt: 0, offset: 0, playing: false,
+                length: 0, loaded: 0, token: 0 };
 
 function compareOpen() {
   return !!$('compare-modal') && !$('compare-modal').classList.contains('hidden');
@@ -9889,7 +9890,66 @@ function compareGain(take, quietest) {
 function applyCompareLevels() {
   var levels = COMPARE.items.map(function (item) { return compareLevel(item.take); });
   var quietest = levels.every(function (level) { return level !== null; }) ? Math.min.apply(null, levels) : null;
-  COMPARE.items.forEach(function (item) { item.audio.volume = compareGain(item.take, quietest); });
+  COMPARE.items.forEach(function (item) { item.level = compareGain(item.take, quietest); });
+  compareGains();
+}
+
+/* Every take plays at once, from the same sample, each through a gain of its own; the one chosen is heard and the
+   rest are silent.  Switching only moves the gains, over a few milliseconds so it does not click, so the change
+   lands on the same instant of the song with no gap. */
+function compareGains() {
+  var ctx = COMPARE.ctx;
+  if (!ctx) { return; }
+  var now = ctx.currentTime;
+  COMPARE.items.forEach(function (item, i) {
+    if (!item.gain) { return; }
+    var param = item.gain.gain;
+    var target = i === COMPARE.active ? (item.level == null ? 1 : item.level) : 0;
+    param.cancelScheduledValues(now);
+    param.setValueAtTime(param.value, now);
+    param.linearRampToValueAtTime(target, now + 0.008);
+  });
+}
+
+function comparePosition() {
+  if (!COMPARE.playing || !COMPARE.ctx) { return COMPARE.offset; }
+  return Math.min(COMPARE.length, COMPARE.offset + Math.max(0, COMPARE.ctx.currentTime - COMPARE.startedAt));
+}
+
+function compareStopSources() {
+  (COMPARE.sources || []).forEach(function (source) {
+    if (!source) { return; }
+    try { source.stop(); } catch (err) { /* not started */ }
+    source.disconnect();
+  });
+  COMPARE.sources = null;
+}
+
+function compareStart(at) {
+  var ctx = COMPARE.ctx;
+  if (!ctx || COMPARE.loaded < COMPARE.items.length) { return; }
+  compareStopSources();
+  if (ctx.state === 'suspended') { ctx.resume(); }
+  var when = ctx.currentTime + 0.05;
+  COMPARE.sources = COMPARE.items.map(function (item) {
+    if (!item.buffer || at >= item.buffer.duration) { return null; }   // a shorter take has ended here: silence
+    var source = ctx.createBufferSource();
+    source.buffer = item.buffer;
+    source.connect(item.gain);
+    source.start(when, at);
+    return source;
+  });
+  COMPARE.startedAt = when;
+  COMPARE.offset = at;
+  COMPARE.playing = true;
+  paintCompareTransport();
+}
+
+function comparePause() {
+  COMPARE.offset = comparePosition();
+  COMPARE.playing = false;
+  compareStopSources();
+  paintCompareTransport();
 }
 
 function openCompare() {
@@ -9899,25 +9959,52 @@ function openCompare() {
   var main = $('audio');
   if (main && !main.paused) { main.pause(); }
   if ($('compare-blind').checked) { shuffleInPlace(takes); }
+  var Context = window.AudioContext || window.webkitAudioContext;
+  var ctx = new Context();
+  var token = ++COMPARE.token;
+  COMPARE.ctx = ctx;
   COMPARE.items = takes.map(function (take) {
-    var audio = new Audio();
-    audio.preload = 'auto';
-    audio.src = '/api/takes/' + take.id + '/audio' + (take.normalised ? '?level=normalised' : '');
-    audio.addEventListener('ended', paintCompareTransport);
-    audio.addEventListener('pause', paintCompareTransport);
-    audio.addEventListener('play', paintCompareTransport);
-    return { take: take, audio: audio };
+    var gain = ctx.createGain();
+    gain.gain.value = 0;
+    gain.connect(ctx.destination);
+    return { take: take, buffer: null, gain: gain, level: 1, failed: false };
   });
   COMPARE.active = 0;
+  COMPARE.offset = 0;
+  COMPARE.playing = false;
+  COMPARE.length = 0;
+  COMPARE.loaded = 0;
   applyCompareLevels();
   paintCompare();
   $('compare-modal').classList.remove('hidden');
   COMPARE.timer = setInterval(paintCompareTransport, 120);
+  // Each take decoded whole, so every switch is to audio already in hand.
+  COMPARE.items.forEach(function (item) {
+    var url = '/api/takes/' + item.take.id + '/audio' + (item.take.normalised ? '?level=normalised' : '');
+    fetch(url).then(function (res) {
+      if (!res.ok) { throw new Error(String(res.status)); }
+      return res.arrayBuffer();
+    }).then(function (data) { return ctx.decodeAudioData(data); }).then(function (buffer) {
+      if (token !== COMPARE.token) { return; }
+      item.buffer = buffer;
+      COMPARE.length = Math.max(COMPARE.length, buffer.duration);
+    }).catch(function () {
+      if (token === COMPARE.token) { item.failed = true; }
+    }).then(function () {
+      if (token !== COMPARE.token) { return; }
+      COMPARE.loaded += 1;
+      paintCompare();
+    });
+  });
 }
 
 function closeCompare() {
   clearInterval(COMPARE.timer);
-  COMPARE.items.forEach(function (item) { item.audio.pause(); item.audio.removeAttribute('src'); item.audio.load(); });
+  COMPARE.token += 1;
+  compareStopSources();
+  COMPARE.playing = false;
+  if (COMPARE.ctx) { COMPARE.ctx.close().catch(function () {}); }
+  COMPARE.ctx = null;
   COMPARE.items = [];
   $('compare-modal').classList.add('hidden');
 }
@@ -9933,19 +10020,19 @@ function shuffleInPlace(list) {
 function compareMeta(take) {
   var bits = ['seed ' + take.seed];
   if (take.style_lora) { bits.push(t('Planner {Number}', { Number: Number(take.style_lora_clip != null ? take.style_lora_clip : 1).toFixed(2) })); }
-  return bits.join(' \u00b7 ');
+  return bits.join(' · ');
 }
 
 function paintCompare() {
   var blind = $('compare-blind').checked;
   $('compare-list').innerHTML = COMPARE.items.map(function (item, i) {
     var take = item.take;
-    return '<div class="compare-item' + (i === COMPARE.active ? ' active' : '') + '" role="button" tabindex="0" data-i="' + i + '">' +
+    return '<div class="compare-item' + (i === COMPARE.active ? ' active' : '') + (item.failed ? ' failed' : '') + '" role="button" tabindex="0" data-i="' + i + '">' +
       '<kbd>' + (i + 1) + '</kbd>' +
       '<span class="ci-name">' + (blind ? t('Take {fromCharCode}', { fromCharCode: String.fromCharCode(65 + i) }) : esc(take.title)) + '</span>' +
-      (blind ? '' : '<span class="ci-meta">' + esc(compareMeta(take)) + '</span>') +
+      (blind ? '' : '<span class="ci-meta">' + esc(item.failed ? t('Could not load this take') : compareMeta(take)) + '</span>') +
       '<span class="ci-star' + (take.favourite ? ' on' : '') + '" role="button" data-star="' + i + '" title="' +
-        (take.favourite ? t('Starred. Click to remove the star') : t('Star this take')) + '">' + (take.favourite ? '\u2605' : '\u2606') + '</span>' +
+        (take.favourite ? t('Starred. Click to remove the star') : t('Star this take')) + '">' + (take.favourite ? '★' : '☆') + '</span>' +
     '</div>';
   }).join('');
   paintCompareTransport();
@@ -9953,38 +10040,38 @@ function paintCompare() {
 
 function paintCompareTransport() {
   if (!COMPARE.items.length) { return; }
-  var audio = COMPARE.items[COMPARE.active].audio;
-  var length = isFinite(audio.duration) ? audio.duration : 0;
-  $('compare-play').textContent = audio.paused ? t('Play') : t('Pause');
+  var loading = COMPARE.loaded < COMPARE.items.length;
+  var at = comparePosition();
+  if (COMPARE.playing && at >= COMPARE.length) { comparePause(); COMPARE.offset = COMPARE.length; at = COMPARE.length; }
+  $('compare-play').disabled = loading;
+  $('compare-play').textContent = COMPARE.playing ? t('Pause') : t('Play');
   if (document.activeElement !== $('compare-seek')) {
-    $('compare-seek').value = length ? Math.round(1000 * audio.currentTime / length) : 0;
+    $('compare-seek').value = COMPARE.length ? Math.round(1000 * at / COMPARE.length) : 0;
   }
-  $('compare-time').textContent = secs(audio.currentTime) + ' / ' + secs(length);
+  $('compare-time').textContent = loading
+    ? t('Loading {done} of {all}…', { done: COMPARE.loaded, all: COMPARE.items.length })
+    : secs(at) + ' / ' + secs(COMPARE.length);
 }
 
 function compareSwitch(i) {
   if (i === COMPARE.active || !COMPARE.items[i]) { return; }
-  var from = COMPARE.items[COMPARE.active].audio, to = COMPARE.items[i].audio;
-  var at = from.currentTime, playing = !from.paused;
-  from.pause();
   COMPARE.active = i;
-  var go = function () {
-    try { to.currentTime = at; } catch (err) { /* not seekable yet */ }
-    if (playing) { to.play().catch(function () {}); }
-    paintCompare();
-  };
-  if (to.readyState >= 1) { go(); } else { to.addEventListener('loadedmetadata', go, { once: true }); paintCompare(); }
+  compareGains();
+  paintCompare();
 }
 
 function compareToggle() {
-  var audio = COMPARE.items[COMPARE.active].audio;
-  if (audio.paused) { if (audio.ended) { audio.currentTime = 0; } audio.play().catch(function () {}); } else { audio.pause(); }
+  if (COMPARE.playing) { comparePause(); return; }
+  compareStart(COMPARE.offset >= COMPARE.length ? 0 : COMPARE.offset);
+}
+
+function compareSeek(at) {
+  at = Math.max(0, Math.min(COMPARE.length, at));
+  if (COMPARE.playing) { compareStart(at); } else { COMPARE.offset = at; paintCompareTransport(); }
 }
 
 function compareNudge(seconds) {
-  var audio = COMPARE.items[COMPARE.active].audio;
-  audio.currentTime = Math.max(0, Math.min(isFinite(audio.duration) ? audio.duration : 0, audio.currentTime + seconds));
-  paintCompareTransport();
+  compareSeek(comparePosition() + seconds);
 }
 
 async function compareStar(i) {
@@ -10039,9 +10126,7 @@ function wireCompare() {
     paintCompare();
   });
   $('compare-seek').addEventListener('input', function () {
-    var audio = COMPARE.items[COMPARE.active].audio;
-    if (isFinite(audio.duration)) { audio.currentTime = audio.duration * Number($('compare-seek').value) / 1000; }
-    paintCompareTransport();
+    compareSeek(COMPARE.length * Number($('compare-seek').value) / 1000);
   });
 }
 

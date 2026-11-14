@@ -1442,6 +1442,7 @@ Marca de dos a seis tomas y pulsa **Comparar** (aparece junto a Seleccionar todo
 - La estrella marca la que prefieres.
 - **Igualar el volumen** baja las tomas más fuertes al nivel de la más baja, ya que una toma más fuerte tiende a sonar mejor.
 - **Ocultar nombres** baraja las tomas y las llama Toma A, B, C para una escucha a ciegas.
+- Cada toma se carga entera antes de que **Reproducir** esté listo, así que el cambio es instantáneo, sin hueco.
 
 ### El reproductor {#the-player}
 

@@ -2812,5 +2812,7 @@
  "Press again at the end of the part": "部分の終わりでもう一度押す",
  "Looping {from} to {to}: press to stop": "{from} から {to} をループ中：押すと停止",
  "Play on a little, then press A–B again at the end of the part.": "少し再生を進めてから、部分の終わりでもう一度 A–B を押してください。",
- "Loop a part": "一部分をループ"
+ "Loop a part": "一部分をループ",
+ "Loading {done} of {all}…": "読み込み中 {done}/{all}…",
+ "Could not load this take": "このテイクを読み込めませんでした"
 }

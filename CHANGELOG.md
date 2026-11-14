@@ -39,6 +39,9 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Compare switches with no gap.** Every take is loaded in full and plays at once from the same instant, and a
+  switch only changes which one is heard, so it lands on the same moment of the song. Before, each take was its own
+  player, paused and started on every switch, which left an audible seam.
 - **Loop a part with A–B** on the player: pressed at the start of a part, such as a chorus, and again at its end, it
   plays that part round and round, shaded on the waveform, until pressed once more. Another take starts with no part
   set.

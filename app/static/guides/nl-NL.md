@@ -1442,6 +1442,7 @@ Vink twee tot zes takes aan en druk op **Vergelijken** (dat verschijnt naast All
 - De ster markeert de take die je het liefst hebt.
 - **Luidheid gelijktrekken** zet de luidere takes zachter, tot het niveau van de zachtste, omdat een luidere take vaak beter lijkt te klinken.
 - **Namen verbergen** schudt de takes en noemt ze Take A, B, C voor een blinde luistertest.
+- Elke take wordt helemaal geladen voordat **Afspelen** klaar is, dus een wissel is direct, zonder gat.
 
 ### De speler {#the-player}
 

@@ -2812,5 +2812,7 @@
  "Press again at the end of the part": "Pulsa otra vez al final de la parte",
  "Looping {from} to {to}: press to stop": "Repitiendo de {from} a {to}: pulsa para parar",
  "Play on a little, then press A–B again at the end of the part.": "Deja que suene un poco más y pulsa A–B otra vez al final de la parte.",
- "Loop a part": "Repetir una parte"
+ "Loop a part": "Repetir una parte",
+ "Loading {done} of {all}…": "Cargando {done} de {all}…",
+ "Could not load this take": "No se pudo cargar esta toma"
 }

@@ -2812,5 +2812,7 @@
  "Press again at the end of the part": "在这一段的结尾再按一次",
  "Looping {from} to {to}: press to stop": "正在循环 {from} 到 {to}：按一下停止",
  "Play on a little, then press A–B again at the end of the part.": "再播放一会儿，然后在这一段的结尾再按一次 A–B。",
- "Loop a part": "循环一段"
+ "Loop a part": "循环一段",
+ "Loading {done} of {all}…": "正在加载 {done}/{all}…",
+ "Could not load this take": "无法加载这个版本"
 }

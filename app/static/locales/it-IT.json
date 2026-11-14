@@ -2812,5 +2812,7 @@
  "Press again at the end of the part": "Premi di nuovo alla fine della parte",
  "Looping {from} to {to}: press to stop": "Ciclo da {from} a {to}: premi per fermare",
  "Play on a little, then press A–B again at the end of the part.": "Lascia suonare ancora un po', poi premi di nuovo A–B alla fine della parte.",
- "Loop a part": "Ripeti una parte"
+ "Loop a part": "Ripeti una parte",
+ "Loading {done} of {all}…": "Caricamento {done} di {all}…",
+ "Could not load this take": "Impossibile caricare questo take"
 }

@@ -2812,5 +2812,7 @@
  "Press again at the end of the part": "부분의 끝에서 한 번 더 누르기",
  "Looping {from} to {to}: press to stop": "{from}부터 {to}까지 반복 중: 누르면 멈춤",
  "Play on a little, then press A–B again at the end of the part.": "조금 더 재생한 다음, 부분의 끝에서 A–B를 한 번 더 누르세요.",
- "Loop a part": "한 부분 반복"
+ "Loop a part": "한 부분 반복",
+ "Loading {done} of {all}…": "불러오는 중 {done}/{all}…",
+ "Could not load this take": "이 테이크를 불러올 수 없습니다"
 }

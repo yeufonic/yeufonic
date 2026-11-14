@@ -1442,6 +1442,7 @@ Hake zwei bis sechs Takes an und drücke **Vergleichen** (es erscheint neben All
 - Der Stern markiert den, der dir lieber ist.
 - **Lautheit angleichen** dreht die lauteren Takes auf den leisesten herunter, da ein lauterer Take meist besser klingt.
 - **Namen verbergen** mischt die Takes und nennt sie Take A, B, C für einen Blindtest.
+- Jeder Take wird vollständig geladen, bevor **Abspielen** bereit ist, sodass ein Wechsel sofort und ohne Lücke geschieht.
 
 ### Der Player {#the-player}
 

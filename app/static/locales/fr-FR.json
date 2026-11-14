@@ -2812,5 +2812,7 @@
  "Press again at the end of the part": "Appuyez encore à la fin du passage",
  "Looping {from} to {to}: press to stop": "Boucle de {from} à {to} : appuyez pour arrêter",
  "Play on a little, then press A–B again at the end of the part.": "Laissez jouer un peu, puis appuyez de nouveau sur A–B à la fin du passage.",
- "Loop a part": "Boucler un passage"
+ "Loop a part": "Boucler un passage",
+ "Loading {done} of {all}…": "Chargement {done} sur {all}…",
+ "Could not load this take": "Impossible de charger cette prise"
 }

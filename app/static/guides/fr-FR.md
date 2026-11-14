@@ -1442,6 +1442,7 @@ Cochez de deux à six prises et appuyez sur **Comparer** (il apparaît à côté
 - L'étoile marque celle que vous préférez.
 - **Égaliser le volume** baisse les prises plus fortes au niveau de la plus faible, car une prise plus forte a tendance à sembler meilleure.
 - **Masquer les noms** mélange les prises et les appelle Prise A, B, C pour une écoute à l'aveugle.
+- Chaque prise est chargée entièrement avant que **Lire** soit prêt, si bien qu'un changement est instantané, sans blanc.
 
 ### Le lecteur {#the-player}
 

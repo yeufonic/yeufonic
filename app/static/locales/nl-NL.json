@@ -2812,5 +2812,7 @@
  "Press again at the end of the part": "Druk nog eens aan het eind van het stuk",
  "Looping {from} to {to}: press to stop": "Herhaalt {from} tot {to}: druk om te stoppen",
  "Play on a little, then press A–B again at the end of the part.": "Laat het nog even spelen en druk dan aan het eind van het stuk nog eens op A–B.",
- "Loop a part": "Een stuk herhalen"
+ "Loop a part": "Een stuk herhalen",
+ "Loading {done} of {all}…": "Laden {done} van {all}…",
+ "Could not load this take": "Deze take kon niet worden geladen"
 }

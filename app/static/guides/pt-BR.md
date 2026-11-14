@@ -1442,6 +1442,7 @@ Marque de dois a seis takes e pressione **Comparar** (aparece ao lado de Selecio
 - A estrela marca o que você prefere.
 - **Igualar o volume** abaixa os takes mais altos ao nível do mais baixo, já que um take mais alto tende a parecer melhor.
 - **Ocultar nomes** embaralha os takes e os chama de Take A, B, C para uma escuta às cegas.
+- Cada take é carregado inteiro antes de **Tocar** ficar pronto, então a troca é instantânea, sem pausa.
 
 ### O player {#the-player}
 

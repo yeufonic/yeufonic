@@ -2665,6 +2665,7 @@ label .lora-value:disabled { opacity: 0.6; }
   border: 1px solid var(--line); border-radius: 11px; background: var(--card); color: var(--text); cursor: pointer; font: inherit; }
 .compare-item:hover { border-color: rgb(var(--accent-a-rgb) / 0.5); }
 .compare-item.active { border-color: rgb(var(--accent-a-rgb) / 0.8); background: rgb(var(--accent-a-rgb) / 0.14); }
+.compare-item.failed { opacity: 0.55; }
 .compare-item kbd { font: 12px ui-monospace, monospace; padding: 2px 7px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); }
 .compare-item .ci-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .compare-item .ci-meta { color: var(--muted); font-size: 12.5px; }

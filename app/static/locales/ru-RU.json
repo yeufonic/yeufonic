@@ -2812,5 +2812,7 @@
  "Press again at the end of the part": "Нажмите ещё раз в конце части",
  "Looping {from} to {to}: press to stop": "Цикл с {from} до {to}: нажмите, чтобы остановить",
  "Play on a little, then press A–B again at the end of the part.": "Дайте поиграть ещё немного, затем снова нажмите A–B в конце части.",
- "Loop a part": "Зациклить часть"
+ "Loop a part": "Зациклить часть",
+ "Loading {done} of {all}…": "Загрузка {done} из {all}…",
+ "Could not load this take": "Не удалось загрузить этот дубль"
 }

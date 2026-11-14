@@ -1442,6 +1442,7 @@ Spunta da due a sei take e premi **Confronta** (compare accanto a Seleziona tutt
 - La stella segna quello che preferisci.
 - **Uniforma il volume** abbassa i take più forti al livello del più basso, perché un take più forte tende a sembrare migliore.
 - **Nascondi i nomi** mescola i take e li chiama Take A, B, C per un ascolto alla cieca.
+- Ogni take viene caricato per intero prima che **Riproduci** sia pronto, così il cambio è istantaneo, senza vuoti.
 
 ### Il lettore {#the-player}
 

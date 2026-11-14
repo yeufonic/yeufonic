@@ -1104,6 +1104,7 @@ Hugging Face 上需要申請訪問，並採用 **FLUX Kommunity License**（非�
 - 用星標標出你更喜歡的那個。
 - <strong>匹配響度</strong> 把較響的版本調低到最安靜那個的水平，因為更響的版本往往聽起來更好。
 - <strong>隱藏名稱</strong> 打亂版本順序，並稱它們為版本 A、B、C，以便盲聽。
+- 在<strong>播放</strong>可用之前，每個版本都會完整載入，所以切換是即時的，沒有間隙。
 
 ### 播放器 {#the-player}
 

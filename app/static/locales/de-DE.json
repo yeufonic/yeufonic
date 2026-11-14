@@ -2812,5 +2812,7 @@
  "Press again at the end of the part": "Am Ende des Teils noch einmal drücken",
  "Looping {from} to {to}: press to stop": "Schleife {from} bis {to}: zum Beenden drücken",
  "Play on a little, then press A–B again at the end of the part.": "Spiel ein Stück weiter und drücke dann am Ende des Teils noch einmal A–B.",
- "Loop a part": "Einen Teil wiederholen"
+ "Loop a part": "Einen Teil wiederholen",
+ "Loading {done} of {all}…": "Lade {done} von {all}…",
+ "Could not load this take": "Dieser Take ließ sich nicht laden"
 }

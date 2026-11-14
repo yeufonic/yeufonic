@@ -2812,5 +2812,7 @@
  "Press again at the end of the part": "Prima de novo no fim do trecho",
  "Looping {from} to {to}: press to stop": "A repetir de {from} a {to}: prima para parar",
  "Play on a little, then press A–B again at the end of the part.": "Deixe tocar um pouco mais e prima A–B de novo no fim do trecho.",
- "Loop a part": "Repetir um trecho"
+ "Loop a part": "Repetir um trecho",
+ "Loading {done} of {all}…": "A carregar {done} de {all}…",
+ "Could not load this take": "Não foi possível carregar este take"
 }

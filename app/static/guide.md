@@ -1630,6 +1630,7 @@ still rendering). The takes stack in one window on a shared position:
 - The star marks the one you prefer.
 - **Match loudness** turns the louder takes down to the quietest, since a louder take tends to sound better.
 - **Hide names** shuffles the takes and calls them Take A, B, C for a blind listen.
+- Every take is loaded in full before **Play** is ready, so a switch is instant, with no gap.
 
 ### The player
 
