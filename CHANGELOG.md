@@ -39,6 +39,9 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Save a take for a DAW.** A new choice in Save makes one zip: the take as a 24-bit WAV (mastered, when the rack
+  is on), its newest stems, the score as MIDI and as ABC, a chord chart with the tempo, key, time and each section's
+  chords, and the recipe.
 - **Compare switches with no gap.** Every take is loaded in full and plays at once from the same instant, and a
   switch only changes which one is heard, so it lands on the same moment of the song. Before, each take was its own
   player, paused and started on every switch, which left an audible seam.

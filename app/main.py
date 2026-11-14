@@ -43,7 +43,7 @@ from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import recipe as recipes
-from . import aligner, artwork, autotune, composer, config, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
+from . import aligner, artwork, autotune, composer, config, daw, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 
 personas = identities
@@ -5465,6 +5465,71 @@ async def export_surround_take(take_id: str, format: str = Query("flac"), audio_
         temp_wav.unlink(missing_ok=True)
     token = uuid.uuid4().hex
     _PENDING_EXPORTS[token] = {"path": out, "media": media, "safe": safe, "fmt": fmt, "time": time.time()}
+    return {"download_url": f"/api/takes/{take_id}/download-mastered?token={token}"}
+
+
+DAW_MOST_BYTES = 64 * 1024 * 1024    # a MIDI file, or a mastered WAV the rack rendered: far below this
+
+
+@app.post("/api/takes/{take_id}/daw-bundle")
+async def daw_bundle(take_id: str, midi_file: UploadFile | None = File(None),
+                     master_file: UploadFile | None = File(None)) -> dict:
+    """One zip for a DAW (app/daw.py): the take as a 24-bit WAV, its newest finished stems, the score as ABC and as
+    the MIDI file the page wrote from it, a chord chart, and the take's recipe.  `master_file` is the take as the
+    mastering rack renders it, when the rack changes it; without it the take goes in as it is kept.  Answers where
+    to download it, as export-mastered does."""
+    take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
+    if not take or not take["audio_path"] or not Path(take["audio_path"]).exists():
+        raise HTTPException(404, "no audio for this take")
+    take = dict(take)
+    safe = "".join(ch for ch in (take["title"] or "take") if ch.isalnum() or ch in " -_")[:60].strip() or "take"
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    tag = uuid.uuid4().hex[:8]
+    wav = config.WORK_DIR / f"daw-{take_id}-{tag}.wav"
+    upload = config.WORK_DIR / f"daw-in-{take_id}-{tag}.wav"
+    out = config.WORK_DIR / f"daw-{take_id}-{tag}.zip"
+    try:
+        source = Path(take["audio_path"])
+        if master_file is not None:
+            data = await master_file.read()
+            if len(data) > 4 * DAW_MOST_BYTES:
+                raise HTTPException(413, "the mastered audio is too large")
+            upload.write_bytes(data)
+            source = upload
+        await asyncio.to_thread(library.tagged_copy, source, wav, "wav", ["-c:a", "pcm_s24le"], take["title"] or "",
+                                None, library.music_tags(take["abc"]))
+        midi_bytes = None
+        if midi_file is not None:
+            midi_bytes = await midi_file.read()
+            if len(midi_bytes) > DAW_MOST_BYTES or midi_bytes[:4] != b"MThd":
+                raise HTTPException(400, "that is not a MIDI file")
+        stem_set = one("SELECT * FROM stem_sets WHERE take_id = ? AND status = 'done' ORDER BY created_at DESC LIMIT 1",
+                       (take_id,))
+        stems_in = [Path(stem_set["folder"]) / f["file"] for f in stem_files(dict(stem_set))] if stem_set else []
+        recipe = _recipe_of(take_id)
+
+        def write() -> None:
+            with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.write(wav, f"{safe}.wav", compress_type=zipfile.ZIP_STORED)
+                for path in stems_in:
+                    zf.write(path, f"stems/{path.name}", compress_type=zipfile.ZIP_STORED)
+                if midi_bytes:
+                    zf.writestr(f"{safe}.mid", midi_bytes)
+                if (take["abc"] or "").strip():
+                    zf.writestr(f"{safe}.abc", take["abc"])
+                zf.writestr(f"{safe} - chart.txt", daw.chart(take))
+                zf.writestr(recipes.filename(safe), json.dumps(recipe, indent=2, ensure_ascii=False))
+        await asyncio.to_thread(write)
+    except (subprocess.SubprocessError, OSError) as exc:
+        out.unlink(missing_ok=True)
+        log.warning("Could not make the DAW bundle for '%s': %s", take["title"] or take_id, exc)
+        raise HTTPException(500, "could not make the DAW bundle") from exc
+    finally:
+        wav.unlink(missing_ok=True)
+        upload.unlink(missing_ok=True)
+    token = uuid.uuid4().hex
+    _PENDING_EXPORTS[token] = {"path": out, "media": "application/zip", "safe": f"{safe} - DAW", "fmt": "zip",
+                               "time": time.time()}
     return {"download_url": f"/api/takes/{take_id}/download-mastered?token={token}"}
 
 

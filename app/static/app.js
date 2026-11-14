@@ -1930,9 +1930,9 @@ function notationVoiceHasNotes(text, name) {
 /* What the preview will play, or null to leave it the piano it always was.  Nothing is
    guessed from the audio: this reads the style the take was made with, which is the
    only thing here that names instruments. */
-function notationChoice(text) {
+function notationChoice(text, styleText) {
   var box = $('notation-instruments');
-  var style = notationStyleText();
+  var style = styleText !== undefined ? styleText : notationStyleText();
   if ((box && !box.checked) || !style) { return null; }
   var lead = notationMatch(PREVIEW_INSTRUMENTS, style);
   var comp = notationMatch(PREVIEW_COMP, style);
@@ -6559,7 +6559,7 @@ function openSaveModal(take) {
   // A video only for a take with a picture: the picture its card shows.
   var video = $('save-video');
   if (video) { video.classList.toggle('hidden', !take.art); }
-  var offered = ['flac', 'wav', 'mp3'].concat(video && take.art ? ['mp4'] : []);
+  var offered = ['flac', 'wav', 'mp3', 'daw'].concat(video && take.art ? ['mp4'] : []);
   pickSaveFormat(offered.indexOf(last.fmt) >= 0 ? last.fmt : null);
   pickSaveRecipe(Boolean(last.recipe));
   paintSaveSpace(take, last);
@@ -6638,6 +6638,7 @@ function paintSaveChoice() {
     : c.recipe ? t('The take’s recipe: its words, score and settings, to keep, share or import. No audio.')
     : !c.fmt ? t('Choose what to save.')
     : c.fmt === 'mp4' ? t('The song with its picture, as an MP4 video that messaging apps send as a video.')
+    : c.fmt === 'daw' ? t('One zip for a DAW: the take as a 24-bit WAV, its stems if it has them, the score as MIDI and ABC, a chord chart with the tempo and key, and the recipe.')
     : c.fmt === 'space-hp' ? t('The take with its 3D Space, for headphones, as a WAV: rendered in this page.')
     : /^space-/.test(c.fmt) ? t('The take in 5.1, for surround speakers: rendered in this page.') : '';
 }
@@ -6676,6 +6677,7 @@ function runSave() {
     if (fmt === 'space-hp') { window.Rack.downloadForHeadphones(id, title); } else { window.Rack.downloadSurround(fmt === 'space-ac3' ? 'ac3' : 'flac', id, title); }
     return;
   }
+  if (fmt === 'daw') { saveForDaw(id); return; }
   if (!fmt) {   // the recipe alone
     var only = document.createElement('a');
     only.href = '/api/takes/' + id + '/recipe';
@@ -6720,6 +6722,78 @@ function runSave() {
     link.click();
     link.remove();
   })();
+}
+
+/* The take for a DAW (app/daw.py): the server gathers the audio, the stems, the score, a chord chart and the recipe;
+   this page adds what only it can make, the MIDI file (from the sequence the score preview plays) and, when the
+   mastering rack changes the take, the audio as the rack renders it. */
+async function saveForDaw(id) {
+  var take = takeById(id) || State.saveTake || {};
+  var form = new FormData();
+  statusLine(t('Putting the take together for a DAW…'), 'wait');
+  try {
+    var abc = take.abc || '';
+    if (abc.trim() && typeof ABCJS !== 'undefined' && typeof writeMidi === 'function') {
+      var midi = null;
+      try { midi = dawMidiBytes(take); } catch (err) { midi = null; }
+      if (midi && midi.length) { form.append('midi_file', new Blob([midi], { type: 'audio/midi' }), 'score.mid'); }
+    }
+    var mastered = false;
+    try {
+      mastered = Boolean(window.Rack && typeof window.Rack.hasActiveMasteringAsync === 'function' &&
+                         typeof window.Rack.renderMasterWav === 'function' && await window.Rack.hasActiveMasteringAsync(id));
+    } catch (err) { mastered = false; }
+    if (mastered) { form.append('master_file', await window.Rack.renderMasterWav(id), 'master.wav'); }
+    var res = await fetch('/api/takes/' + id + '/daw-bundle', { method: 'POST', body: form });
+    if (!res.ok) {
+      var detail = '';
+      try { detail = (await res.json()).detail || ''; } catch (err) { /* not JSON */ }
+      throw new Error(detail ? tr(String(detail)) : String(res.status));
+    }
+    var made = await res.json();
+    var link = document.createElement('a');
+    link.href = made.download_url;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    statusLine(t('Ready for a DAW.'), 'good');
+  } catch (err) {
+    statusLine(t('Could not put the take together for a DAW: {message}', { message: err.message }), 'bad');
+  }
+}
+
+/* A take's score as a MIDI file, with the instruments its style names, as the score preview would play it. */
+function dawMidiBytes(take) {
+  var raw = take.abc || '';
+  var choice = notationChoice(raw, (take.style || '').toLowerCase());
+  // Each voice told what to play, as the preview tells it (notationAbc), without the preview's bookkeeping.
+  var out = [], inBody = false, given = {};
+  raw.split('\n').forEach(function (line) {
+    var trimmed = line.trim();
+    if (/^K:/.test(trimmed) && choice) {
+      if (choice.chord !== null) { out.push('%%MIDI chordprog ' + choice.chord); }
+      if (choice.bass !== null) { out.push('%%MIDI bassprog ' + choice.bass); }
+    }
+    if (/^K:/.test(trimmed)) { inBody = true; }
+    out.push(line);
+    var voice = /^V:\s*(\w+)/.exec(trimmed);
+    if (inBody && voice && choice && !given[voice[1]]) {
+      var program = voice[1] === 'Vocal' ? choice.voice : choice.lead;
+      if (program !== null && program !== undefined) { given[voice[1]] = true; out.push('%%MIDI program ' + program); }
+    }
+  });
+  var abc = out.join('\n');
+  var options = { chordsOff: false, program: 0 };
+  if (choice) {
+    if (choice.chord !== null) { options.chordprog = choice.chord; }
+    if (choice.bass !== null) { options.bassprog = choice.bass; }
+    if (choice.drumPattern) { options.drum = choice.drumPattern; options.drumBars = choice.drumBars; }
+  }
+  var tune = ABCJS.renderAbc('*', abc, {})[0];
+  var meter = tune && tune.getMeterFraction ? tune.getMeterFraction() : null;
+  return writeMidi(tune.setUpAudio(options), { meter: meter ? { num: meter.num, den: meter.den } : null,
+                                               title: (take.title || '').trim() });
 }
 
 function statusLine(message, kind) {

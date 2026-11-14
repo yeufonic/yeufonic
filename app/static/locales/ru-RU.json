@@ -2814,5 +2814,14 @@
  "Play on a little, then press A–B again at the end of the part.": "Дайте поиграть ещё немного, затем снова нажмите A–B в конце части.",
  "Loop a part": "Зациклить часть",
  "Loading {done} of {all}…": "Загрузка {done} из {all}…",
- "Could not load this take": "Не удалось загрузить этот дубль"
+ "Could not load this take": "Не удалось загрузить этот дубль",
+ "One zip for a DAW: the audio as a 24-bit WAV, its stems, the score as MIDI and ABC, a chord chart and the recipe": "Один zip для DAW: звук в 24-битном WAV, стемы, партитура в MIDI и ABC, аккордовая схема и рецепт",
+ "For a DAW": "Для DAW",
+ "One zip for a DAW: the take as a 24-bit WAV, its stems if it has them, the score as MIDI and ABC, a chord chart with the tempo and key, and the recipe.": "Один zip для DAW: дубль в 24-битном WAV, его стемы, если они есть, партитура в MIDI и ABC, аккордовая схема с темпом и тональностью и рецепт.",
+ "Putting the take together for a DAW…": "Собираю дубль для DAW…",
+ "Ready for a DAW.": "Готово для DAW.",
+ "Could not put the take together for a DAW: {message}": "Не удалось собрать дубль для DAW: {message}",
+ "could not make the DAW bundle": "не удалось собрать пакет для DAW",
+ "the mastered audio is too large": "мастеринговый звук слишком большой",
+ "that is not a MIDI file": "это не MIDI-файл"
 }

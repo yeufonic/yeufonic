@@ -1246,6 +1246,7 @@ Cada tarjeta nombra los ajustes que dieron forma a la toma — Armonía, Interpr
 **Guardar** pregunta en qué formato descargar la toma. Empieza con lo que guardaste la última vez, y sin nada elegido la primera vez.
 
 - **FLAC, WAV o MP3:** el audio. Un FLAC o un MP3 lleva además el tempo y la tonalidad de la partitura de la toma, que leen los DAW y los programas de DJ.
+- **Para un DAW:** un zip con la toma en WAV de 24 bits, sus stems si los tiene, la partitura en MIDI y ABC, una hoja de acordes con el tempo y la tonalidad, y la receta. Con el rack de masterización activo, el WAV sale masterizado.
 - **Vídeo**, para una toma con imagen: un MP4 de la canción que muestra la imagen que muestra su tarjeta (vídeo H.264, audio AAC a 192 kbps). Las apps de mensajería como WhatsApp lo envían y reproducen como vídeo, donde un archivo de audio va como documento.
 - **Toma**, junto a ellos: la receta de la toma, un archivo pequeño (`<title>.yeufonic.json`) con su letra, estilo y partitura, sus semillas y ajustes, sus LoRAs por nombre y los ajustes del rack de masterización, pero no su audio. Con un formato elegido también, ambos llegan en un zip; pulsa otra vez el formato elegido para guardar solo la receta. El archivo no contiene nada de tu instalación (ni rutas, ni ids, ni claves), así que puede guardarse o compartirse con otra persona que use Yeufonic.
 - Con el rack de masterización activo, todos los formatos tienen el sonido masterizado.

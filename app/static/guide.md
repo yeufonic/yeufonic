@@ -1405,6 +1405,7 @@ always stays on one line, ending in … when it is long; hover over a card's tit
 the first time.
 
 - **FLAC, WAV or MP3:** the audio. A FLAC or MP3 also carries the tempo and key from the take's score, which DAWs and DJ programs read.
+- **For a DAW:** one zip with the take as a 24-bit WAV, its stems if it has them, the score as MIDI and ABC, a chord chart with the tempo and key, and the recipe. With the mastering rack on, the WAV is mastered.
 - **Video**, for a take with a picture: an MP4 of the song that shows the picture its card shows (H.264 video, AAC
   audio at 192 kbps). Messaging apps such as WhatsApp send and play it as a video, where an audio file goes as a
   document.

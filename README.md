@@ -19,6 +19,7 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **3D Space:** a module of the mastering rack that places a take around you on headphones, from the mix or stem by stem, and saves it for headphones or as 5.1 (FLAC or AC-3) for surround speakers.
 - **An MCP server (off by default):** let an AI agent such as Claude Code make songs, covers and instrumentals, sing them in your recorded voices, try them other ways, give them pictures, gather them into playlists and tidy the library, in your own words. See [Using Yeufonic from an AI agent](app/static/guide.md#using-yeufonic-from-an-ai-agent-mcp).
 - **Stems:** split any take into vocals, drums, bass and more, or into vocals and a backing track.
+- **For a DAW:** save a take as one zip of its audio, stems, MIDI, score and chord chart.
 - **A library:** spaces, stars, and every take's settings kept so it can be made again.
 - **A take panel and an editor:** the left panel shows how the selected take was made, and a large
   window, in three columns or as steps, is where takes are made and changed.
@@ -153,6 +154,8 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   recipe, or to share it with another Yeufonic user.
 - **Save a take as a video.** A take with a picture can be saved as an MP4 that shows the picture for the length
   of the song, which messaging apps such as WhatsApp send and play as a video rather than as a file.
+- **Save a take for a DAW.** One zip holding the take as a 24-bit WAV, its stems, the score as MIDI and ABC, a
+  chord chart with the tempo and key, and the recipe, to carry on in a DAW.
 - **Try more, and Compare.** Render a take again as a set of new seeds, or at other LoRA planner
   strengths, then play the ones you tick against each other from the same point in the song, with
   matched loudness and an optional blind listen.

@@ -1246,6 +1246,7 @@ Chaque carte nomme les réglages qui ont façonné la prise — Harmonie, Interp
 **Enregistrer** demande dans quel format télécharger la prise. Il part de ce que vous avez enregistré la dernière fois, et sans choix la première fois.
 
 - **FLAC, WAV ou MP3 :** l'audio. Un FLAC ou un MP3 porte aussi le tempo et la tonalité de la partition de la prise, que lisent les DAW et les logiciels de DJ.
+- **Pour une DAW :** un zip avec la prise en WAV 24 bits, ses stems s'il y en a, la partition en MIDI et ABC, une grille d'accords avec le tempo et la tonalité, et la recette. Avec le rack de mastering actif, le WAV est masterisé.
 - **Vidéo**, pour une prise avec image : un MP4 de la chanson qui montre l'image de sa carte (vidéo H.264, audio AAC à 192 kbit/s). Les messageries comme WhatsApp l'envoient et la lisent comme une vidéo, là où un fichier audio part comme document.
 - **Prise**, à côté : la recette de la prise, un petit fichier (`<title>.yeufonic.json`) contenant ses paroles, son style et sa partition, ses graines et réglages, ses LoRA par nom et les réglages du rack de mastering, mais pas son audio. Avec un format choisi aussi, les deux arrivent dans un zip ; appuyez de nouveau sur le format choisi pour n'enregistrer que la recette. Le fichier ne contient rien de votre installation (ni chemins, ni identifiants, ni clés), il peut donc être gardé, ou partagé avec un autre utilisateur de Yeufonic.
 - Rack de mastering activé, chaque format a le son masterisé.

@@ -1246,6 +1246,7 @@ Elke kaart noemt de instellingen die de take vormden — Harmonie, Interpretatie
 **Opslaan** vraagt in welk formaat de take gedownload moet worden. Het begint met wat je de vorige keer opsloeg, en zonder keuze de eerste keer.
 
 - **FLAC, WAV of MP3:** de audio. Een FLAC of MP3 draagt ook het tempo en de toonsoort uit de partituur van de take, die DAW's en dj-programma's lezen.
+- **Voor een DAW:** één zip met de take als 24-bit WAV, de stems als die er zijn, de partituur als MIDI en ABC, een akkoordenschema met tempo en toonsoort, en het recept. Met het masteringrack aan is de WAV gemasterd.
 - **Video**, voor een take met een afbeelding: een MP4 van het nummer met de afbeelding die zijn kaart toont (H.264-video, AAC-audio op 192 kbps). Berichtenapps zoals WhatsApp sturen en spelen het als video, waar een audiobestand als document gaat.
 - **Take**, ernaast: het recept van de take, een klein bestand (`<title>.yeufonic.json`) met zijn tekst, stijl en partituur, zijn seeds en instellingen, zijn LoRA's op naam en de instellingen van het masteringrack, maar niet zijn audio. Met ook een formaat gekozen komen beide in één zip; druk nog eens op het gekozen formaat om alleen het recept op te slaan. Het bestand bevat niets van je installatie (geen paden, id's of sleutels), dus het kan bewaard of gedeeld worden met een andere Yeufonic-gebruiker.
 - Met het masteringrack aan heeft elk formaat de gemasterde klank.

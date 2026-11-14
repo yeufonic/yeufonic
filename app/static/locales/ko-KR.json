@@ -2814,5 +2814,14 @@
  "Play on a little, then press A–B again at the end of the part.": "조금 더 재생한 다음, 부분의 끝에서 A–B를 한 번 더 누르세요.",
  "Loop a part": "한 부분 반복",
  "Loading {done} of {all}…": "불러오는 중 {done}/{all}…",
- "Could not load this take": "이 테이크를 불러올 수 없습니다"
+ "Could not load this take": "이 테이크를 불러올 수 없습니다",
+ "One zip for a DAW: the audio as a 24-bit WAV, its stems, the score as MIDI and ABC, a chord chart and the recipe": "DAW용 zip 하나: 24비트 WAV 오디오, 스템, MIDI와 ABC 악보, 코드 차트, 레시피",
+ "For a DAW": "DAW용",
+ "One zip for a DAW: the take as a 24-bit WAV, its stems if it has them, the score as MIDI and ABC, a chord chart with the tempo and key, and the recipe.": "DAW용 zip 하나: 24비트 WAV 테이크, 있으면 스템, MIDI와 ABC 악보, 템포와 키가 적힌 코드 차트, 레시피.",
+ "Putting the take together for a DAW…": "DAW용으로 테이크를 모으는 중…",
+ "Ready for a DAW.": "DAW용 준비가 끝났습니다.",
+ "Could not put the take together for a DAW: {message}": "DAW용으로 테이크를 모을 수 없습니다: {message}",
+ "could not make the DAW bundle": "DAW용 패키지를 만들 수 없습니다",
+ "the mastered audio is too large": "마스터링한 오디오가 너무 큽니다",
+ "that is not a MIDI file": "MIDI 파일이 아닙니다"
 }

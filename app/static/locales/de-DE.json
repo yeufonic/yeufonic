@@ -2814,5 +2814,14 @@
  "Play on a little, then press A–B again at the end of the part.": "Spiel ein Stück weiter und drücke dann am Ende des Teils noch einmal A–B.",
  "Loop a part": "Einen Teil wiederholen",
  "Loading {done} of {all}…": "Lade {done} von {all}…",
- "Could not load this take": "Dieser Take ließ sich nicht laden"
+ "Could not load this take": "Dieser Take ließ sich nicht laden",
+ "One zip for a DAW: the audio as a 24-bit WAV, its stems, the score as MIDI and ABC, a chord chart and the recipe": "Ein Zip für eine DAW: der Ton als 24-Bit-WAV, die Stems, die Partitur als MIDI und ABC, ein Akkordblatt und das Rezept",
+ "For a DAW": "Für eine DAW",
+ "One zip for a DAW: the take as a 24-bit WAV, its stems if it has them, the score as MIDI and ABC, a chord chart with the tempo and key, and the recipe.": "Ein Zip für eine DAW: der Take als 24-Bit-WAV, seine Stems, falls vorhanden, die Partitur als MIDI und ABC, ein Akkordblatt mit Tempo und Tonart und das Rezept.",
+ "Putting the take together for a DAW…": "Take wird für eine DAW zusammengestellt…",
+ "Ready for a DAW.": "Bereit für eine DAW.",
+ "Could not put the take together for a DAW: {message}": "Der Take ließ sich nicht für eine DAW zusammenstellen: {message}",
+ "could not make the DAW bundle": "das DAW-Paket konnte nicht erstellt werden",
+ "the mastered audio is too large": "das gemasterte Audio ist zu groß",
+ "that is not a MIDI file": "das ist keine MIDI-Datei"
 }

@@ -2814,5 +2814,14 @@
  "Play on a little, then press A–B again at the end of the part.": "再播放一會兒，然後在這一段的結尾再按一次 A–B。",
  "Loop a part": "循環一段",
  "Loading {done} of {all}…": "正在載入 {done}/{all}…",
- "Could not load this take": "無法載入這個版本"
+ "Could not load this take": "無法載入這個版本",
+ "One zip for a DAW: the audio as a 24-bit WAV, its stems, the score as MIDI and ABC, a chord chart and the recipe": "一個給 DAW 用的 zip：24 位元 WAV 音訊、分軌、MIDI 和 ABC 樂譜、和絃譜以及配方",
+ "For a DAW": "給 DAW 用",
+ "One zip for a DAW: the take as a 24-bit WAV, its stems if it has them, the score as MIDI and ABC, a chord chart with the tempo and key, and the recipe.": "一個給 DAW 用的 zip：24 位元 WAV 的版本、已有的分軌、MIDI 和 ABC 樂譜、帶速度和調性的和絃譜，以及配方。",
+ "Putting the take together for a DAW…": "正在為 DAW 打包版本…",
+ "Ready for a DAW.": "已為 DAW 準備好。",
+ "Could not put the take together for a DAW: {message}": "無法為 DAW 打包版本：{message}",
+ "could not make the DAW bundle": "無法產生 DAW 包",
+ "the mastered audio is too large": "母帶處理後的音訊太大",
+ "that is not a MIDI file": "這不是 MIDI 檔案"
 }

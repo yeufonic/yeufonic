@@ -1246,6 +1246,7 @@ Jede Karte nennt die Einstellungen, die den Take geformt haben — Harmonie, Int
 **Speichern** fragt, in welchem Format der Take heruntergeladen werden soll. Es beginnt mit dem, was du zuletzt gespeichert hast, und beim ersten Mal ohne Auswahl.
 
 - **FLAC, WAV oder MP3:** der Ton. Ein FLAC oder MP3 trägt außerdem Tempo und Tonart aus der Partitur des Takes, die DAWs und DJ-Programme lesen.
+- **Für eine DAW:** ein Zip mit dem Take als 24-Bit-WAV, seinen Stems, falls vorhanden, der Partitur als MIDI und ABC, einem Akkordblatt mit Tempo und Tonart und dem Rezept. Mit eingeschaltetem Mastering-Rack ist das WAV gemastert.
 - **Video**, für einen Take mit Bild: ein MP4 des Songs, das das Bild seiner Karte zeigt (H.264-Video, AAC-Ton mit 192 kbps). Messenger wie WhatsApp senden und spielen es als Video, wo eine Audiodatei als Dokument geht.
 - **Take**, daneben: das Rezept des Takes, eine kleine Datei (`<title>.yeufonic.json`) mit seinem Text, Stil und seiner Partitur, seinen Seeds und Einstellungen, seinen LoRAs nach Namen und den Einstellungen des Mastering-Racks, aber nicht seinem Ton. Mit einem gewählten Format kommen beide in einer ZIP; drücke das gewählte Format erneut, um nur das Rezept zu speichern. Die Datei enthält nichts von deiner Installation (keine Pfade, IDs oder Schlüssel), kann also aufbewahrt oder mit anderen Yeufonic-Nutzern geteilt werden.
 - Mit eingeschaltetem Mastering-Rack hat jedes Format den gemasterten Klang.

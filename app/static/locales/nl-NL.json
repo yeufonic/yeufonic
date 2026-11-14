@@ -2814,5 +2814,14 @@
  "Play on a little, then press A–B again at the end of the part.": "Laat het nog even spelen en druk dan aan het eind van het stuk nog eens op A–B.",
  "Loop a part": "Een stuk herhalen",
  "Loading {done} of {all}…": "Laden {done} van {all}…",
- "Could not load this take": "Deze take kon niet worden geladen"
+ "Could not load this take": "Deze take kon niet worden geladen",
+ "One zip for a DAW: the audio as a 24-bit WAV, its stems, the score as MIDI and ABC, a chord chart and the recipe": "Eén zip voor een DAW: de audio als 24-bit WAV, de stems, de partituur als MIDI en ABC, een akkoordenschema en het recept",
+ "For a DAW": "Voor een DAW",
+ "One zip for a DAW: the take as a 24-bit WAV, its stems if it has them, the score as MIDI and ABC, a chord chart with the tempo and key, and the recipe.": "Eén zip voor een DAW: de take als 24-bit WAV, de stems als die er zijn, de partituur als MIDI en ABC, een akkoordenschema met tempo en toonsoort, en het recept.",
+ "Putting the take together for a DAW…": "De take klaarmaken voor een DAW…",
+ "Ready for a DAW.": "Klaar voor een DAW.",
+ "Could not put the take together for a DAW: {message}": "De take kon niet worden klaargemaakt voor een DAW: {message}",
+ "could not make the DAW bundle": "het DAW-pakket kon niet worden gemaakt",
+ "the mastered audio is too large": "de gemasterde audio is te groot",
+ "that is not a MIDI file": "dat is geen MIDI-bestand"
 }

@@ -2814,5 +2814,14 @@
  "Play on a little, then press A–B again at the end of the part.": "少し再生を進めてから、部分の終わりでもう一度 A–B を押してください。",
  "Loop a part": "一部分をループ",
  "Loading {done} of {all}…": "読み込み中 {done}/{all}…",
- "Could not load this take": "このテイクを読み込めませんでした"
+ "Could not load this take": "このテイクを読み込めませんでした",
+ "One zip for a DAW: the audio as a 24-bit WAV, its stems, the score as MIDI and ABC, a chord chart and the recipe": "DAW 用の 1 つの zip：24 ビット WAV の音声、ステム、MIDI と ABC の楽譜、コード譜、レシピ",
+ "For a DAW": "DAW 用",
+ "One zip for a DAW: the take as a 24-bit WAV, its stems if it has them, the score as MIDI and ABC, a chord chart with the tempo and key, and the recipe.": "DAW 用の 1 つの zip：24 ビット WAV のテイク、あればステム、MIDI と ABC の楽譜、テンポとキー付きのコード譜、レシピ。",
+ "Putting the take together for a DAW…": "DAW 用にテイクをまとめています…",
+ "Ready for a DAW.": "DAW 用の準備ができました。",
+ "Could not put the take together for a DAW: {message}": "DAW 用にテイクをまとめられませんでした：{message}",
+ "could not make the DAW bundle": "DAW 用のパッケージを作れませんでした",
+ "the mastered audio is too large": "マスタリングした音声が大きすぎます",
+ "that is not a MIDI file": "MIDI ファイルではありません"
 }
