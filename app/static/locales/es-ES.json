@@ -2793,5 +2793,16 @@
  "the card's memory could not be read": "no se pudo leer la memoria de la tarjeta",
  "set by TRAIN_MAX_MINUTES": "fijado por TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "No hay URL de instalador disponible para esta actualización",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "La suma de comprobación no coincide: se esperaba {expected_hash}, se obtuvo {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "La suma de comprobación no coincide: se esperaba {expected_hash}, se obtuvo {actual_hash}",
+ "Filter corpora…": "Filtrar corpus…",
+ "Filter corpora": "Filtrar corpus",
+ "Filter voices…": "Filtrar voces…",
+ "Filter voices": "Filtrar voces",
+ "Untrained": "Sin entrenar",
+ "Failed": "Fallida",
+ "Imported": "Importada",
+ "UI style": "Estilo de la interfaz",
+ "Visual layout and colour treatment across the editor, Corpora, Voices, and cards. Works alongside any theme.": "Diseño y tratamiento del color en el editor, Corpus, Voces y las tarjetas. Funciona con cualquier tema.",
+ "Studio Slate": "Estudio Pizarra",
+ "Classic": "Clásico"
 }

@@ -2793,5 +2793,16 @@
  "the card's memory could not be read": "impossibile leggere la memoria della scheda",
  "set by TRAIN_MAX_MINUTES": "impostato da TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Nessun URL dell'installer disponibile per questo aggiornamento",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum non corrispondente: previsto {expected_hash}, ottenuto {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Checksum non corrispondente: previsto {expected_hash}, ottenuto {actual_hash}",
+ "Filter corpora…": "Filtra i corpus…",
+ "Filter corpora": "Filtra i corpus",
+ "Filter voices…": "Filtra le voci…",
+ "Filter voices": "Filtra le voci",
+ "Untrained": "Non addestrata",
+ "Failed": "Non riuscita",
+ "Imported": "Importata",
+ "UI style": "Stile dell'interfaccia",
+ "Visual layout and colour treatment across the editor, Corpora, Voices, and cards. Works alongside any theme.": "Impaginazione e trattamento del colore nell'editor, nei Corpus, nelle Voci e nelle schede. Funziona con qualsiasi tema.",
+ "Studio Slate": "Studio Ardesia",
+ "Classic": "Classico"
 }

@@ -2793,5 +2793,16 @@
  "the card's memory could not be read": "カードのメモリを読めませんでした",
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES で設定",
  "No installer URL available for this update": "このアップデートにはインストーラーの URL がありません",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}",
+ "Filter corpora…": "コーパスを絞り込む…",
+ "Filter corpora": "コーパスを絞り込む",
+ "Filter voices…": "ボイスを絞り込む…",
+ "Filter voices": "ボイスを絞り込む",
+ "Untrained": "未学習",
+ "Failed": "失敗",
+ "Imported": "インポート済み",
+ "UI style": "UI スタイル",
+ "Visual layout and colour treatment across the editor, Corpora, Voices, and cards. Works alongside any theme.": "エディター、コーパス、ボイス、カードのレイアウトと配色。どのテーマとも組み合わせられます。",
+ "Studio Slate": "スタジオ・スレート",
+ "Classic": "クラシック"
 }

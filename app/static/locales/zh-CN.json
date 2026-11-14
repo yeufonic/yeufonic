@@ -2793,5 +2793,16 @@
  "the card's memory could not be read": "无法读取显卡的显存",
  "set by TRAIN_MAX_MINUTES": "由 TRAIN_MAX_MINUTES 设置",
  "No installer URL available for this update": "此更新没有可用的安装程序 URL",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校验和不匹配：预期 {expected_hash}，实际 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校验和不匹配：预期 {expected_hash}，实际 {actual_hash}",
+ "Filter corpora…": "筛选语料库…",
+ "Filter corpora": "筛选语料库",
+ "Filter voices…": "筛选音色…",
+ "Filter voices": "筛选音色",
+ "Untrained": "未训练",
+ "Failed": "失败",
+ "Imported": "已导入",
+ "UI style": "界面风格",
+ "Visual layout and colour treatment across the editor, Corpora, Voices, and cards. Works alongside any theme.": "编辑器、语料库、音色和卡片的布局与配色。可与任何主题搭配使用。",
+ "Studio Slate": "录音棚石板",
+ "Classic": "经典"
 }

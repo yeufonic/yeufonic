@@ -2793,5 +2793,16 @@
  "the card's memory could not be read": "無法讀取顯示卡的顯示記憶體",
  "set by TRAIN_MAX_MINUTES": "由 TRAIN_MAX_MINUTES 設定",
  "No installer URL available for this update": "此更新沒有可用的安裝程式 URL",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校驗和不匹配：預期 {expected_hash}，實際 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校驗和不匹配：預期 {expected_hash}，實際 {actual_hash}",
+ "Filter corpora…": "篩選語料庫…",
+ "Filter corpora": "篩選語料庫",
+ "Filter voices…": "篩選音色…",
+ "Filter voices": "篩選音色",
+ "Untrained": "未訓練",
+ "Failed": "失敗",
+ "Imported": "已匯入",
+ "UI style": "介面風格",
+ "Visual layout and colour treatment across the editor, Corpora, Voices, and cards. Works alongside any theme.": "編輯器、語料庫、音色和卡片的版面與配色。可與任何主題搭配使用。",
+ "Studio Slate": "錄音室石板",
+ "Classic": "經典"
 }
