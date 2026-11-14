@@ -39,6 +39,9 @@ cannot creep back in.
 
 ## Unreleased
 
+- **A new title in the editor stays with the new take.** The title box renames the take open in the editor as it is
+  typed in; when the editor is then left by making a new take (Write score plan, Create cover), the take it was
+  made from gets its own name back. Leaving any other way (Escape, Close) keeps the rename.
 - **Search the recordings** when choosing one for a cover: a box at the top of the list finds recordings, uploads and
   corpus songs by every word typed, and Enter picks the first. It replaces the corpus songs' own filter.
 - **The take panel's blocks fold.** Click Style, Sound, Words or Score to fold it to its heading; the panel keeps it

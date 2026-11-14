@@ -7111,6 +7111,28 @@ function scheduleTitleAutoSave() {
   }, 1200);
 }
 
+/* The title box renames the take open in the editor as it is typed in.  When the editor is left by making a new
+   take instead (Write score plan, Create cover), the new title was meant for the new take: the one it was made
+   from gets its own name back. */
+async function titleBack() {
+  if (titleAutoSaveTimer) { clearTimeout(titleAutoSaveTimer); titleAutoSaveTimer = null; }
+  for (var waited = 0; titleSaveInProgress && waited < 50; waited++) {
+    await new Promise(function (done) { setTimeout(done, 100); });
+  }
+  var before = State.titleBefore;
+  State.titleBefore = null;
+  if (!before) { return; }
+  try {
+    await api('/api/takes/' + before.id + '/rename', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: before.title })
+    });
+    var listed = takeById(before.id);
+    if (listed) { listed.title = before.title; }
+    paintTakes();
+    paintSheet();
+  } catch (err) { /* the old take keeps the new name: nothing lost */ }
+}
+
 async function saveTitleIfDirty() {
   if (titleAutoSaveTimer) {
     clearTimeout(titleAutoSaveTimer);
@@ -7161,6 +7183,8 @@ async function saveTitleIfDirty() {
     if (State.formTake && State.formTake.id === takeId) {
       State.formTake.title = updated.title;
     }
+    // The first name it had in this editor session, so a new take made from here can give it back (titleBack).
+    if (!State.titleBefore || State.titleBefore.id !== takeId) { State.titleBefore = { id: takeId, title: prevTitle }; }
     setTitleSaveStatus(t('Saved'), 'saved');
     setTimeout(function () {
       if (titleSaveStatusText() === 'Saved') {
@@ -7526,6 +7550,7 @@ async function doPlan() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(songBody(seed))
     });
+    titleBack();
     if (noScore()) {   // no plan to wait for: it is rendered at once, as a cover is
       setSelection({ formTakeId: take.id, boxKind: 'take', boxId: take.id });
       statusLine(t('Singing it with no score…'));
@@ -9391,6 +9416,7 @@ async function doInstrumental() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(instBody(seed))
     });
+    titleBack();
     setSelection({ formTakeId: take.id, boxKind: 'none', boxId: null, awaiting: take.id });
     statusLine(t('Writing the score plan…'));
     loadTakes();
@@ -9412,6 +9438,7 @@ async function doInstrumentalFromRecording() {
   statusLine(t('Queued…'));
   try {
     await api('/api/instrumentals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    titleBack();
     statusLine(t('Rendering…'));
     loadTakes();
     closeEditor();
@@ -14679,6 +14706,7 @@ async function doRender() {
   status.className = 'status';
   try {
     await api('/api/takes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    titleBack();
     status.textContent = '';
     loadTakes();
     closeEditor();
@@ -16850,6 +16878,7 @@ function setEditorMax(on) {
 }
 
 function openEditor(where) {
+  State.titleBefore = null;
   if (!$('editor-modal')) { return; }
   Editor.page = where === 'score' ? 'score' : 'song';
   $('editor-modal').classList.remove('hidden');
