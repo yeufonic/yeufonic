@@ -582,6 +582,17 @@ SETTINGS_SPEC: list[dict] = [
         "help": "How the app looks.",
     },
     {
+        # The page behind the takes in a hue of the user's choosing.  Drawn by the page with sliders of its own
+        # (app.js, paintBackdropRow); kept as "on:<hue>:<strength>", or "off:..." to keep the choice while the
+        # tint is off, and empty for none.
+        "key": "appearance.backdrop",
+        "group": "system",
+        "label": "Backdrop colour",
+        "type": "backdrop",
+        "default": "",
+        "help": "A tint for the page behind the takes. The cards keep their own colours; the high contrast theme stays black.",
+    },
+    {
         "key": "appearance.ui_style",
         "group": "system",
         "label": "UI style",
@@ -592,17 +603,6 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "default", "label": "Classic"},
         ],
         "help": "Visual layout and colour treatment across the editor, Corpora, Voices, and cards. Works alongside any theme.",
-    },
-    {
-        # The page behind the takes in a hue of the user's choosing.  Drawn by the page with sliders of its own
-        # (app.js, paintBackdropRow); kept as "on:<hue>:<strength>", or "off:..." to keep the choice while the
-        # tint is off, and empty for none.
-        "key": "appearance.backdrop",
-        "group": "system",
-        "label": "Backdrop colour",
-        "type": "backdrop",
-        "default": "",
-        "help": "A tint for the page behind the takes. The cards keep their own colours; the high contrast theme stays black.",
     },
     {
         "key": "appearance.mini_visualizer",
