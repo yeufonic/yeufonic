@@ -1605,13 +1605,18 @@ Quando ce n'è una più recente, il menu offre **Ottieni x.y.z**, che scarica l'
 
 | Tema | Aspetto |
 |---|---|
+| **Studio** | La scelta predefinita. Uno scuro caldo con ambra. |
 | **Scuro** | L'aspetto scuro proprio dell'app. |
 | **Chiaro** | Pannelli chiari; i pannelli del rack di mastering sono argento spazzolato, mentre manopole, finestre dei misuratori e display mantengono l'aspetto scuro dell'hardware. |
 | **Come il computer** | Segue il chiaro o lo scuro del tuo sistema, e cambia con esso. |
-| **Studio** | Uno scuro caldo con ambra. |
 | **Alto contrasto** | Bianco e nero, con contorni marcati. |
 
 La finestra dei registri resta scura in ogni tema, come un terminale, e anche il rack di mastering segue il tema.
+
+**Stile dell'interfaccia** stabilisce l'aspetto dell'editor e delle pagine Corpus e Voci, con qualsiasi tema:
+
+- **Studio Ardesia** (la scelta predefinita) dà a ciascuna delle tre colonne dell'editor un colore proprio e mostra Corpus e Voci come schede con un campo di filtro: ogni corpus con una barra di quante sue canzoni sono incluse, ogni voce contrassegnata con la sua origine (registrata qui, da un corpus o importata) e se è già addestrata.
+- **Classico** mantiene l'aspetto precedente dell'app.
 
 **Colore dello sfondo**, sotto Tema, colora la pagina dietro i take con un colore a tua scelta: spunta **Tinta**, poi
 sposta **Tonalità di colore** lungo la ruota dei colori e **Intensità** da un velo leggero a un colore pieno. La pagina cambia mentre

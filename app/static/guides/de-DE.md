@@ -1605,13 +1605,18 @@ Gibt es eine neuere, bietet das Menü **x.y.z holen** an, was bei einer Windows-
 
 | Design | Aussehen |
 |---|---|
+| **Studio** | Die Voreinstellung. Ein warmes Dunkel mit Bernstein. |
 | **Dunkel** | Das eigene dunkle Aussehen der App. |
 | **Hell** | Helle Flächen; die Flächen des Mastering-Racks sind gebürstetes Silber, während seine Regler, Messfenster und Anzeigen den dunklen Look der Hardware behalten. |
 | **Wie der Computer** | Folgt Hell oder Dunkel deines Systems und wechselt mit. |
-| **Studio** | Ein warmes Dunkel mit Bernstein. |
 | **Hoher Kontrast** | Schwarz und Weiß, mit kräftigen Umrissen. |
 
 Das Protokollfenster bleibt in jedem Design dunkel, wie ein Terminal, und das Mastering-Rack folgt ebenfalls dem Design.
+
+**Oberflächenstil** legt das Aussehen des Editors und der Seiten Korpora und Stimmen fest, mit jedem Design:
+
+- **Studio Slate** (die Voreinstellung) gibt jeder der drei Spalten des Editors eine eigene Farbe und zeigt Korpora und Stimmen als Karten mit einem Filterfeld: jedes Korpus mit einem Balken, wie viele seiner Songs einbezogen sind, jede Stimme damit gekennzeichnet, woher sie stammt (hier aufgenommen, aus einem Korpus oder importiert) und ob sie schon trainiert ist.
+- **Klassisch** behält das frühere Aussehen der App.
 
 **Hintergrundfarbe**, unter Design, tönt die Seite hinter den Takes mit einer Farbe deiner Wahl: Hake **Tönung** an, dann
 bewege **Farbton** um den Farbkreis und **Stärke** von einem zarten Hauch bis zu einer satten Farbe. Die Seite ändert sich, während du

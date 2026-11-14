@@ -1605,13 +1605,18 @@ Quand il y en a une plus récente, le menu propose **Obtenir x.y.z**, qui télé
 
 | Thème | Apparence |
 |---|---|
+| **Studio** | Le choix par défaut. Un sombre chaleureux avec de l'ambre. |
 | **Sombre** | L'apparence sombre propre à l'app. |
 | **Clair** | Des panneaux clairs ; les panneaux du rack de mastering sont en argent brossé, tandis que ses boutons, fenêtres de vumètres et afficheurs gardent l'aspect sombre du matériel. |
 | **Comme l'ordinateur** | Suit le clair ou le sombre de votre système, et change avec lui. |
-| **Studio** | Un sombre chaleureux avec de l'ambre. |
 | **Contraste élevé** | Noir et blanc, avec des contours marqués. |
 
 La fenêtre des journaux reste sombre dans tous les thèmes, comme un terminal, et le rack de mastering suit lui aussi le thème.
+
+**Style de l'interface** définit l'apparence de l'éditeur et des pages Corpus et Voix, avec n'importe quel thème :
+
+- **Studio Ardoise** (le choix par défaut) donne à chacune des trois colonnes de l'éditeur une couleur propre, et présente Corpus et Voix en cartes avec un champ de filtre : chaque corpus avec une barre indiquant combien de ses chansons sont incluses, chaque voix marquée de son origine (enregistrée ici, d'un corpus ou importée) et de son état, entraînée ou non.
+- **Classique** garde l'ancienne apparence de l'application.
 
 **Couleur d'arrière-plan**, sous Thème, teinte la page derrière les prises d’une couleur de votre choix : cochez **Teinte**, puis
 faites tourner **Couleur** sur la roue chromatique et réglez **Intensité** d’un léger voile à une couleur riche. La page change pendant que vous

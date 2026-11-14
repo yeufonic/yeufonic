@@ -1794,13 +1794,18 @@ When there is a newer one, the menu offers **Get x.y.z**, which downloads the in
 
 | Theme | Looks |
 |---|---|
+| **Studio** | The default. A warm dark with amber. |
 | **Dark** | The app's own dark look. |
 | **Light** | Light panels; the mastering rack's panels are brushed silver, while its knobs, meter windows and readouts keep the dark look of the hardware. |
 | **Match the computer** | Follows your system's light or dark, and changes with it. |
-| **Studio** | A warm dark with amber. |
 | **High contrast** | Black and white, with strong outlines. |
 
 The log window stays dark in every theme, like a terminal, and the mastering rack follows the theme too.
+
+**UI style** sets the look of the editor and the Corpora and Voices pages, with any theme:
+
+- **Studio Slate** (the default) gives each of the editor's three columns a color of its own, and shows Corpora and Voices as cards with a filter box: each corpus with a bar of how many of its songs are included, each voice marked with where it came from (recorded here, a corpus, or imported) and whether it is trained yet.
+- **Classic** keeps the app's earlier look.
 
 **Backdrop color**, under Theme, tints the page behind the takes with a color you choose: tick **Tint**, then
 move **Hue** round the color wheel and **Strength** from a faint wash to a rich color. The page changes as you

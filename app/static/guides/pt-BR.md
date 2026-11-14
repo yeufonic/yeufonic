@@ -1605,13 +1605,18 @@ Quando há uma mais nova, o menu oferece **Obter x.y.z**, que baixa o instalador
 
 | Tema | Aparência |
 |---|---|
+| **Estúdio** | O padrão. Um escuro quente com âmbar. |
 | **Escuro** | A aparência escura própria do app. |
 | **Claro** | Painéis claros; os painéis do rack de masterização são prata escovada, enquanto os botões, as janelas dos medidores e os mostradores mantêm o visual escuro do hardware. |
 | **Igual ao computador** | Segue o claro ou escuro do seu sistema, e muda junto. |
-| **Estúdio** | Um escuro quente com âmbar. |
 | **Alto contraste** | Preto e branco, com contornos fortes. |
 
 A janela de registros fica escura em todos os temas, como um terminal, e o rack de masterização também segue o tema.
+
+**Estilo da interface** define a aparência do editor e das páginas Corpus e Vozes, com qualquer tema:
+
+- **Estúdio Ardósia** (o padrão) dá a cada uma das três colunas do editor uma cor própria e mostra Corpus e Vozes como cartões com uma caixa de filtro: cada corpus com uma barra de quantas de suas músicas estão incluídas, cada voz marcada com a sua origem (gravada aqui, de um corpus ou importada) e se já está treinada.
+- **Clássico** mantém a aparência anterior do app.
 
 **Cor do fundo**, sob Tema, tinge a página atrás dos takes com uma cor que você escolher: marque **Tom**, depois
 mova **Matiz** pela roda de cores e **Intensidade** de um véu leve a uma cor intensa. A página muda enquanto

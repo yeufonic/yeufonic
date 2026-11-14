@@ -1605,13 +1605,18 @@ Als er een nieuwere is, biedt het menu **x.y.z ophalen**, dat het installatiepro
 
 | Thema | Uiterlijk |
 |---|---|
+| **Studio** | De standaard. Een warm donker met amber. |
 | **Donker** | Het eigen donkere uiterlijk van de app. |
 | **Licht** | Lichte panelen; de panelen van het masteringrack zijn geborsteld zilver, terwijl de knoppen, meterruitjes en displays de donkere look van de hardware houden. |
 | **Zoals de computer** | Volgt licht of donker van je systeem, en wisselt mee. |
-| **Studio** | Een warm donker met amber. |
 | **Hoog contrast** | Zwart en wit, met sterke omtrekken. |
 
 Het logvenster blijft in elk thema donker, zoals een terminal, en het masteringrack volgt ook het thema.
+
+**Interfacestijl** bepaalt het uiterlijk van de editor en de pagina's Corpora en Stemmen, bij elk thema:
+
+- **Studio Leisteen** (de standaard) geeft elk van de drie kolommen van de editor een eigen kleur en toont Corpora en Stemmen als kaarten met een filterveld: elk corpus met een balk van hoeveel van zijn nummers zijn opgenomen, elke stem gemarkeerd met waar hij vandaan komt (hier opgenomen, uit een corpus of geïmporteerd) en of hij al getraind is.
+- **Klassiek** houdt het eerdere uiterlijk van de app.
 
 **Achtergrondkleur**, onder Thema, kleurt de pagina achter de takes met een kleur die je kiest: vink **Tint** aan, en
 beweeg dan **Kleurtoon** rond het kleurenwiel en **Sterkte** van een lichte waas naar een volle kleur. De pagina verandert terwijl
