@@ -27,7 +27,7 @@ try:
     model = load(True)
 except Exception:  # noqa: BLE001
     model = load(False)
-segments, _ = model.transcribe(audio, language=language or None, vad_filter=False, beam_size=5,
+segments, _ = model.transcribe(audio, language=language or None, language_detection_segments=4, vad_filter=False, beam_size=5,
                                condition_on_previous_text=False, word_timestamps=True,
                                hallucination_silence_threshold=2.0)
 seconds = len(audio) / 16000

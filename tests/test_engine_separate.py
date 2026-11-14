@@ -117,7 +117,7 @@ def test_the_node_hears_with_the_options_the_cpu_uses():
     assert out == [{"start": 0.0, "end": 2.0, "text": " one"}, {"start": 2.0, "end": 4.0, "text": " two"}]
     assert seen == [0.5, 1.0]
     assert model.audio.shape == (64000,) and model.audio.dtype.name == "float32", "mono, 16 kHz"
-    assert model.options == {"language": "en", "vad_filter": False, "beam_size": 5, "condition_on_previous_text": False,
+    assert model.options == {"language": "en", "language_detection_segments": 4, "vad_filter": False, "beam_size": 5, "condition_on_previous_text": False,
                              "word_timestamps": True, "hallucination_silence_threshold": 2.0}
 
 

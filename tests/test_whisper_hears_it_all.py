@@ -60,3 +60,12 @@ def test_a_dropped_line_keeps_the_others_timing(whisper, tmp_path):
     lines = identities.transcribe(tmp_path / "vocals.flac")
     assert len(lines) == 1 and lines[0]["text"] == "Modern girl"
     assert lines[0]["start"] > 0.0, "it keeps its place after the dropped line"
+
+
+def test_whisper_finds_the_language_sung(whisper, tmp_path):
+    """A song in another language is written in it, not turned into English, and the language is judged past
+    the first stretch, which in a vocal is often a silent intro."""
+    fake = whisper(["Una canción"])
+    identities.transcribe(tmp_path / "vocals.flac")
+    assert fake.asked["language"] is None
+    assert fake.asked["language_detection_segments"] == 4

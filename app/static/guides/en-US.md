@@ -1404,7 +1404,7 @@ always stays on one line, ending in … when it is long; hover over a card's tit
 **Save** asks which format to download the take in. It starts with what you saved last time, and with nothing chosen
 the first time.
 
-- **FLAC, WAV or MP3:** the audio.
+- **FLAC, WAV or MP3:** the audio. A FLAC or MP3 also carries the tempo and key from the take's score, which DAWs and DJ programs read.
 - **Video**, for a take with a picture: an MP4 of the song that shows the picture its card shows (H.264 video, AAC
   audio at 192 kbps). Messaging apps such as WhatsApp send and play it as a video, where an audio file goes as a
   document.

@@ -1245,7 +1245,7 @@ Cada cartão nomeia as configurações que deram forma ao take — Harmonia, Int
 
 **Salvar** pergunta em que formato baixar o take. Começa com o que você salvou da última vez, e sem nada escolhido na primeira.
 
-- **FLAC, WAV ou MP3:** o áudio.
+- **FLAC, WAV ou MP3:** o áudio. Um FLAC ou MP3 também leva o andamento e a tonalidade da partitura do take, que DAWs e programas de DJ leem.
 - **Vídeo**, para um take com imagem: um MP4 da música que mostra a imagem que o cartão mostra (vídeo H.264, áudio AAC a 192 kbps). Apps de mensagem como o WhatsApp enviam e tocam como vídeo, onde um arquivo de áudio vai como documento.
 - **Take**, ao lado deles: a receita do take, um arquivo pequeno (`<title>.yeufonic.json`) com a letra, o estilo e a partitura, as sementes e configurações, os LoRAs pelo nome e as configurações do rack de masterização, mas não o áudio. Com um formato escolhido também, os dois vêm num zip; pressione de novo o formato escolhido para salvar só a receita. O arquivo não contém nada da sua instalação (nem caminhos, nem ids, nem chaves), então pode ser guardado, ou compartilhado com outra pessoa que use o Yeufonic.
 - Com o rack de masterização ligado, todos os formatos têm o som masterizado.

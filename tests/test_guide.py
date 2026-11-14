@@ -142,7 +142,7 @@ def test_no_asterisks_show_when_the_guide_is_rendered(path):
     put no spaces between words, where ** before or after punctuation does not open or close (the assembler writes
     those spans as <strong>), and a run like ***or ****, from two spans meeting, breaks in any language."""
     script = (f"const m=require({json.dumps(str(MARKED))});const p=(m.marked||m).parse;"
-              "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{"
+              "let s='';process.stdin.setEncoding('utf8');process.stdin.on('data',d=>s+=d).on('end',()=>{"
               "const h=p(s).replace(/<code>[\\s\\S]*?<\\/code>/g,'');"
               "const out=[];let i=-1;while((i=h.indexOf('*',i+1))>=0)out.push(h.slice(Math.max(0,i-40),i+20));"
               "console.log(JSON.stringify(out));})")

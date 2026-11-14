@@ -91,3 +91,6 @@ browser-tests/artifacts/
 
 # The loops the editor's Hear it plays a voice on, shipped with the app
 !app/voice_loops/*.flac
+
+# A planning note kept beside the checkout
+HANDOVER_PLATFORM_IMPROVEMENTS.md

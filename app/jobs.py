@@ -1907,7 +1907,7 @@ async def _hear_on_engine(vocal: Path, on_progress, should_stop) -> list[identit
     started = time.time()
     name = await _upload(vocal, f"hear-{token}{vocal.suffix}")
     graph = {"1": {"class_type": "LoadAudio", "inputs": {"audio": name}},
-             "2": {"class_type": "Yue2Hear", "inputs": {"audio": ["1", 0], "model": identities.WHISPER_MODEL, "language": "en"}},
+             "2": {"class_type": "Yue2Hear", "inputs": {"audio": ["1", 0], "model": identities.WHISPER_MODEL, "language": ""}},
              "3": {"class_type": "PreviewAny", "inputs": {"source": ["2", 0]}}}
     prompt_id = await ENGINE.submit(graph)
     stopped = False

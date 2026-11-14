@@ -124,9 +124,9 @@ def _clear_remade(folder: Path) -> None:
 
 def _bring_along(have: Path, want: Path) -> None:
     """A renamed take's other audio moves with it: the file as rendered, when the take
-    plays its normalised copy, the unmastered premaster copy, and the as-rendered copy the first version of
-    normalising kept.  Left behind, Normalise or unbaking could not be undone."""
-    for old, new in ((rendered_path(have), rendered_path(want)), (original_path(have), original_path(want)), (premaster_path(have), premaster_path(want))):
+    plays its normalised copy, and the as-rendered copy the first version of normalising kept.  Left
+    behind, Normalise could not be undone."""
+    for old, new in ((rendered_path(have), rendered_path(want)), (original_path(have), original_path(want))):
         if old != have and old.exists() and not new.exists():
             shutil.move(str(old), str(new))
     # The halves of a voiced take, where they were kept (jobs.voice_parts_folder, VOICE_KEEP_PARTS).
@@ -354,11 +354,6 @@ def original_path(audio: Path) -> Path:
     return audio.with_name(f"{audio.stem}.original{audio.suffix}")
 
 
-def premaster_path(audio: Path) -> Path:
-    """The unmastered file kept when a take has had mastering baked into it."""
-    return audio.with_name(f"{audio.stem}.premaster{audio.suffix}")
-
-
 def convert_old_normalised() -> int:
     """Takes normalised in place (song.flac louder, song.original.flac as rendered) get
     the present layout (song.flac as rendered, song.normalised.flac louder).  Runs at
@@ -522,15 +517,21 @@ def _utf16(text: str) -> bytes:
     return text.encode("utf-16")   # with its byte order mark, as ID3v2.3 wants
 
 
-def id3_tag(title: str, lyrics: str | None, extra: dict[str, str]) -> bytes:
+def id3_tag(title: str, lyrics: str | None, extra: dict[str, str], music: dict[str, str] | None = None) -> bytes:
     """An ID3v2.3 tag, written here because ffmpeg can only put a comment or lyrics in
     a custom TXXX frame, which players do not show.  v2.3 rather than v2.4 because it
-    is the one every player reads.  Lyrics are marked 'XXX', language unknown."""
+    is the one every player reads.  Lyrics are marked 'XXX', language unknown.  `music`
+    is the tempo and key a DAW or DJ program reads (music_tags)."""
     software = f"Yeufonic {config.VERSION}"
     frames = [_id3_frame("TIT2", b"\x01" + _utf16(title)),
               _id3_frame("TENC", b"\x01" + _utf16(software)),
               _id3_frame("TSSE", b"\x01" + _utf16(software)),
               _id3_frame("COMM", b"\x01eng" + _utf16("") + b"\0\0" + _utf16(MADE_WITH))]
+    music = music or {}
+    if music.get("bpm"):
+        frames.append(_id3_frame("TBPM", b"\x00" + music["bpm"].encode("ascii")))
+    if music.get("key"):
+        frames.append(_id3_frame("TKEY", b"\x00" + music["key"].encode("ascii")))
     if lyrics:
         frames.append(_id3_frame("USLT", b"\x01XXX" + _utf16("") + b"\0\0" + _utf16(lyrics)))
     for key, value in extra.items():
@@ -570,13 +571,37 @@ def set_flac_comments(path: Path, fields: list[tuple[str, str]]) -> None:
     path.write_bytes(b"fLaC" + head + data[at:])
 
 
+# Tags a DAW or DJ program reads for tempo and key, set from the score; a source file's own are dropped for them.
+MUSIC_TAG_NAMES = {"bpm", "tbpm", "initialkey", "tkey", "key"}
+
+
+def music_tags(abc: str | None) -> dict[str, str]:
+    """The tempo and key a score states, as tags: {"bpm": "92", "key": "F#m"}.  Either is left out when the
+    score has none, more than one key, or a mode other than major or minor."""
+    from . import transpose        # here, not at the top: transpose is only needed when a file is handed over
+    tags: dict[str, str] = {}
+    if not abc:
+        return tags
+    tempo = re.search(r"^Q:\s*1/4\s*=\s*(\d+)", abc, re.M)
+    if tempo:
+        tags["bpm"] = tempo.group(1)
+    key = transpose.plan_key(abc)
+    if key:
+        tonic, minor, sharps = key
+        tags["key"] = transpose.key_name(tonic, minor, sharps < 0)
+    return tags
+
+
 def tagged_copy(src: Path, dest: Path, fmt: str, codec: list[str] | None, title: str,
-                lyrics: str | None) -> None:
+                lyrics: str | None, music: dict[str, str] | None = None) -> None:
     """The take at src as a file to hand over, in fmt, with its tags.  A FLAC is copied
     rather than encoded again.  WAV has nowhere for lyrics, and ffmpeg's own tags suit it.
+    `music` is the tempo and key from the score (music_tags), for a DAW or DJ program.
     Nothing here changes the sound: a mastered file is rendered by the rack in the browser,
     the same chain that plays it, and arrives here already processed."""
-    carried = {k: v for k, v in file_tags(src).items() if k.lower() != "encoder"}
+    music = music or {}
+    carried = {k: v for k, v in file_tags(src).items()
+               if k.lower() != "encoder" and not (music and k.lower() in MUSIC_TAG_NAMES)}
 
     if fmt == "wav":
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), *(codec or []),
@@ -601,9 +626,13 @@ def tagged_copy(src: Path, dest: Path, fmt: str, codec: list[str] | None, title:
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), *chosen_codec, *untagged, str(dest)],
                    capture_output=True, timeout=300, check=True)
     if fmt == "mp3":
-        dest.write_bytes(id3_tag(title, lyrics, carried) + dest.read_bytes())
+        dest.write_bytes(id3_tag(title, lyrics, carried, music) + dest.read_bytes())
         return
     fields = [("TITLE", title), ("COMMENT", MADE_WITH)]
+    if music.get("bpm"):
+        fields.append(("BPM", music["bpm"]))
+    if music.get("key"):
+        fields.append(("INITIALKEY", music["key"]))
     if lyrics:
         fields.append(("LYRICS", lyrics))
     set_flac_comments(dest, fields + list(carried.items()))

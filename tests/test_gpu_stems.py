@@ -190,7 +190,8 @@ def test_words_are_heard_on_the_engine_and_laid_out_as_the_cpu_does(monkeypatch,
     assert [line["text"] for line in lines] == ["Hello there", "How are you"], "split at the sentence end, the stock phrase dropped"
     graph = engine.submitted[0]
     assert graph["2"]["class_type"] == "Yue2Hear" and graph["2"]["inputs"]["model"] == identities.WHISPER_MODEL
-    assert graph["2"]["inputs"]["language"] == "en" and graph["3"]["class_type"] == "PreviewAny"
+    assert graph["2"]["inputs"]["language"] == "", "Whisper finds the language sung"
+    assert graph["3"]["class_type"] == "PreviewAny"
 
 
 @pytest.mark.parametrize("why", ["no node", "offline", "training", "setting off", "engine error"])

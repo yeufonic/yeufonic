@@ -5173,9 +5173,11 @@ SAVE_FORMATS = {
 VIDEO_FORMAT = "mp4"
 
 
-def _save_copy(take_id: str, take, src: Path, out: Path, fmt: str) -> None:
+def _save_copy(take_id: str, take, src: Path, out: Path, fmt: str, deep: bool = False) -> None:
     """The file a Save hands over: the audio in an audio format with its tags, or the video with the take's
-    picture.  Raises HTTPException 409 for a video of a take with no picture."""
+    picture.  `deep` is a 24-bit source (the rack's mastered render), which a WAV keeps rather than being cut
+    to 16 bits; a FLAC follows its source's depth by itself.  Raises HTTPException 409 for a video of a take
+    with no picture."""
     words = library.sung_words(take["kind"], take["lyrics"])
     if fmt == VIDEO_FORMAT:
         shown = artwork.shown_path(take_id, take["parent_id"])   # the picture its card shows
@@ -5183,7 +5185,8 @@ def _save_copy(take_id: str, take, src: Path, out: Path, fmt: str) -> None:
             raise HTTPException(409, "this take has no picture, so there is no video to make")
         library.video_copy(src, shown[1], out, take["title"] or "", words)
         return
-    library.tagged_copy(src, out, fmt, SAVE_FORMATS[fmt][1], take["title"] or "", words)
+    codec = ["-c:a", "pcm_s24le"] if deep and fmt == "wav" else SAVE_FORMATS[fmt][1]
+    library.tagged_copy(src, out, fmt, codec, take["title"] or "", words, library.music_tags(take["abc"]))
 
 
 def _save_format(format: str | None) -> str | None:
@@ -5211,7 +5214,7 @@ def take_audio(
     _save_format(format)
     if download and fx:
         raise HTTPException(409, "this page is from before an update: reload it, then save again")
-    take = one("SELECT audio_path, title, kind, lyrics, parent_id FROM takes WHERE id = ?", (take_id,))
+    take = one("SELECT audio_path, title, kind, lyrics, parent_id, abc FROM takes WHERE id = ?", (take_id,))
     if not take or not take["audio_path"] or not Path(take["audio_path"]).exists():
         raise HTTPException(404, "no audio for this take")
     safe = "".join(ch for ch in (take["title"] or "take") if ch.isalnum() or ch in " -_")[:60].strip() or "take"
@@ -5378,7 +5381,7 @@ async def export_mastered_take(
     tagging and encoding to the requested format (FLAC, MP3, or WAV).
     If prepare=True, returns JSON {"download_url": ...} so browser triggers a native HTTP download prompt."""
     fmt = _save_format(format.lower())
-    take = one("SELECT audio_path, title, kind, lyrics, parent_id FROM takes WHERE id = ?", (take_id,))
+    take = one("SELECT audio_path, title, kind, lyrics, parent_id, abc FROM takes WHERE id = ?", (take_id,))
     if not take or not take["audio_path"] or not Path(take["audio_path"]).exists():
         raise HTTPException(404, "no audio for this take")
 
@@ -5392,8 +5395,8 @@ async def export_mastered_take(
     try:
         content = await audio_file.read()
         temp_wav.write_bytes(content)
-        # The upload was rendered by the rack's own chain: it is only tagged and encoded here.
-        _save_copy(take_id, take, temp_wav, out, fmt)
+        # The upload was rendered by the rack's own chain, as a 24-bit WAV: it is only tagged and encoded here.
+        _save_copy(take_id, take, temp_wav, out, fmt, deep=True)
     except (subprocess.SubprocessError, OSError) as exc:
         out.unlink(missing_ok=True)
         log.warning("Could not convert uploaded mastered audio for take '%s' to %s: %s", take["title"] or take_id, fmt, exc)
@@ -5482,94 +5485,6 @@ def download_mastered_take(take_id: str, token: str = Query(...), recipe: bool =
         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
         background=BackgroundTask(out_path.unlink, missing_ok=True)
     )
-
-
-@app.post("/api/takes/{take_id}/bake-master")
-async def bake_master_take(
-    take_id: str,
-    undo: bool = Query(False),
-    audio_file: UploadFile | None = File(None)
-) -> dict:
-    """Keep a take's mastering for good, or restore the unmastered original.  The mastered audio is the
-    WAV the rack rendered in the browser, with the chain that plays it: the server does no processing of
-    its own, so without that file there is nothing to bake."""
-    take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
-    if not take or not take["audio_path"] or not Path(take["audio_path"]).exists():
-        raise HTTPException(404, "no audio for this take")
-    if take["status"] != "done":
-        raise HTTPException(409, "this take is busy")
-    if not undo and audio_file is None:
-        raise HTTPException(400, "send the mastered audio: the rack renders it, the server does not")
-
-    current_audio = Path(take["audio_path"])
-    premaster = library.premaster_path(current_audio)
-
-    if undo:
-        if not premaster.exists():
-            raise HTTPException(409, "this take has no unmastered original to restore")
-        try:
-            shutil.copy2(str(premaster), str(current_audio))
-            premaster.unlink(missing_ok=True)
-        except OSError as exc:
-            log.warning("Could not restore unmastered take '%s': %s", take["title"] or take_id, exc)
-            raise HTTPException(500, "could not restore unmastered audio") from exc
-
-        # Invalidate and recompute waveform peaks
-        library.peaks_path(current_audio).unlink(missing_ok=True)
-        fresh_peaks = await asyncio.to_thread(ensure_peaks, current_audio)
-        new_loudness = await asyncio.to_thread(library.loudness, current_audio)
-        new_duration = await asyncio.to_thread(library.audio_duration, current_audio)
-
-        execute("UPDATE takes SET audio_path = ?, loudness = ?, duration = ? WHERE id = ?",
-                (str(current_audio), new_loudness, new_duration, take_id))
-        log.info("Restored unmastered audio for take '%s' (%s)", take["title"] or take_id, take_id)
-        return {"status": "ok", "take_id": take_id, "reverted": True, "peaks": fresh_peaks}
-
-    # Baking master
-    if not premaster.exists():
-        try:
-            shutil.copy2(str(current_audio), str(premaster))
-        except OSError as exc:
-            log.warning("Could not backup premaster for '%s': %s", take["title"] or take_id, exc)
-            raise HTTPException(500, "could not backup unmastered audio") from exc
-
-    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
-    temp_target = config.WORK_DIR / f"bake-{take_id}-{uuid.uuid4().hex[:8]}.flac"
-
-    try:
-        temp_wav = config.WORK_DIR / f"bake-in-{take_id}-{uuid.uuid4().hex[:8]}.wav"
-        try:
-            content = await audio_file.read()
-            temp_wav.write_bytes(content)
-            library.tagged_copy(temp_wav, temp_target, "flac", None, take["title"] or "",
-                                library.sung_words(take["kind"], take["lyrics"]))
-        finally:
-            temp_wav.unlink(missing_ok=True)
-
-        shutil.move(str(temp_target), str(current_audio))
-    except (subprocess.SubprocessError, OSError) as exc:
-        temp_target.unlink(missing_ok=True)
-        log.warning("Could not bake master for take '%s': %s", take["title"] or take_id, exc)
-        raise HTTPException(500, "could not bake mastering processing into take") from exc
-
-    library.peaks_path(current_audio).unlink(missing_ok=True)
-    fresh_peaks = await asyncio.to_thread(ensure_peaks, current_audio)
-    new_loudness = await asyncio.to_thread(library.loudness, current_audio)
-    new_duration = await asyncio.to_thread(library.audio_duration, current_audio)
-
-    execute("UPDATE takes SET audio_path = ?, fx_chain = NULL, loudness = ?, duration = ? WHERE id = ?",
-            (str(current_audio), new_loudness, new_duration, take_id))
-
-    log.info("Baked mastering processing into take '%s' (%s)", take["title"] or take_id, take_id)
-    return {
-        "status": "ok",
-        "take_id": take_id,
-        "baked": True,
-        "has_premaster": True,
-        "peaks": fresh_peaks,
-        "loudness": new_loudness,
-        "duration": new_duration
-    }
 
 
 @app.post("/api/takes/{take_id}/normalise")

@@ -261,10 +261,9 @@ def transcribe(vocals: Path, on_progress=None, duration: float = 0.0, should_sto
     Whisper hears the whole vocal.  Its voice detector is off: built for speech, it
     judged most singing to be silence and threw it away before listening -- 4 min 21 s
     of a 5 min 55 s vocal, 1 min 33 s of a 3.5 minute one -- and that, not Whisper's
-    ear, was most of its error.  Against real lyrics, with the detector on and then
-    off: Modern Girl 10.7% of words wrong, then 1.5%; Silly Love Songs, whose chorus
-    has lead and backing vocals over each other, 56% then 25%.  Gemini listening to
-    the same vocals got 1.5% and 23%.
+    ear, was most of its error: against the real words of two songs, turning it off
+    cut the share Whisper got wrong several times over, most where lead and backing
+    vocals overlap.
 
     Without the detector Whisper invents text over the instrumental stretches -- here
     "Thank you." and a line of French.  hallucination_silence_threshold drops what it
@@ -281,7 +280,11 @@ def transcribe(vocals: Path, on_progress=None, duration: float = 0.0, should_sto
         except Exception:
             _whisper = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8",
                                     download_root=str(root), local_files_only=False)
-    segments, _ = _whisper.transcribe(str(vocals), language="en", vad_filter=False, beam_size=5,
+    # The language is Whisper's to find, so a song sung in another one is written in it, not turned into
+    # English.  It is judged over the first four stretches rather than the first, which in a vocal is often
+    # the silent intro.
+    segments, _ = _whisper.transcribe(str(vocals), language=None, language_detection_segments=4,
+                                      vad_filter=False, beam_size=5,
                                       condition_on_previous_text=False, word_timestamps=True,
                                       hallucination_silence_threshold=2.0)
     return lines_from_segments(segments, on_progress, duration, should_stop)

@@ -588,8 +588,10 @@
   function audioBufferToWav(buffer) {
     var numChannels = buffer.numberOfChannels;
     var sampleRate = buffer.sampleRate;
-    var format = 1; // 16-bit PCM
-    var bitDepth = 16;
+    // 24-bit PCM: the render is floating point, and the FLAC or WAV the server makes keeps the depth it is given,
+    // so 16 bits here would cut the mastered audio's quietest detail before it is saved.
+    var format = 1;
+    var bitDepth = 24;
     var bytesPerSample = bitDepth / 8;
     var blockAlign = numChannels * bytesPerSample;
     var length = buffer.length;
@@ -632,9 +634,11 @@
         var sample = channels[ch][i];
         if (sample < -1) { sample = -1; }
         else if (sample > 1) { sample = 1; }
-        var s = sample < 0 ? sample * 32768 : sample * 32767;
-        view.setInt16(offset, s, true);
-        offset += 2;
+        var s = Math.round(sample < 0 ? sample * 8388608 : sample * 8388607);
+        view.setUint8(offset, s & 0xFF);
+        view.setUint8(offset + 1, (s >> 8) & 0xFF);
+        view.setUint8(offset + 2, (s >> 16) & 0xFF);
+        offset += 3;
       }
     }
 
@@ -4004,83 +4008,6 @@
       }, 1000);
     },
 
-    applyToTake: async function () {
-      if (!this.currentTakeId) {
-        this.showToast(t('Select a take first'));
-        return;
-      }
-      var takeId = this.currentTakeId;
-      if (!chainEngaged(this.settings)) {
-        this.showToast(t('Nothing to apply: the rack is flat'));
-        return;
-      }
-      var applyBtn = document.getElementById('rack-apply-take-btn');
-      if (applyBtn) {
-        applyBtn.disabled = true;
-        applyBtn.textContent = t('Baking...');
-      }
-      this.showToast(t('Rendering & baking master into take...'), 'good');
-
-      try {
-        var wavBlob = await this.renderMasterWav(takeId);
-        var formData = new FormData();
-        formData.append('audio_file', wavBlob, 'master.wav');
-        var res = await fetch('/api/takes/' + takeId + '/bake-master', {
-          method: 'POST',
-          body: formData
-        });
-        if (!res.ok) {
-          var errText = await res.text();
-          throw new Error(t('Failed to bake master: {errText}', { errText: errText }));
-        }
-        var data = await res.json();
-
-        // Reset rack settings for this take to default transparent so it is not double-processed; Space, which
-        // was not baked in, stays as it was
-        var keptSpace = this.settings.space;
-        this.settings = this.keepFolds(JSON.parse(JSON.stringify(PRESETS['default'])));
-        if (keptSpace) { this.settings.space = keptSpace; }
-        this.syncKnobsToState();
-        Engine.applySettings(this.settings);
-        await this.flushSave();
-
-        // Reload the takes in the library
-        if (typeof window.loadTakes === 'function') {
-          await window.loadTakes();
-        }
-
-        // If this take was currently playing or loaded in transport, update audio and waveform
-        if (window.State && (State.playing === takeId || State.loadedId === takeId)) {
-          var audio = document.getElementById('audio');
-          if (audio) {
-            var curTime = audio.currentTime || 0;
-            var wasPlaying = !audio.paused && !audio.ended;
-            var version = '?v=' + Date.now();
-            var audioUrl = '/api/takes/' + takeId + '/audio' + version;
-            var peaksUrl = '/api/takes/' + takeId + '/peaks' + version;
-            audio.src = audioUrl;
-            if (typeof loadWave === 'function') {
-              loadWave(audioUrl, peaksUrl);
-            }
-            if (wasPlaying) {
-              audio.currentTime = curTime;
-              audio.play().catch(function () {});
-            }
-          }
-        }
-
-        this.showToast(t('Mastered audio saved permanently to take!'), 'good');
-      } catch (err) {
-        console.error('Bake master failed:', err);
-        this.showToast(t('Could not bake master: {message}', { message: err.message }), 'bad');
-      } finally {
-        if (applyBtn) {
-          applyBtn.disabled = false;
-          applyBtn.textContent = t('Apply to Take');
-        }
-      }
-    },
-
     invalidateTheme: function () {
       this._peqInk = null;
     },
@@ -4119,8 +4046,9 @@
             var a = Math.abs(timeData[i] - 128) / 128;
             if (a > maxAmp) { maxAmp = a; }
           }
-          // Signal dB estimate (-60 to +24 dB)
-          var sigDb = maxAmp > 0.001 ? 20 * Math.log10(maxAmp) + 16 : -60;
+          // The ladder reads as studio hardware does, with full scale at +24 (0 dBFS = +24 dBu), so the top LED
+          // lights only at 0 dBFS.
+          var sigDb = maxAmp > 0.001 ? 20 * Math.log10(maxAmp) + 24 : -60;
 
           // 7-LED ladder
           if (!ladderLeds) {

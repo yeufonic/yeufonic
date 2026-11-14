@@ -259,62 +259,6 @@ def test_export_mastered_take(client, tmp_path):
     assert res_down.content[:4] == b"fLaC"
 
 
-def test_bake_master_with_uploaded_audio_and_revert(client, tmp_path):
-    from conftest import make_take, tone
-
-    original_file = tone(tmp_path / "take_bake.flac", seconds=1.0)
-    orig_bytes = original_file.read_bytes()
-    master_wav = tone(tmp_path / "master_upload.wav", seconds=1.0)
-
-    take = make_take(title="Bake Take", audio_path=str(original_file))
-    client.put(f"/api/takes/{take['id']}/fx", json={"imager": {"bigness": 3}})
-
-    # 1. Bake master into take
-    with open(master_wav, "rb") as fh:
-        bake_res = client.post(
-            f"/api/takes/{take['id']}/bake-master",
-            files={"audio_file": ("master.wav", fh, "audio/wav")},
-        )
-    assert bake_res.status_code == 200
-    data = bake_res.json()
-    assert data["status"] == "ok"
-    assert data["baked"] is True
-    assert "peaks" in data
-
-    # Verify take fx_chain is reset to NULL so it is not double-processed
-    row = one("SELECT fx_chain, audio_path FROM takes WHERE id = ?", (take["id"],))
-    assert row["fx_chain"] is None
-
-    # Verify premaster backup was kept
-    from app.library import premaster_path
-    premaster = premaster_path(original_file)
-    assert premaster.exists()
-
-    # 2. Revert / undo the master
-    undo_res = client.post(f"/api/takes/{take['id']}/bake-master?undo=1")
-    assert undo_res.status_code == 200
-    assert undo_res.json()["reverted"] is True
-    assert not premaster.exists()
-    assert original_file.read_bytes() == orig_bytes
-
-
-def test_bake_master_needs_the_rendered_audio(client, tmp_path):
-    """Apply to Take sends the file the rack rendered. Without it there is nothing to bake:
-    the server does not process the sound, and the take is left alone."""
-    from conftest import make_take, tone
-
-    original_file = tone(tmp_path / "take_server_bake.flac", seconds=1.0)
-    orig_bytes = original_file.read_bytes()
-    take = make_take(title="Server Bake", audio_path=str(original_file))
-    fx = {"eq": {"enabled": True, "highGain": 3.0}, "comp": {"enabled": True, "makeup": 2.0}, "masterBypass": False}
-    client.put(f"/api/takes/{take['id']}/fx", json=fx)
-
-    bake_res = client.post(f"/api/takes/{take['id']}/bake-master")
-    assert bake_res.status_code == 400
-    assert original_file.read_bytes() == orig_bytes
-    assert one("SELECT fx_chain FROM takes WHERE id = ?", (take["id"],))["fx_chain"] is not None
-
-
 def test_rack_js_and_app_js_mastered_features():
     app_js = (STATIC / "app.js").read_text(encoding="utf-8")
     rack_js = (STATIC / "rack.js").read_text(encoding="utf-8")
@@ -939,7 +883,7 @@ def test_space_is_heard_but_never_in_the_takes_own_file(flat):
     render = rack_js[rack_js.index("    renderMasterBuffer: async function"):rack_js.index("    renderMasterWav: async function")]
     assert "if (!withSpace) { s = withoutSpace(s); }" in render
     assert "this.renderMasterWav(target.id, settings, true)" in rack_js   # the headphones download, and only it
-    assert rack_js.count("renderMasterWav(") == 3                      # Apply, Download, and the headphones download
+    assert rack_js.count("renderMasterWav(") == 2                      # Download, and the headphones download
     # the 5.1 renders the take through the rack with Space out, and places stems itself
     assert "await this.renderMasterBuffer(takeId, s, false)" in rack_js
 

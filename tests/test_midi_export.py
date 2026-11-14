@@ -17,7 +17,7 @@ def write(seq: dict, info: dict | None = None) -> bytes | None:
     script = (
         f"const {{ writeMidi }} = require({json.dumps(str(WRITER))});"
         "let text = '';"
-        "process.stdin.on('data', (c) => text += c);"
+        "process.stdin.setEncoding('utf8'); process.stdin.on('data', (c) => text += c);"
         "process.stdin.on('end', () => {"
         "  const input = JSON.parse(text);"
         "  const out = writeMidi(input.seq, input.info);"

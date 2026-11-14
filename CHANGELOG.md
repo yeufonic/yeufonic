@@ -41,6 +41,15 @@ cannot creep back in.
 
 - **Hear it plays again after a stop.** Stopped and started with no setting changed, it stayed silent, because
   it took the voice it had already sung as playing; it now plays it again at once.
+- **A mastered save keeps 24 bits.** The rack renders in floating point, but it handed the server a 16-bit file, so a
+  mastered FLAC or WAV lost its quietest detail; it now hands over 24-bit, and a mastered WAV is saved at 24 bits.
+- **Lyrics from a recording are heard in the language sung.** Whisper was told every song was in English, so words
+  in another language came out wrong or turned into English; it now finds the language itself, from more than the
+  opening seconds. On Docker the engine needs a rebuild for this (`docker compose up --build`).
+- **A saved FLAC or MP3 carries its tempo and key** from the take's score (BPM and INITIALKEY, TBPM and TKEY), where
+  DAWs and DJ programs read them.
+- **The DPX meter's top LEDs light.** Full scale read as +16, so +18 and +24 never lit; full scale is now +24.
+- The unused code for baking mastering into a take, which nothing in the page could reach, is gone.
 
 ## 0.0.59 (2026-11-12)
 

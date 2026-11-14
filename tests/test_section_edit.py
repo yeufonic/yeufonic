@@ -13,7 +13,7 @@ SCORE = ("X:1\nM:4/4\nL:1/16\nQ:1/4=90\nV: Vocal\nV: Ins\nK:C\n"
 
 
 def run(abc, ops):
-    script = ("const S = require(%s); let t=''; process.stdin.on('data', c => t += c);"
+    script = ("const S = require(%s); let t=''; process.stdin.setEncoding('utf8'); process.stdin.on('data', c => t += c);"
               "process.stdin.on('end', () => { const { abc, ops } = JSON.parse(t); let out = abc; const seen = [];"
               "for (const op of ops) { out = S.change(out, op); seen.push(out); if (out === null) break; }"
               "console.log(JSON.stringify(seen)); });" % json.dumps(str(MODULE)))

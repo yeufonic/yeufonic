@@ -76,3 +76,25 @@ def test_space_keeps_the_takes_tone(page, app_server):
         off = page.evaluate(BAND, [{"enabled": False}, hz])
         on = page.evaluate(BAND, [{"enabled": True, "width": 30}, hz])
         assert abs(on - off) < 3, (hz, on - off)
+
+
+def test_the_mastered_render_is_handed_over_as_24_bit(page, app_server):
+    out = page.evaluate("""async () => {
+      const rate = 48000, len = 4800;
+      const ctx = new OfflineAudioContext(2, len, rate);
+      const buf = ctx.createBuffer(2, len, rate);
+      for (let i = 0; i < len; i++) { buf.getChannelData(0)[i] = 0.5 * Math.sin(i / 7); buf.getChannelData(1)[i] = -0.25; }
+      Rack.renderMasterBuffer = async () => buf;
+      const blob = await Rack.renderMasterWav('any', {}, false);
+      const bytes = await blob.arrayBuffer();
+      const view = new DataView(bytes);
+      const back = await new OfflineAudioContext(2, len, rate).decodeAudioData(bytes.slice(0));   // at its own rate
+      let worst = 0;
+      for (let ch = 0; ch < 2; ch++) {
+        const a = buf.getChannelData(ch), b = back.getChannelData(ch);
+        for (let i = 0; i < len; i++) { worst = Math.max(worst, Math.abs(a[i] - b[i])); }
+      }
+      return { bits: view.getUint16(34, true), channels: view.getUint16(22, true), frames: back.length, worst };
+    }""")
+    assert out["bits"] == 24 and out["channels"] == 2 and out["frames"] == 4800
+    assert out["worst"] < 2 / 8388608, "the samples come back as rendered, to 24-bit precision"
