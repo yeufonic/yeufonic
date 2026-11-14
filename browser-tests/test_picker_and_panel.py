@@ -44,3 +44,14 @@ def test_a_panel_block_folds_and_stays_folded(page, app_server):
     assert "folded" in page.get_attribute('#take-sheet [data-fold="sound"]', "class"), "kept in this browser"
     page.click('#take-sheet [data-fold="sound"] .fold-head')
     assert "folded" not in page.get_attribute('#take-sheet [data-fold="sound"]', "class")
+
+
+def test_the_recording_and_style_lists_are_never_open_together(page):
+    page.evaluate("() => { State.sources = [{ id: 'r1', title: 'Night ferry', origin: 'upload' }]; State.corpusSongs = [];"
+                  " loadCorpusSongs = () => {}; setMode('cover'); openEditor('song'); }")
+    page.click("#source-picker-btn")
+    assert page.locator("#source-picker-menu").is_visible()
+    page.click("#style-picker-btn")
+    assert page.locator("#style-picker-menu").is_visible() and page.locator("#source-picker-menu").is_hidden()
+    page.click("#source-picker-btn")
+    assert page.locator("#source-picker-menu").is_visible() and page.locator("#style-picker-menu").is_hidden()

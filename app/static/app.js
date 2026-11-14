@@ -3668,9 +3668,7 @@ function paintSourcePickerMenu() {
     var text = String(title || '').toLowerCase();
     return words.every(function (word) { return text.indexOf(word) >= 0; });
   };
-  var itemsHtml = '<div class="source-find"><input id="source-filter" type="search" autocomplete="off" placeholder="' +
-    esc(t('Search recordings')) + '" aria-label="' + esc(t('Search recordings')) + '" value="' + esc(State.sourceFilter || '') + '"></div>';
-  itemsHtml += words.length ? '' : '<div class="source-picker-item' + (!currentId ? ' selected' : '') + '" data-id="" role="option">' +
+  var itemsHtml = words.length ? '' : '<div class="source-picker-item' + (!currentId ? ' selected' : '') + '" data-id="" role="option">' +
     '<div class="source-item-main"><span class="source-item-title muted">' +
       (State.mode === 'inst' ? t('No recording: write a score plan') : t('Choose a recording…')) + '</span></div>' +
     '</div>';
@@ -3717,13 +3715,15 @@ function paintSourcePickerMenu() {
     itemsHtml += '<div class="source-corpora-none muted">' + t('No recording matches.') + '</div>';
   }
   itemsHtml += corpora;
-  // Typing in the search redraws the menu; the box it redraws keeps the caret.
-  var typing = document.activeElement && document.activeElement.id === 'source-filter';
-  menu.innerHTML = itemsHtml;
-  if (typing && $('source-filter')) {
-    var box = $('source-filter');
-    box.focus();
-    box.setSelectionRange(box.value.length, box.value.length);
+  // As the style picker does: the search box is made once and stays; typing redraws only the list under it.
+  var list = menu.querySelector('.source-picker-list');
+  if (!$('source-filter') || !list) {
+    menu.innerHTML = '<div class="style-picker-search-wrap">' +
+      '<input type="search" id="source-filter" class="style-picker-search" placeholder="' + esc(t('Search recordings…')) +
+      '" aria-label="' + esc(t('Search recordings…')) + '" autocomplete="off" value="' + esc(State.sourceFilter || '') + '" />' +
+      '</div><div class="source-picker-list" role="listbox">' + itemsHtml + '</div>';
+  } else {
+    list.innerHTML = itemsHtml;
   }
 }
 
@@ -3815,7 +3815,9 @@ function openSourcePicker() {
   if (!menu || !btn) { return; }
   menu.classList.remove('hidden');
   btn.setAttribute('aria-expanded', 'true');
+  closeStylePicker();            // one list open at a time: each button stops its click reaching the other's
   State.sourceFilter = '';
+  if ($('source-filter')) { $('source-filter').value = ''; }
   paintSourcePickerMenu();
   if ($('source-filter')) { $('source-filter').focus(); }
   loadCorpusSongs();
@@ -9015,6 +9017,7 @@ function openStylePicker() {
   var menu = $('style-picker-menu');
   var btn = $('style-picker-btn');
   if (!menu || !btn) { return; }
+  closeSourcePicker();
   paintStylePickerMenu('');
   var searchInput = $('style-picker-search');
   if (searchInput) { searchInput.value = ''; }
@@ -15502,7 +15505,7 @@ function wire() {
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeSourcePicker(); return; }
       if (event.key !== 'Enter') { return; }
       event.preventDefault();
-      var first = $('source-picker-menu').querySelector('.source-picker-item[data-id]:not([data-id=""]), .source-picker-item[data-corpus-song]');
+      var first = $('source-picker-menu').querySelector('.source-picker-list .source-picker-item[data-id]:not([data-id=""]), .source-picker-list .source-picker-item[data-corpus-song]');
       if (first) { first.click(); }
     });
     $('source-picker-menu').addEventListener('click', function (event) {
@@ -16694,7 +16697,8 @@ function sheetBlk(key) {
   var folded = sheetFolded().indexOf(key) >= 0;
   return '<div class="sheet-blk' + (folded ? ' folded' : '') + '" data-fold="' + key + '"><h3 class="fold-head" role="button" tabindex="0" ' +
     'aria-expanded="' + (folded ? 'false' : 'true') + '" title="' + esc(folded ? t('Show this') : t('Fold this away')) + '">' +
-    '<span class="fold-arrow" aria-hidden="true">' + (folded ? '\u25B8' : '\u25BE') + '</span>';
+    '<span class="fold-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" ' +
+    'stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>';
 }
 function toggleSheetBlk(blk) {
   var key = blk.dataset.fold, list = sheetFolded(), at = list.indexOf(key);
