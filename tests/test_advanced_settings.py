@@ -215,9 +215,9 @@ def test_a_tempo_in_the_style_is_replaced_by_the_lock_not_added_to():
 def test_a_key_is_written_the_way_the_training_captions_write_it():
     from app import jobs
     assert jobs.effective_style("rock", target_key="Cm") == "rock, key of C minor"
-    assert jobs.effective_style("rock", target_key="F#") == "rock, key of F# major"
-    assert jobs.effective_style("rock", target_key="Eb") == "rock, key of Eb major"
-    assert jobs.effective_style("rock, key of D minor, 90 BPM", target_key="A", target_bpm=120) == "rock, key of A major, 120 BPM"
+    assert jobs.effective_style("rock", target_key="F#") == "rock, key of F#"
+    assert jobs.effective_style("rock", target_key="Eb") == "rock, key of Eb"
+    assert jobs.effective_style("rock, key of D minor, 90 BPM", target_key="A", target_bpm=120) == "rock, key of A, 120 BPM"
     assert jobs.effective_style("", target_key="Am", target_bpm=90) == "key of A minor, 90 BPM"
 
 

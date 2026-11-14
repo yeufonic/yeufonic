@@ -158,13 +158,16 @@ BPM_IN_STYLE = re.compile(r"(?i)\b\d{2,3}\s*bpm\b")
 
 
 def key_phrase(key: str) -> str:
-    """A key as the planner's training captions say it: 'key of C# minor', not 'Cm'."""
+    """A key as the planner's training captions say it: 'key of C# minor', not 'Cm'.  A key lock names only the
+    note (the planner cannot be asked for a mode, so the plan keeps its own), and so does the phrase: 'key of C#'."""
     found = re.fullmatch(r"\s*([A-Ga-g][#b]?)\s*(m|min|minor|maj|major)?\s*", str(key))
     if not found:
         return f"key of {str(key).strip()}"
     root = found.group(1)[0].upper() + found.group(1)[1:]
-    minor = (found.group(2) or "").lower() in ("m", "min", "minor")
-    return f"key of {root} {'minor' if minor else 'major'}"
+    mode = (found.group(2) or "").lower()
+    if not mode:
+        return f"key of {root}"
+    return f"key of {root} {'minor' if mode in ('m', 'min', 'minor') else 'major'}"
 
 
 def effective_style(style: str, target_key: str | None = None, target_bpm: int | None = None, avoid: str | None = None) -> str:

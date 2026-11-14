@@ -158,6 +158,7 @@ Some of these act on the plan, and some on the render and the finished file:
   same interval and the key signature is rewritten. A minor plan stays minor, and only the tonic
   moves. A plan the app cannot read with certainty, such as one in a modal key or with a key change
   part way, is left in the planner's key and the log says so.
+  The planner cannot be asked for a mode, so the lock names only the note; for a song in minor, make a few and keep a minor one (**Try more** makes several at once).
 - **Tempo lock** (BPM): the plan is set to this tempo, replacing any tempo in the style or in the
   planner's own score, and the render follows it.
 - **Time signature** (Auto, 4/4, 3/4 or 6/8): the plan is written in this time signature, and the render follows it: 3/4 for a waltz, 6/8 for a lilt. Auto leaves it to the planner, which mostly writes in four. Not for a cover, which keeps its recording's.

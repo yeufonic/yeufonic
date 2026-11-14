@@ -139,6 +139,7 @@ Alguns agem sobre o plano, e outros sobre o render e o arquivo final:
   mesmo intervalo e a armadura é reescrita. Um plano menor continua menor, e só a
   tônica se move. Um plano que o app não consegue ler com certeza, como um em um modo ou com uma mudança de tom
   no meio, fica no tom do planejador e o log diz isso.
+  Não dá para pedir um modo ao planejador, então a trava só nomeia a nota; para uma música em menor, faça algumas e fique com uma em menor (**Tentar mais** faz várias de uma vez).
 - **Fixar andamento** (BPM): o plano é fixado neste andamento, que substitui qualquer andamento do estilo ou da
   própria partitura do planejador, e o render o segue.
 - **Fórmula de compasso** (Auto, 4/4, 3/4 ou 6/8): a partitura é escrita nesta fórmula e a renderização a segue: 3/4 para uma valsa, 6/8 para um balanço. Auto deixa a escolha ao planejador, que quase sempre escreve em quatro. Não vale para um cover, que mantém a da sua gravação.

@@ -139,6 +139,7 @@ Algunos actúan sobre el plan, y otros sobre el render y el archivo final:
   mismo intervalo y se reescribe la armadura. Un plan menor sigue siendo menor, y solo se mueve
   la tónica. Un plan que la aplicación no puede leer con certeza, como uno en un modo o con un cambio de tonalidad
   a mitad, se queda en la tonalidad del planificador y el registro lo indica.
+  Al planificador no se le puede pedir un modo, así que el bloqueo solo nombra la nota; para una canción en menor, haz unas cuantas y quédate con una en menor (**Probar más** hace varias a la vez).
 - **Fijar tempo** (BPM): el plan se fija a este tempo, que sustituye a cualquier tempo del estilo o de la
   propia partitura del planificador, y el render lo sigue.
 - **Compás** (Auto, 4/4, 3/4 o 6/8): la partitura se escribe en este compás y el render la sigue: 3/4 para un vals, 6/8 para un ritmo mecido. Auto lo deja al planificador, que casi siempre escribe en cuatro. No sirve para una versión, que mantiene el de su grabación.

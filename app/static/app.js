@@ -1373,7 +1373,10 @@ function writeAdvancedSettings(data) {
   $('adv-sampler-steps').value = steps;
   if ($('adv-sampler-steps-range')) { $('adv-sampler-steps-range').value = steps; }
   $('adv-avoid').value = data.avoid || '';
-  $('adv-target-key').value = data.target_key || '';
+  // A key lock names the note; a take from before may have named a mode too (Am), which the plan never followed.
+  var lockedKey = String(data.target_key || '').replace(/\s*(m|min|minor|maj|major)\s*$/i, '');
+  $('adv-target-key').value = lockedKey;
+  if ($('adv-target-key').value !== lockedKey) { $('adv-target-key').value = ''; }
   $('adv-target-bpm').value = data.target_bpm != null ? data.target_bpm : '';
   if ($('adv-target-meter')) { $('adv-target-meter').value = data.target_meter || ''; }
   $('adv-max-abc-tokens').value = data.max_abc_tokens != null ? data.max_abc_tokens : ADVANCED_DEFAULTS.max_abc_tokens;

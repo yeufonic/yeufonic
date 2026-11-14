@@ -139,6 +139,7 @@ Alguns agem sobre o plano, e outros sobre o render e o ficheiro final:
   mesmo intervalo e a armadura é reescrita. Um plano menor continua menor, e só a
   tónica se move. Um plano que a aplicação não consegue ler com certeza, como um em um modo ou com uma mudança de tom
   no meio, fica no tom do planeador e o log diz isso.
+  Não se pode pedir um modo ao planeador, por isso o bloqueio só nomeia a nota; para uma música em menor, faça algumas e fique com uma em menor (**Tentar mais** faz várias de uma vez).
 - **Fixar andamento** (BPM): o plano é fixado neste andamento, que substitui qualquer andamento do estilo ou da
   própria partitura do planeador, e o render o segue.
 - **Compasso** (Auto, 4/4, 3/4 ou 6/8): a partitura é escrita neste compasso e a renderização segue-a: 3/4 para uma valsa, 6/8 para um balanço. Auto deixa a escolha ao planeador, que quase sempre escreve em quatro. Não vale para um cover, que mantém o da sua gravação.

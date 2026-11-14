@@ -139,6 +139,7 @@ Alcune agiscono sul piano, altre sul render e sul file finale:
   stesso intervallo e l'armatura viene riscritta. Un piano minore resta minore, e si sposta solo
   la tonica. Un piano che l'app non riesce a leggere con certezza, come uno in un modo o con un cambio di tonalità
   a metà, resta nella tonalità del pianificatore e il log lo dice.
+  Al pianificatore non si può chiedere un modo, quindi il blocco nomina solo la nota; per una canzone in minore, fanne alcune e tieni quella in minore (**Prova ancora** ne fa diverse insieme).
 - **Blocca tempo** (BPM): il piano viene fissato a questo tempo, che sostituisce qualsiasi tempo dello stile o della
   partitura stessa del pianificatore, e il render lo segue.
 - **Tempo in chiave** (Auto, 4/4, 3/4 o 6/8): la partitura è scritta in questo tempo e il rendering la segue: 3/4 per un valzer, 6/8 per un andamento cullante. Auto lo lascia al pianificatore, che scrive per lo più in quattro. Non per una cover, che tiene quello della sua registrazione.

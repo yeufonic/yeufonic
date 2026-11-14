@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Key lock names the note.** It offered major and minor keys, but the planner cannot be asked for a mode: a style
+  naming one, or a score made to open with a minor key line, still came back in the plan's own mode. So the lock
+  moves the plan to the note chosen and keeps its mode, as it always did, and now says so; a key lock set before to
+  a minor key keeps working.
 - **Choose the time signature.** Advanced → **Time signature** writes the plan in 4/4, 3/4 or 6/8, and the render
   follows it; Auto leaves it to the planner, which mostly writes in four. For songs and instrumentals from a prompt,
   and through MCP (`time`). A style that says "3/4" is not enough on its own: the planner ignores the number, so the
