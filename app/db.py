@@ -886,11 +886,16 @@ def _recording_ref() -> None:
 
 
 def _keep_the_look() -> None:
-    """Studio with the Studio Slate style became the default look; a library from before keeps the look it had,
-    Dark and Classic, unless a theme or style was chosen.  A new database never runs this: it starts at the
-    latest version, and so with the new default."""
+    """Studio with the Studio Slate style became the default look; a library from before keeps its theme, Dark,
+    unless one was chosen, and takes the Studio Slate style with it (the user's call: Classic is there to choose in
+    Settings).  A new database never runs this: it starts at the latest version, and so with the new default."""
     execute("INSERT OR IGNORE INTO settings(key, value) VALUES('appearance.theme', 'dark')")
-    execute("INSERT OR IGNORE INTO settings(key, value) VALUES('appearance.ui_style', 'default')")
+
+
+def _slate_for_all() -> None:
+    """The Classic style an earlier build of migration 54 kept for an updated library goes: every library takes the
+    Studio Slate style.  No release ever offered Classic before this, so it was never a choice anyone made."""
+    execute("DELETE FROM settings WHERE key = 'appearance.ui_style' AND value = 'default'")
 
 MIGRATIONS = [
     lambda: (conn().executescript(BASE_SCHEMA), _legacy_takes()),   # -> 1
@@ -951,6 +956,7 @@ MIGRATIONS = [
     _take_note,                                                      # -> 56
     _sampling,                                                       # -> 57
     _recording_ref,                                                  # -> 58
+    _slate_for_all,                                                  # -> 59
 ]
 
 

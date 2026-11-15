@@ -71,8 +71,19 @@ def test_a_new_library_starts_with_the_new_look():
     assert db.one("SELECT 1 FROM settings WHERE key IN ('appearance.theme', 'appearance.ui_style')") is None
 
 
-def test_a_library_from_before_keeps_its_look(tmp_path, monkeypatch):
-    assert _at_version_53(tmp_path, monkeypatch) == {"appearance.theme": "dark", "appearance.ui_style": "default"}
+def test_a_library_from_before_keeps_its_theme_and_takes_the_slate_style(tmp_path, monkeypatch):
+    assert _at_version_53(tmp_path, monkeypatch) == {"appearance.theme": "dark"}
+
+
+def test_a_classic_style_kept_by_an_earlier_build_goes(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "kept.sqlite")
+    db.migrate()
+    c = db.conn()
+    c.execute("INSERT OR REPLACE INTO settings(key, value) VALUES('appearance.ui_style', 'default')")
+    c.execute("PRAGMA user_version = 58")
+    c.commit()
+    db.migrate()
+    assert db.one("SELECT 1 FROM settings WHERE key = 'appearance.ui_style'") is None
 
 
 def test_a_chosen_theme_is_never_changed(tmp_path, monkeypatch):
