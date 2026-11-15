@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="52" viewBox="0 0 168 52">
+  <!-- A README button, in the look of the app's own gradient buttons. -->
+  <defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#7b5cff"/></linearGradient></defs>
+  <rect width="168" height="52" rx="26" fill="url(#b)"/>
+  <g transform="translate(22 14)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="1" y="14" width="9" height="9" rx="1.5"/><rect x="13" y="14" width="9" height="9" rx="1.5"/></g>
+  <text x="56" y="33" font-family="Segoe UI, Inter, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#ffffff">Windows</text>
+</svg>

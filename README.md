@@ -1,38 +1,29 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Yeufonic-full%20songs%20on%20your%20GPU-7b5cff?style=for-the-badge&labelColor=3a3a46" alt="Yeufonic: full songs on your GPU">
-  <img src="https://img.shields.io/badge/Covers-of%20your%20own%20recordings-ff4d94?style=for-the-badge&labelColor=3a3a46" alt="Covers: of your own recordings">
-  <img src="https://img.shields.io/badge/Style%20LoRAs-train%20your%20own-7b5cff?style=for-the-badge&labelColor=3a3a46" alt="Style LoRAs: train your own">
+  <img src="docs/readme/banner.svg" alt="Yeufonic" width="100%">
+</p>
+
+<p align="center"><b>Full songs with an editable score, made with YuE2 on your own GPU.</b></p>
+
+<p align="center">
+  <img src="docs/readme/chips-en.svg" alt="X: songs from a prompt · T: covers of your recordings · K: style LoRAs you train · Q: stems and mastering">
 </p>
 
 <p align="center">
-  <img src="app/static/icon.svg" alt="Yeufonic" width="160">
-</p>
-
-<h1 align="center">Yeufonic</h1>
-
-<p align="center">
-  <b>Full songs with an editable score, made on your own GPU with YuE2. Write from a prompt, cover your own recording,
-  train a style from a folder of songs.</b>
+  <a href="https://github.com/yeufonic/yeufonic/releases/latest"><img src="docs/readme/windows.svg" alt="Windows" height="44"></a>
+  <a href="https://yeufonic.com/macos/"><img src="docs/readme/macos.svg" alt="macOS" height="44"></a>
+  <a href="#quick-start"><img src="docs/readme/docker.svg" alt="Docker" height="44"></a>
+  <a href="https://yeufonic.com"><img src="docs/readme/website.svg" alt="yeufonic.com" height="44"></a>
 </p>
 
 <p align="center">
-  <a href="https://yeufonic.com"><img src="https://img.shields.io/badge/Website-yeufonic.com-7b5cff?style=for-the-badge&labelColor=3a3a46" alt="Website: yeufonic.com"></a>
-  <a href="https://github.com/yeufonic/yeufonic/releases/latest"><img src="https://img.shields.io/badge/Download-Windows%20x64-ff4d94?style=for-the-badge&labelColor=3a3a46" alt="Download: Windows x64"></a>
-  <a href="https://yeufonic.com/macos/"><img src="https://img.shields.io/badge/macOS-Apple%20silicon-7b5cff?style=for-the-badge&labelColor=3a3a46" alt="macOS: Apple silicon"></a>
-  <a href="#quick-start"><img src="https://img.shields.io/badge/Docker-Linux%20·%20WSL-ff4d94?style=for-the-badge&labelColor=3a3a46" alt="Docker: Linux · WSL"></a>
+  <a href="https://github.com/yeufonic/yeufonic/releases/latest"><img src="https://img.shields.io/github/v/release/yeufonic/yeufonic?style=flat-square&label=release&labelColor=17121f&color=7b5cff" alt="release"></a>
+  <a href="https://github.com/yeufonic/yeufonic/releases"><img src="https://img.shields.io/github/downloads/yeufonic/yeufonic/total?style=flat-square&label=downloads&labelColor=17121f&color=b04dff" alt="downloads"></a>
+  <a href="https://github.com/yeufonic/yeufonic/stargazers"><img src="https://img.shields.io/github/stars/yeufonic/yeufonic?style=flat-square&label=stars&labelColor=17121f&color=d94dc4" alt="stars"></a>
+  <a href="https://github.com/yeufonic/yeufonic/commits/main"><img src="https://img.shields.io/github/last-commit/yeufonic/yeufonic?style=flat-square&label=last%20commit&labelColor=17121f&color=ff4d94" alt="last commit"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-personal%2C%20non--commercial-fb923c?style=flat-square&labelColor=17121f" alt="licence: personal, non-commercial"></a>
 </p>
 
-<p align="center">
-  <a href="https://github.com/yeufonic/yeufonic/releases/latest"><img src="https://img.shields.io/github/v/release/yeufonic/yeufonic?style=flat-square&label=release&color=7b5cff" alt="Latest release"></a>
-  <a href="https://github.com/yeufonic/yeufonic/releases"><img src="https://img.shields.io/github/downloads/yeufonic/yeufonic/total?style=flat-square&label=downloads&color=ff4d94" alt="Downloads"></a>
-  <a href="https://github.com/yeufonic/yeufonic/stargazers"><img src="https://img.shields.io/github/stars/yeufonic/yeufonic?style=flat-square&color=7b5cff" alt="Stars"></a>
-  <a href="https://github.com/yeufonic/yeufonic/commits/main"><img src="https://img.shields.io/github/last-commit/yeufonic/yeufonic?style=flat-square&color=ff4d94" alt="Last commit"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-personal%2C%20non--commercial-555?style=flat-square" alt="Licence: personal, non-commercial"></a>
-</p>
-
-<p align="center">
-  <b>English</b> · <a href="README.de.md">Deutsch</a>
-</p>
+<p align="center"><b>English</b> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pt.md">Português</a> · <a href="README.ru.md">Русский</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
 ---
 
