@@ -5,7 +5,8 @@
 <p align="center"><b>Des chansons entières avec une partition modifiable, faites avec YuE2 sur votre propre GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-fr.svg" alt="des chansons depuis un prompt · des reprises de vos enregistrements · des instrumentaux · des LoRA de style à entraîner · des voix tirées de votre chant · stems et mastering · deux moteurs : ComfyUI ou yue2.cpp">
+  <img src="docs/readme/chips-fr.svg" alt="des chansons depuis un prompt · des reprises de vos enregistrements · des instrumentaux · des LoRA de style à entraîner · des voix tirées de votre chant · stems et mastering"><br>
+  <img src="docs/readme/chip-engines-fr.svg" alt="deux moteurs : ComfyUI ou yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-fr.svg" alt="exemples sur yeufonic.com"></a>
 </p>
 
 <p align="center">
@@ -38,6 +39,7 @@ Une interface web pour [YuE2](https://github.com/multimodal-art-projection/YuE),
 - **Reprenez un enregistrement :** transcrivez votre chanson, changez sa mélodie et ses accords, rendez une nouvelle version.
 - **Instrumentaux :** construisez la structure section par section, ou jouez la partition d’un enregistrement.
 - **Enregistrez un air :** chantez-le, fredonnez-le ou jouez-le, et faites de quelques mesures une chanson entière.
+- **Import MIDI** pour les reprises et les instrumentaux, avec piano roll et sons SF2.
 - **LoRA de style :** utilisez celles qui sont publiées ou, avec le moteur ComfyUI, entraînez les vôtres sur un dossier de morceaux.
 - **Voix enregistrées :** entraînez une voix sur votre propre chant et faites chanter n’importe quelle prise avec elle.
 - **Paroles et duos :** rédigez des paroles depuis une phrase ou relevez-les d’un enregistrement ; des lignes pour un homme, une femme ou les deux.
@@ -45,7 +47,9 @@ Une interface web pour [YuE2](https://github.com/multimodal-art-projection/YuE),
 - **Stems et DAW :** séparez une prise en pistes, ou enregistrez-la en zip avec audio, stems, MIDI et partition.
 - **Une bibliothèque :** espaces, favoris, notes et fichiers de prise qui partagent une prise avec son enregistrement.
 - **Des images pour les chansons** avec des modèles locaux ou votre propre LLM externe, et un **serveur MCP** pour les agents d’IA.
+- **Un panneau de prise et un éditeur :** le panneau de gauche montre comment la prise choisie a été faite, et une grande fenêtre, en trois colonnes ou par étapes, est l’endroit où les prises se font et se modifient.
 - **Quinze langues :** l’application et son guide, traduits automatiquement.
+- **LoRA et chansons d’exemple** faites avec Yeufonic : **[exemples](https://yeufonic.com/examples/)**.
 
 Tout tourne sur une seule machine, en deux parties : l’application et le moteur. Pas de cloud, pas de compte ; un LLM externe pour les paroles est facultatif.
 

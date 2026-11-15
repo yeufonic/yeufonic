@@ -5,7 +5,8 @@
 <p align="center"><b>Ganze Songs mit bearbeitbarer Partitur, erzeugt mit YuE2 auf deiner eigenen GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-de.svg" alt="Songs aus einem Prompt · Covers deiner Aufnahmen · Instrumentals · Style-LoRAs selbst trainiert · Stimmen aus deinem Gesang · Stems und Mastering · zwei Engines: ComfyUI oder yue2.cpp">
+  <img src="docs/readme/chips-de.svg" alt="Songs aus einem Prompt · Covers deiner Aufnahmen · Instrumentals · Style-LoRAs selbst trainiert · Stimmen aus deinem Gesang · Stems und Mastering"><br>
+  <img src="docs/readme/chip-engines-de.svg" alt="zwei Engines: ComfyUI oder yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-de.svg" alt="Beispiele auf yeufonic.com"></a>
 </p>
 
 <p align="center">
@@ -38,6 +39,7 @@ Eine Weboberfläche für [YuE2](https://github.com/multimodal-art-projection/YuE
 - **Eine Aufnahme covern:** deinen Song transkribieren, Melodie und Akkorde ändern und eine neue Version rendern.
 - **Instrumentals:** die Struktur Abschnitt für Abschnitt aufbauen oder die Partitur einer Aufnahme spielen.
 - **Eine Melodie aufnehmen:** singen, summen oder spielen und ein paar Takte zu einem ganzen Song erweitern.
+- **MIDI-Import** für Covers und Instrumentals, mit Pianoroll und SF2-Klängen.
 - **Style-LoRAs:** veröffentlichte nutzen oder mit der ComfyUI-Engine eigene aus einem Ordner voller Songs trainieren.
 - **Aufgenommene Stimmen:** eine Stimme aus deinem Gesang trainieren und jeden Take darin singen lassen.
 - **Songtexte und Duette:** Texte aus einem Satz entwerfen oder heraushören; Zeilen für einen Mann, eine Frau oder beide.
@@ -45,7 +47,9 @@ Eine Weboberfläche für [YuE2](https://github.com/multimodal-art-projection/YuE
 - **Stems und DAW:** jeden Take in Spuren aufteilen oder als ZIP mit Audio, Stems, MIDI und Partitur speichern.
 - **Eine Bibliothek:** Spaces, Sterne, Notizen und Take-Dateien, die einen Take samt Aufnahme teilen.
 - **Bilder zu Songs** mit lokalen Modellen oder einem eigenen externen LLM, und ein **MCP-Server** für KI-Agenten.
+- **Take-Panel und Editor:** das linke Panel zeigt, wie der gewählte Take entstand; ein großes Fenster, in drei Spalten oder als Schritte, ist der Ort, an dem Takes entstehen und sich ändern.
 - **Fünfzehn Sprachen:** die App und ihre Anleitung, maschinell übersetzt.
+- **Beispiel-LoRAs und -Songs**, mit Yeufonic gemacht: **[Beispiele](https://yeufonic.com/examples/)**.
 
 Alles läuft auf einem Rechner, in zwei Teilen: der App und der Engine. Keine Cloud und keine Konten; ein externes LLM für Songtexte ist optional.
 

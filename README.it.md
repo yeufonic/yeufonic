@@ -5,7 +5,8 @@
 <p align="center"><b>Canzoni intere con una partitura modificabile, fatte con YuE2 sulla tua GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-it.svg" alt="canzoni da un prompt · cover delle tue registrazioni · strumentali · LoRA di stile che addestri · voci dal tuo canto · stem e mastering · due motori: ComfyUI o yue2.cpp">
+  <img src="docs/readme/chips-it.svg" alt="canzoni da un prompt · cover delle tue registrazioni · strumentali · LoRA di stile che addestri · voci dal tuo canto · stem e mastering"><br>
+  <img src="docs/readme/chip-engines-it.svg" alt="due motori: ComfyUI o yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-it.svg" alt="esempi su yeufonic.com"></a>
 </p>
 
 <p align="center">
@@ -38,6 +39,7 @@ Un’interfaccia web per [YuE2](https://github.com/multimodal-art-projection/YuE
 - **Cover di una registrazione:** trascrivi la tua canzone, cambiane melodia e accordi, renderizza una nuova versione.
 - **Strumentali:** costruisci la struttura sezione per sezione, o suona la partitura di una registrazione.
 - **Registra una melodia:** cantala, canticchiala o suonala, e trasforma poche battute in una canzone intera.
+- **Importazione MIDI** per cover e strumentali, con piano roll e suoni SF2.
 - **LoRA di stile:** usa quelle pubblicate o, con il motore ComfyUI, addestra le tue da una cartella di brani.
 - **Voci registrate:** addestra una voce dal tuo canto e fai cantare qualsiasi take con quella voce.
 - **Testi e duetti:** scrivi un testo da una frase o ricavalo da una registrazione; righe per un uomo, una donna o entrambi.
@@ -45,7 +47,9 @@ Un’interfaccia web per [YuE2](https://github.com/multimodal-art-projection/YuE
 - **Stem e DAW:** separa una take in tracce, o salvala come zip con audio, stem, MIDI e partitura.
 - **Una libreria:** spazi, preferiti, note e file take che condividono una take con la sua registrazione.
 - **Immagini per le canzoni** con modelli locali o un tuo LLM esterno, e un **server MCP** per agenti di IA.
+- **Un pannello della take e un editor:** il pannello a sinistra mostra come è nata la take scelta, e una grande finestra, in tre colonne o a passi, è dove le take si creano e si modificano.
 - **Quindici lingue:** l’app e la sua guida, tradotte automaticamente.
+- **LoRA e canzoni di esempio** fatte con Yeufonic: **[esempi](https://yeufonic.com/examples/)**.
 
 Tutto gira su un solo computer, in due parti: l’app e il motore. Niente cloud né account; un LLM esterno per i testi è facoltativo.
 

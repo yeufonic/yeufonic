@@ -5,7 +5,8 @@
 <p align="center"><b>Complete songs met een bewerkbare partituur, gemaakt met YuE2 op je eigen GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-nl.svg" alt="songs uit een prompt · covers van je opnames · instrumentals · stijl-LoRA's die je traint · stemmen uit je eigen zang · stems en mastering · twee engines: ComfyUI of yue2.cpp">
+  <img src="docs/readme/chips-nl.svg" alt="songs uit een prompt · covers van je opnames · instrumentals · stijl-LoRA's die je traint · stemmen uit je eigen zang · stems en mastering"><br>
+  <img src="docs/readme/chip-engines-nl.svg" alt="twee engines: ComfyUI of yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-nl.svg" alt="voorbeelden op yeufonic.com"></a>
 </p>
 
 <p align="center">
@@ -38,6 +39,7 @@ Een webinterface voor [YuE2](https://github.com/multimodal-art-projection/YuE), 
 - **Een opname coveren:** transcribeer je song, verander melodie en akkoorden, render een nieuwe versie.
 - **Instrumentals:** bouw de structuur sectie voor sectie op, of speel de partituur van een opname.
 - **Een melodie opnemen:** zing, neurie of speel hem, en maak van een paar maten een hele song.
+- **MIDI-import** voor covers en instrumentals, met pianorol en SF2-klanken.
 - **Stijl-LoRA's:** gebruik gepubliceerde, of train met de ComfyUI-engine je eigen uit een map met songs.
 - **Opgenomen stemmen:** train een stem op je eigen zang en laat elke take ermee zingen.
 - **Teksten en duetten:** schrijf een tekst vanuit één zin of haal hem uit een opname; regels voor een man, een vrouw of beiden.
@@ -45,7 +47,9 @@ Een webinterface voor [YuE2](https://github.com/multimodal-art-projection/YuE), 
 - **Stems en DAW:** splits een take in sporen, of bewaar hem als zip met audio, stems, MIDI en partituur.
 - **Een bibliotheek:** spaces, sterren, notities en takebestanden die een take met zijn opname delen.
 - **Afbeeldingen bij songs** met lokale modellen of je eigen externe LLM, en een **MCP-server** voor AI-agents.
+- **Een takepaneel en een editor:** het linkerpaneel toont hoe de gekozen take gemaakt is, en een groot venster, in drie kolommen of in stappen, is waar takes gemaakt en veranderd worden.
 - **Vijftien talen:** de app en de handleiding, automatisch vertaald.
+- **Voorbeeld-LoRA's en -songs**, gemaakt met Yeufonic: **[voorbeelden](https://yeufonic.com/examples/)**.
 
 Alles draait op één computer, in twee delen: de app en de engine. Geen cloud en geen accounts; een externe LLM voor teksten is optioneel.
 

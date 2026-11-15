@@ -5,7 +5,8 @@
 <p align="center"><b>帶可編輯樂譜的完整歌曲，由 YuE2 在你自己的 GPU 上生成。</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-zh-TW.svg" alt="從提示詞寫歌 · 翻唱你的錄音 · 純音樂 · 訓練風格 LoRA · 用你的歌聲訓練嗓音 · 分軌與母帶 · 兩種引擎：ComfyUI 或 yue2.cpp">
+  <img src="docs/readme/chips-zh-TW.svg" alt="從提示詞寫歌 · 翻唱你的錄音 · 純音樂 · 訓練風格 LoRA · 用你的歌聲訓練嗓音 · 分軌與母帶"><br>
+  <img src="docs/readme/chip-engines-zh-TW.svg" alt="兩種引擎：ComfyUI 或 yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-zh-TW.svg" alt="yeufonic.com 上的範例"></a>
 </p>
 
 <p align="center">
@@ -38,6 +39,7 @@
 - **翻唱錄音：**把你的歌轉成樂譜，修改旋律與和弦，算繪出新版本。
 - **純音樂：**逐段搭建結構，或演奏一段錄音的樂譜。
 - **錄一段旋律：**唱、哼或用樂器彈，把幾個小節擴展成整首歌。
+- **MIDI 匯入**，用於翻唱和純音樂，帶鋼琴捲簾和 SF2 音色。
 - **風格 LoRA：**使用已發布的，或用 ComfyUI 引擎從一個歌曲資料夾訓練你自己的。
 - **錄製的嗓音：**用你自己的歌聲訓練嗓音，讓任何版本都用它來唱。
 - **歌詞與對唱：**一句話起草歌詞，或從錄音中聽寫；為男聲、女聲或合唱指定歌詞行。
@@ -45,7 +47,9 @@
 - **分軌與 DAW：**把版本拆成音軌，或存為包含音訊、分軌、MIDI 和樂譜的 zip。
 - **資料庫：**空間、星號、備註，以及可連同錄音一起分享的版本檔案。
 - **歌曲配圖**可用本機模型或你自己的外部 LLM，還有面向 AI 代理的 **MCP 伺服器**。
+- **版本面板和編輯器：**左側面板顯示所選版本是如何做出來的；一個大視窗（三欄或分步顯示）是製作和修改版本的地方。
 - **十五種語言：**應用程式和指南均為機器翻譯。
+- 用 Yeufonic 製作的**範例 LoRA 和歌曲**：**[範例](https://yeufonic.com/examples/)**。
 
 一切都在一台電腦上執行，分為兩部分：應用程式和引擎。不用雲端，也不用帳號；寫歌詞的外部 LLM 是選用的。
 

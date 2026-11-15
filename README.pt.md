@@ -5,7 +5,8 @@
 <p align="center"><b>Músicas inteiras com uma partitura editável, feitas com o YuE2 na sua própria GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-pt.svg" alt="músicas a partir de um prompt · covers das suas gravações · instrumentais · LoRAs de estilo que você treina · vozes do seu próprio canto · stems e masterização · dois motores: ComfyUI ou yue2.cpp">
+  <img src="docs/readme/chips-pt.svg" alt="músicas a partir de um prompt · covers das suas gravações · instrumentais · LoRAs de estilo que você treina · vozes do seu próprio canto · stems e masterização"><br>
+  <img src="docs/readme/chip-engines-pt.svg" alt="dois motores: ComfyUI ou yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-pt.svg" alt="exemplos em yeufonic.com"></a>
 </p>
 
 <p align="center">
@@ -38,6 +39,7 @@ Uma interface web para o [YuE2](https://github.com/multimodal-art-projection/YuE
 - **Cover de uma gravação:** transcreva a sua música, mude a melodia e os acordes, renderize uma versão nova.
 - **Instrumentais:** monte a estrutura seção por seção, ou toque a partitura de uma gravação.
 - **Grave uma melodia:** cante, cantarole ou toque, e transforme alguns compassos numa música inteira.
+- **Importação MIDI** para covers e instrumentais, com piano roll e sons SF2.
 - **LoRAs de estilo:** use as publicadas ou, com o motor ComfyUI, treine as suas a partir de uma pasta de músicas.
 - **Vozes gravadas:** treine uma voz com o seu próprio canto e faça qualquer take ser cantado com ela.
 - **Letras e duetos:** escreva uma letra a partir de uma frase ou tire-a de uma gravação; versos para um homem, uma mulher ou ambos.
@@ -45,7 +47,9 @@ Uma interface web para o [YuE2](https://github.com/multimodal-art-projection/YuE
 - **Stems e DAW:** separe um take em faixas, ou salve-o como zip com áudio, stems, MIDI e partitura.
 - **Uma biblioteca:** espaços, favoritos, notas e arquivos de take que compartilham um take com a gravação.
 - **Imagens para músicas** com modelos locais ou o seu próprio LLM externo, e um **servidor MCP** para agentes de IA.
+- **Um painel de take e um editor:** o painel à esquerda mostra como o take escolhido foi feito, e uma janela grande, em três colunas ou em passos, é onde os takes são feitos e mudados.
 - **Quinze idiomas:** o aplicativo e o guia, com tradução automática.
+- **LoRAs e músicas de exemplo** feitas com o Yeufonic: **[exemplos](https://yeufonic.com/examples/)**.
 
 Tudo roda num único computador, em duas partes: o aplicativo e o motor. Sem nuvem e sem contas; um LLM externo para letras é opcional.
 
