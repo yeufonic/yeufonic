@@ -3651,15 +3651,23 @@ function showWriteError(message) {
    answers { done }. */
 var LAST_JOB = [null, [], {}];
 
-window.pageWork = function (title, stage) {
-  var work = { title: title, stage: stage, started: Date.now() };
+window.pageWork = function (title, stage, progress) {
+  var work = { title: title, stage: stage, started: Date.now(), progress: progress == null ? null : progress };
   State.pageWork = work;
   var tick = setInterval(function () { if (State.pageWork === work) { paintJob.apply(null, LAST_JOB); } }, 1000);
   paintJob.apply(null, LAST_JOB);
-  return { done: function () {
-    clearInterval(tick);
-    if (State.pageWork === work) { State.pageWork = null; paintJob.apply(null, LAST_JOB); }
-  } };
+  return {
+    // A new stage, and how far it has got (0 to 1) where that is known; without it the bar creeps by the time.
+    update: function (nextStage, nextProgress) {
+      work.stage = nextStage;
+      work.progress = nextProgress == null ? null : nextProgress;
+      if (State.pageWork === work) { paintJob.apply(null, LAST_JOB); }
+    },
+    done: function () {
+      clearInterval(tick);
+      if (State.pageWork === work) { State.pageWork = null; paintJob.apply(null, LAST_JOB); }
+    }
+  };
 };
 
 function paintJob(current, queue, options) {
@@ -3698,8 +3706,8 @@ function paintJob(current, queue, options) {
       $('job-title').dataset.take = '';
       $('job-title').classList.remove('job-take-link');
       $('job-time').textContent = secs(seconds);
-      $('job-bar').style.width = Math.min(90, 3 + seconds * 3) + '%';
-      $('job-stage').textContent = work.stage || '';
+      $('job-bar').style.width = (work.progress != null ? Math.max(3, Math.round(work.progress * 100)) : Math.min(90, 3 + seconds * 3)) + '%';
+      $('job-stage').textContent = (work.stage || '') + (work.progress != null ? ' \u00b7 ' + Math.round(work.progress * 100) + '%' : '');
       $('job-next').classList.add('hidden');
       paintJobPill(0);
       return;
@@ -3759,6 +3767,10 @@ function paintJob(current, queue, options) {
     $('job-time').textContent = '';
     $('job-bar').style.width = '0%';
     $('job-stage').textContent = t('Waiting for the engine');
+  }
+  if (State.pageWork) {
+    var also = State.pageWork;
+    $('job-stage').textContent += ' \u00b7 ' + also.title + (also.progress != null ? ' ' + Math.round(also.progress * 100) + '%' : '\u2026');
   }
   var titleTake = jobTake(shown);
   $('job-title').dataset.take = titleTake;
@@ -7092,7 +7104,12 @@ function runSave() {
     if (mastered) {
       statusLine(t('Mastering the file to save…'), 'wait');
       try {
-        await window.Rack.renderAndDownload(id, fmt, withRecipe, withRecording);
+        var mastering = savingWork(id, t('Mastering in this page'), null);
+        try {
+          await window.Rack.renderAndDownload(id, fmt, withRecipe, withRecording, function (stage) {
+            mastering.update(stage === 'encode' ? t('Making the {value}', { value: SAVE_NAMES[fmt] || fmt.toUpperCase() }) : t('Mastering in this page'), null);
+          });
+        } finally { mastering.done(); }
         statusLine(t('Mastered file ready to save.'), 'good');
       } catch (err) {
         statusLine(t('Could not master the file, so nothing was saved: {value}', { value: (err && err.message) || err }), 'bad');
@@ -7100,13 +7117,45 @@ function runSave() {
       return;
     }
 
+    await prepareDownload(id, fmt, withRecipe, withRecording);
+  })();
+}
+
+/* A file being made to save, shown in the top bar's job pill as a render is ("Saving “Night drive” · Making the MP3 ·
+   42%"): the server makes it in the background and says how far it has got, and the page fetches it once done. */
+var SAVE_NAMES = { flac: 'FLAC', wav: 'WAV', mp3: 'MP3', mp4: t('video file') };
+function savingWork(id, stage, progress) {
+  var take = takeById(id) || State.saveTake || {};
+  return window.pageWork(t('Saving “{title}”', { title: take.title || t('the take') }), stage, progress);
+}
+
+async function prepareDownload(id, fmt, withRecipe, withRecording) {
+  var label = t('Making the {value}', { value: SAVE_NAMES[fmt] || fmt.toUpperCase() });
+  var work = savingWork(id, label, 0);
+  try {
+    var job = await api('/api/takes/' + id + '/prepare-download', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ format: fmt, recipe: Boolean(withRecipe), recording: Boolean(withRecording) })
+    });
+    var state;
+    for (;;) {
+      await new Promise(function (done) { setTimeout(done, 400); });
+      state = await api('/api/downloads/' + job.token);
+      if (state.state !== 'working') { break; }
+      work.update(label, state.progress);
+    }
+    if (state.state === 'failed') { throw new Error(tr(state.error) || t('failed')); }
+    work.done();
     var link = document.createElement('a');
-    link.href = '/api/takes/' + id + '/audio?download=1&format=' + fmt + (withRecipe ? '&recipe=1' : '') + (recordingParam ? '&' + recordingParam : '');
+    link.href = '/api/downloads/' + job.token + '/file';
     link.download = '';
     document.body.appendChild(link);
     link.click();
     link.remove();
-  })();
+  } catch (err) {
+    work.done();
+    statusLine(t('Could not save it: {message}', { message: err.message || err }), 'bad');
+  }
 }
 
 /* The take for a DAW (app/daw.py): the server gathers the audio, the stems, the score, a chord chart and the recipe;
@@ -7116,6 +7165,7 @@ async function saveForDaw(id) {
   var take = takeById(id) || State.saveTake || {};
   var form = new FormData();
   statusLine(t('Putting the take together for a DAW…'), 'wait');
+  var dawWork = savingWork(id, t('Putting it together for a DAW'), null);
   try {
     var abc = take.abc || '';
     if (abc.trim() && typeof ABCJS !== 'undefined' && typeof writeMidi === 'function') {
@@ -7142,8 +7192,10 @@ async function saveForDaw(id) {
     document.body.appendChild(link);
     link.click();
     link.remove();
+    dawWork.done();
     statusLine(t('Ready for a DAW.'), 'good');
   } catch (err) {
+    dawWork.done();
     statusLine(t('Could not put the take together for a DAW: {message}', { message: err.message }), 'bad');
   }
 }

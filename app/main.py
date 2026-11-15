@@ -5230,7 +5230,7 @@ SAVE_FORMATS = {
 VIDEO_FORMAT = "mp4"
 
 
-def _save_copy(take_id: str, take, src: Path, out: Path, fmt: str, deep: bool = False) -> None:
+def _save_copy(take_id: str, take, src: Path, out: Path, fmt: str, deep: bool = False, progress=None) -> None:
     """The file a Save hands over: the audio in an audio format with its tags, or the video with the take's
     picture.  `deep` is a 24-bit source (the rack's mastered render), which a WAV keeps rather than being cut
     to 16 bits; a FLAC follows its source's depth by itself.  Raises HTTPException 409 for a video of a take
@@ -5240,10 +5240,11 @@ def _save_copy(take_id: str, take, src: Path, out: Path, fmt: str, deep: bool = 
         shown = artwork.shown_path(take_id, take["parent_id"])   # the picture its card shows
         if not shown:
             raise HTTPException(409, "this take has no picture, so there is no video to make")
-        library.video_copy(src, shown[1], out, take["title"] or "", words)
+        library.video_copy(src, shown[1], out, take["title"] or "", words, progress=progress)
         return
     codec = ["-c:a", "pcm_s24le"] if deep and fmt == "wav" else SAVE_FORMATS[fmt][1]
-    library.tagged_copy(src, out, fmt, codec, take["title"] or "", words, library.music_tags(take["abc"]))
+    library.tagged_copy(src, out, fmt, codec, take["title"] or "", words, library.music_tags(take["abc"]),
+                        progress=progress)
 
 
 def _save_format(format: str | None) -> str | None:
@@ -5295,6 +5296,83 @@ def take_audio(
     if recipe:   # with the take's recipe beside it, in one zip, and its recording when asked for (#60)
         return _with_recipe(take_id, out, f"{safe}.{fmt}", recording=recording)
     return FileResponse(out, media_type=media, filename=f"{safe}.{fmt}",
+                        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+                        background=BackgroundTask(out.unlink, missing_ok=True))
+
+
+# A download made in the background, so the page can show how far it has got (as it does for a render) rather than
+# waiting on a request that says nothing until the file arrives: prepare it, ask how it is going, then fetch it.
+_DOWNLOADS: dict[str, dict] = {}
+DOWNLOAD_KEEP = 3600
+
+
+class PrepareDownloadIn(BaseModel):
+    format: str = Field(..., max_length=10)
+    recipe: bool = False
+    recording: bool = False
+
+
+@app.post("/api/takes/{take_id}/prepare-download")
+async def prepare_download(take_id: str, body: PrepareDownloadIn) -> dict:
+    """Start making the file a Save hands over; answers a token to ask after it with."""
+    fmt = _save_format(body.format)
+    take = one("SELECT audio_path, title, kind, lyrics, parent_id, abc, duration FROM takes WHERE id = ?", (take_id,))
+    if not take or not take["audio_path"] or not Path(take["audio_path"]).exists():
+        raise HTTPException(404, "no audio for this take")
+    if fmt == VIDEO_FORMAT and not artwork.shown_path(take_id, take["parent_id"]):
+        raise HTTPException(409, "this take has no picture, so there is no video to make")
+    now = time.time()
+    for token, old in list(_DOWNLOADS.items()):        # ones never fetched go after an hour
+        if now - old["created"] > DOWNLOAD_KEEP:
+            Path(old.get("path") or "/nonexistent").unlink(missing_ok=True)
+            _DOWNLOADS.pop(token, None)
+    token = uuid.uuid4().hex
+    safe = "".join(ch for ch in (take["title"] or "take") if ch.isalnum() or ch in " -_")[:60].strip() or "take"
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    out = config.WORK_DIR / f"save-{take_id}-{token[:8]}.{fmt}"
+    entry = {"take_id": take_id, "format": fmt, "state": "working", "progress": 0.0, "error": None, "created": now,
+             "path": str(out), "name": f"{safe}.{fmt}", "recipe": body.recipe, "recording": body.recording}
+    _DOWNLOADS[token] = entry
+
+    def progress(fraction: float) -> None:
+        entry["progress"] = round(fraction, 3)
+
+    async def make() -> None:
+        try:
+            await asyncio.to_thread(_save_copy, take_id, take, Path(take["audio_path"]), out, fmt, False, progress)
+            entry.update(state="done", progress=1.0)
+        except HTTPException as exc:
+            entry.update(state="failed", error=str(exc.detail))
+        except (subprocess.SubprocessError, OSError) as exc:
+            out.unlink(missing_ok=True)
+            log.warning("Could not convert take '%s' to %s: %s", take["title"] or take_id, fmt, exc)
+            entry.update(state="failed", error=f"could not convert this take to {fmt.upper()}")
+
+    asyncio.create_task(make())
+    return {"token": token}
+
+
+@app.get("/api/downloads/{token}")
+def download_state(token: str) -> dict:
+    """How a prepared download is going: working (with progress, 0 to 1), done or failed."""
+    entry = _DOWNLOADS.get(token)
+    if not entry:
+        raise HTTPException(404, "no such download")
+    return {"state": entry["state"], "progress": entry["progress"], "error": entry["error"], "format": entry["format"]}
+
+
+@app.get("/api/downloads/{token}/file")
+def download_file(token: str) -> FileResponse:
+    """The prepared file, once: with the take's recipe (and recording) in a zip when they were asked for."""
+    entry = _DOWNLOADS.get(token)
+    if not entry or entry["state"] != "done" or not Path(entry["path"]).exists():
+        raise HTTPException(404, "this download is not ready, or has gone")
+    _DOWNLOADS.pop(token, None)
+    out = Path(entry["path"])
+    if entry["recipe"]:
+        return _with_recipe(entry["take_id"], out, entry["name"], recording=entry["recording"])
+    media = "video/mp4" if entry["format"] == VIDEO_FORMAT else SAVE_FORMATS[entry["format"]][0]
+    return FileResponse(out, media_type=media, filename=entry["name"],
                         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
                         background=BackgroundTask(out.unlink, missing_ok=True))
 

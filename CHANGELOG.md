@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Saving a take shows its progress in the top bar's job pill,** as a render does: "Saving “Night drive” · Making
+  the MP3 · 42%", or the stage for a mastered file (mastering in the page, then making the file) and for a DAW zip.
+  The file is made in the background and fetched once it is done, instead of a download that said nothing until it
+  arrived. While the engine is busy, the save is named under its job.
 - **Covers in take files** (#60). Save → Take has a **with its recording** tick for a take made from a recording: the
   recording as uploaded goes in the zip under `recording/`, beside the recipe and any audio format chosen. **Import
   take** (and dropping on the library) takes such a zip, or a take file chosen with its recording. A take arrives as

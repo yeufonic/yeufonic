@@ -592,8 +592,36 @@ def music_tags(abc: str | None) -> dict[str, str]:
     return tags
 
 
+def run_ffmpeg(cmd: list[str], timeout: float, progress=None, seconds: float | None = None) -> None:
+    """ffmpeg, as subprocess.run(check=True) would run it; with `progress` (a callable taking 0..1) and the length
+    being written, it is told how far the file has got, from ffmpeg's own -progress lines."""
+    if progress is None or not seconds:
+        subprocess.run(cmd, capture_output=True, timeout=timeout, check=True)
+        return
+    full = [cmd[0], "-progress", "pipe:1", "-nostats", *cmd[1:]]
+    proc = subprocess.Popen(full, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    started = time.monotonic()
+    try:
+        for line in proc.stdout:
+            if line.startswith(("out_time_us=", "out_time_ms=")):
+                try:
+                    done = int(line.split("=", 1)[1]) / 1e6
+                except ValueError:
+                    continue
+                progress(max(0.0, min(1.0, done / seconds)))
+            if time.monotonic() - started > timeout:
+                proc.kill()
+                raise subprocess.TimeoutExpired(full, timeout)
+        err = proc.stderr.read()
+        if proc.wait() != 0:
+            raise subprocess.CalledProcessError(proc.returncode, full, stderr=err)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+
+
 def tagged_copy(src: Path, dest: Path, fmt: str, codec: list[str] | None, title: str,
-                lyrics: str | None, music: dict[str, str] | None = None) -> None:
+                lyrics: str | None, music: dict[str, str] | None = None, progress=None) -> None:
     """The take at src as a file to hand over, in fmt, with its tags.  A FLAC is copied
     rather than encoded again.  WAV has nowhere for lyrics, and ffmpeg's own tags suit it.
     `music` is the tempo and key from the score (music_tags), for a DAW or DJ program.
@@ -604,10 +632,10 @@ def tagged_copy(src: Path, dest: Path, fmt: str, codec: list[str] | None, title:
                if k.lower() != "encoder" and not (music and k.lower() in MUSIC_TAG_NAMES)}
 
     if fmt == "wav":
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), *(codec or []),
-                        "-metadata", f"title={title}", "-metadata", f"comment={MADE_WITH}",
-                        "-metadata", f"encoded_by=Yeufonic {config.VERSION}", str(dest)],
-                       capture_output=True, timeout=300, check=True)
+        run_ffmpeg(["ffmpeg", "-v", "error", "-y", "-i", str(src), *(codec or []),
+                    "-metadata", f"title={title}", "-metadata", f"comment={MADE_WITH}",
+                    "-metadata", f"encoded_by=Yeufonic {config.VERSION}", str(dest)],
+                   300, progress, audio_duration(src) if progress else None)
         return
 
     # No tags from ffmpeg: the app writes them.  For an MP3, -write_id3v2 0 still
@@ -623,8 +651,8 @@ def tagged_copy(src: Path, dest: Path, fmt: str, codec: list[str] | None, title:
     else:
         chosen_codec = codec or ["-c", "copy"]
 
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), *chosen_codec, *untagged, str(dest)],
-                   capture_output=True, timeout=300, check=True)
+    run_ffmpeg(["ffmpeg", "-v", "error", "-y", "-i", str(src), *chosen_codec, *untagged, str(dest)],
+               300, progress, audio_duration(src) if progress else None)
     if fmt == "mp3":
         dest.write_bytes(id3_tag(title, lyrics, carried, music) + dest.read_bytes())
         return
@@ -639,7 +667,7 @@ def tagged_copy(src: Path, dest: Path, fmt: str, codec: list[str] | None, title:
 
 
 
-def video_copy(src: Path, picture: Path, dest: Path, title: str, lyrics: str | None) -> None:
+def video_copy(src: Path, picture: Path, dest: Path, title: str, lyrics: str | None, progress=None) -> None:
     """The take at src as an MP4 that shows its picture for the length of the song: a file that messaging apps
     such as WhatsApp send and play as a video, where an audio file goes as a document.  H.264 and AAC, which
     phones play everywhere.  The picture is one frame a second, with a keyframe every ten minutes: it never
@@ -650,13 +678,13 @@ def video_copy(src: Path, picture: Path, dest: Path, title: str, lyrics: str | N
     tags = ["-metadata", f"title={title}", "-metadata", f"comment={MADE_WITH}"]
     if lyrics:
         tags += ["-metadata", f"lyrics={lyrics}"]
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", "1", "-i", str(picture),
-                    "-i", str(src), "-map", "0:v", "-map", "1:a", *length,
-                    "-vf", "premultiply=inplace=1,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
-                    "-c:v", "libx264", "-preset", "veryfast", "-tune", "stillimage", "-crf", "20", "-g", "600",
-                    "-c:a", "aac", "-b:a", "192k", "-map_metadata", "-1", *tags, "-movflags", "+faststart",
-                    str(dest)],
-                   capture_output=True, timeout=900, check=True)
+    run_ffmpeg(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", "1", "-i", str(picture),
+                "-i", str(src), "-map", "0:v", "-map", "1:a", *length,
+                "-vf", "premultiply=inplace=1,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
+                "-c:v", "libx264", "-preset", "veryfast", "-tune", "stillimage", "-crf", "20", "-g", "600",
+                "-c:a", "aac", "-b:a", "192k", "-map_metadata", "-1", *tags, "-movflags", "+faststart",
+                str(dest)],
+               900, progress, seconds)
 
 # The waveform the player draws.  Computed once on the server from an 8 kHz mono
 # decode, instead of the browser decoding the whole file to float PCM on every play.

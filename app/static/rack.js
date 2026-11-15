@@ -3983,8 +3983,11 @@
       }
     },
 
-    renderAndDownload: async function (takeId, format, withRecipe, withRecording) {
+    renderAndDownload: async function (takeId, format, withRecipe, withRecording, onStage) {
+      // Its two stages, for the page to show in the top bar's job pill: mastering here, then the server making the file.
+      if (typeof onStage === 'function') { onStage('master'); }
       var wavBlob = await this.renderMasterWav(takeId);
+      if (typeof onStage === 'function') { onStage('encode'); }
       var formData = new FormData();
       formData.append('audio_file', wavBlob, 'master.wav');
       var res = await fetch('/api/takes/' + takeId + '/export-mastered?format=' + encodeURIComponent(format) + '&prepare=1', {
