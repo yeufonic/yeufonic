@@ -125,6 +125,8 @@ allemaal terug.
 
 Elk getal wordt gebruikt zoals je het invult. Een getal buiten het gebruikelijke bereik van een instelling (het bereik dat de rij noemt) kleurt het vak oranje en wordt toch gebruikt, voor wie wil experimenteren; een getal dat de engine niet kan nemen, zoals een top_p boven 1, wordt bij het verlaten van het vak op de dichtstbijzijnde waarde gezet die hij neemt, en het vak meldt dat.
 
+**Waarden ver van de standaard kunnen een take laten mislukken.** Deze instellingen veranderen wat het model gevraagd wordt, en sommige combinaties (een hoge plannertemperatuur met een levendigere Variatie van het plan, bijvoorbeeld) maken het plan onleesbaar of laten het renderen mislukken. Mislukt een take na een wijziging hier, druk dan op **Standaardwaarden herstellen**, of breng de waarden dichter bij hun standaard, en probeer het opnieuw; het logboek noemt de waarden waarmee een mislukt plan of render liep.
+
 Sommige werken op het plan, andere op de render en het uiteindelijke bestand:
 
 - **Diffusiestappen** (16–64, standaard 32): hoeveel stappen de audiodecoder zet. Meer stappen duren

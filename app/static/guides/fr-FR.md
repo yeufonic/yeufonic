@@ -125,6 +125,8 @@ tous.
 
 Chaque nombre est utilisé tel que vous le saisissez. Un nombre hors de la plage habituelle d’un réglage (celle que nomme sa ligne) colore sa case en ambre et est utilisé quand même, pour qui veut expérimenter ; un nombre que le moteur ne peut pas accepter, comme un top_p au-dessus de 1, est réglé sur la valeur la plus proche qu’il accepte quand vous quittez la case, et la case le signale.
 
+**Des valeurs éloignées des valeurs par défaut peuvent faire échouer une prise.** Ces réglages changent ce que l’on demande au modèle, et certaines combinaisons (une température du planificateur élevée avec une Variété du plan plus vive, par exemple) donnent un plan illisible ou un rendu qui échoue. Si une prise échoue après un changement ici, appuyez sur **Rétablir les valeurs par défaut**, ou rapprochez les valeurs de leurs valeurs par défaut, et réessayez ; le journal indique les valeurs avec lesquelles un plan ou un rendu raté a tourné.
+
 Certains agissent sur le plan, d’autres sur le rendu et le fichier final :
 
 - **Étapes de diffusion** (16–64, par défaut 32) : combien d’étapes fait le décodeur audio. Plus d’étapes allongent

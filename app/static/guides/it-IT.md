@@ -125,6 +125,8 @@ tutte indietro.
 
 Ogni numero viene usato così come lo scrivi. Uno fuori dall’intervallo abituale di un’impostazione (quello indicato nella sua riga) colora la casella di ambra e viene usato comunque, per chi vuole sperimentare; uno che il motore non può accettare, come un top_p sopra 1, viene impostato al valore più vicino che accetta quando lasci la casella, e la casella lo dice.
 
+**Valori lontani da quelli predefiniti possono far fallire una take.** Queste impostazioni cambiano ciò che si chiede al modello, e alcune combinazioni (una temperatura del planner alta con una Varietà del piano più vivace, per esempio) danno un piano illeggibile o un rendering che fallisce. Se una take fallisce dopo una modifica qui, premi **Ripristina predefiniti**, o riavvicina i valori a quelli predefiniti, e riprova; il registro indica i valori con cui è girato un piano o un rendering fallito.
+
 Alcune agiscono sul piano, altre sul render e sul file finale:
 
 - **Passi di diffusione** (16–64, predefinito 32): quanti passi compie il decodificatore audio. Più passi richiedono

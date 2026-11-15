@@ -125,6 +125,8 @@ todos.
 
 Todos os números são usados tal como os escreve. Um fora do intervalo habitual de uma definição (o que a sua linha indica) põe a caixa âmbar e é usado na mesma, para quem quer experimentar; um que o motor não aceita, como um top_p acima de 1, é ajustado para o valor mais próximo que ele aceita quando sai da caixa, e a caixa avisa.
 
+**Valores longe das predefinições podem estragar um take.** Estas definições mudam o que se pede ao modelo, e algumas combinações (uma temperatura alta do planeador com uma Variedade do plano mais animada, por exemplo) fazem o plano sair ilegível ou a renderização falhar. Se um take falhar depois de uma mudança aqui, carregue em **Restaurar padrões**, ou aproxime os valores das predefinições, e tente de novo; o registo indica os valores com que um plano ou uma renderização falhou.
+
 Alguns agem sobre o plano, e outros sobre o render e o ficheiro final:
 
 - **Passos de difusão** (16–64, padrão 32): quantos passos o decodificador de áudio dá. Mais passos demoram

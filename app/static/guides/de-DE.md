@@ -125,6 +125,8 @@ alle zurück.
 
 Jede Zahl wird so verwendet, wie du sie eingibst. Eine außerhalb des üblichen Bereichs einer Einstellung (der Bereich, den ihre Zeile nennt) färbt ihr Feld gelb und wird trotzdem verwendet, für alle, die experimentieren wollen; eine, die die Engine nicht nehmen kann, etwa ein top_p über 1, wird beim Verlassen des Feldes auf den nächsten Wert gesetzt, den sie nimmt, und das Feld sagt es.
 
+**Werte abseits der Standardwerte können einen Take scheitern lassen.** Diese Einstellungen ändern, worum das Modell gebeten wird, und manche Kombinationen (etwa eine hohe Planer-Temperatur mit einer lebhafteren Planvielfalt) lassen den Plan unlesbar ausfallen oder das Rendern scheitern. Scheitert ein Take nach einer Änderung hier, drücke **Auf Standard zurücksetzen** oder bring die Werte näher an ihre Standardwerte und versuche es erneut; das Protokoll nennt die Werte, mit denen ein gescheiterter Plan oder Render lief.
+
 Manche wirken auf den Plan, manche auf das Rendering und die fertige Datei:
 
 - **Diffusionsschritte** (16–64, Standard 32): wie viele Schritte der Audio-Decoder macht. Mehr Schritte rendern

@@ -125,6 +125,8 @@ todos.
 
 Cada número se usa tal como lo escribes. Uno fuera del rango habitual de un ajuste (el que nombra su fila) pone su casilla en ámbar y se usa igual, para quien quiera experimentar; uno que el motor no puede aceptar, como un top_p mayor que 1, se fija en el valor más cercano que acepta al salir de la casilla, y la casilla lo indica.
 
+**Los valores lejos de los predeterminados pueden estropear una toma.** Estos ajustes cambian lo que se le pide al modelo, y algunas combinaciones (una temperatura alta del planificador con una Variedad del plan más viva, por ejemplo) hacen que el plan salga ilegible o que el renderizado falle. Si una toma falla tras un cambio aquí, pulsa **Restablecer valores**, o acerca los valores a los predeterminados, y vuelve a intentarlo; el registro nombra los valores con que se ejecutó un plan o renderizado fallido.
+
 Algunos actúan sobre el plan, y otros sobre el render y el archivo final:
 
 - **Pasos de difusión** (16–64, por defecto 32): cuántos pasos da el decodificador de audio. Más pasos tardan

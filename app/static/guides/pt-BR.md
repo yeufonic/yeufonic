@@ -125,6 +125,8 @@ todos.
 
 Todo número é usado como você digita. Um fora da faixa habitual de uma configuração (a que a linha dela indica) deixa a caixa âmbar e é usado mesmo assim, para quem quer experimentar; um que o motor não aceita, como um top_p acima de 1, é ajustado para o valor mais próximo que ele aceita quando você sai da caixa, e a caixa avisa.
 
+**Valores longe dos padrões podem estragar um take.** Essas configurações mudam o que se pede ao modelo, e algumas combinações (uma temperatura alta do planejador com uma Variedade do plano mais animada, por exemplo) fazem o plano sair ilegível ou a renderização falhar. Se um take falhar depois de uma mudança aqui, clique em **Restaurar padrões**, ou aproxime os valores dos padrões, e tente de novo; o log mostra os valores com que um plano ou uma renderização falhou.
+
 Alguns agem sobre o plano, e outros sobre o render e o arquivo final:
 
 - **Passos de difusão** (16–64, padrão 32): quantos passos o decodificador de áudio dá. Mais passos demoram

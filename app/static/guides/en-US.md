@@ -144,6 +144,8 @@ them all back.
 
 Every number is used as you type it. One outside a setting's usual range (the range its row names) turns its box amber and is still used, for anyone who wants to experiment; one the engine cannot take, such as a top_p above 1, is set to the nearest value it takes once you leave the box, and the box says so.
 
+**Values away from the defaults can break a take.** These settings change what the model is asked to do, and some combinations (a high planner temperature with a livelier Plan variety, for one) make the plan come out unreadable or the render fail. If a take fails after a change here, press **Reset to defaults**, or move the values back towards their defaults, and try again; the log names the values a failed plan or render ran with.
+
 Some of these act on the plan, and some on the render and the finished file:
 
 - **Diffusion steps** (16–64, default 32): how many steps the audio decoder takes. More steps take

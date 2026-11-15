@@ -65,7 +65,9 @@ cannot creep back in.
   Interpretation and shows its value; a value typed replaces that one alone. The values are saved with the take and its
   recipe file, Sing again and Try more keep them, and the card says *(custom)* beside the Plan or Interpretation they
   change. Variations has a tick to keep the music stage's values on every variation; left off, each is heard as its
-  interpretation alone.
+  interpretation alone. Values away from the presets can make a plan come out unreadable or a render fail (a high planner
+  temperature with a livelier Plan variety, for one): Reset to defaults puts them back, and the log names the values a
+  failed plan or render ran with.
 - **Follow the style is labelled Follow the style/CFG,** the name it goes by elsewhere.
 - **A take made from another no longer copies its note** (Sing again and Try more copied it).
 - **The editor's foot offers Render this score** for a song whose plan is ready and not yet rendered, such as an
