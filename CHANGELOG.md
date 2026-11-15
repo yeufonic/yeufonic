@@ -37,6 +37,12 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **Windows: the taskbar shows Yeufonic's icon again.** A test build of the installer gave its window the same
+  taskbar identity as the real install's, and once it was removed Windows kept showing a generic icon for both. The
+  window now has an identity of its own (and a test build another), so the button shows the Yeufonic logo.
+
 ## 0.0.60 (2026-11-15)
 
 - **Take files that carry a take whole** (#60). Save → Take has a **with its recording** tick for a take made from a recording: the

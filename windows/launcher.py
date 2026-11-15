@@ -346,7 +346,11 @@ def _guid(text: str) -> _GUID:
 _APP_USER_MODEL = "{9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3}"
 # PKEY_AppUserModel_RelaunchCommand, _RelaunchIconResource, _RelaunchDisplayNameResource, _ID
 _RELAUNCH_COMMAND, _RELAUNCH_ICON, _RELAUNCH_NAME, _APP_ID = 2, 3, 4, 5
-APP_ID = "Yeufonic.App"
+# The window's identity on the taskbar.  A test build installs beside the real one (YeufonicTest) and has its own, or
+# Windows takes the two for one app and keeps whichever icon it saw first: a test build since removed left the real
+# install's button with a generic icon.  The real one moved from "Yeufonic.App" for the same reason: an identity
+# Windows has already cached a dead icon for keeps it, so a new one starts clean.
+APP_ID = "Yeufonic.Test" if HERE.name.lower().startswith("yeufonictest") else "Yeufonic.Desktop"
 
 
 def claim_window(hwnd: int) -> bool:
