@@ -123,6 +123,8 @@ n’en ont jamais besoin. Ils sont enregistrés avec la prise, si bien que *Modi
 Le bouton s’allume quand un réglage diffère de sa valeur par défaut, et **Rétablir les valeurs par défaut** les remet
 tous.
 
+Chaque nombre est utilisé tel que vous le saisissez. Un nombre hors de la plage habituelle d’un réglage (celle que nomme sa ligne) colore sa case en ambre et est utilisé quand même, pour qui veut expérimenter ; un nombre que le moteur ne peut pas accepter, comme un top_p au-dessus de 1, est réglé sur la valeur la plus proche qu’il accepte quand vous quittez la case, et la case le signale.
+
 Certains agissent sur le plan, d’autres sur le rendu et le fichier final :
 
 - **Étapes de diffusion** (16–64, par défaut 32) : combien d’étapes fait le décodeur audio. Plus d’étapes allongent

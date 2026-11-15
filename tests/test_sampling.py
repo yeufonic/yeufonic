@@ -19,8 +19,14 @@ def test_only_the_values_given_are_kept_and_each_is_checked():
     assert jobs.clean_sampling(json.dumps(CUSTOM)) == CUSTOM
     assert jobs.clean_sampling({"render": {"top_k": 50.0}}) == {"render": {"top_k": 50}}
     assert jobs.clean_sampling({"plan": {"temperature": 0.9}, "other": {"x": 1}}) == {"plan": {"temperature": 0.9}}
-    for bad in ({"plan": {"temperature": 3}}, {"render": {"top_p": 0}}, {"render": {"top_k": 501}},
-                {"plan": {"repetition_penalty": 0.9}}, {"plan": {"top_k": "many"}}, {"plan": {"top_k": True}}, "{"):
+    # Outside the usual range, but something the sampler can take: kept as typed, for anyone experimenting.
+    unusual = {"plan": {"temperature": 3.0, "repetition_penalty": 0.9}, "render": {"top_k": 900, "top_p": 0.05}}
+    assert jobs.clean_sampling(unusual) == unusual
+    # What the sampler cannot take at all is refused, never changed.
+    for bad in ({"plan": {"temperature": 0}}, {"plan": {"temperature": 6}}, {"render": {"top_p": 0}},
+                {"render": {"top_p": 1.2}}, {"render": {"top_k": 0}}, {"render": {"top_k": 40000}},
+                {"plan": {"repetition_penalty": -1}}, {"plan": {"repetition_penalty": 11}}, {"plan": {"top_k": "many"}},
+                {"plan": {"top_k": True}}, {"render": {"top_k": 50.5}}, "{"):
         with pytest.raises(ValueError):
             jobs.clean_sampling(bad)
 
@@ -51,10 +57,15 @@ def test_the_values_are_kept_with_a_take_and_cleared_by_sending_none(client):
     assert one("SELECT sampling FROM takes WHERE id = ?", (made["id"],))["sampling"] is None
 
 
-def test_a_value_out_of_range_is_refused(client):
+def test_a_value_the_sampler_cannot_take_is_refused_and_an_unusual_one_kept(client):
     r = client.post("/api/songs", json={"title": "T", "style": "rock", "lyrics": "[Verse]\nla",
-                                        "sampling": {"plan": {"temperature": 5}}})
+                                        "sampling": {"plan": {"temperature": 0}}})
     assert r.status_code == 400 and "temperature" in r.text
+    r = client.post("/api/songs", json={"title": "T", "style": "rock", "lyrics": "[Verse]\nla",
+                                        "sampling": {"plan": {"temperature": 5}}, "cfg_scale": 150})
+    assert r.status_code == 200
+    row = one("SELECT sampling, cfg_scale FROM takes WHERE id = ?", (r.json()["id"],))
+    assert json.loads(row["sampling"]) == {"plan": {"temperature": 5.0}} and row["cfg_scale"] == 150
 
 
 def test_variations_keep_the_music_values_only_when_asked(client):
@@ -79,7 +90,7 @@ def test_the_recipe_carries_the_values_and_an_import_keeps_them(client):
     assert data["take"]["sampling"] == CUSTOM
     got = client.post("/api/takes/import", json={"recipe": data, "space_id": "default"}).json()
     assert json.loads(one("SELECT sampling FROM takes WHERE id = ?", (got["id"],))["sampling"]) == CUSTOM
-    data["take"]["sampling"] = {"render": {"top_k": 9999}}
+    data["take"]["sampling"] = {"render": {"top_k": 0}}
     assert client.post("/api/takes/import", json={"recipe": data, "space_id": "default"}).status_code == 400
 
 
@@ -87,7 +98,7 @@ def test_the_page_is_told_each_presets_values():
     presets = jobs.sampling_presets()
     assert presets["plan"]["calm"] == {"top_p": 0.9, "top_k": 30, "temperature": 0.55, "repetition_penalty": 1.0}
     assert presets["render"]["wide"]["top_k"] == 250 and presets["render"]["tight"]["temperature"] == 0.8
-    assert presets["limits"]["top_k"] == [1, 500]
+    assert presets["limits"]["top_k"] == [1, 500] and presets["hard"]["top_p"] == [0.01, 1.0]
 
 
 def test_the_log_lines_name_the_settings_changed_from_their_defaults():

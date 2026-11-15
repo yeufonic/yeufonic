@@ -142,6 +142,8 @@ need them. They are saved with the take, so *Edit and render again* finds them a
 The button lights up when any setting differs from its default, and **Reset to defaults** puts
 them all back.
 
+Every number is used as you type it. One outside a setting's usual range (the range its row names) turns its box amber and is still used, for anyone who wants to experiment; one the engine cannot take, such as a top_p above 1, is set to the nearest value it takes once you leave the box, and the box says so.
+
 Some of these act on the plan, and some on the render and the finished file:
 
 - **Diffusion steps** (16–64, default 32): how many steps the audio decoder takes. More steps take

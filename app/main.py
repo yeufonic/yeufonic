@@ -1080,20 +1080,22 @@ class LoraSettingsMixin(BaseModel):
     style_lora_clip: float = Field(1.0, ge=0.0, le=3.0)
 
 
+# The hard limits on the Advanced settings: what the engine or the file cannot take.  The page shows each one's usual
+# range, flags a value outside it, and sends it as typed: only these are refused.
 class AdvancedRenderSettingsMixin(BaseModel):
-    sampler_steps: int | None = Field(32, ge=16, le=64)
+    sampler_steps: int | None = Field(32, ge=1, le=10000)
     avoid: str | None = Field(None, max_length=1000)
     target_key: str | None = Field(None, max_length=50)
-    target_bpm: int | None = Field(None, ge=20, le=400)
-    max_abc_tokens: int | None = Field(8192, ge=512, le=8192)
-    chord_hold_limit: int | None = Field(8, ge=1, le=32)
-    chord_outside_bonus: float | None = Field(0.0, ge=0.0, le=10.0)
+    target_bpm: int | None = Field(None, ge=1, le=999)
+    max_abc_tokens: int | None = Field(8192, ge=1, le=8192)
+    chord_hold_limit: int | None = Field(8, ge=0, le=64)
+    chord_outside_bonus: float | None = Field(0.0, ge=0.0, le=20.0)
     chord_sections: int | None = Field(None, ge=0, le=1)
     follow_structure: int | None = Field(None, ge=0, le=1)
     voice_cues: int | None = Field(None, ge=0, le=1)
-    target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
-    fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
-    cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
+    target_lufs: float | None = Field(None, ge=-70.0, le=0.0)
+    fade_out_seconds: float | None = Field(3.0, ge=0.1, le=60.0)
+    cfg_scale: float | None = Field(None, ge=0.0)   # ComfyUI's node takes up to 100 and refuses more; yue2.cpp takes any
     target_meter: str | None = Field(None, pattern=r"^(4/4|2/4|3/4|6/8)?$")
     sampling: dict | None = None
 
@@ -1139,19 +1141,19 @@ class ReplanIn(BaseModel):
     # Both optional: an omitted field keeps what the take already has.
     variety: str | None = None
     harmony: int | None = Field(None, ge=0, le=len(HARMONY_STEPS) - 1)
-    sampler_steps: int | None = Field(None, ge=16, le=64)
+    sampler_steps: int | None = Field(None, ge=1, le=10000)
     avoid: str | None = Field(None, max_length=1000)
     target_key: str | None = Field(None, max_length=50)
-    target_bpm: int | None = Field(None, ge=20, le=400)
-    max_abc_tokens: int | None = Field(None, ge=512, le=8192)
-    chord_hold_limit: int | None = Field(None, ge=1, le=32)
-    chord_outside_bonus: float | None = Field(None, ge=0.0, le=10.0)
+    target_bpm: int | None = Field(None, ge=1, le=999)
+    max_abc_tokens: int | None = Field(None, ge=1, le=8192)
+    chord_hold_limit: int | None = Field(None, ge=0, le=64)
+    chord_outside_bonus: float | None = Field(None, ge=0.0, le=20.0)
     chord_sections: int | None = Field(None, ge=0, le=1)
     follow_structure: int | None = Field(None, ge=0, le=1)
     voice_cues: int | None = Field(None, ge=0, le=1)
-    target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
-    fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
-    cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
+    target_lufs: float | None = Field(None, ge=-70.0, le=0.0)
+    fade_out_seconds: float | None = Field(None, ge=0.1, le=60.0)
+    cfg_scale: float | None = Field(None, ge=0.0)   # ComfyUI's node takes up to 100 and refuses more; yue2.cpp takes any
     target_meter: str | None = Field(None, pattern=r"^(4/4|2/4|3/4|6/8)?$")
     sampling: dict | None = None
 
@@ -1262,19 +1264,19 @@ class RenderIn(BaseModel):
     style_lora: str | None = Field(None, max_length=200)
     style_lora_model: float | None = Field(None, ge=0.0, le=3.0)
     style_lora_clip: float | None = Field(None, ge=0.0, le=3.0)
-    sampler_steps: int | None = Field(None, ge=16, le=64)
+    sampler_steps: int | None = Field(None, ge=1, le=10000)
     avoid: str | None = Field(None, max_length=1000)
     target_key: str | None = Field(None, max_length=50)
-    target_bpm: int | None = Field(None, ge=20, le=400)
-    max_abc_tokens: int | None = Field(None, ge=512, le=8192)
-    chord_hold_limit: int | None = Field(None, ge=1, le=32)
-    chord_outside_bonus: float | None = Field(None, ge=0.0, le=10.0)
+    target_bpm: int | None = Field(None, ge=1, le=999)
+    max_abc_tokens: int | None = Field(None, ge=1, le=8192)
+    chord_hold_limit: int | None = Field(None, ge=0, le=64)
+    chord_outside_bonus: float | None = Field(None, ge=0.0, le=20.0)
     chord_sections: int | None = Field(None, ge=0, le=1)
     follow_structure: int | None = Field(None, ge=0, le=1)
     voice_cues: int | None = Field(None, ge=0, le=1)
-    target_lufs: float | None = Field(None, ge=-30.0, le=-4.0)
-    fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
-    cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
+    target_lufs: float | None = Field(None, ge=-70.0, le=0.0)
+    fade_out_seconds: float | None = Field(None, ge=0.1, le=60.0)
+    cfg_scale: float | None = Field(None, ge=0.0)   # ComfyUI's node takes up to 100 and refuses more; yue2.cpp takes any
     target_meter: str | None = Field(None, pattern=r"^(4/4|2/4|3/4|6/8)?$")
     sampling: dict | None = None
     # The recorded voice the editor shows: "" for none, omitted to keep the take's own.

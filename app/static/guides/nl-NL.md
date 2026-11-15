@@ -123,6 +123,8 @@ hebben ze nooit nodig. Ze worden met de take bewaard, dus *Bewerken en opnieuw r
 De knop licht op als een instelling afwijkt van de standaard, en **Standaardwaarden herstellen** zet ze
 allemaal terug.
 
+Elk getal wordt gebruikt zoals je het invult. Een getal buiten het gebruikelijke bereik van een instelling (het bereik dat de rij noemt) kleurt het vak oranje en wordt toch gebruikt, voor wie wil experimenteren; een getal dat de engine niet kan nemen, zoals een top_p boven 1, wordt bij het verlaten van het vak op de dichtstbijzijnde waarde gezet die hij neemt, en het vak meldt dat.
+
 Sommige werken op het plan, andere op de render en het uiteindelijke bestand:
 
 - **Diffusiestappen** (16–64, standaard 32): hoeveel stappen de audiodecoder zet. Meer stappen duren

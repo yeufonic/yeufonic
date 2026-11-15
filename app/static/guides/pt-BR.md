@@ -123,6 +123,8 @@ nunca precisa deles. Eles são salvos com o take, então *Editar e renderizar de
 O botão acende quando algum ajuste difere do padrão, e **Restaurar padrões** devolve
 todos.
 
+Todo número é usado como você digita. Um fora da faixa habitual de uma configuração (a que a linha dela indica) deixa a caixa âmbar e é usado mesmo assim, para quem quer experimentar; um que o motor não aceita, como um top_p acima de 1, é ajustado para o valor mais próximo que ele aceita quando você sai da caixa, e a caixa avisa.
+
 Alguns agem sobre o plano, e outros sobre o render e o arquivo final:
 
 - **Passos de difusão** (16–64, padrão 32): quantos passos o decodificador de áudio dá. Mais passos demoram

@@ -150,10 +150,14 @@ def interpretation_sampling(name: str | None) -> dict:
 
 
 # Sampling values set by hand (Advanced → Sampling, #72): each one given replaces the same value from Plan variety (the
-# planner, "plan") or the Interpretation (the music stage, "render"); the rest still come from those.  The limits keep
-# to what the model copes with; at the ends of them the planner can still write a score that will not render.
+# planner, "plan") or the Interpretation (the music stage, "render"); the rest still come from those.  SAMPLING_LIMITS
+# are the usual ranges, which the page flags a value outside of but lets through, for anyone who wants to experiment;
+# only what the engine cannot take at all is refused: SAMPLING_HARD, the ComfyUI nodes' own limits (it refuses a
+# prompt past them before anything runs; a top_p is a share of the probability, so past 1 it would only mean 1).  A
+# value is never changed: it is used as typed, or refused with the reason.
 SAMPLING_LIMITS = {"temperature": (0.1, 2.0, float), "top_p": (0.1, 1.0, float), "top_k": (1, 500, int),
                    "repetition_penalty": (1.0, 2.0, float)}
+SAMPLING_HARD = {"temperature": (0.01, 5.0), "top_p": (0.01, 1.0), "top_k": (1, 32768), "repetition_penalty": (0.01, 10.0)}
 SAMPLING_STAGES = ("plan", "render")
 # What every plan takes besides Plan variety's two (templates/song_plan.json).
 PLAN_SAMPLING_BASE = {"top_p": 0.9, "top_k": 30}
@@ -165,13 +169,14 @@ def sampling_presets() -> dict:
         "plan": {name: {**PLAN_SAMPLING_BASE, **values} for name, values in PLAN_VARIETY.items()},
         "render": {name: interpretation_sampling(name) for name in INTERPRETATIONS},
         "limits": {key: [low, high] for key, (low, high, _kind) in SAMPLING_LIMITS.items()},
+        "hard": {key: [low, high] for key, (low, high) in SAMPLING_HARD.items()},
     }
 
 
 def clean_sampling(value) -> dict | None:
     """A take's sampling values as kept, from the page's object or the column's JSON: only the stages and values
-    given, each checked.  None when nothing is set.  Raises ValueError, in words for the person, for a value out of
-    range."""
+    given, each checked.  None when nothing is set.  Raises ValueError, in words for the person, for a value the
+    sampler cannot take; one merely outside the usual range is kept as it is."""
     if value is None or value == "" or value == {}:
         return None
     if isinstance(value, str):
@@ -196,9 +201,14 @@ def clean_sampling(value) -> dict | None:
             if isinstance(raw, bool):
                 raise ValueError(f"{key} must be a number")
             try:
-                number = kind(float(raw))
+                number = float(raw)
             except (TypeError, ValueError):
                 raise ValueError(f"{key} must be a number") from None
+            if kind is int:
+                if number != int(number):
+                    raise ValueError(f"{key} must be a whole number")
+                number = int(number)
+            low, high = SAMPLING_HARD[key]
             if not low <= number <= high:
                 raise ValueError(f"{key} must be between {low:g} and {high:g}")
             kept[key] = number
@@ -1272,7 +1282,7 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             RETRIED_PLANS.add(ref_id)
             seed = int.from_bytes(os.urandom(4), "big")
             execute("UPDATE takes SET status = 'queued', stage = NULL, seed = ?, sound_seed = NULL WHERE id = ?", (seed, ref_id))
-            log.info("Plan for '%s' left %s for another time signature; writing it once more with seed %d",
+            log.warning("Plan for '%s' left %s for another time signature; writing it once more with seed %d",
                      record.get("title") or ref_id, record.get("target_meter"), seed)
             await QUEUE.put({"kind": "plan", "id": ref_id})
             return
@@ -1290,7 +1300,7 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             RETRIED_PLANS.add(ref_id)
             seed = int.from_bytes(os.urandom(4), "big")
             execute("UPDATE takes SET status = 'queued', stage = NULL, seed = ?, sound_seed = NULL WHERE id = ?", (seed, ref_id))
-            log.info("Plan for '%s' came out unreadable (%s); writing it once more with seed %d",
+            log.warning("Plan for '%s' came out unreadable (%s); writing it once more with seed %d",
                      record.get("title") or ref_id, ", ".join(issues), seed)
             await QUEUE.put({"kind": "plan", "id": ref_id})
             return
@@ -1377,7 +1387,7 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
                 dest.unlink(missing_ok=True)
             seed = int.from_bytes(os.urandom(4), "big")
             execute("UPDATE takes SET status = 'queued', stage = NULL, seed = ?, sound_seed = NULL WHERE id = ?", (seed, ref_id))
-            log.info("Render of '%s' stopped at %.0fs, well before its score; trying once more with seed %d",
+            log.warning("Render of '%s' stopped at %.0fs, well before its score; trying once more with seed %d",
                      record.get("title") or ref_id, rendered_for or 0, seed)
             await QUEUE.put({"kind": "render", "id": ref_id})
             return
@@ -1984,7 +1994,7 @@ async def _transcribe_corpus_song(kind: str, song_id: str, staged: Path, folder:
             if not str(exc).startswith(("engine error", "the GPU ran out of memory")) or song_id in STOPPED_SONGS:
                 raise
             failed = exc
-            log.info("Transcription of corpus song %s failed (%s%s), trying another way: %s", song_id, mode,
+            log.warning("Transcription of corpus song %s failed (%s%s), trying another way: %s", song_id, mode,
                      f", first {seconds}s" if seconds else "", str(exc)[:160])
             continue
         # Without the rest bars the silence after the song became (see _ended_copy).
@@ -2324,7 +2334,7 @@ async def run_identity_job(kind: str, song_id: str) -> None:
                     llm.record_alert_from_exception(exc)
                     log.warning("External LLM style analysis failed for corpus song '%s' (%s): %s", title, song_id, exc)
                     if ENGINE.options_loaded and ENGINE.options.get("lyrics"):
-                        log.info("Falling back to local Gemma style analysis for corpus song '%s'", song_title)
+                        log.warning("Falling back to local Gemma style analysis for corpus song '%s'", song_title)
                     else:
                         raise
             if hint is None:

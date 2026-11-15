@@ -1294,6 +1294,8 @@ var ADVANCED_DEFAULTS = {
 var SAMPLING_KEYS = ['temperature', 'top_p', 'top_k', 'repetition_penalty'];
 var SAMPLING_STEPS = { temperature: 0.05, top_p: 0.01, top_k: 1, repetition_penalty: 0.005 };
 var SAMPLING_LIMITS = { temperature: [0.1, 2.0], top_p: [0.1, 1.0], top_k: [1, 500], repetition_penalty: [1.0, 2.0] };
+// What the engine cannot take at all (the ComfyUI nodes' own limits): refused, with the reason.
+var SAMPLING_HARD = { temperature: [0.01, 5], top_p: [0.01, 1], top_k: [1, 32768], repetition_penalty: [0.01, 10] };
 
 function samplingLimits() {
   return (State.options && State.options.sampling && State.options.sampling.limits) || SAMPLING_LIMITS;
@@ -1351,19 +1353,17 @@ function samplingSection() {
     stage('plan', t('Writing the score'), t('(planner, follows Plan variety)')) +
     '<p class="hint adv-sampling-unused hidden" id="adv-sampling-unused">' + esc(t('Not used here: a cover, or an instrumental from a recording, plays the recording’s score, so nothing is planned.')) + '</p>' +
     stage('render', t('Performing it'), t('(music stage, follows the Interpretation)')) +
-    '<div class="adv-sampling-foot"><button type="button" id="adv-sampling-reset" class="ghost">' + esc(t('Clear these')) + '</button></div>';
+    '<div class="adv-sampling-foot"><span id="adv-sampling-bad" class="status bad"></span>' +
+      '<button type="button" id="adv-sampling-reset" class="ghost">' + esc(t('Clear these')) + '</button></div>';
   grid.appendChild(box);     // the last of the grid, full width, so it scrolls with the rest
   Array.prototype.forEach.call(box.querySelectorAll('input[data-key]'), function (input) {
-    input.addEventListener('input', function () { paintSampling(); updateAdvancedButtonState(); saveForm(); });
-    // A value past either end is held at that end once the box is left, as Follow the style does.
+    // A value is kept as typed: one outside the limits is marked and named, and the server refuses it, rather than
+    // the page changing it behind the person's back.
+    input.addEventListener('input', function () { delete input.dataset.notice; paintSampling(); updateAdvancedButtonState(); saveForm(); });
     input.addEventListener('change', function () {
-      var limits = samplingLimits()[input.dataset.key] || SAMPLING_LIMITS[input.dataset.key];
-      var value = parseFloat(input.value);
-      if (input.value.trim() !== '' && !isNaN(value)) {
-        value = Math.min(limits[1], Math.max(limits[0], value));
-        input.value = String(input.dataset.key === 'top_k' ? Math.round(value) : value);
-      }
-      paintSampling(); updateAdvancedButtonState(); saveForm();
+      var hard = ((State.options && State.options.sampling && State.options.sampling.hard) || SAMPLING_HARD)[input.dataset.key];
+      if (holdToEngine(input, hard, input.dataset.key === 'top_k')) { updateAdvancedButtonState(); saveForm(); }
+      paintSampling();
     });
   });
   $('adv-sampling-reset').addEventListener('click', function () {
@@ -1375,6 +1375,82 @@ function samplingSection() {
   return box;
 }
 
+/* A value the engine would certainly refuse (past its hard limit, or a fraction where it takes whole numbers) is set,
+   once the box is left, to the nearest it takes, and the box says so; a value merely unusual is never touched.
+   Returns the notice, or '' when the value stood. */
+function holdToEngine(box, hard, whole) {
+  var value = parseFloat(box.value);
+  delete box.dataset.notice;
+  if (box.value.trim() === '' || isNaN(value)) { return ''; }
+  var held = Math.min(hard[1], Math.max(hard[0], value));
+  if (whole) { held = Math.round(held); }
+  if (held === value) { return ''; }
+  box.value = String(held);
+  var notice = held !== value && (value > hard[1]) ? t('set to {value}: the most the engine takes', { value: held })
+    : value < hard[0] ? t('set to {value}: the least the engine takes', { value: held })
+    : t('set to {value}: the engine takes whole numbers', { value: held });
+  box.dataset.notice = notice;
+  return notice;
+}
+
+/* The other Advanced numbers: each one's usual range (the one its row names) and its hard limits (what the server
+   takes, main.AdvancedRenderSettingsMixin).  Outside the usual range the box is amber and its hint says so, and the
+   value is used as typed; past a hard limit it is red with the reason, and the server refuses it.  Never changed. */
+var ADV_NUMBERS = {
+  'adv-sampler-steps': { usual: [16, 64], hard: [1, 10000], whole: true },
+  'adv-target-bpm': { usual: [40, 240], hard: [1, 999], whole: true },
+  'adv-max-abc-tokens': { usual: [512, 8192], hard: [1, 8192], whole: true },
+  'adv-chord-hold-limit': { usual: [1, 32], hard: [0, 64], whole: true },
+  'adv-chord-outside-bonus': { usual: [0, 10], hard: [0, 20] },
+  'adv-target-lufs': { usual: [-24, -6], hard: [-70, 0] },
+  'adv-fade-out-seconds': { usual: [0.5, 15], hard: [0.1, 60] }
+};
+
+function paintAdvancedFlags() {
+  Object.keys(ADV_NUMBERS).forEach(function (id) {
+    var box = $(id);
+    if (!box) { return; }
+    var rule = ADV_NUMBERS[id];
+    var row = box.closest ? box.closest('.adv-row') : null;
+    var hint = row ? row.querySelector('label .muted') : null;
+    if (hint && hint.dataset.usual == null) { hint.dataset.usual = hint.textContent; }
+    var value = parseFloat(box.value);
+    var typed = box.value.trim() !== '';
+    var why = '', odd = false;
+    var notice = box.dataset.notice || '';
+    if (typed && isNaN(value)) { why = t('must be a number'); }
+    else if (typed && (value < rule.hard[0] || value > rule.hard[1])) { why = t('must be between {low} and {high}', { low: rule.hard[0], high: rule.hard[1] }); }
+    else if (typed && rule.whole && value !== Math.round(value)) { why = t('must be a whole number'); }
+    else if (typed && (value < rule.usual[0] || value > rule.usual[1])) { odd = true; }
+    box.classList.toggle('bad', Boolean(why));
+    box.classList.toggle('warn', odd);
+    if (hint) {
+      hint.textContent = why || notice || (odd ? t('outside the usual {low}–{high}, used as typed', { low: rule.usual[0], high: rule.usual[1] }) : hint.dataset.usual);
+      hint.classList.toggle('flagged', odd || Boolean(notice));
+      hint.classList.toggle('refused', Boolean(why));
+    }
+  });
+}
+
+/* Follow the style/CFG past what an engine takes: the box is marked and its hint says so, and the value is still
+   sent as typed.  Below 0 nothing takes it, and the server refuses it. */
+function paintCfgFlag() {
+  var box = $('adv-cfg-scale');
+  if (!box) { return; }
+  var hint = box.parentNode && box.parentNode.querySelector('label .muted');
+  if (hint && hint.dataset.usual == null) { hint.dataset.usual = hint.textContent; }
+  var value = parseFloat(box.value);
+  var high = !isNaN(value) && value > 100, low = !isNaN(value) && value < 0;
+  box.classList.toggle('warn', high);
+  box.classList.toggle('bad', low);
+  if (hint) {
+    var notice = box.dataset.notice || '';
+    hint.textContent = low ? t('below 0: no engine takes it') : notice || (high ? t('above 100: ComfyUI refuses it, yue2.cpp takes it') : hint.dataset.usual);
+    hint.classList.toggle('flagged', high || Boolean(notice));
+    hint.classList.toggle('refused', low);
+  }
+}
+
 function readSampling() {
   var box = samplingSection();
   if (!box) { return null; }
@@ -1382,9 +1458,6 @@ function readSampling() {
   Array.prototype.forEach.call(box.querySelectorAll('input[data-key]'), function (input) {
     var value = parseFloat(input.value);
     if (input.value.trim() === '' || isNaN(value)) { return; }
-    var limits = samplingLimits()[input.dataset.key] || SAMPLING_LIMITS[input.dataset.key];
-    value = Math.min(limits[1], Math.max(limits[0], value));
-    if (input.dataset.key === 'top_k') { value = Math.round(value); }
     out[input.dataset.stage] = out[input.dataset.stage] || {};
     out[input.dataset.stage][input.dataset.key] = value;
   });
@@ -1417,10 +1490,36 @@ function paintSampling() {
   Array.prototype.forEach.call(box.querySelectorAll('input[data-stage="plan"]'), function (input) { input.disabled = unused; });
   if ($('adv-sampling-unused')) { $('adv-sampling-unused').classList.toggle('hidden', !unused); }
   var presets = { plan: samplingPreset('plan'), render: samplingPreset('render') };
+  // Two kinds of flag, and neither changes the value: one the sampler cannot take at all (red: the server refuses it,
+  // saying why), and one merely outside the usual range (amber: it is used, for anyone experimenting).
+  var refused = [], unusual = [];
   Array.prototype.forEach.call(box.querySelectorAll('input[data-key]'), function (input) {
-    var v = presets[input.dataset.stage][input.dataset.key];
+    var key = input.dataset.key;
+    var v = presets[input.dataset.stage][key];
     input.placeholder = v != null ? String(v) : '';
+    var limits = samplingLimits()[key] || SAMPLING_LIMITS[key];
+    var value = parseFloat(input.value);
+    var typed = !input.disabled && input.value.trim() !== '';
+    var why = '';
+    var hard = ((State.options && State.options.sampling && State.options.sampling.hard) || SAMPLING_HARD)[key];
+    if (typed && isNaN(value)) { why = t('{key} must be a number', { key: key }); }
+    else if (typed && (value < hard[0] || value > hard[1])) { why = t('{key} must be between {low} and {high}', { key: key, low: hard[0], high: hard[1] }); }
+    else if (typed && key === 'top_k' && value !== Math.round(value)) { why = t('{key} must be a whole number', { key: key }); }
+    var odd = typed && !why && (value < limits[0] || value > limits[1]);
+    input.classList.toggle('bad', Boolean(why));
+    input.classList.toggle('warn', odd);
+    if (why && refused.indexOf(why) < 0) { refused.push(why); }
+    if (!why && input.dataset.notice) { unusual.push(key + ' ' + input.dataset.notice); }
+    if (odd) {
+      var said = t('{key} is outside the usual {low}–{high}: it may not plan or render', { key: key, low: limits[0], high: limits[1] });
+      if (unusual.indexOf(said) < 0) { unusual.push(said); }
+    }
   });
+  var flag = $('adv-sampling-bad');
+  if (flag) {
+    flag.textContent = refused.concat(unusual).join('; ');
+    flag.className = 'status ' + (refused.length ? 'bad' : 'warn');
+  }
   var inUse = readSampling();
   if (inUse && unused) { delete inUse.plan; }
   if ($('adv-sampling-on')) { $('adv-sampling-on').classList.toggle('hidden', !(inUse && Object.keys(inUse).length)); }
@@ -1428,32 +1527,28 @@ function paintSampling() {
 
 function readAdvancedSettings() {
   if (!$('adv-sampler-steps')) { return Object.assign({}, ADVANCED_DEFAULTS); }
-  var steps = parseInt($('adv-sampler-steps').value, 10);
-  if (isNaN(steps) || steps < 16 || steps > 64) { steps = ADVANCED_DEFAULTS.sampler_steps; }
+  // Every number is sent as typed: one outside its usual range is flagged (paintAdvancedFlags), and only the server
+  // refuses one it cannot take.  A box left empty is its default.
+  var typed = function (id, fallback) { var v = parseFloat($(id).value); return isNaN(v) ? fallback : v; };
+  var steps = typed('adv-sampler-steps', ADVANCED_DEFAULTS.sampler_steps);
   var avoid = ($('adv-avoid').value || '').trim();
   var targetKey = ($('adv-target-key').value || '').trim();
-  var bpmRaw = parseInt($('adv-target-bpm').value, 10);
-  var targetBpm = (!isNaN(bpmRaw) && bpmRaw >= 20 && bpmRaw <= 400) ? bpmRaw : null;
+  var targetBpm = typed('adv-target-bpm', null);
   var meter = $('adv-target-meter') ? $('adv-target-meter').value : '';
   if (['4/4', '2/4', '3/4', '6/8'].indexOf(meter) < 0) { meter = ''; }
-  var tokens = parseInt($('adv-max-abc-tokens').value, 10);
-  if (isNaN(tokens) || tokens < 512 || tokens > 8192) { tokens = ADVANCED_DEFAULTS.max_abc_tokens; }
-  var hold = parseInt($('adv-chord-hold-limit').value, 10);
-  if (isNaN(hold) || hold < 1 || hold > 32) { hold = ADVANCED_DEFAULTS.chord_hold_limit; }
-  var outside = parseFloat($('adv-chord-outside-bonus').value);
-  if (isNaN(outside) || outside < 0.0 || outside > 10.0) { outside = ADVANCED_DEFAULTS.chord_outside_bonus; }
+  var tokens = typed('adv-max-abc-tokens', ADVANCED_DEFAULTS.max_abc_tokens);
+  var hold = typed('adv-chord-hold-limit', ADVANCED_DEFAULTS.chord_hold_limit);
+  var outside = typed('adv-chord-outside-bonus', ADVANCED_DEFAULTS.chord_outside_bonus);
   var sectionsRaw = $('adv-chord-sections') ? $('adv-chord-sections').value : '';
   var sections = sectionsRaw === '1' ? 1 : (sectionsRaw === '0' ? 0 : null);
   var follow = $('follow-structure') && $('follow-structure').checked ? 1 : null;
   // 0, not null, when it is off: null would be taken as "the default", which is on.
   var voiceCues = $('voice-cues') ? ($('voice-cues').checked ? 1 : 0) : ADVANCED_DEFAULTS.voice_cues;
-  var lufs = parseFloat($('adv-target-lufs').value);
-  if (isNaN(lufs) || lufs < -30.0 || lufs > -4.0) { lufs = ADVANCED_DEFAULTS.target_lufs; }
-  var fade = parseFloat($('adv-fade-out-seconds').value);
-  if (isNaN(fade) || fade < 0.5 || fade > 15.0) { fade = ADVANCED_DEFAULTS.fade_out_seconds; }
-  // Any value the engines take (ComfyUI's node goes to 100): one past either end is held at that end, not dropped.
+  var lufs = typed('adv-target-lufs', ADVANCED_DEFAULTS.target_lufs);
+  var fade = typed('adv-fade-out-seconds', ADVANCED_DEFAULTS.fade_out_seconds);
+  // Used as typed: one above 100 is flagged (ComfyUI's node refuses it; yue2.cpp takes it), never changed.
   var cfg = $('adv-cfg-scale') ? parseFloat($('adv-cfg-scale').value) : NaN;
-  cfg = isNaN(cfg) ? ADVANCED_DEFAULTS.cfg_scale : Math.min(100, Math.max(0, cfg));
+  cfg = isNaN(cfg) ? ADVANCED_DEFAULTS.cfg_scale : cfg;
   var sampling = readSampling();
   return {
     sampler_steps: steps,
@@ -1532,6 +1627,8 @@ function writeAdvancedSettings(data) {
   $('adv-target-lufs').value = data.target_lufs != null ? data.target_lufs : ADVANCED_DEFAULTS.target_lufs;
   $('adv-fade-out-seconds').value = data.fade_out_seconds != null ? data.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds;
   if ($('adv-cfg-scale')) { $('adv-cfg-scale').value = data.cfg_scale != null ? data.cfg_scale : ADVANCED_DEFAULTS.cfg_scale; }
+  paintCfgFlag();
+  paintAdvancedFlags();
   writeSampling(data.sampling);
   updateAdvancedButtonState();
 }
@@ -1658,15 +1755,30 @@ function wireAdvancedSettings() {
   };
 
   syncRangeNum('adv-sampler-steps-range', 'adv-sampler-steps');
-  // Follow the style shows the value it will use once it is left: 150 becomes 100.
+  // Follow the style/CFG keeps what is typed; one the engine may refuse is flagged, not changed.
   if ($('adv-cfg-scale')) {
+    $('adv-cfg-scale').addEventListener('input', function () { delete $('adv-cfg-scale').dataset.notice; paintCfgFlag(); });
+    // Below 0 no engine takes it: set to 0, saying so.  Above 100 only ComfyUI refuses it, so it stands, flagged.
     $('adv-cfg-scale').addEventListener('change', function () {
-      var box = $('adv-cfg-scale');
-      if (box.value.trim() !== '') { box.value = String(readAdvancedSettings().cfg_scale); }
-      updateAdvancedButtonState();
-      saveForm();
+      if (holdToEngine($('adv-cfg-scale'), [0, Infinity], false)) { updateAdvancedButtonState(); saveForm(); }
+      paintCfgFlag();
     });
+    paintCfgFlag();
   }
+  Object.keys(ADV_NUMBERS).forEach(function (id) {
+    var box = $(id);
+    if (!box) { return; }
+    box.addEventListener('input', function () { delete box.dataset.notice; paintAdvancedFlags(); });
+    box.addEventListener('change', function () {
+      if (holdToEngine(box, ADV_NUMBERS[id].hard, ADV_NUMBERS[id].whole)) {
+        if (id === 'adv-sampler-steps' && $('adv-sampler-steps-range')) { $('adv-sampler-steps-range').value = box.value; }
+        updateAdvancedButtonState(); saveForm();
+      }
+      paintAdvancedFlags();
+    });
+  });
+  if ($('adv-sampler-steps-range')) { $('adv-sampler-steps-range').addEventListener('input', paintAdvancedFlags); }
+  paintAdvancedFlags();
 
   var inputs = [
     'adv-sampler-steps', 'adv-avoid', 'adv-target-key', 'adv-target-bpm',

@@ -123,6 +123,8 @@ brauchen sie nie. Sie werden mit dem Take gespeichert, sodass *Bearbeiten und er
 Die Schaltfläche leuchtet, wenn eine Einstellung von ihrem Standard abweicht, und **Auf Standard zurücksetzen** setzt
 alle zurück.
 
+Jede Zahl wird so verwendet, wie du sie eingibst. Eine außerhalb des üblichen Bereichs einer Einstellung (der Bereich, den ihre Zeile nennt) färbt ihr Feld gelb und wird trotzdem verwendet, für alle, die experimentieren wollen; eine, die die Engine nicht nehmen kann, etwa ein top_p über 1, wird beim Verlassen des Feldes auf den nächsten Wert gesetzt, den sie nimmt, und das Feld sagt es.
+
 Manche wirken auf den Plan, manche auf das Rendering und die fertige Datei:
 
 - **Diffusionsschritte** (16–64, Standard 32): wie viele Schritte der Audio-Decoder macht. Mehr Schritte rendern

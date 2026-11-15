@@ -188,7 +188,9 @@ def test_follow_the_style_is_kept_and_reset(client):
     execute("UPDATE takes SET status = 'done' WHERE id = ?", (take["id"],))
     client.post(f"/api/takes/{take['id']}/render", json={"cfg_scale": None})
     assert one("SELECT cfg_scale FROM takes WHERE id = ?", (take["id"],))["cfg_scale"] is None
-    assert client.post("/api/songs", json={"lyrics": WORDS, "cfg_scale": 101}).status_code == 422
+    # Above ComfyUI's 100 it is kept as typed (yue2.cpp takes it; ComfyUI refuses it there); below 0 nothing takes it.
+    assert client.post("/api/songs", json={"lyrics": WORDS, "cfg_scale": 101}).status_code == 200
+    assert client.post("/api/songs", json={"lyrics": WORDS, "cfg_scale": -1}).status_code == 422
     assert client.post("/api/songs", json={"lyrics": WORDS, "cfg_scale": 7.5}).status_code == 200
 
 

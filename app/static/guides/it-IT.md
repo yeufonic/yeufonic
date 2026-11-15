@@ -123,6 +123,8 @@ non ne ha mai bisogno. Si salvano con il take, così *Modifica e renderizza di n
 Il pulsante si accende quando un'impostazione differisce dal suo valore predefinito, e **Ripristina predefiniti** le riporta
 tutte indietro.
 
+Ogni numero viene usato così come lo scrivi. Uno fuori dall’intervallo abituale di un’impostazione (quello indicato nella sua riga) colora la casella di ambra e viene usato comunque, per chi vuole sperimentare; uno che il motore non può accettare, come un top_p sopra 1, viene impostato al valore più vicino che accetta quando lasci la casella, e la casella lo dice.
+
 Alcune agiscono sul piano, altre sul render e sul file finale:
 
 - **Passi di diffusione** (16–64, predefinito 32): quanti passi compie il decodificatore audio. Più passi richiedono

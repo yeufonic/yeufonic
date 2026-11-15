@@ -379,3 +379,18 @@ def test_the_meter_the_bars_make():
     assert meter_written("X:1\nM:5/4\nL:1/16\nK:D\nV: Vocal\n" + '"D"d16|' * 6) == "4/4"
     assert meter_written("X:1\nL:1/8\nK:D\nV: Vocal\n" + "d3e4|" * 5) == "7/8"
     assert meter_written("X:1\nL:1/8\nK:D\n") is None
+
+
+def test_a_number_outside_its_usual_range_is_kept_and_only_the_impossible_refused(client):
+    """The page flags a value outside a setting's usual range and sends it as typed; the server keeps it and refuses
+    only what cannot work (never changing a value)."""
+    unusual = {"sampler_steps": 80, "target_bpm": 30, "max_abc_tokens": 256, "chord_hold_limit": 40,
+               "chord_outside_bonus": 15.0, "target_lufs": -30.0, "fade_out_seconds": 25.0}
+    r = client.post("/api/songs", json={"title": "Glass Harbour", "style": "rock", "lyrics": "[Verse]\nla", **unusual})
+    assert r.status_code == 200, r.text
+    row = one("SELECT * FROM takes WHERE id = ?", (r.json()["id"],))
+    for key, value in unusual.items():
+        assert row[key] == value, key
+    for impossible in ({"sampler_steps": 0}, {"target_bpm": 1000}, {"max_abc_tokens": 9000}, {"chord_hold_limit": 65},
+                       {"chord_outside_bonus": 21}, {"target_lufs": 1}, {"fade_out_seconds": 0}, {"sampler_steps": 32.5}):
+        assert client.post("/api/songs", json={"title": "T", "style": "rock", "lyrics": "[Verse]\nla", **impossible}).status_code == 422, impossible

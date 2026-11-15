@@ -3655,7 +3655,16 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
 .adv-sampling-box { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .adv-sampling-box input { padding: 6px 10px; border-radius: 10px; font-size: 14px; max-width: 120px; }
-.adv-sampling-foot { display: flex; justify-content: flex-end; margin-top: 10px; }
+.adv-sampling-foot { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 10px; }
+.adv-sampling-foot .status { margin: 0 auto 0 0; font-size: 12.5px; }
+.adv-sampling-box input.bad, #adv-cfg-scale.bad { border-color: var(--bad); }
+/* Outside the usual range but used as typed: flagged, not refused. */
+.adv-sampling-box input.warn, #adv-cfg-scale.warn { border-color: var(--warn); }
+.adv-sampling-foot .status.warn { color: var(--warn); }
+.adv-row > label .muted.flagged { color: var(--warn); }
+.adv-row > label .muted.refused { color: var(--bad); }
+.adv-row input.warn { border-color: var(--warn); }
+.adv-row input.bad { border-color: var(--bad); }
 .adv-sampling-foot button { width: auto; padding: 6px 14px; font-size: 12.5px; }
 @media (max-width: 640px) { .adv-sampling-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .variations-keep { margin: 10px 0 4px; font-size: 13px; }

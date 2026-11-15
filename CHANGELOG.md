@@ -39,6 +39,11 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Advanced uses every number as typed, unless the engine cannot take it.** A value outside a setting's usual range
+  turns its box amber and is still used, for experimenting. One the engine would refuse (past its own limits, or a
+  fraction where it takes whole numbers) is set to the nearest value it takes once the box is left, and the box says
+  so; the server refuses such a value from anywhere else. Before, the Sampling and Follow the style/CFG boxes pulled
+  any value outside their usual range back without a word, and the other settings quietly sent their default.
 - **Sampling values by number** (#72). Advanced has a folded **Sampling** section at its foot with the planner's and
   the music stage's temperature, top_p, top_k and repetition_penalty. A blank box follows Plan variety or the
   Interpretation and shows its value; a value typed replaces that one alone. The values are saved with the take and its
