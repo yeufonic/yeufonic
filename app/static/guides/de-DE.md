@@ -1438,6 +1438,7 @@ schnellsten Bilder oder auf *Externe LLM* (eine Anfrage pro Bild).
 Das Symbol **Bild** in der oberen Zeile des Editorfensters, neben den anderen Schaltflächen des Takes, zeigt das Bild mit zwei Möglichkeiten:
 
 - **Ein neues Bild machen** macht es im Hintergrund neu.
+  - **Ein neues Bild mit neuem Prompt machen**, hier daneben, unter dem ganzen Bild und auf einer Karte ohne Bild, fragt zuerst nach dem Kunststil dieses einen Bildes. Es beginnt mit dem Stil aus den Einstellungen (*Take-Bilder: Kunststil*) und gilt nur für dieses Bild an dessen Stelle; die Einstellungen bleiben, wie sie sind.
 - **Den Standardhintergrund verwenden** nimmt es endgültig weg: Für diesen Take wird kein Bild mehr gemacht, außer du bittest darum.
 
 Klicke dort auf das Bild, um es ganz zu sehen, so groß, wie das Fenster erlaubt; ein Klick irgendwo oder Escape legt es weg und lässt den Editor, wie er war. Das ganze Bild hat dieselben zwei Möglichkeiten darunter: Wähle dort **Ein neues Bild machen**, und das Bild bleibt stehen, während das neue entsteht, mit dem, was gerade passiert, zwischen den Schaltflächen, und wechselt dann zum neuen, wenn es fertig ist.

@@ -52,6 +52,9 @@ cannot creep back in.
   fraction where it takes whole numbers) is set to the nearest value it takes once the box is left, and the box says
   so; the server refuses such a value from anywhere else. Before, the Sampling and Follow the style/CFG boxes pulled
   any value outside their usual range back without a word, and the other settings quietly sent their default.
+- **Make a new picture with a new prompt.** Beside Make a new picture in the editor's Picture menu, under the whole
+  picture and on a card with no picture: it asks for the art style of that one picture, starting from the one in
+  Settings, and uses it in that picture's place only. Settings stay as they are, and the log names the style used.
 - **Sampling values by number** (#72). Advanced has a folded **Sampling** section at its foot with the planner's and
   the music stage's temperature, top_p, top_k and repetition_penalty. A blank box follows Plan variety or the
   Interpretation and shows its value; a value typed replaces that one alone. The values are saved with the take and its

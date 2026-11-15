@@ -1438,6 +1438,7 @@ imagens mais rápidas, ou em *LLM externo* (uma requisição por imagem).
 O ícone **Imagem** na fileira de cima da janela do editor, ao lado dos outros botões do take, mostra a imagem com duas opções:
 
 - **Fazer uma imagem nova** a refaz em segundo plano.
+  - **Fazer uma imagem nova com um prompt novo**, ao lado aqui, sob a imagem inteira e num cartão sem imagem, pede primeiro o estilo artístico desta imagem. Começa pelo de Configurações e é usado no lugar dele só para esta imagem; as Configurações continuam como estão.
 - **Usar o fundo padrão** a tira para sempre: nenhuma imagem é feita de novo para aquele take, a menos que você peça.
 
 Clique na imagem ali para vê-la inteira, tão grande quanto a janela permite; um clique em qualquer lugar ou Esc a guarda e deixa o editor como estava. A imagem inteira tem as mesmas duas opções embaixo: escolha ali **Fazer uma imagem nova** e a imagem continua à vista enquanto a nova é feita, com o que está acontecendo entre os botões, e então troca para a nova quando fica pronta.

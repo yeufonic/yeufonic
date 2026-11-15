@@ -1438,6 +1438,7 @@ imágenes más rápidas, o en *LLM externo* (una petición por imagen).
 El icono **Imagen** en la fila superior de la ventana del editor, junto a los demás botones de la toma, muestra la imagen con dos opciones:
 
 - **Hacer una imagen nueva** la vuelve a hacer en segundo plano.
+  - **Hacer una imagen nueva con un prompt nuevo**, junto a ella aquí, bajo la imagen completa y en una tarjeta sin imagen, pide primero el estilo artístico de esta imagen. Empieza con el de Configuración y se usa en su lugar solo para esta imagen; la Configuración se queda como está.
 - **Usar el fondo por defecto** la quita para siempre: no se vuelve a hacer ninguna imagen para esa toma salvo que la pidas.
 
 Haz clic en la imagen allí para verla entera, tan grande como permite la ventana; un clic en cualquier sitio o Escape la quita y deja el editor como estaba. La imagen entera tiene las mismas dos opciones debajo: elige allí **Hacer una imagen nueva** y la imagen se queda mientras se hace la nueva, con lo que está pasando entre los botones, y luego cambia a la nueva cuando está lista.

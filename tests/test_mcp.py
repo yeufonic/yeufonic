@@ -692,7 +692,7 @@ def test_make_picture_starts_one_and_get_take_gives_its_link(client, on, monkeyp
     assert not error and "picture_url" not in one_
     monkeypatch.setattr(artwork, "drawing_problem", lambda: None)
 
-    def drawn(take_id):
+    def drawn(take_id, style=None):
         artwork.png_path(take_id).parent.mkdir(parents=True, exist_ok=True)
         artwork.png_path(take_id).write_bytes(b"\x89PNG")
     monkeypatch.setattr(jobs, "start_art", drawn)

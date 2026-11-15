@@ -2653,8 +2653,13 @@ def take_art(take_id: str) -> dict:
     return artwork.info(take_id)
 
 
+class TakeArtIn(BaseModel):
+    # An art style for this picture only, in place of Settings' (Make a new picture with a new prompt).
+    style: str | None = Field(None, max_length=artwork.STYLE_MAX)
+
+
 @app.post("/api/takes/{take_id}/art")
-async def make_take_art(take_id: str) -> dict:
+async def make_take_art(take_id: str, body: TakeArtIn | None = None) -> dict:
     """Make the take's picture again, in the background, replacing any it has (the editor's Make a new picture).
     Needing the GPU (Gemma or FLUX.2 klein), it waits until no song is being made; otherwise it runs beside them."""
     if not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
@@ -2664,7 +2669,7 @@ async def make_take_art(take_id: str) -> dict:
     problem = artwork.drawing_problem()
     if problem:
         raise HTTPException(400, problem)
-    jobs.start_art(take_id)
+    jobs.start_art(take_id, (body.style if body else None))
     return artwork.info(take_id)
 
 

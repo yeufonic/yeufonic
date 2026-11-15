@@ -144,6 +144,9 @@ def info(take_id: str) -> dict[str, Any]:
         "has_drawn": drawn_path(take_id).exists(),
         "v": int(png.stat().st_mtime) if png.exists() else None,
         "words": words.read_text(encoding="utf-8") if words.exists() else None,
+        # What a picture made now starts from: this take's own art style while one is being made with it, else
+        # Settings' (the page fills its "with a new prompt" box with it).
+        "style": STYLE_FOR.get(take_id) or art_style(),
     }
 
 
@@ -323,8 +326,17 @@ def with_wear(prompt: str) -> str:
     return f"{prompt.rstrip()}\n\n{KLEIN_WORN}"
 
 
-def art_style() -> str:
-    """The album art style from Settings, or the default when it is empty."""
+# An art style typed for one picture (Make a new picture with a new prompt), by take: used in place of Settings' for
+# that picture only, and dropped when the take's next picture starts without one (jobs.start_art).
+STYLE_FOR: dict[str, str] = {}
+STYLE_MAX = 4000
+
+
+def art_style(take_id: str | None = None) -> str:
+    """The album art style: the one typed for this take's picture, else Settings', else the default."""
+    own = STYLE_FOR.get(take_id or "")
+    if own:
+        return own
     return (get_setting("art.style", "") or "").strip() or DEFAULT_ART_STYLE
 
 
@@ -355,7 +367,7 @@ def description_request(take: dict, title_at: str | None = None) -> str:
     title = clean_cover_title(take)
     if title:
         parts.append(f"Song title: {title}")
-    parts.append(f"Album art style: {art_style()}")
+    parts.append(f"Album art style: {art_style(take.get('id'))}")
     style = clean_cover_style(take.get("style") or "", take)
     if style:
         parts.append(f"Song style: {style}")
@@ -546,8 +558,12 @@ def is_well_worn(take: dict | None = None) -> bool:
     return random.random() < 0.30
 
 
-def album_cover_prefix(well_worn: bool = False) -> str:
+def album_cover_prefix(well_worn: bool = False, style: str | None = None) -> str:
     qualifier = "a well worn " if well_worn else "an "
+    if style:
+        # An art style typed for this picture takes the place of the house style.
+        return (f"Create an image in the shape of {qualifier}album cover in this style: {style.strip()}\n"
+                "Use the following as its inspiration:")
     return (
         f"Create an image in the shape of {qualifier}album cover in the style of Hipgnosis "
         "(the UK art design group) that uses the following as its inspiration. "
@@ -566,7 +582,7 @@ def take_description(take: dict, scene: str | None = None, well_worn: bool | Non
         scene = artscene.take_scene(title, style, take.get("lyrics") or "")
     worn = is_well_worn(take) if well_worn is None else well_worn
     parts = [
-        f"{album_cover_prefix(worn)}\n"
+        f"{album_cover_prefix(worn, STYLE_FOR.get(take.get('id') or ''))}\n"
     ]
     if title:
         parts.append(f"Song title: {title}\n")

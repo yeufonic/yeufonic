@@ -1438,6 +1438,7 @@ immagini più rapide, o su *LLM esterno* (una richiesta per immagine).
 L'icona **Immagine** nella riga in alto della finestra dell'editor, accanto agli altri pulsanti del take, mostra l'immagine con due scelte:
 
 - **Fai una nuova immagine** la rifà in background.
+  - **Fai una nuova immagine con un nuovo prompt**, qui accanto, sotto l’immagine intera e su una scheda senza immagine, chiede prima lo stile artistico di questa sola immagine. Parte da quello delle Impostazioni e lo sostituisce solo per questa immagine; le Impostazioni restano com’erano.
 - **Usa lo sfondo predefinito** la toglie per sempre: per quel take non si fa più nessuna immagine, a meno che tu non la chieda.
 
 Clicca l'immagine lì per vederla intera, grande quanto la finestra permette; un clic ovunque o Esc la mette via e lascia l'editor com'era. L'immagine intera ha sotto le stesse due scelte: scegli lì **Fai una nuova immagine** e l'immagine resta visibile mentre si fa la nuova, con ciò che sta accadendo tra i pulsanti, poi passa alla nuova quando è pronta.

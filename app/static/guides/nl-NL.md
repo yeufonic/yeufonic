@@ -1438,6 +1438,7 @@ snelste afbeeldingen, of op *Externe LLM* (één verzoek per afbeelding).
 Het pictogram **Afbeelding** in de bovenste rij van het editorvenster, naast de andere knoppen van de take, toont de afbeelding met twee keuzes:
 
 - **Een nieuwe afbeelding maken** maakt hem opnieuw op de achtergrond.
+  - **Een nieuwe afbeelding maken met een nieuwe prompt**, hier ernaast, onder de hele afbeelding en op een kaart zonder afbeelding, vraagt eerst om de kunststijl van alleen deze afbeelding. Die begint bij de stijl uit Instellingen en vervangt die voor deze afbeelding alleen; Instellingen blijven zoals ze zijn.
 - **De standaardachtergrond gebruiken** haalt hem voorgoed weg: voor die take wordt geen afbeelding meer gemaakt, tenzij je erom vraagt.
 
 Klik daar op de afbeelding om hem helemaal te zien, zo groot als het venster toestaat; een klik ergens of Escape legt hem weg en laat de editor zoals hij was. De hele afbeelding heeft dezelfde twee keuzes eronder: kies daar **Een nieuwe afbeelding maken** en de afbeelding blijft staan terwijl de nieuwe gemaakt wordt, met wat er gebeurt tussen de knoppen, en wisselt dan naar de nieuwe als die klaar is.

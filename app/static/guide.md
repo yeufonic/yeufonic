@@ -1618,6 +1618,7 @@ The **Picture** icon in the editor window's top row, beside the take's other but
 choices:
 
 - **Make a new picture** makes it again in the background.
+  - **Make a new picture with a new prompt**, beside it here, under the whole picture and on a card with no picture, first asks for the art style of this one picture. It starts from the one in Settings (*Take pictures: art style*) and is used in its place for this picture only; Settings stay as they are.
 - **Use the default background** takes it away for good: no picture is made for that take again unless you ask for
   one.
 

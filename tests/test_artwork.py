@@ -195,7 +195,7 @@ def external(key="a-key", draws=True):
 
 def started(monkeypatch):
     calls = []
-    monkeypatch.setattr(jobs, "start_art", lambda take_id: calls.append(take_id))
+    monkeypatch.setattr(jobs, "start_art", lambda take_id, style=None: calls.append(take_id))
     return calls
 
 
@@ -584,7 +584,7 @@ def test_with_pictures_off_for_new_takes_one_can_still_be_made_when_asked(client
     assert all("art.auto" not in (settings[key].get("requires") or {})
                for key in ("art.drawer", "art.klein", "art.words", "art.style", "art.title", "art.prompt", "art.model"))
     take = a_take()
-    monkeypatch.setattr(jobs, "start_art", lambda take_id: None)
+    monkeypatch.setattr(jobs, "start_art", lambda take_id, style=None: None)
     assert client.post(f"/api/takes/{take['id']}/art").status_code == 200
 
 

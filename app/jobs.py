@@ -690,9 +690,14 @@ def songs_in_flight() -> bool:
     return bool(one("SELECT 1 FROM takes WHERE status IN ('queued', 'running') LIMIT 1"))
 
 
-def start_art(take_id: str) -> None:
+def start_art(take_id: str, style: str | None = None) -> None:
     """Make the take's picture in the background.  Described by Gemma or drawn by FLUX.2 klein it waits until the
-    GPU has no song work (ART_WAITING); described and drawn by the external provider it runs beside the render."""
+    GPU has no song work (ART_WAITING); described and drawn by the external provider it runs beside the render.
+    `style`: an art style typed for this one picture, in place of Settings'."""
+    if style and style.strip():
+        artwork.STYLE_FOR[take_id] = style.strip()[:artwork.STYLE_MAX]
+    else:
+        artwork.STYLE_FOR.pop(take_id, None)
     artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
     if artwork.words_by_engine() or artwork.drawer() == "local":
         if take_id not in ART_WAITING:
@@ -753,6 +758,9 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
     try:
         began = time.time()
         artwork.STATE[take_id] = {"state": "writing", "error": None, "started": began}
+        if artwork.STYLE_FOR.get(take_id):
+            log.info("Picture for '%s' (%s) uses an art style typed for it: %s", take.get("title") or take_id, take_id,
+                     artwork.STYLE_FOR[take_id])
         writes = artwork.describer()
         failed_words = ""
         if writes == "external" and take_id in _ART_WORDS_FALLBACK and artwork.gemma_ready():

@@ -1438,6 +1438,7 @@ images les plus rapides, ou sur *LLM externe* (une requête par image).
 L'icône **Image** dans la rangée du haut de la fenêtre de l'éditeur, à côté des autres boutons de la prise, montre l'image avec deux choix :
 
 - **Faire une nouvelle image** la refait en arrière-plan.
+  - **Faire une nouvelle image avec un nouveau prompt**, à côté ici, sous l’image entière et sur une carte sans image, demande d’abord le style artistique de cette seule image. Il part de celui des Paramètres et le remplace pour cette image seulement ; les Paramètres restent tels quels.
 - **Utiliser l'arrière-plan par défaut** la retire pour de bon : aucune image n'est plus faite pour cette prise, sauf si vous en demandez une.
 
 Cliquez sur l'image pour la voir entière, aussi grande que la fenêtre le permet ; un clic n'importe où ou Échap la range et laisse l'éditeur tel qu'il était. L'image entière a les deux mêmes choix dessous : choisissez-y **Faire une nouvelle image** et l'image reste affichée pendant que la nouvelle se fait, avec ce qui se passe entre les boutons, puis passe à la nouvelle quand elle est prête.

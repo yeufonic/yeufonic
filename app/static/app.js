@@ -13951,6 +13951,7 @@ function ensureCoverPopup() {
           '<div class="cover-popup-hint">' + t('Click for full view') + '</div>' +
           '<div class="cover-popup-none">' + t('No picture yet.') + '</div>' +
           '<button type="button" class="chip cover-popup-make">' + t('Make a new picture') + '</button>' +
+          '<button type="button" class="chip cover-popup-make cover-popup-make-own">' + t('Make a new picture with a new prompt') + '</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(pop);
@@ -13968,6 +13969,7 @@ function ensureCoverPopup() {
     pop.addEventListener('click', function (e) {
       e.stopPropagation();
       e.preventDefault();
+      if (e.target.closest('.cover-popup-make-own')) { makeCoverPicture(pop, true); return; }
       if (e.target.closest('.cover-popup-make')) { makeCoverPicture(pop); return; }
       var artSrc = pop.dataset.art;
       if (artSrc) {
@@ -14072,34 +14074,93 @@ function closeCoverPopup(force) {
   pop.classList.remove('pinned');
 }
 
+/* Make a new picture with a new prompt: the art style for this one picture, typed in place of the one in Settings
+   (Take pictures: art style), which stays as it is.  The box starts with the style the take's picture would use now.
+   Resolves to the text, or null when cancelled. */
+function askPictureStyle(takeId) {
+  return new Promise(function (resolve) {
+    var modal = $('picstyle-modal');
+    if (modal) { modal.remove(); }
+    modal = document.createElement('div');
+    modal.id = 'picstyle-modal';
+    modal.className = 'modal picstyle-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.innerHTML =
+      '<div class="modal-box narrow note-box">' +
+        '<div class="modal-head"><strong>' + esc(t('Make a new picture with a new prompt')) + '</strong></div>' +
+        '<p class="hint" style="margin:0">' + esc(t('The art style for this picture only, in place of the one in Settings, which stays as it is.')) + '</p>' +
+        '<textarea id="picstyle-text" maxlength="4000" spellcheck="true"></textarea>' +
+        '<div class="row confirm-actions">' +
+          '<button id="picstyle-cancel" class="ghost" type="button">' + esc(t('Cancel')) + '</button>' +
+          '<button id="picstyle-go" class="primary" type="button">' + esc(t('Make the picture')) + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+    var done = function (value) { modal.remove(); resolve(value); };
+    var go = function () {
+      var text = $('picstyle-text').value.trim();
+      if (!text) { $('picstyle-text').focus(); return; }
+      done(text);
+    };
+    modal.addEventListener('click', function (event) { event.stopPropagation(); if (event.target === modal) { done(null); } });
+    $('picstyle-cancel').addEventListener('click', function () { done(null); });
+    $('picstyle-go').addEventListener('click', go);
+    modal.addEventListener('keydown', function (event) {
+      event.stopPropagation();
+      if (event.key === 'Escape') { event.preventDefault(); done(null); }
+      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); go(); }
+    });
+    $('picstyle-text').focus();
+    api('/api/takes/' + takeId + '/art').then(function (art) {
+      var box = $('picstyle-text');
+      if (box && !box.value && art && art.style) { box.value = art.style; box.select(); }
+    }).catch(function () {});
+  });
+}
+
+/* A new picture for a take, with an art style of its own when one is given. */
+function makePictureRequest(takeId, style) {
+  var options = { method: 'POST' };
+  if (style) { options.headers = { 'Content-Type': 'application/json' }; options.body = JSON.stringify({ style: style }); }
+  return api('/api/takes/' + takeId + '/art', options);
+}
+
 /* The popup over a square with no picture: Make a new picture, unless one is being made or nothing here can make one. */
 async function paintCoverMake(pop, takeId) {
-  var make = pop.querySelector('.cover-popup-make');
+  var makes = pop.querySelectorAll('.cover-popup-make');
   var note = pop.querySelector('.cover-popup-none');
-  if (!make || !note) { return; }
-  make.disabled = !State.canDraw;
+  if (!makes.length || !note) { return; }
+  var able = function (on) { Array.prototype.forEach.call(makes, function (b) { b.disabled = !on; }); };
+  able(State.canDraw);
   note.textContent = t('No picture yet.');
   if (!takeId) { return; }
   var art;
   try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { return; }
   if (pop.dataset.take !== takeId) { return; }   // the popup has moved to another take since
   var making = Boolean(ART_STATES[art.state]);
-  make.disabled = making || !State.canDraw;
+  able(!making && State.canDraw);
   note.textContent = making ? ART_STATES[art.state]
     : art.state === 'failed' ? t('The last try failed: {value}', { value: tr(art.error) || t('no reason given') })
     : art.plain ? t('This take has the default background.') : t('No picture yet.');
 }
 
-async function makeCoverPicture(pop) {
+async function makeCoverPicture(pop, own) {
   var takeId = pop.dataset.take;
-  var make = pop.querySelector('.cover-popup-make');
+  var make = pop.querySelector(own ? '.cover-popup-make-own' : '.cover-popup-make');
   if (!takeId || !make || make.disabled) { return; }
+  var style = null;
+  if (own) {
+    _coverPopupPinned = true;                     // held open while the prompt is typed
+    style = await askPictureStyle(takeId);
+    if (!style) { return; }
+  }
   make.disabled = true;
   // The take a picture is asked for becomes the one on show, as a click on its card would make it.
   var take = takeById(takeId);
   if (take) { selectTake(take); }
   try {
-    await api('/api/takes/' + takeId + '/art', { method: 'POST' });
+    await makePictureRequest(takeId, style);
   } catch (err) {
     make.disabled = false;
     statusLine(err.message, 'bad');
@@ -14137,6 +14198,11 @@ function showPicture(src, takeId) {
     make.className = 'chip';
     make.dataset.pic = 'make';
     make.textContent = t('Make a new picture');
+    var makeOwn = document.createElement('button');
+    makeOwn.type = 'button';
+    makeOwn.className = 'chip';
+    makeOwn.dataset.pic = 'make-own';
+    makeOwn.textContent = t('Make a new picture with a new prompt');
     var plain = document.createElement('button');
     plain.type = 'button';
     plain.className = 'chip';
@@ -14147,10 +14213,12 @@ function showPicture(src, takeId) {
     note.className = 'picture-view-note';
     note.setAttribute('aria-live', 'polite');
     bar.appendChild(make);
+    bar.appendChild(makeOwn);
     bar.appendChild(note);
     bar.appendChild(plain);
     bar.addEventListener('click', function (e) { e.stopPropagation(); });
     make.addEventListener('click', function () { pictureViewAction(takeId, 'make'); });
+    makeOwn.addEventListener('click', function () { pictureViewAction(takeId, 'make-own'); });
     plain.addEventListener('click', function () { pictureViewAction(takeId, 'plain'); });
     frame.appendChild(bar);
     paintPictureViewButtons(takeId, make, plain);
@@ -14170,6 +14238,8 @@ async function paintPictureViewButtons(takeId, make, plain) {
   try { art = await api('/api/takes/' + takeId + '/art'); } catch (err) { return; }
   var making = Boolean(ART_STATES[art.state]);
   make.disabled = making || !State.canDraw;
+  var own = make.parentNode && make.parentNode.querySelector('[data-pic="make-own"]');
+  if (own) { own.disabled = make.disabled; }
   plain.disabled = making || Boolean(art.plain);
   if (making) { watchPictureView(takeId, art); }
 }
@@ -14219,11 +14289,16 @@ function watchPictureView(takeId, art) {
 }
 
 async function pictureViewAction(takeId, kind) {
-  var make = kind === 'make';
+  var make = kind === 'make' || kind === 'make-own';
+  var style = null;
+  if (kind === 'make-own') {
+    style = await askPictureStyle(takeId);
+    if (!style) { return; }
+  }
   var view = $('picture-view');
   Array.prototype.forEach.call(view ? view.querySelectorAll('[data-pic]') : [], function (b) { b.disabled = true; });
   try {
-    await api('/api/takes/' + takeId + '/art', { method: make ? 'POST' : 'DELETE' });
+    if (make) { await makePictureRequest(takeId, style); } else { await api('/api/takes/' + takeId + '/art', { method: 'DELETE' }); }
   } catch (err) {
     statusLine(err.message, 'bad');
     if (view) { paintPictureViewButtons(takeId, view.querySelector('[data-pic="make"]'), view.querySelector('[data-pic="plain"]')); }
@@ -14239,7 +14314,7 @@ async function pictureViewAction(takeId, kind) {
   closePicture();
 }
 function pictureKey(event) {
-  if (event.key !== 'Escape' || !$('picture-view')) { return; }
+  if (event.key !== 'Escape' || !$('picture-view') || $('picstyle-modal')) { return; }
   event.preventDefault();
   event.stopImmediatePropagation();
   closePicture();
@@ -14288,6 +14363,7 @@ async function paintPictureMenu(takeId) {
   menu.innerHTML = ((take.art ? '<img class="ed-picture-thumb" src="' + esc(take.art) + '" alt="' + t('The take\'s picture') + '" title="' + t('Show the whole picture') + '" role="button" tabindex="0">' : '') +
     (note ? '<p class="ed-picture-note' + (art.state === 'failed' ? ' bad' : '') + '">' + esc(note) + '</p>' : '')) +
     '<button type="button" role="menuitem" data-pic="make"' + (making || !State.canDraw ? ' disabled' : '') + '>' + t('Make a new picture') + '</button>' +
+    '<button type="button" role="menuitem" data-pic="make-own"' + (making || !State.canDraw ? ' disabled' : '') + '>' + t('Make a new picture with a new prompt') + '</button>' +
     '<button type="button" role="menuitem" data-pic="plain"' + (making || art.plain ? ' disabled' : '') + '>' + t('Use the default background') + '</button>';
   var thumb = menu.querySelector('.ed-picture-thumb');
   if (thumb) {
@@ -14297,10 +14373,16 @@ async function paintPictureMenu(takeId) {
   }
   menu.querySelectorAll('[data-pic]').forEach(function (button) {
     button.addEventListener('click', async function () {
-      var make = this.dataset.pic === 'make';
+      var kind = this.dataset.pic;
+      var make = kind === 'make' || kind === 'make-own';
+      var style = null;
+      if (kind === 'make-own') {
+        style = await askPictureStyle(takeId);
+        if (!style) { return; }
+      }
       menu.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
       try {
-        await api('/api/takes/' + takeId + '/art', { method: make ? 'POST' : 'DELETE' });
+        if (make) { await makePictureRequest(takeId, style); } else { await api('/api/takes/' + takeId + '/art', { method: 'DELETE' }); }
       } catch (err) {
         statusLine(err.message, 'bad');
       }

@@ -7458,6 +7458,11 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   background: var(--ui-input-bg);
   border-color: rgb(var(--ink) / 0.14);
 }
+
+
+/* Make a new picture with a new prompt: over the whole-picture view and the card's popup. */
+.modal.picstyle-modal { z-index: 130; }
+#picstyle-text { min-height: min(260px, 40vh); resize: vertical; font-size: 14px; line-height: 1.55; }
 /* Save: a take made from a recording can carry it (#60), a tick under Take, quiet while Take is off. */
 .save-recording { margin: 8px 0 0; font-size: 13.5px; }
 .save-recording.off { opacity: 0.5; }
