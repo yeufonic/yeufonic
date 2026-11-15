@@ -5,7 +5,7 @@
 <p align="center"><b>Canciones completas con una partitura editable, hechas con YuE2 en tu propia GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-es.svg" alt="canciones desde un prompt · versiones de tus grabaciones · instrumentales · LoRAs de estilo que entrenas · voces de tu propio canto · stems y masterización · dos modelos: completo o de poca memoria">
+  <img src="docs/readme/chips-es.svg" alt="canciones desde un prompt · versiones de tus grabaciones · instrumentales · LoRAs de estilo que entrenas · voces de tu propio canto · stems y masterización · dos motores: ComfyUI o yue2.cpp">
 </p>
 
 <p align="center">

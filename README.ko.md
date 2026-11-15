@@ -5,7 +5,7 @@
 <p align="center"><b>편집할 수 있는 악보와 함께, 내 GPU에서 YuE2로 만드는 완성곡.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-ko.svg" alt="프롬프트로 노래를 · 내 녹음을 커버 · 연주곡 · 스타일 LoRA 학습 · 내 노래로 만든 목소리 · 스템과 마스터링 · 두 가지 모델: 전체 또는 저메모리">
+  <img src="docs/readme/chips-ko.svg" alt="프롬프트로 노래를 · 내 녹음을 커버 · 연주곡 · 스타일 LoRA 학습 · 내 노래로 만든 목소리 · 스템과 마스터링 · 두 가지 엔진: ComfyUI 또는 yue2.cpp">
 </p>
 
 <p align="center">

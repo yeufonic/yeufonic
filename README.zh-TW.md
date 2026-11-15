@@ -5,7 +5,7 @@
 <p align="center"><b>帶可編輯樂譜的完整歌曲，由 YuE2 在你自己的 GPU 上生成。</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-zh-TW.svg" alt="從提示詞寫歌 · 翻唱你的錄音 · 純音樂 · 訓練風格 LoRA · 用你的歌聲訓練嗓音 · 分軌與母帶 · 兩種模型：完整或低顯示記憶體">
+  <img src="docs/readme/chips-zh-TW.svg" alt="從提示詞寫歌 · 翻唱你的錄音 · 純音樂 · 訓練風格 LoRA · 用你的歌聲訓練嗓音 · 分軌與母帶 · 兩種引擎：ComfyUI 或 yue2.cpp">
 </p>
 
 <p align="center">
