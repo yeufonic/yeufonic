@@ -93,6 +93,13 @@ def export(take: dict, version: str, voice: str | None = None) -> dict:
         except (TypeError, ValueError):
             mastering = None
     out["mastering"] = mastering if isinstance(mastering, dict) and mastering else None
+    # Sampling values set by hand (#72), as an object: {"plan": {...}, "render": {...}}.
+    try:
+        sampling = json.loads(take.get("sampling") or "null")
+    except (TypeError, ValueError):
+        sampling = None
+    if isinstance(sampling, dict) and sampling:
+        out["sampling"] = sampling
     return {
         "format": FORMAT,
         "version": VERSION,
@@ -128,6 +135,9 @@ def read(data: Any) -> dict:
         columns["kind"] = "song"
     mastering = take.get("mastering")
     columns["fx_chain"] = json.dumps(mastering) if isinstance(mastering, dict) and mastering else None
+    sampling = take.get("sampling")
+    if isinstance(sampling, dict) and sampling:
+        columns["sampling"] = sampling      # checked where the take is made
     return columns
 
 

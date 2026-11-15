@@ -49,7 +49,7 @@ from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, on
 personas = identities
 from .engine import engine_build, model_slow, stage_label, start_problem
 from .jobs import (CURRENT, CURRENT_STEMS, ENGINE, HARMONY_STEPS, INTERPRETATION_NAMES, INTERPRETATIONS, LYRICS, NO_SCORE,
-                   PLAN_VARIETY, QUEUE, STEM_QUEUE)
+                   PLAN_VARIETY, QUEUE, STEM_QUEUE, clean_sampling, sampling_presets)
 from .library import (audio_duration, ensure_peaks, fill_loudness, inside, kept_beside, relayout, remove_tree,
                       slugify, source_path, take_folder, vocal_path)
 
@@ -1012,7 +1012,7 @@ class RetrackIn(BaseModel):
 ADVANCED_KEYS = (
     "sampler_steps", "avoid", "target_key", "target_bpm", "max_abc_tokens",
     "chord_hold_limit", "chord_outside_bonus", "chord_sections", "follow_structure", "voice_cues", "target_lufs", "fade_out_seconds",
-    "cfg_scale", "target_meter",
+    "cfg_scale", "target_meter", "sampling",
 )
 ADVANCED_DEFAULTS = {
     "sampler_steps": 32,
@@ -1036,6 +1036,8 @@ ADVANCED_DEFAULTS = {
     "cfg_scale": None,
     # A time signature the plan is held to: its score opens with that M: line.  None is Auto, the planner's own.
     "target_meter": None,
+    # Sampling values set by hand over Plan variety and the Interpretation (jobs.clean_sampling); None follows them.
+    "sampling": None,
 }
 
 
@@ -1055,6 +1057,12 @@ def _advanced_of(body, fallback: dict | None = None) -> dict:
             res[key] = fb[key]
         else:
             res[key] = ADVANCED_DEFAULTS[key]
+    # Kept as JSON, checked: the page sends an object, a take holds the text.
+    try:
+        given = clean_sampling(res["sampling"])
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    res["sampling"] = json.dumps(given, sort_keys=True) if given else None
     return res
 
 
@@ -1087,6 +1095,7 @@ class AdvancedRenderSettingsMixin(BaseModel):
     fade_out_seconds: float | None = Field(3.0, ge=0.5, le=15.0)
     cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
     target_meter: str | None = Field(None, pattern=r"^(4/4|2/4|3/4|6/8)?$")
+    sampling: dict | None = None
 
 
 class SongIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
@@ -1144,6 +1153,7 @@ class ReplanIn(BaseModel):
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
     cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
     target_meter: str | None = Field(None, pattern=r"^(4/4|2/4|3/4|6/8)?$")
+    sampling: dict | None = None
 
 
 class TakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
@@ -1266,6 +1276,7 @@ class RenderIn(BaseModel):
     fade_out_seconds: float | None = Field(None, ge=0.5, le=15.0)
     cfg_scale: float | None = Field(None, ge=0.0, le=100.0)   # what ComfyUI's node takes; yue2.cpp takes any
     target_meter: str | None = Field(None, pattern=r"^(4/4|2/4|3/4|6/8)?$")
+    sampling: dict | None = None
     # The recorded voice the editor shows: "" for none, omitted to keep the take's own.
     voice_id: str | None = Field(None, max_length=64)
     voice_mix: dict | None = None
@@ -1288,6 +1299,9 @@ class RearrangeIn(RenderIn):
 
 class VariationsIn(BaseModel):
     interpretations: list[str] = Field(min_length=1, max_length=len(INTERPRETATIONS))
+    # The music stage's sampling values set by hand, kept on every variation over its interpretation's own.  Off,
+    # each is heard as its interpretation alone.
+    keep_sampling: bool = False
     # For these takes only; omitted, each keeps the original's.
     max_duration: float | None = Field(None, ge=10, le=900)
     realaudio: bool | None = None
@@ -1818,6 +1832,7 @@ def state() -> dict:
             "harmony_available": ENGINE.options.get("harmony", False) or not ENGINE.options_loaded,
             # Follow the style (the music stage's guidance): yue2.cpp, and a ComfyUI from 2026-10 on.
             "cfg_available": bool(ENGINE.options.get("cfg")),
+            "sampling": sampling_presets(),
             # A recorded tune held in a plan: the harmony node's newer inputs.
             "hook_available": ENGINE.options.get("hook", False) or not ENGINE.options_loaded,
             # Both switches and the engine's node, so the page never offers a button
@@ -2799,12 +2814,12 @@ async def create_take(body: TakeIn) -> dict:
                              space_id, parent_id, interpretation, realaudio, normalise, identity_id, persona_id, voice_id, voice_mix, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
-                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale, target_meter)
+                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale, target_meter, sampling)
            VALUES(:id, :source_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration, 'queued', :created_at,
                   :space_id, :parent_id, :interpretation, :realaudio, :normalise, :identity_id, :persona_id, :voice_id, :voice_mix, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
-                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale, :target_meter)""",
+                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale, :target_meter, :sampling)""",
         record,
     )
     if record["mode"] == "full" and not record["abc"]:
@@ -2961,14 +2976,14 @@ def _insert_new_take(record: dict) -> None:
                              normalise, identity_id, persona_id, voice_id, voice_mix, voice_lora, voice_lora_strength, voice_lora_clip,
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
-                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale, target_meter,
+                             chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale, target_meter, sampling,
                              hook_abc, hook_section)
            VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :brief, :abc, :mode, :seed, :checkpoint,
                   :max_duration, :cap_typed, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :parent_id, :interpretation, :feel, :realaudio,
                   :normalise, :identity_id, :persona_id, :voice_id, :voice_mix, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
-                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale, :target_meter,
+                  :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale, :target_meter, :sampling,
                   :hook_abc, :hook_section)""",
         {"hook_abc": None, "hook_section": None, "voice_id": None, "voice_mix": None, **record},
     )
@@ -3434,12 +3449,12 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
         seed = int.from_bytes(os.urandom(4), "big")
     else:
         seed = take["seed"]
-    execute("UPDATE takes SET status = 'queued', error = NULL, stage = NULL, checkpoint = ?, interpretation = ?, realaudio = ?, normalise = ?, identity_id = ?, persona_id = ?, voice_id = ?, voice_mix = ?, voice_lora = ?, voice_lora_strength = ?, style_lora = ?, style_lora_model = ?, style_lora_clip = ?, style = ?, max_duration = ?, mode = ?, seed = ?, sound_seed = ?, vocal_check = NULL, loudness = NULL, sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?, chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ?, cfg_scale = ?, target_meter = ? WHERE id = ?",
+    execute("UPDATE takes SET status = 'queued', error = NULL, stage = NULL, checkpoint = ?, interpretation = ?, realaudio = ?, normalise = ?, identity_id = ?, persona_id = ?, voice_id = ?, voice_mix = ?, voice_lora = ?, voice_lora_strength = ?, style_lora = ?, style_lora_model = ?, style_lora_clip = ?, style = ?, max_duration = ?, mode = ?, seed = ?, sound_seed = ?, vocal_check = NULL, loudness = NULL, sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?, chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ?, cfg_scale = ?, target_meter = ?, sampling = ? WHERE id = ?",
             (config.CHECKPOINT, interpretation, realaudio, normalise, identity_val, identity_val, sl["voice_id"], sl["voice_mix"], voice_lora, voice_lora_strength, sl["style_lora"], sl["style_lora_model"], sl["style_lora_clip"],
              sl["style"], sl["max_duration"], sl["mode"], seed,
              take.get("sound_seed") if seed == take["seed"] else None,
              adv["sampler_steps"], adv["avoid"], adv["target_key"], adv["target_bpm"], adv["max_abc_tokens"],
-             adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], adv["cfg_scale"], adv["target_meter"], take_id))
+             adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], adv["cfg_scale"], adv["target_meter"], adv["sampling"], take_id))
     await queue_take("render", take_id)
     log.info("Queued audio render for take '%s' (%s, seed=%d)", take.get("title") or take_id, take_id, seed)
     return {"queued": True, "seed": seed}
@@ -3484,11 +3499,11 @@ async def replan_take(take_id: str, body: ReplanIn | None = None) -> dict:
                             mode = CASE WHEN mode = 'off' THEN 'full' ELSE mode END,
                             variety = ?, harmony = ?, checkpoint = ?,
                             sampler_steps = ?, avoid = ?, target_key = ?, target_bpm = ?, max_abc_tokens = ?,
-                            chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ?, cfg_scale = ?, target_meter = ?
+                            chord_hold_limit = ?, chord_outside_bonus = ?, chord_sections = ?, follow_structure = ?, voice_cues = ?, target_lufs = ?, fade_out_seconds = ?, cfg_scale = ?, target_meter = ?, sampling = ?
            WHERE id = ?""",
         (seed, variety, harmony, config.CHECKPOINT,
          adv["sampler_steps"], adv["avoid"], adv["target_key"], adv["target_bpm"], adv["max_abc_tokens"],
-         adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], adv["cfg_scale"], adv["target_meter"], take_id),
+         adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], adv["cfg_scale"], adv["target_meter"], adv["sampling"], take_id),
     )
     await queue_take("plan", take_id)
     log.info("Queued replan for take '%s' (%s, variety=%s, harmony=%s, seed=%d)",
@@ -3509,7 +3524,7 @@ def _base_title(title: str) -> str:
 # What Sing again leaves behind: the copy is a new take with its own audio and state.
 _REVOICE_FRESH = {"id", "title", "status", "stage", "error", "audio_path", "duration", "prompt_id", "created_at",
                   "finished_at", "elapsed", "favourite", "vocal_check", "loudness", "sound_seed", "normalised",
-                  "normalised_to", "weak_dismissed", "note_dismissed", "parent_id"}
+                  "normalised_to", "weak_dismissed", "note_dismissed", "parent_id", "take_note"}
 
 
 @app.post("/api/takes/{take_id}/revoice")
@@ -3721,6 +3736,13 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
     identity_val = (body.identity_id or body.persona_id) if (body.identity_id is not None or body.persona_id is not None) else (take.get("identity_id") or take.get("persona_id"))
     voice_lora = take.get("voice_lora") if body.voice_lora is None else (body.voice_lora or None)
     voice_lora_strength = take.get("voice_lora_strength", 1.0) if body.voice_lora_strength is None else body.voice_lora_strength
+    try:
+        sampling = clean_sampling(take.get("sampling")) or {}
+    except ValueError:
+        sampling = {}
+    if not body.keep_sampling:
+        sampling.pop("render", None)
+    sampling_kept = json.dumps(sampling, sort_keys=True) if sampling else None
     for offset, name in enumerate(wanted):
         record = {
             "id": uuid.uuid4().hex[:12], "kind": take["kind"], "source_id": take["source_id"], "parent_id": mother,
@@ -3750,6 +3772,7 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
             "fade_out_seconds": take.get("fade_out_seconds", 3.0),
             "cfg_scale": take.get("cfg_scale"),
             "target_meter": take.get("target_meter"),
+            "sampling": sampling_kept,
         }
         execute(
             """INSERT INTO takes(id, kind, source_id, parent_id, title, style, lyrics, abc, mode, seed, checkpoint, max_duration,
@@ -3757,13 +3780,13 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
                                  identity_id, persona_id, voice_id, voice_mix, voice_lora, voice_lora_strength, voice_lora_clip,
                                  style_lora, style_lora_model, style_lora_clip, sound_seed,
                                  sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
-                                 chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale, target_meter)
+                                 chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale, target_meter, sampling)
                VALUES(:id, :kind, :source_id, :parent_id, :title, :style, :lyrics, :abc, :mode, :seed, :checkpoint, :max_duration,
                       'queued', :created_at, :variety, :harmony, :space_id, :interpretation, :feel, :realaudio, :normalise,
                       :identity_id, :persona_id, :voice_id, :voice_mix, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                       :style_lora, :style_lora_model, :style_lora_clip, :sound_seed,
                       :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
-                      :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale, :target_meter)""",
+                      :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale, :target_meter, :sampling)""",
             record,
         )
         await queue_take("render", record["id"])
@@ -5327,6 +5350,7 @@ class RecipeTakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     hook_section: str | None = Field(None, max_length=200)
     fx_chain: str | None = Field(None, max_length=200_000)
     take_note: str | None = Field(None, max_length=NOTE_MAX)
+    sampling: dict | None = None
 
 
 @app.post("/api/takes/import")
@@ -5363,6 +5387,11 @@ async def import_take(body: ImportTakeIn) -> dict:
         identity_id=None, persona_id=None,
         max_duration=take.max_duration or default_cap(),
     )
+    try:
+        sampling = clean_sampling(record.get("sampling"))
+    except ValueError as exc:
+        raise HTTPException(400, f"this take file has a setting Yeufonic cannot use: {exc}") from exc
+    record["sampling"] = json.dumps(sampling, sort_keys=True) if sampling else None
     was = (body.recipe.get("take") or {}).get("kind")
     if was == "cover":
         # What belonged to the cover's recording, and that a cover never used to write a plan, is left behind: a new

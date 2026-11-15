@@ -127,7 +127,7 @@ Alguns agem sobre o plano, e outros sobre o render e o arquivo final:
 
 - **Passos de difusão** (16–64, padrão 32): quantos passos o decodificador de áudio dá. Mais passos demoram
   mais para renderizar.
-- **Seguir o estilo** (0–100, padrão 1.0): com que firmeza a música segue o estilo e a letra, a orientação
+- **Seguir o estilo/CFG** (0–100, padrão 1.0): com que firmeza a música segue o estilo e a letra, a orientação
   da etapa que transforma a partitura em som (CFG). Acima de 1.0 ela se aproxima deles; abaixo, se afasta. A
   diferença é sutil em valores pequenos, e um render leva um pouco mais. Qualquer valor que o motor aceite pode ser digitado:
   uma orientação muito alta tende a soar áspera mais do que fiel. Aparece quando o motor tem o recurso: yue2.cpp, ou o motor ComfyUI
@@ -163,6 +163,7 @@ Alguns agem sobre o plano, e outros sobre o render e o arquivo final:
 - **Volume alvo:** o nível para o qual um take é normalizado. Só se aplica quando a normalização está ligada.
 - **Fade final** (segundos, padrão 3): a duração do fade quando um take é cortado no limite de
   duração.
+- **Amostragem** (recolhida no pé da janela): os valores de amostragem do planejador e da etapa musical, temperature, top_p, top_k e repetition_penalty, para quem os quer em números. Cada caixa deixada vazia segue a Variedade do plano (o planejador) ou a Interpretação (a etapa musical) e mostra o valor em cinza; um valor digitado substitui só esse, e o cartão mostra então *(próprio)* ao lado do Plano ou da Interpretação. Os valores são salvos com o take e seu arquivo de receita. Valores muito longe dos predefinidos podem fazer o planejador escrever uma partitura que não renderiza.
 
 ### O que pôr na caixa Estilo {#what-to-put-in-the-style-box}
 
@@ -360,7 +361,7 @@ tag sem linhas embaixo, como `[Interlude]`, é uma passagem instrumental.
 - **Renderizar assim que o plano estiver pronto**, ao lado do botão no pé da janela, faz o plano e o render
   sem parar no meio. Vem marcado de início, e o editor lembra sua escolha. Desmarque para ler o
   plano primeiro.
-- **Avançado** (o botão do cabeçalho): passos de difusão, Seguir o estilo, Evitar, Fixar tom, Fixar andamento, a partitura mais longa,
+- **Avançado** (o botão do cabeçalho): passos de difusão, Seguir o estilo/CFG, Evitar, Fixar tom, Fixar andamento, a partitura mais longa,
   limite de permanência em um acorde, bônus de harmonia externa, Seções que começam diferente, loudness alvo e o fade final. Veja
   [Ajustes avançados](#advanced-settings).
 - **Masterização** (o botão à esquerda dele, quando o take tem som) abre o rack de masterização sobre o editor para o take nele. O botão fica verde enquanto o rack muda como o take soa. Os módulos do rack, em ordem:
@@ -648,7 +649,7 @@ interpretações. Como só a interpretação muda, o que você ouve entre elas �
 interpretação — não outra jogada de dados. Cada uma é um take próprio, intitulado
 *Night drive · Loose* e guardado dentro do take de onde veio (veja **Takes dentro de um take**,
 em A biblioteca). A janela tem o próprio limite de duração, que parte do do editor e só se aplica
-a estes takes.
+a estes takes. Se o take tem valores da etapa musical definidos em Avançado → Amostragem, uma caixa os mantém em cada variação, por cima dos de cada interpretação; desmarcada, cada uma soa só com a sua interpretação.
 
 ### Tentar mais {#try-more}
 

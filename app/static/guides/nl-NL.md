@@ -127,7 +127,7 @@ Sommige werken op het plan, andere op de render en het uiteindelijke bestand:
 
 - **Diffusiestappen** (16–64, standaard 32): hoeveel stappen de audiodecoder zet. Meer stappen duren
   langer om te renderen.
-- **De stijl volgen** (0–100, standaard 1.0): hoe strak de muziek de stijl en de tekst volgt, de sturing
+- **De stijl volgen/CFG** (0–100, standaard 1.0): hoe strak de muziek de stijl en de tekst volgt, de sturing
   van de fase die de partituur in klank omzet (CFG). Boven 1.0 komt hij er dichter bij; eronder dwaalt hij af. Het
   verschil is subtiel bij kleine waarden, en een render duurt iets langer. Elke waarde die de engine aanneemt kan worden ingevoerd:
   een heel hoge sturing klinkt eerder ruw dan trouwer. Zichtbaar als de engine het heeft: yue2.cpp, of de ComfyUI-engine
@@ -163,6 +163,7 @@ Sommige werken op het plan, andere op de render en het uiteindelijke bestand:
 - **Doelluidheid:** het niveau waarop een take wordt genormaliseerd. Geldt alleen als normaliseren aan staat.
 - **Eindfade** (seconden, standaard 3): de lengte van de fade als een take bij de lengtegrens wordt
   afgekapt.
+- **Sampling** (ingeklapt onderaan het venster): de eigen samplingwaarden van de planner en de muziekfase, temperature, top_p, top_k en repetition_penalty, voor wie ze als getal wil. Een leeg vak volgt de Variatie van het plan (de planner) of de Interpretatie (de muziekfase) en toont die waarde grijs; een ingevulde waarde vervangt alleen die, en de kaart zet dan *(eigen)* naast het Plan of de Interpretatie. De waarden worden bewaard met de take en zijn receptbestand. Waarden ver van de presets kunnen de planner een partituur laten schrijven die niet te renderen is.
 
 ### Wat je in het vak Stijl zet {#what-to-put-in-the-style-box}
 
@@ -360,7 +361,7 @@ tag zonder regels eronder, zoals `[Interlude]`, is een instrumentale passage.
 - **Renderen zodra het plan klaar is**, naast de knop onderaan het venster, maakt het plan en de render
   zonder tussendoor te stoppen. Het staat in het begin aangevinkt, en de editor onthoudt je keuze. Vink het uit om eerst het
   plan te lezen.
-- **Geavanceerd** (de knop in de kop): diffusiestappen, De stijl volgen, Vermijden, Toonsoort vastzetten, Tempo vastzetten, de langste partituur,
+- **Geavanceerd** (de knop in de kop): diffusiestappen, De stijl volgen/CFG, Vermijden, Toonsoort vastzetten, Tempo vastzetten, de langste partituur,
   akkoordduur, bonus voor harmonie van buiten, Secties die anders openen, doelluidheid en de eindfade. Zie
   [Geavanceerde instellingen](#advanced-settings).
 - **Mastering** (de knop links ervan, als de take geluid heeft) opent het masteringrack boven de editor voor de take die erin staat. De knop is groen zolang het rack verandert hoe de take klinkt. De modules van het rack, op volgorde:
@@ -648,7 +649,7 @@ interpretaties. Omdat alleen de interpretatie verandert, is wat je ertussen hoor
 interpretatie — geen nieuwe worp van de dobbelstenen. Elk is een eigen take, getiteld
 *Night drive · Loose* en bewaard in de take waaruit hij kwam (zie **Takes in een take**,
 onder De bibliotheek). Het venster heeft een eigen lengtegrens, die begint bij die van de editor en alleen geldt
-voor deze takes.
+voor deze takes. Heeft de take onder Geavanceerd → Sampling eigen waarden voor de muziekfase, dan houdt een vinkje ze op elke variatie, boven die van elke interpretatie; zonder vinkje klinkt elke variatie met alleen haar interpretatie.
 
 ### Meer proberen {#try-more}
 

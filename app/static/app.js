@@ -1282,8 +1282,149 @@ var ADVANCED_DEFAULTS = {
   voice_cues: 1,          // on for a new take; it only acts on lyrics that cue a voice
   target_lufs: -14.0,
   fade_out_seconds: 3.0,
-  cfg_scale: 1.0          // shown as 1.0; sent as null (the engine's own) unless changed
+  cfg_scale: 1.0,         // shown as 1.0; sent as null (the engine's own) unless changed
+  sampling: null          // values set by hand over Plan variety and the Interpretation (#72); null follows them
 };
+
+/* ------------------------------------------------- sampling values set by hand (#72)
+   A folded section at the foot of Advanced: the planner's four values and the music stage's four.  A blank box
+   follows Plan variety (the planner) or the Interpretation (the music stage), and shows its value greyed; a value
+   typed replaces that one alone.  The server checks the limits (jobs.clean_sampling) and sends each preset's values
+   in its options. */
+var SAMPLING_KEYS = ['temperature', 'top_p', 'top_k', 'repetition_penalty'];
+var SAMPLING_STEPS = { temperature: 0.05, top_p: 0.01, top_k: 1, repetition_penalty: 0.005 };
+var SAMPLING_LIMITS = { temperature: [0.1, 2.0], top_p: [0.1, 1.0], top_k: [1, 500], repetition_penalty: [1.0, 2.0] };
+
+function samplingLimits() {
+  return (State.options && State.options.sampling && State.options.sampling.limits) || SAMPLING_LIMITS;
+}
+
+/* The preset a stage follows now: Plan variety's for the planner, the Interpretation's for the music stage. */
+function samplingPreset(stage) {
+  var presets = (State.options && State.options.sampling) || {};
+  if (stage === 'plan') {
+    var variety = $('variety') ? $('variety').value : 'normal';
+    return (presets.plan || {})[variety] || (presets.plan || {}).normal || {};
+  }
+  var interpretation = $('interpretation') ? $('interpretation').value : 'standard';
+  return (presets.render || {})[interpretation] || (presets.render || {}).standard || {};
+}
+
+/* A take's values as an object, from its column's JSON or the form's object; null when none. */
+function samplingObject(value) {
+  if (!value) { return null; }
+  if (typeof value === 'string') { try { value = JSON.parse(value); } catch (e) { return null; } }
+  if (typeof value !== 'object') { return null; }
+  var out = {};
+  ['plan', 'render'].forEach(function (stage) {
+    var given = value[stage];
+    if (!given || typeof given !== 'object') { return; }
+    var kept = {};
+    SAMPLING_KEYS.forEach(function (key) { if (given[key] != null && given[key] !== '') { kept[key] = Number(given[key]); } });
+    if (Object.keys(kept).length) { out[stage] = kept; }
+  });
+  return Object.keys(out).length ? out : null;
+}
+
+function samplingSection() {
+  var box = $('adv-sampling');
+  if (box) { return box; }
+  var grid = document.querySelector('#advanced-take-modal .adv-grid');
+  if (!grid) { return null; }
+  var stage = function (name, title, note) {
+    return '<div class="adv-sampling-stage">' +
+      '<div class="adv-sampling-title">' + esc(title) + ' <span class="muted">' + esc(note) + '</span></div>' +
+      '<div class="adv-sampling-row">' + SAMPLING_KEYS.map(function (key) {
+        var limits = samplingLimits()[key] || SAMPLING_LIMITS[key];
+        return '<label class="adv-sampling-box"><span>' + key + '</span>' +
+          '<input type="number" data-stage="' + name + '" data-key="' + key + '" step="' + SAMPLING_STEPS[key] + '" min="' + limits[0] +
+          '" max="' + limits[1] + '" inputmode="decimal"></label>';
+      }).join('') + '</div></div>';
+  };
+  box = document.createElement('details');
+  box.id = 'adv-sampling';
+  box.className = 'adv-sampling';
+  box.innerHTML =
+    '<summary>' + esc(t('Sampling')) + ' <span class="muted">' + esc(t('(custom values)')) + '</span>' +
+      '<span id="adv-sampling-on" class="adv-sampling-on hidden">' + esc(t('in use')) + '</span></summary>' +
+    '<p class="hint">' + esc(t('A blank box follows Plan variety or the Interpretation, and shows its value. A value typed here replaces that one. Values far from the presets can make a score that will not render.')) + '</p>' +
+    stage('plan', t('Writing the score'), t('(planner, follows Plan variety)')) +
+    '<p class="hint adv-sampling-unused hidden" id="adv-sampling-unused">' + esc(t('Not used here: a cover, or an instrumental from a recording, plays the recording’s score, so nothing is planned.')) + '</p>' +
+    stage('render', t('Performing it'), t('(music stage, follows the Interpretation)')) +
+    '<div class="adv-sampling-foot"><button type="button" id="adv-sampling-reset" class="ghost">' + esc(t('Clear these')) + '</button></div>';
+  grid.appendChild(box);     // the last of the grid, full width, so it scrolls with the rest
+  Array.prototype.forEach.call(box.querySelectorAll('input[data-key]'), function (input) {
+    input.addEventListener('input', function () { paintSampling(); updateAdvancedButtonState(); saveForm(); });
+    // A value past either end is held at that end once the box is left, as Follow the style does.
+    input.addEventListener('change', function () {
+      var limits = samplingLimits()[input.dataset.key] || SAMPLING_LIMITS[input.dataset.key];
+      var value = parseFloat(input.value);
+      if (input.value.trim() !== '' && !isNaN(value)) {
+        value = Math.min(limits[1], Math.max(limits[0], value));
+        input.value = String(input.dataset.key === 'top_k' ? Math.round(value) : value);
+      }
+      paintSampling(); updateAdvancedButtonState(); saveForm();
+    });
+  });
+  $('adv-sampling-reset').addEventListener('click', function () {
+    Array.prototype.forEach.call(box.querySelectorAll('input[data-key]'), function (input) { input.value = ''; });
+    paintSampling(); updateAdvancedButtonState(); saveForm();
+  });
+  // The greyed values follow the two presets as they change.
+  ['variety', 'interpretation'].forEach(function (id) { if ($(id)) { $(id).addEventListener('change', paintSampling); } });
+  return box;
+}
+
+function readSampling() {
+  var box = samplingSection();
+  if (!box) { return null; }
+  var out = {};
+  Array.prototype.forEach.call(box.querySelectorAll('input[data-key]'), function (input) {
+    var value = parseFloat(input.value);
+    if (input.value.trim() === '' || isNaN(value)) { return; }
+    var limits = samplingLimits()[input.dataset.key] || SAMPLING_LIMITS[input.dataset.key];
+    value = Math.min(limits[1], Math.max(limits[0], value));
+    if (input.dataset.key === 'top_k') { value = Math.round(value); }
+    out[input.dataset.stage] = out[input.dataset.stage] || {};
+    out[input.dataset.stage][input.dataset.key] = value;
+  });
+  return Object.keys(out).length ? out : null;
+}
+
+function writeSampling(value) {
+  var box = samplingSection();
+  if (!box) { return; }
+  var given = samplingObject(value) || {};
+  Array.prototype.forEach.call(box.querySelectorAll('input[data-key]'), function (input) {
+    var v = (given[input.dataset.stage] || {})[input.dataset.key];
+    input.value = v != null ? String(v) : '';
+  });
+  // Opened when a take has values set, so they are seen; folded otherwise.
+  box.open = Boolean(samplingObject(value));
+  paintSampling();
+}
+
+/* A cover, and an instrumental from a recording, play the recording's score: nothing is planned, so the planner's
+   values would do nothing.  Their boxes are greyed and say so, and are not sent. */
+function samplingPlanUnused() {
+  return State.mode === 'cover' || (typeof instFromRecording === 'function' && instFromRecording());
+}
+
+function paintSampling() {
+  var box = $('adv-sampling');
+  if (!box) { return; }
+  var unused = samplingPlanUnused();
+  Array.prototype.forEach.call(box.querySelectorAll('input[data-stage="plan"]'), function (input) { input.disabled = unused; });
+  if ($('adv-sampling-unused')) { $('adv-sampling-unused').classList.toggle('hidden', !unused); }
+  var presets = { plan: samplingPreset('plan'), render: samplingPreset('render') };
+  Array.prototype.forEach.call(box.querySelectorAll('input[data-key]'), function (input) {
+    var v = presets[input.dataset.stage][input.dataset.key];
+    input.placeholder = v != null ? String(v) : '';
+  });
+  var inUse = readSampling();
+  if (inUse && unused) { delete inUse.plan; }
+  if ($('adv-sampling-on')) { $('adv-sampling-on').classList.toggle('hidden', !(inUse && Object.keys(inUse).length)); }
+}
 
 function readAdvancedSettings() {
   if (!$('adv-sampler-steps')) { return Object.assign({}, ADVANCED_DEFAULTS); }
@@ -1313,6 +1454,7 @@ function readAdvancedSettings() {
   // Any value the engines take (ComfyUI's node goes to 100): one past either end is held at that end, not dropped.
   var cfg = $('adv-cfg-scale') ? parseFloat($('adv-cfg-scale').value) : NaN;
   cfg = isNaN(cfg) ? ADVANCED_DEFAULTS.cfg_scale : Math.min(100, Math.max(0, cfg));
+  var sampling = readSampling();
   return {
     sampler_steps: steps,
     avoid: avoid,
@@ -1327,7 +1469,8 @@ function readAdvancedSettings() {
     voice_cues: voiceCues,
     target_lufs: lufs,
     fade_out_seconds: fade,
-    cfg_scale: cfg
+    cfg_scale: cfg,
+    sampling: sampling
   };
 }
 
@@ -1344,7 +1487,8 @@ function isAdvancedDirty() {
     cur.chord_sections !== ADVANCED_DEFAULTS.chord_sections ||
     Math.abs(cur.target_lufs - ADVANCED_DEFAULTS.target_lufs) > 0.001 ||
     Math.abs(cur.fade_out_seconds - ADVANCED_DEFAULTS.fade_out_seconds) > 0.001 ||
-    Math.abs(cur.cfg_scale - ADVANCED_DEFAULTS.cfg_scale) > 0.001;
+    Math.abs(cur.cfg_scale - ADVANCED_DEFAULTS.cfg_scale) > 0.001 ||
+    Boolean(cur.sampling);
 }
 
 function updateAdvancedButtonState() {
@@ -1388,6 +1532,7 @@ function writeAdvancedSettings(data) {
   $('adv-target-lufs').value = data.target_lufs != null ? data.target_lufs : ADVANCED_DEFAULTS.target_lufs;
   $('adv-fade-out-seconds').value = data.fade_out_seconds != null ? data.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds;
   if ($('adv-cfg-scale')) { $('adv-cfg-scale').value = data.cfg_scale != null ? data.cfg_scale : ADVANCED_DEFAULTS.cfg_scale; }
+  writeSampling(data.sampling);
   updateAdvancedButtonState();
 }
 
@@ -1419,7 +1564,8 @@ function loadAdvancedTakeSettings(take) {
     voice_cues: take.voice_cues === 1 ? 1 : 0,      // a take from before the tick was made without it
     target_lufs: take.target_lufs != null ? take.target_lufs : ADVANCED_DEFAULTS.target_lufs,
     fade_out_seconds: take.fade_out_seconds != null ? take.fade_out_seconds : ADVANCED_DEFAULTS.fade_out_seconds,
-    cfg_scale: take.cfg_scale != null ? take.cfg_scale : ADVANCED_DEFAULTS.cfg_scale
+    cfg_scale: take.cfg_scale != null ? take.cfg_scale : ADVANCED_DEFAULTS.cfg_scale,
+    sampling: take.sampling || null
   });
 }
 
@@ -1442,11 +1588,16 @@ function withAdvancedSettings(body) {
   // an engine that has it.
   var cfgOn = State.options && State.options.cfg_available;
   body.cfg_scale = cfgOn && Math.abs(adv.cfg_scale - ADVANCED_DEFAULTS.cfg_scale) > 0.001 ? adv.cfg_scale : null;
+  // {} rather than nothing, so boxes cleared take a take's values away instead of keeping them.
+  var sampling = adv.sampling ? JSON.parse(JSON.stringify(adv.sampling)) : {};
+  if (samplingPlanUnused()) { delete sampling.plan; }      // nothing is planned: kept in the boxes, not sent
+  body.sampling = sampling;
   return body;
 }
 
 function openAdvancedModal() {
   if ($('advanced-take-modal')) {
+    paintSampling();
     updateAdvancedButtonState();
     $('advanced-take-modal').classList.remove('hidden');
   }
@@ -5770,7 +5921,11 @@ function detailGroups(take) {
   set(t('Sections open differently'), take.chord_sections, take.chord_sections === 1 ? 'always' : (take.chord_sections === 0 ? 'never' : ''));
   set(t('Loudness target'), take.target_lufs, take.target_lufs != null ? take.target_lufs + ' LUFS' : '');
   set(t('Fade out'), take.fade_out_seconds, take.fade_out_seconds != null ? take.fade_out_seconds + ' s' : '');
-  set(t('Follow the style'), take.cfg_scale, take.cfg_scale != null ? Number(take.cfg_scale).toFixed(1) : '');
+  set(t('Follow the style/CFG'), take.cfg_scale, take.cfg_scale != null ? Number(take.cfg_scale).toFixed(1) : '');
+  var sampled = samplingObject(take.sampling) || {};
+  var said = function (values) { return Object.keys(values).map(function (key) { return key + ' ' + values[key]; }).join(', '); };
+  if (sampled.plan) { advanced.push([t('Sampling, planner'), said(sampled.plan)]); }
+  if (sampled.render) { advanced.push([t('Sampling, music stage'), said(sampled.render)]); }
   groups.push([t('Advanced'), advanced.length ? advanced : [['', t('none changed')]]]);
   if (take.style) { groups.push([t('Style'), [['', take.style]]]); }
   return groups;
@@ -9858,6 +10013,20 @@ function openVariations(take) {
         '</strong><span class="muted">' + esc(INTERPRETATIONS[key].hint) + '</span></label>';
     }).join('');
   $('variations-status').textContent = '';
+  // A take with music-stage values set by hand can keep them on every variation, over each one's interpretation.
+  var keepRow = $('variations-keep-row');
+  if (!keepRow && $('variations-list')) {
+    keepRow = document.createElement('label');
+    keepRow.id = 'variations-keep-row';
+    keepRow.className = 'check variations-keep';
+    keepRow.innerHTML = '<input type="checkbox" id="variations-keep-sampling"> <span>' + esc(t('Keep this take’s own sampling values on each')) + '</span>';
+    keepRow.title = t('Off, each variation is heard as its interpretation alone. On, the values set under Advanced → Sampling replace the same values in each interpretation.');
+    $('variations-list').parentNode.insertBefore(keepRow, $('variations-list').nextSibling);
+  }
+  if (keepRow) {
+    keepRow.classList.toggle('hidden', !(samplingObject(take.sampling) || {}).render);
+    $('variations-keep-sampling').checked = false;
+  }
   // Starts from the left panel's cap; a change here is for these takes only.
   $('variations-cap').value = parseFloat($('max-duration').value) || 360;
   paintVariationsEstimate();
@@ -9891,7 +10060,9 @@ async function doVariations() {
     $('variations-status').className = 'status bad';
     return;
   }
-  var body = { interpretations: chosen, max_duration: cap };
+  var body = { interpretations: chosen, max_duration: cap,
+    keep_sampling: Boolean($('variations-keep-sampling') && $('variations-keep-sampling').checked &&
+      !$('variations-keep-row').classList.contains('hidden')) };
   try {
     var reply = await api('/api/takes/' + take.id + '/variations', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -12608,12 +12779,14 @@ function paintTakes() {
     // Plan are only for takes whose plan was written.
     var written = take.kind === 'song' || take.kind === 'instrumental';
     if (written) { meta.push(t('Harmony: {toLowerCase}', { toLowerCase: (HARMONY_WORDS[take.harmony || 0] || HARMONY_WORDS[0]).toLowerCase() })); }
-    meta.push(t('Interpretation: {name}', { name: (INTERPRETATIONS[take.interpretation] || INTERPRETATIONS.standard).name.toLowerCase() }));
+    var customised = samplingObject(take.sampling) || {};
+    meta.push(t('Interpretation: {name}', { name: (INTERPRETATIONS[take.interpretation] || INTERPRETATIONS.standard).name.toLowerCase() }) +
+      (customised.render ? ' ' + t('(custom)') : ''));
     // The recorded voice that sang it, by its name as it is now (none once the voice is deleted).
     var sungBy = take.voice_id && typeof VOICES !== 'undefined' && VOICES.list
       ? VOICES.list.filter(function (v) { return v.id === take.voice_id; })[0] : null;
     if (sungBy) { meta.push(t('Voice: {name}', { name: sungBy.name })); }
-    if (written) { meta.push(t('Plan: {value}', { value: take.variety || 'normal' })); }
+    if (written) { meta.push(t('Plan: {value}', { value: take.variety || 'normal' }) + (customised.plan ? ' ' + t('(custom)') : '')); }
     if (take.style_lora) {
       var kind = loraKind(take.style_lora);
       var clip = Number(take.style_lora_clip != null ? take.style_lora_clip : 1).toFixed(2);

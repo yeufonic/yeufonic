@@ -127,7 +127,7 @@ Manche wirken auf den Plan, manche auf das Rendering und die fertige Datei:
 
 - **Diffusionsschritte** (16–64, Standard 32): wie viele Schritte der Audio-Decoder macht. Mehr Schritte rendern
   länger.
-- **Dem Stil folgen** (0–100, Standard 1.0): wie eng die Musik dem Stil und dem Text folgt, die Führung
+- **Dem Stil folgen/CFG** (0–100, Standard 1.0): wie eng die Musik dem Stil und dem Text folgt, die Führung
   der Stufe, die die Partitur in Klang verwandelt (CFG). Über 1.0 neigt sie sich stärker zu ihnen hin; darunter weg davon. Der
   Unterschied ist bei kleinen Werten subtil, und ein Rendering dauert etwas länger. Jeder Wert, den die Engine annimmt, kann
   eingegeben werden: Sehr hohe Führung klingt eher harsch als näher. Es wird gezeigt, wenn die Engine es hat: yue2.cpp oder die ComfyUI-Engine
@@ -163,6 +163,7 @@ Manche wirken auf den Plan, manche auf das Rendering und die fertige Datei:
 - **Ziellautheit:** der Pegel, auf den ein Take normalisiert wird. Er gilt nur, wenn Normalisieren an ist.
 - **Ausblenden am Ende** (Sekunden, Standard 3): die Länge der Ausblendung, wenn ein Take an der Längengrenze
   abgeschnitten wird.
+- **Sampling** (zugeklappt am Fuß des Fensters): die eigenen Sampling-Werte des Planers und der Musikstufe, temperature, top_p, top_k und repetition_penalty, für alle, die sie als Zahl wollen. Ein leeres Feld folgt der Planvielfalt (Planer) oder der Interpretation (Musikstufe) und zeigt deren Wert grau; ein eingetragener Wert ersetzt genau diesen, und die Karte zeigt dann *(eigene)* neben Plan oder Interpretation. Die Werte werden mit dem Take und seiner Rezeptdatei gespeichert. Werte weit weg von den Voreinstellungen können den Planer eine Partitur schreiben lassen, die sich nicht rendern lässt.
 
 ### Was ins Stilfeld gehört {#what-to-put-in-the-style-box}
 
@@ -360,7 +361,7 @@ Tag ohne Zeilen darunter, wie `[Interlude]`, ist eine instrumentale Passage.
 - **Rendern, sobald der Plan fertig ist**, neben der Schaltfläche am Fuß des Fensters, führt Plan und Rendering
   ohne Halt dazwischen aus. Es ist zu Beginn angehakt, und der Editor merkt sich deine Wahl. Entferne den Haken, um den
   Plan zuerst zu lesen.
-- **Erweitert** (die Schaltfläche in der Kopfzeile): Diffusionsschritte, Dem Stil folgen, Vermeiden, Tonart fixieren, Tempo fixieren, die längste Partitur,
+- **Erweitert** (die Schaltfläche in der Kopfzeile): Diffusionsschritte, Dem Stil folgen/CFG, Vermeiden, Tonart fixieren, Tempo fixieren, die längste Partitur,
   Akkord-Haltegrenze, Bonus für Harmonie außerhalb, Abschnitte beginnen unterschiedlich, Ziellautheit und die Ausblendung am Ende. Siehe
   [Erweiterte Einstellungen](#advanced-settings).
 - **Mastering** (die Schaltfläche links davon, wenn der Take Klang hat) öffnet das Mastering-Rack über dem Editor für den Take darin. Die Schaltfläche ist grün, solange das Rack verändert, wie der Take klingt. Die Module des Racks, der Reihe nach:
@@ -648,7 +649,7 @@ Interpretationen. Weil sich nur die Interpretation ändert, ist das, was du zwis
 Interpretation — kein anderer Wurf der Würfel. Jede ist ein eigener Take mit dem Titel
 *Night drive · Loose* und wird in dem Take aufbewahrt, aus dem sie gemacht wurde (siehe **Takes in einem Take**
 unter Die Bibliothek). Das Fenster hat seine eigene Längengrenze, die bei der des Editors beginnt und nur
-für diese Takes gilt.
+für diese Takes gilt. Hat der Take unter Erweitert → Sampling eigene Werte für die Musikstufe, behält ein Häkchen sie auf jeder Variation, über den Werten der jeweiligen Interpretation; ohne Häkchen klingt jede nach ihrer Interpretation allein.
 
 ### Mehr ausprobieren {#try-more}
 

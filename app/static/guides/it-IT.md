@@ -127,7 +127,7 @@ Alcune agiscono sul piano, altre sul render e sul file finale:
 
 - **Passi di diffusione** (16–64, predefinito 32): quanti passi compie il decodificatore audio. Più passi richiedono
   più tempo di render.
-- **Segui lo stile** (0–100, predefinito 1.0): con quanta fermezza la musica segue lo stile e il testo, la guida
+- **Segui lo stile/CFG** (0–100, predefinito 1.0): con quanta fermezza la musica segue lo stile e il testo, la guida
   della fase che trasforma la partitura in suono (CFG). Sopra 1.0 si avvicina a loro; sotto, se ne allontana. La
   differenza è sottile con valori piccoli, e un render richiede un po' di più. Si può inserire qualsiasi valore accettato dal motore:
   una guida molto alta tende a suonare aspra più che fedele. Compare quando il motore lo ha: yue2.cpp, o il motore ComfyUI
@@ -163,6 +163,7 @@ Alcune agiscono sul piano, altre sul render e sul file finale:
 - **Volume di destinazione:** il livello a cui un take viene normalizzato. Vale solo quando la normalizzazione è attiva.
 - **Dissolvenza finale** (secondi, predefinito 3): la durata della dissolvenza quando un take viene tagliato al limite di
   durata.
+- **Campionamento** (chiuso in fondo alla finestra): i valori di campionamento del planner e della fase musicale, temperature, top_p, top_k e repetition_penalty, per chi li vuole in numeri. Ogni casella lasciata vuota segue la Varietà del piano (il planner) o l’Interpretazione (la fase musicale) e ne mostra il valore in grigio; un valore scritto sostituisce solo quello, e la scheda mostra allora *(personalizzato)* accanto a Piano o Interpretazione. I valori sono salvati con la take e il suo file di ricetta. Valori lontani dai preset possono far scrivere al planner una partitura che non si riesce a renderizzare.
 
 ### Cosa mettere nel riquadro Stile {#what-to-put-in-the-style-box}
 
@@ -360,7 +361,7 @@ tag senza righe sotto, come `[Interlude]`, è un passaggio strumentale.
 - **Renderizza appena il piano è pronto**, accanto al pulsante in fondo alla finestra, fa il piano e il render
   senza fermarsi in mezzo. All'inizio è spuntato, e l'editor ricorda la tua scelta. Togli la spunta per leggere prima il
   piano.
-- **Avanzate** (il pulsante dell'intestazione): passi di diffusione, Segui lo stile, Evita, Blocca tonalità, Blocca tempo, la partitura più lunga,
+- **Avanzate** (il pulsante dell'intestazione): passi di diffusione, Segui lo stile/CFG, Evita, Blocca tonalità, Blocca tempo, la partitura più lunga,
   limite di permanenza su un accordo, bonus di armonia esterna, Sezioni che iniziano diversamente, loudness obiettivo e la dissolvenza finale. Vedi
   [Impostazioni avanzate](#advanced-settings).
 - **Mastering** (il pulsante alla sua sinistra, quando il take ha suono) apre il rack di mastering sopra l'editor per il take che contiene. Il pulsante è verde finché il rack cambia il suono del take. I moduli del rack, in ordine:
@@ -648,7 +649,7 @@ interpretazioni. Poiché cambia solo l'interpretazione, ciò che senti tra loro 
 l'interpretazione — non un altro tiro di dadi. Ognuna è un take a sé, intitolato
 *Night drive · Loose* e salvato dentro il take da cui è nato (vedi **Take dentro un take**,
 in La libreria). La finestra ha un proprio limite di durata, che parte da quello dell'editor e vale solo
-per questi take.
+per questi take. Se la take ha valori della fase musicale impostati in Avanzate → Campionamento, una spunta li mantiene su ogni variazione, al posto di quelli di ciascuna interpretazione; senza spunta, ognuna si sente con la sola interpretazione.
 
 ### Prova ancora {#try-more}
 

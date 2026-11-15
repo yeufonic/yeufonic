@@ -39,6 +39,14 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Sampling values by number** (#72). Advanced has a folded **Sampling** section at its foot with the planner's and
+  the music stage's temperature, top_p, top_k and repetition_penalty. A blank box follows Plan variety or the
+  Interpretation and shows its value; a value typed replaces that one alone. The values are saved with the take and its
+  recipe file, Sing again and Try more keep them, and the card says *(custom)* beside the Plan or Interpretation they
+  change. Variations has a tick to keep the music stage's values on every variation; left off, each is heard as its
+  interpretation alone.
+- **Follow the style is labelled Follow the style/CFG,** the name it goes by elsewhere.
+- **A take made from another no longer copies its note** (Sing again and Try more copied it).
 - **Notes on takes** (#71). The pen among a card's small buttons, and in the editor's top row, opens a box for a
   note of your own on the take: what it is for, the part to keep, what to cut. The pen is lit while the take has a
   note, and its tip shows it. Search takes finds takes by their notes, and a take's recipe file carries its note; a

@@ -146,7 +146,7 @@ Some of these act on the plan, and some on the render and the finished file:
 
 - **Diffusion steps** (16–64, default 32): how many steps the audio decoder takes. More steps take
   longer to render.
-- **Follow the style** (0–100, default 1.0): how firmly the music follows the style and the words, the guidance
+- **Follow the style/CFG** (0–100, default 1.0): how firmly the music follows the style and the words, the guidance
   of the stage that turns the score into sound (CFG). Above 1.0 it leans further towards them; below it, away. The
   difference is subtle at small values, and a render takes a little longer. Any value the engine takes can be
   entered: very high guidance tends to sound harsh rather than closer. It is shown when the engine has it: yue2.cpp, or the ComfyUI engine
@@ -182,6 +182,7 @@ Some of these act on the plan, and some on the render and the finished file:
 - **Target loudness:** the level a take is normalised to. It applies only when normalising is on.
 - **Outro fade** (seconds, default 3): the length of the fade when a take is cut off at the length
   cap.
+- **Sampling** (folded at the foot of the window): the planner's and the music stage's own sampling values, temperature, top_p, top_k and repetition_penalty, for anyone who wants them by number. Each box left blank follows Plan variety (the planner) or the Interpretation (the music stage) and shows its value greyed; a value typed replaces that one alone, and the card then says *(custom)* beside the Plan or the Interpretation. The values are saved with the take and its recipe file. Values far from the presets can make the planner write a score that will not render.
 
 ### What to put in the Style box
 
@@ -395,7 +396,7 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
 - **Render as soon as the plan is ready**, beside the button at the foot of the window, runs the plan and the render
   without stopping in between. It is ticked to begin with, and the editor remembers your choice. Untick it to read the
   plan first.
-- **Advanced** (the button in the header): diffusion steps, Follow the style, Avoid, Key lock, Tempo lock, the longest score,
+- **Advanced** (the button in the header): diffusion steps, Follow the style/CFG, Avoid, Key lock, Tempo lock, the longest score,
   chord hold limit, outside harmony bonus, Sections open differently, target loudness and the outro fade. See
   [Advanced settings](#advanced-settings).
 - **Mastering** (the button to its left, when the take has sound) opens the mastering rack over the editor for the
@@ -704,7 +705,7 @@ interpretations. Because only the interpretation changes, what you hear between 
 interpretation — not a different roll of the dice. Each is a take of its own, titled
 *Night drive · Loose* and kept inside the take it was made from (see **Takes inside a take**,
 under The library). The window has its own length cap, which starts at the editor's and applies
-only to these takes.
+only to these takes. When the take has music-stage values set under Advanced → Sampling, a tick keeps them on every variation, over each interpretation's own; left off, each is heard as its interpretation alone.
 
 ### Try more
 

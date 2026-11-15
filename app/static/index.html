@@ -908,104 +908,100 @@
       <button type="button" id="adv-close-btn" class="ghost" title="Close (Esc)">&times;</button>
     </div>
 
-    <div class="adv-grid">
-      <!-- Diffusion Steps -->
-      <div class="field" title="Diffusion sampling steps for the audio decoder. Higher values take longer to render; lower values are faster. Default: 32.">
-        <label for="adv-sampler-steps">Diffusion steps <span class="muted">(16–64, default: 32)</span></label>
-        <div class="adv-input-row">
-          <input type="range" id="adv-sampler-steps-range" min="16" max="64" step="1" value="32">
-          <input type="number" id="adv-sampler-steps" min="16" max="64" step="1" value="32" class="num-compact">
+    <!-- One line a setting, grouped by what it acts on: the plan, the render, the finished file.  Each hint (range,
+         default) sits under its name; the full explanation is the row's tip. -->
+    <div class="adv-grid adv-rows">
+      <div class="adv-group">
+        <h4>The plan</h4>
+        <div class="adv-pairs">
+          <div class="adv-row" title="The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.">
+            <label for="adv-target-key">Key lock <span class="muted">the plan is moved to it</span></label>
+            <select id="adv-target-key">
+              <option value="">Auto</option>
+              <option value="C">C</option>
+              <option value="C#">C# / Db</option>
+              <option value="D">D</option>
+              <option value="Eb">D# / Eb</option>
+              <option value="E">E</option>
+              <option value="F">F</option>
+              <option value="F#">F# / Gb</option>
+              <option value="G">G</option>
+              <option value="Ab">G# / Ab</option>
+              <option value="A">A</option>
+              <option value="Bb">A# / Bb</option>
+              <option value="B">B</option>
+            </select>
+          </div>
+          <div class="adv-row" title="The plan is set to this tempo, in beats per minute, and the render follows it. Leave blank for Auto, the model's own tempo. Default: Auto.">
+            <label for="adv-target-bpm">Tempo lock <span class="muted">BPM 40–240</span></label>
+            <input type="number" id="adv-target-bpm" min="40" max="240" step="1" placeholder="Auto">
+          </div>
+          <div class="adv-row" title="The plan is written in this time signature, and the render follows the plan. Auto leaves it to the planner, which mostly writes in four. Songs and instrumentals from a prompt; a cover keeps its recording's.">
+            <label for="adv-target-meter">Time signature <span class="muted">default: Auto</span></label>
+            <select id="adv-target-meter">
+              <option value="">Auto</option>
+              <option value="4/4">4/4</option>
+              <option value="2/4">2/4 (duple)</option>
+              <option value="3/4">3/4 (waltz)</option>
+              <option value="6/8">6/8 (compound duple)</option>
+            </select>
+          </div>
+          <div class="adv-row" title="Maximum tokens the ABC score planner can generate. Lower values limit runaway scores for short songs. Default: 8192.">
+            <label for="adv-max-abc-tokens">Score token cap <span class="muted">512–8192</span></label>
+            <input type="number" id="adv-max-abc-tokens" min="512" max="8192" step="256" value="8192">
+          </div>
+          <div class="adv-row" title="Maximum consecutive bars the score planner will stay on a single chord root before forcing a change. Default: 8.">
+            <label for="adv-chord-hold-limit">Chord hold limit <span class="muted">bars 1–32, default: 8</span></label>
+            <input type="number" id="adv-chord-hold-limit" min="1" max="32" step="1" value="8">
+          </div>
+          <div class="adv-row" title="Incentive for the score planner to explore borrowed chords and roots outside the home key. Default: 0.0.">
+            <label for="adv-chord-outside-bonus">Outside harmony bonus <span class="muted">0–10, default: 0</span></label>
+            <input type="number" id="adv-chord-outside-bonus" min="0.0" max="10.0" step="0.5" value="0.0">
+          </div>
+          <div class="adv-row adv-wide" title="Whether a section may open on the same chords as the one before it. Follow the Harmony step turns this on from Colourful up.">
+            <label for="adv-chord-sections">Sections open differently <span class="muted">default: follow Harmony</span></label>
+            <select id="adv-chord-sections">
+              <option value="">Follow Harmony</option>
+              <option value="1">Always</option>
+              <option value="0">Never</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <!-- Follow the style (CFG) -->
-      <div class="field hidden" id="adv-cfg-field" title="How firmly the music follows the style and the words: the music stage's guidance (CFG). 1.0 is YuE2's own. Higher follows them more closely, and takes a little longer to render. Default: 1.0.">
-        <label for="adv-cfg-scale">Follow the style <span class="muted">(0–100, default: 1.0)</span></label>
-        <input type="number" id="adv-cfg-scale" min="0" max="100" step="0.1" value="1.0">
+      <div class="adv-group">
+        <h4>The render</h4>
+        <div class="adv-pairs">
+          <div class="adv-row" title="Diffusion sampling steps for the audio decoder. Higher values take longer to render; lower values are faster. Default: 32.">
+            <label for="adv-sampler-steps">Diffusion steps <span class="muted">16–64, default: 32</span></label>
+            <div class="adv-input-row">
+              <input type="range" id="adv-sampler-steps-range" min="16" max="64" step="1" value="32">
+              <input type="number" id="adv-sampler-steps" min="16" max="64" step="1" value="32" class="num-compact">
+            </div>
+          </div>
+          <div class="adv-row hidden" id="adv-cfg-field" title="How firmly the music follows the style and the words: the music stage's guidance (CFG). 1.0 is YuE2's own. Higher follows them more closely, and takes a little longer to render. Default: 1.0.">
+            <label for="adv-cfg-scale">Follow the style/CFG <span class="muted">0–100, default: 1.0</span></label>
+            <input type="number" id="adv-cfg-scale" min="0" max="100" step="0.1" value="1.0">
+          </div>
+          <div class="adv-row adv-wide" title="Elements, styles, instruments, or textures to discourage in generation. Default: empty.">
+            <label for="adv-avoid">Avoid <span class="muted">a hint, not a guarantee</span></label>
+            <input type="text" id="adv-avoid" placeholder="e.g. drums, heavy distortion, harsh noise, rap vocals">
+          </div>
+        </div>
       </div>
 
-      <!-- Negative style (Avoid) -->
-      <div class="field adv-span-2" title="Elements, styles, instruments, or textures to discourage in generation. Default: empty.">
-        <label for="adv-avoid">Avoid <span class="muted">(a hint added to the style, not a guarantee; default: empty)</span></label>
-        <input type="text" id="adv-avoid" placeholder="e.g. drums, heavy distortion, harsh noise, rap vocals">
-      </div>
-
-      <!-- Key Lock -->
-      <div class="field" title="The plan is moved to this key after the model writes it, so it always ends up here. Its mode, major or minor, stays as the model wrote it: the planner cannot be asked for one. Auto leaves the model's own key. Default: Auto.">
-        <label for="adv-target-key">Key lock <span class="muted">(the plan is moved to it; default: Auto)</span></label>
-        <select id="adv-target-key">
-          <option value="">Auto (model chooses)</option>
-          <option value="C">C</option>
-          <option value="C#">C# / Db</option>
-          <option value="D">D</option>
-          <option value="Eb">D# / Eb</option>
-          <option value="E">E</option>
-          <option value="F">F</option>
-          <option value="F#">F# / Gb</option>
-          <option value="G">G</option>
-          <option value="Ab">G# / Ab</option>
-          <option value="A">A</option>
-          <option value="Bb">A# / Bb</option>
-          <option value="B">B</option>
-        </select>
-      </div>
-
-      <!-- Tempo Lock -->
-      <div class="field" title="The plan is set to this tempo, in beats per minute, and the render follows it. Leave blank for Auto, the model's own tempo. Default: Auto.">
-        <label for="adv-target-bpm">Tempo lock <span class="muted">(BPM 40–240, default: Auto)</span></label>
-        <input type="number" id="adv-target-bpm" min="40" max="240" step="1" placeholder="Auto">
-      </div>
-
-      <!-- Time Lock -->
-      <div class="field" title="The plan is written in this time signature, and the render follows the plan. Auto leaves it to the planner, which mostly writes in four. Songs and instrumentals from a prompt; a cover keeps its recording's.">
-        <label for="adv-target-meter">Time signature <span class="muted">(default: Auto)</span></label>
-        <select id="adv-target-meter">
-          <option value="">Auto</option>
-          <option value="4/4">4/4</option>
-          <option value="2/4">2/4 (duple)</option>
-          <option value="3/4">3/4 (waltz)</option>
-          <option value="6/8">6/8 (compound duple)</option>
-        </select>
-      </div>
-
-      <!-- Token Cap -->
-      <div class="field" title="Maximum tokens the ABC score planner can generate. Lower values limit runaway scores for short songs. Default: 8192.">
-        <label for="adv-max-abc-tokens">Score token cap <span class="muted">(512–8192, default: 8192)</span></label>
-        <input type="number" id="adv-max-abc-tokens" min="512" max="8192" step="256" value="8192">
-      </div>
-
-      <!-- Chord Hold Limit -->
-      <div class="field" title="Maximum consecutive bars the score planner will stay on a single chord root before forcing a change. Default: 8.">
-        <label for="adv-chord-hold-limit">Chord hold limit <span class="muted">(bars 1–32, default: 8)</span></label>
-        <input type="number" id="adv-chord-hold-limit" min="1" max="32" step="1" value="8">
-      </div>
-
-      <!-- Outside Bonus -->
-      <div class="field" title="Incentive for the score planner to explore borrowed chords and roots outside the home key. Default: 0.0.">
-        <label for="adv-chord-outside-bonus">Outside harmony bonus <span class="muted">(0.0–10.0, default: 0.0)</span></label>
-        <input type="number" id="adv-chord-outside-bonus" min="0.0" max="10.0" step="0.5" value="0.0">
-      </div>
-
-      <!-- Sections open differently -->
-      <div class="field" title="Whether a section may open on the same chords as the one before it. Follow the Harmony step turns this on from Colourful up.">
-        <label for="adv-chord-sections">Sections open differently <span class="muted">(default: follow Harmony)</span></label>
-        <select id="adv-chord-sections">
-          <option value="">Follow Harmony</option>
-          <option value="1">Always</option>
-          <option value="0">Never</option>
-        </select>
-      </div>
-
-      <!-- Target LUFS -->
-      <div class="field" title="Integrated loudness target in LUFS used when normalisation is enabled. Default: -14.0 LUFS.">
-        <label for="adv-target-lufs">Target loudness <span class="muted">(-24.0 to -6.0 LUFS, default: -14.0)</span></label>
-        <input type="number" id="adv-target-lufs" min="-24.0" max="-6.0" step="0.5" value="-14.0">
-      </div>
-
-      <!-- Outro fade duration -->
-      <div class="field" title="Length of the smooth volume fade-out applied if a take is cut off at the max duration cap. Default: 3.0 s.">
-        <label for="adv-fade-out-seconds">Outro fade duration <span class="muted">(0.5–15.0 s, default: 3.0)</span></label>
-        <input type="number" id="adv-fade-out-seconds" min="0.5" max="15.0" step="0.5" value="3.0">
+      <div class="adv-group">
+        <h4>The finished file</h4>
+        <div class="adv-pairs">
+          <div class="adv-row" title="Integrated loudness target in LUFS used when normalisation is enabled. Default: -14.0 LUFS.">
+            <label for="adv-target-lufs">Target loudness <span class="muted">-24 to -6 LUFS, default: -14</span></label>
+            <input type="number" id="adv-target-lufs" min="-24.0" max="-6.0" step="0.5" value="-14.0">
+          </div>
+          <div class="adv-row" title="Length of the smooth volume fade-out applied if a take is cut off at the max duration cap. Default: 3.0 s.">
+            <label for="adv-fade-out-seconds">Outro fade <span class="muted">0.5–15 s, default: 3</span></label>
+            <input type="number" id="adv-fade-out-seconds" min="0.5" max="15.0" step="0.5" value="3.0">
+          </div>
+        </div>
       </div>
     </div>
 

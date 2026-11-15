@@ -3600,25 +3600,6 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
   padding-right: 4px;
   padding-bottom: 4px;
 }
-.adv-grid .field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
-}
-.adv-grid .field label {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--text);
-}
-.adv-grid .field label .muted {
-  font-weight: normal;
-  font-size: 11.5px;
-  color: var(--muted);
-}
-.adv-span-2 {
-  grid-column: span 2;
-}
 .adv-input-row {
   display: flex;
   align-items: center;
@@ -3634,6 +3615,50 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
   text-align: center;
   padding: 6px 4px;
 }
+/* Layout C: one line a setting, its name and hint on the left and a narrow box on the right, two to a row, grouped
+   by what they act on.  The boxes are wide enough for 8192, -14.0 or a greyed 1.005. */
+.adv-grid.adv-rows { display: block; }
+.adv-group + .adv-group { margin-top: 14px; }
+.adv-group h4 { margin: 0 0 4px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.adv-pairs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 24px; }
+.adv-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 3px 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--line) 70%, transparent); }
+.adv-row.hidden { display: none; }
+.adv-row.adv-wide { grid-column: 1 / -1; }
+.adv-row > label { display: flex; flex-direction: column; line-height: 1.25; font-size: 12.5px; font-weight: 500; color: var(--text); margin: 0; min-width: 0; }
+.adv-row > label .muted { font-size: 11.5px; font-weight: normal; color: var(--muted); }
+.adv-row input[type="number"], .adv-row input[type="text"], .adv-row select { padding: 6px 10px; border-radius: 10px; font-size: 14px; }
+.adv-row > input[type="number"] { width: 96px; flex: 0 0 auto; text-align: right; }
+.adv-row > select { width: 150px; flex: 0 0 auto; }
+.adv-row.adv-wide > select { width: 180px; }
+.adv-row.adv-wide > input[type="text"] { flex: 1; max-width: 70%; }
+.adv-row .adv-input-row { flex: 0 0 auto; gap: 8px; }
+.adv-row .adv-input-row input[type="range"] { width: 110px; flex: 0 0 auto; }
+.adv-row .adv-input-row input.num-compact { width: 64px; padding: 6px 4px; }
+@media (max-width: 640px) {
+  .adv-pairs { grid-template-columns: 1fr; }
+  .adv-row.adv-wide > input[type="text"] { max-width: 60%; }
+}
+/* Sampling values set by hand (#72): folded at the foot of the grid, full width. */
+.adv-sampling { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px; }
+.adv-sampling > summary { cursor: pointer; font-size: 12.5px; font-weight: 500; color: var(--text); list-style-position: inside; }
+.adv-sampling > summary .muted { font-weight: normal; font-size: 11.5px; color: var(--muted); }
+.adv-sampling-on { margin-left: 8px; font-size: 11px; padding: 1px 8px; border-radius: 999px; color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+.adv-sampling .hint { margin: 8px 0 10px; }
+.adv-sampling-stage + .adv-sampling-stage { margin-top: 12px; }
+.adv-sampling-box input:disabled { opacity: 0.45; cursor: not-allowed; }
+.adv-sampling .adv-sampling-unused { margin: 6px 0 0; }
+.adv-sampling-title { font-size: 12.5px; font-weight: 500; margin-bottom: 6px; }
+.adv-sampling-title .muted { font-weight: normal; font-size: 11.5px; color: var(--muted); }
+.adv-sampling-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.adv-sampling-box { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.adv-sampling-box input { padding: 6px 10px; border-radius: 10px; font-size: 14px; max-width: 120px; }
+.adv-sampling-foot { display: flex; justify-content: flex-end; margin-top: 10px; }
+.adv-sampling-foot button { width: auto; padding: 6px 14px; font-size: 12.5px; }
+@media (max-width: 640px) { .adv-sampling-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.variations-keep { margin: 10px 0 4px; font-size: 13px; }
 .adv-foot {
   display: flex;
   justify-content: space-between;
@@ -3645,9 +3670,6 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
 @media (max-width: 640px) {
   .adv-grid {
     grid-template-columns: 1fr;
-  }
-  .adv-span-2 {
-    grid-column: span 1;
   }
 }
 .ed-main { flex: 1; min-height: 0; display: flex; }

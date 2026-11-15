@@ -149,6 +149,111 @@ def interpretation_sampling(name: str | None) -> dict:
     return {**INTERPRETATIONS["standard"], **INTERPRETATIONS.get(name or "standard", {})}
 
 
+# Sampling values set by hand (Advanced → Sampling, #72): each one given replaces the same value from Plan variety (the
+# planner, "plan") or the Interpretation (the music stage, "render"); the rest still come from those.  The limits keep
+# to what the model copes with; at the ends of them the planner can still write a score that will not render.
+SAMPLING_LIMITS = {"temperature": (0.1, 2.0, float), "top_p": (0.1, 1.0, float), "top_k": (1, 500, int),
+                   "repetition_penalty": (1.0, 2.0, float)}
+SAMPLING_STAGES = ("plan", "render")
+# What every plan takes besides Plan variety's two (templates/song_plan.json).
+PLAN_SAMPLING_BASE = {"top_p": 0.9, "top_k": 30}
+
+
+def sampling_presets() -> dict:
+    """Each preset's four values, and the limits, for the page: the Sampling boxes show the preset's value greyed."""
+    return {
+        "plan": {name: {**PLAN_SAMPLING_BASE, **values} for name, values in PLAN_VARIETY.items()},
+        "render": {name: interpretation_sampling(name) for name in INTERPRETATIONS},
+        "limits": {key: [low, high] for key, (low, high, _kind) in SAMPLING_LIMITS.items()},
+    }
+
+
+def clean_sampling(value) -> dict | None:
+    """A take's sampling values as kept, from the page's object or the column's JSON: only the stages and values
+    given, each checked.  None when nothing is set.  Raises ValueError, in words for the person, for a value out of
+    range."""
+    if value is None or value == "" or value == {}:
+        return None
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except ValueError:
+            raise ValueError("the sampling values are not readable") from None
+    if not isinstance(value, dict):
+        raise ValueError("the sampling values are not readable")
+    out = {}
+    for stage in SAMPLING_STAGES:
+        given = value.get(stage)
+        if given is None:
+            continue
+        if not isinstance(given, dict):
+            raise ValueError("the sampling values are not readable")
+        kept = {}
+        for key, (low, high, kind) in SAMPLING_LIMITS.items():
+            raw = given.get(key)
+            if raw is None or raw == "":
+                continue
+            if isinstance(raw, bool):
+                raise ValueError(f"{key} must be a number")
+            try:
+                number = kind(float(raw))
+            except (TypeError, ValueError):
+                raise ValueError(f"{key} must be a number") from None
+            if not low <= number <= high:
+                raise ValueError(f"{key} must be between {low:g} and {high:g}")
+            kept[key] = number
+        if kept:
+            out[stage] = kept
+    return out or None
+
+
+def sampling_of(take: dict, stage: str) -> dict:
+    """The values set by hand for one stage of a take, {} for none."""
+    try:
+        return (clean_sampling(take.get("sampling")) or {}).get(stage, {})
+    except ValueError:
+        return {}
+
+
+# The Advanced settings a log line names when a take has them changed: (column, label, default).  Diffusion steps,
+# Follow the style/CFG and Sampling have places of their own in the lines.
+_CUSTOM = (("avoid", "avoid", None), ("target_key", "key lock", None), ("target_bpm", "tempo lock", None),
+           ("target_meter", "time signature", None), ("max_abc_tokens", "score token cap", 8192),
+           ("chord_hold_limit", "chord hold limit", 8), ("chord_outside_bonus", "outside harmony bonus", 0.0),
+           ("chord_sections", "sections open differently", None), ("follow_structure", "follow the structure", None),
+           ("voice_cues", "voice cues", 1), ("target_lufs", "target loudness", None), ("fade_out_seconds", "outro fade", 3.0))
+
+
+def custom_said(take: dict) -> str:
+    """Every Advanced setting the take has away from its default, for the log line that starts its plan or render, so
+    the log says what a take was made with beyond the presets."""
+    said = []
+    for column, label, default in _CUSTOM:
+        value = take.get(column)
+        if value is None or value == "" or value == default:
+            continue
+        if column == "follow_structure" and not value:
+            continue
+        if column == "chord_sections":
+            value = "always" if value else "never"
+        elif column == "voice_cues":
+            value = "off"
+        elif column == "target_lufs" and float(value) == -14.0:
+            continue
+        said.append(f"{label}={value}")
+    return ", custom: " + "; ".join(said) if said else ""
+
+
+def sampling_said(take: dict, stage: str) -> str:
+    """The values set by hand, as a log line gives them.  A render's line also names planner values a cover was given,
+    which do nothing there: a cover plays its recording's score, and nothing is planned."""
+    given = sampling_of(take, stage)
+    said = ", sampling " + " ".join(f"{k}={v:g}" for k, v in given.items()) if given else ""
+    if stage == "render" and take.get("kind") == "cover" and sampling_of(take, "plan"):
+        said += ", planner sampling set but not used (a cover plays its recording's score)"
+    return said
+
+
 def feel_strength(take: dict) -> float:
     return instrumental.FEELS.get(take.get("feel") or "steady", instrumental.FEELS["steady"])
 
@@ -266,6 +371,7 @@ def build_plan_graph(take: dict) -> dict:
     variety = PLAN_VARIETY.get(take.get("variety") or "normal", PLAN_VARIETY["normal"])
     node["temperature"] = variety["temperature"]
     node["repetition_penalty"] = variety["repetition_penalty"]
+    node.update(sampling_of(take, "plan"))
     step = int(take.get("harmony") or 0)
     hold_limit = int(take["chord_hold_limit"]) if take.get("chord_hold_limit") is not None else 8
     outside_bonus = float(take["chord_outside_bonus"]) if take.get("chord_outside_bonus") is not None else 0.0
@@ -469,6 +575,7 @@ def build_render_graph(take: dict) -> dict:
     graph["10"]["inputs"]["ckpt_name"] = config.CHECKPOINT
     node = graph["11"]["inputs"]
     node.update(interpretation_sampling(take.get("interpretation")))
+    node.update(sampling_of(take, "render"))
     node["style"] = effective_style(take["style"], target_key=take.get("target_key"),
                                     target_bpm=take.get("target_bpm"), avoid=take.get("avoid"))
     node["lyrics"] = take["lyrics"]
@@ -831,14 +938,19 @@ def extract_audio_item(job: dict, class_type: str) -> dict | None:
 # ----------------------------------------------------------------------- GPU lane
 def fail(kind: str, ref_id: str, message: str) -> None:
     title = None
+    custom = ""
     if kind in ("plan", "render"):
-        row = one("SELECT title FROM takes WHERE id = ?", (ref_id,))
+        row = one("SELECT * FROM takes WHERE id = ?", (ref_id,))
         title = row["title"] if row else None
+        # Values set by hand far from the presets are a likely cause, so a failure says which ones it ran with.
+        if row:
+            custom = sampling_said(dict(row), kind) + custom_said(dict(row))
     elif kind in ("transcribe", "lyrics"):
         row = one("SELECT title FROM sources WHERE id = ?", (ref_id,))
         title = row["title"] if row else None
     title_str = f" for '{title}'" if title else ""
-    log.warning("%s %s%s failed: %s", kind, ref_id, title_str, message)
+    log.warning("%s %s%s failed: %s%s", kind, ref_id, title_str, message,
+                f" (made with {custom.lstrip(', ').replace(', custom:', '; custom:')})" if custom else "")
     if kind == "art":
         artwork.STATE[ref_id] = {"state": "failed", "error": message}
     elif kind == "lyrics":
@@ -1037,9 +1149,10 @@ async def run_job(kind: str, ref_id: str) -> None:
         execute("UPDATE takes SET status = 'running', error = NULL, stage = NULL WHERE id = ?", (ref_id,))
         title = record.get("title") or ref_id
         if kind == "plan":
-            log.info("Starting score plan for '%s' (%s, %s, variety=%s, harmony=%s)",
+            log.info("Starting score plan for '%s' (%s, %s, variety=%s, harmony=%s%s%s)",
                      title, ref_id, record.get("kind", "song"),
-                     record.get("variety", "normal"), record.get("harmony", "familiar"))
+                     record.get("variety", "normal"), record.get("harmony", "familiar"), sampling_said(record, "plan"),
+                     custom_said(record))
         else:
             style_info = f", style_lora={record.get('style_lora')}" if record.get("style_lora") else ""
             voice_info = f", voice_lora={record.get('voice_lora')}" if record.get("voice_lora") else ""
@@ -1048,9 +1161,10 @@ async def run_job(kind: str, ref_id: str) -> None:
                 with contextlib.suppress(ValueError, TypeError):   # the take's own settings, as it will be sung
                     sung_by = {**sung_by, **json.loads(record.get("voice_mix") or "{}")}
                 voice_info += f", then sung by the recorded voice {persona.describe(sung_by)}"
-            log.info("Starting audio render for '%s' (%s, mode=%s, steps=%s, interpretation=%s, %s%s%s)",
+            log.info("Starting audio render for '%s' (%s, mode=%s, steps=%s, interpretation=%s%s, %s%s%s%s)",
                      title, ref_id, record.get("mode", "full"), record.get("sampler_steps") or 32,
-                     record.get("interpretation") or "standard", cfg_said(record), style_info, voice_info)
+                     record.get("interpretation") or "standard", sampling_said(record, "render"), cfg_said(record),
+                     style_info, voice_info, custom_said(record))
 
     try:
         prompt_id = await ENGINE.submit(graph)

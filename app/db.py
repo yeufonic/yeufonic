@@ -143,6 +143,7 @@ CREATE TABLE IF NOT EXISTS takes (
     target_bpm INTEGER,
     target_meter TEXT,
     take_note TEXT,
+    sampling TEXT,
     max_abc_tokens INTEGER DEFAULT 8192,
     chord_hold_limit INTEGER DEFAULT 8,
     chord_outside_bonus REAL DEFAULT 0.0,
@@ -869,6 +870,13 @@ def _take_note() -> None:
         execute("ALTER TABLE takes ADD COLUMN take_note TEXT")
 
 
+def _sampling() -> None:
+    """Sampling values set by hand (Advanced → Sampling, #72), as JSON: {"plan": {...}, "render": {...}}.  NULL
+    follows Plan variety and the Interpretation, as every take before it did."""
+    if "sampling" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN sampling TEXT")
+
+
 def _keep_the_look() -> None:
     """Studio with the Studio Slate style became the default look; a library from before keeps the look it had,
     Dark and Classic, unless a theme or style was chosen.  A new database never runs this: it starts at the
@@ -933,6 +941,7 @@ MIGRATIONS = [
     _keep_the_look,                                                  # -> 54
     _target_meter,                                                   # -> 55
     _take_note,                                                      # -> 56
+    _sampling,                                                       # -> 57
 ]
 
 

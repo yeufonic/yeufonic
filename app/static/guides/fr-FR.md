@@ -127,7 +127,7 @@ Certains agissent sur le plan, d’autres sur le rendu et le fichier final :
 
 - **Étapes de diffusion** (16–64, par défaut 32) : combien d’étapes fait le décodeur audio. Plus d’étapes allongent
   le rendu.
-- **Suivre le style** (0–100, par défaut 1.0) : à quel point la musique suit le style et les paroles, le guidage
+- **Suivre le style/CFG** (0–100, par défaut 1.0) : à quel point la musique suit le style et les paroles, le guidage
   de l’étape qui transforme la partition en son (CFG). Au-dessus de 1.0, elle s’en rapproche ; en dessous, elle s’en éloigne. La
   différence est subtile aux petites valeurs, et un rendu prend un peu plus de temps. Toute valeur acceptée par le moteur peut être
   saisie : un guidage très élevé sonne plutôt dur que plus fidèle. Il s’affiche quand le moteur le propose : yue2.cpp, ou le moteur ComfyUI
@@ -163,6 +163,7 @@ Certains agissent sur le plan, d’autres sur le rendu et le fichier final :
 - **Volume cible :** le niveau auquel une prise est normalisée. Il ne s’applique que si la normalisation est activée.
 - **Durée du fondu de fin** (secondes, par défaut 3) : la longueur du fondu quand une prise est coupée à la limite de
   durée.
+- **Échantillonnage** (replié au pied de la fenêtre) : les valeurs d’échantillonnage du planificateur et de l’étape musicale, temperature, top_p, top_k et repetition_penalty, pour qui les veut en chiffres. Chaque case laissée vide suit la Variété du plan (le planificateur) ou l’Interprétation (l’étape musicale) et affiche sa valeur en gris ; une valeur saisie remplace celle-là seule, et la carte indique alors *(personnalisé)* à côté du Plan ou de l’Interprétation. Les valeurs sont enregistrées avec la prise et son fichier de recette. Des valeurs éloignées des préréglages peuvent faire écrire au planificateur une partition impossible à rendre.
 
 ### Que mettre dans la zone Style {#what-to-put-in-the-style-box}
 
@@ -360,7 +361,7 @@ tag sans ligne en dessous, comme `[Interlude]`, est un passage instrumental.
 - **Lancer le rendu dès que le plan est prêt**, à côté du bouton au pied de la fenêtre, enchaîne le plan et le rendu
   sans s’arrêter entre les deux. C’est coché au départ, et l’éditeur retient votre choix. Décochez pour lire le
   plan d’abord.
-- **Avancé** (le bouton de l’en-tête) : étapes de diffusion, Suivre le style, Éviter, Verrouillage de tonalité, Verrouillage du tempo, la partition la plus longue,
+- **Avancé** (le bouton de l’en-tête) : étapes de diffusion, Suivre le style/CFG, Éviter, Verrouillage de tonalité, Verrouillage du tempo, la partition la plus longue,
   limite de maintien d’accord, bonus d’harmonie hors tonalité, Sections qui commencent différemment, loudness cible et fondu de fin. Voir
   [Réglages avancés](#advanced-settings).
 - **Mastering** (le bouton à sa gauche, quand la prise a du son) ouvre le rack de mastering au-dessus de l'éditeur pour la prise qu'il contient. Le bouton est vert tant que le rack change le son de la prise. Les modules du rack, dans l'ordre :
@@ -648,7 +649,7 @@ interprétations. Comme seule l’interprétation change, ce que vous entendez d
 l’interprétation — pas un autre coup de dés. Chacune est une prise à part entière, intitulée
 *Night drive · Loose* et gardée dans la prise d’où elle vient (voir **Des prises dans une prise**,
 dans La bibliothèque). La fenêtre a sa propre limite de durée, qui part de celle de l’éditeur et ne s’applique
-qu’à ces prises.
+qu’à ces prises. Si la prise a des valeurs de l’étape musicale réglées dans Avancé → Échantillonnage, une case les garde sur chaque variation, par-dessus celles de chaque interprétation ; décochée, chacune s’entend avec sa seule interprétation.
 
 ### Essayer encore {#try-more}
 
