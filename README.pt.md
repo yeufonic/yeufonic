@@ -5,7 +5,7 @@
 <p align="center"><b>Músicas inteiras com uma partitura editável, feitas com o YuE2 na sua própria GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-pt.svg" alt="X: músicas a partir de um prompt · T: covers das suas gravações · K: LoRAs de estilo que você treina · Q: stems e masterização">
+  <img src="docs/readme/chips-pt.svg" alt="músicas a partir de um prompt · covers das suas gravações · instrumentais · LoRAs de estilo que você treina · vozes do seu próprio canto · stems e masterização">
 </p>
 
 <p align="center">

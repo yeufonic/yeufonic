@@ -5,7 +5,7 @@
 <p align="center"><b>Complete songs met een bewerkbare partituur, gemaakt met YuE2 op je eigen GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-nl.svg" alt="X: songs uit een prompt · T: covers van je opnames · K: stijl-LoRA's die je traint · Q: stems en mastering">
+  <img src="docs/readme/chips-nl.svg" alt="songs uit een prompt · covers van je opnames · instrumentals · stijl-LoRA's die je traint · stemmen uit je eigen zang · stems en mastering">
 </p>
 
 <p align="center">

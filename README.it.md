@@ -5,7 +5,7 @@
 <p align="center"><b>Canzoni intere con una partitura modificabile, fatte con YuE2 sulla tua GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-it.svg" alt="X: canzoni da un prompt · T: cover delle tue registrazioni · K: LoRA di stile che addestri · Q: stem e mastering">
+  <img src="docs/readme/chips-it.svg" alt="canzoni da un prompt · cover delle tue registrazioni · strumentali · LoRA di stile che addestri · voci dal tuo canto · stem e mastering">
 </p>
 
 <p align="center">

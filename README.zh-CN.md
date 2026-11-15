@@ -5,7 +5,7 @@
 <p align="center"><b>带可编辑乐谱的完整歌曲，由 YuE2 在你自己的 GPU 上生成。</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-zh-CN.svg" alt="X: 从提示词写歌 · T: 翻唱你的录音 · K: 训练风格 LoRA · Q: 分轨与母带">
+  <img src="docs/readme/chips-zh-CN.svg" alt="从提示词写歌 · 翻唱你的录音 · 纯音乐 · 训练风格 LoRA · 用你的歌声训练嗓音 · 分轨与母带">
 </p>
 
 <p align="center">

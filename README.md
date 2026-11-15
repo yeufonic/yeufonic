@@ -5,7 +5,7 @@
 <p align="center"><b>Full songs with an editable score, made with YuE2 on your own GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-en.svg" alt="X: songs from a prompt · T: covers of your recordings · K: style LoRAs you train · Q: stems and mastering">
+  <img src="docs/readme/chips-en.svg" alt="songs from a prompt · covers of your recordings · instrumentals · style LoRAs you train · voices from your singing · stems and mastering">
 </p>
 
 <p align="center">

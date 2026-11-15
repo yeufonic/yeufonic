@@ -5,7 +5,7 @@
 <p align="center"><b>Des chansons entières avec une partition modifiable, faites avec YuE2 sur votre propre GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-fr.svg" alt="X: des chansons depuis un prompt · T: des reprises de vos enregistrements · K: des LoRA de style à entraîner · Q: stems et mastering">
+  <img src="docs/readme/chips-fr.svg" alt="des chansons depuis un prompt · des reprises de vos enregistrements · des instrumentaux · des LoRA de style à entraîner · des voix tirées de votre chant · stems et mastering">
 </p>
 
 <p align="center">
