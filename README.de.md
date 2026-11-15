@@ -5,7 +5,7 @@
 <p align="center"><b>Ganze Songs mit bearbeitbarer Partitur, erzeugt mit YuE2 auf deiner eigenen GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-de.svg" alt="Songs aus einem Prompt · Covers deiner Aufnahmen · Instrumentals · Style-LoRAs selbst trainiert · Stimmen aus deinem Gesang · Stems und Mastering">
+  <img src="docs/readme/chips-de.svg" alt="Songs aus einem Prompt · Covers deiner Aufnahmen · Instrumentals · Style-LoRAs selbst trainiert · Stimmen aus deinem Gesang · Stems und Mastering · zwei Modelle: voll oder sparsam">
 </p>
 
 <p align="center">
