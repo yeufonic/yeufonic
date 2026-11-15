@@ -1259,15 +1259,8 @@ Jede Karte nennt die Einstellungen, die den Take geformt haben — Harmonie, Int
 - **FLAC, WAV oder MP3:** der Ton. Ein FLAC oder MP3 trägt außerdem Tempo und Tonart aus der Partitur des Takes, die DAWs und DJ-Programme lesen.
 - **Für eine DAW:** ein Zip mit dem Take als 24-Bit-WAV, seinen Stems, falls vorhanden, der Partitur als MIDI und ABC, einem Akkordblatt mit Tempo und Tonart und dem Rezept. Mit eingeschaltetem Mastering-Rack ist das WAV gemastert.
 - **Video**, für einen Take mit Bild: ein MP4 des Songs, das das Bild seiner Karte zeigt (H.264-Video, AAC-Ton mit 192 kbps). Messenger wie WhatsApp senden und spielen es als Video, wo eine Audiodatei als Dokument geht.
-- **Take**, daneben: das Rezept des Takes, eine kleine Datei (`<title>.yeufonic.json`) mit seinem Text, Stil und seiner Partitur, seinen Seeds und Einstellungen, seinen LoRAs nach Namen und den Einstellungen des Mastering-Racks, aber nicht seinem Ton. Mit einem gewählten Format kommen beide in einer ZIP; drücke das gewählte Format erneut, um nur das Rezept zu speichern. Die Datei enthält nichts von deiner Installation (keine Pfade, IDs oder Schlüssel), kann also aufbewahrt oder mit anderen Yeufonic-Nutzern geteilt werden.
-- **mit der Aufnahme**, ein Häkchen unter Take für einen Take aus einer Aufnahme (ein Cover oder ein Instrumental aus einer Aufnahme): Die Aufnahme, so wie sie hochgeladen wurde, kommt mit, unter `recording/` in der ZIP-Datei, damit der Take vollständig importiert werden kann.
+- **Take**, daneben: das Rezept des Takes, zum Aufbewahren, Teilen oder Importieren. Siehe [Take-Dateien: speichern und importieren](#take-files-saving-and-importing).
 - Mit eingeschaltetem Mastering-Rack hat jedes Format den gemasterten Klang.
-
-**Take importieren**, in der Liste der Bereiche, macht aus einer solchen Datei einen neuen Take im angezeigten Bereich; die Datei auf die Bibliothek zu ziehen, macht dasselbe. Der Take enthält den Plan, bereit zum Rendern, kann also vorher geprüft oder geändert werden.
-
-- Jede Engine kann ihn rendern: Dieselbe Partitur und derselbe Seed auf derselben Engine ergeben einen sehr ähnlichen Take, auf der anderen Engine einen anderen.
-- Ein genanntes LoRA, das hier nicht installiert ist, wird beim Import genannt, sodass du es installieren oder vor dem Rendern ein anderes wählen kannst.
-- Ein Take kommt als die Art an, als die er gespeichert wurde, mit allen Einstellungen. Importiere eine ZIP-Datei mit Audio, Aufnahme oder beidem, oder wähle die Take-Datei zusammen mit ihrer Aufnahme: Die Aufnahme kommt in die Bibliothek (oder dieselbe, die schon dort ist, wird verwendet) und der Take wird mit ihr verknüpft; mit seinem Audio kommt der Take fertig an, bereit zum Abspielen. Ein Cover ohne Aufnahme rendert seine eigene Partitur und wird mit seiner Aufnahme verknüpft, sobald sie importiert oder im Editor für ihn gewählt wird.
 
 **Takes durchsuchen** findet die Takes mit jedem eingetippten Wort irgendwo in Titel, Stil, Songtext oder LoRA-Namen, unabhängig von Groß- und Kleinschreibung. Es sucht im angezeigten Bereich; **Alle Bereiche**, daneben, sobald du tippst, sucht in jedem Bereich, und eine Karte aus einem anderen Bereich sagt, aus welchem. × oder Escape leert es. Das Feld beginnt bei jedem Öffnen der Seite leer und bietet deine letzten Suchen an, die etwas gefunden haben: Klicke eine an oder wähle sie mit den Pfeiltasten und Enter.
 
@@ -1282,6 +1275,28 @@ Jede Karte nennt die Einstellungen, die den Take geformt haben — Harmonie, Int
 Solange die Takes eingeklappt sind, öffnet die Schaltfläche oben rechts auf einer Karte nur diese Karte, und ein Klick irgendwo außerhalb klappt sie wieder ein. Eine eingeklappte Karte mit Stems zeigt eine **Stems**-Plakette, die sie auf dieselbe Weise öffnet.
 
 **Takes auswählen.** Hake Takes an, und die Leiste bietet an, was man mit ihnen tun kann, anstelle der Arten und des Layouts: wie viele gewählt sind, **Vergleichen**, **Löschen** und **Fertig**, das sie abwählt. **Alle auswählen**, am Ende der Leiste, hakt jeden angezeigten Take an.
+
+### Take-Dateien: speichern und importieren {#take-files-saving-and-importing}
+
+Eine Take-Datei ist das Rezept eines Takes: alles, woraus er entstand, außer seinem Ton, in einer kleinen Datei (`<title>.yeufonic.json`), zum Aufbewahren, zum Teilen mit anderen Yeufonic-Nutzern oder zum erneuten Importieren. Ein Take aus einer Aufnahme kann diese Aufnahme mitnehmen und jeder Take seinen Ton, damit er vollständig ankommt.
+
+**Speichern.** In **Speichern**:
+
+- **Take**, daneben: das Rezept des Takes, eine kleine Datei (`<title>.yeufonic.json`) mit seinem Text, Stil und seiner Partitur, seinen Seeds und Einstellungen, seinen LoRAs nach Namen und den Einstellungen des Mastering-Racks, aber nicht seinem Ton. Mit einem gewählten Format kommen beide in einer ZIP; drücke das gewählte Format erneut, um nur das Rezept zu speichern. Die Datei enthält nichts von deiner Installation (keine Pfade, IDs oder Schlüssel), kann also aufbewahrt oder mit anderen Yeufonic-Nutzern geteilt werden.
+- **mit der Aufnahme**, ein Häkchen unter Take für einen Take aus einer Aufnahme (ein Cover oder ein Instrumental aus einer Aufnahme): Die Aufnahme, so wie sie hochgeladen wurde, kommt mit, unter `recording/` in der ZIP-Datei, damit der Take vollständig importiert werden kann.
+
+**Importieren.** **Take importieren**, in der Liste der Bereiche, macht aus einer solchen Datei einen neuen Take im angezeigten Bereich; die Datei auf die Bibliothek zu ziehen, macht dasselbe. Der Take enthält den Plan, bereit zum Rendern, kann also vorher geprüft oder geändert werden.
+
+| Der Import enthält | Der Take kommt an als |
+|---|---|
+| Nur die Take-Datei | der Take mit seinem Plan, bereit zum Rendern; ein Cover bleibt ein Cover, rendert seine eigene Partitur und wird mit seiner Aufnahme verknüpft, sobald sie in der Bibliothek ist |
+| Take-Datei und Aufnahme | das ganze Cover, mit seiner Aufnahme verknüpft |
+| Take-Datei und Ton | der fertige Take, bereit zum Abspielen |
+| Alles drei | das ganze Cover, fertig |
+
+- Jede Engine kann ihn rendern: Dieselbe Partitur und derselbe Seed auf derselben Engine ergeben einen sehr ähnlichen Take, auf der anderen Engine einen anderen.
+- Ein genanntes LoRA, das hier nicht installiert ist, wird beim Import genannt, sodass du es installieren oder vor dem Rendern ein anderes wählen kannst.
+- Ein Take kommt als die Art an, als die er gespeichert wurde, mit allen Einstellungen. Importiere eine ZIP-Datei mit Audio, Aufnahme oder beidem, oder wähle die Take-Datei zusammen mit ihrer Aufnahme: Die Aufnahme kommt in die Bibliothek (oder dieselbe, die schon dort ist, wird verwendet) und der Take wird mit ihr verknüpft; mit seinem Audio kommt der Take fertig an, bereit zum Abspielen. Ein Cover ohne Aufnahme rendert seine eigene Partitur und wird mit seiner Aufnahme verknüpft, sobald sie importiert oder im Editor für ihn gewählt wird.
 
 ### Ein Bild für jeden Take {#a-picture-for-each-take}
 

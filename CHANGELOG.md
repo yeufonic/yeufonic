@@ -39,12 +39,7 @@ cannot creep back in.
 
 ## Unreleased
 
-- **The editor's header button is Advanced+,** so it is not taken for the Advanced section in the editor's column.
-- **Saving a take shows its progress in the top bar's job pill,** as a render does: "Saving “Night drive” · Making
-  the MP3 · 42%", or the stage for a mastered file (mastering in the page, then making the file) and for a DAW zip.
-  The file is made in the background and fetched once it is done, instead of a download that said nothing until it
-  arrived. While the engine is busy, the save is named under its job.
-- **Covers in take files** (#60). Save → Take has a **with its recording** tick for a take made from a recording: the
+- **Take files that carry a take whole** (#60). Save → Take has a **with its recording** tick for a take made from a recording: the
   recording as uploaded goes in the zip under `recording/`, beside the recipe and any audio format chosen. **Import
   take** (and dropping on the library) takes such a zip, or a take file chosen with its recording. A take arrives as
   the kind it was saved as, every setting kept, so an imported cover renders as the original did: its recording joins
@@ -52,6 +47,11 @@ cannot creep back in.
   done. A cover imported without its recording renders its own score, and is linked to it once that recording is
   imported or chosen for it in the editor. This replaces importing a cover as a song with its recording's settings
   left behind.
+- **The editor's header button is Advanced+,** so it is not taken for the Advanced section in the editor's column.
+- **Saving a take shows its progress in the top bar's job pill,** as a render does: "Saving “Night drive” · Making
+  the MP3 · 42%", or the stage for a mastered file (mastering in the page, then making the file) and for a DAW zip.
+  The file is made in the background and fetched once it is done, instead of a download that said nothing until it
+  arrived. While the engine is busy, the save is named under its job.
 - **Advanced uses every number as typed, unless the engine cannot take it.** A value outside a setting's usual range
   turns its box amber and is still used, for experimenting. One the engine would refuse (past its own limits, or a
   fraction where it takes whole numbers) is set to the nearest value it takes once the box is left, and the box says

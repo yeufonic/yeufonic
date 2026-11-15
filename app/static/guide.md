@@ -1420,21 +1420,8 @@ the first time.
 - **Video**, for a take with a picture: an MP4 of the song that shows the picture its card shows (H.264 video, AAC
   audio at 192 kbps). Messaging apps such as WhatsApp send and play it as a video, where an audio file goes as a
   document.
-- **Take**, beside them: the take's recipe, a small file (`<title>.yeufonic.json`) holding its words, style and score,
-  its seeds and settings, its LoRAs by name and the mastering rack's settings, but not its audio. With a format chosen
-  too, both come in one zip; press the chosen format again to save the recipe alone. The file holds nothing of your
-  install (no paths, ids or keys), so it can be kept, or shared with another Yeufonic user.
-- **with its recording**, a tick under Take for a take made from a recording (a cover, or an instrumental from a recording): the recording as it was uploaded goes in too, under `recording/` in the zip, so the take can be imported whole.
+- **Take**, beside them: the take's recipe, to keep, share or import. See [Take files: saving and importing](#take-files-saving-and-importing).
 - With the mastering rack on, every format has the mastered sound.
-
-**Import take**, in the list of spaces, makes a new take in the space on show from such a file; dropping the file on
-the library does the same. The take holds the plan, ready to render, so it can be checked or changed first.
-
-- Either engine can render it: the same score and seed on the same engine give a very similar take, on the other
-  engine a different one.
-- A LoRA it names that is not installed here is named when it is imported, so you can install it or choose another
-  before rendering.
-- A take arrives as the kind it was saved as, every setting kept. Import a zip saved with its audio, its recording or both, or choose the take file together with its recording: the recording joins the library (or the same one already there is used) and the take is linked to it, and with its audio the take arrives done, ready to play. A cover imported without its recording renders its own score, and is linked to its recording as soon as that is imported or chosen for it in the editor.
 
 **Search takes** finds the takes with every word you type somewhere in the title, style, lyrics or LoRA name, in any
 case. It looks through the space on show; **All spaces**, beside it once you type, looks through every space, and a
@@ -1455,6 +1442,34 @@ folds it again. A folded card with stems shows a **Stems** pill, which opens it 
 **Selecting takes.** Tick takes and the row offers what can be done with them, in place of the kinds and the layout:
 how many are picked, **Compare**, **Delete** and **Done**, which unticks them. **Select all**, at the end of the row,
 ticks every take on show.
+
+### Take files: saving and importing
+
+A take file is a take's recipe: everything that made it except its audio, in a small file (`<title>.yeufonic.json`), to keep, to share with another Yeufonic user, or to import again. A take made from a recording can carry that recording with it, and any take its audio, so it arrives whole.
+
+**Saving.** In **Save**:
+
+- **Take**, beside them: the take's recipe, a small file (`<title>.yeufonic.json`) holding its words, style and score,
+  its seeds and settings, its LoRAs by name and the mastering rack's settings, but not its audio. With a format chosen
+  too, both come in one zip; press the chosen format again to save the recipe alone. The file holds nothing of your
+  install (no paths, ids or keys), so it can be kept, or shared with another Yeufonic user.
+- **with its recording**, a tick under Take for a take made from a recording (a cover, or an instrumental from a recording): the recording as it was uploaded goes in too, under `recording/` in the zip, so the take can be imported whole.
+
+**Importing.** **Import take**, in the list of spaces, makes a new take in the space on show from such a file; dropping the file on
+the library does the same. The take holds the plan, ready to render, so it can be checked or changed first.
+
+| The import holds | The take arrives as |
+|---|---|
+| The take file only | the take with its plan, ready to render; a cover stays a cover, renders its own score, and is linked to its recording once that is in the library |
+| The take file and its recording | the whole cover, linked to its recording |
+| The take file and its audio | the take already done, ready to play |
+| All three | the whole cover, done |
+
+- Either engine can render it: the same score and seed on the same engine give a very similar take, on the other
+  engine a different one.
+- A LoRA it names that is not installed here is named when it is imported, so you can install it or choose another
+  before rendering.
+- A take arrives as the kind it was saved as, every setting kept. Import a zip saved with its audio, its recording or both, or choose the take file together with its recording: the recording joins the library (or the same one already there is used) and the take is linked to it, and with its audio the take arrives done, ready to play. A cover imported without its recording renders its own score, and is linked to its recording as soon as that is imported or chosen for it in the editor.
 
 ### A picture for each take
 

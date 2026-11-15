@@ -1259,15 +1259,8 @@ Cada cartão nomeia as definições que deram forma ao take — Harmonia, Interp
 - **FLAC, WAV ou MP3:** o áudio. Um FLAC ou MP3 leva também o andamento e a tonalidade da partitura do take, que as DAW e os programas de DJ leem.
 - **Para uma DAW:** um zip com o take em WAV de 24 bits, os seus stems se houver, a partitura em MIDI e ABC, uma folha de acordes com andamento e tonalidade, e a receita. Com o rack de masterização ligado, o WAV sai masterizado.
 - **Vídeo**, para um take com imagem: um MP4 da música que mostra a imagem que o cartão mostra (vídeo H.264, áudio AAC a 192 kbps). Aplicações de mensagens como o WhatsApp enviam e reproduzem como vídeo, onde um ficheiro de áudio vai como documento.
-- **Take**, ao lado deles: a receita do take, um ficheiro pequeno (`<title>.yeufonic.json`) com a letra, o estilo e a partitura, as sementes e definições, os LoRAs pelo nome e as definições do rack de masterização, mas não o áudio. Com um formato escolhido também, os dois vêm num zip; prima de novo o formato escolhido para guardar só a receita. O ficheiro não contém nada da sua instalação (nem caminhos, nem ids, nem chaves), então pode ser guardado, ou partilhado com outra pessoa que use o Yeufonic.
-- **com a gravação**, uma caixa sob Take para um take feito a partir de uma gravação (um cover, ou um instrumental a partir de uma gravação): a gravação, tal como foi enviada, vai junto, em `recording/` dentro do zip, para importar o take inteiro.
+- **Take**, ao lado deles: a receita do take, para guardar, partilhar ou importar. Veja [Ficheiros de take: guardar e importar](#take-files-saving-and-importing).
 - Com o rack de masterização ligado, todos os formatos têm o som masterizado.
-
-**Importar take**, na lista de espaços, cria um take novo no espaço mostrado a partir de um ficheiro assim; soltar o ficheiro na biblioteca faz o mesmo. O take contém o plano, pronto para renderizar, então pode ser conferido ou mudado antes.
-
-- Qualquer um dos motores pode renderizá-lo: a mesma partitura e semente no mesmo motor dão um take muito parecido, no outro motor um diferente.
-- Um LoRA que ele cita e que não está instalado aqui é avisado na importação, para você instalá-lo ou escolher outro antes de renderizar.
-- Um take chega como o tipo com que foi guardado, com todas as definições. Importe um zip guardado com o áudio, a gravação ou ambos, ou escolha o ficheiro do take junto com a gravação: a gravação entra na biblioteca (ou é usada a mesma que já lá está) e o take fica associado a ela; com o áudio, o take chega pronto a tocar. Um cover importado sem a gravação renderiza a própria partitura, e fica associado à gravação assim que esta for importada ou escolhida para ele no editor.
 
 **Pesquisar takes** acha os takes com cada palavra que você digita em algum lugar do título, do estilo, da letra ou do nome do LoRA, sem diferenciar maiúsculas. Procura no espaço mostrado; **Todos os espaços**, ao lado assim que você digita, procura em todos, e um cartão de outro espaço diz de qual. × ou Esc limpam. A caixa começa vazia toda vez que a página abre, e oferece suas últimas pesquisas que acharam algo: clique numa, ou escolha com as setas e Enter.
 
@@ -1282,6 +1275,28 @@ Cada cartão nomeia as definições que deram forma ao take — Harmonia, Interp
 Enquanto os takes estão recolhidos, o botão no canto superior direito de um cartão abre só aquele cartão, e um clique em qualquer lugar fora dele o recolhe de novo. Um cartão recolhido com stems mostra uma etiqueta **Stems**, que o abre do mesmo jeito.
 
 **Selecionar takes.** Marque takes e a fileira oferece o que dá para fazer com eles, no lugar dos tipos e do layout: quantos estão escolhidos, **Comparar**, **Eliminar** e **Concluído**, que os desmarca. **Selecionar tudo**, no fim da fileira, marca todos os takes mostrados.
+
+### Ficheiros de take: guardar e importar {#take-files-saving-and-importing}
+
+Um ficheiro de take é a receita de um take: tudo o que o fez, menos o áudio, num ficheiro pequeno (`<title>.yeufonic.json`), para guardar, partilhar com outra pessoa que use o Yeufonic ou importar de novo. Um take feito a partir de uma gravação pode levar essa gravação, e qualquer take o seu áudio, para chegar inteiro.
+
+**Guardar.** Em **Guardar**:
+
+- **Take**, ao lado deles: a receita do take, um ficheiro pequeno (`<title>.yeufonic.json`) com a letra, o estilo e a partitura, as sementes e definições, os LoRAs pelo nome e as definições do rack de masterização, mas não o áudio. Com um formato escolhido também, os dois vêm num zip; prima de novo o formato escolhido para guardar só a receita. O ficheiro não contém nada da sua instalação (nem caminhos, nem ids, nem chaves), então pode ser guardado, ou partilhado com outra pessoa que use o Yeufonic.
+- **com a gravação**, uma caixa sob Take para um take feito a partir de uma gravação (um cover, ou um instrumental a partir de uma gravação): a gravação, tal como foi enviada, vai junto, em `recording/` dentro do zip, para importar o take inteiro.
+
+**Importar.** **Importar take**, na lista de espaços, cria um take novo no espaço mostrado a partir de um ficheiro assim; soltar o ficheiro na biblioteca faz o mesmo. O take contém o plano, pronto para renderizar, então pode ser conferido ou mudado antes.
+
+| A importação contém | O take chega como |
+|---|---|
+| Só o ficheiro de take | o take com o plano, pronto a renderizar; um cover continua cover, renderiza a própria partitura e fica associado à gravação assim que esta estiver na biblioteca |
+| O ficheiro de take e a gravação | o cover inteiro, associado à gravação |
+| O ficheiro de take e o áudio | o take já pronto a tocar |
+| Os três | o cover inteiro, pronto |
+
+- Qualquer um dos motores pode renderizá-lo: a mesma partitura e semente no mesmo motor dão um take muito parecido, no outro motor um diferente.
+- Um LoRA que ele cita e que não está instalado aqui é avisado na importação, para você instalá-lo ou escolher outro antes de renderizar.
+- Um take chega como o tipo com que foi guardado, com todas as definições. Importe um zip guardado com o áudio, a gravação ou ambos, ou escolha o ficheiro do take junto com a gravação: a gravação entra na biblioteca (ou é usada a mesma que já lá está) e o take fica associado a ela; com o áudio, o take chega pronto a tocar. Um cover importado sem a gravação renderiza a própria partitura, e fica associado à gravação assim que esta for importada ou escolhida para ele no editor.
 
 ### Uma imagem para cada take {#a-picture-for-each-take}
 

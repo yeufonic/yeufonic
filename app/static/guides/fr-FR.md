@@ -1259,15 +1259,8 @@ Chaque carte nomme les réglages qui ont façonné la prise — Harmonie, Interp
 - **FLAC, WAV ou MP3 :** l'audio. Un FLAC ou un MP3 porte aussi le tempo et la tonalité de la partition de la prise, que lisent les DAW et les logiciels de DJ.
 - **Pour une DAW :** un zip avec la prise en WAV 24 bits, ses stems s'il y en a, la partition en MIDI et ABC, une grille d'accords avec le tempo et la tonalité, et la recette. Avec le rack de mastering actif, le WAV est masterisé.
 - **Vidéo**, pour une prise avec image : un MP4 de la chanson qui montre l'image de sa carte (vidéo H.264, audio AAC à 192 kbit/s). Les messageries comme WhatsApp l'envoient et la lisent comme une vidéo, là où un fichier audio part comme document.
-- **Prise**, à côté : la recette de la prise, un petit fichier (`<title>.yeufonic.json`) contenant ses paroles, son style et sa partition, ses graines et réglages, ses LoRA par nom et les réglages du rack de mastering, mais pas son audio. Avec un format choisi aussi, les deux arrivent dans un zip ; appuyez de nouveau sur le format choisi pour n'enregistrer que la recette. Le fichier ne contient rien de votre installation (ni chemins, ni identifiants, ni clés), il peut donc être gardé, ou partagé avec un autre utilisateur de Yeufonic.
-- **avec son enregistrement**, une case sous Prise pour une prise tirée d’un enregistrement (une reprise, ou un instrumental tiré d’un enregistrement) : l’enregistrement tel qu’il a été envoyé y va aussi, dans `recording/` dans le zip, pour importer la prise entière.
+- **Prise**, à côté : la recette de la prise, à garder, partager ou importer. Voir [Fichiers de prise : enregistrer et importer](#take-files-saving-and-importing).
 - Rack de mastering activé, chaque format a le son masterisé.
-
-**Importer une prise**, dans la liste des espaces, crée une nouvelle prise dans l'espace affiché à partir d'un tel fichier ; déposer le fichier sur la bibliothèque fait de même. La prise contient le plan, prêt pour le rendu, donc elle peut être vérifiée ou modifiée d'abord.
-
-- Les deux moteurs peuvent en faire le rendu : la même partition et la même graine sur le même moteur donnent une prise très proche, sur l'autre moteur une différente.
-- Un LoRA qu'elle nomme et qui n'est pas installé ici est signalé à l'import, pour que vous puissiez l'installer ou en choisir un autre avant le rendu.
-- Une prise arrive dans le genre où elle a été enregistrée, avec tous ses réglages. Importez un zip enregistré avec son audio, son enregistrement ou les deux, ou choisissez le fichier de prise avec son enregistrement : l’enregistrement rejoint la bibliothèque (ou celui qui s’y trouve déjà est utilisé) et la prise y est liée ; avec son audio, la prise arrive terminée, prête à écouter. Une reprise importée sans son enregistrement rend sa propre partition, et est liée à son enregistrement dès qu’il est importé ou choisi pour elle dans l’éditeur.
 
 **Rechercher des prises** trouve les prises qui ont chaque mot tapé quelque part dans le titre, le style, les paroles ou le nom du LoRA, sans tenir compte de la casse. La recherche porte sur l'espace affiché ; **Tous les espaces**, à côté dès que vous tapez, cherche dans tous, et une carte d'un autre espace dit lequel. × ou Échap l'efface. La zone est vide à chaque ouverture de la page, et propose vos dernières recherches qui ont trouvé quelque chose : cliquez-en une, ou choisissez-la avec les flèches et Entrée.
 
@@ -1282,6 +1275,28 @@ Chaque carte nomme les réglages qui ont façonné la prise — Harmonie, Interp
 Tant que les prises sont repliées, le bouton en haut à droite d'une carte ouvre cette carte seule, et un clic n'importe où ailleurs la replie. Une carte repliée qui a des stems affiche une pastille **Stems**, qui l'ouvre de la même façon.
 
 **Sélectionner des prises.** Cochez des prises et la rangée propose ce qu'on peut en faire, à la place des sortes et de la disposition : combien sont choisies, **Comparer**, **Supprimer** et **Terminé**, qui les décoche. **Tout sélectionner**, au bout de la rangée, coche toutes les prises affichées.
+
+### Fichiers de prise : enregistrer et importer {#take-files-saving-and-importing}
+
+Un fichier de prise est la recette d’une prise : tout ce qui l’a faite sauf son audio, dans un petit fichier (`<title>.yeufonic.json`), pour la garder, la partager avec un autre utilisateur de Yeufonic ou l’importer à nouveau. Une prise tirée d’un enregistrement peut emporter cet enregistrement, et toute prise son audio, pour arriver entière.
+
+**Enregistrer.** Dans **Enregistrer** :
+
+- **Prise**, à côté : la recette de la prise, un petit fichier (`<title>.yeufonic.json`) contenant ses paroles, son style et sa partition, ses graines et réglages, ses LoRA par nom et les réglages du rack de mastering, mais pas son audio. Avec un format choisi aussi, les deux arrivent dans un zip ; appuyez de nouveau sur le format choisi pour n'enregistrer que la recette. Le fichier ne contient rien de votre installation (ni chemins, ni identifiants, ni clés), il peut donc être gardé, ou partagé avec un autre utilisateur de Yeufonic.
+- **avec son enregistrement**, une case sous Prise pour une prise tirée d’un enregistrement (une reprise, ou un instrumental tiré d’un enregistrement) : l’enregistrement tel qu’il a été envoyé y va aussi, dans `recording/` dans le zip, pour importer la prise entière.
+
+**Importer.** **Importer une prise**, dans la liste des espaces, crée une nouvelle prise dans l'espace affiché à partir d'un tel fichier ; déposer le fichier sur la bibliothèque fait de même. La prise contient le plan, prêt pour le rendu, donc elle peut être vérifiée ou modifiée d'abord.
+
+| L’import contient | La prise arrive comme |
+|---|---|
+| Le fichier de prise seul | la prise avec son plan, prête à rendre ; une reprise reste une reprise, rend sa propre partition et est liée à son enregistrement dès qu’il est dans la bibliothèque |
+| Le fichier de prise et son enregistrement | la reprise entière, liée à son enregistrement |
+| Le fichier de prise et son audio | la prise déjà faite, prête à écouter |
+| Les trois | la reprise entière, faite |
+
+- Les deux moteurs peuvent en faire le rendu : la même partition et la même graine sur le même moteur donnent une prise très proche, sur l'autre moteur une différente.
+- Un LoRA qu'elle nomme et qui n'est pas installé ici est signalé à l'import, pour que vous puissiez l'installer ou en choisir un autre avant le rendu.
+- Une prise arrive dans le genre où elle a été enregistrée, avec tous ses réglages. Importez un zip enregistré avec son audio, son enregistrement ou les deux, ou choisissez le fichier de prise avec son enregistrement : l’enregistrement rejoint la bibliothèque (ou celui qui s’y trouve déjà est utilisé) et la prise y est liée ; avec son audio, la prise arrive terminée, prête à écouter. Une reprise importée sans son enregistrement rend sa propre partition, et est liée à son enregistrement dès qu’il est importé ou choisi pour elle dans l’éditeur.
 
 ### Une image pour chaque prise {#a-picture-for-each-take}
 

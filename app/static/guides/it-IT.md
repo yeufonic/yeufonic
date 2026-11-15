@@ -1259,15 +1259,8 @@ Ogni scheda nomina le impostazioni che hanno dato forma al take — Armonia, Int
 - **FLAC, WAV o MP3:** l'audio. Un FLAC o un MP3 porta anche il tempo e la tonalità della partitura del take, che le DAW e i programmi per DJ leggono.
 - **Per una DAW:** uno zip con il take in WAV a 24 bit, i suoi stem se ci sono, la partitura in MIDI e ABC, una griglia di accordi con tempo e tonalità, e la ricetta. Con il rack di mastering attivo, il WAV è masterizzato.
 - **Video**, per un take con immagine: un MP4 della canzone che mostra l'immagine della sua scheda (video H.264, audio AAC a 192 kbps). Le app di messaggistica come WhatsApp lo inviano e riproducono come video, dove un file audio va come documento.
-- **Take**, accanto: la ricetta del take, un piccolo file (`<title>.yeufonic.json`) con il suo testo, stile e partitura, i suoi semi e impostazioni, i suoi LoRA per nome e le impostazioni del rack di mastering, ma non il suo audio. Con un formato scelto anche, entrambi arrivano in uno zip; premi di nuovo il formato scelto per salvare solo la ricetta. Il file non contiene niente della tua installazione (né percorsi, né id, né chiavi), quindi si può conservare, o condividere con un altro utente di Yeufonic.
-- **con la sua registrazione**, una spunta sotto Take per una take nata da una registrazione (una cover, o uno strumentale da una registrazione): anche la registrazione, così come è stata caricata, entra nello zip, in `recording/`, per importare la take intera.
+- **Take**, accanto: la ricetta della take, da conservare, condividere o importare. Vedi [File take: salvare e importare](#take-files-saving-and-importing).
 - Con il rack di mastering attivo, ogni formato ha il suono masterizzato.
-
-**Importa take**, nell'elenco degli spazi, crea un nuovo take nello spazio mostrato da un file così; trascinare il file sulla libreria fa lo stesso. Il take contiene il piano, pronto da generare, quindi si può controllare o cambiare prima.
-
-- Entrambi i motori possono generarlo: la stessa partitura e lo stesso seme sullo stesso motore danno un take molto simile, sull'altro motore uno diverso.
-- Un LoRA che nomina e che qui non è installato viene segnalato all'importazione, così puoi installarlo o sceglierne un altro prima di generare.
-- Una take arriva del tipo con cui è stata salvata, con tutte le impostazioni. Importa uno zip salvato con il suo audio, la sua registrazione o entrambi, oppure scegli il file della take insieme alla sua registrazione: la registrazione entra nella libreria (o si usa la stessa già presente) e la take viene collegata; con il suo audio, la take arriva finita, pronta da ascoltare. Una cover importata senza registrazione esegue la propria partitura, e viene collegata alla registrazione appena questa viene importata o scelta per lei nell’editor.
 
 **Cerca take** trova i take con ogni parola che scrivi da qualche parte nel titolo, nello stile, nel testo o nel nome del LoRA, senza distinguere maiuscole. Cerca nello spazio mostrato; **Tutti gli spazi**, accanto appena scrivi, cerca in tutti, e una scheda di un altro spazio dice quale. × o Esc lo svuotano. Il riquadro è vuoto a ogni apertura della pagina, e offre le tue ultime ricerche che hanno trovato qualcosa: cliccane una, o sceglila con le frecce e Invio.
 
@@ -1282,6 +1275,28 @@ Ogni scheda nomina le impostazioni che hanno dato forma al take — Armonia, Int
 Mentre i take sono ripiegati, il pulsante in alto a destra di una scheda apre solo quella scheda, e un clic in qualunque punto fuori la ripiega. Una scheda ripiegata con degli stem mostra un bollino **Stem**, che la apre allo stesso modo.
 
 **Selezionare i take.** Spunta dei take e la riga offre ciò che si può fare con essi, al posto dei tipi e della disposizione: quanti ne hai scelti, **Confronta**, **Elimina** e **Fatto**, che li deseleziona. **Seleziona tutto**, in fondo alla riga, spunta ogni take mostrato.
+
+### File take: salvare e importare {#take-files-saving-and-importing}
+
+Un file take è la ricetta di una take: tutto ciò che l’ha creata tranne il suo audio, in un piccolo file (`<title>.yeufonic.json`), da conservare, condividere con un altro utente di Yeufonic o importare di nuovo. Una take nata da una registrazione può portare con sé quella registrazione, e ogni take il suo audio, così arriva intera.
+
+**Salvare.** In **Salva**:
+
+- **Take**, accanto: la ricetta del take, un piccolo file (`<title>.yeufonic.json`) con il suo testo, stile e partitura, i suoi semi e impostazioni, i suoi LoRA per nome e le impostazioni del rack di mastering, ma non il suo audio. Con un formato scelto anche, entrambi arrivano in uno zip; premi di nuovo il formato scelto per salvare solo la ricetta. Il file non contiene niente della tua installazione (né percorsi, né id, né chiavi), quindi si può conservare, o condividere con un altro utente di Yeufonic.
+- **con la sua registrazione**, una spunta sotto Take per una take nata da una registrazione (una cover, o uno strumentale da una registrazione): anche la registrazione, così come è stata caricata, entra nello zip, in `recording/`, per importare la take intera.
+
+**Importare.** **Importa take**, nell'elenco degli spazi, crea un nuovo take nello spazio mostrato da un file così; trascinare il file sulla libreria fa lo stesso. Il take contiene il piano, pronto da generare, quindi si può controllare o cambiare prima.
+
+| L’importazione contiene | La take arriva come |
+|---|---|
+| Solo il file take | la take con il suo piano, pronta da renderizzare; una cover resta una cover, esegue la propria partitura ed è collegata alla registrazione appena questa è nella libreria |
+| Il file take e la registrazione | la cover intera, collegata alla registrazione |
+| Il file take e il suo audio | la take già fatta, pronta da ascoltare |
+| Tutti e tre | la cover intera, fatta |
+
+- Entrambi i motori possono generarlo: la stessa partitura e lo stesso seme sullo stesso motore danno un take molto simile, sull'altro motore uno diverso.
+- Un LoRA che nomina e che qui non è installato viene segnalato all'importazione, così puoi installarlo o sceglierne un altro prima di generare.
+- Una take arriva del tipo con cui è stata salvata, con tutte le impostazioni. Importa uno zip salvato con il suo audio, la sua registrazione o entrambi, oppure scegli il file della take insieme alla sua registrazione: la registrazione entra nella libreria (o si usa la stessa già presente) e la take viene collegata; con il suo audio, la take arriva finita, pronta da ascoltare. Una cover importata senza registrazione esegue la propria partitura, e viene collegata alla registrazione appena questa viene importata o scelta per lei nell’editor.
 
 ### Un'immagine per ogni take {#a-picture-for-each-take}
 

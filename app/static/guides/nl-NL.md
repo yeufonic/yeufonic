@@ -1259,15 +1259,8 @@ Elke kaart noemt de instellingen die de take vormden — Harmonie, Interpretatie
 - **FLAC, WAV of MP3:** de audio. Een FLAC of MP3 draagt ook het tempo en de toonsoort uit de partituur van de take, die DAW's en dj-programma's lezen.
 - **Voor een DAW:** één zip met de take als 24-bit WAV, de stems als die er zijn, de partituur als MIDI en ABC, een akkoordenschema met tempo en toonsoort, en het recept. Met het masteringrack aan is de WAV gemasterd.
 - **Video**, voor een take met een afbeelding: een MP4 van het nummer met de afbeelding die zijn kaart toont (H.264-video, AAC-audio op 192 kbps). Berichtenapps zoals WhatsApp sturen en spelen het als video, waar een audiobestand als document gaat.
-- **Take**, ernaast: het recept van de take, een klein bestand (`<title>.yeufonic.json`) met zijn tekst, stijl en partituur, zijn seeds en instellingen, zijn LoRA's op naam en de instellingen van het masteringrack, maar niet zijn audio. Met ook een formaat gekozen komen beide in één zip; druk nog eens op het gekozen formaat om alleen het recept op te slaan. Het bestand bevat niets van je installatie (geen paden, id's of sleutels), dus het kan bewaard of gedeeld worden met een andere Yeufonic-gebruiker.
-- **met de opname**, een vinkje onder Take voor een take uit een opname (een cover, of een instrumental uit een opname): de opname zoals hij geüpload is gaat mee, onder `recording/` in de zip, zodat de take in zijn geheel geïmporteerd kan worden.
+- **Take**, ernaast: het recept van de take, om te bewaren, te delen of te importeren. Zie [Takebestanden: opslaan en importeren](#take-files-saving-and-importing).
 - Met het masteringrack aan heeft elk formaat de gemasterde klank.
-
-**Take importeren**, in de lijst van ruimtes, maakt van zo'n bestand een nieuwe take in de getoonde ruimte; het bestand op de bibliotheek slepen doet hetzelfde. De take bevat het plan, klaar om te renderen, dus hij kan eerst gecontroleerd of veranderd worden.
-
-- Beide engines kunnen hem renderen: dezelfde partituur en seed op dezelfde engine geven een zeer vergelijkbare take, op de andere engine een andere.
-- Een LoRA die hij noemt en die hier niet geïnstalleerd is, wordt bij het importeren genoemd, zodat je hem kunt installeren of een andere kiezen voor het renderen.
-- Een take komt binnen als het soort waarin hij is bewaard, met al zijn instellingen. Importeer een zip die met de audio, de opname of beide is bewaard, of kies het takebestand samen met de opname: de opname komt in de bibliotheek (of dezelfde die er al staat wordt gebruikt) en de take wordt eraan gekoppeld; met de audio komt de take klaar binnen, klaar om af te spelen. Een cover die zonder opname wordt geïmporteerd rendert zijn eigen partituur, en wordt aan de opname gekoppeld zodra die wordt geïmporteerd of in de editor voor hem wordt gekozen.
 
 **Takes zoeken** vindt de takes met elk woord dat je typt ergens in de titel, stijl, tekst of LoRA-naam, hoofdletterongevoelig. Het zoekt in de getoonde ruimte; **Alle ruimtes**, ernaast zodra je typt, zoekt in elke ruimte, en een kaart uit een andere ruimte zegt uit welke. × of Escape maakt het leeg. Het vak begint elke keer dat de pagina opent leeg, en biedt je laatste zoekopdrachten aan die iets vonden: klik er een aan, of kies hem met de pijltjestoetsen en Enter.
 
@@ -1282,6 +1275,28 @@ Elke kaart noemt de instellingen die de take vormden — Harmonie, Interpretatie
 Zolang de takes ingeklapt zijn, opent de knop rechtsboven op een kaart alleen die kaart, en een klik ergens buiten de kaart klapt hem weer in. Een ingeklapte kaart met stems toont een **Stems**-label, dat hem op dezelfde manier opent.
 
 **Takes selecteren.** Vink takes aan en de rij biedt wat je ermee kunt doen, in plaats van de soorten en de indeling: hoeveel er gekozen zijn, **Vergelijken**, **Verwijderen** en **Klaar**, dat ze uitvinkt. **Alles selecteren**, aan het eind van de rij, vinkt elke getoonde take aan.
+
+### Takebestanden: opslaan en importeren {#take-files-saving-and-importing}
+
+Een takebestand is het recept van een take: alles waaruit hij gemaakt is behalve de audio, in een klein bestand (`<title>.yeufonic.json`), om te bewaren, te delen met een andere Yeufonic-gebruiker of opnieuw te importeren. Een take uit een opname kan die opname meenemen, en elke take zijn audio, zodat hij compleet aankomt.
+
+**Opslaan.** In **Opslaan**:
+
+- **Take**, ernaast: het recept van de take, een klein bestand (`<title>.yeufonic.json`) met zijn tekst, stijl en partituur, zijn seeds en instellingen, zijn LoRA's op naam en de instellingen van het masteringrack, maar niet zijn audio. Met ook een formaat gekozen komen beide in één zip; druk nog eens op het gekozen formaat om alleen het recept op te slaan. Het bestand bevat niets van je installatie (geen paden, id's of sleutels), dus het kan bewaard of gedeeld worden met een andere Yeufonic-gebruiker.
+- **met de opname**, een vinkje onder Take voor een take uit een opname (een cover, of een instrumental uit een opname): de opname zoals hij geüpload is gaat mee, onder `recording/` in de zip, zodat de take in zijn geheel geïmporteerd kan worden.
+
+**Importeren.** **Take importeren**, in de lijst van ruimtes, maakt van zo'n bestand een nieuwe take in de getoonde ruimte; het bestand op de bibliotheek slepen doet hetzelfde. De take bevat het plan, klaar om te renderen, dus hij kan eerst gecontroleerd of veranderd worden.
+
+| De import bevat | De take komt binnen als |
+|---|---|
+| Alleen het takebestand | de take met zijn plan, klaar om te renderen; een cover blijft een cover, rendert zijn eigen partituur en wordt gekoppeld aan zijn opname zodra die in de bibliotheek staat |
+| Het takebestand en de opname | de hele cover, gekoppeld aan zijn opname |
+| Het takebestand en de audio | de take al klaar, klaar om af te spelen |
+| Alle drie | de hele cover, klaar |
+
+- Beide engines kunnen hem renderen: dezelfde partituur en seed op dezelfde engine geven een zeer vergelijkbare take, op de andere engine een andere.
+- Een LoRA die hij noemt en die hier niet geïnstalleerd is, wordt bij het importeren genoemd, zodat je hem kunt installeren of een andere kiezen voor het renderen.
+- Een take komt binnen als het soort waarin hij is bewaard, met al zijn instellingen. Importeer een zip die met de audio, de opname of beide is bewaard, of kies het takebestand samen met de opname: de opname komt in de bibliotheek (of dezelfde die er al staat wordt gebruikt) en de take wordt eraan gekoppeld; met de audio komt de take klaar binnen, klaar om af te spelen. Een cover die zonder opname wordt geïmporteerd rendert zijn eigen partituur, en wordt aan de opname gekoppeld zodra die wordt geïmporteerd of in de editor voor hem wordt gekozen.
 
 ### Een afbeelding voor elke take {#a-picture-for-each-take}
 
