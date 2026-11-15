@@ -137,7 +137,7 @@ The result is a converted vocal over a separated backing, so it is less seamless
 
 ### Advanced settings {#advanced-settings}
 
-The **Advanced** button in the editor's header opens settings for this one take. Most songs never
+The **Advanced+** button in the editor's header opens settings for this one take. Most songs never
 need them. They are saved with the take, so *Edit and render again* finds them as you left them.
 The button lights up when any setting differs from its default, and **Reset to defaults** puts
 them all back.
@@ -175,7 +175,7 @@ Some of these act on the plan, and some on the render and the finished file:
 - **Voices follow the cues** (a tick under the lyrics box, shown once the lyrics have a voice cue such as
   `[male voice]`; on for a new take): the melody of each cued line is moved by octaves to where the voice its
   cue names is sung. See [The words](#the-words).
-- **Follow this structure exactly** (a tick under the lyrics box, not in Advanced; songs; off by default): the plan writes exactly the sections the lyrics name, in
+- **Follow this structure exactly** (a tick under the lyrics box, not in Advanced+; songs; off by default): the plan writes exactly the sections the lyrics name, in
   order, and no others. Left off, the planner shapes the song itself and often adds an intro, an outro or an
   interlude, or leaves a section out. A plan can still end before the list does.
 - **Sections open differently** (Follow Harmony, Always, Never): whether a section may open on the same
@@ -245,7 +245,7 @@ table for the common wishes, such as a longer song or a chorus that sounds diffe
   list's search finds them along with the 200. Saving under a name you have used replaces that style. A style
   LoRA's trigger word is left out of what is kept, and put back for whichever LoRA is chosen when you use the style.
 - **A tempo in the style is only a hint.** The planner often picks its own. To fix the tempo, use **Tempo lock** in
-  Advanced.
+  Advanced+.
 - **Vocal.** The chips write a voice (female, male, duet and a character) into the style for you.
 - **Style LoRA.** Under the sound column. See [Style LoRAs](#style-loras).
 
@@ -385,7 +385,7 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
   From Colorful up the chord choices come out more distinct from section to section: more different chords in a
   song, more four-bar patterns that are not repeats, and less of the chorus copying the verse's opening. The plan is
   still a normal song, so it is worth trying a step or two higher before reaching for a wilder Plan variety.
-  Under **Advanced**, **Sections open differently** can be set to *Always* or *Never* to try a plan with and without
+  Under **Advanced+**, **Sections open differently** can be set to *Always* or *Never* to try a plan with and without
   the chorus rule; the default, *Follow Harmony*, is on from Colorful up. A style such as trap or ambient is often
   loop-based by nature, so expect a smaller change there than in pop or rock. See [Harmony](#harmony) for the measurements.
 - **Plan variety.** How freely the planner writes everything else. See [Plan variety](#plan-variety).
@@ -398,7 +398,7 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
 - **Render as soon as the plan is ready**, beside the button at the foot of the window, runs the plan and the render
   without stopping in between. It is ticked to begin with, and the editor remembers your choice. Untick it to read the
   plan first.
-- **Advanced** (the button in the header): diffusion steps, Follow the style/CFG, Avoid, Key lock, Tempo lock, the longest score,
+- **Advanced+** (the button in the header): diffusion steps, Follow the style/CFG, Avoid, Key lock, Tempo lock, the longest score,
   chord hold limit, outside harmony bonus, Sections open differently, target loudness and the outro fade. See
   [Advanced settings](#advanced-settings).
 - **Mastering** (the button to its left, when the take has sound) opens the mastering rack over the editor for the
@@ -448,7 +448,7 @@ The length of a song is set by its plan, and the render follows the plan's lengt
 | To get… | Do this |
 |---|---|
 | A longer song | Give each section more lines (**Lines in a verse or chorus**: 6 or 8) |
-| A slower, longer song | Set a **Tempo lock** in Advanced. The same plan at a lower BPM runs longer |
+| A slower, longer song | Set a **Tempo lock** in Advanced+. The same plan at a lower BPM runs longer |
 | A longer song by adding sections | This does not work: a plan has about 8 to 10 sections, so more just get shorter or are condensed |
 | More than the plan allows | Write a new plan; lengths vary a lot between runs on the same words |
 | A song that stops at the end of its words | Raise the length cap only if it is being cut short; the cap is a limit, not a target |
@@ -707,7 +707,7 @@ interpretations. Because only the interpretation changes, what you hear between 
 interpretation — not a different roll of the dice. Each is a take of its own, titled
 *Night drive · Loose* and kept inside the take it was made from (see **Takes inside a take**,
 under The library). The window has its own length cap, which starts at the editor's and applies
-only to these takes. When the take has music-stage values set under Advanced → Sampling, a tick keeps them on every variation, over each interpretation's own; left off, each is heard as its interpretation alone.
+only to these takes. When the take has music-stage values set under Advanced+ → Sampling, a tick keeps them on every variation, over each interpretation's own; left off, each is heard as its interpretation alone.
 
 ### Try more {#try-more}
 

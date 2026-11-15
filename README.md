@@ -177,7 +177,7 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   Download them singly or as a zip.
 - **Spaces.** Keep takes apart by project: a space per song, per album, or for sketches. Create,
   rename and delete spaces, and move a take from one to another.
-- **Sampling values by number.** Plan variety and the Interpretation set the model's sampling for you; Advanced →
+- **Sampling values by number.** Plan variety and the Interpretation set the model's sampling for you; Advanced+ →
   Sampling lets temperature, top_p, top_k and repetition_penalty be set by hand for either stage, a value at a time.
 - **Notes on takes.** Keep a few words of your own on any take: what it is for, the part to keep, what to cut. The
   search finds takes by their notes, and a take's recipe file carries its note.

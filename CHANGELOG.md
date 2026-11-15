@@ -39,6 +39,7 @@ cannot creep back in.
 
 ## Unreleased
 
+- **The editor's header button is Advanced+,** so it is not taken for the Advanced section in the editor's column.
 - **Saving a take shows its progress in the top bar's job pill,** as a render does: "Saving “Night drive” · Making
   the MP3 · 42%", or the stage for a mastered file (mastering in the page, then making the file) and for a DAW zip.
   The file is made in the background and fetched once it is done, instead of a download that said nothing until it
