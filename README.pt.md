@@ -5,7 +5,7 @@
 <p align="center"><b>Músicas inteiras com uma partitura editável, feitas com o YuE2 na sua própria GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-pt.svg" alt="músicas a partir de um prompt · covers das suas gravações · instrumentais · LoRAs de estilo que você treina · vozes do seu próprio canto · stems e masterização"><br>
+  <img src="docs/readme/chips-pt.svg" alt="músicas a partir de um prompt · covers das suas gravações · instrumentais · LoRAs de estilo – treine as suas ou importe · vozes – treine as suas ou importe · stems e masterização"><br>
   <img src="docs/readme/chip-engines-pt.svg" alt="dois motores: ComfyUI ou yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-pt.svg" alt="exemplos em yeufonic.com"></a>
 </p>
 

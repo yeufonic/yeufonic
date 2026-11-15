@@ -5,7 +5,7 @@
 <p align="center"><b>Complete songs met een bewerkbare partituur, gemaakt met YuE2 op je eigen GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-nl.svg" alt="songs uit een prompt · covers van je opnames · instrumentals · stijl-LoRA's die je traint · stemmen uit je eigen zang · stems en mastering"><br>
+  <img src="docs/readme/chips-nl.svg" alt="songs uit een prompt · covers van je opnames · instrumentals · stijl-LoRA's – train je eigen of importeer · stemmen – train je eigen of importeer · stems en mastering"><br>
   <img src="docs/readme/chip-engines-nl.svg" alt="twee engines: ComfyUI of yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-nl.svg" alt="voorbeelden op yeufonic.com"></a>
 </p>
 

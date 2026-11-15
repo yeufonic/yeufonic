@@ -5,7 +5,7 @@
 <p align="center"><b>編集できる楽譜つきのフルソングを、自分の GPU で YuE2 が作ります。</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-ja.svg" alt="プロンプトから曲を · 自分の録音をカバー · インスト · スタイル LoRA を学習 · 自分の歌声から声を · ステムとマスタリング"><br>
+  <img src="docs/readme/chips-ja.svg" alt="プロンプトから曲を · 自分の録音をカバー · インスト · スタイル LoRA – 自分で学習またはインポート · 声 – 自分で学習またはインポート · ステムとマスタリング"><br>
   <img src="docs/readme/chip-engines-ja.svg" alt="2つのエンジン: ComfyUI と yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-ja.svg" alt="yeufonic.com のサンプル"></a>
 </p>
 

@@ -5,7 +5,7 @@
 <p align="center"><b>Canzoni intere con una partitura modificabile, fatte con YuE2 sulla tua GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-it.svg" alt="canzoni da un prompt · cover delle tue registrazioni · strumentali · LoRA di stile che addestri · voci dal tuo canto · stem e mastering"><br>
+  <img src="docs/readme/chips-it.svg" alt="canzoni da un prompt · cover delle tue registrazioni · strumentali · LoRA di stile – addestra le tue o importale · voci – addestra le tue o importale · stem e mastering"><br>
   <img src="docs/readme/chip-engines-it.svg" alt="due motori: ComfyUI o yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-it.svg" alt="esempi su yeufonic.com"></a>
 </p>
 

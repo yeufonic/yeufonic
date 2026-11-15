@@ -5,7 +5,7 @@
 <p align="center"><b>Целые песни с редактируемой партитурой, созданные YuE2 на вашей видеокарте.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-ru.svg" alt="песни по описанию · каверы ваших записей · инструменталы · свои LoRA стиля · голоса из вашего пения · стемы и мастеринг"><br>
+  <img src="docs/readme/chips-ru.svg" alt="песни по описанию · каверы ваших записей · инструменталы · LoRA стиля – обучите свои или импортируйте · голоса – обучите свои или импортируйте · стемы и мастеринг"><br>
   <img src="docs/readme/chip-engines-ru.svg" alt="два движка: ComfyUI или yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-ru.svg" alt="примеры на yeufonic.com"></a>
 </p>
 

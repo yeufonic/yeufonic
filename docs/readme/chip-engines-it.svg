@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="350" height="50" viewBox="0 0 350 50">
+<svg xmlns="http://www.w3.org/2000/svg" width="467" height="50" viewBox="0 0 467 50">
   <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7b5cff"/><stop offset="1" stop-color="#ff4d94"/></linearGradient></defs>
   <g transform="translate(2 8)">
-    <rect width="342.0" height="40" rx="20.0" fill="#17121f" stroke="url(#g)" stroke-opacity="0.7" stroke-width="1.5"/>
+    <rect width="459.0" height="40" rx="20.0" fill="#17121f" stroke="url(#g)" stroke-opacity="0.7" stroke-width="1.5"/>
     <rect x="4" y="4" width="36" height="32" rx="16.0" fill="url(#g)"/>
     <g transform="translate(12 10) scale(0.833)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2V4z"/><circle cx="8" cy="11" r="2.5"/><circle cx="15" cy="11" r="2.5"/><path d="M6 18v2M10 18v2M14 18v2"/></g>
     <text x="52" y="25.5" font-family="SFMono-Regular, Consolas, Menlo, ui-monospace, monospace" font-size="15" fill="#e6e1f5">due motori: ComfyUI o yue2.cpp</text>
