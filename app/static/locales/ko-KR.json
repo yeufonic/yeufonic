@@ -1802,6 +1802,7 @@
  "no audio yet": "아직 오디오 없음",
  "Note — Add a note to this take": "메모 — 이 테이크에 메모 추가",
  "Note — {note}": "메모 — {note}",
+ "Click to edit note": "클릭하여 메모 편집",
  "Note: {title}": "메모: {title}",
  "What this take is for: the part to keep, what to cut…": "이 테이크의 용도: 남길 부분, 잘라낼 부분…",
  "Could not save the note: {message}": "메모를 저장할 수 없습니다: {message}",

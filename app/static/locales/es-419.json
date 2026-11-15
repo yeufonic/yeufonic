@@ -1802,6 +1802,7 @@
  "no audio yet": "aún sin audio",
  "Note — Add a note to this take": "Nota — Agrega una nota a esta toma",
  "Note — {note}": "Nota — {note}",
+ "Click to edit note": "Haz clic para editar la nota",
  "Note: {title}": "Nota: {title}",
  "What this take is for: the part to keep, what to cut…": "Para qué es esta toma: la parte que se queda, lo que hay que cortar…",
  "Could not save the note: {message}": "No se pudo guardar la nota: {message}",

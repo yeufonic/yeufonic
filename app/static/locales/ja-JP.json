@@ -1802,6 +1802,7 @@
  "no audio yet": "音声はまだありません",
  "Note — Add a note to this take": "メモ — このテイクにメモを追加",
  "Note — {note}": "メモ — {note}",
+ "Click to edit note": "クリックしてメモを編集",
  "Note: {title}": "メモ: {title}",
  "What this take is for: the part to keep, what to cut…": "このテイクの用途: 残す部分、カットするところ…",
  "Could not save the note: {message}": "メモを保存できませんでした: {message}",

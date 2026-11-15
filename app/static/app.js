@@ -7673,6 +7673,31 @@ async function saveScore(silent) {
   }
 }
 
+/* A song whose plan is ready and not yet rendered (an imported take, or one planned without Render as soon as the
+   plan is ready): Render this score is what comes next, so the foot offers it beside Write score plan, where the
+   main button is, rather than leaving it among the score's own buttons. */
+function paintFootRender() {
+  var btn = $('foot-render');
+  if (!btn) {
+    // Before the tick box, which belongs to Write score plan and stays beside it.
+    var before = $('auto-wrap') || $('create-song');
+    if (!before || !before.parentNode) { return; }
+    btn = document.createElement('button');
+    btn.id = 'foot-render';
+    btn.className = 'primary hidden';
+    btn.type = 'button';
+    btn.textContent = t('Render this score');
+    btn.addEventListener('click', function () { doRenderTake(); });
+    before.parentNode.insertBefore(btn, before);
+  }
+  var take = editorOpen() && State.mode === 'song' && takeIdInEditor() ? editorTake() : null;
+  var show = Boolean(take && take.status === 'planned' && !take.has_audio && take.abc && take.abc.trim() &&
+    !noScore() && !wordsChanged());
+  btn.classList.toggle('hidden', !show);
+  // Shown here, it is not shown twice: the score's own row loses its copy meanwhile.
+  if ($('render-take')) { $('render-take').classList.toggle('hidden', show); }
+}
+
 function setScoreActions() {
   var enabled = Boolean(takeIdInEditor());
   ['render-take', 'reroll', 'make-instrumental'].forEach(function (name) {
@@ -7718,6 +7743,7 @@ function setScoreActions() {
       : (fresh
         ? t('The words have changed. Sing with new words keeps this score\'s tune and makes a new take; the original stays as it is.')
         : t('Render this score makes audio from the score above, keeping its melody and chords. Write a new plan asks YuE2 for a different melody, same words.')));
+  paintFootRender();
 }
 
 /* Changed words on a song with a score, and Keep this tune ticked: the main button
@@ -13744,6 +13770,98 @@ function noteTip(take) {
   return t('Note — {note}', { note: note.length > 300 ? note.slice(0, 300) + '…' : note });
 }
 
+/* Hovering the lit pen shows the note whole, in a card laid out as the picture's is: the note where the picture
+   would be, the take's title, and a click to edit it.  The pointer can move onto the card, and the button's own tip
+   is held back meanwhile, so the two do not show at once. */
+var _notePopupTimer = null;
+
+function notePopup() {
+  var pop = $('note-popup');
+  if (pop) { return pop; }
+  pop = document.createElement('div');
+  pop.id = 'note-popup';
+  pop.className = 'note-popup hidden';
+  pop.setAttribute('role', 'button');
+  pop.tabIndex = -1;
+  pop.innerHTML =
+    '<div class="note-popup-card">' +
+      '<div class="note-popup-text"></div>' +
+      '<div class="cover-popup-meta">' +
+        '<div class="cover-popup-title note-popup-title"></div>' +
+        '<div class="note-popup-hint">' + t('Click to edit note') + '</div>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(pop);
+  pop.addEventListener('mouseenter', function () { clearTimeout(_notePopupTimer); });
+  pop.addEventListener('mouseleave', function () { scheduleNotePopupClose(); });
+  pop.addEventListener('click', function () {
+    var take = takeById(pop.dataset.id);
+    hideNotePopup();
+    if (take) { openNoteModal(take); }
+  });
+  return pop;
+}
+
+function showNotePopup(button) {
+  var take = takeById(button.dataset.id);
+  var note = take ? String(take.take_note || '').trim() : '';
+  if (!note) { return; }
+  clearTimeout(_notePopupTimer);
+  var pop = notePopup();
+  pop.dataset.id = take.id;
+  pop.querySelector('.note-popup-text').textContent = note;
+  pop.querySelector('.note-popup-title').textContent = take.title || '';
+  pop.setAttribute('aria-label', t('Click to edit note'));
+  if (button.title) { button.dataset.tip = button.title; button.removeAttribute('title'); }
+  pop._button = button;
+  pop.classList.remove('hidden');
+  // Beside the pen, as the picture's card sits beside its square: to the right where there is room, else to the left.
+  var rect = button.getBoundingClientRect();
+  var w = pop.offsetWidth, h = pop.offsetHeight, gap = 12;
+  var left = rect.right + gap;
+  if (left + w > window.innerWidth - 12) { left = rect.left - w - gap; }
+  if (left < 12) { left = Math.max(12, Math.min(window.innerWidth - w - 12, rect.left)); }
+  var top = Math.max(12, Math.min(rect.top - 4, window.innerHeight - h - 12));
+  pop.style.left = Math.round(left) + 'px';
+  pop.style.top = Math.round(top) + 'px';
+}
+
+function hideNotePopup() {
+  clearTimeout(_notePopupTimer);
+  var pop = $('note-popup');
+  if (!pop) { return; }
+  pop.classList.add('hidden');
+  var button = pop._button;
+  if (button && button.dataset.tip && !button.title) { button.title = button.dataset.tip; }
+  pop._button = null;
+}
+
+function scheduleNotePopupClose() {
+  clearTimeout(_notePopupTimer);
+  _notePopupTimer = setTimeout(hideNotePopup, 160);
+}
+
+document.addEventListener('mouseover', function (event) {
+  var button = event.target.closest && event.target.closest('button[data-act="note"]');
+  if (button) {
+    if (!(event.relatedTarget && button.contains(event.relatedTarget))) { showNotePopup(button); }
+    return;
+  }
+  // The cards are redrawn under the pointer now and then, and a button taken away says nothing as it goes: the
+  // card closes once the pointer is over anything but the pen or the card itself.
+  var pop = $('note-popup');
+  if (pop && !pop.classList.contains('hidden') && !pop.contains(event.target)) { scheduleNotePopupClose(); }
+});
+document.addEventListener('click', function (event) {
+  if (event.target.closest && event.target.closest('button[data-act="note"]')) { hideNotePopup(); }
+}, true);
+// The page scrolling moves the pen from under the card, so the card goes; the note scrolling inside the card does not.
+window.addEventListener('scroll', function (event) {
+  var pop = $('note-popup');
+  if (pop && event.target instanceof Node && pop.contains(event.target)) { return; }
+  hideNotePopup();
+}, true);
+
 function closeNoteModal() {
   var modal = $('note-modal');
   if (modal) { modal.classList.add('hidden'); }
@@ -13919,6 +14037,7 @@ function paintEdTakeTools() {
   var html = take ? edTakeTools(take) : '';
   if (box.innerHTML !== html) { box.innerHTML = html; }          // redrawn only on a change, so a hover and its tip hold
   box.classList.toggle('hidden', !html);
+  paintFootRender();     // a take's status moves with the list: once it is queued, the foot's Render goes
 }
 
 function paintEdMastering() {

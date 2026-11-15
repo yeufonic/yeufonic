@@ -1802,6 +1802,7 @@
  "no audio yet": "аудио пока нет",
  "Note — Add a note to this take": "Заметка — Добавить заметку к этому дублю",
  "Note — {note}": "Заметка — {note}",
+ "Click to edit note": "Нажмите, чтобы изменить заметку",
  "Note: {title}": "Заметка: {title}",
  "What this take is for: the part to keep, what to cut…": "Для чего этот дубль: что оставить, что вырезать…",
  "Could not save the note: {message}": "Не удалось сохранить заметку: {message}",

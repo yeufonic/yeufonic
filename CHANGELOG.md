@@ -67,6 +67,9 @@ cannot creep back in.
   interpretation alone.
 - **Follow the style is labelled Follow the style/CFG,** the name it goes by elsewhere.
 - **A take made from another no longer copies its note** (Sing again and Try more copied it).
+- **The editor's foot offers Render this score** for a song whose plan is ready and not yet rendered, such as an
+  imported take, beside Write score plan; the score's own row loses its copy meanwhile.
+- **Hovering a take's lit pen shows its note** in a card like the picture's, and a click on it edits the note.
 - **Notes on takes** (#71). The pen among a card's small buttons, and in the editor's top row, opens a box for a
   note of your own on the take: what it is for, the part to keep, what to cut. The pen is lit while the take has a
   note, and its tip shows it. Search takes finds takes by their notes, and a take's recipe file carries its note; a

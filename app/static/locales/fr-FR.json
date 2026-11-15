@@ -1802,6 +1802,7 @@
  "no audio yet": "pas encore d'audio",
  "Note — Add a note to this take": "Note — Ajouter une note à cette prise",
  "Note — {note}": "Note — {note}",
+ "Click to edit note": "Cliquer pour modifier la note",
  "Note: {title}": "Note : {title}",
  "What this take is for: the part to keep, what to cut…": "À quoi sert cette prise : la partie à garder, ce qu’il faut couper…",
  "Could not save the note: {message}": "Impossible d’enregistrer la note : {message}",

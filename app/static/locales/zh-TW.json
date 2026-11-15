@@ -1802,6 +1802,7 @@
  "no audio yet": "尚無音訊",
  "Note — Add a note to this take": "備註 — 為這個版本加上備註",
  "Note — {note}": "備註 — {note}",
+ "Click to edit note": "點擊編輯備註",
  "Note: {title}": "備註：{title}",
  "What this take is for: the part to keep, what to cut…": "這個版本的用途：保留哪部分、剪掉什麼…",
  "Could not save the note: {message}": "無法儲存備註：{message}",

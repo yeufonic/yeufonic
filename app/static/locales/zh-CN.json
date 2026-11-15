@@ -1802,6 +1802,7 @@
  "no audio yet": "尚无音频",
  "Note — Add a note to this take": "备注 — 为这个版本添加备注",
  "Note — {note}": "备注 — {note}",
+ "Click to edit note": "点击编辑备注",
  "Note: {title}": "备注：{title}",
  "What this take is for: the part to keep, what to cut…": "这个版本的用途：保留哪部分、剪掉什么…",
  "Could not save the note: {message}": "无法保存备注：{message}",

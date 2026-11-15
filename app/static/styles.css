@@ -1,4 +1,6 @@
 :root {
+  /* Dark themes draw the browser's own parts (number spinners, scrollbars, pickers) dark too; Light sets light. */
+  color-scheme: dark;
   --bg: #08080b;
   --bg-2: #101014;
   --panel: #14141a;
@@ -750,9 +752,28 @@ a.menu-item { text-decoration: none; box-sizing: border-box; }
 .confirm-actions button { width: auto; margin-top: 0; padding: 9px 18px; font-size: 13.5px; }
 /* A take's note (#71): a plain box for the person's own words, and its button lit while the take has one. */
 .modal-box.note-box { width: min(560px, 100%); height: auto; gap: 12px; }
-#note-text { min-height: 180px; resize: vertical; font-size: 14px; line-height: 1.55; }
+#note-text { min-height: min(360px, 50vh); resize: vertical; font-size: 14px; line-height: 1.55; }
 .note-box .confirm-actions .status { margin-right: auto; align-self: center; }
 .take-move.note.lit, .take-move.note.lit:hover { color: var(--lit-take); }
+.note-popup {
+  position: fixed; z-index: 120; width: 300px; max-width: calc(100vw - 24px);
+  transition: opacity 0.15s ease, transform 0.15s ease; transform-origin: top left;
+}
+.note-popup.hidden { opacity: 0; transform: scale(0.95); pointer-events: none; visibility: hidden; }
+.note-popup-card {
+  padding: 8px 8px 10px; border-radius: 14px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;
+  background: var(--card-2); border: 1px solid rgb(var(--ink) / 0.14);
+  box-shadow: 0 16px 42px rgb(var(--shade) / 0.6), 0 0 0 1px rgb(var(--ink) / 0.05);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+.note-popup-card:hover { border-color: rgb(var(--accent-a-rgb) / 0.55); }
+/* The note where the picture would be: a panel of its own, scrolled when the note is long. */
+.note-popup-text {
+  max-height: min(260px, 50vh); overflow: auto; padding: 10px 12px; border-radius: 10px;
+  background: rgb(var(--ink) / 0.05); box-shadow: inset 0 0 0 1px rgb(var(--ink) / 0.1);
+  font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.note-popup-hint { font-size: 11.5px; color: var(--muted); }
 
 #hotkeys-modal { z-index: 70; }
 .modal-box.hotkeys-box { width: min(600px, 100%); height: auto; max-height: 85vh; gap: 14px; }
@@ -865,7 +886,7 @@ button.primary {
 }
 /* Each button wears the colour of the mode it belongs to. */
 #create-cover { background: linear-gradient(90deg, var(--cover-a), var(--cover-b)); }
-#create-song { background: linear-gradient(90deg, var(--song-a), var(--song-b)); }
+#create-song, #foot-render { background: linear-gradient(90deg, var(--song-a), var(--song-b)); }
 #create-inst { background: linear-gradient(90deg, var(--inst-b), var(--inst-a)); color: #07140c; }
 /* What the score tab does with its score, under the chord chart and a little apart from it: the colour of the mode's
    main button, smaller than it. */
@@ -3495,7 +3516,7 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
   gap: 4px;
 }
 .cover-popup-hint::after {
-  content: '\u2922';
+  content: '\2922';
   font-size: 11px;
   opacity: 0.7;
 }
@@ -3778,6 +3799,10 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
 .ed-foot #auto-wrap { margin: 0 0 0 auto; order: 3; font-size: 14px; font-weight: 600; color: var(--text); }
 .ed-foot #auto-wrap input { width: 16px; height: 16px; accent-color: var(--accent); }
 .ed-foot #auto-wrap ~ .primary { margin-left: 0; }
+/* Render this score, for a plan ready and not yet rendered: quieter than the main button, apart from the tick box. */
+.ed-foot #foot-render { order: 3; width: auto; margin: 0 0 0 auto; padding: 11px 26px; flex: 0 0 auto; }
+.ed-foot #foot-render.hidden { display: none; }
+.ed-foot #foot-render:not(.hidden) ~ #auto-wrap { margin-left: 14px; }
 .ed-foot #render-status { display: block; order: 2; flex: 1 1 160px; min-width: 120px; min-height: 0; margin: 0; }
 .ed-foot #render-status.hidden { display: none; }
 /* A render's progress, when the take in the editor is rendering: the status line's place. */
