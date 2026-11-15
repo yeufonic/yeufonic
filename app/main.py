@@ -1920,6 +1920,7 @@ async def upload_source(
     existing = one("SELECT * FROM sources WHERE sha256 = ?", (digest,))
     if existing:
         tmp.unlink(missing_ok=True)
+        _link_waiting_takes(existing)
         return {**existing, "duplicate": True}
 
     ext = Path(file.filename or "source.mp3").suffix.lower() or ".mp3"
@@ -1997,6 +1998,7 @@ async def upload_source(
                 log.warning("Could not pre-render MIDI audio %s: %s", dest.name, exc)
             dur_str = f", {record['duration']:.1f}s" if record.get("duration") else ""
             log.info("Uploaded MIDI source '%s' (%s%s, converted to ABC)", record["title"], record["id"], dur_str)
+            _link_waiting_takes(record)
             return {**record, "duplicate": False}
 
     record = {
@@ -2021,6 +2023,7 @@ async def upload_source(
     dur_str = f", {record['duration']:.1f}s" if record.get("duration") else ""
     log.info("Uploaded source recording '%s' (%s%s, origin=%s%s)", record["title"], record["id"], dur_str, origin,
              ", an instrument" if record["instrument"] else "")
+    _link_waiting_takes(record)
     return {**record, "transcribe_state": "none", "abc": None, "duplicate": False}
 
 
@@ -5252,6 +5255,7 @@ def take_audio(
     raw: bool = False,
     fx: str | None = None,
     recipe: bool = False,
+    recording: bool = False,
 ) -> FileResponse:
     """The take's audio: inline to play, or as a file to save.  It is always the take as it is kept.  Mastering is
     never applied here: the rack renders a mastered file in the browser, with the chain that plays it, and sends it
@@ -5283,8 +5287,8 @@ def take_audio(
         out.unlink(missing_ok=True)
         log.warning("Could not convert take '%s' to %s: %s", take["title"] or take_id, fmt, exc)
         raise HTTPException(500, f"could not convert this take to {fmt.upper()}") from exc
-    if recipe:   # with the take's recipe beside it, in one zip
-        return _with_recipe(take_id, out, f"{safe}.{fmt}")
+    if recipe:   # with the take's recipe beside it, in one zip, and its recording when asked for (#60)
+        return _with_recipe(take_id, out, f"{safe}.{fmt}", recording=recording)
     return FileResponse(out, media_type=media, filename=f"{safe}.{fmt}",
                         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
                         background=BackgroundTask(out.unlink, missing_ok=True))
@@ -5296,29 +5300,55 @@ def _recipe_of(take_id: str) -> dict:
     if not take:
         raise HTTPException(404, "no such take")
     voice = persona.one(take["voice_id"]) if take.get("voice_id") else None
-    return recipes.export(take, config.VERSION, voice=voice["name"] if voice else None)
+    source = one("SELECT * FROM sources WHERE id = ?", (take["source_id"],)) if take.get("source_id") else None
+    return recipes.export(take, config.VERSION, voice=voice["name"] if voice else None,
+                          recording=recipes.recording_of(source))
+
+
+def _recording_file(take_id: str) -> tuple[Path, str] | None:
+    """The take's recording as uploaded, and the name it travels under in a zip (recording/<name>), or None."""
+    take = one("SELECT source_id FROM takes WHERE id = ?", (take_id,))
+    source = one("SELECT * FROM sources WHERE id = ?", (take["source_id"],)) if take and take["source_id"] else None
+    if not source or not Path(source["stored_path"]).exists():
+        return None
+    stored = Path(source["stored_path"])
+    name = Path(source.get("filename") or stored.name).name or stored.name
+    if not Path(name).suffix:
+        name += stored.suffix
+    return stored, name
 
 
 @app.get("/api/takes/{take_id}/recipe")
-def take_recipe(take_id: str) -> Response:
-    """The take's recipe as a file to save: what made it, without its audio (app/recipe.py)."""
+def take_recipe(take_id: str, recording: bool = False) -> Response:
+    """The take's recipe as a file to save: what made it, without its audio (app/recipe.py).  With `recording`, for a
+    take made from one, a zip of the recipe and the recording as uploaded, under recording/ (#60)."""
     data = _recipe_of(take_id)
+    if recording and _recording_file(take_id):
+        return _with_recipe(take_id, None, recipes.filename(data["take"]["title"])[:-len(recipes.SUFFIX)], recording=True)
     return Response(json.dumps(data, indent=2, ensure_ascii=False), media_type="application/json",
                     headers={"Content-Disposition": f'attachment; filename="{recipes.filename(data["take"]["title"])}"',
                              "Cache-Control": "no-cache, no-store, must-revalidate"})
 
 
-def _with_recipe(take_id: str, audio: Path, audio_name: str) -> FileResponse:
-    """A zip of the audio about to be sent and the take's recipe; the audio file is removed once it is in."""
+def _with_recipe(take_id: str, audio: Path | None, audio_name: str, recording: bool = False) -> FileResponse:
+    """A zip of the audio about to be sent (the rendition) and the take's recipe, and with `recording` the take's
+    recording as uploaded, under recording/ (#60).  The audio file is removed once it is in.  `audio` None: the
+    recipe (and recording) alone, the zip named `audio_name`."""
     data = _recipe_of(take_id)
-    stem = audio_name.rsplit(".", 1)[0]
+    stem = audio_name.rsplit(".", 1)[0] if audio is not None else audio_name
+    kept = _recording_file(take_id) if recording else None
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
     out = config.WORK_DIR / f"save-{take_id}-{uuid.uuid4().hex[:8]}.zip"
     try:
         with zipfile.ZipFile(out, "w", zipfile.ZIP_STORED) as zf:
-            zf.write(audio, audio_name)
+            if audio is not None:
+                zf.write(audio, audio_name)
             zf.writestr(recipes.filename(stem), json.dumps(data, indent=2, ensure_ascii=False))
+            if kept:
+                zf.write(kept[0], f"recording/{kept[1]}")
     finally:
-        audio.unlink(missing_ok=True)
+        if audio is not None:
+            audio.unlink(missing_ok=True)
     return FileResponse(out, media_type="application/zip", filename=f"{stem}.zip",
                         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
                         background=BackgroundTask(out.unlink, missing_ok=True))
@@ -5332,7 +5362,7 @@ class ImportTakeIn(BaseModel):
 class RecipeTakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     """What an imported take may hold: the same limits as a take made in the page."""
     title: str | None = Field(None, max_length=200)
-    kind: Literal["song", "instrumental"] = "song"
+    kind: Literal["song", "instrumental", "cover"] = "song"
     style: str = Field(config.DEFAULT_STYLE, max_length=2000)
     lyrics: str = Field("", max_length=20_000)
     brief: str | None = Field(None, max_length=1000)
@@ -5359,19 +5389,29 @@ class RecipeTakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
 async def import_take(body: ImportTakeIn) -> dict:
     """A take made from a recipe file: a new take holding the plan, ready to render, in the space asked for.  A LoRA
     it names that is not installed is named in the answer, and the take is made anyway."""
-    if len(json.dumps(body.recipe)) > recipes.MAX_BYTES:
+    return _import_recipe(body.recipe, body.space_id)
+
+
+def _import_recipe(recipe: dict, space_id: str, source_id: str | None = None) -> dict:
+    """The take a recipe describes, made in the space asked for, as the kind it was saved as (#60): nothing is
+    converted, and every setting is kept, so it renders as the original did.  A take made from a recording is linked
+    to it: to `source_id` when its recording came with it, else to the one in the library with the same
+    fingerprint; without either it keeps what the recipe says of it (recording_ref), to be linked when that
+    recording is imported."""
+    if len(json.dumps(recipe)) > recipes.MAX_BYTES:
         raise HTTPException(413, "this take file is too large")
     try:
-        columns = recipes.read(body.recipe)
+        columns = recipes.read(recipe)
     except recipes.RecipeError as exc:
         raise HTTPException(400, str(exc)) from exc
     if not (columns.get("abc") or "").strip() and columns.get("mode") != NO_SCORE:
         raise HTTPException(400, "this take file has no score to render")
+    named = columns.pop("recording_ref", None)
     try:
         take = RecipeTakeIn(**{k: v for k, v in columns.items() if v is not None})
     except ValueError as exc:
         raise HTTPException(400, f"this take file has a setting Yeufonic cannot use: {exc}") from exc
-    _space(body.space_id)
+    _space(space_id)
     if take.mode == NO_SCORE:
         _no_score_wanted(take.mode, {"kind": take.kind})
     else:
@@ -5385,7 +5425,7 @@ async def import_take(body: ImportTakeIn) -> dict:
         interpretation=_interpretation(take.interpretation if take.interpretation in INTERPRETATIONS else "standard"),
         **_style_lora_of(take),
         status="planned", created_at=time.time(), checkpoint=config.CHECKPOINT,
-        space_id=body.space_id, source_id=None, parent_id=None, auto_render=0,
+        space_id=space_id, source_id=None, parent_id=None, auto_render=0,
         identity_id=None, persona_id=None,
         max_duration=take.max_duration or default_cap(),
     )
@@ -5394,20 +5434,20 @@ async def import_take(body: ImportTakeIn) -> dict:
     except ValueError as exc:
         raise HTTPException(400, f"this take file has a setting Yeufonic cannot use: {exc}") from exc
     record["sampling"] = json.dumps(sampling, sort_keys=True) if sampling else None
-    was = (body.recipe.get("take") or {}).get("kind")
-    if was == "cover":
-        # What belonged to the cover's recording, and that a cover never used to write a plan, is left behind: a new
-        # plan from the imported take starts as a song from a prompt does.  The tempo lock above all, set to the
-        # recording's tempo: it rewrites the style's tempo for the planner, which then fought a style LoRA trained at
-        # another tempo and wrote plans with no singing.  The score keeps its own tempo, so its render is unchanged.
-        record.update(target_bpm=None, harmony=1, voice_cues=ADVANCED_DEFAULTS["voice_cues"],
-                      max_duration=default_cap(), cap_typed=0)
+    # Its recording: the one that came with it, else the one in the library with its fingerprint, else named only.
+    linked = None
+    if source_id:
+        linked = one("SELECT id, title FROM sources WHERE id = ?", (source_id,))
+    elif isinstance(named, dict) and named.get("sha256"):
+        linked = one("SELECT id, title FROM sources WHERE sha256 = ?", (str(named["sha256"]),))
+    record["source_id"] = linked["id"] if linked else None
+    record["recording_ref"] = json.dumps(named) if named and not linked else None
     # A recorded voice travels by name (app/recipe.py): matched against this install's voices, and named in the
     # answer when there is none of that name, as a LoRA that is not installed is.
-    voice_name = str((body.recipe.get("take") or {}).get("voice") or "").strip()
+    voice_name = str((recipe.get("take") or {}).get("voice") or "").strip()
     voice = next((v for v in persona.all() if v["name"] == voice_name), None) if voice_name else None
     record["voice_id"] = voice["id"] if voice else None
-    settings = (body.recipe.get("take") or {}).get("voice_settings")
+    settings = (recipe.get("take") or {}).get("voice_settings")
     record["voice_mix"] = _voice_mix(settings) if voice and isinstance(settings, dict) else None
     columns_out = list(record)
     execute(f"INSERT INTO takes({', '.join(columns_out)}) VALUES({', '.join(':' + c for c in columns_out)})", record)
@@ -5416,11 +5456,153 @@ async def import_take(body: ImportTakeIn) -> dict:
     if folder and folder.is_dir():
         installed |= {p.name for p in folder.iterdir() if p.is_file()}
     missing = [name for name in recipes.loras_named(record) if name not in installed]
-    log.info("Imported take '%s' (%s) from a take file%s%s", record["title"], record["id"],
-             ", a cover arriving as a song" if was == "cover" else "",
+    recording = "linked" if linked else ("missing" if named else None)
+    log.info("Imported take '%s' (%s, %s) from a take file%s%s", record["title"], record["id"], record["kind"],
+             {"linked": f", linked to the recording '{linked['title'] if linked else ''}'",
+              "missing": ", its recording not on this PC"}.get(recording or "", ""),
              f"; not installed: {', '.join(missing)}" if missing else "")
     return {"id": record["id"], "title": record["title"], "kind": record["kind"], "missing_loras": missing,
-            "missing_voice": voice_name if voice_name and not voice else None, "was_cover": was == "cover"}
+            "missing_voice": voice_name if voice_name and not voice else None, "recording": recording}
+
+
+AUDIO_SUFFIXES = {".flac", ".wav", ".mp3", ".ogg", ".m4a", ".aac", ".opus", ".aif", ".aiff", ".wma", ".mp4", ".webm",
+                  ".mov", ".mkv", ".mid", ".midi"}
+
+
+def _take_file_parts(files: list[tuple[str, bytes]]) -> tuple[dict, tuple[str, bytes] | None, tuple[str, bytes] | None]:
+    """What an import holds: the recipe, the recording and the rendition, from a zip (the recipe, the rendition beside
+    it, the recording under recording/) or loose files (a recipe and an audio file: the recording when the recipe
+    names one, else the rendition; a file with the named recording's fingerprint is always the recording)."""
+    entries: list[tuple[str, bytes]] = []
+    for name, data in files:
+        if name.lower().endswith(".zip"):
+            try:
+                with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                    for info in zf.infolist():
+                        if info.is_dir() or info.file_size > config.MAX_UPLOAD_MB * 1024 * 1024:
+                            continue
+                        entries.append((info.filename, zf.read(info)))
+            except zipfile.BadZipFile as exc:
+                raise HTTPException(400, f"“{name}” is not a zip Yeufonic can read") from exc
+        else:
+            entries.append((name, data))
+    recipe = None
+    for name, data in entries:
+        if name.lower().endswith(".json") and "/" not in name.strip("/").replace("\\", "/"):
+            try:
+                parsed = json.loads(data.decode("utf-8"))
+            except (UnicodeDecodeError, ValueError):
+                continue
+            if isinstance(parsed, dict) and parsed.get("format") == recipes.FORMAT:
+                recipe = parsed
+                break
+    if recipe is None:
+        raise HTTPException(400, "there is no Yeufonic take file in this import")
+    named = (recipe.get("take") or {}).get("recording")
+    named_sha = named.get("sha256") if isinstance(named, dict) else None
+    audio = [(n, d) for n, d in entries if Path(n).suffix.lower() in AUDIO_SUFFIXES]
+    recording = rendition = None
+    for name, data in audio:
+        under = name.replace("\\", "/").startswith("recording/")
+        fingerprint = named_sha and hashlib.sha256(data).hexdigest() == named_sha
+        if (under or fingerprint) and recording is None:
+            recording = (Path(name).name, data)
+        elif "/" in name.replace("\\", "/"):
+            continue            # a DAW zip's stems and the like: not the take itself
+        elif rendition is None:
+            rendition = (Path(name).name, data)
+    loose = not any(n.lower().endswith(".zip") for n, _ in files)
+    if loose and recording is None and rendition is not None and isinstance(named, dict):
+        recording, rendition = rendition, None
+    return recipe, recording, rendition
+
+
+async def _attach_rendition(take_id: str, name: str, data: bytes) -> None:
+    """The audio that came with an imported take, made its own: kept as a FLAC in the take's folder, the take done."""
+    take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
+    config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = config.WORK_DIR / f"import-{take_id}-{uuid.uuid4().hex[:8]}{Path(name).suffix.lower() or '.audio'}"
+    dest = library.take_audio_path(take_id, take["title"])
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        tmp.write_bytes(data)
+        if tmp.suffix == ".flac":
+            shutil.copyfile(tmp, dest)
+        else:
+            await asyncio.to_thread(subprocess.run, ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(tmp),
+                                                     "-vn", "-c:a", "flac", str(dest)],
+                                    check=True, capture_output=True, timeout=600)
+    except (subprocess.SubprocessError, OSError) as exc:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(400, f"could not read the audio “{name}” that came with the take") from exc
+    finally:
+        tmp.unlink(missing_ok=True)
+    duration = await asyncio.to_thread(audio_duration, dest)
+    level = await asyncio.to_thread(library.loudness, dest)
+    execute("UPDATE takes SET status = 'done', audio_path = ?, duration = ?, finished_at = ?, loudness = ?, error = NULL "
+            "WHERE id = ?", (str(dest), duration, time.time(), level, take_id))
+    library.write_take_note(one("SELECT * FROM takes WHERE id = ?", (take_id,)), dest)
+
+
+@app.post("/api/takes/import-file")
+async def import_take_file(files: list[UploadFile] = File(...), space_id: str = Form(DEFAULT_SPACE, max_length=64)) -> dict:
+    """Import take from files (#60): a zip from Save (the recipe, the rendition, the recording under recording/), or
+    a recipe chosen with its recording.  The recording joins the library (or the one already there with its
+    fingerprint is used) and the take is linked to it; a rendition makes the take done with that audio."""
+    got: list[tuple[str, bytes]] = []
+    limit = config.MAX_UPLOAD_MB * 1024 * 1024
+    for upload in files:
+        data = await upload.read()
+        if len(data) > limit:
+            raise HTTPException(413, f"That file is larger than {config.MAX_UPLOAD_MB} MB.")
+        got.append((upload.filename or "file", data))
+    recipe, recording, rendition = _take_file_parts(got)
+    source_id = None
+    if recording:
+        named = (recipe.get("take") or {}).get("recording")
+        title = (named.get("title") if isinstance(named, dict) else None) or Path(recording[0]).stem
+        stored = await upload_source(file=UploadFile(io.BytesIO(recording[1]), filename=recording[0]),
+                                     title=title[:200], origin="upload", instrument=0)
+        source_id = stored["id"]
+    answer = _import_recipe(recipe, space_id, source_id=source_id)
+    if rendition:
+        await _attach_rendition(answer["id"], rendition[0], rendition[1])
+    answer["rendition"] = bool(rendition)
+    return answer
+
+
+def _link_waiting_takes(source: dict) -> int:
+    """Takes imported without their recording (recording_ref) that name this one, by its fingerprint, linked to it."""
+    waiting = [row for row in rows("SELECT id, recording_ref FROM takes WHERE source_id IS NULL AND recording_ref IS NOT NULL")
+               if (lambda ref: isinstance(ref, dict) and ref.get("sha256") == source["sha256"])(_json_or_none(row["recording_ref"]))]
+    for row in waiting:
+        execute("UPDATE takes SET source_id = ?, recording_ref = NULL WHERE id = ?", (source["id"], row["id"]))
+    if waiting:
+        log.info("Linked %d imported take(s) to the recording '%s' (%s)", len(waiting), source.get("title"), source["id"])
+    return len(waiting)
+
+
+def _json_or_none(text: str | None):
+    try:
+        return json.loads(text) if text else None
+    except (TypeError, ValueError):
+        return None
+
+
+class TakeRecordingIn(BaseModel):
+    source_id: str = Field(..., max_length=64)
+
+
+@app.post("/api/takes/{take_id}/recording")
+def link_take_recording(take_id: str, body: TakeRecordingIn) -> dict:
+    """Give a take imported without its recording one from the library (#60)."""
+    take = one("SELECT id, kind FROM takes WHERE id = ?", (take_id,))
+    source = one("SELECT id, title FROM sources WHERE id = ?", (body.source_id,))
+    if not take or not source:
+        raise HTTPException(404, "no such take or recording")
+    execute("UPDATE takes SET source_id = ?, recording_ref = NULL WHERE id = ?", (source["id"], take_id))
+    log.info("Linked take %s to the recording '%s' (%s)", take_id, source["title"], source["id"])
+    return {"id": take_id, "source_id": source["id"]}
 
 
 _PENDING_EXPORTS: dict[str, dict] = {}
@@ -5590,7 +5772,8 @@ async def daw_bundle(take_id: str, midi_file: UploadFile | None = File(None),
 
 
 @app.get("/api/takes/{take_id}/download-mastered")
-def download_mastered_take(take_id: str, token: str = Query(...), recipe: bool = False) -> FileResponse:
+def download_mastered_take(take_id: str, token: str = Query(...), recipe: bool = False,
+                           recording: bool = False) -> FileResponse:
     """Serve prepared mastered export via direct HTTP GET, preserving native browser Save As prompts.  With
     `recipe`, in a zip beside the take's recipe."""
     entry = _PENDING_EXPORTS.pop(token, None)
@@ -5598,7 +5781,7 @@ def download_mastered_take(take_id: str, token: str = Query(...), recipe: bool =
         raise HTTPException(404, "Export expired or not found")
     out_path = Path(entry["path"])
     if recipe:
-        return _with_recipe(take_id, out_path, f"{entry['safe']}.{entry['fmt']}")
+        return _with_recipe(take_id, out_path, f"{entry['safe']}.{entry['fmt']}", recording=recording)
     return FileResponse(
         out_path,
         media_type=entry["media"],

@@ -3983,7 +3983,7 @@
       }
     },
 
-    renderAndDownload: async function (takeId, format, withRecipe) {
+    renderAndDownload: async function (takeId, format, withRecipe, withRecording) {
       var wavBlob = await this.renderMasterWav(takeId);
       var formData = new FormData();
       formData.append('audio_file', wavBlob, 'master.wav');
@@ -3999,7 +3999,7 @@
         throw new Error(t('Invalid export response'));
       }
       var link = document.createElement('a');
-      link.href = data.download_url + (withRecipe ? '&recipe=1' : '');
+      link.href = data.download_url + (withRecipe ? '&recipe=1' : '') + (withRecipe && withRecording ? '&recording=1' : '');
       link.download = '';
       document.body.appendChild(link);
       link.click();

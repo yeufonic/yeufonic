@@ -153,9 +153,9 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   Sampling lets temperature, top_p, top_k and repetition_penalty be set by hand for either stage, a value at a time.
 - **Notes on takes.** Keep a few words of your own on any take: what it is for, the part to keep, what to cut. The
   search finds takes by their notes, and a take's recipe file carries its note.
-- **A take's recipe as a file.** Save a take's words, score, seeds and settings (not its audio) as a small
-  file, alone or beside the audio, and import one as a new take ready to render, on either engine: to keep a
-  recipe, or to share it with another Yeufonic user.
+- **A take's recipe as a file.** Save a take's words, score, seeds and settings as a small file, alone or beside
+  the audio and, for a cover, its recording, and import it as the same take on either engine: to keep a recipe, or
+  to share it with another Yeufonic user. A cover saved with its recording arrives whole, linked to that recording.
 - **Save a take as a video.** A take with a picture can be saved as an MP4 that shows the picture for the length
   of the song, which messaging apps such as WhatsApp send and play as a video rather than as a file.
 - **Save a take for a DAW.** One zip holding the take as a 24-bit WAV, its stems, the score as MIDI and ABC, a

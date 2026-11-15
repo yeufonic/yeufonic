@@ -59,21 +59,6 @@ def test_an_imported_recipe_is_a_take_ready_to_render_with_the_same_settings(cli
     assert row["engine"] is None and row["identity_id"] is None and row["checkpoint"] == config.CHECKPOINT
 
 
-def test_a_cover_arrives_as_a_song_with_its_score(client):
-    execute("INSERT INTO sources(id, title, filename, stored_path, sha256, created_at) VALUES('src1', 'My demo', "
-            "'demo.wav', '/data/sources/demo.wav', 'x', 0)")
-    cover = full_take(kind="cover", source_id="src1", style_lora=None, voice_lora=None)
-    data = client.get(f"/api/takes/{cover['id']}/recipe").json()
-    assert data["take"]["kind"] == "cover" and data["take"]["recording"] == "not included"
-    assert "src1" not in json.dumps(data) and "demo.wav" not in json.dumps(data)
-    got = client.post("/api/takes/import", json={"recipe": data}).json()
-    row = one("SELECT * FROM takes WHERE id = ?", (got["id"],))
-    assert got["was_cover"] and row["kind"] == "song" and row["source_id"] is None and row["abc"] == ABC
-    # What belonged to the recording is left behind, so a new plan from it starts as a song from a prompt does.
-    assert row["target_bpm"] is None and row["harmony"] == 1 and row["voice_cues"] == 1 and row["cap_typed"] == 0
-    assert row["target_key"] == cover["target_key"] and row["style"] == cover["style"]      # the rest is kept
-
-
 def test_a_file_that_is_not_a_recipe_or_is_from_a_later_yeufonic_is_refused(client):
     assert client.post("/api/takes/import", json={"recipe": {"hello": 1}}).status_code == 400
     data = client.get(f"/api/takes/{full_take()['id']}/recipe").json()

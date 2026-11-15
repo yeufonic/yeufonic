@@ -4188,9 +4188,63 @@ function updateLyricsWriteVisibility() {
   }
 }
 
+/* A cover in the editor whose recording is not on this PC (#60: imported without it, or its recording deleted): it
+   renders its own score, and what needs the recording stays greyed.  Choosing a recording links it. */
+function recordingLessCover() {
+  if (State.mode !== 'cover') { return null; }
+  var owner = scoreOwner() || editorTake();
+  if (!owner || !owner.id || owner.kind !== 'cover') { return null; }
+  var here = owner.source_id && (State.sources || []).some(function (src) { return src.id === owner.source_id; });
+  return here ? null : owner;
+}
+
+function paintRecordingLess() {
+  var orphan = recordingLessCover();
+  var alone = Boolean(orphan && !currentSource());
+  var picker = $('source-picker');
+  var note = $('recording-missing-note');
+  if (!note && picker && picker.parentNode) {
+    note = document.createElement('div');
+    note.id = 'recording-missing-note';
+    note.className = 'hint recording-missing hidden';
+    picker.parentNode.insertBefore(note, picker.nextSibling);
+  }
+  if (note) {
+    var ref = null;
+    try { ref = orphan && orphan.recording_ref ? JSON.parse(orphan.recording_ref) : null; } catch (e) { ref = null; }
+    note.textContent = alone ? t('Its recording is not on this PC ({value}): this cover renders its own score. Choose its recording here, or import it, to link it.',
+      { value: (ref && (ref.title || ref.file)) || t('not named') }) : '';
+    note.classList.toggle('hidden', !alone);
+  }
+  if ($('create-cover')) {
+    if ($('create-cover').dataset.usual == null) { $('create-cover').dataset.usual = $('create-cover').textContent; }
+    $('create-cover').textContent = alone ? t('Render this score') : $('create-cover').dataset.usual;
+  }
+}
+
+async function linkRecording(take, sourceId) {
+  try {
+    await api('/api/takes/' + take.id + '/recording', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source_id: sourceId })
+    });
+  } catch (err) {
+    statusLine(t('Could not link the recording: {message}', { message: err.message }), 'bad');
+    return;
+  }
+  take.source_id = sourceId;
+  take.recording_ref = null;
+  var listed = takeById(take.id);
+  if (listed) { listed.source_id = sourceId; listed.recording_ref = null; }
+  var src = (State.sources || []).filter(function (item) { return item.id === sourceId; })[0];
+  statusLine(t('“{value}” is now this cover’s recording.', { value: src ? src.title : t('the recording') }), 'good');
+  paintSource();
+  loadTakes();
+}
+
 function paintSource() {
   var source = currentSource();
   var badge = $('score-badge');
+  paintRecordingLess();
   if (HEAR.shown && (!source || source.id !== HEAR.shown)) { clearHearError(); }
   paintHearButton();
   paintAudition();
@@ -6854,6 +6908,13 @@ function openSaveModal(take) {
   var video = $('save-video');
   if (video) { video.classList.toggle('hidden', !take.art); }
   var offered = ['flac', 'wav', 'mp3', 'daw'].concat(video && take.art ? ['mp4'] : []);
+  // A take made from a recording can carry it, as uploaded (#60): a tick under Take, remembered like the rest.
+  var row = saveRecordingRow();
+  var hasRecording = Boolean(take.source_id && (State.sources || []).some(function (src) { return src.id === take.source_id; }));
+  if (row) {
+    row.classList.toggle('hidden', !hasRecording);
+    $('save-recording').checked = hasRecording && Boolean(last.recording);
+  }
   pickSaveFormat(offered.indexOf(last.fmt) >= 0 ? last.fmt : null);
   pickSaveRecipe(Boolean(last.recipe));
   paintSaveSpace(take, last);
@@ -6917,18 +6978,41 @@ function pickSaveRecipe(on) {
   paintSaveChoice();
 }
 
+function saveRecordingRow() {
+  var row = $('save-recording-row');
+  if (row || !$('save-recipe')) { return row; }
+  var choices = $('save-recipe').closest('.save-choices');
+  if (!choices) { return null; }
+  row = document.createElement('label');
+  row.id = 'save-recording-row';
+  row.className = 'check save-recording hidden';
+  row.innerHTML = '<input type="checkbox" id="save-recording"> <span>' + esc(t('with its recording')) + '</span>';
+  row.title = t('The recording this take was made from, as it was uploaded, under recording/ in the zip, so the take can be imported whole');
+  choices.insertAdjacentElement('afterend', row);
+  $('save-recording').addEventListener('change', paintSaveChoice);
+  return row;
+}
+
 function saveChoice() {
   var chosen = ($('save-format') && $('save-format').querySelector('button.active')) ||
     ($('save-space') && $('save-space').querySelector('button.active'));
-  return { fmt: chosen ? chosen.dataset.format : null,
-           recipe: Boolean($('save-recipe') && $('save-recipe').classList.contains('active')) };
+  var recipe = Boolean($('save-recipe') && $('save-recipe').classList.contains('active'));
+  var row = $('save-recording-row');
+  return { fmt: chosen ? chosen.dataset.format : null, recipe: recipe,
+           recording: Boolean(recipe && row && !row.classList.contains('hidden') && $('save-recording').checked) };
 }
 
 function paintSaveChoice() {
   var c = saveChoice(), note = $('save-note');
   if ($('save-run')) { $('save-run').disabled = !c.fmt && !c.recipe; }
+  if ($('save-recording')) {
+    $('save-recording').disabled = !c.recipe || c.fmt === 'daw';
+    $('save-recording-row').classList.toggle('off', !c.recipe || c.fmt === 'daw');
+  }
   if (!note) { return; }
-  note.textContent = c.fmt && c.recipe ? t('The audio and the take’s recipe, in one zip.')
+  note.textContent = c.recording && c.fmt && c.fmt !== 'daw' ? t('The audio, the take’s recipe and its recording, in one zip.')
+    : c.recording && !c.fmt ? t('The take’s recipe and its recording, in one zip, to import whole.')
+    : c.fmt && c.recipe ? t('The audio and the take’s recipe, in one zip.')
     : c.recipe ? t('The take’s recipe: its words, score and settings, to keep, share or import. No audio.')
     : !c.fmt ? t('Choose what to save.')
     : c.fmt === 'mp4' ? t('The song with its picture, as an MP4 video that messaging apps send as a video.')
@@ -6956,13 +7040,20 @@ function runSave() {
   if (!id || (!choice.fmt && !choice.recipe)) { return; }
   var fmt = choice.fmt;
   var withRecipe = choice.recipe;
-  try { localStorage.setItem(SAVE_CHOICE_KEY, JSON.stringify({ fmt: fmt, recipe: withRecipe })); } catch (err) { /* private mode */ }
+  var withRecording = choice.recording;
+  var recordingParam = withRecording ? 'recording=1' : '';
+  try {
+    var kept = $('save-recording-row') && !$('save-recording-row').classList.contains('hidden') ? $('save-recording').checked : undefined;
+    var before = {};
+    try { before = JSON.parse(localStorage.getItem(SAVE_CHOICE_KEY) || '{}') || {}; } catch (e) { before = {}; }
+    localStorage.setItem(SAVE_CHOICE_KEY, JSON.stringify({ fmt: fmt, recipe: withRecipe, recording: kept === undefined ? before.recording : kept }));
+  } catch (err) { /* private mode */ }
   closeSaveModal();
   if (/^space-/.test(fmt || '')) {   // 3D Space: rendered by the rack, with the recipe beside it when asked for
     var title = (State.saveTake && State.saveTake.title) || '';
     if (withRecipe) {
       var recipe = document.createElement('a');
-      recipe.href = '/api/takes/' + id + '/recipe';
+      recipe.href = '/api/takes/' + id + '/recipe' + (recordingParam ? '?' + recordingParam : '');
       recipe.download = '';
       document.body.appendChild(recipe);
       recipe.click();
@@ -6974,7 +7065,7 @@ function runSave() {
   if (fmt === 'daw') { saveForDaw(id); return; }
   if (!fmt) {   // the recipe alone
     var only = document.createElement('a');
-    only.href = '/api/takes/' + id + '/recipe';
+    only.href = '/api/takes/' + id + '/recipe' + (recordingParam ? '?' + recordingParam : '');
     only.download = '';
     document.body.appendChild(only);
     only.click();
@@ -7001,7 +7092,7 @@ function runSave() {
     if (mastered) {
       statusLine(t('Mastering the file to save…'), 'wait');
       try {
-        await window.Rack.renderAndDownload(id, fmt, withRecipe);
+        await window.Rack.renderAndDownload(id, fmt, withRecipe, withRecording);
         statusLine(t('Mastered file ready to save.'), 'good');
       } catch (err) {
         statusLine(t('Could not master the file, so nothing was saved: {value}', { value: (err && err.message) || err }), 'bad');
@@ -7010,7 +7101,7 @@ function runSave() {
     }
 
     var link = document.createElement('a');
-    link.href = '/api/takes/' + id + '/audio?download=1&format=' + fmt + (withRecipe ? '&recipe=1' : '');
+    link.href = '/api/takes/' + id + '/audio?download=1&format=' + fmt + (withRecipe ? '&recipe=1' : '') + (recordingParam ? '&' + recordingParam : '');
     link.download = '';
     document.body.appendChild(link);
     link.click();
@@ -12344,7 +12435,7 @@ function selectTake(take) {
   var planning = isSong && !hasScore && (take.status === 'queued' || take.status === 'running');
   setMode(isInst ? 'inst' : (isSong ? 'song' : 'cover'));
   State.tempoQuiet = null;   // an opened take shows what its recording's score says
-  if (!isSong && take.source_id) { $('source-select').value = take.source_id; }
+  if (!isSong) { $('source-select').value = take.source_id || ''; }
   if (isInst && $('source-select')) { $('source-select').value = take.source_id || ''; }
   $('title').value = take.title;
   setTitleSaveStatus('');
@@ -15016,6 +15107,7 @@ async function doTranscribe() {
 
 function coverProblem() {
   var source = currentSource();
+  if (!source && recordingLessCover()) { return ''; }      // it renders its own score (doRender)
   if (!source) { return t('Choose a recording first.'); }
   // A cover follows the recording's own melody, so it needs a score: the one
   // transcribed from it, or one in the box. With neither, rendering used to go
@@ -15060,6 +15152,7 @@ async function doRender() {
   var problem = coverProblem();
   if (problem) { status.textContent = problem; status.className = 'status bad'; return; }
   if (humCoverInEditor()) { await renderInPlace(); return; }
+  if (!currentSource() && recordingLessCover()) { await renderInPlace(); return; }
   var body = coverBody(pickSeed());
   clearHearError();
   status.textContent = t('Queued…');
@@ -15610,6 +15703,9 @@ function wire() {
 
   $('source-select').addEventListener('change', function () {
     State.tempoQuiet = null;
+    // A cover whose recording is not here: the recording chosen becomes its own (#60), and the take stays open.
+    var orphan = recordingLessCover();
+    if (orphan && $('source-select').value) { linkRecording(orphan, $('source-select').value); return; }
     var boxTake = scoreTakeId() ? takeById(scoreTakeId()) : null;
     var recordingScore = Selection.boxKind === 'source' || Boolean(boxTake && boxTake.source_id);
     // Choosing a recording the box's take did not come from lets go of that take:
@@ -17783,29 +17879,36 @@ function npTitle(text, takeId) {
 /* ------------------------------------------------------------ importing a take (#58) */
 /* A take file (.yeufonic.json) someone saved becomes a new take in this space, holding its plan, ready to render:
    from the Import take button, or dropped on the library. */
-async function importTakeFile(file) {
-  if (!file) { return; }
-  var data;
-  try {
-    data = JSON.parse(await file.text());
-  } catch (err) {
-    importNote(t('“{name}” is not a Yeufonic take file.', { name: file.name }), 'bad');
+/* Import take (#60): a recipe (.yeufonic.json), a zip from Save (the recipe, its audio, its recording under
+   recording/), or a recipe chosen with its recording.  The server sorts them out; the note says how the take came. */
+async function importTakeFile(files) {
+  files = Array.prototype.slice.call(files || []).filter(Boolean);
+  if (!files.length) { return; }
+  var named = files.map(function (f) { return f.name; }).join(', ');
+  if (!files.some(function (f) { return /\.(json|zip)$/i.test(f.name); })) {
+    importNote(t('Choose a Yeufonic take file (.yeufonic.json) or a zip saved with one: {name}', { name: named }), 'bad');
     return;
   }
+  var form = new FormData();
+  files.forEach(function (f) { form.append('files', f, f.name); });
+  form.append('space_id', State.spaceId || 'default');
+  importNote(t('Importing {name}…', { name: named }), '');
   var got;
   try {
-    got = await api('/api/takes/import', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipe: data, space_id: State.spaceId || 'default' })
-    });
+    got = await api('/api/takes/import-file', { method: 'POST', body: form });
   } catch (err) {
-    importNote(t('Could not import “{name}”: {message}', { name: file.name, message: err.message }), 'bad');
+    importNote(t('Could not import “{name}”: {message}', { name: named, message: err.message }), 'bad');
     return;
   }
+  await loadSources();
   await loadTakes();
   if (typeof openTakeInLibrary === 'function') { openTakeInLibrary(got.id); }
-  var notes = [t('Imported “{title}”: its plan is ready to render.', { title: got.title })];
-  if (got.was_cover) { notes.push(t('It was a cover, so it comes in as a song with the cover’s score and words.')); }
+  var notes = [got.rendition ? t('Imported “{title}” with its audio: it is ready to play.', { title: got.title })
+    : t('Imported “{title}”: its plan is ready to render.', { title: got.title })];
+  if (got.recording === 'linked') { notes.push(t('It is linked to its recording.')); }
+  if (got.recording === 'missing') {
+    notes.push(t('Its recording is not on this PC: it renders its own score. Import the recording, or choose it in the editor, to link it.'));
+  }
   if (got.missing_loras && got.missing_loras.length) {
     notes.push(t('Not installed here: {value}. Install it, or choose another LoRA, before rendering.', { value: got.missing_loras.join(', ') }));
   }
@@ -17827,11 +17930,13 @@ function wireTakeImport() {
   var button = $('take-import'), input = $('take-import-file'), list = $('takes');
   if (!button || !input || !list) { return; }
   button.addEventListener('click', function () { input.value = ''; input.click(); });
-  input.addEventListener('change', function () { importTakeFile(input.files && input.files[0]); });
+  input.addEventListener('change', function () { importTakeFile(input.files); });
+  // A take file, a zip, or either with audio beside it: what is dragged can only be told by its type here.
   var isTakeFile = function (event) {
     var items = event.dataTransfer && event.dataTransfer.items;
-    return Boolean(items && items.length && items[0].kind === 'file' &&
-                   (!items[0].type || items[0].type === 'application/json'));
+    return Boolean(items && items.length && Array.prototype.some.call(items, function (item) {
+      return item.kind === 'file' && (!item.type || /json|zip/.test(item.type));
+    }));
   };
   list.addEventListener('dragover', function (event) {
     if (!isTakeFile(event)) { return; }
@@ -17841,10 +17946,10 @@ function wireTakeImport() {
   list.addEventListener('dragleave', function () { list.classList.remove('drop-take'); });
   list.addEventListener('drop', function (event) {
     list.classList.remove('drop-take');
-    var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
-    if (!file || !/\.json$/i.test(file.name)) { return; }
+    var files = event.dataTransfer && event.dataTransfer.files;
+    if (!files || !Array.prototype.some.call(files, function (f) { return /\.(json|zip)$/i.test(f.name); })) { return; }
     event.preventDefault();
-    importTakeFile(file);
+    importTakeFile(files);
   });
 }
 

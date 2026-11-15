@@ -5,8 +5,10 @@ the settings and the LoRAs by name.  Nothing in it belongs to one install (no id
 is specific to one engine: either can render it.  Where it came from (the app's version, the engine that rendered
 it, the model size) is there for information, and an import ignores it.
 
-A cover's recording is not in it: a cover arrives as a song with the cover's score and words, as does an
-instrumental made from a recording, which keeps its kind.
+A take made from a recording (a cover, or an instrumental from a recording) names its recording: title, file name,
+length and fingerprint (sha256).  The recording itself can travel beside the file (#60: in the zip under
+`recording/`, or chosen with it); without it, the take arrives as the kind it was saved as, linked to that recording
+when it is in the library, or later when it is imported.
 """
 from __future__ import annotations
 
@@ -65,11 +67,20 @@ FIELDS = {
 FLAGS = {"length_cap_set", "production_polish", "normalise"}
 
 
-def export(take: dict, version: str, voice: str | None = None) -> dict:
+def recording_of(source: dict | None) -> dict | None:
+    """What a recipe says of a recording: enough to find it again, nothing of this install."""
+    if not source:
+        return None
+    return {"title": source.get("title"), "file": source.get("filename"), "duration": source.get("duration"),
+            "sha256": source.get("sha256")}
+
+
+def export(take: dict, version: str, voice: str | None = None, recording: dict | None = None) -> dict:
     """The recipe of a take, as the file holds it.
 
     ``voice`` is a recorded voice's *name*, not its id: a recipe holds nothing that belongs to one install, and
-    an import matches the name against the voices that install has.
+    an import matches the name against the voices that install has.  ``recording``: the take's recording as
+    recording_of() gives it; without one, the recording a take imported without it still names.
     """
     out: dict[str, Any] = {}
     for name, column in FIELDS.items():
@@ -84,8 +95,13 @@ def export(take: dict, version: str, voice: str | None = None) -> dict:
             settings = None
         if isinstance(settings, dict) and settings:
             out["voice_settings"] = settings
-    if take.get("kind") == "cover" or take.get("source_id"):
-        out["recording"] = "not included"
+    if recording is None and take.get("recording_ref"):
+        try:
+            recording = json.loads(take["recording_ref"])
+        except (TypeError, ValueError):
+            recording = None
+    if isinstance(recording, dict) and recording:
+        out["recording"] = recording
     mastering = None
     if take.get("fx_chain"):
         try:
@@ -130,9 +146,12 @@ def read(data: Any) -> dict:
     for name in FLAGS:
         if name in take:
             columns[FIELDS[name]] = 1 if take[name] else 0
-    # A cover's recording is not in the file: it arrives as a song with the cover's score and words.
-    if columns.get("kind") not in ("song", "instrumental"):
+    # A take arrives as the kind it was saved as: nothing is converted on import (#60).
+    if columns.get("kind") not in ("song", "instrumental", "cover"):
         columns["kind"] = "song"
+    recording = take.get("recording")
+    if isinstance(recording, dict) and recording:
+        columns["recording_ref"] = {key: recording.get(key) for key in ("title", "file", "duration", "sha256")}
     mastering = take.get("mastering")
     columns["fx_chain"] = json.dumps(mastering) if isinstance(mastering, dict) and mastering else None
     sampling = take.get("sampling")

@@ -505,8 +505,9 @@ TOOLS: list[dict] = [
                        "in a space if one is named. The take holds the plan, ready to render, and is not rendered: call "
                        "render_take with its id, or change it first. To change a recipe before importing it (another style or "
                        "LoRA, the same score and seed), edit its `take` object: the take's title, style, lyrics, seed and "
-                       "settings are there. A LoRA it names that is not installed here is listed in `missing_loras`; a cover "
-                       "comes in as a song (its recording is not in the file), which `was_cover` says.",
+                       "settings are there. A LoRA it names that is not installed here is listed in `missing_loras`. A take "
+                       "arrives as the kind it was saved as; a cover is linked to its recording when that recording is in "
+                       "the library (`recording`: linked), and otherwise renders its own score (`recording`: missing).",
         "inputSchema": {"type": "object", "properties": {
             "recipe": {"type": "object", "description": "The recipe, as a JSON object."},
             "recipe_text": {"type": "string", "description": "Or the recipe file's text, when that is what you have."},
@@ -1067,10 +1068,11 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                 out["missing_loras"] = made["missing_loras"]
                 out["about_loras"] = ("These LoRAs, named in the file, are not installed here. Rendering without them sounds "
                                       "different: install them (list_style_loras shows what is here) or change the take first.")
-            if made.get("was_cover"):
-                out["was_cover"] = True
-                out["about_cover"] = ("It was a cover. Its recording is not in the file, so it came in as a song with the "
-                                      "cover's score and words.")
+            if made.get("recording"):
+                out["recording"] = made["recording"]
+                out["about_recording"] = ("It is linked to its recording, in the library." if made["recording"] == "linked"
+                                          else "Its recording is not on this PC: it renders its own score, and is linked "
+                                               "to the recording once that is imported.")
             out["next"] = "It holds the plan and is not rendered. Use render_take with its id, then wait_for_take."
             return _text(out)
         if name == "transcribe_recording":

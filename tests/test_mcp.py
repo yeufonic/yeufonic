@@ -791,7 +791,8 @@ def test_a_recipe_changed_by_an_agent_is_imported_into_a_space_ready_to_render(c
     recipe["take"]["kind"] = "cover"
     error, again = call(client, "import_take", recipe_text=json.dumps(recipe))
     assert not error and again["missing_loras"] == ["not-here.safetensors"] and "install" in again["about_loras"]
-    assert again["was_cover"] is True and "song" in again["about_cover"]
+    row = one("SELECT kind FROM takes WHERE id = ?", (again["id"],))
+    assert row["kind"] == "cover" and again["kind"] == "cover"                # it stays a cover
     error, message = call(client, "import_take", recipe_text="{not json")
     assert error and "not JSON" in message
     error, message = call(client, "import_take")

@@ -7458,5 +7458,8 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   background: var(--ui-input-bg);
   border-color: rgb(var(--ink) / 0.14);
 }
-
-
+/* Save: a take made from a recording can carry it (#60), a tick under Take, quiet while Take is off. */
+.save-recording { margin: 8px 0 0; font-size: 13.5px; }
+.save-recording.off { opacity: 0.5; }
+/* A cover whose recording is not on this PC: what it does instead, under the recording picker. */
+.recording-missing { margin-top: 6px; color: var(--warn); }

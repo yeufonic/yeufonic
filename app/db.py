@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS takes (
     target_meter TEXT,
     take_note TEXT,
     sampling TEXT,
+    recording_ref TEXT,
     max_abc_tokens INTEGER DEFAULT 8192,
     chord_hold_limit INTEGER DEFAULT 8,
     chord_outside_bonus REAL DEFAULT 0.0,
@@ -877,6 +878,13 @@ def _sampling() -> None:
         execute("ALTER TABLE takes ADD COLUMN sampling TEXT")
 
 
+def _recording_ref() -> None:
+    """The recording a take imported without it names (#60), as JSON (title, file, duration, sha256), so the take
+    can be linked to it when it is imported later.  NULL once linked, and for every take made here."""
+    if "recording_ref" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN recording_ref TEXT")
+
+
 def _keep_the_look() -> None:
     """Studio with the Studio Slate style became the default look; a library from before keeps the look it had,
     Dark and Classic, unless a theme or style was chosen.  A new database never runs this: it starts at the
@@ -942,6 +950,7 @@ MIGRATIONS = [
     _target_meter,                                                   # -> 55
     _take_note,                                                      # -> 56
     _sampling,                                                       # -> 57
+    _recording_ref,                                                  # -> 58
 ]
 
 

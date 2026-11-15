@@ -84,6 +84,6 @@ def test_a_file_that_is_not_a_take_is_refused_and_says_so(page, app_server, tmp_
     bad = tmp_path / "notes.json"
     bad.write_text('{"hello": "world"}')
     page.set_input_files("#take-import-file", str(bad))
-    page.wait_for_function("() => /not a Yeufonic take file/.test(document.getElementById('take-import-note').textContent)")
+    page.wait_for_function("() => /no Yeufonic take file/.test(document.getElementById('take-import-note').textContent)")
     assert page.locator("#confirm-modal.hidden").count() == 1
     assert count() == before

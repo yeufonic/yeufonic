@@ -1422,6 +1422,7 @@ the first time.
   its seeds and settings, its LoRAs by name and the mastering rack's settings, but not its audio. With a format chosen
   too, both come in one zip; press the chosen format again to save the recipe alone. The file holds nothing of your
   install (no paths, ids or keys), so it can be kept, or shared with another Yeufonic user.
+- **with its recording**, a tick under Take for a take made from a recording (a cover, or an instrumental from a recording): the recording as it was uploaded goes in too, under `recording/` in the zip, so the take can be imported whole.
 - With the mastering rack on, every format has the mastered sound.
 
 **Import take**, in the list of spaces, makes a new take in the space on show from such a file; dropping the file on
@@ -1431,9 +1432,7 @@ the library does the same. The take holds the plan, ready to render, so it can b
   engine a different one.
 - A LoRA it names that is not installed here is named when it is imported, so you can install it or choose another
   before rendering.
-- A cover's recording is not in the file, so a shared cover comes in as a song with the cover's score and words,
-  leaving behind the settings that belonged to its recording (the tempo lock, Harmony, voice cues and the length
-  cap): a new plan from it starts as a song from a prompt does.
+- A take arrives as the kind it was saved as, every setting kept. Import a zip saved with its audio, its recording or both, or choose the take file together with its recording: the recording joins the library (or the same one already there is used) and the take is linked to it, and with its audio the take arrives done, ready to play. A cover imported without its recording renders its own score, and is linked to its recording as soon as that is imported or chosen for it in the editor.
 
 **Search takes** finds the takes with every word you type somewhere in the title, style, lyrics or LoRA name, in any
 case. It looks through the space on show; **All spaces**, beside it once you type, looks through every space, and a

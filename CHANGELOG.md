@@ -39,6 +39,14 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Covers in take files** (#60). Save → Take has a **with its recording** tick for a take made from a recording: the
+  recording as uploaded goes in the zip under `recording/`, beside the recipe and any audio format chosen. **Import
+  take** (and dropping on the library) takes such a zip, or a take file chosen with its recording. A take arrives as
+  the kind it was saved as, every setting kept, so an imported cover renders as the original did: its recording joins
+  the library (or the same one already there is used) and the cover is linked to it, and with its audio it arrives
+  done. A cover imported without its recording renders its own score, and is linked to it once that recording is
+  imported or chosen for it in the editor. This replaces importing a cover as a song with its recording's settings
+  left behind.
 - **Advanced uses every number as typed, unless the engine cannot take it.** A value outside a setting's usual range
   turns its box amber and is still used, for experimenting. One the engine would refuse (past its own limits, or a
   fraction where it takes whole numbers) is set to the nearest value it takes once the box is left, and the box says
