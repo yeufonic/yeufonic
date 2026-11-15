@@ -5,7 +5,7 @@
 <p align="center"><b>Full songs with an editable score, made with YuE2 on your own GPU.</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-en.svg" alt="songs from a prompt · covers of your recordings · instrumentals · style LoRAs – train your own or import · voices – train your own or import · stems and mastering"><br>
+  <img src="docs/readme/chips-en.svg" alt="songs from a prompt · covers of your recordings · instrumentals · style LoRAs: train your own or import · voices: train your own or import · stems and mastering"><br>
   <img src="docs/readme/chip-engines-en.svg" alt="two engines: ComfyUI or yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-en.svg" alt="examples on yeufonic.com"></a>
 </p>
 

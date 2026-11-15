@@ -5,7 +5,7 @@
 <p align="center"><b>带可编辑乐谱的完整歌曲，由 YuE2 在你自己的 GPU 上生成。</b></p>
 
 <p align="center">
-  <img src="docs/readme/chips-zh-CN.svg" alt="从提示词写歌 · 翻唱你的录音 · 纯音乐 · 风格 LoRA – 自己训练或导入 · 嗓音 – 自己训练或导入 · 分轨与母带"><br>
+  <img src="docs/readme/chips-zh-CN.svg" alt="从提示词写歌 · 翻唱你的录音 · 纯音乐 · 风格 LoRA：自己训练或导入 · 嗓音：自己训练或导入 · 分轨与母带"><br>
   <img src="docs/readme/chip-engines-zh-CN.svg" alt="两种引擎：ComfyUI 或 yue2.cpp"><a href="https://yeufonic.com/examples/"><img src="docs/readme/chip-examples-zh-CN.svg" alt="yeufonic.com 上的示例"></a>
 </p>
 
