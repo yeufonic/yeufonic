@@ -1247,6 +1247,8 @@ Les prises faites avant cette fonction restent où elles sont, côte à côte da
 
 Chaque carte nomme les réglages qui ont façonné la prise — Harmonie, Interprétation, la voix enregistrée, Variété du plan, le LoRA et ses intensités, la graine, le moteur qui l'a rendue et son âge —, si bien qu'une carte se lit comme la recette qui l'a faite. Un titre reste toujours sur une ligne, terminé par … quand il est long ; survolez le titre, les réglages ou le style d'une carte pour tout lire.
 
+**Note**, le crayon parmi les petits boutons d’une carte et dans la rangée du haut de l’éditeur, garde quelques mots à vous sur la prise : à quoi elle sert, la partie à garder, ce qu’il faut couper. Le crayon est allumé tant que la prise a une note, et le survoler affiche la note. **Rechercher des prises** trouve aussi les prises par leur note, et le fichier de recette de la prise (Enregistrer → Prise) contient sa note. Une prise faite à partir d’elle commence sans note.
+
 **Enregistrer** demande dans quel format télécharger la prise. Il part de ce que vous avez enregistré la dernière fois, et sans choix la première fois.
 
 - **FLAC, WAV ou MP3 :** l'audio. Un FLAC ou un MP3 porte aussi le tempo et la tonalité de la partition de la prise, que lisent les DAW et les logiciels de DJ.

@@ -1247,6 +1247,8 @@ Takes feitos antes de isto existir ficam onde estão, lado a lado na lista.
 
 Cada cartão nomeia as configurações que deram forma ao take — Harmonia, Interpretação, a voz gravada, Variedade do plano, o LoRA e as intensidades, a semente, o motor que o renderizou e a idade dele —, então um cartão se lê como a receita que o fez. Um título fica sempre numa linha, terminando em … quando é longo; passe o ponteiro sobre o título, as configurações ou o estilo de um cartão para ler tudo.
 
+**Nota**, a caneta entre os botões pequenos de um cartão e na fileira de cima do editor, guarda algumas palavras suas sobre o take: para que ele serve, a parte que fica, o que cortar. A caneta fica acesa enquanto o take tem uma nota, e passar o mouse sobre ela mostra a nota. **Pesquisar takes** também encontra takes pelas notas, e o arquivo de receita do take (Salvar → Take) leva a nota. Um take feito a partir dele começa sem nota.
+
 **Salvar** pergunta em que formato baixar o take. Começa com o que você salvou da última vez, e sem nada escolhido na primeira.
 
 - **FLAC, WAV ou MP3:** o áudio. Um FLAC ou MP3 também leva o andamento e a tonalidade da partitura do take, que DAWs e programas de DJ leem.

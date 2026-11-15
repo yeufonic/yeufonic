@@ -1247,6 +1247,8 @@ Las tomas hechas antes de que existiera esto se quedan donde están, una al lado
 
 Cada tarjeta nombra los ajustes que dieron forma a la toma — Armonía, Interpretación, la voz grabada, Variedad del plan, el LoRA y sus intensidades, la semilla, el motor que la renderizó y su antigüedad —, así que una tarjeta se lee como la receta que la hizo. Un título se queda siempre en una línea y termina en … cuando es largo; pasa el puntero por el título, los ajustes o el estilo de una tarjeta para leerlo entero.
 
+**Nota**, el lápiz entre los botones pequeños de una tarjeta y en la fila superior del editor, guarda unas palabras tuyas sobre la toma: para qué es, la parte que se queda, lo que hay que cortar. El lápiz se ilumina mientras la toma tiene una nota, y al pasar el ratón por encima se muestra la nota. **Buscar tomas** también encuentra tomas por sus notas, y el archivo de receta de la toma (Guardar → Toma) lleva su nota. Una toma hecha a partir de ella empieza sin nota.
+
 **Guardar** pregunta en qué formato descargar la toma. Empieza con lo que guardaste la última vez, y sin nada elegido la primera vez.
 
 - **FLAC, WAV o MP3:** el audio. Un FLAC o un MP3 lleva además el tempo y la tonalidad de la partitura de la toma, que leen los DAW y los programas de DJ.

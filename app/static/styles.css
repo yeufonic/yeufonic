@@ -748,6 +748,11 @@ a.menu-item { text-decoration: none; box-sizing: border-box; }
 .confirm-input { width: 100%; margin-top: 2px; font-size: 14px; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .confirm-actions button { width: auto; margin-top: 0; padding: 9px 18px; font-size: 13.5px; }
+/* A take's note (#71): a plain box for the person's own words, and its button lit while the take has one. */
+.modal-box.note-box { width: min(560px, 100%); height: auto; gap: 12px; }
+#note-text { min-height: 180px; resize: vertical; font-size: 14px; line-height: 1.55; }
+.note-box .confirm-actions .status { margin-right: auto; align-self: center; }
+.take-move.note.lit, .take-move.note.lit:hover { color: var(--lit-take); }
 
 #hotkeys-modal { z-index: 70; }
 .modal-box.hotkeys-box { width: min(600px, 100%); height: auto; max-height: 85vh; gap: 14px; }

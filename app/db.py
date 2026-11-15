@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS takes (
     target_key TEXT,
     target_bpm INTEGER,
     target_meter TEXT,
+    take_note TEXT,
     max_abc_tokens INTEGER DEFAULT 8192,
     chord_hold_limit INTEGER DEFAULT 8,
     chord_outside_bonus REAL DEFAULT 0.0,
@@ -862,6 +863,12 @@ def _target_meter() -> None:
         execute("ALTER TABLE takes ADD COLUMN target_meter TEXT")
 
 
+def _take_note() -> None:
+    """A note the person keeps on a take, in their own words (#71): what it is for, what to keep or cut."""
+    if "take_note" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN take_note TEXT")
+
+
 def _keep_the_look() -> None:
     """Studio with the Studio Slate style became the default look; a library from before keeps the look it had,
     Dark and Classic, unless a theme or style was chosen.  A new database never runs this: it starts at the
@@ -925,6 +932,7 @@ MIGRATIONS = [
     _voice_formant_wet,                                              # -> 53
     _keep_the_look,                                                  # -> 54
     _target_meter,                                                   # -> 55
+    _take_note,                                                      # -> 56
 ]
 
 

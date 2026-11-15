@@ -2809,5 +2809,11 @@
  "the card's memory could not be read": "无法读取显卡的显存",
  "set by TRAIN_MAX_MINUTES": "由 TRAIN_MAX_MINUTES 设置",
  "No installer URL available for this update": "此更新没有可用的安装程序 URL",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校验和不匹配：预期 {expected_hash}，实际 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校验和不匹配：预期 {expected_hash}，实际 {actual_hash}",
+ "Note": "备注",
+ "Note — Add a note to this take": "备注 — 为这个版本添加备注",
+ "Note — {note}": "备注 — {note}",
+ "Note: {title}": "备注：{title}",
+ "What this take is for: the part to keep, what to cut…": "这个版本的用途：保留哪部分、剪掉什么…",
+ "Could not save the note: {message}": "无法保存备注：{message}"
 }

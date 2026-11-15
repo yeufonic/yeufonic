@@ -2809,5 +2809,11 @@
  "the card's memory could not be read": "la mémoire de la carte n'a pas pu être lue",
  "set by TRAIN_MAX_MINUTES": "fixé par TRAIN_MAX_MINUTES",
  "No installer URL available for this update": "Aucune URL d'installateur disponible pour cette mise à jour",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Somme de contrôle incorrecte : attendu {expected_hash}, obtenu {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Somme de contrôle incorrecte : attendu {expected_hash}, obtenu {actual_hash}",
+ "Note": "Note",
+ "Note — Add a note to this take": "Note — Ajouter une note à cette prise",
+ "Note — {note}": "Note — {note}",
+ "Note: {title}": "Note : {title}",
+ "What this take is for: the part to keep, what to cut…": "À quoi sert cette prise : la partie à garder, ce qu’il faut couper…",
+ "Could not save the note: {message}": "Impossible d’enregistrer la note : {message}"
 }

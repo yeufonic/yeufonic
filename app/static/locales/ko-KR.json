@@ -2809,5 +2809,11 @@
  "the card's memory could not be read": "카드 메모리를 읽을 수 없었습니다",
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES로 설정됨",
  "No installer URL available for this update": "이 업데이트의 설치 프로그램 URL이 없습니다",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "체크섬 불일치: 예상 {expected_hash}, 실제 {actual_hash}",
+ "Note": "메모",
+ "Note — Add a note to this take": "메모 — 이 테이크에 메모 추가",
+ "Note — {note}": "메모 — {note}",
+ "Note: {title}": "메모: {title}",
+ "What this take is for: the part to keep, what to cut…": "이 테이크의 용도: 남길 부분, 잘라낼 부분…",
+ "Could not save the note: {message}": "메모를 저장할 수 없습니다: {message}"
 }

@@ -2406,7 +2406,7 @@ def ran_to_cap(take: dict, planned: dict | None = None) -> bool:
 
 
 # What a search of the library looks through.
-SEARCHED = ("title", "style", "lyrics", "style_lora", "voice_lora")
+SEARCHED = ("title", "style", "lyrics", "style_lora", "voice_lora", "take_note")
 
 
 @app.get("/api/takes")
@@ -2575,6 +2575,24 @@ def favourite(take_id: str, value: bool = True) -> dict:
     else:
         execute("DELETE FROM playlist_items WHERE playlist_id = 'liked' AND take_id = ?", (take_id,))
     return {"favourite": value}
+
+
+NOTE_MAX = 20_000
+
+
+class TakeNoteIn(BaseModel):
+    note: str = Field("", max_length=NOTE_MAX)
+
+
+@app.post("/api/takes/{take_id}/note")
+async def take_note(take_id: str, body: TakeNoteIn) -> dict:
+    """The person's own note on a take (#71).  An empty one removes it.  It belongs to this take alone: a take
+    made from it starts with none, and the take's recipe file carries it."""
+    if not one("SELECT id FROM takes WHERE id = ?", (take_id,)):
+        raise HTTPException(404, "no such take")
+    note = body.note.strip() or None
+    execute("UPDATE takes SET take_note = ? WHERE id = ?", (note, take_id))
+    return {"id": take_id, "take_note": note}
 
 
 class RenameTakeIn(BaseModel):
@@ -5308,6 +5326,7 @@ class RecipeTakeIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     hook_abc: str | None = Field(None, max_length=200_000)
     hook_section: str | None = Field(None, max_length=200)
     fx_chain: str | None = Field(None, max_length=200_000)
+    take_note: str | None = Field(None, max_length=NOTE_MAX)
 
 
 @app.post("/api/takes/import")

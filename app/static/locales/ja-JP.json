@@ -2809,5 +2809,11 @@
  "the card's memory could not be read": "カードのメモリを読めませんでした",
  "set by TRAIN_MAX_MINUTES": "TRAIN_MAX_MINUTES で設定",
  "No installer URL available for this update": "このアップデートにはインストーラーの URL がありません",
- "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}"
+ "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "チェックサムが一致しません：期待値 {expected_hash}、実際 {actual_hash}",
+ "Note": "メモ",
+ "Note — Add a note to this take": "メモ — このテイクにメモを追加",
+ "Note — {note}": "メモ — {note}",
+ "Note: {title}": "メモ: {title}",
+ "What this take is for: the part to keep, what to cut…": "このテイクの用途: 残す部分、カットするところ…",
+ "Could not save the note: {message}": "メモを保存できませんでした: {message}"
 }

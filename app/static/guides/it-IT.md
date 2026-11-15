@@ -1247,6 +1247,8 @@ I take fatti prima che esistesse questo restano dove sono, uno accanto all'altro
 
 Ogni scheda nomina le impostazioni che hanno dato forma al take — Armonia, Interpretazione, la voce registrata, Varietà del piano, il LoRA e le sue intensità, il seme, il motore che l'ha generato e la sua età —, così una scheda si legge come la ricetta che l'ha fatto. Un titolo resta sempre su una riga, finendo con … quando è lungo; passa il puntatore su titolo, impostazioni o stile di una scheda per leggere tutto.
 
+**Nota**, la matita tra i piccoli pulsanti di una scheda e nella riga in alto dell’editor, conserva qualche parola tua sulla take: a cosa serve, la parte da tenere, cosa tagliare. La matita è accesa finché la take ha una nota, e passandoci sopra la nota appare. **Cerca take** trova le take anche dalle loro note, e il file della ricetta della take (Salva → Take) porta con sé la nota. Una take fatta a partire da questa inizia senza.
+
 **Salva** chiede in che formato scaricare il take. Parte da ciò che hai salvato l'ultima volta, e senza scelta la prima volta.
 
 - **FLAC, WAV o MP3:** l'audio. Un FLAC o un MP3 porta anche il tempo e la tonalità della partitura del take, che le DAW e i programmi per DJ leggono.

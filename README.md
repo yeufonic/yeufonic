@@ -149,6 +149,8 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   Download them singly or as a zip.
 - **Spaces.** Keep takes apart by project: a space per song, per album, or for sketches. Create,
   rename and delete spaces, and move a take from one to another.
+- **Notes on takes.** Keep a few words of your own on any take: what it is for, the part to keep, what to cut. The
+  search finds takes by their notes, and a take's recipe file carries its note.
 - **A take's recipe as a file.** Save a take's words, score, seeds and settings (not its audio) as a small
   file, alone or beside the audio, and import one as a new take ready to render, on either engine: to keep a
   recipe, or to share it with another Yeufonic user.

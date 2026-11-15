@@ -1247,6 +1247,8 @@ Takes die gemaakt zijn voordat dit bestond blijven waar ze zijn, naast elkaar in
 
 Elke kaart noemt de instellingen die de take vormden — Harmonie, Interpretatie, de opgenomen stem, Planvariatie, de LoRA en zijn sterktes, de seed, de engine die hem renderde en zijn leeftijd —, zodat een kaart leest als het recept dat hem maakte. Een titel blijft altijd op één regel en eindigt met … als hij lang is; beweeg over de titel, instellingen of stijl van een kaart om alles te lezen.
 
+**Notitie**, de pen tussen de kleine knoppen van een kaart en in de bovenste rij van de editor, bewaart een paar eigen woorden bij de take: waar hij voor is, welk deel blijft, wat eruit moet. De pen licht op zolang de take een notitie heeft, en met de muis erboven zie je de notitie. **Takes zoeken** vindt takes ook op hun notitie, en het receptbestand van de take (Opslaan → Take) neemt de notitie mee. Een take die ervan gemaakt wordt, begint zonder.
+
 **Opslaan** vraagt in welk formaat de take gedownload moet worden. Het begint met wat je de vorige keer opsloeg, en zonder keuze de eerste keer.
 
 - **FLAC, WAV of MP3:** de audio. Een FLAC of MP3 draagt ook het tempo en de toonsoort uit de partituur van de take, die DAW's en dj-programma's lezen.

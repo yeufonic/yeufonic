@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Notes on takes** (#71). The pen among a card's small buttons, and in the editor's top row, opens a box for a
+  note of your own on the take: what it is for, the part to keep, what to cut. The pen is lit while the take has a
+  note, and its tip shows it. Search takes finds takes by their notes, and a take's recipe file carries its note; a
+  recipe from before notes imports as it did.
 - **A new title in the editor stays with the new take.** The title box renames the take open in the editor as it is
   typed in; when the editor is then left by making a new take (Write score plan, Create cover), the take it was
   made from gets its own name back. Leaving any other way (Escape, Close) keeps the rename.

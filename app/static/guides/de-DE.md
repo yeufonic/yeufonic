@@ -1247,6 +1247,8 @@ Takes, die vor dieser Funktion gemacht wurden, bleiben, wo sie sind, nebeneinand
 
 Jede Karte nennt die Einstellungen, die den Take geformt haben — Harmonie, Interpretation, die aufgenommene Stimme, Planvielfalt, das LoRA und seine Stärken, den Seed, die Engine, die ihn gerendert hat, und sein Alter —, sodass eine Karte sich wie das Rezept liest, aus dem er entstand. Ein Titel bleibt immer auf einer Zeile und endet mit …, wenn er lang ist; fahre über Titel, Einstellungen oder Stil einer Karte, um alles zu lesen.
 
+**Notiz**, der Stift unter den kleinen Knöpfen einer Karte und in der oberen Reihe des Editors, hält ein paar eigene Worte zum Take fest: wofür er ist, welcher Teil bleibt, was rausfliegt. Der Stift leuchtet, solange der Take eine Notiz hat, und mit der Maus darüber erscheint sie. **Takes durchsuchen** findet Takes auch über ihre Notizen, und die Rezeptdatei des Takes (Speichern → Take) enthält seine Notiz. Ein daraus gemachter Take beginnt ohne.
+
 **Speichern** fragt, in welchem Format der Take heruntergeladen werden soll. Es beginnt mit dem, was du zuletzt gespeichert hast, und beim ersten Mal ohne Auswahl.
 
 - **FLAC, WAV oder MP3:** der Ton. Ein FLAC oder MP3 trägt außerdem Tempo und Tonart aus der Partitur des Takes, die DAWs und DJ-Programme lesen.

@@ -60,6 +60,7 @@ FIELDS = {
     "cfg_scale": "cfg_scale",
     "hook_score": "hook_abc",
     "hook_section": "hook_section",
+    "note": "take_note",
 }
 FLAGS = {"length_cap_set", "production_polish", "normalise"}
 

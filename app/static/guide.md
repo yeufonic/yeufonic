@@ -1405,6 +1405,8 @@ Each card names the settings that shaped it — Harmony, Interpretation, the rec
 its strengths, the seed, the engine that rendered it and its age — so a card reads as the recipe that made it. A title
 always stays on one line, ending in … when it is long; hover over a card's title, settings or style to read all of it.
 
+**Note**, the pen among a card's small buttons and in the editor's top row, keeps a few words of your own on the take: what it is for, the part to keep, what to cut. The pen is lit while the take has a note, and hovering over it shows the note. **Search takes** finds takes by their notes too, and the take's recipe file (Save → Take) carries its note. A take made from it starts with none.
+
 **Save** asks which format to download the take in. It starts with what you saved last time, and with nothing chosen
 the first time.
 

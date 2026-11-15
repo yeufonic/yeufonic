@@ -11994,6 +11994,7 @@ var ICONS = {
   level: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>',
   inside: '<rect x="3.5" y="9" width="17" height="11" rx="2"/><path d="M6 6.2h12M8.5 3.5h7"/>',
   out: '<path d="M9 4.5H6A1.5 1.5 0 0 0 4.5 6v12A1.5 1.5 0 0 0 6 19.5h3"/><path d="M10.5 12h9m0 0l-3.5-3.5m3.5 3.5L16 15.5"/>',
+  note: '<path d="M15.2 5.3l3.5 3.5L8.5 19H5v-3.5z"/><path d="M13 7.5l3.5 3.5"/>',
   playlist: '<path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/>'
 };
 
@@ -12793,6 +12794,8 @@ function paintTakes() {
             icon('mastering') + '</button>' +
           '<button class="take-move" data-act="details"' + id + ' title="' + t('Details (I) — What this take was made with') + '" aria-label="' + t('Details') + '">' +
             icon('info') + '</button>' +
+          '<button class="take-move note' + (take.take_note ? ' lit' : '') + '" data-act="note"' + id + ' title="' + esc(noteTip(take)) + '" aria-label="' + t('Note') + '">' +
+            icon('note') + '</button>' +
           (take.parent_id ? '' :
           '<button class="take-move" data-act="move"' + id + ' title="' + t('Move — Move to another space{value}', { value: heldBy(take) ? t(', with the takes inside it') : '' }) + '" aria-label="' + t('Move') + '">' +
             icon('move') + '</button>') +
@@ -13305,6 +13308,77 @@ function paintTransport() {
    A rack opened from here stands over the window (Editor.rackUp) until it or the window is closed. */
 /* The take's own small buttons, as on its card, in the editor window's top row: larger, since there is room, and
    lit or worded by what the take is.  The same actions as the card's (takeAction), so they do the same thing. */
+/* A take's note (#71): the person's own words on it, kept with the take and in its recipe file.  The button's tip
+   shows the note, so a hover reads it back without opening anything. */
+function noteTip(take) {
+  var note = String(take.take_note || '').trim();
+  if (!note) { return t('Note — Add a note to this take'); }
+  return t('Note — {note}', { note: note.length > 300 ? note.slice(0, 300) + '…' : note });
+}
+
+function closeNoteModal() {
+  var modal = $('note-modal');
+  if (modal) { modal.classList.add('hidden'); }
+}
+
+function openNoteModal(take) {
+  var modal = $('note-modal');
+  if (!modal) {
+    // Made here, not in the page, so a page from before the note still gets it.
+    modal = document.createElement('div');
+    modal.id = 'note-modal';
+    modal.className = 'modal hidden';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.innerHTML =
+      '<div class="modal-box narrow note-box">' +
+        '<div class="modal-head"><strong id="note-title"></strong></div>' +
+        '<textarea id="note-text" maxlength="20000" spellcheck="true"></textarea>' +
+        '<div class="row confirm-actions">' +
+          '<span id="note-status" class="status"></span>' +
+          '<button id="note-cancel" class="ghost" type="button">' + t('Cancel') + '</button>' +
+          '<button id="note-save" class="primary" type="button">' + t('Save') + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function (event) { if (event.target === modal) { closeNoteModal(); } });
+    $('note-cancel').addEventListener('click', closeNoteModal);
+    $('note-save').addEventListener('click', saveNote);
+    // Kept here: the page's own keys (Escape closing the editor, S, D…) never see what is typed in the note.
+    modal.addEventListener('keydown', function (event) {
+      event.stopPropagation();
+      if (event.key === 'Escape') { event.preventDefault(); closeNoteModal(); }
+      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); saveNote(); }
+    });
+  }
+  modal.dataset.id = take.id;
+  $('note-title').textContent = t('Note: {title}', { title: take.title || '' });
+  $('note-text').value = take.take_note || '';
+  $('note-text').placeholder = t('What this take is for: the part to keep, what to cut…');
+  $('note-status').textContent = '';
+  $('note-status').className = 'status';
+  modal.classList.remove('hidden');
+  $('note-text').focus();
+}
+
+async function saveNote() {
+  var modal = $('note-modal');
+  var id = modal && modal.dataset.id;
+  if (!id) { return; }
+  try {
+    var res = await api('/api/takes/' + id + '/note', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: $('note-text').value })
+    });
+    var take = takeById(id);
+    if (take) { take.take_note = res.take_note; }
+    closeNoteModal();
+    paintTakes();
+  } catch (err) {
+    $('note-status').textContent = t('Could not save the note: {message}', { message: err.message || err });
+    $('note-status').className = 'status bad';
+  }
+}
+
 function edTakeTools(take) {
   var id = esc(take.id), status = take.status;
   var tool = function (act, iconName, label, title, extra, disabled) {
@@ -13334,6 +13408,7 @@ function edTakeTools(take) {
       html += tool('normalise', 'level', t('Normalise'), t('Normalise — Bring this take to the usual loudness. The file as rendered is kept'));
     }
   }
+  html += tool('note', 'note', t('Note'), noteTip(take), take.take_note ? 'lit' : '');
   if (!take.parent_id) {
     html += tool('move', 'move', t('Move'), t('Move — Move to another space{value}', { value: heldBy(take) ? t(', with the takes inside it') : '' }));
   }
@@ -15965,6 +16040,10 @@ function wire() {
     if (act === 'tries') {
       var origin = takeById(id);
       if (origin) { openTries(origin); }
+    }
+    if (act === 'note') {
+      var noted = takeById(id);
+      if (noted) { openNoteModal(noted); }
     }
     if (act === 'move') {
       var moving = takeById(id);
