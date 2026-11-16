@@ -87,8 +87,10 @@ def app_server():
 @pytest.fixture(scope="session")
 def browser():
     from playwright.sync_api import sync_playwright
+    # BROWSER_TESTS_BROWSER=webkit runs them in Safari's engine (on a Mac, with `playwright install webkit`).
+    kind = os.environ.get("BROWSER_TESTS_BROWSER", "chromium")
     with sync_playwright() as p:
-        b = p.chromium.launch(args=["--autoplay-policy=no-user-gesture-required"])
+        b = getattr(p, kind).launch(args=["--autoplay-policy=no-user-gesture-required"] if kind == "chromium" else [])
         yield b
         b.close()
 

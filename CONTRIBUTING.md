@@ -41,6 +41,7 @@ sh browser-tests/run.sh -k cover      # the ones matching
 
 The first run builds `browser-tests/Dockerfile`: the app image with Playwright's Chromium added, under 1 GB more.
 Screenshots of failures and the app's log land in `browser-tests/artifacts/`.
+On a Mac they also run without Docker, with Playwright installed beside the app's packages: `BROWSER_TESTS_BROWSER=webkit` runs them in Safari's engine (after `playwright install webkit`).
 
 **On every push and pull request** GitHub runs the suite, the browser tests and a new Docker install for each engine
 (`.github/workflows/tests.yml`). The new install, `scripts/check-fresh-install.sh`, runs `fetch-models.sh` in a fresh
