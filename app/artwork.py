@@ -61,6 +61,9 @@ NOT_FOR_PICTURE_RE = re.compile(r"\d|\bbpm\b|\bkey\b|\btempo\b|vocal|voice|singe
 
 # What the engine reports it has (set by the job lanes, which hold the engine).
 engine_options = lambda: {}  # noqa: E731
+# Gemma is on the engine but slow there: ComfyUI on a Mac, where its INT8 file's fast kernels (NVIDIA's) are missing and
+# it runs on the CPU, minutes for a picture's description, with every job behind it waiting.  Set by jobs.
+gemma_slow = lambda: False  # noqa: E731
 
 # Whether the external provider has the image model asked for: (url, model, key's tail) -> (yes, when asked).
 _EXTERNAL: dict[tuple, tuple[bool, float]] = {}
@@ -197,8 +200,8 @@ def gemma_ready() -> bool:
 
 def describer() -> str:
     """Who writes the image prompt: "gemma" (Gemma on the engine), "external" (the external LLM) or "take" (no LLM:
-    a description made from the take itself).  The default, "auto", is Gemma where it is installed and the take
-    otherwise; so is anything else on file ("same", an earlier name).  The external LLM chosen but not there (not
+    a description made from the take itself).  The default, "auto", is Gemma where it is installed (and quick: not
+    ComfyUI's on a Mac, see gemma_slow) and the take otherwise; so is anything else on file ("same", an earlier name).  The external LLM chosen but not there (not
     set up, local for this session, or failed in the last two minutes) falls back to Gemma where it is installed,
     else the take.  Gemma chosen but not there falls back to the take."""
     chosen = (get_setting("art.words", "auto") or "auto").strip().lower()
@@ -207,6 +210,8 @@ def describer() -> str:
     if chosen == "external":
         if llm.is_external_enabled() and not external_words_failed():
             return "external"
+    if chosen != "local" and gemma_slow():
+        return "take"
     return "gemma" if gemma_ready() else "take"
 
 

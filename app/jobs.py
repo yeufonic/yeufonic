@@ -666,6 +666,7 @@ def build_lyrics_graph(record: dict) -> dict:
 
 # The pictures read what the engine has (FLUX.2 klein or not) from the engine client held here.
 artwork.engine_options = lambda: getattr(ENGINE, "options", None) or {}
+artwork.gemma_slow = lambda: getattr(ENGINE, "kind", "comfyui") == "comfyui" and bool(getattr(ENGINE, "shares_memory", False))
 
 # Pictures described by the external LLM run beside the GPU lane; each task is held here until it ends.
 _ART_TASKS: dict[str, asyncio.Task] = {}

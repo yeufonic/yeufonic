@@ -46,6 +46,9 @@ cannot creep back in.
   song work could go on drawing on the picture server, which then refused the next picture's model with "model_busy",
   and that picture failed. Pictures beside the yue2.cpp engine are now drawn one at a time, and a picture waits for the
   server to finish one it was asked to cancel.
+- **Mac: take pictures no longer hold up the engine for minutes.** With the ComfyUI engine on a Mac, Gemma runs on the
+  CPU, so a picture's description took minutes and every job behind it, stems and lyric hearing among them, waited.
+  There the default describer is now the take itself; Gemma still describes when it is chosen.
 
 ## 0.0.60 (2026-11-15)
 

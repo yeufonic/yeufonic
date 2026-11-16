@@ -440,6 +440,41 @@ def test_left_to_choose_a_picture_is_described_by_gemma_where_it_is_installed(mo
     assert artwork.describer() == "take"
 
 
+def test_on_a_mac_comfyui_gemma_describes_only_when_chosen(monkeypatch):
+    """ComfyUI's Gemma runs on the CPU on a Mac (minutes a description, every job behind it waiting), so the default
+    and the external LLM's fallback describe from the take itself there; Gemma chosen outright is kept."""
+    from app import llm
+    external()
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"lyrics": True})
+    monkeypatch.setattr(artwork, "gemma_slow", lambda: True)
+    set_setting("art.words", "auto")
+    assert artwork.describer() == "take" and not artwork.words_by_engine()
+    set_setting("art.words", "local")
+    assert artwork.describer() == "gemma"
+    set_setting("art.words", "external")
+    try:
+        artwork.record_external_words_failure("HTTP 429")
+        assert artwork.describer() == "take"
+    finally:
+        llm.reset_session_state()
+
+
+def test_only_comfyui_on_a_mac_counts_as_slow_gemma(monkeypatch):
+    from app import jobs
+
+    class Comfy:
+        kind, shares_memory = "comfyui", True
+
+    class Cpp:
+        kind, shares_memory = "yue2cpp", True                       # Gemma in Ollama, on Metal: quick
+    for engine, slow in ((Comfy(), True), (Cpp(), False)):
+        monkeypatch.setattr(jobs, "ENGINE", engine)
+        assert artwork.gemma_slow() is slow
+    Comfy.shares_memory = False                                       # an NVIDIA card
+    monkeypatch.setattr(jobs, "ENGINE", Comfy())
+    assert artwork.gemma_slow() is False
+
+
 def test_the_external_llm_not_there_falls_back_to_gemma_before_the_take(monkeypatch):
     """The take's own description is its title and style tags alone, from which klein draws much the same landscape
     every time: so an external LLM that is local for the session, or has just failed, gives way to Gemma."""
