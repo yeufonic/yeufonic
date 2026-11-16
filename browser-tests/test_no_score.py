@@ -49,10 +49,12 @@ def test_follow_the_style_is_set_in_advanced_and_kept_by_the_take(page, app_serv
     assert page.locator("#adv-reset-btn").is_enabled()
     page.locator("#advanced-take-modal .modal-box, #advanced-take-modal").first.screenshot(
         path="browser-tests/artifacts/follow-the-style.png")
-    # Past what the engines take: held at the end, and shown so.
+    # Past what ComfyUI takes (yue2.cpp takes it): kept as typed, and the box marked so.
     page.fill("#adv-cfg-scale", "150")
+    page.locator("#adv-cfg-scale").dispatch_event("input")
     page.locator("#adv-cfg-scale").dispatch_event("change")
-    assert page.input_value("#adv-cfg-scale") == "100"
+    assert page.input_value("#adv-cfg-scale") == "150"
+    assert "warn" in (page.get_attribute("#adv-cfg-scale", "class") or "")
     page.fill("#adv-cfg-scale", "7.5")
     page.locator("#adv-cfg-scale").dispatch_event("change")
     page.click("#adv-done-btn")
