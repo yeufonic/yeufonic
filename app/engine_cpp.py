@@ -357,6 +357,8 @@ class CppEngine(Engine):
     kind = KIND
     name = NAME
     POLL = 0.75
+    # How long a picture waits for the picture server to finish one it was asked to cancel: tries, seconds apart.
+    BUSY_TRIES, BUSY_WAIT = 60, 3.0
 
     def __init__(self, url: str, llm_url: str = "", llm_model: str = "", pictures_url: str = "") -> None:
         super().__init__(url)
@@ -380,6 +382,10 @@ class CppEngine(Engine):
         self._log_task: asyncio.Task | None = None
         self._current_server_job: str | None = None
         self._lock = asyncio.Lock()
+        # One picture at a time on the picture server.  A picture that steps aside for a song is cancelled, but the server
+        # may finish drawing it anyway, and until it has (and let go of its model) it refuses the next one's load as
+        # "model_busy": the next waits here instead.
+        self._picture_lock = asyncio.Lock()
         self.props: dict[str, Any] = {}
         # The LoRA folder as last seen (lora_folder_state), so the server is asked to read it again only when it changed.
         self._loras_seen: dict[str, tuple] | None = None
@@ -699,13 +705,23 @@ class CppEngine(Engine):
         if not self.pictures:
             raise RuntimeError("pictures are not set up beside the yue2.cpp engine")
         rec = self.progress[pid]
-        rec.update({"executing": True, "started": time.time(), "stage": "UNETLoader"})
+        async with self._picture_lock:
+            rec.update({"executing": True, "started": time.time(), "stage": "UNETLoader"})
+            return await self._draw(pid, job, rec)
+
+    async def _draw(self, pid: str, job: dict, rec: dict) -> dict[str, Any]:
         try:
             load = {"recipe": job["recipe"], "models": job["files"]}
             r = await self.pictures.post("/sdcpp/v1/models/load", json=load)
             if r.status_code == 400 and "unknown model" in r.text:
                 # A file put in since the server last looked: it looks again, once.
                 await self.pictures.post("/sdcpp/v1/models/refresh", timeout=10.0)
+                r = await self.pictures.post("/sdcpp/v1/models/load", json=load)
+            for _ in range(self.BUSY_TRIES):
+                # Still drawing a picture this app no longer waits for (one cancelled before its id came back).
+                if r.status_code < 400 or "model_busy" not in r.text:
+                    break
+                await asyncio.sleep(self.BUSY_WAIT)
                 r = await self.pictures.post("/sdcpp/v1/models/load", json=load)
             if r.status_code >= 400:
                 raise RuntimeError(f"the picture model did not load: {r.text[:200]}")

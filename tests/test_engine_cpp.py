@@ -594,6 +594,59 @@ def test_a_failed_picture_still_lets_go_of_its_model(monkeypatch):
     assert pictures.calls[-1][0] == "/sdcpp/v1/models/unload"
 
 
+def test_a_picture_waits_for_one_that_stepped_aside(monkeypatch):
+    """A picture cancelled for song work may go on drawing on the server, which refuses another load until it is done
+    ("model_busy"); the next picture waits for it rather than failing."""
+    monkeypatch.setattr(artwork, "engine_options", lambda: {"klein": {"4b": ["flux-2-klein-4b-fp8.safetensors", "Qwen3-4B-Q8_0.gguf"]}})
+
+    class Slow(FakePictures):
+        """Draws for a few polls whatever it is told; while a job is drawing it refuses a load, as the real one does."""
+        def __init__(self):
+            super().__init__()
+            self.drawing = 0
+            self.jobs = 0
+
+        def __call__(self, request):
+            path = request.url.path
+            if path == "/sdcpp/v1/models/load" and self.drawing:
+                self.calls.append((path, "busy"))
+                return httpx.Response(409, json={"code": "model_busy", "error": "Finish or cancel pending generation jobs"})
+            if path == "/sdcpp/v1/img_gen":
+                self.calls.append((path, None))
+                self.jobs += 1
+                self.drawing = 3
+                return httpx.Response(202, json={"id": f"job_{self.jobs}", "status": "queued"})
+            if path.startswith("/sdcpp/v1/jobs/") and path.endswith("/cancel"):
+                self.calls.append((path, None))
+                return httpx.Response(200, json={"status": "cancelling"})   # and draws on regardless
+            if path.startswith("/sdcpp/v1/jobs/job_"):
+                self.calls.append((path, None))
+                self.drawing = max(0, self.drawing - 1)
+                if self.drawing:
+                    return httpx.Response(200, json={"status": "generating"})
+                return httpx.Response(200, json={"status": "completed",
+                                                 "result": {"images": [{"index": 0, "b64_json": base64.b64encode(PNG).decode()}]}})
+            return super().__call__(request)
+
+    pictures = Slow()
+    engine = _with_pictures(FakeServer(), pictures)
+    engine.POLL = engine.BUSY_WAIT = 0.01
+
+    async def go():
+        first = await engine.submit(artwork.picture_graph("a kite", 5, "p1"))
+        while not engine.server_ids.get(first):
+            await asyncio.sleep(0.005)
+        await engine.cancel(first)                      # stepped aside: the app no longer waits for it
+        engine.forget(first)
+        second = await engine.submit(artwork.picture_graph("a harbour", 6, "p2"))
+        return await _finish(engine, second)
+    job = asyncio.run(go())
+    assert job["status"]["status_str"] == "success"
+    loads = [i for i, (path, _) in enumerate(pictures.calls) if path == "/sdcpp/v1/models/load"]
+    unloads = [i for i, (path, _) in enumerate(pictures.calls) if path == "/sdcpp/v1/models/unload"]
+    assert unloads and unloads[0] < loads[1]             # the first let go of its model before the second loaded
+
+
 def test_a_file_put_in_after_the_server_started_is_looked_for_again(monkeypatch):
     """The server lists its files when it starts; a load naming one added since is refused, so it looks again."""
     monkeypatch.setattr(artwork, "engine_options", lambda: {"klein": {"4b": ["flux-2-klein-4b-fp8.safetensors", "Qwen3-4B-Q4_K_M.gguf"]}})

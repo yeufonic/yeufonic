@@ -42,6 +42,10 @@ cannot creep back in.
 - **Windows: the taskbar shows Yeufonic's icon again.** A test build of the installer gave its window the same
   taskbar identity as the real install's, and once it was removed Windows kept showing a generic icon for both. The
   window now has an identity of its own (and a test build another), so the button shows the Yeufonic logo.
+- **yue2.cpp: a picture no longer fails after one that stepped aside for a song.** A take picture that gave way to
+  song work could go on drawing on the picture server, which then refused the next picture's model with "model_busy",
+  and that picture failed. Pictures beside the yue2.cpp engine are now drawn one at a time, and a picture waits for the
+  server to finish one it was asked to cancel.
 
 ## 0.0.60 (2026-11-15)
 
