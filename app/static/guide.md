@@ -1193,8 +1193,8 @@ such rather than failing quietly inside a render.
 
 ### Where to find style LoRAs
 
-The quickest way is at install: tick **Style LoRAs** on the installer's components page (or, with Docker, run
-`sh scripts/fetch-models.sh --loras`). That fetches 39 style LoRAs by their authors, 3.8 GB in all, each with a
+The quickest way is at install: tick **Style LoRAs** on the installer's components page (on a Mac, answer yes when
+the setup window asks, or run its `setup.sh --loras`; with Docker, run `sh scripts/fetch-models.sh --loras`). That fetches 39 style LoRAs by their authors, 3.8 GB in all, each with a
 description giving its trigger word and suggested strengths: the sets below, two from atomtanstudio (dream pop
 and old school hip-hop), and sixteen concept sliders from ntc-ai, which shape the score only (Sound does nothing,
 and they need no trigger word). They are gathered, unchanged, in

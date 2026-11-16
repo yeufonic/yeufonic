@@ -236,14 +236,40 @@ def test_the_first_run_in_a_window_asks_and_remembers(tmp_path, answer, memory_g
     proc = subprocess.Popen(["bash", str(SETUP), "--install-dir", str(tmp_path / "install")], env=env,
                             stdin=follower, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     os.close(follower)
-    os.write(leader, (answer + "\n").encode())
+    os.write(leader, (answer + "\n" + answer + "\n").encode())     # pictures, then style LoRAs
     out, _ = proc.communicate(timeout=60)
     os.close(leader)
     assert "Draw take pictures on this Mac? [y/N]" in out
+    assert "Fetch the style LoRAs? [y/N]" in out
+    assert (tmp_path / "install" / "state" / "loras").read_text().strip() == ("yes" if answer == "y" else "no")
     assert ("not recommended" in out) == (memory_gb < 24)
     assert f"Take pictures on this Mac: {chosen}" in out
     assert (tmp_path / "install" / "state" / "pictures").read_text().strip() == chosen
     assert "Not enough free space" in out
+
+
+# ------------------------------------------------------------------- style LoRAs
+
+def test_the_style_loras_are_the_ones_docker_and_windows_fetch():
+    """The same 39 LoRAs and descriptions, with the same checksums, as fetch-models.sh --loras (which the Windows
+    installer's list is held to)."""
+    text = SETUP.read_text(encoding="utf-8")
+    block = re.search(r"style_lora_list\(\) \{\n  cat <<LIST\n(.*?)\nLIST", text, re.S).group(1)
+    mac = {name: sha for name, _size, sha in (line.split("|") for line in block.splitlines())}
+    docker = (ROOT / "scripts" / "fetch-models.sh").read_text(encoding="utf-8")
+    listed = re.search(r"done <<'LIST'\n(.*?)\nLIST", docker, re.S).group(1)
+    assert mac == dict(line.split() for line in listed.splitlines() if line.strip())
+    assert len([n for n in mac if n.endswith(".safetensors")]) == 39
+
+
+@needs_bash
+def test_style_loras_are_left_out_unless_chosen(tmp_path):
+    plain = check(tmp_path)
+    assert "Style LoRAs: no" in plain.stdout
+    chosen = check(tmp_path, "--loras")
+    assert "Style LoRAs: yes" in chosen.stdout
+    assert needed_gb(chosen) - needed_gb(plain) in (3, 4)
+    assert not (tmp_path / "install" / "state" / "loras").exists()
 
 
 @needs_bash

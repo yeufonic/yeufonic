@@ -49,6 +49,9 @@ cannot creep back in.
 - **Mac: take pictures no longer hold up the engine for minutes.** With the ComfyUI engine on a Mac, Gemma runs on the
   CPU, so a picture's description took minutes and every job behind it, stems and lyric hearing among them, waited.
   There the default describer is now the take itself; Gemma still describes when it is chosen.
+- **Mac: the setup offers the style LoRAs.** The setup window asks once whether to fetch the 39 style LoRAs by their
+  authors that the Windows installer and Docker can fetch, with their descriptions, and remembers the answer
+  (`setup.sh --loras` later). A LoRA file already in the folder is left as it is.
 
 ## 0.0.60 (2026-11-15)
 

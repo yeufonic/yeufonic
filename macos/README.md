@@ -32,6 +32,9 @@ Mac with Apple silicon, but it is slower than on an NVIDIA card, and training do
      (32 GB recommended), and is experimental. To change the answer later, quit Yeufonic and run
      `bash /Applications/Yeufonic.app/Contents/Resources/setup.sh --pictures` (or
      `--no-pictures`, which fetches nothing and leaves files already there).
+   - **Style LoRAs are an option too**, asked and remembered the same way: the 39 style LoRAs by their
+     authors that the Windows installer and `fetch-models.sh --loras` fetch (about 3.8 GB), each with its
+     description. A file already in the LoRA folder is left as it is. `setup.sh --loras` fetches them later.
    - Downloads resume, and a second run keeps whatever is already in place.
    - A Terminal window is used because it needs no permission: the app writes a `.command` file
      and opens it, where telling Terminal what to do would ask to control it.
