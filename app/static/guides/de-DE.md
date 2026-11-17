@@ -209,6 +209,8 @@ Es ist ein erster Entwurf. Die Zeilen haben Metrum und Reim, aber ein Modell gre
 seine drei Spalten (der Song, der Text und der Klang), und dann, was nach dem Plan zu tun ist. Es endet mit einer
 Tabelle für die häufigen Wünsche, etwa einen längeren Song oder einen Refrain, der anders klingt als die Strophe.
 
+Die Spalten lassen sich breiter oder schmaler machen: Zieh den Balken zwischen zwei Spalten (er erscheint, wenn die Maus über der Lücke ist), und ein Doppelklick darauf stellt die üblichen Breiten wieder her. Die Breiten bleiben in diesem Browser gespeichert. In einem schmalen Fenster stehen die Spalten stattdessen untereinander.
+
 ### Der Song {#the-song}
 
 - **Titel.** Optional. Leer gelassen wird die erste Zeile des Textes verwendet.
@@ -972,6 +974,7 @@ Engine, die mit `WITH_TRAINER=0` gebaut wurde, nimmt es heraus.
    - Eine Zeile unter den Schaltflächen sagt, was läuft, und eine laufende Analyse erscheint in der Job-Karte und Warteschlange des Hauptbildschirms. **Stopp** beendet sie. Fertige Schritte bleiben erhalten, sodass **Analysieren** dort weitermacht, wo es aufgehört hat.
    - **Neu analysieren.** Sind alle Songs analysiert, zeigt die Schaltfläche **Analysiert ✓**. Ein Klick fragt, ob du die Stilvorschläge aller Songs mit den neuesten Prompts und LLM-Einstellungen neu analysieren willst (praktisch nach dem Umbenennen eines Korpus oder einem Anbieterwechsel). Umschalt-Klick auf **Analysiert ✓** bietet eine vollständige Neuanalyse von Grund auf (Stem-Trennung, Tonart, Tempo, Transkription und Stile erneut). Einzelne Songs können auch mit **Neu analysieren** in ihrer Prüfung neu gestylt werden.
 4. **Prüfen.** Öffne einen Song, um seinen Songtext zu prüfen und **geprüft** anzuhaken, und um seinen Klang zu beschreiben, wo er sich vom Rest unterscheidet. Die Stilbeschreibung zeigt, was der Trainer lesen wird.
+   - **Der Stilvorschlag** ist der Stil, den die Analyse im Song gehört hat: Genre, Ära, Instrumente und Stimmung. Darunter öffnet **In einem neuen Song verwenden** + Song mit diesem Stil im Stilfeld, und **Als Stil speichern** behält ihn in der Stilliste (unter den gespeicherten Stilen) unter einem Namen, den du vergibst, für jeden Song und jedes Cover. Ein Korpus aus einem einzigen Song ist so ein Weg, den Stil eines Stücks zu bekommen, das dir gefällt.
 5. **Trainingsset exportieren.** Schreibt Audio, Songtext und Beschreibung für jeden Song. Eine Zeile unter den Schaltflächen zeigt, wie weit es ist.
    - Der Trainer nimmt nur so viel von einem Song, wie die App aus dem freien Speicher deiner Grafikkarte berechnet (etwa 5½ Minuten bei einer 16-GB-Karte; das Protokollfenster sagt, was gewählt wurde).
    - Ein längerer Song wird am Ende seines letzten Teils innerhalb davon geschnitten, ausgeblendet und behält nur die noch gesungenen Wörter. Seine Zeile sagt „erste 3:12 trainiert“.

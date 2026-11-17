@@ -209,6 +209,8 @@ Os botões do editor de letras também adicionam qualquer uma dessas seções, a
 nas três colunas (a música, a letra e o som), e depois pelo que fazer após o plano. Termina com uma
 tabela dos desejos comuns, como uma música mais longa ou um refrão que soe diferente do verso.
 
+As colunas podem ficar mais largas ou mais estreitas: arraste a barra entre duas delas (ela aparece quando o mouse está sobre o espaço entre elas) e clique duas vezes nela para voltar às larguras de costume. As larguras ficam guardadas neste navegador. Numa janela estreita, as colunas ficam uma acima da outra.
+
 ### A música {#the-song}
 
 - **Título.** Opcional. Em branco, a primeira linha da letra é usada.
@@ -972,6 +974,7 @@ motor construído com `WITH_TRAINER=0`, o remove.
    - Uma linha sob os botões diz o que está rodando, e a análise ativa aparece no cartão de tarefas e na fila da tela principal. **Parar** termina. Os passos concluídos ficam guardados, então **Analisar** continua de onde parou.
    - **Analisar de novo.** Quando todas as músicas estão analisadas, o botão mostra **Analisado ✓**. Clicar pergunta se você quer reanalisar as sugestões de estilo de todas as músicas com os prompts e as configurações de LLM mais recentes (útil depois de renomear um corpus ou trocar de provedor). Shift-clique em **Analisado ✓** oferece uma reanálise completa do zero (separação de stems, tonalidade, andamento, transcrição e estilos de novo). Cada música também pode ser reestilizada com **Analisar de novo** na revisão dela.
 4. **Revisar.** Abra uma música para conferir a letra e marcar **conferida**, e para descrever o som onde ele difere do resto. A legenda de estilo mostra o que o treinador vai ler.
+   - **A sugestão de estilo** é o estilo que a análise ouviu na música: gênero, época, instrumentos e clima. Abaixo dela, **Usar em uma nova música** abre + Música com esse estilo na caixa Estilo, e **Salvar como estilo** guarda-o na lista de estilos (em Estilos salvos) com o nome que você der, para qualquer música ou cover. Assim, um corpus de uma só música é um jeito de obter o estilo de uma faixa de que você gosta.
 5. **Exportar o conjunto de treino.** Escreve o áudio, a letra e a legenda de cada música. Uma linha sob os botões mostra até onde chegou.
    - O treinador pega só uma parte de cada música, que o app calcula pela memória livre da sua placa de vídeo (uns 5½ minutos numa placa de 16 GB; a janela de registros diz o que escolheu).
    - Uma música mais longa é cortada no fim da última seção dentro disso, esmaecida, e mantém só as palavras ainda cantadas. A linha dela diz “primeiros 3:12 treinados”.

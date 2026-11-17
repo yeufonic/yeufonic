@@ -209,6 +209,8 @@ I pulsanti dell'editor del testo aggiungono anche queste sezioni, oltre alle ind
 nelle sue tre colonne (la canzone, il testo e il suono), e poi cosa fare dopo il piano. Finisce con una
 tabella dei desideri comuni, come una canzone più lunga o un ritornello che suoni diverso dalla strofa.
 
+Le colonne si possono allargare o restringere: trascina la barra tra due di esse (compare quando il mouse è sullo spazio tra le due) e fai doppio clic su di essa per tornare alle larghezze consuete. Le larghezze restano salvate in questo browser. In una finestra stretta le colonne si dispongono una sopra l’altra.
+
 ### La canzone {#the-song}
 
 - **Titolo.** Facoltativo. Se resta vuoto, si usa la prima riga del testo.
@@ -972,6 +974,7 @@ motore costruito con `WITH_TRAINER=0`, lo toglie.
    - Una riga sotto i pulsanti dice cosa sta girando, e l'analisi in corso compare nella scheda dei lavori e nella coda della schermata principale. **Ferma** la termina. I passi finiti vengono conservati, quindi **Analizza** riprende da dove si era fermato.
    - **Rianalizzare.** Quando tutte le canzoni sono analizzate, il pulsante mostra **Analizzato ✓**. Un clic chiede se vuoi rianalizzare i suggerimenti di stile di tutte le canzoni con i prompt e le impostazioni LLM più recenti (comodo dopo aver rinominato un corpus o cambiato fornitore). Maiusc-clic su **Analizzato ✓** offre una rianalisi completa da zero (di nuovo separazione degli stem, tonalità, tempo, trascrizione e stili). Le singole canzoni si possono anche ristilizzare con **Rianalizza** nella loro revisione.
 4. **Rivedere.** Apri una canzone per controllarne il testo e spuntare **controllato**, e per descriverne il suono dove differisce dal resto. La didascalia di stile mostra ciò che leggerà l'addestratore.
+   - **Il suggerimento di stile** è lo stile che l’analisi ha sentito nella canzone: genere, epoca, strumenti e atmosfera. Sotto, **Usa in una nuova canzone** apre + Canzone con quello stile nel campo Stile, e **Salva come stile** lo tiene nell’elenco degli stili (tra gli Stili salvati) con il nome che gli dai, per qualsiasi canzone o cover. Così un corpus di una sola canzone è un modo per ottenere lo stile di un brano che ti piace.
 5. **Esporta il set di addestramento.** Scrive l'audio, il testo e la didascalia di ogni canzone. Una riga sotto i pulsanti mostra a che punto è.
    - L'addestratore prende solo una parte di ogni canzone, che l'app calcola dalla memoria libera della tua scheda grafica (circa 5½ minuti su una scheda da 16 GB; la finestra dei registri dice cosa ha scelto).
    - Una canzone più lunga viene tagliata alla fine della sua ultima sezione entro quel limite, sfumata, e tiene solo le parole ancora cantate. La sua riga dice «primi 3:12 addestrati».

@@ -209,6 +209,8 @@ Het is een eerste versie. De regels lopen en rijmen, maar een model grijpt naar 
 in zijn drie kolommen (het nummer, de tekst en de klank), en daarna wat je na het plan doet. Het eindigt met een
 tabel van veelvoorkomende wensen, zoals een langer nummer of een refrein dat anders klinkt dan het couplet.
 
+De kolommen kunnen breder of smaller: sleep de balk tussen twee kolommen (hij verschijnt als de muis boven de tussenruimte is) en dubbelklik erop voor de gewone breedtes. De breedtes worden in deze browser bewaard. In een smal venster staan de kolommen in plaats daarvan onder elkaar.
+
 ### Het nummer {#the-song}
 
 - **Titel.** Optioneel. Leeg gelaten wordt de eerste regel van de tekst gebruikt.
@@ -972,6 +974,7 @@ engine gebouwd met `WITH_TRAINER=0`, haalt het weg.
    - Een regel onder de knoppen zegt wat er loopt, en een lopende analyse staat in de taakkaart en wachtrij van het hoofdscherm. **Stop** beëindigt hem. Afgemaakte stappen blijven bewaard, dus **Analyseren** gaat verder waar het stopte.
    - **Opnieuw analyseren.** Zijn alle nummers geanalyseerd, dan toont de knop **Geanalyseerd ✓**. Klikken vraagt of je de stijlsuggesties van alle nummers opnieuw wilt analyseren met de nieuwste prompts en LLM-instellingen (handig na het hernoemen van een corpus of het wisselen van aanbieder). Shift-klikken op **Geanalyseerd ✓** biedt een volledige heranalyse vanaf nul (opnieuw stemscheiding, toonsoort, tempo, transcriptie en stijlen). Losse nummers kunnen ook opnieuw gestyled worden met **Opnieuw analyseren** in hun controle.
 4. **Controleren.** Open een nummer om de tekst te controleren en **gecontroleerd** aan te vinken, en om de klank te beschrijven waar die van de rest afwijkt. Het stijlbijschrift laat zien wat de trainer zal lezen.
+   - **De stijlsuggestie** is de stijl die de analyse in het nummer hoorde: genre, tijdperk, instrumenten en sfeer. Daaronder opent **Gebruiken in een nieuw nummer** + Nummer met die stijl in het stijlvak, en **Opslaan als stijl** bewaart hem in de stijllijst (onder Opgeslagen stijlen) met een naam die je geeft, voor elk nummer of elke cover. Een corpus van één nummer is zo een manier om de stijl te krijgen van een nummer dat je mooi vindt.
 5. **Trainingsset exporteren.** Schrijft de audio, tekst en het bijschrift van elk nummer. Een regel onder de knoppen laat zien hoe ver het is.
    - De trainer neemt maar zoveel van een nummer, wat de app berekent uit het vrije geheugen van je videokaart (ongeveer 5½ minuut op een kaart van 16 GB; het logvenster zegt wat er gekozen is).
    - Een langer nummer wordt aan het eind van zijn laatste deel daarbinnen geknipt, uitgefaded, en houdt alleen de woorden die nog gezongen worden. Zijn rij zegt „eerste 3:12 getraind”.

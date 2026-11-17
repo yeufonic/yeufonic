@@ -209,6 +209,8 @@ C'est un premier jet. Les lignes ont métrique et rime, mais un modèle se tourn
 ses trois colonnes (la chanson, les paroles et le son), puis ce qu’il faut faire après le plan. Il se termine par un
 tableau des souhaits courants, comme une chanson plus longue ou un refrain qui sonne autrement que le couplet.
 
+Les colonnes peuvent être élargies ou rétrécies : faites glisser la barre entre deux d’entre elles (elle apparaît quand la souris passe sur l’espace qui les sépare), et double-cliquez dessus pour retrouver les largeurs habituelles. Les largeurs sont gardées dans ce navigateur. Dans une fenêtre étroite, les colonnes se placent les unes au-dessus des autres.
+
 ### La chanson {#the-song}
 
 - **Titre.** Facultatif. S’il est vide, la première ligne des paroles est utilisée.
@@ -972,6 +974,7 @@ moteur construit avec `WITH_TRAINER=0`, le retire.
    - Une ligne sous les boutons dit ce qui tourne, et une analyse en cours apparaît dans la carte des tâches et la file de l'écran principal. **Arrêter** y met fin. Les étapes terminées sont gardées, donc **Analyser** reprend là où il s'est arrêté.
    - **Réanalyser.** Une fois toutes les chansons analysées, le bouton affiche **Analysé ✓**. Un clic demande si vous voulez réanalyser les suggestions de style de toutes les chansons avec les derniers prompts et réglages de LLM (pratique après avoir renommé un corpus ou changé de fournisseur). Maj-clic sur **Analysé ✓** propose une réanalyse complète depuis zéro (séparation des stems, tonalité, tempo, transcription et styles à nouveau). Chaque chanson peut aussi être restylée avec **Réanalyser** dans sa relecture.
 4. **Relire.** Ouvrez une chanson pour vérifier ses paroles et cocher **vérifiées**, et pour décrire son son là où il diffère du reste. La légende de style montre ce que lira l'entraîneur.
+   - **La suggestion de style** est le style que l’analyse a entendu dans la chanson : genre, époque, instruments et ambiance. En dessous, **Utiliser dans une nouvelle chanson** ouvre + Chanson avec ce style dans la case Style, et **Enregistrer comme style** le garde dans la liste des styles (sous Styles enregistrés) avec le nom que vous lui donnez, pour toute chanson ou reprise. Un corpus d’une seule chanson est donc un moyen d’obtenir le style d’un morceau que vous aimez.
 5. **Exporter le jeu d'entraînement.** Écrit l'audio, les paroles et la légende de chaque chanson. Une ligne sous les boutons montre où il en est.
    - L'entraîneur ne prend qu'une partie de chaque chanson, que l'app calcule d'après la mémoire libre de votre carte graphique (environ 5½ minutes sur une carte de 16 Go ; la fenêtre des journaux dit ce qu'elle a choisi).
    - Une chanson plus longue est coupée à la fin de sa dernière section dans cette limite, fondue, et ne garde que les mots encore chantés. Sa ligne dit « 3:12 premières entraînées ».
