@@ -13,8 +13,10 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import platform
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import NamedTuple
 
@@ -256,7 +258,7 @@ class Stopped(Exception):
 
 
 def transcribe(vocals: Path, on_progress=None, duration: float = 0.0, should_stop=None) -> list[dict]:
-    """The sung lines of a separated vocal, with their times, from Whisper on the CPU.
+    """The sung lines of a separated vocal, with their times, from Whisper on the CPU (on a Mac, its GPU).
 
     Whisper hears the whole vocal.  Its voice detector is off: built for speech, it
     judged most singing to be silence and threw it away before listening -- 4 min 21 s
@@ -270,16 +272,49 @@ def transcribe(vocals: Path, on_progress=None, duration: float = 0.0, should_sto
     writes over long silences, which needs word timestamps, and STOCK_PHRASES drops the
     stock lines that survive it.  The cost is time: the whole track is listened to."""
     global _whisper
-    from faster_whisper import WhisperModel
     if _whisper is None:
-        root = config.DATA_DIR / "models" / "whisper"
-        root.mkdir(parents=True, exist_ok=True)
+        _whisper = _load_whisper(WHISPER_DEVICES[0])
+    try:
+        return lines_from_segments(_hear(vocals), on_progress, duration, should_stop)
+    except Stopped:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        if getattr(_whisper, "yeufonic_device", "cpu") == "cpu":
+            raise
+        # Metal is ctranslate2's experimental backend: if it fails, the CPU hears it, now and from then on.
+        log.warning("Whisper on %s failed (%s); hearing it on the CPU instead", _whisper.yeufonic_device, exc)
+        _whisper = _load_whisper("cpu")
+        return lines_from_segments(_hear(vocals), on_progress, duration, should_stop)
+
+
+# Where Whisper runs: on a Mac with Apple silicon, its GPU through ctranslate2's Metal backend (several times faster
+# than the CPU, the same lines and timings), with the CPU to fall back on; the CPU everywhere else, since the GPU is
+# the engine's.
+WHISPER_DEVICES = ("mps", "cpu") if sys.platform == "darwin" and platform.machine() == "arm64" else ("cpu",)
+
+
+def _load_whisper(device: str):
+    from faster_whisper import WhisperModel
+    root = config.DATA_DIR / "models" / "whisper"
+    root.mkdir(parents=True, exist_ok=True)
+    compute = "int8" if device == "cpu" else "default"
+    model = None
+    for local in (True, False):
         try:
-            _whisper = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8",
-                                    download_root=str(root), local_files_only=True)
-        except Exception:
-            _whisper = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8",
-                                    download_root=str(root), local_files_only=False)
+            model = WhisperModel(WHISPER_MODEL, device=device, compute_type=compute, download_root=str(root),
+                                 local_files_only=local)
+            break
+        except Exception as exc:  # noqa: BLE001
+            if device != "cpu" and local is False:
+                log.warning("Whisper could not start on %s (%s); using the CPU", device, exc)
+                return _load_whisper("cpu")
+            if local is False:
+                raise
+    model.yeufonic_device = device
+    return model
+
+
+def _hear(vocals: Path):
     # The language is Whisper's to find, so a song sung in another one is written in it, not turned into
     # English.  It is judged over the first four stretches rather than the first, which in a vocal is often
     # the silent intro.
@@ -287,7 +322,7 @@ def transcribe(vocals: Path, on_progress=None, duration: float = 0.0, should_sto
                                       vad_filter=False, beam_size=5,
                                       condition_on_previous_text=False, word_timestamps=True,
                                       hallucination_silence_threshold=2.0)
-    return lines_from_segments(segments, on_progress, duration, should_stop)
+    return segments
 
 
 class Segment(NamedTuple):
