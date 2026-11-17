@@ -31,6 +31,7 @@ def made_with_cap(page, app_server, cap_text):
 def test_an_emptied_cap_is_the_settings_one_and_a_typed_one_stands(page, app_server):
     setting("takes.cap", "900")
     page.reload()
+    page.wait_for_function("() => typeof setting === 'function' && String(setting('takes.cap', '')) === '900'")
     emptied = made_with_cap(page, app_server, "")
     assert (emptied["max_duration"], emptied["cap_typed"]) == (900, 0)
     typed = made_with_cap(page, app_server, "300")
