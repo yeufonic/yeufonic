@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.61 (2026-11-17)
 
 - **Mac: LoRA training works.** Both halves of a style LoRA now train on a Mac's GPU, so the Train window is on there
   as everywhere else. ComfyUI loads the model straight onto a GPU that shares the computer's memory and leaves it
