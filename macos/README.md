@@ -35,6 +35,15 @@ Mac with Apple silicon, but it is slower than on an NVIDIA card, and training do
    - **Style LoRAs are an option too**, asked and remembered the same way: the 39 style LoRAs by their
      authors that the Windows installer and `fetch-models.sh --loras` fetch (about 3.8 GB), each with its
      description. A file already in the LoRA folder is left as it is. `setup.sh --loras` fetches them later.
+   - **The engine can be yue2.cpp instead** (`setup.sh --engine yue2cpp`, kept for every later run):
+     yue2.cpp's server and stable-diffusion.cpp's, built for macOS 14 on Apple silicon by
+     `macos/build-cpp.sh` (published as a pre-release by `.github/workflows/engine-cpp-macos.yml`), Ollama
+     for Gemma, and the GGUF files the Windows installer fetches, with the same checksums. On a Mac it
+     drafts lyrics in seconds rather than minutes and draws pictures with a third of the memory, and
+     renders at about ComfyUI's speed; it does not train LoRAs. The launcher starts its server, with
+     Ollama and the picture server beside it where they are set up (`engine = yue2cpp` in settings.ini,
+     with `gemma_port`, `pictures_port`, `yue2cpp_model` and `cpp_engine_args` as on Windows). The other
+     engine's files stay, so changing back downloads nothing.
    - **Recorded voices are an option as well**, asked and remembered the same way: the voice service
      (RVC and its separator) in a Python 3.12 of its own, with the torch the Windows voice service
      runs, and its models from the same places with the same checksums (about 1.1 GB, and 1.5 GB of

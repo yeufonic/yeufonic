@@ -21,7 +21,15 @@ logs in ~/Library/Logs/Yeufonic (YEUFONIC_LOGS), and settings.ini there override
     unload_when_idle = auto
     training = no
     voice_port = 8190
+    engine = comfyui
+    gemma_port = 11435
+    pictures_port = 8187
+    gemma_model = gemma4:e4b-it-qat
+    yue2cpp_model = YuE2-3B-Q8_0.gguf
+    cpp_engine_args =
 
+engine = yue2cpp (written by setup.sh --engine yue2cpp) starts yue2.cpp's server instead of ComfyUI, with Ollama for
+Gemma and stable-diffusion.cpp's server for pictures beside it where they are set up, as the Windows launcher does.
 Recorded voices start too where the setup put them in (setup.sh --voices): the voice service, in its own Python.
 """
 from __future__ import annotations
@@ -46,6 +54,10 @@ STUDIO = HERE / "studio" if (HERE / "studio").is_dir() else HERE.parent
 SUPPORT = Path(os.environ.get("YEUFONIC_HOME") or Path.home() / "Library" / "Application Support" / APP)
 LOGS = Path(os.environ.get("YEUFONIC_LOGS") or Path.home() / "Library" / "Logs" / APP)
 COMFY = SUPPORT / "engine" / "ComfyUI"
+# The models, which both engines read (yue2.cpp its own files in yue2cpp/ and the LoRAs).
+MODELS = COMFY / "models"
+# yue2.cpp's server and the picture server (yue2cpp/), and Ollama (ollama/), where that engine was chosen.
+CPP = SUPPORT / "engine-cpp"
 ENGINE_PYTHON = SUPPORT / "engine" / "venv" / "bin" / "python"
 APP_PYTHON = SUPPORT / "venv" / "bin" / "python"
 TOOLS = SUPPORT / "tools" / "bin"
@@ -65,7 +77,9 @@ def settings() -> dict:
     CUDA and has not been tried on a Mac."""
     values = {"app_port": "8090", "engine_port": "8188", "engine_args": "", "data_dir": str(SUPPORT / "data"),
               "import_roots": str(Path.home()), "open_browser": "yes", "training": "no", "update_manifest": "",
-              "unload_when_idle": "auto", "voice_port": "8190"}
+              "unload_when_idle": "auto", "voice_port": "8190", "engine": "comfyui", "gemma_port": "11435",
+              "pictures_port": "8187", "gemma_model": "gemma4:e4b-it-qat", "yue2cpp_model": "YuE2-3B-Q8_0.gguf",
+              "cpp_engine_args": ""}
     ini = SUPPORT / "settings.ini"
     if ini.exists():
         parser = configparser.ConfigParser()
@@ -123,6 +137,42 @@ def engine_command(cfg: dict) -> list[str]:
     return [str(ENGINE_PYTHON), "-s", str(COMFY / "main.py"), "--disable-auto-launch",
             "--listen", "127.0.0.1", "--port", str(cfg["engine_port"]), *MAC_ENGINE_FLAGS,
             *shlex.split(cfg.get("engine_args", ""))]
+
+
+def is_cpp(cfg: dict) -> bool:
+    return cfg.get("engine", "comfyui").strip().lower() == "yue2cpp"
+
+
+def cpp_command(cfg: dict) -> list[str]:
+    """yue2.cpp's server, on its own files and the LoRAs.  engine_args is ComfyUI's (an install switched from ComfyUI
+    keeps it): yue2.cpp has switches of its own, and stops at one it does not know."""
+    gguf = MODELS / "yue2cpp"
+    args = [str(CPP / "yue2cpp" / "yue-server"), "--host", "127.0.0.1", "--port", str(cfg["engine_port"]),
+            "--model", str(gguf / cfg["yue2cpp_model"]), "--vae", str(gguf / "YuE2-Vae-F32.gguf"),
+            "--adapters", str(MODELS / "loras")]
+    if (gguf / "SheetSage2-Q8_0.gguf").exists():
+        args += ["--transcriber", str(gguf / "SheetSage2-Q8_0.gguf")]
+    return args + shlex.split(cfg.get("cpp_engine_args", ""))
+
+
+def companions(cfg: dict) -> list[tuple[str, list[str], dict, Path, dict]]:
+    """What runs beside yue2.cpp where it is set up: Ollama for Gemma, and the picture server.  Each with its command,
+    environment and folder, and what the app is told of it."""
+    out = []
+    ollama = CPP / "ollama" / "ollama"
+    if ollama.exists() and (MODELS / "ollama" / "manifests").is_dir():
+        port = cfg["gemma_port"]
+        out.append(("gemma", [str(ollama), "serve"],
+                    dict(os.environ, OLLAMA_HOST=f"127.0.0.1:{port}", OLLAMA_MODELS=str(MODELS / "ollama"),
+                         OLLAMA_KEEP_ALIVE="0"),
+                    CPP / "ollama", {"GEMMA_URL": f"http://127.0.0.1:{port}", "GEMMA_MODEL": cfg["gemma_model"]}))
+    sdserver = CPP / "yue2cpp" / "sd-server"
+    if sdserver.exists():
+        port = cfg["pictures_port"]
+        out.append(("pictures", [str(sdserver), "--model-dir", str(MODELS), "--listen-ip", "127.0.0.1",
+                                 "--listen-port", str(port)],
+                    dict(os.environ), CPP / "yue2cpp", {"PICTURES_URL": f"http://127.0.0.1:{port}"}))
+    return out
 
 
 def engine_env(cfg: dict) -> dict:
@@ -227,7 +277,8 @@ def end_leftovers() -> None:
     def ours(pid: int) -> bool:
         # A process id can be given to something else once its process has gone.
         command = _command_of(pid)
-        return str(COMFY / "main.py") in command or "app.main:app" in command or str(VOICE_SERVER) in command
+        return (str(COMFY / "main.py") in command or "app.main:app" in command or str(VOICE_SERVER) in command
+                or str(CPP) in command)
 
     stopping = []
     for name, pid in recorded.items():
@@ -259,6 +310,8 @@ class Launcher:
         self.app_port = int(cfg["app_port"])
         self.engine_port = int(cfg["engine_port"])
         self.url = f"http://127.0.0.1:{self.app_port}"
+        self.cpp = is_cpp(cfg)
+        self.engine_probe = f"http://127.0.0.1:{self.engine_port}/" + ("health" if self.cpp else "system_stats")
         self.programs: dict[str, tuple[subprocess.Popen, Path]] = {}
         self.started = 0.0
         self.app_ready = False
@@ -269,13 +322,19 @@ class Launcher:
 
     def problem(self) -> str:
         """Why it cannot start, in a sentence, or nothing."""
-        if not ENGINE_PYTHON.exists() or not (COMFY / "main.py").exists():
+        if self.cpp:
+            if not (CPP / "yue2cpp" / "yue-server").exists():
+                return "The yue2.cpp engine is not set up. Open Yeufonic again to finish setting it up."
+        elif not ENGINE_PYTHON.exists() or not (COMFY / "main.py").exists():
             return "The engine is not set up. Open Yeufonic again to finish setting it up."
         if not APP_PYTHON.exists():
             return "The app is not set up. Open Yeufonic again to finish setting it up."
         ports = [(self.app_port, "the app"), (self.engine_port, "the engine")]
         if voices_installed():
             ports.append((int(self.cfg["voice_port"]), "the voice service"))
+        if self.cpp:
+            ports += [(int(self.cfg[f"{name}_port"]), what) for name, what in (("gemma", "Gemma"), ("pictures", "the picture server"))
+                      if name in {c[0] for c in companions(self.cfg)}]
         for port, what in ports:
             if port_taken(port):
                 return (f"Port {port}, which {what} uses, is taken by another program (another copy of "
@@ -284,9 +343,12 @@ class Launcher:
 
     def start_engine(self) -> None:
         log = LOGS / "engine.log"
-        engine = subprocess.Popen(engine_command(self.cfg), cwd=str(COMFY), env=engine_env(self.cfg),
-                                  stdout=log.open("w", encoding="utf-8"), stderr=subprocess.STDOUT,
-                                  stdin=subprocess.DEVNULL)
+        if self.cpp:
+            command, cwd, env = cpp_command(self.cfg), CPP / "yue2cpp", dict(os.environ)
+        else:
+            command, cwd, env = engine_command(self.cfg), COMFY, engine_env(self.cfg)
+        engine = subprocess.Popen(command, cwd=str(cwd), env=env, stdout=log.open("w", encoding="utf-8"),
+                                  stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
         self.programs["engine"] = (engine, log)
         self.engine_ready = False
         self.engine_stopped = False
@@ -301,6 +363,14 @@ class Launcher:
         record("Starting the engine and the app...")
         self.start_engine()
         env = app_env(self.cfg)
+        if self.cpp:
+            env["ENGINE_KIND"] = "yue2cpp"
+            for name, command, program_env, cwd, told in companions(self.cfg):
+                log = LOGS / f"{name}.log"
+                self.programs[name] = (subprocess.Popen(command, cwd=str(cwd), env=program_env,
+                                                        stdout=log.open("w", encoding="utf-8"),
+                                                        stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL), log)
+                env.update(told)
         if voices_installed():
             log = LOGS / "voice.log"
             voice = subprocess.Popen(voice_command(self.cfg), cwd=str(VOICE / "rvc"), env=voice_env(self.cfg),
@@ -348,7 +418,7 @@ class Launcher:
             # Not the end of the app: it hides recorded voices while their service does not answer.
             self.voice_stopped = True
             record(f"The voice service stopped (exit code {voice[0].returncode}). See {voice[1]}.")
-        if not self.engine_ready and answering(f"http://127.0.0.1:{self.engine_port}/system_stats"):
+        if not self.engine_ready and answering(self.engine_probe):
             self.engine_ready = True
             record(f"The engine answered after {now - self.started:.0f} s.")
         if not self.app_ready and answering(f"{self.url}/api/health"):
@@ -388,8 +458,8 @@ class Launcher:
             return
         self.quitting = True
         record("Stopping the app and the engine.")
-        # The app first, so it can tell the engine it is going, then the voice service and the engine.
-        for name in ("app", "voice", "engine"):
+        # The app first, so it can tell the engine it is going, then what runs beside it, and the engine.
+        for name in ("app", "voice", "gemma", "pictures", "engine"):
             if name in self.programs:
                 self._end(self.programs[name][0])
         RUNNING.unlink(missing_ok=True)

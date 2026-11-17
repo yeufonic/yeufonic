@@ -5,9 +5,12 @@
 # kept, and an interrupted download carries on.  The macOS counterpart of windows/setup.ps1,
 # and it keeps that script's order, so the two can be read side by side.
 #
-#   bash setup.sh [--install-dir <folder>] [--no-lyrics] [--pictures | --no-pictures] [--loras | --no-loras]
-#                 [--voices | --no-voices] [--check-only] [--skip-models] [--then-open <app>]
+#   bash setup.sh [--install-dir <folder>] [--engine comfyui|yue2cpp] [--no-lyrics] [--pictures | --no-pictures]
+#                 [--loras | --no-loras] [--voices | --no-voices] [--check-only] [--skip-models] [--then-open <app>]
 #   ... --install-dir   where it goes (default: ~/Library/Application Support/Yeufonic)
+#   ... --engine        comfyui (everything, the default) or yue2cpp (yue2.cpp's server: faster lyric drafts and
+#                       pictures on a Mac, with Gemma in Ollama and pictures in stable-diffusion.cpp beside it,
+#                       and no training).  Kept for every later run; the other engine's files are left in place.
 #   ... --no-lyrics     leave out Gemma 4 (8.1 GB), for an external LLM in Settings instead
 #   ... --pictures      FLUX.2 [klein], which draws each take's picture on this Mac (about 16 GB);
 #                       --no-pictures fetches none.  Without either, the first run asks and the
@@ -32,9 +35,11 @@ THEN_OPEN=""
 PICTURES=""
 LORAS=""
 VOICES=""
+ENGINE_CHOICE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --install-dir) INSTALL_DIR="$2"; shift 2 ;;
+    --engine) ENGINE_CHOICE="$2"; shift 2 ;;
     --no-lyrics) NO_LYRICS=1; shift ;;
     --pictures) PICTURES=yes; shift ;;
     --no-pictures) PICTURES=no; shift ;;
@@ -94,6 +99,20 @@ APP_TORCH="torch==2.9.1 torchaudio==2.9.1"
 RVC_COMMIT=81eed5e8f68b6bed1789f682fe78cdd324495afc
 VOICE_PYTHON=3.12
 VOICE_TORCH="torch==2.7.1 torchaudio==2.7.1"
+# The yue2.cpp engine (--engine yue2cpp): yue2.cpp's server and stable-diffusion.cpp's, built for macOS 14 by
+# macos/build-cpp.sh and published as a pre-release by .github/workflows/engine-cpp-macos.yml; Ollama, which runs Gemma
+# beside it, from its own release, the version windows/setup.ps1 pins.
+CPP_URL=""
+CPP_SHA=""
+CPP_SIZE=""
+# A build not yet published can be tried by naming it, a file:// address among them (a test of this script).
+CPP_URL="${YEUFONIC_CPP_URL:-$CPP_URL}"
+CPP_SHA="${YEUFONIC_CPP_SHA:-$CPP_SHA}"
+CPP_SIZE="${YEUFONIC_CPP_SIZE:-$CPP_SIZE}"
+OLLAMA_URL=https://github.com/ollama/ollama/releases/download/v0.40.13/ollama-darwin.tgz
+OLLAMA_SHA=bae29252232b9e1358cf5801a7d65a07442af18fb5467cb68c7fc3711f59c511
+OLLAMA_SIZE=186689993
+GEMMA_MODEL=gemma4:e4b-it-qat   # Gemma 4 E4B for Ollama, about 6.1 GB
 UV_URL=https://github.com/astral-sh/uv/releases/download/0.12.18/uv-aarch64-apple-darwin.tar.gz
 UV_SHA=cf40e0c6a202190ccd9e0406dcfdd5b2d6668a9a5c779b17948963df32aafe5b
 UV_SIZE=16963768
@@ -133,6 +152,40 @@ diffusion_models|flux-2-klein-4b.safetensors|7751105712|ec3d4e733a771f61c052fb48
 text_encoders|qwen_3_4b.safetensors|8044982048|6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a|$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors
 vae|flux2-vae.safetensors|336211292|868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3|$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/vae/flux2-vae.safetensors
 LIST
+}
+# dir|file|bytes|sha256|url||copy: yue2.cpp's own files, as windows/setup.ps1 fetches them (tests/test_macos.py holds
+# the lists together), our unchanged copies first.  With it the engine takes none of ComfyUI's files but the LoRAs.
+GGUF=$HF/Serveurperso/YuE2-GGUF/resolve/e630f2b8f6aedf8254c3186438633c1b5eeaf80a
+GGUF_COPIES=$HF/pshields/yue2-gguf-copies/resolve/main
+cpp_model_list() {
+  cat <<LIST
+yue2cpp|YuE2-3B-Q8_0.gguf|3810232064|41121ce97786d7795a325bcf123ca196956c03bb252c9e75384cfc1f2fc19e6b|$GGUF/YuE2-3B-Q8_0.gguf||$GGUF_COPIES/YuE2-3B-Q8_0.gguf
+yue2cpp|YuE2-Vae-F32.gguf|530497344|93e49dfb1970e89ad64cacb17cf13b5d05f6bb30ef7ed3adae3050bcb728638a|$GGUF/YuE2-Vae-F32.gguf||$GGUF_COPIES/YuE2-Vae-F32.gguf
+yue2cpp|SheetSage2-Q8_0.gguf|105629856|95d8fa8761753b4833782a52b68d5c0afa3bd3cfbc03d3dcbbf8ded0c13f611e|$GGUF/SheetSage2-Q8_0.gguf||$GGUF_COPIES/SheetSage2-Q8_0.gguf
+yue2cpp|MERT-v2-FullSong-Q8_0.gguf|902283712|35a6032ec7e8123c02becdefc7bfe10a3adb33faa8a1951dc0af864b4494b8ef|$GGUF/MERT-v2-FullSong-Q8_0.gguf||$GGUF_COPIES/MERT-v2-FullSong-Q8_0.gguf
+LIST
+}
+# Its picture server reads klein's model and VAE as ComfyUI does, but not ComfyUI's text encoder: Qwen 3 4B as GGUF,
+# which is also a third of the size.
+cpp_picture_encoder() {
+  echo "text_encoders|Qwen3-4B-Q4_K_M.gguf|2497281312|f6f851777709861056efcdad3af01da38b31223a3ba26e61a4f8bf3a2195813a|$HF/unsloth/Qwen3-4B-GGUF/resolve/22c9fc8a8c7700b76a1789366280a6a5a1ad1120/Qwen3-4B-Q4_K_M.gguf"
+}
+# The model files the chosen engine reads, in model_list's and picture_list's forms.
+engine_models() {
+  if [ "$CPP" -eq 1 ]; then
+    cpp_model_list
+    model_list | grep '^loras|'
+  else
+    model_list
+  fi
+}
+picture_models() {
+  if [ "$CPP" -eq 1 ]; then
+    picture_list | grep -v '^text_encoders|'
+    cpp_picture_encoder
+  else
+    picture_list
+  fi
 }
 # file|bytes|sha256: style LoRAs by their authors (CC BY-NC 4.0), gathered unchanged in pshields/yue2-style-loras,
 # with a description each: only when chosen.  The same list as scripts/fetch-models.sh --loras and the Windows
@@ -448,6 +501,22 @@ fi
 [ "$VOICES" = yes ] || VOICES=no
 say "Recorded voices: $VOICES"
 
+# The engine: ComfyUI unless yue2.cpp was chosen, now or before.
+if [ -n "$ENGINE_CHOICE" ]; then
+  case "$ENGINE_CHOICE" in
+    comfyui|yue2cpp) [ "$CHECK_ONLY" -eq 1 ] || echo "$ENGINE_CHOICE" > "$STATE/engine" ;;
+    *) problem "--engine is comfyui or yue2cpp, not $ENGINE_CHOICE." ;;
+  esac
+elif [ -f "$STATE/engine" ]; then
+  ENGINE_CHOICE="$(cat "$STATE/engine")"
+fi
+CPP=0
+if [ "$ENGINE_CHOICE" = yue2cpp ]; then CPP=1; else ENGINE_CHOICE=comfyui; fi
+say "Engine: $ENGINE_CHOICE"
+if [ "$CPP" -eq 1 ] && [ -z "$CPP_URL" ]; then
+  problem "The yue2.cpp engine for macOS is not published yet: run setup.sh --engine comfyui."
+fi
+
 # Room for what is still to come: the missing models, plus about 8 GB for the engine, the
 # app and the downloads while they unpack.  Counted in thousands, as download sites count.
 NEED=8000000000
@@ -457,14 +526,14 @@ if [ "$SKIP_MODELS" -eq 0 ]; then
     if [ "$lyrics" = lyrics ] && [ "$NO_LYRICS" -eq 1 ]; then continue; fi
     [ -f "$MODELS/$dir/$file" ] || NEED=$((NEED + size))
   done <<EOF
-$(model_list)
+$(engine_models)
 EOF
   if [ "$PICTURES" = yes ]; then
     while IFS='|' read -r dir file size sha url; do
       [ -z "$file" ] && continue
       [ -f "$MODELS/$dir/$file" ] || NEED=$((NEED + size))
     done <<EOF
-$(picture_list)
+$(picture_models)
 EOF
   fi
   if [ "$LORAS" = yes ]; then
@@ -484,6 +553,8 @@ $(voice_list)
 EOF
   fi
   NEED=$((NEED + 1700000000))   # Whisper and demucs, for the app
+  # Gemma, which Ollama fetches for yue2.cpp.
+  if [ "$CPP" -eq 1 ] && [ "$NO_LYRICS" -eq 0 ] && [ ! -d "$MODELS/ollama/manifests" ]; then NEED=$((NEED + 6200000000)); fi
 fi
 # The voice service's own Python and packages.
 if [ "$VOICES" = yes ] && [ ! -x "$INSTALL_DIR/voice/venv/bin/python" ]; then NEED=$((NEED + 1500000000)); fi
@@ -555,56 +626,82 @@ if ! is_done "python-$PYTHON"; then
 fi
 
 # ------------------------------------------------------------------- engine
-step "The engine (ComfyUI, on the GPU through Metal)"
-ENGINE_MARK="engine-${COMFY_COMMIT:0:8}"
-if ! is_done "$ENGINE_MARK" || [ ! -f "$COMFY/main.py" ]; then
-  # Keep the models and anything made with the engine when it is replaced.
-  KEEP="$INSTALL_DIR/engine-keep"
-  if [ -d "$COMFY" ]; then
-    mkdir -p "$KEEP"
-    for sub in models input output user; do
-      if [ -e "$COMFY/$sub" ]; then mv "$COMFY/$sub" "$KEEP/$sub"; fi
-    done
+CPP_DIR="$INSTALL_DIR/engine-cpp"
+if [ "$CPP" -eq 1 ]; then
+  step "The engine (yue2.cpp, on the GPU through Metal)"
+  # yue2.cpp's server and the picture server, then Ollama, each replaced when its pin changes and the models left alone.
+  CPP_NAME="$(basename "$CPP_URL" .tar.gz)"
+  if ! is_done "yue2cpp-$CPP_NAME" || [ ! -x "$CPP_DIR/yue2cpp/yue-server" ]; then
+    get_verified "$CPP_URL" "$DOWNLOADS/$CPP_NAME.tar.gz" "$CPP_SIZE" "$CPP_SHA"
+    rm -rf "$DOWNLOADS/unpack" "${CPP_DIR:?}/yue2cpp"
+    mkdir -p "$DOWNLOADS/unpack" "$CPP_DIR"
+    tar -xzf "$DOWNLOADS/$CPP_NAME.tar.gz" -C "$DOWNLOADS/unpack"
+    mv "$DOWNLOADS/unpack/$CPP_NAME" "$CPP_DIR/yue2cpp"
+    rm -rf "$DOWNLOADS/unpack"
+    mark_done "yue2cpp-$CPP_NAME"
   fi
-  mkdir -p "$ENGINE"
-  get_commit Comfy-Org/ComfyUI "$COMFY_COMMIT" "$COMFY"
-  if [ -d "$KEEP" ]; then
-    for sub in models input output user; do
-      if [ -e "$KEEP/$sub" ]; then rm -rf "${COMFY:?}/$sub"; mv "$KEEP/$sub" "$COMFY/$sub"; fi
-    done
-    rm -rf "$KEEP"
+  OLLAMA_MARK="ollama-$(basename "$(dirname "$OLLAMA_URL")")"
+  if ! is_done "$OLLAMA_MARK" || [ ! -x "$CPP_DIR/ollama/ollama" ]; then
+    say "Ollama, which runs Gemma beside the engine"
+    get_verified "$OLLAMA_URL" "$DOWNLOADS/ollama-darwin.tgz" "$OLLAMA_SIZE" "$OLLAMA_SHA"
+    rm -rf "${CPP_DIR:?}/ollama"
+    mkdir -p "$CPP_DIR/ollama"
+    tar -xzf "$DOWNLOADS/ollama-darwin.tgz" -C "$CPP_DIR/ollama"
+    mark_done "$OLLAMA_MARK"
   fi
-  if [ ! -x "$ENGINE_VENV/bin/python" ]; then
-    "$UV" venv --python "$PYTHON" "$ENGINE_VENV" || stop_setup "the engine's Python could not be set up"
+  for sub in yue2cpp loras text_encoders diffusion_models vae ollama; do mkdir -p "$MODELS/$sub"; done
+else
+  step "The engine (ComfyUI, on the GPU through Metal)"
+  ENGINE_MARK="engine-${COMFY_COMMIT:0:8}"
+  if ! is_done "$ENGINE_MARK" || [ ! -f "$COMFY/main.py" ]; then
+    # Keep the models and anything made with the engine when it is replaced.
+    KEEP="$INSTALL_DIR/engine-keep"
+    if [ -d "$COMFY" ]; then
+      mkdir -p "$KEEP"
+      for sub in models input output user; do
+        if [ -e "$COMFY/$sub" ]; then mv "$COMFY/$sub" "$KEEP/$sub"; fi
+      done
+    fi
+    mkdir -p "$ENGINE"
+    get_commit Comfy-Org/ComfyUI "$COMFY_COMMIT" "$COMFY"
+    if [ -d "$KEEP" ]; then
+      for sub in models input output user; do
+        if [ -e "$KEEP/$sub" ]; then rm -rf "${COMFY:?}/$sub"; mv "$KEEP/$sub" "$COMFY/$sub"; fi
+      done
+      rm -rf "$KEEP"
+    fi
+    if [ ! -x "$ENGINE_VENV/bin/python" ]; then
+      "$UV" venv --python "$PYTHON" "$ENGINE_VENV" || stop_setup "the engine's Python could not be set up"
+    fi
+    say "Installing the engine's packages"
+    # torch first, pinned, so ComfyUI's unpinned "torch" is already met.
+    # shellcheck disable=SC2086
+    "$UV" pip install --python "$ENGINE_VENV/bin/python" $ENGINE_TORCH || stop_setup "the engine's torch failed"
+    "$UV" pip install --python "$ENGINE_VENV/bin/python" -r "$COMFY/requirements.txt" || stop_setup "the engine's packages failed"
+    mark_done "$ENGINE_MARK"
   fi
-  say "Installing the engine's packages"
-  # torch first, pinned, so ComfyUI's unpinned "torch" is already met.
-  # shellcheck disable=SC2086
-  "$UV" pip install --python "$ENGINE_VENV/bin/python" $ENGINE_TORCH || stop_setup "the engine's torch failed"
-  "$UV" pip install --python "$ENGINE_VENV/bin/python" -r "$COMFY/requirements.txt" || stop_setup "the engine's packages failed"
-  mark_done "$ENGINE_MARK"
-fi
-EPY="$ENGINE_VENV/bin/python"
+  EPY="$ENGINE_VENV/bin/python"
 
-NODES="$COMFY/custom_nodes"
-mkdir -p "$NODES"
-if ! is_done "yue2_trainer-${TRAINER_COMMIT:0:8}" || [ ! -d "$NODES/ComfyUI-YuE2-Trainer" ]; then
-  get_commit yeufonic/ComfyUI-YuE2-Trainer "$TRAINER_COMMIT" "$NODES/ComfyUI-YuE2-Trainer"
-  "$UV" pip install --python "$EPY" "soundfile>=0.12" "librosa>=0.10" scipy mutagen einops || stop_setup "the trainer's packages failed"
-  mark_done "yue2_trainer-${TRAINER_COMMIT:0:8}"
+  NODES="$COMFY/custom_nodes"
+  mkdir -p "$NODES"
+  if ! is_done "yue2_trainer-${TRAINER_COMMIT:0:8}" || [ ! -d "$NODES/ComfyUI-YuE2-Trainer" ]; then
+    get_commit yeufonic/ComfyUI-YuE2-Trainer "$TRAINER_COMMIT" "$NODES/ComfyUI-YuE2-Trainer"
+    "$UV" pip install --python "$EPY" "soundfile>=0.12" "librosa>=0.10" scipy mutagen einops || stop_setup "the trainer's packages failed"
+    mark_done "yue2_trainer-${TRAINER_COMMIT:0:8}"
+  fi
+  # Stem separation in the engine's queue, on the GPU through Metal.  Whisper stays with the
+  # app, on the CPU: CTranslate2 has no Metal backend, so the engine's Whisper node is not
+  # there on a Mac and the app hears words itself, as it does wherever that node is missing.
+  if ! is_done engine-demucs; then
+    "$UV" pip install --python "$EPY" demucs==4.1.0 || stop_setup "demucs for the engine failed"
+    mark_done engine-demucs
+  fi
+  # Our own node, carried by the app.
+  rm -rf "$NODES/yue2_harmony"
+  cp -R "$NODE_SRC" "$NODES/yue2_harmony"
+  rm -rf "$NODES/yue2_harmony/__pycache__"
+  for sub in checkpoints audio_encoders text_encoders loras fs_audio; do mkdir -p "$MODELS/$sub"; done
 fi
-# Stem separation in the engine's queue, on the GPU through Metal.  Whisper stays with the
-# app, on the CPU: CTranslate2 has no Metal backend, so the engine's Whisper node is not
-# there on a Mac and the app hears words itself, as it does wherever that node is missing.
-if ! is_done engine-demucs; then
-  "$UV" pip install --python "$EPY" demucs==4.1.0 || stop_setup "demucs for the engine failed"
-  mark_done engine-demucs
-fi
-# Our own node, carried by the app.
-rm -rf "$NODES/yue2_harmony"
-cp -R "$NODE_SRC" "$NODES/yue2_harmony"
-rm -rf "$NODES/yue2_harmony/__pycache__"
-for sub in checkpoints audio_encoders text_encoders loras fs_audio; do mkdir -p "$MODELS/$sub"; done
 
 # ---------------------------------------------------------------------- app
 step "The app"
@@ -638,7 +735,7 @@ if [ "$SKIP_MODELS" -eq 0 ]; then
     mkdir -p "$MODELS/$dir"
     get_verified "$url" "$MODELS/$dir/$file" "$size" "$sha" "$copy"
   done <<EOF
-$(model_list)
+$(engine_models)
 EOF
   if [ "$PICTURES" = yes ]; then
     while IFS='|' read -r dir file size sha url; do
@@ -648,7 +745,7 @@ EOF
       mkdir -p "$MODELS/$dir"
       get_verified "$url" "$MODELS/$dir/$file" "$size" "$sha"
     done <<EOF
-$(picture_list)
+$(picture_models)
 EOF
   fi
   if [ "$LORAS" = yes ]; then
@@ -665,7 +762,7 @@ $(style_lora_list)
 EOF
   fi
   # The trainer lists its tokenizer head from fs_audio as well.
-  if [ ! -f "$MODELS/fs_audio/tokenizer_head_joint_v9.safetensors" ]; then
+  if [ "$CPP" -eq 0 ] && [ ! -f "$MODELS/fs_audio/tokenizer_head_joint_v9.safetensors" ]; then
     cp "$MODELS/audio_encoders/tokenizer_head_joint_v9.safetensors" "$MODELS/fs_audio/"
   fi
 fi
@@ -685,7 +782,7 @@ if [ "$SKIP_MODELS" -eq 0 ] && ! is_done app-models; then
   "$APP_VENV/bin/python" -c "from demucs.pretrained import get_model; get_model('htdemucs')" || stop_setup "demucs' model could not be fetched"
   mark_done app-models
 fi
-if [ "$SKIP_MODELS" -eq 0 ] && ! is_done engine-demucs-model; then
+if [ "$CPP" -eq 0 ] && [ "$SKIP_MODELS" -eq 0 ] && ! is_done engine-demucs-model; then
   say "demucs htdemucs for the engine (about 80 MB)"
   if "$EPY" -s -c "import sys, torch; torch.hub.set_dir(sys.argv[1]); from huggingface_hub import constants; constants.HF_HUB_CACHE = sys.argv[1] + '/hub'; from demucs.pretrained import get_model; get_model('htdemucs')" \
       "$MODELS/demucs"; then
@@ -693,6 +790,28 @@ if [ "$SKIP_MODELS" -eq 0 ] && ! is_done engine-demucs-model; then
   else
     say "Could not fetch it now; the engine will when it first separates a vocal."
   fi
+fi
+
+# Gemma for the yue2.cpp engine, fetched by Ollama itself into the models folder (Ollama checks what it fetches), on a
+# port of its own so a running copy of Yeufonic is not disturbed.
+GEMMA_MARK="gemma-$(echo "$GEMMA_MODEL" | tr ':' '-')"
+if [ "$CPP" -eq 1 ] && [ "$NO_LYRICS" -eq 0 ] && [ "$SKIP_MODELS" -eq 0 ] && ! is_done "$GEMMA_MARK"; then
+  step "Gemma for lyric drafts (about 6.1 GB, through Ollama)"
+  OLLAMA_BIN="$CPP_DIR/ollama/ollama"
+  OLLAMA_MODELS="$MODELS/ollama" OLLAMA_HOST=127.0.0.1:11439 "$OLLAMA_BIN" serve > "$LOGS/setup-ollama.log" 2>&1 &
+  OLLAMA_PID=$!
+  up=0
+  for _ in $(seq 1 30); do
+    if curl -s -o /dev/null --max-time 2 http://127.0.0.1:11439/api/tags; then up=1; break; fi
+    sleep 1
+  done
+  pulled=0
+  if [ "$up" -eq 1 ] && OLLAMA_HOST=127.0.0.1:11439 "$OLLAMA_BIN" pull "$GEMMA_MODEL"; then pulled=1; fi
+  kill "$OLLAMA_PID" 2>/dev/null || true
+  wait "$OLLAMA_PID" 2>/dev/null || true
+  [ "$up" -eq 1 ] || stop_setup "Ollama did not start, so Gemma could not be fetched"
+  [ "$pulled" -eq 1 ] || stop_setup "Gemma could not be fetched"
+  mark_done "$GEMMA_MARK"
 fi
 
 # ---------------------------------------------------------------- soundfonts
@@ -764,6 +883,26 @@ EOF
 fi
 
 # -------------------------------------------------------------------- done
+# Which engine the launcher starts, and Gemma's name for Ollama, in settings.ini beside the user's own settings.
+ini_set() {
+  local key="$1" value="$2"
+  if [ ! -f "$INI" ]; then
+    printf '[yue2]\n%s = %s\n' "$key" "$value" > "$INI"
+    return 0
+  fi
+  awk -v k="$key" -v v="$value" '
+    BEGIN { done = 0; inside = 0; seen = 0 }
+    /^[[:space:]]*\[/ {
+      if (inside && !done) { print k " = " v; done = 1 }
+      inside = ($0 ~ /^[[:space:]]*\[yue2\]/); if (inside) seen = 1
+      print; next
+    }
+    inside && $0 ~ ("^[[:space:]]*" k "[[:space:]]*=") { if (!done) { print k " = " v; done = 1 }; next }
+    { print }
+    END { if (!done) { if (!seen) print "[yue2]"; print k " = " v } }' "$INI" > "$INI.tmp" && mv "$INI.tmp" "$INI"
+}
+ini_set engine "$ENGINE_CHOICE"
+if [ "$CPP" -eq 1 ]; then ini_set gemma_model "$GEMMA_MODEL"; fi
 # The launcher runs this again whenever the app it comes with is not the one set up here, so
 # a new copy dragged into Applications brings its packages and its engine node with it.
 cat "$STUDIO/VERSION" "$STUDIO/BUILD" 2>/dev/null > "$STATE/set-up-for" || true

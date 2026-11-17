@@ -1,0 +1,82 @@
+# The yue2.cpp engine for the Mac install (yue2.cpp's server with our patches, and stable-diffusion.cpp's server for
+# pictures), built for macOS 14 by macos/build-cpp.sh and published as a pre-release named for the upstream commit, the
+# patches and the build script, which macos/setup.sh fetches by its checksum.  A pre-release already published under
+# the name is left alone, so this only builds when one of them changes.
+name: yue2.cpp for macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'feature/cpp-*'
+    paths:
+      - 'engine-cpp/**'
+      - 'macos/build-cpp.sh'
+      - '.github/workflows/engine-cpp-macos.yml'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  PACKAGE: 1
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The upstream commit, the patches and the script
+        id: ref
+        run: |
+          ref=$(sed -n 's/^ARG YUE2CPP_REF=//p' engine-cpp/Dockerfile)
+          patches=$(cat engine-cpp/patches/*.patch macos/build-cpp.sh | shasum -a 256 | cut -c1-8)
+          tag="yue2cpp-macos-${ref:0:7}-${patches}-p${PACKAGE}"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "built=yes" >> "$GITHUB_OUTPUT"
+            echo "$tag is already published: nothing to build"
+          else
+            echo "built=no" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build
+        if: steps.ref.outputs.built == 'no'
+        run: OUT="$RUNNER_TEMP/${{ steps.ref.outputs.tag }}" bash macos/build-cpp.sh
+
+      - name: Package
+        if: steps.ref.outputs.built == 'no'
+        id: pack
+        run: |
+          tag="${{ steps.ref.outputs.tag }}"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/$tag.tar.gz" "$tag"
+          sha=$(shasum -a 256 "$RUNNER_TEMP/$tag.tar.gz" | cut -d' ' -f1)
+          size=$(stat -f %z "$RUNNER_TEMP/$tag.tar.gz")
+          echo "$sha  $tag.tar.gz" > "$RUNNER_TEMP/$tag.tar.gz.sha256"
+          echo "file=$RUNNER_TEMP/$tag.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "SHA-256: $sha, $size bytes"
+
+      - name: Attest the build
+        if: steps.ref.outputs.built == 'no'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.pack.outputs.file }}
+
+      - name: Publish as a pre-release
+        if: steps.ref.outputs.built == 'no'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.ref.outputs.tag }}"
+          gh release create "$tag" --prerelease --target "$GITHUB_SHA" \
+            --title "yue2.cpp for macOS (${{ steps.ref.outputs.ref }} with Yeufonic's patches)" \
+            --notes "yue2.cpp's server (https://github.com/ServeurpersoCom/yue2.cpp) at ${{ steps.ref.outputs.ref }} with the patches in engine-cpp/patches, and stable-diffusion.cpp's server (https://github.com/leejet/stable-diffusion.cpp), built for macOS 14 or later on Apple silicon with Metal by macos/build-cpp.sh and .github/workflows/engine-cpp-macos.yml. Downloaded by the Mac setup when the yue2.cpp engine is chosen; not a Yeufonic release. SHA-256 of the archive: ${{ steps.pack.outputs.sha }}" \
+            "$RUNNER_TEMP/$tag.tar.gz" "$RUNNER_TEMP/$tag.tar.gz.sha256"

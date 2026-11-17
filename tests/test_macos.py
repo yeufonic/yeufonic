@@ -132,7 +132,7 @@ def check(tmp_path, *extra, **mac):
 
 @needs_bash
 def test_setup_scripts_parse():
-    for script in ("setup.sh", "build.sh", "build-fluidsynth.sh"):
+    for script in ("setup.sh", "build.sh", "build-fluidsynth.sh", "build-cpp.sh"):
         res = subprocess.run(["bash", "-n", str(MACOS / script)], capture_output=True, text=True)
         assert res.returncode == 0, res.stderr
 
@@ -272,6 +272,159 @@ def test_style_loras_are_left_out_unless_chosen(tmp_path):
     assert "Style LoRAs: yes" in chosen.stdout
     assert needed_gb(chosen) - needed_gb(plain) in (3, 4)
     assert not (tmp_path / "install" / "state" / "loras").exists()
+
+
+# ------------------------------------------------------------- the yue2.cpp engine
+
+def test_yue2cpp_takes_the_files_windows_fetches_from_the_same_places():
+    text = SETUP.read_text(encoding="utf-8")
+    hf = "https://huggingface.co"
+    gguf = re.search(r"^GGUF=\$HF(\S+)$", text, re.M).group(1)
+    copies = re.search(r"^GGUF_COPIES=\$HF(\S+)$", text, re.M).group(1)
+
+    def expand(url: str) -> str:
+        return url.replace("$GGUF_COPIES", hf + copies).replace("$GGUF", hf + gguf).replace("$HF", hf)
+
+    block = re.search(r"cpp_model_list\(\) \{\n  cat <<LIST\n(.*?)\nLIST", text, re.S).group(1)
+    mac = {}
+    for line in block.splitlines():
+        folder, name, size, sha, url, _lyrics, copy = line.split("|")
+        mac[name] = (folder, int(size), sha, expand(url), expand(copy))
+    encoder = re.search(r'cpp_picture_encoder\(\) \{\n  echo "([^"]+)"', text).group(1).split("|")
+    ps1 = SETUP_PS1.read_text(encoding="utf-8")
+    win_gguf = re.search(r'^\$Gguf = "\$HF([^"]+)"', ps1, re.M).group(1)
+    win_copies = re.search(r'^\$GgufCopies = "\$HF([^"]+)"', ps1, re.M).group(1)
+    listed = ps1.split("$CppModelFiles = @(", 1)[1].split("\n)\n", 1)[0]
+    windows = {}
+    for entry in re.findall(r"@\{(.*?Size = \d+) \}", listed, re.S):
+        name = re.search(r"File = '([^']+)'", entry).group(1)
+        url = re.search(r'Url = "([^"]+)"', entry).group(1)
+        copy = re.search(r'Copy = "([^"]+)"', entry).group(1)
+        windows[name] = (re.search(r"Dir = '([^']+)'", entry).group(1), int(re.search(r"Size = (\d+)", entry).group(1)),
+                         re.search(r"Sha = '([0-9a-f]{64})'", entry).group(1),
+                         url.replace("$Gguf", hf + win_gguf), copy.replace("$GgufCopies", hf + win_copies))
+    assert mac == windows
+    picture = ps1.split("$CppPictureEncoder = @{", 1)[1].split("}", 1)[0]
+    assert encoder[1] == re.search(r"File = '([^']+)'", picture).group(1)
+    assert int(encoder[2]) == int(re.search(r"Size = (\d+)", picture).group(1))
+    assert encoder[3] == re.search(r"Sha = '([0-9a-f]{64})'", picture).group(1)
+    assert encoder[4].replace("$HF", hf) == re.search(r'Url = "([^"]+)"', picture).group(1).replace("$HF", hf)
+
+
+def test_ollama_gemma_and_the_picture_server_are_the_versions_windows_runs():
+    text = SETUP.read_text(encoding="utf-8")
+    ps1 = SETUP_PS1.read_text(encoding="utf-8")
+    ollama = re.search(r"^OLLAMA_URL=\S+/download/(v[\d.]+)/ollama-darwin\.tgz$", text, re.M).group(1)
+    assert f"/ollama/releases/download/{ollama}/" in ps1
+    gemma = re.search(r"^GEMMA_MODEL=(\S+)", text, re.M).group(1)
+    assert f"$GemmaModel = '{gemma}'" in ps1
+    sdcpp = re.search(r"^SDCPP_TAG=(\S+)$", (MACOS / "build-cpp.sh").read_text(encoding="utf-8"), re.M).group(1)
+    assert f"/stable-diffusion.cpp/releases/download/{sdcpp}/" in ps1
+
+
+@needs_bash
+def test_yue2cpp_is_refused_until_its_build_is_published(tmp_path):
+    res = check(tmp_path, "--engine", "yue2cpp")
+    assert res.returncode != 0
+    assert "not published yet" in res.stdout
+    bad = check(tmp_path, "--engine", "llama")
+    assert bad.returncode != 0 and "--engine is comfyui or yue2cpp" in bad.stdout
+
+
+@needs_bash
+def test_yue2cpp_needs_its_own_files_not_comfyuis(tmp_path):
+    env = fake_mac(tmp_path)
+    env["YEUFONIC_CPP_URL"] = "file:///nowhere/yue2cpp-macos-test.tar.gz"
+    run = lambda *extra: subprocess.run(["bash", str(SETUP), "--check-only", "--install-dir", str(tmp_path / "install"),
+                                         *extra], env=env, capture_output=True, text=True, timeout=60)
+    cpp, comfy = run("--engine", "yue2cpp"), run()
+    assert cpp.returncode == 0, cpp.stdout
+    assert "Engine: yue2cpp" in cpp.stdout and "Engine: comfyui" in comfy.stdout
+    # 5.3 GB of GGUF files and 6.2 GB of Gemma against ComfyUI's 18 GB of models.
+    assert needed_gb(cpp) < needed_gb(comfy)
+    assert needed_gb(run("--engine", "yue2cpp", "--no-lyrics")) == needed_gb(cpp) - 6
+    assert not (tmp_path / "install" / "state" / "engine").exists()      # a check keeps no choice
+
+
+def test_the_launcher_starts_yue2cpp_and_what_is_set_up_beside_it(monkeypatch, tmp_path):
+    launcher = load_launcher(monkeypatch, tmp_path)
+    cfg = dict(launcher.settings(), engine="yue2cpp")
+    assert launcher.is_cpp(cfg) and not launcher.is_cpp(launcher.settings())
+    command = launcher.cpp_command(cfg)
+    gguf = launcher.MODELS / "yue2cpp"
+    assert command[0] == str(launcher.CPP / "yue2cpp" / "yue-server")
+    assert command[command.index("--model") + 1] == str(gguf / "YuE2-3B-Q8_0.gguf")
+    assert command[command.index("--adapters") + 1] == str(launcher.MODELS / "loras")
+    assert "--transcriber" not in command
+    assert launcher.companions(cfg) == []
+    (gguf).mkdir(parents=True)
+    (gguf / "SheetSage2-Q8_0.gguf").write_text("")
+    for path in (launcher.CPP / "ollama" / "ollama", launcher.CPP / "yue2cpp" / "sd-server",
+                 launcher.MODELS / "ollama" / "manifests" / "x"):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("")
+    assert "--transcriber" in launcher.cpp_command(cfg)
+    beside = {name: (command, env, told) for name, command, env, _cwd, told in launcher.companions(cfg)}
+    assert set(beside) == {"gemma", "pictures"}
+    assert beside["gemma"][1]["OLLAMA_HOST"] == "127.0.0.1:11435"
+    assert beside["gemma"][1]["OLLAMA_MODELS"] == str(launcher.MODELS / "ollama")
+    assert beside["gemma"][2] == {"GEMMA_URL": "http://127.0.0.1:11435", "GEMMA_MODEL": "gemma4:e4b-it-qat"}
+    assert beside["pictures"][0][beside["pictures"][0].index("--model-dir") + 1] == str(launcher.MODELS)
+    assert beside["pictures"][2] == {"PICTURES_URL": "http://127.0.0.1:8187"}
+    run = launcher.Launcher(cfg)
+    assert run.engine_probe.endswith("/health")
+    (launcher.CPP / "yue2cpp" / "yue-server").unlink(missing_ok=True)
+    launcher.APP_PYTHON.parent.mkdir(parents=True, exist_ok=True)
+    launcher.APP_PYTHON.write_text("")
+    assert "yue2.cpp engine is not set up" in run.problem()
+
+
+def test_with_yue2cpp_the_app_is_told_of_the_engine_gemma_and_pictures(monkeypatch, tmp_path):
+    launcher = load_launcher(monkeypatch, tmp_path)
+    server = tmp_path / "server.py"
+    server.write_text(SERVER)
+    app_port, engine_port, gemma_port, pictures_port = free_port(), free_port(), free_port(), free_port()
+    monkeypatch.setattr(launcher, "STUDIO", tmp_path)
+    monkeypatch.setattr(launcher, "CPP", tmp_path / "cpp")
+    (tmp_path / "cpp" / "yue2cpp").mkdir(parents=True)
+    monkeypatch.setattr(launcher, "cpp_command", lambda cfg: [sys.executable, str(server), str(engine_port), "/health"])
+    monkeypatch.setattr(launcher, "companions", lambda cfg: [
+        ("gemma", [sys.executable, str(server), str(gemma_port), "/api/tags"], dict(os.environ), tmp_path,
+         {"GEMMA_URL": f"http://127.0.0.1:{gemma_port}", "GEMMA_MODEL": "gemma-test"}),
+        ("pictures", [sys.executable, str(server), str(pictures_port), "/"], dict(os.environ), tmp_path,
+         {"PICTURES_URL": f"http://127.0.0.1:{pictures_port}"})])
+    told = {}
+
+    def app_command(cfg):
+        return [sys.executable, str(server), str(app_port), "/api/health"]
+
+    real_popen = launcher.subprocess.Popen
+
+    def popen(args, **kw):
+        if args == app_command(None):
+            told.update(kw["env"])
+        return real_popen(args, **kw)
+
+    monkeypatch.setattr(launcher, "app_command", app_command)
+    monkeypatch.setattr(launcher.subprocess, "Popen", popen)
+    cfg = dict(launcher.settings(), engine="yue2cpp", app_port=str(app_port), engine_port=str(engine_port))
+    run = launcher.Launcher(cfg)
+    run.start()
+    try:
+        assert set(json.loads(launcher.RUNNING.read_text())) == {"launcher", "engine", "gemma", "pictures", "app"}
+        assert told["ENGINE_KIND"] == "yue2cpp"
+        assert told["GEMMA_URL"] == f"http://127.0.0.1:{gemma_port}" and told["GEMMA_MODEL"] == "gemma-test"
+        assert told["PICTURES_URL"] == f"http://127.0.0.1:{pictures_port}"
+        deadline = time.time() + 20
+        while time.time() < deadline and not run.engine_ready:
+            run.poll()
+            time.sleep(0.2)
+        assert run.engine_ready                       # answered at /health, as yue2.cpp's server does
+        run.restart_engine()                          # the engine alone: Gemma and the pictures stay up
+        assert run.programs["gemma"][0].poll() is None and run.programs["pictures"][0].poll() is None
+    finally:
+        run.stop()
+    assert all(p.poll() is not None for p, _ in run.programs.values())
 
 
 # --------------------------------------------------------------- recorded voices
