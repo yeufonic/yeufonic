@@ -134,7 +134,12 @@ take pictures section says where to put it, and which text encoder yue2.cpp need
 ## On Windows, with the installer
 
 The installer's components page asks which engine to install, beside the model size and the optional
-parts. Lyric drafts and take pictures are offered for either engine.
+parts. Lyric drafts and take pictures are offered for either engine. The model size follows the engine: with
+yue2.cpp it is **Low memory (Q8)**, ticked to begin with, or **Full quality** (BF16, 7.2 GB, about twice the
+video memory), and each engine keeps its own choice. A size already downloaded is kept, so changing back costs
+nothing; a file of your own named as `yue2cpp_model` in settings.ini stays unless Full quality is chosen.
+
+On a Mac, `setup.sh --engine yue2cpp` takes Q8 too, and `--cpp-model bf16` the full-quality one.
 
 To switch, quit Yeufonic (right-click its icon by the clock and choose **Quit**), run the installer
 again and choose the other engine. Your library, settings and LoRAs are kept.

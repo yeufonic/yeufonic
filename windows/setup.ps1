@@ -3,10 +3,12 @@
 # version and checked by sha256 where the publisher gives one.  Safe to run again:
 # whatever is already in place is kept, and an interrupted download carries on.
 #
-#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-NoLyrics] [-Int8] [-Pictures] [-Loras] [-Voices]
+#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-CppModel q8|bf16] [-NoLyrics] [-Int8] [-Pictures] [-Loras] [-Voices]
 #   ... -Engine           comfyui (everything, the default) or yue2cpp (yue2.cpp's server, for less video memory: no
 #                         training; Gemma in Ollama and pictures in stable-diffusion.cpp beside it).  Left out, the
 #                         engine settings.ini names, so Repair keeps it.
+#   ... -CppModel         yue2.cpp's YuE2: q8 (near lossless, half the video memory: the default) or bf16 (full
+#                         quality, 7.2 GB).  Left out, the one settings.ini names, so Repair keeps it.
 #   ... -Int8             the smaller, low-memory YuE2 model instead of the full-quality one (ComfyUI)
 #   ... -Pictures         FLUX.2 klein, which draws each take's picture on this PC (about 8.3 GB)
 #   ... -Loras            39 style LoRAs by their authors, CC BY-NC 4.0, gathered on Hugging Face (about 3.8 GB)
@@ -18,6 +20,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$InstallDir,
     [string]$Engine = '',
+    [string]$CppModel = '',
     [switch]$NoLyrics,
     [switch]$Int8,
     [switch]$Pictures,
@@ -33,6 +36,7 @@ if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProces
     $native = Join-Path $env:WINDIR 'Sysnative\WindowsPowerShell\v1.0\powershell.exe'
     $again = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-InstallDir', $InstallDir)
     if ($Engine) { $again += @('-Engine', $Engine) }
+    if ($CppModel) { $again += @('-CppModel', $CppModel) }
     foreach ($flag in @('NoLyrics', 'Int8', 'Pictures', 'Loras', 'Voices', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
     & $native @again
     exit $LASTEXITCODE
@@ -64,6 +68,20 @@ if (-not $EngineKind -and (Test-Path $settingsIni)) {
 }
 if ($EngineKind -notin @('comfyui', 'yue2cpp')) { $EngineKind = 'comfyui' }
 $Cpp = $EngineKind -eq 'yue2cpp'
+# yue2.cpp's size of YuE2: the one asked for, else the one settings.ini names (Repair runs with no arguments), else Q8.
+$CppQ8 = 'YuE2-3B-Q8_0.gguf'
+$CppBf16 = 'YuE2-3B-BF16.gguf'
+$CppSize = $CppModel.Trim().ToLower()
+$CppNamed = ''
+if (Test-Path $settingsIni) {
+    $named = Get-Content $settingsIni | Where-Object { $_ -match '^\s*yue2cpp_model\s*=\s*(\S+)' } | Select-Object -First 1
+    if ($named) { $CppNamed = $Matches[1] }
+}
+if (-not $CppSize -and $CppNamed -eq $CppBf16) { $CppSize = 'bf16' }
+if ($CppSize -ne 'bf16') { $CppSize = 'q8' }
+# A file of the user's own named in settings.ini (another quantisation, say) stays named there unless the full-quality
+# one is asked for: the installer always passes a size, and Q8 is its default.
+$CppOwnFile = $CppNamed -and $CppNamed -notin @($CppQ8, $CppBf16) -and $CppSize -ne 'bf16'
 
 # A key in settings.ini's [yue2] section, set or replaced, the rest of the file left as it is.
 function Set-IniValue([string]$path, [string]$key, [string]$value) {
@@ -472,6 +490,17 @@ if ($Int8) {
 # model and VAE with a GGUF encoder.  Gemma comes through Ollama (below), not as a file here.
 if ($Cpp) {
     $shared = @($ModelFiles | Where-Object { $_.Dir -eq 'loras' -or ($_.Pictures -and $_.Dir -ne 'text_encoders') })
+    # Its YuE2 in the size chosen: only that one is downloaded, and one already here is kept, so changing back costs no
+    # download; settings.ini says which one the launcher starts (below).
+    if ($CppSize -eq 'bf16') {
+        $CppModelFiles = @($CppModelFiles | ForEach-Object {
+            if ($_.File -eq $CppQ8) {
+                @{ Name = 'YuE2, full quality BF16 (plans and renders)'; Dir = 'yue2cpp'; File = $CppBf16
+                   Copy = "$GgufCopies/$CppBf16"; Url = "$Gguf/$CppBf16"
+                   Sha = '668ca9ffa4622449916aae5068b5737363e7ec186a824cd3d7a1a8a95269f166'; Size = 7166072352 }
+            } else { $_ }
+        })
+    }
     $ModelFiles = @($CppModelFiles) + $shared
     if ($Pictures) { $ModelFiles = @($ModelFiles) + @($CppPictureEncoder) }
 }
@@ -1042,7 +1071,10 @@ if ($Cpp -and -not $NoLyrics -and -not $SkipModels -and -not (IsDone "gemma-$($G
 
 # Which engine the launcher starts: remembered in settings.ini, where Repair reads it back.
 Set-IniValue $settingsIni 'engine' $EngineKind
-if ($Cpp) { Set-IniValue $settingsIni 'gemma_model' $GemmaModel }
+if ($Cpp) {
+    Set-IniValue $settingsIni 'gemma_model' $GemmaModel
+    if (-not $CppOwnFile) { Set-IniValue $settingsIni 'yue2cpp_model' $(if ($CppSize -eq 'bf16') { $CppBf16 } else { $CppQ8 }) }
+}
 # And which size of YuE2 ComfyUI uses, as both may be here.  yue2.cpp has its own files: the choice stays as it was.
 if (-not $Cpp) { Set-IniValue $settingsIni 'model' $(if ($Int8) { 'int8' } else { 'bf16' }) }
 

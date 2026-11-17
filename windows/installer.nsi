@@ -82,8 +82,22 @@ Var InstSubtext
 Var FinishText
 Var ModelRadio     ; the model size section that is ticked (SecFull or SecSmall)
 Var EngineRadio    ; the engine section that is ticked (SecComfy or SecCpp)
-Var FullSize       ; the two model sizes' download sizes as the page first showed them (0 when installed),
-Var SmallSize      ; put back when ComfyUI is chosen again after yue2.cpp, which needs neither
+Var ShownEngine    ; the engine whose model sizes the page shows now
+; Each engine has its own two sizes of YuE2 and its own choice between them, kept while the other engine is shown:
+; ComfyUI's BF16 and INT8, yue2.cpp's BF16 and Q8 (Q8 unless the full one is chosen).  Their download sizes (0 when
+; installed), their names on the page, their descriptions and which one is ticked.
+Var FullSize
+Var SmallSize
+Var CppFullSize
+Var CppSmallSize
+Var FullName
+Var SmallName
+Var CppFullName
+Var CppSmallName
+Var FullText
+Var SmallText
+Var ComfyModel
+Var CppModel
 Var LyricsText      ; the Gemma option's description, which says when it is already here
 Var PicturesText    ; the same for FLUX.2 klein
 Var LorasText       ; the same for the style LoRAs
@@ -299,9 +313,9 @@ SectionGroup /e "Engine" SecEngineGroup
   SectionEnd
 SectionGroupEnd
 
-; The YuE2 model comes in two sizes and an install has one of them (radio buttons, below).  No
-; files here: setup.ps1 is told which to fetch, and takes the other away if it is there.
-SectionGroup /e "YuE2 model size (ComfyUI)" SecModelGroup
+; The YuE2 model comes in two sizes for each engine and an install uses one of them (radio buttons, below).  No
+; files here: setup.ps1 is told which to fetch, and keeps the other if it is there.
+SectionGroup /e "YuE2 model size" SecModelGroup
   Section "Full quality" SecFull
     AddSize 7800000
   SectionEnd
@@ -343,15 +357,28 @@ Section "-Setup"
   ${If} ${SectionIsSelected} ${SecCpp}
     StrCpy $1 "$1 -Engine yue2cpp"
     WriteRegStr HKCU "Software\${REGNAME}" "Engine" "yue2cpp"
+    ; The sizes on the page are yue2.cpp's: ComfyUI's choice is remembered as it was, for a switch back.
+    ${If} ${SectionIsSelected} ${SecFull}
+      StrCpy $1 "$1 -CppModel bf16"
+      WriteRegDWORD HKCU "Software\${REGNAME}" "CppFullModel" 1
+    ${Else}
+      StrCpy $1 "$1 -CppModel q8"
+      WriteRegDWORD HKCU "Software\${REGNAME}" "CppFullModel" 0
+    ${EndIf}
+    ${If} $ComfyModel == ${SecSmall}
+      WriteRegDWORD HKCU "Software\${REGNAME}" "SmallModel" 1
+    ${Else}
+      WriteRegDWORD HKCU "Software\${REGNAME}" "SmallModel" 0
+    ${EndIf}
   ${Else}
     StrCpy $1 "$1 -Engine comfyui"
     WriteRegStr HKCU "Software\${REGNAME}" "Engine" "comfyui"
-  ${EndIf}
-  ${If} ${SectionIsSelected} ${SecSmall}
-    StrCpy $1 "$1 -Int8"
-    WriteRegDWORD HKCU "Software\${REGNAME}" "SmallModel" 1
-  ${Else}
-    WriteRegDWORD HKCU "Software\${REGNAME}" "SmallModel" 0
+    ${If} ${SectionIsSelected} ${SecSmall}
+      StrCpy $1 "$1 -Int8"
+      WriteRegDWORD HKCU "Software\${REGNAME}" "SmallModel" 1
+    ${Else}
+      WriteRegDWORD HKCU "Software\${REGNAME}" "SmallModel" 0
+    ${EndIf}
   ${EndIf}
   ${If} ${SectionIsSelected} ${SecPictures}
     StrCpy $1 "$1 -Pictures"
@@ -418,6 +445,8 @@ LangString DESC_Comfy ${LANG_ENGLISH} "ComfyUI: everything Yeufonic does, LoRA t
 LangString DESC_Cpp ${LANG_ENGLISH} "yue2.cpp: a smaller native engine for graphics cards with less memory. Songs, covers, instrumentals, Harmony and transcription, with your style LoRAs; no LoRA training. Lyric drafts and pictures below run beside it. Download size: about 6 GB."
 LangString DESC_Full ${LANG_ENGLISH} "The full-quality YuE2 model (BF16), 7.8 GB. Recommended. It needs a graphics card with plenty of memory to run at full speed, and it is the one that LoRA training uses."
 LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for graphics cards with 6 GB of memory or less, or if the full one is too slow on this PC. LoRA training works on both sizes. A size already downloaded is kept, so changing back costs nothing."
+LangString DESC_CppFull ${LANG_ENGLISH} "The full-quality YuE2 model for yue2.cpp (BF16), 7.2 GB. It needs about twice the video memory of the Q8 model, whose sound is close to it: choose it if your graphics card has memory to spare."
+LangString DESC_CppSmall ${LANG_ENGLISH} "YuE2 for yue2.cpp in Q8, 3.8 GB: close to the full model's sound in half its video memory. Recommended with yue2.cpp. A size already downloaded is kept, so changing back costs nothing."
 LangString DESC_Pictures ${LANG_ENGLISH} "FLUX.2 klein, which draws a picture of each take on this PC, shown behind its card. Leave it out if your external LLM can draw them, or if you do not want pictures. Download size: 8.2 GB."
 LangString DESC_Loras ${LANG_ENGLISH} "39 style LoRAs by their authors: chanson, canzone, Bulgarian voices, qawwali, militant reggae, J-pop, dream pop, old school hip-hop and 16 concept sliders, each with its trigger word and suggested strengths. CC BY-NC 4.0, credited in the guide. Download size: 3.8 GB."
 LangString DESC_Voices ${LANG_ENGLISH} "Recorded voices: train a singer's voice from recordings, your own sung into the built-in recorder or a corpus's songs, and have a take sung in it. Runs beside the engine, on the graphics card. Download size: about 4 GB."
@@ -457,8 +486,8 @@ Function .onMouseOverSection
   !insertmacro MUI_DESCRIPTION_TEXT ${SecComfy} $(DESC_Comfy)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCpp} $(DESC_Cpp)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecModelGroup} $(DESC_Full)
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecFull} $(DESC_Full)
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSmall} $(DESC_Small)
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecFull} $FullText
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecSmall} $SmallText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLyrics} $LyricsText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPictures} $PicturesText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLoras} $LorasText
@@ -470,19 +499,36 @@ FunctionEnd
 ; Written out here rather than with the radio-button macros, which take a variable holding the previous
 ; choice and untick *that section first*: with it unset they unticked the core section, and nothing installed.
 ; This touches the two model sections only. $ModelRadio is the one that was ticked before the click.
-; The model size is ComfyUI's.  With yue2.cpp it is greyed out, kept as it was (so going back to ComfyUI finds it
-; unchanged), and downloads nothing.
+; The two sizes shown are the chosen engine's: their names, download sizes and descriptions, and, when the engine has
+; just changed, that engine's own choice between them, so going back to the other finds its choice unchanged.
 Function ModelSizeForEngine
   ${If} $EngineRadio == ${SecCpp}
-    SectionSetSize ${SecFull} 0
-    SectionSetSize ${SecSmall} 0
-    !insertmacro SetSectionFlag ${SecFull} ${SF_RO}
-    !insertmacro SetSectionFlag ${SecSmall} ${SF_RO}
+    SectionSetSize ${SecFull} $CppFullSize
+    SectionSetSize ${SecSmall} $CppSmallSize
+    SectionSetText ${SecFull} $CppFullName
+    SectionSetText ${SecSmall} $CppSmallName
+    StrCpy $FullText "$(DESC_CppFull)"
+    StrCpy $SmallText "$(DESC_CppSmall)"
+    StrCpy $0 $CppModel
   ${Else}
     SectionSetSize ${SecFull} $FullSize
     SectionSetSize ${SecSmall} $SmallSize
-    !insertmacro ClearSectionFlag ${SecFull} ${SF_RO}
-    !insertmacro ClearSectionFlag ${SecSmall} ${SF_RO}
+    SectionSetText ${SecFull} $FullName
+    SectionSetText ${SecSmall} $SmallName
+    StrCpy $FullText "$(DESC_Full)"
+    StrCpy $SmallText "$(DESC_Small)"
+    StrCpy $0 $ComfyModel
+  ${EndIf}
+  ${If} $ShownEngine != $EngineRadio
+    ${If} $0 == ${SecSmall}
+      !insertmacro UnselectSection ${SecFull}
+      !insertmacro SelectSection ${SecSmall}
+    ${Else}
+      !insertmacro UnselectSection ${SecSmall}
+      !insertmacro SelectSection ${SecFull}
+    ${EndIf}
+    StrCpy $ModelRadio $0
+    StrCpy $ShownEngine $EngineRadio
   ${EndIf}
 FunctionEnd
 
@@ -530,6 +576,11 @@ Function .onSelChange
   ${Else}
     ; Neither: unticking the one that was ticked, or the group's own box. A size is always chosen.
     !insertmacro SelectSection $ModelRadio
+  ${EndIf}
+  ${If} $EngineRadio == ${SecCpp}
+    StrCpy $CppModel $ModelRadio
+  ${Else}
+    StrCpy $ComfyModel $ModelRadio
   ${EndIf}
 FunctionEnd
 
@@ -706,17 +757,44 @@ Function .onInit
   ${Else}
     StrCpy $EngineRadio ${SecComfy}
   ${EndIf}
+  ; ComfyUI's two sizes as worked out above, and the one ticked.
   SectionGetSize ${SecFull} $FullSize
   SectionGetSize ${SecSmall} $SmallSize
-  Call ModelSizeForEngine
-  ; Which model size is ticked to begin with, for .onSelChange.
+  SectionGetText ${SecFull} $FullName
+  SectionGetText ${SecSmall} $SmallName
   SectionGetFlags ${SecSmall} $0
   IntOp $0 $0 & ${SF_SELECTED}
   ${If} $0 != 0
-    StrCpy $ModelRadio ${SecSmall}
+    StrCpy $ComfyModel ${SecSmall}
   ${Else}
-    StrCpy $ModelRadio ${SecFull}
+    StrCpy $ComfyModel ${SecFull}
   ${EndIf}
+  ; yue2.cpp's: Q8 unless the full one was chosen last time.  Each one here downloads nothing.
+  StrCpy $CppFullSize 7000000
+  StrCpy $CppSmallSize 3720000
+  StrCpy $CppFullName "Full quality"
+  StrCpy $CppSmallName "Low memory (Q8)"
+  ${If} ${FileExists} "$INSTDIR\engine\ComfyUI\models\yue2cpp\YuE2-3B-BF16.gguf"
+    StrCpy $CppFullSize 0
+    StrCpy $CppFullName "Full quality (installed)"
+  ${EndIf}
+  ${If} ${FileExists} "$INSTDIR\engine\ComfyUI\models\yue2cpp\YuE2-3B-Q8_0.gguf"
+    StrCpy $CppSmallSize 0
+    StrCpy $CppSmallName "Low memory (Q8, installed)"
+  ${EndIf}
+  StrCpy $CppModel ${SecSmall}
+  ReadRegDWORD $1 HKCU "Software\$R9" "CppFullModel"
+  ; settings.ini is what the launcher uses: a full model named there by hand stays chosen too.
+  ReadINIStr $2 "$INSTDIR\settings.ini" "yue2" "yue2cpp_model"
+  ${If} $1 == 1
+  ${OrIf} $2 == "YuE2-3B-BF16.gguf"
+    StrCpy $CppModel ${SecFull}
+  ${EndIf}
+!ifdef TEST_CPP_FULL
+  StrCpy $CppModel ${SecFull}
+!endif
+  StrCpy $ShownEngine ""
+  Call ModelSizeForEngine
 FunctionEnd
 
 Var KeepLibrary

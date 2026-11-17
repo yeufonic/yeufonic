@@ -343,6 +343,17 @@ def test_the_mac_builds_pinned_are_the_ones_the_workflows_publish_for_these_sour
 
 
 @needs_bash
+def test_yue2cpp_starts_on_q8_and_its_full_model_can_be_chosen(tmp_path):
+    q8 = check(tmp_path, "--engine", "yue2cpp")
+    assert "yue2.cpp model: q8" in q8.stdout
+    full = check(tmp_path, "--engine", "yue2cpp", "--cpp-model", "bf16")
+    assert "yue2.cpp model: bf16" in full.stdout
+    assert needed_gb(full) - needed_gb(q8) in (3, 4)             # 7.2 GB in place of 3.8 GB
+    bad = check(tmp_path, "--engine", "yue2cpp", "--cpp-model", "q4")
+    assert bad.returncode != 0 and "--cpp-model is q8 or bf16" in bad.stdout
+
+
+@needs_bash
 def test_an_engine_that_is_not_one_is_refused(tmp_path):
     bad = check(tmp_path, "--engine", "llama")
     assert bad.returncode != 0 and "--engine is comfyui or yue2cpp" in bad.stdout

@@ -11,6 +11,8 @@
 #   ... --engine        comfyui (everything, the default) or yue2cpp (yue2.cpp's server: faster lyric drafts and
 #                       pictures on a Mac, with Gemma in Ollama and pictures in stable-diffusion.cpp beside it,
 #                       and no training).  Kept for every later run; the other engine's files are left in place.
+#   ... --cpp-model     yue2.cpp's YuE2: q8 (near lossless, half the memory: the default) or bf16 (full quality,
+#                       7.2 GB).  Kept for every later run; a size already here is kept, so changing back is free.
 #   ... --no-lyrics     leave out Gemma 4 (8.1 GB), for an external LLM in Settings instead
 #   ... --pictures      FLUX.2 [klein], which draws each take's picture on this Mac (about 16 GB);
 #                       --no-pictures fetches none.  Without either, the first run asks and the
@@ -36,10 +38,12 @@ PICTURES=""
 LORAS=""
 VOICES=""
 ENGINE_CHOICE=""
+CPP_MODEL=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --install-dir) INSTALL_DIR="$2"; shift 2 ;;
     --engine) ENGINE_CHOICE="$2"; shift 2 ;;
+    --cpp-model) CPP_MODEL="$2"; shift 2 ;;
     --no-lyrics) NO_LYRICS=1; shift ;;
     --pictures) PICTURES=yes; shift ;;
     --no-pictures) PICTURES=no; shift ;;
@@ -175,10 +179,19 @@ LIST
 cpp_picture_encoder() {
   echo "text_encoders|Qwen3-4B-Q4_K_M.gguf|2497281312|f6f851777709861056efcdad3af01da38b31223a3ba26e61a4f8bf3a2195813a|$HF/unsloth/Qwen3-4B-GGUF/resolve/22c9fc8a8c7700b76a1789366280a6a5a1ad1120/Qwen3-4B-Q4_K_M.gguf"
 }
+# yue2.cpp's YuE2 in full quality, in place of the Q8 when it is chosen.
+cpp_full_model() {
+  echo "yue2cpp|YuE2-3B-BF16.gguf|7166072352|668ca9ffa4622449916aae5068b5737363e7ec186a824cd3d7a1a8a95269f166|$GGUF/YuE2-3B-BF16.gguf||$GGUF_COPIES/YuE2-3B-BF16.gguf"
+}
 # The model files the chosen engine reads, in model_list's and picture_list's forms.
 engine_models() {
   if [ "$CPP" -eq 1 ]; then
-    cpp_model_list
+    if [ "$CPP_MODEL" = bf16 ]; then
+      cpp_model_list | grep -v '|YuE2-3B-Q8_0.gguf|'
+      cpp_full_model
+    else
+      cpp_model_list
+    fi
     model_list | grep '^loras|'
   else
     model_list
@@ -518,6 +531,19 @@ fi
 CPP=0
 if [ "$ENGINE_CHOICE" = yue2cpp ]; then CPP=1; else ENGINE_CHOICE=comfyui; fi
 say "Engine: $ENGINE_CHOICE"
+# yue2.cpp's size of YuE2: Q8 unless the full one is chosen, now or before.
+if [ -n "$CPP_MODEL" ]; then
+  case "$CPP_MODEL" in
+    q8|bf16) [ "$CHECK_ONLY" -eq 1 ] || echo "$CPP_MODEL" > "$STATE/cpp-model" ;;
+    *) problem "--cpp-model is q8 or bf16, not $CPP_MODEL." ;;
+  esac
+  CPP_MODEL_ASKED=1
+else
+  CPP_MODEL_ASKED=0
+  if [ -f "$STATE/cpp-model" ]; then CPP_MODEL="$(cat "$STATE/cpp-model")"; fi
+fi
+[ "$CPP_MODEL" = bf16 ] || CPP_MODEL=q8
+if [ "$CPP" -eq 1 ]; then say "yue2.cpp model: $CPP_MODEL"; fi
 if [ "$CPP" -eq 1 ] && [ -z "$CPP_URL" ]; then
   problem "The yue2.cpp engine for macOS is not published yet: run setup.sh --engine comfyui."
 fi
@@ -914,7 +940,18 @@ ini_set() {
     END { if (!done) { if (!seen) print "[yue2]"; print k " = " v } }' "$INI" > "$INI.tmp" && mv "$INI.tmp" "$INI"
 }
 ini_set engine "$ENGINE_CHOICE"
-if [ "$CPP" -eq 1 ]; then ini_set gemma_model "$GEMMA_MODEL"; fi
+if [ "$CPP" -eq 1 ]; then
+  ini_set gemma_model "$GEMMA_MODEL"
+  # Which YuE2 file the launcher gives yue2.cpp, unless settings.ini names one of the user's own and no size was asked for.
+  named="$(ini_value yue2cpp_model)"
+  case "$named" in
+    ''|YuE2-3B-Q8_0.gguf|YuE2-3B-BF16.gguf) own=0 ;;
+    *) own=1 ;;
+  esac
+  if [ "$own" -eq 0 ] || [ "$CPP_MODEL_ASKED" -eq 1 ]; then
+    if [ "$CPP_MODEL" = bf16 ]; then ini_set yue2cpp_model YuE2-3B-BF16.gguf; else ini_set yue2cpp_model YuE2-3B-Q8_0.gguf; fi
+  fi
+fi
 # The launcher runs this again whenever the app it comes with is not the one set up here, so
 # a new copy dragged into Applications brings its packages and its engine node with it.
 cat "$STUDIO/VERSION" "$STUDIO/BUILD" 2>/dev/null > "$STATE/set-up-for" || true

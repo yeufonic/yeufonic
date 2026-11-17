@@ -377,8 +377,9 @@ The installer checks all of this before it downloads anything.
    - Choose the **YuE2 model size**: *Full quality* (the default, and what we recommend) or *Low
      memory*, a smaller model for graphics cards with little video memory. To change your mind later,
      run the installer again and pick the other on this page; it downloads the new one and keeps the
-     old, so changing back downloads nothing. These are ComfyUI's sizes: with yue2.cpp they are greyed
-     out. [Choosing a model size](#choosing-a-model-size) says how to decide.
+     old, so changing back downloads nothing. With yue2.cpp the same choice is yue2.cpp's own sizes:
+     *Low memory (Q8)*, ticked to begin with, or *Full quality* (BF16, 7.2 GB, about twice the video
+     memory). [Choosing a model size](#choosing-a-model-size) says how to decide.
    - Choose whether to include **Lyric drafts (Gemma 4)**. Leave it out if you will set up an
      external LLM; that saves a download of 8 GB (6 GB with yue2.cpp).
    - Choose whether to include **FLUX.2 [klein]**, unticked to begin with. It draws a

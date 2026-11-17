@@ -17,7 +17,10 @@ def test_the_model_size_choice_does_not_use_the_radio_button_macros():
 def test_the_component_choice_is_set_up_before_the_page_is_shown():
     start = SCRIPT.index("Function .onInit")
     init = SCRIPT[start:SCRIPT.index("\nFunctionEnd", start)]
-    assert "StrCpy $ModelRadio" in init
+    assert init.rstrip().endswith("Call ModelSizeForEngine")
+    assert 'StrCpy $ShownEngine ""' in init        # so that call ticks the engine's own size and sets $ModelRadio
+    start = SCRIPT.index("Function ModelSizeForEngine")
+    assert "StrCpy $ModelRadio $0" in SCRIPT[start:SCRIPT.index("\nFunctionEnd", start)]
 
 
 def test_both_installers_pin_the_trainer_commit():
@@ -291,12 +294,42 @@ def test_changing_the_model_size_keeps_the_other_and_says_which_is_used():
     assert 'SectionSetText ${SecSmall} "Low memory (installed)"' in SCRIPT
 
 
-def test_the_model_size_is_greyed_out_for_yue2cpp_but_not_its_group():
-    """Read-only set on the group itself re-applied its selection to both sizes, ticking both."""
+def test_each_engine_has_its_own_model_size_and_yue2cpp_starts_on_q8():
+    """yue2.cpp's sizes are its own (BF16 or Q8), shown in place of ComfyUI's while it is chosen; each engine's choice is
+    kept while the other is shown, and yue2.cpp's is Q8 unless the full one was chosen.  Never read-only: read-only on
+    the group itself once re-applied its selection to both sizes, ticking both."""
     start = SCRIPT.index("Function ModelSizeForEngine")
     body = SCRIPT[start:SCRIPT.index("\nFunctionEnd", start)]
-    assert "SetSectionFlag ${SecFull} ${SF_RO}" in body and "SetSectionFlag ${SecSmall} ${SF_RO}" in body
-    assert "SecModelGroup" not in body
+    assert "SF_RO" not in body and "SecModelGroup" not in body
+    assert "SectionSetSize ${SecFull} $CppFullSize" in body and "SectionSetText ${SecSmall} $CppSmallName" in body
+    assert "StrCpy $0 $CppModel" in body and "StrCpy $0 $ComfyModel" in body
+    change = SCRIPT[SCRIPT.index("Function .onSelChange"):SCRIPT.index("Function .onInit")]
+    assert "StrCpy $CppModel $ModelRadio" in change and "StrCpy $ComfyModel $ModelRadio" in change
+    init = SCRIPT[SCRIPT.index("Function .onInit"):]
+    assert "StrCpy $CppModel ${SecSmall}" in init
+    assert 'ReadRegDWORD $1 HKCU "Software\\$R9" "CppFullModel"' in init
+    assert "yue2cpp\\YuE2-3B-BF16.gguf" in init and "yue2cpp\\YuE2-3B-Q8_0.gguf" in init
+
+
+def test_yue2cpps_size_reaches_setup_and_comfyuis_is_remembered_as_it_was():
+    setup_section = SCRIPT[SCRIPT.index('Section "-Setup"'):]
+    cpp = setup_section[:setup_section.index('StrCpy $1 "$1 -Engine comfyui"')]
+    assert '"$1 -CppModel bf16"' in cpp and '"$1 -CppModel q8"' in cpp and "-Int8" not in cpp
+    assert "${If} $ComfyModel == ${SecSmall}" in cpp
+
+
+def test_setup_fetches_yue2cpps_chosen_size_and_names_it_in_settings_ini():
+    import re
+    root = Path(__file__).resolve().parent.parent
+    setup = (root / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    assert "[string]$CppModel = ''" in setup and "$again += @('-CppModel', $CppModel)" in setup
+    full = setup[setup.index("if ($CppSize -eq 'bf16') {"):]
+    sha = re.search(r"Sha = '([0-9a-f]{64})'; Size = (\d+)", full)
+    mac = (root / "macos" / "setup.sh").read_text(encoding="utf-8")
+    assert f"|YuE2-3B-BF16.gguf|{sha.group(2)}|{sha.group(1)}|" in mac
+    assert "Set-IniValue $settingsIni 'yue2cpp_model'" in setup
+    # Repair keeps the size settings.ini names, and a file of the user's own named there is left alone.
+    assert "yue2cpp_model\\s*=\\s*(\\S+)" in setup and "$CppOwnFile" in setup
 
 
 def test_a_program_that_stops_leaves_its_exit_code_and_last_lines_in_launcher_log(tmp_path, monkeypatch):

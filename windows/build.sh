@@ -44,9 +44,10 @@ EXTRA=${TEST_BUILD:+-DSETUP_ARGS=${TEST_ARGS:--SkipModels}}
 # TEST_MANIFEST=<url> (with TEST_BUILD) makes the install look for updates at that address only,
 # to try an update before it is released.  Never set for a release.
 # TEST_FULL=1 (with TEST_BUILD) is a test install that downloads everything, under the test name, so it
-# can sit beside a real install; TEST_SMALL=1 starts it with the low-memory model chosen, TEST_CPP=1 with yue2.cpp.
+# can sit beside a real install; TEST_SMALL=1 starts it with the low-memory model chosen, TEST_CPP=1 with yue2.cpp
+# (TEST_CPP_FULL=1 as well: with yue2.cpp's full-quality model).
 [ -z "${TEST_FULL:-}" ] || EXTRA="-DTEST_INSTALL=1"
-EXTRA="$EXTRA${TEST_SMALL:+ -DTEST_SMALL=1}${TEST_CPP:+ -DTEST_CPP=1}"
+EXTRA="$EXTRA${TEST_SMALL:+ -DTEST_SMALL=1}${TEST_CPP:+ -DTEST_CPP=1}${TEST_CPP_FULL:+ -DTEST_CPP_FULL=1}"
 EXTRA="$EXTRA${TEST_MANIFEST:+ -DTEST_MANIFEST=$TEST_MANIFEST}"
 if command -v makensis >/dev/null 2>&1; then
   (cd "$STAGE" && makensis -V2 -DVERSION="$VERSION" -DICON=yeufonic.ico -DOUTFILE=Yeufonic.exe yeufonic-exe.nsi)

@@ -56,6 +56,10 @@ cannot creep back in.
   LoRA that changes the sound, the instrumental and Realaudio ones among them, stopped the render with "llm2vae.bias is
   not staged by this model". yue2.cpp turns that file's small tensors into full precision as it loads them, and the
   LoRA merge then could not find them; a patch of ours lets it.
+- **The full-quality model for yue2.cpp can be chosen when installing.** With yue2.cpp, the installer's model size
+  choice is now that engine's own: Low memory (Q8), ticked to begin with as before, or Full quality (BF16, 7.2 GB),
+  which needs about twice the video memory. Each engine keeps its own choice, a size already downloaded is kept, and
+  a file of your own named in settings.ini stays unless Full quality is chosen. On a Mac, `setup.sh --cpp-model bf16`.
 - **Mac: MIDI files can be heard without Homebrew.** FluidSynth publishes no macOS build, so the setup now fetches one
   of ours, built unchanged from FluidSynth's source as a single program, where before a Mac needed Homebrew's.
 - **Mac: the yue2.cpp engine.** `setup.sh --engine yue2cpp` sets the Mac up with yue2.cpp in place of ComfyUI, as the

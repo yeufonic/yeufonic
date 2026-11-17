@@ -43,7 +43,8 @@ Mac with Apple silicon, but it is slower than on an NVIDIA card, and training do
      renders at about ComfyUI's speed; it does not train LoRAs. The launcher starts its server, with
      Ollama and the picture server beside it where they are set up (`engine = yue2cpp` in settings.ini,
      with `gemma_port`, `pictures_port`, `yue2cpp_model` and `cpp_engine_args` as on Windows). The other
-     engine's files stay, so changing back downloads nothing.
+     engine's files stay, so changing back downloads nothing. Its YuE2 is Q8 (3.8 GB) unless
+     `--cpp-model bf16` asks for full quality (7.2 GB, about twice the memory), kept for later runs.
    - **Recorded voices are an option as well**, asked and remembered the same way: the voice service
      (RVC and its separator) in a Python 3.12 of its own, with the torch the Windows voice service
      runs, and its models from the same places with the same checksums (about 1.1 GB, and 1.5 GB of
