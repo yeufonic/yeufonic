@@ -9782,11 +9782,16 @@ var FEEL = { value: 'steady' };
 
 function paintFeel() {}
 var SECTION_SECONDS = { intro: 15, verse: 30, 'pre-chorus': 15, chorus: 25, bridge: 20, outro: 15 };
+/* The sections a new instrumental starts with: a plain song shape, to add to. */
+function usualSections() {
+  return ['intro', 'verse', 'chorus', 'verse', 'chorus', 'bridge', 'chorus', 'outro'].map(function (name) {
+    return { name: name, seconds: SECTION_SECONDS[name] };
+  });
+}
+
 var STRUCTURE = {
   kind: 'free',
-  sections: ['intro', 'verse', 'chorus', 'verse', 'chorus', 'bridge', 'chorus', 'outro'].map(function (name) {
-    return { name: name, seconds: SECTION_SECONDS[name] };
-  })
+  sections: usualSections()
 };
 
 function clock(total) {
@@ -12719,7 +12724,12 @@ async function startFresh() {
     $('lyrics').value = '';
     if ($('write-brief')) { $('write-brief').value = ''; }
     paintSongPlan();
-  }   // an instrumental keeps its structure, like a setting
+  } else {
+    // A new instrumental keeps the way its structure is given (YuE2 decides, sections, timed) like a setting, but
+    // starts from the usual sections, not the last one's: a long list left from before is not what a new piece wants.
+    STRUCTURE.sections = usualSections();
+    paintStructure();
+  }
   $('abc').value = '';
   scoreBaseline('');
   setChart('');

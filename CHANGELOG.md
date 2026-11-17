@@ -44,6 +44,9 @@ cannot creep back in.
   now writes the sections listed, in that order and no others, as a song does with Follow this structure exactly. The
   planner still decides each section's length, so timed sections set the order and the names more than the seconds,
   and a very long structure can still end early where the planner reaches the most it can write in one plan.
+- **A new instrumental starts from the usual sections.** It kept the last instrumental's list, so after a long one every
+  new instrumental started with dozens of sections. It now starts from intro, verse, chorus, verse, chorus, bridge,
+  chorus, outro, and keeps only the way the structure is given (Let YuE2 decide, Sections or Timed sections).
 
 - **A score written by hand is no longer cut off at six minutes.** The length cap rises to fit a song's plan, and a
   cover's to fit its recording's score, but a score typed, pasted or edited longer kept the cap the take started with,
