@@ -28,8 +28,8 @@ def test_both_installers_pin_the_trainer_commit():
     root = Path(__file__).resolve().parent.parent
     windows = (root / "windows" / "setup.ps1").read_text(encoding="utf-8")
     docker = (root / "engine" / "Dockerfile").read_text(encoding="utf-8")
-    assert "Yue2TrainerCommit = '84f7039713b31f74ade959019d608b109d8f7309'" in windows
-    assert "ARG YUE2_TRAINER_REF=84f7039713b31f74ade959019d608b109d8f7309" in docker
+    assert "Yue2TrainerCommit = '32b1d423e9252434ca8345cefcf0b698693b672c'" in windows
+    assert "ARG YUE2_TRAINER_REF=32b1d423e9252434ca8345cefcf0b698693b672c" in docker
 
 
 def test_the_launcher_shows_a_dead_engine_once_not_on_every_tick():
@@ -216,7 +216,7 @@ def test_the_sources_check_reads_every_kind_of_address():
     assert sorted(u.rsplit("/", 1)[1] for u in copies) == sorted(MOTHERSUPERIOR)
     assert all(found[u].sha == MOTHERSUPERIOR[u.rsplit("/", 1)[1]] for u in copies)
     assert any(u.endswith("/faster-whisper-large-v3-turbo/resolve/main/model.bin") for u in found)
-    assert "https://github.com/yeufonic/ComfyUI-YuE2-Trainer/commit/84f7039713b31f74ade959019d608b109d8f7309" in found
+    assert "https://github.com/yeufonic/ComfyUI-YuE2-Trainer/commit/32b1d423e9252434ca8345cefcf0b698693b672c" in found
     assert any(u.startswith("https://github.com/Comfy-Org/ComfyUI/commit/") for u in found)       # setup.ps1
     assert any(u.startswith("https://github.com/comfyanonymous/ComfyUI/commit/") for u in found)  # the Dockerfile
     assert sum("/pshields/yue2-style-loras/" in u for u in found) == 78

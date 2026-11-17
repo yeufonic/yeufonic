@@ -46,7 +46,7 @@ RUN pip install "torch==2.9.*" "torchvision==0.24.*" "torchaudio==2.9.*" \
 # Built in by default.  --build-arg WITH_TRAINER=0 leaves it out, and the app then
 # hides Corpora and training.
 ARG WITH_TRAINER=1
-ARG YUE2_TRAINER_REF=84f7039713b31f74ade959019d608b109d8f7309
+ARG YUE2_TRAINER_REF=32b1d423e9252434ca8345cefcf0b698693b672c
 RUN if [ "${WITH_TRAINER}" = "1" ]; then \
         git clone --quiet https://github.com/yeufonic/ComfyUI-YuE2-Trainer.git \
             /app/custom_nodes/ComfyUI-YuE2-Trainer \

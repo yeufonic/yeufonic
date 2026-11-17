@@ -89,7 +89,7 @@ echo "---- $(date -u +%Y-%m-%dT%H:%M:%SZ) setup.sh $*"
 # What was tested together.  Change one deliberately, and test again.  The ComfyUI and
 # trainer commits are engine/Dockerfile's and windows/setup.ps1's.
 COMFY_COMMIT=bb878b9ee35274e67931634ba9e8c338f8c06035
-TRAINER_COMMIT=84f7039713b31f74ade959019d608b109d8f7309
+TRAINER_COMMIT=32b1d423e9252434ca8345cefcf0b698693b672c
 PYTHON=3.13
 # The engine's torch: the version the Windows engine runs.  The macOS wheels carry Metal
 # (MPS) and want macOS 14, which is also where bf16 on the GPU starts.

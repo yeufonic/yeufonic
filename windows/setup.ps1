@@ -101,7 +101,7 @@ function Set-IniValue([string]$path, [string]$key, [string]$value) {
 # What was tested together.  Change one deliberately, and test again.
 $Pins = @{
     ComfyCommit       = 'bb878b9ee35274e67931634ba9e8c338f8c06035'   # the commit engine/Dockerfile builds
-    Yue2TrainerCommit = '84f7039713b31f74ade959019d608b109d8f7309'
+    Yue2TrainerCommit = '32b1d423e9252434ca8345cefcf0b698693b672c'
     AppPython         = '3.13'
     # Recorded voices: RVC, MIT, driven by its scripts' argument positions, so pinned as voice/Dockerfile pins it.
     RvcCommit         = '81eed5e8f68b6bed1789f682fe78cdd324495afc'
