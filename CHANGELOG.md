@@ -56,6 +56,10 @@ cannot creep back in.
   LoRA that changes the sound, the instrumental and Realaudio ones among them, stopped the render with "llm2vae.bias is
   not staged by this model". yue2.cpp turns that file's small tensors into full precision as it loads them, and the
   LoRA merge then could not find them; a patch of ours lets it.
+- **Mac: recorded voices.** The setup window asks once whether to set up recorded voices, as the Windows installer
+  offers them (`setup.sh --voices` later), and the app then starts the voice service beside the engine. A voice
+  trains and sings on the Mac's GPU: RVC, at the commit the other installs use, gets a small patch of ours that lets
+  it, and the separator runs there too, with Metal's missing operations on the CPU.
 - **Mac: hearing the words of a song is several times faster.** Whisper now runs on a Mac's GPU (Apple silicon),
   with the same lines and timings as on the CPU, which it falls back to if the GPU fails.
 

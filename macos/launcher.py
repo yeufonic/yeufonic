@@ -20,6 +20,9 @@ logs in ~/Library/Logs/Yeufonic (YEUFONIC_LOGS), and settings.ini there override
     open_browser = yes
     unload_when_idle = auto
     training = no
+    voice_port = 8190
+
+Recorded voices start too where the setup put them in (setup.sh --voices): the voice service, in its own Python.
 """
 from __future__ import annotations
 
@@ -47,6 +50,11 @@ ENGINE_PYTHON = SUPPORT / "engine" / "venv" / "bin" / "python"
 APP_PYTHON = SUPPORT / "venv" / "bin" / "python"
 TOOLS = SUPPORT / "tools" / "bin"
 RUNNING = SUPPORT / "state" / "running.json"
+# Recorded voices, where they are set up: RVC (rvc/), its own Python (venv/) and its models, with the service itself
+# carried by the app.
+VOICE = SUPPORT / "voice"
+VOICE_PYTHON = VOICE / "venv" / "bin" / "python"
+VOICE_SERVER = STUDIO / "voice" / "server.py"
 # FluidSynth has no macOS build of its own; Homebrew's is used where it is installed.
 HOMEBREW = Path("/opt/homebrew/bin")
 
@@ -57,7 +65,7 @@ def settings() -> dict:
     CUDA and has not been tried on a Mac."""
     values = {"app_port": "8090", "engine_port": "8188", "engine_args": "", "data_dir": str(SUPPORT / "data"),
               "import_roots": str(Path.home()), "open_browser": "yes", "training": "no", "update_manifest": "",
-              "unload_when_idle": "auto"}
+              "unload_when_idle": "auto", "voice_port": "8190"}
     ini = SUPPORT / "settings.ini"
     if ini.exists():
         parser = configparser.ConfigParser()
@@ -165,6 +173,30 @@ def app_env(cfg: dict) -> dict:
     return env
 
 
+def voices_installed() -> bool:
+    return VOICE_PYTHON.exists() and (VOICE / "rvc" / "infer").is_dir() and VOICE_SERVER.exists()
+
+
+def voice_command(cfg: dict) -> list[str]:
+    return [str(VOICE_PYTHON), str(VOICE_SERVER)]
+
+
+def voice_env(cfg: dict) -> dict:
+    """The voice service's environment, as the Windows launcher gives it, with Apple's GPU to train and sing on."""
+    env = dict(os.environ)
+    env.update({
+        "RVC_DIR": str(VOICE / "rvc"),
+        "VOICES_DIR": str(Path(cfg["data_dir"]) / "voices"),
+        "VOICE_HOST": "127.0.0.1",
+        "VOICE_PORT": str(cfg["voice_port"]),
+        "VOICE_DEVICE": "mps",
+        "PATH": os.pathsep.join([str(TOOLS), env.get("PATH", "/usr/bin:/bin")]),
+        "PYTHONUTF8": "1",
+        "PYTHONUNBUFFERED": "1",
+    })
+    return env
+
+
 def _command_of(pid: int) -> str:
     try:
         return subprocess.run(["ps", "-ww", "-o", "command=", "-p", str(pid)], capture_output=True, text=True,
@@ -195,7 +227,7 @@ def end_leftovers() -> None:
     def ours(pid: int) -> bool:
         # A process id can be given to something else once its process has gone.
         command = _command_of(pid)
-        return str(COMFY / "main.py") in command or "app.main:app" in command
+        return str(COMFY / "main.py") in command or "app.main:app" in command or str(VOICE_SERVER) in command
 
     stopping = []
     for name, pid in recorded.items():
@@ -232,6 +264,7 @@ class Launcher:
         self.app_ready = False
         self.engine_ready = False
         self.engine_stopped = False
+        self.voice_stopped = False
         self.quitting = False
 
     def problem(self) -> str:
@@ -240,7 +273,10 @@ class Launcher:
             return "The engine is not set up. Open Yeufonic again to finish setting it up."
         if not APP_PYTHON.exists():
             return "The app is not set up. Open Yeufonic again to finish setting it up."
-        for port, what in ((self.app_port, "the app"), (self.engine_port, "the engine")):
+        ports = [(self.app_port, "the app"), (self.engine_port, "the engine")]
+        if voices_installed():
+            ports.append((int(self.cfg["voice_port"]), "the voice service"))
+        for port, what in ports:
             if port_taken(port):
                 return (f"Port {port}, which {what} uses, is taken by another program (another copy of "
                         f"Yeufonic or ComfyUI?). The ports can be changed in {SUPPORT / 'settings.ini'}.")
@@ -264,8 +300,16 @@ class Launcher:
         self.started = time.time()
         record("Starting the engine and the app...")
         self.start_engine()
+        env = app_env(self.cfg)
+        if voices_installed():
+            log = LOGS / "voice.log"
+            voice = subprocess.Popen(voice_command(self.cfg), cwd=str(VOICE / "rvc"), env=voice_env(self.cfg),
+                                     stdout=log.open("w", encoding="utf-8"), stderr=subprocess.STDOUT,
+                                     stdin=subprocess.DEVNULL)
+            self.programs["voice"] = (voice, log)
+            env["VOICE_URL"] = f"http://127.0.0.1:{self.cfg['voice_port']}"
         log = LOGS / "app.log"
-        app = subprocess.Popen(app_command(self.cfg), cwd=str(STUDIO), env=app_env(self.cfg),
+        app = subprocess.Popen(app_command(self.cfg), cwd=str(STUDIO), env=env,
                                stdout=log.open("w", encoding="utf-8"), stderr=subprocess.STDOUT,
                                stdin=subprocess.DEVNULL)
         self.programs["app"] = (app, log)
@@ -299,6 +343,11 @@ class Launcher:
             self.engine_stopped = True
             record(f"The engine stopped (exit code {engine.returncode}). See {engine_log}.")
             return "engine stopped"
+        voice = self.programs.get("voice")
+        if voice and voice[0].poll() is not None and not self.voice_stopped:
+            # Not the end of the app: it hides recorded voices while their service does not answer.
+            self.voice_stopped = True
+            record(f"The voice service stopped (exit code {voice[0].returncode}). See {voice[1]}.")
         if not self.engine_ready and answering(f"http://127.0.0.1:{self.engine_port}/system_stats"):
             self.engine_ready = True
             record(f"The engine answered after {now - self.started:.0f} s.")
@@ -339,8 +388,8 @@ class Launcher:
             return
         self.quitting = True
         record("Stopping the app and the engine.")
-        # The app first, so it can tell the engine it is going, then the engine.
-        for name in ("app", "engine"):
+        # The app first, so it can tell the engine it is going, then the voice service and the engine.
+        for name in ("app", "voice", "engine"):
             if name in self.programs:
                 self._end(self.programs[name][0])
         RUNNING.unlink(missing_ok=True)

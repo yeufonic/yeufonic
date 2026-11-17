@@ -31,6 +31,10 @@ BUILD_ID="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 [ -z "$(git -C "$ROOT" status --porcelain --untracked-files=no 2>/dev/null)" ] || BUILD_ID="$BUILD_ID+"
 echo "$BUILD_ID, $(date -u +'%d %b %Y %H:%M UTC')" > "$STUDIO/BUILD"
 tar -C "$ROOT/engine/custom_nodes" --exclude='__pycache__' -cf - yue2_harmony | tar -C "$STUDIO/engine-nodes" -xf -
+# The voice service, for recorded voices (setup.sh --voices puts its Python and RVC beside the install), with the patch
+# that lets RVC train and sing on Apple's GPU.
+mkdir -p "$STUDIO/voice"
+cp "$ROOT/voice/server.py" "$ROOT/voice/requirements.txt" "$ROOT/voice/rvc-mps.patch" "$STUDIO/voice/"
 
 sed "s/@VERSION@/$VERSION/g" "$ROOT/macos/Info.plist" > "$CONTENTS/Info.plist"
 cp "$ROOT/macos/launcher.py" "$ROOT/macos/setup.sh" "$RES/"

@@ -96,3 +96,56 @@ def test_the_converted_vocal_is_lifted_to_the_rendered_ones_presence_and_level(s
     settled, _ = soundfile.read(str(tmp_path / "sung.wav"), dtype="float32")
     assert server._presence(settled, rate) > server._presence(dull, rate) + 3
     assert abs(20 * np.log10(server._loudness(settled, rate) / server._loudness(bright, rate))) < 1.5
+
+
+def test_on_a_mac_the_gpu_steps_run_on_apples_gpu_and_the_pitch_and_content_steps_on_the_cpu(tmp_path, monkeypatch):
+    np = pytest.importorskip("numpy")
+    soundfile = pytest.importorskip("soundfile")
+    for key in ("RVC_TRAIN_DEVICE", "RVC_INFER_DEVICE", "PYTORCH_ENABLE_MPS_FALLBACK"):
+        monkeypatch.setenv(key, "")      # so that what the service sets is taken away again afterwards
+        monkeypatch.delenv(key)
+    monkeypatch.setenv("VOICE_DEVICE", "mps")
+    monkeypatch.setenv("VOICES_DIR", str(tmp_path / "voices"))
+    spec = importlib.util.spec_from_file_location("voice_server_mac", SERVER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "LOGS", tmp_path / "logs")
+    monkeypatch.setattr(module, "ASSETS", tmp_path / "assets")
+    import os
+    assert module.DEVICE == "mps"
+    assert os.environ["RVC_TRAIN_DEVICE"] == os.environ["RVC_INFER_DEVICE"] == "mps"
+    assert os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] == "1"
+    source = tmp_path / "one.flac"
+    source.write_bytes(b"audio")
+    commands = []
+    tone = (np.sin(np.linspace(0, 2000, 44100 * 4)) * 0.3).astype("float32")
+    monkeypatch.setattr(module, "mono", lambda src, dest: soundfile.write(str(dest), tone, 44100))
+
+    def run(args, job=None, log=None):
+        commands.append(args)
+        if pathlib.Path(args[0]).name == "extract_hubert_feature.py":
+            raise RuntimeError("stop here")
+
+    monkeypatch.setattr(module, "run", run)
+    real_separate = module.separate
+    monkeypatch.setattr(module, "separate", lambda src, out: (src, src))
+    with pytest.raises(RuntimeError, match="stop here"):
+        module.train({"state": "running"}, "v1", [str(source)], True, 2, minutes=0.05)
+    f0, hubert = commands[1], commands[2]
+    assert f0[:2] == ["train/dataset/extract_f0.py", "cpu"] and f0[-1] == "rmvpe"
+    assert hubert[1] == "cpu"
+    monkeypatch.setattr(module, "run", lambda args, job=None, log=None: commands.append(args))
+    with pytest.raises(RuntimeError):
+        real_separate(source, tmp_path / "sep")         # nothing written by the stand-in: the device is what matters
+    assert commands[-1][commands[-1].index("--device") + 1] == "mps"
+
+
+def test_elsewhere_the_steps_stay_on_the_nvidia_card(server, tmp_path, monkeypatch):
+    assert server.DEVICE == "cuda"
+    commands = []
+    monkeypatch.setattr(server, "run", lambda args, job=None, log=None: commands.append(args))
+    source = tmp_path / "one.flac"
+    source.write_bytes(b"audio")
+    with pytest.raises(RuntimeError):
+        server.separate(source, tmp_path / "sep")
+    assert commands[-1][commands[-1].index("--device") + 1] == "cuda"

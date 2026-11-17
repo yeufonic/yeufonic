@@ -49,6 +49,18 @@ PORT = int(os.environ.get("VOICE_PORT", "8190"))
 for key, value in (("PYTHONPATH", str(RVC)), ("PYTHONSAFEPATH", "1"), ("RVC_CUDA_GRAPH", "0"), ("PYTHONUNBUFFERED", "1"),
                    ("PYTHONUTF8", "1")):
     os.environ.setdefault(key, value)
+# Where the GPU's steps run: an NVIDIA card (the container, Windows), or Apple's GPU, which the Mac launcher asks for with
+# VOICE_DEVICE=mps.  There the separator runs on the GPU with Metal's missing operations on the CPU, the pitch and
+# content steps run on the CPU (RVC's own path without CUDA, and its pitch tracker is quicker there than on Metal), and
+# training and singing run on the GPU through voice/rvc-mps.patch, which the Mac setup applies to RVC.
+DEVICE = os.environ.get("VOICE_DEVICE", "").strip().lower() or "cuda"
+if DEVICE == "mps":
+    for key, value in (("RVC_TRAIN_DEVICE", "mps"), ("RVC_INFER_DEVICE", "mps"), ("PYTORCH_ENABLE_MPS_FALLBACK", "1")):
+        os.environ.setdefault(key, value)
+if sys.platform == "darwin":
+    # faiss and torch each bring their own OpenMP on a Mac, and a conversion using both crashes outright unless it keeps
+    # to one thread.
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 JOBS: dict[str, dict] = {}
 LOCK = threading.Lock()                  # one GPU job at a time: a training run or a conversion
@@ -128,7 +140,7 @@ def separate(source: Path, out_dir: Path) -> tuple[Path, Path]:
     """A recording split into its vocal and the rest, with BS-Roformer."""
     out_dir.mkdir(parents=True, exist_ok=True)
     run(["-m", "tools.pymss.cli", "infer", "--model-dir", str(ASSETS / "pymss"), "-i", str(source), "-o", str(out_dir),
-         "--device", "cuda", "--format", "flac", "--flac-bit-depth", "PCM_24", SEPARATOR])
+         "--device", DEVICE, "--format", "flac", "--flac-bit-depth", "PCM_24", SEPARATOR])
     stem = source.stem
     vocals = next(iter(glob.glob(str(out_dir / f"{glob.escape(stem)}_Vocals.flac"))), None)
     rest = next(iter(glob.glob(str(out_dir / f"{glob.escape(stem)}_Instrumental.flac"))), None)
@@ -247,8 +259,11 @@ def train(job: dict, voice: str, sources: list, default_split: bool, epochs: int
     job.update(stage="analysing", progress=0.1)
     run(["train/preprocess.py", str(trainset), HZ, str(max(1, (os.cpu_count() or 4) // 2)), str(logs), "False", "3.7"],
         job=job, log=log)
-    run(["train/dataset/extract_f0.py", "cuda", "1", "0", "0", str(logs), "True"], job=job, log=log)
-    run(["train/dataset/extract_hubert_feature.py", "cuda:0", "1", "0", "0", str(logs), "v2", "True"], job=job, log=log)
+    workers = str(max(1, (os.cpu_count() or 4) // 2))
+    run(["train/dataset/extract_f0.py", *(["cuda", "1", "0", "0", str(logs), "True"] if DEVICE == "cuda" else
+                                          ["cpu", str(logs), workers, "rmvpe"])], job=job, log=log)
+    run(["train/dataset/extract_hubert_feature.py", "cuda:0" if DEVICE == "cuda" else "cpu", "1", "0", "0", str(logs),
+         "v2", "True"], job=job, log=log)
     gt, fea, f0, f0n = (logs / d for d in ("0_gt_wavs", "3_feature768", "2a_f0", "2b-f0nsf"))
     stems = lambda d: {n.split(".")[0] for n in os.listdir(d)}  # noqa: E731
     names = stems(gt) & stems(fea) & stems(f0) & stems(f0n)

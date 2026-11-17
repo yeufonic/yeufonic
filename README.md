@@ -294,7 +294,8 @@ docker compose up --build
 
 The result is a converted vocal over a separated backing, so it does not sound as seamless as a vocal YuE2 sang
 itself; clean, dry recordings give the cleanest voice. In the Windows install it is a component of the installer,
-**Recorded voices**, rather than a container. It is not on macOS yet.
+**Recorded voices**, rather than a container, and on a Mac an option of the setup (`setup.sh --voices`), where a
+voice trains and sings on the Mac's GPU.
 
 ## Training a LoRA
 

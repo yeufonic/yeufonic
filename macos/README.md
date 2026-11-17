@@ -35,6 +35,13 @@ Mac with Apple silicon, but it is slower than on an NVIDIA card, and training do
    - **Style LoRAs are an option too**, asked and remembered the same way: the 39 style LoRAs by their
      authors that the Windows installer and `fetch-models.sh --loras` fetch (about 3.8 GB), each with its
      description. A file already in the LoRA folder is left as it is. `setup.sh --loras` fetches them later.
+   - **Recorded voices are an option as well**, asked and remembered the same way: the voice service
+     (RVC and its separator) in a Python 3.12 of its own, with the torch the Windows voice service
+     runs, and its models from the same places with the same checksums (about 1.1 GB, and 1.5 GB of
+     packages). RVC is the commit Docker and Windows pin, with `voice/rvc-mps.patch` applied, so it
+     trains and sings on the GPU; the launcher starts the service beside the app (`voice_port` in
+     settings.ini, 8190) and the app shows recorded voices while it answers. `setup.sh --voices`
+     adds it later.
    - Downloads resume, and a second run keeps whatever is already in place.
    - A Terminal window is used because it needs no permission: the app writes a `.command` file
      and opens it, where telling Terminal what to do would ask to control it.

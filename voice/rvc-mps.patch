@@ -1,0 +1,127 @@
+RVC on Apple's GPU, for the Mac install (macos/setup.sh applies it to the pinned commit; Docker and Windows do not).
+Inert unless asked: training moves to the GPU when RVC_TRAIN_DEVICE=mps, singing (conversion and audition) when
+RVC_INFER_DEVICE=mps, both of which voice/server.py sets when VOICE_DEVICE=mps.  Without it RVC trains and sings on a
+Mac's CPU, at about half the speed.
+
+diff --git a/configs/config.py b/configs/config.py
+index 525fec9..e8f6b62 100644
+--- a/configs/config.py
++++ b/configs/config.py
+@@ -127,6 +127,9 @@ if infer_device.type != "cuda":
+             0.0,
+         )
+ 
++if os.environ.get('RVC_INFER_DEVICE') == 'mps' and torch.backends.mps.is_available():
++    infer_device, infer_dtype, infer_gpu_mem = torch.device('mps'), torch.float32, 0.0
++
+ 
+ # Run a real capture/replay probe on the selected inference device.  Both
+ # application entry points import this module, so downstream inference code
+@@ -242,7 +245,7 @@ class Config:
+                 self.preprocess_per = 3.0
+         else:
+             logger.info("No supported Nvidia GPU found")
+-            self.device = self.instead = "cpu"
++            self.device = self.instead = "mps" if infer_device.type == "mps" else "cpu"
+             self.dtype = torch.float32
+             self.is_half = False
+             self.preprocess_per = 3.0
+diff --git a/train/train.py b/train/train.py
+index 3a5c51b..e67f120 100644
+--- a/train/train.py
++++ b/train/train.py
+@@ -47,6 +47,13 @@ training_is_half = training_dtype == torch.float16
+ 
+ from torch.cuda.amp import GradScaler, autocast
+ 
++MPS = os.environ.get('RVC_TRAIN_DEVICE') == 'mps' and torch.backends.mps.is_available()
++ACCEL = torch.cuda.is_available() or MPS
++
++
++def dev(rank):
++    return 'mps' if MPS else f'cuda:{rank}'
++
+ torch.backends.cudnn.deterministic = False
+ torch.backends.cudnn.benchmark = False
+ from time import sleep
+@@ -129,7 +136,7 @@ def load_pretrained_generator(model, path):
+ 
+ def main():
+     n_gpus = torch.cuda.device_count()
+-    single_cuda = torch.cuda.is_available() and n_gpus == 1
++    single_cuda = (torch.cuda.is_available() and n_gpus == 1) or MPS
+ 
+     if n_gpus < 1:
+         # patch to unblock people without gpus. there is probably a better way.
+@@ -216,11 +223,11 @@ def run(rank, n_gpus, hps, logger, use_ddp):
+             **hps.model,
+             is_half=training_is_half,
+         )
+-    if torch.cuda.is_available():
+-        net_g = net_g.cuda(rank)
++    if ACCEL:
++        net_g = net_g.to(dev(rank))
+     net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm)
+-    if torch.cuda.is_available():
+-        net_d = net_d.cuda(rank)
++    if ACCEL:
++        net_d = net_d.to(dev(rank))
+     optim_g = torch.optim.AdamW(
+         net_g.parameters(),
+         hps.train.learning_rate,
+@@ -369,17 +376,17 @@ def train_and_evaluate(
+                         sid,
+                     ) = info
+                 # Load on CUDA
+-                if torch.cuda.is_available():
+-                    phone = phone.cuda(rank, non_blocking=True)
+-                    phone_lengths = phone_lengths.cuda(rank, non_blocking=True)
++                if ACCEL:
++                    phone = phone.to(dev(rank), non_blocking=True)
++                    phone_lengths = phone_lengths.to(dev(rank), non_blocking=True)
+                     if hps.if_f0 == 1:
+-                        pitch = pitch.cuda(rank, non_blocking=True)
+-                        pitchf = pitchf.cuda(rank, non_blocking=True)
+-                    sid = sid.cuda(rank, non_blocking=True)
+-                    spec = spec.cuda(rank, non_blocking=True)
+-                    spec_lengths = spec_lengths.cuda(rank, non_blocking=True)
+-                    wave = wave.cuda(rank, non_blocking=True)
+-                    wave_lengths = wave_lengths.cuda(rank, non_blocking=True)
++                        pitch = pitch.to(dev(rank), non_blocking=True)
++                        pitchf = pitchf.to(dev(rank), non_blocking=True)
++                    sid = sid.to(dev(rank), non_blocking=True)
++                    spec = spec.to(dev(rank), non_blocking=True)
++                    spec_lengths = spec_lengths.to(dev(rank), non_blocking=True)
++                    wave = wave.to(dev(rank), non_blocking=True)
++                    wave_lengths = wave_lengths.to(dev(rank), non_blocking=True)
+                 # Cache on list
+                 if hps.if_f0 == 1:
+                     cache.append(
+@@ -440,17 +447,17 @@ def train_and_evaluate(
+         else:
+             phone, phone_lengths, spec, spec_lengths, wave, wave_lengths, sid = info
+         ## Load on CUDA
+-        if (hps.if_cache_data_in_gpu == False) and torch.cuda.is_available():
+-            phone = phone.cuda(rank, non_blocking=True)
+-            phone_lengths = phone_lengths.cuda(rank, non_blocking=True)
++        if (hps.if_cache_data_in_gpu == False) and ACCEL:
++            phone = phone.to(dev(rank), non_blocking=True)
++            phone_lengths = phone_lengths.to(dev(rank), non_blocking=True)
+             if hps.if_f0 == 1:
+-                pitch = pitch.cuda(rank, non_blocking=True)
+-                pitchf = pitchf.cuda(rank, non_blocking=True)
+-            sid = sid.cuda(rank, non_blocking=True)
+-            spec = spec.cuda(rank, non_blocking=True)
+-            spec_lengths = spec_lengths.cuda(rank, non_blocking=True)
+-            wave = wave.cuda(rank, non_blocking=True)
+-            # wave_lengths = wave_lengths.cuda(rank, non_blocking=True)
++                pitch = pitch.to(dev(rank), non_blocking=True)
++                pitchf = pitchf.to(dev(rank), non_blocking=True)
++            sid = sid.to(dev(rank), non_blocking=True)
++            spec = spec.to(dev(rank), non_blocking=True)
++            spec_lengths = spec_lengths.to(dev(rank), non_blocking=True)
++            wave = wave.to(dev(rank), non_blocking=True)
++            # wave_lengths = wave_lengths.to(dev(rank), non_blocking=True)
+ 
+         # Calculate
+         with autocast(enabled=training_is_half):

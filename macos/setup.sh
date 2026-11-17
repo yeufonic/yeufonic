@@ -6,7 +6,7 @@
 # and it keeps that script's order, so the two can be read side by side.
 #
 #   bash setup.sh [--install-dir <folder>] [--no-lyrics] [--pictures | --no-pictures] [--loras | --no-loras]
-#                 [--check-only] [--skip-models] [--then-open <app>]
+#                 [--voices | --no-voices] [--check-only] [--skip-models] [--then-open <app>]
 #   ... --install-dir   where it goes (default: ~/Library/Application Support/Yeufonic)
 #   ... --no-lyrics     leave out Gemma 4 (8.1 GB), for an external LLM in Settings instead
 #   ... --pictures      FLUX.2 [klein], which draws each take's picture on this Mac (about 16 GB);
@@ -14,6 +14,9 @@
 #                       answer is kept for every later run.
 #   ... --loras         39 style LoRAs by their authors (CC BY-NC 4.0, about 3.8 GB); --no-loras none.
 #                       Asked and kept as --pictures is.
+#   ... --voices        recorded voices: the voice service (RVC and a BS-Roformer separator) in a Python of its
+#                       own, about 1.1 GB of models and 1.5 GB of packages; --no-voices none.  Asked and kept
+#                       as --pictures is.
 #   ... --check-only    only the system check
 #   ... --skip-models   everything but the 18 GB of models (for testing)
 #   ... --then-open     open this app when setup has finished (the launcher passes itself)
@@ -28,6 +31,7 @@ SKIP_MODELS=0
 THEN_OPEN=""
 PICTURES=""
 LORAS=""
+VOICES=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --install-dir) INSTALL_DIR="$2"; shift 2 ;;
@@ -36,6 +40,8 @@ while [ $# -gt 0 ]; do
     --no-pictures) PICTURES=no; shift ;;
     --loras) LORAS=yes; shift ;;
     --no-loras) LORAS=no; shift ;;
+    --voices) VOICES=yes; shift ;;
+    --no-voices) VOICES=no; shift ;;
     --check-only) CHECK_ONLY=1; shift ;;
     --skip-models) SKIP_MODELS=1; shift ;;
     --then-open) THEN_OPEN="$2"; shift 2 ;;
@@ -82,6 +88,12 @@ ENGINE_TORCH="torch==2.13.0 torchvision==0.28.0 torchaudio==2.11.0"
 # The app's own torch, for stems on the CPU: the version the app container and the Windows
 # app run.
 APP_TORCH="torch==2.9.1 torchaudio==2.9.1"
+# Recorded voices: RVC, MIT, driven by its scripts' argument positions, so pinned as voice/Dockerfile and
+# windows/setup.ps1 pin it, in a Python of its own (it pins an older transformers, numpy and librosa than the
+# engine's) with the torch the Windows voice service runs.  The macOS wheels carry Metal.
+RVC_COMMIT=81eed5e8f68b6bed1789f682fe78cdd324495afc
+VOICE_PYTHON=3.12
+VOICE_TORCH="torch==2.7.1 torchaudio==2.7.1"
 UV_URL=https://github.com/astral-sh/uv/releases/download/0.12.18/uv-aarch64-apple-darwin.tar.gz
 UV_SHA=cf40e0c6a202190ccd9e0406dcfdd5b2d6668a9a5c779b17948963df32aafe5b
 UV_SIZE=16963768
@@ -207,6 +219,25 @@ yue2_jpop_t4.safetensors|106474864|8cdbe15cf1968ff586d734a8ce4f8e7c823f8a8005fe1
 yue2_jpop_t4.txt|231|f799ce448332f646850d3dab41c182d5819c39c2840a8f3617464574fab2f173
 LIST
 }
+# dir|file|bytes|sha256|url|copy: what the voice service reads, as windows/setup.ps1 and scripts/fetch-models.sh --voice
+# fetch it (tests/test_macos.py holds the lists together), with an unchanged copy of each, tried first: a pre-release
+# of Yeufonic's own (the originals are single accounts).  Only when chosen.
+RVC_HF=$HF/lj1995/VoiceConversionWebUI/resolve/main
+PYMSS_HF=$HF/baicai1145/pymss/resolve/main/vocal/vocal_extraction
+VOICE_COPIES=https://github.com/yeufonic/yeufonic/releases/download/voice-models-1
+voice_list() {
+  cat <<LIST
+assets/hubert_base|config.json|1492|0346950779dfb7f9316fa74ed846e2b8a22a08eedfdc5387b73f327cb1a4a7cf|$RVC_HF/hubert_base/config.json|$VOICE_COPIES/hubert_base.config.json
+assets/hubert_base|preprocessor_config.json|225|7c1976a680fb7acc757cd36fb08eef878fa36c70b4c9d2d595df9c608bbbbf0e|$RVC_HF/hubert_base/preprocessor_config.json|$VOICE_COPIES/hubert_base.preprocessor_config.json
+assets/hubert_base|pytorch_model.bin|189206711|cc8c20f4b90a520757260197a3ff2505705a7adbd20ad9eeaa4e1a9b38442ef5|$RVC_HF/hubert_base/pytorch_model.bin|$VOICE_COPIES/hubert_base.pytorch_model.bin
+assets/rmvpe|rmvpe.pt|181184272|6d62215f4306e3ca278246188607209f09af3dc77ed4232efdd069798c4ec193|$RVC_HF/rmvpe.pt|$VOICE_COPIES/rmvpe.pt
+assets/pretrained_v2|f0G48k.pth|75465569|b5d51f589cc3632d4eae36a315b4179397695042edc01d15312e1bddc2b764a4|$RVC_HF/pretrained_v2/f0G48k.pth|$VOICE_COPIES/f0G48k.pth
+assets/pretrained_v2|f0D48k.pth|142875703|2269b73c7a4cf34da09aea99274dabf99b2ddb8a42cbfb065fb3c0aa9a2fc748|$RVC_HF/pretrained_v2/f0D48k.pth|$VOICE_COPIES/f0D48k.pth
+assets/pymss/vocal/vocal_extraction|model_bs_roformer_ep_317_sdr_12.9755.ckpt|639331213|5b84f37e8d444c8cb30c79d77f613a41c05868ff9c9ac6c7049c00aefae115aa|$PYMSS_HF/model_bs_roformer_ep_317_sdr_12.9755.ckpt|$VOICE_COPIES/model_bs_roformer_ep_317_sdr_12.9755.ckpt
+assets/pymss/vocal/vocal_extraction|model_bs_roformer_ep_317_sdr_12.9755.yaml|2279|3dae086b481bc6adecccb6bdfd2386ffd78708e11c221876a146972cab5b2afe|$PYMSS_HF/model_bs_roformer_ep_317_sdr_12.9755.yaml|$VOICE_COPIES/model_bs_roformer_ep_317_sdr_12.9755.yaml
+.|mute.zip|312273|ee948e85213e4ed2f2ba2f8dfcee810bfd0b63131d91450e920bbe1cbd0321d0|$RVC_HF/mute.zip|$VOICE_COPIES/mute.zip
+LIST
+}
 soundfont_list() {
   cat <<LIST
 github_Jnsgm2.sf2|33187490|dc48cb5c322cab23fce1b18442066be30ccc49a184603c7a3bf7615003ee137d|https://raw.githubusercontent.com/wrightflyer/SF2_SoundFonts/master/Jnsgm2.sf2
@@ -277,13 +308,19 @@ get_verified() {
 # An archive of one commit from GitHub.  GitHub builds these on request, so they have no
 # fixed checksum; the commit id pins the contents.
 get_commit() {
-  local repo="$1" commit="$2" dest="$3"
-  local archive
+  local repo="$1" commit="$2" dest="$3" also="${4:-}"
+  local archive source got=0
   archive="$DOWNLOADS/$(echo "$repo" | tr / _)-${commit:0:8}.tar.gz"
   if [ ! -f "$archive" ]; then
-    say "Downloading $repo at ${commit:0:8}"
-    curl -L --fail --retry 5 -# -o "$archive.part" "https://codeload.github.com/$repo/tar.gz/$commit" \
-      || stop_setup "could not download $repo"
+    # A second repository, where given, holds the same commit: tried when the first cannot be had.
+    for source in $repo $also; do
+      say "Downloading $source at ${commit:0:8}"
+      if curl -L --fail --retry 5 -# -o "$archive.part" "https://codeload.github.com/$source/tar.gz/$commit"; then
+        got=1; break
+      fi
+      rm -f "$archive.part"
+    done
+    [ "$got" -eq 1 ] || stop_setup "could not download $repo"
     mv -f "$archive.part" "$archive"
   fi
   local tmp="$DOWNLOADS/unpack"
@@ -388,6 +425,29 @@ fi
 [ "$LORAS" = yes ] || LORAS=no
 say "Style LoRAs: $LORAS"
 
+ask_voices() {
+  say ""
+  say "Recorded voices (optional)"
+  say "  Train a voice from recordings of a singer, and have a take sung again in it."
+  say "  About 1.1 GB of models and 1.5 GB of packages. A voice trains in some minutes on this Mac."
+  say "  To change this later, quit Yeufonic and run in Terminal:"
+  say "    bash $(printf '%q' "$HERE/setup.sh") --voices"
+  printf 'Set up recorded voices? [y/N] '
+  local answer=""
+  read -r answer || answer=""
+  case "$answer" in [yY]*) VOICES=yes ;; *) VOICES=no ;; esac
+}
+if [ -n "$VOICES" ]; then
+  [ "$CHECK_ONLY" -eq 1 ] || echo "$VOICES" > "$STATE/voices"
+elif [ -f "$STATE/voices" ]; then
+  VOICES="$(cat "$STATE/voices")"
+elif [ -z "$problems" ] && [ "$CHECK_ONLY" -eq 0 ] && [ "$SKIP_MODELS" -eq 0 ] && [ -t 0 ]; then
+  ask_voices
+  echo "$VOICES" > "$STATE/voices"
+fi
+[ "$VOICES" = yes ] || VOICES=no
+say "Recorded voices: $VOICES"
+
 # Room for what is still to come: the missing models, plus about 8 GB for the engine, the
 # app and the downloads while they unpack.  Counted in thousands, as download sites count.
 NEED=8000000000
@@ -415,8 +475,18 @@ EOF
 $(style_lora_list)
 EOF
   fi
+  if [ "$VOICES" = yes ]; then
+    while IFS='|' read -r dir file size sha url copy; do
+      [ -z "$file" ] && continue
+      [ -f "$INSTALL_DIR/voice/models/$dir/$file" ] || NEED=$((NEED + size))
+    done <<EOF
+$(voice_list)
+EOF
+  fi
   NEED=$((NEED + 1700000000))   # Whisper and demucs, for the app
 fi
+# The voice service's own Python and packages.
+if [ "$VOICES" = yes ] && [ ! -x "$INSTALL_DIR/voice/venv/bin/python" ]; then NEED=$((NEED + 1500000000)); fi
 FREE_KB="$(df -k "$INSTALL_DIR" | awk 'NR==2 {print $4}')"
 FREE=$((FREE_KB * 1024))
 NEED_GB=$(((NEED + 999999999) / 1000000000))
@@ -635,6 +705,62 @@ if [ "$SKIP_MODELS" -eq 0 ]; then
   done <<EOF
 $(soundfont_list)
 EOF
+fi
+
+# ----------------------------------------------------------- recorded voices
+# The voice service runs in a Python of its own, with RVC beside it, RVC's assets and logs folders linked into
+# voice/models (so a new RVC commit leaves them in place), and voice/rvc-mps.patch applied, which lets RVC train and
+# sing on Apple's GPU when the service asks it to.  The service itself comes with the app; the launcher starts it.
+if [ "$VOICES" = yes ]; then
+  step "Recorded voices (the voice service)"
+  VOICE_DIR="$INSTALL_DIR/voice"
+  RVC_DIR="$VOICE_DIR/rvc"
+  VOICE_MODELS="$VOICE_DIR/models"
+  VOICE_VENV="$VOICE_DIR/venv"
+  mkdir -p "$VOICE_MODELS/assets" "$VOICE_MODELS/logs"
+  RVC_MARK="rvc-${RVC_COMMIT:0:12}-$(sha_of "$STUDIO/voice/rvc-mps.patch" | cut -c1-12)"
+  if ! is_done "$RVC_MARK" || [ ! -d "$RVC_DIR/infer" ]; then
+    # The links go first, on their own: replacing the folder must not follow one into the models.
+    for link in assets logs; do
+      if [ -L "$RVC_DIR/$link" ]; then unlink "$RVC_DIR/$link"; fi
+    done
+    get_commit yeufonic/Retrieval-based-Voice-Conversion-WebUI "$RVC_COMMIT" "$RVC_DIR" RVC-Project/Retrieval-based-Voice-Conversion-WebUI
+    patch -p1 -s -d "$RVC_DIR" < "$STUDIO/voice/rvc-mps.patch" || stop_setup "RVC could not be patched for this Mac's GPU"
+    mark_done "$RVC_MARK"
+  fi
+  for link in assets logs; do
+    if [ ! -L "$RVC_DIR/$link" ]; then
+      rm -rf "${RVC_DIR:?}/${link:?}"
+      ln -s "$VOICE_MODELS/$link" "$RVC_DIR/$link"
+    fi
+  done
+  VOICE_MARK="voice-env-$(sha_of "$STUDIO/voice/requirements.txt" | cut -c1-12)"
+  if ! is_done "$VOICE_MARK" || [ ! -x "$VOICE_VENV/bin/python" ]; then
+    if ! is_done "python-$VOICE_PYTHON"; then
+      "$UV" python install --no-bin "$VOICE_PYTHON" || stop_setup "Python $VOICE_PYTHON could not be installed"
+      mark_done "python-$VOICE_PYTHON"
+    fi
+    if [ ! -x "$VOICE_VENV/bin/python" ]; then
+      "$UV" venv --python "$VOICE_PYTHON" "$VOICE_VENV" || stop_setup "the voice service's Python could not be set up"
+    fi
+    # shellcheck disable=SC2086
+    "$UV" pip install --python "$VOICE_VENV/bin/python" $VOICE_TORCH || stop_setup "torch for the voice service failed"
+    "$UV" pip install --python "$VOICE_VENV/bin/python" -r "$STUDIO/voice/requirements.txt" || stop_setup "the voice service's packages failed"
+    mark_done "$VOICE_MARK"
+  fi
+  if [ "$SKIP_MODELS" -eq 0 ]; then
+    while IFS='|' read -r dir file size sha url copy; do
+      [ -z "$file" ] && continue
+      mkdir -p "$VOICE_MODELS/$dir"
+      get_verified "$url" "$VOICE_MODELS/$dir/$file" "$size" "$sha" "$copy"
+    done <<EOF
+$(voice_list)
+EOF
+    mkdir -p "$VOICE_MODELS/assets/weights" "$VOICE_MODELS/assets/indices"
+    if [ ! -d "$VOICE_MODELS/logs/mute/0_gt_wavs" ]; then
+      unzip -o -q "$VOICE_MODELS/mute.zip" -d "$VOICE_MODELS/logs"
+    fi
+  fi
 fi
 
 # -------------------------------------------------------------------- done

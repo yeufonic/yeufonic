@@ -236,12 +236,14 @@ def test_the_first_run_in_a_window_asks_and_remembers(tmp_path, answer, memory_g
     proc = subprocess.Popen(["bash", str(SETUP), "--install-dir", str(tmp_path / "install")], env=env,
                             stdin=follower, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     os.close(follower)
-    os.write(leader, (answer + "\n" + answer + "\n").encode())     # pictures, then style LoRAs
+    os.write(leader, (answer + "\n") .encode() * 3)     # pictures, style LoRAs, recorded voices
     out, _ = proc.communicate(timeout=60)
     os.close(leader)
     assert "Draw take pictures on this Mac? [y/N]" in out
     assert "Fetch the style LoRAs? [y/N]" in out
-    assert (tmp_path / "install" / "state" / "loras").read_text().strip() == ("yes" if answer == "y" else "no")
+    assert "Set up recorded voices? [y/N]" in out
+    for option in ("loras", "voices"):
+        assert (tmp_path / "install" / "state" / option).read_text().strip() == ("yes" if answer == "y" else "no")
     assert ("not recommended" in out) == (memory_gb < 24)
     assert f"Take pictures on this Mac: {chosen}" in out
     assert (tmp_path / "install" / "state" / "pictures").read_text().strip() == chosen
@@ -272,6 +274,136 @@ def test_style_loras_are_left_out_unless_chosen(tmp_path):
     assert not (tmp_path / "install" / "state" / "loras").exists()
 
 
+# --------------------------------------------------------------- recorded voices
+
+def test_the_voice_service_gets_the_files_windows_fetches_from_the_same_places():
+    """The same models, sizes and checksums as setup.ps1 -Voices, each from our copy first and then its publisher."""
+    text = SETUP.read_text(encoding="utf-8")
+    hosts = {"$RVC_HF": "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main",
+             "$PYMSS_HF": "https://huggingface.co/baicai1145/pymss/resolve/main/vocal/vocal_extraction",
+             "$VOICE_COPIES": "https://github.com/yeufonic/yeufonic/releases/download/voice-models-1"}
+
+    def expand(url: str) -> str:
+        for name, value in hosts.items():
+            url = url.replace(name, value)
+        return url
+
+    block = re.search(r"voice_list\(\) \{\n  cat <<LIST\n(.*?)\nLIST", text, re.S).group(1)
+    mac = {}
+    for line in block.splitlines():
+        folder, name, size, sha, url, copy = line.split("|")
+        mac[name] = {"dir": "" if folder == "." else folder, "size": int(size), "sha": sha, "url": expand(url),
+                     "copy": expand(copy)}
+    ps1 = SETUP_PS1.read_text(encoding="utf-8")
+    listed = ps1.split("$VoiceFiles = @(", 1)[1].split("\n)\n", 1)[0]
+    windows = {}
+    for entry in re.findall(r"@\{(.*?Size = \d+) \}", listed, re.S):
+        name = re.search(r"File = '([^']+)'", entry).group(1)
+        windows[name] = {
+            "dir": re.search(r"Dir = '([^']*)'", entry).group(1).replace("\\", "/"),
+            "size": int(re.search(r"Size = (\d+)", entry).group(1)),
+            "sha": re.search(r"Sha = '([0-9a-f]{64})'", entry).group(1),
+            "url": re.search(r'Url = "([^"]+)"', entry).group(1).replace("$RvcHF", hosts["$RVC_HF"]).replace(
+                "$PymssHF", hosts["$PYMSS_HF"]),
+            "copy": re.search(r'Copy = "([^"]+)"', entry).group(1).replace("$VoiceCopies", hosts["$VOICE_COPIES"])}
+    assert mac == windows
+
+
+def test_rvc_and_its_torch_are_pinned_where_docker_and_windows_pin_them():
+    text = SETUP.read_text(encoding="utf-8")
+    commit = re.search(r"^RVC_COMMIT=(\w{40})$", text, re.M).group(1)
+    ps1 = SETUP_PS1.read_text(encoding="utf-8")
+    assert f"RvcCommit         = '{commit}'" in ps1
+    assert f"ARG RVC_COMMIT={commit}" in (ROOT / "voice" / "Dockerfile").read_text(encoding="utf-8")
+    torch = re.search(r"VoiceTorch +\= '([\d.]+)'", ps1).group(1)
+    assert f'VOICE_TORCH="torch=={torch} torchaudio=={torch}"' in text
+    assert re.search(r"VoicePython +\= '([\d.]+)'", ps1).group(1) == re.search(r"^VOICE_PYTHON=([\d.]+)$", text, re.M).group(1)
+
+
+def test_the_mac_patch_for_rvc_changes_only_what_the_service_asks_for():
+    """Only training and singing, and only when told: Docker and Windows run RVC unpatched."""
+    patch = (ROOT / "voice" / "rvc-mps.patch").read_text(encoding="utf-8")
+    assert re.findall(r"^diff --git a/(\S+)", patch, re.M) == ["configs/config.py", "train/train.py"]
+    added = "\n".join(line for line in patch.splitlines() if line.startswith("+") and not line.startswith("+++"))
+    assert "RVC_TRAIN_DEVICE" in added and "RVC_INFER_DEVICE" in added
+    assert "torch.backends.mps.is_available()" in added
+
+
+@needs_bash
+def test_recorded_voices_are_left_out_unless_chosen(tmp_path):
+    plain = check(tmp_path)
+    assert "Recorded voices: no" in plain.stdout
+    chosen = check(tmp_path, "--voices")
+    assert "Recorded voices: yes" in chosen.stdout
+    assert needed_gb(chosen) - needed_gb(plain) in (2, 3)    # 1.1 GB of models and 1.5 GB of packages
+    assert not (tmp_path / "install" / "state" / "voices").exists()
+
+
+def test_the_launcher_starts_the_voice_service_where_it_is_set_up(monkeypatch, tmp_path):
+    launcher = load_launcher(monkeypatch, tmp_path)
+    cfg = launcher.settings()
+    assert not launcher.voices_installed()
+    for path in (launcher.VOICE_PYTHON, launcher.VOICE / "rvc" / "infer" / "x"):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("")
+    studio = tmp_path / "studio"
+    (studio / "voice").mkdir(parents=True)
+    (studio / "voice" / "server.py").write_text("")
+    monkeypatch.setattr(launcher, "VOICE_SERVER", studio / "voice" / "server.py")
+    assert launcher.voices_installed()
+    env = launcher.voice_env(cfg)
+    assert env["VOICE_DEVICE"] == "mps"
+    assert env["VOICE_PORT"] == "8190" and env["VOICE_HOST"] == "127.0.0.1"
+    assert env["RVC_DIR"] == str(launcher.VOICE / "rvc")
+    assert env["VOICES_DIR"] == str(Path(cfg["data_dir"]) / "voices")
+    assert env["PATH"].startswith(str(launcher.TOOLS))       # ffmpeg, for the separator and the mix
+    assert launcher.voice_command(cfg) == [str(launcher.VOICE_PYTHON), str(studio / "voice" / "server.py")]
+
+
+def test_the_voice_service_runs_beside_the_app_and_stops_with_it(monkeypatch, tmp_path):
+    launcher = load_launcher(monkeypatch, tmp_path)
+    server = tmp_path / "server.py"
+    server.write_text(SERVER)
+    app_port, engine_port, voice_port = free_port(), free_port(), free_port()
+    monkeypatch.setattr(launcher, "COMFY", tmp_path)
+    monkeypatch.setattr(launcher, "STUDIO", tmp_path)
+    monkeypatch.setattr(launcher, "VOICE", tmp_path / "voice")
+    (tmp_path / "voice" / "rvc").mkdir(parents=True)
+    monkeypatch.setattr(launcher, "voices_installed", lambda: True)
+    monkeypatch.setattr(launcher, "engine_command", lambda cfg: [sys.executable, str(server), str(engine_port), "/system_stats"])
+    monkeypatch.setattr(launcher, "voice_command", lambda cfg: [sys.executable, str(server), str(voice_port), "/health"])
+    told = {}
+
+    def app_command(cfg):
+        return [sys.executable, str(server), str(app_port), "/api/health"]
+
+    real_popen = launcher.subprocess.Popen
+
+    def popen(args, **kw):
+        if args == app_command(None):
+            told.update(voice_url=kw["env"].get("VOICE_URL"))
+        return real_popen(args, **kw)
+
+    monkeypatch.setattr(launcher, "app_command", app_command)
+    monkeypatch.setattr(launcher.subprocess, "Popen", popen)
+    cfg = dict(launcher.settings(), app_port=str(app_port), engine_port=str(engine_port), voice_port=str(voice_port))
+    run = launcher.Launcher(cfg)
+    run.start()
+    try:
+        assert set(json.loads(launcher.RUNNING.read_text())) == {"launcher", "engine", "voice", "app"}
+        assert told["voice_url"] == f"http://127.0.0.1:{voice_port}"
+        voice = run.programs["voice"][0]
+        voice.terminate()
+        voice.wait(10)
+        seen = [run.poll() for _ in range(3)]
+        assert "app stopped" not in seen                  # the app carries on, without recorded voices
+        assert run.voice_stopped
+        assert (tmp_path / "logs" / "launcher.log").read_text().count("The voice service stopped") == 1
+    finally:
+        run.stop()
+    assert all(p.poll() is not None for p, _ in run.programs.values())
+
+
 @needs_bash
 def test_setup_keeps_a_log(tmp_path):
     check(tmp_path)
@@ -299,7 +431,8 @@ def test_the_app_carries_what_setup_and_the_launcher_need(built):
     assert info["LSMinimumSystemVersion"] == "14.0"
     res = contents / "Resources"
     for need in ("setup.sh", "launcher.py", "yeufonic.icns", "studio/VERSION", "studio/BUILD",
-                 "studio/requirements.txt", "studio/app/main.py", "studio/engine-nodes/yue2_harmony/__init__.py"):
+                 "studio/requirements.txt", "studio/app/main.py", "studio/engine-nodes/yue2_harmony/__init__.py",
+                 "studio/voice/server.py", "studio/voice/requirements.txt", "studio/voice/rvc-mps.patch"):
         assert (res / need).exists(), need
     assert (res / "studio" / "VERSION").read_text().strip() == "0.0.98"
     assert not list(res.rglob("__pycache__"))
