@@ -37,6 +37,12 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **The editor's columns can be widened and narrowed.** Drag the bar between two columns to give one more room and its
+  neighbour less, down to a width each keeps its controls readable at; double-click the bar for the usual widths. The
+  widths are kept in the browser. A wider first column also widens its style list, so more of each style shows.
+
 ## 0.0.61 (2026-11-17)
 
 - **Mac: LoRA training works.** Both halves of a style LoRA now train on a Mac's GPU, so the Train window is on there

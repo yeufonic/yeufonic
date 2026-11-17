@@ -235,6 +235,10 @@ checks whether a line is already someone else's. Read it and make it yours befor
 its three columns (the song, the words and the sound), and then what to do after the plan. It ends with a
 table for the common wishes, such as a longer song or a chorus that sounds different from the verse.
 
+The columns can be made wider or narrower: drag the bar between two of them (it shows when the mouse is over the gap),
+and double-click it for the usual widths. The widths are kept in this browser. In a narrow window the columns stand
+one above another instead.
+
 ### The song
 
 - **Title.** Optional. Left blank, the first line of the lyrics is used.

@@ -17590,6 +17590,104 @@ function setEditorMax(on) {
   }
 }
 
+// The editor's three columns can be widened and narrowed by dragging the bars between them: each bar moves width from
+// one column to its neighbour, none narrower than COL_MIN, and a double-click puts the usual widths back.  The widths
+// are kept in this browser as shares of the whole, so they suit any window size.  Only while the columns stand side
+// by side: in a narrow window they stack, and the bars are hidden.
+var COL_MIN = 260;
+var COL_KEY = 'yue2.editorColumns';
+
+function editorColumnShares() {
+  try {
+    var shares = JSON.parse(localStorage.getItem(COL_KEY) || 'null');
+    if (Array.isArray(shares) && shares.length === 3 && shares.every(function (n) { return typeof n === 'number' && n > 0; })) {
+      return shares;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function applyEditorColumns(shares) {
+  var page = document.querySelector('.ed-cols');
+  if (!page) { return; }
+  ['--ed-c1', '--ed-c2', '--ed-c3'].forEach(function (name, i) {
+    if (shares) { page.style.setProperty(name, shares[i].toFixed(4) + 'fr'); } else { page.style.removeProperty(name); }
+  });
+  placeColumnHandles();
+}
+
+function editorColumnsSideBySide(cols) {
+  return cols.length === 3 && cols[0].offsetParent !== null && Math.abs(cols[0].offsetTop - cols[1].offsetTop) < 2 &&
+    Math.abs(cols[1].offsetTop - cols[2].offsetTop) < 2;
+}
+
+function placeColumnHandles() {
+  var page = document.querySelector('.ed-cols');
+  if (!page) { return; }
+  var cols = page.querySelectorAll(':scope > .ed-col');
+  var handles = page.querySelectorAll(':scope > .ed-col-handle');
+  var side = editorColumnsSideBySide(cols);
+  Array.prototype.forEach.call(handles, function (handle, i) {
+    if (!side) { handle.style.display = 'none'; return; }
+    handle.style.display = '';
+    var left = cols[i].offsetLeft + cols[i].offsetWidth;
+    handle.style.left = (left + (cols[i + 1].offsetLeft - left) / 2) + 'px';
+  });
+}
+
+function setupEditorColumns() {
+  var page = document.querySelector('.ed-cols');
+  if (!page || page.querySelector(':scope > .ed-col-handle')) { return; }
+  var cols = page.querySelectorAll(':scope > .ed-col');
+  if (cols.length !== 3) { return; }
+  [0, 1].forEach(function (i) {
+    var handle = document.createElement('div');
+    handle.className = 'ed-col-handle';
+    handle.setAttribute('role', 'separator');
+    handle.setAttribute('aria-orientation', 'vertical');
+    handle.title = t('Drag to widen or narrow the columns. Double-click for the usual widths.');
+    handle.addEventListener('pointerdown', function (event) {
+      if (event.button !== 0 || !editorColumnsSideBySide(cols)) { return; }
+      event.preventDefault();
+      var widths = Array.prototype.map.call(cols, function (col) { return col.offsetWidth; });
+      var startX = event.clientX;
+      var pair = widths[i] + widths[i + 1];
+      handle.classList.add('dragging');
+      document.body.classList.add('ed-col-dragging');
+      if (handle.setPointerCapture) { handle.setPointerCapture(event.pointerId); }
+      function move(ev) {
+        var left = Math.max(COL_MIN, Math.min(pair - COL_MIN, widths[i] + ev.clientX - startX));
+        var now = widths.slice();
+        now[i] = left;
+        now[i + 1] = pair - left;
+        var total = now[0] + now[1] + now[2];
+        applyEditorColumns(now.map(function (w) { return w / total * 3; }));
+      }
+      function end() {
+        handle.classList.remove('dragging');
+        document.body.classList.remove('ed-col-dragging');
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', end);
+        handle.removeEventListener('pointercancel', end);
+        var now = Array.prototype.map.call(cols, function (col) { return col.offsetWidth; });
+        var total = now[0] + now[1] + now[2];
+        try { localStorage.setItem(COL_KEY, JSON.stringify(now.map(function (w) { return w / total * 3; }))); } catch (e) {}
+      }
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', end);
+      handle.addEventListener('pointercancel', end);
+    });
+    handle.addEventListener('dblclick', function () {
+      try { localStorage.removeItem(COL_KEY); } catch (e) {}
+      applyEditorColumns(null);
+    });
+    page.appendChild(handle);
+  });
+  applyEditorColumns(editorColumnShares());
+  if (typeof ResizeObserver === 'function') { new ResizeObserver(placeColumnHandles).observe(page); }
+  window.addEventListener('resize', placeColumnHandles);
+}
+
 function openEditor(where) {
   State.titleBefore = null;
   if (!$('editor-modal')) { return; }
@@ -17597,6 +17695,8 @@ function openEditor(where) {
   $('editor-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   paintEditor();
+  setupEditorColumns();
+  placeColumnHandles();
   if (where === 'words' && $('lyrics') && $('lyrics').offsetParent) { $('lyrics').focus(); }
 }
 
