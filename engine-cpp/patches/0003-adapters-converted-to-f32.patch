@@ -1,0 +1,63 @@
+From 77917e27ea092b14c220d709f2fa929c918feb44 Mon Sep 17 00:00:00 2001
+From: Paul Shields <noisyoly@gmail.com>
+Date: Mon, 16 Nov 2026 21:02:11 +0000
+Subject: [PATCH] Adapters: merge into tensors the load converted to F32 (a
+ BF16 model's biases)
+
+---
+ src/adapter.h      | 5 +++--
+ src/gguf-weights.h | 2 +-
+ src/weight-ctx.h   | 1 +
+ 3 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/src/adapter.h b/src/adapter.h
+index d5f82fa..f775029 100644
+--- a/src/adapter.h
++++ b/src/adapter.h
+@@ -411,7 +411,8 @@ static bool adapter_merge_tensor(WeightCtx *                      wctx,
+                                  ggml_backend_t                   backend) {
+     const int64_t        ne0  = meta->ne[0];
+     const int64_t        ne1  = ggml_nrows(meta);
+-    const enum ggml_type type = meta->type;
++    // The staged copy's own type: the GGUF's, or F32 where the load converted it (a BF16 model's biases)
++    const enum ggml_type type = pc->tensor->type;
+     const size_t         row  = ggml_row_size(type, ne0);
+ 
+     std::vector<float> base((size_t) (ne0 * ne1));
+@@ -498,7 +499,7 @@ static bool adapter_merge_tensor(WeightCtx *                      wctx,
+ static bool adapter_apply(WeightCtx * wctx, const GGUFModel & gf, ggml_backend_t backend, const AdapterTerms & terms) {
+     std::unordered_map<const void *, size_t> staged;
+     for (size_t i = 0; i < wctx->pending.size(); i++) {
+-        staged[wctx->pending[i].src] = i;
++        staged[wctx->pending[i].origin ? wctx->pending[i].origin : wctx->pending[i].src] = i;
+     }
+     for (const auto & kv : terms) {
+         const struct ggml_tensor * meta = ggml_get_tensor(gf.meta, kv.first.c_str());
+diff --git a/src/gguf-weights.h b/src/gguf-weights.h
+index ce1c67d..3f7a5d8 100644
+--- a/src/gguf-weights.h
++++ b/src/gguf-weights.h
+@@ -266,7 +266,7 @@ static struct ggml_tensor * gf_load_tensor_f32(WeightCtx * wctx, const GGUFModel
+ 
+     traits->to_float(raw, data, (int64_t) n);
+ 
+-    wctx->pending.push_back({ tensor, data, n * sizeof(float), 0 });
++    wctx->pending.push_back({ tensor, data, n * sizeof(float), 0, raw });
+     wctx->staging.push_back(std::move(buf));
+     return tensor;
+ }
+diff --git a/src/weight-ctx.h b/src/weight-ctx.h
+index e43f573..96bc200 100644
+--- a/src/weight-ctx.h
++++ b/src/weight-ctx.h
+@@ -27,6 +27,7 @@ struct WeightCtx {
+         const void *         src;
+         size_t               nbytes;
+         size_t               offset;  // byte offset into dst tensor (0 for regular loads)
++        const void *         origin = nullptr;  // the GGUF data a converted copy was made from (adapters find it by this)
+     };
+ 
+     std::vector<PendingCopy> pending;
+-- 
+2.54.0 (Apple Git-157)
+

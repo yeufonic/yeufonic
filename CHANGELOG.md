@@ -52,6 +52,10 @@ cannot creep back in.
 - **Mac: the setup offers the style LoRAs.** The setup window asks once whether to fetch the 39 style LoRAs by their
   authors that the Windows installer and Docker can fetch, with their descriptions, and remembers the answer
   (`setup.sh --loras` later). A LoRA file already in the folder is left as it is.
+- **yue2.cpp: LoRAs work with the full-quality (BF16) model.** With the BF16 file chosen (`YUE2CPP_MODEL`), any
+  LoRA that changes the sound, the instrumental and Realaudio ones among them, stopped the render with "llm2vae.bias is
+  not staged by this model". yue2.cpp turns that file's small tensors into full precision as it loads them, and the
+  LoRA merge then could not find them; a patch of ours lets it.
 
 ## 0.0.60 (2026-11-15)
 

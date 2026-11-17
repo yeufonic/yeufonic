@@ -18,7 +18,7 @@ services:
   # (scripts/engine-image-tag.sh): a release that changes it names a new tag, which is downloaded once.
   # compose.cpp-build.yml builds it here instead.
   engine-cpp:
-    image: ghcr.io/yeufonic/yeufonic-engine-cpp:31540c7baa08
+    image: ghcr.io/yeufonic/yeufonic-engine-cpp:d5991932ff1d
     container_name: yeufonic-engine-cpp
     restart: unless-stopped
     # The backbone: Q8_0 (near lossless) by default; YUE2CPP_MODEL picks another,
