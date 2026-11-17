@@ -1,0 +1,79 @@
+# FluidSynth for the Mac install, which FluidSynth itself does not publish: built by macos/build-fluidsynth.sh and
+# published as a pre-release named for its versions, which macos/setup.sh fetches by its checksum.  A pre-release
+# already published under the name is left alone, so this only builds when the script's versions change.
+name: FluidSynth for macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'macos/build-fluidsynth.sh'
+      - '.github/workflows/fluidsynth-macos.yml'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  PACKAGE: 1
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The versions
+        id: ref
+        run: |
+          fs=$(sed -n 's/^FLUIDSYNTH_VERSION=//p' macos/build-fluidsynth.sh)
+          sf=$(sed -n 's/^SNDFILE_VERSION=//p' macos/build-fluidsynth.sh)
+          tag="fluidsynth-macos-${fs}-sndfile-${sf}-p${PACKAGE}"
+          echo "fs=$fs" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "built=yes" >> "$GITHUB_OUTPUT"
+            echo "$tag is already published: nothing to build"
+          else
+            echo "built=no" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build
+        if: steps.ref.outputs.built == 'no'
+        run: OUT="$RUNNER_TEMP/${{ steps.ref.outputs.tag }}" bash macos/build-fluidsynth.sh
+
+      - name: Package
+        if: steps.ref.outputs.built == 'no'
+        id: pack
+        run: |
+          tag="${{ steps.ref.outputs.tag }}"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/$tag.tar.gz" "$tag"
+          sha=$(shasum -a 256 "$RUNNER_TEMP/$tag.tar.gz" | cut -d' ' -f1)
+          size=$(stat -f %z "$RUNNER_TEMP/$tag.tar.gz")
+          echo "$sha  $tag.tar.gz" > "$RUNNER_TEMP/$tag.tar.gz.sha256"
+          echo "file=$RUNNER_TEMP/$tag.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "SHA-256: $sha, $size bytes"
+
+      - name: Attest the build
+        if: steps.ref.outputs.built == 'no'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.pack.outputs.file }}
+
+      - name: Publish as a pre-release
+        if: steps.ref.outputs.built == 'no'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.ref.outputs.tag }}"
+          gh release create "$tag" --prerelease --target "$GITHUB_SHA" \
+            --title "FluidSynth ${{ steps.ref.outputs.fs }} for macOS (Apple silicon)" \
+            --notes "FluidSynth ${{ steps.ref.outputs.fs }} (https://github.com/FluidSynth/fluidsynth, LGPL-2.1), built unchanged for macOS on Apple silicon with libsndfile built in, by macos/build-fluidsynth.sh and .github/workflows/fluidsynth-macos.yml. Downloaded by the Mac setup so MIDI files can be heard; not a Yeufonic release. SHA-256 of the archive: ${{ steps.pack.outputs.sha }}" \
+            "$RUNNER_TEMP/$tag.tar.gz" "$RUNNER_TEMP/$tag.tar.gz.sha256"

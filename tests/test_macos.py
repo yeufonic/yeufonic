@@ -132,7 +132,7 @@ def check(tmp_path, *extra, **mac):
 
 @needs_bash
 def test_setup_scripts_parse():
-    for script in ("setup.sh", "build.sh"):
+    for script in ("setup.sh", "build.sh", "build-fluidsynth.sh"):
         res = subprocess.run(["bash", "-n", str(MACOS / script)], capture_output=True, text=True)
         assert res.returncode == 0, res.stderr
 
