@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.62 (2026-11-17)
 
 - **An instrumental keeps to the sections you give it.** With Sections or Timed sections, the planner took the list as a
   suggestion and wrote its own shape, often a fraction of a long structure (6 sections of 23, three minutes of ten). It
