@@ -58,7 +58,7 @@
 - VRAM 12GB 이상의 NVIDIA GPU와 16GB 메모리를 권장합니다. 8GB 카드도 시도해 볼 만하며, 더 작은 카드에는 INT8 모델이나 yue2.cpp 엔진이 있습니다.
 - 로컬에서 LoRA를 학습하려면 사실상 VRAM 16GB와 메모리 32GB가 필요합니다(INT8 모델은 VRAM 8GB).
 - 약 30GB의 여유 디스크 공간, 라이브러리가 커질수록 더 필요합니다.
-- Apple 실리콘 Mac은 실험적으로 동작하며 훨씬 느립니다: **[yeufonic.com/macos](https://yeufonic.com/macos/)** 참고.
+- Apple 실리콘 Mac에서도 LoRA 학습을 포함해 모두 동작하지만 NVIDIA 그래픽 카드보다 훨씬 느립니다: **[yeufonic.com/macos](https://yeufonic.com/macos/)** 참고.
 
 ## Windows에서, Docker 없이
 

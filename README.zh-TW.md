@@ -58,7 +58,7 @@
 - 建議使用 12 GB 顯示記憶體以上的 NVIDIA 顯示卡和 16 GB 記憶體。8 GB 顯示卡也值得一試；更小的顯示卡可用 INT8 模型或 yue2.cpp 引擎。
 - 在本機訓練 LoRA 實際需要 16 GB 顯示記憶體和 32 GB 記憶體（INT8 模型只需 8 GB 顯示記憶體）。
 - 約 30 GB 可用磁碟空間，資料庫變大後需要更多。
-- Apple 晶片的 Mac 可試驗性執行，但慢得多：見 **[yeufonic.com/macos](https://yeufonic.com/macos/)**。
+- Apple 晶片的 Mac 也能完成所有功能，包括訓練 LoRA，但比 NVIDIA 顯示卡慢得多：見 **[yeufonic.com/macos](https://yeufonic.com/macos/)**。
 
 ## 在 Windows 上，無需 Docker
 

@@ -696,18 +696,18 @@ def test_the_app_is_told_what_the_windows_launcher_tells_it(monkeypatch, tmp_pat
     assert env["MODELS_DIR"] == str(support / "engine" / "ComfyUI" / "models")
     assert env["DATA_DIR"] == str(support / "data")
     assert env["PATH"].split(os.pathsep)[:2] == [str(support / "venv" / "bin"), str(support / "tools" / "bin")]
-    assert env["TRAINING_ENABLED"] == "0"
+    assert env["TRAINING_ENABLED"] == "1"               # both halves train on Metal, as on Windows
     assert env["PYTHONPYCACHEPREFIX"].startswith(str(support))
 
 
-def test_settings_ini_moves_ports_and_data_and_turns_training_on(monkeypatch, tmp_path):
+def test_settings_ini_moves_ports_and_data_and_turns_training_off(monkeypatch, tmp_path):
     launcher = load_launcher(monkeypatch, tmp_path)
     (tmp_path / "support").mkdir()
     (tmp_path / "support" / "settings.ini").write_text(
-        "[yue2]\napp_port = 8099\nengine_port = 8199\ndata_dir = ~/Music/Yeufonic\ntraining = yes\nengine_args = --cpu --lowvram\n")
+        "[yue2]\napp_port = 8099\nengine_port = 8199\ndata_dir = ~/Music/Yeufonic\ntraining = no\nengine_args = --cpu --lowvram\n")
     cfg = launcher.settings()
     assert cfg["data_dir"] == str(Path.home() / "Music" / "Yeufonic")
-    assert launcher.app_env(cfg)["TRAINING_ENABLED"] == "1"
+    assert launcher.app_env(cfg)["TRAINING_ENABLED"] == "0"
     assert launcher.app_env(cfg)["ENGINE_URL"] == "http://127.0.0.1:8199"
     assert launcher.app_env(cfg)["UNLOAD_WHEN_IDLE"] == "auto"
     command = launcher.engine_command(cfg)

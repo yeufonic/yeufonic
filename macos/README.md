@@ -6,8 +6,8 @@ administrator prompt. The engine runs on the GPU through Metal (PyTorch's MPS ba
 
 **It is much slower than an NVIDIA card**, and is offered on GitHub and through
 [yeufonic.com/macos](https://yeufonic.com/macos/). It installs and makes songs, covers and pictures on a
-Mac with Apple silicon, with either engine, style LoRAs and recorded voices, but it is slower than on an NVIDIA
-card, and training does not yet work on Metal.
+Mac with Apple silicon, with either engine, style LoRAs and recorded voices, and trains LoRAs, but it is much
+slower than on an NVIDIA card.
 
 ## What it does
 
@@ -100,8 +100,8 @@ data_dir = ~/Music/Yeufonic
 ; added to ComfyUI's command line after --gpu-only --use-pytorch-cross-attention
 ; (always given on a Mac), e.g. --cpu or --lowvram
 engine_args =
-; off: the trainer is written for CUDA and does not yet finish a run on Metal
-training = no
+; LoRA training: on (both halves train on Metal); no turns the Train window off
+training = yes
 ; when the engine frees the GPU's memory: auto (after a picture, and whenever its work runs out), 0 never
 unload_when_idle = auto
 ```
@@ -146,7 +146,8 @@ is worth doing.
 4. **The rest, in order:** the production polish (Realaudio); a style LoRA; a cover (SheetSage2
    transcription, Whisper on the CPU, stems in the engine); an instrumental; lyric drafts with
    Gemma on the Mac; Quit with a job running; an update (drag a newer build over it).
-5. **Training**, only if all of that works: set `training = yes` and try a small corpus.
+5. **Training:** a small corpus, both halves (Run all). The engine log should say how many of the model's
+   tensors were inference tensors copied before the first step.
 
 ## Not done yet
 

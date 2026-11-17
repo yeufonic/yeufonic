@@ -58,7 +58,7 @@ Tout tourne sur une seule machine, en deux parties : l’application et le moteu
 - Un GPU NVIDIA avec 12 Go de VRAM ou plus est recommandé, avec 16 Go de RAM. Une carte de 8 Go vaut la peine d’être essayée ; pour les plus petites, il y a le modèle INT8 ou le moteur yue2.cpp.
 - Entraîner une LoRA en local demande en pratique 16 Go de VRAM et 32 Go de RAM (8 Go de VRAM avec le modèle INT8).
 - Environ 30 Go d’espace disque libre, davantage à mesure que la bibliothèque grandit.
-- Un Mac avec puce Apple fonctionne à titre expérimental, bien plus lentement : voir **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
+- Un Mac avec puce Apple fait tout, entraînement de LoRA compris, mais bien plus lentement qu’une carte NVIDIA : voir **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
 
 ## Sous Windows, sans Docker
 

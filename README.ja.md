@@ -58,7 +58,7 @@
 - VRAM 12 GB 以上の NVIDIA GPU と 16 GB のメモリを推奨します。8 GB のカードも試す価値があり、さらに小さいカードには INT8 モデルか yue2.cpp エンジンがあります。
 - ローカルで LoRA を学習するには、実質 16 GB の VRAM と 32 GB のメモリが必要です（INT8 モデルなら VRAM 8 GB）。
 - 約 30 GB の空きディスク。ライブラリが増えるとさらに必要です。
-- Apple シリコンの Mac は試験的に動きますが、かなり遅くなります: **[yeufonic.com/macos](https://yeufonic.com/macos/)** を参照。
+- Apple シリコンの Mac でも LoRA の学習を含めてすべて動きますが、NVIDIA の GPU よりかなり遅くなります: **[yeufonic.com/macos](https://yeufonic.com/macos/)** を参照。
 
 ## Windows で、Docker なしで
 

@@ -55,8 +55,8 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **Windows without Docker:** an installer that sets it all up natively, for people who would
   rather not use Docker.
 - **macOS:** a disk image for Macs with Apple silicon that sets it all up natively, running on the
-  Mac's GPU through Metal, with either engine, style LoRAs and recorded voices. It is much slower than
-  an NVIDIA card, and LoRA training does not work on it yet: see
+  Mac's GPU through Metal, with either engine, LoRA training, style LoRAs and recorded voices. It is much
+  slower than an NVIDIA card: see
   **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
 - **Example LoRAs and songs generated with Yeufonic:**  **[examples](https://yeufonic.com/examples/)**
 

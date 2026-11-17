@@ -58,7 +58,7 @@ Alles draait op één computer, in twee delen: de app en de engine. Geen cloud e
 - Een NVIDIA-GPU met 12 GB VRAM of meer wordt aanbevolen, met 16 GB RAM. Een kaart met 8 GB is het proberen waard; voor kleinere kaarten is er het INT8-model of de engine yue2.cpp.
 - Lokaal een LoRA trainen vraagt in de praktijk 16 GB VRAM en 32 GB RAM (8 GB VRAM met het INT8-model).
 - Ongeveer 30 GB vrije schijfruimte, meer naarmate de bibliotheek groeit.
-- Een Mac met Apple silicon werkt experimenteel en veel trager: zie **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
+- Een Mac met Apple silicon kan alles, ook LoRA's trainen, maar veel trager dan een NVIDIA-kaart: zie **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
 
 ## Op Windows, zonder Docker
 

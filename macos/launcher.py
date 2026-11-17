@@ -19,7 +19,7 @@ logs in ~/Library/Logs/Yeufonic (YEUFONIC_LOGS), and settings.ini there override
     import_roots = ~
     open_browser = yes
     unload_when_idle = auto
-    training = no
+    training = yes
     voice_port = 8190
     engine = comfyui
     gemma_port = 11435
@@ -73,10 +73,10 @@ HOMEBREW = Path("/opt/homebrew/bin")
 
 def settings() -> dict:
     """Ports, the library's folder, and whether the page opens by itself.  settings.ini
-    overrides the defaults.  Training is off unless asked for: the trainer is written for
-    CUDA and has not been tried on a Mac."""
+    overrides the defaults.  Training is on, as elsewhere: both halves train on Metal since the trainer copies the
+    model's inference tensors before the first step; training = no turns it off."""
     values = {"app_port": "8090", "engine_port": "8188", "engine_args": "", "data_dir": str(SUPPORT / "data"),
-              "import_roots": str(Path.home()), "open_browser": "yes", "training": "no", "update_manifest": "",
+              "import_roots": str(Path.home()), "open_browser": "yes", "training": "yes", "update_manifest": "",
               "unload_when_idle": "auto", "voice_port": "8190", "engine": "comfyui", "gemma_port": "11435",
               "pictures_port": "8187", "gemma_model": "gemma4:e4b-it-qat", "yue2cpp_model": "YuE2-3B-Q8_0.gguf",
               "cpp_engine_args": ""}
@@ -208,7 +208,7 @@ def app_env(cfg: dict) -> dict:
         "IMPORT_ROOTS": cfg["import_roots"],
         "TORCH_HOME": str(data / "models" / "torch"),
         "HF_HOME": str(data / "models" / "whisper"),
-        "TRAINING_ENABLED": "1" if yes(cfg.get("training", "no")) else "0",
+        "TRAINING_ENABLED": "1" if yes(cfg.get("training", "yes")) else "0",
         # When the engine is asked to unload its models: auto (after a picture, and whenever the GPU's work runs out,
         # as a Mac's GPU shares its memory), 1 the same, 0 never.
         "UNLOAD_WHEN_IDLE": cfg.get("unload_when_idle", "auto"),

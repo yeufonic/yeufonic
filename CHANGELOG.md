@@ -39,6 +39,9 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Mac: LoRA training works.** Both halves of a style LoRA now train on a Mac's GPU, so the Train window is on there
+  as everywhere else. ComfyUI loads the model straight onto a GPU that shares the computer's memory and leaves it
+  there, and its weights stayed inference tensors that training cannot use; the trainer now copies them first.
 - **Mac: the yue2.cpp engine.** `setup.sh --engine yue2cpp` sets the Mac up with yue2.cpp in place of ComfyUI, as the
   Windows installer can: yue2.cpp's server and stable-diffusion.cpp's, built by us for Macs on macOS 14 and later,
   with Ollama for Gemma beside them. Lyric drafts take seconds there instead of minutes, and pictures much less
