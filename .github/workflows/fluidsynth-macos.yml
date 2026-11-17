@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - main
+      - 'feature/cpp-*'
     paths:
       - 'macos/build-fluidsynth.sh'
       - '.github/workflows/fluidsynth-macos.yml'
