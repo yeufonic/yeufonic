@@ -525,6 +525,18 @@ runs, so read them as a comparison between the two columns, not as figures for y
 Our advice: use full quality if your card has the room, and try low memory if renders are slow or
 run out of memory.
 
+**Against a Mac.** The same checks (a full-length song, an instrumental and a cover of a 3-minute recording, with the
+same inputs and seed) on that PC and on a Mac mini with an M4 Pro (20-core GPU, 48 GB), each with both engines, in
+times real time: above 1, the music is made faster than it plays. Single runs again, so read them as a comparison.
+
+| | RTX 4070 Ti SUPER, ComfyUI | RTX 4070 Ti SUPER, yue2.cpp | M4 Pro, ComfyUI | M4 Pro, yue2.cpp |
+|---|---|---|---|---|
+| A song | 1.35x | 2.4x | 0.51x | 0.46x |
+| An instrumental | 0.86x | 1.0x | 0.43x | 0.53x |
+| A cover | 1.9x | 2.9x | 0.47x | 0.44x |
+
+A base M4 with 24 GB made the song at about 0.2x. [yeufonic.com/macos](https://yeufonic.com/macos/) has the rest.
+
 ## Choosing an engine
 
 YuE2 runs on one of two engines, chosen when you set up. **ComfyUI** is the default and does everything on
