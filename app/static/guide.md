@@ -787,6 +787,8 @@ take** in Settings says. It then makes room for the music, so a long song is not
   is longer: to the plan's length with about ten seconds to spare. It is never brought down.
 - With a **recording** chosen, for a cover or an instrumental, the cap follows the recording's score,
   rounded up the same way.
+- A **score you write, paste or edit yourself** is measured the same way when it is rendered, and the cap rises
+  to fit it.
 
 A cap you type yourself stays as you set it, and the Score page then says when a plan is longer than it.
 

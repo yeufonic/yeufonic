@@ -722,6 +722,7 @@ disser em Definições. Depois abre espaço para a música, para que uma música
   for mais longo: para a duração do plano com cerca de dez segundos de folga. Ele nunca é reduzido.
 - Com uma **gravação** escolhida, para um cover ou um instrumental, o limite segue a partitura da gravação,
   arredondado para cima do mesmo jeito.
+- Uma **partitura que escreve, cola ou edita** é medida da mesma forma ao ser renderizada, e o limite sobe para caber nela.
 
 Um limite que você digita fica como você definiu, e a página Partitura então avisa quando um plano é mais longo.
 

@@ -722,6 +722,7 @@ en Configuración. Después hace sitio a la música, para que una canción larga
   es más largo: a la duración del plan con unos diez segundos de margen. Nunca se baja.
 - Con una **grabación** elegida, para una versión o un instrumental, el límite sigue la partitura de la grabación,
   redondeado hacia arriba del mismo modo.
+- Una **partitura que escribes, pegas o editas tú mismo** se mide igual al renderizarla, y el límite sube para que quepa.
 
 Un límite que escribes tú se queda como lo pusiste, y la página de la partitura avisa entonces cuando un plan es más largo.
 

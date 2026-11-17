@@ -175,6 +175,7 @@ def test_render_saves_audio_note_peaks_and_drops_the_engine_copy(monkeypatch, da
     # A one-second cap for the one-second tone: a render far shorter than its score
     # would be tried again, which is another test's business.
     take = make_take(status="queued", abc=ABC, title="Render Me", max_duration=1.0)
+    execute("UPDATE takes SET cap_typed = 1 WHERE id = ?", (take["id"],))   # typed: not raised to fit the score
     use(monkeypatch, FakeEngine([render_history()], audio=engine_copy))
     asyncio.run(jobs.run_job("render", take["id"]))
     row = one("SELECT * FROM takes WHERE id = ?", (take["id"],))

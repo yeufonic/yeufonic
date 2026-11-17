@@ -1164,6 +1164,15 @@ async def run_job(kind: str, ref_id: str) -> None:
             if fitted != (record.get("abc") or ""):
                 execute("UPDATE takes SET abc = ? WHERE id = ?", (fitted, ref_id))
                 record["abc"] = fitted
+            # A score longer than the cap would be cut short by it, whoever wrote the score: one written or pasted
+            # by hand, or edited longer since its plan, makes room as a plan does, unless the cap was typed.
+            raised = cap_for_plan(record.get("abc") or "", float(record.get("max_duration") or 0), record.get("cap_typed"))
+            if raised:
+                execute("UPDATE takes SET max_duration = ? WHERE id = ?", (raised, ref_id))
+                log.warning("Render of '%s': its score is longer than its length cap of %.0f s, so the cap was raised "
+                            "to %.0f s to fit it", record.get("title") or ref_id, float(record.get("max_duration") or 0),
+                            raised)
+                record["max_duration"] = raised
         graph = build_plan_graph(record) if kind == "plan" else build_render_graph(record)
         execute("UPDATE takes SET status = 'running', error = NULL, stage = NULL WHERE id = ?", (ref_id,))
         title = record.get("title") or ref_id

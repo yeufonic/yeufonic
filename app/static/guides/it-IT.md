@@ -722,6 +722,7 @@ in Impostazioni. Poi fa spazio alla musica, così una canzone lunga non viene ta
   è più lungo: alla durata del piano con circa dieci secondi di margine. Non viene mai abbassato.
 - Con una **registrazione** scelta, per una cover o uno strumentale, il limite segue la partitura della registrazione,
   arrotondato per eccesso allo stesso modo.
+- Uno **spartito che scrivi, incolli o modifichi tu** viene misurato allo stesso modo quando viene renderizzato, e il limite sale per contenerlo.
 
 Un limite che scrivi tu resta come lo hai impostato, e la pagina Partitura dice allora quando un piano è più lungo.
 

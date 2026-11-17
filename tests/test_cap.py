@@ -123,3 +123,31 @@ def test_the_page_says_whose_cap_it_is_and_takes_up_a_raised_one():
     assert "State.capTyped = take.cap_typed === 1;" in app_js
     assert "if (!State.capTyped && take.max_duration) { $('max-duration').value = Math.round(take.max_duration); }" in app_js
     assert "box.value = defaultCap();" in app_js
+
+
+def rendered_with(monkeypatch, abc: str, **fields) -> tuple[float, float]:
+    """The cap a render is sent with, and the take's cap after: the render stops at the engine."""
+    later = ("cap_typed",)
+    take = make_take(status="queued", abc=abc, **{k: v for k, v in fields.items() if k not in later})
+    for key in later:
+        if key in fields:
+            execute(f"UPDATE takes SET {key} = ? WHERE id = ?", (fields[key], take["id"]))
+    sent = []
+    monkeypatch.setattr(jobs, "build_render_graph", lambda t: sent.append(t["max_duration"]) or {})
+    engine = FakeEngine([])
+
+    async def refuse(graph):
+        raise RuntimeError("stop here")
+    engine.submit = refuse
+    use(monkeypatch, engine)
+    asyncio.run(jobs.run_job("render", take["id"]))
+    return sent[0], one("SELECT max_duration FROM takes WHERE id = ?", (take["id"],))["max_duration"]
+
+
+def test_a_score_written_by_hand_longer_than_the_cap_raises_it_when_rendered(monkeypatch):
+    """A score typed, pasted or edited longer than its plan never went through the planner, so its cap stayed and the
+    render faded out at it (six minutes, by default): it makes room the same way, unless the cap was typed."""
+    long = plan(240)                                       # 480 seconds
+    assert rendered_with(monkeypatch, long, max_duration=360) == (490, 490)
+    assert rendered_with(monkeypatch, long, max_duration=360, cap_typed=1) == (360, 360)
+    assert rendered_with(monkeypatch, plan(100), max_duration=360) == (360, 360)

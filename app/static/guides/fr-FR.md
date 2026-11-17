@@ -722,6 +722,7 @@ dans les Paramètres. Puis elle fait de la place à la musique, pour qu’une ch
   est plus long : à la durée du plan avec une dizaine de secondes de marge. Elle n’est jamais abaissée.
 - Avec un **enregistrement** choisi, pour une reprise ou un instrumental, la limite suit la partition de l’enregistrement,
   arrondie de la même façon.
+- Une **partition que vous écrivez, collez ou modifiez vous-même** est mesurée de la même façon au rendu, et la limite monte pour la contenir.
 
 Une durée maximale que vous tapez vous-même reste telle que vous l'avez réglée, et la page Partition signale alors quand un plan est plus long.
 

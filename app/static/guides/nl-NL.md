@@ -722,6 +722,7 @@ in Instellingen zegt. Daarna maakt hij plaats voor de muziek, zodat een lang num
   langer is: tot de lengte van het plan met zo'n tien seconden speling. Hij wordt nooit verlaagd.
 - Met een **opname** gekozen, voor een cover of een instrumentaal, volgt de grens de partituur van de opname,
   op dezelfde manier naar boven afgerond.
+- Een **partituur die je zelf schrijft, plakt of bewerkt** wordt bij het renderen op dezelfde manier gemeten, en de grens gaat omhoog zodat hij past.
 
 Een grens die je zelf intypt, blijft zoals je hem instelde, en de pagina Partituur zegt dan wanneer een plan langer is.
 

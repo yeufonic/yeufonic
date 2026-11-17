@@ -722,6 +722,7 @@ in den Einstellungen sagt. Dann macht sie Platz für die Musik, damit ein langer
   länger ist: auf die Länge des Plans mit etwa zehn Sekunden Reserve. Sie wird nie gesenkt.
 - Mit einer gewählten **Aufnahme**, für ein Cover oder ein Instrumental, folgt die Grenze der Partitur der Aufnahme,
   auf dieselbe Weise aufgerundet.
+- Eine **Partitur, die du selbst schreibst, einfügst oder bearbeitest**, wird beim Rendern genauso gemessen, und die Grenze steigt, damit sie hineinpasst.
 
 Eine Grenze, die du selbst eintippst, bleibt, wie du sie gesetzt hast, und die Seite Partitur sagt dann, wenn ein Plan länger ist.
 

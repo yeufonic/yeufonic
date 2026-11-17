@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+- **A score written by hand is no longer cut off at six minutes.** The length cap rises to fit a song's plan, and a
+  cover's to fit its recording's score, but a score typed, pasted or edited longer kept the cap the take started with,
+  and the render faded out there (six minutes unless Settings say otherwise). It now rises to fit any score when the
+  take is rendered, unless you typed the cap yourself.
 - **A corpus song's style suggestion can be used straight away.** Under the suggestion in a song's review, **Use in a
   new song** opens + Song with that style in the Style box, and **Save as a style** keeps it in the style list under a
   name you give it. Before, it had to be copied out by hand.
