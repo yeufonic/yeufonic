@@ -80,6 +80,18 @@ def test_a_plan_far_past_its_cap_is_still_not_a_song(monkeypatch):
     asyncio.run(jobs.run_job("plan", take["id"]))
     row = one("SELECT * FROM takes WHERE id = ?", (take["id"],))
     assert row["status"] == "failed" and "minutes long" in row["error"] and row["max_duration"] == 360
+    assert "the plan came out unreadable twice" in row["error"]           # short lyrics: the planner looped
+
+
+def test_a_plan_long_because_the_lyrics_are_says_so(monkeypatch):
+    """Lyrics of many sections make a long plan of about as many sections: turned away past the cap, it says the
+    words asked for it, and what to do, not that the plan was garbled."""
+    lyrics = "\n".join(f"[{name}]\nla la la\n" for name in ["verse", "chorus"] * 10)
+    take = make_take(status="queued", max_duration=360, lyrics=lyrics)
+    jobs.RETRIED_PLANS.add(take["id"])
+    use(monkeypatch, FakeEngine([None, done({"3": {"text": [plan(260)]}}, PLAN_GRAPH)]))   # 520 s, one section
+    asyncio.run(jobs.run_job("plan", take["id"]))
+    row = one("SELECT * FROM takes WHERE id = ?", (take["id"],))
     # Said as what it is: long lyrics past the cap, with what to do, not advice about a garbled plan.
     assert row["error"].startswith("the plan came out 9 minutes long twice, more than the length cap of 6 minutes allows")
     assert "use fewer sections, or raise the Length cap" in row["error"] and "Harmony" not in row["error"]

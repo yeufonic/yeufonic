@@ -536,6 +536,9 @@ def lock_tempo(abc: str, bpm) -> str:
     return out
 
 
+LONG_LYRICS_SECTIONS = 12   # lyrics with this many sections can ask for a song longer than any cap
+
+
 def _minutes(seconds: float) -> str:
     """A length cap in words: 540 is "9 minutes", 500 is "8 minutes 20 seconds"."""
     whole, rest = divmod(int(round(seconds)), 60)
@@ -1330,7 +1333,11 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             return
         RETRIED_PLANS.discard(ref_id)
         too_long = next((issue for issue in issues if issue.startswith("a plan ") and issue.endswith("minutes long")), None)
-        if too_long:
+        # A plan can be long because the planner looped past the words, or because the words ask for that much song.
+        # Many sections in the lyrics, and a plan of about as many: the second.
+        asked = len(re.findall(r"^\s*\[[^\]]+\]\s*$", record.get("lyrics") or "", re.M))
+        written = len(re.findall(r"^%\s*\S", abc or "", re.M))
+        if too_long and asked >= LONG_LYRICS_SECTIONS and written <= asked + 2:
             # Long lyrics make a long plan, and one far past the cap is turned away: that is what to say, not that the
             # plan was garbled (Harmony and the rest do not shorten it).
             planned = score.estimate(abc) or {}

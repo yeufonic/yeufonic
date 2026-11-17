@@ -43,6 +43,10 @@ cannot creep back in.
   cover's to fit its recording's score, but a score typed, pasted or edited longer kept the cap the take started with,
   and the render faded out there (six minutes unless Settings say otherwise). It now rises to fit any score when the
   take is rendered, unless you typed the cap yourself.
+- **Lyrics too long for the length cap say so.** Lyrics of many sections, with Follow this structure exactly on, can
+  ask for a plan of a quarter of an hour, which is turned away when it runs far past the cap; the message called the
+  plan unreadable and suggested Harmony Familiar. It now says how long the plan came out and which cap it was over,
+  and to use fewer sections or raise the cap. A plan that runs on past short lyrics keeps the old advice.
 - **A corpus song's style suggestion can be used straight away.** Under the suggestion in a song's review, **Use in a
   new song** opens + Song with that style in the Style box, and **Save as a style** keeps it in the style list under a
   name you give it. Before, it had to be copied out by hand.
