@@ -39,29 +39,6 @@ cannot creep back in.
 
 ## Unreleased
 
-- **Windows: the taskbar shows Yeufonic's icon again.** A test build of the installer gave its window the same
-  taskbar identity as the real install's, and once it was removed Windows kept showing a generic icon for both. The
-  window now has an identity of its own (and a test build another), so the button shows the Yeufonic logo.
-- **yue2.cpp: a picture no longer fails after one that stepped aside for a song.** A take picture that gave way to
-  song work could go on drawing on the picture server, which then refused the next picture's model with "model_busy",
-  and that picture failed. Pictures beside the yue2.cpp engine are now drawn one at a time, and a picture waits for the
-  server to finish one it was asked to cancel.
-- **Mac: take pictures no longer hold up the engine for minutes.** With the ComfyUI engine on a Mac, Gemma runs on the
-  CPU, so a picture's description took minutes and every job behind it, stems and lyric hearing among them, waited.
-  There the default describer is now the take itself; Gemma still describes when it is chosen.
-- **Mac: the setup offers the style LoRAs.** The setup window asks once whether to fetch the 39 style LoRAs by their
-  authors that the Windows installer and Docker can fetch, with their descriptions, and remembers the answer
-  (`setup.sh --loras` later). A LoRA file already in the folder is left as it is.
-- **yue2.cpp: LoRAs work with the full-quality (BF16) model.** With the BF16 file chosen (`YUE2CPP_MODEL`), any
-  LoRA that changes the sound, the instrumental and Realaudio ones among them, stopped the render with "llm2vae.bias is
-  not staged by this model". yue2.cpp turns that file's small tensors into full precision as it loads them, and the
-  LoRA merge then could not find them; a patch of ours lets it.
-- **The full-quality model for yue2.cpp can be chosen when installing.** With yue2.cpp, the installer's model size
-  choice is now that engine's own: Low memory (Q8), ticked to begin with as before, or Full quality (BF16, 7.2 GB),
-  which needs about twice the video memory. Each engine keeps its own choice, a size already downloaded is kept, and
-  a file of your own named in settings.ini stays unless Full quality is chosen. On a Mac, `setup.sh --cpp-model bf16`.
-- **Mac: MIDI files can be heard without Homebrew.** FluidSynth publishes no macOS build, so the setup now fetches one
-  of ours, built unchanged from FluidSynth's source as a single program, where before a Mac needed Homebrew's.
 - **Mac: the yue2.cpp engine.** `setup.sh --engine yue2cpp` sets the Mac up with yue2.cpp in place of ComfyUI, as the
   Windows installer can: yue2.cpp's server and stable-diffusion.cpp's, built by us for Macs on macOS 14 and later,
   with Ollama for Gemma beside them. Lyric drafts take seconds there instead of minutes, and pictures much less
@@ -72,6 +49,29 @@ cannot creep back in.
   it, and the separator runs there too, with Metal's missing operations on the CPU.
 - **Mac: hearing the words of a song is several times faster.** Whisper now runs on a Mac's GPU (Apple silicon),
   with the same lines and timings as on the CPU, which it falls back to if the GPU fails.
+- **Mac: the setup offers the style LoRAs.** The setup window asks once whether to fetch the 39 style LoRAs by their
+  authors that the Windows installer and Docker can fetch, with their descriptions, and remembers the answer
+  (`setup.sh --loras` later). A LoRA file already in the folder is left as it is.
+- **Mac: MIDI files can be heard without Homebrew.** FluidSynth publishes no macOS build, so the setup now fetches one
+  of ours, built unchanged from FluidSynth's source as a single program, where before a Mac needed Homebrew's.
+- **Mac: take pictures no longer hold up the engine for minutes.** With the ComfyUI engine on a Mac, Gemma runs on the
+  CPU, so a picture's description took minutes and every job behind it, stems and lyric hearing among them, waited.
+  There the default describer is now the take itself; Gemma still describes when it is chosen.
+- **The full-quality model for yue2.cpp can be chosen when installing.** With yue2.cpp, the installer's model size
+  choice is now that engine's own: Low memory (Q8), ticked to begin with as before, or Full quality (BF16, 7.2 GB),
+  which needs about twice the video memory. Each engine keeps its own choice, a size already downloaded is kept, and
+  a file of your own named in settings.ini stays unless Full quality is chosen. On a Mac, `setup.sh --cpp-model bf16`.
+- **yue2.cpp: LoRAs work with the full-quality (BF16) model.** With the BF16 file chosen (`YUE2CPP_MODEL`), any
+  LoRA that changes the sound, the instrumental and Realaudio ones among them, stopped the render with "llm2vae.bias is
+  not staged by this model". yue2.cpp turns that file's small tensors into full precision as it loads them, and the
+  LoRA merge then could not find them; a patch of ours lets it.
+- **yue2.cpp: a picture no longer fails after one that stepped aside for a song.** A take picture that gave way to
+  song work could go on drawing on the picture server, which then refused the next picture's model with "model_busy",
+  and that picture failed. Pictures beside the yue2.cpp engine are now drawn one at a time, and a picture waits for the
+  server to finish one it was asked to cancel.
+- **Windows: the taskbar shows Yeufonic's icon again.** A test build of the installer gave its window the same
+  taskbar identity as the real install's, and once it was removed Windows kept showing a generic icon for both. The
+  window now has an identity of its own (and a test build another), so the button shows the Yeufonic logo.
 
 ## 0.0.60 (2026-11-15)
 

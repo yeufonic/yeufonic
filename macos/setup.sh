@@ -728,8 +728,8 @@ else
     mark_done "yue2_trainer-${TRAINER_COMMIT:0:8}"
   fi
   # Stem separation in the engine's queue, on the GPU through Metal.  Whisper stays with the
-  # app, on the CPU: CTranslate2 has no Metal backend, so the engine's Whisper node is not
-  # there on a Mac and the app hears words itself, as it does wherever that node is missing.
+  # app, which hears words on the GPU through CTranslate2's Metal backend (the engine's Whisper
+  # node is not there on a Mac, and the app hears words itself wherever it is missing).
   if ! is_done engine-demucs; then
     "$UV" pip install --python "$EPY" demucs==4.1.0 || stop_setup "demucs for the engine failed"
     mark_done engine-demucs

@@ -1506,6 +1506,7 @@ Pictures need something that can draw. There are two, and you can have either, b
   unless you choose it. An installed app gets the same page when it updates, or run the installer again
   from the release page: the tick is remembered after that, and an update never downloads it twice. It
   is three files, about 8 GB in all.
+- **Mac:** answer yes when the setup window asks, or quit Yeufonic and run its `setup.sh --pictures`.
 - **Docker:** run `sh scripts/fetch-models.sh --pictures`, which puts the three files in `models/`
   (`diffusion_models`, `text_encoders` and `vae`) and checks each one, then restart the app with
   `docker compose restart app` so it finds them.
@@ -1797,6 +1798,8 @@ says which you have. It is chosen when Yeufonic is installed, not here:
 - **With Docker**, `sh scripts/fetch-models.sh` fetches full quality and
   `sh scripts/fetch-models.sh --int8` the low-memory one. With both files in `models/checkpoints`, the
   app uses full quality unless `YUE2_CHECKPOINT=int8` is set in `.env`.
+- **On a Mac**, ComfyUI has only full quality (the low-memory copy needs an NVIDIA card). With yue2.cpp the
+  sizes are that engine's own, as on Windows: Q8 unless you run `setup.sh --cpp-model bf16`.
 
 Try low memory if renders are very slow or the engine runs out of GPU memory. Training a LoRA works
 on both model sizes. The setting **Low-memory (int8) model training** chooses which: off, training uses
@@ -1804,7 +1807,8 @@ the full-quality model; on, it uses the model the app renders with. It starts on
 model is installed. The README on GitHub has a section, *Choosing a model size*, with what to expect from each.
 
 Yeufonic can also run the **yue2.cpp** engine instead of ComfyUI, for graphics cards with less memory,
-chosen when it is set up: on the Windows installer's components page, or with Docker by
+chosen when it is set up: on the Windows installer's components page, on a Mac by its `setup.sh --engine yue2cpp`
+(where it also drafts lyrics in seconds rather than minutes), or with Docker by
 `sh scripts/fetch-models.sh --cpp`. **About** says which engine is running, and a take's card which engine rendered it. It makes songs, covers and
 instrumentals and transcribes recordings, with your style LoRAs; Gemma can draft lyrics and describe pictures
 beside it (with Docker, `--gemma`), and FLUX.2 klein draw them (`--pictures`). Training needs the ComfyUI

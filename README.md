@@ -54,9 +54,10 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
 - **Song art:** Create song/album art using local models (Flux.2, Gemma), or for better quality plug in your own external LLM API
 - **Windows without Docker:** an installer that sets it all up natively, for people who would
   rather not use Docker.
-- **macOS (Experimental):** a disk image for Macs with Apple silicon that sets it all up natively,
-  running on the Mac's GPU through Metal. It is much slower than an NVIDIA card and LoRA training
-  does not work on it yet: see **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
+- **macOS:** a disk image for Macs with Apple silicon that sets it all up natively, running on the
+  Mac's GPU through Metal, with either engine, style LoRAs and recorded voices. It is much slower than
+  an NVIDIA card, and LoRA training does not work on it yet: see
+  **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
 - **Example LoRAs and songs generated with Yeufonic:**  **[examples](https://yeufonic.com/examples/)**
 
 Everything runs on one machine, in two parts: the app and the engine. With Docker they are two
@@ -476,7 +477,7 @@ are not downloaded again. Deleting that folder removes it.
 - Linux, or Windows with WSL2 or Docker Desktop. WSL2 is what this was built on; Windows with
   Docker Desktop needs a few settings, below.  Alternatively, on Windows, [the installer](#on-windows-without-docker) needs none of this.
 - Display resolution minimum 1920x1080, though Yeufonic works best with higher resolution displays
-- The macOS build has been tested on a Mac mini with an M4 and 24 GB of RAM, and found usable; a Pro or Max chip should give better results.
+- The macOS build has been tested on a Mac mini with an M4 and 24 GB of RAM, and on one with an M4 Pro and 48 GB, which renders about twice as fast.
 
 ## Choosing a model size
 

@@ -1,14 +1,20 @@
-# The Mac app (experimental)
+# The Mac app
 
 Yeufonic as a Mac app, for a Mac with Apple silicon (M1 or later) and macOS 14 or later. Like the
 Windows installer it runs natively: no Docker, which on a Mac cannot reach the GPU, and no
 administrator prompt. The engine runs on the GPU through Metal (PyTorch's MPS backend).
 
-**It is experimental**, offered as a pre-release on GitHub and through
+**It is much slower than an NVIDIA card**, and is offered on GitHub and through
 [yeufonic.com/macos](https://yeufonic.com/macos/). It installs and makes songs, covers and pictures on a
-Mac with Apple silicon, but it is slower than on an NVIDIA card, and training does not yet work on Metal.
+Mac with Apple silicon, with either engine, style LoRAs and recorded voices, but it is slower than on an NVIDIA
+card, and training does not yet work on Metal.
 
 ## What it does
+
+FluidSynth (for hearing an imported MIDI file) and the yue2.cpp engine publish no macOS build that suits, so
+ours are made by `macos/build-fluidsynth.sh` and `macos/build-cpp.sh`, published as pre-releases by their
+workflows (`fluidsynth-macos.yml`, `engine-cpp-macos.yml`), and pinned in `setup.sh` by checksum; a test holds
+each pin to the build its workflow would publish for the sources as they are.
 
 1. **The disk image** holds `Yeufonic.app` and a link to Applications. Drag one onto the other.
 2. **The first time it is opened**, the app opens a Terminal window and runs `setup.sh`, which
@@ -147,9 +153,6 @@ is worth doing.
 - **Signing and notarisation.** Without a Developer ID (Apple's developer program, a yearly fee)
   macOS will not open the app at first. Choose *Done*, then *System Settings → Privacy &
   Security → Open Anyway*, and open it again.
-- **FluidSynth**, which plays an imported MIDI file, has no macOS build of its own, so the setup
-  fetches ours: `macos/build-fluidsynth.sh`, published by `.github/workflows/fluidsynth-macos.yml`,
-  one program that needs nothing but macOS, into the tools folder.
 - **The update notice** sends a Mac to the disk image named under `macos` in the site's manifest
   (`updates.json`), or to the release notes when there is none. Nothing publishes one yet.
 - **No uninstaller.** Delete the app, and `~/Library/Application Support/Yeufonic` and
