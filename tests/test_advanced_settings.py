@@ -294,7 +294,8 @@ def test_following_the_structure_is_written_into_the_plan_request_for_songs_only
     assert node(follow_structure=1)["class_type"] == jobs.HARMONY_NODE                       # even at Familiar
     assert node(follow_structure=1)["inputs"]["follow_sections"] == "verse,chorus,interlude,chorus"
     assert "follow_sections" not in node(follow_structure=None)["inputs"]
-    assert "follow_sections" not in node(follow_structure=1, kind="instrumental")["inputs"]
+    # An instrumental's tags are its structure, chosen as such: followed whether or not the song tick is on.
+    assert node(follow_structure=None, kind="instrumental")["inputs"]["follow_sections"] == "verse,chorus,interlude,chorus"
     assert node(follow_structure=1, harmony=2)["inputs"]["section_strength"] == jobs.SECTION_STRENGTH   # alongside the chord nudge
 
 
@@ -394,3 +395,15 @@ def test_a_number_outside_its_usual_range_is_kept_and_only_the_impossible_refuse
     for impossible in ({"sampler_steps": 0}, {"target_bpm": 1000}, {"max_abc_tokens": 9000}, {"chord_hold_limit": 65},
                        {"chord_outside_bonus": 21}, {"target_lufs": 1}, {"fade_out_seconds": 0}, {"sampler_steps": 32.5}):
         assert client.post("/api/songs", json={"title": "T", "style": "rock", "lyrics": "[Verse]\nla", **impossible}).status_code == 422, impossible
+
+
+def test_an_instrumentals_timed_structure_is_followed_and_one_from_a_recording_or_of_one_tag_is_not():
+    """Timed sections, as the page sends them, on one line: each name is a section the plan must write, in order. A
+    long one was planned as a fraction of itself before (6 sections of 23)."""
+    from app import jobs, lyrics
+    from conftest import make_take
+    timed = " ".join(f"[{name} {i}:00-{i}:30]" for i, name in enumerate(["intro", "verse", "chorus", "bridge", "outro"]))
+    assert lyrics.structure_names(timed) == ["intro", "verse", "chorus", "bridge", "outro"]
+    node = lambda **f: jobs.build_plan_graph(make_take(kind="instrumental", **f))["2"]["inputs"]
+    assert node(lyrics=timed)["follow_sections"] == "intro,verse,chorus,bridge,outro"
+    assert "follow_sections" not in node(lyrics="[instrumental]")          # Let YuE2 decide: nothing to follow

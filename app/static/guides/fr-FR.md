@@ -877,8 +877,7 @@ Le troisième mode écrit un morceau sans voix. Au lieu de paroles, il prend une
 | Sections minutées | `[intro 0:00-0:15] …` | vous choisissez les deux |
 
 Ajoutez des sections avec les puces **+**, réordonnez-les avec les flèches, et donnez une durée à chacune en mode minuté.
-**Envoyé à YuE2 :** montre exactement ce que reçoit le modèle. La structure est une indication : YuE2 peut renommer une
-section, ajouter un interlude, ou dépasser les durées données, la limite de durée reste donc le plafond ferme.
+**Envoyé à YuE2 :** montre exactement ce que reçoit le modèle. Le plan écrit les sections que vous indiquez, dans cet ordre et aucune autre ; YuE2 décide de la durée de chacune, donc les temps sont un guide, et une structure très longue peut s’arrêter plus tôt, là où le planificateur atteint le maximum qu’il peut écrire en un plan. La limite de durée est la limite ferme.
 
 ### Un instrumental à partir d’un enregistrement {#an-instrumental-from-a-recording}
 

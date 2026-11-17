@@ -877,8 +877,7 @@ De derde modus schrijft een stuk zonder stem. In plaats van een tekst neemt hij 
 | Getimede delen | `[intro 0:00-0:15] …` | jij kiest beide |
 
 Voeg secties toe met de chips **+**, herschik ze met de pijltjes, en geef elke sectie een lengte in de getimede modus.
-**Naar YuE2 gestuurd:** toont precies wat het model krijgt. De structuur is een leidraad: YuE2 kan een
-sectie hernoemen, een interlude toevoegen, of over de tijden heen gaan die je gaf, dus de lengtegrens is het harde plafond.
+**Naar YuE2 gestuurd:** toont precies wat het model krijgt. Het plan schrijft de secties die je opgeeft, in die volgorde en geen andere; hoe lang elke sectie wordt, bepaalt YuE2, dus de tijden zijn een richtlijn, en een heel lange structuur kan eerder eindigen, waar de planner het meeste bereikt wat hij in één plan kan schrijven. De lengtegrens is de vaste limiet.
 
 ### Een instrumentaal uit een opname {#an-instrumental-from-a-recording}
 

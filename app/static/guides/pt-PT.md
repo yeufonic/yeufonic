@@ -877,8 +877,7 @@ O terceiro modo escreve uma peça sem voz. Em vez de letra, ele recebe uma **est
 | Secções cronometradas | `[intro 0:00-0:15] …` | você escolhe as duas coisas |
 
 Adicione secções com os chips **+**, reordene-as com as setas, e dê a cada uma uma duração no modo com tempos.
-**Enviado ao YuE2:** mostra exatamente o que o modelo recebe. A estrutura é uma orientação: o YuE2 pode renomear uma
-secção, acrescentar um interlúdio, ou passar dos tempos que você deu, então o limite de duração é o teto rígido.
+**Enviado ao YuE2:** mostra exatamente o que o modelo recebe. O plano escreve as secções que indica, por essa ordem e nenhuma outra; quanto dura cada uma é o YuE2 que decide, por isso os tempos são um guia, e uma estrutura muito longa pode terminar antes, onde o planeador chega ao máximo que consegue escrever num plano. O limite de duração é o teto firme.
 
 ### Um instrumental a partir de uma gravação {#an-instrumental-from-a-recording}
 

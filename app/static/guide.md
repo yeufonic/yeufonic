@@ -966,11 +966,12 @@ The third mode writes a piece with no vocal. In place of lyrics it takes a **str
 |---|---|---|
 | Let YuE2 decide | `[instrumental]` | YuE2 chooses the sections and their lengths |
 | Sections | `[intro] [verse] [chorus] …` | you choose the sections, YuE2 their length |
-| Timed sections | `[intro 0:00-0:15] …` | you choose both |
+| Timed sections | `[intro 0:00-0:15] …` | you choose the sections, and the times guide their lengths |
 
 Add sections with the **+** chips, reorder them with the arrows, and give each a length when timed.
-**Sent to YuE2** shows exactly what the model receives. The structure is guidance: YuE2 may rename a
-section, add an interlude, or run past the times you gave, so the length cap is the firm limit.
+**Sent to YuE2** shows exactly what the model receives. The plan writes the sections you list, in that order and no others; YuE2 decides how
+long each one is, so timed lengths are a guide, and a very long structure can end early where the planner reaches the
+most it can write in one plan. The length cap is the firm limit.
 
 ### An instrumental from a recording
 

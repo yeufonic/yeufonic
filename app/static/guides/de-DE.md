@@ -877,8 +877,7 @@ Der dritte Modus schreibt ein Stück ohne Gesang. Statt eines Textes nimmt er ei
 | Zeitlich festgelegte Teile | `[intro 0:00-0:15] …` | du wählst beides |
 
 Füge Abschnitte mit den **+**-Chips hinzu, sortiere sie mit den Pfeilen um und gib jedem eine Länge, wenn zeitlich festgelegt.
-**An YuE2 gesendet:** zeigt genau, was das Modell bekommt. Die Struktur ist eine Orientierung: YuE2 kann einen
-Abschnitt umbenennen, ein Zwischenspiel hinzufügen oder über die angegebenen Zeiten hinauslaufen, also ist die Längengrenze das feste Limit.
+**An YuE2 gesendet:** zeigt genau, was das Modell bekommt. Der Plan schreibt die aufgeführten Abschnitte, in dieser Reihenfolge und keine anderen; wie lang jeder wird, entscheidet YuE2, die Zeiten sind also eine Orientierung, und eine sehr lange Struktur kann früher enden, wo der Planer das Meiste erreicht, was er in einem Plan schreiben kann. Die Längengrenze ist das feste Limit.
 
 ### Ein Instrumental aus einer Aufnahme {#an-instrumental-from-a-recording}
 

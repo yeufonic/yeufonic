@@ -877,8 +877,7 @@ La terza modalità scrive un brano senza voce. Invece di un testo, prende una **
 | Sezioni a tempo | `[intro 0:00-0:15] …` | tu scegli entrambe |
 
 Aggiungi sezioni con i chip **+**, riordinale con le frecce, e dai a ciascuna una durata in modalità con tempi.
-**Inviato a YuE2:** mostra esattamente cosa riceve il modello. La struttura è un orientamento: YuE2 può rinominare una
-sezione, aggiungere un interludio, o superare i tempi che hai dato, quindi il limite di durata è il tetto rigido.
+**Inviato a YuE2:** mostra esattamente cosa riceve il modello. Il piano scrive le sezioni che indichi, in quell’ordine e nessun’altra; quanto dura ciascuna lo decide YuE2, quindi i tempi sono una guida, e una struttura molto lunga può finire prima, dove il pianificatore arriva al massimo che può scrivere in un piano. Il limite di durata è il tetto fisso.
 
 ### Uno strumentale da una registrazione {#an-instrumental-from-a-recording}
 

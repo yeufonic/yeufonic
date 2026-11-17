@@ -99,6 +99,18 @@ def plan_names(text: str) -> list[str]:
     return names
 
 
+def structure_names(text: str) -> list[str]:
+    """The section names of an instrumental's structure, in order, whether one tag a line ([verse]) or timed tags on a
+    line ([intro 0:00-0:15] [verse 0:15-0:45]); as plan_names, only names a plan can write."""
+    names = []
+    for found in re.finditer(r"\[\s*([A-Za-z -]+?)\s*(?:\d+)?\s*(?:\d+:\d+\s*-\s*\d+:\d+)?\s*\]", text or ""):
+        name = found.group(1).strip().lower()
+        name = "interlude" if name == "instrumental" else name
+        if name in TAGS:
+            names.append(name)
+    return names
+
+
 def clean_sections(sections: list[str]) -> list[str]:
     """The names a person put in the builder, as the tags the writer and the planner know; ValueError for any other."""
     out = []

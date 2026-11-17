@@ -388,6 +388,12 @@ def build_plan_graph(take: dict) -> dict:
     sections = take.get("chord_sections")      # None follows the step; 1 forces sections to open differently, 0 does not
     hook = take.get("hook_abc") or ""
     follow = lyrics.plan_names(take.get("lyrics") or "") if take.get("follow_structure") and (take.get("kind") == "song" or hook) else []
+    # An instrumental's structure is its own choice of sections (Sections or Timed sections), not words: the plan writes
+    # those sections, in that order and no others, as a song's does with Follow this structure exactly.  Left to
+    # itself the planner wrote its own shape, often a fraction of a long structure (6 sections of 23).
+    if not follow and take.get("kind") == "instrumental" and not hook and not take.get("source_id"):
+        follow = lyrics.structure_names(take.get("lyrics") or "")
+        follow = follow if len(follow) >= 2 else []
     # A time signature asked for (Advanced → Time): the score is made to open with its M: line, which the planner
     # then keeps to.  It knows 4/4, 3/4 and 6/8 well enough for that; a recorded tune brings a header of its own.
     meter = take.get("target_meter") if take.get("target_meter") in METERS else None

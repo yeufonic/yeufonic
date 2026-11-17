@@ -39,6 +39,12 @@ cannot creep back in.
 
 ## Unreleased
 
+- **An instrumental keeps to the sections you give it.** With Sections or Timed sections, the planner took the list as a
+  suggestion and wrote its own shape, often a fraction of a long structure (6 sections of 23, three minutes of ten). It
+  now writes the sections listed, in that order and no others, as a song does with Follow this structure exactly. The
+  planner still decides each section's length, so timed sections set the order and the names more than the seconds,
+  and a very long structure can still end early where the planner reaches the most it can write in one plan.
+
 - **A score written by hand is no longer cut off at six minutes.** The length cap rises to fit a song's plan, and a
   cover's to fit its recording's score, but a score typed, pasted or edited longer kept the cap the take started with,
   and the render faded out there (six minutes unless Settings say otherwise). It now rises to fit any score when the
