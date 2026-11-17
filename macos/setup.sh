@@ -102,9 +102,9 @@ VOICE_TORCH="torch==2.7.1 torchaudio==2.7.1"
 # The yue2.cpp engine (--engine yue2cpp): yue2.cpp's server and stable-diffusion.cpp's, built for macOS 14 by
 # macos/build-cpp.sh and published as a pre-release by .github/workflows/engine-cpp-macos.yml; Ollama, which runs Gemma
 # beside it, from its own release, the version windows/setup.ps1 pins.
-CPP_URL=""
-CPP_SHA=""
-CPP_SIZE=""
+CPP_URL=https://github.com/yeufonic/yeufonic/releases/download/yue2cpp-macos-8af0174-86a8de0e-p1/yue2cpp-macos-8af0174-86a8de0e-p1.tar.gz
+CPP_SHA=4478032b265982475897eb2023fa9553fc45ce63302ad582e0684377a2478333
+CPP_SIZE=19762625
 # A build not yet published can be tried by naming it, a file:// address among them (a test of this script).
 CPP_URL="${YEUFONIC_CPP_URL:-$CPP_URL}"
 CPP_SHA="${YEUFONIC_CPP_SHA:-$CPP_SHA}"
@@ -123,6 +123,11 @@ FFMPEG_SHA=c8ed4c4e6978a03c485edbfe4e0a5dc2380f8a30bba5150531b31b094492d924
 FFMPEG_SIZE=28395699
 FFPROBE_SHA=fcbe839537485eaee7a7a8bc5cbc0f90d53617e80943e8a5b2e31cb851197ea6
 FFPROBE_SIZE=28317701
+# FluidSynth, which plays an imported MIDI file: no macOS build of its own, so ours, made by macos/build-fluidsynth.sh
+# and published by .github/workflows/fluidsynth-macos.yml (one program that needs nothing but macOS).
+FLUIDSYNTH_URL=https://github.com/yeufonic/yeufonic/releases/download/fluidsynth-macos-2.6.2-sndfile-1.2.2-p1/fluidsynth-macos-2.6.2-sndfile-1.2.2-p1.tar.gz
+FLUIDSYNTH_SHA=bb862c35de5d24e6c073e13aa7e4db53c7f7d4f39159f0f56b6905eefbfef466
+FLUIDSYNTH_SIZE=443876
 
 HF=https://huggingface.co
 COPIES=$HF/pshields/yue2-mothersuperior-copies/resolve/main
@@ -609,12 +614,19 @@ for tool in ffmpeg ffprobe; do
     chmod +x "$TOOLS/bin/$tool"
   fi
 done
-# FluidSynth, for hearing an imported MIDI file, has no macOS build of its own; the launcher
-# gives the app Homebrew's if it is there (brew install fluid-synth).
-if [ -x /opt/homebrew/bin/fluidsynth ]; then
-  say "FluidSynth: Homebrew's, at /opt/homebrew/bin/fluidsynth"
-else
-  say "FluidSynth: not found. MIDI files can be imported but not heard; 'brew install fluid-synth' adds it."
+# FluidSynth, for hearing an imported MIDI file, into the tools folder, which the launcher puts on the app's PATH ahead
+# of Homebrew's.
+FLUIDSYNTH_NAME="$(basename "$FLUIDSYNTH_URL" .tar.gz)"
+if ! is_done "$FLUIDSYNTH_NAME" || [ ! -x "$TOOLS/bin/fluidsynth" ]; then
+  get_verified "$FLUIDSYNTH_URL" "$DOWNLOADS/$FLUIDSYNTH_NAME.tar.gz" "$FLUIDSYNTH_SIZE" "$FLUIDSYNTH_SHA"
+  rm -rf "$DOWNLOADS/unpack"
+  mkdir -p "$DOWNLOADS/unpack" "$TOOLS/licenses"
+  tar -xzf "$DOWNLOADS/$FLUIDSYNTH_NAME.tar.gz" -C "$DOWNLOADS/unpack"
+  mv -f "$DOWNLOADS/unpack/$FLUIDSYNTH_NAME/fluidsynth" "$TOOLS/bin/fluidsynth"
+  rm -rf "$TOOLS/licenses/fluidsynth"
+  mv "$DOWNLOADS/unpack/$FLUIDSYNTH_NAME" "$TOOLS/licenses/fluidsynth"
+  rm -rf "$DOWNLOADS/unpack"
+  mark_done "$FLUIDSYNTH_NAME"
 fi
 # uv keeps its Pythons and its cache in this folder, not in the user's own.
 export UV_PYTHON_INSTALL_DIR="$INSTALL_DIR/python"

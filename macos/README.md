@@ -146,9 +146,9 @@ is worth doing.
 - **Signing and notarisation.** Without a Developer ID (Apple's developer program, a yearly fee)
   macOS will not open the app at first. Choose *Done*, then *System Settings → Privacy &
   Security → Open Anyway*, and open it again.
-- **FluidSynth**, which plays an imported MIDI file, has no macOS build of its own. The app uses
-  Homebrew's when it is there (`brew install fluid-synth`); without it MIDI files import but
-  cannot be heard.
+- **FluidSynth**, which plays an imported MIDI file, has no macOS build of its own, so the setup
+  fetches ours: `macos/build-fluidsynth.sh`, published by `.github/workflows/fluidsynth-macos.yml`,
+  one program that needs nothing but macOS, into the tools folder.
 - **The update notice** sends a Mac to the disk image named under `macos` in the site's manifest
   (`updates.json`), or to the release notes when there is none. Nothing publishes one yet.
 - **No uninstaller.** Delete the app, and `~/Library/Application Support/Yeufonic` and

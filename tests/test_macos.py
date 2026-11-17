@@ -322,13 +322,31 @@ def test_ollama_gemma_and_the_picture_server_are_the_versions_windows_runs():
     assert f"/stable-diffusion.cpp/releases/download/{sdcpp}/" in ps1
 
 
+def test_the_mac_builds_pinned_are_the_ones_the_workflows_publish_for_these_sources():
+    """A change to yue2.cpp's commit, our patches or a build script names a new pre-release: the pin must follow it."""
+    import hashlib
+    text = SETUP.read_text(encoding="utf-8")
+    ref = re.search(r"^ARG YUE2CPP_REF=(\w+)$", (ROOT / "engine-cpp" / "Dockerfile").read_text(encoding="utf-8"), re.M).group(1)
+    sources = b"".join(path.read_bytes() for path in sorted((ROOT / "engine-cpp" / "patches").glob("*.patch")))
+    digest = hashlib.sha256(sources + (MACOS / "build-cpp.sh").read_bytes()).hexdigest()[:8]
+    package = re.search(r"^  PACKAGE: (\d+)$", (ROOT / ".github/workflows/engine-cpp-macos.yml").read_text(), re.M).group(1)
+    tag = f"yue2cpp-macos-{ref[:7]}-{digest}-p{package}"
+    assert re.search(rf"^CPP_URL=https://github.com/yeufonic/yeufonic/releases/download/{tag}/{tag}\.tar\.gz$", text, re.M)
+    assert re.search(r"^CPP_SHA=[0-9a-f]{64}$", text, re.M) and re.search(r"^CPP_SIZE=\d+$", text, re.M)
+    build = (MACOS / "build-fluidsynth.sh").read_text(encoding="utf-8")
+    fs = re.search(r"^FLUIDSYNTH_VERSION=(\S+)$", build, re.M).group(1)
+    sf = re.search(r"^SNDFILE_VERSION=(\S+)$", build, re.M).group(1)
+    package = re.search(r"^  PACKAGE: (\d+)$", (ROOT / ".github/workflows/fluidsynth-macos.yml").read_text(), re.M).group(1)
+    tag = f"fluidsynth-macos-{fs}-sndfile-{sf}-p{package}"
+    assert re.search(rf"^FLUIDSYNTH_URL=https://github.com/yeufonic/yeufonic/releases/download/{tag}/{tag}\.tar\.gz$", text, re.M)
+    assert re.search(r"^FLUIDSYNTH_SHA=[0-9a-f]{64}$", text, re.M) and re.search(r"^FLUIDSYNTH_SIZE=\d+$", text, re.M)
+
+
 @needs_bash
-def test_yue2cpp_is_refused_until_its_build_is_published(tmp_path):
-    res = check(tmp_path, "--engine", "yue2cpp")
-    assert res.returncode != 0
-    assert "not published yet" in res.stdout
+def test_an_engine_that_is_not_one_is_refused(tmp_path):
     bad = check(tmp_path, "--engine", "llama")
     assert bad.returncode != 0 and "--engine is comfyui or yue2cpp" in bad.stdout
+    assert "Engine: yue2cpp" in check(tmp_path, "--engine", "yue2cpp").stdout
 
 
 @needs_bash
