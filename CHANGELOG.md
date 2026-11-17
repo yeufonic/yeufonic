@@ -43,6 +43,9 @@ cannot creep back in.
   cover's to fit its recording's score, but a score typed, pasted or edited longer kept the cap the take started with,
   and the render faded out there (six minutes unless Settings say otherwise). It now rises to fit any score when the
   take is rendered, unless you typed the cap yourself.
+- **An emptied Length cap box no longer means a cap of six minutes.** Clearing the box was read as a cap of 360 seconds
+  typed by hand, whatever Settings said, so a long plan was turned away against it. An empty box is now no cap of
+  anyone's: the take gets the one in Settings, which rises to fit a longer plan, and the box shows it again.
 - **Lyrics too long for the length cap say so.** Lyrics of many sections, with Follow this structure exactly on, can
   ask for a plan of a quarter of an hour, which is turned away when it runs far past the cap; the message called the
   plan unreadable and suggested Harmony Familiar. It now says how long the plan came out and which cap it was over,

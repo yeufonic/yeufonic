@@ -4460,6 +4460,13 @@ function defaultCap() {
   return seconds >= 10 && seconds <= 900 ? seconds : DEFAULT_CAP;
 }
 
+/* The cap the Length cap box stands for: what is in it, or, emptied, the one in Settings (an empty box is no cap of
+   anyone's, not a cap of 360 seconds typed by hand). */
+function capInBox() {
+  var seconds = parseFloat(($('max-duration') || {}).value);
+  return seconds >= 10 ? Math.min(900, seconds) : defaultCap();
+}
+
 function capForScore(abc) {
   var length = planLength(abc);
   if (!length || !length.seconds) { return null; }
@@ -7759,7 +7766,7 @@ function keepTune() {
 function editorRenderSettings() {
   var data = withStyleLora({
     style: $('style').value,
-    max_duration: parseFloat($('max-duration').value) || 360,
+    max_duration: capInBox(),
     mode: $('mode').value,
     seed: pickSeed(),
     interpretation: $('interpretation').value,
@@ -7963,7 +7970,7 @@ function songBody(seed) {
     mode: noScore() ? 'off' : undefined,      // no score: rendered at once, with no plan
     seed: seed,
     interpretation: $('interpretation').value,
-    max_duration: parseFloat($('max-duration').value) || 360,
+    max_duration: capInBox(),
     cap_typed: Boolean(State.capTyped),      // a cap nobody typed rises to fit the plan
     auto_render: $('auto-render').checked,
     variety: $('variety').value,
@@ -9837,7 +9844,7 @@ function instBody(seed) {
     seed: seed,
     interpretation: $('interpretation').value,
     feel: FEEL.value,
-    max_duration: parseFloat($('max-duration').value) || 360,
+    max_duration: capInBox(),
     cap_typed: Boolean(State.capTyped),      // a cap nobody typed rises to fit the plan
     auto_render: $('auto-render').checked,
     variety: $('variety').value,
@@ -9968,7 +9975,7 @@ function paintStructure() {
   });
   var body = $('structure-body');
   var total = STRUCTURE.sections.reduce(function (sum, item) { return sum + item.seconds; }, 0);
-  var cap = parseFloat($('max-duration').value) || 360;
+  var cap = capInBox();
   $('structure-total').textContent = STRUCTURE.kind === 'timed' ? t('{time} in all{value}', { time: clock(total), value: total > cap ? t(', longer than the length cap') : '' }) : '';
   $('structure-total').classList.toggle('over', STRUCTURE.kind === 'timed' && total > cap);
   if (STRUCTURE.kind === 'free') {
@@ -10170,10 +10177,17 @@ function wireStructure() {
     paintStructure();
   });
   $('max-duration').addEventListener('input', function () {
-    // Typed by hand: a recording's score no longer sets it.
-    State.capTyped = true;
+    // Typed by hand: a recording's score no longer sets it.  Emptied, it is nobody's again.
+    State.capTyped = $('max-duration').value.trim() !== '';
     State.capFromScore = false;
     if (State.mode === 'inst' || State.mode === 'cover') { paintStructure(); }
+  });
+  $('max-duration').addEventListener('change', function () {
+    // Left empty: it shows the cap that applies, the one in Settings, which rises to fit a longer plan.
+    if ($('max-duration').value.trim() === '') {
+      $('max-duration').value = defaultCap();
+      State.capTyped = false;
+    }
   });
   $('create-inst').addEventListener('click', doInstrumental);
 }
@@ -10318,7 +10332,7 @@ function openVariations(take) {
     $('variations-keep-sampling').checked = false;
   }
   // Starts from the left panel's cap; a change here is for these takes only.
-  $('variations-cap').value = parseFloat($('max-duration').value) || 360;
+  $('variations-cap').value = capInBox();
   paintVariationsEstimate();
   $('variations-modal').classList.remove('hidden');
 }
@@ -10758,7 +10772,7 @@ function openTries(take) {
   }).join('');
   document.querySelector('#tries-modes input[value="seeds"]').checked = true;
   $('tries-count').value = 4;
-  $('tries-cap').value = Math.round(take.max_duration || parseFloat($('max-duration').value) || 360);
+  $('tries-cap').value = Math.round(take.max_duration || capInBox());
   $('tries-status').textContent = '';
   paintTries();
   $('tries-modal').classList.remove('hidden');
@@ -10873,7 +10887,7 @@ function openLoraSteps() {
   $('steps-hint').textContent = STEP_MODES[mode].hint + (checkpointsHolder()
     ? ' ' + t('Each is a take named after its step, kept inside this take.')
     : ' ' + t('Each is a take named after its step, and the last of them holds the others inside it.'));
-  $('steps-cap').value = parseFloat($('max-duration').value) || 360;
+  $('steps-cap').value = capInBox();
   $('steps-list').innerHTML = steps.map(function (s) {
     return '<label><input type="checkbox" value="' + esc(s.name) + '" data-label="' + stepLabel(s) + '" checked><strong>' +
       (s.step === null ? t('Full') : t('Step {step}', { step: s.step })) + '</strong><span class="muted">' +
@@ -15414,7 +15428,7 @@ function coverBody(seed) {
     mode: $('mode').value,
     seed: seed,
     interpretation: $('interpretation').value,
-    max_duration: parseFloat($('max-duration').value) || 360,
+    max_duration: capInBox(),
     space_id: State.spaceId,
     voice_id: VOICES.pick || null,
     voice_mix: voiceMixWanted(),
@@ -15503,7 +15517,7 @@ function showPlanLength(abc) {
   if (!node) { return; }
   var info = planLength(abc);
   if (!info) { node.textContent = ''; return; }
-  var cap = parseFloat($('max-duration').value) || 360;
+  var cap = capInBox();
   var text = t('Score is {bars} bars at {bpm} BPM, so about {time}', { bars: info.bars, bpm: info.bpm, time: secs(info.seconds) });
   if (info.seconds > cap) {
     text += t('. Your cap of {time} will cut it short.', { time: secs(cap) });
