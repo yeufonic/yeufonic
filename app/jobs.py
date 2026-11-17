@@ -536,6 +536,12 @@ def lock_tempo(abc: str, bpm) -> str:
     return out
 
 
+def _minutes(seconds: float) -> str:
+    """A length cap in words: 540 is "9 minutes", 500 is "8 minutes 20 seconds"."""
+    whole, rest = divmod(int(round(seconds)), 60)
+    return f"{whole} minute{'s' if whole != 1 else ''}" + (f" {rest} seconds" if rest else "")
+
+
 def cap_for_plan(abc: str, cap: float, typed) -> float | None:
     """The length cap a newly written plan needs, when it is longer than the cap the take has and
     nobody set that cap by hand: the plan's length and ten seconds, rounded up to ten, and never
@@ -1323,6 +1329,21 @@ async def _finish(kind: str, ref_id: str, record: dict, job: dict, started: floa
             await QUEUE.put({"kind": "plan", "id": ref_id})
             return
         RETRIED_PLANS.discard(ref_id)
+        too_long = next((issue for issue in issues if issue.startswith("a plan ") and issue.endswith("minutes long")), None)
+        if too_long:
+            # Long lyrics make a long plan, and one far past the cap is turned away: that is what to say, not that the
+            # plan was garbled (Harmony and the rest do not shorten it).
+            planned = score.estimate(abc) or {}
+            cap = float(record.get("max_duration") or 0)
+            others = [issue for issue in issues if issue != too_long]
+            fail(kind, ref_id,
+                 f"the plan came out {planned.get('seconds', 0) / 60:.0f} minutes long twice, more than "
+                 f"{'the length cap of ' + _minutes(cap) if cap else 'a song'} allows"
+                 + (f" (and {', '.join(others)})" if others else "")
+                 + ". Lyrics with this many sections make a song this long: use fewer sections, or raise the Length cap"
+                   " (up to 15 minutes); the longer a plan, the more the planner loses its way."
+                 + _plan_failure_hints(record, ref_id))
+            return
         if issues:
             advice_parts = []
             clip_val = float(record.get("style_lora_clip") or 0.0)

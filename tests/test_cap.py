@@ -80,6 +80,14 @@ def test_a_plan_far_past_its_cap_is_still_not_a_song(monkeypatch):
     asyncio.run(jobs.run_job("plan", take["id"]))
     row = one("SELECT * FROM takes WHERE id = ?", (take["id"],))
     assert row["status"] == "failed" and "minutes long" in row["error"] and row["max_duration"] == 360
+    # Said as what it is: long lyrics past the cap, with what to do, not advice about a garbled plan.
+    assert row["error"].startswith("the plan came out 9 minutes long twice, more than the length cap of 6 minutes allows")
+    assert "use fewer sections, or raise the Length cap" in row["error"] and "Harmony" not in row["error"]
+
+
+def test_a_cap_in_words():
+    assert jobs._minutes(540) == "9 minutes" and jobs._minutes(500) == "8 minutes 20 seconds"
+    assert jobs._minutes(60) == "1 minute"
 
 
 def test_whose_cap_it_is(client):
