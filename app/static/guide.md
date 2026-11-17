@@ -1099,6 +1099,10 @@ engine built with `WITH_TRAINER=0`, takes it out.
      **Re-analyse** in each song's review.
 4. **Review.** Open a song to check its lyrics and tick **checked**, and to describe its sound where it differs from
    the rest. The style caption shows what the trainer will read.
+   - **The style suggestion** is the style the analysis heard in the song: genre, era, instruments and mood. Under it,
+     **Use in a new song** opens + Song with that style in the Style box, and **Save as a style** keeps it in the style
+     list (under Saved styles) with a name you give it, for any song or cover. So a corpus of one song is a way to get
+     the style of a track you like.
 5. **Export training set.** Writes the audio, lyrics and caption for each song. A line under the buttons shows how
    far it has got.
    - The trainer takes only so much of a song, which the app works out from your graphics card's free memory (about

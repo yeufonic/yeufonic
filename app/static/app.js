@@ -9378,11 +9378,17 @@ function paintStyleSave() {
 async function saveCurrentStyle() {
   var prompt = styleToSave();
   if (!prompt) { return; }
+  await saveStyleAs(prompt, prompt.split(',')[0].trim());
+}
+
+/* Keep a style under a name the user confirms (offered: `suggested`), asking before one of the same name is replaced.
+   True once it is saved. */
+async function saveStyleAs(prompt, suggested) {
   var name = await confirmModal({
     title: t('Save style'),
     message: t('Name this style:'),
     input: true,
-    defaultValue: prompt.split(',')[0].trim().slice(0, 60),
+    defaultValue: (suggested || '').slice(0, 60),
     confirmText: t('Save')
   });
   if (name === null || !name.trim()) { return; }
@@ -9399,8 +9405,11 @@ async function saveCurrentStyle() {
     });
     await loadSavedStyles();
     try { localStorage.setItem(SAVED_STYLES_OPEN_KEY, '1'); } catch (err) { /* private mode */ }
+    if (typeof paintStyleSave === 'function') { paintStyleSave(); }
+    return true;
   } catch (err) {
     await confirmModal({ title: t('Save style'), message: t('Could not save the style: {message}', { message: err.message }), confirmText: 'OK' });
+    return false;
   }
 }
 
@@ -11511,7 +11520,9 @@ function songDetail(song) {
       'placeholder="' + esc((IDENTITY.data && IDENTITY.data.description) || 'the corpus\u2019s description') + '">' +
       '<div class="hint">' + t('Only where it differs from the rest, say stripped back or acoustic. Blank uses the corpus’s. Saved with Save.') + '</div></div>' +
       '<div class="muted" style="margin-top:8px">' + t('Style caption') + '</div><div class="caption" data-caption="' + song.id + '">' + esc(song.caption) + '</div>' +
-      (song.style_hint ? '<div class="muted" style="margin-top:8px; display:flex; justify-content:space-between; align-items:center"><span>' + t('Style suggestion') + '</span><button class="restyle" data-restyle="' + song.id + '">' + t('Re-analyse') + '</button></div><div class="caption">' + esc(song.style_hint) + '</div>' : '<div style="margin-top:8px"><button class="restyle" data-restyle="' + song.id + '">' + t('Analyse style') + '</button></div>') +
+      (song.style_hint ? '<div class="muted" style="margin-top:8px; display:flex; justify-content:space-between; align-items:center"><span>' + t('Style suggestion') + '</span><button class="restyle" data-restyle="' + song.id + '">' + t('Re-analyse') + '</button></div><div class="caption">' + esc(song.style_hint) + '</div>' +
+        '<div class="row style-hint-use" style="margin-top:6px"><button class="ghost" data-use-style="' + song.id + '" title="' + t('Open a new song with this style in its Style box') + '">' + t('Use in a new song') + '</button>' +
+        '<button class="ghost" data-keep-style="' + song.id + '" title="' + t('Keep this style in the style list, to use for any song or cover') + '">' + t('Save as a style') + '</button></div>' : '<div style="margin-top:8px"><button class="restyle" data-restyle="' + song.id + '">' + t('Analyse style') + '</button></div>') +
       (song.error ? '<div class="status bad" style="margin-top:8px">' + esc(tr(song.error)) + '</div>' : '') +
     '</div></div>';
 }
@@ -12095,6 +12106,26 @@ async function identityClick(event) {
       if (said) { said.textContent = err.message; said.className = 'status bad'; }
     } finally {
       redraft.disabled = false;
+    }
+    return;
+  }
+  // A song's style suggestion, used for a new song (the corpus window gives way to the editor) or kept as a saved style.
+  var useStyle = target.closest('[data-use-style]');
+  if (useStyle) {
+    var heard = identitySong(useStyle.dataset.useStyle);
+    if (heard && heard.style_hint) {
+      closeIdentities();
+      await newTake('song');
+      if (editorOpen() && $('style')) { applyStyleText(heard.style_hint); }
+    }
+    return;
+  }
+  var keepStyle = target.closest('[data-keep-style]');
+  if (keepStyle) {
+    var kept = identitySong(keepStyle.dataset.keepStyle);
+    if (kept && kept.style_hint && await saveStyleAs(tidyStyle(kept.style_hint), kept.title || kept.file || '')) {
+      keepStyle.textContent = t('Saved');
+      keepStyle.disabled = true;
     }
     return;
   }

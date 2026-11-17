@@ -2876,5 +2876,9 @@
  "No installer URL available for this update": "此更新沒有可用的安裝程式 URL",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "校驗和不匹配：預期 {expected_hash}，實際 {actual_hash}",
  "Advanced+": "高階+",
- "Drag to widen or narrow the columns. Double-click for the usual widths.": "拖曳可加寬或縮窄各欄。按兩下恢復預設寬度。"
+ "Drag to widen or narrow the columns. Double-click for the usual widths.": "拖曳可加寬或縮窄各欄。按兩下恢復預設寬度。",
+ "Use in a new song": "用於新歌曲",
+ "Save as a style": "儲存為風格",
+ "Open a new song with this style in its Style box": "開啟一首新歌曲，並把此風格填入風格框",
+ "Keep this style in the style list, to use for any song or cover": "把此風格保留在風格清單中，可用於任何歌曲或翻唱"
 }

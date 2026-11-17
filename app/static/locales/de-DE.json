@@ -2876,5 +2876,9 @@
  "No installer URL available for this update": "Keine Installer-URL für dieses Update verfügbar",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Prüfsummen stimmen nicht überein: erwartet {expected_hash}, erhalten {actual_hash}",
  "Advanced+": "Erweitert+",
- "Drag to widen or narrow the columns. Double-click for the usual widths.": "Ziehen, um die Spalten breiter oder schmaler zu machen. Doppelklick für die üblichen Breiten."
+ "Drag to widen or narrow the columns. Double-click for the usual widths.": "Ziehen, um die Spalten breiter oder schmaler zu machen. Doppelklick für die üblichen Breiten.",
+ "Use in a new song": "In einem neuen Song verwenden",
+ "Save as a style": "Als Stil speichern",
+ "Open a new song with this style in its Style box": "Einen neuen Song mit diesem Stil im Stilfeld öffnen",
+ "Keep this style in the style list, to use for any song or cover": "Diesen Stil in der Stilliste behalten, für jeden Song und jedes Cover"
 }

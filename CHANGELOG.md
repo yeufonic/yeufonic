@@ -39,6 +39,9 @@ cannot creep back in.
 
 ## Unreleased
 
+- **A corpus song's style suggestion can be used straight away.** Under the suggestion in a song's review, **Use in a
+  new song** opens + Song with that style in the Style box, and **Save as a style** keeps it in the style list under a
+  name you give it. Before, it had to be copied out by hand.
 - **The editor's columns can be widened and narrowed.** Drag the bar between two columns to give one more room and its
   neighbour less, down to a width each keeps its controls readable at; double-click the bar for the usual widths. The
   widths are kept in the browser. A wider first column also widens its style list, so more of each style shows.

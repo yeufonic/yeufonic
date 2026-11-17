@@ -2876,5 +2876,9 @@
  "No installer URL available for this update": "Для этого обновления нет URL установщика",
  "Checksum mismatch: expected {expected_hash}, got {actual_hash}": "Контрольная сумма не совпадает: ожидалось {expected_hash}, получено {actual_hash}",
  "Advanced+": "Дополнительно+",
- "Drag to widen or narrow the columns. Double-click for the usual widths.": "Перетащите, чтобы расширить или сузить колонки. Двойной щелчок возвращает обычную ширину."
+ "Drag to widen or narrow the columns. Double-click for the usual widths.": "Перетащите, чтобы расширить или сузить колонки. Двойной щелчок возвращает обычную ширину.",
+ "Use in a new song": "Использовать в новой песне",
+ "Save as a style": "Сохранить как стиль",
+ "Open a new song with this style in its Style box": "Открыть новую песню с этим стилем в поле «Стиль»",
+ "Keep this style in the style list, to use for any song or cover": "Сохранить этот стиль в списке стилей для любой песни или кавера"
 }
