@@ -11332,7 +11332,7 @@ function openIdentities() {
   var modal = getIdentityModal();
   if (modal) { modal.classList.remove('hidden'); }
   document.body.style.overflow = 'hidden';
-  showIdentityList();
+  return showIdentityList();       // awaitable, so a corpus shown next is not painted over by the list arriving late
 }
 var openPersonas = openIdentities;
 

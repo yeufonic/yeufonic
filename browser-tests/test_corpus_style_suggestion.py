@@ -40,7 +40,7 @@ def a_corpus_song(data):
 
 def test_a_style_suggestion_goes_into_a_new_song_or_the_style_list(page, app_server):
     corpus_id, song_id = a_corpus_song(app_server["data"])
-    page.evaluate("id => { openIdentities(); return showIdentity(id); }", corpus_id)
+    page.evaluate("async id => { await openIdentities(); return showIdentity(id); }", corpus_id)
     page.click(f'[data-open="{song_id}"]')
     page.wait_for_selector(f'[data-use-style="{song_id}"]')
 
@@ -50,7 +50,7 @@ def test_a_style_suggestion_goes_into_a_new_song_or_the_style_list(page, app_ser
     assert page.locator("#identities-modal").is_hidden()      # the corpus window gave way to the editor
     page.click("#editor-close")
 
-    page.evaluate("id => { openIdentities(); return showIdentity(id); }", corpus_id)
+    page.evaluate("async id => { await openIdentities(); return showIdentity(id); }", corpus_id)
     page.click(f'[data-open="{song_id}"]')
     page.click(f'[data-keep-style="{song_id}"]')
     confirm(page, "Harbour folk")
