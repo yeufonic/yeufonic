@@ -4504,9 +4504,28 @@ function instFromRecording() { return State.mode === 'inst' && Boolean(currentSo
 
 /* A planned instrumental open in the editor: its score has sections, so they are listed to rearrange,
    as a recording's are. Without a plan, the structure is still only the brief for one. */
-function instPlanned() {
+/* The kind of the take open in the editor: song, cover or instrumental ('' with none). */
+function kindInEditor() {
+  var id = takeIdInEditor();
+  if (!id) { return ''; }
+  if (State.formTake && State.formTake.id === id && State.formTake.kind) { return State.formTake.kind; }
+  return (takeById(id) || {}).kind || '';
+}
+
+function instScored() {
   return State.mode === 'inst' && !currentSource() && Boolean(takeIdInEditor()) &&
     typeof scoreSectionSpans === 'function' && scoreSectionSpans($('abc').value).length > 0;
+}
+
+/* An instrumental open with its plan: the main button renders that score. */
+function instPlanned() {
+  return instScored() && kindInEditor() === 'instrumental';
+}
+
+/* A song or a cover open with Instrumental chosen: the main button makes an instrumental of its score, in a new take
+   (Make an instrumental), rather than rendering the song again. */
+function instOfOpenTake() {
+  return instScored() && kindInEditor() !== 'instrumental';
 }
 
 function scoreSections(abc) {
@@ -4574,7 +4593,7 @@ function paintInstSource() {
     if ($(id)) { $(id).style.display = fromRecording ? 'none' : ''; }
   });
   if ($('auto-wrap')) { $('auto-wrap').style.display = fromRecording ? 'none' : ''; }
-  if ($('create-inst')) { $('create-inst').textContent = fromRecording ? t('Create instrumental') : (instPlanned() ? t('Render this score') : t('Write score plan')); }
+  if ($('create-inst')) { $('create-inst').textContent = fromRecording ? t('Create instrumental') : (instPlanned() ? t('Render this score') : (instOfOpenTake() ? t('Make an instrumental') : t('Write score plan'))); }
   // The hint the mode switch left says to write a plan, which a recording does without.
   var hint = t('Write a score plan to start a song from scratch.');
   var played = t('Create instrumental plays the recording\'s score, with no vocal and no plan to write.');
@@ -9864,6 +9883,7 @@ function instBody(seed) {
 async function doInstrumental() {
   if (instFromRecording()) { await doInstrumentalFromRecording(); return; }
   if (instPlanned()) { await doRenderPlanned(); return; }
+  if (instOfOpenTake()) { await doMakeInstrumental(); return; }
   var problem = instProblem();
   if (problem) { statusLine(problem, 'bad'); return; }
   var seed = pickSeed();
@@ -9908,7 +9928,7 @@ async function doInstrumentalFromRecording() {
    recording, and for a cover. They come from the "% name" lines of the score in the box, and each row can
    be moved, copied or taken out, which rewrites the score (the Score window shows it). */
 function sectionsFromScore() {
-  if (State.mode === 'inst') { return instFromRecording() || instPlanned(); }
+  if (State.mode === 'inst') { return instFromRecording() || instScored(); }
   return State.mode === 'cover' && scoreSectionSpans($('abc').value).length > 0;
 }
 

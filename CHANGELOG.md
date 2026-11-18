@@ -37,6 +37,13 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **Instrumental chosen with a song open makes an instrumental of it.** With a song or a cover open in the editor,
+  choosing Instrumental showed its score's sections and offered Render this score, which rendered the song again. The
+  button is now Make an instrumental: a new take that plays the song's score with no vocal, the song left as it was,
+  as the score panel's Make an instrumental does.
+
 ## 0.0.62 (2026-11-17)
 
 - **An instrumental keeps to the sections you give it.** With Sections or Timed sections, the planner took the list as a

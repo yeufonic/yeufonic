@@ -57,3 +57,18 @@ def test_a_take_is_starred_renamed_and_deleted(page, app_server):
     confirm(page)
     card(page, made["id"]).wait_for(state="detached")
     assert made["id"] not in take_ids(page)
+
+
+def test_instrumental_chosen_with_a_song_open_makes_an_instrumental_of_it(page, app_server):
+    """A song open in the editor with Instrumental chosen: the main button makes an instrumental of the song's score,
+    in a new take, and does not render the song again."""
+    made = make_song(page, app_server)
+    card(page, made["id"]).locator('[data-act="open"]').click()
+    page.wait_for_function("(id) => takeIdInEditor() === id", arg=made["id"])
+    page.locator('.modes .mode[data-mode="inst"]').click()
+    page.wait_for_function("() => document.getElementById('create-inst').textContent === 'Make an instrumental'")
+    before = take_ids(page)
+    page.click("#create-inst")
+    made_now = wait_take(app_server, new_take_id(page, before))
+    assert made_now["kind"] == "instrumental"
+    assert take(app_server, made["id"])["kind"] == "song"
