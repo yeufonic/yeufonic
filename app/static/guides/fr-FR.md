@@ -879,6 +879,8 @@ Le troisième mode écrit un morceau sans voix. Au lieu de paroles, il prend une
 Ajoutez des sections avec les puces **+**, réordonnez-les avec les flèches, et donnez une durée à chacune en mode minuté.
 **Envoyé à YuE2 :** montre exactement ce que reçoit le modèle. Le plan écrit les sections que vous indiquez, dans cet ordre et aucune autre ; YuE2 décide de la durée de chacune, donc les temps sont un guide, et une structure très longue peut s’arrêter plus tôt, là où le planificateur atteint le maximum qu’il peut écrire en un plan. La limite de durée est la limite ferme.
 
+Une fois qu’un instrumental a un plan, la structure liste les sections de sa partition, à déplacer, copier ou retirer. **Écrire une nouvelle structure**, sous la liste, vous rend la structure modifiable, à partir des sections de la prise : changez-la, et **Écrire le plan de partition** écrit un nouveau plan dans une nouvelle prise ; celle qui était ouverte reste telle quelle.
+
 ### Un instrumental à partir d’un enregistrement {#an-instrumental-from-a-recording}
 
 **À partir d'un enregistrement (facultatif)** en haut de l’éditeur prend l’un de vos enregistrements, comme une reprise. Sa

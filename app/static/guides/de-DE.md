@@ -879,6 +879,8 @@ Der dritte Modus schreibt ein Stück ohne Gesang. Statt eines Textes nimmt er ei
 Füge Abschnitte mit den **+**-Chips hinzu, sortiere sie mit den Pfeilen um und gib jedem eine Länge, wenn zeitlich festgelegt.
 **An YuE2 gesendet:** zeigt genau, was das Modell bekommt. Der Plan schreibt die aufgeführten Abschnitte, in dieser Reihenfolge und keine anderen; wie lang jeder wird, entscheidet YuE2, die Zeiten sind also eine Orientierung, und eine sehr lange Struktur kann früher enden, wo der Planer das Meiste erreicht, was er in einem Plan schreiben kann. Die Längengrenze ist das feste Limit.
 
+Sobald ein Instrumental einen Plan hat, listet die Struktur die Abschnitte seiner Partitur auf, zum Verschieben, Kopieren oder Entfernen. **Neue Struktur schreiben** unter der Liste gibt dir wieder die bearbeitbare Struktur, ausgehend von den Abschnitten des Takes: Ändere sie, und **Partiturplan schreiben** schreibt einen neuen Plan in einen neuen Take; der geöffnete bleibt, wie er war.
+
 ### Ein Instrumental aus einer Aufnahme {#an-instrumental-from-a-recording}
 
 **Aus einer Aufnahme (optional)** oben im Editor nimmt eine deiner Aufnahmen, wie ein Cover. Ihre

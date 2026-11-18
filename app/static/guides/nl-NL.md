@@ -879,6 +879,8 @@ De derde modus schrijft een stuk zonder stem. In plaats van een tekst neemt hij 
 Voeg secties toe met de chips **+**, herschik ze met de pijltjes, en geef elke sectie een lengte in de getimede modus.
 **Naar YuE2 gestuurd:** toont precies wat het model krijgt. Het plan schrijft de secties die je opgeeft, in die volgorde en geen andere; hoe lang elke sectie wordt, bepaalt YuE2, dus de tijden zijn een richtlijn, en een heel lange structuur kan eerder eindigen, waar de planner het meeste bereikt wat hij in één plan kan schrijven. De lengtegrens is de vaste limiet.
 
+Zodra een instrumental een plan heeft, toont de structuur de secties van de partituur, om te verplaatsen, te kopiëren of weg te halen. **Nieuwe structuur schrijven** onder de lijst geeft je de bewerkbare structuur terug, beginnend bij de secties van de take: pas hem aan, en **Partituurplan schrijven** schrijft een nieuw plan in een nieuwe take; de geopende blijft zoals hij was.
+
 ### Een instrumentaal uit een opname {#an-instrumental-from-a-recording}
 
 **Vanuit een opname (optioneel)** bovenaan de editor neemt een van je opnames, zoals een cover. Zijn

@@ -879,6 +879,8 @@ O terceiro modo escreve uma peça sem voz. Em vez de letra, ele recebe uma **est
 Adicione secções com os chips **+**, reordene-as com as setas, e dê a cada uma uma duração no modo com tempos.
 **Enviado ao YuE2:** mostra exatamente o que o modelo recebe. O plano escreve as secções que indica, por essa ordem e nenhuma outra; quanto dura cada uma é o YuE2 que decide, por isso os tempos são um guia, e uma estrutura muito longa pode terminar antes, onde o planeador chega ao máximo que consegue escrever num plano. O limite de duração é o teto firme.
 
+Quando um instrumental já tem um plano, a estrutura lista as secções da partitura, para mover, copiar ou remover. **Escrever uma nova estrutura**, por baixo da lista, devolve a estrutura editável, a partir das secções da take: altere-a e **Escrever o plano da partitura** escreve um novo plano numa nova take; a que estava aberta fica como estava.
+
 ### Um instrumental a partir de uma gravação {#an-instrumental-from-a-recording}
 
 **A partir de uma gravação (opcional)** no topo do editor pega uma das suas gravações, como um cover. A

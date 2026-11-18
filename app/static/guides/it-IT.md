@@ -879,6 +879,8 @@ La terza modalità scrive un brano senza voce. Invece di un testo, prende una **
 Aggiungi sezioni con i chip **+**, riordinale con le frecce, e dai a ciascuna una durata in modalità con tempi.
 **Inviato a YuE2:** mostra esattamente cosa riceve il modello. Il piano scrive le sezioni che indichi, in quell’ordine e nessun’altra; quanto dura ciascuna lo decide YuE2, quindi i tempi sono una guida, e una struttura molto lunga può finire prima, dove il pianificatore arriva al massimo che può scrivere in un piano. Il limite di durata è il tetto fisso.
 
+Quando un brano strumentale ha già un piano, la struttura elenca le sezioni del suo spartito, da spostare, copiare o togliere. **Scrivi una nuova struttura**, sotto l’elenco, ti ridà la struttura modificabile, a partire dalle sezioni della take: cambiala e **Scrivi il piano della partitura** scrive un nuovo piano in una nuova take; quella aperta resta com’era.
+
 ### Uno strumentale da una registrazione {#an-instrumental-from-a-recording}
 
 **Da una registrazione (facoltativo)** in cima all'editor prende una delle tue registrazioni, come una cover. La sua
