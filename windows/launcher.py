@@ -31,6 +31,11 @@ import webbrowser
 from ctypes import wintypes
 from pathlib import Path
 
+# Every request the launcher makes is to this PC. urllib follows the Windows proxy setting, which a VPN client may set,
+# and sends 127.0.0.1 through the proxy unless its exceptions list it: the app then never answered, and the launcher
+# gave up on an app that had started. These go direct.
+LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
 HERE = Path(__file__).resolve().parent
 ENGINE = HERE / "engine"
 COMFY = ENGINE / "ComfyUI"
@@ -199,7 +204,7 @@ def job_processes(job) -> set[int]:
 # ---------------------------------------------------------------- helpers
 def answering(url: str) -> bool:
     try:
-        with urllib.request.urlopen(url, timeout=1) as reply:
+        with LOCAL.open(url, timeout=1) as reply:
             return reply.status == 200
     except OSError:
         return False
@@ -515,7 +520,7 @@ class Launcher:
     def busy(self) -> str:
         """What quitting would stop, in a few words, or nothing."""
         try:
-            with urllib.request.urlopen(f"http://127.0.0.1:{self.app_port}/api/state", timeout=2) as reply:
+            with LOCAL.open(f"http://127.0.0.1:{self.app_port}/api/state", timeout=2) as reply:
                 state = json.load(reply)
         except (OSError, ValueError):
             return ""
