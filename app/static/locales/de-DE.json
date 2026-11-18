@@ -2880,5 +2880,9 @@
  "Use in a new song": "In einem neuen Song verwenden",
  "Save as a style": "Als Stil speichern",
  "Open a new song with this style in its Style box": "Einen neuen Song mit diesem Stil im Stilfeld öffnen",
- "Keep this style in the style list, to use for any song or cover": "Diesen Stil in der Stilliste behalten, für jeden Song und jedes Cover"
+ "Keep this style in the style list, to use for any song or cover": "Diesen Stil in der Stilliste behalten, für jeden Song und jedes Cover",
+ "The sections of this take's score. Moving, copying or removing one rewrites the score.": "Die Abschnitte der Partitur dieses Takes. Einen zu verschieben, zu kopieren oder zu entfernen schreibt die Partitur um.",
+ "Write a new structure": "Neue Struktur schreiben",
+ "Write score plan makes a new take from this structure; the one open stays as it is.": "Partiturplan schreiben macht aus dieser Struktur einen neuen Take; der geöffnete bleibt, wie er ist.",
+ "Back to this take's sections": "Zurück zu den Abschnitten dieses Takes"
 }

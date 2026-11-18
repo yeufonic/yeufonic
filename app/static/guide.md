@@ -973,6 +973,10 @@ Add sections with the **+** chips, reorder them with the arrows, and give each a
 long each one is, so timed lengths are a guide, and a very long structure can end early where the planner reaches the
 most it can write in one plan. The length cap is the firm limit.
 
+Once an instrumental has a plan, the structure lists the sections of its score, to move, copy or remove. **Write a new
+structure** under the list gives you the editable structure again, starting from the take's own sections: change it,
+and **Write score plan** writes a new plan into a new take, leaving the open one as it was.
+
 ### An instrumental from a recording
 
 **From a recording** at the top of the editor takes one of your recordings, as a cover does. Its

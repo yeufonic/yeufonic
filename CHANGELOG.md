@@ -37,7 +37,15 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.63 (2026-11-18)
+
+- **Write a new structure for an instrumental that already has a plan.** An instrumental open in the editor lists the
+  sections of its score, which can be moved, copied or removed but not rewritten. **Write a new structure** under the
+  list turns it into the editable structure a new instrumental has, starting from the take's own sections and
+  lengths: add, remove, rename and reorder them, then **Write score plan** writes a new plan into a new take, leaving
+  the take that was open as it was. **Back to this take's sections** returns to the list.
+- **A new instrumental starts with no recording.** After an instrumental from a recording had been open, a new
+  instrumental kept that recording and showed its sections instead of the structure to fill in.
 
 - **Instrumental chosen with a song open makes an instrumental of it.** With a song or a cover open in the editor,
   choosing Instrumental showed its score's sections and offered Render this score, which rendered the song again. The

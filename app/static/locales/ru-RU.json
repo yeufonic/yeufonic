@@ -2880,5 +2880,9 @@
  "Use in a new song": "Использовать в новой песне",
  "Save as a style": "Сохранить как стиль",
  "Open a new song with this style in its Style box": "Открыть новую песню с этим стилем в поле «Стиль»",
- "Keep this style in the style list, to use for any song or cover": "Сохранить этот стиль в списке стилей для любой песни или кавера"
+ "Keep this style in the style list, to use for any song or cover": "Сохранить этот стиль в списке стилей для любой песни или кавера",
+ "The sections of this take's score. Moving, copying or removing one rewrites the score.": "Секции партитуры этого дубля. Если переместить, скопировать или убрать секцию, партитура перепишется.",
+ "Write a new structure": "Написать новую структуру",
+ "Write score plan makes a new take from this structure; the one open stays as it is.": "«Написать план партитуры» создаёт из этой структуры новый дубль; открытый остаётся как есть.",
+ "Back to this take's sections": "Вернуться к секциям этого дубля"
 }

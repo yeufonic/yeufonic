@@ -2880,5 +2880,9 @@
  "Use in a new song": "用于新歌曲",
  "Save as a style": "保存为风格",
  "Open a new song with this style in its Style box": "打开一首新歌曲，并把此风格填入风格框",
- "Keep this style in the style list, to use for any song or cover": "把此风格保留在风格列表中，可用于任何歌曲或翻唱"
+ "Keep this style in the style list, to use for any song or cover": "把此风格保留在风格列表中，可用于任何歌曲或翻唱",
+ "The sections of this take's score. Moving, copying or removing one rewrites the score.": "这个版本乐谱的段落。移动、复制或删除一段会改写乐谱。",
+ "Write a new structure": "写一个新结构",
+ "Write score plan makes a new take from this structure; the one open stays as it is.": "“写乐谱方案”会用这个结构做一个新版本；打开的这个保持不变。",
+ "Back to this take's sections": "回到这个版本的段落"
 }

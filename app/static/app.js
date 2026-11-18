@@ -4500,7 +4500,11 @@ function clearRecordingScore() {
   syncEditor();
 }
 
-function instFromRecording() { return State.mode === 'inst' && Boolean(currentSource()); }
+function instFromRecording() { return State.mode === 'inst' && Boolean(currentSource()) && !State.newStructure; }
+
+/* An instrumental open in the editor whose sections are being written afresh (Write a new structure): the structure
+   is the editable list a new instrumental has, and the main button writes a plan from it into a new take. */
+function newStructure() { return State.mode === 'inst' && Boolean(State.newStructure); }
 
 /* A planned instrumental open in the editor: its score has sections, so they are listed to rearrange,
    as a recording's are. Without a plan, the structure is still only the brief for one. */
@@ -4513,7 +4517,7 @@ function kindInEditor() {
 }
 
 function instScored() {
-  return State.mode === 'inst' && !currentSource() && Boolean(takeIdInEditor()) &&
+  return State.mode === 'inst' && !currentSource() && !State.newStructure && Boolean(takeIdInEditor()) &&
     typeof scoreSectionSpans === 'function' && scoreSectionSpans($('abc').value).length > 0;
 }
 
@@ -7356,6 +7360,7 @@ function paintNoScore() {
 
 function setMode(mode) {
   rememberSourceFor(State.mode, mode);
+  State.newStructure = false;
   State.mode = mode;
   Array.prototype.forEach.call(document.querySelectorAll('.modes .mode'), function (button) {
     button.classList.toggle('active', button.dataset.mode === mode);
@@ -9985,11 +9990,14 @@ function paintStructure() {
             button('copy', index, 'copy', t('Add a copy of this section after it')) +
             button('remove', index, '\u2715', t('Take this section out'), spans.length < 2) +
             '</span></li>';
-        }).join('') + '</ol><p class="struct-note">' + t('The sections of the recording\'s score{value} Moving, copying or removing one rewrites the score.', { value: cover ? t('. The words are matched to them in order, so change those to suit.') : '.' }) + '</p>' +
+        }).join('') + '</ol><p class="struct-note">' + (cover || currentSource()
+          ? t('The sections of the recording\'s score{value} Moving, copying or removing one rewrites the score.', { value: cover ? t('. The words are matched to them in order, so change those to suit.') : '.' })
+          : t('The sections of this take\'s score. Moving, copying or removing one rewrites the score.')) + '</p>' +
           (changed ? '' : endedShortNote(total)) +
           (fit.over ? '<p class="struct-note over">' + t('The cap is {time}, so the render would stop {time2} before the end of the score.', { time: clock(cap), time2: clock(fit.short) }) + ' <button type="button" class="chip action" data-sec-act="cap">' + t('Raise the cap to {time}', { time: clock(fit.raiseTo) }) + '</button></p>' : '') +
           (cover && changed ? sectionWordsNote(spans) : '') +
-          (changed ? '<p class="struct-note"><button type="button" class="chip action" data-sec-act="restore">' + t('Restore the original sections') + '</button></p>' : '')
+          (changed ? '<p class="struct-note"><button type="button" class="chip action" data-sec-act="restore">' + t('Restore the original sections') + '</button></p>' : '') +
+          (cover ? '' : '<p class="struct-note"><button type="button" class="chip action" data-sec-act="restructure">' + t('Write a new structure') + '</button></p>')
       : '<p class="struct-note">' + t('The sections come from the recording\'s score once it is transcribed.') + '</p>';
     if (!cover) { $('structure-preview').textContent = spans.length ? spans.map(function (span) { return '[' + span.name + ']'; }).join(' ') : '[instrumental]'; }
     paintEdTransport();
@@ -10027,6 +10035,10 @@ function paintStructure() {
     }).join('');
     body.innerHTML = '<ol class="struct-list">' + rows + '</ol><div class="struct-add">' + adds + '</div>' +
       (STRUCTURE.kind === 'sections' ? '<p class="struct-note">' + t('YuE2 chooses how long each section runs.') + '</p>' : '');
+  }
+  if (newStructure()) {
+    body.insertAdjacentHTML('beforeend', '<p class="struct-note">' + t('Write score plan makes a new take from this structure; the one open stays as it is.') +
+      ' <button type="button" class="chip action" data-sec-act="back">' + t('Back to this take\'s sections') + '</button></p>');
   }
   $('structure-preview').textContent = structureText().replace(/\n/g, ' ');
   saveForm();
@@ -10096,6 +10108,22 @@ function jumpToSection(index) {
    before the first change is kept, so the original sections can be put back until another score is loaded. */
 function changeSections(act, index, to) {
   var box = $('abc');
+  if (act === 'restructure' || act === 'back') {
+    if (act === 'restructure') {
+      // The take's sections, with the lengths it has, to start from; the way the structure is given stays as it was
+      // (YuE2 decides becomes Sections, since there is now a list to keep to).
+      STRUCTURE.sections = scoreSectionSpans(box.value).map(function (span) {
+        var name = SECTIONS.indexOf(span.name) >= 0 ? span.name : 'verse';
+        return { name: name, seconds: Math.max(4, Math.min(180, Math.round(span.end - span.start))) };
+      });
+      if (!STRUCTURE.sections.length) { STRUCTURE.sections = usualSections(); }
+      if (STRUCTURE.kind === 'free') { STRUCTURE.kind = 'sections'; }
+    }
+    State.newStructure = act === 'restructure';
+    paintInstSource();
+    paintStructure();
+    return;
+  }
   if (act === 'cap') {
     var need = ScoreSections.capCheck(planLength(box.value) ? planLength(box.value).seconds : 0, parseFloat($('max-duration').value) || 0);
     if (need.over) {
@@ -12574,6 +12602,7 @@ function selectTake(take) {
   }
   if (formIsDraft()) { stashDraft(); }
   State.formTake = take;
+  State.newStructure = false;
   if ($('write-brief')) { $('write-brief').value = take.brief || ''; }   // what this song was said to be about
   if ($('keep-tune')) { $('keep-tune').checked = true; }
   // Songs and instrumentals are both written from a prompt; only a cover has a recording.
@@ -12748,20 +12777,22 @@ async function startFresh() {
     // A new instrumental keeps the way its structure is given (YuE2 decides, sections, timed) like a setting, but
     // starts from the usual sections, not the last one's: a long list left from before is not what a new piece wants.
     STRUCTURE.sections = usualSections();
-    paintStructure();
+    State.newStructure = false;
   }
   $('abc').value = '';
   scoreBaseline('');
   setChart('');
   showPlanLength('');
-  if (cover) {
-    // A new cover starts with no recording, like any new take: its score, words and sections go with it.
+  if (cover || State.mode === 'inst') {
+    // A new cover or instrumental starts with no recording, like any new take: its score and sections go with it.
+    // Left chosen, an instrumental from a recording opened before showed that recording's sections on a new one.
     if ($('source-select')) { $('source-select').value = ''; }
     State.sourceByMode = State.sourceByMode || {};
-    State.sourceByMode.cover = '';
+    State.sourceByMode[State.mode] = '';
     paintSource();
     paintStructure();
-  } else {
+  }
+  if (!cover) {
     $('score-badge').textContent = t('no plan yet');
     $('score-badge').className = 'badge';
   }
@@ -12789,8 +12820,7 @@ async function startFresh() {
   if ($('mode')) { $('mode').value = 'full'; }
   // The Advanced settings too, and the ticks under the lyrics with them: a new take starts from the defaults.
   writeAdvancedSettings(ADVANCED_DEFAULTS);
-  // And no message left from the last take: the recording's tempo warning (an instrumental keeps
-  // its recording, but the warning is not news to a new take), a LoRA install.
+  // And no message left from the last take: the recording's tempo warning, a LoRA install.
   paintSourceTempo(null);
   State.tempoQuiet = currentSource() ? currentSource().id : null;
   if ($('lora-install-status')) { $('lora-install-status').textContent = ''; $('lora-install-status').className = 'status'; }

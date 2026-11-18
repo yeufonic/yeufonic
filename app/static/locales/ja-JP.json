@@ -2880,5 +2880,9 @@
  "Use in a new song": "新しい曲で使う",
  "Save as a style": "スタイルとして保存",
  "Open a new song with this style in its Style box": "このスタイルを入れた新しい曲を開く",
- "Keep this style in the style list, to use for any song or cover": "このスタイルをスタイル一覧に残し、どの曲やカバーにも使えるようにする"
+ "Keep this style in the style list, to use for any song or cover": "このスタイルをスタイル一覧に残し、どの曲やカバーにも使えるようにする",
+ "The sections of this take's score. Moving, copying or removing one rewrites the score.": "このテイクの楽譜のセクションです。移動、コピー、削除すると楽譜が書き換わります。",
+ "Write a new structure": "新しい構成を書く",
+ "Write score plan makes a new take from this structure; the one open stays as it is.": "楽譜プランを書くでこの構成から新しいテイクを作ります。開いているテイクはそのままです。",
+ "Back to this take's sections": "このテイクのセクションに戻る"
 }
