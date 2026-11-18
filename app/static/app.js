@@ -4526,6 +4526,17 @@ function instPlanned() {
   return instScored() && kindInEditor() === 'instrumental';
 }
 
+/* An instrumental open with its plan, with Harmony or Plan variety changed from what that plan was written with: they
+   steer the planner only, so Render this score would play the same plan; the main button writes a new one instead. */
+function planSettingsChanged() {
+  if (!instPlanned()) { return false; }
+  var take = editorTake();
+  if (!take) { return false; }
+  var harmony = take.harmony !== null && take.harmony !== undefined && Number(take.harmony) !== harmonyStep();
+  var variety = Boolean(take.variety) && $('variety') && take.variety !== $('variety').value;
+  return Boolean(harmony || variety);
+}
+
 /* A song or a cover open with Instrumental chosen: the main button makes an instrumental of its score, in a new take
    (Make an instrumental), rather than rendering the song again. */
 function instOfOpenTake() {
@@ -4597,7 +4608,9 @@ function paintInstSource() {
     if ($(id)) { $(id).style.display = fromRecording ? 'none' : ''; }
   });
   if ($('auto-wrap')) { $('auto-wrap').style.display = fromRecording ? 'none' : ''; }
-  if ($('create-inst')) { $('create-inst').textContent = fromRecording ? t('Create instrumental') : (instPlanned() ? t('Render this score') : (instOfOpenTake() ? t('Make an instrumental') : t('Write score plan'))); }
+  if ($('create-inst')) { $('create-inst').textContent = fromRecording ? t('Create instrumental') : (instPlanned() ? (planSettingsChanged() ? t('Write a new plan') : t('Render this score')) : (instOfOpenTake() ? t('Make an instrumental') : t('Write score plan')));
+    $('create-inst').title = planSettingsChanged() ? t('Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take\'s plan.') : '';
+  }
   // The hint the mode switch left says to write a plan, which a recording does without.
   var hint = t('Write a score plan to start a song from scratch.');
   var played = t('Create instrumental plays the recording\'s score, with no vocal and no plan to write.');
@@ -9887,16 +9900,21 @@ function instBody(seed) {
 
 async function doInstrumental() {
   if (instFromRecording()) { await doInstrumentalFromRecording(); return; }
-  if (instPlanned()) { await doRenderPlanned(); return; }
+  var replan = planSettingsChanged();
+  var planTake = replan ? editorTake() : null;
+  if (instPlanned() && !replan) { await doRenderPlanned(); return; }
   if (instOfOpenTake()) { await doMakeInstrumental(); return; }
   var problem = instProblem();
   if (problem) { statusLine(problem, 'bad'); return; }
   var seed = pickSeed();
   statusLine(t('Queued…'));
   try {
+    var body = instBody(seed);
+    // A new plan for an open instrumental keeps to its structure, in a new take beside it.
+    if (planTake && planTake.lyrics) { body.structure = planTake.lyrics; }
     var take = await api('/api/instrumentals', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(instBody(seed))
+      body: JSON.stringify(body)
     });
     titleBack();
     setSelection({ formTakeId: take.id, boxKind: 'none', boxId: null, awaiting: take.id });
@@ -16035,6 +16053,9 @@ function wire() {
   });
   $('style').addEventListener('input', paintVocals);
   $('harmony').addEventListener('input', paintHarmony);
+  // Harmony and Plan variety decide whether an open instrumental's main button renders its plan or writes a new one.
+  $('harmony').addEventListener('input', function () { if (State.mode === 'inst') { paintInstSource(); } });
+  if ($('variety')) { $('variety').addEventListener('change', function () { if (State.mode === 'inst') { paintInstSource(); } }); }
 
   $('browse').addEventListener('click', function () { $('file').click(); });
   $('file').addEventListener('change', function (event) { uploadFile(event.target.files[0]); });

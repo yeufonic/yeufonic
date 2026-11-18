@@ -37,6 +37,13 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **Changing Harmony or Plan variety on a planned instrumental writes a new plan.** Both steer only the planner, so
+  with an instrumental open, changing them and pressing Render this score played the same plan again and gave a take
+  that sounded almost the same. The main button now becomes Write a new plan when either differs from what the take's
+  plan was written with: a new plan from the same structure, in a new take, the open one left as it was.
+
 ## 0.0.63 (2026-11-18)
 
 - **Write a new structure for an instrumental that already has a plan.** An instrumental open in the editor lists the

@@ -2884,5 +2884,6 @@
  "The sections of this take's score. Moving, copying or removing one rewrites the score.": "이 테이크 악보의 섹션입니다. 옮기거나 복사하거나 빼면 악보가 다시 쓰입니다.",
  "Write a new structure": "새 구조 쓰기",
  "Write score plan makes a new take from this structure; the one open stays as it is.": "악보 계획 쓰기을(를) 누르면 이 구조로 새 테이크를 만듭니다. 열려 있는 테이크는 그대로 남습니다.",
- "Back to this take's sections": "이 테이크의 섹션으로 돌아가기"
+ "Back to this take's sections": "이 테이크의 섹션으로 돌아가기",
+ "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "하모니와 계획 다양성은 새 계획에 적용되며 새 테이크에 쓰입니다. '이 악보 렌더링'은(는) 이 테이크의 계획을 그대로 씁니다."
 }

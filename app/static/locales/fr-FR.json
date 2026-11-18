@@ -2884,5 +2884,6 @@
  "The sections of this take's score. Moving, copying or removing one rewrites the score.": "Les sections de la partition de cette prise. Déplacer, copier ou retirer une section réécrit la partition.",
  "Write a new structure": "Écrire une nouvelle structure",
  "Write score plan makes a new take from this structure; the one open stays as it is.": "Écrire le plan de partition crée une nouvelle prise à partir de cette structure ; celle qui est ouverte reste telle quelle.",
- "Back to this take's sections": "Revenir aux sections de cette prise"
+ "Back to this take's sections": "Revenir aux sections de cette prise",
+ "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "L’harmonie et la variété du plan s’appliquent à un nouveau plan, écrit dans une nouvelle prise. « Rendre cette partition » garde le plan de cette prise."
 }

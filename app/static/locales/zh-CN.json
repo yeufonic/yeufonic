@@ -2884,5 +2884,6 @@
  "The sections of this take's score. Moving, copying or removing one rewrites the score.": "这个版本乐谱的段落。移动、复制或删除一段会改写乐谱。",
  "Write a new structure": "写一个新结构",
  "Write score plan makes a new take from this structure; the one open stays as it is.": "“写乐谱方案”会用这个结构做一个新版本；打开的这个保持不变。",
- "Back to this take's sections": "回到这个版本的段落"
+ "Back to this take's sections": "回到这个版本的段落",
+ "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "和声与方案多样性作用于新方案，写进一个新版本。“渲染此乐谱”保留这个版本的方案。"
 }

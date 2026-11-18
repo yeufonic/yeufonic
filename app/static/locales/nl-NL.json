@@ -2884,5 +2884,6 @@
  "The sections of this take's score. Moving, copying or removing one rewrites the score.": "De secties van de partituur van deze take. Een sectie verplaatsen, kopiëren of weghalen herschrijft de partituur.",
  "Write a new structure": "Nieuwe structuur schrijven",
  "Write score plan makes a new take from this structure; the one open stays as it is.": "Partituurplan schrijven maakt van deze structuur een nieuwe take; de geopende blijft zoals hij is.",
- "Back to this take's sections": "Terug naar de secties van deze take"
+ "Back to this take's sections": "Terug naar de secties van deze take",
+ "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "Harmonie en planvariatie gelden voor een nieuw plan, geschreven in een nieuwe take. ‘Deze partituur renderen’ houdt het plan van deze take."
 }

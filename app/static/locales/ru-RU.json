@@ -2884,5 +2884,6 @@
  "The sections of this take's score. Moving, copying or removing one rewrites the score.": "Секции партитуры этого дубля. Если переместить, скопировать или убрать секцию, партитура перепишется.",
  "Write a new structure": "Написать новую структуру",
  "Write score plan makes a new take from this structure; the one open stays as it is.": "«Написать план партитуры» создаёт из этой структуры новый дубль; открытый остаётся как есть.",
- "Back to this take's sections": "Вернуться к секциям этого дубля"
+ "Back to this take's sections": "Вернуться к секциям этого дубля",
+ "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "Гармония и разнообразие плана применяются к новому плану, который пишется в новый дубль. «Рендерить эту партитуру» оставляет план этого дубля."
 }
