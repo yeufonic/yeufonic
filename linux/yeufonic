@@ -1,0 +1,93 @@
+#!/bin/bash
+# Yeufonic CLI wrapper for a native Linux install.
+#
+#   yeufonic [start [--background] [--no-browser]]   start Yeufonic (default)
+#   yeufonic stop                                    stop a running Yeufonic
+#   yeufonic status                                  show whether Yeufonic is running
+#   yeufonic logs [app|engine|launcher|voice|setup]  tail a log (default: launcher)
+#   yeufonic setup [options...]                      re-run setup (e.g. --pictures, --loras, --voices)
+#   yeufonic uninstall [options...]                  remove Yeufonic (offers to keep data & models)
+#   yeufonic --help                                  show this help
+set -euo pipefail
+
+# Resolve symlink (e.g. ~/.local/bin/yeufonic -> ~/.local/share/yeufonic/bin/yeufonic).
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+INSTALL_DIR="${YEUFONIC_HOME:-$(cd "$(dirname "$SELF")/.." && pwd)}"
+APP_PY="$INSTALL_DIR/venv/bin/python"
+LAUNCHER="$INSTALL_DIR/launcher.py"
+LOGS="${YEUFONIC_LOGS:-$INSTALL_DIR/logs}"
+
+usage() {
+  sed -n '2,/^set -euo/p' "$SELF" | sed '$d' | sed 's/^# \{0,1\}//'
+}
+
+cmd="${1:-start}"
+if [ $# -gt 0 ]; then shift; fi
+
+case "$cmd" in
+  -h|--help|help)
+    usage
+    exit 0
+    ;;
+  start)
+    if [ ! -x "$APP_PY" ]; then
+      echo "Yeufonic is not finished setting up in $INSTALL_DIR." >&2
+      echo "Run: $INSTALL_DIR/setup.sh --install-dir $(printf '%q' "$INSTALL_DIR")" >&2
+      exit 1
+    fi
+    exec env YEUFONIC_HOME="$INSTALL_DIR" YEUFONIC_LOGS="$LOGS" "$APP_PY" "$LAUNCHER" "$@"
+    ;;
+  stop)
+    if [ ! -x "$APP_PY" ]; then
+      echo "Yeufonic is not set up in $INSTALL_DIR." >&2
+      exit 1
+    fi
+    exec env YEUFONIC_HOME="$INSTALL_DIR" YEUFONIC_LOGS="$LOGS" "$APP_PY" "$LAUNCHER" --stop "$@"
+    ;;
+  status)
+    if [ ! -x "$APP_PY" ]; then
+      echo "Yeufonic is not set up in $INSTALL_DIR."
+      exit 1
+    fi
+    exec env YEUFONIC_HOME="$INSTALL_DIR" YEUFONIC_LOGS="$LOGS" "$APP_PY" "$LAUNCHER" --status "$@"
+    ;;
+  logs)
+    which="${1:-launcher}"
+    case "$which" in
+      app|engine|launcher|voice|setup|gemma|pictures) file="$LOGS/$which.log" ;;
+      *) echo "Unknown log '$which' (choose: app, engine, launcher, voice, setup, gemma, pictures)" >&2; exit 2 ;;
+    esac
+    if [ ! -f "$file" ]; then
+      echo "No log yet at $file" >&2
+      exit 1
+    fi
+    exec tail -n 80 -f "$file"
+    ;;
+  setup)
+    # Bare `yeufonic setup` in a terminal re-prompts with your current choices as defaults so
+    # you can switch engines (ComfyUI <-> yue2.cpp), model sizes, or optional add-ons interactively.
+    if [ $# -eq 0 ] && [ -t 0 ]; then
+      exec bash "$INSTALL_DIR/setup.sh" --install-dir "$INSTALL_DIR" --reconfigure
+    fi
+    exec bash "$INSTALL_DIR/setup.sh" --install-dir "$INSTALL_DIR" "$@"
+    ;;
+  uninstall)
+    exec bash "$INSTALL_DIR/uninstall.sh" --install-dir "$INSTALL_DIR" "$@"
+    ;;
+  *)
+    # Allow passing launcher flags directly (e.g. yeufonic --background --no-browser).
+    case "$cmd" in
+      --*)
+        if [ ! -x "$APP_PY" ]; then
+          echo "Yeufonic is not finished setting up in $INSTALL_DIR." >&2
+          exit 1
+        fi
+        exec env YEUFONIC_HOME="$INSTALL_DIR" YEUFONIC_LOGS="$LOGS" "$APP_PY" "$LAUNCHER" "$cmd" "$@"
+        ;;
+      *)
+        echo "Unknown command: $cmd (try: yeufonic --help)" >&2
+        exit 2
+        ;;
+    esac
+    ;;
+esac

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Yeufonic
+Comment=Create songs, covers and instrumentals with YuE2
+Exec=@INSTALL_DIR@/bin/yeufonic start
+Icon=yeufonic
+Terminal=false
+Categories=AudioVideo;Audio;Music;
+StartupNotify=true
+Keywords=music;audio;songs;yue2;

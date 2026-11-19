@@ -1,0 +1,97 @@
+# FluidSynth for the native Linux install: a single statically linked x86_64 binary for offline
+# MIDI-to-WAV rendering, built inside Alpine Linux (musl) by linux/build-fluidsynth.sh so it runs
+# on every Linux distribution regardless of glibc version, and published as a pre-release which
+# linux/setup.sh fetches by checksum.
+name: FluidSynth for Linux
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'feature/linux-*'
+      - 'feature/cpp-*'
+    paths:
+      - 'linux/build-fluidsynth.sh'
+      - '.github/workflows/fluidsynth-linux.yml'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  PACKAGE: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The versions
+        id: ref
+        run: |
+          fs=$(sed -n 's/^FLUIDSYNTH_VERSION=//p' linux/build-fluidsynth.sh)
+          sf=$(sed -n 's/^SNDFILE_VERSION=//p' linux/build-fluidsynth.sh)
+          tag="fluidsynth-linux-${fs}-sndfile-${sf}-p${PACKAGE}"
+          echo "fs=$fs" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "built=yes" >> "$GITHUB_OUTPUT"
+            echo "$tag is already published: nothing to build"
+          else
+            echo "built=no" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build static Linux binary (Alpine musl)
+        if: steps.ref.outputs.built == 'no'
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE":/src:ro \
+            -v "$RUNNER_TEMP/out":/out \
+            alpine:3.21 sh -c '
+              apk add --no-cache bash build-base cmake curl tar xz linux-headers &&
+              OUT="/out/${TAG}" bash /src/linux/build-fluidsynth.sh
+            '
+        env:
+          TAG: ${{ steps.ref.outputs.tag }}
+
+      - name: Verify and package
+        if: steps.ref.outputs.built == 'no'
+        id: pack
+        run: |
+          tag="${{ steps.ref.outputs.tag }}"
+          bin="$RUNNER_TEMP/out/$tag/fluidsynth"
+          file "$bin"
+          file "$bin" | grep -qi "statically linked" || { echo "Expected a statically linked binary" >&2; exit 1; }
+          "$bin" --version | head -2
+          tar -C "$RUNNER_TEMP/out" -czf "$RUNNER_TEMP/$tag.tar.gz" "$tag"
+          sha=$(sha256sum "$RUNNER_TEMP/$tag.tar.gz" | awk '{print $1}')
+          size=$(stat -c %s "$RUNNER_TEMP/$tag.tar.gz")
+          echo "$sha  $tag.tar.gz" > "$RUNNER_TEMP/$tag.tar.gz.sha256"
+          echo "file=$RUNNER_TEMP/$tag.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "size=$size" >> "$GITHUB_OUTPUT"
+          echo "SHA-256: $sha, $size bytes"
+
+      - name: Attest the build
+        if: steps.ref.outputs.built == 'no'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.pack.outputs.file }}
+
+      - name: Publish as a pre-release
+        if: steps.ref.outputs.built == 'no'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.ref.outputs.tag }}"
+          gh release create "$tag" --prerelease --target "$GITHUB_SHA" \
+            --title "FluidSynth ${{ steps.ref.outputs.fs }} for Linux (x86_64 static)" \
+            --notes "FluidSynth ${{ steps.ref.outputs.fs }} (https://github.com/FluidSynth/fluidsynth, LGPL-2.1) with libsndfile built in, statically linked for Linux x86_64 (offline WAV rendering only) by linux/build-fluidsynth.sh and .github/workflows/fluidsynth-linux.yml. Downloaded by the Linux installer so imported MIDI files can be heard; not a Yeufonic release. SHA-256 of the archive: ${{ steps.pack.outputs.sha }} (${{ steps.pack.outputs.size }} bytes)" \
+            "$RUNNER_TEMP/$tag.tar.gz" "$RUNNER_TEMP/$tag.tar.gz.sha256"

@@ -85,6 +85,7 @@ compose.override.yml
 docker-compose.override.yml
 windows/dist/
 macos/dist/
+linux/dist/
 
 # What a browser test run leaves: screenshots of failures and the app's log
 browser-tests/artifacts/
