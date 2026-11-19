@@ -513,12 +513,14 @@ def test_reconfigure_allows_switching_engine_interactively_with_saved_defaults(t
     proc.wait(timeout=5)
     text = out.decode("utf-8", errors="replace")
     assert step == len(prompts), f"stopped at prompt {step}:\n{text}"
-    assert (state / "engine").read_text(encoding="utf-8").strip() == "yue2cpp"
-    assert (state / "cpp-model").read_text(encoding="utf-8").strip() == "bf16"
-    assert (state / "lyrics").read_text(encoding="utf-8").strip() == "yes"
-    assert (state / "pictures").read_text(encoding="utf-8").strip() == "no"
-    assert (state / "loras").read_text(encoding="utf-8").strip() == "yes"
-    assert (state / "voices").read_text(encoding="utf-8").strip() == "no"
+    assert "Engine: yue2cpp" in text
+    assert "yue2.cpp model: bf16" in text
+    assert "Local lyric drafts (Gemma): yes" in text
+    assert "Take pictures: no" in text
+    assert "Style LoRAs: yes" in text
+    assert "Recorded voices: no" in text
+    # Because the run stopped before completing setup, previously saved state/ must remain untouched.
+    assert (state / "engine").read_text(encoding="utf-8").strip() == "comfyui"
 
 
 @needs_linux
@@ -592,12 +594,14 @@ def test_picture_model_selection_rejects_comfy_only_models_on_yue2cpp_and_redact
     log_text = (inst / "logs" / "setup.log").read_text(encoding="utf-8")
     assert secret not in log_text
     assert "<redacted>" in log_text
-    assert (inst / "state" / "picture-model").read_text(encoding="utf-8").strip() == "4b"
+    # Aborted before finishing setup -> state/picture-model must NOT be locked in yet.
+    assert not (inst / "state" / "picture-model").exists()
 
 
 @needs_linux
 def test_interactive_picture_model_menu_selects_fibo2_with_licence_confirm(tmp_path):
-    """Interactive setup asks which local picture model to use and asks CC BY-NC 4.0 confirmation for FIBO 2.0."""
+    """Interactive setup asks which local picture model to use and asks CC BY-NC 4.0 confirmation for FIBO 2.0,
+    and does not lock in state/picture-model if cancelled/aborted before completion."""
     import pty
     import select
 
@@ -648,7 +652,8 @@ def test_interactive_picture_model_menu_selects_fibo2_with_licence_confirm(tmp_p
     proc.wait(timeout=5)
     text = out.decode("utf-8", errors="replace")
     assert step == len(prompts), f"stopped at prompt {step}:\n{text}"
-    assert (inst / "state" / "picture-model").read_text(encoding="utf-8").strip() == "fibo2"
+    assert "Take-picture model: fibo2" in text
+    assert not (inst / "state" / "picture-model").exists()
 
 
 

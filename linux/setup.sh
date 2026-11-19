@@ -1065,11 +1065,13 @@ if [ -z "$problems" ] && [ "$CHECK_ONLY" -eq 0 ] && [ -t 0 ] && { [ "$SKIP_MODEL
 fi
 
 # 1. Engine (ComfyUI vs yue2.cpp)
+# Choices are kept in memory during setup and only committed to $STATE/ once setup completes,
+# so cancelling with Ctrl-C mid-prompt or mid-download never locks in an aborted choice.
 SAVED_ENGINE=""
 [ -f "$STATE/engine" ] && SAVED_ENGINE="$(cat "$STATE/engine")"
 if [ -n "$ENGINE_CHOICE" ]; then
   case "$ENGINE_CHOICE" in
-    comfyui|yue2cpp) [ "$CHECK_ONLY" -eq 1 ] || echo "$ENGINE_CHOICE" > "$STATE/engine" ;;
+    comfyui|yue2cpp) ;;
     *) problem "--engine is comfyui or yue2cpp, not $ENGINE_CHOICE." ;;
   esac
 elif [ -n "$SAVED_ENGINE" ] && [ "$RECONFIGURE" -eq 0 ]; then
@@ -1086,7 +1088,6 @@ elif [ "$INTERACTIVE" -eq 1 ]; then
     say "  2) yue2.cpp — smaller native engine (Linux pre-release not published yet; requires YEUFONIC_CPP_URL)"
   fi
   ask_choice ENGINE_CHOICE 'Choose engine (1 or 2)' comfyui yue2cpp "$def_e"
-  echo "$ENGINE_CHOICE" > "$STATE/engine"
 elif [ -n "$SAVED_ENGINE" ]; then
   ENGINE_CHOICE="$SAVED_ENGINE"
 fi
@@ -1099,7 +1100,7 @@ if [ "$CPP" -eq 0 ]; then
   SAVED_MODEL=""
   [ -f "$STATE/model" ] && SAVED_MODEL="$(cat "$STATE/model")"
   if [ -n "$INT8_CHOICE" ]; then
-    [ "$CHECK_ONLY" -eq 1 ] || echo "$INT8_CHOICE" > "$STATE/model"
+    :
   elif [ -n "$SAVED_MODEL" ] && [ "$RECONFIGURE" -eq 0 ]; then
     INT8_CHOICE="$SAVED_MODEL"
   elif [ "$INTERACTIVE" -eq 1 ]; then
@@ -1114,7 +1115,6 @@ if [ "$CPP" -eq 0 ]; then
     say "  1) Full quality (BF16, 7.8 GB — recommended for 12 GB+ VRAM)"
     say "  2) Low memory (INT8, 4.0 GB — for 8-12 GB cards)"
     ask_choice INT8_CHOICE 'Choose YuE2 model (1 or 2)' bf16 int8 "$def_m"
-    echo "$INT8_CHOICE" > "$STATE/model"
   elif [ -n "$SAVED_MODEL" ]; then
     INT8_CHOICE="$SAVED_MODEL"
   fi
@@ -1126,7 +1126,7 @@ else
   [ -f "$STATE/cpp-model" ] && SAVED_CPP_MODEL="$(cat "$STATE/cpp-model")"
   if [ -n "$CPP_MODEL" ]; then
     case "$CPP_MODEL" in
-      q8|bf16) [ "$CHECK_ONLY" -eq 1 ] || echo "$CPP_MODEL" > "$STATE/cpp-model" ;;
+      q8|bf16) ;;
       *) problem "--cpp-model is q8 or bf16, not $CPP_MODEL." ;;
     esac
     CPP_MODEL_ASKED=1
@@ -1142,7 +1142,6 @@ else
       say "  1) Low memory (Q8, 3.8 GB — near lossless, default)"
       say "  2) Full quality (BF16, 7.2 GB — about twice the VRAM)"
       ask_choice CPP_MODEL 'Choose yue2.cpp model (1 or 2)' q8 bf16 "$def_cm"
-      echo "$CPP_MODEL" > "$STATE/cpp-model"
       CPP_MODEL_ASKED=1
     elif [ -n "$SAVED_CPP_MODEL" ]; then
       CPP_MODEL="$SAVED_CPP_MODEL"
@@ -1159,7 +1158,7 @@ fi
 SAVED_LYRICS=""
 [ -f "$STATE/lyrics" ] && SAVED_LYRICS="$(cat "$STATE/lyrics")"
 if [ -n "$LYRICS_CHOICE" ]; then
-  [ "$CHECK_ONLY" -eq 1 ] || echo "$LYRICS_CHOICE" > "$STATE/lyrics"
+  :
 elif [ -n "$SAVED_LYRICS" ] && [ "$RECONFIGURE" -eq 0 ]; then
   LYRICS_CHOICE="$SAVED_LYRICS"
 elif [ "$INTERACTIVE" -eq 1 ]; then
@@ -1170,7 +1169,6 @@ elif [ "$INTERACTIVE" -eq 1 ]; then
   say "Local lyric drafts and song analysis (Gemma 4)"
   say "  Draft lyrics and analyse songs locally ($gemma_sz). Leave out if you use an external LLM API."
   ask_yes_no LYRICS_CHOICE 'Include local Gemma 4?' "$def_ly"
-  echo "$LYRICS_CHOICE" > "$STATE/lyrics"
 elif [ -n "$SAVED_LYRICS" ]; then
   LYRICS_CHOICE="$SAVED_LYRICS"
 fi
@@ -1191,7 +1189,7 @@ fi
 SAVED_PICTURES=""
 [ -f "$STATE/pictures" ] && SAVED_PICTURES="$(cat "$STATE/pictures")"
 if [ -n "$PICTURES" ]; then
-  [ "$CHECK_ONLY" -eq 1 ] || echo "$PICTURES" > "$STATE/pictures"
+  :
 elif [ -n "$SAVED_PICTURES" ] && [ "$RECONFIGURE" -eq 0 ]; then
   PICTURES="$SAVED_PICTURES"
 elif [ "$INTERACTIVE" -eq 1 ]; then
@@ -1200,7 +1198,6 @@ elif [ "$INTERACTIVE" -eq 1 ]; then
   say "Take pictures drawn on this PC (optional)"
   say "  Draws a cover picture for each take locally (default: FLUX.2 klein 4B, ~8.3 GB)."
   ask_yes_no PICTURES 'Set up local take pictures?' "$def_pic"
-  echo "$PICTURES" > "$STATE/pictures"
 elif [ -n "$SAVED_PICTURES" ]; then
   PICTURES="$SAVED_PICTURES"
 fi
@@ -1218,8 +1215,6 @@ if [ "$PICTURES" = yes ]; then
       4b|9b|flux3|fibo2)
         if [ "$CPP" -eq 1 ] && { [ "$PICTURE_MODEL" = flux3 ] || [ "$PICTURE_MODEL" = fibo2 ]; }; then
           problem "$PICTURE_MODEL only runs on the ComfyUI engine (use --engine comfyui, or pick 4b or 9b for yue2.cpp)."
-        elif [ "$CHECK_ONLY" -eq 0 ]; then
-          echo "$PICTURE_MODEL" > "$STATE/picture-model"
         fi
         PICTURE_MODEL_ASKED=1
         ;;
@@ -1256,7 +1251,6 @@ if [ "$PICTURES" = yes ]; then
       say "  4) FIBO 2.0         — ~15 GB with turbo LoRA, photographic, 16 GB+ VRAM (ungated, CC BY-NC 4.0 non-commercial)"
       ask_menu PICTURE_MODEL 'Choose picture model (1-4)' "$def_pm" 4b 9b flux3 fibo2
     fi
-    echo "$PICTURE_MODEL" > "$STATE/picture-model"
   elif [ -n "$SAVED_PIC_MODEL" ]; then
     PICTURE_MODEL="$SAVED_PIC_MODEL"
   else
@@ -1274,7 +1268,6 @@ if [ "$PICTURES" = yes ]; then
         if [ "$confirm_fibo" != yes ]; then
           say "Keeping FLUX.2 klein 4B instead."
           PICTURE_MODEL=4b
-          echo "$PICTURE_MODEL" > "$STATE/picture-model"
         fi
       fi
     elif [ "$PICTURE_MODEL" = 9b ] || [ "$PICTURE_MODEL" = flux3 ]; then
@@ -1355,7 +1348,7 @@ if [ "$PICTURES" = yes ]; then
             case "$retry_ans" in
               skip|SKIP|q|Q)
                 say "Falling back to FLUX.2 klein 4B."
-                PICTURE_MODEL=4b; echo "$PICTURE_MODEL" > "$STATE/picture-model"; clear_hf_auth; break ;;
+                PICTURE_MODEL=4b; clear_hf_auth; break ;;
               *)
                 code="$(http_status_hf "$GATED_URL")"
                 [ "$code" = "200" ] || [ "$code" = "302" ] && hf_ok=1
@@ -1383,7 +1376,7 @@ if [ "$PICTURES" = yes ]; then
               case "$import_ans" in
                 skip|SKIP|q|Q)
                   say "Falling back to FLUX.2 klein 4B."
-                  PICTURE_MODEL=4b; echo "$PICTURE_MODEL" > "$STATE/picture-model"; clear_hf_auth; break ;;
+                  PICTURE_MODEL=4b; clear_hf_auth; break ;;
                 '') import_ans="$HOME/Downloads" ;;
                 "~") import_ans="$HOME" ;;
                 "~/"*) import_ans="$HOME/${import_ans#~/}" ;;
@@ -1409,7 +1402,7 @@ fi
 SAVED_LORAS=""
 [ -f "$STATE/loras" ] && SAVED_LORAS="$(cat "$STATE/loras")"
 if [ -n "$LORAS" ]; then
-  [ "$CHECK_ONLY" -eq 1 ] || echo "$LORAS" > "$STATE/loras"
+  :
 elif [ -n "$SAVED_LORAS" ] && [ "$RECONFIGURE" -eq 0 ]; then
   LORAS="$SAVED_LORAS"
 elif [ "$INTERACTIVE" -eq 1 ]; then
@@ -1418,7 +1411,6 @@ elif [ "$INTERACTIVE" -eq 1 ]; then
   say "Style LoRAs (optional)"
   say "  39 style LoRAs by their authors (CC BY-NC 4.0, about 3.8 GB), each with a description."
   ask_yes_no LORAS 'Fetch the style LoRAs?' "$def_loras"
-  echo "$LORAS" > "$STATE/loras"
 elif [ -n "$SAVED_LORAS" ]; then
   LORAS="$SAVED_LORAS"
 fi
@@ -1429,7 +1421,7 @@ say "Style LoRAs: $LORAS"
 SAVED_VOICES=""
 [ -f "$STATE/voices" ] && SAVED_VOICES="$(cat "$STATE/voices")"
 if [ -n "$VOICES" ]; then
-  [ "$CHECK_ONLY" -eq 1 ] || echo "$VOICES" > "$STATE/voices"
+  :
 elif [ -n "$SAVED_VOICES" ] && [ "$RECONFIGURE" -eq 0 ]; then
   VOICES="$SAVED_VOICES"
 elif [ "$INTERACTIVE" -eq 1 ]; then
@@ -1438,7 +1430,6 @@ elif [ "$INTERACTIVE" -eq 1 ]; then
   say "Recorded voices (optional)"
   say "  Train an RVC voice from recordings of a singer (~1.1 GB models + ~3 GB Python packages)."
   ask_yes_no VOICES 'Set up recorded voices?' "$def_voices"
-  echo "$VOICES" > "$STATE/voices"
 elif [ -n "$SAVED_VOICES" ]; then
   VOICES="$SAVED_VOICES"
 fi
@@ -2001,6 +1992,20 @@ if [ "$CPP" -eq 1 ]; then
 else
   ini_set model "$MODEL_SIZE"
 fi
+
+# Commit chosen component settings only after setup has finished cleanly so cancelling with
+# Ctrl-C mid-prompt or mid-download never locks in an aborted choice.
+echo "$ENGINE_CHOICE" > "$STATE/engine"
+if [ "$CPP" -eq 1 ]; then
+  echo "$CPP_MODEL" > "$STATE/cpp-model"
+else
+  echo "$MODEL_SIZE" > "$STATE/model"
+fi
+echo "$LYRICS_CHOICE" > "$STATE/lyrics"
+echo "$PICTURES" > "$STATE/pictures"
+echo "$PICTURE_MODEL" > "$STATE/picture-model"
+echo "$LORAS" > "$STATE/loras"
+echo "$VOICES" > "$STATE/voices"
 
 # Activate the chosen local picture model in the app's Settings database when it already exists
 # (on a brand-new install, the app picks the installed picture model automatically on first start).
