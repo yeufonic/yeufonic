@@ -7,8 +7,9 @@
 #
 #   bash setup.sh [--install-dir <folder>] [--engine comfyui|yue2cpp] [--int8 | --bf16]
 #                 [--cpp-model q8|bf16] [--no-lyrics] [--pictures | --no-pictures]
-#                 [--loras | --no-loras] [--voices | --no-voices]
-#                 [--force-downloads] [--check-only] [--skip-models]
+#                 [--picture-model 4b|9b|flux3|fibo2] [--hf-token <token>]
+#                 [--import-models <dir>] [--loras | --no-loras] [--voices | --no-voices]
+#                 [--force-downloads] [--reconfigure] [--check-only] [--skip-models]
 #
 #   --install-dir      where it goes (default: ~/.local/share/yeufonic)
 #   --engine           comfyui (everything, LoRA training included: the default) or yue2cpp
@@ -17,8 +18,16 @@
 #   --bf16             full-quality YuE2 model (7.8 GB, the default for ComfyUI)
 #   --cpp-model        yue2.cpp's YuE2: q8 (default, 3.8 GB) or bf16 (7.2 GB)
 #   --no-lyrics        leave out Gemma 4 (8.1 GB), for an external LLM in Settings instead
-#   --pictures         FLUX.2 klein 4B, which draws each take's picture locally (about 8.3 GB);
+#   --pictures         enable local take pictures (default: FLUX.2 klein 4B, ~8.3 GB);
 #                      --no-pictures fetches none. Asked once on first interactive run.
+#   --picture-model    local take-picture model: 4b (default, Apache 2.0), 9b (FLUX.2 klein 9B,
+#                      gated on HF), flux3 (FLUX 3 klein, ComfyUI only, gated on HF), or fibo2
+#                      (FIBO 2.0, ComfyUI only, ungated CC BY-NC 4.0). Implies --pictures.
+#   --hf-token         Hugging Face Read token for gated picture models (9b/flux3); also read
+#                      from HF_TOKEN / HUGGING_FACE_HUB_TOKEN / ~/.cache/huggingface/token.
+#                      Never logged or saved to disk.
+#   --import-models    scan a folder (e.g. ~/Downloads) for manually downloaded picture model
+#                      files and move them into the right models/ subfolders.
 #   --loras            39 style LoRAs by their authors (CC BY-NC 4.0, about 3.8 GB); --no-loras none.
 #   --voices           recorded voices (RVC + BS-Roformer in Python 3.12, ~1.1 GB models + ~3 GB packages);
 #                      --no-voices none.
@@ -28,7 +37,7 @@
 #   --skip-models      set up tools, Python, engine and app without downloading the multi-GB models
 set -euo pipefail
 
-ORIG_ARGS="$*"
+SAFE_ARGS=()
 INSTALL_DIR="${YEUFONIC_HOME:-$HOME/.local/share/yeufonic}"
 LYRICS_CHOICE=""
 NO_LYRICS=0
@@ -38,6 +47,9 @@ FORCE_DOWNLOADS=0
 RECONFIGURE=0
 INT8_CHOICE=""
 PICTURES=""
+PICTURE_MODEL=""
+HF_TOKEN_VAL="${HF_TOKEN:-${HUGGING_FACE_HUB_TOKEN:-}}"
+IMPORT_MODELS_DIR=""
 LORAS=""
 VOICES=""
 ENGINE_CHOICE=""
@@ -45,34 +57,45 @@ CPP_MODEL=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --install-dir) INSTALL_DIR="$2"; shift 2 ;;
-    --install-dir=*) INSTALL_DIR="${1#*=}"; shift ;;
-    --engine) ENGINE_CHOICE="$2"; shift 2 ;;
-    --engine=*) ENGINE_CHOICE="${1#*=}"; shift ;;
-    --int8) INT8_CHOICE=int8; shift ;;
-    --bf16) INT8_CHOICE=bf16; shift ;;
-    --cpp-model) CPP_MODEL="$2"; shift 2 ;;
-    --cpp-model=*) CPP_MODEL="${1#*=}"; shift ;;
-    --lyrics) LYRICS_CHOICE=yes; shift ;;
-    --no-lyrics) LYRICS_CHOICE=no; shift ;;
-    --pictures) PICTURES=yes; shift ;;
-    --no-pictures) PICTURES=no; shift ;;
-    --loras) LORAS=yes; shift ;;
-    --no-loras) LORAS=no; shift ;;
-    --voices) VOICES=yes; shift ;;
-    --no-voices) VOICES=no; shift ;;
-    --force-downloads|--redownload) FORCE_DOWNLOADS=1; shift ;;
-    --reconfigure) RECONFIGURE=1; shift ;;
-    --check-only) CHECK_ONLY=1; shift ;;
-    --skip-models) SKIP_MODELS=1; shift ;;
+    --install-dir) INSTALL_DIR="$2"; SAFE_ARGS+=("$1" "$2"); shift 2 ;;
+    --install-dir=*) INSTALL_DIR="${1#*=}"; SAFE_ARGS+=("$1"); shift ;;
+    --engine) ENGINE_CHOICE="$2"; SAFE_ARGS+=("$1" "$2"); shift 2 ;;
+    --engine=*) ENGINE_CHOICE="${1#*=}"; SAFE_ARGS+=("$1"); shift ;;
+    --int8) INT8_CHOICE=int8; SAFE_ARGS+=("$1"); shift ;;
+    --bf16) INT8_CHOICE=bf16; SAFE_ARGS+=("$1"); shift ;;
+    --cpp-model) CPP_MODEL="$2"; SAFE_ARGS+=("$1" "$2"); shift 2 ;;
+    --cpp-model=*) CPP_MODEL="${1#*=}"; SAFE_ARGS+=("$1"); shift ;;
+    --lyrics) LYRICS_CHOICE=yes; SAFE_ARGS+=("$1"); shift ;;
+    --no-lyrics) LYRICS_CHOICE=no; SAFE_ARGS+=("$1"); shift ;;
+    --pictures) PICTURES=yes; SAFE_ARGS+=("$1"); shift ;;
+    --no-pictures) PICTURES=no; SAFE_ARGS+=("$1"); shift ;;
+    --picture-model) PICTURE_MODEL="$2"; PICTURES=yes; SAFE_ARGS+=("$1" "$2"); shift 2 ;;
+    --picture-model=*) PICTURE_MODEL="${1#*=}"; PICTURES=yes; SAFE_ARGS+=("$1"); shift ;;
+    --hf-token) HF_TOKEN_VAL="$2"; SAFE_ARGS+=("--hf-token" "<redacted>"); shift 2 ;;
+    --hf-token=*) HF_TOKEN_VAL="${1#*=}"; SAFE_ARGS+=("--hf-token=<redacted>"); shift ;;
+    --import-models) IMPORT_MODELS_DIR="$2"; SAFE_ARGS+=("$1" "$2"); shift 2 ;;
+    --import-models=*) IMPORT_MODELS_DIR="${1#*=}"; SAFE_ARGS+=("$1"); shift ;;
+    --loras) LORAS=yes; SAFE_ARGS+=("$1"); shift ;;
+    --no-loras) LORAS=no; SAFE_ARGS+=("$1"); shift ;;
+    --voices) VOICES=yes; SAFE_ARGS+=("$1"); shift ;;
+    --no-voices) VOICES=no; SAFE_ARGS+=("$1"); shift ;;
+    --force-downloads|--redownload) FORCE_DOWNLOADS=1; SAFE_ARGS+=("$1"); shift ;;
+    --reconfigure) RECONFIGURE=1; SAFE_ARGS+=("$1"); shift ;;
+    --check-only) CHECK_ONLY=1; SAFE_ARGS+=("$1"); shift ;;
+    --skip-models) SKIP_MODELS=1; SAFE_ARGS+=("$1"); shift ;;
     -h|--help) sed -n '2,/^set -euo/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1 (see --help)" >&2; exit 1 ;;
   esac
 done
+ORIG_ARGS="${SAFE_ARGS[*]:-}"
 
 case "$INSTALL_DIR" in
   "~") INSTALL_DIR="$HOME" ;;
   "~/"*) INSTALL_DIR="$HOME/${INSTALL_DIR#~/}" ;;
+esac
+case "$IMPORT_MODELS_DIR" in
+  "~") IMPORT_MODELS_DIR="$HOME" ;;
+  "~/"*) IMPORT_MODELS_DIR="$HOME/${IMPORT_MODELS_DIR#~/}" ;;
 esac
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -227,6 +250,51 @@ picture_models() {
   fi
 }
 
+picture_vae_entry() {
+  picture_list | grep '^vae|'
+}
+
+# Optional upgraded local take-picture models (exact filenames expected by app/config.py).
+# 9b and flux3 are gated on Hugging Face (requiring licence acceptance + HF token or manual download);
+# fibo2 is ungated on Comfy-Org/Fibo-2.0 (CC BY-NC 4.0, non-commercial use only).
+picture_9b_models() {
+  echo "diffusion_models|flux-2-klein-9b-fp8.safetensors|9433061528||$HF/black-forest-labs/FLUX.2-klein-9b-fp8/resolve/main/flux-2-klein-9b-fp8.safetensors"
+  if [ "$CPP" -eq 1 ]; then
+    echo "text_encoders|Qwen3-8B-Q4_K_M.gguf|5027784512|120307ba529eb2439d6c430d94104dabd578497bc7bfe7e322b5d9933b449bd4|$HF/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf"
+  else
+    echo "text_encoders|qwen_3_8b_fp8mixed.safetensors|8664848742|abad16806e0cbabc54e0325d6565847443fe396d5f0be38bb3cd3fe75a1201d6|$HF/Comfy-Org/Flux-2-Klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors"
+  fi
+  picture_vae_entry
+}
+
+picture_flux3_models() {
+  # Blackwell (RTX 50 / compute >= 10.0) can use the smaller native NVFP4 weights; RTX 30/40 use INT8.
+  if [ -n "${COMPUTE_CAP:-}" ] && awk -v c="$COMPUTE_CAP" 'BEGIN { exit !(c + 0 >= 10.0) }'; then
+    echo "diffusion_models|flux3-image-klein-nvfp4.safetensors|5277685632||$HF/black-forest-labs/flux-3-image-klein-comfy/resolve/main/diffusion_models/flux3-image-klein-nvfp4.safetensors"
+  else
+    echo "diffusion_models|flux3-image-klein-int8-convrot.safetensors|5827874779||$HF/black-forest-labs/flux-3-image-klein-comfy/resolve/main/diffusion_models/flux3-image-klein-int8-convrot.safetensors"
+  fi
+  # Qwen3-VL-4B text encoder (Apache 2.0, identical SHA-256 to the gated repo copy; ungated on Comfy-Org).
+  echo "text_encoders|qwen3vl_4b_int8_convrot.safetensors|4858559240|32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c|$HF/Comfy-Org/Fibo-2.0/resolve/main/text_encoders/qwen3vl_4b_int8_convrot.safetensors"
+  picture_vae_entry
+}
+
+picture_fibo2_models() {
+  echo "diffusion_models|fibo2_dev_int8_convrot.safetensors|8408562474|063dd397395809fd22234c6bd32932cfcb22619f4d2282bdbf1dc58c406fe325|$HF/Comfy-Org/Fibo-2.0/resolve/main/diffusion_models/fibo2_dev_int8_convrot.safetensors"
+  echo "loras|fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors|1989177460|ce149058ba122b15b4323513ba1935cd0d5de4e1b897b2ddcc4d85b196d72ac0|$HF/Comfy-Org/Fibo-2.0/resolve/main/loras/fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors"
+  echo "text_encoders|qwen3vl_4b_int8_convrot.safetensors|4858559240|32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c|$HF/Comfy-Org/Fibo-2.0/resolve/main/text_encoders/qwen3vl_4b_int8_convrot.safetensors"
+  picture_vae_entry
+}
+
+selected_picture_models() {
+  case "${PICTURE_MODEL:-4b}" in
+    9b)    picture_9b_models ;;
+    flux3) picture_flux3_models ;;
+    fibo2) picture_fibo2_models ;;
+    *)     picture_models ;;
+  esac
+}
+
 style_lora_list() {
   cat <<LIST
 blgr_kargyraa.safetensors|177279864|5f5e0274fa0233c7f97fc1408d67184d0dafa621508767d02c2c65f74b7e0642
@@ -364,6 +432,26 @@ is_done() { [ -f "$STATE/$1.done" ]; }
 
 ACTIVE_DL_PID=""
 PY313=""
+HF_AUTH_CFG=""
+
+clear_hf_auth() {
+  if [ -n "$HF_AUTH_CFG" ] && [ -f "$HF_AUTH_CFG" ]; then
+    rm -f "$HF_AUTH_CFG"
+  fi
+  HF_AUTH_CFG=""
+}
+
+set_hf_auth() {
+  local tok="$1"
+  clear_hf_auth
+  [ -n "$tok" ] || return 0
+  HF_AUTH_CFG="$(mktemp)"
+  chmod 600 "$HF_AUTH_CFG"
+  # Escape backslashes and double quotes for curl -K config syntax; never logged or passed in argv.
+  local esc="${tok//\\/\\\\}"
+  esc="${esc//\"/\\\"}"
+  printf 'header = "Authorization: Bearer %s"\n' "$esc" > "$HF_AUTH_CFG"
+}
 
 # Choose UTF-8 block characters on UTF-8 terminals, plain ASCII otherwise.
 case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
@@ -384,6 +472,7 @@ cleanup_dl() {
     wait "$ACTIVE_DL_PID" 2>/dev/null || true
   fi
   ACTIVE_DL_PID=""
+  clear_hf_auth
   if [ "$IS_TTY" -eq 1 ]; then
     printf '\r\033[K\n' >&3 2>/dev/null || true
   fi
@@ -391,6 +480,7 @@ cleanup_dl() {
   exit 130
 }
 trap cleanup_dl INT TERM
+trap clear_hf_auth EXIT
 
 stop_setup() {
   trap - ERR
@@ -399,6 +489,7 @@ stop_setup() {
     wait "$ACTIVE_DL_PID" 2>/dev/null || true
   fi
   ACTIVE_DL_PID=""
+  clear_hf_auth
   say ""
   say "Setup stopped: $1"
   if [ "$CHECK_ONLY" -eq 0 ]; then
@@ -466,6 +557,69 @@ http_head() {
   fi
 }
 
+# Check HTTP status of a Hugging Face file URL (using HF_AUTH_CFG if configured) without
+# following the LFS redirect to S3/XetHub: 200 or 302 means access is granted, 401/403 means gated.
+http_status_hf() {
+  local url="$1"
+  if command -v curl >/dev/null 2>&1; then
+    if [ -n "$HF_AUTH_CFG" ] && [ -f "$HF_AUTH_CFG" ]; then
+      curl -s -o /dev/null -w '%{http_code}' -I --connect-timeout 8 --max-time 15 -K "$HF_AUTH_CFG" "$url" 2>/dev/null || echo 000
+    else
+      curl -s -o /dev/null -w '%{http_code}' -I --connect-timeout 8 --max-time 15 "$url" 2>/dev/null || echo 000
+    fi
+  else
+    echo 000
+  fi
+}
+
+# Map any recognised local picture-model filename (matching app/config.py) to its models/ subfolder.
+picture_model_dest_dir() {
+  case "$1" in
+    flux-2-klein-4b*.safetensors|flux-2-klein-9b*.safetensors|flux3-image-klein-*.safetensors|fibo2_dev_*.safetensors)
+      echo "diffusion_models" ;;
+    qwen_3_4b*.safetensors|qwen_3_8b_*.safetensors|Qwen3-4B-*.gguf|Qwen3-8B-*.gguf|qwen3vl_4b_*.safetensors)
+      echo "text_encoders" ;;
+    fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors)
+      echo "loras" ;;
+    flux2-vae.safetensors)
+      echo "vae" ;;
+    *)
+      return 1 ;;
+  esac
+}
+
+# Scan a folder (e.g. ~/Downloads or --import-models <dir>) for manually downloaded picture model
+# files and move any recognised ones into $MODELS/<subdir>/. Sets LAST_IMPORTED_PIC_MODEL if an
+# upgraded diffusion model (9b, flux3, fibo2) was imported.
+LAST_IMPORTED_PIC_MODEL=""
+import_local_picture_models() {
+  local src_dir="$1"
+  [ -d "$src_dir" ] || return 0
+  local found=0 f base subdir dest
+  for f in "$src_dir"/*.safetensors "$src_dir"/*.gguf; do
+    [ -f "$f" ] || continue
+    base="$(basename "$f")"
+    subdir="$(picture_model_dest_dir "$base" 2>/dev/null || true)"
+    [ -n "$subdir" ] || continue
+    dest="$MODELS/$subdir/$base"
+    if [ -f "$dest" ] && [ "$(size_of "$dest")" = "$(size_of "$f")" ]; then
+      say "  $base — already in $subdir/, leaving copy in $src_dir untouched"
+    else
+      mkdir -p "$MODELS/$subdir"
+      mv -f "$f" "$dest"
+      rm -f "$dest.sha256ok"
+      say "  Imported $base -> $subdir/"
+      found=$((found + 1))
+    fi
+    case "$base" in
+      fibo2_dev_*.safetensors)        LAST_IMPORTED_PIC_MODEL=fibo2 ;;
+      flux3-image-klein-*.safetensors) LAST_IMPORTED_PIC_MODEL=flux3 ;;
+      flux-2-klein-9b*.safetensors)   LAST_IMPORTED_PIC_MODEL=9b ;;
+    esac
+  done
+  return 0
+}
+
 # Download one file with a clean single-line CLI progress bar on TTY (bar, %, size, speed, ETA)
 # and milestone lines when non-TTY. Returns curl/wget's exit code without triggering ERR trap.
 download_with_progress() {
@@ -477,11 +631,13 @@ download_with_progress() {
   rm -f "$err_file"
 
   if command -v curl >/dev/null 2>&1; then
-    if [ "$resume" -eq 1 ]; then
-      curl -sS -L --fail --retry 5 -C - -o "$dest_part" "$url" 2>"$err_file" &
-    else
-      curl -sS -L --fail --retry 5 -o "$dest_part" "$url" 2>"$err_file" &
-    fi
+    local curl_args=(-sS -L --fail --retry 5 -o "$dest_part")
+    [ "$resume" -eq 1 ] && curl_args+=(-C -)
+    case "$url" in
+      https://huggingface.co/*)
+        [ -n "$HF_AUTH_CFG" ] && [ -f "$HF_AUTH_CFG" ] && curl_args+=(-K "$HF_AUTH_CFG") ;;
+    esac
+    curl "${curl_args[@]}" "$url" 2>"$err_file" &
   else
     if [ "$resume" -eq 1 ]; then
       wget -q --tries=5 -c -O "$dest_part" "$url" 2>"$err_file" &
@@ -881,6 +1037,28 @@ ask_choice() {
   esac
 }
 
+# ask_menu VAR PROMPT DEFAULT OPT1 OPT2 [OPT3 ...]
+ask_menu() {
+  local var="$1" prompt="$2" default="$3"
+  shift 3
+  local opts=("$@") ans="" i=1 chosen=""
+  printf '%s [%s]: ' "$prompt" "$default"
+  read -r ans || ans=""
+  log_line "$prompt [$default]: $ans"
+  ans="${ans:-$default}"
+  for opt in "${opts[@]}"; do
+    if [ "$ans" = "$i" ] || [ "$ans" = "$opt" ]; then
+      chosen="$opt"
+      break
+    fi
+    i=$((i + 1))
+  done
+  if [ -z "$chosen" ]; then
+    chosen="${opts[$((default - 1))]}"
+  fi
+  printf -v "$var" '%s' "$chosen"
+}
+
 INTERACTIVE=0
 if [ -z "$problems" ] && [ "$CHECK_ONLY" -eq 0 ] && [ -t 0 ] && { [ "$SKIP_MODELS" -eq 0 ] || [ "$RECONFIGURE" -eq 1 ]; }; then
   INTERACTIVE=1
@@ -999,7 +1177,17 @@ fi
 if [ "$LYRICS_CHOICE" = no ]; then NO_LYRICS=1; LYRICS_CHOICE=no; else NO_LYRICS=0; LYRICS_CHOICE=yes; fi
 say "Local lyric drafts (Gemma): $LYRICS_CHOICE"
 
-# 4. Local take pictures (FLUX.2 klein 4B)
+# 4. Local take pictures (FLUX.2 klein 4B, or optional upgraded 9B / FLUX 3 klein / FIBO 2.0)
+if [ -n "$IMPORT_MODELS_DIR" ] && [ "$CHECK_ONLY" -eq 0 ]; then
+  say ""
+  say "Scanning $IMPORT_MODELS_DIR for local picture model files..."
+  import_local_picture_models "$IMPORT_MODELS_DIR"
+  if [ -z "$PICTURE_MODEL" ] && [ -n "$LAST_IMPORTED_PIC_MODEL" ]; then
+    PICTURES=yes
+    PICTURE_MODEL="$LAST_IMPORTED_PIC_MODEL"
+  fi
+fi
+
 SAVED_PICTURES=""
 [ -f "$STATE/pictures" ] && SAVED_PICTURES="$(cat "$STATE/pictures")"
 if [ -n "$PICTURES" ]; then
@@ -1010,7 +1198,7 @@ elif [ "$INTERACTIVE" -eq 1 ]; then
   def_pic="${SAVED_PICTURES:-yes}"
   say ""
   say "Take pictures drawn on this PC (optional)"
-  say "  FLUX.2 klein 4B draws a picture for each take locally (about 8.3 GB)."
+  say "  Draws a cover picture for each take locally (default: FLUX.2 klein 4B, ~8.3 GB)."
   ask_yes_no PICTURES 'Set up local take pictures?' "$def_pic"
   echo "$PICTURES" > "$STATE/pictures"
 elif [ -n "$SAVED_PICTURES" ]; then
@@ -1018,6 +1206,204 @@ elif [ -n "$SAVED_PICTURES" ]; then
 fi
 [ "$PICTURES" = yes ] || PICTURES=no
 say "Take pictures: $PICTURES"
+
+# 4b. Which local take-picture model (4b default; 9b, flux3, fibo2 opt-in)
+SAVED_PIC_MODEL=""
+[ -f "$STATE/picture-model" ] && SAVED_PIC_MODEL="$(cat "$STATE/picture-model")"
+PICTURE_MODEL_ASKED=0
+if [ "$PICTURES" = yes ]; then
+  if [ -n "$PICTURE_MODEL" ]; then
+    PICTURE_MODEL="$(echo "$PICTURE_MODEL" | tr '[:upper:]' '[:lower:]')"
+    case "$PICTURE_MODEL" in
+      4b|9b|flux3|fibo2)
+        if [ "$CPP" -eq 1 ] && { [ "$PICTURE_MODEL" = flux3 ] || [ "$PICTURE_MODEL" = fibo2 ]; }; then
+          problem "$PICTURE_MODEL only runs on the ComfyUI engine (use --engine comfyui, or pick 4b or 9b for yue2.cpp)."
+        elif [ "$CHECK_ONLY" -eq 0 ]; then
+          echo "$PICTURE_MODEL" > "$STATE/picture-model"
+        fi
+        PICTURE_MODEL_ASKED=1
+        ;;
+      *) problem "--picture-model is 4b, 9b, flux3 or fibo2, not $PICTURE_MODEL." ;;
+    esac
+  elif [ -n "$SAVED_PIC_MODEL" ] && [ "$RECONFIGURE" -eq 0 ]; then
+    PICTURE_MODEL="$SAVED_PIC_MODEL"
+    if [ "$CPP" -eq 1 ] && { [ "$PICTURE_MODEL" = flux3 ] || [ "$PICTURE_MODEL" = fibo2 ]; }; then
+      say "  note: saved picture model '$PICTURE_MODEL' is ComfyUI-only; using FLUX.2 klein 4B on yue2.cpp."
+      PICTURE_MODEL=4b
+    fi
+  elif [ "$INTERACTIVE" -eq 1 ]; then
+    PICTURE_MODEL_ASKED=1
+    say ""
+    if [ "$CPP" -eq 1 ]; then
+      def_pm=1
+      [ "$SAVED_PIC_MODEL" = 9b ] && def_pm=2
+      say "Local take-picture model (yue2.cpp)"
+      say "  1) FLUX.2 klein 4B  — 6.9 GB, Apache 2.0, fast, 8 GB+ VRAM (default)"
+      say "  2) FLUX.2 klein 9B  — ~14.5 GB, higher detail, 16 GB+ VRAM (gated on HF, BFL non-commercial)"
+      say "  (FLUX 3 klein and FIBO 2.0 are only supported on the ComfyUI engine.)"
+      ask_menu PICTURE_MODEL 'Choose picture model (1 or 2)' "$def_pm" 4b 9b
+    else
+      def_pm=1
+      case "$SAVED_PIC_MODEL" in
+        9b)    def_pm=2 ;;
+        flux3) def_pm=3 ;;
+        fibo2) def_pm=4 ;;
+      esac
+      say "Local take-picture model (ComfyUI)"
+      say "  1) FLUX.2 klein 4B  — 8.3 GB, Apache 2.0, fast, 8 GB+ VRAM (default)"
+      say "  2) FLUX.2 klein 9B  — ~18 GB, higher detail, 16 GB+ VRAM (gated on HF, BFL non-commercial)"
+      say "  3) FLUX 3 klein     — ~11 GB, best lettering for titles, 12 GB+ VRAM (gated on HF, FLUX Kommunity License)"
+      say "  4) FIBO 2.0         — ~15 GB with turbo LoRA, photographic, 16 GB+ VRAM (ungated, CC BY-NC 4.0 non-commercial)"
+      ask_menu PICTURE_MODEL 'Choose picture model (1-4)' "$def_pm" 4b 9b flux3 fibo2
+    fi
+    echo "$PICTURE_MODEL" > "$STATE/picture-model"
+  elif [ -n "$SAVED_PIC_MODEL" ]; then
+    PICTURE_MODEL="$SAVED_PIC_MODEL"
+  else
+    PICTURE_MODEL=4b
+  fi
+
+  # Licence confirmation & seamless Hugging Face / local-file setup for upgraded picture models.
+  if [ "$CHECK_ONLY" -eq 0 ] && [ "$SKIP_MODELS" -eq 0 ] && [ "$PICTURE_MODEL" != 4b ]; then
+    if [ "$PICTURE_MODEL" = fibo2 ]; then
+      if [ ! -f "$MODELS/diffusion_models/fibo2_dev_int8_convrot.safetensors" ] && [ "$INTERACTIVE" -eq 1 ]; then
+        say ""
+        say "FIBO 2.0 is licensed under CC BY-NC 4.0 (non-commercial use only; no Hugging Face sign-in needed)."
+        confirm_fibo=""
+        ask_yes_no confirm_fibo 'Confirm non-commercial licence and install FIBO 2.0?' yes
+        if [ "$confirm_fibo" != yes ]; then
+          say "Keeping FLUX.2 klein 4B instead."
+          PICTURE_MODEL=4b
+          echo "$PICTURE_MODEL" > "$STATE/picture-model"
+        fi
+      fi
+    elif [ "$PICTURE_MODEL" = 9b ] || [ "$PICTURE_MODEL" = flux3 ]; then
+      # Identify the gated diffusion model file & repo page.
+      if [ "$PICTURE_MODEL" = 9b ]; then
+        GATED_LABEL="FLUX.2 klein 9B"
+        GATED_LICENCE="Black Forest Labs non-commercial licence"
+        GATED_REPO="https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8"
+        GATED_FILE="flux-2-klein-9b-fp8.safetensors"
+        GATED_SIZE="9433061528"
+        GATED_URL="$GATED_REPO/resolve/main/$GATED_FILE"
+      else
+        GATED_LABEL="FLUX 3 klein"
+        GATED_LICENCE="FLUX Kommunity License"
+        GATED_REPO="https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy"
+        if [ -n "$COMPUTE_CAP" ] && awk -v c="$COMPUTE_CAP" 'BEGIN { exit !(c + 0 >= 10.0) }'; then
+          GATED_FILE="flux3-image-klein-nvfp4.safetensors"
+          GATED_SIZE="5277685632"
+        else
+          GATED_FILE="flux3-image-klein-int8-convrot.safetensors"
+          GATED_SIZE="5827874779"
+        fi
+        GATED_URL="$GATED_REPO/resolve/main/diffusion_models/$GATED_FILE"
+      fi
+
+      # Helper to check if the gated diffusion model file is already in $MODELS (its text encoder & VAE are ungated).
+      gated_files_ready() {
+        [ -f "$MODELS/diffusion_models/$GATED_FILE" ] || return 1
+        [ "$(size_of "$MODELS/diffusion_models/$GATED_FILE")" = "$GATED_SIZE" ] || return 1
+        return 0
+      }
+
+      # 1) Auto-detect manually downloaded files sitting in ~/Downloads (no HF token needed!).
+      if ! gated_files_ready && [ -d "$HOME/Downloads" ] && [ -f "$HOME/Downloads/$GATED_FILE" ]; then
+        if [ "$INTERACTIVE" -eq 1 ]; then
+          say ""
+          move_dl=""
+          ask_yes_no move_dl "Found $GATED_FILE in ~/Downloads. Move it into Yeufonic's models folder?" yes
+          [ "$move_dl" = yes ] && import_local_picture_models "$HOME/Downloads"
+        else
+          import_local_picture_models "$HOME/Downloads"
+        fi
+      fi
+
+      # 2) If still not on disk, authenticate with Hugging Face (env/CLI cache/prompt) or import from a folder.
+      if ! gated_files_ready; then
+        # Reuse existing huggingface-cli cached token automatically if user already logged in.
+        if [ -z "$HF_TOKEN_VAL" ] && [ -r "$HOME/.cache/huggingface/token" ]; then
+          HF_TOKEN_VAL="$(tr -d '\r\n' < "$HOME/.cache/huggingface/token")"
+        fi
+        [ -n "$HF_TOKEN_VAL" ] && set_hf_auth "$HF_TOKEN_VAL"
+
+        hf_ok=0
+        if [ -n "$HF_AUTH_CFG" ]; then
+          code="$(http_status_hf "$GATED_URL")"
+          [ "$code" = "200" ] || [ "$code" = "302" ] && hf_ok=1
+        else
+          code="401"
+        fi
+
+        while [ "$hf_ok" -eq 0 ]; do
+          if [ "$INTERACTIVE" -eq 0 ]; then
+            if [ "$code" = "403" ]; then
+              problem "$GATED_LABEL requires accepting its licence ($GATED_LICENCE) at $GATED_REPO before downloading."
+            else
+              problem "$GATED_LABEL is gated on Hugging Face ($GATED_LICENCE). Accept the licence at $GATED_REPO and pass HF_TOKEN=<read-token> (or download $GATED_FILE and pass --import-models ~/Downloads)."
+            fi
+            break
+          fi
+
+          say ""
+          if [ "$code" = "403" ]; then
+            say "Your Hugging Face token worked, but access to $GATED_LABEL is not enabled yet."
+            say "  1. Open $GATED_REPO in your browser and accept the $GATED_LICENCE."
+            say "  2. Press Enter here to retry, or type 'skip' to use FLUX.2 klein 4B instead."
+            printf 'Press Enter to retry (or type skip): '
+            read -r retry_ans || retry_ans="skip"
+            case "$retry_ans" in
+              skip|SKIP|q|Q)
+                say "Falling back to FLUX.2 klein 4B."
+                PICTURE_MODEL=4b; echo "$PICTURE_MODEL" > "$STATE/picture-model"; clear_hf_auth; break ;;
+              *)
+                code="$(http_status_hf "$GATED_URL")"
+                [ "$code" = "200" ] || [ "$code" = "302" ] && hf_ok=1
+                ;;
+            esac
+          else
+            [ -n "$HF_AUTH_CFG" ] && say "That Hugging Face token was rejected (HTTP $code)."
+            say "$GATED_LABEL is gated on Hugging Face ($GATED_LICENCE)."
+            say "  Option A (automatic download):"
+            say "    1. Sign in and accept the licence at: $GATED_REPO"
+            say "    2. Create a Read token at: https://huggingface.co/settings/tokens"
+            say "  Option B (browser download): download $GATED_FILE into ~/Downloads, then press Enter."
+            printf 'Paste Hugging Face Read token (hidden, never saved; Enter to import from folder or skip): '
+            read -rs pasted_tok || pasted_tok=""
+            printf '\n'
+            if [ -n "$pasted_tok" ]; then
+              HF_TOKEN_VAL="$pasted_tok"
+              pasted_tok=""
+              set_hf_auth "$HF_TOKEN_VAL"
+              code="$(http_status_hf "$GATED_URL")"
+              [ "$code" = "200" ] || [ "$code" = "302" ] && hf_ok=1
+            else
+              printf 'Folder containing downloaded model files (Enter for ~/Downloads, or type skip for 4B): '
+              read -r import_ans || import_ans="skip"
+              case "$import_ans" in
+                skip|SKIP|q|Q)
+                  say "Falling back to FLUX.2 klein 4B."
+                  PICTURE_MODEL=4b; echo "$PICTURE_MODEL" > "$STATE/picture-model"; clear_hf_auth; break ;;
+                '') import_ans="$HOME/Downloads" ;;
+                "~") import_ans="$HOME" ;;
+                "~/"*) import_ans="$HOME/${import_ans#~/}" ;;
+              esac
+              import_local_picture_models "$import_ans"
+              if gated_files_ready; then
+                hf_ok=1
+              else
+                say "  Did not find $GATED_FILE in $import_ans yet."
+              fi
+            fi
+          fi
+        done
+      fi
+    fi
+  fi
+  say "Take-picture model: $PICTURE_MODEL"
+else
+  PICTURE_MODEL="${SAVED_PIC_MODEL:-4b}"
+fi
 
 # 5. Style LoRAs
 SAVED_LORAS=""
@@ -1126,7 +1512,7 @@ EOF
       [ -z "$file" ] && continue
       [ -f "$MODELS/$dir/$file" ] || NEED=$((NEED + size))
     done <<EOF
-$(picture_models)
+$(selected_picture_models)
 EOF
   fi
   if [ "$LORAS" = yes ]; then
@@ -1403,18 +1789,19 @@ EOF
       [ -z "$file" ] && continue
       p_total=$((p_total + 1))
     done <<EOF
-$(picture_models)
+$(selected_picture_models)
 EOF
     say ""
-    say "Take pictures ($p_total files):"
+    say "Take pictures — $PICTURE_MODEL ($p_total files):"
     while IFS='|' read -r dir file size sha url; do
       [ -z "$file" ] && continue
       p_idx=$((p_idx + 1))
       mkdir -p "$MODELS/$dir"
       get_verified "$url" "$MODELS/$dir/$file" "$size" "$sha" "" "[$p_idx/$p_total]"
     done <<EOF
-$(picture_models)
+$(selected_picture_models)
 EOF
+    clear_hf_auth
   fi
 
   if [ "$LORAS" = yes ]; then
@@ -1615,10 +2002,35 @@ else
   ini_set model "$MODEL_SIZE"
 fi
 
+# Activate the chosen local picture model in the app's Settings database when it already exists
+# (on a brand-new install, the app picks the installed picture model automatically on first start).
+if [ "$PICTURES" = yes ] && [ "$SKIP_MODELS" -eq 0 ] && [ -f "$DATA/yue2.sqlite" ] && [ -x "$APP_VENV/bin/python" ]; then
+  "$APP_VENV/bin/python" - "$DATA/yue2.sqlite" "$PICTURE_MODEL" <<'PY' 2>/dev/null || true
+import sqlite3, sys
+db_path, val = sys.argv[1], sys.argv[2]
+con = sqlite3.connect(db_path, timeout=5)
+try:
+    cur = con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'")
+    if cur.fetchone():
+        con.execute(
+            "INSERT INTO settings(key, value) VALUES('art.klein', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (val,),
+        )
+        con.commit()
+finally:
+    con.close()
+PY
+fi
+
 cat "$STUDIO/VERSION" "$STUDIO/BUILD" 2>/dev/null > "$STATE/set-up-for" || true
 rm -rf "$UV_CACHE_DIR"
 step "Finished"
-say "Yeufonic is set up in $INSTALL_DIR (engine: $ENGINE_CHOICE)."
+if [ "$PICTURES" = yes ]; then
+  say "Yeufonic is set up in $INSTALL_DIR (engine: $ENGINE_CHOICE, picture model: $PICTURE_MODEL)."
+else
+  say "Yeufonic is set up in $INSTALL_DIR (engine: $ENGINE_CHOICE)."
+fi
 if port_taken "$APP_PORT"; then
   say "Note: something is currently running on port $APP_PORT. Restart Yeufonic ($INSTALL_DIR/bin/yeufonic stop && $INSTALL_DIR/bin/yeufonic) for any engine or model changes to take effect."
 else

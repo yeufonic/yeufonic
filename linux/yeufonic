@@ -5,7 +5,7 @@
 #   yeufonic stop                                    stop a running Yeufonic
 #   yeufonic status                                  show whether Yeufonic is running
 #   yeufonic logs [app|engine|launcher|voice|setup]  tail a log (default: launcher)
-#   yeufonic setup [options...]                      re-run setup (e.g. --pictures, --loras, --voices)
+#   yeufonic setup [options...]                      reconfigure engine/models/add-ons (e.g. --engine, --picture-model, --import-models)
 #   yeufonic uninstall [options...]                  remove Yeufonic (offers to keep data & models)
 #   yeufonic --help                                  show this help
 set -euo pipefail
