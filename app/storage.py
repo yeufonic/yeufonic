@@ -240,6 +240,7 @@ def items(busy: Busy, lora_base: Callable[[dict], str]) -> list[dict]:
                                "is trained again. Its own recordings are not touched.",
             })
 
+    claimed: set[str] = set()
     for identity in rows("SELECT id, name, lora FROM identities ORDER BY name"):
         name = identity["name"] or "corpus"
         dataset = _corpus_dir(identity["id"]) / "dataset"
@@ -257,6 +258,7 @@ def items(busy: Busy, lora_base: Callable[[dict], str]) -> list[dict]:
             })
         root = loras.folder()
         marks = loras.checkpoints(lora_base(identity), root) if root else []
+        claimed.update(m["name"] for m in marks)
         if marks:
             out.append({
                 "id": f"checkpoints:{identity['id']}", "title": f"Training checkpoints (earlier stages in the LoRA list): {name}", "corpus": identity["id"],
@@ -268,6 +270,24 @@ def items(busy: Busy, lora_base: Callable[[dict], str]) -> list[dict]:
                 "consequence": "These entries disappear from the Style LoRA list and can no longer be chosen for new "
                                "takes. The finished LoRA stays and keeps working.",
             })
+
+    # Checkpoints whose corpus is gone (deleted, or a LoRA trained elsewhere under another name): nothing above
+    # claims them, so they are listed by the LoRA they belong to.
+    root = loras.folder()
+    orphans: dict[str, list[Path]] = {}
+    for path in sorted(root.glob("*_step*.safetensors")) if root else []:
+        found = re.fullmatch(r"(.+?)(?:_\d{8}(?:_\d{4})?)?_step\d+", path.stem)
+        if found and path.is_file() and path.name not in claimed:
+            orphans.setdefault(found.group(1), []).append(path)
+    for base, paths in sorted(orphans.items()):
+        out.append({
+            "id": f"orphan-checkpoints:{base}", "title": f"Training checkpoints with no corpus: {base}",
+            "bytes": _sum(paths)[0], "files": len(paths), "_names": [p.name for p in paths], "blocked": None,
+            "what": "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry "
+                    "in the Style LoRA list, folded under the LoRA.",
+            "consequence": "These entries disappear from the Style LoRA list and can no longer be chosen for new "
+                           "takes. The LoRA itself stays and keeps working.",
+        })
     return out
 
 

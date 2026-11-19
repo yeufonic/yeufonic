@@ -2885,5 +2885,9 @@
  "Write a new structure": "새 구조 쓰기",
  "Write score plan makes a new take from this structure; the one open stays as it is.": "악보 계획 쓰기을(를) 누르면 이 구조로 새 테이크를 만듭니다. 열려 있는 테이크는 그대로 남습니다.",
  "Back to this take's sections": "이 테이크의 섹션으로 돌아가기",
- "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "하모니와 계획 다양성은 새 계획에 적용되며 새 테이크에 쓰입니다. '이 악보 렌더링'은(는) 이 테이크의 계획을 그대로 씁니다."
+ "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "하모니와 계획 다양성은 새 계획에 적용되며 새 테이크에 쓰입니다. '이 악보 렌더링'은(는) 이 테이크의 계획을 그대로 씁니다.",
+ "Training checkpoints with no corpus: {base}": "코퍼스가 없는 학습 체크포인트: {base}",
+ "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry in the Style LoRA list, folded under the LoRA.": "이 LoRA의 학습이 저장한 체크포인트로, 코퍼스는 더 이상 없습니다. 각각 스타일 LoRA 목록의 항목이며 LoRA 아래에 접혀 있습니다.",
+ "These entries disappear from the Style LoRA list and can no longer be chosen for new takes. The LoRA itself stays and keeps working.": "이 항목들은 스타일 LoRA 목록에서 사라지고 새 테이크에 더 이상 고를 수 없습니다. LoRA 자체는 남아 계속 작동합니다.",
+ "Accept failed on a socket": "연결을 받지 못했습니다"
 }

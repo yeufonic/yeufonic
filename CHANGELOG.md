@@ -42,6 +42,8 @@ cannot creep back in.
 - **Storage lists the training checkpoints of every corpus's LoRA.** It looked for them under the corpus's name, so a
   LoRA named otherwise (trained before the corpus was renamed, or under its trigger word) had its checkpoints missed,
   both in Storage and in the corpus's own checkpoint list. They are now found under the name the LoRA has.
+- **Storage lists checkpoints whose corpus is gone.** A LoRA's training checkpoints stayed in the LoRA folder after
+  its corpus was deleted, and nothing offered to remove them. Storage now lists them by LoRA; the LoRA itself is kept.
 
 - **The Windows app no longer fails to start now and then with "The app did not start within 3 minutes".** When a
   connection to the app was dropped before it was accepted (the launcher's own check, while the app was still

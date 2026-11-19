@@ -2885,5 +2885,9 @@
  "Write a new structure": "Написать новую структуру",
  "Write score plan makes a new take from this structure; the one open stays as it is.": "«Написать план партитуры» создаёт из этой структуры новый дубль; открытый остаётся как есть.",
  "Back to this take's sections": "Вернуться к секциям этого дубля",
- "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "Гармония и разнообразие плана применяются к новому плану, который пишется в новый дубль. «Рендерить эту партитуру» оставляет план этого дубля."
+ "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "Гармония и разнообразие плана применяются к новому плану, который пишется в новый дубль. «Рендерить эту партитуру» оставляет план этого дубля.",
+ "Training checkpoints with no corpus: {base}": "Контрольные точки обучения без корпуса: {base}",
+ "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry in the Style LoRA list, folded under the LoRA.": "Контрольные точки, сохранённые обучением этой LoRA, корпуса которой больше нет. Каждая — пункт в списке стилевых LoRA, свёрнутый под LoRA.",
+ "These entries disappear from the Style LoRA list and can no longer be chosen for new takes. The LoRA itself stays and keeps working.": "Эти пункты исчезнут из списка стилевых LoRA, и их больше нельзя будет выбрать для новых дублей. Сама LoRA останется и продолжит работать.",
+ "Accept failed on a socket": "Не удалось принять соединение"
 }

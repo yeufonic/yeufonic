@@ -2885,5 +2885,9 @@
  "Write a new structure": "Scrivi una nuova struttura",
  "Write score plan makes a new take from this structure; the one open stays as it is.": "Scrivi il piano della partitura crea una nuova take da questa struttura; quella aperta resta com’è.",
  "Back to this take's sections": "Torna alle sezioni di questa take",
- "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "Armonia e varietà del piano valgono per un nuovo piano, scritto in una nuova take. «Renderizza questa partitura» mantiene il piano di questa take."
+ "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "Armonia e varietà del piano valgono per un nuovo piano, scritto in una nuova take. «Renderizza questa partitura» mantiene il piano di questa take.",
+ "Training checkpoints with no corpus: {base}": "Checkpoint di addestramento senza corpus: {base}",
+ "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry in the Style LoRA list, folded under the LoRA.": "Checkpoint salvati da un addestramento per questa LoRA, il cui corpus non esiste più. Ognuno è una voce dell’elenco delle LoRA di stile, raccolta sotto la LoRA.",
+ "These entries disappear from the Style LoRA list and can no longer be chosen for new takes. The LoRA itself stays and keeps working.": "Queste voci spariscono dall’elenco delle LoRA di stile e non si possono più scegliere per nuove take. La LoRA resta e continua a funzionare.",
+ "Accept failed on a socket": "Accettazione di una connessione non riuscita"
 }

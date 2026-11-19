@@ -2885,5 +2885,9 @@
  "Write a new structure": "新しい構成を書く",
  "Write score plan makes a new take from this structure; the one open stays as it is.": "楽譜プランを書くでこの構成から新しいテイクを作ります。開いているテイクはそのままです。",
  "Back to this take's sections": "このテイクのセクションに戻る",
- "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "ハーモニーとプランの多様さは新しいプランに適用され、新しいテイクに書かれます。「この楽譜をレンダリング」はこのテイクのプランのままです。"
+ "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "ハーモニーとプランの多様さは新しいプランに適用され、新しいテイクに書かれます。「この楽譜をレンダリング」はこのテイクのプランのままです。",
+ "Training checkpoints with no corpus: {base}": "コーパスのない学習チェックポイント: {base}",
+ "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry in the Style LoRA list, folded under the LoRA.": "このLoRAの学習で保存されたチェックポイントで、そのコーパスはもうありません。それぞれがスタイルLoRAの一覧の項目で、LoRAの下にまとめられています。",
+ "These entries disappear from the Style LoRA list and can no longer be chosen for new takes. The LoRA itself stays and keeps working.": "これらの項目はスタイルLoRAの一覧から消え、新しいテイクに選べなくなります。LoRA自体は残り、そのまま使えます。",
+ "Accept failed on a socket": "接続の受け付けに失敗しました"
 }

@@ -2885,5 +2885,9 @@
  "Write a new structure": "寫一個新結構",
  "Write score plan makes a new take from this structure; the one open stays as it is.": "「寫樂譜方案」會用這個結構做一個新版本；開啟的這個保持不變。",
  "Back to this take's sections": "回到這個版本的段落",
- "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "和聲與方案多樣性作用於新方案，寫進一個新版本。「渲染此樂譜」保留這個版本的方案。"
+ "Harmony and Plan variety apply to a new plan, written into a new take. Render this score keeps this take's plan.": "和聲與方案多樣性作用於新方案，寫進一個新版本。「渲染此樂譜」保留這個版本的方案。",
+ "Training checkpoints with no corpus: {base}": "沒有語料庫的訓練檢查點：{base}",
+ "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry in the Style LoRA list, folded under the LoRA.": "訓練為這個 LoRA 儲存的檢查點，其語料庫已不存在。每個都是風格 LoRA 清單中的一項，收在該 LoRA 下面。",
+ "These entries disappear from the Style LoRA list and can no longer be chosen for new takes. The LoRA itself stays and keeps working.": "這些項會從風格 LoRA 清單中消失，不能再用於新版本。LoRA 本身保留，照常可用。",
+ "Accept failed on a socket": "接受連線失敗"
 }
