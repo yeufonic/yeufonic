@@ -25,7 +25,7 @@ JOBS="$(nproc 2>/dev/null || echo 4)"
 cd "$WORK"
 
 IS_MUSL=0
-if ldd --version 2>&1 | grep -qi musl; then
+if [ -f /etc/alpine-release ] || ls /lib/ld-musl-*.so.1 >/dev/null 2>&1; then
   IS_MUSL=1
 fi
 
