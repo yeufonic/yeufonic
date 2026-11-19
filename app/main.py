@@ -45,6 +45,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import recipe as recipes
 from . import aligner, artwork, autotune, composer, config, daw, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
+from . import winaccept
+
+winaccept.install()      # Windows: a client dropping a connection must not stop the app listening
 
 personas = identities
 from .engine import engine_build, model_slow, stage_label, start_problem

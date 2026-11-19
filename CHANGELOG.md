@@ -39,10 +39,11 @@ cannot creep back in.
 
 ## Unreleased
 
-- **The Windows app starts with a system proxy set.** A VPN client can set a Windows proxy, and the launcher's checks
-  that the app had started went through it, never got an answer, and stopped the app after three minutes with "The app
-  did not start within 3 minutes". The launcher's checks on this PC now always go direct.
-
+- **The Windows app no longer fails to start now and then with "The app did not start within 3 minutes".** When a
+  connection to the app was dropped before it was accepted (the launcher's own check, while the app was still
+  starting), Python's Windows event loop logged "Accept failed on a socket" and stopped listening, so the app ran on
+  with nothing able to reach it. A dropped connection is now logged as a warning and the app keeps listening. The
+  launcher's checks also no longer go through a system proxy.
 - **Changing Harmony or Plan variety on a planned instrumental writes a new plan.** Both steer only the planner, so
   with an instrumental open, changing them and pressing Render this score played the same plan again and gave a take
   that sounded almost the same. The main button now becomes Write a new plan when either differs from what the take's
