@@ -60,11 +60,10 @@ cat > "$RUN" <<HEADER
 #   --int8 | --bf16            ComfyUI YuE2 model size (default: bf16)
 #   --cpp-model q8|bf16        yue2.cpp YuE2 model size (default: q8)
 #   --lyrics | --no-lyrics     include or skip local Gemma 4 for lyric drafts (default: include)
-#   --pictures | --no-pictures         local take pictures (default: FLUX.2 klein 4B)
-#   --picture-model 4b|9b|flux3|fibo2  choose local take-picture model (implies --pictures)
-#   --import-models <dir>              import manually downloaded picture models from <dir>
-#   --loras | --no-loras               39 style LoRAs (CC BY-NC 4.0)
-#   --voices | --no-voices             recorded voices (RVC + BS-Roformer)
+#   --pictures | --no-pictures  local take pictures (default: FLUX.2 klein 4B)
+#   --picture-model 4b|fibo2    choose local take-picture model (implies --pictures)
+#   --loras | --no-loras        39 style LoRAs (CC BY-NC 4.0)
+#   --voices | --no-voices      recorded voices (RVC + BS-Roformer)
 #   --force-downloads          re-download models, LoRAs, SoundFonts and voice files even if present
 #   --reconfigure              re-ask engine, model size and component choices (pre-filling current settings)
 #   --check-only               run the system check without installing or downloading

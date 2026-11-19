@@ -524,52 +524,11 @@ def test_reconfigure_allows_switching_engine_interactively_with_saved_defaults(t
 
 
 @needs_linux
-def test_import_local_picture_models_routes_every_model_to_expected_config_subfolder(tmp_path):
-    """Manually downloaded 9B, FLUX 3, and FIBO 2.0 files are moved into the exact subfolders app/config.py checks."""
-    setup_text = SETUP.read_text(encoding="utf-8")
-    helpers = setup_text.split("# ------------------------------------------------------------------- helpers", 1)[1]
-    helpers = helpers.split("# -------------------------------------------------------------- system check", 1)[0]
+def test_picture_model_selection_rejects_fibo2_on_yue2cpp_and_interactive_menu_selects_fibo2(tmp_path):
+    """FIBO 2.0 is rejected on yue2.cpp, offered on ComfyUI (1=4b, 2=fibo2), and not locked in if aborted."""
+    import pty
+    import select
 
-    dl_dir = tmp_path / "downloads"
-    dl_dir.mkdir()
-    models_dir = tmp_path / "models"
-    expected = {
-        "flux-2-klein-9b-fp8.safetensors": "diffusion_models",
-        "qwen_3_8b_fp8mixed.safetensors": "text_encoders",
-        "Qwen3-8B-Q4_K_M.gguf": "text_encoders",
-        "flux3-image-klein-int8-convrot.safetensors": "diffusion_models",
-        "qwen3vl_4b_int8_convrot.safetensors": "text_encoders",
-        "fibo2_dev_int8_convrot.safetensors": "diffusion_models",
-        "fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors": "loras",
-        "flux2-vae.safetensors": "vae",
-    }
-    for fname in expected:
-        (dl_dir / fname).write_bytes(b"stub-" + fname.encode("ascii"))
-    # Unrelated file must be left alone.
-    (dl_dir / "unrelated.safetensors").write_bytes(b"keep-me")
-
-    harness = tmp_path / "import_test.sh"
-    harness.write_text(
-        f"#!/bin/bash\nset -euo pipefail\n"
-        f"IS_TTY=0\nCHECK_ONLY=1\nLOGS={tmp_path}\nSTATE={tmp_path}\nDOWNLOADS={tmp_path}\n"
-        f"MODELS={models_dir}\nFORCE_DOWNLOADS=0\nexec 3>&1 4>&2\n"
-        f"{helpers}\n"
-        f'import_local_picture_models "{dl_dir}"\n'
-        f'echo "DETECTED=$LAST_IMPORTED_PIC_MODEL"\n',
-        encoding="utf-8",
-    )
-    harness.chmod(0o755)
-    res = subprocess.run([str(harness)], capture_output=True, text=True, check=True)
-    for fname, subdir in expected.items():
-        assert (models_dir / subdir / fname).is_file(), f"{fname} not moved to {subdir}/"
-        assert not (dl_dir / fname).exists(), f"{fname} should have been moved out of downloads"
-    assert (dl_dir / "unrelated.safetensors").is_file()
-    assert "DETECTED=" in res.stdout
-
-
-@needs_linux
-def test_picture_model_selection_rejects_comfy_only_models_on_yue2cpp_and_redacts_hf_token(tmp_path):
-    """FLUX 3 / FIBO 2.0 are rejected on yue2.cpp, and --hf-token is never written to setup.log."""
     env = _fake_linux(tmp_path)
     inst = tmp_path / "inst"
     r_bad = subprocess.run(
@@ -581,34 +540,8 @@ def test_picture_model_selection_rejects_comfy_only_models_on_yue2cpp_and_redact
     assert r_bad.returncode != 0
     assert "ComfyUI" in r_bad.stdout
 
-    # Run with --hf-token and failing network so setup.log is written; the secret must be redacted.
+    # Interactive ComfyUI menu offers 4B (1) or FIBO 2.0 (2); aborting before completion must not lock in state/.
     (tmp_path / "fakebin" / "curl").write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
-    secret = "hf_SUPER_SECRET_TOKEN_12345"
-    subprocess.run(
-        ["bash", str(SETUP), "--install-dir", str(inst), "--engine", "comfyui", "--picture-model", "4b",
-         "--hf-token", secret, "--skip-models"],
-        env=env,
-        capture_output=True,
-        text=True,
-    )
-    log_text = (inst / "logs" / "setup.log").read_text(encoding="utf-8")
-    assert secret not in log_text
-    assert "<redacted>" in log_text
-    # Aborted before finishing setup -> state/picture-model must NOT be locked in yet.
-    assert not (inst / "state" / "picture-model").exists()
-
-
-@needs_linux
-def test_interactive_picture_model_menu_selects_fibo2_with_licence_confirm(tmp_path):
-    """Interactive setup asks which local picture model to use and asks CC BY-NC 4.0 confirmation for FIBO 2.0,
-    and does not lock in state/picture-model if cancelled/aborted before completion."""
-    import pty
-    import select
-
-    inst = tmp_path / "inst"
-    env = _fake_linux(tmp_path)
-    (tmp_path / "fakebin" / "curl").write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
-
     master, slave = pty.openpty()
     proc = subprocess.Popen(
         ["bash", str(SETUP), "--install-dir", str(inst), "--reconfigure"],
@@ -625,8 +558,7 @@ def test_interactive_picture_model_menu_selects_fibo2_with_licence_confirm(tmp_p
         ("Choose YuE2 model (1 or 2) [1]: ", b"1\n"),
         ("Include local Gemma 4? [Y/n] ", b"y\n"),
         ("Set up local take pictures? [Y/n] ", b"y\n"),
-        ("Choose picture model (1-4) [1]: ", b"4\n"),
-        ("Confirm non-commercial licence and install FIBO 2.0? [Y/n] ", b"y\n"),
+        ("Choose picture model (1 or 2) [1]: ", b"2\n"),
         ("Fetch the style LoRAs? [Y/n] ", b"n\n"),
         ("Set up recorded voices? [Y/n] ", b"n\n"),
     ]
