@@ -2889,5 +2889,6 @@
  "Training checkpoints with no corpus: {base}": "Trainingscheckpoints zonder corpus: {base}",
  "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry in the Style LoRA list, folded under the LoRA.": "Checkpoints die een training voor deze LoRA heeft opgeslagen, waarvan het corpus niet meer bestaat. Elk is een item in de lijst met stijl-LoRA's, ingeklapt onder de LoRA.",
  "These entries disappear from the Style LoRA list and can no longer be chosen for new takes. The LoRA itself stays and keeps working.": "Deze items verdwijnen uit de lijst met stijl-LoRA's en kunnen niet meer voor nieuwe takes worden gekozen. De LoRA zelf blijft en werkt gewoon.",
- "Accept failed on a socket": "Een verbinding aannemen is mislukt"
+ "Accept failed on a socket": "Een verbinding aannemen is mislukt",
+ "Nothing listed costs nothing to remove: each item says what it costs": "Niets in de lijst kan zonder kosten weg: elk item zegt wat het kost"
 }

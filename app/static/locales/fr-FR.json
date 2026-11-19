@@ -2889,5 +2889,6 @@
  "Training checkpoints with no corpus: {base}": "Points de contrôle d’entraînement sans corpus : {base}",
  "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry in the Style LoRA list, folded under the LoRA.": "Points de contrôle enregistrés par un entraînement pour cette LoRA, dont le corpus n’existe plus. Chacun est une entrée de la liste des LoRA de style, repliée sous la LoRA.",
  "These entries disappear from the Style LoRA list and can no longer be chosen for new takes. The LoRA itself stays and keeps working.": "Ces entrées disparaissent de la liste des LoRA de style et ne peuvent plus être choisies pour de nouvelles prises. La LoRA elle-même reste et fonctionne toujours.",
- "Accept failed on a socket": "Échec de l’acceptation d’une connexion"
+ "Accept failed on a socket": "Échec de l’acceptation d’une connexion",
+ "Nothing listed costs nothing to remove: each item says what it costs": "Rien dans la liste ne se retire sans coût : chaque élément dit ce qu’il coûte"
 }

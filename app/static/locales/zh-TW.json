@@ -2889,5 +2889,6 @@
  "Training checkpoints with no corpus: {base}": "沒有語料庫的訓練檢查點：{base}",
  "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry in the Style LoRA list, folded under the LoRA.": "訓練為這個 LoRA 儲存的檢查點，其語料庫已不存在。每個都是風格 LoRA 清單中的一項，收在該 LoRA 下面。",
  "These entries disappear from the Style LoRA list and can no longer be chosen for new takes. The LoRA itself stays and keeps working.": "這些項會從風格 LoRA 清單中消失，不能再用於新版本。LoRA 本身保留，照常可用。",
- "Accept failed on a socket": "接受連線失敗"
+ "Accept failed on a socket": "接受連線失敗",
+ "Nothing listed costs nothing to remove: each item says what it costs": "清單中沒有可無代價刪除的項：每項都寫明了代價"
 }

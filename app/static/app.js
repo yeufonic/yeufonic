@@ -6452,6 +6452,13 @@ function paintStorageSelection() {
   var bytes = items.filter(function (i) { return chosen.indexOf(i.id) >= 0; })
     .reduce(function (sum, i) { return sum + i.bytes; }, 0);
   $('storage-reclaim').disabled = !chosen.length;
+  // Only some items cost nothing to remove (copies the app can make again); with none listed, the button says so
+  // rather than doing nothing.
+  var free = items.some(function (i) { return STORAGE_FREE_IDS.indexOf(i.id) >= 0 && !i.blocked; });
+  if ($('storage-free-ones')) {
+    $('storage-free-ones').disabled = !free;
+    $('storage-free-ones').title = free ? t('Tick the items that cost you nothing') : t('Nothing listed costs nothing to remove: each item says what it costs');
+  }
   $('storage-selected').textContent = chosen.length ? t('{chosenCount} selected · {sizeText}', { chosenCount: chosen.length, sizeText: sizeText(bytes) }) : '';
 }
 

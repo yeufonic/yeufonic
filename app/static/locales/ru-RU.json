@@ -2889,5 +2889,6 @@
  "Training checkpoints with no corpus: {base}": "Контрольные точки обучения без корпуса: {base}",
  "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry in the Style LoRA list, folded under the LoRA.": "Контрольные точки, сохранённые обучением этой LoRA, корпуса которой больше нет. Каждая — пункт в списке стилевых LoRA, свёрнутый под LoRA.",
  "These entries disappear from the Style LoRA list and can no longer be chosen for new takes. The LoRA itself stays and keeps working.": "Эти пункты исчезнут из списка стилевых LoRA, и их больше нельзя будет выбрать для новых дублей. Сама LoRA останется и продолжит работать.",
- "Accept failed on a socket": "Не удалось принять соединение"
+ "Accept failed on a socket": "Не удалось принять соединение",
+ "Nothing listed costs nothing to remove: each item says what it costs": "В списке нет ничего, что можно удалить без потерь: у каждого пункта написано, чего это стоит"
 }

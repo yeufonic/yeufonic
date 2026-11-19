@@ -2889,5 +2889,6 @@
  "Training checkpoints with no corpus: {base}": "コーパスのない学習チェックポイント: {base}",
  "Checkpoints a training run saved for this LoRA, whose corpus no longer exists. Each is an entry in the Style LoRA list, folded under the LoRA.": "このLoRAの学習で保存されたチェックポイントで、そのコーパスはもうありません。それぞれがスタイルLoRAの一覧の項目で、LoRAの下にまとめられています。",
  "These entries disappear from the Style LoRA list and can no longer be chosen for new takes. The LoRA itself stays and keeps working.": "これらの項目はスタイルLoRAの一覧から消え、新しいテイクに選べなくなります。LoRA自体は残り、そのまま使えます。",
- "Accept failed on a socket": "接続の受け付けに失敗しました"
+ "Accept failed on a socket": "接続の受け付けに失敗しました",
+ "Nothing listed costs nothing to remove: each item says what it costs": "一覧に、失うものなく削除できる項目はありません。各項目に何を失うかが書かれています"
 }
