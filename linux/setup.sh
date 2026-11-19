@@ -148,9 +148,9 @@ FFPROBE_SIZE=33223234
 FLUIDSYNTH_URL="${YEUFONIC_FLUIDSYNTH_URL:-https://github.com/yeufonic/yeufonic/releases/download/fluidsynth-linux-2.6.2-sndfile-1.2.2-p1/fluidsynth-linux-2.6.2-sndfile-1.2.2-p1.tar.gz}"
 FLUIDSYNTH_SHA="${YEUFONIC_FLUIDSYNTH_SHA:-e96a2954961671f0d51e174d8019d71a2148928b10616ea46cd6308314930552}"
 FLUIDSYNTH_SIZE="${YEUFONIC_FLUIDSYNTH_SIZE:-1048817}"
-CPP_URL="${YEUFONIC_CPP_URL:-}"
-CPP_SHA="${YEUFONIC_CPP_SHA:-}"
-CPP_SIZE="${YEUFONIC_CPP_SIZE:-}"
+CPP_URL="${YEUFONIC_CPP_URL:-https://github.com/yeufonic/yeufonic/releases/download/yue2cpp-linux-8af0174-38a072a2-p1/yue2cpp-linux-8af0174-38a072a2-p1.tar.gz}"
+CPP_SHA="${YEUFONIC_CPP_SHA:-9d8759c31674abf653676162fe98998b27d5af884b5b17de69ff22ad1daa5772}"
+CPP_SIZE="${YEUFONIC_CPP_SIZE:-856514666}"
 
 # Ollama for Linux (used with --engine yue2cpp). Official Linux releases are .tar.zst.
 OLLAMA_URL=https://github.com/ollama/ollama/releases/download/v0.40.13/ollama-linux-amd64.tar.zst

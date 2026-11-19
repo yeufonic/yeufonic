@@ -429,6 +429,26 @@ def test_phase1_build_scripts_match_pinned_versions_and_workflows():
     assert (ROOT / ".github" / "workflows" / "fluidsynth-linux.yml").is_file()
     assert (ROOT / ".github" / "workflows" / "engine-cpp-linux.yml").is_file()
 
+    # Both Phase 1 pre-releases must be pinned in linux/setup.sh with URL, 64-hex SHA-256, and byte size.
+    setup = SETUP.read_text(encoding="utf-8")
+    for prefix in ("FLUIDSYNTH", "CPP"):
+        url_m = re.search(rf'^{prefix}_URL="\$\{{YEUFONIC_{prefix}_URL:-(https://github\.com/yeufonic/yeufonic/releases/download/[^"]+\.tar\.gz)\}}"$', setup, re.M)
+        sha_m = re.search(rf'^{prefix}_SHA="\$\{{YEUFONIC_{prefix}_SHA:-([0-9a-f]{{64}})\}}"$', setup, re.M)
+        size_m = re.search(rf'^{prefix}_SIZE="\$\{{YEUFONIC_{prefix}_SIZE:-([0-9]+)\}}"$', setup, re.M)
+        assert url_m, f"{prefix}_URL is not pinned in linux/setup.sh"
+        assert sha_m, f"{prefix}_SHA is not pinned in linux/setup.sh"
+        assert size_m and int(size_m.group(1)) > 0, f"{prefix}_SIZE is not pinned in linux/setup.sh"
+
+
+def test_launcher_cpp_env_prepends_bundled_cuda_dir_and_preserves_existing_ld_library_path(tmp_path, monkeypatch):
+    monkeypatch.setenv("LD_LIBRARY_PATH", "/usr/lib/wsl/lib")
+    mod = load_launcher(monkeypatch, tmp_path)
+    env = mod._cpp_env()
+    parts = env["LD_LIBRARY_PATH"].split(os.pathsep)
+    assert parts[0] == str(mod.CPP / "yue2cpp")
+    assert "/usr/lib/wsl/lib" in parts
+    assert "127.0.0.1" in env["NO_PROXY"] and "localhost" in env["no_proxy"]
+
 
 @needs_linux
 def test_reconfigure_allows_switching_engine_interactively_with_saved_defaults(tmp_path):
