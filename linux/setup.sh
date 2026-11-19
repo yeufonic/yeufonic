@@ -145,9 +145,9 @@ FFPROBE_SIZE=33223234
 
 # Prebuilt static offline FluidSynth and portable glibc-2.28 yue2.cpp + sd-server (Phase 1 pre-releases).
 # Override via YEUFONIC_FLUIDSYNTH_URL / YEUFONIC_CPP_URL for testing local builds.
-FLUIDSYNTH_URL="${YEUFONIC_FLUIDSYNTH_URL:-}"
-FLUIDSYNTH_SHA="${YEUFONIC_FLUIDSYNTH_SHA:-}"
-FLUIDSYNTH_SIZE="${YEUFONIC_FLUIDSYNTH_SIZE:-}"
+FLUIDSYNTH_URL="${YEUFONIC_FLUIDSYNTH_URL:-https://github.com/yeufonic/yeufonic/releases/download/fluidsynth-linux-2.6.2-sndfile-1.2.2-p1/fluidsynth-linux-2.6.2-sndfile-1.2.2-p1.tar.gz}"
+FLUIDSYNTH_SHA="${YEUFONIC_FLUIDSYNTH_SHA:-e96a2954961671f0d51e174d8019d71a2148928b10616ea46cd6308314930552}"
+FLUIDSYNTH_SIZE="${YEUFONIC_FLUIDSYNTH_SIZE:-1048817}"
 CPP_URL="${YEUFONIC_CPP_URL:-}"
 CPP_SHA="${YEUFONIC_CPP_SHA:-}"
 CPP_SIZE="${YEUFONIC_CPP_SIZE:-}"

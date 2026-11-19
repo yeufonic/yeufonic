@@ -269,23 +269,44 @@ def test_get_verified_skips_present_files_and_honors_force_downloads(tmp_path):
         encoding="utf-8",
     )
     harness.chmod(0o755)
+    fakebin = tmp_path / "fakebin"
+    fakebin.mkdir()
+    fake_curl = fakebin / "curl"
+    fake_curl.write_text(
+        "#!/bin/sh\n"
+        "out=''\n"
+        "url=''\n"
+        "while [ $# -gt 0 ]; do\n"
+        "  case \"$1\" in\n"
+        "    -o) out=\"$2\"; shift 2 ;;\n"
+        "    -C|--retry) shift 2 ;;\n"
+        "    -*) shift ;;\n"
+        "    *) url=\"$1\"; shift ;;\n"
+        "  esac\n"
+        "done\n"
+        "cp \"${url#file://}\" \"$out\"\n",
+        encoding="utf-8",
+    )
+    fake_curl.chmod(0o755)
+    base_env = {**os.environ, "PATH": f"{fakebin}:{os.environ.get('PATH', '/usr/bin:/bin')}"}
+
     dest = tmp_path / "dest.bin"
     url = f"file://{src}"
 
     # 1. Fresh download works and writes .sha256ok
-    r1 = subprocess.run([str(harness), url, str(dest), str(size), sha, "", "[1/1]"], capture_output=True, text=True, check=True)
+    r1 = subprocess.run([str(harness), url, str(dest), str(size), sha, "", "[1/1]"], env=base_env, capture_output=True, text=True, check=True)
     assert "Downloading dest.bin" in r1.stdout
     assert dest.read_bytes() == payload
     assert (tmp_path / "dest.bin.sha256ok").is_file()
 
     # 2. Second run skips immediately without downloading
-    r2 = subprocess.run([str(harness), url, str(dest), str(size), sha, "", "[1/1]"], capture_output=True, text=True, check=True)
+    r2 = subprocess.run([str(harness), url, str(dest), str(size), sha, "", "[1/1]"], env=base_env, capture_output=True, text=True, check=True)
     assert "already present, skipping" in r2.stdout
     assert "Downloading" not in r2.stdout
 
     # 3. Existing file without .sha256ok (e.g. copied from Docker) verifies once and skips downloading
     (tmp_path / "dest.bin.sha256ok").unlink()
-    r3 = subprocess.run([str(harness), url, str(dest), str(size), sha, "", "[1/1]"], capture_output=True, text=True, check=True)
+    r3 = subprocess.run([str(harness), url, str(dest), str(size), sha, "", "[1/1]"], env=base_env, capture_output=True, text=True, check=True)
     assert "already present, verifying checksum" in r3.stdout
     assert "Downloading" not in r3.stdout
     assert (tmp_path / "dest.bin.sha256ok").is_file()
@@ -293,14 +314,14 @@ def test_get_verified_skips_present_files_and_honors_force_downloads(tmp_path):
     # 4. KeepIfPresent=1 (style LoRAs) skips even a modified user file when FORCE_DOWNLOADS=0
     dest.write_bytes(b"custom user lora")
     (tmp_path / "dest.bin.sha256ok").unlink()
-    r4 = subprocess.run([str(harness), url, str(dest), str(size), sha, "", "[1/1]", "1"], capture_output=True, text=True, check=True)
+    r4 = subprocess.run([str(harness), url, str(dest), str(size), sha, "", "[1/1]", "1"], env=base_env, capture_output=True, text=True, check=True)
     assert "already present, skipping" in r4.stdout
     assert dest.read_bytes() == b"custom user lora"
 
     # 5. FORCE_DOWNLOADS=1 re-downloads even when present
     r5 = subprocess.run(
         [str(harness), url, str(dest), str(size), sha, "", "[1/1]", "1"],
-        env={**os.environ, "FORCE_DOWNLOADS": "1"},
+        env={**base_env, "FORCE_DOWNLOADS": "1"},
         capture_output=True,
         text=True,
         check=True,

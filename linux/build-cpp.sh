@@ -9,11 +9,18 @@
 # on Ubuntu 20.04+, Debian 10+, RHEL/Rocky/AlmaLinux 8/9/10, Fedora, Arch, openSUSE, and WSL2.
 #
 #   OUT=<folder> bash linux/build-cpp.sh
-#   CUDA_ARCHITECTURES="89-real" OUT=<folder> bash linux/build-cpp.sh   # fast single-GPU local build
+#   BUILD_TARGET=yue OUT=<folder> bash linux/build-cpp.sh              # yue-server only
+#   BUILD_TARGET=sd  OUT=<folder> bash linux/build-cpp.sh              # sd-server only
+#   CUDA_ARCHITECTURES="89-real" OUT=<folder> bash linux/build-cpp.sh  # fast single-GPU local build
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${OUT:-$ROOT/dist/yue2cpp-linux}"
+BUILD_TARGET="${BUILD_TARGET:-all}"
+case "$BUILD_TARGET" in
+  all|yue|sd) ;;
+  *) echo "Unknown BUILD_TARGET=$BUILD_TARGET (expected all, yue, or sd)" >&2; exit 1 ;;
+esac
 YUE2CPP_REF="$(sed -n 's/^ARG YUE2CPP_REF=//p' "$ROOT/engine-cpp/Dockerfile")"
 SDCPP_REF="$(sed -n 's/^ARG SDCPP_REF=//p' "$ROOT/engine-pictures/Dockerfile")"
 [ -n "$YUE2CPP_REF" ] || { echo "no YUE2CPP_REF in engine-cpp/Dockerfile" >&2; exit 1; }
@@ -39,69 +46,107 @@ done
 # --allow-shlib-undefined defers libcuda.so.1 driver symbols to runtime;
 # static libgcc/libstdc++ prevents GLIBCXX version mismatches across distros;
 # CMAKE_BUILD_WITH_INSTALL_RPATH + CMAKE_INSTALL_RPATH='$ORIGIN' embeds literal $ORIGIN
-# cleanly across Make and Ninja without Make expanding $O.
+# cleanly across Make and Ninja without Make expanding $O;
+# GGML_CUDA_NCCL=OFF avoids linking libnccl.so.2 (present in CUDA devel containers but absent on user machines).
 LINKER_FLAGS="-Wl,--allow-shlib-undefined -static-libgcc -static-libstdc++"
 
-# ------------------------------------------------------------------ yue2.cpp
-get_yue2cpp() {
-  rm -rf "$WORK/yue2.cpp"
-  git "$@" clone --quiet https://github.com/ServeurpersoCom/yue2.cpp.git "$WORK/yue2.cpp" &&
-    git -C "$WORK/yue2.cpp" checkout --quiet "$YUE2CPP_REF" &&
-    git -C "$WORK/yue2.cpp" "$@" submodule update --quiet --init --recursive
-}
-get_yue2cpp -c "url.https://github.com/yeufonic/.insteadOf=https://github.com/ServeurpersoCom/" ||
-  { echo "Our copy of yue2.cpp could not be used; trying the author's"; get_yue2cpp -c core.quotepath=on; }
-git -C "$WORK/yue2.cpp" -c user.name=build -c user.email=build@localhost am --quiet "$ROOT"/engine-cpp/patches/*.patch
-
-cmake -S "$WORK/yue2.cpp" -B "$WORK/b-yue2cpp" \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=OFF \
-  -DGGML_CUDA=ON \
-  -DGGML_NATIVE=OFF \
-  -DCMAKE_CUDA_ARCHITECTURES="$CUDA_ARCHITECTURES" \
-  -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-  '-DCMAKE_INSTALL_RPATH=$ORIGIN' \
-  -DCMAKE_EXE_LINKER_FLAGS="$LINKER_FLAGS"
-cmake --build "$WORK/b-yue2cpp" -j "$JOBS" --target yue-server
-
-# ------------------------------------------------------- stable-diffusion.cpp
-get_sdcpp() {
-  rm -rf "$WORK/sdcpp"
-  git "$@" clone --quiet https://github.com/leejet/stable-diffusion.cpp.git "$WORK/sdcpp" &&
-    git -C "$WORK/sdcpp" checkout --quiet "$SDCPP_REF" &&
-    git -C "$WORK/sdcpp" "$@" submodule update --quiet --init --recursive
-}
-get_sdcpp -c "url.https://github.com/yeufonic/.insteadOf=https://github.com/leejet/" ||
-  { echo "Our copy of stable-diffusion.cpp could not be used; trying the author's"; get_sdcpp -c core.quotepath=on; }
-
-cmake -S "$WORK/sdcpp" -B "$WORK/b-sdcpp" \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=OFF \
-  -DSD_CUDA=ON \
-  -DGGML_NATIVE=OFF \
-  -DCMAKE_CUDA_ARCHITECTURES="$CUDA_ARCHITECTURES" \
-  -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-  '-DCMAKE_INSTALL_RPATH=$ORIGIN' \
-  -DCMAKE_EXE_LINKER_FLAGS="$LINKER_FLAGS"
-cmake --build "$WORK/b-sdcpp" -j "$JOBS" --target sd-server
-
-# ------------------------------------------------------------------- package
 rm -rf "$OUT"
 mkdir -p "$OUT/licenses/cuda"
 
-YUE_BIN="$(find "$WORK/b-yue2cpp" -name yue-server -type f -perm -u+x | head -1)"
-SD_BIN="$(find "$WORK/b-sdcpp" -name sd-server -type f -perm -u+x | head -1)"
-[ -n "$YUE_BIN" ] || { echo "yue-server binary not found" >&2; exit 1; }
-[ -n "$SD_BIN" ] || { echo "sd-server binary not found" >&2; exit 1; }
+BUILT_PROGRAMS=()
 
-cp "$YUE_BIN" "$OUT/yue-server"
-cp "$SD_BIN" "$OUT/sd-server"
-strip "$OUT/yue-server" "$OUT/sd-server"
-chmod +x "$OUT/yue-server" "$OUT/sd-server"
+# ------------------------------------------------------------------ yue2.cpp
+if [ "$BUILD_TARGET" = all ] || [ "$BUILD_TARGET" = yue ]; then
+  get_yue2cpp() {
+    rm -rf "$WORK/yue2.cpp"
+    git "$@" clone --quiet https://github.com/ServeurpersoCom/yue2.cpp.git "$WORK/yue2.cpp" &&
+      git -C "$WORK/yue2.cpp" checkout --quiet "$YUE2CPP_REF" &&
+      git -C "$WORK/yue2.cpp" "$@" submodule update --quiet --init --recursive
+  }
+  get_yue2cpp -c "url.https://github.com/yeufonic/.insteadOf=https://github.com/ServeurpersoCom/" ||
+    { echo "Our copy of yue2.cpp could not be used; trying the author's"; get_yue2cpp -c core.quotepath=on; }
+  git -C "$WORK/yue2.cpp" -c user.name=build -c user.email=build@localhost am --quiet "$ROOT"/engine-cpp/patches/*.patch
 
-# Copy any ggml shared libraries if cmake produced any despite BUILD_SHARED_LIBS=OFF.
-find "$WORK/b-yue2cpp" "$WORK/b-sdcpp" -name 'libggml*.so*' -exec cp -a {} "$OUT/" \;
+  cmake -S "$WORK/yue2.cpp" -B "$WORK/b-yue2cpp" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DGGML_CUDA=ON \
+    -DGGML_CUDA_NCCL=OFF \
+    -DCMAKE_DISABLE_FIND_PACKAGE_NCCL=ON \
+    -DGGML_NATIVE=OFF \
+    -DCMAKE_CUDA_ARCHITECTURES="$CUDA_ARCHITECTURES" \
+    -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+    '-DCMAKE_INSTALL_RPATH=$ORIGIN' \
+    -DCMAKE_EXE_LINKER_FLAGS="$LINKER_FLAGS"
+  cmake --build "$WORK/b-yue2cpp" -j "$JOBS" --target yue-server
 
+  YUE_BIN="$(find "$WORK/b-yue2cpp" -name yue-server -type f -perm -u+x | head -1)"
+  [ -n "$YUE_BIN" ] || { echo "yue-server binary not found" >&2; exit 1; }
+  cp "$YUE_BIN" "$OUT/yue-server"
+  strip "$OUT/yue-server"
+  chmod +x "$OUT/yue-server"
+  find "$WORK/b-yue2cpp" -name 'libggml*.so*' -exec cp -a {} "$OUT/" \;
+  (cd "$WORK/yue2.cpp" && find . \( -name .git -o -name build \) -prune -o -type f \
+    \( -iname 'LICENSE*' -o -iname 'COPYING*' -o -iname 'NOTICE*' -o -iname 'PATENTS*' \) -print) | while read -r rel; do
+    mkdir -p "$OUT/licenses/yue2.cpp/$(dirname "$rel")"
+    cp "$WORK/yue2.cpp/$rel" "$OUT/licenses/yue2.cpp/$rel"
+  done
+  for rel in vendor/yyjson/yyjson.h vendor/minimp3/minimp3.h; do
+    if [ -f "$WORK/yue2.cpp/$rel" ]; then
+      mkdir -p "$OUT/licenses/yue2.cpp/$(dirname "$rel")"
+      cp "$WORK/yue2.cpp/$rel" "$OUT/licenses/yue2.cpp/$rel"
+    fi
+  done
+  [ -f "$OUT/licenses/yue2.cpp/LICENSE" ] || { echo "no LICENSE for yue2.cpp" >&2; exit 1; }
+  BUILT_PROGRAMS+=(yue-server)
+fi
+
+# ------------------------------------------------------- stable-diffusion.cpp
+if [ "$BUILD_TARGET" = all ] || [ "$BUILD_TARGET" = sd ]; then
+  get_sdcpp() {
+    rm -rf "$WORK/sdcpp"
+    git "$@" clone --quiet https://github.com/leejet/stable-diffusion.cpp.git "$WORK/sdcpp" &&
+      git -C "$WORK/sdcpp" checkout --quiet "$SDCPP_REF" &&
+      git -C "$WORK/sdcpp" "$@" submodule update --quiet --init --recursive
+  }
+  get_sdcpp -c "url.https://github.com/yeufonic/.insteadOf=https://github.com/leejet/" ||
+    { echo "Our copy of stable-diffusion.cpp could not be used; trying the author's"; get_sdcpp -c core.quotepath=on; }
+
+  cmake -S "$WORK/sdcpp" -B "$WORK/b-sdcpp" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DSD_CUDA=ON \
+    -DGGML_CUDA_NCCL=OFF \
+    -DCMAKE_DISABLE_FIND_PACKAGE_NCCL=ON \
+    -DGGML_NATIVE=OFF \
+    -DCMAKE_CUDA_ARCHITECTURES="$CUDA_ARCHITECTURES" \
+    -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+    '-DCMAKE_INSTALL_RPATH=$ORIGIN' \
+    -DCMAKE_EXE_LINKER_FLAGS="$LINKER_FLAGS"
+  cmake --build "$WORK/b-sdcpp" -j "$JOBS" --target sd-server
+
+  SD_BIN="$(find "$WORK/b-sdcpp" -name sd-server -type f -perm -u+x | head -1)"
+  [ -n "$SD_BIN" ] || { echo "sd-server binary not found" >&2; exit 1; }
+  cp "$SD_BIN" "$OUT/sd-server"
+  strip "$OUT/sd-server"
+  chmod +x "$OUT/sd-server"
+  find "$WORK/b-sdcpp" -name 'libggml*.so*' -exec cp -a {} "$OUT/" \;
+  (cd "$WORK/sdcpp" && find . \( -name .git -o -name build \) -prune -o -type f \
+    \( -iname 'LICENSE*' -o -iname 'COPYING*' -o -iname 'NOTICE*' -o -iname 'PATENTS*' \) -print) | while read -r rel; do
+    mkdir -p "$OUT/licenses/sdcpp/$(dirname "$rel")"
+    cp "$WORK/sdcpp/$rel" "$OUT/licenses/sdcpp/$rel"
+  done
+  for f in "$WORK/sdcpp"/thirdparty/*.h "$WORK/sdcpp"/thirdparty/*.hpp; do
+    if [ -f "$f" ]; then
+      mkdir -p "$OUT/licenses/sdcpp/thirdparty"
+      cp "$f" "$OUT/licenses/sdcpp/thirdparty/"
+    fi
+  done
+  [ -f "$OUT/licenses/sdcpp/LICENSE" ] || { echo "no LICENSE for stable-diffusion.cpp" >&2; exit 1; }
+  BUILT_PROGRAMS+=(sd-server)
+fi
+
+# ------------------------------------------------------------------- package
 # Redistributable CUDA 12.8 runtime libraries (under NVIDIA CUDA Toolkit EULA), dereferenced to
 # their SONAMEs so RPATH=$ORIGIN resolves them directly on any Linux distro with only a driver.
 for lib in libcudart.so.12 libcublas.so.12 libcublasLt.so.12; do
@@ -109,26 +154,6 @@ for lib in libcudart.so.12 libcublas.so.12 libcublasLt.so.12; do
   cp -L "$CUDA_LIB_DIR/$lib" "$OUT/$lib"
 done
 
-# Collect licences for yue2.cpp, stable-diffusion.cpp, vendored headers, and NVIDIA CUDA runtime.
-for project in yue2.cpp sdcpp; do
-  (cd "$WORK/$project" && find . \( -name .git -o -name build \) -prune -o -type f \
-    \( -iname 'LICENSE*' -o -iname 'COPYING*' -o -iname 'NOTICE*' -o -iname 'PATENTS*' \) -print) | while read -r rel; do
-    mkdir -p "$OUT/licenses/$project/$(dirname "$rel")"
-    cp "$WORK/$project/$rel" "$OUT/licenses/$project/$rel"
-  done
-done
-for rel in vendor/yyjson/yyjson.h vendor/minimp3/minimp3.h; do
-  if [ -f "$WORK/yue2.cpp/$rel" ]; then
-    mkdir -p "$OUT/licenses/yue2.cpp/$(dirname "$rel")"
-    cp "$WORK/yue2.cpp/$rel" "$OUT/licenses/yue2.cpp/$rel"
-  fi
-done
-for f in "$WORK/sdcpp"/thirdparty/*.h "$WORK/sdcpp"/thirdparty/*.hpp; do
-  if [ -f "$f" ]; then
-    mkdir -p "$OUT/licenses/sdcpp/thirdparty"
-    cp "$f" "$OUT/licenses/sdcpp/thirdparty/"
-  fi
-done
 for eula in "$CUDA_HOME"/EULA* "$CUDA_HOME"/doc/EULA*; do
   if [ -f "$eula" ]; then
     cp "$eula" "$OUT/licenses/cuda/$(basename "$eula")"
@@ -140,8 +165,6 @@ libcudart.so.12, libcublas.so.12 and libcublasLt.so.12 are NVIDIA CUDA 12.8 runt
 redistributed unchanged under the NVIDIA CUDA Toolkit End User License Agreement:
   https://docs.nvidia.com/cuda/eula/
 EOF
-[ -f "$OUT/licenses/yue2.cpp/LICENSE" ] || { echo "no LICENSE for yue2.cpp" >&2; exit 1; }
-[ -f "$OUT/licenses/sdcpp/LICENSE" ] || { echo "no LICENSE for stable-diffusion.cpp" >&2; exit 1; }
 
 cat > "$OUT/README.txt" <<EOF
 yue2.cpp's server (https://github.com/ServeurpersoCom/yue2.cpp) at $YUE2CPP_REF with the patches
@@ -170,7 +193,7 @@ check_glibc_floor() {
   fi
 }
 
-for program in yue-server sd-server; do
+for program in "${BUILT_PROGRAMS[@]}"; do
   echo "== Checking dynamic dependencies and RPATH of $program"
   readelf -d "$OUT/$program" | grep -E 'RPATH|RUNPATH' | grep -Fq '$ORIGIN' || {
     echo "$program is missing RPATH/RUNPATH=\$ORIGIN!" >&2

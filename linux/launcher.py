@@ -220,11 +220,20 @@ def companions(cfg: dict) -> list[tuple[str, list[str], dict, Path, dict]]:
         out.append((
             "pictures",
             [str(sdserver), "--model-dir", str(MODELS), "--listen-ip", "127.0.0.1", "--listen-port", str(port)],
-            _with_local_no_proxy(dict(os.environ)),
+            _cpp_env(),
             CPP / "yue2cpp",
             {"PICTURES_URL": f"http://127.0.0.1:{port}"},
         ))
     return out
+
+
+def _cpp_env() -> dict:
+    """Environment for yue-server and sd-server: localhost bypass plus bundled CUDA 12.8 runtime directory."""
+    env = _with_local_no_proxy(dict(os.environ))
+    cpp_dir = str(CPP / "yue2cpp")
+    existing = env.get("LD_LIBRARY_PATH", "")
+    env["LD_LIBRARY_PATH"] = f"{cpp_dir}{os.pathsep}{existing}" if existing else cpp_dir
+    return env
 
 
 def _with_local_no_proxy(env: dict) -> dict:
@@ -524,7 +533,7 @@ class Launcher:
     def start_engine(self) -> None:
         log_path = LOGS / "engine.log"
         if self.cpp:
-            command, cwd, env = cpp_command(self.cfg), CPP / "yue2cpp", _with_local_no_proxy(dict(os.environ))
+            command, cwd, env = cpp_command(self.cfg), CPP / "yue2cpp", _cpp_env()
         else:
             command, cwd, env = engine_command(self.cfg), COMFY, engine_env(self.cfg)
         proc = self._spawn(command, cwd, env, log_path)
