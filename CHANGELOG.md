@@ -39,6 +39,10 @@ cannot creep back in.
 
 ## Unreleased
 
+- **Storage lists the training checkpoints of every corpus's LoRA.** It looked for them under the corpus's name, so a
+  LoRA named otherwise (trained before the corpus was renamed, or under its trigger word) had its checkpoints missed,
+  both in Storage and in the corpus's own checkpoint list. They are now found under the name the LoRA has.
+
 - **The Windows app no longer fails to start now and then with "The app did not start within 3 minutes".** When a
   connection to the app was dropped before it was accepted (the launcher's own check, while the app was still
   starting), Python's Windows event loop logged "Accept failed on a socket" and stopped listening, so the app ran on

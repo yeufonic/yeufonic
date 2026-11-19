@@ -4130,7 +4130,7 @@ def identity_checkpoints(identity_id: str) -> dict:
     identity = one("SELECT * FROM identities WHERE id = ?", (identity_id,))
     if not identity:
         raise HTTPException(404, "no such corpus")
-    base, root = _lora_base(identity), loras.folder()
+    base, root = _checkpoint_base(identity), loras.folder()
     runs: dict[str, dict] = {}
     for item in loras.checkpoints(base, root):
         run = runs.setdefault(item["run"], {"run": item["run"], "label": _run_label(item["run"], base, root),
@@ -4150,7 +4150,7 @@ async def delete_identity_checkpoints(identity_id: str, body: CheckpointsDeleteI
     if active and active["identity_id"] == identity_id:
         raise HTTPException(409, "this corpus is training. Delete its checkpoints when it has finished.")
     root = loras.folder()
-    own = {item["name"]: item for item in loras.checkpoints(_lora_base(identity), root)}
+    own = {item["name"]: item for item in loras.checkpoints(_checkpoint_base(identity), root)}
     unknown = [name for name in body.names if name not in own]
     if unknown:
         raise HTTPException(400, f"not a checkpoint of this corpus: {unknown[0]}")
@@ -4208,13 +4208,13 @@ def _storage_busy() -> storage.Busy:
 @app.get("/api/storage")
 async def storage_report() -> dict:
     """Where the space is and what can be given back, measured now.  A big library takes a few seconds."""
-    return await asyncio.to_thread(storage.scan, _storage_busy(), _lora_base)
+    return await asyncio.to_thread(storage.scan, _storage_busy(), _checkpoint_base)
 
 
 @app.post("/api/storage/reclaim")
 async def storage_reclaim(body: ReclaimIn) -> dict:
     """Remove the named items from the Storage window, and say how much came back."""
-    result = await asyncio.to_thread(storage.reclaim, body.ids, _storage_busy(), _lora_base)
+    result = await asyncio.to_thread(storage.reclaim, body.ids, _storage_busy(), _checkpoint_base)
     if any(r["id"].startswith("checkpoints:") for r in result["removed"]):
         try:
             await ENGINE.refresh_options()     # the Style LoRA list follows the files
@@ -4790,6 +4790,14 @@ def _lora_base(identity: dict) -> str:
     """The name a corpus's LoRA is trained under: the corpus name, made safe."""
     name = re.sub(r"[^a-z0-9]+", "_", (identity["name"] or "corpus").lower()).strip("_")[:40] or "corpus"
     return f"{name}_lora"
+
+
+def _checkpoint_base(identity: dict) -> str:
+    """The name a corpus's checkpoints are filed under: its LoRA's own, where it has one. A LoRA trained before a
+    corpus was renamed, or named for its trigger, keeps the name it was trained under (floyd_lora for a corpus now
+    called something else), and its checkpoints with it; the corpus name made safe is only the name of the next run."""
+    lora = (identity.get("lora") or "").strip()
+    return lora.removesuffix(".safetensors") if lora else _lora_base(identity)
 
 
 def _training_built_in() -> None:

@@ -240,7 +240,7 @@ def items(busy: Busy, lora_base: Callable[[dict], str]) -> list[dict]:
                                "is trained again. Its own recordings are not touched.",
             })
 
-    for identity in rows("SELECT id, name FROM identities ORDER BY name"):
+    for identity in rows("SELECT id, name, lora FROM identities ORDER BY name"):
         name = identity["name"] or "corpus"
         dataset = _corpus_dir(identity["id"]) / "dataset"
         size, count = tree(dataset)
@@ -315,7 +315,7 @@ def corpora(lora_base: Callable[[dict], str]) -> list[dict]:
     out = []
     root = loras.folder()
     all_working = _working_copy_paths()
-    for identity in rows("SELECT id, name FROM identities ORDER BY name"):
+    for identity in rows("SELECT id, name, lora FROM identities ORDER BY name"):
         base = _corpus_dir(identity["id"])
         songs = tree(base / "songs")
         working = _sum([p for p in all_working if base in p.parents]) if songs[1] else (0, 0)
