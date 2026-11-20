@@ -59,6 +59,7 @@ Alles draait op één computer, in twee delen: de app en de engine. Geen cloud e
 - Lokaal een LoRA trainen vraagt in de praktijk 16 GB VRAM en 32 GB RAM (8 GB VRAM met het INT8-model).
 - Ongeveer 30 GB vrije schijfruimte, meer naarmate de bibliotheek groeit.
 - Een Mac met Apple silicon kan alles, ook LoRA's trainen, maar veel trager dan een NVIDIA-kaart: zie **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
+- **Native Linux:** Installeer Yeufonic zonder Docker. Zie **[Native Linux](app/static/guides/nl-NL.md#native-linux)**.
 
 ## Op Windows, zonder Docker
 

@@ -59,6 +59,7 @@ Todo funciona en un solo equipo, en dos partes: la aplicación y el motor. Sin n
 - Entrenar una LoRA en local necesita, en la práctica, 16 GB de VRAM y 32 GB de RAM (8 GB de VRAM con el modelo INT8).
 - Unos 30 GB de disco libre, más a medida que crece la biblioteca.
 - Un Mac con Apple silicon lo hace todo, también entrenar LoRAs, pero mucho más lento que una tarjeta NVIDIA: consulta **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
+- **Linux nativo:** Instala Yeufonic sin Docker. Consulta **[Linux nativo](app/static/guides/es-ES.md#native-linux)** ([Latinoamérica](app/static/guides/es-419.md#native-linux)).
 
 ## En Windows, sin Docker
 

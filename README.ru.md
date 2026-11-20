@@ -59,6 +59,7 @@
 - Для локального обучения LoRA на практике нужны 16 ГБ видеопамяти и 32 ГБ ОЗУ (8 ГБ видеопамяти с моделью INT8).
 - Около 30 ГБ свободного места на диске, больше по мере роста библиотеки.
 - Mac на Apple silicon умеет всё, включая обучение LoRA, но заметно медленнее видеокарты NVIDIA: см. **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
+- **Нативный Linux:** Установите Yeufonic без Docker. См. **[Нативный Linux](app/static/guides/ru-RU.md#native-linux)**.
 
 ## В Windows, без Docker
 

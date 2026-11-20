@@ -1056,7 +1056,7 @@ como tal em vez de falhar em silêncio dentro de um render.
 ### Onde encontrar LoRAs de estilo {#where-to-find-style-loras}
 
 O mais rápido é na instalação: marque **LoRAs de estilo** na página de componentes do instalador (ou, com Docker, rode
-`sh scripts/fetch-models.sh --loras`). Isso transfere 39 LoRAs de estilo dos autores deles, 3,8 GB no total, cada um com uma
+`sh scripts/fetch-models.sh --loras`; no Linux, escolha os LoRAs de estilo em `yeufonic setup` ou execute `yeufonic setup --loras`). Isso transfere 39 LoRAs de estilo dos autores deles, 3,8 GB no total, cada um com uma
 descrição que dá a palavra-gatilho e as forças sugeridas: os conjuntos abaixo, dois do atomtanstudio (dream pop
 e hip-hop old school), e dezesseis sliders de conceito do ntc-ai, que só moldam a partitura (Som não faz nada,
 e eles não precisam de palavra-gatilho). Eles estão reunidos, sem alterações, em
@@ -1622,6 +1622,7 @@ diz qual você tem. Ele é escolhido ao instalar o Yeufonic, não aqui:
 - **Com Docker**, `sh scripts/fetch-models.sh` transfere o de qualidade total e
   `sh scripts/fetch-models.sh --int8` o de pouca memória. Com os dois ficheiros em `models/checkpoints`, o
   app usa o de qualidade total a menos que `YUE2_CHECKPOINT=int8` esteja em `.env`.
+- **No Linux (nativo, sem Docker)**, execute `yeufonic setup` novamente (ou `yeufonic setup --int8` / `--full`, ou `--cpp-model bf16` com yue2.cpp).
 
 Experimente o de pouca memória se os renders estiverem muito lentos ou o motor ficar sem memória de GPU. Treinar um LoRA funciona
 com os dois tamanhos de modelo. O ajuste **Treino com o modelo de pouca memória (int8)** escolhe qual: desligado, o treinamento usa
@@ -1888,6 +1889,37 @@ nesta máquina, sem login.
 - **O histórico dele mostra cada grafo que a aplicação enviou**: o plano, o render e as transcrições, com
   cada ajuste como o motor o recebeu. É um bom lugar para ver exatamente a partir do que um
   take foi feito.
+
+---
+
+<a id="native-linux"></a>
+
+## Linux nativo {#native-linux}
+
+Num PC Linux com placa gráfica NVIDIA (`x86_64`, glibc 2.28 ou mais recente), o Yeufonic pode correr
+diretamente sem Docker. Tudo fica numa única pasta de instalação (por predefinição `~/yeufonic-app`), com o
+seu próprio ambiente Python, motor, modelos e biblioteca.
+
+```sh
+git clone https://github.com/yeufonic/yeufonic.git
+cd yeufonic
+bash linux/setup.sh
+```
+
+- **Escolher motor e opções:** `linux/setup.sh` pergunta que motor usar (**ComfyUI** para tudo, incluindo
+  treino de LoRA, ou **yue2.cpp** para placas com menos memória), que tamanho do modelo YuE2 e que partes
+  opcionais instalar (Gemma 4 para rascunhos de letras, **FLUX.2 klein 4B** ou **FIBO 2.0** para imagens dos
+  takes, LoRAs de estilo e vozes gravadas).
+- **Iniciar e parar:** execute `./bin/yeufonic start` dentro da pasta de instalação (ou `./bin/yeufonic start -d`
+  para iniciar em segundo plano) e abra <http://localhost:8090>. Use `./bin/yeufonic status`, `./bin/yeufonic logs`
+  e `./bin/yeufonic stop` para verificar ou parar uma instância em segundo plano.
+- **Trocar de motor ou adicionar opções depois:** pare o Yeufonic e execute `./bin/yeufonic setup` (ou passe
+  opções como `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--full`, `--picture-model fibo2`, `--loras`). A
+  sua biblioteca, definições e LoRAs permanecem intactos e os modelos já descarregados são mantidos.
+- **Atualizar e remover:** obtenha o código mais recente e volte a executar `linux/setup.sh` na mesma pasta;
+  execute `./uninstall.sh` dentro da pasta de instalação para remover (mantendo, se quiser, biblioteca e modelos).
+  Consulte [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md) para a lista completa
+  de opções e comandos.
 
 ---
 

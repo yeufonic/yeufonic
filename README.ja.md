@@ -59,6 +59,7 @@
 - ローカルで LoRA を学習するには、実質 16 GB の VRAM と 32 GB のメモリが必要です（INT8 モデルなら VRAM 8 GB）。
 - 約 30 GB の空きディスク。ライブラリが増えるとさらに必要です。
 - Apple シリコンの Mac でも LoRA の学習を含めてすべて動きますが、NVIDIA の GPU よりかなり遅くなります: **[yeufonic.com/macos](https://yeufonic.com/macos/)** を参照。
+- **ネイティブ Linux:** Docker なしで Yeufonic をインストールできます。**[ネイティブ Linux](app/static/guides/ja-JP.md#native-linux)** を参照。
 
 ## Windows で、Docker なしで
 

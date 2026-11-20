@@ -1053,7 +1053,7 @@ LoRA는 모델을 어떤 소리 쪽으로 기울이는 작은 파일입니다. `
 ### 스타일 LoRA를 찾는 곳 {#where-to-find-style-loras}
 
 가장 빠른 것은 설치할 때입니다. 설치 프로그램의 구성 요소 페이지에서 **스타일 LoRA**를 체크합니다(Docker라면
-`sh scripts/fetch-models.sh --loras`를 실행합니다). 그러면 제작자들에게서 스타일 LoRA 39개, 모두 3.8 GB를 내려받으며, 각각에
+`sh scripts/fetch-models.sh --loras`를 실행합니다; Linux에서는 `yeufonic setup`에서 스타일 LoRA를 선택하거나 `yeufonic setup --loras`를 실행합니다). 그러면 제작자들에게서 스타일 LoRA 39개, 모두 3.8 GB를 내려받으며, 각각에
 트리거 단어와 권장 강도를 알려 주는 설명이 붙습니다. 아래의 세트들, atomtanstudio의 두 가지(dream pop
 과 old school hip-hop), 그리고 악보만 다듬는 ntc-ai의 콘셉트 슬라이더 열여섯 개입니다(사운드는 아무것도 하지 않고,
 트리거 단어도 필요 없습니다). 이것들은 손대지 않고
@@ -1605,6 +1605,7 @@ YuE2에는 두 가지 크기가 있고, 설치에는 그중 하나가 있습니�
 - **Docker에서는** `sh scripts/fetch-models.sh`가 최고 품질을,
   `sh scripts/fetch-models.sh --int8`이 저메모리를 내려받습니다. `models/checkpoints`에 두 파일이 다 있으면,
   `.env`에 `YUE2_CHECKPOINT=int8`이 없는 한 앱은 최고 품질을 씁니다.
+- <strong>Linux(Docker 없는 네이티브 설치)</strong>에서는 `yeufonic setup`을 다시 실행합니다(또는 `yeufonic setup --int8` / `--full`, yue2.cpp에서는 `--cpp-model bf16`).
 
 렌더링이 아주 느리거나 엔진의 GPU 메모리가 모자라면 저메모리를 시험해 보세요. LoRA 학습은
 두 크기 모두에서 됩니다. **저메모리(int8) 모델 학습** 설정이 어느 쪽을 쓸지 고릅니다. 끄면 학습에
@@ -1869,6 +1870,36 @@ Windows 설치에서는 <http://localhost:8188>(`settings.ini`의 `engine_port`)
 - **그 기록에는 앱이 보낸 모든 그래프가 보입니다.** 계획, 렌더링, 채보이며,
   엔진이 받은 그대로의 모든 설정이 들어 있습니다. 테이크가 정확히 무엇으로 만들어졌는지 볼 수 있는
   좋은 곳입니다.
+
+---
+
+<a id="native-linux"></a>
+
+## 네이티브 Linux {#native-linux}
+
+NVIDIA 그래픽 카드가 장착된 Linux PC(`x86_64`, glibc 2.28 이상)에서는 Docker 없이 Yeufonic을 직접 실행할 수
+있습니다. 자체 Python 환경, 엔진, 모델, 라이브러리가 모두 하나의 설치 폴더(기본값 `~/yeufonic-app`) 안에
+들어갑니다.
+
+```sh
+git clone https://github.com/yeufonic/yeufonic.git
+cd yeufonic
+bash linux/setup.sh
+```
+
+- <strong>엔진과 옵션 선택:</strong> `linux/setup.sh`가 사용할 엔진(LoRA 학습까지 모두 지원하는
+  <strong>ComfyUI</strong> 또는 소용량 GPU용 <strong>yue2.cpp</strong>), YuE2 모델 크기, 선택 구성 요소(가사 초안용
+  Gemma 4, 테이크 그림용 <strong>FLUX.2 klein 4B</strong> 또는 <strong>FIBO 2.0</strong>, 스타일 LoRA, 녹음된 목소리)를
+  물어봅니다.
+- <strong>시작과 중지:</strong> 설치 폴더에서 `./bin/yeufonic start`(백그라운드 실행은 `./bin/yeufonic start -d`)를
+  실행한 뒤 <http://localhost:8090>을 엽니다. 백그라운드 인스턴스 확인과 중지에는 `./bin/yeufonic status`,
+  `./bin/yeufonic logs`, `./bin/yeufonic stop`을 사용합니다.
+- <strong>나중에 엔진 전환 또는 옵션 추가:</strong> Yeufonic을 중지하고 `./bin/yeufonic setup`을 실행하세요
+  (`--engine yue2cpp`, `--engine comfyui`, `--int8`, `--full`, `--picture-model fibo2`, `--loras` 등의 플래그
+  사용 가능). 라이브러리, 설정, LoRA, 이미 내려받은 모델은 그대로 유지됩니다.
+- <strong>업데이트와 제거:</strong> 최신 코드를 받아 같은 폴더에 `linux/setup.sh`를 다시 실행하면 업데이트되며,
+  제거는 설치 폴더 안의 `./uninstall.sh`를 실행합니다(라이브러리와 모델 보존 선택 가능). 전체 플래그와 명령은
+  [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md)를 참고하세요.
 
 ---
 

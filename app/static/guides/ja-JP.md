@@ -834,7 +834,7 @@ LoRA は、モデルをある音へ傾ける小さなファイルです。`model
 ### スタイル LoRA の入手先 {#where-to-find-style-loras}
 
 いちばん早いのはインストールのときです。インストーラーのコンポーネントページで**スタイル LoRA**にチェックを入れます（Docker なら
-`sh scripts/fetch-models.sh --loras` を実行します）。作者から 39 個のスタイル LoRA、合計 3.8 GB がダウンロードされ、それぞれにトリガーワードと推奨の強さを示す説明が付きます。下のセット、atomtanstudio の 2 つ（dream pop
+`sh scripts/fetch-models.sh --loras` を実行します、Linux では `yeufonic setup` でスタイル LoRA を選ぶか `yeufonic setup --loras` を実行します）。作者から 39 個のスタイル LoRA、合計 3.8 GB がダウンロードされ、それぞれにトリガーワードと推奨の強さを示す説明が付きます。下のセット、atomtanstudio の 2 つ（dream pop
 と old school hip-hop）、そして楽譜だけを形作る ntc-ai の 16 個のコンセプトスライダーです（サウンドは何もせず、トリガーワードも不要です）。これらは手を加えずに
 [pshields/yue2-style-loras](https://huggingface.co/pshields/yue2-style-loras) に集められていて、その README は各作者を明記し、元のページにリンクしています。同じ名前の LoRA がすでにフォルダーにあれば、そのままにします。
 
@@ -1262,6 +1262,7 @@ YuE2 には 2 つのサイズがあり、1 つのインストールにはどち�
 - **Docker では**、`sh scripts/fetch-models.sh` でフル品質を、
   `sh scripts/fetch-models.sh --int8` で省メモリをダウンロードします。`models/checkpoints` に両方のファイルがあると、
   `.env` に `YUE2_CHECKPOINT=int8` がない限り、アプリはフル品質を使います。
+- <strong>Linux（Docker なしのネイティブ版）では、</strong>もう一度 `yeufonic setup` を実行します（または `yeufonic setup --int8` / `--full`、yue2.cpp の場合は `--cpp-model bf16`）。
 
 レンダリングがとても遅い、またはエンジンの GPU メモリが足りなくなるときは、省メモリを試してください。LoRA の学習はどちらのサイズのモデルでもできます。**省メモリ (int8) モデルでの学習**の設定でどちらを使うかを選びます。オフではフル品質のモデルで学習し、オンではアプリがレンダリングに使うモデルで学習します。省メモリのモデルだけがインストールされているときは、最初からオンです。GitHub の README には *Choosing a model size* という節があり、それぞれに何を期待できるかが書いてあります。
 
@@ -1477,6 +1478,36 @@ Windows のインストールでは <http://localhost:8188>（`settings.ini` の
 
 - <strong>アプリと同じエンジン、同じ GPU です。</strong>そこで実行したジョブは、アプリのキューに外部からのものとして現れ、アプリ自身のジョブはそれを待ちます。
 - **その履歴には、アプリが送ったすべてのグラフが表示されます**。プラン、レンダリング、採譜で、エンジンが受け取ったとおりの設定がすべて入っています。テイクが何から作られたかを正確に見るにはよい場所です。
+
+---
+
+<a id="native-linux"></a>
+
+## ネイティブ Linux {#native-linux}
+
+NVIDIA グラフィックカードを搭載した Linux PC（`x86_64`、glibc 2.28 以降）では、Docker なしで Yeufonic
+を直接実行できます。Python 環境、エンジン、モデル、ライブラリまですべて 1 つのインストールフォルダー
+（既定では `~/yeufonic-app`）に収まります。
+
+```sh
+git clone https://github.com/yeufonic/yeufonic.git
+cd yeufonic
+bash linux/setup.sh
+```
+
+- <strong>エンジンとオプションの選択：</strong>`linux/setup.sh` が使用するエンジン（LoRA 学習を含めすべて行える
+  <strong>ComfyUI</strong>、または小容量カード向けの <strong>yue2.cpp</strong>）、YuE2 モデルのサイズ、および
+  任意コンポーネント（歌詞下書き用の Gemma 4、テイク画像用の <strong>FLUX.2 klein 4B</strong> または
+  <strong>FIBO 2.0</strong>、スタイル LoRA、録音ボイス）を尋ねます。
+- <strong>起動と停止：</strong>インストールフォルダーで `./bin/yeufonic start`（バックグラウンド実行なら
+  `./bin/yeufonic start -d`）を実行し、<http://localhost:8090> を開きます。バックグラウンド実行の確認や停止には
+  `./bin/yeufonic status`、`./bin/yeufonic logs`、`./bin/yeufonic stop` を使います。
+- <strong>あとからエンジン切り替えや追加を行う：</strong>Yeufonic を停止して `./bin/yeufonic setup` を実行します
+  （`--engine yue2cpp`、`--engine comfyui`、`--int8`、`--full`、`--picture-model fibo2`、`--loras` などのフラグも
+  指定可能）。ライブラリ、設定、LoRA、ダウンロード済みモデルはそのまま残ります。
+- <strong>更新と削除：</strong>最新のコードを取得して同じフォルダーに対して `linux/setup.sh` を再実行すると更新されます。
+  削除はインストールフォルダー内の `./uninstall.sh` を実行します（ライブラリとモデルを残す選択も可能）。
+  全オプションとコマンドは [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md) を参照してください。
 
 ---
 

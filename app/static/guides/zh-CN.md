@@ -832,7 +832,7 @@ LoRA 是一个小文件，能让模型偏向某种声音。把它放进 `models/
 ### 在哪里找到风格 LoRA {#where-to-find-style-loras}
 
 最快的办法是在安装时：在安装程序的组件页面勾选**风格 LoRA**（使用 Docker 时，运行
-`sh scripts/fetch-models.sh --loras`）。这会从作者那里下载 39 个风格 LoRA，共 3.8 GB，每个都附有一段说明，给出它的触发词和建议强度：包括下面这些合集、atomtanstudio 的两个（dream pop
+`sh scripts/fetch-models.sh --loras`；在 Linux 上，可在 `yeufonic setup` 中选择风格 LoRA 或运行 `yeufonic setup --loras`）。这会从作者那里下载 39 个风格 LoRA，共 3.8 GB，每个都附有一段说明，给出它的触发词和建议强度：包括下面这些合集、atomtanstudio 的两个（dream pop
 和 old school hip-hop），以及 ntc-ai 的十六个概念滑块，它们只塑造乐谱（音色不起作用，也不需要触发词）。它们原封不动地收集在
 [pshields/yue2-style-loras](https://huggingface.co/pshields/yue2-style-loras) 中，其 README 注明了每位作者并链接到原始页面。你的文件夹里已有同名的 LoRA 会保持原样。
 
@@ -1258,6 +1258,7 @@ YuE2 有两种尺寸，一个安装只有其中一种：我们推荐的**全质�
 - **在 Windows 上**，重新运行安装程序。它的组件页面提供两种尺寸，并勾选已经下载的那些。切换会在第一次时下载另一个并保留两者，所以切回来不会再下载任何东西。
 - **使用 Docker 时**，`sh scripts/fetch-models.sh` 下载全质量模型，
   `sh scripts/fetch-models.sh --int8` 下载低显存模型。`models/checkpoints` 中两个文件都有时，应用使用全质量模型，除非 `.env` 中有 `YUE2_CHECKPOINT=int8`。
+- <strong>在 Linux（无需 Docker 的原生安装）上，</strong>重新运行 `yeufonic setup`（或使用 `yeufonic setup --int8` / `--full`，使用 yue2.cpp 时为 `--cpp-model bf16`）。
 
 如果渲染非常慢，或引擎显存不足，可以试试低显存模型。两种尺寸的模型都可以训练 LoRA。**低显存 (int8) 模型训练**设置决定用哪一个：关闭时，训练使用全质量模型；开启时，使用应用渲染时用的模型。只安装了低显存模型时，它一开始就是开启的。GitHub 上的 README 有一节 *Choosing a model size*，介绍了每种尺寸的预期表现。
 
@@ -1475,6 +1476,36 @@ Windows 安装为 <http://localhost:8188>（即 `settings.ini` 中的 `engine_po
 
 - <strong>它和应用用的是同一个引擎、同一块 GPU。</strong>在那里运行的任务会作为来自外部的任务出现在应用的队列中，应用自己的任务会等它完成。
 - **它的历史记录显示应用发送的每一个图**：方案、渲染和转写，以及引擎收到的每一项设置。想确切知道一个版本是由什么做出来的，这里是个好地方。
+
+---
+
+<a id="native-linux"></a>
+
+## 原生 Linux {#native-linux}
+
+在配备 NVIDIA 显卡的 Linux 电脑（`x86_64`，glibc 2.28 或更新版本）上，Yeufonic 可以不依赖 Docker
+直接运行。所有内容都放在同一个安装文件夹中（默认 `~/yeufonic-app`），自带独立的 Python 环境、
+引擎、模型和资料库。
+
+```sh
+git clone https://github.com/yeufonic/yeufonic.git
+cd yeufonic
+bash linux/setup.sh
+```
+
+- <strong>选择引擎和可选项：</strong>`linux/setup.sh` 会询问要使用的引擎（支持 LoRA 训练等全部功能的
+  <strong>ComfyUI</strong>，或适合小显存显卡的 <strong>yue2.cpp</strong>）、YuE2 模型大小以及可选组件
+  （用于起草歌词的 Gemma 4、用于生成图片的 <strong>FLUX.2 klein 4B</strong> 或 <strong>FIBO 2.0</strong>、
+  风格 LoRA 以及录制的声音）。
+- <strong>启动与停止：</strong>在安装文件夹中运行 `./bin/yeufonic start`（或 `./bin/yeufonic start -d`
+  在后台分离运行），然后打开 <http://localhost:8090>。使用 `./bin/yeufonic status`、`./bin/yeufonic logs`
+  和 `./bin/yeufonic stop` 查看或停止后台实例。
+- <strong>之后切换引擎或添加组件：</strong>先停止 Yeufonic，再运行 `./bin/yeufonic setup`（也可直接传入
+  `--engine yue2cpp`、`--engine comfyui`、`--int8`、`--full`、`--picture-model fibo2`、`--loras` 等参数）。
+  你的资料库、设置、LoRA 以及已下载的模型都会保留。
+- <strong>更新与卸载：</strong>拉取最新代码后针对同一文件夹重新运行 `linux/setup.sh` 即可更新；卸载请运行
+  安装文件夹中的 `./uninstall.sh`（可选择保留资料库和模型）。完整参数与命令见
+  [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md)。
 
 ---
 

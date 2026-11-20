@@ -1056,7 +1056,7 @@ als zodanig gemarkeerd in plaats van stil te falen in een render.
 ### Waar je stijl-LoRA's vindt {#where-to-find-style-loras}
 
 Het snelst is bij de installatie: vink **Stijl-LoRA's** aan op de componentenpagina van het installatieprogramma (of, met Docker, voer
-`sh scripts/fetch-models.sh --loras` uit). Dat downloadt 39 stijl-LoRA's van hun makers, 3,8 GB in totaal, elk met een
+`sh scripts/fetch-models.sh --loras` uit; op Linux kies je stijl-LoRA's in `yeufonic setup` of voer je `yeufonic setup --loras` uit). Dat downloadt 39 stijl-LoRA's van hun makers, 3,8 GB in totaal, elk met een
 beschrijving die het triggerwoord en de voorgestelde sterktes geeft: de sets hieronder, twee van atomtanstudio (dream pop
 en oldschool hiphop), en zestien conceptschuiven van ntc-ai, die alleen de partituur vormen (Klank doet niets,
 en ze hebben geen triggerwoord nodig). Ze zijn, ongewijzigd, verzameld in
@@ -1622,6 +1622,7 @@ zegt welke je hebt. Je kiest hem bij het installeren van Yeufonic, niet hier:
 - **Met Docker** downloadt `sh scripts/fetch-models.sh` volle kwaliteit en
   `sh scripts/fetch-models.sh --int8` de versie voor weinig geheugen. Met beide bestanden in `models/checkpoints` gebruikt de
   app volle kwaliteit, tenzij `YUE2_CHECKPOINT=int8` in `.env` staat.
+- **Op Linux (native, zonder Docker)** voer je `yeufonic setup` opnieuw uit (of `yeufonic setup --int8` / `--full`, of `--cpp-model bf16` met yue2.cpp).
 
 Probeer de versie voor weinig geheugen als renders erg traag zijn of de engine zonder GPU-geheugen raakt. Een LoRA trainen werkt
 met beide modelmaten. De instelling **Training met het model voor weinig geheugen (int8)** kiest welke: uit traint met
@@ -1888,6 +1889,37 @@ op deze machine, zonder inlog.
 - **Zijn geschiedenis toont elke graph die de app stuurde**: het plan, de render en de transcripties, met
   elke instelling zoals de engine hem ontving. Het is een goede plek om precies te zien waaruit een
   take is gemaakt.
+
+---
+
+<a id="native-linux"></a>
+
+## Native Linux {#native-linux}
+
+Op een Linux-pc met een NVIDIA-videokaart (`x86_64`, glibc 2.28 of nieuwer) kan Yeufonic direct draaien
+zonder Docker. Alles staat in één installatiemap (standaard `~/yeufonic-app`), met een eigen Python-omgeving,
+engine, modellen en bibliotheek.
+
+```sh
+git clone https://github.com/yeufonic/yeufonic.git
+cd yeufonic
+bash linux/setup.sh
+```
+
+- **Engine en opties kiezen:** `linux/setup.sh` vraagt welke engine je wilt gebruiken (**ComfyUI** voor alles
+  inclusief LoRA-training, of **yue2.cpp** voor kaarten met minder geheugen), welke grootte van het YuE2-model
+  en welke optionele onderdelen (Gemma 4 voor tekstschetsen, **FLUX.2 klein 4B** of **FIBO 2.0** voor
+  take-afbeeldingen, stijl-LoRA's en opgenomen stemmen).
+- **Starten en stoppen:** voer `./bin/yeufonic start` uit in de installatiemap (of `./bin/yeufonic start -d`
+  om op de achtergrond te starten) en open <http://localhost:8090>. Gebruik `./bin/yeufonic status`,
+  `./bin/yeufonic logs` en `./bin/yeufonic stop` om een achtergrondproces te bekijken of te stoppen.
+- **Later van engine wisselen of opties toevoegen:** stop Yeufonic en voer `./bin/yeufonic setup` uit (of geef
+  vlaggen mee zoals `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--full`, `--picture-model fibo2`, `--loras`).
+  Je bibliotheek, instellingen en LoRA's blijven behouden, net als al gedownloade modellen.
+- **Bijwerken en verwijderen:** haal de nieuwste code op en voer `linux/setup.sh` opnieuw uit voor dezelfde map;
+  voer `./uninstall.sh` uit in de installatiemap om te verwijderen (desgewenst met behoud van bibliotheek en
+  modellen). Zie [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md) voor alle
+  opties en commando's.
 
 ---
 

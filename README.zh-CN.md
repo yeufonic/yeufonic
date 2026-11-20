@@ -59,6 +59,7 @@
 - 在本地训练 LoRA 实际需要 16 GB 显存和 32 GB 内存（INT8 模型只需 8 GB 显存）。
 - 约 30 GB 可用磁盘空间，资料库变大后需要更多。
 - Apple 芯片的 Mac 也能完成所有功能，包括训练 LoRA，但比 NVIDIA 显卡慢得多：见 **[yeufonic.com/macos](https://yeufonic.com/macos/)**。
+- **原生 Linux：**无需 Docker 安装 Yeufonic。见 **[原生 Linux](app/static/guides/zh-CN.md#native-linux)**。
 
 ## 在 Windows 上，无需 Docker
 

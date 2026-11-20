@@ -1209,7 +1209,8 @@ such rather than failing quietly inside a render.
 ### Where to find style LoRAs
 
 The quickest way is at install: tick **Style LoRAs** on the installer's components page (on a Mac, answer yes when
-the setup window asks, or run its `setup.sh --loras`; with Docker, run `sh scripts/fetch-models.sh --loras`). That fetches 39 style LoRAs by their authors, 3.8 GB in all, each with a
+the setup window asks, or run its `setup.sh --loras`; on Linux, choose style LoRAs in `yeufonic setup` or run
+`yeufonic setup --loras`; with Docker, run `sh scripts/fetch-models.sh --loras`). That fetches 39 style LoRAs by their authors, 3.8 GB in all, each with a
 description giving its trigger word and suggested strengths: the sets below, two from atomtanstudio (dream pop
 and old school hip-hop), and sixteen concept sliders from ntc-ai, which shape the score only (Sound does nothing,
 and they need no trigger word). They are gathered, unchanged, in
@@ -1823,6 +1824,8 @@ says which you have. It is chosen when Yeufonic is installed, not here:
   app uses full quality unless `YUE2_CHECKPOINT=int8` is set in `.env`.
 - **On a Mac**, ComfyUI has only full quality (the low-memory copy needs an NVIDIA card). With yue2.cpp the
   sizes are that engine's own, as on Windows: Q8 unless you run `setup.sh --cpp-model bf16`.
+- **On Linux (native, without Docker)**, run `yeufonic setup` again (or `yeufonic setup --int8` / `--full`, or
+  `--cpp-model bf16` with yue2.cpp).
 
 Try low memory if renders are very slow or the engine runs out of GPU memory. Training a LoRA works
 on both model sizes. The setting **Low-memory (int8) model training** chooses which: off, training uses
@@ -1831,7 +1834,7 @@ model is installed. The README on GitHub has a section, *Choosing a model size*,
 
 Yeufonic can also run the **yue2.cpp** engine instead of ComfyUI, for graphics cards with less memory,
 chosen when it is set up: on the Windows installer's components page, on a Mac by its `setup.sh --engine yue2cpp`
-(where it also drafts lyrics in seconds rather than minutes), or with Docker by
+(where it also drafts lyrics in seconds rather than minutes), on Linux by `yeufonic setup --engine yue2cpp`, or with Docker by
 `sh scripts/fetch-models.sh --cpp`. **About** says which engine is running, and a take's card which engine rendered it. It makes songs, covers and
 instrumentals and transcribes recordings, with your style LoRAs; Gemma can draft lyrics and describe pictures
 beside it (with Docker, `--gemma`), and FLUX.2 klein draw them (`--pictures`). Training needs the ComfyUI
@@ -2091,6 +2094,35 @@ on this machine only, with no login.
 - **Its History shows every graph the app sent**: the plan, the render and the transcriptions, with
   every setting as the engine received it. It's a useful place to see exactly what a take was made
   from.
+
+---
+
+## Native Linux
+
+On a Linux PC with an NVIDIA graphics card (`x86_64`, glibc 2.28 or newer), Yeufonic can run directly
+without Docker. Everything lives inside one install folder (by default `~/yeufonic-app`), with its own
+Python environment, engine, models and library.
+
+```sh
+git clone https://github.com/yeufonic/yeufonic.git
+cd yeufonic
+bash linux/setup.sh
+```
+
+- **Choosing engine and options:** `linux/setup.sh` asks which engine to use (**ComfyUI** for everything
+  including LoRA training, or **yue2.cpp** for smaller graphics cards), which YuE2 model size, and which
+  optional parts to install (Gemma 4 for lyric drafts, **FLUX.2 klein 4B** or **FIBO 2.0** for take
+  pictures, style LoRAs and recorded voices).
+- **Starting and stopping:** run `./bin/yeufonic start` inside the install folder (or `./bin/yeufonic start -d`
+  to start detached in the background), then open <http://localhost:8090>. Use `./bin/yeufonic status`,
+  `./bin/yeufonic logs` and `./bin/yeufonic stop` to check or stop a detached instance.
+- **Switching engine or adding options later:** stop Yeufonic and run `./bin/yeufonic setup` (or pass flags
+  such as `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--full`, `--picture-model fibo2`, `--loras`).
+  Your library, settings and LoRAs stay in place, and models already downloaded are kept.
+- **Updating and removing:** pull the latest code and re-run `linux/setup.sh` against the same folder to
+  update; run `./uninstall.sh` inside the install folder to remove it (optionally keeping your library and
+  models). See [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md) for the
+  full list of flags and commands.
 
 ---
 
