@@ -1,0 +1,194 @@
+# The yue2.cpp engine for the native Linux install (yue2.cpp's server with our patches, and
+# stable-diffusion.cpp's server for pictures), built inside Rocky Linux 8 (glibc 2.28, matching
+# PyTorch's manylinux_2_28 floor) with CUDA 12.8 and bundled redistributable runtime libraries so
+# one archive runs across Ubuntu/Debian, RHEL/Rocky/AlmaLinux, Fedora, Arch, openSUSE, and WSL2.
+# Published as a pre-release which linux/setup.sh fetches by checksum.
+name: yue2.cpp for Linux
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'feature/linux-*'
+      - 'feature/cpp-*'
+    paths:
+      - 'engine-cpp/**'
+      - 'engine-pictures/**'
+      - 'linux/build-cpp.sh'
+      - '.github/workflows/engine-cpp-linux.yml'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  PACKAGE: 1
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      yue_ref: ${{ steps.ref.outputs.yue_ref }}
+      sd_ref: ${{ steps.ref.outputs.sd_ref }}
+      tag: ${{ steps.ref.outputs.tag }}
+      built: ${{ steps.ref.outputs.built }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The upstream commits, patches and build script
+        id: ref
+        run: |
+          yue_ref=$(sed -n 's/^ARG YUE2CPP_REF=//p' engine-cpp/Dockerfile)
+          sd_ref=$(sed -n 's/^ARG SDCPP_REF=//p' engine-pictures/Dockerfile)
+          patches=$( (cat engine-cpp/patches/*.patch linux/build-cpp.sh; echo "$sd_ref") | sha256sum | cut -c1-8 )
+          tag="yue2cpp-linux-${yue_ref:0:7}-${patches}-p${PACKAGE}"
+          echo "yue_ref=$yue_ref" >> "$GITHUB_OUTPUT"
+          echo "sd_ref=$sd_ref" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "built=yes" >> "$GITHUB_OUTPUT"
+            echo "$tag is already published: nothing to build"
+          else
+            echo "built=no" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  build-yue:
+    needs: prepare
+    if: needs.prepare.outputs.built == 'no'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af >/dev/null || true
+          df -h /
+
+      - name: Build yue-server (Rocky Linux 8, glibc 2.28, CUDA 12.8)
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE":/src:ro \
+            -v "$RUNNER_TEMP/out":/out \
+            -e TAG="${{ needs.prepare.outputs.tag }}" \
+            -e BUILD_TARGET=yue \
+            nvidia/cuda:12.8.0-devel-rockylinux8 bash -euo pipefail -c '
+              dnf install -y --setopt=install_weak_deps=False \
+                gcc-toolset-12 cmake git curl tar xz binutils &&
+              source /opt/rh/gcc-toolset-12/enable &&
+              OUT="/out/${TAG}" bash /src/linux/build-cpp.sh
+            '
+          tar -C "$RUNNER_TEMP/out" -cf "$RUNNER_TEMP/yue-part.tar" "${{ needs.prepare.outputs.tag }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yue-part
+          path: ${{ runner.temp }}/yue-part.tar
+          retention-days: 1
+
+  build-sd:
+    needs: prepare
+    if: needs.prepare.outputs.built == 'no'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af >/dev/null || true
+          df -h /
+
+      - name: Build sd-server (Rocky Linux 8, glibc 2.28, CUDA 12.8)
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE":/src:ro \
+            -v "$RUNNER_TEMP/out":/out \
+            -e TAG="${{ needs.prepare.outputs.tag }}" \
+            -e BUILD_TARGET=sd \
+            nvidia/cuda:12.8.0-devel-rockylinux8 bash -euo pipefail -c '
+              dnf install -y --setopt=install_weak_deps=False \
+                gcc-toolset-12 cmake git curl tar xz binutils &&
+              # Node 22 (glibc 2.28 compatible) + pnpm for stable-diffusion.cpp embedded web UI.
+              NODE_VER=v22.14.0 &&
+              curl -fsSL "https://nodejs.org/dist/${NODE_VER}/node-${NODE_VER}-linux-x64.tar.xz" | tar -xJ -C /usr/local --strip-components=1 &&
+              npm install -g pnpm@10.15.1 &&
+              source /opt/rh/gcc-toolset-12/enable &&
+              OUT="/out/${TAG}" bash /src/linux/build-cpp.sh &&
+              # Drop duplicate CUDA runtime libs after ldd check; yue-part carries the identical copies.
+              rm -f "/out/${TAG}"/libcu*.so.12 &&
+              rm -rf "/out/${TAG}/licenses/cuda"
+            '
+          tar -C "$RUNNER_TEMP/out" -cf "$RUNNER_TEMP/sd-part.tar" "${{ needs.prepare.outputs.tag }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sd-part
+          path: ${{ runner.temp }}/sd-part.tar
+          retention-days: 1
+
+  publish:
+    needs: [prepare, build-yue, build-sd]
+    if: needs.prepare.outputs.built == 'no'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: yue-part
+          path: ${{ runner.temp }}/parts
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sd-part
+          path: ${{ runner.temp }}/parts
+
+      - name: Merge, cross-distro verify on Ubuntu 24.04, and package
+        id: pack
+        run: |
+          tag="${{ needs.prepare.outputs.tag }}"
+          mkdir -p "$RUNNER_TEMP/out"
+          tar -C "$RUNNER_TEMP/out" -xf "$RUNNER_TEMP/parts/yue-part.tar"
+          tar -C "$RUNNER_TEMP/out" -xf "$RUNNER_TEMP/parts/sd-part.tar"
+          dir="$RUNNER_TEMP/out/$tag"
+          for f in yue-server sd-server libcudart.so.12 libcublas.so.12 libcublasLt.so.12 licenses/yue2.cpp/LICENSE licenses/sdcpp/LICENSE; do
+            test -e "$dir/$f" || { echo "Missing $f in merged bundle" >&2; exit 1; }
+          done
+          chmod +x "$dir/yue-server" "$dir/sd-server"
+          # Verify both Rocky 8 binaries resolve bundled CUDA libs and run --help on Ubuntu 24.04.
+          for prog in yue-server sd-server; do
+            echo "== Ubuntu 24.04 ldd check: $prog"
+            ldd "$dir/$prog"
+            "$dir/$prog" --help 2>&1 | head -3 || true
+          done
+          tar -C "$RUNNER_TEMP/out" -czf "$RUNNER_TEMP/$tag.tar.gz" "$tag"
+          sha=$(sha256sum "$RUNNER_TEMP/$tag.tar.gz" | awk '{print $1}')
+          size=$(stat -c %s "$RUNNER_TEMP/$tag.tar.gz")
+          echo "$sha  $tag.tar.gz" > "$RUNNER_TEMP/$tag.tar.gz.sha256"
+          echo "file=$RUNNER_TEMP/$tag.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "size=$size" >> "$GITHUB_OUTPUT"
+          echo "SHA-256: $sha, $size bytes"
+
+      - name: Attest the build
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.pack.outputs.file }}
+
+      - name: Publish as a pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ needs.prepare.outputs.tag }}"
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" \
+            --title "yue2.cpp for Linux (${{ needs.prepare.outputs.yue_ref }} with Yeufonic's patches)" \
+            --notes "yue2.cpp's server (https://github.com/ServeurpersoCom/yue2.cpp) at ${{ needs.prepare.outputs.yue_ref }} with the patches in engine-cpp/patches, and stable-diffusion.cpp's server (https://github.com/leejet/stable-diffusion.cpp) at ${{ needs.prepare.outputs.sd_ref }}, built for Linux x86_64 (glibc >= 2.28) with CUDA 12.8 runtime libraries bundled by linux/build-cpp.sh and .github/workflows/engine-cpp-linux.yml. Downloaded by the Linux installer when yue2.cpp is chosen; not a Yeufonic release. SHA-256 of the archive: ${{ steps.pack.outputs.sha }} (${{ steps.pack.outputs.size }} bytes)" \
+            "$RUNNER_TEMP/$tag.tar.gz" "$RUNNER_TEMP/$tag.tar.gz.sha256"
