@@ -208,6 +208,35 @@ def test_pictures_are_left_out_unless_chosen_and_a_check_keeps_no_choice(tmp_pat
     chosen = check(tmp_path, "--pictures")
     assert "Take pictures on this Mac: yes" in chosen.stdout
     assert needed_gb(chosen) - needed_gb(plain) == 16
+
+
+@needs_bash
+def test_fibo2_on_mac_uses_full_precision_bf16_and_is_comfyui_only(tmp_path):
+    """FIBO 2.0 on macOS uses Apple Silicon BF16 weights + turbo LoRA + shared VAE and rejects yue2.cpp."""
+    text = SETUP.read_text(encoding="utf-8")
+    block = re.search(r"fibo_list\(\) \{\n  cat <<LIST\n(.*?)\nLIST", text, re.S).group(1)
+    files = {line.split("|")[1]: (line.split("|")[0], int(line.split("|")[2]), line.split("|")[3])
+             for line in block.splitlines()}
+    assert set(files) == {
+        "fibo2_dev_bf16.safetensors",
+        "fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors",
+        "qwen3vl_4b_bf16.safetensors",
+        config.PICTURE_VAE,
+    }
+    plain = check(tmp_path)
+    assert "FIBO 2.0 on this Mac: no" in plain.stdout
+    chosen = check(tmp_path, "--fibo")
+    assert chosen.returncode == 0, chosen.stdout + chosen.stderr
+    assert "FIBO 2.0 on this Mac: yes" in chosen.stdout
+    assert needed_gb(chosen) - needed_gb(plain) == 28
+    # Choosing both --pictures and --fibo does not double-count the shared VAE.
+    both = check(tmp_path, "--pictures", "--fibo")
+    assert both.returncode == 0, both.stdout + both.stderr
+    assert needed_gb(both) - needed_gb(chosen) == 16
+    # yue2.cpp cannot run FIBO 2.0.
+    bad = check(tmp_path, "--engine", "yue2cpp", "--fibo")
+    assert bad.returncode != 0
+    assert "ComfyUI" in bad.stdout
     # Not asked without a terminal, and a check alone keeps nothing, so a run in a window still asks.
     assert not (tmp_path / "install" / "state" / "pictures").exists()
 
@@ -236,13 +265,14 @@ def test_the_first_run_in_a_window_asks_and_remembers(tmp_path, answer, memory_g
     proc = subprocess.Popen(["bash", str(SETUP), "--install-dir", str(tmp_path / "install")], env=env,
                             stdin=follower, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     os.close(follower)
-    os.write(leader, (answer + "\n") .encode() * 3)     # pictures, style LoRAs, recorded voices
+    os.write(leader, (answer + "\n") .encode() * 4)     # pictures, FIBO 2.0, style LoRAs, recorded voices
     out, _ = proc.communicate(timeout=60)
     os.close(leader)
     assert "Draw take pictures on this Mac? [y/N]" in out
+    assert "Fetch FIBO 2.0 for take pictures? [y/N]" in out
     assert "Fetch the style LoRAs? [y/N]" in out
     assert "Set up recorded voices? [y/N]" in out
-    for option in ("loras", "voices"):
+    for option in ("fibo", "loras", "voices"):
         assert (tmp_path / "install" / "state" / option).read_text().strip() == ("yes" if answer == "y" else "no")
     assert ("not recommended" in out) == (memory_gb < 24)
     assert f"Take pictures on this Mac: {chosen}" in out

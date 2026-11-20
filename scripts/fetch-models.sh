@@ -18,6 +18,10 @@
 #                                        picture on this PC (diffusion_models/, text_encoders/, vae/).
 #                                        Without it a picture is drawn by the external LLM's image
 #                                        model, if one is set up in Settings, or not at all.
+#   sh scripts/fetch-models.sh --fibo    also FIBO 2.0 (CC BY-NC 4.0, non-commercial use only), 15.6 GB,
+#                                        with its turbo LoRA, Qwen3-VL text encoder and FLUX.2 VAE
+#                                        (ComfyUI engine only; needs a 16 GB card). Choose FIBO 2.0 under
+#                                        Take pictures: model in Settings once restarted.
 #   sh scripts/fetch-models.sh --cpp     the yue2.cpp engine's models instead, about 5.4 GB, for GPUs with less
 #                                        memory (models/yue2cpp/): YuE2 at Q8 (near lossless), its VAE, SheetSage2
 #                                        and its audio encoder, with the two LoRAs above.  It records
@@ -55,6 +59,7 @@ MODEL=bf16
 ENGINE=
 GEMMA=no
 PICTURES=no
+FIBO=no
 LORAS=no
 VOICE=no
 for arg in "$@"; do
@@ -64,6 +69,7 @@ for arg in "$@"; do
     --comfyui) ENGINE=comfyui ;;
     --gemma) GEMMA=yes ;;
     --pictures) PICTURES=yes ;;
+    --fibo|--fibo2) FIBO=yes ;;
     --loras) LORAS=yes ;;
     --voice) VOICE=yes ;;
     -h|--help) sed -n '2,/^set -eu/p' "$0" | sed '$d'; exit 0 ;;
@@ -77,6 +83,10 @@ CURRENT=comfyui
 if grep -qs '^COMPOSE_FILE=.*compose\.cpp\.yml' "$ROOT/.env"; then CURRENT=cpp; fi
 ENGINE="${ENGINE:-$CURRENT}"
 if [ "$ENGINE" != "$CURRENT" ]; then echo "switching the engine from $CURRENT to $ENGINE"; fi
+if [ "$FIBO" = yes ] && [ "$ENGINE" = cpp ]; then
+  echo "error: FIBO 2.0 only runs on the ComfyUI engine (use --pictures for yue2.cpp)" >&2
+  exit 1
+fi
 YUE2=https://huggingface.co/Comfy-Org/YuE2/resolve/main
 GEMMA_HF=https://huggingface.co/Comfy-Org/gemma-4/resolve/main
 INSTRUMENTAL=https://huggingface.co/Mothersuperior/YuE2-instrumental-cot-full-loras/resolve/main
@@ -262,6 +272,20 @@ elif [ "$PICTURES" = yes ]; then
         "$ROOT/models/diffusion_models/flux-2-klein-4b-fp8.safetensors"
   fetch "$KLEIN/text_encoders/qwen_3_4b_fp4_flux2.safetensors" \
         "$ROOT/models/text_encoders/qwen_3_4b_fp4_flux2.safetensors"
+  fetch "$KLEIN/vae/flux2-vae.safetensors" "$ROOT/models/vae/flux2-vae.safetensors"
+fi
+
+# FIBO 2.0 for take pictures drawn here (ComfyUI only, CC BY-NC 4.0 non-commercial use only): only when asked for.
+if [ "$FIBO" = yes ]; then
+  mkdir -p "$ROOT/models/diffusion_models" "$ROOT/models/loras" "$ROOT/models/text_encoders" "$ROOT/models/vae"
+  FIBO_HF=https://huggingface.co/Comfy-Org/Fibo-2.0/resolve/main
+  KLEIN=https://huggingface.co/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files
+  fetch "$FIBO_HF/diffusion_models/fibo2_dev_int8_convrot.safetensors" \
+        "$ROOT/models/diffusion_models/fibo2_dev_int8_convrot.safetensors"
+  fetch "$FIBO_HF/loras/fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors" \
+        "$ROOT/models/loras/fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors"
+  fetch "$FIBO_HF/text_encoders/qwen3vl_4b_int8_convrot.safetensors" \
+        "$ROOT/models/text_encoders/qwen3vl_4b_int8_convrot.safetensors"
   fetch "$KLEIN/vae/flux2-vae.safetensors" "$ROOT/models/vae/flux2-vae.safetensors"
 fi
 

@@ -100,6 +100,7 @@ Var ComfyModel
 Var CppModel
 Var LyricsText      ; the Gemma option's description, which says when it is already here
 Var PicturesText    ; the same for FLUX.2 klein
+Var FiboText        ; the same for FIBO 2.0
 Var LorasText       ; the same for the style LoRAs
 Var VoicesText      ; the same for recorded voices
 
@@ -336,6 +337,11 @@ Section /o "FLUX.2 [klein]" SecPictures
   ; by the external LLM's image model, if one is set up, or not at all.
 SectionEnd
 
+Section /o "FIBO 2.0 (take pictures)" SecFibo
+  AddSize 15256000
+  ; No files: setup.ps1 is told whether to fetch FIBO 2.0 (ComfyUI only, CC BY-NC 4.0 non-commercial).
+SectionEnd
+
 Section /o "Style LoRAs" SecLoras
   AddSize 3716400
   ; No files: setup.ps1 is told whether to fetch the style LoRAs gathered on Hugging Face.  Without them the
@@ -386,6 +392,12 @@ Section "-Setup"
   ${Else}
     WriteRegDWORD HKCU "Software\${REGNAME}" "Pictures" 0
   ${EndIf}
+  ${If} ${SectionIsSelected} ${SecFibo}
+    StrCpy $1 "$1 -Fibo"
+    WriteRegDWORD HKCU "Software\${REGNAME}" "Fibo" 1
+  ${Else}
+    WriteRegDWORD HKCU "Software\${REGNAME}" "Fibo" 0
+  ${EndIf}
   ${If} ${SectionIsSelected} ${SecVoices}
     StrCpy $1 "$1 -Voices"
     WriteRegDWORD HKCU "Software\${REGNAME}" "Voices" 1
@@ -414,6 +426,10 @@ Section "-Setup"
     ${If} ${SectionIsSelected} ${SecPictures}
     ${AndIf} ${FileExists} "$INSTDIR\engine\ComfyUI\models\diffusion_models\flux-2-klein-4b-fp8.safetensors"
       DetailPrint "FLUX.2 klein is already here, so it is not downloaded again."
+    ${EndIf}
+    ${If} ${SectionIsSelected} ${SecFibo}
+    ${AndIf} ${FileExists} "$INSTDIR\engine\ComfyUI\models\diffusion_models\fibo2_dev_int8_convrot.safetensors"
+      DetailPrint "FIBO 2.0 is already here, so it is not downloaded again."
     ${EndIf}
   ${ElseIf} ${SectionIsSelected} ${SecCpp}
     DetailPrint "This takes a while: about 10 GB to download with recorded voices, more with lyric drafts or take pictures."
@@ -448,6 +464,7 @@ LangString DESC_Small ${LANG_ENGLISH} "A smaller YuE2 model (INT8), 4.0 GB, for 
 LangString DESC_CppFull ${LANG_ENGLISH} "The full-quality YuE2 model for yue2.cpp (BF16), 7.2 GB. It needs about twice the video memory of the Q8 model, whose sound is close to it: choose it if your graphics card has memory to spare."
 LangString DESC_CppSmall ${LANG_ENGLISH} "YuE2 for yue2.cpp in Q8, 3.8 GB: close to the full model's sound in half its video memory. Recommended with yue2.cpp. A size already downloaded is kept, so changing back costs nothing."
 LangString DESC_Pictures ${LANG_ENGLISH} "FLUX.2 klein, which draws a picture of each take on this PC, shown behind its card. Leave it out if your external LLM can draw them, or if you do not want pictures. Download size: 8.2 GB."
+LangString DESC_Fibo ${LANG_ENGLISH} "Bria's FIBO 2.0 with its turbo add-on: draws take pictures closest to a real photograph on this PC. ComfyUI engine only, needs a 16 GB graphics card, CC BY-NC 4.0 (non-commercial use only). Download size: about 15.6 GB."
 LangString DESC_Loras ${LANG_ENGLISH} "39 style LoRAs by their authors: chanson, canzone, Bulgarian voices, qawwali, militant reggae, J-pop, dream pop, old school hip-hop and 16 concept sliders, each with its trigger word and suggested strengths. CC BY-NC 4.0, credited in the guide. Download size: 3.8 GB."
 LangString DESC_Voices ${LANG_ENGLISH} "Recorded voices: train a singer's voice from recordings, your own sung into the built-in recorder or a corpus's songs, and have a take sung in it. Runs beside the engine, on the graphics card. Download size: about 4 GB."
 LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analysis on this PC. Leave it out if you intend to configure an external LLM. This will save an 8 GB download."
@@ -490,6 +507,7 @@ Function .onMouseOverSection
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSmall} $SmallText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLyrics} $LyricsText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPictures} $PicturesText
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecFibo} $FiboText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLoras} $LorasText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecVoices} $VoicesText
   ${EndIf}
@@ -653,6 +671,7 @@ Function .onInit
     StrCpy $InstSubtext "Only what has changed is downloaded. The setup window may be behind this one."
     StrCpy $LyricsText "$(DESC_Lyrics)"
     StrCpy $PicturesText "$(DESC_Pictures)"
+    StrCpy $FiboText "$(DESC_Fibo)"
     StrCpy $LorasText "$(DESC_Loras)"
     StrCpy $VoicesText "$(DESC_Voices)"
     ; Recorded voices as chosen last time: kept, and brought up to date, if they are here.
@@ -686,6 +705,16 @@ Function .onInit
       StrCpy $PicturesText "FLUX.2 klein is already on this PC, so nothing is downloaded for it. Leave it ticked to keep drawing take pictures here. Unticking it does not remove it."
     ${ElseIf} $2 == 1
       !insertmacro SelectSection ${SecPictures}
+    ${EndIf}
+    ; FIBO 2.0 as chosen last time: kept if it is here, ticked again if it was chosen.
+    ReadRegDWORD $2 HKCU "Software\$R9" "Fibo"
+    ${If} ${FileExists} "$INSTDIR\engine\ComfyUI\models\diffusion_models\fibo2_dev_int8_convrot.safetensors"
+      !insertmacro SelectSection ${SecFibo}
+      SectionSetSize ${SecFibo} 0
+      SectionSetText ${SecFibo} "FIBO 2.0 (installed)"
+      StrCpy $FiboText "FIBO 2.0 is already on this PC, so nothing is downloaded for it. Unticking it does not remove it."
+    ${ElseIf} $2 == 1
+      !insertmacro SelectSection ${SecFibo}
     ${EndIf}
     ; Only the app itself is new: the engine and the models are already here.
     SectionSetSize ${SecCore} 100000
@@ -728,6 +757,7 @@ Function .onInit
     StrCpy $WelcomeTitle "Install ${APPNAME}"
     StrCpy $LyricsText "$(DESC_Lyrics)"
     StrCpy $PicturesText "$(DESC_Pictures)"
+    StrCpy $FiboText "$(DESC_Fibo)"
     StrCpy $LorasText "$(DESC_Loras)"
     StrCpy $VoicesText "$(DESC_Voices)"
     ${If} ${FileExists} "$INSTDIR\models-kept\*.*"

@@ -3,7 +3,7 @@
 # version and checked by sha256 where the publisher gives one.  Safe to run again:
 # whatever is already in place is kept, and an interrupted download carries on.
 #
-#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-CppModel q8|bf16] [-NoLyrics] [-Int8] [-Pictures] [-Loras] [-Voices]
+#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-CppModel q8|bf16] [-NoLyrics] [-Int8] [-Pictures] [-Fibo] [-Loras] [-Voices]
 #   ... -Engine           comfyui (everything, the default) or yue2cpp (yue2.cpp's server, for less video memory: no
 #                         training; Gemma in Ollama and pictures in stable-diffusion.cpp beside it).  Left out, the
 #                         engine settings.ini names, so Repair keeps it.
@@ -11,6 +11,8 @@
 #                         quality, 7.2 GB).  Left out, the one settings.ini names, so Repair keeps it.
 #   ... -Int8             the smaller, low-memory YuE2 model instead of the full-quality one (ComfyUI)
 #   ... -Pictures         FLUX.2 klein, which draws each take's picture on this PC (about 8.3 GB)
+#   ... -Fibo             FIBO 2.0 with its turbo add-on for take pictures (ComfyUI only, CC BY-NC 4.0
+#                         non-commercial use only, about 15.6 GB)
 #   ... -Loras            39 style LoRAs by their authors, CC BY-NC 4.0, gathered on Hugging Face (about 3.8 GB)
 #   ... -Voices           recorded voices: the voice service (RVC and a BS-Roformer separator) in a Python of its own,
 #                         and its models (about 4 GB to download)
@@ -23,6 +25,7 @@ param(
     [string]$CppModel = '',
     [switch]$NoLyrics,
     [switch]$Int8,
+    [switch]$Fibo,
     [switch]$Pictures,
     [switch]$Loras,
     [switch]$Voices,
@@ -37,7 +40,7 @@ if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProces
     $again = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-InstallDir', $InstallDir)
     if ($Engine) { $again += @('-Engine', $Engine) }
     if ($CppModel) { $again += @('-CppModel', $CppModel) }
-    foreach ($flag in @('NoLyrics', 'Int8', 'Pictures', 'Loras', 'Voices', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
+    foreach ($flag in @('NoLyrics', 'Int8', 'Fibo', 'Pictures', 'Loras', 'Voices', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
     & $native @again
     exit $LASTEXITCODE
 }
@@ -229,6 +232,23 @@ $PictureFiles = @(
        Sha = '868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3'; Size = 336211292 }
 )
 if ($Pictures) { $ModelFiles = @($ModelFiles) + $PictureFiles }
+# FIBO 2.0 (ComfyUI only, CC BY-NC 4.0 non-commercial use only): photographic take pictures, with its turbo LoRA
+# and Qwen3-VL text encoder.  Shares the FLUX.2 VAE from $PictureFiles.
+$FiboFiles = @(
+    @{ Name = 'FIBO 2.0 (take pictures)'; Dir = 'diffusion_models'; File = 'fibo2_dev_int8_convrot.safetensors'
+       Url = "$HF/Comfy-Org/Fibo-2.0/resolve/main/diffusion_models/fibo2_dev_int8_convrot.safetensors"
+       Sha = '063dd397395809fd22234c6bd32932cfcb22619f4d2282bdbf1dc58c406fe325'; Size = 8408562474 }
+    @{ Name = 'FIBO 2.0 turbo add-on (take pictures)'; Dir = 'loras'; File = 'fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors'
+       Url = "$HF/Comfy-Org/Fibo-2.0/resolve/main/loras/fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors"
+       Sha = 'ce149058ba122b15b4323513ba1935cd0d5de4e1b897b2ddcc4d85b196d72ac0'; Size = 1989177460 }
+    @{ Name = 'Qwen3-VL 4B text encoder (FIBO 2.0)'; Dir = 'text_encoders'; File = 'qwen3vl_4b_int8_convrot.safetensors'
+       Url = "$HF/Comfy-Org/Fibo-2.0/resolve/main/text_encoders/qwen3vl_4b_int8_convrot.safetensors"
+       Sha = '32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c'; Size = 4858559240 }
+)
+if ($Fibo -and -not $Cpp) {
+    $ModelFiles = @($ModelFiles) + $FiboFiles
+    if (-not $Pictures) { $ModelFiles = @($ModelFiles) + @($PictureFiles | Where-Object { $_.File -eq 'flux2-vae.safetensors' }) }
+}
 # Style LoRAs, only when chosen: each its author's work under CC BY-NC 4.0, gathered unchanged in one Hugging Face
 # repository (its README credits them; the guide links it).  Each comes with a description (.txt) the picker reads.
 # A file already in the folder is left as it is, never checked against these and never replaced: it may be the
@@ -1077,6 +1097,16 @@ if ($Cpp) {
 }
 # And which size of YuE2 ComfyUI uses, as both may be here.  yue2.cpp has its own files: the choice stays as it was.
 if (-not $Cpp) { Set-IniValue $settingsIni 'model' $(if ($Int8) { 'int8' } else { 'bf16' }) }
+# When FIBO 2.0 was chosen on an existing install (without FLUX.2 klein 4B), switch Settings -> Take pictures: model to fibo2.
+if ($Fibo -and -not $Cpp -and -not $SkipModels) {
+    $dbPath = Join-Path $dataDir 'yue2.sqlite'
+    $appPyExe = Join-Path $InstallDir 'venv\Scripts\python.exe'
+    if ((Test-Path $dbPath) -and (Test-Path $appPyExe)) {
+        try {
+            & $appPyExe -c "import sqlite3, sys; con = sqlite3.connect(sys.argv[1], timeout=5); cur = con.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name='settings'\"); (con.execute(\"INSERT INTO settings(key, value) VALUES('art.klein', 'fibo2') ON CONFLICT(key) DO UPDATE SET value = 'fibo2'\"), con.commit()) if cur.fetchone() else None; con.close()" $dbPath 2>$null
+        } catch { }
+    }
+}
 
 # ---------------------------------------------------------------- soundfonts
 if (-not $SkipModels) {

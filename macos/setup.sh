@@ -6,7 +6,7 @@
 # and it keeps that script's order, so the two can be read side by side.
 #
 #   bash setup.sh [--install-dir <folder>] [--engine comfyui|yue2cpp] [--no-lyrics] [--pictures | --no-pictures]
-#                 [--loras | --no-loras] [--voices | --no-voices] [--check-only] [--skip-models] [--then-open <app>]
+#                 [--fibo | --no-fibo] [--loras | --no-loras] [--voices | --no-voices] [--check-only] [--skip-models] [--then-open <app>]
 #   ... --install-dir   where it goes (default: ~/Library/Application Support/Yeufonic)
 #   ... --engine        comfyui (everything, the default) or yue2cpp (yue2.cpp's server: faster lyric drafts and
 #                       pictures on a Mac, with Gemma in Ollama and pictures in stable-diffusion.cpp beside it,
@@ -17,6 +17,8 @@
 #   ... --pictures      FLUX.2 [klein], which draws each take's picture on this Mac (about 16 GB);
 #                       --no-pictures fetches none.  Without either, the first run asks and the
 #                       answer is kept for every later run.
+#   ... --fibo          FIBO 2.0 (ComfyUI only, CC BY-NC 4.0 non-commercial use only, about 28 GB full-precision
+#                       with turbo LoRA); --no-fibo none.  Asked and kept as --pictures is.
 #   ... --loras         39 style LoRAs by their authors (CC BY-NC 4.0, about 3.8 GB); --no-loras none.
 #                       Asked and kept as --pictures is.
 #   ... --voices        recorded voices: the voice service (RVC and a BS-Roformer separator) in a Python of its
@@ -35,6 +37,7 @@ CHECK_ONLY=0
 SKIP_MODELS=0
 THEN_OPEN=""
 PICTURES=""
+FIBO=""
 LORAS=""
 VOICES=""
 ENGINE_CHOICE=""
@@ -47,6 +50,8 @@ while [ $# -gt 0 ]; do
     --no-lyrics) NO_LYRICS=1; shift ;;
     --pictures) PICTURES=yes; shift ;;
     --no-pictures) PICTURES=no; shift ;;
+    --fibo|--fibo2) FIBO=yes; shift ;;
+    --no-fibo|--no-fibo2) FIBO=no; shift ;;
     --loras) LORAS=yes; shift ;;
     --no-loras) LORAS=no; shift ;;
     --voices) VOICES=yes; shift ;;
@@ -159,6 +164,16 @@ picture_list() {
   cat <<LIST
 diffusion_models|flux-2-klein-4b.safetensors|7751105712|ec3d4e733a771f61c052fb4856c48b336c55eaf2c65487c2a1faeb9bbda7a343|$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/diffusion_models/flux-2-klein-4b.safetensors
 text_encoders|qwen_3_4b.safetensors|8044982048|6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a|$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors
+vae|flux2-vae.safetensors|336211292|868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3|$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/vae/flux2-vae.safetensors
+LIST
+}
+# FIBO 2.0 (ComfyUI only, CC BY-NC 4.0 non-commercial use only): full-precision BF16 files for Apple Silicon
+# with its turbo LoRA and the shared FLUX.2 VAE.
+fibo_list() {
+  cat <<LIST
+diffusion_models|fibo2_dev_bf16.safetensors|16452934194|2a09866ff073cae9114f5fd93c0f530f84d41f74dc06e3d0c1372587bb3e9984|$HF/Comfy-Org/Fibo-2.0/resolve/main/diffusion_models/fibo2_dev_bf16.safetensors
+loras|fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors|1989177460|ce149058ba122b15b4323513ba1935cd0d5de4e1b897b2ddcc4d85b196d72ac0|$HF/Comfy-Org/Fibo-2.0/resolve/main/loras/fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors
+text_encoders|qwen3vl_4b_bf16.safetensors|8875719384|36f3ff447ef59201722e8f9ce6020c9819fdcfba6aa2608c4e09b1c0ce114e34|$HF/Comfy-Org/Fibo-2.0/resolve/main/text_encoders/qwen3vl_4b_bf16.safetensors
 vae|flux2-vae.safetensors|336211292|868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3|$HF/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files/vae/flux2-vae.safetensors
 LIST
 }
@@ -473,6 +488,30 @@ fi
 [ "$PICTURES" = yes ] || PICTURES=no
 say "Take pictures on this Mac: $PICTURES"
 
+ask_fibo() {
+  say ""
+  say "FIBO 2.0 for take pictures (optional, ComfyUI only)"
+  say "  Bria's FIBO 2.0 draws take pictures closest to a real photograph (CC BY-NC 4.0, non-commercial use only)."
+  say "  - About 28 GB to download (full-precision BF16 for Apple Silicon, plus turbo add-on)."
+  say "  - Needs 32 GB or more of unified memory."
+  say "  To change this later, quit Yeufonic and run in Terminal:"
+  say "    bash $(printf '%q' "$HERE/setup.sh") --fibo    (or --no-fibo)"
+  printf 'Fetch FIBO 2.0 for take pictures? [y/N] '
+  local answer=""
+  read -r answer || answer=""
+  case "$answer" in [yY]*) FIBO=yes ;; *) FIBO=no ;; esac
+}
+if [ -n "$FIBO" ]; then
+  [ "$CHECK_ONLY" -eq 1 ] || echo "$FIBO" > "$STATE/fibo"
+elif [ -f "$STATE/fibo" ]; then
+  FIBO="$(cat "$STATE/fibo")"
+elif [ -z "$problems" ] && [ "$CHECK_ONLY" -eq 0 ] && [ "$SKIP_MODELS" -eq 0 ] && [ -t 0 ]; then
+  ask_fibo
+  echo "$FIBO" > "$STATE/fibo"
+fi
+[ "$FIBO" = yes ] || FIBO=no
+say "FIBO 2.0 on this Mac: $FIBO"
+
 ask_loras() {
   say ""
   say "Style LoRAs (optional)"
@@ -547,6 +586,9 @@ if [ "$CPP" -eq 1 ]; then say "yue2.cpp model: $CPP_MODEL"; fi
 if [ "$CPP" -eq 1 ] && [ -z "$CPP_URL" ]; then
   problem "The yue2.cpp engine for macOS is not published yet: run setup.sh --engine comfyui."
 fi
+if [ "$CPP" -eq 1 ] && [ "$FIBO" = yes ]; then
+  problem "FIBO 2.0 only runs on the ComfyUI engine (use --pictures for yue2.cpp, or --no-fibo)."
+fi
 
 # Room for what is still to come: the missing models, plus about 8 GB for the engine, the
 # app and the downloads while they unpack.  Counted in thousands, as download sites count.
@@ -565,6 +607,15 @@ EOF
       [ -f "$MODELS/$dir/$file" ] || NEED=$((NEED + size))
     done <<EOF
 $(picture_models)
+EOF
+  fi
+  if [ "$FIBO" = yes ] && [ "$CPP" -eq 0 ]; then
+    while IFS='|' read -r dir file size sha url; do
+      [ -z "$file" ] && continue
+      if [ "$PICTURES" = yes ] && [ "$file" = flux2-vae.safetensors ]; then continue; fi
+      [ -f "$MODELS/$dir/$file" ] || NEED=$((NEED + size))
+    done <<EOF
+$(fibo_list)
 EOF
   fi
   if [ "$LORAS" = yes ]; then
@@ -784,6 +835,17 @@ EOF
       get_verified "$url" "$MODELS/$dir/$file" "$size" "$sha"
     done <<EOF
 $(picture_models)
+EOF
+  fi
+  if [ "$FIBO" = yes ] && [ "$CPP" -eq 0 ]; then
+    while IFS='|' read -r dir file size sha url; do
+      [ -z "$file" ] && continue
+      say ""
+      say "$file (FIBO 2.0)"
+      mkdir -p "$MODELS/$dir"
+      get_verified "$url" "$MODELS/$dir/$file" "$size" "$sha"
+    done <<EOF
+$(fibo_list)
 EOF
   fi
   if [ "$LORAS" = yes ]; then

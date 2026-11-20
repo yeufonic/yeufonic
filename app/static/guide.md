@@ -1522,6 +1522,7 @@ Pictures need something that can draw. There are two, and you can have either, b
   from the release page: the tick is remembered after that, and an update never downloads it twice. It
   is three files, about 8 GB in all.
 - **Mac:** answer yes when the setup window asks, or quit Yeufonic and run its `setup.sh --pictures`.
+- **Linux:** choose **FLUX.2 klein 4B** during setup (or run `yeufonic setup --picture-model 4b`).
 - **Docker:** run `sh scripts/fetch-models.sh --pictures`, which puts the three files in `models/`
   (`diffusion_models`, `text_encoders` and `vae`) and checks each one, then restart the app with
   `docker compose restart app` so it finds them.
@@ -1553,7 +1554,7 @@ Labs' **non-commercial licence**, but put them in place and they are used.
    (`-Q8_0.gguf`, 8.7 GB, also works), and put it in the same folder.
 3. **Where the folders are:** under `models/` in the Yeufonic folder for **Docker**; under
    `engine\ComfyUI\models` in the install folder on **Windows**; under `engine/ComfyUI/models/` in the
-   install folder on a **Mac**.
+   install folder on **Mac** and **Linux**.
 4. **Let the app see them, and choose it.** Restart Yeufonic (with Docker, `docker compose restart app`),
    then set **Take pictures: model** in Settings to *FLUX.2 klein 9B*. The 4B draws until you do, and
    Settings say so when the 9B is chosen but cannot draw here. Choose
@@ -1590,12 +1591,17 @@ The folders are the same as for the 9B, and the files are found by these names o
 
 **FIBO 2.0, for the look of a photograph and a 16 GB card.** Bria's FIBO 2.0 draws closest to a real photograph of
 the sleeves the pictures are modelled on: sharper detail, a natural depth of field, the colour of film, and more of
-what the description asks for. Yeufonic never downloads it either. **Its licence is CC BY-NC 4.0: non-commercial use
-only.** FLUX 3's licence lets someone under its revenue limit use what it draws commercially; with FIBO, any
-commercial use, a cover for a song you sell included, needs an agreement with Bria. Read the licence before you use it.
+what the description asks for. It is an optional install choice (not ticked by default). **Its licence is CC BY-NC 4.0:
+non-commercial use only.** FLUX 3's licence lets someone under its revenue limit use what it draws commercially; with
+FIBO, any commercial use, a cover for a song you sell included, needs an agreement with Bria. Read the licence before
+you use it.
 
-- **Disk:** about 10.4 GB, the model and its turbo add-on. It reads FLUX 3's text encoder and the 4B's VAE, so with
-  FLUX 3 installed nothing else is needed.
+- **To install it:**
+  - **Windows:** tick **FIBO 2.0 (take pictures)** on the installer's components page (or run `setup.ps1 -Fibo`).
+  - **Linux:** choose **FIBO 2.0** when prompted by `yeufonic setup` (or run `yeufonic setup --picture-model fibo2`).
+  - **Mac:** answer yes when setup asks about FIBO 2.0, or run `setup.sh --fibo` (full-precision BF16, ~28 GB, needs 32 GB+ memory).
+  - **Docker:** run `sh scripts/fetch-models.sh --fibo`, then `docker compose restart app`.
+- **Disk:** about 15.6 GB on NVIDIA (model, turbo add-on, Qwen3-VL text encoder and FLUX.2 VAE — about 10.4 GB if FLUX 3's encoder and the 4B VAE are already installed). About 28 GB in full precision on a Mac.
 - **Video memory:** about 12.5 GB while it draws, so a 16 GB card. A smaller card swaps part of it out, which is
   far slower.
 - **Time:** with the turbo add-on, about as long as FLUX 3. Without it, FIBO draws at its own settings, about eight

@@ -388,3 +388,28 @@ def test_a_new_comfyui_gets_demucs_and_whisper_back():
     assert "if (-not (IsDone 'engine-whisper') -or ($whisperThere -contains $false))" in setup
     # the engine itself is replaced whole when ComfyUI moves: that is why the check is needed
     assert "if (Test-Path $Engine) { Remove-Item -Recurse -Force $Engine }" in setup
+
+
+def test_fibo2_is_an_opt_in_option_across_windows_docker_and_linux_with_matching_checksums():
+    """FIBO 2.0 (ungated CC BY-NC 4.0, ComfyUI only) is opt-in across Windows, Docker, and Linux with identical SHA-256s."""
+    ROOT = Path(__file__).resolve().parent.parent
+    nsi = (ROOT / "windows" / "installer.nsi").read_text(encoding="utf-8")
+    ps1 = (ROOT / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    fetch = (ROOT / "scripts" / "fetch-models.sh").read_text(encoding="utf-8")
+    linux = (ROOT / "linux" / "setup.sh").read_text(encoding="utf-8")
+
+    assert 'Section /o "FIBO 2.0 (take pictures)" SecFibo' in nsi
+    assert 'StrCpy $1 "$1 -Fibo"' in nsi and '"Fibo" 1' in nsi and 'ReadRegDWORD $2 HKCU "Software\\$R9" "Fibo"' in nsi
+    assert "CC BY-NC 4.0" in nsi[nsi.index("DESC_Fibo"):nsi.index("DESC_Loras")]
+    assert "[switch]$Fibo," in ps1 and "'Fibo', 'Pictures'" in ps1
+    assert "--fibo|--fibo2) FIBO=yes ;;" in fetch
+
+    for name, sha in (
+        ("fibo2_dev_int8_convrot.safetensors", "063dd397395809fd22234c6bd32932cfcb22619f4d2282bdbf1dc58c406fe325"),
+        ("fibo_2.0_turbo_lora_avg_rank_270_bf16.safetensors", "ce149058ba122b15b4323513ba1935cd0d5de4e1b897b2ddcc4d85b196d72ac0"),
+        ("qwen3vl_4b_int8_convrot.safetensors", "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"),
+    ):
+        assert name in ps1 and sha in ps1
+        assert name in linux and sha in linux
+        assert name in fetch
+
