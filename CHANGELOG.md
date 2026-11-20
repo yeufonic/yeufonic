@@ -37,15 +37,33 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.64 (2026-11-20)
 
+- **Native Linux install without Docker (#77).** Linux users with an NVIDIA GPU can now install and run Yeufonic
+  directly without Docker using `linux/setup.sh`, with a choice of the ComfyUI or `yue2.cpp` engine, interactive
+  setup and engine switching (`yeufonic setup`), detached background running (`yeufonic start -d`, `stop`,
+  `status`, `logs`), and portable Linux binaries for FluidSynth and `yue2.cpp`. See `linux/README.md`.
+- **Trash space for deleted takes and spaces (#78).** Deleting a take (or deleting a space that holds takes) now
+  moves its takes into a built-in **Trash** space at the bottom of the space list rather than deleting them
+  immediately or dumping a deleted space's takes into Default. Takes in Trash stay out of playlists and search,
+  show Play, Restore and Delete permanently, and can be restored individually or in bulk (using checkboxes or
+  **Select all**). Deleting a take from Trash, pressing **Empty Trash**, or reclaiming **Takes in Trash** in
+  **Settings → Storage** removes its audio, stems and artwork from disk permanently.
+- **Opt-in FIBO 2.0 take-picture model across all installers.** Bria's FIBO 2.0 with its turbo add-on (ComfyUI
+  engine only, CC BY-NC 4.0 non-commercial use only) can now be chosen during setup instead of downloaded by hand:
+  tick **FIBO 2.0 (take pictures)** in the Windows installer (`setup.ps1 -Fibo`), choose **FIBO 2.0** in
+  `yeufonic setup` on Linux (`--picture-model fibo2`), answer yes or run `setup.sh --fibo` on macOS (full-precision
+  BF16), or run `sh scripts/fetch-models.sh --fibo` with Docker.
+- **Hot keys button in the transport bar.** Added a **?** button beside **M** and **V** at the bottom left to open
+  and close the Hot keys reference with a click as well as the `?` key.
 - **Storage lists the training checkpoints of every corpus's LoRA.** It looked for them under the corpus's name, so a
   LoRA named otherwise (trained before the corpus was renamed, or under its trigger word) had its checkpoints missed,
   both in Storage and in the corpus's own checkpoint list. They are now found under the name the LoRA has.
-- **Storage lists checkpoints whose corpus is gone.** A LoRA's training checkpoints stayed in the LoRA folder after
-  its corpus was deleted, and nothing offered to remove them. Storage now lists them by LoRA; the LoRA itself is kept.
-
-- **The Windows app no longer fails to start now and then with "The app did not start within 3 minutes".** When a
+- **Storage lists checkpoints whose corpus is gone, and greys out "Tick the ones that cost nothing" when none are free.**
+  A LoRA's training checkpoints stayed in the LoRA folder after its corpus was deleted, and nothing offered to remove
+  them. Storage now lists them by LoRA (keeping the finished LoRA), and disables the free-items button when nothing
+  listed is cost-free to remove.
+- **The Windows app no longer fails to start now and then with "The app did not start within 3 minutes" (#76).** When a
   connection to the app was dropped before it was accepted (the launcher's own check, while the app was still
   starting), Python's Windows event loop logged "Accept failed on a socket" and stopped listening, so the app ran on
   with nothing able to reach it. A dropped connection is now logged as a warning and the app keeps listening. The
@@ -54,6 +72,8 @@ cannot creep back in.
   with an instrumental open, changing them and pressing Render this score played the same plan again and gave a take
   that sounded almost the same. The main button now becomes Write a new plan when either differs from what the take's
   plan was written with: a new plan from the same structure, in a new take, the open one left as it was.
+- **Docs and translations.** Added *Write a new structure* (from 0.0.63), Trash, opt-in FIBO 2.0, and native Linux
+  across the in-app guide (all 15 languages), UI string tables, and translated READMEs.
 
 ## 0.0.63 (2026-11-18)
 
