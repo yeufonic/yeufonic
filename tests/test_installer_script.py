@@ -413,3 +413,25 @@ def test_fibo2_is_an_opt_in_option_across_windows_docker_and_linux_with_matching
         assert name in linux and sha in linux
         assert name in fetch
 
+
+def test_setup_ps1_has_no_c_style_quote_escapes_and_parses_when_pwsh_present():
+    """PowerShell uses backtick (`") not backslash (\\") to escape quotes inside double-quoted strings; a stray \\"
+    aborts setup.ps1 with a parse error before Start-Transcript even opens install.log."""
+    import shutil
+    import subprocess
+
+    ps1_path = Path(__file__).resolve().parent.parent / "windows" / "setup.ps1"
+    ps1 = ps1_path.read_text(encoding="utf-8")
+    assert '\\"' not in ps1, "setup.ps1 must not use C-style \\\" quote escapes; use single quotes or a here-string"
+
+    pwsh = shutil.which("pwsh")
+    if pwsh:
+        cmd = (
+            "$e=$null; [void][System.Management.Automation.Language.Parser]::ParseFile("
+            f"'{ps1_path}', [ref]$null, [ref]$e); "
+            "if ($e.Count) { $e | ForEach-Object { Write-Error \"$($_.Extent.StartLineNumber): $($_.Message)\" }; exit 1 }"
+        )
+        res = subprocess.run([pwsh, "-NoProfile", "-NonInteractive", "-Command", cmd], capture_output=True, text=True)
+        assert res.returncode == 0, res.stderr or res.stdout
+
+

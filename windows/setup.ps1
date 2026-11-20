@@ -1097,13 +1097,21 @@ if ($Cpp) {
 }
 # And which size of YuE2 ComfyUI uses, as both may be here.  yue2.cpp has its own files: the choice stays as it was.
 if (-not $Cpp) { Set-IniValue $settingsIni 'model' $(if ($Int8) { 'int8' } else { 'bf16' }) }
-# When FIBO 2.0 was chosen on an existing install (without FLUX.2 klein 4B), switch Settings -> Take pictures: model to fibo2.
+# When FIBO 2.0 was chosen on an existing install, switch Settings -> Take pictures: model to fibo2.
 if ($Fibo -and -not $Cpp -and -not $SkipModels) {
     $dbPath = Join-Path $dataDir 'yue2.sqlite'
     $appPyExe = Join-Path $InstallDir 'venv\Scripts\python.exe'
     if ((Test-Path $dbPath) -and (Test-Path $appPyExe)) {
+        $pyFibo = @'
+import sqlite3, sys
+con = sqlite3.connect(sys.argv[1], timeout=5)
+if con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='settings'").fetchone():
+    con.execute("INSERT INTO settings(key, value) VALUES('art.klein', 'fibo2') ON CONFLICT(key) DO UPDATE SET value = 'fibo2'")
+    con.commit()
+con.close()
+'@
         try {
-            & $appPyExe -c "import sqlite3, sys; con = sqlite3.connect(sys.argv[1], timeout=5); cur = con.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name='settings'\"); (con.execute(\"INSERT INTO settings(key, value) VALUES('art.klein', 'fibo2') ON CONFLICT(key) DO UPDATE SET value = 'fibo2'\"), con.commit()) if cur.fetchone() else None; con.close()" $dbPath 2>$null
+            $pyFibo | & $appPyExe - $dbPath 2>$null
         } catch { }
     }
 }
