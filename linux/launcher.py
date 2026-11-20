@@ -71,8 +71,13 @@ APP_BROWSERS = ("google-chrome", "chromium", "chromium-browser", "brave-browser"
 PR_SET_PDEATHSIG = 1
 
 
-def _set_pdeathsig() -> None:
-    """Ask the Linux kernel to send SIGTERM to the child if this launcher dies abruptly."""
+def _child_setup() -> None:
+    """Put each managed service in its own process group so stop() cleans up child workers
+    (e.g. ollama runners), and ask the kernel for SIGTERM if this launcher dies abruptly."""
+    try:
+        os.setpgrp()
+    except OSError:
+        pass
     try:
         libc = ctypes.CDLL("libc.so.6")
         libc.prctl(PR_SET_PDEATHSIG, signal.SIGTERM)
@@ -363,11 +368,23 @@ def launcher_running() -> bool:
     return launcher_pid() > 0
 
 
-def end_leftovers() -> None:
-    """Stop any recorded engine/app/voice processes left behind by a killed launcher."""
+def _signal_group(pid: int, sig: int) -> None:
+    """Signal the child's process group (falling back to the PID alone)."""
+    try:
+        os.killpg(pid, sig)
+    except OSError:
+        try:
+            os.kill(pid, sig)
+        except OSError:
+            pass
+
+
+def end_leftovers() -> bool:
+    """Stop any recorded engine/app/voice processes left behind by a killed launcher.
+    Returns True if any leftover process was found and signalled."""
     recorded = _read_running()
     if not recorded:
-        return
+        return False
 
     def ours(pid: int) -> bool:
         command = _command_of(pid)
@@ -380,6 +397,7 @@ def end_leftovers() -> None:
         )
 
     stopping = []
+    found = False
     for name, pid in recorded.items():
         if name == "launcher":
             continue
@@ -388,28 +406,26 @@ def end_leftovers() -> None:
         except (ValueError, TypeError):
             continue
         if ours(pid_int):
+            found = True
             record(f"Stopping the {name} left running by an earlier start (pid {pid_int}).")
-            try:
-                os.kill(pid_int, signal.SIGTERM)
-                stopping.append(pid_int)
-            except OSError:
-                pass
+            _signal_group(pid_int, signal.SIGTERM)
+            stopping.append(pid_int)
     deadline = time.time() + 10
     while stopping and time.time() < deadline:
         stopping = [pid for pid in stopping if ours(pid)]
         time.sleep(0.2)
     for pid in stopping:
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except OSError:
-            pass
+        _signal_group(pid, signal.SIGKILL)
     RUNNING.unlink(missing_ok=True)
+    return found
 
 
 def stop_running() -> int:
     """Stop an active Yeufonic launcher (and wait for it to shut down its children)."""
     pid = launcher_pid()
+    had_anything = False
     if pid:
+        had_anything = True
         say(f"Stopping Yeufonic (launcher pid {pid})...")
         try:
             os.kill(pid, signal.SIGTERM)
@@ -423,8 +439,9 @@ def stop_running() -> int:
                 os.kill(pid, signal.SIGKILL)
             except OSError:
                 pass
-    end_leftovers()
-    say("Yeufonic is stopped.")
+    if end_leftovers():
+        had_anything = True
+    say("Yeufonic is stopped." if had_anything else "Yeufonic is not running.")
     return 0
 
 
@@ -527,7 +544,7 @@ class Launcher:
             stdout=log_path.open("w", encoding="utf-8"),
             stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
-            preexec_fn=_set_pdeathsig,
+            preexec_fn=_child_setup,
         )
 
     def start_engine(self) -> None:
@@ -606,11 +623,11 @@ class Launcher:
     @staticmethod
     def _end(program: subprocess.Popen, wait: float = 10.0) -> None:
         if program.poll() is None:
-            program.terminate()
+            _signal_group(program.pid, signal.SIGTERM)
             try:
                 program.wait(wait)
             except subprocess.TimeoutExpired:
-                program.kill()
+                _signal_group(program.pid, signal.SIGKILL)
                 program.wait(5)
 
     def stop(self) -> None:
@@ -647,11 +664,14 @@ def run_foreground(launcher: Launcher) -> int:
         return 0
 
 
-def spawn_background(args: list[str]) -> int:
+DETACH_FLAGS = ("-d", "--detach", "--background")
+
+
+def spawn_background(args: list[str], cfg: dict) -> int:
     LOGS.mkdir(parents=True, exist_ok=True)
-    child_args = [sys.executable, str(Path(__file__).resolve()), *[a for a in args if a != "--background"]]
+    child_args = [sys.executable, str(Path(__file__).resolve()), *[a for a in args if a not in DETACH_FLAGS]]
     with (LOGS / "launcher.log").open("a", encoding="utf-8") as log_fh:
-        subprocess.Popen(
+        proc = subprocess.Popen(
             child_args,
             cwd=str(HOME_DIR),
             stdout=log_fh,
@@ -659,7 +679,31 @@ def spawn_background(args: list[str]) -> int:
             stdin=subprocess.DEVNULL,
             start_new_session=True,
         )
-    say(f"{APP} is starting in the background. Run 'yeufonic status' or 'yeufonic stop' to manage it.")
+    # Record the detached launcher PID immediately so an instant 'yeufonic stop' or 'status' finds it.
+    try:
+        RUNNING.parent.mkdir(parents=True, exist_ok=True)
+        if not RUNNING.exists():
+            RUNNING.write_text(json.dumps({"launcher": proc.pid}), encoding="utf-8")
+    except OSError:
+        pass
+    # Wait briefly to catch an immediate startup crash before returning to the user's shell.
+    deadline = time.time() + 1.5
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            say(f"{APP} failed to start in the background (exit code {proc.returncode}). See {LOGS / 'launcher.log'}.")
+            return proc.returncode or 1
+        recorded = _read_running()
+        if recorded.get("launcher") == proc.pid and "app" in recorded:
+            break
+        time.sleep(0.1)
+    url = f"http://127.0.0.1:{cfg['app_port']}"
+    cli = HOME_DIR / "bin" / "yeufonic"
+    cmd = str(cli) if cli.exists() else "yeufonic"
+    say(f"{APP} started in the background (pid {proc.pid}).")
+    say(f"  URL:    {url}")
+    say(f"  Status: {cmd} status")
+    say(f"  Logs:   {cmd} logs")
+    say(f"  Stop:   {cmd} stop")
     return 0
 
 
@@ -670,9 +714,8 @@ def main(argv: list[str] | None = None) -> int:
         return stop_running()
     if "--status" in args:
         return print_status(cfg)
-    if "--background" in args:
-        return spawn_background(args)
 
+    detach = any(flag in args for flag in DETACH_FLAGS)
     allow_browser = "--no-browser" not in args
     launcher = Launcher(cfg, allow_browser=allow_browser)
     if answering(f"{launcher.url}/api/health") and (launcher_running() or not RUNNING.exists()):
@@ -684,6 +727,8 @@ def main(argv: list[str] | None = None) -> int:
     if problem:
         record(problem)
         return 1
+    if detach:
+        return spawn_background(args, cfg)
     return run_foreground(launcher)
 
 

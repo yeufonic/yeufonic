@@ -44,9 +44,9 @@ Arch, openSUSE, and native WSL2).
 
 ```bash
 yeufonic                         # start Yeufonic in foreground (Ctrl+C stops it)
-yeufonic start --background      # start in background
+yeufonic start -d                # start detached in the background (also --detach / --background)
 yeufonic status                  # check app and engine state
-yeufonic stop                    # stop cleanly
+yeufonic stop                    # stop cleanly (including detached instances)
 yeufonic logs app                # tail app.log (or engine, launcher, voice, setup)
 yeufonic setup                   # interactively reconfigure engine, model size, or add-ons
 yeufonic setup --engine yue2cpp  # switch engines directly (keeps ComfyUI's files on disk)

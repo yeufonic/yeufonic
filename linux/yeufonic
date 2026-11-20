@@ -1,8 +1,8 @@
 #!/bin/bash
 # Yeufonic CLI wrapper for a native Linux install.
 #
-#   yeufonic [start [--background] [--no-browser]]   start Yeufonic (default)
-#   yeufonic stop                                    stop a running Yeufonic
+#   yeufonic [start [-d|--detach] [--no-browser]]    start Yeufonic (default; -d runs detached)
+#   yeufonic stop                                    stop a running Yeufonic (including detached)
 #   yeufonic status                                  show whether Yeufonic is running
 #   yeufonic logs [app|engine|launcher|voice|setup]  tail a log (default: launcher)
 #   yeufonic setup [options...]                      reconfigure engine/models/add-ons (e.g. --engine, --picture-model)
@@ -75,9 +75,9 @@ case "$cmd" in
     exec bash "$INSTALL_DIR/uninstall.sh" --install-dir "$INSTALL_DIR" "$@"
     ;;
   *)
-    # Allow passing launcher flags directly (e.g. yeufonic --background --no-browser).
+    # Allow passing launcher flags directly (e.g. yeufonic -d --no-browser).
     case "$cmd" in
-      --*)
+      -*)
         if [ ! -x "$APP_PY" ]; then
           echo "Yeufonic is not finished setting up in $INSTALL_DIR." >&2
           exit 1

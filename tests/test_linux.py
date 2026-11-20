@@ -588,6 +588,136 @@ def test_picture_model_selection_rejects_fibo2_on_yue2cpp_and_interactive_menu_s
     assert not (inst / "state" / "picture-model").exists()
 
 
+@needs_linux
+def test_yeufonic_start_detached_status_and_stop_lifecycle(tmp_path):
+    """`yeufonic start -d` detaches, tracks PIDs, answers `status`, and `yeufonic stop` shuts down all children."""
+    import shutil
+    import socket
+
+    # Find two free localhost ports.
+    socks = []
+    ports = []
+    for _ in range(2):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(("127.0.0.1", 0))
+        ports.append(s.getsockname()[1])
+        socks.append(s)
+    for s in socks:
+        s.close()
+    app_port, engine_port = ports
+
+    home = tmp_path / "inst"
+    (home / "bin").mkdir(parents=True)
+    (home / "venv" / "bin").mkdir(parents=True)
+    (home / "engine" / "venv" / "bin").mkdir(parents=True)
+    (home / "engine" / "ComfyUI").mkdir(parents=True)
+    (home / "studio").mkdir(parents=True)
+
+    # Copy real launcher.py and bin/yeufonic into the isolated install dir.
+    shutil.copy2(LINUX / "launcher.py", home / "launcher.py")
+    shutil.copy2(LINUX / "yeufonic", home / "bin" / "yeufonic")
+    (home / "bin" / "yeufonic").chmod(0o755)
+    (home / "settings.ini").write_text(
+        f"[yue2]\napp_port = {app_port}\nengine_port = {engine_port}\nopen_browser = no\n",
+        encoding="utf-8",
+    )
+
+    # Fake ComfyUI main.py that answers /system_stats on engine_port and stays alive until SIGTERM.
+    (home / "engine" / "ComfyUI" / "main.py").write_text(
+        "import http.server, signal, sys\n"
+        "port = int(sys.argv[sys.argv.index('--port') + 1])\n"
+        "class H(http.server.BaseHTTPRequestHandler):\n"
+        "    def do_GET(self):\n"
+        "        self.send_response(200); self.end_headers(); self.wfile.write(b'{}')\n"
+        "    def log_message(self, *a): pass\n"
+        "srv = http.server.HTTPServer(('127.0.0.1', port), H)\n"
+        "signal.signal(signal.SIGTERM, lambda *a: sys.exit(0))\n"
+        "srv.serve_forever()\n",
+        encoding="utf-8",
+    )
+
+    # Fake app python wrapper: invokes real sys.executable for launcher.py, or runs a tiny /api/health server for uvicorn.
+    fake_app_py = home / "venv" / "bin" / "python"
+    fake_app_py.write_text(
+        f"#!/bin/sh\n"
+        f'if [ "$1" = "-m" ] && [ "$2" = "uvicorn" ]; then\n'
+        f'  exec "{sys.executable}" -c "\n'
+        f"import http.server, signal, sys\n"
+        f"class H(http.server.BaseHTTPRequestHandler):\n"
+        f"    def do_GET(self):\n"
+        f"        self.send_response(200); self.end_headers(); self.wfile.write(b'ok')\n"
+        f"    def log_message(self, *a): pass\n"
+        f"srv = http.server.HTTPServer(('127.0.0.1', {app_port}), H)\n"
+        f"signal.signal(signal.SIGTERM, lambda *a: sys.exit(0))\n"
+        f'srv.serve_forever()" "$@"\n'
+        f"fi\n"
+        f'exec "{sys.executable}" "$@"\n',
+        encoding="utf-8",
+    )
+    fake_app_py.chmod(0o755)
+    os.symlink(sys.executable, home / "engine" / "venv" / "bin" / "python")
+
+    cli = str(home / "bin" / "yeufonic")
+    env = {**os.environ, "YEUFONIC_HOME": str(home), "YEUFONIC_LOGS": str(home / "logs")}
+    try:
+        r_start = subprocess.run([cli, "start", "-d", "--no-browser"], env=env, capture_output=True, text=True, timeout=15)
+        assert r_start.returncode == 0, r_start.stdout + r_start.stderr
+        assert "started in the background" in r_start.stdout
+        assert "stop" in r_start.stdout
+
+        # Wait up to 5s for both stub servers to answer /api/health and /system_stats.
+        deadline = time.time() + 5
+        st = None
+        while time.time() < deadline:
+            st = subprocess.run([cli, "status"], env=env, capture_output=True, text=True, timeout=5)
+            if st.returncode == 0 and "(ready)" in st.stdout:
+                break
+            time.sleep(0.2)
+        assert st is not None and st.returncode == 0, st.stdout + st.stderr
+        assert "Yeufonic: running" in st.stdout
+        assert "app:" in st.stdout and "ready" in st.stdout
+        assert "engine:" in st.stdout and "ready" in st.stdout
+
+        # Starting again while running must report already running and not spawn a second copy.
+        r_dup = subprocess.run([cli, "start", "-d"], env=env, capture_output=True, text=True, timeout=10)
+        assert r_dup.returncode == 0
+        assert "already running" in r_dup.stdout
+
+        # Record child PIDs before stopping to verify every single one terminates.
+        running = json.loads((home / "state" / "running.json").read_text(encoding="utf-8"))
+        pids = [int(p) for p in running.values()]
+        assert len(pids) >= 3  # launcher + engine + app
+
+        r_stop = subprocess.run([cli, "stop"], env=env, capture_output=True, text=True, timeout=20)
+        assert r_stop.returncode == 0, r_stop.stdout + r_stop.stderr
+        assert "Yeufonic is stopped." in r_stop.stdout
+        assert not (home / "state" / "running.json").exists()
+
+        # Every managed process must be gone (or a dead 'Z' zombie awaiting PID 1 in a container).
+        for pid in pids:
+            try:
+                stat_text = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+                state = stat_text.rsplit(")", 1)[1].split()[0]
+                assert state == "Z", f"process {pid} is still alive (state={state})"
+            except FileNotFoundError:
+                pass
+        for port in (app_port, engine_port):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                assert s.connect_ex(("127.0.0.1", port)) != 0, f"port {port} still listening after stop"
+
+        # Status after stop reports stopped (exit code 3), and second stop reports not running.
+        st_after = subprocess.run([cli, "status"], env=env, capture_output=True, text=True, timeout=5)
+        assert st_after.returncode == 3
+        assert "Yeufonic: stopped" in st_after.stdout
+        r_stop2 = subprocess.run([cli, "stop"], env=env, capture_output=True, text=True, timeout=10)
+        assert r_stop2.returncode == 0
+        assert "not running" in r_stop2.stdout
+    finally:
+        # Ensure nothing leaks if an assertion fails mid-test.
+        subprocess.run([cli, "stop"], env=env, capture_output=True, text=True, timeout=15)
+
+
+
 
 
 
