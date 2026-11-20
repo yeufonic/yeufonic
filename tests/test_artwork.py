@@ -138,6 +138,9 @@ def test_the_job_keeps_the_picture_and_its_description(client, monkeypatch):
     assert picture.status_code == 200 and picture.headers["content-type"] == "image/png"
     assert artwork.decode(picture.content)[0, 0, 3] == 0
     assert artwork.decode(client.get(f"/api/takes/{take['id']}/art.png?drawn=1").content)[0, 0, 3] == 255
+    # First delete moves the take to Trash, keeping its artwork until deleted permanently.
+    client.delete(f"/api/takes/{take['id']}")
+    assert artwork.png_path(take["id"]).exists() and artwork.words_path(take["id"]).exists()
     client.delete(f"/api/takes/{take['id']}")
     assert not artwork.png_path(take["id"]).exists() and not artwork.words_path(take["id"]).exists()
 

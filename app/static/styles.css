@@ -3575,6 +3575,24 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
 .ed-max-btn { width: 34px; height: 34px; margin-left: -6px; }
 .ed-max-btn .max-off, .ed-max-btn[aria-pressed="true"] .max-on { display: none; }
 .ed-max-btn[aria-pressed="true"] .max-off { display: block; }
+/* Keep the editor header on one line down to 1280px even with a rendered take's full tool row and job pill open. */
+@media (max-width: 1460px) {
+  .ed-head { gap: 8px; padding: 12px 14px; }
+  .ed-head .create-head { gap: 6px; }
+  .ed-head .create-head h1 { font-size: 17px; }
+  .ed-head #start-fresh { padding: 6px 11px; font-size: 12.5px; }
+  .ed-head .modes { padding: 3px; gap: 2px; }
+  .ed-head .modes .mode { padding: 5px 9px; font-size: 12.5px; }
+  .ed-head .modes .mode .dot { margin-right: 5px; }
+  .ed-job { min-width: 72px; padding: 5px 9px; font-size: 12px; gap: 6px; }
+  .ed-take-tools { gap: 4px; }
+  .ed-tool { width: 30px; height: 30px; }
+  .ed-tool svg { width: 17px; height: 17px; }
+  .ed-advanced-btn { padding: 5px 9px; font-size: 12.5px; gap: 5px; }
+  .ed-tabs button { padding: 5px 9px; font-size: 12.5px; }
+  .ed-head #editor-close { padding: 5px 11px; font-size: 12.5px; }
+  .ed-max-btn { width: 30px; height: 30px; margin-left: -4px; }
+}
 #editor-modal.editor-max { padding: 0; }
 #editor-modal.editor-max .modal-box.editor { width: 100%; height: 100%; max-width: none; max-height: none; border-radius: 0; border: 0; }
 /* Filling the window, the words column has the window's height: the lyrics (once there are any) and the

@@ -105,14 +105,16 @@ def test_the_engine_is_pinned_where_docker_and_windows_pin_it():
 
 # ------------------------------------------------------------- setup.sh's checks
 
-def fake_mac(tmp_path: Path, arch="arm64", version="15.1", memory_gb=32) -> dict:
-    """A PATH on which uname, sw_vers and sysctl describe a Mac, and the network answers."""
+def fake_mac(tmp_path: Path, arch="arm64", version="15.1", memory_gb=32, free_gb=200) -> dict:
+    """A PATH on which uname, sw_vers, sysctl and df describe a Mac, and the network answers."""
     bin_dir = tmp_path / "fakebin"
     bin_dir.mkdir(exist_ok=True)
+    free_kb = free_gb * 1048576
     tools = {
         "uname": f'[ "$1" = -m ] && echo {arch} || echo Darwin',
         "sw_vers": f"echo {version}",
         "sysctl": f"echo {memory_gb * 1073741824}",
+        "df": f"echo 'Filesystem 1024-blocks Used Available'\necho 'disk {free_kb} 0 {free_kb}'",
         "curl": "exit 0",
         "nc": "exit 1",
     }
