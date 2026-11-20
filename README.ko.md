@@ -60,6 +60,7 @@
 - 약 30GB의 여유 디스크 공간, 라이브러리가 커질수록 더 필요합니다.
 - Apple 실리콘 Mac에서도 LoRA 학습을 포함해 모두 동작하지만 NVIDIA 그래픽 카드보다 훨씬 느립니다: **[yeufonic.com/macos](https://yeufonic.com/macos/)** 참고.
 - **네이티브 Linux:** Docker 없이 Yeufonic을 설치하세요. **[네이티브 Linux](app/static/guides/ko-KR.md#native-linux)** 참고.
+- **Docker (Linux 및 Windows WSL2):** Docker로 Yeufonic을 설치하고 실행하세요. **[Docker로 빠르게 시작하기](#docker로-빠르게-시작하기)**와 [영어 README](README.md#quick-start) 참고.
 
 ## Windows에서, Docker 없이
 

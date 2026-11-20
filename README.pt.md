@@ -60,6 +60,7 @@ Tudo roda num único computador, em duas partes: o aplicativo e o motor. Sem nuv
 - Cerca de 30 GB livres em disco, mais à medida que a biblioteca cresce.
 - Um Mac com Apple silicon faz tudo, incluindo treinar LoRAs, mas bem mais devagar que uma placa NVIDIA: veja **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
 - **Linux nativo:** Instale o Yeufonic sem Docker. Veja **[Linux nativo](app/static/guides/pt-BR.md#native-linux)** ([Portugal](app/static/guides/pt-PT.md#native-linux)).
+- **Docker (Linux e Windows WSL2):** Instale e execute o Yeufonic com Docker. Veja **[Início rápido com Docker](#início-rápido-com-docker)** e o [README em inglês](README.md#quick-start).
 
 ## No Windows, sem Docker
 

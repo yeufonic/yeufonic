@@ -60,6 +60,7 @@
 - Около 30 ГБ свободного места на диске, больше по мере роста библиотеки.
 - Mac на Apple silicon умеет всё, включая обучение LoRA, но заметно медленнее видеокарты NVIDIA: см. **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
 - **Нативный Linux:** Установите Yeufonic без Docker. См. **[Нативный Linux](app/static/guides/ru-RU.md#native-linux)**.
+- **Docker (Linux и Windows WSL2):** Установите и запустите Yeufonic в Docker. См. **[Быстрый старт с Docker](#быстрый-старт-с-docker)** и [README на английском](README.md#quick-start).
 
 ## В Windows, без Docker
 

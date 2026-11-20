@@ -60,6 +60,7 @@
 - 約 30 GB 可用磁碟空間，資料庫變大後需要更多。
 - Apple 晶片的 Mac 也能完成所有功能，包括訓練 LoRA，但比 NVIDIA 顯示卡慢得多：見 **[yeufonic.com/macos](https://yeufonic.com/macos/)**。
 - **原生 Linux：**無需 Docker 安裝 Yeufonic。見 **[原生 Linux](app/static/guides/zh-TW.md#native-linux)**。
+- **Docker（Linux 與 Windows WSL2）：**使用 Docker 安裝並執行 Yeufonic。見 **[用 Docker 快速開始](#用-docker-快速開始)**與[英文 README](README.md#quick-start)。
 
 ## 在 Windows 上，無需 Docker
 

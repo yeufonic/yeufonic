@@ -60,6 +60,7 @@ Alles draait op één computer, in twee delen: de app en de engine. Geen cloud e
 - Ongeveer 30 GB vrije schijfruimte, meer naarmate de bibliotheek groeit.
 - Een Mac met Apple silicon kan alles, ook LoRA's trainen, maar veel trager dan een NVIDIA-kaart: zie **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
 - **Native Linux:** Installeer Yeufonic zonder Docker. Zie **[Native Linux](app/static/guides/nl-NL.md#native-linux)**.
+- **Docker (Linux en Windows WSL2):** Installeer en draai Yeufonic met Docker. Zie **[Snel starten met Docker](#snel-starten-met-docker)** en de [Engelse README](README.md#quick-start).
 
 ## Op Windows, zonder Docker
 

@@ -60,6 +60,7 @@ Alles läuft auf einem Rechner, in zwei Teilen: der App und der Engine. Keine Cl
 - Etwa 30 GB freier Speicherplatz, mehr mit wachsender Bibliothek.
 - Ein Mac mit Apple Silicon kann alles, auch LoRAs trainieren, ist aber deutlich langsamer als eine NVIDIA-Karte: siehe **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
 - **Nativ unter Linux:** Yeufonic ohne Docker installieren. Siehe **[Nativ unter Linux](app/static/guides/de-DE.md#native-linux)**.
+- **Docker (Linux und Windows WSL2):** Yeufonic mit Docker installieren und ausführen. Siehe **[Schnellstart mit Docker](#schnellstart-mit-docker)** und das [englische README](README.md#quick-start).
 
 ## Unter Windows, ohne Docker
 

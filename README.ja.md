@@ -60,6 +60,7 @@
 - 約 30 GB の空きディスク。ライブラリが増えるとさらに必要です。
 - Apple シリコンの Mac でも LoRA の学習を含めてすべて動きますが、NVIDIA の GPU よりかなり遅くなります: **[yeufonic.com/macos](https://yeufonic.com/macos/)** を参照。
 - **ネイティブ Linux:** Docker なしで Yeufonic をインストールできます。**[ネイティブ Linux](app/static/guides/ja-JP.md#native-linux)** を参照。
+- **Docker（Linux と Windows WSL2）:** Docker で Yeufonic をインストールして実行できます。**[Docker でのクイックスタート](#docker-でのクイックスタート)**と[英語の README](README.md#quick-start) を参照。
 
 ## Windows で、Docker なしで
 

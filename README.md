@@ -59,6 +59,7 @@ a corpus of music. Edit the score either way, then pull the stems out of the res
   slower than an NVIDIA card: see
   **[yeufonic.com/macos](https://yeufonic.com/macos/)**.
 - **Native Linux:** Install Yeufonic without Docker. See **[Native Linux](app/static/guide.md#native-linux)**.
+- **Docker (Linux and Windows WSL2):** Install and run Yeufonic in Docker. See **[Quick start](#quick-start)**.
 - **Example LoRAs and songs generated with Yeufonic:**  **[examples](https://yeufonic.com/examples/)**
 
 Everything runs on one machine, in two parts: the app and the engine. With Docker they are two
