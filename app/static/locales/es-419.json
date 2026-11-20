@@ -2923,5 +2923,11 @@
  "the Trash space cannot be deleted": "el espacio Trash no se puede eliminar",
  "Takes in Trash": "Tomas en Trash",
  "Deleted takes and takes from deleted spaces, waiting in the Trash space with their audio, stems and artwork.": "Tomas eliminadas y tomas de espacios eliminados que esperan en el espacio Trash con su audio, pistas e imágenes.",
- "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Todas las tomas en Trash se eliminarán permanentemente junto con su audio, pistas e imágenes. Esto no se puede deshacer."
+ "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Todas las tomas en Trash se eliminarán permanentemente junto con su audio, pistas e imágenes. Esto no se puede deshacer.",
+ "Restore every selected take from Trash": "Restaurar todas las tomas seleccionadas de Trash",
+ "Restore {count}": "Restaurar {count}",
+ "Restoring {value} of {idsCount}…": "Restaurando {value} de {idsCount}…",
+ "Could not restore {value}: {message}": "No se pudo restaurar {value}: {message}",
+ "Restored {n} take.": "{n} toma restaurada.",
+ "Restored {n} takes.": "{n} tomas restauradas."
 }

@@ -2923,5 +2923,11 @@
  "the Trash space cannot be deleted": "Trash スペースは削除できません",
  "Takes in Trash": "Trash 内のテイク",
  "Deleted takes and takes from deleted spaces, waiting in the Trash space with their audio, stems and artwork.": "削除されたテイクや削除されたスペースのテイクが、音声・ステム・画像とともに Trash スペースに保管されています。",
- "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Trash 内のすべてのテイクが音声・ステム・画像とともに完全に削除されます。元に戻せません。"
+ "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Trash 内のすべてのテイクが音声・ステム・画像とともに完全に削除されます。元に戻せません。",
+ "Restore every selected take from Trash": "選択したすべてのテイクを Trash から復元",
+ "Restore {count}": "{count} 件を復元",
+ "Restoring {value} of {idsCount}…": "{idsCount} 件中 {value} 件目を復元中…",
+ "Could not restore {value}: {message}": "{value} を復元できませんでした：{message}",
+ "Restored {n} take.": "{n} 件のテイクを復元しました。",
+ "Restored {n} takes.": "{n} 件のテイクを復元しました。"
 }

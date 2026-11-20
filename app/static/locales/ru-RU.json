@@ -2923,5 +2923,11 @@
  "the Trash space cannot be deleted": "пространство Trash нельзя удалить",
  "Takes in Trash": "Дубли в Trash",
  "Deleted takes and takes from deleted spaces, waiting in the Trash space with their audio, stems and artwork.": "Удалённые дубли и дубли из удалённых пространств, ожидающие в пространстве Trash вместе со своим аудио, стемами и обложками.",
- "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Все дубли в Trash будут удалены навсегда вместе со своим аудио, стемами и обложками. Это нельзя отменить."
+ "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Все дубли в Trash будут удалены навсегда вместе со своим аудио, стемами и обложками. Это нельзя отменить.",
+ "Restore every selected take from Trash": "Восстановить все выбранные дубли из Trash",
+ "Restore {count}": "Восстановить {count}",
+ "Restoring {value} of {idsCount}…": "Восстановление {value} из {idsCount}…",
+ "Could not restore {value}: {message}": "Не удалось восстановить {value}: {message}",
+ "Restored {n} take.": "Восстановлен {n} дубль.",
+ "Restored {n} takes.": "Восстановлен {n} дубль. | Восстановлено {n} дубля. | Восстановлено {n} дублей. | Восстановлено {n} дубля."
 }

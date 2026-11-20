@@ -2923,5 +2923,11 @@
  "the Trash space cannot be deleted": "不能删除 Trash 空间",
  "Takes in Trash": "Trash 中的版本",
  "Deleted takes and takes from deleted spaces, waiting in the Trash space with their audio, stems and artwork.": "已删除的版本以及来自已删除空间的版本，连同其音频、分轨和图片一同保留在 Trash 空间中。",
- "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Trash 中的所有版本将连同其音频、分轨和图片一并永久删除。此操作无法撤销。"
+ "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Trash 中的所有版本将连同其音频、分轨和图片一并永久删除。此操作无法撤销。",
+ "Restore every selected take from Trash": "从 Trash 还原所有选中的版本",
+ "Restore {count}": "还原 {count}",
+ "Restoring {value} of {idsCount}…": "正在还原第 {value}/{idsCount} 个…",
+ "Could not restore {value}: {message}": "无法还原 {value}：{message}",
+ "Restored {n} take.": "已还原 {n} 个版本。",
+ "Restored {n} takes.": "已还原 {n} 个版本。"
 }

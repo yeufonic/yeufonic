@@ -2923,5 +2923,11 @@
  "the Trash space cannot be deleted": "de ruimte Trash kan niet worden verwijderd",
  "Takes in Trash": "Takes in Trash",
  "Deleted takes and takes from deleted spaces, waiting in the Trash space with their audio, stems and artwork.": "Verwijderde takes en takes uit verwijderde ruimtes die in Trash wachten, met hun audio, stems en afbeeldingen.",
- "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Elke take in Trash wordt definitief verwijderd, inclusief audio, stems en afbeeldingen. Dit kan niet ongedaan worden gemaakt."
+ "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Elke take in Trash wordt definitief verwijderd, inclusief audio, stems en afbeeldingen. Dit kan niet ongedaan worden gemaakt.",
+ "Restore every selected take from Trash": "Zet elke geselecteerde take terug uit Trash",
+ "Restore {count}": "Terugzetten ({count})",
+ "Restoring {value} of {idsCount}…": "{value} van {idsCount} terugzetten…",
+ "Could not restore {value}: {message}": "Kon {value} niet terugzetten: {message}",
+ "Restored {n} take.": "{n} take teruggezet.",
+ "Restored {n} takes.": "{n} takes teruggezet."
 }

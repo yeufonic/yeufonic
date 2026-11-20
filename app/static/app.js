@@ -13026,12 +13026,23 @@ function insidePanel(mother, cardOf) {
 function paintBulk() {
   paintCompareButton();
   var count = pickedIds().length;
+  var inTrash = State.spaceId === 'trash';
   // While takes are picked, the row offers what can be done with them in place of what to show.
   var tools = $('pick-tools');
   if (tools) {
     tools.classList.toggle('hidden', !count);
     document.querySelector('.show-tools').classList.toggle('hidden', Boolean(count));
     $('picked-count').textContent = t('{count} picked', { count: count });
+  }
+  if (inTrash && $('compare-picked')) {
+    $('compare-picked').classList.add('hidden');
+  }
+  var restoreBtn = $('bulk-restore');
+  if (restoreBtn) {
+    var canRestore = inTrash && count > 0;
+    restoreBtn.classList.toggle('hidden', !canRestore);
+    restoreBtn.textContent = count ? t('Restore {count}', { count: count }) : t('Restore');
+    restoreBtn.disabled = !canRestore;
   }
   var button = $('bulk-delete');
   if (button) {
@@ -13090,6 +13101,26 @@ function markPickedCards() {
 function clearPicked() {
   State.picked = {};
   paintBulk();
+}
+
+async function bulkRestore() {
+  var ids = pickedIds();
+  if (!ids.length) { return; }
+  var done = 0;
+  for (var i = 0; i < ids.length; i++) {
+    statusLine(t('Restoring {value} of {idsCount}…', { value: done + 1, idsCount: ids.length }));
+    try {
+      await api('/api/takes/' + ids[i] + '/restore', { method: 'POST' });
+      done += 1;
+    } catch (err) {
+      statusLine(t('Could not restore {value}: {message}', { value: takeById(ids[i]) ? takeById(ids[i]).title : ids[i], message: err.message }), 'bad');
+      break;
+    }
+  }
+  clearPicked();
+  loadSpaces();
+  loadTakes();
+  if (done) { statusLine(tn(done, 'Restored {n} take.', 'Restored {n} takes.'), 'good'); }
 }
 
 async function bulkDelete() {
@@ -13331,72 +13362,80 @@ function paintTakes() {
         ' title="' + esc(stemsOpen ? t('Fold this take again') : t('This take has stems: open it to see them')) + '">' + icon('stems') + t('Stems') + '</button>';
     }
     var id = ' data-id="' + take.id + '"';
+    var inTrash = take.space_id === 'trash';
     var actions = '';
-    if (status === 'queued' || status === 'running') {
-      actions += tile('del', 'stop', t('Cancel'), 'data-act="cancel"' + id,
-                      t('Cancel — Stop this job and remove from queue'));
-    }
-    if (status === 'planned') {
-      actions += tile('go', 'render', t('Render'), 'data-act="render"' + id,
-                      t('Render — Synthesize audio for this take'));
-      actions += tile('again', 'again', t('Replan'), 'data-act="replan"' + id,
-                      t('Replan — Generate a new song plan from prompt'));
-    }
-    if (status === 'failed') {
-      // A failure leaves a dead end unless it can be retried. A take with a score
-      // failed while rendering; one without failed while planning.
-      if (take.abc && take.abc.length > 50) {
-        actions += tile('go', 'render', t('Render'), 'data-act="render"' + id,
-                        t('Render — Retry synthesizing audio for this take'));
-      } else {
-        actions += tile('again', 'again', t('Replan'), 'data-act="replan"' + id,
-                        t('Replan — Try planning again from prompt'));
+    if (inTrash) {
+      if (take.has_audio) {
+        var isTrashLive = State.playing === take.id;
+        actions += tile('play' + (isTrashLive ? ' playing' : ''), isTrashLive ? 'pause' : 'play',
+                        isTrashLive ? t('Pause') : t('Play'), 'data-act="play"' + id,
+                        isTrashLive ? t('Pause — Pause audio playback') : t('Play — Listen to this take (Spacebar)'));
       }
-      // A restarted job leaves a take that often still holds its audio or its score.
-      // Clear puts it back to whatever it reached, without another run.  A take that
-      // failed while planning holds neither, so there is nothing to go back to: the
-      // server refuses, and the button would only look broken.
-      if (take.has_audio || (take.abc && take.abc.trim())) {
-        actions += tile('go', 'check', t('Clear'), 'data-act="clear"' + id,
-                        t('Clear — Reset failed state and restore take'));
-      }
-      // Again comes from the branches below when there is audio, and from here when
-      // there is not, so a failed take never shows it twice.
-      if (!take.has_audio) {
-        actions += tile('again', 'again', t('Again'), 'data-act="again"' + id,
-                        t('Again — Re-plan this song with a fresh seed'));
-      }
-    }
-    if (take.abc && take.abc.length > 50) {
-      actions += tile('score', 'score', t('Score'), 'data-act="open"' + id,
-                      t('Score — View and edit the ABC score notation and piano roll'));
-    }
-    if (take.has_audio) {
-      // Named carefully: `live` above already holds the status line for this card,
-      // and var is function scoped, so reusing the name printed true or false there.
-      var isLive = State.playing === take.id;
-      actions += tile('play' + (isLive ? ' playing' : '') + (heardInside ? ' inside-playing' : ''), isLive ? 'pause' : 'play',
-                      isLive ? t('Pause') : t('Play'), 'data-act="play"' + id,
-                      heardInside ? t('A take inside this one is playing: “{title}”. Open Inside to see it, or click to play this take instead', { title: State.loadedTake.title })
-                        : (isLive ? t('Pause — Pause audio playback') : t('Play — Listen to this take (Spacebar)')));
-      actions += downloadTile(take);
-      actions += tile('stems', 'stems', t('Stems'), 'data-act="stems"' + id,
-                      t('Stems — Separate vocals, instruments, drums, and bass tracks'));
-      actions += tile('again', 'again', t('Again'), 'data-act="again"' + id,
-                      t('Again — Re-plan this song with a fresh seed'));
-      actions += tile('playlist', 'playlist', t('Playlist'), 'data-act="playlist"' + id,
-                      t('Add to playlist (P)'));
-    }
-    actions += tile('star' + (take.favourite ? ' on' : ''), 'star', t('Star'), 'data-act="star"' + id,
-                    take.favourite ? t('Starred (S) — Click to remove from favourites') : t('Star (S) — Add to favourites'));
-    if (take.space_id === 'trash') {
       actions += tile('restore', 'restore', t('Restore'), 'data-act="restore"' + id,
                       t('Restore — Move this take back out of Trash'));
+      actions += tile('del', 'trash', t('Delete permanently'), 'data-act="del"' + id,
+                      t('Delete permanently (D) — Remove this take and its files for good'));
+    } else {
+      if (status === 'queued' || status === 'running') {
+        actions += tile('del', 'stop', t('Cancel'), 'data-act="cancel"' + id,
+                        t('Cancel — Stop this job and remove from queue'));
+      }
+      if (status === 'planned') {
+        actions += tile('go', 'render', t('Render'), 'data-act="render"' + id,
+                        t('Render — Synthesize audio for this take'));
+        actions += tile('again', 'again', t('Replan'), 'data-act="replan"' + id,
+                        t('Replan — Generate a new song plan from prompt'));
+      }
+      if (status === 'failed') {
+        // A failure leaves a dead end unless it can be retried. A take with a score
+        // failed while rendering; one without failed while planning.
+        if (take.abc && take.abc.length > 50) {
+          actions += tile('go', 'render', t('Render'), 'data-act="render"' + id,
+                          t('Render — Retry synthesizing audio for this take'));
+        } else {
+          actions += tile('again', 'again', t('Replan'), 'data-act="replan"' + id,
+                          t('Replan — Try planning again from prompt'));
+        }
+        // A restarted job leaves a take that often still holds its audio or its score.
+        // Clear puts it back to whatever it reached, without another run.  A take that
+        // failed while planning holds neither, so there is nothing to go back to: the
+        // server refuses, and the button would only look broken.
+        if (take.has_audio || (take.abc && take.abc.trim())) {
+          actions += tile('go', 'check', t('Clear'), 'data-act="clear"' + id,
+                          t('Clear — Reset failed state and restore take'));
+        }
+        // Again comes from the branches below when there is audio, and from here when
+        // there is not, so a failed take never shows it twice.
+        if (!take.has_audio) {
+          actions += tile('again', 'again', t('Again'), 'data-act="again"' + id,
+                          t('Again — Re-plan this song with a fresh seed'));
+        }
+      }
+      if (take.abc && take.abc.length > 50) {
+        actions += tile('score', 'score', t('Score'), 'data-act="open"' + id,
+                        t('Score — View and edit the ABC score notation and piano roll'));
+      }
+      if (take.has_audio) {
+        // Named carefully: `live` above already holds the status line for this card,
+        // and var is function scoped, so reusing the name printed true or false there.
+        var isLive = State.playing === take.id;
+        actions += tile('play' + (isLive ? ' playing' : '') + (heardInside ? ' inside-playing' : ''), isLive ? 'pause' : 'play',
+                        isLive ? t('Pause') : t('Play'), 'data-act="play"' + id,
+                        heardInside ? t('A take inside this one is playing: “{title}”. Open Inside to see it, or click to play this take instead', { title: State.loadedTake.title })
+                          : (isLive ? t('Pause — Pause audio playback') : t('Play — Listen to this take (Spacebar)')));
+        actions += downloadTile(take);
+        actions += tile('stems', 'stems', t('Stems'), 'data-act="stems"' + id,
+                        t('Stems — Separate vocals, instruments, drums, and bass tracks'));
+        actions += tile('again', 'again', t('Again'), 'data-act="again"' + id,
+                        t('Again — Re-plan this song with a fresh seed'));
+        actions += tile('playlist', 'playlist', t('Playlist'), 'data-act="playlist"' + id,
+                        t('Add to playlist (P)'));
+      }
+      actions += tile('star' + (take.favourite ? ' on' : ''), 'star', t('Star'), 'data-act="star"' + id,
+                      take.favourite ? t('Starred (S) — Click to remove from favourites') : t('Star (S) — Add to favourites'));
+      actions += tile('del', 'trash', t('Delete'), 'data-act="del"' + id,
+                      t('Move to Trash (D) — Move this take to the Trash space'));
     }
-    actions += tile('del', 'trash', t('Delete'), 'data-act="del"' + id,
-                    take.space_id === 'trash'
-                      ? t('Delete permanently (D) — Remove this take and its files for good')
-                      : t('Move to Trash (D) — Move this take to the Trash space'));
     var classes = 'take';
     if (State.picked[take.id]) { classes += ' picked'; }
     if (State.playing === take.id) { classes += ' playing'; }
@@ -13424,8 +13463,9 @@ function paintTakes() {
           ? t('Instrumental — created without vocal tracks')
           : t('Cover — reimagined from a source recording'));
     // The small buttons for what is done now and then.  They sit on the status line, to the right, and not
-    // beside the title, which on a narrow card they left room for a letter or two of.
-    var corner = '<div class="take-corner">' +
+    // beside the title, which on a narrow card they left room for a letter or two of.  Takes in Trash keep
+    // only the three action tiles (play, restore, delete permanently).
+    var corner = inTrash ? '' : '<div class="take-corner">' +
           (take.abc && take.abc.length > 50 && status !== 'queued' && status !== 'running'
             ? '<button class="take-move" data-act="revoice"' + id + ' title="' + t('Sing again — The same score with a new seed. The backing and phrasing come out new; with a style LoRA the voice usually stays close') + '"' +
               ' aria-label="' + t('Sing again') + '">' + icon('voice') + '</button>' +
@@ -16298,6 +16338,7 @@ function wire() {
     if (card) { card.classList.toggle('picked', box.checked); }
     paintBulk();
   });
+  if ($('bulk-restore')) { $('bulk-restore').addEventListener('click', function () { bulkRestore(); }); }
   $('bulk-delete').addEventListener('click', function () { bulkDelete(); });
   $('pick-done').addEventListener('click', function () { clearPicked(); markPickedCards(); });
 

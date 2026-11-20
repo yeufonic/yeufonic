@@ -2923,5 +2923,11 @@
  "the Trash space cannot be deleted": "Trash 스페이스는 삭제할 수 없습니다",
  "Takes in Trash": "Trash의 테이크",
  "Deleted takes and takes from deleted spaces, waiting in the Trash space with their audio, stems and artwork.": "삭제된 테이크와 삭제된 스페이스의 테이크가 오디오, 스템, 이미지와 함께 Trash 스페이스에 대기 중입니다.",
- "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Trash의 모든 테이크가 오디오, 스템, 이미지와 함께 영구 삭제됩니다. 되돌릴 수 없습니다."
+ "Every take in Trash is permanently deleted, along with its audio, stems and artwork. This cannot be undone.": "Trash의 모든 테이크가 오디오, 스템, 이미지와 함께 영구 삭제됩니다. 되돌릴 수 없습니다.",
+ "Restore every selected take from Trash": "선택한 모든 테이크를 Trash에서 복원",
+ "Restore {count}": "{count}개 복원",
+ "Restoring {value} of {idsCount}…": "{idsCount}개 중 {value}번째 복원 중…",
+ "Could not restore {value}: {message}": "{value}을(를) 복원할 수 없습니다: {message}",
+ "Restored {n} take.": "{n}개 테이크를 복원했습니다.",
+ "Restored {n} takes.": "{n}개 테이크를 복원했습니다."
 }
