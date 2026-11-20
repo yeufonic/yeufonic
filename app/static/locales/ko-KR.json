@@ -2929,5 +2929,6 @@
  "Restoring {value} of {idsCount}…": "{idsCount}개 중 {value}번째 복원 중…",
  "Could not restore {value}: {message}": "{value}을(를) 복원할 수 없습니다: {message}",
  "Restored {n} take.": "{n}개 테이크를 복원했습니다.",
- "Restored {n} takes.": "{n}개 테이크를 복원했습니다."
+ "Restored {n} takes.": "{n}개 테이크를 복원했습니다.",
+ "Hot keys (?)": "단축키 (?)"
 }

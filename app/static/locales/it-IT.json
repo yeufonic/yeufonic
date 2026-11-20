@@ -2929,5 +2929,6 @@
  "Restoring {value} of {idsCount}…": "Ripristino di {value} su {idsCount}…",
  "Could not restore {value}: {message}": "Impossibile ripristinare {value}: {message}",
  "Restored {n} take.": "{n} take ripristinato.",
- "Restored {n} takes.": "{n} take ripristinati."
+ "Restored {n} takes.": "{n} take ripristinati.",
+ "Hot keys (?)": "Scorciatoie da tastiera (?)"
 }

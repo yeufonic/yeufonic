@@ -4040,6 +4040,50 @@ button.ghost.run-all { margin-left: 10px; }
 .storage-convert { grid-column: 2; display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
 
 /* ============================================================== Mastering Rack */
+.help-chiclet-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  margin-right: 6px;
+  background: linear-gradient(180deg, #075985 0%, #0c4a6e 60%, #082f49 100%);
+  border: 1px solid #38bdf8;
+  border-bottom: 2px solid #0284c7;
+  border-radius: 5px;
+  color: #7dd3fc;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: transform 70ms ease, background 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+  user-select: none;
+  flex: 0 0 auto;
+}
+.help-chiclet-btn:hover {
+  background: linear-gradient(180deg, #0369a1 0%, #075985 60%, #0c4a6e 100%);
+  border-color: #7dd3fc;
+  color: #bae6fd;
+  box-shadow: 0 2px 6px rgba(56, 189, 248, 0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+  filter: brightness(1.08);
+}
+.help-chiclet-btn:active {
+  transform: translateY(1px);
+  border-bottom: 1px solid #0284c7;
+}
+.help-chiclet-btn.active {
+  background: linear-gradient(180deg, #0284c7 0%, #0369a1 60%, #075985 100%);
+  border-color: #bae6fd;
+  border-bottom: 1px solid #0284c7;
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(186, 230, 253, 0.9);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.6), inset 0 1px 2px rgba(0,0,0,0.3);
+  transform: translateY(1px);
+}
+
 .rack-chiclet-btn {
   position: relative;
   display: inline-flex;

@@ -2929,5 +2929,6 @@
  "Restoring {value} of {idsCount}…": "正在还原第 {value}/{idsCount} 个…",
  "Could not restore {value}: {message}": "无法还原 {value}：{message}",
  "Restored {n} take.": "已还原 {n} 个版本。",
- "Restored {n} takes.": "已还原 {n} 个版本。"
+ "Restored {n} takes.": "已还原 {n} 个版本。",
+ "Hot keys (?)": "快捷键 (?)"
 }

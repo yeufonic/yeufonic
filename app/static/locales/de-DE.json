@@ -2929,5 +2929,6 @@
  "Restoring {value} of {idsCount}…": "Stelle {value} von {idsCount} wieder her…",
  "Could not restore {value}: {message}": "{value} konnte nicht wiederhergestellt werden: {message}",
  "Restored {n} take.": "{n} Take wiederhergestellt.",
- "Restored {n} takes.": "{n} Takes wiederhergestellt."
+ "Restored {n} takes.": "{n} Takes wiederhergestellt.",
+ "Hot keys (?)": "Tastenkürzel (?)"
 }

@@ -2929,5 +2929,6 @@
  "Restoring {value} of {idsCount}…": "A restaurar {value} de {idsCount}…",
  "Could not restore {value}: {message}": "Não foi possível restaurar {value}: {message}",
  "Restored {n} take.": "{n} take restaurado.",
- "Restored {n} takes.": "{n} takes restaurados."
+ "Restored {n} takes.": "{n} takes restaurados.",
+ "Hot keys (?)": "Atalhos de teclado (?)"
 }

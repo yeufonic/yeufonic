@@ -6249,11 +6249,13 @@ function wireAbout() {
 function openHotkeys() {
   var modal = $('hotkeys-modal');
   if (modal) { modal.classList.remove('hidden'); }
+  if ($('btn-hotkeys')) { $('btn-hotkeys').classList.add('active'); }
 }
 
 function closeHotkeys() {
   var modal = $('hotkeys-modal');
   if (modal) { modal.classList.add('hidden'); }
+  if ($('btn-hotkeys')) { $('btn-hotkeys').classList.remove('active'); }
 }
 
 function toggleHotkeys() {
@@ -6267,6 +6269,12 @@ function toggleHotkeys() {
 }
 
 function wireHotkeys() {
+  if ($('btn-hotkeys')) {
+    $('btn-hotkeys').addEventListener('click', function () {
+      this.blur();
+      toggleHotkeys();
+    });
+  }
   var modal = $('hotkeys-modal');
   if (!modal) { return; }
   if ($('hotkeys-close')) { $('hotkeys-close').addEventListener('click', closeHotkeys); }

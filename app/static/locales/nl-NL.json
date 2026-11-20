@@ -2929,5 +2929,6 @@
  "Restoring {value} of {idsCount}…": "{value} van {idsCount} terugzetten…",
  "Could not restore {value}: {message}": "Kon {value} niet terugzetten: {message}",
  "Restored {n} take.": "{n} take teruggezet.",
- "Restored {n} takes.": "{n} takes teruggezet."
+ "Restored {n} takes.": "{n} takes teruggezet.",
+ "Hot keys (?)": "Sneltoetsen (?)"
 }

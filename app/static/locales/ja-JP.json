@@ -2929,5 +2929,6 @@
  "Restoring {value} of {idsCount}…": "{idsCount} 件中 {value} 件目を復元中…",
  "Could not restore {value}: {message}": "{value} を復元できませんでした：{message}",
  "Restored {n} take.": "{n} 件のテイクを復元しました。",
- "Restored {n} takes.": "{n} 件のテイクを復元しました。"
+ "Restored {n} takes.": "{n} 件のテイクを復元しました。",
+ "Hot keys (?)": "ショートカットキー (?)"
 }
