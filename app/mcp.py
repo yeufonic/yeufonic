@@ -1155,7 +1155,7 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
                                                            if take.get("status") in ("queued", "running") else {}),
                     "other_takes_with_this_title": [_brief(t, spaces) for t in same],
                 })
-            await api("DELETE", f"/api/takes/{args['take_id']}")
+            await api("DELETE", f"/api/takes/{args['take_id']}", params={"permanent": "true"})
             return _text({"deleted": True, "take": {"id": take["id"], "title": take.get("title"), "made": _when(take.get("created_at"))}})
         if name == "sing_again":
             return _text(_made(await api("POST", f"/api/takes/{args['take_id']}/revoice")))

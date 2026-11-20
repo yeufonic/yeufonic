@@ -22,9 +22,9 @@ import time
 from pathlib import Path
 from typing import Callable
 
-from . import config, loras
-from .db import execute, rows
-from .library import inside, remove_tree
+from . import artwork, config, loras
+from .db import TRASH_SPACE, execute, rows
+from .library import inside, remove_tree, take_folder
 
 log = logging.getLogger("yue2.storage")
 
@@ -170,10 +170,52 @@ def _staged_training_copies() -> list[Path]:
     return found
 
 
+def _trash_paths() -> tuple[int, list[Path]]:
+    """(take_count, paths) owned by takes sitting in Trash (audio folders, stem folders, artwork)."""
+    trashed = rows("SELECT id, title, audio_path FROM takes WHERE space_id = ?", (TRASH_SPACE,))
+    if not trashed:
+        return 0, []
+    seen: set[Path] = set()
+    paths: list[Path] = []
+    for take in trashed:
+        folder = Path(take["audio_path"]).parent if take.get("audio_path") else take_folder(take["id"], take["title"])
+        if folder.exists() and inside(folder, config.TAKES_DIR) and folder not in seen:
+            seen.add(folder)
+            paths.append(folder)
+        for art_path in (artwork.png_path(take["id"]), artwork.drawn_path(take["id"])):
+            if art_path.exists() and inside(art_path, config.DATA_DIR) and art_path not in seen:
+                seen.add(art_path)
+                paths.append(art_path)
+    ids = [t["id"] for t in trashed]
+    for start in range(0, len(ids), 500):
+        part = ids[start:start + 500]
+        marks = ",".join("?" * len(part))
+        for item in rows(f"SELECT folder FROM stem_sets WHERE take_id IN ({marks})", tuple(part)):
+            if item["folder"]:
+                p = Path(item["folder"])
+                if p.exists() and inside(p, config.DATA_DIR) and p not in seen:
+                    seen.add(p)
+                    paths.append(p)
+    return len(trashed), paths
+
+
 def items(busy: Busy, lora_base: Callable[[dict], str]) -> list[dict]:
     """Everything that could be given back, with what it is and what it costs.  Each carries its
     paths (under "_paths") for the removal; the page never sees those."""
     out: list[dict] = []
+
+    trash_count, trash_paths = _trash_paths()
+    if trash_count:
+        trash_bytes = sum(tree(p)[0] for p in trash_paths)
+        trash_files = sum(tree(p)[1] for p in trash_paths)
+        out.append({
+            "id": "trash", "title": "Takes in Trash",
+            "bytes": trash_bytes, "files": trash_files, "_paths": trash_paths, "_trash": True, "blocked": None,
+            "what": "Deleted takes and takes from deleted spaces, waiting in the Trash space with their audio, "
+                    "stems and artwork.",
+            "consequence": "Every take in Trash is permanently deleted, along with its audio, stems and artwork. "
+                           "This cannot be undone.",
+        })
 
     paths = _working_copy_paths()
     size, count = _sum(paths)
@@ -406,7 +448,19 @@ def reclaim(ids: list[str], busy: Busy, lora_base: Callable[[dict], str]) -> dic
         if item["blocked"]:
             skipped.append({"id": item_id, "reason": f"{item['blocked']}, so it was left alone"})
             continue
-        got = _remove_item(item)
+        if item.get("_trash"):
+            trashed_ids = [r["id"] for r in rows("SELECT id FROM takes WHERE space_id = ?", (TRASH_SPACE,))]
+            for start in range(0, len(trashed_ids), 500):
+                part = trashed_ids[start:start + 500]
+                marks = ",".join("?" * len(part))
+                execute(f"DELETE FROM stem_sets WHERE take_id IN ({marks})", tuple(part))
+                execute(f"DELETE FROM playlist_items WHERE take_id IN ({marks})", tuple(part))
+            execute("DELETE FROM takes WHERE space_id = ?", (TRASH_SPACE,))
+            got = _remove_item(item)
+            for tid in trashed_ids:
+                artwork.forget(tid)
+        else:
+            got = _remove_item(item)
         freed += got
         removed.append({"id": item_id, "bytes": got})
         if item_id.startswith("training-set:"):

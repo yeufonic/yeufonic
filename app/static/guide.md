@@ -1381,7 +1381,9 @@ on show, and anything you make lands there.
 - **Choosing one:** click the name for the list of spaces. Type to find one by name, or pick it with the arrow keys
   and Enter. The five you used last come first, then every space, each with how many takes it holds.
 - **New space**, **Rename this space**, **Import take** and **Delete this space** are at the foot of the list.
-  Deleting a space never deletes takes — they move to Default.
+  Deleting a take or a space moves its takes to **Trash**, at the bottom of the space list, where you can restore them
+  or move them back out. Deleting a take from **Trash**, pressing **Empty Trash**, or reclaiming Trash in
+  **Settings → Storage** removes its files from disk permanently.
 - **Moving a take:** the folder button on a card moves that take to another space, with any takes inside it.
 - Recordings are shared by every space, so one recording can be covered in several.
 

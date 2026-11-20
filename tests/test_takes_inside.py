@@ -146,7 +146,13 @@ def test_deleting_a_take_deletes_the_takes_inside_it(client):
     made = tries(client, take, 3)
     finish(made[0])
     reply = client.delete(f"/api/takes/{take['id']}")
-    assert reply.json() == {"deleted": True, "inside": 3}
+    assert reply.json() == {"deleted": True, "trashed": True, "permanent": False, "inside": 3}
+    # Moved to Trash together; outside Trash only `other` remains.
+    assert [row["id"] for row in rows("SELECT id FROM takes WHERE space_id != 'trash'")] == [other["id"]]
+    assert {row["space_id"] for row in rows("SELECT space_id FROM takes WHERE id = ? OR parent_id = ?", (take["id"], take["id"]))} == {"trash"}
+    # Deleting again from Trash permanently removes parent and children.
+    perm = client.delete(f"/api/takes/{take['id']}")
+    assert perm.json() == {"deleted": True, "permanent": True, "inside": 3}
     assert [row["id"] for row in rows("SELECT id FROM takes")] == [other["id"]]
     assert rows("SELECT id FROM stem_sets") == []
 
@@ -154,7 +160,11 @@ def test_deleting_a_take_deletes_the_takes_inside_it(client):
 def test_deleting_a_take_inside_another_leaves_the_rest(client):
     take = a_take()
     made = tries(client, take, 2)
-    assert client.delete(f"/api/takes/{made[0]}").json() == {"deleted": True, "inside": 0}
+    assert client.delete(f"/api/takes/{made[0]}").json() == {"deleted": True, "trashed": True, "permanent": False, "inside": 0}
+    trashed = one("SELECT space_id, parent_id FROM takes WHERE id = ?", (made[0],))
+    assert trashed == {"space_id": "trash", "parent_id": None}
+    assert sorted(row["id"] for row in rows("SELECT id FROM takes WHERE space_id != 'trash'")) == sorted([take["id"], made[1]])
+    assert client.delete(f"/api/takes/{made[0]}").json() == {"deleted": True, "permanent": True, "inside": 0}
     assert sorted(row["id"] for row in rows("SELECT id FROM takes")) == sorted([take["id"], made[1]])
 
 

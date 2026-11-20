@@ -6480,6 +6480,10 @@ async function reclaimStorage() {
       text += ' ' + t('Left alone: {value}.', { value: result.skipped.map(function (s) { return tr(s.reason); }).join('; ') });
     }
     await loadStorage();
+    if (chosen.indexOf('trash') >= 0) {
+      loadSpaces();
+      loadTakes();
+    }
     $('storage-result').textContent = text;
   } catch (err) {
     $('storage-result').textContent = t('Could not remove: {message}', { message: err.message });
@@ -8019,7 +8023,7 @@ function songBody(seed) {
     auto_render: $('auto-render').checked,
     variety: $('variety').value,
     harmony: harmonyStep(),
-    space_id: State.spaceId,
+    space_id: targetSpaceId(),
     voice_id: VOICES.pick || null,
     voice_mix: voiceMixWanted(),
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
@@ -8249,6 +8253,26 @@ function currentSpace() {
   return (Array.isArray(State.spaces) ? State.spaces : []).filter(function (space) { return space.id === State.spaceId; })[0] || null;
 }
 
+function targetSpaceId() {
+  return State.spaceId === 'trash' ? 'default' : (State.spaceId || 'default');
+}
+
+function releaseAudioIf(ids) {
+  var idList = Array.isArray(ids) ? ids : [ids];
+  var playingHit = State.playing && idList.indexOf(State.playing) !== -1;
+  var loadedHit = State.loadedId && idList.indexOf(State.loadedId) !== -1;
+  if (!playingHit && !loadedHit) { return; }
+  var audio = $('audio');
+  if (audio) {
+    audio.pause();
+    audio.removeAttribute('src');
+    try { audio.load(); } catch (err) { /* ignore */ }
+  }
+  if (playingHit) { State.playing = null; }
+  if (loadedHit) { State.loadedId = null; State.loadedTake = null; }
+  paintTransport();
+}
+
 function paintSpaces() {
   var select = $('space');
   var html = (Array.isArray(State.spaces) ? State.spaces : []).map(function (space) {
@@ -8259,7 +8283,8 @@ function paintSpaces() {
     select.dataset.html = html;
   }
   select.value = State.spaceId;
-  $('space-delete').disabled = State.spaceId === 'default';
+  $('space-delete').disabled = State.spaceId === 'default' || State.spaceId === 'trash';
+  if ($('space-rename')) { $('space-rename').disabled = State.spaceId === 'trash'; }
   paintTakesHeading();
 }
 
@@ -8269,6 +8294,9 @@ function paintTakesHeading() {
   $('takes-heading').textContent = everywhere ? t('All spaces') : (space ? space.name : t('Your takes'));
   if ($('space-count')) {
     $('space-count').textContent = everywhere || !space ? '' : tn(space.takes, '{n} take', '{n} takes');
+  }
+  if ($('trash-empty')) {
+    $('trash-empty').classList.toggle('hidden', everywhere || State.spaceId !== 'trash' || !space || !space.takes);
   }
   if ($('space-menu') && !$('space-menu').classList.contains('hidden')) { paintSpaceList(); }
 }
@@ -8299,8 +8327,12 @@ function paintSpaceList() {
   var spaces = Array.isArray(State.spaces) ? State.spaces : [];
   var row = function (space) {
     var current = space.id === State.spaceId;
-    return '<button type="button" class="space-row' + (current ? ' current' : '') + '" role="option" aria-selected="' +
-      (current ? 'true' : 'false') + '" data-space="' + esc(space.id) + '"><span class="space-row-name">' + esc(space.name) +
+    var isTrash = space.id === 'trash';
+    var nameHtml = isTrash
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS.trash + '</svg>' + esc(space.name)
+      : esc(space.name);
+    return '<button type="button" class="space-row' + (current ? ' current' : '') + (isTrash ? ' space-row-trash' : '') + '" role="option" aria-selected="' +
+      (current ? 'true' : 'false') + '" data-space="' + esc(space.id) + '"><span class="space-row-name">' + nameHtml +
       '</span><span class="space-row-n">' + space.takes + '</span></button>';
   };
   var html;
@@ -8310,10 +8342,12 @@ function paintSpaceList() {
   } else {
     var byId = {};
     spaces.forEach(function (space) { byId[space.id] = space; });
-    var recent = recentSpaceIds().map(function (id) { return byId[id]; }).filter(Boolean).slice(0, 5);
+    var regular = spaces.filter(function (space) { return space.id !== 'trash'; });
+    var trashSpace = byId.trash || null;
+    var recent = recentSpaceIds().filter(function (id) { return id !== 'trash'; }).map(function (id) { return byId[id]; }).filter(Boolean).slice(0, 5);
     var head = function (text) { return '<div class="space-list-head">' + text + '</div>'; };
-    html = (recent.length > 1 && spaces.length > 6 ? head(t('Recent')) + recent.map(row).join('') + head(t('All spaces')) : '') +
-      spaces.map(row).join('');
+    html = (recent.length > 1 && regular.length > 6 ? head(t('Recent')) + recent.map(row).join('') + head(t('All spaces')) : '') +
+      regular.map(row).join('') + (trashSpace ? row(trashSpace) : '');
   }
   list.innerHTML = html;
   var rows = list.querySelectorAll('.space-row');
@@ -8430,7 +8464,7 @@ async function newSpace() {
 
 async function renameSpace() {
   var space = currentSpace();
-  if (!space) { return; }
+  if (!space || space.id === 'trash') { return; }
   var name = await confirmModal({
     title: t('Rename space'),
     message: t('Rename the space:'),
@@ -8451,8 +8485,8 @@ async function renameSpace() {
 
 async function deleteSpace() {
   var space = currentSpace();
-  if (!space || space.id === 'default') { return; }
-  var held = space.takes ? ' ' + tn(space.takes, 'Its {n} take moves to Default.', 'Its {n} takes move to Default.') : '';
+  if (!space || space.id === 'default' || space.id === 'trash') { return; }
+  var held = space.takes ? ' ' + tn(space.takes, 'Its {n} take moves to Trash, where you can restore it or delete it permanently.', 'Its {n} takes move to Trash, where you can restore them or delete them permanently.') : '';
   if (!await confirmModal({
     title: t('Delete space'),
     message: t('Delete the space “{name}”?{held}', { name: space.name, held: held }),
@@ -8468,12 +8502,36 @@ async function deleteSpace() {
   }
 }
 
+async function emptyTrash() {
+  var space = State.spaces.filter(function (s) { return s.id === 'trash'; })[0];
+  var count = space ? space.takes : 0;
+  if (!count) { return; }
+  if (!await confirmModal({
+    title: t('Empty Trash'),
+    message: tn(count, 'Permanently delete {n} take in Trash?\n\nIts audio, stems and artwork will be removed from disk. This cannot be undone.', 'Permanently delete {n} takes in Trash?\n\nTheir audio, stems and artwork will be removed from disk. This cannot be undone.'),
+    confirmText: t('Empty Trash'),
+    danger: true
+  })) { return; }
+  if (State.spaceId === 'trash') {
+    releaseAudioIf((State.takes || []).map(function (t) { return t.id; }));
+  }
+  try {
+    await api('/api/spaces/trash/empty', { method: 'POST' });
+    clearPicked();
+    await loadSpaces();
+    await loadTakes();
+    statusLine(t('Trash emptied.'), 'good');
+  } catch (err) {
+    statusLine(t('Could not empty Trash: {message}', { message: err.message }), 'bad');
+  }
+}
+
 function openMoveModal(take) {
   State.moveTakeId = take.id;
   $('move-heading').textContent = t('Move “{title}” to', { title: take.title });
   $('move-name').value = '';
   $('move-status').textContent = '';
-  $('move-list').innerHTML = State.spaces.map(function (space) {
+  $('move-list').innerHTML = State.spaces.filter(function (space) { return space.id !== 'trash'; }).map(function (space) {
     var here = space.id === take.space_id;
     return '<button class="ghost" data-space="' + esc(space.id) + '"' + (here ? ' disabled' : '') + '>' +
       '<span>' + esc(space.name) + '</span><span class="muted">' +
@@ -9898,7 +9956,7 @@ function instBody(seed) {
     auto_render: $('auto-render').checked,
     variety: $('variety').value,
     harmony: harmonyStep(),
-    space_id: State.spaceId,
+    space_id: targetSpaceId(),
     voice_id: VOICES.pick || null,
     voice_mix: voiceMixWanted(),
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
@@ -11318,7 +11376,7 @@ async function doExpandToSong() {
         style: style,
         title: title,
         lyrics: $('lyrics') ? $('lyrics').value : '',
-        space_id: State.spaceId
+        space_id: targetSpaceId()
       })
     });
     closeExpandModal();
@@ -12558,6 +12616,7 @@ var ICONS = {
   star: '<path d="M12 3.6l2.6 5.5 6.1.9-4.4 4.3 1 6-5.3-2.9-5.3 2.9 1-6L3.4 10l6-.9z"/>',
   check: '<path d="M20 6.5L9.5 17 4 11.5"/>',
   trash: '<path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l1 12.2h9l1-12.2"/>',
+  restore: '<path d="M4.5 9.5h5v-5"/><path d="M4.8 9.5A7.5 7.5 0 1 1 6.2 16.5"/>',
   stems: '<path d="M12 3.2l8 4.2-8 4.2-8-4.2z"/><path d="M4 12.4l8 4.2 8-4.2"/><path d="M4 16.6l8 4.2 8-4.2"/>',
   move: '<path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9.5A1.5 1.5 0 0 0 19 8h-7l-2-2.5H5A1.5 1.5 0 0 0 3.5 7v.5"/><path d="M10 13.5h6m0 0l-2.5-2.5m2.5 2.5L13.5 16"/>',
   voice: '<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/>',
@@ -13036,6 +13095,7 @@ function clearPicked() {
 async function bulkDelete() {
   var ids = pickedIds();
   if (!ids.length) { return; }
+  var inTrash = State.spaceId === 'trash' || ids.every(function (id) { var take = takeById(id); return take && take.space_id === 'trash'; });
   var names = ids.map(function (id) {
     var take = takeById(id);
     return take ? take.title : id;
@@ -13045,22 +13105,23 @@ async function bulkDelete() {
   // A take goes with the takes inside it, so the warning counts those too.
   var within = ids.reduce(function (sum, id) { var take = takeById(id); return sum + (take ? heldBy(take) : 0); }, 0);
   if (!await confirmModal({
-    title: tn(ids.length, 'Delete {n} take', 'Delete {n} takes'),
-    message: tn(ids.length, 'Delete {n} take?\n\n{shown}{more}{inside}\n\nIts audio and stems go with it. This cannot be undone.', 'Delete {n} takes?\n\n{shown}{more}{inside}\n\nTheir audio and stems go with them. This cannot be undone.', { shown: shown, more: more, inside: within ? '\n\n' + (ids.length === 1 ? tn(within, 'The {n} take inside it will be deleted too.', 'The {n} takes inside it will be deleted too.') : tn(within, 'The {n} take inside them will be deleted too.', 'The {n} takes inside them will be deleted too.')) : '' }),
-    confirmText: t('Delete'),
+    title: inTrash
+      ? tn(ids.length, 'Delete {n} take permanently', 'Delete {n} takes permanently')
+      : tn(ids.length, 'Move {n} take to Trash', 'Move {n} takes to Trash'),
+    message: inTrash
+      ? tn(ids.length, 'Delete {n} take permanently?\n\n{shown}{more}{inside}\n\nIts audio and stems will be removed from disk. This cannot be undone.', 'Delete {n} takes permanently?\n\n{shown}{more}{inside}\n\nTheir audio and stems will be removed from disk. This cannot be undone.', { shown: shown, more: more, inside: within ? '\n\n' + (ids.length === 1 ? tn(within, 'The {n} take inside it will be deleted too.', 'The {n} takes inside it will be deleted too.') : tn(within, 'The {n} take inside them will be deleted too.', 'The {n} takes inside them will be deleted too.')) : '' })
+      : tn(ids.length, 'Move {n} take to Trash?\n\n{shown}{more}{inside}\n\nYou can restore it from the Trash space or delete it permanently later.', 'Move {n} takes to Trash?\n\n{shown}{more}{inside}\n\nYou can restore them from the Trash space or delete them permanently later.', { shown: shown, more: more, inside: within ? '\n\n' + (ids.length === 1 ? tn(within, 'The {n} take inside it will move to Trash too.', 'The {n} takes inside it will move to Trash too.') : tn(within, 'The {n} take inside them will move to Trash too.', 'The {n} takes inside them will move to Trash too.')) : '' }),
+    confirmText: inTrash ? t('Delete permanently') : t('Move to Trash'),
     danger: true
   })) {
     return;
   }
-  if (State.playing && ids.indexOf(State.playing) !== -1) {
-    var audio = $('audio');
-    if (audio) { audio.pause(); }
-    State.playing = null;
-    paintTransport();
-  }
+  releaseAudioIf(ids);
   var done = 0;
   for (var i = 0; i < ids.length; i++) {
-    statusLine(t('Deleting {value} of {idsCount}…', { value: done + 1, idsCount: ids.length }));
+    statusLine(inTrash
+      ? t('Deleting {value} of {idsCount}…', { value: done + 1, idsCount: ids.length })
+      : t('Moving {value} of {idsCount} to Trash…', { value: done + 1, idsCount: ids.length }));
     try {
       await api('/api/takes/' + ids[i], { method: 'DELETE' });
       done += 1;
@@ -13070,8 +13131,11 @@ async function bulkDelete() {
     }
   }
   clearPicked();
+  loadSpaces();
   loadTakes();
-  statusLine(tn(done, 'Deleted {n} take.', 'Deleted {n} takes.'), 'good');
+  statusLine(inTrash
+    ? tn(done, 'Deleted {n} take.', 'Deleted {n} takes.')
+    : tn(done, 'Moved {n} take to Trash.', 'Moved {n} takes to Trash.'), 'good');
 }
 
 /* ------------------------------------------------------------- folding the takes ---
@@ -13162,6 +13226,7 @@ function paintTakes() {
     : State.search
     ? t('No {value}takes match “{search}”{value2}', { value: State.filter === 'favourite' ? t('starred') + ' ' : '', search: State.search, value2: searchingEverywhere() ? ' ' + t('in any space.') : ' ' + t('in this space.') })
     : State.filter === 'favourite' ? t('No starred takes in this space.')
+    : State.spaceId === 'trash' ? t('Trash is empty.')
     : others ? t('This space is empty. Create a take while it is on show, or move takes here with Move.')
     : t('Nothing yet. Start one with + Song, + Cover or + Instrumental.');
   var more = State.takesTotal - State.listed.length;
@@ -13324,8 +13389,14 @@ function paintTakes() {
     }
     actions += tile('star' + (take.favourite ? ' on' : ''), 'star', t('Star'), 'data-act="star"' + id,
                     take.favourite ? t('Starred (S) — Click to remove from favourites') : t('Star (S) — Add to favourites'));
+    if (take.space_id === 'trash') {
+      actions += tile('restore', 'restore', t('Restore'), 'data-act="restore"' + id,
+                      t('Restore — Move this take back out of Trash'));
+    }
     actions += tile('del', 'trash', t('Delete'), 'data-act="del"' + id,
-                    t('Delete (D) — Remove this take permanently'));
+                    take.space_id === 'trash'
+                      ? t('Delete permanently (D) — Remove this take and its files for good')
+                      : t('Move to Trash (D) — Move this take to the Trash space'));
     var classes = 'take';
     if (State.picked[take.id]) { classes += ' picked'; }
     if (State.playing === take.id) { classes += ' playing'; }
@@ -15514,7 +15585,7 @@ function coverBody(seed) {
     seed: seed,
     interpretation: $('interpretation').value,
     max_duration: capInBox(),
-    space_id: State.spaceId,
+    space_id: targetSpaceId(),
     voice_id: VOICES.pick || null,
     voice_mix: voiceMixWanted(),
     realaudio: $('realaudio').checked, normalise: normaliseWanted()
@@ -16570,6 +16641,7 @@ function wire() {
   $('space-new').addEventListener('click', newSpace);
   $('space-rename').addEventListener('click', renameSpace);
   $('space-delete').addEventListener('click', deleteSpace);
+  if ($('trash-empty')) { $('trash-empty').addEventListener('click', emptyTrash); }
   $('move-close').addEventListener('click', closeMoveModal);
   $('move-modal').addEventListener('click', function (event) {
     if (backdropClick(event, $('move-modal'))) { closeMoveModal(); }
@@ -16620,19 +16692,36 @@ function wire() {
     if (act === 'playlist') {
       openPlaylistPicker(id);
     }
+    if (act === 'restore') {
+      var restored = await api('/api/takes/' + id + '/restore', { method: 'POST' });
+      delete State.picked[id];
+      loadSpaces();
+      loadTakes();
+      statusLine(t('Restored to {name}.', { name: restored.name }), 'good');
+    }
     if (act === 'del') {
       var doomed = takeById(id), holding = doomed ? heldBy(doomed) : 0;
+      var inTrash = doomed && doomed.space_id === 'trash';
       if (await confirmModal({
-        title: t('Delete take'),
-        message: holding
-          ? tn(holding, 'Delete this take and its audio, and the {n} take inside it?\n\nTakes made from it with Variations, Try more or Checkpoints are kept inside it and go with it. Take out any you want to keep first. This cannot be undone.', 'Delete this take and its audio, and the {n} takes inside it?\n\nTakes made from it with Variations, Try more or Checkpoints are kept inside it and go with it. Take out any you want to keep first. This cannot be undone.')
-          : t('Delete this take and its audio?'),
-        confirmText: holding ? t('Delete all {value}', { value: holding + 1 }) : t('Delete'),
+        title: inTrash ? t('Delete permanently') : t('Move to Trash'),
+        message: inTrash
+          ? (holding
+            ? tn(holding, 'Delete this take and its audio permanently, along with the {n} take inside it?\n\nTakes made from it with Variations, Try more or Checkpoints are kept inside it and go with it. This cannot be undone.', 'Delete this take and its audio permanently, along with the {n} takes inside it?\n\nTakes made from it with Variations, Try more or Checkpoints are kept inside it and go with it. This cannot be undone.')
+            : t('Delete this take and its audio permanently? Its files will be removed from disk. This cannot be undone.'))
+          : (holding
+            ? tn(holding, 'Move this take and the {n} take inside it to Trash?\n\nYou can restore them from the Trash space or delete them permanently later.', 'Move this take and the {n} takes inside it to Trash?\n\nYou can restore them from the Trash space or delete them permanently later.')
+            : t('Move this take to Trash? You can restore it from the Trash space or delete it permanently later.')),
+        confirmText: inTrash
+          ? (holding ? t('Delete all {value}', { value: holding + 1 }) : t('Delete permanently'))
+          : (holding ? t('Move all {value} to Trash', { value: holding + 1 }) : t('Move to Trash')),
         danger: true
       })) {
+        releaseAudioIf([id]);
         await api('/api/takes/' + id, { method: 'DELETE' });
         delete State.picked[id];
+        loadSpaces();
         loadTakes();
+        if (!inTrash) { statusLine(t('Moved to Trash.'), 'good'); }
       }
     }
     if (act === 'inside') {
@@ -18377,7 +18466,7 @@ async function importTakeFile(files) {
   }
   var form = new FormData();
   files.forEach(function (f) { form.append('files', f, f.name); });
-  form.append('space_id', State.spaceId || 'default');
+  form.append('space_id', targetSpaceId());
   importNote(t('Importing {name}…', { name: named }), '');
   var got;
   try {

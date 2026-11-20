@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS takes (
     variety TEXT NOT NULL DEFAULT 'normal',
     harmony INTEGER NOT NULL DEFAULT 0,
     space_id TEXT NOT NULL DEFAULT 'default',
+    trashed_from TEXT,
     interpretation TEXT NOT NULL DEFAULT 'standard',
     feel TEXT NOT NULL DEFAULT 'steady',
     realaudio INTEGER NOT NULL DEFAULT 0,
@@ -353,6 +354,7 @@ def _harmony() -> None:
 
 
 DEFAULT_SPACE = "default"
+TRASH_SPACE = "trash"
 
 
 def _spaces() -> None:
@@ -897,6 +899,21 @@ def _slate_for_all() -> None:
     Studio Slate style.  No release ever offered Classic before this, so it was never a choice anyone made."""
     execute("DELETE FROM settings WHERE key = 'appearance.ui_style' AND value = 'default'")
 
+def _trash_space() -> None:
+    """Built-in Trash space for deleted takes and deleted spaces' takes, plus trashed_from for Restore."""
+    if "trashed_from" not in _columns("takes"):
+        execute("ALTER TABLE takes ADD COLUMN trashed_from TEXT")
+    clashes = rows("SELECT id, name FROM spaces WHERE lower(name) = 'trash' AND id != ?", (TRASH_SPACE,))
+    for row in clashes:
+        candidate = "Trash (space)"
+        n = 2
+        while one("SELECT 1 FROM spaces WHERE lower(name) = lower(?) AND id != ?", (candidate, row["id"])):
+            candidate = f"Trash (space {n})"
+            n += 1
+        execute("UPDATE spaces SET name = ? WHERE id = ?", (candidate, row["id"]))
+    execute("INSERT OR IGNORE INTO spaces(id, name, created_at) VALUES(?, 'Trash', 0)", (TRASH_SPACE,))
+
+
 MIGRATIONS = [
     lambda: (conn().executescript(BASE_SCHEMA), _legacy_takes()),   # -> 1
     _indexes,                                                        # -> 2
@@ -957,6 +974,7 @@ MIGRATIONS = [
     _sampling,                                                       # -> 57
     _recording_ref,                                                  # -> 58
     _slate_for_all,                                                  # -> 59
+    _trash_space,                                                    # -> 60
 ]
 
 
@@ -974,6 +992,7 @@ def migrate() -> None:
             CREATE VIEW IF NOT EXISTS personas AS SELECT * FROM identities;
             CREATE VIEW IF NOT EXISTS persona_songs AS SELECT id, identity_id AS persona_id, identity_id, file, title, sha256, duration, bit_rate, include, flag, stored_path, vocals_state, score_state, lyrics_state, style_state, error, key, tempo, lyrics, lyrics_checked, style_hint, position, description FROM identity_songs;
             INSERT OR IGNORE INTO spaces(id, name, created_at) VALUES('{DEFAULT_SPACE}', 'Default', 0);
+            INSERT OR IGNORE INTO spaces(id, name, created_at) VALUES('{TRASH_SPACE}', 'Trash', 0);
             INSERT OR IGNORE INTO playlists (id, name, description, created_at, updated_at, is_system) VALUES ('liked', 'Liked', 'Songs you have starred', 0, 0, 1);
             PRAGMA user_version = {len(MIGRATIONS)};
             """
@@ -990,6 +1009,9 @@ def migrate() -> None:
     if "cfg_scale" not in _columns("takes"):
         with transaction():
             _cfg_scale()
+    if "trashed_from" not in _columns("takes") or not one("SELECT 1 FROM spaces WHERE id = ?", (TRASH_SPACE,)):
+        with transaction():
+            _trash_space()
     with suppress(Exception):
         c.execute("UPDATE identity_songs SET flag = NULL WHERE flag LIKE 'longer than%' AND duration <= 1500")
         c.commit()

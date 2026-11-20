@@ -117,7 +117,14 @@ def _take_with_stems(data_dir):
 
 def test_delete_take_removes_rows_and_folders(client, data_dir):
     take, audio, folder = _take_with_stems(data_dir)
-    assert client.delete(f"/api/takes/{take['id']}").status_code == 200
+    # First delete moves to Trash, keeping rows and folders for restore.
+    first = client.delete(f"/api/takes/{take['id']}")
+    assert first.status_code == 200 and first.json()["trashed"] is True
+    assert audio.parent.exists() and folder.exists()
+    assert one("SELECT space_id FROM takes WHERE id = ?", (take["id"],))["space_id"] == "trash"
+    # Second delete (from Trash) permanently removes rows and folders.
+    second = client.delete(f"/api/takes/{take['id']}")
+    assert second.status_code == 200 and second.json()["permanent"] is True
     assert not audio.parent.exists() and not folder.exists()
     assert one("SELECT id FROM stem_sets WHERE id = 'st1'") is None
 

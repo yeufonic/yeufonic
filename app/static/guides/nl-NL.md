@@ -1216,7 +1216,7 @@ Woorden die je had getypt maar niet gebruikte worden niet weggegooid: een balk b
 Takes wonen in **ruimtes**: een ruimte per nummer, per album, of voor schetsen. De naam van de ruimte boven de takes is de getoonde, en alles wat je maakt, komt daar terecht.
 
 - **Er een kiezen:** klik op de naam voor de lijst van ruimtes. Typ om er een op naam te vinden, of kies hem met de pijltjestoetsen en Enter. De vijf die je het laatst gebruikte, komen eerst, dan elke ruimte, elk met hoeveel takes erin zitten.
-- **Nieuwe ruimte**, **Deze ruimte hernoemen**, **Take importeren** en **Deze ruimte verwijderen** staan onderaan de lijst. Een ruimte verwijderen verwijdert nooit takes — die gaan naar Default.
+- **Nieuwe ruimte**, **Deze ruimte hernoemen**, **Take importeren** en **Deze ruimte verwijderen** staan onderaan de lijst. Wanneer je een take of een ruimte verwijdert, gaan de takes naar **Trash** onderaan de ruimtelijst, waar je ze kunt terugzetten of weer verplaatsen. Een take uit **Trash** verwijderen, op **Prullenbak legen** klikken of Trash opruimen via **Instellingen → Opslag** verwijdert de bestanden definitief van schijf.
 - **Een take verplaatsen:** de mapknop op een kaart verplaatst die take naar een andere ruimte, met alle takes erin.
 - Opnames worden door alle ruimtes gedeeld, dus één opname kan in meerdere ruimtes gecoverd worden.
 

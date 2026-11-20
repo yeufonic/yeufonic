@@ -1216,7 +1216,7 @@ Les mots que vous aviez saisis sans les utiliser ne sont pas jetés : une barre 
 Les prises vivent dans des **espaces** : un espace par chanson, par album, ou pour des esquisses. Le nom de l'espace au-dessus des prises est celui affiché, et tout ce que vous faites y arrive.
 
 - **En choisir un :** cliquez sur le nom pour la liste des espaces. Tapez pour en trouver un par son nom, ou choisissez-le avec les flèches et Entrée. Les cinq derniers utilisés viennent d'abord, puis tous les espaces, chacun avec le nombre de prises qu'il contient.
-- **Nouvel espace**, **Renommer cet espace**, **Importer une prise** et **Supprimer cet espace** sont en bas de la liste. Supprimer un espace ne supprime jamais de prises — elles vont dans Default.
+- **Nouvel espace**, **Renommer cet espace**, **Importer une prise** et **Supprimer cet espace** sont en bas de la liste. Supprimer une prise ou un espace déplace les prises dans **Trash**, au bas de la liste des espaces, où vous pouvez les restaurer ou les déplacer ailleurs. Supprimer une prise depuis **Trash**, cliquer sur **Vider la corbeille** ou libérer Trash dans **Paramètres → Stockage** efface définitivement ses fichiers du disque.
 - **Déplacer une prise :** le bouton dossier d'une carte déplace cette prise vers un autre espace, avec les prises qu'elle contient.
 - Les enregistrements sont partagés par tous les espaces, donc un enregistrement peut être repris dans plusieurs.
 

@@ -1216,7 +1216,7 @@ Palavras que você tinha escrito mas não usou não são jogadas fora: uma barra
 Os takes moram em **espaços**: um espaço por música, por álbum, ou para rascunhos. O nome do espaço acima dos takes é o que está a ser mostrado, e tudo o que você faz vai para lá.
 
 - **Escolher um:** clique no nome para ver a lista de espaços. Digite para achar um pelo nome, ou escolha com as setas e Enter. Os cinco usados por último vêm primeiro, depois todos os espaços, cada um com quantos takes tem.
-- **Novo espaço**, **Renomear este espaço**, **Importar take** e **Eliminar este espaço** ficam no pé da lista. Eliminar um espaço nunca elimina takes — eles vão para Default.
+- **Novo espaço**, **Renomear este espaço**, **Importar take** e **Eliminar este espaço** ficam no pé da lista. Eliminar um take ou um espaço move os takes para **Trash**, no fim da lista de espaços, onde pode restaurá-los ou movê-los de volta. Eliminar um take de **Trash**, clicar em **Esvaziar Lixo** ou libertar Trash em **Definições → Armazenamento** remove os ficheiros do disco permanentemente.
 - **Mover um take:** o botão de pasta num cartão move aquele take para outro espaço, com os takes que ele contém.
 - As gravações são partilhadas por todos os espaços, então uma gravação pode virar cover em vários.
 

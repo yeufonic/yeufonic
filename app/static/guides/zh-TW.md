@@ -943,7 +943,7 @@ zip 下載。它們會一直保留，直到你刪除。
 版本存放在 <strong>空間</strong> 裡：一首歌一個空間、一張專輯一個空間，或用於草稿的空間。版本上方的空間名稱就是當前顯示的空間，你做的一切都會進入那裡。
 
 - <strong>選擇空間：</strong> 點選名稱開啟空間列表。輸入名稱的一部分來查詢，或用方向鍵和 Enter 選擇。最近用過的五個排在最前，然後是所有空間，每個都標有其中的版本數。
-- <strong>新建空間</strong>、<strong>重新命名此空間</strong>、<strong>匯入版本</strong> 和 <strong>刪除此空間</strong> 位於列表底部。刪除空間永遠不會刪除版本，它們會移到 Default。
+- <strong>新建空間</strong>、<strong>重新命名此空間</strong>、<strong>匯入版本</strong> 和 <strong>刪除此空間</strong> 位於列表底部。刪除版本或空間會將其中的版本移至空間列表底部的 <strong>Trash</strong>，你可以在那裡還原或將其移回其他空間。在 <strong>Trash</strong> 中刪除版本、點擊 <strong>清空 Trash</strong>，或在 <strong>設定 → 儲存空間</strong> 中清理 Trash，會將其檔案從磁碟永久刪除。
 - <strong>移動版本：</strong> 卡片上的資料夾按鈕會把這個版本連同它裡面的版本移到另一個空間。
 - 錄音在所有空間中共享，所以一個錄音可以在多個空間中翻唱。
 

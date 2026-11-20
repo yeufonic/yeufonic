@@ -1216,7 +1216,7 @@ Le parole che avevi scritto ma non usato non vengono buttate: una barra propone 
 I take vivono negli **spazi**: uno spazio per canzone, per album o per bozze. Il nome dello spazio sopra i take è quello mostrato, e tutto ciò che fai finisce lì.
 
 - **Sceglierne uno:** clicca il nome per l'elenco degli spazi. Scrivi per trovarne uno per nome, o sceglilo con le frecce e Invio. I cinque usati per ultimi vengono prima, poi tutti gli spazi, ognuno con quanti take contiene.
-- **Nuovo spazio**, **Rinomina questo spazio**, **Importa take** ed **Elimina questo spazio** sono in fondo all'elenco. Eliminare uno spazio non elimina mai i take — passano a Default.
+- **Nuovo spazio**, **Rinomina questo spazio**, **Importa take** ed **Elimina questo spazio** sono in fondo all'elenco. Eliminare un take o uno spazio sposta i take in **Trash**, in fondo all'elenco degli spazi, da dove puoi ripristinarli o spostarli altrove. Eliminare un take da **Trash**, premere **Svuota Cestino** o liberare Trash in **Impostazioni → Spazio su disco** rimuove definitivamente i suoi file dal disco.
 - **Spostare un take:** il pulsante cartella su una scheda sposta quel take in un altro spazio, con i take che contiene.
 - Le registrazioni sono condivise da tutti gli spazi, così una registrazione può essere coverizzata in più spazi.
 

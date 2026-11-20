@@ -1216,7 +1216,7 @@ Wörter, die du getippt, aber nicht benutzt hast, werden nicht weggeworfen: Eine
 Takes leben in **Bereichen**: ein Bereich pro Song, pro Album oder für Skizzen. Der Name des Bereichs über den Takes ist der angezeigte, und alles, was du erstellst, landet dort.
 
 - **Einen wählen:** Klicke auf den Namen für die Liste der Bereiche. Tippe, um einen nach Namen zu finden, oder wähle ihn mit den Pfeiltasten und Enter. Die fünf zuletzt benutzten kommen zuerst, dann alle Bereiche, jeder mit der Zahl seiner Takes.
-- **Neuer Bereich**, **Diesen Bereich umbenennen**, **Take importieren** und **Diesen Bereich löschen** stehen am Fuß der Liste. Einen Bereich zu löschen löscht nie Takes — sie wandern nach Default.
+- **Neuer Bereich**, **Diesen Bereich umbenennen**, **Take importieren** und **Diesen Bereich löschen** stehen am Fuß der Liste. Beim Löschen eines Takes oder eines Bereichs wandern die Takes in **Trash** am Ende der Bereichsliste, wo du sie wiederherstellen oder wieder herausverschieben kannst. Erst das Löschen aus **Trash**, **Papierkorb leeren** oder das Bereinigen unter **Einstellungen → Speicher** entfernt die Dateien endgültig von der Festplatte.
 - **Einen Take verschieben:** Die Ordner-Schaltfläche auf einer Karte verschiebt diesen Take in einen anderen Bereich, mit allen Takes darin.
 - Aufnahmen werden von allen Bereichen geteilt, sodass eine Aufnahme in mehreren gecovert werden kann.
 

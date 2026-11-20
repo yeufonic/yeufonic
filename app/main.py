@@ -44,7 +44,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import recipe as recipes
 from . import aligner, artwork, autotune, composer, config, daw, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
-from .db import DEFAULT_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
+from .db import DEFAULT_SPACE, TRASH_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 from . import winaccept
 
 winaccept.install()      # Windows: a client dropping a connection must not stop the app listening
@@ -2464,6 +2464,9 @@ def list_takes(
     if space_id:
         where.append("space_id = ?")
         args.append(space_id)
+    elif not inside:
+        where.append("space_id != ?")
+        args.append(TRASH_SPACE)
     if favourite:
         where.append("favourite = 1")
     wanted = [k for k in kinds.split(",") if k in ("song", "cover", "instrumental")]
@@ -2635,17 +2638,58 @@ async def rename_take(take_id: str, body: RenameTakeIn) -> dict:
     return {"id": take_id, "title": title}
 
 
+async def _cancel_take_work(take: dict) -> None:
+    """Stop any running render or stem separation on a take before trashing or deleting it."""
+    if take["status"] in ACTIVE:
+        await jobs.cancel_take(take)
+    for item in rows("SELECT * FROM stem_sets WHERE take_id = ?", (take["id"],)):
+        jobs.cancel_stems(item)
+
+
 @app.delete("/api/takes/{take_id}")
-async def delete_take(take_id: str) -> dict:
-    """Delete a take, and with it the takes kept inside it."""
+async def delete_take(take_id: str, permanent: bool = False) -> dict:
+    """Move a take (and any takes inside it) to Trash; if it is already in Trash (or permanent=true),
+    delete its rows and files permanently."""
     take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         raise HTTPException(404, "no such take")
     inside = rows("SELECT * FROM takes WHERE parent_id = ?", (take_id,))
+    if take["space_id"] == TRASH_SPACE or permanent:
+        for child in inside:
+            await _delete_one(child)
+        await _delete_one(take)
+        return {"deleted": True, "permanent": True, "inside": len(inside)}
     for child in inside:
-        await _delete_one(child)
-    await _delete_one(take)
-    return {"deleted": True, "inside": len(inside)}
+        await _cancel_take_work(child)
+    await _cancel_take_work(take)
+    origin = take["space_id"]
+    if take.get("parent_id"):
+        execute("UPDATE takes SET space_id = ?, trashed_from = ?, parent_id = NULL WHERE id = ?",
+                (TRASH_SPACE, origin, take_id))
+    else:
+        execute("UPDATE takes SET space_id = ?, trashed_from = ? WHERE id = ? OR parent_id = ?",
+                (TRASH_SPACE, origin, take_id, take_id))
+    log.info("Moved take '%s' (%s) to Trash", take.get("title") or take_id, take_id)
+    return {"deleted": True, "trashed": True, "permanent": False, "inside": len(inside)}
+
+
+@app.post("/api/takes/{take_id}/restore")
+def restore_take(take_id: str) -> dict:
+    """Restore a take (and any takes inside it) from Trash back to its original space, or Default."""
+    take = one("SELECT id, parent_id, space_id, trashed_from FROM takes WHERE id = ?", (take_id,))
+    if not take:
+        raise HTTPException(404, "no such take")
+    dest_id = take.get("trashed_from") or DEFAULT_SPACE
+    dest = one("SELECT * FROM spaces WHERE id = ?", (dest_id,)) if dest_id != TRASH_SPACE else None
+    if not dest:
+        dest = _space(DEFAULT_SPACE)
+    if take.get("parent_id"):
+        execute("UPDATE takes SET space_id = ?, trashed_from = NULL, parent_id = NULL WHERE id = ?",
+                (dest["id"], take_id))
+    else:
+        execute("UPDATE takes SET space_id = ?, trashed_from = NULL WHERE id = ? OR parent_id = ?",
+                (dest["id"], take_id, take_id))
+    return {"space_id": dest["id"], "name": dest["name"]}
 
 
 @app.get("/api/takes/{take_id}/art")
@@ -2791,7 +2835,7 @@ async def create_take(body: TakeIn) -> dict:
         except Exception as exc:
             log.warning("Could not auto-align lyrics to ABC for take: %s", exc)
     _check_score(abc_to_use)
-    _space(body.space_id)
+    _writable_space(body.space_id)
     take_id = uuid.uuid4().hex[:12]
     seed = body.seed if body.seed is not None else int.from_bytes(os.urandom(4), "big")
     adv = _advanced_of(body)
@@ -2942,7 +2986,7 @@ async def _plan_new_take(kind: str, title: str, words: str, body: SongIn | Instr
 def _new_take_record(kind: str, title: str, words: str, body: SongIn | InstrumentalIn) -> dict:
     """A song or an instrumental as it starts out: no score yet, and no recording."""
     _check_harmony(body.harmony)
-    _space(body.space_id)
+    _writable_space(body.space_id)
     seed = body.seed if body.seed is not None else int.from_bytes(os.urandom(4), "big")
     return {
         "id": uuid.uuid4().hex[:12],
@@ -3010,6 +3054,13 @@ def _space(space_id: str) -> dict:
     return space
 
 
+def _writable_space(space_id: str) -> dict:
+    space = _space(space_id)
+    if space["id"] == TRASH_SPACE:
+        raise HTTPException(400, "new takes cannot be created in Trash")
+    return space
+
+
 def _space_name(name: str, keep: str | None = None) -> str:
     """A trimmed name no other space already has, ignoring case."""
     name = " ".join(name.split())
@@ -3060,12 +3111,13 @@ def mcp_stream() -> Response:
 
 @app.get("/api/spaces")
 def list_spaces() -> list[dict]:
-    """Default first, then by name, each with how many takes it holds."""
+    """Default first, then custom spaces by name, then Trash last, each with how many takes it holds."""
     return rows(
         """SELECT s.id, s.name, s.created_at, COUNT(t.id) AS takes, MAX(t.created_at) AS last_take_at
            FROM spaces s LEFT JOIN takes t ON t.space_id = s.id AND t.parent_id IS NULL
-           GROUP BY s.id ORDER BY s.id != ?, lower(s.name)""",
-        (DEFAULT_SPACE,),
+           GROUP BY s.id
+           ORDER BY CASE WHEN s.id = ? THEN 0 WHEN s.id = ? THEN 2 ELSE 1 END, lower(s.name)""",
+        (DEFAULT_SPACE, TRASH_SPACE),
     )
 
 
@@ -3078,6 +3130,8 @@ def create_space(body: SpaceIn) -> dict:
 
 @app.put("/api/spaces/{space_id}")
 def rename_space(space_id: str, body: SpaceIn) -> dict:
+    if space_id == TRASH_SPACE:
+        raise HTTPException(400, "the Trash space cannot be renamed")
     _space(space_id)
     name = _space_name(body.name, keep=space_id)
     execute("UPDATE spaces SET name = ? WHERE id = ?", (name, space_id))
@@ -3085,14 +3139,27 @@ def rename_space(space_id: str, body: SpaceIn) -> dict:
 
 
 @app.delete("/api/spaces/{space_id}")
-def delete_space(space_id: str) -> dict:
-    """Deleting a space never deletes takes: they move to Default."""
+async def delete_space(space_id: str) -> dict:
+    """Deleting a space moves its takes to Trash so nothing is lost immediately."""
     if space_id == DEFAULT_SPACE:
         raise HTTPException(400, "the Default space cannot be deleted")
+    if space_id == TRASH_SPACE:
+        raise HTTPException(400, "the Trash space cannot be deleted")
     _space(space_id)
-    moved = execute("UPDATE takes SET space_id = ? WHERE space_id = ?", (DEFAULT_SPACE, space_id))
+    for active in rows("SELECT * FROM takes WHERE space_id = ?", (space_id,)):
+        await _cancel_take_work(active)
+    moved = execute("UPDATE takes SET space_id = ?, trashed_from = NULL WHERE space_id = ?", (TRASH_SPACE, space_id))
     execute("DELETE FROM spaces WHERE id = ?", (space_id,))
     return {"deleted": True, "moved": moved}
+
+
+@app.post("/api/spaces/trash/empty")
+async def empty_trash() -> dict:
+    """Permanently delete every take currently in Trash, along with its files and stems."""
+    trashed = rows("SELECT * FROM takes WHERE space_id = ? ORDER BY parent_id IS NULL, created_at ASC", (TRASH_SPACE,))
+    for take in trashed:
+        await _delete_one(take)
+    return {"deleted": len(trashed)}
 
 
 # ------------------------------------------------------------------ saved styles
@@ -3148,9 +3215,9 @@ def _playlist_cover(playlist_id: str) -> str | None:
         """SELECT t.id, t.parent_id
            FROM playlist_items pi
            JOIN takes t ON pi.take_id = t.id
-           WHERE pi.playlist_id = ?
+           WHERE pi.playlist_id = ? AND t.space_id != ?
            ORDER BY pi.added_at DESC, pi.rowid DESC LIMIT 50""",
-        (playlist_id,),
+        (playlist_id, TRASH_SPACE),
     )
     for r in item_rows:
         art = artwork.url_for(r["id"], r.get("parent_id"))
@@ -3164,13 +3231,14 @@ def list_playlists() -> list[dict]:
     """All playlists. System playlist Liked first, then custom playlists in chronological order."""
     all_playlists = rows(
         """SELECT p.id, p.name, p.description, p.created_at, p.updated_at, p.is_system,
-                  COUNT(pi.take_id) AS count,
+                  COUNT(t.id) AS count,
                   COALESCE(SUM(t.duration), 0) AS total_duration
            FROM playlists p
            LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
-           LEFT JOIN takes t ON pi.take_id = t.id
+           LEFT JOIN takes t ON pi.take_id = t.id AND t.space_id != ?
            GROUP BY p.id
-           ORDER BY p.is_system DESC, p.created_at ASC"""
+           ORDER BY p.is_system DESC, p.created_at ASC""",
+        (TRASH_SPACE,),
     )
     for p in all_playlists:
         p["is_system"] = bool(p["is_system"])
@@ -3213,8 +3281,8 @@ def get_playlist(
         raise HTTPException(404, "no such playlist")
     pl["is_system"] = bool(pl["is_system"])
 
-    where = ["pi.playlist_id = ?"]
-    args: list[object] = [playlist_id]
+    where = ["pi.playlist_id = ?", "t.space_id != ?"]
+    args: list[object] = [playlist_id, TRASH_SPACE]
 
     for word in q.split():
         like = "%" + word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
@@ -3247,13 +3315,19 @@ def get_playlist(
         take["added_at"] = take.get("item_added_at")
     _attach_stem_sets(items)
 
-    total_count = one("SELECT COUNT(*) AS n FROM playlist_items WHERE playlist_id = ?", (playlist_id,))["n"]
+    total_count = one(
+        """SELECT COUNT(*) AS n
+           FROM playlist_items pi
+           JOIN takes t ON pi.take_id = t.id
+           WHERE pi.playlist_id = ? AND t.space_id != ?""",
+        (playlist_id, TRASH_SPACE),
+    )["n"]
     total_duration = one(
         """SELECT COALESCE(SUM(t.duration), 0) AS d
            FROM playlist_items pi
            JOIN takes t ON pi.take_id = t.id
-           WHERE pi.playlist_id = ?""",
-        (playlist_id,),
+           WHERE pi.playlist_id = ? AND t.space_id != ?""",
+        (playlist_id, TRASH_SPACE),
     )["d"]
 
     cover_art = _playlist_cover(playlist_id)
@@ -3342,14 +3416,23 @@ def get_take_playlists(take_id: str) -> dict:
 
 
 @app.post("/api/takes/{take_id}/move")
-def move_take(take_id: str, body: MoveIn) -> dict:
+async def move_take(take_id: str, body: MoveIn) -> dict:
     space = _space(body.space_id)
-    take = one("SELECT id, parent_id FROM takes WHERE id = ?", (take_id,))
+    take = one("SELECT * FROM takes WHERE id = ?", (take_id,))
     if not take:
         raise HTTPException(404, "no such take")
     if take["parent_id"]:
         raise HTTPException(400, "this take is inside another and goes where that one goes. Take it out first to move it by itself.")
-    execute("UPDATE takes SET space_id = ? WHERE id = ? OR parent_id = ?", (space["id"], take_id, take_id))
+    if space["id"] == TRASH_SPACE:
+        for child in rows("SELECT * FROM takes WHERE parent_id = ?", (take_id,)):
+            await _cancel_take_work(child)
+        await _cancel_take_work(take)
+        origin = take["space_id"] if take["space_id"] != TRASH_SPACE else take.get("trashed_from")
+        execute("UPDATE takes SET space_id = ?, trashed_from = ? WHERE id = ? OR parent_id = ?",
+                (TRASH_SPACE, origin, take_id, take_id))
+    else:
+        execute("UPDATE takes SET space_id = ?, trashed_from = NULL WHERE id = ? OR parent_id = ?",
+                (space["id"], take_id, take_id))
     return {"space_id": space["id"], "name": space["name"]}
 
 
@@ -5505,7 +5588,7 @@ def _import_recipe(recipe: dict, space_id: str, source_id: str | None = None) ->
         take = RecipeTakeIn(**{k: v for k, v in columns.items() if v is not None})
     except ValueError as exc:
         raise HTTPException(400, f"this take file has a setting Yeufonic cannot use: {exc}") from exc
-    _space(space_id)
+    _writable_space(space_id)
     if take.mode == NO_SCORE:
         _no_score_wanted(take.mode, {"kind": take.kind})
     else:

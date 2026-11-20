@@ -2001,6 +2001,10 @@ label .lora-value:disabled { opacity: 0.6; }
 .space-row.hl { background: rgb(var(--ink) / 0.07); }
 .space-row.current { background: rgb(var(--accent-a-rgb) / 0.16); font-weight: 600; }
 .space-row.current.hl { background: rgb(var(--accent-a-rgb) / 0.24); }
+.space-row-trash { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 8px; border-radius: 0 0 8px 8px; }
+.space-row-trash .space-row-name { display: inline-flex; align-items: center; gap: 7px; }
+.space-row-trash svg { width: 14px; height: 14px; color: var(--muted); flex: 0 0 auto; }
+#trash-empty { margin-left: 4px; }
 .space-none { color: var(--muted); font-size: 13px; padding: 8px 10px; margin: 0; }
 .space-menu-foot { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 6px; }
 .space-menu-foot .menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px;
@@ -2456,6 +2460,7 @@ label .lora-value:disabled { opacity: 0.6; }
   fill: var(--tint);
   opacity: 1;
 }
+.act.restore { --tint: #4ade80; --tint-a: rgba(74, 222, 128, 0.22); }
 .act.del    { --tint: var(--bad); --tint-a: rgb(var(--bad-rgb) / 0.18); }
 
 /* The tile that is playing breathes, so the live take is obvious across the grid. */
