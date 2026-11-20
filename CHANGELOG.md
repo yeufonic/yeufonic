@@ -72,8 +72,6 @@ cannot creep back in.
   with an instrumental open, changing them and pressing Render this score played the same plan again and gave a take
   that sounded almost the same. The main button now becomes Write a new plan when either differs from what the take's
   plan was written with: a new plan from the same structure, in a new take, the open one left as it was.
-- **Docs and translations.** Added *Write a new structure* (from 0.0.63), Trash, opt-in FIBO 2.0, and native Linux
-  across the in-app guide (all 15 languages), UI string tables, and translated READMEs.
 
 ## 0.0.63 (2026-11-18)
 
