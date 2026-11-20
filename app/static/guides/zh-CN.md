@@ -1258,7 +1258,7 @@ YuE2 有两种尺寸，一个安装只有其中一种：我们推荐的**全质�
 - **在 Windows 上**，重新运行安装程序。它的组件页面提供两种尺寸，并勾选已经下载的那些。切换会在第一次时下载另一个并保留两者，所以切回来不会再下载任何东西。
 - **使用 Docker 时**，`sh scripts/fetch-models.sh` 下载全质量模型，
   `sh scripts/fetch-models.sh --int8` 下载低显存模型。`models/checkpoints` 中两个文件都有时，应用使用全质量模型，除非 `.env` 中有 `YUE2_CHECKPOINT=int8`。
-- <strong>在 Linux（无需 Docker 的原生安装）上，</strong>重新运行 `yeufonic setup`（或使用 `yeufonic setup --int8` / `--full`，使用 yue2.cpp 时为 `--cpp-model bf16`）。
+- <strong>在 Linux（无需 Docker 的原生安装）上，</strong>重新运行 `yeufonic setup`（或使用 `yeufonic setup --int8` / `--bf16`，使用 yue2.cpp 时为 `--cpp-model bf16`）。
 
 如果渲染非常慢，或引擎显存不足，可以试试低显存模型。两种尺寸的模型都可以训练 LoRA。**低显存 (int8) 模型训练**设置决定用哪一个：关闭时，训练使用全质量模型；开启时，使用应用渲染时用的模型。只安装了低显存模型时，它一开始就是开启的。GitHub 上的 README 有一节 *Choosing a model size*，介绍了每种尺寸的预期表现。
 
@@ -1483,28 +1483,29 @@ Windows 安装为 <http://localhost:8188>（即 `settings.ini` 中的 `engine_po
 
 ## 原生 Linux {#native-linux}
 
-在配备 NVIDIA 显卡的 Linux 电脑（`x86_64`，glibc 2.28 或更新版本）上，Yeufonic 可以不依赖 Docker
-直接运行。所有内容都放在同一个安装文件夹中（默认 `~/yeufonic-app`），自带独立的 Python 环境、
-引擎、模型和资料库。
+在配备 NVIDIA 显卡的 Linux 电脑（`x86_64`，glibc 2.28 或更新版本）上，无需 Docker 也无需 `sudo`
+即可直接安装和运行 Yeufonic。从[最新版本](https://github.com/yeufonic/yeufonic/releases/latest)
+下载 `yeufonic-<version>-linux-x86_64.run` 并运行：
 
 ```sh
-git clone https://github.com/yeufonic/yeufonic.git
-cd yeufonic
-bash linux/setup.sh
+chmod +x yeufonic-<version>-linux-x86_64.run
+./yeufonic-<version>-linux-x86_64.run
 ```
 
-- <strong>选择引擎和可选项：</strong>`linux/setup.sh` 会询问要使用的引擎（支持 LoRA 训练等全部功能的
+所有内容都放在同一个用户文件夹中（默认 `~/.local/share/yeufonic`，并在 `~/.local/bin` 中创建
+`yeufonic` 命令），自带独立的 Python 环境、引擎、模型和资料库。
+
+- <strong>选择引擎和可选项：</strong>安装程序会检查系统并询问要使用的引擎（支持 LoRA 训练等全部功能的
   <strong>ComfyUI</strong>，或适合小显存显卡的 <strong>yue2.cpp</strong>）、YuE2 模型大小以及可选组件
   （用于起草歌词的 Gemma 4、用于生成图片的 <strong>FLUX.2 klein 4B</strong> 或 <strong>FIBO 2.0</strong>、
   风格 LoRA 以及录制的声音）。
-- <strong>启动与停止：</strong>在安装文件夹中运行 `./bin/yeufonic start`（或 `./bin/yeufonic start -d`
-  在后台分离运行），然后打开 <http://localhost:8090>。使用 `./bin/yeufonic status`、`./bin/yeufonic logs`
-  和 `./bin/yeufonic stop` 查看或停止后台实例。
-- <strong>之后切换引擎或添加组件：</strong>先停止 Yeufonic，再运行 `./bin/yeufonic setup`（也可直接传入
-  `--engine yue2cpp`、`--engine comfyui`、`--int8`、`--full`、`--picture-model fibo2`、`--loras` 等参数）。
+- <strong>启动与停止：</strong>运行 `yeufonic` 在前台启动（或 `yeufonic start -d` 在后台分离运行），然后打开
+  <http://localhost:8090>。使用 `yeufonic status`、`yeufonic logs` 和 `yeufonic stop` 查看或停止后台实例。
+- <strong>之后切换引擎或添加组件：</strong>先停止 Yeufonic，再运行 `yeufonic setup`（也可直接传入
+  `--engine yue2cpp`、`--engine comfyui`、`--int8`、`--bf16`、`--picture-model fibo2`、`--loras` 等参数）。
   你的资料库、设置、LoRA 以及已下载的模型都会保留。
-- <strong>更新与卸载：</strong>拉取最新代码后针对同一文件夹重新运行 `linux/setup.sh` 即可更新；卸载请运行
-  安装文件夹中的 `./uninstall.sh`（可选择保留资料库和模型）。完整参数与命令见
+- <strong>更新与卸载：</strong>从发布页面下载新版 `.run` 安装程序重新运行即可就地更新；卸载请运行
+  `yeufonic uninstall`（可选择保留资料库和模型）。完整参数与命令见
   [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md)。
 
 ---

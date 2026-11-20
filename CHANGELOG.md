@@ -39,10 +39,11 @@ cannot creep back in.
 
 ## 0.0.64 (2026-11-20)
 
-- **Native Linux install without Docker (#77).** Linux users with an NVIDIA GPU can now install and run Yeufonic
-  directly without Docker using `linux/setup.sh`, with a choice of the ComfyUI or `yue2.cpp` engine, interactive
-  setup and engine switching (`yeufonic setup`), detached background running (`yeufonic start -d`, `stop`,
-  `status`, `logs`), and portable Linux binaries for FluidSynth and `yue2.cpp`. See `linux/README.md`.
+- **Native Linux installer without Docker (#77).** Linux users with an NVIDIA GPU (`x86_64`, glibc 2.28+) can now
+  download a single self-extracting installer (`yeufonic-<version>-linux-x86_64.run`) from the release page and run
+  Yeufonic natively without Docker or `sudo`, with a choice of the ComfyUI or `yue2.cpp` engine, interactive setup
+  and engine switching (`yeufonic setup`), detached background running (`yeufonic start -d`, `stop`, `status`,
+  `logs`), and portable Linux binaries for FluidSynth and `yue2.cpp`. See `linux/README.md`.
 - **Trash space for deleted takes and spaces (#78).** Deleting a take (or deleting a space that holds takes) now
   moves its takes into a built-in **Trash** space at the bottom of the space list rather than deleting them
   immediately or dumping a deleted space's takes into Default. Takes in Trash stay out of playlists and search,

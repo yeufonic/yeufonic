@@ -1824,7 +1824,7 @@ says which you have. It is chosen when Yeufonic is installed, not here:
   app uses full quality unless `YUE2_CHECKPOINT=int8` is set in `.env`.
 - **On a Mac**, ComfyUI has only full quality (the low-memory copy needs an NVIDIA card). With yue2.cpp the
   sizes are that engine's own, as on Windows: Q8 unless you run `setup.sh --cpp-model bf16`.
-- **On Linux (native, without Docker)**, run `yeufonic setup` again (or `yeufonic setup --int8` / `--full`, or
+- **On Linux (native, without Docker)**, run `yeufonic setup` again (or `yeufonic setup --int8` / `--bf16`, or
   `--cpp-model bf16` with yue2.cpp).
 
 Try low memory if renders are very slow or the engine runs out of GPU memory. Training a LoRA works
@@ -2099,30 +2099,32 @@ on this machine only, with no login.
 
 ## Native Linux
 
-On a Linux PC with an NVIDIA graphics card (`x86_64`, glibc 2.28 or newer), Yeufonic can run directly
-without Docker. Everything lives inside one install folder (by default `~/yeufonic-app`), with its own
-Python environment, engine, models and library.
+On a Linux PC with an NVIDIA graphics card (`x86_64`, glibc 2.28 or newer), you can install and run
+Yeufonic directly without Docker or `sudo`. Download `yeufonic-<version>-linux-x86_64.run` from the
+[latest release](https://github.com/yeufonic/yeufonic/releases/latest) and run it:
 
 ```sh
-git clone https://github.com/yeufonic/yeufonic.git
-cd yeufonic
-bash linux/setup.sh
+chmod +x yeufonic-<version>-linux-x86_64.run
+./yeufonic-<version>-linux-x86_64.run
 ```
 
-- **Choosing engine and options:** `linux/setup.sh` asks which engine to use (**ComfyUI** for everything
-  including LoRA training, or **yue2.cpp** for smaller graphics cards), which YuE2 model size, and which
-  optional parts to install (Gemma 4 for lyric drafts, **FLUX.2 klein 4B** or **FIBO 2.0** for take
-  pictures, style LoRAs and recorded voices).
-- **Starting and stopping:** run `./bin/yeufonic start` inside the install folder (or `./bin/yeufonic start -d`
-  to start detached in the background), then open <http://localhost:8090>. Use `./bin/yeufonic status`,
-  `./bin/yeufonic logs` and `./bin/yeufonic stop` to check or stop a detached instance.
-- **Switching engine or adding options later:** stop Yeufonic and run `./bin/yeufonic setup` (or pass flags
-  such as `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--full`, `--picture-model fibo2`, `--loras`).
-  Your library, settings and LoRAs stay in place, and models already downloaded are kept.
-- **Updating and removing:** pull the latest code and re-run `linux/setup.sh` against the same folder to
-  update; run `./uninstall.sh` inside the install folder to remove it (optionally keeping your library and
-  models). See [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md) for the
-  full list of flags and commands.
+Everything lives inside one user folder (by default `~/.local/share/yeufonic`, with the `yeufonic` command
+linked in `~/.local/bin`), with its own Python environment, engine, models and library.
+
+- **Choosing engine and options:** the installer checks your system and asks which engine to use
+  (**ComfyUI** for everything including LoRA training, or **yue2.cpp** for smaller graphics cards), which
+  YuE2 model size, and which optional parts to install (Gemma 4 for lyric drafts, **FLUX.2 klein 4B** or
+  **FIBO 2.0** for take pictures, style LoRAs and recorded voices).
+- **Starting and stopping:** run `yeufonic` to start in the foreground (or `yeufonic start -d` to start
+  detached in the background), then open <http://localhost:8090>. Use `yeufonic status`, `yeufonic logs`
+  and `yeufonic stop` to check or stop a detached instance.
+- **Switching engine or adding options later:** stop Yeufonic and run `yeufonic setup` (or pass flags such
+  as `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--bf16`, `--picture-model fibo2`, `--loras`). Your
+  library, settings and LoRAs stay in place, and models already downloaded are kept.
+- **Updating and removing:** download a newer `.run` installer from the release page and run it again to
+  update in place; run `yeufonic uninstall` to remove it (optionally keeping your library and models). See
+  [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md) for the full list of
+  flags and commands.
 
 ---
 

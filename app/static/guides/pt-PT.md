@@ -1622,7 +1622,7 @@ diz qual você tem. Ele é escolhido ao instalar o Yeufonic, não aqui:
 - **Com Docker**, `sh scripts/fetch-models.sh` transfere o de qualidade total e
   `sh scripts/fetch-models.sh --int8` o de pouca memória. Com os dois ficheiros em `models/checkpoints`, o
   app usa o de qualidade total a menos que `YUE2_CHECKPOINT=int8` esteja em `.env`.
-- **No Linux (nativo, sem Docker)**, execute `yeufonic setup` novamente (ou `yeufonic setup --int8` / `--full`, ou `--cpp-model bf16` com yue2.cpp).
+- **No Linux (nativo, sem Docker)**, execute `yeufonic setup` novamente (ou `yeufonic setup --int8` / `--bf16`, ou `--cpp-model bf16` com yue2.cpp).
 
 Experimente o de pouca memória se os renders estiverem muito lentos ou o motor ficar sem memória de GPU. Treinar um LoRA funciona
 com os dois tamanhos de modelo. O ajuste **Treino com o modelo de pouca memória (int8)** escolhe qual: desligado, o treinamento usa
@@ -1896,30 +1896,32 @@ nesta máquina, sem login.
 
 ## Linux nativo {#native-linux}
 
-Num PC Linux com placa gráfica NVIDIA (`x86_64`, glibc 2.28 ou mais recente), o Yeufonic pode correr
-diretamente sem Docker. Tudo fica numa única pasta de instalação (por predefinição `~/yeufonic-app`), com o
-seu próprio ambiente Python, motor, modelos e biblioteca.
+Num PC Linux com placa gráfica NVIDIA (`x86_64`, glibc 2.28 ou mais recente), pode instalar e correr o
+Yeufonic diretamente sem Docker e sem `sudo`. Descarregue `yeufonic-<version>-linux-x86_64.run` na
+[versão mais recente](https://github.com/yeufonic/yeufonic/releases/latest) e execute-o:
 
 ```sh
-git clone https://github.com/yeufonic/yeufonic.git
-cd yeufonic
-bash linux/setup.sh
+chmod +x yeufonic-<version>-linux-x86_64.run
+./yeufonic-<version>-linux-x86_64.run
 ```
 
-- **Escolher motor e opções:** `linux/setup.sh` pergunta que motor usar (**ComfyUI** para tudo, incluindo
-  treino de LoRA, ou **yue2.cpp** para placas com menos memória), que tamanho do modelo YuE2 e que partes
-  opcionais instalar (Gemma 4 para rascunhos de letras, **FLUX.2 klein 4B** ou **FIBO 2.0** para imagens dos
-  takes, LoRAs de estilo e vozes gravadas).
-- **Iniciar e parar:** execute `./bin/yeufonic start` dentro da pasta de instalação (ou `./bin/yeufonic start -d`
-  para iniciar em segundo plano) e abra <http://localhost:8090>. Use `./bin/yeufonic status`, `./bin/yeufonic logs`
-  e `./bin/yeufonic stop` para verificar ou parar uma instância em segundo plano.
-- **Trocar de motor ou adicionar opções depois:** pare o Yeufonic e execute `./bin/yeufonic setup` (ou passe
-  opções como `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--full`, `--picture-model fibo2`, `--loras`). A
-  sua biblioteca, definições e LoRAs permanecem intactos e os modelos já descarregados são mantidos.
-- **Atualizar e remover:** obtenha o código mais recente e volte a executar `linux/setup.sh` na mesma pasta;
-  execute `./uninstall.sh` dentro da pasta de instalação para remover (mantendo, se quiser, biblioteca e modelos).
-  Consulte [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md) para a lista completa
-  de opções e comandos.
+Tudo fica numa única pasta do utilizador (por predefinição `~/.local/share/yeufonic`, com o comando `yeufonic`
+em `~/.local/bin`), com o seu próprio ambiente Python, motor, modelos e biblioteca.
+
+- **Escolher motor e opções:** o instalador verifica o sistema e pergunta que motor usar (**ComfyUI** para
+  tudo, incluindo treino de LoRA, ou **yue2.cpp** para placas com menos memória), que tamanho do modelo YuE2 e
+  que partes opcionais instalar (Gemma 4 para rascunhos de letras, **FLUX.2 klein 4B** ou **FIBO 2.0** para
+  imagens dos takes, LoRAs de estilo e vozes gravadas).
+- **Iniciar e parar:** execute `yeufonic` em primeiro plano (ou `yeufonic start -d` em segundo plano) e abra
+  <http://localhost:8090>. Use `yeufonic status`, `yeufonic logs` e `yeufonic stop` para verificar ou parar uma
+  instância em segundo plano.
+- **Trocar de motor ou adicionar opções depois:** pare o Yeufonic e execute `yeufonic setup` (ou passe opções
+  como `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--bf16`, `--picture-model fibo2`, `--loras`). A sua
+  biblioteca, definições, LoRAs e modelos já descarregados são mantidos.
+- **Atualizar e remover:** descarregue um instalador `.run` mais recente da página de versões e volte a
+  executá-lo para atualizar; execute `yeufonic uninstall` para remover (mantendo, se quiser, biblioteca e
+  modelos). Consulte [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md) para a
+  lista completa.
 
 ---
 

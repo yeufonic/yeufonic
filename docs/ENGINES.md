@@ -147,8 +147,9 @@ again and choose the other engine. Your library, settings and LoRAs are kept.
 
 ## On Linux, without Docker
 
-`linux/setup.sh` (or `./bin/yeufonic setup` in an existing install) asks which engine to use: ComfyUI or
-yue2.cpp, along with model size and optional parts (style LoRAs, Gemma, FLUX.2 klein 4B or FIBO 2.0). To
-switch engines later, stop Yeufonic and run `./bin/yeufonic setup` (or `--engine yue2cpp` / `--engine comfyui`).
+Download `yeufonic-<version>-linux-x86_64.run` from the [latest release](https://github.com/yeufonic/yeufonic/releases/latest)
+and run it (or run `yeufonic setup` in an existing install). It asks which engine to use: ComfyUI or yue2.cpp,
+along with model size and optional parts (style LoRAs, Gemma, FLUX.2 klein 4B or FIBO 2.0). To switch engines
+later, stop Yeufonic and run `yeufonic setup` (or `yeufonic setup --engine yue2cpp` / `--engine comfyui`).
 Your library, settings and LoRAs are kept. See [linux/README.md](../linux/README.md) for the full list of
 flags and commands.

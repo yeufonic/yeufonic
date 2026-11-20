@@ -893,9 +893,9 @@ for yue2.cpp).
 - **Docker Desktop on Windows**: works, with the settings in *Windows with Docker Desktop*
   above. It publishes ports onto the Windows host, so other devices can reach the UI once
   `ALLOWED_HOSTS` names them.
-- **Native Linux, no containers**: use the command-line native Linux installer in
-  [linux/README.md](linux/README.md) (`bash linux/build.sh` builds a self-extracting `.run` bundle
-  supporting ComfyUI and yue2.cpp with no Docker and no `sudo`). Or run manually from a checkout:
+- **Native Linux, no containers**: download `yeufonic-<version>-linux-x86_64.run` from the
+  [latest release](https://github.com/yeufonic/yeufonic/releases/latest) and run it (no Docker and no
+  `sudo`, supporting ComfyUI and yue2.cpp — see [linux/README.md](linux/README.md)). Or run manually from a checkout:
   install ComfyUI with the YuE2 nodes, or build yue2.cpp's server with the patches in
   `engine-cpp/patches` and set `ENGINE_KIND=yue2cpp`, and point `ENGINE_URL` at it. Install
   `requirements.txt`, ffmpeg and demucs, then run the app from the repository with
