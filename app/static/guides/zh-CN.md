@@ -1038,6 +1038,8 @@ Checkpoints 是在编辑器中点击的：如果那里打开着一个版本，�
 **要在这台电脑上绘制，请安装 FLUX.2 klein。**
 
 - <strong>Windows：</strong>在安装程序的组件页面勾选 **FLUX.2 [klein]**。除非你选择它，否则它不会被勾选。已安装的应用在更新时会看到同样的页面，或者从发布页面重新运行安装程序：之后这个勾选会被记住，更新也永远不会重复下载它。它是三个文件，总共大约 8 GB。
+- <strong>Mac：</strong>在安装窗口询问时回答“是”，或退出 Yeufonic 后运行 `setup.sh --pictures`。
+- <strong>Linux：</strong>在安装过程中选择 <strong>FLUX.2 klein 4B</strong>（或运行 `yeufonic setup --picture-model 4b`）。
 - <strong>Docker：</strong>运行 `sh scripts/fetch-models.sh --pictures`，它会把三个文件放进 `models/`
   （`diffusion_models`、`text_encoders` 和 `vae`）并逐一校验，然后用
   `docker compose restart app` 重启应用，让它找到这些文件。
@@ -1060,7 +1062,7 @@ Yeufonic 从不下载它，因为它的文件在 Hugging Face 上需要申请访
    （6.8 GB，最小）或 `qwen_3_8b.safetensors`（16.4 GB，全精度，给 Mac 用）。**使用 yue2.cpp 引擎时**，图片服务器读不了这些编码器：请改为从
    [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF) 获取 `Qwen3-8B-Q4_K_M.gguf`
    （5.0 GB）（`-Q8_0.gguf`，8.7 GB，也可以），放在同一个文件夹里。
-3. **文件夹在哪里：** **Docker** 是 Yeufonic 文件夹中的 `models/`；**Windows** 是安装文件夹中的 `engine\ComfyUI\models`；**Mac** 是安装文件夹中的
+3. **文件夹在哪里：** **Docker** 是 Yeufonic 文件夹中的 `models/`；**Windows** 是安装文件夹中的 `engine\ComfyUI\models`；<strong>Mac</strong> 和 <strong>Linux</strong> 是安装文件夹中的
    `engine/ComfyUI/models/`。
 4. <strong>让应用看到它们，并选择它。</strong>重启 Yeufonic（使用 Docker 时为 `docker compose restart app`），然后在设置中把**版本图片：模型**设为 *FLUX.2 klein 9B*。在此之前由 4B 绘制，如果选了 9B 却无法在这里绘制，设置会提示你。选择
    *4B* 即可退回，无需删除任何东西。编辑器中图片的备注会说明是哪一个画的（*drawn by FLUX.2 klein 9B on this PC*）。
@@ -1085,9 +1087,14 @@ Hugging Face 上需要申请访问，并采用 **FLUX Kommunity License**（非�
 
 文件夹和 9B 的相同，文件也只能以这些名称被找到。
 
-<strong>FIBO 2.0，追求照片质感，需要 16 GB 显卡。</strong>Bria 的 FIBO 2.0 画出的图片最接近这些图片所效仿的唱片封套的真实照片：细节更锐利，景深自然，带有胶片的色彩，也更贴合描述的要求。Yeufonic 同样从不下载它。<strong>它的许可证是 CC BY-NC 4.0：仅限非商业用途。</strong>FLUX 3 的许可证允许营收低于门槛的人商业使用其所绘内容；而使用 FIBO 时，任何商业用途，包括你出售的歌曲的封面，都需要与 Bria 签订协议。使用前请先阅读许可证。
+<strong>FIBO 2.0，追求照片质感，需要 16 GB 显卡。</strong>Bria 的 FIBO 2.0 画出的图片最接近这些图片所效仿的唱片封套的真实照片：细节更锐利，景深自然，带有胶片的色彩，也更贴合描述的要求。它是一个可选的安装项（默认不勾选）。<strong>它的许可证是 CC BY-NC 4.0：仅限非商业用途。</strong>FLUX 3 的许可证允许营收低于门槛的人商业使用其所绘内容；而使用 FIBO 时，任何商业用途，包括你出售的歌曲的封面，都需要与 Bria 签订协议。使用前请先阅读许可证。
 
-- <strong>磁盘：</strong>约 10.4 GB，包括模型和它的 turbo 附加组件。它读取 FLUX 3 的文本编码器和 4B 的 VAE，所以已安装 FLUX 3 时无需其他文件。
+- <strong>安装方式：</strong>
+  - <strong>Windows：</strong>在安装程序的组件页面勾选 <strong>FIBO 2.0 (take pictures)</strong>（或运行 `setup.ps1 -Fibo`）。
+  - <strong>Linux：</strong>在 `yeufonic setup` 提示时选择 <strong>FIBO 2.0</strong>（或运行 `yeufonic setup --picture-model fibo2`）。
+  - <strong>Mac：</strong>在安装程序询问 FIBO 2.0 时回答“是”，或运行 `setup.sh --fibo`（全精度 BF16，约 28 GB，需要 32 GB+ 内存）。
+  - <strong>Docker：</strong>运行 `sh scripts/fetch-models.sh --fibo`，然后运行 `docker compose restart app`。
+- <strong>磁盘：</strong>NVIDIA 显卡上约 15.6 GB（模型、turbo 附加组件、Qwen3-VL 文本编码器和 FLUX.2 VAE；如果已安装 FLUX 3 的编码器和 4B 的 VAE，则约 10.4 GB）。Mac 全精度约 28 GB。
 - <strong>显存：</strong>绘制时约 12.5 GB，因此需要 16 GB 显卡。更小的显卡会把一部分换出，速度会慢得多。
 - <strong>时间：</strong>使用 turbo 附加组件时，与 FLUX 3 差不多。没有它时，FIBO 按自己的设置绘制，大约要八倍的时间。
 - <strong>封套：</strong>由 FIBO 绘制时，照片周围的边框没有细深色线条，因为 FIBO 会把它画成粗条，并在歌名周围加框。
@@ -1109,7 +1116,7 @@ Hugging Face 上需要申请访问，并采用 **FLUX Kommunity License**（非�
 |---|---|
 | **版本图片** | *为每个新版本生成一张*（能绘制时的默认值），或*仅在请求时*，此时版本会保留默认背景，直到你通过它的小方块或编辑器的“图片”按钮生成一张。下面的设置会塑造用任何一种方式生成的图片。只要这里没有东西能绘制，它就是*无图片*。 |
 | **版本图片：绘制者** | *如果已安装 klein 则用这台电脑，否则用外部 LLM*（默认）、<em>这台电脑（下面的模型）</em>或*外部 LLM 的图像模型*。这台电脑上由哪个 klein 绘制（FLUX.2 klein 4B 或 9B，或 FLUX 3 klein）在 **模型**中选择。FIBO 2.0 也在那里选择。 |
-| **版本图片：模型** | *FLUX.2 klein 4B*（默认）、*FLUX.2 klein 9B*、*FLUX 3 klein*，或*已安装 9B 文件时用 9B，否则用 4B*。只用于在这台电脑上绘制的图片。9B 和 FLUX 3 永远不会替你安装：参见上文的 [FLUX.2 klein 9B 和 FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm)。如果请求的那个不在，会由另一个绘制，设置会说明是哪个。*FIBO 2.0* 同样需手动添加，且仅限非商业用途：见上文。 |
+| **版本图片：模型** | *FLUX.2 klein 4B*（默认）、*FLUX.2 klein 9B*、*FLUX 3 klein*、*FIBO 2.0*，或*已安装 9B 文件时用 9B，否则用 4B*。只用于在这台电脑上绘制的图片。9B 和 FLUX 3 永远不会替你安装；*FIBO 2.0* 为可选安装项（仅限非商业用途）：参见上文的 [FLUX.2 klein 9B 和 FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm)。如果请求的那个不在，会由另一个绘制，设置会说明是哪个。 |
 | **版本图片：描述者** | 由谁根据版本的标题、下面的艺术风格、它的风格和歌词（最多 50 行）来写图片提示词。*已安装本地 Gemma 时用它，否则用版本本身*（默认），不管由谁绘制。*本地 Gemma*：在这台电脑上写；需要“歌词草稿”选项。*根据版本本身*：不用 LLM；用版本的标题、风格和开头的词生成描述，最快，也不发送任何内容。或者*外部 LLM*，每张图片一次请求；它不可用时，或你在本次会话中切换到本地 LLM 时，如果已安装 Gemma，就改由 Gemma 来写。 |
 | **版本图片：艺术风格** | 图片应该是什么样子，交给写图片提示词的 LLM（版本自行描述时会变灰）。默认是七八十年代唱片封面风格的抽象超现实设计，不带文字和人物。清空后会恢复为这个默认值。 |
 | **版本图片：你自己的提示词** | 每张图片的提示词开头的词，例如 *salt marsh, overcast*，最多 512 个字符；LLM 写的提示词跟在后面。空（默认）：没有。只在由 LLM 写图片提示词时有效（版本自行描述时会变灰）。 |

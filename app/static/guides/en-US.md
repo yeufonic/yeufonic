@@ -1509,6 +1509,8 @@ Pictures need something that can draw. There are two, and you can have either, b
   unless you choose it. An installed app gets the same page when it updates, or run the installer again
   from the release page: the tick is remembered after that, and an update never downloads it twice. It
   is three files, about 8 GB in all.
+- **Mac:** answer yes when the setup window asks, or quit Yeufonic and run its `setup.sh --pictures`.
+- **Linux:** choose **FLUX.2 klein 4B** during setup (or run `yeufonic setup --picture-model 4b`).
 - **Docker:** run `sh scripts/fetch-models.sh --pictures`, which puts the three files in `models/`
   (`diffusion_models`, `text_encoders` and `vae`) and checks each one, then restart the app with
   `docker compose restart app` so it finds them.
@@ -1540,7 +1542,7 @@ Labs' **non-commercial license**, but put them in place and they are used.
    (`-Q8_0.gguf`, 8.7 GB, also works), and put it in the same folder.
 3. **Where the folders are:** under `models/` in the Yeufonic folder for **Docker**; under
    `engine\ComfyUI\models` in the install folder on **Windows**; under `engine/ComfyUI/models/` in the
-   install folder on a **Mac**.
+   install folder on **Mac** and **Linux**.
 4. **Let the app see them, and choose it.** Restart Yeufonic (with Docker, `docker compose restart app`),
    then set **Take pictures: model** in Settings to *FLUX.2 klein 9B*. The 4B draws until you do, and
    Settings say so when the 9B is chosen but cannot draw here. Choose
@@ -1577,12 +1579,17 @@ The folders are the same as for the 9B, and the files are found by these names o
 
 **FIBO 2.0, for the look of a photograph and a 16 GB card.** Bria's FIBO 2.0 draws closest to a real photograph of
 the sleeves the pictures are modeled on: sharper detail, a natural depth of field, the color of film, and more of
-what the description asks for. Yeufonic never downloads it either. **Its license is CC BY-NC 4.0: non-commercial use
-only.** FLUX 3's license lets someone under its revenue limit use what it draws commercially; with FIBO, any
-commercial use, a cover for a song you sell included, needs an agreement with Bria. Read the license before you use it.
+what the description asks for. It is an optional install choice (not checked by default). **Its license is CC BY-NC 4.0:
+non-commercial use only.** FLUX 3's license lets someone under its revenue limit use what it draws commercially; with
+FIBO, any commercial use, a cover for a song you sell included, needs an agreement with Bria. Read the license before
+you use it.
 
-- **Disk:** about 10.4 GB, the model and its turbo add-on. It reads FLUX 3's text encoder and the 4B's VAE, so with
-  FLUX 3 installed nothing else is needed.
+- **To install it:**
+  - **Windows:** check **FIBO 2.0 (take pictures)** on the installer's components page (or run `setup.ps1 -Fibo`).
+  - **Linux:** choose **FIBO 2.0** when prompted by `yeufonic setup` (or run `yeufonic setup --picture-model fibo2`).
+  - **Mac:** answer yes when setup asks about FIBO 2.0, or run `setup.sh --fibo` (full-precision BF16, ~28 GB, needs 32 GB+ memory).
+  - **Docker:** run `sh scripts/fetch-models.sh --fibo`, then `docker compose restart app`.
+- **Disk:** about 15.6 GB on NVIDIA (model, turbo add-on, Qwen3-VL text encoder and FLUX.2 VAE — about 10.4 GB if FLUX 3's encoder and the 4B VAE are already installed). About 28 GB in full precision on a Mac.
 - **Video memory:** about 12.5 GB while it draws, so a 16 GB card. A smaller card swaps part of it out, which is
   far slower.
 - **Time:** with the turbo add-on, about as long as FLUX 3. Without it, FIBO draws at its own settings, about eight
@@ -1619,7 +1626,7 @@ Set up either and they come on: pictures are then made for the takes you make fr
 |---|---|
 | **Take pictures** | *Make one for each new take* (the default where something can draw), or *Only when asked*, where a take keeps the default background until you make one from its square or the editor's Picture button. The settings below shape a picture made either way. It is *No pictures* while nothing here can draw. |
 | **Take pictures: drawn by** | *This PC if klein is installed, else the external LLM* (the default), *This PC (the model below)* or *The external LLM's image model*. Which model draws on this PC (FLUX.2 klein 4B or 9B, FLUX 3 klein or FIBO 2.0) is chosen under **Take pictures: model**. |
-| **Take pictures: model** | *FLUX.2 klein 4B* (the default), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B, FLUX 3 and FIBO 2.0 are never installed for you (FIBO is for non-commercial use only): see [FLUX.2 klein 9B and FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. One asked for and not there, another draws, and Settings say which. |
+| **Take pictures: model** | *FLUX.2 klein 4B* (the default), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B and FLUX 3 are never installed for you; FIBO 2.0 is an optional install choice (non-commercial use only): see [FLUX.2 klein 9B and FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. One asked for and not there, another draws, and Settings say which. |
 | **Take pictures: described by** | who writes the image prompt, from the take's title, the art style below, its style and its words (up to 50 lines). *Local Gemma if installed, else the take itself* (the default), whoever draws. *Local Gemma*: written on this PC; needs the Lyric drafts option. *From the take itself*: no LLM; a description made from the take's title, style and opening words, the quickest, and nothing is sent out for it. Or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
 | **Take pictures: art style** | how the picture should look, given to the LLM that writes the image prompt (grayed out when the take itself describes it). By default an abstract, surrealist design in the manner of 1970s and 1980s album covers, with no text or people. Emptied, it goes back to that. |
 | **Take pictures: your own prompt** | words to start every picture's image prompt with, such as *salt marsh, overcast*, up to 512 characters; the prompt the LLM writes follows them. Empty (the default): none. Only when an LLM writes the image prompt (grayed out when the take itself describes it). |

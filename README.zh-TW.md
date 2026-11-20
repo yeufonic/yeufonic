@@ -75,7 +75,11 @@ sh scripts/fetch-models.sh          # 約 19 GB，同時建立資料夾
 docker compose up -d --build
 ```
 
-然後開啟 <http://localhost:8090>。各種選項（較小的模型、yue2.cpp、影像模型、風格 LoRA）見[英文 README](README.md#quick-start)。
+然後開啟 <http://localhost:8090>。各種選項（較小的模型、yue2.cpp、包含 FIBO 2.0 的影像模型、風格 LoRA）見[英文 README](README.md#quick-start)。
+
+## 在 Linux 上，無需 Docker
+
+在配備 NVIDIA 顯示卡的 Linux 電腦上，也可以不依賴 Docker 原生執行 Yeufonic（支援 ComfyUI 或 yue2.cpp）：請參閱 **[linux/README.md](linux/README.md)**。
 
 ## 更多
 

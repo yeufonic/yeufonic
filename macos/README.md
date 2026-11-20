@@ -38,6 +38,10 @@ each pin to the build its workflow would publish for the sources as they are.
      (32 GB recommended), and is experimental. To change the answer later, quit Yeufonic and run
      `bash /Applications/Yeufonic.app/Contents/Resources/setup.sh --pictures` (or
      `--no-pictures`, which fetches nothing and leaves files already there).
+   - **FIBO 2.0 for take pictures is also an option** (ComfyUI only, CC BY-NC 4.0 non-commercial use
+     only), asked and remembered the same way: full-precision BF16 weights with its turbo LoRA,
+     Qwen3-VL text encoder and shared VAE (about 28 GB; 32 GB or more of memory recommended).
+     `setup.sh --fibo` adds it later (`--no-fibo` turns it off).
    - **Style LoRAs are an option too**, asked and remembered the same way: the 39 style LoRAs by their
      authors that the Windows installer and `fetch-models.sh --loras` fetch (about 3.8 GB), each with its
      description. A file already in the LoRA folder is left as it is. `setup.sh --loras` fetches them later.

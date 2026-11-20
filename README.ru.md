@@ -75,7 +75,11 @@ sh scripts/fetch-models.sh          # около 19 ГБ, заодно созд�
 docker compose up -d --build
 ```
 
-Затем откройте <http://localhost:8090>. Параметры (модель поменьше, yue2.cpp, модели для обложек, LoRA стиля) описаны в [README на английском](README.md#quick-start).
+Затем откройте <http://localhost:8090>. Параметры (модель поменьше, yue2.cpp, модели для обложек, включая FIBO 2.0, LoRA стиля) описаны в [README на английском](README.md#quick-start).
+
+## В Linux, без Docker
+
+На компьютере с Linux и видеокартой NVIDIA Yeufonic также можно установить напрямую без Docker (с ComfyUI или yue2.cpp): см. **[linux/README.md](linux/README.md)**.
 
 ## Ещё
 

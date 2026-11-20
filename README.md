@@ -199,8 +199,8 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 - **A picture for each take.** Each new take gets a picture of the song, shown behind the take's card,
   atop the take panel and behind the editor (drawn on this PC, it waits until the song is made, so it never
   holds it up): a description is made from the title, style and opening words, with no LLM, then
-  FLUX.2 klein draws it on this PC in a few seconds (an install option, and all a
-  picture drawn here needs; the 9B, FLUX 3 klein and FIBO 2.0 can be added by hand) or the external LLM's image model does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
+  FLUX.2 klein or FIBO 2.0 draws it on this PC in a few seconds (install options; FLUX.2 klein 9B and
+  FLUX 3 klein can be added by hand) or the external LLM's image model does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
   to the plain background. Without either way to draw, there are no pictures.
 - **A library.** Every take keeps its score, style, lyrics, seed and settings, so it can be
   reproduced, reworked, starred or deleted. Search by title, style, lyrics or LoRA, in one space or
@@ -386,6 +386,9 @@ The installer checks all of this before it downloads anything.
    - Choose whether to include **FLUX.2 [klein]**, unticked to begin with. It draws a
      picture of each take on this PC, about 8 GB to download. Leave it out if your external LLM can
      draw them (Gemini can), or if you do not want pictures.
+   - Choose whether to include **FIBO 2.0 (take pictures)**, unticked to begin with: photographic
+     take pictures with its turbo add-on (ComfyUI only, 16 GB card recommended, CC BY-NC 4.0
+     non-commercial use only, about 15.6 GB to download).
    - Choose whether to include **Style LoRAs**, unticked to begin with: 39 style LoRAs by their
      authors (chanson, canzone, Bulgarian voices, qawwali, militant reggae, J-pop, dream pop, old school
      hip-hop and 16 concept sliders), each with its trigger word and suggested strengths, 3.8 GB to
@@ -555,6 +558,7 @@ sh scripts/fetch-models.sh          # about 19 GB, and creates the folders below
 # sh scripts/fetch-models.sh --int8   # the smaller low-memory model instead: see Choosing a model size
 # sh scripts/fetch-models.sh --cpp    # the yue2.cpp engine instead (5.4 GB): see Choosing an engine
 # sh scripts/fetch-models.sh --pictures   # also FLUX.2 klein (8.3 GB), to draw take pictures here
+# sh scripts/fetch-models.sh --fibo       # also FIBO 2.0 (15.6 GB, ComfyUI only, CC BY-NC 4.0)
 # sh scripts/fetch-models.sh --loras      # also 39 style LoRAs by their authors (3.8 GB, CC BY-NC 4.0)
 docker compose up -d --build
 ```
@@ -608,7 +612,8 @@ sudo chown -R "$(id -u):$(id -g)" data engine-state/output
 
 The models are YuE2 (plans and renders), SheetSage2 (transcription), Gemma 4 E4B (lyric drafts),
 the YuE2 instrumental LoRA, and the Realaudio decoder LoRA and tokenizer head; with `--pictures`,
-FLUX.2 klein 4B with its text encoder and VAE as well; with `--loras`, the style LoRAs. Fetched later, the engine sees them at once:
+FLUX.2 klein 4B with its text encoder and VAE as well; with `--fibo`, FIBO 2.0 with its turbo add-on,
+text encoder and VAE (ComfyUI only, CC BY-NC 4.0); with `--loras`, the style LoRAs. Fetched later, the engine sees them at once:
 no restart.
 
 Only localhost is published, and **there is no login**: anyone who can reach the port can use the
@@ -887,9 +892,12 @@ for yue2.cpp).
 - **Docker Desktop on Windows**: works, with the settings in *Windows with Docker Desktop*
   above. It publishes ports onto the Windows host, so other devices can reach the UI once
   `ALLOWED_HOSTS` names them.
-- **Native Linux, no containers**: install ComfyUI with the YuE2 nodes, or build yue2.cpp's server
-  with the patches in `engine-cpp/patches` and set `ENGINE_KIND=yue2cpp`, and point `ENGINE_URL` at
-  it. Install `requirements.txt`, ffmpeg and demucs, then run the app from the repository with
+- **Native Linux, no containers**: use the command-line native Linux installer in
+  [linux/README.md](linux/README.md) (`bash linux/build.sh` builds a self-extracting `.run` bundle
+  supporting ComfyUI and yue2.cpp with no Docker and no `sudo`). Or run manually from a checkout:
+  install ComfyUI with the YuE2 nodes, or build yue2.cpp's server with the patches in
+  `engine-cpp/patches` and set `ENGINE_KIND=yue2cpp`, and point `ENGINE_URL` at it. Install
+  `requirements.txt`, ffmpeg and demucs, then run the app from the repository with
   `DATA_DIR=./data VERSION_FILE=./VERSION uvicorn app.main:app --port 8090`. Without those two
   variables the app looks for `/data` and shows its version as unknown.
 

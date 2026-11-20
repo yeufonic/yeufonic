@@ -475,13 +475,13 @@ SETTINGS_SPEC: list[dict] = [
             {"value": "4b", "label": "FLUX.2 klein 4B (installed with Yeufonic)"},
             {"value": "9b", "label": "FLUX.2 klein 9B (added by hand: see the guide)"},
             {"value": "flux3", "label": "FLUX 3 klein (added by hand: see the guide)"},
-            {"value": "fibo2", "label": "FIBO 2.0 (added by hand: see the guide)"},
+            {"value": "fibo2", "label": "FIBO 2.0 (install option, non-commercial)"},
             {"value": "auto", "label": "9B where its files are installed, else 4B"},
         ],
         "help": "Which model draws on this PC. The FLUX.2 9B is higher quality, for graphics cards with more video "
-                "memory; FLUX 3 klein letters well and suits a 12 GB card or larger; FIBO 2.0 draws closest to a "
-                "photograph, needs a 16 GB card and is for non-commercial use only. Those three are added by hand: see "
-                "the guide.",
+                "memory; FLUX 3 klein letters well and suits a 12 GB card or larger (both added by hand: see the "
+                "guide); FIBO 2.0 draws closest to a photograph, needs a 16 GB card and is an install option for "
+                "non-commercial use only.",
         "requires": {"pictures": "possible", "art.drawer": ["auto", "local"]},
         "requires_note": "Only for pictures drawn on this PC: choose This PC under Take pictures: drawn by.",
     },

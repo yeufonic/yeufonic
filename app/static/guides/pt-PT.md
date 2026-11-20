@@ -1331,6 +1331,8 @@ As imagens precisam de algo que saiba desenhar. Há dois, e você pode ter um, o
   a menos que você o escolha. Um app instalado recebe a mesma página ao atualizar, ou rode o instalador de novo
   pela página da versão: a caixa é lembrada depois, e uma atualização nunca o transfere duas vezes. São
   três ficheiros, cerca de 8 GB no total.
+- **Mac:** responda sim quando a janela de configuração perguntar, ou feche o Yeufonic e execute `setup.sh --pictures`.
+- **Linux:** escolha **FLUX.2 klein 4B** durante a configuração (ou execute `yeufonic setup --picture-model 4b`).
 - **Docker:** rode `sh scripts/fetch-models.sh --pictures`, que põe os três ficheiros em `models/`
   (`diffusion_models`, `text_encoders` e `vae`) e verifica cada um, e depois reinicie a aplicação com
   `docker compose restart app` para que ele os encontre.
@@ -1362,7 +1364,7 @@ da Black Forest Labs, mas ponha-os no lugar e eles são usados.
    (`-Q8_0.gguf`, 8,7 GB, também funciona), e ponha na mesma pasta.
 3. **Onde ficam as pastas:** sob `models/` na pasta do Yeufonic para **Docker**; sob
    `engine\ComfyUI\models` na pasta de instalação no **Windows**; sob `engine/ComfyUI/models/` na
-   pasta de instalação em um **Mac**.
+   pasta de instalação no **Mac** e no **Linux**.
 4. **Deixe a aplicação vê-los, e escolha.** Reinicie o Yeufonic (com Docker, `docker compose restart app`),
    e depois ponha **Imagens dos takes: modelo** em Definições em *FLUX.2 klein 9B*. O 4B desenha até você fazer isso, e
    Definições avisa quando o 9B está escolhido mas não consegue desenhar aqui. Escolha
@@ -1399,13 +1401,17 @@ As pastas são as mesmas que para o 9B, e os ficheiros só são encontrados com 
 
 **FIBO 2.0, para o visual de uma fotografia e uma placa gráfica de 16 GB.** O FIBO 2.0 da Bria desenha o mais perto de uma
 fotografia real das capas de disco em que as imagens se inspiram: detalhes mais nítidos, uma profundidade de campo
-natural, as cores do filme e mais do que a descrição pede. O Yeufonic também nunca o descarrega. **A licença dele é
-CC BY-NC 4.0: só uso não comercial.** A licença do FLUX 3 permite que quem está abaixo do limite de receita dela use
-comercialmente o que ele desenha; com o FIBO, qualquer uso comercial, incluindo a capa de uma música que vende,
-precisa de um acordo com a Bria. Leia a licença antes de usá-lo.
+natural, as cores do filme e mais do que a descrição pede. É uma escolha de instalação opcional (não vem marcada por
+predefinição). **A licença dele é CC BY-NC 4.0: só uso não comercial.** A licença do FLUX 3 permite que quem está abaixo
+do limite de receita dela use comercialmente o que ele desenha; com o FIBO, qualquer uso comercial, incluindo a capa de
+uma música que vende, precisa de um acordo com a Bria. Leia a licença antes de usá-lo.
 
-- **Disco:** cerca de 10,4 GB, o modelo e o complemento turbo. Ele lê o codificador de texto do FLUX 3 e o VAE do 4B,
-  então com o FLUX 3 instalado não é preciso mais nada.
+- **Para instalar:**
+  - **Windows:** marque **FIBO 2.0 (take pictures)** na página de componentes do instalador (ou execute `setup.ps1 -Fibo`).
+  - **Linux:** escolha **FIBO 2.0** quando o `yeufonic setup` perguntar (ou execute `yeufonic setup --picture-model fibo2`).
+  - **Mac:** responda sim quando a configuração perguntar pelo FIBO 2.0, ou execute `setup.sh --fibo` (precisão total BF16, ~28 GB, requer 32 GB+ de memória).
+  - **Docker:** execute `sh scripts/fetch-models.sh --fibo` e depois `docker compose restart app`.
+- **Disco:** cerca de 15,6 GB em NVIDIA (modelo, complemento turbo, codificador de texto Qwen3-VL e VAE do FLUX.2 — cerca de 10,4 GB se o codificador do FLUX 3 e o VAE do 4B já estiverem instalados). Cerca de 28 GB em precisão total num Mac.
 - **Memória de vídeo:** cerca de 12,5 GB enquanto desenha, então uma placa gráfica de 16 GB. Uma placa gráfica menor descarrega uma
   parte, o que é bem mais lento.
 - **Tempo:** com o complemento turbo, mais ou menos o mesmo que o FLUX 3. Sem ele, o FIBO desenha com as próprias
@@ -1442,7 +1448,7 @@ Configure qualquer um dos dois e elas são ligadas: a partir daí são feitas im
 |---|---|
 | **Imagens dos takes** | *Fazer uma para cada take novo* (o padrão quando algo consegue desenhar), ou *Só quando pedido*, em que um take mantém o fundo padrão até você fazer uma pelo quadrado dele ou pelo botão Imagem do editor. Os ajustes abaixo moldam uma imagem feita de qualquer um dos dois jeitos. Fica em *Sem imagens* enquanto nada aqui consegue desenhar. |
 | **Imagens dos takes: desenhadas por** | *Este PC se o klein estiver instalado, senão o LLM externo* (padrão), *Este PC (o modelo abaixo)* ou *O modelo de imagem do LLM externo*. Qual klein desenha neste PC (FLUX.2 klein 4B ou 9B, ou FLUX 3 klein) é escolhido em **modelo**. O FIBO 2.0 também é escolhido aí. |
-| **Imagens dos takes: modelo** | *FLUX.2 klein 4B* (padrão), *FLUX.2 klein 9B*, *FLUX 3 klein*, ou *9B onde os ficheiros dele estiverem instalados, senão 4B*. Só para imagens desenhadas neste PC. O 9B e o FLUX 3 nunca são instalados por você: veja [FLUX.2 klein 9B e FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) acima. Se o pedido não estiver lá, outro desenha, e Definições diz qual. O *FIBO 2.0* também é adicionado à mão e é só para uso não comercial: veja acima. |
+| **Imagens dos takes: modelo** | *FLUX.2 klein 4B* (padrão), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0*, ou *9B onde os ficheiros dele estiverem instalados, senão 4B*. Só para imagens desenhadas neste PC. O 9B e o FLUX 3 nunca são instalados por você; o *FIBO 2.0* é uma opção de instalação (só para uso não comercial): veja [FLUX.2 klein 9B e FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) acima. Se o pedido não estiver lá, outro desenha, e Definições diz qual. |
 | **Imagens dos takes: descritas por** | quem escreve o prompt de imagem, a partir do título do take, do estilo artístico abaixo, do estilo e da letra dele (até 50 linhas). *Gemma local se instalado, senão o próprio take* (padrão), seja quem for que desenhe. *Gemma local*: escrito neste PC; precisa da opção Rascunhos de letra. *A partir do próprio take*: sem LLM; uma descrição feita com o título, o estilo e as primeiras palavras do take, a mais rápida, e nada é enviado. Ou o *LLM externo*, uma requisição por imagem; quando ele não está disponível, ou você passa para LLMs locais na sessão, o Gemma as escreve no lugar se estiver instalado. |
 | **Imagens dos takes: estilo artístico** | como a imagem deve parecer, dado ao LLM que escreve o prompt de imagem (esmaecido quando o take se descreve sozinho). Por padrão um design abstrato e surrealista no estilo das capas dos anos setenta e oitenta, sem texto nem pessoas. Esvaziado, volta a isso. |
 | **Imagens dos takes: seu próprio prompt** | palavras com que o prompt de imagem de cada imagem começa, como *salt marsh, overcast*, até 512 caracteres; o prompt que o LLM escreve vem depois. Vazio (padrão): nenhuma. Só quando um LLM escreve o prompt de imagem (esmaecido quando o take se descreve sozinho). |

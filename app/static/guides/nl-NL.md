@@ -1331,6 +1331,8 @@ Afbeeldingen hebben iets nodig dat kan tekenen. Er zijn er twee, en je kunt er e
   tenzij je het kiest. Een geïnstalleerde app krijgt dezelfde pagina bij het bijwerken, of voer het installatieprogramma opnieuw uit
   vanaf de releasepagina: het vinkje wordt daarna onthouden, en een update downloadt het nooit twee keer. Het zijn
   drie bestanden, zo'n 8 GB in totaal.
+- **Mac:** antwoord ja wanneer het installatievenster het vraagt, of sluit Yeufonic af en voer `setup.sh --pictures` uit.
+- **Linux:** kies **FLUX.2 klein 4B** tijdens de installatie (of voer `yeufonic setup --picture-model 4b` uit).
 - **Docker:** voer `sh scripts/fetch-models.sh --pictures` uit, dat de drie bestanden in `models/` zet
   (`diffusion_models`, `text_encoders` en `vae`) en elk controleert, en herstart dan de app met
   `docker compose restart app` zodat hij ze vindt.
@@ -1362,7 +1364,7 @@ van Black Forest Labs vallen, maar zet ze op hun plek en ze worden gebruikt.
    (`-Q8_0.gguf`, 8,7 GB, werkt ook), en zet hem in dezelfde map.
 3. **Waar de mappen zijn:** onder `models/` in de Yeufonic-map voor **Docker**; onder
    `engine\ComfyUI\models` in de installatiemap op **Windows**; onder `engine/ComfyUI/models/` in de
-   installatiemap op een **Mac**.
+   installatiemap op **Mac** en **Linux**.
 4. **Laat de app ze zien, en kies hem.** Herstart Yeufonic (met Docker, `docker compose restart app`),
    en zet dan **Take-afbeeldingen: model** in Instellingen op *FLUX.2 klein 9B*. De 4B tekent tot je dat doet, en
    Instellingen zegt het als de 9B gekozen is maar hier niet kan tekenen. Kies
@@ -1399,13 +1401,17 @@ De mappen zijn dezelfde als voor de 9B, en de bestanden worden alleen onder deze
 
 **FIBO 2.0, voor de uitstraling van een foto en een kaart van 16 GB.** Bria's FIBO 2.0 tekent het dichtst bij een echte
 foto van de hoezen waarop de afbeeldingen zijn gebaseerd: scherpere details, een natuurlijke scherptediepte, de kleuren
-van film en meer van wat de beschrijving vraagt. Ook FIBO downloadt Yeufonic nooit. **De licentie is CC BY-NC 4.0:
-alleen niet-commercieel gebruik.** De licentie van FLUX 3 laat iemand onder de omzetgrens wat het tekent commercieel
-gebruiken; bij FIBO heeft elk commercieel gebruik, ook een hoes voor een nummer dat je verkoopt, een overeenkomst met
-Bria nodig. Lees de licentie voordat je het gebruikt.
+van film en meer van wat de beschrijving vraagt. Het is een optionele installatiekeuze (standaard niet aangevinkt).
+**De licentie is CC BY-NC 4.0: alleen niet-commercieel gebruik.** De licentie van FLUX 3 laat iemand onder de
+omzetgrens wat het tekent commercieel gebruiken; bij FIBO heeft elk commercieel gebruik, ook een hoes voor een nummer
+dat je verkoopt, een overeenkomst met Bria nodig. Lees de licentie voordat je het gebruikt.
 
-- **Schijf:** ongeveer 10,4 GB, het model en zijn turbo-toevoeging. Het leest de tekstencoder van FLUX 3 en de VAE van
-  de 4B, dus met FLUX 3 geïnstalleerd is er verder niets nodig.
+- **Installeren:**
+  - **Windows:** vink **FIBO 2.0 (take pictures)** aan op de onderdelenseite van het installatieprogramma (of voer `setup.ps1 -Fibo` uit).
+  - **Linux:** kies **FIBO 2.0** wanneer `yeufonic setup` erom vraagt (of voer `yeufonic setup --picture-model fibo2` uit).
+  - **Mac:** antwoord ja wanneer de installatie om FIBO 2.0 vraagt, of voer `setup.sh --fibo` uit (volledige precisie BF16, ~28 GB, vereist 32 GB+ geheugen).
+  - **Docker:** voer `sh scripts/fetch-models.sh --fibo` uit en daarna `docker compose restart app`.
+- **Schijf:** ongeveer 15,6 GB op NVIDIA (model, turbo-toevoeging, Qwen3-VL-tekstencoder en FLUX.2-VAE — ongeveer 10,4 GB als de encoder van FLUX 3 en de VAE van de 4B al zijn geïnstalleerd). Ongeveer 28 GB in volledige precisie op een Mac.
 - **Videogeheugen:** ongeveer 12,5 GB tijdens het tekenen, dus een kaart van 16 GB. Een kleinere kaart lagert een deel
   uit, wat veel trager is.
 - **Tijd:** met de turbo-toevoeging ongeveer even lang als FLUX 3. Zonder tekent FIBO met zijn eigen instellingen,
@@ -1442,7 +1448,7 @@ Stel een van beide in en ze gaan aan: vanaf dan worden er afbeeldingen gemaakt v
 |---|---|
 | **Take-afbeeldingen** | *Maak er een voor elke nieuwe take* (de standaard als iets kan tekenen), of *Alleen op verzoek*, waarbij een take de standaardachtergrond houdt tot je er een maakt via zijn vierkantje of de knop Afbeelding in de editor. De instellingen hieronder vormen een afbeelding die op een van beide manieren is gemaakt. Staat op *Geen afbeeldingen* zolang niets hier kan tekenen. |
 | **Take-afbeeldingen: getekend door** | *Deze pc als klein geïnstalleerd is, anders de externe LLM* (standaard), *Deze pc (het model hieronder)* of *Het afbeeldingsmodel van de externe LLM*. Welke klein op deze pc tekent (FLUX.2 klein 4B of 9B, of FLUX 3 klein) kies je bij **model**. FIBO 2.0 wordt daar ook gekozen. |
-| **Take-afbeeldingen: model** | *FLUX.2 klein 4B* (standaard), *FLUX.2 klein 9B*, *FLUX 3 klein*, of *9B waar zijn bestanden geïnstalleerd zijn, anders 4B*. Alleen voor afbeeldingen getekend op deze pc. De 9B en FLUX 3 worden nooit voor je geïnstalleerd: zie [FLUX.2 klein 9B en FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) hierboven. Als de gevraagde er niet is, tekent een andere, en Instellingen zegt welke. *FIBO 2.0* wordt ook met de hand toegevoegd en is alleen voor niet-commercieel gebruik: zie hierboven. |
+| **Take-afbeeldingen: model** | *FLUX.2 klein 4B* (standaard), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0*, of *9B waar zijn bestanden geïnstalleerd zijn, anders 4B*. Alleen voor afbeeldingen getekend op deze pc. De 9B en FLUX 3 worden nooit voor je geïnstalleerd; *FIBO 2.0* is een optionele installatiekeuze (alleen voor niet-commercieel gebruik): zie [FLUX.2 klein 9B en FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) hierboven. Als de gevraagde er niet is, tekent een andere, en Instellingen zegt welke. |
 | **Take-afbeeldingen: beschreven door** | wie de afbeeldingsprompt schrijft, uit de titel van de take, de kunststijl hieronder, zijn stijl en zijn tekst (tot 50 regels). *Lokale Gemma als die geïnstalleerd is, anders de take zelf* (standaard), wie er ook tekent. *Lokale Gemma*: geschreven op deze pc; heeft de optie Tekstconcepten nodig. *Uit de take zelf*: geen LLM; een beschrijving gemaakt uit de titel, stijl en eerste woorden van de take, de snelste, en er wordt niets verstuurd. Of de *externe LLM*, één verzoek per afbeelding; als die niet beschikbaar is, of je voor de sessie naar lokale LLM's overschakelt, schrijft Gemma ze in plaats daarvan als die geïnstalleerd is. |
 | **Take-afbeeldingen: kunststijl** | hoe de afbeelding eruit moet zien, gegeven aan de LLM die de afbeeldingsprompt schrijft (gedimd als de take zichzelf beschrijft). Standaard een abstract, surrealistisch ontwerp in de stijl van hoezen uit de jaren zeventig en tachtig, zonder tekst of mensen. Leeggemaakt gaat het daarnaar terug. |
 | **Take-afbeeldingen: je eigen prompt** | woorden waarmee de afbeeldingsprompt van elke afbeelding begint, zoals *salt marsh, overcast*, tot 512 tekens; de prompt die de LLM schrijft volgt erna. Leeg (standaard): geen. Alleen als een LLM de afbeeldingsprompt schrijft (gedimd als de take zichzelf beschrijft). |

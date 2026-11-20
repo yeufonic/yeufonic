@@ -23,7 +23,7 @@ are the same whichever runs.
 | Corpora and LoRA training | Yes | No: use LoRAs trained elsewhere, or on a ComfyUI install |
 | Lyrics drafted on your PC (Gemma) | Yes | With the Gemma add-on |
 | Take pictures described and drawn on your PC (Gemma, FLUX.2 klein 4B or 9B) | Yes | With the Gemma and pictures add-ons |
-| Take pictures by FLUX 3 klein or FIBO 2.0, added by hand | Yes | No: FLUX.2 klein 4B or 9B only |
+| Take pictures by FLUX 3 klein (added by hand) or FIBO 2.0 (install option, non-commercial) | Yes | No: FLUX.2 klein 4B or 9B only |
 | An external LLM for lyrics, styles and pictures | Yes | Yes |
 | Stems, and hearing the words of a recording | On the graphics card | On the processor |
 | Models to download | About 19 GB, 27 GB with pictures | About 5.4 GB; 6.1 GB more for Gemma, 6.9 GB for pictures |
@@ -58,6 +58,7 @@ On a new install, ComfyUI is the default:
 ```sh
 sh scripts/fetch-models.sh                # ComfyUI, with Gemma
 sh scripts/fetch-models.sh --pictures     # ... and FLUX.2 klein for take pictures
+# sh scripts/fetch-models.sh --fibo       # ... or FIBO 2.0 (non-commercial, CC BY-NC 4.0)
 docker compose up -d --build
 ```
 
@@ -143,3 +144,11 @@ On a Mac, `setup.sh --engine yue2cpp` takes Q8 too, and `--cpp-model bf16` the f
 
 To switch, quit Yeufonic (right-click its icon by the clock and choose **Quit**), run the installer
 again and choose the other engine. Your library, settings and LoRAs are kept.
+
+## On Linux, without Docker
+
+`linux/setup.sh` (or `./bin/yeufonic setup` in an existing install) asks which engine to use: ComfyUI or
+yue2.cpp, along with model size and optional parts (style LoRAs, Gemma, FLUX.2 klein 4B or FIBO 2.0). To
+switch engines later, stop Yeufonic and run `./bin/yeufonic setup` (or `--engine yue2cpp` / `--engine comfyui`).
+Your library, settings and LoRAs are kept. See [linux/README.md](../linux/README.md) for the full list of
+flags and commands.

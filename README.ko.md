@@ -75,7 +75,11 @@ sh scripts/fetch-models.sh          # 약 19GB, 폴더도 만듭니다
 docker compose up -d --build
 ```
 
-그런 다음 <http://localhost:8090>을 엽니다. 옵션(작은 모델, yue2.cpp, 이미지 모델, 스타일 LoRA)은 [영어 README](README.md#quick-start)에 있습니다.
+그런 다음 <http://localhost:8090>을 엽니다. 옵션(작은 모델, yue2.cpp, FIBO 2.0을 포함한 이미지 모델, 스타일 LoRA)은 [영어 README](README.md#quick-start)에 있습니다.
+
+## Linux에서, Docker 없이
+
+NVIDIA GPU가 장착된 Linux 컴퓨터에서는 Docker 없이 네이티브로 실행할 수도 있습니다(ComfyUI 또는 yue2.cpp): **[linux/README.md](linux/README.md)**를 참고하세요.
 
 ## 더 보기
 

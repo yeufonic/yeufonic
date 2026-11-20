@@ -75,7 +75,11 @@ sh scripts/fetch-models.sh          # unos 19 GB, y crea las carpetas
 docker compose up -d --build
 ```
 
-Luego abre <http://localhost:8090>. Las opciones (el modelo pequeño, yue2.cpp, modelos de imagen, LoRAs de estilo) están en el [README en inglés](README.md#quick-start).
+Luego abre <http://localhost:8090>. Las opciones (el modelo pequeño, yue2.cpp, modelos de imagen incluido FIBO 2.0, LoRAs de estilo) están en el [README en inglés](README.md#quick-start).
+
+## En Linux, sin Docker
+
+En un equipo Linux con GPU NVIDIA, Yeufonic también puede instalarse de forma nativa sin Docker (con ComfyUI o yue2.cpp): consulta **[linux/README.md](linux/README.md)**.
 
 ## Más
 

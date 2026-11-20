@@ -1038,6 +1038,8 @@ Checkpoints はエディターで押します。そこにテイクが開いて�
 **この PC で描くには、FLUX.2 klein をインストールします。**
 
 - <strong>Windows：</strong>インストーラーのコンポーネントページで **FLUX.2 [klein]** にチェックを入れます。自分で選ばない限りチェックは入っていません。インストール済みのアプリは更新のときに同じページが出ます。またはリリースページからインストーラーを実行し直します。チェックはそのあと記憶され、更新で二度ダウンロードされることはありません。ファイルは 3 つで、合計約 8 GB です。
+- <strong>Mac：</strong>セットアップウィンドウで確認されたら「はい」と答えるか、Yeufonic を終了して `setup.sh --pictures` を実行します。
+- <strong>Linux：</strong>セットアップ時に <strong>FLUX.2 klein 4B</strong> を選びます（または `yeufonic setup --picture-model 4b` を実行します）。
 - **Docker：**`sh scripts/fetch-models.sh --pictures` を実行すると、3 つのファイルが `models/`
   （`diffusion_models`、`text_encoders`、`vae`）に置かれ、それぞれが検証されます。そのあと
   `docker compose restart app` でアプリを再起動して、ファイルを見つけさせます。
@@ -1062,7 +1064,7 @@ Yeufonic はこれを決してダウンロードしません。ファイルは H
    **yue2.cpp エンジンでは**、画像サーバーがこれらのエンコーダーを読めません。代わりに
    [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF) から `Qwen3-8B-Q4_K_M.gguf`
    （5.0 GB）を入手し（`-Q8_0.gguf`、8.7 GB でも動きます）、同じフォルダーに入れます。
-3. **フォルダーの場所：** **Docker** では Yeufonic フォルダーの `models/`、**Windows** ではインストールフォルダーの `engine\ComfyUI\models`、**Mac** ではインストールフォルダーの
+3. **フォルダーの場所：** **Docker** では Yeufonic フォルダーの `models/`、**Windows** ではインストールフォルダーの `engine\ComfyUI\models`、<strong>Mac</strong> と <strong>Linux</strong> ではインストールフォルダーの
    `engine/ComfyUI/models/` です。
 4. <strong>アプリに見つけさせて、選びます。</strong>Yeufonic を再起動し（Docker なら `docker compose restart app`）、設定で**テイクの画像：モデル**を *FLUX.2 klein 9B* にします。そうするまでは 4B が描きます。
    9B を選んでいてもここで描けないときは、設定がそう表示します。*4B* を選べば、何も取り除かずに元に戻せます。エディターの画像のメモに、どれが描いたかが表示されます（*drawn by FLUX.2 klein 9B on this PC*）。
@@ -1087,9 +1089,14 @@ Hugging Face でアクセス申請が必要で、**FLUX Kommunity License** の�
 
 フォルダーは 9B と同じで、ファイルもこの名前でしか見つかりません。
 
-<strong>FIBO 2.0、写真の質感と 16 GB のカードのために。</strong>Bria の FIBO 2.0 は、画像の手本であるレコードジャケットの本物の写真に最も近く描きます。細部がより鮮明で、自然な被写界深度、フィルムの色を持ち、説明が求めるものもより多く描きます。Yeufonic はこれも決してダウンロードしません。<strong>ライセンスは CC BY-NC 4.0 で、非商用に限られます。</strong>FLUX 3 のライセンスは、収益の上限を下回る人が描いたものを商用に使うことを認めますが、FIBO では、販売する曲のジャケットを含め、どんな商用利用にも Bria との契約が必要です。使う前にライセンスを読んでください。
+<strong>FIBO 2.0、写真の質感と 16 GB のカードのために。</strong>Bria の FIBO 2.0 は、画像の手本であるレコードジャケットの本物の写真に最も近く描きます。細部がより鮮明で、自然な被写界深度、フィルムの色を持ち、説明が求めるものもより多く描きます。これは任意のインストール選択肢です（既定ではチェックが入っていません）。<strong>ライセンスは CC BY-NC 4.0 で、非商用に限られます。</strong>FLUX 3 のライセンスは、収益の上限を下回る人が描いたものを商用に使うことを認めますが、FIBO では、販売する曲のジャケットを含め、どんな商用利用にも Bria との契約が必要です。使う前にライセンスを読んでください。
 
-- <strong>ディスク：</strong>約 10.4 GB。モデルとその turbo アドオンです。FLUX 3 のテキストエンコーダーと 4B の VAE を読むので、FLUX 3 がインストールされていればほかに必要なものはありません。
+- <strong>インストール方法：</strong>
+  - <strong>Windows：</strong>インストーラーのコンポーネントページで <strong>FIBO 2.0 (take pictures)</strong> にチェックを入れます（または `setup.ps1 -Fibo` を実行します）。
+  - <strong>Linux：</strong>`yeufonic setup` で尋ねられたら <strong>FIBO 2.0</strong> を選びます（または `yeufonic setup --picture-model fibo2` を実行します）。
+  - <strong>Mac：</strong>セットアップで FIBO 2.0 について尋ねられたら「はい」と答えるか、`setup.sh --fibo` を実行します（フル精度 BF16、約 28 GB、32 GB 以上のメモリが必要）。
+  - <strong>Docker：</strong>`sh scripts/fetch-models.sh --fibo` を実行し、続いて `docker compose restart app` を実行します。
+- <strong>ディスク：</strong>NVIDIA では約 15.6 GB（モデル、turbo アドオン、Qwen3-VL テキストエンコーダー、FLUX.2 VAE。FLUX 3 のエンコーダーと 4B の VAE がすでにインストールされていれば約 10.4 GB）。Mac のフル精度では約 28 GB です。
 - <strong>ビデオメモリ：</strong>描いている間は約 12.5 GB なので、16 GB のカードが必要です。小さいカードでは一部を退避させるため、ずっと遅くなります。
 - <strong>時間：</strong>turbo アドオンがあれば、FLUX 3 とほぼ同じです。なければ FIBO は自分の設定で描き、約 8 倍かかります。
 - <strong>ジャケット：</strong>FIBO が描くとき、写真のまわりの縁には細い暗い線がありません。FIBO はそれを太い帯にし、タイトルを枠で囲んでいたからです。
@@ -1111,7 +1118,7 @@ Hugging Face でアクセス申請が必要で、**FLUX Kommunity License** の�
 |---|---|
 | **テイクの画像** | *新しいテイクごとに作る*（描けるものがあるときの既定）、または*頼んだときだけ*。後者では、テイクの四角かエディターの「画像」ボタンで作るまで、テイクは既定の背景のままです。下の設定は、どちらの方法で作った画像にも効きます。ここで描けるものが何もないあいだは*画像なし*です。 |
 | **テイクの画像：描くもの** | *klein がインストールされていればこの PC、なければ外部 LLM*（既定）、*この PC（下のモデル）*、*外部 LLM の画像モデル*。この PC でどの klein が描くか（FLUX.2 klein 4B か 9B、または FLUX 3 klein）は **モデル**で選びます。FIBO 2.0 もここで選びます。 |
-| **テイクの画像：モデル** | *FLUX.2 klein 4B*（既定）、*FLUX.2 klein 9B*、*FLUX 3 klein*、*9B のファイルがあれば 9B、なければ 4B*。この PC で描く画像だけに使います。9B と FLUX 3 は決して自動ではインストールされません。上の [FLUX.2 klein 9B と FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) を参照してください。指定したものがなければ別のものが描き、設定がどれかを表示します。*FIBO 2.0* も手動で追加し、非商用に限られます。上を参照してください。 |
+| **テイクの画像：モデル** | *FLUX.2 klein 4B*（既定）、*FLUX.2 klein 9B*、*FLUX 3 klein*、*FIBO 2.0*、*9B のファイルがあれば 9B、なければ 4B*。この PC で描く画像だけに使います。9B と FLUX 3 は決して自動ではインストールされません。*FIBO 2.0* は任意のインストール選択肢（非商用に限られます）です。上の [FLUX.2 klein 9B と FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) を参照してください。指定したものがなければ別のものが描き、設定がどれかを表示します。 |
 | **テイクの画像：説明するもの** | 誰が画像プロンプトを書くか。テイクのタイトル、下のアートスタイル、テイクのスタイルと歌詞（最大 50 行）から書きます。*ローカルの Gemma があればそれ、なければテイク自体*（既定）。誰が描くかに関係ありません。*ローカルの Gemma*：この PC で書きます。歌詞の下書きのオプションが必要です。*テイク自体から*：LLM を使わず、テイクのタイトル、スタイル、最初の言葉から説明を作ります。いちばん速く、何も送りません。または*外部 LLM*。画像 1 枚につき 1 リクエストです。使えないとき、またはそのセッションでローカル LLM に切り替えたときは、Gemma がインストールされていれば代わりに書きます。 |
 | **テイクの画像：アートスタイル** | 画像がどう見えるべきか。画像プロンプトを書く LLM に渡します（テイクが自分で説明するときはグレー表示）。既定は 70 年代と 80 年代のアルバムジャケット風の、抽象的でシュールなデザインで、文字も人物もありません。空にすると既定に戻ります。 |
 | **テイクの画像：自分のプロンプト** | 各画像のプロンプトの最初に入る言葉。たとえば *salt marsh, overcast* で、512 文字までです。LLM が書いたプロンプトがそのあとに続きます。空（既定）：なし。LLM が画像プロンプトを書くときだけ使います（テイクが自分で説明するときはグレー表示）。 |

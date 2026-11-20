@@ -75,7 +75,11 @@ sh scripts/fetch-models.sh          # 約 19 GB、フォルダも作成
 docker compose up -d --build
 ```
 
-その後 <http://localhost:8090> を開きます。オプション（小さいモデル、yue2.cpp、画像モデル、スタイル LoRA）は[英語の README](README.md#quick-start) にあります。
+その後 <http://localhost:8090> を開きます。オプション（小さいモデル、yue2.cpp、FIBO 2.0 を含む画像モデル、スタイル LoRA）は[英語の README](README.md#quick-start) にあります。
+
+## Linux で、Docker なしで
+
+NVIDIA GPU 搭載の Linux マシンでは、Docker なしでネイティブに実行することもできます（ComfyUI または yue2.cpp）：**[linux/README.md](linux/README.md)** を参照してください。
 
 ## さらに
 
