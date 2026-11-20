@@ -8331,8 +8331,19 @@ function rememberSpace(id) {
 function paintSpaceList() {
   var list = $('space-list');
   if (!list) { return; }
+  var pin = $('space-trash-pin');
+  if (!pin && list.parentNode) {
+    pin = document.createElement('div');
+    pin.id = 'space-trash-pin';
+    pin.className = 'space-trash-pin';
+    list.parentNode.insertBefore(pin, list.nextSibling);
+  }
   var typed = $('space-find').value.trim().toLowerCase();
   var spaces = Array.isArray(State.spaces) ? State.spaces : [];
+  var byId = {};
+  spaces.forEach(function (space) { byId[space.id] = space; });
+  var regular = spaces.filter(function (space) { return space.id !== 'trash'; });
+  var trashSpace = byId.trash || null;
   var row = function (space) {
     var current = space.id === State.spaceId;
     var isTrash = space.id === 'trash';
@@ -8344,22 +8355,23 @@ function paintSpaceList() {
       '</span><span class="space-row-n">' + space.takes + '</span></button>';
   };
   var html;
+  var showPin = false;
   if (typed) {
-    var found = spaces.filter(function (space) { return space.name.toLowerCase().indexOf(typed) >= 0; });
-    html = found.length ? found.map(row).join('') : '<p class="space-none">' + t('No space has that in its name.') + '</p>';
+    var found = regular.filter(function (space) { return space.name.toLowerCase().indexOf(typed) >= 0; });
+    showPin = Boolean(trashSpace && trashSpace.name.toLowerCase().indexOf(typed) >= 0);
+    html = (found.length || showPin) ? found.map(row).join('') : '<p class="space-none">' + t('No space has that in its name.') + '</p>';
   } else {
-    var byId = {};
-    spaces.forEach(function (space) { byId[space.id] = space; });
-    var regular = spaces.filter(function (space) { return space.id !== 'trash'; });
-    var trashSpace = byId.trash || null;
+    showPin = Boolean(trashSpace);
     var recent = recentSpaceIds().filter(function (id) { return id !== 'trash'; }).map(function (id) { return byId[id]; }).filter(Boolean).slice(0, 5);
     var head = function (text) { return '<div class="space-list-head">' + text + '</div>'; };
     html = (recent.length > 1 && regular.length > 6 ? head(t('Recent')) + recent.map(row).join('') + head(t('All spaces')) : '') +
-      regular.map(row).join('') + (trashSpace ? row(trashSpace) : '');
+      regular.map(row).join('');
   }
   list.innerHTML = html;
-  var rows = list.querySelectorAll('.space-row');
-  var first = typed ? rows[0] : list.querySelector('.space-row.current') || rows[0];
+  if (pin) { pin.innerHTML = showPin && trashSpace ? row(trashSpace) : ''; }
+  var menu = $('space-menu') || list;
+  var rows = menu.querySelectorAll('.space-row');
+  var first = typed ? rows[0] : menu.querySelector('.space-row.current') || rows[0];
   if (first) { first.classList.add('hl'); }
 }
 
@@ -8391,7 +8403,7 @@ function wireSpaceMenu() {
     if ($('space-menu').classList.contains('hidden')) { openSpaceMenu(); } else { closeSpaceMenu(); }
   });
   $('space-find').addEventListener('input', paintSpaceList);
-  $('space-list').addEventListener('click', function (event) {
+  $('space-menu').addEventListener('click', function (event) {
     var row = event.target.closest('.space-row');
     if (row) { chooseSpace(row.dataset.space); }
   });
@@ -8409,7 +8421,7 @@ function wireSpaceMenu() {
       return;
     }
     if (event.target !== $('space-find')) { return; }
-    var rows = Array.prototype.slice.call($('space-list').querySelectorAll('.space-row'));
+    var rows = Array.prototype.slice.call($('space-menu').querySelectorAll('.space-row'));
     var at = rows.findIndex(function (row) { return row.classList.contains('hl'); });
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
