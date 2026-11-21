@@ -67,6 +67,15 @@
   --take-shadow: inset 0 1px 0 rgb(var(--ink) / 0.10);
   /* The card of a take that holds takes: plainly lighter than the rest, lighter than the take on show too. */
   --take-holds: color-mix(in srgb, var(--card) 87%, rgb(var(--ink)) 13%);
+  /* Recessed input wells: carved slightly deeper than panels with a crisp border and subtle inset bevel. */
+  --input-bg: #0a0c11;
+  --input-border: rgb(var(--ink) / 0.16);
+  --input-border-hover: rgb(var(--ink) / 0.30);
+  --input-shadow: inset 0 2px 5px rgb(0 0 0 / 0.62), 0 1px 0 rgb(var(--ink) / 0.06);
+  --drop-bg: rgb(0 0 0 / 0.24);
+  --drop-border: rgb(var(--ink) / 0.20);
+  --block-bg: rgb(var(--ink) / 0.03);
+  --block-border: rgb(var(--ink) / 0.11);
 }
 
 /* Light: the same layout on white, with darker status colours so they read on it. */
@@ -114,6 +123,14 @@
   /* A card here is nearly white already, and white beside it cannot be told apart: it takes a little of the
      Inside button's colour instead. */
   --take-holds: color-mix(in srgb, #ffffff 88%, var(--lit-take) 12%);
+  --input-bg: #edf1f7;
+  --input-border: #bcc6d4;
+  --input-border-hover: #94a3b8;
+  --input-shadow: inset 0 2px 4px rgb(15 23 42 / 0.08), 0 1px 0 rgb(255 255 255 / 0.9);
+  --drop-bg: #f3f6fa;
+  --drop-border: #b4bfcf;
+  --block-bg: #f8f9fc;
+  --block-border: #d7dee9;
 }
 
 /* Studio: warm and dark, like the lamps on an old mixing desk. Amber leads. */
@@ -147,6 +164,14 @@
   --wave-inst-outline: rgba(60, 195, 130, 0.28);
   --wave-default-body: rgba(175, 145, 245, 0.70);
   --wave-default-outline: rgba(175, 145, 245, 0.28);
+  --input-bg: #0c0906;
+  --input-border: rgb(var(--ink) / 0.17);
+  --input-border-hover: rgb(var(--ink) / 0.32);
+  --input-shadow: inset 0 2px 5px rgb(0 0 0 / 0.68), 0 1px 0 rgb(var(--ink) / 0.06);
+  --drop-bg: rgb(0 0 0 / 0.26);
+  --drop-border: rgb(var(--ink) / 0.20);
+  --block-bg: rgb(var(--ink) / 0.035);
+  --block-border: rgb(var(--ink) / 0.12);
 }
 
 /* High contrast: black and white, with lines and muted text strong enough to read. */
@@ -184,6 +209,14 @@
   --wave-inst-outline: rgba(74, 222, 128, 0.45);
   --wave-default-body: rgba(167, 139, 250, 0.85);
   --wave-default-outline: rgba(167, 139, 250, 0.45);
+  --input-bg: #000000;
+  --input-border: rgb(255 255 255 / 0.55);
+  --input-border-hover: rgb(255 255 255 / 0.85);
+  --input-shadow: none;
+  --drop-bg: #060606;
+  --drop-border: rgb(255 255 255 / 0.50);
+  --block-bg: #080808;
+  --block-border: rgb(255 255 255 / 0.38);
 }
 
 * { box-sizing: border-box; }
@@ -432,12 +465,20 @@ main.fit { max-width: 1500px; margin: 0 auto; }
 .field > label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.01em; }
 /* The recorded voice field's Octave is a label too, and the rule above would show it while it is hidden. */
 .field > label.hidden { display: none; }
-input[type="text"], input[type="number"], select, textarea {
-  width: 100%; background: var(--card); color: var(--text);
-  border: 1px solid var(--line); border-radius: 12px;
+input[type="text"], input[type="number"], input[type="search"], input[type="password"], input[type="email"], input[type="url"], select, textarea {
+  width: 100%; background: var(--input-bg); color: var(--text);
+  border: 1px solid var(--input-border); border-radius: 12px;
+  box-shadow: var(--input-shadow);
   padding: 10px 12px; font: inherit; outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-input:focus, select:focus, textarea:focus { border-color: rgb(var(--accent-a-rgb) / 0.6); }
+input[type="text"]:hover, input[type="number"]:hover, input[type="search"]:hover, input[type="password"]:hover, input[type="email"]:hover, input[type="url"]:hover, select:hover, textarea:hover {
+  border-color: var(--input-border-hover);
+}
+input[type="text"]:focus, input[type="number"]:focus, input[type="search"]:focus, input[type="password"]:focus, input[type="email"]:focus, input[type="url"]:focus, select:focus, textarea:focus {
+  border-color: rgb(var(--accent-a-rgb) / 0.75);
+  box-shadow: var(--input-shadow), 0 0 0 2px rgb(var(--accent-a-rgb) / 0.25);
+}
 textarea { resize: vertical; min-height: 78px; }
 /* The style: one row, like the text inputs beside it, and taller when dragged by its corner. */
 textarea.style-box { min-height: 0; height: calc(1.45em + 22px); line-height: 1.45; resize: vertical; overflow-y: auto; }
@@ -469,8 +510,9 @@ textarea.lyrics { min-height: 200px; font-family: ui-monospace, SFMono-Regular, 
 }
 .vocal-identity-wrap, .vocal-persona-wrap { display: flex; align-items: center; gap: 6px; }
 .vocal-identity-wrap label, .vocal-persona-wrap label { font-size: 11.5px; color: var(--muted); }
-.vocal-identity-wrap select, .vocal-persona-wrap select { font-size: 12px; padding: 3px 8px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); color: var(--text); max-width: 170px; }
-.vocal-identity-wrap select:focus, .vocal-persona-wrap select:focus { border-color: rgb(var(--accent-a-rgb) / 0.6); }
+.vocal-identity-wrap select, .vocal-persona-wrap select { font-size: 12px; padding: 3px 8px; border-radius: 8px; background: var(--input-bg); border: 1px solid var(--input-border); box-shadow: var(--input-shadow); color: var(--text); max-width: 170px; }
+.vocal-identity-wrap select:hover, .vocal-persona-wrap select:hover { border-color: var(--input-border-hover); }
+.vocal-identity-wrap select:focus, .vocal-persona-wrap select:focus { border-color: rgb(var(--accent-a-rgb) / 0.75); box-shadow: var(--input-shadow), 0 0 0 2px rgb(var(--accent-a-rgb) / 0.25); }
 
 /* Harmony: a five step slider for songs from a prompt. */
 #harmony { width: 100%; accent-color: var(--song); margin: 2px 0 4px; }
@@ -694,18 +736,21 @@ a.menu-item { text-decoration: none; box-sizing: border-box; }
 .setting-help { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .setting-control { flex: 0 0 auto; }
 .setting-control select, .setting-control input[type="text"] {
-  font: inherit; font-size: 13px; color: var(--text); background: var(--card);
-  border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; width: 250px;
+  font: inherit; font-size: 13px; color: var(--text); background: var(--input-bg);
+  border: 1px solid var(--input-border); box-shadow: var(--input-shadow); border-radius: 10px; padding: 8px 10px; width: 250px;
 }
 .setting-control input[type="text"] { width: 250px; }
 .setting-control textarea {
   display: block; box-sizing: border-box; width: 250px; min-height: 3.6em; max-height: 14em;
-  font: inherit; font-size: 13px; line-height: 1.4; color: var(--text); background: var(--card);
-  border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; resize: vertical; overflow-y: auto;
+  font: inherit; font-size: 13px; line-height: 1.4; color: var(--text); background: var(--input-bg);
+  border: 1px solid var(--input-border); box-shadow: var(--input-shadow); border-radius: 10px; padding: 8px 10px; resize: vertical; overflow-y: auto;
 }
-.setting-control textarea:focus { outline: none; border-color: rgb(var(--accent-a-rgb) / 0.6); }
+.setting-control textarea:hover, .setting-control select:hover, .setting-control input[type="text"]:hover {
+  border-color: var(--input-border-hover);
+}
+.setting-control textarea:focus { outline: none; border-color: rgb(var(--accent-a-rgb) / 0.75); box-shadow: var(--input-shadow), 0 0 0 2px rgb(var(--accent-a-rgb) / 0.25); }
 .setting-control select:focus, .setting-control input[type="text"]:focus {
-  outline: none; border-color: rgb(var(--accent-a-rgb) / 0.6);
+  outline: none; border-color: rgb(var(--accent-a-rgb) / 0.75); box-shadow: var(--input-shadow), 0 0 0 2px rgb(var(--accent-a-rgb) / 0.25);
 }
 .api-key-control {
   display: flex; gap: 6px; align-items: center; width: 250px;
@@ -728,8 +773,8 @@ a.menu-item { text-decoration: none; box-sizing: border-box; }
   flex: 1; min-width: 0; width: 0;
 }
 .llm-model-select {
-  width: 100%; font: inherit; font-size: 12px; color: var(--text); background: var(--card);
-  border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px;
+  width: 100%; font: inherit; font-size: 12px; color: var(--text); background: var(--input-bg);
+  border: 1px solid var(--input-border); box-shadow: var(--input-shadow); border-radius: 8px; padding: 6px 8px;
   cursor: pointer;
 }
 .llm-models-status {
@@ -985,8 +1030,8 @@ button.icon { width: 42px; padding: 8px 0; text-align: center; }
 
 /* ---------- drop zone ---------- */
 .drop {
-  border: 1.5px dashed rgb(var(--ink) / 0.16); border-radius: 14px;
-  padding: 16px 18px; text-align: center; background: rgb(var(--ink) / 0.02);
+  border: 1.5px dashed var(--drop-border); border-radius: 14px;
+  padding: 16px 18px; text-align: center; background: var(--drop-bg);
   transition: border-color 0.15s, background 0.15s; margin-bottom: 10px;
 }
 .drop.over { border-color: var(--accent-a); background: rgb(var(--accent-a-rgb) / 0.09); }
@@ -1044,8 +1089,9 @@ button.icon { width: 42px; padding: 8px 0; text-align: center; }
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  box-shadow: var(--input-shadow);
   border-radius: 12px;
   color: var(--text);
   padding: 10px 12px;
@@ -1054,14 +1100,15 @@ button.icon { width: 42px; padding: 8px 0; text-align: center; }
   cursor: pointer;
   text-align: left;
   outline: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 .source-picker-btn:hover {
-  border-color: rgb(var(--ink) / 0.25);
+  border-color: var(--input-border-hover);
 }
 .source-picker-btn:focus-visible,
 .source-picker-btn[aria-expanded="true"] {
-  border-color: rgb(var(--accent-a-rgb) / 0.6);
+  border-color: rgb(var(--accent-a-rgb) / 0.75);
+  box-shadow: var(--input-shadow), 0 0 0 2px rgb(var(--accent-a-rgb) / 0.25);
 }
 .source-picker-btn .source-picker-label {
   flex: 1;
@@ -1301,8 +1348,8 @@ button.icon { width: 42px; padding: 8px 0; text-align: center; }
 .more.hidden { display: none; }
 
 details.block {
-  border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
-  margin-bottom: 14px; background: rgb(var(--ink) / 0.015);
+  border: 1px solid var(--block-border); border-radius: 14px; padding: 12px 14px;
+  margin-bottom: 14px; background: var(--block-bg);
 }
 /* Same heading style as a plain field label. The chevron is the only hint that
    this one opens. */
@@ -1344,14 +1391,14 @@ details.block[open] > summary { margin-bottom: 10px; }
 /* The number beside a LoRA strength, editable so an exact value can be typed. */
 label .lora-value {
   width: 58px; margin-left: 4px; padding: 1px 4px; font: inherit; font-size: 12.5px;
-  color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 6px;
+  color: var(--muted); background: transparent; border: 1px solid transparent; box-shadow: none; border-radius: 6px;
 }
-label .lora-value:hover { border-color: var(--line); }
-label .lora-value:focus { color: var(--text); background: var(--card); border-color: rgb(var(--accent-a-rgb) / 0.6); outline: none; }
+label .lora-value:hover { border-color: var(--input-border); }
+label .lora-value:focus { color: var(--text); background: var(--input-bg); border-color: rgb(var(--accent-a-rgb) / 0.75); box-shadow: var(--input-shadow); outline: none; }
 label .lora-value:disabled { opacity: 0.6; }
 
 .modal-head .tempo input { width: 74px; font: inherit; font-size: 13px; color: var(--text);
-  background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 7px; }
+  background: var(--input-bg); border: 1px solid var(--input-border); box-shadow: var(--input-shadow); border-radius: 8px; padding: 5px 7px; }
 .modal-head .tempo input:disabled { opacity: 0.5; }
 .score-tabs .chip.active { border-color: rgb(var(--accent-a-rgb) / 0.75); background: rgb(var(--accent-a-rgb) / 0.2); color: var(--text); }
 #score-count { margin-left: auto; }
@@ -1452,8 +1499,9 @@ label .lora-value:disabled { opacity: 0.6; }
   font: inherit;
   font-size: 12px;
   padding: 3px 6px;
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  box-shadow: var(--input-shadow);
   border-radius: 6px;
   color: var(--text);
 }
@@ -1990,7 +2038,9 @@ label .lora-value:disabled { opacity: 0.6; }
   box-shadow: 0 16px 36px rgb(var(--shade) / 0.55), 0 2px 8px rgb(var(--shade) / 0.35); }
 .space-menu.hidden { display: none; }
 #space-find { width: 100%; box-sizing: border-box; font: inherit; font-size: 13.5px; padding: 7px 11px; border-radius: 9px;
-  border: 1px solid rgb(var(--accent-a-rgb) / 0.55); background: rgb(var(--ink) / 0.03); color: var(--text); outline: none; margin-bottom: 4px; }
+  border: 1px solid var(--input-border); background: var(--input-bg); box-shadow: var(--input-shadow); color: var(--text); outline: none; margin-bottom: 4px; }
+#space-find:hover { border-color: var(--input-border-hover); }
+#space-find:focus { border-color: rgb(var(--accent-a-rgb) / 0.75); box-shadow: var(--input-shadow), 0 0 0 2px rgb(var(--accent-a-rgb) / 0.25); }
 #space-find::-webkit-search-cancel-button { display: none; }
 .space-list { max-height: min(50vh, 420px); overflow-y: auto; }
 .space-list-head { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 8px 10px 3px; }
@@ -2069,13 +2119,13 @@ label .lora-value:disabled { opacity: 0.6; }
 .take-search > svg { position: absolute; left: 10px; width: 13px; height: 13px; color: var(--muted); pointer-events: none; }
 .take-search input {
   font: inherit; font-size: 12.5px; padding: 5px 26px 5px 29px; border-radius: 999px; width: 190px;
-  border: 1px solid var(--line); background: transparent; color: var(--text); outline: none;
-  transition: width .15s, border-color .15s;
+  border: 1px solid var(--input-border); background: var(--input-bg); box-shadow: var(--input-shadow); color: var(--text); outline: none;
+  transition: width .15s, border-color .15s, box-shadow .15s;
 }
 .take-search input::-webkit-search-cancel-button { display: none; }
 .take-search input::placeholder { color: var(--muted); }
-.take-search input:hover { border-color: rgb(var(--accent-a-rgb) / 0.5); }
-.take-search input:focus { border-color: rgb(var(--accent-a-rgb) / 0.7); width: 240px; }
+.take-search input:hover { border-color: var(--input-border-hover); }
+.take-search input:focus { border-color: rgb(var(--accent-a-rgb) / 0.75); box-shadow: var(--input-shadow), 0 0 0 2px rgb(var(--accent-a-rgb) / 0.25); width: 240px; }
 .take-search.has-text input { border-color: rgb(var(--accent-a-rgb) / 0.7); background: rgb(var(--accent-a-rgb) / 0.08); padding-right: 76px; }
 .take-search .count { position: absolute; right: 26px; font-size: 11.5px; color: var(--good); pointer-events: none; }
 .take-search .clear {
@@ -7363,8 +7413,9 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 .voice-pick-row select { flex: 1 1 auto; min-width: 0; }
 .voice-pick-row .voice-toggle { width: auto; flex: 0 0 auto; }
 .voice-toggle { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
-  background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: inherit; }
-.voice-toggle:hover, .voice-toggle:focus-visible { border-color: rgb(var(--accent-a-rgb) / 0.6); outline: none; }
+  background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); box-shadow: var(--input-shadow); border-radius: 12px; padding: 10px 12px; font: inherit; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.voice-toggle:hover { border-color: var(--input-border-hover); }
+.voice-toggle:focus-visible { border-color: rgb(var(--accent-a-rgb) / 0.75); box-shadow: var(--input-shadow), 0 0 0 2px rgb(var(--accent-a-rgb) / 0.25); outline: none; }
 .voice-toggle-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .voice-toggle-note { font-size: 12px; color: rgb(var(--accent-a-rgb)); }
 .voice-toggle-caret { color: var(--muted); transition: transform 0.15s ease; }
@@ -7412,8 +7463,9 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   width: min(260px, 100%);
   padding: 7px 12px;
   border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--ui-input-bg, var(--bg-2));
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  box-shadow: var(--input-shadow);
   color: var(--text);
   font-size: 13px;
 }
@@ -7447,28 +7499,29 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   border-bottom: 1px solid var(--line);
 }
 :root[data-ui-style] .ed-col input[type="text"],
-:root[data-ui-style] .ed-col input[type="number"],
+:root[data-ui-style] .ed-col input[type="number"]:not(.lora-value),
+:root[data-ui-style] .ed-col input[type="search"],
 :root[data-ui-style] .ed-col textarea,
 :root[data-ui-style] .ed-col select {
-  background: var(--ui-input-bg, var(--bg));
+  background: var(--ui-input-bg, var(--input-bg));
 }
 
 /* ---------- Colour-Blocked Studio Slate ---------- */
 :root[data-ui-style="slate"] {
   --ui-panel-bg: var(--panel);
-  --ui-input-bg: var(--bg);
+  --ui-input-bg: var(--input-bg);
 }
 :root[data-ui-style="slate"]:not([data-theme="light"]):not([data-theme="studio"]):not([data-theme="contrast"]) {
-  --bg: #15171c;
-  --bg-2: #191c22;
-  --panel: #1c2028;
-  --card: #20242d;
-  --card-2: #272c37;
+  --bg: #14171d;
+  --bg-2: #191d25;
+  --panel: #222731;
+  --card: #242934;
+  --card-2: #2b313e;
   --muted: #94a3b8;
 }
 :root[data-ui-style="slate"][data-theme="light"] {
   --ui-panel-bg: #ffffff;
-  --ui-input-bg: #f8fafc;
+  --ui-input-bg: var(--input-bg);
 }
 
 /* Song Edit columns */
@@ -7556,7 +7609,7 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 }
 :root[data-ui-style="slate"] .take-search input {
   background: var(--ui-input-bg);
-  border-color: rgb(var(--ink) / 0.14);
+  border-color: var(--input-border);
 }
 
 
