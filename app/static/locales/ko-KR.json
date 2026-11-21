@@ -2930,5 +2930,12 @@
  "Could not restore {value}: {message}": "{value}을(를) 복원할 수 없습니다: {message}",
  "Restored {n} take.": "{n}개 테이크를 복원했습니다.",
  "Restored {n} takes.": "{n}개 테이크를 복원했습니다.",
- "Hot keys (?)": "단축키 (?)"
+ "Hot keys (?)": "단축키 (?)",
+ "Converting {name} to ComfyUI format and installing…": "{name}을(를) ComfyUI 형식으로 변환하여 설치하는 중…",
+ "Converted to ComfyUI format and installed{value}": "ComfyUI 형식으로 변환하여 설치했습니다{value}",
+ "Converted {name} to ComfyUI format and installed{value}. It is in the Style LoRA list.": "{name}을(를) ComfyUI 형식으로 변환하여 설치했습니다{value}. 스타일 LoRA 목록에 있습니다.",
+ "Converted {name} ({kind}) to ComfyUI format and installed. It is in the Style LoRA list.": "{name}({kind})을(를) ComfyUI 형식으로 변환하여 설치했습니다. 스타일 LoRA 목록에 있습니다.",
+ "invalid safetensors header": "잘못된 safetensors 헤더입니다",
+ "This file is not a YuE2 LoRA that Yeufonic can use (no YuE2 planner or acoustic layers were found).": "이 파일은 Yeufonic에서 사용할 수 있는 YuE2 LoRA가 아닙니다(YuE2 플래너 또는 음향 레이어를 찾지 못했습니다).",
+ "unsupported tensor dtype {dtype}": "지원하지 않는 텐서 데이터 형식입니다: {dtype}"
 }

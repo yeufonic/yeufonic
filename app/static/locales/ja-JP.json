@@ -2930,5 +2930,12 @@
  "Could not restore {value}: {message}": "{value} を復元できませんでした：{message}",
  "Restored {n} take.": "{n} 件のテイクを復元しました。",
  "Restored {n} takes.": "{n} 件のテイクを復元しました。",
- "Hot keys (?)": "ショートカットキー (?)"
+ "Hot keys (?)": "ショートカットキー (?)",
+ "Converting {name} to ComfyUI format and installing…": "{name} を ComfyUI 形式に変換してインストール中…",
+ "Converted to ComfyUI format and installed{value}": "ComfyUI 形式に変換してインストールしました{value}",
+ "Converted {name} to ComfyUI format and installed{value}. It is in the Style LoRA list.": "{name} を ComfyUI 形式に変換してインストールしました{value}。スタイル LoRA の一覧にあります。",
+ "Converted {name} ({kind}) to ComfyUI format and installed. It is in the Style LoRA list.": "{name}（{kind}）を ComfyUI 形式に変換してインストールしました。スタイル LoRA の一覧にあります。",
+ "invalid safetensors header": "safetensors ヘッダーが無効です",
+ "This file is not a YuE2 LoRA that Yeufonic can use (no YuE2 planner or acoustic layers were found).": "このファイルは Yeufonic で使用できる YuE2 LoRA ではありません（YuE2 のプランナー層または音響層が見つかりませんでした）。",
+ "unsupported tensor dtype {dtype}": "未対応のテンソルデータ型です: {dtype}"
 }

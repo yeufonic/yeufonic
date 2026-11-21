@@ -2930,5 +2930,12 @@
  "Could not restore {value}: {message}": "Kon {value} niet terugzetten: {message}",
  "Restored {n} take.": "{n} take teruggezet.",
  "Restored {n} takes.": "{n} takes teruggezet.",
- "Hot keys (?)": "Sneltoetsen (?)"
+ "Hot keys (?)": "Sneltoetsen (?)",
+ "Converting {name} to ComfyUI format and installing…": "{name} wordt naar ComfyUI-formaat geconverteerd en geïnstalleerd…",
+ "Converted to ComfyUI format and installed{value}": "Naar ComfyUI-formaat geconverteerd en geïnstalleerd{value}",
+ "Converted {name} to ComfyUI format and installed{value}. It is in the Style LoRA list.": "{name} naar ComfyUI-formaat geconverteerd en geïnstalleerd{value}. Hij staat in de lijst met stijl-LoRA’s.",
+ "Converted {name} ({kind}) to ComfyUI format and installed. It is in the Style LoRA list.": "{name} ({kind}) naar ComfyUI-formaat geconverteerd en geïnstalleerd. Hij staat in de lijst met stijl-LoRA’s.",
+ "invalid safetensors header": "ongeldige safetensors-header",
+ "This file is not a YuE2 LoRA that Yeufonic can use (no YuE2 planner or acoustic layers were found).": "Dit bestand is geen YuE2-LoRA die Yeufonic kan gebruiken (geen YuE2-planner- of akoestische lagen gevonden).",
+ "unsupported tensor dtype {dtype}": "niet-ondersteund tensortype {dtype}"
 }

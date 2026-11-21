@@ -257,3 +257,100 @@ def test_the_app_saves_a_loras_strengths(client, tmp_path, monkeypatch):
     assert client.put("/api/loras/june_lora.safetensors/strengths", json={"planner": 0.8}).status_code == 400
     assert client.put("/api/loras/june_lora.safetensors/strengths", json={"planner": 9, "sound": 0.6}).status_code == 422
     assert client.put("/api/loras/nope.safetensors/strengths", json={"planner": 0.8, "sound": 0.6}).status_code == 404
+
+
+# ----------------------------------------- upstream YuE2 LoRA conversion & rejection
+
+def _write_raw_safetensors(path: Path, arrays: dict[str, "np.ndarray"]) -> Path:
+    import numpy as np
+    header = {}
+    offset = 0
+    chunks = []
+    for name, arr in arrays.items():
+        f32 = np.ascontiguousarray(arr, dtype="<f4")
+        raw = f32.tobytes()
+        header[name] = {"dtype": "F32", "shape": list(f32.shape), "data_offsets": [offset, offset + len(raw)]}
+        chunks.append(raw)
+        offset += len(raw)
+    hbytes = json.dumps(header, separators=(",", ":")).encode("utf-8")
+    with path.open("wb") as handle:
+        handle.write(struct.pack("<Q", len(hbytes)))
+        handle.write(hbytes)
+        for chunk in chunks:
+            handle.write(chunk)
+    return path
+
+
+def test_upstream_yue2_decoder_lora_is_converted_losslessly_on_install(tmp_path):
+    import numpy as np
+    rng = np.random.default_rng(7)
+    r = 4
+    ag, bg = rng.standard_normal((r, 2048)).astype(np.float32) * 0.05, rng.standard_normal((6144, r)).astype(np.float32) * 0.05
+    au, bu = rng.standard_normal((r, 2048)).astype(np.float32) * 0.05, rng.standard_normal((6144, r)).astype(np.float32) * 0.05
+    aq, bq = rng.standard_normal((r, 2048)).astype(np.float32) * 0.05, rng.standard_normal((2048, r)).astype(np.float32) * 0.05
+    ak, bk = rng.standard_normal((r, 2048)).astype(np.float32) * 0.05, rng.standard_normal((1024, r)).astype(np.float32) * 0.05
+    av, bv = rng.standard_normal((r, 2048)).astype(np.float32) * 0.05, rng.standard_normal((1024, r)).astype(np.float32) * 0.05
+    ad, bd = rng.standard_normal((r, 6144)).astype(np.float32) * 0.05, rng.standard_normal((2048, r)).astype(np.float32) * 0.05
+    ao, bo = rng.standard_normal((r, 2048)).astype(np.float32) * 0.05, rng.standard_normal((2048, r)).astype(np.float32) * 0.05
+    al, bl = rng.standard_normal((r, 2048)).astype(np.float32) * 0.05, rng.standard_normal((64, r)).astype(np.float32) * 0.05
+    src = _write_raw_safetensors(tmp_path / "upstream_dec.safetensors", {
+        "llm2vae.lora_A": al, "llm2vae.lora_B": bl,
+        "model.layers.0.nar_mlp.gate_proj.lora_A": ag, "model.layers.0.nar_mlp.gate_proj.lora_B": bg,
+        "model.layers.0.nar_mlp.up_proj.lora_A": au, "model.layers.0.nar_mlp.up_proj.lora_B": bu,
+        "model.layers.0.nar_mlp.down_proj.lora_A": ad, "model.layers.0.nar_mlp.down_proj.lora_B": bd,
+        "model.layers.0.nar_self_attn.q_proj.lora_A": aq, "model.layers.0.nar_self_attn.q_proj.lora_B": bq,
+        "model.layers.0.nar_self_attn.k_proj.lora_A": ak, "model.layers.0.nar_self_attn.k_proj.lora_B": bk,
+        "model.layers.0.nar_self_attn.v_proj.lora_A": av, "model.layers.0.nar_self_attn.v_proj.lora_B": bv,
+        "model.layers.0.nar_self_attn.o_proj.lora_A": ao, "model.layers.0.nar_self_attn.o_proj.lora_B": bo,
+    })
+    root = tmp_path / "loras"
+    root.mkdir()
+
+    done = loras.install_shared(src, "synth_style.safetensors", root=root)
+    assert done == {"name": "synth_style.safetensors", "kind": "decoder", "styles": 0, "converted": True}
+
+    out_path = root / "synth_style.safetensors"
+    dh, d0 = loras._read_header(out_path)
+    assert loras.kind_of(loras.names_in(out_path)) == "decoder"
+    assert loras.usable(loras.describe("synth_style.safetensors", root))
+    assert dh["__metadata__"]["yeufonic_converted"] == "upstream_yue2"
+
+    x = rng.standard_normal(2048).astype(np.float32)
+    with out_path.open("rb") as fh:
+        a_gu = loras._read_f32_tensor(fh, d0, dh["diffusion_model.model.layers.0.mlp.gate_up_proj.lora_down.weight"])
+        b_gu = loras._read_f32_tensor(fh, d0, dh["diffusion_model.model.layers.0.mlp.gate_up_proj.lora_up.weight"])
+        a_qkv = loras._read_f32_tensor(fh, d0, dh["diffusion_model.model.layers.0.self_attn.qkv_proj.lora_down.weight"])
+        b_qkv = loras._read_f32_tensor(fh, d0, dh["diffusion_model.model.layers.0.self_attn.qkv_proj.lora_up.weight"])
+    want_gu = np.concatenate([bg @ (ag @ x), bu @ (au @ x)])
+    got_gu = b_gu @ (a_gu @ x)
+    assert np.linalg.norm(want_gu - got_gu) / np.linalg.norm(want_gu) < 0.01
+    want_qkv = np.concatenate([bq @ (aq @ x), bk @ (ak @ x), bv @ (av @ x)])
+    got_qkv = b_qkv @ (a_qkv @ x)
+    assert np.linalg.norm(want_qkv - got_qkv) / np.linalg.norm(want_qkv) < 0.01
+
+
+def test_unusable_safetensors_lora_is_rejected_with_clear_error(client, tmp_path, monkeypatch):
+    import numpy as np
+    root = tmp_path / "loras"
+    root.mkdir()
+    monkeypatch.setattr(loras, "folder", lambda: root)
+    # Non-YuE2 (e.g. image/diffusion) LoRA keys:
+    wrong_keys = _write_raw_safetensors(tmp_path / "flux_style.safetensors", {
+        "lora_unet_down_blocks_0.lora_down.weight": np.zeros((4, 64), dtype=np.float32),
+        "lora_unet_down_blocks_0.lora_up.weight": np.zeros((64, 4), dtype=np.float32),
+    })
+    # Wrong-dimension LLM LoRA (not YuE2's hidden=2048):
+    wrong_shape = _write_raw_safetensors(tmp_path / "llama8b.safetensors", {
+        "model.layers.0.self_attn.q_proj.lora_A": np.zeros((4, 4096), dtype=np.float32),
+        "model.layers.0.self_attn.q_proj.lora_B": np.zeros((4096, 4), dtype=np.float32),
+    })
+
+    for bad in (wrong_keys, wrong_shape):
+        with pytest.raises(ValueError, match="not a YuE2 LoRA"):
+            loras.install_shared(bad, bad.name, root=root)
+        with pytest.raises(ValueError, match="not a YuE2 LoRA"):
+            loras.install(bad, "Bad", "", "Bad", root=root)
+    assert list(root.iterdir()) == [], "rejected LoRAs leave nothing in models/loras"
+
+    resp = client.post("/api/loras/install", files={"file": ("flux_style.safetensors", wrong_keys.read_bytes(), "application/octet-stream")})
+    assert resp.status_code == 400 and "not a YuE2 LoRA" in resp.json()["detail"]

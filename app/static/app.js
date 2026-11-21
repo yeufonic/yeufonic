@@ -12537,12 +12537,39 @@ async function deleteLora() {
   }
 }
 
+/* Peek at a .safetensors header in the browser so we can tell the user right away when an upstream YuE2 LoRA
+   is being converted to ComfyUI format before installing. */
+async function peekUpstreamLora(file) {
+  try {
+    if (!file || !/\.safetensors$/i.test(file.name || '') || file.size < 16) { return false; }
+    var head = await file.slice(0, 8).arrayBuffer();
+    var view = new DataView(head);
+    var lo = view.getUint32(0, true), hi = view.getUint32(4, true);
+    var len = lo + hi * 4294967296;
+    if (!len || len > 4 * 1024 * 1024 || 8 + len > file.size) { return false; }
+    var text = new TextDecoder('utf-8').decode(await file.slice(8, 8 + len).arrayBuffer());
+    var keys = Object.keys(JSON.parse(text)).filter(function (k) { return k !== '__metadata__'; });
+    if (!keys.length) { return false; }
+    var hasComfy = keys.some(function (k) { return k.indexOf('diffusion_model.') === 0 || k.indexOf('text_encoders.') === 0; });
+    if (hasComfy) { return false; }
+    return keys.some(function (k) {
+      return /(^|\.)(llm2vae|vae2llm|nar_mlp|nar_self_attn|ar_mlp|ar_self_attn)\./.test(k) ||
+        /(^|\.)model\.layers\.\d+\.(mlp|self_attn)\./.test(k);
+    });
+  } catch (err) {
+    return false;
+  }
+}
+
 async function installSharedLora(event) {
   var picked = event.target.files && event.target.files[0];
   event.target.value = '';
   if (!picked) { return; }
   var status = $('lora-install-status');
-  status.textContent = t('Installing {name}…', { name: picked.name });
+  var converting = await peekUpstreamLora(picked);
+  status.textContent = converting
+    ? t('Converting {name} to ComfyUI format and installing…', { name: picked.name })
+    : t('Installing {name}…', { name: picked.name });
   status.className = 'status';
   try {
     var form = new FormData();
@@ -12552,7 +12579,10 @@ async function installSharedLora(event) {
     paintStyleLoras();
     $('style-lora').value = done.name;
     $('style-lora').dispatchEvent(new Event('change', { bubbles: true }));
-    status.textContent = t('Installed{value}', { value: done.styles ? t(', with {styles} learned styles.', { styles: done.styles }) : '.' });
+    var extra = done.styles ? t(', with {styles} learned styles.', { styles: done.styles }) : '.';
+    status.textContent = done.converted
+      ? t('Converted to ComfyUI format and installed{value}', { value: extra })
+      : t('Installed{value}', { value: extra });
     status.className = 'status good';
   } catch (err) {
     status.textContent = err.message;
@@ -12567,14 +12597,20 @@ async function identityChange(event) {
     target.value = '';
     if (!chosen) { return; }
     var said = $('identity-import-status');
-    said.textContent = t('Installing {name}…', { name: chosen.name });
+    var convertingImport = await peekUpstreamLora(chosen);
+    said.textContent = convertingImport
+      ? t('Converting {name} to ComfyUI format and installing…', { name: chosen.name })
+      : t('Installing {name}…', { name: chosen.name });
     said.className = 'status';
     try {
       var data = new FormData();
       data.append('file', chosen);
       var made = await api('/api/loras/install', { method: 'POST', body: data });
       await pollState();
-      said.textContent = t('Installed {name}{value}. It is in the Style LoRA list.', { name: made.name, value: made.styles ? t(', with {styles} learned styles', { styles: made.styles }) : '' });
+      var stylesPart = made.styles ? t(', with {styles} learned styles', { styles: made.styles }) : '';
+      said.textContent = made.converted
+        ? t('Converted {name} to ComfyUI format and installed{value}. It is in the Style LoRA list.', { name: made.name, value: stylesPart })
+        : t('Installed {name}{value}. It is in the Style LoRA list.', { name: made.name, value: stylesPart });
       said.className = 'status good';
     } catch (err) {
       said.textContent = err.message;
@@ -12587,13 +12623,18 @@ async function identityChange(event) {
     target.value = '';
     if (!picked) { return; }
     var status = $('identity-status');
-    status.textContent = t('Installing {name}…', { name: picked.name });
+    var convertingLora = await peekUpstreamLora(picked);
+    status.textContent = convertingLora
+      ? t('Converting {name} to ComfyUI format and installing…', { name: picked.name })
+      : t('Installing {name}…', { name: picked.name });
     status.className = 'status';
     try {
       var form = new FormData();
       form.append('file', picked);
       var done = await api('/api/identities/' + IDENTITY.id + '/lora', { method: 'POST', body: form });
-      status.textContent = t('Installed {name} ({kind}). It is in the Style LoRA list.', { name: done.name, kind: done.kind });
+      status.textContent = done.converted
+        ? t('Converted {name} ({kind}) to ComfyUI format and installed. It is in the Style LoRA list.', { name: done.name, kind: done.kind })
+        : t('Installed {name} ({kind}). It is in the Style LoRA list.', { name: done.name, kind: done.kind });
       status.className = 'status good';
       await pollState();
       paintStyleLoras();

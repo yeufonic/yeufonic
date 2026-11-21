@@ -2930,5 +2930,12 @@
  "Could not restore {value}: {message}": "無法還原 {value}：{message}",
  "Restored {n} take.": "已還原 {n} 個版本。",
  "Restored {n} takes.": "已還原 {n} 個版本。",
- "Hot keys (?)": "快捷鍵 (?)"
+ "Hot keys (?)": "快捷鍵 (?)",
+ "Converting {name} to ComfyUI format and installing…": "正在將 {name} 轉換為 ComfyUI 格式並安裝…",
+ "Converted to ComfyUI format and installed{value}": "已轉換為 ComfyUI 格式並安裝{value}",
+ "Converted {name} to ComfyUI format and installed{value}. It is in the Style LoRA list.": "已將 {name} 轉換為 ComfyUI 格式並安裝{value}。它已出現在風格 LoRA 清單中。",
+ "Converted {name} ({kind}) to ComfyUI format and installed. It is in the Style LoRA list.": "已將 {name}（{kind}）轉換為 ComfyUI 格式並安裝。它已出現在風格 LoRA 清單中。",
+ "invalid safetensors header": "無效的 safetensors 檔頭",
+ "This file is not a YuE2 LoRA that Yeufonic can use (no YuE2 planner or acoustic layers were found).": "此檔案不是 Yeufonic 可用的 YuE2 LoRA（找不到 YuE2 規劃器或聲學層）。",
+ "unsupported tensor dtype {dtype}": "不支援的張量資料類型 {dtype}"
 }

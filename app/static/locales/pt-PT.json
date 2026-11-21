@@ -2930,5 +2930,12 @@
  "Could not restore {value}: {message}": "Não foi possível restaurar {value}: {message}",
  "Restored {n} take.": "{n} take restaurado.",
  "Restored {n} takes.": "{n} takes restaurados.",
- "Hot keys (?)": "Atalhos de teclado (?)"
+ "Hot keys (?)": "Atalhos de teclado (?)",
+ "Converting {name} to ComfyUI format and installing…": "A converter {name} para o formato do ComfyUI e a instalar…",
+ "Converted to ComfyUI format and installed{value}": "Convertido para o formato do ComfyUI e instalado{value}",
+ "Converted {name} to ComfyUI format and installed{value}. It is in the Style LoRA list.": "{name} convertido para o formato do ComfyUI e instalado{value}. Está na lista de LoRA de estilo.",
+ "Converted {name} ({kind}) to ComfyUI format and installed. It is in the Style LoRA list.": "{name} ({kind}) convertido para o formato do ComfyUI e instalado. Está na lista de LoRA de estilo.",
+ "invalid safetensors header": "cabeçalho safetensors inválido",
+ "This file is not a YuE2 LoRA that Yeufonic can use (no YuE2 planner or acoustic layers were found).": "Este ficheiro não é uma LoRA do YuE2 que o Yeufonic possa utilizar (não foram encontradas camadas de planeador nem acústicas do YuE2).",
+ "unsupported tensor dtype {dtype}": "tipo de tensor não suportado: {dtype}"
 }

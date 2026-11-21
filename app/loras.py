@@ -24,6 +24,8 @@ import time
 import zipfile
 from pathlib import Path
 
+import numpy as np
+
 from . import config
 
 log = logging.getLogger("yue2.loras")
@@ -40,8 +42,8 @@ RESERVED = {config.INSTRUMENTAL_LORA, config.REAL_AUDIO_LORA}
 MAX_HEADER = 32 * 1024 * 1024
 
 
-def names_in(path: Path) -> list[str]:
-    """The tensor names in a safetensors file, read without loading a tensor."""
+def _read_header(path: Path) -> tuple[dict, int]:
+    """Read a safetensors JSON header and return (header_dict, data_start_offset)."""
     with path.open("rb") as handle:
         raw = handle.read(8)
         if len(raw) < 8:
@@ -50,7 +52,283 @@ def names_in(path: Path) -> list[str]:
         if not 0 < length <= MAX_HEADER:
             raise ValueError("header length out of range")
         header = json.loads(handle.read(length).decode("utf-8"))
+    if not isinstance(header, dict):
+        raise ValueError("invalid safetensors header")
+    return header, 8 + length
+
+
+def names_in(path: Path) -> list[str]:
+    """The tensor names in a safetensors file, read without loading a tensor."""
+    header, _ = _read_header(path)
     return [key for key in header if key != "__metadata__"]
+
+
+# ------------------------------------------- converting upstream YuE2 LoRAs
+# Standalone YuE2 LoRAs (such as PEFT / upstream NAR acoustic checkpoints) use
+# unprefixed, unfused keys (model.layers.N.nar_mlp.{gate,up,down}_proj.lora_{A,B},
+# llm2vae.lora_{A,B}, etc.), while ComfyUI's YuE2 loader expects fused keys under
+# diffusion_model. or text_encoders. with .lora_down.weight / .lora_up.weight.
+_YUE2_LAYERS = 28
+_YUE2_HIDDEN = 2048
+_YUE2_INTER = 6144
+_YUE2_KV = 1024
+_YUE2_VAE = 64
+
+_DIRECT_DECODER_SHAPES: dict[str, tuple[int, int]] = {
+    "llm2vae": (_YUE2_VAE, _YUE2_HIDDEN),
+    "vae2llm": (_YUE2_HIDDEN, _YUE2_VAE),
+    "time_embedder.mlp.0": (_YUE2_HIDDEN, 256),
+    "time_embedder.mlp.2": (_YUE2_HIDDEN, _YUE2_HIDDEN),
+}
+
+_LAYER_PROJ_RE = re.compile(
+    r"^model\.layers\.(\d+)\.(nar_mlp|ar_mlp|mlp|nar_self_attn|ar_self_attn|self_attn)\."
+    r"(down_proj|gate_proj|up_proj|gate_up_proj|o_proj|q_proj|k_proj|v_proj|qkv_proj)$"
+)
+
+_FUSED_SLOTS: dict[str, list[tuple[str, int]]] = {
+    "gate_up_proj": [("gate", _YUE2_INTER), ("up", _YUE2_INTER)],
+    "qkv_proj": [("q", _YUE2_HIDDEN), ("k", _YUE2_KV), ("v", _YUE2_KV)],
+}
+
+
+def _parse_upstream_key(key: str) -> tuple[str, str, str | None, str, tuple[int, int]] | None:
+    """Parse an upstream YuE2 LoRA tensor key into (prefix, target_module, slot, role, expected_shape)."""
+    clean = key
+    if clean.startswith("base_model.model."):
+        clean = clean[len("base_model.model."):]
+    if clean.endswith(".lora_A.weight"):
+        base, role = clean[:-len(".lora_A.weight")], "down"
+    elif clean.endswith(".lora_B.weight"):
+        base, role = clean[:-len(".lora_B.weight")], "up"
+    elif clean.endswith(".lora_A"):
+        base, role = clean[:-len(".lora_A")], "down"
+    elif clean.endswith(".lora_B"):
+        base, role = clean[:-len(".lora_B")], "up"
+    elif clean.endswith(".lora_down.weight"):
+        base, role = clean[:-len(".lora_down.weight")], "down"
+    elif clean.endswith(".lora_up.weight"):
+        base, role = clean[:-len(".lora_up.weight")], "up"
+    elif clean.endswith(".alpha"):
+        base, role = clean[:-len(".alpha")], "alpha"
+    else:
+        return None
+
+    if base in _DIRECT_DECODER_SHAPES:
+        return ("diffusion_model", base, None, role, _DIRECT_DECODER_SHAPES[base])
+
+    match = _LAYER_PROJ_RE.match(base)
+    if not match:
+        return None
+    layer = int(match.group(1))
+    if not 0 <= layer < _YUE2_LAYERS:
+        return None
+    block, proj = match.group(2), match.group(3)
+    if block.startswith("nar_"):
+        prefix = "diffusion_model"
+        norm_block = block[4:]
+    elif block.startswith("ar_"):
+        prefix = "text_encoders"
+        norm_block = block[3:]
+    else:
+        prefix = "text_encoders"
+        norm_block = block
+
+    if norm_block == "mlp":
+        if proj == "down_proj":
+            return (prefix, f"model.layers.{layer}.mlp.down_proj", None, role, (_YUE2_HIDDEN, _YUE2_INTER))
+        if proj == "gate_proj":
+            return (prefix, f"model.layers.{layer}.mlp.gate_up_proj", "gate", role, (_YUE2_INTER, _YUE2_HIDDEN))
+        if proj == "up_proj":
+            return (prefix, f"model.layers.{layer}.mlp.gate_up_proj", "up", role, (_YUE2_INTER, _YUE2_HIDDEN))
+        if proj == "gate_up_proj":
+            return (prefix, f"model.layers.{layer}.mlp.gate_up_proj", None, role, (_YUE2_INTER * 2, _YUE2_HIDDEN))
+        return None
+
+    if norm_block == "self_attn":
+        if proj == "o_proj":
+            return (prefix, f"model.layers.{layer}.self_attn.o_proj", None, role, (_YUE2_HIDDEN, _YUE2_HIDDEN))
+        if proj == "q_proj":
+            return (prefix, f"model.layers.{layer}.self_attn.qkv_proj", "q", role, (_YUE2_HIDDEN, _YUE2_HIDDEN))
+        if proj == "k_proj":
+            return (prefix, f"model.layers.{layer}.self_attn.qkv_proj", "k", role, (_YUE2_KV, _YUE2_HIDDEN))
+        if proj == "v_proj":
+            return (prefix, f"model.layers.{layer}.self_attn.qkv_proj", "v", role, (_YUE2_KV, _YUE2_HIDDEN))
+        if proj == "qkv_proj":
+            return (prefix, f"model.layers.{layer}.self_attn.qkv_proj", None, role, (_YUE2_HIDDEN + _YUE2_KV * 2, _YUE2_HIDDEN))
+        return None
+    return None
+
+
+def _plan_upstream_conversion(header: dict) -> dict[tuple[str, str], dict] | None:
+    """Validate that a safetensors header is a convertible upstream YuE2 LoRA and return its grouping plan."""
+    groups: dict[tuple[str, str], dict] = {}
+    tensor_keys = [k for k in header if k != "__metadata__"]
+    if not tensor_keys:
+        return None
+    for key in tensor_keys:
+        parsed = _parse_upstream_key(key)
+        if not parsed:
+            return None
+        prefix, target, slot, role, expected = parsed
+        info = header[key]
+        if not isinstance(info, dict) or info.get("dtype") not in ("F32", "F16", "BF16"):
+            return None
+        shape = info.get("shape")
+        if role == "alpha":
+            if shape not in ([], [1]):
+                return None
+        else:
+            if not isinstance(shape, list) or len(shape) != 2:
+                return None
+        slot_key = slot or ""
+        group = groups.setdefault((prefix, target), {})
+        slot_entry = group.setdefault(slot_key, {"expected": expected})
+        if role in slot_entry:
+            return None
+        slot_entry[role] = key
+
+    if not groups:
+        return None
+
+    # Validate shapes and that every slot has both down and up tensors of matching rank.
+    for (_, target), slots in groups.items():
+        if "" in slots and len(slots) > 1:
+            return None
+        for slot_key, entry in slots.items():
+            if "down" not in entry or "up" not in entry:
+                return None
+            out_dim, in_dim = entry["expected"]
+            down_shape = header[entry["down"]]["shape"]
+            up_shape = header[entry["up"]]["shape"]
+            rank = down_shape[0]
+            if rank <= 0 or down_shape[1] != in_dim or up_shape[0] != out_dim or up_shape[1] != rank:
+                return None
+    return groups
+
+
+def _read_f32_tensor(handle, data_start: int, info: dict) -> np.ndarray:
+    start, end = info["data_offsets"]
+    handle.seek(data_start + start)
+    raw = handle.read(end - start)
+    dtype = info["dtype"]
+    if dtype == "F32":
+        arr = np.frombuffer(raw, dtype="<f4").copy()
+    elif dtype == "F16":
+        arr = np.frombuffer(raw, dtype="<f2").astype(np.float32)
+    elif dtype == "BF16":
+        u32 = np.frombuffer(raw, dtype="<u2").astype(np.uint32) << np.uint32(16)
+        arr = u32.view(np.float32).copy()
+    else:
+        raise ValueError(f"unsupported tensor dtype {dtype}")
+    shape = info["shape"]
+    return arr.reshape(shape) if shape else arr.reshape(())
+
+
+def _f32_to_bf16_bytes(arr: np.ndarray) -> bytes:
+    f32 = np.ascontiguousarray(arr, dtype="<f4")
+    u32 = f32.view(np.uint32)
+    lsb = (u32 >> np.uint32(16)) & np.uint32(1)
+    rounded = u32 + np.uint32(0x7FFF) + lsb
+    return (rounded >> np.uint32(16)).astype("<u2").tobytes()
+
+
+def _write_safetensors(dest: Path, tensors: dict[str, tuple[str, list[int], bytes]], metadata: dict | None = None) -> None:
+    header: dict = {}
+    if metadata:
+        header["__metadata__"] = {str(k): str(v) for k, v in metadata.items()}
+    offset = 0
+    chunks: list[bytes] = []
+    for name in sorted(tensors):
+        dtype, shape, raw = tensors[name]
+        end = offset + len(raw)
+        header[name] = {"dtype": dtype, "shape": shape, "data_offsets": [offset, end]}
+        chunks.append(raw)
+        offset = end
+    header_bytes = json.dumps(header, separators=(",", ":")).encode("utf-8")
+    tmp = dest.with_name(dest.name + ".converting")
+    try:
+        with tmp.open("wb") as out:
+            out.write(struct.pack("<Q", len(header_bytes)))
+            out.write(header_bytes)
+            for chunk in chunks:
+                out.write(chunk)
+        tmp.replace(dest)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
+def convert_upstream_yue2_lora(source: Path, dest: Path) -> str | None:
+    """Convert an unprefixed/unfused upstream YuE2 LoRA to ComfyUI format.
+
+    Returns the converted kind ("planner", "decoder", or "both") on success, or None if
+    source is not a convertible upstream YuE2 LoRA.
+    """
+    header, data_start = _read_header(source)
+    plan = _plan_upstream_conversion(header)
+    if not plan:
+        return None
+
+    out_tensors: dict[str, tuple[str, list[int], bytes]] = {}
+    prefixes_written: set[str] = set()
+
+    with source.open("rb") as handle:
+        for (prefix, target), slots in plan.items():
+            prefixes_written.add(prefix)
+            full_base = f"{prefix}.{target}"
+            if "" in slots:
+                entry = slots[""]
+                down = _read_f32_tensor(handle, data_start, header[entry["down"]])
+                up = _read_f32_tensor(handle, data_start, header[entry["up"]])
+                rank = int(down.shape[0])
+                if "alpha" in entry:
+                    alpha = float(_read_f32_tensor(handle, data_start, header[entry["alpha"]]).reshape(-1)[0])
+                    up = up * (alpha / rank)
+                out_tensors[f"{full_base}.lora_down.weight"] = ("BF16", list(down.shape), _f32_to_bf16_bytes(down))
+                out_tensors[f"{full_base}.lora_up.weight"] = ("BF16", list(up.shape), _f32_to_bf16_bytes(up))
+                out_tensors[f"{full_base}.alpha"] = ("F32", [], struct.pack("<f", float(rank)))
+            else:
+                fused_name = target.rsplit(".", 1)[-1]
+                slot_layout = _FUSED_SLOTS[fused_name]
+                downs: list[np.ndarray] = []
+                ups: list[tuple[int, int, np.ndarray]] = []
+                row_offset = 0
+                total_out = sum(size for _, size in slot_layout)
+                in_dim = 0
+                for slot_name, slot_out in slot_layout:
+                    if slot_name in slots:
+                        entry = slots[slot_name]
+                        down = _read_f32_tensor(handle, data_start, header[entry["down"]])
+                        up = _read_f32_tensor(handle, data_start, header[entry["up"]])
+                        rank = int(down.shape[0])
+                        in_dim = int(down.shape[1])
+                        if "alpha" in entry:
+                            alpha = float(_read_f32_tensor(handle, data_start, header[entry["alpha"]]).reshape(-1)[0])
+                            up = up * (alpha / rank)
+                        downs.append(down)
+                        ups.append((row_offset, slot_out, up))
+                    row_offset += slot_out
+                fused_down = np.concatenate(downs, axis=0)
+                total_rank = int(fused_down.shape[0])
+                fused_up = np.zeros((total_out, total_rank), dtype=np.float32)
+                col_offset = 0
+                for r_off, s_out, up in ups:
+                    r = int(up.shape[1])
+                    fused_up[r_off:r_off + s_out, col_offset:col_offset + r] = up
+                    col_offset += r
+                out_tensors[f"{full_base}.lora_down.weight"] = ("BF16", [total_rank, in_dim], _f32_to_bf16_bytes(fused_down))
+                out_tensors[f"{full_base}.lora_up.weight"] = ("BF16", [total_out, total_rank], _f32_to_bf16_bytes(fused_up))
+                out_tensors[f"{full_base}.alpha"] = ("F32", [], struct.pack("<f", float(total_rank)))
+
+    meta = dict(header.get("__metadata__") or {}) if isinstance(header.get("__metadata__"), dict) else {}
+    meta["yeufonic_converted"] = "upstream_yue2"
+    _write_safetensors(dest, out_tensors, metadata=meta)
+    has_planner = PLANNER in prefixes_written
+    has_decoder = DECODER in prefixes_written
+    if has_planner and has_decoder:
+        return "both"
+    return "planner" if has_planner else "decoder"
 
 
 def kind_of(names: list[str]) -> str:
@@ -366,15 +644,24 @@ def install_shared(source: Path, filename: str, root: Path | None = None) -> dic
     else:
         stem = Path(filename or "lora").stem
         weights_path = source
+    converted = False
     try:
         names = names_in(weights_path)          # raises if it is not a safetensors file
         if not names:
             raise ValueError("that file holds no tensors")
+        kind = kind_of(names)
         stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", stem).strip("._") or "lora"
         target = root / f"{stem}.safetensors"
         if target.exists():
             raise ValueError(f"{target.name} is already in the LoRA folder")
-        shutil.copyfile(weights_path, target)
+        if kind == "other":
+            converted_kind = convert_upstream_yue2_lora(weights_path, target)
+            if not converted_kind:
+                raise ValueError("This file is not a YuE2 LoRA that Yeufonic can use (no YuE2 planner or acoustic layers were found).")
+            kind = converted_kind
+            converted = True
+        else:
+            shutil.copyfile(weights_path, target)
     finally:
         if weights_path != source:
             weights_path.unlink(missing_ok=True)
@@ -382,8 +669,11 @@ def install_shared(source: Path, filename: str, root: Path | None = None) -> dic
     if stem.lower() not in families(root):
         with (root / "families.txt").open("a", encoding="utf-8") as handle:
             handle.write(f"\n{stem.lower()} = {INSTALLED_FAMILY}\n")
-    log.info("installed shared LoRA %s (%s)", target.name, kind_of(names))
-    return {"name": target.name, "kind": kind_of(names), "styles": len(note_for(target).get("styles", []))}
+    log.info("installed shared LoRA %s (%s%s)", target.name, kind, ", converted from upstream format" if converted else "")
+    result = {"name": target.name, "kind": kind, "styles": len(note_for(target).get("styles", []))}
+    if converted:
+        result["converted"] = True
+    return result
 
 
 def install(source: Path, name: str, trigger: str, corpus: str, root: Path | None = None) -> dict:
@@ -399,17 +689,29 @@ def install(source: Path, name: str, trigger: str, corpus: str, root: Path | Non
     names = names_in(source)             # raises if it is not a safetensors file
     if not names:
         raise ValueError("that file holds no tensors")
+    kind = kind_of(names)
 
     stem = re.sub(r"[^a-z0-9]+", "_", (name or source.stem).lower()).strip("_") or "lora"
     target = root / f"{stem}.safetensors"
     if target.exists():
         raise ValueError(f"{target.name} is already in the LoRA folder")
 
-    shutil.copyfile(source, target)
-    kind = kind_of(names)
+    converted = False
+    if kind == "other":
+        converted_kind = convert_upstream_yue2_lora(source, target)
+        if not converted_kind:
+            raise ValueError("This file is not a YuE2 LoRA that Yeufonic can use (no YuE2 planner or acoustic layers were found).")
+        kind = converted_kind
+        converted = True
+        names = names_in(target)
+    else:
+        shutil.copyfile(source, target)
     write_note(target, trigger, corpus, title=name)
-    log.info("installed %s (%s)", target.name, kind)
-    return {"name": target.name, "kind": kind, "trigger": trigger.lower(), "tensors": len(names)}
+    log.info("installed %s (%s%s)", target.name, kind, ", converted from upstream format" if converted else "")
+    result = {"name": target.name, "kind": kind, "trigger": trigger.lower(), "tensors": len(names)}
+    if converted:
+        result["converted"] = True
+    return result
 
 
 # The group every LoRA made from one of your corpora shares.  Its own note names it,
