@@ -400,56 +400,100 @@
   var TONE_Q = 1.41;
   var TONE_MOST_DB = 15;
   var toneMeasured = {};
+  var hrtfLoaded = {};
+  var toneQueue = Promise.resolve();
+
+  /* Chromium loads its HRTF impulse database asynchronously on a background thread the first time an HRTF panner is
+     created for a sample rate.  If toneMeasure runs before that finishes (or two measurements start in parallel),
+     a panner can output silence or an instant equalpower fallback on sample 0, poisoning toneMeasured[key] for the
+     session.  Wait once per sample rate until an impulse shows HRTF convolution latency, and serialise measurements
+     so two OfflineAudioContexts never race on the loader. */
+  function waitForHrtf(rate) {
+    if (hrtfLoaded[rate]) { return hrtfLoaded[rate]; }
+    var Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var probe = function (left) {
+      var length = 8192, ctx = new Ctx(2, length, rate);
+      var impulse = ctx.createBuffer(1, length, rate);
+      impulse.getChannelData(0)[0] = 1;
+      var src = ctx.createBufferSource();
+      src.buffer = impulse;
+      var p = ctx.createPanner();
+      p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = 1; p.rolloffFactor = 0;
+      p.channelCount = 1; p.channelCountMode = 'explicit';
+      var at = spacePosition(0, 0);
+      if (p.positionX) { p.positionX.value = at.x; p.positionY.value = at.y; p.positionZ.value = at.z; } else { p.setPosition(at.x, at.y, at.z); }
+      src.connect(p);
+      p.connect(ctx.destination);
+      src.start(0);
+      return ctx.startRendering().then(function (out) {
+        var ch = out.getChannelData(0), first = -1;
+        for (var i = 0; i < ch.length; i++) {
+          if (Math.abs(ch[i]) > 1e-9) { first = i; break; }
+        }
+        if (ch.length < 1024 || first > 0 || left <= 0) { return; }
+        return new Promise(function (resolve) { setTimeout(resolve, 20); }).then(function () { return probe(left - 1); });
+      });
+    };
+    hrtfLoaded[rate] = probe(25).catch(function () { /* fall through so measurement still attempts */ });
+    return hrtfLoaded[rate];
+  }
 
   function toneMeasure(rate, speakers, trimDb) {
     var key = rate + '|' + speakers.map(function (sp) { return sp.join(','); }).join(';') + '|' + trimDb.toFixed(2);
     if (toneMeasured[key]) { return toneMeasured[key]; }
     var Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    var length = 8192, ctx = new Ctx(2, length, rate);
-    var impulse = ctx.createBuffer(1, length, rate);
-    impulse.getChannelData(0)[0] = 1;
-    var src = ctx.createBufferSource();
-    src.buffer = impulse;
-    var trim = ctx.createGain();
-    trim.gain.value = Math.pow(10, trimDb / 20);
-    trim.connect(ctx.destination);
-    speakers.forEach(function (sp) {
-      var p = ctx.createPanner();
-      p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = 1; p.rolloffFactor = 0;
-      p.channelCount = 1; p.channelCountMode = 'explicit';
-      var at = spacePosition(sp[0], sp[1]);
-      if (p.positionX) { p.positionX.value = at.x; p.positionY.value = at.y; p.positionZ.value = at.z; } else { p.setPosition(at.x, at.y, at.z); }
-      src.connect(p);
-      p.connect(trim);
-    });
-    src.start(0);
-    toneMeasured[key] = ctx.startRendering().then(function (out) {
-      var ears = [out.getChannelData(0), out.getChannelData(1)];
-      var response = TONE_BANDS.map(function (fc) {
-        var power = 0, n = 0;
-        for (var k = 0; k < 8; k++) {
-          var hz = fc * Math.pow(2, (k - 3.5) / 8);
-          if (hz >= rate / 2) { continue; }
-          ears.forEach(function (ear) {
-            var re = 0, im = 0, w = 2 * Math.PI * hz / rate;
-            for (var i = 0; i < Math.min(2048, ear.length); i++) { re += ear[i] * Math.cos(w * i); im -= ear[i] * Math.sin(w * i); }
-            power += re * re + im * im; n++;
-          });
-        }
-        return 10 * Math.log10(Math.max(power / Math.max(n, 1), 1e-12));
-      });
-      // the bands' gains: the opposite of what was measured, made good where neighbouring bands overlap
-      var want = response.map(function (db) { return isFinite(db) ? Math.max(-TONE_MOST_DB, Math.min(TONE_MOST_DB, -db)) : 0; });
-      var gains = want.slice();
-      for (var round = 0; round < 4; round++) {
-        var got = TONE_BANDS.map(function (hz) {
-          return gains.reduce(function (sum, g, b) { return sum + biquadDb({ type: 'peaking', frequency: TONE_BANDS[b], Q: TONE_Q, gain: g }, hz, rate); }, 0);
+    var run = function () {
+      return waitForHrtf(rate).then(function () {
+        var length = 8192, ctx = new Ctx(2, length, rate);
+        var impulse = ctx.createBuffer(1, length, rate);
+        impulse.getChannelData(0)[0] = 1;
+        var src = ctx.createBufferSource();
+        src.buffer = impulse;
+        var trim = ctx.createGain();
+        trim.gain.value = Math.pow(10, trimDb / 20);
+        trim.connect(ctx.destination);
+        speakers.forEach(function (sp) {
+          var p = ctx.createPanner();
+          p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = 1; p.rolloffFactor = 0;
+          p.channelCount = 1; p.channelCountMode = 'explicit';
+          var at = spacePosition(sp[0], sp[1]);
+          if (p.positionX) { p.positionX.value = at.x; p.positionY.value = at.y; p.positionZ.value = at.z; } else { p.setPosition(at.x, at.y, at.z); }
+          src.connect(p);
+          p.connect(trim);
         });
-        gains = gains.map(function (g, b) { return Math.max(-TONE_MOST_DB, Math.min(TONE_MOST_DB, g + 0.8 * (want[b] - got[b]))); });
-      }
-      return gains;
-    });
-    return toneMeasured[key];
+        src.start(0);
+        return ctx.startRendering().then(function (out) {
+          var ears = [out.getChannelData(0), out.getChannelData(1)];
+          var response = TONE_BANDS.map(function (fc) {
+            var power = 0, n = 0;
+            for (var k = 0; k < 8; k++) {
+              var hz = fc * Math.pow(2, (k - 3.5) / 8);
+              if (hz >= rate / 2) { continue; }
+              ears.forEach(function (ear) {
+                var re = 0, im = 0, w = 2 * Math.PI * hz / rate;
+                for (var i = 0; i < Math.min(2048, ear.length); i++) { re += ear[i] * Math.cos(w * i); im -= ear[i] * Math.sin(w * i); }
+                power += re * re + im * im; n++;
+              });
+            }
+            return 10 * Math.log10(Math.max(power / Math.max(n, 1), 1e-12));
+          });
+          // the bands' gains: the opposite of what was measured, made good where neighbouring bands overlap
+          var want = response.map(function (db) { return isFinite(db) ? Math.max(-TONE_MOST_DB, Math.min(TONE_MOST_DB, -db)) : 0; });
+          var gains = want.slice();
+          for (var round = 0; round < 4; round++) {
+            var got = TONE_BANDS.map(function (hz) {
+              return gains.reduce(function (sum, g, b) { return sum + biquadDb({ type: 'peaking', frequency: TONE_BANDS[b], Q: TONE_Q, gain: g }, hz, rate); }, 0);
+            });
+            gains = gains.map(function (g, b) { return Math.max(-TONE_MOST_DB, Math.min(TONE_MOST_DB, g + 0.8 * (want[b] - got[b]))); });
+          }
+          return gains;
+        });
+      });
+    };
+    var job = toneQueue.then(run, run);
+    toneQueue = job.then(function () {}, function () {});
+    toneMeasured[key] = job;
+    return job;
   }
 
   /* What plays from behind: the side signal (L - R, where a mix keeps its width and ambience), above the bass and a
