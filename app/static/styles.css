@@ -7476,6 +7476,7 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   gap: 12px;
   transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
 }
+:root[data-ui-style] .identity-card.hidden { display: none; }
 :root[data-ui-style] .identity-card:hover { transform: translateY(-1px); }
 :root[data-ui-style] .identity-card code {
   padding: 1px 6px;
