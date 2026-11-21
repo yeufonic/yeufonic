@@ -731,8 +731,10 @@ function paintStyleLoras() {
     // A step keeps its full name here, for the picker's button, and a short one
     // for the menu, where its LoRA is the row above it.
     var step = parent ? ' data-parent="' + esc(parent) + '" data-short="step ' + loraCheckpoint(item.name).step + '"' : '';
-    return '<option value="' + esc(item.name) + '" title="' + esc(tip) + '"' + step + '>' +
-      esc(label) + esc(note) + '</option>';
+    var searchHay = [label, item.name, item.trigger || '', item.family || ''].join(' ').toLowerCase();
+    return '<option value="' + esc(item.name) + '" title="' + esc(tip) + '"' +
+      ' data-title="' + esc(label) + '" data-kind="' + esc(item.kind || '') + '" data-search="' + esc(searchHay) + '"' +
+      step + '>' + esc(label) + esc(note) + '</option>';
   };
   var withSteps = function (item) {
     var steps = (stepsOf[item.name] || []).slice().sort(function (a, b) {
@@ -829,6 +831,18 @@ function chosenLoraGroup() {
   return option && option.parentNode && option.parentNode.tagName === 'OPTGROUP' ? option.parentNode.label : null;
 }
 
+/* Shared compact SVGs for dropdown search headers, group chevrons and active checkmarks. */
+var PICKER_SEARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+var PICKER_CHEV_SVG = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+var PICKER_CHECK_SVG = '<svg class="picker-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+
+function loraKindPillHtml(kind) {
+  var text = LORA_KINDS[kind];
+  if (!text || kind === 'other' || kind === 'unknown') { return ''; }
+  var cls = kind === 'both' ? 'kind-both' : (kind === 'decoder' ? 'kind-decoder' : (kind === 'planner' ? 'kind-planner' : ''));
+  return '<span class="kind-pill ' + cls + '">' + esc(text) + '</span>';
+}
+
 function paintLoraPicker() {
   var select = $('style-lora');
   var picker = $('lora-picker');
@@ -837,39 +851,105 @@ function paintLoraPicker() {
   try {
     var chosen = select.value;
     var current = select.options[select.selectedIndex];
-    $('lora-picker-label').textContent = current ? current.textContent : t('None');
+    var btnLabel = !chosen ? t('None') : (current && current.dataset.title ? current.dataset.title : (current ? current.textContent : t('None')));
+    $('lora-picker-label').textContent = btnLabel;
     var open = loraOpenGroups();
+    var query = (State.loraFilter || '').trim().toLowerCase();
+    var words = query ? query.split(/\s+/).filter(Boolean) : [];
+    var searching = words.length > 0;
+    var matches = function (option, groupLabel) {
+      if (!searching) { return true; }
+      var hay = ((option.dataset.search || option.textContent || '') + ' ' + (groupLabel || '')).toLowerCase();
+      return words.every(function (w) { return hay.indexOf(w) >= 0; });
+    };
     // A LoRA with a run's checkpoints folds them under its own row, remembered
     // with the groups as "steps:" and its name.
     var stepCount = {};
     Array.prototype.forEach.call(select.querySelectorAll('option[data-parent]'), function (option) {
       stepCount[option.dataset.parent] = (stepCount[option.dataset.parent] || 0) + 1;
     });
-    var entry = function (option, flat) {
+    var entry = function (option, flat, groupLabel) {
       var parent = option.dataset.parent;
-      if (parent && open.indexOf('steps:' + parent) < 0) { return ''; }
+      if (parent && !searching && open.indexOf('steps:' + parent) < 0) { return ''; }
+      if (searching && !matches(option, groupLabel)) { return ''; }
+      var isNone = option.value === '';
+      var isSel = option.value === chosen;
       var count = stepCount[option.value];
-      var stepsOpen = open.indexOf('steps:' + option.value) >= 0;
-      var toggle = count ? '<span class="lora-steps-toggle" role="button" aria-expanded="' + stepsOpen + '" data-steps="' +
+      var stepsOpen = searching || open.indexOf('steps:' + option.value) >= 0;
+      var toggle = count && !searching ? '<span class="lora-steps-toggle" role="button" aria-expanded="' + stepsOpen + '" data-steps="' +
         esc(option.value) + '" title="' + t('{value} the checkpoints its training run kept', { value: stepsOpen ? t('Hide') : t('Show') }) + '">' +
         (stepsOpen ? '\u25BE' : '\u25B8') + ' ' + tn(count, '{n} step', '{n} steps') + '</span>' : '';
+      var title = parent ? option.dataset.short : (option.dataset.title || option.textContent);
+      var pill = isNone || parent ? '' : loraKindPillHtml(option.dataset.kind);
       return '<div class="source-picker-item lora-item' + (flat ? ' flat' : '') + (parent ? ' lora-step' : '') +
-        (option.value === chosen ? ' selected' : '') +
+        (isNone ? ' is-none' : '') + (isSel ? ' selected' : '') +
         '" role="option" data-value="' + esc(option.value) + '" title="' + esc(option.title || '') + '">' +
-        '<span class="source-item-title">' + esc(parent ? option.dataset.short : option.textContent) + '</span>' + toggle + '</div>';
+        '<span class="source-item-title">' + esc(title) + '</span>' + pill + toggle + (isSel ? PICKER_CHECK_SVG : '') + '</div>';
     };
+    var groupLabels = [];
     var html = '';
+    var shown = 0;
     Array.prototype.forEach.call(select.children, function (child) {
-      if (child.tagName !== 'OPTGROUP') { html += entry(child, true); return; }
-      var isOpen = open.indexOf(child.label) >= 0;
+      if (child.tagName !== 'OPTGROUP') {
+        if (child.value === '') {
+          if (!searching) { html += '<div class="picker-none-wrap">' + entry(child, true, '') + '</div>'; }
+          return;
+        }
+        var row = entry(child, true, '');
+        if (row) { html += row; shown++; }
+        return;
+      }
+      groupLabels.push(child.label);
+      var matchingChildren = '';
+      var matchingCount = 0;
+      Array.prototype.forEach.call(child.children, function (option) {
+        if (searching) {
+          var r = entry(option, false, child.label);
+          if (r) { matchingChildren += r; if (!option.dataset.parent) { matchingCount++; } }
+        }
+      });
+      if (searching && !matchingChildren) { return; }
+      var isOpen = searching || open.indexOf(child.label) >= 0;
+      var totalCount = searching ? matchingCount : child.querySelectorAll('option:not([data-parent])').length;
       html += '<div class="lora-group" role="button" aria-expanded="' + isOpen + '" data-group="' + esc(child.label) + '">' +
-        '<span class="fold">' + (isOpen ? '\u25BE' : '\u25B8') + '</span><span>' + esc(child.label) + '</span>' +
-        '<span class="count">' + child.querySelectorAll('option:not([data-parent])').length + '</span></div>';
-      if (isOpen) { Array.prototype.forEach.call(child.children, function (option) { html += entry(option, false); }); }
+        PICKER_CHEV_SVG + '<span class="group-label">' + esc(child.label) + '</span>' +
+        '<span class="count">' + totalCount + '</span></div>';
+      if (isOpen) {
+        var rows = searching ? matchingChildren : Array.prototype.map.call(child.children, function (option) {
+          return entry(option, false, child.label);
+        }).join('');
+        if (rows) {
+          html += '<div class="picker-children">' + rows + '</div>';
+          shown++;
+        }
+      }
     });
-    // The state poll repaints every few seconds; an unchanged menu is left alone so
-    // it does not jump under the pointer.
-    if (menu.dataset.html !== html) { menu.innerHTML = html; menu.dataset.html = html; }
+    if (searching && !shown) {
+      html = '<div class="style-picker-empty muted">' + esc(t('No matching LoRAs')) + '</div>';
+    }
+    var anyOpen = groupLabels.some(function (g) { return open.indexOf(g) >= 0; });
+    var foldBtn = $('lora-fold-all');
+    var listEl = menu.querySelector('.lora-picker-list');
+    if (!$('lora-filter') || !listEl) {
+      menu.innerHTML =
+        '<div class="picker-search-bar">' +
+          '<div class="picker-search-field">' + PICKER_SEARCH_SVG +
+            '<input type="search" id="lora-filter" placeholder="' + esc(t('Search LoRAs…')) + '" aria-label="' + esc(t('Search LoRAs…')) + '" autocomplete="off" value="' + esc(State.loraFilter || '') + '" />' +
+          '</div>' +
+          '<button type="button" id="lora-fold-all" class="picker-fold-btn' + (groupLabels.length < 2 || searching ? ' hidden' : '') + '">' +
+            esc(anyOpen ? t('Collapse all') : t('Expand all')) + '</button>' +
+        '</div>' +
+        '<div class="picker-scroll lora-picker-list" role="listbox">' + html + '</div>';
+      menu.dataset.html = html;
+    } else {
+      if (foldBtn) {
+        foldBtn.classList.toggle('hidden', groupLabels.length < 2 || searching);
+        foldBtn.textContent = anyOpen ? t('Collapse all') : t('Expand all');
+      }
+      // The state poll repaints every few seconds; an unchanged list is left alone so
+      // it does not jump under the pointer or steal focus from the search box.
+      if (menu.dataset.html !== html) { listEl.innerHTML = html; menu.dataset.html = html; }
+    }
     select.classList.add('hidden');
     picker.classList.remove('hidden');
   } catch (err) {
@@ -881,6 +961,11 @@ function paintLoraPicker() {
 function openLoraPicker() {
   var menu = $('lora-picker-menu');
   var btn = $('lora-picker-btn');
+  closeSourcePicker();
+  closeStylePicker();
+  closePersonaPicker();
+  State.loraFilter = '';
+  if ($('lora-filter')) { $('lora-filter').value = ''; }
   // The group holding the current choice opens with the menu, so it is never hidden.
   var group = chosenLoraGroup();
   var open = loraOpenGroups();
@@ -899,11 +984,12 @@ function openLoraPicker() {
   var above = box.top - Math.max(bounds.top, 0);
   var up = above > below;
   menu.classList.toggle('up', up);
-  menu.style.maxHeight = Math.max(160, Math.min(360, (up ? above : below) - 12)) + 'px';
+  menu.style.maxHeight = Math.max(180, Math.min(380, (up ? above : below) - 12)) + 'px';
   menu.classList.remove('hidden');
   btn.setAttribute('aria-expanded', 'true');
   var selected = menu.querySelector('.selected');
   if (selected) { selected.scrollIntoView({ block: 'nearest' }); }
+  if ($('lora-filter')) { $('lora-filter').focus({ preventScroll: true }); }
 }
 
 function closeLoraPicker() {
@@ -3943,10 +4029,11 @@ function paintSourcePickerMenu() {
     var text = String(title || '').toLowerCase();
     return words.every(function (word) { return text.indexOf(word) >= 0; });
   };
-  var itemsHtml = words.length ? '' : '<div class="source-picker-item' + (!currentId ? ' selected' : '') + '" data-id="" role="option">' +
-    '<div class="source-item-main"><span class="source-item-title muted">' +
+  var itemsHtml = words.length ? '' : '<div class="picker-none-wrap"><div class="source-picker-item is-none' + (!currentId ? ' selected' : '') + '" data-id="" role="option">' +
+    '<div class="source-item-main"><span class="source-item-title">' +
       (State.mode === 'inst' ? t('No recording: write a score plan') : t('Choose a recording…')) + '</span></div>' +
-    '</div>';
+      (!currentId ? PICKER_CHECK_SVG : '') +
+    '</div></div>';
 
   var listed = State.sources.filter(function (s) { return matches(s.title); });
   var recordings = listed.filter(function (s) { return s.origin === 'recording'; });
@@ -3962,12 +4049,13 @@ function paintSourcePickerMenu() {
               ? '<span class="source-item-score rec-tag" title="' + t('Played on an instrument') + '">INST</span>'
               : '<span class="source-item-score rec-tag" title="' + t('Sung or hummed') + '">MIC</span>')
           : (source.has_score ? '<span class="source-item-score">\u2713 ' + t('score') + '</span>' : ''));
-    var isSel = source.id === currentId ? ' selected' : '';
-    return '<div class="source-picker-item' + isSel + '" data-id="' + esc(source.id) + '" role="option">' +
+    var isSel = source.id === currentId;
+    return '<div class="source-picker-item' + (isSel ? ' selected' : '') + '" data-id="' + esc(source.id) + '" role="option">' +
       '<div class="source-item-main">' +
         '<span class="source-item-title">' + esc(source.title) + '</span>' +
         scoreBadge +
       '</div>' +
+      (isSel ? PICKER_CHECK_SVG : '') +
       '<button type="button" class="source-item-del" data-del="' + esc(source.id) + '" title="' + t('Delete this recording') + '" aria-label="' + t('Delete {title}', { title: esc(source.title) }) + '">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
           '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>' +
@@ -3978,10 +4066,10 @@ function paintSourcePickerMenu() {
   }
 
   if (recordings.length > 0 && uploads.length > 0) {
-    itemsHtml += '<div class="source-picker-group-head">' + t('Voice Recordings') + '</div>';
-    itemsHtml += recordings.map(sourceItemHtml).join('');
-    itemsHtml += '<div class="source-picker-group-head">' + t('Uploaded Audio') + '</div>';
-    itemsHtml += uploads.map(sourceItemHtml).join('');
+    itemsHtml += '<div class="source-picker-group-head">' + t('Voice Recordings') + '</div><div class="picker-children">';
+    itemsHtml += recordings.map(sourceItemHtml).join('') + '</div>';
+    itemsHtml += '<div class="source-picker-group-head">' + t('Uploaded Audio') + '</div><div class="picker-children">';
+    itemsHtml += uploads.map(sourceItemHtml).join('') + '</div>';
   } else {
     itemsHtml += listed.map(sourceItemHtml).join('');
   }
@@ -3993,10 +4081,10 @@ function paintSourcePickerMenu() {
   // As the style picker does: the search box is made once and stays; typing redraws only the list under it.
   var list = menu.querySelector('.source-picker-list');
   if (!$('source-filter') || !list) {
-    menu.innerHTML = '<div class="style-picker-search-wrap">' +
-      '<input type="search" id="source-filter" class="style-picker-search" placeholder="' + esc(t('Search recordings…')) +
+    menu.innerHTML = '<div class="picker-search-bar"><div class="picker-search-field">' + PICKER_SEARCH_SVG +
+      '<input type="search" id="source-filter" placeholder="' + esc(t('Search recordings…')) +
       '" aria-label="' + esc(t('Search recordings…')) + '" autocomplete="off" value="' + esc(State.sourceFilter || '') + '" />' +
-      '</div><div class="source-picker-list" role="listbox">' + itemsHtml + '</div>';
+      '</div></div><div class="source-picker-list" role="listbox">' + itemsHtml + '</div>';
   } else {
     list.innerHTML = itemsHtml;
   }
@@ -4039,21 +4127,24 @@ function corpusSongsHtml(currentId, matches, searching) {
     shown += songs.length;
     var isOpen = Boolean(searching) || open.indexOf(group.id) >= 0;
     html += '<div class="lora-group" role="button" aria-expanded="' + isOpen + '" data-cgroup="' + esc(group.id) + '">' +
-      '<span class="fold">' + (isOpen ? '\u25BE' : '\u25B8') + '</span><span>' + esc(group.name) + '</span>' +
+      PICKER_CHEV_SVG + '<span class="group-label">' + esc(group.name) + '</span>' +
       '<span class="count">' + songs.length + '</span></div>';
     if (!isOpen) { return; }
+    html += '<div class="picker-children">';
     songs.forEach(function (song) {
       var meta = [song.key, song.tempo ? song.tempo + ' BPM' : ''].filter(Boolean).join(', ');
       var tip = song.source_id ? t('Already one of your recordings') :
         t('Use this song as a recording: its score and words come from the corpus, with nothing run again');
-      html += '<div class="source-picker-item corpus-song' + (song.source_id && song.source_id === currentId ? ' selected' : '') +
+      var isSel = Boolean(song.source_id && song.source_id === currentId);
+      html += '<div class="source-picker-item corpus-song' + (isSel ? ' selected' : '') +
         '" role="option" data-corpus-song="' + esc(song.id) + '" title="' + esc(tip) + '">' +
         '<div class="source-item-main"><span class="source-item-title">' + esc(song.title) + '</span>' +
         (song.source_id ? '<span class="source-item-score">\u2713 ' + t('added') + '</span>' : '') +
         (meta ? '<span class="source-item-meta">' + esc(meta) + '</span>' : '') +
         (song.caveat ? '<span class="source-item-caveat" title="' + t('Transcribe it again for the whole score with its chords') + '">' + t('score: {caveat}', { caveat: esc(tr(song.caveat)) }) + '</span>' : '') +
-        '</div></div>';
+        '</div>' + (isSel ? PICKER_CHECK_SVG : '') + '</div>';
     });
+    html += '</div>';
   });
   if (!shown) { return searching ? '' : html + '<div class="source-corpora-none muted">' + t('No corpus song matches.') + '</div>'; }
   return html;
@@ -4091,6 +4182,8 @@ function openSourcePicker() {
   menu.classList.remove('hidden');
   btn.setAttribute('aria-expanded', 'true');
   closeStylePicker();            // one list open at a time: each button stops its click reaching the other's
+  closeLoraPicker();
+  closePersonaPicker();
   State.sourceFilter = '';
   if ($('source-filter')) { $('source-filter').value = ''; }
   paintSourcePickerMenu();
@@ -9576,26 +9669,30 @@ function paintStylePickerMenu(filterText) {
   var savedHtml = '';
   if (!query || saved.length) {
     savedHtml = '<div class="style-picker-group' + (open ? ' open' : '') + '" data-style-group="saved" role="button" aria-expanded="' + open + '">' +
-      '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>' +
-      '<span>' + t('Saved styles') + '</span><span class="count">' + (query ? saved.length + ' of ' : '') + State.savedStyles.length + '</span></div>';
+      PICKER_CHEV_SVG + '<span>' + t('Saved styles') + '</span><span class="count">' + (query ? saved.length + '/' : '') + State.savedStyles.length + '</span></div>';
     if (open) {
-      savedHtml += '<div class="style-picker-saved">' + (saved.length ? saved.map(function (s) {
-        return '<div class="style-picker-item saved' + (kept && kept.id === s.id ? ' selected' : '') + '" role="option" data-style-saved="' + esc(s.id) + '" title="' + esc(s.prompt) + '">' +
-          '<span class="style-item-name">' + esc(s.name) + '</span>' +
-          '<span class="style-item-preview">' + esc(s.prompt) + '</span>' +
+      savedHtml += '<div class="picker-children style-picker-saved">' + (saved.length ? saved.map(function (s) {
+        var isSel = Boolean(kept && kept.id === s.id);
+        return '<div class="style-picker-item saved' + (isSel ? ' selected' : '') + '" role="option" data-style-saved="' + esc(s.id) + '" title="' + esc(s.prompt) + '">' +
+          '<div class="style-item-top"><span class="style-item-name">' + esc(s.name) + '</span>' + (isSel ? PICKER_CHECK_SVG : '') + '</div>' +
+          '<div class="style-item-preview">' + esc(s.prompt) + '</div>' +
           '<button type="button" class="style-item-del" data-style-del="' + esc(s.id) + '" title="' + t('Delete this saved style') + '" aria-label="' + t('Delete the saved style {name}', { name: esc(s.name) }) + '">' + icon('trash') + '</button>' +
           '</div>';
       }).join('') : '<div class="style-picker-empty muted">' + t('None yet. Save keeps the style in the box here.') + '</div>') + '</div>';
     }
   }
 
-  var cannedHtml = filtered.map(function (s) {
+  var cannedRows = filtered.map(function (s) {
     var isSelected = !kept && match && match.name === s.name;
     return '<div class="style-picker-item' + (isSelected ? ' selected' : '') + '" role="option" data-style-name="' + esc(s.name) + '" title="' + esc(s.prompt) + '">' +
-      '<span class="style-item-name">' + esc(s.name) + '</span>' +
-      '<span class="style-item-preview">' + esc(s.prompt) + '</span>' +
+      '<div class="style-item-top"><span class="style-item-name">' + esc(s.name) + '</span>' + (isSelected ? PICKER_CHECK_SVG : '') + '</div>' +
+      '<div class="style-item-preview">' + esc(s.prompt) + '</div>' +
       '</div>';
   }).join('');
+  var cannedHtml = cannedRows
+    ? '<div class="style-picker-group open static"><span>' + esc(t('Built-in presets')) + '</span><span class="count">' + filtered.length + '</span></div>' +
+      '<div class="picker-children">' + cannedRows + '</div>'
+    : '';
   var listHtml = savedHtml + cannedHtml;
   if (!filtered.length && !(query && saved.length)) {
     listHtml += '<div class="style-picker-empty muted">' + t('No matching styles') + '</div>';
@@ -9603,9 +9700,9 @@ function paintStylePickerMenu(filterText) {
 
   var listEl = menu.querySelector('.style-picker-list');
   if (!searchInput || !listEl) {
-    menu.innerHTML = '<div class="style-picker-search-wrap">' +
+    menu.innerHTML = '<div class="picker-search-bar"><div class="picker-search-field">' + PICKER_SEARCH_SVG +
       '<input type="search" id="style-picker-search" class="style-picker-search" placeholder="' + t('Search styles…') + '" autocomplete="off" />' +
-      '</div>' +
+      '</div></div>' +
       '<div class="style-picker-list" role="listbox">' + listHtml + '</div>';
   } else {
     listEl.innerHTML = listHtml;
@@ -9617,6 +9714,8 @@ function openStylePicker() {
   var btn = $('style-picker-btn');
   if (!menu || !btn) { return; }
   closeSourcePicker();
+  closeLoraPicker();
+  closePersonaPicker();
   paintStylePickerMenu('');
   var searchInput = $('style-picker-search');
   if (searchInput) { searchInput.value = ''; }
@@ -9631,11 +9730,8 @@ function openStylePicker() {
   menu.classList.remove('hidden');
   btn.setAttribute('aria-expanded', 'true');
   var selected = menu.querySelector('.selected');
-  if (selected) {
-    selected.scrollIntoView({ block: 'nearest' });
-  } else if (searchInput) {
-    searchInput.focus();
-  }
+  if (selected) { selected.scrollIntoView({ block: 'nearest' }); }
+  if (searchInput) { searchInput.focus({ preventScroll: true }); }
 }
 
 function closeStylePicker() {
@@ -16594,6 +16690,7 @@ function wire() {
     }
     if (!event.target.closest('#lora-picker')) { closeLoraPicker(); }
     if (!event.target.closest('#style-picker')) { closeStylePicker(); }
+    if (!event.target.closest('#persona-picker')) { closePersonaPicker(); }
     if (!event.target.closest('#cover-popup, .cover.has-art, [data-act="cover-pic"], [data-act="cover-make"]')) {
       closeCoverPopup(true);
     }
@@ -16618,13 +16715,37 @@ function wire() {
       closeCoverPopup(true);
     }
   });
-  $('lora-picker-btn').addEventListener('click', function () {
+  $('lora-picker-btn').addEventListener('click', function (event) {
+    event.stopPropagation();
     if ($('lora-picker-menu').classList.contains('hidden')) { openLoraPicker(); } else { closeLoraPicker(); }
+  });
+  $('lora-picker-menu').addEventListener('input', function (event) {
+    if (event.target.id !== 'lora-filter') { return; }
+    State.loraFilter = event.target.value;
+    paintLoraPicker();
+  });
+  $('lora-picker-menu').addEventListener('keydown', function (event) {
+    if (event.target.id !== 'lora-filter') { return; }
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeLoraPicker(); return; }
+    if (event.key !== 'Enter') { return; }
+    event.preventDefault();
+    var first = $('lora-picker-menu').querySelector('.lora-picker-list .lora-item[data-value]:not([data-value=""])');
+    if (first) { first.click(); }
   });
   $('lora-picker-menu').addEventListener('click', function (event) {
     // Folding redraws the menu, which detaches the heading clicked; left to bubble, the
     // outside-click check above would no longer find it inside and close the menu.
     event.stopPropagation();
+    if (event.target.closest('#lora-filter')) { return; }
+    if (event.target.closest('#lora-fold-all')) {
+      var select = $('style-lora');
+      var allGroups = select ? Array.prototype.map.call(select.querySelectorAll('optgroup'), function (g) { return g.label; }) : [];
+      var open = loraOpenGroups();
+      var anyOpen = allGroups.some(function (g) { return open.indexOf(g) >= 0; });
+      saveLoraOpenGroups(anyOpen ? [] : allGroups);
+      paintLoraPicker();
+      return;
+    }
     var group = event.target.closest('.lora-group, .lora-steps-toggle');
     if (group) {
       var name = group.dataset.group || 'steps:' + group.dataset.steps;
@@ -17443,6 +17564,7 @@ function wire() {
     if (event.key === 'Escape' && $('source-picker-menu') && !$('source-picker-menu').classList.contains('hidden')) { closeSourcePicker(); return; }
     if (event.key === 'Escape' && $('lora-picker-menu') && !$('lora-picker-menu').classList.contains('hidden')) { closeLoraPicker(); return; }
     if (event.key === 'Escape' && $('style-picker-menu') && !$('style-picker-menu').classList.contains('hidden')) { closeStylePicker(); return; }
+    if (event.key === 'Escape' && $('persona-picker-menu') && !$('persona-picker-menu').classList.contains('hidden')) { closePersonaPicker(); return; }
     if (event.key === 'Escape' && $('brand-menu') && !$('brand-menu').classList.contains('hidden')) { closeBrandMenu(); return; }
     if (event.key === 'Escape' && $('details-modal') && !$('details-modal').classList.contains('hidden')) { closeDetails(); return; }
     if (event.key === 'Escape' && $('about-modal') && !$('about-modal').classList.contains('hidden')) { closeAbout(); return; }
@@ -19627,6 +19749,84 @@ function voiceMixWanted() {
 
 /* One row in the editor: a button naming the take's voice (or None), which opens to the voice picker and the take's
    own settings for it.  The button is marked when the take's settings differ from the voice's defaults. */
+function closePersonaPicker() {
+  var menu = $('persona-picker-menu');
+  var btn = $('persona-picker-btn');
+  if (!menu || !btn) { return; }
+  menu.classList.add('hidden');
+  btn.setAttribute('aria-expanded', 'false');
+}
+
+function paintPersonaPickerMenu(byName) {
+  var menu = $('persona-picker-menu');
+  if (!menu) { return; }
+  var list = byName || VOICES.list.filter(function (v) { return v.state === 'ready'; }).sort(function (a, b) {
+    return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base', numeric: true });
+  });
+  var words = (State.personaFilter || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  var searching = words.length > 0;
+  var chosen = VOICES.pick || '';
+  var rowsHtml = '';
+  if (!searching) {
+    rowsHtml += '<div class="picker-none-wrap">' +
+      '<div class="source-picker-item is-none' + (!chosen ? ' selected' : '') + '" role="option" data-voice-pick="">' +
+        '<span class="source-item-title">' + esc(t('None')) + '</span>' + (!chosen ? PICKER_CHECK_SVG : '') +
+      '</div></div>';
+  }
+  var shown = 0;
+  list.forEach(function (v) {
+    var originKind = v.origin_identity ? 'corpus' : (v.recordings ? 'own' : 'imported');
+    var badgeLabel = originKind === 'corpus' ? t('Corpus') : (originKind === 'imported' ? t('Imported') : t('Own'));
+    var hay = (String(v.name || '') + ' ' + badgeLabel + ' ' + originKind).toLowerCase();
+    if (searching && !words.every(function (w) { return hay.indexOf(w) >= 0; })) { return; }
+    shown++;
+    var isSel = v.id === chosen;
+    rowsHtml += '<div class="source-picker-item' + (isSel ? ' selected' : '') + '" role="option" data-voice-pick="' + esc(v.id) + '">' +
+      '<span class="source-item-title">' + esc(v.name) + '</span>' +
+      '<span class="kind-pill kind-' + originKind + '">' + esc(badgeLabel) + '</span>' +
+      (isSel ? PICKER_CHECK_SVG : '') +
+    '</div>';
+  });
+  if (searching && !shown) {
+    rowsHtml = '<div class="style-picker-empty muted">' + esc(t('No matching voices')) + '</div>';
+  }
+  var listEl = menu.querySelector('.voice-picker-list');
+  if (!$('persona-filter') || !listEl) {
+    menu.innerHTML =
+      '<div class="picker-search-bar"><div class="picker-search-field">' + PICKER_SEARCH_SVG +
+        '<input type="search" id="persona-filter" placeholder="' + esc(t('Search voices…')) + '" aria-label="' + esc(t('Search voices…')) + '" autocomplete="off" value="' + esc(State.personaFilter || '') + '" />' +
+      '</div></div>' +
+      '<div class="picker-scroll voice-picker-list" role="listbox">' + rowsHtml + '</div>';
+  } else {
+    listEl.innerHTML = rowsHtml;
+  }
+}
+
+function openPersonaPicker() {
+  var menu = $('persona-picker-menu');
+  var btn = $('persona-picker-btn');
+  if (!menu || !btn) { return; }
+  closeSourcePicker();
+  closeStylePicker();
+  closeLoraPicker();
+  State.personaFilter = '';
+  if ($('persona-filter')) { $('persona-filter').value = ''; }
+  paintPersonaPickerMenu();
+  var box = btn.getBoundingClientRect();
+  var panel = btn.closest('.panel');
+  var bounds = panel ? panel.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+  var below = Math.min(bounds.bottom, window.innerHeight) - box.bottom;
+  var above = box.top - Math.max(bounds.top, 0);
+  var up = above > below && below < 260;
+  menu.classList.toggle('up', up);
+  menu.style.maxHeight = Math.max(180, Math.min(340, (up ? above : below) - 12)) + 'px';
+  menu.classList.remove('hidden');
+  btn.setAttribute('aria-expanded', 'true');
+  var selected = menu.querySelector('.selected');
+  if (selected) { selected.scrollIntoView({ block: 'nearest' }); }
+  if ($('persona-filter')) { $('persona-filter').focus({ preventScroll: true }); }
+}
+
 function paintPersonaField() {
   var host = $('persona-field');
   if (!host) { return; }
@@ -19651,9 +19851,17 @@ function paintPersonaField() {
   var own = picked ? voiceDefaults(picked) : {};
   var changed = mix && Object.keys(own).some(function (k) { return mix[k] != null && Number(mix[k]) !== Number(own[k]); });
   // The picker is the field itself; with a voice picked, a button beside it opens the take's settings for it.
-  host.innerHTML = '<label for="persona-select">' + t('Recorded voice') + '</label>' +
+  // The native select stays hidden as the source of truth, mirroring the Style LoRA picker.
+  host.innerHTML = '<label for="persona-picker-btn">' + t('Recorded voice') + '</label>' +
     '<div class="voice-pick-row">' +
-      '<select id="persona-select" title="' + esc(t('The recorded voice for this take')) + '">' + options.join('') + '</select>' +
+      '<select id="persona-select" class="hidden" title="' + esc(t('The recorded voice for this take')) + '">' + options.join('') + '</select>' +
+      '<div class="source-picker voice-picker" id="persona-picker">' +
+        '<button type="button" class="source-picker-btn" id="persona-picker-btn" aria-haspopup="listbox" aria-expanded="false" title="' + esc(t('The recorded voice for this take')) + '">' +
+          '<span id="persona-picker-label" class="source-picker-label">' + esc(picked ? picked.name : t('None')) + '</span>' +
+          PICKER_CHEV_SVG +
+        '</button>' +
+        '<div id="persona-picker-menu" class="source-picker-menu voice-picker-menu hidden" role="listbox"></div>' +
+      '</div>' +
       (picked ? '<button type="button" id="persona-toggle" class="voice-toggle' + (changed ? ' changed' : '') + '" aria-expanded="' + (VOICES.open ? 'true' : 'false') + '"' +
         ' title="' + esc(t("This take's settings for the voice")) + '">' +
         '<span class="voice-toggle-name">' + esc(t('Settings')) + '</span>' +
@@ -19680,6 +19888,37 @@ function paintPersonaField() {
     if (!VOICES.pick && AUD.playing) { auditionStop(); }
     paintPersonaField();
   });
+  var pBtn = $('persona-picker-btn');
+  var pMenu = $('persona-picker-menu');
+  if (pBtn && pMenu) {
+    pBtn.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (pMenu.classList.contains('hidden')) { openPersonaPicker(); } else { closePersonaPicker(); }
+    });
+    pMenu.addEventListener('input', function (event) {
+      if (event.target.id !== 'persona-filter') { return; }
+      State.personaFilter = event.target.value;
+      paintPersonaPickerMenu(byName);
+    });
+    pMenu.addEventListener('keydown', function (event) {
+      if (event.target.id !== 'persona-filter') { return; }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closePersonaPicker(); return; }
+      if (event.key !== 'Enter') { return; }
+      event.preventDefault();
+      var first = pMenu.querySelector('.voice-picker-list [data-voice-pick]:not([data-voice-pick=""])');
+      if (first) { first.click(); }
+    });
+    pMenu.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (event.target.closest('#persona-filter')) { return; }
+      var item = event.target.closest('[data-voice-pick]');
+      if (item) {
+        closePersonaPicker();
+        select.value = item.dataset.voicePick;
+        select.dispatchEvent(new Event('change'));
+      }
+    });
+  }
   wireAudition(host);
   Array.prototype.forEach.call(host.querySelectorAll('[data-mix]'), function (control) {
     control.addEventListener('change', function () {

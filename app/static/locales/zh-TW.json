@@ -2937,5 +2937,13 @@
  "Converted {name} ({kind}) to ComfyUI format and installed. It is in the Style LoRA list.": "已將 {name}（{kind}）轉換為 ComfyUI 格式並安裝。它已出現在風格 LoRA 清單中。",
  "invalid safetensors header": "無效的 safetensors 檔頭",
  "This file is not a YuE2 LoRA that Yeufonic can use (no YuE2 planner or acoustic layers were found).": "此檔案不是 Yeufonic 可用的 YuE2 LoRA（找不到 YuE2 規劃器或聲學層）。",
- "unsupported tensor dtype {dtype}": "不支援的張量資料類型 {dtype}"
+ "unsupported tensor dtype {dtype}": "不支援的張量資料類型 {dtype}",
+ "No matching LoRAs": "沒有相符的 LoRA",
+ "Search LoRAs…": "搜尋 LoRA…",
+ "Collapse all": "全部摺疊",
+ "Expand all": "全部展開",
+ "Built-in presets": "內建預設",
+ "Own": "自製",
+ "No matching voices": "沒有相符的聲線",
+ "Search voices…": "搜尋聲線…"
 }

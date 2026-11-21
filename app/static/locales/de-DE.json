@@ -2937,5 +2937,13 @@
  "Converted {name} ({kind}) to ComfyUI format and installed. It is in the Style LoRA list.": "{name} ({kind}) ins ComfyUI-Format konvertiert und installiert. Sie steht in der Style-LoRA-Liste.",
  "invalid safetensors header": "ungültiger Safetensors-Header",
  "This file is not a YuE2 LoRA that Yeufonic can use (no YuE2 planner or acoustic layers were found).": "Diese Datei ist keine YuE2-LoRA, die Yeufonic verwenden kann (es wurden keine YuE2-Planer- oder Akustik-Layer gefunden).",
- "unsupported tensor dtype {dtype}": "nicht unterstützter Tensor-Datentyp {dtype}"
+ "unsupported tensor dtype {dtype}": "nicht unterstützter Tensor-Datentyp {dtype}",
+ "No matching LoRAs": "Keine passenden LoRAs",
+ "Search LoRAs…": "LoRAs suchen…",
+ "Collapse all": "Alle zuklappen",
+ "Expand all": "Alle aufklappen",
+ "Built-in presets": "Integrierte Vorlagen",
+ "Own": "Eigene",
+ "No matching voices": "Keine passenden Stimmen",
+ "Search voices…": "Stimmen suchen…"
 }
