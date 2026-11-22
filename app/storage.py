@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import artwork, config, loras
-from .db import TRASH_SPACE, execute, rows
+from .db import JAM_SPACE, TRASH_SPACE, execute, one, rows
 from .library import inside, remove_tree, take_folder
 
 log = logging.getLogger("yue2.storage")
@@ -170,9 +170,10 @@ def _staged_training_copies() -> list[Path]:
     return found
 
 
-def _trash_paths() -> tuple[int, list[Path]]:
-    """(take_count, paths) owned by takes sitting in Trash (audio folders, stem folders, artwork)."""
-    trashed = rows("SELECT id, title, audio_path FROM takes WHERE space_id = ?", (TRASH_SPACE,))
+def _trash_paths(space_id: str = TRASH_SPACE) -> tuple[int, list[Path]]:
+    """(take_count, paths) owned by takes sitting in Trash, or in Jam's scratch space (audio
+    folders, stem folders, artwork)."""
+    trashed = rows("SELECT id, title, audio_path FROM takes WHERE space_id = ?", (space_id,))
     if not trashed:
         return 0, []
     seen: set[Path] = set()
@@ -214,6 +215,20 @@ def items(busy: Busy, lora_base: Callable[[dict], str]) -> list[dict]:
             "what": "Deleted takes and takes from deleted spaces, waiting in the Trash space with their audio, "
                     "stems and artwork.",
             "consequence": "Every take in Trash is permanently deleted, along with its audio, stems and artwork. "
+                           "This cannot be undone.",
+        })
+
+    jam_count, jam_paths = _trash_paths(JAM_SPACE)
+    if jam_count:
+        cooking = one("SELECT 1 FROM takes WHERE space_id = ? AND status IN ('queued', 'running')", (JAM_SPACE,))
+        out.append({
+            "id": "jam", "title": "Jam passes",
+            "bytes": sum(tree(p)[0] for p in jam_paths), "files": sum(tree(p)[1] for p in jam_paths),
+            "_paths": jam_paths, "_space": JAM_SPACE, "blocked": "a Jam pass is being made" if cooking else None,
+            "what": "The short passes rolled in Jam. They are kept out of your spaces and stay until deleted "
+                    "from Roll History, even once the Jam is closed. Full Songs and passes opened in the "
+                    "editor are takes in your spaces and are not counted here.",
+            "consequence": "Every Jam pass is permanently deleted, and Roll History forgets them. "
                            "This cannot be undone.",
         })
 
@@ -448,14 +463,15 @@ def reclaim(ids: list[str], busy: Busy, lora_base: Callable[[dict], str]) -> dic
         if item["blocked"]:
             skipped.append({"id": item_id, "reason": f"{item['blocked']}, so it was left alone"})
             continue
-        if item.get("_trash"):
-            trashed_ids = [r["id"] for r in rows("SELECT id FROM takes WHERE space_id = ?", (TRASH_SPACE,))]
+        if item.get("_trash") or item.get("_space"):
+            space_id = item.get("_space") or TRASH_SPACE
+            trashed_ids = [r["id"] for r in rows("SELECT id FROM takes WHERE space_id = ?", (space_id,))]
             for start in range(0, len(trashed_ids), 500):
                 part = trashed_ids[start:start + 500]
                 marks = ",".join("?" * len(part))
                 execute(f"DELETE FROM stem_sets WHERE take_id IN ({marks})", tuple(part))
                 execute(f"DELETE FROM playlist_items WHERE take_id IN ({marks})", tuple(part))
-            execute("DELETE FROM takes WHERE space_id = ?", (TRASH_SPACE,))
+            execute("DELETE FROM takes WHERE space_id = ?", (space_id,))
             got = _remove_item(item)
             for tid in trashed_ids:
                 artwork.forget(tid)

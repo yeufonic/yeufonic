@@ -20,7 +20,7 @@ from pathlib import Path
 import httpx
 
 from . import artwork, config, engine_cpp, identities, instrumental, llm, loras, lyrics, persona, score, stems, storage, trainsize, transpose, voices
-from .db import bump_average, execute, get_setting, one, rows
+from .db import JAM_SPACE, bump_average, execute, get_setting, one, rows
 from .engine import OUT_OF_MEMORY, Engine, load_template
 from .library import (audio_duration, ensure_peaks, fade_out_end, loudness, inside, normal_target, normalise, normalised_path, original_path, remove_tree,
                       take_audio_path, vocal_path, write_take_note)
@@ -731,9 +731,11 @@ def art_for_new_take(take_id: str) -> None:
     try:
         if not artwork.automatic():
             return
-        take = one("SELECT parent_id FROM takes WHERE id = ?", (take_id,))
-        if (not take or take["parent_id"] or artwork.png_path(take_id).exists() or artwork.plain_path(take_id).exists()
-                or artwork.busy(take_id)):
+        take = one("SELECT parent_id, space_id FROM takes WHERE id = ?", (take_id,))
+        # A Jam pass is a sketch: a picture would cost the GPU (and a model swap) on every roll.  One kept
+        # from Jam gets its picture then (move_take).
+        if (not take or take["parent_id"] or take["space_id"] == JAM_SPACE or artwork.png_path(take_id).exists()
+                or artwork.plain_path(take_id).exists() or artwork.busy(take_id)):
             return
         start_art(take_id)
     except Exception as exc:  # noqa: BLE001

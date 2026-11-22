@@ -1131,7 +1131,6 @@ class SongIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
 class JamRollIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     title: str | None = Field(None, max_length=200)
     space_id: str = Field(DEFAULT_SPACE, max_length=64)
-    parent_id: str | None = Field(None, max_length=64)
     base_take_id: str | None = Field(None, max_length=64)
     snippet: bool = True
     lock_score: bool = False
@@ -2557,6 +2556,29 @@ def _mother(take: dict) -> str:
     return take["id"]
 
 
+def _jam_home(space_id: str | None) -> str:
+    """The library space a Jam belongs to: the one asked for when it is a real space, or Default."""
+    if space_id and space_id not in (TRASH_SPACE, JAM_SPACE) and one("SELECT 1 FROM spaces WHERE id = ?", (space_id,)):
+        return space_id
+    return DEFAULT_SPACE
+
+
+def _home_of(take: dict) -> str:
+    """The space takes made from this one go in: its own, or for a Jam scratch pass (hidden, and
+    deleted for good) the space its Jam was opened from, which the pass keeps in `trashed_from`."""
+    if take.get("space_id") != JAM_SPACE:
+        return take["space_id"]
+    return _jam_home(take.get("trashed_from"))
+
+
+def _holder_of(take: dict) -> str | None:
+    """The take that takes made from this one are kept inside.  A Jam scratch pass holds none:
+    they would be hidden with it, so they go in its Jam's space as takes of their own."""
+    if take.get("space_id") == JAM_SPACE:
+        return None
+    return _mother(take)
+
+
 def _parent_for(parent_id: str | None, space_id: str) -> str | None:
     """The take a new take asks to be made inside, checked: it exists, it is a take of its own
     and it is in the space the new take is for."""
@@ -2966,9 +2988,11 @@ async def jam_roll(body: JamRollIn) -> dict:
     """Create and queue a new Jam pass — snippets live in the hidden JAM_SPACE so they never
     clutter library spaces or nest inside takes; Full Songs land directly in the user's space."""
     _gpu_free_for_rendering()
+    home = None
     if body.snippet:
         execute("INSERT OR IGNORE INTO spaces(id, name, created_at) VALUES(?, 'Jam Scratch', 0)", (JAM_SPACE,))
         space_id = JAM_SPACE
+        home = _jam_home(body.space_id)     # where takes made from the pass go (see _home_of)
     else:
         space_id = body.space_id
         _writable_space(space_id)
@@ -2998,18 +3022,21 @@ async def jam_roll(body: JamRollIn) -> dict:
         if locked_abc:
             words = instrumental.structure_of(locked_abc)
         else:
-            raw_struct = body.structure.strip() or ("[intro] 8\n[verse] 16" if body.max_duration <= 60 else "")
+            short = "[intro]\n[verse]" if body.max_duration <= 60 else ""
+            raw_struct = body.structure.strip() or short
             try:
                 words = instrumental.normalise(raw_struct)
             except ValueError as exc:
-                raise HTTPException(400, f"That structure will not work: {exc}") from exc
+                # The structure is the Seed's, sent by Jam rather than typed: one the planner cannot follow
+                # (a transcribed take's interlude, say) is planned freely instead of refusing the roll.
+                log.warning("Jam: planning without the Seed's structure (%s)", exc)
+                words = instrumental.normalise(short)
         title = (body.title or "").strip() or "Jam Pass"
     else:
         words = body.lyrics.strip()
         title = (body.title or "").strip() or guess_title(words) or "Jam Pass"
 
     adv = _advanced_of(body)
-    parent_id = None
     seed = body.seed if body.seed is not None else int.from_bytes(os.urandom(4), "big")
     record = {
         "id": uuid.uuid4().hex[:12],
@@ -3030,7 +3057,8 @@ async def jam_roll(body: JamRollIn) -> dict:
         "variety": body.variety if body.variety in PLAN_VARIETY else "normal",
         "harmony": body.harmony,
         "space_id": space_id,
-        "parent_id": parent_id,
+        "parent_id": None,                  # a pass is never kept inside another take
+        "trashed_from": home,
         "interpretation": _interpretation(body.interpretation),
         "feel": "steady",
         "realaudio": 1 if body.realaudio else 0,
@@ -3148,15 +3176,15 @@ def _insert_new_take(record: dict) -> None:
                              style_lora, style_lora_model, style_lora_clip,
                              sampler_steps, avoid, target_key, target_bpm, max_abc_tokens,
                              chord_hold_limit, chord_outside_bonus, chord_sections, follow_structure, voice_cues, target_lufs, fade_out_seconds, cfg_scale, target_meter, sampling,
-                             hook_abc, hook_section)
+                             hook_abc, hook_section, trashed_from)
            VALUES(:id, :kind, :source_id, :title, :style, :lyrics, :brief, :abc, :mode, :seed, :checkpoint,
                   :max_duration, :cap_typed, 'queued', :created_at, :auto_render, :variety, :harmony, :space_id, :parent_id, :interpretation, :feel, :realaudio,
                   :normalise, :identity_id, :persona_id, :voice_id, :voice_mix, :voice_lora, :voice_lora_strength, :voice_lora_clip,
                   :style_lora, :style_lora_model, :style_lora_clip,
                   :sampler_steps, :avoid, :target_key, :target_bpm, :max_abc_tokens,
                   :chord_hold_limit, :chord_outside_bonus, :chord_sections, :follow_structure, :voice_cues, :target_lufs, :fade_out_seconds, :cfg_scale, :target_meter, :sampling,
-                  :hook_abc, :hook_section)""",
-        {"hook_abc": None, "hook_section": None, "voice_id": None, "voice_mix": None, **record},
+                  :hook_abc, :hook_section, :trashed_from)""",
+        {"hook_abc": None, "hook_section": None, "voice_id": None, "voice_mix": None, "trashed_from": None, **record},
     )
 
 
@@ -3170,8 +3198,10 @@ def _space(space_id: str) -> dict:
 
 def _writable_space(space_id: str) -> dict:
     space = _space(space_id)
-    if space["id"] in (TRASH_SPACE, JAM_SPACE):
+    if space["id"] == TRASH_SPACE:
         raise HTTPException(400, "new takes cannot be created in Trash")
+    if space["id"] == JAM_SPACE:
+        raise HTTPException(400, "new takes cannot be created in Jam's scratch space")
     return space
 
 
@@ -3247,6 +3277,8 @@ def create_space(body: SpaceIn) -> dict:
 def rename_space(space_id: str, body: SpaceIn) -> dict:
     if space_id == TRASH_SPACE:
         raise HTTPException(400, "the Trash space cannot be renamed")
+    if space_id == JAM_SPACE:
+        raise HTTPException(400, "Jam's scratch space cannot be renamed")
     _space(space_id)
     name = _space_name(body.name, keep=space_id)
     execute("UPDATE spaces SET name = ? WHERE id = ?", (name, space_id))
@@ -3260,6 +3292,8 @@ async def delete_space(space_id: str) -> dict:
         raise HTTPException(400, "the Default space cannot be deleted")
     if space_id == TRASH_SPACE:
         raise HTTPException(400, "the Trash space cannot be deleted")
+    if space_id == JAM_SPACE:
+        raise HTTPException(400, "Jam's scratch space cannot be deleted")
     _space(space_id)
     for active in rows("SELECT * FROM takes WHERE space_id = ?", (space_id,)):
         await _cancel_take_work(active)
@@ -3538,16 +3572,21 @@ async def move_take(take_id: str, body: MoveIn) -> dict:
         raise HTTPException(404, "no such take")
     if take["parent_id"]:
         raise HTTPException(400, "this take is inside another and goes where that one goes. Take it out first to move it by itself.")
+    if space["id"] == JAM_SPACE and take["space_id"] != JAM_SPACE:
+        raise HTTPException(400, "a take cannot be moved into Jam's scratch space")
     if space["id"] == TRASH_SPACE:
         for child in rows("SELECT * FROM takes WHERE parent_id = ?", (take_id,)):
             await _cancel_take_work(child)
         await _cancel_take_work(take)
-        origin = take["space_id"] if take["space_id"] != TRASH_SPACE else take.get("trashed_from")
+        # A Jam scratch pass keeps its Jam's space in trashed_from, and Restore takes it there.
+        origin = take["space_id"] if take["space_id"] not in (TRASH_SPACE, JAM_SPACE) else take.get("trashed_from")
         execute("UPDATE takes SET space_id = ?, trashed_from = ? WHERE id = ? OR parent_id = ?",
                 (TRASH_SPACE, origin, take_id, take_id))
     else:
         execute("UPDATE takes SET space_id = ?, trashed_from = NULL WHERE id = ? OR parent_id = ?",
                 (space["id"], take_id, take_id))
+        if take["space_id"] == JAM_SPACE and take["status"] == "done":
+            jobs.art_for_new_take(take_id)      # a pass kept from Jam gets the picture it went without
     return {"space_id": space["id"], "name": space["name"]}
 
 
@@ -3735,7 +3774,14 @@ def _base_title(title: str) -> str:
 # What Sing again leaves behind: the copy is a new take with its own audio and state.
 _REVOICE_FRESH = {"id", "title", "status", "stage", "error", "audio_path", "duration", "prompt_id", "created_at",
                   "finished_at", "elapsed", "favourite", "vocal_check", "loudness", "sound_seed", "normalised",
-                  "normalised_to", "weak_dismissed", "note_dismissed", "parent_id", "take_note"}
+                  "normalised_to", "weak_dismissed", "note_dismissed", "parent_id", "take_note", "trashed_from"}
+
+
+def _copy_of(take: dict) -> dict:
+    """A new take's record made from this one: its settings, in the space its copies belong in."""
+    record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
+    record["space_id"] = _home_of(take)
+    return record
 
 
 @app.post("/api/takes/{take_id}/revoice")
@@ -3754,7 +3800,7 @@ async def revoice(take_id: str) -> dict:
             raise HTTPException(400, "this take has no score to render again. Write a plan first.")
         _check_score(take["abc"], take["kind"])
     _checkpoint()
-    record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
+    record = _copy_of(take)
     seed = int.from_bytes(os.urandom(4), "big")
     record.update(id=uuid.uuid4().hex[:12], title=f"{_base_title(take['title'])} \u00b7 sung again",
                   status="queued", created_at=time.time(), checkpoint=config.CHECKPOINT, seed=seed, sound_seed=None)
@@ -3795,7 +3841,7 @@ async def instrumental_of_take(take_id: str, body: InstrumentalOfIn | None = Non
     abc = _unsung(abc)
     _check_score(abc, "instrumental")
     _checkpoint()
-    record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
+    record = _copy_of(take)
     title = " ".join(((body.title if body else "") or "").split()) or f"{_base_title(take['title'])} \u00b7 instrumental"
     record.update(id=uuid.uuid4().hex[:12], kind="instrumental", title=title, abc=abc, lyrics=instrumental.structure_of(abc),
                   style=instrumental.without_vocal_tags(take["style"]) or take["style"], status="queued", created_at=time.time(),
@@ -3838,7 +3884,7 @@ async def new_words(take_id: str, body: WordsIn) -> dict:
     if not scoreless:
         _check_score(abc, take["kind"])
     _checkpoint()
-    record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
+    record = _copy_of(take)
     if body.brief is not None:
         record["brief"] = body.brief.strip() or None
     title = " ".join((body.title or "").split())
@@ -3887,7 +3933,7 @@ async def rearrange(take_id: str, body: RearrangeIn) -> dict:
     else:
         _check_score(body.abc, take["kind"])
     _checkpoint()
-    record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
+    record = _copy_of(take)
     # The title is the person's: a new render of a take keeps it.
     title = " ".join((body.title or "").split()) or take["title"]
     if body.seed is not None:
@@ -3937,7 +3983,8 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
             raise HTTPException(400, "this take has no score to render again. Write a plan first.")
         _check_score(take["abc"], take["kind"])
     _checkpoint()
-    mother = _mother(take)
+    mother = _holder_of(take)
+    home = _home_of(take)
     wanted = list(dict.fromkeys(_interpretation(name) for name in body.interpretations))
     base = _base_title(take["title"])
     now = time.time()
@@ -3961,7 +4008,7 @@ async def variations(take_id: str, body: VariationsIn) -> dict:
             "abc": take["abc"], "mode": take["mode"], "seed": take["seed"], "checkpoint": config.CHECKPOINT,
             "max_duration": body.max_duration or take["max_duration"], "created_at": now + offset * 0.001,
             "variety": take["variety"],
-            "harmony": take["harmony"], "space_id": take["space_id"], "interpretation": name, "feel": take["feel"],
+            "harmony": take["harmony"], "space_id": home, "interpretation": name, "feel": take["feel"],
             "realaudio": realaudio, "normalise": normalise, "identity_id": identity_val, "persona_id": identity_val,
             "voice_id": take.get("voice_id"), "voice_mix": take.get("voice_mix"), "voice_lora": voice_lora, "voice_lora_strength": voice_lora_strength,
             "voice_lora_clip": take.get("voice_lora_clip", 0.0),
@@ -4180,7 +4227,7 @@ async def tries(take_id: str, body: TriesIn) -> dict:
             raise HTTPException(400, "this take has no score to render again. Write a plan first.")
         _check_score(take["abc"], take["kind"])
     _checkpoint()
-    mother = _mother(take)
+    mother = _holder_of(take)
     base = _base_title(take["title"])
     specs: list[dict] = []
     if body.mode == "planner":
@@ -4198,14 +4245,14 @@ async def tries(take_id: str, body: TriesIn) -> dict:
         if not specs:
             raise HTTPException(400, "pick at least one planner strength other than this take's own.")
     else:
-        first = _next_try(base, take["space_id"])
+        first = _next_try(base, _home_of(take))
         for n in range(body.count):
             specs.append({"title": f"{base} \u00b7 try {first + n}", "seed": int.from_bytes(os.urandom(4), "big"),
                           "sound_seed": None})
     now = time.time()
     created = []
     for offset, spec in enumerate(specs):
-        record = {key: value for key, value in take.items() if key not in _REVOICE_FRESH}
+        record = _copy_of(take)
         record.update(id=uuid.uuid4().hex[:12], status="queued", created_at=now + offset * 0.001, parent_id=mother,
                       checkpoint=config.CHECKPOINT, max_duration=body.max_duration or take["max_duration"], **spec)
         columns = list(record)

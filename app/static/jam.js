@@ -11,99 +11,6 @@
 
   var MAX_PARTS = 10;
 
-  var STARTERS = [
-    {
-      id: 'lofi',
-      name: 'Lo-fi Groove',
-      bpm: 84,
-      vibe: { x: 0.34, y: 0.36 },
-      vocals: 'instrumental',
-      tones: [],
-      lyricTheme: 'Late nights',
-      parts: [
-        { name: 'Lo-fi', cat: 'genre', level: 3 },
-        { name: 'Boom bap', cat: 'genre', level: 2 },
-        { name: 'Fender Rhodes', cat: 'inst', level: 2 },
-        { name: 'Vinyl crackle', cat: 'prod', level: 1 }
-      ]
-    },
-    {
-      id: 'synthwave',
-      name: 'Synthwave Drive',
-      bpm: 112,
-      vibe: { x: 0.38, y: 0.72 },
-      vocals: 'instrumental',
-      tones: [],
-      lyricTheme: 'Late nights',
-      parts: [
-        { name: 'Synthwave', cat: 'genre', level: 3 },
-        { name: 'Analog synth', cat: 'inst', level: 3 },
-        { name: 'Punchy drums', cat: 'rhythm', level: 2 },
-        { name: 'Tape saturation', cat: 'prod', level: 2 }
-      ]
-    },
-    {
-      id: 'folk',
-      name: 'Acoustic Folk',
-      bpm: 96,
-      vibe: { x: 0.62, y: 0.38 },
-      vocals: 'female',
-      tones: ['Warm', 'Intimate'],
-      lyricTheme: 'Nostalgia',
-      parts: [
-        { name: 'Indie folk', cat: 'genre', level: 3 },
-        { name: 'Fingerpicked guitar', cat: 'inst', level: 3 },
-        { name: 'Upright bass', cat: 'inst', level: 2 },
-        { name: 'Warm strings', cat: 'inst', level: 1 }
-      ]
-    },
-    {
-      id: 'neosoul',
-      name: 'Neo-Soul Pocket',
-      bpm: 90,
-      vibe: { x: 0.56, y: 0.44 },
-      vocals: 'female',
-      tones: ['Smooth', 'Soulful'],
-      lyricTheme: 'Confidence',
-      parts: [
-        { name: 'Neo-soul', cat: 'genre', level: 3 },
-        { name: 'Fender Rhodes', cat: 'inst', level: 3 },
-        { name: 'Funky bass', cat: 'inst', level: 2 },
-        { name: 'Syncopated groove', cat: 'rhythm', level: 2 }
-      ]
-    },
-    {
-      id: 'bossa',
-      name: 'Bossa Lounge',
-      bpm: 108,
-      vibe: { x: 0.72, y: 0.48 },
-      vocals: 'instrumental',
-      tones: [],
-      lyricTheme: 'Freedom',
-      parts: [
-        { name: 'Bossa nova', cat: 'genre', level: 3 },
-        { name: 'Nylon guitar', cat: 'inst', level: 3 },
-        { name: 'Vibraphone', cat: 'inst', level: 2 },
-        { name: 'Brush drums', cat: 'rhythm', level: 2 }
-      ]
-    },
-    {
-      id: 'cinematic',
-      name: 'Cinematic Pulse',
-      bpm: 100,
-      vibe: { x: 0.25, y: 0.64 },
-      vocals: 'instrumental',
-      tones: [],
-      lyricTheme: 'Chasing dreams',
-      parts: [
-        { name: 'Cinematic', cat: 'genre', level: 3 },
-        { name: 'Cello', cat: 'inst', level: 3 },
-        { name: 'Warm strings', cat: 'inst', level: 2 },
-        { name: 'Sub bass', cat: 'prod', level: 2 }
-      ]
-    }
-  ];
-
   var PALETTE = {
     inst: [
       'Acoustic piano', 'Fender Rhodes', 'Wurlitzer', 'Hammond organ', 'Clavinet',
@@ -510,12 +417,11 @@
 
   var JamState = {
     open: false,
-    sessionKey: '__standalone__',
-    starterName: 'Lo-fi Groove',
+    sessionKey: null,   // 'take:' + the Seed's id: a Jam is always of a take
+    starterName: '',    // the Seed's title, which passes are named after
     parentId: null,
     spaceId: null,
     fastLoop: true,
-    lockScore: false,
     parts: [],          // [{ name, cat, level }]
     vibe: { x: 0.34, y: 0.36 },
     bpm: 84,
@@ -525,12 +431,13 @@
     lyricTheme: 'Late nights',
     lyrics: '',
     lyricsDirtyTheme: false,
+    seedStructure: '',  // an instrumental Seed's sections, planned again by Rock & Roll
     styleLora: '',
     styleLoraModel: 0.7,
     styleLoraClip: 0.7,
     paletteTab: 'inst',
     searchQuery: '',
-    passes: [],         // [{ num, id, title, status, progress, stage, hasAudio, hasScore, isFullSong, duration, snapshot, diffs, error }]
+    passes: [],         // [{ num, id, title, status, progress, stage, hasAudio, hasScore, duration, snapshot, diffs, error }; the Seed and scratch passes]
     lastPassNum: 0,
     lastRolledSnapshot: null,
     cookingId: null,
@@ -555,7 +462,6 @@
         parentId: JamState.parentId,
         spaceId: JamState.spaceId,
         fastLoop: JamState.fastLoop,
-        lockScore: JamState.lockScore,
         parts: JamState.parts,
         vibe: JamState.vibe,
         bpm: JamState.bpm,
@@ -565,6 +471,7 @@
         lyricTheme: JamState.lyricTheme,
         lyrics: JamState.lyrics,
         lyricsDirtyTheme: JamState.lyricsDirtyTheme,
+        seedStructure: JamState.seedStructure,
         styleLora: JamState.styleLora,
         styleLoraModel: JamState.styleLoraModel,
         styleLoraClip: JamState.styleLoraClip,
@@ -587,11 +494,10 @@
     var s = all[key];
     if (!s || !Array.isArray(s.parts)) { return false; }
     JamState.sessionKey = key;
-    JamState.starterName = s.starterName || 'Lo-fi Groove';
+    JamState.starterName = s.starterName || '';
     JamState.parentId = s.parentId || null;
     JamState.spaceId = s.spaceId || null;
     JamState.fastLoop = s.fastLoop !== false;
-    JamState.lockScore = Boolean(s.lockScore);
     JamState.parts = s.parts.slice();
     JamState.vibe = s.vibe || { x: 0.34, y: 0.36 };
     JamState.bpm = s.bpm || 96;
@@ -601,6 +507,7 @@
     JamState.lyricTheme = s.lyricTheme || 'Late nights';
     JamState.lyrics = s.lyrics || '';
     JamState.lyricsDirtyTheme = Boolean(s.lyricsDirtyTheme);
+    JamState.seedStructure = s.seedStructure || '';
     JamState.styleLora = s.styleLora || '';
     JamState.styleLoraModel = s.styleLoraModel != null ? Number(s.styleLoraModel) : 0.7;
     JamState.styleLoraClip = s.styleLoraClip != null ? Number(s.styleLoraClip) : 0.7;
@@ -623,12 +530,11 @@
       try {
         var rec = await api('/api/takes/' + encodeURIComponent(p.id));
         if (rec.space_id === 'trash') { continue; }
+        if (!isSeedPass(p) && isLibraryTake(rec)) { continue; }   // a Full Song or kept pass: it is in the library now
         p.status = rec.status;
         p.stage = rec.stage || rec.status;
         p.hasAudio = Boolean(rec.has_audio);
         p.hasScore = Boolean(rec.abc && rec.abc.trim());
-        p.isSnippet = rec.space_id === '__jam__';
-        p.isTopLevelTake = Boolean(rec.space_id && rec.space_id !== '__jam__' && !rec.parent_id);
         p.duration = rec.duration || p.duration || 0;
         if (rec.title) { p.title = rec.title; }
         if (rec.status === 'done') { p.progress = 100; }
@@ -643,7 +549,6 @@
     if (!JamState.passes.length) {
       JamState.parentId = null;
       JamState.lastRolledSnapshot = null;
-      JamState.lockScore = false;
     }
     saveSession();
     paintAll();
@@ -653,7 +558,7 @@
   function cloneSnapshot() {
     return {
       fastLoop: JamState.fastLoop,
-      lockScore: JamState.lockScore,
+      lockScore: scoreLocked(),
       parts: JamState.parts.map(function (p) { return { name: p.name, cat: p.cat, level: p.level }; }),
       vibe: { x: Math.round(JamState.vibe.x * 100) / 100, y: Math.round(JamState.vibe.y * 100) / 100 },
       bpm: JamState.bpm,
@@ -698,11 +603,16 @@
     var s = snap || JamState;
     var vi = vibeInfo(s.vibe);
     var tokens = [];
+    // A LoRA does little without its trigger word, which has to be the style's first tag.
+    var lora = s.styleLora ? jamLora(s.styleLora) : null;
+    if (lora && lora.trigger) { tokens.push(lora.trigger); }
     // Lead with concrete musical, tonal & dynamic descriptors so YuE2 weights Vibe strongly.
     if (vi.cue) { tokens.push(vi.cue); }
     // Higher-level parts go next so YuE2 weights them strongly alongside the mood.
     var sorted = s.parts.slice().sort(function (a, b) { return b.level - a.level; });
+    var trigger = lora && lora.trigger ? lora.trigger.toLowerCase() : '';
     sorted.forEach(function (p) {
+      if (trigger && p.name.toLowerCase() === trigger) { return; }   // a session from before the trigger led
       if (p.level >= 4) { tokens.push('lead ' + p.name.toLowerCase() + ' focus'); }
       else if (p.level === 3) { tokens.push('prominent ' + p.name.toLowerCase()); }
       else if (p.level === 1) { tokens.push('subtle ' + p.name.toLowerCase()); }
@@ -780,26 +690,50 @@
     return !old || (cur && old.level !== cur.level);
   }
 
-  function applyStarter(starter) {
-    JamState.starterName = starter.name;
-    JamState.parentId = null;
-    JamState.spaceId = null;
-    JamState.parts = starter.parts.map(function (p) { return { name: p.name, cat: p.cat, level: p.level }; });
-    JamState.vibe = { x: starter.vibe.x, y: starter.vibe.y };
-    JamState.bpm = starter.bpm;
-    JamState.vocals = starter.vocals;
-    JamState.tones = starter.tones.slice();
-    JamState.lyricTheme = starter.lyricTheme || 'Late nights';
-    JamState.lyrics = '';
-    JamState.lyricsDirtyTheme = true;
-    JamState.lockScore = false;
-    JamState.passes = [];
-    JamState.lastPassNum = 0;
-    JamState.lastRolledSnapshot = null;
-    JamState.cookingId = null;
-    JamAudio.stop();
-    JamAudio.currentId = null;
-    saveSession();
+  /* The chosen LoRA as the app knows it: its trigger word, and the songs it learned (`styles`). */
+  function jamLora(name) {
+    if (!name || typeof loraCatalogue !== 'function') { return null; }
+    try {
+      return loraCatalogue().filter(function (l) { return l.name === name; })[0] || null;
+    } catch (err) { return null; }
+  }
+
+  function knownTriggers() {
+    try {
+      return typeof loraCatalogue === 'function'
+        ? loraCatalogue().map(function (l) { return (l.trigger || '').toLowerCase(); }).filter(Boolean) : [];
+    } catch (err) { return []; }
+  }
+
+  /* A style's tags as Parts.  The tempo, the key and a LoRA's trigger word are not Parts: the slider, the score
+     and the LoRA slot say those.  `skipVocals`: a learned song's singer is not this Jam's. */
+  function partsFromStyle(text, skipVocals, limit) {
+    var triggers = knownTriggers();
+    var parts = [];
+    String(text || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean).forEach(function (tag) {
+      var low = tag.toLowerCase();
+      if (/^\d+\s*bpm$/.test(low) || low === 'instrumental' || /^key of /.test(low) || triggers.indexOf(low) >= 0) { return; }
+      if (skipVocals && /\bvocals?\b/.test(low)) { return; }
+      if (parts.length >= (limit || 7) || parts.some(function (p) { return p.name.toLowerCase() === low; })) { return; }
+      var cat = 'genre';
+      if (PALETTE.inst.some(function (i) { return low.indexOf(i.toLowerCase()) >= 0; })) { cat = 'inst'; }
+      else if (PALETTE.rhythm.some(function (i) { return low.indexOf(i.toLowerCase()) >= 0; })) { cat = 'rhythm'; }
+      else if (PALETTE.prod.some(function (i) { return low.indexOf(i.toLowerCase()) >= 0; })) { cat = 'prod'; }
+      parts.push({ name: tag.charAt(0).toUpperCase() + tag.slice(1), cat: cat, level: 2 });
+    });
+    return parts;
+  }
+
+  /* A learned song's pill, as on the editor's learned styles: its sound as the Parts, and its tempo. */
+  function applyLoraSong(index) {
+    var lora = jamLora(JamState.styleLora);
+    var song = lora && lora.styles ? lora.styles[index] : null;
+    if (!song) { return; }
+    var parts = partsFromStyle(song.prompt, true, MAX_PARTS);
+    if (parts.length) { JamState.parts = parts; }
+    var tempo = Math.round(Number(song.tempo) || 0);
+    if (tempo >= 60 && tempo <= 165) { JamState.bpm = tempo; }
+    JamState.loraSong = lora.name + '#' + index;
     paintAll();
   }
 
@@ -807,18 +741,7 @@
     JamState.starterName = take.title || 'Selected take';
     JamState.parentId = take.parent_id || take.id;
     JamState.spaceId = (take.space_id && take.space_id !== 'trash') ? take.space_id : null;
-    var rawTags = (take.style || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-    var parts = [];
-    rawTags.forEach(function (tag) {
-      if (/^\d+\s*bpm$/i.test(tag) || /^instrumental$/i.test(tag)) { return; }
-      if (parts.length >= 7) { return; }
-      var cat = 'genre';
-      var low = tag.toLowerCase();
-      if (PALETTE.inst.some(function (i) { return low.indexOf(i.toLowerCase()) >= 0; })) { cat = 'inst'; }
-      else if (PALETTE.rhythm.some(function (i) { return low.indexOf(i.toLowerCase()) >= 0; })) { cat = 'rhythm'; }
-      else if (PALETTE.prod.some(function (i) { return low.indexOf(i.toLowerCase()) >= 0; })) { cat = 'prod'; }
-      parts.push({ name: tag.charAt(0).toUpperCase() + tag.slice(1), cat: cat, level: 2 });
-    });
+    var parts = partsFromStyle(take.style || '', false);
     if (!parts.length) {
       parts = [{ name: 'Indie pop', cat: 'genre', level: 2 }];
     }
@@ -830,11 +753,11 @@
     JamState.tones = [];
     JamState.lyricTheme = 'Keep current';
     JamState.lyrics = take.kind === 'instrumental' ? '' : (take.lyrics || '');
+    JamState.seedStructure = take.kind === 'instrumental' ? (take.lyrics || '') : '';   // an instrumental's sections, for Rock & Roll
     JamState.lyricsDirtyTheme = false;
     JamState.styleLora = take.style_lora || '';
     JamState.styleLoraModel = take.style_lora_model != null ? Number(take.style_lora_model) : 0.7;
     JamState.styleLoraClip = take.style_lora_clip != null ? Number(take.style_lora_clip) : 0.7;
-    JamState.lockScore = Boolean(take.abc && take.abc.trim());
     var snap = cloneSnapshot();
     JamState.lastRolledSnapshot = snap;
     JamState.passes = [{
@@ -894,14 +817,70 @@
     return Boolean(p && (p.isSeed || (JamState.sessionKey && JamState.sessionKey === 'take:' + p.id)));
   }
 
-  function isSpaceTake(p) {
-    return Boolean(p && (isSeedPass(p) || p.isFullSong || p.isTopLevelTake));
+  /* A finished take in one of the person's spaces (a Full Song, or a pass kept from Jam).  Roll History
+     shows the Seed and the scratch passes only: anything that has become a take is in the library. */
+  function isLibraryTake(rec) {
+    return Boolean(rec && rec.space_id && rec.space_id !== '__jam__' && rec.space_id !== 'trash' &&
+      rec.status === 'done' && rec.has_audio);
   }
 
+  function dropPass(passId) {
+    if (JamAudio.currentId === passId) { JamAudio.stop(); JamAudio.currentId = null; }
+    delete JamAudio.buffers[passId];
+    delete JamAudio.peaks[passId];
+    JamState.passes = JamState.passes.filter(function (p) { return p.id !== passId; });
+  }
+
+  /* A Jam makes flavours of its Seed, so every roll keeps the Seed's melody and chords (its score).
+     Only a Seed with no score yet has its first roll planned. */
+  function scoreLocked() {
+    return Boolean(readyBaseTakeWithScore());
+  }
+
+  /* New Jam: back to the Seed's own sound, with Roll History emptied.  The scratch passes are
+     deleted, as nothing else can reach them. */
+  async function newJamFromSeed() {
+    var seed = JamState.passes.find(isSeedPass);
+    if (!seed || JamState.cookingId) { return; }
+    var scratch = JamState.passes.filter(function (p) { return !isSeedPass(p); });
+    if (scratch.length && typeof confirmModal === 'function') {
+      var yes = await confirmModal({
+        title: 'Start a new Jam?',
+        message: 'Back to the sound of ' + (seed.title || 'the Seed') + '. The ' + scratch.length +
+          (scratch.length === 1 ? ' pass' : ' passes') + ' in Roll History will be deleted.',
+        confirmText: 'New Jam', danger: true
+      });
+      if (!yes) { return; }
+    }
+    var take;
+    try {
+      take = await api('/api/takes/' + encodeURIComponent(seed.id));
+    } catch (err) {
+      if (typeof toast === 'function') { toast('Could not reload the Seed: ' + err.message, 'bad'); }
+      return;
+    }
+    JamAudio.stop();
+    JamAudio.currentId = null;
+    for (var i = 0; i < scratch.length; i++) {
+      delete JamAudio.buffers[scratch[i].id];
+      delete JamAudio.peaks[scratch[i].id];
+      try {
+        var rec = await api('/api/takes/' + encodeURIComponent(scratch[i].id));
+        if (rec.space_id === '__jam__') {
+          await api('/api/takes/' + encodeURIComponent(scratch[i].id), { method: 'DELETE' });
+        }
+      } catch (err) { /* already gone */ }
+    }
+    seedFromTake(take);
+  }
+
+  /* The score every roll is made from: the Seed's, whichever pass is playing.  A pass's score has been
+     through that pass's settings (an instrumental's has its tune moved off the vocal line), so building
+     on it would carry them into the next roll.  A Seed with no score: the first pass that has one. */
   function readyBaseTakeWithScore() {
-    var cur = JamState.passes.find(function (p) { return p.id === JamAudio.currentId && p.hasScore; });
-    if (cur) { return cur; }
-    return JamState.passes.find(function (p) { return p.hasScore; }) || null;
+    var seed = JamState.passes.find(isSeedPass);
+    if (seed && seed.hasScore) { return seed; }
+    return JamState.passes.find(function (p) { return !isSeedPass(p) && p.hasScore; }) || null;
   }
 
   function activeLoraKind(name) {
@@ -928,6 +907,10 @@
     var fastLoop = opts.fullSong ? false : JamState.fastLoop;
     var snap = opts.snapshot ? JSON.parse(JSON.stringify(opts.snapshot)) : cloneSnapshot();
     snap.fastLoop = fastLoop;
+    // Rock & Roll plans this one pass again; Full Song on such a pass keeps the score it was given.
+    var basePass = opts.basePassId ? JamState.passes.find(function (p) { return p.id === opts.basePassId && p.hasScore; }) : null;
+    if (opts.replan) { snap.lockScore = false; }
+    if (basePass) { snap.lockScore = true; }
     var styleText = compileStyle(snap);
     var vi = vibeInfo(snap.vibe);
 
@@ -972,7 +955,7 @@
     }, 0);
     var passNum = Math.max(maxNum, Number(JamState.lastPassNum) || 0) + 1;
     JamState.lastPassNum = passNum;
-    var baseScorePass = snap.lockScore ? readyBaseTakeWithScore() : null;
+    var baseScorePass = basePass || (snap.lockScore ? readyBaseTakeWithScore() : null);
     var passTitle = draftedTitle || (isFullSong
       ? (JamState.starterName + ' (Jam #' + passNum + ')')
       : (JamState.starterName + ' \u00B7 Pass #' + passNum));
@@ -981,13 +964,13 @@
     var payload = {
       title: passTitle,
       space_id: jamSpaceId(),
-      parent_id: null,
       snippet: !isFullSong,
       base_take_id: baseScorePass ? baseScorePass.id : null,
       lock_score: Boolean(baseScorePass),
       instrumental: snap.vocals === 'instrumental',
       style: styleText,
       lyrics: snap.vocals === 'instrumental' ? '' : lyricsText,
+      structure: snap.vocals === 'instrumental' && !baseScorePass ? (JamState.seedStructure || '') : '',
       brief: snap.vocals === 'instrumental' ? null : snap.lyricTheme,
       max_duration: isFullSong ? 210 : 40,
       target_bpm: snap.bpm,
@@ -1007,6 +990,7 @@
     try {
       var created = await api('/api/jam/roll', { method: 'POST', body: JSON.stringify(payload) });
       var diffs = computeDiffs(JamState.lastRolledSnapshot, snap);
+      if (opts.replan) { diffs.unshift({ text: 'New arrangement', cls: 'add' }); }
       if (isFullSong) { diffs.unshift({ text: 'Full Song \u00B7 Space', cls: 'add' }); }
       JamState.lastRolledSnapshot = snap;
       JamState.cookingId = created.id;
@@ -1019,12 +1003,10 @@
         stage: 'Queued',
         hasAudio: false,
         hasScore: Boolean(baseScorePass),
-        isFullSong: isFullSong,
-        isSnippet: !isFullSong,
-        isTopLevelTake: isFullSong,
         duration: 0,
         snapshot: snap,
         diffs: diffs,
+        replanned: !baseScorePass,
         error: null
       });
       saveSession();
@@ -1091,6 +1073,17 @@
         }
       } catch (e) { /* keep last progress */ }
 
+      if (rec.status === 'done' && rec.has_audio && isLibraryTake(rec)) {
+        // A Full Song is a take in the space now: it leaves Roll History and the loop plays on.
+        JamState.cookingId = null;
+        stopPolling();
+        dropPass(id);
+        saveSession();
+        if (typeof loadTakes === 'function') { loadTakes(); }
+        paintAll();
+        if (typeof toast === 'function') { toast((rec.title || 'The full song') + ' is ready in your space.'); }
+        return;
+      }
       if (rec.status === 'done' && rec.has_audio) {
         pass.progress = 100;
         JamState.cookingId = null;
@@ -1170,6 +1163,24 @@
     setJamMax(jamMax());
   }
 
+  /* A column is repainted whole, which would put it, and any list in it that scrolls, back at the top.
+     keepScroll notes where they are; the function it gives back puts them there again. */
+  var SCROLLERS = ['jam-hist-list', 'jam-palette-chips', 'jam-lora-songs'];
+  function keepScroll(el) {
+    var tops = { self: el.scrollTop };
+    SCROLLERS.forEach(function (cls) {
+      var node = el.querySelector('.' + cls);
+      if (node) { tops[cls] = node.scrollTop; }
+    });
+    return function () {
+      el.scrollTop = tops.self;
+      SCROLLERS.forEach(function (cls) {
+        var node = el.querySelector('.' + cls);
+        if (node && tops[cls] != null) { node.scrollTop = tops[cls]; }
+      });
+    };
+  }
+
   function paintAll() {
     buildShellOnce();
     paintTopbar();
@@ -1183,32 +1194,19 @@
   function paintTopbar() {
     var el = document.getElementById('jam-topbar');
     if (!el) { return; }
-    var hasScore = Boolean(readyBaseTakeWithScore());
     var isMax = jamMax();
-
-    var starterOpts = STARTERS.map(function (st) {
-      return '<option value="' + escHtml(st.id) + '"' + (st.name === JamState.starterName ? ' selected' : '') + '>' + escHtml(st.name) + '</option>';
-    }).join('');
 
     el.innerHTML =
       '<div class="jam-brand">' +
         '<span class="jam-bar"></span>' +
         '<h1 class="jam-title">Jam</h1>' +
-        '<select id="jam-starter-select" class="jam-starter-select" title="Load a starter groove">' +
-          (!STARTERS.some(function (s) { return s.name === JamState.starterName; })
-            ? '<option value="__custom__" selected>Seeded: ' + escHtml(JamState.starterName) + '</option>' : '') +
-          starterOpts +
-        '</select>' +
+        '<span class="jam-seed-name" title="The take this Jam plays with">' + escHtml(JamState.starterName) + '</span>' +
       '</div>' +
       '<div class="jam-scope">' +
         '<div class="jam-seg-pill" title="35s Fast Loop renders 3–5× faster for rapid experimentation">' +
           '<button type="button" data-jam-act="scope-fast" class="' + (JamState.fastLoop ? 'active' : '') + '">35s Fast Loop</button>' +
           '<button type="button" data-jam-act="scope-full" class="' + (!JamState.fastLoop ? 'active' : '') + '">Full Song</button>' +
         '</div>' +
-        '<button type="button" data-jam-act="toggle-lock" class="jam-lock-btn' + (JamState.lockScore ? ' on' : '') + '"' +
-          (!hasScore ? ' disabled title="Roll at least one pass first to lock its melody & chords"' : ' title="Keep the same ABC melody and chords while rolling new Parts and vibe"') + '>' +
-          '<span>' + (JamState.lockScore ? '\uD83D\uDD12' : '\uD83D\uDD13') + '</span> Lock Melody &amp; Chords' +
-        '</button>' +
       '</div>' +
       '<div class="jam-head-actions">' +
         '<button type="button" class="ghost" data-jam-act="close" style="padding:7px 14px">Close</button>' +
@@ -1225,13 +1223,13 @@
     if (!el) { return; }
     var pending = pendingChangeCount();
     var cooking = Boolean(JamState.cookingId || JamState.draftingLyrics);
-    var hasPlayable = JamState.passes.some(function (p) { return p.hasAudio; });
 
     el.innerHTML =
       '<span class="jam-foot-hint muted small">Space to play / pause \u00B7 E to edit active pass \u00B7 Esc to close</span>' +
       '<div class="jam-foot-actions">' +
-        (JamState.passes.length ? '<button type="button" class="jam-sec-btn" data-jam-act="reset-jam" title="Start a fresh Jam session">New Jam</button>' : '') +
-        (hasPlayable && JamState.fastLoop ? '<button type="button" class="jam-sec-btn" data-jam-act="render-full" title="Render a full-length song as a take in your space"' + (cooking ? ' disabled' : '') + '>Render Full Song</button>' : '') +
+        (JamState.passes.some(function (p) { return !isSeedPass(p); }) || pending > 0
+          ? '<button type="button" class="jam-sec-btn" data-jam-act="reset-jam" title="Start again from the Seed: its sound, and no passes"' + (cooking ? ' disabled' : '') + '>New Jam</button>' : '') +
+        (scoreLocked() ? '<button type="button" class="jam-rr-btn" data-jam-act="rock-roll" title="Rock &amp; Roll: plan this pass again from the Seed\u2019s words with your settings. New chords, groove and structure, so it can change a lot, and it takes longer than Roll. The next Roll goes back to the Seed\u2019s melody and chords; Full Song on this pass keeps its new arrangement."' + (cooking ? ' disabled' : '') + '>Rock &amp; Roll</button>' : '') +
         '<button type="button" class="jam-roll-btn" data-jam-act="roll"' + (cooking ? ' disabled' : '') + '>' +
           '<span>' + (JamState.draftingLyrics ? 'Drafting lyrics\u2026' : (JamState.cookingId ? 'Rolling\u2026' : '\u27F3 Roll')) + '</span>' +
           (!cooking && pending > 0 ? '<span class="jam-pending-badge">' + pending + (pending === 1 ? ' change' : ' changes') + '</span>' : '') +
@@ -1359,8 +1357,9 @@
     var hasPlan = loraKind === 'planner' || loraKind === 'both';
 
     // Preserve search input focus if currently typing
-    var searchFocused = document.activeElement && document.activeElement.id === 'jam-part-search';
-    var selStart = searchFocused ? document.activeElement.selectionStart : null;
+    var focusedId = document.activeElement && /^jam-(part-search|lora-song-filter)$/.test(document.activeElement.id) ? document.activeElement.id : null;
+    var selStart = focusedId ? document.activeElement.selectionStart : null;
+    var keptScroll = keepScroll(el);
 
     el.innerHTML =
       '<div class="jam-col-head">' +
@@ -1397,13 +1396,45 @@
                 '<input id="jam-lora-plan" type="range" min="0" max="2" step="0.05" value="' + JamState.styleLoraClip + '"' + (hasPlan ? '' : ' disabled') + '>' +
               '</label>' +
             '</div>' : '') +
+        loraSongsHtml() +
       '</div>';
 
-    if (searchFocused && document.getElementById('jam-part-search')) {
-      var inp = document.getElementById('jam-part-search');
+    keptScroll();
+    if (focusedId && document.getElementById(focusedId)) {
+      var inp = document.getElementById(focusedId);
       inp.focus();
       if (selStart != null) { inp.setSelectionRange(selStart, selStart); }
     }
+  }
+
+  /* The songs the chosen LoRA learned, as pills (the editor's learned styles).  A big corpus has a filter and
+     shows its first dozen until asked for the rest. */
+  var LORA_SONGS_FOLD = 12;
+  function loraSongsHtml() {
+    var lora = jamLora(JamState.styleLora);
+    var songs = (lora && lora.styles) || [];
+    if (!songs.length) { return ''; }
+    var q = (JamState.loraSongFilter || '').trim().toLowerCase();
+    var matching = songs.map(function (song, i) { return { song: song, i: i }; }).filter(function (x) {
+      return !q || ((x.song.title || '') + ' ' + (x.song.prompt || '')).toLowerCase().indexOf(q) >= 0;
+    });
+    var shown = q || JamState.loraSongsAll ? matching : matching.slice(0, LORA_SONGS_FOLD);
+    var pills = shown.map(function (x) {
+      var song = x.song;
+      var hint = song.hint ? song.hint.split(',')[0].trim() : '';
+      var label = song.title ? escHtml(song.title) + (hint ? ' <span class="muted">\u00B7 ' + escHtml(hint) + '</span>' : '') : escHtml(hint || song.prompt || '');
+      var tip = (song.title ? song.title + ': ' : '') + (song.prompt || '') + (song.tempo ? ', ' + Math.round(song.tempo) + ' BPM' : '');
+      var on = JamState.loraSong === lora.name + '#' + x.i;
+      return '<button type="button" class="jam-pick-chip' + (on ? ' added' : '') + '" data-jam-act="lora-song" data-idx="' + x.i + '" title="' + escHtml(tip) + '">' + label + '</button>';
+    }).join('');
+    if (shown.length < matching.length) {
+      pills += '<button type="button" class="jam-pick-chip custom" data-jam-act="lora-songs-all">Show all ' + matching.length + '</button>';
+    }
+    if (q && !matching.length) { pills = '<span class="muted small">No song matches.</span>'; }
+    return '<div class="jam-lora-songs-head"><span>Songs it learned \u00B7 click for that sound</span>' +
+        (songs.length > LORA_SONGS_FOLD ? '<input type="search" id="jam-lora-song-filter" placeholder="Filter ' + songs.length + ' songs" value="' + escHtml(JamState.loraSongFilter || '') + '" autocomplete="off">' : '') +
+      '</div>' +
+      '<div class="jam-lora-songs">' + pills + '</div>';
   }
 
   function paintFeelCol() {
@@ -1446,6 +1477,7 @@
     }
 
     var lyricsFocused = document.activeElement && document.activeElement.id === 'jam-lyrics-box';
+    var keptScroll = keepScroll(el);
 
     el.innerHTML =
       '<div class="jam-col-head">' +
@@ -1466,7 +1498,7 @@
           '<div class="jam-vibe-box">' +
             '<div class="jam-kicker"><span>Vibe</span><span style="color:var(--cover-a)">' + escHtml(vi.xWord) + ' \u00B7 ' + escHtml(vi.yWord) + '</span></div>' +
             '<div class="jam-vibe-word" id="jam-vibe-word">' + escHtml(vi.word) + '</div>' +
-            '<div class="jam-vibe-hint">' + (JamState.lockScore ? 'Score locked \u2014 shapes sound &amp; dynamics (unlock Score for new chords)' : 'Shapes key, chords, arrangement &amp; dynamics') + '</div>' +
+            '<div class="jam-vibe-hint">' + (scoreLocked() ? 'Melody &amp; chords kept \u2014 shapes sound &amp; dynamics' : 'Shapes key, chords, arrangement &amp; dynamics') + '</div>' +
           '</div>' +
           '<div class="jam-tempo-box">' +
             '<div class="jam-kicker"><span>Tempo</span><span class="jam-bpm-val" id="jam-bpm-val">' + JamState.bpm + ' BPM</span></div>' +
@@ -1490,6 +1522,7 @@
         '<span id="jam-compiled-style">' + escHtml(compileStyle()) + '</span>' +
         '<span class="jam-prompt-avoid" id="jam-compiled-avoid">' + (vi.avoid ? 'Avoid: ' + escHtml(vi.avoid) : '') + '</span>' +
       '</div>';
+    keptScroll();
 
     if (lyricsFocused && document.getElementById('jam-lyrics-box')) {
       document.getElementById('jam-lyrics-box').focus();
@@ -1540,14 +1573,14 @@
                 '</div>'
               : '';
           } else if (p.hasAudio) {
-            var canDelete = !isSpaceTake(p);
+            // A pass with sound here is a scratch pass: a finished Full Song or kept pass has left the list.
             actions = '<div class="jam-hist-actions">' +
               (isPlaying
                 ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 Stop</button>'
                 : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 Play</button>') +
-              (!p.isFullSong ? '<button type="button" class="jam-hist-btn" data-jam-act="full-pass" data-pass-id="' + escHtml(p.id) + '">Full Song</button>' : '') +
-              '<button type="button" class="jam-hist-btn" data-jam-act="open-editor" data-pass-id="' + escHtml(p.id) + '">Editor</button>' +
-              (canDelete ? '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="Move this nested pass to Trash">Delete</button>' : '') +
+              '<button type="button" class="jam-hist-btn" data-jam-act="full-pass" data-pass-id="' + escHtml(p.id) + '">Full Song</button>' +
+              '<button type="button" class="jam-hist-btn" data-jam-act="open-editor" data-pass-id="' + escHtml(p.id) + '" title="Keep this pass as a take in your space and open it in the editor">Editor</button>' +
+              '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="Delete this pass for good">Delete</button>' +
             '</div>';
           } else {
             actions = (p.error ? '<div class="small" style="color:var(--danger-text)">' + escHtml(p.error) + '</div>' : '') +
@@ -1560,8 +1593,7 @@
             ? '<span class="jam-seed-tag">Seed</span>'
             : '<span class="jam-hist-num">Pass #' + p.num + '</span>';
 
-          var isTake = isSpaceTake(p);
-          return '<div class="jam-hist-card' + (isTake ? ' is-take' : '') + (seed ? ' is-seed' : '') + (isActive ? ' active' : '') + (isPlaying ? ' playing' : '') + (isCooking ? ' cooking' : '') + '">' +
+          return '<div class="jam-hist-card' + (seed ? ' is-seed' : '') + (isActive ? ' active' : '') + (isPlaying ? ' playing' : '') + (isCooking ? ' cooking' : '') + '">' +
             '<div class="jam-hist-top">' +
               '<span class="jam-hist-name">' + tagHtml + ' ' + escHtml(p.title) + '</span>' +
               statePill +
@@ -1579,12 +1611,15 @@
       ? ('Seed' + (rolledCount ? ' + ' + rolledCount + (rolledCount === 1 ? ' pass' : ' passes') : ''))
       : (rolledCount + (rolledCount === 1 ? ' pass' : ' passes'));
 
+    // Repainted on every poll while a pass cooks: where the person had scrolled to stays put.
+    var keptScroll = keepScroll(el);
     el.innerHTML =
       '<div class="jam-col-head">' +
         '<h4>Roll History</h4>' +
         '<span class="jam-col-meta">' + countLabel + '</span>' +
       '</div>' +
       '<div class="jam-hist-list">' + cards + '</div>';
+    keptScroll();
   }
 
   /* ------------------------------------------------- Interactions */
@@ -1627,24 +1662,13 @@
     var act = btn.dataset.jamAct;
     if (act === 'close') { close(); return; }
     if (act === 'toggle-max') { setJamMax(!jamMax()); return; }
-    if (act === 'reset-jam') {
-      JamState.sessionKey = '__standalone__';
-      applyStarter(STARTERS[0]);
-      return;
-    }
+    if (act === 'reset-jam') { newJamFromSeed(); return; }
     if (act === 'roll') { rollPass(); return; }
-    if (act === 'render-full') { rollPass({ fullSong: true }); return; }
+    if (act === 'rock-roll') { rollPass({ replan: true }); return; }
     if (act === 'cancel-cook') { cancelCooking(); return; }
     if (act === 'toggle-play') { JamAudio.toggle(); return; }
     if (act === 'scope-fast') { JamState.fastLoop = true; paintTopbar(); return; }
     if (act === 'scope-full') { JamState.fastLoop = false; paintTopbar(); return; }
-    if (act === 'toggle-lock') {
-      if (!readyBaseTakeWithScore()) { return; }
-      JamState.lockScore = !JamState.lockScore;
-      paintTopbar();
-      paintFeelCol();
-      return;
-    }
     if (act === 'palette-tab') {
       JamState.paletteTab = btn.dataset.tab;
       paintPartsCol();
@@ -1663,6 +1687,8 @@
       }
       return;
     }
+    if (act === 'lora-song') { applyLoraSong(Number(btn.dataset.idx)); return; }
+    if (act === 'lora-songs-all') { JamState.loraSongsAll = true; paintPartsCol(); return; }
     if (act === 'clear-parts') {
       if (JamState.parts.length) {
         JamState.parts = [];
@@ -1713,7 +1739,7 @@
     }
     if (act === 'full-pass') {
       var fp = JamState.passes.find(function (p) { return p.id === btn.dataset.passId; });
-      if (fp) { rollPass({ fullSong: true, snapshot: fp.snapshot }); }
+      if (fp) { rollPass({ fullSong: true, snapshot: fp.snapshot, basePassId: fp.replanned ? fp.id : null }); }
       return;
     }
     if (act === 'open-editor') {
@@ -1724,13 +1750,15 @@
   async function deletePass(passId) {
     if (!passId) { return; }
     var target = JamState.passes.find(function (p) { return p.id === passId; });
-    if (isSpaceTake(target) && target && target.hasAudio) { return; }
-    // Verify with the server: only scratch snippets (__jam__) or nested child passes can be deleted from Jam.
+    if (isSeedPass(target)) { return; }
+    // Check with the server: Jam never deletes a take that is in the library.  One that has become one
+    // since (kept from another window, say) just leaves Roll History.
     try {
       var check = await api('/api/takes/' + encodeURIComponent(passId));
-      if (check && check.space_id !== '__jam__' && !check.parent_id && check.has_audio) {
-        if (target) { target.isTopLevelTake = true; saveSession(); paintHistory(); }
-        if (typeof toast === 'function') { toast('This pass is a saved take in your space — delete it from the library instead.'); }
+      if (isLibraryTake(check)) {
+        dropPass(passId);
+        saveSession();
+        paintAll();
         return;
       }
     } catch (err) { /* proceed to clean up local history if already gone */ }
@@ -1750,7 +1778,6 @@
     JamState.passes = JamState.passes.filter(function (p) { return p.id !== passId; });
     if (!JamState.passes.length) {
       JamState.lastRolledSnapshot = null;
-      JamState.lockScore = false;
     }
     saveSession();
     paintAll();
@@ -1761,11 +1788,28 @@
     if (!targetId) { return; }
     try {
       var tObj = await api('/api/takes/' + encodeURIComponent(targetId));
+      // A scratch pass is hidden from the library, and the editor works on the takes it lists, so
+      // one opened in the editor is kept first: it moves to the Jam's space as a take of its own.
+      if (tObj && tObj.space_id === '__jam__') {
+        var kept = await api('/api/takes/' + encodeURIComponent(targetId) + '/move', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ space_id: jamSpaceId() })
+        });
+        tObj = await api('/api/takes/' + encodeURIComponent(targetId));
+        dropPass(targetId);
+        saveSession();
+        if (typeof toast === 'function') { toast('Kept ' + (tObj.title || 'the pass') + ' in ' + ((kept && kept.name) || 'your space') + '.'); }
+      }
       close();
-      if (typeof loadTakes === 'function') { loadTakes(); }
+      if (typeof loadTakes === 'function') { await loadTakes(); }
       if (tObj && typeof selectTake === 'function') {
         selectTake(tObj);
         if (typeof openEditor === 'function') { openEditor('song'); }
+        // A pass was capped at Jam's 40 s; what is made from it in the editor should not be.  An empty
+        // Length cap is nobody's: the one in Settings, which rises to fit the plan.
+        var capBox = document.getElementById('max-duration');
+        if (capBox) { capBox.value = ''; }
+        if (window.State) { State.capTyped = false; State.capFromScore = false; }
       }
     } catch (err) {
       if (typeof toast === 'function') { toast('Could not open take in Editor: ' + err.message); }
@@ -1795,6 +1839,11 @@
 
   function onShellInput(event) {
     var t = event.target;
+    if (t.id === 'jam-lora-song-filter') {
+      JamState.loraSongFilter = t.value;
+      paintPartsCol();
+      return;
+    }
     if (t.id === 'jam-part-search') {
       JamState.searchQuery = t.value;
       paintPartsCol();
@@ -1828,13 +1877,11 @@
 
   function onShellChange(event) {
     var t = event.target;
-    if (t.id === 'jam-starter-select') {
-      var st = STARTERS.find(function (s) { return s.id === t.value; });
-      if (st) { applyStarter(st); }
-      return;
-    }
     if (t.id === 'jam-lora-select') {
       JamState.styleLora = t.value;
+      JamState.loraSong = null;
+      JamState.loraSongFilter = '';
+      JamState.loraSongsAll = false;
       paintPartsCol();
       paintTopbar();
       return;
@@ -1920,24 +1967,6 @@
   }
 
   /* ------------------------------------------------- Public API */
-  function open() {
-    var modal = document.getElementById('jam-modal');
-    if (!modal) { return; }
-    JamState.open = true;
-    modal.classList.remove('hidden');
-    var key = JamState.sessionKey || '__standalone__';
-    if (JamState.passes.length) {
-      paintAll();
-      syncPassesFromServer();
-    } else if (loadSession(key) || loadSession('__standalone__')) {
-      paintAll();
-      syncPassesFromServer();
-    } else {
-      JamState.sessionKey = '__standalone__';
-      applyStarter(STARTERS[0]);
-    }
-  }
-
   function openFromTake(take) {
     var modal = document.getElementById('jam-modal');
     if (!modal || !take) { return; }
@@ -1972,5 +2001,5 @@
 
   function isOpen() { return JamState.open; }
 
-  window.Jam = { open: open, openFromTake: openFromTake, close: close, isOpen: isOpen, handleKey: handleKey };
+  window.Jam = { openFromTake: openFromTake, close: close, isOpen: isOpen, handleKey: handleKey };
 })();
