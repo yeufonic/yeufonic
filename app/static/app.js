@@ -14153,6 +14153,7 @@ function paintTransport() {
   if ($('ed-btn-next')) { $('ed-btn-next').disabled = !canStep; }
   $('btn-mute').classList.toggle('on', Boolean(audio.muted || audio.volume === 0));
   paintEdTransport();
+  paintSheet();
 }
 
 /* The editor window's way to the mastering rack.  The button is there when the take in the window has
@@ -17913,10 +17914,16 @@ function sheetHTML(take) {
     html += '<div class="note bad">' + t('It did not finish{value}', { value: take.error ? ': ' + esc(tr(take.error)) : '.' }) + '</div>';
   }
   var main = busy ? t('Open') : (take.status === 'planned' || (hasScore && !take.has_audio) ? t('Review the plan and render') : t('Edit and render again'));
+  var sheetAudio = $('audio');
+  var isPlayingThis = Boolean(State.playing === take.id && sheetAudio && !sheetAudio.paused && !sheetAudio.ended);
+  var playBtnSvg = isPlayingThis
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>'
+    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.4v13.2L19 12z"/></svg>';
+  var jamBtnSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>';
   html += '<div class="acts"><button type="button" class="primary tone-' + kind + '" data-sheet="' +
     (take.status === 'planned' ? 'score' : 'edit') + '">' + main + '</button>' +
-    (take.has_audio ? '<button type="button" class="ghost" data-sheet="play">' + (State.playing === take.id ? t('Pause') : t('Play')) + '</button>' : '') +
-    (take.has_audio ? '<button type="button" class="ghost" data-sheet="jam" title="Open this take in Jam to roll iterative variations">Jam</button>' : '') +
+    (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-play-btn' + (isPlayingThis ? ' is-playing' : '') + '" data-sheet="play">' + playBtnSvg + '<span>' + (isPlayingThis ? t('Pause') : t('Play')) + '</span></button>' : '') +
+    (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-jam-btn" data-sheet="jam" title="Open this take in Jam to roll iterative variations">' + jamBtnSvg + '<span>Jam</span></button>' : '') +
     '</div>';
 
   if (kind === 'cover') {

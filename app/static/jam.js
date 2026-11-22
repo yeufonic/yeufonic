@@ -355,8 +355,11 @@
   }
 
   /* ------------------------------------------------- Jam Session State */
+  var JAM_STORAGE_KEY = 'yue2.jam.sessions';
+
   var JamState = {
     open: false,
+    sessionKey: '__standalone__',
     starterName: 'Lo-fi Groove',
     parentId: null,
     spaceId: null,
@@ -376,12 +379,117 @@
     styleLoraClip: 0.7,
     paletteTab: 'inst',
     searchQuery: '',
-    passes: [],         // newest first: [{ num, id, title, status, progress, stage, hasAudio, hasScore, duration, snapshot, diffs, error }]
+    passes: [],         // newest first: [{ num, id, title, status, progress, stage, hasAudio, hasScore, isFullSong, duration, snapshot, diffs, error }]
     lastRolledSnapshot: null,
     cookingId: null,
     draftingLyrics: false,
     pollTimer: null
   };
+
+  function readSavedSessions() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(JAM_STORAGE_KEY) || '{}');
+      return (raw && typeof raw === 'object') ? raw : {};
+    } catch (err) { return {}; }
+  }
+
+  function saveSession() {
+    if (!JamState.sessionKey) { return; }
+    try {
+      var all = readSavedSessions();
+      all[JamState.sessionKey] = {
+        savedAt: Date.now(),
+        starterName: JamState.starterName,
+        parentId: JamState.parentId,
+        spaceId: JamState.spaceId,
+        fastLoop: JamState.fastLoop,
+        lockScore: JamState.lockScore,
+        parts: JamState.parts,
+        vibe: JamState.vibe,
+        bpm: JamState.bpm,
+        vocals: JamState.vocals,
+        voiceId: JamState.voiceId,
+        tones: JamState.tones,
+        lyricTheme: JamState.lyricTheme,
+        lyrics: JamState.lyrics,
+        lyricsDirtyTheme: JamState.lyricsDirtyTheme,
+        styleLora: JamState.styleLora,
+        styleLoraModel: JamState.styleLoraModel,
+        styleLoraClip: JamState.styleLoraClip,
+        passes: JamState.passes.slice(0, 40),
+        lastRolledSnapshot: JamState.lastRolledSnapshot,
+        cookingId: JamState.cookingId
+      };
+      // Trim to 20 most recent sessions to keep localStorage tidy
+      var keys = Object.keys(all).sort(function (a, b) { return (all[b].savedAt || 0) - (all[a].savedAt || 0); });
+      if (keys.length > 20) {
+        keys.slice(20).forEach(function (k) { delete all[k]; });
+      }
+      localStorage.setItem(JAM_STORAGE_KEY, JSON.stringify(all));
+    } catch (err) { /* private mode / quota */ }
+  }
+
+  function loadSession(key) {
+    var all = readSavedSessions();
+    var s = all[key];
+    if (!s || !Array.isArray(s.parts)) { return false; }
+    JamState.sessionKey = key;
+    JamState.starterName = s.starterName || 'Lo-fi Groove';
+    JamState.parentId = s.parentId || null;
+    JamState.spaceId = s.spaceId || null;
+    JamState.fastLoop = s.fastLoop !== false;
+    JamState.lockScore = Boolean(s.lockScore);
+    JamState.parts = s.parts.slice();
+    JamState.vibe = s.vibe || { x: 0.34, y: 0.36 };
+    JamState.bpm = s.bpm || 96;
+    JamState.vocals = s.vocals || 'instrumental';
+    JamState.voiceId = s.voiceId || '';
+    JamState.tones = Array.isArray(s.tones) ? s.tones.slice() : [];
+    JamState.lyricTheme = s.lyricTheme || 'Late nights';
+    JamState.lyrics = s.lyrics || '';
+    JamState.lyricsDirtyTheme = Boolean(s.lyricsDirtyTheme);
+    JamState.styleLora = s.styleLora || '';
+    JamState.styleLoraModel = s.styleLoraModel != null ? Number(s.styleLoraModel) : 0.7;
+    JamState.styleLoraClip = s.styleLoraClip != null ? Number(s.styleLoraClip) : 0.7;
+    JamState.passes = Array.isArray(s.passes) ? s.passes.slice() : [];
+    JamState.lastRolledSnapshot = s.lastRolledSnapshot || null;
+    JamState.cookingId = s.cookingId || null;
+    return true;
+  }
+
+  async function syncPassesFromServer() {
+    if (!JamState.passes.length) { return; }
+    var kept = [];
+    var activeCook = null;
+    for (var i = 0; i < JamState.passes.length; i++) {
+      var p = JamState.passes[i];
+      try {
+        var rec = await api('/api/takes/' + encodeURIComponent(p.id));
+        if (rec.space_id === 'trash') { continue; }
+        p.status = rec.status;
+        p.stage = rec.stage || rec.status;
+        p.hasAudio = Boolean(rec.has_audio);
+        p.hasScore = Boolean(rec.abc && rec.abc.trim());
+        p.duration = rec.duration || p.duration || 0;
+        if (rec.title) { p.title = rec.title; }
+        if (rec.status === 'done') { p.progress = 100; }
+        if (rec.status === 'queued' || rec.status === 'running') { activeCook = p.id; }
+        kept.push(p);
+      } catch (err) {
+        // Take was permanently deleted; drop from history
+      }
+    }
+    JamState.passes = kept;
+    JamState.cookingId = activeCook;
+    if (!JamState.passes.length) {
+      JamState.parentId = null;
+      JamState.lastRolledSnapshot = null;
+      JamState.lockScore = false;
+    }
+    saveSession();
+    paintAll();
+    if (activeCook) { startPolling(); }
+  }
 
   function cloneSnapshot() {
     return {
@@ -515,6 +623,7 @@
     JamState.cookingId = null;
     JamAudio.stop();
     JamAudio.currentId = null;
+    saveSession();
     paintAll();
   }
 
@@ -567,6 +676,7 @@
       error: null
     }];
     JamState.cookingId = null;
+    saveSession();
     paintAll();
     if (take.has_audio) {
       JamAudio.play(take.id, 0.08).catch(function () {});
@@ -670,26 +780,30 @@
       }
     }
 
+    var isFullSong = Boolean(opts.fullSong || !fastLoop);
     var passNum = JamState.passes.length + 1;
     var baseScorePass = snap.lockScore ? readyBaseTakeWithScore() : null;
-    var passTitle = draftedTitle || (JamState.starterName + ' · Pass #' + passNum + (opts.fullSong ? ' (Full)' : ''));
+    var passTitle = draftedTitle || (isFullSong
+      ? (JamState.starterName + ' (Jam #' + passNum + ')')
+      : (JamState.starterName + ' \u00B7 Pass #' + passNum));
     var loraKind = activeLoraKind(snap.styleLora);
 
     var payload = {
       title: passTitle,
       space_id: jamSpaceId(),
-      parent_id: JamState.parentId,
+      // Full Songs land directly as top-level takes in the space; fast-loop snippets stack under parentId.
+      parent_id: isFullSong ? null : JamState.parentId,
       base_take_id: baseScorePass ? baseScorePass.id : null,
       lock_score: Boolean(baseScorePass),
       instrumental: snap.vocals === 'instrumental',
       style: styleText,
       lyrics: snap.vocals === 'instrumental' ? '' : lyricsText,
       brief: snap.vocals === 'instrumental' ? null : snap.lyricTheme,
-      max_duration: fastLoop ? 40 : 210,
+      max_duration: isFullSong ? 210 : 40,
       target_bpm: snap.bpm,
       harmony: vi.harmony,
       interpretation: vi.interpretation,
-      sampler_steps: fastLoop ? 24 : 32,
+      sampler_steps: isFullSong ? 32 : 24,
       realaudio: true,
       normalise: true,
       style_lora: snap.styleLora || null,
@@ -700,9 +814,9 @@
 
     try {
       var created = await api('/api/jam/roll', { method: 'POST', body: JSON.stringify(payload) });
-      if (!JamState.parentId) { JamState.parentId = created.id; }
+      if (!isFullSong && !JamState.parentId) { JamState.parentId = created.id; }
       var diffs = computeDiffs(JamState.lastRolledSnapshot, snap);
-      if (opts.fullSong) { diffs.unshift({ text: 'Full Song', cls: 'add' }); }
+      if (isFullSong) { diffs.unshift({ text: 'Full Song \u00B7 Space', cls: 'add' }); }
       JamState.lastRolledSnapshot = snap;
       JamState.cookingId = created.id;
       JamState.passes.unshift({
@@ -714,13 +828,16 @@
         stage: 'Queued',
         hasAudio: false,
         hasScore: Boolean(baseScorePass),
+        isFullSong: isFullSong,
         duration: 0,
         snapshot: snap,
         diffs: diffs,
         error: null
       });
+      saveSession();
       paintAll();
       startPolling();
+      if (isFullSong && typeof toast === 'function') { toast('Full song queued as a take in your space.'); }
       if (typeof loadTakes === 'function') { loadTakes(); }
     } catch (err) {
       if (typeof toast === 'function') { toast('Roll failed: ' + err.message); }
@@ -785,6 +902,7 @@
         pass.progress = 100;
         JamState.cookingId = null;
         stopPolling();
+        saveSession();
         if (typeof loadTakes === 'function') { loadTakes(); }
         paintAll();
         // Smoothly crossfade into the newly rolled pass!
@@ -797,6 +915,7 @@
         pass.error = rec.error || 'Did not finish';
         JamState.cookingId = null;
         stopPolling();
+        saveSession();
         paintAll();
         return;
       }
@@ -880,8 +999,9 @@
         '</button>' +
       '</div>' +
       '<div class="jam-head-actions">' +
+        (JamState.passes.length ? '<button type="button" class="jam-sec-btn" data-jam-act="reset-jam" title="Start a fresh Jam session">New Jam</button>' : '') +
         (currentPass && currentPass.hasAudio ? '<button type="button" class="jam-sec-btn" data-jam-act="open-editor" data-pass-id="' + escHtml(currentPass.id) + '">Open in Editor</button>' : '') +
-        (currentPass && currentPass.hasAudio && JamState.fastLoop ? '<button type="button" class="jam-sec-btn" data-jam-act="render-full">Render Full Song</button>' : '') +
+        (currentPass && currentPass.hasAudio && JamState.fastLoop ? '<button type="button" class="jam-sec-btn" data-jam-act="render-full" title="Render a full-length song as a take in your space">Render Full Song</button>' : '') +
         '<button type="button" class="jam-roll-btn" data-jam-act="roll"' + (cooking ? ' disabled' : '') + '>' +
           '<span>' + (JamState.draftingLyrics ? 'Drafting lyrics\u2026' : (JamState.cookingId ? 'Rolling\u2026' : '\u27F3 Roll')) + '</span>' +
           (!cooking && pending > 0 ? '<span class="jam-pending-badge">' + pending + (pending === 1 ? ' change' : ' changes') + '</span>' : '') +
@@ -1239,6 +1359,11 @@
     if (!btn) { return; }
     var act = btn.dataset.jamAct;
     if (act === 'close') { close(); return; }
+    if (act === 'reset-jam') {
+      JamState.sessionKey = '__standalone__';
+      applyStarter(STARTERS[0]);
+      return;
+    }
     if (act === 'roll') { rollPass(); return; }
     if (act === 'render-full') { rollPass({ fullSong: true }); return; }
     if (act === 'cancel-cook') { cancelCooking(); return; }
@@ -1359,6 +1484,7 @@
       JamState.lastRolledSnapshot = null;
       JamState.lockScore = false;
     }
+    saveSession();
     paintAll();
     if (typeof loadTakes === 'function') { loadTakes(); }
   }
@@ -1489,10 +1615,16 @@
     if (!modal) { return; }
     JamState.open = true;
     modal.classList.remove('hidden');
-    if (!JamState.parts.length) {
-      applyStarter(STARTERS[0]);
-    } else {
+    var key = JamState.sessionKey || '__standalone__';
+    if (JamState.passes.length) {
       paintAll();
+      syncPassesFromServer();
+    } else if (loadSession(key) || loadSession('__standalone__')) {
+      paintAll();
+      syncPassesFromServer();
+    } else {
+      JamState.sessionKey = '__standalone__';
+      applyStarter(STARTERS[0]);
     }
   }
 
@@ -1501,12 +1633,29 @@
     if (!modal || !take) { return; }
     JamState.open = true;
     modal.classList.remove('hidden');
+    var rootId = take.parent_id || take.id;
+    var key = 'take:' + rootId;
+    if (JamState.sessionKey === key && JamState.passes.length) {
+      paintAll();
+      syncPassesFromServer();
+      return;
+    }
+    if (loadSession(key)) {
+      paintAll();
+      syncPassesFromServer();
+      var ready = JamState.passes.find(function (p) { return p.id === take.id && p.hasAudio; }) ||
+                  JamState.passes.find(function (p) { return p.hasAudio; });
+      if (ready && !JamAudio.playing) { JamAudio.play(ready.id, 0.08).catch(function () {}); }
+      return;
+    }
+    JamState.sessionKey = key;
     seedFromTake(take);
   }
 
   function close() {
     var modal = document.getElementById('jam-modal');
     JamState.open = false;
+    saveSession();
     JamAudio.pause();
     if (modal) { modal.classList.add('hidden'); }
   }
