@@ -44,7 +44,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import recipe as recipes
 from . import aligner, artwork, autotune, composer, config, daw, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
-from .db import DEFAULT_SPACE, TRASH_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
+from .db import DEFAULT_SPACE, JAM_SPACE, TRASH_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 from . import winaccept
 
 winaccept.install()      # Windows: a client dropping a connection must not stop the app listening
@@ -1133,6 +1133,7 @@ class JamRollIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     space_id: str = Field(DEFAULT_SPACE, max_length=64)
     parent_id: str | None = Field(None, max_length=64)
     base_take_id: str | None = Field(None, max_length=64)
+    snippet: bool = True
     lock_score: bool = False
     instrumental: bool = True
     style: str = Field(config.DEFAULT_STYLE, max_length=2000)
@@ -2485,8 +2486,8 @@ def list_takes(
         where.append("space_id = ?")
         args.append(space_id)
     elif not inside:
-        where.append("space_id != ?")
-        args.append(TRASH_SPACE)
+        where.append("space_id NOT IN (?, ?)")
+        args.extend([TRASH_SPACE, JAM_SPACE])
     if favourite:
         where.append("favourite = 1")
     wanted = [k for k in kinds.split(",") if k in ("song", "cover", "instrumental")]
@@ -2674,7 +2675,7 @@ async def delete_take(take_id: str, permanent: bool = False) -> dict:
     if not take:
         raise HTTPException(404, "no such take")
     inside = rows("SELECT * FROM takes WHERE parent_id = ?", (take_id,))
-    if take["space_id"] == TRASH_SPACE or permanent:
+    if take["space_id"] in (TRASH_SPACE, JAM_SPACE) or permanent:
         for child in inside:
             await _delete_one(child)
         await _delete_one(take)
@@ -2962,15 +2963,15 @@ async def create_instrumental(body: InstrumentalIn) -> dict:
 
 @app.post("/api/jam/roll")
 async def jam_roll(body: JamRollIn) -> dict:
-    """Create and queue a new Jam pass — either score-locked (skipping planning for fast
-    vibe/arrangement re-rolls) or freshly planned and auto-rendered."""
+    """Create and queue a new Jam pass — snippets live in the hidden JAM_SPACE so they never
+    clutter library spaces or nest inside takes; Full Songs land directly in the user's space."""
     _gpu_free_for_rendering()
-    space_id = body.space_id
-    if body.parent_id:
-        parent_row = one("SELECT space_id FROM takes WHERE id = ?", (body.parent_id,))
-        if parent_row and parent_row.get("space_id") and parent_row["space_id"] != TRASH_SPACE:
-            space_id = parent_row["space_id"]
-    _writable_space(space_id)
+    if body.snippet:
+        execute("INSERT OR IGNORE INTO spaces(id, name, created_at) VALUES(?, 'Jam Scratch', 0)", (JAM_SPACE,))
+        space_id = JAM_SPACE
+    else:
+        space_id = body.space_id
+        _writable_space(space_id)
     _check_harmony(body.harmony)
     kind = "instrumental" if body.instrumental else "song"
     if kind == "instrumental" and ENGINE.options_loaded and not ENGINE.options.get("instrumental"):
@@ -3008,7 +3009,7 @@ async def jam_roll(body: JamRollIn) -> dict:
         title = (body.title or "").strip() or guess_title(words) or "Jam Pass"
 
     adv = _advanced_of(body)
-    parent_id = _parent_for(body.parent_id, space_id) if body.parent_id else None
+    parent_id = None
     seed = body.seed if body.seed is not None else int.from_bytes(os.urandom(4), "big")
     record = {
         "id": uuid.uuid4().hex[:12],
@@ -3169,7 +3170,7 @@ def _space(space_id: str) -> dict:
 
 def _writable_space(space_id: str) -> dict:
     space = _space(space_id)
-    if space["id"] == TRASH_SPACE:
+    if space["id"] in (TRASH_SPACE, JAM_SPACE):
         raise HTTPException(400, "new takes cannot be created in Trash")
     return space
 
@@ -3179,7 +3180,7 @@ def _space_name(name: str, keep: str | None = None) -> str:
     name = " ".join(name.split())
     if not name:
         raise HTTPException(400, "give the space a name")
-    clash = one("SELECT id FROM spaces WHERE lower(name) = lower(?) AND id IS NOT ?", (name, keep))
+    clash = one("SELECT id FROM spaces WHERE lower(name) = lower(?) AND id IS NOT ? AND id != ?", (name, keep, JAM_SPACE))
     if clash:
         raise HTTPException(409, f"there is already a space called {name}")
     return name
@@ -3228,9 +3229,10 @@ def list_spaces() -> list[dict]:
     return rows(
         """SELECT s.id, s.name, s.created_at, COUNT(t.id) AS takes, MAX(t.created_at) AS last_take_at
            FROM spaces s LEFT JOIN takes t ON t.space_id = s.id AND t.parent_id IS NULL
+           WHERE s.id != ?
            GROUP BY s.id
            ORDER BY CASE WHEN s.id = ? THEN 0 WHEN s.id = ? THEN 2 ELSE 1 END, lower(s.name)""",
-        (DEFAULT_SPACE, TRASH_SPACE),
+        (JAM_SPACE, DEFAULT_SPACE, TRASH_SPACE),
     )
 
 

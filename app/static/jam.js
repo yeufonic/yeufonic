@@ -470,7 +470,8 @@
         p.stage = rec.stage || rec.status;
         p.hasAudio = Boolean(rec.has_audio);
         p.hasScore = Boolean(rec.abc && rec.abc.trim());
-        p.isTopLevelTake = !rec.parent_id;
+        p.isSnippet = rec.space_id === '__jam__';
+        p.isTopLevelTake = Boolean(rec.space_id && rec.space_id !== '__jam__' && !rec.parent_id);
         p.duration = rec.duration || p.duration || 0;
         if (rec.title) { p.title = rec.title; }
         if (rec.status === 'done') { p.progress = 100; }
@@ -801,8 +802,8 @@
     var payload = {
       title: passTitle,
       space_id: jamSpaceId(),
-      // Full Songs land directly as top-level takes in the space; fast-loop snippets stack under parentId.
-      parent_id: isFullSong ? null : JamState.parentId,
+      parent_id: null,
+      snippet: !isFullSong,
       base_take_id: baseScorePass ? baseScorePass.id : null,
       lock_score: Boolean(baseScorePass),
       instrumental: snap.vocals === 'instrumental',
@@ -824,7 +825,6 @@
 
     try {
       var created = await api('/api/jam/roll', { method: 'POST', body: JSON.stringify(payload) });
-      if (!isFullSong && !JamState.parentId) { JamState.parentId = created.id; }
       var diffs = computeDiffs(JamState.lastRolledSnapshot, snap);
       if (isFullSong) { diffs.unshift({ text: 'Full Song \u00B7 Space', cls: 'add' }); }
       JamState.lastRolledSnapshot = snap;
@@ -839,7 +839,8 @@
         hasAudio: false,
         hasScore: Boolean(baseScorePass),
         isFullSong: isFullSong,
-        isTopLevelTake: !payload.parent_id,
+        isSnippet: !isFullSong,
+        isTopLevelTake: isFullSong,
         duration: 0,
         snapshot: snap,
         diffs: diffs,
@@ -1533,10 +1534,10 @@
     if (!passId) { return; }
     var target = JamState.passes.find(function (p) { return p.id === passId; });
     if (isSpaceTake(target) && target && target.hasAudio) { return; }
-    // Verify with the server before deleting so a top-level space take is never trashed from Jam.
+    // Verify with the server: only scratch snippets (__jam__) or nested child passes can be deleted from Jam.
     try {
       var check = await api('/api/takes/' + encodeURIComponent(passId));
-      if (check && !check.parent_id && check.has_audio) {
+      if (check && check.space_id !== '__jam__' && !check.parent_id && check.has_audio) {
         if (target) { target.isTopLevelTake = true; saveSession(); paintHistory(); }
         if (typeof toast === 'function') { toast('This pass is a saved take in your space — delete it from the library instead.'); }
         return;
@@ -1549,24 +1550,13 @@
     delete JamAudio.buffers[passId];
     delete JamAudio.peaks[passId];
 
-    // If deleting the parent pass, promote any remaining sibling passes first so
-    // Trash doesn't sweep the rest of the Jam session with it.
-    var remaining = JamState.passes.filter(function (p) { return p.id !== passId; });
-    if (JamState.parentId === passId) {
-      for (var i = 0; i < remaining.length; i++) {
-        try {
-          await api('/api/takes/' + encodeURIComponent(remaining[i].id) + '/promote', { method: 'POST' });
-        } catch (err) { /* already top-level */ }
-      }
-      JamState.parentId = remaining.length ? remaining[remaining.length - 1].id : null;
-    }
     try {
       await api('/api/takes/' + encodeURIComponent(passId), { method: 'DELETE' });
     } catch (err) {
       if (typeof toast === 'function') { toast('Could not delete pass: ' + err.message); }
       return;
     }
-    JamState.passes = remaining;
+    JamState.passes = JamState.passes.filter(function (p) { return p.id !== passId; });
     if (!JamState.passes.length) {
       JamState.lastRolledSnapshot = null;
       JamState.lockScore = false;

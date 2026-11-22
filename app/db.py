@@ -355,6 +355,7 @@ def _harmony() -> None:
 
 DEFAULT_SPACE = "default"
 TRASH_SPACE = "trash"
+JAM_SPACE = "__jam__"
 
 
 def _spaces() -> None:
@@ -1012,6 +1013,9 @@ def migrate() -> None:
     if "trashed_from" not in _columns("takes") or not one("SELECT 1 FROM spaces WHERE id = ?", (TRASH_SPACE,)):
         with transaction():
             _trash_space()
+    if not one("SELECT 1 FROM spaces WHERE id = ?", (JAM_SPACE,)):
+        with transaction():
+            execute("INSERT OR IGNORE INTO spaces(id, name, created_at) VALUES(?, 'Jam Scratch', 0)", (JAM_SPACE,))
     with suppress(Exception):
         c.execute("UPDATE identity_songs SET flag = NULL WHERE flag LIKE 'longer than%' AND duration <= 1500")
         c.commit()
