@@ -941,6 +941,24 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  var JAM_MAX_KEY = 'yue2.jamMax';
+
+  function jamMax() {
+    try { return localStorage.getItem(JAM_MAX_KEY) === '1'; } catch (e) { return false; }
+  }
+
+  function setJamMax(on) {
+    var modal = document.getElementById('jam-modal');
+    if (modal) { modal.classList.toggle('jam-max', Boolean(on)); }
+    var btn = document.getElementById('jam-max');
+    if (btn) {
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.title = on ? 'Back to the usual size' : 'Fill the window';
+      btn.setAttribute('aria-label', btn.title);
+    }
+    try { localStorage.setItem(JAM_MAX_KEY, on ? '1' : '0'); } catch (e) {}
+  }
+
   function buildShellOnce() {
     var shell = document.getElementById('jam-shell');
     if (!shell || shell.dataset.built) { return; }
@@ -952,7 +970,8 @@
         '<div class="jam-col col-parts" id="jam-col-parts"></div>' +
         '<div class="jam-col col-feel" id="jam-col-feel"></div>' +
         '<div class="jam-col col-hist" id="jam-col-hist"></div>' +
-      '</div>';
+      '</div>' +
+      '<div class="jam-foot" id="jam-foot"></div>';
 
     // Delegated click & input events across the whole Jam desk
     shell.addEventListener('click', onShellClick);
@@ -960,6 +979,7 @@
     shell.addEventListener('change', onShellChange);
     shell.addEventListener('keydown', onShellKeydown);
     shell.addEventListener('pointerdown', onPointerDown);
+    setJamMax(jamMax());
   }
 
   function paintAll() {
@@ -969,15 +989,14 @@
     paintPartsCol();
     paintFeelCol();
     paintHistory();
+    paintFooter();
   }
 
   function paintTopbar() {
     var el = document.getElementById('jam-topbar');
     if (!el) { return; }
-    var pending = pendingChangeCount();
     var hasScore = Boolean(readyBaseTakeWithScore());
-    var cooking = Boolean(JamState.cookingId || JamState.draftingLyrics);
-    var currentPass = JamState.passes.find(function (p) { return p.id === JamAudio.currentId; }) || JamState.passes[0];
+    var isMax = jamMax();
 
     var starterOpts = STARTERS.map(function (st) {
       return '<option value="' + escHtml(st.id) + '"' + (st.name === JamState.starterName ? ' selected' : '') + '>' + escHtml(st.name) + '</option>';
@@ -1004,14 +1023,31 @@
         '</button>' +
       '</div>' +
       '<div class="jam-head-actions">' +
+        '<button type="button" class="ghost" data-jam-act="close" style="padding:7px 14px">Close</button>' +
+        '<button type="button" id="jam-max" data-jam-act="toggle-max" class="ed-tool ed-max-btn" title="' + (isMax ? 'Back to the usual size' : 'Fill the window') + '" aria-label="' + (isMax ? 'Back to the usual size' : 'Fill the window') + '" aria-pressed="' + (isMax ? 'true' : 'false') + '">' +
+          '<svg class="max-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>' +
+          '<svg class="max-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>' +
+        '</button>' +
+      '</div>';
+    paintFooter();
+  }
+
+  function paintFooter() {
+    var el = document.getElementById('jam-foot');
+    if (!el) { return; }
+    var pending = pendingChangeCount();
+    var cooking = Boolean(JamState.cookingId || JamState.draftingLyrics);
+    var hasPlayable = JamState.passes.some(function (p) { return p.hasAudio; });
+
+    el.innerHTML =
+      '<span class="jam-foot-hint muted small">Space to play / pause \u00B7 Esc to close</span>' +
+      '<div class="jam-foot-actions">' +
         (JamState.passes.length ? '<button type="button" class="jam-sec-btn" data-jam-act="reset-jam" title="Start a fresh Jam session">New Jam</button>' : '') +
-        (currentPass && currentPass.hasAudio ? '<button type="button" class="jam-sec-btn" data-jam-act="open-editor" data-pass-id="' + escHtml(currentPass.id) + '">Open in Editor</button>' : '') +
-        (currentPass && currentPass.hasAudio && JamState.fastLoop ? '<button type="button" class="jam-sec-btn" data-jam-act="render-full" title="Render a full-length song as a take in your space">Render Full Song</button>' : '') +
+        (hasPlayable && JamState.fastLoop ? '<button type="button" class="jam-sec-btn" data-jam-act="render-full" title="Render a full-length song as a take in your space"' + (cooking ? ' disabled' : '') + '>Render Full Song</button>' : '') +
         '<button type="button" class="jam-roll-btn" data-jam-act="roll"' + (cooking ? ' disabled' : '') + '>' +
           '<span>' + (JamState.draftingLyrics ? 'Drafting lyrics\u2026' : (JamState.cookingId ? 'Rolling\u2026' : '\u27F3 Roll')) + '</span>' +
           (!cooking && pending > 0 ? '<span class="jam-pending-badge">' + pending + (pending === 1 ? ' change' : ' changes') + '</span>' : '') +
         '</button>' +
-        '<button type="button" class="ghost" data-jam-act="close" style="padding:7px 14px">Close</button>' +
       '</div>';
   }
 
@@ -1391,6 +1427,7 @@
     if (!btn) { return; }
     var act = btn.dataset.jamAct;
     if (act === 'close') { close(); return; }
+    if (act === 'toggle-max') { setJamMax(!jamMax()); return; }
     if (act === 'reset-jam') {
       JamState.sessionKey = '__standalone__';
       applyStarter(STARTERS[0]);
