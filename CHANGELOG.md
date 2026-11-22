@@ -39,19 +39,15 @@ cannot creep back in.
 
 ## 0.0.65 (2026-11-22)
 
-- **Jam (#79).** A studio console for trying other takes of a song without stopping the music. Open it from a take
-  (**Jam** on the take panel, or **J**): that take is the **Seed**. Shape the sound with **Parts** (genres,
-  instruments, production and rhythm, each with a four-step strength), a saved or built-in style, or a style LoRA
-  (with the songs a corpus LoRA learned as pills); the mood on a Dark to Bright and Calm to Energetic **Vibe** pad,
-  which also adds words to avoid and holds the model more firmly further out; the tempo; and the singer
-  (Instrumental, Female, Male or a recorded voice, with tone words). **Roll** renders a short pass that keeps the
-  melody and chords of the pass it builds on, and crossfades into it while the last one loops; **Plan & Roll** writes
-  a new plan from the Seed's words first. Click a pass in **Roll History** to make it the **Base** the next roll
-  builds on, with its settings back in the controls. **Full Song** renders a pass as a whole song, with the pass's seed, in the space
-  the Jam was opened from; **Editor** (**E**) opens a pass in the editor and closing it returns to the Jam. A pass sings
-  the Seed's own words, and normalises only if the Seed did. Passes are kept in a hidden space, out of the library
-  and Trash, get no automatic picture, and are listed (and cleared) in **Settings → Storage** as **Jam passes**. The
-  length of a short pass is **Settings → Audio, Takes & Stems → Length of a Jam pass** (40 seconds by default).
+- **Jam (#79).** A studio console for giving your takes another spin without stopping the music. Open it from a take
+  (**Jam** on the take panel, or **J**), then:
+  - change the sound, the mood, the tempo or the singer, and **Roll** a short pass that keeps the song's melody and
+    chords;
+  - use **Plan & Roll** for a new arrangement;
+  - click any pass to build the next roll on it;
+  - make the one you like a **Full Song** in your space.
+
+  The [guide](app/static/guide.md#jam) explains it all.
 - **Pickers redesigned.** The editor's dropdown pickers have a search box, folding groups and badges.
 - **Upstream YuE2 LoRAs are converted on import.** A standalone LoRA in the YuE2 authors' own format used to be
   read as "not a YuE2 LoRA" and hidden from the Style LoRA list. Import now fuses it, without loss, into a file both
