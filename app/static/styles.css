@@ -8175,6 +8175,13 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 }
 .jam-hist-card.playing { background: rgb(var(--accent-a-rgb) / 0.12); border-color: rgb(var(--accent-a-rgb) / 0.52); }
 .jam-hist-card.playing::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 99px; background: var(--accent-a); }
+.jam-hist-card.is-seed { border-color: rgb(var(--song-a-rgb) / 0.35); margin-bottom: 4px; }
+.jam-seed-tag {
+  display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.03em; text-transform: uppercase; margin-right: 4px;
+  background: rgb(var(--song-a-rgb) / 0.18); color: var(--song-a);
+}
+:root[data-theme="light"] .jam-seed-tag { background: rgba(2, 132, 199, 0.12); color: #0369a1; }
 .jam-hist-card.cooking { border-style: dashed; border-color: rgb(var(--warn-rgb) / 0.55); background: rgb(var(--warn-rgb) / 0.06); }
 .jam-hist-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .jam-hist-name { font-size: 13px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

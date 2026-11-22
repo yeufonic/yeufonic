@@ -662,7 +662,8 @@
     var snap = cloneSnapshot();
     JamState.lastRolledSnapshot = snap;
     JamState.passes = [{
-      num: 1,
+      num: 0,
+      isSeed: true,
       id: take.id,
       title: take.title || 'Starter Take',
       status: take.has_audio ? 'done' : take.status,
@@ -710,6 +711,10 @@
       }
     }
     throw new Error('Lyrics draft timed out');
+  }
+
+  function isSeedPass(p) {
+    return Boolean(p && (p.isSeed || (JamState.sessionKey && JamState.sessionKey === 'take:' + p.id)));
   }
 
   function readyBaseTakeWithScore() {
@@ -781,7 +786,7 @@
     }
 
     var isFullSong = Boolean(opts.fullSong || !fastLoop);
-    var passNum = JamState.passes.length + 1;
+    var passNum = JamState.passes.filter(function (p) { return !isSeedPass(p); }).length + 1;
     var baseScorePass = snap.lockScore ? readyBaseTakeWithScore() : null;
     var passTitle = draftedTitle || (isFullSong
       ? (JamState.starterName + ' (Jam #' + passNum + ')')
@@ -819,7 +824,7 @@
       if (isFullSong) { diffs.unshift({ text: 'Full Song \u00B7 Space', cls: 'add' }); }
       JamState.lastRolledSnapshot = snap;
       JamState.cookingId = created.id;
-      JamState.passes.unshift({
+      JamState.passes.push({
         num: passNum,
         id: created.id,
         title: created.title || passTitle,
@@ -1047,7 +1052,7 @@
       '<button type="button" class="jam-play-btn" data-jam-act="toggle-play"' + (!playingPass && !JamState.passes.some(function (p) { return p.hasAudio; }) ? ' disabled' : '') + '>' + playIcon + '</button>' +
       '<div class="jam-stage-meta">' +
         '<div class="jam-stage-title">' +
-          (playingPass ? escHtml(playingPass.title) + ' <span class="jam-pass-badge">Pass #' + playingPass.num + '</span>' : 'Ready to roll your first pass') +
+          (playingPass ? escHtml(playingPass.title) + ' <span class="jam-pass-badge">' + (isSeedPass(playingPass) ? 'Seed' : 'Pass #' + playingPass.num) + '</span>' : 'Ready to roll your first pass') +
         '</div>' +
         '<div class="jam-stage-sub">' +
           (playingPass ? (JamAudio.playing ? 'Looping seamlessly' : 'Paused') + ' \u00B7 ' + JamState.bpm + ' BPM' : 'Tweak Parts, Vibe &amp; Tempo below, then click Roll') +
@@ -1266,8 +1271,19 @@
   function paintHistory() {
     var el = document.getElementById('jam-col-hist');
     if (!el) { return; }
-    var cards = JamState.passes.length
-      ? JamState.passes.map(function (p) {
+    // Seed take pinned at the top, followed by all rolled passes in chronological order below it.
+    var ordered = JamState.passes.slice().sort(function (a, b) {
+      var aSeed = isSeedPass(a) ? 0 : 1;
+      var bSeed = isSeedPass(b) ? 0 : 1;
+      if (aSeed !== bSeed) { return aSeed - bSeed; }
+      return (a.num || 0) - (b.num || 0);
+    });
+    var rolledCount = ordered.filter(function (p) { return !isSeedPass(p); }).length;
+    var hasSeed = ordered.some(isSeedPass);
+
+    var cards = ordered.length
+      ? ordered.map(function (p) {
+          var seed = isSeedPass(p);
           var isPlaying = p.id === JamAudio.currentId && JamAudio.playing;
           var isActive = p.id === JamAudio.currentId;
           var isCooking = p.id === JamState.cookingId;
@@ -1287,12 +1303,20 @@
           if (isCooking) {
             actions = '<div class="jam-cook-bar"><span style="width:' + (p.progress || 5) + '%"></span></div>' +
               '<div class="jam-hist-actions"><button type="button" class="jam-hist-btn" data-jam-act="cancel-cook">Cancel</button></div>';
+          } else if (seed) {
+            actions = p.hasAudio
+              ? '<div class="jam-hist-actions">' +
+                  (isPlaying
+                    ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 Stop</button>'
+                    : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 Play</button>') +
+                '</div>'
+              : '';
           } else if (p.hasAudio) {
             actions = '<div class="jam-hist-actions">' +
               (isPlaying
                 ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 Stop</button>'
                 : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 Play</button>') +
-              '<button type="button" class="jam-hist-btn" data-jam-act="full-pass" data-pass-id="' + escHtml(p.id) + '">Full Song</button>' +
+              (!p.isFullSong ? '<button type="button" class="jam-hist-btn" data-jam-act="full-pass" data-pass-id="' + escHtml(p.id) + '">Full Song</button>' : '') +
               '<button type="button" class="jam-hist-btn" data-jam-act="open-editor" data-pass-id="' + escHtml(p.id) + '">Editor</button>' +
               '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="Move this pass to Trash">Delete</button>' +
             '</div>';
@@ -1303,9 +1327,13 @@
               '</div>';
           }
 
-          return '<div class="jam-hist-card' + (isActive ? ' playing' : '') + (isCooking ? ' cooking' : '') + '">' +
+          var tagHtml = seed
+            ? '<span class="jam-seed-tag">Seed</span>'
+            : '<span class="jam-hist-num">Pass #' + p.num + '</span>';
+
+          return '<div class="jam-hist-card' + (seed ? ' is-seed' : '') + (isActive ? ' playing' : '') + (isCooking ? ' cooking' : '') + '">' +
             '<div class="jam-hist-top">' +
-              '<span class="jam-hist-name"><span class="jam-hist-num">Pass #' + p.num + '</span> ' + escHtml(p.title) + '</span>' +
+              '<span class="jam-hist-name">' + tagHtml + ' ' + escHtml(p.title) + '</span>' +
               statePill +
             '</div>' +
             '<div class="jam-hist-diffs">' + diffsHtml + '</div>' +
@@ -1317,10 +1345,14 @@
           '<p class="muted small">Shape your Parts, Vibe &amp; Tempo on the left, then click <b>Roll</b>. Each pass loops seamlessly while your next roll cooks and crossfades in.</p>' +
         '</div>';
 
+    var countLabel = hasSeed
+      ? ('Seed' + (rolledCount ? ' + ' + rolledCount + (rolledCount === 1 ? ' pass' : ' passes') : ''))
+      : (rolledCount + (rolledCount === 1 ? ' pass' : ' passes'));
+
     el.innerHTML =
       '<div class="jam-col-head">' +
         '<h4>Roll History</h4>' +
-        '<span class="jam-col-meta">' + JamState.passes.length + (JamState.passes.length === 1 ? ' pass' : ' passes') + '</span>' +
+        '<span class="jam-col-meta">' + countLabel + '</span>' +
       '</div>' +
       '<div class="jam-hist-list">' + cards + '</div>';
   }
@@ -1455,6 +1487,8 @@
 
   async function deletePass(passId) {
     if (!passId) { return; }
+    var target = JamState.passes.find(function (p) { return p.id === passId; });
+    if (isSeedPass(target)) { return; }
     if (JamAudio.currentId === passId) {
       JamAudio.stop();
       JamAudio.currentId = null;
