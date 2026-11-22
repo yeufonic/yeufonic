@@ -7,7 +7,9 @@ from helpers import api, card, make_song, wait_take  # noqa: E402
 
 
 def open_jam(page, take_id):
-    card(page, take_id).click()
+    # Chosen as the library does it: a click on the card could land on one of its buttons in a full library.
+    card(page, take_id).wait_for()
+    page.evaluate("(id) => selectTake(takeById(id))", take_id)
     page.wait_for_selector('#take-sheet [data-sheet="jam"]')
     page.click('#take-sheet [data-sheet="jam"]')
     page.wait_for_selector("#jam-modal:not(.hidden) .jam-hist-card.is-seed")
