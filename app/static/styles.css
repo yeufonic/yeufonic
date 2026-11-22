@@ -8144,6 +8144,9 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   color: var(--text); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer;
 }
 .jam-hist-btn:hover { border-color: var(--input-border-hover); }
+.jam-hist-btn.stop { border-color: rgb(var(--accent-a-rgb) / 0.55); color: var(--accent-a); }
+.jam-hist-btn.danger { margin-left: auto; color: var(--muted); }
+.jam-hist-btn.danger:hover { border-color: rgb(var(--bad-rgb) / 0.55); color: var(--danger-text); background: rgb(var(--bad-rgb) / 0.12); }
 .jam-cook-bar { height: 4px; border-radius: 99px; background: rgb(var(--ink) / 0.12); overflow: hidden; }
 .jam-cook-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--warn), var(--cover-a)); transition: width 0.3s ease; }
 

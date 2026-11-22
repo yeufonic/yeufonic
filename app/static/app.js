@@ -17606,6 +17606,7 @@ function wire() {
       return;
     }
 
+    if (window.Jam && window.Jam.isOpen()) { if (window.Jam.handleKey(event)) { event.preventDefault(); } return; }
     if (compareOpen()) { if (compareKey(event)) { event.preventDefault(); } return; }
 
     // Undo and redo of the score, from either box or score editor modal.

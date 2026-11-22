@@ -271,6 +271,7 @@
       this.playing = false;
       this.stopTick();
       paintStage();
+      paintHistory();
     },
 
     resume: function () {
@@ -294,6 +295,7 @@
       this.playing = true;
       this.startTick();
       paintStage();
+      paintHistory();
     },
 
     stop: function () {
@@ -1167,13 +1169,18 @@
               '<div class="jam-hist-actions"><button type="button" class="jam-hist-btn" data-jam-act="cancel-cook">Cancel</button></div>';
           } else if (p.hasAudio) {
             actions = '<div class="jam-hist-actions">' +
-              (!isPlaying ? '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 A/B Play</button>' : '') +
-              '<button type="button" class="jam-hist-btn" data-jam-act="branch-pass" data-pass-id="' + escHtml(p.id) + '">Branch</button>' +
+              (isPlaying
+                ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 Stop</button>'
+                : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 Play</button>') +
               '<button type="button" class="jam-hist-btn" data-jam-act="full-pass" data-pass-id="' + escHtml(p.id) + '">Full Song</button>' +
               '<button type="button" class="jam-hist-btn" data-jam-act="open-editor" data-pass-id="' + escHtml(p.id) + '">Editor</button>' +
+              '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="Move this pass to Trash">Delete</button>' +
             '</div>';
-          } else if (p.error) {
-            actions = '<div class="small" style="color:var(--danger-text)">' + escHtml(p.error) + '</div>';
+          } else {
+            actions = (p.error ? '<div class="small" style="color:var(--danger-text)">' + escHtml(p.error) + '</div>' : '') +
+              '<div class="jam-hist-actions">' +
+                '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="Remove this pass">Delete</button>' +
+              '</div>';
           }
 
           return '<div class="jam-hist-card' + (isActive ? ' playing' : '') + (isCooking ? ' cooking' : '') + '">' +
@@ -1303,26 +1310,12 @@
       JamAudio.play(btn.dataset.passId, 0.8).catch(function () {});
       return;
     }
-    if (act === 'branch-pass') {
-      var found = JamState.passes.find(function (p) { return p.id === btn.dataset.passId; });
-      if (found && found.snapshot) {
-        var s = found.snapshot;
-        JamState.parts = s.parts.map(function (p) { return { name: p.name, cat: p.cat, level: p.level }; });
-        JamState.vibe = { x: s.vibe.x, y: s.vibe.y };
-        JamState.bpm = s.bpm;
-        JamState.vocals = s.vocals;
-        JamState.voiceId = s.voiceId || '';
-        JamState.tones = (s.tones || []).slice();
-        JamState.lyricTheme = s.lyricTheme || 'Keep current';
-        JamState.lyrics = s.lyrics || '';
-        JamState.lyricsDirtyTheme = false;
-        JamState.styleLora = s.styleLora || '';
-        JamState.styleLoraModel = s.styleLoraModel;
-        JamState.styleLoraClip = s.styleLoraClip;
-        JamState.lastRolledSnapshot = JSON.parse(JSON.stringify(s));
-        paintAll();
-        if (found.hasAudio) { JamAudio.play(found.id, 0.6).catch(function () {}); }
-      }
+    if (act === 'stop-pass') {
+      JamAudio.pause();
+      return;
+    }
+    if (act === 'delete-pass') {
+      deletePass(btn.dataset.passId);
       return;
     }
     if (act === 'full-pass') {
@@ -1331,18 +1324,71 @@
       return;
     }
     if (act === 'open-editor') {
-      var targetId = btn.dataset.passId;
-      close();
-      if (typeof loadTakes === 'function') {
-        loadTakes().then(function () {
-          var tObj = typeof takeById === 'function' ? takeById(targetId) : null;
-          if (tObj && typeof selectTake === 'function') {
-            selectTake(tObj);
-            if (typeof openEditor === 'function') { openEditor('song'); }
-          }
-        });
-      }
+      openPassInEditor(btn.dataset.passId);
     }
+  }
+
+  async function deletePass(passId) {
+    if (!passId) { return; }
+    if (JamAudio.currentId === passId) {
+      JamAudio.stop();
+      JamAudio.currentId = null;
+    }
+    delete JamAudio.buffers[passId];
+    delete JamAudio.peaks[passId];
+
+    // If deleting the parent pass, promote any remaining sibling passes first so
+    // Trash doesn't sweep the rest of the Jam session with it.
+    var remaining = JamState.passes.filter(function (p) { return p.id !== passId; });
+    if (JamState.parentId === passId) {
+      for (var i = 0; i < remaining.length; i++) {
+        try {
+          await api('/api/takes/' + encodeURIComponent(remaining[i].id) + '/promote', { method: 'POST' });
+        } catch (err) { /* already top-level */ }
+      }
+      JamState.parentId = remaining.length ? remaining[remaining.length - 1].id : null;
+    }
+    try {
+      await api('/api/takes/' + encodeURIComponent(passId), { method: 'DELETE' });
+    } catch (err) {
+      if (typeof toast === 'function') { toast('Could not delete pass: ' + err.message); }
+      return;
+    }
+    JamState.passes = remaining;
+    if (!JamState.passes.length) {
+      JamState.lastRolledSnapshot = null;
+      JamState.lockScore = false;
+    }
+    paintAll();
+    if (typeof loadTakes === 'function') { loadTakes(); }
+  }
+
+  async function openPassInEditor(targetId) {
+    if (!targetId) { return; }
+    try {
+      var tObj = await api('/api/takes/' + encodeURIComponent(targetId));
+      close();
+      if (typeof loadTakes === 'function') { loadTakes(); }
+      if (tObj && typeof selectTake === 'function') {
+        selectTake(tObj);
+        if (typeof openEditor === 'function') { openEditor('song'); }
+      }
+    } catch (err) {
+      if (typeof toast === 'function') { toast('Could not open take in Editor: ' + err.message); }
+    }
+  }
+
+  function handleKey(event) {
+    if (!JamState.open) { return false; }
+    var el = document.activeElement;
+    var tag = (el && el.tagName) || '';
+    if (tag === 'TEXTAREA' || tag === 'SELECT' || (el && el.isContentEditable)) { return false; }
+    if (tag === 'INPUT' && el.type !== 'range' && el.type !== 'checkbox' && el.type !== 'button') { return false; }
+    if (event.code === 'Space') {
+      JamAudio.toggle();
+      return true;
+    }
+    return false;
   }
 
   function onShellInput(event) {
@@ -1472,5 +1518,5 @@
     if (navBtn) { navBtn.addEventListener('click', open); }
   });
 
-  window.Jam = { open: open, openFromTake: openFromTake, close: close, isOpen: isOpen };
+  window.Jam = { open: open, openFromTake: openFromTake, close: close, isOpen: isOpen, handleKey: handleKey };
 })();
