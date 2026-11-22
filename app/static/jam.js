@@ -530,7 +530,8 @@
     styleLoraClip: 0.7,
     paletteTab: 'inst',
     searchQuery: '',
-    passes: [],         // newest first: [{ num, id, title, status, progress, stage, hasAudio, hasScore, isFullSong, duration, snapshot, diffs, error }]
+    passes: [],         // [{ num, id, title, status, progress, stage, hasAudio, hasScore, isFullSong, duration, snapshot, diffs, error }]
+    lastPassNum: 0,
     lastRolledSnapshot: null,
     cookingId: null,
     draftingLyrics: false,
@@ -568,6 +569,7 @@
         styleLoraModel: JamState.styleLoraModel,
         styleLoraClip: JamState.styleLoraClip,
         passes: JamState.passes.slice(0, 40),
+        lastPassNum: JamState.lastPassNum || 0,
         lastRolledSnapshot: JamState.lastRolledSnapshot,
         cookingId: JamState.cookingId
       };
@@ -603,6 +605,10 @@
     JamState.styleLoraModel = s.styleLoraModel != null ? Number(s.styleLoraModel) : 0.7;
     JamState.styleLoraClip = s.styleLoraClip != null ? Number(s.styleLoraClip) : 0.7;
     JamState.passes = Array.isArray(s.passes) ? s.passes.slice() : [];
+    var maxLoaded = JamState.passes.reduce(function (m, p) {
+      return (p && p.isSeed) ? m : Math.max(m, Number(p && p.num) || 0);
+    }, 0);
+    JamState.lastPassNum = Math.max(Number(s.lastPassNum) || 0, maxLoaded);
     JamState.lastRolledSnapshot = s.lastRolledSnapshot || null;
     JamState.cookingId = s.cookingId || null;
     return true;
@@ -788,6 +794,7 @@
     JamState.lyricsDirtyTheme = true;
     JamState.lockScore = false;
     JamState.passes = [];
+    JamState.lastPassNum = 0;
     JamState.lastRolledSnapshot = null;
     JamState.cookingId = null;
     JamAudio.stop();
@@ -845,6 +852,7 @@
       diffs: computeDiffs(null, snap),
       error: null
     }];
+    JamState.lastPassNum = 0;
     JamState.cookingId = null;
     saveSession();
     paintAll();
@@ -959,7 +967,11 @@
     }
 
     var isFullSong = Boolean(opts.fullSong || !fastLoop);
-    var passNum = JamState.passes.filter(function (p) { return !isSeedPass(p); }).length + 1;
+    var maxNum = JamState.passes.reduce(function (m, p) {
+      return isSeedPass(p) ? m : Math.max(m, Number(p.num) || 0);
+    }, 0);
+    var passNum = Math.max(maxNum, Number(JamState.lastPassNum) || 0) + 1;
+    JamState.lastPassNum = passNum;
     var baseScorePass = snap.lockScore ? readyBaseTakeWithScore() : null;
     var passTitle = draftedTitle || (isFullSong
       ? (JamState.starterName + ' (Jam #' + passNum + ')')
