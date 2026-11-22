@@ -1137,7 +1137,8 @@
   var JAM_MAX_KEY = 'yue2.jamMax';
 
   function jamMax() {
-    try { return localStorage.getItem(JAM_MAX_KEY) === '1'; } catch (e) { return false; }
+    // Filling the window unless the person chose the usual size (stored as '0').
+    try { return localStorage.getItem(JAM_MAX_KEY) !== '0'; } catch (e) { return true; }
   }
 
   function setJamMax(on) {
