@@ -17954,7 +17954,7 @@ function sheetHTML(take) {
   html += '<div class="acts"><button type="button" class="primary tone-' + kind + '" data-sheet="' +
     (take.status === 'planned' ? 'score' : 'edit') + '">' + main + '</button>' +
     (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-play-btn' + (isPlayingThis ? ' is-playing' : '') + '" data-sheet="play">' + playBtnSvg + '<span>' + (isPlayingThis ? t('Pause') : t('Play')) + '</span></button>' : '') +
-    (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-jam-btn" data-sheet="jam" title="Open this take in Jam (J)">' + jamBtnSvg + '<span>Jam</span></button>' : '') +
+    (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-jam-btn" data-sheet="jam" title="' + t('Open this take in Jam (J)') + '">' + jamBtnSvg + '<span>' + t('Jam') + '</span></button>' : '') +
     '</div>';
 
   if (kind === 'cover') {

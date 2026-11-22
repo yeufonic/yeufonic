@@ -3028,7 +3028,7 @@ async def jam_roll(body: JamRollIn) -> dict:
         _check_score(locked_abc, kind)
 
     if kind == "song" and not body.lyrics.strip():
-        raise HTTPException(400, "Add lyrics or pick a lyric theme before rolling a vocal pass.")
+        raise HTTPException(400, "The Seed has no words to sing: choose Instrumental.")
 
     if kind == "instrumental":
         if locked_abc:

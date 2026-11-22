@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "app" / "static"
 LOCALES_DIR = STATIC / "locales"
 PAGES = ["index.html", "logs.html", "guide.html"]
-SCRIPTS = ["app.js", "rack.js", "pianoroll.js", "visualizer.js", "recorder.js", "sectionedit.js", "logs.html", "guide.html"]
+SCRIPTS = ["app.js", "jam.js", "rack.js", "pianoroll.js", "visualizer.js", "recorder.js", "sectionedit.js", "logs.html", "guide.html"]
 
 # ------------------------------------------------------------------ the pages
 INLINE = {"b", "strong", "i", "em", "code", "kbd", "br", "a", "small", "sup", "sub", "u", "s", "mark", "abbr"}

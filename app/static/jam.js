@@ -196,7 +196,19 @@
     ]
   ];
 
-  var LEVEL_LABELS = { 1: 'Subtle', 2: 'Normal', 3: 'Prominent', 4: 'Lead' };
+  var LEVEL_LABELS = { 1: t('Subtle'), 2: t('Normal'), 3: t('Prominent'), 4: t('Lead') };
+  // The Vibe pad's words, as shown (the cues sent to the model stay in English).
+  var VIBE_LABELS = {
+    Somber: t('Somber'), Melancholic: t('Melancholic'), Peaceful: t('Peaceful'), Serene: t('Serene'),
+    Sad: t('Sad'), Mellow: t('Mellow'), Warm: t('Warm'), Dreamy: t('Dreamy'),
+    Moody: t('Moody'), Tense: t('Tense'), Groovy: t('Groovy'), Uplifting: t('Uplifting'),
+    Fierce: t('Fierce'), Driven: t('Driven'), Vibrant: t('Vibrant'), Euphoric: t('Euphoric'),
+    Dark: t('Dark'), Bright: t('Bright'), Balanced: t('Balanced'), Calm: t('Calm'), Energetic: t('Energetic'), 'Mid-energy': t('Mid-energy')
+  };
+  function vibeLabel(word) { return VIBE_LABELS[word] || word; }
+  function vocalsLabel(v) {
+    return v === 'instrumental' ? t('Instrumental') : (v === 'male' ? t('Male') : (v === 'female' ? t('Female') : t('My Voice')));
+  }
 
   /* ------------------------------------------------- Web Audio Loop & Crossfade */
   var JamAudio = {
@@ -522,6 +534,8 @@
           // The words are the Seed's as it is now: a session saved before Jam stopped writing its own may hold others.
           JamState.lyrics = rec.kind === 'instrumental' ? '' : (rec.lyrics || '');
           JamState.seedStructure = rec.kind === 'instrumental' ? (rec.lyrics || '') : '';
+          JamState.seedNormalise = Boolean(rec.normalise);
+          JamState.seedRealaudio = rec.realaudio == null ? true : Boolean(rec.realaudio);
           if (!JamState.lyrics.trim()) { JamState.vocals = 'instrumental'; }
         }
         p.status = rec.status;
@@ -628,7 +642,7 @@
   function computeDiffs(prev, next) {
     if (!prev) {
       var seed = next.parts.slice(0, 3).map(function (p) { return { text: p.name, cls: '' }; });
-      seed.push({ text: next.vocals === 'instrumental' ? 'Instrumental' : (next.vocals === 'male' ? 'Male vocal' : 'Female vocal'), cls: '' });
+      seed.push({ text: next.vocals === 'instrumental' ? t('Instrumental') : (next.vocals === 'male' ? t('Male vocal') : t('Female vocal')), cls: '' });
       seed.push({ text: next.bpm + ' BPM', cls: '' });
       return seed;
     }
@@ -641,7 +655,7 @@
     next.parts.forEach(function (p) {
       var old = prevMap[p.name.toLowerCase()];
       if (!old) {
-        diffs.push({ text: '+ ' + p.name + (p.level >= 4 ? ' (Lead)' : ''), cls: 'add' });
+        diffs.push({ text: p.level >= 4 ? t('+ {name} (Lead)', { name: p.name }) : '+ ' + p.name, cls: 'add' });
       } else if (old.level !== p.level) {
         diffs.push({ text: p.name + (p.level > old.level ? ' \u2191' : ' \u2193'), cls: 'chg' });
       }
@@ -653,22 +667,22 @@
     });
     var oldVibe = vibeInfo(prev.vibe).word;
     var newVibe = vibeInfo(next.vibe).word;
-    if (oldVibe !== newVibe) { diffs.push({ text: 'Vibe \u2192 ' + newVibe, cls: 'chg' }); }
+    if (oldVibe !== newVibe) { diffs.push({ text: t('Vibe \u2192 {word}', { word: vibeLabel(newVibe) }), cls: 'chg' }); }
     if (Math.abs((prev.bpm || 0) - (next.bpm || 0)) >= 3) { diffs.push({ text: next.bpm + ' BPM', cls: 'chg' }); }
     if (prev.vocals !== next.vocals) {
-      diffs.push({ text: 'Vocals \u2192 ' + (next.vocals === 'instrumental' ? 'Instrumental' : (next.vocals === 'voice' ? 'My Voice' : next.vocals)), cls: 'chg' });
+      diffs.push({ text: t('Vocals \u2192 {value}', { value: vocalsLabel(next.vocals) }), cls: 'chg' });
     }
     if ((prev.styleLora || '') !== (next.styleLora || '')) {
-      diffs.push({ text: next.styleLora ? '+ LoRA' : '\u2212 LoRA', cls: next.styleLora ? 'add' : 'rem' });
+      diffs.push({ text: next.styleLora ? t('+ LoRA') : t('\u2212 LoRA'), cls: next.styleLora ? 'add' : 'rem' });
     }
-    if (!diffs.length) { diffs.push({ text: 'Fresh roll', cls: 'chg' }); }
+    if (!diffs.length) { diffs.push({ text: t('Fresh roll'), cls: 'chg', fresh: true }); }
     return diffs.slice(0, 6);
   }
 
   function pendingChangeCount() {
     if (!JamState.lastRolledSnapshot) { return 0; }
     var d = computeDiffs(JamState.lastRolledSnapshot, cloneSnapshot());
-    if (d.length === 1 && d[0].text === 'Fresh roll') { return 0; }
+    if (d.length === 1 && d[0].fresh) { return 0; }
     return d.length;
   }
 
@@ -729,7 +743,7 @@
   }
 
   function seedFromTake(take) {
-    JamState.starterName = take.title || 'Selected take';
+    JamState.starterName = take.title || t('Selected take');
     JamState.parentId = take.parent_id || take.id;
     JamState.spaceId = (take.space_id && take.space_id !== 'trash') ? take.space_id : null;
     var parts = partsFromStyle(take.style || '', false);
@@ -744,6 +758,8 @@
     JamState.tones = [];
     JamState.lyrics = take.kind === 'instrumental' ? '' : (take.lyrics || '');
     JamState.seedStructure = take.kind === 'instrumental' ? (take.lyrics || '') : '';   // an instrumental's sections, for Plan & Roll
+    JamState.seedNormalise = Boolean(take.normalise);
+    JamState.seedRealaudio = take.realaudio == null ? true : Boolean(take.realaudio);
     JamState.styleLora = take.style_lora || '';
     JamState.styleLoraModel = take.style_lora_model != null ? Number(take.style_lora_model) : 0.7;
     JamState.styleLoraClip = take.style_lora_clip != null ? Number(take.style_lora_clip) : 0.7;
@@ -753,7 +769,7 @@
       num: 0,
       isSeed: true,
       id: take.id,
-      title: take.title || 'Starter Take',
+      title: take.title || t('Selected take'),
       status: take.has_audio ? 'done' : take.status,
       progress: 100,
       stage: '',
@@ -808,10 +824,10 @@
     var scratch = JamState.passes.filter(function (p) { return !isSeedPass(p); });
     if (scratch.length && typeof confirmModal === 'function') {
       var yes = await confirmModal({
-        title: 'Start a new Jam?',
-        message: 'Back to the sound of ' + (seed.title || 'the Seed') + '. The ' + scratch.length +
-          (scratch.length === 1 ? ' pass' : ' passes') + ' in Roll History will be deleted.',
-        confirmText: 'New Jam', danger: true
+        title: t('Start a new Jam?'),
+        message: tn(scratch.length, 'Back to the sound of {title}. The {n} pass in Roll History will be deleted.',
+          'Back to the sound of {title}. The {n} passes in Roll History will be deleted.', { title: seed.title || t('the Seed') }),
+        confirmText: t('New Jam'), danger: true
       });
       if (!yes) { return; }
     }
@@ -819,7 +835,7 @@
     try {
       take = await api('/api/takes/' + encodeURIComponent(seed.id));
     } catch (err) {
-      if (typeof toast === 'function') { toast('Could not reload the Seed: ' + err.message, 'bad'); }
+      if (typeof toast === 'function') { toast(t('Could not reload the Seed: {message}', { message: err.message }), 'bad'); }
       return;
     }
     JamAudio.stop();
@@ -846,7 +862,7 @@
     if (p && (isSeedPass(p) || (p.hasAudio && p.id !== JamState.cookingId))) { return p; }
     return JamState.passes.find(isSeedPass) || null;
   }
-  function passLabel(p) { return !p ? 'the Seed' : (isSeedPass(p) ? 'Seed' : 'Pass #' + p.num); }
+  function passLabel(p) { return !p ? t('the Seed') : (isSeedPass(p) ? t('Seed') : t('Pass #{n}', { n: p.num })); }
   // A pass made instrumental from a sung Seed has its tune moved off the vocal line.
   function passUnsung(p) { return Boolean(p && !isSeedPass(p) && p.snapshot && p.snapshot.vocals === 'instrumental'); }
 
@@ -921,7 +937,7 @@
   async function rollPass(opts) {
     opts = opts || {};
     if (JamState.cookingId) {
-      if (typeof toast === 'function') { toast('A pass is already rolling — wait for it or cancel it first.'); }
+      if (typeof toast === 'function') { toast(t('A pass is already rolling. Wait for it, or cancel it first.')); }
       return;
     }
     var fastLoop = opts.fullSong ? false : JamState.fastLoop;
@@ -938,7 +954,7 @@
     // A Jam sings the Seed's own words: it makes takes of a song, not new songs.
     var lyricsText = snap.vocals === 'instrumental' ? '' : (JamState.lyrics || '');
     if (snap.vocals !== 'instrumental' && !lyricsText.trim()) {
-      if (typeof toast === 'function') { toast('The Seed has no words to sing: choose Instrumental.', 'bad'); }
+      if (typeof toast === 'function') { toast(t('The Seed has no words to sing: choose Instrumental.'), 'bad'); }
       return;
     }
 
@@ -950,8 +966,8 @@
     JamState.lastPassNum = passNum;
     var baseScorePass = basePass || (snap.lockScore ? readyBaseTakeWithScore(snap.vocals !== 'instrumental') : null);
     var passTitle = (isFullSong
-      ? (JamState.starterName + ' (Jam #' + passNum + ')')
-      : (JamState.starterName + ' \u00B7 Pass #' + passNum));
+      ? t('{title} (Jam #{n})', { title: JamState.starterName, n: passNum })
+      : JamState.starterName + ' \u00B7 ' + t('Pass #{n}', { n: passNum }));
     var loraKind = activeLoraKind(snap.styleLora);
 
     var payload = {
@@ -971,8 +987,9 @@
       avoid: vi.avoid,
       cfg_scale: vi.cfgScale,
       sampler_steps: isFullSong ? 32 : 24,
-      realaudio: true,
-      normalise: true,
+      // As the Seed was made: a Jam does not normalise, or change the real-audio setting, unless the Seed did.
+      realaudio: JamState.seedRealaudio !== false,
+      normalise: Boolean(JamState.seedNormalise),
       style_lora: snap.styleLora || null,
       style_lora_model: (loraKind === 'decoder' || loraKind === 'both') ? snap.styleLoraModel : 0,
       style_lora_clip: (loraKind === 'planner' || loraKind === 'both') ? snap.styleLoraClip : 0,
@@ -983,8 +1000,8 @@
       var created = await api('/api/jam/roll', { method: 'POST', body: JSON.stringify(payload) });
       // What changed from the pass it was built on.
       var diffs = computeDiffs((from && from.snapshot) || JamState.lastRolledSnapshot, snap);
-      if (opts.replan) { diffs.unshift({ text: 'New arrangement', cls: 'add' }); }
-      if (isFullSong) { diffs.unshift({ text: 'Full Song \u00B7 Space', cls: 'add' }); }
+      if (opts.replan) { diffs.unshift({ text: t('New arrangement'), cls: 'add' }); }
+      if (isFullSong) { diffs.unshift({ text: t('Full Song'), cls: 'add' }); }
       JamState.lastRolledSnapshot = snap;
       JamState.cookingId = created.id;
       JamState.passes.push({
@@ -993,7 +1010,7 @@
         title: created.title || passTitle,
         status: 'queued',
         progress: 2,
-        stage: 'Queued',
+        stage: t('Queued'),
         hasAudio: false,
         hasScore: Boolean(baseScorePass),
         duration: 0,
@@ -1007,10 +1024,10 @@
       saveSession();
       paintAll();
       startPolling();
-      if (isFullSong && typeof toast === 'function') { toast('Full song queued as a take in your space.'); }
+      if (isFullSong && typeof toast === 'function') { toast(t('Full song queued as a take in your space.')); }
       if (typeof loadTakes === 'function') { loadTakes(); }
     } catch (err) {
-      if (typeof toast === 'function') { toast('Roll failed: ' + err.message); }
+      if (typeof toast === 'function') { toast(t('Roll failed: {message}', { message: tr(err.message) }), 'bad'); }
       paintAll();
     }
   }
@@ -1024,7 +1041,7 @@
     var pass = JamState.passes.find(function (p) { return p.id === id; });
     if (pass) {
       pass.status = 'cancelled';
-      pass.stage = 'Cancelled';
+      pass.stage = t('Cancelled');
     }
     JamState.cookingId = null;
     stopPolling();
@@ -1076,7 +1093,7 @@
         saveSession();
         if (typeof loadTakes === 'function') { loadTakes(); }
         paintAll();
-        if (typeof toast === 'function') { toast((rec.title || 'The full song') + ' is ready in your space.'); }
+        if (typeof toast === 'function') { toast(t('{title} is ready in your space.', { title: rec.title || t('The full song') })); }
         return;
       }
       if (rec.status === 'done' && rec.has_audio) {
@@ -1093,7 +1110,7 @@
         return;
       }
       if (rec.status === 'failed' || rec.status === 'cancelled') {
-        pass.error = rec.error || 'Did not finish';
+        pass.error = rec.error ? tr(rec.error) : t('Did not finish');
         JamState.cookingId = null;
         stopPolling();
         saveSession();
@@ -1129,7 +1146,7 @@
     var btn = document.getElementById('jam-max');
     if (btn) {
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      btn.title = on ? 'Back to the usual size' : 'Fill the window';
+      btn.title = on ? t('Back to the usual size') : t('Fill the window');
       btn.setAttribute('aria-label', btn.title);
     }
     try { localStorage.setItem(JAM_MAX_KEY, on ? '1' : '0'); } catch (e) {}
@@ -1194,18 +1211,18 @@
     el.innerHTML =
       '<div class="jam-brand">' +
         '<span class="jam-bar"></span>' +
-        '<h1 class="jam-title">Jam</h1>' +
-        '<span class="jam-seed-name" title="The take this Jam plays with">' + escHtml(JamState.starterName) + '</span>' +
+        '<h1 class="jam-title">' + t('Jam') + '</h1>' +
+        '<span class="jam-seed-name" title="' + t('The take this Jam plays with') + '">' + escHtml(JamState.starterName) + '</span>' +
       '</div>' +
       '<div class="jam-scope">' +
-        '<div class="jam-seg-pill" title="Short passes of the song: their length is in Settings \u2192 Audio, Takes &amp; Stems">' +
-          '<button type="button" data-jam-act="scope-fast" class="' + (JamState.fastLoop ? 'active' : '') + '">' + passSeconds() + 's Fast Loop</button>' +
-          '<button type="button" data-jam-act="scope-full" class="' + (!JamState.fastLoop ? 'active' : '') + '">Full Song</button>' +
+        '<div class="jam-seg-pill" title="' + t('Short passes of the song: their length is in Settings \u2192 Audio, Takes &amp; Stems') + '">' +
+          '<button type="button" data-jam-act="scope-fast" class="' + (JamState.fastLoop ? 'active' : '') + '">' + t('{seconds}s Fast Loop', { seconds: passSeconds() }) + '</button>' +
+          '<button type="button" data-jam-act="scope-full" class="' + (!JamState.fastLoop ? 'active' : '') + '">' + t('Full Song') + '</button>' +
         '</div>' +
       '</div>' +
       '<div class="jam-head-actions">' +
-        '<button type="button" class="ghost" data-jam-act="close" style="padding:7px 14px">Close</button>' +
-        '<button type="button" id="jam-max" data-jam-act="toggle-max" class="ed-tool ed-max-btn" title="' + (isMax ? 'Back to the usual size' : 'Fill the window') + '" aria-label="' + (isMax ? 'Back to the usual size' : 'Fill the window') + '" aria-pressed="' + (isMax ? 'true' : 'false') + '">' +
+        '<button type="button" class="ghost" data-jam-act="close" style="padding:7px 14px">' + t('Close') + '</button>' +
+        '<button type="button" id="jam-max" data-jam-act="toggle-max" class="ed-tool ed-max-btn" title="' + (isMax ? t('Back to the usual size') : t('Fill the window')) + '" aria-label="' + (isMax ? t('Back to the usual size') : t('Fill the window')) + '" aria-pressed="' + (isMax ? 'true' : 'false') + '">' +
           '<svg class="max-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>' +
           '<svg class="max-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>' +
         '</button>' +
@@ -1220,19 +1237,19 @@
     var cooking = Boolean(JamState.cookingId);
 
     el.innerHTML =
-      '<span class="jam-foot-hint muted small">Space to play / pause \u00B7 E to edit active pass \u00B7 Esc to close</span>' +
+      '<span class="jam-foot-hint muted small">' + t('Space to play or pause \u00B7 E to open the pass in the editor \u00B7 Esc to close') + '</span>' +
       '<div class="jam-foot-actions">' +
         // The base, as on its card: what the next roll builds on.  Clicking a card in Roll History changes it.
-        '<span class="jam-roll-from" title="The next roll builds on this. Click a card in Roll History to change it">' +
-          '<span class="jam-base-tag">Base</span>' + escHtml(passLabel(buildOn())) +
+        '<span class="jam-roll-from" title="' + t('The next roll builds on this. Click a card in Roll History to change it') + '">' +
+          '<span class="jam-base-tag">' + t('Base') + '</span>' + escHtml(passLabel(buildOn())) +
           (buildOn() && isSeedPass(buildOn()) && buildOn().title ? ' <span class="muted">\u00B7 ' + escHtml(buildOn().title) + '</span>' : '') +
         '</span>' +
         (JamState.passes.some(function (p) { return !isSeedPass(p); }) || pending > 0
-          ? '<button type="button" class="jam-sec-btn" data-jam-act="reset-jam" title="Start again from the Seed: its sound, and no passes"' + (cooking ? ' disabled' : '') + '>New Jam</button>' : '') +
-        (scoreLocked() ? '<button type="button" class="jam-rr-btn" data-jam-act="plan-roll" title="Plan &amp; Roll: plan this pass again from the Seed\u2019s words with your settings. New chords, groove and structure, so it can change a lot, and it takes longer than Roll. The next Roll goes back to the Seed\u2019s melody and chords; Full Song on this pass keeps its new arrangement."' + (cooking ? ' disabled' : '') + '>Plan &amp; Roll</button>' : '') +
+          ? '<button type="button" class="jam-sec-btn" data-jam-act="reset-jam" title="' + t('Start again from the Seed: its sound, and no passes') + '"' + (cooking ? ' disabled' : '') + '>' + t('New Jam') + '</button>' : '') +
+        (scoreLocked() ? '<button type="button" class="jam-rr-btn" data-jam-act="plan-roll" title="' + t('Plan &amp; Roll: plan this pass again from the Seed\u2019s words with your settings. New chords, groove and structure, so it can change a lot, and it takes longer than Roll.') + '"' + (cooking ? ' disabled' : '') + '>' + t('Plan &amp; Roll') + '</button>' : '') +
         '<button type="button" class="jam-roll-btn" data-jam-act="roll"' + (cooking ? ' disabled' : '') + '>' +
-          '<span>' + (JamState.cookingId ? 'Rolling\u2026' : '\u27F3 Roll') + '</span>' +
-          (!cooking && pending > 0 ? '<span class="jam-pending-badge">' + pending + (pending === 1 ? ' change' : ' changes') + '</span>' : '') +
+          '<span>' + (JamState.cookingId ? t('Rolling\u2026') : '\u27F3 ' + t('Roll')) + '</span>' +
+          (!cooking && pending > 0 ? '<span class="jam-pending-badge">' + tn(pending, '{n} change', '{n} changes') + '</span>' : '') +
         '</button>' +
       '</div>';
   }
@@ -1261,24 +1278,24 @@
 
     var statusPill = '';
     if (cookingPass) {
-      statusPill = '<span class="jam-status-pill"><span class="jam-pulse-dot"></span> Rolling Pass #' + cookingPass.num + ' \u00B7 ' +
-        escHtml(cookingPass.stage || 'Working') + ' (' + (cookingPass.progress || 0) + '%)' +
-        ' <button type="button" class="jam-cancel-x" data-jam-act="cancel-cook" title="Cancel this roll">&times;</button></span>';
+      statusPill = '<span class="jam-status-pill"><span class="jam-pulse-dot"></span> ' +
+        t('Rolling {pass} \u00B7 {stage} ({progress}%)', { pass: escHtml(passLabel(cookingPass)), stage: escHtml(tr(cookingPass.stage || t('Working'))), progress: cookingPass.progress || 0 }) +
+        ' <button type="button" class="jam-cancel-x" data-jam-act="cancel-cook" title="' + t('Cancel this roll') + '">&times;</button></span>';
     }
 
     el.innerHTML =
       '<button type="button" class="jam-play-btn" data-jam-act="toggle-play"' + (!playingPass && !JamState.passes.some(function (p) { return p.hasAudio; }) ? ' disabled' : '') + '>' + playIcon + '</button>' +
       '<div class="jam-stage-meta">' +
         '<div class="jam-stage-title">' +
-          (playingPass ? escHtml(playingPass.title) + ' <span class="jam-pass-badge">' + (isSeedPass(playingPass) ? 'Seed' : 'Pass #' + playingPass.num) + '</span>' : 'Ready to roll your first pass') +
+          (playingPass ? escHtml(playingPass.title) + ' <span class="jam-pass-badge">' + escHtml(passLabel(playingPass)) + '</span>' : t('Ready to roll your first pass')) +
         '</div>' +
         '<div class="jam-stage-sub">' +
-          (playingPass ? JamState.bpm + ' BPM' : 'Tweak Parts, Vibe &amp; Tempo below, then click Roll') +
-          ' \u00B7 Building on <b>' + escHtml(passLabel(buildOn())) + '</b>' +
+          (playingPass ? JamState.bpm + ' BPM' : t('Tweak Parts, Vibe &amp; Tempo below, then click Roll')) +
+          ' \u00B7 ' + t('Building on <b>{pass}</b>', { pass: escHtml(passLabel(buildOn())) }) +
         '</div>' +
       '</div>' +
       '<span class="jam-wave-time" id="jam-t-now">' + fmtTime(pos) + '</span>' +
-      '<div class="jam-wave" id="jam-wave" title="Click to seek">' + barsHtml + '</div>' +
+      '<div class="jam-wave" id="jam-wave" title="' + t('Click to seek') + '">' + barsHtml + '</div>' +
       '<span class="jam-wave-time" id="jam-t-dur">' + fmtTime(dur) + '</span>' +
       statusPill;
   }
@@ -1311,11 +1328,11 @@
           var pending = isPartPending(p.name) ? ' pending' : '';
           return '<span class="jam-part-chip cat-' + escHtml(p.cat) + pending + '">' +
             '<span>' + escHtml(p.name) + '</span>' +
-            '<span class="jam-pips" data-part-idx="' + idx + '" title="Strength: ' + LEVEL_LABELS[p.level] + ' (drag left/right)">' + pips + '</span>' +
-            '<button type="button" class="jam-part-x" data-jam-act="remove-part" data-part-idx="' + idx + '" aria-label="Remove ' + escHtml(p.name) + '">&times;</button>' +
+            '<span class="jam-pips" data-part-idx="' + idx + '" title="' + t('Strength: {level} (drag left or right)', { level: LEVEL_LABELS[p.level] }) + '">' + pips + '</span>' +
+            '<button type="button" class="jam-part-x" data-jam-act="remove-part" data-part-idx="' + idx + '" aria-label="' + t('Remove {name}', { name: escHtml(p.name) }) + '">&times;</button>' +
           '</span>';
         }).join('')
-      : '<span class="muted small">No Parts yet — click any chip below or type your own.</span>';
+      : '<span class="muted small">' + t('No Parts yet. Click any chip below or type your own.') + '</span>';
 
     var q = JamState.searchQuery.trim().toLowerCase();
     var activeSet = {};
@@ -1336,7 +1353,7 @@
         (added ? '\u2713 ' : '+ ') + escHtml(item.name) + '</button>';
     }).join('');
     if (q && !filtered.some(function (i) { return i.name.toLowerCase() === q; })) {
-      paletteHtml = '<button type="button" class="jam-pick-chip custom" data-jam-act="add-custom-part">+ Add "' + escHtml(JamState.searchQuery.trim()) + '"</button>' + paletteHtml;
+      paletteHtml = '<button type="button" class="jam-pick-chip custom" data-jam-act="add-custom-part">' + t('+ Add \u201C{text}\u201D', { text: escHtml(JamState.searchQuery.trim()) }) + '</button>' + paletteHtml;
     }
 
     var loraKind = activeLoraKind(JamState.styleLora);
@@ -1351,19 +1368,19 @@
     el.innerHTML =
       '<div class="jam-col-head">' +
         '<div class="jam-col-head-l">' +
-          '<h4>Sound &amp; Parts</h4>' +
-          '<button type="button" class="jam-clear-btn" data-jam-act="clear-parts" title="Clear all active Parts"' + (JamState.parts.length ? '' : ' disabled') + '>Clear</button>' +
+          '<h4>' + t('Sound &amp; Parts') + '</h4>' +
+          '<button type="button" class="jam-clear-btn" data-jam-act="clear-parts" title="' + t('Clear all active Parts') + '"' + (JamState.parts.length ? '' : ' disabled') + '>' + t('Clear') + '</button>' +
         '</div>' +
-        '<span class="jam-col-meta">' + JamState.parts.length + ' / ' + MAX_PARTS + ' active \u00B7 drag bars for strength</span>' +
+        '<span class="jam-col-meta">' + t('{count} / {max} active \u00B7 drag bars for strength', { count: JamState.parts.length, max: MAX_PARTS }) + '</span>' +
       '</div>' +
       '<div class="jam-parts-rack">' + activeHtml + '</div>' +
       '<div class="jam-palette">' +
         '<div class="picker-search-field">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
-          '<input type="search" id="jam-part-search" placeholder="Add any genre, instrument or texture\u2026" value="' + escHtml(JamState.searchQuery) + '" autocomplete="off">' +
+          '<input type="search" id="jam-part-search" placeholder="' + t('Add any genre, instrument or texture\u2026') + '" value="' + escHtml(JamState.searchQuery) + '" autocomplete="off">' +
         '</div>' +
         '<div class="jam-tabs">' +
-          [['inst', 'Instruments'], ['genre', 'Genres'], ['prod', 'Production'], ['rhythm', 'Rhythm']].map(function (tab) {
+          [['inst', t('Instruments')], ['genre', t('Genres')], ['prod', t('Production')], ['rhythm', t('Rhythm')]].map(function (tab) {
             return '<button type="button" class="jam-tab' + (JamState.paletteTab === tab[0] ? ' active' : '') + '" data-jam-act="palette-tab" data-tab="' + tab[0] + '">' + tab[1] + '</button>';
           }).join('') +
         '</div>' +
@@ -1371,16 +1388,16 @@
       '</div>' +
       stylePickerHtml() +
       '<div class="jam-lora-slot">' +
-        '<div class="jam-kicker"><span>Style LoRA (optional)</span>' +
-          (loraKind ? '<span class="kind-pill kind-' + escHtml(loraKind) + '">' + escHtml(loraKind === 'both' ? 'score & sound' : (loraKind === 'decoder' ? 'sound only' : 'score only')) + '</span>' : '') +
+        '<div class="jam-kicker"><span>' + t('Style LoRA (optional)') + '</span>' +
+          (loraKind && typeof loraKindPillHtml === 'function' ? loraKindPillHtml(loraKind) : '') +
         '</div>' +
         loraPickerHtml() +
         (JamState.styleLora
           ? '<div class="jam-lora-sliders">' +
-              '<label>Sound <strong>' + (hasSound ? JamState.styleLoraModel.toFixed(2) : 'N/A') + '</strong>' +
+              '<label>' + t('Sound') + ' <strong>' + (hasSound ? JamState.styleLoraModel.toFixed(2) : t('N/A')) + '</strong>' +
                 '<input id="jam-lora-sound" type="range" min="0" max="2" step="0.05" value="' + JamState.styleLoraModel + '"' + (hasSound ? '' : ' disabled') + '>' +
               '</label>' +
-              '<label>Score <strong>' + (hasPlan ? JamState.styleLoraClip.toFixed(2) : 'N/A') + '</strong>' +
+              '<label>' + t('Score') + ' <strong>' + (hasPlan ? JamState.styleLoraClip.toFixed(2) : t('N/A')) + '</strong>' +
                 '<input id="jam-lora-plan" type="range" min="0" max="2" step="0.05" value="' + JamState.styleLoraClip + '"' + (hasPlan ? '' : ' disabled') + '>' +
               '</label>' +
             '</div>' : '') +
@@ -1403,8 +1420,8 @@
   function stylePickerHtml() {
     var chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
     var html = '<div class="jam-style-picker">' +
-      '<button type="button" class="source-picker-btn style-picker-btn" data-jam-act="style-menu" aria-expanded="' + (JamState.styleMenuOpen ? 'true' : 'false') + '" title="Choose a style: one you saved, or a built-in one. It sets the Parts and the tempo">' +
-        '<span class="source-picker-label">' + escHtml(JamState.styleName || 'Choose a style\u2026') + '</span>' + chev +
+      '<button type="button" class="source-picker-btn style-picker-btn" data-jam-act="style-menu" aria-expanded="' + (JamState.styleMenuOpen ? 'true' : 'false') + '" title="' + t('Choose a style: one you saved, or a built-in one. It sets the Parts and the tempo') + '">' +
+        '<span class="source-picker-label">' + escHtml(JamState.styleName || t('Choose a style\u2026')) + '</span>' + chev +
       '</button>';
     if (!JamState.styleMenuOpen) { return html + '</div>'; }
     var q = (JamState.styleQuery || '').trim().toLowerCase();
@@ -1421,23 +1438,23 @@
     var list = '';
     if (!q || saved.length) {
       list += '<div class="style-picker-group' + (openSaved ? ' open' : '') + '" data-jam-act="style-saved-toggle" role="button">' + chev +
-        '<span>Saved styles</span><span class="count">' + (q ? saved.length + '/' : '') + savedStyles().length + '</span></div>';
+        '<span>' + t('Saved styles') + '</span><span class="count">' + (q ? saved.length + '/' : '') + savedStyles().length + '</span></div>';
       if (openSaved) {
         list += '<div class="picker-children">' + (saved.length ? saved.map(function (st) { return row('saved', st.id, st); }).join('')
-          : '<div class="style-picker-empty muted">None yet. The editor\u2019s Save keeps a style here.</div>') + '</div>';
+          : '<div class="style-picker-empty muted">' + t('None yet. The editor\u2019s Save keeps a style here.') + '</div>') + '</div>';
       }
     }
     if (canned.length) {
-      list += '<div class="style-picker-group open static"><span>Built-in presets</span><span class="count">' + canned.length + '</span></div>' +
+      list += '<div class="style-picker-group open static"><span>' + t('Built-in presets') + '</span><span class="count">' + canned.length + '</span></div>' +
         '<div class="picker-children">' + canned.map(function (st) { return row('canned', st.name, st); }).join('') + '</div>';
     } else if (!saved.length) {
-      list += '<div class="style-picker-empty muted">No matching styles</div>';
+      list += '<div class="style-picker-empty muted">' + t('No matching styles') + '</div>';
     }
     return html +
       '<div class="jam-style-menu">' +
         '<div class="picker-search-field">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
-          '<input type="search" id="jam-style-search" placeholder="Search styles\u2026" value="' + escHtml(JamState.styleQuery || '') + '" autocomplete="off">' +
+          '<input type="search" id="jam-style-search" placeholder="' + t('Search styles\u2026') + '" value="' + escHtml(JamState.styleQuery || '') + '" autocomplete="off">' +
         '</div>' +
         '<div class="style-picker-list jam-style-list" role="listbox">' + list + '</div>' +
       '</div></div>';
@@ -1448,7 +1465,7 @@
   function loraTitle(name) {
     var select = document.getElementById('style-lora');
     var option = select && name ? Array.prototype.filter.call(select.options, function (o) { return o.value === name; })[0] : null;
-    return !name ? 'None' : (option ? (option.dataset.title || option.textContent) : name);
+    return !name ? t('None') : (option ? (option.dataset.title || option.textContent) : name);
   }
 
   function loraPickerHtml() {
@@ -1463,10 +1480,10 @@
         '<div class="picker-search-bar">' +
           '<div class="picker-search-field">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
-            '<input type="search" id="jam-lora-filter" placeholder="Search LoRAs\u2026" value="' + escHtml(JamState.loraFilter || '') + '" autocomplete="off">' +
+            '<input type="search" id="jam-lora-filter" placeholder="' + t('Search LoRAs\u2026') + '" value="' + escHtml(JamState.loraFilter || '') + '" autocomplete="off">' +
           '</div>' +
           (built.groupLabels.length >= 2 && !built.searching
-            ? '<button type="button" class="picker-fold-btn" data-lora-fold-all="1">' + (built.anyOpen ? 'Collapse all' : 'Expand all') + '</button>' : '') +
+            ? '<button type="button" class="picker-fold-btn" data-lora-fold-all="1">' + (built.anyOpen ? t('Collapse all') : t('Expand all')) + '</button>' : '') +
         '</div>' +
         '<div class="picker-scroll lora-picker-list jam-lora-list">' + built.html + '</div>' +
       '</div></div>';
@@ -1506,9 +1523,10 @@
     if (!full) { return Promise.resolve(true); }
     if (typeof confirmModal !== 'function') { return Promise.resolve(true); }
     return confirmModal({
-      title: 'Render a full song?',
-      message: 'This renders the whole song' + (title ? ' from ' + title : '') + ' as a new take in your space. It takes longer than a pass.',
-      confirmText: 'Render'
+      title: t('Render a full song?'),
+      message: title ? t('This renders the whole song from {title} as a new take in your space. It takes longer than a pass.', { title: title })
+        : t('This renders the whole song as a new take in your space. It takes longer than a pass.'),
+      confirmText: t('Render')
     }).then(function (yes) { return Boolean(yes); });
   }
 
@@ -1560,11 +1578,11 @@
       return '<button type="button" class="jam-pick-chip' + (on ? ' added' : '') + '" data-jam-act="lora-song" data-idx="' + x.i + '" title="' + escHtml(tip) + '">' + label + '</button>';
     }).join('');
     if (shown.length < matching.length) {
-      pills += '<button type="button" class="jam-pick-chip custom" data-jam-act="lora-songs-all">Show all ' + matching.length + '</button>';
+      pills += '<button type="button" class="jam-pick-chip custom" data-jam-act="lora-songs-all">' + t('Show all {matchingCount}', { matchingCount: matching.length }) + '</button>';
     }
-    if (q && !matching.length) { pills = '<span class="muted small">No song matches.</span>'; }
-    return '<div class="jam-lora-songs-head"><span>Songs it learned \u00B7 click for that sound</span>' +
-        (songs.length > LORA_SONGS_FOLD ? '<input type="search" id="jam-lora-song-filter" placeholder="Filter ' + songs.length + ' songs" value="' + escHtml(JamState.loraSongFilter || '') + '" autocomplete="off">' : '') +
+    if (q && !matching.length) { pills = '<span class="muted small">' + t('No song matches.') + '</span>'; }
+    return '<div class="jam-lora-songs-head"><span>' + t('Songs it learned \u00B7 click for that sound') + '</span>' +
+        (songs.length > LORA_SONGS_FOLD ? '<input type="search" id="jam-lora-song-filter" placeholder="' + t('Filter {count} songs', { count: songs.length }) + '" value="' + escHtml(JamState.loraSongFilter || '') + '" autocomplete="off">' : '') +
       '</div>' +
       '<div class="jam-lora-songs">' + pills + '</div>';
   }
@@ -1601,50 +1619,50 @@
 
     var keptScroll = keepScroll(el);
     var hasWords = Boolean((JamState.lyrics || '').trim());
-    var noWords = hasWords ? '' : ' disabled title="The Seed has no words to sing"';
+    var noWords = hasWords ? '' : ' disabled title="' + t('The Seed has no words to sing') + '"';
 
     el.innerHTML =
       '<div class="jam-col-head">' +
-        '<h4>Vibe, Tempo &amp; Vocals</h4>' +
-        '<span class="jam-col-meta">Direct studio controls</span>' +
+        '<h4>' + t('Vibe, Tempo &amp; Vocals') + '</h4>' +
+        '<span class="jam-col-meta">' + t('Direct studio controls') + '</span>' +
       '</div>' +
       '<div class="jam-xy-wrap">' +
-        '<div class="jam-xy-pad" id="jam-xy-pad" title="Drag or click to shift mood &amp; energy">' +
+        '<div class="jam-xy-pad" id="jam-xy-pad" title="' + t('Drag or click to shift mood &amp; energy') + '">' +
           '<div class="jam-xy-grid"></div>' +
           '<div class="jam-xy-axis-h"></div><div class="jam-xy-axis-v"></div>' +
-          '<span class="jam-xy-lbl top">Energetic</span>' +
-          '<span class="jam-xy-lbl bot">Calm</span>' +
-          '<span class="jam-xy-lbl lft">Dark</span>' +
-          '<span class="jam-xy-lbl rgt">Bright</span>' +
+          '<span class="jam-xy-lbl top">' + t('Energetic') + '</span>' +
+          '<span class="jam-xy-lbl bot">' + t('Calm') + '</span>' +
+          '<span class="jam-xy-lbl lft">' + t('Dark') + '</span>' +
+          '<span class="jam-xy-lbl rgt">' + t('Bright') + '</span>' +
           '<div class="jam-xy-puck" id="jam-xy-puck" style="left:' + px + '%;top:' + py + '%"></div>' +
         '</div>' +
         '<div class="jam-xy-side">' +
           '<div class="jam-vibe-box">' +
-            '<div class="jam-kicker"><span>Vibe</span><span style="color:var(--cover-a)">' + escHtml(vi.xWord) + ' \u00B7 ' + escHtml(vi.yWord) + '</span></div>' +
+            '<div class="jam-kicker"><span>' + t('Vibe') + '</span><span style="color:var(--cover-a)">' + escHtml(vibeLabel(vi.xWord)) + ' \u00B7 ' + escHtml(vibeLabel(vi.yWord)) + '</span></div>' +
             '<div class="jam-vibe-word" id="jam-vibe-word">' + escHtml(vi.word) + '</div>' +
-            '<div class="jam-vibe-hint">' + (scoreLocked() ? 'Melody &amp; chords kept \u2014 shapes sound &amp; dynamics' : 'Shapes key, chords, arrangement &amp; dynamics') + '</div>' +
+            '<div class="jam-vibe-hint">' + (scoreLocked() ? t('Melody &amp; chords kept: shapes sound &amp; dynamics') : t('Shapes key, chords, arrangement &amp; dynamics')) + '</div>' +
           '</div>' +
           '<div class="jam-tempo-box">' +
-            '<div class="jam-kicker"><span>Tempo</span><span class="jam-bpm-val" id="jam-bpm-val">' + JamState.bpm + ' BPM</span></div>' +
+            '<div class="jam-kicker"><span>' + t('Tempo') + '</span><span class="jam-bpm-val" id="jam-bpm-val">' + JamState.bpm + ' BPM</span></div>' +
             '<input id="jam-bpm-slider" type="range" min="60" max="165" step="2" value="' + JamState.bpm + '">' +
-            '<div class="jam-detents"><span>Slow</span><span>Med</span><span>Fast</span></div>' +
+            '<div class="jam-detents"><span>' + t('Slow') + '</span><span>' + t('Med') + '</span><span>' + t('Fast') + '</span></div>' +
           '</div>' +
         '</div>' +
       '</div>' +
       '<div class="jam-vocal-card">' +
-        '<div class="jam-kicker"><span>Vocals</span><span>' + (!hasWords ? 'The Seed has no words' : (JamState.vocals === 'instrumental' ? 'No vocals' : 'Sings the Seed\u2019s words')) + '</span></div>' +
+        '<div class="jam-kicker"><span>' + t('Vocals') + '</span><span>' + (!hasWords ? t('The Seed has no words') : (JamState.vocals === 'instrumental' ? t('No vocals') : t('Sings the Seed\u2019s words'))) + '</span></div>' +
         '<div class="jam-mini-seg">' +
-          '<button type="button" data-jam-act="vocals" data-v="instrumental" class="' + (JamState.vocals === 'instrumental' ? 'active' : '') + '">Instrumental</button>' +
-          '<button type="button" data-jam-act="vocals" data-v="female" class="' + (JamState.vocals === 'female' ? 'active' : '') + '"' + noWords + '>Female</button>' +
-          '<button type="button" data-jam-act="vocals" data-v="male" class="' + (JamState.vocals === 'male' ? 'active' : '') + '"' + noWords + '>Male</button>' +
-          '<button type="button" data-jam-act="vocals" data-v="voice" class="' + (JamState.vocals === 'voice' ? 'active' : '') + '"' + (!hasWords ? noWords : (!hasVoices ? ' disabled title="No ready recorded voices yet"' : '')) + '>My Voice</button>' +
+          '<button type="button" data-jam-act="vocals" data-v="instrumental" class="' + (JamState.vocals === 'instrumental' ? 'active' : '') + '">' + t('Instrumental') + '</button>' +
+          '<button type="button" data-jam-act="vocals" data-v="female" class="' + (JamState.vocals === 'female' ? 'active' : '') + '"' + noWords + '>' + t('Female') + '</button>' +
+          '<button type="button" data-jam-act="vocals" data-v="male" class="' + (JamState.vocals === 'male' ? 'active' : '') + '"' + noWords + '>' + t('Male') + '</button>' +
+          '<button type="button" data-jam-act="vocals" data-v="voice" class="' + (JamState.vocals === 'voice' ? 'active' : '') + '"' + (!hasWords ? noWords : (!hasVoices ? ' disabled title="' + t('No ready recorded voices yet') + '"' : '')) + '>' + t('My Voice') + '</button>' +
         '</div>' +
         vocalExtras +
       '</div>' +
       '<div class="jam-prompt-peek">' +
         '<strong>Compiled Style \u2192 YuE2' + (vi.cfgScale ? ' \u00B7 CFG ' + vi.cfgScale : '') + '</strong>' +
         '<span id="jam-compiled-style">' + escHtml(compileStyle()) + '</span>' +
-        '<span class="jam-prompt-avoid" id="jam-compiled-avoid">' + (vi.avoid ? 'Avoid: ' + escHtml(vi.avoid) : '') + '</span>' +
+        '<span class="jam-prompt-avoid" id="jam-compiled-avoid">' + (vi.avoid ? t('Avoid: {value}', { value: escHtml(vi.avoid) }) : '') + '</span>' +
       '</div>';
     keptScroll();
   }
@@ -1667,18 +1685,18 @@
           var seed = isSeedPass(p);
           var isPlaying = p.id === JamAudio.currentId && JamAudio.playing;
           var isBase = p.id === (buildOn() || {}).id;
-          var selectable = !isCooking && (seed || p.hasAudio);
           var isCooking = p.id === JamState.cookingId;
+          var selectable = !isCooking && (seed || p.hasAudio);
           var isFailed = p.status === 'failed' || p.status === 'cancelled';
 
           var statePill = isCooking
-            ? '<span class="jam-hist-state cook">Rolling ' + (p.progress || 0) + '%</span>'
-            : (isPlaying ? '<span class="jam-hist-state live">\u25B6 Playing</span>'
-              : (isFailed ? '<span class="jam-hist-state bad">' + escHtml(p.status) + '</span>'
-                : '<span class="jam-hist-num">' + (p.duration ? fmtTime(p.duration) : 'Ready') + '</span>'));
+            ? '<span class="jam-hist-state cook">' + t('Rolling {progress}%', { progress: p.progress || 0 }) + '</span>'
+            : (isPlaying ? '<span class="jam-hist-state live">\u25B6 ' + t('Playing') + '</span>'
+              : (isFailed ? '<span class="jam-hist-state bad">' + (p.status === 'cancelled' ? t('Cancelled') : t('Failed')) + '</span>'
+                : '<span class="jam-hist-num">' + (p.duration ? fmtTime(p.duration) : t('Ready')) + '</span>'));
 
           var fromPass = passById(p.fromId);
-          var diffsHtml = (fromPass && !seed ? '<span class="jam-from">from ' + escHtml(passLabel(fromPass)) + '</span>' : '') +
+          var diffsHtml = (fromPass && !seed ? '<span class="jam-from">' + t('from {pass}', { pass: escHtml(passLabel(fromPass)) }) + '</span>' : '') +
             (p.diffs || []).map(function (d) {
               return '<span class="jam-diff ' + escHtml(d.cls || '') + '">' + escHtml(d.text) + '</span>';
             }).join('');
@@ -1686,39 +1704,39 @@
           var actions = '';
           if (isCooking) {
             actions = '<div class="jam-cook-bar"><span style="width:' + (p.progress || 5) + '%"></span></div>' +
-              '<div class="jam-hist-actions"><button type="button" class="jam-hist-btn" data-jam-act="cancel-cook">Cancel</button></div>';
+              '<div class="jam-hist-actions"><button type="button" class="jam-hist-btn" data-jam-act="cancel-cook">' + t('Cancel') + '</button></div>';
           } else if (seed) {
             actions = p.hasAudio
               ? '<div class="jam-hist-actions">' +
                   (isPlaying
-                    ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 Stop</button>'
-                    : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 Play</button>') +
+                    ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 ' + t('Stop') + '</button>'
+                    : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 ' + t('Play') + '</button>') +
                 '</div>'
               : '';
           } else if (p.hasAudio) {
             // A pass with sound here is a scratch pass: a finished Full Song or kept pass has left the list.
             actions = '<div class="jam-hist-actions">' +
               (isPlaying
-                ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 Stop</button>'
-                : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 Play</button>') +
-              '<button type="button" class="jam-hist-btn" data-jam-act="full-pass" data-pass-id="' + escHtml(p.id) + '">Full Song</button>' +
-              '<button type="button" class="jam-hist-btn" data-jam-act="open-editor" data-pass-id="' + escHtml(p.id) + '" title="Open this pass in the editor (E). What you make there is a new take in your space">Editor</button>' +
-              '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="Delete this pass for good">Delete</button>' +
+                ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 ' + t('Stop') + '</button>'
+                : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 ' + t('Play') + '</button>') +
+              '<button type="button" class="jam-hist-btn" data-jam-act="full-pass" data-pass-id="' + escHtml(p.id) + '">' + t('Full Song') + '</button>' +
+              '<button type="button" class="jam-hist-btn" data-jam-act="open-editor" data-pass-id="' + escHtml(p.id) + '" title="' + t('Open this pass in the editor (E). What you make there is a new take in your space') + '">' + t('Editor') + '</button>' +
+              '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="' + t('Delete this pass for good') + '">' + t('Delete') + '</button>' +
             '</div>';
           } else {
             actions = (p.error ? '<div class="small" style="color:var(--danger-text)">' + escHtml(p.error) + '</div>' : '') +
               '<div class="jam-hist-actions">' +
-                '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="Remove this pass">Delete</button>' +
+                '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="' + t('Delete this pass for good') + '">' + t('Delete') + '</button>' +
               '</div>';
           }
 
           var tagHtml = (seed
-            ? '<span class="jam-seed-tag">Seed</span>'
-            : '<span class="jam-hist-num">Pass #' + p.num + '</span>') +
-            (isBase ? '<span class="jam-base-tag" title="The next roll builds on this">Base</span>' : '');
+            ? '<span class="jam-seed-tag">' + t('Seed') + '</span>'
+            : '<span class="jam-hist-num">' + escHtml(passLabel(p)) + '</span>') +
+            (isBase ? '<span class="jam-base-tag" title="' + t('The next roll builds on this') + '">' + t('Base') + '</span>' : '');
 
           return '<div class="jam-hist-card' + (seed ? ' is-seed' : '') + (isBase ? ' is-base' : '') + (selectable ? ' selectable' : '') + (isPlaying ? ' playing' : '') + (isCooking ? ' cooking' : '') + '"' +
-            (selectable ? ' data-pass-id="' + escHtml(p.id) + '" title="' + (isBase ? 'The next roll builds on this' : 'Click to build the next roll on this') + '"' : '') + '>' +
+            (selectable ? ' data-pass-id="' + escHtml(p.id) + '" title="' + (isBase ? t('The next roll builds on this') : t('Click to build the next roll on this')) + '"' : '') + '>' +
             '<div class="jam-hist-top">' +
               '<span class="jam-hist-name">' + tagHtml + ' ' + escHtml(p.title) + '</span>' +
               statePill +
@@ -1728,19 +1746,19 @@
           '</div>';
         }).join('')
       : '<div class="jam-hist-empty">' +
-          '<strong>No passes yet</strong>' +
-          '<p class="muted small">Shape your Parts, Vibe &amp; Tempo on the left, then click <b>Roll</b>. Each pass loops seamlessly while your next roll cooks and crossfades in.</p>' +
+          '<strong>' + t('No passes yet') + '</strong>' +
+          '<p class="muted small">' + t('Shape your Parts, Vibe &amp; Tempo on the left, then click <b>Roll</b>. The pass playing loops while the next one is made, and the new one fades in when it is ready.') + '</p>' +
         '</div>';
 
     var countLabel = hasSeed
-      ? ('Seed' + (rolledCount ? ' + ' + rolledCount + (rolledCount === 1 ? ' pass' : ' passes') : ''))
-      : (rolledCount + (rolledCount === 1 ? ' pass' : ' passes'));
+      ? (rolledCount ? tn(rolledCount, 'Seed + {n} pass', 'Seed + {n} passes') : t('Seed'))
+      : tn(rolledCount, '{n} pass', '{n} passes');
 
     // Repainted on every poll while a pass cooks: where the person had scrolled to stays put.
     var keptScroll = keepScroll(el);
     el.innerHTML =
       '<div class="jam-col-head">' +
-        '<h4>Roll History</h4>' +
+        '<h4>' + t('Roll History') + '</h4>' +
         '<span class="jam-col-meta">' + countLabel + '</span>' +
       '</div>' +
       '<div class="jam-hist-list">' + cards + '</div>';
@@ -1755,7 +1773,7 @@
       JamState.parts.splice(idx, 1);
     } else {
       if (JamState.parts.length >= MAX_PARTS) {
-        if (typeof toast === 'function') { toast('Up to ' + MAX_PARTS + ' Parts per roll.'); }
+        if (typeof toast === 'function') { toast(t('Up to {max} Parts per roll.', { max: MAX_PARTS })); }
         return;
       }
       JamState.parts.push({ name: name, cat: cat || 'inst', level: 2 });
@@ -1772,7 +1790,7 @@
     var av = document.getElementById('jam-compiled-avoid');
     if (av) {
       var vi = vibeInfo(JamState.vibe);
-      av.textContent = vi.avoid ? ('Avoid: ' + vi.avoid) : '';
+      av.textContent = vi.avoid ? t('Avoid: {value}', { value: vi.avoid }) : '';
     }
   }
 
@@ -1905,7 +1923,7 @@
     try {
       await api('/api/takes/' + encodeURIComponent(passId), { method: 'DELETE' });
     } catch (err) {
-      if (typeof toast === 'function') { toast('Could not delete pass: ' + err.message); }
+      if (typeof toast === 'function') { toast(t('Could not delete the pass: {message}', { message: tr(err.message) }), 'bad'); }
       return;
     }
     JamState.passes = JamState.passes.filter(function (p) { return p.id !== passId; });
@@ -1936,7 +1954,7 @@
         if (window.State) { State.capTyped = false; State.capFromScore = false; State.editorFromJam = true; }
       }
     } catch (err) {
-      if (typeof toast === 'function') { toast('Could not open take in Editor: ' + err.message); }
+      if (typeof toast === 'function') { toast(t('Could not open it in the editor: {message}', { message: tr(err.message) }), 'bad'); }
     }
   }
 
@@ -1962,51 +1980,51 @@
   }
 
   function onShellInput(event) {
-    var t = event.target;
-    if (t.id === 'jam-lora-filter') {
-      JamState.loraFilter = t.value;
+    var tg = event.target;
+    if (tg.id === 'jam-lora-filter') {
+      JamState.loraFilter = tg.value;
       paintPartsCol();
       return;
     }
-    if (t.id === 'jam-style-search') {
-      JamState.styleQuery = t.value;
+    if (tg.id === 'jam-style-search') {
+      JamState.styleQuery = tg.value;
       paintPartsCol();
       return;
     }
-    if (t.id === 'jam-lora-song-filter') {
-      JamState.loraSongFilter = t.value;
+    if (tg.id === 'jam-lora-song-filter') {
+      JamState.loraSongFilter = tg.value;
       paintPartsCol();
       return;
     }
-    if (t.id === 'jam-part-search') {
-      JamState.searchQuery = t.value;
+    if (tg.id === 'jam-part-search') {
+      JamState.searchQuery = tg.value;
       paintPartsCol();
       return;
     }
-    if (t.id === 'jam-bpm-slider') {
-      JamState.bpm = parseInt(t.value, 10) || 96;
+    if (tg.id === 'jam-bpm-slider') {
+      JamState.bpm = parseInt(tg.value, 10) || 96;
       var lbl = document.getElementById('jam-bpm-val');
       if (lbl) { lbl.textContent = JamState.bpm + ' BPM'; }
       updateCompiledPreview();
       paintTopbar();
       return;
     }
-    if (t.id === 'jam-lora-sound') {
-      JamState.styleLoraModel = parseFloat(t.value);
+    if (tg.id === 'jam-lora-sound') {
+      JamState.styleLoraModel = parseFloat(tg.value);
       paintPartsCol();
       return;
     }
-    if (t.id === 'jam-lora-plan') {
-      JamState.styleLoraClip = parseFloat(t.value);
+    if (tg.id === 'jam-lora-plan') {
+      JamState.styleLoraClip = parseFloat(tg.value);
       paintPartsCol();
       return;
     }
   }
 
   function onShellChange(event) {
-    var t = event.target;
-    if (t.id === 'jam-voice-select') {
-      JamState.voiceId = t.value;
+    var tg = event.target;
+    if (tg.id === 'jam-voice-select') {
+      JamState.voiceId = tg.value;
       paintTopbar();
       return;
     }
@@ -2042,7 +2060,7 @@
         for (var i = 0; i < bars.length; i++) {
           bars[i].classList.toggle('on', i < lv);
         }
-        pips.title = 'Strength: ' + LEVEL_LABELS[lv] + ' (drag left/right)';
+        pips.title = t('Strength: {level} (drag left or right)', { level: LEVEL_LABELS[lv] });
         updateCompiledPreview();
       };
       applyLevel(event.clientX);

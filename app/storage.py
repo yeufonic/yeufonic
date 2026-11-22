@@ -226,8 +226,8 @@ def items(busy: Busy, lora_base: Callable[[dict], str]) -> list[dict]:
             "bytes": sum(tree(p)[0] for p in jam_paths), "files": sum(tree(p)[1] for p in jam_paths),
             "_paths": jam_paths, "_space": JAM_SPACE, "blocked": "a Jam pass is being made" if cooking else None,
             "what": "The short passes rolled in Jam. They are kept out of your spaces and stay until deleted "
-                    "from Roll History, even once the Jam is closed. Full Songs and passes opened in the "
-                    "editor are takes in your spaces and are not counted here.",
+                    "from Roll History, even once the Jam is closed. Full Songs, and takes made from a pass in "
+                    "the editor, are in your spaces and are not counted here.",
             "consequence": "Every Jam pass is permanently deleted, and Roll History forgets them. "
                            "This cannot be undone.",
         })
