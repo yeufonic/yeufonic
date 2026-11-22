@@ -42,6 +42,7 @@ Eine Weboberfläche für [YuE2](https://github.com/multimodal-art-projection/YuE
 - **MIDI-Import** für Covers und Instrumentals, mit Pianoroll und SF2-Klängen.
 - **Style-LoRAs:** veröffentlichte nutzen oder mit der ComfyUI-Engine eigene aus einem Ordner voller Songs trainieren.
 - **Aufgenommene Stimmen:** eine Stimme aus deinem Gesang trainieren und jeden Take darin singen lassen.
+- **Jam:** andere Takes eines fertigen Songs ausprobieren, ohne die Musik anzuhalten: Klang, Stimmung, Tempo oder Stimme ändern und kurze Durchgänge erzeugen, die Melodie und Akkorde behalten. Siehe **[Jam](app/static/guides/de-DE.md#jam)**.
 - **Songtexte und Duette:** Texte aus einem Satz entwerfen oder heraushören; Zeilen für einen Mann, eine Frau oder beide.
 - **Vintage-Mastering-Rack und 3D Space:** EQ, Kompressor, Limiter in Echtzeit; Kopfhörer-Raumklang und 5.1.
 - **Stems und DAW:** jeden Take in Spuren aufteilen oder als ZIP mit Audio, Stems, MIDI und Partitur speichern.

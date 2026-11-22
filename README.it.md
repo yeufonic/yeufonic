@@ -42,6 +42,7 @@ Un’interfaccia web per [YuE2](https://github.com/multimodal-art-projection/YuE
 - **Importazione MIDI** per cover e strumentali, con piano roll e suoni SF2.
 - **LoRA di stile:** usa quelle pubblicate o, con il motore ComfyUI, addestra le tue da una cartella di brani.
 - **Voci registrate:** addestra una voce dal tuo canto e fai cantare qualsiasi take con quella voce.
+- **Jam:** prova altre take di un brano che hai già senza fermare la musica: cambia suono, atmosfera, tempo o voce e crea passate brevi che mantengono melodia e accordi. Vedi **[Jam](app/static/guides/it-IT.md#jam)**.
 - **Testi e duetti:** scrivi un testo da una frase o ricavalo da una registrazione; righe per un uomo, una donna o entrambi.
 - **Rack di mastering vintage e 3D Space:** EQ, compressore e limiter in tempo reale; spazialità in cuffia e 5.1.
 - **Stem e DAW:** separa una take in tracce, o salvala come zip con audio, stem, MIDI e partitura.

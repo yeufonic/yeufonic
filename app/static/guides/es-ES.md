@@ -933,6 +933,59 @@ basta: el render de una canción sigue cantando las palabras que recibe.
 
 ---
 
+## Jam {#jam}
+
+Jam sirve para probar otras tomas de una canción que ya tienes sin parar la música: cambia su sonido, su ambiente, su
+tempo o su voz, haz una pasada corta, escúchala y haz otra.
+
+**Abrirlo.** Pulsa **Jam** en el panel de la toma, o **J** con una toma elegida o sonando. Esa toma es la **Semilla**:
+queda arriba del **historial de Rolls** y empieza a sonar. Si vuelves a abrir Jam en la misma toma, sigues donde lo
+dejaste. **Jam nueva** vuelve al sonido de la Semilla y elimina las pasadas.
+
+**Los controles.**
+
+- **Sonido y elementos** son las palabras que describen el sonido: géneros, instrumentos, producción y ritmo. Haz clic
+  en una etiqueta para añadirla o quitarla, o escribe la tuya en el buscador. Arrastra las cuatro barras de un
+  elemento para decir cuánto cuenta, de sutil a protagonista. **Elegir un estilo…** toma los elementos y el tempo de un
+  estilo guardado en el editor o de uno integrado. El selector de **LoRA de estilo** es el del editor, con sus
+  intensidades de sonido y partitura, y una LoRA entrenada con un corpus muestra las canciones que aprendió: haz clic en
+  una para tomar su sonido y su tempo.
+- **Ambiente** es el panel de Oscuro a Luminoso y de Tranquilo a Enérgico. Cuanto más lejos del centro está el punto,
+  más palabras de ambiente, dinámica e interpretación añade al estilo, más cosas añade para evitar y más se ciñe el
+  modelo a ellas.
+- **Tempo**, en pulsaciones por minuto.
+- **Voz**: Instrumental, Femenina, Masculina o una de tus voces grabadas, con hasta tres palabras de timbre. Una pasada
+  canta la letra de la Semilla. Una Semilla sin letra solo da instrumentales.
+
+Bajo los controles, **Estilo enviado** muestra el estilo que enviará un Roll y lo que evita.
+
+**Hacer Roll.** **Roll** crea la siguiente pasada. Mantiene la melodía y los acordes de la pasada de la que parte y los
+renderiza con tus ajustes: la misma canción con otro sonido. Una pasada es un fragmento corto; su duración está en
+**Duración de una pasada de Jam** en Configuración, en Audio, tomas y stems. La pasada que suena se repite mientras se
+crea la siguiente, y la nueva entra con un fundido cuando está lista. El número de **Roll** dice cuántas cosas has
+cambiado.
+
+**Plan & Roll** escribe primero un plan nuevo a partir de la letra de la Semilla: acordes, groove y estructura nuevos.
+Úsalo cuando el cambio va más allá del sonido, como otro género u otra sensación. Tarda más que **Roll** y puede cambiar
+mucho la canción. El siguiente **Roll** vuelve a mantener la melodía y los acordes.
+
+**Partir de una pasada.** Haz clic en una tarjeta del historial de Rolls para convertirla en la **Base**. Sus ajustes
+vuelven a los controles y el próximo Roll parte de ella. La tarjeta muestra **Base**, y el reproductor y el pie de la
+ventana dicen de qué pasada partes. Cada pasada nueva nombra aquella de la que viene y muestra qué cambió. **Espacio**
+reproduce o pausa la base.
+
+**Quedarte con una.** Las pasadas se guardan fuera de tus espacios. **Canción completa** en una pasada renderiza la
+canción entera con los ajustes de esa pasada, como toma nueva en el espacio desde el que se abrió la Jam; antes pide
+confirmación. El interruptor **Bucle rápido** / **Canción completa** de arriba hace que **Roll** renderice canciones
+enteras en vez de pasadas. **Editor** (o **E**) abre una pasada en el editor, y al cerrarlo vuelves a la Jam. Un plan o
+un renderizado que empieces allí es una toma nueva en tu espacio; la pasada queda como estaba. **Eliminar** quita una
+pasada para siempre. Las pasadas quedan hasta que las eliminas, aunque cierres la Jam: Configuración → Almacenamiento
+las muestra como **Pasadas de Jam** y puede vaciarlas todas.
+
+**Teclas:** **Espacio** reproduce o pausa, **E** abre la pasada en el editor, **Esc** cierra Jam.
+
+---
+
 ## Voces {#voices}
 
 Los chips **Voz** fijan el sexo y el carácter del cantante escribiendo en el estilo, para toda la canción.

@@ -933,6 +933,58 @@ basta: o render de uma música continua a cantar as palavras que recebe.
 
 ---
 
+## Jam {#jam}
+
+O Jam serve para experimentar outros takes de uma música que já tem, sem parar a música: mude o som, o clima, o
+andamento ou a voz, faça uma passagem curta, ouça e faça outra.
+
+**Abrir.** Clique em **Jam** no painel do take, ou carregue em **J** com um take escolhido ou a tocar. Esse take é o
+**Seed**: fica no topo do **histórico de Rolls** e começa a tocar. Abrir o Jam outra vez no mesmo take retoma onde
+parou. **Novo Jam** volta ao som do Seed e elimina as passagens.
+
+**Os controlos.**
+
+- **Som e elementos** são as palavras que descrevem o som: géneros, instrumentos, produção e ritmo. Clique numa
+  etiqueta para a adicionar ou remover, ou escreva a sua na pesquisa. Arraste as quatro barras de um elemento para
+  dizer quanto conta, de subtil a principal. **Escolher um estilo…** vai buscar os elementos e o andamento a um estilo
+  guardado no editor ou a um integrado. O seletor de **LoRA de estilo** é o do editor, com as intensidades de som e de
+  partitura, e uma LoRA treinada num corpus mostra as músicas que aprendeu: clique numa para usar o som e o andamento
+  dela.
+- **Clima** é o painel de Escuro a Brilhante e de Calmo a Energético. Quanto mais longe do centro estiver o ponto, mais
+  palavras de clima, dinâmica e interpretação junta ao estilo, mais coisas a evitar acrescenta e mais firme o modelo se
+  mantém nelas.
+- **Andamento**, em batidas por minuto.
+- **Voz**: Instrumental, Feminino, Masculino ou uma das suas vozes gravadas, com até três palavras de timbre. Uma
+  passagem canta a letra do Seed. Um Seed sem letra só faz instrumentais.
+
+Por baixo dos controlos, **Estilo enviado** mostra o estilo que um Roll vai enviar e o que evita.
+
+**Fazer Roll.** **Roll** cria a passagem seguinte. Mantém a melodia e os acordes da passagem de que parte e
+renderiza-os com as suas definições: a mesma música com outro som. Uma passagem é um excerto curto; a duração está em
+**Duração de uma passagem do Jam** nas Definições, em Áudio, takes e stems. A passagem que está a tocar repete-se
+enquanto a seguinte é feita, e a nova entra com fade quando fica pronta. O número no **Roll** diz quantas coisas
+mudou.
+
+**Plan & Roll** escreve primeiro um plano novo a partir da letra do Seed: acordes, groove e estrutura novos. Use-o
+quando a mudança vai além do som, como outro género ou outra sensação. Demora mais do que o **Roll** e pode mudar
+bastante a música. O **Roll** seguinte volta a manter a melodia e os acordes.
+
+**Partir de uma passagem.** Clique num cartão do histórico de Rolls para o tornar a **Base**. As definições dele voltam
+aos controlos, e o próximo Roll parte dele. O cartão mostra **Base**, e o leitor e o rodapé da janela dizem de que
+passagem está a partir. Cada passagem nova diz de qual veio e mostra o que mudou. **Espaço** toca ou pausa a base.
+
+**Ficar com uma.** As passagens ficam fora dos seus espaços. **Música completa** numa passagem renderiza a música
+inteira com as definições dessa passagem, como um novo take no espaço de onde o Jam foi aberto; antes pergunta. O
+interruptor **Loop rápido** / **Música completa** no topo faz o **Roll** renderizar músicas inteiras em vez de
+passagens. **Editor** (ou **E**) abre uma passagem no editor, e ao fechar o editor volta ao Jam. Um plano ou uma
+renderização que comece lá torna-se um novo take no seu espaço; a passagem fica como estava. **Eliminar** remove uma
+passagem de vez. As passagens ficam até as eliminar, mesmo com o Jam fechado: Definições → Armazenamento lista-as como
+**Passagens do Jam** e pode limpá-las todas.
+
+**Teclas:** **Espaço** toca ou pausa, **E** abre a passagem no editor, **Esc** fecha o Jam.
+
+---
+
 ## Vozes {#voices}
 
 Os chips **Vocal** definem o sexo e o caráter do cantor a escrever no estilo, para a música inteira.

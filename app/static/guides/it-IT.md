@@ -933,6 +933,59 @@ basta: il render di una canzone continua a cantare le parole che riceve.
 
 ---
 
+## Jam {#jam}
+
+Jam serve a provare altre take di un brano che hai già, senza fermare la musica: cambia il suono, l’atmosfera, il
+tempo o la voce, crea una passata breve, ascolta e creane un’altra.
+
+**Aprirlo.** Premi **Jam** nel pannello della take, oppure **J** con una take scelta o in riproduzione. Quella take è
+il **Seed**: sta in cima alla **cronologia dei Roll** e inizia a suonare. Riaprendo Jam sulla stessa take riprendi da
+dove eri rimasto. **Nuova Jam** torna al suono del Seed ed elimina le passate.
+
+**I controlli.**
+
+- **Suono ed elementi** sono le parole che descrivono il suono: generi, strumenti, produzione e ritmo. Fai clic su un
+  chip per aggiungerlo o toglierlo, oppure scrivine uno tuo nel campo di ricerca. Trascina le quattro barre di un
+  elemento per dire quanto conta, da discreta a protagonista. **Scegli uno stile…** prende elementi e tempo da uno stile
+  salvato nell’editor o da uno integrato. La scelta della **LoRA di stile** è quella dell’editor, con le intensità per
+  suono e partitura, e una LoRA addestrata su un corpus mostra i brani che ha imparato: fai clic su uno per prenderne
+  suono e tempo.
+- **Atmosfera** è il riquadro da Scuro a Luminoso e da Calmo a Energico. Più il punto si allontana dal centro, più
+  aggiunge allo stile parole di atmosfera, dinamica e interpretazione, più aggiunge cose da evitare e più il modello
+  vi si attiene.
+- **Tempo**, in battiti al minuto.
+- **Voce**: Strumentale, Femminile, Maschile o una delle tue voci registrate, con fino a tre parole di timbro. Una
+  passata canta le parole del Seed. Un Seed senza parole crea solo brani strumentali.
+
+Sotto i controlli, **Stile inviato** mostra lo stile che un Roll invierà e ciò che evita.
+
+**Fare Roll.** **Roll** crea la passata successiva. Mantiene melodia e accordi della passata da cui parte e li
+renderizza con le tue impostazioni: lo stesso brano con un altro suono. Una passata è un breve estratto; la durata è in
+**Durata di una passata Jam** nelle Impostazioni, sotto Audio, take e stem. La passata in riproduzione va in loop mentre
+si crea la successiva, e la nuova entra in dissolvenza quando è pronta. Il numero su **Roll** dice quante cose hai
+cambiato.
+
+**Plan & Roll** scrive prima un nuovo piano dalle parole del Seed: nuovi accordi, un nuovo groove, una nuova struttura.
+Usalo quando il cambiamento va oltre il suono, come un altro genere o un altro feeling. Richiede più tempo di **Roll** e
+può cambiare molto il brano. Il **Roll** successivo torna a mantenere melodia e accordi.
+
+**Partire da una passata.** Fai clic su una scheda nella cronologia dei Roll per renderla la **Base**. Le sue
+impostazioni tornano nei controlli e il prossimo Roll parte da lei. La scheda mostra **Base**, e il lettore e il fondo
+della finestra dicono da quale passata stai partendo. Ogni nuova passata indica quella da cui viene e mostra cosa è
+cambiato. **Spazio** riproduce o mette in pausa la base.
+
+**Tenerne una.** Le passate restano fuori dai tuoi spazi. **Brano completo** su una passata renderizza l’intero brano
+con le impostazioni di quella passata, come nuova take nello spazio da cui è stata aperta la Jam; prima chiede
+conferma. L’interruttore **Loop rapido** / **Brano completo** in alto fa renderizzare a **Roll** brani interi invece di
+passate. **Editor** (o **E**) apre una passata nell’editor, e chiudendo l’editor torni nella Jam. Un piano o un
+rendering avviato lì diventa una nuova take nel tuo spazio; la passata resta com’era. **Elimina** rimuove una passata
+per sempre. Le passate restano finché non le elimini, anche a Jam chiusa: Impostazioni → Spazio su disco le elenca come
+**Passate Jam** e può svuotarle tutte.
+
+**Tasti:** **Spazio** riproduce o mette in pausa, **E** apre la passata nell’editor, **Esc** chiude Jam.
+
+---
+
 ## Voci {#voices}
 
 I chip **Voce** fissano il sesso e il carattere del cantante scrivendo nello stile, per tutta la canzone.

@@ -933,6 +933,59 @@ genoeg: de render van een nummer zingt nog steeds de woorden die hij krijgt.
 
 ---
 
+## Jam {#jam}
+
+Jam is om andere takes van een nummer dat je al hebt uit te proberen, zonder de muziek te stoppen: verander de
+klank, de sfeer, het tempo of de zanger, maak een korte ronde, luister en maak de volgende.
+
+**Openen.** Druk op **Jam** in het takepaneel, of op **J** als er een take gekozen is of speelt. Die take is de
+**Seed**: hij staat bovenaan in de **Roll-geschiedenis** en begint te spelen. Open je Jam opnieuw op dezelfde take,
+dan ga je verder waar je was. **Nieuwe Jam** gaat terug naar de klank van de Seed en verwijdert de rondes.
+
+**De bediening.**
+
+- **Klank & onderdelen** zijn de woorden die de klank beschrijven: genres, instrumenten, productie en ritme. Klik op
+  een chip om hem toe te voegen of weg te halen, of typ er zelf een in het zoekveld. Sleep de vier balkjes van een
+  onderdeel om te bepalen hoeveel het telt, van subtiel tot leidend. **Een stijl kiezen…** neemt de onderdelen en het
+  tempo over uit een stijl die je in de editor bewaarde of uit een ingebouwde. De keuze voor **Stijl-LoRA** is die
+  van de editor, met de sterktes voor klank en partituur, en een LoRA die uit een corpus is getraind toont de
+  nummers die hij leerde: klik er een aan voor de klank en het tempo van dat nummer.
+- **Sfeer** is het vlak van Donker tot Helder en van Kalm tot Energiek. Hoe verder de stip van het midden, hoe meer
+  woorden voor sfeer, dynamiek en voordracht in de stijl komen, hoe meer er vermeden wordt en hoe strakker het model
+  zich eraan houdt.
+- **Tempo**, in slagen per minuut.
+- **Zang**: Instrumentaal, Vrouw, Man of een van je opgenomen stemmen, met tot drie klankwoorden. Een ronde zingt de
+  tekst van de Seed. Een Seed zonder tekst maakt alleen instrumentale nummers.
+
+Onder de bediening toont **Verstuurde stijl** de stijl die een roll verstuurt, en wat hij vermijdt.
+
+**Rollen.** **Roll** maakt de volgende ronde. Die houdt de melodie en akkoorden van de ronde waarop hij voortbouwt en
+rendert ze met jouw instellingen: hetzelfde nummer met een andere klank. Een ronde is een kort fragment; hoe lang staat
+bij **Lengte van een Jam-ronde** in de instellingen, onder Audio, takes & stems. De ronde die speelt herhaalt zich
+terwijl de volgende wordt gemaakt, en de nieuwe faadt in zodra hij klaar is. Het getal op **Roll** zegt hoeveel je
+hebt veranderd.
+
+**Plan & Roll** schrijft eerst een nieuw plan vanuit de tekst van de Seed: nieuwe akkoorden, een nieuwe groove, een
+nieuwe structuur. Gebruik het als er meer moet veranderen dan de klank, zoals een ander genre of een ander gevoel. Het
+duurt langer dan **Roll** en kan het nummer flink veranderen. De volgende **Roll** houdt de melodie en akkoorden weer.
+
+**Voortbouwen op een ronde.** Klik op een kaart in de Roll-geschiedenis om er de **Basis** van te maken. De
+instellingen ervan gaan terug in de bediening, en de volgende roll bouwt erop voort. De kaart toont **Basis**, en de
+speler en de onderkant van het venster zeggen op welke ronde je voortbouwt. Elke nieuwe ronde noemt de ronde waar hij
+uit komt en toont wat er veranderde. **Spatie** speelt de basis af of pauzeert hem.
+
+**Eén bewaren.** Rondes blijven buiten je ruimtes. **Heel nummer** op een ronde rendert het hele nummer met de
+instellingen van die ronde, als nieuwe take in de ruimte van waaruit de Jam werd geopend; eerst wordt het gevraagd. De
+schakelaar **snelle loop** / **Heel nummer** bovenaan laat **Roll** hele nummers renderen in plaats van rondes.
+**Editor** (of **E**) opent een ronde in de editor, en als je de editor sluit ben je terug in de Jam. Een plan of
+render die je daar start, wordt een nieuwe take in je ruimte; de ronde blijft zoals hij was. **Verwijderen** haalt een
+ronde definitief weg. Rondes blijven tot je ze verwijdert, ook als de Jam dicht is: Instellingen → Opslag toont ze als
+**Jam-rondes** en kan ze allemaal wissen.
+
+**Toetsen:** **Spatie** speelt of pauzeert, **E** opent de ronde in de editor, **Esc** sluit Jam.
+
+---
+
 ## Stemmen {#voices}
 
 De chips **Zang** bepalen het geslacht en het karakter van de zanger door in de stijl te schrijven, voor het hele nummer.

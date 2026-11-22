@@ -1660,7 +1660,7 @@
         vocalExtras +
       '</div>' +
       '<div class="jam-prompt-peek">' +
-        '<strong>Compiled Style \u2192 YuE2' + (vi.cfgScale ? ' \u00B7 CFG ' + vi.cfgScale : '') + '</strong>' +
+        '<strong>' + t('Compiled style \u2192 YuE2') + (vi.cfgScale ? ' \u00B7 CFG ' + vi.cfgScale : '') + '</strong>' +
         '<span id="jam-compiled-style">' + escHtml(compileStyle()) + '</span>' +
         '<span class="jam-prompt-avoid" id="jam-compiled-avoid">' + (vi.avoid ? t('Avoid: {value}', { value: escHtml(vi.avoid) }) : '') + '</span>' +
       '</div>';

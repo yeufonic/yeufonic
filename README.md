@@ -122,6 +122,8 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   Configure Yeufonic to use an external LLM for even greater accuracy.
 - **Song from a prompt.** Write a score plan from style and lyrics, read it, repair it, render it.
   A new plan costs seconds, so a bad melody is cheap to discard.
+- **Jam.** Try other takes of a finished song without stopping the music: change its sound, mood, tempo or
+  singer, roll short passes that keep its melody and chords, and keep the one you like. See [Jam](#jam).
 - **Same tune, new words.** Change the words of a take you like, keep **Keep this tune** ticked,
   and its score is sung with them as a new take with the same seed. A new plan would be a new tune.
 - **Or no score at all.** Mode's *No score* sings the words with no plan: YuE2 writes the tune and the chords as
@@ -221,6 +223,19 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   exists — one request, nothing else leaves the computer. When there is one, a quiet pill beside the
   version and **Check for updates** in the menu offer the installer (Windows) or the two commands
   that update a Docker copy. Either can be switched off in Settings.
+
+## Jam
+
+Jam is for trying other takes of a song you already have, without stopping the music. Open it from a take (**Jam** on
+the take panel, or **J**), and that take is the **Seed**. Change the sound (genres, instruments, production and rhythm,
+each with its own strength, or a saved style or a LoRA), the mood on a Dark to Bright and Calm to Energetic pad, the
+tempo or the singer, and press **Roll**. A short pass keeps the song's melody and chords and plays them with the new
+sound, fading in while the last one loops. **Plan & Roll** writes a new arrangement instead, for a change bigger than
+the sound. Click any pass to build the next one on it, and render the one you like as a full song in your space:
+
+[![Jam](docs/screenshots/jam.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/jam.png)
+
+The [user guide](app/static/guide.md#jam) has the detail.
 
 ## Style LoRAs
 

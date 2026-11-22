@@ -42,6 +42,7 @@ Een webinterface voor [YuE2](https://github.com/multimodal-art-projection/YuE), 
 - **MIDI-import** voor covers en instrumentals, met pianorol en SF2-klanken.
 - **Stijl-LoRA's:** gebruik gepubliceerde, of train met de ComfyUI-engine je eigen uit een map met songs.
 - **Opgenomen stemmen:** train een stem op je eigen zang en laat elke take ermee zingen.
+- **Jam:** probeer andere takes van een nummer dat je al hebt, zonder de muziek te stoppen: verander klank, sfeer, tempo of zanger en maak korte rondes die de melodie en akkoorden houden. Zie **[Jam](app/static/guides/nl-NL.md#jam)**.
 - **Teksten en duetten:** schrijf een tekst vanuit één zin of haal hem uit een opname; regels voor een man, een vrouw of beiden.
 - **Vintage masteringrack en 3D Space:** EQ, compressor en limiter in realtime; ruimtelijk geluid op koptelefoon en 5.1.
 - **Stems en DAW:** splits een take in sporen, of bewaar hem als zip met audio, stems, MIDI en partituur.

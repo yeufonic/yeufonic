@@ -933,6 +933,60 @@ suffit pas : le rendu d’une chanson chante quand même les mots qu’on lui do
 
 ---
 
+## Jam {#jam}
+
+Jam sert à essayer d’autres prises d’une chanson que vous avez déjà, sans arrêter la musique : changez son son, son
+ambiance, son tempo ou sa voix, lancez une passe courte, écoutez, et recommencez.
+
+**L’ouvrir.** Appuyez sur **Jam** dans le panneau de la prise, ou sur **J** quand une prise est choisie ou en lecture.
+Cette prise est le **Seed** : elle se place en haut de l’**historique des Rolls** et se met à jouer. Rouvrir Jam sur
+la même prise reprend là où vous en étiez. **Nouvelle Jam** revient au son du Seed et supprime les passes.
+
+**Les commandes.**
+
+- **Son et éléments** sont les mots qui décrivent le son : genres, instruments, production et rythme. Cliquez sur une
+  pastille pour l’ajouter ou la retirer, ou tapez la vôtre dans le champ de recherche. Faites glisser les quatre
+  barres d’un élément pour dire combien il compte, de discrète à principale. **Choisir un style…** reprend les
+  éléments et le tempo d’un style enregistré dans l’éditeur ou d’un style intégré. Le choix du **LoRA de style** est
+  celui de l’éditeur, avec ses intensités pour le son et la partition, et un LoRA entraîné sur un corpus montre les
+  chansons qu’il a apprises : cliquez sur l’une d’elles pour prendre son son et son tempo.
+- **Ambiance** est le pavé qui va de Sombre à Lumineux et de Calme à Énergique. Plus le point s’éloigne du milieu,
+  plus il ajoute au style des mots d’ambiance, de dynamique et d’interprétation, plus il ajoute de choses à éviter, et
+  plus le modèle s’y tient.
+- **Tempo**, en battements par minute.
+- **Chant** : Instrumental, Féminin, Masculin ou l’une de vos voix enregistrées, avec jusqu’à trois mots de timbre.
+  Une passe chante les paroles du Seed. Un Seed sans paroles ne donne que des instrumentaux.
+
+Sous les commandes, **Style envoyé** montre le style qu’un Roll enverra, et ce qu’il évite.
+
+**Lancer un Roll.** **Roll** crée la passe suivante. Il garde la mélodie et les accords de la passe dont il part et les
+rend avec vos réglages : la même chanson avec un autre son. Une passe est un court extrait ; sa durée se règle avec
+**Durée d’une passe Jam** dans les Paramètres, sous Audio, prises et stems. La passe en cours tourne en boucle pendant que
+la suivante se prépare, et la nouvelle arrive en fondu dès qu’elle est prête. Le nombre sur **Roll** indique combien de
+choses vous avez changées.
+
+**Plan & Roll** écrit d’abord un nouveau plan à partir des paroles du Seed : nouveaux accords, nouveau groove, nouvelle
+structure. Servez-vous-en quand le changement dépasse le son, comme un autre genre ou une autre sensation. C’est plus
+long que **Roll** et cela peut beaucoup changer la chanson. Le **Roll** suivant garde de nouveau la mélodie et les
+accords.
+
+**Partir d’une passe.** Cliquez sur une carte de l’historique des Rolls pour en faire la **Base**. Ses réglages
+reviennent dans les commandes, et le prochain Roll part d’elle. La carte affiche **Base**, et le lecteur et le bas de
+la fenêtre indiquent de quelle passe vous partez. Chaque nouvelle passe nomme celle dont elle vient et montre ce qui a
+changé. **Espace** lit la base ou la met en pause.
+
+**En garder une.** Les passes restent hors de vos espaces. **Chanson entière** sur une passe fait le rendu de toute la
+chanson avec les réglages de cette passe, comme nouvelle prise dans l’espace d’où la Jam a été ouverte ; une
+confirmation est demandée. L’interrupteur **Boucle rapide** / **Chanson entière** en haut fait rendre à **Roll** des
+chansons entières au lieu de passes. **Éditeur** (ou **E**) ouvre une passe dans l’éditeur, et fermer l’éditeur vous
+ramène dans la Jam. Un plan ou un rendu lancé là-bas devient une nouvelle prise dans votre espace ; la passe reste
+telle quelle. **Supprimer** retire une passe définitivement. Les passes restent jusqu’à ce que vous les supprimiez,
+même une fois la Jam fermée : Paramètres → Stockage les liste comme **Passes Jam** et peut toutes les vider.
+
+**Touches :** **Espace** lit ou met en pause, **E** ouvre la passe dans l’éditeur, **Échap** ferme Jam.
+
+---
+
 ## Voix {#voices}
 
 Les puces **Chant** fixent le sexe et le caractère du chanteur en écrivant dans le style, pour toute la chanson.

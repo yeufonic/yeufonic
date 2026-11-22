@@ -2241,6 +2241,7 @@
  "No vocals": "ボーカルなし",
  "Sings the Seed’s words": "シードの歌詞を歌います",
  "No ready recorded voices yet": "使える録音ボイスはまだありません",
+ "Compiled style → YuE2": "送信されるスタイル → YuE2",
  "Avoid: {value}": "避ける：{value}",
  "Rolling {progress}%": "Roll 中 {progress}%",
  "Playing": "再生中",
