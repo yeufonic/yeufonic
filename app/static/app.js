@@ -14371,17 +14371,17 @@ function takeKey(event) {
     toggleHotkeys();
     return true;
   }
-  if (key.length !== 1 || 'meivntsd'.indexOf(key) < 0) { return false; }
+  if (key.length !== 1 || 'meivntsdj'.indexOf(key) < 0) { return false; }
   if (key === 'v' && !event.shiftKey) { return false; }     // V alone is the visualizer; Shift+V is Variations
-  // In playlist view, ignore any take-specific hot keys apart from M for Mastering:
-  if (State.activeView === 'playlists' && key !== 'm') {
+  // In playlist view, ignore any take-specific hot keys apart from M for Mastering and J for Jam:
+  if (State.activeView === 'playlists' && key !== 'm' && key !== 'j') {
     return false;
   }
   var take = null;
   if (State.activeView === 'playlists') {
     take = State.loadedTake || (State.playing ? (takeById(State.playing) || (State.activePlaylist && State.activePlaylist.items ? State.activePlaylist.items.filter(function (t) { return t.id === State.playing; })[0] : null)) : null) || takeById(selectedTakeId());
   } else {
-    take = takeById(selectedTakeId());
+    take = takeById(selectedTakeId()) || (State.playing ? takeById(State.playing) : null);
   }
   if (!take) {
     if (State.activeView !== 'playlists') {
@@ -14391,6 +14391,11 @@ function takeKey(event) {
   }
   var scored = take.abc && take.abc.length > 50 && take.status !== 'queued' && take.status !== 'running';
   var says = function (why) { statusLine(why, 'bad'); return true; };
+  if (key === 'j') {
+    if (!take.has_audio) { return says(t('This take has no sound yet.')); }
+    if (window.Jam) { window.Jam.openFromTake(take); }
+    return true;
+  }
   if (key === 'm') {
     if (window.Rack && window.Rack.isOpen && String(window.Rack.currentTakeId) === String(take.id)) { window.Rack.toggle(false); return true; }
     runTakeAction('mastering', take.id, t('open the mastering rack'));
@@ -17923,7 +17928,7 @@ function sheetHTML(take) {
   html += '<div class="acts"><button type="button" class="primary tone-' + kind + '" data-sheet="' +
     (take.status === 'planned' ? 'score' : 'edit') + '">' + main + '</button>' +
     (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-play-btn' + (isPlayingThis ? ' is-playing' : '') + '" data-sheet="play">' + playBtnSvg + '<span>' + (isPlayingThis ? t('Pause') : t('Play')) + '</span></button>' : '') +
-    (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-jam-btn" data-sheet="jam" title="Open this take in Jam to roll iterative variations">' + jamBtnSvg + '<span>Jam</span></button>' : '') +
+    (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-jam-btn" data-sheet="jam" title="Open this take in Jam (J)">' + jamBtnSvg + '<span>Jam</span></button>' : '') +
     '</div>';
 
   if (kind === 'cover') {

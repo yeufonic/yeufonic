@@ -1739,10 +1739,5 @@
 
   function isOpen() { return JamState.open; }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    var navBtn = document.getElementById('btn-open-jam');
-    if (navBtn) { navBtn.addEventListener('click', open); }
-  });
-
   window.Jam = { open: open, openFromTake: openFromTake, close: close, isOpen: isOpen, handleKey: handleKey };
 })();
