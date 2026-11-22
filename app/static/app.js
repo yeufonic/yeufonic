@@ -17557,6 +17557,7 @@ function wire() {
         }
       }
     }
+    if (event.key === 'Escape' && window.Jam && window.Jam.isOpen()) { window.Jam.close(); return; }
     if (event.key === 'Escape' && window.Visualizer && window.Visualizer.isOpen) { window.Visualizer.toggle(false); return; }
     if (event.key === 'Escape' && $('playlist-picker-modal') && !$('playlist-picker-modal').classList.contains('hidden')) { closePlaylistPicker(); return; }
     if (event.key === 'Escape' && $('playlist-edit-modal') && !$('playlist-edit-modal').classList.contains('hidden')) { closePlaylistEditModal(); return; }
@@ -17914,6 +17915,7 @@ function sheetHTML(take) {
   html += '<div class="acts"><button type="button" class="primary tone-' + kind + '" data-sheet="' +
     (take.status === 'planned' ? 'score' : 'edit') + '">' + main + '</button>' +
     (take.has_audio ? '<button type="button" class="ghost" data-sheet="play">' + (State.playing === take.id ? t('Pause') : t('Play')) + '</button>' : '') +
+    (take.has_audio ? '<button type="button" class="ghost" data-sheet="jam" title="Open this take in Jam to roll iterative variations">Jam</button>' : '') +
     '</div>';
 
   if (kind === 'cover') {
@@ -18219,6 +18221,7 @@ function wireEditor() {
     var take = sheetTake();
     var act = button.dataset.sheet;
     if (act === 'play' && take) { togglePlay(take.id); setTimeout(paintSheet, 300); return; }
+    if (act === 'jam' && take && window.Jam) { window.Jam.openFromTake(take); return; }
     openEditor(act === 'edit' ? 'song' : act);
   });
   $('editor-close').addEventListener('click', closeEditor);

@@ -1128,6 +1128,26 @@ class SongIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     mode: str | None = None
 
 
+class JamRollIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
+    title: str | None = Field(None, max_length=200)
+    space_id: str = Field(DEFAULT_SPACE, max_length=64)
+    parent_id: str | None = Field(None, max_length=64)
+    base_take_id: str | None = Field(None, max_length=64)
+    lock_score: bool = False
+    instrumental: bool = True
+    style: str = Field(config.DEFAULT_STYLE, max_length=2000)
+    lyrics: str = Field("", max_length=20_000)
+    brief: str | None = Field(None, max_length=1000)
+    structure: str = Field("", max_length=4000)
+    seed: int | None = Field(None, ge=0, le=MAX_SEED)
+    max_duration: float = Field(40.0, ge=10, le=900)
+    interpretation: str = "standard"
+    variety: str = "normal"
+    harmony: int = Field(1, ge=0, le=len(HARMONY_STEPS) - 1)
+    realaudio: bool = True
+    normalise: bool = True
+
+
 def _style_lora_of(body) -> dict:
     """The style LoRA a create request asked for.  Both strengths are kept even
     when the name is empty, so an interrupted choice does not leave a take
@@ -2938,6 +2958,94 @@ async def create_instrumental(body: InstrumentalIn) -> dict:
         return await _instrumental_from_recording(body)
     title = (body.title or "").strip() or "Untitled instrumental"
     return await _plan_new_take("instrumental", title, structure, body)
+
+
+@app.post("/api/jam/roll")
+async def jam_roll(body: JamRollIn) -> dict:
+    """Create and queue a new Jam pass — either score-locked (skipping planning for fast
+    vibe/arrangement re-rolls) or freshly planned and auto-rendered."""
+    _gpu_free_for_rendering()
+    _writable_space(body.space_id)
+    _check_harmony(body.harmony)
+    kind = "instrumental" if body.instrumental else "song"
+    if kind == "instrumental" and ENGINE.options_loaded and not ENGINE.options.get("instrumental"):
+        raise HTTPException(400, f"The engine cannot make instrumentals: it needs {config.INSTRUMENTAL_LORA} "
+                                 "in models/loras. Run scripts/fetch-models.sh.")
+
+    base_take = one("SELECT * FROM takes WHERE id = ?", (body.base_take_id,)) if body.base_take_id else None
+    locked_abc = ""
+    if body.lock_score and base_take and (base_take.get("abc") or "").strip():
+        locked_abc = base_take["abc"]
+        if kind == "instrumental":
+            locked_abc = _unsung(locked_abc)
+        elif body.lyrics.strip() and ("V: Vocal" in locked_abc or "V:Vocal" in locked_abc):
+            try:
+                locked_abc = aligner.align_lyrics_to_abc(locked_abc, body.lyrics)
+            except Exception as exc:
+                log.warning("Jam: could not align lyrics to locked score: %s", exc)
+        _check_score(locked_abc, kind)
+
+    if kind == "song" and not body.lyrics.strip():
+        raise HTTPException(400, "Add lyrics or pick a lyric theme before rolling a vocal pass.")
+
+    if kind == "instrumental":
+        if locked_abc:
+            words = instrumental.structure_of(locked_abc)
+        else:
+            raw_struct = body.structure.strip() or ("[intro] 8\n[verse] 16" if body.max_duration <= 60 else "")
+            try:
+                words = instrumental.normalise(raw_struct)
+            except ValueError as exc:
+                raise HTTPException(400, f"That structure will not work: {exc}") from exc
+        title = (body.title or "").strip() or "Jam Pass"
+    else:
+        words = body.lyrics.strip()
+        title = (body.title or "").strip() or guess_title(words) or "Jam Pass"
+
+    adv = _advanced_of(body)
+    parent_id = _parent_for(body.parent_id, body.space_id) if body.parent_id else None
+    seed = body.seed if body.seed is not None else int.from_bytes(os.urandom(4), "big")
+    record = {
+        "id": uuid.uuid4().hex[:12],
+        "kind": kind,
+        "source_id": base_take.get("source_id") if (locked_abc and base_take) else None,
+        "abc": _locked_score(locked_abc, adv) if locked_abc else "",
+        "title": title,
+        "style": body.style.strip() or config.DEFAULT_STYLE,
+        "lyrics": words,
+        "brief": (body.brief or "").strip() or None,
+        "mode": "full",
+        "seed": seed,
+        "checkpoint": _checkpoint(),
+        "max_duration": body.max_duration,
+        "cap_typed": 1,
+        "created_at": time.time(),
+        "auto_render": 0 if locked_abc else 1,
+        "variety": body.variety if body.variety in PLAN_VARIETY else "normal",
+        "harmony": body.harmony,
+        "space_id": body.space_id,
+        "parent_id": parent_id,
+        "interpretation": _interpretation(body.interpretation),
+        "feel": "steady",
+        "realaudio": 1 if body.realaudio else 0,
+        "normalise": 1 if body.normalise else 0,
+        "identity_id": body.identity_id or body.persona_id,
+        "persona_id": body.identity_id or body.persona_id,
+        "voice_id": None if kind == "instrumental" else body.voice_id,
+        "voice_mix": _voice_mix(body.voice_mix),
+        "voice_lora": body.voice_lora,
+        "voice_lora_strength": body.voice_lora_strength,
+        "voice_lora_clip": body.voice_lora_clip,
+        **_style_lora_of(body),
+        **adv,
+        "hook_abc": None,
+        "hook_section": None,
+    }
+    _insert_new_take(record)
+    stage = "render" if locked_abc else "plan"
+    await queue_take(stage, record["id"])
+    log.info("Queued Jam %s (%s, kind=%s, locked=%s, cap=%.0fs)", stage, record["id"], kind, bool(locked_abc), body.max_duration)
+    return {**record, "status": "queued"}
 
 
 def _unsung(abc: str) -> str:

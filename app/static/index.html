@@ -94,6 +94,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
       <span>Playlists</span>
     </button>
+    <button type="button" class="view-switch-btn jam-nav-btn" id="btn-open-jam" title="Open Jam — roll iterative variations live">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+      <span>Jam</span>
+    </button>
   </nav>
   <div class="topbar-right">
     <span id="gpu-stat" class="version system-stat hidden" title="GPU usage">
@@ -1920,6 +1924,10 @@
   <audio id="audio" preload="metadata"></audio>
 </div>
 
+<div id="jam-modal" class="modal jam-modal hidden" role="dialog" aria-modal="true" aria-label="Jam">
+  <div class="modal-box jam-shell" id="jam-shell"></div>
+</div>
+
 <script>I18N.translateDom(document.body);</script>
 <script src="/static/abcjs-basic-min.js?v={{VERSION}}"></script>
 <script src="/static/pianoroll.js?v={{VERSION}}"></script>
@@ -1929,5 +1937,6 @@
 <script src="/static/visualizer.js?v={{VERSION}}"></script>
 <script src="/static/recorder.js?v={{VERSION}}"></script>
 <script src="/static/app.js?v={{VERSION}}"></script>
+<script src="/static/jam.js?v={{VERSION}}"></script>
 </body>
 </html>
