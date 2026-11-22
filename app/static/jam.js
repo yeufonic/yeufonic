@@ -156,13 +156,149 @@
     'Freedom': '[Verse]\nOpen highway and the windows down\nLeaving the weight of a crowded town\n\n[Chorus]\nWind in the pines and a wide blue sky\nNothing to prove, just letting it fly'
   };
 
-  // 4x4 grid of moods across X (Dark->Bright) and Y (Calm->Energetic)
+  // 4x4 grid of moods across X (Dark->Bright) and Y (Calm->Energetic), with concrete
+  // tonal, dynamic, arrangement, vocal, and avoid cues so Vibe shifts are audibly distinct.
   var VIBE_GRID = [
-    // y=0 (Calm) .. y=3 (Energetic)
-    ['Somber',     'Melancholic', 'Peaceful',   'Serene'],
-    ['Sad',        'Mellow',      'Warm',       'Dreamy'],
-    ['Moody',      'Tense',       'Groovy',     'Uplifting'],
-    ['Fierce',     'Driven',      'Vibrant',    'Euphoric']
+    // y=0 (Calm)
+    [
+      {
+        word: 'Somber',
+        cue: 'somber dark melancholic mood, minor key, slow sparse quiet arrangement, solemn brooding atmosphere, subdued soft dynamics',
+        vocal: 'solemn hushed subdued',
+        avoid: 'upbeat, bright, cheerful, energetic, loud, driving drums, euphoric',
+        harmony: 0,
+        interpretation: 'settled'
+      },
+      {
+        word: 'Melancholic',
+        cue: 'melancholic bittersweet mood, minor key, gentle sparse slow arrangement, wistful delicate soft dynamics',
+        vocal: 'wistful soft emotional',
+        avoid: 'upbeat, cheerful, aggressive, loud, energetic, driving drums',
+        harmony: 1,
+        interpretation: 'settled'
+      },
+      {
+        word: 'Peaceful',
+        cue: 'peaceful tranquil calm mood, warm major key, gentle unhurried airy arrangement, soft relaxed dynamics',
+        vocal: 'calm gentle soft',
+        avoid: 'aggressive, harsh, loud, dark, heavy, tense, fast drums',
+        harmony: 1,
+        interpretation: 'settled'
+      },
+      {
+        word: 'Serene',
+        cue: 'serene bright luminous calm mood, major key, airy delicate floating arrangement, crystalline spacious soft dynamics',
+        vocal: 'airy gentle serene',
+        avoid: 'dark, heavy, aggressive, loud, tense, distorted, gloomy',
+        harmony: 1,
+        interpretation: 'settled'
+      }
+    ],
+    // y=1 (Calm-Mid)
+    [
+      {
+        word: 'Sad',
+        cue: 'sad dark aching mood, minor key, stripped-back intimate arrangement, heavy-hearted low-key dynamics',
+        vocal: 'vulnerable sad intimate',
+        avoid: 'cheerful, happy, upbeat, party, energetic, bright',
+        harmony: 1,
+        interpretation: 'settled'
+      },
+      {
+        word: 'Mellow',
+        cue: 'mellow laid-back cool mood, warm relaxed groove, smooth understated dynamics',
+        vocal: 'relaxed smooth laid-back',
+        avoid: 'aggressive, frantic, harsh, loud, chaotic',
+        harmony: 1,
+        interpretation: 'standard'
+      },
+      {
+        word: 'Warm',
+        cue: 'warm comforting heartfelt mood, rich major harmony, inviting organic arrangement, balanced smooth dynamics',
+        vocal: 'warm expressive heartfelt',
+        avoid: 'cold, harsh, aggressive, gloomy, chaotic',
+        harmony: 1,
+        interpretation: 'standard'
+      },
+      {
+        word: 'Dreamy',
+        cue: 'dreamy bright ethereal shimmering mood, lush major seventh harmony, floating hazy sparkling atmosphere',
+        vocal: 'dreamy airy silky',
+        avoid: 'aggressive, harsh, dry, heavy metal, angry, dark',
+        harmony: 2,
+        interpretation: 'standard'
+      }
+    ],
+    // y=2 (Mid-Energetic)
+    [
+      {
+        word: 'Moody',
+        cue: 'moody dark brooding noir mood, minor key, shadowed pulsing groove, atmospheric tension',
+        vocal: 'brooding moody dark',
+        avoid: 'cheerful, bright, bubblegum, sunny, happy',
+        harmony: 2,
+        interpretation: 'restless'
+      },
+      {
+        word: 'Tense',
+        cue: 'tense suspenseful dramatic mood, dark minor tension, tight urgent pulsing rhythm, edgy restless dynamics',
+        vocal: 'urgent tense edgy',
+        avoid: 'peaceful, relaxed, cheerful, sunny, sleepy, mellow',
+        harmony: 2,
+        interpretation: 'restless'
+      },
+      {
+        word: 'Groovy',
+        cue: 'groovy upbeat infectious mood, lively tight rhythmic pocket, bouncy energetic feel, bright punchy mix',
+        vocal: 'confident lively soulful',
+        avoid: 'somber, slow, sluggish, gloomy, sparse, sleepy',
+        harmony: 2,
+        interpretation: 'standard'
+      },
+      {
+        word: 'Uplifting',
+        cue: 'uplifting bright hopeful mood, soaring major key, radiant energetic arrangement, crisp driving rhythm, joyful lift',
+        vocal: 'bright uplifting soaring',
+        avoid: 'somber, dark, sad, gloomy, depressing, slow, sparse',
+        harmony: 2,
+        interpretation: 'wide'
+      }
+    ],
+    // y=3 (Energetic)
+    [
+      {
+        word: 'Fierce',
+        cue: 'fierce dark aggressive intense mood, minor key, heavy hard-hitting driving drums, gritty raw loud high-energy dynamics',
+        vocal: 'fierce gritty powerful intense',
+        avoid: 'calm, gentle, peaceful, cheerful, soft, sparse, mellow',
+        harmony: 2,
+        interpretation: 'restless'
+      },
+      {
+        word: 'Driven',
+        cue: 'driven urgent relentless high-energy mood, punchy propulsive beat, forceful intense momentum, loud dynamic push',
+        vocal: 'commanding urgent powerful',
+        avoid: 'calm, slow, sleepy, sparse, gentle, peaceful',
+        harmony: 2,
+        interpretation: 'restless'
+      },
+      {
+        word: 'Vibrant',
+        cue: 'vibrant bright exhilarating high-energy mood, major key, punchy kinetic danceable rhythm, vivid full-bodied dynamics',
+        vocal: 'energetic bright lively',
+        avoid: 'somber, dark, slow, gloomy, sparse, muted, quiet',
+        harmony: 2,
+        interpretation: 'wide'
+      },
+      {
+        word: 'Euphoric',
+        cue: 'euphoric ecstatic joyous anthemic mood, bright major key, soaring high-energy full lush arrangement, driving punchy drums, explosive radiant dynamics',
+        vocal: 'soaring ecstatic joyful powerful',
+        avoid: 'somber, dark, sad, slow, sparse, quiet, melancholic, subdued',
+        harmony: 2,
+        interpretation: 'wide'
+      }
+    ]
   ];
 
   var LEVEL_LABELS = { 1: 'Subtle', 2: 'Normal', 3: 'Prominent', 4: 'Lead' };
@@ -529,35 +665,51 @@
   function vibeInfo(v) {
     var xi = Math.max(0, Math.min(3, Math.floor(v.x * 3.999)));
     var yi = Math.max(0, Math.min(3, Math.floor(v.y * 3.999)));
-    var word = VIBE_GRID[yi][xi];
+    var cell = VIBE_GRID[yi][xi];
     var xWord = v.x < 0.38 ? 'Dark' : (v.x > 0.62 ? 'Bright' : 'Balanced');
     var yWord = v.y < 0.38 ? 'Calm' : (v.y > 0.62 ? 'Energetic' : 'Mid-energy');
-    var harmony = yi >= 2 && xi <= 1 ? 2 : (yi >= 3 ? 2 : 1);
-    var interpretation = yi >= 3 ? 'wide' : (yi === 0 && xi <= 1 ? 'settled' : 'standard');
-    return { word: word, xWord: xWord, yWord: yWord, harmony: harmony, interpretation: interpretation };
+    var dist = Math.hypot(v.x - 0.5, v.y - 0.5);
+    // Boost CFG style adherence smoothly as the puck moves away from center so mood shifts
+    // genuinely reshape timbre, dynamics and delivery even when the score is locked.
+    var cfgScale = dist < 0.22
+      ? null
+      : Math.round((1.2 + Math.min(1, (dist - 0.22) / 0.44) * 0.45) * 100) / 100;
+    return {
+      word: cell.word,
+      cue: cell.cue,
+      vocal: cell.vocal,
+      avoid: dist >= 0.18 ? cell.avoid : null,
+      xWord: xWord,
+      yWord: yWord,
+      dist: dist,
+      cfgScale: cfgScale,
+      harmony: cell.harmony,
+      interpretation: cell.interpretation
+    };
   }
 
   function compileStyle(snap) {
     var s = snap || JamState;
-    // Higher-level parts go first so YuE2 weights them more strongly.
-    var sorted = s.parts.slice().sort(function (a, b) { return b.level - a.level; });
-    var tokens = sorted.map(function (p) {
-      if (p.level >= 4) { return 'lead ' + p.name.toLowerCase() + ' focus'; }
-      if (p.level === 3) { return 'prominent ' + p.name.toLowerCase(); }
-      if (p.level === 1) { return 'subtle ' + p.name.toLowerCase(); }
-      return p.name.toLowerCase();
-    });
     var vi = vibeInfo(s.vibe);
-    var mood = [vi.word.toLowerCase()];
-    if (vi.xWord !== 'Balanced') { mood.push(vi.xWord.toLowerCase()); }
-    if (vi.yWord !== 'Mid-energy') { mood.push(vi.yWord.toLowerCase()); }
-    tokens.push(mood.join(' ') + ' mood');
+    var tokens = [];
+    // Lead with concrete musical, tonal & dynamic descriptors so YuE2 weights Vibe strongly.
+    if (vi.cue) { tokens.push(vi.cue); }
+    // Higher-level parts go next so YuE2 weights them strongly alongside the mood.
+    var sorted = s.parts.slice().sort(function (a, b) { return b.level - a.level; });
+    sorted.forEach(function (p) {
+      if (p.level >= 4) { tokens.push('lead ' + p.name.toLowerCase() + ' focus'); }
+      else if (p.level === 3) { tokens.push('prominent ' + p.name.toLowerCase()); }
+      else if (p.level === 1) { tokens.push('subtle ' + p.name.toLowerCase()); }
+      else { tokens.push(p.name.toLowerCase()); }
+    });
 
     if (s.vocals === 'instrumental') {
       tokens.push('instrumental');
     } else {
       var vLabel = s.vocals === 'male' ? 'male vocal' : (s.vocals === 'female' ? 'female vocal' : 'lead vocal');
-      var tonePrefix = s.tones.length ? s.tones.map(function (t) { return t.toLowerCase(); }).join(', ') + ' ' : '';
+      var toneBits = s.tones.map(function (t) { return t.toLowerCase(); });
+      if (vi.vocal && vi.dist >= 0.22) { toneBits.unshift(vi.vocal); }
+      var tonePrefix = toneBits.length ? toneBits.join(', ') + ' ' : '';
       tokens.push(tonePrefix + vLabel);
     }
     if (s.bpm) { tokens.push(s.bpm + ' BPM'); }
@@ -829,6 +981,8 @@
       target_bpm: snap.bpm,
       harmony: vi.harmony,
       interpretation: vi.interpretation,
+      avoid: vi.avoid,
+      cfg_scale: vi.cfgScale,
       sampler_steps: isFullSong ? 32 : 24,
       realaudio: true,
       normalise: true,
@@ -1062,7 +1216,7 @@
     var hasPlayable = JamState.passes.some(function (p) { return p.hasAudio; });
 
     el.innerHTML =
-      '<span class="jam-foot-hint muted small">Space to play / pause \u00B7 Esc to close</span>' +
+      '<span class="jam-foot-hint muted small">Space to play / pause \u00B7 E to edit active pass \u00B7 Esc to close</span>' +
       '<div class="jam-foot-actions">' +
         (JamState.passes.length ? '<button type="button" class="jam-sec-btn" data-jam-act="reset-jam" title="Start a fresh Jam session">New Jam</button>' : '') +
         (hasPlayable && JamState.fastLoop ? '<button type="button" class="jam-sec-btn" data-jam-act="render-full" title="Render a full-length song as a take in your space"' + (cooking ? ' disabled' : '') + '>Render Full Song</button>' : '') +
@@ -1300,7 +1454,7 @@
           '<div class="jam-vibe-box">' +
             '<div class="jam-kicker"><span>Vibe</span><span style="color:var(--cover-a)">' + escHtml(vi.xWord) + ' \u00B7 ' + escHtml(vi.yWord) + '</span></div>' +
             '<div class="jam-vibe-word" id="jam-vibe-word">' + escHtml(vi.word) + '</div>' +
-            '<div class="jam-vibe-hint">Drag pad to shape mood &amp; harmony</div>' +
+            '<div class="jam-vibe-hint">' + (JamState.lockScore ? 'Score locked \u2014 shapes sound &amp; dynamics (unlock Score for new chords)' : 'Shapes key, chords, arrangement &amp; dynamics') + '</div>' +
           '</div>' +
           '<div class="jam-tempo-box">' +
             '<div class="jam-kicker"><span>Tempo</span><span class="jam-bpm-val" id="jam-bpm-val">' + JamState.bpm + ' BPM</span></div>' +
@@ -1320,8 +1474,9 @@
         vocalExtras +
       '</div>' +
       '<div class="jam-prompt-peek">' +
-        '<strong>Compiled Style \u2192 YuE2</strong>' +
+        '<strong>Compiled Style \u2192 YuE2' + (vi.cfgScale ? ' \u00B7 CFG ' + vi.cfgScale : '') + '</strong>' +
         '<span id="jam-compiled-style">' + escHtml(compileStyle()) + '</span>' +
+        '<span class="jam-prompt-avoid" id="jam-compiled-avoid">' + (vi.avoid ? 'Avoid: ' + escHtml(vi.avoid) : '') + '</span>' +
       '</div>';
 
     if (lyricsFocused && document.getElementById('jam-lyrics-box')) {
@@ -1393,7 +1548,8 @@
             ? '<span class="jam-seed-tag">Seed</span>'
             : '<span class="jam-hist-num">Pass #' + p.num + '</span>';
 
-          return '<div class="jam-hist-card' + (seed ? ' is-seed' : '') + (isActive ? ' active' : '') + (isPlaying ? ' playing' : '') + (isCooking ? ' cooking' : '') + '">' +
+          var isTake = isSpaceTake(p);
+          return '<div class="jam-hist-card' + (isTake ? ' is-take' : '') + (seed ? ' is-seed' : '') + (isActive ? ' active' : '') + (isPlaying ? ' playing' : '') + (isCooking ? ' cooking' : '') + '">' +
             '<div class="jam-hist-top">' +
               '<span class="jam-hist-name">' + tagHtml + ' ' + escHtml(p.title) + '</span>' +
               statePill +
@@ -1440,6 +1596,11 @@
   function updateCompiledPreview() {
     var el = document.getElementById('jam-compiled-style');
     if (el) { el.textContent = compileStyle(); }
+    var av = document.getElementById('jam-compiled-avoid');
+    if (av) {
+      var vi = vibeInfo(JamState.vibe);
+      av.textContent = vi.avoid ? ('Avoid: ' + vi.avoid) : '';
+    }
   }
 
   function onShellClick(event) {
@@ -1469,6 +1630,7 @@
       if (!readyBaseTakeWithScore()) { return; }
       JamState.lockScore = !JamState.lockScore;
       paintTopbar();
+      paintFeelCol();
       return;
     }
     if (act === 'palette-tab') {
@@ -1607,6 +1769,14 @@
     if (event.code === 'Space') {
       JamAudio.toggle();
       return true;
+    }
+    if (!event.ctrlKey && !event.metaKey && !event.altKey && (event.key === 'e' || event.key === 'E')) {
+      var activePass = JamState.passes.find(function (p) { return p.id === JamAudio.currentId; }) ||
+        JamState.passes.find(function (p) { return p.hasAudio; });
+      if (activePass && activePass.id) {
+        openPassInEditor(activePass.id);
+        return true;
+      }
     }
     return false;
   }

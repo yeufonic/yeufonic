@@ -8194,6 +8194,8 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   font-size: 11.5px; line-height: 1.45; color: var(--muted);
 }
 .jam-prompt-peek strong { color: var(--text); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
+.jam-prompt-avoid { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); opacity: 0.85; }
+.jam-prompt-avoid:empty { display: none; }
 
 /* Roll History */
 .jam-hist-list { display: flex; flex-direction: column; gap: 10px; padding: 4px; overflow-y: auto; }
@@ -8202,7 +8204,26 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   position: relative; padding: 10px 12px; border-radius: 11px; background: var(--card); border: 1px solid var(--line);
   display: flex; flex-direction: column; gap: 6px; transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.jam-hist-card.active { background: rgb(var(--accent-a-rgb) / 0.12); border-color: rgb(var(--accent-a-rgb) / 0.52); }
+.jam-hist-card.is-take {
+  background: color-mix(in srgb, var(--good) 10%, var(--card));
+  border-color: rgb(var(--good-rgb) / 0.36);
+}
+:root[data-theme="light"] .jam-hist-card.is-take {
+  background: color-mix(in srgb, var(--good) 8%, var(--card));
+  border-color: rgb(var(--good-rgb) / 0.38);
+}
+.jam-hist-card.is-seed {
+  background: color-mix(in srgb, var(--song-a) 10%, var(--card));
+  border-color: rgb(var(--song-a-rgb) / 0.38);
+  margin-bottom: 4px;
+}
+:root[data-theme="light"] .jam-hist-card.is-seed {
+  background: color-mix(in srgb, var(--song-a) 8%, var(--card));
+  border-color: rgb(var(--song-a-rgb) / 0.4);
+}
+.jam-hist-card.active { background: rgb(var(--accent-a-rgb) / 0.14); border-color: rgb(var(--accent-a-rgb) / 0.55); }
+.jam-hist-card.is-take.active { background: color-mix(in srgb, var(--good) 11%, rgb(var(--accent-a-rgb) / 0.14)); }
+.jam-hist-card.is-seed.active { background: color-mix(in srgb, var(--song-a) 11%, rgb(var(--accent-a-rgb) / 0.14)); }
 .jam-hist-card.active::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 99px; background: var(--accent-a); }
 .jam-hist-card.playing {
   --take-edge: rgb(var(--accent-a-rgb) / 0.55);
@@ -8214,7 +8235,6 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   .jam-hist-card.playing { animation: none; border-color: rgb(var(--good-rgb) / 0.85); box-shadow: 0 0 0 2px rgb(var(--good-rgb) / 0.85); }
 }
 :root[data-theme="contrast"] .jam-hist-card.playing { animation: none; box-shadow: 0 0 0 3px #4ade80; }
-.jam-hist-card.is-seed { border-color: rgb(var(--song-a-rgb) / 0.35); margin-bottom: 4px; }
 .jam-seed-tag {
   display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700;
   letter-spacing: 0.03em; text-transform: uppercase; margin-right: 4px;
