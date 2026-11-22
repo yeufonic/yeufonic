@@ -1367,7 +1367,7 @@
             ? '<span class="jam-seed-tag">Seed</span>'
             : '<span class="jam-hist-num">Pass #' + p.num + '</span>';
 
-          return '<div class="jam-hist-card' + (seed ? ' is-seed' : '') + (isActive ? ' playing' : '') + (isCooking ? ' cooking' : '') + '">' +
+          return '<div class="jam-hist-card' + (seed ? ' is-seed' : '') + (isActive ? ' active' : '') + (isPlaying ? ' playing' : '') + (isCooking ? ' cooking' : '') + '">' +
             '<div class="jam-hist-top">' +
               '<span class="jam-hist-name">' + tagHtml + ' ' + escHtml(p.title) + '</span>' +
               statePill +
