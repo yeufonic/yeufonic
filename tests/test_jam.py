@@ -35,8 +35,12 @@ def test_a_pass_is_hidden_and_remembers_its_jams_space(client):
 
 def test_a_full_song_is_a_take_in_the_jams_space(client):
     space = client.post("/api/spaces", json={"name": "Ideas"}).json()
-    made = roll(client, space_id=space["id"], snippet=False, max_duration=210)
+    made = roll(client, space_id=space["id"], snippet=False, max_duration=360)
     assert where(made["id"]) == {"space_id": space["id"], "parent_id": None, "trashed_from": None}
+    # its cap is Settings', which a longer score raises; a pass's length is Jam's
+    assert made["cap_typed"] == 0 and made["lyrics"] == "[instrumental]"
+    short = roll(client, max_duration=90)
+    assert short["cap_typed"] == 1 and short["max_duration"] == 90 and short["lyrics"] == "[intro]\n[verse]"
     assert client.post("/api/jam/roll", json={"snippet": False, "space_id": TRASH_SPACE}).status_code == 400
     assert client.post("/api/jam/roll", json={"snippet": False, "space_id": JAM_SPACE}).status_code == 400
 
@@ -143,3 +147,27 @@ def test_rock_and_roll_plans_again_and_a_roll_keeps_the_seeds_score(client):
     # a structure the planner cannot follow is planned freely, not refused
     loose = roll(client, structure="[interlude]\n[verse]")
     assert loose["lyrics"] == "[intro]\n[verse]"
+
+
+def test_the_pass_length_is_a_setting(client):
+    spec = {item["key"]: item for item in client.get("/api/settings").json()["settings"]}["jam.pass_seconds"]
+    assert spec["default"] == "40" and spec["group"] == "audio"
+
+
+def test_planning_or_rendering_a_pass_in_the_editor_makes_a_new_take(client):
+    space = client.post("/api/spaces", json={"name": "Ideas"}).json()
+    take_id = a_pass(client, space["id"])
+    before = one("SELECT status, abc, seed, max_duration FROM takes WHERE id = ?", (take_id,))
+    rendered = client.post(f"/api/takes/{take_id}/render", json={}).json()
+    planned = client.post(f"/api/takes/{take_id}/replan", json={}).json()
+    for reply in (rendered, planned):
+        made = one("SELECT space_id, parent_id, title, cap_typed, max_duration, status FROM takes WHERE id = ?", (reply["id"],))
+        assert reply["id"] != take_id
+        assert made["space_id"] == space["id"] and made["parent_id"] is None and made["status"] == "queued"
+        assert made["title"] == "Night drive · Pass #1" and made["cap_typed"] == 0 and made["max_duration"] > 40
+    # the pass itself is as it was, still a scratch pass
+    assert one("SELECT status, abc, seed, max_duration FROM takes WHERE id = ?", (take_id,)) == before
+    assert where(take_id)["space_id"] == JAM_SPACE
+    # a take of the person's own is still planned and rendered in place
+    own = make_take(abc=GOOD)
+    assert client.post(f"/api/takes/{own['id']}/render", json={}).json()["id"] == own["id"]

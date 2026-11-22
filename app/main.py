@@ -67,6 +67,8 @@ MAX_SEED = 2**64 - 1
 # --------------------------------------------------------------------- settings
 # Everything the Settings panel can change.  The panel renders this spec, so a
 # new setting is a server-side change only.
+JAM_PASS_SECONDS = 40      # how much of the song a short Jam pass renders, unless Settings says otherwise
+
 SETTINGS_SPEC: list[dict] = [
     {
         "key": "stems.format",
@@ -111,6 +113,16 @@ SETTINGS_SPEC: list[dict] = [
         "help": "How long a take may run when you have not set its cap yourself. A render usually ends by itself, "
                 "and a song or instrumental whose plan is longer has its cap raised to fit, so this is mostly how "
                 "long a render that will not stop is let run. Each take's own cap is in the editor.",
+    },
+    {
+        "key": "jam.pass_seconds",
+        "group": "audio",
+        "label": "Length of a Jam pass",
+        "type": "select",
+        "default": str(JAM_PASS_SECONDS),
+        "options": [{"value": str(seconds), "label": f"{seconds} seconds"} for seconds in (20, 30, 40, 60, 90)],
+        "help": "How much of the song a short pass in Jam renders. Shorter comes back sooner, longer hears more of "
+                "the song. Full Song renders the whole song.",
     },
     {
         "key": "stems.model",
@@ -3022,7 +3034,7 @@ async def jam_roll(body: JamRollIn) -> dict:
         if locked_abc:
             words = instrumental.structure_of(locked_abc)
         else:
-            short = "[intro]\n[verse]" if body.max_duration <= 60 else ""
+            short = "[intro]\n[verse]" if body.snippet else ""
             raw_struct = body.structure.strip() or short
             try:
                 words = instrumental.normalise(raw_struct)
@@ -3051,7 +3063,8 @@ async def jam_roll(body: JamRollIn) -> dict:
         "seed": seed,
         "checkpoint": _checkpoint(),
         "max_duration": body.max_duration,
-        "cap_typed": 1,
+        # A pass's length is Jam's to say; a Full Song's cap is Settings' and rises to fit a longer plan.
+        "cap_typed": 1 if body.snippet else 0,
         "created_at": time.time(),
         "auto_render": 0 if locked_abc else 1,
         "variety": body.variety if body.variety in PLAN_VARIETY else "normal",
@@ -3614,6 +3627,22 @@ def _idle_take(take_id: str) -> dict:
     return take
 
 
+def _out_of_jam(take: dict) -> dict:
+    """A take to plan or render again in place, or, for a Jam scratch pass opened in the editor, a new take
+    made from it in its Jam's space: what the editor makes is a take, and the pass stays in Roll History as
+    it was.  The copy's length cap is Settings', not the pass's few seconds, and rises to fit its score."""
+    if take.get("space_id") != JAM_SPACE:
+        return take
+    record = _copy_of(take)
+    record.update(id=uuid.uuid4().hex[:12], title=take["title"], status="planned",
+                  created_at=time.time(), checkpoint=config.CHECKPOINT, parent_id=None,
+                  max_duration=max(10.0, min(900.0, float(setting_value("takes.cap")))), cap_typed=0)
+    columns = list(record)
+    execute(f"INSERT INTO takes({', '.join(columns)}) VALUES({', '.join(':' + c for c in columns)})", record)
+    log.info("Jam pass '%s' (%s) made again in the editor: a new take %s in its Jam's space", take.get("title"), take["id"], record["id"])
+    return one("SELECT * FROM takes WHERE id = ?", (record["id"],))
+
+
 def _render_settings(take: dict, body: RenderIn | None) -> dict:
     """The style, length cap, mode, style LoRA and recorded voice a render asks for, each falling
     back to the take's own when the request leaves it out."""
@@ -3666,6 +3695,8 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
         raise HTTPException(400, "this take has no score yet. Write a plan first.")
     if not scoreless:
         _check_score(take["abc"], take["kind"])
+    take = _out_of_jam(take)
+    take_id = take["id"]
     if take["kind"] == "instrumental" and take.get("source_id"):
         # An edit to the score may have given it a sung melody, or changed its sections.
         abc = _unsung(take["abc"])
@@ -3707,7 +3738,7 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
              adv["chord_hold_limit"], adv["chord_outside_bonus"], adv["chord_sections"], adv["follow_structure"], adv["voice_cues"], adv["target_lufs"], adv["fade_out_seconds"], adv["cfg_scale"], adv["target_meter"], adv["sampling"], take_id))
     await queue_take("render", take_id)
     log.info("Queued audio render for take '%s' (%s, seed=%d)", take.get("title") or take_id, take_id, seed)
-    return {"queued": True, "seed": seed}
+    return {"queued": True, "seed": seed, "id": take_id}
 
 
 @app.post("/api/takes/{take_id}/clear")
@@ -3740,6 +3771,8 @@ async def replan_take(take_id: str, body: ReplanIn | None = None) -> dict:
         raise HTTPException(400, "this take's score is its recording's transcription, so there is no plan to write again.")
     body = body or ReplanIn()
     _check_harmony(body.harmony)
+    take = _out_of_jam(take)
+    take_id = take["id"]
     variety = body.variety if body.variety in PLAN_VARIETY else take["variety"]
     harmony = take["harmony"] if body.harmony is None else body.harmony
     adv = _advanced_of(body, fallback=take)
@@ -3758,7 +3791,7 @@ async def replan_take(take_id: str, body: ReplanIn | None = None) -> dict:
     await queue_take("plan", take_id)
     log.info("Queued replan for take '%s' (%s, variety=%s, harmony=%s, seed=%d)",
              take.get("title") or take_id, take_id, variety, harmony, seed)
-    return {"queued": True, "seed": seed}
+    return {"queued": True, "seed": seed, "id": take_id}
 
 
 TRY_TAIL = re.compile(r"try \d+|planner \d+\.\d\d")

@@ -843,6 +843,107 @@ function loraKindPillHtml(kind) {
   return '<span class="kind-pill ' + cls + '">' + esc(text) + '</span>';
 }
 
+/* The picker's list, from the select: groups that fold, a LoRA's training checkpoints under its row, the kind of
+   each, and the search.  `chosen` and `query` are the caller's (the editor's, or Jam's own); which groups are open
+   is shared.  Returns { html, groupLabels, anyOpen, searching }. */
+function loraMenuList(chosen, query) {
+  var select = $('style-lora');
+  if (!select) { return { html: '', groupLabels: [], anyOpen: false, searching: false }; }
+  var open = loraOpenGroups();
+  query = (query || '').trim().toLowerCase();
+  var words = query ? query.split(/\s+/).filter(Boolean) : [];
+  var searching = words.length > 0;
+  var matches = function (option, groupLabel) {
+    if (!searching) { return true; }
+    var hay = ((option.dataset.search || option.textContent || '') + ' ' + (groupLabel || '')).toLowerCase();
+    return words.every(function (w) { return hay.indexOf(w) >= 0; });
+  };
+  // A LoRA with a run's checkpoints folds them under its own row, remembered
+  // with the groups as "steps:" and its name.
+  var stepCount = {};
+  Array.prototype.forEach.call(select.querySelectorAll('option[data-parent]'), function (option) {
+    stepCount[option.dataset.parent] = (stepCount[option.dataset.parent] || 0) + 1;
+  });
+  var entry = function (option, flat, groupLabel) {
+    var parent = option.dataset.parent;
+    if (parent && !searching && open.indexOf('steps:' + parent) < 0) { return ''; }
+    if (searching && !matches(option, groupLabel)) { return ''; }
+    var isNone = option.value === '';
+    var isSel = option.value === chosen;
+    var count = stepCount[option.value];
+    var stepsOpen = searching || open.indexOf('steps:' + option.value) >= 0;
+    var toggle = count && !searching ? '<span class="lora-steps-toggle" role="button" aria-expanded="' + stepsOpen + '" data-steps="' +
+      esc(option.value) + '" title="' + t('{value} the checkpoints its training run kept', { value: stepsOpen ? t('Hide') : t('Show') }) + '">' +
+      (stepsOpen ? '\u25BE' : '\u25B8') + ' ' + tn(count, '{n} step', '{n} steps') + '</span>' : '';
+    var title = parent ? option.dataset.short : (option.dataset.title || option.textContent);
+    var pill = isNone || parent ? '' : loraKindPillHtml(option.dataset.kind);
+    return '<div class="source-picker-item lora-item' + (flat ? ' flat' : '') + (parent ? ' lora-step' : '') +
+      (isNone ? ' is-none' : '') + (isSel ? ' selected' : '') +
+      '" role="option" data-value="' + esc(option.value) + '" title="' + esc(option.title || '') + '">' +
+      '<span class="source-item-title">' + esc(title) + '</span>' + pill + toggle + (isSel ? PICKER_CHECK_SVG : '') + '</div>';
+  };
+  var groupLabels = [];
+  var html = '';
+  var shown = 0;
+  Array.prototype.forEach.call(select.children, function (child) {
+    if (child.tagName !== 'OPTGROUP') {
+      if (child.value === '') {
+        if (!searching) { html += '<div class="picker-none-wrap">' + entry(child, true, '') + '</div>'; }
+        return;
+      }
+      var row = entry(child, true, '');
+      if (row) { html += row; shown++; }
+      return;
+    }
+    groupLabels.push(child.label);
+    var matchingChildren = '';
+    var matchingCount = 0;
+    Array.prototype.forEach.call(child.children, function (option) {
+      if (searching) {
+        var r = entry(option, false, child.label);
+        if (r) { matchingChildren += r; if (!option.dataset.parent) { matchingCount++; } }
+      }
+    });
+    if (searching && !matchingChildren) { return; }
+    var isOpen = searching || open.indexOf(child.label) >= 0;
+    var totalCount = searching ? matchingCount : child.querySelectorAll('option:not([data-parent])').length;
+    html += '<div class="lora-group" role="button" aria-expanded="' + isOpen + '" data-group="' + esc(child.label) + '">' +
+      PICKER_CHEV_SVG + '<span class="group-label">' + esc(child.label) + '</span>' +
+      '<span class="count">' + totalCount + '</span></div>';
+    if (isOpen) {
+      var rows = searching ? matchingChildren : Array.prototype.map.call(child.children, function (option) {
+        return entry(option, false, child.label);
+      }).join('');
+      if (rows) {
+        html += '<div class="picker-children">' + rows + '</div>';
+        shown++;
+      }
+    }
+  });
+  if (searching && !shown) {
+    html = '<div class="style-picker-empty muted">' + esc(t('No matching LoRAs')) + '</div>';
+  }
+  var anyOpen = groupLabels.some(function (g) { return open.indexOf(g) >= 0; });
+  return { html: html, groupLabels: groupLabels, anyOpen: anyOpen, searching: searching };
+}
+
+/* A heading or a steps toggle in the list, folded or opened: `name` is a group's label or "steps:" and a LoRA's.
+   Fold all: every group closed, or, when none is open, every group open. */
+function toggleLoraGroup(name) {
+  var open = loraOpenGroups();
+  var at = open.indexOf(name);
+  if (at >= 0) { open.splice(at, 1); } else { open.push(name); }
+  saveLoraOpenGroups(open);
+}
+
+function foldAllLoraGroups() {
+  var select = $('style-lora');
+  var allGroups = select ? Array.prototype.map.call(select.querySelectorAll('optgroup'), function (g) { return g.label; }) : [];
+  var open = loraOpenGroups();
+  var anyOpen = allGroups.some(function (g) { return open.indexOf(g) >= 0; });
+  saveLoraOpenGroups(anyOpen ? [] : allGroups);
+}
+
 function paintLoraPicker() {
   var select = $('style-lora');
   var picker = $('lora-picker');
@@ -853,81 +954,8 @@ function paintLoraPicker() {
     var current = select.options[select.selectedIndex];
     var btnLabel = !chosen ? t('None') : (current && current.dataset.title ? current.dataset.title : (current ? current.textContent : t('None')));
     $('lora-picker-label').textContent = btnLabel;
-    var open = loraOpenGroups();
-    var query = (State.loraFilter || '').trim().toLowerCase();
-    var words = query ? query.split(/\s+/).filter(Boolean) : [];
-    var searching = words.length > 0;
-    var matches = function (option, groupLabel) {
-      if (!searching) { return true; }
-      var hay = ((option.dataset.search || option.textContent || '') + ' ' + (groupLabel || '')).toLowerCase();
-      return words.every(function (w) { return hay.indexOf(w) >= 0; });
-    };
-    // A LoRA with a run's checkpoints folds them under its own row, remembered
-    // with the groups as "steps:" and its name.
-    var stepCount = {};
-    Array.prototype.forEach.call(select.querySelectorAll('option[data-parent]'), function (option) {
-      stepCount[option.dataset.parent] = (stepCount[option.dataset.parent] || 0) + 1;
-    });
-    var entry = function (option, flat, groupLabel) {
-      var parent = option.dataset.parent;
-      if (parent && !searching && open.indexOf('steps:' + parent) < 0) { return ''; }
-      if (searching && !matches(option, groupLabel)) { return ''; }
-      var isNone = option.value === '';
-      var isSel = option.value === chosen;
-      var count = stepCount[option.value];
-      var stepsOpen = searching || open.indexOf('steps:' + option.value) >= 0;
-      var toggle = count && !searching ? '<span class="lora-steps-toggle" role="button" aria-expanded="' + stepsOpen + '" data-steps="' +
-        esc(option.value) + '" title="' + t('{value} the checkpoints its training run kept', { value: stepsOpen ? t('Hide') : t('Show') }) + '">' +
-        (stepsOpen ? '\u25BE' : '\u25B8') + ' ' + tn(count, '{n} step', '{n} steps') + '</span>' : '';
-      var title = parent ? option.dataset.short : (option.dataset.title || option.textContent);
-      var pill = isNone || parent ? '' : loraKindPillHtml(option.dataset.kind);
-      return '<div class="source-picker-item lora-item' + (flat ? ' flat' : '') + (parent ? ' lora-step' : '') +
-        (isNone ? ' is-none' : '') + (isSel ? ' selected' : '') +
-        '" role="option" data-value="' + esc(option.value) + '" title="' + esc(option.title || '') + '">' +
-        '<span class="source-item-title">' + esc(title) + '</span>' + pill + toggle + (isSel ? PICKER_CHECK_SVG : '') + '</div>';
-    };
-    var groupLabels = [];
-    var html = '';
-    var shown = 0;
-    Array.prototype.forEach.call(select.children, function (child) {
-      if (child.tagName !== 'OPTGROUP') {
-        if (child.value === '') {
-          if (!searching) { html += '<div class="picker-none-wrap">' + entry(child, true, '') + '</div>'; }
-          return;
-        }
-        var row = entry(child, true, '');
-        if (row) { html += row; shown++; }
-        return;
-      }
-      groupLabels.push(child.label);
-      var matchingChildren = '';
-      var matchingCount = 0;
-      Array.prototype.forEach.call(child.children, function (option) {
-        if (searching) {
-          var r = entry(option, false, child.label);
-          if (r) { matchingChildren += r; if (!option.dataset.parent) { matchingCount++; } }
-        }
-      });
-      if (searching && !matchingChildren) { return; }
-      var isOpen = searching || open.indexOf(child.label) >= 0;
-      var totalCount = searching ? matchingCount : child.querySelectorAll('option:not([data-parent])').length;
-      html += '<div class="lora-group" role="button" aria-expanded="' + isOpen + '" data-group="' + esc(child.label) + '">' +
-        PICKER_CHEV_SVG + '<span class="group-label">' + esc(child.label) + '</span>' +
-        '<span class="count">' + totalCount + '</span></div>';
-      if (isOpen) {
-        var rows = searching ? matchingChildren : Array.prototype.map.call(child.children, function (option) {
-          return entry(option, false, child.label);
-        }).join('');
-        if (rows) {
-          html += '<div class="picker-children">' + rows + '</div>';
-          shown++;
-        }
-      }
-    });
-    if (searching && !shown) {
-      html = '<div class="style-picker-empty muted">' + esc(t('No matching LoRAs')) + '</div>';
-    }
-    var anyOpen = groupLabels.some(function (g) { return open.indexOf(g) >= 0; });
+    var built = loraMenuList(chosen, State.loraFilter);
+    var html = built.html, groupLabels = built.groupLabels, anyOpen = built.anyOpen, searching = built.searching;
     var foldBtn = $('lora-fold-all');
     var listEl = menu.querySelector('.lora-picker-list');
     if (!$('lora-filter') || !listEl) {
@@ -8197,11 +8225,14 @@ async function renderInPlace() {
       });
     }
     var payload = editorRenderSettings();
-    await api('/api/takes/' + id + '/render', {
+    var rendering = await api('/api/takes/' + id + '/render', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    setSelection({ formTakeId: takeIdInEditor() || selectedTakeId(), boxKind: 'take', boxId: takeIdInEditor() || selectedTakeId() });
+    // A Jam pass is not rendered in place: the server makes a new take from it, and that is the one to follow.
+    var made = rendering && rendering.id && rendering.id !== id ? rendering.id : null;
+    var follow = made || takeIdInEditor() || selectedTakeId();
+    setSelection({ formTakeId: follow, boxKind: 'take', boxId: follow });
     statusLine(t('Rendering…'));
     loadTakes();
     closeEditor();
@@ -8252,11 +8283,12 @@ async function doReroll() {
   try {
     // The slider and the variety menu apply to the new plan.
     var payload = withAdvancedSettings({ harmony: harmonyStep(), variety: $('variety').value });
-    await api('/api/takes/' + id + '/replan', {
+    var planning = await api('/api/takes/' + id + '/replan', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    awaitNewPlan(id);
+    // A Jam pass is not planned again in place: the new plan is a new take's, made from it.
+    awaitNewPlan(planning && planning.id ? planning.id : id);
     statusLine(t('Writing a new plan for the same words…'));
     loadTakes();
   } catch (err) {
@@ -13083,7 +13115,9 @@ async function startFresh() {
 }
 
 function takeById(id) {
-  return State.takes.filter(function (take) { return take.id === id; })[0] || null;
+  return State.takes.filter(function (take) { return take.id === id; })[0] ||
+    // A Jam scratch pass open in the editor is not in the library's list, but it is the take on show.
+    (State.formTake && State.formTake.id === id && State.formTake.space_id === '__jam__' ? State.formTake : null);
 }
 
 /* Deleting takes one at a time is slow in a space with many, so cards can be
@@ -16744,21 +16778,13 @@ function wire() {
     event.stopPropagation();
     if (event.target.closest('#lora-filter')) { return; }
     if (event.target.closest('#lora-fold-all')) {
-      var select = $('style-lora');
-      var allGroups = select ? Array.prototype.map.call(select.querySelectorAll('optgroup'), function (g) { return g.label; }) : [];
-      var open = loraOpenGroups();
-      var anyOpen = allGroups.some(function (g) { return open.indexOf(g) >= 0; });
-      saveLoraOpenGroups(anyOpen ? [] : allGroups);
+      foldAllLoraGroups();
       paintLoraPicker();
       return;
     }
     var group = event.target.closest('.lora-group, .lora-steps-toggle');
     if (group) {
-      var name = group.dataset.group || 'steps:' + group.dataset.steps;
-      var open = loraOpenGroups();
-      var at = open.indexOf(name);
-      if (at >= 0) { open.splice(at, 1); } else { open.push(name); }
-      saveLoraOpenGroups(open);
+      toggleLoraGroup(group.dataset.group || 'steps:' + group.dataset.steps);
       paintLoraPicker();
       return;
     }
@@ -18181,6 +18207,11 @@ function closeEditor() {
   document.body.style.overflow = '';
   paintEdMastering();   // a rack opened from the window stays open, on the page
   paintSheet();
+  // Opened from Jam, the window goes back to the Jam however it closes: by hand, or because it started
+  // a plan or a render (whose new take is in the library, and in the Jam's space).
+  var backToJam = Boolean(State.editorFromJam);
+  State.editorFromJam = false;
+  if (backToJam && window.Jam && typeof window.Jam.resume === 'function') { window.Jam.resume(); }
 }
 
 function paintEditor() {
