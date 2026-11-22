@@ -106,25 +106,40 @@
 
   var PALETTE = {
     inst: [
-      'Vibraphone', 'Oboe', 'Fender Rhodes', 'Nylon guitar', 'Fingerpicked guitar',
-      'Upright bass', 'Funky bass', 'Warm strings', 'Cello', 'Muted trumpet',
-      'Saxophone', 'Analog synth', 'Hammond organ', 'Acoustic piano', 'Clean guitar',
-      'Distorted guitar', 'Flute', 'Harp', 'Steel drums', 'Pedal steel'
+      'Acoustic piano', 'Fender Rhodes', 'Wurlitzer', 'Hammond organ', 'Clavinet',
+      'Analog synth', 'Synth pad', 'Lead synth',
+      'Acoustic guitar', 'Fingerpicked guitar', 'Nylon guitar', 'Clean guitar',
+      'Distorted guitar', '12-string guitar', 'Pedal steel',
+      'Bass guitar', 'Upright bass', 'Funky bass', 'Synth bass', '808 bass',
+      'Warm strings', 'Violin', 'Cello', 'Harp',
+      'Saxophone', 'Trumpet', 'Muted trumpet', 'Trombone', 'Brass section',
+      'Flute', 'Clarinet', 'Oboe',
+      'Vibraphone', 'Steel drums', 'Banjo', 'Mandolin', 'Ukulele',
+      'Accordion', 'Harmonica', 'Choir'
     ],
     genre: [
-      'Lo-fi', 'Boom bap', 'Bossa nova', 'Synthwave', 'Neo-soul', 'Indie folk',
-      'Jazz-funk', 'Dream pop', 'Ambient', 'Cinematic', 'Trip-hop', 'Post-rock',
-      'Afro house', 'Acid jazz', 'Shoegaze', 'Chamber pop', 'Dub', 'Electro-pop'
+      'Pop', 'Electro-pop', 'Dream pop', 'Chamber pop',
+      'Indie rock', 'Classic rock', 'Alternative rock', 'Punk rock', 'Post-rock', 'Shoegaze', 'Metal',
+      'Indie folk', 'Folk', 'Country', 'Blues',
+      'Jazz', 'Jazz-funk', 'Acid jazz', 'Bossa nova',
+      'Soul', 'Neo-soul', 'R&B', 'Funk', 'Disco',
+      'Hip-hop', 'Boom bap', 'Lo-fi', 'Trip-hop', 'Synthwave',
+      'House', 'Afro house', 'Drum and bass', 'Ambient', 'Cinematic', 'Reggae', 'Dub'
     ],
     prod: [
-      'Vinyl crackle', 'Tape saturation', 'Lush reverb', 'Warm analog', 'Dry close-mic',
-      'Sub bass', 'Wide stereo', 'Lo-fi dust', 'Atmospheric pads', 'Crisp studio mix',
-      'Chorus shimmer', 'Vintage tube warmth'
+      'Vinyl crackle', 'Tape saturation', 'Lo-fi dust', 'Lo-fi cassette',
+      'Warm analog', 'Vintage tube warmth', 'Lush reverb', 'Hall reverb',
+      '80s gated reverb', 'Slapback delay', 'Dub delay', 'Chorus shimmer',
+      'Atmospheric pads', 'Dreamy haze', 'Wide stereo', 'Sub bass',
+      'Crisp studio mix', 'Punchy compression', 'Dry close-mic', 'Live room',
+      'Intimate acoustic', 'Clean acoustic mix', 'Raw garage mix', 'Big arena sound'
     ],
     rhythm: [
-      'Handclaps', 'Brush drums', 'Punchy drums', 'Syncopated groove', 'Breakbeat',
-      'Shakers', 'Four-on-the-floor', 'Half-time feel', 'Swing pocket', 'Rimshot snare',
-      'Congas', 'Minimal percussion'
+      'Acoustic drums', 'Punchy drums', 'Brush drums', 'Electronic drums', '808 drums',
+      'Four-on-the-floor', 'Driving beat', 'Breakbeat', 'Syncopated groove', 'Laid-back groove',
+      'Half-time feel', 'Double-time', 'Swing pocket', 'Shuffle beat', 'Waltz 3/4',
+      'Rimshot snare', 'Handclaps', 'Finger snaps', 'Shakers', 'Tambourine',
+      'Congas', 'Bongos', 'Cajon', 'Minimal percussion'
     ]
   };
 
@@ -1135,7 +1150,7 @@
           var pending = isPartPending(p.name) ? ' pending' : '';
           return '<span class="jam-part-chip cat-' + escHtml(p.cat) + pending + '">' +
             '<span>' + escHtml(p.name) + '</span>' +
-            '<span class="jam-pips" data-jam-act="cycle-part" data-part-idx="' + idx + '" title="Strength: ' + LEVEL_LABELS[p.level] + ' (click to adjust)">' + pips + '</span>' +
+            '<span class="jam-pips" data-part-idx="' + idx + '" title="Strength: ' + LEVEL_LABELS[p.level] + ' (drag left/right)">' + pips + '</span>' +
             '<button type="button" class="jam-part-x" data-jam-act="remove-part" data-part-idx="' + idx + '" aria-label="Remove ' + escHtml(p.name) + '">&times;</button>' +
           '</span>';
         }).join('')
@@ -1183,8 +1198,11 @@
 
     el.innerHTML =
       '<div class="jam-col-head">' +
-        '<h4>Sound &amp; Parts</h4>' +
-        '<span class="jam-col-meta">' + JamState.parts.length + ' / ' + MAX_PARTS + ' active \u00B7 click bars for strength</span>' +
+        '<div class="jam-col-head-l">' +
+          '<h4>Sound &amp; Parts</h4>' +
+          '<button type="button" class="jam-clear-btn" data-jam-act="clear-parts" title="Clear all active Parts"' + (JamState.parts.length ? '' : ' disabled') + '>Clear</button>' +
+        '</div>' +
+        '<span class="jam-col-meta">' + JamState.parts.length + ' / ' + MAX_PARTS + ' active \u00B7 drag bars for strength</span>' +
       '</div>' +
       '<div class="jam-parts-rack">' + activeHtml + '</div>' +
       '<div class="jam-palette">' +
@@ -1471,19 +1489,18 @@
       }
       return;
     }
-    if (act === 'remove-part') {
-      var rIdx = parseInt(btn.dataset.partIdx, 10);
-      if (!isNaN(rIdx)) { JamState.parts.splice(rIdx, 1); paintPartsCol(); paintTopbar(); updateCompiledPreview(); }
-      return;
-    }
-    if (act === 'cycle-part') {
-      var cIdx = parseInt(btn.dataset.partIdx, 10);
-      if (!isNaN(cIdx) && JamState.parts[cIdx]) {
-        JamState.parts[cIdx].level = (JamState.parts[cIdx].level % 4) + 1;
+    if (act === 'clear-parts') {
+      if (JamState.parts.length) {
+        JamState.parts = [];
         paintPartsCol();
         paintTopbar();
         updateCompiledPreview();
       }
+      return;
+    }
+    if (act === 'remove-part') {
+      var rIdx = parseInt(btn.dataset.partIdx, 10);
+      if (!isNaN(rIdx)) { JamState.parts.splice(rIdx, 1); paintPartsCol(); paintTopbar(); updateCompiledPreview(); }
       return;
     }
     if (act === 'vocals') {
@@ -1660,6 +1677,40 @@
   }
 
   function onPointerDown(event) {
+    var pips = event.target.closest('.jam-pips');
+    if (pips) {
+      var pIdx = parseInt(pips.dataset.partIdx, 10);
+      if (isNaN(pIdx) || !JamState.parts[pIdx]) { return; }
+      event.preventDefault();
+      var rect = pips.getBoundingClientRect();
+      pips.classList.add('dragging');
+      var applyLevel = function (clientX) {
+        var frac = (clientX - rect.left) / Math.max(1, rect.width);
+        var lv = frac <= 0.12 ? 1 : Math.max(1, Math.min(4, Math.ceil(frac * 4)));
+        var part = JamState.parts[pIdx];
+        if (!part || part.level === lv) { return; }
+        part.level = lv;
+        var bars = pips.children;
+        for (var i = 0; i < bars.length; i++) {
+          bars[i].classList.toggle('on', i < lv);
+        }
+        pips.title = 'Strength: ' + LEVEL_LABELS[lv] + ' (drag left/right)';
+        updateCompiledPreview();
+      };
+      applyLevel(event.clientX);
+      var movePips = function (e) { applyLevel(e.clientX); };
+      var upPips = function () {
+        pips.classList.remove('dragging');
+        window.removeEventListener('pointermove', movePips);
+        window.removeEventListener('pointerup', upPips);
+        paintPartsCol();
+        paintTopbar();
+        updateCompiledPreview();
+      };
+      window.addEventListener('pointermove', movePips);
+      window.addEventListener('pointerup', upPips);
+      return;
+    }
     var pad = event.target.closest('#jam-xy-pad');
     if (!pad) { return; }
     event.preventDefault();
