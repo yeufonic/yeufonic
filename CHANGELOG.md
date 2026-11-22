@@ -47,8 +47,8 @@ cannot creep back in.
   (Instrumental, Female, Male or a recorded voice, with tone words). **Roll** renders a short pass that keeps the
   melody and chords of the pass it builds on, and crossfades into it while the last one loops; **Plan & Roll** writes
   a new plan from the Seed's words first. Click a pass in **Roll History** to make it the **Base** the next roll
-  builds on, with its settings back in the controls. **Full Song** renders a pass as a whole song in the space the
-  Jam was opened from; **Editor** (**E**) opens a pass in the editor and closing it returns to the Jam. A pass sings
+  builds on, with its settings back in the controls. **Full Song** renders a pass as a whole song, with the pass's seed, in the space
+  the Jam was opened from; **Editor** (**E**) opens a pass in the editor and closing it returns to the Jam. A pass sings
   the Seed's own words, and normalises only if the Seed did. Passes are kept in a hidden space, out of the library
   and Trash, get no automatic picture, and are listed (and cleared) in **Settings → Storage** as **Jam passes**. The
   length of a short pass is **Settings → Audio, Takes & Stems → Length of a Jam pass** (40 seconds by default).

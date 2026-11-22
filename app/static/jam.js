@@ -542,6 +542,8 @@
         p.stage = rec.stage || rec.status;
         p.hasAudio = Boolean(rec.has_audio);
         p.hasScore = Boolean(rec.abc && rec.abc.trim());
+        p.seed = rec.seed;
+        p.samplerSteps = rec.sampler_steps;
         p.duration = rec.duration || p.duration || 0;
         if (rec.title) { p.title = rec.title; }
         if (rec.status === 'done') { p.progress = 100; }
@@ -986,7 +988,7 @@
       interpretation: vi.interpretation,
       avoid: vi.avoid,
       cfg_scale: vi.cfgScale,
-      sampler_steps: isFullSong ? 32 : 24,
+      sampler_steps: basePass && opts.basePassId && basePass.samplerSteps ? basePass.samplerSteps : (isFullSong ? 32 : 24),
       // As the Seed was made: a Jam does not normalise, or change the real-audio setting, unless the Seed did.
       realaudio: JamState.seedRealaudio !== false,
       normalise: Boolean(JamState.seedNormalise),
@@ -995,6 +997,8 @@
       style_lora_clip: (loraKind === 'planner' || loraKind === 'both') ? snap.styleLoraClip : 0,
       voice_id: snap.vocals === 'voice' && snap.voiceId ? snap.voiceId : null
     };
+    // A Full Song of a pass is that pass made whole: its seed and its sampler steps, so it plays as the pass did.
+    if (basePass && opts.basePassId && basePass.seed != null) { payload.seed = basePass.seed; }
 
     try {
       var created = await api('/api/jam/roll', { method: 'POST', body: JSON.stringify(payload) });
@@ -1017,6 +1021,8 @@
         snapshot: snap,
         diffs: diffs,
         fromId: from ? from.id : null,
+        seed: created.seed,
+        samplerSteps: created.sampler_steps,
         scoreFromId: baseScorePass ? baseScorePass.id : null,
         replanned: !baseScorePass,
         error: null
