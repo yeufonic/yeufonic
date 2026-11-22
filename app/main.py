@@ -2965,7 +2965,12 @@ async def jam_roll(body: JamRollIn) -> dict:
     """Create and queue a new Jam pass — either score-locked (skipping planning for fast
     vibe/arrangement re-rolls) or freshly planned and auto-rendered."""
     _gpu_free_for_rendering()
-    _writable_space(body.space_id)
+    space_id = body.space_id
+    if body.parent_id:
+        parent_row = one("SELECT space_id FROM takes WHERE id = ?", (body.parent_id,))
+        if parent_row and parent_row.get("space_id") and parent_row["space_id"] != TRASH_SPACE:
+            space_id = parent_row["space_id"]
+    _writable_space(space_id)
     _check_harmony(body.harmony)
     kind = "instrumental" if body.instrumental else "song"
     if kind == "instrumental" and ENGINE.options_loaded and not ENGINE.options.get("instrumental"):
@@ -3003,7 +3008,7 @@ async def jam_roll(body: JamRollIn) -> dict:
         title = (body.title or "").strip() or guess_title(words) or "Jam Pass"
 
     adv = _advanced_of(body)
-    parent_id = _parent_for(body.parent_id, body.space_id) if body.parent_id else None
+    parent_id = _parent_for(body.parent_id, space_id) if body.parent_id else None
     seed = body.seed if body.seed is not None else int.from_bytes(os.urandom(4), "big")
     record = {
         "id": uuid.uuid4().hex[:12],
@@ -3023,7 +3028,7 @@ async def jam_roll(body: JamRollIn) -> dict:
         "auto_render": 0 if locked_abc else 1,
         "variety": body.variety if body.variety in PLAN_VARIETY else "normal",
         "harmony": body.harmony,
-        "space_id": body.space_id,
+        "space_id": space_id,
         "parent_id": parent_id,
         "interpretation": _interpretation(body.interpretation),
         "feel": "steady",

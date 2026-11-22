@@ -357,6 +357,7 @@
     open: false,
     starterName: 'Lo-fi Groove',
     parentId: null,
+    spaceId: null,
     fastLoop: true,
     lockScore: false,
     parts: [],          // [{ name, cat, level }]
@@ -497,6 +498,7 @@
   function applyStarter(starter) {
     JamState.starterName = starter.name;
     JamState.parentId = null;
+    JamState.spaceId = null;
     JamState.parts = starter.parts.map(function (p) { return { name: p.name, cat: p.cat, level: p.level }; });
     JamState.vibe = { x: starter.vibe.x, y: starter.vibe.y };
     JamState.bpm = starter.bpm;
@@ -517,6 +519,7 @@
   function seedFromTake(take) {
     JamState.starterName = take.title || 'Selected take';
     JamState.parentId = take.parent_id || take.id;
+    JamState.spaceId = (take.space_id && take.space_id !== 'trash') ? take.space_id : null;
     var rawTags = (take.style || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
     var parts = [];
     rawTags.forEach(function (tag) {
@@ -612,8 +615,9 @@
     return '';
   }
 
-  function targetSpaceId() {
-    var sp = (window.State && State.space) || 'default';
+  function jamSpaceId() {
+    if (JamState.spaceId && JamState.spaceId !== 'trash') { return JamState.spaceId; }
+    var sp = (window.State && State.spaceId) || 'default';
     return sp === 'trash' ? 'default' : sp;
   }
 
@@ -671,7 +675,7 @@
 
     var payload = {
       title: passTitle,
-      space_id: targetSpaceId(),
+      space_id: jamSpaceId(),
       parent_id: JamState.parentId,
       base_take_id: baseScorePass ? baseScorePass.id : null,
       lock_score: Boolean(baseScorePass),
