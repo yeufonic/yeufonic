@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.65 (2026-11-22)
 
 - **Jam (#79).** A studio console for trying other takes of a song without stopping the music. Open it from a take
   (**Jam** on the take panel, or **J**): that take is the **Seed**. Shape the sound with **Parts** (genres,
