@@ -470,6 +470,7 @@
         p.stage = rec.stage || rec.status;
         p.hasAudio = Boolean(rec.has_audio);
         p.hasScore = Boolean(rec.abc && rec.abc.trim());
+        p.isTopLevelTake = !rec.parent_id;
         p.duration = rec.duration || p.duration || 0;
         if (rec.title) { p.title = rec.title; }
         if (rec.status === 'done') { p.progress = 100; }
@@ -717,6 +718,10 @@
     return Boolean(p && (p.isSeed || (JamState.sessionKey && JamState.sessionKey === 'take:' + p.id)));
   }
 
+  function isSpaceTake(p) {
+    return Boolean(p && (isSeedPass(p) || p.isFullSong || p.isTopLevelTake));
+  }
+
   function readyBaseTakeWithScore() {
     var cur = JamState.passes.find(function (p) { return p.id === JamAudio.currentId && p.hasScore; });
     if (cur) { return cur; }
@@ -834,6 +839,7 @@
         hasAudio: false,
         hasScore: Boolean(baseScorePass),
         isFullSong: isFullSong,
+        isTopLevelTake: !payload.parent_id,
         duration: 0,
         snapshot: snap,
         diffs: diffs,
@@ -1348,13 +1354,14 @@
                 '</div>'
               : '';
           } else if (p.hasAudio) {
+            var canDelete = !isSpaceTake(p);
             actions = '<div class="jam-hist-actions">' +
               (isPlaying
                 ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 Stop</button>'
                 : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 Play</button>') +
               (!p.isFullSong ? '<button type="button" class="jam-hist-btn" data-jam-act="full-pass" data-pass-id="' + escHtml(p.id) + '">Full Song</button>' : '') +
               '<button type="button" class="jam-hist-btn" data-jam-act="open-editor" data-pass-id="' + escHtml(p.id) + '">Editor</button>' +
-              '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="Move this pass to Trash">Delete</button>' +
+              (canDelete ? '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="Move this nested pass to Trash">Delete</button>' : '') +
             '</div>';
           } else {
             actions = (p.error ? '<div class="small" style="color:var(--danger-text)">' + escHtml(p.error) + '</div>' : '') +
@@ -1525,7 +1532,16 @@
   async function deletePass(passId) {
     if (!passId) { return; }
     var target = JamState.passes.find(function (p) { return p.id === passId; });
-    if (isSeedPass(target)) { return; }
+    if (isSpaceTake(target) && target && target.hasAudio) { return; }
+    // Verify with the server before deleting so a top-level space take is never trashed from Jam.
+    try {
+      var check = await api('/api/takes/' + encodeURIComponent(passId));
+      if (check && !check.parent_id && check.has_audio) {
+        if (target) { target.isTopLevelTake = true; saveSession(); paintHistory(); }
+        if (typeof toast === 'function') { toast('This pass is a saved take in your space — delete it from the library instead.'); }
+        return;
+      }
+    } catch (err) { /* proceed to clean up local history if already gone */ }
     if (JamAudio.currentId === passId) {
       JamAudio.stop();
       JamAudio.currentId = null;
