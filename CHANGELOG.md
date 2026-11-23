@@ -37,6 +37,12 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **Jam starts at the Seed's tempo.** With no tempo lock, a Jam took 100 BPM rather than the tempo in the take's
+  score, and the Tempo control stopped at 165; it now reads the score (or the style) and runs from 40 to 240, as the
+  editor's tempo box does.
+
 ## 0.0.66 (2026-11-23)
 
 - **Jam: a Feel card for sculpting the sound.** Beside the Vibe pad: **Key** (move the melody and chords), **Start at**
@@ -50,9 +56,6 @@ cannot creep back in.
 - **Jam: a star on each pass** marks the ones you like, to find them among many. It belongs to the Jam, not the
   library's star.
 - **Jam: name a full song as you render it.** The confirmation shows the new take's name, selected, ready to change.
-- **Jam starts at the Seed's tempo.** With no tempo lock, a Jam took 100 BPM rather than the tempo in the take's
-  score, and the Tempo control stopped at 165; it now reads the score (or the style) and runs from 40 to 240, as the
-  editor's tempo box does.
 - **Jam keeps the Seed's tempo** when a style is chosen or a LoRA's song is clicked: they set the sound, and only the
   Tempo control moves it.
 - **Jam no longer opens the editor.** A pass's **Editor** button and the **E** key are gone. The editor's changes
