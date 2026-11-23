@@ -54,7 +54,8 @@ cannot creep back in.
 - **Jam: a Feel card for sculpting the sound.** Beside the Vibe pad: **Key** (move the melody and chords), **Start at**
   (a short pass plays from a section, such as the chorus), **Performance** and **Style grip** (in place of the pad's
   choice), **Polish** (more steps over a pass), **Chords** for Plan & Roll, and a recorded voice's likeness, formant and
-  blend. **Same seed** makes the next pass with its base's seed, so it differs only by what was changed.
+  blend. **Same seed** makes the next pass with its base's seed, so it differs only by what was changed. **Reset to
+  defaults** puts the card back.
 - **Advanced take settings show what is set.** As the Sampling boxes already did, a box at its default is empty and
   shows the default muted, and a value you set is bold. Emptying a box puts it back to its default.
 

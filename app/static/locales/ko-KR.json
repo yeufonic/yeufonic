@@ -2249,6 +2249,7 @@
  "The size of the voice, its pitch kept": "목소리의 크기(음높이는 유지)",
  "How much of the vocal the voice sings": "보컬 중 목소리가 부르는 비율",
  "Feel": "느낌",
+ "Back to the Vibe pad’s and the take’s own": "분위기 패드와 테이크 본래 설정으로 되돌리기",
  "Make the next pass with its base’s seed, so it differs only by what you changed": "다음 패스를 기준의 시드로 만들어 바꾼 점만 달라지게 합니다",
  "Same seed": "같은 시드",
  "Key": "조성",

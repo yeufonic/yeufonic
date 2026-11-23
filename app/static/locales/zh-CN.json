@@ -2249,6 +2249,7 @@
  "The size of the voice, its pitch kept": "声音的大小，保留音高",
  "How much of the vocal the voice sings": "由这个声音演唱的人声比例",
  "Feel": "感觉",
+ "Back to the Vibe pad’s and the take’s own": "恢复为氛围面板和版本本身的设置",
  "Make the next pass with its base’s seed, so it differs only by what you changed": "用基准的种子生成下一轮，只有你改动的地方不同",
  "Same seed": "相同种子",
  "Key": "调",

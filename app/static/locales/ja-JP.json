@@ -2249,6 +2249,7 @@
  "The size of the voice, its pitch kept": "声の大きさ（音程はそのまま）",
  "How much of the vocal the voice sings": "ボーカルのうちボイスが歌う割合",
  "Feel": "フィール",
+ "Back to the Vibe pad’s and the take’s own": "ムードパッドとテイク本来の設定に戻す",
  "Make the next pass with its base’s seed, so it differs only by what you changed": "次のパスをベースのシードで作り、変えた点だけが違うようにします",
  "Same seed": "同じシード",
  "Key": "キー",

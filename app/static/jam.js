@@ -1709,6 +1709,12 @@
       '</select>';
   }
 
+  // Whether anything in the Feel card is moved from its default.
+  function feelIsSet() {
+    return Boolean(JamState.key || JamState.startSection || JamState.performance || JamState.grip || JamState.chords !== '' ||
+      JamState.polish === 'polished' || JamState.holdSeed || Object.keys(JamState.voiceMix || {}).length);
+  }
+
   function feelCardHtml() {
     var sections = sectionsOfBase().filter(function (n) { return n !== 'silence'; });
     var locked = scoreLocked();
@@ -1729,8 +1735,12 @@
       : '';
     return '<div class="jam-feel-card">' +
       '<div class="jam-kicker"><span>' + t('Feel') + '</span>' +
+        '<span class="jam-feel-tools">' +
+        '<button type="button" class="jam-clear-btn" data-jam-act="feel-reset" title="' + t('Back to the Vibe pad\u2019s and the take\u2019s own') + '"' +
+          (feelIsSet() ? '' : ' disabled') + '>' + t('Reset to defaults') + '</button>' +
         '<label class="jam-hold-seed" title="' + t('Make the next pass with its base\u2019s seed, so it differs only by what you changed') + '">' +
           '<input type="checkbox" id="jam-hold-seed"' + (JamState.holdSeed ? ' checked' : '') + '> ' + t('Same seed') + '</label>' +
+        '</span>' +
       '</div>' +
       '<div class="jam-feel-grid">' +
         row(t('Key'), feelSelect('jam-key', JamState.key, [['', t('As the score')]].concat(KEYS)), t('Move the melody and chords to another key')) +
@@ -2015,6 +2025,14 @@
     if (act === 'style-pick') { applyPickedStyle(btn.dataset.styleKind, btn.dataset.styleKey); return; }
     if (act === 'lora-song') { applyLoraSong(Number(btn.dataset.idx)); return; }
     if (act === 'lora-songs-all') { JamState.loraSongsAll = true; paintPartsCol(); return; }
+    if (act === 'feel-reset') {
+      loadSculpt({});
+      JamState.holdSeed = false;
+      saveSession();
+      paintFeelCol();
+      paintFooter();
+      return;
+    }
     if (act === 'clear-parts') {
       if (JamState.parts.length) {
         JamState.parts = [];
@@ -2175,7 +2193,7 @@
       return;
     }
     if (tg.id === 'jam-polish') { JamState.polish = tg.value === 'polished' ? 'polished' : 'draft'; paintFeelCol(); paintFooter(); return; }
-    if (tg.id === 'jam-hold-seed') { JamState.holdSeed = tg.checked; saveSession(); return; }
+    if (tg.id === 'jam-hold-seed') { JamState.holdSeed = tg.checked; saveSession(); paintFeelCol(); return; }
     var mixKey = { 'jam-mix-likeness': 'likeness', 'jam-mix-formant': 'formant', 'jam-mix-wet': 'wet' }[tg.id];
     if (mixKey) {
       JamState.voiceMix = Object.assign({}, JamState.voiceMix || {});

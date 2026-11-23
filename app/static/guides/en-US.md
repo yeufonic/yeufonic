@@ -1051,7 +1051,7 @@ off. **New Jam** goes back to the Seed's own sound and deletes the passes.
 - **Tempo**, in beats per minute.
 - **Vocals**: Instrumental, Female, Male, or one of your recorded voices, with up to three tone words. A pass sings
   the Seed's own words. A Seed with no words makes instrumentals only.
-- **Feel** fine-tunes what the pad leaves loose. **Key** moves the melody and chords to another key; **Start at** has a short pass play from a section, such as the chorus, rather than the top; **Performance** and **Style grip** replace the pad's choice of how loosely the music is played and how firmly it follows the style; **Polish** spends more steps on a pass; **Chords** sets how adventurous a new plan's chords are, for Plan & Roll; and with a recorded voice there are its likeness, formant and blend. **Same seed** makes the next pass with its base's seed, so what you hear differs only by what you changed.
+- **Feel** fine-tunes what the pad leaves loose. **Key** moves the melody and chords to another key; **Start at** has a short pass play from a section, such as the chorus, rather than the top; **Performance** and **Style grip** replace the pad's choice of how loosely the music is played and how firmly it follows the style; **Polish** spends more steps on a pass; **Chords** sets how adventurous a new plan's chords are, for Plan & Roll; and with a recorded voice there are its likeness, formant and blend. **Same seed** makes the next pass with its base's seed, so what you hear differs only by what you changed. **Reset to defaults** puts the whole card back.
 
 Under the controls, **Compiled style** shows the style a roll will send, and what it avoids.
 
