@@ -37,30 +37,35 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.66 (2026-11-23)
 
-- **A Yeufonic preset in the mastering rack.** A factory preset made by ear: the highs lifted well up, the low mids
-  lifted on the parametric equaliser, the imager wide with its bass, no compressor, and the limiter catching the peaks.
-- **Jam from an AI agent.** Two new MCP tools: `jam_roll` rolls a short pass of a take with a new sound (its
-  melody and chords kept, or with a new plan), or makes a pass whole as a Full Song with that pass's seed;
-  `list_jam_passes` lists the passes. A pass's short id works in any tool. Passes made this way do not appear in the Jam
-  window's Roll History.
-- **Jam no longer opens the editor.** A pass's **Editor** button and the **E** key are gone. The editor's changes
-  never reached the Jam (a tempo set there applied only to the editor's own next render), and **E** opened the pass
-  playing rather than the base. To work on a pass in the editor, make it a **Full Song** and open that take.
-- **Jam: the pass played is the base**, as is a new pass when it fades in; the pass length is chosen in the top bar
-  for each Jam (starting at the one in Settings); a take with Jam passes shows a lit **J** on its card that opens its
-  Jam.
 - **Jam: a Feel card for sculpting the sound.** Beside the Vibe pad: **Key** (move the melody and chords), **Start at**
   (a short pass plays from a section, such as the chorus), **Performance** and **Style grip** (in place of the pad's
   choice), **Polish** (more steps over a pass), **Chords** for Plan & Roll, and a recorded voice's likeness, formant and
   blend. **Same seed** makes the next pass with its base's seed, so it differs only by what was changed. **Reset to
   defaults** puts the card back.
+- **Jam: the pass played is the base**, as is a new pass when it fades in; the pass length is chosen in the top bar
+  for each Jam (starting at the one in Settings); a take with Jam passes shows a lit **J** on its card that opens its
+  Jam.
 - **Jam: a star on each pass** marks the ones you like, to find them among many. It belongs to the Jam, not the
   library's star.
+- **Jam: name a full song as you render it.** The confirmation shows the new take's name, selected, ready to change.
 - **Jam keeps the Seed's tempo** when a style is chosen or a LoRA's song is clicked: they set the sound, and only the
   Tempo control moves it.
-- **Jam: name a full song as you render it.** The confirmation shows the new take's name, selected, ready to change.
+- **Jam no longer opens the editor.** A pass's **Editor** button and the **E** key are gone. The editor's changes
+  never reached the Jam (a tempo set there applied only to the editor's own next render), and **E** opened the pass
+  playing rather than the base. To work on a pass in the editor, make it a **Full Song** and open that take.
+- **Jam guide: short passes as sketches.** The guide now explains that a short pass is a sketch of the direction rather
+  than an audio clip extended by **Full Song**, why instrumentation and mix can shift at full length, and why `yue2.cpp`
+  stays noticeably closer to the pass than ComfyUI.
+- **Jam from an AI agent.** Two new MCP tools: `jam_roll` rolls a short pass of a take with a new sound (its
+  melody and chords kept, or with a new plan), or makes a pass whole as a Full Song with that pass's seed;
+  `list_jam_passes` lists the passes. A pass's short id works in any tool. Passes made this way do not appear in the Jam
+  window's Roll History.
+- **A Yeufonic preset in the mastering rack.** A factory preset made by ear: the highs lifted well up, the low mids
+  lifted on the parametric equaliser, the imager wide with its bass, no compressor, and the limiter catching the peaks.
+- **Mastering rack indicator fix.** Switching to a take with no mastering settings of its own no longer briefly lights
+  its **M** badge with the previous take's settings.
 - **Advanced take settings show what is set.** As the Sampling boxes already did, a box at its default is empty and
   shows the default muted, and a value you set is bold. Emptying a box puts it back to its default.
 
