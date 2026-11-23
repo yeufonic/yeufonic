@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.67 (2026-11-23)
 
 - **Jam starts at the Seed's tempo.** With no tempo lock, a Jam took 100 BPM rather than the tempo in the take's
   score, and the Tempo control stopped at 165; it now reads the score (or the style) and runs from 40 to 240, as the
