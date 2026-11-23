@@ -45,6 +45,12 @@ cannot creep back in.
   melody and chords kept, or with a new plan), or makes a pass whole as a Full Song with that pass's seed;
   `list_jam_passes` lists the passes. A pass's short id works in any tool. Passes made this way do not appear in the Jam
   window's Roll History.
+- **Jam no longer opens the editor.** A pass's **Editor** button and the **E** key are gone. The editor's changes
+  never reached the Jam (a tempo set there applied only to the editor's own next render), and **E** opened the pass
+  playing rather than the base. To work on a pass in the editor, make it a **Full Song** and open that take.
+- **Jam: the pass played is the base**, as is a new pass when it fades in; the pass length is chosen in the top bar
+  for each Jam (starting at the one in Settings); a take with Jam passes shows a lit **J** on its card that opens its
+  Jam.
 - **Advanced take settings show what is set.** As the Sampling boxes already did, a box at its default is empty and
   shows the default muted, and a value you set is bold. Emptying a box puts it back to its default.
 

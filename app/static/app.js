@@ -13150,10 +13150,17 @@ async function startFresh() {
   return true;
 }
 
+/* How many passes this take's Jam holds (its session, kept in this browser), so its card can show it has a Jam. */
+function jamPasses(id) {
+  try {
+    var all = JSON.parse(localStorage.getItem('yue2.jam.sessions') || '{}');
+    var session = all['take:' + id];
+    return session && Array.isArray(session.passes) ? session.passes.filter(function (p) { return p && !p.isSeed && p.id !== id; }).length : 0;
+  } catch (err) { return 0; }
+}
+
 function takeById(id) {
-  return State.takes.filter(function (take) { return take.id === id; })[0] ||
-    // A Jam scratch pass open in the editor is not in the library's list, but it is the take on show.
-    (State.formTake && State.formTake.id === id && State.formTake.space_id === '__jam__' ? State.formTake : null);
+  return State.takes.filter(function (take) { return take.id === id; })[0] || null;
 }
 
 /* Deleting takes one at a time is slow in a space with many, so cards can be
@@ -13710,6 +13717,10 @@ function paintTakes() {
           (status === 'done' && take.has_audio && !take.normalised && !State.normalising[take.id]
             ? '<button class="take-move" data-act="normalise"' + id + ' title="' + t('Normalise (N) — Bring this take to the usual loudness. The file as rendered is kept') + '"' +
               ' aria-label="' + t('Normalise') + '">' + icon('level') + '</button>'
+            : '') +
+          (jamPasses(take.id)
+            ? '<button class="take-move jammed" data-act="jam"' + id + ' title="' + tn(jamPasses(take.id), 'Jam (J) — This take has {n} Jam pass. Open it in Jam', 'Jam (J) — This take has {n} Jam passes. Open it in Jam') + '" aria-label="' + t('Jam') + '">' +
+              '<span class="jam-j" aria-hidden="true">J</span></button>'
             : '') +
           '<button class="take-move' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + (mastered ? ' mastered' : '') +
             '" data-act="mastering"' + id + ' title="' + t('Mastering Rack (M) — Vintage EQ, Compressor, Limiter{value}', { value: mastered ? t('. This take is mastered') : '' }) + '" aria-label="' + t('Mastering Rack') + '">' +
@@ -17148,6 +17159,11 @@ function wire() {
       }
       loadTakes();
     }
+    if (act === 'jam') {
+      var jamTake = takeById(id);
+      if (jamTake && window.Jam) { window.Jam.openFromTake(jamTake); }
+      return;
+    }
     if (act === 'details' || act === 'mastering') {
       if (act === 'mastering') {
         var targetTake = takeById(id);
@@ -18243,11 +18259,6 @@ function closeEditor() {
   document.body.style.overflow = '';
   paintEdMastering();   // a rack opened from the window stays open, on the page
   paintSheet();
-  // Opened from Jam, the window goes back to the Jam however it closes: by hand, or because it started
-  // a plan or a render (whose new take is in the library, and in the Jam's space).
-  var backToJam = Boolean(State.editorFromJam);
-  State.editorFromJam = false;
-  if (backToJam && window.Jam && typeof window.Jam.resume === 'function') { window.Jam.resume(); }
 }
 
 function paintEditor() {

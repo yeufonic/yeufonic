@@ -1050,16 +1050,16 @@ off. **New Jam** goes back to the Seed's own sound and deletes the passes.
 **The controls.**
 
 - **Sound & Parts** are the words that describe the sound: genres, instruments, production and rhythm. Click a chip
-  to add or remove it, or type your own in the search box. Drag the four bars on a Part to say how much it counts,
-  from Subtle to Lead. **Choose a style…** takes the Parts and the tempo from a style you saved in the editor or a
-  built-in one. The **Style LoRA** picker is the editor's, with its Sound and Score strengths, and a LoRA trained
-  from a corpus shows the songs it learned: click one for that song's sound and tempo.
+ to add or remove it, or type your own in the search box. Drag the four bars on a Part to say how much it counts,
+ from Subtle to Lead. **Choose a style…** takes the Parts and the tempo from a style you saved in the editor or a
+ built-in one. The **Style LoRA** picker is the editor's, with its Sound and Score strengths, and a LoRA trained
+ from a corpus shows the songs it learned: click one for that song's sound and tempo.
 - **Vibe** is the pad from Dark to Bright and Calm to Energetic. The further the dot is from the middle, the more
-  it adds words for mood, dynamics and delivery to the style, the more it adds things to avoid, and the more firmly
-  the model is held to them.
+ it adds words for mood, dynamics and delivery to the style, the more it adds things to avoid, and the more firmly
+ the model is held to them.
 - **Tempo**, in beats per minute.
 - **Vocals**: Instrumental, Female, Male, or one of your recorded voices, with up to three tone words. A pass sings
-  the Seed's own words. A Seed with no words makes instrumentals only.
+ the Seed's own words. A Seed with no words makes instrumentals only.
 
 Under the controls, **Compiled style** shows the style a roll will send, and what it avoids.
 
@@ -1072,18 +1072,16 @@ is made, and the new one fades in when it is ready. The count on **Roll** says h
 the change is more than the sound, such as another genre or another feel. It takes longer than **Roll** and can
 change the song a lot. The next **Roll** goes back to keeping the melody and chords.
 
-**Building on a pass.** Click a card in Roll History to make it the **Base**. Its settings go back into the controls,
+**Building on a pass.** Click a card in Roll History, or play it, to make it the **Base**; a new pass becomes the base when it fades in. Its settings go back into the controls,
 and the next roll builds on it. The card shows **Base**, and the player and the foot of the window say which pass you
 are building on. Each new pass names the pass it came from and shows what changed. **Space** plays or pauses the base.
 
 **Keeping one.** Passes are kept out of your spaces. **Full Song** on a pass renders the whole song with that pass's
 settings, as a new take in the space the Jam was opened from; it asks first. The **Fast Loop** and **Full Song**
-switch at the top makes **Roll** render whole songs instead of passes. **Editor** (or **E**) opens a pass in the
-editor, and closing the editor brings you back to the Jam. A plan or a render you start there is a new take in your
-space; the pass stays as it was. **Delete** removes a pass for good. Passes stay until you delete them, even after
+switch at the top makes **Roll** render whole songs instead of passes. **Delete** removes a pass for good. Passes stay until you delete them, even after
 the Jam is closed: Settings → Storage lists them as **Jam passes** and can clear them all.
 
-**Keys:** **Space** plays or pauses, **E** opens the pass in the editor, **Esc** closes Jam.
+**Keys:** **Space** plays or pauses, **Esc** closes Jam.
 
 ---
 

@@ -945,17 +945,17 @@ dort weiter, wo du aufgehört hast. **Neue Jam** kehrt zum Klang des Seeds zurü
 **Die Regler.**
 
 - **Klang & Elemente** sind die Wörter, die den Klang beschreiben: Genres, Instrumente, Produktion und Rhythmus.
-  Klicke einen Chip an, um ihn hinzuzufügen oder zu entfernen, oder tippe dein eigenes ins Suchfeld. Zieh die vier
-  Balken an einem Element, um festzulegen, wie stark es zählt, von Dezent bis Führend. **Einen Stil wählen…** nimmt
-  Elemente und Tempo aus einem im Editor gespeicherten oder einem integrierten Stil. Die **Stil-LoRA**-Auswahl ist
-  die des Editors, mit ihren Stärken für Klang und Partitur, und eine aus einem Korpus trainierte LoRA zeigt die
-  Songs, die sie gelernt hat: Ein Klick übernimmt Klang und Tempo dieses Songs.
+ Klicke einen Chip an, um ihn hinzuzufügen oder zu entfernen, oder tippe dein eigenes ins Suchfeld. Zieh die vier
+ Balken an einem Element, um festzulegen, wie stark es zählt, von Dezent bis Führend. **Einen Stil wählen…** nimmt
+ Elemente und Tempo aus einem im Editor gespeicherten oder einem integrierten Stil. Die **Stil-LoRA**-Auswahl ist
+ die des Editors, mit ihren Stärken für Klang und Partitur, und eine aus einem Korpus trainierte LoRA zeigt die
+ Songs, die sie gelernt hat: Ein Klick übernimmt Klang und Tempo dieses Songs.
 - **Stimmung** ist die Fläche von Dunkel bis Hell und von Ruhig bis Energisch. Je weiter der Punkt von der Mitte
-  entfernt ist, desto mehr Wörter für Stimmung, Dynamik und Vortrag kommen in den Stil, desto mehr wird vermieden und
-  desto fester hält sich das Modell daran.
+ entfernt ist, desto mehr Wörter für Stimmung, Dynamik und Vortrag kommen in den Stil, desto mehr wird vermieden und
+ desto fester hält sich das Modell daran.
 - **Tempo** in Schlägen pro Minute.
 - **Gesang**: Instrumental, Weiblich, Männlich oder eine deiner aufgenommenen Stimmen, mit bis zu drei Klangwörtern.
-  Ein Durchgang singt den Text des Seeds. Ein Seed ohne Text erzeugt nur Instrumentals.
+ Ein Durchgang singt den Text des Seeds. Ein Seed ohne Text erzeugt nur Instrumentals.
 
 Unter den Reglern zeigt **Gesendeter Stil** den Stil, den ein Roll sendet, und was er vermeidet.
 
@@ -969,7 +969,7 @@ auf **Roll** zeigt, wie viel du geändert hast.
 Nimm es, wenn sich mehr als der Klang ändern soll, etwa ein anderes Genre oder ein anderes Gefühl. Es dauert länger als
 **Roll** und kann den Song stark verändern. Der nächste **Roll** behält Melodie und Akkorde wieder.
 
-**Auf einem Durchgang aufbauen.** Klicke eine Karte im Roll-Verlauf an, um sie zur **Basis** zu machen. Ihre
+**Auf einem Durchgang aufbauen.** Klicke eine Karte im Roll-Verlauf an oder spiele sie ab, um sie zur **Basis** zu machen; ein neuer Durchgang wird zur Basis, sobald er eingeblendet wird. Ihre
 Einstellungen kommen zurück in die Regler, und der nächste Roll baut auf ihr auf. Die Karte zeigt **Basis**, und der
 Player und der Fuß des Fensters sagen, auf welchem Durchgang du aufbaust. Jeder neue Durchgang nennt den, aus dem er
 kommt, und zeigt, was sich geändert hat. Die **Leertaste** spielt die Basis ab oder hält sie an.
@@ -977,12 +977,10 @@ kommt, und zeigt, was sich geändert hat. Die **Leertaste** spielt die Basis ab 
 **Einen behalten.** Durchgänge liegen außerhalb deiner Bereiche. **Ganzer Song** auf einem Durchgang rendert den
 ganzen Song mit dessen Einstellungen als neuen Take in dem Bereich, aus dem die Jam geöffnet wurde; vorher wird
 nachgefragt. Der Schalter **Kurzschleife** / **Ganzer Song** oben lässt **Roll** ganze Songs statt Durchgängen
-rendern. **Editor** (oder **E**) öffnet einen Durchgang im Editor, und wenn du den Editor schließt, bist du wieder in
-der Jam. Ein Plan oder Rendering, das du dort startest, wird ein neuer Take in deinem Bereich; der Durchgang bleibt,
-wie er war. **Löschen** entfernt einen Durchgang endgültig. Durchgänge bleiben, bis du sie löschst, auch wenn die Jam
+rendern. **Löschen** entfernt einen Durchgang endgültig. Durchgänge bleiben, bis du sie löschst, auch wenn die Jam
 geschlossen ist: Einstellungen → Speicher führt sie als **Jam-Durchgänge** und kann alle leeren.
 
-**Tasten:** **Leertaste** spielt oder hält an, **E** öffnet den Durchgang im Editor, **Esc** schließt Jam.
+**Tasten:** **Leertaste** spielt oder hält an, **Esc** schließt Jam.
 
 ---
 

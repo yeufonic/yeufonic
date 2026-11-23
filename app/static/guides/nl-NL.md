@@ -945,17 +945,17 @@ dan ga je verder waar je was. **Nieuwe Jam** gaat terug naar de klank van de See
 **De bediening.**
 
 - **Klank & onderdelen** zijn de woorden die de klank beschrijven: genres, instrumenten, productie en ritme. Klik op
-  een chip om hem toe te voegen of weg te halen, of typ er zelf een in het zoekveld. Sleep de vier balkjes van een
-  onderdeel om te bepalen hoeveel het telt, van subtiel tot leidend. **Een stijl kiezen…** neemt de onderdelen en het
-  tempo over uit een stijl die je in de editor bewaarde of uit een ingebouwde. De keuze voor **Stijl-LoRA** is die
-  van de editor, met de sterktes voor klank en partituur, en een LoRA die uit een corpus is getraind toont de
-  nummers die hij leerde: klik er een aan voor de klank en het tempo van dat nummer.
+ een chip om hem toe te voegen of weg te halen, of typ er zelf een in het zoekveld. Sleep de vier balkjes van een
+ onderdeel om te bepalen hoeveel het telt, van subtiel tot leidend. **Een stijl kiezen…** neemt de onderdelen en het
+ tempo over uit een stijl die je in de editor bewaarde of uit een ingebouwde. De keuze voor **Stijl-LoRA** is die
+ van de editor, met de sterktes voor klank en partituur, en een LoRA die uit een corpus is getraind toont de
+ nummers die hij leerde: klik er een aan voor de klank en het tempo van dat nummer.
 - **Sfeer** is het vlak van Donker tot Helder en van Kalm tot Energiek. Hoe verder de stip van het midden, hoe meer
-  woorden voor sfeer, dynamiek en voordracht in de stijl komen, hoe meer er vermeden wordt en hoe strakker het model
-  zich eraan houdt.
+ woorden voor sfeer, dynamiek en voordracht in de stijl komen, hoe meer er vermeden wordt en hoe strakker het model
+ zich eraan houdt.
 - **Tempo**, in slagen per minuut.
 - **Zang**: Instrumentaal, Vrouw, Man of een van je opgenomen stemmen, met tot drie klankwoorden. Een ronde zingt de
-  tekst van de Seed. Een Seed zonder tekst maakt alleen instrumentale nummers.
+ tekst van de Seed. Een Seed zonder tekst maakt alleen instrumentale nummers.
 
 Onder de bediening toont **Verstuurde stijl** de stijl die een roll verstuurt, en wat hij vermijdt.
 
@@ -969,7 +969,7 @@ hebt veranderd.
 nieuwe structuur. Gebruik het als er meer moet veranderen dan de klank, zoals een ander genre of een ander gevoel. Het
 duurt langer dan **Roll** en kan het nummer flink veranderen. De volgende **Roll** houdt de melodie en akkoorden weer.
 
-**Voortbouwen op een ronde.** Klik op een kaart in de Roll-geschiedenis om er de **Basis** van te maken. De
+**Voortbouwen op een ronde.** Klik op een kaart in de Roll-geschiedenis, of speel hem af, om er de **Basis** van te maken; een nieuwe ronde wordt de basis zodra hij infaadt. De
 instellingen ervan gaan terug in de bediening, en de volgende roll bouwt erop voort. De kaart toont **Basis**, en de
 speler en de onderkant van het venster zeggen op welke ronde je voortbouwt. Elke nieuwe ronde noemt de ronde waar hij
 uit komt en toont wat er veranderde. **Spatie** speelt de basis af of pauzeert hem.
@@ -977,12 +977,11 @@ uit komt en toont wat er veranderde. **Spatie** speelt de basis af of pauzeert h
 **Eén bewaren.** Rondes blijven buiten je ruimtes. **Heel nummer** op een ronde rendert het hele nummer met de
 instellingen van die ronde, als nieuwe take in de ruimte van waaruit de Jam werd geopend; eerst wordt het gevraagd. De
 schakelaar **snelle loop** / **Heel nummer** bovenaan laat **Roll** hele nummers renderen in plaats van rondes.
-**Editor** (of **E**) opent een ronde in de editor, en als je de editor sluit ben je terug in de Jam. Een plan of
-render die je daar start, wordt een nieuwe take in je ruimte; de ronde blijft zoals hij was. **Verwijderen** haalt een
+**Verwijderen** haalt een
 ronde definitief weg. Rondes blijven tot je ze verwijdert, ook als de Jam dicht is: Instellingen → Opslag toont ze als
 **Jam-rondes** en kan ze allemaal wissen.
 
-**Toetsen:** **Spatie** speelt of pauzeert, **E** opent de ronde in de editor, **Esc** sluit Jam.
+**Toetsen:** **Spatie** speelt of pauzeert, **Esc** sluit Jam.
 
 ---
 

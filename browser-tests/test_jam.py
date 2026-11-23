@@ -1,4 +1,4 @@
-"""Jam: opened from a take, a pass rolled from it and built on, the editor's round trip, and the keys."""
+"""Jam: opened from a take, a pass rolled from it and built on, and the keys."""
 import pytest
 
 pytest.importorskip("playwright.sync_api")
@@ -44,13 +44,8 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     assert "Pass #1" in page.locator(".jam-roll-from").inner_text()
     assert page.locator(".jam-pending-badge").count() == 0
 
-    # The editor opens the pass without keeping it, and closing it comes back to the Jam.
-    page.click(f'.jam-hist-card[data-pass-id="{pass_id}"] [data-jam-act="open-editor"]')
-    page.wait_for_selector("#editor-modal:not(.hidden)")
-    assert api(app_server, f"/api/takes/{pass_id}")["space_id"] == "__jam__"
-    page.click("#editor-close")
-    page.wait_for_selector("#jam-modal:not(.hidden)")
-    assert page.locator(f'.jam-hist-card.is-base[data-pass-id="{pass_id}"]').count() == 1
+    # The pass has no editor in Jam: its card offers Play, Full Song and Delete.
+    assert page.locator(f'.jam-hist-card[data-pass-id="{pass_id}"] [data-jam-act="open-editor"]').count() == 0
 
     # Esc closes it.
     page.locator(".jam-col-head h4").first.click()

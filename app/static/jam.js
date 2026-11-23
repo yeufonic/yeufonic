@@ -918,9 +918,15 @@
   }
 
   /* How much of the song a short pass renders (Settings, Audio: Length of a Jam pass). */
-  function passSeconds() {
+  /* How much of the song a short pass renders: the length chosen in the top bar for this Jam, or, until one is
+     chosen, the one in Settings (Audio: Length of a Jam pass). */
+  var PASS_LENGTHS = [20, 30, 40, 60, 90];
+  function settingPassSeconds() {
     var value = parseInt(typeof setting === 'function' ? setting('jam.pass_seconds', 40) : 40, 10);
     return value >= 10 && value <= 900 ? value : 40;
+  }
+  function passSeconds() {
+    return JamState.passChoice || settingPassSeconds();
   }
 
   /* A Full Song's cap: the one in Settings for a new take, which the server raises to fit a longer plan.
@@ -1109,8 +1115,9 @@
         saveSession();
         if (typeof loadTakes === 'function') { loadTakes(); }
         paintAll();
-        // Smoothly crossfade into the newly rolled pass!
+        // Smoothly crossfade into the newly rolled pass, which, playing, is the base to build on next.
         if (JamState.open) {
+          selectBase(id);
           JamAudio.play(id, 2.2).catch(function () {});
         }
         return;
@@ -1223,7 +1230,11 @@
       '</div>' +
       '<div class="jam-scope">' +
         '<div class="jam-seg-pill" title="' + t('Short passes of the song: their length is in Settings \u2192 Audio, Takes &amp; Stems') + '">' +
-          '<button type="button" data-jam-act="scope-fast" class="' + (JamState.fastLoop ? 'active' : '') + '">' + t('{seconds}s Fast Loop', { seconds: passSeconds() }) + '</button>' +
+          '<select id="jam-pass-len" class="jam-seg-select' + (JamState.fastLoop ? ' active' : '') + '" title="' + t('How long a pass runs. Settings sets where each Jam starts') + '">' +
+            PASS_LENGTHS.concat(PASS_LENGTHS.indexOf(passSeconds()) < 0 ? [passSeconds()] : []).sort(function (a, b) { return a - b; }).map(function (n) {
+              return '<option value="' + n + '"' + (n === passSeconds() ? ' selected' : '') + '>' + t('{seconds}s Fast Loop', { seconds: n }) + '</option>';
+            }).join('') +
+          '</select>' +
           '<button type="button" data-jam-act="scope-full" class="' + (!JamState.fastLoop ? 'active' : '') + '">' + t('Full Song') + '</button>' +
         '</div>' +
       '</div>' +
@@ -1244,7 +1255,7 @@
     var cooking = Boolean(JamState.cookingId);
 
     el.innerHTML =
-      '<span class="jam-foot-hint muted small">' + t('Space to play or pause \u00B7 E to open the pass in the editor \u00B7 Esc to close') + '</span>' +
+      '<span class="jam-foot-hint muted small">' + t('Space to play or pause \u00B7 Esc to close') + '</span>' +
       '<div class="jam-foot-actions">' +
         // The base, as on its card: what the next roll builds on.  Clicking a card in Roll History changes it.
         '<span class="jam-roll-from" title="' + t('The next roll builds on this. Click a card in Roll History to change it') + '">' +
@@ -1727,7 +1738,6 @@
                 ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 ' + t('Stop') + '</button>'
                 : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 ' + t('Play') + '</button>') +
               '<button type="button" class="jam-hist-btn" data-jam-act="full-pass" data-pass-id="' + escHtml(p.id) + '">' + t('Full Song') + '</button>' +
-              '<button type="button" class="jam-hist-btn" data-jam-act="open-editor" data-pass-id="' + escHtml(p.id) + '" title="' + t('Open this pass in the editor (E). What you make there is a new take in your space') + '">' + t('Editor') + '</button>' +
               '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="' + t('Delete this pass for good') + '">' + t('Delete') + '</button>' +
             '</div>';
           } else {
@@ -1809,6 +1819,15 @@
       return;
     }
     if (loraMenuClick(event)) { return; }
+    // Picking the pass length is choosing short passes: lit at once, without redrawing the list being opened.
+    if (event.target.id === 'jam-pass-len' && !JamState.fastLoop) {
+      JamState.fastLoop = true;
+      event.target.classList.add('active');
+      var full = document.querySelector('[data-jam-act="scope-full"]');
+      if (full) { full.classList.remove('active'); }
+      paintFooter();
+      return;
+    }
     var card = event.target.closest('.jam-hist-card.selectable');
     if (card && !event.target.closest('button')) { selectBase(card.dataset.passId); return; }
     var btn = event.target.closest('[data-jam-act]');
@@ -1878,6 +1897,8 @@
       return;
     }
     if (act === 'play-pass') {
+      // The pass played is the one being worked on: it becomes the base, its settings in the controls.
+      if (btn.dataset.passId !== (buildOn() || {}).id) { selectBase(btn.dataset.passId); }
       // The pass that was paused (by the editor opening, say) goes on from where it stopped.
       if (btn.dataset.passId === JamAudio.currentId && JamAudio.active && !JamAudio.playing) { JamAudio.resume(); return; }
       JamAudio.play(btn.dataset.passId, 0.8).catch(function () {});
@@ -1899,9 +1920,6 @@
         });
       }
       return;
-    }
-    if (act === 'open-editor') {
-      openPassInEditor(btn.dataset.passId);
     }
   }
 
@@ -1943,28 +1961,6 @@
     if (typeof loadTakes === 'function') { loadTakes(); }
   }
 
-  async function openPassInEditor(targetId) {
-    if (!targetId) { return; }
-    try {
-      // The pass is only opened: it stays a scratch pass in Roll History, and the editor comes back here
-      // when it closes.  What the editor makes from it (a plan, a render) is a new take in the Jam's space.
-      var tObj = await api('/api/takes/' + encodeURIComponent(targetId));
-      close();
-      if (typeof loadTakes === 'function') { await loadTakes(); }
-      if (tObj && typeof selectTake === 'function') {
-        selectTake(tObj);
-        if (typeof openEditor === 'function') { openEditor('song'); }
-        // A pass was capped at Jam's 40 s; what is made from it in the editor should not be.  An empty
-        // Length cap is nobody's: the one in Settings, which rises to fit the plan.
-        var capBox = document.getElementById('max-duration');
-        if (capBox) { capBox.value = ''; }
-        if (window.State) { State.capTyped = false; State.capFromScore = false; State.editorFromJam = true; }
-      }
-    } catch (err) {
-      if (typeof toast === 'function') { toast(t('Could not open it in the editor: {message}', { message: tr(err.message) }), 'bad'); }
-    }
-  }
-
   function handleKey(event) {
     if (!JamState.open) { return false; }
     var el = document.activeElement;
@@ -1974,14 +1970,6 @@
     if (event.code === 'Space') {
       JamAudio.toggle();
       return true;
-    }
-    if (!event.ctrlKey && !event.metaKey && !event.altKey && (event.key === 'e' || event.key === 'E')) {
-      var activePass = JamState.passes.find(function (p) { return p.id === JamAudio.currentId; }) ||
-        JamState.passes.find(function (p) { return p.hasAudio; });
-      if (activePass && activePass.id) {
-        openPassInEditor(activePass.id);
-        return true;
-      }
     }
     return false;
   }
@@ -2030,6 +2018,12 @@
 
   function onShellChange(event) {
     var tg = event.target;
+    if (tg.id === 'jam-pass-len') {
+      JamState.passChoice = parseInt(tg.value, 10) || null;
+      JamState.fastLoop = true;
+      paintTopbar();
+      return;
+    }
     if (tg.id === 'jam-voice-select') {
       JamState.voiceId = tg.value;
       paintTopbar();
@@ -2115,6 +2109,7 @@
     var modal = document.getElementById('jam-modal');
     if (!modal || !take) { return; }
     JamState.open = true;
+    JamState.passChoice = null;       // each Jam starts at the length in Settings
     modal.classList.remove('hidden');
     // A Jam is the take's own, a take inside another included: keyed by its mother, opening one showed the
     // other's Seed and words.  A session whose Seed is another take (saved that way before) starts afresh.
@@ -2145,19 +2140,11 @@
     saveSession();
     JamAudio.pause();
     if (modal) { modal.classList.add('hidden'); }
+    // The take's card shows whether it has a Jam: painted again now, since an unchanged list is not repainted.
+    if (typeof paintTakes === 'function') { paintTakes(); }
   }
 
   function isOpen() { return JamState.open; }
 
-  /* Back to the Jam that was open, as it was: closing an editor opened from it comes here. */
-  function resume() {
-    var modal = document.getElementById('jam-modal');
-    if (!modal || !JamState.sessionKey || !JamState.passes.length) { return; }
-    JamState.open = true;
-    modal.classList.remove('hidden');
-    paintAll();
-    syncPassesFromServer();
-  }
-
-  window.Jam = { openFromTake: openFromTake, resume: resume, close: close, isOpen: isOpen, handleKey: handleKey };
+  window.Jam = { openFromTake: openFromTake, close: close, isOpen: isOpen, handleKey: handleKey };
 })();

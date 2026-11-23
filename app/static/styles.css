@@ -2986,6 +2986,9 @@ label .lora-value:disabled { opacity: 0.6; }
    belonging to it and not as more of the list.  They keep it when one is the take on show, as it does. */
 .take-inside .take, .take-inside .take.editing { background: var(--take-holds); }
 .take-move.mastered, .take-move.mastered:hover, .take-move.mastered.active { color: var(--good); }
+/* A take that has a Jam: its J lit in the accent, as Mastered is lit in green. */
+.take-move.jammed, .take-move.jammed:hover { color: var(--accent-a); }
+.take-move .jam-j { font-weight: 800; font-size: 14px; line-height: 1; font-family: inherit; }
 .take.holding { border-color: rgb(var(--accent-a-rgb) / 0.7); box-shadow: 0 0 0 1px rgb(var(--accent-a-rgb) / 0.35); }
 /* The panel: a row of its own under the card, whatever the columns, holding the takes as cards.  Its frame
    is drawn outside the row (the side margins take back what the padding and border add), so the cards in
@@ -7953,11 +7956,19 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   border: 0; background: transparent; color: var(--muted);
   font: inherit; font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 7px; cursor: pointer;
 }
+.jam-seg-pill select.jam-seg-select {
+  width: auto; border: 0; background: transparent; box-shadow: none; color: var(--muted);
+  font: inherit; font-size: 12px; font-weight: 600; padding: 5px 8px; border-radius: 7px; cursor: pointer;
+}
+/* The list itself in the page's own colours: the select's light text on the system's light list was unreadable. */
+.jam-seg-pill select.jam-seg-select option { background: var(--card); color: var(--text); font-weight: 500; }
+.jam-seg-pill select.jam-seg-select.active,
 .jam-seg-pill button.active {
   background: rgb(var(--accent-a-rgb) / 0.22);
   color: var(--text-strong);
   box-shadow: inset 0 0 0 1px rgb(var(--accent-a-rgb) / 0.45);
 }
+:root[data-theme="light"] .jam-seg-pill select.jam-seg-select.active,
 :root[data-theme="light"] .jam-seg-pill button.active {
   background: #ffffff;
   color: #4f35c2;
