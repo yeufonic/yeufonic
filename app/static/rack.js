@@ -3392,7 +3392,6 @@
       this.currentTakeId = take.id;
       var label = document.getElementById('rack-take-name');
       if (label) { label.textContent = take.title || (t('Take #{id}', { id: take.id })); }
-      this.updateTakeCardsUI();
 
       if (take.fx_chain) {
         try {
@@ -3404,11 +3403,17 @@
             Engine.applySettings(this.settings);
             this.syncStems();
             this.applyFolds(this.settings.folded);
+            this.updateTakeCardsUI();
             return;
           }
         } catch (e) {}
       }
 
+      // Until the server says otherwise the take has no settings of its own: the rack is flat for it.  Left holding the
+      // last take's, the new take's card lit its M as mastered while they loaded, and kept it lit.
+      this.settings = JSON.parse(JSON.stringify(PRESETS['default']));
+      this.keptPayload = JSON.stringify(this.settings);
+      this.updateTakeCardsUI();
       var self = this;
       fetch('/api/takes/' + take.id + '/fx')
         .then(function (res) { return res.ok ? res.json() : {}; })
@@ -3424,6 +3429,7 @@
           Engine.applySettings(self.settings);
           self.syncStems();
           self.applyFolds(self.settings.folded);
+          self.updateTakeCardsUI();
         })
         .catch(function () {});
     },
