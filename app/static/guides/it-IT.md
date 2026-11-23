@@ -945,17 +945,18 @@ dove eri rimasto. **Nuova Jam** torna al suono del Seed ed elimina le passate.
 **I controlli.**
 
 - **Suono ed elementi** sono le parole che descrivono il suono: generi, strumenti, produzione e ritmo. Fai clic su un
- chip per aggiungerlo o toglierlo, oppure scrivine uno tuo nel campo di ricerca. Trascina le quattro barre di un
- elemento per dire quanto conta, da discreta a protagonista. **Scegli uno stile…** prende elementi e tempo da uno stile
- salvato nell’editor o da uno integrato. La scelta della **LoRA di stile** è quella dell’editor, con le intensità per
- suono e partitura, e una LoRA addestrata su un corpus mostra i brani che ha imparato: fai clic su uno per prenderne
- suono e tempo.
+  chip per aggiungerlo o toglierlo, oppure scrivine uno tuo nel campo di ricerca. Trascina le quattro barre di un
+  elemento per dire quanto conta, da discreta a protagonista. **Scegli uno stile…** prende elementi e tempo da uno stile
+  salvato nell’editor o da uno integrato. La scelta della **LoRA di stile** è quella dell’editor, con le intensità per
+  suono e partitura, e una LoRA addestrata su un corpus mostra i brani che ha imparato: fai clic su uno per prenderne
+  suono e tempo.
 - **Atmosfera** è il riquadro da Scuro a Luminoso e da Calmo a Energico. Più il punto si allontana dal centro, più
- aggiunge allo stile parole di atmosfera, dinamica e interpretazione, più aggiunge cose da evitare e più il modello
- vi si attiene.
+  aggiunge allo stile parole di atmosfera, dinamica e interpretazione, più aggiunge cose da evitare e più il modello
+  vi si attiene.
 - **Tempo**, in battiti al minuto.
 - **Voce**: Strumentale, Femminile, Maschile o una delle tue voci registrate, con fino a tre parole di timbro. Una
- passata canta le parole del Seed. Un Seed senza parole crea solo brani strumentali.
+  passata canta le parole del Seed. Un Seed senza parole crea solo brani strumentali.
+- **Feeling** rifinisce ciò che il riquadro lascia libero. **Tonalità** sposta melodia e accordi in un’altra tonalità; **Inizia da** fa suonare una passata breve da una sezione, come il ritornello, invece che dall’inizio; **Esecuzione** e **Aderenza allo stile** sostituiscono la scelta del riquadro su quanto liberamente si suona e quanto si segue lo stile; **Rifinitura** dà più passi a una passata; **Accordi** decide quanto sono audaci gli accordi di un nuovo piano, per Plan & Roll; e con una voce registrata ci sono somiglianza, formante e miscela. **Stesso seed** fa la prossima passata con il seed della sua base, così cambia solo ciò che hai modificato.
 
 Sotto i controlli, **Stile inviato** mostra lo stile che un Roll invierà e ciò che evita.
 

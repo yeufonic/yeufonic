@@ -433,6 +433,15 @@
     styleLora: '',
     styleLoraModel: 0.7,
     styleLoraClip: 0.7,
+    // Sculpting (the Feel card): each empty means "as the Vibe pad, or the take, has it".
+    key: '',            // a key to move the score to
+    startSection: '',   // the section of the score a short pass starts at
+    performance: '',    // an interpretation, in place of the Vibe pad's
+    grip: '',           // how firmly the style is followed (CFG), in place of the Vibe pad's
+    polish: 'draft',    // draft (24 steps) or polished (32)
+    chords: '',         // Plan & Roll's harmony, in place of the Vibe pad's
+    voiceMix: {},       // a recorded voice's likeness, formant and blend for these passes
+    holdSeed: false,    // roll with the base's seed, so a pass differs only by what was changed
     paletteTab: 'inst',
     searchQuery: '',
     passes: [],         // [{ num, id, title, status, progress, stage, hasAudio, hasScore, duration, snapshot, diffs, error }; the Seed and scratch passes]
@@ -471,6 +480,8 @@
         styleLora: JamState.styleLora,
         styleLoraModel: JamState.styleLoraModel,
         styleLoraClip: JamState.styleLoraClip,
+        key: JamState.key, startSection: JamState.startSection, performance: JamState.performance, grip: JamState.grip,
+        polish: JamState.polish, chords: JamState.chords, voiceMix: JamState.voiceMix, holdSeed: JamState.holdSeed,
         passes: JamState.passes.slice(0, 40),
         lastPassNum: JamState.lastPassNum || 0,
         lastRolledSnapshot: JamState.lastRolledSnapshot,
@@ -506,6 +517,8 @@
     JamState.styleLora = s.styleLora || '';
     JamState.styleLoraModel = s.styleLoraModel != null ? Number(s.styleLoraModel) : 0.7;
     JamState.styleLoraClip = s.styleLoraClip != null ? Number(s.styleLoraClip) : 0.7;
+    loadSculpt(s);
+    JamState.holdSeed = Boolean(s.holdSeed);
     JamState.passes = Array.isArray(s.passes) ? s.passes.slice() : [];
     var maxLoaded = JamState.passes.reduce(function (m, p) {
       return (p && p.isSeed) ? m : Math.max(m, Number(p && p.num) || 0);
@@ -578,8 +591,22 @@
       lyrics: JamState.lyrics,
       styleLora: JamState.styleLora,
       styleLoraModel: JamState.styleLoraModel,
-      styleLoraClip: JamState.styleLoraClip
+      styleLoraClip: JamState.styleLoraClip,
+      key: JamState.key, startSection: JamState.startSection, performance: JamState.performance, grip: JamState.grip,
+      polish: JamState.polish, chords: JamState.chords, voiceMix: JSON.parse(JSON.stringify(JamState.voiceMix || {}))
     };
+  }
+
+  /* The Feel card's settings from a snapshot or a saved session; any missing are the defaults. */
+  function loadSculpt(s) {
+    s = s || {};
+    JamState.key = s.key || '';
+    JamState.startSection = s.startSection || '';
+    JamState.performance = s.performance || '';
+    JamState.grip = s.grip || '';
+    JamState.polish = s.polish === 'polished' ? 'polished' : 'draft';
+    JamState.chords = s.chords === undefined || s.chords === null ? '' : String(s.chords);
+    JamState.voiceMix = s.voiceMix && typeof s.voiceMix === 'object' ? JSON.parse(JSON.stringify(s.voiceMix)) : {};
   }
 
   function vibeInfo(v) {
@@ -674,6 +701,14 @@
     if (prev.vocals !== next.vocals) {
       diffs.push({ text: t('Vocals \u2192 {value}', { value: vocalsLabel(next.vocals) }), cls: 'chg' });
     }
+    if ((prev.key || '') !== (next.key || '')) { diffs.push({ text: t('Key \u2192 {value}', { value: next.key || t('as the score') }), cls: 'chg' }); }
+    if ((prev.startSection || '') !== (next.startSection || '')) {
+      diffs.push({ text: next.startSection ? t('From the {section}', { section: sectionLabel(next.startSection) }) : t('From the top'), cls: 'chg' });
+    }
+    if ((prev.performance || '') !== (next.performance || '')) { diffs.push({ text: t('Performance \u2192 {value}', { value: performanceLabel(next.performance) }), cls: 'chg' }); }
+    if ((prev.grip || '') !== (next.grip || '')) { diffs.push({ text: t('Style grip \u2192 {value}', { value: gripLabel(next.grip) }), cls: 'chg' }); }
+    if ((prev.polish || 'draft') !== (next.polish || 'draft')) { diffs.push({ text: next.polish === 'polished' ? t('Polished') : t('Draft'), cls: 'chg' }); }
+    if (JSON.stringify(prev.voiceMix || {}) !== JSON.stringify(next.voiceMix || {})) { diffs.push({ text: t('Voice settings'), cls: 'chg' }); }
     if ((prev.styleLora || '') !== (next.styleLora || '')) {
       diffs.push({ text: next.styleLora ? t('+ LoRA') : t('\u2212 LoRA'), cls: next.styleLora ? 'add' : 'rem' });
     }
@@ -760,6 +795,7 @@
     JamState.tones = [];
     JamState.lyrics = take.kind === 'instrumental' ? '' : (take.lyrics || '');
     JamState.seedStructure = take.kind === 'instrumental' ? (take.lyrics || '') : '';   // an instrumental's sections, for Plan & Roll
+    loadSculpt({});                  // the Feel card starts as the take is: nothing moved
     JamState.seedNormalise = Boolean(take.normalise);
     JamState.seedRealaudio = take.realaudio == null ? true : Boolean(take.realaudio);
     JamState.styleLora = take.style_lora || '';
@@ -777,6 +813,8 @@
       stage: '',
       hasAudio: Boolean(take.has_audio),
       hasScore: Boolean(take.abc && take.abc.trim()),
+      seed: take.seed,
+      samplerSteps: take.sampler_steps,
       duration: take.duration || 0,
       snapshot: snap,
       diffs: computeDiffs(null, snap),
@@ -900,6 +938,7 @@
       JamState.styleLora = s.styleLora || '';
       if (s.styleLoraModel != null) { JamState.styleLoraModel = Number(s.styleLoraModel); }
       if (s.styleLoraClip != null) { JamState.styleLoraClip = Number(s.styleLoraClip); }
+      loadSculpt(s);
       JamState.lastRolledSnapshot = cloneSnapshot();
     }
     JamState.styleName = null;
@@ -990,11 +1029,15 @@
       structure: snap.vocals === 'instrumental' && !baseScorePass ? (JamState.seedStructure || '') : '',
       max_duration: isFullSong ? fullSongCap() : passSeconds(),
       target_bpm: snap.bpm,
-      harmony: vi.harmony,
-      interpretation: vi.interpretation,
+      harmony: snap.chords !== '' && snap.chords != null ? Number(snap.chords) : vi.harmony,
+      interpretation: snap.performance || vi.interpretation,
       avoid: vi.avoid,
-      cfg_scale: vi.cfgScale,
-      sampler_steps: basePass && opts.basePassId && basePass.samplerSteps ? basePass.samplerSteps : (isFullSong ? 32 : 24),
+      cfg_scale: effectiveGrip(snap, vi),
+      target_key: snap.key || null,
+      start_section: !isFullSong && snap.startSection ? snap.startSection : null,
+      voice_mix: snap.vocals === 'voice' && snap.voiceMix && Object.keys(snap.voiceMix).length ? snap.voiceMix : null,
+      sampler_steps: basePass && opts.basePassId && basePass.samplerSteps ? basePass.samplerSteps
+        : (isFullSong ? 32 : (snap.polish === 'polished' ? 32 : 24)),
       // As the Seed was made: a Jam does not normalise, or change the real-audio setting, unless the Seed did.
       realaudio: JamState.seedRealaudio !== false,
       normalise: Boolean(JamState.seedNormalise),
@@ -1005,6 +1048,11 @@
     };
     // A Full Song of a pass is that pass made whole: its seed and its sampler steps, so it plays as the pass did.
     if (basePass && opts.basePassId && basePass.seed != null) { payload.seed = basePass.seed; }
+    // Same seed: the pass is made with its base's seed, so what differs is what was changed.
+    else if (JamState.holdSeed) {
+      var seedOf = baseScorePass || from;
+      if (seedOf && seedOf.seed != null) { payload.seed = seedOf.seed; }
+    }
 
     try {
       var created = await api('/api/jam/roll', { method: 'POST', body: JSON.stringify(payload) });
@@ -1605,6 +1653,106 @@
       '<div class="jam-lora-songs">' + pills + '</div>';
   }
 
+  /* ------------------------------------------------- The Feel card: sculpting beyond the Vibe pad */
+  var KEYS = [['C', 'C'], ['C#', 'C# / Db'], ['D', 'D'], ['Eb', 'D# / Eb'], ['E', 'E'], ['F', 'F'], ['F#', 'F# / Gb'],
+              ['G', 'G'], ['Ab', 'G# / Ab'], ['A', 'A'], ['Bb', 'A# / Bb'], ['B', 'B']];
+  var PERFORMANCES = ['tight', 'standard', 'loose', 'settled', 'restless', 'wide'];
+  var GRIPS = { gentle: 1.0, firm: 1.3, strong: 1.65, strict: 2.2 };
+  var CHORDS = ['Familiar', 'Varied', 'Colourful', 'Adventurous', 'Outside'];
+  function formants() {
+    return [[0.88, t('Deeper')], [0.94, t('A little deeper')], [1, t('As sung')], [1.06, t('A little brighter')], [1.12, t('Brighter')]];
+  }
+
+  function performanceLabel(v) {
+    var names = { tight: t('Tight'), standard: t('Standard'), loose: t('Loose'), settled: t('Settled'), restless: t('Restless'), wide: t('Wide') };
+    return v ? (names[v] || v) : t('As the Vibe has it');
+  }
+  function gripLabel(v) {
+    var names = { gentle: t('Gentle'), firm: t('Firm'), strong: t('Strong'), strict: t('Strict') };
+    return v ? (names[v] || v) : t('As the Vibe has it');
+  }
+  function chordsLabel(i) {
+    var names = [t('Familiar'), t('Varied'), t('Colourful'), t('Adventurous'), t('Outside')];
+    return names[i] || CHORDS[i];
+  }
+  function sectionLabel(name) {
+    var names = { intro: t('Intro'), verse: t('Verse'), 'pre-chorus': t('Pre-chorus'), chorus: t('Chorus'), bridge: t('Bridge'),
+                  outro: t('Outro'), interlude: t('Interlude') };
+    return names[name] || name;
+  }
+  function effectiveGrip(s, vi) {
+    return s && s.grip && GRIPS[s.grip] ? GRIPS[s.grip] : vi.cfgScale;
+  }
+
+  // The sections of the score a roll is made from, read from its `% name` lines once per take.
+  var SECTION_CACHE = {};
+  function sectionsOfBase() {
+    var src = readyBaseTakeWithScore();
+    if (!src) { return []; }
+    if (SECTION_CACHE[src.id]) { return SECTION_CACHE[src.id]; }
+    SECTION_CACHE[src.id] = [];
+    api('/api/takes/' + encodeURIComponent(src.id)).then(function (rec) {
+      var seen = [];
+      String(rec.abc || '').split('\n').forEach(function (line) {
+        var m = /^%\s+([a-z-]+)\s*$/i.exec(line);
+        if (m && seen.indexOf(m[1].toLowerCase()) < 0) { seen.push(m[1].toLowerCase()); }
+      });
+      SECTION_CACHE[src.id] = seen;
+      if (JamState.open && seen.length) { paintFeelCol(); }
+    }).catch(function () {});
+    return [];
+  }
+
+  function feelSelect(id, value, options, title) {
+    return '<select id="' + id + '" class="jam-feel-select' + (value !== '' && value != null ? ' set' : '') + '"' + (title ? ' title="' + escHtml(title) + '"' : '') + '>' +
+      options.map(function (o) { return '<option value="' + escHtml(o[0]) + '"' + (String(o[0]) === String(value == null ? '' : value) ? ' selected' : '') + '>' + escHtml(o[1]) + '</option>'; }).join('') +
+      '</select>';
+  }
+
+  function feelCardHtml() {
+    var sections = sectionsOfBase().filter(function (n) { return n !== 'silence'; });
+    var locked = scoreLocked();
+    var row = function (label, control, hint) {
+      return '<label class="jam-feel-row"' + (hint ? ' title="' + escHtml(hint) + '"' : '') + '><span>' + label + '</span>' + control + '</label>';
+    };
+    var mix = JamState.voiceMix || {};
+    var voiceRows = JamState.vocals === 'voice'
+      ? row(t('Likeness'), feelSelect('jam-mix-likeness', mix.likeness == null ? '' : mix.likeness,
+          [['', t('The voice\u2019s own')], ['0.25', '25%'], ['0.5', '50%'], ['0.75', '75%'], ['1', '100%']]),
+          t('How closely it keeps to the singer\u2019s own sounds')) +
+        row(t('Formant'), feelSelect('jam-mix-formant', mix.formant == null ? '' : mix.formant,
+          [['', t('The voice\u2019s own')]].concat(formants().map(function (f) { return [String(f[0]), f[1]]; }))),
+          t('The size of the voice, its pitch kept')) +
+        row(t('Blend'), feelSelect('jam-mix-wet', mix.wet == null ? '' : mix.wet,
+          [['', t('The voice\u2019s own')], ['0.25', '25%'], ['0.5', '50%'], ['0.75', '75%'], ['1', '100%']]),
+          t('How much of the vocal the voice sings'))
+      : '';
+    return '<div class="jam-feel-card">' +
+      '<div class="jam-kicker"><span>' + t('Feel') + '</span>' +
+        '<label class="jam-hold-seed" title="' + t('Make the next pass with its base\u2019s seed, so it differs only by what you changed') + '">' +
+          '<input type="checkbox" id="jam-hold-seed"' + (JamState.holdSeed ? ' checked' : '') + '> ' + t('Same seed') + '</label>' +
+      '</div>' +
+      '<div class="jam-feel-grid">' +
+        row(t('Key'), feelSelect('jam-key', JamState.key, [['', t('As the score')]].concat(KEYS)), t('Move the melody and chords to another key')) +
+        row(t('Start at'), feelSelect('jam-start', JamState.startSection,
+          [['', t('The top')]].concat(sections.map(function (n) { return [n, sectionLabel(n)]; }))),
+          locked ? t('Which part of the song a short pass plays') : t('A pass starts at a section only when it keeps the score')) +
+        row(t('Performance'), feelSelect('jam-performance', JamState.performance,
+          [['', t('As the Vibe has it')]].concat(PERFORMANCES.map(function (n) { return [n, performanceLabel(n)]; }))),
+          t('How loosely the music is played')) +
+        row(t('Style grip'), feelSelect('jam-grip', JamState.grip,
+          [['', t('As the Vibe has it')]].concat(Object.keys(GRIPS).map(function (n) { return [n, gripLabel(n) + ' (' + GRIPS[n] + ')']; }))),
+          t('How firmly the sound follows the Parts and the Vibe')) +
+        row(t('Polish'), feelSelect('jam-polish', JamState.polish === 'polished' ? 'polished' : '',
+          [['', t('Draft')], ['polished', t('Polished')]]), t('Polished takes more steps over each pass')) +
+        row(t('Chords (Plan & Roll)'), feelSelect('jam-chords', JamState.chords,
+          [['', t('As the Vibe has it')]].concat(CHORDS.map(function (n, i) { return [String(i), chordsLabel(i)]; }))),
+          t('How adventurous the chords are when Plan & Roll writes a new plan. Roll keeps the chords')) +
+        voiceRows +
+      '</div>' +
+    '</div>';
+  }
+
   function paintFeelCol() {
     var el = document.getElementById('jam-col-feel');
     if (!el) { return; }
@@ -1677,8 +1825,9 @@
         '</div>' +
         vocalExtras +
       '</div>' +
+      feelCardHtml() +
       '<div class="jam-prompt-peek">' +
-        '<strong>' + t('Compiled style \u2192 YuE2') + (vi.cfgScale ? ' \u00B7 CFG ' + vi.cfgScale : '') + '</strong>' +
+        '<strong>' + t('Compiled style \u2192 YuE2') + (effectiveGrip(JamState, vi) ? ' \u00B7 CFG ' + effectiveGrip(JamState, vi) : '') + '</strong>' +
         '<span id="jam-compiled-style">' + escHtml(compileStyle()) + '</span>' +
         '<span class="jam-prompt-avoid" id="jam-compiled-avoid">' + (vi.avoid ? t('Avoid: {value}', { value: escHtml(vi.avoid) }) : '') + '</span>' +
       '</div>';
@@ -2018,6 +2167,23 @@
 
   function onShellChange(event) {
     var tg = event.target;
+    var feel = { 'jam-key': 'key', 'jam-start': 'startSection', 'jam-performance': 'performance', 'jam-grip': 'grip', 'jam-chords': 'chords' };
+    if (feel[tg.id]) {
+      JamState[feel[tg.id]] = tg.value;
+      paintFeelCol();
+      paintFooter();
+      return;
+    }
+    if (tg.id === 'jam-polish') { JamState.polish = tg.value === 'polished' ? 'polished' : 'draft'; paintFeelCol(); paintFooter(); return; }
+    if (tg.id === 'jam-hold-seed') { JamState.holdSeed = tg.checked; saveSession(); return; }
+    var mixKey = { 'jam-mix-likeness': 'likeness', 'jam-mix-formant': 'formant', 'jam-mix-wet': 'wet' }[tg.id];
+    if (mixKey) {
+      JamState.voiceMix = Object.assign({}, JamState.voiceMix || {});
+      if (tg.value === '') { delete JamState.voiceMix[mixKey]; } else { JamState.voiceMix[mixKey] = Number(tg.value); }
+      paintFeelCol();
+      paintFooter();
+      return;
+    }
     if (tg.id === 'jam-pass-len') {
       JamState.passChoice = parseInt(tg.value, 10) || null;
       JamState.fastLoop = true;

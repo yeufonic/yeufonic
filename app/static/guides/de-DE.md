@@ -945,17 +945,18 @@ dort weiter, wo du aufgehört hast. **Neue Jam** kehrt zum Klang des Seeds zurü
 **Die Regler.**
 
 - **Klang & Elemente** sind die Wörter, die den Klang beschreiben: Genres, Instrumente, Produktion und Rhythmus.
- Klicke einen Chip an, um ihn hinzuzufügen oder zu entfernen, oder tippe dein eigenes ins Suchfeld. Zieh die vier
- Balken an einem Element, um festzulegen, wie stark es zählt, von Dezent bis Führend. **Einen Stil wählen…** nimmt
- Elemente und Tempo aus einem im Editor gespeicherten oder einem integrierten Stil. Die **Stil-LoRA**-Auswahl ist
- die des Editors, mit ihren Stärken für Klang und Partitur, und eine aus einem Korpus trainierte LoRA zeigt die
- Songs, die sie gelernt hat: Ein Klick übernimmt Klang und Tempo dieses Songs.
+  Klicke einen Chip an, um ihn hinzuzufügen oder zu entfernen, oder tippe dein eigenes ins Suchfeld. Zieh die vier
+  Balken an einem Element, um festzulegen, wie stark es zählt, von Dezent bis Führend. **Einen Stil wählen…** nimmt
+  Elemente und Tempo aus einem im Editor gespeicherten oder einem integrierten Stil. Die **Stil-LoRA**-Auswahl ist
+  die des Editors, mit ihren Stärken für Klang und Partitur, und eine aus einem Korpus trainierte LoRA zeigt die
+  Songs, die sie gelernt hat: Ein Klick übernimmt Klang und Tempo dieses Songs.
 - **Stimmung** ist die Fläche von Dunkel bis Hell und von Ruhig bis Energisch. Je weiter der Punkt von der Mitte
- entfernt ist, desto mehr Wörter für Stimmung, Dynamik und Vortrag kommen in den Stil, desto mehr wird vermieden und
- desto fester hält sich das Modell daran.
+  entfernt ist, desto mehr Wörter für Stimmung, Dynamik und Vortrag kommen in den Stil, desto mehr wird vermieden und
+  desto fester hält sich das Modell daran.
 - **Tempo** in Schlägen pro Minute.
 - **Gesang**: Instrumental, Weiblich, Männlich oder eine deiner aufgenommenen Stimmen, mit bis zu drei Klangwörtern.
- Ein Durchgang singt den Text des Seeds. Ein Seed ohne Text erzeugt nur Instrumentals.
+  Ein Durchgang singt den Text des Seeds. Ein Seed ohne Text erzeugt nur Instrumentals.
+- **Gefühl** verfeinert, was die Fläche offen lässt. **Tonart** verschiebt Melodie und Akkorde in eine andere Tonart; **Beginnen bei** lässt einen kurzen Durchgang bei einem Abschnitt wie dem Refrain statt am Anfang beginnen; **Spielweise** und **Stiltreue** ersetzen die Wahl der Fläche, wie locker gespielt wird und wie fest der Stil gilt; **Ausarbeitung** gibt einem Durchgang mehr Schritte; **Akkorde** bestimmt, wie abenteuerlich die Akkorde eines neuen Plans sind, für Plan & Roll; und mit einer aufgenommenen Stimme gibt es Ähnlichkeit, Formant und Mischung. **Gleicher Seed** macht den nächsten Durchgang mit dem Seed seiner Basis, sodass er sich nur durch deine Änderungen unterscheidet.
 
 Unter den Reglern zeigt **Gesendeter Stil** den Stil, den ein Roll sendet, und was er vermeidet.
 

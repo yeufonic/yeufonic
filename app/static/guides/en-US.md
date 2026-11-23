@@ -1041,16 +1041,17 @@ off. **New Jam** goes back to the Seed's own sound and deletes the passes.
 **The controls.**
 
 - **Sound & Parts** are the words that describe the sound: genres, instruments, production and rhythm. Click a chip
- to add or remove it, or type your own in the search box. Drag the four bars on a Part to say how much it counts,
- from Subtle to Lead. **Choose a style…** takes the Parts and the tempo from a style you saved in the editor or a
- built-in one. The **Style LoRA** picker is the editor's, with its Sound and Score strengths, and a LoRA trained
- from a corpus shows the songs it learned: click one for that song's sound and tempo.
+  to add or remove it, or type your own in the search box. Drag the four bars on a Part to say how much it counts,
+  from Subtle to Lead. **Choose a style…** takes the Parts and the tempo from a style you saved in the editor or a
+  built-in one. The **Style LoRA** picker is the editor's, with its Sound and Score strengths, and a LoRA trained
+  from a corpus shows the songs it learned: click one for that song's sound and tempo.
 - **Vibe** is the pad from Dark to Bright and Calm to Energetic. The further the dot is from the middle, the more
- it adds words for mood, dynamics and delivery to the style, the more it adds things to avoid, and the more firmly
- the model is held to them.
+  it adds words for mood, dynamics and delivery to the style, the more it adds things to avoid, and the more firmly
+  the model is held to them.
 - **Tempo**, in beats per minute.
 - **Vocals**: Instrumental, Female, Male, or one of your recorded voices, with up to three tone words. A pass sings
- the Seed's own words. A Seed with no words makes instrumentals only.
+  the Seed's own words. A Seed with no words makes instrumentals only.
+- **Feel** fine-tunes what the pad leaves loose. **Key** moves the melody and chords to another key; **Start at** has a short pass play from a section, such as the chorus, rather than the top; **Performance** and **Style grip** replace the pad's choice of how loosely the music is played and how firmly it follows the style; **Polish** spends more steps on a pass; **Chords** sets how adventurous a new plan's chords are, for Plan & Roll; and with a recorded voice there are its likeness, formant and blend. **Same seed** makes the next pass with its base's seed, so what you hear differs only by what you changed.
 
 Under the controls, **Compiled style** shows the style a roll will send, and what it avoids.
 

@@ -945,17 +945,18 @@ la même prise reprend là où vous en étiez. **Nouvelle Jam** revient au son d
 **Les commandes.**
 
 - **Son et éléments** sont les mots qui décrivent le son : genres, instruments, production et rythme. Cliquez sur une
- pastille pour l’ajouter ou la retirer, ou tapez la vôtre dans le champ de recherche. Faites glisser les quatre
- barres d’un élément pour dire combien il compte, de discrète à principale. **Choisir un style…** reprend les
- éléments et le tempo d’un style enregistré dans l’éditeur ou d’un style intégré. Le choix du **LoRA de style** est
- celui de l’éditeur, avec ses intensités pour le son et la partition, et un LoRA entraîné sur un corpus montre les
- chansons qu’il a apprises : cliquez sur l’une d’elles pour prendre son son et son tempo.
+  pastille pour l’ajouter ou la retirer, ou tapez la vôtre dans le champ de recherche. Faites glisser les quatre
+  barres d’un élément pour dire combien il compte, de discrète à principale. **Choisir un style…** reprend les
+  éléments et le tempo d’un style enregistré dans l’éditeur ou d’un style intégré. Le choix du **LoRA de style** est
+  celui de l’éditeur, avec ses intensités pour le son et la partition, et un LoRA entraîné sur un corpus montre les
+  chansons qu’il a apprises : cliquez sur l’une d’elles pour prendre son son et son tempo.
 - **Ambiance** est le pavé qui va de Sombre à Lumineux et de Calme à Énergique. Plus le point s’éloigne du milieu,
- plus il ajoute au style des mots d’ambiance, de dynamique et d’interprétation, plus il ajoute de choses à éviter, et
- plus le modèle s’y tient.
+  plus il ajoute au style des mots d’ambiance, de dynamique et d’interprétation, plus il ajoute de choses à éviter, et
+  plus le modèle s’y tient.
 - **Tempo**, en battements par minute.
 - **Chant** : Instrumental, Féminin, Masculin ou l’une de vos voix enregistrées, avec jusqu’à trois mots de timbre.
- Une passe chante les paroles du Seed. Un Seed sans paroles ne donne que des instrumentaux.
+  Une passe chante les paroles du Seed. Un Seed sans paroles ne donne que des instrumentaux.
+- **Ressenti** affine ce que le pavé laisse libre. **Tonalité** déplace la mélodie et les accords dans une autre tonalité ; **Commencer à** fait jouer une passe courte à partir d’une section, comme le refrain, plutôt que du début ; **Interprétation** et **Tenue du style** remplacent le choix du pavé pour la liberté du jeu et la fermeté du style ; **Finition** donne plus d’étapes à une passe ; **Accords** règle l’audace des accords d’un nouveau plan, pour Plan & Roll ; et avec une voix enregistrée, il y a sa ressemblance, son formant et son mélange. **Même seed** fait la prochaine passe avec le seed de sa base, pour qu’elle ne diffère que par vos changements.
 
 Sous les commandes, **Style envoyé** montre le style qu’un Roll enverra, et ce qu’il évite.
 

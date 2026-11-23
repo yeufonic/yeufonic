@@ -51,6 +51,10 @@ cannot creep back in.
 - **Jam: the pass played is the base**, as is a new pass when it fades in; the pass length is chosen in the top bar
   for each Jam (starting at the one in Settings); a take with Jam passes shows a lit **J** on its card that opens its
   Jam.
+- **Jam: a Feel card for sculpting the sound.** Beside the Vibe pad: **Key** (move the melody and chords), **Start at**
+  (a short pass plays from a section, such as the chorus), **Performance** and **Style grip** (in place of the pad's
+  choice), **Polish** (more steps over a pass), **Chords** for Plan & Roll, and a recorded voice's likeness, formant and
+  blend. **Same seed** makes the next pass with its base's seed, so it differs only by what was changed.
 - **Advanced take settings show what is set.** As the Sampling boxes already did, a box at its default is empty and
   shows the default muted, and a value you set is bold. Emptying a box puts it back to its default.
 

@@ -27,6 +27,10 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     page.click('.jam-tab[data-tab="genre"]')
     page.click('.jam-pick-chip[data-part-name="Shoegaze"]')
     assert page.locator(".jam-pending-badge").inner_text().startswith("1")
+    # The Feel card's choices count too, and a set one is shown as set.
+    page.select_option("#jam-key", "D")
+    assert page.locator(".jam-pending-badge").inner_text().startswith("2")
+    assert "set" in page.locator("#jam-key").get_attribute("class")
 
     page.click('[data-jam-act="roll"]')
     page.wait_for_selector(".jam-hist-card:not(.is-seed)")

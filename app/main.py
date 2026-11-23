@@ -1144,6 +1144,8 @@ class JamRollIn(LoraSettingsMixin, AdvancedRenderSettingsMixin):
     title: str | None = Field(None, max_length=200)
     space_id: str = Field(DEFAULT_SPACE, max_length=64)
     base_take_id: str | None = Field(None, max_length=64)
+    # A short pass of a kept score can start at one of its sections (intro, verse, chorus…) rather than the top.
+    start_section: str | None = Field(None, max_length=40)
     snippet: bool = True
     lock_score: bool = False
     instrumental: bool = True
@@ -2995,6 +2997,28 @@ async def create_instrumental(body: InstrumentalIn) -> dict:
     return await _plan_new_take("instrumental", title, structure, body)
 
 
+def _score_from_section(abc: str, name: str) -> str:
+    """The score from the first section called `name` (its `% name` line) to the end, its header kept: a Jam pass
+    that starts at the chorus.  A score with no such section is returned as it is."""
+    lines = abc.splitlines()
+    marks = [i for i, line in enumerate(lines) if line.startswith("% ")]
+    wanted = name.strip().lower()
+    at = next((i for i in marks if lines[i][2:].strip().lower() == wanted), None)
+    if not marks or at is None or at == marks[0]:
+        return abc
+    return "\n".join(lines[:marks[0]] + lines[at:]) + ("\n" if abc.endswith("\n") else "")
+
+
+def _words_from_section(words: str, name: str) -> str:
+    """The lyrics from their first [section] of that name, so a pass started at the chorus sings the chorus."""
+    wanted = name.strip().lower()
+    for match in re.finditer(r"^\s*\[([^\]]+)\]", words or "", re.M):
+        tag = re.sub(r"\s*\d+$", "", match.group(1).strip().lower())
+        if tag == wanted:
+            return words[match.start():].lstrip("\n")
+    return words
+
+
 @app.post("/api/jam/roll")
 async def jam_roll(body: JamRollIn) -> dict:
     """Create and queue a new Jam pass — snippets live in the hidden JAM_SPACE so they never
@@ -3018,6 +3042,11 @@ async def jam_roll(body: JamRollIn) -> dict:
     locked_abc = ""
     if body.lock_score and base_take and (base_take.get("abc") or "").strip():
         locked_abc = base_take["abc"]
+        if body.start_section:
+            cut = _score_from_section(locked_abc, body.start_section)
+            if cut != locked_abc:
+                locked_abc = cut
+                body.lyrics = _words_from_section(body.lyrics, body.start_section)
         if kind == "instrumental":
             locked_abc = _unsung(locked_abc)
         elif body.lyrics.strip() and ("V: Vocal" in locked_abc or "V:Vocal" in locked_abc):

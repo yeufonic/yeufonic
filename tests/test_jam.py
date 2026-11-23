@@ -171,3 +171,19 @@ def test_planning_or_rendering_a_pass_in_the_editor_makes_a_new_take(client):
     # a take of the person's own is still planned and rendered in place
     own = make_take(abc=GOOD)
     assert client.post(f"/api/takes/{own['id']}/render", json={}).json()["id"] == own["id"]
+
+
+def test_a_pass_can_start_at_a_section_of_the_kept_score(client):
+    body = GOOD[GOOD.index("% intro"):]
+    two = GOOD.rstrip("\n") + "\n" + body.replace("% intro", "% chorus")
+    seed = make_take(abc=two, lyrics="[intro]\n\n[verse]\nla la la\n\n[chorus]\nhey hey\n")
+    marks = [line for line in two.splitlines() if line.startswith("% ")]
+    later = marks[1][2:].strip()
+    made = roll(client, base_take_id=seed["id"], lock_score=True, instrumental=False,
+                lyrics=seed["lyrics"], start_section=later)
+    abc = made["abc"]
+    assert abc.startswith("X:1") and "K:" in abc
+    assert [line for line in abc.splitlines() if line.startswith("% ")][0] == marks[1]
+    # a section the score does not have leaves it whole
+    whole = roll(client, base_take_id=seed["id"], lock_score=True, instrumental=True, start_section="coda")
+    assert [line for line in whole["abc"].splitlines() if line.startswith("% ")][0] == marks[0]

@@ -945,17 +945,18 @@ dan ga je verder waar je was. **Nieuwe Jam** gaat terug naar de klank van de See
 **De bediening.**
 
 - **Klank & onderdelen** zijn de woorden die de klank beschrijven: genres, instrumenten, productie en ritme. Klik op
- een chip om hem toe te voegen of weg te halen, of typ er zelf een in het zoekveld. Sleep de vier balkjes van een
- onderdeel om te bepalen hoeveel het telt, van subtiel tot leidend. **Een stijl kiezen…** neemt de onderdelen en het
- tempo over uit een stijl die je in de editor bewaarde of uit een ingebouwde. De keuze voor **Stijl-LoRA** is die
- van de editor, met de sterktes voor klank en partituur, en een LoRA die uit een corpus is getraind toont de
- nummers die hij leerde: klik er een aan voor de klank en het tempo van dat nummer.
+  een chip om hem toe te voegen of weg te halen, of typ er zelf een in het zoekveld. Sleep de vier balkjes van een
+  onderdeel om te bepalen hoeveel het telt, van subtiel tot leidend. **Een stijl kiezen…** neemt de onderdelen en het
+  tempo over uit een stijl die je in de editor bewaarde of uit een ingebouwde. De keuze voor **Stijl-LoRA** is die
+  van de editor, met de sterktes voor klank en partituur, en een LoRA die uit een corpus is getraind toont de
+  nummers die hij leerde: klik er een aan voor de klank en het tempo van dat nummer.
 - **Sfeer** is het vlak van Donker tot Helder en van Kalm tot Energiek. Hoe verder de stip van het midden, hoe meer
- woorden voor sfeer, dynamiek en voordracht in de stijl komen, hoe meer er vermeden wordt en hoe strakker het model
- zich eraan houdt.
+  woorden voor sfeer, dynamiek en voordracht in de stijl komen, hoe meer er vermeden wordt en hoe strakker het model
+  zich eraan houdt.
 - **Tempo**, in slagen per minuut.
 - **Zang**: Instrumentaal, Vrouw, Man of een van je opgenomen stemmen, met tot drie klankwoorden. Een ronde zingt de
- tekst van de Seed. Een Seed zonder tekst maakt alleen instrumentale nummers.
+  tekst van de Seed. Een Seed zonder tekst maakt alleen instrumentale nummers.
+- **Gevoel** verfijnt wat het vlak open laat. **Toonsoort** verplaatst melodie en akkoorden naar een andere toonsoort; **Beginnen bij** laat een korte ronde bij een sectie zoals het refrein beginnen in plaats van bij het begin; **Speelwijze** en **Stijlgreep** vervangen de keuze van het vlak voor hoe los er gespeeld wordt en hoe strak de stijl gevolgd wordt; **Afwerking** geeft een ronde meer stappen; **Akkoorden** bepaalt hoe avontuurlijk de akkoorden van een nieuw plan zijn, voor Plan & Roll; en met een opgenomen stem zijn er gelijkenis, formant en menging. **Zelfde seed** maakt de volgende ronde met de seed van zijn basis, zodat hij alleen verschilt in wat je veranderde.
 
 Onder de bediening toont **Verstuurde stijl** de stijl die een roll verstuurt, en wat hij vermijdt.
 
