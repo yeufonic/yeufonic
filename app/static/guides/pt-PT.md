@@ -980,6 +980,14 @@ passagens. **Eliminar** remove uma
 passagem de vez. As passagens ficam até as eliminar, mesmo com o Jam fechado: Definições → Armazenamento lista-as como
 **Passagens do Jam** e pode limpá-las todas.
 
+**Passagens curtas são um esboço.** Uma passagem curta sugere a direção que as tuas definições dão à música, não um excerto de áudio que **Música completa** apenas prolonga. Mesmo que **Música completa** reutilize a partitura, o estilo, a seed e os passos de amostragem da passagem, o take inteiro é renderizado de raiz a duração completa, pelo que a instrumentação e a mistura podem diferir bastante da passagem. Isto decorre da forma como o YuE2 transforma uma partitura em som:
+
+- O seu descodificador acústico molda a música inteira numa única passagem bidirecional, pelo que o início de uma música completa é arranjado e misturado olhando também para o refrão, a ponte e o clímax, e não apenas para os primeiros 40 segundos.
+- Os desvios de posição do descodificador mudam com a duração total da música, alterando a forma como cada fotograma acompanha os tokens semânticos.
+- No yue2.cpp, uma **Música completa** fica visivelmente mais próxima da passagem do que no ComfyUI. O ComfyUI preenche o ruído inicial do descodificador canal a canal ao longo da duração da música, pelo que alterar a duração baralha quase todos os canais de ruído logo a partir do primeiro segundo (e a etapa semântica também pode divergir); o yue2.cpp mantém idênticos os tokens semânticos iniciais e gera o ruído inicial fotograma a fotograma para que o início coincida, deixando apenas a atenção sobre toda a música e o desvio de posição remodelarem a mistura.
+
+Usa passagens curtas para afinar uma receita — Partes, Ambiente, Toque e LoRA — e encara **Música completa** como um take completo feito com essas definições. Passagens mais longas (como 60s ou 90s) aproximam mais a antevisão ao incluírem mais da música, e precisar melhor as Partes ou **Aderência ao estilo** deixa menos margem ao descodificador.
+
 **Teclas:** **Espaço** toca ou pausa, **Esc** fecha o Jam.
 
 ---

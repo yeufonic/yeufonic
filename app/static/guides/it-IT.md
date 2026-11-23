@@ -980,6 +980,14 @@ passate. **Elimina** rimuove una passata
 per sempre. Le passate restano finché non le elimini, anche a Jam chiusa: Impostazioni → Spazio su disco le elenca come
 **Passate Jam** e può svuotarle tutte.
 
+**Le passate brevi sono uno schizzo.** Una passata breve dà un’idea della direzione che le tue impostazioni imprimono al brano, non è un frammento audio che **Brano completo** si limita a estendere. Anche se **Brano completo** riutilizza partitura, stile, seed e passi di campionamento della passata, l’intera take viene renderizzata da capo a lunghezza intera, per cui strumentazione e mix possono differire sensibilmente dalla passata. Dipende dal modo in cui YuE2 trasforma una partitura in suono:
+
+- Il suo decodificatore acustico modella l’intero brano in un unico passaggio bidirezionale, quindi l’inizio di un brano completo viene arrangiato e mixato guardando anche al ritornello, al bridge e al culmine invece che ai soli primi 40 secondi.
+- Gli scostamenti di posizione del decodificatore cambiano con la durata totale del brano, modificando il modo in cui ogni fotogramma si riferisce ai token semantici.
+- Su yue2.cpp, un **Brano completo** resta sensibilmente più vicino alla passata rispetto a ComfyUI. ComfyUI riempie il rumore iniziale del decodificatore canale per canale lungo l’intera durata del brano, quindi cambiare durata stravolge quasi ogni canale di rumore fin dal primo secondo (e anche lo stadio semantico può discostarsi); yue2.cpp mantiene identici i primi token semantici e genera il rumore iniziale fotogramma per fotogramma facendo coincidere l’attacco, così solo l’attenzione sull’intero brano e lo scostamento di posizione rimodellano il mix.
+
+Usa le passate brevi per mettere a punto una ricetta — Parti, Atmosfera, Tocco e LoRA — e considera **Brano completo** come una take intera generata da quelle impostazioni. Passate più lunghe (come 60s o 90s) avvicinano l’anteprima includendo una porzione maggiore del brano, e definire meglio le Parti o **Presa dello stile** lascia al decodificatore meno margine per divagare.
+
 **Tasti:** **Spazio** riproduce o mette in pausa, **Esc** chiude Jam.
 
 ---

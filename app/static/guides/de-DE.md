@@ -979,6 +979,14 @@ ganzen Song mit dessen Einstellungen als neuen Take in dem Bereich, aus dem die 
 rendern. **Löschen** entfernt einen Durchgang endgültig. Durchgänge bleiben, bis du sie löschst, auch wenn die Jam
 geschlossen ist: Einstellungen → Speicher führt sie als **Jam-Durchgänge** und kann alle leeren.
 
+**Kurze Durchgänge sind eine Skizze.** Ein kurzer Durchgang gibt einen Eindruck davon, wohin deine Einstellungen den Song führen, ist aber kein Audioclip, den **Ganzer Song** einfach verlängert. Auch wenn **Ganzer Song** Partitur, Stil, Seed und Sampler-Schritte des Durchgangs übernimmt, wird der ganze Take in voller Länge neu gerendert, sodass Instrumentierung und Mix deutlich vom Durchgang abweichen können. Das liegt daran, wie YuE2 eine Partitur in Klang verwandelt:
+
+- Der akustische Decoder formt den gesamten Song in einem einzigen bidirektionalen Durchlauf; der Anfang eines ganzen Songs wird daher mit Blick auf Refrain, Bridge und Höhepunkt arrangiert und gemischt statt nur für die ersten 40 Sekunden.
+- Die Positionsversätze des Decoders verschieben sich mit der Gesamtlänge des Songs, wodurch jedes Frame anders auf die semantischen Tokens achtet.
+- Unter yue2.cpp bleibt ein **Ganzer Song** spürbar näher am Durchgang als unter ComfyUI. ComfyUI füllt das Ausgangsrauschen des Decoders kanalweise über die gesamte Songlänge, sodass eine andere Länge ab der ersten Sekunde fast jeden Rauschkanal neu würfelt (und auch die semantische Stufe abweichen kann); yue2.cpp behält die ersten semantischen Tokens unverändert bei und erzeugt das Ausgangsrauschen Frame für Frame, sodass das Anfangsrauschen übereinstimmt und nur noch die Gesamtsong-Aufmerksamkeit und der Positionsversatz den Mix umformen.
+
+Nutze kurze Durchgänge, um ein Rezept zu finden — Teile, Stimmung, Gefühl und LoRA — und betrachte **Ganzer Song** als vollständigen Take mit diesen Einstellungen. Längere Durchgänge (etwa 60s oder 90s) kommen dem Ergebnis näher, weil sie mehr vom Song einschließen, und präzisere Teile oder ein höherer **Stil-Griff** lassen dem Decoder weniger Spielraum.
+
 **Tasten:** **Leertaste** spielt oder hält an, **Esc** schließt Jam.
 
 ---

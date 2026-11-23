@@ -1082,6 +1082,14 @@ settings, as a new take in the space the Jam was opened from; it asks first, wit
 switch at the top makes **Roll** render whole songs instead of passes. **Delete** removes a pass for good. Passes stay until you delete them, even after
 the Jam is closed: Settings → Storage lists them as **Jam passes** and can clear them all.
 
+**Short passes are a sketch.** A short pass gives a suggestion of the direction your settings take the song, not an audio clip that **Full Song** extends. Even though **Full Song** reuses the pass's score, style, seed and sampler steps, the whole take is rendered afresh at full length, so its instrumentation and mix can differ noticeably from the pass. This is built into how YuE2 turns a score into sound:
+
+- Its acoustic decoder shapes the entire song in one bidirectional pass, so the opening of a full song is arranged and mixed while looking ahead at the chorus, bridge and climax rather than the first 40 seconds alone.
+- The decoder's position offsets shift with the song's total length, changing how every frame attends to the semantic tokens.
+- On yue2.cpp, a **Full Song** stays noticeably closer to the pass than on ComfyUI. ComfyUI fills the decoder's initial noise channel by channel across the song's length, so changing the length scrambles almost every channel of starting noise from the first second (and its semantic stage can also drift); yue2.cpp keeps the opening semantic tokens identical and draws its initial noise frame by frame so the opening noise matches, leaving only the whole-song attention and position shift to reshape the mix.
+
+Use short passes to dial in a recipe — Parts, Vibe, Feel and LoRA — and treat **Full Song** as a full-length take made from those settings. Longer passes (such as 60s or 90s) bring the preview closer by including more of the song, and tightening Parts or **Style grip** leaves the decoder less room to wander.
+
 **Keys:** **Space** plays or pauses, **Esc** closes Jam.
 
 ---

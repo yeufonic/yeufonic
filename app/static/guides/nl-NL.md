@@ -981,6 +981,14 @@ schakelaar **snelle loop** / **Heel nummer** bovenaan laat **Roll** hele nummers
 ronde definitief weg. Rondes blijven tot je ze verwijdert, ook als de Jam dicht is: Instellingen → Opslag toont ze als
 **Jam-rondes** en kan ze allemaal wissen.
 
+**Korte rondes zijn een schets.** Een korte ronde geeft een indruk van de richting die je instellingen het nummer op sturen, geen audiofragment dat **Heel nummer** simpelweg verlengt. Hoewel **Heel nummer** de partituur, stijl, seed en samplerstappen van de ronde hergebruikt, wordt de hele take opnieuw op volledige lengte gerenderd, waardoor instrumentatie en mix merkbaar kunnen verschillen van de ronde. Dat zit ingebouwd in hoe YuE2 een partituur omzet in geluid:
+
+- De akoestische decoder vormt het hele nummer in één bidirectionele slag, zodat het begin van een heel nummer wordt gearrangeerd en gemixt met zicht op het refrein, de brug en de climax in plaats van alleen de eerste 40 seconden.
+- De positieverschuivingen van de decoder schuiven mee met de totale lengte van het nummer, waardoor elk frame anders naar de semantische tokens kijkt.
+- Op yue2.cpp blijft een **Heel nummer** merkbaar dichter bij de ronde dan op ComfyUI. ComfyUI vult de beginruis van de decoder kanaal voor kanaal over de hele lengte, zodat een andere lengte vanaf de eerste seconde bijna elk ruiskanaal door elkaar gooit (en ook de semantische stap kan afwijken); yue2.cpp houdt de eerste semantische tokens identiek en trekt de beginruis frame voor frame zodat het begin overeenkomt, waardoor alleen de aandacht over het hele nummer en de positieverschuiving de mix nog herschikken.
+
+Gebruik korte rondes om een recept te vinden — Onderdelen, Sfeer, Gevoel en LoRA — en zie **Heel nummer** als een volledige take gemaakt met die instellingen. Langere rondes (zoals 60s of 90s) brengen het voorbeeld dichterbij doordat ze meer van het nummer meenemen, en strakkere Onderdelen of een hogere **Stijlgrip** geven de decoder minder ruimte om af te wijken.
+
 **Toetsen:** **Spatie** speelt of pauzeert, **Esc** sluit Jam.
 
 ---

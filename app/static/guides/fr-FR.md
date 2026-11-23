@@ -981,6 +981,14 @@ confirmation est demandée, avec le nom de la nouvelle prise prêt à être chan
 chansons entières au lieu de passes. **Supprimer** retire une passe définitivement. Les passes restent jusqu’à ce que vous les supprimiez,
 même une fois la Jam fermée : Paramètres → Stockage les liste comme **Passes Jam** et peut toutes les vider.
 
+**Les passes courtes sont une esquisse.** Une passe courte donne une idée de la direction que vos réglages impriment au morceau, pas un extrait audio que **Chanson entière** se contenterait de prolonger. Même si **Chanson entière** reprend la partition, le style, la graine et les étapes d’échantillonnage de la passe, la prise entière est rendue à neuf en longueur complète, si bien que son instrumentation et son mixage peuvent différer sensiblement de la passe. Cela tient à la façon dont YuE2 transforme une partition en son :
+
+- Son décodeur acoustique façonne toute la chanson en un seul passage bidirectionnel : le début d’une chanson entière est donc arrangé et mixé en tenant compte du refrain, du pont et du point culminant plutôt que des seules 40 premières secondes.
+- Les décalages de position du décodeur changent avec la durée totale du morceau, ce qui modifie la façon dont chaque trame s’appuie sur les jetons sémantiques.
+- Sous yue2.cpp, une **Chanson entière** reste nettement plus proche de la passe que sous ComfyUI. ComfyUI remplit le bruit initial du décodeur canal par canal sur toute la durée du morceau, si bien que changer la durée bouleverse presque tous les canaux de bruit dès la première seconde (et son étape sémantique peut aussi dériver) ; yue2.cpp conserve à l’identique les premiers jetons sémantiques et tire le bruit initial trame par trame afin que le début coïncide, ne laissant que l’attention sur l’ensemble du morceau et le décalage de position remodeler le mixage.
+
+Servez-vous des passes courtes pour mettre au point une recette — Éléments, Ambiance, Ressenti et LoRA — et considérez **Chanson entière** comme une prise complète générée à partir de ces réglages. Des passes plus longues (60s ou 90s) rapprochent l’aperçu en couvrant une plus grande part du morceau, et préciser davantage les Éléments ou l’**Emprise du style** laisse moins de liberté au décodeur.
+
 **Touches :** **Espace** lit ou met en pause, **Échap** ferme Jam.
 
 ---

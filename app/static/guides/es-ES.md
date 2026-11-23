@@ -981,6 +981,14 @@ enteras en vez de pasadas. **Eliminar** quita una
 pasada para siempre. Las pasadas quedan hasta que las eliminas, aunque cierres la Jam: Configuración → Almacenamiento
 las muestra como **Pasadas de Jam** y puede vaciarlas todas.
 
+**Las pasadas cortas son un boceto.** Una pasada corta sugiere hacia dónde llevan la canción tus ajustes, pero no es un fragmento de audio que **Canción completa** simplemente prolongue. Aunque **Canción completa** reutiliza la partitura, el estilo, la semilla y los pasos de muestreo de la pasada, la toma entera se renderiza de nuevo a longitud completa, por lo que su instrumentación y mezcla pueden diferir notablemente de la pasada. Esto se debe a cómo YuE2 convierte una partitura en sonido:
+
+- Su decodificador acústico da forma a toda la canción en una sola pasada bidireccional, de modo que el inicio de una canción completa se arregla y mezcla teniendo en cuenta el estribillo, el puente y el clímax, en lugar de solo los primeros 40 segundos.
+- Los desplazamientos de posición del decodificador varían con la duración total de la canción, cambiando cómo cada fotograma atiende a los tokens semánticos.
+- En yue2.cpp, una **Canción completa** se mantiene notablemente más cerca de la pasada que en ComfyUI. ComfyUI rellena el ruido inicial del decodificador canal por canal a lo largo de la canción, así que cambiar la duración altera casi todos los canales de ruido inicial desde el primer segundo (y su etapa semántica también puede desviarse); yue2.cpp mantiene idénticos los primeros tokens semánticos y genera el ruido inicial fotograma a fotograma para que el inicio coincida, dejando que solo la atención sobre toda la canción y el desplazamiento de posición remodelen la mezcla.
+
+Usa pasadas cortas para perfilar una receta — Partes, Ambiente, Sensación y LoRA — y trata **Canción completa** como una toma completa hecha con esos ajustes. Las pasadas más largas (como 60s o 90s) acercan más la vista previa al abarcar más canción, y concretar más las Partes o **Fidelidad al estilo** deja menos margen al decodificador.
+
 **Teclas:** **Espacio** reproduce o pausa, **Esc** cierra Jam.
 
 ---
