@@ -41,6 +41,10 @@ cannot creep back in.
 
 - **A Yeufonic preset in the mastering rack.** A factory preset made by ear: the highs lifted well up, the low mids
   lifted on the parametric equaliser, the imager wide with its bass, no compressor, and the limiter catching the peaks.
+- **Jam from an AI agent.** Two new MCP tools: `jam_roll` rolls a short pass of a take with a new sound (its
+  melody and chords kept, or with a new plan), or makes a pass whole as a Full Song with that pass's seed;
+  `list_jam_passes` lists the passes. A pass's short id works in any tool. Passes made this way do not appear in the Jam
+  window's Roll History.
 - **Advanced take settings show what is set.** As the Sampling boxes already did, a box at its default is empty and
   shows the default muted, and a value you set is bold. Emptying a box puts it back to its default.
 

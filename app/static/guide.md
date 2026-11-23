@@ -1993,6 +1993,7 @@ reconnect the agent (in Claude Code, `/mcp`). Reconnect after restarting Yeufoni
 | "Render it again with a new seed", "stop that" | Renders a take again, or cancels one in progress |
 | "Give me a few more like that one" | Renders the take again with new seeds, as several new takes to listen to together |
 | "Sing it again", "try it in every interpretation" | **Sing again** (a new voice for the same score) or **Variations** (the same score and seed, performed each way). Variations are kept inside the take, like Try more |
+| "Jam on it: a synthwave sound, a bit faster", "make that pass a full song" | **Jam**: a short pass of the take with a new sound, its melody and chords kept, kept in Jam's own space and listed with the other passes; with "a new arrangement", a new plan first; and a pass the person likes made whole as a take in the space, with that pass's seed. Passes made this way do not appear in the Jam window's Roll History |
 | "Sing that tune with these words instead" | **New words**: the same melody, key and tempo with other lyrics, as a new take |
 | "Make an instrumental of it" | The same score with the tune on an instrument and no singing, as a new take |
 | "Write a new plan for it, more lively" | A new plan for a take that has no audio yet (one planned without rendering, or whose plan failed). A take that has audio is left alone: ask for a new take instead |

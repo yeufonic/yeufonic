@@ -887,3 +887,26 @@ def test_render_take_can_change_the_voice_or_drop_it(client, on, voice_service, 
     renders = [body for path, body in sent if path.endswith("/render")]
     assert renders[0]["voice_id"] == voice["id"] and renders[1] == {"reseed": False, "voice_id": "", "voice_mix": {}}
     persona.delete(voice["id"])
+
+
+def test_a_jam_pass_is_rolled_listed_and_made_whole(client, on):
+    from app.db import one
+    from test_score import GOOD
+    seed = make_take(abc=GOOD, title="Harbour Lights", style="indie folk, acoustic guitar, 96 BPM",
+                     lyrics="[verse]\nla la la\n", sampler_steps=32)
+    err, made = call(client, "jam_roll", take_id=seed["id"][:6], style="synthwave, analog synth", tempo=112)
+    assert not err, made
+    rolled = one("SELECT * FROM takes WHERE id = ?", (made["id"],))
+    assert rolled["space_id"] == "__jam__" and rolled["max_duration"] == 40 and rolled["abc"]
+    assert rolled["kind"] == "song" and "112 BPM" in rolled["style"] and rolled["trashed_from"] == "default"
+    _, listed = call(client, "list_jam_passes")
+    assert [p["id"] for p in listed] == [made["id"]]
+    # The pass made whole: in the seed's space, with the pass's seed, found by its short id.
+    err, whole = call(client, "jam_roll", take_id=made["id"][:6], full_song=True)
+    assert not err, whole
+    full = one("SELECT * FROM takes WHERE id = ?", (whole["id"],))
+    assert full["space_id"] == "default" and full["seed"] == rolled["seed"] and full["sampler_steps"] == rolled["sampler_steps"]
+    # A take with no words rolls instrumentals only.
+    quiet = make_take(abc=GOOD, kind="instrumental", lyrics="[intro]\n[verse]")
+    err, refused = call(client, "jam_roll", take_id=quiet["id"], instrumental=False)
+    assert err and "no words" in refused

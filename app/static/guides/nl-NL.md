@@ -1792,6 +1792,7 @@ verbind de agent daarna opnieuw (in Claude Code, `/mcp`). Verbind ook opnieuw na
 | “Render hem opnieuw met een nieuwe seed”, “stop daarmee” | Rendert een take opnieuw, of annuleert een lopende |
 | “Geef me er nog een paar zoals die” | Rendert de take opnieuw met nieuwe seeds, als meerdere nieuwe takes om naast elkaar te beluisteren |
 | “Zing hem opnieuw”, “probeer hem in elke interpretatie” | **Opnieuw zingen** (een nieuwe stem voor dezelfde partituur) of **Variaties** (dezelfde partituur en seed, op elke manier gespeeld). Variaties worden in de take bewaard, zoals Meer proberen |
+| “Jam erop: een synthwave-klank, iets sneller”, “maak van die ronde een heel nummer” | **Jam**: een korte ronde van de take met een nieuwe klank, melodie en akkoorden behouden, bewaard in de eigen ruimte van Jam en vermeld bij de andere rondes; met “een nieuw arrangement” eerst een nieuw plan; en een ronde die bevalt als heel nummer met zijn seed als take in de ruimte. Zo gemaakte rondes staan niet in de Roll-geschiedenis van het Jam-venster |
 | “Zing die melodie met deze tekst” | **Nieuwe tekst**: dezelfde melodie, toonsoort en tempo met een andere tekst, als nieuwe take |
 | “Maak er een instrumentaal van” | Dezelfde partituur met de melodie op een instrument en zonder zang, als nieuwe take |
 | “Schrijf er een nieuw plan voor, levendiger” | Een nieuw plan voor een take die nog geen audio heeft (gepland zonder render, of waarvan het plan mislukte). Een take met audio wordt niet aangeraakt: vraag in plaats daarvan een nieuwe take |

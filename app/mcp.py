@@ -388,6 +388,41 @@ TOOLS: list[dict] = [
         }},
     },
     {
+        "name": "jam_roll",
+        "description": "Jam (the app's Jam window): roll a short pass of an existing take with a new sound, to hear another take of "
+                       "the same song. The pass keeps the take's melody and chords (its score) and renders them with the style given, "
+                       "and is kept out of the library, in Jam's own space (see list_jam_passes); a take made from a pass, or a "
+                       "Full Song, goes to the space the take came from. Use full_song true on a pass the person likes to render "
+                       "the whole song with that pass's seed, as a new take in that space. replan true writes a new plan (new "
+                       "chords and groove) from the take's words first. A sung pass sings the take's own words; a take with no "
+                       "words gives instrumentals only. Queued: follow it with wait_for_take.",
+        "inputSchema": {"type": "object", "required": ["take_id"], "properties": {
+            "take_id": {"type": "string", "description": "The take to roll from: a library take (the Seed) or a pass from list_jam_passes."},
+            "style": {"type": "string", "description": "The new sound, as comma-separated tags (genre, instruments, production, mood). "
+                                                      "Omit to keep the take's own style."},
+            "tempo": {"type": "integer", "description": "Beats per minute for the pass. Omit to keep the take's."},
+            "instrumental": {"type": "boolean", "description": "True for no vocals. Default: as the take is."},
+            "avoid": {"type": "string", "description": "What to steer away from, as tags: a hint, not a guarantee."},
+            "replan": {"type": "boolean", "description": "Write a new plan from the take's words first (Plan & Roll): new chords, "
+                                                         "groove and structure, for a change bigger than the sound. Slower. Default false."},
+            "full_song": {"type": "boolean", "description": "Render the whole song rather than a short pass, as a take in the space the "
+                                                            "take came from. From a pass, it keeps that pass's seed. Default false."},
+            "seconds": {"type": "integer", "description": "How long a short pass runs. Default: the app's Length of a Jam pass setting (40)."},
+            "style_lora": {"type": "string", "description": "A style LoRA to use, by name or title (see list_style_loras); its trigger word is added for you."},
+            "lora_planner": {"type": "number", "description": "How strongly it shapes the plan, 0 to 3."},
+            "lora_sound": {"type": "number", "description": "How strongly it shapes the sound, 0 to 3."},
+            **_VOICE}},
+    },
+    {
+        "name": "list_jam_passes",
+        "description": "The passes rolled in Jam (by jam_roll or the Jam window), newest first. They are not in the library or any "
+                       "space. Keep one by moving it to a space (move_take), make it whole with jam_roll and full_song true, or "
+                       "remove it for good with delete_take.",
+        "inputSchema": {"type": "object", "properties": {
+            "limit": {"type": "integer", "description": "How many, 1 to 200. Default 20."},
+        }},
+    },
+    {
         "name": "take_out",
         "description": "Make a take that is kept inside another (one made by try_more or make_variations) a take of its own "
                        "again, in the same space.",
@@ -548,7 +583,8 @@ def timed_structure(total: int) -> str:
     return "\n".join(out)
 
 
-TAKE_TOOLS = ("try_more", "make_stems", "get_stems", "get_take", "wait_for_take", "move_take", "delete_take", "render_take", "cancel_take",
+JAM_SPACE = "__jam__"
+TAKE_TOOLS = ("jam_roll", "try_more", "make_stems", "get_stems", "get_take", "wait_for_take", "move_take", "delete_take", "render_take", "cancel_take",
               "star_take", "rename_take", "sing_again", "make_variations", "new_words", "instrumental_from_take", "replan_take",
               "take_out", "make_picture", "save_take_recipe")
 _BRIEF = ("id", "title", "kind", "status", "duration", "style", "favourite", "error")
@@ -623,6 +659,9 @@ async def _take_id(api: Api, asked: Any) -> str:
     if len(ident) < MIN_PREFIX or not all(ch in "0123456789abcdef" for ch in ident):
         raise ApiRefused(f"no such take: '{asked}'. Use a take's id, or the start of it from the short_id column (at least {MIN_PREFIX} characters).")
     found = [take for take in await api("GET", "/api/takes", params={"limit": 5000}) if take["id"].startswith(ident)]
+    # Jam's passes are kept out of that list, and are named by their short ids too.
+    found += [take for take in await api("GET", "/api/takes", params={"limit": 5000, "space_id": JAM_SPACE})
+              if take["id"].startswith(ident)]
     if not found:
         raise ApiRefused(f"no such take: '{asked}'")
     if len(found) > 1:
@@ -1193,6 +1232,47 @@ async def call_tool(name: str, args: dict, api: Api, base: str = "") -> dict:
             made = await api("POST", f"/api/takes/{args['take_id']}/replan", json=body)
             return _text({"id": take["id"], "short_id": take["id"][:6], "title": take.get("title"), "seed": made.get("seed"),
                           "next": "A new plan is being written. Use wait_for_take with its id."})
+        if name == "jam_roll":
+            take = await api("GET", f"/api/takes/{args['take_id']}")
+            if take.get("space_id") == "trash":
+                return _text("That take is in Trash: restore it before jamming on it.", True)
+            pass_of_jam = take.get("space_id") == JAM_SPACE
+            full = bool(args.get("full_song"))
+            instrumental = args["instrumental"] if args.get("instrumental") is not None else take.get("kind") == "instrumental"
+            words = "" if take.get("kind") == "instrumental" else (take.get("lyrics") or "")
+            if not instrumental and not words.strip():
+                return _text("That take has no words to sing: roll it with instrumental true.", True)
+            style = str(args.get("style") or "").strip() or take.get("style") or ""
+            tempo = args.get("tempo") or take.get("target_bpm")
+            if args.get("tempo") and not re.search(r"\b\d{2,3}\s*bpm\b", style, re.I):
+                style = f"{style}, {int(args['tempo'])} BPM" if style else f"{int(args['tempo'])} BPM"
+            settings = {item["key"]: item.get("value") for item in (await api("GET", "/api/settings")).get("settings", [])}
+            seconds = int(args.get("seconds") or settings.get("jam.pass_seconds") or 40)
+            cap = float(settings.get("takes.cap") or 360)
+            body = {
+                "title": take.get("title") or "Jam", "space_id": (take.get("trashed_from") if pass_of_jam else take.get("space_id")) or "default",
+                "snippet": not full, "base_take_id": take["id"], "lock_score": not args.get("replan"),
+                "instrumental": bool(instrumental), "style": style, "lyrics": "" if instrumental else words,
+                "structure": (take.get("lyrics") or "") if take.get("kind") == "instrumental" else "",
+                "max_duration": cap if full else seconds, "target_bpm": tempo,
+                "realaudio": take.get("realaudio") is None or bool(take.get("realaudio")), "normalise": bool(take.get("normalise")),
+                "sampler_steps": take.get("sampler_steps") if (full and pass_of_jam) else (32 if full else 24),
+            }
+            if args.get("avoid"):
+                body["avoid"] = args["avoid"]
+            if full and pass_of_jam and take.get("seed") is not None:
+                body["seed"] = take["seed"]          # the pass made whole, not another take of the score
+            body["title"] = f"{body['title']} (Jam)" if full else f"{body['title']} \u00b7 Jam pass"
+            await _with_lora(api, args, body)
+            await _with_voice(api, args, body)
+            made = await api("POST", "/api/jam/roll", json=body)
+            where = "a take in the space it came from" if full else "a pass in Jam's space (list_jam_passes)"
+            return _text(_made(made, kept_as=where, keeps_score=not args.get("replan")))
+        if name == "list_jam_passes":
+            limit = max(1, min(200, int(args.get("limit") or 20)))
+            passes = await api("GET", "/api/takes", params={"limit": limit, "space_id": JAM_SPACE})
+            spaces = await _space_names(api)
+            return _text([{**_brief(p), "jam_of_space": spaces.get(p.get("trashed_from"))} for p in passes])
         if name == "take_out":
             made = await api("POST", f"/api/takes/{args['take_id']}/promote")
             return _text({"id": made["id"], "was_inside": made.get("was_inside"),

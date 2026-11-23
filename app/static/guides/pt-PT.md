@@ -1791,6 +1791,7 @@ reconecte o agente (no Claude Code, `/mcp`). Reconecte também depois de reinici
 | “Renderize de novo com uma seed nova”, “pare isso” | Renderiza um take de novo, ou cancela um em andamento |
 | “Me dê mais alguns como esse” | Renderiza o take de novo com seeds novas, como vários takes novos para ouvir juntos |
 | “Cante de novo”, “tente em cada interpretação” | **Cantar de novo** (uma voz nova para a mesma partitura) ou **Variações** (a mesma partitura e seed, tocadas de cada jeito). As variações são guardadas dentro do take, como Tentar mais |
+| “Faz um Jam: um som synthwave, um pouco mais rápido”, “transforma essa passagem numa música completa” | **Jam**: uma passagem curta do take com um som novo, mantendo melodia e acordes, guardada no espaço do Jam e listada com as outras passagens; com “um arranjo novo”, primeiro um plano novo; e uma passagem de que gostou tornada música completa com o seed dela, como take no espaço. Passagens feitas assim não aparecem no histórico de Rolls da janela do Jam |
 | “Cante essa melodia com esta letra” | **Letra nova**: a mesma melodia, tom e andamento com outra letra, como take novo |
 | “Faça um instrumental com ela” | A mesma partitura com a melodia em um instrumento e sem canto, como take novo |
 | “Escreva um plano novo para ele, mais animado” | Um plano novo para um take que ainda não tem áudio (planeado sem render, ou cujo plano falhou). Um take com áudio não é tocado: peça um take novo em vez disso |
