@@ -974,7 +974,7 @@ accords.
 **Partir d’une passe.** Cliquez sur une carte de l’historique des Rolls, ou lisez-la, pour en faire la **Base** ; une nouvelle passe devient la base dès qu’elle arrive en fondu. Ses réglages
 reviennent dans les commandes, et le prochain Roll part d’elle. La carte affiche **Base**, et le lecteur et le bas de
 la fenêtre indiquent de quelle passe vous partez. Chaque nouvelle passe nomme celle dont elle vient et montre ce qui a
-changé. **Espace** lit la base ou la met en pause.
+changé. **Espace** lit la base ou la met en pause. L’étoile d’une passe la marque comme appréciée, pour la retrouver facilement parmi beaucoup ; c’est une marque propre à la Jam, pas l’étoile de la bibliothèque.
 
 **En garder une.** Les passes restent hors de vos espaces. **Chanson entière** sur une passe fait le rendu de toute la
 chanson avec les réglages de cette passe, comme nouvelle prise dans l’espace d’où la Jam a été ouverte ; une

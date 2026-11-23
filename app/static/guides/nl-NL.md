@@ -973,7 +973,7 @@ duurt langer dan **Roll** en kan het nummer flink veranderen. De volgende **Roll
 **Voortbouwen op een ronde.** Klik op een kaart in de Roll-geschiedenis, of speel hem af, om er de **Basis** van te maken; een nieuwe ronde wordt de basis zodra hij infaadt. De
 instellingen ervan gaan terug in de bediening, en de volgende roll bouwt erop voort. De kaart toont **Basis**, en de
 speler en de onderkant van het venster zeggen op welke ronde je voortbouwt. Elke nieuwe ronde noemt de ronde waar hij
-uit komt en toont wat er veranderde. **Spatie** speelt de basis af of pauzeert hem.
+uit komt en toont wat er veranderde. **Spatie** speelt de basis af of pauzeert hem. De ster op een ronde markeert hem als favoriet, zodat hij tussen veel rondes makkelijk te vinden is; het is een merkteken van de Jam zelf, niet de ster van de bibliotheek.
 
 **Eén bewaren.** Rondes blijven buiten je ruimtes. **Heel nummer** op een ronde rendert het hele nummer met de
 instellingen van die ronde, als nieuwe take in de ruimte van waaruit de Jam werd geopend; eerst wordt het gevraagd. De

@@ -973,7 +973,7 @@ Nimm es, wenn sich mehr als der Klang ändern soll, etwa ein anderes Genre oder 
 **Auf einem Durchgang aufbauen.** Klicke eine Karte im Roll-Verlauf an oder spiele sie ab, um sie zur **Basis** zu machen; ein neuer Durchgang wird zur Basis, sobald er eingeblendet wird. Ihre
 Einstellungen kommen zurück in die Regler, und der nächste Roll baut auf ihr auf. Die Karte zeigt **Basis**, und der
 Player und der Fuß des Fensters sagen, auf welchem Durchgang du aufbaust. Jeder neue Durchgang nennt den, aus dem er
-kommt, und zeigt, was sich geändert hat. Die **Leertaste** spielt die Basis ab oder hält sie an.
+kommt, und zeigt, was sich geändert hat. Die **Leertaste** spielt die Basis ab oder hält sie an. Der Stern an einem Durchgang markiert ihn als gelungen, damit er unter vielen leicht zu finden ist; er gilt nur in der Jam, nicht als Stern der Bibliothek.
 
 **Einen behalten.** Durchgänge liegen außerhalb deiner Bereiche. **Ganzer Song** auf einem Durchgang rendert den
 ganzen Song mit dessen Einstellungen als neuen Take in dem Bereich, aus dem die Jam geöffnet wurde; vorher wird

@@ -1915,7 +1915,13 @@
             (selectable ? ' data-pass-id="' + escHtml(p.id) + '" title="' + (isBase ? t('The next roll builds on this') : t('Click to build the next roll on this')) + '"' : '') + '>' +
             '<div class="jam-hist-top">' +
               '<span class="jam-hist-name">' + tagHtml + ' ' + escHtml(p.title) + '</span>' +
-              statePill +
+              '<span class="jam-hist-end">' + statePill +
+                (seed ? '' : '<button type="button" class="jam-star' + (p.starred ? ' on' : '') + '" data-jam-act="star-pass" data-pass-id="' + escHtml(p.id) +
+                  '" aria-pressed="' + (p.starred ? 'true' : 'false') + '" title="' + (p.starred ? t('Marked as one you like. Click to unmark') : t('Mark as one you like, to find it again')) +
+                  '" aria-label="' + t('Mark as one you like') + '">' +
+                  '<svg width="15" height="15" viewBox="0 0 24 24" fill="' + (p.starred ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">' +
+                  '<path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9z"/></svg></button>') +
+              '</span>' +
             '</div>' +
             '<div class="jam-hist-diffs">' + diffsHtml + '</div>' +
             actions +
@@ -2025,6 +2031,12 @@
     if (act === 'style-pick') { applyPickedStyle(btn.dataset.styleKind, btn.dataset.styleKey); return; }
     if (act === 'lora-song') { applyLoraSong(Number(btn.dataset.idx)); return; }
     if (act === 'lora-songs-all') { JamState.loraSongsAll = true; paintPartsCol(); return; }
+    if (act === 'star-pass') {
+      // A mark within the Jam only, to pick out the passes worth keeping; it is not the library's star.
+      var marked = passById(btn.dataset.passId);
+      if (marked) { marked.starred = !marked.starred; saveSession(); paintHistory(); }
+      return;
+    }
     if (act === 'feel-reset') {
       loadSculpt({});
       JamState.holdSeed = false;

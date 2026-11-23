@@ -973,7 +973,7 @@ può cambiare molto il brano. Il **Roll** successivo torna a mantenere melodia e
 **Partire da una passata.** Fai clic su una scheda nella cronologia dei Roll, o riproducila, per renderla la **Base**; una nuova passata diventa la base quando entra in dissolvenza. Le sue
 impostazioni tornano nei controlli e il prossimo Roll parte da lei. La scheda mostra **Base**, e il lettore e il fondo
 della finestra dicono da quale passata stai partendo. Ogni nuova passata indica quella da cui viene e mostra cosa è
-cambiato. **Spazio** riproduce o mette in pausa la base.
+cambiato. **Spazio** riproduce o mette in pausa la base. La stella su una passata la segna come preferita, per trovarla facilmente tra tante; è un segno della Jam, non la stella della libreria.
 
 **Tenerne una.** Le passate restano fuori dai tuoi spazi. **Brano completo** su una passata renderizza l’intero brano
 con le impostazioni di quella passata, come nuova take nello spazio da cui è stata aperta la Jam; prima chiede

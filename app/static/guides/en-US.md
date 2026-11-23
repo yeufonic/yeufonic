@@ -1066,7 +1066,7 @@ change the song a lot. The next **Roll** goes back to keeping the melody and cho
 
 **Building on a pass.** Click a card in Roll History, or play it, to make it the **Base**; a new pass becomes the base when it fades in. Its settings go back into the controls,
 and the next roll builds on it. The card shows **Base**, and the player and the foot of the window say which pass you
-are building on. Each new pass names the pass it came from and shows what changed. **Space** plays or pauses the base.
+are building on. Each new pass names the pass it came from and shows what changed. **Space** plays or pauses the base. The star on a pass marks it as one you like, so it is easy to find among many; it is the Jam's own mark, not the library's star.
 
 **Keeping one.** Passes are kept out of your spaces. **Full Song** on a pass renders the whole song with that pass's
 settings, as a new take in the space the Jam was opened from; it asks first. The **Fast Loop** and **Full Song**

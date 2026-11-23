@@ -56,6 +56,8 @@ cannot creep back in.
   choice), **Polish** (more steps over a pass), **Chords** for Plan & Roll, and a recorded voice's likeness, formant and
   blend. **Same seed** makes the next pass with its base's seed, so it differs only by what was changed. **Reset to
   defaults** puts the card back.
+- **Jam: a star on each pass** marks the ones you like, to find them among many. It belongs to the Jam, not the
+  library's star.
 - **Advanced take settings show what is set.** As the Sampling boxes already did, a box at its default is empty and
   shows the default muted, and a value you set is bold. Emptying a box puts it back to its default.
 

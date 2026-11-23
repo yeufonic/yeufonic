@@ -972,7 +972,7 @@ bastante a música. O **Roll** seguinte volta a manter a melodia e os acordes.
 
 **Partir de uma passagem.** Clique num cartão do histórico de Rolls, ou toque-o, para o tornar a **Base**; uma passagem nova torna-se a base quando entra com o fade. As definições dele voltam
 aos controlos, e o próximo Roll parte dele. O cartão mostra **Base**, e o leitor e o rodapé da janela dizem de que
-passagem está a partir. Cada passagem nova diz de qual veio e mostra o que mudou. **Espaço** toca ou pausa a base.
+passagem está a partir. Cada passagem nova diz de qual veio e mostra o que mudou. **Espaço** toca ou pausa a base. A estrela de uma passagem marca-a como favorita, para a encontrar facilmente entre muitas; é uma marca do próprio Jam, não a estrela da biblioteca.
 
 **Ficar com uma.** As passagens ficam fora dos seus espaços. **Música completa** numa passagem renderiza a música
 inteira com as definições dessa passagem, como um novo take no espaço de onde o Jam foi aberto; antes pergunta. O
