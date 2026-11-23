@@ -1848,6 +1848,8 @@ agent kunt zeggen welke je wilt.
 | `try_more` | Meerdere extra takes van een bestaande, met nieuwe seeds |
 | `sing_again` | Dezelfde partituur opnieuw gezongen met een nieuwe seed: een nieuwe stem, als nieuwe take |
 | `make_variations` | Dezelfde partituur en seed in elke genoemde interpretatie (of alle), bewaard in de take |
+| `jam_roll` | Een korte Jam-ronde van een take met een nieuwe klank, melodie en akkoorden behouden (of eerst met een nieuw plan), in de eigen ruimte van Jam; of, vanuit een ronde, het hele nummer met de seed van die ronde als take in de ruimte |
+| `list_jam_passes` | De rondes uit Jam, nieuwste eerst, met de ruimte waar elke Jam vandaan kwam |
 | `new_words` | Dezelfde partituur gezongen met een andere tekst, als nieuwe take |
 | `instrumental_from_take` | Dezelfde partituur als instrumentaal, als nieuwe take |
 | `replan_take` | Een nieuw plan voor een take zonder audio, eventueel met andere Harmonie, Variatie van het plan, toonsoort of tempo |

@@ -1849,6 +1849,8 @@ deinem Agenten sagen kannst, welches du meinst.
 | `try_more` | Mehrere weitere Takes aus einem vorhandenen, mit neuen Seeds |
 | `sing_again` | Dieselbe Partitur erneut gesungen mit einem neuen Seed: eine neue Stimme, als neuer Take |
 | `make_variations` | Dieselbe Partitur und derselbe Seed in jeder genannten Interpretation (oder allen), im Take aufbewahrt |
+| `jam_roll` | Ein kurzer Jam-Durchgang eines Takes mit neuem Klang, Melodie und Akkorde behalten (oder zuerst mit neuem Plan), im eigenen Bereich von Jam; oder, aus einem Durchgang, der ganze Song mit dessen Seed als Take im Bereich |
+| `list_jam_passes` | Die Durchgänge aus Jam, neueste zuerst, mit dem Bereich, aus dem jede Jam kam |
 | `new_words` | Dieselbe Partitur mit anderem Text gesungen, als neuer Take |
 | `instrumental_from_take` | Dieselbe Partitur als Instrumental, als neuer Take |
 | `replan_take` | Ein neuer Plan für einen Take ohne Audio, wahlweise mit anderer Harmonie, Planvielfalt, Tonart oder anderem Tempo |

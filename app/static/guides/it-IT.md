@@ -1848,6 +1848,8 @@ dire al tuo agente quale vuoi.
 | `try_more` | Diversi take in più da uno esistente, con seed nuovi |
 | `sing_again` | La stessa partitura cantata di nuovo con un seed nuovo: una voce nuova, come take nuovo |
 | `make_variations` | La stessa partitura e lo stesso seed in ogni interpretazione nominata (o in tutte), salvati dentro il take |
+| `jam_roll` | Una passata Jam breve di una take con un suono nuovo, melodia e accordi mantenuti (o prima con un nuovo piano), nello spazio di Jam; oppure, da una passata, il brano completo con il seed di quella passata come take nello spazio |
+| `list_jam_passes` | Le passate di Jam, dalla più recente, con lo spazio da cui viene ogni Jam |
 | `new_words` | La stessa partitura cantata con un altro testo, come take nuovo |
 | `instrumental_from_take` | La stessa partitura come strumentale, come take nuovo |
 | `replan_take` | Un piano nuovo per un take senza audio, facoltativamente con un'altra Armonia, Varietà del piano, tonalità o tempo |

@@ -2049,6 +2049,8 @@ tell your agent which one you mean.
 | `try_more` | Several more takes from an existing one, with new seeds |
 | `sing_again` | The same score sung again with a new seed: a new voice, as a new take |
 | `make_variations` | The same score and seed in each interpretation named (or all of them), kept inside the take |
+| `jam_roll` | A short Jam pass of a take with a new sound, its melody and chords kept (or with a new plan first), kept in Jam's own space; or, from a pass, the whole song with that pass's seed as a take in the space |
+| `list_jam_passes` | The passes rolled in Jam, newest first, with the space each Jam came from |
 | `new_words` | The same score sung with other lyrics, as a new take |
 | `instrumental_from_take` | The same score as an instrumental, as a new take |
 | `replan_take` | A new plan for a take with no audio yet, optionally with other Harmony, Plan variety, key or tempo |
