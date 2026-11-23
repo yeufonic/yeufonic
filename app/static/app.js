@@ -1722,7 +1722,8 @@ function updateAdvancedButtonState() {
 function writeAdvancedSettings(data) {
   if (!$('adv-sampler-steps')) { return; }
   data = data || {};
-  var steps = data.sampler_steps != null ? data.sampler_steps : ADVANCED_DEFAULTS.sampler_steps;
+  // Blank or unreadable (a take or a saved form can carry an empty value): the default, shown, not an empty box.
+  var steps = Number(data.sampler_steps) >= 1 ? Number(data.sampler_steps) : ADVANCED_DEFAULTS.sampler_steps;
   $('adv-sampler-steps').value = steps;
   if ($('adv-sampler-steps-range')) { $('adv-sampler-steps-range').value = steps; }
   $('adv-avoid').value = data.avoid || '';
@@ -1811,7 +1812,37 @@ function openAdvancedModal() {
     paintSampling();
     updateAdvancedButtonState();
     $('advanced-take-modal').classList.remove('hidden');
+    paintAdvancedDefaults(true);
   }
+}
+
+/* As the Sampling boxes show it: a box at its default is empty, showing the default muted as its placeholder, and
+   reads as the default; a value the person set is bold.  A field's default is the value the page gives it (a
+   select's, its first or marked option).  `settle` (on opening, and when a box is left) also empties a box typed
+   back to its default; while typing it is left alone. */
+function paintAdvancedDefaults(settle) {
+  var modal = $('advanced-take-modal');
+  if (!modal) { return; }
+  Array.prototype.forEach.call(modal.querySelectorAll('input[type="number"]'), function (el) {
+    var def = el.getAttribute('value');
+    if (def === null || def === '') { return; }
+    if (!el.placeholder) { el.placeholder = String(parseFloat(def)); }
+    if (settle && el.value !== '' && Number(el.value) === Number(def) && document.activeElement !== el) { el.value = ''; }
+  });
+  Array.prototype.forEach.call(modal.querySelectorAll('input[type="number"], input[type="text"], select'), function (el) {
+    var isDefault;
+    if (el.tagName === 'SELECT') {
+      var marked = Array.prototype.filter.call(el.options, function (o) { return o.defaultSelected; })[0] || el.options[0];
+      isDefault = !marked || el.value === marked.value;
+    } else if (el.value === '') {
+      isDefault = true;
+    } else {
+      var def = el.getAttribute('value');
+      isDefault = def !== null && def !== '' && Number(el.value) === Number(def);
+    }
+    el.classList.toggle('adv-default', isDefault);
+    el.classList.toggle('adv-set', !isDefault);
+  });
 }
 
 function closeAdvancedModal() {
@@ -1823,6 +1854,10 @@ function closeAdvancedModal() {
 function wireAdvancedSettings() {
   var toggleBtn = $('btn-advanced-toggle');
   var modal = $('advanced-take-modal');
+  if (modal) {
+    modal.addEventListener('input', function () { paintAdvancedDefaults(); });
+    modal.addEventListener('change', function () { paintAdvancedDefaults(true); });
+  }
   var closeBtn = $('adv-close-btn');
   var doneBtn = $('adv-done-btn');
   var resetBtn = $('adv-reset-btn');
@@ -1843,6 +1878,7 @@ function wireAdvancedSettings() {
     resetBtn.addEventListener('click', function () {
       resetAdvancedSettings();
       updateAdvancedButtonState();
+      paintAdvancedDefaults(true);
     });
   }
 
@@ -1862,7 +1898,7 @@ function wireAdvancedSettings() {
       saveForm();
     });
     n.addEventListener('input', function () {
-      r.value = n.value;
+      r.value = n.value === '' ? (n.getAttribute('value') || r.value) : n.value;   // emptied: back to the default
       updateAdvancedButtonState();
       saveForm();
     });

@@ -617,7 +617,7 @@ def test_the_factory_presets_leave_room_for_what_they_add():
     rack_js = (Path(__file__).resolve().parent.parent / "app" / "static" / "rack.js").read_text(encoding="utf-8")
     block = rack_js[rack_js.index("var PRESETS = {"):rack_js.index("// ------------------------------------------------------------- DSP Helpers")]
     names = re.findall(r"^    '(\w+)': \{", block, flags=re.M)
-    assert names == ["default", "vintage_warmth", "vocal_air", "radio_master", "punchy_bass", "acoustic_clarity", "surround"]
+    assert names == ["default", "vintage_warmth", "vocal_air", "radio_master", "punchy_bass", "acoustic_clarity", "surround", "yeufonic"]
     sum_of_the_node = rack_js[rack_js.index("  function nodeMakeupDb("):rack_js.index("  // ------------------------------------------------------------- Parametric equaliser")]
     bodies = re.split(r"^    '\w+': \{", block, flags=re.M)[1:]
     for name, body in zip(names, bodies):
@@ -627,7 +627,7 @@ def test_the_factory_presets_leave_room_for_what_they_add():
             return float(re.search(r"\b" + key + r": (-?[0-9.]+)", body).group(1))
         # a ratio the rack has a button for, or no button is lit when the preset is chosen
         assert 'data-ratio="%g"' % value("ratio") in rack_js, name
-        if name == "surround":  # made by ear and kept as saved, as Boost before it: not to these rules
+        if name in ("surround", "yeufonic"):  # made by ear and kept as saved, as Boost before it: not to these rules
             continue
         # OUTPUT gives back about what the compressor's own curve takes off full scale, and no more
         own = float(subprocess.run(["node", "-e", sum_of_the_node + "console.log(nodeMakeupDb(%s, %s, %s))" % (

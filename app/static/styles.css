@@ -3984,6 +3984,9 @@ body.rack-over-editor .modal:where(:not(#editor-modal)) { z-index: 62; }
   .adv-row.adv-wide > input[type="text"] { max-width: 60%; }
 }
 /* Sampling values set by hand (#72): folded at the foot of the grid, full width. */
+/* A value left at its default is muted, one the person set is bold (paintAdvancedDefaults). */
+#advanced-take-modal .adv-default { color: var(--muted); font-weight: 400; }
+#advanced-take-modal .adv-set { color: var(--text-strong); font-weight: 700; }
 .adv-sampling { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px; }
 .adv-sampling > summary { cursor: pointer; font-size: 12.5px; font-weight: 500; color: var(--text); list-style-position: inside; }
 .adv-sampling > summary .muted { font-weight: normal; font-size: 11.5px; color: var(--muted); }

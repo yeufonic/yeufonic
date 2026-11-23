@@ -178,6 +178,42 @@
       space: { enabled: true, width: 90, surround: 1, height: 45, room: 0.1, output: 0 },
       masterBypass: false,
       version: 3
+    },
+    /* Made by ear in the rack and kept as it was saved (2026-11-23), like Surround: a little gain in, the highs lifted
+       well up and a touch of presence, the parametric equaliser lifting the low mids around 1 kHz, the imager wide
+       and deep with its bass, no compressor, and the limiter catching the peaks.  Space out. */
+    'yeufonic': {
+      name: t('Yeufonic'),
+      eq: {
+        enabled: true,
+        preGain: 2,
+        hp: 20,
+        lowFreq: 60,
+        lowGain: 0,
+        midFreq: 3200,
+        midGain: 1.5,
+        highGain: 9.5,
+        outLevel: 0,
+        phase: false,
+        mid1Freq: 1600, mid1Gain: 0, highFreq: 12000, airGain: 0
+      },
+      comp: { enabled: false, threshold: -10, ratio: 20, attack: 0.015, release: 0.25, makeup: 6, mix: 1.0, knee: 0 },
+      imager: { enabled: true, bigness: 3, range: 9, stage: 9, harmonics: false, tubeHarmonics: 9, bass: true },
+      limit: { enabled: true, drive: 1, ceiling: -0.1, release: 0.08, warmth: false },
+      peq: {
+        enabled: true,
+        bands: [
+          { on: true, type: 'bell', freq: 30, gain: 0, q: 0.3 },
+          { on: true, type: 'lowshelf', freq: 90, gain: 0, q: 1 },
+          { on: true, type: 'bell', freq: 250, gain: 0, q: 1 },
+          { on: true, type: 'bell', freq: 963, gain: 4.6, q: 1 },
+          { on: true, type: 'bell', freq: 4000, gain: 0, q: 1 },
+          { on: true, type: 'highshelf', freq: 10000, gain: 0, q: 1 },
+          { on: false, type: 'highcut', freq: 18000, gain: 0, q: 0.71 }
+        ]
+      },
+      masterBypass: false,
+      version: 3
     }
   };
 
@@ -1715,6 +1751,7 @@
         '              <option value="punchy_bass">' + t('Punchy Club &amp; Bass') + '</option>',
         '              <option value="acoustic_clarity">' + t('Acoustic Clarity') + '</option>',
         '              <option value="surround">' + t('Surround') + '</option>',
+        '              <option value="yeufonic">' + t('Yeufonic') + '</option>',
         '            </optgroup>',
         '            <optgroup id="rack-user-presets-group" label="' + t('User Presets') + '">',
         '            </optgroup>',

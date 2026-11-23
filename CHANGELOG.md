@@ -37,6 +37,13 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **A Yeufonic preset in the mastering rack.** A factory preset made by ear: the highs lifted well up, the low mids
+  lifted on the parametric equaliser, the imager wide with its bass, no compressor, and the limiter catching the peaks.
+- **Advanced take settings show what is set.** As the Sampling boxes already did, a box at its default is empty and
+  shows the default muted, and a value you set is bold. Emptying a box puts it back to its default.
+
 ## 0.0.65 (2026-11-22)
 
 - **Jam (#79).** A studio console for giving your takes another spin without stopping the music. Open it from a take
