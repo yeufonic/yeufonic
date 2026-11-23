@@ -946,10 +946,9 @@ la même prise reprend là où vous en étiez. **Nouvelle Jam** revient au son d
 
 - **Son et éléments** sont les mots qui décrivent le son : genres, instruments, production et rythme. Cliquez sur une
   pastille pour l’ajouter ou la retirer, ou tapez la vôtre dans le champ de recherche. Faites glisser les quatre
-  barres d’un élément pour dire combien il compte, de discrète à principale. **Choisir un style…** reprend les
-  éléments et le tempo d’un style enregistré dans l’éditeur ou d’un style intégré. Le choix du **LoRA de style** est
+  barres d’un élément pour dire combien il compte, de discrète à principale. **Choisir un style…** reprend les éléments d’un style enregistré dans l’éditeur ou d’un style intégré. Le choix du **LoRA de style** est
   celui de l’éditeur, avec ses intensités pour le son et la partition, et un LoRA entraîné sur un corpus montre les
-  chansons qu’il a apprises : cliquez sur l’une d’elles pour prendre son son et son tempo.
+  chansons qu’il a apprises : cliquez sur l’une d’elles pour prendre son son. Aucun des deux ne change le tempo : une passe garde celui du Seed.
 - **Ambiance** est le pavé qui va de Sombre à Lumineux et de Calme à Énergique. Plus le point s’éloigne du milieu,
   plus il ajoute au style des mots d’ambiance, de dynamique et d’interprétation, plus il ajoute de choses à éviter, et
   plus le modèle s’y tient.

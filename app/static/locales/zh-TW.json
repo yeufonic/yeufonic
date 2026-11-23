@@ -2230,7 +2230,7 @@
  "Production": "製作",
  "Rhythm": "節奏",
  "Style LoRA (optional)": "風格 LoRA（選用）",
- "Choose a style: one you saved, or a built-in one. It sets the Parts and the tempo": "選擇風格：你儲存的或內建的。它會設定元素和速度",
+ "Choose a style: one you saved, or a built-in one. It sets the Parts; the tempo stays the song’s": "選擇風格：你儲存的或內建的。它會設定元素；速度保持歌曲原來的",
  "None yet. The editor’s Save keeps a style here.": "還沒有。在編輯器中點「儲存」可把風格存到這裡。",
  "Render a full song?": "渲染完整歌曲？",
  "This renders the whole song from {title} as a new take in your space. It takes longer than a pass.": "這會從 {title} 渲染整首歌，作為你空間中的新版本。耗時比一輪長。",

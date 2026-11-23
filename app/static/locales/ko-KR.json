@@ -2230,7 +2230,7 @@
  "Production": "프로덕션",
  "Rhythm": "리듬",
  "Style LoRA (optional)": "스타일 LoRA (선택)",
- "Choose a style: one you saved, or a built-in one. It sets the Parts and the tempo": "스타일 선택: 저장한 것이나 내장된 것. 파트와 템포가 정해집니다",
+ "Choose a style: one you saved, or a built-in one. It sets the Parts; the tempo stays the song’s": "스타일 선택: 저장한 것이나 내장된 것. 파트가 정해지고 템포는 곡 그대로입니다",
  "None yet. The editor’s Save keeps a style here.": "아직 없습니다. 편집기의 저장으로 여기에 스타일이 들어갑니다.",
  "Render a full song?": "전체 곡을 렌더링할까요?",
  "This renders the whole song from {title} as a new take in your space. It takes longer than a pass.": "{title}에서 곡 전체를 공간의 새 테이크로 렌더링합니다. 패스보다 오래 걸립니다.",

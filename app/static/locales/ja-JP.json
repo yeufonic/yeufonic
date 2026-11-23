@@ -2230,7 +2230,7 @@
  "Production": "プロダクション",
  "Rhythm": "リズム",
  "Style LoRA (optional)": "スタイル LoRA（任意）",
- "Choose a style: one you saved, or a built-in one. It sets the Parts and the tempo": "スタイルを選択：保存したものか内蔵のもの。パーツとテンポが決まります",
+ "Choose a style: one you saved, or a built-in one. It sets the Parts; the tempo stays the song’s": "スタイルを選択：保存したものか内蔵のもの。パーツが決まります。テンポは曲のままです",
  "None yet. The editor’s Save keeps a style here.": "まだありません。エディターの保存でここにスタイルが入ります。",
  "Render a full song?": "フルソングをレンダリングしますか？",
  "This renders the whole song from {title} as a new take in your space. It takes longer than a pass.": "{title} から曲全体を、スペースの新しいテイクとしてレンダリングします。パスより時間がかかります。",

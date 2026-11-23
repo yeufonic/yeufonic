@@ -2230,7 +2230,7 @@
  "Production": "Productie",
  "Rhythm": "Ritme",
  "Style LoRA (optional)": "Stijl-LoRA (optioneel)",
- "Choose a style: one you saved, or a built-in one. It sets the Parts and the tempo": "Kies een stijl: een die je bewaarde of een ingebouwde. Die bepaalt de onderdelen en het tempo",
+ "Choose a style: one you saved, or a built-in one. It sets the Parts; the tempo stays the song’s": "Kies een stijl: een die je bewaarde of een ingebouwde. Die bepaalt de onderdelen; het tempo blijft dat van het nummer",
  "None yet. The editor’s Save keeps a style here.": "Nog geen. Bewaren in de editor zet hier een stijl.",
  "Render a full song?": "Heel nummer renderen?",
  "This renders the whole song from {title} as a new take in your space. It takes longer than a pass.": "Dit rendert het hele nummer van {title} als een nieuwe take in je ruimte. Het duurt langer dan een ronde.",

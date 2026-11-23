@@ -946,10 +946,9 @@ dan ga je verder waar je was. **Nieuwe Jam** gaat terug naar de klank van de See
 
 - **Klank & onderdelen** zijn de woorden die de klank beschrijven: genres, instrumenten, productie en ritme. Klik op
   een chip om hem toe te voegen of weg te halen, of typ er zelf een in het zoekveld. Sleep de vier balkjes van een
-  onderdeel om te bepalen hoeveel het telt, van subtiel tot leidend. **Een stijl kiezen…** neemt de onderdelen en het
-  tempo over uit een stijl die je in de editor bewaarde of uit een ingebouwde. De keuze voor **Stijl-LoRA** is die
+  onderdeel om te bepalen hoeveel het telt, van subtiel tot leidend. **Een stijl kiezen…** neemt de onderdelen over uit een stijl die je in de editor bewaarde of uit een ingebouwde. De keuze voor **Stijl-LoRA** is die
   van de editor, met de sterktes voor klank en partituur, en een LoRA die uit een corpus is getraind toont de
-  nummers die hij leerde: klik er een aan voor de klank en het tempo van dat nummer.
+  nummers die hij leerde: klik er een aan voor de klank van dat nummer. Geen van beide verandert het tempo: een ronde houdt dat van de Seed.
 - **Sfeer** is het vlak van Donker tot Helder en van Kalm tot Energiek. Hoe verder de stip van het midden, hoe meer
   woorden voor sfeer, dynamiek en voordracht in de stijl komen, hoe meer er vermeden wordt en hoe strakker het model
   zich eraan houdt.

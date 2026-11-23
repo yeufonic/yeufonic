@@ -946,10 +946,9 @@ dort weiter, wo du aufgehört hast. **Neue Jam** kehrt zum Klang des Seeds zurü
 
 - **Klang & Elemente** sind die Wörter, die den Klang beschreiben: Genres, Instrumente, Produktion und Rhythmus.
   Klicke einen Chip an, um ihn hinzuzufügen oder zu entfernen, oder tippe dein eigenes ins Suchfeld. Zieh die vier
-  Balken an einem Element, um festzulegen, wie stark es zählt, von Dezent bis Führend. **Einen Stil wählen…** nimmt
-  Elemente und Tempo aus einem im Editor gespeicherten oder einem integrierten Stil. Die **Stil-LoRA**-Auswahl ist
+  Balken an einem Element, um festzulegen, wie stark es zählt, von Dezent bis Führend. **Einen Stil wählen…** nimmt die Elemente aus einem im Editor gespeicherten oder einem integrierten Stil. Die **Stil-LoRA**-Auswahl ist
   die des Editors, mit ihren Stärken für Klang und Partitur, und eine aus einem Korpus trainierte LoRA zeigt die
-  Songs, die sie gelernt hat: Ein Klick übernimmt Klang und Tempo dieses Songs.
+  Songs, die sie gelernt hat: Ein Klick übernimmt den Klang dieses Songs. Beides ändert das Tempo nicht: Ein Durchgang behält das des Seeds.
 - **Stimmung** ist die Fläche von Dunkel bis Hell und von Ruhig bis Energisch. Je weiter der Punkt von der Mitte
   entfernt ist, desto mehr Wörter für Stimmung, Dynamik und Vortrag kommen in den Stil, desto mehr wird vermieden und
   desto fester hält sich das Modell daran.

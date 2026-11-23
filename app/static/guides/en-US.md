@@ -1042,9 +1042,9 @@ off. **New Jam** goes back to the Seed's own sound and deletes the passes.
 
 - **Sound & Parts** are the words that describe the sound: genres, instruments, production and rhythm. Click a chip
   to add or remove it, or type your own in the search box. Drag the four bars on a Part to say how much it counts,
-  from Subtle to Lead. **Choose a style…** takes the Parts and the tempo from a style you saved in the editor or a
+  from Subtle to Lead. **Choose a style…** takes the Parts from a style you saved in the editor or a
   built-in one. The **Style LoRA** picker is the editor's, with its Sound and Score strengths, and a LoRA trained
-  from a corpus shows the songs it learned: click one for that song's sound and tempo.
+  from a corpus shows the songs it learned: click one for that song's sound. Neither changes the tempo: a pass keeps the Seed's.
 - **Vibe** is the pad from Dark to Bright and Calm to Energetic. The further the dot is from the middle, the more
   it adds words for mood, dynamics and delivery to the style, the more it adds things to avoid, and the more firmly
   the model is held to them.

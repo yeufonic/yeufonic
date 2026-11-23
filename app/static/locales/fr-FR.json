@@ -2230,7 +2230,7 @@
  "Production": "Production",
  "Rhythm": "Rythme",
  "Style LoRA (optional)": "LoRA de style (facultatif)",
- "Choose a style: one you saved, or a built-in one. It sets the Parts and the tempo": "Choisissez un style : un que vous avez enregistré ou un style intégré. Il définit les éléments et le tempo",
+ "Choose a style: one you saved, or a built-in one. It sets the Parts; the tempo stays the song’s": "Choisissez un style : un que vous avez enregistré ou un style intégré. Il définit les éléments ; le tempo reste celui de la chanson",
  "None yet. The editor’s Save keeps a style here.": "Aucun pour l’instant. Enregistrer dans l’éditeur garde un style ici.",
  "Render a full song?": "Faire le rendu d’une chanson entière ?",
  "This renders the whole song from {title} as a new take in your space. It takes longer than a pass.": "Cela fait le rendu de toute la chanson à partir de {title}, comme nouvelle prise dans votre espace. C’est plus long qu’une passe.",

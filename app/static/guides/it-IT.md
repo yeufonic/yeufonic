@@ -946,10 +946,9 @@ dove eri rimasto. **Nuova Jam** torna al suono del Seed ed elimina le passate.
 
 - **Suono ed elementi** sono le parole che descrivono il suono: generi, strumenti, produzione e ritmo. Fai clic su un
   chip per aggiungerlo o toglierlo, oppure scrivine uno tuo nel campo di ricerca. Trascina le quattro barre di un
-  elemento per dire quanto conta, da discreta a protagonista. **Scegli uno stile…** prende elementi e tempo da uno stile
+  elemento per dire quanto conta, da discreta a protagonista. **Scegli uno stile…** prende gli elementi da uno stile
   salvato nell’editor o da uno integrato. La scelta della **LoRA di stile** è quella dell’editor, con le intensità per
-  suono e partitura, e una LoRA addestrata su un corpus mostra i brani che ha imparato: fai clic su uno per prenderne
-  suono e tempo.
+  suono e partitura, e una LoRA addestrata su un corpus mostra i brani che ha imparato: fai clic su uno per prenderne il suono. Nessuno dei due cambia il tempo: una passata mantiene quello del Seed.
 - **Atmosfera** è il riquadro da Scuro a Luminoso e da Calmo a Energico. Più il punto si allontana dal centro, più
   aggiunge allo stile parole di atmosfera, dinamica e interpretazione, più aggiunge cose da evitare e più il modello
   vi si attiene.

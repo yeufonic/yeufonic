@@ -2230,7 +2230,7 @@
  "Production": "Продакшн",
  "Rhythm": "Ритм",
  "Style LoRA (optional)": "LoRA стиля (необязательно)",
- "Choose a style: one you saved, or a built-in one. It sets the Parts and the tempo": "Выберите стиль: сохранённый или встроенный. Он задаёт элементы и темп",
+ "Choose a style: one you saved, or a built-in one. It sets the Parts; the tempo stays the song’s": "Выберите стиль: сохранённый или встроенный. Он задаёт элементы; темп остаётся темпом песни",
  "None yet. The editor’s Save keeps a style here.": "Пока нет. Кнопка «Сохранить» в редакторе кладёт стиль сюда.",
  "Render a full song?": "Отрендерить целую песню?",
  "This renders the whole song from {title} as a new take in your space. It takes longer than a pass.": "Рендерит всю песню из {title} как новый дубль в вашем пространстве. Это дольше, чем проход.",

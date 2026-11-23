@@ -946,9 +946,9 @@ você parou. **Novo Jam** volta ao som do Seed e exclui as passagens.
 
 - **Som e elementos** são as palavras que descrevem o som: gêneros, instrumentos, produção e ritmo. Clique numa
   etiqueta para adicioná-la ou removê-la, ou digite a sua na busca. Arraste as quatro barras de um elemento para dizer
-  quanto ele pesa, de sutil a principal. **Escolher um estilo…** pega os elementos e o andamento de um estilo salvo no
+  quanto ele pesa, de sutil a principal. **Escolher um estilo…** pega os elementos de um estilo salvo no
   editor ou de um integrado. O seletor de **LoRA de estilo** é o do editor, com as intensidades de som e de partitura,
-  e uma LoRA treinada num corpus mostra as músicas que aprendeu: clique numa para pegar o som e o andamento dela.
+  e uma LoRA treinada num corpus mostra as músicas que aprendeu: clique numa para pegar o som dela. Nenhum dos dois muda o andamento: a passagem mantém o do Seed.
 - **Clima** é o painel de Escuro a Brilhante e de Calmo a Energético. Quanto mais longe do centro estiver o ponto, mais
   palavras de clima, dinâmica e interpretação ele põe no estilo, mais coisas a evitar ele acrescenta e mais firme o
   modelo se mantém nelas.

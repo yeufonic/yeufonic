@@ -765,15 +765,14 @@
     return parts;
   }
 
-  /* A learned song's pill, as on the editor's learned styles: its sound as the Parts, and its tempo. */
+  /* A learned song's pill, as on the editor's learned styles: its sound as the Parts.  The tempo stays the Seed's: a pass
+     is the same song with another sound. */
   function applyLoraSong(index) {
     var lora = jamLora(JamState.styleLora);
     var song = lora && lora.styles ? lora.styles[index] : null;
     if (!song) { return; }
     var parts = partsFromStyle(song.prompt, true, MAX_PARTS);
     if (parts.length) { JamState.parts = parts; }
-    var tempo = Math.round(Number(song.tempo) || 0);
-    if (tempo >= 60 && tempo <= 165) { JamState.bpm = tempo; }
     JamState.loraSong = lora.name + '#' + index;
     JamState.styleName = null;
     paintAll();
@@ -1479,14 +1478,14 @@
   }
 
   /* The style menu, as in the editor: the styles saved there and the built-in presets.  One chosen sets the
-     Parts from its tags (not its vocal or key: the Vocals card and the score say those) and the tempo it names. */
+     Parts from its tags (not its vocal, key or tempo: the Vocals card, the score and the Seed say those). */
   function cannedStyles() { return typeof CANNED_STYLES !== 'undefined' && Array.isArray(CANNED_STYLES) ? CANNED_STYLES : []; }
   function savedStyles() { return window.State && Array.isArray(State.savedStyles) ? State.savedStyles : []; }
 
   function stylePickerHtml() {
     var chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
     var html = '<div class="jam-style-picker">' +
-      '<button type="button" class="source-picker-btn style-picker-btn" data-jam-act="style-menu" aria-expanded="' + (JamState.styleMenuOpen ? 'true' : 'false') + '" title="' + t('Choose a style: one you saved, or a built-in one. It sets the Parts and the tempo') + '">' +
+      '<button type="button" class="source-picker-btn style-picker-btn" data-jam-act="style-menu" aria-expanded="' + (JamState.styleMenuOpen ? 'true' : 'false') + '" title="' + t('Choose a style: one you saved, or a built-in one. It sets the Parts; the tempo stays the song\u2019s') + '">' +
         '<span class="source-picker-label">' + escHtml(JamState.styleName || t('Choose a style\u2026')) + '</span>' + chev +
       '</button>';
     if (!JamState.styleMenuOpen) { return html + '</div>'; }
@@ -1613,9 +1612,6 @@
     if (!st || !st.prompt) { return; }
     var parts = partsFromStyle(st.prompt, true, MAX_PARTS);
     if (parts.length) { JamState.parts = parts; }
-    var bpm = /(\d{2,3})\s*bpm/i.exec(st.prompt);
-    var tempo = bpm ? parseInt(bpm[1], 10) : 0;
-    if (tempo >= 60 && tempo <= 165) { JamState.bpm = tempo; }
     JamState.styleName = st.name;
     JamState.loraSong = null;
     JamState.styleMenuOpen = false;
