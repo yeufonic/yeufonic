@@ -975,8 +975,7 @@ Player und der Fuß des Fensters sagen, auf welchem Durchgang du aufbaust. Jeder
 kommt, und zeigt, was sich geändert hat. Die **Leertaste** spielt die Basis ab oder hält sie an. Der Stern an einem Durchgang markiert ihn als gelungen, damit er unter vielen leicht zu finden ist; er gilt nur in der Jam, nicht als Stern der Bibliothek.
 
 **Einen behalten.** Durchgänge liegen außerhalb deiner Bereiche. **Ganzer Song** auf einem Durchgang rendert den
-ganzen Song mit dessen Einstellungen als neuen Take in dem Bereich, aus dem die Jam geöffnet wurde; vorher wird
-nachgefragt. Der Schalter **Kurzschleife** / **Ganzer Song** oben lässt **Roll** ganze Songs statt Durchgängen
+ganzen Song mit dessen Einstellungen als neuen Take in dem Bereich, aus dem die Jam geöffnet wurde; vorher wird nachgefragt, und der Name des neuen Takes lässt sich gleich ändern. Der Schalter **Kurzschleife** / **Ganzer Song** oben lässt **Roll** ganze Songs statt Durchgängen
 rendern. **Löschen** entfernt einen Durchgang endgültig. Durchgänge bleiben, bis du sie löschst, auch wenn die Jam
 geschlossen ist: Einstellungen → Speicher führt sie als **Jam-Durchgänge** und kann alle leeren.
 

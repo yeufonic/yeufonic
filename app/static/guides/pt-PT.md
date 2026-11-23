@@ -974,7 +974,7 @@ aos controlos, e o próximo Roll parte dele. O cartão mostra **Base**, e o leit
 passagem está a partir. Cada passagem nova diz de qual veio e mostra o que mudou. **Espaço** toca ou pausa a base. A estrela de uma passagem marca-a como favorita, para a encontrar facilmente entre muitas; é uma marca do próprio Jam, não a estrela da biblioteca.
 
 **Ficar com uma.** As passagens ficam fora dos seus espaços. **Música completa** numa passagem renderiza a música
-inteira com as definições dessa passagem, como um novo take no espaço de onde o Jam foi aberto; antes pergunta. O
+inteira com as definições dessa passagem, como um novo take no espaço de onde o Jam foi aberto; antes pergunta, com o nome do novo take pronto a mudar. O
 interruptor **Loop rápido** / **Música completa** no topo faz o **Roll** renderizar músicas inteiras em vez de
 passagens. **Eliminar** remove uma
 passagem de vez. As passagens ficam até as eliminar, mesmo com o Jam fechado: Definições → Armazenamento lista-as como

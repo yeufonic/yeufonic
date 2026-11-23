@@ -1005,14 +1005,11 @@
     }
 
     var isFullSong = Boolean(opts.fullSong || !fastLoop);
-    var maxNum = JamState.passes.reduce(function (m, p) {
-      return isSeedPass(p) ? m : Math.max(m, Number(p.num) || 0);
-    }, 0);
-    var passNum = Math.max(maxNum, Number(JamState.lastPassNum) || 0) + 1;
+    var passNum = nextPassNum();
     JamState.lastPassNum = passNum;
     var baseScorePass = basePass || (snap.lockScore ? readyBaseTakeWithScore(snap.vocals !== 'instrumental') : null);
     var passTitle = (isFullSong
-      ? t('{title} (Jam #{n})', { title: JamState.starterName, n: passNum })
+      ? (opts.title || fullSongTitle(passNum))
       : JamState.starterName + ' \u00B7 ' + t('Pass #{n}', { n: passNum }));
     var loraKind = activeLoraKind(snap.styleLora);
 
@@ -1584,15 +1581,33 @@
   }
 
   /* A Full Song is a whole render and a new take in the space, so it is asked about first. */
+  // The number the next pass will carry: one past the highest a pass of this Jam has had.
+  function nextPassNum() {
+    var maxNum = JamState.passes.reduce(function (m, p) {
+      return isSeedPass(p) ? m : Math.max(m, Number(p.num) || 0);
+    }, 0);
+    return Math.max(maxNum, Number(JamState.lastPassNum) || 0) + 1;
+  }
+  function fullSongTitle(n) { return t('{title} (Jam #{n})', { title: JamState.starterName, n: n }); }
+
+  /* Asks before a full song, with its name ready to change (selected, so typing replaces it).  Resolves to
+     { title } to go ahead (the name given, or the usual one when emptied), or null. */
   function confirmFullSong(full, title) {
-    if (!full) { return Promise.resolve(true); }
-    if (typeof confirmModal !== 'function') { return Promise.resolve(true); }
+    if (!full) { return Promise.resolve({}); }
+    var usual = fullSongTitle(nextPassNum());
+    if (typeof confirmModal !== 'function') { return Promise.resolve({ title: usual }); }
     return confirmModal({
       title: t('Render a full song?'),
       message: title ? t('This renders the whole song from {title} as a new take in your space. It takes longer than a pass.', { title: title })
         : t('This renders the whole song as a new take in your space. It takes longer than a pass.'),
-      confirmText: t('Render')
-    }).then(function (yes) { return Boolean(yes); });
+      confirmText: t('Render'),
+      input: true,
+      defaultValue: usual,
+      placeholder: usual
+    }).then(function (name) {
+      if (name === null || name === undefined || name === false) { return null; }
+      return { title: String(name).trim() || usual };
+    });
   }
 
   function focusById(id) {
@@ -1998,8 +2013,8 @@
     if (act === 'lora-menu') { JamState.loraMenuOpen = !JamState.loraMenuOpen; JamState.loraFilter = ''; paintPartsCol(); focusById('jam-lora-filter'); return; }
     if (act === 'toggle-max') { setJamMax(!jamMax()); return; }
     if (act === 'reset-jam') { newJamFromSeed(); return; }
-    if (act === 'roll') { confirmFullSong(!JamState.fastLoop).then(function (yes) { if (yes) { rollPass(); } }); return; }
-    if (act === 'plan-roll') { confirmFullSong(!JamState.fastLoop).then(function (yes) { if (yes) { rollPass({ replan: true }); } }); return; }
+    if (act === 'roll') { confirmFullSong(!JamState.fastLoop).then(function (go) { if (go) { rollPass({ title: go.title }); } }); return; }
+    if (act === 'plan-roll') { confirmFullSong(!JamState.fastLoop).then(function (go) { if (go) { rollPass({ replan: true, title: go.title }); } }); return; }
     if (act === 'cancel-cook') { cancelCooking(); return; }
     if (act === 'toggle-play') { JamAudio.toggle(); return; }
     if (act === 'scope-fast') { JamState.fastLoop = true; paintTopbar(); return; }
@@ -2090,8 +2105,8 @@
     if (act === 'full-pass') {
       var fp = JamState.passes.find(function (p) { return p.id === btn.dataset.passId; });
       if (fp) {
-        confirmFullSong(true, fp.title).then(function (yes) {
-          if (yes) { rollPass({ fullSong: true, snapshot: fp.snapshot, basePassId: fp.id }); }
+        confirmFullSong(true, fp.title).then(function (go) {
+          if (go) { rollPass({ fullSong: true, snapshot: fp.snapshot, basePassId: fp.id, title: go.title }); }
         });
       }
       return;

@@ -975,8 +975,7 @@ della finestra dicono da quale passata stai partendo. Ogni nuova passata indica 
 cambiato. **Spazio** riproduce o mette in pausa la base. La stella su una passata la segna come preferita, per trovarla facilmente tra tante; è un segno della Jam, non la stella della libreria.
 
 **Tenerne una.** Le passate restano fuori dai tuoi spazi. **Brano completo** su una passata renderizza l’intero brano
-con le impostazioni di quella passata, come nuova take nello spazio da cui è stata aperta la Jam; prima chiede
-conferma. L’interruttore **Loop rapido** / **Brano completo** in alto fa renderizzare a **Roll** brani interi invece di
+con le impostazioni di quella passata, come nuova take nello spazio da cui è stata aperta la Jam; prima chiede conferma, con il nome della nuova take pronto da cambiare. L’interruttore **Loop rapido** / **Brano completo** in alto fa renderizzare a **Roll** brani interi invece di
 passate. **Elimina** rimuove una passata
 per sempre. Le passate restano finché non le elimini, anche a Jam chiusa: Impostazioni → Spazio su disco le elenca come
 **Passate Jam** e può svuotarle tutte.

@@ -977,7 +977,7 @@ changé. **Espace** lit la base ou la met en pause. L’étoile d’une passe la
 
 **En garder une.** Les passes restent hors de vos espaces. **Chanson entière** sur une passe fait le rendu de toute la
 chanson avec les réglages de cette passe, comme nouvelle prise dans l’espace d’où la Jam a été ouverte ; une
-confirmation est demandée. L’interrupteur **Boucle rapide** / **Chanson entière** en haut fait rendre à **Roll** des
+confirmation est demandée, avec le nom de la nouvelle prise prêt à être changé. L’interrupteur **Boucle rapide** / **Chanson entière** en haut fait rendre à **Roll** des
 chansons entières au lieu de passes. **Supprimer** retire une passe définitivement. Les passes restent jusqu’à ce que vous les supprimiez,
 même une fois la Jam fermée : Paramètres → Stockage les liste comme **Passes Jam** et peut toutes les vider.
 

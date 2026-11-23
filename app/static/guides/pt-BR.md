@@ -975,7 +975,7 @@ qual passagem você está partindo. Cada passagem nova diz de qual veio e mostra
 base. A estrela de uma passagem a marca como favorita, para achá-la fácil entre muitas; é uma marca do próprio Jam, não a estrela da biblioteca.
 
 **Ficar com uma.** As passagens ficam fora dos seus espaços. **Música completa** numa passagem renderiza a música
-inteira com as configurações dessa passagem, como um novo take no espaço de onde o Jam foi aberto; antes ele pergunta.
+inteira com as configurações dessa passagem, como um novo take no espaço de onde o Jam foi aberto; antes ele pergunta, com o nome do novo take pronto para mudar.
 A chave **Loop rápido** / **Música completa** no topo faz o **Roll** renderizar músicas inteiras em vez de passagens.
 **Excluir** remove uma
 passagem de vez. As passagens ficam até você excluí-las, mesmo com o Jam fechado: Configurações → Armazenamento as

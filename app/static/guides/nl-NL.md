@@ -975,7 +975,7 @@ speler en de onderkant van het venster zeggen op welke ronde je voortbouwt. Elke
 uit komt en toont wat er veranderde. **Spatie** speelt de basis af of pauzeert hem. De ster op een ronde markeert hem als favoriet, zodat hij tussen veel rondes makkelijk te vinden is; het is een merkteken van de Jam zelf, niet de ster van de bibliotheek.
 
 **Eén bewaren.** Rondes blijven buiten je ruimtes. **Heel nummer** op een ronde rendert het hele nummer met de
-instellingen van die ronde, als nieuwe take in de ruimte van waaruit de Jam werd geopend; eerst wordt het gevraagd. De
+instellingen van die ronde, als nieuwe take in de ruimte van waaruit de Jam werd geopend; eerst wordt het gevraagd, met de naam van de nieuwe take klaar om te wijzigen. De
 schakelaar **snelle loop** / **Heel nummer** bovenaan laat **Roll** hele nummers renderen in plaats van rondes.
 **Verwijderen** haalt een
 ronde definitief weg. Rondes blijven tot je ze verwijdert, ook als de Jam dicht is: Instellingen → Opslag toont ze als

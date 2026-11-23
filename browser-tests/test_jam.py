@@ -66,3 +66,11 @@ def test_a_full_song_asks_first(page, app_server):
     page.click("#confirm-cancel")
     page.wait_for_selector("#confirm-modal", state="hidden")
     assert page.locator(".jam-hist-card:not(.is-seed)").count() == 0
+    # Its name is ready to change, and the name typed is the take's.
+    page.click('[data-jam-act="roll"]')
+    page.wait_for_selector("#confirm-input:not(.hidden)")
+    assert "(Jam #1)" in page.input_value("#confirm-input")
+    page.fill("#confirm-input", "Night drive")
+    with page.expect_request(lambda r: r.url.endswith("/api/jam/roll") and r.method == "POST") as sent:
+        page.click("#confirm-ok")
+    assert sent.value.post_data_json["title"] == "Night drive"
