@@ -778,6 +778,23 @@
     paintAll();
   }
 
+  /* The tempo a Jam starts at: the take's tempo lock, else its score's tempo line (in quarter notes, whatever the
+     line's beat), else "NN BPM" in its style, else 100.  The slider's range is the editor's tempo box's. */
+  var BPM_MIN = 40, BPM_MAX = 240;
+  function seedTempo(take) {
+    var bpm = Number(take.target_bpm) || 0;
+    if (!bpm) {
+      var q = /^Q:\s*(?:(\d+)\/(\d+)\s*=\s*)?(\d+(?:\.\d+)?)/m.exec(String(take.abc || ''));
+      if (q) { bpm = Number(q[3]) * (q[1] ? 4 * Number(q[1]) / Number(q[2]) : 1); }
+    }
+    if (!bpm) {
+      var named = /(\d{2,3})\s*bpm\b/i.exec(take.style || '');
+      if (named) { bpm = Number(named[1]); }
+    }
+    bpm = Math.round(bpm) || 100;
+    return Math.min(BPM_MAX, Math.max(BPM_MIN, bpm));
+  }
+
   function seedFromTake(take) {
     JamState.starterName = take.title || t('Selected take');
     JamState.parentId = take.parent_id || take.id;
@@ -788,7 +805,7 @@
     }
     JamState.parts = parts;
     JamState.vibe = { x: 0.5, y: 0.5 };
-    JamState.bpm = Number(take.target_bpm) || 100;
+    JamState.bpm = seedTempo(take);
     JamState.vocals = take.kind === 'instrumental' ? 'instrumental' : (take.voice_id ? 'voice' : (/male vocal/i.test(take.style || '') && !/female/i.test(take.style || '') ? 'male' : 'female'));
     JamState.voiceId = take.voice_id || '';
     JamState.tones = [];
@@ -1831,7 +1848,7 @@
           '</div>' +
           '<div class="jam-tempo-box">' +
             '<div class="jam-kicker"><span>' + t('Tempo') + '</span><span class="jam-bpm-val" id="jam-bpm-val">' + JamState.bpm + ' BPM</span></div>' +
-            '<input id="jam-bpm-slider" type="range" min="60" max="165" step="2" value="' + JamState.bpm + '">' +
+            '<input id="jam-bpm-slider" type="range" min="' + BPM_MIN + '" max="' + BPM_MAX + '" step="1" value="' + JamState.bpm + '">' +
             '<div class="jam-detents"><span>' + t('Slow') + '</span><span>' + t('Med') + '</span><span>' + t('Fast') + '</span></div>' +
           '</div>' +
         '</div>' +

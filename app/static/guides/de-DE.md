@@ -952,7 +952,7 @@ dort weiter, wo du aufgehört hast. **Neue Jam** kehrt zum Klang des Seeds zurü
 - **Stimmung** ist die Fläche von Dunkel bis Hell und von Ruhig bis Energisch. Je weiter der Punkt von der Mitte
   entfernt ist, desto mehr Wörter für Stimmung, Dynamik und Vortrag kommen in den Stil, desto mehr wird vermieden und
   desto fester hält sich das Modell daran.
-- **Tempo** in Schlägen pro Minute.
+- **Tempo** in Schlägen pro Minute, von 40 bis 240. Eine Jam beginnt beim Tempo des Seeds.
 - **Gesang**: Instrumental, Weiblich, Männlich oder eine deiner aufgenommenen Stimmen, mit bis zu drei Klangwörtern.
   Ein Durchgang singt den Text des Seeds. Ein Seed ohne Text erzeugt nur Instrumentals.
 - **Gefühl** verfeinert, was die Fläche offen lässt. **Tonart** verschiebt Melodie und Akkorde in eine andere Tonart; **Beginnen bei** lässt einen kurzen Durchgang bei einem Abschnitt wie dem Refrain statt am Anfang beginnen; **Spielweise** und **Stiltreue** ersetzen die Wahl der Fläche, wie locker gespielt wird und wie fest der Stil gilt; **Ausarbeitung** gibt einem Durchgang mehr Schritte; **Akkorde** bestimmt, wie abenteuerlich die Akkorde eines neuen Plans sind, für Plan & Roll; und mit einer aufgenommenen Stimme gibt es Ähnlichkeit, Formant und Mischung. **Gleicher Seed** macht den nächsten Durchgang mit dem Seed seiner Basis, sodass er sich nur durch deine Änderungen unterscheidet. **Auf Standard zurücksetzen** stellt die ganze Karte zurück.

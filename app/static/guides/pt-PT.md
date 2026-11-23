@@ -952,7 +952,7 @@ parou. **Novo Jam** volta ao som do Seed e elimina as passagens.
 - **Clima** é o painel de Escuro a Brilhante e de Calmo a Energético. Quanto mais longe do centro estiver o ponto, mais
   palavras de clima, dinâmica e interpretação junta ao estilo, mais coisas a evitar acrescenta e mais firme o modelo se
   mantém nelas.
-- **Andamento**, em batidas por minuto.
+- **Andamento**, em batidas por minuto, de 40 a 240. Um Jam começa no andamento do Seed.
 - **Voz**: Instrumental, Feminino, Masculino ou uma das suas vozes gravadas, com até três palavras de timbre. Uma
   passagem canta a letra do Seed. Um Seed sem letra só faz instrumentais.
 - **Sensação** afina o que o painel deixa solto. **Tom** leva a melodia e os acordes para outro tom; **Começar em** faz uma passagem curta tocar a partir de uma secção, como o refrão, em vez do início; **Interpretação** e **Fidelidade ao estilo** substituem a escolha do painel sobre a soltura da execução e o quanto o estilo é seguido; **Acabamento** dá mais passos a uma passagem; **Acordes** define o quão ousados são os acordes de um plano novo, para o Plan & Roll; e com uma voz gravada há semelhança, formante e mistura. **Mesmo seed** faz a próxima passagem com o seed da base, para que só mude o que alterou. **Restaurar padrões** volta o cartão inteiro ao início.

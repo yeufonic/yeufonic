@@ -952,7 +952,7 @@ dan ga je verder waar je was. **Nieuwe Jam** gaat terug naar de klank van de See
 - **Sfeer** is het vlak van Donker tot Helder en van Kalm tot Energiek. Hoe verder de stip van het midden, hoe meer
   woorden voor sfeer, dynamiek en voordracht in de stijl komen, hoe meer er vermeden wordt en hoe strakker het model
   zich eraan houdt.
-- **Tempo**, in slagen per minuut.
+- **Tempo**, in slagen per minuut, van 40 tot 240. Een Jam begint op het tempo van de Seed.
 - **Zang**: Instrumentaal, Vrouw, Man of een van je opgenomen stemmen, met tot drie klankwoorden. Een ronde zingt de
   tekst van de Seed. Een Seed zonder tekst maakt alleen instrumentale nummers.
 - **Gevoel** verfijnt wat het vlak open laat. **Toonsoort** verplaatst melodie en akkoorden naar een andere toonsoort; **Beginnen bij** laat een korte ronde bij een sectie zoals het refrein beginnen in plaats van bij het begin; **Speelwijze** en **Stijlgreep** vervangen de keuze van het vlak voor hoe los er gespeeld wordt en hoe strak de stijl gevolgd wordt; **Afwerking** geeft een ronde meer stappen; **Akkoorden** bepaalt hoe avontuurlijk de akkoorden van een nieuw plan zijn, voor Plan & Roll; en met een opgenomen stem zijn er gelijkenis, formant en menging. **Zelfde seed** maakt de volgende ronde met de seed van zijn basis, zodat hij alleen verschilt in wat je veranderde. **Standaardwaarden herstellen** zet de hele kaart terug.

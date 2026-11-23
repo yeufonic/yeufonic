@@ -952,7 +952,7 @@ la même prise reprend là où vous en étiez. **Nouvelle Jam** revient au son d
 - **Ambiance** est le pavé qui va de Sombre à Lumineux et de Calme à Énergique. Plus le point s’éloigne du milieu,
   plus il ajoute au style des mots d’ambiance, de dynamique et d’interprétation, plus il ajoute de choses à éviter, et
   plus le modèle s’y tient.
-- **Tempo**, en battements par minute.
+- **Tempo**, en battements par minute, de 40 à 240. Une Jam commence au tempo du Seed.
 - **Chant** : Instrumental, Féminin, Masculin ou l’une de vos voix enregistrées, avec jusqu’à trois mots de timbre.
   Une passe chante les paroles du Seed. Un Seed sans paroles ne donne que des instrumentaux.
 - **Ressenti** affine ce que le pavé laisse libre. **Tonalité** déplace la mélodie et les accords dans une autre tonalité ; **Commencer à** fait jouer une passe courte à partir d’une section, comme le refrain, plutôt que du début ; **Interprétation** et **Tenue du style** remplacent le choix du pavé pour la liberté du jeu et la fermeté du style ; **Finition** donne plus d’étapes à une passe ; **Accords** règle l’audace des accords d’un nouveau plan, pour Plan & Roll ; et avec une voix enregistrée, il y a sa ressemblance, son formant et son mélange. **Même seed** fait la prochaine passe avec le seed de sa base, pour qu’elle ne diffère que par vos changements. **Rétablir les valeurs par défaut** remet toute la carte comme au départ.

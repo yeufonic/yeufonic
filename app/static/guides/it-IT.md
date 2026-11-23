@@ -952,7 +952,7 @@ dove eri rimasto. **Nuova Jam** torna al suono del Seed ed elimina le passate.
 - **Atmosfera** è il riquadro da Scuro a Luminoso e da Calmo a Energico. Più il punto si allontana dal centro, più
   aggiunge allo stile parole di atmosfera, dinamica e interpretazione, più aggiunge cose da evitare e più il modello
   vi si attiene.
-- **Tempo**, in battiti al minuto.
+- **Tempo**, in battiti al minuto, da 40 a 240. Una Jam parte dal tempo del Seed.
 - **Voce**: Strumentale, Femminile, Maschile o una delle tue voci registrate, con fino a tre parole di timbro. Una
   passata canta le parole del Seed. Un Seed senza parole crea solo brani strumentali.
 - **Feeling** rifinisce ciò che il riquadro lascia libero. **Tonalità** sposta melodia e accordi in un’altra tonalità; **Inizia da** fa suonare una passata breve da una sezione, come il ritornello, invece che dall’inizio; **Esecuzione** e **Aderenza allo stile** sostituiscono la scelta del riquadro su quanto liberamente si suona e quanto si segue lo stile; **Rifinitura** dà più passi a una passata; **Accordi** decide quanto sono audaci gli accordi di un nuovo piano, per Plan & Roll; e con una voce registrata ci sono somiglianza, formante e miscela. **Stesso seed** fa la prossima passata con il seed della sua base, così cambia solo ciò che hai modificato. **Ripristina predefiniti** riporta indietro tutta la scheda.

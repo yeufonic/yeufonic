@@ -74,3 +74,14 @@ def test_a_full_song_asks_first(page, app_server):
     with page.expect_request(lambda r: r.url.endswith("/api/jam/roll") and r.method == "POST") as sent:
         page.click("#confirm-ok")
     assert sent.value.post_data_json["title"] == "Night drive"
+
+
+def test_a_jam_starts_at_the_seeds_tempo(page, app_server):
+    # A score's tempo line, with no tempo locked, sets where the Tempo control starts: a fast one too (#80).
+    made = make_song(page, app_server, style="punk, distorted guitars, male vocal")
+    card(page, made["id"]).wait_for()
+    page.evaluate("""(id) => { var take = Object.assign({}, takeById(id), { target_bpm: null });
+                              take.abc = take.abc.replace(/^Q:.*$/m, 'Q:1/4=185'); Jam.openFromTake(take); }""", made["id"])
+    page.wait_for_selector("#jam-modal:not(.hidden) .jam-hist-card.is-seed")
+    assert page.input_value("#jam-bpm-slider") == "185"
+    assert "185 BPM" in page.locator("#jam-bpm-val").inner_text()
