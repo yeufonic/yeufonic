@@ -26,11 +26,20 @@ class Ancestors(HTMLParser):
             self.stack.pop()
 
 
-def test_the_editors_player_is_not_inside_a_field_that_a_mode_hides():
-    parser = Ancestors("ed-transport")
-    parser.feed(PAGE.read_text(encoding="utf-8"))
-    assert parser.found is not None, "the editor's player is missing from the page"
-    assert "lyrics-field" not in parser.found and "structure-field" not in parser.found
+def test_editor_and_jam_use_the_persistent_bottom_player():
+    page = PAGE.read_text(encoding="utf-8")
+    assert 'id="ed-transport"' not in page, "duplicate editor mini-player should be removed"
+    css = (STATIC / "styles.css").read_text(encoding="utf-8")
+    assert "#editor-modal,\n#jam-modal {\n  bottom: var(--player-h, 77px);\n}" in css
+    assert "body.jam-open .rack-panel { z-index: 61; }" in css
+    jam_js = (STATIC / "jam.js").read_text(encoding="utf-8")
+    assert 'id="jam-stage"' not in jam_js, "duplicate Jam top stage player should be removed"
+    # Closing Jam or Editor must not pause playback
+    close_jam = jam_js[jam_js.index("function close()"):jam_js.index("function isOpen()")]
+    assert "JamAudio.pause()" not in close_jam
+    app_js = (STATIC / "app.js").read_text(encoding="utf-8")
+    close_ed = app_js[app_js.index("function closeEditor()"):app_js.index("function paintEditor()")]
+    assert "audio.pause()" not in close_ed
 
 
 def test_editor_does_not_close_on_backdrop_click():
@@ -95,17 +104,16 @@ def test_the_rack_opened_for_another_take_plays_it_only_when_a_take_was_playing(
 
 
 def test_the_editor_has_the_pages_playback_keys():
-    """The editor window, alone or with the mastering rack over it, has Space and the arrows for its own player
-    whenever that player shows; any other window in front keeps them, and the letter keys are the main page's."""
+    """The editor window, alone or with the mastering rack over it, shares the bottom player's Space and arrow
+    keys; any other window in front keeps them, and the letter keys are the main page's."""
     from conftest import extract_js_function
     app_js = (STATIC / "app.js").read_text(encoding="utf-8")
     keys = app_js[app_js.index("var rackOverEditor = "):app_js.index("\nwire();")]
     assert "var inEditor = editorOpen() && document.querySelectorAll('.modal:not(.hidden)').length === 1;" in keys
-    assert "if (inEditor && !rackOverEditor && (!$('ed-transport') || $('ed-transport').classList.contains('hidden'))) { return; }" in keys
     assert "if (!inEditor && document.querySelector('.modal:not(.hidden)')) { return; }" in keys
     assert "else if (!inEditor && takeKey(event)) { event.preventDefault(); }" in keys
-    # play is the window's own there, for the take in the window, and the button last pressed lets go
-    assert "$(inEditor && $('ed-btn-play') ? 'ed-btn-play' : 'btn-play').click();" in keys
+    # play uses the unified bottom player, and the button last pressed lets go
+    assert "$('btn-play').click();" in keys
     # typing is left alone, whether the focus or the key is aimed at a box
     guard = app_js[app_js.index("var aimed = "):app_js.index("var rackOverEditor = ")]
     assert "/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || /^(INPUT|TEXTAREA|SELECT)$/.test(aimed)" in guard

@@ -13937,7 +13937,7 @@ function paintNpCover(take) {
 }
 window.paintNpCover = paintNpCover;
 
-function playTake(id) {
+function playTake(id, fallbackTake) {
   if (window.Rack && typeof window.Rack.resume === 'function') {
     window.Rack.resume();
   }
@@ -13957,6 +13957,7 @@ function playTake(id) {
       if (State.activePlaylist.items[api_i].id === id) { take = State.activePlaylist.items[api_i]; break; }
     }
   }
+  if (!take && fallbackTake && fallbackTake.id === id) { take = fallbackTake; }
   if (!take) { return; }
   State.loadedTake = take;
   State.playing = id;
@@ -13978,9 +13979,11 @@ function playTake(id) {
     loadWave(url, '/api/takes/' + id + '/peaks' + version);
   }
   npTitle(take.title, id);
-  var position = takePosition(id);
-  $('np-meta').textContent = (position ? t('take {index} of {total} ·', { index: position.index, total: position.total }) + ' ' : '') +
-    (take.duration ? secs(take.duration) : take.style.slice(0, 60));
+  var position = take._jamLabel ? null : takePosition(id);
+  $('np-meta').textContent = take._jamLabel
+    ? take._jamLabel + (take.duration ? ' \u00B7 ' + secs(take.duration) : '')
+    : (position ? t('take {index} of {total} ·', { index: position.index, total: position.total }) + ' ' : '') +
+      (take.duration ? secs(take.duration) : (take.style || '').slice(0, 60));
   paintNpCover(take);
   updateMediaSession(take);
   if (window.Rack) { window.Rack.onTake(take); }
@@ -14139,6 +14142,9 @@ function activateTakeRecording(take) {
 }
 
 function stepTake(delta) {
+  if (window.Jam && window.Jam.isOpen() && typeof window.Jam.stepPass === 'function' && window.Jam.stepPass(delta)) {
+    return;
+  }
   var list = playableTakes();
   if (!list.length) { return; }
   var id = currentTakeId();
@@ -14168,8 +14174,6 @@ function editorTake() {
 
 var _lastSecsCur = -1;
 var _lastSecsDur = -1;
-var _lastSecsEdCur = -1;
-var _lastSecsEdDur = -1;
 
 function updateTimes() {
   var audio = $('audio');
@@ -14184,21 +14188,9 @@ function updateTimes() {
     _lastSecsDur = floorDur;
     $('t-now').textContent = secs(cur);
     $('t-total').textContent = hasDur ? secs(dur) : '--:--';
-  }
-
-  var edTake = editorTake();
-  if (edTake && State.loadedId === edTake.id) {
-    if (floorCur !== _lastSecsEdCur || floorDur !== _lastSecsEdDur) {
-      _lastSecsEdCur = floorCur;
-      _lastSecsEdDur = floorDur;
-      var edNow = $('ed-t-now');
-      if (edNow) { edNow.textContent = secs(cur); }
-      var edTotal = $('ed-t-total');
-      if (edTotal) { edTotal.textContent = hasDur ? secs(dur) : '--:--'; }
-    }
-    var edSeek = $('ed-seek');
-    if (edSeek && !edSeek.dataset.dragging) {
-      edSeek.value = (hasDur && dur > 0) ? Math.round((cur / dur) * 1000) : 0;
+    var edTake = editorTake();
+    if (editorOpen() && edTake && State.loadedId === edTake.id) {
+      paintPlayingSection(cur);
     }
   }
 }
@@ -14225,16 +14217,20 @@ function paintTransport() {
   }
   $('btn-repeat').classList.toggle('on', Boolean(audio.loop));
   var take = currentTake();
-  $('btn-star').disabled = !take;
-  $('btn-star').classList.toggle('on', Boolean(take && take.favourite));
-  var canStep = playableTakes().length >= 2;
+  var isJamScratch = Boolean(take && take.space_id === '__jam__');
+  $('btn-star').disabled = !take || isJamScratch;
+  $('btn-star').classList.toggle('on', Boolean(take && !isJamScratch && take.favourite));
+  var canStep = (window.Jam && window.Jam.isOpen() && typeof window.Jam.canStep === 'function')
+    ? window.Jam.canStep()
+    : playableTakes().length >= 2;
   $('btn-prev').disabled = !canStep;
   $('btn-next').disabled = !canStep;
-  if ($('ed-btn-prev')) { $('ed-btn-prev').disabled = !canStep; }
-  if ($('ed-btn-next')) { $('ed-btn-next').disabled = !canStep; }
   $('btn-mute').classList.toggle('on', Boolean(audio.muted || audio.volume === 0));
   paintEdTransport();
   paintSheet();
+  if (window.Jam && window.Jam.isOpen() && typeof window.Jam.onTransportChange === 'function') {
+    window.Jam.onTransportChange();
+  }
 }
 
 /* The editor window's way to the mastering rack.  The button is there when the take in the window has
@@ -15089,51 +15085,11 @@ function toggleEdMastering() {
 
 function paintEdTransport() {
   paintEdMastering();
-  var box = $('ed-transport');
-  if (!box) { return; }
   var take = editorTake();
-  var shouldShow = Boolean(editorOpen() && take && take.has_audio);
-  box.classList.toggle('hidden', !shouldShow);
-  if (!shouldShow) { paintPlayingSection(-1); return; }
-
+  if (!editorOpen() || !take || !take.has_audio) { paintPlayingSection(-1); return; }
   var audio = $('audio');
-  var isPlaying = Boolean(take && State.playing === take.id && audio && !audio.paused && !audio.ended);
-  var isLoaded = Boolean(take && State.loadedId === take.id && audio && (audio.currentSrc || audio.src));
-
-  var edPlayBtn = $('ed-btn-play');
-  if (edPlayBtn) {
-    var playState = isPlaying ? 'pause' : 'play';
-    if (edPlayBtn.dataset.state !== playState) {
-      edPlayBtn.dataset.state = playState;
-      edPlayBtn.innerHTML = isPlaying
-        ? '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 5h2.6v14H9zM13.4 5H16v14h-2.6z"/></svg>'
-        : '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.4v13.2L19 12z"/></svg>';
-      edPlayBtn.title = isPlaying ? t('Pause') : t('Play');
-      edPlayBtn.setAttribute('aria-label', isPlaying ? t('Pause') : t('Play'));
-    }
-  }
-
-  var titleEl = $('ed-np-title');
-  if (titleEl && take) {
-    var pos = takePosition(take.id);
-    var label = take.title || t('Untitled take');
-    if (pos) { label += ' \u00b7 ' + t('take {index} of {total}', { index: pos.index, total: pos.total }); }
-    titleEl.textContent = label;
-    titleEl.title = label;
-  }
-
-  var cur = (isLoaded && audio) ? (audio.currentTime || 0) : 0;
-  var dur = (isLoaded && audio && audio.duration && isFinite(audio.duration)) ? audio.duration : (take.duration || 0);
-  var hasDur = dur && isFinite(dur) && dur > 0;
-  var edNow = $('ed-t-now');
-  if (edNow) { edNow.textContent = secs(cur); }
-  var edTotal = $('ed-t-total');
-  if (edTotal) { edTotal.textContent = hasDur ? secs(dur) : '--:--'; }
-  var edSeek = $('ed-seek');
-  if (edSeek && !edSeek.dataset.dragging) {
-    edSeek.value = (hasDur && dur > 0) ? Math.round((cur / dur) * 1000) : 0;
-  }
-  paintPlayingSection(isLoaded ? cur : -1);
+  var isLoaded = Boolean(State.loadedId === take.id && audio && (audio.currentSrc || audio.src));
+  paintPlayingSection(isLoaded ? (audio.currentTime || 0) : -1);
 }
 
 /* The section the take is at, lit in the list above the player. The list's times are those of the score,
@@ -15483,7 +15439,23 @@ function seekFromPointer(event) {
   updateTimes();
 }
 
+function syncPlayerHeight() {
+  var bar = document.querySelector('.player');
+  if (!bar) { return; }
+  var h = Math.round(bar.getBoundingClientRect().height);
+  if (h > 0) {
+    document.documentElement.style.setProperty('--player-h', h + 'px');
+  }
+}
+window.syncPlayerHeight = syncPlayerHeight;
+
 function wireTransport() {
+  syncPlayerHeight();
+  var playerBar = document.querySelector('.player');
+  if (playerBar && typeof ResizeObserver === 'function') {
+    new ResizeObserver(syncPlayerHeight).observe(playerBar);
+  }
+  window.addEventListener('resize', syncPlayerHeight);
   var audio = $('audio');
   var lastPauseAt = 0;
   $('btn-play').addEventListener('click', function () {
@@ -15532,6 +15504,16 @@ function wireTransport() {
       return;
     }
 
+    if (window.Jam && window.Jam.isOpen() && typeof window.Jam.togglePlay === 'function') {
+      window.Jam.togglePlay();
+      return;
+    }
+
+    if (!activeTake && typeof editorOpen === 'function' && editorOpen()) {
+      var edT = editorTake();
+      if (edT && edT.has_audio) { activeTake = edT; }
+    }
+
     // 3. Nothing paused to come back to: start or resume the selected take if one is highlighted
     if (activeTake) {
       if (activeTake.has_audio) {
@@ -15567,98 +15549,6 @@ function wireTransport() {
   $('btn-next').addEventListener('click', function () { stepTake(1); });
   $('btn-back').addEventListener('click', function () { nudge(-10); });
   $('btn-fwd').addEventListener('click', function () { nudge(10); });
-  if ($('ed-btn-play')) {
-    $('ed-btn-play').addEventListener('click', function () {
-      var take = editorTake();
-      if (!take || !take.has_audio) { return; }
-      var audio = $('audio');
-      if (State.playing === take.id && audio && !audio.paused && !audio.ended) {
-        audio.pause();
-        State.playing = null;
-        paintTransport();
-        paintTakes();
-        return;
-      }
-      playTake(take.id);
-    });
-  }
-  if ($('ed-btn-prev')) {
-    $('ed-btn-prev').addEventListener('click', function () {
-      var list = playableTakes();
-      if (list.length < 2) { return; }
-      var take = editorTake();
-      var currentId = (take && take.has_audio) ? take.id : currentTakeId();
-      var index = -1;
-      for (var i = 0; i < list.length; i++) { if (list[i].id === currentId) { index = i; } }
-      var prev = index === -1 ? 0 : (index - 1 + list.length) % list.length;
-      selectTake(list[prev]);
-      playTake(list[prev].id);
-      paintEditor();
-    });
-  }
-  if ($('ed-btn-next')) {
-    $('ed-btn-next').addEventListener('click', function () {
-      var list = playableTakes();
-      if (list.length < 2) { return; }
-      var take = editorTake();
-      var currentId = (take && take.has_audio) ? take.id : currentTakeId();
-      var index = -1;
-      for (var i = 0; i < list.length; i++) { if (list[i].id === currentId) { index = i; } }
-      var next = index === -1 ? 0 : (index + 1) % list.length;
-      selectTake(list[next]);
-      playTake(list[next].id);
-      paintEditor();
-    });
-  }
-  if ($('ed-btn-back')) {
-    $('ed-btn-back').addEventListener('click', function () {
-      var take = editorTake();
-      if (!take || !take.has_audio) { return; }
-      if (State.loadedId === take.id) { nudge(-10); }
-    });
-  }
-  if ($('ed-btn-fwd')) {
-    $('ed-btn-fwd').addEventListener('click', function () {
-      var take = editorTake();
-      if (!take || !take.has_audio) { return; }
-      if (State.loadedId === take.id) { nudge(10); }
-    });
-  }
-  var edSeek = $('ed-seek');
-  if (edSeek) {
-    edSeek.addEventListener('input', function () {
-      edSeek.dataset.dragging = '1';
-      var take = editorTake();
-      var a = $('audio');
-      var dur = (take && State.loadedId === take.id && a && a.duration && isFinite(a.duration) && a.duration > 0)
-        ? a.duration
-        : (take ? (take.duration || 0) : 0);
-      if (dur > 0) {
-        var pos = (Number(edSeek.value) / 1000) * dur;
-        var edNow = $('ed-t-now');
-        if (edNow) { edNow.textContent = secs(pos); }
-      }
-    });
-    edSeek.addEventListener('change', function () {
-      delete edSeek.dataset.dragging;
-      var take = editorTake();
-      if (!take || !take.has_audio) { return; }
-      var a = $('audio');
-      var dur = (State.loadedId === take.id && a && a.duration && isFinite(a.duration) && a.duration > 0)
-        ? a.duration
-        : (take.duration || 0);
-      if (dur <= 0) { return; }
-      var targetTime = (Number(edSeek.value) / 1000) * dur;
-      if (State.loadedId === take.id && a) {
-        a.currentTime = targetTime;
-        updateTimes();
-      } else {
-        playTake(take.id);
-        if (a) { a.currentTime = targetTime; }
-        updateTimes();
-      }
-    });
-  }
   $('btn-repeat').addEventListener('click', function () {
     audio.loop = !audio.loop;
     paintTransport();
@@ -15768,6 +15658,12 @@ function wireWave() {
     // anything else is loaded: the library's chosen take used to be put in the player first, so the playlist
     // never found its place and that take was what came next.
     var endedId = State.loadedId;
+    // While Jam is open, loop the active Jam pass seamlessly through the main bottom player.
+    if (window.Jam && window.Jam.isOpen() && typeof window.Jam.shouldLoop === 'function' && window.Jam.shouldLoop(endedId)) {
+      audio.currentTime = 0;
+      audio.play().catch(function () {});
+      return;
+    }
     if (State.activeView === 'playlists' && State.playlistQueue && State.playlistQueue.length) {
       var q = State.playlistQueue;
       for (var qi = 0; qi + 1 < q.length; qi++) {
@@ -17641,7 +17537,6 @@ function wire() {
         }
       }
     }
-    if (event.key === 'Escape' && window.Jam && window.Jam.isOpen()) { window.Jam.close(); return; }
     if (event.key === 'Escape' && window.Visualizer && window.Visualizer.isOpen) { window.Visualizer.toggle(false); return; }
     if (event.key === 'Escape' && $('playlist-picker-modal') && !$('playlist-picker-modal').classList.contains('hidden')) { closePlaylistPicker(); return; }
     if (event.key === 'Escape' && $('playlist-edit-modal') && !$('playlist-edit-modal').classList.contains('hidden')) { closePlaylistEditModal(); return; }
@@ -17678,6 +17573,12 @@ function wire() {
       return;
     }
     if (event.key === 'Escape' && $('advanced-take-modal') && !$('advanced-take-modal').classList.contains('hidden')) { closeAdvancedModal(); return; }
+    if (event.key === 'Escape' && window.Jam && window.Jam.isOpen()) {
+      if (event.rackClosed) { return; }
+      if (window.Rack && window.Rack.isOpen) { window.Rack.toggle(false); return; }
+      window.Jam.close();
+      return;
+    }
     if (event.key === 'Escape' && typeof editorOpen === 'function' && editorOpen()) {
       // A rack standing over the window is what Escape closes, whichever of the two listeners hears it first.
       if (event.rackClosed) { return; }
@@ -17690,7 +17591,12 @@ function wire() {
       return;
     }
 
-    if (window.Jam && window.Jam.isOpen()) { if (window.Jam.handleKey(event)) { event.preventDefault(); } return; }
+    if (window.Jam && window.Jam.isOpen() &&
+        !(window.Visualizer && window.Visualizer.isOpen) &&
+        document.querySelectorAll('.modal:not(.hidden)').length === 1) {
+      if (window.Jam.handleKey(event)) { event.preventDefault(); }
+      return;
+    }
     if (compareOpen()) { if (compareKey(event)) { event.preventDefault(); } return; }
 
     // Undo and redo of the score, from either box or score editor modal.
@@ -17849,19 +17755,17 @@ function wire() {
       if (window.Visualizer) { window.Visualizer.toggle(); }
       return;
     }
-    // The editor window, alone (or with the mastering rack over it), has the player's keys too, for the take in
-    // the window, whenever its player shows: typing is already left alone above.  Any other window in front
-    // keeps them, and the letter keys are the main page's only.
+    // The editor window, alone (or with the mastering rack over it), shares the persistent bottom player's keys:
+    // typing is already left alone above.  Any other window in front keeps them, and the letter keys are the main page's only.
     var rackOverEditor = Editor.rackUp && editorOpen() && document.querySelectorAll('.modal:not(.hidden)').length === 1;
     var inEditor = editorOpen() && document.querySelectorAll('.modal:not(.hidden)').length === 1;
-    if (inEditor && !rackOverEditor && (!$('ed-transport') || $('ed-transport').classList.contains('hidden'))) { return; }
     if (!inEditor && document.querySelector('.modal:not(.hidden)')) { return; }
     if (event.code === 'Space') {
       event.preventDefault();
       // The button last pressed is let go of: left with the focus, space would press it again as well,
       // which for the window's Mastering button shut the rack.
       if (tag === 'BUTTON') { focus.blur(); }
-      $(inEditor && $('ed-btn-play') ? 'ed-btn-play' : 'btn-play').click();
+      $('btn-play').click();
     }
     // Shift and an arrow: the previous or next take, through the playlist in the Playlists view, else the list.
     else if (event.shiftKey && event.key === 'ArrowLeft' && !inEditor) { event.preventDefault(); stepTake(-1); }
@@ -18232,7 +18136,9 @@ function openEditor(where) {
   if (!$('editor-modal')) { return; }
   Editor.page = where === 'score' ? 'score' : 'song';
   $('editor-modal').classList.remove('hidden');
+  document.body.classList.add('editor-open');
   document.body.style.overflow = 'hidden';
+  if (typeof syncPlayerHeight === 'function') { syncPlayerHeight(); }
   paintEditor();
   setupEditorColumns();
   placeColumnHandles();
@@ -18256,6 +18162,7 @@ function closeEditor() {
     saveScore(true);
   }
   $('editor-modal').classList.add('hidden');
+  document.body.classList.remove('editor-open');
   document.body.style.overflow = '';
   paintEdMastering();   // a rack opened from the window stays open, on the page
   paintSheet();

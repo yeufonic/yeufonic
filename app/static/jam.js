@@ -210,207 +210,114 @@
     return v === 'instrumental' ? t('Instrumental') : (v === 'male' ? t('Male') : (v === 'female' ? t('Female') : t('My Voice')));
   }
 
-  /* ------------------------------------------------- Web Audio Loop & Crossfade */
+  /* ------------------------------------------------- Unified Main-Player Audio Adapter */
+  function seedTakeRecord() {
+    var sid = seedId();
+    if (!sid) { return null; }
+    if (window.State && Array.isArray(State.takes)) {
+      for (var i = 0; i < State.takes.length; i++) {
+        if (State.takes[i].id === sid) { return State.takes[i]; }
+      }
+    }
+    return (window.State && State.loadedTake && State.loadedTake.id === sid) ? State.loadedTake : null;
+  }
+
+  function passTakeObject(passId) {
+    var p = passById(passId);
+    var seedRec = seedTakeRecord();
+    if (!p) { return seedRec && seedRec.id === passId ? seedRec : null; }
+    if (isSeedPass(p) && seedRec) {
+      return Object.assign({}, seedRec, { _jamLabel: passLabel(p) });
+    }
+    return {
+      id: p.id,
+      title: p.title || (JamState.starterName + ' \u00B7 ' + passLabel(p)),
+      kind: (p.snapshot && p.snapshot.vocals === 'instrumental') ? 'instrumental' : ((seedRec && seedRec.kind) || 'song'),
+      art: seedRec ? seedRec.art : null,
+      duration: p.duration || 0,
+      has_audio: true,
+      normalised: Boolean(JamState.seedNormalise),
+      space_id: isSeedPass(p) ? (JamState.spaceId || 'default') : '__jam__',
+      _jamLabel: passLabel(p)
+    };
+  }
+
   var JamAudio = {
-    ctx: null,
-    master: null,
-    active: null,     // { takeId, source, gain, buffer, startedAt, offset }
-    buffers: {},      // takeId -> AudioBuffer
-    peaks: {},        // takeId -> Float32Array(60)
-    playing: false,
-    currentId: null,
-    raf: null,
-
-    ensure: function () {
-      if (!this.ctx) {
-        var AC = window.AudioContext || window.webkitAudioContext;
-        this.ctx = new AC();
-        this.master = this.ctx.createGain();
-        this.master.gain.value = 0.9;
-        this.master.connect(this.ctx.destination);
-      }
-      if (this.ctx.state === 'suspended') { this.ctx.resume().catch(function () {}); }
+    audio: function () {
+      return document.getElementById('audio');
     },
 
-    pauseMainPlayer: function () {
-      var a = document.getElementById('audio');
-      if (a && !a.paused) { a.pause(); }
+    get currentId() {
+      return (window.State && (State.playing || State.loadedId)) || null;
     },
 
-    load: async function (takeId) {
-      if (this.buffers[takeId]) { return this.buffers[takeId]; }
-      this.ensure();
-      var res = await fetch('/api/takes/' + encodeURIComponent(takeId) + '/audio');
-      if (!res.ok) { throw new Error('Audio not ready'); }
-      var arr = await res.arrayBuffer();
-      var buf = await this.ctx.decodeAudioData(arr);
-      this.buffers[takeId] = buf;
-      this.peaks[takeId] = computePeaks(buf, 64);
-      return buf;
+    get playing() {
+      var a = this.audio();
+      return Boolean(a && (a.currentSrc || a.src) && !a.paused && !a.ended);
     },
 
-    play: async function (takeId, crossfadeSec) {
-      this.pauseMainPlayer();
-      this.ensure();
-      var buf = await this.load(takeId);
-      var now = this.ctx.currentTime;
-      var fade = (this.active && this.playing && crossfadeSec) ? crossfadeSec : 0.06;
-
-      var src = this.ctx.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
-      var gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(1.0, now + fade);
-      src.connect(gain);
-      gain.connect(this.master);
-      src.start(now, 0);
-
-      if (this.active) {
-        var prev = this.active;
-        try {
-          prev.gain.gain.cancelScheduledValues(now);
-          prev.gain.gain.setValueAtTime(Math.max(0.0001, prev.gain.gain.value), now);
-          prev.gain.gain.linearRampToValueAtTime(0.0001, now + fade);
-          prev.source.stop(now + fade + 0.05);
-        } catch (err) { /* already stopped */ }
-      }
-
-      this.active = { takeId: takeId, source: src, gain: gain, buffer: buf, startedAt: now, offset: 0 };
-      this.currentId = takeId;
-      this.playing = true;
-      this.startTick();
-      paintStage();
+    play: function (takeId) {
+      if (!takeId || typeof playTake !== 'function') { return Promise.resolve(); }
+      playTake(takeId, passTakeObject(takeId));
       paintHistory();
+      return Promise.resolve();
     },
 
-    seekFraction: function (frac) {
-      if (!this.active || !this.active.buffer) { return; }
-      var dur = this.active.buffer.duration || 1;
-      var offset = Math.max(0, Math.min(dur - 0.05, frac * dur));
-      var takeId = this.active.takeId;
-      if (!this.playing) {
-        this.active.offset = offset;
-        paintWaveProgress();
-        return;
-      }
-      var now = this.ctx.currentTime;
-      try { this.active.source.stop(now); } catch (err) {}
-      var src = this.ctx.createBufferSource();
-      src.buffer = this.active.buffer;
-      src.loop = true;
-      var gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(1.0, now);
-      src.connect(gain);
-      gain.connect(this.master);
-      src.start(now, offset);
-      this.active = { takeId: takeId, source: src, gain: gain, buffer: this.active.buffer, startedAt: now, offset: offset };
-      paintWaveProgress();
-    },
-
-    // Space and the big play button act on the base (the card chosen in Roll History): playing it, they pause it;
-    // anything else playing, they switch to it; paused, they play it, going on from where it stopped.
+    // Space acts immediately on whatever is sounding (pausing it), or plays/resumes the chosen base pass.
     toggle: function () {
+      if (this.playing) { this.pause(); return; }
+      var a = this.audio();
       var base = buildOn();
-      var target = base && base.hasAudio ? base : JamState.passes.find(function (p) { return p.hasAudio; });
-      if (!target) { if (this.playing) { this.pause(); } return; }
-      if (target.id === this.currentId && this.active) {
-        if (this.playing) { this.pause(); } else { this.resume(); }
+      var target = (base && base.hasAudio) ? base : JamState.passes.find(function (p) { return p.hasAudio; });
+      if (target && target.id === this.currentId && a && (a.currentSrc || a.src)) {
+        this.resume();
         return;
       }
-      this.play(target.id, 0.06);
+      if (target) {
+        this.play(target.id);
+        return;
+      }
+      if (a && (a.currentSrc || a.src)) { this.resume(); }
     },
 
     pause: function () {
-      if (!this.active || !this.playing) { return; }
-      var pos = this.position();
-      try { this.active.source.stop(); } catch (err) {}
-      this.active.offset = pos;
-      this.playing = false;
-      this.stopTick();
-      paintStage();
+      var a = this.audio();
+      if (!a || a.paused) { return; }
+      a.pause();
+      if (window.State && State.playing) { State.playing = null; }
+      if (typeof paintTakes === 'function') { paintTakes(); }
+      if (typeof paintTransport === 'function') { paintTransport(); }
       paintHistory();
     },
 
     resume: function () {
-      if (!this.currentId) { return; }
-      var buf = this.buffers[this.currentId];
-      if (!buf) { this.play(this.currentId, 0.06); return; }
-      this.pauseMainPlayer();
-      this.ensure();
-      var now = this.ctx.currentTime;
-      var off = this.active ? (this.active.offset || 0) : 0;
-      var src = this.ctx.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
-      var gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(1.0, now + 0.05);
-      src.connect(gain);
-      gain.connect(this.master);
-      src.start(now, off % Math.max(0.1, buf.duration));
-      this.active = { takeId: this.currentId, source: src, gain: gain, buffer: buf, startedAt: now, offset: off };
-      this.playing = true;
-      this.startTick();
-      paintStage();
-      paintHistory();
-    },
-
-    stop: function () {
-      if (this.active) {
-        try { this.active.source.stop(); } catch (err) {}
+      var a = this.audio();
+      if (a && (a.currentSrc || a.src)) {
+        if (window.Rack && typeof window.Rack.resume === 'function') { window.Rack.resume(); }
+        if (a.ended) { a.currentTime = 0; }
+        if (window.State && State.loadedId) { State.playing = State.loadedId; }
+        a.play().catch(function () {});
+        if (typeof paintTakes === 'function') { paintTakes(); }
+        if (typeof paintTransport === 'function') { paintTransport(); }
+        paintHistory();
+        return;
       }
-      this.active = null;
-      this.playing = false;
-      this.stopTick();
+      var base = buildOn();
+      var target = (base && base.hasAudio) ? base : JamState.passes.find(function (p) { return p.hasAudio; });
+      if (target) { this.play(target.id); }
     },
 
-    position: function () {
-      if (!this.active || !this.active.buffer) { return 0; }
-      var dur = this.active.buffer.duration || 1;
-      if (!this.playing) { return (this.active.offset || 0) % dur; }
-      return ((this.ctx.currentTime - this.active.startedAt) + (this.active.offset || 0)) % dur;
-    },
-
-    duration: function () {
-      return (this.active && this.active.buffer && this.active.buffer.duration) || 0;
-    },
-
-    startTick: function () {
-      if (this.raf) { return; }
-      var self = this;
-      var step = function () {
-        if (!self.playing || !JamState.open) { self.raf = null; return; }
-        paintWaveProgress();
-        self.raf = requestAnimationFrame(step);
-      };
-      this.raf = requestAnimationFrame(step);
-    },
-
-    stopTick: function () {
-      if (this.raf) { cancelAnimationFrame(this.raf); this.raf = null; }
+    stopIfPlaying: function (id) {
+      if (!id || !window.State) { return; }
+      if (State.loadedId !== id && State.playing !== id) { return; }
+      var a = this.audio();
+      if (a && !a.paused) { a.pause(); }
+      if (State.playing === id) { State.playing = null; }
+      if (typeof paintTakes === 'function') { paintTakes(); }
+      if (typeof paintTransport === 'function') { paintTransport(); }
+      paintHistory();
     }
   };
-
-  function computePeaks(buffer, bars) {
-    var ch = buffer.getChannelData(0);
-    var step = Math.max(1, Math.floor(ch.length / bars));
-    var out = new Float32Array(bars);
-    var max = 0.001;
-    for (var i = 0; i < bars; i++) {
-      var peak = 0;
-      var start = i * step;
-      var end = Math.min(ch.length, start + step);
-      for (var j = start; j < end; j += Math.max(1, Math.floor(step / 64))) {
-        var v = Math.abs(ch[j]);
-        if (v > peak) { peak = v; }
-      }
-      out[i] = peak;
-      if (peak > max) { max = peak; }
-    }
-    for (var k = 0; k < bars; k++) { out[k] = Math.max(0.14, out[k] / max); }
-    return out;
-  }
 
   /* ------------------------------------------------- Jam Session State */
   var JAM_STORAGE_KEY = 'yue2.jam.sessions';
@@ -841,9 +748,11 @@
     JamState.baseId = take.id;
     saveSession();
     paintAll();
-    if (take.has_audio) {
-      JamAudio.play(take.id, 0.08).catch(function () {});
+    var audio = JamAudio.audio();
+    if (take.has_audio && !JamAudio.playing && !(audio && (audio.currentSrc || audio.src)) && typeof activateTakeRecording === 'function') {
+      activateTakeRecording(take);
     }
+    if (typeof paintTransport === 'function') { paintTransport(); }
   }
 
   /* ------------------------------------------------- Rolling */
@@ -859,9 +768,7 @@
   }
 
   function dropPass(passId) {
-    if (JamAudio.currentId === passId) { JamAudio.stop(); JamAudio.currentId = null; }
-    delete JamAudio.buffers[passId];
-    delete JamAudio.peaks[passId];
+    JamAudio.stopIfPlaying(passId);
     JamState.passes = JamState.passes.filter(function (p) { return p.id !== passId; });
     if (JamState.baseId === passId) { JamState.baseId = seedId(); }
   }
@@ -894,11 +801,8 @@
       if (typeof toast === 'function') { toast(t('Could not reload the Seed: {message}', { message: err.message }), 'bad'); }
       return;
     }
-    JamAudio.stop();
-    JamAudio.currentId = null;
     for (var i = 0; i < scratch.length; i++) {
-      delete JamAudio.buffers[scratch[i].id];
-      delete JamAudio.peaks[scratch[i].id];
+      JamAudio.stopIfPlaying(scratch[i].id);
       try {
         var rec = await api('/api/takes/' + encodeURIComponent(scratch[i].id));
         if (rec.space_id === '__jam__') {
@@ -1176,10 +1080,10 @@
         saveSession();
         if (typeof loadTakes === 'function') { loadTakes(); }
         paintAll();
-        // Smoothly crossfade into the newly rolled pass, which, playing, is the base to build on next.
+        // Switch the bottom player into the newly rolled pass, which, playing, is the base to build on next.
         if (JamState.open) {
           selectBase(id);
-          JamAudio.play(id, 2.2).catch(function () {});
+          JamAudio.play(id);
         }
         return;
       }
@@ -1191,7 +1095,7 @@
         paintAll();
         return;
       }
-      paintStage();
+      paintTopbar();
       paintHistory();
     } catch (err) { /* retry next tick */ }
   }
@@ -1233,7 +1137,6 @@
     shell.dataset.built = '1';
     shell.innerHTML =
       '<div class="jam-topbar" id="jam-topbar"></div>' +
-      '<div class="jam-stage" id="jam-stage"></div>' +
       '<div class="jam-console">' +
         '<div class="jam-col col-parts" id="jam-col-parts"></div>' +
         '<div class="jam-col col-feel" id="jam-col-feel"></div>' +
@@ -1271,7 +1174,6 @@
   function paintAll() {
     buildShellOnce();
     paintTopbar();
-    paintStage();
     paintPartsCol();
     paintFeelCol();
     paintHistory();
@@ -1282,6 +1184,12 @@
     var el = document.getElementById('jam-topbar');
     if (!el) { return; }
     var isMax = jamMax();
+    var cookingPass = JamState.cookingId ? JamState.passes.find(function (p) { return p.id === JamState.cookingId; }) : null;
+    var statusPill = cookingPass
+      ? '<span class="jam-status-pill"><span class="jam-pulse-dot"></span> ' +
+          t('Rolling {pass} \u00B7 {stage} ({progress}%)', { pass: escHtml(passLabel(cookingPass)), stage: escHtml(tr(cookingPass.stage || t('Working'))), progress: cookingPass.progress || 0 }) +
+          ' <button type="button" class="jam-cancel-x" data-jam-act="cancel-cook" title="' + t('Cancel this roll') + '">&times;</button></span>'
+      : '';
 
     el.innerHTML =
       '<div class="jam-brand">' +
@@ -1299,6 +1207,7 @@
           '<button type="button" data-jam-act="scope-full" class="' + (!JamState.fastLoop ? 'active' : '') + '">' + t('Full Song') + '</button>' +
         '</div>' +
       '</div>' +
+      statusPill +
       '<div class="jam-head-actions">' +
         '<button type="button" class="ghost" data-jam-act="close" style="padding:7px 14px">' + t('Close') + '</button>' +
         '<button type="button" id="jam-max" data-jam-act="toggle-max" class="ed-tool ed-max-btn" title="' + (isMax ? t('Back to the usual size') : t('Fill the window')) + '" aria-label="' + (isMax ? t('Back to the usual size') : t('Fill the window')) + '" aria-pressed="' + (isMax ? 'true' : 'false') + '">' +
@@ -1331,67 +1240,6 @@
           (!cooking && pending > 0 ? '<span class="jam-pending-badge">' + tn(pending, '{n} change', '{n} changes') + '</span>' : '') +
         '</button>' +
       '</div>';
-  }
-
-  function paintStage() {
-    var el = document.getElementById('jam-stage');
-    if (!el) { return; }
-    var playingPass = JamState.passes.find(function (p) { return p.id === JamAudio.currentId; });
-    var cookingPass = JamState.cookingId ? JamState.passes.find(function (p) { return p.id === JamState.cookingId; }) : null;
-    var peaks = (playingPass && JamAudio.peaks[playingPass.id]) || null;
-    var dur = JamAudio.duration() || (playingPass && playingPass.duration) || 0;
-    var pos = JamAudio.position();
-    var frac = dur > 0 ? Math.min(1, pos / dur) : 0;
-
-    var barsHtml = '';
-    var count = 64;
-    for (var i = 0; i < count; i++) {
-      var h = peaks ? Math.round(peaks[i] * 88) : (22 + Math.round(Math.abs(Math.sin(i * 0.42)) * 46));
-      var played = peaks && (i / count) <= frac;
-      barsHtml += '<span class="jam-wave-bar' + (played ? ' played' : '') + '" style="height:' + h + '%"></span>';
-    }
-
-    var playIcon = JamAudio.playing
-      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>'
-      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.4v13.2L19 12z"/></svg>';
-
-    var statusPill = '';
-    if (cookingPass) {
-      statusPill = '<span class="jam-status-pill"><span class="jam-pulse-dot"></span> ' +
-        t('Rolling {pass} \u00B7 {stage} ({progress}%)', { pass: escHtml(passLabel(cookingPass)), stage: escHtml(tr(cookingPass.stage || t('Working'))), progress: cookingPass.progress || 0 }) +
-        ' <button type="button" class="jam-cancel-x" data-jam-act="cancel-cook" title="' + t('Cancel this roll') + '">&times;</button></span>';
-    }
-
-    el.innerHTML =
-      '<button type="button" class="jam-play-btn" data-jam-act="toggle-play"' + (!playingPass && !JamState.passes.some(function (p) { return p.hasAudio; }) ? ' disabled' : '') + '>' + playIcon + '</button>' +
-      '<div class="jam-stage-meta">' +
-        '<div class="jam-stage-title">' +
-          (playingPass ? escHtml(playingPass.title) + ' <span class="jam-pass-badge">' + escHtml(passLabel(playingPass)) + '</span>' : t('Ready to roll your first pass')) +
-        '</div>' +
-        '<div class="jam-stage-sub">' +
-          (playingPass ? JamState.bpm + ' BPM' : t('Tweak Parts, Vibe &amp; Tempo below, then click Roll')) +
-          ' \u00B7 ' + t('Building on <b>{pass}</b>', { pass: escHtml(passLabel(buildOn())) }) +
-        '</div>' +
-      '</div>' +
-      '<span class="jam-wave-time" id="jam-t-now">' + fmtTime(pos) + '</span>' +
-      '<div class="jam-wave" id="jam-wave" title="' + t('Click to seek') + '">' + barsHtml + '</div>' +
-      '<span class="jam-wave-time" id="jam-t-dur">' + fmtTime(dur) + '</span>' +
-      statusPill;
-  }
-
-  function paintWaveProgress() {
-    var wave = document.getElementById('jam-wave');
-    var nowEl = document.getElementById('jam-t-now');
-    if (!wave || !nowEl) { return; }
-    var dur = JamAudio.duration();
-    var pos = JamAudio.position();
-    nowEl.textContent = fmtTime(pos);
-    var frac = dur > 0 ? Math.min(1, pos / dur) : 0;
-    var bars = wave.children;
-    var cut = Math.floor(frac * bars.length);
-    for (var i = 0; i < bars.length; i++) {
-      bars[i].classList.toggle('played', i <= cut);
-    }
   }
 
   function paintPartsCol() {
@@ -2005,12 +1853,6 @@
   }
 
   function onShellClick(event) {
-    var wave = event.target.closest('#jam-wave');
-    if (wave) {
-      var rect = wave.getBoundingClientRect();
-      JamAudio.seekFraction((event.clientX - rect.left) / Math.max(1, rect.width));
-      return;
-    }
     if (loraMenuClick(event)) { return; }
     // Picking the pass length is choosing short passes: lit at once, without redrawing the list being opened.
     if (event.target.id === 'jam-pass-len' && !JamState.fastLoop) {
@@ -2033,7 +1875,6 @@
     if (act === 'roll') { confirmFullSong(!JamState.fastLoop).then(function (go) { if (go) { rollPass({ title: go.title }); } }); return; }
     if (act === 'plan-roll') { confirmFullSong(!JamState.fastLoop).then(function (go) { if (go) { rollPass({ replan: true, title: go.title }); } }); return; }
     if (act === 'cancel-cook') { cancelCooking(); return; }
-    if (act === 'toggle-play') { JamAudio.toggle(); return; }
     if (act === 'scope-fast') { JamState.fastLoop = true; paintTopbar(); return; }
     if (act === 'scope-full') { JamState.fastLoop = false; paintTopbar(); return; }
     if (act === 'palette-tab') {
@@ -2106,9 +1947,9 @@
     if (act === 'play-pass') {
       // The pass played is the one being worked on: it becomes the base, its settings in the controls.
       if (btn.dataset.passId !== (buildOn() || {}).id) { selectBase(btn.dataset.passId); }
-      // The pass that was paused (by the editor opening, say) goes on from where it stopped.
-      if (btn.dataset.passId === JamAudio.currentId && JamAudio.active && !JamAudio.playing) { JamAudio.resume(); return; }
-      JamAudio.play(btn.dataset.passId, 0.8).catch(function () {});
+      // If this pass is already loaded and paused in the bottom player, resume from where it stopped.
+      if (btn.dataset.passId === JamAudio.currentId && !JamAudio.playing) { JamAudio.resume(); return; }
+      JamAudio.play(btn.dataset.passId);
       return;
     }
     if (act === 'stop-pass') {
@@ -2145,12 +1986,7 @@
         return;
       }
     } catch (err) { /* proceed to clean up local history if already gone */ }
-    if (JamAudio.currentId === passId) {
-      JamAudio.stop();
-      JamAudio.currentId = null;
-    }
-    delete JamAudio.buffers[passId];
-    delete JamAudio.peaks[passId];
+    JamAudio.stopIfPlaying(passId);
 
     try {
       await api('/api/takes/' + encodeURIComponent(passId), { method: 'DELETE' });
@@ -2165,17 +2001,74 @@
     }
     saveSession();
     paintAll();
+    if (typeof paintTransport === 'function') { paintTransport(); }
     if (typeof loadTakes === 'function') { loadTakes(); }
+  }
+
+  function playablePasses() {
+    return JamState.passes.slice().sort(function (a, b) {
+      var aSeed = isSeedPass(a) ? 0 : 1;
+      var bSeed = isSeedPass(b) ? 0 : 1;
+      if (aSeed !== bSeed) { return aSeed - bSeed; }
+      return (a.num || 0) - (b.num || 0);
+    }).filter(function (p) { return p.hasAudio && p.id !== JamState.cookingId; });
+  }
+
+  function canStep() { return playablePasses().length >= 2; }
+
+  function stepPass(delta) {
+    var list = playablePasses();
+    if (list.length < 2) { return false; }
+    var cur = JamAudio.currentId || (buildOn() && buildOn().id);
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === cur) { idx = i; break; }
+    }
+    var nextIdx = idx === -1 ? (delta > 0 ? 0 : list.length - 1) : (idx + delta + list.length) % list.length;
+    var next = list[nextIdx];
+    selectBase(next.id);
+    JamAudio.play(next.id);
+    return true;
+  }
+
+  function shouldLoop(id) {
+    return Boolean(JamState.open && id && JamState.passes.some(function (p) { return p.id === id; }));
+  }
+
+  function onTransportChange() {
+    if (JamState.open) { paintHistory(); }
   }
 
   function handleKey(event) {
     if (!JamState.open) { return false; }
     var el = document.activeElement;
     var tag = (el && el.tagName) || '';
-    if (tag === 'TEXTAREA' || tag === 'SELECT' || (el && el.isContentEditable)) { return false; }
+    var aimed = (event.target && event.target.tagName) || '';
+    if (tag === 'TEXTAREA' || tag === 'SELECT' || aimed === 'TEXTAREA' || aimed === 'SELECT' ||
+        (el && el.isContentEditable) || (event.target && event.target.isContentEditable)) { return false; }
     if (tag === 'INPUT' && el.type !== 'range' && el.type !== 'checkbox' && el.type !== 'button') { return false; }
+    if (aimed === 'INPUT' && event.target.type !== 'range' && event.target.type !== 'checkbox' && event.target.type !== 'button') { return false; }
     if (event.code === 'Space') {
+      if (tag === 'BUTTON') { el.blur(); }
       JamAudio.toggle();
+      return true;
+    }
+    if ((event.key === 'v' || event.key === 'V') && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
+      if (window.Visualizer) { window.Visualizer.toggle(); }
+      return true;
+    }
+    if (event.shiftKey && event.key === 'ArrowLeft') { return stepPass(-1); }
+    if (event.shiftKey && event.key === 'ArrowRight') { return stepPass(1); }
+    if (event.key === 'ArrowLeft' && tag !== 'INPUT') { if (typeof nudge === 'function') { nudge(-5); } return true; }
+    if (event.key === 'ArrowRight' && tag !== 'INPUT') { if (typeof nudge === 'function') { nudge(5); } return true; }
+    if (event.key === 'ArrowUp' && tag !== 'INPUT') {
+      var volUp = document.getElementById('volume');
+      if (volUp) { volUp.value = Math.min(100, Number(volUp.value) + 5); volUp.dispatchEvent(new Event('input')); }
+      return true;
+    }
+    if (event.key === 'ArrowDown' && tag !== 'INPUT') {
+      var volDn = document.getElementById('volume');
+      if (volDn) { volDn.value = Math.max(0, Number(volDn.value) - 5); volDn.dispatchEvent(new Event('input')); }
       return true;
     }
     return false;
@@ -2335,23 +2228,31 @@
     JamState.open = true;
     JamState.passChoice = null;       // each Jam starts at the length in Settings
     modal.classList.remove('hidden');
+    document.body.classList.add('jam-open');
+    if (typeof window.syncPlayerHeight === 'function') { window.syncPlayerHeight(); }
     // A Jam is the take's own, a take inside another included: keyed by its mother, opening one showed the
     // other's Seed and words.  A session whose Seed is another take (saved that way before) starts afresh.
     var key = 'take:' + take.id;
     var ownSeed = function () {
       return JamState.passes.some(function (p) { return p.isSeed && p.id === take.id; });
     };
+    var cueIfIdle = function () {
+      var audio = JamAudio.audio();
+      if (take.has_audio && !JamAudio.playing && !(audio && (audio.currentSrc || audio.src)) && typeof activateTakeRecording === 'function') {
+        activateTakeRecording(take);
+      }
+      if (typeof paintTransport === 'function') { paintTransport(); }
+    };
     if (JamState.sessionKey === key && JamState.passes.length && ownSeed()) {
       paintAll();
       syncPassesFromServer();
+      cueIfIdle();
       return;
     }
     if (loadSession(key) && ownSeed()) {
       paintAll();
       syncPassesFromServer();
-      var ready = JamState.passes.find(function (p) { return p.id === take.id && p.hasAudio; }) ||
-                  JamState.passes.find(function (p) { return p.hasAudio; });
-      if (ready && !JamAudio.playing) { JamAudio.play(ready.id, 0.08).catch(function () {}); }
+      cueIfIdle();
       return;
     }
     JamState.sessionKey = key;
@@ -2362,13 +2263,24 @@
     var modal = document.getElementById('jam-modal');
     JamState.open = false;
     saveSession();
-    JamAudio.pause();
+    document.body.classList.remove('jam-open');
     if (modal) { modal.classList.add('hidden'); }
+    if (typeof paintTransport === 'function') { paintTransport(); }
     // The take's card shows whether it has a Jam: painted again now, since an unchanged list is not repainted.
     if (typeof paintTakes === 'function') { paintTakes(); }
   }
 
   function isOpen() { return JamState.open; }
 
-  window.Jam = { openFromTake: openFromTake, close: close, isOpen: isOpen, handleKey: handleKey };
+  window.Jam = {
+    openFromTake: openFromTake,
+    close: close,
+    isOpen: isOpen,
+    handleKey: handleKey,
+    onTransportChange: onTransportChange,
+    shouldLoop: shouldLoop,
+    canStep: canStep,
+    stepPass: stepPass,
+    togglePlay: function () { JamAudio.toggle(); }
+  };
 })();
