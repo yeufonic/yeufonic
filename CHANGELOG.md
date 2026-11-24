@@ -37,6 +37,12 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## 0.0.68 (2026-11-24)
+
+- **Unified bottom player across Jam and the editor.** The main bottom player bar now stays visible and interactive beneath both Jam and the editor, removing Jam's separate top player bar and the editor's mini-player so their columns reclaim the vertical space. Opening or closing Jam or the editor never interrupts playback, and Jam passes play through the main player with its waveform, Mastering Rack, Visualizer, A–B loop, speed and volume (looping seamlessly while Jam is open, with Previous/Next and **Shift+Left / Shift+Right** stepping through Roll History passes).
+- **Click the pulsing title link to jump to what is playing.** While audio is playing, the title link at the bottom left pulses gently to show it is clickable; clicking it always takes you straight to the currently playing take in its space (closing Jam or the editor if open) — or re-opens the Jam page where it was created when a Jam pass is playing.
+- **Jam defaults and shortcuts.** **Same seed** is now ticked by default on the Jam page, **F** toggles fullscreen from Jam (alongside **Space**, arrows, **Shift+Left/Right**, **V**, **L**, **?** and **Esc**), and the **Hot keys (?)** window and all 15 user guides have been updated for the unified player and Jam shortcuts.
+
 ## 0.0.67 (2026-11-23)
 
 - **Jam starts at the Seed's tempo.** With no tempo lock, a Jam took 100 BPM rather than the tempo in the take's
