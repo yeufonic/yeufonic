@@ -988,7 +988,9 @@ per sempre. Le passate restano finché non le elimini, anche a Jam chiusa: Impos
 
 Usa le passate brevi per mettere a punto una ricetta — Parti, Atmosfera, Tocco e LoRA — e considera **Brano completo** come una take intera generata da quelle impostazioni. Passate più lunghe (come 60s o 90s) avvicinano l’anteprima includendo una porzione maggiore del brano, e definire meglio le Parti o **Presa dello stile** lascia al decodificatore meno margine per divagare.
 
-**Tasti:** **Spazio** riproduce o mette in pausa, **Esc** chiude Jam.
+**Riproduzione e impostazioni predefinite.** Jam condivide il lettore persistente in fondo allo schermo: aprire o chiudere Jam non interrompe mai la riproduzione. **Stesso seed** è attivo per impostazione predefinita. Cliccare sul titolo pulsante in basso a sinistra ti porta sempre direttamente al take in riproduzione oppure riapre la pagina Jam in cui è stato creato il pass in riproduzione.
+
+**Tasti:** **Spazio** riproduce o mette in pausa, **Sinistra / Destra** salta di 5 secondi, **Shift+Sinistra / Shift+Destra** scorre i pass nella cronologia, **Su / Giù** regola il volume, **F** attiva/disattiva lo schermo intero, **V** apre o chiude il visualizzatore, **L** apre i log, **?** mostra i tasti rapidi ed **Esc** chiude prima eventuali finestre in primo piano e poi Jam.
 
 ---
 
@@ -1545,7 +1547,9 @@ Spunta da due a sei take e premi **Confronta** (compare accanto a Seleziona tutt
 
 ### Il lettore {#the-player}
 
-Clicca o trascina sulla forma d'onda per spostarti. Precedente e successivo scorrono le schede nell'ordine mostrato.
+La barra del lettore rimane visibile in fondo allo schermo in libreria, playlist, editor e Jam: aprire o chiudere l'editor o Jam non interrompe mai la riproduzione. Clicca o trascina sulla forma d'onda per spostarti. Precedente e successivo scorrono le schede nell'ordine mostrato (oppure i pass della cronologia quando Jam è aperto).
+
+**Vai a ciò che sta suonando.** Cliccare sul titolo in basso a sinistra ti porta sempre direttamente al take in riproduzione nel suo spazio (chiudendo l'editor o Jam se aperti), oppure riapre la pagina Jam in cui è stato creato il pass in riproduzione. Mentre l'audio è in riproduzione, il collegamento pulsa leggermente per indicare che è cliccabile.
 
 **Ripetere una parte.** Premi **A–B** all'inizio di una parte, per esempio un ritornello, e di nuovo alla fine: la parte viene ombreggiata sulla forma d'onda e suona a ciclo. Premi **A–B** ancora una volta per lasciarla. Un altro take parte senza nessuna parte impostata.
 
@@ -1610,6 +1614,7 @@ di stato che dice perché.
 | Su, Giù | volume |
 | M | apri il rack di mastering del take; di nuovo per chiuderlo |
 | E | apri il take nell'editor |
+| J | apri il take in Jam |
 | I | i dettagli del take: tutto ciò con cui è stato fatto, a parole, con **Copia** |
 | N | normalizza il take, o annulla se è normalizzato |
 | V | apri o chiudi il visualizzatore |
@@ -1629,9 +1634,7 @@ I tasti con lettere non fanno nulla mentre scrivi in un riquadro, mentre c'è un
 Alt o il tasto Windows o Comando premuto, così le scorciatoie del browser (Ctrl+L, Ctrl+S e le altre)
 continuano a funzionare. Il suggerimento di un pulsante nomina il suo tasto, come in **Variazioni (Shift+V)**. Premi **?** in qualsiasi momento per vedere l'elenco delle scorciatoie.
 
-Nella finestra dell'editor, Spazio e le frecce comandano il lettore della finestra, per il take aperto lì, ogni volta che il suo lettore
-è visibile: in ogni passo, e con il rack di mastering aperto sopra. Non agiscono mai mentre scrivi in un riquadro,
-e i tasti con lettere sono solo della pagina principale. Il piano roll ha i suoi tasti: vedi [Il piano roll](#the-piano-roll).
+Sia l'editor sia Jam condividono il lettore inferiore persistente: **Spazio**, le frecce, **F** (schermo intero), **V** (visualizzatore), **L** (log) e **?** (tasti rapidi) funzionano anche lì — perfino con il rack di mastering aperto —, mentre i tasti con lettere dei singoli take restano solo nella pagina principale e la scrittura nei campi non viene mai disturbata. In Jam, **Shift+Sinistra / Shift+Destra** scorre i pass nella cronologia. Il piano roll ha i suoi tasti: vedi [Il piano roll](#the-piano-roll).
 
 ---
 

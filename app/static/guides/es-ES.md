@@ -989,7 +989,9 @@ las muestra como **Pasadas de Jam** y puede vaciarlas todas.
 
 Usa pasadas cortas para perfilar una receta — Partes, Ambiente, Sensación y LoRA — y trata **Canción completa** como una toma completa hecha con esos ajustes. Las pasadas más largas (como 60s o 90s) acercan más la vista previa al abarcar más canción, y concretar más las Partes o **Fidelidad al estilo** deja menos margen al decodificador.
 
-**Teclas:** **Espacio** reproduce o pausa, **Esc** cierra Jam.
+**Reproducción y valores predeterminados.** Jam comparte el reproductor persistente en la parte inferior de la pantalla: abrir o cerrar Jam nunca detiene la reproducción. **Misma semilla** está activada por defecto. Hacer clic en el enlace del título que pulsa abajo a la izquierda siempre te lleva directamente a la toma que está sonando o vuelve a abrir la página de Jam donde se creó el pase en reproducción.
+
+**Teclas:** **Espacio** reproduce o pausa, **Izquierda / Derecha** avanza o retrocede 5 segundos, **Mayús+Izquierda / Mayús+Derecha** recorre los pases del historial, **Arriba / Abajo** ajusta el volumen, **F** alterna pantalla completa, **V** abre o cierra el visualizador, **L** abre los registros, **?** muestra los atajos y **Esc** cierra primero cualquier ventana superpuesta y después Jam.
 
 ---
 
@@ -1546,7 +1548,9 @@ Marca de dos a seis tomas y pulsa **Comparar** (aparece junto a Seleccionar todo
 
 ### El reproductor {#the-player}
 
-Haz clic o arrastra en la forma de onda para desplazarte. Anterior y siguiente recorren las tarjetas en el orden mostrado.
+La barra del reproductor permanece visible en la parte inferior en la biblioteca, listas, el editor y Jam: abrir o cerrar el editor o Jam nunca detiene la reproducción. Haz clic o arrastra en la forma de onda para desplazarte. Anterior y siguiente recorren las tarjetas en el orden mostrado (o los pases del historial cuando Jam está abierto).
+
+**Ir a lo que está sonando.** Hacer clic en el enlace del título abajo a la izquierda siempre te lleva directamente a la toma que está sonando en su espacio (cerrando el editor o Jam si están abiertos), o vuelve a abrir la página de Jam donde se creó el pase en reproducción. Mientras suena audio, el enlace pulsa suavemente para indicar que se puede hacer clic.
 
 **Repetir una parte.** Pulsa **A–B** al principio de una parte, como un estribillo, y otra vez al final: la parte se sombrea en la forma de onda y suena una y otra vez. Pulsa **A–B** una vez más para soltarla. Otra toma empieza sin ninguna parte marcada.
 
@@ -1611,6 +1615,7 @@ de estado que dice por qué.
 | Arriba, Abajo | volumen |
 | M | abrir el rack de masterización de la toma; otra vez para cerrarlo |
 | E | abrir la toma en el editor |
+| J | abrir la toma en Jam |
 | I | los detalles de la toma: todo aquello con lo que se hizo, en palabras, con **Copiar** |
 | N | normalizar la toma, o deshacerlo si está normalizada |
 | V | abrir o cerrar el visualizador |
@@ -1630,9 +1635,7 @@ Las teclas de letra no hacen nada mientras escribes en un cuadro, mientras hay u
 Alt o la tecla Windows o Comando pulsada, para que los atajos del propio navegador (Ctrl+L, Ctrl+S y los demás)
 sigan funcionando. La descripción emergente de un botón nombra su tecla, como en **Variaciones (Shift+V)**. Pulsa **?** en cualquier momento para ver la lista de atajos.
 
-En la ventana del editor, Espacio y las flechas manejan el reproductor de la ventana, para la toma abierta allí, siempre que su reproductor
-se muestre: en cada paso, y con el rack de masterización abierto encima. Nunca actúan mientras escribes en un cuadro,
-y las teclas de letra son solo de la página principal. El piano roll tiene sus propias teclas: consulta [El piano roll](#the-piano-roll).
+Tanto el editor como Jam comparten el reproductor inferior persistente: **Espacio**, las flechas, **F** (pantalla completa), **V** (visualizador), **L** (registros) y **?** (atajos) funcionan allí — incluso con el rack de masterización abierto —, mientras que las teclas de letra específicas de tomas siguen siendo solo de la página principal y nunca interfieren al escribir en un cuadro. En Jam, **Mayús+Izquierda / Mayús+Derecha** recorre los pases del historial. El piano roll tiene sus propias teclas: consulta [El piano roll](#the-piano-roll).
 
 ---
 

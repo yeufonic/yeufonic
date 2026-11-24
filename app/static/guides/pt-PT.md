@@ -988,7 +988,9 @@ passagem de vez. As passagens ficam até as eliminar, mesmo com o Jam fechado: D
 
 Usa passagens curtas para afinar uma receita — Partes, Ambiente, Toque e LoRA — e encara **Música completa** como um take completo feito com essas definições. Passagens mais longas (como 60s ou 90s) aproximam mais a antevisão ao incluírem mais da música, e precisar melhor as Partes ou **Aderência ao estilo** deixa menos margem ao descodificador.
 
-**Teclas:** **Espaço** toca ou pausa, **Esc** fecha o Jam.
+**Reprodução e predefinições.** O Jam partilha o leitor fixo na parte inferior do ecrã — abrir ou fechar o Jam nunca interrompe o que está a tocar. **Mesmo seed** vem ativo por predefinição. Clicar na ligação do título que pulsa no canto inferior esquerdo leva-o sempre diretamente ao take em reprodução ou reabre a página do Jam onde o passe foi criado.
+
+**Teclas:** **Espaço** toca ou pausa, **Esquerda / Direita** avança ou recua 5 segundos, **Shift+Esquerda / Shift+Direita** percorre os passes no histórico, **Cima / Baixo** ajusta o volume, **F** alterna ecrã inteiro, **V** abre ou fecha o visualizador, **L** abre os registos, **?** mostra os atalhos e **Esc** fecha primeiro qualquer janela em primeiro plano e depois o Jam.
 
 ---
 
@@ -1545,7 +1547,9 @@ Marque de dois a seis takes e prima **Comparar** (aparece ao lado de Selecionar 
 
 ### O player {#the-player}
 
-Clique ou arraste na forma de onda para navegar. Anterior e próximo percorrem os cartões na ordem mostrada.
+A barra do leitor permanece visível na parte inferior na biblioteca, playlists, no editor e no Jam — abrir ou fechar o editor ou o Jam nunca interrompe a reprodução. Clique ou arraste na forma de onda para navegar. Anterior e próximo percorrem os cartões na ordem mostrada (ou os passes do histórico enquanto o Jam estiver aberto).
+
+**Ir para o que está a tocar.** Clicar na ligação do título no canto inferior esquerdo leva-o sempre diretamente ao take em reprodução no respetivo espaço (fechando o editor ou o Jam, se estiverem abertos) — ou reabre a página do Jam onde um passe em reprodução foi criado. Enquanto o áudio toca, a ligação pulsa suavemente para indicar que é clicável.
 
 **Repetir um trecho.** Prima **A–B** no início de um trecho, como um refrão, e de novo no fim: o trecho fica sombreado na forma de onda e toca em ciclo. Prima **A–B** mais uma vez para o soltar. Outro take começa sem trecho marcado.
 
@@ -1610,6 +1614,7 @@ de status a dizer por quê.
 | Cima, Baixo | volume |
 | M | abrir o rack de masterização do take; de novo para fechá-lo |
 | E | abrir o take no editor |
+| J | abrir o take no Jam |
 | I | os detalhes do take: tudo com que ele foi feito, em palavras, com **Copiar** |
 | N | normalizar o take, ou desfazer se estiver normalizado |
 | V | abrir ou fechar o visualizador |
@@ -1629,9 +1634,7 @@ As teclas de letra não fazem nada enquanto você digita em uma caixa, enquanto 
 Alt ou a tecla Windows ou Command premida, para que os atalhos do próprio navegador (Ctrl+L, Ctrl+S e os outros)
 continuem a funcionar. A dica de um botão nomeia a tecla dele, como em **Variações (Shift+V)**. Prima **?** a qualquer momento para ver a lista de atalhos.
 
-Na janela do editor, Espaço e as setas controlam o player da janela, para o take aberto ali, sempre que o player
-estiver à vista: em cada etapa, e com o rack de masterização aberto por cima. Elas nunca agem enquanto você digita em uma caixa,
-e as teclas de letra são só da página principal. O piano roll tem as próprias teclas: veja [O piano roll](#the-piano-roll).
+Tanto o editor como o Jam partilham o leitor inferior fixo: **Espaço**, as setas, **F** (ecrã inteiro), **V** (visualizador), **L** (registos) e **?** (atalhos) funcionam aí — inclusive com o rack de masterização aberto —, enquanto as teclas de letra específicas de takes ficam restritas à página principal e a escrita em caixas de texto nunca é afetada. No Jam, **Shift+Esquerda / Shift+Direita** percorre os passes no histórico. O piano roll tem as próprias teclas: veja [O piano roll](#the-piano-roll).
 
 ---
 

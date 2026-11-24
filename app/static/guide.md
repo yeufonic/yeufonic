@@ -1044,8 +1044,9 @@ Jam is for trying other takes of a song you already have, without stopping the m
 its tempo or its singer, roll a short pass, listen, and roll again.
 
 **Opening it.** Press **Jam** on the take panel, or **J** with a take chosen or playing. That take is the **Seed**: it
-sits at the top of **Roll History** and starts playing. Opening Jam on the same take again brings back where you left
-off. **New Jam** goes back to the Seed's own sound and deletes the passes.
+sits at the top of **Roll History**. Opening or closing Jam never stops what is already playing; the main player bar stays
+visible at the bottom of the screen for scrubbing, mastering, speed, A–B looping and the visualizer. Opening Jam on the
+same take again brings back where you left off. **New Jam** goes back to the Seed's own sound and deletes the passes.
 
 **The controls.**
 
@@ -1060,22 +1061,22 @@ off. **New Jam** goes back to the Seed's own sound and deletes the passes.
 - **Tempo**, in beats per minute, from 40 to 240. A Jam starts at the Seed's tempo.
 - **Vocals**: Instrumental, Female, Male, or one of your recorded voices, with up to three tone words. A pass sings
   the Seed's own words. A Seed with no words makes instrumentals only.
-- **Feel** fine-tunes what the pad leaves loose. **Key** moves the melody and chords to another key; **Start at** has a short pass play from a section, such as the chorus, rather than the top; **Performance** and **Style grip** replace the pad's choice of how loosely the music is played and how firmly it follows the style; **Polish** spends more steps on a pass; **Chords** sets how adventurous a new plan's chords are, for Plan & Roll; and with a recorded voice there are its likeness, formant and blend. **Same seed** makes the next pass with its base's seed, so what you hear differs only by what you changed. **Reset to defaults** puts the whole card back.
+- **Feel** fine-tunes what the pad leaves loose. **Key** moves the melody and chords to another key; **Start at** has a short pass play from a section, such as the chorus, rather than the top; **Performance** and **Style grip** replace the pad's choice of how loosely the music is played and how firmly it follows the style; **Polish** spends more steps on a pass; **Chords** sets how adventurous a new plan's chords are, for Plan & Roll; and with a recorded voice there are its likeness, formant and blend. **Same seed** (on by default) makes the next pass with its base's seed, so what you hear differs only by what you changed. **Reset to defaults** puts the whole card back.
 
 Under the controls, **Compiled style** shows the style a roll will send, and what it avoids.
 
 **Rolling.** **Roll** makes the next pass. It keeps the melody and chords of the pass it builds on and renders them
 with your settings, so it is the same song with another sound. A pass is a short excerpt: how long is
-**Length of a Jam pass** in Settings, under Audio, Takes & Stems. The pass playing keeps looping while the next one
-is made, and the new one fades in when it is ready. The count on **Roll** says how many things you have changed.
+**Length of a Jam pass** in Settings, under Audio, Takes & Stems. The pass playing keeps looping in the bottom player while the next one
+is made, and switches over when the new one is ready. The count on **Roll** says how many things you have changed.
 
 **Plan & Roll** writes a new plan from the Seed's words first: new chords, a new groove, a new structure. Use it when
 the change is more than the sound, such as another genre or another feel. It takes longer than **Roll** and can
 change the song a lot. The next **Roll** goes back to keeping the melody and chords.
 
-**Building on a pass.** Click a card in Roll History, or play it, to make it the **Base**; a new pass becomes the base when it fades in. Its settings go back into the controls,
-and the next roll builds on it. The card shows **Base**, and the player and the foot of the window say which pass you
-are building on. Each new pass names the pass it came from and shows what changed. **Space** plays or pauses the base. The star on a pass marks it as one you like, so it is easy to find among many; it is the Jam's own mark, not the library's star.
+**Building on a pass.** Click a card in Roll History, or play it, to make it the **Base**; a new pass becomes the base when it finishes. Its settings go back into the controls,
+and the next roll builds on it. The card shows **Base**, and the foot of the window says which pass you
+are building on. Each new pass names the pass it came from and shows what changed. **Space** plays or pauses, and the player's previous/next buttons (or **Shift+Left / Shift+Right**) step through passes in Roll History. Clicking a playing pass's pulsing title at the bottom left always brings you straight back to the Jam page where it was created. The star on a pass marks it as one you like, so it is easy to find among many; it is the Jam's own mark, not the library's star.
 
 **Keeping one.** Passes are kept out of your spaces. **Full Song** on a pass renders the whole song with that pass's
 settings, as a new take in the space the Jam was opened from; it asks first, with the new take's name ready to change. The **Fast Loop** and **Full Song**
@@ -1090,7 +1091,7 @@ the Jam is closed: Settings → Storage lists them as **Jam passes** and can cle
 
 Use short passes to dial in a recipe — Parts, Vibe, Feel and LoRA — and treat **Full Song** as a full-length take made from those settings. Longer passes (such as 60s or 90s) bring the preview closer by including more of the song, and tightening Parts or **Style grip** leaves the decoder less room to wander.
 
-**Keys:** **Space** plays or pauses, **Esc** closes Jam.
+**Keys:** **Space** plays or pauses, **Left / Right** seeks 5 seconds, **Shift+Left / Shift+Right** steps through passes in Roll History, **Up / Down** adjusts volume, **F** toggles fullscreen, **V** opens or closes the Visualizer, **L** opens logs, **?** opens hot keys, and **Esc** closes any overlay in front and then Jam.
 
 ---
 
@@ -1415,7 +1416,7 @@ job starts or ends. Click it for the job card: the stage, **stop**, and **Up nex
 
 A queued or running take shows **Cancel** on its card, and **stop** on the job card stops whatever
 the engine is working on. A take's title on the job card, in its **Up next** list, or in the player at the
-foot of the page takes you to the take: to its space, with any search or filter that hides it cleared. Deleting a take stops its job and removes its stems. **Delete** beside a
+bottom left always takes you straight to the currently playing take (to its space, with any search or filter that hides it cleared) — or re-opens its Jam page when a Jam pass is playing. While audio is playing, the title link at the bottom left pulses gently to show it is clickable. Deleting a take stops its job and removes its stems. **Delete** beside a
 recording removes the file and its stems; covers made from it keep their audio and score, but cannot
 be rendered again.
 
@@ -1742,7 +1743,9 @@ still rendering). The takes stack in one window on a shared position:
 
 ### The player
 
-Click or drag the waveform to seek. Previous and next step through the cards in the order shown.
+The player bar stays visible at the bottom of the screen across the library, playlists, the editor and Jam — opening or closing the editor or Jam never stops playback. Click or drag the waveform to seek. Previous and next step through the cards in the order shown (or through Roll History passes while Jam is open).
+
+**Jump to what is playing.** Clicking the title link at the bottom left always takes you straight to the currently playing take in its space (closing Jam or the editor if open) — or re-opens the Jam page where it was created when a Jam pass is playing. While audio is playing, the link pulses gently to indicate it is clickable.
 
 **Loop a part.** Press **A–B** at the start of a part, such as a chorus, and again at its end: the part is shaded on the waveform and plays round and round. Press **A–B** once more to let it go. Another take starts with no part set.
 
@@ -1750,7 +1753,7 @@ Click or drag the waveform to seek. Previous and next step through the cards in 
 |---|---|
 | Space | play or pause |
 | Left, Right | back or forward five seconds |
-| Shift+Left, Shift+Right | the previous or next take; in the Playlists view, the playlist's previous or next song |
+| Shift+Left, Shift+Right | the previous or next take; in the Playlists view, the playlist's previous or next song; in Jam, the previous or next pass in Roll History |
 | Up, Down | volume |
 
 The system media keys work too. The take's own keys are under [Hot keys](#hot-keys).
@@ -1803,10 +1806,11 @@ bar saying why.
 |---|---|
 | Space | play or pause |
 | Left, Right | back or forward five seconds |
-| Shift+Left, Shift+Right | the previous or next take; in the Playlists view, the playlist's previous or next song |
+| Shift+Left, Shift+Right | the previous or next take; in the Playlists view, the playlist's previous or next song; in Jam, the previous or next pass in Roll History |
 | Up, Down | volume |
 | M | open the mastering rack for the take; again to close it |
 | E | open the take in the editor |
+| J | open the take in Jam |
 | I | the take's details: everything it was made with, in words, with **Copy** |
 | N | normalise the take, or undo it if it is normalised |
 | V | open or close the Visualizer |
@@ -1826,9 +1830,7 @@ The letter keys do nothing while you are typing in a box, while a window is open
 Alt or the Windows or Command key held, so the browser's own shortcuts (Ctrl+L, Ctrl+S and the rest)
 still work. A button's tip names its key, as in **Variations (Shift+V)**. Press **?** at any time to display the list of hot keys.
 
-In the editor window, Space and the arrows work the window's player, for the take open there, whenever its player
-shows: on every step, and with the mastering rack open over it. They never act while you are typing in a box,
-and the letter keys are the main page's only. The piano roll has keys of its own: see [The Piano Roll](#the-piano-roll).
+Both the editor window and Jam share the persistent bottom player: **Space**, the arrow keys, **F** (fullscreen), **V** (Visualizer), **L** (logs) and **?** (hot keys) work there — including with the mastering rack open — while take-specific letter keys stay on the main page only, and typing in a box is always left alone. In Jam, **Shift+Left / Shift+Right** steps through passes in Roll History. The piano roll has keys of its own: see [The Piano Roll](#the-piano-roll).
 
 ---
 

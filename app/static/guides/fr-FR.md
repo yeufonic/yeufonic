@@ -989,7 +989,9 @@ même une fois la Jam fermée : Paramètres → Stockage les liste comme **Passe
 
 Servez-vous des passes courtes pour mettre au point une recette — Éléments, Ambiance, Ressenti et LoRA — et considérez **Chanson entière** comme une prise complète générée à partir de ces réglages. Des passes plus longues (60s ou 90s) rapprochent l’aperçu en couvrant une plus grande part du morceau, et préciser davantage les Éléments ou l’**Emprise du style** laisse moins de liberté au décodeur.
 
-**Touches :** **Espace** lit ou met en pause, **Échap** ferme Jam.
+**Lecture et réglages par défaut.** Jam partage le lecteur persistant en bas de l’écran : ouvrir ou fermer Jam n’interrompt jamais la lecture. **Même seed** est coché par défaut. Cliquer sur le titre cliquable qui pulse en bas à gauche vous ramène toujours directement à la prise en cours de lecture — ou rouvre la page Jam où la passe en cours a été créée.
+
+**Touches :** **Espace** lit ou met en pause, **Gauche / Droite** avance ou recule de 5 secondes, **Maj+Gauche / Maj+Droite** parcourt les passes de l’historique, **Haut / Bas** règle le volume, **F** bascule en plein écran, **V** ouvre ou ferme le visualiseur, **L** ouvre les journaux, **?** affiche les raccourcis et **Échap** ferme d’abord toute fenêtre au premier plan puis Jam.
 
 ---
 
@@ -1546,7 +1548,9 @@ Cochez de deux à six prises et appuyez sur **Comparer** (il apparaît à côté
 
 ### Le lecteur {#the-player}
 
-Cliquez ou faites glisser sur la forme d’onde pour vous déplacer. Précédent et suivant parcourent les cartes dans l’ordre affiché.
+La barre de lecture reste visible en bas de l’écran dans la bibliothèque, les playlists, l’éditeur et Jam : ouvrir ou fermer l’éditeur ou Jam n’interrompt jamais la lecture. Cliquez ou faites glisser sur la forme d’onde pour vous déplacer. Précédent et suivant parcourent les cartes dans l’ordre affiché (ou les passes de l’historique lorsque Jam est ouvert).
+
+**Aller à la lecture en cours.** Cliquer sur le titre en bas à gauche vous emmène toujours directement vers la prise en cours dans son espace (en fermant l’éditeur ou Jam s’ils sont ouverts) — ou rouvre la page Jam où la passe a été créée. Pendant la lecture, ce lien pulse doucement pour indiquer qu’il est cliquable.
 
 **Boucler un passage.** Appuyez sur **A–B** au début d'un passage, un refrain par exemple, puis à sa fin : le passage est grisé sur la forme d'onde et tourne en boucle. Un nouvel appui sur **A–B** le libère. Une autre prise commence sans passage défini.
 
@@ -1611,6 +1615,7 @@ d’état qui dit pourquoi.
 | Haut, Bas | volume |
 | M | ouvrir le rack de mastering de la prise ; à nouveau pour le fermer |
 | E | ouvrir la prise dans l’éditeur |
+| J | ouvrir la prise dans Jam |
 | I | les détails de la prise : tout ce avec quoi elle a été faite, en mots, avec **Copier** |
 | N | normaliser la prise, ou annuler si elle est normalisée |
 | V | ouvrir ou fermer le visualiseur |
@@ -1630,9 +1635,7 @@ Les touches de lettres ne font rien pendant que vous tapez dans une zone, quand 
 Alt ou la touche Windows ou Commande enfoncée, pour que les raccourcis du navigateur (Ctrl+L, Ctrl+S et les autres)
 fonctionnent toujours. L’infobulle d’un bouton nomme sa touche, comme dans **Variations (Shift+V)**. Appuyez sur **?** à tout moment pour afficher la liste des raccourcis.
 
-Dans la fenêtre de l’éditeur, Espace et les flèches pilotent le lecteur de la fenêtre, pour la prise qui y est ouverte, chaque fois que son lecteur
-s’affiche : à chaque étape, et avec le rack de mastering ouvert par-dessus. Elles n’agissent jamais pendant que vous tapez dans une zone,
-et les touches de lettres ne valent que pour la page principale. Le piano roll a ses propres touches : voir [Le piano roll](#the-piano-roll).
+L’éditeur et Jam partagent le lecteur inférieur persistant : **Espace**, les flèches, **F** (plein écran), **V** (visualiseur), **L** (journaux) et **?** (raccourcis) y fonctionnent — y compris avec le rack de mastering ouvert —, tandis que les raccourcis propres aux prises restent réservés à la page principale et la saisie dans un champ n’est jamais perturbée. Dans Jam, **Maj+Gauche / Maj+Droite** parcourt les passes de l’historique. Le piano roll a ses propres touches : voir [Le piano roll](#the-piano-roll).
 
 ---
 

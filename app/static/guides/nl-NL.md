@@ -989,7 +989,9 @@ ronde definitief weg. Rondes blijven tot je ze verwijdert, ook als de Jam dicht 
 
 Gebruik korte rondes om een recept te vinden — Onderdelen, Sfeer, Gevoel en LoRA — en zie **Heel nummer** als een volledige take gemaakt met die instellingen. Langere rondes (zoals 60s of 90s) brengen het voorbeeld dichterbij doordat ze meer van het nummer meenemen, en strakkere Onderdelen of een hogere **Stijlgrip** geven de decoder minder ruimte om af te wijken.
 
-**Toetsen:** **Spatie** speelt of pauzeert, **Esc** sluit Jam.
+**Afspelen en standaardinstellingen.** Jam deelt de vaste speler onderaan het scherm — het openen of sluiten van Jam onderbreekt het afspelen nooit. **Zelfde seed** staat standaard aan. Klikken op de pulserende titellink linksonder brengt je altijd direct naar de spelende take of terug naar de Jam-pagina waar de spelende pass is gemaakt.
+
+**Toetsen:** **Spatie** speelt of pauzeert, **Links / Rechts** springt 5 seconden, **Shift+Links / Shift+Rechts** stapt door passes in de rolgeschiedenis, **Omhoog / Omlaag** regelt het volume, **F** schakelt volledig scherm in of uit, **V** opent of sluit de visualizer, **L** opent de logboeken, **?** toont de sneltoetsen en **Esc** sluit eerst een voorliggende overlay en daarna Jam.
 
 ---
 
@@ -1546,7 +1548,9 @@ Vink twee tot zes takes aan en druk op **Vergelijken** (dat verschijnt naast All
 
 ### De speler {#the-player}
 
-Klik of sleep in de golfvorm om te zoeken. Vorige en volgende lopen door de kaarten in de getoonde volgorde.
+De spelersbalk blijft onderaan het scherm zichtbaar in de bibliotheek, afspeellijsten, de editor en Jam — het openen of sluiten van de editor of Jam stopt het afspelen nooit. Klik of sleep in de golfvorm om te zoeken. Vorige en volgende lopen door de kaarten in de getoonde volgorde (of door de passes in de rolgeschiedenis wanneer Jam open is).
+
+**Spring naar wat speelt.** Klikken op de titellink linksonder brengt je altijd direct naar de spelende take in zijn ruimte (en sluit de editor of Jam als die open staan) — of opent opnieuw de Jam-pagina waar een spelende Jam-pass is gemaakt. Tijdens het afspelen pulseert de link zachtjes om te laten zien dat je erop kunt klikken.
 
 **Een stuk herhalen.** Druk op **A–B** aan het begin van een stuk, zoals een refrein, en nog eens aan het eind: het stuk wordt gearceerd in de golfvorm en speelt rond en rond. Druk nog één keer op **A–B** om het los te laten. Een andere take begint zonder ingesteld stuk.
 
@@ -1611,6 +1615,7 @@ statusbalk die zegt waarom.
 | Omhoog, Omlaag | volume |
 | M | het masteringrack van de take openen; nog eens om het te sluiten |
 | E | de take in de editor openen |
+| J | de take in Jam openen |
 | I | de details van de take: alles waarmee hij gemaakt is, in woorden, met **Kopiëren** |
 | N | de take normaliseren, of dat ongedaan maken als hij genormaliseerd is |
 | V | de visualizer openen of sluiten |
@@ -1630,9 +1635,7 @@ Lettertoetsen doen niets terwijl je in een vak typt, terwijl er een venster voor
 Alt of de Windows- of Command-toets ingedrukt, zodat de eigen sneltoetsen van de browser (Ctrl+L, Ctrl+S en de rest)
 blijven werken. De tooltip van een knop noemt zijn toets, zoals bij **Variaties (Shift+V)**. Druk op elk moment op **?** om de lijst met sneltoetsen te zien.
 
-In het editorvenster bedienen Spatie en de pijltjes de speler van het venster, voor de take die daar open is, zolang zijn speler
-zichtbaar is: in elke stap, en met het masteringrack erboven open. Ze werken nooit terwijl je in een vak typt,
-en de lettertoetsen zijn alleen voor de hoofdpagina. De pianorol heeft zijn eigen toetsen: zie [De pianorol](#the-piano-roll).
+Zowel de editor als Jam delen de vaste onderste speler: **Spatie**, de pijltjestoetsen, **F** (volledig scherm), **V** (visualizer), **L** (logboeken) en **?** (sneltoetsen) werken daar — ook met het masteringrack open — terwijl take-specifieke lettertoetsen alleen op de hoofdpagina werken en typen in een invoervak ongemoeid blijft. In Jam stappen **Shift+Links / Shift+Rechts** door passes in de rolgeschiedenis. De pianorol heeft zijn eigen toetsen: zie [De pianorol](#the-piano-roll).
 
 ---
 

@@ -987,7 +987,9 @@ geschlossen ist: Einstellungen → Speicher führt sie als **Jam-Durchgänge** u
 
 Nutze kurze Durchgänge, um ein Rezept zu finden — Teile, Stimmung, Gefühl und LoRA — und betrachte **Ganzer Song** als vollständigen Take mit diesen Einstellungen. Längere Durchgänge (etwa 60s oder 90s) kommen dem Ergebnis näher, weil sie mehr vom Song einschließen, und präzisere Teile oder ein höherer **Stil-Griff** lassen dem Decoder weniger Spielraum.
 
-**Tasten:** **Leertaste** spielt oder hält an, **Esc** schließt Jam.
+**Wiedergabe und Standardeinstellungen.** Jam nutzt den dauerhaften Player am unteren Bildschirmrand mit — das Öffnen oder Schließen von Jam unterbricht die Wiedergabe nie. **Gleicher Seed** ist standardmäßig aktiviert. Ein Klick auf den pulsierenden Titel-Link unten links bringt dich von überall direkt zum aktuell spielenden Take oder zurück zu der Jam-Seite, auf der der spielende Durchgang erstellt wurde.
+
+**Tasten:** **Leertaste** spielt oder hält an, **Links / Rechts** springt 5 Sekunden, **Umschalt+Links / Umschalt+Rechts** wechselt zwischen Durchgängen im Roll-Verlauf, **Hoch / Runter** regelt die Lautstärke, **F** schaltet den Vollbildmodus um, **V** öffnet oder schließt den Visualizer, **L** öffnet die Protokolle, **?** zeigt die Tastenkürzel und **Esc** schließt zuerst offene Overlays und dann Jam.
 
 ---
 
@@ -1545,7 +1547,9 @@ Hake zwei bis sechs Takes an und drücke **Vergleichen** (es erscheint neben All
 
 ### Der Player {#the-player}
 
-Klicke oder ziehe auf der Wellenform, um zu springen. Zurück und Weiter gehen die Karten in der angezeigten Reihenfolge durch.
+Die Player-Leiste bleibt in der Bibliothek, in Playlists, im Editor und in Jam unten am Bildschirm sichtbar — das Öffnen oder Schließen von Editor oder Jam unterbricht die Wiedergabe nie. Klicke oder ziehe auf der Wellenform, um zu springen. Zurück und Weiter gehen die Karten in der angezeigten Reihenfolge durch (in Jam die Durchgänge im Roll-Verlauf).
+
+**Zum aktuellen Titel springen.** Ein Klick auf den Titel-Link unten links bringt dich immer direkt zum aktuell spielenden Take in seinem Space (und schließt Editor oder Jam, falls offen) — oder öffnet wieder die Jam-Seite, auf der der spielende Jam-Durchgang erstellt wurde. Während Audio läuft, pulsiert der Link sanft, um zu zeigen, dass er anklickbar ist.
 
 **Einen Teil wiederholen.** Drücke **A–B** am Anfang eines Teils, etwa eines Refrains, und noch einmal an seinem Ende: Der Teil wird in der Wellenform hinterlegt und läuft in Schleife. Ein weiteres **A–B** gibt ihn wieder frei. Ein anderer Take beginnt ohne gesetzten Teil.
 
@@ -1610,6 +1614,7 @@ leiste, die sagt, warum.
 | Hoch, Runter | Lautstärke |
 | M | das Mastering-Rack für den Take öffnen; erneut, um es zu schließen |
 | E | den Take im Editor öffnen |
+| J | den Take in Jam öffnen |
 | I | die Details des Takes: alles, womit er gemacht wurde, in Worten, mit **Kopieren** |
 | N | den Take normalisieren oder es rückgängig machen, wenn er normalisiert ist |
 | V | den Visualizer öffnen oder schließen |
@@ -1629,9 +1634,7 @@ Die Buchstabentasten tun nichts, während du in einem Feld tippst, während ein 
 Alt oder die Windows- oder Befehlstaste gedrückt ist, sodass die eigenen Kürzel des Browsers (Ctrl+L, Ctrl+S und die übrigen)
 weiter funktionieren. Der Tipp einer Schaltfläche nennt ihre Taste, wie in **Variationen (Shift+V)**. Drücke jederzeit **?**, um die Liste der Tastenkürzel anzuzeigen.
 
-Im Editorfenster bedienen Leertaste und Pfeile den Player des Fensters, für den dort offenen Take, wann immer sein Player
-erscheint: auf jedem Schritt und mit dem Mastering-Rack darüber. Sie wirken nie, während du in einem Feld tippst,
-und die Buchstabentasten gehören nur der Hauptseite. Die Pianorolle hat eigene Tasten: siehe [Die Pianorolle](#the-piano-roll).
+Editor und Jam teilen sich den dauerhaften unteren Player: **Leertaste**, Pfeiltasten, **F** (Vollbild), **V** (Visualizer), **L** (Protokolle) und **?** (Tastenkürzel) funktionieren dort — auch bei geöffnetem Mastering-Rack —, während take-spezifische Buchstabentasten der Hauptseite vorbehalten bleiben und Eingabefelder unberührt bleiben. In Jam wechseln **Umschalt+Links / Umschalt+Rechts** zwischen den Durchgängen im Roll-Verlauf. Die Pianorolle hat eigene Tasten: siehe [Die Pianorolle](#the-piano-roll).
 
 ---
 

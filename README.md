@@ -211,8 +211,8 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
   reproduced, reworked, starred or deleted. Search by title, style, lyrics or LoRA, in one space or
   all of them. Tick several cards and one button clears them all. Single keys act on the chosen take:
   mastering, edit, details, normalise, Variations, Try more, star and delete.
-- **A player for reviewing takes.** A real waveform you can click to seek, previous and next through
-  the library, ten second skips, repeat, speed and volume, with keyboard shortcuts.
+- **A persistent player across every view.** A real waveform you can click to seek, previous and next through
+  the library (or Roll History passes in Jam), ten second skips, repeat, A–B loop, speed and volume, with keyboard shortcuts. The bottom player stays visible and uninterrupted when you open or close Jam or the editor, and clicking the playing title at the bottom left (which pulses while audio is playing) always jumps straight to the currently playing take — or re-opens its Jam page when a Jam pass is playing.
 - **Playlists and Liked songs.** Group takes into custom playlists and browse your starred songs in a
   dedicated view. Sort by title, duration, or date added, click any song title to jump straight to its
   space in the library, and play tracks directly with inline art-hover controls.
@@ -228,10 +228,10 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 ## Jam
 
 Jam is for trying other takes of a song you already have, without stopping the music. Open it from a take (**Jam** on
-the take panel, or **J**), and that take is the **Seed**. Change the sound (genres, instruments, production and rhythm,
+the take panel, or **J**), and that take is the **Seed**. Jam shares the persistent bottom player — opening or closing Jam never interrupts playback, and clicking a playing pass's pulsing title at the bottom left brings you straight back to its Jam page from anywhere in the app. Change the sound (genres, instruments, production and rhythm,
 each with its own strength, or a saved style or a LoRA), the mood on a Dark to Bright and Calm to Energetic pad, the
 tempo or the singer, and press **Roll**. A short pass keeps the song's melody and chords and plays them with the new
-sound, fading in while the last one loops. **Plan & Roll** writes a new arrangement instead, for a change bigger than
+sound, switching over while the last one loops. **Plan & Roll** writes a new arrangement instead, for a change bigger than
 the sound. Click any pass to build the next one on it, and render the one you like as a full song in your space:
 
 [![Jam](docs/screenshots/jam.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/jam.png)
