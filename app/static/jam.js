@@ -238,7 +238,8 @@
       has_audio: true,
       normalised: Boolean(JamState.seedNormalise),
       space_id: isSeedPass(p) ? (JamState.spaceId || 'default') : '__jam__',
-      _jamLabel: passLabel(p)
+      _jamLabel: passLabel(p),
+      _jamSeedId: seedId()
     };
   }
 
@@ -2270,10 +2271,50 @@
     if (typeof paintTakes === 'function') { paintTakes(); }
   }
 
+  async function openPass(passId, seedTakeId) {
+    var sid = seedTakeId || null;
+    if (!sid && passId) {
+      if (JamState.passes.some(function (p) { return p.id === passId; })) {
+        sid = seedId();
+      } else {
+        var saved = readSavedSessions();
+        var keys = Object.keys(saved);
+        for (var i = 0; i < keys.length; i++) {
+          var s = saved[keys[i]];
+          if (s && Array.isArray(s.passes) && s.passes.some(function (p) { return p.id === passId; })) {
+            var sp = s.passes.find(function (p) { return p && p.isSeed; });
+            sid = (sp && sp.id) || (keys[i].indexOf('take:') === 0 ? keys[i].slice(5) : null);
+            break;
+          }
+        }
+      }
+    }
+    if (!sid) { return false; }
+    if (typeof editorOpen === 'function' && editorOpen() && typeof closeEditor === 'function') { closeEditor(); }
+    if (window.Visualizer && window.Visualizer.isOpen) { window.Visualizer.toggle(false); }
+    var take = null;
+    if (window.State && Array.isArray(State.takes)) {
+      for (var j = 0; j < State.takes.length; j++) {
+        if (State.takes[j].id === sid) { take = State.takes[j]; break; }
+      }
+    }
+    if (!take) {
+      try { take = await api('/api/takes/' + encodeURIComponent(sid)); } catch (err) { return false; }
+    }
+    if (!take) { return false; }
+    openFromTake(take);
+    setTimeout(function () {
+      var card = document.querySelector('#jam-col-hist .jam-hist-card[data-pass-id="' + passId + '"]');
+      if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }, 60);
+    return true;
+  }
+
   function isOpen() { return JamState.open; }
 
   window.Jam = {
     openFromTake: openFromTake,
+    openPass: openPass,
     close: close,
     isOpen: isOpen,
     handleKey: handleKey,

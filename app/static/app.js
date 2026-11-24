@@ -13978,7 +13978,7 @@ function playTake(id, fallbackTake) {
     audio.play().catch(function () {});
     loadWave(url, '/api/takes/' + id + '/peaks' + version);
   }
-  npTitle(take.title, id);
+  npTitle(take.title, id, take.space_id === '__jam__' ? t('Open in Jam') : '');
   var position = take._jamLabel ? null : takePosition(id);
   $('np-meta').textContent = take._jamLabel
     ? take._jamLabel + (take.duration ? ' \u00B7 ' + secs(take.duration) : '')
@@ -17157,9 +17157,16 @@ function wire() {
     }
   }
 
-  // The player's title, while it is a take's: go to the take.
+  // The player's title, while it is a take's: go to the take (or back to its Jam page for a Jam pass).
   $('np-title').addEventListener('click', function () {
-    if ($('np-title').dataset.take) { openTakeInLibrary($('np-title').dataset.take); }
+    var id = $('np-title').dataset.take;
+    if (!id) { return; }
+    if (State.loadedTake && State.loadedTake.id === id && State.loadedTake.space_id === '__jam__' &&
+        window.Jam && typeof window.Jam.openPass === 'function') {
+      window.Jam.openPass(id, State.loadedTake._jamSeedId || null);
+      return;
+    }
+    openTakeInLibrary(id);
   });
 
   // A take's job, in the card's title or in Up next: go to the take, in whichever space it is in.
@@ -18665,12 +18672,12 @@ function toggleColumnSort(sortKey) {
 
 /* The player's title, and the take it belongs to: a take's title goes to the take when clicked, a recording's, a
    stem's or a score's does not. */
-function npTitle(text, takeId) {
+function npTitle(text, takeId, tip) {
   var el = $('np-title');
   el.textContent = text;
   el.dataset.take = takeId || '';
   el.classList.toggle('np-take-link', Boolean(takeId));
-  el.title = takeId ? t('Show this take') : '';
+  el.title = takeId ? (tip || t('Show this take')) : '';
 }
 
 /* Go to a take's card in the library, from a playlist, the job card or the player: its space, with nothing in the way.  A take
@@ -18766,6 +18773,12 @@ async function openTakeInLibrary(takeId) {
     }
   }
   if (!take) { return; }
+  if (take.space_id === '__jam__' && window.Jam && typeof window.Jam.openPass === 'function') {
+    var opened = await window.Jam.openPass(take.id, take._jamSeedId || null);
+    if (opened) { return; }
+  }
+  if (window.Jam && window.Jam.isOpen()) { window.Jam.close(); }
+  if (typeof editorOpen === 'function' && editorOpen()) { closeEditor(); }
   var mother = null;
   if (take.parent_id) {
     try { mother = await api('/api/takes/' + take.parent_id); } catch (err) { mother = null; }

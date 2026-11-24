@@ -40,6 +40,9 @@ def test_editor_and_jam_use_the_persistent_bottom_player():
     app_js = (STATIC / "app.js").read_text(encoding="utf-8")
     close_ed = app_js[app_js.index("function closeEditor()"):app_js.index("function paintEditor()")]
     assert "audio.pause()" not in close_ed
+    # Clicking a Jam pass title in the bottom player opens its Jam session
+    assert "window.Jam.openPass(" in app_js
+    assert "openPass: openPass" in jam_js
 
 
 def test_editor_does_not_close_on_backdrop_click():
