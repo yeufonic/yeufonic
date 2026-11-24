@@ -349,7 +349,7 @@
     polish: 'draft',    // draft (24 steps) or polished (32)
     chords: '',         // Plan & Roll's harmony, in place of the Vibe pad's
     voiceMix: {},       // a recorded voice's likeness, formant and blend for these passes
-    holdSeed: false,    // roll with the base's seed, so a pass differs only by what was changed
+    holdSeed: true,     // roll with the base's seed by default, so a pass differs only by what was changed
     paletteTab: 'inst',
     searchQuery: '',
     passes: [],         // [{ num, id, title, status, progress, stage, hasAudio, hasScore, duration, snapshot, diffs, error }; the Seed and scratch passes]
@@ -426,7 +426,7 @@
     JamState.styleLoraModel = s.styleLoraModel != null ? Number(s.styleLoraModel) : 0.7;
     JamState.styleLoraClip = s.styleLoraClip != null ? Number(s.styleLoraClip) : 0.7;
     loadSculpt(s);
-    JamState.holdSeed = Boolean(s.holdSeed);
+    JamState.holdSeed = s.holdSeed !== false;
     JamState.passes = Array.isArray(s.passes) ? s.passes.slice() : [];
     var maxLoaded = JamState.passes.reduce(function (m, p) {
       return (p && p.isSeed) ? m : Math.max(m, Number(p && p.num) || 0);
@@ -720,6 +720,7 @@
     JamState.lyrics = take.kind === 'instrumental' ? '' : (take.lyrics || '');
     JamState.seedStructure = take.kind === 'instrumental' ? (take.lyrics || '') : '';   // an instrumental's sections, for Plan & Roll
     loadSculpt({});                  // the Feel card starts as the take is: nothing moved
+    JamState.holdSeed = true;
     JamState.seedNormalise = Boolean(take.normalise);
     JamState.seedRealaudio = take.realaudio == null ? true : Boolean(take.realaudio);
     JamState.styleLora = take.style_lora || '';
@@ -1589,7 +1590,7 @@
   // Whether anything in the Feel card is moved from its default.
   function feelIsSet() {
     return Boolean(JamState.key || JamState.startSection || JamState.performance || JamState.grip || JamState.chords !== '' ||
-      JamState.polish === 'polished' || JamState.holdSeed || Object.keys(JamState.voiceMix || {}).length);
+      JamState.polish === 'polished' || !JamState.holdSeed || Object.keys(JamState.voiceMix || {}).length);
   }
 
   function feelCardHtml() {
@@ -1909,7 +1910,7 @@
     }
     if (act === 'feel-reset') {
       loadSculpt({});
-      JamState.holdSeed = false;
+      JamState.holdSeed = true;
       saveSession();
       paintFeelCol();
       paintFooter();
