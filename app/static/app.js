@@ -17601,8 +17601,7 @@ function wire() {
     if (window.Jam && window.Jam.isOpen() &&
         !(window.Visualizer && window.Visualizer.isOpen) &&
         document.querySelectorAll('.modal:not(.hidden)').length === 1) {
-      if (window.Jam.handleKey(event)) { event.preventDefault(); }
-      return;
+      if (window.Jam.handleKey(event)) { event.preventDefault(); return; }
     }
     if (compareOpen()) { if (compareKey(event)) { event.preventDefault(); } return; }
 

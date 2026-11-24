@@ -43,6 +43,8 @@ def test_editor_and_jam_use_the_persistent_bottom_player():
     # Clicking a Jam pass title in the bottom player opens its Jam session
     assert "window.Jam.openPass(" in app_js
     assert "openPass: openPass" in jam_js
+    # F toggles fullscreen in Jam just like in the editor
+    assert "toggleFullscreen()" in jam_js
 
 
 def test_editor_does_not_close_on_backdrop_click():

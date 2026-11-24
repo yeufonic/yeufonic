@@ -2054,6 +2054,10 @@
       JamAudio.toggle();
       return true;
     }
+    if ((event.key === 'f' || event.key === 'F') && !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
+      if (typeof toggleFullscreen === 'function') { toggleFullscreen(); }
+      return true;
+    }
     if ((event.key === 'v' || event.key === 'V') && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
       if (window.Visualizer) { window.Visualizer.toggle(); }
       return true;
