@@ -2851,6 +2851,37 @@ label .lora-value:disabled { opacity: 0.6; }
 /* A take's job goes to the take: its title in the card and in Up next, plain until pointed at. */
 #job-title.job-take-link, .job-queue .q-take, #np-title.np-take-link { cursor: pointer; }
 #job-title.job-take-link:hover, .job-queue .q-take:hover, #np-title.np-take-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+@keyframes np-link-pulse {
+  0%, 100% {
+    color: var(--text);
+    text-shadow: 0 0 0 rgb(var(--song-a-rgb) / 0);
+    text-decoration-color: rgb(var(--song-a-rgb) / 0.25);
+  }
+  50% {
+    color: color-mix(in srgb, var(--text) 35%, var(--song-a) 65%);
+    text-shadow: 0 0 12px rgb(var(--song-a-rgb) / 0.55);
+    text-decoration-color: rgb(var(--song-a-rgb) / 0.85);
+  }
+}
+#np-title.np-take-link.playing {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  animation: np-link-pulse 2.2s ease-in-out infinite;
+}
+#np-title.np-take-link.playing:hover {
+  animation: none;
+  color: var(--song-a);
+  text-shadow: 0 0 10px rgb(var(--song-a-rgb) / 0.45);
+  text-decoration-color: currentColor;
+}
+@media (prefers-reduced-motion: reduce) {
+  #np-title.np-take-link.playing {
+    animation: none;
+    color: color-mix(in srgb, var(--text) 45%, var(--song-a) 55%);
+    text-decoration-color: rgb(var(--song-a-rgb) / 0.65);
+  }
+}
 .job-queue .q-take { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; }
 /* The card a jump lands on: one ring that fades. */
 @keyframes take-found {

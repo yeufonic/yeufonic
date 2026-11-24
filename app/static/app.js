@@ -14215,6 +14215,10 @@ function paintTransport() {
       playBtn.setAttribute('aria-label', playTitle);
     }
   }
+  var titleEl = $('np-title');
+  if (titleEl) {
+    titleEl.classList.toggle('playing', Boolean(playing && titleEl.dataset.take));
+  }
   $('btn-repeat').classList.toggle('on', Boolean(audio.loop));
   var take = currentTake();
   var isJamScratch = Boolean(take && take.space_id === '__jam__');
