@@ -11,11 +11,12 @@ def test_custom_theme_crud_and_settings_integration(client):
     # Starts empty
     assert client.get("/api/themes").json()["themes"] == []
 
-    # Create a custom theme and apply it immediately
+    # Create a custom theme with a gradient and apply it immediately
     created = client.post("/api/themes", json={
         "name": "Midnight Teal",
         "base": "dark",
         "colors": {"--bg": "#081014", "--accent-a": "#2dd4bf", "--wave-song": "#38bdf8"},
+        "gradients": {"--panel": {"to": "#132a36", "dir": "135deg"}, "--bg": {"to": "#0f2027", "dir": "radial"}},
         "apply": True,
     })
     assert created.status_code == 200, created.text
@@ -25,6 +26,8 @@ def test_custom_theme_crud_and_settings_integration(client):
     assert theme["base"] == "dark"
     assert theme["colors"]["--bg"] == "#081014"
     assert theme["colors"]["--accent-a"] == "#2dd4bf"
+    assert theme["gradients"]["--panel"] == {"to": "#132a36", "dir": "135deg"}
+    assert theme["gradients"]["--bg"] == {"to": "#0f2027", "dir": "radial"}
 
     # Settings payload exposes the custom theme in options, custom_themes, and active value
     theme_spec = next(item for item in body["settings"] if item["key"] == "appearance.theme")
@@ -68,6 +71,17 @@ def test_custom_theme_validation_rejects_bad_inputs(client):
     assert first.json()["theme"]["colors"]["--bg"] == "#112233"
     # Duplicate name (case-insensitive) is rejected
     assert client.post("/api/themes", json={"name": "warm copper", "base": "studio"}).status_code == 400
+    # Bad gradient direction or hex is rejected
+    assert client.post("/api/themes", json={
+        "name": "Bad Grad Dir",
+        "base": "dark",
+        "gradients": {"--panel": {"to": "#112233", "dir": "45deg"}},
+    }).status_code == 400
+    assert client.post("/api/themes", json={
+        "name": "Bad Grad Hex",
+        "base": "dark",
+        "gradients": {"--panel": {"to": "blue", "dir": "135deg"}},
+    }).status_code == 400
 
 
 def test_theme_builder_covers_all_backend_tokens_and_mockups():
@@ -78,5 +92,7 @@ def test_theme_builder_covers_all_backend_tokens_and_mockups():
     assert "mockMainHtml" in themes_js
     assert "mockEditorHtml" in themes_js
     assert "mockJamHtml" in themes_js
+    assert "tm-live-app" not in themes_js
+    assert "tm-tint-btn" in themes_js
     assert ".tm-group {\n  flex: 0 0 auto;" in styles_css
     assert 'id="theme-modal"' in (STATIC / "index.html").read_text(encoding="utf-8")

@@ -3175,8 +3175,6 @@
  "Base theme": "Thème de base",
  "Reset all colours to the selected base theme": "Réinitialiser toutes les couleurs au thème de base choisi",
  "Reset colours": "Réinitialiser les couleurs",
- "Temporarily preview this theme on the live app behind the window": "Aperçu temporaire de ce thème sur l’application derrière la fenêtre",
- "Preview on app": "Aperçu sur l’app",
  "Main page": "Page principale",
  "Editor page": "Page éditeur",
  "Live mock-up": "Aperçu en direct",
@@ -3201,5 +3199,17 @@
  "Base theme must be one of {join}": "Le thème de base doit être parmi {join}",
  "At most {MAX_THEMES} custom themes can be saved": "Vous pouvez enregistrer au maximum {MAX_THEMES} thèmes personnalisés",
  "A custom theme named '{clean}' already exists": "Un thème personnalisé nommé « {clean} » existe déjà",
- "Jam page": "Page Jam"
+ "Jam page": "Page Jam",
+ "Muted": "Atténué",
+ "Richer": "Plus riche",
+ "Warmer": "Plus chaud",
+ "Cooler": "Plus froid",
+ "Glow": "Halo",
+ "Gradient blend": "Dégradé",
+ "Second colour": "Seconde couleur",
+ "Tints & shades": "Teintes et nuances",
+ "Tints, shades & gradient": "Teintes, nuances et dégradé",
+ "gradients must be an object mapping token names to gradient settings": "gradients doit être un objet associant des noms de jetons à des réglages de dégradé",
+ "Gradient for {key} must be an object with 'to' and 'dir'": "Le dégradé pour {key} doit être un objet contenant 'to' et 'dir'",
+ "Gradient direction must be one of {join}": "La direction du dégradé doit être l'une des valeurs suivantes : {join}"
 }

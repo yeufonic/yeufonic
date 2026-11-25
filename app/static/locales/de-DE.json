@@ -3175,8 +3175,6 @@
  "Base theme": "Basisdesign",
  "Reset all colours to the selected base theme": "Alle Farben auf das gewählte Basisdesign zurücksetzen",
  "Reset colours": "Farben zurücksetzen",
- "Temporarily preview this theme on the live app behind the window": "Dieses Design vorübergehend direkt in der App im Hintergrund anzeigen",
- "Preview on app": "In App vorschauen",
  "Main page": "Hauptseite",
  "Editor page": "Editorseite",
  "Live mock-up": "Live-Vorschau",
@@ -3201,5 +3199,17 @@
  "Base theme must be one of {join}": "Das Basisdesign muss eines von {join} sein",
  "At most {MAX_THEMES} custom themes can be saved": "Es können höchstens {MAX_THEMES} benutzerdefinierte Designs gespeichert werden",
  "A custom theme named '{clean}' already exists": "Ein benutzerdefiniertes Design namens „{clean}“ existiert bereits",
- "Jam page": "Jam-Seite"
+ "Jam page": "Jam-Seite",
+ "Muted": "Gedämpft",
+ "Richer": "Kräftiger",
+ "Warmer": "Wärmer",
+ "Cooler": "Kühler",
+ "Glow": "Leuchten",
+ "Gradient blend": "Farbverlauf",
+ "Second colour": "Zweite Farbe",
+ "Tints & shades": "Tönungen & Nuancen",
+ "Tints, shades & gradient": "Tönungen, Nuancen & Verlauf",
+ "gradients must be an object mapping token names to gradient settings": "gradients muss ein Objekt sein, das Token-Namen Verlaufseinstellungen zuordnet",
+ "Gradient for {key} must be an object with 'to' and 'dir'": "Verlauf für {key} muss ein Objekt mit 'to' und 'dir' sein",
+ "Gradient direction must be one of {join}": "Die Verlaufsrichtung muss einer dieser Werte sein: {join}"
 }

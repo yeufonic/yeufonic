@@ -3175,8 +3175,6 @@
  "Base theme": "基础主题",
  "Reset all colours to the selected base theme": "将所有颜色恢复为所选基础主题",
  "Reset colours": "重置颜色",
- "Temporarily preview this theme on the live app behind the window": "在窗口后的实际界面上临时预览此主题",
- "Preview on app": "在应用上预览",
  "Main page": "主页面",
  "Editor page": "编辑器页面",
  "Live mock-up": "实时预览",
@@ -3201,5 +3199,17 @@
  "Base theme must be one of {join}": "基础主题必须是 {join} 之一",
  "At most {MAX_THEMES} custom themes can be saved": "最多只能保存 {MAX_THEMES} 个自定义主题",
  "A custom theme named '{clean}' already exists": "已存在名为“{clean}”的自定义主题",
- "Jam page": "Jam 页面"
+ "Jam page": "Jam 页面",
+ "Muted": "柔和",
+ "Richer": "浓郁",
+ "Warmer": "偏暖",
+ "Cooler": "偏冷",
+ "Glow": "光晕",
+ "Gradient blend": "渐变混合",
+ "Second colour": "第二颜色",
+ "Tints & shades": "明暗与色调",
+ "Tints, shades & gradient": "明暗、色调与渐变",
+ "gradients must be an object mapping token names to gradient settings": "gradients 必须是将令牌名映射到渐变设置的对象",
+ "Gradient for {key} must be an object with 'to' and 'dir'": "{key} 的渐变必须是包含 'to' 和 'dir' 的对象",
+ "Gradient direction must be one of {join}": "渐变方向必须是以下之一：{join}"
 }

@@ -6482,6 +6482,7 @@ class CustomThemeIn(BaseModel):
     name: str
     base: str = "studio"
     colors: dict[str, str] = Field(default_factory=dict)
+    gradients: dict[str, dict[str, str]] = Field(default_factory=dict)
     apply: bool = False
 
 
@@ -6489,18 +6490,23 @@ class CustomThemeUpdateIn(BaseModel):
     name: str | None = None
     base: str | None = None
     colors: dict[str, str] | None = None
+    gradients: dict[str, dict[str, str]] | None = None
     apply: bool = False
 
 
 @app.get("/api/themes")
 def get_custom_themes() -> dict:
-    return {"themes": themes.list_themes(), "tokens": list(themes.COLOR_TOKENS)}
+    return {
+        "themes": themes.list_themes(),
+        "tokens": list(themes.COLOR_TOKENS),
+        "gradient_tokens": list(themes.GRADIENT_TOKENS),
+    }
 
 
 @app.post("/api/themes")
 def create_custom_theme(body: CustomThemeIn) -> dict:
     try:
-        created = themes.create_theme(body.name, body.base, body.colors)
+        created = themes.create_theme(body.name, body.base, body.colors, body.gradients)
     except ValueError as err:
         raise HTTPException(400, str(err)) from err
     if body.apply:
@@ -6511,7 +6517,13 @@ def create_custom_theme(body: CustomThemeIn) -> dict:
 @app.put("/api/themes/{theme_id}")
 def update_custom_theme(theme_id: str, body: CustomThemeUpdateIn) -> dict:
     try:
-        updated = themes.update_theme(theme_id, name=body.name, base=body.base, colors=body.colors)
+        updated = themes.update_theme(
+            theme_id,
+            name=body.name,
+            base=body.base,
+            colors=body.colors,
+            gradients=body.gradients,
+        )
     except KeyError as err:
         raise HTTPException(404, "Custom theme not found") from err
     except ValueError as err:

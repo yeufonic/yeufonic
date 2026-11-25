@@ -3175,8 +3175,6 @@
  "Base theme": "기본 테마",
  "Reset all colours to the selected base theme": "모든 색상을 선택한 기본 테마로 재설정",
  "Reset colours": "색상 재설정",
- "Temporarily preview this theme on the live app behind the window": "창 뒤의 실제 앱 화면에서 이 테마를 임시로 미리 보기",
- "Preview on app": "앱에서 미리 보기",
  "Main page": "메인 페이지",
  "Editor page": "편집기 페이지",
  "Live mock-up": "실시간 목업",
@@ -3201,5 +3199,17 @@
  "Base theme must be one of {join}": "기본 테마는 {join} 중 하나여야 합니다",
  "At most {MAX_THEMES} custom themes can be saved": "사용자 지정 테마는 최대 {MAX_THEMES}개까지 저장할 수 있습니다",
  "A custom theme named '{clean}' already exists": "'{clean}' 이름의 사용자 지정 테마가 이미 있습니다",
- "Jam page": "Jam 페이지"
+ "Jam page": "Jam 페이지",
+ "Muted": "차분하게",
+ "Richer": "선명하게",
+ "Warmer": "따뜻하게",
+ "Cooler": "차갑게",
+ "Glow": "글로우",
+ "Gradient blend": "그라데이션",
+ "Second colour": "두 번째 색상",
+ "Tints & shades": "색조 및 명암",
+ "Tints, shades & gradient": "색조, 명암 및 그라데이션",
+ "gradients must be an object mapping token names to gradient settings": "gradients는 토큰 이름과 그라데이션 설정을 매핑하는 객체여야 합니다",
+ "Gradient for {key} must be an object with 'to' and 'dir'": "{key}의 그라데이션은 'to'와 'dir'을 포함한 객체여야 합니다",
+ "Gradient direction must be one of {join}": "그라데이션 방향은 다음 중 하나여야 합니다: {join}"
 }

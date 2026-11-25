@@ -3175,8 +3175,6 @@
  "Base theme": "Tema base",
  "Reset all colours to the selected base theme": "Redefinir todas as cores para o tema base selecionado",
  "Reset colours": "Redefinir cores",
- "Temporarily preview this theme on the live app behind the window": "Pré-visualizar temporariamente este tema no app atrás da janela",
- "Preview on app": "Visualizar no app",
  "Main page": "Página principal",
  "Editor page": "Página do editor",
  "Live mock-up": "Simulação ao vivo",
@@ -3201,5 +3199,17 @@
  "Base theme must be one of {join}": "O tema base deve ser um de {join}",
  "At most {MAX_THEMES} custom themes can be saved": "No máximo {MAX_THEMES} temas personalizados podem ser salvos",
  "A custom theme named '{clean}' already exists": "Já existe um tema personalizado chamado '{clean}'",
- "Jam page": "Página do Jam"
+ "Jam page": "Página do Jam",
+ "Muted": "Suave",
+ "Richer": "Mais intenso",
+ "Warmer": "Mais quente",
+ "Cooler": "Mais frio",
+ "Glow": "Brilho",
+ "Gradient blend": "Gradiente",
+ "Second colour": "Segunda cor",
+ "Tints & shades": "Tons e matizes",
+ "Tints, shades & gradient": "Tons, matizes e gradiente",
+ "gradients must be an object mapping token names to gradient settings": "gradients deve ser um objeto mapeando nomes de tokens para ajustes de gradiente",
+ "Gradient for {key} must be an object with 'to' and 'dir'": "O gradiente de {key} deve ser um objeto com 'to' e 'dir'",
+ "Gradient direction must be one of {join}": "A direção do gradiente deve ser uma de: {join}"
 }

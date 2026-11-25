@@ -223,11 +223,103 @@
     ];
   }
 
+  var GRADIENT_TOKENS = {
+    '--bg': true,
+    '--bg-2': true,
+    '--panel': true,
+    '--card': true,
+    '--card-2': true,
+    '--card-3': true,
+    '--play-bg': true,
+    '--input-bg': true,
+    '--menu-bg': true,
+    '--menu-head-bg': true
+  };
+  var GRADIENT_DIRS = ['135deg', '180deg', '90deg', 'radial'];
+
   function hexToRgb(hex) {
     var m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
     if (!m) { return null; }
     var n = parseInt(m[1], 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function rgbToHex(r, g, b) {
+    function c(v) {
+      var n = Math.max(0, Math.min(255, Math.round(v)));
+      return (n < 16 ? '0' : '') + n.toString(16);
+    }
+    return '#' + c(r) + c(g) + c(b);
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) { h = (g - b) / d + (g < b ? 6 : 0); }
+      else if (max === g) { h = (b - r) / d + 2; }
+      else { h = (r - g) / d + 4; }
+      h *= 60;
+    }
+    return [h, s * 100, l * 100];
+  }
+
+  function hslToHex(h, s, l) {
+    h = ((h % 360) + 360) % 360;
+    s = Math.max(0, Math.min(100, s)) / 100;
+    l = Math.max(0, Math.min(100, l)) / 100;
+    var c = (1 - Math.abs(2 * l - 1)) * s;
+    var x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    var m = l - c / 2;
+    var r = 0, g = 0, b = 0;
+    if (h < 60) { r = c; g = x; }
+    else if (h < 120) { r = x; g = c; }
+    else if (h < 180) { g = c; b = x; }
+    else if (h < 240) { g = x; b = c; }
+    else if (h < 300) { r = x; b = c; }
+    else { r = c; b = x; }
+    return rgbToHex((r + m) * 255, (g + m) * 255, (b + m) * 255);
+  }
+
+  function shiftHex(hex, dH, dS, dL) {
+    var rgb = hexToRgb(hex);
+    if (!rgb) { return hex; }
+    var hsl = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+    return hslToHex(hsl[0] + dH, hsl[1] + dS, hsl[2] + dL);
+  }
+
+  function nudgeTowardHue(hex, targetHue) {
+    var rgb = hexToRgb(hex);
+    if (!rgb) { return hex; }
+    var hsl = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+    if (hsl[1] < 8) {
+      return hslToHex(targetHue, Math.min(26, hsl[1] + 18), hsl[2]);
+    }
+    var diff = ((targetHue - hsl[0] + 540) % 360) - 180;
+    var step = Math.max(-22, Math.min(22, diff * 0.45));
+    return hslToHex(hsl[0] + step, hsl[1], hsl[2]);
+  }
+
+  function suggestGradientEnd(hex) {
+    var rgb = hexToRgb(hex);
+    if (!rgb) { return '#1e2438'; }
+    var hsl = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+    var dL = hsl[2] < 45 ? 11 : -10;
+    var dS = hsl[1] < 12 ? 16 : 6;
+    var nextH = hsl[1] < 12 ? 225 : hsl[0] + 24;
+    return hslToHex(nextH, hsl[1] + dS, Math.max(4, Math.min(96, hsl[2] + dL)));
+  }
+
+  function buildGradientCss(fromHex, grad) {
+    if (!fromHex || !grad || !grad.to) { return null; }
+    var dir = GRADIENT_DIRS.indexOf(grad.dir) >= 0 ? grad.dir : '135deg';
+    if (dir === 'radial') {
+      return 'radial-gradient(circle at 18% 15%, ' + grad.to + ' 0%, ' + fromHex + ' 82%)';
+    }
+    return 'linear-gradient(' + dir + ', ' + fromHex + ', ' + grad.to + ')';
   }
 
   function rgbTriplet(hex) {
@@ -251,9 +343,9 @@
     return null;
   }
 
-  /* Expand a custom theme's { base, colors } into the full set of CSS custom
-     properties needed by styles.css (including derived *-rgb and waveform alphas). */
-  function expandVars(base, colors) {
+  /* Expand a custom theme's { base, colors, gradients } into the full set of CSS custom
+     properties needed by styles.css (including derived *-rgb, *-grad, and waveform alphas). */
+  function expandVars(base, colors, gradients) {
     var preset = BASE_PRESETS[base] || BASE_PRESETS.studio;
     var merged = Object.assign({}, preset, colors || {});
     var vars = {};
@@ -268,9 +360,17 @@
     direct.forEach(function (k) {
       if (merged[k]) { vars[k] = merged[k]; }
     });
+    // Optional surface & fill gradients (base hex remains intact for borders & color-mix)
+    var grads = gradients || {};
+    Object.keys(GRADIENT_TOKENS).forEach(function (k) {
+      if (grads[k] && grads[k].to && merged[k]) {
+        var css = buildGradientCss(merged[k], grads[k]);
+        if (css) { vars[k + '-grad'] = css; }
+      }
+    });
     // Ensure Studio Slate panel/input backgrounds follow the custom theme too
-    vars['--ui-panel-bg'] = merged['--panel'];
-    vars['--ui-input-bg'] = merged['--input-bg'];
+    vars['--ui-panel-bg'] = vars['--panel-grad'] || merged['--panel'];
+    vars['--ui-input-bg'] = vars['--input-bg-grad'] || merged['--input-bg'];
     vars['--accent'] = merged['--accent-a'];
     vars['--song'] = merged['--song-a'];
     vars['--play-bg-hover'] = merged['--text-strong'];
@@ -335,7 +435,7 @@
     var base = BASE_PRESETS[themeObj.base] ? themeObj.base : 'studio';
     if (base === 'dark') { delete root.dataset.theme; } else { root.dataset.theme = base; }
     root.dataset.customTheme = themeObj.id || 'preview';
-    var vars = expandVars(base, themeObj.colors || {});
+    var vars = expandVars(base, themeObj.colors || {}, themeObj.gradients || {});
     Object.keys(vars).forEach(function (k) {
       root.style.setProperty(k, vars[k]);
       APPLIED_KEYS.push(k);
@@ -370,13 +470,25 @@
     name: '',
     base: 'studio',
     colors: {},           // full hex map for all tokens
+    gradients: {},        // { token: { to: '#rrggbb', dir: '135deg'|'180deg'|'90deg'|'radial' } }
+    openTint: null,       // token name whose Grade/Tint drawer is expanded
     tab: 'main',          // 'main' | 'editor' | 'jam'
     waveKind: null,       // null = auto per tab, else 'song' | 'cover' | 'inst' | 'default'
-    liveApp: false,       // live-preview on the real page behind the modal
     openGroups: { surfaces: true, text: true, accents: true, origins: false, status: false, inputs: false, waveforms: false },
     saving: false,
     error: ''
   };
+
+  function cloneGradients(src) {
+    var out = {};
+    if (!src) { return out; }
+    Object.keys(src).forEach(function (k) {
+      if (GRADIENT_TOKENS[k] && src[k] && src[k].to) {
+        out[k] = { to: src[k].to, dir: src[k].dir || '135deg' };
+      }
+    });
+    return out;
+  }
 
   function currentActiveBase() {
     var chosen = (typeof setting === 'function') ? setting('appearance.theme', 'studio') : 'studio';
@@ -399,13 +511,15 @@
       Builder.name = existing.name;
       Builder.base = BASE_PRESETS[existing.base] ? existing.base : 'studio';
       Builder.colors = Object.assign({}, BASE_PRESETS[Builder.base], existing.colors || {});
+      Builder.gradients = cloneGradients(existing.gradients);
     } else {
       Builder.editId = null;
       Builder.name = '';
       Builder.base = currentActiveBase();
       Builder.colors = Object.assign({}, BASE_PRESETS[Builder.base]);
+      Builder.gradients = {};
     }
-    Builder.liveApp = false;
+    Builder.openTint = null;
     Builder.waveKind = null;
     Builder.saving = false;
     Builder.error = '';
@@ -420,25 +534,20 @@
     var modal = document.getElementById('theme-modal');
     if (!Builder.open) { return; }
     Builder.open = false;
-    if (Builder.liveApp) {
-      Builder.liveApp = false;
-      if (typeof applyTheme === 'function') { applyTheme(); }
-    }
     if (modal) { modal.classList.add('hidden'); }
   }
 
   function applyDraftToStage() {
     var stage = document.getElementById('tm-stage');
-    var vars = expandVars(Builder.base, Builder.colors);
+    var vars = expandVars(Builder.base, Builder.colors, Builder.gradients);
     if (stage) {
       stage.dataset.theme = Builder.base;
       var uiStyle = (typeof setting === 'function') ? setting('appearance.ui_style', 'slate') : 'slate';
       if (uiStyle && uiStyle !== 'default') { stage.dataset.uiStyle = uiStyle; } else { delete stage.dataset.uiStyle; }
+      Object.keys(GRADIENT_TOKENS).forEach(function (k) {
+        if (!vars[k + '-grad']) { stage.style.removeProperty(k + '-grad'); }
+      });
       Object.keys(vars).forEach(function (k) { stage.style.setProperty(k, vars[k]); });
-    }
-    if (Builder.liveApp) {
-      applyCustomObject({ id: Builder.editId || 'preview', base: Builder.base, colors: Builder.colors }, false);
-      if (typeof repaintTheme === 'function') { repaintTheme(); }
     }
   }
 
@@ -729,6 +838,98 @@
     return mockMainHtml();
   }
 
+  function tintDrawerHtml(tok, val) {
+    var shadeSteps = [-24, -15, -7, 0, 8, 17, 28];
+    var rampHtml = shadeSteps.map(function (dL) {
+      var hex = dL === 0 ? val : shiftHex(val, 0, 0, dL);
+      var isCur = dL === 0;
+      return '<button type="button" class="tm-tint-chip' + (isCur ? ' current' : '') + '" data-tm-pick-tint="' + tok + '" data-hex="' + escHtml(hex) + '" style="background:' + escHtml(hex) + '" title="' + escHtml(hex) + '"></button>';
+    }).join('');
+
+    var nudges = [
+      [t('Muted'), shiftHex(val, 0, -22, 0)],
+      [t('Richer'), shiftHex(val, 0, 20, 0)],
+      [t('Warmer'), nudgeTowardHue(val, 32)],
+      [t('Cooler'), nudgeTowardHue(val, 215)]
+    ];
+    var nudgesHtml = nudges.map(function (item) {
+      return '<button type="button" class="tm-tone-btn" data-tm-pick-tint="' + tok + '" data-hex="' + escHtml(item[1]) + '">' +
+        '<i class="tm-tone-dot" style="background:' + escHtml(item[1]) + '"></i>' + escHtml(item[0]) +
+      '</button>';
+    }).join('');
+
+    var gradHtml = '';
+    if (GRADIENT_TOKENS[tok]) {
+      var g = Builder.gradients[tok] || null;
+      var toVal = (g && g.to) || suggestGradientEnd(val);
+      var dirVal = (g && g.dir) || '135deg';
+      var dirOpts = [
+        ['135deg', '\u2198 135\u00B0'],
+        ['180deg', '\u2193 180\u00B0'],
+        ['90deg', '\u2192 90\u00B0'],
+        ['radial', '\u25C9 ' + t('Glow')]
+      ];
+      gradHtml =
+        '<div class="tm-grad-box">' +
+          '<label class="tm-grad-toggle">' +
+            '<input type="checkbox" data-tm-grad-toggle="' + tok + '"' + (g ? ' checked' : '') + '> ' +
+            '<span>' + t('Gradient blend') + '</span>' +
+          '</label>' +
+          (g
+            ? '<div class="tm-grad-controls">' +
+                '<div class="tm-grad-stop">' +
+                  '<span class="muted small">' + t('Second colour') + '</span>' +
+                  '<input type="color" class="tm-swatch" data-tm-grad-color="' + tok + '" value="' + escHtml(toVal) + '" aria-label="' + t('Second colour') + '">' +
+                  '<input type="text" class="tm-hex" data-tm-grad-hex="' + tok + '" value="' + escHtml(toVal) + '" maxlength="7" spellcheck="false" aria-label="' + t('Second colour') + ' hex">' +
+                '</div>' +
+                '<div class="tm-grad-dirs">' +
+                  dirOpts.map(function (opt) {
+                    return '<button type="button" class="tm-dir-btn' + (dirVal === opt[0] ? ' active' : '') + '" data-tm-grad-dir="' + tok + '" data-dir="' + opt[0] + '">' + escHtml(opt[1]) + '</button>';
+                  }).join('') +
+                '</div>' +
+              '</div>'
+            : '') +
+        '</div>';
+    }
+
+    return '<div class="tm-tint-drawer" data-tm-drawer="' + tok + '">' +
+      '<div class="tm-tint-lbl">' + t('Tints & shades') + '</div>' +
+      '<div class="tm-tint-ramp">' + rampHtml + '</div>' +
+      '<div class="tm-tone-row">' + nudgesHtml + '</div>' +
+      gradHtml +
+    '</div>';
+  }
+
+  function tokenItemHtml(tok, label, preset) {
+    var val = Builder.colors[tok] || preset[tok] || '#000000';
+    var grad = Builder.gradients[tok] || null;
+    var hasGrad = Boolean(grad && grad.to);
+    var changed = hasGrad || val.toLowerCase() !== (preset[tok] || '').toLowerCase();
+    var isOpen = Builder.openTint === tok;
+    var tintTitle = GRADIENT_TOKENS[tok] ? t('Tints, shades & gradient') : t('Tints & shades');
+    return '<div class="tm-token-item" data-tm-item="' + tok + '">' +
+      '<div class="tm-color-row' + (changed ? ' changed' : '') + (hasGrad ? ' has-grad' : '') + '" data-token="' + tok + '">' +
+        '<span class="tm-color-lbl">' + escHtml(label) + '</span>' +
+        '<input type="color" class="tm-swatch" data-tm-color="' + tok + '" value="' + escHtml(val) + '" aria-label="' + escHtml(label) + '">' +
+        '<input type="text" class="tm-hex" data-tm-hex="' + tok + '" value="' + escHtml(val) + '" maxlength="7" spellcheck="false" aria-label="' + escHtml(label) + ' hex">' +
+        '<button type="button" class="tm-tint-btn' + (isOpen ? ' open' : '') + (hasGrad ? ' has-grad' : '') + '" data-tm-tint="' + tok + '" title="' + tintTitle + '" aria-expanded="' + (isOpen ? 'true' : 'false') + '" aria-label="' + tintTitle + '">' +
+          '<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg>' +
+        '</button>' +
+        '<button type="button" class="tm-reset-one" data-tm-reset="' + tok + '" title="' + t('Reset to base colour') + '"' + (changed ? '' : ' disabled') + '>&circlearrowleft;</button>' +
+      '</div>' +
+      (isOpen ? tintDrawerHtml(tok, val) : '') +
+    '</div>';
+  }
+
+  function refreshTokenItem(tok) {
+    var wrap = document.querySelector('#tm-controls .tm-token-item[data-tm-item="' + tok + '"]');
+    if (!wrap) { return; }
+    var labelEl = wrap.querySelector('.tm-color-lbl');
+    var label = labelEl ? labelEl.textContent : tok;
+    var preset = BASE_PRESETS[Builder.base] || BASE_PRESETS.studio;
+    wrap.outerHTML = tokenItemHtml(tok, label, preset);
+  }
+
   function paintBuilder() {
     var box = document.getElementById('theme-modal-box');
     if (!box) { return; }
@@ -757,16 +958,7 @@
     var groupsHtml = groups.map(function (g) {
       var isOpen = Boolean(Builder.openGroups[g.id]);
       var rows = g.items.map(function (pair) {
-        var tok = pair[0];
-        var label = pair[1];
-        var val = Builder.colors[tok] || preset[tok] || '#000000';
-        var changed = val.toLowerCase() !== (preset[tok] || '').toLowerCase();
-        return '<div class="tm-color-row' + (changed ? ' changed' : '') + '" data-token="' + tok + '">' +
-          '<span class="tm-color-lbl">' + escHtml(label) + '</span>' +
-          '<input type="color" class="tm-swatch" data-tm-color="' + tok + '" value="' + escHtml(val) + '" aria-label="' + escHtml(label) + '">' +
-          '<input type="text" class="tm-hex" data-tm-hex="' + tok + '" value="' + escHtml(val) + '" maxlength="7" spellcheck="false" aria-label="' + escHtml(label) + ' hex">' +
-          '<button type="button" class="tm-reset-one" data-tm-reset="' + tok + '" title="' + t('Reset to base colour') + '"' + (changed ? '' : ' disabled') + '>&circlearrowleft;</button>' +
-        '</div>';
+        return tokenItemHtml(pair[0], pair[1], preset);
       }).join('');
       return '<details class="tm-group" data-tm-group="' + g.id + '"' + (isOpen ? ' open' : '') + '>' +
         '<summary>' + escHtml(g.title) + '</summary>' +
@@ -789,9 +981,6 @@
         '<label class="tm-field"><span>' + t('Base theme') + '</span>' + baseSelectHtml + '</label>' +
         '<div class="tm-meta-tools">' +
           '<button type="button" class="ghost small" data-tm-act="reset-all" title="' + t('Reset all colours to the selected base theme') + '">' + t('Reset colours') + '</button>' +
-          '<label class="tm-live-chk" title="' + t('Temporarily preview this theme on the live app behind the window') + '">' +
-            '<input type="checkbox" id="tm-live-app"' + (Builder.liveApp ? ' checked' : '') + '> ' + t('Preview on app') +
-          '</label>' +
         '</div>' +
       '</div>' +
       '<div class="tm-body">' +
@@ -844,7 +1033,8 @@
     else if (tok === '--wave-inst') { Builder.waveKind = 'inst'; setStageWaveKind('inst'); }
     else if (tok === '--wave-default') { Builder.waveKind = 'default'; setStageWaveKind('default'); }
     var preset = BASE_PRESETS[Builder.base] || BASE_PRESETS.studio;
-    var changed = hex.toLowerCase() !== (preset[tok] || '').toLowerCase();
+    var hasGrad = Boolean(Builder.gradients[tok] && Builder.gradients[tok].to);
+    var changed = hasGrad || hex.toLowerCase() !== (preset[tok] || '').toLowerCase();
     var row = document.querySelector('#tm-controls .tm-color-row[data-token="' + tok + '"]');
     if (row) {
       row.classList.toggle('changed', changed);
@@ -854,6 +1044,12 @@
       if (sw && sw.value.toLowerCase() !== hex) { sw.value = hex; }
       if (hx && document.activeElement !== hx) { hx.value = hex; }
       if (rs) { rs.disabled = !changed; }
+    }
+    if (Builder.openTint === tok) {
+      var drawer = document.querySelector('#tm-controls .tm-tint-drawer[data-tm-drawer="' + tok + '"]');
+      if (drawer && (!document.activeElement || !drawer.contains(document.activeElement))) {
+        drawer.outerHTML = tintDrawerHtml(tok, hex);
+      }
     }
     applyDraftToStage();
   }
@@ -878,10 +1074,10 @@
           name: name,
           base: Builder.base,
           colors: Builder.colors,
+          gradients: Builder.gradients,
           apply: true
         })
       });
-      Builder.liveApp = false;
       if (res && res.settings && typeof adoptSettings === 'function') {
         adoptSettings(res.settings);
       }
@@ -916,7 +1112,6 @@
       if (typeof paintSettings === 'function') { paintSettings(); }
       if (typeof toast === 'function') { toast(t('Removed theme “{name}”.', { name: target.name })); }
       if (fromBuilder) {
-        Builder.liveApp = false;
         closeBuilder();
       }
     } catch (err) {
@@ -957,11 +1152,41 @@
         setStageWaveKind(nextKind);
         return;
       }
+      var tintBtn = event.target.closest('[data-tm-tint]');
+      if (tintBtn) {
+        var tokT = tintBtn.dataset.tmTint;
+        var prevOpen = Builder.openTint;
+        Builder.openTint = (prevOpen === tokT) ? null : tokT;
+        if (prevOpen && prevOpen !== tokT) { refreshTokenItem(prevOpen); }
+        refreshTokenItem(tokT);
+        return;
+      }
+      var pickTint = event.target.closest('[data-tm-pick-tint]');
+      if (pickTint) {
+        var tokP = pickTint.dataset.tmPickTint;
+        var hexP = normalizeHex(pickTint.dataset.hex);
+        if (tokP && hexP) { updateTokenValue(tokP, hexP); }
+        return;
+      }
+      var dirBtn = event.target.closest('[data-tm-grad-dir]');
+      if (dirBtn) {
+        var tokD = dirBtn.dataset.tmGradDir;
+        var dir = dirBtn.dataset.dir;
+        if (GRADIENT_TOKENS[tokD] && Builder.gradients[tokD] && GRADIENT_DIRS.indexOf(dir) >= 0) {
+          Builder.gradients[tokD].dir = dir;
+          refreshTokenItem(tokD);
+          applyDraftToStage();
+        }
+        return;
+      }
       var resetOne = event.target.closest('[data-tm-reset]');
       if (resetOne && !resetOne.disabled) {
         var tok = resetOne.dataset.tmReset;
         var preset = BASE_PRESETS[Builder.base] || BASE_PRESETS.studio;
-        if (preset[tok]) { updateTokenValue(tok, preset[tok]); }
+        delete Builder.gradients[tok];
+        if (preset[tok]) { Builder.colors[tok] = preset[tok]; }
+        refreshTokenItem(tok);
+        applyDraftToStage();
         return;
       }
       var actBtn = event.target.closest('[data-tm-act]');
@@ -972,6 +1197,8 @@
       if (act === 'delete' && Builder.editId) { deleteSavedTheme(Builder.editId, true); return; }
       if (act === 'reset-all') {
         Builder.colors = Object.assign({}, BASE_PRESETS[Builder.base] || BASE_PRESETS.studio);
+        Builder.gradients = {};
+        Builder.openTint = null;
         paintBuilder();
         return;
       }
@@ -994,6 +1221,28 @@
         if (norm) { updateTokenValue(tg.dataset.tmHex, norm); }
         return;
       }
+      if (tg.dataset && tg.dataset.tmGradColor) {
+        var gTok = tg.dataset.tmGradColor;
+        var gHex = normalizeHex(tg.value);
+        if (gHex && GRADIENT_TOKENS[gTok]) {
+          Builder.gradients[gTok] = { to: gHex, dir: (Builder.gradients[gTok] && Builder.gradients[gTok].dir) || '135deg' };
+          var gHx = modal.querySelector('[data-tm-grad-hex="' + gTok + '"]');
+          if (gHx && document.activeElement !== gHx) { gHx.value = gHex; }
+          applyDraftToStage();
+        }
+        return;
+      }
+      if (tg.dataset && tg.dataset.tmGradHex) {
+        var ghTok = tg.dataset.tmGradHex;
+        var ghHex = normalizeHex(tg.value);
+        if (ghHex && GRADIENT_TOKENS[ghTok]) {
+          Builder.gradients[ghTok] = { to: ghHex, dir: (Builder.gradients[ghTok] && Builder.gradients[ghTok].dir) || '135deg' };
+          var gSw = modal.querySelector('[data-tm-grad-color="' + ghTok + '"]');
+          if (gSw) { gSw.value = ghHex; }
+          applyDraftToStage();
+        }
+        return;
+      }
     });
 
     modal.addEventListener('change', function (event) {
@@ -1007,6 +1256,8 @@
             Builder.name = existing.name;
             Builder.base = BASE_PRESETS[existing.base] ? existing.base : 'studio';
             Builder.colors = Object.assign({}, BASE_PRESETS[Builder.base], existing.colors || {});
+            Builder.gradients = cloneGradients(existing.gradients);
+            Builder.openTint = null;
             Builder.error = '';
             paintBuilder();
           }
@@ -1015,6 +1266,8 @@
           Builder.name = '';
           Builder.base = currentActiveBase();
           Builder.colors = Object.assign({}, BASE_PRESETS[Builder.base]);
+          Builder.gradients = {};
+          Builder.openTint = null;
           Builder.error = '';
           paintBuilder();
         }
@@ -1037,12 +1290,28 @@
         paintBuilder();
         return;
       }
-      if (tg.id === 'tm-live-app') {
-        Builder.liveApp = tg.checked;
-        if (Builder.liveApp) {
+      if (tg.dataset && tg.dataset.tmGradToggle) {
+        var tTok = tg.dataset.tmGradToggle;
+        if (GRADIENT_TOKENS[tTok]) {
+          if (tg.checked) {
+            var baseHex = Builder.colors[tTok] || (BASE_PRESETS[Builder.base] || BASE_PRESETS.studio)[tTok] || '#14141a';
+            Builder.gradients[tTok] = { to: suggestGradientEnd(baseHex), dir: '135deg' };
+          } else {
+            delete Builder.gradients[tTok];
+          }
+          refreshTokenItem(tTok);
           applyDraftToStage();
-        } else if (typeof applyTheme === 'function') {
-          applyTheme();
+        }
+        return;
+      }
+      if (tg.dataset && tg.dataset.tmGradHex) {
+        var ghTok2 = tg.dataset.tmGradHex;
+        var ghNorm = normalizeHex(tg.value);
+        if (ghNorm && GRADIENT_TOKENS[ghTok2]) {
+          Builder.gradients[ghTok2] = { to: ghNorm, dir: (Builder.gradients[ghTok2] && Builder.gradients[ghTok2].dir) || '135deg' };
+          applyDraftToStage();
+        } else if (Builder.gradients[ghTok2]) {
+          tg.value = Builder.gradients[ghTok2].to;
         }
         return;
       }

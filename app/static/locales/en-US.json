@@ -82,5 +82,6 @@
  "Reset all colours to the selected base theme": "Reset all colors to the selected base theme",
  "Reset colours": "Reset colors",
  "Colour value must be a hex string like #7b5cff": "Color value must be a hex string like #7b5cff",
- "Invalid hex colour: {value}": "Invalid hex color: {value}"
+ "Invalid hex colour: {value}": "Invalid hex color: {value}",
+ "Second colour": "Second color"
 }

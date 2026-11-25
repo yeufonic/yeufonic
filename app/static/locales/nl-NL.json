@@ -3175,8 +3175,6 @@
  "Base theme": "Basisthema",
  "Reset all colours to the selected base theme": "Alle kleuren terugzetten naar het gekozen basisthema",
  "Reset colours": "Kleuren resetten",
- "Temporarily preview this theme on the live app behind the window": "Toon dit thema tijdelijk live op de app achter het venster",
- "Preview on app": "Voorbeeld op app",
  "Main page": "Hoofdpagina",
  "Editor page": "Editorpagina",
  "Live mock-up": "Live voorbeeld",
@@ -3201,5 +3199,17 @@
  "Base theme must be one of {join}": "Basisthema moet een van {join} zijn",
  "At most {MAX_THEMES} custom themes can be saved": "Er kunnen maximaal {MAX_THEMES} aangepaste thema’s worden opgeslagen",
  "A custom theme named '{clean}' already exists": "Er bestaat al een aangepast thema met de naam ‘{clean}’",
- "Jam page": "Jam-pagina"
+ "Jam page": "Jam-pagina",
+ "Muted": "Gedempt",
+ "Richer": "Voller",
+ "Warmer": "Warmer",
+ "Cooler": "Koeler",
+ "Glow": "Gloed",
+ "Gradient blend": "Kleurverloop",
+ "Second colour": "Tweede kleur",
+ "Tints & shades": "Tinten & schakeringen",
+ "Tints, shades & gradient": "Tinten, schakeringen & verloop",
+ "gradients must be an object mapping token names to gradient settings": "gradients moet een object zijn dat tokennamen aan verloopinstellingen koppelt",
+ "Gradient for {key} must be an object with 'to' and 'dir'": "Verloop voor {key} moet een object met 'to' en 'dir' zijn",
+ "Gradient direction must be one of {join}": "Verlooprichting moet een van deze zijn: {join}"
 }

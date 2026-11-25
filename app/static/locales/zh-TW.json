@@ -3175,8 +3175,6 @@
  "Base theme": "基礎主題",
  "Reset all colours to the selected base theme": "將所有顏色恢復為所選基礎主題",
  "Reset colours": "重設顏色",
- "Temporarily preview this theme on the live app behind the window": "在視窗後的實際介面上暫時預覽此主題",
- "Preview on app": "在應用程式上預覽",
  "Main page": "主頁面",
  "Editor page": "編輯器頁面",
  "Live mock-up": "即時預覽",
@@ -3201,5 +3199,17 @@
  "Base theme must be one of {join}": "基礎主題必須是 {join} 之一",
  "At most {MAX_THEMES} custom themes can be saved": "最多只能儲存 {MAX_THEMES} 個自訂主題",
  "A custom theme named '{clean}' already exists": "已存在名為「{clean}」的自訂主題",
- "Jam page": "Jam 頁面"
+ "Jam page": "Jam 頁面",
+ "Muted": "柔和",
+ "Richer": "濃郁",
+ "Warmer": "偏暖",
+ "Cooler": "偏冷",
+ "Glow": "光暈",
+ "Gradient blend": "漸層混合",
+ "Second colour": "第二顏色",
+ "Tints & shades": "明暗與色調",
+ "Tints, shades & gradient": "明暗、色調與漸層",
+ "gradients must be an object mapping token names to gradient settings": "gradients 必須是將權杖名稱對應至漸層設定的物件",
+ "Gradient for {key} must be an object with 'to' and 'dir'": "{key} 的漸層必須是包含 'to' 與 'dir' 的物件",
+ "Gradient direction must be one of {join}": "漸層方向必須為以下之一：{join}"
 }

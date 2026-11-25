@@ -3175,8 +3175,6 @@
  "Base theme": "Tema di base",
  "Reset all colours to the selected base theme": "Ripristina tutti i colori del tema di base selezionato",
  "Reset colours": "Ripristina colori",
- "Temporarily preview this theme on the live app behind the window": "Anteprima temporanea di questo tema sull’app dietro la finestra",
- "Preview on app": "Anteprima sull’app",
  "Main page": "Pagina principale",
  "Editor page": "Pagina editor",
  "Live mock-up": "Anteprima dal vivo",
@@ -3201,5 +3199,17 @@
  "Base theme must be one of {join}": "Il tema di base deve essere uno tra {join}",
  "At most {MAX_THEMES} custom themes can be saved": "È possibile salvare al massimo {MAX_THEMES} temi personalizzati",
  "A custom theme named '{clean}' already exists": "Esiste già un tema personalizzato chiamato ‘{clean}’",
- "Jam page": "Pagina Jam"
+ "Jam page": "Pagina Jam",
+ "Muted": "Attenuato",
+ "Richer": "Più ricco",
+ "Warmer": "Più caldo",
+ "Cooler": "Più freddo",
+ "Glow": "Bagliore",
+ "Gradient blend": "Sfumatura",
+ "Second colour": "Secondo colore",
+ "Tints & shades": "Tinte e tonalità",
+ "Tints, shades & gradient": "Tinte, tonalità e sfumatura",
+ "gradients must be an object mapping token names to gradient settings": "gradients deve essere un oggetto che associa i nomi dei token alle impostazioni di sfumatura",
+ "Gradient for {key} must be an object with 'to' and 'dir'": "La sfumatura per {key} deve essere un oggetto con 'to' e 'dir'",
+ "Gradient direction must be one of {join}": "La direzione della sfumatura deve essere una tra: {join}"
 }

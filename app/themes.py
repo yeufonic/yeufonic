@@ -70,6 +70,22 @@ COLOR_TOKENS = (
 )
 COLOR_TOKEN_SET = frozenset(COLOR_TOKENS)
 
+# Surface & fill tokens that also support an optional 2-colour gradient.
+GRADIENT_TOKENS = (
+    "--bg",
+    "--bg-2",
+    "--panel",
+    "--card",
+    "--card-2",
+    "--card-3",
+    "--play-bg",
+    "--input-bg",
+    "--menu-bg",
+    "--menu-head-bg",
+)
+GRADIENT_TOKEN_SET = frozenset(GRADIENT_TOKENS)
+VALID_GRADIENT_DIRS = ("135deg", "180deg", "90deg", "radial")
+
 _HEX_RE = re.compile(r"^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
 
@@ -100,6 +116,29 @@ def validate_colors(colors: Any) -> dict[str, str]:
         if val is None or val == "":
             continue
         out[key] = normalize_hex(val)
+    return out
+
+
+def validate_gradients(gradients: Any) -> dict[str, dict[str, str]]:
+    """Return a clean dict of valid {token: {'to': '#rrggbb', 'dir': '...'}} overrides."""
+    if gradients is None:
+        return {}
+    if not isinstance(gradients, dict):
+        raise ValueError("gradients must be an object mapping token names to gradient settings")
+    out: dict[str, dict[str, str]] = {}
+    for key, val in gradients.items():
+        if key not in GRADIENT_TOKEN_SET or val is None:
+            continue
+        if not isinstance(val, dict):
+            raise ValueError(f"Gradient for {key} must be an object with 'to' and 'dir'")
+        to_raw = val.get("to")
+        if not to_raw:
+            continue
+        to_hex = normalize_hex(to_raw)
+        direction = str(val.get("dir") or "135deg").strip().lower()
+        if direction not in VALID_GRADIENT_DIRS:
+            raise ValueError(f"Gradient direction must be one of {', '.join(VALID_GRADIENT_DIRS)}")
+        out[key] = {"to": to_hex, "dir": direction}
     return out
 
 
@@ -148,11 +187,16 @@ def list_themes() -> list[dict[str, Any]]:
             colors = validate_colors(item.get("colors") or {})
         except ValueError:
             colors = {}
+        try:
+            gradients = validate_gradients(item.get("gradients") or {})
+        except ValueError:
+            gradients = {}
         out.append({
             "id": str(item["id"]),
             "name": str(item["name"]),
             "base": base,
             "colors": colors,
+            "gradients": gradients,
             "updated_at": float(item.get("updated_at") or item.get("created_at") or 0),
         })
     return out
@@ -169,19 +213,26 @@ def get_theme(theme_id: str) -> dict[str, Any] | None:
     return None
 
 
-def create_theme(name: str, base: str = "studio", colors: dict[str, str] | None = None) -> dict[str, Any]:
+def create_theme(
+    name: str,
+    base: str = "studio",
+    colors: dict[str, str] | None = None,
+    gradients: dict[str, dict[str, str]] | None = None,
+) -> dict[str, Any]:
     items = list_themes()
     if len(items) >= MAX_THEMES:
         raise ValueError(f"At most {MAX_THEMES} custom themes can be saved")
     clean_name = validate_name(name, items)
     clean_base = validate_base(base)
     clean_colors = validate_colors(colors or {})
+    clean_gradients = validate_gradients(gradients or {})
     now = time.time()
     created = {
         "id": uuid.uuid4().hex[:10],
         "name": clean_name,
         "base": clean_base,
         "colors": clean_colors,
+        "gradients": clean_gradients,
         "updated_at": now,
     }
     items.append(created)
@@ -194,6 +245,7 @@ def update_theme(
     name: str | None = None,
     base: str | None = None,
     colors: dict[str, str] | None = None,
+    gradients: dict[str, dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     items = list_themes()
     target = next((item for item in items if item["id"] == theme_id), None)
@@ -205,6 +257,8 @@ def update_theme(
         target["base"] = validate_base(base)
     if colors is not None:
         target["colors"] = validate_colors(colors)
+    if gradients is not None:
+        target["gradients"] = validate_gradients(gradients)
     target["updated_at"] = time.time()
     _save_all(items)
     return target

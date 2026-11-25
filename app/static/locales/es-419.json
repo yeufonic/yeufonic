@@ -3175,8 +3175,6 @@
  "Base theme": "Tema base",
  "Reset all colours to the selected base theme": "Restablecer todos los colores al tema base seleccionado",
  "Reset colours": "Restablecer colores",
- "Temporarily preview this theme on the live app behind the window": "Previsualizar temporalmente este tema en la app detrás de la ventana",
- "Preview on app": "Vista previa en la app",
  "Main page": "Página principal",
  "Editor page": "Página del editor",
  "Live mock-up": "Vista previa en vivo",
@@ -3201,5 +3199,17 @@
  "Base theme must be one of {join}": "El tema base debe ser uno de {join}",
  "At most {MAX_THEMES} custom themes can be saved": "Se pueden guardar como máximo {MAX_THEMES} temas personalizados",
  "A custom theme named '{clean}' already exists": "Ya existe un tema personalizado llamado '{clean}'",
- "Jam page": "Página de Jam"
+ "Jam page": "Página de Jam",
+ "Muted": "Suave",
+ "Richer": "Más intenso",
+ "Warmer": "Más cálido",
+ "Cooler": "Más frío",
+ "Glow": "Resplandor",
+ "Gradient blend": "Degradado",
+ "Second colour": "Segundo color",
+ "Tints & shades": "Tintes y matices",
+ "Tints, shades & gradient": "Tintes, matices y degradado",
+ "gradients must be an object mapping token names to gradient settings": "gradients debe ser un objeto que asocie nombres de tokens con ajustes de degradado",
+ "Gradient for {key} must be an object with 'to' and 'dir'": "El degradado de {key} debe ser un objeto con 'to' y 'dir'",
+ "Gradient direction must be one of {join}": "La dirección del degradado debe ser una de: {join}"
 }

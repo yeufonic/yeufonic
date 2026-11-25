@@ -3175,8 +3175,6 @@
  "Base theme": "ベーステーマ",
  "Reset all colours to the selected base theme": "すべての色を選択中のベーステーマに戻す",
  "Reset colours": "色をリセット",
- "Temporarily preview this theme on the live app behind the window": "ウィンドウの後ろのアプリ画面でこのテーマを一時プレビュー",
- "Preview on app": "アプリでプレビュー",
  "Main page": "メインページ",
  "Editor page": "エディターページ",
  "Live mock-up": "ライブモックアップ",
@@ -3201,5 +3199,17 @@
  "Base theme must be one of {join}": "ベーステーマは {join} のいずれかである必要があります",
  "At most {MAX_THEMES} custom themes can be saved": "カスタムテーマは最大 {MAX_THEMES} 件まで保存できます",
  "A custom theme named '{clean}' already exists": "「{clean}」という名前のカスタムテーマは既に存在します",
- "Jam page": "Jam ページ"
+ "Jam page": "Jam ページ",
+ "Muted": "控えめ",
+ "Richer": "鮮やか",
+ "Warmer": "暖色寄り",
+ "Cooler": "寒色寄り",
+ "Glow": "グロー",
+ "Gradient blend": "グラデーション",
+ "Second colour": "2番目の色",
+ "Tints & shades": "明暗・色調",
+ "Tints, shades & gradient": "明暗・色調・グラデーション",
+ "gradients must be an object mapping token names to gradient settings": "gradients はトークン名とグラデーション設定のマップである必要があります",
+ "Gradient for {key} must be an object with 'to' and 'dir'": "{key} のグラデーションには 'to' と 'dir' を含むオブジェクトが必要です",
+ "Gradient direction must be one of {join}": "グラデーションの方向は次のいずれかである必要があります: {join}"
 }
