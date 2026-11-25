@@ -380,4 +380,7 @@ def describe(persona: dict | None) -> str:
             + (", brightness off" if not clamp_brightness(persona.get("brightness")) else "")
             + f", protect {clamp_protect(persona.get('protect')):g}, dynamics {clamp_dynamics(persona.get('dynamics')):g}"
             + (f", formant {clamp_formant(persona.get('formant')):g}" if clamp_formant(persona.get("formant")) != 1.0 else "")
-            + (f", {round(100 * clamp_wet(persona.get('wet')))}% wet" if clamp_wet(persona.get("wet")) != 1.0 else ""))
+            + (f", {round(100 * clamp_wet(persona.get('wet')))}% wet" if clamp_wet(persona.get("wet")) != 1.0 else "")
+            + (f", tail gate {clamp_tail_gate(persona.get('tail_gate'))}" if clamp_tail_gate(persona.get("tail_gate")) != "standard" else "")
+            + (f", voicing {clamp_rmvpe_thred(persona.get('rmvpe_thred')):g}" if clamp_rmvpe_thred(persona.get("rmvpe_thred")) != 0.08 else "")
+            + (f", pitch floor {clamp_f0_floor(persona.get('f0_floor'))} Hz" if clamp_f0_floor(persona.get("f0_floor")) != 75 else ""))

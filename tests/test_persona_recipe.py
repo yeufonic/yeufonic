@@ -49,3 +49,40 @@ def test_an_import_picks_up_the_voice_of_that_name_or_says_there_is_none(client)
     assert got["missing_voice"] == "Somebody else"
     assert one("SELECT voice_id FROM takes WHERE id = ?", (got["id"],))["voice_id"] is None
     persona.delete(voice["id"])
+
+
+def test_voice_cleanup_thresholds_roundtrip_in_take_recipe_json(client):
+    import json
+    import pathlib
+
+    from app import persona
+    from app.db import execute, one
+    from tests.test_recipe import full_take
+
+    source = pathlib.Path(persona.folder("cleanuptest") / "source.wav")
+    source.write_bytes(b"RIFF....")
+    voice = persona.create("Cleanup voice", source=source)
+    take = full_take()
+    saved_mix = {
+        "octave": 0, "level_db": 3.0, "backing_db": 0.0, "likeness": 0.75, "room": 0.14,
+        "brightness": 1, "protect": 0.33, "dynamics": 0.25, "formant": 1.0, "wet": 1.0,
+        "tail_gate": "firm", "rmvpe_thred": 0.14, "f0_floor": 115,
+    }
+    execute("UPDATE takes SET voice_id = ?, voice_mix = ? WHERE id = ?",
+            (voice["id"], json.dumps(saved_mix), take["id"]))
+
+    # Exported recipe JSON holds tail_gate, rmvpe_thred, and f0_floor under take.voice_settings
+    exported = client.get(f"/api/takes/{take['id']}/recipe").json()
+    assert exported["take"]["voice"] == "Cleanup voice"
+    vs = exported["take"]["voice_settings"]
+    assert vs["tail_gate"] == "firm"
+    assert vs["rmvpe_thred"] == 0.14
+    assert vs["f0_floor"] == 115
+
+    # Importing that recipe restores those exact settings onto the imported take
+    imported = client.post("/api/takes/import", json={"recipe": exported}).json()
+    restored = json.loads(one("SELECT voice_mix FROM takes WHERE id = ?", (imported["id"],))["voice_mix"])
+    assert restored["tail_gate"] == "firm"
+    assert restored["rmvpe_thred"] == 0.14
+    assert restored["f0_floor"] == 115
+    persona.delete(voice["id"])
