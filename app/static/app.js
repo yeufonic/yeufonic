@@ -14760,9 +14760,9 @@ function closeCoverPopup(force) {
   pop.classList.remove('pinned');
 }
 
-/* Make a new picture with a new prompt: the art style for this one picture, typed in place of the one in Settings
-   (Take pictures: art style), which stays as it is.  The box starts with the style the take's picture would use now.
-   Resolves to the text, or null when cancelled. */
+/* Make a new picture with a new prompt: either a direct image prompt (drawn verbatim, skipping the LLM and
+   Settings) or an art style for this one picture (in place of Settings' art style, which stays as it is).
+   Resolves to { style, direct }, or null when cancelled. */
 function askPictureStyle(takeId) {
   return new Promise(function (resolve) {
     var modal = $('picstyle-modal');
@@ -14775,19 +14775,53 @@ function askPictureStyle(takeId) {
     modal.innerHTML =
       '<div class="modal-box narrow note-box">' +
         '<div class="modal-head"><strong>' + esc(t('Make a new picture with a new prompt')) + '</strong></div>' +
-        '<p class="hint" style="margin:0">' + esc(t('The art style for this picture only, in place of the one in Settings, which stays as it is.')) + '</p>' +
-        '<textarea id="picstyle-text" maxlength="4000" spellcheck="true"></textarea>' +
+        '<div class="picstyle-modes" role="radiogroup" aria-label="' + esc(t('Prompt mode')) + '">' +
+          '<button type="button" class="picstyle-mode active" data-mode="direct" aria-pressed="true">' + esc(t('Draw this prompt directly')) + '</button>' +
+          '<button type="button" class="picstyle-mode" data-mode="style" aria-pressed="false">' + esc(t('Use as art style')) + '</button>' +
+        '</div>' +
+        '<p class="hint" id="picstyle-hint" style="margin:0">' + esc(t('Sent straight to the image model as written — skips the LLM, art style, and Settings prompt.')) + '</p>' +
+        '<textarea id="picstyle-text" maxlength="4000" spellcheck="true" placeholder="' + esc(t('Describe the exact picture you want drawn…')) + '"></textarea>' +
         '<div class="row confirm-actions">' +
           '<button id="picstyle-cancel" class="ghost" type="button">' + esc(t('Cancel')) + '</button>' +
           '<button id="picstyle-go" class="primary" type="button">' + esc(t('Make the picture')) + '</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(modal);
+    var mode = 'direct';
+    var fetchedStyle = '';
+    var fetchedPrompt = '';
+    var setMode = function (next) {
+      mode = next === 'style' ? 'style' : 'direct';
+      modal.querySelectorAll('.picstyle-mode').forEach(function (b) {
+        var on = b.dataset.mode === mode;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      var hint = $('picstyle-hint');
+      var box = $('picstyle-text');
+      if (mode === 'direct') {
+        if (hint) { hint.textContent = t('Sent straight to the image model as written — skips the LLM, art style, and Settings prompt.'); }
+        if (box) {
+          box.placeholder = t('Describe the exact picture you want drawn…');
+          if (box.value === fetchedStyle) { box.value = fetchedPrompt; }
+        }
+      } else {
+        if (hint) { hint.textContent = t('The art style for this picture only, in place of the one in Settings, which stays as it is.'); }
+        if (box) {
+          box.placeholder = t('Describe the art style for the LLM…');
+          if (!box.value.trim() && fetchedStyle) { box.value = fetchedStyle; box.select(); }
+        }
+      }
+      if (box) { box.focus(); }
+    };
+    modal.querySelectorAll('.picstyle-mode').forEach(function (b) {
+      b.addEventListener('click', function () { setMode(this.dataset.mode); });
+    });
     var done = function (value) { modal.remove(); resolve(value); };
     var go = function () {
       var text = $('picstyle-text').value.trim();
       if (!text) { $('picstyle-text').focus(); return; }
-      done(text);
+      done({ style: text, direct: mode === 'direct' });
     };
     modal.addEventListener('click', function (event) { event.stopPropagation(); if (event.target === modal) { done(null); } });
     $('picstyle-cancel').addEventListener('click', function () { done(null); });
@@ -14799,16 +14833,26 @@ function askPictureStyle(takeId) {
     });
     $('picstyle-text').focus();
     api('/api/takes/' + takeId + '/art').then(function (art) {
+      if (!art) { return; }
+      fetchedStyle = art.style || '';
+      fetchedPrompt = art.prompt || '';
       var box = $('picstyle-text');
-      if (box && !box.value && art && art.style) { box.value = art.style; box.select(); }
+      if (box && !box.value && mode === 'direct' && fetchedPrompt) { box.value = fetchedPrompt; box.select(); }
+      if (box && !box.value && mode === 'style' && fetchedStyle) { box.value = fetchedStyle; box.select(); }
     }).catch(function () {});
   });
 }
 
-/* A new picture for a take, with an art style of its own when one is given. */
-function makePictureRequest(takeId, style) {
+/* A new picture for a take, with a direct prompt or an art style of its own when given. */
+function makePictureRequest(takeId, choice) {
   var options = { method: 'POST' };
-  if (style) { options.headers = { 'Content-Type': 'application/json' }; options.body = JSON.stringify({ style: style }); }
+  if (choice) {
+    var payload = typeof choice === 'string'
+      ? { style: choice }
+      : { style: choice.style, direct: Boolean(choice.direct) };
+    options.headers = { 'Content-Type': 'application/json' };
+    options.body = JSON.stringify(payload);
+  }
   return api('/api/takes/' + takeId + '/art', options);
 }
 

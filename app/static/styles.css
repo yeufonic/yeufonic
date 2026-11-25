@@ -8097,6 +8097,16 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 
 /* Make a new picture with a new prompt: over the whole-picture view and the card's popup. */
 .modal.picstyle-modal { z-index: 130; }
+.picstyle-modes {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px;
+  border-radius: 9px; background: var(--input-bg); border: 1px solid var(--input-border);
+}
+.picstyle-mode {
+  border: 0; border-radius: 6px; padding: 6px 10px; background: transparent; color: var(--muted);
+  font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s;
+}
+.picstyle-mode:hover { color: var(--text); }
+.picstyle-mode.active { background: var(--accent-a); color: #fff; }
 #picstyle-text { min-height: min(260px, 40vh); resize: vertical; font-size: 14px; line-height: 1.55; }
 /* Save: a take made from a recording can carry it (#60), a tick under Take, quiet while Take is off. */
 .save-recording { margin: 8px 0 0; font-size: 13.5px; }

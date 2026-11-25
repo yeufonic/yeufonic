@@ -150,6 +150,7 @@ def info(take_id: str) -> dict[str, Any]:
         # What a picture made now starts from: this take's own art style while one is being made with it, else
         # Settings' (the page fills its "with a new prompt" box with it).
         "style": STYLE_FOR.get(take_id) or art_style(),
+        "prompt": DIRECT_FOR.get(take_id) or "",
     }
 
 
@@ -233,6 +234,10 @@ PROMPT_BRIEF = ("Build the picture around one unexpected twist on an everyday sc
                 "really happened. "
                 "Describe a staged photograph of real objects: name each object, what it is made of, where it stands, "
                 "the sky and the light, and how it is photographed.")
+# Used in place of PROMPT_BRIEF whenever the user enters a custom art style (in Settings or per-take) so the
+# hidden Hipgnosis everyday-object brief never overrides what they asked for.
+CUSTOM_STYLE_BRIEF = ("Follow the album art style above faithfully. Describe a vivid, concrete visual scene — "
+                      "the subjects, setting, lighting, composition, and mood — without forcing unrelated objects.")
 PROMPT_LINES = 50               # the most lines of the words given: enough for a song, not a whole libretto
 
 
@@ -241,6 +246,18 @@ def own_words() -> str:
     spaces or punctuation left trailing."""
     text = re.sub(r"\s+", " ", get_setting("art.prompt", "") or "").strip()
     return text.rstrip(" ,.;:-\u2013\u2014").strip()
+
+
+def own_prompt_mode() -> str:
+    """How Settings' `art.prompt` is applied: "prefix" (starts the LLM's image prompt) or "replace" (drawn directly
+    in place of `art.style` and the LLM)."""
+    mode = (get_setting("art.prompt_mode", "prefix") or "prefix").strip().lower()
+    return "replace" if mode == "replace" else "prefix"
+
+
+def own_prompt_replaces() -> bool:
+    """Whether Settings' `art.prompt` replaces the LLM and `art.style` directly."""
+    return own_prompt_mode() == "replace" and bool(own_words())
 
 
 def with_own_words(prompt: str) -> str:
@@ -331,9 +348,12 @@ def with_wear(prompt: str) -> str:
     return f"{prompt.rstrip()}\n\n{KLEIN_WORN}"
 
 
-# An art style typed for one picture (Make a new picture with a new prompt), by take: used in place of Settings' for
-# that picture only, and dropped when the take's next picture starts without one (jobs.start_art).
+# An art style typed for one picture (Make a new picture with a new prompt -> art style mode), by take: used in
+# place of Settings' for that picture only, and dropped when the take's next picture starts without one.
 STYLE_FOR: dict[str, str] = {}
+# A literal image prompt typed for one picture (Make a new picture with a new prompt -> direct mode), by take:
+# sent straight to the image model as written, skipping the LLM, art style, Settings' own prompt, and sleeve wear.
+DIRECT_FOR: dict[str, str] = {}
 STYLE_MAX = 4000
 
 
@@ -343,6 +363,11 @@ def art_style(take_id: str | None = None) -> str:
     if own:
         return own
     return (get_setting("art.style", "") or "").strip() or DEFAULT_ART_STYLE
+
+
+def is_default_style(take_id: str | None = None) -> bool:
+    """Whether this take's picture is using the built-in Hipgnosis default art style."""
+    return art_style(take_id) == DEFAULT_ART_STYLE
 
 
 def song_words(lyrics: str, limit: int = PROMPT_LINES) -> str:
@@ -379,7 +404,7 @@ def description_request(take: dict, title_at: str | None = None) -> str:
     words = song_words(take.get("lyrics") or "")
     if words:
         parts.append(f"Lyrics:\n\n{words}")
-    parts.append(PROMPT_BRIEF)
+    parts.append(PROMPT_BRIEF if is_default_style(take.get("id")) else CUSTOM_STYLE_BRIEF)
     clear = title_clear_space(title_at)
     if clear:
         parts.append(f"Keep {clear} of the picture clear and uncluttered for the song's title, which is the only "
@@ -865,15 +890,17 @@ def klein_request(description: str, take: dict | None = None, title: str = "") -
                    scene, flags=re.IGNORECASE)
     title = title or clean_cover_title(take or {})
     scene = wordless_scene(scene, title)
+    custom_style = STYLE_FOR.get((take or {}).get("id") or "")
+    look = custom_style or KLEIN_LOOK
     parts = []
     if scene:
-        parts += [scene, KLEIN_LOOK]
+        parts += [scene, look]
     else:
-        parts.append(KLEIN_LOOK)
+        parts.append(look)
         mood = picture_mood(without_title(style, title))
         if mood:
             parts.append(f"Its mood: {mood}.")
-    if worn:
+    if worn and not custom_style:
         parts.append(KLEIN_WORN)
     parts.append(KLEIN_WORDLESS)
     return "\n\n".join(parts)

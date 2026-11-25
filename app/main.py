@@ -551,8 +551,23 @@ SETTINGS_SPEC: list[dict] = [
         "type": "textarea",
         "default": "",
         "max_length": 512,
-        "help": "Words to start every picture's image prompt with, such as \"salt marsh, overcast\" (up to 512 "
-                "characters). The image prompt the LLM writes follows them. Empty: none.",
+        "help": "Words or a full image prompt (up to 512 characters). By default, these start the LLM's image prompt; "
+                "switch the mode below to draw this prompt directly instead of art style and the LLM. Empty: none.",
+        "requires": {"pictures": "possible", "art.words": ["auto", "local", "external"]},
+        "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
+    },
+    {
+        "key": "art.prompt_mode",
+        "group": "art",
+        "label": "Take pictures: how your own prompt is used",
+        "type": "select",
+        "default": "prefix",
+        "options": [
+            {"value": "prefix", "label": "Start the LLM's prompt with it (combined)"},
+            {"value": "replace", "label": "Draw it directly instead of art style & LLM"},
+        ],
+        "help": "Combined puts your prompt at the start of the scene the LLM writes from the song. Draw directly "
+                "skips the art style and LLM altogether whenever your own prompt is filled in.",
         "requires": {"pictures": "possible", "art.words": ["auto", "local", "external"]},
         "requires_note": "Only when an LLM writes the image prompt: choose it under Take pictures: described by.",
     },
@@ -2773,8 +2788,10 @@ def take_art(take_id: str) -> dict:
 
 
 class TakeArtIn(BaseModel):
-    # An art style for this picture only, in place of Settings' (Make a new picture with a new prompt).
+    # An art style for this picture only, in place of Settings' — or, with direct=True, a literal image prompt
+    # sent straight to the image model (Make a new picture with a new prompt).
     style: str | None = Field(None, max_length=artwork.STYLE_MAX)
+    direct: bool = False
 
 
 @app.post("/api/takes/{take_id}/art")
@@ -2788,7 +2805,10 @@ async def make_take_art(take_id: str, body: TakeArtIn | None = None) -> dict:
     problem = artwork.drawing_problem()
     if problem:
         raise HTTPException(400, problem)
-    jobs.start_art(take_id, (body.style if body else None))
+    if body and body.direct:
+        jobs.start_art(take_id, body.style, direct=True)
+    else:
+        jobs.start_art(take_id, (body.style if body else None))
     return artwork.info(take_id)
 
 

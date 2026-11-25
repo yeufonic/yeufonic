@@ -706,16 +706,23 @@ def songs_in_flight() -> bool:
     return bool(one("SELECT 1 FROM takes WHERE status IN ('queued', 'running') LIMIT 1"))
 
 
-def start_art(take_id: str, style: str | None = None) -> None:
+def start_art(take_id: str, style: str | None = None, direct: bool = False) -> None:
     """Make the take's picture in the background.  Described by Gemma or drawn by FLUX.2 klein it waits until the
     GPU has no song work (ART_WAITING); described and drawn by the external provider it runs beside the render.
-    `style`: an art style typed for this one picture, in place of Settings'."""
-    if style and style.strip():
-        artwork.STYLE_FOR[take_id] = style.strip()[:artwork.STYLE_MAX]
-    else:
+    `style`: an art style typed for this one picture, in place of Settings' — or, when `direct` is True, a
+    literal image prompt sent straight to the image model without running an LLM."""
+    if direct and style and style.strip():
+        artwork.DIRECT_FOR[take_id] = style.strip()[:artwork.STYLE_MAX]
         artwork.STYLE_FOR.pop(take_id, None)
+    else:
+        artwork.DIRECT_FOR.pop(take_id, None)
+        if style and style.strip():
+            artwork.STYLE_FOR[take_id] = style.strip()[:artwork.STYLE_MAX]
+        else:
+            artwork.STYLE_FOR.pop(take_id, None)
     artwork.STATE[take_id] = {"state": "queued", "error": None, "started": time.time()}
-    if artwork.words_by_engine() or artwork.drawer() == "local":
+    skip_llm = bool(artwork.DIRECT_FOR.get(take_id) or (not artwork.STYLE_FOR.get(take_id) and artwork.own_prompt_replaces()))
+    if (not skip_llm and artwork.words_by_engine()) or artwork.drawer() == "local":
         if take_id not in ART_WAITING:
             ART_WAITING.append(take_id)
     else:
@@ -776,76 +783,87 @@ async def run_art(take_id: str, on_gpu: bool = False) -> None:
     try:
         began = time.time()
         artwork.STATE[take_id] = {"state": "writing", "error": None, "started": began}
-        if artwork.STYLE_FOR.get(take_id):
-            log.info("Picture for '%s' (%s) uses an art style typed for it: %s", take.get("title") or take_id, take_id,
-                     artwork.STYLE_FOR[take_id])
-        writes = artwork.describer()
-        failed_words = ""
-        if writes == "external" and take_id in _ART_WORDS_FALLBACK and artwork.gemma_ready():
-            writes = "gemma"
-        if take_id in _ART_WORDS_FALLBACK:
-            failed_words = f" ({llm.get_config().get('model', 'external LLM')} failed)"
-        if writes == "gemma" and not on_gpu:
-            _art_waits_for_gpu(take_id)
-            return
-        passed_over = artwork.words_passed_over()
-        if passed_over and take_id not in _ART_WORDS_FALLBACK:
-            log.warning("Picture for '%s' (%s): not described by the external LLM, as %s; %s instead",
-                        take.get("title") or take_id, take_id, passed_over,
-                        "Gemma on this PC" if writes == "gemma" else "the take's own scene")
-        worn = artwork.is_well_worn(take)
-        # An LLM's image prompt is drawn as it is; the take's own description is made into the drawer's prompt.
-        as_given = False
-        lettered = artwork.title_at(take) if writes in ("gemma", "external") else None
-        if writes == "take":
-            description = artwork.take_description(take, well_worn=worn)
-            writer = "its own title, style and words"
-        elif writes == "gemma":
-            try:
-                job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31,
-                                                                                lettered))
-                description = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
-                as_given = bool(description)
-                writer = f"Gemma on this PC{failed_words}"
-            except ArtYielded:
-                raise
-            except Exception as exc:
-                log.warning("Gemma failed to describe picture for '%s' (%s): %s; falling back to take description",
-                            take.get("title"), take_id, exc)
-                description = artwork.take_description(take, well_worn=worn)
-                writer = "its own title, style and words (Gemma failed)"
+        direct_prompt = artwork.DIRECT_FOR.get(take_id)
+        settings_direct = None if (direct_prompt or artwork.STYLE_FOR.get(take_id) or not artwork.own_prompt_replaces()) else artwork.own_words()
+        if direct_prompt or settings_direct:
+            full_prompt = direct_prompt or settings_direct
+            description = full_prompt
+            as_given = True
+            writer = "your prompt" if direct_prompt else "your own prompt"
+            log.info("Picture for '%s' (%s) draws %s directly without LLM",
+                     take.get("title") or take_id, take_id, writer)
         else:
-            try:
-                description = await artwork.describe_external(take, lettered)
-                as_given = bool(description)
-                writer = llm.get_config()["model"]
-            except Exception as exc:
-                llm.record_alert_from_exception(exc)
-                log.warning("External LLM failed to describe picture for '%s' (%s): %s; falling back to %s",
-                            take.get("title"), take_id, exc,
-                            "Gemma on this PC" if artwork.gemma_ready() else "take description")
-                artwork.record_external_words_failure(str(exc))
-                if artwork.gemma_ready():
-                    # Gemma writes it instead, on the engine: in the GPU lane, which this may not be.
-                    _ART_WORDS_FALLBACK.add(take_id)
-                    if on_gpu:
-                        await run_art(take_id, on_gpu=True)
-                    else:
-                        _art_waits_for_gpu(take_id)
-                    return
+            if artwork.STYLE_FOR.get(take_id):
+                log.info("Picture for '%s' (%s) uses an art style typed for it: %s", take.get("title") or take_id, take_id,
+                         artwork.STYLE_FOR[take_id])
+            writes = artwork.describer()
+            failed_words = ""
+            if writes == "external" and take_id in _ART_WORDS_FALLBACK and artwork.gemma_ready():
+                writes = "gemma"
+            if take_id in _ART_WORDS_FALLBACK:
+                failed_words = f" ({llm.get_config().get('model', 'external LLM')} failed)"
+            if writes == "gemma" and not on_gpu:
+                _art_waits_for_gpu(take_id)
+                return
+            passed_over = artwork.words_passed_over()
+            if passed_over and take_id not in _ART_WORDS_FALLBACK:
+                log.warning("Picture for '%s' (%s): not described by the external LLM, as %s; %s instead",
+                            take.get("title") or take_id, take_id, passed_over,
+                            "Gemma on this PC" if writes == "gemma" else "the take's own scene")
+            worn = artwork.is_well_worn(take)
+            # An LLM's image prompt is drawn as it is; the take's own description is made into the drawer's prompt.
+            as_given = False
+            lettered = artwork.title_at(take) if writes in ("gemma", "external") else None
+            if writes == "take":
                 description = artwork.take_description(take, well_worn=worn)
-                writer = f"its own title, style and words ({llm.get_config().get('model', 'external LLM')} failed)"
-        if not description:
-            description = artwork.take_description(take, well_worn=worn)
-            writer = "its own title, style and words"
-        if as_given:
-            full_prompt = artwork.with_own_words(description)
-            if lettered:
-                full_prompt = artwork.with_title(full_prompt, artwork.lettered_title(take), lettered)
-            full_prompt = artwork.with_wear(full_prompt) if worn else full_prompt
-        else:
-            full_prompt = artwork.drawing_request(description, take, well_worn=worn)
-        description = full_prompt
+                writer = "its own title, style and words"
+            elif writes == "gemma":
+                try:
+                    job = await _run_graph("art", take_id, artwork.describe_graph(take, int(time.time()) % 2**31,
+                                                                                    lettered))
+                    description = artwork.tidy_description(extract_text_output(job, "TextGenerate", "PreviewAny") or "")
+                    as_given = bool(description)
+                    writer = f"Gemma on this PC{failed_words}"
+                except ArtYielded:
+                    raise
+                except Exception as exc:
+                    log.warning("Gemma failed to describe picture for '%s' (%s): %s; falling back to take description",
+                                take.get("title"), take_id, exc)
+                    description = artwork.take_description(take, well_worn=worn)
+                    writer = "its own title, style and words (Gemma failed)"
+            else:
+                try:
+                    description = await artwork.describe_external(take, lettered)
+                    as_given = bool(description)
+                    writer = llm.get_config()["model"]
+                except Exception as exc:
+                    llm.record_alert_from_exception(exc)
+                    log.warning("External LLM failed to describe picture for '%s' (%s): %s; falling back to %s",
+                                take.get("title"), take_id, exc,
+                                "Gemma on this PC" if artwork.gemma_ready() else "take description")
+                    artwork.record_external_words_failure(str(exc))
+                    if artwork.gemma_ready():
+                        # Gemma writes it instead, on the engine: in the GPU lane, which this may not be.
+                        _ART_WORDS_FALLBACK.add(take_id)
+                        if on_gpu:
+                            await run_art(take_id, on_gpu=True)
+                        else:
+                            _art_waits_for_gpu(take_id)
+                        return
+                    description = artwork.take_description(take, well_worn=worn)
+                    writer = f"its own title, style and words ({llm.get_config().get('model', 'external LLM')} failed)"
+            if not description:
+                description = artwork.take_description(take, well_worn=worn)
+                writer = "its own title, style and words"
+            if as_given:
+                full_prompt = description if artwork.STYLE_FOR.get(take_id) else artwork.with_own_words(description)
+                if lettered:
+                    full_prompt = artwork.with_title(full_prompt, artwork.lettered_title(take), lettered)
+                if worn and artwork.is_default_style(take_id):
+                    full_prompt = artwork.with_wear(full_prompt)
+            else:
+                full_prompt = artwork.drawing_request(description, take, well_worn=worn)
+            description = full_prompt
         described = time.time()
         drawer = artwork.drawer()
         if drawer == "external" and take_id in _ART_DRAWER_FALLBACK:
