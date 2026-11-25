@@ -8545,7 +8545,7 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 .tm-main-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 165px minmax(0, 1fr);
+  grid-template-columns: 204px minmax(0, 1fr);
   gap: 10px;
   padding: 10px;
   min-height: 0;
@@ -8559,14 +8559,21 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   flex-direction: column;
   gap: 6px;
 }
-.tm-create-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.tm-create-row { display: flex; align-items: center; gap: 4px; }
 .tm-cbtn {
-  text-align: center; padding: 4px 2px; border-radius: 999px; font-size: 9.5px; font-weight: 700; color: #fff;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 0 1 auto;
+  text-align: center;
+  padding: 5px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #fff;
+  white-space: nowrap;
 }
-.tm-cbtn.song { background: linear-gradient(90deg, var(--song-a), var(--song-b)); }
-.tm-cbtn.cover { background: linear-gradient(90deg, var(--cover-a), var(--cover-b)); }
-.tm-cbtn.inst { background: linear-gradient(90deg, var(--inst-a), var(--inst-b)); color: #0b1408; }
+.tm-cbtn.tm-k-song { background: linear-gradient(90deg, var(--song-a), var(--song-b)); }
+.tm-cbtn.tm-k-cover { background: linear-gradient(90deg, var(--cover-a), var(--cover-b)); }
+.tm-cbtn.tm-k-inst { flex: 1 1 auto; background: linear-gradient(90deg, var(--inst-b), var(--inst-a)); color: #07140c; }
 .tm-side-kicker { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--song-a); margin-top: 2px; }
 .tm-side-title { font-size: 12.5px; font-weight: 750; color: var(--text-strong); }
 .tm-side-meta { font-size: 10px; color: var(--muted); }
@@ -8601,19 +8608,25 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 
 .tm-grid-area { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .tm-toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tm-space-lbl { font-size: 11.5px; font-weight: 750; color: var(--text-strong); white-space: nowrap; }
 .tm-search-box {
-  flex: 1; min-width: 90px; padding: 4px 8px; border-radius: 8px; font-size: 10px; color: var(--muted);
+  flex: 1; min-width: 80px; padding: 4px 8px; border-radius: 8px; font-size: 10px; color: var(--muted);
   background: var(--input-bg); border: 1px solid var(--input-border);
 }
-.tm-fchip {
-  padding: 2px 7px; border-radius: 999px; font-size: 9.5px; font-weight: 600; background: var(--card);
-  border: 1px solid rgb(var(--ink) / 0.12); color: var(--text);
+.tm-kinds {
+  display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 999px;
+  background: var(--card); border: 1px solid rgb(var(--ink) / 0.12);
 }
-.tm-fchip.song { border-color: rgb(var(--song-a-rgb) / 0.55); color: var(--song-a); }
-.tm-fchip.cover { border-color: rgb(var(--accent-b-rgb) / 0.55); color: var(--cover-a); }
-.tm-fchip.inst { border-color: rgb(var(--good-rgb) / 0.55); color: var(--inst-a); }
+.tm-kbtn {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px;
+  font-size: 9px; font-weight: 600; color: var(--muted); white-space: nowrap;
+}
+.tm-kdot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
+.tm-kdot.tm-k-song { background: var(--song-a); }
+.tm-kdot.tm-k-cover { background: var(--cover-a); }
+.tm-kdot.tm-k-inst { background: var(--inst-a); }
 
-.tm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.tm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; }
 .tm-card {
   background: var(--card);
   border: 1px solid rgb(var(--ink) / 0.14);
@@ -8633,9 +8646,9 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 }
 .tm-card-top { display: flex; align-items: center; gap: 7px; }
 .tm-art { width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0; }
-.tm-art.song { background: linear-gradient(135deg, var(--song-a), var(--song-b)); }
-.tm-art.cover { background: linear-gradient(135deg, var(--cover-a), var(--cover-b)); }
-.tm-art.inst { background: linear-gradient(135deg, var(--inst-a), var(--inst-b)); }
+.tm-art.tm-k-song { background: linear-gradient(135deg, var(--song-a), var(--song-b)); }
+.tm-art.tm-k-cover { background: linear-gradient(135deg, var(--cover-a), var(--cover-b)); }
+.tm-art.tm-k-inst { background: linear-gradient(135deg, var(--inst-a), var(--inst-b)); }
 .tm-ctitle { font-size: 11px; font-weight: 700; color: var(--text-strong); }
 .tm-csub { font-size: 9.5px; color: var(--muted); }
 .tm-cbadges { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -8682,13 +8695,29 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   background: var(--play-bg); color: var(--play-fg); font-size: 9px; font-weight: 800; flex-shrink: 0;
 }
 .tm-wave {
-  flex: 1; height: 28px; display: flex; align-items: center; gap: 2px; padding: 2px 4px;
+  flex: 1;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  min-width: 80px;
 }
-.tm-wbar { flex: 1; border-radius: 99px; }
-.tm-wbar.song { background: var(--wave-song-body); box-shadow: 0 0 0 1px var(--wave-song-outline); }
-.tm-wbar.cover { background: var(--wave-cover-body); box-shadow: 0 0 0 1px var(--wave-cover-outline); }
-.tm-wbar.inst { background: var(--wave-inst-body); box-shadow: 0 0 0 1px var(--wave-inst-outline); }
-.tm-wbar.def { background: var(--wave-default-body); box-shadow: 0 0 0 1px var(--wave-default-outline); }
+.tm-wave-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.tm-w-unplayed-out { fill: rgb(var(--ink) / 0.10); }
+.tm-w-unplayed-body { fill: rgb(var(--ink) / 0.24); }
+.tm-w-head { fill: var(--text); }
+.tm-w-song .tm-w-played-out { fill: var(--wave-song-outline); }
+.tm-w-song .tm-w-played-body { fill: var(--wave-song-body); }
+.tm-w-cover .tm-w-played-out { fill: var(--wave-cover-outline); }
+.tm-w-cover .tm-w-played-body { fill: var(--wave-cover-body); }
+.tm-w-inst .tm-w-played-out { fill: var(--wave-inst-outline); }
+.tm-w-inst .tm-w-played-body { fill: var(--wave-inst-body); }
+.tm-w-default .tm-w-played-out { fill: var(--wave-default-outline); }
+.tm-w-default .tm-w-played-body { fill: var(--wave-default-body); }
 .tm-p-time { font-size: 9.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Editor Mock-up */

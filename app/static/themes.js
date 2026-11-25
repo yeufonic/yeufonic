@@ -370,7 +370,8 @@
     name: '',
     base: 'studio',
     colors: {},           // full hex map for all tokens
-    tab: 'main',          // 'main' | 'editor'
+    tab: 'main',          // 'main' | 'editor' | 'jam'
+    waveKind: null,       // null = auto per tab, else 'song' | 'cover' | 'inst' | 'default'
     liveApp: false,       // live-preview on the real page behind the modal
     openGroups: { surfaces: true, text: true, accents: true, origins: false, status: false, inputs: false, waveforms: false },
     saving: false,
@@ -405,6 +406,7 @@
       Builder.colors = Object.assign({}, BASE_PRESETS[Builder.base]);
     }
     Builder.liveApp = false;
+    Builder.waveKind = null;
     Builder.saving = false;
     Builder.error = '';
     Builder.open = true;
@@ -440,13 +442,64 @@
     }
   }
 
-  function mockMainHtml() {
-    var waveHeights = [26, 48, 72, 62, 85, 50, 38, 66, 90, 58, 44, 76, 82, 60, 42, 68, 92, 54, 40, 74, 62, 48, 36, 56, 78, 64, 46, 30];
-    var waveBars = waveHeights.map(function (h, i) {
-      var cls = i < 9 ? 'song' : (i < 16 ? 'cover' : (i < 22 ? 'inst' : 'def'));
-      return '<span class="tm-wbar ' + cls + '" style="height:' + h + '%"></span>';
-    }).join('');
+  /* Deterministic realistic peak + RMS envelope matching app.js drawWave(). */
+  var WAVE_PEAKS = [
+    0.10, 0.14, 0.22, 0.30, 0.42, 0.36, 0.54, 0.62, 0.48, 0.70, 0.60, 0.44,
+    0.52, 0.66, 0.58, 0.46, 0.74, 0.86, 0.78, 0.92, 0.84, 0.72, 0.88, 0.95,
+    0.82, 0.76, 0.90, 0.85, 0.68, 0.74, 0.62, 0.50, 0.44, 0.56, 0.48, 0.38,
+    0.46, 0.58, 0.64, 0.52, 0.68, 0.78, 0.86, 0.94, 0.88, 0.80, 0.92, 0.96,
+    0.84, 0.78, 0.90, 0.82, 0.74, 0.86, 0.76, 0.64, 0.72, 0.60, 0.52, 0.46,
+    0.38, 0.34, 0.28, 0.22, 0.18, 0.12, 0.08
+  ];
+  var WAVE_RMSS = WAVE_PEAKS.map(function (p, i) {
+    var factor = 0.56 + 0.12 * Math.sin(i * 0.7);
+    return Math.max(0.05, Math.min(p * 0.82, p * factor));
+  });
 
+  function wavePolygonPoints(arr, w, h) {
+    var mid = h / 2;
+    var amp = h * 0.46;
+    var n = arr.length;
+    var step = w / Math.max(1, n - 1);
+    var top = [];
+    var bot = [];
+    for (var i = 0; i < n; i++) {
+      var x = (i * step).toFixed(1);
+      var dy = arr[i] * amp;
+      top.push(x + ',' + (mid - dy).toFixed(1));
+      bot.push(x + ',' + (mid + dy).toFixed(1));
+    }
+    bot.reverse();
+    return top.concat(bot).join(' ');
+  }
+
+  var WAVE_OUTLINE_PTS = wavePolygonPoints(WAVE_PEAKS, 240, 32);
+  var WAVE_BODY_PTS = wavePolygonPoints(WAVE_RMSS, 240, 32);
+
+  function activeWaveKind() {
+    if (Builder.waveKind) { return Builder.waveKind; }
+    if (Builder.tab === 'editor') { return 'cover'; }
+    if (Builder.tab === 'jam') { return 'inst'; }
+    return 'song';
+  }
+
+  function mockWaveHtml(kind) {
+    var k = kind || activeWaveKind();
+    return '<div class="tm-wave tm-w-' + k + '" data-tm-wave="' + k + '" title="' + t('Waveforms') + '">' +
+      '<svg class="tm-wave-svg" viewBox="0 0 240 32" preserveAspectRatio="none" aria-hidden="true">' +
+        '<defs><clipPath id="tm-wclip"><rect x="0" y="0" width="108" height="32"/></clipPath></defs>' +
+        '<polygon class="tm-w-unplayed-out" points="' + WAVE_OUTLINE_PTS + '"/>' +
+        '<polygon class="tm-w-unplayed-body" points="' + WAVE_BODY_PTS + '"/>' +
+        '<g clip-path="url(#tm-wclip)">' +
+          '<polygon class="tm-w-played-out" points="' + WAVE_OUTLINE_PTS + '"/>' +
+          '<polygon class="tm-w-played-body" points="' + WAVE_BODY_PTS + '"/>' +
+        '</g>' +
+        '<rect class="tm-w-head" x="108" y="0" width="1.8" height="32"/>' +
+      '</svg>' +
+    '</div>';
+  }
+
+  function mockMainHtml() {
     return '<div class="tm-app">' +
       '<div class="tm-topbar">' +
         '<div class="tm-brand"><span class="tm-y">Y</span><span class="tm-word">eufonic</span></div>' +
@@ -459,9 +512,9 @@
       '<div class="tm-main-body">' +
         '<div class="tm-sidebar">' +
           '<div class="tm-create-row">' +
-            '<span class="tm-cbtn song">+ ' + t('Song') + '</span>' +
-            '<span class="tm-cbtn cover">+ ' + t('Cover') + '</span>' +
-            '<span class="tm-cbtn inst">+ ' + t('Instrumental') + '</span>' +
+            '<span class="tm-cbtn tm-k-song">+ ' + t('Song') + '</span>' +
+            '<span class="tm-cbtn tm-k-cover">+ ' + t('Cover') + '</span>' +
+            '<span class="tm-cbtn tm-k-inst">+ ' + t('Instrumental') + '</span>' +
           '</div>' +
           '<div class="tm-side-kicker">' + t('Song from a prompt') + '</div>' +
           '<div class="tm-side-title">Harbour Light</div>' +
@@ -482,24 +535,27 @@
         '</div>' +
         '<div class="tm-grid-area">' +
           '<div class="tm-toolbar">' +
+            '<span class="tm-space-lbl">' + t('Your takes') + ' &#9662;</span>' +
             '<span class="tm-search-box">' + t('Search takes…') + '</span>' +
-            '<span class="tm-fchip song">' + t('Song') + '</span>' +
-            '<span class="tm-fchip cover">' + t('Cover') + '</span>' +
-            '<span class="tm-fchip inst">' + t('Instrumental') + '</span>' +
+            '<span class="tm-kinds">' +
+              '<span class="tm-kbtn"><i class="tm-kdot tm-k-song"></i>' + t('Song') + '</span>' +
+              '<span class="tm-kbtn"><i class="tm-kdot tm-k-cover"></i>' + t('Cover') + '</span>' +
+              '<span class="tm-kbtn"><i class="tm-kdot tm-k-inst"></i>' + t('Instrumental') + '</span>' +
+            '</span>' +
           '</div>' +
           '<div class="tm-cards">' +
             '<div class="tm-card playing">' +
-              '<div class="tm-card-top"><span class="tm-art song"></span><div><div class="tm-ctitle">Harbour Light</div><div class="tm-csub">' + t('from a prompt') + ' &middot; 2:54</div></div></div>' +
+              '<div class="tm-card-top"><span class="tm-art tm-k-song"></span><div><div class="tm-ctitle">Harbour Light</div><div class="tm-csub">' + t('from a prompt') + ' &middot; 2:54</div></div></div>' +
               '<div class="tm-cbadges"><span class="tm-tag good">' + t('Playing') + '</span><span class="tm-tag info">' + t('Score') + '</span></div>' +
               '<div class="tm-cacts"><span class="tm-act play">&#9646;&#9646;</span><span class="tm-act">M</span><span class="tm-act">J</span><span class="tm-act star">&#9733;</span></div>' +
             '</div>' +
             '<div class="tm-card holds">' +
-              '<div class="tm-card-top"><span class="tm-art cover"></span><div><div class="tm-ctitle">Midnight Train</div><div class="tm-csub">' + t('cover') + ' &middot; 3:18</div></div></div>' +
+              '<div class="tm-card-top"><span class="tm-art tm-k-cover"></span><div><div class="tm-ctitle">Midnight Train</div><div class="tm-csub">' + t('cover') + ' &middot; 3:18</div></div></div>' +
               '<div class="tm-cbadges"><span class="tm-tag lit">' + t('Inside') + ' 3</span><span class="tm-tag warn">' + t('Normalised') + '</span></div>' +
               '<div class="tm-cacts"><span class="tm-act">&#9654;</span><span class="tm-act">M</span><span class="tm-act lit">3</span><span class="tm-act">&#9734;</span></div>' +
             '</div>' +
             '<div class="tm-card">' +
-              '<div class="tm-card-top"><span class="tm-art inst"></span><div><div class="tm-ctitle">Glass Horizon</div><div class="tm-csub">' + t('instrumental') + ' &middot; 2:20</div></div></div>' +
+              '<div class="tm-card-top"><span class="tm-art tm-k-inst"></span><div><div class="tm-ctitle">Glass Horizon</div><div class="tm-csub">' + t('instrumental') + ' &middot; 2:20</div></div></div>' +
               '<div class="tm-cbadges"><span class="tm-tag bad">' + t('Failed') + '</span></div>' +
               '<div class="tm-cacts"><span class="tm-act">&#9654;</span><span class="tm-act">M</span><span class="tm-act">J</span><span class="tm-act bad">&times;</span></div>' +
             '</div>' +
@@ -511,19 +567,13 @@
         '<div class="tm-p-meta"><div class="tm-p-title">Harbour Light</div><div class="tm-p-sub">1 / 3 &middot; 2:54</div></div>' +
         '<span class="tm-chiclet info">?</span><span class="tm-chiclet good">M</span><span class="tm-chiclet acc">V</span>' +
         '<span class="tm-p-play">&#9646;&#9646;</span>' +
-        '<div class="tm-wave">' + waveBars + '</div>' +
+        mockWaveHtml() +
         '<span class="tm-p-time">1:12 / 2:54</span>' +
       '</div>' +
     '</div>';
   }
 
   function mockEditorHtml() {
-    var waveHeights = [30, 56, 78, 60, 88, 52, 42, 74, 92, 64, 48, 80, 70, 50, 62, 84, 58, 40, 68, 52];
-    var waveBars = waveHeights.map(function (h, i) {
-      var cls = i < 8 ? 'song' : (i < 13 ? 'cover' : 'inst');
-      return '<span class="tm-wbar ' + cls + '" style="height:' + h + '%"></span>';
-    }).join('');
-
     return '<div class="tm-app tm-ed-app">' +
       '<div class="tm-ed-shell">' +
         '<div class="tm-ed-bar"></div>' +
@@ -572,19 +622,13 @@
         '<div class="tm-p-meta"><div class="tm-p-title">Harbour Light</div><div class="tm-p-sub">1 / 3 &middot; 2:54</div></div>' +
         '<span class="tm-chiclet info">?</span><span class="tm-chiclet good">M</span><span class="tm-chiclet acc">V</span>' +
         '<span class="tm-p-play">&#9646;&#9646;</span>' +
-        '<div class="tm-wave">' + waveBars + '</div>' +
+        mockWaveHtml() +
         '<span class="tm-p-time">1:12 / 2:54</span>' +
       '</div>' +
     '</div>';
   }
 
   function mockJamHtml() {
-    var waveHeights = [26, 52, 74, 88, 60, 44, 78, 92, 66, 48, 82, 58, 70, 86, 54, 42, 76, 62, 46, 58];
-    var waveBars = waveHeights.map(function (h, i) {
-      var cls = i < 9 ? 'song' : (i < 15 ? 'cover' : 'inst');
-      return '<span class="tm-wbar ' + cls + '" style="height:' + h + '%"></span>';
-    }).join('');
-
     function pipsHtml(level) {
       var out = '<span class="tm-jam-pips">';
       for (var i = 1; i <= 4; i++) {
@@ -673,7 +717,7 @@
         '<div class="tm-p-meta"><div class="tm-p-title">Harbour Light</div><div class="tm-p-sub">' + t('Pass #{n}', { n: 2 }) + ' &middot; 0:40</div></div>' +
         '<span class="tm-chiclet info">?</span><span class="tm-chiclet good">M</span><span class="tm-chiclet acc">V</span>' +
         '<span class="tm-p-play">&#9646;&#9646;</span>' +
-        '<div class="tm-wave">' + waveBars + '</div>' +
+        mockWaveHtml() +
         '<span class="tm-p-time">0:18 / 0:40</span>' +
       '</div>' +
     '</div>';
@@ -786,8 +830,19 @@
     if (el) { el.textContent = Builder.error; }
   }
 
+  function setStageWaveKind(kind) {
+    var waveEl = document.querySelector('#tm-stage .tm-wave');
+    if (!waveEl) { return; }
+    waveEl.className = 'tm-wave tm-w-' + kind;
+    waveEl.dataset.tmWave = kind;
+  }
+
   function updateTokenValue(tok, hex) {
     Builder.colors[tok] = hex;
+    if (tok === '--wave-song') { Builder.waveKind = 'song'; setStageWaveKind('song'); }
+    else if (tok === '--wave-cover') { Builder.waveKind = 'cover'; setStageWaveKind('cover'); }
+    else if (tok === '--wave-inst') { Builder.waveKind = 'inst'; setStageWaveKind('inst'); }
+    else if (tok === '--wave-default') { Builder.waveKind = 'default'; setStageWaveKind('default'); }
     var preset = BASE_PRESETS[Builder.base] || BASE_PRESETS.studio;
     var changed = hex.toLowerCase() !== (preset[tok] || '').toLowerCase();
     var row = document.querySelector('#tm-controls .tm-color-row[data-token="' + tok + '"]');
@@ -880,6 +935,7 @@
       if (tabBtn) {
         var nextTab = tabBtn.dataset.tmTab;
         Builder.tab = (nextTab === 'editor' || nextTab === 'jam') ? nextTab : 'main';
+        Builder.waveKind = null;
         modal.querySelectorAll('[data-tm-tab]').forEach(function (btn) {
           btn.classList.toggle('active', btn.dataset.tmTab === Builder.tab);
         });
@@ -890,6 +946,15 @@
         } else {
           paintBuilder();
         }
+        return;
+      }
+      var waveEl = event.target.closest('[data-tm-wave]');
+      if (waveEl) {
+        var order = ['song', 'cover', 'inst', 'default'];
+        var idx = order.indexOf(activeWaveKind());
+        var nextKind = order[(idx + 1) % order.length];
+        Builder.waveKind = nextKind;
+        setStageWaveKind(nextKind);
         return;
       }
       var resetOne = event.target.closest('[data-tm-reset]');
