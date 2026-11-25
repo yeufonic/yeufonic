@@ -8643,13 +8643,13 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   border-radius: 5px; margin-right: 2px; font-size: 11px; color: #fff;
   background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
 }
-.tm-nav { display: flex; gap: 4px; background: var(--panel); padding: 2px; border-radius: 8px; border: 1px solid rgb(var(--ink) / 0.08); }
-.tm-nav-btn { padding: 3px 8px; border-radius: 6px; color: var(--muted); font-weight: 600; font-size: 10.5px; }
+.tm-nav { display: flex; gap: 2px; background: var(--card); padding: 2px; border-radius: 999px; border: 1px solid rgb(var(--ink) / 0.10); }
+.tm-nav-btn { padding: 3px 9px; border-radius: 999px; color: var(--muted); font-weight: 600; font-size: 10.5px; }
 .tm-nav-btn.on { background: var(--card-2); color: var(--text-strong); }
 .tm-pills { display: flex; align-items: center; gap: 6px; }
 .tm-pill {
   display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px;
-  font-size: 10px; font-weight: 600; border: 1px solid rgb(var(--ink) / 0.14); background: var(--panel);
+  font-size: 10px; font-weight: 600; border: 1px solid rgb(var(--ink) / 0.14); background: var(--card);
 }
 .tm-pill.good { color: var(--good); border-color: rgb(var(--good-rgb) / 0.4); }
 .tm-pill.info { color: var(--info); border-color: rgb(var(--info-rgb) / 0.4); }
@@ -8696,7 +8696,9 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 .tm-sbtn.play { background: var(--play-bg); color: var(--play-fg); }
 .tm-sbtn.jam { background: rgb(var(--accent-a-rgb) / 0.2); color: var(--accent-a); border: 1px solid rgb(var(--accent-a-rgb) / 0.45); }
 .tm-acc-row {
-  padding: 4px 7px; border-radius: 7px; background: var(--card-2); color: var(--muted);
+  padding: 4px 7px; border-radius: 7px;
+  background: color-mix(in srgb, color-mix(in srgb, var(--panel) 86%, var(--text) 14%) 70%, transparent);
+  color: var(--text);
   font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
 }
 .tm-menu-sample {
@@ -9049,7 +9051,6 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 .tm-player { background: var(--bg-2-grad, rgb(var(--bar-2-rgb) / 0.96)); }
 .tm-card,
 .tm-jam-card:not(.is-seed):not(.is-base):not(.cooking) { background: var(--card-grad, var(--card)); }
-.tm-acc-row,
 .tm-act:not(.play),
 .tm-ed-pill:not(.good),
 .tm-ed-btn.ghost { background: var(--card-2-grad, var(--card-2)); }
@@ -9067,22 +9068,65 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 .tm-ed-menu-pop { background: var(--menu-bg-grad, var(--menu-bg)); }
 .tm-menu-head { background: var(--menu-head-bg-grad, var(--menu-head-bg)); }
 
-:root[data-custom-theme] body { background: var(--bg-grad, var(--bg)); }
+/* Saved custom themes on the real app: keep every token scoped to the exact same
+   elements as the live preview, including when Studio Slate or Backdrop tint is active. */
+:root[data-custom-theme],
+:root[data-custom-theme].backdrop-hue,
+:root[data-custom-theme].backdrop-hue[data-theme="light"] {
+  --backdrop-ground: var(--bg);
+}
+:root[data-custom-theme] body,
+:root[data-custom-theme].backdrop-hue:not([data-theme="contrast"]) body,
+:root[data-custom-theme].backdrop-hue[data-theme="light"] body {
+  background: var(--bg-grad, var(--bg));
+}
+:root[data-custom-theme] .topbar {
+  background: rgb(var(--bar-rgb) / 0.88);
+}
+:root[data-custom-theme] .view-switch,
+:root[data-custom-theme] .pill {
+  background: var(--card);
+}
 :root[data-custom-theme] .panel,
+:root[data-custom-theme] .sheet-panel,
+:root[data-custom-theme][data-ui-style="slate"] .sheet-panel,
 :root[data-custom-theme] .ed-col,
 :root[data-custom-theme] .jam-col,
-:root[data-custom-theme] .modal-box { background: var(--panel-grad, var(--ui-panel-bg, var(--panel))); }
+:root[data-custom-theme] .modal-box {
+  background: var(--panel-grad, var(--panel));
+}
 :root[data-custom-theme] .ed-shell,
-:root[data-custom-theme] .jam-shell { background: var(--bg-2-grad, var(--bg-2)); }
-:root[data-custom-theme] .player { background: var(--bg-2-grad, rgb(var(--bar-2-rgb) / 0.94)); }
+:root[data-custom-theme] .jam-shell {
+  background: var(--bg-2-grad, var(--bg-2));
+}
+:root[data-custom-theme] .player {
+  background: var(--bg-2-grad, rgb(var(--bar-2-rgb) / 0.94));
+}
 :root[data-custom-theme] .take,
-:root[data-custom-theme] .jam-hist-card:not(.is-seed):not(.is-base):not(.cooking) { background: var(--card-grad, var(--card)); }
-:root[data-custom-theme] header { background: var(--card-2-grad, var(--card-2)); }
-:root[data-custom-theme] .take.holds { background: var(--card-3-grad, var(--card-3)); }
+:root[data-custom-theme][data-ui-style="slate"] .take:not(.editing):not(.playing):not(.has-inside),
+:root[data-custom-theme][data-ui-style="slate"] .identity-card[data-identity],
+:root[data-custom-theme][data-ui-style="slate"] .voice-card,
+:root[data-custom-theme] .jam-hist-card:not(.is-seed):not(.is-base):not(.cooking) {
+  background: var(--card-grad, var(--card));
+}
+:root[data-custom-theme] .take.editing,
+:root[data-custom-theme] .take.holds,
+:root[data-custom-theme] .take.has-inside,
+:root[data-custom-theme][data-ui-style="slate"] .take.holds,
+:root[data-custom-theme][data-ui-style="slate"] .take.has-inside {
+  background: var(--card-3-grad, var(--card-3));
+}
 :root[data-custom-theme] .play,
-:root[data-custom-theme] .play-btn { background: var(--play-bg-grad, var(--play-bg)); }
+:root[data-custom-theme] .play-btn {
+  background: var(--play-bg-grad, var(--play-bg));
+}
 :root[data-custom-theme] .space-menu,
-:root[data-custom-theme] .menu { background: var(--menu-bg-grad, var(--menu-bg)); }
+:root[data-custom-theme] .menu {
+  background: var(--menu-bg-grad, var(--menu-bg));
+}
 :root[data-custom-theme] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
 :root[data-custom-theme] textarea,
-:root[data-custom-theme] select { background: var(--input-bg-grad, var(--ui-input-bg, var(--input-bg))); }
+:root[data-custom-theme] select,
+:root[data-custom-theme][data-ui-style="slate"] .take-search input {
+  background: var(--input-bg-grad, var(--input-bg));
+}

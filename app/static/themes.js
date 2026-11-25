@@ -379,6 +379,7 @@
     var rgbMap = {
       '--bar-rgb': merged['--bg'],
       '--bar-2-rgb': merged['--bg-2'],
+      '--panel-rgb': merged['--panel'],
       '--backdrop-rgb': merged['--bg'],
       '--ink': merged['--text'],
       '--accent-a-rgb': merged['--accent-a'],
