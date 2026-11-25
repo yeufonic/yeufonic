@@ -149,3 +149,49 @@ def test_elsewhere_the_steps_stay_on_the_nvidia_card(server, tmp_path, monkeypat
     with pytest.raises(RuntimeError):
         server.separate(source, tmp_path / "sep")
     assert commands[-1][commands[-1].index("--device") + 1] == "cuda"
+
+
+def test_clean_f0_removes_groan_plunges_and_isolated_blips(server):
+    np = pytest.importorskip("numpy")
+    # 12 frames of steady 220 Hz singing, followed by a 3-frame drop to 90 Hz / 60 Hz at phrase end,
+    # silence, then a 2-frame stray 130 Hz blip in silence.
+    f0 = np.array(
+        [0.0, 0.0] + [220.0] * 10 + [100.0, 82.0, 60.0] + [0.0] * 8 + [130.0, 128.0] + [0.0] * 4,
+        dtype="float32",
+    )
+    cleaned = server.clean_f0(f0)
+    # Main sung phrase stays intact
+    assert np.allclose(cleaned[2:12], 220.0)
+    # Phrase-end plunge (100/82/60 Hz) and short stray blip (130/128 Hz) are zeroed out
+    assert np.all(cleaned[12:] == 0.0)
+
+
+def test_prepare_for_rvc_and_gate_to_source_silence_phrase_tails_without_cutting_singing(server, tmp_path):
+    np = pytest.importorskip("numpy")
+    soundfile = pytest.importorskip("soundfile")
+    pytest.importorskip("scipy")
+    rate = 44100
+    t_sing = np.arange(rate) / rate
+    t_tail = np.arange(rate) / rate
+    # 1 s of 330 Hz singing at 0.35 amplitude, then 1 s of -42 dB low-frequency tail + 50 Hz rumble
+    singing = 0.35 * np.sin(2 * np.pi * 330 * t_sing)
+    tail = 0.0025 * np.sin(2 * np.pi * 110 * t_tail) + 0.004 * np.sin(2 * np.pi * 45 * t_tail)
+    vocals = np.concatenate([singing, tail]).astype("float32")
+    src_path = tmp_path / "vocals.wav"
+    clean_path = tmp_path / "vocals_clean.wav"
+    soundfile.write(str(src_path), vocals, rate)
+
+    server.prepare_for_rvc(src_path, clean_path)
+    cleaned, _ = soundfile.read(str(clean_path), dtype="float32")
+    # Singing half stays virtually untouched; tail half (after release settles) is strongly attenuated
+    assert float(np.sqrt(np.mean(cleaned[:rate] ** 2))) > 0.22
+    assert float(np.sqrt(np.mean(cleaned[rate + rate // 4:] ** 2))) < 0.0005
+
+    # Now simulate RVC outputting a loud 0.12 groan during the silent second half
+    sung_with_groan = np.concatenate([singing, 0.12 * np.sin(2 * np.pi * 70 * t_tail)]).astype("float32")
+    sung_path = tmp_path / "sung.wav"
+    soundfile.write(str(sung_path), sung_with_groan, rate)
+    server.gate_to_source(src_path, sung_path)
+    gated, _ = soundfile.read(str(sung_path), dtype="float32")
+    assert float(np.sqrt(np.mean(gated[:rate] ** 2))) > 0.22
+    assert float(np.sqrt(np.mean(gated[rate + rate // 3:] ** 2))) < 0.003

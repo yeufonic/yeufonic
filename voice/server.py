@@ -325,6 +325,134 @@ MAX_LEVEL_DB = 12.0       # the most the converted vocal is moved to meet the or
 MAX_PRESENCE_DB = 6.0     # the most its presence (2 kHz and up) is lifted to meet the original's
 ROOM_WET = 0.14           # how much of a short synthetic room goes under the converted vocal
 ROOM_SECONDS = 1.2
+# RVC pitch-tracking & tail cleanup: BS-Roformer's separated vocal keeps reverb tails and faint bleed at the end
+# of sung lines; RMVPE's stock 0.03 threshold and 50 Hz floor pitch-track those quiet tails as plunging low notes,
+# which RVC's vocoder turns into an end-of-line groan.
+RMVPE_THRED = 0.08
+F0_FLOOR_HZ = 75.0
+VOCAL_HP_HZ = 80.0
+
+
+def clean_f0(f0, floor_hz: float = F0_FLOOR_HZ):
+    """Remove sub-vocal F0 drops, isolated short blips, and phrase-end pitch plunges that make RVC groan."""
+    import numpy as np  # noqa: PLC0415
+
+    arr = np.asarray(f0)
+    out = arr.astype("float64", copy=True)
+    if out.size == 0:
+        return arr.copy()
+    out[~np.isfinite(out) | (out < floor_hz)] = 0.0
+
+    # Walk voiced runs: drop isolated <=30 ms blips, and trim sharp downward plunges (>7 semitones) right at run ends.
+    n = len(out)
+    i = 0
+    while i < n:
+        if out[i] <= 0.0:
+            i += 1
+            continue
+        start = i
+        while i < n and out[i] > 0.0:
+            i += 1
+        end = i
+        if end - start <= 3:
+            out[start:end] = 0.0
+            continue
+        if end - start >= 6:
+            anchor_slice = out[max(start, end - 8): max(start + 1, end - 4)]
+            anchor = float(np.median(anchor_slice)) if anchor_slice.size else 0.0
+            if anchor > 0.0:
+                trimmed = 0
+                while end - start > 3 and trimmed < 5:
+                    tail = out[end - 1]
+                    if tail < anchor * 0.67 or tail > anchor * 1.6:
+                        out[end - 1] = 0.0
+                        end -= 1
+                        trimmed += 1
+                    else:
+                        break
+
+    # Light 3-frame median filter on interior voiced frames to remove single-frame octave glitches.
+    if n >= 3:
+        prev_v = out[:-2]
+        curr_v = out[1:-1]
+        next_v = out[2:]
+        interior = (prev_v > 0.0) & (curr_v > 0.0) & (next_v > 0.0)
+        if np.any(interior):
+            tri = np.stack([prev_v[interior], curr_v[interior], next_v[interior]], axis=0)
+            out[1:-1][interior] = np.median(tri, axis=0)
+    return out.astype(arr.dtype, copy=False)
+
+
+def _vocal_gate_envelope(mono, rate: int, open_db: float = -32.0, close_db: float = -48.0, release_ms: float = 70.0):
+    """Smooth click-free 0..1 gain envelope keyed off the vocal's singing level (attenuates quiet reverb/bleed tails)."""
+    import numpy as np  # noqa: PLC0415
+
+    x = np.asarray(mono, dtype="float64")
+    n = len(x)
+    if n == 0:
+        return np.zeros(0, dtype="float64")
+    peak = float(np.max(np.abs(x)))
+    if peak < 1e-6:
+        return np.zeros(n, dtype="float64")
+
+    hop = max(1, int(round(rate * 0.010)))      # 10 ms frame step
+    win = max(hop, int(round(rate * 0.020)))    # 20 ms RMS window
+    csum = np.concatenate(([0.0], np.cumsum(x * x)))
+    starts = np.arange(0, n, hop)
+    ends = np.minimum(n, starts + win)
+    rms = np.sqrt(np.maximum(0.0, (csum[ends] - csum[starts]) / np.maximum(1, ends - starts))) + 1e-12
+
+    active = rms[rms > peak * 1e-3]
+    ref_rms = float(np.percentile(active, 95)) if active.size else peak * 0.1
+    rel_db = 20.0 * np.log10(rms / max(ref_rms, 1e-9))
+
+    span = max(1.0, open_db - close_db)
+    t = np.clip((rel_db - close_db) / span, 0.0, 1.0)
+    target = 0.5 * (1.0 - np.cos(np.pi * t))
+
+    # 10 ms lookahead keeps vocal onsets and consonants crisp; smooth exponential release avoids choppy word endings.
+    if len(target) > 1:
+        target[:-1] = np.maximum(target[:-1], target[1:])
+    alpha = math.exp(-10.0 / max(10.0, release_ms))
+    env_frames = np.empty_like(target)
+    cur = float(target[0])
+    for idx in range(len(target)):
+        val = float(target[idx])
+        cur = val if val >= cur else (alpha * cur + (1.0 - alpha) * val)
+        env_frames[idx] = cur
+
+    centres = np.minimum(n - 1, starts + hop // 2).astype("float64")
+    return np.interp(np.arange(n, dtype="float64"), centres, env_frames)
+
+
+def prepare_for_rvc(vocals: Path, dest: Path) -> None:
+    """High-pass sub-80 Hz bleed and softly gate quiet reverb tails before RVC sees the separated vocal."""
+    import soundfile  # noqa: PLC0415
+    from scipy.signal import lfilter  # noqa: PLC0415
+
+    samples, rate = soundfile.read(str(vocals), dtype="float32")
+    x = _mono(samples).astype("float64")
+    x = lfilter(*_biquad("highpass", VOCAL_HP_HZ, rate, 0.7071), x)
+    env = _vocal_gate_envelope(x, rate, open_db=-28.0, close_db=-42.0, release_ms=65.0)
+    soundfile.write(str(dest), (x * env).astype("float32"), rate, subtype="FLOAT")
+
+
+def gate_to_source(source_vocals: Path, sung: Path) -> None:
+    """Attenuate residual RVC hum/groan wherever the separated source vocal has fallen to silence."""
+    import numpy as np  # noqa: PLC0415
+    import soundfile  # noqa: PLC0415
+    from scipy.signal import lfilter  # noqa: PLC0415
+
+    src, src_rate = soundfile.read(str(source_vocals), dtype="float32")
+    out, out_rate = soundfile.read(str(sung), dtype="float32")
+    if src.size == 0 or out.size == 0:
+        return
+    src_hp = lfilter(*_biquad("highpass", VOCAL_HP_HZ, src_rate, 0.7071), _mono(src).astype("float64"))
+    env = _vocal_gate_envelope(src_hp, src_rate, open_db=-28.0, close_db=-42.0, release_ms=75.0)
+    if len(env) != len(out):
+        env = np.interp(np.linspace(0.0, max(0, len(env) - 1), len(out)), np.arange(len(env)), env)
+    gated = (out.astype("float64") * (env[:, None] if out.ndim > 1 else env)).astype("float32")
+    soundfile.write(str(sung), gated, out_rate, subtype="FLOAT")
 
 
 def _biquad(kind: str, f0: float, rate: int, q: float, gain_db: float = 0.0):
@@ -503,7 +631,8 @@ def _audition_setup() -> None:
 
     infer_f0 = rmvpe.RMVPE.infer_from_audio
     rmvpe.RMVPE.infer_from_audio = lambda self, audio, thred=0.03: _cached(
-        "f0", _digest(audio) + str(thred), lambda: infer_f0(self, audio, thred=thred)).copy()
+        "f0", _digest(audio) + str(max(thred, RMVPE_THRED)),
+        lambda: clean_f0(infer_f0(self, audio, thred=max(thred, RMVPE_THRED)))).copy()
     features = pipeline.extract_hubert_features
     pipeline.extract_hubert_features = lambda model, feats, version, padding_mask=None: _cached(
         "hubert", _digest(feats) + version, lambda: features(model, feats, version, padding_mask=padding_mask)).clone()
@@ -579,6 +708,7 @@ def audition(voice: str, loop: Path, output: Path, octave: int = 0, likeness: fl
     try:
         sung = work / "sung.wav"
         soundfile.write(str(sung), samples, rate)
+        gate_to_source(loop, sung)
         shift_formants(sung, formant)
         shifted = time.time()
         settle(loop, sung, voice, 0.0, room, brightness)
@@ -605,13 +735,17 @@ def convert(voice: str, source: Path, output: Path, octave: int, level_db: float
     work = Path(tempfile.mkdtemp(prefix="convert-", dir=str(VOICES)))
     try:
         vocals, rest = separate(source, work / "sep")
+        clean_vocals = work / "vocals_clean.wav"
+        prepare_for_rvc(vocals, clean_vocals)
         sung = work / "sung.wav"
-        run(["infer/cli.py", "--model", str(model), "--input", str(vocals), "--output", str(sung), "--format", "wav",
-             "--f0-method", "rmvpe", "--pitch", str(12 * int(octave)), *(["--index", str(index)] if index.exists() else []),
+        run([str(Path(__file__).resolve()), "--rvc-infer", "--model", str(model), "--input", str(clean_vocals),
+             "--output", str(sung), "--format", "wav", "--f0-method", "rmvpe", "--pitch", str(12 * int(octave)),
+             *(["--index", str(index)] if index.exists() else []),
              "--index-rate", f"{min(1.0, max(0.0, likeness)):.2f}", "--protect", f"{min(0.5, max(0.0, protect)):.2f}",
              "--rms-mix-rate", f"{min(1.0, max(0.0, dynamics)):.2f}", "--overwrite"])
         if not sung.exists():
             raise RuntimeError("the conversion wrote nothing")
+        gate_to_source(vocals, sung)
         shift_formants(sung, formant)
         settle(vocals, sung, voice, level_db, room, brightness)
         blend(vocals, sung, wet)
@@ -753,7 +887,27 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "not found"})
 
 
+def _run_rvc_infer(argv: list[str]) -> int:
+    """Run RVC's CLI in a fresh child process with cleaner RMVPE F0 thresholding and plunge removal."""
+    if str(RVC) not in sys.path:
+        sys.path.insert(0, str(RVC))
+    os.chdir(RVC)
+    import infer.cli as rvc_cli  # noqa: PLC0415
+    import infer.rmvpe as rmvpe  # noqa: PLC0415
+
+    orig_infer = rmvpe.RMVPE.infer_from_audio
+
+    def _clean_infer(self, audio, thred=0.03):
+        return clean_f0(orig_infer(self, audio, thred=max(thred, RMVPE_THRED)))
+
+    rmvpe.RMVPE.infer_from_audio = _clean_infer
+    sys.argv = ["infer/cli.py", *argv]
+    return int(rvc_cli.main() or 0)
+
+
 if __name__ == "__main__":
+    if len(sys.argv) >= 2 and sys.argv[1] == "--rvc-infer":
+        raise SystemExit(_run_rvc_infer(sys.argv[2:]))
     VOICES.mkdir(parents=True, exist_ok=True)
     BATCH = batch_size()
     threading.Thread(target=_audition_idle, daemon=True).start()
