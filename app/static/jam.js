@@ -346,7 +346,7 @@
     startSection: '',   // the section of the score a short pass starts at
     performance: '',    // an interpretation, in place of the Vibe pad's
     grip: '',           // how firmly the style is followed (CFG), in place of the Vibe pad's
-    polish: 'draft',    // draft (24 steps) or polished (32)
+    polish: 'polished', // polished (32 steps, default) or draft (24)
     chords: '',         // Plan & Roll's harmony, in place of the Vibe pad's
     voiceMix: {},       // a recorded voice's per-Jam settings overrides (all 10 voiceControls fields)
     voiceSettingsOpen: false,
@@ -514,7 +514,7 @@
     JamState.startSection = s.startSection || '';
     JamState.performance = s.performance || '';
     JamState.grip = s.grip || '';
-    JamState.polish = s.polish === 'polished' ? 'polished' : 'draft';
+    JamState.polish = s.polish === 'draft' ? 'draft' : 'polished';
     JamState.chords = s.chords === undefined || s.chords === null ? '' : String(s.chords);
     JamState.voiceMix = s.voiceMix && typeof s.voiceMix === 'object' ? JSON.parse(JSON.stringify(s.voiceMix)) : {};
   }
@@ -617,7 +617,7 @@
     }
     if ((prev.performance || '') !== (next.performance || '')) { diffs.push({ text: t('Performance \u2192 {value}', { value: performanceLabel(next.performance) }), cls: 'chg' }); }
     if ((prev.grip || '') !== (next.grip || '')) { diffs.push({ text: t('Style grip \u2192 {value}', { value: gripLabel(next.grip) }), cls: 'chg' }); }
-    if ((prev.polish || 'draft') !== (next.polish || 'draft')) { diffs.push({ text: next.polish === 'polished' ? t('Polished') : t('Draft'), cls: 'chg' }); }
+    if ((prev.polish || 'polished') !== (next.polish || 'polished')) { diffs.push({ text: next.polish === 'draft' ? t('Draft') : t('Polished'), cls: 'chg' }); }
     if (JSON.stringify(prev.voiceMix || {}) !== JSON.stringify(next.voiceMix || {})) { diffs.push({ text: t('Voice settings'), cls: 'chg' }); }
     if ((prev.styleLora || '') !== (next.styleLora || '')) {
       diffs.push({ text: next.styleLora ? t('+ LoRA') : t('\u2212 LoRA'), cls: next.styleLora ? 'add' : 'rem' });
@@ -978,7 +978,7 @@
       start_section: !isFullSong && snap.startSection ? snap.startSection : null,
       voice_mix: fullVoiceMix,
       sampler_steps: basePass && opts.basePassId && basePass.samplerSteps ? basePass.samplerSteps
-        : (isFullSong ? 32 : (snap.polish === 'polished' ? 32 : 24)),
+        : (isFullSong ? 32 : (snap.polish === 'draft' ? 24 : 32)),
       // As the Seed was made: a Jam does not normalise, or change the real-audio setting, unless the Seed did.
       realaudio: JamState.seedRealaudio !== false,
       normalise: Boolean(JamState.seedNormalise),
@@ -1742,7 +1742,7 @@
   // Whether anything in the Feel card is moved from its default.
   function feelIsSet() {
     return Boolean(JamState.key || JamState.startSection || JamState.performance || JamState.grip || JamState.chords !== '' ||
-      JamState.polish === 'polished' || !JamState.holdSeed);
+      JamState.polish === 'draft' || !JamState.holdSeed);
   }
 
   function feelSummaryParts() {
@@ -1751,7 +1751,7 @@
     if (JamState.startSection) { parts.push(sectionLabel(JamState.startSection)); }
     if (JamState.performance) { parts.push(performanceLabel(JamState.performance)); }
     if (JamState.grip) { parts.push(gripLabel(JamState.grip)); }
-    if (JamState.polish === 'polished') { parts.push(t('Polished')); }
+    if (JamState.polish === 'draft') { parts.push(t('Draft')); }
     if (JamState.chords !== '') { parts.push(chordsLabel(Number(JamState.chords))); }
     return parts;
   }
@@ -1790,8 +1790,8 @@
             row(t('Style grip'), feelSelect('jam-grip', JamState.grip,
               [['', t('As the Vibe has it')]].concat(Object.keys(GRIPS).map(function (n) { return [n, gripLabel(n) + ' (' + GRIPS[n] + ')']; }))),
               t('How firmly the sound follows the Parts and the Vibe')) +
-            row(t('Polish'), feelSelect('jam-polish', JamState.polish === 'polished' ? 'polished' : '',
-              [['', t('Draft')], ['polished', t('Polished')]]), t('Polished takes more steps over each pass')) +
+            row(t('Polish'), feelSelect('jam-polish', JamState.polish === 'draft' ? 'draft' : '',
+              [['', t('Polished')], ['draft', t('Draft')]]), t('Polished takes more steps over each pass')) +
             row(t('Chords (Plan & Roll)'), feelSelect('jam-chords', JamState.chords,
               [['', t('As the Vibe has it')]].concat(CHORDS.map(function (n, i) { return [String(i), chordsLabel(i)]; }))),
               t('How adventurous the chords are when Plan & Roll writes a new plan. Roll keeps the chords')) +
@@ -2333,7 +2333,7 @@
       paintFooter();
       return;
     }
-    if (tg.id === 'jam-polish') { JamState.polish = tg.value === 'polished' ? 'polished' : 'draft'; paintFeelCol(); paintFooter(); return; }
+    if (tg.id === 'jam-polish') { JamState.polish = tg.value === 'draft' ? 'draft' : 'polished'; paintFeelCol(); paintFooter(); return; }
     if (tg.id === 'jam-hold-seed') { JamState.holdSeed = tg.checked; saveSession(); paintFeelCol(); return; }
     if (tg.dataset && tg.dataset.mix && tg.closest('#jam-voice-mix')) {
       var field = tg.dataset.mix;
