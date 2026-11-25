@@ -122,8 +122,9 @@ def test_rack_stereo_imager_components_present():
     # Web Audio graph connections
     assert "this.imagerSplitter = ctx.createChannelSplitter(2)" in rack_js
     assert "this.imagerMerger = ctx.createChannelMerger(2)" in rack_js
-    # the imager feeds Space (dry and wet), and Space feeds the limiter
-    assert "imagerSum.connect(this.spaceDryGain)" in rack_js and "imagerSum.connect(spaceSplit)" in rack_js
+    # the imager feeds the 480L reverb (dry and wet), reverb feeds Space, and Space feeds the limiter
+    assert "imagerSum.connect(this.reverbDryGain)" in rack_js and "imagerSum.connect(this.reverbSendGain)" in rack_js
+    assert "reverbSum.connect(this.spaceDryGain)" in rack_js and "reverbSum.connect(spaceSplit)" in rack_js
     assert "spaceSum.connect(this.limitDrive)" in rack_js, "Space's output must connect directly into Limit Drive"
 
     # styles.css classes
@@ -376,6 +377,7 @@ function context(rate) {
                                                        attack: param(0.003), release: param(0.25), reduction: 0 }),
     createWaveShaper: () => node('shaper', { curve: null, oversample: 'none' }),
     createDelay: () => node('delay', { delayTime: param(0) }),
+    createOscillator: () => node('oscillator', { type: 'sine', frequency: param(440), start() {} }),
     createChannelSplitter: () => node('splitter'),
     createChannelMerger: () => node('merger'),
     createAnalyser: () => node('analyser', { fftSize: 2048 }),
@@ -928,3 +930,153 @@ def test_the_rack_s_six_channels_come_back_as_5_1_flac_or_ac3(client, tmp_path):
         assert probe["codec_name"] == codec and probe["channels"] == 6 and probe["channel_layout"].startswith("5.1")
     assert client.post("/api/takes/sur1/export-surround?format=mp3",
                        files={"audio_file": ("s.wav", path.read_bytes(), "audio/wav")}).status_code == 400
+
+
+# ------------------------------------------------------------------ 480L Mastering Reverb
+def test_reverb_480l_starts_out_and_matches_live_and_render(flat):
+    """480L Mastering Reverb starts out of the path (flat preset untouched), engages the chain when in with
+    wet mix > 0 or Delta soloed, and renders identically to live playback."""
+    rv = flat["reverb"]
+    assert rv["enabled"] is False
+    assert rv["program"] == "large_hall"
+    assert rv["eqSlope"] == 24 and rv["masteringScale"] is True and rv["view"] == "mastering"
+    assert rv["delta"] is False and rv["width"] == 100 and rv["monoBelow"] == 120
+
+    # UI view & Mastering Scale toggles never change the sound or break preset matching
+    ui_only = changed(flat, reverb={"view": "larc", "masteringScale": False})
+    engaged = changed(flat, reverb={
+        "enabled": True, "program": "random_hall", "rtMid": 3.2, "preDelay": 40, "size": 52,
+        "hfCut": 5500, "shape": 60, "mix": 0.035, "bassMult": 1.35, "crossover": 500,
+        "diffusion": 88, "spin": 60, "wander": 70, "hpf": 160, "lpf": 9000, "eqSlope": 24,
+        "inMS": 100, "outMS": 50, "duckThresh": -20, "duckAmount": 65, "width": 130,
+        "monoBelow": 150, "output": 1.5, "delta": False,
+    })
+    zero_mix = changed(flat, reverb={"enabled": True, "mix": 0, "delta": False})
+    delta_only = changed(flat, reverb={"enabled": True, "mix": 0, "delta": True})
+
+    got = rack([flat, ui_only, engaged, zero_mix, delta_only])
+    assert got["engaged"] == [False, False, True, False, True]
+    assert got["presets"][:2] == ["default", "default"]
+    assert got["presets"][2] is None
+    assert got["presets"][3] == "default"
+    for case in got["cases"]:
+        assert case["live"] == case["render"]
+
+
+def test_reverb_480l_dsp_matrix_eq_ducker_and_tank_impulse():
+    """Verify 480L figure-8 tank IR synthesis (zero dry spike, finite energy, stereo decorrelation),
+    12/24 dB/oct Pre-EQ, Input/Output M/S matrix, Mono-Maker, Dynamic Ducker transfer curve,
+    Mastering Scale 0-10% resolution, and Delta solo wet."""
+    script = r"""
+const fs = require('fs'), vm = require('vm');
+function param(v) { return { value: v, setTargetAtTime(x) { this.target = x; } }; }
+function heading(p) { return p.target !== undefined ? p.target : p.value; }
+function makeCtx(rate) {
+  function node(kind, extra) { return Object.assign({ kind, connect() { return arguments[0]; }, disconnect() {} }, extra || {}); }
+  return {
+    sampleRate: rate || 48000, currentTime: 0, state: 'running', destination: node('dest'),
+    createGain: () => node('gain', { gain: param(1) }),
+    createBiquadFilter: () => node('biquad', { type: 'lowpass', frequency: param(350), Q: param(1), gain: param(0) }),
+    createDynamicsCompressor: () => node('dynamics', { threshold: param(-24), knee: param(30), ratio: param(12), attack: param(0.003), release: param(0.25), reduction: 0 }),
+    createWaveShaper: () => node('shaper', { curve: null, oversample: 'none' }),
+    createDelay: () => node('delay', { delayTime: param(0) }),
+    createOscillator: () => node('oscillator', { type: 'sine', frequency: param(440), start() {} }),
+    createChannelSplitter: () => node('splitter'),
+    createChannelMerger: () => node('merger'),
+    createAnalyser: () => node('analyser', { fftSize: 256 }),
+    createPanner: () => node('panner', { positionX: param(0), positionY: param(0), positionZ: param(-1) }),
+    createConvolver: () => node('convolver', { buffer: null, normalize: true }),
+    createBuffer: (ch, len) => {
+      const data = Array.from({ length: ch }, () => new Float32Array(len));
+      return { numberOfChannels: ch, length: len, getChannelData: (c) => data[c] };
+    },
+    createMediaElementSource: () => node('element'),
+    createBufferSource: () => node('buffer', { start() {} }),
+    resume: () => Promise.resolve(),
+  };
+}
+const window = { addEventListener() {}, AudioContext: function () { return makeCtx(48000); }, State: { takes: [] } };
+const document = { getElementById: (id) => id === 'audio' ? { addEventListener() {} } : null, querySelectorAll: () => [] };
+const sandbox = { window, document, console, setTimeout, clearTimeout, Promise, JSON, Math, Float32Array, Int32Array,
+                  localStorage: { getItem: () => null, setItem() {} } };
+vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), sandbox);
+const Rack = window.Rack, Engine = window.RackEngine;
+const ctx = makeCtx(48000);
+
+// 1. 480L figure-8 tank IR synthesis across programs: zero initial dry spike (comb-free), finite, stereo decorrelated
+const ir = Rack.make480Impulse(ctx, Rack.reverbOf({ reverb: { enabled: true, program: 'large_hall', rtMid: 2.0, bassMult: 1.5, crossover: 500, hfCut: 5000, diffusion: 85, spin: 50, wander: 60 } }));
+const L = ir.getChannelData(0), R = ir.getChannelData(1);
+let maxGap = 0, eL = 0, eR = 0, dot = 0, bad = 0;
+const gap = Math.floor(0.002 * 48000);
+for (let i = 0; i < ir.length; i++) {
+  if (!Number.isFinite(L[i]) || !Number.isFinite(R[i])) { bad++; }
+  if (i < gap) { maxGap = Math.max(maxGap, Math.abs(L[i]), Math.abs(R[i])); }
+  eL += L[i] * L[i]; eR += R[i] * R[i]; dot += L[i] * R[i];
+}
+const corr = dot / Math.sqrt(Math.max(eL * eR, 1e-12));
+
+// 2. Dynamic Wet Ducker curve: 0 reduction below threshold, strong negative delta above threshold
+const duck = Rack.makeDuckCurve(-24, 100);
+const atZero = duck[1024];           // env = 0
+const below = duck[1024 + 20];       // env ~ 0.02 (-34 dB < -24 dB)
+const above = duck[1024 + 800];      // env ~ 0.78 (-2 dB >> -24 dB)
+
+// 3. Mastering Scale (0..10% in 0.1% steps) vs Full Scale (0..100%)
+const mVal = Rack.reverbValFromNorm('mix', 0.25, { masteringScale: true });
+const fVal = Rack.reverbValFromNorm('mix', 0.25, { masteringScale: false });
+
+// 4. Graph inspection: sides-only input, 12 vs 24 dB Pre-EQ, Mono-Maker, Width 150%, Delta Solo Wet
+const base = JSON.parse(JSON.stringify(Rack.settings));
+const sides24 = Object.assign({}, base, { reverb: Object.assign(Rack.defaultReverb(), {
+  enabled: true, mix: 0.03, inMS: 100, outMS: -50, hpf: 180, lpf: 8000, eqSlope: 24, width: 150, monoBelow: 140, duckAmount: 50, delta: false
+}) });
+const g24 = Rack.buildGraph(ctx, sides24).chain;
+const sides12Delta = Object.assign({}, base, { reverb: Object.assign(Rack.defaultReverb(), {
+  enabled: true, mix: 0.03, inMS: -100, outMS: 100, hpf: 180, lpf: 20000, eqSlope: 12, width: 0, monoBelow: 20, duckAmount: 0, delta: true
+}) });
+const g12 = Rack.buildGraph(ctx, sides12Delta).chain;
+
+console.log(JSON.stringify({
+  irLen: ir.length, bad, maxGap, eL, eR, corr,
+  duck: { atZero, below, above },
+  scale: { mVal, fVal },
+  g24: {
+    dry: g24.reverbDryGain.gain.value, wet: g24.reverbWetGain.gain.value,
+    inMid: g24.reverbInMidGain.gain.value, inSide: g24.reverbInSideGain.gain.value,
+    hp1: g24.reverbPreHP1.type, hp2: g24.reverbPreHP2.type, lp1: g24.reverbPreLP1.type, lp2: g24.reverbPreLP2.type,
+    mono1: g24.reverbMono1.type, mono2: g24.reverbMono2.type,
+    scGate: g24.reverbScGate.gain.value,
+  },
+  g12: {
+    dry: g12.reverbDryGain.gain.value, wet: g12.reverbWetGain.gain.value,
+    inMid: g12.reverbInMidGain.gain.value, inSide: g12.reverbInSideGain.gain.value,
+    hp1: g12.reverbPreHP1.type, hp2: g12.reverbPreHP2.type, lp1: g12.reverbPreLP1.type, lp2: g12.reverbPreLP2.type,
+    mono1: g12.reverbMono1.type, mono2: g12.reverbMono2.type,
+    outSide: g12.reverbOutSideGain.gain.value, scGate: g12.reverbScGate.gain.value,
+  },
+}));
+"""
+    res = subprocess.run(["node", "-e", script, str(STATIC / "rack.js")], capture_output=True, text=True, check=True)
+    got = json.loads(res.stdout)
+
+    assert got["bad"] == 0 and got["maxGap"] == 0 and got["eL"] > 0.1 and got["eR"] > 0.1
+    assert abs(got["corr"]) < 0.35  # genuinely decorrelated stereo figure-8 tank
+    assert got["duck"]["atZero"] == 0 and got["duck"]["below"] == 0 and got["duck"]["above"] < -0.5
+    assert got["scale"]["mVal"] == pytest.approx(0.025) and got["scale"]["fVal"] == pytest.approx(0.25)
+
+    # 24 dB/oct uses both cascaded biquads; Sides-only mutes Mid; Mono-Maker uses 24 dB/oct on Side
+    assert got["g24"]["dry"] == pytest.approx(0.97) and got["g24"]["wet"] == pytest.approx(0.03)
+    assert got["g24"]["inMid"] == 0 and got["g24"]["inSide"] == 1
+    assert (got["g24"]["hp1"], got["g24"]["hp2"]) == ("highpass", "highpass")
+    assert (got["g24"]["lp1"], got["g24"]["lp2"]) == ("lowpass", "lowpass")
+    assert (got["g24"]["mono1"], got["g24"]["mono2"]) == ("highpass", "highpass")
+    assert got["g24"]["scGate"] == 1
+
+    # 12 dB/oct uses 1 stage + bypasses stage 2; LPF=20k & Mono=20Hz bypass cleanly; Delta solos Wet at unity
+    assert got["g12"]["dry"] == 0 and got["g12"]["wet"] == 1
+    assert got["g12"]["inMid"] == 1 and got["g12"]["inSide"] == 0
+    assert (got["g12"]["hp1"], got["g12"]["hp2"]) == ("highpass", "peaking")
+    assert (got["g12"]["lp1"], got["g12"]["lp2"]) == ("peaking", "peaking")
+    assert (got["g12"]["mono1"], got["g12"]["mono2"]) == ("peaking", "peaking")
+    assert got["g12"]["outSide"] == 0 and got["g12"]["scGate"] == 0
+

@@ -652,6 +652,346 @@
     return impulse;
   }
 
+  // ------------------------------------------------------------- 480L Mastering Reverb
+  /* Vintage 1986 figure-8 modulated all-pass tank reverb with mastering console utilities in the wet path:
+     12/24 dB/oct Pre-EQ (HPF & LPF), Input & Output Mid/Side matrix, dry-sidechained Dynamic Wet Ducker,
+     wet-signal Stereo Width (0-150%) & 24 dB/oct Mono-Maker, Output Trim, and sample-aligned Dry/Wet mix
+     with Mastering Scale (0-10% fine throw) and Delta (Solo Wet) audition. */
+  var REVERB_PROGRAMS = {
+    large_hall:  { label: 'P1: LARGE HALL',  short: 'HALL',      rtMid: 2.4,  preDelay: 28, size: 42, hfCut: 6500,  shape: 55, bassMult: 1.20, crossover: 650, diffusion: 78, spin: 35, wander: 40, erGain: 0.28, seed: 101, scale: 1.00 },
+    random_hall: { label: 'P2: RANDOM HALL', short: 'RND HALL',  rtMid: 2.8,  preDelay: 34, size: 48, hfCut: 5800,  shape: 65, bassMult: 1.15, crossover: 550, diffusion: 85, spin: 55, wander: 65, erGain: 0.24, seed: 211, scale: 1.08 },
+    rich_plate:  { label: 'P3: RICH PLATE',  short: 'PLATE',     rtMid: 1.8,  preDelay: 16, size: 28, hfCut: 9500,  shape: 20, bassMult: 0.85, crossover: 500, diffusion: 92, spin: 40, wander: 35, erGain: 0.16, seed: 307, scale: 0.78 },
+    ambience:    { label: 'P4: AMBIENCE',    short: 'AMBIENCE',  rtMid: 0.65, preDelay: 12, size: 22, hfCut: 10500, shape: 15, bassMult: 0.80, crossover: 700, diffusion: 90, spin: 25, wander: 25, erGain: 0.42, seed: 409, scale: 0.62 },
+    small_stage: { label: 'P5: SMALL STAGE', short: 'STAGE',     rtMid: 1.15, preDelay: 18, size: 24, hfCut: 7500,  shape: 30, bassMult: 1.00, crossover: 600, diffusion: 70, spin: 30, wander: 30, erGain: 0.38, seed: 503, scale: 0.72 },
+    cathedral:   { label: 'P6: CATHEDRAL',   short: 'CATHEDRAL', rtMid: 5.2,  preDelay: 48, size: 64, hfCut: 4800,  shape: 80, bassMult: 1.35, crossover: 480, diffusion: 88, spin: 50, wander: 60, erGain: 0.20, seed: 617, scale: 1.28 }
+  };
+  var REVERB_PROGRAM_ORDER = ['large_hall', 'random_hall', 'rich_plate', 'ambience', 'small_stage', 'cathedral'];
+  var REVERB_BUTTERWORTH_QDB = -3.01;  // 20 * log10(1/sqrt(2)): exact Butterworth 12 dB/oct per biquad stage
+
+  function defaultReverb() {
+    return {
+      enabled: false,
+      program: 'large_hall',
+      rtMid: 2.4,
+      preDelay: 28,
+      size: 42,
+      hfCut: 6500,
+      shape: 55,
+      mix: 0.04,
+      bassMult: 1.2,
+      crossover: 650,
+      diffusion: 78,
+      spin: 35,
+      wander: 40,
+      hpf: 120,
+      lpf: 12000,
+      eqSlope: 24,
+      inMS: 0,
+      outMS: 0,
+      duckThresh: -24,
+      duckAmount: 0,
+      width: 100,
+      monoBelow: 120,
+      output: 0,
+      delta: false,
+      masteringScale: true,
+      view: 'mastering'
+    };
+  }
+
+  function reverbOf(settings) {
+    var def = defaultReverb();
+    var kept = settings && settings.reverb && typeof settings.reverb === 'object' ? settings.reverb : null;
+    if (!kept) { return def; }
+    function clamp(v, lo, hi, fb) {
+      var x = Number(v);
+      return (v === undefined || v === null || isNaN(x)) ? fb : Math.min(hi, Math.max(lo, x));
+    }
+    return {
+      enabled: Boolean(kept.enabled),
+      program: REVERB_PROGRAMS[kept.program] ? kept.program : def.program,
+      rtMid: clamp(kept.rtMid, 0.2, 12.0, def.rtMid),
+      preDelay: clamp(kept.preDelay, 0, 250, def.preDelay),
+      size: clamp(kept.size, 10, 70, def.size),
+      hfCut: clamp(kept.hfCut, 1000, 20000, def.hfCut),
+      shape: clamp(kept.shape, 0, 100, def.shape),
+      mix: clamp(kept.mix, 0, 1, def.mix),
+      bassMult: clamp(kept.bassMult, 0.2, 2.5, def.bassMult),
+      crossover: clamp(kept.crossover, 100, 2000, def.crossover),
+      diffusion: clamp(kept.diffusion, 0, 100, def.diffusion),
+      spin: clamp(kept.spin, 0, 100, def.spin),
+      wander: clamp(kept.wander, 0, 100, def.wander),
+      hpf: clamp(kept.hpf, 20, 500, def.hpf),
+      lpf: clamp(kept.lpf, 1000, 20000, def.lpf),
+      eqSlope: Number(kept.eqSlope) === 12 ? 12 : 24,
+      inMS: clamp(kept.inMS, -100, 100, def.inMS),
+      outMS: clamp(kept.outMS, -100, 100, def.outMS),
+      duckThresh: clamp(kept.duckThresh, -48, 0, def.duckThresh),
+      duckAmount: clamp(kept.duckAmount, 0, 100, def.duckAmount),
+      width: clamp(kept.width, 0, 150, def.width),
+      monoBelow: clamp(kept.monoBelow, 20, 500, def.monoBelow),
+      output: clamp(kept.output, -12, 12, def.output),
+      delta: Boolean(kept.delta),
+      masteringScale: kept.masteringScale === undefined ? def.masteringScale : Boolean(kept.masteringScale),
+      view: kept.view === 'larc' ? 'larc' : 'mastering'
+    };
+  }
+
+  function reverbActive(rev) {
+    return Boolean(rev && rev.enabled && (Number(rev.mix) > 0 || rev.delta));
+  }
+
+  /* Full-wave rectifier curve (y = |x|) for the dry sidechain envelope follower. */
+  var _rectifierCurve = null;
+  function makeRectifierCurve() {
+    if (_rectifierCurve) { return _rectifierCurve; }
+    var n = 2048, curve = new Float32Array(n + 1);
+    for (var i = 0; i <= n; i++) {
+      var x = (i * 2) / n - 1;
+      curve[i] = Math.abs(x);
+    }
+    _rectifierCurve = curve;
+    return curve;
+  }
+
+  /* Sidechain ducker transfer curve: maps smoothed envelope env in [0, 1] to VCA gain delta in [-0.9, 0],
+     added to a GainNode whose base gain is 1.0 (so output gain = 1.0 + delta). */
+  function makeDuckCurve(threshDb, amountPct) {
+    var n = 2048, curve = new Float32Array(n + 1);
+    var amt = Math.max(0, Math.min(1, Number(amountPct || 0) / 100));
+    var linT = Math.pow(10, Math.max(-48, Math.min(0, Number(threshDb))) / 20);
+    var maxDuckDb = 18 * amt;
+    for (var i = 0; i <= n; i++) {
+      var env = Math.max(0, (i * 2) / n - 1);
+      if (amt <= 0 || env <= linT) {
+        curve[i] = 0;
+      } else {
+        var overDb = 20 * Math.log10(env / Math.max(linT, 1e-6));
+        // Soft knee over 6 dB for transparent mastering ducking
+        var effOver = overDb < 6 ? (overDb * overDb) / 12 : (overDb - 3);
+        var attDb = Math.min(maxDuckDb, effOver * (0.4 + amt * 1.1));
+        curve[i] = Math.pow(10, -attDb / 20) - 1.0;
+      }
+    }
+    return curve;
+  }
+
+  /* 480L figure-8 modulated all-pass tank impulse synthesizer.
+     Runs 4 coprime input diffusers into a cross-coupled stereo figure-8 modulated tank with 2-band
+     crossover decay (Bass Multiply below Crossover Hz, RT Mid above, progressive HF Cut rolloff),
+     Spin/Wander internal delay modulation, Size-scaled delay geometry, and Shape/Spread attack bloom.
+     Leaves a clean 2 ms initial gap (zero dry spike) so blending at 1-5% wet never comb-filters. */
+  var _reverbIrCache = {};
+  var _reverbIrKeys = [];
+
+  function reverbIrKey(rate, rev) {
+    return [
+      rate, rev.program,
+      Math.round(rev.rtMid * 100), Math.round(rev.size),
+      Math.round(rev.hfCut), Math.round(rev.shape),
+      Math.round(rev.bassMult * 100), Math.round(rev.crossover),
+      Math.round(rev.diffusion), Math.round(rev.spin), Math.round(rev.wander)
+    ].join('|');
+  }
+
+  function make480Impulse(ctx, rev) {
+    var rate = (ctx && ctx.sampleRate) || 48000;
+    var key = reverbIrKey(rate, rev);
+    if (_reverbIrCache[key]) { return _reverbIrCache[key]; }
+
+    var prog = REVERB_PROGRAMS[rev.program] || REVERB_PROGRAMS.large_hall;
+    var rtMid = Math.max(0.2, Math.min(12.0, rev.rtMid));
+    var rtLow = Math.max(0.15, Math.min(16.0, rtMid * rev.bassMult));
+    var seconds = Math.max(0.5, Math.min(10.0, Math.max(rtMid, rtLow) * 1.05 + 0.15));
+    var length = Math.floor(seconds * rate);
+    var buf = ctx.createBuffer(2, length, rate);
+    var outL = buf.getChannelData(0), outR = buf.getChannelData(1);
+
+    var sr = rate / 48000;
+    var sizeNorm = Math.max(0, Math.min(1, (rev.size - 10) / 60));
+    var sizeScale = (0.55 + sizeNorm * 0.95) * prog.scale;
+    var diffNorm = Math.max(0, Math.min(1, rev.diffusion / 100));
+    var shapeNorm = Math.max(0, Math.min(1, rev.shape / 100));
+    var spinNorm = Math.max(0, Math.min(1, rev.spin / 100));
+    var wanderNorm = Math.max(0, Math.min(1, rev.wander / 100));
+
+    function dLen(base) { return Math.max(16, Math.round(base * sizeScale * sr)); }
+
+    // 4 coprime input all-pass diffusers (2 per channel, flat locals for fast V8 execution)
+    var inL1 = new Float32Array(dLen(142)), inL1Len = inL1.length, inL1I = 0;
+    var inL2 = new Float32Array(dLen(379)), inL2Len = inL2.length, inL2I = 0;
+    var inR1 = new Float32Array(dLen(157)), inR1Len = inR1.length, inR1I = 0;
+    var inR2 = new Float32Array(dLen(401)), inR2Len = inR2.length, inR2I = 0;
+    var gIn = 0.25 + 0.45 * diffNorm;
+
+    // Cross-coupled figure-8 tank: Half A and Half B
+    var mMax = Math.max(2, Math.ceil(16 * sr));
+    var aAp1 = new Float32Array(dLen(672) + mMax + 2), aAp1Len = aAp1.length, aAp1I = 0;
+    var aD1  = new Float32Array(dLen(4453)), aD1Len = aD1.length, aD1I = 0;
+    var aAp2 = new Float32Array(dLen(1800)), aAp2Len = aAp2.length, aAp2I = 0;
+    var aD2  = new Float32Array(dLen(3720)), aD2Len = aD2.length, aD2I = 0;
+
+    var bAp1 = new Float32Array(dLen(908) + mMax + 2), bAp1Len = bAp1.length, bAp1I = 0;
+    var bD1  = new Float32Array(dLen(4217)), bD1Len = bD1.length, bD1I = 0;
+    var bAp2 = new Float32Array(dLen(2656)), bAp2Len = bAp2.length, bAp2I = 0;
+    var bD2  = new Float32Array(dLen(3163)), bD2Len = bD2.length, bD2I = 0;
+
+    var gT1 = 0.35 + 0.35 * diffNorm;
+    var gT2 = 0.28 + 0.32 * diffNorm;
+
+    var loopA = (aAp1Len + aD1Len + aAp2Len + aD2Len) / rate;
+    var loopB = (bAp1Len + bD1Len + bAp2Len + bD2Len) / rate;
+    var gMidA = Math.min(0.992, Math.pow(10, -3 * loopA / rtMid));
+    var gLowA = Math.min(0.994, Math.pow(10, -3 * loopA / rtLow));
+    var gMidB = Math.min(0.992, Math.pow(10, -3 * loopB / rtMid));
+    var gLowB = Math.min(0.994, Math.pow(10, -3 * loopB / rtLow));
+
+    var aX = Math.exp(-2 * Math.PI * Math.max(100, Math.min(2000, rev.crossover)) / rate), oneMinusAX = 1 - aX;
+    var aHF = rev.hfCut >= 19500 ? 0.04 : Math.exp(-2 * Math.PI * Math.max(1000, Math.min(20000, rev.hfCut)) / rate), oneMinusAHF = 1 - aHF;
+    var lpXA = 0, lpHFA = 0, lpXB = 0, lpHFB = 0;
+    var fbA = 0, fbB = 0;
+
+    // Coupled-form LFO oscillators for Spin & Wander (no per-sample Math.sin)
+    var modDepth = wanderNorm * 12 * sr;
+    var wA = 2 * Math.PI * (0.25 + spinNorm * 1.75) / rate;
+    var wB = 2 * Math.PI * (0.31 + spinNorm * 2.13) / rate;
+    var ph0A = (prog.seed % 17) * 0.37, ph0B = (prog.seed % 23) * 0.53;
+    var sinA = Math.sin(ph0A), cosA = Math.cos(ph0A), sinB = Math.sin(ph0B), cosB = Math.cos(ph0B);
+
+    // Multi-tap read offsets inside the 4 main tank delay lines (Griesinger / Dattorro decorrelated layout)
+    var tL1 = Math.floor(aD1Len * 0.09), tL2 = Math.floor(aD1Len * 0.67), tL3 = Math.floor(aD2Len * 0.45);
+    var tL4 = Math.floor(bD1Len * 0.21), tL5 = Math.floor(bD1Len * 0.81), tL6 = Math.floor(bD2Len * 0.33);
+    var tR1 = Math.floor(bD1Len * 0.11), tR2 = Math.floor(bD1Len * 0.61), tR3 = Math.floor(bD2Len * 0.51);
+    var tR4 = Math.floor(aD1Len * 0.27), tR5 = Math.floor(aD1Len * 0.77), tR6 = Math.floor(aD2Len * 0.29);
+
+    var gap = Math.floor(0.002 * rate);
+    var attackTau = (0.002 + shapeNorm * shapeNorm * 0.16) * rate;
+    var attMul = Math.exp(-1 / attackTau), attDecay = 1.0;
+    var fadeOut = Math.min(Math.floor(0.03 * rate), Math.floor(length * 0.1));
+    var fadeStart = length - fadeOut;
+
+    // Deterministic program-voiced early reflection cluster
+    var erTimes = [0.0053, 0.0089, 0.0131, 0.0179, 0.0233, 0.0297, 0.0361, 0.0439];
+    var erWeight = prog.erGain * (1 - 0.65 * shapeNorm);
+    var erL = new Int32Array(erTimes.length), erR = new Int32Array(erTimes.length), erAmp = new Float32Array(erTimes.length);
+    for (var e = 0; e < erTimes.length; e++) {
+      var jitter = ((prog.seed * (e + 3)) % 19) * 0.00018;
+      erL[e] = Math.min(length - 1, Math.max(gap, Math.floor((erTimes[e] + jitter) * sizeScale * rate)));
+      erR[e] = Math.min(length - 1, Math.max(gap, Math.floor((erTimes[e] + jitter * 1.4 + 0.0011) * sizeScale * rate)));
+      erAmp[e] = erWeight * Math.pow(0.76, e) * ((e & 1) ? -1 : 1);
+    }
+
+    var aBaseOff = aAp1Len - mMax - 1;
+    var bBaseOff = bAp1Len - mMax - 1;
+    var energy = 0;
+
+    for (var n = 0; n < length; n++) {
+      var xL = n === 0 ? 1.0 : 0.0;
+      var xR = n === 0 ? -0.92 : (n === 3 ? 0.35 : 0.0);
+
+      // Input diffusion (unrolled)
+      var dL1 = inL1[inL1I], vL1 = xL - gIn * dL1; inL1[inL1I] = vL1; if (++inL1I >= inL1Len) { inL1I = 0; } xL = dL1 + gIn * vL1;
+      var dL2 = inL2[inL2I], vL2 = xL - gIn * dL2; inL2[inL2I] = vL2; if (++inL2I >= inL2Len) { inL2I = 0; } xL = dL2 + gIn * vL2;
+      var dR1 = inR1[inR1I], vR1 = xR - gIn * dR1; inR1[inR1I] = vR1; if (++inR1I >= inR1Len) { inR1I = 0; } xR = dR1 + gIn * vR1;
+      var dR2 = inR2[inR2I], vR2 = xR - gIn * dR2; inR2[inR2I] = vR2; if (++inR2I >= inR2Len) { inR2I = 0; } xR = dR2 + gIn * vR2;
+
+      // Tank Half A
+      var inA = xL + fbB;
+      var offA = aBaseOff - modDepth * sinA;
+      var i0A = offA | 0, frA = offA - i0A;
+      var r0A = aAp1I - i0A; if (r0A < 0) { r0A += aAp1Len; }
+      var r1A = r0A - 1; if (r1A < 0) { r1A += aAp1Len; }
+      var delA1 = aAp1[r0A] + frA * (aAp1[r1A] - aAp1[r0A]);
+      var vA1 = inA - gT1 * delA1;
+      aAp1[aAp1I] = vA1; if (++aAp1I >= aAp1Len) { aAp1I = 0; }
+      var sA = delA1 + gT1 * vA1;
+
+      var dOutA1 = aD1[aD1I]; aD1[aD1I] = sA; if (++aD1I >= aD1Len) { aD1I = 0; }
+      lpXA = oneMinusAX * dOutA1 + aX * lpXA;
+      lpHFA = oneMinusAHF * (dOutA1 - lpXA) + aHF * lpHFA;
+      sA = lpXA * gLowA + lpHFA * gMidA;
+
+      var delA2 = aAp2[aAp2I], vA2 = sA - gT2 * delA2;
+      aAp2[aAp2I] = vA2; if (++aAp2I >= aAp2Len) { aAp2I = 0; }
+      sA = delA2 + gT2 * vA2;
+      fbA = aD2[aD2I]; aD2[aD2I] = sA; if (++aD2I >= aD2Len) { aD2I = 0; }
+
+      // Tank Half B
+      var inB = xR + fbA;
+      var offB = bBaseOff - modDepth * sinB;
+      var i0B = offB | 0, frB = offB - i0B;
+      var r0B = bAp1I - i0B; if (r0B < 0) { r0B += bAp1Len; }
+      var r1B = r0B - 1; if (r1B < 0) { r1B += bAp1Len; }
+      var delB1 = bAp1[r0B] + frB * (bAp1[r1B] - bAp1[r0B]);
+      var vB1 = inB - gT1 * delB1;
+      bAp1[bAp1I] = vB1; if (++bAp1I >= bAp1Len) { bAp1I = 0; }
+      var sB = delB1 + gT1 * vB1;
+
+      var dOutB1 = bD1[bD1I]; bD1[bD1I] = sB; if (++bD1I >= bD1Len) { bD1I = 0; }
+      lpXB = oneMinusAX * dOutB1 + aX * lpXB;
+      lpHFB = oneMinusAHF * (dOutB1 - lpXB) + aHF * lpHFB;
+      sB = lpXB * gLowB + lpHFB * gMidB;
+
+      var delB2 = bAp2[bAp2I], vB2 = sB - gT2 * delB2;
+      bAp2[bAp2I] = vB2; if (++bAp2I >= bAp2Len) { bAp2I = 0; }
+      sB = delB2 + gT2 * vB2;
+      fbB = bD2[bD2I]; bD2[bD2I] = sB; if (++bD2I >= bD2Len) { bD2I = 0; }
+
+      // Advance coupled-form LFOs
+      sinA += wA * cosA; cosA -= wA * sinA;
+      sinB += wB * cosB; cosB -= wB * sinB;
+
+      if (n < gap) { continue; }
+
+      // Multi-tap stereo readout (branch-wrap instead of %)
+      var iL1 = aD1I + tL1; if (iL1 >= aD1Len) { iL1 -= aD1Len; }
+      var iL2 = aD1I + tL2; if (iL2 >= aD1Len) { iL2 -= aD1Len; }
+      var iL3 = aD2I + tL3; if (iL3 >= aD2Len) { iL3 -= aD2Len; }
+      var iL4 = bD1I + tL4; if (iL4 >= bD1Len) { iL4 -= bD1Len; }
+      var iL5 = bD1I + tL5; if (iL5 >= bD1Len) { iL5 -= bD1Len; }
+      var iL6 = bD2I + tL6; if (iL6 >= bD2Len) { iL6 -= bD2Len; }
+      var iR1 = bD1I + tR1; if (iR1 >= bD1Len) { iR1 -= bD1Len; }
+      var iR2 = bD1I + tR2; if (iR2 >= bD1Len) { iR2 -= bD1Len; }
+      var iR3 = bD2I + tR3; if (iR3 >= bD2Len) { iR3 -= bD2Len; }
+      var iR4 = aD1I + tR4; if (iR4 >= aD1Len) { iR4 -= aD1Len; }
+      var iR5 = aD1I + tR5; if (iR5 >= aD1Len) { iR5 -= aD1Len; }
+      var iR6 = aD2I + tR6; if (iR6 >= aD2Len) { iR6 -= aD2Len; }
+
+      var lSum = aD1[iL1] - aD1[iL2] + aD2[iL3] + bD1[iL4] - bD1[iL5] - bD2[iL6];
+      var rSum = bD1[iR1] - bD1[iR2] + bD2[iR3] + aD1[iR4] - aD1[iR5] - aD2[iR6];
+
+      var env = 1 - attDecay;
+      attDecay *= attMul;
+      if (n > fadeStart) { env *= (length - n) / fadeOut; }
+      outL[n] = lSum * env;
+      outR[n] = rSum * env;
+    }
+
+    // Add program-voiced early reflection cluster
+    for (var j = 0; j < erTimes.length; j++) {
+      outL[erL[j]] += erAmp[j];
+      outR[erR[j]] += erAmp[j] * 0.94;
+    }
+
+    for (var m = gap; m < length; m++) {
+      energy += outL[m] * outL[m] + outR[m] * outR[m];
+    }
+    var rmsScale = (0.72 * Math.pow(Math.max(0.4, Math.min(6.0, rtMid)) / 1.8, 0.14)) / Math.sqrt(Math.max(energy * 0.5, 1e-9));
+    for (var p = gap; p < length; p++) {
+      outL[p] *= rmsScale;
+      outR[p] *= rmsScale;
+    }
+
+    _reverbIrCache[key] = buf;
+    _reverbIrKeys.push(key);
+    if (_reverbIrKeys.length > 10) {
+      delete _reverbIrCache[_reverbIrKeys.shift()];
+    }
+    return buf;
+  }
+
+  Object.keys(PRESETS).forEach(function (key) { PRESETS[key].reverb = Object.assign(defaultReverb(), PRESETS[key].reverb || {}); });
+
   /* The sample rate a FLAC or WAV file says it has; 48000, what a take is made at, when the
      header is neither. */
   function fileSampleRate(arrayBuf) {
@@ -739,6 +1079,7 @@
       if (num(eq.hp) > 20 || num(eq.lowGain) !== 0 || num(mid) !== 0 || num(high) !== 0) { return true; }
     }
     if (peqActive(peqOf(s))) { return true; }
+    if (reverbActive(reverbOf(s))) { return true; }
     return Boolean((s.comp && s.comp.enabled !== false) ||
                    (s.imager && s.imager.enabled !== false) ||
                    (s.limit && s.limit.enabled !== false));
@@ -810,7 +1151,16 @@
           var shape = peqBandShape(b, p.enabled);
           return shape.type === 'peaking' && shape.gain === 0 ? 0 : [shape.type, n(shape.frequency, 0), n(shape.Q, 1), n(shape.gain, 0)];
         });
-      })(peqOf(s))
+      })(peqOf(s)),
+      // 480L Mastering Reverb: when out (or 0% mix without Delta), contributes nothing so older settings match
+      (function (rv) {
+        if (!reverbActive(rv)) { return [false]; }
+        return [true, rv.program, n(rv.rtMid, 2.4), n(rv.preDelay, 28), n(rv.size, 42), n(rv.hfCut, 6500),
+                n(rv.shape, 55), n(rv.mix, 0.04), n(rv.bassMult, 1.2), n(rv.crossover, 650), n(rv.diffusion, 78),
+                n(rv.spin, 35), n(rv.wander, 40), n(rv.hpf, 120), n(rv.lpf, 12000), rv.eqSlope,
+                n(rv.inMS, 0), n(rv.outMS, 0), n(rv.duckThresh, -24), n(rv.duckAmount, 0),
+                n(rv.width, 100), n(rv.monoBelow, 120), n(rv.output, 0), Boolean(rv.delta)];
+      })(reverbOf(s))
     ]);
   }
 
@@ -867,6 +1217,39 @@
     imagerShaperIn: null,
     imagerShaperOut: null,
     imagerMerger: null,
+
+    // 480L Mastering Reverb
+    reverbDryGain: null,
+    reverbWetGain: null,
+    reverbSendGain: null,
+    reverbInMidGain: null,
+    reverbInSideGain: null,
+    reverbPreHP1: null,
+    reverbPreHP2: null,
+    reverbPreLP1: null,
+    reverbPreLP2: null,
+    reverbPreDelay: null,
+    reverbConvolver: null,
+    reverbModDelayL: null,
+    reverbModDelayR: null,
+    reverbLfoL: null,
+    reverbLfoR: null,
+    reverbLfoDepthL: null,
+    reverbLfoDepthR: null,
+    reverbDuckVca: null,
+    reverbScRect: null,
+    reverbScEnv: null,
+    reverbScCurve: null,
+    reverbScGate: null,
+    reverbDuckAnalyser: null,
+    reverbOutMidGain: null,
+    reverbOutSideGain: null,
+    reverbMono1: null,
+    reverbMono2: null,
+    reverbOutputTrim: null,
+    reverbIrKey: null,
+    reverbIrTimer: null,
+    reverbDuckKey: null,
 
     // Space (headphones 3D); and the take's stems, placed one by one, in place of the take when SOURCE is STEMS
     sourceToChain: null,
@@ -1127,7 +1510,163 @@
       this.imagerDryGain.connect(imagerSum);
       this.imagerWetGain.connect(imagerSum);
 
-      // 5. Master Limiter & Tube Warmth stage (Fed by imagerSum)
+      // 4a. 480L Mastering Reverb (Fed by imagerSum, feeds Space and Limiter)
+      // Dry path is a pure unity/gain bus with zero filters and zero latency (sample-accurate linear-phase blend).
+      this.reverbDryGain = ctx.createGain();
+      this.reverbWetGain = ctx.createGain();
+      this.reverbSendGain = ctx.createGain();
+      this.reverbDryGain.gain.value = 1.0;
+      this.reverbWetGain.gain.value = 0.0;
+      this.reverbSendGain.gain.value = 0.0;
+
+      // Mid/Side Input Matrix
+      var revInSplit = ctx.createChannelSplitter(2);
+      var revInLtoM = ctx.createGain(); revInLtoM.gain.value = 0.5;
+      var revInRtoM = ctx.createGain(); revInRtoM.gain.value = 0.5;
+      var revInLtoS = ctx.createGain(); revInLtoS.gain.value = 0.5;
+      var revInRtoS = ctx.createGain(); revInRtoS.gain.value = -0.5;
+      this.reverbInMidGain = ctx.createGain(); this.reverbInMidGain.gain.value = 1.0;
+      this.reverbInSideGain = ctx.createGain(); this.reverbInSideGain.gain.value = 1.0;
+      var revInSideInv = ctx.createGain(); revInSideInv.gain.value = -1.0;
+      var revInMerger = ctx.createChannelMerger(2);
+
+      this.reverbSendGain.connect(revInSplit);
+      revInSplit.connect(revInLtoM, 0); revInSplit.connect(revInRtoM, 1);
+      revInLtoM.connect(this.reverbInMidGain); revInRtoM.connect(this.reverbInMidGain);
+      revInSplit.connect(revInLtoS, 0); revInSplit.connect(revInRtoS, 1);
+      revInLtoS.connect(this.reverbInSideGain); revInRtoS.connect(this.reverbInSideGain);
+      this.reverbInMidGain.connect(revInMerger, 0, 0);
+      this.reverbInMidGain.connect(revInMerger, 0, 1);
+      this.reverbInSideGain.connect(revInMerger, 0, 0);
+      this.reverbInSideGain.connect(revInSideInv);
+      revInSideInv.connect(revInMerger, 0, 1);
+
+      // Pre-Reverb Wet EQ (switchable 12 / 24 dB/oct HPF & LPF)
+      function makeFlatBiquad(freq) {
+        var f = ctx.createBiquadFilter();
+        f.type = 'peaking'; f.frequency.value = freq; f.Q.value = 1; f.gain.value = 0;
+        return f;
+      }
+      this.reverbPreHP1 = makeFlatBiquad(120);
+      this.reverbPreHP2 = makeFlatBiquad(120);
+      this.reverbPreLP1 = makeFlatBiquad(12000);
+      this.reverbPreLP2 = makeFlatBiquad(12000);
+      revInMerger.connect(this.reverbPreHP1);
+      this.reverbPreHP1.connect(this.reverbPreHP2);
+      this.reverbPreHP2.connect(this.reverbPreLP1);
+      this.reverbPreLP1.connect(this.reverbPreLP2);
+
+      // Pre-Delay & 480L Modulated Figure-8 Tank Convolver
+      this.reverbPreDelay = ctx.createDelay(0.3);
+      this.reverbPreDelay.delayTime.value = 0.028;
+      this.reverbConvolver = ctx.createConvolver();
+      this.reverbConvolver.normalize = false;
+      this.reverbIrKey = null;
+      this.reverbIrTimer = null;
+      this.reverbPreLP2.connect(this.reverbPreDelay);
+      this.reverbPreDelay.connect(this.reverbConvolver);
+
+      // Real-time Spin & Wander stereo wet-return micro-modulation
+      var revModSplit = ctx.createChannelSplitter(2);
+      var revModMerger = ctx.createChannelMerger(2);
+      this.reverbModDelayL = ctx.createDelay(0.03);
+      this.reverbModDelayR = ctx.createDelay(0.03);
+      this.reverbModDelayL.delayTime.value = 0.003;
+      this.reverbModDelayR.delayTime.value = 0.003;
+      this.reverbConvolver.connect(revModSplit);
+      revModSplit.connect(this.reverbModDelayL, 0);
+      revModSplit.connect(this.reverbModDelayR, 1);
+      this.reverbModDelayL.connect(revModMerger, 0, 0);
+      this.reverbModDelayR.connect(revModMerger, 0, 1);
+
+      if (ctx.createOscillator) {
+        this.reverbLfoL = ctx.createOscillator();
+        this.reverbLfoR = ctx.createOscillator();
+        this.reverbLfoL.type = 'sine';
+        this.reverbLfoR.type = 'sine';
+        this.reverbLfoL.frequency.value = 0.61;
+        this.reverbLfoR.frequency.value = 0.78;
+        this.reverbLfoDepthL = ctx.createGain();
+        this.reverbLfoDepthR = ctx.createGain();
+        this.reverbLfoDepthL.gain.value = 0;
+        this.reverbLfoDepthR.gain.value = 0;
+        this.reverbLfoL.connect(this.reverbLfoDepthL);
+        this.reverbLfoR.connect(this.reverbLfoDepthR);
+        this.reverbLfoDepthL.connect(this.reverbModDelayL.delayTime);
+        this.reverbLfoDepthR.connect(this.reverbModDelayR.delayTime);
+        this.reverbLfoL.start(0);
+        this.reverbLfoR.start(0);
+      }
+
+      // Dynamic Wet Ducker (sample-accurate sidechain from dry imagerSum via rectifier + critically-damped envelope + transfer curve)
+      this.reverbDuckVca = ctx.createGain();
+      this.reverbDuckVca.gain.value = 1.0;
+      revModMerger.connect(this.reverbDuckVca);
+
+      var revScSum = ctx.createGain();
+      revScSum.gain.value = 1.0;
+      revScSum.channelCount = 1;
+      revScSum.channelCountMode = 'explicit';
+      this.reverbScRect = ctx.createWaveShaper();
+      this.reverbScRect.curve = makeRectifierCurve();
+      this.reverbScEnv = ctx.createBiquadFilter();
+      this.reverbScEnv.type = 'lowpass';
+      this.reverbScEnv.frequency.value = 12;
+      this.reverbScEnv.Q.value = -6.02;  // linear Q = 0.5 (critically damped: zero overshoot/ringing)
+      this.reverbScCurve = ctx.createWaveShaper();
+      this.reverbScCurve.curve = makeDuckCurve(-24, 0);
+      this.reverbDuckKey = '-24|0';
+      this.reverbScGate = ctx.createGain();
+      this.reverbScGate.gain.value = 0.0;
+      this.reverbDuckAnalyser = ctx.createAnalyser();
+      this.reverbDuckAnalyser.fftSize = 256;
+
+      imagerSum.connect(revScSum);
+      revScSum.connect(this.reverbScRect);
+      this.reverbScRect.connect(this.reverbScEnv);
+      this.reverbScEnv.connect(this.reverbScCurve);
+      this.reverbScCurve.connect(this.reverbScGate);
+      this.reverbScGate.connect(this.reverbDuckVca.gain);
+      this.reverbScGate.connect(this.reverbDuckAnalyser);
+
+      // Wet Output Mid/Side Matrix, Stereo Width (0-150%), & 24 dB/oct Mono-Maker (Mono Below X Hz)
+      var revOutSplit = ctx.createChannelSplitter(2);
+      var revOutLtoM = ctx.createGain(); revOutLtoM.gain.value = 0.5;
+      var revOutRtoM = ctx.createGain(); revOutRtoM.gain.value = 0.5;
+      var revOutLtoS = ctx.createGain(); revOutLtoS.gain.value = 0.5;
+      var revOutRtoS = ctx.createGain(); revOutRtoS.gain.value = -0.5;
+      this.reverbOutMidGain = ctx.createGain(); this.reverbOutMidGain.gain.value = 1.0;
+      this.reverbMono1 = makeFlatBiquad(120);
+      this.reverbMono2 = makeFlatBiquad(120);
+      this.reverbOutSideGain = ctx.createGain(); this.reverbOutSideGain.gain.value = 1.0;
+      var revOutSideInv = ctx.createGain(); revOutSideInv.gain.value = -1.0;
+      var revOutMerger = ctx.createChannelMerger(2);
+
+      this.reverbDuckVca.connect(revOutSplit);
+      revOutSplit.connect(revOutLtoM, 0); revOutSplit.connect(revOutRtoM, 1);
+      revOutLtoM.connect(this.reverbOutMidGain); revOutRtoM.connect(this.reverbOutMidGain);
+      revOutSplit.connect(revOutLtoS, 0); revOutSplit.connect(revOutRtoS, 1);
+      revOutLtoS.connect(this.reverbMono1); revOutRtoS.connect(this.reverbMono1);
+      this.reverbMono1.connect(this.reverbMono2);
+      this.reverbMono2.connect(this.reverbOutSideGain);
+      this.reverbOutMidGain.connect(revOutMerger, 0, 0);
+      this.reverbOutMidGain.connect(revOutMerger, 0, 1);
+      this.reverbOutSideGain.connect(revOutMerger, 0, 0);
+      this.reverbOutSideGain.connect(revOutSideInv);
+      revOutSideInv.connect(revOutMerger, 0, 1);
+
+      this.reverbOutputTrim = ctx.createGain();
+      this.reverbOutputTrim.gain.value = 1.0;
+      revOutMerger.connect(this.reverbOutputTrim);
+      this.reverbOutputTrim.connect(this.reverbWetGain);
+
+      imagerSum.connect(this.reverbDryGain);
+      imagerSum.connect(this.reverbSendGain);
+      var reverbSum = ctx.createGain();
+      this.reverbDryGain.connect(reverbSum);
+      this.reverbWetGain.connect(reverbSum);
+
+      // 5. Master Limiter & Tube Warmth stage (Fed by spaceSum)
       this.limitDrive = ctx.createGain();
       this.limitDrive.gain.value = 1.0;
 
@@ -1201,8 +1740,8 @@
       // keeps the take's loudness and its peaks where they were, and the room is set against the music as heard.
       this.spacePanGain = ctx.createGain();
       this.spacePanGain.gain.value = 1.0;
-      imagerSum.connect(spaceSplit);
-      imagerSum.connect(room);
+      reverbSum.connect(spaceSplit);
+      reverbSum.connect(room);
       room.connect(this.spaceRoomGain);
       this.spaceRoomGain.connect(this.spaceOutput);
       this.spaceTone = makeToneBands(ctx);
@@ -1210,7 +1749,7 @@
       this.spacePanGain.connect(this.spaceTone[0]);
       this.spaceTone[this.spaceTone.length - 1].connect(this.spaceOutput);
       this.spaceOutput.connect(this.spaceWetGain);
-      imagerSum.connect(this.spaceDryGain);
+      reverbSum.connect(this.spaceDryGain);
       var spaceSum = ctx.createGain();
       this.spaceDryGain.connect(spaceSum);
       this.spaceWetGain.connect(spaceSum);
@@ -1450,6 +1989,93 @@
         }
       }
 
+      // 480L Mastering Reverb
+      if (this.reverbDryGain) {
+        var rv = reverbOf(s);
+        var rvOn = reverbActive(rv);
+        var rvMix = rv.mix;
+        var rvDelta = Boolean(rv.enabled && rv.delta);
+        set(this.reverbSendGain.gain, rvOn ? 1.0 : 0.0);
+        set(this.reverbDryGain.gain, !rvOn ? 1.0 : (rvDelta ? 0.0 : (1.0 - rvMix)));
+        set(this.reverbWetGain.gain, !rvOn ? 0.0 : (rvDelta ? 1.0 : rvMix));
+
+        // Input Mid/Side Matrix (-100 = Mid only, 0 = Stereo, +100 = Sides only)
+        var inB = rv.inMS / 100;
+        set(this.reverbInMidGain.gain, inB <= 0 ? 1.0 : (1.0 - inB));
+        set(this.reverbInSideGain.gain, inB >= 0 ? 1.0 : (1.0 + inB));
+
+        // Pre-Reverb Wet EQ (12 or 24 dB/oct HPF & LPF)
+        function setCutPair(f1, f2, type, hz, off, slope) {
+          var t1 = off ? 'peaking' : type;
+          var t2 = (off || slope !== 24) ? 'peaking' : type;
+          if (f1.type !== t1) { f1.type = t1; }
+          if (f2.type !== t2) { f2.type = t2; }
+          set(f1.frequency, hz);
+          set(f1.Q, off ? 1 : REVERB_BUTTERWORTH_QDB);
+          set(f1.gain, 0);
+          set(f2.frequency, hz);
+          set(f2.Q, (off || slope !== 24) ? 1 : REVERB_BUTTERWORTH_QDB);
+          set(f2.gain, 0);
+        }
+        setCutPair(this.reverbPreHP1, this.reverbPreHP2, 'highpass', rv.hpf, rv.hpf <= 20, rv.eqSlope);
+        setCutPair(this.reverbPreLP1, this.reverbPreLP2, 'lowpass', rv.lpf, rv.lpf >= 20000, rv.eqSlope);
+
+        // Pre-Delay
+        set(this.reverbPreDelay.delayTime, rv.preDelay / 1000);
+
+        // Real-time Spin & Wander stereo modulation
+        if (this.reverbLfoL && this.reverbLfoR) {
+          set(this.reverbLfoL.frequency, 0.12 + (rv.spin / 100) * 1.4);
+          set(this.reverbLfoR.frequency, 0.17 + (rv.spin / 100) * 1.73);
+          var modDepthSec = rvOn ? (rv.wander / 100) * 0.0014 : 0;
+          set(this.reverbLfoDepthL.gain, modDepthSec);
+          set(this.reverbLfoDepthR.gain, modDepthSec);
+        }
+
+        // Dynamic Wet Ducker
+        var duckOn = rvOn && rv.duckAmount > 0;
+        var duckKey = rv.duckThresh + '|' + rv.duckAmount;
+        if (this.reverbDuckKey !== duckKey) {
+          this.reverbScCurve.curve = makeDuckCurve(rv.duckThresh, rv.duckAmount);
+          this.reverbDuckKey = duckKey;
+        }
+        set(this.reverbScGate.gain, duckOn ? 1.0 : 0.0);
+
+        // Output Mid/Side Matrix, Stereo Width (0-150%), & 24 dB/oct Mono-Maker
+        var outB = rv.outMS / 100;
+        var widthLin = rv.width / 100;
+        var outMidBal = outB <= 0 ? 1.0 : (1.0 - outB);
+        var outSideBal = outB >= 0 ? 1.0 : (1.0 + outB);
+        var midComp = widthLin > 1.0 ? (1.0 - (widthLin - 1.0) * 0.25) : 1.0;
+        set(this.reverbOutMidGain.gain, outMidBal * midComp);
+        set(this.reverbOutSideGain.gain, outSideBal * widthLin);
+        setCutPair(this.reverbMono1, this.reverbMono2, 'highpass', rv.monoBelow, rv.monoBelow <= 20, 24);
+
+        // Output Trim
+        set(this.reverbOutputTrim.gain, Math.pow(10, rv.output / 20));
+
+        // 480L Tank Impulse Response (synchronous on offline renders & first engage; debounced during live drags)
+        if (rvOn) {
+          var nextIrKey = reverbIrKey(ctx.sampleRate || 48000, rv);
+          if (this.reverbIrKey !== nextIrKey) {
+            if (atOnce || !this.reverbIrKey || _reverbIrCache[nextIrKey]) {
+              if (this.reverbIrTimer) { clearTimeout(this.reverbIrTimer); this.reverbIrTimer = null; }
+              this.reverbConvolver.buffer = make480Impulse(ctx, rv);
+              this.reverbIrKey = nextIrKey;
+            } else {
+              var revEngine = this, revSnap = rv, revKeySnap = nextIrKey;
+              if (this.reverbIrTimer) { clearTimeout(this.reverbIrTimer); }
+              this.reverbIrTimer = setTimeout(function () {
+                revEngine.reverbIrTimer = null;
+                if (!revEngine.ctx || !revEngine.reverbConvolver) { return; }
+                revEngine.reverbConvolver.buffer = make480Impulse(revEngine.ctx, revSnap);
+                revEngine.reverbIrKey = revKeySnap;
+              }, 45);
+            }
+          }
+        }
+      }
+
       // Space
       if (s.space) {
         var sp = s.space;
@@ -1518,6 +2144,22 @@
         return Math.abs(red);
       }
       return 0;
+    },
+
+    /* Current Dynamic Wet Ducker gain reduction in dB (0 .. 18) for the 480L GR meter. */
+    getReverbDuckDb: function () {
+      if (!this.reverbDuckAnalyser || !this.reverbDuckAnalyser.getFloatTimeDomainData) { return 0; }
+      if (!this._revDuckBuf || this._revDuckBuf.length !== this.reverbDuckAnalyser.fftSize) {
+        this._revDuckBuf = new Float32Array(this.reverbDuckAnalyser.fftSize);
+      }
+      this.reverbDuckAnalyser.getFloatTimeDomainData(this._revDuckBuf);
+      var minDelta = 0;
+      for (var i = 0; i < this._revDuckBuf.length; i++) {
+        if (this._revDuckBuf[i] < minDelta) { minDelta = this._revDuckBuf[i]; }
+      }
+      if (minDelta >= -0.001) { return 0; }
+      var g = Math.max(0.1, 1.0 + minDelta);
+      return Math.min(18, Math.max(0, -20 * Math.log10(g)));
     }
   };
 
@@ -2062,6 +2704,166 @@
         '        </div>',
         '      </div>',
 
+        '      <!-- MODULE 3a: 480L MASTERING REVERB -->',
+        '      <div class="rack-unit unit-reverb" id="unit-reverb">',
+        '        <div class="unit-bar">',
+        '          <div class="unit-brand"><span class="screw-mini"></span> 480L MASTERING REVERB <span class="screw-mini"></span></div>',
+        '          <div class="unit-bar-right rev-bar-tools">',
+        '            <div class="rev-view-seg" id="rev-view-switch" role="group" aria-label="' + t('Reverb view mode') + '">',
+        '              <button type="button" class="rev-seg-btn" data-rev-view="larc" title="' + t('Classic 6-fader LARC interface') + '">LARC</button>',
+        '              <button type="button" class="rev-seg-btn active" data-rev-view="mastering" title="' + t('All-in-One Mastering View with tank voicing, pre-EQ, M/S matrix, ducker and stereo width') + '">MASTERING</button>',
+        '            </div>',
+        '            <button type="button" class="rev-delta-btn" id="rev-btn-delta" title="' + t('Delta (Solo Wet): audition only the reverb return to shape and EQ the tail') + '"><span class="led"></span> DELTA</button>',
+        '            <button type="button" class="unit-toggle" id="toggle-reverb" title="' + t('Toggle 480L Mastering Reverb in/out') + '"><span class="led"></span> OUT</button>',
+        '          </div>',
+        '        </div>',
+        '        <div class="unit-faceplate rev-faceplate">',
+        '          <div class="rev-larc-row">',
+        '            <div class="rev-larc-left">',
+        '              <div class="rev-led-screen">',
+        '                <div class="rev-led-top">',
+        '                  <span class="rev-led-prog" id="rev-led-prog">P1: LARGE HALL</span>',
+        '                  <span class="rev-led-badge" id="rev-led-badge">0-10%</span>',
+        '                </div>',
+        '                <div class="rev-led-param" id="rev-led-param">MIX 4.0% &middot; RT 2.4s &middot; 42m</div>',
+        '                <div class="rev-duck-strip" title="' + t('Dynamic Wet Ducker Gain Reduction (dB)') + '">',
+        '                  <span class="rev-duck-lbl">DUCK</span>',
+        '                  <div class="rev-duck-leds" id="rev-duck-leds">',
+        '                    <span class="rev-duck-led" data-db="1"></span><span class="rev-duck-led" data-db="3"></span>',
+        '                    <span class="rev-duck-led" data-db="5"></span><span class="rev-duck-led" data-db="7"></span>',
+        '                    <span class="rev-duck-led" data-db="9"></span><span class="rev-duck-led" data-db="12"></span>',
+        '                    <span class="rev-duck-led" data-db="15"></span><span class="rev-duck-led" data-db="18"></span>',
+        '                  </div>',
+        '                </div>',
+        '              </div>',
+        '              <div class="rev-programs" id="rev-programs" role="group" aria-label="' + t('480L reverb programs') + '">',
+        '                <button type="button" class="rev-prog-btn active" data-rev-prog="large_hall">HALL</button>',
+        '                <button type="button" class="rev-prog-btn" data-rev-prog="random_hall">RND HALL</button>',
+        '                <button type="button" class="rev-prog-btn" data-rev-prog="rich_plate">PLATE</button>',
+        '                <button type="button" class="rev-prog-btn" data-rev-prog="ambience">AMBIENCE</button>',
+        '                <button type="button" class="rev-prog-btn" data-rev-prog="small_stage">STAGE</button>',
+        '                <button type="button" class="rev-prog-btn" data-rev-prog="cathedral">CATHEDRAL</button>',
+        '              </div>',
+        '            </div>',
+        '            <div class="rev-faders" id="rev-faders">',
+        '              <div class="rev-fader-col" data-rev-fader="rtMid" title="' + t('RT Mid (Decay Time): 0.2 s to 12.0 s. Double-click to reset') + '">',
+        '                <span class="rev-fader-val">2.4s</span>',
+        '                <div class="rev-fader-track"><div class="rev-fader-fill"></div><div class="rev-fader-cap"></div></div>',
+        '                <span class="rev-fader-name">DECAY</span>',
+        '              </div>',
+        '              <div class="rev-fader-col" data-rev-fader="preDelay" title="' + t('Pre-Delay: 0 to 250 ms gap before the reverb begins') + '">',
+        '                <span class="rev-fader-val">28ms</span>',
+        '                <div class="rev-fader-track"><div class="rev-fader-fill"></div><div class="rev-fader-cap"></div></div>',
+        '                <span class="rev-fader-name">PRE-DLY</span>',
+        '              </div>',
+        '              <div class="rev-fader-col" data-rev-fader="size" title="' + t('Room Size: 10 m to 70 m acoustic tank dimensions') + '">',
+        '                <span class="rev-fader-val">42m</span>',
+        '                <div class="rev-fader-track"><div class="rev-fader-fill"></div><div class="rev-fader-cap"></div></div>',
+        '                <span class="rev-fader-name">SIZE</span>',
+        '              </div>',
+        '              <div class="rev-fader-col" data-rev-fader="hfCut" title="' + t('HF Rolloff: progressive high-frequency damping inside the reverb tail') + '">',
+        '                <span class="rev-fader-val">6.5k</span>',
+        '                <div class="rev-fader-track"><div class="rev-fader-fill"></div><div class="rev-fader-cap"></div></div>',
+        '                <span class="rev-fader-name">HF CUT</span>',
+        '              </div>',
+        '              <div class="rev-fader-col" data-rev-fader="shape" title="' + t('Shape / Spread: controls tail attack bloom from immediate to slow swell') + '">',
+        '                <span class="rev-fader-val">55%</span>',
+        '                <div class="rev-fader-track"><div class="rev-fader-fill"></div><div class="rev-fader-cap"></div></div>',
+        '                <span class="rev-fader-name">SHAPE</span>',
+        '              </div>',
+        '              <div class="rev-fader-col is-mix" data-rev-fader="mix" title="' + t('Dry/Wet Mix: linear-phase sample-aligned blend (use 0-10% button for fine mastering scale)') + '">',
+        '                <span class="rev-fader-val">4.0%</span>',
+        '                <div class="rev-fader-track"><div class="rev-fader-fill"></div><div class="rev-fader-cap"></div></div>',
+        '                <span class="rev-fader-name">MIX</span>',
+        '              </div>',
+        '            </div>',
+        '            <div class="rev-larc-right">',
+        '              <button type="button" class="rev-mini-btn active" id="rev-btn-mscale" title="' + t('Mastering Scale: full Mix fader throw covers 0% to 10% wet for precise micro-dosing') + '"><span class="rev-mini-led"></span><span>0&ndash;10%</span></button>',
+        '              <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="output" title="' + t('Output Trim: wet return level adjustment (-12 dB to +12 dB)') + '">',
+        '                <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                <span class="knob-name">OUT TRIM</span><span class="knob-val">0.0 dB</span>',
+        '              </div>',
+        '              <div class="rev-badge-plate"><div class="rev-badge-model">480L</div><div class="rev-badge-sub">LARC</div></div>',
+        '            </div>',
+        '          </div>',
+        '          <div class="rev-master-row" id="rev-master-row">',
+        '            <div class="rev-bay">',
+        '              <span class="rev-bay-title">' + t('TANK P2/P3') + '</span>',
+        '              <div class="rev-bay-knobs">',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="bassMult" title="' + t('Bass Multiply: low-frequency decay time multiplier below crossover (0.2x to 2.5x)') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">BASS X</span><span class="knob-val">1.20x</span>',
+        '                </div>',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="crossover" title="' + t('Crossover: frequency split between Bass Multiply and RT Mid decay (100 Hz to 2 kHz)') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">XOVER</span><span class="knob-val">650 Hz</span>',
+        '                </div>',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="diffusion" title="' + t('Diffusion: echo smearing density inside the input diffusers and tank (0% to 100%)') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">DIFFUSE</span><span class="knob-val">78%</span>',
+        '                </div>',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="spin" title="' + t('Spin: tank LFO modulation rate for silky pitch shimmer (0% to 100%)') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">SPIN</span><span class="knob-val">35%</span>',
+        '                </div>',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="wander" title="' + t('Wander: tank LFO modulation depth and delay tap drift (0% to 100%)') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">WANDER</span><span class="knob-val">40%</span>',
+        '                </div>',
+        '              </div>',
+        '            </div>',
+        '            <div class="rev-bay">',
+        '              <span class="rev-bay-title">' + t('PRE-EQ (WET)') + '</span>',
+        '              <div class="rev-bay-knobs">',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="hpf" title="' + t('Pre-Reverb High-Pass Filter: keeps sub-bass out of the tank (OFF to 500 Hz)') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">HPF</span><span class="knob-val">120 Hz</span>',
+        '                </div>',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="lpf" title="' + t('Pre-Reverb Low-Pass Filter: tames cymbal sibilance entering the tank (1 kHz to OFF)') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">LPF</span><span class="knob-val">12.0k</span>',
+        '                </div>',
+        '                <button type="button" class="rev-mini-btn rev-slope-btn active" id="rev-btn-slope" title="' + t('Switch Pre-Reverb EQ filter slope between 12 dB/oct and 24 dB/oct') + '">24 dB</button>',
+        '              </div>',
+        '            </div>',
+        '            <div class="rev-bay">',
+        '              <span class="rev-bay-title">' + t('DUCKER') + '</span>',
+        '              <div class="rev-bay-knobs">',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="duckThresh" title="' + t('Ducker Threshold: dry transient level that triggers tail ducking (-48 dB to 0 dB)') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">THRESH</span><span class="knob-val">-24 dB</span>',
+        '                </div>',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="duckAmount" title="' + t('Ducker Amount: how deeply dry transients duck the wet reverb tail (0% to 100%)') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">AMOUNT</span><span class="knob-val">0%</span>',
+        '                </div>',
+        '              </div>',
+        '            </div>',
+        '            <div class="rev-bay">',
+        '              <span class="rev-bay-title">' + t('M/S &amp; WIDTH') + '</span>',
+        '              <div class="rev-bay-knobs">',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="inMS" title="' + t('Input Mid/Side Balance: route Mid, Stereo, or Sides-only into the reverb tank') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">IN M/S</span><span class="knob-val">BAL</span>',
+        '                </div>',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="outMS" title="' + t('Output Mid/Side Balance: position the wet return in Mid, Stereo, or Sides-only') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">OUT M/S</span><span class="knob-val">BAL</span>',
+        '                </div>',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="width" title="' + t('Wet Stereo Width: 0% (mono) to 150% (extra wide) on the reverb return') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">WIDTH</span><span class="knob-val">100%</span>',
+        '                </div>',
+        '                <div class="knob-wrap dummy-knob rev-knob" data-rev-knob="monoBelow" title="' + t('Mono-Maker: sums wet reverb low frequencies to mono below this frequency (OFF to 500 Hz)') + '">',
+        '                  <div class="knob-dial small"><div class="knob-pointer"></div></div>',
+        '                  <span class="knob-name">MONO &lt;</span><span class="knob-val">120 Hz</span>',
+        '                </div>',
+        '              </div>',
+        '            </div>',
+        '          </div>',
+        '        </div>',
+        '      </div>',
+        '',
         '      <!-- MODULE 3b: SPACE (HEADPHONES 3D) -->',
         '      <div class="rack-unit unit-space" id="unit-space">',
         '        <div class="unit-bar">',
@@ -2407,6 +3209,9 @@
           self.debouncedSave();
         });
       }
+
+      // 480L Mastering Reverb
+      this.bindReverb();
 
       // Space: in or out, a scene, and its own download
       var toggleSpace = document.getElementById('toggle-space');
@@ -2801,9 +3606,366 @@
         });
       }
 
+      this.syncReverb();
       this.syncPeq();
       this.updateBypassUI();
       this.syncPresetSelect();
+    },
+
+    // ------------------------------------------------------------- 480L Mastering Reverb UI
+    REVERB_SPECS: {
+      rtMid:      { min: 0.2,  max: 12.0,  log: true,  label: 'RT MID' },
+      preDelay:   { min: 0,    max: 250,   log: false, label: 'PRE-DELAY' },
+      size:       { min: 10,   max: 70,    log: false, label: 'ROOM SIZE' },
+      hfCut:      { min: 1000, max: 20000, log: true,  label: 'HF ROLLOFF' },
+      shape:      { min: 0,    max: 100,   log: false, label: 'SHAPE' },
+      mix:        { min: 0,    max: 1,     log: false, label: 'WET MIX' },
+      bassMult:   { min: 0.2,  max: 2.5,   log: false, label: 'BASS MULT' },
+      crossover:  { min: 100,  max: 2000,  log: true,  label: 'CROSSOVER' },
+      diffusion:  { min: 0,    max: 100,   log: false, label: 'DIFFUSION' },
+      spin:       { min: 0,    max: 100,   log: false, label: 'SPIN' },
+      wander:     { min: 0,    max: 100,   log: false, label: 'WANDER' },
+      hpf:        { min: 20,   max: 500,   log: true,  label: 'PRE HPF' },
+      lpf:        { min: 1000, max: 20000, log: true,  label: 'PRE LPF' },
+      duckThresh: { min: -48,  max: 0,     log: false, label: 'DUCK THR' },
+      duckAmount: { min: 0,    max: 100,   log: false, label: 'DUCK AMT' },
+      inMS:       { min: -100, max: 100,   log: false, label: 'IN M/S' },
+      outMS:      { min: -100, max: 100,   log: false, label: 'OUT M/S' },
+      width:      { min: 0,    max: 150,   log: false, label: 'WET WIDTH' },
+      monoBelow:  { min: 20,   max: 500,   log: true,  label: 'MONO BELOW' },
+      output:     { min: -12,  max: 12,    log: false, label: 'OUT TRIM' }
+    },
+
+    reverbState: function () {
+      this.settings.reverb = reverbOf(this.settings);
+      return this.settings.reverb;
+    },
+
+    reverbNormOf: function (key, val, rv) {
+      var sp = this.REVERB_SPECS[key];
+      if (!sp) { return 0; }
+      if (key === 'mix') {
+        var top = (rv && rv.masteringScale) ? 0.10 : 1.0;
+        return Math.max(0, Math.min(1, Number(val) / top));
+      }
+      if (sp.log) {
+        return Math.max(0, Math.min(1, Math.log(Math.max(sp.min, val) / sp.min) / Math.log(sp.max / sp.min)));
+      }
+      return Math.max(0, Math.min(1, (val - sp.min) / (sp.max - sp.min)));
+    },
+
+    reverbValFromNorm: function (key, norm, rv) {
+      var sp = this.REVERB_SPECS[key];
+      if (!sp) { return 0; }
+      var tNorm = Math.max(0, Math.min(1, norm));
+      if (key === 'mix') {
+        if (rv && rv.masteringScale) {
+          return Math.round(tNorm * 100) / 1000;  // 0.0% .. 10.0% in 0.1% steps
+        }
+        return Math.round(tNorm * 100) / 100;     // 0% .. 100% in 1% steps
+      }
+      var raw = sp.log ? sp.min * Math.pow(sp.max / sp.min, tNorm) : sp.min + tNorm * (sp.max - sp.min);
+      if (key === 'rtMid' || key === 'bassMult') { return Math.round(raw * 20) / 20; }
+      if (key === 'output') { return Math.round(raw * 2) / 2; }
+      if (key === 'hfCut' || key === 'lpf') { return raw >= 19800 ? 20000 : Math.round(raw / 50) * 50; }
+      if (key === 'hpf' || key === 'monoBelow') { return raw <= 21 ? 20 : Math.round(raw); }
+      return Math.round(raw);
+    },
+
+    reverbFmt: function (key, val, rv) {
+      if (key === 'rtMid') { return (val >= 10 ? val.toFixed(1) : val.toFixed(2)) + 's'; }
+      if (key === 'preDelay') { return Math.round(val) + 'ms'; }
+      if (key === 'size') { return Math.round(val) + 'm'; }
+      if (key === 'hfCut') { return val >= 20000 ? 'OFF' : (val >= 1000 ? (val / 1000).toFixed(1) + 'k' : Math.round(val) + 'Hz'); }
+      if (key === 'lpf') { return val >= 20000 ? 'OFF' : (val >= 1000 ? (val / 1000).toFixed(1) + 'k' : Math.round(val) + 'Hz'); }
+      if (key === 'hpf' || key === 'monoBelow') { return val <= 20 ? 'OFF' : Math.round(val) + ' Hz'; }
+      if (key === 'crossover') { return val >= 1000 ? (val / 1000).toFixed(2) + 'k' : Math.round(val) + ' Hz'; }
+      if (key === 'mix') {
+        var pct = val * 100;
+        return ((rv && rv.masteringScale) || pct < 10 ? pct.toFixed(1) : Math.round(pct)) + '%';
+      }
+      if (key === 'bassMult') { return val.toFixed(2) + 'x'; }
+      if (key === 'duckThresh') { return Math.round(val) + ' dB'; }
+      if (key === 'output') { return (val > 0 ? '+' : '') + val.toFixed(1) + ' dB'; }
+      if (key === 'inMS' || key === 'outMS') {
+        var r = Math.round(val);
+        if (Math.abs(r) <= 1) { return 'BAL'; }
+        return r < 0 ? ('M ' + Math.abs(r) + '%') : ('S ' + r + '%');
+      }
+      return Math.round(val) + '%';
+    },
+
+    reverbSetReadout: function (text) {
+      var el = document.getElementById('rev-led-param');
+      if (el) { el.textContent = text; }
+    },
+
+    reverbChanged: function (engage, readoutKey) {
+      var rv = this.reverbState();
+      if (engage && !rv.enabled) { rv.enabled = true; }
+      Engine.applySettings(this.settings);
+      this.syncReverb(readoutKey);
+      this.debouncedSave();
+    },
+
+    bindReverb: function () {
+      var self = this;
+      var unit = document.getElementById('unit-reverb');
+      if (!unit) { return; }
+
+      var toggle = document.getElementById('toggle-reverb');
+      if (toggle) {
+        toggle.addEventListener('click', function () {
+          var rv = self.reverbState();
+          rv.enabled = !rv.enabled;
+          self.reverbChanged(false);
+        });
+      }
+
+      var deltaBtn = document.getElementById('rev-btn-delta');
+      if (deltaBtn) {
+        deltaBtn.addEventListener('click', function () {
+          var rv = self.reverbState();
+          rv.delta = !rv.delta;
+          self.reverbChanged(rv.delta);
+        });
+      }
+
+      var viewSwitch = document.getElementById('rev-view-switch');
+      if (viewSwitch) {
+        viewSwitch.addEventListener('click', function (e) {
+          var btn = e.target.closest('[data-rev-view]');
+          if (!btn) { return; }
+          var rv = self.reverbState();
+          rv.view = btn.dataset.revView === 'larc' ? 'larc' : 'mastering';
+          self.syncReverb();
+          self.fitToWindow();
+          self.debouncedSave();
+        });
+      }
+
+      var mscaleBtn = document.getElementById('rev-btn-mscale');
+      if (mscaleBtn) {
+        mscaleBtn.addEventListener('click', function () {
+          var rv = self.reverbState();
+          rv.masteringScale = !rv.masteringScale;
+          self.syncReverb('mix');
+          self.debouncedSave();
+        });
+      }
+
+      var slopeBtn = document.getElementById('rev-btn-slope');
+      if (slopeBtn) {
+        slopeBtn.addEventListener('click', function () {
+          var rv = self.reverbState();
+          rv.eqSlope = rv.eqSlope === 12 ? 24 : 12;
+          self.reverbChanged(true);
+          self.reverbSetReadout('PRE-EQ SLOPE  ' + rv.eqSlope + ' dB/OCT');
+        });
+      }
+
+      var progBank = document.getElementById('rev-programs');
+      if (progBank) {
+        progBank.addEventListener('click', function (e) {
+          var btn = e.target.closest('[data-rev-prog]');
+          if (!btn || !REVERB_PROGRAMS[btn.dataset.revProg]) { return; }
+          var p = REVERB_PROGRAMS[btn.dataset.revProg];
+          var rv = self.reverbState();
+          rv.program = btn.dataset.revProg;
+          rv.rtMid = p.rtMid;
+          rv.preDelay = p.preDelay;
+          rv.size = p.size;
+          rv.hfCut = p.hfCut;
+          rv.shape = p.shape;
+          rv.bassMult = p.bassMult;
+          rv.crossover = p.crossover;
+          rv.diffusion = p.diffusion;
+          rv.spin = p.spin;
+          rv.wander = p.wander;
+          self.reverbChanged(true);
+        });
+      }
+
+      // 6 Classic Vertical LARC Faders
+      Array.prototype.forEach.call(unit.querySelectorAll('.rev-fader-col'), function (col) {
+        var key = col.dataset.revFader;
+        var track = col.querySelector('.rev-fader-track');
+        if (!key || !track) { return; }
+        var dragging = false;
+
+        function setFromClientY(clientY) {
+          var box = track.getBoundingClientRect();
+          if (!box.height) { return; }
+          var norm = 1 - (clientY - box.top) / box.height;
+          var rv = self.reverbState();
+          rv[key] = self.reverbValFromNorm(key, norm, rv);
+          self.reverbChanged(true, key);
+        }
+
+        track.addEventListener('pointerdown', function (e) {
+          if (e.button !== 0) { return; }
+          e.preventDefault();
+          Engine.resume();
+          dragging = true;
+          try { track.setPointerCapture(e.pointerId); } catch (err) {}
+          setFromClientY(e.clientY);
+        });
+        track.addEventListener('pointermove', function (e) {
+          if (!dragging) { return; }
+          setFromClientY(e.clientY);
+        });
+        function endDrag(e) {
+          if (!dragging) { return; }
+          dragging = false;
+          try { track.releasePointerCapture(e.pointerId); } catch (err) {}
+        }
+        track.addEventListener('pointerup', endDrag);
+        track.addEventListener('pointercancel', endDrag);
+
+        col.addEventListener('wheel', function (e) {
+          e.preventDefault();
+          Engine.resume();
+          var rv = self.reverbState();
+          var cur = self.reverbNormOf(key, rv[key], rv);
+          var delta = (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 0.005 : 0.025);
+          rv[key] = self.reverbValFromNorm(key, cur + delta, rv);
+          self.reverbChanged(true, key);
+        }, { passive: false });
+
+        track.addEventListener('dblclick', function (e) {
+          e.preventDefault();
+          var rv = self.reverbState();
+          var prog = REVERB_PROGRAMS[rv.program] || REVERB_PROGRAMS.large_hall;
+          rv[key] = prog[key] !== undefined ? prog[key] : defaultReverb()[key];
+          self.reverbChanged(false, key);
+        });
+      });
+
+      // Mastering View & Output Trim Rotary Knobs
+      Array.prototype.forEach.call(unit.querySelectorAll('.rev-knob'), function (wrap) {
+        var key = wrap.dataset.revKnob;
+        var dial = wrap.querySelector('.knob-dial');
+        if (!key || !dial) { return; }
+        var start = null;
+
+        wrap.addEventListener('pointerdown', function (e) {
+          if (e.button !== 0) { return; }
+          e.preventDefault();
+          Engine.resume();
+          var rv = self.reverbState();
+          start = { y: e.clientY, norm: self.reverbNormOf(key, rv[key], rv) };
+          document.body.classList.add('knob-dragging');
+          try { wrap.setPointerCapture(e.pointerId); } catch (err) {}
+        });
+        wrap.addEventListener('pointermove', function (e) {
+          if (!start) { return; }
+          var sens = e.shiftKey ? 700 : 180;
+          var rv = self.reverbState();
+          rv[key] = self.reverbValFromNorm(key, start.norm + (start.y - e.clientY) / sens, rv);
+          self.reverbChanged(true, key);
+        });
+        function dropKnob(e) {
+          if (!start) { return; }
+          start = null;
+          document.body.classList.remove('knob-dragging');
+          try { wrap.releasePointerCapture(e.pointerId); } catch (err) {}
+        }
+        wrap.addEventListener('pointerup', dropKnob);
+        wrap.addEventListener('pointercancel', dropKnob);
+
+        wrap.addEventListener('wheel', function (e) {
+          e.preventDefault();
+          Engine.resume();
+          var rv = self.reverbState();
+          var cur = self.reverbNormOf(key, rv[key], rv);
+          var delta = (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 0.008 : 0.03);
+          rv[key] = self.reverbValFromNorm(key, cur + delta, rv);
+          self.reverbChanged(true, key);
+        }, { passive: false });
+
+        wrap.addEventListener('dblclick', function (e) {
+          e.preventDefault();
+          var rv = self.reverbState();
+          var prog = REVERB_PROGRAMS[rv.program] || REVERB_PROGRAMS.large_hall;
+          rv[key] = prog[key] !== undefined ? prog[key] : defaultReverb()[key];
+          self.reverbChanged(false, key);
+        });
+      });
+    },
+
+    syncReverb: function (activeKey) {
+      var unit = document.getElementById('unit-reverb');
+      if (!unit) { return; }
+      var self = this;
+      var rv = this.reverbState();
+      var prog = REVERB_PROGRAMS[rv.program] || REVERB_PROGRAMS.large_hall;
+
+      var toggle = document.getElementById('toggle-reverb');
+      if (toggle) {
+        toggle.classList.toggle('on', rv.enabled);
+        toggle.innerHTML = '<span class="led"></span> ' + (rv.enabled ? 'IN' : 'OUT');
+      }
+      var deltaBtn = document.getElementById('rev-btn-delta');
+      if (deltaBtn) { deltaBtn.classList.toggle('active', Boolean(rv.delta)); }
+
+      var isLarc = rv.view === 'larc';
+      unit.classList.toggle('is-larc', isLarc);
+      Array.prototype.forEach.call(unit.querySelectorAll('[data-rev-view]'), function (b) {
+        b.classList.toggle('active', b.dataset.revView === rv.view);
+      });
+
+      var mscaleBtn = document.getElementById('rev-btn-mscale');
+      if (mscaleBtn) {
+        mscaleBtn.classList.toggle('active', Boolean(rv.masteringScale));
+        var span = mscaleBtn.querySelector('span:last-child');
+        if (span) { span.textContent = rv.masteringScale ? '0\u201310%' : '0\u2013100%'; }
+      }
+      var slopeBtn = document.getElementById('rev-btn-slope');
+      if (slopeBtn) {
+        slopeBtn.textContent = rv.eqSlope + ' dB';
+        slopeBtn.classList.toggle('active', rv.eqSlope === 24);
+      }
+
+      Array.prototype.forEach.call(unit.querySelectorAll('[data-rev-prog]'), function (b) {
+        b.classList.toggle('active', b.dataset.revProg === rv.program);
+      });
+
+      // Red Dot-Matrix LED Display
+      var progEl = document.getElementById('rev-led-prog');
+      if (progEl) { progEl.textContent = prog.label; }
+      var badgeEl = document.getElementById('rev-led-badge');
+      if (badgeEl) {
+        badgeEl.textContent = rv.delta ? 'DELTA WET' : (rv.masteringScale ? 'M-SCALE 0-10%' : 'FULL 0-100%');
+        badgeEl.classList.toggle('is-delta', Boolean(rv.delta));
+      }
+      if (activeKey && this.REVERB_SPECS[activeKey]) {
+        this.reverbSetReadout(this.REVERB_SPECS[activeKey].label + '  ' + this.reverbFmt(activeKey, rv[activeKey], rv));
+      } else {
+        this.reverbSetReadout('MIX ' + this.reverbFmt('mix', rv.mix, rv) + ' \u00B7 RT ' + this.reverbFmt('rtMid', rv.rtMid, rv) + ' \u00B7 ' + Math.round(rv.size) + 'm');
+      }
+
+      // Sync 6 LARC Vertical Faders
+      Array.prototype.forEach.call(unit.querySelectorAll('.rev-fader-col'), function (col) {
+        var key = col.dataset.revFader;
+        var norm = self.reverbNormOf(key, rv[key], rv);
+        var pct = Math.round(norm * 1000) / 10;
+        var cap = col.querySelector('.rev-fader-cap');
+        var fill = col.querySelector('.rev-fader-fill');
+        var valEl = col.querySelector('.rev-fader-val');
+        if (cap) { cap.style.bottom = 'calc(' + pct + '% - 10px)'; }
+        if (fill) { fill.style.height = pct + '%'; }
+        if (valEl) { valEl.textContent = self.reverbFmt(key, rv[key], rv); }
+      });
+
+      // Sync Mastering View & Output Trim Rotary Knobs
+      Array.prototype.forEach.call(unit.querySelectorAll('.rev-knob'), function (wrap) {
+        var key = wrap.dataset.revKnob;
+        var norm = self.reverbNormOf(key, rv[key], rv);
+        var dial = wrap.querySelector('.knob-dial');
+        var valEl = wrap.querySelector('.knob-val');
+        if (dial) { dial.style.transform = 'rotate(' + (-135 + norm * 270) + 'deg)'; }
+        if (valEl) { valEl.textContent = self.reverbFmt(key, rv[key], rv); }
+      });
     },
 
     // ------------------------------------------------------------- The parametric equaliser's screen
@@ -3570,6 +4732,11 @@
     chainEngaged: chainEngaged,
     spaceOn: spaceOn,
     defaultSpace: defaultSpace,
+    defaultReverb: defaultReverb,
+    reverbOf: reverbOf,
+    reverbActive: reverbActive,
+    make480Impulse: make480Impulse,
+    makeDuckCurve: makeDuckCurve,
     buildGraph: buildMasteringDspGraph,     // the chain on any context, for renders and for checks
     nodeMakeupDb: nodeMakeupDb,
     defaultPeq: defaultPeq,
@@ -4265,6 +5432,16 @@
           var sigPulse = (typeof maxAmp === 'number' && maxAmp > 0.02) ? (maxAmp * 0.25) : 0;
           var finalOpa = Math.min(1.0, baseOpa + sigPulse);
           tubeGlow.style.opacity = finalOpa.toFixed(2);
+        }
+
+        // 4. 480L Dynamic Wet Ducker Gain Reduction LED Strip
+        var duckLeds = document.querySelectorAll('#rev-duck-leds .rev-duck-led');
+        if (duckLeds.length) {
+          var rvNow = self.settings.reverb;
+          var duckDb = (rvNow && rvNow.enabled && rvNow.duckAmount > 0 && !self.settings.masterBypass) ? Engine.getReverbDuckDb() : 0;
+          Array.prototype.forEach.call(duckLeds, function (led) {
+            led.classList.toggle('lit', duckDb >= Number(led.dataset.db));
+          });
         }
 
         self.animFrame = requestAnimationFrame(drawMeters);
