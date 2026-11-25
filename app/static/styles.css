@@ -463,7 +463,7 @@ main {
        whether or not the scrollbar is showing. */
     scrollbar-gutter: stable both-edges;
   }
-  main > .library { display: flex; flex-direction: column; }
+  main > .library { display: flex; flex-direction: column; padding-left: 8px; padding-right: 14px; }
   /* The space picker and the filters ride at the top of the scrolling takes. */
   /* The header is opaque, with its own bottom band fading out, so a card passing
      under it is softened rather than cut. The band is inside the box: outside it
