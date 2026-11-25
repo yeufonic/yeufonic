@@ -8089,9 +8089,31 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 /* The editor's LoRA menu, opened in the column rather than floating over it, so the column's scrolling never cuts it off. */
 .jam-lora-picker { display: flex; flex-direction: column; gap: 6px; }
 .jam-lora-menu.source-picker-menu { position: static; max-height: 340px; }
-/* The Feel card: sculpting beyond the Vibe pad.  A choice that changes something is bold, as set values are elsewhere. */
-.jam-feel-card { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 12px;
+/* The Feel card: collapsible sculpting beyond the Vibe pad.  A choice that changes something is bold, as set values are elsewhere. */
+.jam-feel-card { display: flex; flex-direction: column; gap: 10px; padding: 10px 14px; border-radius: 12px;
   background: var(--block-bg); border: 1px solid var(--block-border); }
+.jam-feel-head { min-height: 24px; }
+.jam-feel-toggle {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent;
+  color: inherit; font: inherit; font-weight: 650; padding: 2px 4px 2px 0; cursor: pointer;
+  min-width: 0; text-align: left;
+}
+.jam-feel-toggle:hover { color: var(--text); }
+.jam-fold-caret {
+  display: inline-block; font-size: 11px; color: var(--muted);
+  transition: transform 0.15s ease; transform: rotate(-90deg); flex-shrink: 0;
+}
+.jam-feel-toggle[aria-expanded="true"] .jam-fold-caret { transform: rotate(0deg); }
+.jam-feel-summary {
+  font-size: 11px; font-weight: 600; color: var(--accent-a);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;
+}
+.jam-voice-row .jam-voice-toggle { padding: 6px 10px; font-size: 12.5px; border-radius: 10px; gap: 7px; }
+.jam-voice-panel { margin-top: 2px; padding: 10px 12px; background: var(--input-bg); border-color: var(--input-border); }
+.jam-voice-panel .voice-mix { margin-top: 0; gap: 8px 10px; }
+.jam-voice-panel .voice-mix label { font-size: 11.5px; color: var(--muted); }
+.jam-voice-panel .voice-mix select { padding: 5px 8px; font-size: 12px; border-radius: 8px; }
+.jam-voice-panel-foot { display: flex; justify-content: flex-end; margin-top: 8px; }
 .jam-feel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
 .jam-feel-row { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--muted); min-width: 0; }
 .jam-feel-select { width: 100%; padding: 5px 8px; font-size: 12.5px; border-radius: 8px; color: var(--muted); }
