@@ -3248,5 +3248,9 @@
  "Input Mid/Side Balance: route Mid, Stereo, or Sides-only into the reverb tank": "Balanço M/S de entrada: envia Mid, Estéreo ou só Laterais para o tanque",
  "Output Mid/Side Balance: position the wet return in Mid, Stereo, or Sides-only": "Balanço M/S de saída: posiciona o retorno wet em Mid, Estéreo ou só Laterais",
  "Wet Stereo Width: 0% (mono) to 150% (extra wide) on the reverb return": "Largura estéreo wet: 0% (mono) a 150% (extra largo) no retorno da reverb",
- "Mono-Maker: sums wet reverb low frequencies to mono below this frequency (OFF to 500 Hz)": "Mono-Maker: soma em mono os graves da reverb abaixo desta frequência (OFF a 500 Hz)"
+ "Mono-Maker: sums wet reverb low frequencies to mono below this frequency (OFF to 500 Hz)": "Mono-Maker: soma em mono os graves da reverb abaixo desta frequência (OFF a 500 Hz)",
+ "480L presets": "Predefinições 480L",
+ "Previous 480L preset": "Predefinição 480L anterior",
+ "Next 480L preset": "Predefinição 480L seguinte",
+ "Load a classic 480L v3.0 or mastering preset": "Carregar uma predefinição clássica 480L v3.0 ou de masterização"
 }

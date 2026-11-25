@@ -3248,5 +3248,9 @@
  "Input Mid/Side Balance: route Mid, Stereo, or Sides-only into the reverb tank": "Входной баланс M/S: подача Mid, Stereo или только Side в танк ревербератора",
  "Output Mid/Side Balance: position the wet return in Mid, Stereo, or Sides-only": "Выходной баланс M/S: размещение Wet-возврата в Mid, Stereo или только Side",
  "Wet Stereo Width: 0% (mono) to 150% (extra wide) on the reverb return": "Ширина стерео Wet: от 0% (моно) до 150% (расширенное) на возврате реверберации",
- "Mono-Maker: sums wet reverb low frequencies to mono below this frequency (OFF to 500 Hz)": "Моно-мейкер: сводит НЧ реверберации в моно ниже этой частоты (ВЫКЛ – 500 Гц)"
+ "Mono-Maker: sums wet reverb low frequencies to mono below this frequency (OFF to 500 Hz)": "Моно-мейкер: сводит НЧ реверберации в моно ниже этой частоты (ВЫКЛ – 500 Гц)",
+ "480L presets": "Пресеты 480L",
+ "Previous 480L preset": "Предыдущий пресет 480L",
+ "Next 480L preset": "Следующий пресет 480L",
+ "Load a classic 480L v3.0 or mastering preset": "Загрузить классический пресет 480L v3.0 или мастеринг-пресет"
 }

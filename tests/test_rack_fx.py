@@ -1080,3 +1080,40 @@ console.log(JSON.stringify({
     assert (got["g12"]["mono1"], got["g12"]["mono2"]) == ("peaking", "peaking")
     assert got["g12"]["outSide"] == 0 and got["g12"]["scGate"] == 0
 
+
+def test_reverb_480l_classic_and_mastering_presets():
+    """All classic Lexicon 480L v3.0 bank presets and mastering presets load full mastering-tuned defaults,
+    round-trip cleanly through reverbPresetOf, and engage the reverb in Mastering Scale."""
+    script = r"""
+const fs = require('fs'), vm = require('vm');
+const window = { addEventListener() {}, State: { takes: [] } };
+const document = { getElementById: () => null, querySelectorAll: () => [] };
+const sandbox = { window, document, console, setTimeout, clearTimeout, Promise, JSON, Math, Float32Array, Int32Array,
+                  localStorage: { getItem: () => null, setItem() {} } };
+vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), sandbox);
+const Rack = window.Rack;
+const list = Rack.reverbPresets;
+const ids = list.map((p) => p.id);
+const unique = new Set(ids).size;
+let allMatch = true, allMasteringScale = true, allValid = true;
+for (const p of list) {
+  const rv = Rack.reverbOf({ reverb: Object.assign({ enabled: true, output: 0 }, p) });
+  const back = Rack.reverbPresetOf(rv);
+  if (!back || back.id !== p.id) { allMatch = false; }
+  if (!(rv.mix > 0 && rv.mix <= 0.05)) { allMasteringScale = false; }
+  if (!(rv.hpf >= 100 && rv.monoBelow >= 100 && (rv.eqSlope === 12 || rv.eqSlope === 24))) { allValid = false; }
+}
+const tweaked = Rack.reverbOf({ reverb: Object.assign({ enabled: true }, list[0], { rtMid: 7.77 }) });
+console.log(JSON.stringify({
+  count: list.length, unique, allMatch, allMasteringScale, allValid,
+  tweakedIsCustom: Rack.reverbPresetOf(tweaked) === null,
+  hasClassic: ['1_1_large_hall', '2_7_small_wood_room', '4_5_fat_plate', '11_1_large_rhall',
+               '13_4_small_ambience', '19_3_vocal_plate', 'm_sides_glue'].every((id) => ids.includes(id)),
+}));
+"""
+    res = subprocess.run(["node", "-e", script, str(STATIC / "rack.js")], capture_output=True, text=True, check=True)
+    got = json.loads(res.stdout)
+    assert got["count"] == 32 and got["unique"] == 32
+    assert got["allMatch"] and got["allMasteringScale"] and got["allValid"]
+    assert got["tweakedIsCustom"] and got["hasClassic"]
+

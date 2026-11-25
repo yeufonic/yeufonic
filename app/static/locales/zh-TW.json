@@ -3248,5 +3248,9 @@
  "Input Mid/Side Balance: route Mid, Stereo, or Sides-only into the reverb tank": "輸入中/側平衡：將中置、立體聲或僅側邊訊號送入殘響腔",
  "Output Mid/Side Balance: position the wet return in Mid, Stereo, or Sides-only": "輸出中/側平衡：將濕聲回傳定位於中置、立體聲或僅側邊通道",
  "Wet Stereo Width: 0% (mono) to 150% (extra wide) on the reverb return": "濕聲立體聲寬度：殘響回傳寬度 0%（單聲道）至 150%（超寬）",
- "Mono-Maker: sums wet reverb low frequencies to mono below this frequency (OFF to 500 Hz)": "低頻單聲道化：將低於此頻率的濕聲低頻合併為單聲道（關閉至 500 Hz）"
+ "Mono-Maker: sums wet reverb low frequencies to mono below this frequency (OFF to 500 Hz)": "低頻單聲道化：將低於此頻率的濕聲低頻合併為單聲道（關閉至 500 Hz）",
+ "480L presets": "480L 預設",
+ "Previous 480L preset": "上一個 480L 預設",
+ "Next 480L preset": "下一個 480L 預設",
+ "Load a classic 480L v3.0 or mastering preset": "載入經典 480L v3.0 或母帶預設"
 }

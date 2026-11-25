@@ -668,6 +668,98 @@
   var REVERB_PROGRAM_ORDER = ['large_hall', 'random_hall', 'rich_plate', 'ambience', 'small_stage', 'cathedral'];
   var REVERB_BUTTERWORTH_QDB = -3.01;  // 20 * log10(1/sqrt(2)): exact Butterworth 12 dB/oct per biquad stage
 
+  /* Classic Lexicon 480L v3.0 factory preset banks (Halls, Rooms, Plates, Random Hall, Ambience, Rich Plate)
+     plus dedicated Mastering presets — each pre-voiced with full mastering-tuned defaults (Mastering Scale mix,
+     12/24 dB/oct Pre-EQ, M/S routing, Ducker, Stereo Width, and Mono-Maker). */
+  var REVERB_PRESET_BANKS = [
+    { bank: 'Bank 1 — Halls', presets: [
+      { id: '1_1_large_hall',       code: '1.1',  name: 'Large Hall',          program: 'large_hall',  rtMid: 2.60, preDelay: 32, size: 46, hfCut: 6200,  shape: 58, mix: 0.035, bassMult: 1.20, crossover: 620, diffusion: 80, spin: 38, wander: 42, hpf: 130, lpf: 11000, eqSlope: 24, inMS: 0,   outMS: 15, duckThresh: -24, duckAmount: 15, width: 110, monoBelow: 130 },
+      { id: '1_2_large_hall_stage', code: '1.2',  name: 'Large Hall + Stage',  program: 'large_hall',  rtMid: 2.80, preDelay: 42, size: 50, hfCut: 6600,  shape: 40, mix: 0.035, bassMult: 1.15, crossover: 600, diffusion: 76, spin: 35, wander: 38, hpf: 120, lpf: 12000, eqSlope: 24, inMS: 0,   outMS: 10, duckThresh: -22, duckAmount: 20, width: 115, monoBelow: 130 },
+      { id: '1_3_medium_hall',      code: '1.3',  name: 'Medium Hall',         program: 'large_hall',  rtMid: 1.85, preDelay: 24, size: 36, hfCut: 7000,  shape: 48, mix: 0.030, bassMult: 1.10, crossover: 650, diffusion: 82, spin: 34, wander: 36, hpf: 140, lpf: 11500, eqSlope: 24, inMS: 0,   outMS: 15, duckThresh: -24, duckAmount: 10, width: 108, monoBelow: 125 },
+      { id: '1_5_small_hall',       code: '1.5',  name: 'Small Hall',          program: 'large_hall',  rtMid: 1.35, preDelay: 18, size: 28, hfCut: 7600,  shape: 36, mix: 0.030, bassMult: 1.00, crossover: 680, diffusion: 78, spin: 30, wander: 30, hpf: 150, lpf: 12500, eqSlope: 24, inMS: 0,   outMS: 10, duckThresh: -26, duckAmount: 10, width: 105, monoBelow: 120 },
+      { id: '1_7_large_church',     code: '1.7',  name: 'Large Church',        program: 'cathedral',   rtMid: 4.40, preDelay: 46, size: 60, hfCut: 4800,  shape: 75, mix: 0.030, bassMult: 1.35, crossover: 500, diffusion: 86, spin: 42, wander: 48, hpf: 160, lpf: 8500,  eqSlope: 24, inMS: 20,  outMS: 25, duckThresh: -22, duckAmount: 30, width: 118, monoBelow: 150 },
+      { id: '1_9_jazz_hall',        code: '1.9',  name: 'Jazz Hall',           program: 'large_hall',  rtMid: 1.65, preDelay: 22, size: 34, hfCut: 5600,  shape: 42, mix: 0.035, bassMult: 1.15, crossover: 580, diffusion: 74, spin: 28, wander: 32, hpf: 110, lpf: 9500,  eqSlope: 12, inMS: 0,   outMS: 0,  duckThresh: -26, duckAmount: 0,  width: 105, monoBelow: 110 }
+    ] },
+    { bank: 'Bank 2 — Rooms', presets: [
+      { id: '2_1_music_club',       code: '2.1',  name: 'Music Club',          program: 'small_stage', rtMid: 0.95, preDelay: 14, size: 22, hfCut: 7200,  shape: 24, mix: 0.030, bassMult: 0.95, crossover: 600, diffusion: 72, spin: 26, wander: 24, hpf: 140, lpf: 11000, eqSlope: 24, inMS: 0,   outMS: 10, duckThresh: -24, duckAmount: 10, width: 105, monoBelow: 120 },
+      { id: '2_2_large_room',       code: '2.2',  name: 'Large Room',          program: 'small_stage', rtMid: 1.25, preDelay: 18, size: 28, hfCut: 7800,  shape: 28, mix: 0.030, bassMult: 1.00, crossover: 620, diffusion: 76, spin: 30, wander: 28, hpf: 130, lpf: 12000, eqSlope: 24, inMS: 0,   outMS: 10, duckThresh: -24, duckAmount: 10, width: 110, monoBelow: 120 },
+      { id: '2_7_small_wood_room',  code: '2.7',  name: 'Small Wood Room',     program: 'small_stage', rtMid: 0.65, preDelay: 10, size: 16, hfCut: 6200,  shape: 18, mix: 0.035, bassMult: 0.90, crossover: 520, diffusion: 68, spin: 22, wander: 20, hpf: 150, lpf: 9500,  eqSlope: 12, inMS: 0,   outMS: 0,  duckThresh: -26, duckAmount: 0,  width: 100, monoBelow: 120 },
+      { id: '2_8_large_chamber',    code: '2.8',  name: 'Large Chamber',       program: 'small_stage', rtMid: 2.10, preDelay: 22, size: 36, hfCut: 6800,  shape: 38, mix: 0.030, bassMult: 1.10, crossover: 580, diffusion: 88, spin: 34, wander: 35, hpf: 140, lpf: 10500, eqSlope: 24, inMS: 10,  outMS: 15, duckThresh: -24, duckAmount: 15, width: 112, monoBelow: 130 },
+      { id: '2_9_small_chamber',    code: '2.9',  name: 'Small Chamber',       program: 'small_stage', rtMid: 1.10, preDelay: 14, size: 22, hfCut: 7800,  shape: 22, mix: 0.030, bassMult: 0.95, crossover: 620, diffusion: 86, spin: 30, wander: 28, hpf: 160, lpf: 11500, eqSlope: 24, inMS: 0,   outMS: 10, duckThresh: -24, duckAmount: 10, width: 108, monoBelow: 125 }
+    ] },
+    { bank: 'Bank 4 — Plates', presets: [
+      { id: '4_1_plate_a',          code: '4.1',  name: 'Plate A',             program: 'rich_plate',  rtMid: 1.80, preDelay: 18, size: 28, hfCut: 9500,  shape: 18, mix: 0.030, bassMult: 0.85, crossover: 500, diffusion: 92, spin: 40, wander: 35, hpf: 180, lpf: 12500, eqSlope: 24, inMS: 0,   outMS: 15, duckThresh: -24, duckAmount: 15, width: 110, monoBelow: 150 },
+      { id: '4_2_snare_plate',      code: '4.2',  name: 'Snare Plate',         program: 'rich_plate',  rtMid: 1.45, preDelay: 12, size: 24, hfCut: 11500, shape: 10, mix: 0.025, bassMult: 0.70, crossover: 480, diffusion: 95, spin: 36, wander: 30, hpf: 220, lpf: 14000, eqSlope: 24, inMS: 0,   outMS: 20, duckThresh: -20, duckAmount: 20, width: 115, monoBelow: 180 },
+      { id: '4_4_thin_plate',       code: '4.4',  name: 'Thin Plate',          program: 'rich_plate',  rtMid: 1.60, preDelay: 16, size: 24, hfCut: 12500, shape: 14, mix: 0.025, bassMult: 0.55, crossover: 650, diffusion: 90, spin: 42, wander: 32, hpf: 260, lpf: 15000, eqSlope: 24, inMS: 15,  outMS: 25, duckThresh: -24, duckAmount: 15, width: 115, monoBelow: 200 },
+      { id: '4_5_fat_plate',        code: '4.5',  name: 'Fat Plate',           program: 'rich_plate',  rtMid: 2.30, preDelay: 24, size: 34, hfCut: 8200,  shape: 26, mix: 0.035, bassMult: 1.15, crossover: 520, diffusion: 94, spin: 46, wander: 44, hpf: 150, lpf: 11000, eqSlope: 24, inMS: 0,   outMS: 15, duckThresh: -22, duckAmount: 20, width: 112, monoBelow: 140 }
+    ] },
+    { bank: 'Bank 11 — Random Hall', presets: [
+      { id: '11_1_large_rhall',       code: '11.1', name: 'Large Random Hall',   program: 'random_hall', rtMid: 2.90, preDelay: 34, size: 48, hfCut: 5800,  shape: 64, mix: 0.035, bassMult: 1.15, crossover: 550, diffusion: 86, spin: 56, wander: 68, hpf: 130, lpf: 10500, eqSlope: 24, inMS: 0,   outMS: 20, duckThresh: -22, duckAmount: 20, width: 116, monoBelow: 140 },
+      { id: '11_2_large_rhall_stage', code: '11.2', name: 'Large RHall + Stage', program: 'random_hall', rtMid: 3.10, preDelay: 44, size: 52, hfCut: 6200,  shape: 48, mix: 0.035, bassMult: 1.15, crossover: 540, diffusion: 82, spin: 52, wander: 62, hpf: 130, lpf: 11000, eqSlope: 24, inMS: 0,   outMS: 15, duckThresh: -22, duckAmount: 25, width: 118, monoBelow: 140 },
+      { id: '11_7_large_rchurch',     code: '11.7', name: 'Large R Church',      program: 'cathedral',   rtMid: 5.00, preDelay: 50, size: 64, hfCut: 4600,  shape: 78, mix: 0.030, bassMult: 1.35, crossover: 480, diffusion: 88, spin: 54, wander: 66, hpf: 160, lpf: 8500,  eqSlope: 24, inMS: 25,  outMS: 30, duckThresh: -20, duckAmount: 35, width: 122, monoBelow: 160 },
+      { id: '11_9_jazz_rhall',        code: '11.9', name: 'Jazz R Hall',         program: 'random_hall', rtMid: 1.80, preDelay: 24, size: 36, hfCut: 5400,  shape: 46, mix: 0.035, bassMult: 1.15, crossover: 580, diffusion: 80, spin: 48, wander: 55, hpf: 120, lpf: 9500,  eqSlope: 12, inMS: 0,   outMS: 10, duckThresh: -26, duckAmount: 10, width: 110, monoBelow: 120 }
+    ] },
+    { bank: 'Bank 13 — Ambience', presets: [
+      { id: '13_2_large_ambience',  code: '13.2', name: 'Large Ambience',      program: 'ambience',    rtMid: 0.95, preDelay: 16, size: 32, hfCut: 10000, shape: 20, mix: 0.035, bassMult: 0.85, crossover: 680, diffusion: 90, spin: 30, wander: 30, hpf: 140, lpf: 13500, eqSlope: 24, inMS: 0,   outMS: 20, duckThresh: -26, duckAmount: 0,  width: 115, monoBelow: 130 },
+      { id: '13_3_medium_ambience', code: '13.3', name: 'Medium Ambience',     program: 'ambience',    rtMid: 0.65, preDelay: 12, size: 22, hfCut: 10500, shape: 15, mix: 0.035, bassMult: 0.80, crossover: 700, diffusion: 90, spin: 25, wander: 25, hpf: 140, lpf: 14000, eqSlope: 24, inMS: 0,   outMS: 15, duckThresh: -26, duckAmount: 0,  width: 112, monoBelow: 120 },
+      { id: '13_4_small_ambience',  code: '13.4', name: 'Small Ambience',      program: 'ambience',    rtMid: 0.42, preDelay: 8,  size: 15, hfCut: 11500, shape: 10, mix: 0.040, bassMult: 0.75, crossover: 750, diffusion: 86, spin: 20, wander: 18, hpf: 160, lpf: 14500, eqSlope: 24, inMS: 0,   outMS: 10, duckThresh: -26, duckAmount: 0,  width: 108, monoBelow: 120 },
+      { id: '13_7_ambient_hall',    code: '13.7', name: 'Ambient Hall',        program: 'ambience',    rtMid: 1.40, preDelay: 20, size: 36, hfCut: 8800,  shape: 34, mix: 0.030, bassMult: 0.90, crossover: 650, diffusion: 92, spin: 36, wander: 38, hpf: 140, lpf: 12500, eqSlope: 24, inMS: 10,  outMS: 20, duckThresh: -24, duckAmount: 10, width: 116, monoBelow: 130 }
+    ] },
+    { bank: 'Bank 19 — Rich Plate', presets: [
+      { id: '19_1_rich_plate',      code: '19.1', name: 'Rich Plate',          program: 'rich_plate',  rtMid: 2.00, preDelay: 20, size: 30, hfCut: 9200,  shape: 22, mix: 0.030, bassMult: 0.90, crossover: 520, diffusion: 94, spin: 44, wander: 38, hpf: 170, lpf: 12000, eqSlope: 24, inMS: 0,   outMS: 15, duckThresh: -24, duckAmount: 15, width: 112, monoBelow: 145 },
+      { id: '19_3_vocal_plate',     code: '19.3', name: 'Vocal Plate',         program: 'rich_plate',  rtMid: 2.10, preDelay: 38, size: 32, hfCut: 8600,  shape: 28, mix: 0.030, bassMult: 0.85, crossover: 560, diffusion: 92, spin: 42, wander: 40, hpf: 200, lpf: 10500, eqSlope: 24, inMS: 0,   outMS: 20, duckThresh: -22, duckAmount: 30, width: 115, monoBelow: 160 },
+      { id: '19_4_vox_plate',       code: '19.4', name: 'Vox Plate',           program: 'rich_plate',  rtMid: 1.55, preDelay: 28, size: 26, hfCut: 9400,  shape: 18, mix: 0.025, bassMult: 0.80, crossover: 600, diffusion: 90, spin: 38, wander: 34, hpf: 220, lpf: 11500, eqSlope: 24, inMS: 0,   outMS: 15, duckThresh: -22, duckAmount: 25, width: 110, monoBelow: 160 },
+      { id: '19_7_short_plate',     code: '19.7', name: 'Short Plate',         program: 'rich_plate',  rtMid: 0.95, preDelay: 14, size: 20, hfCut: 10200, shape: 12, mix: 0.025, bassMult: 0.75, crossover: 580, diffusion: 92, spin: 32, wander: 26, hpf: 200, lpf: 13000, eqSlope: 24, inMS: 0,   outMS: 15, duckThresh: -24, duckAmount: 10, width: 108, monoBelow: 150 },
+      { id: '19_0_silver_plate',    code: '19.0', name: 'Silver Plate',        program: 'rich_plate',  rtMid: 2.40, preDelay: 26, size: 34, hfCut: 13000, shape: 24, mix: 0.025, bassMult: 0.75, crossover: 620, diffusion: 96, spin: 48, wander: 44, hpf: 220, lpf: 16000, eqSlope: 24, inMS: 10,  outMS: 25, duckThresh: -22, duckAmount: 20, width: 118, monoBelow: 180 }
+    ] },
+    { bank: 'Mastering', presets: [
+      { id: 'm_sides_glue',         code: 'M.1',  name: 'Master Glue (Sides)', program: 'ambience',    rtMid: 0.85, preDelay: 16, size: 26, hfCut: 9500,  shape: 22, mix: 0.030, bassMult: 0.75, crossover: 650, diffusion: 92, spin: 32, wander: 34, hpf: 180, lpf: 11000, eqSlope: 24, inMS: 100, outMS: 60, duckThresh: -22, duckAmount: 20, width: 120, monoBelow: 180 },
+      { id: 'm_subtle_air',         code: 'M.2',  name: 'Subtle Mastering Air',program: 'random_hall', rtMid: 1.45, preDelay: 22, size: 34, hfCut: 10500, shape: 36, mix: 0.018, bassMult: 0.80, crossover: 680, diffusion: 90, spin: 42, wander: 46, hpf: 200, lpf: 13500, eqSlope: 24, inMS: 35,  outMS: 40, duckThresh: -24, duckAmount: 15, width: 122, monoBelow: 180 },
+      { id: 'm_ducked_sheen',       code: 'M.3',  name: 'Ducked Vocal Sheen',  program: 'rich_plate',  rtMid: 2.30, preDelay: 42, size: 34, hfCut: 8800,  shape: 30, mix: 0.035, bassMult: 0.85, crossover: 560, diffusion: 94, spin: 46, wander: 45, hpf: 220, lpf: 10000, eqSlope: 24, inMS: 0,   outMS: 30, duckThresh: -24, duckAmount: 65, width: 118, monoBelow: 180 },
+      { id: 'm_wide_halo',          code: 'M.4',  name: 'Wide Master Halo',    program: 'random_hall', rtMid: 2.60, preDelay: 36, size: 48, hfCut: 7400,  shape: 54, mix: 0.025, bassMult: 0.90, crossover: 580, diffusion: 88, spin: 55, wander: 65, hpf: 190, lpf: 10500, eqSlope: 24, inMS: 60,  outMS: 75, duckThresh: -22, duckAmount: 35, width: 140, monoBelow: 200 }
+    ] }
+  ];
+  var REVERB_PRESET_LIST = [];
+  var REVERB_PRESETS_BY_ID = {};
+  REVERB_PRESET_BANKS.forEach(function (group) {
+    group.presets.forEach(function (p) {
+      REVERB_PRESET_LIST.push(p);
+      REVERB_PRESETS_BY_ID[p.id] = p;
+    });
+  });
+  var REVERB_PRESET_KEYS = ['program', 'rtMid', 'preDelay', 'size', 'hfCut', 'shape', 'mix', 'bassMult', 'crossover',
+                            'diffusion', 'spin', 'wander', 'hpf', 'lpf', 'eqSlope', 'inMS', 'outMS', 'duckThresh',
+                            'duckAmount', 'width', 'monoBelow'];
+
+  function reverbPresetOf(rv) {
+    if (!rv) { return null; }
+    for (var i = 0; i < REVERB_PRESET_LIST.length; i++) {
+      var p = REVERB_PRESET_LIST[i], same = true;
+      for (var k = 0; k < REVERB_PRESET_KEYS.length; k++) {
+        var key = REVERB_PRESET_KEYS[k];
+        if (key === 'program') {
+          if (rv.program !== p.program) { same = false; break; }
+        } else if (Math.abs(Number(rv[key]) - Number(p[key])) > 1e-4) {
+          same = false; break;
+        }
+      }
+      if (same && Math.abs(Number(rv.output || 0)) < 1e-4) { return p; }
+    }
+    return null;
+  }
+
+  function reverbPresetOptionsHtml() {
+    var html = '<option value="custom">' + escHtml(t('Custom')) + '</option>';
+    REVERB_PRESET_BANKS.forEach(function (group) {
+      html += '<optgroup label="' + escHtml(group.bank) + '">';
+      group.presets.forEach(function (p) {
+        html += '<option value="' + escHtml(p.id) + '">' + escHtml(p.code + ' ' + p.name) + '</option>';
+      });
+      html += '</optgroup>';
+    });
+    return html;
+  }
+
   function defaultReverb() {
     return {
       enabled: false,
@@ -2709,6 +2801,11 @@
         '        <div class="unit-bar">',
         '          <div class="unit-brand"><span class="screw-mini"></span> 480L MASTERING REVERB <span class="screw-mini"></span></div>',
         '          <div class="unit-bar-right rev-bar-tools">',
+        '            <div class="rev-preset-bar" role="group" aria-label="' + t('480L presets') + '">',
+        '              <button type="button" class="rev-step-btn" id="rev-preset-prev" title="' + t('Previous 480L preset') + '" aria-label="' + t('Previous 480L preset') + '">&lsaquo;</button>',
+        '              <select id="rev-preset-select" class="rev-preset-select" title="' + t('Load a classic 480L v3.0 or mastering preset') + '">' + reverbPresetOptionsHtml() + '</select>',
+        '              <button type="button" class="rev-step-btn" id="rev-preset-next" title="' + t('Next 480L preset') + '" aria-label="' + t('Next 480L preset') + '">&rsaquo;</button>',
+        '            </div>',
         '            <div class="rev-view-seg" id="rev-view-switch" role="group" aria-label="' + t('Reverb view mode') + '">',
         '              <button type="button" class="rev-seg-btn" data-rev-view="larc" title="' + t('Classic 6-fader LARC interface') + '">LARC</button>',
         '              <button type="button" class="rev-seg-btn active" data-rev-view="mastering" title="' + t('All-in-One Mastering View with tank voicing, pre-EQ, M/S matrix, ducker and stereo width') + '">MASTERING</button>',
@@ -3786,6 +3883,23 @@
         });
       }
 
+      var presetSel = document.getElementById('rev-preset-select');
+      if (presetSel) {
+        presetSel.addEventListener('change', function () {
+          if (REVERB_PRESETS_BY_ID[this.value]) {
+            self.applyReverbPreset(this.value);
+          }
+        });
+      }
+      var prevPreset = document.getElementById('rev-preset-prev');
+      if (prevPreset) {
+        prevPreset.addEventListener('click', function () { self.stepReverbPreset(-1); });
+      }
+      var nextPreset = document.getElementById('rev-preset-next');
+      if (nextPreset) {
+        nextPreset.addEventListener('click', function () { self.stepReverbPreset(1); });
+      }
+
       // 6 Classic Vertical LARC Faders
       Array.prototype.forEach.call(unit.querySelectorAll('.rev-fader-col'), function (col) {
         var key = col.dataset.revFader;
@@ -3893,12 +4007,41 @@
       });
     },
 
+    applyReverbPreset: function (id) {
+      var p = REVERB_PRESETS_BY_ID[id];
+      if (!p) { return; }
+      var rv = this.reverbState();
+      REVERB_PRESET_KEYS.forEach(function (key) { rv[key] = p[key]; });
+      rv.output = 0;
+      rv.delta = false;
+      rv.masteringScale = true;
+      rv.enabled = true;
+      this.reverbChanged(true);
+    },
+
+    stepReverbPreset: function (dir) {
+      var rv = this.reverbState();
+      var cur = reverbPresetOf(rv);
+      var idx = cur ? REVERB_PRESET_LIST.indexOf(cur) : -1;
+      var next = idx < 0
+        ? (dir >= 0 ? 0 : REVERB_PRESET_LIST.length - 1)
+        : (idx + dir + REVERB_PRESET_LIST.length) % REVERB_PRESET_LIST.length;
+      this.applyReverbPreset(REVERB_PRESET_LIST[next].id);
+    },
+
     syncReverb: function (activeKey) {
       var unit = document.getElementById('unit-reverb');
       if (!unit) { return; }
       var self = this;
       var rv = this.reverbState();
       var prog = REVERB_PROGRAMS[rv.program] || REVERB_PROGRAMS.large_hall;
+      var matchedPreset = reverbPresetOf(rv);
+
+      var presetSel = document.getElementById('rev-preset-select');
+      if (presetSel) {
+        var wantVal = matchedPreset ? matchedPreset.id : 'custom';
+        if (presetSel.value !== wantVal) { presetSel.value = wantVal; }
+      }
 
       var toggle = document.getElementById('toggle-reverb');
       if (toggle) {
@@ -3932,7 +4075,11 @@
 
       // Red Dot-Matrix LED Display
       var progEl = document.getElementById('rev-led-prog');
-      if (progEl) { progEl.textContent = prog.label; }
+      if (progEl) {
+        progEl.textContent = matchedPreset
+          ? (matchedPreset.code + ' ' + matchedPreset.name.toUpperCase())
+          : prog.label;
+      }
       var badgeEl = document.getElementById('rev-led-badge');
       if (badgeEl) {
         badgeEl.textContent = rv.delta ? 'DELTA WET' : (rv.masteringScale ? 'M-SCALE 0-10%' : 'FULL 0-100%');
@@ -4735,6 +4882,8 @@
     defaultReverb: defaultReverb,
     reverbOf: reverbOf,
     reverbActive: reverbActive,
+    reverbPresets: REVERB_PRESET_LIST,
+    reverbPresetOf: reverbPresetOf,
     make480Impulse: make480Impulse,
     makeDuckCurve: makeDuckCurve,
     buildGraph: buildMasteringDspGraph,     // the chain on any context, for renders and for checks

@@ -3248,5 +3248,9 @@
  "Input Mid/Side Balance: route Mid, Stereo, or Sides-only into the reverb tank": "입력 Mid/Side 밸런스: Mid, 스테레오 또는 Side만 리버브 탱크로 전송",
  "Output Mid/Side Balance: position the wet return in Mid, Stereo, or Sides-only": "출력 Mid/Side 밸런스: 웨트 리턴을 Mid, 스테레오 또는 Side에만 배치",
  "Wet Stereo Width: 0% (mono) to 150% (extra wide) on the reverb return": "웨트 스테레오 폭: 리버브 리턴 폭을 0%(모노)~150%(와이드)로 조절",
- "Mono-Maker: sums wet reverb low frequencies to mono below this frequency (OFF to 500 Hz)": "모노 메이커: 이 주파수 이하의 웨트 저역을 모노로 합산 (OFF~500 Hz)"
+ "Mono-Maker: sums wet reverb low frequencies to mono below this frequency (OFF to 500 Hz)": "모노 메이커: 이 주파수 이하의 웨트 저역을 모노로 합산 (OFF~500 Hz)",
+ "480L presets": "480L 프리셋",
+ "Previous 480L preset": "이전 480L 프리셋",
+ "Next 480L preset": "다음 480L 프리셋",
+ "Load a classic 480L v3.0 or mastering preset": "클래식 480L v3.0 또는 마스터링 프리셋 불러오기"
 }
