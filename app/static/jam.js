@@ -1699,37 +1699,37 @@
     var readyVoices = readyVoicesList();
     var hasVoices = Boolean(window.VOICES && VOICES.service && VOICES.service.ok && readyVoices.length);
     var voiceSelectHtml = '';
+    var voiceSettingsHtml = '';
     if (JamState.vocals === 'voice') {
       var picked = pickedJamVoice();
       var own = jamVoiceDefaults(picked);
       var effectiveMix = picked ? Object.assign({}, own, JamState.voiceMix || {}) : {};
       var voiceChanged = jamVoiceMixChanged(picked);
       var settingsOpen = Boolean(picked && JamState.voiceSettingsOpen);
-      voiceSelectHtml =
-        '<div class="voice-pick-row jam-voice-row">' +
-          '<select id="jam-voice-select" style="padding:6px 10px;font-size:12.5px">' +
-            '<option value="">Choose a recorded voice\u2026</option>' +
-            readyVoices.map(function (v) {
-              return '<option value="' + escHtml(v.id) + '"' + (v.id === JamState.voiceId ? ' selected' : '') + '>' + escHtml(v.name) + '</option>';
-            }).join('') +
-          '</select>' +
-          (picked
-            ? '<button type="button" class="voice-toggle jam-voice-toggle' + (voiceChanged ? ' changed' : '') + '" data-jam-act="voice-settings-toggle" aria-expanded="' + (settingsOpen ? 'true' : 'false') + '" title="' + escHtml(t("This take's settings for the voice")) + '">' +
-                '<span class="voice-toggle-name">' + escHtml(t('Settings')) + '</span>' +
-                (voiceChanged ? '<span class="voice-toggle-note">' + escHtml(t('own settings')) + '</span>' : '') +
-                '<span class="voice-toggle-caret" aria-hidden="true">&#9662;</span>' +
-              '</button>'
-            : '') +
-        '</div>' +
-        (settingsOpen && typeof voiceControls === 'function'
-          ? '<div class="voice-panel jam-voice-panel">' +
-              '<div class="voice-mix" id="jam-voice-mix">' + voiceControls(effectiveMix, false) + '</div>' +
-              (typeof likenessCaution === 'function' ? likenessCaution(effectiveMix.likeness) : '') +
-              (voiceChanged
-                ? '<div class="jam-voice-panel-foot"><button type="button" class="jam-clear-btn" data-jam-act="voice-mix-reset">' + t('Reset to defaults') + '</button></div>'
-                : '') +
-            '</div>'
-          : '');
+      voiceSelectHtml = '<select id="jam-voice-select" style="padding:6px 10px;font-size:12.5px">' +
+        '<option value="">Choose a recorded voice\u2026</option>' +
+        readyVoices.map(function (v) {
+          return '<option value="' + escHtml(v.id) + '"' + (v.id === JamState.voiceId ? ' selected' : '') + '>' + escHtml(v.name) + '</option>';
+        }).join('') + '</select>';
+      if (picked) {
+        voiceSettingsHtml =
+          '<div class="jam-voice-settings-wrap">' +
+            '<button type="button" class="jam-voice-link' + (voiceChanged ? ' changed' : '') + '" data-jam-act="voice-settings-toggle" aria-expanded="' + (settingsOpen ? 'true' : 'false') + '" title="' + escHtml(t("This take's settings for the voice")) + '">' +
+              '<span class="jam-fold-caret" aria-hidden="true">&#9662;</span>' +
+              '<span class="jam-voice-link-text">' + escHtml(t('Voice settings')) + '</span>' +
+              (voiceChanged ? '<span class="voice-toggle-note">' + escHtml(t('own settings')) + '</span>' : '') +
+            '</button>' +
+            (settingsOpen && typeof voiceControls === 'function'
+              ? '<div class="voice-panel jam-voice-panel">' +
+                  '<div class="voice-mix" id="jam-voice-mix">' + voiceControls(effectiveMix, false) + '</div>' +
+                  (typeof likenessCaution === 'function' ? likenessCaution(effectiveMix.likeness) : '') +
+                  (voiceChanged
+                    ? '<div class="jam-voice-panel-foot"><button type="button" class="jam-clear-btn" data-jam-act="voice-mix-reset">' + t('Reset to defaults') + '</button></div>'
+                    : '') +
+                '</div>'
+              : '') +
+          '</div>';
+      }
     }
 
     var vocalExtras = '';
@@ -1741,7 +1741,8 @@
             var on = JamState.tones.indexOf(tn) >= 0;
             return '<button type="button" class="jam-mini-chip' + (on ? ' on' : '') + '" data-jam-act="toggle-tone" data-tone="' + escHtml(tn) + '">' + escHtml(tn) + '</button>';
           }).join('') +
-        '</div>';
+        '</div>' +
+        voiceSettingsHtml;
     }
 
     var keptScroll = keepScroll(el);
