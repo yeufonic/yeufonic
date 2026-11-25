@@ -1127,6 +1127,100 @@
   }
 
   var JAM_MAX_KEY = 'yue2.jamMax';
+  var JAM_COL_MIN = 260;
+  var JAM_COL_KEY = 'yue2.jamColumns';
+
+  function jamColumnShares() {
+    try {
+      var shares = JSON.parse(localStorage.getItem(JAM_COL_KEY) || 'null');
+      if (Array.isArray(shares) && shares.length === 3 && shares.every(function (n) { return typeof n === 'number' && n > 0; })) {
+        return shares;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function jamColumnsSideBySide(cols) {
+    return cols.length === 3 && cols[0].offsetParent !== null && Math.abs(cols[0].offsetTop - cols[1].offsetTop) < 2 &&
+      Math.abs(cols[1].offsetTop - cols[2].offsetTop) < 2;
+  }
+
+  function placeJamColumnHandles() {
+    var box = document.querySelector('#jam-shell .jam-console');
+    if (!box) { return; }
+    var cols = box.querySelectorAll(':scope > .jam-col');
+    var handles = box.querySelectorAll(':scope > .jam-col-handle');
+    var side = jamColumnsSideBySide(cols);
+    Array.prototype.forEach.call(handles, function (handle, i) {
+      if (!side) { handle.style.display = 'none'; return; }
+      handle.style.display = '';
+      var left = cols[i].offsetLeft + cols[i].offsetWidth;
+      handle.style.left = (left + (cols[i + 1].offsetLeft - left) / 2) + 'px';
+    });
+  }
+
+  function applyJamColumns(shares) {
+    var box = document.querySelector('#jam-shell .jam-console');
+    if (!box) { return; }
+    ['--jam-c1', '--jam-c2', '--jam-c3'].forEach(function (name, i) {
+      if (shares) { box.style.setProperty(name, shares[i].toFixed(4) + 'fr'); } else { box.style.removeProperty(name); }
+    });
+    placeJamColumnHandles();
+  }
+
+  function setupJamColumns() {
+    var box = document.querySelector('#jam-shell .jam-console');
+    if (!box || box.querySelector(':scope > .jam-col-handle')) { return; }
+    var cols = box.querySelectorAll(':scope > .jam-col');
+    if (cols.length !== 3) { return; }
+    [0, 1].forEach(function (i) {
+      var handle = document.createElement('div');
+      handle.className = 'jam-col-handle';
+      handle.setAttribute('role', 'separator');
+      handle.setAttribute('aria-orientation', 'vertical');
+      handle.title = t('Drag to widen or narrow the columns. Double-click for the usual widths.');
+      handle.addEventListener('pointerdown', function (event) {
+        if (event.button !== 0 || !jamColumnsSideBySide(cols)) { return; }
+        event.preventDefault();
+        event.stopPropagation();
+        var widths = Array.prototype.map.call(cols, function (col) { return col.offsetWidth; });
+        var startX = event.clientX;
+        var pair = widths[i] + widths[i + 1];
+        handle.classList.add('dragging');
+        document.body.classList.add('ed-col-dragging');
+        if (handle.setPointerCapture) { handle.setPointerCapture(event.pointerId); }
+        function move(ev) {
+          var left = Math.max(JAM_COL_MIN, Math.min(pair - JAM_COL_MIN, widths[i] + ev.clientX - startX));
+          var now = widths.slice();
+          now[i] = left;
+          now[i + 1] = pair - left;
+          var total = now[0] + now[1] + now[2];
+          applyJamColumns(now.map(function (w) { return w / total * 3; }));
+        }
+        function end() {
+          handle.classList.remove('dragging');
+          document.body.classList.remove('ed-col-dragging');
+          handle.removeEventListener('pointermove', move);
+          handle.removeEventListener('pointerup', end);
+          handle.removeEventListener('pointercancel', end);
+          var now = Array.prototype.map.call(cols, function (col) { return col.offsetWidth; });
+          var total = now[0] + now[1] + now[2];
+          try { localStorage.setItem(JAM_COL_KEY, JSON.stringify(now.map(function (w) { return w / total * 3; }))); } catch (e) {}
+        }
+        handle.addEventListener('pointermove', move);
+        handle.addEventListener('pointerup', end);
+        handle.addEventListener('pointercancel', end);
+      });
+      handle.addEventListener('dblclick', function () {
+        try { localStorage.removeItem(JAM_COL_KEY); } catch (e) {}
+        applyJamColumns(null);
+      });
+      box.appendChild(handle);
+    });
+    applyJamColumns(jamColumnShares());
+    if (typeof ResizeObserver === 'function') { new ResizeObserver(placeJamColumnHandles).observe(box); }
+    window.addEventListener('resize', placeJamColumnHandles);
+  }
 
   function jamMax() {
     // Filling the window unless the person chose the usual size (stored as '0').
@@ -1143,6 +1237,7 @@
       btn.setAttribute('aria-label', btn.title);
     }
     try { localStorage.setItem(JAM_MAX_KEY, on ? '1' : '0'); } catch (e) {}
+    placeJamColumnHandles();
   }
 
   function buildShellOnce() {
@@ -1165,6 +1260,7 @@
     shell.addEventListener('keydown', onShellKeydown);
     shell.addEventListener('pointerdown', onPointerDown);
     setJamMax(jamMax());
+    setupJamColumns();
   }
 
   /* A column is repainted whole, which would put it, and any list in it that scrolls, back at the top.
@@ -1192,6 +1288,7 @@
     paintFeelCol();
     paintHistory();
     paintFooter();
+    placeJamColumnHandles();
   }
 
   function paintTopbar() {
