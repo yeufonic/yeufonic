@@ -1825,18 +1825,18 @@
       if (picked) {
         voiceSettingsHtml =
           '<div class="jam-voice-settings-wrap">' +
-            '<button type="button" class="jam-voice-link' + (voiceChanged ? ' changed' : '') + '" data-jam-act="voice-settings-toggle" aria-expanded="' + (settingsOpen ? 'true' : 'false') + '" title="' + escHtml(t("This take's settings for the voice")) + '">' +
-              '<span class="jam-fold-caret" aria-hidden="true">&#9662;</span>' +
-              '<span class="jam-voice-link-text">' + escHtml(t('Voice settings')) + '</span>' +
-              (voiceChanged ? '<span class="voice-toggle-note">' + escHtml(t('own settings')) + '</span>' : '') +
-            '</button>' +
+            '<div class="jam-kicker jam-voice-head">' +
+              '<button type="button" class="jam-voice-link' + (voiceChanged ? ' changed' : '') + '" data-jam-act="voice-settings-toggle" aria-expanded="' + (settingsOpen ? 'true' : 'false') + '" title="' + escHtml(t("This take's settings for the voice")) + '">' +
+                '<span class="jam-fold-caret" aria-hidden="true">&#9662;</span>' +
+                '<span class="jam-voice-link-text">' + escHtml(t('Voice settings')) + '</span>' +
+                (voiceChanged ? '<span class="voice-toggle-note">' + escHtml(t('own settings')) + '</span>' : '') +
+              '</button>' +
+              '<button type="button" class="jam-clear-btn" data-jam-act="voice-mix-reset"' + (voiceChanged ? '' : ' disabled') + '>' + t('Reset to defaults') + '</button>' +
+            '</div>' +
             (settingsOpen && typeof voiceControls === 'function'
               ? '<div class="voice-panel jam-voice-panel">' +
                   '<div class="voice-mix" id="jam-voice-mix">' + voiceControls(effectiveMix, false) + '</div>' +
                   (typeof likenessCaution === 'function' ? likenessCaution(effectiveMix.likeness) : '') +
-                  (voiceChanged
-                    ? '<div class="jam-voice-panel-foot"><button type="button" class="jam-clear-btn" data-jam-act="voice-mix-reset">' + t('Reset to defaults') + '</button></div>'
-                    : '') +
                 '</div>'
               : '') +
           '</div>';
