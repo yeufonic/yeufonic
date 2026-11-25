@@ -95,11 +95,15 @@ These are the voice's defaults, set on its page. A take can have its own (below)
 | **Brightness** | *Auto* lifts its upper range to match the rendered vocal's; *Off* leaves it as converted. |
 | **Breaths and consonants** | How far they keep the rendered vocal's own sounds: *Kept* stays clear but carries a trace of it, *Converted* can tear. |
 | **Dynamics** | Whose loudness the vocal follows from phrase to phrase: the take's as rendered, or the voice's own swells. |
+| **Tail gate** | Softly fades quiet reverb tails and low-level bleed at the end of sung lines, both before and after conversion (*Off*, *Gentle*, *Standard*, *Firm*, or *Tight*). Raise toward *Firm* or *Tight* if you hear low groans at phrase endings; lower toward *Gentle* or *Off* if soft, breathy endings feel clipped. |
+| **Voicing** | How confident the pitch tracker must be before singing a frame as a pitched note (*Sensitive*, *Balanced*, *Strict*, or *Very strict*). Stricter settings treat uncertain breaths and decaying tails as unvoiced so the voice model stops singing them as low groans. |
+| **Pitch floor** | Lowest sung pitch (*50 Hz* to *140 Hz*, default *75 Hz*). Anything below this frequency is treated as unvoiced instead of sung; raising it closer to the singer's lowest real note prevents low sub-octave croaks and groans at phrase endings. |
 
 #### Using a voice in a take {#using-a-voice-in-a-take}
 
-In the editor, pick the voice under **Recorded voice**. **Settings** beside it opens the settings above for this take
-only; the take keeps them, and the button says *own settings* when they differ from the voice's.
+In the editor, pick the voice under **Recorded voice**. **Settings** beside it opens all thirteen settings above for this take
+only; the take keeps them, and the button says *own settings* when they differ from the voice's. The same collapsible **Voice settings**
+panel is available in **Jam** under **Vocals → Tone:** when a recorded voice is picked (and **Full Song** snapshots all thirteen settings onto the saved take).
 
 #### Hearing a voice before you use it {#hearing-a-voice-before-you-use-it}
 
@@ -134,6 +138,7 @@ The result is a converted vocal over a separated backing, so it is less seamless
 - A single song or a short recording gives a recognizable voice, but one that can blur words it never heard sung.
 - A voice trained on far more singing, for many more passes, as ready-made voices often are, keeps the words even at a
   high Likeness.
+- If you hear a low, groan-like artifact at the end of sung lines (caused by the pitch tracker locking onto faint reverb tails or bleed as a phrase fades out), try setting **Tail gate** to *Firm* or *Tight* and **Voicing** to *Strict* or *Very strict* (keeping **Pitch floor** at *75 Hz* or raising it near the singer's lowest real note).
 
 ### Advanced settings {#advanced-settings}
 
@@ -1050,9 +1055,8 @@ same take again brings back where you left off. **New Jam** goes back to the See
   it adds words for mood, dynamics and delivery to the style, the more it adds things to avoid, and the more firmly
   the model is held to them.
 - **Tempo**, in beats per minute, from 40 to 240. A Jam starts at the Seed's tempo.
-- **Vocals**: Instrumental, Female, Male, or one of your recorded voices, with up to three tone words. A pass sings
-  the Seed's own words. A Seed with no words makes instrumentals only.
-- **Feel** fine-tunes what the pad leaves loose. **Key** moves the melody and chords to another key; **Start at** has a short pass play from a section, such as the chorus, rather than the top; **Performance** and **Style grip** replace the pad's choice of how loosely the music is played and how firmly it follows the style; **Polish** spends more steps on a pass; **Chords** sets how adventurous a new plan's chords are, for Plan & Roll; and with a recorded voice there are its likeness, formant and blend. **Same seed** (on by default) makes the next pass with its base's seed, so what you hear differs only by what you changed. **Reset to defaults** puts the whole card back.
+- **Vocals**: Instrumental, Female, Male, or one of your recorded voices, with up to three tone words. When a recorded voice is chosen, **Voice settings** right below *Tone:* opens all thirteen voice settings (including **Tail gate**, **Voicing**, and **Pitch floor**) for the Jam. A pass sings the Seed's own words. A Seed with no words makes instrumentals only.
+- **Feel** (collapsible) fine-tunes what the pad leaves loose. **Key** moves the melody and chords to another key; **Start at** has a short pass play from a section, such as the chorus, rather than the top; **Performance** and **Style grip** replace the pad's choice of how loosely the music is played and how firmly it follows the style; **Polish** spends more steps on a pass; **Chords** sets how adventurous a new plan's chords are, for Plan & Roll. **Same seed** (on by default) makes the next pass with its base's seed, so what you hear differs only by what you changed. **Reset to defaults** puts the whole card back. You can also drag the vertical dividers between Jam's three panels to widen or narrow them (double-click to reset).
 
 Under the controls, **Compiled style** shows the style a roll will send, and what it avoids.
 
