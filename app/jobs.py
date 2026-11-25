@@ -3705,7 +3705,9 @@ async def _sing_in_voice(take_id: str, record: dict, dest: Path) -> None:
                 "brightness": persona.clamp_brightness(voice.get("brightness")),
                 "protect": persona.clamp_protect(voice.get("protect")), "dynamics": persona.clamp_dynamics(voice.get("dynamics")),
                 "formant": persona.clamp_formant(voice.get("formant")), "wet": persona.clamp_wet(voice.get("wet")),
-                **persona.cleanup_settings(),
+                "tail_gate": persona.clamp_tail_gate(voice.get("tail_gate")),
+                "rmvpe_thred": persona.clamp_rmvpe_thred(voice.get("rmvpe_thred")),
+                "f0_floor": persona.clamp_f0_floor(voice.get("f0_floor")),
                 **({"parts": str(parts)} if config.VOICE_KEEP_PARTS else {})})
         if answer.status_code != 200 or not sung.is_file():
             raise RuntimeError((answer.json() or {}).get("error") or f"answered {answer.status_code}")

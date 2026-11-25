@@ -225,7 +225,10 @@ CREATE TABLE IF NOT EXISTS voices (
     protect REAL NOT NULL DEFAULT 0.33,
     dynamics REAL NOT NULL DEFAULT 0.25,
     formant REAL NOT NULL DEFAULT 1.0,
-    wet REAL NOT NULL DEFAULT 1.0
+    wet REAL NOT NULL DEFAULT 1.0,
+    tail_gate TEXT NOT NULL DEFAULT 'standard',
+    rmvpe_thred REAL NOT NULL DEFAULT 0.08,
+    f0_floor REAL NOT NULL DEFAULT 75.0
 );
 CREATE TABLE IF NOT EXISTS voice_recordings (
     id TEXT PRIMARY KEY,
@@ -823,6 +826,18 @@ def _voice_formant_wet() -> None:
             execute(f"ALTER TABLE voices ADD COLUMN {column} REAL NOT NULL DEFAULT 1.0")
 
 
+def _voice_cleanup() -> None:
+    """Per-voice phrase-end tail gate, RMVPE voicing threshold, and lowest sung pitch floor."""
+    have = _columns("voices")
+    for column, spec in (
+        ("tail_gate", "TEXT NOT NULL DEFAULT 'standard'"),
+        ("rmvpe_thred", "REAL NOT NULL DEFAULT 0.08"),
+        ("f0_floor", "REAL NOT NULL DEFAULT 75.0"),
+    ):
+        if column not in have:
+            execute(f"ALTER TABLE voices ADD COLUMN {column} {spec}")
+
+
 def _take_voice_mix() -> None:
     """A take's own octave, levels and likeness for its recorded voice, as JSON over the voice's defaults."""
     if "voice_mix" not in _columns("takes"):
@@ -976,6 +991,7 @@ MIGRATIONS = [
     _recording_ref,                                                  # -> 58
     _slate_for_all,                                                  # -> 59
     _trash_space,                                                    # -> 60
+    _voice_cleanup,                                                  # -> 61
 ]
 
 

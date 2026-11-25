@@ -1713,7 +1713,9 @@
       likeness: v.likeness == null ? 0.75 : v.likeness,
       room: v.room == null ? 0.14 : v.room, brightness: v.brightness == null ? 1 : v.brightness,
       protect: v.protect == null ? 0.33 : v.protect, dynamics: v.dynamics == null ? 0.25 : v.dynamics,
-      formant: v.formant == null ? 1 : v.formant, wet: v.wet == null ? 1 : v.wet
+      formant: v.formant == null ? 1 : v.formant, wet: v.wet == null ? 1 : v.wet,
+      tail_gate: v.tail_gate || 'standard', rmvpe_thred: v.rmvpe_thred == null ? 0.08 : v.rmvpe_thred,
+      f0_floor: v.f0_floor == null ? 75 : v.f0_floor
     };
   }
 
@@ -1721,7 +1723,9 @@
     if (!picked || !JamState.voiceMix) { return false; }
     var own = jamVoiceDefaults(picked);
     return Object.keys(own).some(function (k) {
-      return JamState.voiceMix[k] != null && Math.abs(Number(JamState.voiceMix[k]) - Number(own[k])) >= 0.001;
+      if (JamState.voiceMix[k] == null) { return false; }
+      if (k === 'tail_gate') { return String(JamState.voiceMix[k]) !== String(own[k]); }
+      return Math.abs(Number(JamState.voiceMix[k]) - Number(own[k])) >= 0.001;
     });
   }
 
@@ -2323,14 +2327,16 @@
     if (tg.id === 'jam-hold-seed') { JamState.holdSeed = tg.checked; saveSession(); paintFeelCol(); return; }
     if (tg.dataset && tg.dataset.mix && tg.closest('#jam-voice-mix')) {
       var field = tg.dataset.mix;
-      var numVal = Number(tg.value);
+      var isStr = field === 'tail_gate';
+      var nextVal = isStr ? String(tg.value) : Number(tg.value);
       var picked = pickedJamVoice();
       var own = jamVoiceDefaults(picked);
       JamState.voiceMix = Object.assign({}, JamState.voiceMix || {});
-      if (own[field] != null && Math.abs(numVal - Number(own[field])) < 0.001) {
+      var sameAsOwn = own[field] != null && (isStr ? nextVal === String(own[field]) : Math.abs(nextVal - Number(own[field])) < 0.001);
+      if (sameAsOwn) {
         delete JamState.voiceMix[field];
       } else {
-        JamState.voiceMix[field] = numVal;
+        JamState.voiceMix[field] = nextVal;
       }
       saveSession();
       paintFeelCol();

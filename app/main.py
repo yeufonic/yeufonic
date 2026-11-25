@@ -232,54 +232,6 @@ SETTINGS_SPEC: list[dict] = [
                 "voice trained on little singing.",
     },
     {
-        "key": "voice.tail_gate",
-        "group": "voice",
-        "label": "Phrase-end tail gate",
-        "type": "select",
-        "default": "standard",
-        "options": [
-            {"value": "off", "label": "Off"},
-            {"value": "gentle", "label": "Gentle (-34 dB)"},
-            {"value": "standard", "label": "Standard (-28 dB)"},
-            {"value": "firm", "label": "Firm (-22 dB)"},
-            {"value": "tight", "label": "Tight (-18 dB)"},
-        ],
-        "help": "Softly fades quiet reverb tails and bleed at the end of sung lines before and after voice conversion. "
-                "Raise to Firm or Tight if you hear low groans at phrase endings; lower to Gentle or Off if soft "
-                "breathy endings get clipped.",
-    },
-    {
-        "key": "voice.pitch_sensitivity",
-        "group": "voice",
-        "label": "Pitch voicing threshold",
-        "type": "select",
-        "default": "0.08",
-        "options": [
-            {"value": "0.03", "label": "Sensitive (0.03 — RVC default)"},
-            {"value": "0.08", "label": "Balanced (0.08)"},
-            {"value": "0.14", "label": "Strict (0.14)"},
-            {"value": "0.22", "label": "Very strict (0.22)"},
-        ],
-        "help": "How confident the pitch tracker must be before singing a frame as a pitched note. Higher values "
-                "treat uncertain breaths and decaying tails as unvoiced, stopping end-of-line groans.",
-    },
-    {
-        "key": "voice.pitch_floor",
-        "group": "voice",
-        "label": "Lowest sung pitch",
-        "type": "select",
-        "default": "75",
-        "options": [
-            {"value": "50", "label": "50 Hz (RVC default)"},
-            {"value": "75", "label": "75 Hz (Deep bass — D2)"},
-            {"value": "95", "label": "95 Hz (Baritone — G2)"},
-            {"value": "115", "label": "115 Hz (Tenor — Bb2)"},
-            {"value": "140", "label": "140 Hz (Alto / high voice — C#3)"},
-        ],
-        "help": "Pitches below this frequency are treated as unvoiced instead of sung. Raising it toward the "
-                "singer's lowest real note prevents sub-octave groans and croaks at phrase endings.",
-    },
-    {
         "key": "training.semantic_tokens",
         "group": "training",
         "label": "Semantic audio tokens",
@@ -3772,7 +3724,9 @@ def _voice_mix(wanted: dict | None) -> str | None:
     clamps = {"octave": persona.clamp_octave, "level_db": persona.clamp_level, "backing_db": persona.clamp_backing,
               "likeness": persona.clamp_likeness, "room": persona.clamp_room, "brightness": persona.clamp_brightness,
               "protect": persona.clamp_protect, "dynamics": persona.clamp_dynamics,
-              "formant": persona.clamp_formant, "wet": persona.clamp_wet}
+              "formant": persona.clamp_formant, "wet": persona.clamp_wet,
+              "tail_gate": persona.clamp_tail_gate, "rmvpe_thred": persona.clamp_rmvpe_thred,
+              "f0_floor": persona.clamp_f0_floor}
     kept = {key: clamp(wanted[key]) for key, clamp in clamps.items() if wanted.get(key) is not None}
     return json.dumps(kept) if kept else None
 
@@ -6936,15 +6890,19 @@ async def edit_persona(persona_id: str, name: str | None = Form(None), octave: i
                        backing_db: float | None = Form(None), room: float | None = Form(None),
                        brightness: str | None = Form(None), protect: float | None = Form(None),
                        dynamics: float | None = Form(None), formant: float | None = Form(None),
-                       wet: float | None = Form(None)) -> dict:
+                       wet: float | None = Form(None), tail_gate: str | None = Form(None),
+                       rmvpe_thred: float | None = Form(None), f0_floor: float | None = Form(None)) -> dict:
     """Rename a voice, move it up or down an octave, set its vocal and backing levels in the mix, how closely it keeps
     to its singer's own sounds, the room under it, whether its upper range is lifted, how far its breaths and
-    consonants are protected, whose loudness contour it follows, its formants, and how much of the vocal it sings."""
+    consonants are protected, whose loudness contour it follows, its formants, how much of the vocal it sings, and its
+    phrase-end cleanup thresholds."""
     record = persona.update(persona_id, **{k: v for k, v in (("name", name), ("octave", octave), ("level_db", level_db),
                                                              ("likeness", likeness), ("backing_db", backing_db),
                                                              ("room", room), ("brightness", brightness),
                                                              ("protect", protect), ("dynamics", dynamics),
-                                                             ("formant", formant), ("wet", wet))
+                                                             ("formant", formant), ("wet", wet),
+                                                             ("tail_gate", tail_gate), ("rmvpe_thred", rmvpe_thred),
+                                                             ("f0_floor", f0_floor))
                                            if v is not None})
     if record is None:
         raise HTTPException(404, "no such persona")
@@ -6981,6 +6939,9 @@ class AuditionIn(BaseModel):
     room: float = 0.14
     brightness: int = 1
     formant: float = 1.0
+    tail_gate: str = "standard"
+    rmvpe_thred: float = 0.08
+    f0_floor: float = 75.0
 
 
 class VoiceCopyIn(BaseModel):
@@ -7052,7 +7013,9 @@ async def audition_voice(persona_id: str, body: AuditionIn) -> FileResponse:
                 "likeness": persona.clamp_likeness(body.likeness), "protect": persona.clamp_protect(body.protect),
                 "dynamics": persona.clamp_dynamics(body.dynamics), "room": persona.clamp_room(body.room),
                 "brightness": persona.clamp_brightness(body.brightness), "formant": persona.clamp_formant(body.formant),
-                **persona.cleanup_settings()})
+                "tail_gate": persona.clamp_tail_gate(body.tail_gate),
+                "rmvpe_thred": persona.clamp_rmvpe_thred(body.rmvpe_thred),
+                "f0_floor": persona.clamp_f0_floor(body.f0_floor)})
     except httpx.HTTPError as err:
         raise HTTPException(503, "The voice service did not answer.") from err
     if answer.status_code == 404:

@@ -84,6 +84,9 @@ def _shape(row) -> dict:
     out["dynamics"] = clamp_dynamics(out.get("dynamics"))
     out["formant"] = clamp_formant(out.get("formant"))
     out["wet"] = clamp_wet(out.get("wet"))
+    out["tail_gate"] = clamp_tail_gate(out.get("tail_gate"))
+    out["rmvpe_thred"] = clamp_rmvpe_thred(out.get("rmvpe_thred"))
+    out["f0_floor"] = clamp_f0_floor(out.get("f0_floor"))
     out["progress"] = float(out.get("progress") or 0.0)
     return out
 
@@ -151,6 +154,19 @@ def clamp_formant(value) -> float:
 
 def clamp_wet(value) -> float:
     return _step(WETS, value, 1.0)
+
+
+def clamp_tail_gate(value) -> str:
+    s = str(value or "standard").strip().lower()
+    return s if s in TAIL_GATES else "standard"
+
+
+def clamp_rmvpe_thred(value) -> float:
+    return _step(PITCH_SENSITIVITIES, value, 0.08)
+
+
+def clamp_f0_floor(value) -> int:
+    return int(_step(PITCH_FLOORS, value, 75))
 
 
 def clamp_brightness(value) -> int:
@@ -283,7 +299,7 @@ def usable(persona: dict | None) -> bool:
 
 def update(persona_id: str, **fields) -> dict | None:
     allowed = {"name", "octave", "level_db", "likeness", "backing_db", "room", "brightness", "protect", "dynamics",
-               "formant", "wet"}
+               "formant", "wet", "tail_gate", "rmvpe_thred", "f0_floor"}
     wanted = {k: v for k, v in fields.items() if k in allowed}
     if "octave" in wanted:
         wanted["octave"] = clamp_octave(wanted["octave"])
@@ -305,13 +321,20 @@ def update(persona_id: str, **fields) -> dict | None:
         wanted["formant"] = clamp_formant(wanted["formant"])
     if "wet" in wanted:
         wanted["wet"] = clamp_wet(wanted["wet"])
+    if "tail_gate" in wanted:
+        wanted["tail_gate"] = clamp_tail_gate(wanted["tail_gate"])
+    if "rmvpe_thred" in wanted:
+        wanted["rmvpe_thred"] = clamp_rmvpe_thred(wanted["rmvpe_thred"])
+    if "f0_floor" in wanted:
+        wanted["f0_floor"] = clamp_f0_floor(wanted["f0_floor"])
     if wanted:
         sets = ", ".join(f"{key} = ?" for key in wanted)
         db.execute(f"UPDATE voices SET {sets} WHERE id = ?", (*wanted.values(), persona_id))
     return one(persona_id)
 
 
-SETTINGS = ("octave", "level_db", "likeness", "backing_db", "room", "brightness", "protect", "dynamics", "formant", "wet")
+SETTINGS = ("octave", "level_db", "likeness", "backing_db", "room", "brightness", "protect", "dynamics", "formant",
+            "wet", "tail_gate", "rmvpe_thred", "f0_floor")
 
 
 def copy(persona_id: str, name: str, settings: dict | None = None) -> dict | None:
@@ -343,16 +366,6 @@ def delete(persona_id: str) -> None:
     db.execute("DELETE FROM voices WHERE id = ?", (persona_id,))
     db.execute("DELETE FROM voice_recordings WHERE voice_id = ?", (persona_id,))
     shutil.rmtree(folder(persona_id), ignore_errors=True)
-
-
-def cleanup_settings() -> dict:
-    """Phrase-end tail gate and RMVPE pitch thresholds from Settings -> Voices, clamped to safe steps."""
-    gate = str(db.get_setting("voice.tail_gate", None) or "standard").strip().lower()
-    if gate not in TAIL_GATES:
-        gate = "standard"
-    rmvpe_thred = _step(PITCH_SENSITIVITIES, db.get_setting("voice.pitch_sensitivity", None), 0.08)
-    f0_floor = int(_step(PITCH_FLOORS, db.get_setting("voice.pitch_floor", None), 75))
-    return {"tail_gate": gate, "rmvpe_thred": rmvpe_thred, "f0_floor": f0_floor}
 
 
 def describe(persona: dict | None) -> str:

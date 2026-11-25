@@ -19475,6 +19475,23 @@ function wetOptions(v) {
   return stepOptions(v.wet == null ? 1 : Number(v.wet), [[1, '100%'], [0.75, '75%'], [0.5, '50%'], [0.25, '25%']]);
 }
 
+function tailGateOptions(v) {
+  var have = String(v.tail_gate || 'standard').toLowerCase();
+  return [['off', t('Off')], ['gentle', t('Gentle')], ['standard', t('Standard')], ['firm', t('Firm')], ['tight', t('Tight')]].map(function (o) {
+    return '<option value="' + o[0] + '"' + (have === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+  }).join('');
+}
+
+function rmvpeThredOptions(v) {
+  return stepOptions(v.rmvpe_thred == null ? 0.08 : Number(v.rmvpe_thred),
+    [[0.03, t('Sensitive')], [0.08, t('Balanced')], [0.14, t('Strict')], [0.22, t('Very strict')]]);
+}
+
+function f0FloorOptions(v) {
+  return stepOptions(v.f0_floor == null ? 75 : Number(v.f0_floor),
+    [[50, '50 Hz'], [75, '75 Hz'], [95, '95 Hz'], [115, '115 Hz'], [140, '140 Hz']]);
+}
+
 function brightnessOptions(v) {
   var on = v.brightness == null ? true : Boolean(Number(v.brightness));
   return '<option value="1"' + (on ? ' selected' : '') + '>' + esc(t('Auto')) + '</option>' +
@@ -19494,6 +19511,9 @@ function voiceTitle(field) {
     case 'dynamics': return t("Whose loudness the vocal follows from phrase to phrase: the take's, as rendered, or the voice's own swells");
     case 'formant': return t('The size of the voice, its pitch kept: deeper sounds larger, brighter smaller');
     case 'wet': return t('How much of the vocal the voice sings; the rest is the rendered vocal it was made from');
+    case 'tail_gate': return t('Softly fades quiet reverb tails and bleed at phrase endings before and after voice conversion: raise to Firm or Tight to reduce end-of-line groans');
+    case 'rmvpe_thred': return t('How confident the pitch tracker must be before singing a frame as a pitched note: stricter values treat uncertain tails as unvoiced');
+    case 'f0_floor': return t("Lowest sung pitch: notes below this frequency are treated as unvoiced to prevent low sub-octave groans at phrase endings");
     default: return '';
   }
 }
@@ -19510,6 +19530,9 @@ function voiceControls(v, ids) {
     ['dynamics', t('Dynamics'), dynamicsOptions(v), 'voice-dynamics'],
     ['formant', t('Formant'), formantOptions(v), 'voice-formant'],
     ['wet', t('Blend'), wetOptions(v), 'voice-wet'],
+    ['tail_gate', t('Tail gate'), tailGateOptions(v), 'voice-tail-gate'],
+    ['rmvpe_thred', t('Voicing'), rmvpeThredOptions(v), 'voice-rmvpe-thred'],
+    ['f0_floor', t('Pitch floor'), f0FloorOptions(v), 'voice-f0-floor'],
   ];
   return rows.map(function (r) {
     var title = voiceTitle(r[0]) ? ' title="' + esc(voiceTitle(r[0])) + '"' : '';
@@ -19791,7 +19814,9 @@ function voiceDefaults(v) {
   return { octave: v.octave, level_db: v.level_db, backing_db: v.backing_db, likeness: v.likeness,
            room: v.room == null ? 0.14 : v.room, brightness: v.brightness == null ? 1 : v.brightness,
            protect: v.protect == null ? 0.33 : v.protect, dynamics: v.dynamics == null ? 0.25 : v.dynamics,
-           formant: v.formant == null ? 1 : v.formant, wet: v.wet == null ? 1 : v.wet };
+           formant: v.formant == null ? 1 : v.formant, wet: v.wet == null ? 1 : v.wet,
+           tail_gate: v.tail_gate || 'standard', rmvpe_thred: v.rmvpe_thred == null ? 0.08 : v.rmvpe_thred,
+           f0_floor: v.f0_floor == null ? 75 : v.f0_floor };
 }
 
 /* What a new take or a render sends: the editor's settings for the picked voice, or null with none picked. */
@@ -19901,7 +19926,10 @@ function paintPersonaField() {
   var picked = ready.filter(function (v) { return v.id === VOICES.pick; })[0];
   var mix = pickedVoiceMix();
   var own = picked ? voiceDefaults(picked) : {};
-  var changed = mix && Object.keys(own).some(function (k) { return mix[k] != null && Number(mix[k]) !== Number(own[k]); });
+  var changed = mix && Object.keys(own).some(function (k) {
+    if (mix[k] == null) { return false; }
+    return k === 'tail_gate' ? String(mix[k]) !== String(own[k]) : Number(mix[k]) !== Number(own[k]);
+  });
   // The picker is the field itself; with a voice picked, a button beside it opens the take's settings for it.
   // The native select stays hidden as the source of truth, mirroring the Style LoRA picker.
   host.innerHTML = '<label for="persona-picker-btn">' + t('Recorded voice') + '</label>' +
@@ -19975,7 +20003,8 @@ function paintPersonaField() {
   Array.prototype.forEach.call(host.querySelectorAll('[data-mix]'), function (control) {
     control.addEventListener('change', function () {
       VOICES.takeMix = Object.assign({}, VOICES.takeMix || {});
-      VOICES.takeMix[control.dataset.mix] = Number(control.value);
+      var k = control.dataset.mix;
+      VOICES.takeMix[k] = k === 'tail_gate' ? String(control.value) : Number(control.value);
       paintPersonaField();
       var again = host.querySelector('[data-mix="' + control.dataset.mix + '"]');
       if (again) { again.focus(); }
@@ -20053,7 +20082,8 @@ function wireAudition(host) {
 }
 
 function auditionKey(mix) {
-  return [VOICES.pick, AUD.loop, mix.octave, mix.likeness, mix.protect, mix.dynamics, mix.room, mix.brightness, mix.formant].join('|');
+  return [VOICES.pick, AUD.loop, mix.octave, mix.likeness, mix.protect, mix.dynamics, mix.room, mix.brightness,
+          mix.formant, mix.tail_gate, mix.rmvpe_thred, mix.f0_floor].join('|');
 }
 
 async function auditionDry(loop) {
@@ -20116,7 +20146,9 @@ async function auditionRefresh() {
     var response = await fetch('/api/voices/' + encodeURIComponent(VOICES.pick) + '/audition', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ loop: AUD.loop, octave: mix.octave, likeness: mix.likeness, protect: mix.protect,
-                             dynamics: mix.dynamics, room: mix.room, brightness: Number(mix.brightness), formant: mix.formant }) });
+                             dynamics: mix.dynamics, room: mix.room, brightness: Number(mix.brightness), formant: mix.formant,
+                             tail_gate: mix.tail_gate || 'standard', rmvpe_thred: Number(mix.rmvpe_thred == null ? 0.08 : mix.rmvpe_thred),
+                             f0_floor: Number(mix.f0_floor == null ? 75 : mix.f0_floor) }) });
     if (!response.ok) {
       var detail = '';
       try { detail = (await response.json()).detail || ''; } catch (err) { /* not JSON */ }
@@ -20234,7 +20266,8 @@ function wireVoices() {
       }
       var field = { 'voice-octave': 'octave', 'voice-level': 'level_db', 'voice-likeness': 'likeness', 'voice-backing': 'backing_db',
                     'voice-room': 'room', 'voice-brightness': 'brightness', 'voice-protect': 'protect',
-                    'voice-dynamics': 'dynamics', 'voice-formant': 'formant', 'voice-wet': 'wet' }[event.target.id] || null;
+                    'voice-dynamics': 'dynamics', 'voice-formant': 'formant', 'voice-wet': 'wet',
+                    'voice-tail-gate': 'tail_gate', 'voice-rmvpe-thred': 'rmvpe_thred', 'voice-f0-floor': 'f0_floor' }[event.target.id] || null;
       if (field === 'likeness') {
         var caution = body.querySelector('.likeness-caution');
         if (caution) { caution.classList.toggle('hidden', Number(event.target.value) < 1); }
