@@ -948,6 +948,16 @@
       : JamState.starterName + ' \u00B7 ' + t('Pass #{n}', { n: passNum }));
     var loraKind = activeLoraKind(snap.styleLora);
 
+    var fullVoiceMix = null;
+    if (snap.vocals === 'voice') {
+      if (isFullSong && snap.voiceId) {
+        var pickedForSnap = readyVoicesList().filter(function (v) { return v.id === snap.voiceId; })[0] || null;
+        fullVoiceMix = Object.assign({}, jamVoiceDefaults(pickedForSnap), snap.voiceMix || {});
+      } else if (snap.voiceMix && Object.keys(snap.voiceMix).length) {
+        fullVoiceMix = snap.voiceMix;
+      }
+    }
+
     var payload = {
       title: passTitle,
       space_id: jamSpaceId(),
@@ -966,7 +976,7 @@
       cfg_scale: effectiveGrip(snap, vi),
       target_key: snap.key || null,
       start_section: !isFullSong && snap.startSection ? snap.startSection : null,
-      voice_mix: snap.vocals === 'voice' && snap.voiceMix && Object.keys(snap.voiceMix).length ? snap.voiceMix : null,
+      voice_mix: fullVoiceMix,
       sampler_steps: basePass && opts.basePassId && basePass.samplerSteps ? basePass.samplerSteps
         : (isFullSong ? 32 : (snap.polish === 'polished' ? 32 : 24)),
       // As the Seed was made: a Jam does not normalise, or change the real-audio setting, unless the Seed did.
