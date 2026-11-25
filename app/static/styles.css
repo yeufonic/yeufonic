@@ -9116,8 +9116,9 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 :root[data-custom-theme][data-ui-style="slate"] .take.has-inside {
   background: var(--card-3-grad, var(--card-3));
 }
-:root[data-custom-theme] .play,
-:root[data-custom-theme] .play-btn {
+:root[data-custom-theme] .pbtn.play,
+:root[data-custom-theme] .sheet-play-btn:not(.is-playing),
+:root[data-custom-theme] .rec-play-btn {
   background: var(--play-bg-grad, var(--play-bg));
 }
 :root[data-custom-theme] .space-menu,
