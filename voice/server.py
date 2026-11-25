@@ -331,6 +331,18 @@ ROOM_SECONDS = 1.2
 RMVPE_THRED = 0.08
 F0_FLOOR_HZ = 75.0
 VOCAL_HP_HZ = 80.0
+TAIL_GATES: dict[str, tuple[float, float] | None] = {
+    "off": None,
+    "gentle": (-34.0, -48.0),
+    "standard": (-28.0, -42.0),
+    "firm": (-22.0, -34.0),
+    "tight": (-18.0, -28.0),
+}
+
+
+def _tail_gate_levels(mode: str | None) -> tuple[float, float] | None:
+    key = str(mode or "standard").strip().lower()
+    return TAIL_GATES.get(key, TAIL_GATES["standard"])
 
 
 def clean_f0(f0, floor_hz: float = F0_FLOOR_HZ):
@@ -425,20 +437,26 @@ def _vocal_gate_envelope(mono, rate: int, open_db: float = -32.0, close_db: floa
     return np.interp(np.arange(n, dtype="float64"), centres, env_frames)
 
 
-def prepare_for_rvc(vocals: Path, dest: Path) -> None:
+def prepare_for_rvc(vocals: Path, dest: Path, tail_gate: str = "standard") -> None:
     """High-pass sub-80 Hz bleed and softly gate quiet reverb tails before RVC sees the separated vocal."""
     import soundfile  # noqa: PLC0415
     from scipy.signal import lfilter  # noqa: PLC0415
 
     samples, rate = soundfile.read(str(vocals), dtype="float32")
     x = _mono(samples).astype("float64")
-    x = lfilter(*_biquad("highpass", VOCAL_HP_HZ, rate, 0.7071), x)
-    env = _vocal_gate_envelope(x, rate, open_db=-28.0, close_db=-42.0, release_ms=65.0)
-    soundfile.write(str(dest), (x * env).astype("float32"), rate, subtype="FLOAT")
+    levels = _tail_gate_levels(tail_gate)
+    if levels is not None:
+        x = lfilter(*_biquad("highpass", VOCAL_HP_HZ, rate, 0.7071), x)
+        env = _vocal_gate_envelope(x, rate, open_db=levels[0], close_db=levels[1], release_ms=65.0)
+        x = x * env
+    soundfile.write(str(dest), x.astype("float32"), rate, subtype="FLOAT")
 
 
-def gate_to_source(source_vocals: Path, sung: Path) -> None:
+def gate_to_source(source_vocals: Path, sung: Path, tail_gate: str = "standard") -> None:
     """Attenuate residual RVC hum/groan wherever the separated source vocal has fallen to silence."""
+    levels = _tail_gate_levels(tail_gate)
+    if levels is None:
+        return
     import numpy as np  # noqa: PLC0415
     import soundfile  # noqa: PLC0415
     from scipy.signal import lfilter  # noqa: PLC0415
@@ -448,7 +466,7 @@ def gate_to_source(source_vocals: Path, sung: Path) -> None:
     if src.size == 0 or out.size == 0:
         return
     src_hp = lfilter(*_biquad("highpass", VOCAL_HP_HZ, src_rate, 0.7071), _mono(src).astype("float64"))
-    env = _vocal_gate_envelope(src_hp, src_rate, open_db=-28.0, close_db=-42.0, release_ms=75.0)
+    env = _vocal_gate_envelope(src_hp, src_rate, open_db=levels[0], close_db=levels[1], release_ms=75.0)
     if len(env) != len(out):
         env = np.interp(np.linspace(0.0, max(0, len(env) - 1), len(out)), np.arange(len(env)), env)
     gated = (out.astype("float64") * (env[:, None] if out.ndim > 1 else env)).astype("float32")
@@ -630,9 +648,14 @@ def _audition_setup() -> None:
     import infer.vc.pipeline as pipeline  # noqa: PLC0415
 
     infer_f0 = rmvpe.RMVPE.infer_from_audio
-    rmvpe.RMVPE.infer_from_audio = lambda self, audio, thred=0.03: _cached(
-        "f0", _digest(audio) + str(max(thred, RMVPE_THRED)),
-        lambda: clean_f0(infer_f0(self, audio, thred=max(thred, RMVPE_THRED)))).copy()
+
+    def _audition_f0(self, audio, thred=0.03):
+        use_thred = float(AUDITION.get("rmvpe_thred", RMVPE_THRED))
+        use_floor = float(AUDITION.get("f0_floor", F0_FLOOR_HZ))
+        key = f"{_digest(audio)}:{use_thred:.3f}:{use_floor:.1f}"
+        return _cached("f0", key, lambda: clean_f0(infer_f0(self, audio, thred=use_thred), floor_hz=use_floor)).copy()
+
+    rmvpe.RMVPE.infer_from_audio = _audition_f0
     features = pipeline.extract_hubert_features
     pipeline.extract_hubert_features = lambda model, feats, version, padding_mask=None: _cached(
         "hubert", _digest(feats) + version, lambda: features(model, feats, version, padding_mask=padding_mask)).clone()
@@ -669,7 +692,8 @@ def _audition_idle() -> None:
 
 
 def audition(voice: str, loop: Path, output: Path, octave: int = 0, likeness: float = 0.75, protect: float = 0.33,
-             dynamics: float = 0.25, room: float = ROOM_WET, brightness: bool = True, formant: float = 1.0) -> float:
+             dynamics: float = 0.25, room: float = ROOM_WET, brightness: bool = True, formant: float = 1.0,
+             tail_gate: str = "standard", rmvpe_thred: float = RMVPE_THRED, f0_floor: float = F0_FLOOR_HZ) -> float:
     """`loop` sung in `voice` with these settings, finished as a take's vocal is (formants, presence, level, room)
     and written to `output` as WAV; the seconds it took.  The blend with the dry loop is left to the page, which
     plays both."""
@@ -679,6 +703,8 @@ def audition(voice: str, loop: Path, output: Path, octave: int = 0, likeness: fl
     if not model.exists():
         raise RuntimeError("this voice has no trained model")
     _audition_setup()
+    AUDITION["rmvpe_thred"] = max(0.01, min(0.5, float(rmvpe_thred)))
+    AUDITION["f0_floor"] = max(40.0, min(300.0, float(f0_floor)))
     if AUDITION.get("voice") != voice:
         audition_free()
         import sys as _sys  # noqa: PLC0415
@@ -708,7 +734,7 @@ def audition(voice: str, loop: Path, output: Path, octave: int = 0, likeness: fl
     try:
         sung = work / "sung.wav"
         soundfile.write(str(sung), samples, rate)
-        gate_to_source(loop, sung)
+        gate_to_source(loop, sung, tail_gate=tail_gate)
         shift_formants(sung, formant)
         shifted = time.time()
         settle(loop, sung, voice, 0.0, room, brightness)
@@ -724,7 +750,8 @@ def audition(voice: str, loop: Path, output: Path, octave: int = 0, likeness: fl
 
 def convert(voice: str, source: Path, output: Path, octave: int, level_db: float = 0.0, likeness: float = 0.75,
             backing_db: float = 0.0, parts: Path | None = None, room: float = ROOM_WET, brightness: bool = True,
-            protect: float = 0.33, dynamics: float = 0.25, formant: float = 1.0, wet: float = 1.0) -> None:
+            protect: float = 0.33, dynamics: float = 0.25, formant: float = 1.0, wet: float = 1.0,
+            tail_gate: str = "standard", rmvpe_thred: float = RMVPE_THRED, f0_floor: float = F0_FLOOR_HZ) -> None:
     """The take at `source` with its vocal sung in `voice`, written to `output`.  With `parts`, the two halves as they
     were mixed are kept there too: vocal.flac (the sung vocal at its level) and backing.flac (the rest at its level),
     both brought down with the mix where it would clip, so together they are the finished take."""
@@ -732,20 +759,25 @@ def convert(voice: str, source: Path, output: Path, octave: int, level_db: float
     model, index = folder / "model.pth", folder / "model.index"
     if not model.exists():
         raise RuntimeError("this voice has no trained model")
+    use_thred = max(0.01, min(0.5, float(rmvpe_thred)))
+    use_floor = max(40.0, min(300.0, float(f0_floor)))
     work = Path(tempfile.mkdtemp(prefix="convert-", dir=str(VOICES)))
     try:
         vocals, rest = separate(source, work / "sep")
         clean_vocals = work / "vocals_clean.wav"
-        prepare_for_rvc(vocals, clean_vocals)
+        prepare_for_rvc(vocals, clean_vocals, tail_gate=tail_gate)
         sung = work / "sung.wav"
-        run([str(Path(__file__).resolve()), "--rvc-infer", "--model", str(model), "--input", str(clean_vocals),
+        run([str(Path(__file__).resolve()), "--rvc-infer",
+             "--rmvpe-thred", f"{use_thred:.3f}", "--f0-floor", f"{use_floor:.1f}",
+             "--model", str(model), "--input", str(clean_vocals),
              "--output", str(sung), "--format", "wav", "--f0-method", "rmvpe", "--pitch", str(12 * int(octave)),
              *(["--index", str(index)] if index.exists() else []),
              "--index-rate", f"{min(1.0, max(0.0, likeness)):.2f}", "--protect", f"{min(0.5, max(0.0, protect)):.2f}",
              "--rms-mix-rate", f"{min(1.0, max(0.0, dynamics)):.2f}", "--overwrite"])
         if not sung.exists():
             raise RuntimeError("the conversion wrote nothing")
-        gate_to_source(vocals, sung)
+        gate_to_source(vocals, sung, tail_gate=tail_gate)
+        print(f"[{voice}] cleanup: gate={tail_gate}, rmvpe_thred={use_thred:.2f}, f0_floor={use_floor:.0f} Hz", flush=True)
         shift_formants(sung, formant)
         settle(vocals, sung, voice, level_db, room, brightness)
         blend(vocals, sung, wet)
@@ -862,7 +894,10 @@ class Handler(BaseHTTPRequestHandler):
                                    float(body.get("likeness", 0.75)), float(body.get("protect", 0.33)),
                                    float(body.get("dynamics", 0.25)),
                                    float(body["room"]) if body.get("room") is not None else ROOM_WET,
-                                   bool(int(body.get("brightness", 1))), float(body.get("formant", 1.0)))
+                                   bool(int(body.get("brightness", 1))), float(body.get("formant", 1.0)),
+                                   str(body.get("tail_gate") or "standard"),
+                                   float(body.get("rmvpe_thred", RMVPE_THRED)),
+                                   float(body.get("f0_floor", F0_FLOOR_HZ)))
             except Exception as err:  # noqa: BLE001
                 traceback.print_exc()
                 return self._send(500, {"error": str(err)[-800:]})
@@ -879,7 +914,10 @@ class Handler(BaseHTTPRequestHandler):
                             float(body["room"]) if body.get("room") is not None else ROOM_WET,
                             bool(int(body.get("brightness", 1))),
                             float(body.get("protect", 0.33)), float(body.get("dynamics", 0.25)),
-                            float(body.get("formant", 1.0)), float(body.get("wet", 1.0)))
+                            float(body.get("formant", 1.0)), float(body.get("wet", 1.0)),
+                            str(body.get("tail_gate") or "standard"),
+                            float(body.get("rmvpe_thred", RMVPE_THRED)),
+                            float(body.get("f0_floor", F0_FLOOR_HZ)))
                 except Exception as err:  # noqa: BLE001
                     traceback.print_exc()
                     return self._send(500, {"error": str(err)[-800:]})
@@ -889,6 +927,21 @@ class Handler(BaseHTTPRequestHandler):
 
 def _run_rvc_infer(argv: list[str]) -> int:
     """Run RVC's CLI in a fresh child process with cleaner RMVPE F0 thresholding and plunge removal."""
+    use_thred = RMVPE_THRED
+    use_floor = F0_FLOOR_HZ
+    pass_args: list[str] = []
+    idx = 0
+    while idx < len(argv):
+        if argv[idx] == "--rmvpe-thred" and idx + 1 < len(argv):
+            use_thred = max(0.01, min(0.5, float(argv[idx + 1])))
+            idx += 2
+        elif argv[idx] == "--f0-floor" and idx + 1 < len(argv):
+            use_floor = max(40.0, min(300.0, float(argv[idx + 1])))
+            idx += 2
+        else:
+            pass_args.append(argv[idx])
+            idx += 1
+
     if str(RVC) not in sys.path:
         sys.path.insert(0, str(RVC))
     os.chdir(RVC)
@@ -898,10 +951,10 @@ def _run_rvc_infer(argv: list[str]) -> int:
     orig_infer = rmvpe.RMVPE.infer_from_audio
 
     def _clean_infer(self, audio, thred=0.03):
-        return clean_f0(orig_infer(self, audio, thred=max(thred, RMVPE_THRED)))
+        return clean_f0(orig_infer(self, audio, thred=use_thred), floor_hz=use_floor)
 
     rmvpe.RMVPE.infer_from_audio = _clean_infer
-    sys.argv = ["infer/cli.py", *argv]
+    sys.argv = ["infer/cli.py", *pass_args]
     return int(rvc_cli.main() or 0)
 
 

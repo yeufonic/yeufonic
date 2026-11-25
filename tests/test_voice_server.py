@@ -164,6 +164,10 @@ def test_clean_f0_removes_groan_plunges_and_isolated_blips(server):
     assert np.allclose(cleaned[2:12], 220.0)
     # Phrase-end plunge (100/82/60 Hz) and short stray blip (130/128 Hz) are zeroed out
     assert np.all(cleaned[12:] == 0.0)
+    # Raising the pitch floor to 115 Hz drops low-pitched 100 Hz runs as well
+    low_run = np.array([100.0] * 10, dtype="float32")
+    assert np.all(server.clean_f0(low_run, floor_hz=115.0) == 0.0)
+    assert np.allclose(server.clean_f0(low_run, floor_hz=75.0), 100.0)
 
 
 def test_prepare_for_rvc_and_gate_to_source_silence_phrase_tails_without_cutting_singing(server, tmp_path):

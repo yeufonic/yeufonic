@@ -48,6 +48,10 @@ DYNAMICS = (0.25, 0.5, 1.0)
 FORMANTS = (0.88, 0.94, 1.0, 1.06, 1.12)
 WETS = (0.25, 0.5, 0.75, 1.0)
 PASSES = (25, 50, 100, 200, 400, 800)
+# Phrase-end cleanup thresholds passed to voice/server.py on conversion and audition.
+TAIL_GATES = ("off", "gentle", "standard", "firm", "tight")
+PITCH_SENSITIVITIES = (0.03, 0.08, 0.14, 0.22)
+PITCH_FLOORS = (50, 75, 95, 115, 140)
 # A corpus voice samples at most this many of the corpus's songs: each is separated before the minutes of singing
 # (Settings) are shared across them, and separating more adds time for little.
 CORPUS_SONGS = 30
@@ -339,6 +343,16 @@ def delete(persona_id: str) -> None:
     db.execute("DELETE FROM voices WHERE id = ?", (persona_id,))
     db.execute("DELETE FROM voice_recordings WHERE voice_id = ?", (persona_id,))
     shutil.rmtree(folder(persona_id), ignore_errors=True)
+
+
+def cleanup_settings() -> dict:
+    """Phrase-end tail gate and RMVPE pitch thresholds from Settings -> Voices, clamped to safe steps."""
+    gate = str(db.get_setting("voice.tail_gate", None) or "standard").strip().lower()
+    if gate not in TAIL_GATES:
+        gate = "standard"
+    rmvpe_thred = _step(PITCH_SENSITIVITIES, db.get_setting("voice.pitch_sensitivity", None), 0.08)
+    f0_floor = int(_step(PITCH_FLOORS, db.get_setting("voice.pitch_floor", None), 75))
+    return {"tail_gate": gate, "rmvpe_thred": rmvpe_thred, "f0_floor": f0_floor}
 
 
 def describe(persona: dict | None) -> str:

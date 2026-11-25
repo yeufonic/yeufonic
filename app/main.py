@@ -232,6 +232,54 @@ SETTINGS_SPEC: list[dict] = [
                 "voice trained on little singing.",
     },
     {
+        "key": "voice.tail_gate",
+        "group": "voice",
+        "label": "Phrase-end tail gate",
+        "type": "select",
+        "default": "standard",
+        "options": [
+            {"value": "off", "label": "Off"},
+            {"value": "gentle", "label": "Gentle (-34 dB)"},
+            {"value": "standard", "label": "Standard (-28 dB)"},
+            {"value": "firm", "label": "Firm (-22 dB)"},
+            {"value": "tight", "label": "Tight (-18 dB)"},
+        ],
+        "help": "Softly fades quiet reverb tails and bleed at the end of sung lines before and after voice conversion. "
+                "Raise to Firm or Tight if you hear low groans at phrase endings; lower to Gentle or Off if soft "
+                "breathy endings get clipped.",
+    },
+    {
+        "key": "voice.pitch_sensitivity",
+        "group": "voice",
+        "label": "Pitch voicing threshold",
+        "type": "select",
+        "default": "0.08",
+        "options": [
+            {"value": "0.03", "label": "Sensitive (0.03 — RVC default)"},
+            {"value": "0.08", "label": "Balanced (0.08)"},
+            {"value": "0.14", "label": "Strict (0.14)"},
+            {"value": "0.22", "label": "Very strict (0.22)"},
+        ],
+        "help": "How confident the pitch tracker must be before singing a frame as a pitched note. Higher values "
+                "treat uncertain breaths and decaying tails as unvoiced, stopping end-of-line groans.",
+    },
+    {
+        "key": "voice.pitch_floor",
+        "group": "voice",
+        "label": "Lowest sung pitch",
+        "type": "select",
+        "default": "75",
+        "options": [
+            {"value": "50", "label": "50 Hz (RVC default)"},
+            {"value": "75", "label": "75 Hz (Deep bass — D2)"},
+            {"value": "95", "label": "95 Hz (Baritone — G2)"},
+            {"value": "115", "label": "115 Hz (Tenor — Bb2)"},
+            {"value": "140", "label": "140 Hz (Alto / high voice — C#3)"},
+        ],
+        "help": "Pitches below this frequency are treated as unvoiced instead of sung. Raising it toward the "
+                "singer's lowest real note prevents sub-octave groans and croaks at phrase endings.",
+    },
+    {
         "key": "training.semantic_tokens",
         "group": "training",
         "label": "Semantic audio tokens",
@@ -7003,7 +7051,8 @@ async def audition_voice(persona_id: str, body: AuditionIn) -> FileResponse:
                 "id": persona_id, "loop": str(loop), "output": str(out), "octave": persona.clamp_octave(body.octave),
                 "likeness": persona.clamp_likeness(body.likeness), "protect": persona.clamp_protect(body.protect),
                 "dynamics": persona.clamp_dynamics(body.dynamics), "room": persona.clamp_room(body.room),
-                "brightness": persona.clamp_brightness(body.brightness), "formant": persona.clamp_formant(body.formant)})
+                "brightness": persona.clamp_brightness(body.brightness), "formant": persona.clamp_formant(body.formant),
+                **persona.cleanup_settings()})
     except httpx.HTTPError as err:
         raise HTTPException(503, "The voice service did not answer.") from err
     if answer.status_code == 404:
