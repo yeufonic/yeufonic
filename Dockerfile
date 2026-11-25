@@ -18,6 +18,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fluidsyn
          --index-url https://download.pytorch.org/whl/cpu \
     && pip install --no-cache-dir demucs==4.1.0
 
+# bsdtar (libarchive 3.7+) unpacks RAR4/RAR5 voice archives alongside built-in zipfile.
+RUN apt-get update && apt-get install -y --no-install-recommends libarchive-tools \
+    && rm -rf /var/lib/apt/lists/*
+
 # VERSION changes on every release, so it must come AFTER the slow installs.
 # With it above them, a version bump invalidated both pip layers and cost three
 # minutes of re-downloading torch and demucs for a one character change.

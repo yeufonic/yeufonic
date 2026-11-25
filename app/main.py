@@ -7238,6 +7238,104 @@ def _is_index(data: bytes) -> bool:
     return len(data) > 8 and data[:1] == b"I" and data[:4].isalnum()
 
 
+def _is_bsdtar(cmd: str) -> bool:
+    try:
+        out = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=5)
+        return "bsdtar" in (out.stdout + out.stderr).lower()
+    except Exception:
+        return False
+
+
+def _rar_extractor() -> tuple[str, str] | None:
+    """Locate an available RAR4/RAR5 extractor across Docker/Linux (bsdtar, unrar, unar, 7z), Windows (built-in
+    bsdtar tar.exe, WinRAR UnRAR.exe, 7-Zip), and macOS (built-in bsdtar tar)."""
+    if path := shutil.which("bsdtar"):
+        return ("bsdtar", path)
+    if (path := shutil.which("tar")) and _is_bsdtar(path):
+        return ("bsdtar", path)
+    win_candidates = [
+        ("unrar", r"C:\Program Files\WinRAR\UnRAR.exe"),
+        ("unrar", r"C:\Program Files (x86)\WinRAR\UnRAR.exe"),
+        ("7z", r"C:\Program Files\7-Zip\7z.exe"),
+        ("7z", r"C:\Program Files (x86)\7-Zip\7z.exe"),
+    ]
+    for kind, exe in (("unrar", "unrar"), ("unar", "unar"), ("7z", "7z"), ("7z", "7zz")):
+        if path := shutil.which(exe):
+            return (kind, path)
+    if os.name == "nt":
+        for kind, candidate in win_candidates:
+            if Path(candidate).is_file():
+                return (kind, candidate)
+    return None
+
+
+def _extract_rar(archive_path: Path, dest_dir: Path) -> None:
+    """Extract a .rar (RAR4 or RAR5) archive into `dest_dir`, raising HTTPException(400) on invalid archives or
+    missing system extractor."""
+    with archive_path.open("rb") as fh:
+        head = fh.read(8)
+    if not head.startswith(b"Rar!\x1a\x07"):
+        raise HTTPException(400, "That .rar could not be read.")
+    found = _rar_extractor()
+    if not found:
+        raise HTTPException(
+            400,
+            "Cannot unpack .rar files here yet (needs bsdtar, unrar, unar, or 7z): rebuild/update the app, "
+            "or unpack it and import the .pth and .index.",
+        )
+    kind, exe = found
+    if kind == "bsdtar":
+        cmd = [exe, "-xf", str(archive_path), "-C", str(dest_dir)]
+    elif kind == "unrar":
+        cmd = [exe, "x", "-o+", "-p-", "-inul", str(archive_path), str(dest_dir) + os.sep]
+    elif kind == "unar":
+        cmd = [exe, "-f", "-o", str(dest_dir), "-p", "", str(archive_path)]
+    else:
+        cmd = [exe, "x", "-y", "-p", f"-o{dest_dir}", str(archive_path)]
+    try:
+        res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired as err:
+        raise HTTPException(400, "That .rar took too long to unpack.") from err
+    if res.returncode != 0:
+        log.warning("RAR extraction failed (%s): %s", kind, (res.stderr or res.stdout or "").strip()[:300])
+        raise HTTPException(400, "That .rar could not be read (it may be damaged or password-protected).")
+
+
+def _read_extracted_voice(dest_dir: Path, title: str, octave: int) -> tuple[str, int, bytes, bytes | None]:
+    root = dest_dir.resolve()
+    files: list[Path] = []
+    total = 0
+    for dirpath, _dirnames, filenames in os.walk(root, followlinks=False):
+        for fname in filenames:
+            p = Path(dirpath) / fname
+            if p.is_symlink():
+                continue
+            try:
+                resolved = p.resolve()
+                resolved.relative_to(root)
+            except (OSError, ValueError):
+                continue
+            if resolved.is_file():
+                total += resolved.stat().st_size
+                if total > VOICE_IMPORT_MAX_BYTES:
+                    raise HTTPException(400, "That file is too large to be a voice.")
+                files.append(resolved)
+    pth = sorted((p for p in files if p.name.lower().endswith(".pth")), key=lambda p: -p.stat().st_size)
+    idx = sorted((p for p in files if p.name.lower().endswith(".index")),
+                 key=lambda p: ("added" not in p.name.lower(), -p.stat().st_size))
+    if not pth:
+        raise HTTPException(400, "That .rar holds no voice model (.pth).")
+    model = pth[0].read_bytes()
+    index = idx[0].read_bytes() if idx else None
+    about = next((p for p in files if p.name == "voice.json"), None)
+    if about:
+        with contextlib.suppress(ValueError, KeyError, TypeError, OSError):
+            meta = json.loads(about.read_text(encoding="utf-8"))
+            title = str(meta.get("name") or title)[:80]
+            octave = persona.clamp_octave(meta.get("octave"))
+    return title, octave, model, index
+
+
 async def _upload_to_work(file: UploadFile, suffix: str) -> Path:
     config.WORK_DIR.mkdir(parents=True, exist_ok=True)
     temp = config.WORK_DIR / f"voice-import-{uuid.uuid4().hex[:8]}{suffix}"
@@ -7251,22 +7349,23 @@ async def _upload_to_work(file: UploadFile, suffix: str) -> Path:
 
 @app.post("/api/voices/import")
 async def import_voice(file: list[UploadFile] = File(...)) -> dict:
-    """A voice from a zip (Yeufonic's export, or an RVC model with its index), or an RVC .pth on its own or with
-    its .index, chosen together."""
+    """A voice from a zip or rar (Yeufonic's export, or an RVC model with its index), or an RVC .pth on its own or
+    with its .index, chosen together."""
     names = [Path(item.filename or "voice").name for item in file]
     lowers = [name.lower() for name in names]
-    zips = [i for i, low in enumerate(lowers) if low.endswith(".zip")]
+    archives = [i for i, low in enumerate(lowers) if low.endswith((".zip", ".rar"))]
     pths = [i for i, low in enumerate(lowers) if low.endswith(".pth")]
     idxs = [i for i, low in enumerate(lowers) if low.endswith(".index")]
-    if len(zips) + len(pths) + len(idxs) != len(file) or not (zips or pths):
-        raise HTTPException(400, "That is not a voice: a .zip, or an RVC .pth with its .index if it has one.")
-    if zips and len(file) > 1:
-        raise HTTPException(400, "Import a zip on its own.")
+    if len(archives) + len(pths) + len(idxs) != len(file) or not (archives or pths):
+        raise HTTPException(400, "That is not a voice: a .zip or .rar, or an RVC .pth with its .index if it has one.")
+    if archives and len(file) > 1:
+        raise HTTPException(400, "Import a .zip or .rar on its own.")
     if len(pths) > 1 or len(idxs) > 1:
         raise HTTPException(400, "Choose one .pth, and its .index if it has one.")
-    first = zips[0] if zips else pths[0]
+    first = archives[0] if archives else pths[0]
     name, lower = names[first], lowers[first]
-    temps = []
+    temps: list[Path] = []
+    extract_dir: Path | None = None
     try:
         temps.append(temp := await _upload_to_work(file[first], Path(lower).suffix))
         title, octave, model, index = Path(name).stem.removesuffix(".voice"), 0, None, None
@@ -7277,6 +7376,11 @@ async def import_voice(file: list[UploadFile] = File(...)) -> dict:
                 index = loose.read_bytes()
                 if not _is_index(index):
                     raise HTTPException(400, "That .index is not a voice index.")
+        elif lower.endswith(".rar"):
+            config.WORK_DIR.mkdir(parents=True, exist_ok=True)
+            extract_dir = Path(tempfile.mkdtemp(dir=config.WORK_DIR, prefix="voice-rar-"))
+            await asyncio.to_thread(_extract_rar, temp, extract_dir)
+            title, octave, model, index = await asyncio.to_thread(_read_extracted_voice, extract_dir, title, octave)
         else:
             try:
                 archive = zipfile.ZipFile(temp)
@@ -7312,6 +7416,8 @@ async def import_voice(file: list[UploadFile] = File(...)) -> dict:
     finally:
         for temp in temps:
             temp.unlink(missing_ok=True)
+        if extract_dir:
+            shutil.rmtree(extract_dir, ignore_errors=True)
 
 
 @app.post("/api/voices/{persona_id}/index")

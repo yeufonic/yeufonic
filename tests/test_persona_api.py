@@ -137,9 +137,43 @@ def test_what_is_not_a_voice_is_refused(client):
     assert client.post("/api/voices/import", files={"file": ("notes.txt", b"hi", "text/plain")}).status_code == 400
     assert client.post("/api/voices/import", files={"file": ("fake.pth", b"not a model", "x")}).status_code == 400
     assert client.post("/api/voices/import", files={"file": ("bad.zip", b"not a zip", "x")}).status_code == 400
+    assert client.post("/api/voices/import", files={"file": ("bad.rar", b"not a rar", "x")}).status_code == 400
     made = persona.create("Untrained")
     assert client.get(f"/api/voices/{made['id']}/export").status_code == 400
     persona.delete(made["id"])
+
+
+def test_an_rvc_model_in_a_rar_archive_imports(client, monkeypatch):
+    from app import main as app_main
+    rar_bytes = b"Rar!\x1a\x07\x01\x00" + b"\x00" * 32
+
+    def fake_extract(archive_path, dest_dir):
+        sub = dest_dir / "Singer"
+        sub.mkdir(parents=True, exist_ok=True)
+        (sub / "Singer.pth").write_bytes(_model_bytes())
+        (sub / "trained_IVF1_Flat.index").write_bytes(b"t")
+        (sub / "added_IVF1_Flat.index").write_bytes(INDEX)
+
+    monkeypatch.setattr(app_main, "_extract_rar", fake_extract)
+    got = client.post("/api/voices/import", files={"file": ("Singer.rar", rar_bytes, "application/x-rar-compressed")}).json()
+    assert got["name"] == "Singer" and got["state"] == "ready" and got["has_index"] is True
+    assert persona.model_file(got["id"]).read_bytes() == _model_bytes()
+    assert (persona.folder(got["id"]) / "model.index").read_bytes() == INDEX
+    persona.delete(got["id"])
+
+    # Combining a .rar with a loose .index is refused just like a .zip
+    assert client.post("/api/voices/import", files=[("file", ("A.rar", rar_bytes, "x")),
+                                                    ("file", ("A.index", INDEX, "x"))]).status_code == 400
+
+    # A .rar with no .pth inside is refused
+    monkeypatch.setattr(app_main, "_extract_rar", lambda archive_path, dest_dir: (dest_dir / "readme.txt").write_text("hi"))
+    assert client.post("/api/voices/import", files={"file": ("Empty.rar", rar_bytes, "x")}).status_code == 400
+
+    # When no extractor is installed, _extract_rar gives a clear 400
+    monkeypatch.undo()
+    monkeypatch.setattr(app_main, "_rar_extractor", lambda: None)
+    missing = client.post("/api/voices/import", files={"file": ("Singer.rar", rar_bytes, "x")})
+    assert missing.status_code == 400 and "bsdtar" in missing.json()["detail"]
 
 
 def test_a_voices_sound_settings_are_kept_in_their_steps_and_a_take_can_change_them(client):

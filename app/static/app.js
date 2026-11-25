@@ -19367,11 +19367,11 @@ function showVoiceList() {
     serviceNote() +
     '<div class="row grid-toolbar">' +
       '<button id="voice-new" class="ghost"' + (usable ? '' : ' disabled') + '>' + t('New voice') + '</button>' +
-      '<button id="voice-import" class="ghost" title="' + t('Add a voice someone shared: the zip from their Download voice, or an RVC model (its zip, or its .pth and .index chosen together)') + '">' + t('Import a voice…') + '</button>' +
+      '<button id="voice-import" class="ghost" title="' + t('Add a voice someone shared: the zip from their Download voice, or an RVC model (its .zip or .rar, or its .pth and .index chosen together)') + '">' + t('Import a voice…') + '</button>' +
       '<input id="voice-filter" class="grid-filter" type="search" placeholder="' + esc(t('Filter voices…')) + '" aria-label="' + esc(t('Filter voices')) + '">' +
     '</div>' +
     // Ready-made voices: a well-trained one from elsewhere can sound better than a few minutes of singing gives.
-    '<p class="hint voice-sources">' + esc(t('Ready-made voices, RVC models trained by others, can be found on sites such as {site}: Import a voice… takes the zip as downloaded.'))
+    '<p class="hint voice-sources">' + esc(t('Ready-made voices, RVC models trained by others, can be found on sites such as {site}: Import a voice… takes the .zip or .rar as downloaded.'))
       .replace('{site}', '<a href="https://voice-models.com/" target="_blank" rel="noopener">voice-models.com</a>') + '</p>' +
     (VOICES.list.length ? '' : '<p class="muted">' + t('No voices yet.') + '</p>') +
     '<div class="identity-cards">' + VOICES.list.map(function (v) {
@@ -19803,7 +19803,7 @@ async function voicesClick(event) {
 function importVoiceFile() {
   var input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.zip,.pth,.index';
+  input.accept = '.zip,.rar,.pth,.index';
   input.multiple = true;      // an RVC model's .pth and .index, chosen together
   input.addEventListener('change', async function () {
     var files = input.files ? Array.prototype.slice.call(input.files) : [];
