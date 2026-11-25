@@ -43,7 +43,7 @@ from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import recipe as recipes
-from . import aligner, artwork, autotune, composer, config, daw, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, stems, storage, system_stats, trainsize, transpose, update, voices
+from . import aligner, artwork, autotune, composer, config, daw, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, stems, storage, system_stats, themes, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, JAM_SPACE, TRASH_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 from . import winaccept
 
@@ -720,7 +720,20 @@ def settings_payload() -> list[dict]:
                         for sf in sf_list
                     ],
                 }
+        if spec["key"] == "appearance.theme":
+            custom = themes.list_themes()
+            spec = {
+                **spec,
+                "options": list(spec["options"]) + [
+                    {"value": f"custom:{item['id']}", "label": item["name"], "custom": True}
+                    for item in custom
+                ],
+                "custom_themes": custom,
+            }
         value = setting_value(spec["key"])
+        if spec["key"] == "appearance.theme" and value.startswith("custom:"):
+            if not themes.get_theme(value[len("custom:"):]):
+                value = spec["default"]
         if spec["key"] == "art.auto" and not artwork.possible():
             # Nothing here can draw: no pictures, said plainly, and the way to have them, rather than a greyed-out row.
             value = "off"
@@ -749,6 +762,8 @@ def save_setting(key: str, value: str) -> None:
             sf_list = soundfonts.available_sf2()
             if sf_list:
                 allowed = [sf["id"] for sf in sf_list]
+        elif key == "appearance.theme":
+            allowed = allowed + [f"custom:{item['id']}" for item in themes.list_themes()]
         if value not in allowed:
             raise HTTPException(400, f"{key} must be one of {', '.join(allowed)}")
     if spec["type"] == "backdrop" and value:
@@ -6461,6 +6476,58 @@ async def put_setting(body: SettingIn) -> dict:
         _ART_RECHECK.add(task)
         task.add_done_callback(_ART_RECHECK.discard)
     return {"settings": settings_payload(), "llm_status": llm.alert_state()}
+
+
+class CustomThemeIn(BaseModel):
+    name: str
+    base: str = "studio"
+    colors: dict[str, str] = Field(default_factory=dict)
+    apply: bool = False
+
+
+class CustomThemeUpdateIn(BaseModel):
+    name: str | None = None
+    base: str | None = None
+    colors: dict[str, str] | None = None
+    apply: bool = False
+
+
+@app.get("/api/themes")
+def get_custom_themes() -> dict:
+    return {"themes": themes.list_themes(), "tokens": list(themes.COLOR_TOKENS)}
+
+
+@app.post("/api/themes")
+def create_custom_theme(body: CustomThemeIn) -> dict:
+    try:
+        created = themes.create_theme(body.name, body.base, body.colors)
+    except ValueError as err:
+        raise HTTPException(400, str(err)) from err
+    if body.apply:
+        save_setting("appearance.theme", f"custom:{created['id']}")
+    return {"theme": created, "themes": themes.list_themes(), "settings": settings_payload()}
+
+
+@app.put("/api/themes/{theme_id}")
+def update_custom_theme(theme_id: str, body: CustomThemeUpdateIn) -> dict:
+    try:
+        updated = themes.update_theme(theme_id, name=body.name, base=body.base, colors=body.colors)
+    except KeyError as err:
+        raise HTTPException(404, "Custom theme not found") from err
+    except ValueError as err:
+        raise HTTPException(400, str(err)) from err
+    if body.apply:
+        save_setting("appearance.theme", f"custom:{updated['id']}")
+    return {"theme": updated, "themes": themes.list_themes(), "settings": settings_payload()}
+
+
+@app.delete("/api/themes/{theme_id}")
+def delete_custom_theme(theme_id: str) -> dict:
+    if not themes.delete_theme(theme_id):
+        raise HTTPException(404, "Custom theme not found")
+    if setting_value("appearance.theme") == f"custom:{theme_id}":
+        save_setting("appearance.theme", "studio")
+    return {"deleted": theme_id, "themes": themes.list_themes(), "settings": settings_payload()}
 
 
 class LLMSessionActionIn(BaseModel):

@@ -10,10 +10,22 @@
     (function () {
       try {
         var chosen = localStorage.getItem('yue2.theme') || 'studio';
-        var theme = chosen === 'system'
-          ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
-          : chosen;
-        if (theme !== 'dark') { document.documentElement.dataset.theme = theme; }
+        if (chosen.indexOf('custom:') === 0) {
+          var raw = localStorage.getItem('yue2.customThemeCache');
+          var cached = raw ? JSON.parse(raw) : null;
+          if (cached && ('custom:' + cached.id) === chosen && cached.vars) {
+            if (cached.base && cached.base !== 'dark') { document.documentElement.dataset.theme = cached.base; }
+            document.documentElement.dataset.customTheme = cached.id;
+            Object.keys(cached.vars).forEach(function (k) { document.documentElement.style.setProperty(k, cached.vars[k]); });
+          } else {
+            document.documentElement.dataset.theme = 'studio';
+          }
+        } else {
+          var theme = chosen === 'system'
+            ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+            : chosen;
+          if (theme !== 'dark') { document.documentElement.dataset.theme = theme; }
+        }
         var uiStyle = localStorage.getItem('yue2.uiStyle') || 'slate';
         if (uiStyle !== 'default') { document.documentElement.dataset.uiStyle = uiStyle; }
       } catch (err) { /* private mode: dark */ }
@@ -1909,6 +1921,10 @@
   <div class="modal-box jam-shell" id="jam-shell"></div>
 </div>
 
+<div id="theme-modal" class="modal theme-modal hidden" role="dialog" aria-modal="true" aria-label="Custom theme">
+  <div class="modal-box theme-modal-box" id="theme-modal-box"></div>
+</div>
+
 <script>I18N.translateDom(document.body);</script>
 <script src="/static/abcjs-basic-min.js?v={{VERSION}}"></script>
 <script src="/static/pianoroll.js?v={{VERSION}}"></script>
@@ -1917,6 +1933,7 @@
 <script src="/static/rack.js?v={{VERSION}}"></script>
 <script src="/static/visualizer.js?v={{VERSION}}"></script>
 <script src="/static/recorder.js?v={{VERSION}}"></script>
+<script src="/static/themes.js?v={{VERSION}}"></script>
 <script src="/static/app.js?v={{VERSION}}"></script>
 <script src="/static/jam.js?v={{VERSION}}"></script>
 </body>

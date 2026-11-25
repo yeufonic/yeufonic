@@ -5600,9 +5600,13 @@ function renderSettingRow(item) {
   var control;
   if (item.type === 'select') {
     control = '<select data-key="' + esc(item.key) + '">' + item.options.map(function (option) {
+      var label = option.custom ? option.label : tr(option.label);
       return '<option value="' + esc(option.value) + '"' + (option.value === item.value ? ' selected' : '') +
-        (option.disabled ? ' disabled' : '') + '>' + esc(tr(option.label)) + '</option>';
+        (option.disabled ? ' disabled' : '') + '>' + esc(label) + '</option>';
     }).join('') + '</select>';
+    if (item.key === 'appearance.theme' && window.CustomThemes && typeof window.CustomThemes.themeActionsHtml === 'function') {
+      control = '<div class="theme-setting-control">' + control + window.CustomThemes.themeActionsHtml(item.value) + '</div>';
+    }
   } else if (item.type === 'password') {
     // The saved key never comes back from the server, only whether there is one,
     // so the box starts empty and a new key typed into it replaces the old.
@@ -5961,6 +5965,7 @@ async function saveSetting(input) {
       input.value = '';
       input.placeholder = t('Saved. Type a new key to replace it');
     }
+    if (key === 'appearance.theme') { paintSettings(); }
     if (key === 'llm.model') {
       var sel = $('select-llm-model');
       if (sel) { sel.value = input.value; }
@@ -5977,7 +5982,12 @@ async function saveSetting(input) {
 function adoptSettings(spec) {
   State.settingSpec = spec || [];
   var values = {};
-  State.settingSpec.forEach(function (item) { values[item.key] = item.value; });
+  State.settingSpec.forEach(function (item) {
+    values[item.key] = item.value;
+    if (item.key === 'appearance.theme' && Array.isArray(item.custom_themes)) {
+      State.customThemes = item.custom_themes;
+    }
+  });
   var capWas = State.settings ? State.settings['takes.cap'] : undefined;
   State.settings = values;
   // The cap in the box follows the one in Settings while it is nobody's: not typed, not a recording's,
@@ -6040,14 +6050,34 @@ function adoptVisualizerSettings() {
 var THEMES = ['dark', 'light', 'studio', 'contrast'];
 var SYSTEM_LIGHT = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
 
+var _lastAppliedThemeSig = '';
+
 function applyTheme() {
   var chosen = setting('appearance.theme', 'studio');
+  var root = document.documentElement;
+  if (chosen && chosen.indexOf('custom:') === 0 && window.CustomThemes) {
+    var customObj = window.CustomThemes.findSavedById(chosen.slice(7));
+    if (customObj) {
+      var sig = 'custom:' + customObj.id + ':' + (customObj.updated_at || '') + ':' + JSON.stringify(customObj.colors || {}) + ':' + (customObj.base || '');
+      try { localStorage.setItem('yue2.theme', chosen); } catch (err) { /* private mode */ }
+      if (sig !== _lastAppliedThemeSig) {
+        _lastAppliedThemeSig = sig;
+        window.CustomThemes.applyCustomObject(customObj, true);
+        repaintTheme();
+      }
+      return;
+    }
+  }
+  if (window.CustomThemes) {
+    window.CustomThemes.clearApplied();
+    window.CustomThemes.clearCache();
+  }
   var theme = chosen === 'system' ? (SYSTEM_LIGHT && SYSTEM_LIGHT.matches ? 'light' : 'dark') : chosen;
   if (THEMES.indexOf(theme) < 0) { theme = 'studio'; }
   try { localStorage.setItem('yue2.theme', chosen); } catch (err) { /* private mode */ }
-  var root = document.documentElement;
-  var before = root.dataset.theme || 'dark';
+  var before = _lastAppliedThemeSig || root.dataset.theme || 'dark';
   if (theme === 'dark') { delete root.dataset.theme; } else { root.dataset.theme = theme; }
+  _lastAppliedThemeSig = theme;
   if (before !== theme) { repaintTheme(); }
 }
 
@@ -17327,6 +17357,10 @@ function wire() {
       handleLLMSessionAction('resume_external');
       return;
     }
+    if (window.CustomThemes && window.CustomThemes.handleSettingsClick(event)) {
+      event.preventDefault();
+      return;
+    }
     if (event.target && event.target.id === 'btn-test-llm') {
       event.preventDefault();
       testLLMConnection();
@@ -17573,6 +17607,7 @@ function wire() {
     if (event.key === 'Escape' && !$('stems-modal').classList.contains('hidden')) { closeStemsModal(); return; }
     if (event.key === 'Escape' && !$('save-modal').classList.contains('hidden')) { closeSaveModal(); return; }
     if (event.key === 'Escape' && $('storage-modal') && !$('storage-modal').classList.contains('hidden')) { closeStorage(); return; }
+    if (event.key === 'Escape' && window.CustomThemes && window.CustomThemes.isOpen()) { window.CustomThemes.closeBuilder(); return; }
     if (event.key === 'Escape' && !$('settings-modal').classList.contains('hidden')) { closeSettings(); return; }
     if (event.key === 'Escape' && !$('score-modal').classList.contains('hidden')) {
       if (scoreView() === 'roll' && window.PianoRoll && window.PianoRoll.hasSelection && window.PianoRoll.hasSelection()) {
