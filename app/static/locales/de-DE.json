@@ -3200,5 +3200,6 @@
  "'{clean}' is reserved for a built-in theme": "„{clean}“ ist für ein integriertes Design reserviert",
  "Base theme must be one of {join}": "Das Basisdesign muss eines von {join} sein",
  "At most {MAX_THEMES} custom themes can be saved": "Es können höchstens {MAX_THEMES} benutzerdefinierte Designs gespeichert werden",
- "A custom theme named '{clean}' already exists": "Ein benutzerdefiniertes Design namens „{clean}“ existiert bereits"
+ "A custom theme named '{clean}' already exists": "Ein benutzerdefiniertes Design namens „{clean}“ existiert bereits",
+ "Jam page": "Jam-Seite"
 }

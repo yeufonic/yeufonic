@@ -578,6 +578,113 @@
     '</div>';
   }
 
+  function mockJamHtml() {
+    var waveHeights = [26, 52, 74, 88, 60, 44, 78, 92, 66, 48, 82, 58, 70, 86, 54, 42, 76, 62, 46, 58];
+    var waveBars = waveHeights.map(function (h, i) {
+      var cls = i < 9 ? 'song' : (i < 15 ? 'cover' : 'inst');
+      return '<span class="tm-wbar ' + cls + '" style="height:' + h + '%"></span>';
+    }).join('');
+
+    function pipsHtml(level) {
+      var out = '<span class="tm-jam-pips">';
+      for (var i = 1; i <= 4; i++) {
+        out += '<i class="tm-jam-pip' + (i <= level ? ' on' : '') + '"></i>';
+      }
+      return out + '</span>';
+    }
+
+    return '<div class="tm-app tm-jam-app">' +
+      '<div class="tm-ed-shell">' +
+        '<div class="tm-ed-bar"></div>' +
+        '<div class="tm-ed-head">' +
+          '<span class="tm-jam-title">' + t('Jam') + ' &middot; Harbour Light</span>' +
+          '<span class="tm-tag warn"><i class="tm-dot"></i> ' + t('Rolling {progress}%', { progress: 64 }) + '</span>' +
+          '<span class="tm-ed-pill" style="margin-left:auto">' + t('Close') + '</span>' +
+        '</div>' +
+        '<div class="tm-jam-cols">' +
+          '<div class="tm-ed-col c1">' +
+            '<h5>' + t('Sound &amp; Parts') + '</h5>' +
+            '<div class="tm-jam-rack">' +
+              '<span class="tm-jam-chip cat-genre">Indie rock' + pipsHtml(3) + '</span>' +
+              '<span class="tm-jam-chip cat-inst">Fender Rhodes' + pipsHtml(4) + '</span>' +
+              '<span class="tm-jam-chip cat-prod pending">Tape warmth' + pipsHtml(2) + '</span>' +
+              '<span class="tm-jam-chip cat-rhythm">Shuffle groove' + pipsHtml(3) + '</span>' +
+            '</div>' +
+            '<div class="tm-jam-tabs">' +
+              '<span class="on">' + t('Instruments') + '</span>' +
+              '<span>' + t('Genres') + '</span>' +
+              '<span>' + t('Production') + '</span>' +
+            '</div>' +
+            '<div class="tm-jam-picks">' +
+              '<span class="tm-jam-pick added">&#10003; Fender Rhodes</span>' +
+              '<span class="tm-jam-pick">+ Analog synth</span>' +
+              '<span class="tm-jam-pick">+ Warm strings</span>' +
+              '<span class="tm-jam-pick">+ Saxophone</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="tm-ed-col c2">' +
+            '<h5>' + t('Vibe, Tempo &amp; Vocals') + '</h5>' +
+            '<div class="tm-jam-xy-row">' +
+              '<div class="tm-jam-xy">' +
+                '<div class="tm-jam-xy-grid"></div>' +
+                '<span class="tm-jam-xy-lbl top">' + t('Energetic') + '</span>' +
+                '<span class="tm-jam-xy-lbl bot">' + t('Calm') + '</span>' +
+                '<span class="tm-jam-xy-lbl lft">' + t('Dark') + '</span>' +
+                '<span class="tm-jam-xy-lbl rgt">' + t('Bright') + '</span>' +
+                '<span class="tm-jam-puck" style="left:66%;top:34%"></span>' +
+              '</div>' +
+              '<div class="tm-jam-vibe">' +
+                '<div class="tm-ed-lbl">' + t('Vibe') + '</div>' +
+                '<div class="tm-jam-vword">Warm lift</div>' +
+                '<div class="tm-ed-lbl" style="margin-top:4px">' + t('Tempo') + ' &middot; 108 BPM</div>' +
+                '<i class="tm-track"><b style="width:58%"></b></i>' +
+              '</div>' +
+            '</div>' +
+            '<div class="tm-jam-seg">' +
+              '<span>' + t('Instrumental') + '</span>' +
+              '<span class="on">' + t('Female') + '</span>' +
+              '<span>' + t('Male') + '</span>' +
+              '<span>' + t('My Voice') + '</span>' +
+            '</div>' +
+            '<div class="tm-jam-prompt">warm indie rock, fender rhodes, tape warmth, shuffle groove, 108 bpm</div>' +
+          '</div>' +
+          '<div class="tm-ed-col c3">' +
+            '<h5>' + t('Roll History') + '</h5>' +
+            '<div class="tm-jam-card is-seed">' +
+              '<div class="tm-jam-ctop"><span class="tm-jam-stag">' + t('Seed') + '</span><span class="tm-jam-cname">Harbour Light</span><span class="tm-csub">0:40</span></div>' +
+            '</div>' +
+            '<div class="tm-jam-card is-base playing">' +
+              '<div class="tm-jam-ctop"><span class="tm-jam-btag">' + t('Base') + '</span><span class="tm-jam-cname">' + t('Pass #{n}', { n: 2 }) + '</span><span class="tm-tag good">&#9654; ' + t('Playing') + '</span></div>' +
+              '<div class="tm-jam-cmeta"><span class="tm-csub">+ Fender Rhodes &middot; 108 BPM</span><span class="tm-jam-star">&#9733;</span></div>' +
+            '</div>' +
+            '<div class="tm-jam-card cooking">' +
+              '<div class="tm-jam-ctop"><span class="tm-jam-cname">' + t('Pass #{n}', { n: 3 }) + '</span><span class="tm-tag warn">' + t('Rolling {progress}%', { progress: 64 }) + '</span></div>' +
+              '<div class="tm-jam-cmeta"><span class="tm-csub">+ Tape warmth</span></div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="tm-jam-foot">' +
+          '<span class="tm-jam-base-pill"><span class="tm-jam-btag">' + t('Base') + '</span> ' + t('Pass #{n}', { n: 2 }) + '</span>' +
+          '<span class="tm-ed-btn pri">' + t('Roll') + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="tm-player">' +
+        '<span class="tm-p-art"></span>' +
+        '<div class="tm-p-meta"><div class="tm-p-title">Harbour Light</div><div class="tm-p-sub">' + t('Pass #{n}', { n: 2 }) + ' &middot; 0:40</div></div>' +
+        '<span class="tm-chiclet info">?</span><span class="tm-chiclet good">M</span><span class="tm-chiclet acc">V</span>' +
+        '<span class="tm-p-play">&#9646;&#9646;</span>' +
+        '<div class="tm-wave">' + waveBars + '</div>' +
+        '<span class="tm-p-time">0:18 / 0:40</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function mockStageHtml() {
+    if (Builder.tab === 'editor') { return mockEditorHtml(); }
+    if (Builder.tab === 'jam') { return mockJamHtml(); }
+    return mockMainHtml();
+  }
+
   function paintBuilder() {
     var box = document.getElementById('theme-modal-box');
     if (!box) { return; }
@@ -650,11 +757,12 @@
             '<div class="tm-preview-tabs" role="tablist">' +
               '<button type="button" role="tab" data-tm-tab="main" class="' + (Builder.tab === 'main' ? 'active' : '') + '">' + t('Main page') + '</button>' +
               '<button type="button" role="tab" data-tm-tab="editor" class="' + (Builder.tab === 'editor' ? 'active' : '') + '">' + t('Editor page') + '</button>' +
+              '<button type="button" role="tab" data-tm-tab="jam" class="' + (Builder.tab === 'jam' ? 'active' : '') + '">' + t('Jam page') + '</button>' +
             '</div>' +
             '<span class="muted small">' + t('Live mock-up') + '</span>' +
           '</div>' +
           '<div class="tm-stage" id="tm-stage">' +
-            (Builder.tab === 'editor' ? mockEditorHtml() : mockMainHtml()) +
+            mockStageHtml() +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -770,8 +878,18 @@
     modal.addEventListener('click', function (event) {
       var tabBtn = event.target.closest('[data-tm-tab]');
       if (tabBtn) {
-        Builder.tab = tabBtn.dataset.tmTab === 'editor' ? 'editor' : 'main';
-        paintBuilder();
+        var nextTab = tabBtn.dataset.tmTab;
+        Builder.tab = (nextTab === 'editor' || nextTab === 'jam') ? nextTab : 'main';
+        modal.querySelectorAll('[data-tm-tab]').forEach(function (btn) {
+          btn.classList.toggle('active', btn.dataset.tmTab === Builder.tab);
+        });
+        var stage = document.getElementById('tm-stage');
+        if (stage) {
+          stage.innerHTML = mockStageHtml();
+          applyDraftToStage();
+        } else {
+          paintBuilder();
+        }
         return;
       }
       var resetOne = event.target.closest('[data-tm-reset]');

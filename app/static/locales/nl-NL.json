@@ -3200,5 +3200,6 @@
  "'{clean}' is reserved for a built-in theme": "‘{clean}’ is gereserveerd voor een ingebouwd thema",
  "Base theme must be one of {join}": "Basisthema moet een van {join} zijn",
  "At most {MAX_THEMES} custom themes can be saved": "Er kunnen maximaal {MAX_THEMES} aangepaste thema’s worden opgeslagen",
- "A custom theme named '{clean}' already exists": "Er bestaat al een aangepast thema met de naam ‘{clean}’"
+ "A custom theme named '{clean}' already exists": "Er bestaat al een aangepast thema met de naam ‘{clean}’",
+ "Jam page": "Jam-pagina"
 }

@@ -3200,5 +3200,6 @@
  "'{clean}' is reserved for a built-in theme": "«{clean}» зарезервировано для встроенной темы",
  "Base theme must be one of {join}": "Базовая тема должна быть одной из: {join}",
  "At most {MAX_THEMES} custom themes can be saved": "Можно сохранить не более {MAX_THEMES} своих тем",
- "A custom theme named '{clean}' already exists": "Своя тема с названием «{clean}» уже существует"
+ "A custom theme named '{clean}' already exists": "Своя тема с названием «{clean}» уже существует",
+ "Jam page": "Страница Jam"
 }

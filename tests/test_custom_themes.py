@@ -72,7 +72,11 @@ def test_custom_theme_validation_rejects_bad_inputs(client):
 
 def test_theme_builder_covers_all_backend_tokens_and_mockups():
     themes_js = (STATIC / "themes.js").read_text(encoding="utf-8")
+    styles_css = (STATIC / "styles.css").read_text(encoding="utf-8")
     for token in themes.COLOR_TOKENS:
         assert f"'{token}'" in themes_js, f"{token} missing from themes.js"
-    assert "mockMainHtml" in themes_js and "mockEditorHtml" in themes_js
+    assert "mockMainHtml" in themes_js
+    assert "mockEditorHtml" in themes_js
+    assert "mockJamHtml" in themes_js
+    assert ".tm-group {\n  flex: 0 0 auto;" in styles_css
     assert 'id="theme-modal"' in (STATIC / "index.html").read_text(encoding="utf-8")

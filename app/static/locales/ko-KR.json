@@ -3200,5 +3200,6 @@
  "'{clean}' is reserved for a built-in theme": "'{clean}'은(는) 내장 테마용 예약 이름입니다",
  "Base theme must be one of {join}": "기본 테마는 {join} 중 하나여야 합니다",
  "At most {MAX_THEMES} custom themes can be saved": "사용자 지정 테마는 최대 {MAX_THEMES}개까지 저장할 수 있습니다",
- "A custom theme named '{clean}' already exists": "'{clean}' 이름의 사용자 지정 테마가 이미 있습니다"
+ "A custom theme named '{clean}' already exists": "'{clean}' 이름의 사용자 지정 테마가 이미 있습니다",
+ "Jam page": "Jam 페이지"
 }

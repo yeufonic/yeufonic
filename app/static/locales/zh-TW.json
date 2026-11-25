@@ -3200,5 +3200,6 @@
  "'{clean}' is reserved for a built-in theme": "「{clean}」是內建主題的保留名稱",
  "Base theme must be one of {join}": "基礎主題必須是 {join} 之一",
  "At most {MAX_THEMES} custom themes can be saved": "最多只能儲存 {MAX_THEMES} 個自訂主題",
- "A custom theme named '{clean}' already exists": "已存在名為「{clean}」的自訂主題"
+ "A custom theme named '{clean}' already exists": "已存在名為「{clean}」的自訂主題",
+ "Jam page": "Jam 頁面"
 }
