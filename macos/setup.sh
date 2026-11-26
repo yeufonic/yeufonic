@@ -6,7 +6,7 @@
 # and it keeps that script's order, so the two can be read side by side.
 #
 #   bash setup.sh [--install-dir <folder>] [--engine comfyui|yue2cpp] [--no-lyrics] [--pictures | --no-pictures]
-#                 [--fibo | --no-fibo] [--loras | --no-loras] [--voices | --no-voices] [--check-only] [--skip-models] [--then-open <app>]
+#                 [--fibo | --no-fibo] [--loras | --no-loras] [--voices | --no-voices] [--demos | --no-demos] [--check-only] [--skip-models] [--then-open <app>]
 #   ... --install-dir   where it goes (default: ~/Library/Application Support/Yeufonic)
 #   ... --engine        comfyui (everything, the default) or yue2cpp (yue2.cpp's server: faster lyric drafts and
 #                       pictures on a Mac, with Gemma in Ollama and pictures in stable-diffusion.cpp beside it,
@@ -24,6 +24,9 @@
 #   ... --voices        recorded voices: the voice service (RVC and a BS-Roformer separator) in a Python of its
 #                       own, about 1.1 GB of models and 1.5 GB of packages; --no-voices none.  Asked and kept
 #                       as --pictures is.
+#   ... --demos         Starter Pack: curated demo takes in a "Starter Pack" space with artwork, mastering
+#                       settings, cover recording, voice and style LoRAs (about 1.7 GB); --no-demos none.
+#                       Defaults to yes on a fresh install, and no on an existing install.
 #   ... --check-only    only the system check
 #   ... --skip-models   everything but the 18 GB of models (for testing)
 #   ... --then-open     open this app when setup has finished (the launcher passes itself)
@@ -40,6 +43,7 @@ PICTURES=""
 FIBO=""
 LORAS=""
 VOICES=""
+DEMOS=""
 ENGINE_CHOICE=""
 CPP_MODEL=""
 while [ $# -gt 0 ]; do
@@ -56,6 +60,8 @@ while [ $# -gt 0 ]; do
     --no-loras) LORAS=no; shift ;;
     --voices) VOICES=yes; shift ;;
     --no-voices) VOICES=no; shift ;;
+    --demos) DEMOS=yes; shift ;;
+    --no-demos) DEMOS=no; shift ;;
     --check-only) CHECK_ONLY=1; shift ;;
     --skip-models) SKIP_MODELS=1; shift ;;
     --then-open) THEN_OPEN="$2"; shift 2 ;;
@@ -558,6 +564,44 @@ fi
 [ "$VOICES" = yes ] || VOICES=no
 say "Recorded voices: $VOICES"
 
+EXISTING_INSTALL=0
+if [ -f "$INSTALL_DIR/data/yue2.sqlite" ] || [ -f "$STATE/set-up-for" ]; then
+  EXISTING_INSTALL=1
+fi
+ask_demos() {
+  say ""
+  say "Starter Pack (optional demo songs)"
+  say "  Curated takes in a 'Starter Pack' space with artwork, mastering settings, a cover recording, a voice and their style LoRAs (about 1.7 GB; skips any LoRA or voice already installed)."
+  say "  To install it later, quit Yeufonic and run in Terminal:"
+  say "    bash $(printf '%q' "$HERE/setup.sh") --demos"
+  if [ "$EXISTING_INSTALL" -eq 1 ]; then
+    printf 'Install the Starter Pack demo songs? [y/N] '
+    local answer=""
+    read -r answer || answer=""
+    case "$answer" in [yY]*) DEMOS=yes ;; *) DEMOS=no ;; esac
+  else
+    printf 'Install the Starter Pack demo songs? [Y/n] '
+    local answer=""
+    read -r answer || answer=""
+    case "$answer" in [nN]*) DEMOS=no ;; *) DEMOS=yes ;; esac
+  fi
+}
+if [ -n "$DEMOS" ]; then
+  [ "$CHECK_ONLY" -eq 1 ] || echo "$DEMOS" > "$STATE/demos"
+elif [ "$EXISTING_INSTALL" -eq 1 ]; then
+  # Existing Yeufonic users default to not installing the Starter Pack on updates unless they pass --demos.
+  DEMOS=no
+elif [ -f "$STATE/demos" ]; then
+  DEMOS="$(cat "$STATE/demos")"
+elif [ -z "$problems" ] && [ "$CHECK_ONLY" -eq 0 ] && [ "$SKIP_MODELS" -eq 0 ] && [ -t 0 ]; then
+  ask_demos
+  echo "$DEMOS" > "$STATE/demos"
+else
+  DEMOS=yes
+fi
+[ "$DEMOS" = yes ] || DEMOS=no
+say "Starter Pack: $DEMOS"
+
 # The engine: ComfyUI unless yue2.cpp was chosen, now or before.
 if [ -n "$ENGINE_CHOICE" ]; then
   case "$ENGINE_CHOICE" in
@@ -635,6 +679,7 @@ $(voice_list)
 EOF
   fi
   NEED=$((NEED + 1700000000))   # Whisper and demucs, for the app
+  if [ "$DEMOS" = yes ] && [ ! -f "$STATE/starter-pack.done" ]; then NEED=$((NEED + 1800000000)); fi
   # Gemma, which Ollama fetches for yue2.cpp.
   if [ "$CPP" -eq 1 ] && [ "$NO_LYRICS" -eq 0 ] && [ ! -d "$MODELS/ollama/manifests" ]; then NEED=$((NEED + 6200000000)); fi
 fi
@@ -980,6 +1025,114 @@ EOF
       unzip -o -q "$VOICE_MODELS/mute.zip" -d "$VOICE_MODELS/logs"
     fi
   fi
+fi
+
+# -------------------------------------------------------------- starter pack
+if [ "$DEMOS" = yes ] && [ "$SKIP_MODELS" -eq 0 ]; then
+  step "Starter Pack (curated demo takes)"
+  STARTER_URL="${STARTER_PACK_URL:-https://media.yeufonic.com/starter-pack}"
+  STARTER_URL="${STARTER_URL%/}"
+  SP_MANIFEST="$DOWNLOADS/starter-pack-manifest.json"
+  if ! curl -fsSL --retry 3 --connect-timeout 15 -o "$SP_MANIFEST" "$STARTER_URL/manifest.json"; then
+    stop_setup "could not download Starter Pack manifest from $STARTER_URL/manifest.json"
+  fi
+  mkdir -p "$MODELS/loras"
+  while IFS='|' read -r sp_file sp_path sp_size sp_sha; do
+    [ -z "$sp_file" ] && continue
+    [ -f "$MODELS/loras/$sp_file" ] && continue
+    get_verified "$STARTER_URL/${sp_path#/}" "$MODELS/loras/$sp_file" "$sp_size" "$sp_sha"
+  done <<EOF
+$("$APP_VENV/bin/python" - "$SP_MANIFEST" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+if m.get("format") != "yeufonic-starter-pack-manifest":
+    raise SystemExit(1)
+for item in m.get("loras") or []:
+    print(f"{item['file']}|{item['path']}|{item['bytes']}|{item['sha256']}")
+PY
+)
+EOF
+
+  SP_PLAN="$("$APP_VENV/bin/python" - "$SP_MANIFEST" "$DATA" <<'PY'
+import json, sqlite3, sys
+from pathlib import Path
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+data_dir = Path(sys.argv[2])
+pack_id = str(m.get("pack_id") or "")
+space_name = str(m.get("space_name") or "Starter Pack")
+db_path = data_dir / "yue2.sqlite"
+have_ids, have_names = set(), set()
+vdir = data_dir / "voices"
+if vdir.is_dir():
+    for d in vdir.iterdir():
+        if d.is_dir() and (d / "model.pth").is_file():
+            have_ids.add(d.name)
+installed = False
+if db_path.is_file():
+    con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "voices" in tables:
+            for vid, name in con.execute("SELECT id, name FROM voices"):
+                if vid: have_ids.add(str(vid))
+                if name: have_names.add(str(name).strip().lower())
+        if {"settings", "spaces", "takes"}.issubset(tables) and pack_id:
+            row = con.execute("SELECT value FROM settings WHERE key = 'starter_pack.installed'").fetchone()
+            if row and row[0] and json.loads(row[0]).get("pack_id") == pack_id:
+                sp = con.execute("SELECT id FROM spaces WHERE LOWER(name) = LOWER(?)", (space_name,)).fetchone()
+                if sp and con.execute("SELECT COUNT(*) FROM takes WHERE space_id = ?", (sp[0],)).fetchone()[0] > 0:
+                    installed = True
+    finally:
+        con.close()
+if installed:
+    print(f"SKIP|{pack_id}")
+else:
+    for v in m.get("voices") or []:
+        vid, vname = str(v.get("id") or ""), str(v.get("name") or "")
+        if vid in have_ids or (vname and vname.lower() in have_names):
+            continue
+        for f in v.get("files") or []:
+            print(f"VOICE|{vid}|{f['dest']}|{f['path']}|{f['bytes']}|{f['sha256']}")
+    for b in m.get("bundles") or ([m["bundle"]] if m.get("bundle") else []):
+        print(f"BUNDLE|{b['path']}|{b['bytes']}|{b['sha256']}")
+PY
+)"
+  SP_STAGE="$DATA/starter-pack"
+  SP_SKIPPED=0
+  while IFS='|' read -r kind a b c d e; do
+    case "$kind" in
+      SKIP)
+        say "Starter Pack ($a) is already installed."
+        SP_SKIPPED=1 ;;
+      VOICE)
+        mkdir -p "$SP_STAGE/voices/$a"
+        get_verified "$STARTER_URL/${c#/}" "$SP_STAGE/voices/$a/$b" "$d" "$e" ;;
+      BUNDLE)
+        mkdir -p "$SP_STAGE"
+        bname="$(basename "$a")"
+        get_verified "$STARTER_URL/${a#/}" "$SP_STAGE/$bname" "$b" "$c"
+        "$APP_VENV/bin/python" - "$SP_STAGE/$bname" "$SP_STAGE" <<'PY'
+import shutil, sys, zipfile
+from pathlib import Path
+zp, dest = Path(sys.argv[1]), Path(sys.argv[2]).resolve()
+with zipfile.ZipFile(zp, "r") as zf:
+    for m in zf.infolist():
+        if m.is_dir(): continue
+        target = (dest / m.filename).resolve()
+        target.relative_to(dest)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with zf.open(m, "r") as src, target.open("wb") as out:
+            shutil.copyfileobj(src, out)
+PY
+        rm -f "$SP_STAGE/$bname" "$SP_STAGE/$bname.sha256ok" ;;
+    esac
+  done <<EOF
+$SP_PLAN
+EOF
+  if [ "$SP_SKIPPED" -eq 0 ]; then
+    say "Starter Pack staged — it will appear in the 'Starter Pack' space when Yeufonic starts."
+  fi
+  mark_done "starter-pack"
 fi
 
 # -------------------------------------------------------------------- done

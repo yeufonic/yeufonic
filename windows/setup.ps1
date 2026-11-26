@@ -1,9 +1,9 @@
-# Yeufonic for Windows: checks this PC, then fetches and sets up everything the
+﻿# Yeufonic for Windows: checks this PC, then fetches and sets up everything the
 # installer does not carry.  Every part comes from its own publisher, pinned to a
 # version and checked by sha256 where the publisher gives one.  Safe to run again:
 # whatever is already in place is kept, and an interrupted download carries on.
 #
-#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-CppModel q8|bf16] [-NoLyrics] [-Int8] [-Pictures] [-Fibo] [-Loras] [-Voices]
+#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-CppModel q8|bf16] [-NoLyrics] [-Int8] [-Pictures] [-Fibo] [-Loras] [-Voices] [-Demos]
 #   ... -Engine           comfyui (everything, the default) or yue2cpp (yue2.cpp's server, for less video memory: no
 #                         training; Gemma in Ollama and pictures in stable-diffusion.cpp beside it).  Left out, the
 #                         engine settings.ini names, so Repair keeps it.
@@ -16,6 +16,8 @@
 #   ... -Loras            39 style LoRAs by their authors, CC BY-NC 4.0, gathered on Hugging Face (about 3.8 GB)
 #   ... -Voices           recorded voices: the voice service (RVC and a BS-Roformer separator) in a Python of its own,
 #                         and its models (about 4 GB to download)
+#   ... -Demos            Starter Pack: curated demo takes in a "Starter Pack" space with artwork, mastering
+#                         settings, cover recording, voice and style LoRAs (about 1.7 GB; skips files already present)
 #   ... -CheckOnly        only the system check
 #   ... -SkipModels       everything but the 18 GB of models (for testing)
 
@@ -29,6 +31,7 @@ param(
     [switch]$Pictures,
     [switch]$Loras,
     [switch]$Voices,
+    [switch]$Demos,
     [switch]$CheckOnly,
     [switch]$SkipModels
 )
@@ -40,7 +43,7 @@ if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProces
     $again = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-InstallDir', $InstallDir)
     if ($Engine) { $again += @('-Engine', $Engine) }
     if ($CppModel) { $again += @('-CppModel', $CppModel) }
-    foreach ($flag in @('NoLyrics', 'Int8', 'Fibo', 'Pictures', 'Loras', 'Voices', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
+    foreach ($flag in @('NoLyrics', 'Int8', 'Fibo', 'Pictures', 'Loras', 'Voices', 'Demos', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
     & $native @again
     exit $LASTEXITCODE
 }
@@ -683,6 +686,7 @@ if ($ramGB -lt 15) { [void]$warnings.Add("This PC has $ramGB GB of memory; 16 GB
 $needBytes = 16e9   # the engine, the app, Whisper and demucs, and room to unpack
 foreach ($m in $ModelFiles) { if (-not (Test-Path (Join-Path (Join-Path $Models $m.Dir) $m.File))) { $needBytes += $m.Size } }
 if ($Cpp -and -not $NoLyrics -and -not (Test-Path (Join-Path $Models 'ollama\manifests'))) { $needBytes += 6.2e9 + 1.7e9 }
+if ($Demos -and -not (IsDone 'starter-pack')) { $needBytes += 1.8e9 }
 if ($SkipModels) { $needBytes = 12e9 }
 $drive = (Get-Item $InstallDir).PSDrive
 $freeGB = [math]::Round($drive.Free / 1e9, 1)
@@ -1126,6 +1130,135 @@ if (-not $SkipModels) {
         Say $sf.Name 'White'
         Get-Verified $sf (Join-Path $sf2Dir $sf.File)
     }
+}
+
+# -------------------------------------------------------------- starter pack
+if ($Demos -and -not $SkipModels) {
+    Step 'Starter Pack (curated demo takes)'
+    $starterBase = if ($env:STARTER_PACK_URL) { $env:STARTER_PACK_URL.TrimEnd('/') } else { 'https://media.yeufonic.com/starter-pack' }
+    $manifestTmp = Join-Path $Downloads 'starter-pack-manifest.json'
+    & curl.exe -fsSL --retry 3 --connect-timeout 15 -o $manifestTmp "$starterBase/manifest.json"
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $manifestTmp)) {
+        Stop-Setup "could not download Starter Pack manifest from $starterBase/manifest.json"
+    }
+    $manifest = Get-Content -Raw -Encoding UTF8 $manifestTmp | ConvertFrom-Json
+    if ($manifest.format -ne 'yeufonic-starter-pack-manifest') {
+        Stop-Setup 'unexpected Starter Pack manifest format'
+    }
+
+    $lorasDir = Join-Path $Models 'loras'
+    New-Item -ItemType Directory -Force -Path $lorasDir | Out-Null
+    foreach ($item in @($manifest.loras)) {
+        $dest = Join-Path $lorasDir (Split-Path $item.file -Leaf)
+        Get-Verified @{
+            Url = "$starterBase/$($item.path.TrimStart('/'))"
+            Size = [int64]$item.bytes
+            Sha = $item.sha256
+            KeepIfPresent = $true
+        } $dest
+    }
+
+    $dbPath = Join-Path $dataDir 'yue2.sqlite'
+    $appPyExe = Join-Path $InstallDir 'venv\Scripts\python.exe'
+    $packId = [string]$manifest.pack_id
+    $spaceName = if ($manifest.space_name) { [string]$manifest.space_name } else { 'Starter Pack' }
+    $alreadyInstalled = $false
+    $existingVoiceIds = @{}
+    $existingVoiceNames = @{}
+
+    $voicesRoot = Join-Path $dataDir 'voices'
+    if (Test-Path $voicesRoot) {
+        Get-ChildItem -Directory $voicesRoot | ForEach-Object {
+            if (Test-Path (Join-Path $_.FullName 'model.pth')) { $existingVoiceIds[$_.Name] = $true }
+        }
+    }
+    if ((Test-Path $dbPath) -and (Test-Path $appPyExe)) {
+        $pyCheck = @'
+import json, sqlite3, sys
+db_path, pack_id, space_name = sys.argv[1], sys.argv[2], sys.argv[3]
+out = {"installed": False, "voice_ids": [], "voice_names": []}
+con = sqlite3.connect(db_path, timeout=5)
+try:
+    tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if "voices" in tables:
+        for vid, name in con.execute("SELECT id, name FROM voices"):
+            if vid: out["voice_ids"].append(str(vid))
+            if name: out["voice_names"].append(str(name).strip().lower())
+    if {"settings", "spaces", "takes"}.issubset(tables) and pack_id:
+        row = con.execute("SELECT value FROM settings WHERE key = 'starter_pack.installed'").fetchone()
+        if row and row[0]:
+            info = json.loads(row[0])
+            if info.get("pack_id") == pack_id:
+                sp = con.execute("SELECT id FROM spaces WHERE LOWER(name) = LOWER(?)", (space_name,)).fetchone()
+                if sp and con.execute("SELECT COUNT(*) FROM takes WHERE space_id = ?", (sp[0],)).fetchone()[0] > 0:
+                    out["installed"] = True
+finally:
+    con.close()
+print(json.dumps(out))
+'@
+        try {
+            $probe = ($pyCheck | & $appPyExe - $dbPath $packId $spaceName 2>$null) | ConvertFrom-Json
+            if ($probe.installed) { $alreadyInstalled = $true }
+            foreach ($vid in @($probe.voice_ids)) { $existingVoiceIds[$vid] = $true }
+            foreach ($vname in @($probe.voice_names)) { $existingVoiceNames[$vname] = $true }
+        } catch { }
+    }
+
+    if ($alreadyInstalled) {
+        Say "Starter Pack ($packId) is already installed."
+    } else {
+        $stageDir = Join-Path $dataDir 'starter-pack'
+        New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+
+        foreach ($voice in @($manifest.voices)) {
+            $vid = [string]$voice.id
+            $vname = [string]$voice.name
+            if ($existingVoiceIds.ContainsKey($vid) -or ($vname -and $existingVoiceNames.ContainsKey($vname.ToLower()))) {
+                Say "Voice '$vname' is already installed."
+                continue
+            }
+            $vStage = Join-Path $stageDir "voices\$vid"
+            New-Item -ItemType Directory -Force -Path $vStage | Out-Null
+            foreach ($f in @($voice.files)) {
+                $dest = Join-Path $vStage (Split-Path $f.dest -Leaf)
+                Get-Verified @{
+                    Url = "$starterBase/$($f.path.TrimStart('/'))"
+                    Size = [int64]$f.bytes
+                    Sha = $f.sha256
+                } $dest
+            }
+        }
+
+        $bundles = if ($manifest.bundles) { @($manifest.bundles) } elseif ($manifest.bundle) { @($manifest.bundle) } else { @() }
+        foreach ($b in $bundles) {
+            $zipName = Split-Path $b.path -Leaf
+            $zipDest = Join-Path $stageDir $zipName
+            Get-Verified @{
+                Url = "$starterBase/$($b.path.TrimStart('/'))"
+                Size = [int64]$b.bytes
+                Sha = $b.sha256
+            } $zipDest
+            Say "  extracting $zipName"
+            $pyExtract = @'
+import shutil, sys, zipfile
+from pathlib import Path
+zip_path, dest_dir = Path(sys.argv[1]), Path(sys.argv[2]).resolve()
+with zipfile.ZipFile(zip_path, "r") as zf:
+    for m in zf.infolist():
+        if m.is_dir(): continue
+        target = (dest_dir / m.filename).resolve()
+        target.relative_to(dest_dir)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with zf.open(m, "r") as src, target.open("wb") as out:
+            shutil.copyfileobj(src, out)
+'@
+            $pyExtract | & $appPyExe - $zipDest $stageDir
+            if ($LASTEXITCODE -ne 0) { Stop-Setup "could not unpack $zipName" }
+            Remove-Item -Force -ErrorAction SilentlyContinue $zipDest, "$zipDest.sha256ok"
+        }
+        Say "Starter Pack staged — it will appear in the 'Starter Pack' space when Yeufonic starts."
+    }
+    Done 'starter-pack'
 }
 
 # -------------------------------------------------------------------- done

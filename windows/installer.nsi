@@ -103,6 +103,7 @@ Var PicturesText    ; the same for FLUX.2 klein
 Var FiboText        ; the same for FIBO 2.0
 Var LorasText       ; the same for the style LoRAs
 Var VoicesText      ; the same for recorded voices
+Var DemosText       ; the same for the Starter Pack demo songs
 
 !define MUI_WELCOMEPAGE_TITLE "$WelcomeTitle"
 !define MUI_WELCOMEPAGE_TEXT "$WelcomeText"
@@ -354,6 +355,13 @@ Section "Recorded voices" SecVoices
   ; own) and fetch its models.  Without it the editor has no Recorded voice field.
 SectionEnd
 
+Section "Starter Pack (demo songs)" SecDemos
+  AddSize 1700000
+  ; No files: setup.ps1 is told whether to fetch the Starter Pack (curated demo takes, artwork, mastering
+  ; settings, cover recording, voice and style LoRAs) from media.yeufonic.com.  Ticked by default for new
+  ; installs; unticked by default for existing Yeufonic users.
+SectionEnd
+
 Section "-Setup"
   ${If} ${SectionIsSelected} ${SecLyrics}
     StrCpy $1 ""
@@ -409,6 +417,12 @@ Section "-Setup"
     WriteRegDWORD HKCU "Software\${REGNAME}" "Loras" 1
   ${Else}
     WriteRegDWORD HKCU "Software\${REGNAME}" "Loras" 0
+  ${EndIf}
+  ${If} ${SectionIsSelected} ${SecDemos}
+    StrCpy $1 "$1 -Demos"
+    WriteRegDWORD HKCU "Software\${REGNAME}" "Demos" 1
+  ${Else}
+    WriteRegDWORD HKCU "Software\${REGNAME}" "Demos" 0
   ${EndIf}
   ; Remembered, so an update offers the same choice again.
   ${If} ${SectionIsSelected} ${SecLyrics}
@@ -467,6 +481,7 @@ LangString DESC_Pictures ${LANG_ENGLISH} "FLUX.2 klein, which draws a picture of
 LangString DESC_Fibo ${LANG_ENGLISH} "Bria's FIBO 2.0 with its turbo add-on: draws take pictures closest to a real photograph on this PC. ComfyUI engine only, needs a 16 GB graphics card, CC BY-NC 4.0 (non-commercial use only). Download size: about 15.6 GB."
 LangString DESC_Loras ${LANG_ENGLISH} "39 style LoRAs by their authors: chanson, canzone, Bulgarian voices, qawwali, militant reggae, J-pop, dream pop, old school hip-hop and 16 concept sliders, each with its trigger word and suggested strengths. CC BY-NC 4.0, credited in the guide. Download size: 3.8 GB."
 LangString DESC_Voices ${LANG_ENGLISH} "Recorded voices: train a singer's voice from recordings, your own sung into the built-in recorder or a corpus's songs, and have a take sung in it. Runs beside the engine, on the graphics card. Download size: about 4 GB."
+LangString DESC_Demos ${LANG_ENGLISH} "Curated Starter Pack in a 'Starter Pack' space: ready-to-play and editable demo takes with artwork, mastering settings, a cover recording, a voice and their style LoRAs (skips any LoRA or voice already installed). Download size: about 1.7 GB."
 LangString DESC_Lyrics ${LANG_ENGLISH} "Gemma 4, for lyric drafts and song analysis on this PC. Leave it out if you intend to configure an external LLM. This will save an 8 GB download."
 ; The section of the item highlighted in the list (the one last clicked, or moved to with the keys), or -1.
 ; The installer keeps each item's section in its lParam.
@@ -510,6 +525,7 @@ Function .onMouseOverSection
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFibo} $FiboText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecLoras} $LorasText
   !insertmacro MUI_DESCRIPTION_TEXT ${SecVoices} $VoicesText
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecDemos} $DemosText
   ${EndIf}
 FunctionEnd
 
@@ -674,6 +690,14 @@ Function .onInit
     StrCpy $FiboText "$(DESC_Fibo)"
     StrCpy $LorasText "$(DESC_Loras)"
     StrCpy $VoicesText "$(DESC_Voices)"
+    StrCpy $DemosText "$(DESC_Demos)"
+    ; Starter Pack: unticked by default for existing Yeufonic users (they can tick it to opt in).
+    !insertmacro UnselectSection ${SecDemos}
+    ${If} ${FileExists} "$INSTDIR\state\starter-pack.done"
+      SectionSetSize ${SecDemos} 0
+      SectionSetText ${SecDemos} "Starter Pack (installed)"
+      StrCpy $DemosText "The Starter Pack is already installed on this PC. Leave it unticked on updates; ticking it checks for any missing LoRAs or updates without overwriting your takes."
+    ${EndIf}
     ; Recorded voices as chosen last time: kept, and brought up to date, if they are here.
     ReadRegDWORD $2 HKCU "Software\$R9" "Voices"
     ${If} ${FileExists} "$INSTDIR\voice\venv\Scripts\python.exe"
@@ -760,6 +784,11 @@ Function .onInit
     StrCpy $FiboText "$(DESC_Fibo)"
     StrCpy $LorasText "$(DESC_Loras)"
     StrCpy $VoicesText "$(DESC_Voices)"
+    StrCpy $DemosText "$(DESC_Demos)"
+    ${If} ${FileExists} "$INSTDIR\data\yue2.sqlite"
+      ; An existing library kept from an earlier install: leave Starter Pack unticked by default.
+      !insertmacro UnselectSection ${SecDemos}
+    ${EndIf}
     ${If} ${FileExists} "$INSTDIR\models-kept\*.*"
     ${OrIf} ${FileExists} "$INSTDIR\data\*.*"
       StrCpy $WelcomeText "${APPNAME} writes and covers songs with the YuE2 music model, on this PC.$\r$\n$\r$\nWhat you kept when ${APPNAME} was uninstalled is in $INSTDIR, and this install picks it up: your library, and any models you kept are not downloaded again.$\r$\n$\r$\nIt checks that this PC can run YuE2, then downloads the rest from each part's publisher. A separate window shows the setup's progress; it may open behind this one."

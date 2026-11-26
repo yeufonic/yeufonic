@@ -8,7 +8,7 @@
 #   bash setup.sh [--install-dir <folder>] [--engine comfyui|yue2cpp] [--int8 | --bf16]
 #                 [--cpp-model q8|bf16] [--no-lyrics] [--pictures | --no-pictures]
 #                 [--picture-model 4b|fibo2] [--loras | --no-loras] [--voices | --no-voices]
-#                 [--force-downloads] [--reconfigure] [--check-only] [--skip-models]
+#                 [--demos | --no-demos] [--force-downloads] [--reconfigure] [--check-only] [--skip-models]
 #
 #   --install-dir      where it goes (default: ~/.local/share/yeufonic)
 #   --engine           comfyui (everything, LoRA training included: the default) or yue2cpp
@@ -24,6 +24,9 @@
 #   --loras            39 style LoRAs by their authors (CC BY-NC 4.0, about 3.8 GB); --no-loras none.
 #   --voices           recorded voices (RVC + BS-Roformer in Python 3.12, ~1.1 GB models + ~3 GB packages);
 #                      --no-voices none.
+#   --demos            Starter Pack (curated demo takes in a "Starter Pack" space with artwork, mastering
+#                      settings, cover recording, voice and style LoRAs, ~1.7 GB); --no-demos none.
+#                      Defaults to yes on a fresh install and no on an existing install.
 #   --force-downloads  re-download models, LoRAs, SoundFonts and voice files even if already present
 #   --reconfigure      re-ask engine, model size and component choices (pre-filling current settings)
 #   --check-only       only run the system check (downloads nothing)
@@ -43,6 +46,7 @@ PICTURES=""
 PICTURE_MODEL=""
 LORAS=""
 VOICES=""
+DEMOS=""
 ENGINE_CHOICE=""
 CPP_MODEL=""
 
@@ -66,6 +70,8 @@ while [ $# -gt 0 ]; do
     --no-loras) LORAS=no; shift ;;
     --voices) VOICES=yes; shift ;;
     --no-voices) VOICES=no; shift ;;
+    --demos) DEMOS=yes; shift ;;
+    --no-demos) DEMOS=no; shift ;;
     --force-downloads|--redownload) FORCE_DOWNLOADS=1; shift ;;
     --reconfigure) RECONFIGURE=1; shift ;;
     --check-only) CHECK_ONLY=1; shift ;;
@@ -1117,6 +1123,30 @@ fi
 [ "$VOICES" = yes ] || VOICES=no
 say "Recorded voices: $VOICES"
 
+# 7. Starter Pack (demo songs): defaults to yes on a fresh install, no on an existing install.
+EXISTING_INSTALL=0
+if [ -f "$INSTALL_DIR/data/yue2.sqlite" ] || [ -f "$STATE/set-up-for" ]; then
+  EXISTING_INSTALL=1
+fi
+SAVED_DEMOS=""
+[ -f "$STATE/demos" ] && SAVED_DEMOS="$(cat "$STATE/demos")"
+if [ -n "$DEMOS" ]; then
+  :
+elif [ "$EXISTING_INSTALL" -eq 1 ] && [ "$RECONFIGURE" -eq 0 ]; then
+  DEMOS="no"
+elif [ "$INTERACTIVE" -eq 1 ]; then
+  def_demos="yes"
+  [ "$EXISTING_INSTALL" -eq 1 ] && def_demos="no"
+  say ""
+  say "Starter Pack (optional demo songs)"
+  say "  Curated takes in a 'Starter Pack' space with artwork, mastering settings, a cover recording, a voice and their style LoRAs (about 1.7 GB; skips any LoRA or voice already installed)."
+  ask_yes_no DEMOS 'Include the Starter Pack demo songs?' "$def_demos"
+else
+  if [ "$EXISTING_INSTALL" -eq 1 ]; then DEMOS="no"; else DEMOS="yes"; fi
+fi
+[ "$DEMOS" = yes ] || DEMOS=no
+say "Starter Pack: $DEMOS"
+
 # Engine-dependent GPU compatibility checks (now that engine choice is known).
 if [ -n "$COMPUTE_CAP" ]; then
   min_cap="8.0"
@@ -1204,6 +1234,9 @@ $(voice_list)
 EOF
   fi
   NEED=$((NEED + 3300000000))   # app Whisper + engine Whisper + demucs
+  if [ "$DEMOS" = yes ] && [ ! -f "$STATE/starter-pack.done" ]; then
+    NEED=$((NEED + 1800000000))
+  fi
   if [ "$CPP" -eq 1 ] && [ "$NO_LYRICS" -eq 0 ] && [ ! -d "$MODELS/ollama/manifests" ]; then
     NEED=$((NEED + 6200000000))
   fi
@@ -1639,6 +1672,113 @@ EOF
   fi
 fi
 
+# -------------------------------------------------------------- starter pack
+if [ "$DEMOS" = yes ] && [ "$SKIP_MODELS" -eq 0 ]; then
+  step "Starter Pack (curated demo takes)"
+  STARTER_URL="${STARTER_PACK_URL:-https://media.yeufonic.com/starter-pack}"
+  STARTER_URL="${STARTER_URL%/}"
+  SP_MANIFEST="$DOWNLOADS/starter-pack-manifest.json"
+  if ! curl -fsSL --retry 3 --connect-timeout 15 -o "$SP_MANIFEST" "$STARTER_URL/manifest.json"; then
+    stop_setup "could not download Starter Pack manifest from $STARTER_URL/manifest.json"
+  fi
+  mkdir -p "$MODELS/loras"
+  while IFS='|' read -r sp_file sp_path sp_size sp_sha; do
+    [ -z "$sp_file" ] && continue
+    get_verified "$STARTER_URL/${sp_path#/}" "$MODELS/loras/$sp_file" "$sp_size" "$sp_sha" "" "" 1
+  done <<EOF
+$("$APP_VENV/bin/python" - "$SP_MANIFEST" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+if m.get("format") != "yeufonic-starter-pack-manifest":
+    raise SystemExit(1)
+for item in m.get("loras") or []:
+    print(f"{item['file']}|{item['path']}|{item['bytes']}|{item['sha256']}")
+PY
+)
+EOF
+
+  SP_PLAN="$("$APP_VENV/bin/python" - "$SP_MANIFEST" "$DATA" <<'PY'
+import json, sqlite3, sys
+from pathlib import Path
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+data_dir = Path(sys.argv[2])
+pack_id = str(m.get("pack_id") or "")
+space_name = str(m.get("space_name") or "Starter Pack")
+db_path = data_dir / "yue2.sqlite"
+have_ids, have_names = set(), set()
+vdir = data_dir / "voices"
+if vdir.is_dir():
+    for d in vdir.iterdir():
+        if d.is_dir() and (d / "model.pth").is_file():
+            have_ids.add(d.name)
+installed = False
+if db_path.is_file():
+    con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "voices" in tables:
+            for vid, name in con.execute("SELECT id, name FROM voices"):
+                if vid: have_ids.add(str(vid))
+                if name: have_names.add(str(name).strip().lower())
+        if {"settings", "spaces", "takes"}.issubset(tables) and pack_id:
+            row = con.execute("SELECT value FROM settings WHERE key = 'starter_pack.installed'").fetchone()
+            if row and row[0] and json.loads(row[0]).get("pack_id") == pack_id:
+                sp = con.execute("SELECT id FROM spaces WHERE LOWER(name) = LOWER(?)", (space_name,)).fetchone()
+                if sp and con.execute("SELECT COUNT(*) FROM takes WHERE space_id = ?", (sp[0],)).fetchone()[0] > 0:
+                    installed = True
+    finally:
+        con.close()
+if installed:
+    print(f"SKIP|{pack_id}")
+else:
+    for v in m.get("voices") or []:
+        vid, vname = str(v.get("id") or ""), str(v.get("name") or "")
+        if vid in have_ids or (vname and vname.lower() in have_names):
+            continue
+        for f in v.get("files") or []:
+            print(f"VOICE|{vid}|{f['dest']}|{f['path']}|{f['bytes']}|{f['sha256']}")
+    for b in m.get("bundles") or ([m["bundle"]] if m.get("bundle") else []):
+        print(f"BUNDLE|{b['path']}|{b['bytes']}|{b['sha256']}")
+PY
+)"
+  SP_STAGE="$DATA/starter-pack"
+  SP_SKIPPED=0
+  while IFS='|' read -r kind a b c d e; do
+    case "$kind" in
+      SKIP)
+        say "Starter Pack ($a) is already installed."
+        SP_SKIPPED=1 ;;
+      VOICE)
+        mkdir -p "$SP_STAGE/voices/$a"
+        get_verified "$STARTER_URL/${c#/}" "$SP_STAGE/voices/$a/$b" "$d" "$e" ;;
+      BUNDLE)
+        mkdir -p "$SP_STAGE"
+        bname="$(basename "$a")"
+        get_verified "$STARTER_URL/${a#/}" "$SP_STAGE/$bname" "$b" "$c"
+        "$APP_VENV/bin/python" - "$SP_STAGE/$bname" "$SP_STAGE" <<'PY'
+import shutil, sys, zipfile
+from pathlib import Path
+zp, dest = Path(sys.argv[1]), Path(sys.argv[2]).resolve()
+with zipfile.ZipFile(zp, "r") as zf:
+    for m in zf.infolist():
+        if m.is_dir(): continue
+        target = (dest / m.filename).resolve()
+        target.relative_to(dest)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with zf.open(m, "r") as src, target.open("wb") as out:
+            shutil.copyfileobj(src, out)
+PY
+        rm -f "$SP_STAGE/$bname" "$SP_STAGE/$bname.sha256ok" ;;
+    esac
+  done <<EOF
+$SP_PLAN
+EOF
+  if [ "$SP_SKIPPED" -eq 0 ]; then
+    say "Starter Pack staged — it will appear in the 'Starter Pack' space when Yeufonic starts."
+  fi
+  mark_done "starter-pack"
+fi
+
 # -------------------------------------------------------------------- done
 ini_set() {
   local key="$1" value="$2"
@@ -1686,6 +1826,7 @@ echo "$PICTURES" > "$STATE/pictures"
 echo "$PICTURE_MODEL" > "$STATE/picture-model"
 echo "$LORAS" > "$STATE/loras"
 echo "$VOICES" > "$STATE/voices"
+echo "$DEMOS" > "$STATE/demos"
 
 # Activate the chosen local picture model in the app's Settings database when it already exists
 # (on a brand-new install, the app picks the installed picture model automatically on first start).

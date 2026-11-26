@@ -64,6 +64,7 @@ cat > "$RUN" <<HEADER
 #   --picture-model 4b|fibo2    choose local take-picture model (implies --pictures)
 #   --loras | --no-loras        39 style LoRAs (CC BY-NC 4.0)
 #   --voices | --no-voices      recorded voices (RVC + BS-Roformer)
+#   --demos | --no-demos        Starter Pack demo takes (~1.7 GB; default yes on fresh install, no on existing)
 #   --force-downloads          re-download models, LoRAs, SoundFonts and voice files even if present
 #   --reconfigure              re-ask engine, model size and component choices (pre-filling current settings)
 #   --check-only               run the system check without installing or downloading

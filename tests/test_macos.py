@@ -267,15 +267,18 @@ def test_the_first_run_in_a_window_asks_and_remembers(tmp_path, answer, memory_g
     proc = subprocess.Popen(["bash", str(SETUP), "--install-dir", str(tmp_path / "install")], env=env,
                             stdin=follower, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     os.close(follower)
-    os.write(leader, (answer + "\n") .encode() * 4)     # pictures, FIBO 2.0, style LoRAs, recorded voices
+    os.write(leader, (answer + "\n").encode() * 5)     # pictures, FIBO 2.0, style LoRAs, recorded voices, Starter Pack
     out, _ = proc.communicate(timeout=60)
     os.close(leader)
     assert "Draw take pictures on this Mac? [y/N]" in out
     assert "Fetch FIBO 2.0 for take pictures? [y/N]" in out
     assert "Fetch the style LoRAs? [y/N]" in out
     assert "Set up recorded voices? [y/N]" in out
+    assert "Install the Starter Pack demo songs? [Y/n]" in out
     for option in ("fibo", "loras", "voices"):
         assert (tmp_path / "install" / "state" / option).read_text().strip() == ("yes" if answer == "y" else "no")
+    # Fresh install defaults Starter Pack to yes (both 'y' and empty Enter select yes).
+    assert (tmp_path / "install" / "state" / "demos").read_text().strip() == "yes"
     assert ("not recommended" in out) == (memory_gb < 24)
     assert f"Take pictures on this Mac: {chosen}" in out
     assert (tmp_path / "install" / "state" / "pictures").read_text().strip() == chosen

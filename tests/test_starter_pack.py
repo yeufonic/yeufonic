@@ -304,3 +304,29 @@ def test_fetch_models_script_documents_and_parses_demos_flag():
     assert builder.TAKE_COLUMNS == starter_pack.TAKE_COLUMNS
     assert builder.VOICE_COLUMNS == starter_pack.VOICE_COLUMNS
     assert builder.SOURCE_COLUMNS == starter_pack.SOURCE_COLUMNS
+
+
+def test_native_installers_default_starter_pack_on_for_new_users_and_off_for_existing():
+    nsi = (REPO_ROOT / "windows" / "installer.nsi").read_text(encoding="utf-8")
+    # Default ticked for new installs (Section without /o), unticked for existing users
+    assert 'Section "Starter Pack (demo songs)" SecDemos' in nsi
+    assert 'StrCpy $1 "$1 -Demos"' in nsi
+    assert '!insertmacro UnselectSection ${SecDemos}' in nsi
+    assert 'Starter Pack (installed)' in nsi
+
+    ps1 = (REPO_ROOT / "windows" / "setup.ps1").read_text(encoding="utf-8")
+    assert "[switch]$Demos" in ps1
+    assert "https://media.yeufonic.com/starter-pack" in ps1
+    assert "Done 'starter-pack'" in ps1
+
+    linux_sh = (REPO_ROOT / "linux" / "setup.sh").read_text(encoding="utf-8")
+    assert "--demos) DEMOS=yes; shift ;;" in linux_sh
+    assert "--no-demos) DEMOS=no; shift ;;" in linux_sh
+    assert 'echo "$DEMOS" > "$STATE/demos"' in linux_sh
+    assert "https://media.yeufonic.com/starter-pack" in linux_sh
+
+    macos_sh = (REPO_ROOT / "macos" / "setup.sh").read_text(encoding="utf-8")
+    assert "--demos) DEMOS=yes; shift ;;" in macos_sh
+    assert "--no-demos) DEMOS=no; shift ;;" in macos_sh
+    assert "Install the Starter Pack demo songs? [Y/n]" in macos_sh
+    assert "https://media.yeufonic.com/starter-pack" in macos_sh
