@@ -18014,8 +18014,11 @@ function sheetHTML(take) {
     : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.4v13.2L19 12z"/></svg>';
   var jamBtnSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>';
   html += '<div class="acts"><button type="button" class="primary tone-' + kind + '" data-sheet="' +
-    (take.status === 'planned' ? 'score' : 'edit') + '">' + main + '</button>' +
-    (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-play-btn' + (isPlayingThis ? ' is-playing' : '') + '" data-sheet="play">' + playBtnSvg + '<span>' + (isPlayingThis ? t('Pause') : t('Play')) + '</span></button>' : '') +
+    (take.status === 'planned' ? 'score' : 'edit') + '" title="' + esc(main) + '">' + main + '</button>' +
+    (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-play-btn' + (isPlayingThis ? ' is-playing' : '') + '" data-sheet="play">' + playBtnSvg +
+      '<span class="sheet-play-label"><span class="sheet-play-text">' + (isPlayingThis ? t('Pause') : t('Play')) + '</span>' +
+      '<span class="sheet-play-measure" aria-hidden="true">' + t('Play') + '</span>' +
+      '<span class="sheet-play-measure" aria-hidden="true">' + t('Pause') + '</span></span></button>' : '') +
     (take.has_audio ? '<button type="button" class="sheet-act-btn sheet-jam-btn" data-sheet="jam" title="' + t('Open this take in Jam (J)') + '">' + jamBtnSvg + '<span>' + t('Jam') + '</span></button>' : '') +
     '</div>';
 

@@ -3610,16 +3610,25 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
 .take-sheet .note { font-size: 12.5px; color: var(--warn); background: rgb(var(--warn-rgb) / 0.08);
   border: 1px solid rgb(var(--warn-rgb) / 0.25); border-radius: 10px; padding: 7px 10px; margin-bottom: 12px; }
 .take-sheet .note.bad { color: var(--danger-text); background: rgb(var(--danger-rgb) / 0.1); border-color: rgb(var(--danger-rgb) / 0.35); }
-.take-sheet .acts { display: flex; gap: 8px; margin-bottom: 16px; align-items: stretch; }
-.take-sheet .acts .primary { margin: 0; flex: 1; padding: 11px 14px; font-size: 14px; }
+.take-sheet .acts { display: flex; gap: 6px; margin-bottom: 16px; align-items: stretch; }
+.take-sheet .acts .primary {
+  margin: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .take-sheet .acts .ghost { flex: 0 0 auto; }
 .sheet-act-btn {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 0 14px;
+  gap: 5px;
+  padding: 0 11px;
   border-radius: 999px;
   font: inherit;
   font-size: 13.5px;
@@ -3628,6 +3637,9 @@ button.take-status.sung:hover { background: rgb(var(--warn-rgb) / 0.16); }
   white-space: nowrap;
   transition: filter 0.14s ease, transform 0.1s ease, background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
 }
+.sheet-play-label { display: inline-grid; align-items: center; }
+.sheet-play-label > span { grid-area: 1 / 1; text-align: center; }
+.sheet-play-measure { visibility: hidden; height: 0; overflow: hidden; pointer-events: none; user-select: none; }
 .sheet-act-btn:hover { filter: brightness(1.08); }
 .sheet-act-btn:active { transform: scale(0.98); }
 .sheet-play-btn {
