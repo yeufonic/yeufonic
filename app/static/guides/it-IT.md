@@ -1742,8 +1742,7 @@ colori, e il tema ad alto contrasto resta nero.
 **Temi personalizzati**, sotto Tema, apre il **Creatore di temi personalizzati**: parti da qualsiasi tema integrato, regola
 singolarmente i colori di superfici, accenti, testo, bordi e pulsante di riproduzione (comprese tinte, sfumature e gradienti
 di superficie per ciascun colore) e visualizza l'anteprima dal vivo nelle viste **Principale**, **Editor** e **Jam**,
-rispecchiando 1:1 le modalità Ardesia e Sfondo. I temi personalizzati salvati compaiono nel selettore Tema e possono essere
-esportati in JSON o importati su un'altra installazione.
+rispecchiando 1:1 le modalità Ardesia e Sfondo. I temi personalizzati salvati restano sul server, compaiono nel selettore Tema e possono essere modificati o eliminati in qualsiasi momento.
 
 ### LLM esterno {#external-llm}
 

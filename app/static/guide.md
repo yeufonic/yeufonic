@@ -1943,8 +1943,7 @@ colours, and the high contrast theme stays black.
 
 **Custom themes**, under Theme, opens the **Custom Theme Builder**: start from any built-in theme, adjust individual
 surface, accent, text, border and play-button colours (including per-colour tints, shades and surface gradients), and
-preview your changes live across **Main**, **Editor** and **Jam** views matching Slate and Backdrop modes 1:1. Saved
-custom themes appear in the Theme picker and can be exported to JSON or imported on another install.
+preview your changes live across **Main**, **Editor** and **Jam** views matching Slate and Backdrop modes 1:1. Saved custom themes live on the server, appear in the Theme picker, and can be edited or deleted at any time.
 
 ### External LLM
 

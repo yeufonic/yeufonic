@@ -1739,7 +1739,7 @@ bewege **Farbton** um den Farbkreis und **Stärke** von einem zarten Hauch bis z
 ziehst, und die Wahl wird behalten, wenn du loslässt. Die Take-Karten, die Bereiche und die Fenster behalten ihre eigenen
 Farben, und das Design mit hohem Kontrast bleibt schwarz.
 
-**Benutzerdefinierte Designs**, unter Design, öffnet den **Custom Theme Builder**: Starte von einem beliebigen eingebauten Design, passe einzelne Farben für Flächen, Akzente, Text, Rahmen und die Abspielen-Schaltfläche an (einschließlich Tönungen, Nuancen und Flächenverläufe pro Farbe) und sieh dir deine Änderungen live in den Ansichten **Hauptseite**, **Editor** und **Jam** an, exakt 1:1 passend zu den Modi Studio Slate und Hintergrund. Gespeicherte benutzerdefinierte Designs erscheinen in der Design-Auswahl und können als JSON exportiert oder auf einer anderen Installation importiert werden.
+**Benutzerdefinierte Designs**, unter Design, öffnet den **Custom Theme Builder**: Starte von einem beliebigen eingebauten Design, passe einzelne Farben für Flächen, Akzente, Text, Rahmen und die Abspielen-Schaltfläche an (einschließlich Tönungen, Nuancen und Flächenverläufe pro Farbe) und sieh dir deine Änderungen live in den Ansichten **Hauptseite**, **Editor** und **Jam** an, exakt 1:1 passend zu den Modi Studio Slate und Hintergrund. Gespeicherte benutzerdefinierte Designs liegen auf dem Server, erscheinen in der Design-Auswahl und lassen sich jederzeit bearbeiten oder löschen.
 
 ### Externe LLM {#external-llm}
 
