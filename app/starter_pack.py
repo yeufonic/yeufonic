@@ -378,22 +378,22 @@ def install_pending(stage: Path | None = None, *, keep_stage: bool = False) -> d
     stage_path = Path(stage) if stage is not None else stage_dir()
     pack_path = stage_path / PACK_FILE
     if not pack_path.is_file():
-        return {"installed": False, "reason": "none"}
+        return {"installed": False, "code": "none"}
 
     try:
         pack = json.loads(pack_path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         log.warning("Starter Pack manifest unreadable at %s: %s", pack_path, exc)
-        return {"installed": False, "reason": "invalid", "error": str(exc)}
+        return {"installed": False, "code": "invalid", "error": str(exc)}
 
     if not isinstance(pack, dict) or pack.get("format") != FORMAT:
         log.warning("Starter Pack at %s has unexpected format", pack_path)
-        return {"installed": False, "reason": "invalid"}
+        return {"installed": False, "code": "invalid"}
 
     version = pack.get("version")
     if not isinstance(version, int) or version < 1 or version > VERSION:
         log.warning("Starter Pack at %s has unsupported version %r", pack_path, version)
-        return {"installed": False, "reason": "unsupported_version"}
+        return {"installed": False, "code": "unsupported_version"}
 
     space_name = str(pack.get("space_name") or SPACE_NAME).strip() or SPACE_NAME
     move = not keep_stage
@@ -473,15 +473,21 @@ def status() -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     import argparse
 
-    ap = argparse.ArgumentParser(description="Import a staged Yeufonic Starter Pack into DATA_DIR.")
-    ap.add_argument("--stage", type=Path, default=None, help="Staged starter-pack directory (default: DATA_DIR/starter-pack)")
-    ap.add_argument("--keep-stage", action="store_true", help="Copy files instead of moving and leave the stage folder")
+    ap = argparse.ArgumentParser(
+        description=(
+            "Import a staged Yeufonic Starter Pack into DATA_DIR. "
+            "Options: --stage PATH (default: DATA_DIR/starter-pack), "
+            "--keep-stage (copy files instead of moving and keep stage folder)."
+        )
+    )
+    ap.add_argument("--stage", type=Path, default=None)
+    ap.add_argument("--keep-stage", action="store_true")
     args = ap.parse_args(argv)
 
     migrate()
     result = install_pending(stage=args.stage, keep_stage=args.keep_stage)
     print(json.dumps(result, indent=2))
-    return 0 if result.get("installed") or result.get("reason") == "none" else 1
+    return 0 if result.get("installed") or result.get("code") == "none" else 1
 
 
 if __name__ == "__main__":
