@@ -23,6 +23,8 @@ RESERVED_NAMES = {"studio", "dark", "light", "high contrast", "contrast", "syste
 
 MAX_THEMES = 50
 MAX_NAME_LEN = 48
+EXPORT_FORMAT = "yeufonic-theme"
+EXPORT_VERSION = 1
 
 # Every editable hex colour token managed by the fixed themes in styles.css.
 COLOR_TOKENS = (
@@ -271,3 +273,62 @@ def delete_theme(theme_id: str) -> bool:
         return False
     _save_all(kept)
     return True
+
+
+def theme_filename(name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", (name or "").strip().lower()).strip("-")
+    return f"{slug or 'custom-theme'}.yeufonic-theme.json"
+
+
+def export_theme(theme_id: str) -> dict[str, Any]:
+    """Return a portable JSON-serialisable dict for a saved custom theme."""
+    theme = get_theme(theme_id)
+    if not theme:
+        raise KeyError(theme_id)
+    return {
+        "format": EXPORT_FORMAT,
+        "version": EXPORT_VERSION,
+        "name": theme["name"],
+        "base": theme["base"],
+        "colors": dict(theme["colors"]),
+        "gradients": {k: dict(v) for k, v in theme["gradients"].items()},
+    }
+
+
+def _unique_import_name(raw_name: Any, existing: list[dict[str, Any]]) -> str:
+    clean = " ".join(str(raw_name).strip().split()) if isinstance(raw_name, str) else ""
+    if not clean:
+        clean = "Imported theme"
+    if clean.lower() in RESERVED_NAMES:
+        clean = f"{clean} custom"
+    clean = clean[:MAX_NAME_LEN].strip() or "Imported theme"
+    taken = {(item.get("name") or "").strip().lower() for item in existing}
+    if clean.lower() not in taken:
+        return clean
+    n = 2
+    while True:
+        suffix = f" ({n})"
+        stem = clean[: MAX_NAME_LEN - len(suffix)].rstrip()
+        candidate = f"{stem}{suffix}"
+        if candidate.lower() not in taken:
+            return candidate
+        n += 1
+
+
+def import_theme(payload: Any) -> dict[str, Any]:
+    """Validate and save a portable theme JSON payload, resolving name collisions."""
+    if not isinstance(payload, dict):
+        raise ValueError("Invalid theme JSON file.")
+    fmt = payload.get("format")
+    if fmt is not None and fmt != EXPORT_FORMAT:
+        raise ValueError("Invalid theme JSON file.")
+    if not any(k in payload for k in ("base", "colors", "gradients")):
+        raise ValueError("Invalid theme JSON file.")
+    items = list_themes()
+    if len(items) >= MAX_THEMES:
+        raise ValueError(f"At most {MAX_THEMES} custom themes can be saved")
+    clean_base = validate_base(payload.get("base") or "studio")
+    clean_colors = validate_colors(payload.get("colors") or {})
+    clean_gradients = validate_gradients(payload.get("gradients") or {})
+    clean_name = _unique_import_name(payload.get("name"), items)
+    return create_theme(clean_name, base=clean_base, colors=clean_colors, gradients=clean_gradients)

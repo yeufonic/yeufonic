@@ -96,3 +96,66 @@ def test_theme_builder_covers_all_backend_tokens_and_mockups():
     assert "tm-tint-btn" in themes_js
     assert ".tm-group {\n  flex: 0 0 auto;" in styles_css
     assert 'id="theme-modal"' in (STATIC / "index.html").read_text(encoding="utf-8")
+    assert 'data-tm-act="import-json"' in themes_js
+    assert 'data-tm-act="export-json"' in themes_js
+    assert 'data-theme-act="import"' in themes_js
+    assert 'data-theme-act="export"' in themes_js
+
+
+def test_custom_theme_json_export_and_import_roundtrip(client):
+    created = client.post("/api/themes", json={
+        "name": "Midnight Teal",
+        "base": "dark",
+        "colors": {"--bg": "#081014", "--accent-a": "#2dd4bf"},
+        "gradients": {"--panel": {"to": "#132a36", "dir": "135deg"}},
+        "apply": False,
+    })
+    assert created.status_code == 200
+    theme_id = created.json()["theme"]["id"]
+
+    # Export returns portable JSON without internal id/timestamps and an attachment filename
+    exp = client.get(f"/api/themes/{theme_id}/export")
+    assert exp.status_code == 200
+    assert "midnight-teal.yeufonic-theme.json" in exp.headers.get("content-disposition", "")
+    exported = exp.json()
+    assert exported["format"] == "yeufonic-theme"
+    assert exported["version"] == 1
+    assert exported["name"] == "Midnight Teal"
+    assert exported["base"] == "dark"
+    assert exported["colors"] == {"--bg": "#081014", "--accent-a": "#2dd4bf"}
+    assert exported["gradients"] == {"--panel": {"to": "#132a36", "dir": "135deg"}}
+    assert "id" not in exported
+    assert "updated_at" not in exported
+
+    # Exporting a missing theme returns 404
+    assert client.get("/api/themes/missing/export").status_code == 404
+
+    # Importing the exported payload resolves the duplicate name cleanly and applies when asked
+    imp = client.post("/api/themes/import", json={"theme": exported, "apply": True})
+    assert imp.status_code == 200, imp.text
+    imp_theme = imp.json()["theme"]
+    assert imp_theme["id"] != theme_id
+    assert imp_theme["name"] == "Midnight Teal (2)"
+    assert imp_theme["base"] == "dark"
+    assert imp_theme["colors"] == {"--bg": "#081014", "--accent-a": "#2dd4bf"}
+    assert imp_theme["gradients"] == {"--panel": {"to": "#132a36", "dir": "135deg"}}
+    theme_spec = next(item for item in imp.json()["settings"] if item["key"] == "appearance.theme")
+    assert theme_spec["value"] == f"custom:{imp_theme['id']}"
+
+    # Posting a raw exported theme JSON directly (without wrapper) also works, and reserved names are adjusted
+    raw_imp = client.post("/api/themes/import", json={
+        "format": "yeufonic-theme",
+        "version": 1,
+        "name": "Light",
+        "base": "light",
+        "colors": {"--bg": "#fafaff"},
+    })
+    assert raw_imp.status_code == 200, raw_imp.text
+    assert raw_imp.json()["theme"]["name"] == "Light custom"
+    assert raw_imp.json()["theme"]["base"] == "light"
+
+    # Invalid payloads are rejected with 400
+    assert client.post("/api/themes/import", json={"format": "wrong", "base": "dark"}).status_code == 400
+    assert client.post("/api/themes/import", json={"name": "Empty"}).status_code == 400
+    assert client.post("/api/themes/import", json={"base": "neon", "colors": {}}).status_code == 400
+    assert client.post("/api/themes/import", json={"base": "dark", "colors": {"--bg": "not-a-hex"}}).status_code == 400

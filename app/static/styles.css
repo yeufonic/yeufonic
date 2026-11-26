@@ -8684,7 +8684,8 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
   padding-bottom: 3px;
 }
 .tm-body {

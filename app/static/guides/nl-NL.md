@@ -1740,7 +1740,7 @@ beweeg dan **Kleurtoon** rond het kleurenwiel en **Sterkte** van een lichte waas
 je sleept, en de keuze wordt bewaard als je loslaat. Takekaarten, panelen en vensters houden hun eigen
 kleuren, en het thema met hoog contrast blijft zwart.
 
-**Aangepaste thema's**, onder Thema, opent de **Custom Theme Builder**: begin vanuit een willekeurig ingebouwd thema, pas afzonderlijke kleuren voor oppervlakken, accenten, tekst, randen en de afspeelknop aan (inclusief tinten, schakeringen en kleurverlopen per kleur) en bekijk je wijzigingen live in de weergaven **Hoofdpagina**, **Editor** en **Jam**, 1:1 overeenkomend met de modi Studio Leisteen en Achtergrond. Opgeslagen aangepaste thema's blijven op de server bewaard, verschijnen in de themakiezer en kunnen op elk moment worden bewerkt of verwijderd.
+**Aangepaste thema's**, onder Thema, opent de **Custom Theme Builder**: begin vanuit een willekeurig ingebouwd thema, pas afzonderlijke kleuren voor oppervlakken, accenten, tekst, randen en de afspeelknop aan (inclusief tinten, schakeringen en kleurverlopen per kleur) en bekijk je wijzigingen live in de weergaven **Hoofdpagina**, **Editor** en **Jam**, 1:1 overeenkomend met de modi Studio Leisteen en Achtergrond. Opgeslagen aangepaste thema's verschijnen in de themakiezer en kunnen naar JSON worden geëxporteerd of op een andere installatie worden geïmporteerd.
 
 ### Externe LLM {#external-llm}
 

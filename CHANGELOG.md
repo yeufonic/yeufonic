@@ -37,6 +37,11 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## 0.0.70 (2026-11-26)
+
+- **Custom theme JSON export and import.** Export any custom theme to a portable `.yeufonic-theme.json` file (colours, gradients and base theme, with no install-specific IDs) or import one directly from **Settings → Theme** (**Import JSON** / **Export JSON**) or inside the **Custom Theme Builder** (where importing loads the file into the live preview before saving). Name collisions and reserved built-in names are resolved automatically on import, and new `GET /api/themes/{id}/export` and `POST /api/themes/import` endpoints are available for automation.
+- **Readable user guide on Light and custom themes.** Fixed hardcoded light-grey body text (`#d9d9e3`) in `/guide` so paragraphs, lists, headings and blockquotes follow the active theme's text tokens across Light, Studio, Dark, High contrast and saved custom themes, and update live if the theme is switched in Settings while the guide is open.
+
 ## 0.0.69 (2026-11-26)
 
 - **Starter Pack demo library across Docker and native installers.** An optional Starter Pack download installs curated, ready-to-play and editable demo takes into a **Starter Pack** space with their artwork, mastering settings, cover recording, voice and style LoRAs (skipping any LoRA or voice already installed, and never overwriting existing takes). Available via `sh scripts/fetch-models.sh --demos` on Docker, `--demos` / `--no-demos` on native Linux and macOS, and a **Starter Pack (demo songs)** component in the Windows installer — enabled by default for fresh installs and unticked by default for existing Yeufonic users.

@@ -1739,7 +1739,7 @@ mova **Matiz** pela roda de cores e **Intensidade** de um véu leve a uma cor in
 você arrasta, e a escolha é guardada quando você solta. Os cartões dos takes, os painéis e as janelas mantêm as próprias
 cores, e o tema de alto contraste continua preto.
 
-**Temas personalizados**, sob Tema, abre o **Construtor de temas personalizados**: parta de qualquer tema integrado, ajuste individualmente as cores de superfície, destaque, texto, contorno e botão de reprodução (incluindo tons, sombras e gradientes de superfície por cor) e pré-visualize as alterações em tempo real nas vistas **Página principal**, **Editor** e **Jam**, a corresponder 1:1 aos modos Ardósia e Cor do fundo. Os temas personalizados guardados ficam guardados no servidor, aparecem no seletor de Tema e podem ser editados ou eliminados a qualquer momento.
+**Temas personalizados**, sob Tema, abre o **Construtor de temas personalizados**: parta de qualquer tema integrado, ajuste individualmente as cores de superfície, destaque, texto, contorno e botão de reprodução (incluindo tons, sombras e gradientes de superfície por cor) e pré-visualize as alterações em tempo real nas vistas **Página principal**, **Editor** e **Jam**, a corresponder 1:1 aos modos Ardósia e Cor do fundo. Os temas personalizados guardados aparecem no seletor de Tema e podem ser exportados em JSON ou importados noutra instalação.
 
 ### LLM externo {#external-llm}
 

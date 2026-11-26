@@ -6545,6 +6545,39 @@ def create_custom_theme(body: CustomThemeIn) -> dict:
     return {"theme": created, "themes": themes.list_themes(), "settings": settings_payload()}
 
 
+@app.post("/api/themes/import")
+async def import_custom_theme(request: Request) -> dict:
+    try:
+        raw = await request.json()
+    except Exception as err:
+        raise HTTPException(400, "Invalid theme JSON file.") from err
+    if not isinstance(raw, dict):
+        raise HTTPException(400, "Invalid theme JSON file.")
+    apply_now = bool(raw.get("apply"))
+    payload = raw["theme"] if isinstance(raw.get("theme"), dict) else raw
+    try:
+        created = themes.import_theme(payload)
+    except ValueError as err:
+        raise HTTPException(400, str(err)) from err
+    if apply_now:
+        save_setting("appearance.theme", f"custom:{created['id']}")
+    return {"theme": created, "themes": themes.list_themes(), "settings": settings_payload()}
+
+
+@app.get("/api/themes/{theme_id}/export")
+def export_custom_theme(theme_id: str) -> Response:
+    try:
+        exported = themes.export_theme(theme_id)
+    except KeyError as err:
+        raise HTTPException(404, "Custom theme not found") from err
+    filename = themes.theme_filename(exported["name"])
+    return Response(
+        content=json.dumps(exported, indent=2, ensure_ascii=False) + "\n",
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.put("/api/themes/{theme_id}")
 def update_custom_theme(theme_id: str, body: CustomThemeUpdateIn) -> dict:
     try:

@@ -1740,7 +1740,7 @@ faites tourner **Couleur** sur la roue chromatique et réglez **Intensité** d�
 faites glisser, et le choix est gardé quand vous relâchez. Les cartes de prise, les panneaux et les fenêtres gardent leurs propres
 couleurs, et le thème à contraste élevé reste noir.
 
-**Thèmes personnalisés**, sous Thème, ouvre le **Custom Theme Builder** : partez de n’importe quel thème intégré, ajustez individuellement les couleurs des surfaces, des accents, du texte, des bordures et du bouton de lecture (y compris les teintes, nuances et dégradés de surface par couleur), et prévisualisez vos changements en direct dans les vues **Page principale**, **Éditeur** et **Jam** fidèles 1:1 aux modes Studio Ardoise et Arrière-plan. Les thèmes personnalisés enregistrés sont conservés sur le serveur, apparaissent dans le sélecteur de thème et peuvent être modifiés ou supprimés à tout moment.
+**Thèmes personnalisés**, sous Thème, ouvre le **Custom Theme Builder** : partez de n’importe quel thème intégré, ajustez individuellement les couleurs des surfaces, des accents, du texte, des bordures et du bouton de lecture (y compris les teintes, nuances et dégradés de surface par couleur), et prévisualisez vos changements en direct dans les vues **Page principale**, **Éditeur** et **Jam** fidèles 1:1 aux modes Studio Ardoise et Arrière-plan. Les thèmes personnalisés enregistrés apparaissent dans le sélecteur de thème et peuvent être exportés en JSON ou importés sur une autre installation.
 
 ### LLM externe {#external-llm}
 

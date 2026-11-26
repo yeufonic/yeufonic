@@ -16,6 +16,15 @@ def test_the_guide_is_served(client):
     assert "{{VERSION}}" not in r.text, "the version has to be stamped, or caching lies"
 
 
+def test_the_guide_uses_theme_text_tokens():
+    """Body text must follow theme tokens rather than a hardcoded light-on-dark colour,
+    so the guide remains legible on the Light theme and custom themes."""
+    html = (GUIDE.parent / "guide.html").read_text(encoding="utf-8")
+    screen_css = html.split("@media print")[0]
+    assert "#d9d9e3" not in screen_css
+    assert ".guide-body p, .guide-body li { color: var(--text); }" in screen_css
+
+
 def test_the_markdown_ships_with_the_app(client):
     """It lives under app/, not docs/, because only app/ is copied into the image."""
     r = client.get("/static/guide.md")

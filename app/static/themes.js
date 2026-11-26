@@ -981,6 +981,8 @@
         '</label>' +
         '<label class="tm-field"><span>' + t('Base theme') + '</span>' + baseSelectHtml + '</label>' +
         '<div class="tm-meta-tools">' +
+          '<button type="button" class="ghost small" data-tm-act="import-json" title="' + t('Import a theme from a JSON file') + '">' + t('Import JSON') + '</button>' +
+          '<button type="button" class="ghost small" data-tm-act="export-json" title="' + t('Export this theme to a JSON file') + '">' + t('Export JSON') + '</button>' +
           '<button type="button" class="ghost small" data-tm-act="reset-all" title="' + t('Reset all colours to the selected base theme') + '">' + t('Reset colours') + '</button>' +
         '</div>' +
       '</div>' +
@@ -1093,6 +1095,170 @@
     }
   }
 
+  function themeSlug(name) {
+    var slug = String(name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return (slug || 'custom-theme') + '.yeufonic-theme.json';
+  }
+
+  function buildExportPayload(themeObj) {
+    var base = BASE_PRESETS[themeObj && themeObj.base] ? themeObj.base : 'studio';
+    var rawColors = (themeObj && themeObj.colors) || {};
+    var colors = {};
+    Object.keys(rawColors).forEach(function (k) {
+      var hex = normalizeHex(rawColors[k]);
+      if (hex) { colors[k] = hex; }
+    });
+    return {
+      format: 'yeufonic-theme',
+      version: 1,
+      name: String((themeObj && themeObj.name) || '').trim() || 'Custom Theme',
+      base: base,
+      colors: colors,
+      gradients: cloneGradients(themeObj && themeObj.gradients)
+    };
+  }
+
+  function downloadThemeJson(themeObj) {
+    var payload = buildExportPayload(themeObj);
+    var blob = new Blob([JSON.stringify(payload, null, 2) + '\n'], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = themeSlug(payload.name);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function parseImportedThemeText(rawText) {
+    var parsed;
+    try {
+      parsed = JSON.parse(String(rawText || ''));
+    } catch (err) {
+      throw new Error(t('Invalid theme JSON file.'));
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error(t('Invalid theme JSON file.'));
+    }
+    if (parsed.format !== undefined && parsed.format !== 'yeufonic-theme') {
+      throw new Error(t('Invalid theme JSON file.'));
+    }
+    if (!('base' in parsed) && !('colors' in parsed) && !('gradients' in parsed)) {
+      throw new Error(t('Invalid theme JSON file.'));
+    }
+    var base = parsed.base ? String(parsed.base).trim().toLowerCase() : 'studio';
+    if (!BASE_PRESETS[base]) {
+      throw new Error(t('Invalid theme JSON file.'));
+    }
+    var colors = {};
+    if (parsed.colors !== undefined && parsed.colors !== null) {
+      if (typeof parsed.colors !== 'object' || Array.isArray(parsed.colors)) {
+        throw new Error(t('Invalid theme JSON file.'));
+      }
+      Object.keys(parsed.colors).forEach(function (k) {
+        if (!BASE_DARK[k]) { return; }
+        var val = parsed.colors[k];
+        if (val === null || val === '') { return; }
+        var hex = normalizeHex(val);
+        if (!hex) { throw new Error(t('Invalid theme JSON file.')); }
+        colors[k] = hex;
+      });
+    }
+    var gradients = {};
+    if (parsed.gradients !== undefined && parsed.gradients !== null) {
+      if (typeof parsed.gradients !== 'object' || Array.isArray(parsed.gradients)) {
+        throw new Error(t('Invalid theme JSON file.'));
+      }
+      Object.keys(parsed.gradients).forEach(function (k) {
+        if (!GRADIENT_TOKENS[k]) { return; }
+        var g = parsed.gradients[k];
+        if (!g || typeof g !== 'object' || !g.to) { return; }
+        var toHex = normalizeHex(g.to);
+        var dir = String(g.dir || '135deg').trim().toLowerCase();
+        if (!toHex || GRADIENT_DIRS.indexOf(dir) < 0) {
+          throw new Error(t('Invalid theme JSON file.'));
+        }
+        gradients[k] = { to: toHex, dir: dir };
+      });
+    }
+    var cleanName = typeof parsed.name === 'string' ? parsed.name.trim().replace(/\s+/g, ' ').slice(0, 48) : '';
+    return {
+      format: 'yeufonic-theme',
+      version: 1,
+      name: cleanName || 'Imported theme',
+      base: base,
+      colors: colors,
+      gradients: gradients
+    };
+  }
+
+  function pickJsonFile(onText) {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.style.display = 'none';
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      input.remove();
+      if (!file) { return; }
+      file.text().then(onText).catch(function () {
+        if (typeof toast === 'function') { toast(t('Could not import theme.'), 'bad'); }
+      });
+    });
+    document.body.appendChild(input);
+    input.click();
+  }
+
+  function importIntoBuilder() {
+    pickJsonFile(function (rawText) {
+      try {
+        var imported = parseImportedThemeText(rawText);
+        Builder.editId = null;
+        Builder.name = imported.name;
+        Builder.base = imported.base;
+        Builder.colors = Object.assign({}, BASE_PRESETS[imported.base], imported.colors);
+        Builder.gradients = cloneGradients(imported.gradients);
+        Builder.openTint = null;
+        Builder.error = '';
+        paintBuilder();
+        if (typeof toast === 'function') {
+          toast(t('Loaded theme “{name}” into the builder. Save to keep it.', { name: imported.name }));
+        }
+      } catch (err) {
+        setError(tr(err.message) || t('Invalid theme JSON file.'));
+      }
+    });
+  }
+
+  function importThemeFromSettings() {
+    pickJsonFile(async function (rawText) {
+      var parsed;
+      try {
+        parsed = parseImportedThemeText(rawText);
+      } catch (err) {
+        if (typeof toast === 'function') { toast(tr(err.message) || t('Invalid theme JSON file.'), 'bad'); }
+        return;
+      }
+      try {
+        var res = await api('/api/themes/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme: parsed, apply: true })
+        });
+        if (res && res.settings && typeof adoptSettings === 'function') {
+          adoptSettings(res.settings);
+        }
+        if (typeof paintSettings === 'function') { paintSettings(); }
+        if (typeof toast === 'function') {
+          toast(t('Imported theme “{name}”.', { name: (res && res.theme && res.theme.name) || parsed.name }));
+        }
+      } catch (err) {
+        if (typeof toast === 'function') { toast(tr(err.message) || t('Could not import theme.'), 'bad'); }
+      }
+    });
+  }
+
   async function deleteSavedTheme(themeId, fromBuilder) {
     var target = findSavedById(themeId);
     if (!target) { return; }
@@ -1196,6 +1362,16 @@
       if (act === 'close') { closeBuilder(); return; }
       if (act === 'save') { saveDraft(); return; }
       if (act === 'delete' && Builder.editId) { deleteSavedTheme(Builder.editId, true); return; }
+      if (act === 'import-json') { importIntoBuilder(); return; }
+      if (act === 'export-json') {
+        downloadThemeJson({
+          name: Builder.name,
+          base: Builder.base,
+          colors: Builder.colors,
+          gradients: Builder.gradients
+        });
+        return;
+      }
       if (act === 'reset-all') {
         Builder.colors = Object.assign({}, BASE_PRESETS[Builder.base] || BASE_PRESETS.studio);
         Builder.gradients = {};
@@ -1336,13 +1512,15 @@
     }, true);
   }
 
-  /* Settings row helper: buttons beside/under the Theme <select> to create, edit, or delete custom themes. */
+  /* Settings row helper: buttons beside/under the Theme <select> to create, edit, import, export, or delete custom themes. */
   function themeActionsHtml(currentValue) {
     var isCustom = Boolean(currentValue && currentValue.indexOf('custom:') === 0);
     var customId = isCustom ? currentValue.slice(7) : '';
     return '<div class="theme-custom-actions">' +
       '<button type="button" class="ghost small" data-theme-act="new">' + t('Customise…') + '</button>' +
+      '<button type="button" class="ghost small" data-theme-act="import" title="' + t('Import a theme from a JSON file') + '">' + t('Import JSON') + '</button>' +
       (isCustom ? '<button type="button" class="ghost small" data-theme-act="edit" data-theme-id="' + escHtml(customId) + '">' + t('Edit') + '</button>' : '') +
+      (isCustom ? '<button type="button" class="ghost small" data-theme-act="export" data-theme-id="' + escHtml(customId) + '" title="' + t('Export this theme to a JSON file') + '">' + t('Export JSON') + '</button>' : '') +
       (isCustom ? '<button type="button" class="ghost small danger-btn" data-theme-act="delete" data-theme-id="' + escHtml(customId) + '">' + t('Remove') + '</button>' : '') +
     '</div>';
   }
@@ -1352,7 +1530,13 @@
     if (!btn) { return false; }
     var act = btn.dataset.themeAct;
     if (act === 'new') { openBuilder(null); return true; }
+    if (act === 'import') { importThemeFromSettings(); return true; }
     if (act === 'edit') { openBuilder(btn.dataset.themeId || null); return true; }
+    if (act === 'export') {
+      var saved = findSavedById(btn.dataset.themeId);
+      if (saved) { downloadThemeJson(saved); }
+      return true;
+    }
     if (act === 'delete') { deleteSavedTheme(btn.dataset.themeId, false); return true; }
     return false;
   }
@@ -1371,6 +1555,8 @@
     closeBuilder: closeBuilder,
     isOpen: function () { return Builder.open; },
     themeActionsHtml: themeActionsHtml,
-    handleSettingsClick: handleSettingsClick
+    handleSettingsClick: handleSettingsClick,
+    buildExportPayload: buildExportPayload,
+    parseImportedThemeText: parseImportedThemeText
   };
 })();

@@ -6,13 +6,40 @@
 <title>Yeufonic — the guide</title>
 <script>
   (function () {
-    try {
-      var chosen = localStorage.getItem('yue2.theme') || 'dark';
-      var theme = chosen === 'system'
-        ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
-        : chosen;
-      if (theme !== 'dark') { document.documentElement.dataset.theme = theme; }
-    } catch (err) { /* private mode: dark */ }
+    var appliedVars = [];
+    function applyTheme() {
+      try {
+        var root = document.documentElement;
+        appliedVars.forEach(function (k) { root.style.removeProperty(k); });
+        appliedVars = [];
+        delete root.dataset.theme;
+        delete root.dataset.customTheme;
+        var chosen = localStorage.getItem('yue2.theme') || 'studio';
+        if (chosen.indexOf('custom:') === 0) {
+          var raw = localStorage.getItem('yue2.customThemeCache');
+          var cached = raw ? JSON.parse(raw) : null;
+          if (cached && ('custom:' + cached.id) === chosen && cached.vars) {
+            if (cached.base && cached.base !== 'dark') { root.dataset.theme = cached.base; }
+            root.dataset.customTheme = cached.id;
+            Object.keys(cached.vars).forEach(function (k) {
+              root.style.setProperty(k, cached.vars[k]);
+              appliedVars.push(k);
+            });
+          } else {
+            root.dataset.theme = 'studio';
+          }
+        } else {
+          var theme = chosen === 'system'
+            ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+            : chosen;
+          if (theme !== 'dark') { root.dataset.theme = theme; }
+        }
+      } catch (err) { /* private mode: dark */ }
+    }
+    applyTheme();
+    window.addEventListener('storage', function (event) {
+      if (event.key === 'yue2.theme' || event.key === 'yue2.customThemeCache') { applyTheme(); }
+    });
   })();
 </script>
 <!--{{LOCALE}}-->
@@ -47,10 +74,11 @@
   .guide-toc a:hover, .guide-toc a.on { color: var(--text); }
   .guide-toc a.sub { padding-left: 12px; font-size: 12.5px; }
   .guide-body { flex: 1; min-width: 0; max-width: 780px; line-height: 1.65; font-size: 15px; }
-  .guide-body h1 { font-size: 30px; margin: 0 0 6px; }
-  .guide-body h2 { font-size: 22px; margin: 38px 0 10px; padding-top: 10px; border-top: 1px solid var(--line); }
-  .guide-body h3 { font-size: 17px; margin: 26px 0 8px; color: var(--text); }
-  .guide-body p, .guide-body li { color: #d9d9e3; }
+  .guide-body h1 { font-size: 30px; margin: 0 0 6px; color: var(--text-strong); }
+  .guide-body h2 { font-size: 22px; margin: 38px 0 10px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--text-strong); }
+  .guide-body h3 { font-size: 17px; margin: 26px 0 8px; color: var(--text-strong); }
+  .guide-body p, .guide-body li { color: var(--text); }
+  .guide-body strong { color: var(--text-strong); }
   .guide-body a { color: var(--accent-a); }
   .guide-body code {
     background: var(--card-2); padding: 1px 5px; border-radius: 4px; font-size: 13px;
@@ -69,6 +97,7 @@
   .guide-body blockquote {
     margin: 14px 0; padding: 2px 14px; border-left: 3px solid var(--accent-a); color: var(--muted);
   }
+  .guide-body blockquote p { color: inherit; }
   @media (max-width: 860px) {
     .guide-wrap { flex-direction: column; gap: 10px; }
     .guide-toc { position: static; width: auto; max-height: none; }
