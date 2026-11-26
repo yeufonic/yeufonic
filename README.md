@@ -26,6 +26,14 @@
 
 <p align="center"><b>English</b> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pt.md">Português</a> · <a href="README.ru.md">Русский</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=Q9knHkpo5Co">
+    <img src="docs/readme/video-tour.jpg" alt="Watch the Yeufonic 4-minute feature tour on YouTube" width="840">
+  </a>
+  <br>
+  <sub><a href="https://www.youtube.com/watch?v=Q9knHkpo5Co">Watch the 4-minute feature tour on YouTube (1440p)</a> — all music in the video was created locally in Yeufonic.</sub>
+</p>
+
 ---
 
 A web interface for [YuE2](https://github.com/multimodal-art-projection/YuE), the open music
