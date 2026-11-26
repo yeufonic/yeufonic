@@ -85,10 +85,13 @@ Dit zijn de standaardwaarden van de stem, ingesteld op zijn pagina. Een take kan
 | **Helderheid** | *Auto* tilt het hoge deel op naar dat van de gerenderde zang; *Uit* laat het zoals omgezet. |
 | **Adem en medeklinkers** | Hoeveel ze de eigen klanken van de gerenderde zang houden: *Behouden* blijft helder maar draagt er een spoor van, *Omgezet* kan scheuren. |
 | **Dynamiek** | Wiens volume de zang van frase tot frase volgt: dat van de take, zoals gerenderd, of de eigen aanzwellingen van de stem. |
+| **Staartgate** | Laat zachte galmstaarten en zwak overspraakgeluid aan het eind van gezongen regels zacht wegsterven, zowel vóór als na de omzetting (*Uit*, *Zacht*, *Standaard*, *Stevig* of *Strak*). Zet hem hoger richting *Stevig* of *Strak* als je laag gekreun aan het eind van frasen hoort; verlaag richting *Zacht* of *Uit* als zachte, ademende einden afgekapt klinken. |
+| **Stemdrempel** | Hoe zeker de toonhoogtedetectie moet zijn voordat een frame als gezongen noot wordt gezongen (*Gevoelig*, *Gebalanceerd*, *Strikt* of *Zeer strikt*). Striktere standen behandelen onzekere ademgeluiden en wegstervende staarten als stemloos, zodat het stemmodel ze niet langer als laag gekreun zingt. |
+| **Toonhoogtegrens** | Laagste gezongen toonhoogte (*50 Hz* tot *140 Hz*, standaard *75 Hz*). Alles onder deze frequentie wordt als stemloos behandeld in plaats van gezongen; verhogen tot bij de laagste echte noot van de zanger voorkomt laag gekraak en gekreun een octaaf lager aan het eind van frasen. |
 
 #### Een stem in een take gebruiken {#using-a-voice-in-a-take}
 
-Kies in de editor de stem onder **Opgenomen stem**. **Instellingen** ernaast opent de instellingen hierboven voor alleen deze take; de take houdt ze, en de knop meldt *eigen instellingen* als ze afwijken van die van de stem.
+Kies in de editor de stem onder **Opgenomen stem**. **Instellingen** ernaast opent alle dertien instellingen hierboven voor alleen deze take; de take houdt ze, en de knop meldt *eigen instellingen* als ze afwijken van die van de stem. Hetzelfde inklapbare paneel **Steminstellingen** is beschikbaar in **Jam** onder **Zang → Klank:** wanneer een opgenomen stem is gekozen (en **Heel nummer** legt alle dertien instellingen vast op de opgeslagen take).
 
 #### Een stem beluisteren voordat je hem gebruikt {#hearing-a-voice-before-you-use-it}
 
@@ -104,8 +107,8 @@ Kies in de editor de stem onder **Opgenomen stem**. **Instellingen** ernaast ope
 #### Stemmen delen en importeren {#sharing-and-importing-voices}
 
 - **Stem downloaden** slaat een getrainde stem op als zip om aan iemand te geven.
-- **Stem importeren…** voegt er een toe: die zip, of een RVC-model van elders (de zip, of de .pth en .index samen gekozen). Een stem die zonder index is geïmporteerd, krijgt die later met **Index toevoegen…**: Gelijkenis steunt erop.
-- **Kant-en-klare stemmen**, RVC-modellen die anderen hebben getraind, zijn te vinden op sites zoals [voice-models.com](https://voice-models.com/): **Stem importeren…** neemt de zip zoals die is gedownload.
+- **Stem importeren…** voegt er een toe: die zip, of een RVC-model van elders (het `.zip`- of `.rar`-archief, of de `.pth` en `.index` samen gekozen). Een stem die zonder index is geïmporteerd, krijgt die later met **Index toevoegen…**: Gelijkenis steunt erop.
+- **Kant-en-klare stemmen**, RVC-modellen die anderen hebben getraind, zijn te vinden op sites zoals [voice-models.com](https://voice-models.com/): **Stem importeren…** neemt het `.zip`- of `.rar`-archief zoals het is gedownload.
 - Het recept van een take noemt zijn stem en de instellingen van de take ervoor, en bij het importeren wordt de stem met die naam op deze installatie gebruikt, als die er is.
 
 #### Een schone stem krijgen {#getting-a-clean-voice}
@@ -115,6 +118,7 @@ Het resultaat is omgezette zang over een gescheiden begeleiding, dus minder naad
 - Een stem leert de galm en de productie van de opname mee met de zanger, dus schone, droge zang met een heldere leadzang geeft een schonere stem dan een corpus van gemixte nummers.
 - Eén nummer of een korte opname geeft een herkenbare stem, maar een die woorden kan vervagen die hij nooit gezongen heeft gehoord.
 - Een stem die op veel meer zang en met veel meer rondes is getraind, zoals kant-en-klare stemmen vaak zijn, houdt de woorden ook bij een hoge Gelijkenis.
+- Als je aan het eind van gezongen regels een laag, kreunend artefact hoort (doordat de toonhoogtedetectie zich vastbijt in zachte galmstaarten of overspraak terwijl een frase wegsterft), zet dan **Staartgate** op *Stevig* of *Strak* en **Stemdrempel** op *Strikt* of *Zeer strikt* (laat **Toonhoogtegrens** op *75 Hz* staan of verhoog die tot vlak bij de laagste echte noot van de zanger).
 
 ### Geavanceerde instellingen {#advanced-settings}
 
@@ -376,8 +380,9 @@ tag zonder regels eronder, zoals `[Interlude]`, is een instrumentale passage.
   2. Een parametrische equalizer
   3. Een compressor
   4. Een stereo-imager
-  5. **3D-ruimte** (hieronder)
-  6. Een limiter
+  5. **480L Mastering Reverb** (hieronder)
+  6. **3D-ruimte** (hieronder)
+  7. Een limiter
 
   Elke module klapt in tot zijn balk met de pijl links ervan, en de take onthoudt welke ingeklapt zijn.
 
@@ -390,7 +395,9 @@ tag zonder regels eronder, zoals `[Interlude]`, is een instrumentale passage.
 
   **Toetsen.** Met het rack open speelt en pauzeert de spatiebalk de take, en verplaatsen de pijltjestoetsen je erin en stellen ze het volume in, zoals op de hoofdpagina. Escape sluit het rack, en nog eens de editor.
 
-- **3D-ruimte**, een module van het rack tussen de imager en de limiter, plaatst de take om je heen voor een koptelefoon, op een van twee manieren:
+- **480L Mastering Reverb**, tussen de imager en 3D-ruimte, voegt vintage studioruimte toe op maat van mastering: 6 basisalgoritmes (*Large Hall*, *Medium Hall*, *Small Hall*, *Plate*, *Ambient Space* en *Room*), 32 klassieke 480L v3.0 bank- en masteringpresets met <strong>&lt;</strong> / <strong>&gt;</strong> knoppen, schakelbare 12/24 dB/oct pre-reverb HPF en LPF, Mid/Side-ingangs- en uitgangsmatrices, een door het droge signaal aangestuurde **Dynamische Wet-Ducker** met een 8-LED-meter voor versterkingsreductie, stereobreedte (0–150%) en een 24 dB/oct **Mono-Maker**, lineair-fase Dry/Wet-mix met **Mastering-schaal** (fijn bereik van 0–10%), **Delta (Solo Wet)** en een schakelaar tussen de klassieke 6-fader **LARC**-interface en de alles-in-één **Mastering-weergave**.
+
+- **3D-ruimte**, een module van het rack tussen de reverb en de limiter, plaatst de take om je heen voor een koptelefoon, op een van twee manieren:
 
   | Vanuit | Wat je instelt |
   |---|---|
@@ -953,9 +960,8 @@ dan ga je verder waar je was. **Nieuwe Jam** gaat terug naar de klank van de See
   woorden voor sfeer, dynamiek en voordracht in de stijl komen, hoe meer er vermeden wordt en hoe strakker het model
   zich eraan houdt.
 - **Tempo**, in slagen per minuut, van 40 tot 240. Een Jam begint op het tempo van de Seed.
-- **Zang**: Instrumentaal, Vrouw, Man of een van je opgenomen stemmen, met tot drie klankwoorden. Een ronde zingt de
-  tekst van de Seed. Een Seed zonder tekst maakt alleen instrumentale nummers.
-- **Gevoel** verfijnt wat het vlak open laat. **Toonsoort** verplaatst melodie en akkoorden naar een andere toonsoort; **Beginnen bij** laat een korte ronde bij een sectie zoals het refrein beginnen in plaats van bij het begin; **Speelwijze** en **Stijlgreep** vervangen de keuze van het vlak voor hoe los er gespeeld wordt en hoe strak de stijl gevolgd wordt; **Afwerking** geeft een ronde meer stappen; **Akkoorden** bepaalt hoe avontuurlijk de akkoorden van een nieuw plan zijn, voor Plan & Roll; en met een opgenomen stem zijn er gelijkenis, formant en menging. **Zelfde seed** maakt de volgende ronde met de seed van zijn basis, zodat hij alleen verschilt in wat je veranderde. **Standaardwaarden herstellen** zet de hele kaart terug.
+- **Zang**: Instrumentaal, Vrouw, Man of een van je opgenomen stemmen, met tot drie klankwoorden. Wanneer een opgenomen stem is gekozen, opent **Steminstellingen** direct onder *Klank:* alle dertien steminstellingen (waaronder **Staartgate**, **Stemdrempel** en **Toonhoogtegrens**) voor de Jam, met **Standaardwaarden herstellen** op dezelfde kopregel. Een ronde zingt de tekst van de Seed. Een Seed zonder tekst maakt alleen instrumentale nummers.
+- **Gevoel** (inklapbaar) verfijnt wat het vlak open laat. **Toonsoort** verplaatst melodie en akkoorden naar een andere toonsoort; **Beginnen bij** laat een korte ronde bij een sectie zoals het refrein beginnen in plaats van bij het begin; **Speelwijze** en **Stijlgreep** vervangen de keuze van het vlak voor hoe los er gespeeld wordt en hoe strak de stijl gevolgd wordt; **Afwerking** staat standaard op *Verfijnd (32 stappen)* (met *Schets (24 stappen)* als optie voor snellere schetsen); **Akkoorden** bepaalt hoe avontuurlijk de akkoorden van een nieuw plan zijn, voor Plan & Roll. **Zelfde seed** (standaard aan) maakt de volgende ronde met de seed van zijn basis, zodat hij alleen verschilt in wat je veranderde. **Standaardwaarden herstellen** zet de hele kaart terug. Je kunt ook de verticale scheidingslijnen tussen de drie panelen van Jam verslepen om ze breder of smaller te maken (dubbelklik om te resetten).
 
 Onder de bediening toont **Verstuurde stijl** de stijl die een roll verstuurt, en wat hij vermijdt.
 
@@ -1280,6 +1286,7 @@ Takes wonen in **ruimtes**: een ruimte per nummer, per album, of voor schetsen. 
 - **Er een kiezen:** klik op de naam voor de lijst van ruimtes. Typ om er een op naam te vinden, of kies hem met de pijltjestoetsen en Enter. De vijf die je het laatst gebruikte, komen eerst, dan elke ruimte, elk met hoeveel takes erin zitten.
 - **Nieuwe ruimte**, **Deze ruimte hernoemen**, **Take importeren** en **Deze ruimte verwijderen** staan onderaan de lijst. Wanneer je een take of een ruimte verwijdert, gaan de takes naar **Trash** onderaan de ruimtelijst, waar je ze kunt terugzetten of weer verplaatsen. Een take uit **Trash** verwijderen, op **Prullenbak legen** klikken of Trash opruimen via **Instellingen → Opslag** verwijdert de bestanden definitief van schijf.
 - **Een take verplaatsen:** de mapknop op een kaart verplaatst die take naar een andere ruimte, met alle takes erin.
+- **Starter Pack:** een optionele samengestelde bibliotheek met direct afspeelbare en bewerkbare takes, geïnstalleerd in een ruimte **Starter Pack** met hun artwork, masteringinstellingen, coveropname, stem en stijl-LoRA's (reeds aanwezige LoRA's of stemmen worden overgeslagen en bestaande takes nooit overschreven). Standaard ingeschakeld bij schone installaties op Windows, native Linux en macOS en standaard overgeslagen bij updates voor bestaande gebruikers; op elk moment toe te voegen met `sh scripts/fetch-models.sh --demos` (Docker), `yeufonic setup --demos` (native Linux), `setup.sh --demos` (macOS) of door **Starter Pack (demo songs)** aan te vinken in het Windows-installatieprogramma.
 - Opnames worden door alle ruimtes gedeeld, dus één opname kan in meerdere ruimtes gecoverd worden.
 
 ### Takes in een take {#takes-inside-a-take}
@@ -1512,8 +1519,9 @@ Stel een van beide in en ze gaan aan: vanaf dan worden er afbeeldingen gemaakt v
 | **Take-afbeeldingen: getekend door** | *Deze pc als klein geïnstalleerd is, anders de externe LLM* (standaard), *Deze pc (het model hieronder)* of *Het afbeeldingsmodel van de externe LLM*. Welke klein op deze pc tekent (FLUX.2 klein 4B of 9B, of FLUX 3 klein) kies je bij **model**. FIBO 2.0 wordt daar ook gekozen. |
 | **Take-afbeeldingen: model** | *FLUX.2 klein 4B* (standaard), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0*, of *9B waar zijn bestanden geïnstalleerd zijn, anders 4B*. Alleen voor afbeeldingen getekend op deze pc. De 9B en FLUX 3 worden nooit voor je geïnstalleerd; *FIBO 2.0* is een optionele installatiekeuze (alleen voor niet-commercieel gebruik): zie [FLUX.2 klein 9B en FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) hierboven. Als de gevraagde er niet is, tekent een andere, en Instellingen zegt welke. |
 | **Take-afbeeldingen: beschreven door** | wie de afbeeldingsprompt schrijft, uit de titel van de take, de kunststijl hieronder, zijn stijl en zijn tekst (tot 50 regels). *Lokale Gemma als die geïnstalleerd is, anders de take zelf* (standaard), wie er ook tekent. *Lokale Gemma*: geschreven op deze pc; heeft de optie Tekstconcepten nodig. *Uit de take zelf*: geen LLM; een beschrijving gemaakt uit de titel, stijl en eerste woorden van de take, de snelste, en er wordt niets verstuurd. Of de *externe LLM*, één verzoek per afbeelding; als die niet beschikbaar is, of je voor de sessie naar lokale LLM's overschakelt, schrijft Gemma ze in plaats daarvan als die geïnstalleerd is. |
-| **Take-afbeeldingen: kunststijl** | hoe de afbeelding eruit moet zien, gegeven aan de LLM die de afbeeldingsprompt schrijft (gedimd als de take zichzelf beschrijft). Standaard een abstract, surrealistisch ontwerp in de stijl van hoezen uit de jaren zeventig en tachtig, zonder tekst of mensen. Leeggemaakt gaat het daarnaar terug. |
-| **Take-afbeeldingen: je eigen prompt** | woorden waarmee de afbeeldingsprompt van elke afbeelding begint, zoals *salt marsh, overcast*, tot 512 tekens; de prompt die de LLM schrijft volgt erna. Leeg (standaard): geen. Alleen als een LLM de afbeeldingsprompt schrijft (gedimd als de take zichzelf beschrijft). |
+| **Take-afbeeldingen: kunststijl** | hoe de afbeelding eruit moet zien, gegeven aan de LLM die de afbeeldingsprompt schrijft (gedimd als de take zichzelf beschrijft). Standaard een abstract, surrealistisch ontwerp in de stijl van hoezen uit de jaren zeventig en tachtig, zonder tekst of mensen. Wanneer je een eigen kunststijl invult, worden de ingebouwde Hipgnosis-instructies en vinyl-ringslijtage weggelaten zodat jouw stijl het hele beeld bepaalt. Leeggemaakt gaat het terug naar de standaard. |
+| **Take-afbeeldingen: je eigen prompt** | woorden voor de afbeeldingsprompt van elke afbeelding, zoals *salt marsh, overcast*, tot 512 tekens. Leeg (standaard): geen. |
+| **Take-afbeeldingen: hoe je eigen prompt wordt gebruikt** | hoe **je eigen prompt** wordt gebruikt: *Gecombineerd* (standaard, vóór de LLM-prompt geplaatst) of *Direct tekenen* (letterlijk rechtstreeks naar het afbeeldingsmodel gestuurd, zonder LLM, kunststijl en slijtage). |
 | **Take-afbeeldingen: songtitel op de afbeelding** | *Nee* (standaard) of *Ja*: de titel van het nummer wordt vet op de hoes gezet, in hoofd- of kleine letters, zoals je hem typte, ook als het de naam van een artiest is (de afbeelding zelf wordt nog steeds zonder beschreven). Meestal wordt de afbeelding omlijst door een dunne donkere lijn binnen een gebroken witte rand, zoals op veel hoezen uit de jaren zeventig, met de titel gecentreerd in een bredere band boven of onder. Ongeveer één op de vijf heeft geen rand: de titel staat op de afbeelding, in een hoek of gecentreerd boven of onder, in een gedempte kleur uit de afbeelding, en de LLM wordt gevraagd dat deel van de afbeelding er vrij voor te houden. Dit wordt allemaal per afbeelding willekeurig gekozen. FLUX.2 klein kan hem met een tikfout schrijven. Alleen als een LLM de afbeeldingsprompt schrijft. |
 | **Take-afbeeldingen: beeldmodel** | welk van de modellen van de provider tekent. Alleen voor afbeeldingen getekend door de externe LLM (kies die bij **Getekend door**; anders gedimd), en leeg voor het gewone model van de provider, wat bijna altijd is wat je wilt. |
 
@@ -1528,7 +1536,7 @@ snelste afbeeldingen, of op *Externe LLM* (één verzoek per afbeelding).
 Het pictogram **Afbeelding** in de bovenste rij van het editorvenster, naast de andere knoppen van de take, toont de afbeelding met twee keuzes:
 
 - **Een nieuwe afbeelding maken** maakt hem opnieuw op de achtergrond.
-  - **Een nieuwe afbeelding maken met een nieuwe prompt**, hier ernaast, onder de hele afbeelding en op een kaart zonder afbeelding, vraagt eerst om de kunststijl van alleen deze afbeelding. Die begint bij de stijl uit Instellingen en vervangt die voor deze afbeelding alleen; Instellingen blijven zoals ze zijn.
+  - **Een nieuwe afbeelding maken met een nieuwe prompt**, hier ernaast, onder de hele afbeelding, in het afbeeldingsmenu van de visualizer en op een kaart zonder afbeelding, staat standaard op **Deze prompt direct tekenen** (letterlijk rechtstreeks naar het afbeeldingsmodel gestuurd, zonder LLM, kunststijl en instellingenprompt), met een schakelaar naar **Gebruiken als kunststijl** (vervangt *Take-afbeeldingen: kunststijl* uit Instellingen voor alleen deze afbeelding, terwijl Instellingen ongewijzigd blijven).
 - **De standaardachtergrond gebruiken** haalt hem voorgoed weg: voor die take wordt geen afbeelding meer gemaakt, tenzij je erom vraagt.
 
 Klik daar op de afbeelding om hem helemaal te zien, zo groot als het venster toestaat; een klik ergens of Escape legt hem weg en laat de editor zoals hij was. De hele afbeelding heeft dezelfde twee keuzes eronder: kies daar **Een nieuwe afbeelding maken** en de afbeelding blijft staan terwijl de nieuwe gemaakt wordt, met wat er gebeurt tussen de knoppen, en wisselt dan naar de nieuwe als die klaar is.
@@ -1584,7 +1592,7 @@ Het podium toont realtime audiovisualisaties die met het afspelen zijn gesynchro
 - **Achter de scènes:** de scènes Hoes, Yeufonic, Mandala, Raster, Vloeibaar en Balken spelen over de afbeelding van de take, die zachtjes met de muziek meebeweegt, als de take er een heeft. Erbovenop kan ook iets bewegen, in de kleuren van de afbeelding: *Ademen* (alleen de afbeelding), *Lichtstralen* die vanuit het midden draaien, *Rimpelingen* die met de beat worden uitgezonden, *Kleurdrift*, *Diepte* (meer kopieën van de afbeelding die tegen elkaar in draaien) of een *Spectrale halo*. Elke scène begint met zijn eigen (kleurdrift achter Hoes, de halo achter Mandala, stralen achter Raster, rimpelingen achter Vloeibaar, alleen de afbeelding achter Yeufonic en Balken); druk op **B** om ze door te lopen, en de scène onthoudt je keuze.
 - **De golfvorm:** onder de scènes Yeufonic en Hoes laat de golfvorm van de take zien hoeveel van het nummer al gespeeld is; klik erop om erheen te springen.
 - **Hoes en vinyldynamiek:** toont de hoes van de take in Hipgnosis-stijl in een interactieve 3D-hoes die kantelt en draait met de aanwijzer. Een realistische vinylplaat draait op 33⅓ toeren en schuift uit de hoes op basslagen, met een holografische glans en schokgolfringen die op het ritme reageren. Wissel van modus met de knop **Hoes**: *Hoes*, *Aura* (vervaagde achtergrond) of *Uit*.
-- **Een nieuwe afbeelding:** de afbeeldingsknop rechtsboven, in elke scène, maakt een nieuwe afbeelding voor de spelende take, waar deze pc afbeeldingen kan maken. Hij pulseert terwijl de afbeelding wordt gemaakt, en de nieuwe neemt het over als hij klaar is.
+- **Een nieuwe afbeelding:** klikken op de afbeeldingsknop rechtsboven opent in elke scène een menu met dezelfde drie keuzes als in de volledige weergave (**Een nieuwe afbeelding maken**, **Een nieuwe afbeelding maken met een nieuwe prompt** en **De standaardachtergrond gebruiken**). Het toont live status tijdens het genereren, pulseert tot de nieuwe afbeelding het overneemt, werkt op volledig scherm en wist de hoes direct bij het terugzetten op de standaardachtergrond.
 - **Tekst op het scherm:** druk op **Shift+L** of klik op **Tekst** om het losse, scrollbare tekstpaneel te tonen of te verbergen. Sleep het aan de balk bovenaan uit de weg; het blijft waar je het neerzet, en dubbelklikken op de balk zet het terug.
 - **Lint van de minispeler:** zolang de volledige visualizer dicht is, speelt een reactieve minivisualizer met dubbele golf in de onderste transportbalk. Zet hem aan of uit in **Instellingen → Weergave**.
 
@@ -1731,6 +1739,8 @@ Het logvenster blijft in elk thema donker, zoals een terminal, en het masteringr
 beweeg dan **Kleurtoon** rond het kleurenwiel en **Sterkte** van een lichte waas naar een volle kleur. De pagina verandert terwijl
 je sleept, en de keuze wordt bewaard als je loslaat. Takekaarten, panelen en vensters houden hun eigen
 kleuren, en het thema met hoog contrast blijft zwart.
+
+**Aangepaste thema's**, onder Thema, opent de **Custom Theme Builder**: begin vanuit een willekeurig ingebouwd thema, pas afzonderlijke kleuren voor oppervlakken, accenten, tekst, randen en de afspeelknop aan (inclusief tinten, schakeringen en kleurverlopen per kleur) en bekijk je wijzigingen live in de weergaven **Hoofdpagina**, **Editor** en **Jam**, 1:1 overeenkomend met de modi Studio Leisteen en Achtergrond. Opgeslagen aangepaste thema's verschijnen in de themakiezer en kunnen naar JSON worden geëxporteerd of op een andere installatie worden geïmporteerd.
 
 ### Externe LLM {#external-llm}
 
@@ -1977,13 +1987,14 @@ in `~/.local/bin`), met een eigen Python-omgeving, engine, modellen en bibliothe
 - **Engine en opties kiezen:** het installatieprogramma controleert je systeem en vraagt welke engine je wilt
   gebruiken (**ComfyUI** voor alles inclusief LoRA-training, of **yue2.cpp** voor kaarten met minder geheugen),
   welke grootte van het YuE2-model en welke optionele onderdelen (Gemma 4 voor tekstschetsen,
-  **FLUX.2 klein 4B** of **FIBO 2.0** voor take-afbeeldingen, stijl-LoRA's en opgenomen stemmen).
+  **FLUX.2 klein 4B** of **FIBO 2.0** voor take-afbeeldingen, stijl-LoRA's, opgenomen stemmen en de
+  **Starter Pack**-demobibliotheek, die bij schone installaties standaard op ja staat en bij updates op nee).
 - **Starten en stoppen:** voer `yeufonic` uit op de voorgrond (of `yeufonic start -d` op de achtergrond) en
   open <http://localhost:8090>. Gebruik `yeufonic status`, `yeufonic logs` en `yeufonic stop` om een
   achtergrondproces te bekijken of te stoppen.
 - **Later van engine wisselen of opties toevoegen:** stop Yeufonic en voer `yeufonic setup` uit (of geef
   vlaggen mee zoals `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--bf16`, `--picture-model fibo2`,
-  `--loras`). Je bibliotheek, instellingen, LoRA's en al gedownloade modellen blijven behouden.
+  `--loras`, `--demos`). Je bibliotheek, instellingen, LoRA's en al gedownloade modellen blijven behouden.
 - **Bijwerken en verwijderen:** download een nieuwer `.run`-installatieprogramma van de releasepagina en voer
   het opnieuw uit om bij te werken; voer `yeufonic uninstall` uit om te verwijderen (desgewenst met behoud van
   bibliotheek en modellen). Zie [linux/README.md](https://github.com/yeufonic/yeufonic/blob/main/linux/README.md)

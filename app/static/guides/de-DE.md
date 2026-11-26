@@ -85,10 +85,13 @@ Das sind die Voreinstellungen der Stimme, auf ihrer Seite festgelegt. Ein Take k
 | **Brillanz** | *Auto* hebt seinen oberen Bereich an den des gerenderten Gesangs an; *Aus* lässt ihn wie umgewandelt. |
 | **Atem und Konsonanten** | Wie weit sie die eigenen Klänge des gerenderten Gesangs behalten: *Bewahrt* bleibt klar, trägt aber eine Spur davon, *Umgewandelt* kann reißen. |
 | **Dynamik** | Wessen Lautstärke der Gesang von Phrase zu Phrase folgt: der des Takes, wie gerendert, oder den eigenen Schwellungen der Stimme. |
+| **Ausklang-Gate** | Blendet leise Hallfahnen und schwaches Übersprechen am Ende gesungener Zeilen sanft aus, sowohl vor als auch nach der Umwandlung (*Aus*, *Sanft*, *Standard*, *Fest* oder *Straff*). Stelle es höher Richtung *Fest* oder *Straff*, wenn du am Phrasenende ein tiefes Stöhnen hörst; senke es Richtung *Sanft* oder *Aus*, wenn leise, gehauchte Endungen abgeschnitten wirken. |
+| **Erkennung** | Wie sicher sich die Tonhöhenerkennung sein muss, bevor sie ein Frame als gesungene Note singt (*Empfindlich*, *Ausgewogen*, *Streng* oder *Sehr streng*). Strengere Einstellungen behandeln unsichere Atemgeräusche und abklingende Hallfahnen als stimmlos, sodass das Stimmmodell sie nicht mehr als tiefes Stöhnen singt. |
+| **Tonhöhen-Untergrenze** | Tiefste gesungene Tonhöhe (*50 Hz* bis *140 Hz*, Standard *75 Hz*). Alles unterhalb dieser Frequenz wird als stimmlos behandelt statt gesungen; das Anheben näher an die tiefste echte Note der singenden Person verhindert tiefe Suboktav-Krächzer und Stöhnen am Phrasenende. |
 
 #### Eine Stimme in einem Take verwenden {#using-a-voice-in-a-take}
 
-Wähle im Editor die Stimme unter **Aufgenommene Stimme**. **Einstellungen** daneben öffnet die Einstellungen oben nur für diesen Take; der Take behält sie, und die Schaltfläche zeigt *eigene Einstellungen*, wenn sie von denen der Stimme abweichen.
+Wähle im Editor die Stimme unter **Aufgenommene Stimme**. **Einstellungen** daneben öffnet alle dreizehn Einstellungen oben nur für diesen Take; der Take behält sie, und die Schaltfläche zeigt *eigene Einstellungen*, wenn sie von denen der Stimme abweichen. Dasselbe einklappbare Feld **Stimm-Einstellungen** steht in **Jam** unter **Gesang → Klang:** bereit, sobald eine aufgenommene Stimme gewählt ist (und **Ganzer Song** übernimmt alle dreizehn Einstellungen in den gespeicherten Take).
 
 #### Eine Stimme anhören, bevor du sie verwendest {#hearing-a-voice-before-you-use-it}
 
@@ -104,8 +107,8 @@ Wähle im Editor die Stimme unter **Aufgenommene Stimme**. **Einstellungen** dan
 #### Stimmen teilen und importieren {#sharing-and-importing-voices}
 
 - **Stimme herunterladen** speichert eine trainierte Stimme als ZIP, um sie weiterzugeben.
-- **Stimme importieren…** fügt eine hinzu: diese ZIP oder ein RVC-Modell von anderswo (seine ZIP oder seine .pth und .index zusammen ausgewählt). Eine ohne Index importierte Stimme bekommt ihn später mit **Index hinzufügen…**: Ähnlichkeit greift darauf zurück.
-- **Fertige Stimmen**, von anderen trainierte RVC-Modelle, gibt es auf Seiten wie [voice-models.com](https://voice-models.com/): **Stimme importieren…** nimmt die ZIP so, wie sie heruntergeladen wurde.
+- **Stimme importieren…** fügt eine hinzu: diese ZIP oder ein RVC-Modell von anderswo (sein `.zip`- oder `.rar`-Archiv oder seine `.pth` und `.index` zusammen ausgewählt). Eine ohne Index importierte Stimme bekommt ihn später mit **Index hinzufügen…**: Ähnlichkeit greift darauf zurück.
+- **Fertige Stimmen**, von anderen trainierte RVC-Modelle, gibt es auf Seiten wie [voice-models.com](https://voice-models.com/): **Stimme importieren…** nimmt das `.zip`- oder `.rar`-Archiv so, wie es heruntergeladen wurde.
 - Das Rezept eines Takes nennt seine Stimme und die Einstellungen des Takes dafür, und beim Import wird die Stimme dieses Namens auf dieser Installation verwendet, falls es sie gibt.
 
 #### Eine saubere Stimme bekommen {#getting-a-clean-voice}
@@ -115,6 +118,7 @@ Das Ergebnis ist ein umgewandelter Gesang über einer getrennten Begleitung, dah
 - Eine Stimme lernt den Hall und die Produktion der Aufnahme mit der singenden Person zusammen, daher ergibt sauberer, trockener Gesang mit klarem Leadgesang eine sauberere Stimme als ein Korpus gemischter Lieder.
 - Ein einzelnes Lied oder eine kurze Aufnahme ergibt eine erkennbare Stimme, die aber Wörter verwischen kann, die sie nie gesungen gehört hat.
 - Eine Stimme, die auf viel mehr Gesang und mit viel mehr Durchläufen trainiert wurde, wie es fertige Stimmen oft sind, behält die Wörter auch bei hoher Ähnlichkeit.
+- Wenn du am Ende gesungener Zeilen ein tiefes, stöhnendes Artefakt hörst (weil die Tonhöhenerkennung auf schwache Hallfahnen oder Übersprechen einrastet, während eine Phrase ausklingt), setze **Ausklang-Gate** auf *Fest* oder *Straff* und **Erkennung** auf *Streng* oder *Sehr streng* (und belasse die **Tonhöhen-Untergrenze** bei *75 Hz* oder hebe sie nahe an die tiefste echte Note der singenden Person an).
 
 ### Erweiterte Einstellungen {#advanced-settings}
 
@@ -376,8 +380,9 @@ Tag ohne Zeilen darunter, wie `[Interlude]`, ist eine instrumentale Passage.
   2. Ein parametrischer Equalizer
   3. Ein Kompressor
   4. Ein Stereo-Imager
-  5. **3D-Raum** (unten)
-  6. Ein Limiter
+  5. **480L Mastering-Reverb** (unten)
+  6. **3D-Raum** (unten)
+  7. Ein Limiter
 
   Jedes Modul klappt mit dem Pfeil links auf seine Leiste zusammen, und der Take merkt sich, welche eingeklappt sind.
 
@@ -390,7 +395,9 @@ Tag ohne Zeilen darunter, wie `[Interlude]`, ist eine instrumentale Passage.
 
   **Tasten.** Bei offenem Rack spielt die Leertaste den Take ab und pausiert ihn, und die Pfeiltasten bewegen sich darin und stellen die Lautstärke ein, wie auf der Hauptseite. Escape schließt das Rack und ein zweites Mal den Editor.
 
-- **3D-Raum**, ein Modul des Racks zwischen Imager und Limiter, platziert den Take für Kopfhörer um dich herum, auf eine von zwei Arten:
+- **480L Mastering-Reverb**, zwischen Imager und 3D-Raum, ergänzt einen Vintage-Studioraum speziell fürs Mastering: 6 Basis-Algorithmen (*Large Hall*, *Medium Hall*, *Small Hall*, *Plate*, *Ambient Space* und *Room*), 32 klassische 480L-v3.0-Bank- und Mastering-Presets mit <strong>&lt;</strong> / <strong>&gt;</strong>-Schalttasten, umschaltbare 12/24-dB/Okt.-Pre-Reverb-HPF und -LPF, Mid/Side-Eingangs- und -Ausgangsmatrizen, ein vom trockenen Signal gesteuerter **Dynamischer Wet-Ducker** mit 8-LED-Pegelabsenkungsanzeige, Stereobreite (0–150 %) und ein 24-dB/Okt.-**Mono-Maker**, linearphasiger Dry/Wet-Mix mit **Mastering-Skala** (feiner 0–10-%-Regelweg), **Delta (Nur Wet)** sowie ein Umschalter zwischen der klassischen 6-Fader-**LARC**-Ansicht und der All-in-One-**Mastering-Ansicht**.
+
+- **3D-Raum**, ein Modul des Racks zwischen Hall und Limiter, platziert den Take für Kopfhörer um dich herum, auf eine von zwei Arten:
 
   | Aus | Was du einstellst |
   |---|---|
@@ -953,9 +960,8 @@ dort weiter, wo du aufgehört hast. **Neue Jam** kehrt zum Klang des Seeds zurü
   entfernt ist, desto mehr Wörter für Stimmung, Dynamik und Vortrag kommen in den Stil, desto mehr wird vermieden und
   desto fester hält sich das Modell daran.
 - **Tempo** in Schlägen pro Minute, von 40 bis 240. Eine Jam beginnt beim Tempo des Seeds.
-- **Gesang**: Instrumental, Weiblich, Männlich oder eine deiner aufgenommenen Stimmen, mit bis zu drei Klangwörtern.
-  Ein Durchgang singt den Text des Seeds. Ein Seed ohne Text erzeugt nur Instrumentals.
-- **Gefühl** verfeinert, was die Fläche offen lässt. **Tonart** verschiebt Melodie und Akkorde in eine andere Tonart; **Beginnen bei** lässt einen kurzen Durchgang bei einem Abschnitt wie dem Refrain statt am Anfang beginnen; **Spielweise** und **Stiltreue** ersetzen die Wahl der Fläche, wie locker gespielt wird und wie fest der Stil gilt; **Ausarbeitung** gibt einem Durchgang mehr Schritte; **Akkorde** bestimmt, wie abenteuerlich die Akkorde eines neuen Plans sind, für Plan & Roll; und mit einer aufgenommenen Stimme gibt es Ähnlichkeit, Formant und Mischung. **Gleicher Seed** macht den nächsten Durchgang mit dem Seed seiner Basis, sodass er sich nur durch deine Änderungen unterscheidet. **Auf Standard zurücksetzen** stellt die ganze Karte zurück.
+- **Gesang**: Instrumental, Weiblich, Männlich oder eine deiner aufgenommenen Stimmen, mit bis zu drei Klangwörtern. Wenn eine aufgenommene Stimme gewählt ist, öffnet **Stimm-Einstellungen** direkt unter *Klang:* alle dreizehn Stimm-Einstellungen (einschließlich **Ausklang-Gate**, **Erkennung** und **Tonhöhen-Untergrenze**) für die Jam, mit **Auf Standard zurücksetzen** in derselben Kopfzeile. Ein Durchgang singt den Text des Seeds. Ein Seed ohne Text erzeugt nur Instrumentals.
+- **Gefühl** (einklappbar) verfeinert, was die Fläche offen lässt. **Tonart** verschiebt Melodie und Akkorde in eine andere Tonart; **Beginnen bei** lässt einen kurzen Durchgang bei einem Abschnitt wie dem Refrain statt am Anfang beginnen; **Spielweise** und **Stiltreue** ersetzen die Wahl der Fläche, wie locker gespielt wird und wie fest der Stil gilt; **Ausarbeitung** steht standardmäßig auf *Ausgefeilt (32 Schritte)* (mit *Entwurf (24 Schritte)* optional für schnellere Skizzen); **Akkorde** bestimmt, wie abenteuerlich die Akkorde eines neuen Plans sind, für Plan & Roll. **Gleicher Seed** (standardmäßig an) macht den nächsten Durchgang mit dem Seed seiner Basis, sodass er sich nur durch deine Änderungen unterscheidet. **Auf Standard zurücksetzen** stellt die ganze Karte zurück. Du kannst außerdem die senkrechten Trennlinien zwischen den drei Bereichen von Jam ziehen, um sie breiter oder schmaler zu machen (Doppelklick zum Zurücksetzen).
 
 Unter den Reglern zeigt **Gesendeter Stil** den Stil, den ein Roll sendet, und was er vermeidet.
 
@@ -1278,6 +1284,7 @@ Takes leben in **Bereichen**: ein Bereich pro Song, pro Album oder für Skizzen.
 - **Einen wählen:** Klicke auf den Namen für die Liste der Bereiche. Tippe, um einen nach Namen zu finden, oder wähle ihn mit den Pfeiltasten und Enter. Die fünf zuletzt benutzten kommen zuerst, dann alle Bereiche, jeder mit der Zahl seiner Takes.
 - **Neuer Bereich**, **Diesen Bereich umbenennen**, **Take importieren** und **Diesen Bereich löschen** stehen am Fuß der Liste. Beim Löschen eines Takes oder eines Bereichs wandern die Takes in **Trash** am Ende der Bereichsliste, wo du sie wiederherstellen oder wieder herausverschieben kannst. Erst das Löschen aus **Trash**, **Papierkorb leeren** oder das Bereinigen unter **Einstellungen → Speicher** entfernt die Dateien endgültig von der Festplatte.
 - **Einen Take verschieben:** Die Ordner-Schaltfläche auf einer Karte verschiebt diesen Take in einen anderen Bereich, mit allen Takes darin.
+- **Starter Pack:** Eine optionale kuratierte Bibliothek spielfertiger und bearbeitbarer Takes, die in einem Bereich **Starter Pack** samt Artwork, Mastering-Einstellungen, Cover-Aufnahme, Stimme und Stil-LoRAs installiert wird (bereits vorhandene LoRAs oder Stimmen werden übersprungen und bestehende Takes nie überschrieben). Bei Neuinstallationen unter Windows, nativem Linux und macOS standardmäßig aktiviert und bei Updates für bestehende Nutzer standardmäßig übersprungen; jederzeit nachträglich installierbar mit `sh scripts/fetch-models.sh --demos` (Docker), `yeufonic setup --demos` (natives Linux), `setup.sh --demos` (macOS) oder durch Anhaken von **Starter Pack (demo songs)** im Windows-Installer.
 - Aufnahmen werden von allen Bereichen geteilt, sodass eine Aufnahme in mehreren gecovert werden kann.
 
 ### Takes in einem Take {#takes-inside-a-take}
@@ -1511,8 +1518,9 @@ Richte eines ein, und sie gehen an: Bilder werden dann für die Takes gemacht, d
 | **Take-Bilder: gezeichnet von** | *Dieser PC, wenn klein installiert ist, sonst die externe LLM* (der Standard), *Dieser PC (das Modell unten)* oder *Das Bildmodell der externen LLM*. Welches klein auf diesem PC zeichnet (FLUX.2 klein 4B oder 9B oder FLUX 3 klein), wird unter **Modell** gewählt. FIBO 2.0 wird ebenfalls dort gewählt. |
 | **Take-Bilder: Modell** | *FLUX.2 klein 4B* (der Standard), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0* oder *9B, wo seine Dateien installiert sind, sonst 4B*. Nur für auf diesem PC gezeichnete Bilder. Der 9B und FLUX 3 werden nie für dich installiert; *FIBO 2.0* ist eine optionale Installationsauswahl (nur für nichtkommerzielle Nutzung): siehe [FLUX.2 klein 9B und FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) oben. Wird eines verlangt, ist aber nicht da, zeichnet ein anderes, und die Einstellungen sagen, welches. |
 | **Take-Bilder: beschrieben von** | wer den Bild-Prompt schreibt, aus dem Titel des Takes, dem Kunststil unten, seinem Stil und seinem Text (bis zu 50 Zeilen). *Lokales Gemma, wenn installiert, sonst der Take selbst* (der Standard), egal wer zeichnet. *Lokales Gemma*: auf diesem PC geschrieben; braucht die Option Songtext-Entwürfe. *Aus dem Take selbst*: keine LLM; eine Beschreibung aus Titel, Stil und ersten Worten des Takes, am schnellsten, und nichts wird dafür verschickt. Oder die *Externe LLM*, eine Anfrage pro Bild; ist sie nicht erreichbar oder wechselst du für die Sitzung zu lokalen LLMs, schreibt Gemma sie stattdessen, wenn es installiert ist. |
-| **Take-Bilder: Kunststil** | wie das Bild aussehen soll, an die LLM gegeben, die den Bild-Prompt schreibt (ausgegraut, wenn der Take sich selbst beschreibt). Standardmäßig ein abstraktes, surrealistisches Design im Stil von Albumcovern der 1970er und 1980er, ohne Text oder Menschen. Geleert geht es dorthin zurück. |
-| **Take-Bilder: dein eigener Prompt** | Wörter, mit denen der Bild-Prompt jedes Bildes beginnt, etwa *salt marsh, overcast*, bis zu 512 Zeichen; der Prompt, den die LLM schreibt, folgt darauf. Leer (der Standard): keine. Nur, wenn eine LLM den Bild-Prompt schreibt (ausgegraut, wenn der Take sich selbst beschreibt). |
+| **Take-Bilder: Kunststil** | wie das Bild aussehen soll, an die LLM gegeben, die den Bild-Prompt schreibt (ausgegraut, wenn der Take sich selbst beschreibt). Standardmäßig ein abstraktes, surrealistisches Design im Stil von Albumcovern der 1970er und 1980er, ohne Text oder Menschen. Gibst du einen eigenen Kunststil ein, werden das eingebaute Hipgnosis-Briefing und die Vinyl-Ringabrieb-Anweisungen weggelassen, sodass dein Stil das gesamte Bild bestimmt. Geleert geht es zum Standard zurück. |
+| **Take-Bilder: dein eigener Prompt** | Wörter für den Bild-Prompt jedes Bildes, etwa *salt marsh, overcast*, bis zu 512 Zeichen. Leer (der Standard): keine. |
+| **Take-Bilder: Verwendung des eigenen Prompts** | wie **dein eigener Prompt** verwendet wird: *Kombiniert* (der Standard, dem LLM-Prompt vorangestellt) oder *Direkt zeichnen* (unverändert direkt an das Bildmodell gesendet, ohne LLM, Kunststil und Abnutzungsspuren). |
 | **Take-Bilder: Songtitel auf dem Bild** | *Aus* (der Standard) oder *An*: Der Titel des Songs wird fett auf das Cover geschrieben, in Groß- oder Kleinbuchstaben, wie du ihn geschrieben hast, selbst wenn er der Name eines Künstlers ist (das Bild selbst wird trotzdem ohne ihn beschrieben). Meist wird das Bild von einer dünnen dunklen Linie in einem gebrochen weißen Rand gerahmt, wie auf vielen Hüllen der 1970er, mit dem Titel zentriert in einem tieferen Band oben oder unten. Etwa eines von fünf hat keinen Rand: Der Titel steht über dem Bild, in einer Ecke oder zentriert oben oder unten, in einer gedämpften Farbe aus dem Bild, und die LLM wird gebeten, diesen Teil des Bildes dafür frei zu halten. All das wird für jedes Bild zufällig gewählt. FLUX.2 klein schreibt ihn womöglich nicht ganz richtig. Nur, wenn eine LLM den Bild-Prompt schreibt. |
 | **Take-Bilder: Bildmodell** | welches Modell des Anbieters zeichnet. Nur für von der externen LLM gezeichnete Bilder (wähle es unter **Gezeichnet von**; sonst ausgegraut), und leer für das übliche des Anbieters, was fast immer das ist, was du willst. |
 
@@ -1527,7 +1535,7 @@ schnellsten Bilder oder auf *Externe LLM* (eine Anfrage pro Bild).
 Das Symbol **Bild** in der oberen Zeile des Editorfensters, neben den anderen Schaltflächen des Takes, zeigt das Bild mit zwei Möglichkeiten:
 
 - **Ein neues Bild machen** macht es im Hintergrund neu.
-  - **Ein neues Bild mit neuem Prompt machen**, hier daneben, unter dem ganzen Bild und auf einer Karte ohne Bild, fragt zuerst nach dem Kunststil dieses einen Bildes. Es beginnt mit dem Stil aus den Einstellungen (*Take-Bilder: Kunststil*) und gilt nur für dieses Bild an dessen Stelle; die Einstellungen bleiben, wie sie sind.
+  - **Ein neues Bild mit neuem Prompt machen**, hier daneben, unter dem ganzen Bild, im Bildmenü des Visualizers und auf einer Karte ohne Bild, steht standardmäßig auf **Diesen Prompt direkt zeichnen** (unverändert direkt an das Bildmodell gesendet, ohne LLM, Kunststil und Einstellungs-Prompt) und bietet einen Umschalter zu **Als Kunststil verwenden** (gilt nur für dieses Bild anstelle von *Take-Bilder: Kunststil* in den Einstellungen, die unverändert bleiben).
 - **Den Standardhintergrund verwenden** nimmt es endgültig weg: Für diesen Take wird kein Bild mehr gemacht, außer du bittest darum.
 
 Klicke dort auf das Bild, um es ganz zu sehen, so groß, wie das Fenster erlaubt; ein Klick irgendwo oder Escape legt es weg und lässt den Editor, wie er war. Das ganze Bild hat dieselben zwei Möglichkeiten darunter: Wähle dort **Ein neues Bild machen**, und das Bild bleibt stehen, während das neue entsteht, mit dem, was gerade passiert, zwischen den Schaltflächen, und wechselt dann zum neuen, wenn es fertig ist.
@@ -1583,7 +1591,7 @@ Die Bühne zeigt Audio-Visualisierungen in Echtzeit, synchron zum Abspielen:
 - **Hinter den Szenen:** Die Szenen Artwork, Yeufonic, Mandala, Gitter, Flüssig und Balken spielen über dem Bild des Takes, sanft mit der Musik bewegt, wo der Take eines hat. Darüber kann sich auch etwas bewegen, in den eigenen Farben des Bildes: *Atem* (das Bild allein), *Lichtstrahlen*, die sich aus der Mitte drehen, *Wellen*, die auf dem Schlag ausgesandt werden, *Treibende Farbe*, *Tiefe* (weitere Kopien des Bildes, die sich gegeneinander drehen) oder ein *Spektrum-Halo*. Jede Szene beginnt mit ihrem eigenen (treibende Farbe hinter Artwork, der Halo hinter Mandala, Strahlen hinter Gitter, Wellen hinter Flüssig, das Bild allein hinter Yeufonic und Balken); drücke **B**, um sie durchzugehen, und die Szene merkt sich deine Wahl.
 - **Die Wellenform:** Unter den Szenen Yeufonic und Artwork zeigt die Wellenform des Takes, wie weit der Song gespielt hat; klicke darauf, um dorthin zu springen.
 - **Albumcover und Vinyl-Dynamik:** Zeigt das Albumcover des Takes im Stil von Hipgnosis in einer interaktiven 3D-Hülle, die sich mit der Zeigerbewegung neigt und kreist. Eine realistische Vinylplatte dreht sich mit 33⅓ U/min und gleitet bei Basstreffern aus der Hülle, begleitet von holografischem Schimmer und schlagreaktiven Schockwellenringen. Wechsle die Modi mit der Schaltfläche **Artwork**: *Hülle*, *Aura* (verschwommener Hintergrund) oder *Aus*.
-- **Ein neues Bild:** Die Bild-Schaltfläche oben rechts macht in jeder Szene ein neues Bild für den spielenden Take, wo dieser PC Bilder machen kann. Sie pulsiert, während das Bild entsteht, und das neue übernimmt, wenn es fertig ist.
+- **Ein neues Bild:** Ein Klick auf die Bild-Schaltfläche oben rechts öffnet in jeder Szene ein Menü mit denselben drei Möglichkeiten wie in der Vollansicht (**Ein neues Bild machen**, **Ein neues Bild mit neuem Prompt machen** und **Den Standardhintergrund verwenden**). Es zeigt während der Erzeugung den Live-Status an, pulsiert, bis das neue Bild übernimmt, funktioniert im Vollbild und entfernt das Artwork beim Zurücksetzen auf den Standardhintergrund sofort.
 - **Textanzeige:** Drücke **Shift+L** oder klicke **Text**, um das eigenständige, scrollbare Textfeld ein- und auszublenden. Zieh es an der Leiste oben aus dem Weg; es bleibt, wo du es hinlegst, und ein Doppelklick auf die Leiste legt es zurück.
 - **Mini-Player-Band:** Während der volle Visualizer geschlossen ist, spielt ein reaktives Mini-Doppelwellen-Band in der unteren Transportleiste. Es lässt sich in **Einstellungen → Darstellung** umschalten.
 
@@ -1730,6 +1738,8 @@ Das Protokollfenster bleibt in jedem Design dunkel, wie ein Terminal, und das Ma
 bewege **Farbton** um den Farbkreis und **Stärke** von einem zarten Hauch bis zu einer satten Farbe. Die Seite ändert sich, während du
 ziehst, und die Wahl wird behalten, wenn du loslässt. Die Take-Karten, die Bereiche und die Fenster behalten ihre eigenen
 Farben, und das Design mit hohem Kontrast bleibt schwarz.
+
+**Benutzerdefinierte Designs**, unter Design, öffnet den **Custom Theme Builder**: Starte von einem beliebigen eingebauten Design, passe einzelne Farben für Flächen, Akzente, Text, Rahmen und die Abspielen-Schaltfläche an (einschließlich Tönungen, Nuancen und Flächenverläufe pro Farbe) und sieh dir deine Änderungen live in den Ansichten **Hauptseite**, **Editor** und **Jam** an, exakt 1:1 passend zu den Modi Studio Slate und Hintergrund. Gespeicherte benutzerdefinierte Designs erscheinen in der Design-Auswahl und können als JSON exportiert oder auf einer anderen Installation importiert werden.
 
 ### Externe LLM {#external-llm}
 
@@ -1976,12 +1986,13 @@ Alles liegt in einem Benutzerordner (standardmäßig `~/.local/share/yeufonic`, 
 - **Engine und Optionen wählen:** Das Installationsprogramm prüft deinen Rechner und fragt nach der gewünschten
   Engine (**ComfyUI** für alles einschließlich LoRA-Training oder **yue2.cpp** für kleinere Grafikkarten),
   der YuE2-Modellgröße und optionalen Bestandteilen (Gemma 4 für Textentwürfe, **FLUX.2 klein 4B** oder
-  **FIBO 2.0** für Take-Bilder, Stil-LoRAs und aufgenommene Stimmen).
+  **FIBO 2.0** für Take-Bilder, Stil-LoRAs, aufgenommene Stimmen und die **Starter Pack**-Demo-Bibliothek, die bei
+  Neuinstallationen standardmäßig auf Ja und bei Updates auf Nein steht).
 - **Starten und Stoppen:** Führe `yeufonic` im Vordergrund aus (oder `yeufonic start -d` im Hintergrund) und
   öffne <http://localhost:8090>. Mit `yeufonic status`, `yeufonic logs` und `yeufonic stop` prüfst oder
   beendest du eine im Hintergrund laufende Instanz.
 - **Engine wechseln oder später Optionen hinzufügen:** Beende Yeufonic und führe `yeufonic setup` aus (oder
-  mit Flags wie `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--bf16`, `--picture-model fibo2`, `--loras`).
+  mit Flags wie `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--bf16`, `--picture-model fibo2`, `--loras`, `--demos`).
   Bibliothek, Einstellungen, LoRAs und bereits geladene Modelle bleiben erhalten.
 - **Aktualisieren und Entfernen:** Lade ein neueres `.run`-Installationsprogramm von der Release-Seite und
   führe es erneut aus, um bestehend zu aktualisieren; mit `yeufonic uninstall` entfernst du es (optional unter

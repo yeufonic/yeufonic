@@ -85,10 +85,13 @@ Ce sont les réglages par défaut de la voix, fixés sur sa page. Une prise peut
 | **Brillance** | *Auto* relève son haut du spectre pour égaler celui du chant rendu ; *Désactivé* le laisse tel que converti. |
 | **Souffles et consonnes** | À quel point ils gardent les sons propres du chant rendu : *Gardées* restent nettes mais en portent une trace, *Converties* peuvent se déchirer. |
 | **Dynamique** | De qui le chant suit le volume d'une phrase à l'autre : de la prise, telle que rendue, ou des propres élans de la voix. |
+| **Porte de fin** | Atténue en douceur les queues de réverbération faibles et les légères repisses en fin de ligne chantée, avant comme après conversion (*Désactivé*, *Douce*, *Standard*, *Ferme* ou *Serrée*). Montez vers *Ferme* ou *Serrée* si vous entendez des grognements graves en fin de phrase ; baissez vers *Douce* ou *Désactivé* si les fins douces et soufflées semblent coupées. |
+| **Seuil voisé** | Niveau de certitude exigé du détecteur de hauteur avant de chanter une trame comme note juste (*Sensible*, *Équilibré*, *Stricte* ou *Très strict*). Des réglages plus stricts traitent les souffles incertains et les queues qui s'éteignent comme non voisés afin que le modèle de voix cesse de les chanter en grognements graves. |
+| **Plancher tonal** | Hauteur chantée minimale (*50 Hz* à *140 Hz*, par défaut *75 Hz*). Tout ce qui se situe sous cette fréquence est traité comme non voisé au lieu d'être chanté ; le relever près de la note réelle la plus grave du chanteur évite les croassements et grognements à la sous-octave en fin de phrase. |
 
 #### Utiliser une voix dans une prise {#using-a-voice-in-a-take}
 
-Dans l'éditeur, choisissez la voix sous **Voix enregistrée**. **Paramètres**, à côté, ouvre les réglages ci-dessus pour cette prise seulement ; la prise les garde, et le bouton indique *réglages propres* quand ils diffèrent de ceux de la voix.
+Dans l'éditeur, choisissez la voix sous **Voix enregistrée**. **Paramètres**, à côté, ouvre les treize réglages ci-dessus pour cette prise seulement ; la prise les garde, et le bouton indique *réglages propres* quand ils diffèrent de ceux de la voix. Le même panneau repliable **Réglages de la voix** est disponible dans **Jam** sous **Chant → Timbre :** lorsqu'une voix enregistrée est choisie (et **Chanson entière** enregistre les treize réglages sur la prise sauvegardée).
 
 #### Écouter une voix avant de l'utiliser {#hearing-a-voice-before-you-use-it}
 
@@ -104,8 +107,8 @@ Dans l'éditeur, choisissez la voix sous **Voix enregistrée**. **Paramètres**,
 #### Partager et importer des voix {#sharing-and-importing-voices}
 
 - **Télécharger la voix** enregistre une voix entraînée en zip à donner à quelqu'un.
-- **Importer une voix…** en ajoute une : ce zip, ou un modèle RVC venu d'ailleurs (son zip, ou son .pth et son .index choisis ensemble). Une voix importée sans son index peut le recevoir plus tard avec **Ajouter son index…** : Ressemblance s'appuie dessus.
-- **Des voix toutes prêtes**, des modèles RVC entraînés par d'autres, se trouvent sur des sites comme [voice-models.com](https://voice-models.com/) : **Importer une voix…** prend le zip tel qu'il a été téléchargé.
+- **Importer une voix…** en ajoute une : ce zip, ou un modèle RVC venu d'ailleurs (son archive `.zip` ou `.rar`, ou son `.pth` et son `.index` choisis ensemble). Une voix importée sans son index peut le recevoir plus tard avec **Ajouter son index…** : Ressemblance s'appuie dessus.
+- **Des voix toutes prêtes**, des modèles RVC entraînés par d'autres, se trouvent sur des sites comme [voice-models.com](https://voice-models.com/) : **Importer une voix…** prend l'archive `.zip` ou `.rar` telle qu'elle a été téléchargée.
 - La recette d'une prise nomme sa voix et les réglages de la prise pour elle, et l'importer reprend la voix de ce nom sur cette installation, s'il y en a une.
 
 #### Obtenir une voix propre {#getting-a-clean-voice}
@@ -115,6 +118,7 @@ Le résultat est un chant converti posé sur un accompagnement séparé, donc mo
 - Une voix apprend la réverbération et la production de l'enregistrement en même temps que la personne qui chante : un chant propre et sec, au chant principal net, donne donc une voix plus propre qu'un corpus de chansons mixées.
 - Une seule chanson ou un court enregistrement donne une voix reconnaissable, mais qui peut brouiller les mots qu'elle n'a jamais entendu chanter.
 - Une voix entraînée sur beaucoup plus de chant, avec beaucoup plus de passes, comme le sont souvent les voix toutes prêtes, garde les mots même avec une Ressemblance élevée.
+- Si vous entendez un artefact grave proche d'un grognement en fin de ligne chantée (causé par le détecteur de hauteur qui s'accroche aux faibles queues de réverbération ou à la repisse en fin de phrase), essayez de régler **Porte de fin** sur *Ferme* ou *Serrée* et **Seuil voisé** sur *Stricte* ou *Très strict* (en gardant **Plancher tonal** à *75 Hz* ou en le relevant près de la note réelle la plus grave du chanteur).
 
 ### Réglages avancés {#advanced-settings}
 
@@ -376,8 +380,9 @@ tag sans ligne en dessous, comme `[Interlude]`, est un passage instrumental.
   2. Un égaliseur paramétrique
   3. Un compresseur
   4. Un élargisseur stéréo
-  5. **Espace 3D** (plus bas)
-  6. Un limiteur
+  5. **Réverbération de mastering 480L** (plus bas)
+  6. **Espace 3D** (plus bas)
+  7. Un limiteur
 
   Chaque module se replie sur sa barre avec la flèche à sa gauche, et la prise retient lesquels sont repliés.
 
@@ -390,7 +395,9 @@ tag sans ligne en dessous, comme `[Interlude]`, est un passage instrumental.
 
   **Touches.** Rack ouvert, la barre d'espace lance et met en pause la prise, et les flèches s'y déplacent et règlent le volume, comme sur la page principale. Échap ferme le rack, et une seconde fois l'éditeur.
 
-- **Espace 3D**, un module du rack entre l'élargisseur et le limiteur, place la prise autour de vous pour le casque, de l'une de deux façons :
+- **Réverbération de mastering 480L**, entre l'élargisseur et Espace 3D, ajoute un espace de studio vintage taillé pour le mastering : 6 algorithmes de base (*Large Hall*, *Medium Hall*, *Small Hall*, *Plate*, *Ambient Space* et *Room*), 32 préréglages classiques de banque 480L v3.0 et de mastering avec sélecteurs <strong>&lt;</strong> / <strong>&gt;</strong>, filtres passe-haut et passe-bas pré-réverb commutables en 12/24 dB/oct, matrices Mid/Side en entrée et sortie, un **Ducker dynamique wet** piloté par le signal dry avec vumètre de réduction de gain à 8 LED, largeur stéréo (0–150 %) et un **Mono-Maker** à 24 dB/oct, mix Dry/Wet en phase linéaire avec **Échelle Mastering** (course fine de 0–10 %), **Delta (Solo Wet)**, ainsi qu'un basculement entre l'interface **LARC** classique à 6 faders et la **Vue Mastering** tout-en-un.
+
+- **Espace 3D**, un module du rack entre la réverbération et le limiteur, place la prise autour de vous pour le casque, de l'une de deux façons :
 
   | Depuis | Ce que vous réglez |
   |---|---|
@@ -953,9 +960,8 @@ la même prise reprend là où vous en étiez. **Nouvelle Jam** revient au son d
   plus il ajoute au style des mots d’ambiance, de dynamique et d’interprétation, plus il ajoute de choses à éviter, et
   plus le modèle s’y tient.
 - **Tempo**, en battements par minute, de 40 à 240. Une Jam commence au tempo du Seed.
-- **Chant** : Instrumental, Féminin, Masculin ou l’une de vos voix enregistrées, avec jusqu’à trois mots de timbre.
-  Une passe chante les paroles du Seed. Un Seed sans paroles ne donne que des instrumentaux.
-- **Ressenti** affine ce que le pavé laisse libre. **Tonalité** déplace la mélodie et les accords dans une autre tonalité ; **Commencer à** fait jouer une passe courte à partir d’une section, comme le refrain, plutôt que du début ; **Interprétation** et **Tenue du style** remplacent le choix du pavé pour la liberté du jeu et la fermeté du style ; **Finition** donne plus d’étapes à une passe ; **Accords** règle l’audace des accords d’un nouveau plan, pour Plan & Roll ; et avec une voix enregistrée, il y a sa ressemblance, son formant et son mélange. **Même seed** fait la prochaine passe avec le seed de sa base, pour qu’elle ne diffère que par vos changements. **Rétablir les valeurs par défaut** remet toute la carte comme au départ.
+- **Chant** : Instrumental, Féminin, Masculin ou l’une de vos voix enregistrées, avec jusqu’à trois mots de timbre. Lorsqu'une voix enregistrée est choisie, **Réglages de la voix** juste sous *Timbre :* ouvre les treize réglages de voix (y compris **Porte de fin**, **Seuil voisé** et **Plancher tonal**) pour la Jam, avec **Rétablir les valeurs par défaut** sur la même ligne d'en-tête. Une passe chante les paroles du Seed. Un Seed sans paroles ne donne que des instrumentaux.
+- **Ressenti** (repliable) affine ce que le pavé laisse libre. **Tonalité** déplace la mélodie et les accords dans une autre tonalité ; **Commencer à** fait jouer une passe courte à partir d’une section, comme le refrain, plutôt que du début ; **Interprétation** et **Tenue du style** remplacent le choix du pavé pour la liberté du jeu et la fermeté du style ; **Finition** est réglée par défaut sur *Soigné (32 étapes)* (avec *Ébauche (24 étapes)* en option pour des esquisses plus rapides) ; **Accords** règle l’audace des accords d’un nouveau plan, pour Plan & Roll. **Même seed** (activé par défaut) fait la prochaine passe avec le seed de sa base, pour qu’elle ne diffère que par vos changements. **Rétablir les valeurs par défaut** remet toute la carte comme au départ. Vous pouvez également faire glisser les séparateurs verticaux entre les trois panneaux de Jam pour les élargir ou les rétrécir (double-clic pour réinitialiser).
 
 Sous les commandes, **Style envoyé** montre le style qu’un Roll enverra, et ce qu’il évite.
 
@@ -1280,6 +1286,7 @@ Les prises vivent dans des **espaces** : un espace par chanson, par album, ou po
 - **En choisir un :** cliquez sur le nom pour la liste des espaces. Tapez pour en trouver un par son nom, ou choisissez-le avec les flèches et Entrée. Les cinq derniers utilisés viennent d'abord, puis tous les espaces, chacun avec le nombre de prises qu'il contient.
 - **Nouvel espace**, **Renommer cet espace**, **Importer une prise** et **Supprimer cet espace** sont en bas de la liste. Supprimer une prise ou un espace déplace les prises dans **Trash**, au bas de la liste des espaces, où vous pouvez les restaurer ou les déplacer ailleurs. Supprimer une prise depuis **Trash**, cliquer sur **Vider la corbeille** ou libérer Trash dans **Paramètres → Stockage** efface définitivement ses fichiers du disque.
 - **Déplacer une prise :** le bouton dossier d'une carte déplace cette prise vers un autre espace, avec les prises qu'elle contient.
+- **Starter Pack :** une bibliothèque facultative et sélectionnée de prises prêtes à écouter et modifiables, installées dans un espace **Starter Pack** avec leurs pochettes, leurs réglages de mastering, leur enregistrement de reprise, leur voix et leurs LoRA de style (en ignorant les LoRA ou voix déjà présents et sans jamais écraser de prises existantes). Activé par défaut lors d'une première installation sous Windows, Linux natif et macOS, et ignoré par défaut lors des mises à jour pour les utilisateurs existants ; ajoutez-le à tout moment avec `sh scripts/fetch-models.sh --demos` (Docker), `yeufonic setup --demos` (Linux natif), `setup.sh --demos` (macOS) ou en cochant **Starter Pack (demo songs)** dans l'installateur Windows.
 - Les enregistrements sont partagés par tous les espaces, donc un enregistrement peut être repris dans plusieurs.
 
 ### Des prises dans une prise {#takes-inside-a-take}
@@ -1512,8 +1519,9 @@ Configurez l’un ou l’autre et elles s’activent : des images sont alors cr�
 | **Images des prises : dessinées par** | *Ce PC si klein est installé, sinon le LLM externe* (par défaut), *Ce PC (le modèle ci-dessous)* ou *Le modèle d’image du LLM externe*. Le klein qui dessine sur ce PC (FLUX.2 klein 4B ou 9B, ou FLUX 3 klein) se choisit sous **modèle**. FIBO 2.0 s’y choisit aussi. |
 | **Images des prises : modèle** | *FLUX.2 klein 4B* (par défaut), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0*, ou *9B là où ses fichiers sont installés, sinon 4B*. Seulement pour les images dessinées sur ce PC. Le 9B et FLUX 3 ne sont jamais installés pour vous ; *FIBO 2.0* est une option d’installation (usage non commercial uniquement) : voir [FLUX.2 klein 9B et FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) plus haut. Si celui demandé n’est pas là, un autre dessine, et les Paramètres disent lequel. |
 | **Images des prises : décrites par** | qui écrit le prompt d’image, à partir du titre de la prise, du style artistique ci-dessous, de son style et de ses paroles (jusqu’à 50 lignes). *Gemma local s’il est installé, sinon la prise elle-même* (par défaut), quel que soit celui qui dessine. *Gemma local* : écrit sur ce PC ; nécessite l’option Brouillons de paroles. *À partir de la prise elle-même* : pas de LLM ; une description faite à partir du titre, du style et des premiers mots de la prise, la plus rapide, et rien n’est envoyé. Ou le *LLM externe*, une requête par image ; quand il est injoignable, ou si vous passez aux LLM locaux pour la session, Gemma les écrit à la place s’il est installé. |
-| **Images des prises : style artistique** | à quoi l’image doit ressembler, donné au LLM qui écrit le prompt d’image (grisé quand la prise se décrit elle-même). Par défaut un design abstrait et surréaliste à la manière des pochettes d’album des années 1970 et 1980, sans texte ni personnes. Vidé, il revient à cela. |
-| **Images des prises : votre propre prompt** | des mots par lesquels commence le prompt d’image de chaque image, comme *salt marsh, overcast*, jusqu’à 512 caractères ; le prompt écrit par le LLM les suit. Vide (par défaut) : aucun. Seulement quand un LLM écrit le prompt d’image (grisé quand la prise se décrit elle-même). |
+| **Images des prises : style artistique** | à quoi l’image doit ressembler, donné au LLM qui écrit le prompt d’image (grisé quand la prise se décrit elle-même). Par défaut un design abstrait et surréaliste à la manière des pochettes d’album des années 1970 et 1980, sans texte ni personnes. Lorsque vous saisissez un style artistique personnalisé, le brief Hipgnosis intégré et les consignes d’usure circulaire de vinyle sont omis afin que votre style guide toute l’image. Vidé, il revient à la valeur par défaut. |
+| **Images des prises : votre propre prompt** | des mots pour le prompt d’image de chaque image, comme *salt marsh, overcast*, jusqu’à 512 caractères. Vide (par défaut) : aucun. |
+| **Images des prises : utilisation de votre prompt** | la manière dont **votre propre prompt** est utilisé : *Combiné* (par défaut, placé devant le prompt du LLM) ou *Dessiner directement* (envoyé tel quel au modèle d’image, en ignorant le LLM, le style artistique et l’usure). |
 | **Images des prises : titre de la chanson sur l'image** | *Non* (par défaut) ou *Oui* : le titre de la chanson est écrit en gras sur la pochette, en capitales ou en minuscules, tel que vous l’avez écrit, même quand c’est le nom d’un artiste (l’image elle-même est toujours décrite sans lui). La plupart du temps, l’image est encadrée par un mince filet sombre dans une bordure blanc cassé, comme sur beaucoup de pochettes des années 1970, avec le titre centré dans une bande plus large en haut ou en bas. Environ une sur cinq n’a pas de bordure : le titre se place sur l’image, dans un coin ou centré en haut ou en bas, dans une couleur sourde tirée de l’image, et on demande au LLM de garder cette partie de l’image dégagée pour lui. Tout cela est tiré au hasard pour chaque image. FLUX.2 klein peut l’écrire imparfaitement. Seulement quand un LLM écrit le prompt d’image. |
 | **Images des prises : modèle d'image** | lequel des modèles du fournisseur dessine. Seulement pour les images dessinées par le LLM externe (choisissez-le sous **Dessinée par** ; grisé sinon), et vide pour le modèle habituel du fournisseur, ce qui est presque toujours ce que vous voulez. |
 
@@ -1528,7 +1536,7 @@ images les plus rapides, ou sur *LLM externe* (une requête par image).
 L'icône **Image** dans la rangée du haut de la fenêtre de l'éditeur, à côté des autres boutons de la prise, montre l'image avec deux choix :
 
 - **Faire une nouvelle image** la refait en arrière-plan.
-  - **Faire une nouvelle image avec un nouveau prompt**, à côté ici, sous l’image entière et sur une carte sans image, demande d’abord le style artistique de cette seule image. Il part de celui des Paramètres et le remplace pour cette image seulement ; les Paramètres restent tels quels.
+  - **Faire une nouvelle image avec un nouveau prompt**, à côté ici, sous l’image entière, dans le menu d’image du visualiseur et sur une carte sans image, est réglé par défaut sur **Dessiner ce prompt directement** (envoyé tel quel au modèle d’image, en ignorant le LLM, le style artistique et le prompt des paramètres), avec une option pour choisir **Utiliser comme style artistique** à la place (utilisé à la place de *Images des prises : style artistique* dans les Paramètres pour cette image seulement, sans modifier les Paramètres).
 - **Utiliser l'arrière-plan par défaut** la retire pour de bon : aucune image n'est plus faite pour cette prise, sauf si vous en demandez une.
 
 Cliquez sur l'image pour la voir entière, aussi grande que la fenêtre le permet ; un clic n'importe où ou Échap la range et laisse l'éditeur tel qu'il était. L'image entière a les deux mêmes choix dessous : choisissez-y **Faire une nouvelle image** et l'image reste affichée pendant que la nouvelle se fait, avec ce qui se passe entre les boutons, puis passe à la nouvelle quand elle est prête.
@@ -1584,7 +1592,7 @@ La scène affiche des visualisations audio en temps réel synchronisées avec la
 - **Derrière les scènes :** les scènes Pochette, Yeufonic, Mandala, Grille, Liquide et Barres se jouent sur l’image de la prise, qui bouge doucement avec la musique, quand la prise en a une. Quelque chose peut aussi bouger par-dessus, dans les couleurs de l’image : *Souffle* (l’image seule), des *Rayons de lumière* qui tournent depuis le centre, des *Ondulations* lancées sur le temps, une *Couleur dérivante*, de la *Profondeur* (d’autres copies de l’image qui tournent l’une contre l’autre) ou un *Halo spectral*. Chaque scène commence avec le sien (couleur dérivante derrière Pochette, le halo derrière Mandala, les rayons derrière Grille, les ondulations derrière Liquide, l’image seule derrière Yeufonic et Barres) ; appuyez sur **B** pour les parcourir, et la scène retient votre choix.
 - **La forme d’onde :** sous les scènes Yeufonic et Pochette, la forme d’onde de la prise montre où en est la chanson ; cliquez dessus pour y sauter.
 - **Pochette d’album et dynamique du vinyle :** affiche la pochette de la prise façon Hipgnosis dans une pochette 3D interactive qui s’incline et tourne avec le pointeur. Un disque vinyle réaliste tourne à 33⅓ tours et sort de la pochette sur les coups de basse, avec un reflet holographique et des anneaux d’onde de choc qui réagissent au rythme. Changez de mode avec le bouton **Pochette** : *Pochette*, *Aura* (fond flouté) ou *Désactivé*.
-- **Une nouvelle image :** le bouton image en haut à droite, dans chaque scène, crée une nouvelle image pour la prise en lecture, là où ce PC peut créer des images. Il pulse pendant la création, et la nouvelle prend le relais quand elle est prête.
+- **Une nouvelle image :** cliquer sur le bouton image en haut à droite, dans chaque scène, ouvre un menu proposant les trois mêmes choix que la vue complète (**Faire une nouvelle image**, **Faire une nouvelle image avec un nouveau prompt** et **Utiliser l'arrière-plan par défaut**). Il affiche l’état en direct pendant la génération, pulse jusqu’à ce que la nouvelle image prenne le relais, fonctionne en plein écran et efface immédiatement la pochette lorsqu’elle est réinitialisée à l’arrière-plan par défaut.
 - **Affichage des paroles :** appuyez sur **Shift+L** ou cliquez sur **Paroles** pour afficher ou masquer le panneau de paroles indépendant et défilant. Faites-le glisser par la barre du haut pour le déplacer ; il reste où vous le posez, et un double-clic sur la barre le remet en place.
 - **Ruban du mini-lecteur :** tant que le visualiseur plein écran est fermé, un mini-visualiseur à double onde réactif joue dans la barre de transport du bas. Il s’active ou se désactive dans **Paramètres → Apparence**.
 
@@ -1731,6 +1739,8 @@ La fenêtre des journaux reste sombre dans tous les thèmes, comme un terminal, 
 faites tourner **Couleur** sur la roue chromatique et réglez **Intensité** d’un léger voile à une couleur riche. La page change pendant que vous
 faites glisser, et le choix est gardé quand vous relâchez. Les cartes de prise, les panneaux et les fenêtres gardent leurs propres
 couleurs, et le thème à contraste élevé reste noir.
+
+**Thèmes personnalisés**, sous Thème, ouvre le **Custom Theme Builder** : partez de n’importe quel thème intégré, ajustez individuellement les couleurs des surfaces, des accents, du texte, des bordures et du bouton de lecture (y compris les teintes, nuances et dégradés de surface par couleur), et prévisualisez vos changements en direct dans les vues **Page principale**, **Éditeur** et **Jam** fidèles 1:1 aux modes Studio Ardoise et Arrière-plan. Les thèmes personnalisés enregistrés apparaissent dans le sélecteur de thème et peuvent être exportés en JSON ou importés sur une autre installation.
 
 ### LLM externe {#external-llm}
 
@@ -1978,13 +1988,15 @@ bibliothèque.
 - **Choisir le moteur et les options :** l’installateur vérifie votre système et demande quel moteur utiliser
   (**ComfyUI** pour tout, y compris l’entraînement de LoRA, ou **yue2.cpp** pour les cartes avec moins de
   mémoire), quelle taille du modèle YuE2 et quelles options installer (Gemma 4 pour les brouillons de paroles,
-  **FLUX.2 klein 4B** ou **FIBO 2.0** pour les images de prises, les LoRA de style et les voix enregistrées).
+  **FLUX.2 klein 4B** ou **FIBO 2.0** pour les images de prises, les LoRA de style, les voix enregistrées et la
+  bibliothèque de démonstration **Starter Pack**, activée par défaut lors d’une première installation et
+  désactivée lors des mises à jour).
 - **Démarrer et arrêter :** lancez `yeufonic` au premier plan (ou `yeufonic start -d` en arrière-plan), puis
   ouvrez <http://localhost:8090>. Utilisez `yeufonic status`, `yeufonic logs` et `yeufonic stop` pour vérifier
   ou arrêter une instance détachée.
 - **Changer de moteur ou ajouter des options plus tard :** arrêtez Yeufonic et lancez `yeufonic setup` (ou
   passez des options comme `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--bf16`, `--picture-model fibo2`,
-  `--loras`). Votre bibliothèque, vos paramètres, vos LoRA et les modèles déjà téléchargés sont conservés.
+  `--loras`, `--demos`). Votre bibliothèque, vos paramètres, vos LoRA et les modèles déjà téléchargés sont conservés.
 - **Mettre à jour et supprimer :** téléchargez un nouvel installateur `.run` depuis la page des versions et
   lancez-le à nouveau pour mettre à jour sur place ; lancez `yeufonic uninstall` pour supprimer (en gardant si
   souhaité votre bibliothèque et vos modèles). Voir

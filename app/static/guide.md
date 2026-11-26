@@ -122,10 +122,10 @@ hear as a voice of its own, on the same model.
 #### Sharing and importing voices
 
 - **Download voice** saves a trained voice as a zip to give to someone.
-- **Import a voice…** adds one: that zip, or an RVC model from elsewhere (its zip, or its .pth and .index chosen
+- **Import a voice…** adds one: that zip, or an RVC model from elsewhere (its `.zip` or `.rar` archive, or its `.pth` and `.index` chosen
   together). A voice imported without its index can take it later with **Add its index…**: Likeness draws on it.
 - **Ready-made voices**, RVC models trained by others, can be found on sites such as
-  [voice-models.com](https://voice-models.com/): **Import a voice…** takes the zip as downloaded.
+  [voice-models.com](https://voice-models.com/): **Import a voice…** takes the `.zip` or `.rar` archive as downloaded.
 - A take's recipe names its voice and the take's settings for it, and importing it picks up the voice of that name on
   this install, if there is one.
 
@@ -419,8 +419,9 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
   2. A parametric equalizer
   3. A compressor
   4. A stereo imager
-  5. **3D Space** (below)
-  6. A limiter
+  5. **480L Mastering Reverb** (below)
+  6. **3D Space** (below)
+  7. A limiter
 
   Each module folds to its bar with the arrow at its left, and the take keeps which are folded.
 
@@ -436,7 +437,9 @@ tag with no lines under it, such as `[Interlude]`, is an instrumental passage.
   **Keys.** With the rack open, space plays and pauses the take and the arrow keys move through it and set the volume,
   as on the main page. Escape closes the rack, and again closes the editor.
 
-- **3D Space**, a module of the rack between the imager and the limiter, places the take around you for headphones,
+- **480L Mastering Reverb**, between the imager and 3D Space, adds vintage studio space tailored for mastering: 6 base algorithms (*Large Hall*, *Medium Hall*, *Small Hall*, *Plate*, *Ambient Space*, and *Room*), 32 classic 480L v3.0 bank and mastering presets with `<` / `>` steppers, switchable 12/24 dB/oct pre-reverb HPF and LPF, Mid/Side input and output matrices, a dry-sidechained **Dynamic Wet Ducker** with an 8-LED gain-reduction meter, stereo width (0–150%) and a 24 dB/oct **Mono-Maker**, linear-phase Dry/Wet mix with **Mastering Scale** (0–10% fine throw), **Delta (Solo Wet)**, and a toggle between the classic 6-fader **LARC** view and the all-in-one **Mastering View**.
+
+- **3D Space**, a module of the rack between the reverb and the limiter, places the take around you for headphones,
   in one of two ways:
 
   | From | What you set |
@@ -1064,8 +1067,8 @@ same take again brings back where you left off. **New Jam** goes back to the See
   it adds words for mood, dynamics and delivery to the style, the more it adds things to avoid, and the more firmly
   the model is held to them.
 - **Tempo**, in beats per minute, from 40 to 240. A Jam starts at the Seed's tempo.
-- **Vocals**: Instrumental, Female, Male, or one of your recorded voices, with up to three tone words. When a recorded voice is chosen, **Voice settings** right below *Tone:* opens all thirteen voice settings (including **Tail gate**, **Voicing**, and **Pitch floor**) for the Jam. A pass sings the Seed's own words. A Seed with no words makes instrumentals only.
-- **Feel** (collapsible) fine-tunes what the pad leaves loose. **Key** moves the melody and chords to another key; **Start at** has a short pass play from a section, such as the chorus, rather than the top; **Performance** and **Style grip** replace the pad's choice of how loosely the music is played and how firmly it follows the style; **Polish** spends more steps on a pass; **Chords** sets how adventurous a new plan's chords are, for Plan & Roll. **Same seed** (on by default) makes the next pass with its base's seed, so what you hear differs only by what you changed. **Reset to defaults** puts the whole card back. You can also drag the vertical dividers between Jam's three panels to widen or narrow them (double-click to reset).
+- **Vocals**: Instrumental, Female, Male, or one of your recorded voices, with up to three tone words. When a recorded voice is chosen, **Voice settings** right below *Tone:* opens all thirteen voice settings (including **Tail gate**, **Voicing**, and **Pitch floor**) for the Jam, with **Reset to defaults** on the same header row. A pass sings the Seed's own words. A Seed with no words makes instrumentals only.
+- **Feel** (collapsible) fine-tunes what the pad leaves loose. **Key** moves the melody and chords to another key; **Start at** has a short pass play from a section, such as the chorus, rather than the top; **Performance** and **Style grip** replace the pad's choice of how loosely the music is played and how firmly it follows the style; **Polish** defaults to *Polished (32 steps)* (with *Draft (24 steps)* optional for quicker sketches); **Chords** sets how adventurous a new plan's chords are, for Plan & Roll. **Same seed** (on by default) makes the next pass with its base's seed, so what you hear differs only by what you changed. **Reset to defaults** puts the whole card back. You can also drag the vertical dividers between Jam's three panels to widen or narrow them (double-click to reset).
 
 Under the controls, **Compiled style** shows the style a roll will send, and what it avoids.
 
@@ -1447,6 +1450,7 @@ on show, and anything you make lands there.
   or move them back out. Deleting a take from **Trash**, pressing **Empty Trash**, or reclaiming Trash in
   **Settings → Storage** removes its files from disk permanently.
 - **Moving a take:** the folder button on a card moves that take to another space, with any takes inside it.
+- **Starter Pack:** an optional curated library of ready-to-play and editable takes installed into a **Starter Pack** space with their artwork, mastering settings, cover recording, voice and style LoRAs (skipping any LoRA or voice already present, and never overwriting existing takes). Enabled by default on fresh Windows, native Linux and macOS installs and skipped by default on updates for existing users; add it any time with `sh scripts/fetch-models.sh --demos` (Docker), `yeufonic setup --demos` (native Linux), `setup.sh --demos` (macOS), or by ticking **Starter Pack (demo songs)** in the Windows installer.
 - Recordings are shared by every space, so one recording can be covered in several.
 
 ### Takes inside a take
@@ -1704,8 +1708,9 @@ Set up either and they come on: pictures are then made for the takes you make fr
 | **Take pictures: drawn by** | *This PC if klein is installed, else the external LLM* (the default), *This PC (the model below)* or *The external LLM's image model*. Which model draws on this PC (FLUX.2 klein 4B or 9B, FLUX 3 klein or FIBO 2.0) is chosen under **Take pictures: model**. |
 | **Take pictures: model** | *FLUX.2 klein 4B* (the default), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0*, or *9B where its files are installed, else 4B*. Only for pictures drawn on this PC. The 9B and FLUX 3 are never installed for you; FIBO 2.0 is an optional install choice (non-commercial use only): see [FLUX.2 klein 9B and FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) above. One asked for and not there, another draws, and Settings say which. |
 | **Take pictures: described by** | who writes the image prompt, from the take's title, the art style below, its style and its words (up to 50 lines). *Local Gemma if installed, else the take itself* (the default), whoever draws; on a Mac with the ComfyUI engine the default is the take itself, as Gemma runs slowly there and every job would wait behind it. *Local Gemma*: written on this PC; needs the Lyric drafts option. *From the take itself*: no LLM; a description made from the take's title, style and opening words, the quickest, and nothing is sent out for it. Or the *External LLM*, a request each; when it cannot be reached, or you switch to local LLMs for the session, Gemma writes them instead if it is installed. |
-| **Take pictures: art style** | how the picture should look, given to the LLM that writes the image prompt (greyed out when the take itself describes it). By default an abstract, surrealist design in the manner of 1970s and 1980s album covers, with no text or people. Emptied, it goes back to that. |
-| **Take pictures: your own prompt** | words to start every picture's image prompt with, such as *salt marsh, overcast*, up to 512 characters; the prompt the LLM writes follows them. Empty (the default): none. Only when an LLM writes the image prompt (greyed out when the take itself describes it). |
+| **Take pictures: art style** | how the picture should look, given to the LLM that writes the image prompt (greyed out when the take itself describes it). By default an abstract, surrealist design in the manner of 1970s and 1980s album covers, with no text or people. When you enter a custom art style, the built-in Hipgnosis brief and vinyl ring-wear instructions are left out so your style guides the whole image. Emptied, it goes back to the default. |
+| **Take pictures: your own prompt** | words for every picture's image prompt, such as *salt marsh, overcast*, up to 512 characters. Empty (the default): none. |
+| **Take pictures: own prompt mode** | how **your own prompt** is used: *Prefix* (the default, prepended to the LLM's prompt) or *Replace* (sent straight to the image model as written, skipping the LLM, art style and wear). |
 | **Take pictures: song title on the picture** | *Off* (the default) or *On*: the song's title is lettered on the cover in bold, in capitals or small letters, as you wrote it, even when it is an artist's name (the picture itself is still described without it). Mostly the picture is framed by a thin dark line inside an off-white border, as on many 1970s sleeves, with the title centred in a deeper band at the top or the bottom. About one in five has no border: the title goes over the picture, at a corner or centred along the top or the bottom, in a muted colour from the picture, and the LLM is asked to keep that part of the picture clear for it. All of this is chosen at random for each picture. FLUX.2 klein may spell it imperfectly. Only when an LLM writes the image prompt. |
 | **Take pictures: image model** | which of the provider's models draws. Only for pictures drawn by the external LLM (choose it under **Drawn by**; greyed out otherwise), and empty for the provider's usual one, which is nearly always what you want. |
 
@@ -1721,7 +1726,7 @@ The **Picture** icon in the editor window's top row, beside the take's other but
 choices:
 
 - **Make a new picture** makes it again in the background.
-  - **Make a new picture with a new prompt**, beside it here, under the whole picture and on a card with no picture, first asks for the art style of this one picture. It starts from the one in Settings (*Take pictures: art style*) and is used in its place for this picture only; Settings stay as they are.
+  - **Make a new picture with a new prompt**, beside it here, under the whole picture, in the visualizer's picture menu and on a card with no picture, defaults to **Draw this prompt directly** (sent straight to the image model as written, skipping the LLM, art style and Settings prompt), with a toggle to **Use as art style** instead (used in place of Settings' *Take pictures: art style* for this picture only, leaving Settings unchanged).
 - **Use the default background** takes it away for good: no picture is made for that take again unless you ask for
   one.
 
@@ -1783,7 +1788,7 @@ The stage renders real-time audio visualisations synchronized with playback:
 - **Behind the scenes:** the Artwork, Yeufonic, Mandala, Grid, Liquid and Bars scenes play over the take's picture, softly moving with the music, where the take has one. Something can move over it too, in the picture's own colours: *Breath* (the picture alone), *Light rays* turning from the middle, *Ripples* sent out on the beat, *Drifting colour*, *Depth* (more copies of the picture turning against each other) or a *Spectrum halo*. Each scene starts with its own (drifting colour behind Artwork, the halo behind Mandala, rays behind Grid, ripples behind Liquid, the picture alone behind Yeufonic and Bars); press **B** to step through them, and the scene keeps your choice.
 - **The waveform:** under the Yeufonic and Artwork scenes, the take's waveform shows how far the song has played; click it to jump there.
 - **Album Artwork & Vinyl Dynamics:** Displays the take's Hipgnosis-style album cover in an interactive 3D sleeve that tilts and orbits with pointer movement. A realistic vinyl record spins at 33⅓ RPM and slides out of the sleeve on bass hits, accompanied by holographic sheen and beat-reactive shockwave rings. Cycle modes with the **Artwork** button: *Sleeve*, *Aura* (ambient blurred background), or *Off*.
-- **A new picture:** the picture button at the top right, in every scene, makes a new picture for the take playing, where this PC can make pictures. It pulses while the picture is made, and the new one takes over when it is ready.
+- **A new picture:** clicking the picture button at the top right, in every scene, opens a menu with the same three choices as full view (**Make a new picture**, **Make a new picture with a new prompt**, and **Use the default background**). It shows live status while generating, pulses until the new picture takes over, works in fullscreen, and immediately clears the artwork when reset to the default background.
 - **Lyrics Display:** Press **Shift+L** or click **Lyrics** to toggle the independent, scrollable lyrics panel. Drag it by the bar at its top to move it out of the way; it stays where you put it, and a double-click on the bar puts it back.
 - **Mini Player Ribbon:** While the full visualizer is closed, a reactive mini dual-wave visualizer ribbon plays inside the bottom transport bar. It can be toggled in **Settings → Appearance**.
 
@@ -1935,6 +1940,11 @@ The log window stays dark in every theme, like a terminal, and the mastering rac
 move **Hue** round the colour wheel and **Strength** from a faint wash to a rich colour. The page changes as you
 drag, and the choice is kept when you let go. The take cards, the panels and the windows keep their own
 colours, and the high contrast theme stays black.
+
+**Custom themes**, under Theme, opens the **Custom Theme Builder**: start from any built-in theme, adjust individual
+surface, accent, text, border and play-button colours (including per-colour tints, shades and surface gradients), and
+preview your changes live across **Main**, **Editor** and **Jam** views matching Slate and Backdrop modes 1:1. Saved
+custom themes appear in the Theme picker and can be exported to JSON or imported on another install.
 
 ### External LLM
 
@@ -2179,12 +2189,13 @@ linked in `~/.local/bin`), with its own Python environment, engine, models and l
 - **Choosing engine and options:** the installer checks your system and asks which engine to use
   (**ComfyUI** for everything including LoRA training, or **yue2.cpp** for smaller graphics cards), which
   YuE2 model size, and which optional parts to install (Gemma 4 for lyric drafts, **FLUX.2 klein 4B** or
-  **FIBO 2.0** for take pictures, style LoRAs and recorded voices).
+  **FIBO 2.0** for take pictures, style LoRAs, recorded voices and the **Starter Pack** demo library, which
+  defaults to yes on fresh installs and no on updates).
 - **Starting and stopping:** run `yeufonic` to start in the foreground (or `yeufonic start -d` to start
   detached in the background), then open <http://localhost:8090>. Use `yeufonic status`, `yeufonic logs`
   and `yeufonic stop` to check or stop a detached instance.
 - **Switching engine or adding options later:** stop Yeufonic and run `yeufonic setup` (or pass flags such
-  as `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--bf16`, `--picture-model fibo2`, `--loras`). Your
+  as `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--bf16`, `--picture-model fibo2`, `--loras`, `--demos`). Your
   library, settings and LoRAs stay in place, and models already downloaded are kept.
 - **Updating and removing:** download a newer `.run` installer from the release page and run it again to
   update in place; run `yeufonic uninstall` to remove it (optionally keeping your library and models). See

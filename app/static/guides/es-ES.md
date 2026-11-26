@@ -85,10 +85,13 @@ Son los valores por defecto de la voz, fijados en su página. Una toma puede ten
 | **Brillo** | *Auto* sube su parte alta para igualar la de la voz renderizada; *Desactivado* la deja como salió de la conversión. |
 | **Respiraciones y consonantes** | Cuánto conservan los sonidos de la voz renderizada: *Conservadas* quedan nítidas pero llevan un rastro de ella, *Convertidas* pueden romperse. |
 | **Dinámica** | A quién sigue el volumen de la voz de frase en frase: a la toma, tal como se renderizó, o a los propios crescendos de la voz. |
+| **Puerta final** | Atenúa suavemente las colas de reverberación tenues y la filtración de bajo nivel al final de las frases cantadas, antes y después de la conversión (*Desactivado*, *Suave*, *Estándar*, *Firme* o *Ajustada*). Súbela hacia *Firme* o *Ajustada* si oyes gruñidos graves al final de las frases; bájala hacia *Suave* o *Desactivado* si los finales suaves y susurrados parecen cortados. |
+| **Detección** | Cuán seguro debe estar el detector de tono antes de cantar un fotograma como nota afinada (*Sensible*, *Equilibrado*, *Estricto* o *Muy estricto*). Los ajustes más estrictos tratan las respiraciones dudosas y las colas que se apagan como no sonoras, para que el modelo de voz deje de cantarlas como gruñidos graves. |
+| **Tono mínimo** | El tono cantado más grave (*50 Hz* a *140 Hz*, por defecto *75 Hz*). Todo lo que quede por debajo de esta frecuencia se trata como no sonoro en lugar de cantarse; subirlo cerca de la nota real más grave de quien canta evita graznidos suboctava y gruñidos graves al final de las frases. |
 
 #### Usar una voz en una toma {#using-a-voice-in-a-take}
 
-En el editor, elige la voz en **Voz grabada**. **Configuración**, a su lado, abre los ajustes de arriba solo para esta toma; la toma los conserva, y el botón indica *ajustes propios* cuando difieren de los de la voz.
+En el editor, elige la voz en **Voz grabada**. **Configuración**, a su lado, abre los trece ajustes de arriba solo para esta toma; la toma los conserva, y el botón indica *ajustes propios* cuando difieren de los de la voz. El mismo panel plegable **Ajustes de la voz** está disponible en **Jam** bajo **Voz → Timbre:** cuando se elige una voz grabada (y **Canción completa** guarda los trece ajustes en la toma resultante).
 
 #### Escuchar una voz antes de usarla {#hearing-a-voice-before-you-use-it}
 
@@ -104,8 +107,8 @@ En el editor, elige la voz en **Voz grabada**. **Configuración**, a su lado, ab
 #### Compartir e importar voces {#sharing-and-importing-voices}
 
 - **Descargar voz** guarda una voz entrenada como zip para dársela a alguien.
-- **Importar una voz…** añade una: ese zip, o un modelo RVC de otra parte (su zip, o su .pth y .index elegidos juntos). Una voz importada sin su índice puede recibirlo después con **Añadir su índice…**: Parecido se basa en él.
-- **Voces listas para usar**, modelos RVC entrenados por otras personas, en sitios como [voice-models.com](https://voice-models.com/): **Importar una voz…** acepta el zip tal como se descarga.
+- **Importar una voz…** añade una: ese zip, o un modelo RVC de otra parte (su archivo `.zip` o `.rar`, o su `.pth` y `.index` elegidos juntos). Una voz importada sin su índice puede recibirlo después con **Añadir su índice…**: Parecido se basa en él.
+- **Voces listas para usar**, modelos RVC entrenados por otras personas, en sitios como [voice-models.com](https://voice-models.com/): **Importar una voz…** acepta el archivo `.zip` o `.rar` tal como se descarga.
 - La receta de una toma nombra su voz y los ajustes de la toma para ella, e importarla recupera la voz con ese nombre en esta instalación, si existe.
 
 #### Conseguir una voz limpia {#getting-a-clean-voice}
@@ -115,6 +118,7 @@ El resultado es una voz convertida sobre un acompañamiento separado, así que e
 - Una voz aprende la reverberación y la producción de la grabación junto con quien canta, así que un canto limpio y seco con una voz principal clara da una voz más limpia que un corpus de canciones mezcladas.
 - Una sola canción o una grabación corta da una voz reconocible, pero que puede desdibujar palabras que nunca oyó cantar.
 - Una voz entrenada con mucho más canto y muchas más pasadas, como suelen estarlo las voces listas para usar, conserva las palabras incluso con un Parecido alto.
+- Si oyes un artefacto grave parecido a un gruñido al final de las frases cantadas (causado porque el detector de tono se engancha a colas de reverberación tenues o filtraciones al apagarse una frase), prueba a poner **Puerta final** en *Firme* o *Ajustada* y **Detección** en *Estricto* o *Muy estricto* (manteniendo **Tono mínimo** en *75 Hz* o subiéndolo cerca de la nota real más grave del cantante).
 
 ### Ajustes avanzados {#advanced-settings}
 
@@ -376,8 +380,9 @@ etiqueta sin líneas debajo, como `[Interlude]`, es un pasaje instrumental.
   2. Un ecualizador paramétrico
   3. Un compresor
   4. Un ampliador estéreo
-  5. **Espacio 3D** (abajo)
-  6. Un limitador
+  5. **Reverb de mastering 480L** (abajo)
+  6. **Espacio 3D** (abajo)
+  7. Un limitador
 
   Cada módulo se pliega a su barra con la flecha de su izquierda, y la toma recuerda cuáles están plegados.
 
@@ -390,7 +395,9 @@ etiqueta sin líneas debajo, como `[Interlude]`, es un pasaje instrumental.
 
   **Teclas.** Con el rack abierto, la barra espaciadora reproduce y pausa la toma, y las flechas se mueven por ella y ajustan el volumen, como en la página principal. Escape cierra el rack, y otra vez cierra el editor.
 
-- **Espacio 3D**, un módulo del rack entre el ampliador y el limitador, coloca la toma a tu alrededor para auriculares, de una de dos maneras:
+- **Reverb de mastering 480L**, entre el ampliador y Espacio 3D, añade un espacio de estudio vintage pensado para masterización: 6 algoritmos base (*Large Hall*, *Medium Hall*, *Small Hall*, *Plate*, *Ambient Space* y *Room*), 32 preajustes clásicos del banco 480L v3.0 y de masterización con selectores <strong>&lt;</strong> / <strong>&gt;</strong>, filtros HPF y LPF previos a la reverb con pendiente conmutable de 12/24 dB/oct, matrices de entrada y salida Mid/Side, un **Ducker dinámico wet** controlado por la señal seca con medidor de reducción de ganancia de 8 LED, anchura estéreo (0–150 %) y un **Mono-Maker** de 24 dB/oct, mezcla Dry/Wet de fase lineal con **Escala Mastering** (recorrido fino de 0–10 %), **Delta (Solo Wet)** y cambio entre la vista clásica **LARC** de 6 faders y la **Vista Mastering** todo en uno.
+
+- **Espacio 3D**, un módulo del rack entre la reverb y el limitador, coloca la toma a tu alrededor para auriculares, de una de dos maneras:
 
   | Desde | Qué ajustas |
   |---|---|
@@ -954,9 +961,8 @@ dejaste. **Jam nueva** vuelve al sonido de la Semilla y elimina las pasadas.
   más palabras de ambiente, dinámica e interpretación añade al estilo, más cosas añade para evitar y más se ciñe el
   modelo a ellas.
 - **Tempo**, en pulsaciones por minuto, de 40 a 240. Una Jam empieza con el tempo de la Semilla.
-- **Voz**: Instrumental, Femenina, Masculina o una de tus voces grabadas, con hasta tres palabras de timbre. Una pasada
-  canta la letra de la Semilla. Una Semilla sin letra solo da instrumentales.
-- **Sensación** afina lo que el panel deja suelto. **Tonalidad** lleva la melodía y los acordes a otra tonalidad; **Empezar en** hace que una pasada corta suene desde una sección, como el estribillo, en vez de desde el principio; **Interpretación** y **Apego al estilo** sustituyen la elección del panel sobre la soltura al tocar y el apego al estilo; **Acabado** da más pasos a una pasada; **Acordes** fija lo atrevidos que son los acordes de un plan nuevo, para Plan & Roll; y con una voz grabada están su parecido, su formante y su mezcla. **Misma semilla** hace la próxima pasada con la semilla de su base, para que solo cambie lo que modificaste. **Restablecer valores** devuelve toda la tarjeta a su estado inicial.
+- **Voz**: Instrumental, Femenina, Masculina o una de tus voces grabadas, con hasta tres palabras de timbre. Cuando se elige una voz grabada, **Ajustes de la voz**, justo debajo de *Timbre:*, abre los trece ajustes de voz (incluidos **Puerta final**, **Detección** y **Tono mínimo**) para la Jam, con **Restablecer valores** en la misma fila de cabecera. Una pasada canta la letra de la Semilla. Una Semilla sin letra solo da instrumentales.
+- **Sensación** (plegable) afina lo que el panel deja suelto. **Tonalidad** lleva la melodía y los acordes a otra tonalidad; **Empezar en** hace que una pasada corta suene desde una sección, como el estribillo, en vez de desde el principio; **Interpretación** y **Apego al estilo** sustituyen la elección del panel sobre la soltura al tocar y el apego al estilo; **Acabado** usa por defecto *Pulido (32 pasos)* (con *Borrador (24 pasos)* opcional para bocetos más rápidos); **Acordes** fija lo atrevidos que son los acordes de un plan nuevo, para Plan & Roll. **Misma semilla** (activada por defecto) hace la próxima pasada con la semilla de su base, para que solo cambie lo que modificaste. **Restablecer valores** devuelve toda la tarjeta a su estado inicial. También puedes arrastrar los divisores verticales entre los tres paneles de Jam para ensancharlos o estrecharlos (doble clic para restablecer).
 
 Bajo los controles, **Estilo enviado** muestra el estilo que enviará un Roll y lo que evita.
 
@@ -1280,6 +1286,7 @@ Las tomas viven en **espacios**: un espacio por canción, por álbum o para boce
 - **Elegir uno:** haz clic en el nombre para ver la lista de espacios. Escribe para encontrar uno por nombre, o elígelo con las flechas e Intro. Los cinco que usaste por última vez van primero, luego todos los espacios, cada uno con cuántas tomas tiene.
 - **Espacio nuevo**, **Renombrar este espacio**, **Importar toma** y **Eliminar este espacio** están al pie de la lista. Al eliminar una toma o un espacio, sus tomas pasan a **Trash**, al final de la lista de espacios, donde puedes restaurarlas o moverlas de vuelta. Eliminar una toma desde **Trash**, pulsar **Vaciar Papelera** o liberar Trash en **Configuración → Almacenamiento** borra sus archivos del disco permanentemente.
 - **Mover una toma:** el botón de carpeta de una tarjeta mueve esa toma a otro espacio, con las tomas que contenga.
+- **Starter Pack:** una biblioteca opcional y seleccionada de tomas listas para reproducir y editar que se instala en un espacio **Starter Pack** con sus portadas, ajustes de masterización, grabación de versión, voz y LoRA de estilo (omitiendo cualquier LoRA o voz ya presentes y sin sobrescribir nunca tomas existentes). Activada por defecto en instalaciones nuevas de Windows, Linux nativo y macOS y omitida por defecto al actualizar instalaciones existentes; puedes añadirla en cualquier momento con `sh scripts/fetch-models.sh --demos` (Docker), `yeufonic setup --demos` (Linux nativo), `setup.sh --demos` (macOS) o marcando **Starter Pack (demo songs)** en el instalador de Windows.
 - Las grabaciones son comunes a todos los espacios, así que una grabación puede versionarse en varios.
 
 ### Tomas dentro de una toma {#takes-inside-a-take}
@@ -1512,8 +1519,9 @@ Configura cualquiera de los dos y se activan: a partir de entonces se hacen imá
 | **Imágenes de las tomas: dibujadas por** | *Este PC si klein está instalado, si no el LLM externo* (por defecto), *Este PC (el modelo de abajo)* o *El modelo de imagen del LLM externo*. Qué klein dibuja en este PC (FLUX.2 klein 4B o 9B, o FLUX 3 klein) se elige en **modelo**. FIBO 2.0 también se elige ahí. |
 | **Imágenes de las tomas: modelo** | *FLUX.2 klein 4B* (por defecto), *FLUX.2 klein 9B*, *FLUX 3 klein*, *FIBO 2.0*, o *9B donde estén instalados sus archivos, si no 4B*. Solo para imágenes dibujadas en este PC. El 9B y FLUX 3 nunca se instalan por ti; *FIBO 2.0* es una opción de instalación (solo para uso no comercial): consulta [FLUX.2 klein 9B y FLUX 3 klein](#two-ways-to-draw-flux-2-klein-on-this-pc-or-an-external-llm) más arriba. Si el pedido no está, dibuja otro, y Configuración dice cuál. |
 | **Imágenes de las tomas: descritas por** | quién escribe el prompt de imagen, a partir del título de la toma, el estilo artístico de abajo, su estilo y su letra (hasta 50 líneas). *Gemma local si está instalado, si no la propia toma* (por defecto), dibuje quien dibuje. *Gemma local*: escrito en este PC; necesita la opción Borradores de letra. *A partir de la propia toma*: sin LLM; una descripción hecha con el título, el estilo y las primeras palabras de la toma, la más rápida, y no se envía nada. O el *LLM externo*, una petición por imagen; cuando no está disponible, o pasas a LLM locales para la sesión, Gemma las escribe en su lugar si está instalado. |
-| **Imágenes de las tomas: estilo artístico** | cómo debe verse la imagen, dado al LLM que escribe el prompt de imagen (atenuado cuando la toma se describe a sí misma). Por defecto un diseño abstracto y surrealista al estilo de las portadas de los años setenta y ochenta, sin texto ni personas. Vaciado, vuelve a eso. |
-| **Imágenes de las tomas: tu propio prompt** | palabras con las que empieza el prompt de imagen de cada imagen, como *salt marsh, overcast*, hasta 512 caracteres; el prompt que escribe el LLM va detrás. Vacío (por defecto): ninguna. Solo cuando un LLM escribe el prompt de imagen (atenuado cuando la toma se describe a sí misma). |
+| **Imágenes de las tomas: estilo artístico** | cómo debe verse la imagen, dado al LLM que escribe el prompt de imagen (atenuado cuando la toma se describe a sí misma). Por defecto un diseño abstracto y surrealista al estilo de las portadas de los años setenta y ochenta, sin texto ni personas. Cuando escribes un estilo artístico personalizado, se omiten las instrucciones integradas de Hipgnosis y de desgaste de vinilo para que tu estilo guíe toda la imagen. Vaciado, vuelve al valor por defecto. |
+| **Imágenes de las tomas: tu propio prompt** | palabras para el prompt de imagen de cada imagen, como *salt marsh, overcast*, hasta 512 caracteres. Vacío (por defecto): ninguna. |
+| **Imágenes de tomas: cómo se usa tu prompt** | cómo se emplea **tu propio prompt**: *Prefijo* (por defecto, antepuesto al prompt del LLM) o *Reemplazar* (enviado directamente al modelo de imagen tal cual está escrito, omitiendo el LLM, el estilo artístico y el desgaste). |
 | **Imágenes de las tomas: título de la canción en la imagen** | *No* (por defecto) o *Sí*: el título de la canción se rotula en negrita en la portada, en mayúsculas o minúsculas, tal como lo escribiste, incluso cuando es el nombre de un artista (la imagen en sí se sigue describiendo sin él). Casi siempre la imagen va enmarcada por una fina línea oscura dentro de un borde blanco roto, como en muchas portadas de los setenta, con el título centrado en una banda más ancha arriba o abajo. Más o menos una de cada cinco no tiene borde: el título va sobre la imagen, en una esquina o centrado arriba o abajo, en un color apagado sacado de la imagen, y se pide al LLM que deje esa parte de la imagen despejada para él. Todo esto se elige al azar para cada imagen. FLUX.2 klein puede escribirlo con alguna errata. Solo cuando un LLM escribe el prompt de imagen. |
 | **Imágenes de las tomas: modelo de imagen** | cuál de los modelos del proveedor dibuja. Solo para imágenes dibujadas por el LLM externo (elígelo en **Dibujado por**; atenuado si no), y vacío para el habitual del proveedor, que es casi siempre lo que quieres. |
 
@@ -1528,7 +1536,7 @@ imágenes más rápidas, o en *LLM externo* (una petición por imagen).
 El icono **Imagen** en la fila superior de la ventana del editor, junto a los demás botones de la toma, muestra la imagen con dos opciones:
 
 - **Hacer una imagen nueva** la vuelve a hacer en segundo plano.
-  - **Hacer una imagen nueva con un prompt nuevo**, junto a ella aquí, bajo la imagen completa y en una tarjeta sin imagen, pide primero el estilo artístico de esta imagen. Empieza con el de Configuración y se usa en su lugar solo para esta imagen; la Configuración se queda como está.
+  - **Hacer una imagen nueva con un prompt nuevo**, junto a ella aquí, bajo la imagen completa, en el menú de imagen del visualizador y en una tarjeta sin imagen, usa por defecto **Dibujar este prompt directamente** (enviado tal cual al modelo de imagen, omitiendo el LLM, el estilo artístico y el prompt de Configuración), con un interruptor para **Usar como estilo artístico** en su lugar (empleado en vez de *Imágenes de las tomas: estilo artístico* de Configuración solo para esta imagen, sin cambiar la Configuración).
 - **Usar el fondo por defecto** la quita para siempre: no se vuelve a hacer ninguna imagen para esa toma salvo que la pidas.
 
 Haz clic en la imagen allí para verla entera, tan grande como permite la ventana; un clic en cualquier sitio o Escape la quita y deja el editor como estaba. La imagen entera tiene las mismas dos opciones debajo: elige allí **Hacer una imagen nueva** y la imagen se queda mientras se hace la nueva, con lo que está pasando entre los botones, y luego cambia a la nueva cuando está lista.
@@ -1584,7 +1592,7 @@ El escenario muestra visualizaciones de audio en tiempo real sincronizadas con l
 - **Detrás de las escenas:** las escenas Portada, Yeufonic, Mandala, Rejilla, Líquido y Barras suenan sobre la imagen de la toma, que se mueve suavemente con la música, cuando la toma tiene una. Encima también puede moverse algo, en los colores de la imagen: *Respiración* (la imagen sola), *Rayos de luz* que giran desde el centro, *Ondas* lanzadas con el pulso, *Color a la deriva*, *Profundidad* (más copias de la imagen que giran unas contra otras) o un *Halo espectral*. Cada escena empieza con el suyo (color a la deriva detrás de Portada, el halo detrás de Mandala, rayos detrás de Rejilla, ondas detrás de Líquido, la imagen sola detrás de Yeufonic y Barras); pulsa **B** para recorrerlos, y la escena recuerda tu elección.
 - **La forma de onda:** bajo las escenas Yeufonic y Portada, la forma de onda de la toma muestra cuánto ha sonado la canción; haz clic en ella para saltar ahí.
 - **Portada y dinámica del vinilo:** muestra la portada de la toma al estilo Hipgnosis en una funda 3D interactiva que se inclina y gira con el puntero. Un disco de vinilo realista gira a 33⅓ RPM y sale de la funda con los golpes de bajo, con un brillo holográfico y anillos de onda expansiva que reaccionan al ritmo. Cambia de modo con el botón **Portada**: *Funda*, *Aura* (fondo difuminado) o *Desactivado*.
-- **Una imagen nueva:** el botón de imagen arriba a la derecha, en cada escena, hace una imagen nueva para la toma que suena, donde este PC puede hacer imágenes. Late mientras se hace la imagen, y la nueva toma el relevo cuando está lista.
+- **Una imagen nueva:** hacer clic en el botón de imagen arriba a la derecha, en cada escena, abre un menú con las mismas tres opciones que la vista completa (**Hacer una imagen nueva**, **Hacer una imagen nueva con un prompt nuevo** y **Usar el fondo por defecto**). Muestra el estado en directo mientras se genera, late hasta que la nueva imagen toma el relevo, funciona en pantalla completa y borra al instante la portada al restablecer el fondo por defecto.
 - **Letra en pantalla:** pulsa **Shift+L** o haz clic en **Letra** para mostrar u ocultar el panel de letra independiente y desplazable. Arrástralo por la barra de arriba para apartarlo; se queda donde lo pongas, y un doble clic en la barra lo devuelve a su sitio.
 - **Cinta del minirreproductor:** mientras el visualizador completo está cerrado, un minivisualizador reactivo de doble onda suena dentro de la barra de transporte inferior. Se activa o desactiva en **Configuración → Apariencia**.
 
@@ -1731,6 +1739,12 @@ La ventana de registros se queda oscura en todos los temas, como una terminal, y
 mueve **Tono** por la rueda de colores y **Intensidad** de un leve velo a un color intenso. La página cambia mientras
 arrastras, y la elección se guarda al soltar. Las tarjetas de las tomas, los paneles y las ventanas conservan sus propios
 colores, y el tema de alto contraste sigue negro.
+
+**Temas personalizados**, bajo Tema, abre el **Constructor de temas personalizados**: parte de cualquier tema integrado,
+ajusta individualmente los colores de superficie, acento, texto, borde y botón de reproducción (incluidos tintes, sombras
+y degradados de superficie por color) y previsualiza tus cambios en directo en las vistas **Principal**, **Editor** y
+**Jam**, reflejando 1:1 los modos Pizarra y Fondo. Los temas personalizados guardados aparecen en el selector de Tema y
+pueden exportarse a JSON o importarse en otra instalación.
 
 ### LLM externo {#external-llm}
 
@@ -1977,12 +1991,13 @@ Todo vive dentro de una sola carpeta de usuario (por defecto `~/.local/share/yeu
 - **Elegir motor y opciones:** el instalador comprueba tu sistema y pregunta qué motor usar (**ComfyUI** para
   todo, incluido el entrenamiento de LoRA, o **yue2.cpp** para tarjetas con menos memoria), qué tamaño del
   modelo YuE2 y qué partes opcionales instalar (Gemma 4 para borradores de letras, **FLUX.2 klein 4B** o
-  **FIBO 2.0** para imágenes de tomas, LoRA de estilo y voces grabadas).
+  **FIBO 2.0** para imágenes de tomas, LoRA de estilo, voces grabadas y la biblioteca de demostración **Starter Pack**,
+  que viene activada por defecto en instalaciones nuevas y desactivada en actualizaciones).
 - **Iniciar y detener:** ejecuta `yeufonic` en primer plano (o `yeufonic start -d` en segundo plano) y abre
   <http://localhost:8090>. Usa `yeufonic status`, `yeufonic logs` y `yeufonic stop` para comprobar o detener
   una instancia en segundo plano.
 - **Cambiar de motor o añadir opciones después:** detén Yeufonic y ejecuta `yeufonic setup` (o pasa opciones
-  como `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--bf16`, `--picture-model fibo2`, `--loras`). Tu
+  como `--engine yue2cpp`, `--engine comfyui`, `--int8`, `--bf16`, `--picture-model fibo2`, `--loras`, `--demos`). Tu
   biblioteca, configuración, LoRA y modelos ya descargados se conservan.
 - **Actualizar y desinstalar:** descarga un instalador `.run` más reciente de la página de versiones y
   ejecútalo de nuevo para actualizar en el sitio; ejecuta `yeufonic uninstall` para quitarlo (con opción de
