@@ -582,6 +582,7 @@ sh scripts/fetch-models.sh          # about 19 GB, and creates the folders below
 # sh scripts/fetch-models.sh --pictures   # also FLUX.2 klein (8.3 GB), to draw take pictures here
 # sh scripts/fetch-models.sh --fibo       # also FIBO 2.0 (15.6 GB, ComfyUI only, CC BY-NC 4.0)
 # sh scripts/fetch-models.sh --loras      # also 39 style LoRAs by their authors (3.8 GB, CC BY-NC 4.0)
+# sh scripts/fetch-models.sh --demos      # also the Starter Pack demo library (1.7 GB: takes, artwork, mastering, voice & LoRAs)
 docker compose up -d --build
 ```
 

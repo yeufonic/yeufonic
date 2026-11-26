@@ -62,6 +62,10 @@ each pin to the build its workflow would publish for the sources as they are.
      trains and sings on the GPU; the launcher starts the service beside the app (`voice_port` in
      settings.ini, 8190) and the app shows recorded voices while it answers. `setup.sh --voices`
      adds it later.
+   - **Starter Pack demo library** (about 1.7 GB): curated, ready-to-play and editable takes installed
+     into a **Starter Pack** space with their artwork, mastering settings, cover recording, voice and
+     style LoRAs (skipping any LoRA or voice already installed). Defaults to yes on a fresh install
+     and no on updates; `setup.sh --demos` adds it later (`--no-demos` skips it).
    - Downloads resume, and a second run keeps whatever is already in place.
    - A Terminal window is used because it needs no permission: the app writes a `.command` file
      and opens it, where telling Terminal what to do would ask to control it.

@@ -15,6 +15,8 @@ Arch, openSUSE, and native WSL2).
    ./yeufonic-<version>-linux-x86_64.run --help
    ./yeufonic-<version>-linux-x86_64.run --install-dir ~/yeufonic-custom
    ./yeufonic-<version>-linux-x86_64.run --extract-only ./unpacked
+   ./yeufonic-<version>-linux-x86_64.run --demos            # include the Starter Pack demo library (~1.7 GB; default on fresh installs)
+   ./yeufonic-<version>-linux-x86_64.run --no-demos         # skip the Starter Pack on a fresh install
    ./yeufonic-<version>-linux-x86_64.run --force-downloads
    ./yeufonic-<version>-linux-x86_64.run --check-only
    ./yeufonic-<version>-linux-x86_64.run --skip-models --no-desktop
@@ -51,8 +53,11 @@ yeufonic logs app                # tail app.log (or engine, launcher, voice, set
 yeufonic setup                   # interactively reconfigure engine, model size, or add-ons
 yeufonic setup --engine yue2cpp  # switch engines directly (keeps ComfyUI's files on disk)
 yeufonic setup --pictures        # add optional components directly
+yeufonic setup --demos           # download and install the Starter Pack demo takes (~1.7 GB)
 yeufonic uninstall               # remove Yeufonic (offers to keep data/ and models/)
 ```
+
+On an existing install, the **Starter Pack** is skipped by default during updates; run `yeufonic setup --demos` (or pass `--demos` to the `.run` installer) to add it at any time. Any style LoRAs or voices already installed are skipped, and existing takes are never overwritten — the demo takes appear in a **Starter Pack** space the next time Yeufonic starts.
 
 `settings.ini` inside the install folder overrides ports, library path, model size, and browser mode:
 
