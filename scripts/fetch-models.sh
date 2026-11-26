@@ -48,6 +48,11 @@
 #   sh scripts/fetch-models.sh --voice      also what recorded voices need, 1.1 GB, into models/voice/: RVC's content
 #                                        encoder, pitch tracker and 48 kHz base weights (MIT) and a BS-Roformer
 #                                        separator. Then COMPOSE_PROFILES=voice in .env starts the voice service.
+#   sh scripts/fetch-models.sh --demos      also the Starter Pack (curated demo takes in a "Starter Pack" space,
+#                                        with their artwork, mastering settings, cover recording, voice, and LoRAs
+#                                        when not already present), downloaded from yeufonic.com (override with
+#                                        STARTER_PACK_URL). Imported immediately if Yeufonic is running, or on
+#                                        next start.
 #
 # One size or the other: with both in models/checkpoints the app uses the full-quality one.
 # A file that is already there is kept, and an interrupted download resumes.
@@ -62,6 +67,7 @@ PICTURES=no
 FIBO=no
 LORAS=no
 VOICE=no
+DEMOS=no
 for arg in "$@"; do
   case "$arg" in
     --int8) MODEL=int8 ;;
@@ -72,6 +78,7 @@ for arg in "$@"; do
     --fibo|--fibo2) FIBO=yes ;;
     --loras) LORAS=yes ;;
     --voice) VOICE=yes ;;
+    --demos) DEMOS=yes ;;
     -h|--help) sed -n '2,/^set -eu/p' "$0" | sed '$d'; exit 0 ;;
     *) echo "unknown option: $arg (see --help)" >&2; exit 1 ;;
   esac
@@ -429,6 +436,11 @@ fetch "https://raw.githubusercontent.com/wrightflyer/SF2_SoundFonts/master/Jnsgm
 
 fetch "https://archive.org/download/free-soundfonts-sf2-2019-04/Arachno_SoundFont_Version_1.0.sf2" \
       "$SF2_DIR/Arachno_SoundFont_Version_1.0.sf2"
+
+if [ "$DEMOS" = yes ]; then
+  STARTER_PACK_URL="${STARTER_PACK_URL:-https://yeufonic.com/starter-pack}"
+  python3 "$ROOT/scripts/_fetch_starter_pack.py" --root "$ROOT" --url "$STARTER_PACK_URL"
+fi
 
 # Back to ComfyUI: compose.cpp.yml and its add-ons' profiles come out of .env (a line left with nothing else to say
 # goes), so docker compose runs ComfyUI again.

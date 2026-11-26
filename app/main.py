@@ -43,7 +43,7 @@ from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import recipe as recipes
-from . import aligner, artwork, autotune, composer, config, daw, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, stems, storage, system_stats, themes, trainsize, transpose, update, voices
+from . import aligner, artwork, autotune, composer, config, daw, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, starter_pack, stems, storage, system_stats, themes, trainsize, transpose, update, voices
 from .db import DEFAULT_SPACE, JAM_SPACE, TRASH_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 from . import winaccept
 
@@ -891,6 +891,15 @@ async def lifespan(app: FastAPI):
         for field in ("score_state", "lyrics_state", "style_state"):
             execute(f"UPDATE identity_songs SET {field} = 'none' WHERE {field} IN ('queued', 'running')")
     await requeue_waiting()
+    try:
+        sp = await asyncio.to_thread(starter_pack.install_pending)
+        if sp.get("installed"):
+            log.info(
+                "Starter Pack installed into '%s': %d takes, %d voices, %d sources",
+                sp["space_name"], sp["takes_added"], sp["voices_added"], sp["sources_added"],
+            )
+    except Exception:
+        log.exception("Starter Pack import failed")
     # Before relayout, which names each take's file, and before the levels are read.
     await asyncio.to_thread(library.convert_old_normalised)
     await asyncio.to_thread(relayout)
@@ -7438,4 +7447,23 @@ async def add_voice_index(persona_id: str, file: UploadFile = File(...)) -> dict
         temp.unlink(missing_ok=True)
     log.info("Added an index to the recorded voice '%s' (%s)", record["name"], persona_id)
     return persona.one(persona_id)
+
+
+@app.get("/api/starter-pack")
+def starter_pack_status() -> dict:
+    """Whether a Starter Pack is staged for import or already installed."""
+    return starter_pack.status()
+
+
+@app.post("/api/starter-pack/install")
+async def starter_pack_install() -> dict:
+    """Import a staged Starter Pack from DATA_DIR/starter-pack/ without restarting the app."""
+    result = await asyncio.to_thread(starter_pack.install_pending)
+    if result.get("installed"):
+        log.info(
+            "Starter Pack installed into '%s': %d takes, %d voices, %d sources",
+            result["space_name"], result["takes_added"], result["voices_added"], result["sources_added"],
+        )
+    return result
+
 
