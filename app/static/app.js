@@ -8417,15 +8417,17 @@ async function loadTakes() {
       if (typeof paintNpCover === 'function') {
         paintNpCover(curPlaying);
       }
-      if (curPlaying.art) {
-        if (window.Visualizer && window.Visualizer.currentTake && window.Visualizer.currentTake.id === curPlaying.id) {
+      if (window.Visualizer && window.Visualizer.currentTake && window.Visualizer.currentTake.id === curPlaying.id) {
+        if (curPlaying.art) {
           if (!window.Visualizer.currentTake.art || window.Visualizer.currentTake.art !== curPlaying.art) {
             window.Visualizer.applyArtwork(curPlaying.art);
           }
+        } else if (window.Visualizer.currentTake.art && typeof window.Visualizer.clearArtwork === 'function') {
+          window.Visualizer.clearArtwork(curPlaying.id);
         }
-        if (typeof updateMediaSession === 'function') {
-          updateMediaSession(curPlaying);
-        }
+      }
+      if (curPlaying.art && typeof updateMediaSession === 'function') {
+        updateMediaSession(curPlaying);
       }
     }
   }
@@ -14786,7 +14788,10 @@ function askPictureStyle(takeId) {
           '<button id="picstyle-go" class="primary" type="button">' + esc(t('Make the picture')) + '</button>' +
         '</div>' +
       '</div>';
-    document.body.appendChild(modal);
+    var host = document.fullscreenElement ||
+      (window.Visualizer && window.Visualizer.isOpen && $('visualizer-modal')) ||
+      document.body;
+    host.appendChild(modal);
     var mode = 'direct';
     var fetchedStyle = '';
     var fetchedPrompt = '';
@@ -14818,6 +14823,7 @@ function askPictureStyle(takeId) {
       b.addEventListener('click', function () { setMode(this.dataset.mode); });
     });
     var done = function (value) { modal.remove(); resolve(value); };
+    modal._cancel = function () { done(null); };
     var go = function () {
       var text = $('picstyle-text').value.trim();
       if (!text) { $('picstyle-text').focus(); return; }
@@ -17626,6 +17632,16 @@ function wire() {
         }
       }
     }
+    if (event.key === 'Escape' && $('picstyle-modal')) {
+      event.preventDefault();
+      if (typeof $('picstyle-modal')._cancel === 'function') { $('picstyle-modal')._cancel(); } else { $('picstyle-modal').remove(); }
+      return;
+    }
+    if (event.key === 'Escape' && $('vis-picture-menu') && window.Visualizer && typeof window.Visualizer.closePictureMenu === 'function') {
+      event.preventDefault();
+      window.Visualizer.closePictureMenu();
+      return;
+    }
     if (event.key === 'Escape' && window.Visualizer && window.Visualizer.isOpen) { window.Visualizer.toggle(false); return; }
     if (event.key === 'Escape' && $('playlist-picker-modal') && !$('playlist-picker-modal').classList.contains('hidden')) { closePlaylistPicker(); return; }
     if (event.key === 'Escape' && $('playlist-edit-modal') && !$('playlist-edit-modal').classList.contains('hidden')) { closePlaylistEditModal(); return; }
@@ -17807,6 +17823,7 @@ function wire() {
     var aimed = (event.target && event.target.tagName) || '';
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || /^(INPUT|TEXTAREA|SELECT)$/.test(aimed) ||
         (event.target && event.target.isContentEditable)) { return; }
+    if ($('picstyle-modal')) { return; }
     if ((event.key === 'f' || event.key === 'F') &&
         !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
       event.preventDefault();

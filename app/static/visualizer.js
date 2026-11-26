@@ -317,9 +317,18 @@
         if (pictureBtn) {
           pictureBtn.addEventListener('click', function (e) {
             e.stopPropagation();
-            self.makePicture();
+            self.togglePictureMenu();
           });
         }
+
+        modal.addEventListener('click', function (e) {
+          if ($('vis-picture-menu') &&
+              !e.target.closest('#vis-picture-menu') &&
+              !e.target.closest('#vis-btn-picture') &&
+              !e.target.closest('#picstyle-modal')) {
+            self.closePictureMenu();
+          }
+        });
 
         var lyricsClose = $('vis-lyrics-close');
         if (lyricsClose) {
@@ -344,7 +353,7 @@
           modal.classList.remove('idle');
           clearTimeout(idleTimer);
           idleTimer = setTimeout(function () {
-            if (self.isOpen) { modal.classList.add('idle'); }
+            if (self.isOpen && !$('vis-picture-menu') && !$('picstyle-modal')) { modal.classList.add('idle'); }
           }, 3200);
         });
 
@@ -352,6 +361,7 @@
         var canvas = $('visualizer-canvas');
         if (canvas) {
           canvas.addEventListener('click', function (e) {
+            if ($('vis-picture-menu')) { self.closePictureMenu(); return; }
             if (e.target === canvas) {
               if ((self.mode === 'yeufonic' || self.mode === 'artwork') && self.seekWaveStrip(e)) { return; }
               var playBtn = $('btn-play');
@@ -362,12 +372,12 @@
       }
 
       window.addEventListener('resize', function () {
-        if (self.isOpen) { self.resizeFull(); }
+        if (self.isOpen) { self.resizeFull(); self.positionPictureMenu(); }
         self.resizeMini();
       });
 
       document.addEventListener('fullscreenchange', function () {
-        if (self.isOpen) { self.resizeFull(); }
+        if (self.isOpen) { self.resizeFull(); self.positionPictureMenu(); }
       });
 
       // Hook audio play/pause events
@@ -413,6 +423,11 @@
         this.updateButtonsState();
         this.startFull();
       } else {
+        this.closePictureMenu();
+        var picStyle = $('picstyle-modal');
+        if (picStyle && modal && modal.contains(picStyle)) {
+          if (typeof picStyle._cancel === 'function') { picStyle._cancel(); } else { picStyle.remove(); }
+        }
         this.stopFull();
         // The player's waveform is not drawn while this covers it (app.js waveLoop): bring it up to date.
         if (typeof window.drawWave === 'function') { window.drawWave(); }
@@ -491,23 +506,173 @@
       wrap.style.transform = 'translate(' + this.lyricsAt.x + 'px, ' + this.lyricsAt.y + 'px)';
     },
 
-    /* The picture button, top right in every scene: a new picture for the take playing, where this PC can make one.
+    /* The picture button, top right in every scene: opens the same picture options as full view
+       (Make a new picture, Make a new picture with a new prompt, Use the default background).
        While one is being made it pulses and waits; the new picture takes over when it is ready. */
     pictureTimer: null,
+    canDrawPicture: function () {
+      return Boolean(window.State && (window.State.canDraw !== undefined ? window.State.canDraw : window.State.pictures));
+    },
     paintPictureButton: function (art) {
       var btn = $('vis-btn-picture');
       if (!btn) { return; }
       var take = this.currentTake;
-      // Wherever a picture can be drawn, whether or not new takes get one by themselves (an older app.js says only that).
-      var drawable = window.State && (window.State.canDraw !== undefined ? window.State.canDraw : window.State.pictures);
-      var can = Boolean(take && take.id && drawable);
+      // Wherever a picture can be drawn or a picture is already shown (so default background can still be restored).
+      var drawable = this.canDrawPicture();
+      var can = Boolean(take && take.id && (drawable || take.art));
       btn.style.display = can ? '' : 'none';
-      if (!can) { return; }
+      if (!can) { this.closePictureMenu(); return; }
       var states = window.ART_STATES || {};
       var making = Boolean(art && states[art.state]);
-      btn.disabled = making;
+      btn.disabled = false;
       btn.classList.toggle('making', making);
+      btn.classList.toggle('active', Boolean($('vis-picture-menu')));
+      btn.setAttribute('aria-expanded', $('vis-picture-menu') ? 'true' : 'false');
       btn.title = making ? states[art.state] : (art && art.state === 'failed' ? t('The last try failed: {value} — make a new picture', { value: tr(art.error) || t('no reason given') }) : t('Make a new picture'));
+    },
+
+    closePictureMenu: function () {
+      var menu = $('vis-picture-menu');
+      if (menu) { if (menu.remove) { menu.remove(); } else if (menu.parentNode) { menu.parentNode.removeChild(menu); } }
+      var btn = $('vis-btn-picture');
+      if (btn) {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    },
+
+    positionPictureMenu: function () {
+      var menu = $('vis-picture-menu');
+      var btn = $('vis-btn-picture');
+      if (!menu || !btn) { return; }
+      var at = btn.getBoundingClientRect();
+      var right = Math.max(12, Math.round(window.innerWidth - at.right));
+      menu.style.top = Math.round(at.bottom + 8) + 'px';
+      menu.style.right = right + 'px';
+    },
+
+    togglePictureMenu: function () {
+      if ($('vis-picture-menu')) { this.closePictureMenu(); return; }
+      var take = this.currentTake;
+      var modal = $('visualizer-modal');
+      var btn = $('vis-btn-picture');
+      if (!take || !take.id || !modal || !btn) { return; }
+      modal.classList.remove('idle');
+      var menu = document.createElement('div');
+      menu.id = 'vis-picture-menu';
+      menu.className = 'vis-picture-menu';
+      menu.setAttribute('role', 'menu');
+      menu.dataset.takeId = take.id;
+      menu.addEventListener('click', function (e) { e.stopPropagation(); });
+      modal.appendChild(menu);
+      btn.classList.add('active');
+      btn.setAttribute('aria-expanded', 'true');
+      this.positionPictureMenu();
+      this.renderPictureMenu(take.id, this.lastArtInfo && this.lastArtInfo.takeId === take.id ? this.lastArtInfo.art : null);
+      this.watchPicture();
+    },
+
+    renderPictureMenu: function (takeId, art) {
+      var menu = $('vis-picture-menu');
+      if (!menu || menu.dataset.takeId !== takeId) { return; }
+      var take = this.currentTake && this.currentTake.id === takeId ? this.currentTake : {};
+      var states = window.ART_STATES || {};
+      var making = Boolean(art && states[art.state]);
+      var drawable = this.canDrawPicture();
+      var note = '';
+      var bad = false;
+      if (making) {
+        note = states[art.state];
+      } else if (art && art.state === 'failed') {
+        note = t('The last try failed: {value}', { value: tr(art.error) || t('no reason given') });
+        bad = true;
+      } else if (art && art.plain) {
+        note = t('This take has the default background.');
+      } else if (art && !art.has && !take.art) {
+        note = t('No picture yet.');
+      }
+
+      menu.innerHTML = '';
+      if (note) {
+        var p = document.createElement('p');
+        p.className = 'vis-picture-note' + (bad ? ' bad' : '');
+        p.setAttribute('aria-live', 'polite');
+        p.textContent = note;
+        menu.appendChild(p);
+      }
+
+      var self = this;
+      var items = [
+        { kind: 'make', label: t('Make a new picture'), disabled: making || !drawable },
+        { kind: 'make-own', label: t('Make a new picture with a new prompt'), disabled: making || !drawable },
+        { kind: 'plain', label: t('Use the default background'), disabled: making || Boolean(art && art.plain) }
+      ];
+      items.forEach(function (item) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('role', 'menuitem');
+        b.dataset.pic = item.kind;
+        b.textContent = item.label;
+        b.disabled = item.disabled;
+        b.addEventListener('click', function () { self.pictureMenuAction(takeId, item.kind); });
+        menu.appendChild(b);
+      });
+    },
+
+    pictureMenuAction: function (takeId, kind) {
+      var self = this;
+      var make = kind === 'make' || kind === 'make-own';
+      var run = function (choice) {
+        var menu = $('vis-picture-menu');
+        if (menu) {
+          Array.prototype.forEach.call(menu.querySelectorAll('button'), function (b) { b.disabled = true; });
+        }
+        var btn = $('vis-btn-picture');
+        if (make && btn) { btn.classList.add('making'); }
+        var req;
+        if (make) {
+          req = typeof window.makePictureRequest === 'function'
+            ? window.makePictureRequest(takeId, choice)
+            : window.api('/api/takes/' + encodeURIComponent(takeId) + '/art', { method: 'POST' });
+        } else {
+          req = window.api('/api/takes/' + encodeURIComponent(takeId) + '/art', { method: 'DELETE' });
+        }
+        req.then(function () {
+          self.closePictureMenu();
+          if (make) {
+            if (typeof window.pollState === 'function') { window.pollState(); }
+            self.pictureWaiting = true;
+            self.watchPicture();
+            return;
+          }
+          self.pictureWaiting = false;
+          self.clearArtwork(takeId);
+          var done = function () {
+            if (typeof window.paintEdPicture === 'function') { window.paintEdPicture(); }
+            self.watchPicture();
+          };
+          if (typeof window.loadTakes === 'function') {
+            Promise.resolve(window.loadTakes()).then(done, done);
+          } else {
+            done();
+          }
+        }).catch(function (err) {
+          if (btn) { btn.classList.remove('making'); }
+          if (typeof window.statusLine === 'function') { window.statusLine(err.message, 'bad'); }
+          self.watchPicture();
+        });
+      };
+
+      if (kind === 'make-own') {
+        if (typeof window.askPictureStyle !== 'function') { return; }
+        this.closePictureMenu();
+        window.askPictureStyle(takeId).then(function (choice) {
+          if (!choice) { return; }
+          run(choice);
+        });
+        return;
+      }
+      run(null);
     },
 
     // Asks the server how the take's picture stands, and keeps asking while one is being made.
@@ -518,7 +683,9 @@
       var self = this, id = take.id;
       window.api('/api/takes/' + encodeURIComponent(id) + '/art').then(function (art) {
         if (!self.currentTake || self.currentTake.id !== id) { return; }
+        self.lastArtInfo = { takeId: id, art: art };
         self.paintPictureButton(art);
+        self.renderPictureMenu(id, art);
         var states = window.ART_STATES || {};
         if (states[art.state]) {
           self.pictureWaiting = true;
@@ -549,16 +716,8 @@
 
     makePicture: function () {
       var take = this.currentTake;
-      var btn = $('vis-btn-picture');
-      if (!take || !take.id || !window.api || (btn && btn.disabled)) { return; }
-      var self = this;
-      if (btn) { btn.disabled = true; btn.classList.add('making'); }
-      window.api('/api/takes/' + encodeURIComponent(take.id) + '/art', { method: 'POST' })
-        .then(function () { self.pictureWaiting = true; self.watchPicture(); })
-        .catch(function (err) {
-          if (btn) { btn.disabled = false; btn.classList.remove('making'); }
-          if (typeof window.statusLine === 'function') { window.statusLine(err.message, 'bad'); }
-        });
+      if (!take || !take.id || !window.api) { return; }
+      this.pictureMenuAction(take.id, 'make');
     },
 
     setMode: function (mode) {
@@ -613,10 +772,14 @@
 
     /* ------------------------------------------------------------- Take Metadata & Synced Lyrics */
     setTake: function (take) {
+      var prevId = this.currentTake && this.currentTake.id;
       var isSame = this.currentTake && take && this.currentTake.id === take.id &&
                    this.currentTake.lyrics === take.lyrics && this.currentTake.art === take.art;
       this.currentTake = take || null;
       if (isSame) { return; }
+      if (prevId !== (this.currentTake && this.currentTake.id)) {
+        this.closePictureMenu();
+      }
 
       if (this.currentTake && this.currentTake.id && !this.currentTake.art) {
         this.startArtPolling();
@@ -706,6 +869,37 @@
       }
     },
 
+    clearArtwork: function (takeId) {
+      if (!this.currentTake) { return; }
+      if (takeId && this.currentTake.id !== takeId) { return; }
+      var id = this.currentTake.id;
+      this.currentTake.art = null;
+      this.artScene = null;
+      this.nonePainted = null;
+      this.stopArtPolling();
+      if (this.frontLayer) {
+        this.frontLayer.style.display = 'none';
+        this.frontLayer.drawnImg = null;
+      }
+
+      if (typeof window.takeById === 'function') {
+        var local = window.takeById(id);
+        if (local) { local.art = null; }
+      }
+      this.carryPicture(id, null);
+      this.updateArtworkDisplay();
+
+      if (typeof window.paintNpCover === 'function') {
+        window.paintNpCover(this.currentTake);
+      }
+      if (typeof window.updateMediaSession === 'function') {
+        window.updateMediaSession(this.currentTake);
+      }
+      if (typeof window.paintTakes === 'function') {
+        window.paintTakes();
+      }
+    },
+
     updateTakeInfo: function () {
       var take = this.currentTake;
       var titleEl = $('vis-title');
@@ -736,7 +930,11 @@
 
       if (!artUrl || this.artMode === 'off' || this.mode === 'artwork' || this.mode === 'none') {
         wrap.classList.add('hidden');
-        if (aura) { aura.classList.add('hidden'); }
+        if (aura) {
+          aura.classList.add('hidden');
+          if (!artUrl) { aura.dataset.src = ''; aura.style.backgroundImage = ''; }
+        }
+        if (!artUrl && img) { img.removeAttribute('src'); }
         return;
       }
 

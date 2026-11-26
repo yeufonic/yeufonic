@@ -5375,6 +5375,47 @@ body.visualizer-open > *:not(#visualizer-modal) { visibility: hidden; }
 .vis-tool-btn.vis-picture-btn:disabled { cursor: default; }
 .vis-tool-btn.vis-picture-btn.making svg { animation: vis-picture-making 1.4s ease-in-out infinite; }
 @keyframes vis-picture-making { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.vis-picture-menu {
+  position: fixed;
+  z-index: 30;
+  width: 280px;
+  padding: 8px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+}
+.vis-picture-menu .vis-picture-note {
+  margin: 2px 6px 4px;
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+.vis-picture-menu .vis-picture-note.bad { color: var(--bad, #e57373); }
+.vis-picture-menu button {
+  text-align: left;
+  font: inherit;
+  font-size: 13.5px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: #f1f5f9;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.vis-picture-menu button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+.vis-picture-menu button:disabled {
+  color: #64748b;
+  cursor: default;
+  opacity: 0.65;
+}
 .vis-tool-btn.vis-close {
   font-size: 18px;
   line-height: 1;
@@ -8095,8 +8136,8 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 }
 
 
-/* Make a new picture with a new prompt: over the whole-picture view and the card's popup. */
-.modal.picstyle-modal { z-index: 130; }
+/* Make a new picture with a new prompt: over the whole-picture view, the card's popup, and the visualizer. */
+.modal.picstyle-modal { z-index: 980; user-select: text; }
 .picstyle-modes {
   display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px;
   border-radius: 9px; background: var(--input-bg); border: 1px solid var(--input-border);

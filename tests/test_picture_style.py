@@ -147,3 +147,38 @@ def test_the_route_takes_a_style_for_one_picture(client, monkeypatch):
     assert client.post(f"/api/takes/{take['id']}/art", json={"style": "a neon fox", "direct": True}).status_code == 200
     assert asked == [(take["id"], None, False), (take["id"], "ink and wash", False), (take["id"], "a neon fox", True)]
     assert client.post(f"/api/takes/{take['id']}/art", json={"style": "x" * 4001}).status_code == 422
+
+
+def test_visualizer_picture_button_exposes_full_view_options():
+    """Clicking the visualizer's picture button opens a menu with the same three options as full view,
+    and mounts both the menu and prompt dialog inside the visualizer/fullscreen host."""
+    from pathlib import Path
+    static = Path(__file__).resolve().parent.parent / "app" / "static"
+    vis_js = (static / "visualizer.js").read_text(encoding="utf-8")
+    app_js = (static / "app.js").read_text(encoding="utf-8")
+    css = (static / "styles.css").read_text(encoding="utf-8")
+
+    # Visualizer button opens the menu instead of blindly regenerating
+    assert "self.togglePictureMenu();" in vis_js
+    assert "renderPictureMenu:" in vis_js
+    assert "pictureMenuAction:" in vis_js
+    assert "clearArtwork:" in vis_js
+    for kind, label in (
+        ("make", "Make a new picture"),
+        ("make-own", "Make a new picture with a new prompt"),
+        ("plain", "Use the default background"),
+    ):
+        assert f"kind: '{kind}'" in vis_js
+        assert f"t('{label}')" in vis_js
+
+    # Prompt modal mounts in fullscreen / visualizer host so visualizer-open doesn't hide it
+    assert "document.fullscreenElement ||" in app_js
+    assert "window.Visualizer && window.Visualizer.isOpen && $('visualizer-modal')" in app_js
+    # Escape closes picstyle-modal or vis-picture-menu before closing the visualizer
+    esc_picstyle = app_js.index("event.key === 'Escape' && $('picstyle-modal')")
+    esc_menu = app_js.index("event.key === 'Escape' && $('vis-picture-menu')")
+    esc_vis = app_js.index("event.key === 'Escape' && window.Visualizer && window.Visualizer.isOpen")
+    assert esc_picstyle < esc_menu < esc_vis
+    # Styles layer menu and prompt dialog cleanly above the visualizer
+    assert ".vis-picture-menu {" in css
+    assert ".modal.picstyle-modal { z-index: 980; user-select: text; }" in css
