@@ -1405,67 +1405,45 @@ As imagens precisam de algo que saiba desenhar. Há dois, e você pode ter um, o
   (`diffusion_models`, `text_encoders` e `vae`) e verifica cada um, e depois reinicie a aplicação com
   `docker compose restart app` para que ele os encontre.
 
-**FLUX.2 klein 9B, se você tiver a placa gráfica para isso.** O klein tem um tamanho maior, um modelo de mais qualidade
-que desenha mais detalhe e mãos e rostos melhores, pensado só para placas gráficas com mais memória
-de vídeo. O Yeufonic nunca o transfere, porque os ficheiros dele têm acesso restrito no Hugging Face e estão sob a **licença não comercial**
-da Black Forest Labs, mas ponha-os no lugar e eles são usados.
+**Instalar manualmente modelos de imagem opcionais (FLUX.2 klein 9B e FLUX 3 klein).** O Yeufonic nunca transfere automaticamente modelos FLUX restritos ou sob licença não comercial; transfira os ficheiros uma vez e coloque-os na pasta de modelos. Instale primeiro o **FLUX.2 klein 4B** (acima): ambos os modelos partilham o mesmo VAE (`flux2-vae.safetensors`) e, no `yue2.cpp`, esse passo também configura o servidor de imagens.
 
-- **Disco:** cerca de 18 GB para o par habitual, o modelo FP8 e o codificador de texto FP8 dele (16 GB com o codificador
-  FP4), ao lado dos ficheiros do 4B. Ele precisa do VAE do 4B (`flux2-vae.safetensors`), então instale o 4B primeiro.
-- **Memória de vídeo:** roda em uma placa de 16 GB, mas ocupa quase toda enquanto desenha, com a memória livre
-  perto de zero. As imagens esperam até nenhuma música estar a ser feita, então ele não deixa suas músicas mais lentas, mas outros
-  programas que usem a placa gráfica ao mesmo tempo podem ter problemas. Com menos memória ele ainda funciona, mais
-  devagar, enquanto o motor põe e tira o modelo; ali o 4B é a melhor escolha.
+Onde fica a pasta de modelos (tanto o **ComfyUI** como o **yue2.cpp** leem exatamente a mesma pasta em cada plataforma):
 
-1. **O modelo.** Entre no Hugging Face, aceite a licença em
-   [black-forest-labs/FLUX.2-klein-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8)
-   e transfira `flux-2-klein-9b-fp8.safetensors` (9,4 GB). Ou pegue o de precisão total
-   `flux-2-klein-9b.safetensors` de [black-forest-labs/FLUX.2-klein-9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B),
-   o do Mac, que tem mais ou menos o dobro do tamanho e precisa do dobro de memória.
-   Ele vai na pasta `diffusion_models`.
-2. **O codificador de texto dele.** Em [Comfy-Org/Flux-2-Klein-9B](https://huggingface.co/Comfy-Org/Flux-2-Klein-9B/tree/main/split_files/text_encoders),
-   que não exige login, transfira um destes e ponha na pasta `text_encoders`:
-   `qwen_3_8b_fp8mixed.safetensors` (8,7 GB, a escolha habitual em uma placa NVIDIA), `qwen_3_8b_fp4mixed.safetensors`
-   (6,8 GB, o menor) ou `qwen_3_8b.safetensors` (16,4 GB, precisão total, para um Mac).
-   **Com o motor yue2.cpp** o servidor de imagens não consegue ler esses codificadores: pegue no lugar `Qwen3-8B-Q4_K_M.gguf`
-   (5,0 GB) de [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF)
-   (`-Q8_0.gguf`, 8,7 GB, também funciona), e ponha na mesma pasta.
-3. **Onde ficam as pastas:** sob `models/` na pasta do Yeufonic para **Docker**; sob
-   `engine\ComfyUI\models` na pasta de instalação no **Windows**; sob `engine/ComfyUI/models/` na
-   pasta de instalação no **Mac** e no **Linux**.
-4. **Deixe a aplicação vê-los, e escolha.** Reinicie o Yeufonic (com Docker, `docker compose restart app`),
-   e depois ponha **Imagens dos takes: modelo** em Definições em *FLUX.2 klein 9B*. O 4B desenha até você fazer isso, e
-   Definições avisa quando o 9B está escolhido mas não consegue desenhar aqui. Escolha
-   *4B* para voltar sem remover nada. A nota da imagem no editor diz qual a desenhou
-   (*drawn by FLUX.2 klein 9B on this PC*).
+| Plataforma | Pasta de modelos | Como reiniciar o Yeufonic após copiar |
+|---|---|---|
+| **Windows** | `%LOCALAPPDATA%\Programs\Yeufonic\engine\ComfyUI\models\` (ou `<pasta de instalação>\engine\ComfyUI\models\`) | Clique com o botão direito no ícone do Yeufonic na área de notificação → **Sair**, e volte a abrir o Yeufonic |
+| **Linux** | `~/.local/share/yeufonic/engine/ComfyUI/models/` (ou `$YEUFONIC_HOME/engine/ComfyUI/models/`) | Execute `yeufonic stop` e depois `yeufonic start` (ou feche e reabra no menu de aplicações) |
+| **Mac** | `~/Library/Application Support/Yeufonic/engine/ComfyUI/models/` | Feche o Yeufonic (`⌘Q`) e volte a abri-lo |
+| **Docker** | `models/` dentro da pasta do Yeufonic | Execute `docker compose restart app` |
 
-O modelo e o codificador só são encontrados com estes nomes, então mantenha os nomes de ficheiro como foram transferidos.
+Dentro dessa pasta, coloque modelos de imagem em `diffusion_models/` e codificadores de texto em `text_encoders/` (crie a subpasta se ainda não existir). Mantenha cada nome de ficheiro **exatamente como transferido**: o Yeufonic deteta cada modelo apenas por esses nomes exatos.
 
-**FLUX 3 klein, para escrever texto e uma placa de 12 GB ou mais.** O FLUX 3 Image Klein da Black Forest Labs desenha a partir de uma
-descrição completa da cena, que é exatamente o que são os prompts de imagem que o Gemma ou o LLM externo escrevem, e
-escreve texto bem, o que combina com **Imagens dos takes: título da música na imagem**. Como o 9B, o Yeufonic nunca o transfere: os ficheiros dele têm
-acesso restrito no Hugging Face e estão sob a **FLUX Kommunity License** (uso não comercial, e uso comercial do que
-ele desenha para quem está abaixo do limite de receita da licença; leia antes de aceitar). Ponha os ficheiros no lugar e ele
-pode ser escolhido.
+**FLUX.2 klein 9B, se tiver a placa gráfica para isso.** O klein existe numa versão maior, com mais detalhe e melhores mãos e rostos, pensada para placas com mais memória de vídeo. Os ficheiros exigem aceitação no Hugging Face sob a **licença não comercial** da Black Forest Labs.
 
-- **Disco:** cerca de 11 GB para o par int8, ao lado dos ficheiros do 4B. Ele usa o VAE do 4B (`flux2-vae.safetensors`),
-  então instale o 4B primeiro.
-- **Memória de vídeo:** cerca de 11 GB enquanto desenha. Ele dá várias vezes mais passos que os FLUX.2 klein, então cada
-  imagem leva mais tempo.
-- **Motor:** só o motor ComfyUI, por enquanto; com o motor yue2.cpp ele não é oferecido.
+- **Disco:** cerca de 18 GB para o par habitual do ComfyUI (modelo FP8 + codificador FP8; 16 GB com FP4), ou cerca de 14,4 GB com yue2.cpp (modelo FP8 + codificador GGUF Q4_K_M), além dos ficheiros do 4B. Requer o VAE do 4B (`vae/flux2-vae.safetensors`), pelo que deve instalar primeiro o 4B.
+- **Memória de vídeo:** funciona numa placa de 16 GB, mas ocupa quase toda a VRAM durante o desenho. As imagens aguardam que nenhuma música esteja a ser gerada; com menos memória é mais lento, e o 4B é melhor opção.
+- **Motor:** ComfyUI e yue2.cpp (cada um usa o seu codificador de texto abaixo).
 
-1. **Entre no Hugging Face** e aceite a licença em
-   [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy).
-2. **O modelo,** na pasta `diffusion_models`: `flux3-image-klein-int8-convrot.safetensors` (5,8 GB, a escolha
-   habitual em uma placa NVIDIA), `flux3-image-klein-nvfp4.safetensors` (5,3 GB, para uma placa RTX 50) ou
-   `flux3-image-klein-bf16.safetensors` (11,1 GB, precisão total, para um Mac).
-3. **O codificador de texto dele,** na pasta `text_encoders`: `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB) ou
-   `qwen3vl_4b_bf16.safetensors` (8,9 GB, para um Mac).
-4. **Deixe a aplicação vê-los, e escolha:** reinicie o Yeufonic (com Docker, `docker compose restart app`), e depois ponha
-   **Imagens dos takes: modelo** em Definições em *FLUX 3 klein*. A nota da imagem no editor diz *drawn by
-   FLUX 3 klein on this PC*.
+1. **Transfira o modelo para `diffusion_models/`:** inicie sessão no Hugging Face, aceite a licença em [black-forest-labs/FLUX.2-klein-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8) e transfira `flux-2-klein-9b-fp8.safetensors` (9,4 GB, para NVIDIA no ComfyUI ou yue2.cpp). Em Mac, transfira `flux-2-klein-9b.safetensors` de precisão total em [black-forest-labs/FLUX.2-klein-9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B).
+2. **Transfira o codificador de texto para `text_encoders/`:**
+   - **Com ComfyUI:** em [Comfy-Org/Flux-2-Klein-9B](https://huggingface.co/Comfy-Org/Flux-2-Klein-9B/tree/main/split_files/text_encoders) (sem iniciar sessão), transfira `qwen_3_8b_fp8mixed.safetensors` (8,7 GB, escolha habitual NVIDIA), `qwen_3_8b_fp4mixed.safetensors` (6,8 GB, menor) ou `qwen_3_8b.safetensors` (16,4 GB, precisão total para Mac).
+   - **Com yue2.cpp (Windows, Linux ou Docker):** o servidor de imagens não lê os codificadores FP8/FP4 do ComfyUI; transfira `Qwen3-8B-Q4_K_M.gguf` (5,0 GB, recomendado) ou `Qwen3-8B-Q8_0.gguf` (8,7 GB) em [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF).
+3. **Reinicie o Yeufonic e selecione-o:** reinicie o Yeufonic conforme a tabela acima, abra **Definições → Imagens dos takes: modelo** e selecione *FLUX.2 klein 9B*. A nota da imagem no editor mostrará *drawn by FLUX.2 klein 9B on this PC*.
 
-As pastas são as mesmas que para o 9B, e os ficheiros só são encontrados com estes nomes.
+**FLUX 3 klein, para texto e placas de 12 GB ou mais.** O FLUX 3 Image Klein da Black Forest Labs desenha a partir de uma descrição completa da cena (como as geradas pelo Gemma ou LLM externo) e renderiza texto com nitidez, ideal para **Título da música na imagem**. Os pesos estão abrangidos pela **FLUX Kommunity License** (uso não comercial e uso comercial das imagens geradas dentro do limite de receitas da licença; leia antes de usar).
+
+- **Disco:** cerca de 11 GB para o par int8 do ComfyUI, ou cerca de 8,7 GB para o par GGUF Q8_0 do yue2.cpp (menos com quantizações menores), além dos ficheiros do 4B. Requer o VAE do 4B (`vae/flux2-vae.safetensors`), pelo que deve instalar primeiro o 4B.
+- **Memória de vídeo:** cerca de 11 GB no ComfyUI, ou cerca de 7–10 GB no yue2.cpp consoante o tamanho do GGUF. Usa 16 passos (contra 4 no FLUX.2 klein), pelo que cada imagem demora mais tempo.
+- **Motor:** ComfyUI e yue2.cpp. O ComfyUI lê os ficheiros safetensors abaixo; o yue2.cpp lê ficheiros GGUF.
+
+1. **Com ComfyUI (Windows, Linux, Mac ou Docker):**
+   - Inicie sessão no Hugging Face e aceite a licença em [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy).
+   - **Modelo em `diffusion_models/`:** `flux3-image-klein-int8-convrot.safetensors` (5,8 GB, padrão NVIDIA), `flux3-image-klein-nvfp4.safetensors` (5,3 GB, para RTX série 50) ou `flux3-image-klein-bf16.safetensors` (11,1 GB, precisão total para Mac).
+   - **Codificador de texto em `text_encoders/`:** `qwen3vl_4b_int8_convrot.safetensors` (4,9 GB, para NVIDIA) ou `qwen3vl_4b_bf16.safetensors` (8,9 GB, para Mac).
+2. **Com yue2.cpp (Windows, Linux ou Docker):** o servidor de imagens não consegue ler o ficheiro int8 do ComfyUI; transfira os ficheiros GGUF abertos:
+   - **Modelo em `diffusion_models/`:** `flux3-image-klein-Q8_0.gguf` (6,2 GB, recomendado) em [leejet/flux-3-image-klein-GGUF](https://huggingface.co/leejet/flux-3-image-klein-GGUF) (`flux3-image-klein-Q6_K.gguf`, `Q5_K`, `Q4_K` e `Q4_0` também funcionam em placas mais pequenas).
+   - **Codificador de texto em `text_encoders/`:** `Qwen3VL-4B-Instruct-Q4_K_M.gguf` (2,5 GB, recomendado) em [Qwen/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct-GGUF) (`Qwen3VL-4B-Instruct-Q8_0.gguf`, 4,3 GB, ou `Qwen3-VL-4B-Instruct-*.gguf` em [unsloth/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/unsloth/Qwen3-VL-4B-Instruct-GGUF) também funcionam). Se já tiver `qwen3vl_4b_int8_convrot.safetensors` do ComfyUI (do FLUX 3 ou FIBO 2.0), o servidor também pode usá-lo, embora o GGUF Q4 consuma menos memória.
+3. **Reinicie o Yeufonic e selecione-o:** reinicie o Yeufonic conforme a tabela acima, abra **Definições → Imagens dos takes: modelo** e selecione *FLUX 3 klein*. A nota da imagem no editor mostrará *drawn by FLUX 3 klein on this PC*.
 
 **FIBO 2.0, para o visual de uma fotografia e uma placa gráfica de 16 GB.** O FIBO 2.0 da Bria desenha o mais perto de uma
 fotografia real das capas de disco em que as imagens se inspiram: detalhes mais nítidos, uma profundidade de campo

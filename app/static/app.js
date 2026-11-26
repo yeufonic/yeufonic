@@ -5837,7 +5837,7 @@ function paintKleinFallback() {
     var why = chosen === '9b' && klein.engine === 'yue2cpp'
       ? t('The 9B is not set up here (it needs its model and Qwen 3 8B as GGUF in the models folder: see the guide)')
       : chosen === 'flux3' && klein.engine === 'yue2cpp'
-        ? t('FLUX 3 klein does not draw with the yue2.cpp engine yet')
+        ? t('FLUX 3 klein is not set up here (it needs its GGUF model and Qwen3-VL 4B as GGUF in the models folder: see the guide)')
         : chosen === 'fibo2' && klein.engine === 'yue2cpp'
           ? t('FIBO 2.0 does not draw with the yue2.cpp engine')
           : t('{value}’s files are not installed here', { value: KLEIN_NAMES[chosen] });

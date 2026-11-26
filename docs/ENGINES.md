@@ -23,7 +23,8 @@ are the same whichever runs.
 | Corpora and LoRA training | Yes | No: use LoRAs trained elsewhere, or on a ComfyUI install |
 | Lyrics drafted on your PC (Gemma) | Yes | With the Gemma add-on |
 | Take pictures described and drawn on your PC (Gemma, FLUX.2 klein 4B or 9B) | Yes | With the Gemma and pictures add-ons |
-| Take pictures by FLUX 3 klein (added by hand) or FIBO 2.0 (install option, non-commercial) | Yes | No: FLUX.2 klein 4B or 9B only |
+| Take pictures by FLUX 3 klein (added by hand) | Yes | With the pictures add-on, GGUF model and Qwen3-VL 4B as GGUF |
+| Take pictures by FIBO 2.0 (install option, non-commercial) | Yes | No |
 | An external LLM for lyrics, styles and pictures | Yes | Yes |
 | Stems, and hearing the words of a recording | On the graphics card | On the processor |
 | Models to download | About 19 GB, 27 GB with pictures | About 5.4 GB; 6.1 GB more for Gemma, 6.9 GB for pictures |
@@ -129,8 +130,9 @@ are yue2.cpp's, Gemma's and its picture encoder's; `models/checkpoints/` and
 | `YUE2CPP_CUDA_ARCH` | Only when they are built here: which generation of NVIDIA card yue2.cpp and the picture server are built for. `YUE2CPP_BUILD=1 sh scripts/fetch-models.sh --cpp` sets it to this PC's card (`89` for an RTX 40, `86` for an RTX 30), which builds far faster than for every card. A newer card still runs that build, after a slower first start; take the line out (or set it) and build again to have it at full speed |
 | `GEMMA_MODEL` | The Gemma model, `gemma4:e4b-it-qat` unless set |
 
-The FLUX.2 klein 9B is never downloaded for you (it is under a non-commercial licence): the guide's
-take pictures section says where to put it, and which text encoder yue2.cpp needs for it.
+FLUX.2 klein 9B and FLUX 3 klein are never downloaded for you (their weights are under Black Forest Labs'
+licences): the guide's [take pictures section](../app/static/guide.md#two-ways-to-draw-flux2-klein-on-this-pc-or-an-external-llm)
+gives step-by-step instructions for every platform, including which GGUF files yue2.cpp needs for each.
 
 ## On Windows, with the installer
 

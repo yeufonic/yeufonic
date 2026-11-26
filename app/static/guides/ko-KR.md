@@ -1380,67 +1380,45 @@ Checkpoints는 편집기에서 누릅니다. 거기에 테이크가 열려 있�
   (`diffusion_models`, `text_encoders`, `vae`)에 넣고 각각 확인합니다. 그다음
   `docker compose restart app`로 앱을 다시 시작해 파일을 찾게 하세요.
 
-**FLUX.2 klein 9B, 그래픽 카드가 감당한다면.** klein에는 더 큰 크기가 있습니다. 더 높은 품질의 모델로,
-더 많은 디테일과 더 나은 손과 얼굴을 그리며, 비디오 메모리가 더 많은 그래픽 카드만을 위한 것입니다.
-Yeufonic은 이것을 결코 내려받지 않습니다. 파일이 Hugging Face에서 접근 신청이 필요하고 Black Forest Labs의
-**비상업 라이선스**를 따르기 때문입니다. 하지만 제자리에 두면 쓰입니다.
+<strong>선택형 이미지 모델 수동 설치하기(FLUX.2 klein 9B 및 FLUX 3 klein).</strong> Yeufonic은 승인제이거나 비상업적 라이선스인 FLUX 모델을 자동으로 다운로드하지 않으므로, 파일을 한 번 내려받아 모델 폴더에 직접 넣으면 됩니다. 먼저 <strong>FLUX.2 klein 4B</strong>(위 항목)를 설치하세요. 두 모델 모두 4B의 VAE(`flux2-vae.safetensors`)를 공유하며, `yue2.cpp`에서는 이 단계에서 이미지 서버도 함께 설정됩니다.
 
-- **디스크:** 흔히 쓰는 짝인 FP8 모델과 그 FP8 텍스트 인코더로 약 18 GB(FP4 인코더라면
-  16 GB)이며, 4B의 파일 옆에 둡니다. 4B의 VAE(`flux2-vae.safetensors`)가 필요하므로 4B를 먼저 설치하세요.
-- **비디오 메모리:** 16 GB 카드에서 돌지만, 그리는 동안 거의 전부를 써서 남는 메모리가
-  0에 가까워집니다. 그림은 노래를 만들지 않을 때까지 기다리므로 노래가 느려지지는 않지만, 동시에
-  그래픽 카드를 쓰는 다른 프로그램은 힘들 수 있습니다. 메모리가 적어도 돌기는 하지만, 엔진이
-  모델을 넣었다 뺐다 하므로 느려집니다. 그럴 때는 4B가 더 나은 선택입니다.
+모델 폴더 위치(모든 플랫폼에서 <strong>ComfyUI</strong>와 <strong>yue2.cpp</strong> 모두 동일한 폴더를 사용합니다):
 
-1. **모델.** Hugging Face에 로그인하고
-   [black-forest-labs/FLUX.2-klein-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8)
-   에서 라이선스에 동의한 뒤 `flux-2-klein-9b-fp8.safetensors`(9.4 GB)를 내려받습니다. 또는 전체 정밀도의
-   `flux-2-klein-9b.safetensors`를 [black-forest-labs/FLUX.2-klein-9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B)에서 받으세요.
-   Mac용이며, 크기가 두 배쯤이고 메모리도 두 배 필요합니다.
-   `diffusion_models` 폴더에 넣습니다.
-2. **그 텍스트 인코더.** 로그인이 필요 없는
-   [Comfy-Org/Flux-2-Klein-9B](https://huggingface.co/Comfy-Org/Flux-2-Klein-9B/tree/main/split_files/text_encoders)
-   에서 다음 가운데 하나를 내려받아 `text_encoders` 폴더에 넣습니다.
-   `qwen_3_8b_fp8mixed.safetensors`(8.7 GB, NVIDIA 카드에서의 보통 선택), `qwen_3_8b_fp4mixed.safetensors`
-   (6.8 GB, 가장 작음), `qwen_3_8b.safetensors`(16.4 GB, 전체 정밀도, Mac용).
-   **yue2.cpp 엔진에서는** 그림 서버가 이 인코더들을 읽을 수 없습니다. 대신
-   [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF)에서 `Qwen3-8B-Q4_K_M.gguf`
-   (5.0 GB)를 받아(`-Q8_0.gguf`, 8.7 GB도 됩니다) 같은 폴더에 넣으세요.
-3. **폴더의 위치:** **Docker**는 Yeufonic 폴더의 `models/`, **Windows**는 설치 폴더의
-   `engine\ComfyUI\models`, <strong>Mac</strong>과 <strong>Linux</strong>는 설치 폴더의 `engine/ComfyUI/models/`입니다.
-4. **앱이 찾게 하고, 고르세요.** Yeufonic을 다시 시작한 뒤(Docker라면 `docker compose restart app`),
-   설정에서 **테이크 그림: 모델** 항목을 *FLUX.2 klein 9B*로 둡니다. 그러기 전까지는 4B가 그리며,
-   9B를 골랐는데 여기서 그릴 수 없으면 설정이 알려 줍니다. *4B*를 고르면 아무것도 없애지 않고
-   되돌릴 수 있습니다. 편집기의 그림 메모가 어느 것이 그렸는지 알려 줍니다
-   (*drawn by FLUX.2 klein 9B on this PC*).
+| 플랫폼 | 모델 폴더 | 파일 복사 후 Yeufonic 재시작 방법 |
+|---|---|---|
+| <strong>Windows</strong> | `%LOCALAPPDATA%\Programs\Yeufonic\engine\ComfyUI\models\` (또는 `<설치 폴더>\engine\ComfyUI\models\`) | 시스템 트레이의 Yeufonic 아이콘 우클릭 → <strong>종료</strong> 후 Yeufonic 다시 실행 |
+| <strong>Linux</strong> | `~/.local/share/yeufonic/engine/ComfyUI/models/` (또는 `$YEUFONIC_HOME/engine/ComfyUI/models/`) | `yeufonic stop` 실행 후 `yeufonic start` 실행(또는 종료 후 앱 메뉴에서 다시 열기) |
+| <strong>Mac</strong> | `~/Library/Application Support/Yeufonic/engine/ComfyUI/models/` | Yeufonic 종료(`⌘Q`) 후 다시 열기 |
+| <strong>Docker</strong> | Yeufonic 폴더 안의 `models/` | `docker compose restart app` 실행 |
 
-모델과 인코더는 이 이름으로만 찾으므로, 파일 이름은 내려받은 그대로 두세요.
+모델 폴더 안에서 이미지 모델은 `diffusion_models/`에, 텍스트 인코더는 `text_encoders/`에 넣습니다(하위 폴더가 없으면 새로 만드세요). 파일 이름은 <strong>다운로드한 그대로 유지</strong>해야 하며, Yeufonic은 정확한 파일 이름으로만 모델을 인식합니다.
 
-**FLUX 3 klein, 글자 넣기와 12 GB 이상의 카드를 위해.** Black Forest Labs의 FLUX 3 Image Klein은
-장면 전체의 설명으로 그립니다. Gemma나 외부 LLM이 쓰는 그림 프롬프트가 바로 그렇고,
-글자도 잘 써서 **테이크 그림: 그림에 노래 제목** 옵션과 잘 어울립니다. 9B처럼 Yeufonic은 이것을 결코 내려받지 않습니다. 파일이
-Hugging Face에서 접근 신청이 필요하고 **FLUX Kommunity License**를 따르기 때문입니다(비상업적 용도, 그리고 라이선스의
-매출 기준 아래인 사람이 그린 것을 상업적으로 쓰는 경우. 동의하기 전에 읽으세요). 파일을 제자리에 두면
-고를 수 있게 됩니다.
+<strong>FLUX.2 klein 9B, 그래픽 카드가 감당한다면.</strong> klein에는 더 큰 모델이 있으며 세부 묘사와 손·얼굴 표현이 더 뛰어나지만 더 많은 비디오 메모리가 필요합니다. 파일은 Hugging Face에서 Black Forest Labs의 <strong>비상업적 라이선스</strong>로 승인제 배포됩니다.
 
-- **디스크:** int8 짝으로 약 11 GB이며, 4B의 파일 옆에 둡니다. 4B의 VAE(`flux2-vae.safetensors`)를 쓰므로
-  4B를 먼저 설치하세요.
-- **비디오 메모리:** 그리는 동안 약 11 GB. FLUX.2 klein보다 단계를 몇 배 더 거치므로 그림마다
-  시간이 더 걸립니다.
-- **엔진:** 지금은 ComfyUI 엔진만 됩니다. yue2.cpp 엔진에서는 제공되지 않습니다.
+- <strong>디스크:</strong> 기본 ComfyUI 조합(FP8 모델 + FP8 인코더) 약 18 GB(FP4 인코더는 16 GB), yue2.cpp(FP8 모델 + Q4_K_M GGUF 인코더) 약 14.4 GB(4B 파일 별도). 4B의 VAE(`vae/flux2-vae.safetensors`)가 필요하므로 먼저 4B를 설치하세요.
+- <strong>비디오 메모리:</strong> 16 GB 카드에서 동작하지만 그리는 동안 거의 전체 메모리를 사용합니다. 곡을 만들지 않을 때 그리므로 음악 생성을 방해하지 않으며, 메모리가 적으면 4B가 더 적합합니다.
+- <strong>엔진:</strong> ComfyUI와 yue2.cpp 모두 지원(아래에서 엔진에 맞는 텍스트 인코더 선택).
 
-1. **Hugging Face에 로그인**하고
-   [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy)에서 라이선스에 동의합니다.
-2. **모델**을 `diffusion_models` 폴더에 넣습니다. `flux3-image-klein-int8-convrot.safetensors`(5.8 GB, NVIDIA 카드에서의
-   보통 선택), `flux3-image-klein-nvfp4.safetensors`(5.3 GB, RTX 50 카드용),
-   `flux3-image-klein-bf16.safetensors`(11.1 GB, 전체 정밀도, Mac용) 가운데 하나입니다.
-3. **그 텍스트 인코더**를 `text_encoders` 폴더에 넣습니다. `qwen3vl_4b_int8_convrot.safetensors`(4.9 GB)나
-   `qwen3vl_4b_bf16.safetensors`(8.9 GB, Mac용)입니다.
-4. **앱이 찾게 하고, 고르세요.** Yeufonic을 다시 시작한 뒤(Docker라면 `docker compose restart app`), 설정에서
-   **테이크 그림: 모델** 항목을 *FLUX 3 klein*으로 둡니다. 편집기의 그림 메모에는 *drawn by
-   FLUX 3 klein on this PC*라고 나옵니다.
+1. <strong>`diffusion_models/`에 모델 다운로드:</strong> Hugging Face에 로그인하고 [black-forest-labs/FLUX.2-klein-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8)에서 라이선스에 동의한 뒤 `flux-2-klein-9b-fp8.safetensors`(9.4 GB, NVIDIA용 ComfyUI/yue2.cpp 공용)를 내려받습니다. Mac에서는 [black-forest-labs/FLUX.2-klein-9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B)의 전체 정밀도 `flux-2-klein-9b.safetensors`를 사용합니다.
+2. <strong>`text_encoders/`에 텍스트 인코더 다운로드:</strong>
+   - <strong>ComfyUI 사용 시:</strong> [Comfy-Org/Flux-2-Klein-9B](https://huggingface.co/Comfy-Org/Flux-2-Klein-9B/tree/main/split_files/text_encoders)(로그인 불필요)에서 `qwen_3_8b_fp8mixed.safetensors`(8.7 GB, NVIDIA 기본), `qwen_3_8b_fp4mixed.safetensors`(6.8 GB, 경량) 또는 `qwen_3_8b.safetensors`(16.4 GB, Mac용 전체 정밀도)를 내려받습니다.
+   - <strong>yue2.cpp(Windows, Linux, Docker) 사용 시:</strong> 이미지 서버는 ComfyUI의 FP8/FP4 인코더를 읽지 못하므로 대신 [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF)에서 `Qwen3-8B-Q4_K_M.gguf`(5.0 GB, 권장) 또는 `Qwen3-8B-Q8_0.gguf`(8.7 GB)를 내려받습니다.
+3. <strong>Yeufonic 재시작 후 선택:</strong> 위 표의 방법대로 Yeufonic을 재시작한 뒤 <strong>설정 → 테이크 이미지: 모델</strong>에서 <em>FLUX.2 klein 9B</em>를 선택합니다. 에디터의 이미지 메모에는 <em>drawn by FLUX.2 klein 9B on this PC</em>라고 표시됩니다.
 
-폴더는 9B와 같고, 파일도 이 이름으로만 찾습니다.
+<strong>FLUX 3 klein, 글자 표현과 12 GB 이상 카드용.</strong> Black Forest Labs의 FLUX 3 Image Klein은 Gemma나 외부 LLM이 작성한 상세 장면 설명을 바탕으로 그리며 글자 렌더링이 뛰어나 <strong>이미지에 곡 제목 넣기</strong>에 잘 맞습니다. 가중치는 <strong>FLUX Kommunity License</strong>(비상업적 사용 및 라이선스 매출 한도 내 결과물의 상업적 사용 허용 — 사용 전 라이선스 확인)가 적용됩니다.
+
+- <strong>디스크:</strong> ComfyUI int8 조합 약 11 GB, yue2.cpp Q8_0 GGUF 조합 약 8.7 GB(더 작은 양자화는 더 적음, 4B 파일 별도). 4B의 VAE(`vae/flux2-vae.safetensors`)가 필요하므로 먼저 4B를 설치하세요.
+- <strong>비디오 메모리:</strong> ComfyUI 약 11 GB, yue2.cpp는 GGUF 크기에 따라 약 7–10 GB. 16단계로 그리므로(FLUX.2 klein은 4단계) 이미지당 시간이 더 걸립니다.
+- <strong>엔진:</strong> ComfyUI와 yue2.cpp 모두 지원. ComfyUI는 safetensors, yue2.cpp는 GGUF 파일을 읽습니다.
+
+1. <strong>ComfyUI(Windows, Linux, Mac, Docker):</strong>
+   - Hugging Face에 로그인하고 [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy)에서 라이선스에 동의합니다.
+   - <strong>`diffusion_models/`에 모델 저장:</strong> `flux3-image-klein-int8-convrot.safetensors`(5.8 GB, NVIDIA 기본), `flux3-image-klein-nvfp4.safetensors`(5.3 GB, RTX 50 시리즈용) 또는 `flux3-image-klein-bf16.safetensors`(11.1 GB, Mac용 전체 정밀도).
+   - <strong>`text_encoders/`에 텍스트 인코더 저장:</strong> `qwen3vl_4b_int8_convrot.safetensors`(4.9 GB, NVIDIA용) 또는 `qwen3vl_4b_bf16.safetensors`(8.9 GB, Mac용).
+2. <strong>yue2.cpp(Windows, Linux, Docker):</strong> 이미지 서버는 ComfyUI의 int8 모델 파일을 읽을 수 없으므로 승인 절차 없는 GGUF 파일을 내려받으세요:
+   - <strong>`diffusion_models/`에 모델 저장:</strong> [leejet/flux-3-image-klein-GGUF](https://huggingface.co/leejet/flux-3-image-klein-GGUF)에서 `flux3-image-klein-Q8_0.gguf`(6.2 GB, 권장)(메모리가 적은 카드용으로 `flux3-image-klein-Q6_K.gguf`, `Q5_K`, `Q4_K`, `Q4_0`도 지원).
+   - <strong>`text_encoders/`에 텍스트 인코더 저장:</strong> [Qwen/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct-GGUF)에서 `Qwen3VL-4B-Instruct-Q4_K_M.gguf`(2.5 GB, 권장)(`Qwen3VL-4B-Instruct-Q8_0.gguf` 4.3 GB 또는 [unsloth/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/unsloth/Qwen3-VL-4B-Instruct-GGUF)의 `Qwen3-VL-4B-Instruct-*.gguf`도 지원). ComfyUI용 `qwen3vl_4b_int8_convrot.safetensors`가 이미 있다면 그것도 사용할 수 있지만 Q4 GGUF가 메모리를 덜 씁니다.
+3. <strong>Yeufonic 재시작 후 선택:</strong> 위 표의 방법대로 Yeufonic을 재시작한 뒤 <strong>설정 → 테이크 이미지: 모델</strong>에서 <em>FLUX 3 klein</em>을 선택합니다. 에디터의 이미지 메모에는 <em>drawn by FLUX 3 klein on this PC</em>라고 표시됩니다.
 
 <strong>FIBO 2.0, 사진 같은 느낌과 16 GB 카드를 위해.</strong> Bria의 FIBO 2.0은 그림이 본뜨는 레코드 재킷의 실제 사진에 가장 가깝게 그립니다. 디테일이 더 선명하고, 피사계 심도가 자연스럽고, 필름의 색을 띠며, 설명이 요구하는 것을 더 많이 담습니다. 선택 가능한 설치 옵션입니다(기본적으로는 선택되어 있지 않습니다). <strong>라이선스는 CC BY-NC 4.0으로, 비상업적 용도로만 쓸 수 있습니다.</strong> FLUX 3의 라이선스는 매출 한도 아래인 사람이 그린 것을 상업적으로 쓰도록 허용하지만, FIBO로는 판매하는 노래의 커버를 포함한 모든 상업적 사용에 Bria와의 계약이 필요합니다. 쓰기 전에 라이선스를 읽으세요.
 

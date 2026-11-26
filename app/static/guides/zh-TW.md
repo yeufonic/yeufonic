@@ -1090,48 +1090,45 @@ Checkpoints 是在編輯器中點選的：如果那裡開啟著一個版本，�
   （`diffusion_models`、`text_encoders` 和 `vae`）並逐一校驗，然後用
   `docker compose restart app` 重啟應用，讓它找到這些檔案。
 
-<strong>FLUX.2 klein 9B，如果你的顯示卡夠用。</strong>klein 有一個更大的尺寸，品質更高的模型，能畫出更多細節以及更好的手和臉，只面向顯示記憶體更多的顯示卡。
-Yeufonic 從不下載它，因為它的檔案在 Hugging Face 上需要申請訪問，並採用 Black Forest Labs 的**非商業許可證**，但只要把它們放到位，就會被使用。
+<strong>手動安裝可選生圖模型（FLUX.2 klein 9B 與 FLUX 3 klein）。</strong>Yeufonic 不會自動下載需要授權審批或僅限非商用的 FLUX 模型；只需自行下載一次檔案並放入模型資料夾即可。請先安裝 <strong>FLUX.2 klein 4B</strong>（見上文）——這兩個模型共用它的 VAE（`flux2-vae.safetensors`），而且在 `yue2.cpp` 下該步驟也會一併設定生圖伺服器。
 
-- <strong>磁碟：</strong>常用的一對檔案——FP8 模型及其 FP8 文字編碼器——大約 18 GB（用 FP4 編碼器則為 16 GB），放在 4B 的檔案旁邊。它需要 4B 的 VAE（`flux2-vae.safetensors`），所以請先安裝 4B。
-- <strong>顯示記憶體：</strong>能在 16 GB 顯示卡上執行，但繪製時幾乎佔滿，空閒顯示記憶體接近於零。圖片會等到沒有歌曲生成時才畫，所以不會拖慢你的歌，但同時使用顯示卡的其他程式可能會遇到困難。顯示記憶體更少時它仍然能執行，只是更慢，因為引擎要把模型換入換出；這種情況下 4B 是更好的選擇。
+模型資料夾位置（在所有平台上，<strong>ComfyUI</strong> 與 <strong>yue2.cpp</strong> 讀取的都是同一個資料夾）：
 
-1. <strong>模型。</strong>登入 Hugging Face，在
-   [black-forest-labs/FLUX.2-klein-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8)
-   接受許可證，並下載 `flux-2-klein-9b-fp8.safetensors`（9.4 GB）。或者從
-   [black-forest-labs/FLUX.2-klein-9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) 獲取全精度的
-   `flux-2-klein-9b.safetensors`，這是給 Mac 用的，大小約為兩倍，所需記憶體也是兩倍。它放在 `diffusion_models` 資料夾裡。
-2. <strong>它的文字編碼器。</strong>從無需登入的
-   [Comfy-Org/Flux-2-Klein-9B](https://huggingface.co/Comfy-Org/Flux-2-Klein-9B/tree/main/split_files/text_encoders)
-   下載以下其中一個，放進 `text_encoders` 資料夾：
-   `qwen_3_8b_fp8mixed.safetensors`（8.7 GB，NVIDIA 顯示卡上的常用選擇）、`qwen_3_8b_fp4mixed.safetensors`
-   （6.8 GB，最小）或 `qwen_3_8b.safetensors`（16.4 GB，全精度，給 Mac 用）。**使用 yue2.cpp 引擎時**，圖片伺服器讀不了這些編碼器：請改為從
-   [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF) 獲取 `Qwen3-8B-Q4_K_M.gguf`
-   （5.0 GB）（`-Q8_0.gguf`，8.7 GB，也可以），放在同一個資料夾裡。
-3. **資料夾在哪裡：** **Docker** 是 Yeufonic 資料夾中的 `models/`；**Windows** 是安裝資料夾中的 `engine\ComfyUI\models`；<strong>Mac</strong> 和 <strong>Linux</strong> 是安裝資料夾中的
-   `engine/ComfyUI/models/`。
-4. <strong>讓應用看到它們，並選擇它。</strong>重啟 Yeufonic（使用 Docker 時為 `docker compose restart app`），然後在設定中把**版本圖片：模型**設為 *FLUX.2 klein 9B*。在此之前由 4B 繪製，如果選了 9B 卻無法在這裡繪製，設定會提示你。選擇
-   *4B* 即可退回，無需刪除任何東西。編輯器中圖片的備註會說明是哪一個畫的（*drawn by FLUX.2 klein 9B on this PC*）。
+| 平台 | 模型資料夾 | 複製檔案後如何重啟 Yeufonic |
+|---|---|---|
+| <strong>Windows</strong> | `%LOCALAPPDATA%\Programs\Yeufonic\engine\ComfyUI\models\`（或 `<安裝資料夾>\engine\ComfyUI\models\`） | 右鍵點擊系統匣中的 Yeufonic 圖示 → <strong>結束</strong>，再重新啟動 Yeufonic |
+| <strong>Linux</strong> | `~/.local/share/yeufonic/engine/ComfyUI/models/`（或 `$YEUFONIC_HOME/engine/ComfyUI/models/`） | 執行 `yeufonic stop` 再執行 `yeufonic start`（或結束後從應用程式選單重新開啟） |
+| <strong>Mac</strong> | `~/Library/Application Support/Yeufonic/engine/ComfyUI/models/` | 結束 Yeufonic（`⌘Q`）後重新開啟 |
+| <strong>Docker</strong> | Yeufonic 資料夾內的 `models/` | 執行 `docker compose restart app` |
 
-模型和它的編碼器只能以這些名稱被找到，所以請保持下載時的檔名。
+在模型資料夾內，將圖像模型放入 `diffusion_models/`，將文字編碼器放入 `text_encoders/`（若子資料夾不存在請先建立）。請<strong>保持下載時的原檔名不變</strong>——Yeufonic 僅依這些精確檔名辨識模型。
 
-<strong>FLUX 3 klein，適合畫文字，需要 12 GB 或以上的顯示卡。</strong>Black Forest Labs 的 FLUX 3 Image Klein 根據完整的場景描述來繪製，而這正是 Gemma 或外部 LLM 寫出的圖片提示詞，它寫字也寫得好，與**版本圖片：在圖片上顯示歌名**很搭。和 9B 一樣，Yeufonic 從不下載它：它的檔案在
-Hugging Face 上需要申請訪問，並採用 **FLUX Kommunity License**（非商業用途，以及營收低於許可證門檻者對其所繪內容的商業使用；接受前請先閱讀）。把它的檔案放到位，就可以選擇它。
+<strong>FLUX.2 klein 9B，如果你的顯示卡夠用。</strong>klein 有一個更大的版本，細節更豐富，手部與臉部表現更好，適合顯示記憶體更大的顯示卡。其檔案在 Hugging Face 上採用 Black Forest Labs 的<strong>非商用授權</strong>且需登入同意條款。
 
-- <strong>磁碟：</strong>int8 這一對大約 11 GB，放在 4B 的檔案旁邊。它使用 4B 的 VAE（`flux2-vae.safetensors`），所以請先安裝 4B。
-- <strong>顯示記憶體：</strong>繪製時大約 11 GB。它的步數是 FLUX.2 klein 的好幾倍，所以每張圖片耗時更長。
-- <strong>引擎：</strong>目前只支援 ComfyUI 引擎；使用 yue2.cpp 引擎時不提供它。
+- <strong>磁碟空間：</strong>常見 ComfyUI 組合（FP8 模型 + FP8 編碼器）約 18 GB（FP4 編碼器約 16 GB），yue2.cpp（FP8 模型 + Q4_K_M GGUF 編碼器）約 14.4 GB（不含 4B 檔案）。需要 4B 的 VAE（`vae/flux2-vae.safetensors`），請先安裝 4B。
+- <strong>顯示記憶體：</strong>可在 16 GB 顯示卡上執行，但繪圖時幾乎會佔滿記憶體。生圖會等待沒有歌曲算繪時才執行，不會拖慢作曲；記憶體較小時仍可執行但較慢，建議使用 4B。
+- <strong>引擎：</strong>ComfyUI 與 yue2.cpp 皆支援（依下方對應引擎選擇文字編碼器）。
 
-1. **登入 Hugging Face**，並在
-   [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy) 接受許可證。
-2. **模型**，放進 `diffusion_models` 資料夾：`flux3-image-klein-int8-convrot.safetensors`（5.8 GB，NVIDIA 顯示卡上的常用選擇）、`flux3-image-klein-nvfp4.safetensors`（5.3 GB，給 RTX 50 顯示卡用）或
-   `flux3-image-klein-bf16.safetensors`（11.1 GB，全精度，給 Mac 用）。
-3. **它的文字編碼器**，放進 `text_encoders` 資料夾：`qwen3vl_4b_int8_convrot.safetensors`（4.9 GB）或
-   `qwen3vl_4b_bf16.safetensors`（8.9 GB，給 Mac 用）。
-4. <strong>讓應用看到它們，並選擇它：</strong>重啟 Yeufonic（使用 Docker 時為 `docker compose restart app`），然後在設定中把**版本圖片：模型**設為 *FLUX 3 klein*。編輯器中圖片的備註會寫著 *drawn by
-   FLUX 3 klein on this PC*。
+1. <strong>下載模型到 `diffusion_models/`：</strong>登入 Hugging Face，在 [black-forest-labs/FLUX.2-klein-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8) 同意授權並下載 `flux-2-klein-9b-fp8.safetensors`（9.4 GB，NVIDIA 顯示卡於 ComfyUI 或 yue2.cpp 皆通用）。Mac 使用者請改從 [black-forest-labs/FLUX.2-klein-9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) 下載全精度 `flux-2-klein-9b.safetensors`。
+2. <strong>下載文字編碼器到 `text_encoders/`：</strong>
+   - <strong>使用 ComfyUI：</strong>從 [Comfy-Org/Flux-2-Klein-9B](https://huggingface.co/Comfy-Org/Flux-2-Klein-9B/tree/main/split_files/text_encoders)（無須登入）下載 `qwen_3_8b_fp8mixed.safetensors`（8.7 GB，NVIDIA 常用）、`qwen_3_8b_fp4mixed.safetensors`（6.8 GB，較小）或 `qwen_3_8b.safetensors`（16.4 GB，Mac 全精度）。
+   - <strong>使用 yue2.cpp（Windows、Linux 或 Docker）：</strong>生圖伺服器無法讀取 ComfyUI 的 FP8/FP4 編碼器，請改從 [unsloth/Qwen3-8B-GGUF](https://huggingface.co/unsloth/Qwen3-8B-GGUF) 下載 `Qwen3-8B-Q4_K_M.gguf`（5.0 GB，推薦）或 `Qwen3-8B-Q8_0.gguf`（8.7 GB）。
+3. <strong>重啟 Yeufonic 並切換模型：</strong>依上表方法重啟 Yeufonic，然後在<strong>設定 → 作品封面：模型</strong>中選擇 <em>FLUX.2 klein 9B</em>。編輯器中的圖片備註會顯示 <em>drawn by FLUX.2 klein 9B on this PC</em>。
 
-資料夾和 9B 的相同，檔案也只能以這些名稱被找到。
+<strong>FLUX 3 klein，適合帶文字的封面與 12 GB 及以上顯示卡。</strong>Black Forest Labs 的 FLUX 3 Image Klein 擅長依據完整場景描述（即 Gemma 或外部 LLM 寫出的提示詞）繪圖，文字算繪清晰，非常適合開啟<strong>在封面上顯示歌名</strong>。其權重採用 <strong>FLUX Kommunity License</strong>（允許非商用，且在授權營收上限內允許商用產生結果；使用前請先閱讀條款）。
+
+- <strong>磁碟空間：</strong>ComfyUI int8 組合約 11 GB，yue2.cpp Q8_0 GGUF 組合約 8.7 GB（較小量化體積更小，不含 4B 檔案）。需要 4B 的 VAE（`vae/flux2-vae.safetensors`），請先安裝 4B。
+- <strong>顯示記憶體：</strong>ComfyUI 約 11 GB，yue2.cpp 視 GGUF 大小約 7–10 GB。需 16 步取樣（FLUX.2 klein 為 4 步），單張繪圖耗時較長。
+- <strong>引擎：</strong>ComfyUI 與 yue2.cpp 皆支援。ComfyUI 讀取下方的 safetensors 檔案，yue2.cpp 則讀取 GGUF 檔案。
+
+1. <strong>使用 ComfyUI（Windows、Linux、Mac 或 Docker）：</strong>
+   - 登入 Hugging Face 並在 [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy) 同意授權。
+   - <strong>模型放入 `diffusion_models/`：</strong>`flux3-image-klein-int8-convrot.safetensors`（5.8 GB，NVIDIA 常用）、`flux3-image-klein-nvfp4.safetensors`（5.3 GB，RTX 50 系列）或 `flux3-image-klein-bf16.safetensors`（11.1 GB，Mac 全精度）。
+   - <strong>文字編碼器放入 `text_encoders/`：</strong>`qwen3vl_4b_int8_convrot.safetensors`（4.9 GB，NVIDIA）或 `qwen3vl_4b_bf16.safetensors`（8.9 GB，Mac）。
+2. <strong>使用 yue2.cpp（Windows、Linux 或 Docker）：</strong>生圖伺服器無法讀取 ComfyUI 的 int8 模型檔案，請改下載免登入的 GGUF 檔案：
+   - <strong>模型放入 `diffusion_models/`：</strong>從 [leejet/flux-3-image-klein-GGUF](https://huggingface.co/leejet/flux-3-image-klein-GGUF) 下載 `flux3-image-klein-Q8_0.gguf`（6.2 GB，推薦）（小顯示記憶體顯示卡也可用 `flux3-image-klein-Q6_K.gguf`、`Q5_K`、`Q4_K` 和 `Q4_0`）。
+   - <strong>文字編碼器放入 `text_encoders/`：</strong>從 [Qwen/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct-GGUF) 下載 `Qwen3VL-4B-Instruct-Q4_K_M.gguf`（2.5 GB，推薦）（`Qwen3VL-4B-Instruct-Q8_0.gguf` 4.3 GB，或 [unsloth/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/unsloth/Qwen3-VL-4B-Instruct-GGUF) 中的 `Qwen3-VL-4B-Instruct-*.gguf` 同樣可用）。若你已有 ComfyUI 的 `qwen3vl_4b_int8_convrot.safetensors`（來自 FLUX 3 或 FIBO 2.0），生圖伺服器也可使用，但 Q4 GGUF 較省記憶體。
+3. <strong>重啟 Yeufonic 並切換模型：</strong>依上表方法重啟 Yeufonic，然後在<strong>設定 → 作品封面：模型</strong>中選擇 <em>FLUX 3 klein</em>。編輯器中的圖片備註會顯示 <em>drawn by FLUX 3 klein on this PC</em>。
 
 <strong>FIBO 2.0，追求照片質感，需要 16 GB 顯示卡。</strong>Bria 的 FIBO 2.0 畫出的圖片最接近這些圖片所仿效的唱片封套的真實照片：細節更銳利，景深自然，帶有底片的色彩，也更貼合描述的要求。它是一個可選的安裝項（預設不勾選）。<strong>它的授權是 CC BY-NC 4.0：僅限非商業用途。</strong>FLUX 3 的授權允許營收低於門檻的人商業使用其所繪內容；而使用 FIBO 時，任何商業用途，包括你出售的歌曲的封面，都需要與 Bria 簽訂協議。使用前請先閱讀授權。
 

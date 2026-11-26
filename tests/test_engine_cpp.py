@@ -542,6 +542,103 @@ def test_the_9b_has_its_own_recipe(monkeypatch):
     assert translate(artwork.picture_graph("x", 1, "p"))["recipe"] == "flux2-klein-9b"
 
 
+def test_flux3_klein_becomes_a_flux3_picture_request(monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options",
+                        lambda: {"klein": {"flux3": ["flux3-image-klein-Q8_0.gguf", "Qwen3VL-4B-Instruct-Q4_K_M.gguf"]}})
+    monkeypatch.setattr(artwork, "get_setting", lambda key, default=None: "flux3" if key == "art.klein" else default)
+    job = translate(artwork.picture_graph("a neon diner in the rain", 99, "yeufonic/picture-t1", as_given=True))
+    assert job["kind"] == "picture" and job["recipe"] == "flux3-klein"
+    assert job["files"] == {"diffusion_model": "diffusion_models/flux3-image-klein-Q8_0.gguf",
+                            "llm": "text_encoders/Qwen3VL-4B-Instruct-Q4_K_M.gguf",
+                            "vae": "vae/flux2-vae.safetensors"}
+    body = job["body"]
+    assert body["prompt"] == "a neon diner in the rain" and body["seed"] == 99
+    assert (body["width"], body["height"]) == (1024, 1024)
+    assert body["sample_params"]["sample_steps"] == artwork.FLUX3_STEPS
+    assert body["sample_params"]["sample_method"] == "euler"
+    assert body["sample_params"]["guidance"]["txt_cfg"] == 1.0
+
+
+def test_fibo2_is_still_refused_on_yue2cpp(monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options",
+                        lambda: {"klein": {"fibo2": ["fibo2_dev_int8_convrot.safetensors", "qwen3vl_4b_int8_convrot.safetensors"]}})
+    monkeypatch.setattr(artwork, "get_setting", lambda key, default=None: "fibo2" if key == "art.klein" else default)
+    with pytest.raises(RuntimeError, match="ComfyUI engine"):
+        translate(artwork.picture_graph("a lighthouse", 1, "p", as_given=True))
+
+
+def test_flux3_is_offered_with_gguf_weights_and_respects_server_recipes(monkeypatch):
+    monkeypatch.setattr(config, "CHECKPOINT", config.CHECKPOINT)
+
+    class PicturesWithRecipes(FakePictures):
+        def __init__(self, files, recipes=("flux2-klein-4b", "flux2-klein-9b", "flux3-klein")):
+            super().__init__(files=files)
+            self.recipes = list(recipes)
+
+        def __call__(self, request):
+            if request.url.path == "/sdcpp/v1/recipes":
+                return httpx.Response(200, json={"recipes": [{"id": r} for r in self.recipes]})
+            return super().__call__(request)
+
+    # ComfyUI's fused-QKV int8-convrot FLUX 3 file alone is not offered on yue2.cpp
+    comfy_only = PicturesWithRecipes(files=("diffusion_models/flux3-image-klein-int8-convrot.safetensors",
+                                            "text_encoders/Qwen3VL-4B-Instruct-Q4_K_M.gguf",
+                                            "vae/flux2-vae.safetensors"))
+    engine = _with_pictures(FakeServer(), comfy_only)
+    asyncio.run(engine.refresh_options())
+    assert engine.options["pictures"] is False and engine.options["klein"] == {}
+
+    # GGUF model + Qwen3VL (no hyphen) or Qwen3-VL (unsloth hyphen) encoder + shared VAE -> offered
+    gguf_files = ("diffusion_models/flux3-image-klein-Q8_0.gguf",
+                  "text_encoders/Qwen3-VL-4B-Instruct-Q4_K_M.gguf",
+                  "vae/flux2-vae.safetensors")
+    engine.pictures = httpx.AsyncClient(base_url="http://pictures",
+                                        transport=httpx.MockTransport(PicturesWithRecipes(files=gguf_files)))
+    asyncio.run(engine.refresh_options())
+    assert engine.options["pictures"] is True
+    assert engine.options["klein"] == {"flux3": ["flux3-image-klein-Q8_0.gguf", "Qwen3-VL-4B-Instruct-Q4_K_M.gguf"]}
+
+    # Older server without the flux3-klein recipe -> not offered even when files exist
+    old_server = PicturesWithRecipes(files=gguf_files, recipes=("flux2-klein-4b", "flux2-klein-9b"))
+    engine.pictures = httpx.AsyncClient(base_url="http://pictures", transport=httpx.MockTransport(old_server))
+    asyncio.run(engine.refresh_options())
+    assert engine.options["pictures"] is False and "flux3" not in engine.options["klein"]
+
+    # ComfyUI's int8-convrot Qwen3-VL encoder also works as a fallback beside a GGUF FLUX 3 model
+    shared_enc = PicturesWithRecipes(files=("diffusion_models/flux3-image-klein-Q8_0.gguf",
+                                            "text_encoders/qwen3vl_4b_int8_convrot.safetensors",
+                                            "vae/flux2-vae.safetensors"))
+    engine.pictures = httpx.AsyncClient(base_url="http://pictures", transport=httpx.MockTransport(shared_enc))
+    asyncio.run(engine.refresh_options())
+    assert engine.options["klein"] == {"flux3": ["flux3-image-klein-Q8_0.gguf", "qwen3vl_4b_int8_convrot.safetensors"]}
+
+
+def test_a_flux3_picture_is_drawn_then_unloaded(tmp_path, monkeypatch):
+    monkeypatch.setattr(artwork, "engine_options",
+                        lambda: {"klein": {"flux3": ["flux3-image-klein-Q8_0.gguf", "Qwen3VL-4B-Instruct-Q4_K_M.gguf"]}})
+    monkeypatch.setattr(artwork, "get_setting", lambda key, default=None: "flux3" if key == "art.klein" else default)
+    pictures = FakePictures(files=("diffusion_models/flux3-image-klein-Q8_0.gguf",
+                                   "text_encoders/Qwen3VL-4B-Instruct-Q4_K_M.gguf",
+                                   "vae/flux2-vae.safetensors"))
+    engine = _with_pictures(FakeServer(), pictures)
+    dest = tmp_path / "flux3.png"
+
+    async def go():
+        pid = await engine.submit(artwork.picture_graph("a tin roof at dusk", 12, "yeufonic/picture-t1", as_given=True))
+        job = await _finish(engine, pid)
+        item = next(out["images"][0] for out in job["outputs"].values() if out.get("images"))
+        await engine.download(item, dest)
+        return job
+    job = asyncio.run(go())
+    assert job["status"]["status_str"] == "success"
+    assert dest.read_bytes() == PNG
+    load_call = next(payload for path, payload in pictures.calls if path == "/sdcpp/v1/models/load")
+    gen_call = next(payload for path, payload in pictures.calls if path == "/sdcpp/v1/img_gen")
+    assert load_call["recipe"] == "flux3-klein"
+    assert gen_call["sample_params"]["sample_steps"] == 16 and gen_call["seed"] == 12
+    assert pictures.calls[-1][0] == "/sdcpp/v1/models/unload"
+
+
 def test_klein_is_offered_only_with_a_model_an_encoder_it_reads_and_the_vae(monkeypatch):
     monkeypatch.setattr(config, "CHECKPOINT", config.CHECKPOINT)
     engine = _with_pictures(FakeServer(), FakePictures(files=("diffusion_models/flux-2-klein-4b-fp8.safetensors",
@@ -677,5 +774,6 @@ def test_settings_say_when_the_chosen_klein_cannot_draw():
     note = js[js.index("function paintKleinFallback() {"):]
     note = note[:note.index("\n}\n")]
     assert "have.indexOf(chosen) < 0" in note and "draws." in note
-    # FIBO 2.0 is named too, and said not to draw with yue2.cpp
+    # FLUX 3 klein names its GGUF requirement on yue2.cpp; FIBO 2.0 is still said not to draw with yue2.cpp
+    assert "FLUX 3 klein is not set up here" in note
     assert "fibo2: t('FIBO 2.0')" in js and "FIBO 2.0 does not draw with the yue2.cpp engine" in note

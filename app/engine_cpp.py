@@ -73,15 +73,41 @@ STAGES = {
     "picture": ["UNETLoader", "SamplerCustomAdvanced", "SaveImage"],
 }
 
-# Pictures: ComfyUI draws FLUX.2 klein from the graph artwork.picture_graph builds.  Beside yue2.cpp,
-# stable-diffusion.cpp's server (compose.cpp.yml's pictures service) draws it from the same model and VAE
-# files, loading them for each picture and letting go of them after it, as Ollama does Gemma.  Its loader
-# cannot read the text encoders ComfyUI is given (their 4-bit block scales), so it reads Qwen 3 as GGUF.
+# Pictures: ComfyUI draws FLUX.2 klein and FLUX 3 klein from the graphs artwork.picture_graph builds.  Beside
+# yue2.cpp, stable-diffusion.cpp's server (compose.cpp.yml's pictures service) draws them from the models folder,
+# loading them for each picture and letting go of them after it, as Ollama does Gemma.  Its loader cannot read the
+# 4-bit block-scaled encoders ComfyUI is given, nor ComfyUI's fused-QKV FLUX 3 checkpoints, so it reads Qwen 3 /
+# Qwen3-VL as GGUF and FLUX 3 from GGUF (or upstream unfused safetensors).
+PICTURE_MODELS = {
+    "4b": tuple(dict.fromkeys(m for m, _ in config.PICTURE_PAIRS)),
+    "9b": tuple(dict.fromkeys(m for m, _ in config.PICTURE_PAIRS_9B)),
+    "flux3": (
+        "flux3-image-klein-Q8_0.gguf",
+        "flux3-image-klein-Q6_K.gguf",
+        "flux3-image-klein-Q5_K.gguf",
+        "flux3-image-klein-Q4_K.gguf",
+        "flux3-image-klein-Q4_0.gguf",
+        "flux3-image-klein-Q3_K.gguf",
+        "flux3-image-klein-Q2_K.gguf",
+        "flux-3-image-klein.safetensors",
+    ),
+}
 PICTURE_ENCODERS = {
     "4b": ("Qwen3-4B-Q8_0.gguf", "Qwen3-4B-Q6_K.gguf", "Qwen3-4B-Q4_K_M.gguf", "qwen_3_4b.safetensors"),
     "9b": ("Qwen3-8B-Q8_0.gguf", "Qwen3-8B-Q6_K.gguf", "Qwen3-8B-Q4_K_M.gguf", "qwen_3_8b.safetensors"),
+    "flux3": (
+        "Qwen3VL-4B-Instruct-Q8_0.gguf",
+        "Qwen3-VL-4B-Instruct-Q8_0.gguf",
+        "Qwen3-VL-4B-Instruct-Q6_K.gguf",
+        "Qwen3VL-4B-Instruct-Q4_K_M.gguf",
+        "Qwen3-VL-4B-Instruct-Q4_K_M.gguf",
+        "Qwen3VL-4B-Instruct-F16.gguf",
+        "Qwen3-VL-4B-Instruct-BF16.gguf",
+        "qwen3vl_4b_int8_convrot.safetensors",
+        "qwen3vl_4b_bf16.safetensors",
+    ),
 }
-PICTURE_RECIPES = {"4b": "flux2-klein-4b", "9b": "flux2-klein-9b"}
+PICTURE_RECIPES = {"4b": "flux2-klein-4b", "9b": "flux2-klein-9b", "flux3": "flux3-klein"}
 
 # Gemma: ComfyUI runs it in its TextGenerate node.  Beside yue2.cpp it runs in Ollama
 # (compose.cpp.yml's gemma service), which unloads it as soon as it has answered, so it never
@@ -232,27 +258,37 @@ def translate(graph: dict) -> dict:
                 "output": _output_node(graph, "PreviewAny") or nid}
     _, unet = _find(graph, "UNETLoader")
     save_id, _ = _find(graph, "SaveImage")
-    if unet and save_id:
+    _, encode = _find(graph, "CLIPTextEncode")
+    if unet and save_id and encode:
         def first(class_type: str) -> dict:
             return (_find(graph, class_type)[1] or {}).get("inputs") or {}
         model = str(unet["inputs"].get("unet_name") or "")
+        clip = first("CLIPLoader")
+        clip_type = str(clip.get("type") or "").lower()
         latent = first("EmptyFlux2LatentImage")
+        ksampler = first("KSampler")
+        is_flux3 = clip_type == "flux3" or "flux3" in model.lower() or "flux-3" in model.lower()
+        size = "flux3" if is_flux3 else ("9b" if "9b" in model.lower() else "4b")
+        seed = ksampler.get("seed") if ksampler else first("RandomNoise").get("noise_seed")
+        sampler_name = ksampler.get("sampler_name") if ksampler else first("KSamplerSelect").get("sampler_name")
+        steps = ksampler.get("steps") if ksampler else first("Flux2Scheduler").get("steps")
+        cfg = ksampler.get("cfg") if ksampler else first("CFGGuider").get("cfg")
         body = {
-            "prompt": str(first("CLIPTextEncode").get("text") or ""),
+            "prompt": str((encode.get("inputs") or {}).get("text") or ""),
             "negative_prompt": "",
             "width": int(latent.get("width") or 1024),
             "height": int(latent.get("height") or 1024),
-            "seed": int(first("RandomNoise").get("noise_seed") or 0),
+            "seed": int(seed if seed is not None else 0),
             "batch_count": 1,
             "output_format": "png",
-            "sample_params": {"sample_method": str(first("KSamplerSelect").get("sampler_name") or "euler"),
-                              "sample_steps": int(first("Flux2Scheduler").get("steps") or 4),
-                              "guidance": {"txt_cfg": float(first("CFGGuider").get("cfg") or 1.0)}},
+            "sample_params": {"sample_method": str(sampler_name or "euler"),
+                              "sample_steps": int(steps or (16 if is_flux3 else 4)),
+                              "guidance": {"txt_cfg": float(cfg if cfg is not None else 1.0)}},
         }
         return {"kind": "picture", "body": body, "output": save_id,
-                "recipe": PICTURE_RECIPES["9b" if "9b" in model.lower() else "4b"],
+                "recipe": PICTURE_RECIPES[size],
                 "files": {"diffusion_model": f"diffusion_models/{model}",
-                          "llm": f"text_encoders/{first('CLIPLoader').get('clip_name') or ''}",
+                          "llm": f"text_encoders/{clip.get('clip_name') or ''}",
                           "vae": f"vae/{first('VAELoader').get('vae_name') or config.PICTURE_VAE}"}}
     nid, transcribe = _find(graph, TRANSCRIBE_NODE)
     if transcribe:
@@ -506,9 +542,18 @@ class CppEngine(Engine):
                 r = await self.pictures.get("/sdcpp/v1/model-files", timeout=6.0)
                 r.raise_for_status()
                 files = {f.get("id") for f in r.json().get("files") or []}
+                recipes: set[str] | None = None
+                try:
+                    rr = await self.pictures.get("/sdcpp/v1/recipes", timeout=6.0)
+                    if rr.status_code == 200:
+                        recipes = {item.get("id") for item in rr.json().get("recipes") or [] if item.get("id")}
+                except Exception:  # noqa: BLE001
+                    recipes = None
                 if f"vae/{config.PICTURE_VAE}" in files:
-                    for size, pairs in (("4b", config.PICTURE_PAIRS), ("9b", config.PICTURE_PAIRS_9B)):
-                        model = next((m for m, _ in pairs if f"diffusion_models/{m}" in files), None)
+                    for size in ("4b", "9b", "flux3"):
+                        if recipes is not None and PICTURE_RECIPES[size] not in recipes:
+                            continue
+                        model = next((m for m in PICTURE_MODELS[size] if f"diffusion_models/{m}" in files), None)
                         encoder = next((e for e in PICTURE_ENCODERS[size] if f"text_encoders/{e}" in files), None)
                         if model and encoder:
                             klein[size] = [model, encoder]
