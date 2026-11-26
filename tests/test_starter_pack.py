@@ -145,11 +145,14 @@ def test_build_fetch_and_install_starter_pack_end_to_end(client, tmp_path):
     r2_dir = tmp_path / "r2_starter_pack"
     _populate_source_library(src_data, src_models)
 
-    manifest = builder.build_pack(src_data, src_models, r2_dir)
+    # Force multi-part zip splitting (e.g., to stay under R2's 300 MiB Wrangler upload limit)
+    manifest = builder.build_pack(src_data, src_models, r2_dir, max_bundle_bytes=120)
     assert manifest["format"] == "yeufonic-starter-pack-manifest"
     assert manifest["counts"] == {"takes": 2, "voices": 1, "sources": 1, "loras": 1}
+    assert len(manifest["bundles"]) >= 2
     assert (r2_dir / "manifest.json").is_file()
-    assert (r2_dir / "starter-pack.zip").is_file()
+    for b in manifest["bundles"]:
+        assert (r2_dir / b["path"]).is_file()
     assert (r2_dir / "loras" / "demo_style_lora.safetensors").is_file()
     assert (r2_dir / "loras" / "demo_style_lora.txt").is_file()
     assert (r2_dir / "voices" / "voice0000001" / "model.pth").is_file()
@@ -297,3 +300,7 @@ def test_fetch_models_script_documents_and_parses_demos_flag():
     assert "DEMOS=yes" in script
     assert "_fetch_starter_pack.py" in script
     assert "STARTER_PACK_URL" in script
+    builder = _load_module("build_starter_pack_schema_check", "tools/build_starter_pack.py")
+    assert builder.TAKE_COLUMNS == starter_pack.TAKE_COLUMNS
+    assert builder.VOICE_COLUMNS == starter_pack.VOICE_COLUMNS
+    assert builder.SOURCE_COLUMNS == starter_pack.SOURCE_COLUMNS

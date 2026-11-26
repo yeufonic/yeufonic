@@ -50,9 +50,9 @@
 #                                        separator. Then COMPOSE_PROFILES=voice in .env starts the voice service.
 #   sh scripts/fetch-models.sh --demos      also the Starter Pack (curated demo takes in a "Starter Pack" space,
 #                                        with their artwork, mastering settings, cover recording, voice, and LoRAs
-#                                        when not already present), downloaded from yeufonic.com (override with
-#                                        STARTER_PACK_URL). Imported immediately if Yeufonic is running, or on
-#                                        next start.
+#                                        when not already present), downloaded from media.yeufonic.com (override
+#                                        with STARTER_PACK_URL). Imported immediately if Yeufonic is running, or
+#                                        on next start.
 #
 # One size or the other: with both in models/checkpoints the app uses the full-quality one.
 # A file that is already there is kept, and an interrupted download resumes.
@@ -438,7 +438,7 @@ fetch "https://archive.org/download/free-soundfonts-sf2-2019-04/Arachno_SoundFon
       "$SF2_DIR/Arachno_SoundFont_Version_1.0.sf2"
 
 if [ "$DEMOS" = yes ]; then
-  STARTER_PACK_URL="${STARTER_PACK_URL:-https://yeufonic.com/starter-pack}"
+  STARTER_PACK_URL="${STARTER_PACK_URL:-https://media.yeufonic.com/starter-pack}"
   python3 "$ROOT/scripts/_fetch_starter_pack.py" --root "$ROOT" --url "$STARTER_PACK_URL"
 fi
 

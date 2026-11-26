@@ -2,7 +2,7 @@
 """Build a publishable Starter Pack package from a Yeufonic space.
 
 Reads a Yeufonic library (read-only) and produces a self-contained directory
-ready to upload to R2 (for example ``https://yeufonic.com/starter-pack/``):
+ready to upload to R2 (``https://media.yeufonic.com/starter-pack/``):
 
     <out>/
       manifest.json               # file list, byte sizes, SHA-256 checksums
@@ -28,21 +28,115 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-# Allow importing app.starter_pack constants when run from repo root
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+# Keep schema constants inline so tools/build_starter_pack.py runs with plain
+# host Python 3 (stdlib only, no FastAPI/httpx required). tests/test_starter_pack.py
+# asserts these stay identical to app/starter_pack.py.
+FORMAT = "yeufonic-starter-pack"
+VERSION = 1
+SPACE_NAME = "Starter Pack"
+MANIFEST_FORMAT = "yeufonic-starter-pack-manifest"
+# Cloudflare's `wrangler r2 object put` rejects single objects over 300 MiB;
+# keep every zip part comfortably under 200 MiB so future takes can be added freely.
+DEFAULT_MAX_BUNDLE_BYTES = 200 * 1024 * 1024
 
-from app.starter_pack import (  # noqa: E402
-    FORMAT,
-    SOURCE_COLUMNS,
-    SPACE_NAME,
-    TAKE_COLUMNS,
-    VERSION,
-    VOICE_COLUMNS,
+TAKE_COLUMNS = (
+    "kind",
+    "title",
+    "style",
+    "lyrics",
+    "abc",
+    "mode",
+    "seed",
+    "checkpoint",
+    "max_duration",
+    "duration",
+    "favourite",
+    "created_at",
+    "finished_at",
+    "elapsed",
+    "auto_render",
+    "variety",
+    "harmony",
+    "interpretation",
+    "feel",
+    "realaudio",
+    "voice_lora",
+    "voice_lora_strength",
+    "voice_lora_clip",
+    "vocal_check",
+    "style_lora",
+    "style_lora_model",
+    "style_lora_clip",
+    "loudness",
+    "sound_seed",
+    "normalise",
+    "normalised",
+    "weak_dismissed",
+    "engine",
+    "normalised_to",
+    "sampler_steps",
+    "avoid",
+    "target_key",
+    "target_bpm",
+    "target_meter",
+    "take_note",
+    "sampling",
+    "recording_ref",
+    "max_abc_tokens",
+    "chord_hold_limit",
+    "chord_outside_bonus",
+    "chord_sections",
+    "follow_structure",
+    "voice_cues",
+    "cap_typed",
+    "brief",
+    "note_dismissed",
+    "target_lufs",
+    "fade_out_seconds",
+    "fx_chain",
+    "hook_abc",
+    "hook_section",
+    "cfg_scale",
+    "voice_mix",
 )
 
-MANIFEST_FORMAT = "yeufonic-starter-pack-manifest"
+VOICE_COLUMNS = (
+    "name",
+    "prefix_seconds",
+    "head",
+    "created_at",
+    "octave",
+    "level_db",
+    "likeness",
+    "backing_db",
+    "vocals_only",
+    "room",
+    "brightness",
+    "protect",
+    "dynamics",
+    "formant",
+    "wet",
+    "tail_gate",
+    "rmvpe_thred",
+    "f0_floor",
+)
+
+SOURCE_COLUMNS = (
+    "title",
+    "filename",
+    "sha256",
+    "created_at",
+    "abc",
+    "abc_updated_at",
+    "transcribe_state",
+    "lyrics",
+    "lyrics_state",
+    "lyrics_progress",
+    "duration",
+    "lyrics_method",
+    "origin",
+    "instrument",
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -87,6 +181,7 @@ def build_pack(
     out_dir: Path,
     space_name: str = SPACE_NAME,
     include_voice_stems: bool = False,
+    max_bundle_bytes: int = DEFAULT_MAX_BUNDLE_BYTES,
 ) -> dict[str, Any]:
     db_path = data_dir / "yue2.sqlite"
     if not db_path.is_file():
@@ -213,8 +308,7 @@ def build_pack(
             "files": voice_manifest_files,
         })
 
-    # 3. Build starter-pack.zip containing pack.json + sources + takes + artwork
-    zip_path = out_dir / "starter-pack.zip"
+    # 3. Build one or more zip bundles containing pack.json + sources + takes + artwork
     pack_sources: list[dict[str, Any]] = []
     pack_takes: list[dict[str, Any]] = []
     zip_members: list[tuple[Path, str]] = []
@@ -322,20 +416,37 @@ def build_pack(
         "loras": [item["file"] for item in manifest_loras],
     }
 
+    # Partition zip_members so no single zip exceeds max_bundle_bytes (Wrangler R2 limit is 300 MiB).
+    pack_json_bytes = (json.dumps(pack_doc, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    parts: list[list[tuple[Path, str]]] = [[]]
+    part_size = len(pack_json_bytes)
+    for src_file, arc_name in zip_members:
+        fsize = src_file.stat().st_size
+        if parts[-1] and part_size + fsize > max_bundle_bytes:
+            parts.append([])
+            part_size = 0
+        parts[-1].append((src_file, arc_name))
+        part_size += fsize
+
     # FLAC and PNG are already compressed, so ZIP_STORED for media keeps packing fast;
     # compress JSON/text with ZIP_DEFLATED.
-    with zipfile.ZipFile(zip_path, "w") as zf:
-        zf.writestr(
-            "pack.json",
-            json.dumps(pack_doc, indent=2, ensure_ascii=False) + "\n",
-            compress_type=zipfile.ZIP_DEFLATED,
-        )
-        for src_file, arc_name in zip_members:
-            ctype = zipfile.ZIP_DEFLATED if src_file.suffix.lower() in (".json", ".txt") else zipfile.ZIP_STORED
-            zf.write(src_file, arc_name, compress_type=ctype)
+    manifest_bundles: list[dict[str, Any]] = []
+    for idx, part_members in enumerate(parts, start=1):
+        bundle_name = "starter-pack.zip" if len(parts) == 1 else f"starter-pack-{idx}.zip"
+        bundle_path = out_dir / bundle_name
+        with zipfile.ZipFile(bundle_path, "w") as zf:
+            if idx == 1:
+                zf.writestr("pack.json", pack_json_bytes, compress_type=zipfile.ZIP_DEFLATED)
+            for src_file, arc_name in part_members:
+                ctype = zipfile.ZIP_DEFLATED if src_file.suffix.lower() in (".json", ".txt") else zipfile.ZIP_STORED
+                zf.write(src_file, arc_name, compress_type=ctype)
+        manifest_bundles.append({
+            "path": bundle_name,
+            "bytes": bundle_path.stat().st_size,
+            "sha256": sha256_file(bundle_path),
+        })
 
-    bundle_sha = sha256_file(zip_path)
-    bundle_bytes = zip_path.stat().st_size
+    bundle_bytes = sum(b["bytes"] for b in manifest_bundles)
     voice_bytes = sum(f["bytes"] for v in manifest_voices for f in v["files"])
     lora_bytes = sum(item["bytes"] for item in manifest_loras)
 
@@ -352,11 +463,8 @@ def build_pack(
             "loras": len(lora_names),
         },
         "total_bytes": bundle_bytes + voice_bytes + lora_bytes,
-        "bundle": {
-            "path": "starter-pack.zip",
-            "bytes": bundle_bytes,
-            "sha256": bundle_sha,
-        },
+        "bundle": manifest_bundles[0],
+        "bundles": manifest_bundles,
         "voices": manifest_voices,
         "loras": manifest_loras,
     }
@@ -389,11 +497,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     c = manifest["counts"]
     mb = manifest["total_bytes"] / 1_000_000
-    bundle_mb = manifest["bundle"]["bytes"] / 1_000_000
+    bundles = manifest["bundles"]
+    bundle_desc = ", ".join(f"{b['path']} ({b['bytes'] / 1_000_000:.1f} MB)" for b in bundles)
     print(f"Starter Pack built in {args.out}")
     print(f"  space:   {manifest['space_name']} (pack_id={manifest['pack_id']})")
     print(f"  takes:   {c['takes']}  sources: {c['sources']}  voices: {c['voices']}  loras: {c['loras']}")
-    print(f"  bundle:  starter-pack.zip ({bundle_mb:.1f} MB)")
+    print(f"  bundles: {bundle_desc}")
     print(f"  total:   {mb:.1f} MB (including LoRAs and voices)")
     return 0
 

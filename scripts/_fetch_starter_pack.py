@@ -37,7 +37,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-DEFAULT_URL = "https://yeufonic.com/starter-pack"
+DEFAULT_URL = "https://media.yeufonic.com/starter-pack"
 MANIFEST_FORMAT = "yeufonic-starter-pack-manifest"
 
 
@@ -259,18 +259,20 @@ def fetch_starter_pack(
             )
             voices_fetched += 1
 
-    # 3. Core Starter Pack bundle (takes audio/peaks, artwork, cover sources, pack.json)
-    bundle = manifest.get("bundle") or {}
-    bundle_path = str(bundle.get("path") or "starter-pack.zip")
-    zip_dest = stage_dir / "starter-pack.zip"
-    fetch_file(
-        f"{base}/{urllib.parse.quote(bundle_path.lstrip('/'), safe='/')}",
-        zip_dest,
-        expected_sha=bundle.get("sha256"),
-        label=Path(bundle_path).name,
-    )
-    _safe_extract_zip(zip_dest, stage_dir)
-    zip_dest.unlink(missing_ok=True)
+    # 3. Core Starter Pack zip bundle(s) (takes audio/peaks, artwork, cover sources, pack.json)
+    bundles = manifest.get("bundles") or ([manifest["bundle"]] if manifest.get("bundle") else [])
+    for bundle in bundles:
+        bundle_path = str(bundle.get("path") or "starter-pack.zip")
+        zip_name = Path(bundle_path).name
+        zip_dest = stage_dir / zip_name
+        fetch_file(
+            f"{base}/{urllib.parse.quote(bundle_path.lstrip('/'), safe='/')}",
+            zip_dest,
+            expected_sha=bundle.get("sha256"),
+            label=zip_name,
+        )
+        _safe_extract_zip(zip_dest, stage_dir)
+        zip_dest.unlink(missing_ok=True)
 
     # 4. If Yeufonic is already running, trigger immediate import; else wait for next start.
     live_result = None
