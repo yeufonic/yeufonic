@@ -39,3 +39,22 @@ def test_peaks_are_normalised_and_cached(data_dir):
 def test_peaks_of_a_very_short_file(data_dir):
     result = compute_peaks(tone(data_dir / "short.wav", 0.05))
     assert len(result["peaks"]) == 1024
+
+
+def test_ensure_peaks_recovers_from_empty_cache_and_writes_atomically(data_dir):
+    from concurrent.futures import ThreadPoolExecutor
+
+    audio = tone(data_dir / "race.flac", 1.0)
+    cache = peaks_path(audio)
+    # Simulate a truncated/empty cache file newer than the audio.
+    cache.write_text("", encoding="utf-8")
+    recovered = ensure_peaks(audio)
+    assert recovered is not None and len(recovered["peaks"]) == 1024
+    assert json.loads(cache.read_text(encoding="utf-8")) == recovered
+
+    # Concurrent readers/writers never observe a partial cache or leave temp files behind.
+    cache.unlink()
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(lambda _: ensure_peaks(audio), range(12)))
+    assert all(r is not None and len(r["peaks"]) == 1024 for r in results)
+    assert not list(data_dir.glob("*.tmp"))

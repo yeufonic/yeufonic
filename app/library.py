@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 
@@ -738,9 +739,23 @@ def ensure_peaks(audio: Path) -> dict | None:
     cache = peaks_path(audio)
     try:
         if cache.exists() and cache.stat().st_mtime >= audio.stat().st_mtime:
-            return json.loads(cache.read_text(encoding="utf-8"))
+            try:
+                return json.loads(cache.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                # Corrupt or truncated cache: recompute and replace it cleanly.
+                pass
         result = compute_peaks(audio)
-        cache.write_text(json.dumps(result, separators=(",", ":")), encoding="utf-8")
+        payload = json.dumps(result, separators=(",", ":"))
+        fd, tmp_name = tempfile.mkstemp(dir=cache.parent, prefix=f".{cache.name}.", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(payload)
+            os.replace(tmp_name, cache)
+        except OSError:
+            try:
+                os.unlink(tmp_name)
+            except OSError:
+                pass
         return result
     except (OSError, subprocess.SubprocessError, ValueError) as exc:
         log.warning("peaks failed for %s: %s", audio, exc)
