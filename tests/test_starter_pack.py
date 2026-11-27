@@ -330,3 +330,72 @@ def test_native_installers_default_starter_pack_on_for_new_users_and_off_for_exi
     assert "--no-demos) DEMOS=no; shift ;;" in macos_sh
     assert "Install the Starter Pack demo songs? [Y/n]" in macos_sh
     assert "https://media.yeufonic.com/starter-pack" in macos_sh
+
+    # Every installer falls back to the Hugging Face mirror when R2 fails
+    for text in (ps1, linux_sh, macos_sh):
+        assert "pshields/yeufonic-starter-pack/resolve/main" in text
+
+
+def test_fetch_starter_pack_falls_back_to_mirror_and_sticks_to_it(tmp_path):
+    """If primary serves manifest.json (small) but fails on payload downloads (e.g. 16 KB ISP reset),
+    the fetcher switches to the fallback mirror and uses it directly for all remaining files."""
+    builder = _load_module("build_starter_pack_fb", "tools/build_starter_pack.py")
+    fetcher = _load_module("fetch_starter_pack_fb", "scripts/_fetch_starter_pack.py")
+
+    src_data = tmp_path / "src_data"
+    src_models = tmp_path / "src_models"
+    _populate_source_library(src_data, src_models)
+    dist_dir = tmp_path / "dist"
+    builder.build_pack(src_data, src_models, dist_dir)
+
+    primary_hits: list[str] = []
+    fallback_hits: list[str] = []
+
+    class FlakyPrimaryHandler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            primary_hits.append(self.path)
+            if self.path.endswith("/manifest.json"):
+                return super().do_GET()
+            self.send_error(502, "Simulated Cloudflare reset")
+
+        def log_message(self, fmt, *args):
+            pass
+
+    class MirrorHandler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            fallback_hits.append(self.path)
+            return super().do_GET()
+
+        def log_message(self, fmt, *args):
+            pass
+
+    p_srv = http.server.ThreadingHTTPServer(
+        ("127.0.0.1", 0), functools.partial(FlakyPrimaryHandler, directory=str(dist_dir))
+    )
+    f_srv = http.server.ThreadingHTTPServer(
+        ("127.0.0.1", 0), functools.partial(MirrorHandler, directory=str(dist_dir))
+    )
+    threading.Thread(target=p_srv.serve_forever, daemon=True).start()
+    threading.Thread(target=f_srv.serve_forever, daemon=True).start()
+    try:
+        dest_root = tmp_path / "dest"
+        res = fetcher.fetch_starter_pack(
+            dest_root,
+            base_url=f"http://127.0.0.1:{p_srv.server_address[1]}",
+            fallback_url=f"http://127.0.0.1:{f_srv.server_address[1]}",
+            trigger_live=False,
+        )
+    finally:
+        p_srv.shutdown()
+        p_srv.server_close()
+        f_srv.shutdown()
+        f_srv.server_close()
+
+    assert res["loras_fetched"] == 2
+    assert res["voices_fetched"] == 2
+    assert (dest_root / "models" / "loras" / "demo_style_lora.safetensors").is_file()
+    assert (dest_root / "data" / "starter-pack" / "pack.json").is_file()
+    # Primary was hit for manifest.json and only the first failing payload (never subsequent files)
+    payload_primary = {p for p in primary_hits if not p.endswith("/manifest.json")}
+    assert len(payload_primary) == 1, f"expected sticky switch after 1st failed payload, got {payload_primary}"
+    assert len(fallback_hits) >= 4

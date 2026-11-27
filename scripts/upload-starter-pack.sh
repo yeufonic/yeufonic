@@ -98,6 +98,21 @@ done
 
 upload_one "manifest.json" "public, max-age=300" 1
 
+# Optional: mirror the same Starter Pack directory to Hugging Face (pshields/yeufonic-starter-pack)
+# as a non-Cloudflare fallback for users behind ISP Cloudflare throttling (set UPLOAD_HF=1).
+if [ "${UPLOAD_HF:-0}" = "1" ]; then
+  HF_REPO="${HF_STARTER_REPO:-pshields/yeufonic-starter-pack}"
+  echo "mirror $SRC -> https://huggingface.co/$HF_REPO"
+  python3 - "$SRC" "$HF_REPO" <<'PY'
+import sys
+from huggingface_hub import HfApi
+src, repo_id = sys.argv[1], sys.argv[2]
+api = HfApi()
+api.create_repo(repo_id=repo_id, repo_type="model", exist_ok=True)
+api.upload_folder(folder_path=src, repo_id=repo_id, repo_type="model", commit_message="Sync Starter Pack")
+PY
+fi
+
 echo ""
 echo "verifying $PUBLIC_BASE/$PREFIX/manifest.json ..."
 curl -fsS --max-time 15 "$PUBLIC_BASE/$PREFIX/manifest.json" | head -n 16

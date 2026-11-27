@@ -570,6 +570,7 @@ function Stop-Setup([string]$why) {
 # A file from its publisher.  curl (built into Windows) resumes a broken download;
 # the sha256 is checked once and remembered, so a second run does not read 8 GB again.
 function Get-Verified($spec, [string]$dest) {
+    $script:LastDownloadUsedFallback = $false
     $ok = "$dest.sha256ok"
     if ((Test-Path $dest) -and (Test-Path $ok)) { return }
     if ($spec.KeepIfPresent -and (Test-Path $dest)) { return }   # someone's own copy: not ours to check or replace
@@ -584,7 +585,11 @@ function Get-Verified($spec, [string]$dest) {
         foreach ($url in $sources) {
             for ($try = 1; $try -le $tries; $try++) {
                 & curl.exe -L --fail --retry 5 -C - -# -o $part $url
-                if ($LASTEXITCODE -eq 0) { $got = $true; break }
+                if ($LASTEXITCODE -eq 0) {
+                    $got = $true
+                    if ($sources.Count -gt 1 -and $url -ne $sources[0]) { $script:LastDownloadUsedFallback = $true }
+                    break
+                }
                 if ($LASTEXITCODE -eq 22 -or $try -eq $tries) { break }
                 Say "  the download broke off; trying again ($try of $($tries - 1))" 'Yellow'
                 Start-Sleep -Seconds (5 * $try)
@@ -1153,8 +1158,15 @@ if (-not $SkipModels) {
 if ($Demos -and -not $SkipModels) {
     Step 'Starter Pack (curated demo takes)'
     $starterBase = if ($env:STARTER_PACK_URL) { $env:STARTER_PACK_URL.TrimEnd('/') } else { 'https://media.yeufonic.com/starter-pack' }
+    $starterFallback = if ($env:STARTER_PACK_URL) { '' } else { "$HF/pshields/yeufonic-starter-pack/resolve/main" }
     $manifestTmp = Join-Path $Downloads 'starter-pack-manifest.json'
     & curl.exe -fsSL --retry 3 --connect-timeout 15 -o $manifestTmp "$starterBase/manifest.json"
+    if (($LASTEXITCODE -ne 0 -or -not (Test-Path $manifestTmp)) -and $starterFallback) {
+        Say "  could not reach $starterBase; trying fallback mirror on Hugging Face" 'Yellow'
+        $starterBase = $starterFallback
+        $starterFallback = ''
+        & curl.exe -fsSL --retry 3 --connect-timeout 15 -o $manifestTmp "$starterBase/manifest.json"
+    }
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path $manifestTmp)) {
         Stop-Setup "could not download Starter Pack manifest from $starterBase/manifest.json"
     }
@@ -1166,13 +1178,20 @@ if ($Demos -and -not $SkipModels) {
     $lorasDir = Join-Path $Models 'loras'
     New-Item -ItemType Directory -Force -Path $lorasDir | Out-Null
     foreach ($item in @($manifest.loras)) {
+        $rel = $item.path.TrimStart('/')
         $dest = Join-Path $lorasDir (Split-Path $item.file -Leaf)
-        Get-Verified @{
-            Url = "$starterBase/$($item.path.TrimStart('/'))"
+        $spec = @{
+            Url = if ($starterFallback) { "$starterFallback/$rel" } else { "$starterBase/$rel" }
             Size = [int64]$item.bytes
             Sha = $item.sha256
             KeepIfPresent = $true
-        } $dest
+        }
+        if ($starterFallback) { $spec.Copy = "$starterBase/$rel" }
+        Get-Verified $spec $dest
+        if ($script:LastDownloadUsedFallback -and $starterFallback) {
+            $starterBase = $starterFallback
+            $starterFallback = ''
+        }
     }
 
     $dbPath = Join-Path $dataDir 'yue2.sqlite'
@@ -1237,24 +1256,38 @@ print(json.dumps(out))
             $vStage = Join-Path $stageDir "voices\$vid"
             New-Item -ItemType Directory -Force -Path $vStage | Out-Null
             foreach ($f in @($voice.files)) {
+                $rel = $f.path.TrimStart('/')
                 $dest = Join-Path $vStage (Split-Path $f.dest -Leaf)
-                Get-Verified @{
-                    Url = "$starterBase/$($f.path.TrimStart('/'))"
+                $spec = @{
+                    Url = if ($starterFallback) { "$starterFallback/$rel" } else { "$starterBase/$rel" }
                     Size = [int64]$f.bytes
                     Sha = $f.sha256
-                } $dest
+                }
+                if ($starterFallback) { $spec.Copy = "$starterBase/$rel" }
+                Get-Verified $spec $dest
+                if ($script:LastDownloadUsedFallback -and $starterFallback) {
+                    $starterBase = $starterFallback
+                    $starterFallback = ''
+                }
             }
         }
 
         $bundles = if ($manifest.bundles) { @($manifest.bundles) } elseif ($manifest.bundle) { @($manifest.bundle) } else { @() }
         foreach ($b in $bundles) {
+            $rel = $b.path.TrimStart('/')
             $zipName = Split-Path $b.path -Leaf
             $zipDest = Join-Path $stageDir $zipName
-            Get-Verified @{
-                Url = "$starterBase/$($b.path.TrimStart('/'))"
+            $spec = @{
+                Url = if ($starterFallback) { "$starterFallback/$rel" } else { "$starterBase/$rel" }
                 Size = [int64]$b.bytes
                 Sha = $b.sha256
-            } $zipDest
+            }
+            if ($starterFallback) { $spec.Copy = "$starterBase/$rel" }
+            Get-Verified $spec $zipDest
+            if ($script:LastDownloadUsedFallback -and $starterFallback) {
+                $starterBase = $starterFallback
+                $starterFallback = ''
+            }
             Say "  extracting $zipName"
             $pyExtract = @'
 import shutil, sys, zipfile

@@ -38,6 +38,7 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_URL = "https://media.yeufonic.com/starter-pack"
+FALLBACK_URL = "https://huggingface.co/pshields/yeufonic-starter-pack/resolve/main"
 MANIFEST_FORMAT = "yeufonic-starter-pack-manifest"
 
 
@@ -63,35 +64,58 @@ def fetch_url_bytes(url: str, timeout: int = 30) -> bytes:
         return resp.read()
 
 
-def fetch_file(url: str, dest: Path, expected_sha: str | None = None, label: str | None = None) -> None:
+def fetch_file(
+    url: str,
+    dest: Path,
+    expected_sha: str | None = None,
+    label: str | None = None,
+    fallback_url: str | None = None,
+) -> bool:
+    """Download ``url`` to ``dest`` (trying ``fallback_url`` if the primary fails).
+
+    Returns True if the fallback URL was used, False otherwise.
+    """
     name = label or dest.name
     dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.is_file() and dest.stat().st_size > 0:
         if not expected_sha or sha256_file(dest) == expected_sha:
             print(f"have  {name}")
-            return
+            return False
         print(f"note  {name} checksum mismatch; re-downloading", file=sys.stderr)
         dest.unlink(missing_ok=True)
 
-    print(f"fetch {name}")
-    part = dest.with_name(dest.name + ".part")
-    if shutil.which("curl"):
-        cmd = ["curl", "-L", "--fail", "--retry", "5", "--retry-all-errors", "-C", "-", "-o", str(part), url]
-        res = subprocess.run(cmd)
-        if res.returncode != 0:
-            raise RuntimeError(f"download failed for {url} (curl exit {res.returncode})")
-    else:
-        with urllib.request.urlopen(url, timeout=120) as resp, part.open("wb") as out:
-            shutil.copyfileobj(resp, out)
+    sources = [url] + ([fallback_url] if fallback_url and fallback_url != url else [])
+    last_err: Exception | None = None
+    for idx, src_url in enumerate(sources):
+        print(f"fetch {name}" + (" (fallback mirror)" if idx > 0 else ""))
+        part = dest.with_name(dest.name + ".part")
+        try:
+            if shutil.which("curl"):
+                retries = "3" if len(sources) > 1 and idx == 0 else "5"
+                cmd = ["curl", "-L", "--fail", "--retry", retries, "--retry-all-errors", "-C", "-", "-o", str(part), src_url]
+                res = subprocess.run(cmd)
+                if res.returncode != 0:
+                    raise RuntimeError(f"download failed for {src_url} (curl exit {res.returncode})")
+            else:
+                with urllib.request.urlopen(src_url, timeout=120) as resp, part.open("wb") as out:
+                    shutil.copyfileobj(resp, out)
 
-    if expected_sha:
-        got = sha256_file(part)
-        if got != expected_sha:
+            if expected_sha:
+                got = sha256_file(part)
+                if got != expected_sha:
+                    part.unlink(missing_ok=True)
+                    raise RuntimeError(
+                        f"{name} did not match its published checksum; removed so the next run fetches it again"
+                    )
+            part.replace(dest)
+            return idx > 0
+        except Exception as exc:
             part.unlink(missing_ok=True)
-            raise RuntimeError(
-                f"{name} did not match its published checksum; removed so the next run fetches it again"
-            )
-    part.replace(dest)
+            last_err = exc
+            if idx + 1 < len(sources):
+                print(f"note  could not download {name} from {src_url}; trying fallback mirror", file=sys.stderr)
+    assert last_err is not None
+    raise last_err
 
 
 def _existing_voices(data_dir: Path) -> tuple[set[str], set[str]]:
@@ -199,12 +223,38 @@ def fetch_starter_pack(
     root: Path,
     base_url: str = DEFAULT_URL,
     *,
+    fallback_url: str | None = None,
     trigger_live: bool = True,
 ) -> dict[str, Any]:
-    base = base_url.rstrip("/")
-    manifest_url = f"{base}/manifest.json"
+    active_base = base_url.rstrip("/")
+    if fallback_url is None:
+        fallback = FALLBACK_URL.rstrip("/") if active_base == DEFAULT_URL.rstrip("/") else ""
+    else:
+        fallback = fallback_url.rstrip("/")
+    if fallback == active_base:
+        fallback = ""
+
+    def _download(rel_path: str, dest: Path, expected_sha: str | None, label: str) -> None:
+        nonlocal active_base, fallback
+        quoted = urllib.parse.quote(rel_path.lstrip("/"), safe="/")
+        fb_url = f"{fallback}/{quoted}" if fallback else None
+        used_fb = fetch_file(f"{active_base}/{quoted}", dest, expected_sha=expected_sha, label=label, fallback_url=fb_url)
+        if used_fb and fallback:
+            active_base = fallback
+            fallback = ""
+
+    manifest_url = f"{active_base}/manifest.json"
     print(f"fetch Starter Pack manifest ({manifest_url})")
-    raw = fetch_url_bytes(manifest_url)
+    try:
+        raw = fetch_url_bytes(manifest_url)
+    except Exception:
+        if not fallback:
+            raise
+        active_base = fallback
+        fallback = ""
+        manifest_url = f"{active_base}/manifest.json"
+        print(f"note  primary manifest unreachable; trying fallback ({manifest_url})", file=sys.stderr)
+        raw = fetch_url_bytes(manifest_url)
     manifest = json.loads(raw.decode("utf-8"))
     if not isinstance(manifest, dict) or manifest.get("format") != MANIFEST_FORMAT:
         raise RuntimeError(f"Unexpected Starter Pack manifest at {manifest_url}")
@@ -223,12 +273,7 @@ def fetch_starter_pack(
         if dest.is_file() and dest.stat().st_size > 0:
             print(f"have  {fname}")
             continue
-        fetch_file(
-            f"{base}/{urllib.parse.quote(item['path'].lstrip('/'), safe='/')}",
-            dest,
-            expected_sha=item.get("sha256"),
-            label=fname,
-        )
+        _download(item["path"], dest, item.get("sha256"), fname)
         loras_fetched += 1
 
     pack_id = str(manifest.get("pack_id") or "")
@@ -251,12 +296,7 @@ def fetch_starter_pack(
         for fitem in voice.get("files") or []:
             rel_dest = Path(fitem["dest"]).name
             dest = stage_dir / "voices" / vid / rel_dest
-            fetch_file(
-                f"{base}/{urllib.parse.quote(fitem['path'].lstrip('/'), safe='/')}",
-                dest,
-                expected_sha=fitem.get("sha256"),
-                label=f"{vname or vid}/{rel_dest}",
-            )
+            _download(fitem["path"], dest, fitem.get("sha256"), f"{vname or vid}/{rel_dest}")
             voices_fetched += 1
 
     # 3. Core Starter Pack zip bundle(s) (takes audio/peaks, artwork, cover sources, pack.json)
@@ -265,12 +305,7 @@ def fetch_starter_pack(
         bundle_path = str(bundle.get("path") or "starter-pack.zip")
         zip_name = Path(bundle_path).name
         zip_dest = stage_dir / zip_name
-        fetch_file(
-            f"{base}/{urllib.parse.quote(bundle_path.lstrip('/'), safe='/')}",
-            zip_dest,
-            expected_sha=bundle.get("sha256"),
-            label=zip_name,
-        )
+        _download(bundle_path, zip_dest, bundle.get("sha256"), zip_name)
         _safe_extract_zip(zip_dest, stage_dir)
         zip_dest.unlink(missing_ok=True)
 
@@ -305,10 +340,20 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Fetch and stage the Yeufonic Starter Pack.")
     ap.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent, help="Yeufonic repo root")
     ap.add_argument("--url", default=os.environ.get("STARTER_PACK_URL", DEFAULT_URL), help="Base URL of Starter Pack R2 folder")
+    ap.add_argument(
+        "--fallback-url",
+        default=os.environ.get("STARTER_PACK_FALLBACK_URL"),
+        help="Fallback mirror base URL (defaults to Hugging Face when --url is the default R2 URL)",
+    )
     ap.add_argument("--no-live", action="store_true", help="Do not attempt to ping a running Yeufonic server")
     args = ap.parse_args(argv)
     try:
-        fetch_starter_pack(args.root.resolve(), base_url=args.url, trigger_live=not args.no_live)
+        fetch_starter_pack(
+            args.root.resolve(),
+            base_url=args.url,
+            fallback_url=args.fallback_url,
+            trigger_live=not args.no_live,
+        )
     except Exception as exc:
         print(f"error: Starter Pack: {exc}", file=sys.stderr)
         return 1

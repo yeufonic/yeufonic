@@ -652,6 +652,7 @@ PY
 # unless --force-downloads was passed.
 get_verified() {
   local url="$1" dest="$2" size="$3" sha="$4" copy="${5:-}" label="${6:-}" keep="${7:-0}"
+  LAST_USED_FALLBACK=0
   local name prefix
   name="$(basename "$dest")"
   prefix="${label:+$label }"
@@ -690,7 +691,11 @@ get_verified() {
       for try in $(seq 1 "$tries"); do
         code=0
         download_with_progress "$source" "$dest.part" "$size" 1 || code=$?
-        if [ "$code" -eq 0 ]; then got=1; break; fi
+        if [ "$code" -eq 0 ]; then
+          got=1
+          [ -n "$copy" ] && [ "$source" = "$url" ] && LAST_USED_FALLBACK=1
+          break
+        fi
         if [ "$code" -eq 22 ] || [ "$try" -eq "$tries" ]; then break; fi
         say "  the download broke off; trying again ($try of $((tries - 1)))"
         sleep $((5 * try))
@@ -1710,14 +1715,37 @@ if [ "$DEMOS" = yes ] && [ "$SKIP_MODELS" -eq 0 ]; then
   step "Starter Pack (curated demo takes)"
   STARTER_URL="${STARTER_PACK_URL:-https://media.yeufonic.com/starter-pack}"
   STARTER_URL="${STARTER_URL%/}"
+  if [ -n "${STARTER_PACK_URL:-}" ]; then
+    STARTER_FALLBACK=""
+  else
+    STARTER_FALLBACK="$HF/pshields/yeufonic-starter-pack/resolve/main"
+  fi
   SP_MANIFEST="$DOWNLOADS/starter-pack-manifest.json"
   if ! curl -fsSL --retry 3 --connect-timeout 15 -o "$SP_MANIFEST" "$STARTER_URL/manifest.json"; then
-    stop_setup "could not download Starter Pack manifest from $STARTER_URL/manifest.json"
+    if [ -n "$STARTER_FALLBACK" ] && curl -fsSL --retry 3 --connect-timeout 15 -o "$SP_MANIFEST" "$STARTER_FALLBACK/manifest.json"; then
+      say "  could not reach $STARTER_URL; using fallback mirror on Hugging Face"
+      STARTER_URL="$STARTER_FALLBACK"
+      STARTER_FALLBACK=""
+    else
+      stop_setup "could not download Starter Pack manifest from $STARTER_URL/manifest.json"
+    fi
   fi
+  sp_fetch() {
+    local rel="${1#/}" dest="$2" size="$3" sha="$4" keep="${5:-0}"
+    if [ -n "$STARTER_FALLBACK" ]; then
+      get_verified "$STARTER_FALLBACK/$rel" "$dest" "$size" "$sha" "$STARTER_URL/$rel" "" "$keep"
+      if [ "${LAST_USED_FALLBACK:-0}" -eq 1 ]; then
+        STARTER_URL="$STARTER_FALLBACK"
+        STARTER_FALLBACK=""
+      fi
+    else
+      get_verified "$STARTER_URL/$rel" "$dest" "$size" "$sha" "" "" "$keep"
+    fi
+  }
   mkdir -p "$MODELS/loras"
   while IFS='|' read -r sp_file sp_path sp_size sp_sha; do
     [ -z "$sp_file" ] && continue
-    get_verified "$STARTER_URL/${sp_path#/}" "$MODELS/loras/$sp_file" "$sp_size" "$sp_sha" "" "" 1
+    sp_fetch "$sp_path" "$MODELS/loras/$sp_file" "$sp_size" "$sp_sha" 1
   done <<EOF
 $("$APP_VENV/bin/python" - "$SP_MANIFEST" <<'PY'
 import json, sys
@@ -1783,11 +1811,11 @@ PY
         SP_SKIPPED=1 ;;
       VOICE)
         mkdir -p "$SP_STAGE/voices/$a"
-        get_verified "$STARTER_URL/${c#/}" "$SP_STAGE/voices/$a/$b" "$d" "$e" ;;
+        sp_fetch "$c" "$SP_STAGE/voices/$a/$b" "$d" "$e" ;;
       BUNDLE)
         mkdir -p "$SP_STAGE"
         bname="$(basename "$a")"
-        get_verified "$STARTER_URL/${a#/}" "$SP_STAGE/$bname" "$b" "$c"
+        sp_fetch "$a" "$SP_STAGE/$bname" "$b" "$c"
         "$APP_VENV/bin/python" - "$SP_STAGE/$bname" "$SP_STAGE" <<'PY'
 import shutil, sys, zipfile
 from pathlib import Path
