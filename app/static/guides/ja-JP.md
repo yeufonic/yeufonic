@@ -753,7 +753,7 @@ Jam は、すでにある曲の別のテイクを、音楽を止めずに試す�
 
 **Plan & Roll** は、まずシードの歌詞から新しい計画を書きます。コード、グルーヴ、構成が新しくなります。別のジャンルや別のノリなど、サウンド以上を変えたいときに使います。**Roll** より時間がかかり、曲が大きく変わることがあります。次の **Roll** では、またメロディーとコードを保ちます。
 
-**パスを元にする。** Roll 履歴のカードをクリックするか再生すると、そのカードが**ベース**になります。新しいパスはフェードで切り替わった時点でベースになります。その設定がコントロールに戻り、次の Roll はそれを元にします。カードには**ベース**と表示され、プレーヤーとウィンドウ下部にも、どのパスを元にしているかが出ます。新しいパスには元にしたパスの名前と、変わった点が表示されます。**Space** でベースを再生・一時停止します。パスの星はお気に入りの印で、たくさんの中から見つけやすくします。Jam 内だけの印で、ライブラリの星とは別です。
+**パスを元にする。** Roll 履歴のカードをクリックするか再生すると、そのカードが**ベース**になります。新しいパスはフェードで切り替わった時点でベースになります。その設定がコントロールに戻り、次の Roll はそれを元にします。カードには**ベース**と表示され、プレーヤーとウィンドウ下部にも、どのパスを元にしているかが出ます。新しいパスには元にしたパスの名前と、変わった点が表示されます。**Space** でベースを再生・一時停止します。パスの星はお気に入りの印で、たくさんの中から見つけやすくします。Jam 内だけの印で、ライブラリの星とは別です。<strong>Roll 履歴</strong>の見出しにある<strong>同期</strong>をオンにすると、シードと完成した各パスがメモリに読み込まれ、カードの<strong>再生</strong>ボタンやプレイヤーの<strong>前へ / 次へ</strong>（<strong>Shift+左 / Shift+右</strong>）で、<strong>比較</strong>と同じく同じ再生位置のまま瞬時に切り替えられます。プレイヤーの <strong>A–B</strong> ループと組み合わせれば、特定のセクション（Aメロやサビなど）だけを繰り返しながら各パスを比較できます。
 
 **残す。** パスはスペースの外に置かれます。パスの **フルソング** は、そのパスの設定で曲全体をレンダリングし、Jam を開いたスペースに新しいテイクとして加えます（先に確認があり、新しいテイクの名前をその場で変えられます）。上部の **ファストループ** / **フルソング** の切り替えで、**Roll** がパスではなく曲全体をレンダリングするようになります。**削除** はパスを完全に消します。パスは Jam を閉じても削除するまで残ります。設定 → ストレージに **Jam のパス** として表示され、まとめて消すこともできます。
 
@@ -1125,7 +1125,7 @@ Checkpoints はエディターで押します。そこにテイクが開いて�
    - Hugging Face にサインインし、[black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy) でライセンスに同意します。
    - <strong>モデルを `diffusion_models/` へ：</strong>`flux3-image-klein-int8-convrot.safetensors`（5.8 GB、NVIDIA 標準）、`flux3-image-klein-nvfp4.safetensors`（5.3 GB、RTX 50 シリーズ向け）、または `flux3-image-klein-bf16.safetensors`（11.1 GB、Mac 用フル精度）。
    - <strong>テキストエンコーダーを `text_encoders/` へ：</strong>`qwen3vl_4b_int8_convrot.safetensors`（4.9 GB、NVIDIA 向け）または `qwen3vl_4b_bf16.safetensors`（8.9 GB、Mac 向け）。
-2. <strong>yue2.cpp（Windows / Linux / Docker）の場合：</strong>画像サーバーは ComfyUI の int8 モデルを読み込めないため、承認不要の GGUF ファイルを使用します：
+2. <strong>yue2.cpp（Windows / Linux / Docker）の場合：</strong>画像サーバーは ComfyUI の int8 モデルを読み込めないため、承認不要の GGUF ファイルを使用します. Yeufonic のヘルパーで自動取得することもできます（<strong>Docker：</strong>`sh scripts/fetch-models.sh --cpp --flux3`、<strong>Linux：</strong>`yeufonic setup --engine yue2cpp --picture-model flux3`、<strong>Windows：</strong>`setup.ps1 -InstallDir <インストールフォルダー> -Engine yue2cpp -Flux3`）：
    - <strong>モデルを `diffusion_models/` へ：</strong>[leejet/flux-3-image-klein-GGUF](https://huggingface.co/leejet/flux-3-image-klein-GGUF) から `flux3-image-klein-Q8_0.gguf`（6.2 GB、推奨）（小容量カード向けに `flux3-image-klein-Q6_K.gguf`、`Q5_K`、`Q4_K`、`Q4_0` も対応）。
    - <strong>テキストエンコーダーを `text_encoders/` へ：</strong>[Qwen/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct-GGUF) から `Qwen3VL-4B-Instruct-Q4_K_M.gguf`（2.5 GB、推奨）（`Qwen3VL-4B-Instruct-Q8_0.gguf` 4.3 GB、または [unsloth/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/unsloth/Qwen3-VL-4B-Instruct-GGUF) の `Qwen3-VL-4B-Instruct-*.gguf` も対応）。ComfyUI 用の `qwen3vl_4b_int8_convrot.safetensors` を既に持っている場合はそれも使えますが、Q4 GGUF の方が省メモリです。
 3. <strong>Yeufonic を再起動して選択：</strong>上の表の手順で Yeufonic を再起動し、<strong>設定 → テイク画像：モデル</strong>で <em>FLUX 3 klein</em> を選びます。エディターのメモには <em>drawn by FLUX 3 klein on this PC</em> と表示されます。

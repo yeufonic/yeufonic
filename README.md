@@ -212,8 +212,8 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 - **A picture for each take.** Each new take gets a picture of the song, shown behind the take's card,
   atop the take panel and behind the editor (drawn on this PC, it waits until the song is made, so it never
   holds it up): a description is made from the title, style and opening words, with no LLM, then
-  FLUX.2 klein or FIBO 2.0 draws it on this PC in a few seconds (install options; FLUX.2 klein 9B and
-  FLUX 3 klein can be added by hand) or the external LLM's image model does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
+  FLUX.2 klein, FLUX 3 klein or FIBO 2.0 draws it on this PC in a few seconds (install options or helper commands; FLUX.2 klein 9B and
+  ComfyUI FLUX 3 klein can be added by hand with step-by-step instructions in the guide) or the external LLM's image model does, and its background is taken out. The editor's **Picture** button makes a new one or goes back
   to the plain background. Without either way to draw, there are no pictures.
 - **A library.** Every take keeps its score, style, lyrics, seed and settings, so it can be
   reproduced, reworked, starred or deleted. Search by title, style, lyrics or LoRA, in one space or
@@ -240,7 +240,7 @@ the take panel, or **J**), and that take is the **Seed**. Jam shares the persist
 each with its own strength, or a saved style or a LoRA), the mood on a Dark to Bright and Calm to Energetic pad, the
 tempo or the singer, and press **Roll**. A short pass keeps the song's melody and chords and plays them with the new
 sound, switching over while the last one loops. **Plan & Roll** writes a new arrangement instead, for a change bigger than
-the sound. Click any pass to build the next one on it, and render the one you like as a full song in your space:
+the sound. Enable **Sync** on **Roll History** to switch instantaneously between the Seed and any pass at the exact same point in playback (using each card's **Play** button, the player's **Previous / Next** buttons, or **Shift+Left / Shift+Right** — and pair it with the player's **A–B** loop to compare a single section). Click any pass to build the next one on it, and render the one you like as a full song in your space:
 
 [![Jam](docs/screenshots/jam.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/jam.png)
 

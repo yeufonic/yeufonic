@@ -957,7 +957,7 @@ Jam은 이미 있는 곡의 다른 테이크를 음악을 멈추지 않고 시�
 
 **Plan & Roll**은 먼저 시드의 가사로 새 계획을 씁니다. 코드, 그루브, 구성이 새로워집니다. 다른 장르나 다른 느낌처럼 사운드 이상을 바꾸고 싶을 때 쓰세요. **Roll**보다 오래 걸리고 곡이 크게 달라질 수 있습니다. 다음 **Roll**은 다시 멜로디와 코드를 유지합니다.
 
-**패스를 바탕으로 하기.** Roll 기록의 카드를 클릭하거나 재생하면 그 카드가 **기준**이 됩니다. 새 패스는 페이드되어 들어올 때 기준이 됩니다. 그 설정이 컨트롤로 돌아오고, 다음 Roll은 그것을 바탕으로 합니다. 카드에 **기준**이 표시되고, 플레이어와 창 아래쪽에도 어떤 패스를 바탕으로 하는지 나옵니다. 새 패스마다 바탕이 된 패스와 바뀐 점이 표시됩니다. **Space**로 기준을 재생하거나 일시정지합니다. 패스의 별은 마음에 드는 것으로 표시해 많은 패스 사이에서 쉽게 찾게 해 줍니다. Jam 안에서만 쓰는 표시이며 라이브러리의 별과는 다릅니다.
+**패스를 바탕으로 하기.** Roll 기록의 카드를 클릭하거나 재생하면 그 카드가 **기준**이 됩니다. 새 패스는 페이드되어 들어올 때 기준이 됩니다. 그 설정이 컨트롤로 돌아오고, 다음 Roll은 그것을 바탕으로 합니다. 카드에 **기준**이 표시되고, 플레이어와 창 아래쪽에도 어떤 패스를 바탕으로 하는지 나옵니다. 새 패스마다 바탕이 된 패스와 바뀐 점이 표시됩니다. **Space**로 기준을 재생하거나 일시정지합니다. 패스의 별은 마음에 드는 것으로 표시해 많은 패스 사이에서 쉽게 찾게 해 줍니다. Jam 안에서만 쓰는 표시이며 라이브러리의 별과는 다릅니다. <strong>Roll 기록</strong> 헤더의 <strong>동기화</strong>를 켜면 시드와 완료된 패스들을 메모리에 미리 디코딩해 두어, 카드의 <strong>재생</strong> 버튼이나 플레이어의 <strong>이전 / 다음</strong>(<strong>Shift+왼쪽 / Shift+오른쪽</strong>)을 누를 때 <strong>비교</strong>처럼 정확히 같은 재생 시점에서 즉시 전환됩니다. 플레이어의 <strong>A–B</strong> 구간 반복과 함께 쓰면 벌스나 코러스 같은 특정 구간만 반복하며 패스들을 비교할 수 있습니다.
 
 **남기기.** 패스는 공간 밖에 보관됩니다. 패스의 **전체 곡**은 그 패스의 설정으로 곡 전체를 렌더링해, Jam을 연 공간에 새 테이크로 넣습니다(먼저 확인을 묻고, 새 테이크의 이름을 바로 바꿀 수 있습니다). 위쪽의 **빠른 루프** / **전체 곡** 전환으로 **Roll**이 패스 대신 곡 전체를 렌더링하게 할 수 있습니다. **삭제**는 패스를 영구히 지웁니다. 패스는 Jam을 닫아도 삭제할 때까지 남으며, 설정 → 저장 공간에 **Jam 패스**로 표시되고 한꺼번에 지울 수 있습니다.
 
@@ -1415,7 +1415,7 @@ Checkpoints는 편집기에서 누릅니다. 거기에 테이크가 열려 있�
    - Hugging Face에 로그인하고 [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy)에서 라이선스에 동의합니다.
    - <strong>`diffusion_models/`에 모델 저장:</strong> `flux3-image-klein-int8-convrot.safetensors`(5.8 GB, NVIDIA 기본), `flux3-image-klein-nvfp4.safetensors`(5.3 GB, RTX 50 시리즈용) 또는 `flux3-image-klein-bf16.safetensors`(11.1 GB, Mac용 전체 정밀도).
    - <strong>`text_encoders/`에 텍스트 인코더 저장:</strong> `qwen3vl_4b_int8_convrot.safetensors`(4.9 GB, NVIDIA용) 또는 `qwen3vl_4b_bf16.safetensors`(8.9 GB, Mac용).
-2. <strong>yue2.cpp(Windows, Linux, Docker):</strong> 이미지 서버는 ComfyUI의 int8 모델 파일을 읽을 수 없으므로 승인 절차 없는 GGUF 파일을 내려받으세요:
+2. <strong>yue2.cpp(Windows, Linux, Docker):</strong> 이미지 서버는 ComfyUI의 int8 모델 파일을 읽을 수 없으므로 승인 절차 없는 GGUF 파일을 내려받으세요. Yeufonic 도우미 명령으로 자동 다운로드할 수도 있습니다(<strong>Docker:</strong> `sh scripts/fetch-models.sh --cpp --flux3`, <strong>Linux:</strong> `yeufonic setup --engine yue2cpp --picture-model flux3`, <strong>Windows:</strong> `setup.ps1 -InstallDir <설치 폴더> -Engine yue2cpp -Flux3`):
    - <strong>`diffusion_models/`에 모델 저장:</strong> [leejet/flux-3-image-klein-GGUF](https://huggingface.co/leejet/flux-3-image-klein-GGUF)에서 `flux3-image-klein-Q8_0.gguf`(6.2 GB, 권장)(메모리가 적은 카드용으로 `flux3-image-klein-Q6_K.gguf`, `Q5_K`, `Q4_K`, `Q4_0`도 지원).
    - <strong>`text_encoders/`에 텍스트 인코더 저장:</strong> [Qwen/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct-GGUF)에서 `Qwen3VL-4B-Instruct-Q4_K_M.gguf`(2.5 GB, 권장)(`Qwen3VL-4B-Instruct-Q8_0.gguf` 4.3 GB 또는 [unsloth/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/unsloth/Qwen3-VL-4B-Instruct-GGUF)의 `Qwen3-VL-4B-Instruct-*.gguf`도 지원). ComfyUI용 `qwen3vl_4b_int8_convrot.safetensors`가 이미 있다면 그것도 사용할 수 있지만 Q4 GGUF가 메모리를 덜 씁니다.
 3. <strong>Yeufonic 재시작 후 선택:</strong> 위 표의 방법대로 Yeufonic을 재시작한 뒤 <strong>설정 → 테이크 이미지: 모델</strong>에서 <em>FLUX 3 klein</em>을 선택합니다. 에디터의 이미지 메모에는 <em>drawn by FLUX 3 klein on this PC</em>라고 표시됩니다.

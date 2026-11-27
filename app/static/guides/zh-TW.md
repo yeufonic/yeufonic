@@ -751,7 +751,7 @@ Jam 用來在不停下音樂的情況下，嘗試一首現有歌曲的其他版�
 
 **Plan & Roll** 先根據種子的歌詞寫出新的規劃：新的和弦、新的律動、新的結構。當你要改變的不只是聲音，例如換一種曲風或感覺時，就用它。它比 **Roll** 耗時更長，可能讓歌曲變化很大。之後的 **Roll** 又會保留旋律與和弦。
 
-**以某一輪為基礎。** 點擊或播放 Roll 歷史中的卡片，使其成為**基準**；新的一輪淡入時即成為基準。它的設定會回到控制項中，下一次 Roll 以它為基礎。卡片上顯示**基準**，播放器和視窗底部也會說明你正以哪一輪為基礎。每個新的一輪都會寫明它來自哪一輪，並顯示改了什麼。**空格鍵**播放或暫停基準。每一輪上的星標表示你喜歡它，方便在很多輪中找到；這是 Jam 自己的標記，不是資料庫的星標。
+**以某一輪為基礎。** 點擊或播放 Roll 歷史中的卡片，使其成為**基準**；新的一輪淡入時即成為基準。它的設定會回到控制項中，下一次 Roll 以它為基礎。卡片上顯示**基準**，播放器和視窗底部也會說明你正以哪一輪為基礎。每個新的一輪都會寫明它來自哪一輪，並顯示改了什麼。**空格鍵**播放或暫停基準。每一輪上的星標表示你喜歡它，方便在很多輪中找到；這是 Jam 自己的標記，不是資料庫的星標。開啟 <strong>Roll 歷史</strong>標題列上的<strong>同步</strong>後，Seed 與所有已完成的變奏都會預先解碼到記憶體中；點擊任意卡片的<strong>播放</strong>按鈕，或使用播放器上的<strong>上一首 / 下一首</strong>（<strong>Shift+左 / Shift+右</strong>），即可像<strong>對比</strong>一樣在同一播放時刻即時切換。你還可以搭配播放器的 <strong>A–B</strong> 循環功能，專門循環對比某一段（例如主歌或副歌）。
 
 **保留一輪。** 各輪都放在你的空間之外。在某一輪上點 **完整歌曲**，會用這一輪的設定渲染整首歌，作為新版本放入開啟 Jam 的那個空間；之前會先確認，並可直接修改新版本的名稱。頂部的 **快速循環** / **完整歌曲** 開關能讓 **Roll** 直接渲染整首歌而不是一輪短片段。**刪除** 會永久移除這一輪。即使關閉 Jam，各輪也會一直保留到你刪除為止：設定 → 儲存會把它們列為 **Jam 輪次**，並可一次全部清除。
 
@@ -1125,7 +1125,7 @@ Checkpoints 是在編輯器中點選的：如果那裡開啟著一個版本，�
    - 登入 Hugging Face 並在 [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy) 同意授權。
    - <strong>模型放入 `diffusion_models/`：</strong>`flux3-image-klein-int8-convrot.safetensors`（5.8 GB，NVIDIA 常用）、`flux3-image-klein-nvfp4.safetensors`（5.3 GB，RTX 50 系列）或 `flux3-image-klein-bf16.safetensors`（11.1 GB，Mac 全精度）。
    - <strong>文字編碼器放入 `text_encoders/`：</strong>`qwen3vl_4b_int8_convrot.safetensors`（4.9 GB，NVIDIA）或 `qwen3vl_4b_bf16.safetensors`（8.9 GB，Mac）。
-2. <strong>使用 yue2.cpp（Windows、Linux 或 Docker）：</strong>生圖伺服器無法讀取 ComfyUI 的 int8 模型檔案，請改下載免登入的 GGUF 檔案：
+2. <strong>使用 yue2.cpp（Windows、Linux 或 Docker）：</strong>生圖伺服器無法讀取 ComfyUI 的 int8 模型檔案，請改下載免登入的 GGUF 檔案. 也可以直接用 Yeufonic 內建助手自動下載（<strong>Docker：</strong>`sh scripts/fetch-models.sh --cpp --flux3`；<strong>Linux：</strong>`yeufonic setup --engine yue2cpp --picture-model flux3`；<strong>Windows：</strong>`setup.ps1 -InstallDir <安裝資料夾> -Engine yue2cpp -Flux3`）：
    - <strong>模型放入 `diffusion_models/`：</strong>從 [leejet/flux-3-image-klein-GGUF](https://huggingface.co/leejet/flux-3-image-klein-GGUF) 下載 `flux3-image-klein-Q8_0.gguf`（6.2 GB，推薦）（小顯示記憶體顯示卡也可用 `flux3-image-klein-Q6_K.gguf`、`Q5_K`、`Q4_K` 和 `Q4_0`）。
    - <strong>文字編碼器放入 `text_encoders/`：</strong>從 [Qwen/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct-GGUF) 下載 `Qwen3VL-4B-Instruct-Q4_K_M.gguf`（2.5 GB，推薦）（`Qwen3VL-4B-Instruct-Q8_0.gguf` 4.3 GB，或 [unsloth/Qwen3-VL-4B-Instruct-GGUF](https://huggingface.co/unsloth/Qwen3-VL-4B-Instruct-GGUF) 中的 `Qwen3-VL-4B-Instruct-*.gguf` 同樣可用）。若你已有 ComfyUI 的 `qwen3vl_4b_int8_convrot.safetensors`（來自 FLUX 3 或 FIBO 2.0），生圖伺服器也可使用，但 Q4 GGUF 較省記憶體。
 3. <strong>重啟 Yeufonic 並切換模型：</strong>依上表方法重啟 Yeufonic，然後在<strong>設定 → 作品封面：模型</strong>中選擇 <em>FLUX 3 klein</em>。編輯器中的圖片備註會顯示 <em>drawn by FLUX 3 klein on this PC</em>。
