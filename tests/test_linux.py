@@ -667,6 +667,48 @@ def test_picture_model_selection_supports_flux3_on_yue2cpp_and_matches_windows_c
 
 
 @needs_linux
+def test_install_and_setup_detect_existing_custom_install_dir_without_flag(tmp_path):
+    """When installed into a custom folder (e.g. ~/yeufonic-native), running install.sh or setup.sh
+    without --install-dir must follow the existing ~/.local/bin/yeufonic symlink (or setup.sh's own
+    install directory) instead of silently creating a second install at ~/.local/share/yeufonic."""
+    env = _fake_linux(tmp_path)
+    home = tmp_path / "home"
+    custom = home / "yeufonic-native"
+    (custom / "bin").mkdir(parents=True)
+    (custom / "studio").mkdir(parents=True)
+    (custom / "bin" / "yeufonic").write_text("#!/bin/bash\n", encoding="utf-8")
+    (custom / "bin" / "yeufonic").chmod(0o755)
+    (home / ".local" / "bin").mkdir(parents=True)
+    (home / ".local" / "bin" / "yeufonic").symlink_to(custom / "bin" / "yeufonic")
+    env["HOME"] = str(home)
+    env.pop("YEUFONIC_HOME", None)
+
+    # 1. install.sh --check-only without --install-dir follows ~/.local/bin/yeufonic -> ~/yeufonic-native
+    r1 = subprocess.run(
+        ["bash", str(LINUX / "install.sh"), "--check-only"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert str(custom) in r1.stdout, r1.stdout
+    assert ".local/share/yeufonic" not in r1.stdout
+
+    # 2. Running <custom>/setup.sh directly without --install-dir targets <custom> even without a symlink
+    (home / ".local" / "bin" / "yeufonic").unlink()
+    local_setup = custom / "setup.sh"
+    local_setup.write_text(SETUP.read_text(encoding="utf-8"), encoding="utf-8")
+    local_setup.chmod(0o755)
+    r2 = subprocess.run(
+        ["bash", str(local_setup), "--check-only"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert str(custom) in r2.stdout, r2.stdout
+    assert ".local/share/yeufonic" not in r2.stdout
+
+
+@needs_linux
 def test_yeufonic_start_detached_status_and_stop_lifecycle(tmp_path):
     """`yeufonic start -d` detaches, tracks PIDs, answers `status`, and `yeufonic stop` shuts down all children."""
     import shutil

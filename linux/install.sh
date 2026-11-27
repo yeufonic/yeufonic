@@ -9,7 +9,8 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_DIR="${YEUFONIC_HOME:-$HOME/.local/share/yeufonic}"
+INSTALL_DIR="${YEUFONIC_HOME:-}"
+EXPLICIT_INSTALL_DIR=0
 NO_DESKTOP=0
 CHECK_ONLY=0
 SETUP_ARGS=()
@@ -18,9 +19,9 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --install-dir)
       [ $# -ge 2 ] || { echo "--install-dir requires a path" >&2; exit 2; }
-      INSTALL_DIR="$2"; shift 2 ;;
+      INSTALL_DIR="$2"; EXPLICIT_INSTALL_DIR=1; shift 2 ;;
     --install-dir=*)
-      INSTALL_DIR="${1#*=}"; shift ;;
+      INSTALL_DIR="${1#*=}"; EXPLICIT_INSTALL_DIR=1; shift ;;
     --no-desktop)
       NO_DESKTOP=1; shift ;;
     --check-only)
@@ -36,11 +37,26 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Expand leading ~ if passed unexpanded.
+# When no --install-dir or YEUFONIC_HOME was given, follow an existing ~/.local/bin/yeufonic
+# symlink so updates land in a custom install folder rather than creating a second copy.
+if [ "$EXPLICIT_INSTALL_DIR" -eq 0 ] && [ -z "$INSTALL_DIR" ]; then
+  if [ -L "$HOME/.local/bin/yeufonic" ]; then
+    _existing_bin="$(readlink -f "$HOME/.local/bin/yeufonic" 2>/dev/null || true)"
+    if [ -n "$_existing_bin" ] && [ "$(basename "$_existing_bin")" = "yeufonic" ] && [ "$(basename "$(dirname "$_existing_bin")")" = "bin" ]; then
+      INSTALL_DIR="$(cd "$(dirname "$_existing_bin")/.." && pwd)"
+    fi
+  fi
+  INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/share/yeufonic}"
+fi
+
+# Expand leading ~ if passed unexpanded, and strip trailing slashes.
 case "$INSTALL_DIR" in
   "~") INSTALL_DIR="$HOME" ;;
   "~/"*) INSTALL_DIR="$HOME/${INSTALL_DIR#~/}" ;;
 esac
+while [ "$INSTALL_DIR" != "/" ] && [ "${INSTALL_DIR%/}" != "$INSTALL_DIR" ]; do
+  INSTALL_DIR="${INSTALL_DIR%/}"
+done
 
 # Check-only needs no file copies or desktop integration.
 if [ "$CHECK_ONLY" -eq 1 ]; then

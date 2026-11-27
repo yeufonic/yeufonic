@@ -35,7 +35,8 @@
 set -euo pipefail
 
 ORIG_ARGS="$*"
-INSTALL_DIR="${YEUFONIC_HOME:-$HOME/.local/share/yeufonic}"
+INSTALL_DIR="${YEUFONIC_HOME:-}"
+EXPLICIT_INSTALL_DIR=0
 LYRICS_CHOICE=""
 NO_LYRICS=0
 CHECK_ONLY=0
@@ -53,8 +54,8 @@ CPP_MODEL=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --install-dir) INSTALL_DIR="$2"; shift 2 ;;
-    --install-dir=*) INSTALL_DIR="${1#*=}"; shift ;;
+    --install-dir) INSTALL_DIR="$2"; EXPLICIT_INSTALL_DIR=1; shift 2 ;;
+    --install-dir=*) INSTALL_DIR="${1#*=}"; EXPLICIT_INSTALL_DIR=1; shift ;;
     --engine) ENGINE_CHOICE="$2"; shift 2 ;;
     --engine=*) ENGINE_CHOICE="${1#*=}"; shift ;;
     --int8) INT8_CHOICE=int8; shift ;;
@@ -82,12 +83,29 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# When no --install-dir or YEUFONIC_HOME was given: if running setup.sh directly inside an
+# existing install directory, target that directory; else follow ~/.local/bin/yeufonic if present.
+if [ "$EXPLICIT_INSTALL_DIR" -eq 0 ] && [ -z "$INSTALL_DIR" ]; then
+  if [ -x "$HERE/bin/yeufonic" ] && [ -d "$HERE/studio" ]; then
+    INSTALL_DIR="$HERE"
+  elif [ -L "$HOME/.local/bin/yeufonic" ]; then
+    _existing_bin="$(readlink -f "$HOME/.local/bin/yeufonic" 2>/dev/null || true)"
+    if [ -n "$_existing_bin" ] && [ "$(basename "$_existing_bin")" = "yeufonic" ] && [ "$(basename "$(dirname "$_existing_bin")")" = "bin" ]; then
+      INSTALL_DIR="$(cd "$(dirname "$_existing_bin")/.." && pwd)"
+    fi
+  fi
+  INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/share/yeufonic}"
+fi
+
 case "$INSTALL_DIR" in
   "~") INSTALL_DIR="$HOME" ;;
   "~/"*) INSTALL_DIR="$HOME/${INSTALL_DIR#~/}" ;;
 esac
-
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+while [ "$INSTALL_DIR" != "/" ] && [ "${INSTALL_DIR%/}" != "$INSTALL_DIR" ]; do
+  INSTALL_DIR="${INSTALL_DIR%/}"
+done
 if [ -d "$HERE/studio" ]; then
   STUDIO="$HERE/studio"
   NODE_SRC="$STUDIO/engine-nodes/yue2_harmony"
