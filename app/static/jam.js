@@ -1046,6 +1046,8 @@
         if (!isSeedPass(p) && rec.space_id !== '__jam__' && !(p.id === wasCooking && (rec.status === 'queued' || rec.status === 'running'))) { continue; }
         if (isSeedPass(p)) {
           var seedWords = rec.kind === 'instrumental' ? '' : (rec.lyrics || '');
+          if (rec.title) { JamState.starterName = rec.title; }
+          if (rec.space_id && rec.space_id !== 'trash' && rec.space_id !== '__jam__') { JamState.spaceId = rec.space_id; }
           JamState.seedLyrics = seedWords;
           JamState.seedStructure = rec.kind === 'instrumental' ? (rec.lyrics || '') : '';
           JamState.seedNormalise = Boolean(rec.normalise);
@@ -3180,7 +3182,14 @@
       }
       if (typeof paintTransport === 'function') { paintTransport(); }
     };
+    var syncSeedIdentity = function () {
+      if (take.title) { JamState.starterName = take.title; }
+      if (take.space_id && take.space_id !== 'trash' && take.space_id !== '__jam__') { JamState.spaceId = take.space_id; }
+      var seedPass = JamState.passes.find(isSeedPass);
+      if (seedPass && take.title) { seedPass.title = take.title; }
+    };
     if (JamState.sessionKey === key && JamState.passes.length && ownSeed()) {
+      syncSeedIdentity();
       paintAll();
       syncPassesFromServer();
       cueIfIdle();
@@ -3188,6 +3197,7 @@
     }
     if (JamSync.enabled) { JamSync.disable({ handoff: false }); }
     if (loadSession(key) && ownSeed()) {
+      syncSeedIdentity();
       paintAll();
       syncPassesFromServer();
       cueIfIdle();

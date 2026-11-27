@@ -169,3 +169,41 @@ def test_jam_lyrics_edit_per_pass_and_reset(page, app_server):
     page.click(f'.jam-hist-card[data-pass-id="{pass_id}"] .jam-hist-name')
     page.wait_for_selector(f'.jam-hist-card.is-base[data-pass-id="{pass_id}"]')
     assert page.locator(".jam-lyrics-btn.edited").count() == 1
+
+
+def test_jam_tracks_renamed_and_moved_seed(page, app_server):
+    # Reopening a saved Jam after renaming or moving its Seed picks up the current title and space.
+    made = make_song(page, app_server, style="indie pop, jangly guitar, female vocal")
+    open_jam(page, made["id"])
+    page.locator(".jam-col-head h4").first.click()
+    page.keyboard.press("Escape")
+    page.wait_for_selector("#jam-modal", state="hidden")
+
+    # Rename the Seed and move it to a new space via the API, then reload so Jam loads from localStorage.
+    new_space = page.evaluate("""async (id) => {
+        const sp = await api('/api/spaces', { method: 'POST', body: JSON.stringify({ name: 'Harbour Sessions' }) });
+        await api('/api/takes/' + encodeURIComponent(id) + '/rename', {
+            method: 'POST', body: JSON.stringify({ title: 'Harbour Lights' })
+        });
+        await api('/api/takes/' + encodeURIComponent(id) + '/move', {
+            method: 'POST', body: JSON.stringify({ space_id: sp.id })
+        });
+        return sp;
+    }""", made["id"])
+    page.reload()
+    page.wait_for_selector("#space-pick")
+    page.click("#space-pick")
+    page.locator("#space-list .space-row", has_text="Harbour Sessions").first.click()
+    page.wait_for_function("() => document.getElementById('takes-heading').textContent === 'Harbour Sessions'")
+
+    open_jam(page, made["id"])
+    assert page.locator(".jam-seed-name").inner_text().strip() == "Harbour Lights"
+    page.click('[data-jam-act="scope-full"]')
+    page.click('[data-jam-act="roll"]')
+    page.wait_for_selector("#confirm-input:not(.hidden)")
+    assert page.input_value("#confirm-input") == "Harbour Lights (Jam #1)"
+    with page.expect_request(lambda r: r.url.endswith("/api/jam/roll") and r.method == "POST") as sent:
+        page.click("#confirm-ok")
+    body = sent.value.post_data_json
+    assert body["title"] == "Harbour Lights (Jam #1)"
+    assert body["space_id"] == new_space["id"]
