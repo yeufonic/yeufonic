@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.72 (2026-11-27)
 
 - **Per-pass lyrics editing in Jam.** Added a **Lyrics** button in Jam's **Vocals** row that opens the full lyrics editor popup (**Lyrics for next roll**, with section-tag chips, word count, and **Reset to Seed**) without cluttering the Jam console or modifying the Seed in the library. Small word or line tweaks keep the melody on **Roll**, while bigger rewrites need **Plan & Roll**. Edited lyrics are stored per pass: switching Base between the Seed and any pass restores that pass's words, Roll History displays a **Lyrics edited** chip, and **Full Song** carries the promoted pass's lyrics. Instrumental Seeds can also have lyrics added manually in Jam, enabling the vocal modes and automatically planning a vocal melody. Also added **Write lyrics** inside the main editor's expanded lyrics popup, reset Jam pass numbering to `#1` once all scratch passes are deleted, cleared stale deleted voice IDs from older sessions, and deduplicated repeated Vibe style tags. See [Guide → Jam](app/static/guide.md#jam).
 - **Jam Sync number shortcuts (`0` and `1–9`).** While **Sync** is enabled in Jam's Roll History, press **0** to jump instantaneously to the Seed or **1–9** to jump straight to the matching **Pass #1–#9** at the same playback position (and make it the Base), using the same Web Audio gain-ramping switch as **Compare**. Documented in **Hot keys (`?`)** and [Guide → Jam](app/static/guide.md#jam).

@@ -997,7 +997,7 @@ Use passagens curtas para acertar uma receita — Partes, Clima, Toque e LoRA �
 
 **Reprodução e padrões.** O Jam compartilha o player fixo na parte inferior da tela — abrir ou fechar o Jam nunca interrompe o que está tocando. **Mesmo seed** vem marcado por padrão. Clicar no link do título que pulsa no canto inferior esquerdo sempre leva você diretamente ao take que está tocando ou reabre a página do Jam onde o passe foi criado.
 
-**Teclas:** **Espaço** toca ou pausa, **Esquerda / Direita** avança ou volta 5 segundos, **Shift+Esquerda / Shift+Direita** percorre os passes no histórico, **Cima / Baixo** ajusta o volume, **F** alterna tela cheia, **V** abre ou fecha o visualizador, **L** abre os logs, **?** mostra os atalhos e **Esc** fecha primeiro qualquer janela em primeiro plano e depois o Jam.
+**Teclas:** **Espaço** toca ou pausa, **Esquerda / Direita** avança ou volta 5 segundos, **Shift+Esquerda / Shift+Direita** percorre os passes no histórico, **Cima / Baixo** ajusta o volume, **F** alterna tela cheia, **V** abre ou fecha o visualizador, **L** abre os logs, **?** mostra os atalhos e **Esc** fecha primeiro qualquer janela em primeiro plano e depois o Jam. Com **Sync** ativo, **0** vai direto para o Seed e **1–9** para o Pass #1–#9. O botão **Lyrics** na linha **Vocals** abre o editor de letra para o próximo pass (pequenas edições mantêm a melodia no **Roll**; reescritas maiores precisam de **Plan & Roll**).
 
 ---
 

@@ -997,7 +997,7 @@ Usa pasadas cortas para perfilar una receta — Partes, Ambiente, Sensación y L
 
 **Reproducción y valores predeterminados.** Jam comparte el reproductor persistente en la parte inferior de la pantalla: abrir o cerrar Jam nunca detiene la reproducción. **Misma semilla** está activada por defecto. Hacer clic en el enlace del título que pulsa abajo a la izquierda siempre te lleva directamente a la toma que está sonando o vuelve a abrir la página de Jam donde se creó el pase en reproducción.
 
-**Teclas:** **Espacio** reproduce o pausa, **Izquierda / Derecha** avanza o retrocede 5 segundos, **Mayús+Izquierda / Mayús+Derecha** recorre los pases del historial, **Arriba / Abajo** ajusta el volumen, **F** alterna pantalla completa, **V** abre o cierra el visualizador, **L** abre los registros, **?** muestra los atajos y **Esc** cierra primero cualquier ventana superpuesta y después Jam.
+**Teclas:** **Espacio** reproduce o pausa, **Izquierda / Derecha** avanza o retrocede 5 segundos, **Mayús+Izquierda / Mayús+Derecha** recorre los pases del historial, **Arriba / Abajo** ajusta el volumen, **F** alterna pantalla completa, **V** abre o cierra el visualizador, **L** abre los registros, **?** muestra los atajos y **Esc** cierra primero cualquier ventana superpuesta y después Jam. Con **Sync** activo, **0** salta directo a la Semilla y **1–9** al pase #1–#9. El botón **Lyrics** en la fila **Vocals** abre el editor de letra para el próximo pase (los cambios pequeños conservan la melodía con **Roll**; las reescrituras grandes necesitan **Plan & Roll**).
 
 ---
 

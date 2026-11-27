@@ -238,9 +238,9 @@ trained in the app. They play on that page, and the MP3s can be downloaded.
 Jam is for trying other takes of a song you already have, without stopping the music. Open it from a take (**Jam** on
 the take panel, or **J**), and that take is the **Seed**. Jam shares the persistent bottom player — opening or closing Jam never interrupts playback, and clicking a playing pass's pulsing title at the bottom left brings you straight back to its Jam page from anywhere in the app. Change the sound (genres, instruments, production and rhythm,
 each with its own strength, or a saved style or a LoRA), the mood on a Dark to Bright and Calm to Energetic pad, the
-tempo or the singer, and press **Roll**. A short pass keeps the song's melody and chords and plays them with the new
+tempo, singer (with a **Lyrics** button in the Vocals row for per-pass word tweaks), and press **Roll**. A short pass keeps the song's melody and chords and plays them with the new
 sound, switching over while the last one loops. **Plan & Roll** writes a new arrangement instead, for a change bigger than
-the sound. Enable **Sync** on **Roll History** to switch instantaneously between the Seed and any pass at the exact same point in playback (using each card's **Play** button, the player's **Previous / Next** buttons, or **Shift+Left / Shift+Right** — and pair it with the player's **A–B** loop to compare a single section). Click any pass to build the next one on it, and render the one you like as a full song in your space:
+the sound. Enable **Sync** on **Roll History** to switch instantaneously between the Seed and any pass at the exact same point in playback (using each card's **Play** button, the player's **Previous / Next** buttons, **Shift+Left / Shift+Right**, or **0** for Seed and **1–9** for **Pass #1–#9** — and pair it with the player's **A–B** loop to compare a single section). Click any pass to build the next one on it, and render the one you like as a full song in your space:
 
 [![Jam](docs/screenshots/jam.png)](https://raw.githubusercontent.com/yeufonic/yeufonic/main/docs/screenshots/full/jam.png)
 

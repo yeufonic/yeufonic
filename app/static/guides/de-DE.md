@@ -995,7 +995,7 @@ Nutze kurze Durchgänge, um ein Rezept zu finden — Teile, Stimmung, Gefühl un
 
 **Wiedergabe und Standardeinstellungen.** Jam nutzt den dauerhaften Player am unteren Bildschirmrand mit — das Öffnen oder Schließen von Jam unterbricht die Wiedergabe nie. **Gleicher Seed** ist standardmäßig aktiviert. Ein Klick auf den pulsierenden Titel-Link unten links bringt dich von überall direkt zum aktuell spielenden Take oder zurück zu der Jam-Seite, auf der der spielende Durchgang erstellt wurde.
 
-**Tasten:** **Leertaste** spielt oder hält an, **Links / Rechts** springt 5 Sekunden, **Umschalt+Links / Umschalt+Rechts** wechselt zwischen Durchgängen im Roll-Verlauf, **Hoch / Runter** regelt die Lautstärke, **F** schaltet den Vollbildmodus um, **V** öffnet oder schließt den Visualizer, **L** öffnet die Protokolle, **?** zeigt die Tastenkürzel und **Esc** schließt zuerst offene Overlays und dann Jam.
+**Tasten:** **Leertaste** spielt oder hält an, **Links / Rechts** springt 5 Sekunden, **Umschalt+Links / Umschalt+Rechts** wechselt zwischen Durchgängen im Roll-Verlauf, **Hoch / Runter** regelt die Lautstärke, **F** schaltet den Vollbildmodus um, **V** öffnet oder schließt den Visualizer, **L** öffnet die Protokolle, **?** zeigt die Tastenkürzel und **Esc** schließt zuerst offene Overlays und dann Jam. Ist **Sync** aktiviert, springen **0** direkt zum Seed und **1–9** direkt zu Durchgang #1–#9. Die Schaltfläche **Lyrics** in der Zeile **Vocals** öffnet den Texteditor für den nächsten Durchgang (kleine Anpassungen behalten die Melodie bei **Roll**; größere Umschreibungen brauchen **Plan & Roll**).
 
 ---
 
