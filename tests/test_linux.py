@@ -589,6 +589,84 @@ def test_picture_model_selection_rejects_fibo2_on_yue2cpp_and_interactive_menu_s
 
 
 @needs_linux
+def test_picture_model_selection_supports_flux3_on_yue2cpp_and_matches_windows_checksums(tmp_path):
+    """FLUX 3 klein GGUFs are rejected on ComfyUI, offered on yue2.cpp (1=4b, 2=flux3), and match setup.ps1 checksums."""
+    import pty
+    import select
+
+    # Checksum parity between linux/setup.sh and windows/setup.ps1
+    linux_text = SETUP.read_text(encoding="utf-8")
+    ps1_text = SETUP_PS1.read_text(encoding="utf-8")
+    flux3_block = re.search(r"picture_flux3_cpp_models\(\) \{\n(.*?)\n\}", linux_text, re.S).group(1)
+    for line in flux3_block.splitlines():
+        line = line.strip()
+        if not line.startswith('echo "'):
+            continue
+        _dir, name, size, sha, _url = line[len('echo "'):-1].split("|")
+        assert f"File = '{name}'" in ps1_text
+        assert f"Sha = '{sha}'" in ps1_text
+        assert f"Size = {size}" in ps1_text
+
+    env = _fake_linux(tmp_path)
+    inst = tmp_path / "inst"
+    r_bad = subprocess.run(
+        ["bash", str(SETUP), "--install-dir", str(inst), "--engine", "comfyui", "--picture-model", "flux3", "--check-only"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert r_bad.returncode != 0
+    assert "yue2.cpp" in r_bad.stdout
+
+    # Interactive yue2.cpp menu offers 4B (1) or FLUX 3 klein (2); aborting before completion must not lock in state/.
+    (tmp_path / "fakebin" / "curl").write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+    master, slave = pty.openpty()
+    proc = subprocess.Popen(
+        ["bash", str(SETUP), "--install-dir", str(inst), "--reconfigure"],
+        env=env,
+        stdin=slave,
+        stdout=slave,
+        stderr=slave,
+        close_fds=True,
+    )
+    os.close(slave)
+    out = bytearray()
+    prompts = [
+        ("Choose engine (1 or 2) [1]: ", b"2\n"),
+        ("Choose yue2.cpp model (1 or 2) [1]: ", b"1\n"),
+        ("Include local Gemma 4? [Y/n] ", b"y\n"),
+        ("Set up local take pictures? [Y/n] ", b"y\n"),
+        ("Choose picture model (1 or 2) [1]: ", b"2\n"),
+        ("Fetch the style LoRAs? [Y/n] ", b"n\n"),
+        ("Set up recorded voices? [Y/n] ", b"n\n"),
+    ]
+    step = 0
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        r, _, _ = select.select([master], [], [], 0.1)
+        if r:
+            try:
+                chunk = os.read(master, 4096)
+                if not chunk:
+                    break
+                out.extend(chunk)
+                text = out.decode("utf-8", errors="replace")
+                while step < len(prompts) and prompts[step][0] in text:
+                    os.write(master, prompts[step][1])
+                    step += 1
+            except OSError:
+                break
+        elif proc.poll() is not None:
+            break
+    os.close(master)
+    proc.wait(timeout=5)
+    text = out.decode("utf-8", errors="replace")
+    assert step == len(prompts), f"stopped at prompt {step}:\n{text}"
+    assert "Take-picture model: flux3" in text
+    assert not (inst / "state" / "picture-model").exists()
+
+
+@needs_linux
 def test_yeufonic_start_detached_status_and_stop_lifecycle(tmp_path):
     """`yeufonic start -d` detaches, tracks PIDs, answers `status`, and `yeufonic stop` shuts down all children."""
     import shutil

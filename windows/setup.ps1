@@ -3,7 +3,7 @@
 # version and checked by sha256 where the publisher gives one.  Safe to run again:
 # whatever is already in place is kept, and an interrupted download carries on.
 #
-#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-CppModel q8|bf16] [-NoLyrics] [-Int8] [-Pictures] [-Fibo] [-Loras] [-Voices] [-Demos]
+#   powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallDir <folder> [-Engine comfyui|yue2cpp] [-CppModel q8|bf16] [-NoLyrics] [-Int8] [-Pictures] [-Flux3] [-Fibo] [-Loras] [-Voices] [-Demos]
 #   ... -Engine           comfyui (everything, the default) or yue2cpp (yue2.cpp's server, for less video memory: no
 #                         training; Gemma in Ollama and pictures in stable-diffusion.cpp beside it).  Left out, the
 #                         engine settings.ini names, so Repair keeps it.
@@ -11,6 +11,7 @@
 #                         quality, 7.2 GB).  Left out, the one settings.ini names, so Repair keeps it.
 #   ... -Int8             the smaller, low-memory YuE2 model instead of the full-quality one (ComfyUI)
 #   ... -Pictures         FLUX.2 klein, which draws each take's picture on this PC (about 8.3 GB)
+#   ... -Flux3            FLUX 3 klein GGUFs for take pictures (yue2.cpp only, FLUX Kommunity License, about 9.0 GB)
 #   ... -Fibo             FIBO 2.0 with its turbo add-on for take pictures (ComfyUI only, CC BY-NC 4.0
 #                         non-commercial use only, about 15.6 GB)
 #   ... -Loras            39 style LoRAs by their authors, CC BY-NC 4.0, gathered on Hugging Face (about 3.8 GB)
@@ -27,6 +28,7 @@ param(
     [string]$CppModel = '',
     [switch]$NoLyrics,
     [switch]$Int8,
+    [switch]$Flux3,
     [switch]$Fibo,
     [switch]$Pictures,
     [switch]$Loras,
@@ -43,7 +45,7 @@ if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProces
     $again = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-InstallDir', $InstallDir)
     if ($Engine) { $again += @('-Engine', $Engine) }
     if ($CppModel) { $again += @('-CppModel', $CppModel) }
-    foreach ($flag in @('NoLyrics', 'Int8', 'Fibo', 'Pictures', 'Loras', 'Voices', 'Demos', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
+    foreach ($flag in @('NoLyrics', 'Int8', 'Flux3', 'Fibo', 'Pictures', 'Loras', 'Voices', 'Demos', 'CheckOnly', 'SkipModels')) { if ($PSBoundParameters[$flag]) { $again += "-$flag" } }
     & $native @again
     exit $LASTEXITCODE
 }
@@ -235,6 +237,15 @@ $PictureFiles = @(
        Sha = '868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3'; Size = 336211292 }
 )
 if ($Pictures) { $ModelFiles = @($ModelFiles) + $PictureFiles }
+# FLUX 3 klein GGUFs (yue2.cpp only, ungated; weights under FLUX Kommunity License).  Shares the FLUX.2 VAE from $PictureFiles.
+$Flux3CppFiles = @(
+    @{ Name = 'FLUX 3 klein Q8_0 GGUF (take pictures)'; Dir = 'diffusion_models'; File = 'flux3-image-klein-Q8_0.gguf'
+       Url = "$HF/leejet/flux-3-image-klein-GGUF/resolve/main/flux3-image-klein-Q8_0.gguf"
+       Sha = '8b71ffd749bcacbd50cc0acca4f2d31a044c94412743e1e780db99bf13f89752'; Size = 6151716032 }
+    @{ Name = 'Qwen3-VL 4B text encoder, GGUF (FLUX 3 klein)'; Dir = 'text_encoders'; File = 'Qwen3VL-4B-Instruct-Q4_K_M.gguf'
+       Url = "$HF/Qwen/Qwen3-VL-4B-Instruct-GGUF/resolve/main/Qwen3VL-4B-Instruct-Q4_K_M.gguf"
+       Sha = '66358cb18bb6b3b1b6675aa412c7a88ef01d228f481184d13668e5201c730a0a'; Size = 2497281664 }
+)
 # FIBO 2.0 (ComfyUI only, CC BY-NC 4.0 non-commercial use only): photographic take pictures, with its turbo LoRA
 # and Qwen3-VL text encoder.  Shares the FLUX.2 VAE from $PictureFiles.
 $FiboFiles = @(
@@ -526,6 +537,10 @@ if ($Cpp) {
     }
     $ModelFiles = @($CppModelFiles) + $shared
     if ($Pictures) { $ModelFiles = @($ModelFiles) + @($CppPictureEncoder) }
+    if ($Flux3) {
+        $ModelFiles = @($ModelFiles) + $Flux3CppFiles
+        if (-not $Pictures) { $ModelFiles = @($ModelFiles) + @($PictureFiles | Where-Object { $_.File -eq 'flux2-vae.safetensors' }) }
+    }
 }
 $SoundFontFiles = @(
     @{ Name = 'Jnsgm2 GM SoundFont'; File = 'github_Jnsgm2.sf2'
@@ -766,7 +781,7 @@ if ($Cpp) {
     foreach ($sub in @('yue2cpp', 'loras', 'text_encoders', 'diffusion_models', 'vae')) {
         New-Item -ItemType Directory -Force -Path (Join-Path $Models $sub) | Out-Null
     }
-    if ($Pictures) {
+    if ($Pictures -or $Flux3) {
         Say 'The picture server (stable-diffusion.cpp)'
         $sdMark = 'sdcpp-' + [System.IO.Path]::GetFileNameWithoutExtension((Split-Path $CppPrograms.Sdcpp.Url -Leaf))
         if (-not (IsDone $sdMark) -or -not (Test-Path (Join-Path $CppDir 'sdcpp\sd-server.exe'))) {
@@ -1101,21 +1116,23 @@ if ($Cpp) {
 }
 # And which size of YuE2 ComfyUI uses, as both may be here.  yue2.cpp has its own files: the choice stays as it was.
 if (-not $Cpp) { Set-IniValue $settingsIni 'model' $(if ($Int8) { 'int8' } else { 'bf16' }) }
-# When FIBO 2.0 was chosen on an existing install, switch Settings -> Take pictures: model to fibo2.
-if ($Fibo -and -not $Cpp -and -not $SkipModels) {
+# When FIBO 2.0 (ComfyUI) or FLUX 3 klein (yue2.cpp) was chosen on an existing install, switch Settings -> Take pictures: model.
+$chosenPicModel = if ($Fibo -and -not $Cpp) { 'fibo2' } elseif ($Flux3 -and $Cpp) { 'flux3' } else { '' }
+if ($chosenPicModel -and -not $SkipModels) {
     $dbPath = Join-Path $dataDir 'yue2.sqlite'
     $appPyExe = Join-Path $InstallDir 'venv\Scripts\python.exe'
     if ((Test-Path $dbPath) -and (Test-Path $appPyExe)) {
-        $pyFibo = @'
+        $pyPic = @'
 import sqlite3, sys
-con = sqlite3.connect(sys.argv[1], timeout=5)
+db_path, val = sys.argv[1], sys.argv[2]
+con = sqlite3.connect(db_path, timeout=5)
 if con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='settings'").fetchone():
-    con.execute("INSERT INTO settings(key, value) VALUES('art.klein', 'fibo2') ON CONFLICT(key) DO UPDATE SET value = 'fibo2'")
+    con.execute("INSERT INTO settings(key, value) VALUES('art.klein', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", (val,))
     con.commit()
 con.close()
 '@
         try {
-            $pyFibo | & $appPyExe - $dbPath 2>$null
+            $pyPic | & $appPyExe - $dbPath $chosenPicModel 2>$null
         } catch { }
     }
 }

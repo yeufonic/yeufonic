@@ -53,6 +53,7 @@ yeufonic logs app                # tail app.log (or engine, launcher, voice, set
 yeufonic setup                   # interactively reconfigure engine, model size, or add-ons
 yeufonic setup --engine yue2cpp  # switch engines directly (keeps ComfyUI's files on disk)
 yeufonic setup --pictures        # add optional components directly
+yeufonic setup --engine yue2cpp --picture-model flux3  # FLUX 3 klein GGUFs (~9 GB) on yue2.cpp
 yeufonic setup --demos           # download and install the Starter Pack demo takes (~1.7 GB)
 yeufonic uninstall               # remove Yeufonic (offers to keep data/ and models/)
 ```

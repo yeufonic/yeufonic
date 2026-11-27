@@ -7,7 +7,7 @@
 #
 #   bash setup.sh [--install-dir <folder>] [--engine comfyui|yue2cpp] [--int8 | --bf16]
 #                 [--cpp-model q8|bf16] [--no-lyrics] [--pictures | --no-pictures]
-#                 [--picture-model 4b|fibo2] [--loras | --no-loras] [--voices | --no-voices]
+#                 [--picture-model 4b|flux3|fibo2] [--loras | --no-loras] [--voices | --no-voices]
 #                 [--demos | --no-demos] [--force-downloads] [--reconfigure] [--check-only] [--skip-models]
 #
 #   --install-dir      where it goes (default: ~/.local/share/yeufonic)
@@ -19,7 +19,8 @@
 #   --no-lyrics        leave out Gemma 4 (8.1 GB), for an external LLM in Settings instead
 #   --pictures         enable local take pictures (default: FLUX.2 klein 4B, ~8.3 GB);
 #                      --no-pictures fetches none. Asked once on first interactive run.
-#   --picture-model    local take-picture model: 4b (FLUX.2 klein 4B, default, Apache 2.0) or
+#   --picture-model    local take-picture model: 4b (FLUX.2 klein 4B, default, Apache 2.0),
+#                      flux3 (FLUX 3 klein GGUF, yue2.cpp only, FLUX Kommunity License, ~9.0 GB) or
 #                      fibo2 (FIBO 2.0, ComfyUI only, CC BY-NC 4.0 non-commercial). Implies --pictures.
 #   --loras            39 style LoRAs by their authors (CC BY-NC 4.0, about 3.8 GB); --no-loras none.
 #   --voices           recorded voices (RVC + BS-Roformer in Python 3.12, ~1.1 GB models + ~3 GB packages);
@@ -242,6 +243,13 @@ picture_vae_entry() {
   picture_list | grep '^vae|'
 }
 
+# FLUX 3 klein GGUF (yue2.cpp only, ungated; weights under FLUX Kommunity License).
+picture_flux3_cpp_models() {
+  echo "diffusion_models|flux3-image-klein-Q8_0.gguf|6151716032|8b71ffd749bcacbd50cc0acca4f2d31a044c94412743e1e780db99bf13f89752|$HF/leejet/flux-3-image-klein-GGUF/resolve/main/flux3-image-klein-Q8_0.gguf"
+  echo "text_encoders|Qwen3VL-4B-Instruct-Q4_K_M.gguf|2497281664|66358cb18bb6b3b1b6675aa412c7a88ef01d228f481184d13668e5201c730a0a|$HF/Qwen/Qwen3-VL-4B-Instruct-GGUF/resolve/main/Qwen3VL-4B-Instruct-Q4_K_M.gguf"
+  picture_vae_entry
+}
+
 # FIBO 2.0 (ComfyUI only, ungated on Comfy-Org/Fibo-2.0, CC BY-NC 4.0 non-commercial use only).
 picture_fibo2_models() {
   echo "diffusion_models|fibo2_dev_int8_convrot.safetensors|8408562474|063dd397395809fd22234c6bd32932cfcb22619f4d2282bdbf1dc58c406fe325|$HF/Comfy-Org/Fibo-2.0/resolve/main/diffusion_models/fibo2_dev_int8_convrot.safetensors"
@@ -252,6 +260,7 @@ picture_fibo2_models() {
 
 selected_picture_models() {
   case "${PICTURE_MODEL:-4b}" in
+    flux3) picture_flux3_cpp_models ;;
     fibo2) picture_fibo2_models ;;
     *)     picture_models ;;
   esac
@@ -1038,7 +1047,7 @@ elif [ "$INTERACTIVE" -eq 1 ]; then
   def_pic="${SAVED_PICTURES:-yes}"
   say ""
   say "Take pictures drawn on this PC (optional)"
-  say "  Draws a cover picture for each take locally (FLUX.2 klein 4B ~8.3 GB, or FIBO 2.0 ~15 GB on ComfyUI)."
+  say "  Draws a cover picture for each take locally (FLUX.2 klein 4B, FLUX 3 klein on yue2.cpp, or FIBO 2.0 on ComfyUI)."
   ask_yes_no PICTURES 'Set up local take pictures?' "$def_pic"
 elif [ -n "$SAVED_PICTURES" ]; then
   PICTURES="$SAVED_PICTURES"
@@ -1046,39 +1055,63 @@ fi
 [ "$PICTURES" = yes ] || PICTURES=no
 say "Take pictures: $PICTURES"
 
-# 4b. Local take-picture model: FLUX.2 klein 4B (default, Apache 2.0) or FIBO 2.0 (ComfyUI only, CC BY-NC 4.0)
+# 4b. Local take-picture model: FLUX.2 klein 4B (default, Apache 2.0), FLUX 3 klein GGUF (yue2.cpp, FLUX Kommunity License) or FIBO 2.0 (ComfyUI, CC BY-NC 4.0)
 SAVED_PIC_MODEL=""
 [ -f "$STATE/picture-model" ] && SAVED_PIC_MODEL="$(cat "$STATE/picture-model")"
 if [ "$PICTURES" = yes ]; then
   if [ -n "$PICTURE_MODEL" ]; then
     PICTURE_MODEL="$(echo "$PICTURE_MODEL" | tr '[:upper:]' '[:lower:]')"
     case "$PICTURE_MODEL" in
-      4b|fibo2)
+      4b|flux3|fibo2)
         if [ "$CPP" -eq 1 ] && [ "$PICTURE_MODEL" = fibo2 ]; then
-          problem "FIBO 2.0 only runs on the ComfyUI engine (use --engine comfyui, or --picture-model 4b for yue2.cpp)."
+          problem "FIBO 2.0 only runs on the ComfyUI engine (use --engine comfyui, or --picture-model 4b|flux3 for yue2.cpp)."
+        fi
+        if [ "$CPP" -eq 0 ] && [ "$PICTURE_MODEL" = flux3 ]; then
+          problem "Automatic FLUX 3 klein GGUF download is for yue2.cpp (--engine yue2cpp --picture-model flux3); ComfyUI's FLUX 3 weights are gated on Hugging Face and added by hand (see the guide)."
         fi
         ;;
-      *) problem "--picture-model is 4b or fibo2, not $PICTURE_MODEL." ;;
+      *) problem "--picture-model is 4b, flux3 or fibo2, not $PICTURE_MODEL." ;;
     esac
   elif [ "$CPP" -eq 1 ]; then
     if [ "$SAVED_PIC_MODEL" = fibo2 ]; then
-      say "  note: saved picture model 'fibo2' is ComfyUI-only; using FLUX.2 klein 4B on yue2.cpp."
+      say "  note: saved picture model 'fibo2' is ComfyUI-only; defaulting to FLUX.2 klein 4B on yue2.cpp."
+      SAVED_PIC_MODEL=""
     fi
-    PICTURE_MODEL=4b
-  elif [ -n "$SAVED_PIC_MODEL" ] && [ "$RECONFIGURE" -eq 0 ]; then
-    PICTURE_MODEL="$SAVED_PIC_MODEL"
-  elif [ "$INTERACTIVE" -eq 1 ]; then
-    def_pm=1
-    [ "$SAVED_PIC_MODEL" = fibo2 ] && def_pm=2
-    say ""
-    say "Local take-picture model (ComfyUI)"
-    say "  1) FLUX.2 klein 4B — 8.3 GB, Apache 2.0, fast, 8 GB+ VRAM (default)"
-    say "  2) FIBO 2.0        — ~15 GB with turbo LoRA, photographic, 16 GB+ VRAM (CC BY-NC 4.0, non-commercial only)"
-    ask_choice PICTURE_MODEL 'Choose picture model (1 or 2)' 4b fibo2 "$def_pm"
-  elif [ -n "$SAVED_PIC_MODEL" ]; then
-    PICTURE_MODEL="$SAVED_PIC_MODEL"
+    if [ -n "$SAVED_PIC_MODEL" ] && [ "$RECONFIGURE" -eq 0 ]; then
+      PICTURE_MODEL="$SAVED_PIC_MODEL"
+    elif [ "$INTERACTIVE" -eq 1 ]; then
+      def_pm=1
+      [ "$SAVED_PIC_MODEL" = flux3 ] && def_pm=2
+      say ""
+      say "Local take-picture model (yue2.cpp)"
+      say "  1) FLUX.2 klein 4B — 6.9 GB, Apache 2.0, fast, 8 GB+ VRAM (default)"
+      say "  2) FLUX 3 klein    — ~9.0 GB (ungated GGUF + Qwen3-VL + VAE), better lettering, 12 GB+ VRAM (FLUX Kommunity License)"
+      ask_choice PICTURE_MODEL 'Choose picture model (1 or 2)' 4b flux3 "$def_pm"
+    elif [ -n "$SAVED_PIC_MODEL" ]; then
+      PICTURE_MODEL="$SAVED_PIC_MODEL"
+    else
+      PICTURE_MODEL=4b
+    fi
   else
-    PICTURE_MODEL=4b
+    if [ "$SAVED_PIC_MODEL" = flux3 ]; then
+      say "  note: saved picture model 'flux3' GGUF is yue2.cpp-only; defaulting to FLUX.2 klein 4B on ComfyUI."
+      SAVED_PIC_MODEL=""
+    fi
+    if [ -n "$SAVED_PIC_MODEL" ] && [ "$RECONFIGURE" -eq 0 ]; then
+      PICTURE_MODEL="$SAVED_PIC_MODEL"
+    elif [ "$INTERACTIVE" -eq 1 ]; then
+      def_pm=1
+      [ "$SAVED_PIC_MODEL" = fibo2 ] && def_pm=2
+      say ""
+      say "Local take-picture model (ComfyUI)"
+      say "  1) FLUX.2 klein 4B — 8.3 GB, Apache 2.0, fast, 8 GB+ VRAM (default)"
+      say "  2) FIBO 2.0        — ~15 GB with turbo LoRA, photographic, 16 GB+ VRAM (CC BY-NC 4.0, non-commercial only)"
+      ask_choice PICTURE_MODEL 'Choose picture model (1 or 2)' 4b fibo2 "$def_pm"
+    elif [ -n "$SAVED_PIC_MODEL" ]; then
+      PICTURE_MODEL="$SAVED_PIC_MODEL"
+    else
+      PICTURE_MODEL=4b
+    fi
   fi
   say "Take-picture model: $PICTURE_MODEL"
 else

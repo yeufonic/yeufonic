@@ -38,6 +38,10 @@
 #   sh scripts/fetch-models.sh --cpp --pictures   FLUX.2 klein 4B for that engine, 6.9 GB: the model and VAE
 #                                        --pictures fetches for ComfyUI, with Qwen 3 4B as GGUF (Q4_K_M), which
 #                                        its picture server reads (COMPOSE_PROFILES=pictures in .env).
+#   sh scripts/fetch-models.sh --cpp --flux3      FLUX 3 klein (GGUF Q8_0 + Qwen3-VL-4B Q4_K_M + FLUX.2 VAE,
+#                                        about 9.0 GB, ungated; FLUX Kommunity License) for yue2.cpp's picture
+#                                        server (COMPOSE_PROFILES=pictures in .env). Choose FLUX 3 klein under
+#                                        Take pictures: model in Settings once restarted.
 #   sh scripts/fetch-models.sh --comfyui   back to the ComfyUI engine from yue2.cpp: its models (any still here are
 #                                        kept), and yue2.cpp taken out of .env.
 #   Switching either way stops and removes the engine left behind; docker compose up -d --build then starts
@@ -64,6 +68,7 @@ MODEL=bf16
 ENGINE=
 GEMMA=no
 PICTURES=no
+FLUX3=no
 FIBO=no
 LORAS=no
 VOICE=no
@@ -75,6 +80,7 @@ for arg in "$@"; do
     --comfyui) ENGINE=comfyui ;;
     --gemma) GEMMA=yes ;;
     --pictures) PICTURES=yes ;;
+    --flux3|--flux3-klein) FLUX3=yes ;;
     --fibo|--fibo2) FIBO=yes ;;
     --loras) LORAS=yes ;;
     --voice) VOICE=yes ;;
@@ -91,7 +97,11 @@ if grep -qs '^COMPOSE_FILE=.*compose\.cpp\.yml' "$ROOT/.env"; then CURRENT=cpp; 
 ENGINE="${ENGINE:-$CURRENT}"
 if [ "$ENGINE" != "$CURRENT" ]; then echo "switching the engine from $CURRENT to $ENGINE"; fi
 if [ "$FIBO" = yes ] && [ "$ENGINE" = cpp ]; then
-  echo "error: FIBO 2.0 only runs on the ComfyUI engine (use --pictures for yue2.cpp)" >&2
+  echo "error: FIBO 2.0 only runs on the ComfyUI engine (use --pictures or --flux3 for yue2.cpp)" >&2
+  exit 1
+fi
+if [ "$FLUX3" = yes ] && [ "$ENGINE" != cpp ]; then
+  echo "error: --flux3 fetches the ungated GGUF files for yue2.cpp (pass --cpp --flux3); ComfyUI's FLUX 3 weights are gated on Hugging Face (see the guide)" >&2
   exit 1
 fi
 YUE2=https://huggingface.co/Comfy-Org/YuE2/resolve/main
@@ -280,6 +290,20 @@ elif [ "$PICTURES" = yes ]; then
   fetch "$KLEIN/text_encoders/qwen_3_4b_fp4_flux2.safetensors" \
         "$ROOT/models/text_encoders/qwen_3_4b_fp4_flux2.safetensors"
   fetch "$KLEIN/vae/flux2-vae.safetensors" "$ROOT/models/vae/flux2-vae.safetensors"
+fi
+
+# FLUX 3 klein GGUFs for yue2.cpp's picture server (ungated; weights under FLUX Kommunity License): only when asked for.
+if [ "$FLUX3" = yes ] && [ "$ENGINE" = cpp ]; then
+  mkdir -p "$ROOT/models/diffusion_models" "$ROOT/models/text_encoders" "$ROOT/models/vae"
+  KLEIN=https://huggingface.co/Comfy-Org/Flux-2-Klein-4B/resolve/main/split_files
+  fetch "https://huggingface.co/leejet/flux-3-image-klein-GGUF/resolve/main/flux3-image-klein-Q8_0.gguf" \
+        "$ROOT/models/diffusion_models/flux3-image-klein-Q8_0.gguf"
+  fetch "https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct-GGUF/resolve/main/Qwen3VL-4B-Instruct-Q4_K_M.gguf" \
+        "$ROOT/models/text_encoders/Qwen3VL-4B-Instruct-Q4_K_M.gguf"
+  fetch "$KLEIN/vae/flux2-vae.safetensors" "$ROOT/models/vae/flux2-vae.safetensors"
+  add_profile pictures
+  echo "note  FLUX 3 klein weights are under Black Forest Labs' FLUX Kommunity License."
+  echo "      After starting Yeufonic, set Settings -> Take pictures: model to FLUX 3 klein."
 fi
 
 # FIBO 2.0 for take pictures drawn here (ComfyUI only, CC BY-NC 4.0 non-commercial use only): only when asked for.

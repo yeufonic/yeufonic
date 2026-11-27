@@ -1647,8 +1647,10 @@ you use it).
      (11.1 GB, full precision for a Mac).
    - **Text encoder into `text_encoders/`:** `qwen3vl_4b_int8_convrot.safetensors` (4.9 GB, for NVIDIA) or
      `qwen3vl_4b_bf16.safetensors` (8.9 GB, for a Mac).
-2. **With yue2.cpp (Windows, Linux, or Docker):** the picture server cannot read ComfyUI's int8 model file, so download
-   the ungated GGUF files instead:
+2. **With yue2.cpp (Windows, Linux, or Docker):** the picture server cannot read ComfyUI's int8 model file, so use
+   the ungated GGUF files instead. You can fetch them automatically with Yeufonic's helper (**Docker:**
+   `sh scripts/fetch-models.sh --cpp --flux3`; **Linux:** `yeufonic setup --engine yue2cpp --picture-model flux3`;
+   **Windows:** `setup.ps1 -InstallDir <install folder> -Engine yue2cpp -Flux3`), or download them by hand:
    - **Model into `diffusion_models/`:** `flux3-image-klein-Q8_0.gguf` (6.2 GB, recommended) from
      [leejet/flux-3-image-klein-GGUF](https://huggingface.co/leejet/flux-3-image-klein-GGUF) (`flux3-image-klein-Q6_K.gguf`,
      `Q5_K`, `Q4_K` and `Q4_0` also work for smaller cards).
