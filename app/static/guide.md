@@ -1083,7 +1083,7 @@ change the song a lot. The next **Roll** goes back to keeping the melody and cho
 
 **Building on a pass.** Click a card in Roll History, or play it, to make it the **Base**; a new pass becomes the base when it finishes. Its settings go back into the controls,
 and the next roll builds on it. The card shows **Base**, and the foot of the window says which pass you
-are building on. Each new pass names the pass it came from and shows what changed. **Sync** on the **Roll History** header decodes the Seed and every finished pass into memory so pressing **Play** on any card — or using the player's **Previous / Next** buttons (or **Shift+Left / Shift+Right**) — switches instantaneously at the exact same point in playback, just like **Compare**. You can also pair **Sync** with the player's **A–B** loop button to loop a single section (such as a verse or chorus) while switching back and forth between passes. **Space** plays or pauses, and the player's previous/next buttons (or **Shift+Left / Shift+Right**) step through passes in Roll History. Clicking a playing pass's pulsing title at the bottom left always brings you straight back to the Jam page where it was created. The star on a pass marks it as one you like, so it is easy to find among many; it is the Jam's own mark, not the library's star.
+are building on. Each new pass names the pass it came from and shows what changed. **Sync** on the **Roll History** header decodes the Seed and every finished pass into memory so pressing **Play** on any card — using the player's **Previous / Next** buttons (**Shift+Left / Shift+Right**) — or pressing **0** (Seed) or **1–9** (matching **Pass #1–#9**) switches instantaneously at the exact same point in playback, just like **Compare**. You can also pair **Sync** with the player's **A–B** loop button to loop a single section (such as a verse or chorus) while switching back and forth between passes. **Space** plays or pauses, and the player's previous/next buttons (or **Shift+Left / Shift+Right**) step through passes in Roll History. Clicking a playing pass's pulsing title at the bottom left always brings you straight back to the Jam page where it was created. The star on a pass marks it as one you like, so it is easy to find among many; it is the Jam's own mark, not the library's star.
 
 **Keeping one.** Passes are kept out of your spaces. **Full Song** on a pass renders the whole song with that pass's
 settings, as a new take in the space the Jam was opened from; it asks first, with the new take's name ready to change. The **Fast Loop** and **Full Song**
@@ -1098,7 +1098,7 @@ the Jam is closed: Settings → Storage lists them as **Jam passes** and can cle
 
 Use short passes to dial in a recipe — Parts, Vibe, Feel and LoRA — and treat **Full Song** as a full-length take made from those settings. Longer passes (such as 60s or 90s) bring the preview closer by including more of the song, and tightening Parts or **Style grip** leaves the decoder less room to wander.
 
-**Keys:** **Space** plays or pauses, **Left / Right** seeks 5 seconds, **Shift+Left / Shift+Right** steps through passes in Roll History, **Up / Down** adjusts volume, **F** toggles fullscreen, **V** opens or closes the Visualizer, **L** opens logs, **?** opens hot keys, and **Esc** closes any overlay in front and then Jam.
+**Keys:** **Space** plays or pauses, **Left / Right** seeks 5 seconds, **Shift+Left / Shift+Right** steps through passes in Roll History, **0** and **1–9** jump straight to the Seed or Pass #1–#9 when **Sync** is on, **Up / Down** adjusts volume, **F** toggles fullscreen, **V** opens or closes the Visualizer, **L** opens logs, **?** opens hot keys, and **Esc** closes any overlay in front and then Jam.
 
 ---
 
@@ -1859,7 +1859,7 @@ The letter keys do nothing while you are typing in a box, while a window is open
 Alt or the Windows or Command key held, so the browser's own shortcuts (Ctrl+L, Ctrl+S and the rest)
 still work. A button's tip names its key, as in **Variations (Shift+V)**. Press **?** at any time to display the list of hot keys.
 
-Both the editor window and Jam share the persistent bottom player: **Space**, the arrow keys, **F** (fullscreen), **V** (Visualizer), **L** (logs) and **?** (hot keys) work there — including with the mastering rack open — while take-specific letter keys stay on the main page only, and typing in a box is always left alone. In Jam, **Shift+Left / Shift+Right** steps through passes in Roll History. The piano roll has keys of its own: see [The Piano Roll](#the-piano-roll).
+Both the editor window and Jam share the persistent bottom player: **Space**, the arrow keys, **F** (fullscreen), **V** (Visualizer), **L** (logs) and **?** (hot keys) work there — including with the mastering rack open — while take-specific letter keys stay on the main page only, and typing in a box is always left alone. In Jam, **Shift+Left / Shift+Right** steps through passes in Roll History, and **0** / **1–9** jump directly to the Seed or Pass #1–#9 when **Sync** is on. The piano roll has keys of its own: see [The Piano Roll](#the-piano-roll).
 
 ---
 

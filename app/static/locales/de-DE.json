@@ -3279,5 +3279,6 @@
   "Sync": "Sync",
   "Roll a pass to switch between tracks in sync": "Erstelle einen Durchlauf, um synchron zwischen Spuren zu wechseln",
   "Switch between Roll History tracks instantly at the same point in playback": "Sofort an derselben Wiedergabestelle zwischen Spuren im Roll-Verlauf wechseln",
-  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "Synchrone Wiedergabe ist aktiv – Abspielen, Zurück und Weiter wechseln die Spur im selben Moment"
+  "Synced playback is on — Play, Previous/Next, or 0 (Seed) and 1–9 switch tracks at the same moment": "Synchronisierte Wiedergabe ist an — Play, Vorheriger/Nächster oder 0 (Seed) und 1–9 wechseln Titel am selben Punkt",
+  "Switch to Seed or Pass #1–#9 (when Sync is on)": "Zu Seed oder Durchgang #1–#9 wechseln (wenn Sync an ist)"
 }

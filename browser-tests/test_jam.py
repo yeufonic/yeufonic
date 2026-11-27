@@ -52,6 +52,21 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     # The pass has no editor in Jam: its card offers Play, Full Song and Delete.
     assert page.locator(f'.jam-hist-card[data-pass-id="{pass_id}"] [data-jam-act="open-editor"]').count() == 0
 
+    # Sync number keys: 0 jumps to Seed, 1-9 match Pass #1-#9 (only while Sync is enabled).
+    page.locator(".jam-col-head h4").first.click()
+    page.keyboard.press("0")
+    assert page.locator(f'.jam-hist-card.is-base[data-pass-id="{pass_id}"]').count() == 1
+    page.click('[data-jam-act="toggle-sync"]')
+    page.wait_for_selector('.jam-sync-btn.on')
+    page.locator(".jam-col-head h4").first.click()
+    page.keyboard.press("0")
+    page.wait_for_selector(".jam-hist-card.is-seed.is-base.playing")
+    page.keyboard.press("1")
+    page.wait_for_selector(f'.jam-hist-card.is-base.playing[data-pass-id="{pass_id}"]')
+    page.keyboard.press("9")
+    assert page.locator(f'.jam-hist-card.is-base.playing[data-pass-id="{pass_id}"]').count() == 1
+    page.click('[data-jam-act="toggle-sync"]')
+
     # Esc closes it.
     page.locator(".jam-col-head h4").first.click()
     page.keyboard.press("Escape")

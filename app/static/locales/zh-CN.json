@@ -3279,5 +3279,6 @@
   "Sync": "同步",
   "Roll a pass to switch between tracks in sync": "生成一次变奏后即可在音轨间同步切换",
   "Switch between Roll History tracks instantly at the same point in playback": "在同一播放位置即时切换 Roll 历史中的音轨",
-  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "已开启同步播放 — 播放、上一首和下一首将在同一时刻切换音轨"
+  "Synced playback is on — Play, Previous/Next, or 0 (Seed) and 1–9 switch tracks at the same moment": "已开启同步播放 — 播放、上一个/下一个或按 0 (Seed) 和 1–9 可在同一时间点切换音轨",
+  "Switch to Seed or Pass #1–#9 (when Sync is on)": "切换到 Seed 或 Pass #1–#9（开启 Sync 时）"
 }

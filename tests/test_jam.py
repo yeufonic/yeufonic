@@ -196,11 +196,13 @@ def test_jam_sync_wiring_and_transport_hooks():
     app_js = (root / "app.js").read_text(encoding="utf-8")
     css = (root / "styles.css").read_text(encoding="utf-8")
 
-    # Sync button in Roll History header and click handler
+    # Sync button in Roll History header, click handler, and 0/1-9 keyboard jump
     assert 'data-jam-act="toggle-sync"' in jam_js
     assert "act === 'toggle-sync'" in jam_js
     assert "linearRampToValueAtTime(target, now + 0.008)" in jam_js
     assert "if (JamSync.enabled) { JamSync.disable({ handoff: true }); }" in jam_js
+    assert "function jumpToSyncPass(num)" in jam_js
+    assert "/^[0-9]$/.test(event.key)" in jam_js
     assert ".jam-sync-btn.on" in css
 
     # Bottom transport bar delegates cleanly to Jam Sync when active

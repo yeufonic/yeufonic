@@ -3279,5 +3279,6 @@
   "Sync": "同期",
   "Roll a pass to switch between tracks in sync": "パスをロールするとトラック間を同期して切り替えられます",
   "Switch between Roll History tracks instantly at the same point in playback": "Roll 履歴のトラックを同じ再生位置のまま瞬時に切り替える",
-  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "同期再生がオンです — 再生、前へ、次へで同じ位置のままトラックを切り替えます"
+  "Synced playback is on — Play, Previous/Next, or 0 (Seed) and 1–9 switch tracks at the same moment": "同期再生がオン — 再生、前/次、または 0 (Seed) と 1–9 で同じ位置のままトラックを切り替えます",
+  "Switch to Seed or Pass #1–#9 (when Sync is on)": "Seed または Pass #1–#9 に切り替え (Sync オン時)"
 }

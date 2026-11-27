@@ -37,6 +37,11 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
+## Unreleased
+
+- **Jam Sync number shortcuts (`0` and `1–9`).** While **Sync** is enabled in Jam's Roll History, press **0** to jump instantaneously to the Seed or **1–9** to jump straight to the matching **Pass #1–#9** at the same playback position (and make it the Base), using the same Web Audio gain-ramping switch as **Compare**. Documented in **Hot keys (`?`)** and [Guide → Jam](app/static/guide.md#jam).
+- **Atomic waveform peak cache writes.** `ensure_peaks()` now writes `.peaks.json` via a temp file and atomic `os.replace()` and recomputes if a cache file is truncated or unreadable, preventing intermittent HTTP 500 errors on concurrent `/peaks` requests.
+
 ## 0.0.71 (2026-11-27)
 
 - **Jam Roll History Sync instant-switch playback.** Enable **Sync** on the **Roll History** header in Jam to decode the Seed and finished passes into memory (using the same Web Audio gain-ramping engine as **Compare**) so pressing **Play** on any card, clicking **Previous / Next** in the bottom transport bar, or stepping with **Shift+Left / Shift+Right** switches instantaneously at the exact same point in playback. Integrates cleanly with waveform seek, playback speed, volume/mute, and **A–B** loop (so you can loop a single verse or chorus while flipping between passes), caches waveform peaks for instant swaps, and hands playback smoothly to and from the main player when toggled or when Jam closes. See [Guide → Jam](app/static/guide.md#jam) (*Building on a pass*).

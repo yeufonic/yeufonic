@@ -3279,5 +3279,6 @@
   "Sync": "Sincronizar",
   "Roll a pass to switch between tracks in sync": "Faça um Roll para alternar entre faixas em sincronia",
   "Switch between Roll History tracks instantly at the same point in playback": "Alternar instantaneamente entre as faixas do Histórico de Rolls no mesmo ponto da reprodução",
-  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "A reprodução sincronizada está ativada — Tocar, Anterior e Próxima alternam de faixa no mesmo instante"
+  "Synced playback is on — Play, Previous/Next, or 0 (Seed) and 1–9 switch tracks at the same moment": "A reprodução sincronizada está ativa — Reproduzir, Anterior/Próximo ou 0 (Seed) e 1–9 alternam faixas no mesmo ponto",
+  "Switch to Seed or Pass #1–#9 (when Sync is on)": "Alternar para Seed ou Pass #1–#9 (com Sync ativo)"
 }

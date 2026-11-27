@@ -2596,7 +2596,7 @@
     var syncTitle = syncDisabled
       ? t('Roll a pass to switch between tracks in sync')
       : (JamSync.enabled
-        ? t('Synced playback is on \u2014 Play, Previous and Next switch tracks at the same moment')
+        ? t('Synced playback is on \u2014 Play, Previous/Next, or 0 (Seed) and 1\u20139 switch tracks at the same moment')
         : t('Switch between Roll History tracks instantly at the same point in playback'));
     var syncProg = JamSync.enabled ? JamSync.loadProgress() : null;
     var metaLabel = (syncProg && syncProg.done < syncProg.total)
@@ -2847,6 +2847,27 @@
     return true;
   }
 
+  function jumpToSyncPass(num) {
+    if (!JamSync.enabled) { return false; }
+    var list = playablePasses();
+    var target = null;
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (num === 0 ? isSeedPass(p) : (!isSeedPass(p) && p.num === num)) {
+        target = p;
+        break;
+      }
+    }
+    if (!target) { return false; }
+    if (target.id === JamAudio.currentId && !JamAudio.playing) {
+      JamAudio.resume();
+    } else if (target.id !== JamAudio.currentId || !JamAudio.playing) {
+      JamAudio.play(target.id);
+    }
+    if (target.id !== (buildOn() || {}).id) { selectBase(target.id); }
+    return true;
+  }
+
   function shouldLoop(id) {
     return Boolean(JamState.open && id && JamState.passes.some(function (p) { return p.id === id; }));
   }
@@ -2876,6 +2897,9 @@
     if ((event.key === 'v' || event.key === 'V') && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) {
       if (window.Visualizer) { window.Visualizer.toggle(); }
       return true;
+    }
+    if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat && /^[0-9]$/.test(event.key)) {
+      return jumpToSyncPass(Number(event.key));
     }
     if (event.shiftKey && event.key === 'ArrowLeft') { return stepPass(-1); }
     if (event.shiftKey && event.key === 'ArrowRight') { return stepPass(1); }
