@@ -101,3 +101,71 @@ def test_a_jam_starts_at_the_seeds_tempo(page, app_server):
     page.wait_for_selector("#jam-modal:not(.hidden) .jam-hist-card.is-seed")
     assert page.input_value("#jam-bpm-slider") == "185"
     assert "185 BPM" in page.locator("#jam-bpm-val").inner_text()
+
+
+def test_jam_lyrics_edit_per_pass_and_reset(page, app_server):
+    made = make_song(page, app_server, style="indie folk, acoustic guitar, female vocal")
+    seed_lyrics = api(app_server, f"/api/takes/{made['id']}")["lyrics"]
+    open_jam(page, made["id"])
+
+    # Open the Lyrics popup from the Vocals row and edit the words.
+    page.click('[data-jam-act="edit-lyrics"]')
+    page.wait_for_selector("#lyrics-modal:not(.hidden)")
+    assert page.input_value("#lyrics-big") == seed_lyrics
+    assert page.locator("#lyrics-reset").is_disabled()
+    edited = "[Verse]\nNew words along the harbour wall\nShining through the evening mist"
+    page.fill("#lyrics-big", edited)
+    assert not page.locator("#lyrics-reset").is_disabled()
+    page.click("#lyrics-close")
+    page.wait_for_selector("#lyrics-modal", state="hidden")
+    # Jam stays open, Lyrics button shows edited state, and Roll counts the change.
+    assert page.locator("#jam-modal:not(.hidden)").count() == 1
+    assert page.locator(".jam-lyrics-btn.edited").count() == 1
+    assert page.locator(".jam-pending-badge").inner_text().startswith("1")
+
+    # Roll Pass #1 and confirm the edited lyrics were sent while the Seed kept its own.
+    with page.expect_request(lambda r: r.url.endswith("/api/jam/roll") and r.method == "POST") as sent:
+        page.click('[data-jam-act="roll"]')
+    assert sent.value.post_data_json["lyrics"] == edited
+    page.wait_for_selector(".jam-hist-card:not(.is-seed)")
+    pass_id = page.evaluate("() => JSON.parse(localStorage.getItem('yue2.jam.sessions'))['take:' + "
+                            f"'{made['id']}'].passes.filter(p => !p.isSeed)[0].id")
+    wait_take(app_server, pass_id)
+    page.wait_for_selector(f'.jam-hist-card.selectable[data-pass-id="{pass_id}"]', timeout=30000)
+    assert api(app_server, f"/api/takes/{made['id']}")["lyrics"] == seed_lyrics
+    assert api(app_server, f"/api/takes/{pass_id}")["lyrics"] == edited
+    assert "Lyrics edited" in page.locator(f'.jam-hist-card[data-pass-id="{pass_id}"] .jam-hist-diffs').inner_text()
+
+    # Clicking back to Seed restores the Seed's lyrics; clicking Pass #1 restores Pass #1's lyrics.
+    page.click(".jam-hist-card.is-seed .jam-hist-name")
+    page.wait_for_selector(".jam-hist-card.is-seed.is-base")
+    assert page.locator(".jam-lyrics-btn.edited").count() == 0
+    page.click('[data-jam-act="edit-lyrics"]')
+    page.wait_for_selector("#lyrics-modal:not(.hidden)")
+    assert page.input_value("#lyrics-big") == seed_lyrics
+    page.click("#lyrics-close")
+
+    page.click(f'.jam-hist-card[data-pass-id="{pass_id}"] .jam-hist-name')
+    page.wait_for_selector(f'.jam-hist-card.is-base[data-pass-id="{pass_id}"]')
+    assert page.locator(".jam-lyrics-btn.edited").count() == 1
+    page.click('[data-jam-act="edit-lyrics"]')
+    page.wait_for_selector("#lyrics-modal:not(.hidden)")
+    assert page.input_value("#lyrics-big") == edited
+    # Reset to Seed inside the popup restores the Seed's original lyrics (and Write lyrics stays hidden in Jam).
+    assert page.locator("#lyrics-modal-write").is_hidden()
+    assert page.locator("#lyrics-jam-hint").is_visible()
+    page.click("#lyrics-reset")
+    assert page.input_value("#lyrics-big") == seed_lyrics
+    assert page.locator("#lyrics-reset").is_disabled()
+    page.click("#lyrics-close")
+    assert page.locator(".jam-lyrics-btn.edited").count() == 0
+
+    # Reopening Lyrics immediately keeps the reset Seed lyrics; navigating back to Pass #1 restores Pass #1's snapshot.
+    page.click('[data-jam-act="edit-lyrics"]')
+    page.wait_for_selector("#lyrics-modal:not(.hidden)")
+    assert page.input_value("#lyrics-big") == seed_lyrics
+    page.click("#lyrics-close")
+    page.click(".jam-hist-card.is-seed .jam-hist-name")
+    page.click(f'.jam-hist-card[data-pass-id="{pass_id}"] .jam-hist-name')
+    page.wait_for_selector(f'.jam-hist-card.is-base[data-pass-id="{pass_id}"]')
+    assert page.locator(".jam-lyrics-btn.edited").count() == 1

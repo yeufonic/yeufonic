@@ -209,3 +209,33 @@ def test_jam_sync_wiring_and_transport_hooks():
     for hook in ("isSyncActive", "isSyncPlaying", "syncClock", "syncSeek", "syncNudge", "onVolumeChange", "onRateChange", "stopSyncForMain"):
         assert hook in jam_js, f"Missing window.Jam.{hook} export in jam.js"
         assert hook in app_js, f"Missing window.Jam.{hook} hook in app.js"
+
+    # Jam lyrics button in Vocals row and shared lyrics modal hook
+    html = (root / "index.html").read_text(encoding="utf-8")
+    assert 'data-jam-act="edit-lyrics"' in jam_js
+    assert "window.openLyricsEditor" in jam_js and "window.openLyricsEditor = openLyricsEditor" in app_js
+    assert 'id="lyrics-reset"' in html and 'id="lyrics-modal-write"' in html
+    assert "#lyrics-modal { z-index: 70; }" in css and "#write-modal { z-index: 72; }" in css
+
+
+def test_jam_edited_lyrics_align_to_vocal_seed_and_plan_from_instrumental_seed(client):
+    from app import instrumental, jobs
+
+    # 1. Vocal Seed with edited lyrics keeps the locked score and aligns the new words.
+    vocal_seed = make_take(kind="song", abc=GOOD, lyrics="[verse]\nOld harbour lights\n")
+    edited = "[verse]\nNew lantern glow\n"
+    p1 = roll(client, base_take_id=vocal_seed["id"], lock_score=True, instrumental=False, lyrics=edited)
+    assert p1["lyrics"] == edited.strip()
+    assert p1["auto_render"] == 0 and p1["abc"].startswith("X:1")
+    assert one("SELECT lyrics FROM takes WHERE id = ?", (vocal_seed["id"],))["lyrics"] == "[verse]\nOld harbour lights\n"
+    assert list(jobs.QUEUE._queue)[-1]["kind"] == "render"
+
+    # 2. Instrumental Seed turned into a vocal pass cannot lock onto an unsung score: it plans a vocal melody.
+    inst_abc = instrumental.tune_on_instrument(GOOD)
+    assert not instrumental.sings(inst_abc)
+    inst_seed = make_take(kind="instrumental", abc=inst_abc, lyrics="[verse]")
+    added = "[verse]\nSinging over the tide\n"
+    p2 = roll(client, base_take_id=inst_seed["id"], lock_score=True, instrumental=False, lyrics=added)
+    assert p2["kind"] == "song" and p2["lyrics"] == added.strip()
+    assert p2["abc"] == "" and p2["auto_render"] == 1
+    assert list(jobs.QUEUE._queue)[-1]["kind"] == "plan"

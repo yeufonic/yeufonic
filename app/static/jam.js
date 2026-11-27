@@ -922,7 +922,8 @@
     vocals: 'instrumental', // 'instrumental' | 'female' | 'male' | 'voice'
     voiceId: '',
     tones: [],
-    lyrics: '',         // the Seed's words, which every sung pass sings
+    lyrics: '',         // working lyrics for the next roll (starts from the Seed, saved per pass)
+    seedLyrics: '',     // the Seed's own original lyrics (for Reset to Seed and edited state)
     seedStructure: '',  // an instrumental Seed's sections, planned again by Plan & Roll
     styleLora: '',
     styleLoraModel: 0.7,
@@ -973,6 +974,7 @@
         voiceId: JamState.voiceId,
         tones: JamState.tones,
         lyrics: JamState.lyrics,
+        seedLyrics: JamState.seedLyrics,
         seedStructure: JamState.seedStructure,
         styleLora: JamState.styleLora,
         styleLoraModel: JamState.styleLoraModel,
@@ -1009,7 +1011,8 @@
     JamState.vocals = s.vocals || 'instrumental';
     JamState.voiceId = s.voiceId || '';
     JamState.tones = Array.isArray(s.tones) ? s.tones.slice() : [];
-    JamState.lyrics = s.lyrics || '';     // read again from the Seed by syncPassesFromServer
+    JamState.lyrics = s.lyrics || '';
+    JamState.seedLyrics = typeof s.seedLyrics === 'string' ? s.seedLyrics : (s.lyrics || '');
     JamState.seedStructure = s.seedStructure || '';
     JamState.styleLora = s.styleLora || '';
     JamState.styleLoraModel = s.styleLoraModel != null ? Number(s.styleLoraModel) : 0.7;
@@ -1030,6 +1033,7 @@
   async function syncPassesFromServer() {
     if (!JamState.passes.length) { return; }
     var wasCooking = JamState.cookingId;
+    var prevSeedLyrics = JamState.seedLyrics;
     var kept = [];
     var activeCook = null;
     for (var i = 0; i < JamState.passes.length; i++) {
@@ -1041,12 +1045,14 @@
         // has finished, or one moved there) is in the library.  The Full Song being made stays, for its progress.
         if (!isSeedPass(p) && rec.space_id !== '__jam__' && !(p.id === wasCooking && (rec.status === 'queued' || rec.status === 'running'))) { continue; }
         if (isSeedPass(p)) {
-          // The words are the Seed's as it is now: a session saved before Jam stopped writing its own may hold others.
-          JamState.lyrics = rec.kind === 'instrumental' ? '' : (rec.lyrics || '');
+          var seedWords = rec.kind === 'instrumental' ? '' : (rec.lyrics || '');
+          JamState.seedLyrics = seedWords;
           JamState.seedStructure = rec.kind === 'instrumental' ? (rec.lyrics || '') : '';
           JamState.seedNormalise = Boolean(rec.normalise);
           JamState.seedRealaudio = rec.realaudio == null ? true : Boolean(rec.realaudio);
-          if (!JamState.lyrics.trim()) { JamState.vocals = 'instrumental'; }
+          if (p.snapshot) { p.snapshot.lyrics = seedWords; }
+        } else if (p.snapshot && typeof p.snapshot.lyrics !== 'string') {
+          p.snapshot.lyrics = rec.kind === 'instrumental' ? '' : (rec.lyrics || '');
         }
         p.status = rec.status;
         p.stage = rec.stage || rec.status;
@@ -1064,7 +1070,26 @@
       }
     }
     JamState.passes = kept;
+    if (!JamState.passes.some(function (p) { return !isSeedPass(p); })) {
+      JamState.lastPassNum = 0;
+    }
     if (!passById(JamState.baseId)) { JamState.baseId = seedId(); }
+    // Drop a deleted recorded voice ID left behind by an older saved session.
+    if (JamState.voiceId && window.VOICES && Array.isArray(VOICES.list) &&
+        !readyVoicesList().some(function (v) { return v.id === JamState.voiceId; })) {
+      var seedRec = seedTakeRecord();
+      var seedVoice = seedRec && seedRec.voice_id && readyVoicesList().some(function (v) { return v.id === seedRec.voice_id; })
+        ? seedRec.voice_id : '';
+      JamState.voiceId = seedVoice;
+      if (!seedVoice && JamState.vocals === 'voice') { JamState.vocals = 'female'; }
+    }
+    var base = buildOn();
+    if (base && isSeedPass(base) && (JamState.lyrics || '') === (prevSeedLyrics || '')) {
+      JamState.lyrics = JamState.seedLyrics || '';
+    }
+    if (!(JamState.lyrics || '').trim() && JamState.vocals !== 'instrumental') {
+      JamState.vocals = 'instrumental';
+    }
     JamState.cookingId = activeCook;
     if (!JamState.passes.length) {
       JamState.parentId = null;
@@ -1166,7 +1191,18 @@
       tokens.push(tonePrefix + vLabel);
     }
     if (s.bpm) { tokens.push(s.bpm + ' BPM'); }
-    return tokens.join(', ');
+    // Deduplicate comma-separated tags (e.g. a Seed rendered from an earlier Jam already carries Vibe cues).
+    var seen = {};
+    var out = [];
+    tokens.join(', ').split(',').forEach(function (part) {
+      var trimmed = part.trim();
+      if (!trimmed) { return; }
+      var key = trimmed.toLowerCase();
+      if (seen[key]) { return; }
+      seen[key] = true;
+      out.push(trimmed);
+    });
+    return out.join(', ');
   }
 
   function computeDiffs(prev, next) {
@@ -1201,6 +1237,9 @@
     if (Math.abs((prev.bpm || 0) - (next.bpm || 0)) >= 3) { diffs.push({ text: next.bpm + ' BPM', cls: 'chg' }); }
     if (prev.vocals !== next.vocals) {
       diffs.push({ text: t('Vocals \u2192 {value}', { value: vocalsLabel(next.vocals) }), cls: 'chg' });
+    }
+    if ((prev.lyrics || '').trim() !== (next.lyrics || '').trim()) {
+      diffs.push({ text: (next.lyrics || '').trim() ? t('Lyrics edited') : t('Lyrics cleared'), cls: 'chg' });
     }
     if ((prev.key || '') !== (next.key || '')) { diffs.push({ text: t('Key \u2192 {value}', { value: next.key || t('as the score') }), cls: 'chg' }); }
     if ((prev.startSection || '') !== (next.startSection || '')) {
@@ -1310,7 +1349,9 @@
     JamState.vocals = take.kind === 'instrumental' ? 'instrumental' : (take.voice_id ? 'voice' : (/male vocal/i.test(take.style || '') && !/female/i.test(take.style || '') ? 'male' : 'female'));
     JamState.voiceId = take.voice_id || '';
     JamState.tones = [];
-    JamState.lyrics = take.kind === 'instrumental' ? '' : (take.lyrics || '');
+    var seedWords = take.kind === 'instrumental' ? '' : (take.lyrics || '');
+    JamState.lyrics = seedWords;
+    JamState.seedLyrics = seedWords;
     JamState.seedStructure = take.kind === 'instrumental' ? (take.lyrics || '') : '';   // an instrumental's sections, for Plan & Roll
     var seedMix = {};
     if (take.voice_id && take.voice_mix) {
@@ -1376,6 +1417,7 @@
   function dropPass(passId) {
     JamAudio.stopIfPlaying(passId);
     JamState.passes = JamState.passes.filter(function (p) { return p.id !== passId; });
+    if (!JamState.passes.some(function (p) { return !isSeedPass(p); })) { JamState.lastPassNum = 0; }
     if (JamState.baseId === passId) { JamState.baseId = seedId(); }
   }
 
@@ -1429,21 +1471,22 @@
     return JamState.passes.find(isSeedPass) || null;
   }
   function passLabel(p) { return !p ? t('the Seed') : (isSeedPass(p) ? t('Seed') : t('Pass #{n}', { n: p.num })); }
-  // A pass made instrumental from a sung Seed has its tune moved off the vocal line.
-  function passUnsung(p) { return Boolean(p && !isSeedPass(p) && p.snapshot && p.snapshot.vocals === 'instrumental'); }
+  // A pass (or Seed) made instrumental has no sung vocal melody on the Vocal voice.
+  function passUnsung(p) { return Boolean(p && p.snapshot && p.snapshot.vocals === 'instrumental'); }
 
-  /* The score a roll is made from: the base's.  A sung roll on a base made instrumental would have nothing to sing,
-     so it takes the score that base was made from instead (back to the Seed if need be).  A Seed with no score:
-     the first pass that has one. */
+  /* The score a roll is made from: the base's.  A sung roll on an instrumental base would have nothing to sing,
+     so it walks back to the vocal score that base came from (or returns null when the Seed itself is instrumental,
+     letting the planner write a vocal melody for the new lyrics).  A Seed with no score: the first pass that has one. */
   function readyBaseTakeWithScore(sings) {
     if (sings === undefined) { sings = JamState.vocals !== 'instrumental'; }
     var p = buildOn();
-    for (var guard = 0; p && sings && passUnsung(p) && guard < 50; guard++) {
+    if (sings && isSeedPass(p) && passUnsung(p)) { return null; }
+    for (var guard = 0; p && sings && passUnsung(p) && !isSeedPass(p) && guard < 50; guard++) {
       p = passById(p.scoreFromId) || passById(p.fromId) || JamState.passes.find(isSeedPass);
     }
     if (p && p.hasScore && !(sings && passUnsung(p))) { return p; }
     var seed = JamState.passes.find(isSeedPass);
-    if (seed && seed.hasScore) { return seed; }
+    if (seed && seed.hasScore && !(sings && passUnsung(seed))) { return seed; }
     return JamState.passes.find(function (x) { return !isSeedPass(x) && x.hasScore && !(sings && passUnsung(x)); }) || null;
   }
 
@@ -1458,7 +1501,9 @@
       JamState.parts = (s.parts || []).map(function (x) { return { name: x.name, cat: x.cat, level: x.level }; });
       if (s.vibe) { JamState.vibe = { x: s.vibe.x, y: s.vibe.y }; }
       if (s.bpm) { JamState.bpm = s.bpm; }
+      if (typeof s.lyrics === 'string') { JamState.lyrics = s.lyrics; }
       if (s.vocals && (s.vocals === 'instrumental' || (JamState.lyrics || '').trim())) { JamState.vocals = s.vocals; }
+      else if (!(JamState.lyrics || '').trim()) { JamState.vocals = 'instrumental'; }
       JamState.voiceId = s.voiceId || '';
       JamState.tones = (s.tones || []).slice();
       JamState.styleLora = s.styleLora || '';
@@ -1524,10 +1569,10 @@
     var styleText = compileStyle(snap);
     var vi = vibeInfo(snap.vibe);
 
-    // A Jam sings the Seed's own words: it makes takes of a song, not new songs.
-    var lyricsText = snap.vocals === 'instrumental' ? '' : (JamState.lyrics || '');
+    // Each pass carries its own lyrics in its snapshot (starting from the Seed's words).
+    var lyricsText = snap.vocals === 'instrumental' ? '' : (typeof snap.lyrics === 'string' ? snap.lyrics : (JamState.lyrics || ''));
     if (snap.vocals !== 'instrumental' && !lyricsText.trim()) {
-      if (typeof toast === 'function') { toast(t('The Seed has no words to sing: choose Instrumental.'), 'bad'); }
+      if (typeof toast === 'function') { toast(t('Add lyrics first, or choose Instrumental.'), 'bad'); }
       return;
     }
 
@@ -2451,7 +2496,13 @@
 
     var keptScroll = keepScroll(el);
     var hasWords = Boolean((JamState.lyrics || '').trim());
-    var noWords = hasWords ? '' : ' disabled title="' + t('The Seed has no words to sing') + '"';
+    var lyricsEdited = (JamState.lyrics || '').trim() !== (JamState.seedLyrics || '').trim();
+    var noWords = hasWords ? '' : ' disabled title="' + t('Add lyrics first to use vocals') + '"';
+    var vocalMeta = !hasWords
+      ? t('No words yet')
+      : (JamState.vocals === 'instrumental'
+        ? (lyricsEdited ? t('Lyrics ready \u2014 pick a voice') : t('No vocals'))
+        : (lyricsEdited ? t('Sings edited lyrics') : t('Sings the Seed\u2019s words')));
 
     el.innerHTML =
       '<div class="jam-col-head">' +
@@ -2482,12 +2533,15 @@
         '</div>' +
       '</div>' +
       '<div class="jam-vocal-card">' +
-        '<div class="jam-kicker"><span>' + t('Vocals') + '</span><span>' + (!hasWords ? t('The Seed has no words') : (JamState.vocals === 'instrumental' ? t('No vocals') : t('Sings the Seed\u2019s words'))) + '</span></div>' +
-        '<div class="jam-mini-seg">' +
-          '<button type="button" data-jam-act="vocals" data-v="instrumental" class="' + (JamState.vocals === 'instrumental' ? 'active' : '') + '">' + t('Instrumental') + '</button>' +
-          '<button type="button" data-jam-act="vocals" data-v="female" class="' + (JamState.vocals === 'female' ? 'active' : '') + '"' + noWords + '>' + t('Female') + '</button>' +
-          '<button type="button" data-jam-act="vocals" data-v="male" class="' + (JamState.vocals === 'male' ? 'active' : '') + '"' + noWords + '>' + t('Male') + '</button>' +
-          '<button type="button" data-jam-act="vocals" data-v="voice" class="' + (JamState.vocals === 'voice' ? 'active' : '') + '"' + (!hasWords ? noWords : (!hasVoices ? ' disabled title="' + t('No ready recorded voices yet') + '"' : '')) + '>' + t('My Voice') + '</button>' +
+        '<div class="jam-kicker"><span>' + t('Vocals') + '</span><span>' + vocalMeta + '</span></div>' +
+        '<div class="jam-vocal-row">' +
+          '<div class="jam-mini-seg">' +
+            '<button type="button" data-jam-act="vocals" data-v="instrumental" class="' + (JamState.vocals === 'instrumental' ? 'active' : '') + '">' + t('Instrumental') + '</button>' +
+            '<button type="button" data-jam-act="vocals" data-v="female" class="' + (JamState.vocals === 'female' ? 'active' : '') + '"' + noWords + '>' + t('Female') + '</button>' +
+            '<button type="button" data-jam-act="vocals" data-v="male" class="' + (JamState.vocals === 'male' ? 'active' : '') + '"' + noWords + '>' + t('Male') + '</button>' +
+            '<button type="button" data-jam-act="vocals" data-v="voice" class="' + (JamState.vocals === 'voice' ? 'active' : '') + '"' + (!hasWords ? noWords : (!hasVoices ? ' disabled title="' + t('No ready recorded voices yet') + '"' : '')) + '>' + t('My Voice') + '</button>' +
+          '</div>' +
+          '<button type="button" class="jam-lyrics-btn' + (lyricsEdited ? ' edited' : '') + '" data-jam-act="edit-lyrics" title="' + (hasWords ? t('View or edit lyrics for the next roll') : t('Add lyrics to sing on the next roll')) + '">' + t('Lyrics') + '</button>' +
         '</div>' +
         vocalExtras +
       '</div>' +
@@ -2747,6 +2801,27 @@
       paintTopbar();
       return;
     }
+    if (act === 'edit-lyrics') {
+      if (typeof window.openLyricsEditor === 'function') {
+        window.openLyricsEditor({
+          title: t('Lyrics for next roll'),
+          value: JamState.lyrics || '',
+          seedValue: JamState.seedLyrics || '',
+          onChange: function (text) {
+            JamState.lyrics = text;
+            if (!text.trim() && JamState.vocals !== 'instrumental') {
+              JamState.vocals = 'instrumental';
+            }
+            paintFeelCol();
+            paintTopbar();
+          },
+          onClose: function () {
+            saveSession();
+          }
+        });
+      }
+      return;
+    }
     if (act === 'toggle-tone') {
       var tn = btn.dataset.tone;
       var ti = JamState.tones.indexOf(tn);
@@ -2810,6 +2885,7 @@
       return;
     }
     JamState.passes = JamState.passes.filter(function (p) { return p.id !== passId; });
+    if (!JamState.passes.some(function (p) { return !isSeedPass(p); })) { JamState.lastPassNum = 0; }
     if (JamState.baseId === passId) { JamState.baseId = seedId(); }
     if (JamSync.enabled && playablePasses().length < 2) { JamSync.disable({ handoff: true }); }
     if (!JamState.passes.length) {

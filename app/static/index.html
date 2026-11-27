@@ -1515,7 +1515,7 @@
 <div id="lyrics-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Lyrics editor">
   <div class="modal-box">
     <div class="modal-head">
-      <strong>Lyrics</strong>
+      <strong id="lyrics-modal-title">Lyrics</strong>
       <div class="modal-tools">
         <button class="chip" data-tag="[Intro]">+ Intro</button>
         <button class="chip" data-tag="[Verse]">+ Verse</button>
@@ -1531,9 +1531,14 @@
       </div>
     </div>
     <textarea id="lyrics-big" spellcheck="false" placeholder="[Verse]&#10;First line&#10;Second line&#10;&#10;[Chorus]&#10;..."></textarea>
+    <div id="lyrics-jam-hint" class="muted small hidden">Small edits keep the melody on Roll; bigger rewrites need Plan &amp; Roll.</div>
     <div class="lyrics-foot">
       <div id="lyrics-count" class="muted small"></div>
-      <button id="lyrics-close" class="ghost">Done</button>
+      <div class="lyrics-foot-actions">
+        <button id="lyrics-modal-write" class="chip action compact" type="button" title="Draft lyrics from a short description">Write lyrics</button>
+        <button id="lyrics-reset" class="ghost hidden" type="button">Reset to Seed</button>
+        <button id="lyrics-close" class="ghost">Done</button>
+      </div>
     </div>
   </div>
 </div>

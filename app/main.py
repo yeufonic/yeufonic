@@ -3086,22 +3086,27 @@ async def jam_roll(body: JamRollIn) -> dict:
     locked_abc = ""
     if body.lock_score and base_take and (base_take.get("abc") or "").strip():
         locked_abc = base_take["abc"]
-        if body.start_section:
-            cut = _score_from_section(locked_abc, body.start_section)
-            if cut != locked_abc:
-                locked_abc = cut
-                body.lyrics = _words_from_section(body.lyrics, body.start_section)
-        if kind == "instrumental":
-            locked_abc = _unsung(locked_abc)
-        elif body.lyrics.strip() and ("V: Vocal" in locked_abc or "V:Vocal" in locked_abc):
-            try:
-                locked_abc = aligner.align_lyrics_to_abc(locked_abc, body.lyrics)
-            except Exception as exc:
-                log.warning("Jam: could not align lyrics to locked score: %s", exc)
-        _check_score(locked_abc, kind)
+        if kind == "song" and not instrumental.sings(locked_abc):
+            # An instrumental base score has no sung vocal melody to align words onto;
+            # let the planner write a vocal score for these lyrics instead.
+            locked_abc = ""
+        else:
+            if body.start_section:
+                cut = _score_from_section(locked_abc, body.start_section)
+                if cut != locked_abc:
+                    locked_abc = cut
+                    body.lyrics = _words_from_section(body.lyrics, body.start_section)
+            if kind == "instrumental":
+                locked_abc = _unsung(locked_abc)
+            elif body.lyrics.strip() and ("V: Vocal" in locked_abc or "V:Vocal" in locked_abc):
+                try:
+                    locked_abc = aligner.align_lyrics_to_abc(locked_abc, body.lyrics)
+                except Exception as exc:
+                    log.warning("Jam: could not align lyrics to locked score: %s", exc)
+            _check_score(locked_abc, kind)
 
     if kind == "song" and not body.lyrics.strip():
-        raise HTTPException(400, "The Seed has no words to sing: choose Instrumental.")
+        raise HTTPException(400, "Add lyrics first, or choose Instrumental.")
 
     if kind == "instrumental":
         if locked_abc:

@@ -579,14 +579,17 @@ function paintOptions() {
     ? t('The instrumental LoRA is not in the LoRA folder. Run scripts/fetch-models.sh.')
     : t('The engine has no instrumental LoRA. Run scripts/fetch-models.sh, then restart the engine.'));
   var canWrite = State.options.lyrics_available !== false;
-  $('lyrics-write').disabled = !canWrite;
-  $('lyrics-write').title = canWrite
+  var writeTitle = canWrite
     ? (WRITE.id ? t('Drafting lyrics in progress… Click to view status or stop') : t('Draft lyrics from a short description'))
     : (cppEngine() ? t('Gemma is not installed beside the yue2.cpp engine (scripts/fetch-models.sh --cpp --gemma). An external LLM, set up in Settings, can draft lyrics instead.')
       : t('The engine has no lyric writer. Run scripts/fetch-models.sh, then restart the engine.'));
-  if (canWrite) {
-    $('lyrics-write').textContent = WRITE.id ? t('Drafting…') : t('Write lyrics');
-  }
+  ['lyrics-write', 'lyrics-modal-write'].forEach(function (wid) {
+    var wb = $(wid);
+    if (!wb) { return; }
+    wb.disabled = !canWrite;
+    wb.title = writeTitle;
+    if (canWrite) { wb.textContent = WRITE.id ? t('Drafting…') : t('Write lyrics'); }
+  });
   var canRealaudio = State.options.realaudio !== false;
   $('realaudio').disabled = !canRealaudio;
   if (!canRealaudio) {
@@ -3479,21 +3482,59 @@ if (typeof window !== 'undefined') {
   window.confirmModal = confirmModal;
 }
 
-function openLyricsEditor() {
-  $('lyrics-big').value = $('lyrics').value;
+var _lyricsTarget = null;
+
+function syncLyricsResetButton() {
+  var btn = $('lyrics-reset');
+  if (!btn) { return; }
+  if (!_lyricsTarget || typeof _lyricsTarget.seedValue !== 'string') {
+    btn.classList.add('hidden');
+    return;
+  }
+  btn.classList.remove('hidden');
+  btn.disabled = $('lyrics-big').value === _lyricsTarget.seedValue;
+}
+
+function openLyricsEditor(opts) {
+  var custom = (opts && typeof opts === 'object' && typeof opts.onChange === 'function') ? opts : null;
+  _lyricsTarget = custom;
+  $('lyrics-big').value = custom ? String(custom.value || '') : $('lyrics').value;
+  var titleEl = $('lyrics-modal-title');
+  if (titleEl) { titleEl.textContent = (custom && custom.title) ? custom.title : t('Lyrics'); }
+  if ($('lyrics-modal-write')) { $('lyrics-modal-write').classList.toggle('hidden', Boolean(custom)); }
+  if ($('lyrics-jam-hint')) { $('lyrics-jam-hint').classList.toggle('hidden', !custom); }
   updateLyricsCount();
+  syncLyricsResetButton();
   $('lyrics-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   setTimeout(function () { $('lyrics-big').focus(); }, 30);
 }
+if (typeof window !== 'undefined') {
+  window.openLyricsEditor = openLyricsEditor;
+}
 
 function closeLyricsEditor() {
+  var target = _lyricsTarget;
+  _lyricsTarget = null;
   $('lyrics-modal').classList.add('hidden');
   document.body.style.overflow = '';
+  syncLyricsResetButton();
+  if (target) {
+    // Restore the editor's own buffer so the main score/lyrics view never reads Jam's text.
+    $('lyrics-big').value = $('lyrics') ? $('lyrics').value : '';
+    if (typeof target.onClose === 'function') { target.onClose(); }
+    return;
+  }
   $('lyrics').focus();
 }
 
 function syncLyricsFromBig() {
+  if (_lyricsTarget) {
+    _lyricsTarget.onChange($('lyrics-big').value);
+    syncLyricsResetButton();
+    updateLyricsCount();
+    return;
+  }
   $('lyrics').value = $('lyrics-big').value;
   // Fire the same event the small box would, so saving and the title hint still run.
   $('lyrics').dispatchEvent(new Event('input'));
@@ -11319,7 +11360,7 @@ async function runLoraSteps() {
 /* ------------------------------------------------------------------ lyrics
    A draft from a short brief, written on the engine.  It lands in the lyrics box
    even if this window was closed while it was being written. */
-var WRITE = { id: null, timer: null, started: null, status: null };
+var WRITE = { id: null, timer: null, started: null, status: null, target: null, pendingTarget: null };
 
 var FEEL_KEY = 'yue2.lyricfeel';
 
@@ -11340,10 +11381,26 @@ function paintWriteFeel() {
   if ($('write-feel-hint')) { $('write-feel-hint').textContent = picked ? picked.hint : ''; }
 }
 
-function openWrite() {
+function writeTargetSections(target) {
+  if (target && typeof target.getSections === 'function') {
+    var own = target.getSections();
+    if (Array.isArray(own) && own.length) { return own; }
+  }
+  if (target && typeof target.getExisting === 'function') {
+    var parsed = expandSectionsOf(target.getExisting());
+    if (parsed.length) { return parsed; }
+  }
+  return SONGPLAN.sections;
+}
+
+function openWrite(target) {
+  var custom = (target && typeof target === 'object' && typeof target.onLand === 'function') ? target : null;
+  WRITE.pendingTarget = custom;
   paintWriteFeel();
   if ($('write-structure-sent')) {
-    if (State.mode === 'cover') {
+    if (custom) {
+      $('write-structure-sent').textContent = writeTargetSections(custom).join(', ');
+    } else if (State.mode === 'cover') {
       var source = currentSource();
       var isMidi = Boolean(source && source.filename && source.filename.match(/\.midi?$/i));
       var srcType = isMidi ? t('MIDI melody') : t('recorded melody');
@@ -11364,11 +11421,12 @@ function closeWrite() {
 function setWriting(on) {
   $('write-go').disabled = on;
   $('write-stop').classList.toggle('hidden', !on);
-  var btn = $('lyrics-write');
-  if (btn) {
+  ['lyrics-write', 'lyrics-modal-write'].forEach(function (wid) {
+    var btn = $(wid);
+    if (!btn) { return; }
     btn.textContent = on ? t('Drafting…') : t('Write lyrics');
     btn.classList.toggle('active', on);
-  }
+  });
   if (!on) {
     var box = $('lyrics-write-job');
     if (box && !box.classList.contains('bad')) {
@@ -11385,20 +11443,25 @@ function writeStatus(text, tone) {
 async function doWrite() {
   var brief = $('write-brief').value.trim();
   if (!brief) { writeStatus(t('Say in a few words what the song is about.'), 'bad'); $('write-brief').focus(); return; }
-  if ($('lyrics').value.trim() && !await confirmModal({
+  var target = WRITE.pendingTarget;
+  var existing = target && typeof target.getExisting === 'function' ? target.getExisting() : $('lyrics').value;
+  if (String(existing || '').trim() && !await confirmModal({
     title: t('Replace lyrics'),
     message: t('The draft will replace the lyrics in the box. Write it?'),
     confirmText: t('Write lyrics'),
     danger: true
   })) { return; }
+  var styleText = (target && typeof target.getStyle === 'function') ? target.getStyle() : $('style').value;
+  var sections = writeTargetSections(target);
   try {
     var draft = await api('/api/lyrics', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brief: brief, style: $('style').value, sections: SONGPLAN.sections, lines: Number($('write-lines').value) || 6, feel: $('write-feel') ? $('write-feel').value : undefined })
+      body: JSON.stringify({ brief: brief, style: styleText, sections: sections, lines: Number($('write-lines').value) || 6, feel: $('write-feel') ? $('write-feel').value : undefined })
     });
     WRITE.id = draft.id;
     WRITE.started = Date.now();
     WRITE.status = draft.status || 'queued';
+    WRITE.target = target;
     setWriting(true);
     writeStatus(t('Waiting for the engine… The words land in the lyrics box.'));
     statusLine(t('Drafting lyrics… The words land in the lyrics box.'), 'wait');
@@ -11419,6 +11482,7 @@ async function pollWrite() {
   } catch (err) {
     WRITE.id = null;
     WRITE.started = null;
+    WRITE.target = null;
     setWriting(false);
     var errText = t('Lost the draft: {message}', { message: err.message });
     writeStatus(errText, 'bad');
@@ -11436,6 +11500,7 @@ async function pollWrite() {
       if (box) { box.classList.add('hidden'); box.classList.remove('bad'); }
       landDraft(draft);
     } else {
+      WRITE.target = null;
       var msg = draft.error === 'cancelled' ? t('Stopped drafting lyrics.') : (t('Could not write the lyrics: {error}', { error: tr(draft.error) }));
       writeStatus(msg, 'bad');
       statusLine(msg, 'bad');
@@ -11451,7 +11516,25 @@ async function pollWrite() {
 }
 
 function landDraft(draft) {
+  var target = WRITE.target;
+  WRITE.target = null;
+  var modalOpen = Boolean($('lyrics-modal') && !$('lyrics-modal').classList.contains('hidden'));
+  if (target) {
+    target.onLand(draft.lyrics);
+    if (modalOpen && _lyricsTarget) {
+      $('lyrics-big').value = draft.lyrics;
+      syncLyricsResetButton();
+      updateLyricsCount();
+    }
+    closeWrite();
+    writeStatus('');
+    return;
+  }
   $('lyrics').value = draft.lyrics; paintSongPlan();
+  if (modalOpen && !_lyricsTarget) {
+    $('lyrics-big').value = draft.lyrics;
+    updateLyricsCount();
+  }
   if (!$('title').value.trim() && draft.title) { $('title').value = draft.title; }
   State.formEdited = true;
   $('lyrics').dispatchEvent(new Event('input'));
@@ -17670,6 +17753,19 @@ function wire() {
   // The Lyrics and Score editors are for working in, so a click beside them does not
   // close them: only Done does (or Esc).
   $('lyrics-close').addEventListener('click', closeLyricsEditor);
+  if ($('lyrics-modal-write')) {
+    $('lyrics-modal-write').addEventListener('click', function () {
+      if (!_lyricsTarget) { openWrite(); }
+    });
+  }
+  if ($('lyrics-reset')) {
+    $('lyrics-reset').addEventListener('click', function () {
+      if (!_lyricsTarget || typeof _lyricsTarget.seedValue !== 'string') { return; }
+      $('lyrics-big').value = _lyricsTarget.seedValue;
+      syncLyricsFromBig();
+      $('lyrics-big').focus();
+    });
+  }
   $('lyrics-big').addEventListener('input', syncLyricsFromBig);
   document.querySelector('.modal-tools').addEventListener('click', function (event) {
     var button = event.target.closest('[data-tag]');
