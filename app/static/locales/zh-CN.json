@@ -3275,5 +3275,9 @@
   "Invalid theme JSON file.": "无效的主题 JSON 文件。",
   "Could not import theme.": "无法导入主题。",
   "Loaded theme “{name}” into the builder. Save to keep it.": "已将主题“{name}”载入构建器。保存以保留它。",
-  "Imported theme “{name}”.": "已导入主题“{name}”。"
+  "Imported theme “{name}”.": "已导入主题“{name}”。",
+  "Sync": "同步",
+  "Roll a pass to switch between tracks in sync": "生成一次变奏后即可在音轨间同步切换",
+  "Switch between Roll History tracks instantly at the same point in playback": "在同一播放位置即时切换 Roll 历史中的音轨",
+  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "已开启同步播放 — 播放、上一首和下一首将在同一时刻切换音轨"
 }

@@ -3275,5 +3275,9 @@
   "Invalid theme JSON file.": "Ongeldig thema-JSON-bestand.",
   "Could not import theme.": "Kon thema niet importeren.",
   "Loaded theme “{name}” into the builder. Save to keep it.": "Thema “{name}” in de ontwerper geladen. Sla op om het te bewaren.",
-  "Imported theme “{name}”.": "Thema “{name}” geïmporteerd."
+  "Imported theme “{name}”.": "Thema “{name}” geïmporteerd.",
+  "Sync": "Sync",
+  "Roll a pass to switch between tracks in sync": "Maak een pass om synchroon tussen tracks te schakelen",
+  "Switch between Roll History tracks instantly at the same point in playback": "Schakel direct tussen tracks in de Roll-geschiedenis op precies hetzelfde afspeelpunt",
+  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "Gesynchroniseerd afspelen staat aan — Afspelen, Vorige en Volgende schakelen op exact hetzelfde moment over"
 }

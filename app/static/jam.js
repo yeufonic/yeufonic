@@ -243,22 +243,603 @@
     };
   }
 
+  function passAudioUrl(passId) {
+    var take = passTakeObject(passId);
+    return '/api/takes/' + encodeURIComponent(passId) + '/audio' + (take && take.normalised ? '?level=normalised' : '');
+  }
+
+  /* Synchronised instant-switch audio engine, modelled on Compare:
+     every playable pass in Roll History is decoded into memory and started on the same
+     AudioContext frame, each through its own gain node. Switching tracks only ramps
+     gains over 8 ms, so changing between Seed and any pass lands on the exact same
+     moment with no gap or drift. */
+  var JamSync = {
+    enabled: false,
+    handoffFromAudio: false,
+    ctx: null,
+    master: null,
+    items: {},
+    activeId: null,
+    playing: false,
+    wantPlay: false,
+    startedAt: 0,
+    offset: 0,
+    rate: 1,
+    token: 0,
+    raf: null,
+    timer: null,
+
+    isOwning: function () {
+      return Boolean(this.enabled && !this.handoffFromAudio);
+    },
+
+    applyVolume: function () {
+      if (!this.master || !this.ctx) { return; }
+      var a = JamAudio.audio();
+      var vol = (a && !a.muted) ? (typeof a.volume === 'number' ? a.volume : 1) : 0;
+      this.master.gain.setValueAtTime(vol, this.ctx.currentTime);
+    },
+
+    rawPosition: function () {
+      if (!this.playing || !this.ctx) { return this.offset; }
+      return this.offset + Math.max(0, this.ctx.currentTime - this.startedAt) * this.rate;
+    },
+
+    activeDuration: function () {
+      var active = this.activeId ? this.items[this.activeId] : null;
+      if (active && active.buffer) { return active.buffer.duration; }
+      var p = passById(this.activeId);
+      return (p && p.duration) || 0;
+    },
+
+    position: function () {
+      var pos = this.rawPosition();
+      var dur = this.activeDuration();
+      if (dur > 0 && pos > dur) { return dur; }
+      return pos;
+    },
+
+    clock: function () {
+      return {
+        currentTime: this.position(),
+        duration: this.activeDuration(),
+        playing: this.playing
+      };
+    },
+
+    loadProgress: function () {
+      var list = playablePasses();
+      var total = list.length;
+      var done = 0;
+      for (var i = 0; i < list.length; i++) {
+        var item = this.items[list[i].id];
+        if (item && (item.buffer || item.failed)) { done += 1; }
+      }
+      return { done: done, total: total };
+    },
+
+    applyGains: function (instant) {
+      var ctx = this.ctx;
+      if (!ctx) { return; }
+      var now = ctx.currentTime;
+      var ids = Object.keys(this.items);
+      for (var i = 0; i < ids.length; i++) {
+        var item = this.items[ids[i]];
+        if (!item || !item.gain) { continue; }
+        var param = item.gain.gain;
+        var target = item.id === this.activeId ? 1 : 0;
+        param.cancelScheduledValues(now);
+        if (instant) {
+          param.setValueAtTime(target, now);
+        } else {
+          param.setValueAtTime(param.value, now);
+          param.linearRampToValueAtTime(target, now + 0.008);
+        }
+      }
+    },
+
+    stopSources: function () {
+      var ids = Object.keys(this.items);
+      for (var i = 0; i < ids.length; i++) {
+        var item = this.items[ids[i]];
+        if (item && item.source) {
+          try { item.source.stop(); } catch (err) { /* not started */ }
+          try { item.source.disconnect(); } catch (err) {}
+          item.source = null;
+        }
+      }
+    },
+
+    attachRunningSource: function (item) {
+      if (!this.playing || !this.ctx || !item || !item.buffer || item.source) { return; }
+      var now = this.ctx.currentTime;
+      if (now < this.startedAt) {
+        if (this.offset < item.buffer.duration) {
+          var s0 = this.ctx.createBufferSource();
+          s0.buffer = item.buffer;
+          s0.playbackRate.value = this.rate;
+          s0.connect(item.gain);
+          s0.start(this.startedAt, this.offset);
+          item.source = s0;
+        }
+        return;
+      }
+      var when = now + 0.02;
+      var at = this.offset + (when - this.startedAt) * this.rate;
+      if (at >= item.buffer.duration) { return; }
+      var source = this.ctx.createBufferSource();
+      source.buffer = item.buffer;
+      source.playbackRate.value = this.rate;
+      source.connect(item.gain);
+      source.start(when, at);
+      item.source = source;
+    },
+
+    stopLoop: function () {
+      if (this.raf !== null) { cancelAnimationFrame(this.raf); this.raf = null; }
+      if (this.timer !== null) { clearInterval(this.timer); this.timer = null; }
+    },
+
+    tick: function (fromTimer) {
+      if (!this.enabled || !this.playing) { this.stopLoop(); return; }
+      if (typeof abLoopCheck === 'function') { abLoopCheck(); }
+      var raw = this.rawPosition();
+      var dur = this.activeDuration();
+      if (dur > 0 && raw >= dur) {
+        this.start(0);
+        return;
+      }
+      if (!fromTimer && !document.body.classList.contains('visualizer-open')) {
+        if (typeof syncWaveRatio === 'function') { syncWaveRatio(); }
+        if (typeof drawWave === 'function') { drawWave(); }
+        if (typeof updateTimes === 'function') { updateTimes(); }
+      }
+    },
+
+    startLoop: function () {
+      var self = this;
+      this.stopLoop();
+      var frame = function () {
+        if (!self.enabled || !self.playing) { self.raf = null; return; }
+        self.tick(false);
+        if (self.enabled && self.playing) {
+          self.raf = requestAnimationFrame(frame);
+        } else {
+          self.raf = null;
+        }
+      };
+      this.raf = requestAnimationFrame(frame);
+      this.timer = setInterval(function () { self.tick(true); }, 200);
+    },
+
+    syncUi: function (passId) {
+      var take = passTakeObject(passId);
+      if (!take) { return; }
+      if (window.State) {
+        State.loadedTake = take;
+        State.loadedId = passId;
+        State.playing = this.playing ? passId : null;
+        State.audition = null;
+      }
+      if (typeof wave === 'object' && wave) { wave.kind = take.kind; }
+      var version = take.normalised ? '?level=normalised' : '';
+      var url = '/api/takes/' + encodeURIComponent(passId) + '/audio' + version;
+      var peaksUrl = '/api/takes/' + encodeURIComponent(passId) + '/peaks' + version;
+      if (typeof loadWave === 'function') {
+        loadWave(url, peaksUrl, { keepLoop: true, keepRatio: true });
+      }
+      if (typeof npTitle === 'function') {
+        npTitle(take.title, passId, take.space_id === '__jam__' ? t('Open in Jam') : '');
+      }
+      var metaEl = document.getElementById('np-meta');
+      if (metaEl) {
+        var dur = this.activeDuration() || take.duration || 0;
+        metaEl.textContent = (take._jamLabel || '') + (dur ? (take._jamLabel ? ' \u00B7 ' : '') + (typeof secs === 'function' ? secs(dur) : fmtTime(dur)) : '');
+      }
+      if (typeof paintNpCover === 'function') { paintNpCover(take); }
+      if (typeof updateMediaSession === 'function') { updateMediaSession(take); }
+      if (window.Visualizer && typeof window.Visualizer.setTake === 'function') { window.Visualizer.setTake(take); }
+      if (typeof updateTimes === 'function') { updateTimes(); }
+      if (typeof paintTakes === 'function') { paintTakes(); }
+      if (typeof paintTransport === 'function') {
+        paintTransport();
+      } else {
+        paintHistory();
+      }
+    },
+
+    ensurePass: function (passId) {
+      if (!this.enabled || !this.ctx || !passId) { return null; }
+      var existing = this.items[passId];
+      if (existing) { return existing; }
+      var gain = this.ctx.createGain();
+      gain.gain.value = 0;
+      gain.connect(this.master);
+      var item = {
+        id: passId,
+        url: passAudioUrl(passId),
+        buffer: null,
+        gain: gain,
+        source: null,
+        loading: true,
+        failed: false
+      };
+      this.items[passId] = item;
+      var self = this;
+      var token = this.token;
+      var ctx = this.ctx;
+      fetch(item.url).then(function (res) {
+        if (!res.ok) { throw new Error(String(res.status)); }
+        return res.arrayBuffer();
+      }).then(function (data) {
+        return ctx.decodeAudioData(data);
+      }).then(function (buffer) {
+        if (token !== self.token || !self.enabled || self.items[passId] !== item) { return; }
+        item.buffer = buffer;
+        item.loading = false;
+        if (self.handoffFromAudio && passId === self.activeId) {
+          var a = JamAudio.audio();
+          var handoffPlaying = Boolean(a && (a.currentSrc || a.src) && !a.paused && !a.ended);
+          var handoffAt = (a && isFinite(a.currentTime)) ? a.currentTime : self.offset;
+          self.handoffFromAudio = false;
+          if (handoffPlaying) {
+            self.start(handoffAt);
+          } else {
+            self.offset = handoffAt;
+            self.wantPlay = false;
+            paintHistory();
+          }
+          return;
+        }
+        if (self.wantPlay && passId === self.activeId) {
+          self.start(self.offset);
+          return;
+        }
+        if (self.playing) {
+          self.attachRunningSource(item);
+          if (passId === self.activeId) {
+            if (self.rawPosition() >= buffer.duration) {
+              self.start(0);
+            } else {
+              self.applyGains(false);
+              self.syncUi(passId);
+            }
+            return;
+          }
+        }
+        paintHistory();
+      }).catch(function () {
+        if (token !== self.token || !self.enabled || self.items[passId] !== item) { return; }
+        item.loading = false;
+        item.failed = true;
+        if (passId === self.activeId && (self.wantPlay || self.handoffFromAudio)) {
+          self.wantPlay = false;
+          self.handoffFromAudio = false;
+        }
+        paintHistory();
+      });
+      return item;
+    },
+
+    syncList: function () {
+      if (!this.enabled) { return; }
+      var list = playablePasses();
+      var keep = {};
+      for (var i = 0; i < list.length; i++) {
+        keep[list[i].id] = true;
+        this.ensurePass(list[i].id);
+      }
+      var ids = Object.keys(this.items);
+      for (var j = 0; j < ids.length; j++) {
+        if (!keep[ids[j]]) { this.removePass(ids[j]); }
+      }
+    },
+
+    removePass: function (passId) {
+      var item = this.items[passId];
+      if (!item) { return; }
+      if (this.activeId === passId) {
+        if (this.playing) { this.pause(); }
+        this.activeId = null;
+      }
+      if (item.source) {
+        try { item.source.stop(); } catch (err) {}
+        try { item.source.disconnect(); } catch (err) {}
+        item.source = null;
+      }
+      if (item.gain) {
+        try { item.gain.disconnect(); } catch (err) {}
+      }
+      delete this.items[passId];
+    },
+
+    start: function (at) {
+      var ctx = this.ctx;
+      if (!ctx || !this.enabled) { return; }
+      var active = this.activeId ? this.items[this.activeId] : null;
+      if (!active || !active.buffer) {
+        this.offset = Math.max(0, at || 0);
+        this.wantPlay = true;
+        paintHistory();
+        return;
+      }
+      var dur = active.buffer.duration;
+      at = Math.max(0, at || 0);
+      if (dur > 0 && at >= dur) { at = 0; }
+      var mainAudio = JamAudio.audio();
+      this.handoffFromAudio = false;
+      if (mainAudio && !mainAudio.paused) { mainAudio.pause(); }
+      this.stopSources();
+      if (ctx.state === 'suspended') { ctx.resume().catch(function () {}); }
+      this.rate = (mainAudio && mainAudio.playbackRate) || 1;
+      this.applyVolume();
+      this.applyGains(true);
+      var when = ctx.currentTime + 0.04;
+      var ids = Object.keys(this.items);
+      for (var i = 0; i < ids.length; i++) {
+        var item = this.items[ids[i]];
+        if (!item || !item.buffer || at >= item.buffer.duration) { continue; }
+        var source = ctx.createBufferSource();
+        source.buffer = item.buffer;
+        source.playbackRate.value = this.rate;
+        source.connect(item.gain);
+        source.start(when, at);
+        item.source = source;
+      }
+      this.startedAt = when;
+      this.offset = at;
+      this.playing = true;
+      this.wantPlay = false;
+      this.startLoop();
+      this.syncUi(this.activeId);
+    },
+
+    play: function (passId) {
+      if (!this.enabled || !passId) { return; }
+      var item = this.ensurePass(passId);
+      if (!item || item.failed) { return; }
+      if (this.handoffFromAudio) {
+        var a = JamAudio.audio();
+        var handoffAt = (a && isFinite(a.currentTime)) ? a.currentTime : this.offset;
+        this.offset = handoffAt;
+        this.activeId = passId;
+        if (item.buffer) {
+          this.handoffFromAudio = false;
+          this.start(handoffAt);
+        } else {
+          this.wantPlay = true;
+          paintHistory();
+        }
+        return;
+      }
+      if (this.playing) {
+        var raw = this.rawPosition();
+        this.activeId = passId;
+        if (!item.buffer) {
+          this.wantPlay = true;
+          paintHistory();
+          return;
+        }
+        if (raw >= item.buffer.duration) {
+          // Current time is past this shorter pass's end: restart synced playback from the top.
+          this.start(0);
+          return;
+        }
+        if (!item.source) {
+          this.attachRunningSource(item);
+        }
+        this.applyGains(false);
+        this.syncUi(passId);
+        return;
+      }
+      this.activeId = passId;
+      this.start(this.offset);
+    },
+
+    pause: function () {
+      if (!this.enabled) { return; }
+      if (this.handoffFromAudio) {
+        var a = JamAudio.audio();
+        this.handoffFromAudio = false;
+        this.wantPlay = false;
+        if (a && isFinite(a.currentTime)) { this.offset = a.currentTime; }
+        if (a && !a.paused) { a.pause(); }
+        if (window.State && State.playing) { State.playing = null; }
+        if (typeof paintTakes === 'function') { paintTakes(); }
+        if (typeof paintTransport === 'function') { paintTransport(); } else { paintHistory(); }
+        return;
+      }
+      if (!this.playing && !this.wantPlay) { return; }
+      this.offset = this.position();
+      this.playing = false;
+      this.wantPlay = false;
+      this.stopSources();
+      this.stopLoop();
+      if (window.State && State.playing) { State.playing = null; }
+      if (typeof syncWaveRatio === 'function') { syncWaveRatio(); }
+      if (typeof drawWave === 'function') { drawWave(); }
+      if (typeof updateTimes === 'function') { updateTimes(); }
+      if (typeof paintTakes === 'function') { paintTakes(); }
+      if (typeof paintTransport === 'function') { paintTransport(); } else { paintHistory(); }
+    },
+
+    resume: function () {
+      if (!this.enabled) { return; }
+      if (this.playing) { return; }
+      var targetId = this.activeId;
+      if (!targetId || !passById(targetId)) {
+        var base = buildOn();
+        var fallback = (base && base.hasAudio) ? base : playablePasses()[0];
+        targetId = fallback ? fallback.id : null;
+      }
+      if (!targetId) { return; }
+      this.activeId = targetId;
+      this.ensurePass(targetId);
+      var dur = this.activeDuration();
+      var at = (dur > 0 && this.offset >= dur) ? 0 : this.offset;
+      this.start(at);
+    },
+
+    seek: function (at) {
+      if (!this.enabled) { return; }
+      var dur = this.activeDuration();
+      at = Math.max(0, dur > 0 ? Math.min(dur, at) : at);
+      if (this.playing) {
+        this.start(at);
+      } else {
+        this.offset = at;
+        if (typeof syncWaveRatio === 'function') { syncWaveRatio(); }
+        if (typeof drawWave === 'function') { drawWave(); }
+        if (typeof updateTimes === 'function') { updateTimes(); }
+      }
+    },
+
+    nudge: function (seconds) {
+      this.seek(this.position() + seconds);
+    },
+
+    setRate: function (newRate) {
+      newRate = Number(newRate) || 1;
+      if (!this.enabled || newRate === this.rate) { return; }
+      if (this.playing && this.ctx) {
+        var now = this.ctx.currentTime;
+        if (now >= this.startedAt) {
+          this.offset = this.offset + (now - this.startedAt) * this.rate;
+          this.startedAt = now;
+        }
+        this.rate = newRate;
+        var ids = Object.keys(this.items);
+        for (var i = 0; i < ids.length; i++) {
+          var item = this.items[ids[i]];
+          if (item && item.source) {
+            try { item.source.playbackRate.setValueAtTime(newRate, now); } catch (err) { item.source.playbackRate.value = newRate; }
+          }
+        }
+      } else {
+        this.rate = newRate;
+      }
+    },
+
+    enable: function () {
+      if (this.enabled) { return; }
+      var list = playablePasses();
+      if (list.length < 2) { return; }
+      var Context = window.AudioContext || window.webkitAudioContext;
+      if (!Context) { return; }
+      var a = JamAudio.audio();
+      var wasPlaying = Boolean(a && (a.currentSrc || a.src) && !a.paused && !a.ended);
+      var curId = JamAudio.currentId;
+      var curInJam = Boolean(curId && list.some(function (p) { return p.id === curId; }));
+      this.enabled = true;
+      this.token += 1;
+      this.ctx = new Context();
+      this.master = this.ctx.createGain();
+      this.master.connect(this.ctx.destination);
+      this.applyVolume();
+      this.items = {};
+      var base = buildOn();
+      this.activeId = curInJam ? curId : ((base && base.hasAudio) ? base.id : list[0].id);
+      this.offset = (curInJam && a && isFinite(a.currentTime)) ? a.currentTime : 0;
+      this.rate = (a && a.playbackRate) || 1;
+      this.playing = false;
+      this.wantPlay = Boolean(wasPlaying && curInJam);
+      this.handoffFromAudio = Boolean(wasPlaying && curInJam);
+      JamState.sync = true;
+      this.syncList();
+      paintHistory();
+    },
+
+    disable: function (opts) {
+      var handoff = !opts || opts.handoff !== false;
+      if (!this.enabled) { return; }
+      var wasPlaying = this.playing;
+      var wasHandoff = this.handoffFromAudio;
+      var at = this.position();
+      var activeId = this.activeId;
+      this.enabled = false;
+      this.handoffFromAudio = false;
+      this.playing = false;
+      this.wantPlay = false;
+      this.token += 1;
+      this.stopLoop();
+      this.stopSources();
+      var ctx = this.ctx;
+      this.ctx = null;
+      this.master = null;
+      this.items = {};
+      if (ctx) { ctx.close().catch(function () {}); }
+      JamState.sync = false;
+
+      if (handoff && !wasHandoff && activeId) {
+        var a = JamAudio.audio();
+        var take = passTakeObject(activeId);
+        if (a && take && typeof playTake === 'function') {
+          var targetUrl = passAudioUrl(activeId);
+          var sameSrc = Boolean((a.currentSrc || a.src) && (a.currentSrc || a.src).indexOf(targetUrl) !== -1);
+          var applySeek = function () {
+            if (isFinite(a.duration) && at > 0 && at < a.duration) {
+              try { a.currentTime = at; } catch (err) {}
+            }
+          };
+          if (wasPlaying) {
+            if (!sameSrc && window.State) { State.loadedId = null; }
+            playTake(activeId, take);
+            if (sameSrc && a.readyState >= 1) {
+              applySeek();
+            } else {
+              a.addEventListener('loadedmetadata', function () {
+                applySeek();
+                if (typeof updateTimes === 'function') { updateTimes(); }
+              }, { once: true });
+            }
+          } else if (!sameSrc) {
+            a.src = targetUrl;
+            if (window.State) { State.loadedId = activeId; State.loadedTake = take; State.playing = null; }
+            a.addEventListener('loadedmetadata', function () {
+              applySeek();
+              if (typeof updateTimes === 'function') { updateTimes(); }
+            }, { once: true });
+          } else {
+            applySeek();
+          }
+        }
+      }
+      if (JamState.open) { paintHistory(); }
+      if (typeof paintTransport === 'function') { paintTransport(); }
+    },
+
+    toggle: function () {
+      if (this.enabled) {
+        this.disable({ handoff: true });
+      } else {
+        this.enable();
+      }
+    }
+  };
+
   var JamAudio = {
     audio: function () {
       return document.getElementById('audio');
     },
 
     get currentId() {
+      if (JamSync.isOwning()) { return JamSync.activeId; }
       return (window.State && (State.playing || State.loadedId)) || null;
     },
 
     get playing() {
+      if (JamSync.isOwning()) { return JamSync.playing; }
       var a = this.audio();
       return Boolean(a && (a.currentSrc || a.src) && !a.paused && !a.ended);
     },
 
     play: function (takeId) {
-      if (!takeId || typeof playTake !== 'function') { return Promise.resolve(); }
+      if (!takeId) { return Promise.resolve(); }
+      if (JamSync.enabled) {
+        JamSync.play(takeId);
+        return Promise.resolve();
+      }
+      if (typeof playTake !== 'function') { return Promise.resolve(); }
       playTake(takeId, passTakeObject(takeId));
       paintHistory();
       return Promise.resolve();
@@ -267,6 +848,7 @@
     // Space acts immediately on whatever is sounding (pausing it), or plays/resumes the chosen base pass.
     toggle: function () {
       if (this.playing) { this.pause(); return; }
+      if (JamSync.enabled) { JamSync.resume(); return; }
       var a = this.audio();
       var base = buildOn();
       var target = (base && base.hasAudio) ? base : JamState.passes.find(function (p) { return p.hasAudio; });
@@ -282,6 +864,7 @@
     },
 
     pause: function () {
+      if (JamSync.enabled) { JamSync.pause(); return; }
       var a = this.audio();
       if (!a || a.paused) { return; }
       a.pause();
@@ -292,6 +875,7 @@
     },
 
     resume: function () {
+      if (JamSync.enabled) { JamSync.resume(); return; }
       var a = this.audio();
       if (a && (a.currentSrc || a.src)) {
         if (window.Rack && typeof window.Rack.resume === 'function') { window.Rack.resume(); }
@@ -309,7 +893,9 @@
     },
 
     stopIfPlaying: function (id) {
-      if (!id || !window.State) { return; }
+      if (!id) { return; }
+      if (JamSync.enabled) { JamSync.removePass(id); }
+      if (!window.State) { return; }
       if (State.loadedId !== id && State.playing !== id) { return; }
       var a = this.audio();
       if (a && !a.paused) { a.pause(); }
@@ -358,6 +944,7 @@
     lastPassNum: 0,
     lastRolledSnapshot: null,
     baseId: null,       // the pass the next roll builds on: its score and, once chosen, its settings
+    sync: false,        // synchronised instant-switch playback across Roll History
     cookingId: null,
     pollTimer: null
   };
@@ -484,6 +1071,10 @@
       JamState.lastRolledSnapshot = null;
     }
     saveSession();
+    if (JamSync.enabled) {
+      if (playablePasses().length < 2) { JamSync.disable({ handoff: true }); }
+      else { JamSync.syncList(); }
+    }
     paintAll();
     if (activeCook) { startPolling(); }
   }
@@ -757,6 +1348,7 @@
       diffs: computeDiffs(null, snap),
       error: null
     }];
+    if (JamSync.enabled) { JamSync.disable({ handoff: false }); }
     JamState.lastPassNum = 0;
     JamState.cookingId = null;
     JamState.baseId = take.id;
@@ -1103,6 +1695,7 @@
         stopPolling();
         saveSession();
         if (typeof loadTakes === 'function') { loadTakes(); }
+        if (JamSync.enabled) { JamSync.syncList(); }
         paintAll();
         // Switch the bottom player into the newly rolled pass, which, playing, is the base to build on next.
         if (JamState.open) {
@@ -1998,13 +2591,27 @@
     var countLabel = hasSeed
       ? (rolledCount ? tn(rolledCount, 'Seed + {n} pass', 'Seed + {n} passes') : t('Seed'))
       : tn(rolledCount, '{n} pass', '{n} passes');
+    var playableCount = playablePasses().length;
+    var syncDisabled = !JamSync.enabled && playableCount < 2;
+    var syncTitle = syncDisabled
+      ? t('Roll a pass to switch between tracks in sync')
+      : (JamSync.enabled
+        ? t('Synced playback is on \u2014 Play, Previous and Next switch tracks at the same moment')
+        : t('Switch between Roll History tracks instantly at the same point in playback'));
+    var syncProg = JamSync.enabled ? JamSync.loadProgress() : null;
+    var metaLabel = (syncProg && syncProg.done < syncProg.total)
+      ? t('Loading {done} of {all}\u2026', { done: syncProg.done, all: syncProg.total })
+      : countLabel;
 
     // Repainted on every poll while a pass cooks: where the person had scrolled to stays put.
     var keptScroll = keepScroll(el);
     el.innerHTML =
       '<div class="jam-col-head">' +
-        '<h4>' + t('Roll History') + '</h4>' +
-        '<span class="jam-col-meta">' + countLabel + '</span>' +
+        '<div class="jam-col-head-l">' +
+          '<h4>' + t('Roll History') + '</h4>' +
+          '<button type="button" class="jam-sync-btn' + (JamSync.enabled ? ' on' : '') + '" data-jam-act="toggle-sync" aria-pressed="' + (JamSync.enabled ? 'true' : 'false') + '" title="' + syncTitle + '"' + (syncDisabled ? ' disabled' : '') + '>' + t('Sync') + '</button>' +
+        '</div>' +
+        '<span class="jam-col-meta">' + metaLabel + '</span>' +
       '</div>' +
       '<div class="jam-hist-list">' + cards + '</div>';
     keptScroll();
@@ -2148,12 +2755,16 @@
       paintTopbar();
       return;
     }
+    if (act === 'toggle-sync') {
+      JamSync.toggle();
+      return;
+    }
     if (act === 'play-pass') {
+      var pid = btn.dataset.passId;
+      // Switch audio first so Sync's 8 ms crossfade fires immediately, before DOM repaint.
+      if (pid === JamAudio.currentId && !JamAudio.playing) { JamAudio.resume(); } else { JamAudio.play(pid); }
       // The pass played is the one being worked on: it becomes the base, its settings in the controls.
-      if (btn.dataset.passId !== (buildOn() || {}).id) { selectBase(btn.dataset.passId); }
-      // If this pass is already loaded and paused in the bottom player, resume from where it stopped.
-      if (btn.dataset.passId === JamAudio.currentId && !JamAudio.playing) { JamAudio.resume(); return; }
-      JamAudio.play(btn.dataset.passId);
+      if (pid !== (buildOn() || {}).id) { selectBase(pid); }
       return;
     }
     if (act === 'stop-pass') {
@@ -2200,6 +2811,7 @@
     }
     JamState.passes = JamState.passes.filter(function (p) { return p.id !== passId; });
     if (JamState.baseId === passId) { JamState.baseId = seedId(); }
+    if (JamSync.enabled && playablePasses().length < 2) { JamSync.disable({ handoff: true }); }
     if (!JamState.passes.length) {
       JamState.lastRolledSnapshot = null;
     }
@@ -2230,8 +2842,8 @@
     }
     var nextIdx = idx === -1 ? (delta > 0 ? 0 : list.length - 1) : (idx + delta + list.length) % list.length;
     var next = list[nextIdx];
-    selectBase(next.id);
     JamAudio.play(next.id);
+    selectBase(next.id);
     return true;
   }
 
@@ -2474,6 +3086,7 @@
       cueIfIdle();
       return;
     }
+    if (JamSync.enabled) { JamSync.disable({ handoff: false }); }
     if (loadSession(key) && ownSeed()) {
       paintAll();
       syncPassesFromServer();
@@ -2486,6 +3099,7 @@
 
   function close() {
     var modal = document.getElementById('jam-modal');
+    if (JamSync.enabled) { JamSync.disable({ handoff: true }); }
     JamState.open = false;
     saveSession();
     document.body.classList.remove('jam-open');
@@ -2546,6 +3160,14 @@
     shouldLoop: shouldLoop,
     canStep: canStep,
     stepPass: stepPass,
-    togglePlay: function () { JamAudio.toggle(); }
+    togglePlay: function () { JamAudio.toggle(); },
+    isSyncActive: function () { return JamSync.isOwning(); },
+    isSyncPlaying: function () { return JamSync.isOwning() && JamSync.playing; },
+    syncClock: function () { return JamSync.clock(); },
+    syncSeek: function (at) { JamSync.seek(at); },
+    syncNudge: function (sec) { JamSync.nudge(sec); },
+    onVolumeChange: function () { JamSync.applyVolume(); },
+    onRateChange: function (rate) { JamSync.setRate(rate); },
+    stopSyncForMain: function () { if (JamSync.enabled) { JamSync.disable({ handoff: false }); } }
   };
 })();

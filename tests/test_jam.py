@@ -187,3 +187,23 @@ def test_a_pass_can_start_at_a_section_of_the_kept_score(client):
     # a section the score does not have leaves it whole
     whole = roll(client, base_take_id=seed["id"], lock_score=True, instrumental=True, start_section="coda")
     assert [line for line in whole["abc"].splitlines() if line.startswith("% ")][0] == marks[0]
+
+
+def test_jam_sync_wiring_and_transport_hooks():
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent / "app" / "static"
+    jam_js = (root / "jam.js").read_text(encoding="utf-8")
+    app_js = (root / "app.js").read_text(encoding="utf-8")
+    css = (root / "styles.css").read_text(encoding="utf-8")
+
+    # Sync button in Roll History header and click handler
+    assert 'data-jam-act="toggle-sync"' in jam_js
+    assert "act === 'toggle-sync'" in jam_js
+    assert "linearRampToValueAtTime(target, now + 0.008)" in jam_js
+    assert "if (JamSync.enabled) { JamSync.disable({ handoff: true }); }" in jam_js
+    assert ".jam-sync-btn.on" in css
+
+    # Bottom transport bar delegates cleanly to Jam Sync when active
+    for hook in ("isSyncActive", "isSyncPlaying", "syncClock", "syncSeek", "syncNudge", "onVolumeChange", "onRateChange", "stopSyncForMain"):
+        assert hook in jam_js, f"Missing window.Jam.{hook} export in jam.js"
+        assert hook in app_js, f"Missing window.Jam.{hook} hook in app.js"

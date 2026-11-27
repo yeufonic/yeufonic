@@ -3275,5 +3275,9 @@
   "Invalid theme JSON file.": "File JSON del tema non valido.",
   "Could not import theme.": "Impossibile importare il tema.",
   "Loaded theme “{name}” into the builder. Save to keep it.": "Tema “{name}” caricato nell’editor. Salvalo per conservarlo.",
-  "Imported theme “{name}”.": "Tema “{name}” importato."
+  "Imported theme “{name}”.": "Tema “{name}” importato.",
+  "Sync": "Sincronizza",
+  "Roll a pass to switch between tracks in sync": "Esegui un passaggio per passare in sincronia da una traccia all’altra",
+  "Switch between Roll History tracks instantly at the same point in playback": "Passa all’istante tra le tracce della Cronologia dei Roll nello stesso punto della riproduzione",
+  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "La riproduzione sincronizzata è attiva: Riproduci, Precedente e Successivo cambiano traccia nello stesso istante"
 }

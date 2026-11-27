@@ -8327,6 +8327,16 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 }
 .jam-clear-btn:hover:not(:disabled) { border-color: rgb(var(--bad-rgb) / 0.55); color: var(--danger-text); background: rgb(var(--bad-rgb) / 0.12); }
 .jam-clear-btn:disabled { opacity: 0.38; cursor: default; }
+.jam-sync-btn {
+  padding: 2px 8px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--card);
+  color: var(--muted); font: inherit; font-size: 11px; font-weight: 600; line-height: 1.4; cursor: pointer;
+}
+.jam-sync-btn:hover:not(:disabled) { border-color: rgb(var(--good-rgb) / 0.5); color: var(--text); }
+.jam-sync-btn.on { background: rgb(var(--good-rgb) / 0.16); border-color: rgb(var(--good-rgb) / 0.55); color: var(--good); }
+.jam-sync-btn.on:hover:not(:disabled) { background: rgb(var(--good-rgb) / 0.22); color: var(--good); }
+:root[data-theme="light"] .jam-sync-btn.on,
+:root[data-theme="light"] .jam-sync-btn.on:hover:not(:disabled) { color: #047857; }
+.jam-sync-btn:disabled { opacity: 0.38; cursor: default; }
 .col-parts .jam-col-head h4 { color: var(--song-a); }
 .col-feel .jam-col-head h4 { color: var(--cover-a); }
 .col-hist .jam-col-head h4 { color: var(--good); }

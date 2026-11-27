@@ -3275,5 +3275,9 @@
   "Invalid theme JSON file.": "テーマのJSONファイルが無効です。",
   "Could not import theme.": "テーマを読み込めませんでした。",
   "Loaded theme “{name}” into the builder. Save to keep it.": "テーマ「{name}」をビルダーに読み込みました。残すには保存してください。",
-  "Imported theme “{name}”.": "テーマ「{name}」を読み込みました。"
+  "Imported theme “{name}”.": "テーマ「{name}」を読み込みました。",
+  "Sync": "同期",
+  "Roll a pass to switch between tracks in sync": "パスをロールするとトラック間を同期して切り替えられます",
+  "Switch between Roll History tracks instantly at the same point in playback": "Roll 履歴のトラックを同じ再生位置のまま瞬時に切り替える",
+  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "同期再生がオンです — 再生、前へ、次へで同じ位置のままトラックを切り替えます"
 }

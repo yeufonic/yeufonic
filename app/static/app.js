@@ -13970,6 +13970,9 @@ function paintNpCover(take) {
 window.paintNpCover = paintNpCover;
 
 function playTake(id, fallbackTake) {
+  if (window.Jam && typeof window.Jam.stopSyncForMain === 'function') {
+    window.Jam.stopSyncForMain();
+  }
   if (window.Rack && typeof window.Rack.resume === 'function') {
     window.Rack.resume();
   }
@@ -14190,6 +14193,11 @@ function stepTake(delta) {
 }
 
 function nudge(seconds) {
+  if (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive()) {
+    window.Jam.syncNudge(seconds);
+    ABLOOP.last = (window.Jam.syncClock() || {}).currentTime || 0;
+    return;
+  }
   var audio = $('audio');
   if (!audio.duration || !isFinite(audio.duration)) { return; }
   audio.currentTime = Math.max(0, Math.min(audio.duration, audio.currentTime + seconds));
@@ -14208,9 +14216,17 @@ var _lastSecsCur = -1;
 var _lastSecsDur = -1;
 
 function updateTimes() {
-  var audio = $('audio');
-  var cur = audio.currentTime || 0;
-  var dur = audio.duration;
+  var cur = 0;
+  var dur = 0;
+  if (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive()) {
+    var clk = window.Jam.syncClock();
+    cur = clk.currentTime || 0;
+    dur = clk.duration || 0;
+  } else {
+    var audio = $('audio');
+    cur = audio.currentTime || 0;
+    dur = audio.duration;
+  }
   var hasDur = dur && isFinite(dur);
   var floorCur = Math.floor(cur);
   var floorDur = hasDur ? Math.floor(dur) : -1;
@@ -14232,7 +14248,10 @@ function paintTransport() {
   // What is playing may be a stem rather than a take, and a stem deliberately
   // owns no take. The button follows the sound, so it shows Pause whenever
   // something is sounding.
-  var playing = Boolean(audio.currentSrc || audio.src) && !audio.paused && !audio.ended;
+  var syncActive = Boolean(window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive());
+  var playing = syncActive
+    ? Boolean(window.Jam.isSyncPlaying && window.Jam.isSyncPlaying())
+    : Boolean(audio.currentSrc || audio.src) && !audio.paused && !audio.ended;
   var playBtn = $('btn-play');
   var playState = playing ? 'pause' : 'play';
   var playSvg = playing
@@ -15231,6 +15250,16 @@ var wave = { peaks: null, ratio: 0, raf: null, seeking: false };
 var ABLOOP = { a: null, b: null, last: 0 };
 
 function abLoopCheck() {
+  if (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive()) {
+    var clk = window.Jam.syncClock();
+    var sCur = clk.currentTime || 0;
+    if (ABLOOP.a !== null && ABLOOP.b !== null && ABLOOP.last < ABLOOP.b && sCur >= ABLOOP.b && clk.playing) {
+      window.Jam.syncSeek(ABLOOP.a);
+      sCur = ABLOOP.a;
+    }
+    ABLOOP.last = sCur;
+    return;
+  }
   var audio = $('audio');
   var cur = audio.currentTime || 0;
   if (ABLOOP.a !== null && ABLOOP.b !== null && ABLOOP.last < ABLOOP.b && cur >= ABLOOP.b && !audio.paused) {
@@ -15247,19 +15276,25 @@ function abLoopClear() {
 }
 
 function abLoopPress() {
+  var syncActive = Boolean(window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive());
+  var clk = syncActive ? window.Jam.syncClock() : null;
   var audio = $('audio');
-  if (!audio.duration || !isFinite(audio.duration)) { return; }
-  var at = audio.currentTime || 0;
+  var dur = syncActive ? (clk && clk.duration) : audio.duration;
+  if (!dur || !isFinite(dur)) { return; }
+  var at = syncActive ? ((clk && clk.currentTime) || 0) : (audio.currentTime || 0);
   if (ABLOOP.a === null) {
     ABLOOP.a = at;
   } else if (ABLOOP.b === null) {
     if (Math.abs(at - ABLOOP.a) < 0.5) { statusLine(t('Play on a little, then press A–B again at the end of the part.'), 'bad'); return; }
     var start = Math.min(at, ABLOOP.a);
-    ABLOOP.b = Math.min(Math.max(at, ABLOOP.a), audio.duration - 0.05);
+    ABLOOP.b = Math.min(Math.max(at, ABLOOP.a), dur - 0.05);
     ABLOOP.a = start;
     ABLOOP.last = at;
     // Set at the end, it plays the part from its start, as a loop pedal does.
-    if (at >= ABLOOP.b - 0.05) { audio.currentTime = ABLOOP.a; ABLOOP.last = ABLOOP.a; }
+    if (at >= ABLOOP.b - 0.05) {
+      if (syncActive) { window.Jam.syncSeek(ABLOOP.a); } else { audio.currentTime = ABLOOP.a; }
+      ABLOOP.last = ABLOOP.a;
+    }
   } else {
     ABLOOP.a = null;
     ABLOOP.b = null;
@@ -15381,10 +15416,12 @@ function drawWave() {
   ctx.restore();
 
   // The A–B part: shaded between its ends, or a line at A while B is still to come.
-  var loopAudio = $('audio');
-  if (ABLOOP.a !== null && loopAudio && loopAudio.duration && isFinite(loopAudio.duration)) {
-    var ax = Math.round(ABLOOP.a / loopAudio.duration * w);
-    var bx = ABLOOP.b !== null ? Math.round(ABLOOP.b / loopAudio.duration * w) : ax;
+  var loopDur = (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive())
+    ? ((window.Jam.syncClock() || {}).duration || 0)
+    : (($('audio') && $('audio').duration) || 0);
+  if (ABLOOP.a !== null && loopDur && isFinite(loopDur)) {
+    var ax = Math.round(Math.min(1, ABLOOP.a / loopDur) * w);
+    var bx = ABLOOP.b !== null ? Math.round(Math.min(1, ABLOOP.b / loopDur) * w) : ax;
     ctx.fillStyle = 'rgb(' + ink + ' / 0.10)';
     if (bx > ax) { ctx.fillRect(ax, 0, bx - ax, h); }
     ctx.fillStyle = 'rgb(' + ink + ' / 0.55)';
@@ -15421,21 +15458,46 @@ function normalise(values) {
 
 /* The server computes the waveform once and caches it.  Decoding the file here is
    the fallback, for a server that cannot. */
-async function loadWave(url, peaksUrl) {
-  if (ABLOOP.a !== null) { abLoopClear(); }   // a part belongs to the take it was set on
-  wave.peaks = null;
-  wave.rmss = null;
-  wave.ratio = 0;
+var _waveCache = {};
+var _waveCacheKeys = [];
+function _cacheWavePeaks(key, peaks, rms) {
+  if (!key || !peaks || !peaks.length) { return; }
+  if (!_waveCache[key]) {
+    _waveCacheKeys.push(key);
+    if (_waveCacheKeys.length > 24) {
+      delete _waveCache[_waveCacheKeys.shift()];
+    }
+  }
+  _waveCache[key] = { peaks: peaks, rms: rms };
+}
+
+async function loadWave(url, peaksUrl, opts) {
+  var keepLoop = Boolean(opts && opts.keepLoop);
+  var keepRatio = Boolean(opts && opts.keepRatio);
+  if (!keepLoop && ABLOOP.a !== null) { abLoopClear(); }   // a part belongs to the take it was set on
+  var cacheKey = peaksUrl || url;
   wave.token = (wave.token || 0) + 1;
   var token = wave.token;
+  if (cacheKey && _waveCache[cacheKey]) {
+    wave.peaks = _waveCache[cacheKey].peaks;
+    wave.rmss = _waveCache[cacheKey].rms;
+    if (keepRatio) { syncWaveRatio(); } else { wave.ratio = 0; }
+    drawWave();
+    return;
+  }
+  wave.peaks = null;
+  wave.rmss = null;
+  if (keepRatio) { syncWaveRatio(); } else { wave.ratio = 0; }
   drawWave();
   if (peaksUrl) {
     try {
       var cached = await api(peaksUrl);
       if (token !== wave.token) { return; }   // another take started meanwhile
       if (cached && cached.peaks && cached.peaks.length) {
+        _cacheWavePeaks(cacheKey, cached.peaks, cached.rms);
         wave.peaks = cached.peaks;
         wave.rmss = cached.rms;
+        if (keepRatio) { syncWaveRatio(); }
         drawWave();
         return;
       }
@@ -15467,8 +15529,12 @@ async function loadWave(url, peaksUrl) {
       rmss.push(count ? Math.sqrt(sum / count) : 0);
     }
     if (token !== wave.token) { return; }
-    wave.peaks = normalise(peaks);
-    wave.rmss = normalise(rmss);
+    var normPeaks = normalise(peaks);
+    var normRms = normalise(rmss);
+    _cacheWavePeaks(cacheKey, normPeaks, normRms);
+    wave.peaks = normPeaks;
+    wave.rmss = normRms;
+    if (keepRatio) { syncWaveRatio(); }
     drawWave();
   } catch (err) { /* the waveform is optional. The player still works. */ }
 }
@@ -15479,6 +15545,13 @@ function column(values, index, columns) {
 }
 
 function syncWaveRatio() {
+  if (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive()) {
+    var clk = window.Jam.syncClock();
+    if (clk.duration && isFinite(clk.duration)) {
+      wave.ratio = Math.max(0, Math.min(1, (clk.currentTime || 0) / clk.duration));
+    }
+    return;
+  }
   var audio = $('audio');
   if (audio.duration && isFinite(audio.duration)) {
     wave.ratio = Math.max(0, Math.min(1, audio.currentTime / audio.duration));
@@ -15513,8 +15586,20 @@ function stopWaveLoop() {
 
 function seekFromPointer(event) {
   var canvas = $('wave');
-  var audio = $('audio');
   var rect = canvas.getBoundingClientRect();
+  if (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive()) {
+    var clk = window.Jam.syncClock();
+    if (!rect.width || !clk.duration || !isFinite(clk.duration)) { return; }
+    var sRatio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    var sAt = sRatio * clk.duration;
+    ABLOOP.last = sAt;
+    window.Jam.syncSeek(sAt);
+    wave.ratio = sRatio;
+    drawWave();
+    updateTimes();
+    return;
+  }
+  var audio = $('audio');
   if (!rect.width || !audio.duration || !isFinite(audio.duration)) { return; }
   var ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
   audio.currentTime = ratio * audio.duration;
@@ -15551,6 +15636,11 @@ function wireTransport() {
       State.audition = null;
       paintAudition();
       paintTransport();
+      return;
+    }
+
+    if (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive()) {
+      window.Jam.togglePlay();
       return;
     }
     var now = Date.now();
@@ -15640,6 +15730,7 @@ function wireTransport() {
   $('btn-speed').addEventListener('click', function () {
     speedIndex = (speedIndex + 1) % SPEEDS.length;
     audio.playbackRate = SPEEDS[speedIndex];
+    if (window.Jam && typeof window.Jam.onRateChange === 'function') { window.Jam.onRateChange(SPEEDS[speedIndex]); }
     $('btn-speed').textContent = SPEED_LABELS[speedIndex];
     $('btn-speed').classList.toggle('on', SPEEDS[speedIndex] !== 1);
   });
@@ -15667,11 +15758,13 @@ function wireTransport() {
   }
   $('btn-mute').addEventListener('click', function () {
     audio.muted = !audio.muted;
+    if (window.Jam && typeof window.Jam.onVolumeChange === 'function') { window.Jam.onVolumeChange(); }
     paintTransport();
   });
   $('volume').addEventListener('input', function () {
     audio.volume = Number($('volume').value) / 100;
     audio.muted = false;
+    if (window.Jam && typeof window.Jam.onVolumeChange === 'function') { window.Jam.onVolumeChange(); }
     try { localStorage.setItem('yue2.volume', $('volume').value); } catch (err) { /* private mode */ }
     paintTransport();
   });
@@ -15684,8 +15777,20 @@ function wireTransport() {
 
   if ('mediaSession' in navigator) {
     var handlers = {
-      play: function () { var id = currentTakeId(); if (id && audio.paused) { togglePlay(id); } },
-      pause: function () { var id = currentTakeId(); if (id && !audio.paused) { togglePlay(id); } },
+      play: function () {
+        if (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive()) {
+          if (!window.Jam.isSyncPlaying()) { window.Jam.togglePlay(); }
+          return;
+        }
+        var id = currentTakeId(); if (id && audio.paused) { togglePlay(id); }
+      },
+      pause: function () {
+        if (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive()) {
+          if (window.Jam.isSyncPlaying()) { window.Jam.togglePlay(); }
+          return;
+        }
+        var id = currentTakeId(); if (id && !audio.paused) { togglePlay(id); }
+      },
       previoustrack: function () { stepTake(-1); },
       nexttrack: function () { stepTake(1); },
       seekbackward: function () { nudge(-10); },
@@ -15737,6 +15842,7 @@ function wireWave() {
   ['playing', 'seeked', 'ratechange'].forEach(function (name) { audio.addEventListener(name, keepBeat); });
   audio.addEventListener('pause', stopWaveLoop);
   audio.addEventListener('ended', function () {
+    if (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive()) { return; }
     stopWaveLoop(); wave.ratio = 1; drawWave();
     // A song played from a playlist goes on to the next in it, decided from the song that ended and before
     // anything else is loaded: the library's chosen take used to be put in the player first, so the playlist
@@ -15771,6 +15877,7 @@ function wireWave() {
     if (typeof paintPlaylistActiveRow === 'function') { paintPlaylistActiveRow(); }
   });
   audio.addEventListener('pause', function () {
+    if (window.Jam && typeof window.Jam.isSyncActive === 'function' && window.Jam.isSyncActive()) { return; }
     // Ignore the pause that fires while a new track is being loaded.
     if (Date.now() - (State.playRequestedAt || 0) < 800) { return; }
     if (State.playing) {

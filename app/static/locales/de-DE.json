@@ -3275,5 +3275,9 @@
   "Invalid theme JSON file.": "Ungültige Design-JSON-Datei.",
   "Could not import theme.": "Design konnte nicht importiert werden.",
   "Loaded theme “{name}” into the builder. Save to keep it.": "Design „{name}“ in den Designer geladen. Speichere es, um es zu behalten.",
-  "Imported theme “{name}”.": "Design „{name}“ importiert."
+  "Imported theme “{name}”.": "Design „{name}“ importiert.",
+  "Sync": "Sync",
+  "Roll a pass to switch between tracks in sync": "Erstelle einen Durchlauf, um synchron zwischen Spuren zu wechseln",
+  "Switch between Roll History tracks instantly at the same point in playback": "Sofort an derselben Wiedergabestelle zwischen Spuren im Roll-Verlauf wechseln",
+  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "Synchrone Wiedergabe ist aktiv – Abspielen, Zurück und Weiter wechseln die Spur im selben Moment"
 }

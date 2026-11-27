@@ -3275,5 +3275,9 @@
   "Invalid theme JSON file.": "올바르지 않은 테마 JSON 파일입니다.",
   "Could not import theme.": "테마를 가져올 수 없습니다.",
   "Loaded theme “{name}” into the builder. Save to keep it.": "“{name}” 테마를 빌더에 불러왔습니다. 유지하려면 저장하세요.",
-  "Imported theme “{name}”.": "“{name}” 테마를 가져왔습니다."
+  "Imported theme “{name}”.": "“{name}” 테마를 가져왔습니다.",
+  "Sync": "동기화",
+  "Roll a pass to switch between tracks in sync": "패스를 롤하면 트랙 사이를 동기화하여 전환할 수 있습니다",
+  "Switch between Roll History tracks instantly at the same point in playback": "Roll 기록의 트랙들을 같은 재생 지점에서 즉시 전환합니다",
+  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "동기화 재생이 켜져 있습니다 — 재생, 이전, 다음으로 같은 시점에서 트랙을 전환합니다"
 }

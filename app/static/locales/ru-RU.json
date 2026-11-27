@@ -3275,5 +3275,9 @@
   "Invalid theme JSON file.": "Неверный JSON-файл темы.",
   "Could not import theme.": "Не удалось импортировать тему.",
   "Loaded theme “{name}” into the builder. Save to keep it.": "Тема «{name}» загружена в конструктор. Сохраните, чтобы оставить её.",
-  "Imported theme “{name}”.": "Тема «{name}» импортирована."
+  "Imported theme “{name}”.": "Тема «{name}» импортирована.",
+  "Sync": "Синхр.",
+  "Roll a pass to switch between tracks in sync": "Сделайте проход Roll, чтобы синхронно переключаться между треками",
+  "Switch between Roll History tracks instantly at the same point in playback": "Мгновенно переключаться между треками в Истории Roll в той же точке воспроизведения",
+  "Synced playback is on — Play, Previous and Next switch tracks at the same moment": "Синхронное воспроизведение включено — кнопки «Играть», «Предыдущий» и «Следующий» переключают трек в тот же момент"
 }
