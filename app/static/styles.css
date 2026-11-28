@@ -2386,6 +2386,10 @@ label .lora-value:disabled { opacity: 0.6; }
   min-height: 190px;
 }
 .take { transition: transform 0.25s ease; }
+/* Cards out of sight are not laid out or painted until they come near the window, nor their pictures fetched: a page
+   of a few hundred cards drew all of them at once.  A card's size is remembered once it has been seen; until then it
+   holds the room of a usual card. */
+.take { content-visibility: auto; contain-intrinsic-size: auto 355px auto 204px; }
 .take.playing { --take-edge: rgb(var(--accent-a-rgb) / 0.55); --take-glow: var(--take-shadow);
   border-color: var(--take-edge); position: relative; isolation: isolate; z-index: 1;
   transform: scale(1.02);                          /* a little larger than the takes at rest, into the gap */
