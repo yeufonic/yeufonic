@@ -1,6 +1,7 @@
 """Tests for per-take advanced settings: storage, API validation, replan/render persistence, and propagation."""
 import pytest
 from app.db import one, execute
+from test_jobs import fast  # noqa: F401,E402 - the job loop's waits take no time
 
 
 def test_song_creation_with_advanced_settings(client):

@@ -11,7 +11,7 @@ import pytest
 from app import config, jobs, main, score
 from app.db import execute, one
 from conftest import make_take
-from test_jobs import FakeEngine, PLAN_GRAPH, done, use
+from test_jobs import FakeEngine, PLAN_GRAPH, done, fast, use  # noqa: F401 - fast: the job loop's waits take no time
 
 STATIC = Path(__file__).resolve().parent.parent / "app" / "static"
 

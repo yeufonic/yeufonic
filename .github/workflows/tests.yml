@@ -36,7 +36,7 @@ jobs:
           docker run --rm -v "$PWD":/src -w /src \
             -v "$(readlink -f "$(command -v node)")":/usr/local/bin/node:ro \
             --entrypoint sh yeufonic-app:tests -c \
-            'pip install -q pytest anyio && python -m pytest -q -p no:cacheprovider'
+            'pip install -q pytest anyio pytest-xdist && python -m pytest -q -p no:cacheprovider -n auto'
 
   browser:
     runs-on: ubuntu-24.04

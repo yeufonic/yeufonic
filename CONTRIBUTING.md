@@ -18,7 +18,7 @@ are needed: the job lanes run against a fake engine.
 
 ```sh
 docker run --rm -v "$PWD":/src -w /src --user 1000:1000 -e HOME=/tmp yeufonic-app:latest \
-  sh -c "pip install -q --user -r requirements-dev.txt && python -m pytest -q tests"
+  sh -c "pip install -q --user -r requirements-dev.txt && python -m pytest -q -n auto tests"
 npx eslint@9 app/static/app.js
 node tools/selection-harness.mjs
 ```

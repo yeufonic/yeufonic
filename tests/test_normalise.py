@@ -8,6 +8,7 @@ from app.db import execute, one, set_setting
 from app.library import loudness, normalised_path, original_path
 
 from conftest import make_take
+from test_jobs import fast  # noqa: F401,E402 - the job loop's waits take no time
 
 
 def quiet_tone(path):
