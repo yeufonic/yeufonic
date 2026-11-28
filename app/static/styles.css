@@ -8280,6 +8280,17 @@ body.knob-dragging { cursor: ns-resize !important; user-select: none !important;
 }
 .jam-rr-btn:hover:not(:disabled) { background: rgb(var(--accent-a-rgb) / 0.2); }
 .jam-rr-btn:disabled { opacity: 0.55; cursor: wait; }
+/* The Write lyrics window's warning (Jam: new words need Plan & Roll). */
+.write-caution { margin: 0 0 12px; padding: 9px 12px; border-radius: 10px; font-size: 12.5px; line-height: 1.45;
+  border: 1px solid rgb(var(--warn-rgb, 234 179 8) / 0.5); background: rgb(var(--warn-rgb, 234 179 8) / 0.1); color: var(--text); }
+/* Roll with a new seed: a die beside Roll, quieter than it. */
+.jam-dice-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 36px; padding: 0;
+  border-radius: 999px; border: 1px solid rgb(var(--accent-a-rgb) / 0.55); background: rgb(var(--accent-a-rgb) / 0.12);
+  color: var(--text-strong); cursor: pointer;
+}
+.jam-dice-btn:hover:not(:disabled) { background: rgb(var(--accent-a-rgb) / 0.2); }
+.jam-dice-btn:disabled { opacity: 0.55; cursor: wait; }
 .jam-roll-btn {
   display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 999px; border: 0;
   background: linear-gradient(90deg, var(--accent-a), var(--cover-a)); color: #fff;

@@ -52,11 +52,7 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     # The pass has no editor in Jam: its card offers Play, Full Song and Delete.
     assert page.locator(f'.jam-hist-card[data-pass-id="{pass_id}"] [data-jam-act="open-editor"]').count() == 0
 
-    # Sync number keys: 0 jumps to Seed, 1-9 match Pass #1-#9 (only while Sync is enabled).
-    page.locator(".jam-col-head h4").first.click()
-    page.keyboard.press("0")
-    assert page.locator(f'.jam-hist-card.is-base[data-pass-id="{pass_id}"]').count() == 1
-    page.click('[data-jam-act="toggle-sync"]')
+    # Sync is on by itself once there are two tracks: number keys 0 jump to Seed, 1-9 to Pass #1-#9.
     page.wait_for_selector('.jam-sync-btn.on')
     page.locator(".jam-col-head h4").first.click()
     page.keyboard.press("0")
@@ -65,7 +61,31 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     page.wait_for_selector(f'.jam-hist-card.is-base.playing[data-pass-id="{pass_id}"]')
     page.keyboard.press("9")
     assert page.locator(f'.jam-hist-card.is-base.playing[data-pass-id="{pass_id}"]').count() == 1
+    # Turned off, it stays off, and the number keys do nothing.
     page.click('[data-jam-act="toggle-sync"]')
+    page.wait_for_selector('.jam-sync-btn:not(.on)')
+    page.locator(".jam-col-head h4").first.click()
+    page.keyboard.press("0")
+    assert page.locator(f'.jam-hist-card.is-base[data-pass-id="{pass_id}"]').count() == 1
+    page.wait_for_timeout(500)
+    assert page.locator('.jam-sync-btn.on').count() == 0
+    page.click('[data-jam-act="toggle-sync"]')          # back on for the next Jam
+
+    # The die rolls once with a new seed, every setting kept; the pass says so, and its card gives its seed.
+    with page.expect_request(lambda r: r.url.endswith("/api/jam/roll") and r.method == "POST") as sent:
+        page.click('[data-jam-act="roll-new-seed"]')
+    assert "seed" not in sent.value.post_data_json
+    page.wait_for_function("document.querySelectorAll('.jam-hist-card:not(.is-seed)').length >= 2", timeout=30000)
+    assert "New seed" in page.locator(".jam-hist-card:not(.is-seed)").last.inner_text()
+
+    # Write lyrics is offered in Jam's lyrics popup, and its window says new words need Plan & Roll.
+    page.click('[data-jam-act="edit-lyrics"]')
+    page.wait_for_selector('#lyrics-modal:not(.hidden) #lyrics-modal-write:not(.hidden)')
+    page.click('#lyrics-modal-write')
+    page.wait_for_selector('#write-modal:not(.hidden) #write-caution:not(.hidden)')
+    assert "Plan & Roll" in page.locator('#write-caution').inner_text()
+    page.click('#write-close')
+    page.click('#lyrics-close')
 
     # Esc closes it.
     page.locator(".jam-col-head h4").first.click()
@@ -151,8 +171,8 @@ def test_jam_lyrics_edit_per_pass_and_reset(page, app_server):
     page.click('[data-jam-act="edit-lyrics"]')
     page.wait_for_selector("#lyrics-modal:not(.hidden)")
     assert page.input_value("#lyrics-big") == edited
-    # Reset to Seed inside the popup restores the Seed's original lyrics (and Write lyrics stays hidden in Jam).
-    assert page.locator("#lyrics-modal-write").is_hidden()
+    # Reset to Seed inside the popup restores the Seed's original lyrics; Write lyrics is offered in Jam too.
+    assert page.locator("#lyrics-modal-write").is_visible()
     assert page.locator("#lyrics-jam-hint").is_visible()
     page.click("#lyrics-reset")
     assert page.input_value("#lyrics-big") == seed_lyrics

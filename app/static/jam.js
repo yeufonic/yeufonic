@@ -814,8 +814,26 @@
       } else {
         this.enable();
       }
+      // Remembered: Sync is on unless the person turned it off, and comes on by itself once there is a pass to
+      // switch to (it needs two tracks).
+      try { localStorage.setItem(SYNC_KEY, this.enabled ? '1' : '0'); } catch (err) { /* private mode */ }
+    },
+
+    /* On, if the person has not turned it off and there are two tracks to switch between: when Jam opens, and when a
+       new pass is ready.  Off is the person's choice and stays off. */
+    autoEnable: function () {
+      if (this.enabled || !JamState.open || !syncWanted() || playablePasses().length < 2) { return; }
+      var self = this;
+      setTimeout(function () {
+        if (!self.enabled && JamState.open && syncWanted() && playablePasses().length >= 2) { self.enable(); }
+      }, 0);
     }
   };
+
+  var SYNC_KEY = 'yue2.jam.sync';
+  function syncWanted() {
+    try { return localStorage.getItem(SYNC_KEY) !== '0'; } catch (err) { return true; }
+  }
 
   var JamAudio = {
     audio: function () {
@@ -1628,8 +1646,9 @@
     };
     // A Full Song of a pass is that pass made whole: its seed and its sampler steps, so it plays as the pass did.
     if (basePass && opts.basePassId && basePass.seed != null) { payload.seed = basePass.seed; }
-    // Same seed: the pass is made with its base's seed, so what differs is what was changed.
-    else if (JamState.holdSeed) {
+    // Same seed: the pass is made with its base's seed, so what differs is what was changed.  The dice beside Roll
+    // asks for a new one this once, everything else held.
+    else if (JamState.holdSeed && !opts.newSeed) {
       var seedOf = baseScorePass || from;
       if (seedOf && seedOf.seed != null) { payload.seed = seedOf.seed; }
     }
@@ -1639,6 +1658,7 @@
       // What changed from the pass it was built on.
       var diffs = computeDiffs((from && from.snapshot) || JamState.lastRolledSnapshot, snap);
       if (opts.replan) { diffs.unshift({ text: t('New arrangement'), cls: 'add' }); }
+      if (payload.seed == null && !isFullSong) { diffs.unshift({ text: t('New seed'), cls: 'add' }); }
       if (isFullSong) { diffs.unshift({ text: t('Full Song'), cls: 'add' }); }
       JamState.lastRolledSnapshot = snap;
       JamState.cookingId = created.id;
@@ -1996,6 +2016,13 @@
         (JamState.passes.some(function (p) { return !isSeedPass(p); }) || pending > 0
           ? '<button type="button" class="jam-sec-btn" data-jam-act="reset-jam" title="' + t('Start again from the Seed: its sound, and no passes') + '"' + (cooking ? ' disabled' : '') + '>' + t('New Jam') + '</button>' : '') +
         (scoreLocked() ? '<button type="button" class="jam-rr-btn" data-jam-act="plan-roll" title="' + t('Plan &amp; Roll: plan this pass again from the Seed\u2019s words with your settings. New chords, groove and structure, so it can change a lot, and it takes longer than Roll.') + '"' + (cooking ? ' disabled' : '') + '>' + t('Plan &amp; Roll') + '</button>' : '') +
+        // Again, differently: a new seed with every setting held (Same seed stays on for the rolls after).
+        '<button type="button" class="jam-dice-btn" data-jam-act="roll-new-seed" title="' + t('Roll with a new seed: the same settings, a fresh take on them') + '" aria-label="' + t('Roll with a new seed') + '"' + (cooking ? ' disabled' : '') + '>' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">' +
+          '<rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><circle cx="8.5" cy="8.5" r="1.3" fill="currentColor" stroke="none"/>' +
+          '<circle cx="15.5" cy="8.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>' +
+          '<circle cx="8.5" cy="15.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.3" fill="currentColor" stroke="none"/></svg>' +
+        '</button>' +
         '<button type="button" class="jam-roll-btn" data-jam-act="roll"' + (cooking ? ' disabled' : '') + '>' +
           '<span>' + (JamState.cookingId ? t('Rolling\u2026') : '\u27F3 ' + t('Roll')) + '</span>' +
           (!cooking && pending > 0 ? '<span class="jam-pending-badge">' + tn(pending, '{n} change', '{n} changes') + '</span>' : '') +
@@ -2557,6 +2584,7 @@
   }
 
   function paintHistory() {
+    JamSync.autoEnable();
     var el = document.getElementById('jam-col-hist');
     if (!el) { return; }
     // Seed take pinned at the top, followed by all rolled passes in chronological order below it.
@@ -2624,7 +2652,8 @@
             (isBase ? '<span class="jam-base-tag" title="' + t('The next roll builds on this') + '">' + t('Base') + '</span>' : '');
 
           return '<div class="jam-hist-card' + (seed ? ' is-seed' : '') + (isBase ? ' is-base' : '') + (selectable ? ' selectable' : '') + (isPlaying ? ' playing' : '') + (isCooking ? ' cooking' : '') + '"' +
-            (selectable ? ' data-pass-id="' + escHtml(p.id) + '" title="' + (isBase ? t('The next roll builds on this') : t('Click to build the next roll on this')) + '"' : '') + '>' +
+            (selectable ? ' data-pass-id="' + escHtml(p.id) + '" title="' + (isBase ? t('The next roll builds on this') : t('Click to build the next roll on this')) +
+              (p.seed != null ? ' \u00B7 ' + t('seed {seed}', { seed: p.seed }) : '') + '"' : '') + '>' +
             '<div class="jam-hist-top">' +
               '<span class="jam-hist-name">' + tagHtml + ' ' + escHtml(p.title) + '</span>' +
               '<span class="jam-hist-end">' + statePill +
@@ -2723,6 +2752,10 @@
     if (act === 'toggle-max') { setJamMax(!jamMax()); return; }
     if (act === 'reset-jam') { newJamFromSeed(); return; }
     if (act === 'roll') { confirmFullSong(!JamState.fastLoop).then(function (go) { if (go) { rollPass({ title: go.title }); } }); return; }
+    if (act === 'roll-new-seed') {
+      confirmFullSong(!JamState.fastLoop).then(function (go) { if (go) { rollPass({ title: go.title, newSeed: true }); } });
+      return;
+    }
     if (act === 'plan-roll') { confirmFullSong(!JamState.fastLoop).then(function (go) { if (go) { rollPass({ replan: true, title: go.title }); } }); return; }
     if (act === 'cancel-cook') { cancelCooking(); return; }
     if (act === 'scope-fast') { JamState.fastLoop = true; paintTopbar(); return; }
@@ -2819,6 +2852,28 @@
           },
           onClose: function () {
             saveSession();
+          },
+          // Write lyrics, as in the editor: a whole new set of words for this Jam's next rolls.  New words do not fit
+          // the Seed's melody, which Roll keeps, so the window says to use Plan & Roll.
+          write: {
+            caution: t('New words will not fit the melody Roll keeps: rolled with Roll they will most likely be sung as nonsense. Use Plan & Roll, which writes a melody for them.'),
+            getExisting: function () { var big = document.getElementById('lyrics-big'); return big ? big.value : (JamState.lyrics || ''); },
+            getStyle: function () { return compileStyle(cloneSnapshot()); },
+            // The sections of the words in the box; with none, an instrumental Seed's own sections.
+            getSections: function () {
+              var big = document.getElementById('lyrics-big');
+              var words = big ? big.value : (JamState.lyrics || '');
+              var own = typeof expandSectionsOf === 'function' ? expandSectionsOf(words) : [];
+              return own.length || typeof expandSectionsOf !== 'function' ? own : expandSectionsOf(JamState.seedStructure || '');
+            },
+            onLand: function (text) {
+              JamState.lyrics = text;
+              if (text.trim() && JamState.vocals === 'instrumental') { JamState.vocals = 'female'; }
+              saveSession();
+              paintFeelCol();
+              paintTopbar();
+              paintFooter();
+            }
           }
         });
       }

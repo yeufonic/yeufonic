@@ -3506,7 +3506,8 @@ function openLyricsEditor(opts) {
   $('lyrics-big').value = custom ? String(custom.value || '') : $('lyrics').value;
   var titleEl = $('lyrics-modal-title');
   if (titleEl) { titleEl.textContent = (custom && custom.title) ? custom.title : t('Lyrics'); }
-  if ($('lyrics-modal-write')) { $('lyrics-modal-write').classList.toggle('hidden', Boolean(custom)); }
+  // A popup of someone else's words offers Write lyrics only when it says how a draft lands (Jam does).
+  if ($('lyrics-modal-write')) { $('lyrics-modal-write').classList.toggle('hidden', Boolean(custom && !custom.write)); }
   if ($('lyrics-jam-hint')) { $('lyrics-jam-hint').classList.toggle('hidden', !custom); }
   updateLyricsCount();
   syncLyricsResetButton();
@@ -11423,9 +11424,33 @@ function openWrite(target) {
       $('write-structure-sent').textContent = SONGPLAN.sections.join(', ');
     }
   }
+  paintWriteCaution(custom);
   $('write-modal').classList.remove('hidden');
   if (!WRITE.id) { $('write-status').textContent = ''; }
   $('write-brief').focus();
+}
+
+/* A warning a target asks the Write lyrics window to show (Jam: new words need Plan & Roll), and where the structure
+   comes from.  Made here rather than in the page, so a page loaded before this script still gets it. */
+function paintWriteCaution(target) {
+  var box = $('write-caution');
+  if (!box) {
+    var anchor = $('write-brief') && $('write-brief').closest('.field');
+    if (!anchor) { return; }
+    box = document.createElement('div');
+    box.id = 'write-caution';
+    box.className = 'write-caution hidden';
+    box.setAttribute('role', 'note');
+    anchor.parentNode.insertBefore(box, anchor);
+  }
+  var text = target && target.caution ? String(target.caution) : '';
+  box.textContent = text;
+  box.classList.toggle('hidden', !text);
+  var hint = $('write-structure-sent') && $('write-structure-sent').nextElementSibling;
+  if (hint && hint.classList.contains('hint')) {
+    if (!hint.dataset.own) { hint.dataset.own = hint.textContent; }
+    hint.textContent = target ? t('From the section tags in the lyrics box. The draft follows them.') : hint.dataset.own;
+  }
 }
 
 function closeWrite() {
@@ -17776,7 +17801,7 @@ function wire() {
   $('lyrics-close').addEventListener('click', closeLyricsEditor);
   if ($('lyrics-modal-write')) {
     $('lyrics-modal-write').addEventListener('click', function () {
-      if (!_lyricsTarget) { openWrite(); }
+      if (!_lyricsTarget) { openWrite(); } else if (_lyricsTarget.write) { openWrite(_lyricsTarget.write); }
     });
   }
   if ($('lyrics-reset')) {
