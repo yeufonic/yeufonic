@@ -129,8 +129,10 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     pass_before = api(app_server, f"/api/takes/{pass_id}")
     page.click(f'.jam-hist-card[data-pass-id="{pass_id}"] [data-jam-act="pass-editor"]')
     page.wait_for_selector('#editor-modal:not(.hidden)')
+    # The main button renders the pass's own score, as Full Song does, rather than writing a new plan.
+    assert page.locator('#create-song').inner_text().strip() == "Render this score"
     with page.expect_response(lambda r: r.url.endswith(f"/api/takes/{pass_id}/render") and r.request.method == "POST") as sent:
-        page.evaluate("renderInPlace()")
+        page.click('#create-song')
     new_id = sent.value.json()["id"]
     assert new_id != pass_id
     page.wait_for_selector('#jam-modal:not(.hidden) .jam-hist-card.is-seed')

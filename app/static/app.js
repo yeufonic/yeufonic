@@ -8062,9 +8062,13 @@ function setScoreActions() {
   if ($('make-instrumental')) { $('make-instrumental').style.display = State.mode === 'inst' || off ? 'none' : ''; }
   // The switch is for a song: its main button would otherwise write a new tune.
   if ($('words-changed')) { $('words-changed').classList.toggle('hidden', !(fresh && State.mode === 'song')); }
-  $('create-song').textContent = keep ? t('Sing with new words') : (off ? t('Sing with no score') : t('Write score plan'));
+  // A Jam pass opened in the editor is made into a take by rendering its own score, as Full Song does: a new plan would
+  // be a different song, not the pass.  Write a new plan on the Score page is still there for that.
+  var passRender = jamPassInEditor() && !fresh && !off;
+  $('create-song').textContent = passRender ? t('Render this score')
+    : (keep ? t('Sing with new words') : (off ? t('Sing with no score') : t('Write score plan')));
   // With no score there is no plan to wait for, so nothing to render once it is written.
-  if ($('auto-wrap')) { $('auto-wrap').style.visibility = keep || off ? 'hidden' : ''; }
+  if ($('auto-wrap')) { $('auto-wrap').style.visibility = keep || off || passRender ? 'hidden' : ''; }
   $('score-note').textContent = !enabled
     ? (off ? t('With no score, YuE2 writes the tune and the chords as it sings.')
       : t('Nothing to render yet. Write a score plan, or press Score on a take in the library.'))
@@ -8307,6 +8311,7 @@ function songBody(seed) {
 }
 
 async function doPlan() {
+  if (jamPassInEditor() && !wordsChanged() && !noScore()) { await renderInPlace(); return; }   // see setScoreActions
   if (keepTune()) { await doSingNewWords(); return; }
   var problem = songProblem();
   if (problem) { statusLine(problem, 'bad'); return; }
