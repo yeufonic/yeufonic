@@ -115,6 +115,13 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     assert api(app_server, f"/api/takes/{new_id}")["space_id"] == made["space_id"]
     pass_after = api(app_server, f"/api/takes/{pass_id}")
     assert pass_after["space_id"] == "__jam__" and pass_after["abc"] == pass_before["abc"]
+    # Back in Jam, the engine's work outside it shows in Jam's top bar, as the page's top bar shows it.
+    page.evaluate("""() => { State.currentJob = { id: 'elsewhere', kind: 'render', title: 'Another take', stage: 'Rendering audio',
+        elapsed: 3, progress: 0.4 }; paintJob(State.currentJob, [], State.options || {}); }""")
+    page.wait_for_selector('#jam-topbar #jam-job:not(.hidden)')
+    assert "Another take" in page.locator('#jam-job').inner_text()
+    page.evaluate("() => { State.currentJob = null; paintJob(null, [], State.options || {}); }")
+    page.wait_for_selector('#jam-job', state='hidden')
 
     # Write lyrics is offered in Jam's lyrics popup, and its window says new words need Plan & Roll.
     page.click('[data-jam-act="edit-lyrics"]')

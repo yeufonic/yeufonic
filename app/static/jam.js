@@ -1974,11 +1974,14 @@
           ' <button type="button" class="jam-cancel-x" data-jam-act="cancel-cook" title="' + t('Cancel this roll') + '">&times;</button></span>'
       : '';
 
+    var jobPill = typeof window.jamJobPill === 'function' ? window.jamJobPill() : null;
     el.innerHTML =
       '<div class="jam-brand">' +
         '<span class="jam-bar"></span>' +
         '<h1 class="jam-title">' + t('Jam') + '</h1>' +
         '<span class="jam-seed-name" title="' + t('The take this Jam plays with') + '">' + escHtml(JamState.starterName) + '</span>' +
+        // What the engine is doing (a take rendering in the library, a picture…), as the page's top bar shows it.
+        '<span class="jam-job-slot"></span>' +
       '</div>' +
       '<div class="jam-scope">' +
         '<div class="jam-seg-pill" title="' + t('Short passes of the song: their length is in Settings \u2192 Audio, Takes &amp; Stems') + '">' +
@@ -1998,6 +2001,8 @@
           '<svg class="max-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>' +
         '</button>' +
       '</div>';
+    var slot = el.querySelector('.jam-job-slot');
+    if (slot && jobPill) { slot.appendChild(jobPill); if (jobPill.mirror) { jobPill.mirror(); } }
     paintFooter();
   }
 
@@ -3370,6 +3375,7 @@
     resume: resume,
     close: close,
     isOpen: isOpen,
+    cookingId: function () { return JamState.cookingId || null; },
     handleKey: handleKey,
     onTransportChange: onTransportChange,
     shouldLoop: shouldLoop,

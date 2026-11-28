@@ -2816,6 +2816,10 @@ label .lora-value:disabled { opacity: 0.6; }
    and its words shorten with an ellipsis before that. */
 .ed-job { flex: 1 1 0; min-width: 90px; max-width: 340px; font-size: 13px; padding: 6px 12px; }
 .ed-job.hidden { display: none; }
+/* Jam's copy of the job pill, beside the Seed's name: what the engine is doing outside the Jam. */
+.jam-job-slot { display: inline-flex; margin-left: 14px; min-width: 0; }
+.jam-job { min-width: 90px; max-width: 320px; font-size: 12.5px; padding: 5px 11px; }
+.jam-job.hidden { display: none; }
 /* How far it has got: a line along the pill's foot. */
 .job-pill-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgb(var(--ink) / 0.06); }
 .job-pill-bar > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-a), var(--accent-b)); transition: width 0.5s ease; }

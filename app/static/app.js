@@ -4009,16 +4009,36 @@ function editorJobPill() {
   if (made || !$('job-card')) { return made; }
   var head = document.querySelector('#editor .ed-head');
   if (!head) { return null; }
-  made = document.createElement('button');
-  made.type = 'button';
-  made.id = 'ed-job';
-  made.className = 'pill job-pill ed-job';
-  made.innerHTML = '<span class="job-pill-dot" aria-hidden="true"></span><span class="job-pill-text"></span>' +
-    '<span class="job-pill-time"></span><span class="job-pill-bar" aria-hidden="true"><span></span></span>';
-  made.title = t('What the engine is doing, and what comes next');
+  made = jobPillCopy('ed-job', 'ed-job');
   // Straight after the Song / Cover / Instrumental switch, so a take's own tools, which come and go, do not move it.
   var modes = head.querySelector('.modes');
   head.insertBefore(made, modes ? modes.nextSibling : $('btn-advanced-toggle'));
+  return made;
+}
+
+/* Jam covers the top bar too: its copy of the pill sits in Jam's own top bar, which places it on each repaint.  It
+   leaves out the one job Jam already shows, its own pass being rolled, when nothing else is waiting. */
+function jamJobPill() {
+  var made = $('jam-job');
+  if (made || !$('job-card')) { return made; }
+  made = jobPillCopy('jam-job', 'jam-job', function () {
+    var job = State.currentJob, waiting = (LAST_JOB && LAST_JOB[1] ? LAST_JOB[1].length : 0);
+    return Boolean(job && window.Jam && typeof window.Jam.cookingId === 'function' && job.id === window.Jam.cookingId() && !waiting);
+  });
+  return made;
+}
+if (typeof window !== 'undefined') { window.jamJobPill = jamJobPill; }
+
+/* A copy of the top bar's job pill for a window that covers it: the same line, time and bar, shown while the pill
+   is (and `skip` does not say otherwise).  A click opens the queue under it, over the window. */
+function jobPillCopy(id, cls, skip) {
+  var made = document.createElement('button');
+  made.type = 'button';
+  made.id = id;
+  made.className = 'pill job-pill ' + cls;
+  made.innerHTML = '<span class="job-pill-dot" aria-hidden="true"></span><span class="job-pill-text"></span>' +
+    '<span class="job-pill-time"></span><span class="job-pill-bar" aria-hidden="true"><span></span></span>';
+  made.title = t('What the engine is doing, and what comes next');
   // The queue opens here, under this pill, over the editor: the panel is lent to the page's body while it is open
   // (the top bar's own card sits behind the editor) and goes back to its card when it closes.
   made.addEventListener('click', function () {
@@ -4033,21 +4053,24 @@ function editorJobPill() {
     panel.style.left = Math.round(Math.max(15, Math.min(box.left, window.innerWidth - panel.offsetWidth - 15))) + 'px';
   });
   var mirror = function () {
-    var idle = $('job-card').classList.contains('hidden');
+    var idle = $('job-card').classList.contains('hidden') || Boolean(skip && skip());
     made.classList.toggle('hidden', idle);
     if (idle && $('job-panel').classList.contains('floating')) { closeJobPanel(); }
   };
+  made.mirror = mirror;
   new MutationObserver(mirror).observe($('job-card'), { attributes: true, attributeFilter: ['class'] });
   mirror();
   return made;
 }
 
 function paintEditorJobPill() {
-  var pill = editorJobPill();
-  if (!pill) { return; }
-  pill.querySelector('.job-pill-text').textContent = $('job-pill-text').textContent;
-  pill.querySelector('.job-pill-time').textContent = $('job-pill-time').textContent;
-  pill.querySelector('.job-pill-bar > span').style.width = $('job-pill-fill').style.width;
+  [editorJobPill(), $('jam-job')].forEach(function (pill) {
+    if (!pill) { return; }
+    pill.querySelector('.job-pill-text').textContent = $('job-pill-text').textContent;
+    pill.querySelector('.job-pill-time').textContent = $('job-pill-time').textContent;
+    pill.querySelector('.job-pill-bar > span').style.width = $('job-pill-fill').style.width;
+    if (pill.mirror) { pill.mirror(); }
+  });
 }
 
 function closeJobPanel() {
