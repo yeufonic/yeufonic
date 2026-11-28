@@ -2681,7 +2681,7 @@
     var syncTitle = syncDisabled
       ? t('Roll a pass to switch between tracks in sync')
       : (JamSync.enabled
-        ? t('Synced playback is on \u2014 Play, Previous/Next, or 0 (Seed) and 1\u20139 switch tracks at the same moment')
+        ? t('Synced playback is on \u2014 Play, Previous/Next, 0 (Seed), 1\u20139 or Shift+0\u20139 (Pass #10\u2013#19) switch tracks at the same moment')
         : t('Switch between Roll History tracks instantly at the same point in playback'));
     var syncProg = JamSync.enabled ? JamSync.loadProgress() : null;
     var metaLabel = (syncProg && syncProg.done < syncProg.total)
@@ -3033,6 +3033,11 @@
     }
     if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat && /^[0-9]$/.test(event.key)) {
       return jumpToSyncPass(Number(event.key));
+    }
+    // Shift+0 to Shift+9: Pass #10 to #19.  By the key's place on the keyboard, since with Shift held the character
+    // it types (!, @, " or another, as the layout has it) says nothing of the digit.
+    if (event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat && /^Digit[0-9]$/.test(event.code || '')) {
+      return jumpToSyncPass(10 + Number(event.code.slice(5)));
     }
     if (event.shiftKey && event.key === 'ArrowLeft') { return stepPass(-1); }
     if (event.shiftKey && event.key === 'ArrowRight') { return stepPass(1); }

@@ -61,6 +61,23 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     page.wait_for_selector(f'.jam-hist-card.is-base.playing[data-pass-id="{pass_id}"]')
     page.keyboard.press("9")
     assert page.locator(f'.jam-hist-card.is-base.playing[data-pass-id="{pass_id}"]').count() == 1
+    # Shift+0 to Shift+9 are Pass #10 to #19: the pass renumbered 12 in the saved Jam, Shift+2 reaches it.
+    page.locator(".jam-col-head h4").first.click()
+    page.keyboard.press("Escape")
+    page.wait_for_selector("#jam-modal", state="hidden")
+    page.evaluate("""([take, id]) => { const all = JSON.parse(localStorage.getItem('yue2.jam.sessions'));
+        all['take:' + take].passes.forEach(p => { if (p.id === id) { p.num = 12; } });
+        localStorage.setItem('yue2.jam.sessions', JSON.stringify(all)); }""", [made["id"], pass_id])
+    page.reload()                                                # the Jam is read again from what was saved
+    open_jam(page, made["id"])
+    page.wait_for_selector('.jam-sync-btn.on')
+    page.locator(".jam-col-head h4").first.click()
+    page.keyboard.press("0")
+    page.wait_for_selector(".jam-hist-card.is-seed.is-base.playing")
+    page.keyboard.press("Shift+Digit2")
+    page.wait_for_selector(f'.jam-hist-card.is-base.playing[data-pass-id="{pass_id}"]')
+    page.keyboard.press("2")                                     # no Pass #2 now: nothing moves
+    assert page.locator(f'.jam-hist-card.is-base[data-pass-id="{pass_id}"]').count() == 1
     # Turned off, it stays off, and the number keys do nothing.
     page.click('[data-jam-act="toggle-sync"]')
     page.wait_for_selector('.jam-sync-btn:not(.on)')

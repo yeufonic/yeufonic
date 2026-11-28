@@ -1100,7 +1100,7 @@ Use short passes to dial in a recipe — Parts, Vibe, Feel and LoRA — and trea
 
 **New seeds, Sync and new words.** The die beside **Roll** rolls once with a new seed, every setting kept: the pass shows **New seed**, and each card's tooltip gives its seed. **Sync** is on by default as soon as there are two tracks to switch between; turn it off and it stays off. **Write lyrics** in the **Lyrics** popup drafts a whole new set of words, as in the editor. **Roll** fits new words to the melody it keeps, and they may not fit it: if they come out garbled, roll them with **Plan & Roll**, which writes a melody for them. The Write lyrics window says so.
 
-**Keys:** **Space** plays or pauses, **Left / Right** seeks 5 seconds, **Shift+Left / Shift+Right** steps through passes in Roll History, **0** and **1–9** jump straight to the Seed or Pass #1–#9 when **Sync** is on, **Up / Down** adjusts volume, **F** toggles fullscreen, **V** opens or closes the Visualizer, **L** opens logs, **?** opens hot keys, and **Esc** closes any overlay in front and then Jam.
+**Keys:** **Space** plays or pauses, **Left / Right** seeks 5 seconds, **Shift+Left / Shift+Right** steps through passes in Roll History, **0** and **1–9** jump straight to the Seed or Pass #1–#9 when **Sync** is on, **Up / Down** adjusts volume, **F** toggles fullscreen, **V** opens or closes the Visualizer, **L** opens logs, **?** opens hot keys, and **Esc** closes any overlay in front and then Jam. With more than nine passes, **Shift+0** to **Shift+9** jump to Pass #10 to #19.
 
 ---
 
