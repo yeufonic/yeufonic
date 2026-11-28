@@ -13331,6 +13331,28 @@ async function startFresh() {
   return true;
 }
 
+/* The take whose Jam pass is playing on the page (a pass is not in the library, so its Seed's card is the one that
+   shows it playing), or null.  Read from the Jams kept in this browser, once for each pass played. */
+var JAM_SEED_SEEN = { pass: null, seed: null };
+function jamSeedPlaying() {
+  var id = State.playing;
+  if (!id || takeById(id)) { return null; }
+  if (JAM_SEED_SEEN.pass === id) { return JAM_SEED_SEEN.seed; }
+  var seed = null;
+  try {
+    var all = JSON.parse(localStorage.getItem('yue2.jam.sessions') || '{}');
+    Object.keys(all).some(function (key) {
+      var session = all[key];
+      if (!session || !Array.isArray(session.passes) || !session.passes.some(function (p) { return p && p.id === id; })) { return false; }
+      var first = session.passes.filter(function (p) { return p && p.isSeed; })[0];
+      seed = (first && first.id) || (key.indexOf('take:') === 0 ? key.slice(5) : null);
+      return true;
+    });
+  } catch (err) { seed = null; }
+  JAM_SEED_SEEN = { pass: id, seed: seed };
+  return seed;
+}
+
 /* How many passes this take's Jam holds (its session, kept in this browser), so its card can show it has a Jam. */
 function jamPasses(id) {
   try {
@@ -13861,7 +13883,7 @@ function paintTakes() {
     }
     var classes = 'take';
     if (State.picked[take.id]) { classes += ' picked'; }
-    if (State.playing === take.id) { classes += ' playing'; }
+    if (State.playing === take.id || jamSeedPlaying() === take.id) { classes += ' playing'; }
     if (take.id === open) { classes += ' holding'; }
     if (!take.parent_id && heldBy(take) > 0) { classes += ' has-inside'; }     // a take that holds takes is a shade lighter
     // The Inside button is on a take that holds takes, lit, and its tip says how many.  A take that holds
@@ -13924,7 +13946,7 @@ function paintTakes() {
         '</div>';
     // The take's picture, made while it rendered, lies faintly behind the card.
     // The playing take's edge pulses on its beat, from its score's tempo, in step with where the song is.
-    var beat = State.playing === take.id ? takeBeat(take) : null;
+    var beat = State.playing === take.id || jamSeedPlaying() === take.id ? takeBeat(take) : null;
     var looks = (take.art ? '--take-art: url(&quot;' + esc(artThumb(take.art)) + '&quot;);' : '') + (beat ? beatStyle(beat) : '');
     if (beat) { classes += ' on-beat'; }
     var art = looks ? ' style="' + looks + '"' : '';
