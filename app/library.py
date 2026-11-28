@@ -424,6 +424,35 @@ def read_flac_streaminfo(path: Path) -> FlacStreamInfo | None:
     return None
 
 
+def measure_r128(path: Path) -> tuple[float, float, float] | None:
+    """A take's integrated loudness (LUFS) and true peak (dBTP), from ffmpeg's ebur128 filter, and how far either
+    may be off: it prints them to a tenth.  The same measures as loudnorm's first pass, about six times faster,
+    since loudnorm resamples the whole take to 192 kHz to find them.  None when ffmpeg says nothing readable."""
+    try:
+        out = subprocess.run(["ffmpeg", "-v", "info", "-nostats", "-i", str(path), "-af", "ebur128=peak=true:framelog=quiet",
+                              "-f", "null", "-"], capture_output=True, text=True, timeout=300).stderr
+    except (subprocess.SubprocessError, OSError):
+        return None
+    summary = out[out.rfind("Summary:"):] if "Summary:" in out else ""
+    level = re.search(r"I:\s*(-?[\d.]+|-inf) LUFS", summary)
+    peak = re.search(r"Peak:\s*(-?[\d.]+|-inf) dBFS", summary)
+    if not level or not peak:
+        return None
+    return float(level.group(1)), float(peak.group(1)), 0.1
+
+
+def measure_loudnorm(path: Path, target: float) -> tuple[float, float, float] | None:
+    """The same from loudnorm's first pass, which the normalising used alone before (an ffmpeg without ebur128)."""
+    first = subprocess.run(["ffmpeg", "-v", "info", "-nostats", "-i", str(path), "-af",
+                            f"loudnorm=I={target}:TP={NORMAL_PEAK}:print_format=json", "-f", "null", "-"],
+                           capture_output=True, text=True, timeout=300).stderr
+    found = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", first)
+    if not found:
+        return None
+    measured = json.loads(found.group(0))
+    return float(measured["input_i"]), float(measured["input_tp"]), 0.0
+
+
 def normalise(rendered: Path, target: float = NORMAL_LUFS) -> Path:
     """Write a copy of a take at the target loudness beside the file as rendered, and
     return it.  The rendered file is only read, so doing it twice gives the same result.
@@ -433,19 +462,15 @@ def normalise(rendered: Path, target: float = NORMAL_LUFS) -> Path:
     own second pass: where the gain would clip, it falls back to riding the level as the
     song plays, and on a take whose peaks are already high that swung the gain by 10 dB,
     heard as sudden dips."""
-    first = subprocess.run(["ffmpeg", "-v", "info", "-nostats", "-i", str(rendered), "-af",
-                            f"loudnorm=I={target}:TP={NORMAL_PEAK}:print_format=json", "-f", "null", "-"],
-                           capture_output=True, text=True, timeout=300).stderr
-    found = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", first)
-    if not found:
+    measured = measure_r128(rendered) or measure_loudnorm(rendered, target)
+    if not measured:
         raise RuntimeError("ffmpeg could not measure the take's loudness")
-    measured = json.loads(found.group(0))
-    loudness, peak = float(measured["input_i"]), float(measured["input_tp"])
+    loudness, peak, margin = measured
     if not math.isfinite(loudness):
         raise RuntimeError("the take is silent")
     gain = target - loudness
     chain = f"volume={gain:.2f}dB"
-    if peak + gain > NORMAL_PEAK:
+    if peak + gain > NORMAL_PEAK - margin:
         # Four times oversampled, so the peaks between samples are caught too, and a
         # tenth of a dB under the ceiling for what the resampling back adds.
         ceiling = 10 ** ((NORMAL_PEAK - 0.1) / 20)
