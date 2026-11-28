@@ -1625,7 +1625,7 @@ As teclas de letra não fazem nada enquanto você digita em uma caixa, enquanto 
 Alt ou a tecla Windows ou Command pressionada, para que os atalhos do próprio navegador (Ctrl+L, Ctrl+S e os outros)
 continuem funcionando. A dica de um botão nomeia a tecla dele, como em **Variações (Shift+V)**. Pressione **?** a qualquer momento para ver a lista de atalhos.
 
-Tanto o editor quanto o Jam compartilham o player inferior fixo: **Espaço**, as setas, **F** (tela cheia), **V** (visualizador), **L** (logs) e **?** (atalhos) funcionam ali — inclusive com o rack de masterização aberto —, enquanto as teclas de letra de cada take ficam restritas à página principal e a digitação em campos de texto nunca é interrompida. No Jam, **Shift+Esquerda / Shift+Direita** percorre os passes no histórico. O piano roll tem as próprias teclas: veja [O piano roll](#the-piano-roll).
+Tanto o editor quanto o Jam compartilham o player inferior fixo: **Espaço**, as setas, **F** (tela cheia), **V** (visualizador), **L** (logs) e **?** (atalhos) funcionam ali — inclusive com o rack de masterização aberto —, enquanto as teclas de letra de cada take ficam restritas à página principal e a digitação em campos de texto nunca é interrompida. No Jam, **Shift+Esquerda / Shift+Direita** percorre os passes no histórico. Com **Sync** ligado, **0** e **1–9** vão para o Seed e as passagens #1–#9, e **Shift+0–9** para as passagens #10–#19. O piano roll tem as próprias teclas: veja [O piano roll](#the-piano-roll).
 
 ---
 

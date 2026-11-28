@@ -1863,7 +1863,7 @@ The letter keys do nothing while you are typing in a box, while a window is open
 Alt or the Windows or Command key held, so the browser's own shortcuts (Ctrl+L, Ctrl+S and the rest)
 still work. A button's tip names its key, as in **Variations (Shift+V)**. Press **?** at any time to display the list of hot keys.
 
-Both the editor window and Jam share the persistent bottom player: **Space**, the arrow keys, **F** (fullscreen), **V** (Visualizer), **L** (logs) and **?** (hot keys) work there — including with the mastering rack open — while take-specific letter keys stay on the main page only, and typing in a box is always left alone. In Jam, **Shift+Left / Shift+Right** steps through passes in Roll History, and **0** / **1–9** jump directly to the Seed or Pass #1–#9 when **Sync** is on. The piano roll has keys of its own: see [The Piano Roll](#the-piano-roll).
+Both the editor window and Jam share the persistent bottom player: **Space**, the arrow keys, **F** (fullscreen), **V** (Visualizer), **L** (logs) and **?** (hot keys) work there — including with the mastering rack open — while take-specific letter keys stay on the main page only, and typing in a box is always left alone. In Jam, **Shift+Left / Shift+Right** steps through passes in Roll History, and **0** / **1–9** jump directly to the Seed or Pass #1–#9 when **Sync** is on. With more than nine passes, **Shift+0** to **Shift+9** jump to Pass #10 to #19. The piano roll has keys of its own: see [The Piano Roll](#the-piano-roll).
 
 ---
 

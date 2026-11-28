@@ -1625,7 +1625,7 @@ Lettertoetsen doen niets terwijl je in een vak typt, terwijl er een venster voor
 Alt of de Windows- of Command-toets ingedrukt, zodat de eigen sneltoetsen van de browser (Ctrl+L, Ctrl+S en de rest)
 blijven werken. De tooltip van een knop noemt zijn toets, zoals bij **Variaties (Shift+V)**. Druk op elk moment op **?** om de lijst met sneltoetsen te zien.
 
-Zowel de editor als Jam delen de vaste onderste speler: **Spatie**, de pijltjestoetsen, **F** (volledig scherm), **V** (visualizer), **L** (logboeken) en **?** (sneltoetsen) werken daar — ook met het masteringrack open — terwijl take-specifieke lettertoetsen alleen op de hoofdpagina werken en typen in een invoervak ongemoeid blijft. In Jam stappen **Shift+Links / Shift+Rechts** door passes in de rolgeschiedenis. De pianorol heeft zijn eigen toetsen: zie [De pianorol](#the-piano-roll).
+Zowel de editor als Jam delen de vaste onderste speler: **Spatie**, de pijltjestoetsen, **F** (volledig scherm), **V** (visualizer), **L** (logboeken) en **?** (sneltoetsen) werken daar — ook met het masteringrack open — terwijl take-specifieke lettertoetsen alleen op de hoofdpagina werken en typen in een invoervak ongemoeid blijft. In Jam stappen **Shift+Links / Shift+Rechts** door passes in de rolgeschiedenis. Met **Sync** aan springen **0** en **1–9** naar de Seed en Ronde #1–#9, **Shift+0–9** naar Ronde #10–#19. De pianorol heeft zijn eigen toetsen: zie [De pianorol](#the-piano-roll).
 
 ---
 

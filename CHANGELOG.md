@@ -37,20 +37,26 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.73 (2026-11-28)
 
-- **Jam: a new seed in one click, Sync on by default, and Write lyrics.** A die beside **Roll** rolls once with a new seed, every setting kept (the pass shows **New seed**; each card's tooltip gives its seed). **Sync** comes on by itself once there are two tracks to switch between, unless you have turned it off. The **Lyrics** popup in Jam offers **Write lyrics**, as the editor does; its window warns that new words may not fit the melody **Roll** keeps and can come out garbled, and to use **Plan & Roll** if they do.
-- **Jam: Shift+0 to Shift+9 switch to Pass #10 to #19** with Sync on, as 0 and 1–9 switch to the Seed and Pass #1 to #9.
-- **Jam: open a pass in the editor.** **Editor** on a pass (in a Jam of a song or an instrumental) opens the editor on it with every setting the pass was made with, its score kept and the length cap from Settings, to tweak before making a take. What is made is a new take in the Jam's space; the pass stays as it was (an edited score goes onto the new take, never onto the pass), and closing the editor comes back to the Jam. Jam's top bar now shows what the engine is doing outside the Jam (that take rendering, a picture), as the page's top bar does.
-- **The Seed's card shows a Jam pass playing.** Leaving Jam with a pass playing, the card of the take the Jam is on pulses on the beat, as a playing take's card does, and its J beats with it.
-- **A lighter library page.** The page's two-second status poll no longer carries the LoRA catalogue and every learned style each time (it comes once, and again only when it changes), and the corpus badge reads one list instead of fetching every corpus whole every half minute: an open tab now moves a small fraction of the data it did, and the server does far less per poll. The take list also answers faster: each card's score is measured once rather than on every poll, and listing every space reads takes in order through a new index.
-- **Small pictures behind the cards.** The faint picture behind a card, the take sheet, the editor and the player's little cover is a small WebP copy made from the take's picture, instead of the full picture fetched for every card; pictures are kept by the browser until they change. Cards out of sight are not drawn, nor their pictures fetched, until they come near the window.
-- **Smoother playback, quieter idle.** The player's mini visualizer no longer redraws sixty times a second while nothing plays, and the cards' tiles and buttons no longer each carry a backdrop blur, which made the page composite hundreds of layers on every frame of a playing take.
-- **Faster renders on ComfyUI.** The audio decode at the end of a render blends its tiles without ComfyUI's per-sample loop (a new engine node, `Yue2VAEDecodeAudioTiled`, with exactly the same audio); the saving grows with the song's length. Docker: `docker compose build engine`.
-- **Faster recorded voices.** Singing a take in a recorded voice no longer starts two programs of its own for every take (one to separate the vocal, one to sing it), each loading PyTorch, the card and its model afresh: the voice service does both itself and stays ready between takes, so each take's conversion is several seconds quicker, and the first after a start no slower than the rest. Between takes the card is left as free as before. If anything goes wrong it falls back to the old way; `VOICE_WARM=0` for the voice service keeps the old way. Docker: `docker compose build voice`.
-- **Faster normalising.** A take's loudness and true peak are measured with ffmpeg's ebur128 filter instead of loudnorm's first pass: the same measures in a fraction of the time.
-- **Quicker database writes and start-up.** The database commits without waiting for the disk on every write (it keeps its write-ahead log, so it cannot be corrupted; a power cut can lose the last moments), and PyTorch is imported only when autotune is used.
-- **Tests in parallel.** `requirements-dev.txt` adds pytest-xdist and the documented command and CI run the suite with `-n auto`.
+**Faster all round.**
+
+- **The library page** loads a small fraction of the data it did, and an open tab polls far less: small copies of take pictures behind the cards, cards out of sight drawn only as they come near, and status checks that no longer resend what has not changed.
+- **Playback** in the library is smooth, and the page does next to nothing while idle.
+- **The take list** answers several times faster.
+- **Renders on ComfyUI** finish sooner: the final audio decode takes a moment instead of many seconds, with exactly the same audio (Docker: `docker compose build engine`).
+- **Recorded voices** sing each take several seconds sooner: the voice service stays ready between takes (Docker: `docker compose build voice`; `VOICE_WARM=0` keeps the old way).
+- **Normalising** a take is about three times faster.
+- **Start-up** is quicker and the app uses less memory; database writes no longer wait on the disk.
+
+**Jam**
+
+- A die beside **Roll** rolls with a new seed, every setting kept.
+- **Sync** is on by default once there are two tracks; **Shift+0–9** switch to Pass #10–#19.
+- **Write lyrics** in Jam's **Lyrics** popup, with a note that new words may need **Plan & Roll**.
+- **Editor** on a pass opens it in the editor to tweak into a take of its own; Esc comes back to Jam.
+- Jam's top bar shows what the engine is doing outside the Jam.
+- Leaving or reopening Jam while a pass plays hands the song over without a glitch, and the Seed's card (and its **J**) pulses while one of its passes plays.
 
 ## 0.0.72 (2026-11-27)
 

@@ -1625,7 +1625,7 @@ Les touches de lettres ne font rien pendant que vous tapez dans une zone, quand 
 Alt ou la touche Windows ou Commande enfoncée, pour que les raccourcis du navigateur (Ctrl+L, Ctrl+S et les autres)
 fonctionnent toujours. L’infobulle d’un bouton nomme sa touche, comme dans **Variations (Shift+V)**. Appuyez sur **?** à tout moment pour afficher la liste des raccourcis.
 
-L’éditeur et Jam partagent le lecteur inférieur persistant : **Espace**, les flèches, **F** (plein écran), **V** (visualiseur), **L** (journaux) et **?** (raccourcis) y fonctionnent — y compris avec le rack de mastering ouvert —, tandis que les raccourcis propres aux prises restent réservés à la page principale et la saisie dans un champ n’est jamais perturbée. Dans Jam, **Maj+Gauche / Maj+Droite** parcourt les passes de l’historique. Le piano roll a ses propres touches : voir [Le piano roll](#the-piano-roll).
+L’éditeur et Jam partagent le lecteur inférieur persistant : **Espace**, les flèches, **F** (plein écran), **V** (visualiseur), **L** (journaux) et **?** (raccourcis) y fonctionnent — y compris avec le rack de mastering ouvert —, tandis que les raccourcis propres aux prises restent réservés à la page principale et la saisie dans un champ n’est jamais perturbée. Dans Jam, **Maj+Gauche / Maj+Droite** parcourt les passes de l’historique. Avec **Sync** activé, **0** et **1–9** vont au Seed et aux passes #1–#9, **Maj+0–9** aux passes #10–#19. Le piano roll a ses propres touches : voir [Le piano roll](#the-piano-roll).
 
 ---
 

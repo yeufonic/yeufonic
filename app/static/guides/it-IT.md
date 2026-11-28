@@ -1624,7 +1624,7 @@ I tasti con lettere non fanno nulla mentre scrivi in un riquadro, mentre c'è un
 Alt o il tasto Windows o Comando premuto, così le scorciatoie del browser (Ctrl+L, Ctrl+S e le altre)
 continuano a funzionare. Il suggerimento di un pulsante nomina il suo tasto, come in **Variazioni (Shift+V)**. Premi **?** in qualsiasi momento per vedere l'elenco delle scorciatoie.
 
-Sia l'editor sia Jam condividono il lettore inferiore persistente: **Spazio**, le frecce, **F** (schermo intero), **V** (visualizzatore), **L** (log) e **?** (tasti rapidi) funzionano anche lì — perfino con il rack di mastering aperto —, mentre i tasti con lettere dei singoli take restano solo nella pagina principale e la scrittura nei campi non viene mai disturbata. In Jam, **Shift+Sinistra / Shift+Destra** scorre i pass nella cronologia. Il piano roll ha i suoi tasti: vedi [Il piano roll](#the-piano-roll).
+Sia l'editor sia Jam condividono il lettore inferiore persistente: **Spazio**, le frecce, **F** (schermo intero), **V** (visualizzatore), **L** (log) e **?** (tasti rapidi) funzionano anche lì — perfino con il rack di mastering aperto —, mentre i tasti con lettere dei singoli take restano solo nella pagina principale e la scrittura nei campi non viene mai disturbata. In Jam, **Shift+Sinistra / Shift+Destra** scorre i pass nella cronologia. Con **Sync** attivo, **0** e **1–9** vanno al Seed e alle passate #1–#9, **Maiusc+0–9** alle passate #10–#19. Il piano roll ha i suoi tasti: vedi [Il piano roll](#the-piano-roll).
 
 ---
 

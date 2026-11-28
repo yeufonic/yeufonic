@@ -1624,7 +1624,7 @@ Die Buchstabentasten tun nichts, während du in einem Feld tippst, während ein 
 Alt oder die Windows- oder Befehlstaste gedrückt ist, sodass die eigenen Kürzel des Browsers (Ctrl+L, Ctrl+S und die übrigen)
 weiter funktionieren. Der Tipp einer Schaltfläche nennt ihre Taste, wie in **Variationen (Shift+V)**. Drücke jederzeit **?**, um die Liste der Tastenkürzel anzuzeigen.
 
-Editor und Jam teilen sich den dauerhaften unteren Player: **Leertaste**, Pfeiltasten, **F** (Vollbild), **V** (Visualizer), **L** (Protokolle) und **?** (Tastenkürzel) funktionieren dort — auch bei geöffnetem Mastering-Rack —, während take-spezifische Buchstabentasten der Hauptseite vorbehalten bleiben und Eingabefelder unberührt bleiben. In Jam wechseln **Umschalt+Links / Umschalt+Rechts** zwischen den Durchgängen im Roll-Verlauf. Die Pianorolle hat eigene Tasten: siehe [Die Pianorolle](#the-piano-roll).
+Editor und Jam teilen sich den dauerhaften unteren Player: **Leertaste**, Pfeiltasten, **F** (Vollbild), **V** (Visualizer), **L** (Protokolle) und **?** (Tastenkürzel) funktionieren dort — auch bei geöffnetem Mastering-Rack —, während take-spezifische Buchstabentasten der Hauptseite vorbehalten bleiben und Eingabefelder unberührt bleiben. In Jam wechseln **Umschalt+Links / Umschalt+Rechts** zwischen den Durchgängen im Roll-Verlauf. Mit **Sync** an springen **0** und **1–9** zum Seed und zu Durchgang #1–#9, **Umschalt+0–9** zu Durchgang #10–#19. Die Pianorolle hat eigene Tasten: siehe [Die Pianorolle](#the-piano-roll).
 
 ---
 
