@@ -1045,6 +1045,19 @@ button.icon { width: 42px; padding: 8px 0; text-align: center; }
 .chip.action:disabled { opacity: 0.45; cursor: not-allowed; }
 .chip.action:disabled:hover { background: rgb(var(--ink) / 0.10); border-color: rgb(var(--ink) / 0.14); color: var(--text); }
 .chip.action.hidden { display: none; }
+/* Write lyrics while a draft is being written: the button, saying Drafting…, pulses in the accent colour so the wait
+   is plain to see, in the editor and in Jam's lyrics popup alike. */
+#lyrics-write.active, #lyrics-modal-write.active {
+  color: #fff; border-color: rgb(var(--accent-a-rgb) / 0.9); background: rgb(var(--accent-a-rgb) / 0.55);
+  animation: lyrics-drafting 1.1s ease-in-out infinite;
+}
+@keyframes lyrics-drafting {
+  0%, 100% { background: rgb(var(--accent-a-rgb) / 0.35); box-shadow: 0 0 0 0 rgb(var(--accent-a-rgb) / 0.55); }
+  50% { background: rgb(var(--accent-a-rgb) / 0.85); box-shadow: 0 0 0 6px rgb(var(--accent-a-rgb) / 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #lyrics-write.active, #lyrics-modal-write.active { animation: none; background: rgb(var(--accent-a-rgb) / 0.75); }
+}
 .chip.compact { font-size: 11.5px; padding: 2px 9px; }
 
 .lora-style-chip {
