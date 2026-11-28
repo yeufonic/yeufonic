@@ -438,7 +438,9 @@ def measure_r128(path: Path) -> tuple[float, float, float] | None:
     peak = re.search(r"Peak:\s*(-?[\d.]+|-inf) dBFS", summary)
     if not level or not peak:
         return None
-    return float(level.group(1)), float(peak.group(1)), 0.1
+    # ebur128 gates at -70 LUFS and calls a silent take that rather than -inf, as loudnorm does: silence is silence.
+    loud = float(level.group(1))
+    return (loud if loud > -70.0 else float("-inf")), float(peak.group(1)), 0.1
 
 
 def measure_loudnorm(path: Path, target: float) -> tuple[float, float, float] | None:
