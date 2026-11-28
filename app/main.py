@@ -1328,6 +1328,9 @@ class RenderIn(BaseModel):
     reseed: bool = False
     realaudio: bool | None = None
     normalise: bool | None = None
+    # The score to render, for a Jam pass opened in the editor: written onto the new take made from the pass, never
+    # onto the pass, which stays as it sounds in Roll History.
+    abc: str | None = Field(None, max_length=200_000)
     identity_id: str | None = Field(None, max_length=64)
     persona_id: str | None = Field(None, max_length=64)
     voice_lora: str | None = Field(None, max_length=200)
@@ -3820,6 +3823,9 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
     _gpu_free_for_rendering()
     """Render a take that already has a score, optionally in another interpretation."""
     take = _idle_take(take_id)
+    edited = body.abc if body is not None and body.abc is not None and take.get("space_id") == JAM_SPACE else None
+    if edited is not None:
+        take = {**take, "abc": edited}
     scoreless = _render_settings(take, body)["mode"] == NO_SCORE
     if not scoreless and not (take["abc"] or "").strip():
         raise HTTPException(400, "this take has no score yet. Write a plan first.")
@@ -3827,6 +3833,9 @@ async def render_take(take_id: str, body: RenderIn | None = None) -> dict:
         _check_score(take["abc"], take["kind"])
     take = _out_of_jam(take)
     take_id = take["id"]
+    if edited is not None:
+        execute("UPDATE takes SET abc = ? WHERE id = ?", (edited, take_id))
+        take = {**take, "abc": edited}
     if take["kind"] == "instrumental" and take.get("source_id"):
         # An edit to the score may have given it a sung melody, or changed its sections.
         abc = _unsung(take["abc"])

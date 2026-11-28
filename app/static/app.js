@@ -7938,6 +7938,8 @@ function scheduleScoreAutoSave() {
 async function saveScore(silent) {
   if (scoreAutoSaveTimer) { clearTimeout(scoreAutoSaveTimer); scoreAutoSaveTimer = null; }
   if (!scoreIsDirty()) { return true; }
+  // A Jam pass open in the editor keeps the score it was made with: an edit goes with the render, onto the new take.
+  if (jamPassInEditor()) { return true; }
   var takeId = takeIdInEditor();
   var source = currentSource();
   var url = takeId ? '/api/takes/' + takeId + '/score'
@@ -8340,13 +8342,15 @@ async function renderInPlace() {
   }
   if (wordsChanged()) { await doSingNewWords(); return; }
   try {
-    if (!noScore()) {   // with no score, none is sent, and the take keeps any it has
+    var fromJam = jamPassInEditor();
+    if (!noScore() && !fromJam) {   // with no score, none is sent, and the take keeps any it has
       await api('/api/takes/' + id + '/score', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ abc: $('abc').value })
       });
     }
     var payload = editorRenderSettings();
+    if (fromJam && !noScore()) { payload.abc = $('abc').value; }   // onto the new take, not the pass
     var rendering = await api('/api/takes/' + id + '/render', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -13314,7 +13318,15 @@ function jamPasses(id) {
 }
 
 function takeById(id) {
-  return State.takes.filter(function (take) { return take.id === id; })[0] || null;
+  return State.takes.filter(function (take) { return take.id === id; })[0] ||
+    // A Jam pass open in the editor is not in the library's list, but it is the take on show.
+    (State.formTake && State.formTake.id === id && State.formTake.space_id === '__jam__' ? State.formTake : null);
+}
+
+/* Whether the take in the editor is a Jam pass (opened from its card in Jam): what the editor makes from it is a new
+   take in the Jam's space, and nothing is written back onto the pass. */
+function jamPassInEditor() {
+  return Boolean(State.formTake && State.formTake.space_id === '__jam__' && State.formTake.id === takeIdInEditor());
 }
 
 /* Deleting takes one at a time is slow in a space with many, so cards can be
@@ -18524,6 +18536,18 @@ function closeEditor() {
   document.body.style.overflow = '';
   paintEdMastering();   // a rack opened from the window stays open, on the page
   paintSheet();
+  // Opened from a pass in Jam: back to the Jam as it was, whether a take was made here or not.
+  if (State.editorFromJam) {
+    State.editorFromJam = false;
+    // Left without making a take: the pass lets go of the page, so nothing on it acts on a hidden Jam pass.  Words
+    // that were in the form before are on the draft bar, as after any card click.
+    if (jamPassInEditor()) {
+      setSelection({});
+      State.formTake = null;
+      paintSheet();
+    }
+    if (window.Jam && typeof window.Jam.resume === 'function') { window.Jam.resume(); }
+  }
 }
 
 function paintEditor() {

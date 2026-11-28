@@ -173,6 +173,21 @@ def test_planning_or_rendering_a_pass_in_the_editor_makes_a_new_take(client):
     assert client.post(f"/api/takes/{own['id']}/render", json={}).json()["id"] == own["id"]
 
 
+def test_a_score_edited_in_the_editor_goes_onto_the_new_take_not_the_pass(client):
+    space = client.post("/api/spaces", json={"name": "Ideas"}).json()
+    take_id = a_pass(client, space["id"])
+    before = one("SELECT abc FROM takes WHERE id = ?", (take_id,))["abc"]
+    edited = before.replace("Q:1/4=", "Q:1/4=1", 1) if "Q:1/4=" in before else before + "\n"
+    assert edited != before
+    made = client.post(f"/api/takes/{take_id}/render", json={"abc": edited}).json()
+    assert one("SELECT abc FROM takes WHERE id = ?", (made["id"],))["abc"] == edited
+    assert one("SELECT abc FROM takes WHERE id = ?", (take_id,))["abc"] == before
+    # a take of the person's own ignores it: its score is saved with the score route
+    own = make_take(abc=GOOD)
+    client.post(f"/api/takes/{own['id']}/render", json={"abc": "X:1"})
+    assert one("SELECT abc FROM takes WHERE id = ?", (own["id"],))["abc"] == GOOD
+
+
 def test_a_pass_can_start_at_a_section_of_the_kept_score(client):
     body = GOOD[GOOD.index("% intro"):]
     two = GOOD.rstrip("\n") + "\n" + body.replace("% intro", "% chorus")

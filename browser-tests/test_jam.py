@@ -95,6 +95,27 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     page.wait_for_function("document.querySelectorAll('.jam-hist-card:not(.is-seed)').length >= 2", timeout=30000)
     assert "New seed" in page.locator(".jam-hist-card:not(.is-seed)").last.inner_text()
 
+    # Editor on a pass: the editor opens on it, Esc comes back to the Jam as it was; making a take there makes a new
+    # take in the Jam's space and comes back too, the pass left as it was.
+    page.click(f'.jam-hist-card[data-pass-id="{pass_id}"] [data-jam-act="pass-editor"]')
+    page.wait_for_selector('#editor-modal:not(.hidden)')
+    assert page.locator('#jam-modal').is_hidden()
+    assert page.input_value('#max-duration') == ''
+    page.keyboard.press("Escape")
+    page.wait_for_selector('#jam-modal:not(.hidden) .jam-hist-card.is-seed')
+    assert page.locator(f'.jam-hist-card[data-pass-id="{pass_id}"]').count() == 1
+    pass_before = api(app_server, f"/api/takes/{pass_id}")
+    page.click(f'.jam-hist-card[data-pass-id="{pass_id}"] [data-jam-act="pass-editor"]')
+    page.wait_for_selector('#editor-modal:not(.hidden)')
+    with page.expect_response(lambda r: r.url.endswith(f"/api/takes/{pass_id}/render") and r.request.method == "POST") as sent:
+        page.evaluate("renderInPlace()")
+    new_id = sent.value.json()["id"]
+    assert new_id != pass_id
+    page.wait_for_selector('#jam-modal:not(.hidden) .jam-hist-card.is-seed')
+    assert api(app_server, f"/api/takes/{new_id}")["space_id"] == made["space_id"]
+    pass_after = api(app_server, f"/api/takes/{pass_id}")
+    assert pass_after["space_id"] == "__jam__" and pass_after["abc"] == pass_before["abc"]
+
     # Write lyrics is offered in Jam's lyrics popup, and its window says new words need Plan & Roll.
     page.click('[data-jam-act="edit-lyrics"]')
     page.wait_for_selector('#lyrics-modal:not(.hidden) #lyrics-modal-write:not(.hidden)')

@@ -1070,6 +1070,7 @@
           JamState.seedStructure = rec.kind === 'instrumental' ? (rec.lyrics || '') : '';
           JamState.seedNormalise = Boolean(rec.normalise);
           JamState.seedRealaudio = rec.realaudio == null ? true : Boolean(rec.realaudio);
+          JamState.seedKind = rec.kind || '';
           if (p.snapshot) { p.snapshot.lyrics = seedWords; }
         } else if (p.snapshot && typeof p.snapshot.lyrics !== 'string') {
           p.snapshot.lyrics = rec.kind === 'instrumental' ? '' : (rec.lyrics || '');
@@ -1387,6 +1388,7 @@
     JamState.holdSeed = true;
     JamState.seedNormalise = Boolean(take.normalise);
     JamState.seedRealaudio = take.realaudio == null ? true : Boolean(take.realaudio);
+    JamState.seedKind = take.kind || '';
     JamState.styleLora = take.style_lora || '';
     JamState.styleLoraModel = take.style_lora_model != null ? Number(take.style_lora_model) : 0.7;
     JamState.styleLoraClip = take.style_lora_clip != null ? Number(take.style_lora_clip) : 0.7;
@@ -2637,6 +2639,10 @@
                 ? '<button type="button" class="jam-hist-btn stop" data-jam-act="stop-pass">\u25A0 ' + t('Stop') + '</button>'
                 : '<button type="button" class="jam-hist-btn" data-jam-act="play-pass" data-pass-id="' + escHtml(p.id) + '">\u25B6 ' + t('Play') + '</button>') +
               '<button type="button" class="jam-hist-btn" data-jam-act="full-pass" data-pass-id="' + escHtml(p.id) + '">' + t('Full Song') + '</button>' +
+              (editorAllowed()
+                ? '<button type="button" class="jam-hist-btn" data-jam-act="pass-editor" data-pass-id="' + escHtml(p.id) + '" title="' +
+                    t('Open in the editor: a new take from this pass, its settings ready to change. Esc comes back here') + '">' + t('Editor') + '</button>'
+                : '') +
               '<button type="button" class="jam-hist-btn danger" data-jam-act="delete-pass" data-pass-id="' + escHtml(p.id) + '" title="' + t('Delete this pass for good') + '">' + t('Delete') + '</button>' +
             '</div>';
           } else {
@@ -2905,6 +2911,10 @@
     }
     if (act === 'delete-pass') {
       deletePass(btn.dataset.passId);
+      return;
+    }
+    if (act === 'pass-editor') {
+      openPassInEditor(btn.dataset.passId);
       return;
     }
     if (act === 'full-pass') {
@@ -3279,6 +3289,40 @@
     if (typeof paintTakes === 'function') { paintTakes(); }
   }
 
+  /* A pass opened in the editor, to make a take from it with its settings tweaked: the Jam is put aside (its passes,
+     base and settings kept) and comes back when the editor closes, however it closes.  What the editor makes is a
+     new take in the Jam's space; the pass stays as it is.  Not for a cover's Jam, whose passes are songs of its tune
+     and would open as something other than what was heard. */
+  async function openPassInEditor(passId) {
+    if (!passId || typeof selectTake !== 'function' || typeof openEditor !== 'function') { return; }
+    try {
+      var rec = await api('/api/takes/' + encodeURIComponent(passId));
+      close();
+      selectTake(rec);
+      openEditor('song');
+      // A pass was capped at the Jam's few seconds; the take made from it is not.  An empty Length cap is nobody's:
+      // the one in Settings, which rises to fit the score.
+      var capBox = document.getElementById('max-duration');
+      if (capBox) { capBox.value = ''; }
+      if (window.State) { State.capTyped = false; State.capFromScore = false; State.editorFromJam = true; }
+    } catch (err) {
+      if (typeof toast === 'function') { toast(t('Could not open it in the editor: {message}', { message: tr(err.message) }), 'bad'); }
+    }
+  }
+
+  /* Back to the Jam that was put aside for the editor, as it was. */
+  function resume() {
+    var modal = document.getElementById('jam-modal');
+    if (!modal || !JamState.sessionKey || !JamState.passes.length) { return; }
+    JamState.open = true;
+    modal.classList.remove('hidden');
+    document.body.classList.add('jam-open');
+    paintAll();
+    syncPassesFromServer();
+  }
+
+  function editorAllowed() { return JamState.seedKind !== 'cover'; }
+
   async function openPass(passId, seedTakeId) {
     var sid = seedTakeId || null;
     if (!sid && passId) {
@@ -3323,6 +3367,7 @@
   window.Jam = {
     openFromTake: openFromTake,
     openPass: openPass,
+    resume: resume,
     close: close,
     isOpen: isOpen,
     handleKey: handleKey,
