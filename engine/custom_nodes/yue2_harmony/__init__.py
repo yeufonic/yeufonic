@@ -579,8 +579,12 @@ NODE_DISPLAY_NAME_MAPPINGS = {"YuE2GenerateABCHarmony": "YuE2 Generate ABC (harm
 
 # The audio VAE's tiled decode without ComfyUI's slow tile blending (vae.py).  Never at the cost of the rest.
 try:
+    import comfy.utils
+    from comfy_extras.nodes_audio import vae_decode_audio  # noqa: F401 - a ComfyUI old enough to lack it gets no node
+
     from .vae import Yue2VAEDecodeAudioTiled
 
+    assert callable(comfy.utils.tiled_scale_multidim)
     NODE_CLASS_MAPPINGS["Yue2VAEDecodeAudioTiled"] = Yue2VAEDecodeAudioTiled
     NODE_DISPLAY_NAME_MAPPINGS["Yue2VAEDecodeAudioTiled"] = "Yeufonic VAE decode audio (tiled)"
 except Exception:  # noqa: BLE001
