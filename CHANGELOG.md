@@ -37,7 +37,7 @@ Release notes live in two places and neither is a file in this repository: this 
 history, and each GitHub release holds its published notes. `RELEASE-NOTES-*.md` is ignored so it
 cannot creep back in.
 
-## Unreleased
+## 0.0.74 (2026-11-28)
 
 - **Jam: a pass opened in the editor renders its own score.** The editor's main button wrote a new plan, which made a different song from the pass; it is now **Render this score**, keeping the pass's melody and chords as **Full Song** does. **Write a new plan** on the Score page still writes a different one.
 
