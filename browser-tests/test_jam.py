@@ -61,6 +61,25 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     page.wait_for_selector(f'.jam-hist-card.is-base.playing[data-pass-id="{pass_id}"]')
     page.keyboard.press("9")
     assert page.locator(f'.jam-hist-card.is-base.playing[data-pass-id="{pass_id}"]').count() == 1
+    # Leaving Jam while a pass plays under Sync hands it to the page's player at the same moment, cross-faded: the
+    # player never starts the song from the top, and its volume comes back to where it was.
+    page.wait_for_timeout(1500)
+    level = page.evaluate("document.getElementById('audio').volume")
+    page.evaluate("""() => { const a = document.getElementById('audio'); window.__pos = [];
+        a.addEventListener('timeupdate', () => window.__pos.push(a.currentTime)); }""")
+    page.locator(".jam-col-head h4").first.click()
+    page.keyboard.press("Escape")
+    page.wait_for_selector("#jam-modal", state="hidden")
+    page.wait_for_function("() => !document.getElementById('audio').paused && document.getElementById('audio').currentTime > 1", timeout=10000)
+    page.wait_for_timeout(800)
+    handed = page.evaluate("() => ({ vol: document.getElementById('audio').volume, pos: window.__pos })")
+    assert abs(handed["vol"] - level) < 0.01
+    assert min(handed["pos"]) > 0.8, handed["pos"][:5]          # no moment of the song's start
+    open_jam(page, made["id"])
+    page.wait_for_selector('.jam-sync-btn.on')
+    page.wait_for_function("() => document.getElementById('audio').paused", timeout=10000)
+    page.wait_for_timeout(300)
+    assert abs(page.evaluate("document.getElementById('audio').volume") - level) < 0.01
     # Shift+0 to Shift+9 are Pass #10 to #19: the pass renumbered 12 in the saved Jam, Shift+2 reaches it.
     page.locator(".jam-col-head h4").first.click()
     page.keyboard.press("Escape")

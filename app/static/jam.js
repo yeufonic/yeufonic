@@ -483,7 +483,7 @@
           var handoffAt = (a && isFinite(a.currentTime)) ? a.currentTime : self.offset;
           self.handoffFromAudio = false;
           if (handoffPlaying) {
-            self.start(handoffAt);
+            self.start(handoffAt, true);
           } else {
             self.offset = handoffAt;
             self.wantPlay = false;
@@ -553,7 +553,7 @@
       delete this.items[passId];
     },
 
-    start: function (at) {
+    start: function (at, fromPlayer) {
       var ctx = this.ctx;
       if (!ctx || !this.enabled) { return; }
       var active = this.activeId ? this.items[this.activeId] : null;
@@ -564,17 +564,36 @@
         return;
       }
       var dur = active.buffer.duration;
-      at = Math.max(0, at || 0);
-      if (dur > 0 && at >= dur) { at = 0; }
       var mainAudio = JamAudio.audio();
+      var lead = 0.04;
+      // Taking over from the page's player while it plays: the same moment of the song, picked up where the player
+      // will be when this starts, and the two cross-faded, rather than the player stopped and this started a beat
+      // later at where the player had been (heard as a little skip).
+      var takingOver = Boolean(fromPlayer && mainAudio && !mainAudio.paused && !mainAudio.ended &&
+                               (mainAudio.currentSrc || mainAudio.src));
+      at = Math.max(0, at || 0);
+      if (takingOver && isFinite(mainAudio.currentTime)) { at = mainAudio.currentTime + lead * (mainAudio.playbackRate || 1); }
+      if (dur > 0 && at >= dur) { at = 0; }
       this.handoffFromAudio = false;
-      if (mainAudio && !mainAudio.paused) { mainAudio.pause(); }
       this.stopSources();
       if (ctx.state === 'suspended') { ctx.resume().catch(function () {}); }
       this.rate = (mainAudio && mainAudio.playbackRate) || 1;
-      this.applyVolume();
       this.applyGains(true);
-      var when = ctx.currentTime + 0.04;
+      var when = ctx.currentTime + lead;
+      if (takingOver) {
+        var level = mainAudio.muted ? 0 : (typeof mainAudio.volume === 'number' ? mainAudio.volume : 1);
+        this.master.gain.cancelScheduledValues(ctx.currentTime);
+        this.master.gain.setValueAtTime(0, ctx.currentTime);
+        this.master.gain.setValueAtTime(0, when);
+        this.master.gain.linearRampToValueAtTime(level, when + CROSSFADE);
+        fadeElement(mainAudio, level, 0, (lead + CROSSFADE) * 1000, function () {
+          mainAudio.pause();
+          mainAudio.volume = level;
+        });
+      } else {
+        if (mainAudio && !mainAudio.paused) { mainAudio.pause(); }
+        this.applyVolume();
+      }
       var ids = Object.keys(this.items);
       for (var i = 0; i < ids.length; i++) {
         var item = this.items[ids[i]];
@@ -605,7 +624,7 @@
         this.activeId = passId;
         if (item.buffer) {
           this.handoffFromAudio = false;
-          this.start(handoffAt);
+          this.start(handoffAt, true);
         } else {
           this.wantPlay = true;
           paintHistory();
@@ -756,18 +775,35 @@
       var wasHandoff = this.handoffFromAudio;
       var at = this.position();
       var activeId = this.activeId;
+      // Where Sync's song is at any moment from here on, while it keeps sounding for the hand-over below.
+      var liveCtx = this.ctx, liveFrom = this.offset, liveStart = this.startedAt, liveRate = this.rate, liveDur = this.activeDuration();
+      var livePosition = function () {
+        if (!liveCtx || !wasPlaying) { return at; }
+        var pos = liveFrom + Math.max(0, liveCtx.currentTime - liveStart) * liveRate;
+        return liveDur > 0 ? Math.min(pos, liveDur) : pos;
+      };
+      var softHandoff = Boolean(handoff && wasPlaying && !wasHandoff && activeId && this.ctx && this.master);
       this.enabled = false;
       this.handoffFromAudio = false;
       this.playing = false;
       this.wantPlay = false;
       this.token += 1;
       this.stopLoop();
-      this.stopSources();
-      var ctx = this.ctx;
+      var ctx = this.ctx, master = this.master, items = this.items;
       this.ctx = null;
       this.master = null;
       this.items = {};
-      if (ctx) { ctx.close().catch(function () {}); }
+      var stopOld = function () {
+        Object.keys(items).forEach(function (id) {
+          var item = items[id];
+          if (item && item.source) {
+            try { item.source.stop(); } catch (err) { /* not started */ }
+            try { item.source.disconnect(); } catch (err) {}
+          }
+        });
+        if (ctx) { ctx.close().catch(function () {}); }
+      };
+      if (!softHandoff) { stopOld(); }
       JamState.sync = false;
 
       if (handoff && !wasHandoff && activeId) {
@@ -782,15 +818,42 @@
             }
           };
           if (wasPlaying) {
+            // The player starts silent, is moved to where Sync is by then, and once it is playing the two are
+            // cross-faded: Sync keeps sounding meanwhile, so there is neither a gap nor a moment of the song's start.
+            var level = a.muted ? 0 : (typeof a.volume === 'number' ? a.volume : 1);
+            if (softHandoff) { a.volume = 0; }
             if (!sameSrc && window.State) { State.loadedId = null; }
             playTake(activeId, take);
+            var lined = false;
+            var lineUp = function () {
+              if (lined) { return; }
+              lined = true;
+              var target = livePosition();
+              if (isFinite(a.duration) && target > 0 && target < a.duration) {
+                try { a.currentTime = target; } catch (err) {}
+              }
+              if (typeof updateTimes === 'function') { updateTimes(); }
+              if (!softHandoff) { return; }
+              var crossFade = function () {
+                fadeElement(a, 0, level, CROSSFADE * 1000, function () { a.volume = level; });
+                if (master && ctx && ctx.state !== 'closed') {
+                  var now = ctx.currentTime;
+                  master.gain.cancelScheduledValues(now);
+                  master.gain.setValueAtTime(master.gain.value, now);
+                  master.gain.linearRampToValueAtTime(0, now + CROSSFADE);
+                }
+                setTimeout(stopOld, CROSSFADE * 1000 + 60);
+              };
+              if (a.seeking) { a.addEventListener('seeked', crossFade, { once: true }); } else { crossFade(); }
+            };
             if (sameSrc && a.readyState >= 1) {
-              applySeek();
+              lineUp();
             } else {
-              a.addEventListener('loadedmetadata', function () {
-                applySeek();
-                if (typeof updateTimes === 'function') { updateTimes(); }
-              }, { once: true });
+              a.addEventListener('loadedmetadata', lineUp, { once: true });
+            }
+            // A player that never gets going still gives the sound back, rather than leaving it silent.
+            if (softHandoff) {
+              setTimeout(function () { if (!lined || a.volume === 0) { a.volume = level; stopOld(); } }, 4000);
             }
           } else if (!sameSrc) {
             a.src = targetUrl;
@@ -831,6 +894,19 @@
   };
 
   var SYNC_KEY = 'yue2.jam.sync';
+  var CROSSFADE = 0.06;          // seconds the page's player and Sync overlap when one hands the song to the other
+
+  /* An audio element's volume moved from `from` to `to` over `ms`, then `done`. */
+  function fadeElement(el, from, to, ms, done) {
+    var started = performance.now();
+    el.volume = Math.max(0, Math.min(1, from));
+    var step = function () {
+      var k = Math.min(1, (performance.now() - started) / Math.max(1, ms));
+      el.volume = Math.max(0, Math.min(1, from + (to - from) * k));
+      if (k < 1) { setTimeout(step, 8); } else if (done) { done(); }
+    };
+    setTimeout(step, 8);
+  }
   function syncWanted() {
     try { return localStorage.getItem(SYNC_KEY) !== '0'; } catch (err) { return true; }
   }
