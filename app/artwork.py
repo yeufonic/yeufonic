@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import base64
 import io
+import os
 import random
 import logging
 import re
@@ -127,6 +128,11 @@ def drawn_path(take_id: str) -> Path:
     return art_dir() / f"{take_id}-drawn.png"
 
 
+def thumb_path(take_id: str) -> Path:
+    """A small copy of the picture, for the faint backgrounds of the cards, the take sheet and the editor."""
+    return art_dir() / f"{take_id}.thumb"
+
+
 def words_path(take_id: str) -> Path:
     return art_dir() / f"{take_id}.txt"
 
@@ -167,12 +173,19 @@ def shown_path(take_id: str, parent_id: str | None = None) -> tuple[str, Path] |
 
 
 def url_for(take_id: str, parent_id: str | None = None) -> str | None:
-    """Where the page finds the picture shown for a take."""
-    shown = shown_path(take_id, parent_id)
-    if not shown:
+    """Where the page finds the picture shown for a take: as shown_path, in two looks at the disk rather than
+    four, since the take lists ask it of every card on every poll."""
+    folder = os.fspath(art_dir())
+    if os.path.exists(os.path.join(folder, f"{take_id}.plain")):
         return None
-    owner, png = shown
-    return f"/api/takes/{owner}/art.png?v={int(png.stat().st_mtime)}"
+    for owner in (take_id, parent_id):
+        if owner:
+            try:
+                made = os.stat(os.path.join(folder, f"{owner}.png")).st_mtime
+            except OSError:
+                continue
+            return f"/api/takes/{owner}/art.png?v={int(made)}"
+    return None
 
 
 def busy(take_id: str) -> bool:
@@ -182,7 +195,7 @@ def busy(take_id: str) -> bool:
 def forget(take_id: str) -> None:
     """A deleted take's picture goes with it."""
     STATE.pop(take_id, None)
-    for path in (png_path(take_id), drawn_path(take_id), words_path(take_id), plain_path(take_id)):
+    for path in (png_path(take_id), drawn_path(take_id), words_path(take_id), plain_path(take_id), thumb_path(take_id)):
         path.unlink(missing_ok=True)
 
 
@@ -1144,6 +1157,69 @@ def png_bytes(rgba: np.ndarray) -> bytes:
 
     return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
             + chunk(b"IDAT", zlib.compress(rows.tobytes(), 6)) + chunk(b"IEND", b""))
+
+
+THUMB_SIZE = 256      # pixels, the longer side: the cards show the picture at a few percent opacity, cropped to fit
+
+
+def shrink(rgba: np.ndarray, size: int = THUMB_SIZE) -> np.ndarray:
+    """The picture made smaller by a whole factor, each new pixel the average of the ones it covers.  Weighted by
+    their alpha, so the clear background round a drawing does not darken its edge."""
+    h, w = rgba.shape[:2]
+    f = max(1, -(-max(h, w) // size))
+    hh, ww = h // f * f, w // f * f
+    if f == 1 or not hh or not ww:
+        return rgba
+    x = rgba[:hh, :ww].astype(np.float32).reshape(hh // f, f, ww // f, f, 4)
+    a = x[..., 3:4] / 255.0
+    weight = a.sum(axis=(1, 3))
+    rgb = np.where(weight > 0, (x[..., :3] * a).sum(axis=(1, 3)) / np.maximum(weight, 1e-6), 0.0)
+    return np.dstack([rgb, weight / (f * f) * 255.0]).round().clip(0, 255).astype(np.uint8)
+
+
+def webp_bytes(rgba: np.ndarray, quality: int = 80) -> bytes:
+    """A WebP of the pixels (alpha kept), through PyAV's libwebp; empty when that gave none."""
+    import av
+    h, w = rgba.shape[:2]
+    ctx = av.codec.CodecContext.create("libwebp", "w")
+    ctx.width, ctx.height, ctx.pix_fmt = w, h, "yuva420p"
+    ctx.options = {"quality": str(quality), "compression_level": "4"}
+    frame = av.VideoFrame.from_ndarray(np.ascontiguousarray(rgba, np.uint8), format="rgba").reformat(format="yuva420p")
+    data = b"".join(bytes(p) for p in ctx.encode(frame)) + b"".join(bytes(p) for p in ctx.encode(None))
+    return data if data[:4] == b"RIFF" and data[8:12] == b"WEBP" else b""
+
+
+def thumbnail(take_id: str) -> tuple[Path, str] | None:
+    """The small copy of a take's picture and its type, made when first asked for and again when the picture
+    changes.  A WebP of a few kilobytes where the picture is megabytes: a page of cards fetched the pictures
+    whole, more than a hundred megabytes, to show each at a few percent opacity.  A PNG when there is no WebP."""
+    png, thumb = png_path(take_id), thumb_path(take_id)
+    try:
+        made = png.stat().st_mtime_ns
+    except OSError:
+        return None
+    try:
+        if thumb.stat().st_mtime_ns >= made:
+            head = thumb.read_bytes()[:4]
+            return thumb, "image/webp" if head == b"RIFF" else "image/png"
+    except OSError:
+        pass
+    try:
+        small = shrink(decode(png.read_bytes()))
+        try:
+            data, kind = webp_bytes(small), "image/webp"
+        except Exception as exc:  # noqa: BLE001 - no libwebp in this PyAV, or no PyAV: a small PNG instead
+            log.warning("Picture thumbnail for %s as PNG (no WebP: %s)", take_id, exc)
+            data = b""
+        if not data:
+            data, kind = png_bytes(small), "image/png"
+        part = thumb.with_name(thumb.name + f".{os.getpid()}.part")
+        part.write_bytes(data)
+        os.replace(part, thumb)
+        return thumb, kind
+    except Exception as exc:  # noqa: BLE001 - the whole picture still serves
+        log.warning("Could not make a thumbnail of %s's picture: %s", take_id, exc)
+        return None
 
 
 def keep(take_id: str, description: str, drawn: bytes, picture: bytes, model: str, writer: str) -> None:

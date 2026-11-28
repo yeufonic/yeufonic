@@ -14,6 +14,20 @@ log = logging.getLogger("yue2.db")
 
 _local = threading.local()
 
+# Bumped whenever a write is committed, so a value worked out from the database can be kept until the
+# database changes (the LoRA picker's learned styles, polled every two seconds, were rebuilt on every poll).
+_generation = 0
+
+
+def generation() -> int:
+    """A number that changes whenever anything is written to the database."""
+    return _generation
+
+
+def _changed() -> None:
+    global _generation
+    _generation += 1
+
 
 def conn() -> sqlite3.Connection:
     """A connection for this thread, opened once.  Route handlers run on the event
@@ -41,6 +55,7 @@ def transaction():
         yield c
         if not outer:
             c.commit()
+            _changed()
     except Exception:
         if not outer:
             c.rollback()
@@ -63,7 +78,10 @@ def execute(sql: str, args: tuple | dict = ()) -> int:
     if getattr(_local, "in_tx", False):
         return c.execute(sql, args).rowcount
     with c:
-        return c.execute(sql, args).rowcount
+        count = c.execute(sql, args).rowcount
+    if count:
+        _changed()
+    return count
 
 
 # ---------------------------------------------------------------------- schema
@@ -308,7 +326,7 @@ BASE_INDEXES = """
 CREATE INDEX IF NOT EXISTS takes_created ON takes(created_at);
 CREATE INDEX IF NOT EXISTS takes_source ON takes(source_id);
 CREATE INDEX IF NOT EXISTS takes_space ON takes(space_id, created_at);
-CREATE INDEX IF NOT EXISTS takes_parent ON takes(parent_id);
+CREATE INDEX IF NOT EXISTS takes_parent_created ON takes(parent_id, created_at);
 CREATE INDEX IF NOT EXISTS stem_sets_take ON stem_sets(take_id);
 CREATE INDEX IF NOT EXISTS stem_sets_source ON stem_sets(source_id);
 CREATE INDEX IF NOT EXISTS identity_songs_identity ON identity_songs(identity_id, position);
@@ -826,6 +844,14 @@ def _voice_formant_wet() -> None:
             execute(f"ALTER TABLE voices ADD COLUMN {column} REAL NOT NULL DEFAULT 1.0")
 
 
+def _take_list_index() -> None:
+    """The library lists takes that are not inside another, newest first.  With the take's parent and its time in
+    one index that is read in order and stops at the page's last card; with the parent alone, every such take was
+    read and sorted, scores and all, on each poll of a library spanning every space."""
+    execute("CREATE INDEX IF NOT EXISTS takes_parent_created ON takes(parent_id, created_at)")
+    execute("DROP INDEX IF EXISTS takes_parent")
+
+
 def _voice_cleanup() -> None:
     """Per-voice phrase-end tail gate, RMVPE voicing threshold, and lowest sung pitch floor."""
     have = _columns("voices")
@@ -992,6 +1018,7 @@ MIGRATIONS = [
     _slate_for_all,                                                  # -> 59
     _trash_space,                                                    # -> 60
     _voice_cleanup,                                                  # -> 61
+    _take_list_index,                                                # -> 62
 ]
 
 

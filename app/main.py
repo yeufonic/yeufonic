@@ -43,7 +43,8 @@ from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import recipe as recipes
-from . import aligner, artwork, autotune, composer, config, daw, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, starter_pack, stems, storage, system_stats, themes, trainsize, transpose, update, voices
+from . import aligner, artwork, composer, config, daw, identities, instrumental, jobs, library, llm, locales, logging_setup, loras, lyrics, mcp, midi, persona, score, soundfonts, starter_pack, stems, storage, system_stats, themes, trainsize, transpose, update, voices
+from . import db as db_module
 from .db import DEFAULT_SPACE, JAM_SPACE, TRASH_SPACE, delete_setting, execute, get_setting, migrate, one, rows, set_setting, transaction
 from . import winaccept
 
@@ -1690,9 +1691,28 @@ def _lora_corpus_styles() -> dict[str, list[dict]]:
         return {}
 
 
-def _catalogue_with_styles() -> list[dict]:
+_CORPUS_STYLES: dict = {"generation": None, "styles": {}, "tag": ""}
+
+
+def _corpus_styles_kept() -> tuple[dict[str, list[dict]], str]:
+    """The learned styles, worked out again only when the database has changed, and a tag that changes with them.
+    The state poll carries them every two seconds, and rebuilding them was most of what it cost."""
+    generation = db_module.generation()
+    if _CORPUS_STYLES["generation"] != generation:
+        styles = _lora_corpus_styles()
+        _CORPUS_STYLES.update(generation=generation, styles=styles,
+                              tag=hashlib.sha1(json.dumps(styles, sort_keys=True).encode()).hexdigest()[:16])
+    return _CORPUS_STYLES["styles"], _CORPUS_STYLES["tag"]
+
+
+def _catalogue_with_styles(tagged: list | None = None) -> list[dict]:
+    """The LoRA catalogue with each one's learned styles.  `tagged`, when given, gets a short summary that changes
+    whenever the catalogue does, without its styles written out (see state())."""
     items = loras.catalogue(ENGINE.options.get("loras", []))
-    corpus_styles = _lora_corpus_styles()
+    corpus_styles, styles_tag = _corpus_styles_kept()
+    if tagged is not None:
+        tagged.append(styles_tag)
+        tagged.append(json.dumps(items, sort_keys=True, default=str))
     for item in items:
         # A checkpoint was trained on the same captions as its LoRA, so it takes the same chips.
         styles = corpus_styles.get(item["name"]) or corpus_styles.get(loras.run_lora(item["name"]))
@@ -1785,8 +1805,28 @@ def update_reveal() -> dict:
 
 
 @app.get("/api/state")
-def state() -> dict:
-    """Served from what the keeper last saw, so a page poll never waits on the engine."""
+def state(options_tag: str = Query("", max_length=40), settings_tag: str = Query("", max_length=40)) -> Response:
+    """Served from what the keeper last saw, so a page poll never waits on the engine.
+
+    `options` (the LoRA catalogue with every learned style: hundreds of kilobytes) and `settings` change rarely, and
+    the page asks every two seconds: each comes with a tag, and a page that sends back the tag it holds is told
+    `"options": null` (or settings) while nothing in it has changed.  A page that sends none gets everything."""
+    payload = _state_payload()
+    lora_tag: list = []
+    options = payload["options"]
+    options["loras"] = _catalogue_with_styles(lora_tag)
+    rest = {k: v for k, v in options.items() if k != "loras"}
+    payload["options_tag"] = hashlib.sha1(("\n".join(lora_tag) + json.dumps(rest, sort_keys=True, default=str)).encode()).hexdigest()[:20]
+    payload["settings_tag"] = hashlib.sha1(json.dumps(payload["settings"], sort_keys=True, default=str).encode()).hexdigest()[:20]
+    if options_tag and options_tag == payload["options_tag"]:
+        payload["options"] = None
+    if settings_tag and settings_tag == payload["settings_tag"]:
+        payload["settings"] = None
+    # Written out here rather than walked by FastAPI's encoder, which took as long as building it.
+    return Response(json.dumps(payload, separators=(",", ":"), default=str), media_type="application/json")
+
+
+def _state_payload() -> dict:
     training = _training_run()
     current = None
     if CURRENT.get("kind") and CURRENT.get("id"):   # a job half-cleared by a stop is no job, not a failed poll
@@ -1904,7 +1944,7 @@ def state() -> dict:
             "llm_provider": llm.get_config()["provider"],
             "instrumental_available": ENGINE.options.get("instrumental", False),
             "realaudio": ENGINE.options.get("realaudio", False),
-            "loras": _catalogue_with_styles(),
+            "loras": None,      # filled in by state(), with its tag
             "harmony_steps": HARMONY_STEPS,
             # Unknown until the engine has been read, so only a confirmed absence disables it.
             "harmony_available": ENGINE.options.get("harmony", False) or not ENGINE.options_loaded,
@@ -2117,6 +2157,9 @@ async def recorder_autotune(
     try:
         content = await audio_file.read()
         in_tmp.write_bytes(content)
+        # Imported here: it brings in PyTorch, a second of every start and some hundreds of megabytes, for a
+        # button most sessions never press.
+        from . import autotune
         stats = await asyncio.to_thread(autotune.tune_file, in_tmp, out_tmp, scale=scale, root=root, strength=strength)
         headers = {
             "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -2561,7 +2604,7 @@ def list_takes(
     got = rows(f"SELECT * FROM takes {clause} ORDER BY created_at DESC LIMIT ?", (*args, limit))
     _attach_family(got)
     for take in got:
-        take["has_audio"] = bool(take["audio_path"] and Path(take["audio_path"]).exists())
+        take["has_audio"] = bool(take["audio_path"] and os.path.exists(take["audio_path"]))
         est = score.estimate(take.get("abc") or "") if take.get("abc") else None
         take["ran_to_cap"] = ran_to_cap(take, planned=est)
         take["stopped_early"] = score.stopped_early(take.get("duration"), take.get("abc"), take.get("max_duration"), planned=est)
@@ -2822,12 +2865,19 @@ async def make_take_art(take_id: str, body: TakeArtIn | None = None) -> dict:
 
 
 @app.get("/api/takes/{take_id}/art.png")
-def take_art_png(take_id: str, drawn: bool = False) -> FileResponse:
-    """The picture, or with `drawn` the image model's own before its background was taken out."""
+def take_art_png(take_id: str, drawn: bool = False, thumb: bool = False, v: str | None = None) -> FileResponse:
+    """The picture, or with `drawn` the image model's own before its background was taken out, or with `thumb` a
+    small copy for the faint backgrounds behind cards.  An address with `v` (the picture's time, which the take
+    lists give) never changes what it holds, so the browser keeps it rather than asking again on every load."""
+    caching = "public, max-age=31536000, immutable" if v else "no-cache"
+    if thumb and not drawn:
+        made = artwork.thumbnail(take_id)
+        if made:
+            return FileResponse(made[0], media_type=made[1], headers={"Cache-Control": caching})
     path = artwork.drawn_path(take_id) if drawn else artwork.png_path(take_id)
     if not path.exists():
         raise HTTPException(404, "no picture")
-    return FileResponse(path, media_type="image/png", headers={"Cache-Control": "no-cache"})
+    return FileResponse(path, media_type="image/png", headers={"Cache-Control": caching})
 
 
 @app.delete("/api/takes/{take_id}/art")
@@ -3547,7 +3597,7 @@ def get_playlist(
     items = rows(sql, tuple(args))
     _attach_family(items)
     for take in items:
-        take["has_audio"] = bool(take["audio_path"] and Path(take["audio_path"]).exists())
+        take["has_audio"] = bool(take["audio_path"] and os.path.exists(take["audio_path"]))
         est = score.estimate(take.get("abc") or "") if take.get("abc") else None
         take["ran_to_cap"] = ran_to_cap(take, planned=est)
         take["stopped_early"] = score.stopped_early(take.get("duration"), take.get("abc"), take.get("max_duration"), planned=est)
@@ -4409,11 +4459,33 @@ def _train_sizing(identity_id: str) -> dict:
     return base
 
 
+_TRAINING_CUTS: dict[tuple, dict | None] = {}
+
+
 def _training_cut(song: dict, limit: float) -> dict | None:
-    """Where the trainer's length limit (seconds) cuts this song, and the words that stay (#7)."""
+    """Where the trainer's length limit (seconds) cuts this song, and the words that stay (#7).  Kept until the
+    song's words, score or transcript change: the corpus screen asks it of every song on every poll."""
     if not song.get("stored_path") or not song.get("duration") or song["duration"] <= limit + 1:
         return None
     folder = Path(song["stored_path"]).parent
+    marks = []
+    for name in ("whisper.json", "score.abc"):
+        try:
+            marks.append((folder / name).stat().st_mtime_ns)
+        except OSError:
+            marks.append(None)
+    key = (str(folder), *marks, song["duration"], limit, song["lyrics"] or "")
+    if key in _TRAINING_CUTS:
+        cut = _TRAINING_CUTS[key]
+        return dict(cut) if cut else None
+    cut = _training_cut_now(folder, song, limit)
+    if len(_TRAINING_CUTS) > 4000:
+        _TRAINING_CUTS.clear()
+    _TRAINING_CUTS[key] = cut
+    return dict(cut) if cut else None
+
+
+def _training_cut_now(folder: Path, song: dict, limit: float) -> dict | None:
     try:
         lines = json.loads((folder / "whisper.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -4627,10 +4699,26 @@ async def free_engine() -> dict:
 @app.get("/api/identities")
 @app.get("/api/personas", include_in_schema=False)
 def list_identities() -> list[dict]:
-    return rows("""SELECT i.id, i.name, i.trigger_word, i.voice, i.lora, i.created_at, i.exported_at,
-                          COUNT(s.id) AS songs, SUM(s.include) AS included
+    """The corpora, each with how far its preparation has got (`progress`), so the top bar's badge and the corpus
+    cards need this one call: they used to fetch every corpus whole, all its songs, every half minute."""
+    steps = IDENTITY_STEPS
+    settled = " AND ".join(f"s.{f} IN ('done', 'failed')" for f in steps)
+    failed = " OR ".join(f"s.{f} = 'failed'" for f in steps)
+    started = " OR ".join(f"COALESCE(s.{f}, 'none') != 'none'" for f in steps)
+    active = " OR ".join(f"s.{f} IN ('queued', 'running')" for f in steps)
+    found = rows(f"""SELECT i.id, i.name, i.trigger_word, i.voice, i.lora, i.created_at, i.exported_at,
+                          COUNT(s.id) AS songs, SUM(s.include) AS included,
+                          SUM(CASE WHEN s.include = 1 AND {settled} THEN 1 ELSE 0 END) AS p_done,
+                          SUM(CASE WHEN s.include = 1 AND ({settled}) AND ({failed}) THEN 1 ELSE 0 END) AS p_failed,
+                          MAX(CASE WHEN s.include = 1 AND ({started}) THEN 1 ELSE 0 END) AS p_started,
+                          MAX(CASE WHEN {active} THEN 1 ELSE 0 END) AS p_busy
                    FROM identities i LEFT JOIN identity_songs s ON s.identity_id = i.id
                    GROUP BY i.id ORDER BY i.created_at DESC""")
+    for item in found:
+        item["progress"] = {"done": item.pop("p_done") or 0, "total": item["included"] or 0,
+                            "failed": item.pop("p_failed") or 0, "started": bool(item.pop("p_started")),
+                            "busy": bool(item.pop("p_busy"))}
+    return found
 
 
 list_personas = list_identities

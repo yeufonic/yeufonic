@@ -6,6 +6,7 @@ renders into something that is not the song, so it is caught here instead.
 """
 from __future__ import annotations
 
+import functools
 import re
 
 from . import music
@@ -24,6 +25,14 @@ BARLINE_ONLY = re.compile(r"[\s:\[\]]*")
 
 
 def estimate(abc: str) -> dict | None:
+    """How long the score says the music is: bars, tempo, and the seconds they imply (see _estimate).
+    Worked out once per score: the library asks it of every card it lists, on every poll."""
+    found = _estimate(abc) if abc else None
+    return dict(found) if found else None
+
+
+@functools.lru_cache(maxsize=4096)
+def _estimate(abc: str) -> dict | None:
     """How long the score says the music is: bars, tempo, and the seconds they imply.
 
     Used to check a transcription against the recording it came from. A score whose
@@ -82,10 +91,15 @@ SECTION_MARK = re.compile(r"^% *\S", re.M)
 def last_section_start(abc: str) -> float | None:
     """Seconds into the score where its last section begins, or None for a score of
     fewer than two sections."""
+    return _last_section_start(abc or "")
+
+
+@functools.lru_cache(maxsize=4096)
+def _last_section_start(abc: str) -> float | None:
     marks = [m.start() for m in SECTION_MARK.finditer(abc or "")]
     if len(marks) < 2:
         return None
-    before = estimate((abc or "")[:marks[-1]])
+    before = _estimate.__wrapped__(abc[:marks[-1]])     # the part before it, not kept: it is only asked here
     return before["seconds"] if before else None
 
 

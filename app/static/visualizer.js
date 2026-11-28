@@ -139,6 +139,7 @@
         localStorage.setItem('yue2.vis.lyrics', this.showLyrics ? '1' : '0');
         localStorage.setItem('yue2.vis.mini', this.miniEnabled ? '1' : '0');
       } catch (e) { /* ignore */ }
+      if (this.miniEnabled) { this.startMini(); }
 
       // The page takes up a setting only when the server's value changes (adoptVisualizerSettings), so a choice made
       // here holds while its save is on the way, or if the save is refused.
@@ -2922,6 +2923,14 @@
       function loop(now) {
         // Not while the full-screen visualizer covers the player.
         if (!self.isOpen && paintDue(clock, now)) { self.renderMiniFrame(now); }
+        // Only while something plays and it is on: left running, it cleared its canvas sixty times a second with
+        // nothing playing, and the whole page was composited again every frame.  Play starts it again.
+        var audio = $('audio');
+        if (!self.miniEnabled || !audio || audio.paused || audio.ended) {
+          self.renderMiniFrame(now);      // cleared, once
+          self.miniAnimId = null;
+          return;
+        }
         self.miniAnimId = requestAnimationFrame(loop);
       }
       this.miniAnimId = requestAnimationFrame(loop);

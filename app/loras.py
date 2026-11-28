@@ -17,8 +17,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import shutil
+import stat
 import struct
 import time
 import zipfile
@@ -782,20 +784,22 @@ def describe(name: str, root: Path | None) -> dict:
     if not root:
         return entry
     path = root / name
-    if not path.is_file():
-        return entry
-
-    cache_key = None
+    # One look at the file and one at its notes: the state poll asks this of every LoRA every two seconds, and
+    # is_file, stat and is_file again on each was four or five calls to the disk apiece.
     try:
-        mtime = path.stat().st_mtime_ns
-        sidecar = path.with_suffix(".txt")
-        sidecar_mtime = sidecar.stat().st_mtime_ns if sidecar.is_file() else 0
-        cache_key = (str(path), mtime, sidecar_mtime)
-        cached = _DESCRIBE_CACHE.get(cache_key)
-        if cached is not None:
-            return dict(cached)
+        found = os.stat(path)
     except OSError:
-        pass
+        return entry
+    if not stat.S_ISREG(found.st_mode):
+        return entry
+    try:
+        sidecar_mtime = os.stat(os.path.splitext(path)[0] + ".txt").st_mtime_ns
+    except OSError:
+        sidecar_mtime = 0
+    cache_key = (str(path), found.st_mtime_ns, sidecar_mtime)
+    cached = _DESCRIBE_CACHE.get(cache_key)
+    if cached is not None:
+        return dict(cached)
 
     try:
         entry["kind"] = kind_of(names_in(path))

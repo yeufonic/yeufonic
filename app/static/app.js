@@ -424,7 +424,12 @@ function paintStalePage(assets) {
 
 async function pollState() {
   try {
-    var data = await api('/api/state');
+    // The tags of the options and settings this page holds: while they are unchanged the server leaves them out
+    // (null), and they were most of every two-second answer (the LoRA catalogue with every learned style).
+    var data = await api('/api/state?options_tag=' + encodeURIComponent(State.optionsTag || '') +
+                         '&settings_tag=' + encodeURIComponent(State.settingsTag || ''));
+    if (data.options) { State.optionsTag = data.options_tag || ''; } else if (data.options === null && State.options) { data.options = State.options; }
+    if (data.settings) { State.settingsTag = data.settings_tag || ''; } else if (data.settings === null && State.settingSpec) { data.settings = State.settingSpec; }
     try { paintStalePage(data.assets); } catch (e) {}
     State.pictures = Boolean(data.pictures);
     // Made when asked for, whether or not each new take gets one by itself (a server from before says only that).
@@ -5093,11 +5098,19 @@ async function pollCorpora() {
   }
   var progress = {};
   for (var i = 0; i < IDENTITIES_LIST.length; i++) {
-    var id = IDENTITIES_LIST[i].id;
+    var item = IDENTITIES_LIST[i];
+    var id = item.id;
+    if (item.progress) {
+      // The list says how far each corpus has got: no need to fetch them whole, every song of every corpus.
+      progress[id] = { id: id, name: item.name, done: item.progress.done, total: item.progress.total,
+                       failed: item.progress.failed, started: item.progress.started, busy: item.progress.busy };
+      if (item.progress.busy) { busy = true; }
+      continue;
+    }
     try {
-      var detail = await api('/api/identities/' + id);
+      var detail = await api('/api/identities/' + id);   // a server from before the list carried progress
       progress[id] = corpusProgressOf(detail);
-      IDENTITIES_LIST[i] = detail;      // the list route carries no progress
+      IDENTITIES_LIST[i] = detail;
       if (detail.busy) { busy = true; }
     } catch (err) { /* leave this one out rather than lie about it */ }
   }
@@ -6067,6 +6080,7 @@ function adoptVisualizerSettings() {
   if (fresh('mini') && vis.miniEnabled !== wanted.mini) {
     vis.miniEnabled = wanted.mini;
     changed = true;
+    if (wanted.mini && typeof vis.startMini === 'function') { vis.startMini(); }   // its loop runs only while on
   }
   if (fresh('art') && vis.artMode !== wanted.art) {
     vis.artMode = wanted.art;
@@ -13851,7 +13865,7 @@ function paintTakes() {
     // The take's picture, made while it rendered, lies faintly behind the card.
     // The playing take's edge pulses on its beat, from its score's tempo, in step with where the song is.
     var beat = State.playing === take.id ? takeBeat(take) : null;
-    var looks = (take.art ? '--take-art: url(&quot;' + esc(take.art) + '&quot;);' : '') + (beat ? beatStyle(beat) : '');
+    var looks = (take.art ? '--take-art: url(&quot;' + esc(artThumb(take.art)) + '&quot;);' : '') + (beat ? beatStyle(beat) : '');
     if (beat) { classes += ' on-beat'; }
     var art = looks ? ' style="' + looks + '"' : '';
     var hasArt = Boolean(take.art);
@@ -14035,12 +14049,19 @@ function togglePlay(id) {
   playTake(id);
 }
 
+/* The small copy of a take's picture, for the faint backgrounds and the little cover: the picture itself is a
+   megabyte or more, and a page of cards fetched every one whole.  A server from before sends the picture. */
+function artThumb(url) {
+  if (!url || url.indexOf('/art.png') < 0 || url.indexOf('drawn') >= 0) { return url || ''; }
+  return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'thumb=1';
+}
+
 function paintNpCover(take) {
   var el = $('np-cover');
   if (!el) { return; }
   el.className = 'np-cover ' + ({ song: 'grad-song', instrumental: 'grad-inst' }[(take && take.kind) || ''] || 'grad-cover');
   if (take && take.art) {
-    var bg = 'url("' + take.art.replace(/"/g, '') + '")';
+    var bg = 'url("' + artThumb(take.art).replace(/"/g, '') + '")';
     if (el.style.backgroundImage !== bg) {
       el.style.backgroundImage = bg;
       el.style.backgroundSize = 'cover';
@@ -14708,7 +14729,7 @@ function paintEdPicture() {
     var art = editorOpen() && take && take.art ? take.art : '';
     box.classList.toggle('with-art', Boolean(art));
     if (art) {
-      if (box.style.setProperty) { box.style.setProperty('--take-art', 'url("' + art.replace(/"/g, '') + '")'); }
+      if (box.style.setProperty) { box.style.setProperty('--take-art', 'url("' + artThumb(art).replace(/"/g, '') + '")'); }
     } else {
       if (box.style.removeProperty) { box.style.removeProperty('--take-art'); }
     }
@@ -15198,7 +15219,7 @@ async function paintPictureMenu(takeId) {
   var note = making ? ART_STATES[art.state]
     : art.state === 'failed' ? t('The last try failed: {value}', { value: tr(art.error) || t('no reason given') })
     : art.plain ? t('This take has the default background.') : (art.has ? '' : (shown || t('No picture yet.')));
-  menu.innerHTML = ((take.art ? '<img class="ed-picture-thumb" src="' + esc(take.art) + '" alt="' + t('The take\'s picture') + '" title="' + t('Show the whole picture') + '" role="button" tabindex="0">' : '') +
+  menu.innerHTML = ((take.art ? '<img class="ed-picture-thumb" src="' + esc(artThumb(take.art)) + '" alt="' + t('The take\'s picture') + '" title="' + t('Show the whole picture') + '" role="button" tabindex="0">' : '') +
     (note ? '<p class="ed-picture-note' + (art.state === 'failed' ? ' bad' : '') + '">' + esc(note) + '</p>' : '')) +
     '<button type="button" role="menuitem" data-pic="make"' + (making || !State.canDraw ? ' disabled' : '') + '>' + t('Make a new picture') + '</button>' +
     '<button type="button" role="menuitem" data-pic="make-own"' + (making || !State.canDraw ? ' disabled' : '') + '>' + t('Make a new picture with a new prompt') + '</button>' +
@@ -18308,7 +18329,7 @@ function paintSheet() {
   if (panel) {
     panel.classList.toggle('with-art', Boolean(art));
     if (art) {
-      if (panel.style.setProperty) { panel.style.setProperty('--take-art', 'url("' + art.replace(/"/g, '') + '")'); }
+      if (panel.style.setProperty) { panel.style.setProperty('--take-art', 'url("' + artThumb(art).replace(/"/g, '') + '")'); }
     } else {
       if (panel.style.removeProperty) { panel.style.removeProperty('--take-art'); }
     }
@@ -18800,7 +18821,7 @@ function paintActivePlaylist() {
     var kindClass = take.kind ? ' type-' + take.kind : '';
 
     var artHtml = take.art
-      ? '<img class="row-thumb-img" src="' + esc(take.art) + '" alt="">'
+      ? '<img class="row-thumb-img" src="' + esc(artThumb(take.art)) + '" alt="">'
       : '<div class="row-thumb-fallback">' + icon('score') + '</div>';
 
     var playOverlay =
