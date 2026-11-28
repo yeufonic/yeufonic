@@ -62,6 +62,8 @@ if sys.platform == "darwin":
     # to one thread.
     os.environ.setdefault("OMP_NUM_THREADS", "1")
 
+# Conversions run in this process (see sing_here); VOICE_WARM=0 runs them as scripts, as before.
+WARM_CONVERT = os.environ.get("VOICE_WARM", "1").strip().lower() not in ("0", "no", "off", "false")
 JOBS: dict[str, dict] = {}
 LOCK = threading.Lock()                  # one GPU job at a time: a training run or a conversion
 RUNNING: dict = {}                       # the step under way, so a stop can end it: {"job": id, "proc": Popen}
@@ -141,6 +143,11 @@ def separate(source: Path, out_dir: Path) -> tuple[Path, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     run(["-m", "tools.pymss.cli", "infer", "--model-dir", str(ASSETS / "pymss"), "-i", str(source), "-o", str(out_dir),
          "--device", DEVICE, "--format", "flac", "--flac-bit-depth", "PCM_24", SEPARATOR])
+    return _separated(source, out_dir)
+
+
+def _separated(source: Path, out_dir: Path) -> tuple[Path, Path]:
+    """The vocal and the rest the separator wrote for `source`."""
     stem = source.stem
     vocals = next(iter(glob.glob(str(out_dir / f"{glob.escape(stem)}_Vocals.flac"))), None)
     rest = next(iter(glob.glob(str(out_dir / f"{glob.escape(stem)}_Instrumental.flac"))), None)
@@ -606,8 +613,8 @@ def blend(original: Path, sung: Path, wet: float) -> None:
 
 
 # ---------------------------------------------------------------- auditions
-# A voice heard on a short loop while its settings change.  A conversion run as a script loads RVC and its models
-# every time (seconds); an audition keeps them loaded here, and keeps what does not depend on the settings: the
+# A voice heard on a short loop while its settings change.  RVC and its models are loaded here, in this process
+# (as a take's conversion now loads them too, see sing_here), and an audition keeps them loaded, and keeps what does not depend on the settings: the
 # loop's pitch (RMVPE) and its sound features (HuBERT) are worked out once and reused, so a change of octave,
 # likeness or protect runs only the index blend and the synthesis.  It holds about a gigabyte of the card, so it
 # is let go when the app starts other GPU work (/audition/free), when this service trains or converts, and after
@@ -691,6 +698,28 @@ def _audition_idle() -> None:
                 LOCK.release()
 
 
+def _voice_loaded(voice: str) -> bool:
+    """`voice` loaded in RVC in this process, with the two analyses remembered (see _audition_setup); True when it had
+    to be loaded now."""
+    _audition_setup()
+    if AUDITION.get("voice") == voice and AUDITION.get("vc") is not None:
+        return False
+    audition_free()
+    from configs.config import Config  # noqa: PLC0415
+    from infer.vc.modules import VC  # noqa: PLC0415
+
+    argv, sys.argv = sys.argv, [sys.argv[0]]     # RVC's Config reads the command line
+    try:
+        vc = VC(Config())
+    finally:
+        sys.argv = argv
+    folder = VOICES / voice
+    os.environ["weight_root"] = str(folder)
+    vc.get_vc("model.pth")
+    AUDITION.update(vc=vc, voice=voice)
+    return True
+
+
 def audition(voice: str, loop: Path, output: Path, octave: int = 0, likeness: float = 0.75, protect: float = 0.33,
              dynamics: float = 0.25, room: float = ROOM_WET, brightness: bool = True, formant: float = 1.0,
              tail_gate: str = "standard", rmvpe_thred: float = RMVPE_THRED, f0_floor: float = F0_FLOOR_HZ) -> float:
@@ -702,23 +731,9 @@ def audition(voice: str, loop: Path, output: Path, octave: int = 0, likeness: fl
     model, index = folder / "model.pth", folder / "model.index"
     if not model.exists():
         raise RuntimeError("this voice has no trained model")
-    _audition_setup()
     AUDITION["rmvpe_thred"] = max(0.01, min(0.5, float(rmvpe_thred)))
     AUDITION["f0_floor"] = max(40.0, min(300.0, float(f0_floor)))
-    if AUDITION.get("voice") != voice:
-        audition_free()
-        import sys as _sys  # noqa: PLC0415
-        from configs.config import Config  # noqa: PLC0415
-        from infer.vc.modules import VC  # noqa: PLC0415
-
-        argv, _sys.argv = _sys.argv, [_sys.argv[0]]     # RVC's Config reads the command line
-        try:
-            vc = VC(Config())
-        finally:
-            _sys.argv = argv
-        os.environ["weight_root"] = str(folder)
-        vc.get_vc(model.name)
-        AUDITION.update(vc=vc, voice=voice)
+    if _voice_loaded(voice):
         print(f"[{voice}] audition: voice loaded in {time.time() - started:.1f} s", flush=True)
     vc = AUDITION["vc"]
     status, result = vc.vc_single(0, str(loop), 12 * int(octave), "rmvpe", str(index) if index.exists() else "",
@@ -748,6 +763,104 @@ def audition(voice: str, loop: Path, output: Path, octave: int = 0, likeness: fl
     return time.time() - started
 
 
+# ---------------------------------------------------------------- conversions, warm
+# A take's conversion separates its vocal and sings it in the voice.  Each of the two used to run as a script of its
+# own, a new Python that imported PyTorch, started CUDA and loaded its model every time: about ten seconds of every
+# take before any audio was worked on.  They run here now, in this process, which stays warm between takes: the
+# separator's model waits on the CPU (so the card is the engine's between takes, as it was) and moves to the card for
+# the separation; the voice is loaded as an audition loads it and let go afterwards, as before.  A failure here falls
+# back to the scripts, which were the only way until now.
+WARM: dict = {}              # "separator": pymss's MSSeparator, its model on the CPU between takes
+
+
+def _separator():
+    found = WARM.get("separator")
+    if found is None:
+        if str(RVC) not in sys.path:
+            sys.path.insert(0, str(RVC))
+        os.chdir(RVC)
+        from tools.pymss.logger import get_separation_logger  # noqa: PLC0415
+        from tools.pymss.model_registry import create_separator  # noqa: PLC0415
+
+        # What `tools.pymss.cli infer ... --format flac --flac-bit-depth PCM_24` builds (separate()'s command line).
+        found = create_separator(SEPARATOR, model_dir=str(ASSETS / "pymss"), device=DEVICE, device_ids=[0],
+                                 output_format="flac",
+                                 audio_params={"wav_bit_depth": "FLOAT", "flac_bit_depth": "PCM_24", "mp3_bit_rate": "320k",
+                                               "m4a_bit_rate": "512k", "m4a_aac_at_quality": 2},
+                                 use_tta=False, store_dirs="results", save_as_folder=False,
+                                 logger=get_separation_logger(), debug=False, progress_callback=None, inference_params={})
+        found.model.to("cpu")
+        found._restore_cudnn_benchmark()
+        WARM["separator"] = found
+    return found
+
+
+def _warm_up() -> None:
+    """RVC's and the separator's code imported as the service starts, rather than in the first take's conversion: most
+    of a quarter of a minute, once.  Nothing is loaded on the card; importing RVC's settings does start CUDA, which a
+    conversion or an audition would do anyway."""
+    try:
+        _audition_setup()
+        from configs.config import Config  # noqa: F401,PLC0415
+        from infer.vc.modules import VC  # noqa: F401,PLC0415
+        from tools.pymss.model_registry import create_separator  # noqa: F401,PLC0415
+    except Exception as exc:  # noqa: BLE001 - the first take imports them instead
+        print(f"warming up: {exc}", flush=True)
+
+
+def separate_here(source: Path, out_dir: Path) -> tuple[Path, Path]:
+    """separate(), in this process: the separator's model to the card, the recording split, the model back."""
+    import torch  # noqa: PLC0415
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    found = _separator()
+    found.store_dirs = {name: str(out_dir) for name in found.config.training.instruments}
+    benchmark = torch.backends.cudnn.benchmark
+    try:
+        found.model.to(found.device)
+        torch.backends.cudnn.benchmark = True            # as the separator runs itself
+        found.process_folder(str(source))
+    finally:
+        torch.backends.cudnn.benchmark = benchmark       # not left on for RVC, whose shapes vary
+        found.model.to("cpu")
+        _drop_device_caches(found.model)
+        found.del_cache()
+    return _separated(source, out_dir)
+
+
+def _drop_device_caches(model) -> None:
+    """The separator's model keeps copies of its weights made for the card (packed per device and type, in dicts
+    named *_cache) that moving it to the CPU does not move: emptied, so the card holds none of it between takes.
+    They are made again, quickly, on the next separation."""
+    for module in model.modules():
+        for name, value in list(vars(module).items()):
+            if name.endswith("_cache") and isinstance(value, dict):
+                value.clear()
+            elif name.endswith("_cache") and value is not None and not callable(value):
+                setattr(module, name, None)
+
+
+def sing_here(voice: str, vocals: Path, sung: Path, octave: int, likeness: float, protect: float, dynamics: float,
+              rmvpe_thred: float, f0_floor: float) -> None:
+    """RVC's command line (_run_rvc_infer), in this process: the same model, index, pitch tracker and settings,
+    rounded as the command line passed them."""
+    import soundfile  # noqa: PLC0415
+
+    folder = VOICES / voice
+    index = folder / "model.index"
+    rate = round(min(1.0, max(0.0, likeness)), 2)
+    _voice_loaded(voice)
+    AUDITION["rmvpe_thred"] = round(max(0.01, min(0.5, float(rmvpe_thred))), 3)
+    AUDITION["f0_floor"] = round(max(40.0, min(300.0, float(f0_floor))), 1)
+    status, result = AUDITION["vc"].vc_single(0, str(vocals), 12 * int(octave), "rmvpe",
+                                              str(index) if index.exists() and rate > 0 else "", rate, 0,
+                                              round(min(1.0, max(0.0, dynamics)), 2),
+                                              round(min(0.5, max(0.0, protect)), 2))
+    if not result or result[0] is None or result[1] is None:
+        raise RuntimeError(f"the conversion failed: {status[-300:]}")
+    soundfile.write(str(sung), result[1], result[0])
+
+
 def convert(voice: str, source: Path, output: Path, octave: int, level_db: float = 0.0, likeness: float = 0.75,
             backing_db: float = 0.0, parts: Path | None = None, room: float = ROOM_WET, brightness: bool = True,
             protect: float = 0.33, dynamics: float = 0.25, formant: float = 1.0, wet: float = 1.0,
@@ -762,20 +875,38 @@ def convert(voice: str, source: Path, output: Path, octave: int, level_db: float
     use_thred = max(0.01, min(0.5, float(rmvpe_thred)))
     use_floor = max(40.0, min(300.0, float(f0_floor)))
     work = Path(tempfile.mkdtemp(prefix="convert-", dir=str(VOICES)))
+    started = time.time()
     try:
-        vocals, rest = separate(source, work / "sep")
+        try:
+            vocals, rest = separate_here(source, work / "sep") if WARM_CONVERT else separate(source, work / "sep")
+        except Exception as exc:  # noqa: BLE001 - the script, as before
+            print(f"[{voice}] separating here failed ({exc}); running the separator as a script", flush=True)
+            shutil.rmtree(work / "sep", ignore_errors=True)
+            vocals, rest = separate(source, work / "sep")
+        separated = time.time()
         clean_vocals = work / "vocals_clean.wav"
         prepare_for_rvc(vocals, clean_vocals, tail_gate=tail_gate)
         sung = work / "sung.wav"
-        run([str(Path(__file__).resolve()), "--rvc-infer",
-             "--rmvpe-thred", f"{use_thred:.3f}", "--f0-floor", f"{use_floor:.1f}",
-             "--model", str(model), "--input", str(clean_vocals),
-             "--output", str(sung), "--format", "wav", "--f0-method", "rmvpe", "--pitch", str(12 * int(octave)),
-             *(["--index", str(index)] if index.exists() else []),
-             "--index-rate", f"{min(1.0, max(0.0, likeness)):.2f}", "--protect", f"{min(0.5, max(0.0, protect)):.2f}",
-             "--rms-mix-rate", f"{min(1.0, max(0.0, dynamics)):.2f}", "--overwrite"])
+        try:
+            if not WARM_CONVERT:
+                raise RuntimeError("off")
+            sing_here(voice, clean_vocals, sung, octave, likeness, protect, dynamics, use_thred, use_floor)
+        except Exception as exc:  # noqa: BLE001 - the script, as before
+            if WARM_CONVERT:
+                print(f"[{voice}] singing here failed ({exc}); running RVC as a script", flush=True)
+            sung.unlink(missing_ok=True)
+            run([str(Path(__file__).resolve()), "--rvc-infer",
+                 "--rmvpe-thred", f"{use_thred:.3f}", "--f0-floor", f"{use_floor:.1f}",
+                 "--model", str(model), "--input", str(clean_vocals),
+                 "--output", str(sung), "--format", "wav", "--f0-method", "rmvpe", "--pitch", str(12 * int(octave)),
+                 *(["--index", str(index)] if index.exists() else []),
+                 "--index-rate", f"{min(1.0, max(0.0, likeness)):.2f}", "--protect", f"{min(0.5, max(0.0, protect)):.2f}",
+                 "--rms-mix-rate", f"{min(1.0, max(0.0, dynamics)):.2f}", "--overwrite"])
+        finally:
+            audition_free()      # the voice off the card: the app's next job is the engine's
         if not sung.exists():
             raise RuntimeError("the conversion wrote nothing")
+        print(f"[{voice}] separated in {separated - started:.1f} s, sung in {time.time() - separated:.1f} s", flush=True)
         gate_to_source(vocals, sung, tail_gate=tail_gate)
         print(f"[{voice}] cleanup: gate={tail_gate}, rmvpe_thred={use_thred:.2f}, f0_floor={use_floor:.0f} Hz", flush=True)
         shift_formants(sung, formant)
@@ -964,5 +1095,7 @@ if __name__ == "__main__":
     VOICES.mkdir(parents=True, exist_ok=True)
     BATCH = batch_size()
     threading.Thread(target=_audition_idle, daemon=True).start()
+    if WARM_CONVERT:
+        threading.Thread(target=_warm_up, daemon=True).start()
     print(f"voice service on {HOST}:{PORT}; batch {BATCH}; models:", needed(), flush=True)
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

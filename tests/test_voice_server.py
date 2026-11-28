@@ -199,3 +199,85 @@ def test_prepare_for_rvc_and_gate_to_source_silence_phrase_tails_without_cutting
     gated, _ = soundfile.read(str(sung_path), dtype="float32")
     assert float(np.sqrt(np.mean(gated[:rate] ** 2))) > 0.22
     assert float(np.sqrt(np.mean(gated[rate + rate // 3:] ** 2))) < 0.003
+
+
+def _convert_fakes(server, monkeypatch, tmp_path, warm_fails=False):
+    """A conversion with every heavy step stood in: what ran, warm (in the service) or as a script."""
+    np = pytest.importorskip("numpy")
+    sf = pytest.importorskip("soundfile")
+    voice = server.VOICES / "v1"
+    voice.mkdir(parents=True)
+    (voice / "model.pth").write_bytes(b"x")
+    ran = []
+
+    def fake_separated(source, out_dir):
+        out_dir.mkdir(parents=True, exist_ok=True)
+        tone = (0.1 * np.sin(np.arange(44100) / 10)).astype("float32")
+        for name in ("Vocals", "Instrumental"):
+            sf.write(str(out_dir / f"{source.stem}_{name}.flac"), np.stack([tone, tone], 1), 44100)
+        return server._separated(source, out_dir)
+
+    def separate_here(source, out_dir):
+        ran.append("separate here")
+        if warm_fails:
+            raise RuntimeError("no card")
+        return fake_separated(source, out_dir)
+
+    def separate(source, out_dir):
+        ran.append("separate script")
+        return fake_separated(source, out_dir)
+
+    def sing_here(voice_id, vocals, sung, *args):
+        ran.append("sing here")
+        if warm_fails:
+            raise RuntimeError("no card")
+        sf.write(str(sung), sf.read(str(vocals))[0], 44100)
+
+    def run(args, job=None, log=None):
+        ran.append("sing script")
+        out = pathlib.Path(args[args.index("--output") + 1])
+        sf.write(str(out), sf.read(args[args.index("--input") + 1])[0], 44100)
+
+    monkeypatch.setattr(server, "separate_here", separate_here)
+    monkeypatch.setattr(server, "separate", separate)
+    monkeypatch.setattr(server, "sing_here", sing_here)
+    monkeypatch.setattr(server, "run", run)
+    monkeypatch.setattr(server, "prepare_for_rvc", lambda vocals, dest, tail_gate="standard": __import__("shutil").copy(vocals, dest))
+    for name in ("gate_to_source", "shift_formants", "settle", "blend"):
+        monkeypatch.setattr(server, name, lambda *a, **k: None)
+    monkeypatch.setattr(server, "audition_free", lambda: ran.append("let go"))
+    source = tmp_path / "take.flac"
+    sf.write(str(source), np.zeros((44100, 2), "float32"), 44100)
+    server.convert("v1", source, tmp_path / "out.flac", 0)
+    assert (tmp_path / "out.flac").exists()
+    return ran
+
+
+def test_a_conversion_runs_in_the_service_and_lets_go_of_the_voice(server, monkeypatch, tmp_path):
+    monkeypatch.setattr(server, "WARM_CONVERT", True)
+    assert _convert_fakes(server, monkeypatch, tmp_path) == ["separate here", "sing here", "let go"]
+
+
+def test_a_conversion_that_fails_in_the_service_runs_as_scripts(server, monkeypatch, tmp_path):
+    monkeypatch.setattr(server, "WARM_CONVERT", True)
+    ran = _convert_fakes(server, monkeypatch, tmp_path, warm_fails=True)
+    assert ran == ["separate here", "separate script", "sing here", "sing script", "let go"]
+
+
+def test_voice_warm_off_runs_the_scripts_as_before(server, monkeypatch, tmp_path):
+    monkeypatch.setattr(server, "WARM_CONVERT", False)
+    assert _convert_fakes(server, monkeypatch, tmp_path) == ["separate script", "sing script", "let go"]
+
+
+def test_the_separators_card_copies_are_emptied(server):
+    class Module:
+        def __init__(self):
+            self._group_cache = {"cuda": 1}
+            self._band_layers_cache = [1]
+            self.keep = {"a": 1}
+
+        def modules(self):
+            return [self]
+    model = Module()
+    server._drop_device_caches(model)
+    assert model._group_cache == {} and model._band_layers_cache is None and model.keep == {"a": 1}
