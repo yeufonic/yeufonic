@@ -2328,7 +2328,7 @@
  "Sync": "同步",
  "Up to {max} Parts per roll.": "每次 Roll 最多 {max} 個元素。",
  "Lyrics for next roll": "下一次試聽的歌詞",
- "New words will not fit the melody Roll keeps: rolled with Roll they will most likely be sung as nonsense. Use Plan & Roll, which writes a melody for them.": "新歌詞與 Roll 保留的旋律不相符：用 Roll 很可能會唱成無意義的內容。請使用 Plan & Roll，它會為新歌詞寫旋律。",
+ "New words may not fit the melody Roll keeps and can come out garbled. If they do, use Plan & Roll, which writes a melody for them.": "新歌詞可能與 Roll 保留的旋律不相符，唱出來會含糊不清。如果這樣，請使用 Plan & Roll，它會為新歌詞寫旋律。",
  "Could not delete the pass: {message}": "無法刪除這一輪：{message}",
  "Surfaces & Chrome": "介面與背景層",
  "Page background": "頁面背景",

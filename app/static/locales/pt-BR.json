@@ -2328,7 +2328,7 @@
  "Sync": "Sincronizar",
  "Up to {max} Parts per roll.": "No máximo {max} elementos por Roll.",
  "Lyrics for next roll": "Letra para o próximo pass",
- "New words will not fit the melody Roll keeps: rolled with Roll they will most likely be sung as nonsense. Use Plan & Roll, which writes a melody for them.": "Uma letra nova não se encaixa na melodia que o Roll mantém: com Roll ela provavelmente será cantada como algo sem sentido. Use Plan & Roll, que escreve uma melodia para ela.",
+ "New words may not fit the melody Roll keeps and can come out garbled. If they do, use Plan & Roll, which writes a melody for them.": "Uma letra nova pode não se encaixar na melodia que o Roll mantém e sair truncada. Se isso acontecer, use Plan & Roll, que escreve uma melodia para ela.",
  "Could not delete the pass: {message}": "Não foi possível excluir a passagem: {message}",
  "Surfaces & Chrome": "Superfícies e moldura",
  "Page background": "Fundo da página",

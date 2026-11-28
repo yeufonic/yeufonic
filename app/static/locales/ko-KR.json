@@ -2328,7 +2328,7 @@
  "Sync": "동기화",
  "Up to {max} Parts per roll.": "Roll당 파트는 최대 {max}개입니다.",
  "Lyrics for next roll": "다음 롤의 가사",
- "New words will not fit the melody Roll keeps: rolled with Roll they will most likely be sung as nonsense. Use Plan & Roll, which writes a melody for them.": "새 가사는 Roll이 유지하는 멜로디에 맞지 않습니다. Roll로는 의미 없는 노래가 될 가능성이 큽니다. 가사에 맞는 멜로디를 쓰는 Plan & Roll을 사용하세요.",
+ "New words may not fit the melody Roll keeps and can come out garbled. If they do, use Plan & Roll, which writes a melody for them.": "새 가사는 Roll이 유지하는 멜로디에 맞지 않아 뭉개져 나올 수 있습니다. 그럴 때는 가사에 맞는 멜로디를 쓰는 Plan & Roll을 사용하세요.",
  "Could not delete the pass: {message}": "패스를 삭제하지 못했습니다: {message}",
  "Surfaces & Chrome": "배경 및 패널",
  "Page background": "페이지 배경",

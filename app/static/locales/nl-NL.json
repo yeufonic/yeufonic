@@ -2328,7 +2328,7 @@
  "Sync": "Sync",
  "Up to {max} Parts per roll.": "Maximaal {max} onderdelen per roll.",
  "Lyrics for next roll": "Songtekst voor de volgende pass",
- "New words will not fit the melody Roll keeps: rolled with Roll they will most likely be sung as nonsense. Use Plan & Roll, which writes a melody for them.": "Nieuwe woorden passen niet bij de melodie die Roll houdt: met Roll worden ze waarschijnlijk als onzin gezongen. Gebruik Plan & Roll, dat er een melodie voor schrijft.",
+ "New words may not fit the melody Roll keeps and can come out garbled. If they do, use Plan & Roll, which writes a melody for them.": "Nieuwe woorden passen misschien niet bij de melodie die Roll houdt en kunnen verminkt klinken. Gebeurt dat, gebruik dan Plan & Roll, dat er een melodie voor schrijft.",
  "Could not delete the pass: {message}": "De ronde kon niet worden verwijderd: {message}",
  "Surfaces & Chrome": "Oppervlakken & kader",
  "Page background": "Pagina-achtergrond",

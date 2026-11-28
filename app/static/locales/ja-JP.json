@@ -2328,7 +2328,7 @@
  "Sync": "同期",
  "Up to {max} Parts per roll.": "Roll ごとのパーツは {max} 個まで。",
  "Lyrics for next roll": "次のロール用の歌詞",
- "New words will not fit the melody Roll keeps: rolled with Roll they will most likely be sung as nonsense. Use Plan & Roll, which writes a melody for them.": "新しい歌詞は Roll が保つメロディーに合いません。Roll では意味不明な歌になる可能性が高いので、歌詞に合うメロディーを書く Plan & Roll を使ってください。",
+ "New words may not fit the melody Roll keeps and can come out garbled. If they do, use Plan & Roll, which writes a melody for them.": "新しい歌詞は Roll が保つメロディーに合わず、崩れて聞こえることがあります。その場合は、歌詞に合うメロディーを書く Plan & Roll を使ってください。",
  "Could not delete the pass: {message}": "パスを削除できませんでした: {message}",
  "Surfaces & Chrome": "サーフェスと枠",
  "Page background": "ページ背景",

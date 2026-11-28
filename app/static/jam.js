@@ -2856,7 +2856,7 @@
           // Write lyrics, as in the editor: a whole new set of words for this Jam's next rolls.  New words do not fit
           // the Seed's melody, which Roll keeps, so the window says to use Plan & Roll.
           write: {
-            caution: t('New words will not fit the melody Roll keeps: rolled with Roll they will most likely be sung as nonsense. Use Plan & Roll, which writes a melody for them.'),
+            caution: t('New words may not fit the melody Roll keeps and can come out garbled. If they do, use Plan & Roll, which writes a melody for them.'),
             getExisting: function () { var big = document.getElementById('lyrics-big'); return big ? big.value : (JamState.lyrics || ''); },
             getStyle: function () { return compileStyle(cloneSnapshot()); },
             // The sections of the words in the box; with none, an instrumental Seed's own sections.

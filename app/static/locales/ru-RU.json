@@ -2328,7 +2328,7 @@
  "Sync": "Синхр.",
  "Up to {max} Parts per roll.": "Не больше {max} элементов на Roll.",
  "Lyrics for next roll": "Текст для следующего прохода",
- "New words will not fit the melody Roll keeps: rolled with Roll they will most likely be sung as nonsense. Use Plan & Roll, which writes a melody for them.": "Новые слова не ложатся на мелодию, которую сохраняет Roll: с Roll их скорее всего споют как бессмыслицу. Используйте Plan & Roll — он пишет для них мелодию.",
+ "New words may not fit the melody Roll keeps and can come out garbled. If they do, use Plan & Roll, which writes a melody for them.": "Новые слова могут не лечь на мелодию, которую сохраняет Roll, и прозвучать искажённо. Тогда используйте Plan & Roll — он пишет для них мелодию.",
  "Could not delete the pass: {message}": "Не удалось удалить проход: {message}",
  "Surfaces & Chrome": "Поверхности и интерфейс",
  "Page background": "Фон страницы",
