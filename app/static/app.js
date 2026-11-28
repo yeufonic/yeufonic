@@ -13930,7 +13930,7 @@ function paintTakes() {
               ' aria-label="' + t('Normalise') + '">' + icon('level') + '</button>'
             : '') +
           (jamPasses(take.id)
-            ? '<button class="take-move jammed" data-act="jam"' + id + ' title="' + tn(jamPasses(take.id), 'Jam (J) — This take has {n} Jam pass. Open it in Jam', 'Jam (J) — This take has {n} Jam passes. Open it in Jam') + '" aria-label="' + t('Jam') + '">' +
+            ? '<button class="take-move jammed' + (jamSeedPlaying() === take.id ? ' jam-live' : '') + '" data-act="jam"' + id + ' title="' + tn(jamPasses(take.id), 'Jam (J) — This take has {n} Jam pass. Open it in Jam', 'Jam (J) — This take has {n} Jam passes. Open it in Jam') + '" aria-label="' + t('Jam') + '">' +
               '<span class="jam-j" aria-hidden="true">J</span></button>'
             : '') +
           '<button class="take-move' + (window.Rack && window.Rack.isOpen && window.Rack.currentTakeId === take.id ? ' active' : '') + (mastered ? ' mastered' : '') +
@@ -14007,14 +14007,16 @@ function beatStyle(beat) {
   var audio = $('audio');
   var rate = (audio && audio.playbackRate) || 1;
   var into = audio ? (audio.currentTime || 0) % beat : 0;
-  return '--take-beat: ' + (beat / rate).toFixed(4) + 's; animation-delay: -' + (into / rate).toFixed(4) + 's;';
+  // The delay twice: the card's own, and as a value the J of a playing Jam pass takes up, so it beats in step.
+  return '--take-beat: ' + (beat / rate).toFixed(4) + 's; animation-delay: -' + (into / rate).toFixed(4) + 's; --take-beat-at: -' + (into / rate).toFixed(4) + 's;';
 }
 
 /* Back in step when playback starts, jumps or changes speed: the pulse is set again from where the song is. */
 function keepBeat() {
   if (!State.playing) { return; }
-  var card = document.querySelector('.take.on-beat[data-id="' + State.playing + '"]');
-  var take = card && takeById(State.playing);
+  var shown = jamSeedPlaying() || State.playing;     // a Jam pass beats on its Seed's card
+  var card = document.querySelector('.take.on-beat[data-id="' + shown + '"]');
+  var take = card && takeById(shown);
   var beat = take && takeBeat(take);
   if (!beat) { return; }
   var parts = beatStyle(beat).split(';');
@@ -14023,6 +14025,9 @@ function keepBeat() {
   void card.offsetWidth;                       // let the animation go, so it starts again from the delay below
   card.style.animation = '';
   card.style.animationDelay = parts[1].split(':')[1].trim();
+  card.style.setProperty('--take-beat-at', parts[1].split(':')[1].trim());
+  var j = card.querySelector('.take-move.jam-live .jam-j');
+  if (j) { j.style.animation = 'none'; void j.offsetWidth; j.style.animation = ''; }
 }
 
 function normalisedTo(take) {

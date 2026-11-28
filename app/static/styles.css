@@ -3044,6 +3044,18 @@ label .lora-value:disabled { opacity: 0.6; }
 /* A take that has a Jam: its J lit in the accent, as Mastered is lit in green. */
 .take-move.jammed, .take-move.jammed:hover { color: var(--accent-a); }
 .take-move .jam-j { font-weight: 800; font-size: 14px; line-height: 1; font-family: inherit; }
+/* A pass of this take's Jam is what plays: the J beats with the card's edge, the same green on the same beat. */
+.take-move.jam-live { color: rgb(var(--good-rgb)); }
+.take.playing.on-beat .take-move.jam-live .jam-j {
+  display: inline-block; animation: jam-j-beat var(--take-beat, 0.5s) ease-out infinite; animation-delay: var(--take-beat-at, 0s);
+}
+@keyframes jam-j-beat {
+  0%   { transform: scale(1.35); text-shadow: 0 0 8px rgb(var(--good-rgb) / 0.9); }
+  70%, 100% { transform: scale(1); text-shadow: 0 0 0 rgb(var(--good-rgb) / 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .take.playing.on-beat .take-move.jam-live .jam-j { animation: none; }
+}
 .take.holding { border-color: rgb(var(--accent-a-rgb) / 0.7); box-shadow: 0 0 0 1px rgb(var(--accent-a-rgb) / 0.35); }
 /* The panel: a row of its own under the card, whatever the columns, holding the takes as cards.  Its frame
    is drawn outside the row (the side margins take back what the padding and border add), so the cards in

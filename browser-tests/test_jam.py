@@ -77,6 +77,7 @@ def test_a_pass_is_rolled_built_on_and_kept_out_of_the_library(page, app_server)
     assert min(handed["pos"]) > 0.8, handed["pos"][:5]          # no moment of the song's start
     # The pass is not in the library, so its Seed's card is the one that shows it playing.
     assert page.locator(f'article.take.playing[data-id="{made["id"]}"]').count() == 1
+    assert page.locator(f'article.take[data-id="{made["id"]}"] .take-move.jam-live').count() == 1    # and its J
     open_jam(page, made["id"])
     page.wait_for_selector('.jam-sync-btn.on')
     page.wait_for_function("() => document.getElementById('audio').paused", timeout=10000)
