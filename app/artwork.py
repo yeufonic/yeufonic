@@ -10,6 +10,7 @@ import random
 import logging
 import re
 import struct
+import threading
 import time
 import zlib
 from pathlib import Path
@@ -1213,7 +1214,7 @@ def thumbnail(take_id: str) -> tuple[Path, str] | None:
             data = b""
         if not data:
             data, kind = png_bytes(small), "image/png"
-        part = thumb.with_name(thumb.name + f".{os.getpid()}.part")
+        part = thumb.with_name(thumb.name + f".{os.getpid()}.{threading.get_ident()}.part")   # two asking at once
         part.write_bytes(data)
         os.replace(part, thumb)
         return thumb, kind
