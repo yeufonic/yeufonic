@@ -44,6 +44,7 @@ STAGE_LABELS = {
     "KSampler": "Rendering audio",
     "VAEDecodeAudio": "Decoding audio",
     "VAEDecodeAudioTiled": "Decoding audio",
+    "Yue2VAEDecodeAudioTiled": "Decoding audio",
     "Yue2PeakGuard": "Levelling",
     "SaveAudioAdvanced": "Saving",
     "CLIPLoader": "Loading the lyric writer",
@@ -88,6 +89,7 @@ STAGE_WEIGHT = {
     "KSampler": 48,
     "VAEDecodeAudio": 8,
     "VAEDecodeAudioTiled": 8,
+    "Yue2VAEDecodeAudioTiled": 8,
     "SaveAudioAdvanced": 3,
     "CLIPLoader": 2,
     "TextGenerate": 20,
@@ -474,6 +476,8 @@ class Engine:
                         "cfg": "cfg_scale" in (((info.get("YuE2GenerateMusic") or {}).get("input") or {}).get("optional") or {}),
                         # Optional too: an engine from before it saves renders as they were.
                         "peak_guard": "Yue2PeakGuard" in info,
+                        # The tiled audio decode without ComfyUI's slow tile blending; without it, ComfyUI's own.
+                        "quick_vae": "Yue2VAEDecodeAudioTiled" in info,
                         # And this one: an engine built without Demucs leaves separation to the app's CPU.
                         "separate": "Yue2Separate" in info,
                         "hear": "Yue2Hear" in info,

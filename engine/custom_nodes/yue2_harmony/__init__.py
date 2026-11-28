@@ -577,6 +577,15 @@ NODE_CLASS_MAPPINGS = {"YuE2GenerateABCHarmony": YuE2GenerateABCHarmony, "Yue2Pe
 NODE_DISPLAY_NAME_MAPPINGS = {"YuE2GenerateABCHarmony": "YuE2 Generate ABC (harmony)",
                               "Yue2PeakGuard": "Yeufonic peak guard"}
 
+# The audio VAE's tiled decode without seconds of mask building per tile (vae.py).  Never at the cost of the rest.
+try:
+    from .vae import Yue2VAEDecodeAudioTiled
+
+    NODE_CLASS_MAPPINGS["Yue2VAEDecodeAudioTiled"] = Yue2VAEDecodeAudioTiled
+    NODE_DISPLAY_NAME_MAPPINGS["Yue2VAEDecodeAudioTiled"] = "Yeufonic VAE decode audio (tiled)"
+except Exception:  # noqa: BLE001
+    pass
+
 # Stem separation needs demucs, which an engine built before it was added does not have: the node
 # is simply not there then, and the app uses its own CPU separation.
 try:
