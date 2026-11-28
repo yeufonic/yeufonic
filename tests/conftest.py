@@ -61,14 +61,15 @@ def no_update_traffic(monkeypatch):
 
 @pytest.fixture
 def client(data_dir, monkeypatch):
-    """The app, with its GPU job worker held back.  A test reads the queue to see what
-    a request asked for, and a live worker races it: it took the job first whenever
-    it was free to, so such a test passed or failed by the order tests ran in."""
+    """The app, with its GPU job worker and engine status keeper held back.  A test reads
+    or stubs the queue, and a live worker or keeper races it: ENGINE.start() still checks
+    the offline engine synchronously at startup without a background poll racing tests."""
     import asyncio
     from fastapi.testclient import TestClient
     from app import jobs
     from app.main import app
     monkeypatch.setattr(jobs, "worker", lambda: asyncio.sleep(3600))
+    monkeypatch.setattr(jobs, "keeper", lambda: asyncio.sleep(3600))
 
     def empty():   # with no worker, what one test queued would be the next one's
         while not jobs.QUEUE.empty():

@@ -35,9 +35,6 @@ def test_state_lists_outside_jobs_the_current_job_and_waiting_takes(client, monk
     running = make_take(title="Harbour light", status="running")
     waiting = make_take(title="Next up", status="queued")
     cancelled = make_take(title="Cancelled", status="failed")
-    async def quiet():   # the keeper must not replace the queue mid-test
-        return None
-    monkeypatch.setattr(ENGINE, "refresh_status", quiet)
     monkeypatch.setattr(ENGINE, "client_id", "yeufonic-feedf00d")
     monkeypatch.setattr(ENGINE, "queue", [
         {"prompt_id": "x", "state": "running", "kind": "render", "client": "performance-test", "mine": False,
