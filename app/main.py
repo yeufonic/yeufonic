@@ -2157,7 +2157,7 @@ async def recorder_autotune(
     try:
         content = await audio_file.read()
         in_tmp.write_bytes(content)
-        # Imported here: it brings in PyTorch, a second of every start and some hundreds of megabytes, for a
+        # Imported here: it brings in PyTorch, slow to import and large in memory, on every start for a
         # button most sessions never press.
         from . import autotune
         stats = await asyncio.to_thread(autotune.tune_file, in_tmp, out_tmp, scale=scale, root=root, strength=strength)

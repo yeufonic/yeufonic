@@ -656,8 +656,8 @@ def build_render_graph(take: dict) -> dict:
                         strength_clip=float(take.get("style_lora_clip") or 0.0))
     if config.PEAK_GUARD and (getattr(ENGINE, "options", None) or {}).get("peak_guard"):
         with_peak_guard(graph)
-    # The same decode, the same audio, without ComfyUI's per-sample mask loop: about two seconds a tile, seven of a
-    # one-minute render (engine/custom_nodes/yue2_harmony/vae.py).  An engine without the node decodes as before.
+    # The same decode, the same audio, without ComfyUI's per-sample mask loop, which took longer than the decoding
+    # (engine/custom_nodes/yue2_harmony/vae.py).  An engine without the node decodes as before.
     if (getattr(ENGINE, "options", None) or {}).get("quick_vae"):
         graph["15"]["class_type"] = "Yue2VAEDecodeAudioTiled"
     # A persona stands in for the music node: the AR continues from the persona's own tokens and the

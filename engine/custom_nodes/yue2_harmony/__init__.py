@@ -577,7 +577,7 @@ NODE_CLASS_MAPPINGS = {"YuE2GenerateABCHarmony": YuE2GenerateABCHarmony, "Yue2Pe
 NODE_DISPLAY_NAME_MAPPINGS = {"YuE2GenerateABCHarmony": "YuE2 Generate ABC (harmony)",
                               "Yue2PeakGuard": "Yeufonic peak guard"}
 
-# The audio VAE's tiled decode without seconds of mask building per tile (vae.py).  Never at the cost of the rest.
+# The audio VAE's tiled decode without ComfyUI's slow tile blending (vae.py).  Never at the cost of the rest.
 try:
     from .vae import Yue2VAEDecodeAudioTiled
 

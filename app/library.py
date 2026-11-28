@@ -426,7 +426,7 @@ def read_flac_streaminfo(path: Path) -> FlacStreamInfo | None:
 
 def measure_r128(path: Path) -> tuple[float, float, float] | None:
     """A take's integrated loudness (LUFS) and true peak (dBTP), from ffmpeg's ebur128 filter, and how far either
-    may be off: it prints them to a tenth.  The same measures as loudnorm's first pass, about six times faster,
+    may be off: it prints them to a tenth.  The same measures as loudnorm's first pass, in a fraction of the time,
     since loudnorm resamples the whole take to 192 kHz to find them.  None when ffmpeg says nothing readable."""
     try:
         out = subprocess.run(["ffmpeg", "-v", "info", "-nostats", "-i", str(path), "-af", "ebur128=peak=true:framelog=quiet",

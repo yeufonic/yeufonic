@@ -2494,7 +2494,7 @@ label .lora-value:disabled { opacity: 0.6; }
   font-weight: 700; font-size: 15px; letter-spacing: -0.02em;
   /* No backdrop blur here, nor on .act and .row-play-circle: one on every card's tile and buttons made each its
      own compositing layer, some three hundred on a page of cards, and the page could not paint a playing take's
-     waveform at more than about twenty frames a second.  Behind them is only the card itself. */
+     waveform at the screen's own rate.  Behind them is only the card itself. */
   box-shadow: inset 0 1px 0 rgb(var(--ink) / 0.12), 0 2px 8px rgb(var(--shade) / 0.25);
   cursor: default;
   transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;

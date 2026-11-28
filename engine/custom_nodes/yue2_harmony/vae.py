@@ -2,8 +2,8 @@
 
 ComfyUI's `tiled_scale_multidim` softens each tile's edges with a mask built in a Python loop, one pass for every
 output sample of the overlap.  For a picture that is a few hundred passes; for YuE2's audio VAE, where one latent frame
-is 1920 samples, the default overlap of 64 frames is 122,880 passes for every tile, two tensor operations each: about
-two seconds a tile, seven seconds of a sixty second render spent building masks, more than the decoding itself.
+is 1920 samples, the default overlap of 64 frames is 122,880 passes for every tile, two tensor operations each: the
+mask building took longer than the decoding itself, and more the longer the song.
 
 `tiled_scale_multidim` below is ComfyUI's own (comfy/utils.py, at the commit engine/Dockerfile pins), with that loop
 replaced by two multiplications by a ramp.  The ramp's values are the loop's, (t + 1) / feather worked out in double
@@ -144,7 +144,7 @@ def _quick_tiles():
 
 
 class Yue2VAEDecodeAudioTiled:
-    """VAE Decode Audio (Tiled), the same decode and the same audio, without seconds of mask building per tile."""
+    """VAE Decode Audio (Tiled), the same decode and the same audio, without the mask building loop."""
 
     CATEGORY = "audio"
     RETURN_TYPES = ("AUDIO",)

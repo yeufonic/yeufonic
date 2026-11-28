@@ -38,7 +38,7 @@ def conn() -> sqlite3.Connection:
         current = sqlite3.connect(path, timeout=15)
         current.row_factory = sqlite3.Row
         # With the write-ahead log (migrate() turns it on) NORMAL cannot corrupt the database; it only waits for the
-        # disk at checkpoints rather than on every commit, which took about 5 ms a write here and more on Windows.
+        # disk at checkpoints rather than on every commit, which made every write wait for the disk.
         # A power cut can lose the last moments' writes; a crash of the app loses nothing.
         current.execute("PRAGMA synchronous=NORMAL")
         _local.conn = current
